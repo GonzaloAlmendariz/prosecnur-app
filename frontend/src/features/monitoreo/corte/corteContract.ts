@@ -80,9 +80,26 @@ function conteoObligatorio(value: number | null | undefined): number {
 
 export function construirCorte(input: MonitoreoCorteInput): MonitoreoCorte {
   const ingesta = conteoObligatorio(input.ingesta);
-  const procesable = conteo(input.procesable);
   const oficial = conteo(input.oficial);
   const meta = conteo(input.meta);
+
+  // Guard de coherencia del embudo.
+  //
+  // No puede haber más oficiales que procesables: el oficial es un subconjunto
+  // del procesable por definición. Cuando llega esa combinación el procesable
+  // no es un conteo, es un hueco —típicamente una columna que faltaba y se leyó
+  // como 0—, así que se declara indeterminado en vez de pintarse.
+  //
+  // Sin esto, Teléfono mostró `0 procesables → 534 efectivas` con «−1.277
+  // registros fuera del universo», acusando de descarte a todo el snapshot,
+  // mientras Modelo leía `519 → 418` del mismo corte. El guard previo era
+  // `base > oficial`, que con un procesable en 0 nunca se cumple.
+  const procesableDeclarado = conteo(input.procesable);
+  const procesable = procesableDeclarado != null
+    && oficial != null
+    && procesableDeclarado < oficial
+    ? null
+    : procesableDeclarado;
 
   const saltos: MonitoreoCorteSalto[] = [];
   if (procesable != null && ingesta > procesable) {

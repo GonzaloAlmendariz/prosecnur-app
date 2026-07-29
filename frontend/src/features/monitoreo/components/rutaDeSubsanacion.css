@@ -1,0 +1,224 @@
+/* Consultas de Acreditación: ruta de subsanación y grupos de Cruces.
+ *
+ * Se carga con el page-file (vía AcreditacionRutaDeSubsanacion), así que las
+ * reglas de Cruces también aplican aunque esa vista no importe esta hoja.
+ *
+ * Ruta de decisión de subsanación.
+ *
+ * La versión anterior repartía los tres pasos en `repeat(3, minmax(0,1fr))`
+ * dentro del panel izquierdo, y con texto real quedaban recortados
+ * ("269 acciona…", "llave y auxili…"). Aquí cada paso ocupa su fila: el texto
+ * operativo no se recorta y la cifra queda alineada a la derecha, legible
+ * como columna. */
+
+.mon-acr-ruta {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding-bottom: 8px;
+}
+
+.mon-acr-ruta-paso {
+  --ruta-accent: var(--pulso-accent-steel);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.mon-acr-ruta-paso:nth-child(1) {
+  --ruta-accent: var(--pulso-warn-accent);
+}
+
+.mon-acr-ruta-paso:nth-child(3) {
+  --ruta-accent: var(--pulso-accent-green);
+}
+
+.mon-acr-ruta-paso:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--ruta-accent) 32%, var(--pulso-border));
+  background: color-mix(in srgb, var(--ruta-accent) 5%, var(--pulso-surface));
+}
+
+.mon-acr-ruta-paso.is-active {
+  border-color: color-mix(in srgb, var(--ruta-accent) 46%, var(--pulso-border));
+  background: color-mix(in srgb, var(--ruta-accent) 9%, var(--pulso-surface));
+}
+
+.mon-acr-ruta-paso:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.mon-acr-ruta-paso em {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ruta-accent) 14%, var(--pulso-surface));
+  color: var(--ruta-accent);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-black);
+}
+
+.mon-acr-ruta-paso > span {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.mon-acr-ruta-paso strong {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.mon-acr-ruta-paso small {
+  min-width: 0;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-acr-ruta-paso b {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--ruta-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-acr-ruta-todos {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.mon-acr-ruta-todos:hover {
+  border-color: var(--pulso-border-strong);
+  color: var(--pulso-text);
+}
+
+.mon-acr-ruta-todos b {
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Los pasos de la ficha del caso pasan a viñeta: el recorrido numerado es el
+ * de la bandeja, y dos numeraciones en pantalla se leían como dos rutas. */
+.mon-acr-subsanacion-coach > div em.mon-acr-vineta {
+  width: 5px;
+  height: 5px;
+  background: color-mix(in srgb, var(--coach-accent) 55%, transparent);
+  margin: 0 6px 0 6px;
+}
+
+.mon-acr-subsanacion-coach > header p.mon-acr-coach-motivo {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+/* Motivo concreto de no cruce en la fila de la bandeja. Reemplaza la frase de
+ * la regla, que era idéntica en los 269 accionables. */
+.mon-acr-subsanacion-list button .mon-acr-motivo {
+  min-width: 0;
+  grid-column: 1;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+/* Encabezados de grupo dentro de la tabla de Cruces. Una sola tabla mantiene
+ * las columnas alineadas entre grupos, que es lo que permite compararlos. */
+.mon-acr-crossing-group th {
+  --grupo-accent: var(--pulso-accent-steel);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px 10px 5px;
+  border-top: 1px solid var(--pulso-border);
+  border-bottom: 1px solid color-mix(in srgb, var(--grupo-accent) 26%, var(--pulso-border));
+  background: color-mix(in srgb, var(--grupo-accent) 7%, var(--pulso-surface));
+  text-align: left;
+}
+
+/* El flex vive aquí dentro. En la celda anulaba el colSpan. */
+.mon-acr-crossing-group th > span {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mon-acr-crossing-group.is-recuperables th {
+  --grupo-accent: var(--pulso-warn-accent);
+}
+
+.mon-acr-crossing-group.is-cruzaron th {
+  --grupo-accent: var(--pulso-accent-green);
+}
+
+.mon-acr-crossing-group th strong {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--grupo-accent) 72%, var(--pulso-text));
+}
+
+.mon-acr-crossing-group th small {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-faint);
+}
+
+.mon-acr-crossing-group th em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--grupo-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El encabezado del grupo es versalita; su detalle no debe heredarla. */
+.mon-acr-subsanacion-list section > span small {
+  margin-left: 6px;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+}

@@ -67,7 +67,13 @@ export function corteAcreditacion(
   opciones: CorteAcreditacionOpciones = {},
 ): MonitoreoCorte {
   const hayAportes = aportes.length > 0;
-  const universe = aportes.reduce((sum, card) => sum + (numero(card.universe) ?? 0), 0);
+  // El universo se trata como la meta: hay que distinguir «ninguna tarjeta lo
+  // declara» de «suma cero». `advanceCardsFromRows` usa `rowNumber(row,
+  // COL_UNIVERSO, 0)`, así que una fila sin esa columna aporta un 0 silencioso
+  // —es lo que pasa con las filas del reporte telefónico—, y sumarlos daba un
+  // procesable en cero que convivía con cientos de efectivas.
+  const universosDeclarados = aportes.filter((card) => (numero(card.universe) ?? 0) > 0);
+  const universe = universosDeclarados.reduce((sum, card) => sum + (numero(card.universe) ?? 0), 0);
   const effective = aportes.reduce((sum, card) => sum + (numero(card.effective) ?? 0), 0);
   const metasDeclaradas = aportes.filter((card) => numero(card.meta) != null);
   const meta = metasDeclaradas.length
@@ -76,7 +82,7 @@ export function corteAcreditacion(
 
   return construirCorte({
     ingesta: numero(state?.n_rows) ?? 0,
-    procesable: hayAportes ? universe : null,
+    procesable: hayAportes && universosDeclarados.length ? universe : null,
     oficial: hayAportes ? effective : null,
     meta,
     cutAt: state?.synced_at || opciones.generatedAt || "",
