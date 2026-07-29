@@ -74,10 +74,11 @@
   color: var(--pulso-text-soft);
 }
 
+/* La muestra de color también a escuadra: es la misma familia visual que las
+ * barras que representa. */
 .mon-apilado-leyenda i {
   width: 9px;
   height: 9px;
-  border-radius: 3px;
 }
 
 .mon-apilado-leyenda b {
@@ -113,14 +114,23 @@
   justify-items: center;
 }
 
+/* Rectas, como el resto de los gráficos de la app.
+ *
+ * El ritmo diario que va justo encima es Plotly y dibuja sus barras a escuadra;
+ * un apilado redondeado debajo se leía como otro componente de otra casa. Es el
+ * mismo periodo leído de dos maneras, así que tienen que verse de la misma
+ * familia. */
 .mon-apilado-columna {
   width: 100%;
-  max-width: 26px;
+  /* 26 px dejaban las barras perdidas en el ancho disponible cuando el corte
+   * trae pocos días —13 en acrconta, ~100 px por día—, y el gráfico de encima
+   * sí llena su caja. El `flex-basis` de 14 px del día sigue protegiendo el
+   * caso contrario, muchos días en poco ancho. */
+  max-width: 40px;
   height: var(--apilado-alto, 100%);
   align-self: end;
   display: flex;
   flex-direction: column-reverse;
-  border-radius: 4px;
   overflow: hidden;
   background: color-mix(in srgb, var(--pulso-border) 45%, transparent);
 }
@@ -137,12 +147,32 @@
   transition: filter 120ms ease;
 }
 
-.mon-apilado-columna:hover .mon-apilado-segmento {
-  filter: saturate(0.55) opacity(0.55);
+/* El día apuntado se queda en color y el resto baja: el contraste es lo que
+ * dice cuál se está leyendo en la línea de lectura. Antes se atenuaban los
+ * segmentos DEL MISMO día que el cursor, que es justo al revés.
+ *
+ * La condición es `.is-enfocando`, que pone React cuando hay un día en foco, y
+ * NO `:hover` sobre el contenedor: con `:hover`, el cursor en el hueco de 3 px
+ * entre dos columnas dejaba a todos los días fuera de `.is-foco` y apagaba el
+ * gráfico entero. Medido en pantalla. */
+.mon-apilado-grafico.is-enfocando .mon-apilado-dia:not(.is-foco) .mon-apilado-segmento {
+  /* Atenuar, no borrar: con `opacity(0.4)` los días de contexto desaparecían y
+   * el día en foco quedaba flotando sobre nada, que es peor para comparar. */
+  filter: saturate(0.5) opacity(0.62);
 }
 
-.mon-apilado-segmento:hover {
-  filter: none;
+.mon-apilado-dia {
+  border-radius: 3px;
+  transition: background 120ms ease;
+}
+
+.mon-apilado-dia.is-foco {
+  background: color-mix(in srgb, var(--pulso-text) 6%, transparent);
+}
+
+.mon-apilado-dia:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: 1px;
 }
 
 .mon-apilado-dia em {
@@ -151,4 +181,29 @@
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-faint);
   white-space: nowrap;
+}
+
+.mon-apilado-dia.is-foco em {
+  color: var(--pulso-text);
+}
+
+/* Línea de lectura del día apuntado.
+ *
+ * Ocupa su alto siempre —dos líneas como mucho, con `min-height`— porque si
+ * apareciera solo al apuntar, el gráfico se movería bajo el cursor cada vez que
+ * se entra y se sale (C2). En reposo lleva la pista de qué hacer para llenarla;
+ * con foco, el reparto del día en color pleno. */
+.mon-apilado-foco {
+  min-width: 0;
+  min-height: 15px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-apilado-foco.is-foco {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
 }

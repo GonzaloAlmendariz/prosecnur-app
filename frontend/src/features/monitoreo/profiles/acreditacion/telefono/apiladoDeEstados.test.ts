@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { construirApiladoDeEstados, detalleDeSegmento } from "./apiladoDeEstados";
+import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia } from "./apiladoDeEstados";
 import type { AcreditacionPhoneDailyStatusSeries } from "../AcreditacionPhoneDailyTrend";
 
 function punto(dia: string, value: number) {
@@ -149,5 +149,35 @@ describe("detalleDeSegmento", () => {
     const texto = detalleDeSegmento(dia, segmento);
     expect(texto).toContain("2 de 4");
     expect(texto).toContain("No contesta");
+  });
+});
+
+// El hover se lee en la cabecera, no en un tooltip flotante: el `title` nativo
+// tarda cerca de un segundo, no sigue al puntero y las franjas más finas miden
+// 4 px, así que apuntarlas con el ratón no era practicable.
+describe("resumenDelDia", () => {
+  it("dice la fecha, el total y el reparto por estado", () => {
+    const apilado = construirApiladoDeEstados([
+      serie("Completa", [["2026-06-05", 35]]),
+      serie("No contesta", [["2026-06-05", 4]]),
+    ]);
+    const texto = resumenDelDia(apilado.dias[0]);
+    expect(texto).toContain("39 casos");
+    expect(texto).toContain("Efectivo 35");
+    expect(texto).toContain("Sin contacto 4");
+  });
+
+  it("un día de un solo estado no arrastra separadores sueltos", () => {
+    const apilado = construirApiladoDeEstados([serie("Rechazo", [["2026-06-01", 1]])]);
+    const texto = resumenDelDia(apilado.dias[0]);
+    expect(texto).not.toMatch(/·\s*$/);
+  });
+
+  it("un solo caso se dice en singular", () => {
+    // Decía «1 casos», y el test anterior lo dejaba pasar porque `toContain`
+    // con "1 caso" también acierta dentro de "1 casos".
+    const apilado = construirApiladoDeEstados([serie("Rechazo", [["2026-06-01", 1]])]);
+    expect(resumenDelDia(apilado.dias[0])).toContain("1 caso ·");
+    expect(resumenDelDia(apilado.dias[0])).not.toContain("1 casos");
   });
 });
