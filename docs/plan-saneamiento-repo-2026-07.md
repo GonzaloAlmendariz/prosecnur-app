@@ -65,13 +65,14 @@ contrato: un solo dueño) · revisión `guardian-contratos` + QA visual →
   emite como chunk propio (`theme-*.css`). La primera inserción del preload
   fija su posición; monitoreo-core queda por debajo del tema (coincide con la
   memoria del 2026-07-24).
-- **La capa de tokens es la cabecera, líneas 1–541** (cuatro bloques: `:root`,
+- **La capa de tokens es la cabecera, líneas 1–540** (cuatro bloques: `:root`,
   `:root[data-platform="windows"]`, tabla de paleta de módulo 430–533,
   `:root[data-theme="dark"]`). Las 107 custom props restantes están scopeadas
   a componentes del kit y se quedan donde están. Los 113 `!important` viven
   todos en el kit: el corte no los mueve.
-- **Corte**: `tokens.css` = líneas 1–541 literales; `theme.css` conserva
-  543–30752 y arranca con `@import "./tokens.css";` como primera sentencia.
+- **Corte**: `tokens.css` = líneas 1–540 literales; `theme.css` conserva
+  541–30752 y arranca con `@import "./tokens.css";` como primera sentencia
+  (el descubrimiento dijo 541/543; la frontera real medida fue 540/542).
   El `@import` relativo se inlina en el mismo punto → el chunk emitido queda
   **byte-idéntico** (mismo hash, mismo filename) y los importadores JS no se
   tocan. NO usar import JS: obligaría a duplicar el orden en dos archivos.
@@ -188,3 +189,13 @@ No tiene unidad de trabajo propia: es la métrica de resultado de las fases
   51 empates hoy (+5 vs los 46 del 2026-07-24) — vigilar en la próxima
   auditoría. Próxima unidad más rentable: Fase 1 (split de theme.css) con el
   contrato ya congelado.
+- **2026-07-29 · iteración 2 — Fase 1 ejecutada**: `tokens.css` (540 líneas)
+  + `theme.css` con `@import`. Evidencia del gate: chunk de producción
+  **byte-idéntico con el mismo hash** (`theme-IAsXqeBX.css`, `cmp` limpio),
+  lista de chunks CSS idéntica, detector de cascada 51/51 con empates
+  idénticos y self-test válido, 35/35 tests de los 6 contratos de
+  componentes, typecheck en verde, congelados en verde (theme 30,216 /
+  tokens 540), y smoke en dev: Vite inlina el `@import` (0 imports sin
+  resolver, tokens y kit presentes en el módulo transformado). Próxima
+  unidad: Fase 2 paso 1 (kit genérico de perfiles) o paso 4 (extraer
+  `AdvanceDailyMini`, el código más caliente del momento).

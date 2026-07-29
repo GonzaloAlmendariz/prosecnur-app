@@ -367,6 +367,7 @@
       "frontend/src/features/monitoreo/profiles/territorial/territorialProfile.css",
       "frontend/src/features/graficos/v2/styles/editor-v2.css",
       "frontend/src/app/theme.css",
+      "frontend/src/app/tokens.css",
       "api/R/hojas_ruta_engine.R",
       "frontend/src/features/carga/carga-v2.css",
       "frontend/src/features/hojasRuta/HojasRutaPage.tsx"
@@ -385,10 +386,11 @@
       "frontend/src/features/monitoreo/profiles/profilePage.css": 20184,
       "frontend/src/features/monitoreo/profiles/territorial/territorialProfile.css": 17106,
       "frontend/src/features/graficos/v2/styles/editor-v2.css": 33023,
-      "frontend/src/app/theme.css": 30756,
+      "frontend/src/app/theme.css": 30216,
       "api/R/hojas_ruta_engine.R": 10305,
       "frontend/src/features/carga/carga-v2.css": 9501,
-      "frontend/src/features/hojasRuta/HojasRutaPage.tsx": 8991
+      "frontend/src/features/hojasRuta/HojasRutaPage.tsx": 8991,
+      "frontend/src/app/tokens.css": 540
     },
     "frozen_growth_exempt": []
   }
