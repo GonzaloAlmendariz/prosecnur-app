@@ -19,9 +19,18 @@
 import { padreDe } from "../arbolDeLaApp";
 import type { CanvasArista, CanvasNodo } from "../../../api/bitacora";
 
-/** Una pieza de la app cabe en una línea y media; un hito o una entrada no. */
-export const ALTO_PIEZA = 72;
-export const ALTO_DATO = 118;
+/**
+ * Una pieza de la app: sello, título de hasta dos renglones y su camino. Los
+ * dos renglones se reservan siempre aunque el nombre quepa en uno, para que las
+ * tarjetas del mapa queden parejas.
+ */
+export const ALTO_PIEZA = 90;
+/**
+ * Medido sobre el contenido máximo real de un cuadro de dato, con el título y
+ * el detalle acotados a dos renglones: tipo 12 + título 30 + detalle 32 +
+ * fecha 12, más los espacios y el relleno de la tarjeta.
+ */
+export const ALTO_DATO = 132;
 export const ANCHO_NODO = 240;
 /** Lo que crece el cuadro por cada anotación que se le añade. */
 export const ALTO_ITEM = 22;

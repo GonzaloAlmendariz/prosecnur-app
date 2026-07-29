@@ -15,6 +15,7 @@
 import { create } from "zustand";
 
 import type { CanvasArista, CanvasLienzo, CanvasNodo } from "../../../api/bitacora";
+import { altoDeNodo } from "./ramificacion";
 
 /** Tope de historial. Mismo valor que Gráficos, por la misma razón: memoria. */
 const MAX_HISTORY = 30;
@@ -85,7 +86,15 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   hidratar: (lienzo) =>
     set((s) => ({
       lienzoId: lienzo.id,
-      nodes: lienzo.nodes,
+      // Un lienzo guardado antes de que el cuadro reservara su franja de
+      // anotaciones trae altos que ya no alcanzan para su propio contenido. Se
+      // corrigen al entrar en vez de migrar el `.pulso`: el alto es una medida
+      // derivada de lo que la tarjeta muestra, no un dato del usuario.
+      nodes: lienzo.nodes.map((n) =>
+        n.type === "referencia"
+          ? { ...n, h: Math.max(n.h, altoDeNodo(n.ref?.target_type === "modulo" ? "modulo" : "entrada", (n.items ?? []).length)) }
+          : n,
+      ),
       edges: lienzo.edges,
       // Cambiar de lienzo tira el historial: deshacer a través de dos lienzos
       // distintos produciría un estado que nunca existió.
