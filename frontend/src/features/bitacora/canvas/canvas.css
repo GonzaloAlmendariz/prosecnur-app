@@ -272,20 +272,50 @@
 
 /* --- Anclajes ------------------------------------------------------------ */
 
+/* Las anclas son el único camino para conectar dos cuadros, así que se ven al
+ * pasar por encima y no solo al seleccionar. En reposo no se muestran: cuatro
+ * puntos por nodo sobre un mapa de treinta tarjetas es ruido. */
+/* El ancla ES la caja de agarre —24 px— y el punto visible lo pinta su
+ * pseudo-elemento. Al revés (punto de 11 px más un `::before` que extendía el
+ * área) el área no capturaba: medido con `elementFromPoint` a 4 px del borde,
+ * devolvía el mundo y no el ancla. Un blanco de 11 px es una trampa, y más con
+ * el lienzo en zoom alejado. */
 .bcanvas-ancla {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  border: 1px solid var(--module-accent, var(--pulso-primary));
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
   cursor: crosshair;
+  opacity: 0;
+  transition: opacity var(--motion-dur-fast, 160ms) var(--motion-ease-out, ease-out);
 }
 
-.bcanvas-ancla.is-t { top: -5px; left: calc(50% - 5px); }
-.bcanvas-ancla.is-b { bottom: -5px; left: calc(50% - 5px); }
-.bcanvas-ancla.is-l { left: -5px; top: calc(50% - 5px); }
-.bcanvas-ancla.is-r { right: -5px; top: calc(50% - 5px); }
+.bcanvas-ancla::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1.5px solid var(--module-accent, var(--pulso-primary));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+}
+
+.bcanvas-nodo:hover .bcanvas-ancla,
+.bcanvas-nodo.is-seleccionado .bcanvas-ancla,
+.bcanvas-nodo.is-enfocado .bcanvas-ancla {
+  opacity: 1;
+}
+
+.bcanvas-ancla:hover::after {
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+/* Centradas en el borde: la mitad de la caja de agarre cae fuera del nodo, que
+ * es de donde se tira para conectar. */
+.bcanvas-ancla.is-t { top: -12px; left: calc(50% - 12px); }
+.bcanvas-ancla.is-b { bottom: -12px; left: calc(50% - 12px); }
+.bcanvas-ancla.is-l { left: -12px; top: calc(50% - 12px); }
+.bcanvas-ancla.is-r { right: -12px; top: calc(50% - 12px); }
 
 /* --- Marco de selección -------------------------------------------------- */
 
@@ -348,9 +378,6 @@
    * flujo: sin este relleno, centrar el contenido lo centraba en la tarjeta
    * ENTERA y quedaba 45 px de aire arriba contra 9 abajo. */
   padding-block-end: 30px;
-  /* Las anotaciones pueden pasarse del alto calculado por un renglón que
-   * envuelve: se recortan en vez de derramar sobre el nodo de al lado. */
-  overflow: hidden;
   border-color: var(--module-accent-border, var(--pulso-border-strong));
   background: var(--pulso-surface);
 }
@@ -437,12 +464,24 @@
   outline-offset: 1px;
 }
 
+/* El recorte va en el CONTENIDO, no en la tarjeta.
+ *
+ * Con `overflow: hidden` en el nodo, las anclas —que sobresalen 4 px para poder
+ * agarrarse desde fuera— quedaban cortadas por la mitad y su área de agarre
+ * extendida no capturaba nada. Ahora conectar arrastrando vuelve a funcionar
+ * desde los cuatro lados. */
 .bcanvas-ref-dato {
   display: flex;
   flex-direction: column;
   gap: 3px;
   width: 100%;
+  min-width: 0;
   padding: 10px 12px;
+  overflow: hidden;
+}
+
+.bcanvas-ref-pieza,
+.bcanvas-ref-items {
   overflow: hidden;
 }
 
@@ -934,10 +973,17 @@
 
 /* --- Acciones del cuadro ------------------------------------------------- */
 
+/* La acción se alinea con la PRIMERA LÍNEA DEL TÍTULO, no con el centro del
+ * bloque título+camino: centrado ahí quedaba 7 px por debajo del título y se
+ * leía como si flotara entre las dos líneas. */
 .bcanvas-ref-acciones {
   display: inline-flex;
+  align-self: start;
   align-items: center;
   gap: 2px;
+  /* Media línea de título menos medio botón: deja el ícono a la altura de las
+   * letras en vez de al ras del borde superior. */
+  margin-block-start: calc((1.25em - 24px) / 2);
 }
 
 /* `min-height: 0` en todo control-caja de este archivo.
@@ -1280,8 +1326,12 @@
  * lado— y además es de donde sale la rama, así que el gesto se lee solo. */
 .bcanvas-ref-ramificar {
   position: absolute;
+  /* En la ESQUINA inferior derecha, no en el centro del borde: ahí ocupaba
+   * exactamente el mismo punto que el ancla derecha —las dos en `right: -12px`,
+   * `top: 50%`— y el tirador se comía el agarre para conectar. Las anclas viven
+   * en los centros de los lados, así que la esquina está libre. */
   inset-inline-end: -13px;
-  inset-block-start: calc(50% - 12px);
+  inset-block-end: -12px;
   z-index: 1;
   width: auto;
   min-width: 26px;

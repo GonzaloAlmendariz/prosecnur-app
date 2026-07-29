@@ -1,6 +1,6 @@
 import { memo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Check, Flag, GitBranch, Link2, Plus, Unlink, X } from "../../../vendor/lucide-react";
+import { ArrowUpRight, Check, Flag, GitBranch, Plus, Unlink, X } from "../../../vendor/lucide-react";
 
 import type { BitacoraResumenDestino, CanvasNodo } from "../../../api/bitacora";
 import { identidadDeDestino } from "../identidadDeFase";
@@ -40,7 +40,6 @@ export const NodoReferencia = memo(
     onAgregarItem,
     onAlternarItem,
     onQuitarItem,
-    onConectar,
     ramasLibres,
     ramificando,
     onRamificar,
@@ -57,7 +56,6 @@ export const NodoReferencia = memo(
     onAgregarItem: (id: string, texto: string) => void;
     onAlternarItem: (id: string, itemId: string) => void;
     onQuitarItem: (id: string, itemId: string) => void;
-    onConectar: (id: string) => void;
     /** Cuántas ramas puede desplegar todavía. 0 oculta el botón. */
     ramasLibres: number;
     ramificando: boolean;
@@ -127,20 +125,6 @@ export const NodoReferencia = memo(
               <small>{contexto}</small>
             </span>
             <span className="bcanvas-ref-acciones">
-              {/* Conectar es el gesto PRINCIPAL de un cuadro: un mapa se arma
-                  cableando piezas con las entradas que las explican. Antes solo
-                  se podía arrastrando desde un ancla diminuta que aparecía al
-                  seleccionar, o con un atajo — invisible para quien no lo sabe. */}
-              <button
-                type="button"
-                className="bcanvas-ref-boton"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => onConectar(nodo.id)}
-                title="Conectar con otro cuadro"
-                aria-label={`Conectar ${identidad.etiquetaCorta} con otro cuadro`}
-              >
-                <Link2 size={13} />
-              </button>
               {/* Ir PIDE CONFIRMACIÓN: navegar saca del lienzo, y un click de
                   más mientras se acomoda el mapa no puede costar el lugar donde
                   estabas. Es la acción destructiva de esta superficie. */}
@@ -295,8 +279,10 @@ export const NodoReferencia = memo(
           </button>
         )}
 
-        {(seleccionado || enfocado) && (
-          <span className="bcanvas-anclas" aria-hidden="true">
+        {/* Siempre en el DOM, visibles al pasar por encima o al seleccionar:
+            arrastrar de un ancla a otra es EL gesto para conectar, y con el
+            botón retirado no puede depender de haber seleccionado antes. */}
+        <span className="bcanvas-anclas" aria-hidden="true">
             {(["t", "r", "b", "l"] as const).map((ancla) => (
               <span
                 key={ancla}
@@ -307,8 +293,7 @@ export const NodoReferencia = memo(
                 }}
               />
             ))}
-          </span>
-        )}
+        </span>
       </div>
     );
   },
