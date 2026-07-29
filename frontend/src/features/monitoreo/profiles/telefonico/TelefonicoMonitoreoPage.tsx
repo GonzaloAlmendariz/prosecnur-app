@@ -141,6 +141,7 @@ import {
   type AcreditacionTelephoneChannel,
 } from "./TelefonicoSourcesModel";
 import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
+import { proveedoresDeFuentes } from "../../fuentes/vocabulario";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
@@ -9900,6 +9901,7 @@ function AcreditacionPlatformSurveySourcesView({
   const surveySources = sources.filter(isSurveyMonkeyResponseSource);
   const koboSources = sources.filter(isKoboResponseSource);
   const platformSources = sources.filter(isPlatformResponseSource);
+  const platformProviders = proveedoresDeFuentes(platformSources);
   const linkCollectors = config?.operational_model.link_collectors ?? [];
   const configuredActorOptions = acreditacionActorOptions(platformSources);
   const actorOptions = acreditacionActorOptions(platformSources, ACREDITACION_DEFAULT_ACTORS);
@@ -9993,7 +9995,9 @@ function AcreditacionPlatformSurveySourcesView({
         <div className="mon-acr-object-surface-head">
           <div>
             <span>Encuestas en plataforma</span>
-            <strong>{fmt(platformSources.length)} fuente{platformSources.length === 1 ? "" : "s"} SurveyMonkey/Kobo</strong>
+            <strong title={platformProviders.length ? `Vienen de ${platformProviders.join(" y ")}` : undefined}>
+              {fmt(platformSources.length)} encuesta{platformSources.length === 1 ? "" : "s"} conectada{platformSources.length === 1 ? "" : "s"}
+            </strong>
           </div>
           <em>{fmt(configuredActorOptions.length)} actores detectados</em>
         </div>

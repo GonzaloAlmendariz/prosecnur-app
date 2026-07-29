@@ -53,7 +53,7 @@ import {
   leerDireccion,
 } from "../../../fuentes/direccionDeFuente";
 import type { ServicioDeFuente } from "../../../fuentes/direccionDeFuente";
-import { contar } from "../../../fuentes/vocabulario";
+import { actorQueContradiceElNombre, contar } from "../../../fuentes/vocabulario";
 import "./fuentes.css";
 
 const SM_API = "https://api.surveymonkey.com/v3";
@@ -245,6 +245,15 @@ export function ConectarFuente({
   }
 
   const puedeAvanzarDesde1 = Boolean(actor.trim()) || papel === "barrido";
+
+  // El actor se declara en el paso 1, pero es en el paso 3 —con el nombre real
+  // de la encuesta delante— cuando se ve si estaba bien. Antes había que volver
+  // al paso 1 para corregirlo, y el pie afirmaba «respuestas de Administrativos»
+  // sobre una encuesta llamada «…Estudiantes» sin decir nada.
+  const nombreDeLaFuente = lectura
+    ? (lectura.tipo === "sheets" ? lectura.inspeccion.title ?? "" : lectura.nombre)
+    : "";
+  const actorQueSugiereElNombre = actorQueContradiceElNombre(nombreDeLaFuente, actor, actoresSugeridos);
 
   return (
     <div className="fuentes-conectar" role="dialog" aria-modal="true" aria-label="Conectar fuente">
@@ -467,9 +476,29 @@ export function ConectarFuente({
               <div className="fuentes-conectar-resultado">
                 <span>{lectura.detalle}</span>
                 <strong>{lectura.nombre}</strong>
-                <em>Se leerá como respuestas de {actor || "el estudio"}.</em>
               </div>
             )}
+
+            {papel !== "barrido" ? (
+              <fieldset className="fuentes-conectar-grupo">
+                <legend>Se leerá como respuestas de</legend>
+                <input
+                  list="fuentes-conectar-actores-confirmar"
+                  value={actor}
+                  onChange={(event) => setActor(event.currentTarget.value)}
+                  placeholder="Estudiantes, Docentes, Egresados…"
+                />
+                <datalist id="fuentes-conectar-actores-confirmar">
+                  {actoresSugeridos.map((item) => <option key={item} value={item} />)}
+                </datalist>
+                {actorQueSugiereElNombre ? (
+                  <p className="fuentes-conectar-pista is-aviso">
+                    <AlertTriangle size={13} /> El nombre de esta fuente menciona «{actorQueSugiereElNombre}» y la vas a
+                    guardar como «{actor}». Si es un error, corrígelo aquí mismo.
+                  </p>
+                ) : null}
+              </fieldset>
+            ) : null}
           </div>
         ) : null}
       </div>

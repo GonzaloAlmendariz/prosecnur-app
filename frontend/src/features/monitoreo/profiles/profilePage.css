@@ -143,15 +143,6 @@
   font-size: 12px;
 }
 
-.mon-profile-canonical-shell .mon-semantic-legend {
-  gap: 4px;
-}
-
-.mon-profile-canonical-shell .mon-semantic-legend span {
-  min-height: 20px;
-  padding: 2px 7px;
-}
-
 .mon-profile-canonical-shell .mon-profile-stack,
 .mon-profile-canonical-shell .mon-advance-panel,
 .mon-profile-canonical-shell .mon-phone-tabbody,
@@ -11061,33 +11052,27 @@
     0 1px 2px rgba(15, 23, 42, 0.035);
 }
 
-.mon-clarity-card.is-effective,
-.mon-semantic-legend .is-effective {
+.mon-clarity-card.is-effective {
   --clarity-accent: #0f8a61;
 }
 
-.mon-clarity-card.is-partial,
-.mon-semantic-legend .is-partial {
+.mon-clarity-card.is-partial {
   --clarity-accent: #b97611;
 }
 
-.mon-clarity-card.is-refusal,
-.mon-semantic-legend .is-refusal {
+.mon-clarity-card.is-refusal {
   --clarity-accent: #a61d4f;
 }
 
-.mon-clarity-card.is-noneffective,
-.mon-semantic-legend .is-noneffective {
+.mon-clarity-card.is-noneffective {
   --clarity-accent: #b8325f;
 }
 
-.mon-clarity-card.is-pending,
-.mon-semantic-legend .is-pending {
+.mon-clarity-card.is-pending {
   --clarity-accent: #64748b;
 }
 
-.mon-clarity-card.is-assignment,
-.mon-semantic-legend .is-assignment {
+.mon-clarity-card.is-assignment {
   --clarity-accent: #475569;
 }
 
@@ -11116,8 +11101,7 @@
 }
 
 .mon-clarity-card em,
-.mon-clarity-card small,
-.mon-semantic-legend span {
+.mon-clarity-card small {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -11146,60 +11130,6 @@
   font-size: 10px;
   font-weight: var(--pulso-weight-bold);
   line-height: 1.1;
-}
-
-.mon-semantic-legend {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, max-content));
-  gap: 4px 10px;
-  align-items: center;
-  justify-content: end;
-}
-
-.mon-semantic-legend span {
-  --clarity-accent: var(--pulso-primary);
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.1;
-}
-
-.mon-semantic-legend.is-phone {
-  width: min(520px, 44vw);
-  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
-  justify-content: stretch;
-}
-
-.mon-semantic-legend.is-phone span {
-  display: grid;
-  grid-template-columns: 7px minmax(0, 1fr) auto;
-  max-width: 100%;
-}
-
-.mon-semantic-legend.is-phone em {
-  min-width: 0;
-  overflow: hidden;
-  font-style: normal;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mon-semantic-legend.is-phone strong {
-  color: var(--pulso-text);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-}
-
-.mon-semantic-legend i {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--clarity-accent);
 }
 
 .mon-stage--model .mon-stage-modebar {

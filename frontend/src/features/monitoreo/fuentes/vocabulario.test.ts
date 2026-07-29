@@ -1,5 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { contar, textoDeActualizacion, textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "./vocabulario";
+import {
+  actorQueContradiceElNombre,
+  contar,
+  sinTildes,
+  textoDeActualizacion,
+  textoDeAlias,
+  textoDeCanalPorDefecto,
+  textoDeHerencia,
+} from "./vocabulario";
 
 // Cada caso reemplaza una cadena literal medida en `acrconta`
 // (docs/plan-fuentes-legibles-2026-07.md §1.1, hallazgo A5).
@@ -56,5 +64,49 @@ describe("contar (R3)", () => {
 
   test("los miles se separan como en el resto de la app", () => {
     expect(contar(1277, "registro", "registros")).toBe("1,277 registros");
+  });
+});
+
+// El defecto que motiva esto: al conectar una fuente el actor se elige en el
+// paso 1 —antes de ver de qué encuesta se trata— y el paso 3 afirmaba
+// «respuestas de Administrativos» sobre una encuesta llamada «…Estudiantes».
+// Nada fallaba: el corte repartía las respuestas al actor equivocado y solo se
+// notaba al revisar denominadores.
+
+describe("sinTildes", () => {
+  test("iguala lo que escribe una persona con lo que trae la plataforma", () => {
+    expect(sinTildes("Egresados")).toBe(sinTildes("egresados"));
+    expect(sinTildes("  Administración  ")).toBe("administracion");
+  });
+});
+
+describe("actorQueContradiceElNombre", () => {
+  const ACTORES = ["Estudiantes", "Docentes", "Egresados", "Administrativos"];
+
+  test("avisa cuando el nombre menciona otro actor del estudio", () => {
+    expect(actorQueContradiceElNombre("Acreditación 2026 — Estudiantes", "Administrativos", ACTORES))
+      .toBe("Estudiantes");
+  });
+
+  test("no avisa cuando coinciden, aunque difieran tildes y mayúsculas", () => {
+    expect(actorQueContradiceElNombre("Encuesta EGRESADOS 2026", "egresados", ACTORES)).toBeNull();
+  });
+
+  test("no avisa cuando el nombre no menciona a ningún actor conocido", () => {
+    // Una palabra suelta no basta: buscar cualquier término daría avisos falsos
+    // sobre nombres genéricos como «Formulario final v3».
+    expect(actorQueContradiceElNombre("Formulario final v3", "Docentes", ACTORES)).toBeNull();
+  });
+
+  test("no avisa cuando el nombre menciona a los dos", () => {
+    // «Docentes y Estudiantes» no desmiente que se declare para Docentes.
+    expect(actorQueContradiceElNombre("Base Docentes y Estudiantes", "Docentes", ACTORES)).toBeNull();
+  });
+
+  test("calla mientras no haya actor declarado o nombre que leer", () => {
+    // En el paso 3 el nombre ya está, pero el actor puede haberse vaciado para
+    // corregirlo: avisar mientras se escribe sería ruido.
+    expect(actorQueContradiceElNombre("Acreditación — Estudiantes", "", ACTORES)).toBeNull();
+    expect(actorQueContradiceElNombre("", "Docentes", ACTORES)).toBeNull();
   });
 });
