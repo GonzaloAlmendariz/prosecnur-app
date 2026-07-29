@@ -612,11 +612,54 @@ app la valide mientras se escribe, con el diagnóstico concreto que ya escribe
 contra una previsualización que diga qué se leyó. El paso 3 es el que hoy no
 existe y es el que convierte «guardé algo» en «sé qué guardé».
 
-### 4.4 Telefónico — igual que Acreditación (pendiente)
+### 4.4 Telefónico — igual que Acreditación (en curso)
 
 Se decide al llegar si reusa los componentes extraídos o los forka. **No se
 fusiona el perfil**: el fork telefónico se mantiene por decisión previa; lo que
 se comparte es infraestructura genérica, no el modelo de dominio.
+
+**Hecho el 2026-07-29**: las pestañas de Fuentes pasan a nombrarse por pregunta
+—«Universo · La base de cada actor», «Encuestas · Quién responde y qué cuenta»—
+en vez de por proveedor («Bases en Sheets», «SurveyMonkey/Kobo»), y el embudo
+deja de decir «registros del snapshot». Los colores de los cinco desenlaces
+salen de `coloresDeResultado.ts`.
+
+> **Telefónico no conecta fuentes, y eso cambia §4.4.** Medido en
+> `ACNUR_PDM.pulso` (family `telefonico`, 2.726 registros, metas por 5 sedes):
+> `monitoreo_config$sources` está **vacío**. El perfil se configura por columnas
+> —`enumerator_var`, `status_var`, `contact_var`, `date_var`, `duration_var`— y
+> los datos llegan de una base ya cargada, no de fuentes sincronizadas. Así que
+> «replicar la sección Fuentes de Acreditación» no aplica tal cual: hay que
+> decidir **qué es Fuentes en un perfil que no conecta ninguna** —probablemente
+> el mapeo de columnas y la base de barrido— antes de mover pestañas.
+>
+> Sus estados sí vienen declarados, con el vocabulario del cliente:
+> `complete ← completed, complete, valid` · `pending ← no_barrido,
+> contactar_despues, contactado_whatsapp` · `refusal ← rejected, rechazo,
+> refusal` · `non_effective ← no_contesta, apagado, colgo_corto` ·
+> `excluded ← not_eligible, no_elegible`.
+
+**Pendiente de §2 (no sobreexplicar), diagnosticado y sin aplicar** porque
+`TelefonicoMonitoreoPage.tsx` está siendo partido en módulos por otro frente y
+editarlo ahora sería pisarlo:
+
+1. `Kobo aporta efectivas; el barrido conserva estados telefónicos en paralelo.`
+   (cabecera de Modelo telefónico) y `Kobo aporta efectivas; el barrido aporta
+   estado de llamada.` (cabecera de Cuotas): **el mismo hecho con dos
+   redacciones distintas en dos superficies**, y en ninguna de las dos habla de
+   lo que esa superficie mide —ambas son de metas, no de fuentes—. Además es
+   redundante con el propio etiquetado: cada cifra ya se llama «Efectivas Kobo»
+   o «barridos». Se retira de las dos cabeceras; en Cuotas se conserva el dato
+   que la acompaña (`N categorías`).
+2. `Una entrevista muy corta puede indicar que se saltaron preguntas. No cambia
+   el estado de la llamada.` La primera frase es interpretación sobre un título
+   que ya dice qué mide; **la segunda no se toca**, porque previene un
+   malentendido con consecuencias (creer que una entrevista corta invalida la
+   llamada). Queda solo la salvedad.
+
+Lo que **no** se cambia, revisado uno por uno: los `small` que llevan cifra o
+estado concreto, y los vacíos que nombran la acción que los resuelve —esos
+cumplen C3 y R4, no son relleno—.
 
 ---
 
