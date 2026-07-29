@@ -337,8 +337,13 @@
   position: absolute;
   flex-direction: column;
   align-items: stretch;
+  justify-content: center;
   gap: 0;
   padding: 0;
+  /* La franja de anotar es `position: absolute`, así que no ocupa sitio en el
+   * flujo: sin este relleno, centrar el contenido lo centraba en la tarjeta
+   * ENTERA y quedaba 45 px de aire arriba contra 9 abajo. */
+  padding-block-end: 30px;
   /* Las anotaciones pueden pasarse del alto calculado por un renglón que
    * envuelve: se recortan en vez de derramar sobre el nodo de al lado. */
   overflow: hidden;
@@ -352,6 +357,10 @@
   background: var(--pulso-danger-bg);
 }
 
+/* La cabecera ocupa todo lo que no es la franja de anotar y centra su contenido
+ * ahí: con el título anclado arriba, un nombre de un renglón dejaba colgando el
+ * hueco de los dos renglones reservados, y la tarjeta se veía descuadrada al
+ * lado de una de nombre largo. */
 .bcanvas-ref-pieza {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -380,13 +389,20 @@
   min-width: 0;
 }
 
+/* Dos renglones antes de recortar: «Cálculo de muestra» pide 126 px y la
+ * columna del título tiene 112, así que en una sola línea el nombre del módulo
+ * llegaba cortado. El alto reserva los dos renglones siempre, para que las
+ * tarjetas del mapa queden parejas tengan el nombre corto o largo. */
 .bcanvas-ref-cuerpo strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: 13.5px;
   font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
   color: var(--pulso-text);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .bcanvas-ref-cuerpo small {
@@ -443,6 +459,21 @@
   background: var(--pulso-surface-3);
   letter-spacing: 0;
   text-transform: none;
+}
+
+/* Título y detalle se acotan a dos renglones cada uno.
+ *
+ * Un cuadro del lienzo resume; el texto completo vive en la bitácora. Sin
+ * acotarlo, una entrada con título y detalle largos pedía 115 px de contenido
+ * dentro de una tarjeta de 118 y se comía la franja de «Anotar»: el detalle y
+ * la fecha quedaban impresos encima del botón. */
+.bcanvas-ref-dato strong,
+.bcanvas-ref-dato p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .bcanvas-ref-dato strong {

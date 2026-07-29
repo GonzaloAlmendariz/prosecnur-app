@@ -234,15 +234,12 @@ export function LienzoViewport({
       const cd = cajas.get(a.from_node);
       const ch = cajas.get(a.to_node);
       if (!desde || !hasta || !cd || !ch) continue;
-      path.setAttribute(
-        "d",
-        pathDeArista(
-          { ...cd, x: desde.x, y: desde.y },
-          { ...ch, x: hasta.x, y: hasta.y },
-          a.from_anchor,
-          a.to_anchor,
-        ),
-      );
+      const cajaDesde = { ...cd, x: desde.x, y: desde.y };
+      const cajaHasta = { ...ch, x: hasta.x, y: hasta.y };
+      // Las anclas se recalculan en el frame, no se leen del modelo: mientras
+      // se arrastra, el lado por el que la curva debe salir cambia.
+      const anclas = anclasAutomaticas(cajaDesde, cajaHasta);
+      path.setAttribute("d", pathDeArista(cajaDesde, cajaHasta, anclas.from, anclas.to));
     }
   }
 
@@ -436,7 +433,15 @@ export function LienzoViewport({
                   else pathsRef.current.delete(a.id);
                 }}
                 className="bcanvas-arista"
-                d={pathDeArista(desde, hasta, a.from_anchor, a.to_anchor)}
+                // Por qué lado sale la curva se DERIVA de dónde están los dos
+                // nodos ahora, no de lo que se guardó al crear la arista. Con
+                // las anclas congeladas, mover un nodo dejaba la línea saliendo
+                // por la derecha para entrar por la izquierda de algo que había
+                // quedado abajo: la curva daba la vuelta y cruzaba el mapa.
+                d={(() => {
+                  const anclas = anclasAutomaticas(desde, hasta);
+                  return pathDeArista(desde, hasta, anclas.from, anclas.to);
+                })()}
               />
             );
           })}
