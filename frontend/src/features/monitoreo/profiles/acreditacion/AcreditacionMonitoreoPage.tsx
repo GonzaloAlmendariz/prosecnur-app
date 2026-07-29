@@ -6335,7 +6335,10 @@ function AcreditacionPhoneDailyTrend({
       </div>
 
       <div className="mon-phone-trend-parallel is-single">
-        <div className="mon-phone-trend-chart">
+        {/* El número de cortes decide el ancho mínimo del gráfico: pasado el mes
+            de campo, apretar 40 fechas en la caja las vuelve ilegibles, así que
+            a partir de ~30 el gráfico scrollea dentro de su tarjeta. */}
+        <div className="mon-phone-trend-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
           <PlotlyChart
             data={chartData}
             layout={chartLayout}
