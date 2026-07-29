@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, CalendarRange, ChevronDown, ChevronRight, CircleDot, Plus } from "../../../vendor/lucide-react";
+import { ArrowUpRight, CalendarRange, ChevronDown, ChevronRight, CircleDot, Link2, Plus } from "../../../vendor/lucide-react";
 
-import type { BitacoraFaseVista } from "../../../api/bitacora";
+import type { BitacoraEstado, BitacoraFaseVista } from "../../../api/bitacora";
+import type { BitacoraVinculo } from "../../../api/planTrabajo";
 import type { BitacoraRecordatorio, PlanTrabajoTask } from "../../../api/planTrabajo";
 import { EditorRecordatorios } from "../avisos/EditorRecordatorios";
 import { identidadDeFase } from "../identidadDeFase";
+import { ListaDeVinculos } from "../vinculos/ListaDeVinculos";
+import { SelectorDeVinculo } from "../vinculos/SelectorDeVinculo";
 import { duracionEnDias, etiquetaRango } from "./fases";
 
 /**
@@ -17,6 +21,7 @@ import { duracionEnDias, etiquetaRango } from "./fases";
  */
 export function FilaDeFase({
   fase,
+  estado,
   tareas,
   tareaDeclarada,
   expandida,
@@ -26,8 +31,11 @@ export function FilaDeFase({
   onRango,
   onNuevaActividad,
   onRecordatorios,
+  onVincular,
+  onDesvincular,
 }: {
   fase: BitacoraFaseVista;
+  estado: BitacoraEstado;
   tareas: PlanTrabajoTask[];
   /** La tarea que declara la etapa; es la que lleva sus recordatorios. */
   tareaDeclarada: PlanTrabajoTask | null;
@@ -38,7 +46,10 @@ export function FilaDeFase({
   onRango: (inicio: string, fin: string) => void;
   onNuevaActividad: () => void;
   onRecordatorios: (recordatorios: BitacoraRecordatorio[]) => void;
+  onVincular: (tareaId: string, vinculo: BitacoraVinculo) => void;
+  onDesvincular: (tareaId: string, destinoTipo: string, destinoId: string) => void;
 }) {
+  const [enlazando, setEnlazando] = useState(false);
   const dias = duracionEnDias(fase.start_date, fase.end_date);
   const conEvidencia = fase.evidence_state === "evidence_available";
   const sinFechas = !fase.start_date && !fase.end_date;
@@ -165,11 +176,45 @@ export function FilaDeFase({
           </button>
 
           {tareaDeclarada && (
-            <EditorRecordatorios
-              tarea={tareaDeclarada}
-              guardando={guardando}
-              onCambio={onRecordatorios}
-            />
+            <>
+              <EditorRecordatorios
+                tarea={tareaDeclarada}
+                guardando={guardando}
+                onCambio={onRecordatorios}
+              />
+
+              <ListaDeVinculos
+                estado={estado}
+                origenTipo="tarea"
+                origenId={tareaDeclarada.id}
+                salientes={tareaDeclarada.links ?? []}
+                onDesvincular={(tipo, id) => onDesvincular(tareaDeclarada.id, tipo, id)}
+              />
+
+              {enlazando ? (
+                <SelectorDeVinculo
+                  estado={estado}
+                  origenTipo="tarea"
+                  origenId={tareaDeclarada.id}
+                  yaEnlazados={tareaDeclarada.links ?? []}
+                  onElegir={(v) => {
+                    onVincular(tareaDeclarada.id, v);
+                    setEnlazando(false);
+                  }}
+                  onCerrar={() => setEnlazando(false)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="bit-boton-sutil"
+                  onClick={() => setEnlazando(true)}
+                  disabled={guardando}
+                >
+                  <Link2 size={13} />
+                  <span>Enlazar con…</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
