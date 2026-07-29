@@ -15673,11 +15673,15 @@ function AcreditacionAdvanceDailyMini({
     variant === "general" ? 3 : 4,
     variant === "general" ? 8 : 5,
   );
-  const showDenseDailyLabels = isCompactChart
-    ? chartRows.length <= 7
-    : variant === "general"
-    ? chartRows.length <= 42
-    : chartRows.length <= 24;
+  // Cada barra lleva su número de efectivas.
+  //
+  // El techo por número de días existía porque sin scroll las etiquetas se
+  // encimaban: pasados los ~42 cortes solo se rotulaban los de reporte, y el
+  // resto del campo quedaba sin cifra. Ahora el gráfico garantiza 28 px por
+  // corte y se desplaza (`ritmoDiario.css`), así que el ancho ya no es la
+  // restricción y la densidad deja de depender de cuánto dure el campo. Los
+  // mini gráficos por actor sí conservan su tope: no tienen scroll propio.
+  const showDenseDailyLabels = isCompactChart ? chartRows.length <= 7 : true;
   const dailyLabelCandidates = showDenseDailyLabels
     ? chartRows.filter((point) => point.dailyTotal > 0)
     : Array.from(new Map([
@@ -15688,7 +15692,10 @@ function AcreditacionAdvanceDailyMini({
   const dailyLabelRows = sparseDailyChartRows(
     dailyLabelCandidates,
     showDenseDailyLabels ? 1 : variant === "general" ? 2 : 3,
-    showDenseDailyLabels ? Math.min(42, dailyLabelCandidates.length) : variant === "general" ? 8 : 5,
+    // Sin tope cuando se rotulan todas: el `Math.min(42, …)` recortaba
+    // justamente los días de un campo largo, que es cuando más falta hace ver
+    // el detalle día a día.
+    showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
   );
   const dateLabelRows = isCompactChart ? [] : chartRows;
   const chartBottomMargin = isCompactChart ? 36 : variant === "general" ? 86 : variant === "actor" ? 78 : 72;
@@ -15819,7 +15826,11 @@ function AcreditacionAdvanceDailyMini({
         y: -0.08,
         xref: "x" as const,
         yref: "paper" as const,
-        text: fmt(point.dailyTotal),
+        // Los días que cierran un reporte van en negrita: son las cifras que
+        // viajan al informe, y el resto es el detalle diario que las explica.
+        // Cuáles son lo decide el cronograma del estudio (`reportCuts`), no el
+        // gráfico.
+        text: cutXSet.has(point.x) ? `<b>${fmt(point.dailyTotal)}</b>` : fmt(point.dailyTotal),
         showarrow: false,
         xanchor: "center" as const,
         yanchor: "middle" as const,
