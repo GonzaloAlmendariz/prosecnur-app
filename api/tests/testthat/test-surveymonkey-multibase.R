@@ -616,10 +616,6 @@ test_that("rutas multibase resuelven aliases de perfil antes de exigir el token"
     audit = route_block(
       "/api/surveymonkey/multibase/audit",
       "/api/surveymonkey/multibase/import"
-    ),
-    import_independent = route_block(
-      "/api/surveymonkey/multibase/import-independent",
-      "/api/surveymonkey/multibase/apply-canonical-xlsform-logic"
     )
   )
 
@@ -634,4 +630,30 @@ test_that("rutas multibase resuelven aliases de perfil antes de exigir el token"
       fixed = TRUE
     )
   }
+
+  # import-independent delega en el dispatch compartido sync/async
+  # (.carga_platform_call_action): el endpoint debe enrutar por ahí y el
+  # dispatch debe conservar la resolución de aliases ANTES de exigir token.
+  independent_block <- route_block(
+    "/api/surveymonkey/multibase/import-independent",
+    "/api/surveymonkey/multibase/apply-canonical-xlsform-logic"
+  )
+  expect_match(
+    independent_block,
+    '.carga_platform_endpoint(sid, "sm_multibase_import_independent", parsed)',
+    fixed = TRUE
+  )
+  dispatch_src <- paste(
+    deparse(body(prosecnurapp:::.carga_platform_call_action), width.cutoff = 500L),
+    collapse = "\n"
+  )
+  expect_match(dispatch_src, "parsed$connection_profile_id", fixed = TRUE)
+  expect_match(dispatch_src, "parsed$connectionProfileId", fixed = TRUE)
+  expect_match(dispatch_src, "parsed$profile_id", fixed = TRUE)
+  expect_match(dispatch_src, "parsed$profileId", fixed = TRUE)
+  expect_match(
+    dispatch_src,
+    '.connections_token_require("surveymonkey", sid, profile_id = profile_id)',
+    fixed = TRUE
+  )
 })

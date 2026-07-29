@@ -1053,6 +1053,7 @@ estudio_init_default_base <- function(sid) {
   if (!length(statuses)) statuses <- "completed"
   keep_missing <- isTRUE(parsed$keep_missing_status %||% parsed$keepMissingStatus)
 
+  .carga_job_progress("fetch", message = "SurveyMonkey: leyendo estructura de la encuesta...")
   details <- sm_api_fetch_survey_details(survey_id, token, base_url = base_url)
   xls_model <- sm_api_xlsform(details, style = .sm_api_default_style(), lang = "es")
   downloads_dir <- file.path(session_get(sid)$dir, "downloads")
@@ -1065,7 +1066,8 @@ estudio_init_default_base <- function(sid) {
   inst_meta <- save_upload(sid, "xlsform", paste0(slug, "_xlsform.xlsx"), readBin(inst_path, "raw", n = file.info(inst_path)$size))
   rp_inst <- reporte_instrumento(path = inst_meta$path)
 
-  payload <- sm_api_fetch_all_responses_bulk(survey_id, token, base_url = base_url)
+  payload <- .carga_platform_fetch_sm_bulk(survey_id, token, base_url = base_url)
+  .carga_job_progress("normalize", message = "Normalizando respuestas...")
   data_df <- sm_multibase_api_responses_to_canonical_data(
     details = details,
     responses = payload$data %||% list(),
@@ -1087,6 +1089,7 @@ estudio_init_default_base <- function(sid) {
   data_df <- .carga_backfill_missing_expected(data_df, rp_inst)
   .carga_assert_data_xlsform_compatible(data_df, rp_inst)
 
+  .carga_job_progress("write", message = "Escribiendo base importada...")
   data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_data.xlsx"))
   .carga_write_xlsx_sheet(data_df, data_path, "datos")
   data_meta <- save_upload(sid, "data", paste0(slug, "_data.xlsx"), readBin(data_path, "raw", n = file.info(data_path)$size))
@@ -1106,6 +1109,7 @@ estudio_init_default_base <- function(sid) {
   response_filter$source_title <- title
   response_filter$imported_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 
+  .carga_job_progress("finalize", message = "Registrando base en el estudio...")
   finalized <- .carga_platform_finalize(sid, inst_meta, data_meta, list(
     source_kind = "surveymonkey",
     survey_id = survey_id,
@@ -1133,6 +1137,7 @@ estudio_init_default_base <- function(sid) {
   if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
   if (!nzchar(base_url)) base_url <- kobo_api_default_base_url()
   token <- .connections_token_require("kobo", sid, profile_id = profile_id, base_url = base_url)
+  .carga_job_progress("fetch", message = "Kobo: leyendo estructura del proyecto...")
   detail_url <- sprintf(
     "%s/api/v2/assets/%s/?format=json",
     .kobo_api_trim_base_url(base_url),
@@ -1150,7 +1155,8 @@ estudio_init_default_base <- function(sid) {
   inst_meta <- save_upload(sid, "xlsform", paste0(slug, "_xlsform.xlsx"), readBin(inst_path, "raw", n = file.info(inst_path)$size))
   rp_inst <- reporte_instrumento(path = inst_meta$path)
 
-  payload <- kobo_api_fetch_all_asset_data(asset_uid, token, base_url = base_url)
+  payload <- .carga_platform_fetch_kobo(asset_uid, token, base_url)
+  .carga_job_progress("normalize", message = "Normalizando respuestas...")
   data_df <- kobo_api_flatten_results(payload$results %||% list())
   data_df <- .carga_align_kobo_data(data_df, rp_inst)
   # Conservamos la data aplanada+alineada (con los blobs de repeat y las llaves
@@ -1174,6 +1180,7 @@ estudio_init_default_base <- function(sid) {
   if (has_repeats) data_df <- .kobo_ensure_wide_index(data_df)
   .carga_assert_data_xlsform_compatible(data_df, rp_inst)
 
+  .carga_job_progress("write", message = "Escribiendo base importada...")
   data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", slug, "_data.xlsx"))
   .carga_write_xlsx_sheet(data_df, data_path, "datos")
   data_meta <- save_upload(sid, "data", paste0(slug, "_data.xlsx"), readBin(data_path, "raw", n = file.info(data_path)$size))
@@ -1194,6 +1201,7 @@ estudio_init_default_base <- function(sid) {
     source_title = title,
     source_alias = title
   ), source_spec)
+  .carga_job_progress("finalize", message = "Registrando base en el estudio...")
   finalized <- .carga_platform_finalize(sid, inst_meta, data_meta, list(
     source_kind = "kobo",
     survey_id = asset_uid,
@@ -1304,7 +1312,14 @@ estudio_init_default_base <- function(sid) {
 
   prepared <- list()
   planned_names <- existing_names
-  for (asset in assets) {
+  for (asset_idx in seq_along(assets)) {
+    asset <- assets[[asset_idx]]
+    .carga_job_progress(
+      "fetch",
+      current = asset_idx,
+      total = length(assets),
+      message = sprintf("Kobo: descargando fuente %d de %d...", asset_idx, length(assets))
+    )
     profile_id <- asset$connection_profile_id
     base_url <- asset$base_url
     if (!nzchar(base_url)) base_url <- .connections_profile_base_url("kobo", profile_id)
@@ -1327,7 +1342,7 @@ estudio_init_default_base <- function(sid) {
     .carga_write_xlsform_model(xls_model, inst_path)
     rp_inst <- reporte_instrumento(path = inst_path)
 
-    payload <- kobo_api_fetch_all_asset_data(asset$asset_uid, token, base_url = base_url)
+    payload <- .carga_platform_fetch_kobo(asset$asset_uid, token, base_url)
     data_df <- kobo_api_flatten_results(payload$results %||% list())
     data_df <- .carga_align_kobo_data(data_df, rp_inst)
     # Cobertura de repeats para hermanas independientes (ADR 0030 Fase 1). Sólo
@@ -1372,6 +1387,7 @@ estudio_init_default_base <- function(sid) {
 
   estudio_ensure(sid)
   estudio_set_processing_mode(sid, "independent_siblings")
+  .carga_job_progress("finalize", message = "Registrando bases en el estudio...")
   bases_out <- list()
   imported_names <- character(0)
   for (item in prepared) {
@@ -1707,7 +1723,14 @@ estudio_init_default_base <- function(sid) {
   updated <- character(0)
   session_before_refresh <- session_get(sid)
 
-  for (base_name in target_names) {
+  for (base_idx in seq_along(target_names)) {
+    base_name <- target_names[[base_idx]]
+    .carga_job_progress(
+      "fetch",
+      current = base_idx,
+      total = length(target_names),
+      message = sprintf("Kobo: actualizando '%s' (%d de %d)...", base_name, base_idx, length(target_names))
+    )
     # El refresh reemplaza varias piezas (padre, repeats y efectivos) en pasos
     # sucesivos. Conservamos el estado de sesión previo para que cualquier
     # fallo fail-closed de universe_filter no deje punteros o caches parciales.
@@ -1737,7 +1760,7 @@ estudio_init_default_base <- function(sid) {
     .carga_write_xlsform_model(xls_model, inst_path)
     rp_inst <- reporte_instrumento(path = inst_path)
 
-    payload <- kobo_api_fetch_all_asset_data(asset_uid, token, base_url = base_url)
+    payload <- .carga_platform_fetch_kobo(asset_uid, token, base_url)
     data_df <- kobo_api_flatten_results(payload$results %||% list())
     data_df <- .carga_align_kobo_data(data_df, rp_inst)
     has_repeats <- length(.kobo_repeat_specs(rp_inst)) > 0L
@@ -2044,10 +2067,12 @@ mount_carga <- function(pr) {
       )
     })) |>
 
+    # `async = TRUE` en el body ⇒ job callr con handle inmediato; default ⇒
+    # respuesta síncrona actual (ver carga_platform_jobs.R, unidad perf 2.1).
     plumber::pr_post("/api/carga/platform/surveymonkey/import", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
-      .carga_import_surveymonkey(sid, parsed)
+      .carga_platform_endpoint(sid, "surveymonkey_import", parsed)
     })) |>
 
     plumber::pr_get("/api/carga/platform/kobo/detected-source", wrap_endpoint(function(req, res) {
@@ -2088,19 +2113,19 @@ mount_carga <- function(pr) {
     plumber::pr_post("/api/carga/platform/kobo/import", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
-      .carga_import_kobo(sid, parsed)
+      .carga_platform_endpoint(sid, "kobo_import", parsed)
     })) |>
 
     plumber::pr_post("/api/carga/platform/kobo/import-independent", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
-      .carga_import_kobo_independent(sid, parsed)
+      .carga_platform_endpoint(sid, "kobo_import_independent", parsed)
     })) |>
 
     plumber::pr_post("/api/carga/platform/kobo/refresh-independent", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       parsed <- .carga_parse_json_body(req)
-      .carga_refresh_kobo_independent(sid, parsed)
+      .carga_platform_endpoint(sid, "kobo_refresh_independent", parsed)
     })) |>
 
     # DELETE /api/carga/instrumento — limpia XLSForm cargado.
