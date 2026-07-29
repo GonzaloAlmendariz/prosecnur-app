@@ -59,8 +59,9 @@
     }
   }
   # Dashboard: el rp_inst y rp_data son tibbles gordos derivables del par
-  # XLSForm + data referenciado en s$dashboard_source. Al cargar se
-  # re-importan vía .dashboard_rebuild_after_load.
+  # XLSForm + data referenciado en s$dashboard_source. Se re-importan tras
+  # el load en el paso "dashboard" del warmup o lazy en el primer uso
+  # (dashboard_fuente_warm.R); en modo público, inline en el load.
   # `.session_state_clear` y no `s$x <- NULL`: borrar el nombre deja que un `$`
   # posterior caiga por partial matching en un hermano con el mismo prefijo.
   # Medido en acnur_pdm: sin el nombre, `s$monitoreo_dashboard_cache_token`
@@ -157,29 +158,13 @@
   s
 }
 
-# Tras un load_pulso, si el state restaurado tiene `dashboard_source` con
-# file_ids válidos, regeneramos los caches `dashboard_rp_inst` y
-# `dashboard_rp_data` reusando .dashboard_import_source. Esto cierra la
-# brecha entre lo persistido (paths + meta) y lo que el dashboard necesita
-# para renderizar. Si el rebuild falla, dejamos los caches vacíos (el
-# dashboard pedirá al usuario re-importar la fuente).
+# Delegado de compatibilidad: la reconstrucción de `dashboard_rp_inst` /
+# `dashboard_rp_data` vive en dashboard_fuente_warm.R desde que dejó de
+# correr inline en load_pulso (costaba 1-5 s por apertura re-importando
+# XLSForm + data). Hoy solo el modo público la invoca en el load; el flujo
+# normal la paga en el warmup o como fallback lazy en el primer uso.
 .dashboard_rebuild_after_load <- function(sid) {
-  s <- session_get(sid)
-  if (is.null(s$dashboard_source)) return(invisible(NULL))
-  xls_fid <- as.character(s$dashboard_source$xlsform_file_id %||% "")[1]
-  dat_fid <- as.character(s$dashboard_source$data_file_id %||% "")[1]
-  if (!nzchar(xls_fid) || !nzchar(dat_fid)) return(invisible(NULL))
-  tryCatch(
-    .dashboard_import_source(
-      sid,
-      list(xlsform_file_id = xls_fid, data_file_id = dat_fid),
-      keep_curacion = TRUE
-    ),
-    error = function(e) {
-      # No-op: el dashboard mostrará "carga la fuente" en la UI.
-      invisible(NULL)
-    }
-  )
+  .dashboard_fuente_rebuild(sid, context = "load")
 }
 
 .pulso_restore_active_stage_flags_after_load <- function(sid) {
@@ -1999,9 +1984,18 @@ load_pulso <- function(src_path) {
     ))
   }
 
-  # 7) Rebuild de caches dashboard (rp_inst / rp_data) a partir de los
-  #    file_ids persistidos en dashboard_source. No falla si no hay fuente.
-  .dashboard_rebuild_after_load(new_sid)
+  # 7) Los caches del dashboard (rp_inst / rp_data) YA NO se reconstruyen
+  #    inline: re-importar XLSForm + data costaba 1-5 s en cada apertura con
+  #    dashboard configurado. La reconstrucción corre como paso del warmup
+  #    (/api/project/warmup, durante la pantalla de preparación) y, si nadie
+  #    llama warmup (cliente viejo, headless), como fallback lazy en el
+  #    primer uso del dashboard — ver dashboard_fuente_warm.R.
+  #    Excepción: en modo público (HF Space) el load ocurre UNA vez al boot
+  #    del server sin usuario esperando, y el primer visitante no debe pagar
+  #    el costo; ahí se mantiene el rebuild inline.
+  if (isTRUE(is_public_mode())) {
+    .dashboard_rebuild_after_load(new_sid)
+  }
   # Migración multi-formulario del editor XLSForm: proyectos viejos traen solo
   # `xlsform_state` (mono-formulario). Sembramos la colección `xlsform_forms`
   # con esa única entrada como activa, en runtime, sin pérdida de datos. Es

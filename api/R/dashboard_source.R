@@ -27,6 +27,11 @@
 #    fallamos con un código `E_*` en vez de arrastrar el tipo inválido hasta
 #    un error crudo de R.
 .dashboard_ctx <- function(s) {
+  # Fallback lazy: si el .pulso trae `dashboard_source` pero los caches aún
+  # no se reconstruyeron (el open ya no paga ese costo inline; lo paga el
+  # warmup o este primer uso — ver dashboard_fuente_warm.R), regenera aquí.
+  # Con caches presentes es un par de is.null() y sigue de largo.
+  s <- .dashboard_fuente_lazy(s)
   s["rp_inst"] <- list(s[["dashboard_rp_inst"]])
   s["rp_data"] <- list(s[["dashboard_rp_data"]])
 
@@ -182,6 +187,10 @@
 }
 
 .dashboard_source_payload <- function(s) {
+  # Mismo fallback lazy que .dashboard_ctx: el panel "Datos" es a veces el
+  # primer GET del dashboard y debe reportar has_source=TRUE si la fuente
+  # persistida es reconstructible.
+  s <- .dashboard_fuente_lazy(s)
   project <- .dashboard_project_candidates(s)
   session <- .dashboard_session_candidates(s)
   list(
