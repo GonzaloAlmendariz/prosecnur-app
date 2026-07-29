@@ -848,16 +848,56 @@
           return(.project_warmup_skip("Dashboard no disponible."))
         }
         s <- session_get(sid)
+        # La fuente propia (dashboard_rp_inst/rp_data) no viaja en el .pulso
+        # y ya no se reconstruye inline en load_pulso (unidad 3.2 del plan de
+        # perf): este paso paga esa re-importación aquí, durante la espera
+        # declarada de la pantalla de preparación, y la devuelve a la sesión
+        # viva vía session_patch (el warmup corre en un worker sobre una
+        # copia de la sesión).
+        fuente_pending <- exists(".dashboard_fuente_pendiente", mode = "function") &&
+          .dashboard_fuente_pendiente(s)
+        fuente_rebuilt <- FALSE
+        fuente_elapsed_ms <- NULL
+        if (isTRUE(fuente_pending)) {
+          fuente_started <- Sys.time()
+          fuente_rebuilt <- isTRUE(tryCatch(
+            .project_warmup_with_elapsed_limit(
+              .dashboard_fuente_rebuild(sid, context = "warmup"),
+              remaining_ms,
+              reserve_ms = 2000L
+            ),
+            error = function(e) FALSE
+          ))
+          fuente_elapsed_ms <- .project_warmup_elapsed_ms(fuente_started)
+          s <- session_get(sid)
+        }
         manifest <- .dashboard_manifest(s)
         source <- if (exists(".dashboard_source_payload", mode = "function")) {
           tryCatch(.dashboard_source_payload(s), error = function(e) NULL)
         } else {
           NULL
         }
-        .project_warmup_ready("Manifest de dashboard hidratado.", list(
-          tabs = names(manifest %||% list()),
-          has_source = is.list(source)
-        ))
+        patch <- NULL
+        if (isTRUE(fuente_rebuilt)) {
+          s <- session_get(sid)
+          patch <- list(
+            dashboard_rp_inst = s[["dashboard_rp_inst"]],
+            dashboard_rp_data = s[["dashboard_rp_data"]],
+            dashboard_source = s$dashboard_source
+          )
+        }
+        list(
+          status = "ready",
+          message = "Manifest de dashboard hidratado.",
+          details = list(
+            tabs = names(manifest %||% list()),
+            has_source = is.list(source),
+            fuente_pending = isTRUE(fuente_pending),
+            fuente_rebuilt = isTRUE(fuente_rebuilt),
+            fuente_elapsed_ms = fuente_elapsed_ms
+          ),
+          session_patch = patch
+        )
       }
     ),
     list(
@@ -1075,6 +1115,13 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
       merge_child("monitoreo_acreditacion", value)
     }
     merge_child("monitoreo_acreditacion", value$monitoreo_acreditacion %||% NULL)
+    dashboard_keys <- c("dashboard_rp_inst", "dashboard_rp_data", "dashboard_source")
+    if (any(dashboard_keys %in% names(value))) {
+      merge_child("dashboard", value[intersect(dashboard_keys, names(value))])
+    }
+    # `[[` exacto: `$dashboard` haría partial matching contra los propios
+    # `dashboard_*` del patch cuando viajan sueltos.
+    merge_child("dashboard", value[["dashboard"]] %||% NULL)
     territorial_keys <- c("territorial_report_cache", "territorial_map_cache")
     if (any(monitoreo_keys %in% names(value))) {
       merge_child("monitoreo", value)
@@ -1137,6 +1184,36 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
         incoming_acr_cache
       )
       s_current$monitoreo_snapshot <- snapshot_current
+      .session_env[[sid]] <- s_current
+      changed <- TRUE
+    }
+  }
+  dashboard <- patch$dashboard %||% list()
+  if (is.list(dashboard) && length(dashboard) &&
+      !is.null(dashboard$dashboard_rp_inst) && !is.null(dashboard$dashboard_rp_data)) {
+    s_current <- session_get(sid)
+    incoming_src <- dashboard$dashboard_source %||% list()
+    current_src <- s_current$dashboard_source %||% list()
+    same_source <- identical(
+      as.character(incoming_src$xlsform_file_id %||% "")[1],
+      as.character(current_src$xlsform_file_id %||% "")[1]
+    ) && identical(
+      as.character(incoming_src$data_file_id %||% "")[1],
+      as.character(current_src$data_file_id %||% "")[1]
+    )
+    still_cold <- is.null(s_current[["dashboard_rp_inst"]]) ||
+      is.null(s_current[["dashboard_rp_data"]])
+    # Guard de carrera: si el usuario re-importó OTRA fuente mientras corría
+    # el warmup, o el fallback lazy ya calentó la sesión, el patch del worker
+    # llega desactualizado y se descarta (el resultado vigente ya es válido).
+    if (isTRUE(same_source) && isTRUE(still_cold)) {
+      # `s["x"] <- list(v)` y no `s$x <- v`: mismo idioma anti partial
+      # matching que .dashboard_ctx / .session_state_clear.
+      s_current["dashboard_rp_inst"] <- list(dashboard$dashboard_rp_inst)
+      s_current["dashboard_rp_data"] <- list(dashboard$dashboard_rp_data)
+      if (is.list(dashboard$dashboard_source)) {
+        s_current["dashboard_source"] <- list(dashboard$dashboard_source)
+      }
       .session_env[[sid]] <- s_current
       changed <- TRUE
     }
