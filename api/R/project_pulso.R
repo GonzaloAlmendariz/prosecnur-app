@@ -30,6 +30,10 @@
 #   - s$monitoreo_snapshot$territorial_report_cache — reportes territoriales
 #     derivados por fase/fuente/scope. Viajan en el .pulso para que Hojas,
 #     Consultas y Validación reabran desde el estado local ya preparado.
+#   - s$monitoreo_snapshot$acreditacion_report_cache — lo mismo para
+#     acreditación y telefónico, por scope. Sin él, los cuatro scopes que pide
+#     la interfaz al abrir se reconstruían enteros en cada apertura y en cada
+#     guardado de configuración.
 # Esto evita serializar objetos gordos (tibbles con 50k filas) que son
 # derivables de los file_id que sí están en el zip.
 
