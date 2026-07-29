@@ -30,7 +30,8 @@ import { anclasAutomaticas } from "./aristaPath";
 import { escribiendoEnCampo, resolverAtajo } from "./atajos";
 import { NodoReferencia } from "./NodoReferencia";
 import { resumenVivo } from "./resumenVivo";
-import { SelectorDeReferencia, type ReferenciaElegida } from "./SelectorDeReferencia";
+import { disponerRamificacion } from "./ramificacion";
+import { ExploradorDeReferencias, type ReferenciaElegida } from "./ExploradorDeReferencias";
 import { LienzoViewport, type ApiViewport } from "./LienzoViewport";
 import { useCanvasAutosave } from "./useCanvasAutosave";
 import { useCanvasStore } from "./store";
@@ -108,29 +109,36 @@ export function CanvasSection({
     [cajas, store],
   );
 
-  const insertarReferencia = useCallback(
-    (ref: ReferenciaElegida) => {
+  const insertarReferencias = useCallback(
+    (refs: ReferenciaElegida[]) => {
       const s = store.getState();
-      // Una pieza de la app cabe en una línea y media; un hito o una entrada
-      // traen título, detalle y fecha. Estrenar los tres del mismo alto deja
-      // la mitad de la tarjeta en blanco o corta el texto.
-      const alto = ref.target_type === "modulo" ? 72 : 118;
-      const p = posicionLibre(
-        apiRef.current?.centroMundo() ?? { x: 80, y: 80 },
-        { w: 240, h: alto },
+      const origen = apiRef.current?.centroMundo() ?? { x: 80, y: 80 };
+      // El layout y las aristas los decide `ramificacion.ts`: es la lógica que
+      // convierte varias piezas sueltas en un árbol legible, y se prueba aparte.
+      const { nodes, edges } = disponerRamificacion(refs, origen, String(Date.now()));
+      if (!nodes.length) return;
+      // Una sola posición libre para el bloque entero: buscarla por nodo los
+      // desparramaría y perdería la disposición jerárquica que se acaba de
+      // calcular.
+      const caja = cajaDe(nodes);
+      const libre = posicionLibre(
+        { x: caja.x, y: caja.y },
+        { w: caja.w, h: caja.h },
         [...cajas.values()],
       );
-      const id = `nodo-${Date.now()}`;
-      s.setNodes([
-        ...s.nodes,
-        {
-          id, type: "referencia", x: p.x, y: p.y, w: 240, h: alto, z: 0,
-          color: "neutro", text: ref.titulo, ref: { target_type: ref.target_type, target_id: ref.target_id }, links: [],
-        },
-      ]);
-      s.enfocar(id);
-      s.seleccionar(new Set([id]));
+      const dx = libre.x - caja.x;
+      const dy = libre.y - caja.y;
+      const colocados = nodes.map((n) => ({ ...n, x: n.x + dx, y: n.y + dy }));
+
+      s.setNodes([...s.nodes, ...colocados]);
+      if (edges.length) s.setEdges([...s.edges, ...edges]);
+      s.enfocar(colocados[0].id);
+      s.seleccionar(new Set(colocados.map((n) => n.id)));
       setEligiendoReferencia(false);
+      toast.exito(
+        colocados.length === 1 ? "Pieza en el lienzo" : `${colocados.length} piezas en el lienzo`,
+        edges.length ? { detalle: `${edges.length} ${edges.length === 1 ? "conexión trazada" : "conexiones trazadas"}.` } : undefined,
+      );
     },
     [cajas, store],
   );
@@ -409,9 +417,9 @@ export function CanvasSection({
 
       <div className="bcanvas-tablero">
         {eligiendoReferencia && (
-          <SelectorDeReferencia
+          <ExploradorDeReferencias
             estado={estado}
-            onElegir={insertarReferencia}
+            onElegir={insertarReferencias}
             onCerrar={() => setEligiendoReferencia(false)}
           />
         )}
@@ -450,4 +458,16 @@ export function CanvasSection({
       </span>
     </div>
   );
+}
+
+/** Caja envolvente de un grupo de nodos, para colocarlo como un bloque. */
+function cajaDe(nodes: { x: number; y: number; w: number; h: number }[]) {
+  const x = Math.min(...nodes.map((n) => n.x));
+  const y = Math.min(...nodes.map((n) => n.y));
+  return {
+    x,
+    y,
+    w: Math.max(...nodes.map((n) => n.x + n.w)) - x,
+    h: Math.max(...nodes.map((n) => n.y + n.h)) - y,
+  };
 }

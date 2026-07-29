@@ -27,7 +27,7 @@
 # normalizadores puros de bitacora_modelo.R. Se re-normalizan en cada apertura;
 # con el tope de entradas del módulo el costo es despreciable, y a cambio no hay
 # un campo de versión que pueda mentir.
-BITACORA_ESQUEMAS <- c(plan = 2L)
+BITACORA_ESQUEMAS <- c(plan = 3L)
 
 # Lee la versión declarada en un `schema` con forma "<prefijo>_v<N>". Un objeto
 # sin `schema` legible es v1 por definición: es lo que había antes de que el
@@ -64,6 +64,26 @@ BITACORA_ESQUEMAS <- c(plan = 2L)
 # que ningún consumidor tenga que preguntarse si está.
 .bit_salto_plan_1_2 <- function(plan) {
   plan$tasks <- lapply(plan$tasks %||% list(), .bit_normalizar_tarea)
+  plan
+}
+
+# Salto 2 -> 3: se retira la fase «Diseño».
+#
+# El cronograma se construye DESDE la bitácora, así que una fase que apunta al
+# módulo donde el usuario ya está parado no declara nada. Las tareas que la
+# tenían no se descartan ni se quedan sin clasificar —eso dejaría el cronograma
+# con huecos y con filas que el compositor no sabe dónde poner—: pasan a Campo,
+# que es donde arranca lo que se planifica de verdad.
+#
+# `fase_manual` se respeta igual que en cualquier otra edición: si el usuario
+# había fijado la fase a mano, la reasignación la deja fijada en el destino
+# nuevo en vez de volver a abrirla a la adivinanza.
+.bit_salto_plan_2_3 <- function(plan) {
+  plan$tasks <- lapply(plan$tasks %||% list(), function(t) {
+    if (!is.list(t)) return(t)
+    if (identical(calc_str(t$fase, ""), "diseno")) t$fase <- BITACORA_FASE_FALLBACK
+    .bit_normalizar_tarea(t)
+  })
   plan
 }
 
@@ -124,7 +144,7 @@ BITACORA_MAX_REVISIONES <- 10L
   if (is.list(plan)) {
     s$plan_trabajo <- .bit_migrar_por_saltos(
       plan, "plan_trabajo", BITACORA_ESQUEMAS[["plan"]],
-      list("1" = .bit_salto_plan_1_2)
+      list("1" = .bit_salto_plan_1_2, "2" = .bit_salto_plan_2_3)
     )
   }
 

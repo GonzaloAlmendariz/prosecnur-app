@@ -20,7 +20,6 @@ import type {
 
 /** Las seis fases del estudio. El usuario elige de acá; no se escribe texto. */
 export const BITACORA_FASES = [
-  "diseno",
   "muestra",
   "instrumento",
   "campo",

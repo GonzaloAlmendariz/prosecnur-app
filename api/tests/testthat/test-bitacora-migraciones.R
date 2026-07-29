@@ -117,8 +117,8 @@ test_that("la forma temporal se deriva bien del plan importado", {
 
 test_that("el plan queda declarando la versión nueva", {
   s <- .bitacora_migrar_estado(.bitmig_sesion_v1())
-  expect_equal(s$plan_trabajo$schema, "plan_trabajo_v2")
-  expect_equal(.bit_version_de(s$plan_trabajo, "plan_trabajo"), 2L)
+  expect_equal(s$plan_trabajo$schema, "plan_trabajo_v3")
+  expect_equal(.bit_version_de(s$plan_trabajo, "plan_trabajo"), 3L)
 })
 
 test_that("una sesión sin estado de bitácora sobrevive intacta", {
@@ -138,7 +138,7 @@ test_that("un plan a medias no rompe la migración", {
     plan_trabajo = list(schema = "plan_trabajo_v1", title = "x")
   ))
   expect_equal(s$plan_trabajo$tasks, list())
-  expect_equal(s$plan_trabajo$schema, "plan_trabajo_v2")
+  expect_equal(s$plan_trabajo$schema, "plan_trabajo_v3")
 
   s2 <- .bitacora_migrar_estado(list(
     plan_trabajo = list(schema = "plan_trabajo_v1", tasks = list("no soy una tarea"))
@@ -180,4 +180,48 @@ test_that("una revisión sin marca de tiempo se descarta", {
   # Sin `revised_at` no hay forma de ubicarla en el historial; guardarla sería
   # mostrar "qué decía antes" sin poder decir cuándo.
   expect_length(.bit_revisiones(list(list(title = "sin fecha"))), 0L)
+})
+
+# --- Salto 2 -> 3: se retira la fase «Diseño» --------------------------------
+
+test_that("una tarea que estaba en Diseño pasa a Campo, no se queda sin fase", {
+  # Descartarla o dejarla en "" dejaría el cronograma con filas que el
+  # compositor no sabe dónde poner.
+  plan <- .bit_salto_plan_2_3(list(
+    schema = "plan_trabajo_v2",
+    tasks = list(list(id = "t1", activity = "Kickoff", fase = "diseno"))
+  ))
+  expect_equal(plan$tasks[[1]]$fase, "campo")
+})
+
+test_that("las tareas de las otras fases no se tocan", {
+  plan <- .bit_salto_plan_2_3(list(
+    schema = "plan_trabajo_v2",
+    tasks = list(
+      list(id = "t1", activity = "Campo", fase = "campo"),
+      list(id = "t2", activity = "Informe", fase = "entregables")
+    )
+  ))
+  expect_equal(vapply(plan$tasks, function(t) t$fase, character(1)), c("campo", "entregables"))
+})
+
+test_that("la fase fijada a mano se respeta: queda fijada en el destino nuevo", {
+  # Reasignar y además reabrirla a la adivinanza sería perder dos veces la
+  # decisión del usuario.
+  plan <- .bit_salto_plan_2_3(list(
+    schema = "plan_trabajo_v2",
+    tasks = list(list(id = "t1", activity = "Kickoff", fase = "diseno", fase_manual = TRUE))
+  ))
+  expect_equal(plan$tasks[[1]]$fase, "campo")
+  expect_true(plan$tasks[[1]]$fase_manual)
+})
+
+test_that("un .pulso viejo con fase Diseño abre migrado y sin fases inválidas", {
+  s <- .bitacora_migrar_estado(list(plan_trabajo = list(
+    schema = "plan_trabajo_v1",
+    tasks = list(list(id = "t1", activity = "Kickoff", sync_targets = list("plan-trabajo")))
+  )))
+  fases <- vapply(s$plan_trabajo$tasks, function(t) calc_str(t$fase, ""), character(1))
+  expect_true(all(fases %in% c(BITACORA_FASES, "")))
+  expect_false("diseno" %in% fases)
 })

@@ -41,9 +41,9 @@ function fasesDeclaradasEnR(): Array<{ modulo: string; seccion: string }> {
 }
 
 describe("identidad de las etapas del cronograma", () => {
-  it("el catálogo de R declara las seis etapas con módulo", () => {
+  it("el catálogo de R declara las cinco etapas con módulo", () => {
     const fases = fasesDeclaradasEnR();
-    expect(fases).toHaveLength(6);
+    expect(fases).toHaveLength(5);
     expect(fases.every((f) => f.modulo.length > 0)).toBe(true);
   });
 
@@ -100,7 +100,7 @@ describe("identidad de las etapas del cronograma", () => {
     expect(identidadDeFase("").modulo).toBeNull();
   });
 
-  it("las seis etapas resuelven a seis íconos distintos", () => {
+  it("las cinco etapas resuelven a cinco íconos distintos", () => {
     // El color puede repetirse —Procesamiento y Entregables son dos secciones
     // del mismo módulo y compartir el teal es lo honesto— pero el ícono no: es
     // lo que le queda al usuario para distinguirlas de un vistazo.
@@ -108,7 +108,7 @@ describe("identidad de las etapas del cronograma", () => {
       (f) => identidadDeFase(f.modulo, f.seccion).icono,
     );
     expect(iconos.every(Boolean)).toBe(true);
-    expect(new Set(iconos).size).toBe(6);
+    expect(new Set(iconos).size).toBe(5);
   });
 
   it("cada etapa lleva a un destino propio", () => {
@@ -116,7 +116,7 @@ describe("identidad de las etapas del cronograma", () => {
       (f) => identidadDeFase(f.modulo, f.seccion).href,
     );
     expect(destinos.every((d) => d.length > 1)).toBe(true);
-    expect(new Set(destinos).size).toBe(6);
+    expect(new Set(destinos).size).toBe(5);
   });
 
   it("la etiqueta corta distingue etapas que comparten módulo", () => {
@@ -125,7 +125,7 @@ describe("identidad de las etapas del cronograma", () => {
     const cortas = fasesDeclaradasEnR().map(
       (f) => identidadDeFase(f.modulo, f.seccion).etiquetaCorta,
     );
-    expect(new Set(cortas).size).toBe(6);
+    expect(new Set(cortas).size).toBe(5);
     expect(identidadDeFase("procesamiento", "carga").etiquetaCorta).toBe("Carga");
     expect(identidadDeFase("procesamiento", "graficos").etiquetaCorta).toBe("Gráficos");
     // Sin sección, la pieza más específica es el módulo.

@@ -52,6 +52,7 @@ export const NodoReferencia = memo(
     const Icono = identidad?.icono ?? null;
     const huerfano = !esPieza && !resumen.existe;
     const esHito = ref?.target_type === "tarea";
+    const contexto = caminoHasta(identidad?.etiquetaModulo ?? "");
     const estadoLegible = esHito ? resumen.estado : etiquetaTono(resumen.estado);
 
     return (
@@ -93,10 +94,11 @@ export const NodoReferencia = memo(
             </span>
             <span className="bcanvas-ref-cuerpo">
               <strong>{identidad.etiquetaCorta}</strong>
-              {/* El contexto, no el nombre completo: `etiquetaModulo` repetiría
-                  el título en un módulo ("Monitoreo · Monitoreo") y se trunca
-                  en una sección, que es cuando más falta hace leerlo. */}
-              <small>{identidad.seccion ? identidad.modulo.shortLabel : "Módulo"}</small>
+              {/* El camino hasta la pieza, sin ella: «Monitoreo · Territorial»
+                  bajo «Avance». Es lo que distingue dos secciones que se llaman
+                  igual en modos distintos, y sin esto todos los niveles decían
+                  «Módulo» —hasta los que no lo eran—. */}
+              <small>{contexto}</small>
             </span>
             {/* El nodo no describe el lugar: lleva a él. Un mapa que no se
                 puede recorrer es un dibujo. */}
@@ -148,3 +150,14 @@ export const NodoReferencia = memo(
     a.seleccionado === b.seleccionado &&
     a.enfocado === b.enfocado,
 );
+
+/**
+ * El camino de una pieza sin su último tramo. `etiquetaModulo` viene como
+ * «Monitoreo · Territorial · Avance» y el nodo ya muestra «Avance» de título:
+ * el subtítulo es lo que distingue dos secciones que se llaman igual en modos
+ * distintos.
+ */
+function caminoHasta(ruta: string): string {
+  const tramos = (ruta ?? "").split(" · ");
+  return tramos.length > 1 ? tramos.slice(0, -1).join(" · ") : "Módulo";
+}

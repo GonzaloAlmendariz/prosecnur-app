@@ -13,10 +13,18 @@
 
 # --- Catálogo de fases -------------------------------------------------------
 
-test_that("el catálogo tiene las seis fases del estudio en orden de recorrido", {
+test_that("el catálogo tiene las cinco fases del estudio en orden de recorrido", {
   ids <- vapply(.bit_fases_catalogo(), function(f) f$id, character(1))
-  expect_equal(ids, c("diseno", "muestra", "instrumento", "campo", "procesamiento", "entregables"))
+  expect_equal(ids, c("muestra", "instrumento", "campo", "procesamiento", "entregables"))
   expect_equal(ids, BITACORA_FASES)
+})
+
+test_that("no hay una fase que apunte al módulo de la bitácora", {
+  # El cronograma se construye DESDE la bitácora: una fase «Diseño» que apunta
+  # al módulo donde el usuario ya está parado es la superficie mirándose a sí
+  # misma, y no declara nada. Lo que se planifica desde acá empieza después.
+  modulos <- vapply(.bit_fases_catalogo(), function(f) f$modulo, character(1))
+  expect_false("diseno-estudio" %in% modulos)
 })
 
 test_that("cada fase mapea a claves de evidencia y ninguna se repite entre fases", {
@@ -99,10 +107,14 @@ test_that("los siete targets heredados mapean a una fase sin dejar ninguno afuer
   # Analítica es salida, no tubería: un .pulso viejo con ese target aterriza en
   # Entregables, no en Procesamiento.
   expect_equal(.bit_fase_de_targets(list("analitica")), "entregables")
-  # El fallback histórico de la regex cae en Diseño, nunca se descarta.
-  expect_equal(.bit_fase_de_targets(list("plan-trabajo")), "diseno")
-  expect_equal(.bit_fase_de_targets(list()), "diseno")
-  expect_equal(.bit_fase_de_targets(NULL), "diseno")
+  # El fallback de la regex cae en Campo —donde arranca lo que se planifica de
+  # verdad— y nunca se descarta la tarea: eso dejaría el cronograma con huecos.
+  expect_equal(.bit_fase_de_targets(list("plan-trabajo")), "campo")
+  expect_equal(.bit_fase_de_targets(list()), "campo")
+  expect_equal(.bit_fase_de_targets(NULL), "campo")
+  # Una tarea que apuntaba al propio módulo de la bitácora tampoco describe una
+  # etapa: cae en el mismo fallback.
+  expect_equal(.bit_fase_de_targets(list("diseno-estudio")), "campo")
 })
 
 # --- La inversión: la fase elegida manda -------------------------------------
@@ -305,10 +317,10 @@ test_that("operar sobre una tarea que ya no existe da un error accionable", {
 
 # --- Vista por fases ---------------------------------------------------------
 
-test_that("la vista devuelve siempre las seis fases, tengan tareas o no", {
+test_that("la vista devuelve siempre las cinco fases, tengan tareas o no", {
   s <- list()
   vista <- .bit_cron_vista_fases(s, .plan_empty_plan())
-  expect_equal(length(vista), 6L)
+  expect_equal(length(vista), 5L)
   expect_true(all(vapply(vista, function(f) f$task_count == 0L, logical(1))))
   # El compositor necesita las vacías para que el usuario pueda darles fechas.
   expect_true(all(vapply(vista, function(f) nzchar(f$label), logical(1))))

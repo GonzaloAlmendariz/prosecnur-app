@@ -344,6 +344,25 @@ secciones de Procesamiento, Monitoreo, Hojas de ruta, las cuatro de Bitácora y 
 Dashboard. El conmutador de vistas pasó de 3.7 a 5.00 y los números del
 calendario de 3.15 a 5.01 sin tocar ninguno de los dos: los arregló el token.
 
+### El lienzo recorre el árbol de la app (posterior a la fase 9)
+
+| Decisión | Alternativa descartada | Por qué | Costo de revertir |
+|---|---|---|---|
+| El lienzo referencia el ÁRBOL de la app, no una lista plana | Lista plana de módulos y secciones | Aplanar perdía dos niveles: de ~70 destinos ofrecía 25, sin las 34 secciones de los 9 modos ni las 14 pestañas. Monitoreo territorial no se podía poner en el mapa | Bajo |
+| Clave de destino por ids, con `::` para el modo | Guardar la ruta canónica | La ruta cambia al reorganizar la navegación y dejaría los nodos huérfanos; `a/b/c` sin el separador es ambiguo entre módulo/sección/pestaña y módulo/modo/sección | Bajo |
+| Selección múltiple acumulada entre niveles | Un destino por vez | Armar una ramificación es traer varias piezas juntas, no abrir el panel seis veces | Bajo |
+| Al insertar se trazan también las aristas | Solo los nodos | Seis tarjetas apiladas son un montón, no un mapa: la arista es lo que hace la ramificación | Bajo |
+| La arista busca el ancestro más cercano PRESENTE | Enganchar al padre inmediato | Traer «Monitoreo» y una de sus pestañas sin el modo del medio dejaría la ramificación cortada por una pieza que el usuario decidió no traer | Bajo |
+| Las aristas de ramificación dicen `contiene` | Reusar `bloquea` | «Bloquea» haría que el mapa se lea como un grafo de precedencias | Bajo |
+| **Se retira la fase «Diseño»** | Mantener las seis | El cronograma se construye DESDE la bitácora: una fase que apunta al módulo donde el usuario ya está parado es la superficie mirándose a sí misma. Lo que se planifica desde acá empieza después | Medio — hay que rehacer la migración 2→3 |
+| El fallback de clasificación pasa a Campo | Dejarlo en Diseño (que ya no existe) | En un estudio de encuestas lo que no se supo clasificar casi siempre es trabajo de campo; descartarlo dejaría el cronograma con huecos | Bajo |
+
+El cronograma queda con **cinco** fases —Muestra, Instrumento, Campo,
+Procesamiento y Entregables— y el plan sube a `plan_trabajo_v3`. El salto 2→3
+reasigna a Campo las tareas que estaban en Diseño, respetando `fase_manual`:
+ni se descartan ni quedan sin clasificar, que dejaría filas que el compositor no
+sabe dónde poner.
+
 ## Deuda registrada
 
 Las tres deudas de contraste que este ADR registró al cierre de la fase 9 —el
