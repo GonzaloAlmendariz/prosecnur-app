@@ -97,12 +97,9 @@ export default function HomePage() {
   );
 
   // El selector de módulos es un overlay global (<ModulePickerHost/> en el
-  // Layout) disparado por `?agregar=1` sobre la ruta actual. Desde el home la
-  // ruta es `/`; preservamos los params existentes al abrirlo.
-  function openPicker() {
-    panelModulos.abrir();
-  }
-
+  // Layout) disparado por `?agregar=1` sobre la ruta actual. Lo abre el "+"
+  // del dock de módulos del topbar, visible en toda la app; el home ya no
+  // repite ese botón en una fila de cabecera propia.
   let content: ReactNode;
   if (loading && !overview) {
     content = <div className="home-suite"><MissionControlSkeleton /></div>;
@@ -113,7 +110,6 @@ export default function HomePage() {
           overview={overview}
           proc={proc}
           addedSlugs={addedSlugs}
-          onAddModule={openPicker}
           onRemoveModule={removeModule}
         />
       </div>

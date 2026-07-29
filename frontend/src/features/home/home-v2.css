@@ -1032,11 +1032,11 @@
      como en cualquier dashboard). Antes se centraba en vertical, pero en
      pantallas altas eso dejaba demasiado margen ARRIBA; ahora el contenido
      empieza cerca del tope y llena el ancho, que se lee profesional. */
-  margin-top: clamp(4px, 1vh, 16px);
-  /* Antes `margin-bottom: auto` empujaba todo arriba y dejaba el sobrante como
-     un hueco muerto al pie. Ahora la sección ocupa el alto disponible y es la
-     grilla la que decide si se estira (ver data-density). */
+  /* El sobrante se reparte arriba y abajo en vez de acumularse al pie: con
+     pocos módulos, media pantalla vacía debajo del bloque se leía como que
+     faltaba algo. Centrado, el aire se lee como margen. */
   flex: 1 1 auto;
+  justify-content: center;
   min-height: 0;
   width: 100%;
   /* Llena el ancho disponible (solo el padding base del layout como margen);
@@ -1134,79 +1134,54 @@
 
 /* --- Grid de tarjetas por módulo (adaptativo al número) -------------- */
 /* C2 — contrato `equal`: todas las tarjetas comparten alto y ancho pase lo que
-   pase con sus datos. `grid-auto-rows: minmax(0, 1fr)` reparte el alto entre
-   las filas en vez de dejar que cada una crezca con su contenido (antes la
-   fila 1 medía 319px y la fila 2 345px). El exceso pertenece a .home-suite,
-   que es el dueño del scroll; dentro de la tarjeta nada scrollea. */
+   pase con sus datos. El exceso pertenece a .home-suite, que es el dueño del
+   scroll; dentro de la tarjeta nada scrollea.
+
+   Las columnas vienen de `--home-cols` (cantidad de módulos), no de
+   `auto-fill` por ancho: con seis tarjetas el reparto por ancho daba 4+2 y la
+   fila huérfana se leía como un error de maquetación. Por cantidad, seis
+   quedan 3+3 y ocho quedan 4+4.
+
+   Las filas NO se estiran a `1fr`. Cuando lo hacían y la tarjeta topaba en su
+   `max-height`, el sobrante de cada fila se convertía en un hueco muerto ENTRE
+   filas — el defecto visible con seis módulos. Ahora la fila mide lo que mide
+   su contenido y el sobrante queda al pie, donde se lee como margen. */
 .home-mission-grid {
   display: grid;
-  justify-content: start;
+  justify-content: stretch;
   align-items: stretch;
   align-content: start;
-  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
-  grid-auto-rows: minmax(0, 1fr);
+  grid-template-columns: repeat(var(--home-cols, 4), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, auto);
   gap: 14px;
 }
 
-/* Con muchas tarjetas la grilla toma el alto sobrante en vez de dejar un
-   tercio de pantalla vacío abajo: las filas se reparten el espacio (siguen
-   compartiendo alto entre sí) hasta un techo, porque estirar una tarjeta más
-   allá de eso deja el contenido flotando en el vacío. Con pocas tarjetas NO se
-   estira — una sola tarjeta de 700px de alto sería absurda. */
-.home-mission-grid[data-density="balanced"],
-.home-mission-grid[data-density="dense"] {
-  flex: 1 1 auto;
-  align-content: stretch;
-  min-height: 0;
+@media (max-width: 1180px) {
+  .home-mission-grid {
+    grid-template-columns: repeat(min(var(--home-cols, 4), 3), minmax(0, 1fr));
+  }
 }
 
-.home-mission-grid[data-density="balanced"] .home-mc-card,
-.home-mission-grid[data-density="dense"] .home-mc-card {
-  max-height: 300px;
+@media (max-width: 900px) {
+  .home-mission-grid {
+    grid-template-columns: repeat(min(var(--home-cols, 4), 2), minmax(0, 1fr));
+  }
 }
 
-.home-mission-grid[data-density="spacious"] {
-  grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
-  gap: 16px;
-}
-
-.home-mission-grid[data-density="balanced"] {
-  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
-}
-
-.home-mission-grid[data-density="dense"] {
-  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
-  gap: 12px;
-}
-
-/* Con ocho módulos la columna es estrecha y la tagline obliga al bloque de
-   identidad a envolver, duplicando el alto de la cabecera. El título del
-   módulo ya lo identifica; la descripción se recupera en el tooltip de la
-   tarjeta y en el diálogo de "Agregar módulo". */
+/* Con la columna estrecha la descripción obliga al bloque de identidad a
+   envolver y duplica el alto de la cabecera. El título del módulo ya lo
+   identifica; la descripción se recupera en el tooltip de la tarjeta y en el
+   diálogo de "Agregar módulo". */
 .home-mission-grid[data-density="dense"] .home-mc-tagline { display: none; }
 
-/* Lo mismo cuando la tarjeta lleva chip de alerta además del de estado: dos
-   chips no dejan ancho para la descripción y esta se cortaba a media palabra
-   ("Seguimiento del t…"). Entre truncar la descripción y omitirla, se omite:
-   un texto cortado no informa y ensucia. */
+/* Lo mismo cuando la tarjeta lleva chip de alerta: no queda ancho para la
+   descripción y se cortaba a media palabra ("Seguimiento del t…"). Entre
+   truncar y omitir, se omite: un texto cortado no informa y ensucia. */
 .home-mc-card:has(.home-mc-alert) .home-mc-tagline { display: none; }
 
-@media (min-width: 1480px) {
-  .home-mission-grid[data-density="dense"] {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 720px) {
-  .home-mission-grid,
-  .home-mission-grid[data-density="spacious"],
-  .home-mission-grid[data-density="balanced"],
-  .home-mission-grid[data-density="dense"] {
+  .home-mission-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .home-mission-head {
-    align-items: flex-start;
   }
 }
 
@@ -1219,14 +1194,24 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 232px;
-  border: 1px solid var(--pulso-border);
+  min-height: 200px;
+  /* Definición: hairline propio + un lavado casi imperceptible del acento del
+     módulo sobre la superficie. El color identifica sin teñir, y la doble
+     sombra (contacto + difusa) le da el asiento de una tarjeta de escritorio
+     en vez del look plano de una caja web. */
+  border: 1px solid color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 20%, var(--pulso-border));
   border-radius: var(--pulso-radius-card);
   padding: 0;
-  background: var(--pulso-surface);
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 3%, var(--pulso-surface)),
+      var(--pulso-surface) 42%
+    );
   text-align: left;
   overflow: hidden;
-  box-shadow: var(--pulso-shadow-low);
+  box-shadow:
+    0 1px 1px rgba(0, 36, 87, 0.04),
+    0 4px 12px -4px rgba(0, 36, 87, 0.08);
   transition:
     transform var(--motion-dur-base) var(--motion-ease-out),
     border-color var(--motion-dur-fast) ease,
@@ -1238,9 +1223,9 @@
 /* Piso de legibilidad, no altura de diseño: el alto real lo reparte
    grid-auto-rows. Con 8 módulos en 2 filas el piso debe caber en la mitad del
    área visible (544px a 1280x720), por eso `dense` baja a 232px. */
-.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 256px; }
-.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 244px; }
-.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 232px; }
+.home-mission-grid[data-density="spacious"] .home-mc-card { min-height: 216px; }
+.home-mission-grid[data-density="balanced"] .home-mc-card { min-height: 208px; }
+.home-mission-grid[data-density="dense"] .home-mc-card { min-height: 200px; }
 
 .home-mc-card:active { transform: scale(0.995); }
 
@@ -1286,45 +1271,19 @@
 @media (hover: hover) and (pointer: fine) {
   .home-mc-card:hover {
     transform: translateY(-2px);
-    border-color: var(--pulso-border-strong);
-    box-shadow: var(--pulso-shadow-soft);
+    border-color: color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 55%, var(--pulso-border));
+    box-shadow:
+      0 1px 1px rgba(0, 36, 87, 0.05),
+      0 10px 24px -8px color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 30%, transparent);
   }
   .home-mc-card:hover .home-mc-cta-arrow { transform: translateX(2px); }
   .home-mc-card:hover .home-mc-cta { color: var(--home-mod-accent, var(--pulso-primary)); }
 }
 
-/* Firma de color del módulo: hairline de acento en el borde superior. Es la
-   ÚNICA tinta del marco, para que el acento identifique al módulo sin pelear
-   con el chip de estado. */
-.home-mc-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    var(--home-mod-accent, var(--pulso-primary)),
-    color-mix(in srgb, var(--home-mod-accent, var(--pulso-primary)) 18%, transparent)
-  );
-  opacity: 0.85;
-  pointer-events: none;
-}
+.home-mc-head,
+.home-mc-viz,
 
-/* Marca de agua: el ícono del módulo recortado en la esquina superior der.
-   Más chica y más tenue que antes — con la tarjeta compacta, 92px invadían la
-   zona de la cifra. */
-.home-mc-watermark {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 72px;
-  height: 72px;
-  color: var(--home-mod-accent, var(--pulso-primary));
-  opacity: 0.045;
-  pointer-events: none;
-  z-index: 0;
+.home-mc-cta { color: var(--home-mod-accent, var(--pulso-primary)); }
 }
 
 .home-mc-head,
@@ -1364,15 +1323,18 @@
   white-space: nowrap;
 }
 
+/* Escalera del kit: 28 = 4 Lg (32 no existe en la escala). Sólido con el
+   acento del módulo, como un ícono de app de macOS: la identidad la carga el
+   ícono, no una franja de color ni una marca de agua. */
 .home-mc-badge {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--home-mod-accent-soft, var(--pulso-primary-soft));
-  color: var(--home-mod-accent, var(--pulso-primary));
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--home-mod-accent, var(--pulso-primary));
+  color: #fff;
 }
 
 .home-mc-head-text {
@@ -1382,11 +1344,13 @@
   min-width: 0;
 }
 
+/* Ramp del kit macOS 26: 13 Body para el nombre del módulo, 11 Subheadline
+   para la descripción. Nada de tamaños con decimales afinados a ojo. */
 .home-mc-head-text strong {
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: var(--pulso-weight-semibold);
-  line-height: 1.2;
-  letter-spacing: -0.012em;
+  line-height: 1.25;
+  letter-spacing: -0.006em;
 }
 
 /* La tagline describe el módulo, no su estado: con la tarjeta compacta se
@@ -1394,8 +1358,8 @@
 .home-mc-tagline {
   overflow: hidden;
   color: var(--pulso-text-faint);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-medium);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-regular);
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1527,17 +1491,35 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+/* Chip de alerta: misma escalera (Sm = 20) que el de estado, con los tokens
+   semánticos de advertencia — el estado operativo NUNCA toma el acento del
+   módulo, para que "requiere atención" se lea igual en los ocho. */
+.home-mc-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  white-space: nowrap;
+}
+
 .home-mc-status {
   display: inline-flex;
   align-items: center;
-  min-height: 19px;
+  height: 20px;
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
-  padding: 1px 7px;
+  padding: 0 8px;
   background: var(--pulso-surface-2);
   color: var(--pulso-text-soft);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
   white-space: nowrap;
 }
 
@@ -1571,77 +1553,98 @@
    entre cabecera y pie en vez de dejar un hueco muerto en el medio. */
 .home-mc-viz {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 14px;
-  flex: 1;
-  width: 100%;
-  text-align: left;
-}
-
-.home-mc-viz.is-progress {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: 9px;
-}
-
-.home-mc-activity {
-  display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
   width: 100%;
-  max-width: 100%;
   min-width: 0;
   text-align: left;
-  white-space: normal;
 }
 
-.home-mc-activity > span {
-  color: var(--pulso-text-faint);
-  font-size: 10px;
+.home-mc-viz.is-progress { gap: 9px; align-items: stretch; }
+
+/* Una sola lectura primaria. La cifra es Title 1 (22) del ramp del kit y la
+   frase de estado su subtítulo en Body (13). Antes competían dos bloques de
+   14.5/21 con el mismo peso. */
+.home-mc-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* La cifra lleva el acento del módulo: es donde el color rinde más, porque
+   es el elemento que la vista busca primero. */
+.home-mc-stat > strong {
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-size: 22px;
   font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.07em;
-  line-height: 1;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
 }
 
-/* La línea de actividad es la lectura principal de la tarjeta, pero a 17px
-   heavy se comía dos renglones y empujaba todo. A 14.5px semibold con tope de
-   dos líneas mantiene la jerarquía sin robarle alto a la cifra. */
-.home-mc-activity > strong {
+/* Salvo cuando es una palabra de estado ("Sin cálculo", "Sin fichas"): ahí el
+   acento mentiría, porque no hay dato que celebrar. */
+.home-mc-stat.is-text > strong { color: var(--pulso-text); }
+
+/* Cuando la "cifra" es una palabra ("Sin cálculo", "Campo") no puede ocupar el
+   tamaño de un número: se lee como titular y desequilibra la grilla. */
+.home-mc-stat.is-text > strong {
+  font-size: 15px;
+  letter-spacing: -0.012em;
+}
+
+.home-mc-stat-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-regular);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-mc-stat-sub {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  max-width: 100%;
-  color: var(--pulso-text);
-  font-size: 14.5px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: -0.012em;
-  line-height: 1.3;
-  overflow-wrap: break-word;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  line-height: 1.35;
   white-space: normal;
 }
 
+/* Cuando la cifra no dice nada útil, la frase toma el rol primario sin
+   cambiar la estructura del bloque. */
+.home-mc-viz.is-activity { flex-direction: column-reverse; justify-content: flex-end; }
+.home-mc-viz.is-activity .home-mc-stat-sub {
+  color: var(--pulso-text);
+  font-size: 14px;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+/* --- Progreso y fases: el CSS vive junto a su marcado ----------------- */
 .home-mc-progress-row {
-  display: grid;
-  grid-template-columns: minmax(72px, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
 }
 
 .home-mc-progress-track {
-  display: block;
-  width: 100%;
-  height: 9px;
-  overflow: hidden;
-  border: 1px solid var(--home-mod-accent-border, var(--pulso-border));
+  position: relative;
+  flex: 1;
+  height: 4px;
   border-radius: 999px;
-  background: var(--pulso-surface-2);
+  background: color-mix(in srgb, var(--pulso-border) 80%, transparent);
+  overflow: hidden;
 }
 
 .home-mc-progress-fill {
@@ -1652,216 +1655,39 @@
   transition: width var(--motion-dur-base) var(--motion-ease-out);
 }
 
-.home-mc-progress-steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.home-mc-progress-steps > span {
-  overflow: hidden;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-mc-progress-steps > span.is-done {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-bold);
-}
-
-.home-mc-progress-steps > span.is-current {
-  color: var(--home-mod-accent, var(--pulso-primary));
-  font-weight: var(--pulso-weight-heavy);
-}
-
 .home-mc-progress-copy {
   display: inline-flex;
   align-items: baseline;
-  justify-content: flex-end;
-  gap: 4px;
-  min-width: 0;
-  color: var(--pulso-text-soft);
+  gap: 5px;
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
-.home-mc-progress-copy > strong {
-  flex: 0 0 auto;
-  color: var(--pulso-text);
-  font-size: 14px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
+.home-mc-progress-copy strong {
+  color: var(--home-mod-accent, var(--pulso-primary));
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .home-mc-progress-copy > span {
-  max-width: 116px;
-  overflow: hidden;
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-mc-viz.is-activity {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.home-mc-secondary-stat {
-  display: inline-flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 7px;
-  max-width: 100%;
   color: var(--pulso-text-soft);
+  font-size: 12px;
 }
 
-.home-mc-secondary-stat > strong {
-  color: var(--pulso-text);
-  font-size: 17px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
-}
-
-.home-mc-secondary-stat > span {
-  min-width: 0;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  overflow-wrap: break-word;
-}
-
-/* Número grande (stat de dominio) */
-.home-mc-stat.is-hero { flex-direction: row; align-items: baseline; gap: 12px; }
-.home-mc-stat.is-hero > strong { font-size: 28px; }
-
-/* Sin dato: el guion hereda el peso del hero y parece una barra; se atenúa. */
-.home-mc-stat.is-hero.is-empty > strong {
+.home-mc-progress-steps {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
   color: var(--pulso-text-faint);
-  font-weight: var(--pulso-weight-medium);
-}
-
-/* Hero de palabra (fase, estado): escala menor que el hero numérico. */
-.home-mc-stat.is-hero.is-text > strong {
-  font-size: clamp(21px, 2vw, 26px);
-  letter-spacing: -0.01em;
-}
-
-/* Chip de calendario — próximo entregable (Bitácora) */
-.home-mc-daychip {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 56px;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--home-mod-accent-border, var(--pulso-border));
-  background: var(--pulso-surface);
-}
-
-.home-mc-daychip-month {
-  width: 100%;
-  text-align: center;
-  padding: 3px 0;
-  background: var(--home-mod-accent, var(--pulso-primary));
-  color: #fff;
   font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.home-mc-daychip-day {
-  padding: 4px 0 6px;
-  font-size: 26px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1;
+.home-mc-progress-steps .is-done { color: var(--pulso-text-soft); }
+.home-mc-progress-steps .is-current {
   color: var(--home-mod-accent, var(--pulso-primary));
-}
-
-.home-mc-daychip.is-today .home-mc-daychip-month { background: var(--pulso-warn-fg); }
-.home-mc-daychip.is-today .home-mc-daychip-day { color: var(--pulso-warn-fg); }
-.home-mc-daychip.is-past .home-mc-daychip-month { background: var(--pulso-text-soft); }
-.home-mc-daychip.is-past .home-mc-daychip-day { color: var(--pulso-text-soft); }
-
-.home-mc-date-title {
-  font-size: 13px;
   font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-mc-countdown { font-size: 11.5px; font-weight: var(--pulso-weight-bold); }
-.home-mc-countdown.is-future { color: var(--pulso-text-soft); }
-.home-mc-countdown.is-today { color: var(--pulso-warn-fg); }
-.home-mc-countdown.is-past,
-.home-mc-countdown.is-empty { color: var(--pulso-text-soft); }
-
-/* Alerta "revisar" en la cabecera */
-.home-mc-alert {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 21px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: var(--pulso-warn-bg);
-  border: 1px solid var(--pulso-warn-border);
-  color: var(--pulso-warn-fg);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  white-space: nowrap;
-}
-
-.home-mc-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  width: 100%;
-  min-width: 0;
-}
-
-/* Peso 600 y no 900: la cifra ya destaca por tamaño y contraste, y en Windows
-   el stack cae a Segoe UI, donde los pesos extremos se ven toscos. */
-.home-mc-stat > strong {
-  font-size: 21px;
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.home-mc-stat-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  min-width: 0;
-}
-
-.home-mc-stat-label {
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-soft);
-}
-
-.home-mc-stat-sub {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  font-size: 11.5px;
-  color: var(--pulso-text-soft);
-  line-height: 1.35;
-  white-space: normal;
 }
 
 /* Procesamiento: barra de 5 fases */
@@ -1917,68 +1743,51 @@
 .home-mc-viz.is-phases .home-mc-stat > strong { font-size: 21px; }
 .home-mc-viz.is-phases .home-mc-stat-meta { flex-direction: row; align-items: baseline; gap: 8px; }
 
-/* --- Pie: facts de dominio + acceso ----------------------------------- */
+/* --- Pie: línea de metadatos ------------------------------------------ */
+/* Material de contexto en una sola línea, al estilo del pie de Finder. Los
+   facts de módulos distintos no son comparables entre sí, así que alinearlos
+   en columnas con cifras grandes era ruido. */
 .home-mc-foot {
-  margin-top: auto;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 7px;
   width: 100%;
   margin-top: auto;
   padding-top: 10px;
   text-align: left;
-  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 72%, transparent);
-}
-
-.home-mc-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  align-items: center;
-  justify-items: start;
-  gap: 4px 12px;
-  width: 100%;
-  min-width: 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .home-mc-fact {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   min-width: 0;
-  max-width: 100%;
 }
 
 .home-mc-fact strong {
   overflow: hidden;
-  font-size: 13.5px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
   font-weight: var(--pulso-weight-semibold);
-  line-height: 1.15;
-  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
 }
 
-/* La etiqueta no puede desbordar su celda: sin esto, dos facts de nombre largo
-   se pegaban y se leían como una sola palabra ("COMPONENTESTÉCNICAS"). Y sin
-   mayúsculas forzadas — gritan en una grilla de ocho tarjetas. */
 .home-mc-fact > span {
   overflow: hidden;
-  max-width: 100%;
-  color: var(--pulso-text-faint);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-medium);
-  letter-spacing: 0.005em;
-  line-height: 1.25;
+  min-width: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* La tarjeta ENTERA es el botón (.home-mc-enter), así que el CTA es una
-   afirmación de destino, no un control aparte. Una píldora rellena con círculo
-   de flecha sugería un segundo click posible y pesaba 36px de alto; el patrón
-   macOS aquí es texto + chevron que reacciona al hover de la tarjeta. */
+.home-mc-fact-dot { margin-right: 1px; color: var(--pulso-border-strong); }
+
 .home-mc-cta {
   align-self: flex-start;
   flex: 0 0 auto;
