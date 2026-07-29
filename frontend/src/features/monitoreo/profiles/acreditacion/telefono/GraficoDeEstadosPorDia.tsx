@@ -10,7 +10,8 @@ import { useState, type CSSProperties } from "react";
 
 import type { AcreditacionDeclaracionEstado } from "../AcreditacionEstadosLlamada";
 import type { AcreditacionPhoneDailyStatusSeries } from "../AcreditacionPhoneDailyTrend";
-import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia } from "./apiladoDeEstados";
+import { contar } from "../../../fuentes/vocabulario";
+import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia, tituloDelDia } from "./apiladoDeEstados";
 
 import "./apiladoDeEstados.css";
 
@@ -22,14 +23,14 @@ export function GraficoDeEstadosPorDia({
   declaraciones?: readonly AcreditacionDeclaracionEstado[];
 }) {
   const apilado = construirApiladoDeEstados(series, declaraciones);
-  // El día bajo el cursor. El `title` nativo tarda cerca de un segundo, no
-  // sigue al puntero y se pinta como tooltip del sistema: sobre un segmento de
-  // 4 px eso es no tener hover. El detalle se lee aquí, en el sitio fijo donde
-  // ya estaba el total, y aparece al instante.
   const [diaEnFoco, setDiaEnFoco] = useState<string | null>(null);
   if (!apilado.dias.length) return null;
 
   const foco = apilado.dias.find((dia) => dia.dia === diaEnFoco) ?? null;
+  // Al apuntar un día, la leyenda pasa a contar ESE día. Es el mismo sitio y la
+  // misma forma, así que no hay nada que aprender ni línea nueva que leer.
+  const casosDe = (familia: string) =>
+    foco ? (foco.segmentos.find((s) => s.familia === familia)?.casos ?? 0) : null;
 
   return (
     <section className="mon-apilado" aria-label="Estados telefónicos por día">
@@ -37,29 +38,24 @@ export function GraficoDeEstadosPorDia({
         <div>
           <span>Barrido telefónico</span>
           <strong>Estados registrados por día</strong>
-          {/* Se dice qué mide, para que nadie lo lea como el estado de toda la
-              base: la matriz reparte cada caso en el día de su última lectura. */}
-          <small>Cada barra es lo que se registró ese día, no el estado de toda la base.</small>
         </div>
-        <em>{apilado.total.toLocaleString("es-PE")} casos con fecha</em>
+        <em aria-live="polite">
+          {foco ? tituloDelDia(foco) : contar(apilado.total, "caso con fecha", "casos con fecha")}
+        </em>
       </header>
 
-      <ul className="mon-apilado-leyenda">
-        {apilado.familias.map((familia) => (
-          <li key={familia.familia}>
-            <i style={{ background: familia.color }} aria-hidden="true" />
-            <span>{familia.etiqueta}</span>
-            <b>{familia.casos.toLocaleString("es-PE")}</b>
-          </li>
-        ))}
+      <ul className={`mon-apilado-leyenda${foco ? " is-enfocando" : ""}`}>
+        {apilado.familias.map((familia) => {
+          const delDia = casosDe(familia.familia);
+          return (
+            <li key={familia.familia} className={delDia === 0 ? "is-ausente" : ""}>
+              <i style={{ background: familia.color }} aria-hidden="true" />
+              <span>{familia.etiqueta}</span>
+              <b>{(delDia ?? familia.casos).toLocaleString("es-PE")}</b>
+            </li>
+          );
+        })}
       </ul>
-
-      {/* Línea de lectura, siempre presente aunque no haya foco: si apareciera
-          solo al apuntar, la cabecera saltaría al entrar y salir del gráfico
-          (C2). Sin foco nombra el gesto que la llena (R4). */}
-      <p className={`mon-apilado-foco${foco ? " is-foco" : ""}`} aria-live="polite">
-        {foco ? resumenDelDia(foco) : "Pasa el cursor por un día para ver su reparto."}
-      </p>
 
       {/* `is-enfocando` la pone React, no `:hover`. Con el selector de CSS, el
           cursor dentro del gráfico pero en el hueco entre dos columnas no daba
