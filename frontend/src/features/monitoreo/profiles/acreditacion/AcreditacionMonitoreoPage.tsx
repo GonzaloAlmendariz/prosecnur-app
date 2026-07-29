@@ -5,7 +5,6 @@ import { PageFrame } from "../../../../components/PageFrame";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
   apiConnectionTokenLoad,
-  apiJobStatus,
   apiMonitoreoAcreditacionCaseReconciliation,
   apiMonitoreoAcreditacionSeguimiento,
   apiMonitoreoCierre,
@@ -33,7 +32,6 @@ import {
   type MonitoreoGoal,
   type MonitoreoInternalQueryCase,
   type MonitoreoInternalQueryIssue,
-  type JobProgress as JobProgressData,
   type MonitoreoKoboAssetItem,
   type MonitoreoLinkCollector,
   type MonitoreoReportBlock,
@@ -47,7 +45,6 @@ import {
   type MonitoreoStrategyReportException,
   type MonitoreoStrategyPhase,
   type MonitoreoSurveyMonkeyCollector,
-  type MonitoreoSyncResult,
   type MonitoreoVariable,
   type SurveyMonkeyMultibaseInspection,
   type SurveyMonkeyMultibaseListItem,
@@ -78,6 +75,8 @@ import {
   summarizeInternalCases,
 } from "../../internalQueries";
 import { corteAcreditacion } from "../../corte/corteAdapters";
+import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
+import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetch";
 import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
@@ -7757,17 +7756,6 @@ function surveyMonkeyDisplayTitle(survey: SurveyMonkeyMultibaseListItem) {
   return survey.nickname || survey.title || survey.id;
 }
 
-function jobErrorMessage(error: unknown) {
-  if (!error) return "";
-  if (typeof error === "string") return error;
-  if (typeof error === "object" && Object.keys(error as Record<string, unknown>).length === 0) return "";
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
-  }
-}
-
 function AcreditacionSourceStatusStrip({
   sources,
   reports,
@@ -9647,36 +9635,6 @@ function AcreditacionConfiguredSourcesList({
   );
 }
 
-function normalizeSourceSyncProgress(progress: JobProgressData | Record<string, never> | null | undefined) {
-  if (!progress || typeof progress !== "object") return null;
-  if (!("phase" in progress) && !("percent" in progress) && !("message" in progress)) return null;
-  const raw = progress as JobProgressData;
-  const percent = Number(raw.percent);
-  return {
-    percent: Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : null,
-    phase: typeof raw.phase === "string" ? raw.phase : "",
-    message: typeof raw.message === "string" ? raw.message : "",
-  };
-}
-
-async function waitForSourceSyncJob(
-  jobId: string,
-  onProgress?: (progress: Omit<AcreditacionSourceSyncProgress, "mode">) => void,
-) {
-  for (let attempt = 0; attempt < 90; attempt += 1) {
-    await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 350 : 1000));
-    const snapshot = await apiJobStatus<MonitoreoSyncResult>(jobId);
-    const progress = normalizeSourceSyncProgress(snapshot.progress);
-    if (progress) onProgress?.(progress);
-    if (snapshot.status === "done") return snapshot;
-    if (snapshot.status === "cancelled") throw new Error("La sincronización fue cancelada.");
-    if (snapshot.status === "error") {
-      throw new Error(jobErrorMessage(snapshot.error) || "La sincronización terminó con error.");
-    }
-  }
-  throw new Error("La sincronización sigue en ejecución. Vuelve a actualizar la vista en unos segundos.");
-}
-
 // Adaptador local sobre la tira canónica compartida (components/SourceSyncActions):
 // conserva la firma histórica de este profile y aplica el vocabulario uniforme
 // (fuentes por nombre + "Todo" para el sync completo).
@@ -10415,6 +10373,8 @@ function AcreditacionSourcesWorkbench({
   const [syncBusy, setSyncBusy] = useState<"sheets" | "survey" | "all" | null>(null);
   const [syncStatus, setSyncStatus] = useState<AcreditacionActionStatus>(null);
   const [syncProgress, setSyncProgress] = useState<SourceSyncActionsProgress | null>(null);
+  // Espera de jobs amarrada al desmontaje: al salir del módulo el poll se corta.
+  const waitForSourceSyncJob = useWaitForSourceSyncJob();
   const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
   const platformSources = isPhoneSourceModel ? acreditacionKoboResponseSources(operationalSources) : operationalSources.filter(isPlatformResponseSource);
   const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
@@ -19216,7 +19176,12 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const initialLoadStartedRef = useRef(false);
   const warmedScopesRef = useRef(new Set<string>());
   const stateByScopeRef = useRef(new Map<string, MonitoreoState>());
+  const inFlightScopeRef = useRef(new Map<string, Promise<MonitoreoState | null>>());
   const scopeCacheEpochRef = useRef(0);
+  // Ciclo de vida de los polls (1.5b/1.5c): timeouts de prefetch cancelados y
+  // espera de jobs cortada al desmontar el perfil.
+  const prefetchTimeoutsRef = usePrefetchTimeouts();
+  const waitForSourceSyncJob = useWaitForSourceSyncJob();
 
   const routeWorkbenchViews = useMemo(() => seccionesDelModo(route), [route]);
   const activeDef = useMemo(
@@ -19231,29 +19196,13 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     const activeScope = scopeForView(view, route.family);
     const scopes = [activeScope, ...ACREDITACION_BACKGROUND_SCOPES]
       .filter((scope, index, all) => scope !== "full" && all.indexOf(scope) === index);
-    scopes.forEach((scope, index) => {
-      if (stateByScopeRef.current.has(scope)) {
-        warmedScopesRef.current.add(scope);
-        return;
-      }
-      if (warmedScopesRef.current.has(scope)) return;
-      warmedScopesRef.current.add(scope);
-      const cacheEpoch = scopeCacheEpochRef.current;
-      window.setTimeout(() => {
-        void apiMonitoreoState({
-          includeReports: true,
-          reportScope: scope,
-          warmupCache: true,
-        }).then((next) => {
-          if (cacheEpoch !== scopeCacheEpochRef.current) return;
-          stateByScopeRef.current.set(scope, next);
-        }).catch(() => {
-          if (cacheEpoch !== scopeCacheEpochRef.current) return;
-          warmedScopesRef.current.delete(scope);
-        });
-      }, 240 + index * 180);
-    });
-  }, [route.family]);
+    schedulePrefetchScopes(
+      { stateByScopeRef, warmedScopesRef, inFlightScopeRef, scopeCacheEpochRef },
+      prefetchTimeoutsRef,
+      scopes,
+      (index) => 240 + index * 180,
+    );
+  }, [prefetchTimeoutsRef, route.family]);
 
   // Nota (unidad 3.4): a diferencia del perfil territorial (invalidación
   // selectiva por fase+fuente), aquí el caché guarda MonitoreoState COMPLETOS
@@ -19265,6 +19214,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     scopeCacheEpochRef.current += 1;
     stateByScopeRef.current.clear();
     warmedScopesRef.current.clear();
+    inFlightScopeRef.current.clear();
   }, []);
 
   const loadView = useCallback(async (view: MonitoreoSeccion, force = false) => {

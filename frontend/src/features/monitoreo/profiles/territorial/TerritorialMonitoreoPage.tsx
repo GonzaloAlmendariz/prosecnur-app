@@ -1843,7 +1843,11 @@ export default function TerritorialMonitoreoPage() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [chromeSyncJob, chromeSyncJobId, refreshCurrentView]);
+    // Deps por status/id (patrón de TerritorialModelWorkbench): con el objeto
+    // `chromeSyncJob` en las deps, cada setChromeSyncJob(next) del tick
+    // desmontaba el intervalo y disparaba un poll inmediato extra, duplicando
+    // la cadencia real contra el Plumber mono-hilo.
+  }, [chromeSyncJob?.status, chromeSyncJobId, refreshCurrentView]);
   const applyTerritorialPageState = useCallback((next: MonitoreoState) => {
     const withPhase = withTerritorialPhase(next, phase);
     // Invalidación selectiva (3.4f): una mutación territorial (ajuste
