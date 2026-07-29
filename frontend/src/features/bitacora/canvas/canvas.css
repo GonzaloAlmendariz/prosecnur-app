@@ -1172,6 +1172,26 @@
   }
 }
 
+/* Repliegue: se van por donde vinieron, con el escalonado invertido para que
+ * el abanico se lea cerrándose y no desapareciendo en bloque. */
+.bcanvas-brote.is-saliendo {
+  animation-name: bcanvas-brote-sale;
+  animation-duration: var(--motion-dur-fast, 160ms);
+  animation-timing-function: var(--motion-ease-in-out, ease-in);
+  pointer-events: none;
+}
+
+@keyframes bcanvas-brote-sale {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-22px) scaleX(0.88);
+  }
+}
+
 .bcanvas-brote:hover {
   border-color: var(--module-accent, var(--pulso-primary));
   background: var(--module-accent-soft, var(--pulso-surface-2));
@@ -1265,6 +1285,7 @@
  * que los brotes y el nodo aparecen, simplemente sin recorrido. */
 @media (prefers-reduced-motion: reduce) {
   .bcanvas-brote,
+  .bcanvas-brote.is-saliendo,
   .bcanvas-nodo.is-naciendo {
     animation-duration: 1ms;
     animation-delay: 0ms;

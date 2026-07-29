@@ -21,10 +21,20 @@ import { ANCHO_NODO } from "./ramificacion";
  */
 export function AbanicoDeBrotes({
   brotes,
+  cerrando,
   onElegir,
   onCerrar,
 }: {
   brotes: Brote[];
+  /**
+   * En salida: se replegan antes de desmontarse.
+   *
+   * El brote recién elegido no necesita tratamiento aparte: al materializarse su
+   * rama, `brotesDe` deja de ofrecerla en el mismo render, así que ya no está en
+   * la lista. Su tarjeta crece justo donde él estaba, y eso es lo que hace que
+   * se lea como una transformación.
+   */
+  cerrando: boolean;
   onElegir: (brote: Brote) => void;
   onCerrar: () => void;
 }) {
@@ -40,15 +50,18 @@ export function AbanicoDeBrotes({
             key={brote.clave}
             type="button"
             role="menuitem"
-            className="bcanvas-brote"
+            className={`bcanvas-brote${cerrando ? " is-saliendo" : ""}`}
             style={{
               translate: `${brote.x}px ${brote.y}px`,
               width: ANCHO_NODO,
               height: ALTO_BROTE,
               // El escalonado va en una custom property y no en `animation-delay`
               // suelto para que la regla de movimiento reducido pueda anularlo
-              // entero desde el CSS.
-              ["--brote-retraso" as string]: `${i * 28}ms`,
+              // entero desde el CSS. Al replegarse el orden se invierte: los de
+              // más abajo se van primero, como si el abanico se cerrara.
+              ["--brote-retraso" as string]: cerrando
+                ? `${(brotes.length - 1 - i) * 16}ms`
+                : `${i * 28}ms`,
               ...(identidad.vars ?? {}),
             }}
             onPointerDown={(event) => event.stopPropagation()}

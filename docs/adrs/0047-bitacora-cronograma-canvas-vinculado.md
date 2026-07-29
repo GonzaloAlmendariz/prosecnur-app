@@ -387,7 +387,9 @@ sabe dónde poner.
 | **El brote reserva el alto de su futura TARJETA**, no el suyo | Reservar sus 34 px | Un brote mide 34 y la tarjeta 102: reservando lo del brote, la tarjeta nacía encima de los brotes de más abajo. Es el choque que se vio al abrir dos ramas seguidas | Bajo |
 | Lo nuevo busca su hueco; nada de lo ya puesto se mueve | Apartar los nodos que estorban | Mover lo que el usuario ya acomodó para hacer sitio es peor que colocar bien lo que llega: le reordena el mapa sin pedírselo | Bajo |
 | El tirador va en el borde derecho del cuadro | En la fila de acciones | Ahí le comía el ancho al título («Procesam…» con tres botones al lado) y además el borde derecho es de donde sale la rama: el gesto se lee solo | Bajo |
-| El abanico se queda abierto tras elegir | Cerrarlo en cada elección | Abrir tres ramas seguidas es lo normal; se recalcula solo porque la recién puesta deja de ofrecerse | Bajo |
+| El abanico se cierra al elegir, al tocar fuera y con Escape | Dejarlo abierto para abrir varias seguidas | Es una pregunta abierta: elegir la responde, y tocar otra cosa la abandona. Dejarlo abierto obliga a cerrarlo a mano después de cada elección | Bajo |
+| Se repliega ANTES de desmontarse, con el escalonado invertido | Desmontarlo de golpe | Cinco brotes desapareciendo de un fotograma al siguiente se ven como un parpadeo, no como un cierre | Bajo |
+| El brote elegido no lleva tratamiento aparte | Marcarlo para que no se repliegue | Al materializarse su rama, `brotesDe` deja de ofrecerla en el mismo render: ya no está en la lista. La clase que le había puesto no se aplicaba nunca | Bajo |
 | Entrada escalonada de 28 ms por brote | Todos a la vez | Deja seguir el orden con la vista en vez de ver seis cosas apareciendo de golpe | Bajo |
 
 Con `prefers-reduced-motion: reduce` los brotes y el nodo siguen apareciendo,

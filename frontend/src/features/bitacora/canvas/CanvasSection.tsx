@@ -37,6 +37,8 @@ import { brotesDe, posicionDelNodo, type Brote } from "./brotes";
 
 /** Lo que dura la animación de entrada de un nodo recién abierto, en ms. */
 const DURACION_NACIMIENTO = 420;
+/** Lo que tarda el abanico en replegarse antes de desmontarse, en ms. */
+const DURACION_REPLIEGUE = 190;
 import { ExploradorDeReferencias, type ReferenciaElegida } from "./ExploradorDeReferencias";
 import { LienzoViewport, type ApiViewport } from "./LienzoViewport";
 import { useCanvasAutosave } from "./useCanvasAutosave";
@@ -66,6 +68,8 @@ export function CanvasSection({
   const [ramificando, setRamificando] = useState<string | null>(null);
   /** Ids que acaban de nacer: llevan la animación de entrada un instante. */
   const [naciendo, setNaciendo] = useState<Set<string>>(new Set());
+  /** El abanico en salida: se repliega antes de desmontarse. */
+  const [replegando, setReplegando] = useState(false);
   const apiRef = useRef<ApiViewport | null>(null);
 
   const lienzo = useMemo<CanvasLienzo | null>(() => {
@@ -212,8 +216,50 @@ export function CanvasSection({
   }, [nodes]);
 
   /**
-   * Materializa un brote: nace donde estaba el brote, con su arista, y aparta
-   * lo que hubiera debajo.
+   * Cierra el abanico dejándolo replegarse primero.
+   *
+   * Desmontarlo de golpe hace que cinco brotes desaparezcan de un fotograma al
+   * siguiente, y lo que se ve es un parpadeo, no un cierre.
+   */
+  const cerrarAbanico = useCallback(() => {
+    setReplegando(true);
+    window.setTimeout(() => {
+      setRamificando(null);
+      setReplegando(false);
+    }, DURACION_REPLIEGUE);
+  }, []);
+
+  /**
+   * Tocar cualquier otra cosa cierra el abanico.
+   *
+   * Escucha en captura y sobre el documento, no sobre el viewport: el abanico
+   * se abre desde un cuadro y hay que cerrarlo también al tocar la barra o al
+   * seleccionar otro nodo, no solo al tocar el fondo del lienzo.
+   */
+  useEffect(() => {
+    if (!ramificando || replegando) return;
+    function alTocar(event: PointerEvent) {
+      const destino = event.target as Element | null;
+      // El propio brote y el tirador se manejan solos: uno elige, el otro
+      // alterna. Cerrarlos acá los dejaría muertos.
+      if (destino?.closest?.(".bcanvas-brote, .bcanvas-ref-ramificar")) return;
+      cerrarAbanico();
+    }
+    function alTeclear(event: KeyboardEvent) {
+      if (event.key === "Escape") cerrarAbanico();
+    }
+    document.addEventListener("pointerdown", alTocar, true);
+    document.addEventListener("keydown", alTeclear);
+    return () => {
+      document.removeEventListener("pointerdown", alTocar, true);
+      document.removeEventListener("keydown", alTeclear);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ramificando, replegando]);
+
+  /**
+   * Materializa un brote: nace donde estaba el brote, con su arista, y el resto
+   * del abanico se repliega.
    */
   const abrirRama = useCallback(
     (brote: Brote) => {
@@ -251,8 +297,9 @@ export function CanvasSection({
           relation: "contiene",
         },
       ]);
-      // El abanico se queda abierto: abrir tres ramas seguidas es lo normal, y
-      // se recalcula solo porque la recién puesta deja de ofrecerse.
+      // El resto del abanico se va: elegir una rama cierra la pregunta. Dejarlo
+      // abierto obliga a cerrarlo a mano después de cada elección.
+      cerrarAbanico();
       setNaciendo((previas) => new Set(previas).add(id));
       window.setTimeout(
         () => setNaciendo((previas) => {
@@ -263,7 +310,7 @@ export function CanvasSection({
         DURACION_NACIMIENTO,
       );
     },
-    [ramificando, store],
+    [cerrarAbanico, ramificando, store],
   );
 
   /** Arranca el gesto de conectar desde el botón del cuadro, no desde un ancla. */
@@ -571,8 +618,9 @@ export function CanvasSection({
           enElMundo={
             <AbanicoDeBrotes
               brotes={brotesAbiertos}
+              cerrando={replegando}
               onElegir={abrirRama}
-              onCerrar={() => setRamificando(null)}
+              onCerrar={() => cerrarAbanico()}
             />
           }
           renderNodo={(nodo, handlers) => (
