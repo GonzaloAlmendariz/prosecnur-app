@@ -42,11 +42,6 @@
   color: var(--pulso-text);
 }
 
-.mon-apilado-head small {
-  font-size: 11px;
-  color: var(--pulso-text-soft);
-}
-
 .mon-apilado-head em {
   flex: none;
   font-style: normal;
@@ -56,11 +51,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* La leyenda es también la lectura del día: al apuntar una columna, estos
+ * mismos números pasan a contar ese día. Por eso las cifras van tabulares y
+ * cada entrada reserva su sitio —si el número saltara de ancho al cambiar, la
+ * fila entera se movería bajo el cursor (C2)—. */
 .mon-apilado-leyenda {
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 4px 14px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -69,9 +68,16 @@
 .mon-apilado-leyenda li {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 11px;
   color: var(--pulso-text-soft);
+  transition: opacity 120ms ease;
+}
+
+/* Un estado que ese día no registró nada baja, pero no se va: su ausencia es
+ * parte de la lectura. */
+.mon-apilado-leyenda.is-enfocando li.is-ausente {
+  opacity: 0.38;
 }
 
 /* La muestra de color también a escuadra: es la misma familia visual que las
@@ -82,7 +88,8 @@
 }
 
 .mon-apilado-leyenda b {
-  font-weight: var(--pulso-weight-semibold);
+  min-width: 22px;
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
@@ -105,13 +112,32 @@
 }
 
 .mon-apilado-dia {
+  /* El alto de la etiqueta se declara para poder apoyar el eje justo encima:
+   * con `auto` la línea base habría dependido de la métrica de la fuente. */
+  --apilado-eje: 13px;
+  --apilado-hueco: 3px;
+  position: relative;
   flex: 1 1 14px;
   min-width: 14px;
   height: 100%;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 3px;
+  grid-template-rows: minmax(0, 1fr) var(--apilado-eje);
+  gap: var(--apilado-hueco);
   justify-items: center;
+}
+
+/* Línea base. Es lo que hacía que el apilado se viera como cajas sueltas al
+ * lado del gráfico de encima, que sí tiene ejes: las barras necesitan un suelo
+ * del que salir. Cada día pinta su tramo y se extiende medio hueco a cada lado
+ * para que los tramos se toquen y el eje se lea continuo. */
+.mon-apilado-dia::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--apilado-hueco) / -2);
+  right: calc(var(--apilado-hueco) / -2);
+  bottom: calc(var(--apilado-eje) + var(--apilado-hueco));
+  height: 1px;
+  background: var(--pulso-border);
 }
 
 /* Rectas, como el resto de los gráficos de la app.
@@ -176,9 +202,11 @@
 }
 
 .mon-apilado-dia em {
+  align-self: center;
   font-style: normal;
   font-size: 9px;
   font-weight: var(--pulso-weight-semibold);
+  line-height: var(--apilado-eje);
   color: var(--pulso-text-faint);
   white-space: nowrap;
 }
@@ -187,23 +215,3 @@
   color: var(--pulso-text);
 }
 
-/* Línea de lectura del día apuntado.
- *
- * Ocupa su alto siempre —dos líneas como mucho, con `min-height`— porque si
- * apareciera solo al apuntar, el gráfico se movería bajo el cursor cada vez que
- * se entra y se sale (C2). En reposo lleva la pista de qué hacer para llenarla;
- * con foco, el reparto del día en color pleno. */
-.mon-apilado-foco {
-  min-width: 0;
-  min-height: 15px;
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--pulso-text-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.mon-apilado-foco.is-foco {
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-semibold);
-}
