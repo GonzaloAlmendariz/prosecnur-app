@@ -1,8 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import type { MonitoreoCorte } from "../../corte/corteContract";
 
+import "./embudoDeCorte.css";
+
 /**
- * Embudo de efectividad del corte, visible desde cualquier sección.
+ * Embudo de efectividad del corte. Vive en Avance y solo en Avance.
  *
  * Una efectiva de acreditación no es "una respuesta más": es una respuesta
  * **completa**, con **consentimiento positivo**, que **cruza con la base real**
@@ -12,11 +14,12 @@ import type { MonitoreoCorte } from "../../corte/corteContract";
  * primero que pregunta un comité es por qué entró cada caso y por qué no entró
  * el otro.
  *
- * La explicación correcta ya existía en la app, pero enterrada en la última
- * pestaña de la última sección (Avance › Salidas): el mismo `MonitoreoCorte`
- * con sus `saltos` y sus reglas. En el resto del módulo el número de efectivas
- * aparecía como un dato caído del cielo, repetido doce veces. Esto lo sube a la
- * franja de contexto.
+ * Estuvo un tiempo en la franja de contexto, visible desde cualquier sección,
+ * porque el número de efectivas aparecía repetido por el módulo sin explicar de
+ * dónde salía. Pero leerlo en Fuentes —donde todavía se están conectando las
+ * bases— es leer el resultado antes que el trabajo: el embudo cuenta lo que
+ * quedó del corte, así que pertenece a Avance, que es donde se pregunta cuánto
+ * se lleva. Fuera de ahí desordenaba la lectura en vez de guiarla.
  */
 export function AcreditacionEmbudoCorte({ corte }: { corte: MonitoreoCorte }) {
   const navigate = useNavigate();
@@ -36,14 +39,17 @@ export function AcreditacionEmbudoCorte({ corte }: { corte: MonitoreoCorte }) {
   // dibujar nada antes que inventar una compuerta con cero descartes.
   if (!corte.hasSnapshot || corte.procesable == null || corte.oficial == null) return null;
 
+  // «Snapshot» y «registros crudos» son vocabulario de la implementación: quien
+  // dirige el estudio piensa en respuestas que llegaron, respuestas que puede
+  // trabajar y respuestas que cuentan.
   const pasos = [
-    { key: "ingesta", label: "Snapshot", value: corte.ingesta, hint: "registros crudos" },
-    { key: "procesable", label: "Procesables", value: corte.procesable, hint: "cruzan la base" },
+    { key: "ingesta", label: "Recibidas", value: corte.ingesta, hint: "llegaron de las fuentes" },
+    { key: "procesable", label: "Procesables", value: corte.procesable, hint: "cruzan con el universo" },
     { key: "oficial", label: "Efectivas", value: corte.oficial, hint: "cuentan como avance" },
   ];
 
   return (
-    <section className="mon-acr-embudo" aria-label="Embudo de efectividad del corte">
+    <section className="mon-acr-embudo is-avance" aria-label="Embudo de efectividad del corte">
       <ol className="mon-acr-embudo-pasos">
         {pasos.map((paso, index) => (
           <li key={paso.key} className={`is-${paso.key}`}>

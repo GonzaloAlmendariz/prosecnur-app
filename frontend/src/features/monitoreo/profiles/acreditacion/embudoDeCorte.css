@@ -1,0 +1,81 @@
+/* Embudo de corte — reparto propio ahora que vive solo en Avance.
+ *
+ * Hoja propia porque `profilePage.css` está congelada a crecimiento. La clase
+ * `is-avance` no es decorativa: sube la especificidad lo justo para ganar a las
+ * reglas de allí sin `!important`, y deja escrito en el marcado que esta pieza
+ * pertenece a una sola sección.
+ *
+ * Mientras el embudo se leía desde cualquier sección tenía que ser una tira
+ * discreta que no robara atención. En Avance es al revés: es la primera lectura
+ * de la sección —de cuánto entró, cuánto se puede trabajar y cuánto cuenta—,
+ * así que ocupa el ancho, reparte los tres pasos por igual y los números se
+ * leen desde lejos.
+ */
+
+.mon-acr-embudo.is-avance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos {
+  display: grid;
+  /* Tres columnas iguales: los tres granos pesan lo mismo como lectura, y el
+     hueco de 26 px es donde se apoya la flecha entre cajas. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 7px;
+  border-radius: 11px;
+  padding: 8px 12px;
+}
+
+/* El paso final no se distingue solo por el fondo: lleva el acento del módulo
+   en el borde izquierdo, que es lo que se ve de reojo. */
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li.is-oficial {
+  border-left: 3px solid var(--pulso-module-monitoring-border, var(--pulso-primary));
+}
+
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li strong {
+  font-size: 19px;
+  line-height: 1.05;
+}
+
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li em {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li small {
+  font-size: 10px;
+  color: var(--pulso-text-faint);
+}
+
+/* Las flechas se recolocan al centro del hueco nuevo. */
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li i {
+  right: -17px;
+}
+
+.mon-acr-embudo.is-avance .mon-acr-embudo-pasos li:not(:first-child) {
+  margin-left: 0;
+}
+
+/* Las mermas van debajo, no al costado: son la explicación de los saltos que
+   acaban de leerse, y en la misma fila competían con ellos por el ancho. */
+.mon-acr-embudo.is-avance .mon-acr-embudo-mermas {
+  gap: 6px 10px;
+}
+
+@media (max-width: 1180px) {
+  /* En pantalla estrecha la fila de tres no cabe sin recortar las etiquetas;
+     dos y una se lee mejor que tres apretadas. */
+  .mon-acr-embudo.is-avance .mon-acr-embudo-pasos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 26px;
+  }
+}
