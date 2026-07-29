@@ -27,6 +27,7 @@ const EXPECTED_PRIMARY_NAVIGATION: Record<
       { id: "bitacora", label: "Bitácora", to: "/bitacora", layoutPolicy: "viewport" },
       { id: "cronograma", label: "Cronograma", to: "/bitacora?seccion=cronograma", layoutPolicy: "viewport" },
       { id: "calendario", label: "Calendario", to: "/bitacora?seccion=calendario", layoutPolicy: "viewport" },
+      { id: "canvas", label: "Lienzo", to: "/bitacora?seccion=canvas", layoutPolicy: "viewport" },
     ],
   },
   "calc-muestra": {

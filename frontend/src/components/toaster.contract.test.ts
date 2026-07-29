@@ -54,10 +54,14 @@ describe("deck de avisos efímeros", () => {
       if ((DECKS_PERMITIDOS as readonly string[]).includes(rel)) continue;
       const codigo = sinComentarios(fs.readFileSync(join(SRC, rel), "utf8"));
 
-      // La firma de un deck: una región viva que además nombra "toast".
+      // La firma de un deck: una región viva que RENDERIZA UNA COLECCIÓN de
+      // toasts. El plural importa — un archivo que emite `toast.exito(...)` y
+      // además tiene su propia región viva para otra cosa (por ejemplo el
+      // lienzo, que anuncia el nodo enfocado) no es un deck, y acusarlo
+      // obligaría a elegir entre avisar y ser accesible.
       const tieneRegionViva = /aria-live=/.test(codigo);
-      const hablaDeToasts = /\btoasts?\b/i.test(codigo);
-      if (tieneRegionViva && hablaDeToasts) infractores.push(rel);
+      const renderizaColeccion = /\btoasts\b/.test(codigo);
+      if (tieneRegionViva && renderizaColeccion) infractores.push(rel);
     }
 
     expect(

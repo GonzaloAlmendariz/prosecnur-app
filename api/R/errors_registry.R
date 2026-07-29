@@ -142,6 +142,8 @@ errores_registrados <- function() {
     "E_BITACORA_ENTRADA_NO_EXISTE",                          "bitacora_entradas.R",               "404",
     "E_BITACORA_ID",                                         "router_bitacora.R",                 "400",
     "E_BITACORA_JSON",                                       "router_bitacora.R",                 "400",
+    "E_BITACORA_LIENZO_NO_EXISTE",                           "bitacora_canvas.R",                 "404",
+    "E_BITACORA_LIENZO_TOPE",                                "bitacora_canvas.R",                 "409",
     "E_BITACORA_TAREA_NO_EXISTE",                            "bitacora_cronograma.R",             "404",
     "E_BITACORA_VINCULO_DESTINO",                            "bitacora_vinculos.R",               "400,404",
     "E_BITACORA_VINCULO_ORIGEN",                             "bitacora_vinculos.R",               "400,404",

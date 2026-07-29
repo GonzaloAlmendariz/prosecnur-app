@@ -45,6 +45,17 @@ BITACORA_ANCLAS_ARISTA <- c("t", "r", "b", "l")
   )
 }
 
+# Numérico acotado al rango, con default solo si el valor es ilegible.
+#
+# Es lo que `calc_num` NO hace: ahí un valor fuera de rango devuelve el default,
+# que para una geometría significa perder la posición o el tamaño en vez de
+# corregirlos.
+.bit_acotar <- function(x, default, minimo, maximo) {
+  v <- suppressWarnings(as.numeric(if (is.list(x)) (x[[1]] %||% NA) else x))
+  if (length(v) != 1L || !is.finite(v)) return(default)
+  min(maximo, max(minimo, v))
+}
+
 .bit_canvas_viewport <- function(x) {
   if (is.null(x) || !is.list(x)) x <- list()
   list(
@@ -52,7 +63,7 @@ BITACORA_ANCLAS_ARISTA <- c("t", "r", "b", "l")
     y = calc_num(x$y, 0),
     # El zoom se acota acá y no solo en el cliente: un `.pulso` importado con
     # zoom 0 dejaría el lienzo invisible sin forma de recuperarlo.
-    zoom = calc_num(x$zoom, 1, min = 0.2, max = 3)
+    zoom = .bit_acotar(x$zoom, 1, 0.25, 2.5)
   )
 }
 
@@ -80,8 +91,12 @@ BITACORA_ANCLAS_ARISTA <- c("t", "r", "b", "l")
     type = tipo,
     x = calc_num(x$x, 0),
     y = calc_num(x$y, 0),
-    w = calc_num(x$w, 220, min = 40, max = 4000),
-    h = calc_num(x$h, 120, min = 32, max = 4000),
+    # `.bit_acotar` y no `calc_num(min=, max=)`: ese helper devuelve el DEFAULT
+    # cuando el valor cae fuera de rango, así que un nodo guardado a 5000px
+    # saltaría a 220 en vez de recortarse a 4000 — perdería su tamaño en vez de
+    # ajustarlo.
+    w = .bit_acotar(x$w, 220, 40, 4000),
+    h = .bit_acotar(x$h, 120, 32, 4000),
     z = calc_int(x$z, 0L, min = 0L, max = 100000L),
     color = calc_enum(x$color, BITACORA_COLORES_NODO, "neutro"),
     text = .bit_texto(x$text, 4000L),
@@ -168,4 +183,74 @@ BITACORA_ANCLAS_ARISTA <- c("t", "r", "b", "l")
   canvas$updated_at <- .bit_now_iso()
   session_set(sid, "bitacora_canvas", canvas)
   canvas
+}
+
+# --- Operaciones -------------------------------------------------------------
+
+.bit_canvas_indice <- function(canvas, id) {
+  idx <- which(vapply(canvas$canvases %||% list(),
+                      function(l) identical(calc_str(l$id, ""), id), logical(1)))
+  if (!length(idx)) {
+    stop_api(404, "E_BITACORA_LIENZO_NO_EXISTE", sprintf("El lienzo '%s' ya no existe.", id))
+  }
+  idx[[1L]]
+}
+
+.bit_canvas_crear <- function(canvas, title = NULL) {
+  if (length(canvas$canvases %||% list()) >= BITACORA_MAX_LIENZOS) {
+    stop_api(409, "E_BITACORA_LIENZO_TOPE",
+             sprintf("Un proyecto admite hasta %d lienzos. Archiva alguno antes de crear otro.",
+                     BITACORA_MAX_LIENZOS))
+  }
+  nombre <- .bit_texto(title, 120L)
+  if (!nzchar(nombre)) {
+    nombre <- sprintf("Lienzo %d", length(canvas$canvases %||% list()) + 1L)
+  }
+  nuevo <- .bit_canvas_lienzo(list(id = .bit_id("lienzo"), title = nombre))
+  canvas$canvases <- c(canvas$canvases %||% list(), list(nuevo))
+  # El lienzo recién creado pasa a ser el activo: crearlo y no aterrizar en él
+  # obligaría a un segundo clic para ver lo que se acaba de pedir.
+  canvas$active_canvas_id <- nuevo$id
+  canvas
+}
+
+# Reemplaza el lienzo completo con lo que manda el cliente, normalizado.
+#
+# El id de la ruta manda sobre el del cuerpo: si no, un cliente con estado
+# viejo podría sobrescribir un lienzo distinto del que cree estar editando.
+.bit_canvas_reemplazar <- function(canvas, id, entrante) {
+  i <- .bit_canvas_indice(canvas, id)
+  previo <- canvas$canvases[[i]]
+  if (is.null(entrante) || !is.list(entrante)) entrante <- list()
+  entrante$id <- id
+  # `created_at` es del lienzo, no del cliente: dejarlo viajar permitiría
+  # reescribir cuándo se creó.
+  entrante$created_at <- previo$created_at
+  siguiente <- .bit_canvas_lienzo(entrante)
+  siguiente$updated_at <- .bit_now_iso()
+  canvas$canvases[[i]] <- siguiente
+  canvas$active_canvas_id <- id
+  canvas
+}
+
+.bit_canvas_borrar <- function(canvas, id) {
+  .bit_canvas_indice(canvas, id)
+  canvas$canvases <- Filter(function(l) !identical(calc_str(l$id, ""), id),
+                            canvas$canvases %||% list())
+  ids <- vapply(canvas$canvases %||% list(), function(l) l$id, character(1))
+  if (!(calc_str(canvas$active_canvas_id, "") %in% ids)) {
+    canvas$active_canvas_id <- if (length(ids)) ids[[1L]] else ""
+  }
+  canvas
+}
+
+# Quita las aristas cuyos extremos ya no existen. `.bit_canvas_lienzo` ya lo
+# hace al leer; esto existe para poder llamarlo explícitamente tras borrar
+# nodos, sin depender del round-trip de lectura.
+.bit_canvas_gc_aristas <- function(lienzo) {
+  ids <- vapply(lienzo$nodes %||% list(), function(n) calc_str(n$id, ""), character(1))
+  lienzo$edges <- Filter(function(a) {
+    a$from_node %in% ids && a$to_node %in% ids
+  }, lienzo$edges %||% list())
+  lienzo
 }
