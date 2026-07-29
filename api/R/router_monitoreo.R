@@ -2116,7 +2116,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   # despues de las transformaciones por familia y sin tocar
   # dashboard_cache_token/scope del tablero "full". Ver monitoreo_overview_facts.R.
   if (isTRUE(include_reports) && is.list(snapshot)) {
-    snapshot <- monitoreo_snapshot_store_overview_facts(sid, snapshot, dashboard, family)
+    snapshot <- monitoreo_snapshot_store_overview_facts(sid, snapshot, dashboard, family, cfg$goals)
   }
   .monitoreo_log_timing("state", list(
     family = family,

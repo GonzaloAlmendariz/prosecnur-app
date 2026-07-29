@@ -188,7 +188,11 @@
     # `dash$kpis` NO sirve aqui (total = filas crudas de todas las fuentes,
     # valid == total, target = objetivo_total): daba 444.9% de avance.
     k <- snap$efectividad_overview_facts %||% NULL
-    if (is.null(k)) k <- monitoreo_efectividad_overview_facts(dash)
+    # Fallback sin espejo: las cuotas por actor viven en la config del
+    # monitoreo, no en el reporte, asi que hay que pasarlas.
+    if (is.null(k)) {
+      k <- monitoreo_efectividad_overview_facts(dash, (s$monitoreo_config %||% list())$goals)
+    }
     if (!is.null(k)) {
       collected <- as.integer(.diseno_num(k$universo, 0))
       valid <- as.integer(.diseno_num(k$efectivas, 0))
