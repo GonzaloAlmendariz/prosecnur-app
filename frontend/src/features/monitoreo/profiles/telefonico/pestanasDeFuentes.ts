@@ -11,10 +11,19 @@
 
 import { ContactRound, ListChecks, PlugZap, Table2 } from "../../../../vendor/lucide-react";
 
+/**
+ * Cada pestaña se nombra por la pregunta que responde, no por el servicio que
+ * trae el dato: «Bases en Sheets» y «SurveyMonkey/Kobo» describían el proveedor,
+ * que es de dónde viene y no qué es. El equivalente en Acreditación
+ * (`fuentes/pestanas.ts`) ya estaba así y los dos perfiles quedaban desalineados
+ * leyendo lo mismo.
+ *
+ * «barrido» se conserva: es vocabulario del estudio, no de la implementación.
+ */
 export const ACREDITACION_SOURCE_TABS = [
-  { key: "survey", label: "Encuestas en plataforma", detail: "SurveyMonkey/Kobo", icon: ListChecks },
-  { key: "sheets", label: "Bases en Sheets", detail: "Universo por actor", icon: Table2 },
-  { key: "collectors", label: "Recopiladores", detail: "Inclusion y alias", icon: ContactRound },
+  { key: "survey", label: "Encuestas", detail: "Quién responde y qué cuenta", icon: ListChecks },
+  { key: "sheets", label: "Universo", detail: "La base de cada actor", icon: Table2 },
+  { key: "collectors", label: "Recopiladores", detail: "Inclusión y alias", icon: ContactRound },
   { key: "activas", label: "Fuentes activas", detail: "Estado del paquete", icon: PlugZap },
 ] as const;
 
