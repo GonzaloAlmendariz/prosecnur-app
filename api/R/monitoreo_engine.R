@@ -1639,6 +1639,7 @@ monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
     link_collectors = link_collectors,
     events = events,
     state_rules = state_rules,
+    interest_variables = .monitoreo_normalize_interest_variables(model$interest_variables %||% model$variables_interes, cols),
     privacy = privacy
   )
 }
@@ -6290,7 +6291,12 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
       coverage_pct = if (nrow(df) > 0L) as.integer(round(100 * non_empty / nrow(df))) else NA_integer_,
       examples = as.list(examples),
       score = score,
-      selected = nzchar(declared) && identical(nm, declared)
+      selected = nzchar(declared) && identical(nm, declared),
+      # Reparto por categoría, para poder elegir una variable de segmentación
+      # viendo su distribución y no cinco ejemplos sueltos. Solo se calcula
+      # donde tiene sentido; ver monitoreo_variables_interes.R.
+      distribucion = .monitoreo_variable_distribucion(values),
+      normalizacion_sugerida = if (.monitoreo_variable_parece_ciclo(values)) "anio" else "ninguna"
     )
   })
   rows <- Filter(function(item) {
@@ -6298,6 +6304,9 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
   }, rows)
   rows <- rows[order(
     -vapply(rows, function(item) as.integer(isTRUE(item$selected)), integer(1)),
+    # La cobertura primero: una columna al 40% no sirve de denominador por muy
+    # bien que puntúe en el resto de criterios.
+    -vapply(rows, function(item) .monitoreo_int(item$coverage_pct, 0L), integer(1)),
     -vapply(rows, function(item) .monitoreo_int(item$score, 0L), integer(1)),
     vapply(rows, function(item) .monitoreo_scalar(item$label, ""), character(1))
   )]
@@ -16966,7 +16975,7 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   value
 }
 
-.monitoreo_report_control_specs <- function(data, profile = list()) {
+.monitoreo_report_control_specs <- function(data, profile = list(), interest_variables = list()) {
   specs <- list(
     list(actor = "Egresados", label = "Año de egreso", type = "anio", aliases = c(
       "Ciclo de egreso", "CICLO DE EGRESO", "Año de egreso", "Anio de egreso",
@@ -16996,14 +17005,16 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
       )
     }
   }
+  # Lo declarado por el usuario manda sobre las specs de fábrica.
+  specs <- .monitoreo_merge_control_specs(specs, .monitoreo_interest_variables_specs(interest_variables))
   specs
 }
 
-.monitoreo_report_control_distribution_df <- function(data, profile = list(), case_rollup = NULL) {
+.monitoreo_report_control_distribution_df <- function(data, profile = list(), case_rollup = NULL, interest_variables = list()) {
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(data.frame())
   units <- .monitoreo_report_units(profile, data)
   if (!length(units)) return(data.frame())
-  specs <- .monitoreo_report_control_specs(data, profile)
+  specs <- .monitoreo_report_control_specs(data, profile, interest_variables)
   rollup <- .monitoreo_workbook_df(case_rollup %||% list())
   if (!nrow(rollup)) rollup <- .monitoreo_acreditacion_case_rollup_df(data, profile)
   if (!nrow(rollup)) {
@@ -19212,7 +19223,17 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   avance_general <- .monitoreo_report_daily_df(data, profile, FALSE, case_rollup = case_rollup)
   avance_fuente <- .monitoreo_report_daily_source_df(data, profile, config = cfg, case_rollup = case_rollup)
   avance_recopilador <- if (isTRUE(summary_only)) data.frame() else .monitoreo_report_daily_source_df(data, profile, by_collector = TRUE, config = cfg, case_rollup = case_rollup)
-  controles <- if (isTRUE(summary_only)) data.frame() else .monitoreo_report_control_distribution_df(data, profile, case_rollup = case_rollup)
+  # Las variables declaradas por el usuario mandan también aquí. Sin esto el
+  # modelo del cliente calculaba los controles con las specs de fábrica, y como
+  # `client_with_detected_controls` respeta lo ya calculado, la declaración no
+  # llegaba nunca al reporte: Docentes salía por «Categoría docente» aunque el
+  # estudio hubiera declarado otra columna.
+  controles <- if (isTRUE(summary_only)) data.frame() else .monitoreo_report_control_distribution_df(
+    data,
+    profile,
+    case_rollup = case_rollup,
+    interest_variables = (cfg$operational_model %||% list())$interest_variables %||% list()
+  )
   if (is.null(generated_at) || !nzchar(as.character(generated_at))) generated_at <- .monitoreo_now_iso()
 
   if (!nrow(resumen)) {
@@ -23818,6 +23839,11 @@ monitoreo_acreditacion_reportes <- function(data, config = list(), report_scope 
   }
   if (identical(report_scope, "advance_summary")) {
     client_report <- cached_client_report %||% .monitoreo_client_report_model(data, cfg, detail = "advance_summary")
+    # Los controles se detectaban solo al publicar, así que Avance > Detalle
+    # recibía `controls` vacío y mostraba "Sin variables de control detectadas"
+    # aunque el estudio tuviera declarada su variable de interés. La detección
+    # respeta lo ya calculado: si el reporte cacheado ya los trae, no recalcula.
+    client_report <- .monitoreo_publication_accreditation_client_with_detected_controls(client_report, data, cfg)
     cached_sheets <- cached_reports$sheets %||% list()
     client_sheets <- monitoreo_acreditacion_client_report_sheets(client_report, include_targets = FALSE)
     sheets <- if (length(cached_sheets)) cached_sheets else client_sheets
@@ -30227,7 +30253,11 @@ monitoreo_publication_logic_parity_map <- function(code_gs_path = "/mnt/data/Cod
   )
   profile <- normalized$monitoreo_profile %||% (cfg %||% list())$monitoreo_profile %||% list()
   controls <- tryCatch(
-    .monitoreo_report_control_distribution_df(data, profile),
+    .monitoreo_report_control_distribution_df(
+      data,
+      profile,
+      interest_variables = (normalized$operational_model %||% list())$interest_variables %||% list()
+    ),
     error = function(e) data.frame()
   )
   if (!nrow(controls)) return(client)
