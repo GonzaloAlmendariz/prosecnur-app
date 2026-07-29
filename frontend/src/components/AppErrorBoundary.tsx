@@ -120,7 +120,7 @@ export class AppErrorBoundary extends Component<Props, State> {
           <p
             style={{
               fontSize: 14,
-              color: "#5f6b7a",
+              color: "#474f5b",
               lineHeight: 1.55,
               marginTop: 0,
               marginBottom: 18,
@@ -164,7 +164,7 @@ export class AppErrorBoundary extends Component<Props, State> {
             </Section>
           )}
 
-          <p style={{ fontSize: 11, color: "#5f6b7a", marginTop: 24 }}>
+          <p style={{ fontSize: 11, color: "#474f5b", marginTop: 24 }}>
             Atajo: <kbd style={kbdStyle}>Cmd</kbd> + <kbd style={kbdStyle}>Shift</kbd> +{" "}
             <kbd style={kbdStyle}>L</kbd> abre el panel de logs en cualquier momento.
           </p>
@@ -192,7 +192,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
           fontWeight: 800,
           letterSpacing: 0.5,
           textTransform: "uppercase",
-          color: "#5f6b7a",
+          color: "#474f5b",
           background: "#f8faff",
           borderBottom: "1px solid #d8e0ef",
         }}

@@ -844,7 +844,7 @@
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: var(--pulso-text-faint, #8792a2);
+  color: var(--pulso-text-faint, #657082);
   cursor: pointer;
   transition: background var(--motion-dur-fast, 160ms) ease, color var(--motion-dur-fast, 160ms) ease,
     border-color var(--motion-dur-fast, 160ms) ease;
@@ -891,7 +891,7 @@
   border: 1px solid var(--pulso-border, #e2e7f0);
   border-radius: 9px;
   background: var(--pulso-surface-2, #fafbff);
-  color: var(--pulso-text-soft, #5f6b7a);
+  color: var(--pulso-text-soft, #474f5b);
 }
 .pulso-sheet-filter-search:focus-within {
   border-color: var(--module-accent, #0f766e);
@@ -960,13 +960,13 @@
   flex: 0 0 auto;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-faint, #8792a2);
+  color: var(--pulso-text-faint, #657082);
 }
 .pulso-sheet-filter-empty {
   margin: 0;
   padding: 10px 8px;
   font-size: 12px;
-  color: var(--pulso-text-faint, #8792a2);
+  color: var(--pulso-text-faint, #657082);
   text-align: center;
 }
 .pulso-sheet-filter-range {
@@ -979,7 +979,7 @@
   flex-direction: column;
   gap: 3px;
   font-size: 11px;
-  color: var(--pulso-text-soft, #5f6b7a);
+  color: var(--pulso-text-soft, #474f5b);
 }
 .pulso-sheet-filter-range input {
   padding: 6px 8px;
@@ -997,7 +997,7 @@
 .pulso-sheet-filter-hint {
   margin: 0;
   font-size: 11px;
-  color: var(--pulso-text-faint, #8792a2);
+  color: var(--pulso-text-faint, #657082);
 }
 .pulso-sheet-filter-footer {
   display: flex;
@@ -1007,7 +1007,7 @@
   padding-top: 6px;
   border-top: 1px solid var(--pulso-border, #e2e7f0);
   font-size: 11px;
-  color: var(--pulso-text-faint, #8792a2);
+  color: var(--pulso-text-faint, #657082);
 }
 .pulso-sheet-filter-footer button {
   border: none;
@@ -1055,7 +1055,7 @@
 .pulso-processing-sheet-chip.is-clear {
   border-style: dashed;
   background: transparent;
-  color: var(--pulso-text-soft, #5f6b7a);
+  color: var(--pulso-text-soft, #474f5b);
 }
 .pulso-processing-sheet-chip.is-clear:hover { background: var(--pulso-surface-3, #f2f5fa); }
 

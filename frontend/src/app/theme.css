@@ -15,9 +15,15 @@
   --pulso-bg-deep: #e9edf5;
   --pulso-border: #e2e7f0;
   --pulso-border-strong: #cbd5e4;
+  /* Escala de texto neutro: los tres niveles cumplen AA (4.5) contra las tres
+   * superficies, y entre sí guardan 1.96 y 1.65 de contraste, que es lo que los
+   * hace distinguibles. Medido: los valores previos (#5f6b7a / #8792a2) daban
+   * 4.96 y 2.88 contra `--pulso-surface-3`, así que el nivel atenuado no se
+   * leía en ninguna superficie de la app. La jerarquía no puede apoyarse en un
+   * contraste que no alcanza el piso. */
   --pulso-text: #17212f;
-  --pulso-text-soft: #5f6b7a;
-  --pulso-text-faint: #8792a2;
+  --pulso-text-soft: #474f5b;
+  --pulso-text-faint: #657082;
   /* Texto atenuado canónico: alias de text-soft. Se usa en ~377 sitios
    * (theme.css, editor XLSForm, calc-muestra, monitoreo…) sin fallback.
    * Antes solo existía scopeado en .mon-page, así que fuera de Monitoreo
@@ -66,7 +72,7 @@
   /* Adopted state */
   --adoptada-bg: #F0F4FA;
   --adoptada-border: #C9D4E8;
-  --adoptada-fg: #5f6b7a;
+  --adoptada-fg: var(--pulso-text-soft);
   --adopt-glow: rgba(0, 36, 87, 0.22);
   --adopt-flash-bg: rgba(0, 36, 87, 0.08);
   /* Motion system */
@@ -971,7 +977,7 @@ select:not([multiple]) {
   appearance: none;
   padding-right: 30px;
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6b7a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23474f5b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 9px center;
   background-size: 14px 14px;

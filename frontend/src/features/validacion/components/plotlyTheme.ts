@@ -14,7 +14,7 @@ const PLOTLY_THEME = {
   border: "#d8e0ef",
   grid: "#dbe3f1",
   text: "#1f2933",
-  textSoft: "#5f6b7a",
+  textSoft: "#474f5b",
   inkStrong: "#0f172a",
   hoverBg: "#0f172a",
   hoverFg: "#f8fafc",

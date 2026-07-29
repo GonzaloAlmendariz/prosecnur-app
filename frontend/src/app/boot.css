@@ -9,8 +9,10 @@
   --pulso-border: #e2e7f0;
   --pulso-border-strong: #cbd5e4;
   --pulso-text: #17212f;
-  --pulso-text-soft: #5f6b7a;
-  --pulso-text-faint: #8792a2;
+  /* Espejo de la escala de theme.css. Los dos tienen que moverse juntos:
+     si divergen, la pantalla de arranque y la app se ven distintas. */
+  --pulso-text-soft: #474f5b;
+  --pulso-text-faint: #657082;
   --pulso-shadow-high: 0 24px 60px rgba(0, 36, 87, 0.14);
   --pulso-info-bg: rgba(0, 36, 87, 0.04);
   /* Derivados del primario, como en theme.css. Antes eran los mismos valores

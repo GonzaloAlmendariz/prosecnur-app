@@ -179,7 +179,7 @@
   overflow: hidden;
   direction: rtl;
   unicode-bidi: plaintext;
-  color: var(--pulso-text-soft, #5f6b7a);
+  color: var(--pulso-text-soft, #474f5b);
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 10.5px;
   line-height: 1.35;
@@ -189,7 +189,7 @@
 }
 
 .rpc-date {
-  color: var(--pulso-text-faint, #8792a2);
+  color: var(--pulso-text-faint, #657082);
   font-size: 11px;
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.3;
@@ -209,7 +209,7 @@
   border-radius: 999px;
   padding: 0;
   background: var(--pulso-surface-2, #fafbff);
-  color: var(--pulso-text-soft, #5f6b7a);
+  color: var(--pulso-text-soft, #474f5b);
   cursor: pointer;
   transition:
     opacity var(--motion-dur-fast, 160ms) ease,
