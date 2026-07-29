@@ -248,7 +248,10 @@
     list(
       id = f$id,
       label = f$label,
-      modulos = as.list(f$modulos),
+      # Identidad: el frontend resuelve ícono y color desde el módulo.
+      modulo = f$modulo,
+      seccion = f$seccion,
+      modulos = as.list(f$evidencia),
       task_count = length(hits),
       declarada = length(declarada) > 0L,
       start_date = if (length(inicios)) min(inicios) else "",

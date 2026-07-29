@@ -196,20 +196,69 @@
 
 .bit-fase-nombre {
   display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* El sello: ícono del módulo sobre su acento. Es lo que ancla la etapa a una
+ * parte concreta de la app en vez de a un número de paso. */
+.bit-fase-sello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft, var(--pulso-surface-2));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.bit-fase-titulo {
+  display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
 
-.bit-fase-nombre strong {
+.bit-fase-titulo strong {
   font-size: 13.5px;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
 }
 
-.bit-fase-nombre small {
+.bit-fase-titulo small {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 11px;
   color: var(--pulso-text-faint);
+}
+
+.bit-fase-destino {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--module-accent, var(--pulso-text-soft));
+  text-decoration: none;
+  border-radius: 3px;
+}
+
+.bit-fase-destino:hover {
+  text-decoration: underline;
+}
+
+.bit-fase-destino:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+/* Separador sutil entre destino y conteo, sin un carácter extra en el DOM. */
+.bit-fase-conteo::before {
+  content: "·";
+  margin-inline-end: 8px;
 }
 
 .bit-fase-evidencia {
@@ -365,13 +414,19 @@
   color: var(--pulso-text-soft);
 }
 
-/* Riel de las seis fases: el recorrido del estudio dibujado, con la línea que
- * las une pasando POR DETRÁS de los puntos. */
+/* Riel de las seis etapas: el recorrido del estudio dibujado, con la línea que
+ * las une pasando por detrás de los puntos.
+ *
+ * Columnas IGUALES y no `min-width` sobre flex: con min-width, una etiqueta más
+ * larga ensancha su paso y el ritmo se rompe (medido: 108, 108, 108, 111, 111).
+ * Con `grid-auto-columns` las seis miden exactamente lo mismo y la separación
+ * entre puntos es constante pase lo que pase con los textos. */
 .bit-riel {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(104px, 1fr);
+  align-items: start;
   margin: 4px 0 2px;
   padding: 0;
   list-style: none;
@@ -382,39 +437,53 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  min-width: 92px;
+  gap: 6px;
+  min-width: 0;
 }
 
-/* La línea nace del punto y llega al siguiente; el último paso no la dibuja. */
+.bit-riel-nombre,
+.bit-riel-modulo {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* La línea nace del punto y llega al siguiente; el último paso no la dibuja.
+ * `top` es el radio del punto (30/2) para que cruce por su centro. */
 .bit-riel-paso:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 13px;
-  left: calc(50% + 15px);
-  width: calc(100% - 30px);
+  top: 15px;
+  left: calc(50% + 19px);
+  width: calc(100% - 38px);
   height: 1px;
   background: var(--pulso-border-strong);
 }
 
+/* Cada paso lleva el ícono de su módulo sobre el acento de ese módulo: la fila
+ * de seis se lee como el recorrido de la app, no como un stepper genérico. */
 .bit-riel-punto {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--module-accent-border, var(--pulso-border-strong));
   border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
+  background: var(--module-accent-soft, var(--pulso-surface));
   color: var(--module-accent, var(--pulso-primary));
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
 }
 
 .bit-riel-nombre {
-  font-size: 12px;
-  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  white-space: nowrap;
+}
+
+.bit-riel-modulo {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
   white-space: nowrap;
 }
 

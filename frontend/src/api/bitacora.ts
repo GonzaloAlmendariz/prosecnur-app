@@ -31,7 +31,11 @@ export type BitacoraFase = (typeof BITACORA_FASES)[number];
 export type BitacoraFaseCatalogo = {
   id: BitacoraFase;
   label: string;
-  /** Módulos que la fase cubre; sostienen el contraste con evidencia real. */
+  /** Slug del módulo que le da identidad: de ahí salen el ícono y el color. */
+  modulo: string;
+  /** Sección concreta dentro de ese módulo, si la etapa apunta a una. */
+  seccion: string;
+  /** Claves de evidencia; sostienen el contraste con lo que realmente pasó. */
   modulos: string[];
 };
 

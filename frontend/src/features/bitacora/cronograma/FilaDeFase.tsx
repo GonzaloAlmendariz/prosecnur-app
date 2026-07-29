@@ -1,7 +1,9 @@
-import { CalendarRange, ChevronDown, ChevronRight, CircleDot, Plus } from "../../../vendor/lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, CalendarRange, ChevronDown, ChevronRight, CircleDot, Plus } from "../../../vendor/lucide-react";
 
 import type { BitacoraFaseVista } from "../../../api/bitacora";
 import type { PlanTrabajoTask } from "../../../api/planTrabajo";
+import { identidadDeFase } from "../identidadDeFase";
 import { duracionEnDias, etiquetaRango } from "./fases";
 
 /**
@@ -34,12 +36,18 @@ export function FilaDeFase({
   const dias = duracionEnDias(fase.start_date, fase.end_date);
   const conEvidencia = fase.evidence_state === "evidence_available";
   const sinFechas = !fase.start_date && !fase.end_date;
+  const identidad = identidadDeFase(fase.modulo, fase.seccion);
+  const Icono = identidad.icono;
 
   return (
     <div
       className={`bit-fase${expandida ? " is-expandida" : ""}${sinFechas ? " is-vacia" : ""}`}
       data-fase={fase.id}
+      data-modulo={fase.modulo}
       data-qa-geometry-member=""
+      // El acento del módulo tiñe la fila: es el mismo sello que el usuario ve
+      // en la barra de módulos, así la etapa se ancla a una parte de la app.
+      style={identidad.vars}
     >
       <div className="bit-fase-cabecera">
         <button
@@ -53,12 +61,29 @@ export function FilaDeFase({
         </button>
 
         <span className="bit-fase-nombre">
-          <strong>{fase.label}</strong>
-          <small>
-            {fase.task_count === 0
-              ? "sin actividades"
-              : `${fase.task_count} ${fase.task_count === 1 ? "actividad" : "actividades"}`}
-          </small>
+          <span className="bit-fase-sello" aria-hidden="true">
+            {Icono ? <Icono size={15} /> : null}
+          </span>
+          <span className="bit-fase-titulo">
+            <strong>{fase.label}</strong>
+            <small>
+              {/* La etapa dice a qué parte de la app pertenece y lleva ahí: sin
+                  eso sería una fecha sin destino. */}
+              {identidad.href ? (
+                <Link to={identidad.href} className="bit-fase-destino">
+                  {identidad.etiquetaModulo}
+                  <ArrowUpRight size={11} aria-hidden="true" />
+                </Link>
+              ) : (
+                identidad.etiquetaModulo
+              )}
+              {fase.task_count > 0 && (
+                <span className="bit-fase-conteo">
+                  {fase.task_count} {fase.task_count === 1 ? "actividad" : "actividades"}
+                </span>
+              )}
+            </small>
+          </span>
         </span>
 
         <span

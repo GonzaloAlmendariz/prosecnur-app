@@ -68,9 +68,27 @@ elegida de un catálogo cerrado de seis que hablan el idioma del estudio:
 | Procesamiento | `carga`, `validacion`, `codificacion`, `analitica` |
 | Entregables | `graficos`, `dashboard`, `reportes` |
 
-`api/R/bitacora_fases.R` es el dueño único de esa tabla. El mapeo a conjuntos de
-módulos conserva el contraste con evidencia real que ya hacía
-`.plan_sync_preview()`.
+`api/R/bitacora_fases.R` es el dueño único de esa tabla, y cada fase declara dos
+cosas distintas que no hay que confundir:
+
+- **Identidad** (`modulo`, `seccion`): a qué parte de la app se refiere la
+  etapa. De ahí salen su ícono y su color, que son los mismos que el usuario ya
+  ve en la barra de módulos y en el home. Una etapa que no se puede señalar en
+  la app es una etapa que el usuario no puede accionar, así que cada una lleva
+  además el enlace a su destino.
+- **Evidencia** (`evidencia`): con qué claves se comprueba si la etapa arrancó
+  de verdad. No coinciden con los slugs de módulo —`carga` y `validacion` son
+  secciones de Procesamiento, `reportes` no es un módulo— y mezclarlas con la
+  identidad era justamente lo que dejaba fases sin módulo al que apuntar.
+
+El reparto sigue el dominio, no la estructura de carpetas: Procesamiento es la
+tubería que deja la base limpia y codificada (carga, validación, codificación),
+mientras que Analítica y Gráficos producen salidas y pertenecen a Entregables.
+
+Dos etapas nunca comparten módulo: si lo hicieran compartirían color y el sello
+dejaría de distinguir. Lo fija un test de contrato que además ata el catálogo de
+R al manifiesto de `lib/modules.ts`, para que renombrar un slug no deje etapas
+sin sello en silencio.
 
 No se introduce una entidad nueva: una fase es una tarea con `sync_targets`
 explícito y rango de fechas; un entregable es una tarea con fecha puntual. Así
@@ -187,12 +205,34 @@ núcleo compartido es una unidad de trabajo posterior con su propio QA visual,
 registrada abajo como deuda. Hasta entonces conviven dos implementaciones, pero
 `lib/lienzo/` es el hogar declarado: código nuevo de lienzo se cuelga de ahí.
 
-### 8. El canvas es la cuarta sección de Bitácora
+### 8. El canvas es la cuarta sección de Bitácora, y su vocabulario son las etapas
 
 Vive en `/bitacora?seccion=canvas`, no en un módulo nuevo. Es coherente con la
 premisa del subsistema —cuatro vistas de un mismo grafo— y hereda el chrome y la
 paleta ámbar del módulo sin tocar `PROSECNUR_MODULES` más allá de agregar la
 sección.
+
+Lo que el canvas aporta sobre el cronograma es la **ramificación**. El
+cronograma es lineal por naturaleza: seis etapas, una detrás de otra. Pero un
+estudio real se bifurca —dos actores con campos distintos, una base que se
+procesa dos veces, un entregable que depende de dos análisis— y esa forma no
+entra en una línea de tiempo.
+
+Por eso el canvas usa el mismo vocabulario que el cronograma en vez de inventar
+uno propio: un nodo puede referenciar una etapa, un módulo o una sección, y se
+pinta con el sello de ese módulo. El usuario arrastra las piezas que ya conoce
+—las mismas de la barra de módulos— y las conecta como su estudio realmente
+funciona. El resultado no es un diagrama decorativo sino un grafo que apunta a
+partes reales de la app: cada nodo lleva a su módulo y muestra su estado vivo.
+
+La referencia conceptual es Obsidian Canvas: lienzo infinito, nodos que se
+conectan a mano, y nodos que son ventanas a otra cosa en vez de copias de ella.
+Se replica el modelo de interacción, no la interfaz.
+
+Consecuencia de diseño: el resolutor de identidad
+(`features/bitacora/identidadDeFase.ts`) es compartido entre el cronograma y el
+lienzo desde el día uno. Sin eso, el canvas terminaría con su propia tabla de
+íconos y colores, y las dos superficies divergirían.
 
 ## Consecuencias
 
@@ -234,6 +274,10 @@ sin dejar ninguna sin clasificar. Los endpoints `/api/plan-trabajo/*` y
 | DOM + un SVG para el lienzo | SVG completo como el mapa de lógica; canvas 2D | SVG por nodo es caro; canvas 2D pierde foco y teclado | Alto: es la arquitectura del lienzo |
 | `lib/lienzo/` sin migrar `LogicCanvas` | Copiar la lógica; migrar en la misma fase | Un hogar canónico desde el día uno sin tocar 2610 líneas sin red de tests | Bajo |
 | Canvas como sección, no módulo | Módulo nuevo; panel global | Cuatro vistas de un grafo; no toca home ni paletas | Bajo |
+| Etapa = módulo o sección, con su ícono y color | Etapas abstractas numeradas | El sello ancla la etapa a una parte accionable de la app; el usuario reconoce sin leer | Bajo |
+| Un módulo por etapa, sin repetir | Varias etapas por módulo | Dos etapas del mismo color dejan de distinguirse | Medio: obliga a repartir los módulos |
+| Analítica y Gráficos en Entregables | Ambos en Procesamiento | Producen salidas, no la base limpia; Procesamiento termina en codificación | Bajo |
+| Identidad compartida cronograma↔lienzo | Tabla propia en el canvas | Evita que las dos superficies diverjan en íconos y colores | Bajo |
 | Import y export de Excel degradados | Retirar el import; dejarlos como están | El export sigue siendo el formato que el cliente espera | Bajo |
 
 ## Deuda registrada

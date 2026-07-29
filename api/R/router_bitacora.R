@@ -55,7 +55,8 @@
     plan = plan,
     fases = .bit_cron_vista_fases(s, plan),
     catalogo_fases = lapply(.bit_fases_catalogo(), function(f) {
-      list(id = f$id, label = f$label, modulos = as.list(f$modulos))
+      list(id = f$id, label = f$label, modulo = f$modulo, seccion = f$seccion,
+           modulos = as.list(f$evidencia))
     }),
     bitacora = .diseno_bitacora_entries(s),
     preferencias = .bit_prefs_leer(s),

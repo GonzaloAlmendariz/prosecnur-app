@@ -24,6 +24,7 @@ export { default as ArrowRightLeft } from "lucide-react/dist/esm/icons/arrow-rig
 export { default as ArrowUp } from "lucide-react/dist/esm/icons/arrow-up.mjs";
 export { default as ArrowUp01 } from "lucide-react/dist/esm/icons/arrow-up-0-1.mjs";
 export { default as ArrowUpDown } from "lucide-react/dist/esm/icons/arrow-up-down.mjs";
+export { default as ArrowUpRight } from "lucide-react/dist/esm/icons/arrow-up-right.mjs";
 export { default as Asterisk } from "lucide-react/dist/esm/icons/asterisk.mjs";
 export { default as Award } from "lucide-react/dist/esm/icons/award.mjs";
 export { default as Ban } from "lucide-react/dist/esm/icons/ban.mjs";
