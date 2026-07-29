@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import { Bell, BellRing, CalendarPlus, Flag, Loader2, Sparkles } from "../../../vendor/lucide-react";
 
 import {
+  apiBitacoraDesvincular,
   apiBitacoraSembrarFases,
   apiBitacoraTareaCrear,
   apiBitacoraTareaEditar,
+  apiBitacoraVincular,
   type BitacoraEstado,
   type BitacoraFase,
 } from "../../../api/bitacora";
@@ -232,6 +234,7 @@ export function CompositorDeFases({
           <FilaDeFase
             key={fase.id}
             fase={fase}
+            estado={estado}
             expandida={expandidas.has(fase.id)}
             solapada={solapadas.has(fase.id)}
             guardando={guardando}
@@ -258,6 +261,12 @@ export function CompositorDeFases({
               void ejecutar(() => apiBitacoraTareaEditar(declarada.id, { reminders: recordatorios }));
             }}
             tareaDeclarada={fase.task_ids.map((id) => tareasPorId.get(id)).find((t) => t?.fase_manual) ?? null}
+            onVincular={(tareaId, vinculo) =>
+              void ejecutar(() => apiBitacoraVincular("tarea", tareaId, vinculo))
+            }
+            onDesvincular={(tareaId, destinoTipo, destinoId) =>
+              void ejecutar(() => apiBitacoraDesvincular("tarea", tareaId, destinoTipo, destinoId))
+            }
           />
         ))}
       </div>

@@ -103,6 +103,34 @@ export type BitacoraAvisosPayload = {
   }>;
 };
 
+/** Quién apunta a un destino. Lo arma un índice derivado en el servidor. */
+export type BitacoraRetroenlace = {
+  source_type: "tarea" | "entrada" | "nodo" | string;
+  source_id: string;
+  source_label: string;
+  relation: string;
+};
+
+/** Resumen VIVO de un destino: se recalcula en cada lectura. */
+export type BitacoraResumenDestino = {
+  existe: boolean;
+  tipo: string;
+  id: string;
+  titulo: string;
+  detalle: string;
+  estado: string;
+  fase: string;
+  fecha: string;
+};
+
+export type BitacoraVinculosPayload = {
+  schema: "bitacora_vinculos_v1" | string;
+  total: number;
+  /** Clave `"<tipo>:<id>"` → quiénes la apuntan. */
+  por_destino: Record<string, BitacoraRetroenlace[]>;
+  resumenes: Record<string, BitacoraResumenDestino>;
+};
+
 export type BitacoraEstado = {
   ok: true;
   schema: "bitacora_estado_v1" | string;
@@ -114,6 +142,7 @@ export type BitacoraEstado = {
   catalogo_fases: BitacoraFaseCatalogo[];
   bitacora: DisenoEstudioBitacoraEntry[];
   avisos: BitacoraAvisosPayload;
+  vinculos: BitacoraVinculosPayload;
   preferencias: BitacoraPreferencias;
   contadores: { tareas: number; archivadas: number; entradas: number };
 };
@@ -276,6 +305,44 @@ export async function apiBitacoraEntradasExportar(filtro: BitacoraPreferencias["
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ filtro }),
+    }),
+  );
+}
+
+export type BitacoraOrigenVinculo = "tarea" | "entrada" | "nodo";
+
+/**
+ * Enlaza dos entidades. Se guarda en UN solo sentido; la vista inversa la arma
+ * el índice derivado que ya viaja en el payload.
+ */
+export async function apiBitacoraVincular(
+  origenTipo: BitacoraOrigenVinculo,
+  origenId: string,
+  destino: BitacoraVinculo,
+) {
+  return handle<BitacoraEstado>(
+    await apiFetch("/api/bitacora/vinculos", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ origen_tipo: origenTipo, origen_id: origenId, vinculo: destino }),
+    }),
+  );
+}
+
+export async function apiBitacoraDesvincular(
+  origenTipo: BitacoraOrigenVinculo,
+  origenId: string,
+  destinoTipo: string,
+  destinoId: string,
+) {
+  return handle<BitacoraEstado>(
+    await apiFetch("/api/bitacora/vinculos", {
+      method: "DELETE",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        origen_tipo: origenTipo, origen_id: origenId,
+        destino_tipo: destinoTipo, destino_id: destinoId,
+      }),
     }),
   );
 }

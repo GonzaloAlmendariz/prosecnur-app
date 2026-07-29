@@ -34,6 +34,31 @@
   invisible(plan)
 }
 
+# Limpia los enlaces que quedaron apuntando a algo que ya no existe.
+#
+# Se llama después de TODO borrado. Sin esto, borrar un hito dejaría entradas
+# apuntando a un id fantasma: el ADR 0047 exige que no queden referencias rotas
+# silenciosas, y "silenciosas" es la palabra clave — un enlace colgante no
+# falla, simplemente no lleva a ninguna parte.
+.bit_recolectar_vinculos <- function(sid) {
+  .bit_persistir_grafo(sid, .bit_link_gc(session_get(sid)))
+}
+
+# Persiste las tres claves que pueden llevar enlaces.
+#
+# Los engines de vínculos trabajan sobre el objeto de sesión completo porque un
+# enlace cruza entidades; acá se baja a disco lo que cambió. Solo se escribe lo
+# que existe: `session_set` marca el proyecto como sucio, y crear una clave
+# vacía marcaría el .pulso como modificado sin que nada haya cambiado.
+.bit_persistir_grafo <- function(sid, s) {
+  if (is.list(s$plan_trabajo)) session_set(sid, "plan_trabajo", s$plan_trabajo)
+  if (length(s$diseno_estudio_bitacora %||% list())) {
+    session_set(sid, "diseno_estudio_bitacora", s$diseno_estudio_bitacora)
+  }
+  if (is.list(s$bitacora_canvas)) session_set(sid, "bitacora_canvas", s$bitacora_canvas)
+  invisible(TRUE)
+}
+
 # --- Payload consolidado -----------------------------------------------------
 #
 # Un solo round-trip para las cuatro secciones. Con un fetch por subsistema, el
@@ -60,6 +85,7 @@
     }),
     bitacora = .diseno_bitacora_entries(s),
     avisos = .bit_avisos_payload(s),
+    vinculos = .bit_vinculos_payload(s),
     preferencias = .bit_prefs_leer(s),
     contadores = list(
       tareas = length(Filter(function(t) !nzchar(calc_str(t$archived_at, "")), plan$tasks %||% list())),
@@ -137,6 +163,7 @@ mount_bitacora <- function(pr) {
       sid <- session_header(req)
       plan <- .bit_cron_borrar(.bit_plan_actual(session_get(sid)), .bit_id_de_ruta(id))
       .bit_guardar_plan(sid, plan)
+      .bit_recolectar_vinculos(sid)
       .bit_estado_payload(sid)
     })) |>
 
@@ -202,6 +229,7 @@ mount_bitacora <- function(pr) {
         .bit_id_de_ruta(id)
       )
       .diseno_bitacora_save(sid, entradas)
+      .bit_recolectar_vinculos(sid)
       .bit_estado_payload(sid)
     })) |>
 
@@ -221,6 +249,45 @@ mount_bitacora <- function(pr) {
         total = length(entradas),
         markdown = markdown
       )
+    })) |>
+
+    # --- Vínculos ------------------------------------------------------------
+    #
+    # Se guarda en UN solo sentido; la vista inversa la arma un índice derivado
+    # que viaja en el payload. No hay endpoint de lectura propio a propósito:
+    # un índice que se pide aparte podría quedar desfasado del grafo que
+    # describe.
+    plumber::pr_post("/api/bitacora/vinculos",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      s <- .bit_link_agregar(
+        session_get(sid),
+        body$origen_tipo %||% body$origenTipo,
+        .bit_texto(body$origen_id %||% body$origenId, 200L),
+        body$vinculo %||% list(
+          target_type = body$destino_tipo %||% body$destinoTipo,
+          target_id = body$destino_id %||% body$destinoId,
+          relation = body$relacion
+        )
+      )
+      .bit_persistir_grafo(sid, s)
+      .bit_estado_payload(sid)
+    })) |>
+
+    plumber::pr_delete("/api/bitacora/vinculos",
+                       wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      s <- .bit_link_quitar(
+        session_get(sid),
+        body$origen_tipo %||% body$origenTipo,
+        .bit_texto(body$origen_id %||% body$origenId, 200L),
+        body$destino_tipo %||% body$destinoTipo,
+        .bit_texto(body$destino_id %||% body$destinoId, 200L)
+      )
+      .bit_persistir_grafo(sid, s)
+      .bit_estado_payload(sid)
     })) |>
 
     plumber::pr_post("/api/bitacora/preferencias",

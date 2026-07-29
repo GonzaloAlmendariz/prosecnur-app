@@ -1,0 +1,231 @@
+/* Vinculación transversal (ADR 0047). Solo tokens `--pulso-*`. */
+
+.bit-vinculos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-block-start: 8px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--pulso-border);
+}
+
+.bit-vinculos-vacio {
+  margin: 8px 0 0;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--pulso-border);
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+  max-width: 56ch;
+}
+
+.bit-vinculos-titulo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 5px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-faint);
+}
+
+/* Columnas declaradas una vez y heredadas: la relación y el botón caen en la
+ * misma x en todas las filas, tenga el destino el título que tenga. */
+.bit-vinculos ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  row-gap: 3px;
+  column-gap: 8px;
+}
+
+.bit-vinculo {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+/* Un entrante pertenece a la otra entidad: se ve como referencia, no como algo
+ * editable desde acá. */
+.bit-vinculo.is-entrante {
+  background: transparent;
+  border-style: dashed;
+}
+
+.bit-vinculo-destino {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  color: var(--pulso-text);
+}
+
+.bit-vinculo-destino > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bit-vinculo-destino small {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.bit-vinculo-destino.is-huerfano {
+  color: var(--pulso-danger-fg);
+}
+
+.bit-vinculo-relacion {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bit-vinculo button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+}
+
+.bit-vinculo button:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bit-vinculo button:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+/* --- Selector ------------------------------------------------------------ */
+
+.bit-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block-start: 8px;
+  padding: 10px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border-strong));
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.bit-selector-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bit-selector-busqueda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--pulso-control-height-md);
+  padding-inline: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+}
+
+.bit-selector-busqueda input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+}
+
+.bit-selector-busqueda input:focus-visible {
+  outline: none;
+}
+
+.bit-selector-busqueda:focus-within {
+  border-color: var(--pulso-primary-border);
+}
+
+.bit-selector-relacion select {
+  height: var(--pulso-control-height-md);
+  padding-inline: 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.bit-selector-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* El selector posee su propio scroll: sin esto, cuarenta candidatos
+   * empujarían la fila de la etapa y el marco se movería. */
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.bit-selector-lista button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.bit-selector-lista button:hover {
+  background: var(--pulso-surface-3);
+}
+
+.bit-selector-lista button:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.bit-selector-titulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bit-selector-lista small {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.bit-selector-vacio {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
