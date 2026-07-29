@@ -47,6 +47,25 @@ solo Gonzalo cierra el loop.
   (timeout + cancel + tolerancia 404).
 - El arranque del backend R es razonable; sub-segundo en registrar 26 mounts.
 
+## Regla innegociable: el contrato del warmup
+
+El warm start es decisión registrada del dueño: **cuando el usuario entra,
+todo tiene que estar ya disponible y rápido**. Por lo tanto:
+
+- Optimizar el arranque significa mover peso de la **ruta crítica pre-render**
+  (antes del primer pixel del BootGate, sin proyecto elegido) hacia la **fase
+  de warmup** (espera declarada, con barra) — nunca hacia el momento de uso.
+- **Todo lo que salga del arranque estático entra al plan de warmup en el
+  mismo commit.** La unidad 1.1 solo aprueba si el registro de warmup precarga
+  monitoreo-core (JS + CSS) y los chunks compartidos que salgan del entry.
+- El gate de cada unidad de carga mide DOS cosas: payload pre-render abajo
+  **y** latencia de entrada a cada módulo tras el warmup igual o mejor.
+  Referencia de patrón: plotly (4.8 MB) ya vive así — fuera del entry,
+  caliente al entrar.
+- Las unidades 1.3 y 3.2 van en esta dirección (agregan cobertura al warmup);
+  los offloads de backend (1.4, 2.1–2.3) no calientan menos: quitan
+  congelamientos del hilo.
+
 ## Olas de ejecución
 
 ### Ola 1 — quick wins (esfuerzo bajo, impacto alto)
@@ -111,6 +130,7 @@ solo Gonzalo cierra el loop.
 | Métrica | Hoy (2026-07-29) | Norte |
 |---|---|---|
 | Payload estático pre-render (gz) | ~349 KB (91 KB necesarios) | <120 KB |
+| Latencia de entrada a módulo tras warmup | baseline a medir en 1.1 | igual o mejor que hoy (contrato del warmup) |
 | CSS parseado en el arranque | 1.32 MB raw | <60 KB |
 | Congelamiento por import/refresh de Carga/SM | minutos (inline) | <1 s (job + merge) |
 | Re-render por tick de sync en perfiles | árbol completo (~20k líneas) | solo chrome de progreso |
