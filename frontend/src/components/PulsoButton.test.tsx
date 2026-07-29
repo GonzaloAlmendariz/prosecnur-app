@@ -115,7 +115,7 @@ describe("PulsoButton", () => {
 
   it("keeps every module accent distinct and readable on the primary variant", () => {
     const theme = fs.readFileSync(
-      path.resolve(__dirname, "..", "app", "theme.css"),
+      path.resolve(__dirname, "..", "app", "tokens.css"),
       "utf8",
     );
     const primaryColors = moduleAccentTokens.map((token) => {

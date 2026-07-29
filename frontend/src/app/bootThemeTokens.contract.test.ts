@@ -1,5 +1,5 @@
 // =============================================================================
-// bootThemeTokens.contract.test.ts — boot.css no puede divergir de theme.css
+// bootThemeTokens.contract.test.ts — boot.css no puede divergir de tokens.css
 // =============================================================================
 // boot.css replica un subconjunto de tokens --pulso-* para que el chunk de
 // entrada (BootGate, warm start) pinte sin depender del bundle completo. Esa
@@ -42,9 +42,9 @@ function resolve(value: string, tokens: Map<string, string>, seen = new Set<stri
   return next ? resolve(next, tokens, seen) : value;
 }
 
-describe("boot.css y theme.css comparten valores", () => {
+describe("boot.css y tokens.css comparten valores", () => {
   const boot = readTokens("boot.css");
-  const theme = readTokens("theme.css");
+  const theme = readTokens("tokens.css");
 
   test("hay tokens replicados (si no, este contrato sobra)", () => {
     const shared = [...boot.keys()].filter((k) => theme.has(k));
@@ -60,7 +60,7 @@ describe("boot.css y theme.css comparten valores", () => {
       const b = resolve(themeValue, theme);
       if (a !== b) divergentes.push(`${name}: boot=${a} · theme=${b}`);
     }
-    expect(divergentes, `Tokens que divergen entre boot.css y theme.css:\n  ${divergentes.join("\n  ")}`).toEqual([]);
+    expect(divergentes, `Tokens que divergen entre boot.css y tokens.css:\n  ${divergentes.join("\n  ")}`).toEqual([]);
   });
 
   test("los acentos de módulo son idénticos en ambos archivos", () => {

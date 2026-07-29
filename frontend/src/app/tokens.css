@@ -1,0 +1,540 @@
+:root {
+  --pulso-primary: #002457;
+  --pulso-primary-soft: rgba(0, 36, 87, 0.08);
+  --pulso-primary-border: rgba(0, 36, 87, 0.18);
+  --pulso-primary-focus: rgba(0, 36, 87, 0.15);
+  /* Ring sutil para active states (item seleccionado en timeline, card
+   * del slide activo en editor, etc.). Similar a box-shadow focus pero
+   * levemente más opaco y ancho para marcar selección persistente. */
+  --pulso-primary-ring: rgba(0, 36, 87, 0.12);
+  --pulso-surface: #ffffff;
+  --pulso-surface-2: #fafbff;
+  --pulso-surface-3: #f2f5fa;
+  --pulso-surface-raised: #ffffff;
+  --pulso-bg: #f3f5f9;
+  --pulso-bg-deep: #e9edf5;
+  --pulso-border: #e2e7f0;
+  --pulso-border-strong: #cbd5e4;
+  /* Escala de texto neutro: los tres niveles cumplen AA (4.5) contra las tres
+   * superficies, y entre sí guardan 1.96 y 1.65 de contraste, que es lo que los
+   * hace distinguibles. Medido: los valores previos (#5f6b7a / #8792a2) daban
+   * 4.96 y 2.88 contra `--pulso-surface-3`, así que el nivel atenuado no se
+   * leía en ninguna superficie de la app. La jerarquía no puede apoyarse en un
+   * contraste que no alcanza el piso. */
+  --pulso-text: #17212f;
+  --pulso-text-soft: #474f5b;
+  --pulso-text-faint: #657082;
+  /* Texto atenuado canónico: alias de text-soft. Se usa en ~377 sitios
+   * (theme.css, editor XLSForm, calc-muestra, monitoreo…) sin fallback.
+   * Antes solo existía scopeado en .mon-page, así que fuera de Monitoreo
+   * el token no resolvía: en contextos con `color` heredado se disimulaba,
+   * pero en `fill` de <text> SVG caía al valor inicial (negro), rompiendo
+   * la jerarquía visual. Aliasado a soft sigue su eventual variante dark. */
+  --pulso-text-muted: var(--pulso-text-soft);
+  --pulso-header-row: #f1f3f9;
+  --pulso-shadow-low: 0 1px 2px rgba(0, 36, 87, 0.04);
+  --pulso-shadow-soft: 0 6px 18px rgba(0, 36, 87, 0.06);
+  --pulso-shadow-med: 0 14px 30px rgba(0, 36, 87, 0.08);
+  --pulso-shadow-high: 0 24px 60px rgba(0, 36, 87, 0.14);
+  --pulso-shadow-raised:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 10px 28px rgba(15, 23, 42, 0.07);
+  --pulso-shadow-popover:
+    0 22px 60px rgba(15, 23, 42, 0.18),
+    0 4px 16px rgba(15, 23, 42, 0.08);
+  --pulso-radius: 10px;
+  --pulso-chart-panel: #f8faff;
+  --pulso-chart-border: #d8e0ef;
+  --pulso-chart-chip-bg: rgba(255, 255, 255, 0.84);
+  --pulso-chart-chip-border: rgba(0, 36, 87, 0.12);
+  /* Tipo colors — mirrored from prosecnur xlsx exportar_plantilla
+   * (exportar_plantilla_codificacion_xlsx). Keeps visual language
+   * consistent for analysts already trained on the xlsx flow. */
+  --tipo-sm-bg: #E2F0D9;
+  --tipo-sm-border: #9cc47f;
+  --tipo-sm-fg: #2d6720;
+  --tipo-so-bg: #D9E1F2;
+  --tipo-so-border: #8fa3d0;
+  --tipo-so-fg: #1e3a6b;
+  --tipo-int-bg: #E6D9F2;
+  --tipo-int-border: #a48ac9;
+  --tipo-int-fg: #4a2d66;
+  --tipo-text-bg: #FFF2CC;
+  --tipo-text-border: #d5b866;
+  --tipo-text-fg: #7a5a00;
+  --tipo-text-sm-bg: color-mix(in srgb, var(--tipo-text-bg) 72%, var(--tipo-sm-bg));
+  --tipo-text-sm-border: color-mix(in srgb, var(--tipo-text-border) 64%, var(--tipo-sm-border));
+  --tipo-text-sm-fg: color-mix(in srgb, var(--tipo-text-fg) 72%, var(--tipo-sm-fg));
+  /* Drag & drop */
+  --drag-valid-bg: rgba(0, 36, 87, 0.06);
+  --drag-valid-border: var(--pulso-primary);
+  --drag-invalid-bg: rgba(165, 31, 31, 0.04);
+  /* Adopted state */
+  --adoptada-bg: #F0F4FA;
+  --adoptada-border: #C9D4E8;
+  --adoptada-fg: var(--pulso-text-soft);
+  --adopt-glow: rgba(0, 36, 87, 0.22);
+  --adopt-flash-bg: rgba(0, 36, 87, 0.08);
+  /* Motion system */
+  --motion-dur-press: 120ms;
+  --motion-dur-fast: 160ms;
+  --motion-dur-base: 220ms;
+  --motion-dur-panel: 280ms;
+  --motion-dur-slow: 420ms;
+  --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --motion-ease-productive: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-route-y: 8px;
+
+  /* Backwards-compatible aliases for existing feature animations. */
+  --anim-dur-short: var(--motion-dur-fast);
+  --anim-dur-med: var(--motion-dur-panel);
+  --anim-dur-long: var(--motion-dur-slow);
+  --anim-ease-expressive: var(--motion-ease-productive);
+  --anim-ease-smooth: var(--motion-ease-standard);
+
+  /* Status colors — usados para badges de "en curso / completo / sin
+   * datos / pendiente", alerts inline, chips de advertencia, etc.
+   * Mismo set que los `.pulso-alert-*` pero disponible como tokens para
+   * botones, dots, barras de progreso y otros usos que no son banners. */
+  --pulso-success-bg: #dcfce7;
+  --pulso-success-border: #86efac;
+  --pulso-success-fg: #166534;
+
+  --pulso-warn-bg: #fff4e0;
+  --pulso-warn-border: #f0d799;
+  --pulso-warn-fg: #8a5000;
+  /* Unificado al ámbar canónico de la identidad (= --pulso-accent-amber);
+   * antes #d68a00, el único doble ámbar del sistema (ADR 0038). */
+  --pulso-warn-accent: #d97706;
+
+  --pulso-danger-bg: #fef2f2;
+  --pulso-danger-border: #fecaca;
+  --pulso-danger-fg: #991b1b;
+
+  --pulso-info-bg: rgba(0, 36, 87, 0.04);
+  --pulso-info-border: var(--pulso-primary-border);
+  --pulso-info-fg: var(--pulso-primary);
+
+  /* Máquina de estados de readiness (auditoría de Monitoreo 2026-07-25).
+   * Los tokens de arriba dicen "esto salió bien / mal"; estos dicen "cuánta
+   * evidencia hay". La diferencia importa: antes "sin configurar", "0 reportes"
+   * y "pendiente" compartían el verde de éxito porque el único eje disponible
+   * era bien/mal, y un estado sin evaluar caía del lado bueno.
+   *
+   * REGLA: el verde vive solo en `--pulso-state-ready-*`. Los dos estados sin
+   * evidencia son deliberadamente neutros —no son malas noticias, son ausencia
+   * de noticia— y por eso no toman ni ámbar ni rojo. */
+  --pulso-state-unset-bg: rgba(15, 23, 42, 0.04);
+  --pulso-state-unset-border: rgba(15, 23, 42, 0.14);
+  --pulso-state-unset-fg: #64748b;
+
+  --pulso-state-unchecked-bg: rgba(71, 85, 105, 0.07);
+  --pulso-state-unchecked-border: rgba(71, 85, 105, 0.2);
+  --pulso-state-unchecked-fg: #475569;
+
+  --pulso-state-partial-bg: var(--pulso-warn-bg);
+  --pulso-state-partial-border: var(--pulso-warn-border);
+  --pulso-state-partial-fg: var(--pulso-warn-fg);
+
+  --pulso-state-blocked-bg: var(--pulso-danger-bg);
+  --pulso-state-blocked-border: var(--pulso-danger-border);
+  --pulso-state-blocked-fg: var(--pulso-danger-fg);
+
+  --pulso-state-ready-bg: var(--pulso-success-bg);
+  --pulso-state-ready-border: var(--pulso-success-border);
+  --pulso-state-ready-fg: var(--pulso-success-fg);
+
+  /* Selección != readiness. Se separan porque el acento de selección estaba
+   * mezclado con el tono de estado, y una pestaña seleccionada se leía como
+   * una pestaña lista. Selección usa el acento del módulo; readiness usa los
+   * tokens de arriba. Nunca el mismo canal visual. */
+  --pulso-nav-selected: var(--module-accent, var(--pulso-primary));
+  --pulso-nav-selected-bg: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+
+  /* Repeat / roster (ADR 0030 Fase 5) — MARCADOR SEMÁNTICO TRANSVERSAL.
+   * Naranja suave que significa SIEMPRE "esto pertenece a una estructura
+   * repetida (roster one-to-many)": base hija de un begin_repeat, su grano
+   * de instancia, la marca "repetible". NO es un acento de familia/módulo:
+   * se superpone a cualquier paleta de módulo sin competir con ella y con
+   * la misma semántica en toda superficie (Carga, Analítica, formulario,
+   * dashboard). Distinto a propósito de `--pulso-warn-*` (amarillo =
+   * advertencia) y de `--pulso-accent-amber`/`--pulso-module-routes`
+   * (dorado/óxido de módulo). Windows-safe: color plano, sin vibrancy,
+   * legible a DPI 125-150% y con Segoe UI. */
+  --pulso-repeat-bg: #fdeede;
+  --pulso-repeat-border: #f2c79c;
+  --pulso-repeat-fg: #9a4913;
+  --pulso-repeat-accent: #c95f20;
+
+  /* Colores canónicos por módulo — una identidad estable para dock,
+   * Home y superficies futuras. Mantener sincronizado con lib/modules.ts.
+   *
+   * TECHO DE CROMA 0.12 EN OKLCH. El tono de cada módulo es suyo y no se toca;
+   * lo que se estandariza es cuánta saturación puede gastar.
+   *
+   * Medido antes de fijarlo: el rango iba de 0.086 (el teal de Procesamiento) a
+   * 0.247 (el violeta de Cálculo de muestra), casi el triple, y por eso el mismo
+   * elemento se sentía sobrio en un módulo y estridente en otro. El teal es el
+   * que se tomó como referencia —«ese verde más opaco está súper bien»— y el
+   * techo lo acerca a él sin lavarlo: el rango pasa de 2.87x a 1.4x.
+   *
+   * Un techo más bajo se probó y no sirve: a 0.090 el carmesí de Monitoreo cae en
+   * #945155, que ya no se lee como rojo sino como marrón sucio, y los módulos
+   * dejan de distinguirse entre sí. El croma no se iguala, se acota.
+   *
+   * Procesamiento (0.086), Fichas QR (0.092) y Bitácora (0.121) ya estaban en el
+   * techo o por debajo y conservan su hex exacto. */
+  --pulso-module-editor: #7172c1;
+  --pulso-module-editor-soft: rgba(113, 114, 193, 0.13);
+  --pulso-module-editor-border: rgba(113, 114, 193, 0.32);
+  --pulso-module-processing: #0f766e;
+  --pulso-module-processing-soft: rgba(15, 118, 110, 0.13);
+  --pulso-module-processing-border: rgba(15, 118, 110, 0.3);
+  --pulso-module-dashboard: #4a6eb6;
+  --pulso-module-dashboard-soft: rgba(74, 110, 182, 0.13);
+  --pulso-module-dashboard-border: rgba(74, 110, 182, 0.3);
+  --pulso-module-routes: #ac563b;
+  --pulso-module-routes-soft: rgba(172, 86, 59, 0.13);
+  --pulso-module-routes-border: rgba(172, 86, 59, 0.3);
+  --pulso-module-sample: #7260ae;
+  --pulso-module-sample-soft: rgba(114, 96, 174, 0.13);
+  --pulso-module-sample-border: rgba(114, 96, 174, 0.32);
+  --pulso-module-encyclopedia: #a16207;
+  --pulso-module-encyclopedia-soft: rgba(161, 98, 7, 0.13);
+  --pulso-module-encyclopedia-border: rgba(161, 98, 7, 0.3);
+  /* Cronograma se fusionó en Bitácora: el acento workplan queda aliasado al
+   * ámbar de Bitácora (encyclopedia) como acento cálido único. */
+  --pulso-module-workplan: var(--pulso-module-encyclopedia);
+  --pulso-module-workplan-soft: var(--pulso-module-encyclopedia-soft);
+  --pulso-module-workplan-border: var(--pulso-module-encyclopedia-border);
+  --pulso-module-collectors: #106e8c;
+  --pulso-module-collectors-soft: rgba(16, 110, 140, 0.13);
+  --pulso-module-collectors-border: rgba(16, 110, 140, 0.3);
+  --pulso-module-monitoring: #a0464e;
+  --pulso-module-monitoring-soft: rgba(160, 70, 78, 0.12);
+  --pulso-module-monitoring-border: rgba(160, 70, 78, 0.3);
+
+  /* Estados de codificación (usados en sidebars y badges del Wizard) */
+  --pulso-status-in-progress: #0e7490;
+  --pulso-status-pending: #1d4ed8;
+  --pulso-status-empty: #6b7280;
+
+  /* ---------- Validación v2 — design system extendido -------------------
+   * Tokens agregados en la pasada de revamp UX (Fase 1). Se usan en los
+   * componentes nuevos `RuleNarrative`, `VariableChip`, `StatCard`,
+   * `ContextLens`, `DecisionStorageBar` y progresivamente reemplazan
+   * estilos inline dispersos por los 4 tabs de Validación.
+   * ------------------------------------------------------------------ */
+
+  /* Roles semánticos de variables en una regla (target/drivers/compare/gate).
+   * El propósito es que al ver una regla, el analista distinga de un vistazo
+   * qué variable es la evaluada, cuáles activan la regla y cuáles comparan. */
+  --pulso-role-target-bg: #e0e7ff;
+  --pulso-role-target-fg: #1e3a8a;
+  --pulso-role-target-border: #c7d2fe;
+  --pulso-role-drivers-bg: #dcfce7;
+  --pulso-role-drivers-fg: #14532d;
+  --pulso-role-drivers-border: #bbf7d0;
+  --pulso-role-compare-bg: #ffedd5;
+  --pulso-role-compare-fg: #9a3412;
+  --pulso-role-compare-border: #fed7aa;
+  --pulso-role-gate-bg: #f1f5f9;
+  --pulso-role-gate-fg: #334155;
+  --pulso-role-gate-border: #e2e8f0;
+
+  /* Paleta de decisiones del decision-maker (usada en DecisionStorageBar,
+   * chips de "current_action", badges de estado). Debe coincidir con
+   * `LimpiezaDecisionActionType` en types.ts. */
+  --pulso-dec-ignore: #94a3b8;          /* gris neutro */
+  --pulso-dec-exclude: #d97706;         /* ámbar — saco filas */
+  --pulso-dec-change: #0369a1;          /* azul — corrijo celdas */
+  --pulso-dec-replace: var(--pulso-dec-change);
+  --pulso-dec-normalize: var(--pulso-dec-change);
+  --pulso-dec-impute: var(--pulso-dec-change);
+  --pulso-dec-pending: repeating-linear-gradient(
+    45deg,
+    rgba(148, 163, 184, 0.25) 0 6px,
+    rgba(148, 163, 184, 0.45) 6px 12px
+  );
+
+  /* Radios normalizados (antes estaban 6 / 10 / 12 / 14 / 18 / 26 ad hoc). */
+  --pulso-radius-chip: 999px;
+  --pulso-radius-card: 14px;
+  --pulso-radius-panel: 16px;
+  --pulso-radius-lens: 20px;
+  /* Escalera de controles del macOS 26 UI Kit (16/20/24/28/36): 28 es el
+   * default de content area; 36 se reserva a toolbar/CTA. sm y md coinciden
+   * hoy en 28 pero son slots semánticos distintos (denso vs. default). */
+  --pulso-control-height-sm: 28px;
+  --pulso-control-height-md: 28px;
+  --pulso-control-height-lg: 36px;
+  /* Escala tipográfica de peso. Seis escalones y nada entre medio: antes había
+   * 44 valores distintos repartidos en ~4.800 declaraciones (570, 580, 770,
+   * 910, 940 con un puñado de usos cada uno), lo que hacía que dos elementos
+   * del mismo rango se vieran distinto según el archivo que los definía.
+   * Cualquier peso nuevo usa uno de estos tokens; no se escriben literales. */
+  --pulso-weight-regular: 400;
+  --pulso-weight-medium: 500;
+  --pulso-weight-semibold: 600;
+  --pulso-weight-bold: 700;
+  --pulso-weight-heavy: 800;
+  --pulso-weight-black: 900;
+  /* Peso de trabajo de controles del kit: Medium (500); la jerarquía se hace
+   * con tamaño y color, no con bold. Windows compensa vía data-platform
+   * porque Segoe UI renderiza Medium más liviano que SF Pro. */
+  --pulso-control-weight: var(--pulso-weight-medium);
+  --pulso-control-check-size: 16px;
+  /* Track cóncavo del switch maestro (`.pulso-switch`) y sus réplicas por
+   * feature; ADR 0038 / gate 2026-07-16. El encendido NO se tokeniza aquí:
+   * deriva del primario del scope. */
+  --pulso-switch-track: linear-gradient(180deg, #eef2f7, #dfe6ef);
+  --pulso-switch-track-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12), inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  --pulso-switch-border: color-mix(in srgb, var(--pulso-border-strong) 84%, #fff 16%);
+  --pulso-switch-knob-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+  /* Rail lateral canónico del kit: ancho 240, filas 24/32/40. */
+  --pulso-rail-width: 240px;
+  --pulso-rail-row-height: 32px;
+  --pulso-rail-row-height-lg: 40px;
+  --pulso-active-base-footer-reserve: 12px;
+
+  /* ==========================================================================
+   * Chrome horizontal y estados de navegación — geometría única (ADR 0042)
+   * --------------------------------------------------------------------------
+   * Antes de este bloque, la geometría del chrome eran literales repetidos: el
+   * header a 58px en un sitio, la command bar a 46 en otro, sus controles a 32
+   * en un tercero, y `--pill-h` ya divergido a 34/34/29. Doce clases de módulo
+   * declaraban la misma banda con cinco alturas distintas (36/42/46/58/~125).
+   *
+   * Los estados de navegación estaban peor: cero tokens. Los 254 `:hover` del
+   * archivo resolvían a ~35 fondos distintos, la caja de hover del mismo tipo
+   * de item tenía nueve radios (6/8/9/10/11px y cuatro tokens ajenos), y los 55
+   * `:focus-visible` usaban ocho formas de anillo.
+   *
+   * Estos valores se declaran ACÁ y en ningún otro lugar. Una clase de módulo
+   * puede elegir entre estos tokens; no puede escribir el literal.
+   * ======================================================================== */
+
+  /* Alturas del chrome. Los tres primeros cierran literales existentes: no
+   * mueven un píxel, solo le ponen nombre a lo que ya medía así. */
+  --pulso-chrome-header-h: 58px;
+  /* 52 y no 46. La dirección v3 fija 46 como mínimo, y ese era el valor del
+   * token, pero el rail canónico —píldoras de 34 más el padding y el borde de la
+   * pillbar— mide 42, que con el padding de la banda da 52. Con el piso en 46 la
+   * banda medía 52 cuando el rail está en el flujo y 46 cuando se centra fuera de
+   * él, así que la misma banda cambiaba de alto entre anchos y entre módulos.
+   * Un token que no coincide con lo que se renderiza no sirve para exigir
+   * uniformidad: ahora el piso ES la altura. */
+  --pulso-chrome-commandbar-h: 52px;
+  --pulso-chrome-commandbar-pad: 4px;
+  --pulso-chrome-commandbar-gap: 6px;
+  --pulso-chrome-commandbar-radius: 18px;
+  --pulso-chrome-control-h: 32px;
+  /* Superficie de comando: la banda operativa (KPIs, readiness, fase) que
+   * acompaña al chrome sin ser navegación. Es la única que puede envolver. */
+  --pulso-chrome-surface-h: var(--pulso-control-height-lg);
+
+  /* Píldora de sección. Dos alturas, no tres: 34 existe solo porque el chip de
+   * numeración no cabe en 32, y solo se usa donde hay pipeline real. */
+  --pulso-section-pill-h: 32px;
+  --pulso-section-pill-h-progress: 34px;
+  --pulso-section-pill-pad-x: 13px;
+  --pulso-section-pill-gap: 2px;
+
+  /* Rail de pestañas: siempre comprimido, empuja el canvas, jamás overlay
+   * (ADR 0038 patrón #3). El ancho expandido no se tokeniza porque no existe. */
+  --pulso-rail-compressed-width: 56px;
+  --pulso-nav-item-height: var(--pulso-rail-row-height-lg);
+  --pulso-nav-item-radius: 10px;
+  /* Los rails de Procesamiento leen estos dos con un literal de respaldo
+   * —`var(--pulso-processing-rail-item-height, 42px)`— y el token no estaba
+   * declarado en ninguna parte, así que siempre ganaba el 42 de respaldo. Ese es
+   * el motivo real por el que su item medía 42 y el de Monitoreo 40: ninguno de
+   * los dos estaba leyendo el token canónico. Declarados acá, los dos convergen. */
+  --pulso-processing-rail-item-height: var(--pulso-nav-item-height);
+  --pulso-processing-rail-item-width: var(--pulso-nav-item-height);
+  --pulso-nav-icon-size: 18px;
+
+  /* Burbuja del rail comprimido: título + subtítulo al hover Y al focus. */
+  --pulso-rail-bubble-radius: 10px;
+  --pulso-rail-bubble-offset: 8px;
+
+  --pulso-nav-selected-fg: #fff;
+
+  /* Foco por `outline`, no por `box-shadow`: el anillo global de sombra
+   * (`button:where(:focus-visible)`) vale (0,1,0) y cualquier `.is-active` que
+   * declare su relieve con `box-shadow` lo borra — es el anillo que hoy se
+   * pierde en las píldoras activas. Ninguna regla `.is-active` del repo toca
+   * `outline`, así que por acá el anillo es inmune por construcción. */
+  --pulso-nav-focus-outline-width: 2px;
+  --pulso-nav-focus-offset: 2px;
+
+  /* Los colores de estado que dependen del acento NO se declaran acá: viven en
+   * nav-states.css, sobre el propio item. Un `--pulso-nav-hover-bg: color-mix(…
+   * var(--module-accent) …)` declarado en `:root` se sustituye EN `:root`, donde
+   * `--module-accent` no existe, así que resolvería al navy global y los
+   * descendientes heredarían ese valor ya cocinado. Es la trampa de las custom
+   * properties: se resuelven donde se declaran, no donde se usan. Verificado en
+   * Chrome: el hover de la sección activa de Procesamiento salía navy en vez de
+   * verde. Por eso el mismo patrón que ya usa `.pulso-gliding-tab-list` —
+   * declarar la indirección sobre un elemento que sí está dentro del frame del
+   * módulo— es el correcto. */
+
+  /* Capas. Convención ya usada de facto (los overlays van sobre la toolbar
+   * porque la toolbar tiene transform y crea contexto de apilamiento). */
+  --pulso-z-toolbar: 1000;
+  --pulso-z-flyout: 1400;
+  --pulso-z-modal: 1500;
+  --pulso-operational-min-workbench: 360px;
+  --pulso-operational-min-panel: 360px;
+  --pulso-operational-min-media: 360px;
+  --pulso-operational-min-list: 260px;
+  --pulso-operational-min-dialog-body: 240px;
+  --pulso-material-bg: color-mix(in srgb, var(--pulso-surface) 82%, transparent);
+  --pulso-material-bg-strong: color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  --pulso-material-bg-chrome: color-mix(in srgb, #ffffff 74%, transparent);
+  --pulso-material-border: color-mix(in srgb, var(--pulso-primary-border) 78%, var(--pulso-border));
+  --pulso-material-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 10px 30px rgba(0, 36, 87, 0.08);
+  --pulso-accent-cyan: #0ea5b7;
+  --pulso-accent-green: #16a34a;
+  --pulso-accent-rose: #c2416b;
+  --pulso-accent-amber: #d97706;
+  --pulso-accent-violet: #7c3aed;
+  --pulso-accent-sky: #38bdf8;
+  --pulso-accent-steel: #4f7cbf;
+
+  /* Shadow específica para el panel ContextLens (deslizable desde derecha). */
+  --pulso-shadow-lens: 0 20px 60px rgba(15, 23, 42, 0.18),
+                       inset 1px 0 0 rgba(255, 255, 255, 0.6);
+
+  /* Estilos narrativos: peso y color para la frase principal ("si X, entonces
+   * Y") vs variables resaltadas dentro de la narrativa. */
+  --pulso-narrative-size: 15px;
+  --pulso-narrative-line-height: 1.55;
+  --pulso-narrative-color: var(--pulso-text);
+  --pulso-narrative-emphasis: var(--pulso-primary);
+
+  /* Hover card para variables — delay y timing. */
+  --pulso-hovercard-delay: 500ms;
+  --pulso-hovercard-hide-delay: 180ms;
+}
+
+:root[data-platform="windows"] {
+  --pulso-control-weight: var(--pulso-weight-semibold);
+}
+
+/* =============================================================================
+ * Paleta de módulo — mecanismo único
+ * ---------------------------------------------------------------------------
+ * Cada módulo tiene paleta propia (regla de la casa). Antes eso se conseguía de
+ * dos maneras distintas y con cinco alcances: `--module-accent` en el frame de
+ * Hojas de ruta y Cálculo de muestra, override de `--pulso-primary` en el frame
+ * del Editor y —solo— en el dock de fases de Procesamiento, más un parche
+ * suelto en un diálogo de Gráficos. Los módulos restantes no hacían ninguna de
+ * las dos y hardcodeaban `var(--pulso-module-*)` en cada regla: 421 usos en
+ * Monitoreo y 224 en Procesamiento contra 3 en Hojas de ruta.
+ *
+ * Acá viven todos, en un solo lugar y con el mismo contrato: el frame del
+ * módulo declara su acento y de ahí lo toman tanto el kit compartido
+ * (`--module-accent`) como los componentes que leen el primario directo
+ * (`--pulso-primary`). Un módulo nuevo agrega una línea a esta tabla; no
+ * inventa un mecanismo.
+ *
+ * Dashboard queda fuera a propósito: conserva su gramática `dash-*` hasta la
+ * migración dedicada (docs/ui-layout-grammar.md).
+ * ---------------------------------------------------------------------- */
+
+/* `.pulso-gv2-estilo-dialog` entra acá aunque no sea un frame: se monta en un
+ * portal sobre document.body, fuera del frame de Gráficos, así que no hereda
+ * nada y necesita declarar su pertenencia explícitamente. */
+.pulso-carga-frame,
+.pulso-validacion-frame,
+.pulso-codificacion-frame,
+.pulso-analitica-frame,
+.pulso-graficos-frame,
+.pulso-processing-phase-dock,
+.pulso-processing-phase-row,
+.pulso-gv2-estilo-dialog {
+  --module-accent: var(--pulso-module-processing);
+  --module-accent-soft: var(--pulso-module-processing-soft);
+  --module-accent-border: var(--pulso-module-processing-border);
+}
+
+.pulso-xlsform-frame {
+  --module-accent: var(--pulso-module-editor);
+  --module-accent-soft: var(--pulso-module-editor-soft);
+  --module-accent-border: var(--pulso-module-editor-border);
+}
+
+.mon-module-chrome {
+  --module-accent: var(--pulso-module-monitoring);
+  --module-accent-soft: var(--pulso-module-monitoring-soft);
+  --module-accent-border: var(--pulso-module-monitoring-border);
+}
+
+.bitacora-frame {
+  --module-accent: var(--pulso-module-workplan);
+  --module-accent-soft: var(--pulso-module-workplan-soft);
+  --module-accent-border: var(--pulso-module-workplan-border);
+}
+
+.rec-page {
+  --module-accent: var(--pulso-module-collectors);
+  --module-accent-soft: var(--pulso-module-collectors-soft);
+  --module-accent-border: var(--pulso-module-collectors-border);
+}
+
+.pulso-enciclopedia-frame {
+  --module-accent: var(--pulso-module-encyclopedia);
+  --module-accent-soft: var(--pulso-module-encyclopedia-soft);
+  --module-accent-border: var(--pulso-module-encyclopedia-border);
+}
+
+.hojas-ruta-frame {
+  --module-accent: var(--pulso-module-routes);
+  --module-accent-soft: var(--pulso-module-routes-soft);
+  --module-accent-border: var(--pulso-module-routes-border);
+}
+
+.cmv2-frame.pulso-page-frame {
+  --module-accent: var(--pulso-module-sample);
+  --module-accent-soft: var(--pulso-module-sample-soft);
+  --module-accent-border: var(--pulso-module-sample-border);
+}
+
+/* Los componentes que leen `--pulso-primary` directo —el indicador deslizante
+ * del rail, los presets activos, los focus ring— siguen al acento del módulo en
+ * vez de caer al navy global. Es la misma cadena, declarada una sola vez. */
+.pulso-carga-frame,
+.pulso-validacion-frame,
+.pulso-codificacion-frame,
+.pulso-analitica-frame,
+.pulso-graficos-frame,
+.pulso-processing-phase-dock,
+.pulso-processing-phase-row,
+.pulso-gv2-estilo-dialog,
+.pulso-xlsform-frame,
+.mon-module-chrome,
+.bitacora-frame,
+.rec-page,
+.pulso-enciclopedia-frame,
+.hojas-ruta-frame,
+.cmv2-frame.pulso-page-frame {
+  --pulso-primary: var(--module-accent);
+  --pulso-primary-soft: var(--module-accent-soft);
+  --pulso-primary-border: var(--module-accent-border);
+}
+
+/* Repeat / roster en modo oscuro (ADR 0030 Fase 5). El naranja suave se
+ * traduce a un fill translúcido + texto naranja claro para conservar la
+ * misma semántica y contraste sobre superficies oscuras. Windows-safe. */
+:root[data-theme="dark"] {
+  --pulso-repeat-bg: rgba(224, 122, 60, 0.16);
+  --pulso-repeat-border: rgba(224, 122, 60, 0.44);
+  --pulso-repeat-fg: #f3b98a;
+  --pulso-repeat-accent: #e8935c;
+}
