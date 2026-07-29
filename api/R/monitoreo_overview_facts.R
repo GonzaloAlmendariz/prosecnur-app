@@ -97,7 +97,7 @@ monitoreo_territorial_overview_facts <- function(dashboard) {
 # Espejo de efectividad para acreditacion/telefonico, agregado desde
 # `client_report$actors`. Devuelve NULL cuando el tablero no trae ese reporte
 # (el caller no espeja ruido y el home cae al fallback).
-monitoreo_efectividad_overview_facts <- function(dashboard) {
+monitoreo_efectividad_overview_facts <- function(dashboard, goals = NULL) {
   if (!is.list(dashboard)) return(NULL)
   report <- (dashboard$acreditacion_reports %||% list())$client_report %||% NULL
   actors <- (report %||% list())$actors %||% NULL
@@ -120,7 +120,7 @@ monitoreo_efectividad_overview_facts <- function(dashboard) {
   # real Egresados iba al 58% y Estudiantes al 1%, y el promedio decia 36%. El
   # agregado sigue siendo la cifra (orienta y es comparable entre proyectos)
   # pero viaja ademas quien va ultimo, que es donde hay que mirar.
-  rezagado <- .monitoreo_overview_worst_actor(actors)
+  rezagado <- .monitoreo_overview_worst_actor(actors, goals)
   list(
     efectivas = as.integer(efectivas),
     universo = as.integer(universo),
@@ -130,7 +130,7 @@ monitoreo_efectividad_overview_facts <- function(dashboard) {
     avance_pct = as_pct(pct_meta),
     avance_universo_pct = as_pct(pct_universo),
     actores = as.integer(.monitoreo_overview_rows_count(actors)),
-    actores_cumplidos = as.integer(.monitoreo_overview_actors_done(actors)),
+    actores_cumplidos = as.integer(.monitoreo_overview_actors_done(actors, goals)),
     rezagado = .monitoreo_scalar(rezagado$actor, ""),
     rezagado_pct = if (is.finite(rezagado$pct)) round(100 * rezagado$pct, 1) else -1,
     inconsistencias = as.integer(.monitoreo_num((dashboard$kpis %||% list())$inconsistencies, 0))
@@ -147,22 +147,39 @@ monitoreo_efectividad_overview_facts <- function(dashboard) {
   list()
 }
 
-# Avance de un actor: contra su meta si la declara, contra su universo si no.
-.monitoreo_overview_actor_pct <- function(row) {
+# Cuota declarada para un actor en `config$goals`. La columna `Meta` del
+# client_report suele venir vacia (has_targets = FALSE) aunque el estudio SI
+# tenga cuotas por actor: viven en la config, con el actor en `filters$actor`.
+.monitoreo_overview_actor_goal <- function(actor, goals) {
+  if (!is.list(goals) || !length(goals)) return(NA_real_)
+  clave <- .monitoreo_text_key(actor)
+  if (!nzchar(clave)) return(NA_real_)
+  for (g in goals) {
+    if (!is.list(g)) next
+    candidato <- .monitoreo_text_key((g$filters %||% list())$actor %||% "")
+    if (identical(candidato, clave)) return(.monitoreo_num(g$meta, NA_real_))
+  }
+  NA_real_
+}
+
+# Avance de un actor: contra su cuota si la tiene (columna del reporte o
+# `config$goals`), contra su universo si no.
+.monitoreo_overview_actor_pct <- function(row, goals = NULL) {
   efectivas <- .monitoreo_num(row$Efectivas, NA_real_)
   meta <- .monitoreo_num(row$Meta, NA_real_)
+  if (!is.finite(meta) || meta <= 0) meta <- .monitoreo_overview_actor_goal(row$Actor, goals)
   den <- if (is.finite(meta) && meta > 0) meta else .monitoreo_num(row$Universo, NA_real_)
   .monitoreo_client_report_pct(efectivas, den)
 }
 
-.monitoreo_overview_worst_actor <- function(actors) {
+.monitoreo_overview_worst_actor <- function(actors, goals = NULL) {
   rows <- .monitoreo_overview_actor_rows(actors)
   # Con un solo actor no hay "rezagado": el agregado ya lo dice todo.
   if (length(rows) < 2L) return(list(actor = "", pct = NA_real_))
   worst <- list(actor = "", pct = NA_real_)
   for (row in rows) {
     if (!is.list(row)) next
-    pct <- .monitoreo_overview_actor_pct(row)
+    pct <- .monitoreo_overview_actor_pct(row, goals)
     if (!is.finite(pct)) next
     if (!is.finite(worst$pct) || pct < worst$pct) {
       worst <- list(actor = .monitoreo_scalar(row$Actor, ""), pct = pct)
@@ -171,11 +188,11 @@ monitoreo_efectividad_overview_facts <- function(dashboard) {
   worst
 }
 
-.monitoreo_overview_actors_done <- function(actors) {
+.monitoreo_overview_actors_done <- function(actors, goals = NULL) {
   rows <- .monitoreo_overview_actor_rows(actors)
   sum(vapply(rows, function(row) {
     if (!is.list(row)) return(FALSE)
-    pct <- .monitoreo_overview_actor_pct(row)
+    pct <- .monitoreo_overview_actor_pct(row, goals)
     isTRUE(is.finite(pct) && pct >= 1)
   }, logical(1)))
 }
@@ -211,12 +228,12 @@ monitoreo_aulas_overview_facts <- function(dashboard) {
   )
 }
 
-.monitoreo_overview_facts_for_family <- function(dashboard, family) {
+.monitoreo_overview_facts_for_family <- function(dashboard, family, goals = NULL) {
   switch(
     .monitoreo_scalar(family, ""),
     territorial = monitoreo_territorial_overview_facts(dashboard),
-    acreditacion = monitoreo_efectividad_overview_facts(dashboard),
-    telefonico = monitoreo_efectividad_overview_facts(dashboard),
+    acreditacion = monitoreo_efectividad_overview_facts(dashboard, goals),
+    telefonico = monitoreo_efectividad_overview_facts(dashboard, goals),
     aulas_universitarias = monitoreo_aulas_overview_facts(dashboard),
     NULL
   )
@@ -226,11 +243,11 @@ monitoreo_aulas_overview_facts <- function(dashboard) {
 # servir. Devuelve list(snapshot = , changed = ) para que el caller persista
 # SOLO cuando de verdad cambio (evita churn innecesario de session_set en cada
 # carga del payload).
-monitoreo_snapshot_refresh_overview_facts <- function(snapshot, dashboard, family) {
+monitoreo_snapshot_refresh_overview_facts <- function(snapshot, dashboard, family, goals = NULL) {
   if (!is.list(snapshot)) return(list(snapshot = snapshot, changed = FALSE))
   field <- .monitoreo_overview_facts_field(family)
   if (is.null(field)) return(list(snapshot = snapshot, changed = FALSE))
-  facts <- .monitoreo_overview_facts_for_family(dashboard, family)
+  facts <- .monitoreo_overview_facts_for_family(dashboard, family, goals)
   if (is.null(facts)) return(list(snapshot = snapshot, changed = FALSE))
   if (identical(snapshot[[field]] %||% NULL, facts)) {
     return(list(snapshot = snapshot, changed = FALSE))
@@ -249,8 +266,8 @@ monitoreo_snapshot_refresh_territorial_facts <- function(snapshot, dashboard) {
 # servir, no una edicion del usuario, asi que abrir un proyecto y mirarlo no
 # puede dejarlo marcado como "sin guardar". Si el proyecto ya estaba sucio se
 # respeta ese estado.
-monitoreo_snapshot_store_overview_facts <- function(sid, snapshot, dashboard, family) {
-  out <- monitoreo_snapshot_refresh_overview_facts(snapshot, dashboard, family)
+monitoreo_snapshot_store_overview_facts <- function(sid, snapshot, dashboard, family, goals = NULL) {
+  out <- monitoreo_snapshot_refresh_overview_facts(snapshot, dashboard, family, goals)
   if (!isTRUE(out$changed)) return(snapshot)
   was_dirty <- isTRUE(session_get(sid, required = FALSE)$project_dirty)
   session_set(sid, "monitoreo_snapshot", out$snapshot)

@@ -322,3 +322,42 @@ test_that("el refresco por familia escribe el campo de esa familia y nada mas", 
   unknown <- monitoreo_snapshot_refresh_overview_facts(out$snapshot, dashboard, "digital_general")
   expect_false(unknown$changed)
 })
+
+test_that("las cuotas por actor se leen de la config cuando el reporte no las trae", {
+  # Caso real (acrconta): `has_targets = FALSE`, la columna `Meta` del reporte
+  # viene vacia y las cuotas por actor viven en `config$goals`. Sin leerlas, el
+  # avance de cada actor caia a su universo y un actor que YA cumplio su cuota
+  # se reportaba como incompleto.
+  dashboard <- list(
+    kpis = list(target = 287L, inconsistencies = 0L),
+    acreditacion_reports = list(client_report = list(actors = list(
+      list(Actor = "Egresados", Universo = 270L, Efectivas = 157L, Parciales = 0L,
+           `Sin respuesta` = 113L, Meta = NA_integer_),
+      list(Actor = "Administrativos", Universo = 16L, Efectivas = 15L, Parciales = 0L,
+           `Sin respuesta` = 1L, Meta = NA_integer_),
+      list(Actor = "Docentes", Universo = 53L, Efectivas = 14L, Parciales = 0L,
+           `Sin respuesta` = 39L, Meta = NA_integer_),
+      list(Actor = "Estudiantes", Universo = 180L, Efectivas = 2L, Parciales = 0L,
+           `Sin respuesta` = 178L, Meta = NA_integer_)
+    )))
+  )
+  goals <- list(
+    list(filters = list(actor = "Administrativos"), meta = 15),
+    list(filters = list(actor = "Estudiantes"), meta = 126),
+    list(filters = list(actor = "Docentes"), meta = 38),
+    list(filters = list(actor = "Egresados"), meta = 108)
+  )
+
+  # Sin goals: cada actor se mide contra su universo y NINGUNO figura cumplido.
+  sin_goals <- monitoreo_efectividad_overview_facts(dashboard)
+  expect_equal(sin_goals$actores_cumplidos, 0L)
+  expect_equal(sin_goals$rezagado_pct, 1.1)
+
+  # Con goals: Egresados (157/108) y Administrativos (15/15) ya cumplieron, y el
+  # rezagado se mide contra SU cuota (2 de 126), no contra su universo.
+  con_goals <- monitoreo_efectividad_overview_facts(dashboard, goals)
+  expect_equal(con_goals$actores, 4L)
+  expect_equal(con_goals$actores_cumplidos, 2L)
+  expect_equal(con_goals$rezagado, "Estudiantes")
+  expect_equal(con_goals$rezagado_pct, 1.6)
+})
