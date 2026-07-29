@@ -64,7 +64,10 @@ test_that("facts.monitoreo despacha KPIs por familia (territorial vs generico)",
   mon_t <- .project_overview_payload(sid)$facts$monitoreo
   expect_equal(mon_t$family, "territorial")
   expect_equal(mon_t$collected, 100L)
-  expect_equal(mon_t$valid, 80L)
+  # Numerador = lo levantado: validadas (80) + en revision (5). La revision es
+  # trabajo de campo hecho pendiente de aprobar, no trabajo faltante.
+  expect_equal(mon_t$valid, 85L)
+  expect_equal(mon_t$valid_label, "levantadas")
   expect_equal(mon_t$avance_pct, 40)
   # Alertas = casos en revision, sin sumar el eje geo (ver
   # test-monitoreo-overview-facts.R).

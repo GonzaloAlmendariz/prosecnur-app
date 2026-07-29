@@ -70,7 +70,8 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
 
   # Sin fact fresco, el home cae al tablero congelado (compat hacia atras).
   mon_stale <- .project_overview_payload(sid)$facts$monitoreo
-  expect_equal(mon_stale$valid, 1028L)
+  # Levantadas = validadas (1028) + en revision (6).
+  expect_equal(mon_stale$valid, 1034L)
   expect_equal(mon_stale$target, 1351L)
   expect_equal(mon_stale$avance_pct, 85.7)
 
@@ -90,7 +91,7 @@ test_that("el home refleja el avance vivo tras refrescar el fact territorial", {
 
   # Ahora el home debe coincidir EXACTAMENTE con lo que sirve el modulo.
   mon_live <- .project_overview_payload(sid)$facts$monitoreo
-  expect_equal(mon_live$valid, as.integer(module_kpis$validas))
+  expect_equal(mon_live$valid, as.integer(module_kpis$validas + module_kpis$revision))
   expect_equal(mon_live$target, as.integer(module_kpis$meta))
   expect_equal(mon_live$collected, as.integer(module_kpis$total_respuestas))
   expect_equal(mon_live$avance_pct, module_kpis$avance_pct)
@@ -118,8 +119,11 @@ test_that("las alertas territoriales no doble-cuentan el eje de geolocalizacion"
   ))
   mon <- .project_overview_payload(sid)$facts$monitoreo
   expect_equal(mon$alerts, 308L)
-  # 417 (la suma vieja) superaba los 376 casos no validos que existen.
-  expect_lte(mon$alerts, mon$collected - mon$valid)
+  # Los casos en revision son un SUBCONJUNTO de lo levantado (cuentan para el
+  # avance y ademas piden revision), asi que la cota es sobre `valid`. Antes se
+  # comparaba contra "lo que falta", cuando la revision quedaba fuera del
+  # numerador.
+  expect_lte(mon$alerts, mon$valid)
 })
 
 test_that("monitoreo_efectividad_overview_facts agrega efectivas, universo y meta", {

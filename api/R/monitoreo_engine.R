@@ -1613,7 +1613,11 @@ monitoreo_estado_cumplimiento <- function(n_efectivo, n_objetivo) {
       final_state = final_state,
       priority = max(1L, .monitoreo_int(item$priority %||% item$prioridad, i)),
       outcome_values = as.list(.monitoreo_chr_vec(item$outcome_values %||% item$valores_resultado)),
-      stop_contact = .monitoreo_bool(item$stop_contact %||% item$detiene_contacto, FALSE)
+      stop_contact = .monitoreo_bool(item$stop_contact %||% item$detiene_contacto, FALSE),
+      # El color lo declara el usuario por estado y tiene que sobrevivir al
+      # guardado: esta normalizacion es una whitelist, asi que un campo que no
+      # se nombre aqui se descarta en silencio al persistir en el .pulso.
+      color = .monitoreo_scalar(item$color, "")
     )
   }
 
@@ -14633,7 +14637,12 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
     revision = as.integer(counts[["revision"]]),
     no_defendibles = as.integer(counts[["no_defendible"]]),
     meta = if (is.finite(target_total)) as.integer(target_total) else NA_integer_,
-    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * counts[["validada"]] / target_total, 1) else NA_real_,
+    # Avance = lo LEVANTADO: validadas + en revision. Un caso en revision es
+    # trabajo de campo ya hecho pendiente de aprobar, no trabajo faltante;
+    # dejarlo fuera hacia que el tablero dijera 81.2% (975/1200) donde el
+    # operativo iba 107% (1283/1200), y que el home contradijera al PDF de
+    # avance. Los no defendibles SI quedan fuera: son descartes.
+    avance_pct = if (is.finite(target_total) && target_total > 0) round(100 * (counts[["validada"]] + counts[["revision"]]) / target_total, 1) else NA_real_,
     gps_crossable = as.integer(sum(gps_crossable, na.rm = TRUE)),
     geo_ok = as.integer(geo_counts[["geo_ok"]]),
     geo_cerca = as.integer(geo_counts[["geo_cerca"]]),
@@ -14695,8 +14704,8 @@ monitoreo_territorial_reportes <- function(data, cfg, hojas_ruta_context = NULL,
       validas = as.integer(cts[["validada"]]),
       revision = as.integer(cts[["revision"]]),
       no_defendibles = as.integer(cts[["no_defendible"]]),
-      avance_pct = if (is.finite(meta) && meta > 0) round(100 * cts[["validada"]] / meta, 1) else NA_real_,
-      brecha = if (is.finite(meta)) as.integer(max(0, meta - cts[["validada"]])) else NA_integer_
+      avance_pct = if (is.finite(meta) && meta > 0) round(100 * (cts[["validada"]] + cts[["revision"]]) / meta, 1) else NA_real_,
+      brecha = if (is.finite(meta)) as.integer(max(0, meta - (cts[["validada"]] + cts[["revision"]]))) else NA_integer_
     )
   })
 
