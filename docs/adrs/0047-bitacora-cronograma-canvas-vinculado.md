@@ -84,11 +84,18 @@ cosas distintas que no hay que confundir:
 El reparto sigue el dominio, no la estructura de carpetas: Procesamiento es la
 tubería que deja la base limpia y codificada (carga, validación, codificación),
 mientras que Analítica y Gráficos producen salidas y pertenecen a Entregables.
+Ambas son secciones del **mismo** módulo Procesamiento, así que Procesamiento y
+Entregables comparten su acento teal a propósito: son el mismo módulo y fingir
+lo contrario mentiría sobre dónde vive la funcionalidad. Lo que las distingue es
+el ícono de la sección, que es lo que el usuario ve al entrar. El Dashboard
+cuenta como evidencia de entregable pero no da identidad: es un plus, no el
+camino.
 
-Dos etapas nunca comparten módulo: si lo hicieran compartirían color y el sello
-dejaría de distinguir. Lo fija un test de contrato que además ata el catálogo de
-R al manifiesto de `lib/modules.ts`, para que renombrar un slug no deje etapas
-sin sello en silencio.
+Lo que no puede repetirse es el **destino**: dos etapas que apuntaran al mismo
+par módulo/sección serían indistinguibles y llevarían al mismo lugar. Eso lo
+fija un test, junto con otro que exige seis íconos distintos y otro que ata el
+catálogo de R al manifiesto de `lib/modules.ts`, para que renombrar un slug no
+deje etapas sin sello en silencio.
 
 No se introduce una entidad nueva: una fase es una tarea con `sync_targets`
 explícito y rango de fechas; un entregable es una tarea con fecha puntual. Así
@@ -275,8 +282,9 @@ sin dejar ninguna sin clasificar. Los endpoints `/api/plan-trabajo/*` y
 | `lib/lienzo/` sin migrar `LogicCanvas` | Copiar la lógica; migrar en la misma fase | Un hogar canónico desde el día uno sin tocar 2610 líneas sin red de tests | Bajo |
 | Canvas como sección, no módulo | Módulo nuevo; panel global | Cuatro vistas de un grafo; no toca home ni paletas | Bajo |
 | Etapa = módulo o sección, con su ícono y color | Etapas abstractas numeradas | El sello ancla la etapa a una parte accionable de la app; el usuario reconoce sin leer | Bajo |
-| Un módulo por etapa, sin repetir | Varias etapas por módulo | Dos etapas del mismo color dejan de distinguirse | Medio: obliga a repartir los módulos |
+| Destino único por etapa; el módulo puede repetirse | Un módulo por etapa | Entregables ES Procesamiento (secciones Analítica y Gráficos); forzar módulos distintos mentiría sobre dónde vive la funcionalidad | Bajo |
 | Analítica y Gráficos en Entregables | Ambos en Procesamiento | Producen salidas, no la base limpia; Procesamiento termina en codificación | Bajo |
+| Dashboard solo como evidencia | Dashboard como identidad de Entregables | Es un plus del estudio, no el camino por el que pasa el entregable | Bajo |
 | Identidad compartida cronograma↔lienzo | Tabla propia en el canvas | Evita que las dos superficies diverjan en íconos y colores | Bajo |
 | Import y export de Excel degradados | Retirar el import; dejarlos como están | El export sigue siendo el formato que el cliente espera | Bajo |
 

@@ -49,16 +49,18 @@
          modulo = "monitoreo", seccion = "",
          evidencia = c("monitoreo", "hojas-ruta", "recopiladores")),
     # Procesamiento es la tubería que deja la base limpia y codificada: carga,
-    # validación y codificación. Analítica y Gráficos NO entran acá — producen
-    # las salidas, no la base — y viven en Entregables.
+    # validación y codificación.
     list(id = "procesamiento", label = "Procesamiento",
          modulo = "procesamiento", seccion = "carga",
          evidencia = c("carga", "validacion", "codificacion")),
-    # Entregables apunta a Dashboard y no a la sección Gráficos para no repetir
-    # el color de Procesamiento: dos etapas contiguas con el mismo sello dejan
-    # de funcionar como sello.
+    # Entregables son Analítica y Gráficos, que en la app son DOS SECCIONES del
+    # mismo módulo Procesamiento. Comparte con él el acento teal a propósito:
+    # son el mismo módulo y fingir lo contrario mentiría sobre dónde vive la
+    # funcionalidad. Lo que las distingue es el ícono de la sección, que es
+    # justamente lo que el usuario ve al entrar. El Dashboard cuenta como
+    # evidencia de entregable pero no da identidad: es un plus, no el camino.
     list(id = "entregables", label = "Entregables",
-         modulo = "dashboard", seccion = "",
+         modulo = "procesamiento", seccion = "graficos",
          evidencia = c("analitica", "graficos", "dashboard", "reportes"))
   )
 }

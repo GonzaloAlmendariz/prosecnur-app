@@ -107,8 +107,9 @@ export function CompositorDeFases({
                   {Icono ? <Icono size={14} /> : null}
                 </span>
                 <span className="bit-riel-nombre">{f.label}</span>
-                {/* Solo el módulo: la sección se nombra en la fila, donde hay
-                    ancho. Acá una etiqueta larga rompería el paso constante. */}
+                {/* La pieza más específica que quepa: el color ya dice de qué
+                    módulo es, así que acá lo útil es la sección. Con "Módulo"
+                    a secas, Procesamiento y Entregables dirían lo mismo. */}
                 <small className="bit-riel-modulo">{id.etiquetaCorta}</small>
               </li>
             );

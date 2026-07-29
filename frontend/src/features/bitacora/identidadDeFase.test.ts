@@ -100,11 +100,35 @@ describe("identidad de las etapas del cronograma", () => {
     expect(identidadDeFase("").modulo).toBeNull();
   });
 
-  it("las seis etapas resuelven a seis acentos distintos", () => {
-    // Dos etapas contiguas con el mismo color dejarían de funcionar como sello.
-    const acentos = fasesDeclaradasEnR().map(
-      (f) => identidadDeFase(f.modulo, f.seccion).modulo?.tone.accent,
+  it("las seis etapas resuelven a seis íconos distintos", () => {
+    // El color puede repetirse —Procesamiento y Entregables son dos secciones
+    // del mismo módulo y compartir el teal es lo honesto— pero el ícono no: es
+    // lo que le queda al usuario para distinguirlas de un vistazo.
+    const iconos = fasesDeclaradasEnR().map(
+      (f) => identidadDeFase(f.modulo, f.seccion).icono,
     );
-    expect(new Set(acentos).size).toBe(6);
+    expect(iconos.every(Boolean)).toBe(true);
+    expect(new Set(iconos).size).toBe(6);
+  });
+
+  it("cada etapa lleva a un destino propio", () => {
+    const destinos = fasesDeclaradasEnR().map(
+      (f) => identidadDeFase(f.modulo, f.seccion).href,
+    );
+    expect(destinos.every((d) => d.length > 1)).toBe(true);
+    expect(new Set(destinos).size).toBe(6);
+  });
+
+  it("la etiqueta corta distingue etapas que comparten módulo", () => {
+    // Procesamiento y Entregables viven ambas en el módulo Procesamiento: si la
+    // etiqueta compacta mostrara el módulo, las dos dirían lo mismo.
+    const cortas = fasesDeclaradasEnR().map(
+      (f) => identidadDeFase(f.modulo, f.seccion).etiquetaCorta,
+    );
+    expect(new Set(cortas).size).toBe(6);
+    expect(identidadDeFase("procesamiento", "carga").etiquetaCorta).toBe("Carga");
+    expect(identidadDeFase("procesamiento", "graficos").etiquetaCorta).toBe("Gráficos");
+    // Sin sección, la pieza más específica es el módulo.
+    expect(identidadDeFase("monitoreo").etiquetaCorta).toBe("Monitoreo");
   });
 });

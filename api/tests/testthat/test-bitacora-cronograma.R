@@ -27,7 +27,7 @@ test_that("cada fase mapea a claves de evidencia y ninguna se repite entre fases
   expect_true(all(vapply(BITACORA_FASES, function(f) length(.bit_fase_modulos(f)) > 0L, logical(1))))
 })
 
-test_that("cada fase apunta a un módulo real de la app y con sello propio", {
+test_that("cada fase apunta a una parte real de la app", {
   # El sello (ícono + color del módulo) es lo que ancla la etapa a una parte
   # concreta de la app. Una fase sin módulo sería una abstracción de cronograma,
   # que es justo lo que el ADR 0047 vino a evitar.
@@ -40,9 +40,32 @@ test_that("cada fase apunta a un módulo real de la app y con sello propio", {
     all(modulos %in% slugs_reales),
     info = paste("módulos que no existen en la app:", paste(setdiff(modulos, slugs_reales), collapse = ", "))
   )
-  # Dos etapas con el mismo módulo compartirían color y el sello dejaría de
-  # distinguir.
-  expect_equal(length(modulos), length(unique(modulos)))
+})
+
+test_that("dos fases no apuntan al mismo destino", {
+  # Compartir MÓDULO es legítimo —Procesamiento y Entregables son dos secciones
+  # del mismo— pero apuntar al mismo módulo Y a la misma sección haría que dos
+  # etapas fueran indistinguibles y llevaran al mismo lugar.
+  destinos <- vapply(.bit_fases_catalogo(), function(f) {
+    paste0(f$modulo, "/", f$seccion)
+  }, character(1))
+  expect_equal(
+    length(destinos), length(unique(destinos)),
+    info = paste("destinos repetidos:", paste(destinos[duplicated(destinos)], collapse = ", "))
+  )
+})
+
+test_that("Entregables vive en Procesamiento y el Dashboard solo suma evidencia", {
+  ent <- Filter(function(f) f$id == "entregables", .bit_fases_catalogo())[[1]]
+  # Analítica y Gráficos son secciones de Procesamiento: la etapa apunta ahí.
+  expect_equal(ent$modulo, "procesamiento")
+  expect_equal(ent$seccion, "graficos")
+  # El Dashboard cuenta como evidencia pero no da identidad: es un plus.
+  expect_true("dashboard" %in% ent$evidencia)
+  expect_true(all(c("analitica", "graficos") %in% ent$evidencia))
+
+  proc <- Filter(function(f) f$id == "procesamiento", .bit_fases_catalogo())[[1]]
+  expect_false(any(c("analitica", "graficos") %in% proc$evidencia))
 })
 
 test_that("la identidad de la fase viaja en la vista para que el cliente resuelva el sello", {
