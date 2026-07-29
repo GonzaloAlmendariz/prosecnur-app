@@ -91,7 +91,12 @@ describe("honestidad de los conteos", () => {
   });
 
   it("el panel de salidas nombra los tres granos en su encabezado", () => {
-    expect(OUTPUTS).toContain("en el snapshot");
+    // Lo que este contrato defiende es que el conteo crudo NO se confunda con
+    // las válidas, no la palabra con que se diga. Pasó de «en el snapshot» a
+    // «recibidas» —«snapshot» describe cómo guarda la app, no lo que el estudio
+    // tiene delante— y la distinción se mantiene intacta.
+    expect(OUTPUTS).toContain("recibidas");
+    expect(OUTPUTS).not.toMatch(/`\$\{fmt\(corte\.ingesta\)\} registros`/);
     expect(OUTPUTS).toContain("procesables");
     expect(OUTPUTS).toContain("efectivas sin determinar");
   });

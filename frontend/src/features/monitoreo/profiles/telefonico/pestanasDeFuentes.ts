@@ -22,7 +22,10 @@ import { ContactRound, ListChecks, PlugZap, Table2 } from "../../../../vendor/lu
  */
 export const ACREDITACION_SOURCE_TABS = [
   { key: "survey", label: "Encuestas", detail: "Quién responde y qué cuenta", icon: ListChecks },
-  { key: "sheets", label: "Universo", detail: "La base de cada actor", icon: Table2 },
+  // «Universo y barrido» y no solo «Universo»: es el nombre que ya usa el rail de
+  // la sección (`fuentes/railDeFuentes.ts`, con test), y en telefónico la hoja
+  // trae las dos cosas —a quién llamar y qué pasó en cada llamada—.
+  { key: "sheets", label: "Universo y barrido", detail: "A quién llamar y qué pasó", icon: Table2 },
   { key: "collectors", label: "Recopiladores", detail: "Inclusión y alias", icon: ContactRound },
   { key: "activas", label: "Fuentes activas", detail: "Estado del paquete", icon: PlugZap },
 ] as const;
