@@ -3,21 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
+import { jsxTags, lineLabel, parseSourcesContaining } from "../test/contractSourceScan";
 
 const srcDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 type JsxTag = ts.JsxOpeningLikeElement;
-
-function sourceFiles(dir: string): string[] {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const entryPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return entry.name === "__tests__" ? [] : sourceFiles(entryPath);
-    }
-    if (!entry.name.endsWith(".tsx") || /\.(?:test|spec)\.tsx$/.test(entry.name)) return [];
-    return [entryPath];
-  });
-}
 
 function attribute(tag: JsxTag, name: string): ts.JsxAttribute | undefined {
   return tag.attributes.properties.find(
@@ -46,23 +36,10 @@ function hasNonEmptyAttribute(tag: JsxTag, name: string): boolean {
   return ts.isJsxExpression(attr.initializer) && attr.initializer.expression != null;
 }
 
-function lineLabel(file: string, sourceFile: ts.SourceFile, node: ts.Node): string {
-  const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
-  return `${path.relative(srcDir, file)}:${line}`;
-}
-
-function jsxTags(sourceFile: ts.SourceFile): JsxTag[] {
-  const tags: JsxTag[] = [];
-  const visit = (node: ts.Node) => {
-    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) tags.push(node);
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return tags;
-}
-
 describe("GlidingTabList navigation contract", () => {
-  const files = sourceFiles(srcDir);
+  // El rol solo se reconoce cuando es un literal, así que la palabra `tablist`
+  // tiene que aparecer cruda en el archivo: el resto del árbol no se parsea.
+  const tablistSources = parseSourcesContaining("tablist");
 
   test("keeps the 180ms global motion curve and reduced-motion fallback exact", () => {
     const theme = fs.readFileSync(path.join(srcDir, "app", "theme.css"), "utf8");
@@ -146,55 +123,50 @@ describe("GlidingTabList navigation contract", () => {
 
   test("every literal tablist uses the shared indicator or a justified opt-out", () => {
     const offenders: string[] = [];
+    let tablists = 0;
 
-    for (const file of files) {
-      const sourceFile = ts.createSourceFile(
-        file,
-        fs.readFileSync(file, "utf8"),
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TSX,
-      );
-
-      for (const tag of jsxTags(sourceFile)) {
+    for (const source of tablistSources) {
+      for (const tag of jsxTags(source.sourceFile)) {
         if (literalAttributeValue(tag, "role") !== "tablist") continue;
-        const tagName = tag.tagName.getText(sourceFile);
+        tablists += 1;
+        const tagName = tag.tagName.getText(source.sourceFile);
         const optedOut = (literalAttributeValue(tag, "data-gliding-opt-out") ?? "").length > 0;
         if (tagName !== "GlidingTabList" && !optedOut) {
-          offenders.push(`${lineLabel(file, sourceFile, tag)} <${tagName}>`);
+          offenders.push(`${lineLabel(source, tag)} <${tagName}>`);
         }
       }
     }
 
+    // Verde por conformidad, no por ausencia: si el barrido dejara de encontrar
+    // tablists, este contrato pasaría sin haber comprobado nada.
+    expect(tablists, "El barrido tiene que seguir encontrando tablists literales").toBeGreaterThan(0);
     expect(offenders, "Tablists without GlidingTabList or a non-empty data-gliding-opt-out").toEqual([]);
   });
 
   test("tab roles in migrated files publish a measurable gliding key", () => {
     const offenders: string[] = [];
+    let migratedFiles = 0;
 
-    for (const file of files) {
-      const sourceFile = ts.createSourceFile(
-        file,
-        fs.readFileSync(file, "utf8"),
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TSX,
-      );
-      const tags = jsxTags(sourceFile);
+    for (const source of tablistSources) {
+      const tags = jsxTags(source.sourceFile);
       const hasMigratedTablist = tags.some(
-        (tag) => literalAttributeValue(tag, "role") === "tablist" && tag.tagName.getText(sourceFile) === "GlidingTabList",
+        (tag) =>
+          literalAttributeValue(tag, "role") === "tablist" &&
+          tag.tagName.getText(source.sourceFile) === "GlidingTabList",
       );
       if (!hasMigratedTablist) continue;
+      migratedFiles += 1;
 
       for (const tag of tags) {
         if (literalAttributeValue(tag, "role") !== "tab") continue;
         const optedOut = (literalAttributeValue(tag, "data-gliding-opt-out") ?? "").length > 0;
         if (!hasNonEmptyAttribute(tag, "data-gliding-key") && !optedOut) {
-          offenders.push(`${lineLabel(file, sourceFile, tag)} <${tag.tagName.getText(sourceFile)}>`);
+          offenders.push(`${lineLabel(source, tag)} <${tag.tagName.getText(source.sourceFile)}>`);
         }
       }
     }
 
+    expect(migratedFiles, "El barrido tiene que seguir encontrando archivos migrados").toBeGreaterThan(0);
     expect(offenders, "Tabs without data-gliding-key or a non-empty data-gliding-opt-out").toEqual([]);
   });
 });
