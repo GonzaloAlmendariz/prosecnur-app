@@ -244,6 +244,56 @@ export function acreditacionSourceWithOperationalMetadata(
   };
 }
 
+/**
+ * Canal de un recopilador, del dato más específico al más genérico.
+ *
+ * El orden importa y aquí estuvo el defecto. Antes era
+ *
+ *     saved?.channel || sourceChannel || platform?.channel || "Sin clasificar"
+ *
+ * con el canal de la ENCUESTA por delante del canal del propio recopilador.
+ * Como toda encuesta tiene canal, `platform.channel` no se alcanzaba nunca: en
+ * `acrconta`, los 20 recopiladores de la encuesta de Estudiantes —10 de ellos
+ * `email`— se pintaban como «Presencial (Ficha QR)», y la tarjeta lo remataba
+ * con «ninguno con excepción», presentando como confirmado algo que nadie
+ * confirmó.
+ *
+ * La regla nueva: **el tipo que la plataforma reporta no se sobrescribe con una
+ * conjetura**. Un recopilador de correo no es presencial por mucho que su
+ * encuesta se aplique con ficha QR. Un `weblink` sí hereda, porque una ficha QR
+ * es literalmente un enlace web y ahí el canal de la encuesta es la mejor
+ * información disponible.
+ */
+function canalDelRecopilador({
+  saved,
+  platform,
+  sourceChannel,
+}: {
+  saved?: MonitoreoLinkCollector;
+  platform?: MonitoreoSourceCollector;
+  sourceChannel: string;
+}) {
+  // 1. Lo que el usuario confirmó.
+  const confirmado = compactLabel(saved?.channel);
+  if (confirmado) return confirmado;
+
+  // 2. Lo que el TIPO de recopilador determina, y solo cuando lo determina.
+  //    `collector_type` es dato duro de la plataforma; `collector.channel` no
+  //    —arrastra nombres heredados como «Correo institucional historico» en
+  //    recopiladores que no son de correo—, y por eso el canal de la encuesta
+  //    le gana a ese campo. Un `weblink` no determina nada: una ficha QR, un
+  //    enlace de WhatsApp y un link abierto son todos weblinks.
+  const tipo = normalizeKey(platform?.collector_type ?? platform?.type ?? saved?.collector_type);
+  if (tipo === "email") return "Correo";
+  if (tipo === "sms") return "Enlace personalizado (Whatsapp)";
+
+  // 3. El canal declarado en la encuesta.
+  if (sourceChannel) return sourceChannel;
+
+  // 4. Como último recurso, el campo blando del recopilador.
+  return compactLabel(platform?.channel) || "Sin clasificar";
+}
+
 export function acreditacionCollectorsForSource(
   source: MonitoreoSource,
   linkCollectors: MonitoreoLinkCollector[] = [],
@@ -266,7 +316,7 @@ export function acreditacionCollectorsForSource(
     const alias = saved ? acreditacionCollectorAlias(saved, platformName) : "";
     const operationalUse = saved?.operational_use ?? "sin_clasificar";
     const sourceChannel = acreditacionSourceChannel(source);
-    const channel = compactLabel(saved?.channel) || sourceChannel || compactLabel(platform?.channel) || "Sin clasificar";
+    const channel = canalDelRecopilador({ saved, platform, sourceChannel });
     return {
       key: `${source.id}::${collectorId}`,
       sourceId: source.id,

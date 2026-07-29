@@ -12,7 +12,7 @@
 //
 // Contrato: docs/plan-fuentes-legibles-2026-07.md R3.
 
-import { Layers3, QrCode } from "../../../../../vendor/lucide-react";
+import { Layers3, ListChecks } from "../../../../../vendor/lucide-react";
 
 export function FranjaDeFuentes({
   universo,
@@ -32,7 +32,7 @@ export function FranjaDeFuentes({
         <small>{universo === 1 ? "base conectada" : "bases conectadas"}</small>
       </span>
       <span className={encuestas ? "is-ready" : "is-warning"}>
-        <QrCode size={14} />
+        <ListChecks size={14} />
         <em>Encuestas</em>
         <strong>{encuestas.toLocaleString("es-PE")}</strong>
         <small>{barrido ? `${barrido.toLocaleString("es-PE")} de barrido` : "sin barrido"}</small>

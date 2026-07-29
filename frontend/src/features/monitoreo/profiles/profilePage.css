@@ -751,6 +751,12 @@
 }
 
 .mon-profile-canonical-shell .mon-phone-storage-legend span,
+/* Filas iguales: al dejar que la etiqueta envuelva, "Sin respuesta" ocupa dos
+   líneas y su fila crecía sola, dejando la banda con dos alturas distintas. */
+.mon-profile-canonical-shell .mon-advance-storage-legend {
+  grid-auto-rows: 1fr;
+}
+
 .mon-profile-canonical-shell .mon-advance-storage-legend span {
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas: "dot label value";
@@ -11492,7 +11498,10 @@
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.12;
   text-transform: uppercase;
-  white-space: nowrap;
+  /* Envuelve en vez de recortar: en 1440 "Sin respuesta" pedía 83px sobre los
+     70 disponibles y salía como "Sin respue…". La rejilla iguala las alturas,
+     así que la segunda línea no descuadra la banda. */
+  overflow-wrap: anywhere;
 }
 
 .mon-advance-storage-legend strong {
@@ -12811,8 +12820,16 @@
   padding: 10px;
 }
 
+/* Una sola fila, como `.mon-stage--sources`.
+ *
+ * `.mon-stage` declara `auto minmax(0, 1fr)` para dos hijos, pero Modelo solo
+ * tiene el panel: caía en la fila `auto` —tomando su alto natural— y la fila
+ * `1fr` quedaba reservada y vacía. Con las metas eso no se notaba porque el
+ * contenido llenaba el panel; al añadir Distribución y Cronograma, que ocupan
+ * menos, aparecieron 256 px de aire muerto bajo la vista. */
 .mon-stage--acr-model {
   min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .mon-acr-model-panel {

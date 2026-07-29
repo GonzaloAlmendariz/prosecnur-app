@@ -104,8 +104,13 @@ describe("ContextTabRail", () => {
     expect(css).toMatch(
       /\.pulso-context-tab-rail-meta \.mon-rail-sync-time\s*\{[\s\S]*?display:\s*block/,
     );
+    // Lo que este contrato protege es que la cápsula quepa en el rail
+    // comprimido sin romperse, y que lo haga SIN bajar del piso de 10px de la
+    // escala tipográfica. Antes fijaba `font-size: 7px`, que era el precio de
+    // meter el año: a ese tamaño la fecha dejaba de leerse. Quitado el año
+    // —vive en el `title`—, `23/07` entra a 10px en 39px de ancho.
     expect(css).toMatch(
-      /\.pulso-context-tab-rail-meta \.mon-rail-sync-date\s*\{[\s\S]*?font-size:\s*7px[\s\S]*?white-space:\s*nowrap/,
+      /\.pulso-context-tab-rail-meta \.mon-rail-sync-date\s*\{[\s\S]*?font-size:\s*1[0-9]px[\s\S]*?white-space:\s*nowrap/,
     );
     expect(css).toMatch(
       /\.pulso-context-tab-item:hover:not\(:active\)\s*\{\s*transform:\s*none;/,

@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
+import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
@@ -67,6 +67,14 @@ import {
 } from "../../useMonitoreoDireccion";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
+import {
+  ACREDITACION_SOURCE_TABS,
+  pestanasDeFuentesPorClave,
+  type AcreditacionSourceTab,
+} from "./pestanasDeFuentes";
+import { RutaDeSubsanacion, useBandejaDeSubsanacion } from "../../components/RutaDeSubsanacion";
+import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
+import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
   filterInternalQueryCases,
@@ -141,13 +149,6 @@ import "./telefonicoProfile.css";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
-const ACREDITACION_SOURCE_TABS = [
-  { key: "survey", label: "Encuestas en plataforma", detail: "SurveyMonkey/Kobo", icon: QrCode },
-  { key: "sheets", label: "Bases en Sheets", detail: "Universo por actor", icon: Table2 },
-  { key: "collectors", label: "Recopiladores", detail: "Inclusion y alias", icon: ContactRound },
-  { key: "activas", label: "Fuentes activas", detail: "Estado del paquete", icon: PlugZap },
-] as const;
-type AcreditacionSourceTab = typeof ACREDITACION_SOURCE_TABS[number]["key"];
 const ACREDITACION_DEFAULT_ACTORS = ["Estudiantes", "Docentes", "Egresados", "Administrativos", "Empleadores"];
 const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
 
@@ -195,7 +196,7 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
   },
   {
     key: "respuestas_surveymonkey",
-    icon: QrCode,
+    icon: ListChecks,
     label: "Kobo/plataforma",
     service: "SurveyMonkey/Kobo",
     detail: "ENCUESTAS_ESTUDIO: una o más encuestas Kobo o SurveyMonkey por actor, segmento/carrera y canal.",
@@ -213,7 +214,7 @@ export const ACREDITACION_MODEL_TABS = [
 type AcreditacionModelVisibleTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
 type AcreditacionModelTab = AcreditacionModelVisibleTab | "enlaces" | "casos" | "reglas";
 export const ACREDITACION_CONSULTA_TABS = [
-  { key: "plataforma", label: "Registros en plataforma", detail: "Respuestas y cruce", icon: QrCode },
+  { key: "plataforma", label: "Registros en plataforma", detail: "Respuestas y cruce", icon: ListChecks },
   { key: "base", label: "Estado de la base", detail: "Actor por actor", icon: Table2 },
   { key: "cruces", label: "Cruces efectivos", detail: "Razón de cruce", icon: Link2 },
   { key: "subsanacion", label: "Subsanación", detail: "Decisión auditada", icon: ShieldAlert },
@@ -233,7 +234,7 @@ type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
 const ACREDITACION_ADVANCE_TABS = [
   { key: "resumen", label: "Resumen", detail: "Avance general", icon: BarChart3 },
   { key: "actores", label: "Actores", detail: "Brechas por unidad", icon: Layers3 },
-  { key: "encuestas", label: "Encuestas", detail: "Fuentes y canales", icon: QrCode },
+  { key: "encuestas", label: "Encuestas", detail: "Fuentes y canales", icon: ListChecks },
   { key: "detalle", label: "Detalle", detail: "Controles", icon: Table2 },
   { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
 ] as const;
@@ -1354,7 +1355,7 @@ function AcreditacionPhoneModelReadingPanel({
   const slotItems = [
     { slot: contract.universe, value: quotaBaseTotal ? fmt(quotaBaseTotal) : "S/D", hint: "base de cuotas", icon: Table2 },
     { slot: contract.sweep, value: contract.sweep.ready ? "Listo" : "Pendiente", hint: "estados telefónicos", icon: PhoneCall },
-    { slot: contract.platform, value: quotaEffectiveTotal ? fmt(quotaEffectiveTotal) : "S/D", hint: "efectivas filtradas", icon: QrCode },
+    { slot: contract.platform, value: quotaEffectiveTotal ? fmt(quotaEffectiveTotal) : "S/D", hint: "efectivas filtradas", icon: ListChecks },
   ] as const;
 
   return (
@@ -2121,7 +2122,7 @@ const ACREDITACION_CHANNEL_OPTIONS: Array<{
   { value: "Correo", label: "Correo", key: "correo", modality: "email", icon: Mail },
   { value: "Presencial (Ficha QR)", label: "Ficha QR", key: "presencial", modality: "presencial", icon: QrCode },
   { value: "Enlace personalizado (Whatsapp)", label: "Enlace", key: "enlace", modality: "whatsapp", icon: Link2 },
-  { value: "Kobo", label: "Kobo", key: "kobo", modality: "mixto", icon: QrCode },
+  { value: "Kobo", label: "Kobo", key: "kobo", modality: "mixto", icon: ListChecks },
   { value: "Telefónico", label: "Telefónico", key: "telefono", modality: "telefono", icon: PhoneCall },
 ];
 
@@ -7045,17 +7046,17 @@ function AcreditacionPhoneDailyTrend({
       showgrid: false,
       zeroline: false,
       tickangle: chartRows.length > 7 ? -32 : 0,
-      tickfont: { color: "#5f6b7a", size: 10 },
+      tickfont: { color: "#474f5b", size: 10 },
       automargin: true,
     },
     yaxis: {
-      title: { text: "Efectivas/día", font: { color: "#5f6b7a", size: 11 } },
+      title: { text: "Efectivas/día", font: { color: "#474f5b", size: 11 } },
       fixedrange: true,
       rangemode: "tozero",
       showline: false,
       zeroline: false,
       gridcolor: "rgba(15, 23, 42, 0.08)",
-      tickfont: { color: "#5f6b7a", size: 10 },
+      tickfont: { color: "#474f5b", size: 10 },
     },
     yaxis2: {
       title: { text: "Acumulado", font: { color: "#17212f", size: 11 } },
@@ -7526,7 +7527,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
           className="mon-phone-codpulso-source is-kobo"
           style={{ "--codpulso-source-pct": `${Math.max(2, Math.min(100, platformEffectivePct))}%` } as CSSProperties}
         >
-          <span><QrCode size={13} /> Kobo valida</span>
+          <span><ListChecks size={13} /> Kobo valida</span>
           <strong>{formatMetric(totals.platformComplete)}</strong>
           <em>{platformDelta === 0 ? "mismo volumen efectivo" : `${platformDelta > 0 ? "+" : ""}${formatMetric(platformDelta)} frente al barrido`}</em>
           <i aria-hidden="true" />
@@ -8670,7 +8671,7 @@ function AcreditacionSourceStatusStrip({
     {
       key: phoneContract ? "survey" as AcreditacionSourceTab : null,
       className: surveyCount ? "is-ready" : "is-warning",
-      icon: QrCode,
+      icon: ListChecks,
       label: phoneContract ? "Kobo" : "Plataforma",
       value: fmt(surveyCount),
       detail: phoneContract ? "efectivas" : `${fmt(sweepCount)} barrido`,
@@ -9741,7 +9742,7 @@ function AcreditacionKoboSourcePicker({
                 </label>
                 {phoneMode ? (
                   <div className="mon-phone-kobo-fixed-channel">
-                    <QrCode size={14} />
+                    <ListChecks size={14} />
                     <span>
                       <strong>Kobo es la plataforma rectora</strong>
                       <em>El canal no define efectivas; solo el filtro guardado.</em>
@@ -9979,7 +9980,7 @@ function AcreditacionPlatformSurveySourcesView({
       </details>
       <details className="mon-acr-source-disclosure" open={!platformSources.length && !koboSources.length}>
         <summary>
-          <span><QrCode size={14} /> Seleccionar encuesta Kobo</span>
+          <span><ListChecks size={14} /> Seleccionar encuesta Kobo</span>
           <em>{koboSources.length ? `${fmt(koboSources.length)} Kobo seleccionada${koboSources.length === 1 ? "" : "s"}` : "Sin Kobo"}</em>
         </summary>
         <AcreditacionKoboSourcePicker
@@ -10096,7 +10097,7 @@ function AcreditacionPlatformSurveySourcesView({
           })}
           {!platformSources.length ? (
             <div className="mon-acr-empty-state">
-              <QrCode size={18} />
+              <ListChecks size={18} />
               <strong>Sin encuestas conectadas</strong>
               <span>Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto.</span>
             </div>
@@ -10924,7 +10925,7 @@ function AcreditacionSourceSyncActions({
       progress={progress}
       actions={[
         { key: "sheets", label: "Sheets", title: sheetCount ? `${sheetCount} fuentes Sheets activas` : "Sin fuentes Sheets activas", icon: Layers3, disabled: !sheetCount, onRun: onSyncSheets },
-        { key: "survey", label: surveyLabel, title: surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`, icon: QrCode, disabled: !surveyCount, onRun: onSyncSurvey },
+        { key: "survey", label: surveyLabel, title: surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`, icon: ListChecks, disabled: !surveyCount, onRun: onSyncSurvey },
         { key: "all", label: "Todo", title: totalCount ? `${totalCount} fuentes activas` : "Sin fuentes activas", icon: RefreshCw, disabled: !totalCount, primary: true, onRun: onSyncAll },
       ]}
     />
@@ -11006,7 +11007,7 @@ function AcreditacionSourcePackageConsole({
           <section className="mon-acr-platform-panel mon-acr-platform-panel--survey" aria-label="Encuestas de plataforma">
             <header className="mon-acr-platform-head">
               <div>
-                <span><QrCode size={14} /> Paso 2 · Kobo/plataforma</span>
+                <span><ListChecks size={14} /> Paso 2 · Kobo/plataforma</span>
                 <strong>Respuestas por actor, segmento y canal</strong>
               </div>
               <em>{fmt(surveySources.length)} seleccionadas</em>
@@ -11055,6 +11056,7 @@ function AcreditacionPhoneSourceSlotCard({
   const rows = slot.sources.reduce((sum, source) => (
     sum + (slot.key === "plataforma" ? acreditacionSourceResponseCount(source) : sourceRowCount(source))
   ), 0) || rowFallback;
+  const enlacePrimario = primary ? enlaceDeFuente(primary) : null;
   const syncLabel = primary ? sourceSyncLabel(primary) : "Sin sync";
   const displayedSync = syncLabel === "Sin sync" && slot.ready && syncFallback ? formatDate(syncFallback) : syncLabel;
   const isPlatform = slot.key === "plataforma";
@@ -11082,34 +11084,42 @@ function AcreditacionPhoneSourceSlotCard({
       </div>
       <div className="mon-phone-source-slot-data">
         <span>
-          <em>Fuente</em>
-          {primary ? <strong>{primary.label || primary.id}</strong> : <strong>Sin fuente vinculada</strong>}
+          <em>Nombre</em>
+          <strong>{primary ? nombreDeFuente(primary) : "Sin fuente vinculada"}</strong>
         </span>
+        {/* R2: el enlace por delante del identificador. El `asset_uid` recortado
+            a 38 caracteres no dice nada y no lleva a ninguna parte; abrir la
+            hoja o la encuesta sí. Cuando no hay dirección construible se dice
+            por qué, en vez de ofrecer un enlace roto. */}
         <span>
-          <em>{isPlatform ? "Servicio" : "Spreadsheet"}</em>
-          {isPlatform && primary ? (
-            <strong>{sourceProviderLabel(primary.kind)}</strong>
-          ) : primary && sourceSpreadsheetUrl(primary) ? (
-            <a href={sourceSpreadsheetUrl(primary)} target="_blank" rel="noreferrer" title={sourceSpreadsheetUrl(primary)} onClick={(event) => event.stopPropagation()}>
-              {sourceSpreadsheetDisplay(primary)}
+          <em>Abrir</em>
+          {enlacePrimario?.estado === "enlace" ? (
+            <a
+              href={enlacePrimario.href}
+              target="_blank"
+              rel="noreferrer"
+              title={enlacePrimario.titulo}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {enlacePrimario.texto}
             </a>
           ) : (
-            <strong>Enlace pendiente</strong>
+            <strong>{enlacePrimario?.mensaje ?? "Sin fuente vinculada"}</strong>
           )}
         </span>
         <span>
-          <em>{isPlatform ? "Encuesta / asset" : "Pestaña / rango"}</em>
-          <strong title={primary ? sourceExternalId(primary) : ""}>
+          <em>{isPlatform ? "Servicio" : "Pestaña"}</em>
+          <strong>
             {primary
               ? isPlatform
-                ? shortenMiddle(sourceExternalId(primary), 38)
+                ? servicioDeFuente(primary)
                 : [sourceSheetField(primary, "sheet_name"), sourceSheetField(primary, "range")].filter(Boolean).join(" · ") || "Sin pestaña"
               : "Pendiente"}
           </strong>
         </span>
         <span>
-          <em>Lectura</em>
-          <strong>{slot.sources.length ? `${fmt(active.length)}/${fmt(slot.sources.length)} activas` : statusDetail}</strong>
+          <em>Se lee</em>
+          <strong>{slot.sources.length ? `${fmt(active.length)} de ${fmt(slot.sources.length)} activas` : statusDetail}</strong>
         </span>
         <span>
           <em>Filas</em>
@@ -11153,7 +11163,7 @@ function AcreditacionPhoneInstrumentDecision({
     <section className={`mon-phone-instrument-decision${ready ? " is-ready" : " has-pending"}`} aria-label="Instrumento y filtro efectivo de Kobo">
       <header>
         <div>
-          <span><QrCode size={13} /> Instrumento Kobo</span>
+          <span><ListChecks size={13} /> Instrumento Kobo</span>
           <strong>{sourceTitle || "Encuesta pendiente"}</strong>
           <p>Kobo manda el avance efectivo; el barrido telefónico se lee en paralelo para confirmar estados por CodPulso.</p>
         </div>
@@ -11161,7 +11171,7 @@ function AcreditacionPhoneInstrumentDecision({
       </header>
       <div className="mon-phone-kobo-dossier">
         <article className={contract.platform.ready ? "is-ready" : "is-warning"}>
-          <span><QrCode size={13} /> Instrumento activo</span>
+          <span><ListChecks size={13} /> Instrumento activo</span>
           <strong>{sourceTitle || "Kobo pendiente"}</strong>
           <p>{primary ? "Este formulario alimenta el conteo de efectivas. El avance se valida con filtro y se contrasta contra el barrido por CodPulso." : "Selecciona el formulario Kobo que alimentará el avance telefónico."}</p>
           <div>
@@ -11441,25 +11451,27 @@ function AcreditacionPhoneSourcesContractPanel({
         ? "base de universo"
         : item === "barrido"
           ? "barrido"
-          : "Kobo"
+          : "la encuesta"
     )).join(", ")
     : "contrato completo";
+  // R1: cada pestaña se nombra por la pregunta que responde, no por el servicio
+  // del que salen los datos. El proveedor sigue visible dentro de la tarjeta.
   const focusCopy = focus === "sheets"
     ? {
-      eyebrow: "Base y barrido",
-      title: "Sheets operativos para llamar y registrar estados",
-      detail: "Aquí se revisan solo las hojas que definen población, responsables, intentos, estados y fechas de llamada.",
+      eyebrow: "Universo y barrido",
+      title: "A quién llamar y qué pasó en cada llamada",
+      detail: "La base de universo fija la población; la hoja de barrido registra responsable, intentos, estado y fecha.",
     }
     : focus === "kobo"
       ? {
-        eyebrow: "Kobo",
-        title: "Instrumento y filtro que cuentan efectivas",
-        detail: "Aquí se escoge la encuesta Kobo y la pregunta de consentimiento que transforma respuestas completas en efectivas del monitoreo.",
+        eyebrow: "Encuestas",
+        title: "Qué respuesta cuenta como efectiva",
+        detail: "La encuesta aporta las respuestas; la pregunta de consentimiento decide cuáles cuentan en el avance.",
       }
       : {
-        eyebrow: "Paquete",
-        title: "Contrato de fuentes telefónicas",
-        detail: "La base define a quién llamar; el barrido registra operación telefónica; Kobo valida efectivas por CodPulso.",
+        eyebrow: "Fuentes activas",
+        title: "Las tres fuentes que sostienen el monitoreo",
+        detail: "El universo define a quién llamar, el barrido registra la operación y la encuesta valida las efectivas por CodPulso.",
       };
   const showSheetsDecision = focus === "sheets";
   const showKoboDecision = focus === "kobo";
@@ -11487,7 +11499,7 @@ function AcreditacionPhoneSourcesContractPanel({
     },
     {
       label: "Efectivas",
-      value: contract.platform.ready ? "Kobo listo" : "Falta Kobo",
+      value: contract.platform.ready ? "Encuesta lista" : "Falta la encuesta",
       detail: `${fmt(activeKoboCount)} encuesta${activeKoboCount === 1 ? "" : "s"}`,
       tone: contract.platform.ready ? "ready" : "warning",
     },
@@ -11514,7 +11526,7 @@ function AcreditacionPhoneSourcesContractPanel({
           <AcreditacionPhoneSourceSlotCard
             key={slot.key}
             slot={slot}
-            icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <QrCode size={15} />}
+            icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <ListChecks size={15} />}
             rowFallback={slot.key === "universo" ? nRows : undefined}
             syncFallback={syncedAt}
             onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "survey" : "sheets")}
@@ -11586,8 +11598,8 @@ function AcreditacionPhoneSourcesContractPanel({
       </details>
       <details className="mon-phone-source-editors" open={showKoboEditor}>
         <summary>
-          <span><QrCode size={14} /> Seleccionar Kobo</span>
-          <em>{contract.platform.ready ? "Editar Kobo" : "Falta Kobo"}</em>
+          <span><ListChecks size={14} /> Seleccionar Kobo</span>
+          <em>{contract.platform.ready ? "Editar encuestas" : "Falta la encuesta"}</em>
         </summary>
         <div className="mon-phone-source-editor-grid mon-phone-source-editor-grid--platform">
           <AcreditacionKoboSourcePicker
@@ -12044,16 +12056,6 @@ function caseSubsanacionActionLabel(item: MonitoreoInternalQueryCase) {
   if (internalCaseResponseStateValue(item) === "refusal") return "No accionable";
   if (internalCaseResponseStateValue(item) === "pending") return "Sin respuesta";
   return assistedReviewVisible(item) ? "Revisar" : "Explicar";
-}
-
-function caseSubsanacionActionDetail(item: MonitoreoInternalQueryCase) {
-  if (caseIsActionableSubsanacion(item)) {
-    return "Respuesta completa o parcial sin cruce: puede vincularse con evidencia y nota.";
-  }
-  if (internalCaseResponseStateValue(item) === "refusal") {
-    return "Rechazo no identificable: queda explicado, no se puede asignar al universo sin evidencia.";
-  }
-  return "No hay respuesta efectiva que mover al avance.";
 }
 
 function caseIsAuditable(item: MonitoreoInternalQueryCase) {
@@ -13475,7 +13477,7 @@ function acreditacionQueryAnswerCopy(
   }
   if (tab === "plataforma") {
     return {
-      icon: QrCode,
+      icon: ListChecks,
       tone: "base",
       heading: "Registros recibidos",
       title: `${formatCaseLabel(summary.total)} de plataforma ${scope}.`,
@@ -14013,36 +14015,6 @@ function AcreditacionSubsanacionCoach({ item }: { item: MonitoreoInternalQueryCa
   );
 }
 
-function AcreditacionSubsanacionWorkflow({
-  actionable,
-  explanatory,
-  manual,
-}: {
-  actionable: number;
-  explanatory: number;
-  manual: number;
-}) {
-  return (
-    <div className="mon-acr-subsanacion-workflow" aria-label="Ruta de decisión de subsanación">
-      <span className="is-warning">
-        <em>1</em>
-        <strong>Prioriza</strong>
-        <small>{fmt(actionable)} accionables</small>
-      </span>
-      <span className="is-base">
-        <em>2</em>
-        <strong>Comprueba</strong>
-        <small>llave y auxiliares</small>
-      </span>
-      <span className={manual ? "is-effective" : explanatory ? "is-refusal" : "is-base"}>
-        <em>3</em>
-        <strong>Decide</strong>
-        <small>{manual ? `${fmt(manual)} con constancia` : `${fmt(explanatory)} explicativos`}</small>
-      </span>
-    </div>
-  );
-}
-
 function AcreditacionCasesTable({
   cases,
   selectedCase,
@@ -14289,7 +14261,7 @@ function AcreditacionQueryBreakdownCard({
     { value: totals.partial, color: "#b97611" },
     { value: totals.refusal, color: "#a61d4f" },
     { value: totals.pending, color: "#7a8796" },
-    { value: totals.review, color: "#5f6b7a" },
+    { value: totals.review, color: "#474f5b" },
   ];
 
   if (!limitedRows.length) {
@@ -14471,7 +14443,7 @@ function AcreditacionEffectivesView({
           title="Por recopilador"
           dimension="collector"
           rows={byCollector}
-          icon={<QrCode size={15} />}
+          icon={<ListChecks size={15} />}
           onSelect={(collector) => onFilter({ collector })}
         />
       </div>
@@ -14601,7 +14573,7 @@ function AcreditacionPlatformRecordsView({
         <header className="mon-query-section-head">
           <div>
             <span>Registros en plataforma</span>
-            <strong><QrCode size={16} /> Respuestas por última actualización</strong>
+            <strong><ListChecks size={16} /> Respuestas por última actualización</strong>
           </div>
           <em>{fmt(cases.length)} filas</em>
         </header>
@@ -14911,7 +14883,10 @@ function AcreditacionCrossingsView({
   onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
   onJumpToSubsanacion: (item: MonitoreoInternalQueryCase) => void;
 }) {
-  const visible = cases.slice(0, 160);
+  // Agrupado por lo que se puede hacer con cada caso. El límite es por grupo:
+  // con un tope global el grupo mayor se lo come entero y el resto queda
+  // inalcanzable.
+  const filasAgrupadas = filasDeCruceDeCasos(cases, 45);
   const selectedId = selectedCase ? caseIdentity(selectedCase) : "";
   const isPhoneMode = profileMode === "telefonico";
   const phonePlatformEffective = isPhoneMode ? phoneMetrics?.platformComplete ?? cases.filter(telefonicoCasePlatformEffective).length : 0;
@@ -14933,7 +14908,7 @@ function AcreditacionCrossingsView({
           <small>
             {isPhoneMode
                 ? "Kobo manda el avance; esta vista separa CodPulso/base, estado telefónico y efectiva Kobo."
-                : "Duplicados, diferencias y respuestas fuera de base se leen aquí sin mezclar conteo final con explicación técnica."}
+                : lecturaDeCruceDeCasos(cases)}
           </small>
           </div>
           <em>{isPhoneMode ? `${fmt(phoneReviewCount)} por revisar` : `${fmt(cases.length)} registros`}</em>
@@ -14946,7 +14921,7 @@ function AcreditacionCrossingsView({
             <span className={phonePlatformWithoutSweep ? "is-warning" : "is-ready"}><em>Tel. pendiente</em><strong>{fmt(phonePlatformWithoutSweep)}</strong><small>{phonePlatformWithoutSweep ? "Kobo cuenta; barrido aun no declara efectiva" : "sin brecha Kobo-tel."}</small></span>
           </div>
         ) : null}
-        {visible.length ? (
+        {filasAgrupadas.length ? (
           <div className="mon-query-table-wrap">
             <table className="mon-query-table mon-acr-crossing-table">
 	              <thead>
@@ -14959,7 +14934,22 @@ function AcreditacionCrossingsView({
 	                </tr>
 	              </thead>
               <tbody>
-                {visible.map((item) => {
+                {filasAgrupadas.map((fila) => {
+                  if (fila.tipo === "grupo") {
+                    return (
+                      <tr key={`grupo-${fila.clave}`} className={`mon-acr-crossing-group is-${fila.clave}`}>
+                        {/* El flex vive dentro del `th`: sobre la celda anula el colSpan. */}
+                        <th scope="rowgroup" colSpan={isPhoneMode ? 4 : 5}>
+                          <span>
+                            <strong>{fila.titulo}</strong>
+                            <small>{fila.detalle}</small>
+                            <em>{fmt(fila.total)}</em>
+                          </span>
+                        </th>
+                      </tr>
+                    );
+                  }
+                  const item = fila.item;
                   const id = caseIdentity(item);
                   const selected = id === selectedId;
                   const explanation = buildCaseCrossingExplanation(item);
@@ -15079,10 +15069,10 @@ function AcreditacionSubsanacionView({
   onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
   onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
 }) {
-  const actionable = cases.filter(caseIsActionableSubsanacion);
-  const explanatory = cases.filter((item) => !caseIsActionableSubsanacion(item));
-  const manual = cases.filter((item) => item.assisted_review?.manual_decision).length;
-  const selectedVisible = selectedCase && cases.some((item) => caseIdentity(item) === caseIdentity(selectedCase)) ? selectedCase : cases[0] ?? null;
+  // Recuperables primero: una completa que no cruza se rescata y suma. Lo que el
+  // canal ya explica —rechazo, parcial que cortó antes del código— va al final.
+  const { paso, setPaso, conteo, visibles, grupos, motivoDe } = useBandejaDeSubsanacion(cases);
+  const selectedVisible = selectedCase && visibles.some((item) => caseIdentity(item) === caseIdentity(selectedCase)) ? selectedCase : visibles[0] ?? null;
   return (
     <div className="mon-acr-subsanacion-grid">
       <section className="mon-query-issues-panel" aria-label="Lista de subsanación">
@@ -15092,22 +15082,28 @@ function AcreditacionSubsanacionView({
             <strong><ShieldAlert size={16} /> Bandeja de decisión</strong>
             <small>Trabaja primero las completas/parciales sin cruce; cada caso debe terminar incluido con salvedad o explicado.</small>
           </div>
-          <em>{fmt(cases.length)} casos</em>
+          <em>{fmt(visibles.length)} casos</em>
         </header>
-        <AcreditacionSubsanacionWorkflow actionable={actionable.length} explanatory={explanatory.length} manual={manual} />
-        {cases.length ? (
+        <RutaDeSubsanacion paso={paso} conteo={conteo} onPaso={setPaso} />
+        {visibles.length ? (
           <div className="mon-acr-subsanacion-list">
-            {[{ title: "Accionables", rows: actionable }, { title: "Explicativos", rows: explanatory }].map((group) => (
+            {grupos.map((group) => (
               <section key={group.title}>
-                <span>{group.title}</span>
+                <span>{group.title} <small>{group.detalle}</small></span>
                 {group.rows.length ? group.rows.slice(0, 80).map((item) => {
                   const selected = selectedVisible && caseIdentity(selectedVisible) === caseIdentity(item);
-                  const trace = caseKeyTraceSummary(item);
+                  const motivo = motivoDe(item);
+                  // El motivo dice qué pasó con la llave; la segunda línea, por
+                  // dónde y cuándo entró, que es lo que distingue casos que
+                  // comparten motivo.
                   return (
                     <button key={caseIdentity(item)} type="button" className={selected ? "is-active" : ""} onClick={() => onCaseSelect(item)}>
                       <strong>{caseDisplayName(item)}</strong>
-                      <small>{item.actor || "Sin actor"} · {caseSubsanacionActionDetail(item)}</small>
-                      <span className="mon-acr-subsanacion-key">{trace.strategyLabel} · {trace.primaryEvidence}</span>
+                      <span className="mon-acr-motivo">{motivo.etiqueta}</span>
+                      {/* Sin `title` el texto recortado se pierde del todo. */}
+                      <small title={`${item.actor || "Sin actor"} · ${formatInternalQueryDateLabel(item.date)} · ${internalQueryCollectorDisplayLabel(item)}`}>
+                        {item.actor || "Sin actor"} · {formatInternalQueryDateLabel(item.date)} · {internalQueryCollectorDisplayLabel(item)}
+                      </small>
                       <em>{caseSubsanacionActionLabel(item)}</em>
                     </button>
                   );
@@ -15285,7 +15281,7 @@ function TelefonicoEffectiveConsultedView({
             <strong>{fmt(phonePendingCount)}</strong>
           </span>
           <span className="is-base">
-            <QrCode size={14} />
+            <ListChecks size={14} />
             <em>Total Kobo</em>
             <strong>{fmt(cases.length)}</strong>
           </span>
@@ -17225,7 +17221,7 @@ function mechanismIcon(value: AcreditacionActorMechanism["modality"]) {
   if (value === "sweep" || value === "telefono") return PhoneCall;
   if (value === "presencial") return ContactRound;
   if (value === "email") return Link2;
-  return QrCode;
+  return ListChecks;
 }
 
 function compactMechanismLabel(label: string) {
@@ -17980,7 +17976,7 @@ function AcreditacionAdvanceDailyMini({
         xanchor: "center" as const,
         yanchor: "top" as const,
         align: "center" as const,
-        font: { color: "#5f6b7a", size: isEffectiveGeneralChart ? 11 : 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
+        font: { color: "#474f5b", size: isEffectiveGeneralChart ? 11 : 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
       })),
     ],
     xaxis: {
@@ -17993,11 +17989,11 @@ function AcreditacionAdvanceDailyMini({
       ticktext: xAxisTickText,
       showticklabels: isCompactChart && !usesEffectiveAxisBand,
       ticks: "",
-      tickfont: { color: isEffectiveGeneralChart ? "#4f647a" : "#5f6b7a", size: isEffectiveGeneralChart ? 11 : isCompactChart ? 9 : 10 },
+      tickfont: { color: isEffectiveGeneralChart ? "#4f647a" : "#474f5b", size: isEffectiveGeneralChart ? 11 : isCompactChart ? 9 : 10 },
       automargin: true,
     },
     yaxis: {
-      title: showYAxisLabels ? { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#5f6b7a", size: usesEffectiveAxisBand ? 10 : 11 } } : undefined,
+      title: showYAxisLabels ? { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#474f5b", size: usesEffectiveAxisBand ? 10 : 11 } } : undefined,
       fixedrange: true,
       range: dailyAxisMax ? [0, dailyAxisMax] : undefined,
       rangemode: "tozero",
@@ -18005,7 +18001,7 @@ function AcreditacionAdvanceDailyMini({
       showticklabels: showYAxisLabels,
       zeroline: false,
       gridcolor: "rgba(15, 23, 42, 0.06)",
-      tickfont: { color: "#5f6b7a", size: usesEffectiveAxisBand ? 9 : 10 },
+      tickfont: { color: "#474f5b", size: usesEffectiveAxisBand ? 9 : 10 },
     },
     yaxis2: {
       title: showYAxisLabels ? { text: "Acumulado", font: { color: "#17212f", size: usesEffectiveAxisBand ? 10 : 11 } } : undefined,
@@ -19042,7 +19038,7 @@ function AcreditacionAdvancePhoneKoboWorkbench({
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
           <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><QrCode size={16} /> Kobo efectivo</span></h2>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><ListChecks size={16} /> Kobo efectivo</span></h2>
           <p className="pulso-panel-hint">Kobo manda el avance; el barrido telefónico se lee en paralelo como estado de consulta.</p>
         </div>
         <div className="pulso-panel-actions mon-advance-meta">
@@ -19221,7 +19217,7 @@ function AcreditacionAdvanceSurveysWorkbench({
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
           <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><QrCode size={16} /> Encuestas, canales y recopiladores</span></h2>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><ListChecks size={16} /> Encuestas, canales y recopiladores</span></h2>
           <p className="pulso-panel-hint">Fuentes exactas integradas por actor, canal y ritmo diario de respuesta.</p>
         </div>
         <div className="pulso-panel-actions mon-advance-meta">
@@ -20565,10 +20561,10 @@ export function localTabsForTelefonicoView(
 
   if (view === "fuentes") {
     if (isPhoneRoute && phoneStats) {
-      const [survey, sheets, , active] = ACREDITACION_SOURCE_TABS;
+      const { survey, sheets, activas: active } = pestanasDeFuentesPorClave();
       return [
         railTab(survey, {
-          label: "Kobo",
+          label: "Encuestas",
           detail: phoneStats.contract.platform.ready
             ? `${countText(phoneStats.koboSources, "encuesta")} · ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
             : "elige encuesta y filtro de efectiva",
@@ -20576,29 +20572,29 @@ export function localTabsForTelefonicoView(
           estado: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
         }),
         railTab(sheets, {
-          label: "Base y barrido",
+          label: "Universo y barrido",
           detail: `${phoneStats.sheetReady}/2 Sheets · universo y estados`,
           badge: `${phoneStats.sheetReady}/2`,
           estado: readyStatus(phoneStats.sheetReady === 2),
         }),
         railTab(active, {
-          label: "Paquete",
+          label: "Fuentes activas",
           detail: `${phoneStats.sourceReady}/3 fuentes · corte local`,
           badge: `${phoneStats.sourceReady}/3`,
           estado: readyStatus(phoneStats.sourceReady === 3),
         }),
       ];
     }
-    const [survey, sheets, collectors, active] = ACREDITACION_SOURCE_TABS;
+    const { survey, sheets, collectors, activas: active } = pestanasDeFuentesPorClave();
     return [
       railTab(survey, {
-        label: "Plataforma",
+        label: "Encuestas",
         detail: sourceStats.platform ? `${countText(sourceStats.platformEnabled, "activa")} · respuestas` : "conecta encuestas",
         badge: sourceStats.platform ? fmt(sourceStats.platform) : undefined,
         estado: readyStatus(sourceStats.platformEnabled > 0),
       }),
       railTab(sheets, {
-        label: "Bases",
+        label: "Universo",
         detail: sourceStats.sheets ? `${countText(sourceStats.sheetsEnabled, "activa")} · universo` : "conecta Sheets",
         badge: sourceStats.sheets ? fmt(sourceStats.sheets) : undefined,
         estado: readyStatus(sourceStats.sheetsEnabled > 0),
@@ -20610,7 +20606,7 @@ export function localTabsForTelefonicoView(
         estado: readyStatus(sourceStats.collectors > 0),
       }),
       railTab(active, {
-        label: "Estado",
+        label: "Fuentes activas",
         detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · ${countText(sourceStats.reportSources, "fila")}`,
         badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
         estado: readyStatus(sourceStats.total > 0 && sourceStats.enabled === sourceStats.total),

@@ -10,6 +10,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import { Plus } from "../../../../../vendor/lucide-react";
 import type { MonitoreoSource, MonitoreoSourceRole, MonitoreoState } from "../../../../../api/client";
 import { PANELES_POR_MODULO } from "../../../../../lib/navegacion/manifiesto";
@@ -33,6 +34,10 @@ export function PanelConectarFuente({
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const panel = usePanelDireccionable(PANEL);
+  const location = useLocation();
+  // `?foco=` trae el actor sobre el que se pulsó en Universo, para que el panel
+  // no vuelva a preguntar algo que el usuario ya eligió al abrirlo.
+  const actorEnFoco = new URLSearchParams(location.search).get("foco") ?? "";
 
   // Escape cierra. Es lo que todo el mundo intenta primero en un overlay, y
   // sin esto la única salida era acertarle a la X o al velo.
@@ -72,7 +77,7 @@ export function PanelConectarFuente({
         >
           <ConectarFuente
             sources={sources}
-            actoresSugeridos={actoresSugeridos}
+            actoresSugeridos={actorEnFoco ? [actorEnFoco, ...actoresSugeridos.filter((item) => item !== actorEnFoco)] : actoresSugeridos}
             papelInicial={papelInicial}
             onCerrar={panel.cerrar}
             onStateChange={onStateChange}

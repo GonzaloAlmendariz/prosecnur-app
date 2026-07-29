@@ -139,5 +139,11 @@ describe("Perfiles de monitoreo: navegación y readiness ligados al scope activo
     expect.soft(dependencies, `${label}: readiness debe comprobar el scope devuelto por el backend`).toContain("report_scope");
     expect.soft(dependencies, `${label}: Teléfono requiere phone_summary`).toContain("phone_summary");
     expect.soft(dependencies, `${label}: un payload full también cubre Teléfono`).toContain("full");
-  });
+  // `readinessDependencyText` resuelve identificadores de forma transitiva y
+  // cada nombre nuevo dispara un recorrido del AST completo, así que sobre los
+  // page-files de perfil el caso cuesta ~3.5 s (Acreditación) y ~3.6 s
+  // (Telefónico). Con el presupuesto por defecto de 5 s pasa aislado y se cae
+  // en la suite completa por contención. Este límite mide lo que el caso hace
+  // de verdad; lo que se verifica aquí es estructura, no velocidad.
+  }, 30_000);
 });

@@ -526,9 +526,26 @@ describe("Acreditacion modelo compacto", () => {
     outcome_var: "",
   };
 
-  test("expone las tres pestañas metodológicas sin superficies editables de Fuentes", () => {
-    expect(ACREDITACION_MODEL_TABS.map((tab) => tab.key)).toEqual(["estructura", "estrategias", "resumen"]);
-    expect(ACREDITACION_MODEL_TABS.map((tab) => tab.label)).toEqual(["Modelo operativo", "Cronograma", "Resumen"]);
+  test("expone las pestañas metodológicas sin superficies editables de Fuentes", () => {
+    // `distribucion` entra como segunda decisión del modelo —con qué variable se
+    // abre el avance de cada actor—, distinta de las metas y sobre el mismo
+    // actor. `estrategias` y `resumen` siguen en el catálogo pero no se
+    // renderizan desde B1: se ocultaron por no aportar, no por falta de sitio.
+    // Tres decisiones distintas sobre el mismo estudio: cuánto quiero de cada
+    // actor, cómo lo quiero repartido y cuándo se hace el campo. `resumen` sigue
+    // en el catálogo pero no se renderiza: era mirar Fuentes sin poder editarlas.
+    expect(ACREDITACION_MODEL_TABS.map((tab) => tab.key)).toEqual([
+      "estructura",
+      "distribucion",
+      "estrategias",
+      "resumen",
+    ]);
+    expect(ACREDITACION_MODEL_TABS.map((tab) => tab.label)).toEqual([
+      "Modelo operativo",
+      "Distribución",
+      "Cronograma",
+      "Resumen",
+    ]);
   });
 
   test("deriva el borrador de cronograma desde la fase operativa existente", () => {
@@ -989,14 +1006,21 @@ describe("Acreditacion source model", () => {
 
 describe("Acreditacion phone daily points", () => {
   test("separa alertas reales de supervisión telefónica en pestañas distintas", () => {
-    expect(ACREDITACION_PHONE_TABS.map((tab) => tab.key)).toEqual([
+    // Lo que este contrato defiende es que `alertas` y `supervision` NO se
+    // mezclen —son cosas distintas y compartir pestaña las confundía—, así que
+    // se comprueba eso y el orden, no un recuento que cambia cada vez que
+    // Teléfono gana una superficie legítima.
+    const keys = ACREDITACION_PHONE_TABS.map((tab) => tab.key);
+    expect(keys).toEqual([
       "resumen",
+      "estados",
       "dia",
       "incidencia",
       "responsables",
       "alertas",
       "supervision",
     ]);
+    expect(keys.indexOf("alertas")).toBeLessThan(keys.indexOf("supervision"));
   });
 
   test("ignora filas cabecera y conserva la serie diaria telefónica real", () => {
@@ -1479,9 +1503,20 @@ import type { MonitoreoState } from "../../../../api/monitoreo";
 
 describe("localTabsForAcreditacionView — sección Teléfono en familia acreditación", () => {
   const acreditacionRoute = MONITOREO_MODOS.find((r) => r.family === "acreditacion")!;
+  // Con `sources: []` el rail cae en la rama «sin actores con canal
+  // Telefónico», que mapea el catálogo entero y nunca tuvo el defecto de
+  // índices. Para ejercitar la rama rica —la que sí lo tuvo— hace falta al
+  // menos un actor con canal telefónico declarado.
   const state = {
     monitoreo_profile: { family: "acreditacion" },
-    sources: [],
+    sources: [{
+      id: "sm-egresados-tel",
+      kind: "surveymonkey",
+      label: "Acreditación · Egresados Telefónico",
+      enabled: true,
+      survey_id: "527574340",
+      dimensions: { actor: "Egresados", canal: "Telefónico" },
+    }],
   } as unknown as MonitoreoState;
   const reports = {
     sheets: [
@@ -1504,10 +1539,35 @@ describe("localTabsForAcreditacionView — sección Teléfono en familia acredit
     ],
   } as unknown as Parameters<typeof localTabsForAcreditacionView>[2];
 
-  test("la vista telefonico devuelve las 6 pestañas ricas aunque la familia sea acreditacion", () => {
+  test("cada pestaña del rail telefónico lleva SU etiqueta, no la de la vecina", () => {
+    // Regresión del 2026-07-28. El rail hacía
+    //   const [summary, day, incidence, ...] = ACREDITACION_PHONE_TABS
+    // y al insertar «Estados» en el segundo puesto cada pestaña heredó la
+    // etiqueta de la siguiente: la de Estados anunciaba «Ritmo diario». El
+    // contrato de orden no lo vio porque comprueba el CATÁLOGO, y el catálogo
+    // estaba bien; lo que estaba mal era quién leía de él.
+    const tabs = localTabsForAcreditacionView("telefonico", state, reports, acreditacionRoute as never);
+    const porClave = new Map(tabs.map((tab) => [tab.key, tab.label]));
+
+    // Con el bug, `estados` mostraba la etiqueta de `dia`.
+    expect(porClave.get("estados")).toBe("Estados");
+    expect(porClave.get("responsables")).toBe("Responsables");
+    // Y el síntoma general de un desplazamiento de índice es que dos pestañas
+    // acaben con el mismo nombre. La unicidad lo detecta venga de donde venga,
+    // y no depende de qué rama de etiquetas resuelva el fixture.
+    const labels = tabs.map((tab) => tab.label);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  test("la vista telefonico devuelve las pestañas ricas aunque la familia sea acreditacion", () => {
+    // El gate original: un proyecto de familia `acreditacion` con barrido
+    // telefónico tiene derecho al juego completo, no a una versión recortada.
+    // `estados` entró después —confirmar los estados de la base es parte de
+    // Teléfono— y por eso el contrato fija el orden, no un número.
     const tabs = localTabsForAcreditacionView("telefonico", state, reports, acreditacionRoute as never);
     expect(tabs.map((t) => t.key)).toEqual([
       "resumen",
+      "estados",
       "dia",
       "incidencia",
       "responsables",
