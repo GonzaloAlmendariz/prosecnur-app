@@ -378,6 +378,21 @@ sabe dónde poner.
 | El apilado acumula el alto REAL de cada hermano | Paso vertical fijo | Un hito mide 148 y una pieza 102: un paso único o los superpone o deja un hueco enorme | Bajo |
 | Escape descarta la anotación en curso | Confirmar en `blur` sin más | Cerrar el campo dispara `blur`, así que cancelar terminaba agregando justo lo que se descartó | Bajo |
 
+### Ramificar desde el propio lienzo (posterior a la fase 9)
+
+| Decisión | Alternativa descartada | Por qué | Costo de revertir |
+|---|---|---|---|
+| Un cuadro despliega sus ramas EN EL LIENZO | Volver siempre al explorador | El cuadro ya sabe qué cuelga de él —el árbol vive en `lib/modules.ts`—, así que obligar a volver al panel, buscar la pieza otra vez e insertarla es pedir tres pasos para el gesto más frecuente de un mapa mental | Bajo |
+| Cada brote se dibuja DONDE NACERÁ su nodo | Un menú flotante junto al cuadro | Que las dos posiciones coincidan es lo que hace que elegir se lea como que el brote se convirtió en tarjeta, y no como que algo apareció en otro lado | Bajo |
+| **El brote reserva el alto de su futura TARJETA**, no el suyo | Reservar sus 34 px | Un brote mide 34 y la tarjeta 102: reservando lo del brote, la tarjeta nacía encima de los brotes de más abajo. Es el choque que se vio al abrir dos ramas seguidas | Bajo |
+| Lo nuevo busca su hueco; nada de lo ya puesto se mueve | Apartar los nodos que estorban | Mover lo que el usuario ya acomodó para hacer sitio es peor que colocar bien lo que llega: le reordena el mapa sin pedírselo | Bajo |
+| El tirador va en el borde derecho del cuadro | En la fila de acciones | Ahí le comía el ancho al título («Procesam…» con tres botones al lado) y además el borde derecho es de donde sale la rama: el gesto se lee solo | Bajo |
+| El abanico se queda abierto tras elegir | Cerrarlo en cada elección | Abrir tres ramas seguidas es lo normal; se recalcula solo porque la recién puesta deja de ofrecerse | Bajo |
+| Entrada escalonada de 28 ms por brote | Todos a la vez | Deja seguir el orden con la vista en vez de ver seis cosas apareciendo de golpe | Bajo |
+
+Con `prefers-reduced-motion: reduce` los brotes y el nodo siguen apareciendo,
+sin recorrido: la información no puede depender de la animación.
+
 ## Deuda registrada
 
 Las tres deudas de contraste que este ADR registró al cierre de la fase 9 —el

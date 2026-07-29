@@ -32,6 +32,11 @@ import { escribiendoEnCampo, resolverAtajo } from "./atajos";
 import { NodoReferencia } from "./NodoReferencia";
 import { resumenVivo } from "./resumenVivo";
 import { altoDeNodo, disponerRamificacion, MAX_ITEMS_NODO } from "./ramificacion";
+import { AbanicoDeBrotes } from "./AbanicoDeBrotes";
+import { brotesDe, posicionDelNodo, type Brote } from "./brotes";
+
+/** Lo que dura la animación de entrada de un nodo recién abierto, en ms. */
+const DURACION_NACIMIENTO = 420;
 import { ExploradorDeReferencias, type ReferenciaElegida } from "./ExploradorDeReferencias";
 import { LienzoViewport, type ApiViewport } from "./LienzoViewport";
 import { useCanvasAutosave } from "./useCanvasAutosave";
@@ -57,6 +62,10 @@ export function CanvasSection({
   const [camara, setCamara] = useState<Camara>(CAMARA_INICIAL);
   const [armandoConexion, setArmandoConexion] = useState(false);
   const [eligiendoReferencia, setEligiendoReferencia] = useState(false);
+  /** Qué cuadro tiene su abanico de ramas abierto. */
+  const [ramificando, setRamificando] = useState<string | null>(null);
+  /** Ids que acaban de nacer: llevan la animación de entrada un instante. */
+  const [naciendo, setNaciendo] = useState<Set<string>>(new Set());
   const apiRef = useRef<ApiViewport | null>(null);
 
   const lienzo = useMemo<CanvasLienzo | null>(() => {
@@ -183,6 +192,78 @@ export function CanvasSection({
   const quitarItem = useCallback(
     (id: string, itemId: string) => conItems(id, (items) => items.filter((i) => i.id !== itemId)),
     [conItems],
+  );
+
+  const brotesAbiertos = useMemo(
+    () => {
+      const origen = nodes.find((n) => n.id === ramificando);
+      return origen ? brotesDe(origen, nodes) : [];
+    },
+    [nodes, ramificando],
+  );
+
+  /** Cuántas ramas puede desplegar cada cuadro, para el contador del botón. */
+  const ramasPorNodo = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const n of nodes) {
+      if (n.type === "referencia") mapa.set(n.id, brotesDe(n, nodes).length);
+    }
+    return mapa;
+  }, [nodes]);
+
+  /**
+   * Materializa un brote: nace donde estaba el brote, con su arista, y aparta
+   * lo que hubiera debajo.
+   */
+  const abrirRama = useCallback(
+    (brote: Brote) => {
+      const s = store.getState();
+      const padre = s.nodes.find((n) => n.id === ramificando);
+      if (!padre) return;
+      // El brote ya reservó el alto de esta tarjeta y ya esquivó lo ocupado, así
+      // que nace donde estaba y no hay que recolocar nada de lo que el usuario
+      // ya acomodó.
+      const caja = posicionDelNodo(brote);
+      const id = `nodo-${Date.now()}`;
+      s.setNodes([
+        ...s.nodes,
+        {
+          id,
+          type: "referencia",
+          ...caja,
+          z: 0,
+          color: "neutro",
+          text: brote.label,
+          items: [],
+          ref: { target_type: "modulo", target_id: brote.clave },
+          links: [],
+        },
+      ]);
+      s.setEdges([
+        ...s.edges,
+        {
+          id: `arista-${Date.now()}`,
+          from_node: padre.id,
+          from_anchor: "r",
+          to_node: id,
+          to_anchor: "l",
+          label: "",
+          relation: "contiene",
+        },
+      ]);
+      // El abanico se queda abierto: abrir tres ramas seguidas es lo normal, y
+      // se recalcula solo porque la recién puesta deja de ofrecerse.
+      setNaciendo((previas) => new Set(previas).add(id));
+      window.setTimeout(
+        () => setNaciendo((previas) => {
+          const siguiente = new Set(previas);
+          siguiente.delete(id);
+          return siguiente;
+        }),
+        DURACION_NACIMIENTO,
+      );
+    },
+    [ramificando, store],
   );
 
   /** Arranca el gesto de conectar desde el botón del cuadro, no desde un ancla. */
@@ -487,6 +568,13 @@ export function CanvasSection({
           registrarApi={(api) => {
             apiRef.current = api;
           }}
+          enElMundo={
+            <AbanicoDeBrotes
+              brotes={brotesAbiertos}
+              onElegir={abrirRama}
+              onCerrar={() => setRamificando(null)}
+            />
+          }
           renderNodo={(nodo, handlers) => (
             <NodoReferencia
               key={nodo.id}
@@ -500,6 +588,10 @@ export function CanvasSection({
               onAlternarItem={alternarItem}
               onQuitarItem={quitarItem}
               onConectar={empezarConexion}
+              ramasLibres={ramasPorNodo.get(nodo.id) ?? 0}
+              ramificando={ramificando === nodo.id}
+              onRamificar={(id) => setRamificando((actual) => (actual === id ? null : id))}
+              naciendo={naciendo.has(nodo.id)}
               {...handlers}
             />
           )}
