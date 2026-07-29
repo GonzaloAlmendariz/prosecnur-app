@@ -19090,9 +19090,10 @@ function AcreditacionClarityStrip({
   };
   const items = itemsByView[seccionActiva] ?? itemsByView.fuentes;
   const clarityLabel = isPhoneState ? "Lectura operativa de monitoreo telefónico" : "Lectura operativa de acreditación";
-  // El embudo de efectividad deja de vivir solo en Avance › Salidas: es la
-  // frase que ordena todo el módulo y se lee desde cualquier sección.
-  const corte = corteAcreditacionDeReports(state, reports);
+  // El embudo cuenta lo que quedó del corte, así que se lee en Avance y en
+  // ninguna otra sección: en Fuentes, donde todavía se están conectando las
+  // bases, es el resultado puesto antes del trabajo.
+  const corte = seccionActiva === "avance" ? corteAcreditacionDeReports(state, reports) : null;
 
   // El rail es icon-only y su cuadrante no lleva rótulo, así que el nombre de la
   // pestaña activa y su readiness se dicen acá, en la franja de lectura.
@@ -19110,7 +19111,7 @@ function AcreditacionClarityStrip({
           ) : null}
         </p>
       ) : null}
-      <AcreditacionEmbudoCorte corte={corte} />
+      {corte ? <AcreditacionEmbudoCorte corte={corte} /> : null}
       <div className="mon-clarity-items">
         {items.map((item) => {
           const Icon = item.icon;

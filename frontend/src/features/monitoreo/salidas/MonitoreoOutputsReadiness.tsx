@@ -56,9 +56,11 @@ export function MonitoreoOutputsReadiness({
 
       <dl className="mon-outputs-readiness__granos" aria-label="Granos del corte">
         <div>
-          <dt>Snapshot</dt>
+          {/* «Snapshot» es vocabulario de la implementación; quien dirige el
+              estudio piensa en respuestas que llegaron. */}
+          <dt>Recibidas</dt>
           <dd>{fmt(corte.ingesta)}</dd>
-          <small>registros crudos</small>
+          <small>llegaron de las fuentes</small>
         </div>
         <div>
           <dt>Procesables</dt>
