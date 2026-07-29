@@ -34,11 +34,10 @@
 #     que una fase no tuviera un módulo al que apuntar.
 .bit_fases_catalogo <- function() {
   list(
-    # Sin sección: el aterrizaje del módulo YA es la bitácora, y declararla
-    # produciría "Bitácora · Bitácora".
-    list(id = "diseno", label = "Diseño",
-         modulo = "diseno-estudio", seccion = "",
-         evidencia = c("diseno-estudio")),
+    # NO hay fase «Diseño». El cronograma se construye DESDE la bitácora, así
+    # que una fase que apunta al módulo donde ya estás parado no declara nada:
+    # es la superficie mirándose a sí misma. Lo que se planifica desde acá es lo
+    # que viene después del diseño.
     list(id = "muestra", label = "Muestra",
          modulo = "calc-muestra", seccion = "",
          evidencia = c("calc-muestra")),
@@ -65,7 +64,10 @@
   )
 }
 
-BITACORA_FASES <- c("diseno", "muestra", "instrumento", "campo", "procesamiento", "entregables")
+# Fase de destino de todo lo que no se pudo clasificar.
+BITACORA_FASE_FALLBACK <- "campo"
+
+BITACORA_FASES <- c("muestra", "instrumento", "campo", "procesamiento", "entregables")
 
 .bit_fase_valida <- function(fase) {
   calc_enum(fase, BITACORA_FASES, "")
@@ -114,27 +116,30 @@ BITACORA_FASES <- c("diseno", "muestra", "instrumento", "campo", "procesamiento"
   "codificacion"   = "procesamiento",
   "calc-muestra"   = "muestra",
   "editor-xlsform" = "instrumento",
-  "diseno-estudio" = "diseno",
-  # El fallback histórico de la regex. Cae en Diseño porque es la fase que
-  # contiene todo lo que todavía no se decidió a qué pertenece — nunca se
-  # descarta la tarea, que es lo que dejaría un cronograma con huecos.
-  "plan-trabajo"   = "diseno"
+  # Una tarea que apuntaba al propio módulo de la bitácora no describe una
+  # etapa del estudio: cae en el fallback como cualquier otra sin clasificar.
+  "diseno-estudio" = "campo",
+  # El fallback histórico de la regex. Cae en Campo porque es donde arranca lo
+  # que se planifica de verdad, y porque en un estudio de encuestas lo que no se
+  # supo clasificar casi siempre es trabajo de campo. Nunca se descarta la
+  # tarea: eso dejaría el cronograma con huecos.
+  "plan-trabajo"   = "campo"
 )
 
 # Deriva la fase desde los targets heredados. Con varios targets gana el
 # primero que mapea, en el orden en que vienen: `.plan_task_targets` los emite
 # en orden de especificidad y el primero es el más informativo.
 .bit_fase_de_targets <- function(targets) {
-  if (is.null(targets)) return("diseno")
+  if (is.null(targets)) return(BITACORA_FASE_FALLBACK)
   if (is.list(targets)) targets <- unlist(targets, recursive = TRUE, use.names = FALSE)
   targets <- as.character(targets)
   targets <- targets[nzchar(targets)]
-  if (!length(targets)) return("diseno")
+  if (!length(targets)) return(BITACORA_FASE_FALLBACK)
   for (t in targets) {
     fase <- .BIT_TARGET_A_FASE[[t]]
     if (!is.null(fase)) return(fase)
   }
-  "diseno"
+  BITACORA_FASE_FALLBACK
 }
 
 # Camino inverso: los `sync_targets` que corresponden a una fase elegida. Es lo
@@ -183,7 +188,7 @@ BITACORA_FASES <- c("diseno", "muestra", "instrumento", "campo", "procesamiento"
 # deriva de los targets — que a su vez pueden venir de la regex. La derivación
 # SUGIERE; nunca pisa una elección.
 .bit_fase_de_tarea <- function(t) {
-  if (is.null(t) || !is.list(t)) return("diseno")
+  if (is.null(t) || !is.list(t)) return(BITACORA_FASE_FALLBACK)
   declarada <- .bit_fase_valida(t$fase)
   if (isTRUE(t$fase_manual) && nzchar(declarada)) return(declarada)
   if (nzchar(declarada)) return(declarada)

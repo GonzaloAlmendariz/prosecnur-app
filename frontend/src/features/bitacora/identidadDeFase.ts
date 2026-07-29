@@ -16,6 +16,7 @@ import {
   type ProsecnurModuleSectionMeta,
 } from "../../lib/modules";
 import type { LucideIcon } from "../../vendor/lucide-react";
+import { resolverDestino, type NivelApp } from "./arbolDeLaApp";
 
 export type IdentidadDeFase = {
   modulo: ProsecnurModuleMeta | null;
@@ -35,6 +36,8 @@ export type IdentidadDeFase = {
    * en el mismo módulo y solo la sección las separa.
    */
   etiquetaCorta: string;
+  /** Nivel del árbol de la app, cuando el destino es una pieza de la app. */
+  nivel?: NivelApp;
 };
 
 const SIN_IDENTIDAD: IdentidadDeFase = {
@@ -78,15 +81,33 @@ export function identidadDeFase(
 }
 
 /**
- * Un destino de tipo `modulo` viaja como `"<slug>"` o `"<slug>/<seccion>"`.
+ * Un destino de tipo `modulo` viaja como una clave del árbol de la app: un
+ * módulo, un modo, una sección o una pestaña (ver `arbolDeLaApp.ts`).
  *
- * El backend guarda esa cadena sin interpretarla: el catálogo de módulos vive
- * en `lib/modules.ts` y duplicarlo en R garantizaría que las dos copias
+ * El backend guarda esa cadena sin interpretarla: el catálogo vive en
+ * `lib/modules.ts` y duplicarlo en R garantizaría que las dos copias
  * divergieran al renombrar una sección.
  */
 export function identidadDeDestino(targetId: string): IdentidadDeFase {
-  const [slug, seccion] = (targetId ?? "").split("/");
-  return identidadDeFase(slug, seccion);
+  const nodo = resolverDestino(targetId ?? "");
+  if (!nodo) {
+    // Retrocompatible: una clave de dos segmentos guardada antes de que
+    // existieran los modos y las pestañas sigue resolviendo por el camino viejo.
+    const [slug, seccion] = (targetId ?? "").split("/");
+    return identidadDeFase(slug, seccion);
+  }
+  const modulo = PROSECNUR_MODULES.find((m) => m.slug === nodo.moduloSlug) ?? null;
+  return {
+    modulo,
+    seccion: null,
+    icono: nodo.icono,
+    href: nodo.href,
+    vars: nodo.vars,
+    etiquetaModulo: nodo.ruta,
+    etiquetaCorta: nodo.label,
+    /** Qué nivel del árbol es. El nodo lo usa para no repetir el título. */
+    nivel: nodo.nivel,
+  };
 }
 
 export function destinoDeModulo(slug: string, seccion?: string): string {

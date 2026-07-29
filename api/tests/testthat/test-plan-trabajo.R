@@ -58,7 +58,7 @@ test_that("un cronograma importado sale del rebuild con los campos del ADR 0047"
   # según de dónde vino la tarea.
   plan <- .plan_rebuild_derived(.plan_normalize_import(path, list(original_name = "cronograma.xlsx")))
 
-  expect_equal(plan$schema, "plan_trabajo_v2")
+  expect_equal(plan$schema, "plan_trabajo_v3")
   for (t in plan$tasks) {
     for (campo in c("priority", "priority_rank", "tags", "reminders", "links",
                     "blocked_by", "archived_at", "kind_manual", "fase",
