@@ -311,7 +311,21 @@ sin dejar ninguna sin clasificar. Los endpoints `/api/plan-trabajo/*` y
 | Los avisos disparados NO viajan en el export | Exportar el libro completo | Son historia de esta instalación, no del estudio: importarlos silenciaría avisos que este usuario nunca vio | Bajo |
 | Velo de vidrio derivado de `--pulso-surface-2` | Token de scrim nuevo en `theme.css` | El theme está congelado a crecimiento; `color-mix` sobre un token que ya cambia con el tema resuelve claro y oscuro sin hex propio | Bajo |
 
+### Fase 9 — estados, C1 y accesibilidad
+
+| Decisión | Alternativa descartada | Por qué | Costo de revertir |
+|---|---|---|---|
+| Sin `--pulso-text-faint` en el CSS de este subsistema | Mantenerlo como tercer nivel de jerarquía | Medido: da 2.88–3.15 contra las tres superficies y AA pide 4.5. La jerarquía la llevan el tamaño y el peso | Bajo |
+| El enlace al módulo mezcla el acento con el color de texto | Acento puro | El acento puro da 4.3; el `color-mix` al 82% conserva el tinte que identifica al módulo y llega a 5.4–7.4 | Bajo |
+| El chip de una fase dice «Con avance», no «En marcha» | Mantener «En marcha» | El chip responde si ya hay trabajo registrado en el módulo, no si la fase corre ahora: una fase terminada en mayo decía «En marcha» en julio | Bajo |
+| El vacío del lienzo va fuera del mundo transformado | Un nodo-guía dentro del lienzo | Así la invitación no se desplaza ni se achica con la cámara, y `pointer-events: none` deja pasar el doble clic que propone | Bajo |
+| El selector de referencia navega con flechas y Enter | Solo Tab | Con 25 piezas más hitos y entradas, llegar con Tab es inviable | Bajo |
+
 ## Deuda registrada
+
+- **`--pulso-text-faint` no alcanza AA en ninguna superficie** (2.88–3.15 medido). Este trabajo lo sacó del CSS del subsistema Bitácora, pero el token sigue en uso en el resto de la app. Saldarlo es una unidad propia: hay que decidir si se oscurece el token —lo que cambia el aspecto de toda la app— o si se reemplaza superficie por superficie.
+- **El conmutador Fases | Gantt | Lista queda en 3.7** de contraste. Hereda los tokens de la banda de chrome compartida (`--pulso-section-pill-*`), así que corregirlo toca la banda de los ocho módulos; no se hace al cierre de esta unidad.
+- **El calendario tiene textos por debajo de AA** (números de día y etiquetas de evento, 3.15). Es código preexistente a este ADR (`Calendar.tsx`), fuera del alcance de este trabajo.
 
 1. **`LogicCanvas.tsx` conserva su cámara propia.** Convive con `lib/lienzo/`
    hasta que se migre. Saldarlo exige una unidad de trabajo con QA visual del

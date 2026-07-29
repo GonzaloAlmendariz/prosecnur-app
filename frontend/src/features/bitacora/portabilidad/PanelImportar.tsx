@@ -106,9 +106,6 @@ export function PanelImportar({
       role="dialog"
       aria-modal="true"
       aria-label="Importar mapa del estudio"
-      data-qa-geometry-group="bitacora-importar"
-      data-qa-geometry-contract="intrinsic"
-      data-qa-geometry-capacity="owned"
     >
       <header className="bport-cabecera">
         <h2>Importar mapa del estudio</h2>
@@ -138,9 +135,18 @@ export function PanelImportar({
       )}
 
       {revision && (
-        <div className="bport-revision">
+        <div
+          className="bport-revision"
+          data-qa-geometry-group="bitacora-importar-revision"
+          data-qa-geometry-contract="intrinsic"
+          data-qa-geometry-capacity="owned"
+        >
           {/* La vista previa: qué va a pasar, ANTES de que pase. */}
-          <ul className="bport-balance">
+          <ul
+            className="bport-balance"
+            data-qa-geometry-group="bitacora-importar-balance"
+            data-qa-geometry-contract="equal"
+          >
             <li className="is-crea">
               <Plus size={13} aria-hidden="true" />
               <strong>{revision.crea.length}</strong>

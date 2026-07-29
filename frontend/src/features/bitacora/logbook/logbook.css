@@ -38,7 +38,7 @@
 }
 
 .bit-rapida-campo::placeholder {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 /* El foco se marca en el contenedor, no en el textarea: el anillo alrededor de
@@ -159,7 +159,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-filtros-busqueda input {
@@ -189,7 +189,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-filtros-modulo select {
@@ -298,7 +298,7 @@
   flex-wrap: wrap;
   gap: 7px;
   font-size: 11.5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-entrada-cuerpo strong {
@@ -324,7 +324,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: transparent;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   font-size: 11px;
   cursor: pointer;
 }
@@ -399,7 +399,7 @@
   font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-historial ol {
@@ -415,7 +415,7 @@
   display: flex;
   gap: 8px;
   font-size: 11px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-historial p {
@@ -432,7 +432,7 @@
 
 .bit-historial-vacio {
   font-style: italic;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 /* --- Confirmación de borrado --------------------------------------------- */

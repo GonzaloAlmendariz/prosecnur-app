@@ -14,7 +14,7 @@
   padding-block-start: 8px;
   border-block-start: 1px solid var(--pulso-border);
   font-size: 12px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   max-width: 56ch;
 }
 
@@ -27,7 +27,7 @@
   font-weight: var(--pulso-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 /* Columnas declaradas una vez y heredadas: la relación y el botón caen en la
@@ -76,7 +76,7 @@
 }
 
 .bit-vinculo-destino small {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   font-size: 10.5px;
   white-space: nowrap;
 }
@@ -86,7 +86,7 @@
 }
 
 .bit-vinculo-relacion {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   font-size: 11px;
   white-space: nowrap;
 }
@@ -100,7 +100,7 @@
   border: 0;
   border-radius: var(--pulso-radius-chip);
   background: transparent;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   cursor: pointer;
 }
 
@@ -144,7 +144,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-selector-busqueda input {
@@ -219,7 +219,7 @@
 }
 
 .bit-selector-lista small {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   font-size: 10.5px;
   white-space: nowrap;
 }
@@ -227,5 +227,5 @@
 .bit-selector-vacio {
   margin: 0;
   font-size: 12px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }

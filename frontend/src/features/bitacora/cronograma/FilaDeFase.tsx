@@ -112,7 +112,10 @@ export function FilaDeFase({
           }
         >
           <CircleDot size={12} aria-hidden="true" />
-          <span>{conEvidencia ? "En marcha" : "Planificada"}</span>
+          {/* «Con avance» y no «En marcha»: el chip responde si YA HAY TRABAJO
+              registrado en ese módulo, no si la fase está corriendo ahora. Una
+              fase que terminó en mayo decía «En marcha» en julio. */}
+          <span>{conEvidencia ? "Con avance" : "Planificada"}</span>
         </span>
 
         <span className="bit-fase-fechas">

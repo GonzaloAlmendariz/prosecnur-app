@@ -139,7 +139,7 @@
 
 .bport-balance svg {
   grid-row: 1 / 3;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bport-balance strong {
@@ -152,7 +152,7 @@
 
 .bport-balance span {
   font-size: 11px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bport-balance .is-crea { border-color: var(--pulso-success-border); background: var(--pulso-success-bg); }
@@ -196,7 +196,7 @@
   margin: 0;
   padding: 0 11px 6px;
   font-size: 11.5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bport-detalle ul {
@@ -222,7 +222,7 @@
 .bport-detalle em {
   font-style: normal;
   font-size: 10.5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   text-align: end;
 }
 
@@ -235,7 +235,7 @@
 .bport-nota {
   margin: 0;
   font-size: 11.5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bport-pie {

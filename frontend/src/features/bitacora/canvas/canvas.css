@@ -247,7 +247,7 @@
 }
 
 .bcanvas-nodo-vacio {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 /* --- Anclajes ------------------------------------------------------------ */
@@ -368,7 +368,7 @@
 
 .bcanvas-ref-cuerpo small {
   font-size: 11px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -410,7 +410,7 @@
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bcanvas-ref-tipo em {
@@ -438,7 +438,7 @@
 
 .bcanvas-ref-dato small {
   font-size: 10.5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bcanvas-ref-huerfano {
@@ -511,7 +511,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bcanvas-selector-busqueda input {
@@ -592,7 +592,7 @@
   height: 22px;
   border-radius: var(--pulso-radius);
   background: var(--module-accent-soft, transparent);
-  color: var(--module-accent, var(--pulso-text-faint));
+  color: var(--module-accent, var(--pulso-text-soft));
 }
 
 .bcanvas-selector-titulo {
@@ -602,7 +602,7 @@
 }
 
 .bcanvas-selector-lista small {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   font-size: 10.5px;
   white-space: nowrap;
 }
@@ -610,7 +610,7 @@
 .bcanvas-selector-vacio {
   margin: 0;
   font-size: 12px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 /* El tono de una entrada es información, no decoración: el mismo color que
@@ -619,3 +619,50 @@
 .bcanvas-ref-tipo em.is-tono-bloqueo { background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
 .bcanvas-ref-tipo em.is-tono-avance { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
 .bcanvas-ref-tipo em.is-tono-decision { background: var(--pulso-info-bg); color: var(--pulso-info-fg); }
+
+/* --- Lienzo vacío (C3) --------------------------------------------------- */
+
+.bcanvas-vacio {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  /* Es una invitación, no un obstáculo: el doble clic que propone tiene que
+   * llegar al viewport que está debajo. */
+  pointer-events: none;
+}
+
+.bcanvas-vacio span {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+}
+
+.bcanvas-vacio small {
+  max-width: 42ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.bcanvas-vacio kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  font: inherit;
+  font-size: 11px;
+}
+
+/* El cursor del teclado se ve igual que el hover: quien navega con flechas ve
+ * lo mismo que quien apunta con el ratón. */
+.bcanvas-selector-lista button[data-activo="true"] {
+  background: var(--pulso-surface-3);
+  box-shadow: inset 2px 0 0 var(--module-accent, var(--pulso-primary));
+}
