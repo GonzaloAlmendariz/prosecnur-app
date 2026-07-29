@@ -229,12 +229,31 @@
   color: var(--pulso-text);
 }
 
+/* Los metadatos van en UNA línea y se recortan si no caben.
+ *
+ * El grupo declara contrato `equal` y lo estaba rompiendo por 23 px: con
+ * «Procesamiento · Carga ↗» más «1 actividad» la línea envolvía en dos, y una
+ * fase sin actividades se quedaba en una. Medido: filas de 71, 71, 71, 48, 48
+ * donde el marco tiene que ser el mismo pase lo que pase con sus datos (C2). */
 .bit-fase-titulo small {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-size: 11px;
   color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.bit-fase-titulo small > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El conteo no se recorta: es un dato corto y es lo que se busca de reojo. */
+.bit-fase-conteo {
+  flex: 0 0 auto;
 }
 
 .bit-fase-destino {

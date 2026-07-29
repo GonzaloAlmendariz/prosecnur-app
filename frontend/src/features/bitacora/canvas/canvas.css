@@ -187,9 +187,13 @@
   transform: translate(10000px, 10000px);
 }
 
+/* Una arista dice qué está conectado con qué: es información, no adorno, así
+ * que le aplica el 3:1 que AA pide a los elementos gráficos. Con
+ * `--pulso-border-strong` a secas daba 1.43 sobre el fondo del lienzo —apenas
+ * se veía—. La mezcla conserva el matiz azulado del borde y llega a 3.33. */
 .bcanvas-arista {
   fill: none;
-  stroke: var(--pulso-border-strong);
+  stroke: color-mix(in srgb, var(--pulso-border-strong) 45%, var(--pulso-text-soft));
   stroke-width: 1.5;
 }
 

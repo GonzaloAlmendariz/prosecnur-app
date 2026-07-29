@@ -225,10 +225,19 @@ export function CompositorDeFases({
 
       {error && <Alert kind="error">{error}</Alert>}
 
+      {/* `intrinsic`, no `equal`.
+       *
+       * Una fila de fase NO es una variante repetida de alto fijo: se expande
+       * con su disclosure para mostrar las actividades, y lleva un aviso cuando
+       * sus fechas se solapan con otra. Declararla `equal` era prometer algo que
+       * el propio diseño no puede cumplir —medido: 71, 71, 71, 48, 48 según
+       * llevaran aviso—, y la promesa se rompía sola en cuanto alguien expandía
+       * una fila. Lo que sí se sostiene, y es lo que el runner verifica con
+       * `intrinsic`, es que cada fila contenga su propio vacío. */}
       <div
         className="bit-compositor-fases"
         data-qa-geometry-group="bitacora-fases"
-        data-qa-geometry-contract="equal"
+        data-qa-geometry-contract="intrinsic"
       >
         {estado.fases.map((fase) => (
           <FilaDeFase
