@@ -135,6 +135,22 @@
   background-size: 24px 24px;
   cursor: grab;
   touch-action: none;
+  /* Arrastrar un nodo es un gesto de mover, no de seleccionar texto: sin esto
+   * el navegador iba pintando de resalte los rótulos de las tarjetas por las
+   * que pasaba el puntero. Lo que SÍ se escribe reactiva la selección abajo. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Todo lo que se edita o se copia vuelve a ser seleccionable. Un `user-select:
+ * none` global dejaría los campos de texto sin poder marcar una palabra. */
+.bcanvas-nodo-editor,
+.bcanvas-ref-items input,
+.bcanvas-selector-busqueda input,
+.bcanvas-ref-dato p,
+.bcanvas-ref-items li > span {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .bcanvas-viewport:active {
