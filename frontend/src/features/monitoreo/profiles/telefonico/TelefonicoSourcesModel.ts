@@ -485,8 +485,12 @@ export function buildAcreditacionPhoneSourceContract(
   const universe: AcreditacionPhoneSourceSlot = {
     key: "universo",
     label: "Base telefónica / universo",
+    // Cuando una sola hoja cubre universo y barrido, lo que hay que decir es
+    // eso —que es la misma hoja—, no repetir para qué sirve: la tarjeta de al
+    // lado ya lo lista, y en pantalla las dos decían casi lo mismo con dos
+    // redacciones distintas.
     purpose: sweepCoversUniverse
-      ? "La hoja activa también define casos, cuotas y población objetivo."
+      ? "La misma hoja del barrido."
       : "Personas contactables, variables de cuota y población objetivo.",
     expected: ["sede", "atencion", "tramite", "origen", "telefono"],
     sources: effectiveUniverseSources,

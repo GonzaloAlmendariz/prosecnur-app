@@ -624,16 +624,21 @@ en vez de por proveedor («Bases en Sheets», «SurveyMonkey/Kobo»), y el embud
 deja de decir «registros del snapshot». Los colores de los cinco desenlaces
 salen de `coloresDeResultado.ts`.
 
-> **Telefónico no conecta fuentes, y eso cambia §4.4.** Medido en
-> `ACNUR_PDM.pulso` (family `telefonico`, 2.726 registros, metas por 5 sedes):
-> `monitoreo_config$sources` está **vacío**. El perfil se configura por columnas
-> —`enumerator_var`, `status_var`, `contact_var`, `date_var`, `duration_var`— y
-> los datos llegan de una base ya cargada, no de fuentes sincronizadas. Así que
-> «replicar la sección Fuentes de Acreditación» no aplica tal cual: hay que
-> decidir **qué es Fuentes en un perfil que no conecta ninguna** —probablemente
-> el mapeo de columnas y la base de barrido— antes de mover pestañas.
+> **Dónde viven las fuentes de telefónico** —y una lección de método—. Al
+> inspeccionar `ACNUR_PDM.pulso` (family `telefonico`, 2.726 registros, metas por
+> 5 sedes) se leyó `monitoreo_config$sources`, que está **vacío**, y se concluyó
+> que el perfil no conecta fuentes. **Es falso**: la app muestra 3 fuentes, con
+> una hoja `Barrido!A1:Y2297` de 2.726 filas sincronizada el 2/07. Viven en
+> `state$monitoreo_sources`, hermana de la config y no dentro de ella.
 >
-> Sus estados sí vienen declarados, con el vocabulario del cliente:
+> Así que §4.4 sí aplica: telefónico conecta fuentes como acreditación. La
+> lección es de método —mirar una clave y generalizar del vacío a «no existe»— y
+> la comprobación que lo desmintió costó abrir la app, no leer más código.
+>
+> El perfil además se configura por columnas (`enumerator_var`, `status_var`,
+> `contact_var`, `date_var`, `duration_var`), que es lo que no tiene acreditación.
+>
+> Sus estados vienen declarados, con el vocabulario del cliente:
 > `complete ← completed, complete, valid` · `pending ← no_barrido,
 > contactar_despues, contactado_whatsapp` · `refusal ← rejected, rechazo,
 > refusal` · `non_effective ← no_contesta, apagado, colgo_corto` ·
@@ -660,6 +665,31 @@ editarlo ahora sería pisarlo:
 Lo que **no** se cambia, revisado uno por uno: los `small` que llevan cifra o
 estado concreto, y los vacíos que nombran la acción que los resuelve —esos
 cumplen C3 y R4, no son relleno—.
+
+> **Medido en pantalla el 2026-07-29** sobre `ACNUR_PDM.pulso`, sección Fuentes ›
+> Universo y barrido. Todo lo que sigue vive en el page-file y espera a que
+> termine su partición en módulos:
+>
+> - **El título se dice tres veces seguidas**: eyebrow «Universo y barrido»,
+>   título «A quién llamar y qué pasó en cada llamada», subtítulo «Universo y
+>   barrido» otra vez.
+> - **Tres párrafos explican el mismo reparto** en la misma pantalla: «La base de
+>   universo fija la población; la hoja de barrido registra responsable, intentos,
+>   estado y fecha», «La hoja activa también define casos, cuotas y población
+>   objetivo» (ya corregido: vive en `TelefonicoSourcesModel`) y «La base define a
+>   quién llamar; el barrido conserva responsables, intentos, estados y fechas.
+>   Kobo queda separado como validación de efectivas».
+> - **§3, un dato un lugar**: `FUENTES 3/3` aparece dos veces; el volumen tres
+>   —«2.726 en el snapshot», «BASE 2.726», «UNIVERSO 2.726»—; y `ÚLTIMO SYNC
+>   2/07/26 8:51 p. m.` tres veces en la misma vista.
+> - Las tarjetas «Base telefónica / universo» y «Barrido telefónico» muestran
+>   **valores idénticos** (misma hoja, mismo rango, mismo sync) porque en este
+>   estudio una sola hoja cubre las dos cosas. Con la duplicación de arriba, la
+>   pantalla repite el mismo dato hasta seis veces.
+> - Queda «2.726 en el snapshot» (`TelefonicoMonitoreoPage`). El mismo rótulo en
+>   el panel de Salidas ya pasó a «recibidas», con su contrato semántico
+>   actualizado: lo que ese test defiende es que el conteo crudo no se confunda
+>   con las válidas, no la palabra.
 
 ---
 

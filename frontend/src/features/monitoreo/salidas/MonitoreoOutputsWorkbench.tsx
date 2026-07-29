@@ -1007,9 +1007,15 @@ export function MonitoreoOutputsWorkbench({
   // Antes decía solo "N registros", y ese N era la ingesta cruda: el usuario leía
   // "1.400 registros" y asumía 1.400 casos defendibles. Ahora los tres granos
   // viajan juntos y con nombre.
+  //
+  // El primero decía «en el snapshot», que es cómo la app guarda lo que trajo la
+  // sincronización y no un concepto de investigación por encuestas. Lo que el
+  // contrato de honestidad defiende es que el conteo crudo no se confunda con
+  // las válidas, y «recibidas» lo distingue igual de bien sin hablar de la
+  // implementación.
   const snapshotHint = hasSnapshot
     ? [
-        `${fmt(corte.ingesta)} en el snapshot`,
+        `${fmt(corte.ingesta)} recibidas`,
         corte.procesable != null ? `${fmt(corte.procesable)} procesables` : null,
         `${corte.oficial == null ? "efectivas sin determinar" : `${fmt(corte.oficial)} válidas`}`,
         syncedAt ? `corte ${formatDate(syncedAt)}` : null,
