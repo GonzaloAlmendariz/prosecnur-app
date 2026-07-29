@@ -17813,11 +17813,9 @@ function AcreditacionAdvanceDailyMini({
       variant === "general" ? 3 : 4,
       variant === "general" ? 8 : 5,
     );
-  const showDenseDailyLabels = isCompactChart
-    ? chartRows.length <= 7
-    : variant === "general"
-    ? chartRows.length <= 42
-    : chartRows.length <= 24;
+  // El techo por número de días existía porque sin scroll las etiquetas se
+  // encimaban; ahora el gráfico garantiza 28 px por corte (`ritmoDiario.css`).
+  const showDenseDailyLabels = isCompactChart ? chartRows.length <= 7 : true;
   const dailyLabelCandidates = usesEffectiveAxisBand
     ? []
     : showDenseDailyLabels
@@ -17830,7 +17828,7 @@ function AcreditacionAdvanceDailyMini({
   const dailyLabelRows = sparseDailyChartRows(
     dailyLabelCandidates,
     showDenseDailyLabels ? 1 : variant === "general" ? 2 : 3,
-    showDenseDailyLabels ? Math.min(42, dailyLabelCandidates.length) : variant === "general" ? 8 : 5,
+    showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
   );
   const dateLabelRows = isCompactChart || isEffectiveGeneralChart ? [] : chartRows;
   const xAxisTickRows = isEffectiveGeneralChart ? chartRows : tickRows;
@@ -17965,7 +17963,9 @@ function AcreditacionAdvanceDailyMini({
         y: isEffectiveGeneralChart ? -0.045 : -0.08,
         xref: "x" as const,
         yref: "paper" as const,
-        text: fmt(point.dailyTotal),
+        // Los días que cierran un reporte, en negrita: son las cifras que
+        // viajan al informe. Los decide el cronograma, no el gráfico.
+        text: cutXSet.has(point.x) ? `<b>${fmt(point.dailyTotal)}</b>` : fmt(point.dailyTotal),
         showarrow: false,
         xanchor: "center" as const,
         yanchor: "middle" as const,
