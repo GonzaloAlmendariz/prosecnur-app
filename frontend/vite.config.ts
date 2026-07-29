@@ -24,8 +24,33 @@ const apiProxyTarget =
   process.env.VITE_API_PROXY_TARGET ||
   `http://127.0.0.1:${process.env.PULSO_PORT || "8787"}`;
 
+// Módulos de src/components y src/lib acoplados POR VALOR a src/api o a stores
+// de features. NO pueden viajar en app-core: app-core es dependencia estática
+// del entry (BootGate importa RecentProjectCard, modules y navegacion), así que
+// meterlos ahí (a) reintroduciría api-client en el arranque estático — justo lo
+// que la regla de bootClient elimina — y (b) cerraría el ciclo de chunks
+// app-core ↔ api-client (api/analitica.ts y api/monitoreo.ts importan
+// lib/repeatIdentity y lib/captureUrl por valor), la misma clase de TDZ que ya
+// dejó la app en blanco dos veces. Quedan sin asignar: Rollup los coloca fuera
+// de la ruta estática del entry, como hasta ahora.
+const APP_CORE_VALUE_COUPLED_EXCLUDED = [
+  "/src/components/ChromeBaseSelector.tsx", // apiEstudio* por valor + baseScopeModel
+  "/src/components/JobProgress.tsx", // hooks/useJob → apiJobStatus por valor
+  "/src/lib/SessionContext.tsx", // apiSession* por valor
+  "/src/lib/useStoreResetOnSessionChange.ts", // stores de dashboard/graficos → api/client
+];
+
 function manualChunks(id: string) {
   const normalized = id.split(path.sep).join("/");
+  // El helper de preload de Vite es un módulo virtual (`\0vite/preload-helper`)
+  // compartido por TODOS los chunks con import() dinámico. Sin regla, Rollup lo
+  // colocó dentro de monitoreo-core y el entry (que usa import() para AppSuite)
+  // arrastraba monitoreo-core JS+CSS al arranque estático de index.html.
+  if (normalized.includes("vite/preload-helper")) return "app-core";
+  // bootClient.ts es autocontenido (cero imports) y es lo único de src/api que
+  // BootGate necesita en el arranque; si cae en api-client arrastra todo
+  // src/api (~34 KB gz) al entry. Debe evaluarse ANTES del patrón /src/api/.
+  if (normalized.includes("/src/api/bootClient.ts")) return "app-core";
   if (normalized.includes("/src/api/")) return "api-client";
   if (
     normalized.includes("/src/vendor/lucide-react.ts") ||
@@ -33,16 +58,17 @@ function manualChunks(id: string) {
   ) {
     return "vendor-lucide";
   }
-  // `lib/navegacion/` viaja con `modules.ts` a propósito: es su contrato, no
-  // una feature. Repartido entre chunks de módulo, Rollup llegó a ejecutar
-  // `manifiesto.ts` (que arma MANIFIESTO_NAVEGACION en top-level) antes de que
-  // `direccion.ts` inicializara TABLA_RUTAS, y el TDZ dejaba la app en blanco
-  // sin montar React.
-  if (
-    normalized.includes("/src/lib/icons.ts") ||
-    normalized.includes("/src/lib/modules.ts") ||
-    normalized.includes("/src/lib/navegacion/")
-  ) {
+  // Primitivas compartidas (src/components) y lib base viajan juntas en
+  // app-core: repartidas por placement de Rollup terminaban dentro de
+  // monitoreo-core y 29 chunks lo importaban de vuelta. Además `lib/navegacion/`
+  // viaja con `modules.ts` a propósito: es su contrato, no una feature.
+  // Repartido entre chunks de módulo, Rollup llegó a ejecutar `manifiesto.ts`
+  // (que arma MANIFIESTO_NAVEGACION en top-level) antes de que `direccion.ts`
+  // inicializara TABLA_RUTAS, y el TDZ dejaba la app en blanco sin montar React.
+  if (normalized.includes("/src/components/") || normalized.includes("/src/lib/")) {
+    if (APP_CORE_VALUE_COUPLED_EXCLUDED.some((suffix) => normalized.endsWith(suffix))) {
+      return undefined;
+    }
     return "app-core";
   }
   if (normalized.includes("/node_modules/plotly.js-dist-min/")) return "vendor-plotly";
