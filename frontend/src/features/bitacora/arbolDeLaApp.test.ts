@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { PROSECNUR_MODULES } from "../../lib/modules";
-import { ancestrosDe, aplanarArbol, arbolDeLaApp, padreDe, resolverDestino } from "./arbolDeLaApp";
+import {
+  ancestrosDe,
+  aplanarArbol,
+  arbolDeLaApp,
+  arbolReferenciable,
+  padreDe,
+  resolverDestino,
+} from "./arbolDeLaApp";
 
 describe("arbolDeLaApp", () => {
   it("expone un nodo raíz por módulo", () => {
@@ -91,5 +98,33 @@ describe("arbolDeLaApp", () => {
     if (avances.length > 1) {
       expect(new Set(avances.map((n) => n.ruta)).size).toBe(avances.length);
     }
+  });
+});
+
+describe("lo que el explorador ofrece", () => {
+  it("no ofrece Bitácora ni sus secciones", () => {
+    // El lienzo vive dentro de Bitácora: un nodo que apunta a Cronograma,
+    // Calendario o al propio Lienzo es la superficie mirándose a sí misma.
+    const claves = aplanarArbol().map((n) => n.clave);
+    expect(claves).not.toContain("diseno-estudio");
+    expect(claves.filter((c) => c.startsWith("diseno-estudio"))).toEqual([]);
+  });
+
+  it("ofrece todos los demás módulos", () => {
+    const ofrecidos = arbolReferenciable().map((n) => n.clave);
+    const esperados = PROSECNUR_MODULES.map((m) => m.slug).filter((s) => s !== "diseno-estudio");
+    expect(ofrecidos).toEqual(esperados);
+  });
+
+  it("la búsqueda no es una puerta trasera a lo que no se ofrece", () => {
+    // `aplanarArbol` alimenta la búsqueda: si buscara sobre el árbol completo,
+    // escribir «cronograma» devolvería lo que el recorrido esconde.
+    expect(aplanarArbol().some((n) => n.moduloSlug === "diseno-estudio")).toBe(false);
+  });
+
+  it("un destino de Bitácora GUARDADO sigue resolviendo", () => {
+    // Excluirlo de la oferta no puede convertir en huérfanos los nodos que ya
+    // existen: el árbol de resolución es el completo, no el ofrecible.
+    expect(resolverDestino("diseno-estudio")?.label).toBeTruthy();
   });
 });
