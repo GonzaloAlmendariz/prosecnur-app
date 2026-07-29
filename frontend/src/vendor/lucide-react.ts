@@ -33,6 +33,9 @@ export { default as BarChart2 } from "lucide-react/dist/esm/icons/chart-no-axes-
 export { default as BarChart3 } from "lucide-react/dist/esm/icons/chart-column.mjs";
 export { default as BarChartBig } from "lucide-react/dist/esm/icons/chart-column-big.mjs";
 export { default as BarChartHorizontal } from "lucide-react/dist/esm/icons/chart-bar.mjs";
+export { default as Bell } from "lucide-react/dist/esm/icons/bell.mjs";
+export { default as BellOff } from "lucide-react/dist/esm/icons/bell-off.mjs";
+export { default as BellRing } from "lucide-react/dist/esm/icons/bell-ring.mjs";
 export { default as Blocks } from "lucide-react/dist/esm/icons/blocks.mjs";
 export { default as Bold } from "lucide-react/dist/esm/icons/bold.mjs";
 export { default as Book } from "lucide-react/dist/esm/icons/book.mjs";
@@ -54,6 +57,7 @@ export { default as Camera } from "lucide-react/dist/esm/icons/camera.mjs";
 export { default as Check } from "lucide-react/dist/esm/icons/check.mjs";
 export { default as CheckCircle2 } from "lucide-react/dist/esm/icons/circle-check.mjs";
 export { default as CheckSquare } from "lucide-react/dist/esm/icons/square-check-big.mjs";
+export { default as CheckCheck } from "lucide-react/dist/esm/icons/check-check.mjs";
 export { default as ChevronDown } from "lucide-react/dist/esm/icons/chevron-down.mjs";
 export { default as ChevronLeft } from "lucide-react/dist/esm/icons/chevron-left.mjs";
 export { default as ChevronRight } from "lucide-react/dist/esm/icons/chevron-right.mjs";

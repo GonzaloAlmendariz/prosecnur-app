@@ -72,6 +72,37 @@ export type BitacoraPreferencias = {
   canvas: { snap: boolean; grid: number; guias: boolean };
 };
 
+/** Lo que el libro de disparos le dice al motor del cliente. */
+export type BitacoraAvisosPayload = {
+  schema: "bitacora_avisos_v1" | string;
+  last_evaluated_at: string;
+  total: number;
+  /** Claves que no deben volver a mostrarse: disparadas y descartadas. */
+  silenciadas: string[];
+  /** Claves que reaparecen a una hora concreta. */
+  pospuestas: Array<{ clave: string; hasta: string }>;
+  /**
+   * Avisos que ya sonaron y el usuario todavía no atendió. Es lo que el centro
+   * y la campana muestran: sobrevive a recargar, porque un aviso disparado
+   * sigue pendiente hasta que se posponga o se descarte.
+   */
+  pendientes: Array<{
+    clave: string;
+    task_id: string;
+    reminder_id: string;
+    occurrence: string;
+    fired_at: string;
+  }>;
+  historial: Array<{
+    clave: string;
+    task_id: string;
+    occurrence: string;
+    state: string;
+    fired_at: string;
+    snoozed_until: string;
+  }>;
+};
+
 export type BitacoraEstado = {
   ok: true;
   schema: "bitacora_estado_v1" | string;
@@ -82,6 +113,7 @@ export type BitacoraEstado = {
   fases: BitacoraFaseVista[];
   catalogo_fases: BitacoraFaseCatalogo[];
   bitacora: DisenoEstudioBitacoraEntry[];
+  avisos: BitacoraAvisosPayload;
   preferencias: BitacoraPreferencias;
   contadores: { tareas: number; archivadas: number; entradas: number };
 };
@@ -169,6 +201,44 @@ export async function apiBitacoraTareaBorrar(id: string) {
     await apiFetch(`/api/bitacora/cronograma/tareas/${encodeURIComponent(id)}`, {
       method: "DELETE",
       headers: headers(),
+    }),
+  );
+}
+
+/**
+ * Reclama avisos ANTES de mostrarlos.
+ *
+ * Devuelve solo las claves que le tocan a ESTE cliente: si dos pestañas
+ * evalúan a la vez, una recibe la clave y la otra no, así el aviso se muestra
+ * una sola vez. Reintentar tras un error de red es inofensivo porque el
+ * backend es idempotente.
+ */
+export async function apiBitacoraAvisosReclamar(claves: string[]) {
+  return handle<{ ok: true; schema: string; reclamadas: string[]; avisos: BitacoraAvisosPayload }>(
+    await apiFetch("/api/bitacora/avisos/reclamar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ claves }),
+    }),
+  );
+}
+
+export async function apiBitacoraAvisoPosponer(clave: string, hasta: string) {
+  return handle<{ ok: true; avisos: BitacoraAvisosPayload }>(
+    await apiFetch("/api/bitacora/avisos/posponer", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ clave, hasta }),
+    }),
+  );
+}
+
+export async function apiBitacoraAvisoDescartar(clave: string) {
+  return handle<{ ok: true; avisos: BitacoraAvisosPayload }>(
+    await apiFetch("/api/bitacora/avisos/descartar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ clave }),
     }),
   );
 }

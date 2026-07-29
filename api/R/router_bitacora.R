@@ -59,6 +59,7 @@
            modulos = as.list(f$evidencia))
     }),
     bitacora = .diseno_bitacora_entries(s),
+    avisos = .bit_avisos_payload(s),
     preferencias = .bit_prefs_leer(s),
     contadores = list(
       tareas = length(Filter(function(t) !nzchar(calc_str(t$archived_at, "")), plan$tasks %||% list())),
@@ -137,6 +138,41 @@ mount_bitacora <- function(pr) {
       plan <- .bit_cron_borrar(.bit_plan_actual(session_get(sid)), .bit_id_de_ruta(id))
       .bit_guardar_plan(sid, plan)
       .bit_estado_payload(sid)
+    })) |>
+
+    # --- Avisos --------------------------------------------------------------
+    #
+    # Reclamar ANTES de presentar. La implementación natural —mostrar el aviso y
+    # después persistir que sonó— deja una ventana en la que recargar la app lo
+    # vuelve a disparar. El cliente manda las claves, recibe cuáles le tocan a
+    # ÉL, y recién entonces las muestra.
+    plumber::pr_post("/api/bitacora/avisos/reclamar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      resultado <- .bit_aviso_reclamar(sid, body$claves %||% list())
+      list(
+        ok = TRUE,
+        schema = BITACORA_AVISOS_SCHEMA,
+        reclamadas = resultado$reclamadas,
+        avisos = .bit_avisos_payload(session_get(sid))
+      )
+    })) |>
+
+    plumber::pr_post("/api/bitacora/avisos/posponer",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      .bit_aviso_posponer(sid, body$clave, body$hasta)
+      list(ok = TRUE, schema = BITACORA_AVISOS_SCHEMA, avisos = .bit_avisos_payload(session_get(sid)))
+    })) |>
+
+    plumber::pr_post("/api/bitacora/avisos/descartar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      .bit_aviso_descartar(sid, body$clave)
+      list(ok = TRUE, schema = BITACORA_AVISOS_SCHEMA, avisos = .bit_avisos_payload(session_get(sid)))
     })) |>
 
     plumber::pr_post("/api/bitacora/preferencias",

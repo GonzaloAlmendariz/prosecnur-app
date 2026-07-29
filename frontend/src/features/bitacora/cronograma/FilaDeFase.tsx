@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, CalendarRange, ChevronDown, ChevronRight, CircleDot, Plus } from "../../../vendor/lucide-react";
 
 import type { BitacoraFaseVista } from "../../../api/bitacora";
-import type { PlanTrabajoTask } from "../../../api/planTrabajo";
+import type { BitacoraRecordatorio, PlanTrabajoTask } from "../../../api/planTrabajo";
+import { EditorRecordatorios } from "../avisos/EditorRecordatorios";
 import { identidadDeFase } from "../identidadDeFase";
 import { duracionEnDias, etiquetaRango } from "./fases";
 
@@ -17,21 +18,26 @@ import { duracionEnDias, etiquetaRango } from "./fases";
 export function FilaDeFase({
   fase,
   tareas,
+  tareaDeclarada,
   expandida,
   solapada,
   guardando,
   onToggle,
   onRango,
   onNuevaActividad,
+  onRecordatorios,
 }: {
   fase: BitacoraFaseVista;
   tareas: PlanTrabajoTask[];
+  /** La tarea que declara la etapa; es la que lleva sus recordatorios. */
+  tareaDeclarada: PlanTrabajoTask | null;
   expandida: boolean;
   solapada: boolean;
   guardando: boolean;
   onToggle: () => void;
   onRango: (inicio: string, fin: string) => void;
   onNuevaActividad: () => void;
+  onRecordatorios: (recordatorios: BitacoraRecordatorio[]) => void;
 }) {
   const dias = duracionEnDias(fase.start_date, fase.end_date);
   const conEvidencia = fase.evidence_state === "evidence_available";
@@ -157,6 +163,14 @@ export function FilaDeFase({
             <Plus size={14} />
             <span>Actividad en {fase.label}</span>
           </button>
+
+          {tareaDeclarada && (
+            <EditorRecordatorios
+              tarea={tareaDeclarada}
+              guardando={guardando}
+              onCambio={onRecordatorios}
+            />
+          )}
         </div>
       )}
     </div>
