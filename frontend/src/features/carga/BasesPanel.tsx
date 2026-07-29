@@ -6,8 +6,8 @@ import {
 } from "lucide-react";
 import {
   apiCargaExportNormalized,
-  apiCargaImportKoboIndependent,
-  apiCargaRefreshKoboIndependent,
+  apiCargaImportKoboIndependentAsync,
+  apiCargaRefreshKoboIndependentAsync,
   apiConnectionTokenLoad,
   apiEstudioAddBase,
   apiEstudioApplyIndependentTemplateLogic,
@@ -25,9 +25,9 @@ import {
   apiSurveyMonkeyMultibaseCollectors,
   apiSurveyMonkeyMultibaseDecisionApply,
   apiSurveyMonkeyMultibaseDecisionPreview,
-  apiSurveyMonkeyMultibaseImportIndependent,
+  apiSurveyMonkeyMultibaseImportIndependentAsync,
   apiSurveyMonkeyMultibaseListSurveys,
-  apiSurveyMonkeyMultibaseRefresh,
+  apiSurveyMonkeyMultibaseRefreshAsync,
   apiSurveyMonkeyMultibaseRefreshPlan,
   apiSurveyMonkeyMultibaseWorkbookImport,
   apiSurveyMonkeyMultibaseWorkbookInspect,
@@ -46,6 +46,7 @@ import type {
   EstudioProcessingSuggestionGroup,
   EstudioProcessingSuggestionSource,
   EstudioProcessingSuggestions,
+  KoboIndependentImportResult,
   KoboIndependentRefreshResult,
   KoboIndependentAssetInput,
   SurveyMonkeyMultibaseSurveyInput,
@@ -55,6 +56,7 @@ import type {
   SurveyMonkeyDecisionPolicy,
   SurveyMonkeyDecisionSourceAudit,
   SurveyMonkeyMultibaseDiff,
+  SurveyMonkeyMultibaseImportIndependentResult,
   SurveyMonkeyMultibaseListItem,
   SurveyMonkeyRefreshBasePlan,
   SurveyMonkeyRefreshPlan,
@@ -67,6 +69,7 @@ import { ErrorBlock } from "../../components/States";
 import { RepeatBadge } from "../../components/RepeatBadge";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { isRepeatChildBase } from "../../lib/repeatIdentity";
+import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 import { IntegratedInstrumentsWizard } from "./IntegratedInstrumentsWizard";
 import { SavBundleImportPanel } from "./SavBundleImportPanel";
 import { CargaManualBaseLanes } from "./CargaManualBaseLanes";
@@ -4045,9 +4048,15 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setAudit(null);
     setLogicSync(null);
     setCanonicalRepairResult(null);
-    setBusy(assets.length === 1 ? "Importando Kobo como fuente independiente..." : "Importando Kobo como fuentes independientes...");
+    const koboImportLabel = assets.length === 1 ? "Importando Kobo como fuente independiente" : "Importando Kobo como fuentes independientes";
+    setBusy(`${koboImportLabel}...`);
     try {
-      const result = await apiCargaImportKoboIndependent({ assets });
+      // Job en segundo plano (async: true): la app queda usable durante el
+      // pull y result_data es el mismo payload que la respuesta síncrona.
+      const start = await apiCargaImportKoboIndependentAsync({ assets });
+      const result = await esperarResultadoImport<KoboIndependentImportResult>(start.job_id, {
+        onProgress: (p) => setBusy(textoDeProgresoImport(koboImportLabel, p)),
+      });
       if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
       setKoboRefreshResult(null);
       await onImported(result.estudio);
@@ -4066,9 +4075,13 @@ function IndependentSiblingsSurveyMonkeyWizard({
       return;
     }
     setError("");
-    setBusy(targets.length === 1 ? "Actualizando base Kobo..." : "Actualizando bases Kobo...");
+    const koboRefreshLabel = targets.length === 1 ? "Actualizando base Kobo" : "Actualizando bases Kobo";
+    setBusy(`${koboRefreshLabel}...`);
     try {
-      const result = await apiCargaRefreshKoboIndependent({ base_names: targets });
+      const start = await apiCargaRefreshKoboIndependentAsync({ base_names: targets });
+      const result = await esperarResultadoImport<KoboIndependentRefreshResult>(start.job_id, {
+        onProgress: (p) => setBusy(textoDeProgresoImport(koboRefreshLabel, p)),
+      });
       setKoboRefreshResult(result);
       await onImported(result.estudio);
     } catch (e) {
@@ -4193,7 +4206,9 @@ function IndependentSiblingsSurveyMonkeyWizard({
       setBusy(importBusyLabel);
       let latestEstudio: EstudioPayload | null = null;
       if (hasNewBases) {
-        const result = await apiSurveyMonkeyMultibaseImportIndependent({
+        // Jobs en segundo plano, en serie (el backend rechaza dos imports de
+        // plataforma simultáneos por sesión con E_CARGA_JOB_RUNNING).
+        const start = await apiSurveyMonkeyMultibaseImportIndependentAsync({
           surveys: selectedInputs,
           profile_id: selectedSmProfileId || undefined,
           response_statuses: ["completed"],
@@ -4205,15 +4220,21 @@ function IndependentSiblingsSurveyMonkeyWizard({
             ? surveySpecificLogicRulesBySurvey
             : undefined,
         });
+        const result = await esperarResultadoImport<SurveyMonkeyMultibaseImportIndependentResult>(start.job_id, {
+          onProgress: (p) => setBusy(textoDeProgresoImport("Importando fuentes independientes", p)),
+        });
         setAudit(result.audit);
         if (result.xlsform_logic_sync) setLogicSync(result.xlsform_logic_sync);
         latestEstudio = result.estudio;
       }
       if (hasMergeCampaigns) {
-        const result = await apiSurveyMonkeyMultibaseRefresh({
+        const start = await apiSurveyMonkeyMultibaseRefreshAsync({
           bases: mergePayload,
           months: 12,
           reapply_codificacion: true,
+        });
+        const result = await esperarResultadoImport<SurveyMonkeyRefreshResult>(start.job_id, {
+          onProgress: (p) => setBusy(textoDeProgresoImport("Agregando campañas a bases existentes", p)),
         });
         setRefreshResult(result);
         setRefreshPlan(result.plan);
@@ -4385,10 +4406,13 @@ function IndependentSiblingsSurveyMonkeyWizard({
     setRefreshResult(null);
     setBusy("Actualizando respuestas SurveyMonkey...");
     try {
-      const result = await apiSurveyMonkeyMultibaseRefresh({
+      const start = await apiSurveyMonkeyMultibaseRefreshAsync({
         bases: (refreshPlan.bases ?? []).map((row) => ({ base_name: row.base_name })),
         months: 12,
         reapply_codificacion: true,
+      });
+      const result = await esperarResultadoImport<SurveyMonkeyRefreshResult>(start.job_id, {
+        onProgress: (p) => setBusy(textoDeProgresoImport("Actualizando respuestas SurveyMonkey", p)),
       });
       setRefreshResult(result);
       await onImported(result.estudio);
@@ -4410,15 +4434,19 @@ function IndependentSiblingsSurveyMonkeyWizard({
     if (!baseName) return;
     setError("");
     setRefreshResult(null);
-    setBusy(`Regenerando respaldo de ${base.source_alias || base.source_title || baseName}...`);
+    const regenerateLabel = `Regenerando respaldo de ${base.source_alias || base.source_title || baseName}`;
+    setBusy(`${regenerateLabel}...`);
     try {
-      const result = await apiSurveyMonkeyMultibaseRefresh({
+      const start = await apiSurveyMonkeyMultibaseRefreshAsync({
         bases: [{ base_name: baseName }],
         months: 12,
         force_refresh: true,
         reapply_codificacion: false,
         regenerate_raw_snapshot: true,
         raw_snapshot_only: true,
+      });
+      const result = await esperarResultadoImport<SurveyMonkeyRefreshResult>(start.job_id, {
+        onProgress: (p) => setBusy(textoDeProgresoImport(regenerateLabel, p)),
       });
       const row = (result.results ?? []).find((item) => item.base_name === baseName);
       if (!row?.ok || !row.raw_snapshot_regenerated) {

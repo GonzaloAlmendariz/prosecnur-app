@@ -4,6 +4,7 @@
 
 import { apiFetch, handle, headers } from "./core";
 import type { EstudioBase, EstudioLogicSyncResult, EstudioPayload } from "./estudio";
+import type { AsyncJobStart } from "./jobs";
 import { normalizeRecordArray } from "./multiIntegrado";
 import type { ChoiceCodeMap } from "./xlsformEditor";
 
@@ -778,20 +779,24 @@ export async function apiSurveyMonkeyMultibaseAudit(
   );
 }
 
-export async function apiSurveyMonkeyMultibaseImport(payload: {
+export type SurveyMonkeyMultibaseImportPayload = {
   surveys: SurveyMonkeyMultibaseSurveyInput[];
   base_name?: string;
   wording_decisions?: Record<string, string>;
   canonical_xlsform_file_id?: string;
-}) {
-  return handle<{
-    ok: true;
-    base: EstudioBase;
-    estudio: EstudioPayload;
-    audit: SurveyMonkeyMultibaseAudit;
-    n_filas: number;
-    n_columnas: number;
-  }>(
+};
+
+export type SurveyMonkeyMultibaseImportResult = {
+  ok: true;
+  base: EstudioBase;
+  estudio: EstudioPayload;
+  audit: SurveyMonkeyMultibaseAudit;
+  n_filas: number;
+  n_columnas: number;
+};
+
+export async function apiSurveyMonkeyMultibaseImport(payload: SurveyMonkeyMultibaseImportPayload) {
+  return handle<SurveyMonkeyMultibaseImportResult>(
     await apiFetch("/api/surveymonkey/multibase/import", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
@@ -800,7 +805,19 @@ export async function apiSurveyMonkeyMultibaseImport(payload: {
   );
 }
 
-export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
+/** Variante async (contrato c8b2a644): responde el handle del job de
+ *  inmediato; result_data al completar = mismo payload que la síncrona. */
+export async function apiSurveyMonkeyMultibaseImportAsync(payload: SurveyMonkeyMultibaseImportPayload) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/surveymonkey/multibase/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
+    }),
+  );
+}
+
+export type SurveyMonkeyMultibaseImportIndependentPayload = {
   surveys: SurveyMonkeyMultibaseSurveyInput[];
   profile_id?: string;
   connection_profile_id?: string;
@@ -814,21 +831,39 @@ export async function apiSurveyMonkeyMultibaseImportIndependent(payload: {
   choice_order_overrides?: Record<string, string[]>;
   choice_code_maps?: ChoiceCodeMap[];
   replace_existing_logic?: boolean;
-}) {
-  return handle<{
-    ok: true;
-    processing_mode: "independent_siblings";
-    active_base: string | null;
-    bases: EstudioBase[];
-    n_bases: number;
-    estudio: EstudioPayload;
-    audit: SurveyMonkeyMultibaseAudit;
-    xlsform_logic_sync?: EstudioLogicSyncResult | null;
-  }>(
+};
+
+export type SurveyMonkeyMultibaseImportIndependentResult = {
+  ok: true;
+  processing_mode: "independent_siblings";
+  active_base: string | null;
+  bases: EstudioBase[];
+  n_bases: number;
+  estudio: EstudioPayload;
+  audit: SurveyMonkeyMultibaseAudit;
+  xlsform_logic_sync?: EstudioLogicSyncResult | null;
+};
+
+export async function apiSurveyMonkeyMultibaseImportIndependent(
+  payload: SurveyMonkeyMultibaseImportIndependentPayload,
+) {
+  return handle<SurveyMonkeyMultibaseImportIndependentResult>(
     await apiFetch("/api/surveymonkey/multibase/import-independent", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseImportIndependentAsync(
+  payload: SurveyMonkeyMultibaseImportIndependentPayload,
+) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/surveymonkey/multibase/import-independent", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
     }),
   );
 }
@@ -1405,19 +1440,31 @@ export async function apiSurveyMonkeyMultibaseRefreshPlan(payload: {
   );
 }
 
-export async function apiSurveyMonkeyMultibaseRefresh(payload: {
+export type SurveyMonkeyMultibaseRefreshPayload = {
   bases?: SurveyMonkeyRefreshSelection[];
   months?: number;
   force_refresh?: boolean;
   reapply_codificacion?: boolean;
   regenerate_raw_snapshot?: boolean;
   raw_snapshot_only?: boolean;
-}) {
+};
+
+export async function apiSurveyMonkeyMultibaseRefresh(payload: SurveyMonkeyMultibaseRefreshPayload) {
   return handle<SurveyMonkeyRefreshResult>(
     await apiFetch("/api/surveymonkey/multibase/refresh", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiSurveyMonkeyMultibaseRefreshAsync(payload: SurveyMonkeyMultibaseRefreshPayload) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/surveymonkey/multibase/refresh", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
     }),
   );
 }

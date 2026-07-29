@@ -4,6 +4,7 @@
 
 import { ApiError, apiFetch, handle, headers } from "./core";
 import type { EstudioBase, EstudioLogicSyncResult, EstudioPayload } from "./estudio";
+import type { AsyncJobStart } from "./jobs";
 import { normalizeShareArray } from "./graficos";
 import type { MonitoreoKoboAssetItem, MonitoreoProcessingHandoffPromoteResult } from "./monitoreo";
 import { type EditorPayloadWithHallazgos, type Hallazgo, normalizeEditorPayload, normalizePersistedXlsformWorkbook, type SurveyMonkeyLogicState, type SurveyMonkeyVisualLogicAction, type SurveyMonkeyVisualLogicRule, type XlsformEditorPayload, type XlsformEditorWorkbook, type XlsformFormSource, type XlsformSourceRecord, type XlsformSourceValue } from "./multiIntegrado";
@@ -1165,7 +1166,7 @@ export type CargaPlatformImportResult = {
   estudio?: EstudioPayload | null;
 };
 
-export async function apiCargaImportSurveyMonkey(payload: {
+export type CargaImportSurveyMonkeyPayload = {
   survey_id: string;
   title?: string;
   base_url?: string;
@@ -1174,7 +1175,29 @@ export async function apiCargaImportSurveyMonkey(payload: {
   source_channel?: string;
   response_statuses?: string[];
   keep_missing_status?: boolean;
-}): Promise<CargaPlatformImportResult> {
+};
+
+export type CargaImportKoboPayload = {
+  asset_uid: string;
+  title?: string;
+  base_url?: string;
+  connection_profile_id?: string;
+};
+
+export type KoboIndependentImportResult = {
+  ok: true;
+  provider: "kobo";
+  processing_mode: "independent_siblings";
+  active_base: string | null;
+  bases: EstudioBase[];
+  n_bases: number;
+  estudio: EstudioPayload;
+  xlsform_logic_sync?: EstudioLogicSyncResult | null;
+};
+
+export async function apiCargaImportSurveyMonkey(
+  payload: CargaImportSurveyMonkeyPayload,
+): Promise<CargaPlatformImportResult> {
   return handle<CargaPlatformImportResult>(
     await apiFetch("/api/carga/platform/surveymonkey/import", {
       method: "POST",
@@ -1184,12 +1207,21 @@ export async function apiCargaImportSurveyMonkey(payload: {
   );
 }
 
-export async function apiCargaImportKobo(payload: {
-  asset_uid: string;
-  title?: string;
-  base_url?: string;
-  connection_profile_id?: string;
-}): Promise<CargaPlatformImportResult> {
+/** Variante async (contrato c8b2a644): responde el handle del job de
+ *  inmediato; result_data al completar = mismo payload que la síncrona. */
+export async function apiCargaImportSurveyMonkeyAsync(payload: CargaImportSurveyMonkeyPayload) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/carga/platform/surveymonkey/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
+    }),
+  );
+}
+
+export async function apiCargaImportKobo(
+  payload: CargaImportKoboPayload,
+): Promise<CargaPlatformImportResult> {
   return handle<CargaPlatformImportResult>(
     await apiFetch("/api/carga/platform/kobo/import", {
       method: "POST",
@@ -1199,23 +1231,36 @@ export async function apiCargaImportKobo(payload: {
   );
 }
 
+export async function apiCargaImportKoboAsync(payload: CargaImportKoboPayload) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/carga/platform/kobo/import", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
+    }),
+  );
+}
+
 export async function apiCargaImportKoboIndependent(payload: {
   assets: KoboIndependentAssetInput[];
 }) {
-  return handle<{
-    ok: true;
-    provider: "kobo";
-    processing_mode: "independent_siblings";
-    active_base: string | null;
-    bases: EstudioBase[];
-    n_bases: number;
-    estudio: EstudioPayload;
-    xlsform_logic_sync?: EstudioLogicSyncResult | null;
-  }>(
+  return handle<KoboIndependentImportResult>(
     await apiFetch("/api/carga/platform/kobo/import-independent", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiCargaImportKoboIndependentAsync(payload: {
+  assets: KoboIndependentAssetInput[];
+}) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/carga/platform/kobo/import-independent", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
     }),
   );
 }
@@ -1243,15 +1288,29 @@ export type KoboIndependentRefreshResult = {
   message?: string;
 };
 
-export async function apiCargaRefreshKoboIndependent(payload: {
+export type CargaRefreshKoboIndependentPayload = {
   base_names?: string[];
   bases?: Array<string | { base_name?: string; nombre?: string; name?: string }>;
-} = {}) {
+};
+
+export async function apiCargaRefreshKoboIndependent(payload: CargaRefreshKoboIndependentPayload = {}) {
   return handle<KoboIndependentRefreshResult>(
     await apiFetch("/api/carga/platform/kobo/refresh-independent", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function apiCargaRefreshKoboIndependentAsync(
+  payload: CargaRefreshKoboIndependentPayload = {},
+) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/carga/platform/kobo/refresh-independent", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ ...payload, async: true }),
     }),
   );
 }

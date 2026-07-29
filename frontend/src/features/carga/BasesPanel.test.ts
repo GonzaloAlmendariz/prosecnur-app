@@ -67,9 +67,11 @@ describe("BasesPanel integrated history helpers", () => {
       source.indexOf("apiSurveyMonkeyMultibaseListSurveys("),
       source.indexOf("apiSurveyMonkeyMultibaseListSurveys(") + 650,
     );
+    // El import corre como job en segundo plano (async opt-in), pero el
+    // contrato de este test no cambia: el perfil viaja en el payload.
     const importCall = source.slice(
-      source.indexOf("apiSurveyMonkeyMultibaseImportIndependent("),
-      source.indexOf("apiSurveyMonkeyMultibaseImportIndependent(") + 1_200,
+      source.indexOf("apiSurveyMonkeyMultibaseImportIndependentAsync("),
+      source.indexOf("apiSurveyMonkeyMultibaseImportIndependentAsync(") + 1_200,
     );
 
     expect(catalogCall).toMatch(/profile_id|connection_profile_id/u);

@@ -23,8 +23,9 @@ import {
 import {
   apiMonitoreoKoboAssets,
   apiMonitoreoSheetsSource,
-  apiMonitoreoSheetsSync,
+  apiMonitoreoSheetsSyncAsync,
   apiMonitoreoTerritorialConfig,
+  normalizeMonitoreoSheetsSyncResult,
   apiMonitoreoTerritorialEnumeratorsCodes,
   apiMonitoreoTerritorialEnumeratorsTemplate,
   apiMonitoreoTerritorialEnumeratorsUpload,
@@ -44,6 +45,7 @@ import {
   type MonitoreoVariable,
 } from "../../../../api/client";
 import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
 type TerritorialSourceDeclaredUmpRow = NonNullable<MonitoreoTerritorialDashboard["ump_declared_summary"]>["rows"][number];
@@ -311,6 +313,8 @@ function TerritorialSourceConsoleImpl({
   const [rosterFormat, setRosterFormat] = useState<"PXXX" | "DNI">("PXXX");
   const [rosterSearch, setRosterSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Espera de jobs amarrada al desmontaje: al salir del módulo el poll se corta.
+  const waitForSourceSyncJob = useWaitForSourceSyncJob();
 
   const koboSource = config ? koboSourceForPhase(sources, config, phase) : null;
   const routeSheetSource = routeSheetSourceForPhase(sources, phase);
@@ -568,17 +572,24 @@ function TerritorialSourceConsoleImpl({
   const syncRouteSheet = useCallback(async () => {
     if (!routeSheetSource?.id) return;
     setSaving(true);
-    setMessage("");
+    setMessage("Sincronizando Hojas de Ruta...");
     try {
-      const result = await apiMonitoreoSheetsSync([routeSheetSource.id]);
+      // Job en segundo plano (async opt-in del backend): la app queda usable
+      // durante el pull y result_data es el mismo payload que la síncrona.
+      const start = await apiMonitoreoSheetsSyncAsync([routeSheetSource.id]);
+      const snapshot = await waitForSourceSyncJob(start.job_id, (progress) => {
+        if (progress.message) setMessage(progress.message);
+      });
+      const result = normalizeMonitoreoSheetsSyncResult(snapshot.result_data);
       onStateChange(result.state);
       setMessage("Snapshot de Hojas de Ruta sincronizado.");
     } catch (error) {
+      setMessage("");
       notifyError(error);
     } finally {
       setSaving(false);
     }
-  }, [notifyError, onStateChange, routeSheetSource?.id]);
+  }, [notifyError, onStateChange, routeSheetSource?.id, waitForSourceSyncJob]);
 
   const uploadRoster = useCallback(async (selectedFile?: File | null) => {
     const file = selectedFile ?? rosterFile;

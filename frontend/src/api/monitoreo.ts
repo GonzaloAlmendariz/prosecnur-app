@@ -3,8 +3,8 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import type { CalcMuestraAulasFrame, CalcMuestraAulasSelection, CalcMuestraEstudio } from "./calcMuestra";
-import { apiFetch, apiPath, downloadUrl, getSession, handle, headers, registerMonitoreoMutationInvalidator, SESSION_KEY } from "./core";
-import type { FileJobResult, JobStart } from "./jobs";
+import { ApiError, apiFetch, apiPath, downloadUrl, getSession, handle, headers, registerMonitoreoMutationInvalidator, SESSION_KEY } from "./core";
+import { type AsyncJobStart, type FileJobResult, jobResultDomainError, type JobStart } from "./jobs";
 import { type CargaMonitoreoHandoffValidity, normalizeKoboAssets } from "./xlsformEditor";
 import { captureUrlOk } from "../lib/captureUrl";
 
@@ -3284,6 +3284,43 @@ export async function apiMonitoreoSheetsSync(sourceIds: string[] = []) {
       body: JSON.stringify({ source_ids: sourceIds }),
     }),
   );
+}
+
+/** Variante async del sync de Sheets (opt-in 3.8b): el fetch corre en un
+ *  worker y el endpoint responde el handle del job de inmediato. El
+ *  result_data del job al completar es el MISMO payload que la síncrona
+ *  (léelo con normalizeMonitoreoSheetsSyncResult). */
+export async function apiMonitoreoSheetsSyncAsync(sourceIds: string[] = []) {
+  return handle<AsyncJobStart>(
+    await apiFetch("/api/monitoreo/sheets/sync", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ source_ids: sourceIds, async: true }),
+    }),
+  );
+}
+
+/** Normalizador defensivo del result_data del job de sheets/sync: el payload
+ *  alimenta onStateChange (decisión crítica), así que un resultado sin `state`
+ *  o con error de dominio embebido se relanza como ApiError en vez de
+ *  propagar un estado vacío a la vista. */
+export function normalizeMonitoreoSheetsSyncResult(data: unknown): MonitoreoSheetsSyncResult {
+  const domainError = jobResultDomainError(data);
+  if (domainError) throw new ApiError(domainError.code, domainError.message);
+  const raw = (data ?? {}) as Partial<MonitoreoSheetsSyncResult>;
+  if (raw.ok !== true || !raw.state || typeof raw.state !== "object") {
+    throw new ApiError(
+      "E_SHEETS_SYNC_RESULT",
+      "La sincronización terminó sin estado actualizado. Vuelve a actualizar la vista.",
+    );
+  }
+  return {
+    ok: true,
+    synced_at: String(raw.synced_at ?? ""),
+    n_rows: Number(raw.n_rows ?? 0),
+    n_sources: Number(raw.n_sources ?? 0),
+    state: raw.state,
+  };
 }
 
 export async function apiMonitoreoSheetsPublish(spreadsheetId: string, config?: Partial<MonitoreoConfig>) {
