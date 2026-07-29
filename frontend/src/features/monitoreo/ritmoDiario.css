@@ -1,24 +1,35 @@
-/* Gráficos de ritmo diario con campo largo.
+/* Gráficos de ritmo diario: con el campo largo se desplazan en vez de apretarse.
  *
- * Aquí vivía un scroll horizontal del contenedor: al gráfico se le daba un
- * ancho mínimo por corte y la tarjeta se desplazaba. Funcionaba para que las
- * fechas no se encimaran, pero arrastraba TAMBIÉN los ejes —«Respuestas/día» y
- * «Acumulado» se iban de la vista al desplazarse—, y un eje que se va deja de
- * ser una referencia.
+ * Plotly reparte el ancho disponible entre todos los cortes por muchos que
+ * sean, y las fechas acaban encimadas —medido en un estudio con 59 cortes en el
+ * eje, del 25 de mayo al 22 de julio: los meses se leían «maymaymaymay» y
+ * ningún día era identificable—.
  *
- * Lo sustituye una ventana en el propio eje temporal (`VENTANA_MAX_CORTES` en
- * las vistas de perfil): Plotly dibuja solo los últimos 45 cortes y el resto se
- * alcanza arrastrando. Los dos ejes de valores quedan anclados a sus bordes por
- * construcción, porque Plotly los redibuja en cada movimiento, y lo único que
- * se desplaza son las barras y las fechas.
+ * El ancho mínimo se deriva del número de cortes, que la vista publica en
+ * `--trend-cortes`. Por debajo de ~45 cortes el mínimo no alcanza el ancho de
+ * la caja y no aparece scroll; por encima, la tarjeta se queda quieta y lo que
+ * se desplaza es el gráfico dentro de ella (No Scroll Jail).
  *
- * El archivo se conserva porque la caja sigue necesitando no desbordar: sin
- * `overflow` declarado, un relayout intermedio de Plotly llegaba a empujar la
- * tarjeta unos píxeles a lo ancho.
+ * No hay umbral escrito en ninguna parte: sale del mínimo por corte contra el
+ * ancho disponible, así que se ajusta solo a la pantalla y al zoom. Los 28 px
+ * son ese umbral traducido —mes y medio de campo en una pantalla de ~1.280 px—:
+ * subirlos adelanta el scroll, bajarlos lo retrasa.
  */
 
 .mon-phone-trend-chart,
 .mon-advance-line-chart {
-  min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.mon-phone-trend-chart .dash-plotly-chart,
+.mon-advance-line-chart .dash-plotly-chart {
+  min-width: calc(var(--trend-cortes, 0) * 28px);
+}
+
+/* Cuando el gráfico va dentro de `MarcoDeRitmo`, el desplazamiento lo gestiona
+ * la columna central del marco: si además scrollease este contenedor habría dos
+ * scrolls anidados sobre el mismo gesto. */
+.mon-advance-line-chart.is-con-marco {
+  overflow: visible;
 }

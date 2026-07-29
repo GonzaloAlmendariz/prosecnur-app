@@ -1,0 +1,73 @@
+/* Marco de ritmo: ejes quietos a los lados, campo desplazable en medio.
+ *
+ * Las columnas laterales miden lo que miden las etiquetas más el título girado.
+ * Son anchos fijos a propósito: si se ajustaran al contenido, el área central
+ * cambiaría de ancho al pasar de «60» a «500» y el gráfico se recalcularía.
+ */
+
+.mon-ritmo-marco {
+  min-width: 0;
+  display: grid;
+  /* Cada lateral lleva su título girado (≈14 px) más las cifras. */
+  grid-template-columns: 52px minmax(0, 1fr) 60px;
+  align-items: stretch;
+}
+
+.mon-ritmo-eje {
+  position: relative;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cada marca se ancla por su `top` calculado y se centra sobre él: el texto
+ * tiene que quedar a la altura de la línea, no colgando de ella. */
+.mon-ritmo-eje b {
+  position: absolute;
+  right: 6px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  color: #474f5b;
+  white-space: nowrap;
+}
+
+.mon-ritmo-eje.is-derecho b {
+  right: auto;
+  left: 6px;
+}
+
+/* El título del eje va girado, como el de Plotly.
+ *
+ * Con `rotate()` sobre una caja horizontal el elemento seguía ocupando el ancho
+ * del texto ANTES de girar, así que su centro caía sobre las cifras y se leían
+ * superpuestos. `writing-mode` hace que la caja sea estrecha de verdad —tan
+ * ancha como una línea—, que es lo que permite reservarle su franja. */
+.mon-ritmo-eje-titulo {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%) rotate(180deg);
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  color: #474f5b;
+  white-space: nowrap;
+}
+
+.mon-ritmo-eje.is-derecho .mon-ritmo-eje-titulo {
+  left: auto;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+/* Lo único que se desplaza. `overscroll-behavior-x: contain` evita que al
+ * llegar al extremo el gesto siga hacia atrás en el historial del navegador. */
+.mon-ritmo-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+}
+
+.mon-ritmo-lienzo {
+  height: 100%;
+}

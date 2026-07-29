@@ -159,7 +159,7 @@ import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./acreditacionTelefono.css";
-import "../../ritmoDiario.css";
+import { MarcoDeRitmo } from "../../ritmo/MarcoDeRitmo";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -6336,7 +6336,10 @@ function AcreditacionPhoneDailyTrend({
       </div>
 
       <div className="mon-phone-trend-parallel is-single">
-        <div className="mon-phone-trend-chart">
+        {/* El número de cortes decide el ancho mínimo del gráfico: pasado el mes
+            de campo, apretar 40 fechas en la caja las vuelve ilegibles, así que
+            a partir de ~30 el gráfico scrollea dentro de su tarjeta. */}
+        <div className="mon-phone-trend-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
           <PlotlyChart
             data={chartData}
             layout={chartLayout}
@@ -15695,21 +15698,11 @@ function AcreditacionAdvanceDailyMini({
     showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
   );
   const dateLabelRows = isCompactChart ? [] : chartRows;
-  // Ventana visible del eje temporal.
-  //
-  // Pasados los 45 cortes el gráfico deja de comprimir el campo entero: muestra
-  // los últimos 45 —donde está el trabajo en curso— y el resto se alcanza
-  // arrastrando. Se prefiere esto al scroll del contenedor porque desplazar la
-  // caja arrastraba también los ejes: con la ventana, «Respuestas/día» y
-  // «Acumulado» se quedan anclados a sus bordes y solo se mueven las barras y
-  // las fechas, que es lo que se está leyendo.
-  const VENTANA_MAX_CORTES = 45;
-  const hayVentanaDeslizante = !isCompactChart && chartRows.length > VENTANA_MAX_CORTES;
-  const rangoVisibleX = !chartRows.length
-    ? undefined
-    : hayVentanaDeslizante
-      ? [chartRows.length - VENTANA_MAX_CORTES - 0.55, chartRows.length - 0.45]
-      : [-0.55, Math.max(0.55, chartRows.length - 0.45)];
+  // Ancho mínimo por corte. Pasados los ~45 cortes el campo no cabe y la
+  // columna central del marco se desplaza, con los ejes fuera de ella.
+  const ANCHO_POR_CORTE = 28;
+  const anchoDelCampo = chartRows.length * ANCHO_POR_CORTE;
+  const hayDesplazamiento = !isCompactChart && chartRows.length > 45;
   const chartBottomMargin = isCompactChart ? 36 : variant === "general" ? 86 : variant === "actor" ? 78 : 72;
   const maxDaily = chartRows.reduce((max, point) => Math.max(max, point.dailyTotal), 0);
   const maxCumulative = chartRows.reduce((max, point) => Math.max(max, point.cumulative), 0);
@@ -15786,7 +15779,7 @@ function AcreditacionAdvanceDailyMini({
   const chartLayout = {
     barmode: "stack" as const,
     bargap: chartRows.length <= 1 ? 0.72 : chartRows.length <= 7 ? 0.42 : 0.24,
-    dragmode: (hayVentanaDeslizante ? "pan" : false) as "pan" | false,
+    dragmode: false as const,
     font: {
       family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
       color: "#17212f",
@@ -15794,8 +15787,11 @@ function AcreditacionAdvanceDailyMini({
     hovermode: "closest" as const,
     showlegend: false,
     margin: {
-      l: isCompactChart ? 24 : 48,
-      r: isCompactChart ? 28 : 58,
+      // Con marco los ejes viven fuera del gráfico, así que sus márgenes se
+      // ceden a las columnas laterales; los verticales se mantienen porque son
+      // los que fijan dónde cae cada marca.
+      l: hayDesplazamiento ? 0 : isCompactChart ? 24 : 48,
+      r: hayDesplazamiento ? 0 : isCompactChart ? 28 : 58,
       t: isCompactChart ? 20 : 36,
       b: chartBottomMargin,
     },
@@ -15862,41 +15858,42 @@ function AcreditacionAdvanceDailyMini({
       })),
     ],
     xaxis: {
-      // Solo el eje temporal se deja mover, y solo cuando hay más campo del que
-      // cabe. El eje de valores queda fijo (`yaxis.fixedrange`), así que
-      // arrastrar no puede descuadrar la escala.
-      fixedrange: !hayVentanaDeslizante,
+      fixedrange: true,
       showgrid: false,
       zeroline: false,
-      range: rangoVisibleX,
+      range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
       tickangle: 0,
       tickvals: tickRows.map((point) => point.x),
       ticktext: tickRows.map((point) => (isCompactChart ? point.displayLabel : point.axisLabel)),
       showticklabels: isCompactChart,
       ticks: "",
       tickfont: { color: "#474f5b", size: isCompactChart ? 9 : 10 },
-      automargin: true,
+      // Con marco, el margen inferior no puede moverse: es la referencia con la
+      // que se calcula dónde cae cada marca de los ejes dibujados al lado.
+      automargin: !hayDesplazamiento,
     },
     yaxis: {
-      title: isCompactChart ? undefined : { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#474f5b", size: 11 } },
+      title: isCompactChart || hayDesplazamiento
+        ? undefined
+        : { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#474f5b", size: 11 } },
       fixedrange: true,
       range: dailyAxisMax ? [0, dailyAxisMax] : undefined,
       rangemode: "tozero",
       showline: false,
-      showticklabels: !isCompactChart,
+      showticklabels: !isCompactChart && !hayDesplazamiento,
       zeroline: false,
       gridcolor: "rgba(15, 23, 42, 0.06)",
       tickfont: { color: "#474f5b", size: 10 },
     },
     yaxis2: {
-      title: isCompactChart ? undefined : { text: "Acumulado", font: { color: "#17212f", size: 11 } },
+      title: isCompactChart || hayDesplazamiento ? undefined : { text: "Acumulado", font: { color: "#17212f", size: 11 } },
       overlaying: "y",
       side: "right",
       fixedrange: true,
       range: cumulativeAxisMax ? [0, cumulativeAxisMax] : undefined,
       rangemode: "tozero",
       showgrid: false,
-      showticklabels: !isCompactChart,
+      showticklabels: !isCompactChart && !hayDesplazamiento,
       zeroline: false,
       tickfont: { color: "#17212f", size: 10 },
     },
@@ -15905,8 +15902,6 @@ function AcreditacionAdvanceDailyMini({
     displayModeBar: false,
     doubleClick: false,
     responsive: true,
-    // La rueda sigue siendo de la página: hacer zoom al pasar por encima
-    // secuestraría el scroll del panel.
     scrollZoom: false,
   };
   const dailyLabel = effectiveOnly ? "efectivas" : "respuestas";
@@ -15958,14 +15953,33 @@ function AcreditacionAdvanceDailyMini({
       </header>
       {hasDailySignal ? (
         <div className="mon-advance-daily-board">
-          <div className="mon-advance-line-chart">
-            <PlotlyChart
-              data={chartData}
-              layout={chartLayout}
-              config={chartConfig}
-              height={chartHeight}
-              ariaLabel={`Avance diario y acumulado: ${title}`}
-            />
+          <div className={`mon-advance-line-chart${hayDesplazamiento ? " is-con-marco" : ""}`}>
+            {hayDesplazamiento ? (
+              <MarcoDeRitmo
+                alto={chartHeight}
+                margenSuperior={36}
+                margenInferior={chartBottomMargin}
+                ejeIzquierdo={{ titulo: effectiveOnly ? "Efectivas/día" : "Respuestas/día", maximo: dailyAxisMax ?? 0 }}
+                ejeDerecho={{ titulo: "Acumulado", maximo: cumulativeAxisMax ?? 0 }}
+                anchoMinimoContenido={anchoDelCampo}
+              >
+                <PlotlyChart
+                  data={chartData}
+                  layout={chartLayout}
+                  config={chartConfig}
+                  height={chartHeight}
+                  ariaLabel={`Avance diario y acumulado: ${title}`}
+                />
+              </MarcoDeRitmo>
+            ) : (
+              <PlotlyChart
+                data={chartData}
+                layout={chartLayout}
+                config={chartConfig}
+                height={chartHeight}
+                ariaLabel={`Avance diario y acumulado: ${title}`}
+              />
+            )}
           </div>
         </div>
       ) : (
