@@ -1424,7 +1424,12 @@ test_that("perfil acreditacion usa payload liviano para monitoreo telefonico", {
   total_quota_rows <- quota_rows[quota_rows$Actor == "Total", , drop = FALSE]
   expect_true(all(c("No contesta", "No barrido", "Rechazo") %in% status_rows$Estatus))
   expect_equal(daily_rows$`Rechazos telefónicos`[daily_rows$Fecha == "2026-06-02"], 1L)
-  expect_false("estatus_dia" %in% names(phone_blocks))
+  # `estatus_dia` SÍ viaja en acreditación desde 2026-07-29: alimenta la barra
+  # apilada de estados por día del ritmo diario, y una acreditación con barrido
+  # telefónico la necesita igual que un estudio telefónico puro. El payload
+  # sigue siendo liviano porque es una matriz de estados x días —una docena de
+  # filas—, no detalle por caso como `comparacion_codpulso`, que se queda fuera.
+  expect_true("estatus_dia" %in% names(phone_blocks))
   expect_false("comparacion_codpulso" %in% names(phone_blocks))
   expect_equal(responsible_rows$`Rechazos telefónicos`[responsible_rows$Responsable == "Luis"], 1L)
   expect_equal(sort(unique(quota_rows$Variable)), "Distrito")
