@@ -1,0 +1,207 @@
+/* Teléfono de Acreditación — definidor de estados.
+ *
+ * Hoja propia: `profilePage.css` está congelada a crecimiento. Solo tokens
+ * `--pulso-*`, salvo los colores que el usuario declara por estado, que por
+ * definición son valores suyos y viajan en el `.pulso`.
+ */
+
+.tel-estados {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.tel-estados-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+.tel-estados-cabecera > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 78ch;
+}
+
+.tel-estados-cabecera span {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.tel-estados-cabecera strong {
+  font-size: 17px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.tel-estados-cabecera em {
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.tel-estados-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 12px;
+}
+
+/* ── Paleta ────────────────────────────────────────────────────────────── */
+
+.tel-estados-colores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-bg);
+}
+
+.tel-estados-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  cursor: pointer;
+}
+
+/* El input nativo de color trae un marco grueso en todos los navegadores; se
+ * recorta a una pastilla para que la fila lea como una leyenda y no como un
+ * formulario. */
+.tel-estados-color input[type="color"] {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--pulso-radius-chip);
+  background: none;
+  cursor: pointer;
+}
+
+.tel-estados-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.tel-estados-color input[type="color"]::-webkit-color-swatch {
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+}
+
+/* ── Lista de estados detectados ───────────────────────────────────────── */
+
+.tel-estados-lista {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+}
+
+/* C2: todas las filas comparten marco. Un estado confirmado y otro sin
+ * confirmar se distinguen por color y texto, nunca por tamaño. */
+.tel-estados-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 210px;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.tel-estados-fila:last-child { border-bottom: none; }
+
+.tel-estados-crudo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tel-estados-crudo strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.tel-estados-crudo em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+.tel-estados-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-bg);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
+.tel-estados-marca.is-confirmado {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+/* El borde izquierdo lleva el color de la familia elegida: es la
+ * retroalimentación que conecta el selector con la paleta de arriba. */
+.tel-estados-fila select {
+  width: 100%;
+  min-height: var(--pulso-control-height-lg);
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border-strong);
+  border-left-width: 4px;
+  border-left-style: solid;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.tel-estados-vacio {
+  margin: 0;
+  padding: 24px 14px;
+  font-size: 12.5px;
+  color: var(--pulso-text-soft);
+}
+
+@media (max-width: 1180px) {
+  .tel-estados-fila {
+    grid-template-columns: minmax(0, 1fr) auto 170px;
+  }
+}

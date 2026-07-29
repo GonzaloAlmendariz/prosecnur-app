@@ -1,0 +1,149 @@
+/* Apilado de estados telefónicos por día.
+ *
+ * Ocupa el espacio que sobraba bajo el ritmo diario. La altura es fija y
+ * modesta a propósito: es una lectura de apoyo, no debe empujar al gráfico
+ * principal fuera de la pantalla. */
+
+.mon-apilado {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  padding: 10px 12px 8px;
+}
+
+.mon-apilado-head {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mon-apilado-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.mon-apilado-head span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.mon-apilado-head strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-apilado-head small {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-apilado-head em {
+  flex: none;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-apilado-leyenda {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-apilado-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-apilado-leyenda i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.mon-apilado-leyenda b {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El gráfico se desplaza dentro de su propia caja: con muchos días la página
+   no puede crecer a lo ancho (No Scroll Jail). */
+.mon-apilado-grafico {
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  /* Alto generoso a propósito: el barrido suele concentrarse en pocos días
+     —en acrconta el 15 de junio se lleva la mitad— y con menos altura los días
+     flojos quedaban en una línea ilegible. La escala sigue siendo absoluta: el
+     reparto desigual es el dato, no un defecto que haya que normalizar. */
+  height: 150px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+
+.mon-apilado-dia {
+  flex: 1 1 14px;
+  min-width: 14px;
+  height: 100%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 3px;
+  justify-items: center;
+}
+
+.mon-apilado-columna {
+  width: 100%;
+  max-width: 26px;
+  height: var(--apilado-alto, 100%);
+  align-self: end;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-border) 45%, transparent);
+}
+
+.mon-apilado-segmento {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  transition: filter 120ms ease;
+}
+
+.mon-apilado-columna:hover .mon-apilado-segmento {
+  filter: saturate(0.55) opacity(0.55);
+}
+
+.mon-apilado-segmento:hover {
+  filter: none;
+}
+
+.mon-apilado-dia em {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}

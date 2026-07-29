@@ -1,0 +1,98 @@
+/* Teléfono de Acreditación — correcciones de reparto.
+ *
+ * Hoja propia porque `profilePage.css` (20.167 líneas) está congelada a
+ * crecimiento. Solo tokens `--pulso-*`.
+ */
+
+/* ── Ritmo diario: el alto es del gráfico, no de los rótulos ──────────────
+ *
+ * `.mon-phone-trend` era un grid sin `grid-template-rows`, así que sus tres
+ * filas —cabecera, tarjetas y gráfico— se repartían el alto casi por igual.
+ * Medido en 1710×1107: cada tarjeta ocupaba 191 px para mostrar un número y
+ * dos palabras, y las cuatro juntas se llevaban el 28,5 % del bloque mientras
+ * el gráfico, que es el contenido, se quedaba con 479 px.
+ *
+ * Cabecera y tarjetas a su alto natural; el resto es del gráfico.
+ */
+.mon-phone-trend {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+/* Y dentro de cada tarjeta, las tres líneas se estiraban a ~52 px cada una
+ * porque el `span` también es grid y repartía el alto que le sobraba. Con
+ * `align-content: start` el texto ocupa lo que mide. */
+.mon-phone-trend-metrics span {
+  align-content: start;
+}
+
+/* Sin media query a propósito.
+ *
+ * El primer intento pasaba a 2×2 en pantalla baja «para no comerse el canvas»,
+ * y medirlo lo desmintió: en 1366×768 esas dos filas ocupaban 139 px cuando las
+ * cuatro en una sola fila ocupan 65. En una pantalla baja lo que escasea es el
+ * alto, así que la fila única es justamente la disposición que hay que
+ * conservar. */
+
+/* ── Consultas: distinguir «plataforma» de «base» ─────────────────────────
+ *
+ * Las dos pestañas se veían casi idénticas: `isTableOnlyTab` las trataba igual
+ * y ocultaba la lectura activa, que era lo único que decía cuál era cuál. Son
+ * inversas —una cuenta lo que llegó a plataforma, la otra a quién había que
+ * llegar del universo— y esa diferencia tiene que verse antes de leer la tabla.
+ *
+ * La lectura vuelve en una sola línea, con el icono y el tono que ya las
+ * distinguían, para no recuperar el alto que motivó apagarla.
+ */
+.mon-query-answer.is-compacta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 7px 12px;
+}
+
+.mon-query-answer.is-compacta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mon-query-answer.is-compacta > strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+}
+
+/* El borde izquierdo lleva el acento del tono: es la marca que se ve de reojo
+ * al cambiar de pestaña, sin leer el título. `currentColor` NO sirve —lo medí:
+ * daba el mismo `rgb(23,33,47)` en las dos, porque hereda el color del texto y
+ * no del tono—; el acento por tono ya existe como variable. */
+.mon-query-answer.is-compacta {
+  border-left: 3px solid var(--query-answer-accent, var(--pulso-border-strong));
+}
+
+/* Y el encabezado con el mismo acento, para que la señal no dependa de una
+ * línea de 3 px. */
+.mon-query-answer.is-compacta > span {
+  color: var(--query-answer-accent, var(--pulso-text-soft));
+}
+
+/* La lectura compacta necesita su propia fila.
+ *
+ * `.mon-case-explorer.is-platform-table-only` declaraba UNA sola fila
+ * (`minmax(0, 1fr)`) porque cuando se escribió, estas pestañas ocultaban la
+ * lectura y el único hijo era la tabla. Al devolverla quedaron dos hijos para
+ * una fila: la explícita colapsó a 0 px y la tabla se subió encima. Medido en
+ * `acrconta`: la lectura ocupaba 203–219 y el cuerpo arrancaba en 210, o sea
+ * 9 px de solape — el texto quedaba cortado por debajo del panel.
+ *
+ * Dos filas: la lectura a su alto natural, la tabla con el resto.
+ */
+.mon-case-explorer.is-platform-table-only {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+}

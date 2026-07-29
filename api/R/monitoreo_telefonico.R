@@ -1207,11 +1207,13 @@
     .monitoreo_report_block("avance_efectivo_variable_dia", "Avance efectivo por variable y día", quota_day, "Efectivas Kobo por variable de cuota y fecha de plataforma."),
     .monitoreo_report_block("control_tiempo_kobo", "Control de tiempos Kobo", utils::head(duration_control, 500L), "Efectivas Kobo que pasan filtro y no son pruebas, clasificadas por duración."),
     .monitoreo_report_block("produccion_dia", "Producción por día", by_day),
-    .monitoreo_report_block("avance_efectivo_dia", "Avance efectivo por día", efectivo_dia)
+    .monitoreo_report_block("avance_efectivo_dia", "Avance efectivo por día", efectivo_dia),
+    # Se publica en cualquier familia, no solo en el telefónico puro. `status_day`
+    # ya se calcula arriba pase lo que pase, así que publicarlo no cuesta nada;
+    # tenerlo escondido dejaba a la acreditación con barrido telefónico sin
+    # forma de leer cómo se movieron los estados en el tiempo.
+    .monitoreo_report_block("estatus_dia", "Estados telefónicos por día", status_day)
   )
-  if (isTRUE(standalone_phone)) {
-    blocks <- c(blocks, list(.monitoreo_report_block("estatus_dia", "Estados telefónicos por día", status_day)))
-  }
   blocks <- c(blocks, list(
     .monitoreo_report_block("avance_efectivo_actor_dia", "Avance efectivo por actor y día", actor_day),
     .monitoreo_report_block("operacion_responsable", "Operación por responsable", utils::head(by_resp_ops, 120L)),
