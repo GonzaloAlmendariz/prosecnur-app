@@ -5,17 +5,19 @@ import {
 } from "lucide-react";
 import {
   apiSurveyMonkeyMultibaseAudit,
-  apiSurveyMonkeyMultibaseImport,
+  apiSurveyMonkeyMultibaseImportAsync,
   apiSurveyMonkeyMultibaseListSurveys,
   apiUpload,
   EstudioPayload,
   SurveyMonkeyMultibaseAudit,
   SurveyMonkeyMultibaseDiff,
+  SurveyMonkeyMultibaseImportResult,
   SurveyMonkeyMultibaseListItem,
   SurveyMonkeyMultibaseSurveyInput,
   uploadKindForDataFile,
 } from "../../api/client";
 import { ErrorBlock } from "../../components/States";
+import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 
 type SurveyDraft = SurveyMonkeyMultibaseSurveyInput & {
   localId: string;
@@ -208,11 +210,16 @@ export function SurveyMonkeyMultiImportPanel({ canonicalOptions, disabled, onImp
     setError("");
     setBusy("Importando encuestas SurveyMonkey...");
     try {
-      const result = await apiSurveyMonkeyMultibaseImport({
+      // Job en segundo plano (async: true): la app queda usable durante el
+      // pull y result_data es el mismo payload que la respuesta síncrona.
+      const start = await apiSurveyMonkeyMultibaseImportAsync({
         surveys: compactSurveys(rows),
         base_name: baseName,
         wording_decisions: wording,
         canonical_xlsform_file_id: canonicalFileId,
+      });
+      const result = await esperarResultadoImport<SurveyMonkeyMultibaseImportResult>(start.job_id, {
+        onProgress: (p) => setBusy(textoDeProgresoImport("Importando encuestas SurveyMonkey", p)),
       });
       setAudit(result.audit);
       await onImported(result.estudio);

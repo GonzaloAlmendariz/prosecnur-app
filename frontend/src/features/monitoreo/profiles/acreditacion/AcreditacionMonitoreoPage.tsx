@@ -12,7 +12,6 @@ import {
   apiMonitoreoKoboAssets,
   apiMonitoreoSheetsInspect,
   apiMonitoreoSheetsSource,
-  apiMonitoreoSheetsSync,
   apiMonitoreoConfig,
   apiMonitoreoSource,
   apiMonitoreoState,
@@ -75,6 +74,7 @@ import {
 } from "../../internalQueries";
 import { corteAcreditacion } from "../../corte/corteAdapters";
 import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
+import { useSourceSyncActions } from "./sync/useSourceSyncActions";
 import { sourceSyncActions, useSourceSyncStore } from "./sync/sourceSyncStore";
 import { AcreditacionModuleChromeConSync } from "./sync/AcreditacionModuleChromeConSync";
 import { countText, fmt, formatDate, formatMetric, normalizeSourceMatch } from "./formato";
@@ -10003,67 +10003,16 @@ function AcreditacionSourcesWorkbench({
     () => configuredSources.map((source) => acreditacionSourceWithOperationalMetadata(source, state?.source_metadata)),
     [configuredSources, state?.source_metadata],
   );
-  const [syncBusy, setSyncBusy] = useState<"sheets" | "survey" | "all" | null>(null);
-  const [syncStatus, setSyncStatus] = useState<AcreditacionActionStatus>(null);
-  const [syncProgress, setSyncProgress] = useState<SourceSyncActionsProgress | null>(null);
-  // Espera de jobs amarrada al desmontaje: al salir del módulo el poll se corta.
-  const waitForSourceSyncJob = useWaitForSourceSyncJob();
+  // Acciones de sincronización extraídas a sync/useSourceSyncActions: Sheets
+  // corre como job en segundo plano (async opt-in) y la espera sigue amarrada
+  // al desmontaje del componente.
+  const { syncBusy, syncStatus, syncProgress, syncSheets, syncExternal } = useSourceSyncActions({ onStateChange });
   const isPhoneSourceModel = isTelefonicoMonitoreoState(state);
   const platformSources = isPhoneSourceModel ? acreditacionKoboResponseSources(operationalSources) : operationalSources.filter(isPlatformResponseSource);
   const sheetSources = operationalSources.filter((source) => source.kind === "google_sheets");
   const activeSources = operationalSources.filter((source) => source.enabled);
   const activeSurveySources = platformSources.filter((source) => source.enabled);
   const activeSheetSources = sheetSources.filter((source) => source.enabled);
-
-  const syncSheets = async () => {
-    const sourceIds = activeSheetSources.map((source) => source.id);
-    if (!sourceIds.length) {
-      setSyncStatus({ tone: "error", message: "No hay fuentes Sheets activas para actualizar." });
-      return;
-    }
-    setSyncBusy("sheets");
-    setSyncStatus({ tone: "info", message: `Actualizando ${fmt(sourceIds.length)} fuentes Sheets...` });
-    try {
-      const result = await apiMonitoreoSheetsSync(sourceIds);
-      onStateChange?.(result.state);
-      setSyncStatus({ tone: "success", message: `Sheets sincronizadas: ${fmt(result.n_rows)} registros locales.` });
-    } catch (e) {
-      const message = (e as Error).message;
-      setSyncStatus({ tone: "error", message });
-    } finally {
-      setSyncBusy(null);
-    }
-  };
-
-  const syncExternal = async (kind: "survey" | "all", sourceIds: string[], label: string, syncMode: "full" | "advance" = "full") => {
-    if (!sourceIds.length) {
-      setSyncStatus({ tone: "error", message: "No hay fuentes activas para actualizar." });
-      return;
-    }
-    setSyncBusy(kind);
-    setSyncStatus({ tone: "info", message: `${label}: creando job local...` });
-    setSyncProgress({ percent: 2, phase: "Preparando", message: `${label}: creando job local...` });
-    try {
-      const start = await apiMonitoreoSync(undefined, sourceIds, { syncMode });
-      setSyncStatus({ tone: "info", message: `${label}: job ${start.job_id} en ejecución.` });
-      setSyncProgress({ percent: 8, phase: "En cola", message: `${label}: job ${start.job_id} en ejecución.` });
-      await waitForSourceSyncJob(start.job_id, (progress) => setSyncProgress(progress));
-      const next = await apiMonitoreoState({
-        includeReports: true,
-        reportScope: "source",
-        warmupCache: false,
-        force: true,
-      });
-      onStateChange?.(next);
-      setSyncStatus({ tone: "success", message: `${label}: fuentes sincronizadas y corte local actualizado.` });
-    } catch (e) {
-      const message = (e as Error).message;
-      setSyncStatus({ tone: "error", message });
-    } finally {
-      setSyncBusy(null);
-      setSyncProgress(null);
-    }
-  };
 
   const sourceStatus = (
     <AcreditacionSourceStatusStrip
@@ -10073,7 +10022,7 @@ function AcreditacionSourcesWorkbench({
       status={syncStatus}
       busy={Boolean(syncBusy)}
       progress={syncProgress}
-      onSyncSheets={syncSheets}
+      onSyncSheets={() => syncSheets(activeSheetSources.map((source) => source.id))}
       onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), isPhoneSourceModel ? "Actualizacion Kobo" : "Actualizacion de plataforma", "full")}
       onSyncAll={() => syncExternal("all", activeSources.map((source) => source.id), "Actualizacion completa", "full")}
       onStateChange={onStateChange}

@@ -11,8 +11,8 @@ import {
   apiCargaReview,
   apiCargaReviewSummary,
   apiCargaReviewReconciliation,
-  apiCargaImportKobo,
-  apiCargaImportSurveyMonkey,
+  apiCargaImportKoboAsync,
+  apiCargaImportSurveyMonkeyAsync,
   apiCargaData,
   apiCargaExportNormalized,
   apiCargaConfirmChoiceMapping,
@@ -90,6 +90,7 @@ import {
 } from "./CargaMonitoringDiscovery";
 import { sourceInputCount, type ProcessingSourcesProfile } from "./CargaSourcesModel";
 import { CargaPlatformImportPanel } from "./CargaPlatformImportPanel";
+import { esperarResultadoImport, textoDeProgresoImport } from "./importEnSegundoPlano";
 
 // Fase 1 — Carga de insumos.
 //
@@ -441,13 +442,18 @@ export default function CargaPage() {
           return;
         }
         setBusy(`Importando ${survey.title} desde SurveyMonkey…`);
-        const result = await apiCargaImportSurveyMonkey({
+        // Import como job en segundo plano (async: true): la app queda usable
+        // durante el pull y el resultado es el mismo payload síncrono.
+        const start = await apiCargaImportSurveyMonkeyAsync({
           survey_id: survey.id,
           title: survey.title,
           connection_profile_id: activeSmProfile?.id || "",
           source_alias: survey.nickname || survey.title,
           response_statuses: includePartials ? ["completed", "partial"] : ["completed"],
           keep_missing_status: false,
+        });
+        const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
+          onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${survey.title}`, p)),
         });
         applyPlatformImportResult(result);
         setPlatformMessage(`${survey.title} quedó cargada como formulario y respuestas.`);
@@ -459,11 +465,14 @@ export default function CargaPage() {
         }
         const baseUrl = activeKoboProfile?.base_url || koboConnection?.active_profile_base_url || "https://kf.kobotoolbox.org";
         setBusy(`Importando ${asset.name} desde KoboToolbox…`);
-        const result = await apiCargaImportKobo({
+        const start = await apiCargaImportKoboAsync({
           asset_uid: asset.uid,
           title: asset.name,
           base_url: baseUrl,
           connection_profile_id: activeKoboProfile?.id || "",
+        });
+        const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
+          onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${asset.name}`, p)),
         });
         applyPlatformImportResult(result);
         setPlatformMessage(`${asset.name} quedó cargado como formulario y respuestas.`);
@@ -507,11 +516,14 @@ export default function CargaPage() {
     }
     setBusy(`Importando ${source.name || source.asset_uid} desde KoboToolbox…`);
     try {
-      const result = await apiCargaImportKobo({
+      const start = await apiCargaImportKoboAsync({
         asset_uid: source.asset_uid,
         title: source.name || source.source_title,
         base_url: source.base_url || activeKoboProfile?.base_url || "https://kobo.unhcr.org",
         connection_profile_id: source.connection_profile_id || activeKoboProfile?.id || "",
+      });
+      const result = await esperarResultadoImport<CargaPlatformImportResult>(start.job_id, {
+        onProgress: (p) => setBusy(textoDeProgresoImport(`Importando ${source.name || source.asset_uid}`, p)),
       });
       applyPlatformImportResult(result);
       setPlatformMessage(`${source.name || source.asset_uid} quedó cargado como formulario y respuestas.`);
