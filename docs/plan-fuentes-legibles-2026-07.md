@@ -68,23 +68,23 @@ profundidad, porque mezclarlas ha sido la forma de no terminar ninguna.
 | # | Superficie | Qué |
 |---|---|---|
 | ✅ A1 | Rail · cápsula de actualización | Estaba en `font-size: 7px` —el piso de la escala es 10— y gastaba un tercio del ancho en el año. Sin año, a 10 px; el año queda en el `title`. **Hecho.** |
-| A2 | Teléfono · Ritmo diario | Las cuatro tarjetas de cabecera son muy altas para lo que muestran. El gráfico está bien |
+| ~~A2~~ | Teléfono · Ritmo diario | **Resuelto.** `.mon-phone-trend` era un grid sin `grid-template-rows`, así que sus tres filas se repartían el alto casi por igual: cada tarjeta ocupaba 191 px para un número y dos palabras. Con las filas declaradas y `align-content: start` en el `span`, las cuatro juntas pasan a 65 px. Sin media query: medir desmintió el 2×2 en pantalla baja —139 px contra 65 en fila única— porque en pantalla baja lo que escasea es el alto |
 | ~~A3~~ | Consultas · pestañas | **Resuelto.** No faltaba copy: cada pestaña ya tenía encabezado, icono y tono, y `isTableOnlyTab` los **apagaba** para dar alto a la tabla. Vuelve en una línea (16 px). Y el tono tampoco separaba: `pending` (#365d8f) y `base` (#2f6f90) eran el mismo azul —medido, `rgb(54,93,143)` contra `rgb(47,111,144)`—; «Estado de la base» pasó a ámbar. Distancia de color de 6 a **177** |
 
 ### Estructural
 
 | # | Superficie | Qué |
 |---|---|---|
-| B1 | Modelo | Sobran las subpestañas: en acreditación solo sirve para definir cuotas por actor, y la primera basta. Lo que hace falta es **separación y estructura dentro de esa única vista**, no más navegación |
-| B2 | Teléfono | Hay un contenedor de estados heredado que ya no debería estar (`mon-semantic-legend is-phone`, `AcreditacionMonitoreoPage.tsx:19001`) |
+| ~~B1~~ | Modelo | **Superado por decisión posterior del usuario (2026-07-29)**, no ejecutado. B1 pedía quitar subpestañas de Modelo; después se pidieron dos más —Distribución por actor y Cronograma del campo— porque la vista tenía que responder preguntas distintas, no solo cuotas. Se deja anotado para que no se «repare» más adelante deshaciéndolas |
+| ~~B2~~ | Teléfono | **Resuelto.** La tira se retiró del render —la sección «Estado de la base de llamadas» mostraba los mismos cinco estados sin recortarlos a «Sin conta…»— y ahora se retiran también el componente y sus 16 reglas de CSS, que habían quedado muertos. `acreditacionPhoneStatusLegendItems` se conserva: es quien calcula los estados |
 
 ### Dominio — exigen decisión metodológica, no son pulido
 
 | # | Superficie | Qué |
 |---|---|---|
-| C1 | Teléfono · cuotas telefónicas | El box no tiene sentido tal cual en acreditación, y **no deja declarar la variable con la que estratificar el avance** (año de egreso, sexo, o ambas). Es el hueco de fondo, no la caja |
+| ~~C1~~ | Teléfono · cuotas telefónicas | **Resuelto.** El estudio declara `interest_variables` por actor —varias si hace falta—; el catálogo de columnas viaja con su distribución y su normalización sugerida, ordenado por cobertura descendente. Modelo gana la pestaña Distribución por actor y Avance › Detalles reporta lo declarado |
 | ~~C2~~ | Teléfono · estados del barrido | **Implementado**, pendiente de verificación visual. Pestaña `Estados` en Teléfono: lista los crudos que trae el corte con su volumen, deja reasignar familia y fija el color de cada una. Lo confirmado gana sobre la heurística también en cortes futuros. Persiste en `state_rules`, que ya viajaba en el `.pulso` sin que nadie lo usara desde la UI; el campo `color` se añadió a la whitelist de R |
-| A4 | Teléfono · Ritmo diario | Bajo el gráfico sobra alto: sumar un **apilado de estados telefónicos por día**, con hover por estado. Ver la regla de fotografía, abajo |
+| ~~A4~~ | Teléfono · Ritmo diario | **Implementado.** Apilado por día que respeta la regla de fotografía: no acumula, cada día es su última actualización, y los colores salen del definidor de C2 —ningún estado se pinta con un literal en la vista—. En el backend, `estatus_dia` se publicaba solo dentro de `standalone_phone` aunque siempre se calculaba |
 
 > **Los estados son fotografías, no eventos.** Regla de dominio del usuario,
 > 2026-07-28, y gobierna todo lo que se dibuje con ellos:
@@ -381,17 +381,25 @@ profundidad, porque mezclarlas ha sido la forma de no terminar ninguna.
 > firma de C1 en Fuentes. Se diagnostica aparte, antes de tocar nada de
 > Teléfono: rediseñar sobre un número que miente es trabajo perdido.
 
+**Resuelto el 2026-07-29**, al cerrar Acreditación:
+
+- En el paso 3 del panel el actor ya es corregible sin volver al paso 1, y si el
+  nombre de la fuente menciona a otro actor del estudio se avisa antes de
+  guardar (`actorQueContradiceElNombre`, con test). Era un error silencioso: no
+  fallaba nada y el corte repartía las respuestas al actor equivocado hasta que
+  alguien revisaba denominadores.
+- La cabecera de Encuestas dice «N encuestas conectadas» y el proveedor pasa al
+  `title` (R1). Aplicado en Acreditación y en Telefónico.
+- El embudo de Teléfono ya no puede decir `0 procesables → 534 efectivas`: el
+  oficial es subconjunto del procesable, así que esa combinación declara el
+  procesable indeterminado en vez de pintarlo (`corteContract.ts`, con test).
+
 **Pendiente**, en este orden:
 
-1. En el paso 3 del panel, el actor declarado no se puede corregir sin volver
-   al paso 1, y el pie puede decir «respuestas de Administrativos» sobre una
-   encuesta llamada «…Estudiantes».
-2. `AcreditacionSurveySourcePicker` quedó sin montar tras retirar su `details`.
+1. `AcreditacionSurveySourcePicker` quedó sin montar tras retirar su `details`.
    Se retira cuando se confirme en producción que el catálogo del panel lo
    cubre; el de Kobo sigue vivo porque lo usa el contrato telefónico.
-3. La cabecera de Encuestas todavía se presenta como «7 fuentes
-   SurveyMonkey/Kobo», que nombra el proveedor.
-4. Territorial (§4.2) y Telefónico (§4.4).
+2. Territorial (§4.2) y Telefónico (§4.4).
 5. La divergencia `1.693` vs `1.697` de Territorial (T3), como diagnóstico
    aparte.
 6. La línea base de `api/R/reporte_plan_ppt.R` en `agentic/manifest.json` quedó
