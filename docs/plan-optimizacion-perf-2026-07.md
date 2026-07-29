@@ -170,6 +170,16 @@ todo tiene que estar ya disponible y rápido**. Por lo tanto:
   mecanismos de reposo confirmados en CSSOM vivo. **Restan de la ola**: la
   adopción frontend de async + `sheets/sync` (en curso) y el smoke del worker
   callr real (va al gate de /preparar-release).
+- **2026-07-29 · OLA 2 COMPLETA + Ola 3 en marcha**: adopción async aterrizada
+  (bd58e96d) — 13 call sites de Carga/multibase/sheets lanzan jobs con
+  progreso real y la UI queda navegable durante el pull; boy-scout acumulado
+  del día en los monolitos: Telefónico 21,577→20,483 y Acreditación
+  19,632→18,513 (−2,213 líneas netas). Ola 3.1 commiteada (83056eb0):
+  derivados del GET state 108→10 ms con paridad byte a byte. En vuelo: 3.2
+  (rebuild del dashboard → warmup) y 3.3 (aplanar cadena de red del boot).
+  Pendiente visual residual: ver los flujos de import con progreso en vivo
+  exige credenciales de plataforma; se cubrirá en la próxima corrida de
+  reference-project con secretos locales.
 
 ## Protocolo
 
