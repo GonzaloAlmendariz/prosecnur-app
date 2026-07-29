@@ -24,8 +24,16 @@ export const ALTO_PIEZA = 72;
 export const ALTO_DATO = 118;
 export const ANCHO_NODO = 240;
 
-const PASO_X = 268;
-const PASO_Y = 96;
+// La jerarquía crece HACIA LA DERECHA y los hermanos se apilan HACIA ABAJO.
+//
+// Al revés —niveles en filas, hermanos en columnas— la ramificación completa de
+// Procesamiento ocupaba 9 columnas (~2.400 px) para 11 nodos y había que verla
+// al 68% para que entrara: los rótulos quedaban ilegibles. Apilando, los mismos
+// 11 nodos caben en 3 columnas por 5 filas y se leen a tamaño real. Es la
+// orientación de un mapa mental, y no por gusto: un nodo es más de tres veces
+// más ancho que alto, así que crecer a lo alto cuesta mucho menos espacio.
+const PASO_X = 288;
+const PASO_Y = 92;
 
 export type PiezaAInsertar = {
   target_type: "modulo" | "tarea" | "entrada";
@@ -46,81 +54,117 @@ export function disponerRamificacion(
 ): Ramificacion {
   if (!piezas.length) return { nodes: [], edges: [] };
 
-  const ordenadas = [...piezas].sort((a, b) => {
-    const da = profundidad(a);
-    const db = profundidad(b);
-    if (da !== db) return da - db;
-    return a.target_id.localeCompare(b.target_id);
+  const idPorDestino = new Map<string, string>();
+  piezas.forEach((p, i) => idPorDestino.set(clave(p), `nodo-${sufijo}-${i}`));
+
+  // --- Bosque: cada pieza cuelga de su ancestro más cercano PRESENTE ---------
+  const arbol = new Map<string, Rama>();
+  for (const pieza of piezas) arbol.set(clave(pieza), { pieza, hijos: [], x: 0, y: 0 });
+
+  const raices: Rama[] = [];
+  const anotaciones: Rama[] = [];
+  for (const pieza of piezas) {
+    const rama = arbol.get(clave(pieza))!;
+    // Un hito o una entrada no vive en el árbol de la app: es una anotación
+    // sobre el mapa, y va en su propia fila al pie en vez de mezclarse con la
+    // estructura.
+    if (pieza.target_type !== "modulo") {
+      anotaciones.push(rama);
+      continue;
+    }
+    const padre = ancestroPresente(pieza.target_id, arbol);
+    if (padre) padre.hijos.push(rama);
+    else raices.push(rama);
+  }
+
+  // Orden estable: sin esto dos inserciones de las mismas piezas se dibujan
+  // distinto según el orden en que el usuario las fue marcando.
+  const ordenar = (r: Rama) => {
+    r.hijos.sort((a, b) => a.pieza.titulo.localeCompare(b.pieza.titulo));
+    r.hijos.forEach(ordenar);
+  };
+  raices.sort((a, b) => a.pieza.titulo.localeCompare(b.pieza.titulo));
+  raices.forEach(ordenar);
+
+  // --- Columnas: las hojas se reparten, cada padre se centra sobre las suyas --
+  //
+  // Es lo que hace legible una ramificación de verdad. Repartiendo por nivel
+  // —cada fila llenada de izquierda a derecha sin mirar de quién cuelga— las
+  // aristas cruzan todo el ancho: con 5 secciones y 5 pestañas de padres
+  // distintos, el mapa se vuelve una maraña.
+  let fila = 0;
+  let filaMaxima = 0;
+  const situar = (r: Rama, nivel: number) => {
+    r.x = nivel;
+    if (!r.hijos.length) {
+      r.y = fila++;
+      filaMaxima = Math.max(filaMaxima, r.y);
+      return;
+    }
+    r.hijos.forEach((h) => situar(h, nivel + 1));
+    r.y = (r.hijos[0].y + r.hijos[r.hijos.length - 1].y) / 2;
+  };
+  raices.forEach((r) => situar(r, 0));
+
+  // Las anotaciones cierran el mapa, en una franja propia bajo el árbol.
+  anotaciones.forEach((r, i) => {
+    r.x = i;
+    r.y = filaMaxima + 2;
   });
 
-  const idPorDestino = new Map<string, string>();
-  const porNivel = new Map<number, number>();
   const nodes: CanvasNodo[] = [];
-
-  ordenadas.forEach((pieza, i) => {
-    const nivel = profundidad(pieza);
-    const columna = porNivel.get(nivel) ?? 0;
-    porNivel.set(nivel, columna + 1);
-    const alto = pieza.target_type === "modulo" ? ALTO_PIEZA : ALTO_DATO;
-    const id = `nodo-${sufijo}-${i}`;
-    idPorDestino.set(clave(pieza), id);
+  const emitir = (r: Rama) => {
+    const alto = r.pieza.target_type === "modulo" ? ALTO_PIEZA : ALTO_DATO;
     nodes.push({
-      id,
+      id: idPorDestino.get(clave(r.pieza))!,
       type: "referencia",
-      x: origen.x + columna * PASO_X,
-      y: origen.y + nivel * PASO_Y,
+      x: origen.x + r.x * PASO_X,
+      y: origen.y + r.y * PASO_Y,
       w: ANCHO_NODO,
       h: alto,
       z: 0,
       color: "neutro",
-      text: pieza.titulo,
-      ref: { target_type: pieza.target_type, target_id: pieza.target_id },
+      text: r.pieza.titulo,
+      ref: { target_type: r.pieza.target_type, target_id: r.pieza.target_id },
       links: [],
     });
-  });
+    r.hijos.forEach(emitir);
+  };
+  raices.forEach(emitir);
+  anotaciones.forEach(emitir);
 
   const edges: CanvasArista[] = [];
-  for (const pieza of ordenadas) {
-    if (pieza.target_type !== "modulo") continue;
-    const ancestro = ancestroPresente(pieza.target_id, idPorDestino);
-    if (!ancestro) continue;
-    const desde = idPorDestino.get(clave(pieza));
-    if (!desde || desde === ancestro) continue;
-    edges.push({
-      id: `arista-${sufijo}-${edges.length}`,
-      from_node: ancestro,
-      from_anchor: "b",
-      to_node: desde,
-      to_anchor: "t",
-      label: "",
-      // La arista de una ramificación dice pertenencia, no dependencia: la
-      // sección está DENTRO del módulo, no bloqueada por él.
-      relation: "contiene",
-    });
-  }
+  const conectar = (r: Rama) => {
+    for (const hijo of r.hijos) {
+      edges.push({
+        id: `arista-${sufijo}-${edges.length}`,
+        from_node: idPorDestino.get(clave(r.pieza))!,
+        from_anchor: "r",
+        to_node: idPorDestino.get(clave(hijo.pieza))!,
+        to_anchor: "l",
+        label: "",
+        // La arista de una ramificación dice pertenencia, no dependencia: la
+        // sección está DENTRO del módulo, no bloqueada por él.
+        relation: "contiene",
+      });
+      conectar(hijo);
+    }
+  };
+  raices.forEach(conectar);
 
   return { nodes, edges };
 }
 
+type Rama = { pieza: PiezaAInsertar; hijos: Rama[]; x: number; y: number };
+
 /** Sube por la clave hasta encontrar un ancestro que también se esté insertando. */
-function ancestroPresente(destino: string, presentes: Map<string, string>): string | null {
+function ancestroPresente(destino: string, presentes: Map<string, Rama>): Rama | null {
   let actual: string | null = destino;
   while ((actual = padreDe(actual)) !== null) {
-    const id = presentes.get(`modulo:${actual}`);
-    if (id) return id;
+    const rama = presentes.get(`modulo:${actual}`);
+    if (rama) return rama;
   }
   return null;
-}
-
-/**
- * Cuántos niveles baja una pieza. Los hitos y las entradas no viven en el árbol
- * de la app: se cuelgan al final, que es donde se leen como anotaciones sobre
- * el mapa y no como parte de su estructura.
- */
-function profundidad(pieza: PiezaAInsertar): number {
-  if (pieza.target_type !== "modulo") return 9;
-  const id = pieza.target_id;
-  return (id.match(/\//g) ?? []).length + (id.includes("::") ? 1 : 0);
 }
 
 function clave(pieza: PiezaAInsertar): string {
