@@ -3873,6 +3873,7 @@ sm_multibase_import <- function(sid,
                                 wording_decisions = list()) {
   specs <- .sm_mb_normalize_survey_specs(specs)
   canon <- .sm_mb_canonical_inst(sid, canonical_file_id)
+  .carga_job_progress("audit", message = "Auditando estructura de las encuestas...")
   audit <- sm_multibase_audit(specs, token, canonical_inst = canon$inst)
   if (!isTRUE(audit$ok)) {
     stop_api(409, "E_SM_MULTIBASE_BLOCKED", "Hay diferencias bloqueantes antes de importar.")
@@ -3894,7 +3895,14 @@ sm_multibase_import <- function(sid,
   dfs <- list()
   fetched <- .sm_mb_fetch_family(specs, token)
   summaries_by_id <- setNames(fetched$summaries, vapply(fetched$summaries, `[[`, character(1), "survey_id"))
-  for (spec in specs) {
+  for (spec_idx in seq_along(specs)) {
+    spec <- specs[[spec_idx]]
+    .carga_job_progress(
+      "fetch",
+      current = spec_idx,
+      total = length(specs),
+      message = sprintf("SurveyMonkey: descargando encuesta %d de %d...", spec_idx, length(specs))
+    )
     details <- fetched$details[[spec$survey_id]]
     summary <- summaries_by_id[[spec$survey_id]]
     pais <- .sm_mb_scalar(spec$pais, summary$pais %||% "")
@@ -3907,7 +3915,7 @@ sm_multibase_import <- function(sid,
         company_vars = company_vars
       )
     } else {
-      payload <- sm_api_fetch_all_responses_bulk(spec$survey_id, token)
+      payload <- .carga_platform_fetch_sm_bulk(spec$survey_id, token)
       df <- sm_multibase_api_responses_to_canonical_data(
         details = details,
         responses = payload$data,
@@ -3928,9 +3936,11 @@ sm_multibase_import <- function(sid,
   )
   data_df <- .sm_mb_bind_rows(dfs)
   if (!nrow(data_df)) stop_api(409, "E_SM_NO_RESPONSES", "No hay respuestas para importar.")
+  .carga_job_progress("normalize", message = "Normalizando respuestas...")
   data_df <- normalize_data_for_xlsform(data_df, rp_inst)
   .carga_assert_data_xlsform_compatible(data_df, rp_inst)
 
+  .carga_job_progress("write", message = "Escribiendo base importada...")
   data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_survey_monkey_multibase_data.xlsx"))
   .sm_mb_write_xlsx(data_df, data_path)
   data_bytes <- readBin(data_path, what = "raw", n = file.info(data_path)$size)
@@ -4064,7 +4074,14 @@ sm_multibase_import_independent <- function(sid,
 
   prepared <- list()
   planned_names <- names(existing)
-  for (spec in specs) {
+  for (spec_idx in seq_along(specs)) {
+    spec <- specs[[spec_idx]]
+    .carga_job_progress(
+      "fetch",
+      current = spec_idx,
+      total = length(specs),
+      message = sprintf("SurveyMonkey: descargando encuesta %d de %d...", spec_idx, length(specs))
+    )
     details <- fetched$details[[spec$survey_id]]
     if (is.null(details)) {
       stop_api(502, "E_SM_SURVEY_DETAILS",
@@ -4191,7 +4208,7 @@ sm_multibase_import_independent <- function(sid,
           excluded_rows = 0L
         )
       } else {
-        payload <- sm_api_fetch_all_responses_bulk(source_id, token)
+        payload <- .carga_platform_fetch_sm_bulk(source_id, token)
         raw_snapshot_sources[[length(raw_snapshot_sources) + 1L]] <- .sm_mb_source_snapshot(
           source_id = source_id,
           source_spec = source_spec,
@@ -4237,6 +4254,12 @@ sm_multibase_import_independent <- function(sid,
       stop_api(409, "E_SM_NO_RESPONSES",
                sprintf("La encuesta '%s' (%s) no tiene respuestas completas para importar.", title, spec$survey_id))
     }
+    .carga_job_progress(
+      "normalize",
+      current = spec_idx,
+      total = length(specs),
+      message = sprintf("Normalizando y escribiendo base %d de %d...", spec_idx, length(specs))
+    )
     data_df <- normalize_data_for_xlsform(data_df, rp_inst)
     .carga_assert_data_xlsform_compatible(data_df, rp_inst)
     data_path <- file.path(downloads_dir, paste0(uuid::UUIDgenerate(), "_", base_name, "_data.xlsx"))
@@ -4275,6 +4298,7 @@ sm_multibase_import_independent <- function(sid,
 
   estudio_ensure(sid)
   estudio_set_processing_mode(sid, "independent_siblings")
+  .carga_job_progress("finalize", message = "Registrando bases en el estudio...")
   bases_out <- list()
   imported_names <- character(0)
   for (item in prepared) {
@@ -4556,6 +4580,7 @@ sm_multibase_refresh <- function(sid,
                                  reapply_codificacion = TRUE,
                                  regenerate_raw_snapshot = FALSE,
                                  raw_snapshot_only = FALSE) {
+  .carga_job_progress("plan", message = "Calculando plan de actualización...")
   plan <- sm_multibase_refresh_plan(
     sid = sid,
     token = token,
@@ -4565,9 +4590,17 @@ sm_multibase_refresh <- function(sid,
   )
   results <- list()
   codif_jobs <- list()
-  for (row in plan$bases %||% list()) {
+  plan_rows <- plan$bases %||% list()
+  for (row_idx in seq_along(plan_rows)) {
+    row <- plan_rows[[row_idx]]
     base_name <- .sm_mb_scalar(row$base_name, "")
     if (!nzchar(base_name)) next
+    .carga_job_progress(
+      "fetch",
+      current = row_idx,
+      total = length(plan_rows),
+      message = sprintf("SurveyMonkey: actualizando '%s' (%d de %d)...", base_name, row_idx, length(plan_rows))
+    )
     if (isTRUE(raw_snapshot_only)) {
       base <- estudio_list_bases(sid)[[base_name]]
       spec <- tryCatch(.sm_mb_normalize_survey_specs(list(row$source_spec))[[1]], error = function(e) NULL)
@@ -4892,6 +4925,11 @@ mount_surveymonkey_multibase <- function(pr) {
       out <- sm_multibase_audit(specs, token, canonical_inst = canon$inst %||% NULL)
       out
     })) |>
+    # Los imports/refresh multibase aceptan `async = TRUE` en el body para
+    # correr como job callr (carga_platform_jobs.R, unidad perf 2.1); el
+    # default sigue siendo la respuesta síncrona de siempre. El mapeo
+    # body → argumentos vive en .carga_platform_call_action para que sync y
+    # async no puedan divergir.
     plumber::pr_post("/api/surveymonkey/multibase/import", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       if (is.null(sid) || is.null(session_get(sid, required = FALSE))) {
@@ -4899,15 +4937,7 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- .connections_token_require("surveymonkey", sid)
-      sm_multibase_import(
-        sid = sid,
-        specs = parsed$surveys %||% list(),
-        token = token,
-        canonical_file_id = .sm_mb_scalar(parsed$canonical_xlsform_file_id, ""),
-        base_name = .sm_mb_scalar(parsed$base_name, "surveymonkey_multibase"),
-        wording_decisions = parsed$wording_decisions %||% list()
-      )
+      .carga_platform_endpoint(sid, "sm_multibase_import", parsed)
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/import-independent", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -4916,23 +4946,7 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      profile_id <- parsed$connection_profile_id %||% parsed$connectionProfileId %||% parsed$profile_id %||% parsed$profileId %||% NULL
-      token <- .connections_token_require("surveymonkey", sid, profile_id = profile_id)
-      sm_multibase_import_independent(
-        sid = sid,
-        specs = parsed$surveys %||% list(),
-        token = token,
-        response_statuses = .sm_mb_response_statuses(parsed$response_statuses),
-        keep_missing_status = if (is.null(parsed$keep_missing_status)) TRUE else isTRUE(parsed$keep_missing_status),
-        canonical_file_id = .sm_mb_scalar(parsed$canonical_xlsform_file_id, ""),
-        use_canonical_xlsform_logic = isTRUE(parsed$use_canonical_xlsform_logic),
-        logic_rules = .sm_mb_scalar(parsed$surveymonkey_logic_rules %||% parsed$logic_rules %||% parsed$reglas, ""),
-        logic_rules_by_survey = parsed$surveymonkey_logic_rules_by_survey %||% parsed$logic_rules_by_survey %||% NULL,
-        logic_pages = parsed$surveymonkey_logic_pages %||% parsed$logic_pages %||% parsed$paginas %||% NULL,
-        choice_order_overrides = parsed$choice_order_overrides %||% NULL,
-        choice_code_maps = parsed$choice_code_maps %||% NULL,
-        replace_existing_logic = isTRUE(parsed$replace_existing_logic)
-      )
+      .carga_platform_endpoint(sid, "sm_multibase_import_independent", parsed)
     })) |>
     plumber::pr_post("/api/surveymonkey/multibase/apply-canonical-xlsform-logic", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
@@ -5049,16 +5063,6 @@ mount_surveymonkey_multibase <- function(pr) {
         res$setHeader("X-Pulso-Session", sid)
       }
       parsed <- .xlsform_editor_parse_body(req)
-      token <- .connections_token_require("surveymonkey", sid)
-      sm_multibase_refresh(
-        sid = sid,
-        token = token,
-        bases = parsed$bases %||% list(),
-        months = suppressWarnings(as.integer(parsed$months %||% 12L)),
-        force_refresh = isTRUE(parsed$force_refresh),
-        reapply_codificacion = if (is.null(parsed$reapply_codificacion)) TRUE else isTRUE(parsed$reapply_codificacion),
-        regenerate_raw_snapshot = isTRUE(parsed$regenerate_raw_snapshot),
-        raw_snapshot_only = isTRUE(parsed$raw_snapshot_only)
-      )
+      .carga_platform_endpoint(sid, "sm_multibase_refresh", parsed)
     }))
 }
