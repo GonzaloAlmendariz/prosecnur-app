@@ -1,0 +1,169 @@
+/* Deck de toasts global (ADR 0047).
+ *
+ * Archivo propio y NO `theme.css`: ese archivo está congelado a crecimiento
+ * (`agentic/manifest.json`, línea base 30756) y el audit se pone rojo si crece.
+ * Solo tokens `--pulso-*`; ningún valor de color literal.
+ */
+
+.pulso-toaster {
+  position: fixed;
+  inset-block-end: 20px;
+  inset-inline-end: 20px;
+  /* Sobre los overlays de módulo: la convención del repo para lo que debe
+   * quedar por encima de la toolbar (que usa z-1000 + transform). */
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* El contenedor no intercepta el puntero; cada tarjeta sí. Sin esto, una
+   * franja invisible bloquearía los clics del rincón inferior derecho. */
+  pointer-events: none;
+  max-width: min(380px, calc(100vw - 40px));
+}
+
+.pulso-toaster-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-popover);
+  animation: pulso-toast-entra var(--motion-dur-panel) var(--motion-ease-out);
+}
+
+@keyframes pulso-toast-entra {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-toast {
+    animation: none;
+  }
+}
+
+.pulso-toast-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-toast.is-exito {
+  border-color: var(--pulso-success-border);
+}
+
+.pulso-toast.is-exito .pulso-toast-icono {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-toast.is-aviso {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-toast.is-aviso .pulso-toast-icono {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-toast.is-error {
+  border-color: var(--pulso-danger-border);
+}
+
+.pulso-toast.is-error .pulso-toast-icono {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-toast.is-info .pulso-toast-icono {
+  color: var(--pulso-info-fg);
+}
+
+.pulso-toast-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-toast-cuerpo strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  /* El mensaje puede envolver: truncarlo dejaría un aviso a medias, que es peor
+   * que un toast de dos líneas. */
+  overflow-wrap: anywhere;
+}
+
+.pulso-toast-cuerpo small {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.pulso-toast-accion {
+  align-self: center;
+  height: var(--pulso-control-height-md);
+  padding-inline: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-control-weight);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pulso-toast-accion:hover {
+  background: var(--pulso-surface-3);
+}
+
+.pulso-toast-cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--pulso-nav-item-radius);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+}
+
+.pulso-toast-cerrar:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.pulso-toast-accion:focus-visible,
+.pulso-toast-cerrar:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+@media (max-width: 720px) {
+  .pulso-toaster {
+    inset-inline: 12px;
+    inset-block-end: 12px;
+    max-width: none;
+  }
+}

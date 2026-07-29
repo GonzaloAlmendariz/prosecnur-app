@@ -135,12 +135,20 @@ const PANEL_CONECTAR_FUENTE: PanelDeclarado = {
   clase: "sideover",
 };
 
+/** Centro de avisos del cronograma (ADR 0047). */
+export const PANEL_AVISOS: PanelDeclarado = {
+  id: "avisos",
+  label: "Centro de avisos",
+  clase: "sideover",
+};
+
 /** Paneles declarados por módulo. `null` = disponibles en toda la app. */
 export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
   monitoreo: [PANEL_CONECTAR_FUENTE],
+  "diseno-estudio": [PANEL_AVISOS],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {

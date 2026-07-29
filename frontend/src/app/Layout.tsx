@@ -13,6 +13,7 @@ import {
 } from "../lib/modules";
 import { ModuleNavigationRuntimeProvider } from "../lib/moduleNavigationRuntime";
 import { ModulePickerHost } from "../features/home/ModulePickerHost";
+import { Toaster } from "../components/Toaster";
 import { usePuenteNavegacion } from "../lib/navegacion/usePuenteNavegacion";
 import ModuleWarmupBoundary, { RouteLoadingFallback } from "./ModuleWarmupBoundary";
 import { GlidingTabList } from "../components/GlidingTabList";
@@ -676,6 +677,9 @@ export default function Layout() {
         <div className="pulso-shell">{canvas}</div>
       </ModuleChromeSlotsProvider>
       <ModulePickerHost />
+      {/* Host único del deck de toasts (ADR 0047). Sin Provider: quien emite
+          importa `toast` de components/toasterStore. */}
+      <Toaster />
     </ModuleNavigationRuntimeProvider>
   );
 }

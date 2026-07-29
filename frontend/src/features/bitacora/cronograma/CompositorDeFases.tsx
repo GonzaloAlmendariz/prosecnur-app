@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarPlus, Flag, Loader2, Sparkles } from "../../../vendor/lucide-react";
+import { Bell, BellRing, CalendarPlus, Flag, Loader2, Sparkles } from "../../../vendor/lucide-react";
 
 import {
   apiBitacoraSembrarFases,
@@ -9,6 +9,10 @@ import {
   type BitacoraFase,
 } from "../../../api/bitacora";
 import { Alert } from "../../../components/Alert";
+import { PANEL_AVISOS } from "../../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
+import { CentroDeAvisos } from "../avisos/CentroDeAvisos";
+import { useAvisos } from "../avisos/useAvisos";
 import { toISODate } from "../dateUtils";
 import { identidadDeFase } from "../identidadDeFase";
 import { FilaDeFase } from "./FilaDeFase";
@@ -34,6 +38,11 @@ export function CompositorDeFases({
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // El centro de avisos es un panel direccionable (`?panel=avisos`): la regla
+  // de la casa pide que todo overlay viva en la URL, no en un `useState`.
+  const panelAvisos = usePanelDireccionable(PANEL_AVISOS);
+  const avisos = useAvisos(estado, panelAvisos.abrir);
 
   const tareasPorId = useMemo(() => {
     const mapa = new Map(estado.plan.tasks.map((t) => [t.id, t]));
@@ -167,6 +176,18 @@ export function CompositorDeFases({
           <strong>{estado.contadores.tareas}</strong>
         </span>
         <div className="bit-compositor-acciones">
+          <button
+            type="button"
+            className={`bit-campana${avisos.vencidos.length > 0 ? " is-pendiente" : ""}`}
+            onClick={panelAvisos.alternar}
+            aria-expanded={panelAvisos.abierto}
+          >
+            {avisos.vencidos.length > 0 ? <BellRing size={14} /> : <Bell size={14} />}
+            <span>Avisos</span>
+            {avisos.vencidos.length > 0 && (
+              <span className="bit-campana-conteo">{avisos.vencidos.length}</span>
+            )}
+          </button>
           {!sembrado && (
             <button
               type="button"
@@ -229,9 +250,27 @@ export function CompositorDeFases({
                 }),
               )
             }
+            onRecordatorios={(recordatorios) => {
+              const declarada = fase.task_ids
+                .map((id) => tareasPorId.get(id))
+                .find((t) => t?.fase_manual);
+              if (!declarada) return;
+              void ejecutar(() => apiBitacoraTareaEditar(declarada.id, { reminders: recordatorios }));
+            }}
+            tareaDeclarada={fase.task_ids.map((id) => tareasPorId.get(id)).find((t) => t?.fase_manual) ?? null}
           />
         ))}
       </div>
+
+      {panelAvisos.abierto && (
+        <div {...panelAvisos.props}>
+          <CentroDeAvisos
+            control={avisos}
+            catalogoFases={estado.catalogo_fases}
+            onCerrar={panelAvisos.cerrar}
+          />
+        </div>
+      )}
     </div>
   );
 }

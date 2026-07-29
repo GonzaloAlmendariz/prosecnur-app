@@ -136,6 +136,8 @@ errores_registrados <- function() {
     "E_ACREDITACION_SAV_UNSEALED_CHOICE_MAP",                "carga_acreditacion_sav.R",          "indirecto",
     "E_ACREDITACION_SEGUIMIENTO",                            "router_monitoreo.R",                "400",
     "E_ACTIVE_BASE_MISSING",                                 "router_analitica.R",                "409",
+    "E_BITACORA_AVISO_CLAVE",                                "bitacora_avisos.R",                 "400",
+    "E_BITACORA_AVISO_SNOOZE",                               "bitacora_avisos.R",                 "400",
     "E_BITACORA_CICLO",                                      "bitacora_cronograma.R",             "409",
     "E_BITACORA_ID",                                         "router_bitacora.R",                 "400",
     "E_BITACORA_JSON",                                       "router_bitacora.R",                 "400",

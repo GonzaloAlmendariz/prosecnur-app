@@ -1,0 +1,328 @@
+/* Centro de avisos y editor de recordatorios (ADR 0047).
+ * Solo tokens `--pulso-*`. */
+
+/* --- Centro de avisos (panel) -------------------------------------------- */
+
+.bit-avisos {
+  position: fixed;
+  inset-block: var(--pulso-chrome-header-h) 0;
+  inset-inline-end: 0;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  width: min(400px, 100vw);
+  border-inline-start: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-panel, var(--pulso-shadow-popover));
+}
+
+.bit-avisos-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-block-end: 1px solid var(--pulso-border);
+}
+
+.bit-avisos-cabecera div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bit-avisos-cabecera strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bit-avisos-cabecera small {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+.bit-avisos-cabecera button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--pulso-nav-item-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.bit-avisos-cabecera button:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+/* El panel posee su propio scroll: sin esto la página entera se desplazaría
+ * detrás del overlay (regla No Scroll Jail). */
+.bit-avisos-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bit-avisos-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-soft);
+}
+
+.bit-avisos-titulo small {
+  padding: 0 6px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0;
+}
+
+/* Columnas declaradas en la lista y heredadas por las filas: con una grid por
+ * fila, los sellos y las acciones no caerían en la misma x. */
+.bit-avisos-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  row-gap: 4px;
+  column-gap: 9px;
+}
+
+.bit-aviso {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: 8px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.bit-aviso.is-proximo {
+  background: transparent;
+  border-style: dashed;
+}
+
+.bit-aviso-sello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft, var(--pulso-surface-3));
+  color: var(--module-accent, var(--pulso-text-soft));
+}
+
+.bit-aviso-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bit-aviso-cuerpo strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bit-aviso-cuerpo small {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-aviso-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bit-aviso-posponer select {
+  height: var(--pulso-control-height-md);
+  padding-inline: 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+.bit-aviso-acciones button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+.bit-aviso-acciones button:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bit-aviso-posponer select:focus-visible,
+.bit-aviso-acciones button:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+/* --- Indicador de la campana --------------------------------------------- */
+
+.bit-campana {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--pulso-chrome-control-h);
+  padding-inline: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: var(--pulso-control-weight);
+  cursor: pointer;
+}
+
+.bit-campana:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bit-campana.is-pendiente {
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.bit-campana-conteo {
+  min-width: 18px;
+  padding-inline: 5px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* --- Editor de recordatorios --------------------------------------------- */
+
+.bit-recordatorios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-block-start: 8px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--pulso-border);
+}
+
+.bit-recordatorios-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+}
+
+.bit-recordatorios-cabecera strong {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bit-recordatorios-nota {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.bit-recordatorios-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.bit-recordatorio {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+
+.bit-recordatorio small {
+  color: var(--pulso-text-faint);
+}
+
+.bit-recordatorio.is-disparado {
+  opacity: 0.65;
+}
+
+.bit-recordatorio button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+}
+
+.bit-recordatorio button:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bit-recordatorio button:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.bit-recordatorios-agregar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+@media (max-width: 720px) {
+  .bit-avisos {
+    inset-inline: 0;
+    width: 100vw;
+  }
+}
