@@ -76,3 +76,64 @@ export function identidadDeFase(
     etiquetaCorta: seccion?.label ?? modulo.shortLabel,
   };
 }
+
+/**
+ * Un destino de tipo `modulo` viaja como `"<slug>"` o `"<slug>/<seccion>"`.
+ *
+ * El backend guarda esa cadena sin interpretarla: el catálogo de módulos vive
+ * en `lib/modules.ts` y duplicarlo en R garantizaría que las dos copias
+ * divergieran al renombrar una sección.
+ */
+export function identidadDeDestino(targetId: string): IdentidadDeFase {
+  const [slug, seccion] = (targetId ?? "").split("/");
+  return identidadDeFase(slug, seccion);
+}
+
+export function destinoDeModulo(slug: string, seccion?: string): string {
+  return seccion ? `${slug}/${seccion}` : slug;
+}
+
+/** Todo lo que un nodo de referencia puede apuntar dentro de la app. */
+export type PiezaDeLaApp = {
+  /** `"<slug>"` o `"<slug>/<seccion>"`. */
+  destino: string;
+  modulo: string;
+  seccion: string;
+  label: string;
+  /** Nombre del módulo, para agrupar en el selector. */
+  grupo: string;
+};
+
+/**
+ * Catálogo de piezas enlazables: cada módulo y cada una de sus secciones.
+ *
+ * Es lo que hace que el lienzo hable el idioma de la app. Un nodo puede ser
+ * "Monitoreo", pero también "Procesamiento · Validación": el usuario arma su
+ * ramificación con las mismas piezas que usa todos los días, no con cajas de
+ * texto que solo él entiende.
+ */
+export function piezasDeLaApp(): PiezaDeLaApp[] {
+  const out: PiezaDeLaApp[] = [];
+  for (const modulo of PROSECNUR_MODULES) {
+    out.push({
+      destino: modulo.slug,
+      modulo: modulo.slug,
+      seccion: "",
+      label: modulo.shortLabel,
+      grupo: modulo.shortLabel,
+    });
+    for (const seccion of modulo.sections) {
+      // Una sección que se llama igual que su módulo no aporta una pieza
+      // distinta: sería el mismo destino con otro nombre.
+      if (seccion.label === modulo.shortLabel) continue;
+      out.push({
+        destino: destinoDeModulo(modulo.slug, seccion.id),
+        modulo: modulo.slug,
+        seccion: seccion.id,
+        label: seccion.label,
+        grupo: modulo.shortLabel,
+      });
+    }
+  }
+  return out;
+}

@@ -27,6 +27,17 @@ import { useCanvasStore } from "./store";
 export type ApiViewport = {
   irAContenido: () => void;
   camaraActual: () => Camara;
+  /** Punto de mundo en el centro de lo que se está viendo. */
+  centroMundo: () => { x: number; y: number };
+};
+
+/** Lo que el viewport presta a un render alternativo de nodo. */
+export type HandlersNodo = {
+  seleccionado: boolean;
+  enfocado: boolean;
+  registrarRef: (id: string, el: HTMLDivElement | null) => void;
+  onPointerDown: (event: React.PointerEvent, id: string) => void;
+  onAnclaPointerDown: (event: React.PointerEvent, id: string, ancla: Ancla) => void;
 };
 
 /**
@@ -64,7 +75,12 @@ export function LienzoViewport({
   onNodos: (nodes: CanvasNodo[]) => void;
   onAristas: (edges: CanvasArista[]) => void;
   registrarApi?: (api: ApiViewport) => void;
-  renderNodo?: (nodo: CanvasNodo) => React.ReactNode;
+  /**
+   * Render alternativo para un nodo. El viewport entrega SUS handlers: el
+   * llamador decide qué se ve, no cómo se interactúa. Sin esto, un nodo de
+   * referencia no se podría arrastrar ni conectar.
+   */
+  renderNodo?: (nodo: CanvasNodo, handlers: HandlersNodo) => React.ReactNode;
 }) {
   const seleccion = useCanvasStore((s) => s.seleccion);
   const enfocado = useCanvasStore((s) => s.enfocado);
@@ -138,7 +154,18 @@ export function LienzoViewport({
   }, [cajas, onCamara, pintarCamara]);
 
   useEffect(() => {
-    registrarApi?.({ irAContenido, camaraActual: () => camaraRef.current });
+    registrarApi?.({
+      irAContenido,
+      camaraActual: () => camaraRef.current,
+      centroMundo: () => {
+        const el = viewportRef.current;
+        if (!el) return { x: 0, y: 0 };
+        return pantallaAMundo(
+          { x: el.clientWidth / 2, y: el.clientHeight / 2 },
+          camaraRef.current,
+        );
+      },
+    });
   }, [registrarApi, irAContenido]);
 
   // `passive: false` porque hay que llamar `preventDefault`: sin eso, el pinch
@@ -400,7 +427,21 @@ export function LienzoViewport({
         </svg>
 
         {nodes.map((nodo) =>
-          renderNodo?.(nodo) ?? (
+          // Un nodo de referencia lo pinta el llamador: necesita el mapa de
+          // resúmenes vivos, que es del payload y no del viewport. Pero la
+          // interacción sigue siendo del viewport, así que va prestada.
+          (nodo.type === "referencia"
+            ? renderNodo?.(nodo, {
+                seleccionado: seleccion.has(nodo.id),
+                enfocado: enfocado === nodo.id,
+                registrarRef,
+                onPointerDown: alBajarEnNodo,
+                onAnclaPointerDown: (event, id, ancla) => {
+                  gestoRef.current = { tipo: "conectar", desde: id, ancla };
+                  setFantasma({ desde: id, ancla, cursor: puntoMundo(event) });
+                },
+              })
+            : null) ?? (
             <NodoCard
               key={nodo.id}
               nodo={nodo}

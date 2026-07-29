@@ -215,3 +215,33 @@ test_that("un estado sin nada enlazado da un payload vacío y no NULL", {
   expect_equal(payload$por_destino, list())
   expect_equal(payload$resumenes, list())
 })
+
+# --- Destinos de tipo `modulo` (Fase 7) --------------------------------------
+
+test_that("una pieza de la app se puede enlazar aunque no exista en el proyecto", {
+  # El universo de destinos válidos lo define `lib/modules.ts`, que R no conoce.
+  # Validar contra el proyecto rechazaría todos los módulos.
+  s <- .bit_link_agregar(.bitvin_estado(), "entrada", "e1",
+                         list(target_type = "modulo", target_id = "procesamiento/validacion"))
+  vinculos <- s$diseno_estudio_bitacora[[1]]$links
+  expect_equal(length(vinculos), 1L)
+  expect_equal(vinculos[[1]]$target_id, "procesamiento/validacion")
+})
+
+test_that("el gc nunca da por huérfana una pieza de la app", {
+  # Un módulo no se puede borrar desde la app: si el gc lo tratara como un id
+  # del proyecto, cada limpieza borraría todos los nodos del lienzo.
+  s <- .bit_link_agregar(.bitvin_estado(), "entrada", "e1",
+                         list(target_type = "modulo", target_id = "monitoreo"))
+  s <- .bit_link_gc(s)
+  expect_equal(length(s$diseno_estudio_bitacora[[1]]$links), 1L)
+})
+
+test_that("el resumen de una pieza de la app lo resuelve el frontend", {
+  # El backend confirma que existe y devuelve el destino crudo; poner acá una
+  # etiqueta sería una segunda copia del catálogo de módulos, condenada a
+  # divergir en el primer renombre de sección.
+  r <- .bit_link_resumen(.bitvin_estado(), "modulo", "procesamiento/graficos")
+  expect_true(r$existe)
+  expect_equal(r$id, "procesamiento/graficos")
+})

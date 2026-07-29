@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Link2,
   Maximize2,
   Network,
   Plus,
@@ -27,6 +28,9 @@ import {
 import { posicionLibre } from "../../../lib/lienzo/rejilla";
 import { anclasAutomaticas } from "./aristaPath";
 import { escribiendoEnCampo, resolverAtajo } from "./atajos";
+import { NodoReferencia } from "./NodoReferencia";
+import { resumenVivo } from "./resumenVivo";
+import { SelectorDeReferencia, type ReferenciaElegida } from "./SelectorDeReferencia";
 import { LienzoViewport, type ApiViewport } from "./LienzoViewport";
 import { useCanvasAutosave } from "./useCanvasAutosave";
 import { useCanvasStore } from "./store";
@@ -50,6 +54,7 @@ export function CanvasSection({
   const [error, setError] = useState<string | null>(null);
   const [camara, setCamara] = useState<Camara>(CAMARA_INICIAL);
   const [armandoConexion, setArmandoConexion] = useState(false);
+  const [eligiendoReferencia, setEligiendoReferencia] = useState(false);
   const apiRef = useRef<ApiViewport | null>(null);
 
   const lienzo = useMemo<CanvasLienzo | null>(() => {
@@ -84,7 +89,10 @@ export function CanvasSection({
   const crearNodo = useCallback(
     (cerca?: { x: number; y: number }) => {
       const s = store.getState();
-      const ancla = cerca ?? { x: 80, y: 80 };
+      // Nace donde el usuario está mirando. Un nodo creado en un punto fijo
+      // del mundo aparece fuera de pantalla en cuanto hay algo de paneo, y se
+      // lee como que el botón no hizo nada.
+      const ancla = cerca ?? apiRef.current?.centroMundo() ?? { x: 80, y: 80 };
       const p = posicionLibre(ancla, { w: 220, h: 120 }, [...cajas.values()]);
       const id = `nodo-${Date.now()}`;
       s.setNodes([
@@ -98,6 +106,48 @@ export function CanvasSection({
       s.editar(id);
     },
     [cajas, store],
+  );
+
+  const insertarReferencia = useCallback(
+    (ref: ReferenciaElegida) => {
+      const s = store.getState();
+      // Una pieza de la app cabe en una línea y media; un hito o una entrada
+      // traen título, detalle y fecha. Estrenar los tres del mismo alto deja
+      // la mitad de la tarjeta en blanco o corta el texto.
+      const alto = ref.target_type === "modulo" ? 72 : 118;
+      const p = posicionLibre(
+        apiRef.current?.centroMundo() ?? { x: 80, y: 80 },
+        { w: 240, h: alto },
+        [...cajas.values()],
+      );
+      const id = `nodo-${Date.now()}`;
+      s.setNodes([
+        ...s.nodes,
+        {
+          id, type: "referencia", x: p.x, y: p.y, w: 240, h: alto, z: 0,
+          color: "neutro", text: ref.titulo, ref: { target_type: ref.target_type, target_id: ref.target_id }, links: [],
+        },
+      ]);
+      s.enfocar(id);
+      s.seleccionar(new Set([id]));
+      setEligiendoReferencia(false);
+    },
+    [cajas, store],
+  );
+
+  /** Un destino que desapareció se convierte en nota, sin perder su lugar. */
+  const convertirEnNota = useCallback(
+    (id: string) => {
+      const s = store.getState();
+      s.setNodes(
+        s.nodes.map((n) =>
+          n.id === id
+            ? { ...n, type: "texto" as const, ref: null, text: n.text || "Referencia perdida" }
+            : n,
+        ),
+      );
+    },
+    [store],
   );
 
   const borrarSeleccion = useCallback(() => {
@@ -295,6 +345,15 @@ export function CanvasSection({
           </button>
           <button
             type="button"
+            onClick={() => setEligiendoReferencia((v) => !v)}
+            aria-expanded={eligiendoReferencia}
+            title="Referenciar una parte de la app, un hito o una entrada"
+          >
+            <Link2 size={14} />
+            <span>Referencia</span>
+          </button>
+          <button
+            type="button"
             onClick={() => store.getState().undo()}
             disabled={!puedeDeshacer}
             title="Deshacer (Cmd+Z)"
@@ -348,17 +407,39 @@ export function CanvasSection({
         </p>
       )}
 
-      <LienzoViewport
-        nodes={nodes}
-        edges={edges}
-        camaraInicial={camara}
-        onCamara={setCamara}
-        onNodos={(n) => store.getState().setNodes(n)}
-        onAristas={(e) => store.getState().setEdges(e)}
-        registrarApi={(api) => {
-          apiRef.current = api;
-        }}
-      />
+      <div className="bcanvas-tablero">
+        {eligiendoReferencia && (
+          <SelectorDeReferencia
+            estado={estado}
+            onElegir={insertarReferencia}
+            onCerrar={() => setEligiendoReferencia(false)}
+          />
+        )}
+
+        <LienzoViewport
+          nodes={nodes}
+          edges={edges}
+          camaraInicial={camara}
+          onCamara={setCamara}
+          onNodos={(n) => store.getState().setNodes(n)}
+          onAristas={(e) => store.getState().setEdges(e)}
+          registrarApi={(api) => {
+            apiRef.current = api;
+          }}
+          renderNodo={(nodo, handlers) => (
+            <NodoReferencia
+              key={nodo.id}
+              nodo={nodo}
+              // Se resuelve contra el estado en memoria en cada render: por eso
+              // editar el hito cambia lo que el nodo muestra, y por eso un nodo
+              // recién insertado no se lee como huérfano.
+              resumen={resumenVivo(estado, nodo.ref)}
+              onDesvincular={convertirEnNota}
+              {...handlers}
+            />
+          )}
+        />
+      </div>
 
       {/* Región viva para lectores de pantalla: en un lienzo espacial, sin esto
           navegar por teclado no anuncia nada. */}

@@ -312,3 +312,310 @@
     will-change: auto;
   }
 }
+
+/* --- Nodo de referencia -------------------------------------------------- */
+
+/* Una referencia se ve distinta de una nota a propósito: es una VENTANA a otra
+ * cosa, no contenido propio. El borde sólido y el sello lo dicen sin texto. */
+.bcanvas-nodo.is-referencia {
+  padding: 0;
+  border-color: var(--module-accent-border, var(--pulso-border-strong));
+  background: var(--pulso-surface);
+}
+
+.bcanvas-nodo.is-referencia.is-huerfano {
+  border-color: var(--pulso-danger-border);
+  border-style: dashed;
+  background: var(--pulso-danger-bg);
+}
+
+.bcanvas-ref-pieza {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+}
+
+.bcanvas-ref-sello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft, var(--pulso-surface-2));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.bcanvas-ref-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.bcanvas-ref-cuerpo strong {
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bcanvas-ref-cuerpo small {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bcanvas-ref-ir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--pulso-nav-item-radius);
+  color: var(--module-accent, var(--pulso-text-soft));
+  text-decoration: none;
+}
+
+.bcanvas-ref-ir:hover {
+  background: var(--pulso-surface-3);
+}
+
+.bcanvas-ref-ir:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.bcanvas-ref-dato {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.bcanvas-ref-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pulso-text-faint);
+}
+
+.bcanvas-ref-tipo em {
+  font-style: normal;
+  padding: 0 5px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.bcanvas-ref-dato strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bcanvas-ref-dato p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+}
+
+.bcanvas-ref-dato small {
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+.bcanvas-ref-huerfano {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  color: var(--pulso-danger-fg);
+}
+
+.bcanvas-ref-huerfano strong {
+  font-size: 12.5px;
+}
+
+.bcanvas-ref-huerfano small {
+  font-size: 10.5px;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* --- Selector de referencia ---------------------------------------------- */
+
+/* Popover anclado, no un bloque en el flujo: si el selector empujara el lienzo,
+ * abrirlo movería todos los nodos bajo el cursor y el marco de la superficie
+ * cambiaría de tamaño según lo que el usuario está haciendo (C2). */
+.bcanvas-selector {
+  position: absolute;
+  z-index: 1400;
+  inset-block-start: 6px;
+  inset-inline-end: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, calc(100% - 12px));
+  padding: 10px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border-strong));
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-high);
+}
+
+/* El ancla del popover. Sin esto se posicionaría contra el viewport del
+ * navegador y quedaría flotando fuera del lienzo al hacer scroll de página. */
+.bcanvas-tablero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.bcanvas-selector-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bcanvas-selector-busqueda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--pulso-control-height-lg);
+  padding-inline: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-faint);
+}
+
+.bcanvas-selector-busqueda input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.bcanvas-selector-busqueda input:focus-visible {
+  outline: none;
+}
+
+.bcanvas-selector-cabecera > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--pulso-nav-item-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+
+/* Columnas declaradas una vez y heredadas: el sello, el título y el contexto
+ * caen en la misma x en toda la lista, mezcle piezas, hitos y entradas. */
+.bcanvas-selector-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  row-gap: 2px;
+  column-gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.bcanvas-selector-lista li {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+.bcanvas-selector-lista button {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.bcanvas-selector-lista button:hover {
+  background: var(--pulso-surface-3);
+}
+
+.bcanvas-selector-lista button:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.bcanvas-selector-sello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft, transparent);
+  color: var(--module-accent, var(--pulso-text-faint));
+}
+
+.bcanvas-selector-titulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bcanvas-selector-lista small {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.bcanvas-selector-vacio {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+/* El tono de una entrada es información, no decoración: el mismo color que
+ * lleva en la bitácora, para que el mapa y la lista se lean igual. */
+.bcanvas-ref-tipo em.is-tono-riesgo { background: var(--pulso-warn-bg); color: var(--pulso-warn-fg); }
+.bcanvas-ref-tipo em.is-tono-bloqueo { background: var(--pulso-danger-bg); color: var(--pulso-danger-fg); }
+.bcanvas-ref-tipo em.is-tono-avance { background: var(--pulso-success-bg); color: var(--pulso-success-fg); }
+.bcanvas-ref-tipo em.is-tono-decision { background: var(--pulso-info-bg); color: var(--pulso-info-fg); }

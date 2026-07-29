@@ -34,7 +34,19 @@ BITACORA_CANALES_RECORDATORIO <- c("in_app")
 
 BITACORA_REGLAS_RECURRENCIA <- c("daily", "weekly", "monthly")
 
-BITACORA_TIPOS_DESTINO <- c("tarea", "entrada", "nodo", "lienzo")
+# A qué puede apuntar un vínculo o un nodo de referencia.
+#
+# `modulo` es distinto de los demás y por eso se comenta: no apunta a un dato
+# del proyecto sino a una PARTE DE LA APP —un módulo o una de sus secciones,
+# como `"monitoreo"` o `"procesamiento/carga"`—. Es lo que permite armar en el
+# lienzo un mapa del estudio con las mismas piezas que el usuario ya usa, en
+# vez de con cajas de texto que solo él entiende.
+#
+# Consecuencia: un destino de tipo `modulo` SIEMPRE existe. No se puede borrar
+# un módulo desde un proyecto, así que el garbage collector de vínculos no lo
+# toca, y su resumen lo resuelve el frontend contra `lib/modules.ts` —el
+# backend no conoce ese catálogo y no debería.
+BITACORA_TIPOS_DESTINO <- c("tarea", "entrada", "nodo", "lienzo", "modulo")
 BITACORA_RELACIONES <- c("menciona", "deriva_de", "documenta", "bloquea")
 
 # Topes de cardinalidad. Existen para que un import malicioso o un bug de UI no

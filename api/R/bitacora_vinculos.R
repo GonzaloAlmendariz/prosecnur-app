@@ -111,7 +111,14 @@
 .bit_link_gc <- function(s) {
   vivos <- .bit_link_ids_vivos(s)
   limpiar <- function(vinculos) {
-    Filter(function(v) .bit_vinculo_clave(v$target_type, v$target_id) %in% vivos, vinculos %||% list())
+    Filter(function(v) {
+      # Un destino de tipo `modulo` apunta a una parte de la APP, no a un dato
+      # del proyecto: no se puede borrar y por lo tanto nunca queda colgando.
+      # Meterlo en el universo de "vivos" obligaría a enumerar el catálogo de
+      # módulos en R, que vive en el frontend.
+      if (identical(v$target_type, "modulo")) return(TRUE)
+      .bit_vinculo_clave(v$target_type, v$target_id) %in% vivos
+    }, vinculos %||% list())
   }
 
   plan <- s$plan_trabajo %||% NULL
@@ -185,6 +192,14 @@
     ))
   }
 
+  if (identical(tipo, "modulo")) {
+    # Pasa de largo a propósito: el título, el ícono y el color de un módulo
+    # salen de `lib/modules.ts`. Duplicar ese catálogo acá sería garantizar que
+    # las dos copias divergieran al renombrar una sección.
+    return(list(existe = TRUE, tipo = tipo, id = id, titulo = "", detalle = "",
+                estado = "", fase = "", fecha = ""))
+  }
+
   if (identical(tipo, "lienzo")) {
     canvas <- s$bitacora_canvas %||% NULL
     if (!is.list(canvas)) return(vacio)
@@ -237,7 +252,10 @@
   if (identical(.bit_vinculo_clave(origen_tipo, origen_id), .bit_vinculo_clave(v$target_type, v$target_id))) {
     stop_api(400, "E_BITACORA_VINCULO_PROPIO", "Una entidad no puede enlazarse consigo misma.")
   }
-  if (!(.bit_vinculo_clave(v$target_type, v$target_id) %in% .bit_link_ids_vivos(s))) {
+  # Los módulos no se validan contra el proyecto: existen siempre. Su forma la
+  # valida el frontend, que es quien conoce el catálogo.
+  if (!identical(v$target_type, "modulo") &&
+      !(.bit_vinculo_clave(v$target_type, v$target_id) %in% .bit_link_ids_vivos(s))) {
     stop_api(404, "E_BITACORA_VINCULO_DESTINO", "Ese destino ya no existe en el proyecto.")
   }
 
