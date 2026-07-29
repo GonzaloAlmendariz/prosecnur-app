@@ -67,6 +67,7 @@ export function LienzoViewport({
   onAristas,
   registrarApi,
   renderNodo,
+  enElMundo,
 }: {
   nodes: CanvasNodo[];
   edges: CanvasArista[];
@@ -81,6 +82,12 @@ export function LienzoViewport({
    * referencia no se podría arrastrar ni conectar.
    */
   renderNodo?: (nodo: CanvasNodo, handlers: HandlersNodo) => React.ReactNode;
+  /**
+   * Capa extra DENTRO del mundo transformado. La usa el abanico de ramas: sus
+   * brotes están en coordenadas de mundo, así que la cámara tiene que moverlos
+   * y escalarlos con el resto del mapa sin que el llamador calcule nada.
+   */
+  enElMundo?: React.ReactNode;
 }) {
   const seleccion = useCanvasStore((s) => s.seleccion);
   const enfocado = useCanvasStore((s) => s.enfocado);
@@ -477,6 +484,8 @@ export function LienzoViewport({
             />
           ),
         )}
+
+        {enElMundo}
 
         {marcoRect && (
           <div

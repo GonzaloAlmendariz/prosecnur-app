@@ -1124,3 +1124,149 @@
   outline: 2px solid var(--pulso-primary-focus);
   outline-offset: 1px;
 }
+
+/* --- Abanico de ramas ---------------------------------------------------- */
+
+.bcanvas-abanico {
+  position: absolute;
+  inset: 0;
+  /* Contenedor sin caja: solo posiciona. Sin esto taparía el lienzo entero y
+   * el paneo dejaría de funcionar mientras el abanico está abierto. */
+  pointer-events: none;
+}
+
+.bcanvas-brote {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 10px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border-strong));
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  text-align: start;
+  cursor: pointer;
+  pointer-events: auto;
+  /* Nace desde el costado del cuadro que lo abrió: el desplazamiento en x dice
+   * de dónde salió, y el escalonado deja seguir el orden con la vista. */
+  animation: bcanvas-brote-entra var(--motion-dur-base, 200ms) var(--motion-ease-out, ease-out) both;
+  animation-delay: var(--brote-retraso, 0ms);
+  transform-origin: 0 50%;
+}
+
+@keyframes bcanvas-brote-entra {
+  from {
+    opacity: 0;
+    transform: translateX(-26px) scaleX(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.bcanvas-brote:hover {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent-soft, var(--pulso-surface-2));
+}
+
+.bcanvas-brote:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.bcanvas-brote-sello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--module-accent-soft, var(--pulso-surface-3));
+  color: var(--module-accent, var(--pulso-text-soft));
+}
+
+.bcanvas-brote-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bcanvas-brote svg:last-child {
+  color: var(--pulso-text-soft);
+}
+
+/* El tirador de ramas va en el BORDE DERECHO del cuadro, no en la fila de
+ * acciones: ahí le comía el ancho al título —«Procesam…» con tres botones al
+ * lado— y además es de donde sale la rama, así que el gesto se lee solo. */
+.bcanvas-ref-ramificar {
+  position: absolute;
+  inset-inline-end: -13px;
+  inset-block-start: calc(50% - 12px);
+  z-index: 1;
+  width: auto;
+  min-width: 26px;
+  height: 24px;
+  padding-inline: 5px;
+  gap: 3px;
+  border: 1px solid var(--module-accent-border, var(--pulso-border-strong));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.bcanvas-ref-ramificar:hover {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent-soft, var(--pulso-surface-2));
+}
+
+.bcanvas-ref-ramificar em {
+  font-style: normal;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+.bcanvas-ref-ramificar.is-abierto {
+  background: var(--module-accent-soft, var(--pulso-surface-3));
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+/* El nodo que nace de un brote crece desde su costado izquierdo, que es donde
+ * estaba el brote: así se lee como que el brote SE CONVIRTIÓ en tarjeta. */
+.bcanvas-nodo.is-naciendo {
+  animation: bcanvas-nodo-nace 420ms var(--motion-ease-out, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+  transform-origin: 0 50%;
+  z-index: 3;
+}
+
+@keyframes bcanvas-nodo-nace {
+  from {
+    opacity: 0.35;
+    scale: 0.9 0.42;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+/* Movimiento reducido: la información no puede depender de la animación, así
+ * que los brotes y el nodo aparecen, simplemente sin recorrido. */
+@media (prefers-reduced-motion: reduce) {
+  .bcanvas-brote,
+  .bcanvas-nodo.is-naciendo {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}

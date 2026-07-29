@@ -1,6 +1,6 @@
 import { memo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Check, Flag, Link2, Plus, Unlink, X } from "../../../vendor/lucide-react";
+import { ArrowUpRight, Check, Flag, GitBranch, Link2, Plus, Unlink, X } from "../../../vendor/lucide-react";
 
 import type { BitacoraResumenDestino, CanvasNodo } from "../../../api/bitacora";
 import { identidadDeDestino } from "../identidadDeFase";
@@ -41,6 +41,10 @@ export const NodoReferencia = memo(
     onAlternarItem,
     onQuitarItem,
     onConectar,
+    ramasLibres,
+    ramificando,
+    onRamificar,
+    naciendo,
   }: {
     nodo: CanvasNodo;
     resumen: BitacoraResumenDestino;
@@ -54,6 +58,12 @@ export const NodoReferencia = memo(
     onAlternarItem: (id: string, itemId: string) => void;
     onQuitarItem: (id: string, itemId: string) => void;
     onConectar: (id: string) => void;
+    /** Cuántas ramas puede desplegar todavía. 0 oculta el botón. */
+    ramasLibres: number;
+    ramificando: boolean;
+    onRamificar: (id: string) => void;
+    /** Recién abierto desde un brote: lleva la animación de entrada. */
+    naciendo: boolean;
   }) {
     const navegar = useNavigate();
     const [confirmando, setConfirmando] = useState(false);
@@ -76,7 +86,7 @@ export const NodoReferencia = memo(
         ref={(el) => registrarRef(nodo.id, el)}
         className={`bcanvas-nodo is-referencia${seleccionado ? " is-seleccionado" : ""}${
           enfocado ? " is-enfocado" : ""
-        }${huerfano ? " is-huerfano" : ""}`}
+        }${huerfano ? " is-huerfano" : ""}${naciendo ? " is-naciendo" : ""}`}
         data-nodo-id={nodo.id}
         style={{
           translate: `${nodo.x}px ${nodo.y}px`,
@@ -161,6 +171,24 @@ export const NodoReferencia = memo(
             {resumen.detalle && <p>{resumen.detalle}</p>}
             {resumen.fecha && <small>{resumen.fecha}</small>}
           </div>
+        )}
+
+        {/* Ramificar en el propio lienzo: el cuadro sabe qué cuelga de él
+            —el árbol vive en `lib/modules.ts`—, así que no hay razón para
+            volver al explorador, buscar la pieza otra vez y reinsertarla. */}
+        {ramasLibres > 0 && (
+          <button
+            type="button"
+            className={`bcanvas-ref-boton bcanvas-ref-ramificar${ramificando ? " is-abierto" : ""}`}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => onRamificar(nodo.id)}
+            aria-expanded={ramificando}
+            title={`Desplegar ${ramasLibres} ${ramasLibres === 1 ? "rama" : "ramas"}`}
+            aria-label={`Desplegar las ramas de ${identidad?.etiquetaCorta ?? "este cuadro"}`}
+          >
+            <GitBranch size={13} />
+            <em>{ramasLibres}</em>
+          </button>
         )}
 
         {confirmando && (
@@ -288,7 +316,10 @@ export const NodoReferencia = memo(
     a.nodo === b.nodo &&
     a.resumen === b.resumen &&
     a.seleccionado === b.seleccionado &&
-    a.enfocado === b.enfocado,
+    a.enfocado === b.enfocado &&
+    a.ramasLibres === b.ramasLibres &&
+    a.ramificando === b.ramificando &&
+    a.naciendo === b.naciendo,
 );
 
 /**
