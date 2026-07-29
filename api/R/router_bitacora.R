@@ -333,5 +333,28 @@ mount_bitacora <- function(pr) {
       prefs <- .bit_prefs_aplicar_parche(session_get(sid), body$preferencias %||% body)
       .bit_prefs_guardar(sid, prefs)
       .bit_estado_payload(sid)
+    })) |>
+
+    # --- Portabilidad --------------------------------------------------------
+
+    plumber::pr_get("/api/bitacora/portabilidad/exportar",
+                    wrap_endpoint(function(req, res, ...) {
+      .bit_port_exportar(session_get(session_header(req)))
+    })) |>
+
+    # Revisa y NO escribe. Devuelve el plan y el token que lo ata a este estado.
+    plumber::pr_post("/api/bitacora/portabilidad/revisar",
+                     wrap_endpoint(function(req, res, ...) {
+      body <- .bit_parse_body(req)
+      .bit_port_revisar(session_get(session_header(req)), body$documento %||% body)
+    })) |>
+
+    plumber::pr_post("/api/bitacora/portabilidad/aplicar",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      s <- .bit_port_aplicar(session_get(sid), body$documento %||% list(), body$token)
+      .bit_persistir_grafo(sid, s)
+      .bit_estado_payload(sid)
     }))
 }

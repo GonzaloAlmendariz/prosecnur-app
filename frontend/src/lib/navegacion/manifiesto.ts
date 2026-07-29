@@ -142,13 +142,20 @@ export const PANEL_AVISOS: PanelDeclarado = {
   clase: "sideover",
 };
 
+/** Importación del grafo con vista previa (ADR 0047). */
+export const PANEL_IMPORTAR: PanelDeclarado = {
+  id: "importar",
+  label: "Importar mapa del estudio",
+  clase: "dialogo",
+};
+
 /** Paneles declarados por módulo. `null` = disponibles en toda la app. */
 export const PANELES_POR_MODULO: Readonly<
   Partial<Record<ProsecnurModuleSlug | "global", readonly PanelDeclarado[]>>
 > = {
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
   monitoreo: [PANEL_CONECTAR_FUENTE],
-  "diseno-estudio": [PANEL_AVISOS],
+  "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {

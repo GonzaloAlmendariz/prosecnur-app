@@ -26,7 +26,11 @@ import { LogbookSection } from "./LogbookSection";
 import { CronogramaSection } from "./CronogramaSection";
 import { Calendar } from "./Calendar";
 import { CanvasSection } from "./canvas/CanvasSection";
+import { PanelImportar } from "./portabilidad/PanelImportar";
+import { descargarMapaDelEstudio } from "./portabilidad/descargar";
 import { apiBitacoraEstado, type BitacoraEstado } from "../../api/bitacora";
+import { PANEL_IMPORTAR } from "../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import "./bitacora.css";
 
 type Tab = "bitacora" | "cronograma" | "calendario" | "canvas";
@@ -65,6 +69,7 @@ export default function BitacoraPage() {
   const [entries, setEntries] = useState<DisenoEstudioBitacoraEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const panelImportar = usePanelDireccionable(PANEL_IMPORTAR);
 
   useEffect(() => {
     setTab(seccionFromSearch(location.search));
@@ -154,6 +159,18 @@ export default function BitacoraPage() {
               disabled: loading,
               busy: loading,
             },
+            {
+              id: "exportar",
+              label: "Exportar mapa",
+              rank: 3,
+              onSelect: () => void descargarMapaDelEstudio(),
+            },
+            {
+              id: "importar",
+              label: "Importar mapa",
+              rank: 3,
+              onSelect: panelImportar.abrir,
+            },
           ]}
         />
 
@@ -172,6 +189,23 @@ export default function BitacoraPage() {
           )}
         </div>
       </div>
+
+      {panelImportar.abierto && (
+        <div {...panelImportar.props}>
+          <PanelImportar
+            onImportado={(estado) => {
+              // El import toca las tres colecciones a la vez. Lo que el panel
+              // devuelve rehidrata el estado del lienzo y las entradas; el plan
+              // se recarga porque `PlanTrabajoState` trae readiness y sync
+              // derivados que el payload consolidado no incluye.
+              setBitacoraEstado(estado);
+              setEntries(estado.bitacora);
+              void reloadPlan();
+            }}
+            onCerrar={panelImportar.cerrar}
+          />
+        </div>
+      )}
     </PageFrame>
   );
 }

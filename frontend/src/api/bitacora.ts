@@ -13,6 +13,7 @@ import type {
   BitacoraVinculo,
   PlanTrabajoPlan,
   PlanTrabajoPrioridad,
+  PlanTrabajoTask,
   PlanTrabajoTaskKind,
   PlanTrabajoTaskStatus,
 } from "./planTrabajo";
@@ -445,6 +446,58 @@ export async function apiBitacoraPreferencias(
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ preferencias }),
+    }),
+  );
+}
+
+// ---- Portabilidad (ADR 0047) ------------------------------------------------
+
+export type BitacoraDocumento = {
+  schema: string;
+  exported_at: string;
+  plan: { schema: string; tasks: PlanTrabajoTask[] };
+  bitacora: DisenoEstudioBitacoraEntry[];
+  canvas: { schema: string; canvases: CanvasLienzo[] };
+};
+
+export type BitacoraImportFila = { tipo: string; id: string; etiqueta: string };
+export type BitacoraImportError = { tipo: string; id: string; motivo: string };
+
+export type BitacoraImportRevision = {
+  crea: BitacoraImportFila[];
+  actualiza: BitacoraImportFila[];
+  errores: BitacoraImportError[];
+  aplicable: boolean;
+  /**
+   * Ata esta revisión al estado que la produjo. Si el proyecto cambia entre la
+   * vista previa y la confirmación, aplicar con este token devuelve 409.
+   */
+  token: string;
+};
+
+export async function apiBitacoraExportar() {
+  return handle<BitacoraDocumento>(
+    await apiFetch("/api/bitacora/portabilidad/exportar", { headers: headers() }),
+  );
+}
+
+/** Revisa sin escribir. Devuelve el plan que se aplicaría y su token. */
+export async function apiBitacoraImportRevisar(documento: unknown) {
+  return handle<BitacoraImportRevision>(
+    await apiFetch("/api/bitacora/portabilidad/revisar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ documento }),
+    }),
+  );
+}
+
+export async function apiBitacoraImportAplicar(documento: unknown, token: string) {
+  return handle<BitacoraEstado>(
+    await apiFetch("/api/bitacora/portabilidad/aplicar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ documento, token }),
     }),
   );
 }
