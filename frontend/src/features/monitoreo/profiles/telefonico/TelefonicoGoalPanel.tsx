@@ -21,8 +21,11 @@ function decimalLabel(value: number | null | undefined) {
   return value.toFixed(1).replace(/\.0$/, "");
 }
 
+// «snapshot» describe cómo la app guarda lo que trajo la sincronización, no lo
+// que el estudio tiene delante. Los otros dos granos se conservan: «procesable»
+// y «efectiva» son vocabulario del estudio.
 const GRANO_LABEL: Record<string, string> = {
-  ingesta: "registros del snapshot",
+  ingesta: "respuestas recibidas",
   procesable: "casos procesables",
   oficial: "efectivas válidas",
 };
@@ -37,7 +40,7 @@ export function TelefonicoEmbudo({ corte }: { corte: MonitoreoCorte }) {
   if (pasos.length < 2) return null;
   const maximo = Math.max(...pasos.map((paso) => paso.valor), 1);
   return (
-    <section className="mon-tel-funnel" aria-label="De registros del snapshot a efectivas válidas">
+    <section className="mon-tel-funnel" aria-label="De respuestas recibidas a efectivas válidas">
       <header>
         <span>De dónde sale la cifra</span>
         <strong>{metric(pasos[0].valor)} → {metric(pasos[pasos.length - 1].valor)}</strong>
