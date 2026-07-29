@@ -663,7 +663,12 @@
         n_rows = as.integer(last_state$n_rows %||% light_state$n_rows %||% 0L)
       ),
       session_patch = list(
-        monitoreo = .project_warmup_monitoreo_cache_patch(sid, scopes)
+        monitoreo = .project_warmup_monitoreo_cache_patch(sid, scopes),
+        # Los caches de sesión mueren al cerrar; este viaja en el `.pulso` y es
+        # el que evita recalcular los cuatro scopes en la próxima apertura.
+        monitoreo_acreditacion = list(
+          acreditacion_report_cache = session_get(sid)$monitoreo_snapshot$acreditacion_report_cache %||% NULL
+        )
       )
     ))
   }
@@ -1065,6 +1070,11 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
       "monitoreo_dashboard_cache_phone_summary",
       "monitoreo_dashboard_cache_token_phone_summary"
     )
+    acreditacion_keys <- c("acreditacion_report_cache")
+    if (any(acreditacion_keys %in% names(value))) {
+      merge_child("monitoreo_acreditacion", value)
+    }
+    merge_child("monitoreo_acreditacion", value$monitoreo_acreditacion %||% NULL)
     territorial_keys <- c("territorial_report_cache", "territorial_map_cache")
     if (any(monitoreo_keys %in% names(value))) {
       merge_child("monitoreo", value)
@@ -1116,6 +1126,20 @@ attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job
       }
     }
     .session_env[[sid]] <- s_current
+  }
+  acreditacion <- patch$monitoreo_acreditacion %||% list()
+  if (is.list(acreditacion) && length(acreditacion)) {
+    incoming_acr_cache <- acreditacion$acreditacion_report_cache %||% NULL
+    if (is.list(incoming_acr_cache) && exists(".monitoreo_acr_cache_merge", mode = "function")) {
+      s_current <- session_get(sid)
+      snapshot_current <- .monitoreo_acr_cache_merge(
+        s_current$monitoreo_snapshot %||% list(),
+        incoming_acr_cache
+      )
+      s_current$monitoreo_snapshot <- snapshot_current
+      .session_env[[sid]] <- s_current
+      changed <- TRUE
+    }
   }
   territorial <- patch$monitoreo_territorial %||% list()
   if (is.list(territorial) && length(territorial)) {

@@ -11,7 +11,13 @@
   )
 }
 
-.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260704-territorial-route-responsible-v1"
+# Sube esta clave cuando cambie la FORMA de calcular el dashboard o sus
+# reportes: es lo que invalida los `.pulso` ya guardados. Un cambio de codigo no
+# altera datos ni configuracion, asi que sin subirla se sigue sirviendo lo que
+# calculo la version anterior del motor —paso al conectar las variables de
+# interes con el reporte de control: la vista mostraba "0 variables" con el
+# motor ya arreglado.
+.monitoreo_dashboard_cache_key <- "monitoreo-dashboard-v20260729-interest-variables-controls-v1"
 
 .monitoreo_timing_ms <- function(start) {
   as.integer(round(as.numeric(difftime(Sys.time(), start, units = "secs")) * 1000))
@@ -1933,6 +1939,12 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   if (isTRUE(include_reports) && identical(family, "territorial") && !identical(report_scope, "light")) {
     territorial_report_cache_info <- .monitoreo_territorial_report_cache_key_info(sid, snapshot %||% list(), data, cfg, report_scope = report_scope)
   }
+  # Acreditación y telefónico pedían cuatro scopes y solo uno tenía token
+  # válido, así que los otros tres se reconstruían enteros en cada apertura.
+  acr_cache_info <- NULL
+  if (.monitoreo_acr_cache_aplica(family, report_scope, include_reports)) {
+    acr_cache_info <- .monitoreo_acr_cache_key_info(snapshot %||% list(), display_data, cfg, report_scope = report_scope)
+  }
   cache_token <- .monitoreo_dashboard_cache_token(snapshot %||% list(), display_data, cfg, report_scope = report_scope)
   dashboard <- if (isTRUE(territorial_light_state)) NULL else snapshot$dashboard %||% NULL
   cached_acreditacion_reports <- if (
@@ -1990,8 +2002,12 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
       s[[cache_token_field]] <- cache_token
       .session_env[[sid]] <- s
     } else {
+      acr_cache_entry <- .monitoreo_acr_cache_lookup(snapshot %||% list(), acr_cache_info)
       territorial_report_cache_entry <- .monitoreo_territorial_report_cache_lookup(snapshot %||% list(), territorial_report_cache_info)
-      if (!is.null(territorial_report_cache_entry)) {
+      if (!is.null(acr_cache_entry)) {
+        dashboard <- acr_cache_entry$dashboard
+        dashboard_source <- "project"
+      } else if (!is.null(territorial_report_cache_entry)) {
         dashboard <- territorial_report_cache_entry$dashboard
         dashboard_source <- "project"
         territorial_report_cache_meta <- .monitoreo_territorial_report_cache_meta(
@@ -2025,6 +2041,9 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
             snapshot$dashboard_cache_key <- .monitoreo_dashboard_cache_key
             snapshot$dashboard_cache_token <- cache_token
             snapshot$dashboard_report_scope <- report_scope
+          }
+          if (!is.null(acr_cache_info)) {
+            snapshot <- .monitoreo_acr_cache_store(snapshot, acr_cache_info, dashboard, build_ms = dashboard_build_ms)
           }
           if (!is.null(territorial_report_cache_info)) {
             snapshot <- .monitoreo_territorial_report_cache_store(
