@@ -117,8 +117,13 @@
   --apilado-eje: 13px;
   --apilado-hueco: 3px;
   position: relative;
-  flex: 1 1 14px;
-  min-width: 14px;
+  /* El día no baja de 40 px: es lo que necesita «15 jun» para no encimarse con
+   * el de al lado. Con pocos días el `flex-grow` los reparte y no hay scroll;
+   * pasado el mes —a partir de unos 30 cortes— la suma supera la caja y el
+   * gráfico scrollea en horizontal en vez de apretar las fechas hasta que no se
+   * leen. El scroll es del gráfico, no de la página (No Scroll Jail). */
+  flex: 1 1 40px;
+  min-width: 40px;
   height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) var(--apilado-eje);
@@ -138,6 +143,17 @@
   bottom: calc(var(--apilado-eje) + var(--apilado-hueco));
   height: 1px;
   background: var(--pulso-border);
+}
+
+/* En los extremos el eje no sobresale: medio hueco de más por la derecha
+ * bastaba para que el contenedor se creyera desbordado y apareciera un scroll
+ * horizontal de 1,5 px con solo 13 días. */
+.mon-apilado-dia:first-child::after {
+  left: 0;
+}
+
+.mon-apilado-dia:last-child::after {
+  right: 0;
 }
 
 /* Rectas, como el resto de los gráficos de la app.
