@@ -20418,17 +20418,15 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   flex-shrink: 0;
 }
 
-.home-proj-meta-dot.is-saved {
-  background: #16a34a;
+.home-proj-meta-dot.is-saved { background: #16a34a; position: relative; }
+/* Halo compositable: el pseudo-elemento pulsa con transform/opacity; animar box-shadow repintaba en CPU a perpetuidad en el reposo del Home. */
+.home-proj-meta-dot.is-saved::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: #16a34a;
   animation: home-dot-pulse 2.4s ease-out infinite;
 }
 .home-proj-meta-dot.is-dirty { background: #d97706; }
 
-@keyframes home-dot-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
-  60%  { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
-}
+@keyframes home-dot-pulse { 0% { transform: scale(1); opacity: 0.45; } 60%, 100% { transform: scale(3); opacity: 0; } }
 
 .home-proj-meta code {
   background: var(--pulso-surface-2);
@@ -25074,9 +25072,11 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
 }
 .pulso-hub-flow-halo {
   animation: pulso-hub-flow-halo-spin 28s linear infinite;
+  animation-play-state: paused; /* quieto en reposo: solo gira con el cursor o el foco dentro del diagrama */
   transform-origin: center;
   transform-box: fill-box;
 }
+.pulso-hub-flow:hover .pulso-hub-flow-halo, .pulso-hub-flow:focus-within .pulso-hub-flow-halo { animation-play-state: running; }
 @keyframes pulso-hub-flow-halo-spin {
   from {
     stroke-dashoffset: 0;
