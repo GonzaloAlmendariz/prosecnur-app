@@ -25,17 +25,378 @@ Acreditación primero, y de ahí se traslada a Telefónico y Territorial.
 - Franja de fuentes repartida en una fila.
 - Timeout en los tres caminos de red hacia Google (N7).
 
+`Universo` reconstruido como lista de cobertura por actor: deja de ser un
+formulario —era la segunda puerta de conexión, sin verificación— y conectar o
+cambiar abre la puerta única con el actor precargado por `?foco=`. El barrido
+sale del `details` cerrado. `AcreditacionSheetsByActorView` se retiró.
+
+`Encuestas y recopiladores`: el `survey_id` deja el subtítulo, el vocabulario
+compartido reemplaza `Base X · N heredan · N excepciones` y `Sin alias
+operativo`, y de las cuatro métricas de recopilador queda la única que era un
+número —`Uso`, `Alias` y `Barrido` valían 1/0 y repetían sus propios controles—.
+Se retiraron los dos `details` que duplicaban la puerta (N1).
+
+> **C1 — todos los recopiladores caían en el canal de su encuesta.** Reportado
+> por el usuario y reproducido en `acrconta`: los 20 recopiladores de la
+> encuesta de Estudiantes salían como «Presencial (Ficha QR)», incluidos los
+> **10 que la plataforma reporta como `email`**. Causa: el orden de los
+> fallbacks en `acreditacionCollectorsForSource`,
+> `saved?.channel || sourceChannel || platform?.channel`, donde el canal de la
+> encuesta gana al del recopilador.
+>
+> El arreglo no fue invertir el orden. `collector.channel` es un campo **blando**
+> —arrastra nombres heredados como «Correo institucional historico» en
+> recopiladores que no son de correo— y un test previo ya protegía que el canal
+> de la encuesta le ganara. El dato **duro** es `collector_type`: un `email` no
+> es presencial por mucho que su encuesta se aplique con ficha QR, mientras que
+> un `weblink` no determina nada —una ficha QR, un enlace de WhatsApp y un link
+> abierto son todos weblinks—. El orden nuevo es: confirmado por el usuario →
+> lo que el tipo determina → canal de la encuesta → campo blando.
+>
+> Regresión en `AcreditacionCanalRecopilador.test.ts`, con el caso real de
+> 10 de 20. Agravante que motivó el reporte: la tarjeta remataba con «20
+> recopiladores usan este canal · **ninguno con excepción**», presentando como
+> confirmado algo que nadie confirmó.
+
+## Acreditación fuera de Fuentes — reportado el 2026-07-28
+
+Fuentes no era el único problema del modo. Lista del usuario, ordenada por
+profundidad, porque mezclarlas ha sido la forma de no terminar ninguna.
+
+### Cosmético acotado
+
+| # | Superficie | Qué |
+|---|---|---|
+| ✅ A1 | Rail · cápsula de actualización | Estaba en `font-size: 7px` —el piso de la escala es 10— y gastaba un tercio del ancho en el año. Sin año, a 10 px; el año queda en el `title`. **Hecho.** |
+| A2 | Teléfono · Ritmo diario | Las cuatro tarjetas de cabecera son muy altas para lo que muestran. El gráfico está bien |
+| ~~A3~~ | Consultas · pestañas | **Resuelto.** No faltaba copy: cada pestaña ya tenía encabezado, icono y tono, y `isTableOnlyTab` los **apagaba** para dar alto a la tabla. Vuelve en una línea (16 px). Y el tono tampoco separaba: `pending` (#365d8f) y `base` (#2f6f90) eran el mismo azul —medido, `rgb(54,93,143)` contra `rgb(47,111,144)`—; «Estado de la base» pasó a ámbar. Distancia de color de 6 a **177** |
+
+### Estructural
+
+| # | Superficie | Qué |
+|---|---|---|
+| B1 | Modelo | Sobran las subpestañas: en acreditación solo sirve para definir cuotas por actor, y la primera basta. Lo que hace falta es **separación y estructura dentro de esa única vista**, no más navegación |
+| B2 | Teléfono | Hay un contenedor de estados heredado que ya no debería estar (`mon-semantic-legend is-phone`, `AcreditacionMonitoreoPage.tsx:19001`) |
+
+### Dominio — exigen decisión metodológica, no son pulido
+
+| # | Superficie | Qué |
+|---|---|---|
+| C1 | Teléfono · cuotas telefónicas | El box no tiene sentido tal cual en acreditación, y **no deja declarar la variable con la que estratificar el avance** (año de egreso, sexo, o ambas). Es el hueco de fondo, no la caja |
+| ~~C2~~ | Teléfono · estados del barrido | **Implementado**, pendiente de verificación visual. Pestaña `Estados` en Teléfono: lista los crudos que trae el corte con su volumen, deja reasignar familia y fija el color de cada una. Lo confirmado gana sobre la heurística también en cortes futuros. Persiste en `state_rules`, que ya viajaba en el `.pulso` sin que nadie lo usara desde la UI; el campo `color` se añadió a la whitelist de R |
+| A4 | Teléfono · Ritmo diario | Bajo el gráfico sobra alto: sumar un **apilado de estados telefónicos por día**, con hover por estado. Ver la regla de fotografía, abajo |
+
+> **Los estados son fotografías, no eventos.** Regla de dominio del usuario,
+> 2026-07-28, y gobierna todo lo que se dibuje con ellos:
+>
+> - La base de barrido tiene N casos, y **cada caso tiene un solo estado en
+>   cada momento**. Los estados no se acumulan.
+> - Cada actualización es una **fotografía completa** de esos mismos N casos.
+>   Lo que el eje temporal cuenta no es producción, es **redistribución**: cómo
+>   fueron cambiando de estado los mismos casos.
+> - Si un día tiene **más de una actualización, manda la última**.
+>
+> Consecuencias, que son las que hacen que esto no sea un detalle:
+>
+> - **Sumar los estados de dos fotografías cuenta el mismo caso dos veces.** Un
+>   apilado construido como histograma de eventos daría totales crecientes y
+>   falsos.
+> - El total de cada día debe ser **constante** e igual al tamaño de la base.
+>   Si no lo es, la serie está mal construida y hay que decirlo, no dibujarla.
+> - El gráfico correcto es de **composición** —área o barra apilada de total
+>   estable—, no de volumen.
+>
+> La regla está implementada y con regresión en
+> `AcreditacionFotografiasDeEstado.ts`. **Pero el dato para alimentarla todavía
+> no existe**, y conviene saberlo antes de intentar el gráfico:
+>
+> - El motor tiene un bloque `estatus_dia` («Estados telefónicos por día») que
+>   parece justo lo que hace falta, y además **solo se publica cuando la familia
+>   es `telefonico`** —en acreditación se calcula y se descarta—, lo que a
+>   primera vista es una desconexión de las de C5 categoría 3.
+> - No lo es. Ese bloque cuenta
+>   `sum(status == label & dates == day)`: casos por **fecha de llamada**, o sea
+>   un histograma de eventos, con `Total` sumado a lo largo de los días.
+>   Conectarlo daría exactamente el gráfico falso que la regla prohíbe.
+> - Lo que falta es un **histórico de fotografías**: hoy cada sincronización
+>   sobreescribe el estado y no se guarda el reparto anterior, así que no hay
+>   con qué dibujar la redistribución.
+>
+> Conclusión: **A4 depende de infraestructura de motor que no existe**, no de
+> conectar un cable. Antes de dibujarlo hay que decidir dónde se guarda la serie
+> de cortes y qué se conserva de cada uno.
+
+> **Corrección (2026-07-29): A4 está hecho, y la conclusión de arriba era
+> demasiado pesimista.** Lo que sigue en pie es la mitad buena del diagnóstico:
+> `estatus_dia` no es una serie de fotografías, y acumularlo para simular la
+> redistribución sería el gráfico falso que la regla prohíbe. Lo que estaba mal
+> era la conclusión práctica.
+>
+> El bloque no es un histograma de eventos: es una **partición**. Cada caso
+> barrido aparece una sola vez, en el día de su última lectura y con su estado
+> final, así que dibujarlo tal cual —una barra por día, sin acumular— responde
+> una pregunta legítima y distinta: **qué estados se registraron cada día**. No
+> hacía falta ningún histórico para eso.
+>
+> Y no era infraestructura: `status_day` **ya se calculaba siempre**, sin
+> depender de la familia; solo su publicación estaba dentro de
+> `if (isTRUE(standalone_phone))`. Sacarlo de ese guard fue una línea, sin coste
+> de cómputo. El error fue leer "se calcula y se descarta" como si el cálculo
+> también estuviera condicionado.
+>
+> Lo entregado: barra apilada bajo el ritmo diario, con los colores que el
+> usuario declaró en el definidor (C2) y hover por segmento. El título dice
+> explícitamente «Cada barra es lo que se registró ese día, no el estado de toda
+> la base», porque la confusión que el diagnóstico temía es real y la única
+> defensa es nombrarla. Dos defectos salieron al verificar en pantalla: los días
+> se ordenaban por texto —`10 jun` antes que `3 jun`— y el hover repetía la
+> familia cuando el estado crudo se llamaba igual.
+| ~~C1~~ | Teléfono · cuotas | **Resuelto** por la vía de variables de interés. Ver abajo |
+
+> **C1 — resuelto, y el diagnóstico anterior era incorrecto.** Escribí que
+> estaba «bloqueado por motor» porque `/api/monitoreo/state` devolvía
+> `variables: []`. Confundí dos cosas: `state.variables` es la lista que se arma
+> para la interfaz, pero el motor de cuotas **no la usa** — le basta con que la
+> columna exista en `phone`, que es un subconjunto de FILAS
+> (`data[mask, , drop = FALSE]`), no de columnas. El año de egreso siempre
+> estuvo ahí.
+>
+> **Lo entregado**, en cuatro capas:
+>
+> 1. **Catálogo** (`monitoreo_variables_interes.R`): el reparto por categoría de
+>    cada columna, no solo seis ejemplos. Se calcula únicamente donde tiene
+>    sentido —por encima de 60 categorías distintas es un identificador— y el
+>    recorte del top se declara con cuántas quedaron fuera y cuántos casos
+>    representan. El orden lo manda la cobertura.
+> 2. **Normalización**: `2021-1` y `2021-2` → `2021`. El patrón `AAAA-S` se
+>    detecta **por mayoría, no por unanimidad**: una hoja de 270 personas trae
+>    erratas y una celda mal escrita no puede impedir agrupar la cohorte.
+> 3. **Persistencia por actor**: `interest_variables` en la whitelist de
+>    `.monitoreo_operational_model()` — sin eso el campo se descarta en silencio
+>    al guardar. Un actor puede declarar VARIAS variables; lo que no se repite es
+>    el par actor+variable.
+> 4. **Modelo > Distribución**: pestaña propia con el catálogo por actor. Lo que
+>    no puede segmentar no se oculta, se marca con su motivo — incluido
+>    `sin-analizar` para un `.pulso` guardado antes de que el catálogo trajera
+>    reparto. Tratar esa ausencia como «una sola categoría» marcaba las 27
+>    columnas de Egresados como inservibles.
+>
+> **Conexión con Avance > Detalle.** Lo declarado manda sobre las specs de
+> `.monitoreo_report_control_specs()`, que estaban **hardcodeadas** para cuatro
+> pares actor/variable; las fijas quedan de respaldo donde no hay declaración.
+> El eslabón que faltaba: la detección de controles solo corría al **publicar**,
+> así que el reporte de avance recibía `controls` vacío y la vista decía «Sin
+> variables de control detectadas» — con specs de fábrica incluidas. Verificado
+> en `acrconta`: Administrativos por área, Docentes por categoría y dedicación,
+> Egresados por año de egreso, con universo contra corte efectivo y desvío en pp.
+
+> **La trampa del cache, en carne propia.** Tras conectar el motor, la vista
+> seguía diciendo «0 variables» con el cálculo ya arreglado —comprobado en R:
+> el mismo `.pulso` daba 13 filas—. El cache estaba sirviendo lo que calculó la
+> versión anterior del motor: un cambio de **código** no altera ni los datos ni
+> la configuración, así que la clave no cambiaba y el `hit` era válido.
+>
+> Hay **dos** claves que gobiernan esto y hubo que subir las dos:
+> `.MONITOREO_ACR_CACHE_SCHEMA` (v1 → v2) y `.monitoreo_dashboard_cache_key`,
+> que es anterior en la cadena y ganaba. La regla queda escrita en ambos sitios:
+> **subir la versión cuando cambia la forma de calcular, no solo la de
+> guardar.** Es el precio de cachear, y se paga una vez.
+
+> **Modelo recupera sus pestañas.** Tres, una por decisión: cuánto quiero de cada
+> actor (metas), cómo lo quiero repartido (distribución) y cuándo se hace el
+> campo (cronograma). En B1 se había quedado con una porque las tres subpestañas
+> de entonces subdividían la misma decisión; «Lectura de Fuentes» sigue retirada
+> por eso mismo. Al añadirlas apareció un defecto que las metas tapaban:
+> `.mon-stage` declara `auto minmax(0,1fr)` para dos hijos y Modelo solo tiene el
+> panel, así que caía en la fila `auto` y la de `1fr` quedaba reservada y vacía
+> —256 px de aire muerto—. Resuelto con el patrón de `.mon-stage--sources`.
+| C3 | Teléfono · base de barrido | Falta **mapear columnas**. Es feature de tres capas, no pulido — ver abajo |
+
+> **§4.4 — Fuentes del modelo telefónico.** El rediseño de Fuentes se había
+> aplicado solo a la rama no telefónica: `FuentesResumen` y `FuentesUniverso`
+> están detrás de `!isPhoneSourceModel`, así que un estudio telefónico —también
+> dentro de Acreditación, no solo en el fork— seguía viendo el render viejo.
+>
+> Lo reparado en las **dos copias** del panel de contrato
+> (`AcreditacionPhoneSourcesContractPanel`, que vive duplicado en los dos
+> page-files):
+>
+> - **R2, el defecto de fondo**: la tarjeta de cada fuente mostraba
+>   `shortenMiddle(sourceExternalId(primary), 38)` — 38 caracteres de
+>   `asset_uid` que no dicen nada y no llevan a ninguna parte. Ahora la fila
+>   principal es **Abrir**, con el enlace real vía `enlaceDeFuente`; cuando no
+>   hay dirección construible se explica por qué en vez de ofrecer un enlace
+>   roto, y el identificador baja a detalle técnico.
+> - **R1**: `Spreadsheet` → `Pestaña`, `Encuesta / asset` → `Servicio`,
+>   `Lectura` → `Se lee`, `Fuente` → `Nombre` (con `nombreDeFuente`).
+> - Los encabezados dejan de rotularse por proveedor: `eyebrow: "Kobo"` →
+>   `"Encuestas"`, `"Base y barrido"` → `"Universo y barrido"`, `"Paquete"` →
+>   `"Fuentes activas"`, y los títulos pasan a nombrar la pregunta («A quién
+>   llamar y qué pasó en cada llamada», «Qué respuesta cuenta como efectiva»).
+> - **R3**: fuera los `detail` que empezaban con «Aquí se…».
+> - `"Falta Kobo"` → `"Falta la encuesta"` en los dos sitios donde aparecía.
+>
+> **Sin verificación visual.** No hay proyecto de referencia con
+> `family === "telefonico"`, y este panel solo se monta con `isPhoneSourceModel`,
+> así que en `acrconta` es inerte y no hay nada que mirar en pantalla. La
+> evidencia es un contrato de código que corre sobre **las dos copias** con
+> `it.each`, comprobado por mutación: al revertir `<em>Abrir</em>` y
+> `eyebrow: "Encuestas"` caen dos casos. Queda pendiente pasarlo por un estudio
+> telefónico real.
+
+> **Telefónico hereda el patrón.** El perfil es un fork deliberado, así que las
+> mejoras se aplican dos veces. Para que la segunda copia no divergiera en
+> silencio, la lógica pura se movió a `core/` —`motivoDeNoCruce`,
+> `balanceDeCruce`, `crucesDeCasos`— y la ruta a
+> `components/RutaDeSubsanacion`, con nombres ya sin el prefijo
+> `acreditacion*`. Eso comparte el dominio sin fusionar la UI, que es lo que se
+> decidió mantener separado.
+>
+> En Telefónico se aplicó todo salvo un matiz: el balance de cruce solo entra en
+> el modo que **no** tiene resumen propio; el modo teléfono ya trae su
+> alineación barrido↔Kobo y no se sustituye. El `colSpan` del encabezado de
+> grupo es 4 u 5 según el modo, porque en teléfono la tabla no lleva Evidencia.
+>
+> No hay proyecto de referencia con `family === "telefonico"`, así que esta vista
+> no se puede abrir en la app con los fixtures actuales. La verificación es un
+> contrato de código (`TelefonicoSubsanacionGuia.test.ts`), comprobado por
+> mutación: al revertir el `colSpan` por modo y el conteo sobre casos visibles,
+> dos casos se ponen en rojo.
+
+> **C3 — qué costaría.** Hoy las columnas se resuelven con
+> `.monitoreo_report_col`, que prueba listas de alias fijas: primero coincidencia
+> exacta normalizada y luego substring. Funciona mientras la hoja use un nombre
+> previsto; cuando no, no hay forma de corregirlo desde la app. Un mapeo
+> declarado por el usuario necesita tres cosas a la vez: un campo nuevo
+> persistido en la config —y por tanto en la whitelist de
+> `.monitoreo_operational_model()`, o se descarta en silencio al guardar—, que
+> `.monitoreo_report_col` consulte ese mapeo antes que sus alias, y una
+> superficie para declararlo contra las columnas reales de la hoja.
+
+> **C1 — por qué no se puede declarar la variable de interés.** Medido sobre
+> `acrconta`: el panel de Teléfono ofrece solo **Actor, Carrera y Segmento**, y
+> "Actor" tiene **una sola categoría** (Egresados), así que no estratifica nada.
+> No hay año de egreso ni sexo, y no es un problema de la lista de opciones:
+>
+> 1. `AcreditacionPhoneQuotaEditor` —el único sitio que escribe `control_vars`—
+>    se monta bajo `isPhoneModel`, que exige `family === "telefonico"`. En
+>    Acreditación **nunca se renderiza**: comprobado en la app, no hay ningún
+>    nodo con clase `quota-editor` en Modelo.
+> 2. `/api/monitoreo/state` en Acreditación devuelve `variables: []` y
+>    `control_vars: []`. Aunque se montara el editor, no habría nada que
+>    ofrecer.
+>
+> Las tres variables que sí aparecen vienen del reporte
+> (`.monitoreo_report_phone_quota_vars`), que las deriva de `cfg$control_vars` o
+> de los **filtros de las metas**. Ese es hoy el único camino, y por ahí apunta
+> ahora el vacío del panel.
+>
+> Para cerrarlo de verdad hacen falta dos cosas del motor: que el estado de
+> Acreditación exponga las variables disponibles de la base de público objetivo,
+> y que el reporte acepte cuotas cruzadas si se quiere "año de egreso **y**
+> sexo" a la vez (hoy cada fila del reporte lleva una sola `Variable`).
+> Mismo patrón que A4: no es cablear, es infraestructura que no existe.
+
+> **C4b — Cruces definitivos.** Aquí no faltaba razón por caso: cada fila ya
+> traía título, detalle, evidencia y acción. Faltaba **balance y jerarquía**. La
+> cabecera decía solo el total (`1,277 casos explicados`) y las 160 filas iban
+> planas. Ahora la lectura es contable —`212 de 488 cruzaron; 276 no. 247 son
+> recuperables`— y la tabla se agrupa con la misma escala que Subsanación, en
+> una sola tabla para que las columnas sigan alineadas entre grupos.
+>
+> Trampa encontrada al verificar: con un tope **global** de 160 filas, los 247
+> recuperables se lo comían entero y los otros tres grupos quedaban
+> inalcanzables — un C4 introducido por la propia agrupación. El límite es por
+> grupo, y cada cabecera declara su total real para que el recorte se vea.
+| ~~C4~~ | Consultas · Subsanación | **Implementado** (Cruces definitivos, pendiente). Ver el diagnóstico y la regla de recuperabilidad abajo |
+
+> **C4 — el diagnóstico medido.** No faltaba guía: **sobraba**. Había dos rutas
+> de tres pasos compitiendo en la misma pantalla —«Prioriza / Comprueba /
+> Decide» sobre la lista y «Revisar persona / Leer nota / Mantener
+> trazabilidad» sobre el caso— y ninguna era clicable, así que ninguna mandaba.
+> Los tres pasos de la lista además se recortaban (`269 acciona…`, `llave y
+> auxili…`): `repeat(3, minmax(0,1fr))` con texto real dentro del panel
+> izquierdo. Y las 276 filas mostraban **la misma frase** —la regla que las
+> agrupa, no lo que le pasa a cada una—, de modo que no había forma de elegir
+> cuál trabajar.
+>
+> Reparación: la ruta de la lista se queda y **filtra de verdad**; la de la
+> ficha pasa a viñetas para que acompañe sin competir. Los pasos se apilan en
+> filas, que es lo que elimina el recorte. Cada fila dice su motivo concreto
+> (`AcreditacionMotivoDeNoCruce.ts`) y su segunda línea lleva fecha y
+> recopilador —por dónde entró—, porque cuando 247 casos comparten motivo lo
+> que distingue es dónde ir a buscar a la persona.
+
+> **Regla de dominio: no todo no cruce pesa igual.** Un caso **completo** que no
+> cruza es *recuperable*, y por eso va primero: se rescata y suma una efectiva.
+> Un rechazo o una parcial temprana no. Y el canal decide cuándo la ausencia de
+> llave es siquiera un defecto: por **teléfono, WhatsApp y QR** el código es una
+> pregunta *dentro* del cuestionario (`telefono_enlace_y_codigo_final`,
+> `pregunta_pucp_whatsapp`, `pregunta_pucp_qr`), así que quien cortó antes nunca
+> la vio —ausencia *esperable*—; por **correo** la llave viaja en la metadata del
+> envío (`correo_envio`), de modo que su ausencia sí señala captura rota
+> —*revisable*—. De ahí los tres grupos de la bandeja: Recuperables, Por
+> revisar, Explicados por el canal.
+
+> **Deuda encontrada de paso.** `MonitoringProfilesReadinessContract` resuelve
+> identificadores de forma transitiva y cada nombre dispara un recorrido del AST
+> completo: sobre los page-files de perfil cuesta ~3.5 s (Acreditación) y ~3.6 s
+> (Telefónico, que no se tocó) contra un presupuesto de 5 s. Pasaba aislado y se
+> caía en la suite completa por contención. Se le dio un límite acorde a lo que
+> hace; el arreglo de fondo es que el page-file deje de ser un monolito.
+
+> **A4 depende de C2, y por eso va después.** El apilado por día necesita un
+> color por estado, y C2 es donde el usuario los define. Construirlo antes
+> obligaría a inventar una paleta fija y a rehacerla al llegar el definidor.
+> El orden correcto es: primero el definidor —estados confirmados **con su
+> color**—, y el gráfico después, leyendo de ahí.
+>
+> Corolario que vale desde ya: **ningún estado telefónico se pinta con un color
+> escrito a mano en una vista**. Sale de una única función que hoy puede tener
+> defaults y mañana lee lo que el usuario declaró. Hoy los colores viven
+> repartidos como literales (`#168a55`, `#5e7fa5`, `#a61d4f` en el `style` de la
+> tira de estados), que es exactamente lo que impide cambiarlos en un sitio.
+
+> **Abrir `acrconta` cuesta mucho más de lo documentado.** Medido el
+> 2026-07-28 en cuatro aperturas seguidas: la barra se detiene largos ratos en
+> «Preparando avance y cuotas» (91 %) y en «Preparando Monitoreo».
+>
+> Cuidado con el diagnóstico fácil: una muestra puntual dio **0,3 % de CPU** y
+> pareció un cuelgue, pero cuatro minutos después el mismo proceso estaba al
+> **94,2 %** y el proyecto acabó abriendo. **Alterna entre ráfagas de cálculo y
+> pausas largas**, así que una sola medición de CPU no distingue «detenido» de
+> «entre ráfagas» — hacen falta dos separadas antes de afirmar nada.
+>
+> Es lo que impidió verificar en pantalla el definidor de estados. Merece
+> diagnóstico propio antes de seguir puliendo Teléfono: sin poder abrir el
+> proyecto de referencia en un tiempo razonable no hay QA visual posible. El
+> dato de partida, ya conocido, es que estos proyectos son read-only (`0444`) y
+> sus caches de warm start nunca se escriben de vuelta.
+
+> **Hallazgo no reportado, visible en las capturas.** El embudo de Teléfono dice
+> `1,277 snapshot → 0 procesables → 534 efectivas` con `−1,277 registros fuera
+> del universo`, mientras Modelo dice `1,277 → 519 procesables → 418 efectivas`.
+> Dos secciones del mismo corte con denominadores distintos, y una de ellas
+> declara **cero procesables junto a 534 efectivas**, que no puede ser. Tiene la
+> firma de C1 en Fuentes. Se diagnostica aparte, antes de tocar nada de
+> Teléfono: rediseñar sobre un número que miente es trabajo perdido.
+
 **Pendiente**, en este orden:
 
-1. `Universo` y `Encuestas y recopiladores` siguen mostrando las vistas viejas
-   dentro de la estructura nueva. Funcionan; no tienen el tratamiento del
-   Resumen.
-2. En el paso 3 del panel, el actor declarado no se puede corregir sin volver
+1. En el paso 3 del panel, el actor declarado no se puede corregir sin volver
    al paso 1, y el pie puede decir «respuestas de Administrativos» sobre una
    encuesta llamada «…Estudiantes».
-3. Territorial (§4.2) y Telefónico (§4.4).
-4. La divergencia `1.693` vs `1.697` de Territorial (T3), como diagnóstico
+2. `AcreditacionSurveySourcePicker` quedó sin montar tras retirar su `details`.
+   Se retira cuando se confirme en producción que el catálogo del panel lo
+   cubre; el de Kobo sigue vivo porque lo usa el contrato telefónico.
+3. La cabecera de Encuestas todavía se presenta como «7 fuentes
+   SurveyMonkey/Kobo», que nombra el proveedor.
+4. Territorial (§4.2) y Telefónico (§4.4).
+5. La divergencia `1.693` vs `1.697` de Territorial (T3), como diagnóstico
    aparte.
+6. La línea base de `api/R/reporte_plan_ppt.R` en `agentic/manifest.json` quedó
+   desfasada (+8) por un commit anterior; la auditoría lo reporta y no es de
+   este trabajo.
 
 > **Trampa operativa medida:** abrir `acrconta` cuesta ~3,5 min de warm start, y
 > se paga **en cada recarga** del navegador. Los proyectos de referencia son
