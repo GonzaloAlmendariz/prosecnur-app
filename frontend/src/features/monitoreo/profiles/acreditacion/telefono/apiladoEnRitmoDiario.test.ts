@@ -15,25 +15,34 @@ const page = readFileSync(
   resolve(__dirname, "..", "AcreditacionMonitoreoPage.tsx"),
   "utf8",
 );
+// El ritmo diario telefónico vive en su propio archivo desde la ola 2 del
+// plan de performance (avance/AcreditacionPhoneDailyTrend.tsx); las
+// afirmaciones sobre el interior del componente se leen de ahí y las del
+// call-site siguen leyéndose de la página.
+const trend = readFileSync(
+  resolve(__dirname, "..", "avance", "AcreditacionPhoneDailyTrend.tsx"),
+  "utf8",
+);
 
 describe("Ritmo diario: el apilado de estados cuelga debajo del gráfico", () => {
   it("monta el gráfico apilado, no la rejilla de mini-barras", () => {
-    expect(page).toContain("<GraficoDeEstadosPorDia");
-    // La rejilla ya no se usa dentro del ritmo diario.
+    expect(trend).toContain("<GraficoDeEstadosPorDia");
+    // La rejilla ya no se usa dentro del ritmo diario (ni en la página).
+    expect(trend).not.toContain("<AcreditacionPhoneDailyStatusBars");
     expect(page).not.toContain("<AcreditacionPhoneDailyStatusBars");
   });
 
   it("queda fuera del contenedor en paralelo, que ahora es de una sola columna", () => {
-    const paralelo = page.match(/<div className="mon-phone-trend-parallel[^]*?<\/div>\n      <\/div>/)?.[0] ?? "";
+    const paralelo = trend.match(/<div className="mon-phone-trend-parallel[^]*?<\/div>\n      <\/div>/)?.[0] ?? "";
     expect(paralelo).not.toBe("");
     expect(paralelo).not.toContain("GraficoDeEstadosPorDia");
-    expect(page).toContain('className="mon-phone-trend-parallel is-single"');
+    expect(trend).toContain('className="mon-phone-trend-parallel is-single"');
   });
 
   it("recibe los colores que el usuario declaró en el definidor de estados", () => {
     // Si el gráfico usara su propia paleta, discreparía de la tabla de Estados.
-    expect(page).toContain("acreditacionDeclaracionesDesdeReglas(stateRules)");
-    expect(page).toMatch(/<GraficoDeEstadosPorDia\s+series=\{statusSeries\}\s+declaraciones=\{declaraciones\}/);
+    expect(trend).toContain("acreditacionDeclaracionesDesdeReglas(stateRules)");
+    expect(trend).toMatch(/<GraficoDeEstadosPorDia\s+series=\{statusSeries\}\s+declaraciones=\{declaraciones\}/);
   });
 
   it("las reglas llegan desde el modelo operativo, que es donde se persisten", () => {

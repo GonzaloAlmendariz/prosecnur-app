@@ -50,7 +50,6 @@ import {
   type SurveyMonkeyMultibaseListItem,
 } from "../../../../api/client";
 import { MODULE_TONES } from "../../../../lib/modules";
-import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import {
   modoIdDesdeFamily, MONITOREO_MODOS, MONITOREO_SECCIONES, seccionesDelModo, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import {
@@ -76,10 +75,42 @@ import {
 } from "../../internalQueries";
 import { corteAcreditacion } from "../../corte/corteAdapters";
 import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
+import { sourceSyncActions, useSourceSyncStore } from "./sync/sourceSyncStore";
+import { AcreditacionModuleChromeConSync } from "./sync/AcreditacionModuleChromeConSync";
+import { countText, fmt, formatDate, formatMetric, normalizeSourceMatch } from "./formato";
+import { EmptyPanel } from "./EmptyPanel";
+import {
+  ACREDITACION_DAILY_NO_DATE_LABEL,
+  CALENDAR_DAY_MS,
+  CALENDAR_REPORT_WEEKDAYS,
+  CALENDAR_REPORT_WEEKDAY_INDEX,
+  calendarIsoDate,
+  calendarReportWeekdayLabel,
+  compactAdvanceDateTickLabel,
+  dailyEffectiveValue,
+  dailyPointTotals,
+  dailyPointTotalValue,
+  dateOnlyTime,
+  isAcreditacionNoDateLabel,
+  isDatedAcreditacionDailyPoint,
+  normalizeCalendarReportWeekday,
+  parseAcreditacionDailyDate,
+  phoneStatusPalette,
+  phoneStatusTone,
+  shortAdvanceDateLabel,
+  sortAcreditacionDailyPoints,
+  type AcreditacionAdvanceDailyPoint,
+  type AcreditacionDailyReportCut,
+} from "./avance/ritmoDiario";
+import { AcreditacionAdvanceDailyMini } from "./avance/AcreditacionAdvanceDailyMini";
+import { AcreditacionPhoneDailyTrend } from "./avance/AcreditacionPhoneDailyTrend";
+
+// Los tests consumen este helper desde la página; se re-exporta tras la
+// extracción a avance/ritmoDiario.
+export { compactAdvanceDateTickLabel };
 import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetch";
 import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
-import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import {
   ACREDITACION_PHONE_ALERT_RULES,
   acreditacionQualityActionLabel,
@@ -94,12 +125,6 @@ import {
   type AcreditacionQualityAlertTone,
 } from "./AcreditacionPhoneAlerts";
 import { upsertAcreditacionActorGoal } from "./AcreditacionActorGoals";
-import {
-  buildAcreditacionPhoneDailyPoints,
-  buildAcreditacionPhoneDailyStatusSeries,
-  type AcreditacionPhoneDailyPoint,
-  type AcreditacionPhoneDailyStatusSeries,
-} from "./AcreditacionPhoneDailyTrend";
 import {
   acreditacionActorOptions,
   acreditacionCollectorCountForSource,
@@ -129,7 +154,7 @@ import {
   acreditacionVentanaCampoObservada,
   type AcreditacionVentanaCampo,
 } from "./AcreditacionVentanaCampo";
-import { acreditacionAgruparEstados, acreditacionDeclaracionesDesdeReglas } from "./AcreditacionEstadosLlamada";
+import { acreditacionAgruparEstados } from "./AcreditacionEstadosLlamada";
 import { motivoDeNoCruce } from "../../core/motivoDeNoCruce";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
 import { RutaDeSubsanacion, useBandejaDeSubsanacion } from "../../components/RutaDeSubsanacion";
@@ -141,7 +166,6 @@ import { FuentesResumen } from "./fuentes/FuentesResumen";
 import { FuentesUniverso } from "./fuentes/FuentesUniverso";
 import { DefinidorDeEstados } from "./telefono/DefinidorDeEstados";
 import { DistribucionPorActor } from "./modelo/DistribucionPorActor";
-import { GraficoDeEstadosPorDia } from "./telefono/GraficoDeEstadosPorDia";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
 import { proveedoresDeFuentes, textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "../../fuentes/vocabulario";
 import { PanelConectarFuente } from "./fuentes/PanelConectarFuente";
@@ -158,7 +182,7 @@ import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./acreditacionTelefono.css";
-import { MarcoDeRitmo } from "../../ritmo/MarcoDeRitmo";
+import { COLOR_RESULTADO } from "../../coloresDeResultado";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -256,12 +280,6 @@ type AcreditacionAdvanceTab = typeof ACREDITACION_ADVANCE_TABS[number]["key"];
 type AcreditacionLocalTabKey = AcreditacionSourceTab | AcreditacionModelTab | AcreditacionConsultaTab | AcreditacionPhoneTab | AcreditacionAdvanceTab;
 export type AcreditacionProfileMode = "acreditacion" | "telefonico";
 type AcreditacionActionStatus = { tone: "success" | "error" | "info"; message: string } | null;
-type AcreditacionSourceSyncProgress = {
-  mode: "advance" | "full";
-  percent: number | null;
-  phase: string;
-  message: string;
-};
 type AcreditacionCaseReconciliationPayload = {
   response_id: string;
   action: "keep_excluded" | "include_with_caveat";
@@ -273,21 +291,8 @@ function isTelefonicoMonitoreoState(state?: MonitoreoState | null) {
   return (state?.monitoreo_profile?.family ?? state?.config?.monitoreo_profile?.family) === "telefonico";
 }
 
-function fmt(value: unknown, fallback = "0") {
-  if (value == null || value === "") return fallback;
-  const n = Number(value);
-  if (Number.isFinite(n)) return new Intl.NumberFormat("es-PE").format(n);
-  return String(value);
-}
-
 function formatCaseLabel(value: number) {
   return `${fmt(value)} caso${value === 1 ? "" : "s"}`;
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" });
 }
 
 function pct(value: unknown) {
@@ -2092,20 +2097,8 @@ type AcreditacionCalendarReportRow = {
   isException: boolean;
 };
 
-const CALENDAR_DAY_MS = 24 * 60 * 60 * 1000;
 const CALENDAR_DATE_FORMATTER = new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short" });
 const CALENDAR_WEEKDAY_FORMATTER = new Intl.DateTimeFormat("es-PE", { weekday: "short" });
-const CALENDAR_REPORT_WEEKDAYS: Array<{ value: MonitoreoReportWeekday; label: string; index: number }> = [
-  { value: "lunes", label: "Lunes", index: 1 },
-  { value: "martes", label: "Martes", index: 2 },
-  { value: "miercoles", label: "Miércoles", index: 3 },
-  { value: "jueves", label: "Jueves", index: 4 },
-  { value: "viernes", label: "Viernes", index: 5 },
-  { value: "sabado", label: "Sábado", index: 6 },
-  { value: "domingo", label: "Domingo", index: 0 },
-];
-const CALENDAR_REPORT_WEEKDAY_INDEX = new Map(CALENDAR_REPORT_WEEKDAYS.map((item) => [item.value, item.index]));
-const CALENDAR_REPORT_WEEKDAY_LABEL = new Map(CALENDAR_REPORT_WEEKDAYS.map((item) => [item.value, item.label]));
 const ACREDITACION_FIELD_PHASE_ID = "acreditacion-campo";
 
 export type AcreditacionFieldScheduleDraft = {
@@ -2186,11 +2179,6 @@ function parseCalendarIsoDate(value: string | null | undefined) {
   return date;
 }
 
-function calendarIsoDate(date: Date) {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
 function calendarAddDaysIso(value: string, days: number) {
   const date = parseCalendarIsoDate(value);
   if (!date) return "";
@@ -2235,26 +2223,6 @@ function calendarPhaseWeekDurationDays(phase: MonitoreoStrategyPhase) {
 function calendarDurationLabel(days: number | null) {
   if (!days || days <= 0) return "Duración pendiente";
   return days === 1 ? "1 día" : `${fmt(days)} días`;
-}
-
-function normalizeCalendarReportWeekday(value: unknown): MonitoreoReportWeekday | "" {
-  const normalized = normalizeSourceMatch(String(value ?? ""));
-  const direct = CALENDAR_REPORT_WEEKDAYS.find((item) => item.value === normalized);
-  if (direct) return direct.value;
-  if (["miercoles", "miércoles", "wednesday", "wed"].includes(normalized)) return "miercoles";
-  if (["sabado", "sábado", "saturday", "sat"].includes(normalized)) return "sabado";
-  return "";
-}
-
-function calendarReportWeekdayLabel(value: MonitoreoReportWeekday | "" | null | undefined) {
-  const normalized = normalizeCalendarReportWeekday(value);
-  return normalized ? CALENDAR_REPORT_WEEKDAY_LABEL.get(normalized) ?? normalized : "Sin reporte";
-}
-
-function calendarReportWeekdayFromDate(value: string | null | undefined): MonitoreoReportWeekday | "" {
-  const parsed = parseAcreditacionDailyDate(value);
-  if (!parsed) return "";
-  return CALENDAR_REPORT_WEEKDAYS.find((item) => item.index === parsed.getDay())?.value ?? "";
 }
 
 function calendarReportExceptions(phase: MonitoreoStrategyPhase): MonitoreoStrategyReportException[] {
@@ -3191,6 +3159,10 @@ function AcreditacionModelConfigWorkbench({
     if (state?.config) setDraft(state.config);
   }, [state?.config]);
 
+  // Antes del early-return (regla de hooks) y memoizado (unidad 2.3): sin el
+  // memo, cada render del workbench reconstruía el árbol de reportes entero.
+  const modelReports = useMemo(() => reportsFromState(state ?? null), [state]);
+
   if (!state || !draft) {
     return <EmptyPanel title="Modelo pendiente" detail="La configuración operativa se activa cuando el proyecto termina de cargar su estado local." />;
   }
@@ -3231,7 +3203,6 @@ function AcreditacionModelConfigWorkbench({
   const calendarWindow = calendarWeekWindowLabel(draft.strategy_phases, suggestedCalendarEnd);
   const calendarDateWindow = calendarDateWindowLabel(draft.strategy_phases);
   const plannedActorCount = uniqueDisplayValues(draft.strategy_phases.map((phase) => phase.stratum)).length || calendarActorPlans.length;
-  const modelReports = reportsFromState(state);
   const phoneQuotaReportRows = modelReports
     ? rowsForSheetBlock(modelReports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"])
     : [];
@@ -4405,24 +4376,6 @@ function phoneSummaryValue(rows: Array<Record<string, unknown>>, labelNeedle: st
 
 function phonePercentLabel(value: number | null | undefined) {
   return formatPercentLabel(value);
-}
-
-function phoneStatusTone(label: string): "good" | "warn" | "risk" | "unswept" | "muted" {
-  const key = normalizeSourceMatch(label);
-  if (key.includes("por barrer") || key.includes("no barrido") || key.includes("pendiente")) return "unswept";
-  if (key.includes("efectiv") || key.includes("complet") || key.includes("contactado")) return "good";
-  if (key.includes("no contesta") || key.includes("insistencia") || key.includes("reintento")) return "warn";
-  if (key.includes("rechazo") || key.includes("fall") || key.includes("observ")) return "risk";
-  return "muted";
-}
-
-function phoneStatusPalette(label: string) {
-  const tone = phoneStatusTone(label);
-  if (tone === "good") return { color: "#168a55", highlight: "#31c783" };
-  if (tone === "warn") return { color: "#b97611", highlight: "#e0a329" };
-  if (tone === "risk") return { color: "#a61d4f", highlight: "#d24c79" };
-  if (tone === "unswept") return { color: "#94a3b8", highlight: "#d9e2ec" };
-  return { color: "#5e7fa5", highlight: "#8fb1d3" };
 }
 
 function phoneLooksLikeTechnicalSourceLabel(value: string) {
@@ -6056,318 +6009,6 @@ function AcreditacionPhonePendingInsistence({
   );
 }
 
-function AcreditacionPhoneDailyStatusBars({ series }: { series: AcreditacionPhoneDailyStatusSeries[] }) {
-  if (!series.length) return null;
-  const preparedSeries = series.map((item) => {
-    const datedPoints = item.points.filter((point) => point.date);
-    const datedTotal = datedPoints.reduce((sum, point) => sum + point.value, 0);
-    const undatedTotal = item.points.reduce((sum, point) => sum + (!point.date ? point.value : 0), 0);
-    return { ...item, points: datedPoints, datedTotal, undatedTotal };
-  });
-  const visibleSeries = preparedSeries.filter((item) => item.datedTotal > 0).slice(0, 8);
-  const maxPoint = Math.max(1, ...visibleSeries.flatMap((item) => item.points.map((point) => point.value)));
-  const total = series.reduce((sum, item) => sum + item.total, 0);
-  const datedTotal = preparedSeries.reduce((sum, item) => sum + item.datedTotal, 0);
-  const undatedSeries = preparedSeries.filter((item) => item.undatedTotal > 0).slice(0, 6);
-  const undatedTotal = preparedSeries.reduce((sum, item) => sum + item.undatedTotal, 0);
-  return (
-    <div className="mon-phone-status-daily" aria-label="Estados telefónicos por día">
-      <header className="mon-phone-status-daily-head">
-        <div>
-          <span>Estados telefónicos</span>
-          <strong>Lectura paralela por día</strong>
-        </div>
-        <em>{formatMetric(datedTotal)} con fecha / {formatMetric(total)} total</em>
-      </header>
-      {visibleSeries.length ? (
-        <div className="mon-phone-status-daily-grid">
-          {visibleSeries.map((item) => {
-            const palette = phoneStatusPalette(item.label);
-            return (
-              <section
-                key={`phone-status-day-${normalizeSourceMatch(item.label)}`}
-                className={`is-${phoneStatusTone(item.label)}`}
-                style={{
-                  "--phone-status-color": palette.color,
-                  "--phone-status-color-hi": palette.highlight,
-                } as CSSProperties}
-              >
-                <div className="mon-phone-status-daily-title">
-                  <strong>{item.label}</strong>
-                  <em>{formatMetric(item.datedTotal)}</em>
-                </div>
-                <div className="mon-phone-status-daily-bars" aria-label={`${item.label}: distribución diaria`}>
-                  {item.points.map((point) => {
-                    const size = point.value > 0 ? Math.max(5, Math.min(100, (point.value / maxPoint) * 100)) : 0;
-                    return (
-                      <span key={`${item.label}-${point.rawLabel}`} title={`${item.label} · ${point.label}: ${formatMetric(point.value)}`}>
-                        <i style={{ "--phone-status-day": `${size}%` } as CSSProperties} />
-                        <small>{point.axisLabel || point.label}</small>
-                        <b>{formatMetric(point.value)}</b>
-                      </span>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="mon-phone-status-note">El barrido trae estados telefónicos, pero todavía no tienen una fecha diaria usable para graficar.</p>
-      )}
-      {undatedTotal > 0 && (
-        <div className="mon-phone-status-undated" aria-label="Estados telefónicos sin fecha diaria">
-          <strong>{formatMetric(undatedTotal)} casos sin fecha fuera del ritmo diario</strong>
-          <div>
-            {undatedSeries.map((item) => (
-              <span key={`phone-status-undated-${normalizeSourceMatch(item.label)}`}>
-                {item.label} <b>{formatMetric(item.undatedTotal)}</b>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AcreditacionPhoneDailyTrend({
-  rows,
-  statusRows = [],
-  stateRules = [],
-}: {
-  rows: Array<Record<string, unknown>>;
-  statusRows?: Array<Record<string, unknown>>;
-  stateRules?: MonitoreoStateRule[];
-}) {
-  // Los colores del apilado son los que el usuario declaró en el definidor de
-  // estados: gráfico y tabla leen la misma fuente y no pueden discrepar.
-  const declaraciones = acreditacionDeclaracionesDesdeReglas(stateRules);
-  const points = buildAcreditacionPhoneDailyPoints(rows);
-  const statusSeries = buildAcreditacionPhoneDailyStatusSeries(statusRows);
-  const loosePoints = points.filter((point) => !point.date);
-  const datedPoints = points.filter((point) => point.date);
-  const series = datedPoints;
-  const pointTotal = (point: AcreditacionPhoneDailyPoint) => point.effective;
-  let runningTotal = 0;
-  const chartRows = series.map((point) => {
-    const dailyTotal = pointTotal(point);
-    runningTotal += dailyTotal;
-    return {
-      ...point,
-      dailyTotal,
-      cumulativeTotal: runningTotal,
-    };
-  });
-  const totalPeriod = chartRows[chartRows.length - 1]?.cumulativeTotal ?? 0;
-  const averagePerDay = chartRows.length ? totalPeriod / chartRows.length : 0;
-  const averageLabel = averagePerDay.toLocaleString("es-PE", {
-    maximumFractionDigits: averagePerDay < 10 ? 1 : 0,
-  });
-  const bestPoint = chartRows.reduce<(AcreditacionPhoneDailyPoint & { dailyTotal: number; cumulativeTotal: number }) | null>((best, point) => (
-    !best || point.dailyTotal > best.dailyTotal ? point : best
-  ), null);
-  const lastPoint = [...chartRows].reverse().find((point) => point.date) ?? chartRows[chartRows.length - 1] ?? null;
-  const xLabels = chartRows.map((point) => point.axisLabel || point.label);
-  const hoverData = chartRows.map((point) => [
-    point.label,
-    point.effective,
-    point.dailyTotal,
-    point.cumulativeTotal,
-  ]);
-  const chartData = [
-    {
-      type: "bar" as const,
-      name: "Efectivas",
-      x: xLabels,
-      y: chartRows.map((point) => point.effective),
-      marker: { color: "#168a55", line: { width: 0 } },
-      customdata: hoverData,
-      hovertemplate: "Efectivas: %{y}<extra></extra>",
-    },
-    {
-      type: "scatter" as const,
-      mode: "lines+markers" as const,
-      name: "Acumulado",
-      x: xLabels,
-      y: chartRows.map((point) => point.cumulativeTotal),
-      yaxis: "y2",
-      line: { color: "#17212f", width: 3, shape: "spline" as const, smoothing: 0.45 },
-      marker: {
-        color: "#ffffff",
-        size: 8,
-        line: { color: "#17212f", width: 2 },
-      },
-      customdata: hoverData,
-      hovertemplate: "Efectivas Kobo: %{customdata[2]}<br>Acumulado: %{customdata[3]}<extra></extra>",
-    },
-  ];
-  const chartLayout = {
-    barmode: "stack" as const,
-    bargap: chartRows.length <= 1 ? 0.72 : chartRows.length <= 7 ? 0.42 : 0.24,
-    hovermode: "x unified" as const,
-    showlegend: false,
-    margin: { l: 48, r: 58, t: 14, b: chartRows.length > 7 ? 70 : 48 },
-    paper_bgcolor: "transparent",
-    plot_bgcolor: "transparent",
-    hoverlabel: {
-      align: "left" as const,
-      bgcolor: "#ffffff",
-      bordercolor: "rgba(15, 23, 42, 0.12)",
-      font: { color: "#17212f", size: 12 },
-    },
-    xaxis: {
-      type: "category",
-      fixedrange: true,
-      showgrid: false,
-      zeroline: false,
-      tickangle: chartRows.length > 7 ? -32 : 0,
-      tickfont: { color: "#474f5b", size: 10 },
-      automargin: true,
-    },
-    yaxis: {
-      title: { text: "Efectivas/día", font: { color: "#474f5b", size: 11 } },
-      fixedrange: true,
-      rangemode: "tozero",
-      showline: false,
-      zeroline: false,
-      gridcolor: "rgba(15, 23, 42, 0.08)",
-      tickfont: { color: "#474f5b", size: 10 },
-    },
-    yaxis2: {
-      title: { text: "Acumulado", font: { color: "#17212f", size: 11 } },
-      overlaying: "y",
-      side: "right",
-      fixedrange: true,
-      rangemode: "tozero",
-      showgrid: false,
-      zeroline: false,
-      tickfont: { color: "#17212f", size: 10 },
-    },
-  };
-  const chartConfig = {
-    displayModeBar: false,
-    doubleClick: false,
-    responsive: true,
-    scrollZoom: false,
-  };
-  if (!chartRows.length) {
-    if (statusSeries.length) {
-      return (
-        <div className="mon-phone-trend" aria-label="Composición temporal de estados telefónicos">
-          <EmptyPanel
-            title={points.length ? "Efectivas sin fecha diaria" : "Sin efectivas diarias"}
-            detail={points.length ? "El corte trae efectivas Kobo sin fecha usable; se muestran fuera del gráfico para no crear un día ficticio." : "El corte no trae efectivas Kobo con fecha, pero sí estados telefónicos del barrido."}
-          />
-          <GraficoDeEstadosPorDia series={statusSeries} declaraciones={declaraciones} />
-          {loosePoints.length > 0 && (
-            <div className="mon-phone-trend-loose">
-              {loosePoints.map((point) => (
-                <span key={`loose-${point.rawLabel}`}>
-                  <strong>{point.label}</strong>
-                  <em>{formatMetric(point.effective)} efectivas Kobo sin fecha diaria</em>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-    if (loosePoints.length) {
-      return (
-        <div className="mon-phone-trend" aria-label="Efectivas Kobo sin fecha diaria">
-          <EmptyPanel
-            title="Efectivas sin fecha diaria"
-            detail="El corte trae efectivas Kobo sin fecha usable; se muestran fuera del gráfico para no crear un día ficticio."
-          />
-          <div className="mon-phone-trend-loose">
-            {loosePoints.map((point) => (
-              <span key={`loose-${point.rawLabel}`}>
-                <strong>{point.label}</strong>
-                <em>{formatMetric(point.effective)} efectivas Kobo sin fecha diaria</em>
-              </span>
-            ))}
-          </div>
-        </div>
-      );
-    }
-    return (
-      <EmptyPanel
-        title="Sin avance diario"
-        detail="Cuando el corte traiga fecha de respuesta Kobo, aquí aparecerá el ritmo diario."
-      />
-    );
-  }
-  return (
-    <div className="mon-phone-trend" aria-label="Efectivas Kobo por día">
-      <header className="mon-phone-trend-head">
-        <div>
-          <span>Efectivas Kobo</span>
-          <strong>Ritmo diario y acumulado</strong>
-        </div>
-        <div className="mon-phone-trend-legend" aria-label="Series">
-          <span className="is-effective">Efectivas Kobo</span>
-          <span className="is-cumulative">Acumulado</span>
-        </div>
-      </header>
-
-      <div className="mon-phone-trend-metrics">
-        <span className="is-total">
-          <em>Total periodo</em>
-          <strong>{formatMetric(totalPeriod)}</strong>
-          <small>efectivas Kobo fechadas</small>
-        </span>
-        <span className="is-average">
-          <em>Promedio/día</em>
-          <strong>{averageLabel}</strong>
-          <small>{formatMetric(chartRows.length)} cortes diarios</small>
-        </span>
-        <span className="is-best">
-          <em>Mejor día</em>
-          <strong>{bestPoint ? formatMetric(bestPoint.dailyTotal) : "S/D"}</strong>
-          <small>{bestPoint?.label ?? "Sin fecha"}</small>
-        </span>
-        <span className="is-last">
-          <em>Último corte</em>
-          <strong>{lastPoint ? formatMetric(lastPoint.dailyTotal) : "S/D"}</strong>
-          <small>{lastPoint?.label ?? "Sin fecha"}</small>
-        </span>
-      </div>
-
-      <div className="mon-phone-trend-parallel is-single">
-        {/* El número de cortes decide el ancho mínimo del gráfico: pasado el mes
-            de campo, apretar 40 fechas en la caja las vuelve ilegibles, así que
-            a partir de ~30 el gráfico scrollea dentro de su tarjeta. */}
-        <div className="mon-phone-trend-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
-          <PlotlyChart
-            data={chartData}
-            layout={chartLayout}
-            config={chartConfig}
-            height={340}
-            ariaLabel="Efectivas Kobo diarias y acumuladas"
-          />
-        </div>
-      </div>
-
-      {/* Debajo del ritmo, no al lado: son dos lecturas del mismo periodo
-          —producción arriba, composición del barrido abajo— y compartir la
-          fila las estrechaba a las dos. */}
-      <GraficoDeEstadosPorDia series={statusSeries} declaraciones={declaraciones} />
-
-      {loosePoints.length > 0 && (
-        <div className="mon-phone-trend-loose">
-          {loosePoints.map((point) => (
-            <span key={`loose-${point.rawLabel}`}>
-              <strong>{point.label}</strong>
-              <em>{formatMetric(point.effective)} efectivas Kobo sin fecha diaria</em>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function phoneDailyBlockForPanel(reports: MonitoreoAcreditacionReports): MonitoreoReportBlock | null {
   const phoneEffective = reportBlockForSheet(reports, "monitoreo_telefonico", "avance_efectivo_dia");
   if (phoneEffective?.rows.length) return phoneEffective;
@@ -6886,14 +6527,6 @@ function renderPhoneView(
       stateRules={stateRules}
     />
   );
-}
-
-function normalizeSourceMatch(value: unknown) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
 }
 
 export type AcreditacionSourceActorRosterItem = {
@@ -12679,10 +12312,10 @@ function AcreditacionQueryBreakdownCard({
   }), { total: 0, effective: 0, partial: 0, refusal: 0, pending: 0, review: 0 });
   const effectivePct = safePercentValue(totals.effective, totals.total);
   const donutSegments = [
-    { value: totals.effective, color: "#168a55" },
-    { value: totals.partial, color: "#b97611" },
-    { value: totals.refusal, color: "#a61d4f" },
-    { value: totals.pending, color: "#7a8796" },
+    { value: totals.effective, color: COLOR_RESULTADO.efectiva },
+    { value: totals.partial, color: COLOR_RESULTADO.parcial },
+    { value: totals.refusal, color: COLOR_RESULTADO.rechazo },
+    { value: totals.pending, color: COLOR_RESULTADO.pendiente },
     { value: totals.review, color: "#474f5b" },
   ];
 
@@ -13824,32 +13457,10 @@ export type AcreditacionActorCard = AcreditacionAdvanceCard & {
   dailyPoints: AcreditacionAdvanceDailyPoint[];
 };
 
-type AcreditacionAdvanceDailyPoint = {
-  date: string;
-  effective: number;
-  partial: number;
-  refusals: number;
-  total: number;
-};
-
 function phoneCodPulsoEffectiveMatchLabel(comparison: Pick<PhonePlatformComparisonTotals, "phoneEffective" | "platformComplete" | "matchedEffective">) {
   const comparableEffective = Math.max(comparison.phoneEffective, comparison.platformComplete);
   return comparableEffective ? `${fmt(comparison.matchedEffective)}/${fmt(comparableEffective)}` : "S/D";
 }
-
-type AcreditacionDailyReportCut = {
-  date: string;
-  label: string;
-  isFallback?: boolean;
-};
-
-type AcreditacionDailyChartRow = AcreditacionAdvanceDailyPoint & {
-  x: number;
-  axisLabel: string;
-  displayLabel: string;
-  dailyTotal: number;
-  cumulative: number;
-};
 
 type AcreditacionAdvanceDailySeries = {
   id: string;
@@ -13922,10 +13533,6 @@ function rowText(row: Record<string, unknown>, keys: string[], fallback = "") {
 function safePercentValue(value: number | null | undefined, total: number | null | undefined) {
   if (!Number.isFinite(Number(value)) || !Number.isFinite(Number(total)) || Number(total) <= 0) return null;
   return (Number(value) / Number(total)) * 100;
-}
-
-function formatMetric(value: number | null | undefined) {
-  return fmt(value ?? 0);
 }
 
 function formatPercentLabel(value: number | null | undefined) {
@@ -14107,21 +13714,11 @@ function advanceTotals(cards: AcreditacionAdvanceCard[]) {
   }), { universe: 0, effective: 0, partial: 0, refusals: 0, pending: 0, metas: 0, brechas: 0 });
 }
 
-const ACREDITACION_DAILY_NO_DATE_LABEL = "Sin fecha";
 const ACREDITACION_DAILY_HEADER_LABELS = new Set(["fecha", "echa", "dia", "día", "date"]);
 
 function isAcreditacionDailyHeaderLabel(value: unknown) {
   const key = normalizeSourceMatch(value);
   return ACREDITACION_DAILY_HEADER_LABELS.has(key);
-}
-
-function isAcreditacionNoDateLabel(value: unknown) {
-  const key = normalizeSourceMatch(value).replace(/[^a-z0-9]+/g, " ");
-  return !key || key === "sin fecha" || key === "s d" || key === "sd";
-}
-
-function isDatedAcreditacionDailyPoint(point: AcreditacionAdvanceDailyPoint) {
-  return !isAcreditacionNoDateLabel(point.date) && Boolean(parseAcreditacionDailyDate(point.date));
 }
 
 function normalizeAcreditacionDailyDateLabel(value: unknown) {
@@ -14140,146 +13737,6 @@ export function dailyPointsFromRows(rows: Array<Record<string, unknown>>): Acred
     const total = rowNumber(row, ["Total respuestas", "Total", "Respuestas"], effective + partial + refusals);
     return [{ date, effective, partial, refusals, total }];
   });
-}
-
-function dailyPointTotals(points: AcreditacionAdvanceDailyPoint[]) {
-  return points.reduce((acc, point) => ({
-    effective: acc.effective + point.effective,
-    partial: acc.partial + point.partial,
-    refusals: acc.refusals + point.refusals,
-    total: acc.total + point.total,
-  }), { effective: 0, partial: 0, refusals: 0, total: 0 });
-}
-
-function dailyPointTotalValue(point: AcreditacionAdvanceDailyPoint) {
-  return point.total || point.effective + point.partial + point.refusals;
-}
-
-function dailyEffectiveValue(point: AcreditacionAdvanceDailyPoint) {
-  return point.effective || dailyPointTotalValue(point);
-}
-
-function dateOnlyTime(value: Date | null) {
-  if (!value) return null;
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}
-
-export function compactAdvanceDateTickLabel(value: string) {
-  if (isAcreditacionNoDateLabel(value)) return "S/D";
-  const parsed = parseAcreditacionDailyDate(value);
-  if (!parsed) return shortAdvanceDateLabel(value);
-  const month = parsed.toLocaleDateString("es-PE", { month: "short" }).replace(".", "").toLowerCase();
-  return `${month}<br>${String(parsed.getDate()).padStart(2, "0")}`;
-}
-
-function mergeAcreditacionDailyPoints(points: AcreditacionAdvanceDailyPoint[]) {
-  const byDate = new Map<string, AcreditacionAdvanceDailyPoint>();
-  points.forEach((point) => {
-    const parsed = parseAcreditacionDailyDate(point.date);
-    const key = parsed ? calendarIsoDate(parsed) : point.date;
-    const existing = byDate.get(key) ?? { date: key, effective: 0, partial: 0, refusals: 0, total: 0 };
-    existing.effective += point.effective;
-    existing.partial += point.partial;
-    existing.refusals += point.refusals;
-    existing.total += dailyPointTotalValue(point);
-    byDate.set(key, existing);
-  });
-  return sortAcreditacionDailyPoints(Array.from(byDate.values()));
-}
-
-function expandAcreditacionDailyCalendar(
-  points: AcreditacionAdvanceDailyPoint[],
-  reportCuts: AcreditacionDailyReportCut[] = [],
-) {
-  const merged = mergeAcreditacionDailyPoints(points);
-  const dated = merged
-    .map((point) => ({ point, time: dateOnlyTime(parseAcreditacionDailyDate(point.date)) }))
-    .filter((item): item is { point: AcreditacionAdvanceDailyPoint; time: number } => item.time != null);
-  if (dated.length < 2) return merged;
-  const byTime = new Map(dated.map((item) => [item.time, item.point]));
-  const first = dated[0].time;
-  const lastData = dated.at(-1)?.time ?? first;
-  const cutTimes = reportCuts
-    .map((cut) => dateOnlyTime(parseAcreditacionDailyDate(cut.date)))
-    .filter((time): time is number => time != null && time >= first && time <= lastData + CALENDAR_DAY_MS);
-  const last = Math.max(lastData, ...cutTimes, first);
-  const totalDays = Math.round((last - first) / CALENDAR_DAY_MS) + 1;
-  if (totalDays <= 1 || totalDays > 180) return merged;
-  const expanded: AcreditacionAdvanceDailyPoint[] = [];
-  for (let index = 0; index < totalDays; index += 1) {
-    const time = first + index * CALENDAR_DAY_MS;
-    const existing = byTime.get(time);
-    if (existing) {
-      expanded.push(existing);
-    } else {
-      expanded.push({ date: calendarIsoDate(new Date(time)), effective: 0, partial: 0, refusals: 0, total: 0 });
-    }
-  }
-  return expanded;
-}
-
-function dailyCutsForChart(
-  points: AcreditacionDailyChartRow[],
-  reportCuts: AcreditacionDailyReportCut[] = [],
-  fallbackCutDate?: string,
-) {
-  if (!points.length) return [];
-  const dated = points
-    .map((point) => ({ point, time: dateOnlyTime(parseAcreditacionDailyDate(point.date)) }))
-    .filter((item): item is { point: AcreditacionDailyChartRow; time: number } => item.time != null);
-  if (!dated.length) return [];
-  const cuts = reportCuts.length
-    ? reportCuts
-    : fallbackCutDate
-      ? [{ date: fallbackCutDate, label: "Corte disponible", isFallback: true }]
-      : [];
-  const seen = new Set<number>();
-  return cuts.flatMap((cut) => {
-    const cutTime = dateOnlyTime(parseAcreditacionDailyDate(cut.date));
-    if (cutTime == null) return [];
-    const match = dated.find((item) => item.time >= cutTime) ?? dated.at(-1);
-    if (!match || seen.has(match.point.x)) return [];
-    seen.add(match.point.x);
-    return [{
-      ...cut,
-      x: match.point.x,
-      point: match.point,
-      label: cut.label || formatDate(cut.date || match.point.date || ""),
-    }];
-  });
-}
-
-function weeklyCutsForChart(
-  points: AcreditacionDailyChartRow[],
-  reportWeekday: MonitoreoReportWeekday | "" | null | undefined,
-) {
-  const weekday = normalizeCalendarReportWeekday(reportWeekday);
-  const weekdayIndex = weekday ? CALENDAR_REPORT_WEEKDAY_INDEX.get(weekday) : null;
-  if (weekdayIndex == null) return [];
-  const label = calendarReportWeekdayLabel(weekday);
-  return points.flatMap((point) => {
-    const parsed = parseAcreditacionDailyDate(point.date);
-    if (!parsed || parsed.getDay() !== weekdayIndex) return [];
-    return [{
-      date: point.date,
-      label,
-      isFallback: false,
-      x: point.x,
-      point,
-    }];
-  });
-}
-
-function sparseDailyChartRows<T extends { x: number }>(rows: T[], minGap: number, maxRows: number) {
-  const out: T[] = [];
-  rows.sort((a, b) => a.x - b.x).forEach((row) => {
-    if (out.length >= maxRows) return;
-    if (out.some((item) => Math.abs(item.x - row.x) < minGap)) return;
-    out.push(row);
-  });
-  return out;
 }
 
 function acreditacionReportRowValue(row: Record<string, unknown>, candidates: string[]) {
@@ -14356,41 +13813,6 @@ function acreditacionSurveyStateTone(state: string): "completed" | "partial" | "
   if (key.includes("parcial")) return "partial";
   if (key.includes("rechazo") || key.includes("rechaz")) return "refusals";
   return "pending";
-}
-
-function parseAcreditacionDailyDate(value: unknown) {
-  const text = String(value ?? "").trim();
-  if (!text) return null;
-  const yearFirst = text.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
-  if (yearFirst) {
-    const year = Number(yearFirst[1]);
-    const month = Number(yearFirst[2]);
-    const day = Number(yearFirst[3]);
-    const parsed = new Date(year, month - 1, day);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-  const match = text.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/);
-  if (match) {
-    const day = Number(match[1]);
-    const month = Number(match[2]);
-    const rawYear = match[3] ? Number(match[3]) : new Date().getFullYear();
-    const year = rawYear < 100 ? 2000 + rawYear : rawYear;
-    const parsed = new Date(year, month - 1, day);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-  const direct = new Date(text);
-  return Number.isNaN(direct.getTime()) ? null : direct;
-}
-
-function sortAcreditacionDailyPoints(points: AcreditacionAdvanceDailyPoint[]) {
-  return [...points].sort((a, b) => {
-    const aDate = parseAcreditacionDailyDate(a.date);
-    const bDate = parseAcreditacionDailyDate(b.date);
-    if (aDate && bDate) return aDate.getTime() - bDate.getTime();
-    if (aDate) return -1;
-    if (bDate) return 1;
-    return a.date.localeCompare(b.date, "es", { numeric: true });
-  });
 }
 
 function uniqueNormalizedKeys(values: unknown[]) {
@@ -15325,26 +14747,6 @@ export function phoneQuotaCardsForDashboard(reports: MonitoreoAcreditacionReport
   }));
 }
 
-function shortAdvanceDateLabel(value: string) {
-  if (isAcreditacionNoDateLabel(value)) return ACREDITACION_DAILY_NO_DATE_LABEL;
-  const parsed = parseAcreditacionDailyDate(value);
-  if (parsed) {
-    return parsed.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
-  }
-  const dayFirst = value.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
-  if (dayFirst) return `${dayFirst[1].padStart(2, "0")}/${dayFirst[2].padStart(2, "0")}`;
-  const yearFirst = value.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
-  if (yearFirst) return `${yearFirst[3].padStart(2, "0")}/${yearFirst[2].padStart(2, "0")}`;
-  return value.length > 6 ? value.slice(5) : value;
-}
-
-function paddedAdvanceAxisMax(value: number) {
-  if (value <= 0) return undefined;
-  if (value <= 8) return Math.ceil(value * 1.25);
-  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(value)) - 1);
-  return Math.ceil((value * 1.16) / magnitude) * magnitude;
-}
-
 function AcreditacionAdvanceMetric({
   label,
   value,
@@ -15552,421 +14954,6 @@ function AcreditacionPhoneQuotaRhythmBoard({
         )}
       </div>
     </section>
-  );
-}
-
-function AcreditacionAdvanceDailyMini({
-  points,
-  title = "Ritmo general del estudio",
-  variant = "general",
-  cutDate,
-  reportCuts = [],
-  reportWeekday = "",
-  effectiveOnly = false,
-  compact = false,
-}: {
-  points: AcreditacionAdvanceDailyPoint[];
-  title?: string;
-  variant?: "general" | "actor" | "source";
-  cutDate?: string;
-  reportCuts?: AcreditacionDailyReportCut[];
-  reportWeekday?: MonitoreoReportWeekday | "";
-  effectiveOnly?: boolean;
-  compact?: boolean;
-}) {
-  const orderedSourcePoints = mergeAcreditacionDailyPoints(sortAcreditacionDailyPoints(points));
-  const orderedPoints = expandAcreditacionDailyCalendar(orderedSourcePoints, reportCuts);
-  const totals = dailyPointTotals(orderedSourcePoints);
-  const isCompactChart = compact && variant !== "general";
-  const visibleLimit = isCompactChart ? 14 : variant === "general" ? 42 : variant === "actor" ? 35 : 30;
-  let cumulative = 0;
-  const allChartRows = orderedPoints.map((point) => {
-    const dailyTotal = effectiveOnly ? dailyEffectiveValue(point) : dailyPointTotalValue(point);
-    cumulative += dailyTotal;
-    return {
-      ...point,
-      x: 0,
-      axisLabel: compactAdvanceDateTickLabel(point.date),
-      displayLabel: shortAdvanceDateLabel(point.date),
-      dailyTotal,
-      cumulative,
-    };
-  });
-  // El recorte SOLO puede comerse días vacíos. Con `slice(-visibleLimit)` a
-  // secas, un estudio largo perdía sus primeros días CON producción: medido el
-  // 2026-07-26 en acrconta, el gráfico general arrancaba el 11/06 con 288 de
-  // 429 respuestas ya acumuladas —el 65% del campo, incluido el pico real del
-  // 27/05— y la curva entraba a pantalla como una meseta. La ventana arranca
-  // en el menor entre la cola pedida y el primer día con respuesta: un gráfico
-  // denso es preferible a uno que miente sobre el ritmo.
-  const firstSignalIndex = allChartRows.findIndex((point) => point.dailyTotal > 0);
-  const tailStart = Math.max(0, allChartRows.length - visibleLimit);
-  const windowStart = firstSignalIndex >= 0 ? Math.min(tailStart, firstSignalIndex) : tailStart;
-  const visiblePoints = allChartRows.slice(windowStart);
-  const chartRows = visiblePoints.map((point, index) => ({ ...point, x: index }));
-  const hasDailySignal = chartRows.some((point) => point.dailyTotal > 0);
-  const lastPoint = chartRows.at(-1) ?? null;
-  const bestPoint = chartRows.reduce<typeof chartRows[number] | null>((best, point) => (
-    !best || point.dailyTotal > best.dailyTotal ? point : best
-  ), null);
-  const averageBase = effectiveOnly ? totals.effective : totals.total;
-  // El promedio se calcula más abajo contra los días CON respuesta, que es lo
-  // que promete la frase del encabezado ("N días con respuesta · T · X/día").
-  // Dividir el total completo entre los días dibujados daba un 10.2/día cuando
-  // el real era 9.5 (429 sobre 45 días con respuesta).
-  const resolvedReportWeekday = normalizeCalendarReportWeekday(reportWeekday) || calendarReportWeekdayFromDate(cutDate);
-  const datedCuts = dailyCutsForChart(chartRows, reportCuts);
-  const inferredWeeklyCuts = datedCuts.length ? [] : weeklyCutsForChart(chartRows, resolvedReportWeekday);
-  const cuts = datedCuts.length ? datedCuts : inferredWeeklyCuts.length ? inferredWeeklyCuts : dailyCutsForChart(chartRows, [], cutDate);
-  const cutXSet = new Set(cuts.map((cut) => cut.x));
-  const tickEvery = chartRows.length > 40 ? 7 : chartRows.length > 28 ? 5 : chartRows.length > 16 ? 3 : chartRows.length > 10 ? 2 : 1;
-  const tickRows = chartRows.filter((point, index) => (
-    index === 0 || index === chartRows.length - 1 || index % tickEvery === 0 || cutXSet.has(point.x)
-  ));
-  const cumulativeCandidates = Array.from(new Map([
-    ...(chartRows.length <= 14 ? ([chartRows[0]].filter(Boolean) as typeof chartRows) : []),
-    ...cuts.map((cut) => cut.point),
-    ...([chartRows.at(-1)].filter(Boolean) as typeof chartRows),
-  ].map((point) => [point.x, point])).values());
-  const cumulativeLabelRows = sparseDailyChartRows(
-    cumulativeCandidates,
-    variant === "general" ? 3 : 4,
-    variant === "general" ? 8 : 5,
-  );
-  // Cada barra lleva su número de efectivas.
-  //
-  // El techo por número de días existía porque sin scroll las etiquetas se
-  // encimaban: pasados los ~42 cortes solo se rotulaban los de reporte, y el
-  // resto del campo quedaba sin cifra. Ahora el gráfico garantiza 28 px por
-  // corte y se desplaza (`ritmoDiario.css`), así que el ancho ya no es la
-  // restricción y la densidad deja de depender de cuánto dure el campo. Los
-  // mini gráficos por actor sí conservan su tope: no tienen scroll propio.
-  const showDenseDailyLabels = isCompactChart ? chartRows.length <= 7 : true;
-  const dailyLabelCandidates = showDenseDailyLabels
-    ? chartRows.filter((point) => point.dailyTotal > 0)
-    : Array.from(new Map([
-      ...(bestPoint && bestPoint.dailyTotal > 0 ? [bestPoint] : []),
-      ...(lastPoint && lastPoint.dailyTotal > 0 ? [lastPoint] : []),
-      ...cuts.map((cut) => cut.point).filter((point) => point.dailyTotal > 0),
-    ].map((point) => [point.x, point])).values());
-  const dailyLabelRows = sparseDailyChartRows(
-    dailyLabelCandidates,
-    showDenseDailyLabels ? 1 : variant === "general" ? 2 : 3,
-    // Sin tope cuando se rotulan todas: el `Math.min(42, …)` recortaba
-    // justamente los días de un campo largo, que es cuando más falta hace ver
-    // el detalle día a día.
-    showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
-  );
-  const dateLabelRows = isCompactChart ? [] : chartRows;
-  // Ancho mínimo por corte. Pasados los ~45 cortes el campo no cabe y la
-  // columna central del marco se desplaza, con los ejes fuera de ella.
-  const ANCHO_POR_CORTE = 28;
-  const anchoDelCampo = chartRows.length * ANCHO_POR_CORTE;
-  const hayDesplazamiento = !isCompactChart && chartRows.length > 45;
-  const chartBottomMargin = isCompactChart ? 36 : variant === "general" ? 86 : variant === "actor" ? 78 : 72;
-  const maxDaily = chartRows.reduce((max, point) => Math.max(max, point.dailyTotal), 0);
-  const maxCumulative = chartRows.reduce((max, point) => Math.max(max, point.cumulative), 0);
-  const dailyAxisMax = paddedAdvanceAxisMax(maxDaily);
-  const cumulativeAxisMax = paddedAdvanceAxisMax(maxCumulative);
-  const hoverData = chartRows.map((point) => [
-    point.date,
-    point.effective,
-    point.partial,
-    point.refusals,
-    point.dailyTotal,
-    point.cumulative,
-  ]);
-  const hoverTemplate = effectiveOnly
-    ? [
-      "<b>%{customdata[0]}</b>",
-      "Efectivas Kobo <b>%{customdata[1]}</b>",
-      "Acumulado <b>%{customdata[5]}</b>",
-      "<extra></extra>",
-    ].join("<br>")
-    : [
-      "<b>%{customdata[0]}</b>",
-      "Efectivas %{customdata[1]} · Parciales %{customdata[2]} · Rechazos %{customdata[3]}",
-      "Total día <b>%{customdata[4]}</b> · Acumulado <b>%{customdata[5]}</b>",
-      "<extra></extra>",
-    ].join("<br>");
-  const chartData = [
-    {
-      type: "bar" as const,
-      name: "Efectivas",
-      x: chartRows.map((point) => point.x),
-      y: chartRows.map((point) => point.effective),
-      marker: { color: "#168a55", line: { color: "rgba(255, 255, 255, 0.72)", width: 0.8 } },
-      customdata: hoverData,
-      hovertemplate: hoverTemplate,
-    },
-    ...(!effectiveOnly ? [
-    {
-      type: "bar" as const,
-      name: "Parciales",
-      x: chartRows.map((point) => point.x),
-      y: chartRows.map((point) => point.partial),
-      marker: { color: "#b97611", line: { color: "rgba(255, 255, 255, 0.72)", width: 0.8 } },
-      customdata: hoverData,
-      hovertemplate: hoverTemplate,
-    },
-    {
-      type: "bar" as const,
-      name: "Rechazos",
-      x: chartRows.map((point) => point.x),
-      y: chartRows.map((point) => point.refusals),
-      marker: { color: "#a61d4f", line: { color: "rgba(255, 255, 255, 0.72)", width: 0.8 } },
-      customdata: hoverData,
-      hovertemplate: hoverTemplate,
-    },
-    ] : []),
-    {
-      type: "scatter" as const,
-      mode: "lines+markers" as const,
-      name: effectiveOnly ? "Acumulado Kobo" : "Acumulado total",
-      x: chartRows.map((point) => point.x),
-      y: chartRows.map((point) => point.cumulative),
-      yaxis: "y2",
-      line: { color: "#17212f", width: 3, shape: "spline" as const, smoothing: 0.45 },
-      marker: {
-        color: "#ffffff",
-        size: variant === "general" ? 8 : 6,
-        line: { color: "#17212f", width: 2 },
-      },
-      customdata: hoverData,
-      hovertemplate: hoverTemplate,
-    },
-  ];
-  const chartLayout = {
-    barmode: "stack" as const,
-    bargap: chartRows.length <= 1 ? 0.72 : chartRows.length <= 7 ? 0.42 : 0.24,
-    dragmode: false as const,
-    font: {
-      family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-      color: "#17212f",
-    },
-    hovermode: "closest" as const,
-    showlegend: false,
-    margin: {
-      // Con marco los ejes viven fuera del gráfico, así que sus márgenes se
-      // ceden a las columnas laterales; los verticales se mantienen porque son
-      // los que fijan dónde cae cada marca.
-      l: hayDesplazamiento ? 0 : isCompactChart ? 24 : 48,
-      r: hayDesplazamiento ? 0 : isCompactChart ? 28 : 58,
-      t: isCompactChart ? 20 : 36,
-      b: chartBottomMargin,
-    },
-    paper_bgcolor: "transparent",
-    plot_bgcolor: "transparent",
-    hoverlabel: {
-      align: "left" as const,
-      bgcolor: "#ffffff",
-      bordercolor: "rgba(15, 23, 42, 0.12)",
-      font: { color: "#17212f", size: 12, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
-    },
-    shapes: [
-      ...cuts.map((cut) => ({
-        type: "line" as const,
-        xref: "x" as const,
-        yref: "paper" as const,
-        x0: cut.x,
-        x1: cut.x,
-        y0: 0,
-        y1: 1,
-        line: {
-          color: cut.isFallback ? "rgba(190, 18, 60, 0.5)" : "rgba(15, 58, 117, 0.32)",
-          width: cut.isFallback ? 1.4 : 1,
-          dash: cut.isFallback ? "dash" : "dot",
-        },
-      })),
-    ],
-    annotations: [
-      ...(isCompactChart ? [] : cumulativeLabelRows.map((point) => ({
-        x: point.x,
-        y: 1.08,
-        xref: "x" as const,
-        yref: "paper" as const,
-        text: fmt(point.cumulative),
-        showarrow: false,
-        font: { color: "#0f3a75", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
-      }))),
-      ...dailyLabelRows.map((point) => ({
-        x: point.x,
-        y: -0.08,
-        xref: "x" as const,
-        yref: "paper" as const,
-        // Los días que cierran un reporte van en negrita: son las cifras que
-        // viajan al informe, y el resto es el detalle diario que las explica.
-        // Cuáles son lo decide el cronograma del estudio (`reportCuts`), no el
-        // gráfico.
-        text: cutXSet.has(point.x) ? `<b>${fmt(point.dailyTotal)}</b>` : fmt(point.dailyTotal),
-        showarrow: false,
-        xanchor: "center" as const,
-        yanchor: "middle" as const,
-        font: { color: "#168a55", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
-      })),
-      ...dateLabelRows.map((point) => ({
-        x: point.x,
-        y: -0.22,
-        xref: "x" as const,
-        yref: "paper" as const,
-        text: point.axisLabel,
-        showarrow: false,
-        xanchor: "center" as const,
-        yanchor: "top" as const,
-        align: "center" as const,
-        font: { color: "#474f5b", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
-      })),
-    ],
-    xaxis: {
-      fixedrange: true,
-      showgrid: false,
-      zeroline: false,
-      range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
-      tickangle: 0,
-      tickvals: tickRows.map((point) => point.x),
-      ticktext: tickRows.map((point) => (isCompactChart ? point.displayLabel : point.axisLabel)),
-      showticklabels: isCompactChart,
-      ticks: "",
-      tickfont: { color: "#474f5b", size: isCompactChart ? 9 : 10 },
-      // Con marco, el margen inferior no puede moverse: es la referencia con la
-      // que se calcula dónde cae cada marca de los ejes dibujados al lado.
-      automargin: !hayDesplazamiento,
-    },
-    yaxis: {
-      title: isCompactChart || hayDesplazamiento
-        ? undefined
-        : { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#474f5b", size: 11 } },
-      fixedrange: true,
-      range: dailyAxisMax ? [0, dailyAxisMax] : undefined,
-      rangemode: "tozero",
-      showline: false,
-      showticklabels: !isCompactChart && !hayDesplazamiento,
-      zeroline: false,
-      gridcolor: "rgba(15, 23, 42, 0.06)",
-      tickfont: { color: "#474f5b", size: 10 },
-    },
-    yaxis2: {
-      title: isCompactChart || hayDesplazamiento ? undefined : { text: "Acumulado", font: { color: "#17212f", size: 11 } },
-      overlaying: "y",
-      side: "right",
-      fixedrange: true,
-      range: cumulativeAxisMax ? [0, cumulativeAxisMax] : undefined,
-      rangemode: "tozero",
-      showgrid: false,
-      showticklabels: !isCompactChart && !hayDesplazamiento,
-      zeroline: false,
-      tickfont: { color: "#17212f", size: 10 },
-    },
-  };
-  const chartConfig = {
-    displayModeBar: false,
-    doubleClick: false,
-    responsive: true,
-    scrollZoom: false,
-  };
-  const dailyLabel = effectiveOnly ? "efectivas" : "respuestas";
-  // Solo cuentan como "días con respuesta" los que además tienen fecha: si no,
-  // el encabezado prometía "9 días con respuesta" sobre un gráfico que decía
-  // "el corte todavía no trae respuestas fechadas" (Administrativos, 2026-07-26).
-  const datedSignalPoints = orderedSourcePoints.filter((point) => (
-    dailyPointTotalValue(point) > 0 && isDatedAcreditacionDailyPoint(point)
-  ));
-  const undatedResponses = orderedSourcePoints
-    .filter((point) => !isDatedAcreditacionDailyPoint(point))
-    .reduce((sum, point) => sum + (effectiveOnly ? dailyEffectiveValue(point) : dailyPointTotalValue(point)), 0);
-  const signalDayCount = datedSignalPoints.length;
-  const average = signalDayCount ? averageBase / signalDayCount : 0;
-  const averageLabel = average ? average.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : "S/D";
-  const chartHeight = isCompactChart ? 154 : variant === "general" ? 360 : 300;
-  const hiddenLeadingDays = windowStart;
-  return (
-    <article className={`mon-advance-daily-mini is-${variant}${isCompactChart ? " is-compact" : ""}`}>
-      <header>
-        <div>
-          <span>Avance diario</span>
-          <strong>{title}</strong>
-          <em>{countText(signalDayCount, "día", "días")} con respuesta · {fmt(effectiveOnly ? totals.effective : totals.total)} {dailyLabel} · {averageLabel}/día</em>
-        </div>
-        <div className="mon-advance-daily-mini-tools">
-          <div className="mon-advance-daily-mini-kpis">
-            <span className="is-effective"><em>Efectivas</em><strong>{fmt(totals.effective)}</strong></span>
-            {!effectiveOnly ? (
-              <>
-                <span className="is-partial"><em>Parciales</em><strong>{fmt(totals.partial)}</strong></span>
-                <span className="is-refusals"><em>Rechazos</em><strong>{fmt(totals.refusals)}</strong></span>
-              </>
-            ) : null}
-          </div>
-          {hasDailySignal && !isCompactChart ? (
-            <div className="mon-advance-daily-legend" aria-label="Leyenda de avance diario">
-              <span className="is-completed">Efectivas</span>
-              {!effectiveOnly ? (
-                <>
-                  <span className="is-partial">Parciales</span>
-                  <span className="is-refusals">Rechazos</span>
-                </>
-              ) : null}
-              <span className="is-cumulative">Acumulado</span>
-            </div>
-          ) : null}
-        </div>
-      </header>
-      {hasDailySignal ? (
-        <div className="mon-advance-daily-board">
-          <div className={`mon-advance-line-chart${hayDesplazamiento ? " is-con-marco" : ""}`}>
-            {hayDesplazamiento ? (
-              <MarcoDeRitmo
-                alto={chartHeight}
-                margenSuperior={36}
-                margenInferior={chartBottomMargin}
-                ejeIzquierdo={{ titulo: effectiveOnly ? "Efectivas/día" : "Respuestas/día", maximo: dailyAxisMax ?? 0 }}
-                ejeDerecho={{ titulo: "Acumulado", maximo: cumulativeAxisMax ?? 0 }}
-                anchoMinimoContenido={anchoDelCampo}
-              >
-                <PlotlyChart
-                  data={chartData}
-                  layout={chartLayout}
-                  config={chartConfig}
-                  height={chartHeight}
-                  ariaLabel={`Avance diario y acumulado: ${title}`}
-                />
-              </MarcoDeRitmo>
-            ) : (
-              <PlotlyChart
-                data={chartData}
-                layout={chartLayout}
-                config={chartConfig}
-                height={chartHeight}
-                ariaLabel={`Avance diario y acumulado: ${title}`}
-              />
-            )}
-          </div>
-        </div>
-      ) : (
-        <EmptyPanel
-          title="Sin ritmo diario"
-          detail={undatedResponses > 0
-            ? `${fmt(undatedResponses)} ${dailyLabel} del corte llegaron sin fecha de respuesta, así que no hay ritmo que graficar.`
-            : "El corte todavía no trae respuestas fechadas para graficar avance."}
-        />
-      )}
-      {hiddenLeadingDays > 0 || undatedResponses > 0 ? (
-        <div className="mon-advance-daily-loose">
-          {hiddenLeadingDays > 0 ? (
-            <span>
-              <strong>{countText(hiddenLeadingDays, "día", "días")} sin respuesta</strong>
-              <em> ocultos antes del inicio del campo</em>
-            </span>
-          ) : null}
-          {undatedResponses > 0 ? (
-            <span>
-              <strong>{fmt(undatedResponses)} {dailyLabel} sin fecha</strong>
-              <em> fuera del gráfico, contadas en los totales</em>
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-    </article>
   );
 }
 
@@ -18146,16 +17133,6 @@ function AcreditacionAdvanceSummaryWorkbench({
   );
 }
 
-function EmptyPanel({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="mon-profile-empty">
-      <span className="mon-profile-empty__icon"><ClipboardCheck size={18} /></span>
-      <strong>{title}</strong>
-      <p>{detail}</p>
-    </div>
-  );
-}
-
 function AcreditacionLoadingPanel({ view, label }: { view: MonitoreoSeccion; label: string }) {
   const items = view === "consultas"
     ? [
@@ -18437,10 +17414,6 @@ function activeSourceCount(state: MonitoreoState | null) {
 }
 
 type AcreditacionRailStatus = NonNullable<MonitoreoWorkbenchRailTab["estado"]>;
-
-function countText(count: number, singular: string, plural = `${singular}s`) {
-  return `${fmt(count)} ${count === 1 ? singular : plural}`;
-}
 
 /**
  * Estado de una pestaña del rail.
@@ -19166,8 +18139,10 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingAcreditacion, setSavingAcreditacion] = useState(false);
-  const [sourceSyncing, setSourceSyncing] = useState(false);
-  const [sourceSyncProgress, setSourceSyncProgress] = useState<AcreditacionSourceSyncProgress | null>(null);
+  // Aislamiento del sync (unidad 2.2): la raíz solo se suscribe a `syncing`
+  // (dos flips por sync); el progreso por segundo vive en el store y lo
+  // consume únicamente AcreditacionModuleChromeConSync.
+  const sourceSyncing = useSourceSyncStore((s) => s.syncing);
   const [actionStatus, setActionStatus] = useState<AcreditacionActionStatus>(null);
   const [caseReconciliationBusyId, setCaseReconciliationBusyId] = useState("");
   const [caseReconciliationStatus, setCaseReconciliationStatus] = useState<AcreditacionActionStatus>(null);
@@ -19191,7 +18166,9 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       ?? MONITOREO_SECCIONES[0],
     [seccionActiva, routeWorkbenchViews],
   );
-  const reports = reportsFromState(state);
+  // Identidad estable por state (unidad 2.3): sin el memo, cada render de la
+  // raíz repartía un objeto nuevo e incapacitaba la memoización aguas abajo.
+  const reports = useMemo(() => reportsFromState(state), [state]);
   const prefetchBackgroundScopes = useCallback((view: MonitoreoSeccion) => {
     const activeScope = scopeForView(view, route.family);
     const scopes = [activeScope, ...ACREDITACION_BACKGROUND_SCOPES]
@@ -19264,6 +18241,12 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     initialLoadStartedRef.current = true;
     void loadView(seccionActiva);
   }, [seccionActiva, loadView]);
+
+  // El store del sync sobrevive al desmontaje del perfil; si el poll quedó
+  // cortado a media sincronización, no debe amanecer "sincronizando".
+  useEffect(() => () => {
+    sourceSyncActions.finish();
+  }, []);
 
   // Antes vivía aquí un efecto que sacaba al modo telefónico de la pestaña
   // `collectors`, que no existía para él. Ya no hace falta: `collectors` dejó
@@ -19365,30 +18348,31 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setActionStatus({ tone: "error", message });
       return;
     }
-	    setSourceSyncing(true);
-	    setSourceSyncProgress({
-	      mode: syncMode,
-	      percent: 2,
-	      phase: "Preparando",
-	      message: syncMode === "full" ? "Preparando actualización completa..." : "Preparando avance...",
-	    });
-	    setError("");
-	    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
-	    try {
-	      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
-	      setSourceSyncProgress({
-	        mode: syncMode,
-	        percent: 8,
-	        phase: "En cola",
-	        message: `Job ${start.job_id} en cola.`,
-	      });
-	      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
-	      await waitForSourceSyncJob(start.job_id, (progress) => {
-	        setSourceSyncProgress({
-	          mode: syncMode,
-	          ...progress,
-	        });
-	      });
+    sourceSyncActions.start({
+      mode: syncMode,
+      percent: 2,
+      phase: "Preparando",
+      message: syncMode === "full" ? "Preparando actualización completa..." : "Preparando avance...",
+    });
+    setError("");
+    setActionStatus({ tone: "info", message: syncMode === "full" ? "Actualizando todas las fuentes activas..." : "Actualizando solo avance de respuestas..." });
+    try {
+      const start = await apiMonitoreoSync(state?.config, sourceIds, { syncMode });
+      sourceSyncActions.report({
+        mode: syncMode,
+        percent: 8,
+        phase: "En cola",
+        message: `Job ${start.job_id} en cola.`,
+      });
+      setActionStatus({ tone: "info", message: `Sincronizacion ${syncMode === "full" ? "completa" : "de avance"} en job ${start.job_id}.` });
+      // El tick por segundo del poll entra al store, no a un useState de la
+      // raíz: solo re-renderiza al chrome conectado (unidad 2.2).
+      await waitForSourceSyncJob(start.job_id, (progress) => {
+        sourceSyncActions.report({
+          mode: syncMode,
+          ...progress,
+        });
+      });
       clearScopeStateCache();
       const reportScope = scopeForView(activeViewRef.current, route.family);
       const next = await apiMonitoreoState({
@@ -19405,10 +18389,9 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       const message = (e as Error).message;
       setError(message);
       setActionStatus({ tone: "error", message });
-	    } finally {
-	      setSourceSyncProgress(null);
-	      setSourceSyncing(false);
-	    }
+    } finally {
+      sourceSyncActions.finish();
+    }
   }, [clearScopeStateCache, route.family, state?.config, state?.sources]);
   const sourceTotal = isPhone ? 3 : state?.sources?.length ?? 0;
   const activeSources = activeSourceCount(state);
@@ -19491,7 +18474,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         />
         {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
 
-        <MonitoreoModuleChrome
+        <AcreditacionModuleChromeConSync
           routes={[route]}
           route={route}
           routeSelected
@@ -19506,9 +18489,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           activeSources={activeSources}
           nRows={state?.n_rows ?? 0}
           hasSnapshot={Boolean(state?.has_snapshot)}
-	          syncing={loading || sourceSyncing}
-	          syncProgress={sourceSyncProgress}
-	          syncDisabled={loading || sourceSyncing}
+          syncing={loading || sourceSyncing}
+          syncDisabled={loading || sourceSyncing}
           syncLabel="Todo"
           syncTitle="Actualizar todas las fuentes activas"
           onSyncAll={() => { void runProfileSourceSync("full"); }}
