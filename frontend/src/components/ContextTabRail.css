@@ -103,17 +103,21 @@
   display: none;
 }
 
+/* 10px es el piso de la escala tipográfica de la casa. Estaban en 7px, que es
+ * la razón de que la cápsula «apenas se viera»: quitarle el año liberó el
+ * ancho que hacía falta para respetar el piso sin recortar. */
 .pulso-context-tab-rail-meta .mon-rail-sync-date {
   display: block;
-  font-size: 7px;
-  letter-spacing: -0.04em;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
 .pulso-context-tab-rail-meta .mon-rail-sync-time {
   display: block;
   color: var(--pulso-text-soft);
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0;
   white-space: nowrap;
 }

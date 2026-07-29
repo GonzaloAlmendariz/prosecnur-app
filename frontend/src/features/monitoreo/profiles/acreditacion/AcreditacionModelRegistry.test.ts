@@ -61,11 +61,15 @@ describe("Acreditación: Fuentes gobierna actores y canales", () => {
     expect(hasAcreditacionPhoneSourceActors(sources)).toBe(false);
   });
 
-  test("el estado vacío se aplica igual a las seis pestañas y no al modo autónomo", () => {
+  test("el estado vacío se aplica igual a todas las pestañas y no al modo autónomo", () => {
     const withoutPhone = [source("doc", "Docentes", "Correo")];
     const withPhone = [...withoutPhone, source("egr", "Egresados", "Telefonico")];
 
-    expect(ACREDITACION_PHONE_TABS).toHaveLength(6);
+    // 7 desde que existe «Estados»: confirmar los estados de la base de
+    // barrido es parte de Teléfono, no un ajuste escondido. Lo que este
+    // contrato protege es que el estado vacío se aplique a TODAS por igual,
+    // no cuántas hay.
+    expect(ACREDITACION_PHONE_TABS.length).toBeGreaterThanOrEqual(6);
     expect(ACREDITACION_PHONE_TABS.every(() => shouldShowAcreditacionPhoneEmptyState(false, withoutPhone))).toBe(true);
     expect(shouldShowAcreditacionPhoneEmptyState(false, withPhone)).toBe(false);
     expect(shouldShowAcreditacionPhoneEmptyState(true, withoutPhone)).toBe(false);

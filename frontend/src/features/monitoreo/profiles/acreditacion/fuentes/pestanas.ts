@@ -17,7 +17,7 @@
 // usuario con `?pestana=collectors` tiene que seguir aterrizando donde
 // corresponde.
 
-import { Layers3, PlugZap, QrCode } from "../../../../../vendor/lucide-react";
+import { Layers3, ListChecks, PlugZap } from "../../../../../vendor/lucide-react";
 import type { LucideIcon } from "../../../../../vendor/lucide-react";
 
 export type PestanaDeFuentes = "resumen" | "universo" | "encuestas";
@@ -46,7 +46,7 @@ export const PESTANAS_DE_FUENTES: readonly PestanaDeFuentesDefinicion[] = [
     key: "encuestas",
     label: "Encuestas y recopiladores",
     detail: "Quién responde y qué cuenta",
-    icon: QrCode,
+    icon: ListChecks,
   },
 ];
 

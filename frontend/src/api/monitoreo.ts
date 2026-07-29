@@ -239,6 +239,24 @@ export type MonitoreoSurveyMonkeyCollector = MonitoreoLinkCollector & {
   warnings: string[];
 };
 
+/**
+ * Reparto de una columna en categorías.
+ *
+ * `categorical` es `false` cuando la columna tiene demasiadas categorías
+ * distintas para segmentar —un identificador, un nombre, texto libre—. En ese
+ * caso `categories` viene vacío pero `distinct_count` sigue publicado, para que
+ * la vista pueda explicar por qué no hay reparto en vez de callar.
+ */
+export type MonitoreoVariableDistribucion = {
+  non_empty: number;
+  distinct_count: number;
+  categorical: boolean;
+  categories: { value: string; count: number }[];
+  /** Categorías que quedaron fuera del top, y cuántos casos representan. */
+  otras_categorias: number;
+  otras_casos: number;
+};
+
 export type MonitoreoSourceVariableStat = {
   name: string;
   label: string;
@@ -249,6 +267,9 @@ export type MonitoreoSourceVariableStat = {
   examples?: string[];
   score?: number;
   selected?: boolean;
+  distribucion?: MonitoreoVariableDistribucion;
+  /** `"anio"` cuando los valores parecen ciclos `AAAA-S` y conviene agrupar. */
+  normalizacion_sugerida?: "ninguna" | "anio" | string;
 };
 
 export type MonitoreoSourceMetadata = {
@@ -314,6 +335,20 @@ export type MonitoreoStateRule = {
   stop_contact: boolean;
 };
 
+/**
+ * La variable con la que se segmenta el avance de un actor.
+ *
+ * Es POR ACTOR y no global: Egresados se sigue por ciclo de egreso y Docentes
+ * por categoría. `normalization: "anio"` agrupa los semestres de una cohorte
+ * (`2021-1` y `2021-2` cuentan como `2021`).
+ */
+export type MonitoreoInterestVariable = {
+  actor: string;
+  variable: string;
+  normalization: "ninguna" | "anio";
+  label?: string;
+};
+
 export type MonitoreoOperationalModel = {
   schema_version: string;
   strata: MonitoreoOperationalStratum[];
@@ -323,6 +358,8 @@ export type MonitoreoOperationalModel = {
   link_collectors: MonitoreoLinkCollector[];
   events: MonitoreoOperationalEvent[];
   state_rules: MonitoreoStateRule[];
+  /** Variable con la que se abre el avance de cada actor. Ver `interest_variables`. */
+  interest_variables?: MonitoreoInterestVariable[];
   privacy: {
     local_sensitive: boolean;
     export_policy: "aggregate_or_redacted" | "aggregate_only" | "allow_case_level_local";

@@ -14,12 +14,13 @@
 // La pestaña deja de ser un formulario y pasa a ser la respuesta a una
 // pregunta, que es el criterio con el que se cortó toda la sección.
 
+import { useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, ExternalLink, Layers3, PhoneCall } from "../../../../../vendor/lucide-react";
-import type { MonitoreoSource, MonitoreoState } from "../../../../../api/client";
+import type { MonitoreoSource } from "../../../../../api/client";
 import { enlaceDeFuente, nombreDeFuente } from "../../../fuentes/enlacesDeFuente";
 import { contar, textoDeActualizacion } from "../../../fuentes/vocabulario";
 import { acreditacionActorOptions, acreditacionSourceActor } from "../AcreditacionSourcesModel";
-import { PanelConectarFuente } from "./PanelConectarFuente";
 import "./fuentes.css";
 
 function mismoActor(izquierda: string, derecha: string) {
@@ -87,29 +88,28 @@ function FilaDeActor({
 
 export function FuentesUniverso({
   sources,
-  onStateChange,
 }: {
   sources: MonitoreoSource[];
-  onStateChange?: (state: MonitoreoState) => void;
 }) {
   // El universo se define por actor, y los actores los conocemos por dos vías:
   // los que ya tienen encuesta y los que ya tienen base. Un actor con encuesta
   // y sin base es precisamente el hueco que esta pestaña existe para mostrar.
+  const location = useLocation();
+  const navigate = useNavigate();
   const activas = sources.filter((source) => source.enabled);
   const actores = acreditacionActorOptions(activas).sort((a, b) => a.localeCompare(b, "es"));
   const barrido = activas.filter((source) => source.kind === "google_sheets" && source.role === "barrido");
   const cubiertos = actores.filter((actor) => baseDelActor(activas, actor)).length;
 
-  function conectar(actor: string) {
-    // `?foco=` es el param canónico de «entidad seleccionada» (ADR 0044), así
-    // que la fila no abre un formulario propio: pide la puerta única con el
-    // actor ya elegido, y esa dirección es enlazable y alcanzable por el QA.
-    const params = new URLSearchParams(window.location.search);
+  // `?foco=` es el param canónico de «entidad seleccionada» (ADR 0044), así que
+  // la fila no abre un formulario propio: pide la puerta única con el actor ya
+  // elegido. La dirección resultante es enlazable y el QA visual la alcanza.
+  const conectar = useCallback((actor: string) => {
+    const params = new URLSearchParams(location.search);
     params.set("panel", "conectar-fuente");
     params.set("foco", actor);
-    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  }
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   return (
     <div className="fuentes-universo">
@@ -118,12 +118,6 @@ export function FuentesUniverso({
           <span>Universo</span>
           <strong>{`${cubiertos} de ${actores.length} ${actores.length === 1 ? "actor con base" : "actores con base"}`}</strong>
         </div>
-        <PanelConectarFuente
-          sources={sources}
-          actoresSugeridos={actores}
-          papelInicial="universo"
-          onStateChange={onStateChange}
-        />
       </header>
 
       <section

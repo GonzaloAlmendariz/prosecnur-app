@@ -82,7 +82,9 @@ describe("semántica de navegación de Monitoreo", () => {
     expect(html).toContain('aria-live="off"');
     expect(html).toContain('data-rail-tooltip="Recopiladores\n1 enlace · inclusión"');
     expect(html).toContain('class="pulso-context-tab-rail-footer"');
-    expect(html).toContain('class="mon-rail-sync-date">23/07/26</span>');
+    // Día y mes: el año vive en el `title`, no en la cápsula del rail.
+    expect(html).toContain('class="mon-rail-sync-date">23/07</span>');
+    expect(html).toContain('title="Última actualización: 23/07/26');
     expect(html).toContain('class="mon-rail-sync-time">10:20</span>');
     expect(html).toContain('title="Última actualización: 23/07/26, 10:20 a. m."');
     expect(html).not.toContain("mon-nav-item");
@@ -111,7 +113,10 @@ describe("semántica de navegación de Monitoreo", () => {
       value: "Sin actualización",
     }));
 
-    expect(updated).toContain('class="mon-rail-sync-date">09/07/26</span>');
+    // Sin año: la cápsula compite por 40 px de ancho en el rail y el año no
+    // aporta a un corte reciente. Se conserva en el `title`.
+    expect(updated).toContain('class="mon-rail-sync-date">09/07</span>');
+    expect(updated).toContain('09/07/26');
     expect(updated).toContain('class="mon-rail-sync-time">07:24</span>');
     expect(empty).toContain('class="mon-rail-sync-date">Sin act.</span>');
     expect(empty).not.toContain("Sin hora");

@@ -1,0 +1,288 @@
+/* Distribución por actor: elegir la variable de interés y ver su reparto.
+ *
+ * Una tarjeta por actor, todas del mismo alto (C2): el marco no depende de
+ * cuántas categorías tenga la variable elegida, o cambiar de columna haría
+ * saltar la rejilla entera. */
+
+/* La vista toma el alto que le den y lo reparte: cabecera arriba, rejilla
+ * debajo. `minmax(0, 1fr)` en la fila de la rejilla es lo que permite que su
+ * contenido scrollee dentro en vez de estirar el panel. */
+.mon-dist {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.mon-dist-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.mon-dist-head span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.mon-dist-head strong {
+  font-size: 14px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-dist-head small {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+/* `align-content: start` es deliberado: la rejilla ocupa todo el alto, pero las
+ * tarjetas conservan el suyo natural. Estirarlas para llenar el hueco dejaría
+ * tarjetas altas y huecas por dentro, que se lee peor que el espacio libre. */
+.mon-dist-grid {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-content: start;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.mon-dist-actor {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface);
+  padding: 12px 13px;
+}
+
+.mon-dist-actor > header {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-dist-actor > header strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-dist-actor > header em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+.mon-dist-campo {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.mon-dist-campo > span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.mon-dist-campo select {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--pulso-control-height-md);
+  padding: 0 8px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+}
+
+.mon-dist-campo select:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: -1px;
+}
+
+.mon-dist-agrupar {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  cursor: pointer;
+}
+
+.mon-dist-agrupar small {
+  display: block;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+/* El reparto se lleva el alto sobrante y scrollea dentro: con 20 cohortes la
+ * tarjeta no puede empujar la rejilla fuera de la pantalla (C3). */
+.mon-dist-reparto {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mon-dist-reparto ul {
+  min-height: 0;
+  max-height: 190px;
+  overflow-y: auto;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-dist-reparto li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-dist-etiqueta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+
+.mon-dist-barra {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-border) 60%, transparent);
+  overflow: hidden;
+}
+
+.mon-dist-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.mon-dist-reparto b {
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-dist-resto {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--pulso-text-faint);
+}
+
+.mon-dist-vacio {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+.mon-dist-vacio-panel {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.mon-dist-vacio-panel strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-dist-vacio-panel p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+}
+
+/* Bloque de una variable ya declarada.
+ *
+ * Estas tres clases se quedaron sin CSS al pasar de una variable por actor a
+ * varias: el encabezado caía a `display: block` y el nombre salía pegado al
+ * porcentaje —«Ciclo de egreso100%»—. */
+.mon-dist-declarada {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, var(--pulso-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 4%, var(--pulso-surface));
+  padding: 9px 10px;
+}
+
+.mon-dist-declarada-head {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mon-dist-declarada-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-dist-declarada-head > span {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-dist-quitar {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.mon-dist-quitar:hover:not(:disabled) {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-dist-quitar:disabled {
+  cursor: default;
+  opacity: 0.5;
+}

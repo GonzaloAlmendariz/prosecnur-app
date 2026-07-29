@@ -27,7 +27,8 @@ import {
   Layers3,
   Loader2,
   PhoneCall,
-  QrCode,
+  ListChecks,
+  NotepadText,
   Search,
   Table2,
   X,
@@ -68,13 +69,13 @@ const SERVICIOS: ReadonlyArray<{
   aporta: string;
 }> = [
   { key: "google_sheets", nombre: "Google Sheets", icon: Table2, aporta: "Bases de universo y hojas de barrido" },
-  { key: "kobo", nombre: "Kobo", icon: QrCode, aporta: "Respuestas de un formulario" },
-  { key: "surveymonkey", nombre: "SurveyMonkey", icon: QrCode, aporta: "Respuestas de una encuesta" },
+  { key: "kobo", nombre: "Kobo", icon: ListChecks, aporta: "Respuestas de un formulario" },
+  { key: "surveymonkey", nombre: "SurveyMonkey", icon: NotepadText, aporta: "Respuestas de una encuesta" },
 ];
 
 const PAPELES: ReadonlyArray<{ key: Papel; nombre: string; icon: LucideIcon }> = [
   { key: "universo", nombre: "Universo", icon: Layers3 },
-  { key: "respuestas", nombre: "Respuestas", icon: QrCode },
+  { key: "respuestas", nombre: "Respuestas", icon: ListChecks },
   { key: "barrido", nombre: "Barrido", icon: PhoneCall },
 ];
 

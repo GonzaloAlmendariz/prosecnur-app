@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
+import { AlertCircle, BarChart3, BarChartBig, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, ListChecks, Loader2, Mail, PhoneCall, PlugZap, Plus, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
@@ -130,11 +130,21 @@ import {
   acreditacionVentanaCampoObservada,
   type AcreditacionVentanaCampo,
 } from "./AcreditacionVentanaCampo";
-import { acreditacionAgruparEstados } from "./AcreditacionEstadosLlamada";
+import { acreditacionAgruparEstados, acreditacionDeclaracionesDesdeReglas } from "./AcreditacionEstadosLlamada";
+import { motivoDeNoCruce } from "../../core/motivoDeNoCruce";
+import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
+import { RutaDeSubsanacion, useBandejaDeSubsanacion } from "../../components/RutaDeSubsanacion";
 import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
+import type { MonitoreoInterestVariable, MonitoreoStateRule } from "../../../../api/monitoreo";
 import type { MonitoreoReportScope } from "../types";
 import { FranjaDeFuentes } from "./fuentes/FranjaDeFuentes";
 import { FuentesResumen } from "./fuentes/FuentesResumen";
+import { FuentesUniverso } from "./fuentes/FuentesUniverso";
+import { DefinidorDeEstados } from "./telefono/DefinidorDeEstados";
+import { DistribucionPorActor } from "./modelo/DistribucionPorActor";
+import { GraficoDeEstadosPorDia } from "./telefono/GraficoDeEstadosPorDia";
+import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
+import { textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "../../fuentes/vocabulario";
 import { PanelConectarFuente } from "./fuentes/PanelConectarFuente";
 import { railDeFuentesAcreditacion, railDeFuentesTelefonico } from "./fuentes/railDeFuentes";
 import {
@@ -148,6 +158,7 @@ import type { PestanaDeFuentes } from "./fuentes/pestanas";
 import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
+import "./acreditacionTelefono.css";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -199,7 +210,7 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
   },
   {
     key: "respuestas_surveymonkey",
-    icon: QrCode,
+    icon: ListChecks,
     label: "Kobo/plataforma",
     service: "SurveyMonkey/Kobo",
     detail: "ENCUESTAS_ESTUDIO: una o más encuestas Kobo o SurveyMonkey por actor, segmento/carrera y canal.",
@@ -211,13 +222,14 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
 ];
 export const ACREDITACION_MODEL_TABS = [
   { key: "estructura", label: "Modelo operativo", detail: "Metas por actor", icon: Target },
+  { key: "distribucion", label: "Distribución", detail: "Variable de interés por actor", icon: BarChartBig },
   { key: "estrategias", label: "Cronograma", detail: "Campo y reportes", icon: CalendarRange },
   { key: "resumen", label: "Resumen", detail: "Lectura de Fuentes", icon: BarChart3 },
 ] as const;
 type AcreditacionModelVisibleTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
 type AcreditacionModelTab = AcreditacionModelVisibleTab | "enlaces" | "casos" | "reglas";
 export const ACREDITACION_CONSULTA_TABS = [
-  { key: "plataforma", label: "Registros en plataforma", detail: "Respuestas y cruce", icon: QrCode },
+  { key: "plataforma", label: "Registros en plataforma", detail: "Respuestas y cruce", icon: ListChecks },
   { key: "base", label: "Estado de la base", detail: "Actor por actor", icon: Table2 },
   { key: "cruces", label: "Cruces efectivos", detail: "Razón de cruce", icon: Link2 },
   { key: "subsanacion", label: "Subsanación", detail: "Decisión auditada", icon: ShieldAlert },
@@ -225,6 +237,7 @@ export const ACREDITACION_CONSULTA_TABS = [
 export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
 export const ACREDITACION_PHONE_TABS = [
   { key: "resumen", label: "Resumen", detail: "Barrido telefónico", icon: PhoneCall },
+  { key: "estados", label: "Estados", detail: "Confirma y colorea", icon: SlidersHorizontal },
   { key: "dia", label: "Día", detail: "Efectivas Kobo", icon: CalendarRange },
   { key: "incidencia", label: "Incidencias de la base", detail: "Sin efectiva e insistencia", icon: AlertCircle },
   { key: "responsables", label: "Responsables", detail: "Equipo y carga", icon: ContactRound },
@@ -235,7 +248,7 @@ type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
 const ACREDITACION_ADVANCE_TABS = [
   { key: "resumen", label: "Resumen", detail: "Avance general", icon: BarChart3 },
   { key: "actores", label: "Actores", detail: "Brechas por unidad", icon: Layers3 },
-  { key: "encuestas", label: "Encuestas", detail: "Fuentes y canales", icon: QrCode },
+  { key: "encuestas", label: "Encuestas", detail: "Fuentes y canales", icon: ListChecks },
   { key: "detalle", label: "Detalle", detail: "Controles", icon: Table2 },
   { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
 ] as const;
@@ -1124,30 +1137,27 @@ function AcreditacionCanonicalModelWorkbench({
       scheduleWindow,
       reportWeekdayLabel,
     ];
-  const activeVisibleTab: AcreditacionModelVisibleTab = activeTab === "estrategias" || activeTab === "resumen" ? activeTab : "estructura";
-  const modelCopy = activeVisibleTab === "estrategias"
-    ? {
-      eyebrow: "Cronograma operativo",
-      title: "Campo y reportes",
-      hint: "Configura semanas de campo, fechas opcionales y día de entrega del reporte de avance.",
-    }
-    : activeVisibleTab === "resumen"
-      ? {
-        eyebrow: "Resumen metodológico",
-        title: "Lectura de Fuentes",
-        hint: "Revisa el estado de encuestas, bases y barrido sin editar canales ni fuentes desde Modelo.",
-      }
-      : isPhoneModel
+  // Modelo tiene TRES vistas, una por decisión: cuánto quiero de cada actor
+  // (metas), cómo quiero verlo repartido (distribución) y cuándo se hace el
+  // campo (cronograma).
+  //
+  // En B1 se quedó con una sola porque las tres subpestañas de entonces eran
+  // una subdivisión decorativa de la misma decisión; «Lectura de Fuentes» sigue
+  // retirada por eso mismo —era mirar Fuentes sin poder editarlas—. Estas dos
+  // vuelven con contenido propio, no como subdivisión.
+  const activeVisibleTab: AcreditacionModelVisibleTab =
+    activeTab === "distribucion" || activeTab === "estrategias" ? activeTab : "estructura";
+  const modelCopy = isPhoneModel
         ? {
           eyebrow: "Modelo telefónico",
           title: "Cuotas por variable",
           hint: "Define la variable rectora, sus categorías y metas; el avance de cumplimiento se revisa en Avance.",
         }
-      : {
-        eyebrow: "Modelo operativo",
-        title: "Metas por actor",
-        hint: "Define la meta de cada actor. Fuentes conserva canales, barrido, enlaces y filtro de efectiva.",
-      };
+    : {
+      eyebrow: "Modelo operativo",
+      title: "Metas por actor",
+      hint: "Define la meta de cada actor. Fuentes conserva canales, barrido, enlaces y filtro de efectiva.",
+    };
 
   const saveActorGoal = useCallback(async (actor: string, meta: number, metaPct: number | null) => {
     if (!state?.config) return;
@@ -1172,6 +1182,64 @@ function AcreditacionCanonicalModelWorkbench({
       setGoalSavingActor("");
     }
   }, [goalActorKey, onStateChange, state?.config]);
+  // Un actor puede declarar varias variables de interés, así que la lista se
+  // edita por par actor+variable en vez de sustituir la del actor.
+  const guardarVariablesDeInteres = useCallback((
+    siguientes: MonitoreoInterestVariable[],
+    mensaje: string,
+  ) => {
+    if (!state?.config) return;
+    const nextConfig: MonitoreoConfig = {
+      ...state.config,
+      operational_model: { ...state.config.operational_model, interest_variables: siguientes },
+    };
+    // Lo que tarda no es guardar: es que cambiar la configuración invalida el
+    // corte y hay que recalcularlo (medido en ~2 min sobre acrconta). Decir
+    // solo «Guardando» deja la app pareciendo colgada.
+    setQuotaStatus({
+      tone: "info",
+      message: "Guardando y recalculando el corte con la variable nueva. Puede tardar un par de minutos.",
+    });
+    void apiMonitoreoConfig(nextConfig)
+      .then((result) => {
+        onStateChange?.(result.state);
+        setQuotaStatus({ tone: "success", message: mensaje });
+      })
+      .catch((error) => {
+        setQuotaStatus({ tone: "error", message: (error as Error).message });
+      });
+  }, [onStateChange, state?.config]);
+
+  const mismoPar = (item: MonitoreoInterestVariable, actor: string, variable: string) => (
+    item.actor.trim().toLocaleLowerCase("es") === actor.trim().toLocaleLowerCase("es")
+    && item.variable === variable
+  );
+
+  const agregarVariableDeInteres = useCallback((actor: string, variable: string, normalizacion: "ninguna" | "anio") => {
+    const previas = state?.config?.operational_model?.interest_variables ?? [];
+    if (previas.some((item) => mismoPar(item, actor, variable))) return;
+    guardarVariablesDeInteres(
+      [...previas, { actor, variable, normalization: normalizacion }],
+      `${actor}: se añadió ${variable}. Su desglose ya está en Avance > Detalle.`,
+    );
+  }, [guardarVariablesDeInteres, state?.config]);
+
+  const quitarVariableDeInteres = useCallback((actor: string, variable: string) => {
+    const previas = state?.config?.operational_model?.interest_variables ?? [];
+    guardarVariablesDeInteres(
+      previas.filter((item) => !mismoPar(item, actor, variable)),
+      `${actor}: se quitó ${variable}.`,
+    );
+  }, [guardarVariablesDeInteres, state?.config]);
+
+  const normalizarVariableDeInteres = useCallback((actor: string, variable: string, normalizacion: "ninguna" | "anio") => {
+    const previas = state?.config?.operational_model?.interest_variables ?? [];
+    guardarVariablesDeInteres(
+      previas.map((item) => (mismoPar(item, actor, variable) ? { ...item, normalization: normalizacion } : item)),
+      normalizacion === "anio" ? `${variable}: agrupado por año.` : `${variable}: sin agrupar.`,
+    );
+  }, [guardarVariablesDeInteres, state?.config]);
+
   const savePhoneQuotaPatch = useCallback((patch: Partial<MonitoreoConfig>) => {
     if (!state?.config) return;
     const nextConfig = { ...state.config, ...patch };
@@ -1214,8 +1282,11 @@ function AcreditacionCanonicalModelWorkbench({
             </>
           ) : (
             <>
-              <AcreditacionActorDashboardTile label="Actores" value={fmt(cards.length)} hint="modelo base" tone="base" />
-              <AcreditacionActorDashboardTile label="Universo" value={fmt(totals.universe)} hint="desde Sheets" tone="ready" />
+              {/* R3: esta tira decía «Actores 4» a dos centímetros de otra que
+                * ya lo decía, y «Universo 519» que es literalmente el
+                * «519 procesables» del embudo de arriba. Quedan los dos datos
+                * que Modelo posee y nadie más muestra: la suma de mínimos que
+                * se está fijando aquí, y la ventana de campo. */}
               <AcreditacionActorDashboardTile label="Mínimo actor" value={metaTotal ? fmt(metaTotal) : "S/M"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
               <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
             </>
@@ -1249,6 +1320,17 @@ function AcreditacionCanonicalModelWorkbench({
             )}
           </section>
         ) : null}
+        {activeVisibleTab === "distribucion" ? (
+          <>
+            <DistribucionPorActor
+              state={state}
+              onAgregar={agregarVariableDeInteres}
+              onQuitar={quitarVariableDeInteres}
+              onNormalizar={normalizarVariableDeInteres}
+            />
+            {quotaStatus ? <span className={`mon-acr-model-action-status is-${quotaStatus.tone}`}>{quotaStatus.message}</span> : null}
+          </>
+        ) : null}
         {activeVisibleTab === "estructura" && isPhoneModel && state?.config ? (
           <>
             <AcreditacionPhoneQuotaEditor
@@ -1279,26 +1361,18 @@ function AcreditacionCanonicalModelWorkbench({
             )}
           </div>
         ) : null}
+        {/* El cronograma vuelve a ser pestaña propia, al final de las otras dos.
+            En B1 bajó a bloque al pie de las metas porque Modelo hacía una sola
+            cosa; con tres decisiones distintas —cuánto, cómo se reparte y
+            cuándo— cada una vuelve a merecer su sitio. */}
         {activeVisibleTab === "estrategias" ? (
           <AcreditacionFieldSchedulePanel config={state?.config ?? null} campoObservado={campoObservado} onStateChange={onStateChange} />
         ) : null}
-        {activeVisibleTab === "resumen" ? (
-          <section className="mon-contract-block mon-contract-block--wide" aria-label="Resumen de Fuentes para Modelo">
-            <div className="mon-contract-block-head">
-              <span>Resumen de Fuentes</span>
-              <span className="mon-contract-counter">Solo lectura</span>
-            </div>
-            <div className="mon-acr-active-kpis">
-              <StatTile label="Encuestas activas" value={fmt(sourceSummary.activeSurveys)} tone={sourceSummary.activeSurveys ? "good" : "warn"} />
-              <StatTile label="Bases Sheets" value={fmt(activeSheetBases)} tone={activeSheetBases ? "good" : "warn"} />
-              <StatTile label="Barrido" value={fmt(sweepCount)} tone={sweepCount ? "good" : "neutral"} />
-              <StatTile label="Canales tel." value={fmt(telephoneChannels.length)} tone={telephoneChannels.length ? "good" : "neutral"} />
-            </div>
-            <p className="mon-profile-muted">
-              Canales, recopiladores, barrido, enlaces y filtro de efectiva se editan en Fuentes. Modelo solo los resume para contextualizar las metas y el cronograma.
-            </p>
-          </section>
-        ) : null}
+        {/* Aquí vivía «Resumen de Fuentes», la tercera subpestaña: cuatro
+          * contadores y un párrafo que admitía que Fuentes era quien mandaba
+          * («Canales, recopiladores, barrido… se editan en Fuentes»). Una vista
+          * cuyo propio texto dice que hay que mirar en otro sitio no es una
+          * vista: es un desvío. La sección Fuentes ya lo cuenta con enlaces. */}
       </section>
     </div>
   );
@@ -1903,7 +1977,7 @@ const ACREDITACION_CHANNEL_OPTIONS: Array<{
   { value: "Correo", label: "Correo", key: "correo", modality: "email", icon: Mail },
   { value: "Presencial (Ficha QR)", label: "Ficha QR", key: "presencial", modality: "presencial", icon: QrCode },
   { value: "Enlace personalizado (Whatsapp)", label: "Enlace", key: "enlace", modality: "whatsapp", icon: Link2 },
-  { value: "Kobo", label: "Kobo", key: "kobo", modality: "mixto", icon: QrCode },
+  { value: "Kobo", label: "Kobo", key: "kobo", modality: "mixto", icon: ListChecks },
   { value: "Telefónico", label: "Telefónico", key: "telefono", modality: "telefono", icon: PhoneCall },
 ];
 
@@ -4865,8 +4939,17 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
         className="mon-phone-quota-panel is-empty"
         aria-label="Cuotas telefónicas por variable"
       >
+        {/* El vacío se hace cargo. El texto anterior mandaba a "la base de
+            público objetivo" sin decir dónde actuar. En Acreditación el editor
+            de cuotas no se monta (pide family === "telefonico") y el estado no
+            expone variables, así que las categorías solo pueden venir de los
+            filtros de las metas — que es lo que lee
+            `.monitoreo_report_phone_quota_vars` en monitoreo_telefonico.R. */}
         <div className="mon-phone-quota-empty" data-qa-geometry-capacity="owned">
-          <EmptyPanel title="Sin cuotas por variable" detail="Define una variable de control en la base de público objetivo para leer cuotas telefónicas por categoría." />
+          <EmptyPanel
+            title="Sin variable de seguimiento"
+            detail="El corte no trae ninguna categoría con la que abrir el avance telefónico. En Acreditación se derivan de las metas: una meta declarada por categoría en Modelo habilita su desglose aquí."
+          />
         </div>
       </section>
     );
@@ -6051,10 +6134,15 @@ function AcreditacionPhoneDailyStatusBars({ series }: { series: AcreditacionPhon
 function AcreditacionPhoneDailyTrend({
   rows,
   statusRows = [],
+  stateRules = [],
 }: {
   rows: Array<Record<string, unknown>>;
   statusRows?: Array<Record<string, unknown>>;
+  stateRules?: MonitoreoStateRule[];
 }) {
+  // Los colores del apilado son los que el usuario declaró en el definidor de
+  // estados: gráfico y tabla leen la misma fuente y no pueden discrepar.
+  const declaraciones = acreditacionDeclaracionesDesdeReglas(stateRules);
   const points = buildAcreditacionPhoneDailyPoints(rows);
   const statusSeries = buildAcreditacionPhoneDailyStatusSeries(statusRows);
   const loosePoints = points.filter((point) => !point.date);
@@ -6134,17 +6222,17 @@ function AcreditacionPhoneDailyTrend({
       showgrid: false,
       zeroline: false,
       tickangle: chartRows.length > 7 ? -32 : 0,
-      tickfont: { color: "#5f6b7a", size: 10 },
+      tickfont: { color: "#474f5b", size: 10 },
       automargin: true,
     },
     yaxis: {
-      title: { text: "Efectivas/día", font: { color: "#5f6b7a", size: 11 } },
+      title: { text: "Efectivas/día", font: { color: "#474f5b", size: 11 } },
       fixedrange: true,
       rangemode: "tozero",
       showline: false,
       zeroline: false,
       gridcolor: "rgba(15, 23, 42, 0.08)",
-      tickfont: { color: "#5f6b7a", size: 10 },
+      tickfont: { color: "#474f5b", size: 10 },
     },
     yaxis2: {
       title: { text: "Acumulado", font: { color: "#17212f", size: 11 } },
@@ -6171,7 +6259,7 @@ function AcreditacionPhoneDailyTrend({
             title={points.length ? "Efectivas sin fecha diaria" : "Sin efectivas diarias"}
             detail={points.length ? "El corte trae efectivas Kobo sin fecha usable; se muestran fuera del gráfico para no crear un día ficticio." : "El corte no trae efectivas Kobo con fecha, pero sí estados telefónicos del barrido."}
           />
-          <AcreditacionPhoneDailyStatusBars series={statusSeries} />
+          <GraficoDeEstadosPorDia series={statusSeries} declaraciones={declaraciones} />
           {loosePoints.length > 0 && (
             <div className="mon-phone-trend-loose">
               {loosePoints.map((point) => (
@@ -6246,7 +6334,7 @@ function AcreditacionPhoneDailyTrend({
         </span>
       </div>
 
-      <div className={`mon-phone-trend-parallel${statusSeries.length ? "" : " is-single"}`}>
+      <div className="mon-phone-trend-parallel is-single">
         <div className="mon-phone-trend-chart">
           <PlotlyChart
             data={chartData}
@@ -6256,9 +6344,12 @@ function AcreditacionPhoneDailyTrend({
             ariaLabel="Efectivas Kobo diarias y acumuladas"
           />
         </div>
-
-        <AcreditacionPhoneDailyStatusBars series={statusSeries} />
       </div>
+
+      {/* Debajo del ritmo, no al lado: son dos lecturas del mismo periodo
+          —producción arriba, composición del barrido abajo— y compartir la
+          fila las estrechaba a las dos. */}
+      <GraficoDeEstadosPorDia series={statusSeries} declaraciones={declaraciones} />
 
       {loosePoints.length > 0 && (
         <div className="mon-phone-trend-loose">
@@ -6576,7 +6667,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
           className="mon-phone-codpulso-source is-kobo"
           style={{ "--codpulso-source-pct": `${Math.max(2, Math.min(100, platformEffectivePct))}%` } as CSSProperties}
         >
-          <span><QrCode size={13} /> Kobo valida</span>
+          <span><ListChecks size={13} /> Kobo valida</span>
           <strong>{formatMetric(totals.platformComplete)}</strong>
           <em>{platformDelta === 0 ? "mismo volumen efectivo" : `${platformDelta > 0 ? "+" : ""}${formatMetric(platformDelta)} frente al barrido`}</em>
           <i aria-hidden="true" />
@@ -6643,12 +6734,14 @@ function AcreditacionPhoneOperationsWorkbench({
   fallbackEffective = 0,
   standalone = false,
   sources = [],
+  stateRules = [],
 }: {
   reports: MonitoreoAcreditacionReports;
   activeTab: AcreditacionPhoneTab;
   fallbackEffective?: number;
   standalone?: boolean;
   sources?: MonitoreoSource[];
+  stateRules?: MonitoreoStateRule[];
 }) {
   if (shouldShowAcreditacionPhoneEmptyState(standalone, sources)) {
     return (
@@ -6729,7 +6822,7 @@ function AcreditacionPhoneOperationsWorkbench({
       <div className="mon-phone-tabbody">
         {activeTab === "dia" ? (
           <div className="mon-phone-layout mon-phone-layout--alerts">
-            <AcreditacionPhoneDailyTrend rows={dailyRows} statusRows={statusDailyRows} />
+            <AcreditacionPhoneDailyTrend rows={dailyRows} statusRows={statusDailyRows} stateRules={stateRules} />
           </div>
         ) : activeTab === "responsables" ? (
           <div className="mon-phone-layout mon-phone-layout--responsables">
@@ -6778,6 +6871,7 @@ function renderPhoneView(
   fallbackEffective = 0,
   standalone = false,
   sources: MonitoreoSource[] = [],
+  stateRules: MonitoreoStateRule[] = [],
 ) {
   return (
     <AcreditacionPhoneOperationsWorkbench
@@ -6786,6 +6880,7 @@ function renderPhoneView(
       fallbackEffective={fallbackEffective}
       standalone={standalone}
       sources={sources}
+      stateRules={stateRules}
     />
   );
 }
@@ -8630,7 +8725,7 @@ function AcreditacionKoboSourcePicker({
                 </label>
                 {phoneMode ? (
                   <div className="mon-phone-kobo-fixed-channel">
-                    <QrCode size={14} />
+                    <ListChecks size={14} />
                     <span>
                       <strong>Kobo es la plataforma rectora</strong>
                       <em>El canal no define efectivas; solo el filtro guardado.</em>
@@ -8856,26 +8951,14 @@ function AcreditacionPlatformSurveySourcesView({
   return (
     <div className="mon-acr-source-view mon-acr-platform-surveys">
       {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
-      <details className="mon-acr-source-disclosure" open={!platformSources.length}>
-        <summary>
-          <span><Plus size={14} /> Agregar SurveyMonkey</span>
-          <em>{surveySources.length ? "Catálogo cerrado por defecto" : "Sin SurveyMonkey configuradas"}</em>
-        </summary>
-        <AcreditacionSurveySourcePicker
-          sources={surveySources}
-          onStateChange={onStateChange}
-        />
-      </details>
-      <details className="mon-acr-source-disclosure" open={!platformSources.length && !koboSources.length}>
-        <summary>
-          <span><QrCode size={14} /> Seleccionar encuesta Kobo</span>
-          <em>{koboSources.length ? `${fmt(koboSources.length)} Kobo seleccionada${koboSources.length === 1 ? "" : "s"}` : "Sin Kobo"}</em>
-        </summary>
-        <AcreditacionKoboSourcePicker
-          sources={koboSources}
-          onStateChange={onStateChange}
-        />
-      </details>
+      {/* N1: aquí vivían dos desplegables —«Agregar SurveyMonkey» y
+        * «Seleccionar encuesta Kobo»— que eran la segunda y la tercera puerta
+        * para conectar una fuente, cada una con su propio formulario y sin el
+        * paso de verificación. La puerta es una sola y está en la franja de la
+        * sección: «Conectar fuente». `AcreditacionKoboSourcePicker` sigue vivo
+        * porque el contrato telefónico lo usa; `AcreditacionSurveySourcePicker`
+        * queda sin montar y es candidato a retirarse en una limpieza aparte,
+        * cuando se confirme que el catálogo del panel lo cubre en producción. */}
 
       <section className="mon-acr-object-surface" aria-label="Encuestas en plataforma configuradas">
         <div className="mon-acr-object-surface-head">
@@ -8888,7 +8971,7 @@ function AcreditacionPlatformSurveySourcesView({
         {declarationGroups.length ? (
           <div className="mon-acr-survey-declaration-map" aria-label="Declarador de encuestas por actor y canal">
             <header>
-              <span><Route size={14} /> Declaración actor-canal</span>
+              <span><Route size={14} /> Cobertura</span>
               <strong>Qué actor usa qué encuesta y por qué canal</strong>
             </header>
             <div className="mon-acr-survey-declaration-list">
@@ -8929,9 +9012,13 @@ function AcreditacionPlatformSurveySourcesView({
             };
             const collectorCount = acreditacionCollectorCountForSource(source, linkCollectors);
             const collectorRows = acreditacionCollectorsForSource(source, linkCollectors);
+            // Se compara el canal EFECTIVO de cada recopilador, no solo el
+            // guardado. Mirando `saved?.channel` la tarjeta decía «20 usan este
+            // canal · ninguno con excepción» mientras la lista de abajo mostraba
+            // 10 en Correo: una excepción que nadie guardó sigue siendo una
+            // excepción, y el resumen tiene que contarla.
             const overrideCount = collectorRows.filter((row) => (
-              row.saved?.channel
-              && acreditacionChannelKey(row.saved.channel) !== acreditacionChannelKey(draft.channel)
+              acreditacionChannelKey(row.channel) !== acreditacionChannelKey(draft.channel)
             )).length;
             const inheritedCount = Math.max(0, collectorRows.length - overrideCount);
             const sourceActor = draft.actor || sourceActorLabel(source);
@@ -8948,8 +9035,11 @@ function AcreditacionPlatformSurveySourcesView({
                     {actorInitial}
                   </span>
                   <div>
+                    {/* R1: el subtítulo decía el `survey_id` pelado
+                      * («527327742»). El identificador vive ahora en el detalle
+                      * técnico del Resumen; aquí manda de quién es la encuesta. */}
                     <strong>{acreditacionSurveySourceName(source)}</strong>
-                    <em>{source.survey_id || source.asset_uid || source.id}</em>
+                    <em>{[servicioDeFuente(source), sourceActor].filter(Boolean).join(" · ")}</em>
                   </div>
                   <span className={source.enabled ? "is-ready" : "is-muted"}>{source.enabled ? "Activa" : "Inactiva"}</span>
                 </div>
@@ -8971,9 +9061,11 @@ function AcreditacionPlatformSurveySourcesView({
                     onChange={(nextChannel) => setDrafts((current) => ({ ...current, [source.id]: { ...draft, channel: nextChannel } }))}
                   />
                   <div className="mon-acr-source-inheritance">
-                    <span className={`is-${channel.key}`}><ChannelIcon size={13} /> Base {channel.label}</span>
-                    <span><CheckCircle2 size={13} /> {fmt(inheritedCount)} heredan</span>
-                    <span><ShieldAlert size={13} /> {fmt(overrideCount)} excepciones</span>
+                    {/* §3: «Base Ficha QR · 20 heredan · 0 excepciones» describía
+                      * el modelo de datos. El vocabulario compartido lo dice en
+                      * la lengua del estudio. */}
+                    <span className={`is-${channel.key}`}><ChannelIcon size={13} /> {textoDeCanalPorDefecto(channel.label)}</span>
+                    <span><CheckCircle2 size={13} /> {textoDeHerencia(inheritedCount, overrideCount)}</span>
                   </div>
                   <button type="button" onClick={() => { void saveSurvey(source); }} disabled={Boolean(savingId) || !dirty}>
                     {savingId === source.id ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
@@ -8985,227 +9077,13 @@ function AcreditacionPlatformSurveySourcesView({
           })}
           {!platformSources.length ? (
             <div className="mon-acr-empty-state">
-              <QrCode size={18} />
+              <ListChecks size={18} />
               <strong>Sin encuestas conectadas</strong>
               <span>Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto.</span>
             </div>
           ) : null}
         </div>
       </section>
-    </div>
-  );
-}
-
-function AcreditacionSheetsByActorView({
-  sources,
-  onStateChange,
-}: {
-  sources: MonitoreoSource[];
-  onStateChange?: (state: MonitoreoState) => void;
-}) {
-  const surveySources = sources.filter(isPlatformResponseSource);
-  const baseSources = sources.filter((source) => source.kind === "google_sheets" && source.role === "universo");
-  const sweepSources = sources.filter((source) => source.kind === "google_sheets" && source.role === "barrido");
-  const [manualActor, setManualActor] = useState("");
-  const [manualActors, setManualActors] = useState<string[]>([]);
-  const actorOptions = acreditacionActorOptions([...surveySources, ...baseSources], manualActors);
-  const [selectedActor, setSelectedActor] = useState(actorOptions[0] ?? "");
-  const selectedSource = baseSources.find((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(selectedActor)) ?? null;
-  const [spreadsheetId, setSpreadsheetId] = useState("");
-  const [sheetName, setSheetName] = useState("");
-  const [range, setRange] = useState("");
-  const [inspection, setInspection] = useState<MonitoreoSheetsInspectResult | null>(null);
-  const [busy, setBusy] = useState<"inspect" | "save" | null>(null);
-  const [status, setStatus] = useState<AcreditacionActionStatus>(null);
-
-  useEffect(() => {
-    if (!selectedActor && actorOptions.length) setSelectedActor(actorOptions[0]);
-  }, [actorOptions, selectedActor]);
-
-  useEffect(() => {
-    setSpreadsheetId(selectedSource?.sheet_binding?.spreadsheet_id ?? "");
-    setSheetName(selectedSource?.sheet_binding?.sheet_name ?? "");
-    setRange(selectedSource?.sheet_binding?.range ?? "");
-    setInspection(null);
-    setStatus(null);
-  }, [selectedSource?.id, selectedActor]);
-
-  async function inspectSheets() {
-    if (!spreadsheetId.trim()) {
-      setStatus({ tone: "error", message: "Pega el Spreadsheet ID o URL antes de leer pestañas." });
-      return;
-    }
-    setBusy("inspect");
-    setStatus({ tone: "info", message: "Leyendo pestañas desde Google Sheets..." });
-    try {
-      const result = await apiMonitoreoSheetsInspect({
-        spreadsheet_id: spreadsheetId.trim(),
-        sheet_name: sheetName.trim(),
-        header_row: 1,
-        range: range.trim(),
-      });
-      setInspection(result);
-      setStatus({ tone: "success", message: `${fmt(result.sheets.length)} pestañas detectadas en ${result.title || "Spreadsheet"}.` });
-    } catch (error) {
-      setStatus({ tone: "error", message: (error as Error).message });
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function saveActorSheet() {
-    if (!selectedActor.trim() || !spreadsheetId.trim() || !sheetName.trim()) {
-      setStatus({ tone: "error", message: "Actor, Spreadsheet y pestaña son obligatorios." });
-      return;
-    }
-    setBusy("save");
-    setStatus({ tone: "info", message: selectedSource ? "Guardando base por actor..." : "Registrando base por actor..." });
-    try {
-      const result = await apiMonitoreoSheetsSource({
-        id: selectedSource?.id,
-        kind: "google_sheets",
-        label: `Base ${selectedActor.trim()}`,
-        enabled: true,
-        role: "universo",
-        integration_mode: "connected_read",
-        sheet_binding: {
-          spreadsheet_id: spreadsheetId.trim(),
-          sheet_name: sheetName.trim(),
-          header_row: 1,
-          range: range.trim(),
-        },
-        dimensions: cleanSourceDimensions({
-          actor: selectedActor.trim(),
-          carrera: selectedActor.trim(),
-          segmento: selectedActor.trim(),
-          canal: "Base",
-          servicio: "Base en Sheets",
-          sheet_name: sheetName.trim(),
-        }),
-      });
-      onStateChange?.(result.state);
-      setStatus({ tone: "success", message: `Base ${selectedActor.trim()} quedo vinculada.` });
-    } catch (error) {
-      setStatus({ tone: "error", message: (error as Error).message });
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  function addManualActor() {
-    const label = manualActor.trim();
-    if (!label) return;
-    setManualActors((current) => acreditacionActorOptions([], [...current, label]));
-    setSelectedActor(label);
-    setManualActor("");
-  }
-
-  return (
-    <div className="mon-acr-source-view mon-acr-sheets-by-actor">
-      {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
-      <section className="mon-acr-object-surface">
-        <div className="mon-acr-object-surface-head">
-          <div>
-            <span>Bases en Sheets</span>
-            <strong>Una base por actor requerido</strong>
-          </div>
-          <em>{fmt(baseSources.length)}/{fmt(actorOptions.length)} actores vinculados</em>
-        </div>
-        <div className="mon-acr-actor-source-layout">
-          <div className="mon-acr-actor-rail" aria-label="Actores para bases Sheets">
-            <div className="mon-acr-manual-actor">
-              <input
-                value={manualActor}
-                onChange={(event) => setManualActor(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") addManualActor();
-                }}
-                placeholder="Agregar actor manual"
-              />
-              <button type="button" onClick={addManualActor} disabled={!manualActor.trim()}>
-                <Plus size={14} />
-              </button>
-            </div>
-            {actorOptions.map((actor) => {
-              const actorSource = baseSources.find((source) => normalizeSourceMatch(sourceActorLabel(source)) === normalizeSourceMatch(actor));
-              return (
-                <button
-                  key={actor}
-                  type="button"
-                  className={`mon-acr-actor-sheet-card${actor === selectedActor ? " is-active" : ""}${actorSource ? " is-ready" : ""}`}
-                  onClick={() => setSelectedActor(actor)}
-                >
-                  <span>{actorSource ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}</span>
-                  <strong>{actor}</strong>
-                  <em>{actorSource?.sheet_binding?.sheet_name || "Base pendiente"}</em>
-                </button>
-              );
-            })}
-            {!actorOptions.length ? (
-              <div className="mon-sm-empty">Configura actores en Encuestas en plataforma o agrega uno manualmente.</div>
-            ) : null}
-          </div>
-          <div className="mon-acr-actor-sheet-editor">
-            <div className="mon-acr-sheet-adjustment-head">
-              <div>
-                <span>{selectedSource ? "Base vinculada" : "Base pendiente"}</span>
-                <strong>{selectedActor || "Selecciona un actor"}</strong>
-              </div>
-            </div>
-            <div className="mon-acr-sheet-form">
-              <label>
-                <span>Spreadsheet</span>
-                <input value={spreadsheetId} onChange={(event) => setSpreadsheetId(event.currentTarget.value)} placeholder="https://docs.google.com/spreadsheets/d/..." disabled={Boolean(busy) || !selectedActor} />
-              </label>
-              <label>
-                <span>Pestaña del actor</span>
-                <input value={sheetName} onChange={(event) => setSheetName(event.currentTarget.value)} placeholder={selectedActor || "Actor"} disabled={Boolean(busy) || !selectedActor} />
-              </label>
-              <label>
-                <span>Rango</span>
-                <input value={range} onChange={(event) => setRange(event.currentTarget.value)} placeholder="Opcional" disabled={Boolean(busy) || !selectedActor} />
-              </label>
-              <div className="mon-acr-sheet-actions">
-                <button type="button" onClick={() => { void inspectSheets(); }} disabled={Boolean(busy) || !spreadsheetId.trim() || !selectedActor}>
-                  {busy === "inspect" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
-                  Leer pestañas
-                </button>
-                <button type="button" onClick={() => { void saveActorSheet(); }} disabled={Boolean(busy) || !selectedActor || !spreadsheetId.trim() || !sheetName.trim()}>
-                  {busy === "save" ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />}
-                  Confirmar base
-                </button>
-              </div>
-            </div>
-            {inspection ? (
-              <div className="mon-acr-sheet-inspection">
-                <div className="mon-acr-sheet-inspection-head">
-                  <strong>{inspection.title || inspection.spreadsheet_id}</strong>
-                  <span>{fmt(inspection.sheets.length)} pestañas · {fmt(inspection.headers.length)} encabezados</span>
-                </div>
-                <div className="mon-acr-sheet-tabs">
-                  {inspection.sheets.slice(0, 14).map((sheet) => (
-                    <button key={sheet.title} type="button" onClick={() => setSheetName(sheet.title)}>
-                      {sheet.title}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      <details className="mon-acr-source-disclosure">
-        <summary>
-          <span><PhoneCall size={14} /> Barrido telefónico</span>
-          <em>{sweepSources.length ? `${fmt(sweepSources.length)} fuente${sweepSources.length === 1 ? "" : "s"}` : "Opcional si existe"}</em>
-        </summary>
-        <AcreditacionSheetSourceEditor
-          preset={ACREDITACION_SOURCE_PRESETS[1]}
-          sources={sweepSources}
-          onStateChange={onStateChange}
-        />
-      </details>
     </div>
   );
 }
@@ -9344,15 +9222,17 @@ function AcreditacionCollectorsSourceView({
                   <span className="mon-collector-use-icon"><UseIcon size={14} /></span>
                   <div>
                     <strong>{row.platformName}</strong>
-                    <em>{row.alias ? `Alias: ${row.alias}` : "Sin alias operativo"}</em>
+                    <em>{textoDeAlias(row.alias, row.platformName)}</em>
                   </div>
                   <span className="mon-collector-chip">{collectorTypeLabel(row.collectorType)}</span>
                 </div>
+                {/* R3: de cuatro «métricas» solo una era un número. «Uso»,
+                  * «Alias» y «Barrido» valían 1 o 0 —un `1` bajo Alias no es un
+                  * alias, es un «sí»— y además repetían lo que dicen el switch
+                  * y los campos que están a veinte píxeles. Queda la única cifra
+                  * que se puede leer como cifra. */}
                 <div className="mon-collector-metrics">
                   <AcreditacionCollectorMetric label="Respuestas" value={row.responseCount} tone={row.responseCount ? "ready" : "neutral"} />
-                  <AcreditacionCollectorMetric label="Uso" value={row.enabled ? 1 : 0} tone={row.enabled ? "ready" : "warning"} />
-                  <AcreditacionCollectorMetric label="Alias" value={row.alias ? 1 : 0} />
-                  <AcreditacionCollectorMetric label="Barrido" value={row.rosterRequired ? 1 : 0} />
                 </div>
                 <div className="mon-collector-controls mon-acr-collector-controls">
                   <label className="mon-switch-line">
@@ -9363,7 +9243,7 @@ function AcreditacionCollectorsSourceView({
                     />
                     <span>
                       <strong>{row.enabled ? "Incluido" : "Excluido"}</strong>
-                      <em>{row.enabled ? "Cuenta en este canal" : "No participa"}</em>
+                      <em>{row.enabled ? "Cuenta" : "No cuenta"}</em>
                     </span>
                   </label>
                   <label>
@@ -9824,7 +9704,7 @@ function AcreditacionSourceSyncActions({
       progress={progress}
       actions={[
         { key: "sheets", label: "Sheets", title: sheetCount ? `${sheetCount} fuentes Sheets activas` : "Sin fuentes Sheets activas", icon: Layers3, disabled: !sheetCount, onRun: onSyncSheets },
-        { key: "survey", label: surveyLabel, title: surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`, icon: QrCode, disabled: !surveyCount, onRun: onSyncSurvey },
+        { key: "survey", label: surveyLabel, title: surveyCount ? `${surveyCount} ${surveyTitle}` : `Sin ${surveyTitle}`, icon: ListChecks, disabled: !surveyCount, onRun: onSyncSurvey },
         { key: "all", label: "Todo", title: totalCount ? `${totalCount} fuentes activas` : "Sin fuentes activas", icon: RefreshCw, disabled: !totalCount, primary: true, onRun: onSyncAll },
       ]}
     />
@@ -9906,7 +9786,7 @@ function AcreditacionSourcePackageConsole({
           <section className="mon-acr-platform-panel mon-acr-platform-panel--survey" aria-label="Encuestas de plataforma">
             <header className="mon-acr-platform-head">
               <div>
-                <span><QrCode size={14} /> Paso 2 · Kobo/plataforma</span>
+                <span><ListChecks size={14} /> Paso 2 · Kobo/plataforma</span>
                 <strong>Respuestas por actor, segmento y canal</strong>
               </div>
               <em>{fmt(surveySources.length)} seleccionadas</em>
@@ -9955,6 +9835,7 @@ function AcreditacionPhoneSourceSlotCard({
   const rows = slot.sources.reduce((sum, source) => (
     sum + (slot.key === "plataforma" ? acreditacionSourceResponseCount(source) : sourceRowCount(source))
   ), 0) || rowFallback;
+  const enlacePrimario = primary ? enlaceDeFuente(primary) : null;
   const syncLabel = primary ? sourceSyncLabel(primary) : "Sin sync";
   const displayedSync = syncLabel === "Sin sync" && slot.ready && syncFallback ? formatDate(syncFallback) : syncLabel;
   const isPlatform = slot.key === "plataforma";
@@ -9982,34 +9863,42 @@ function AcreditacionPhoneSourceSlotCard({
       </div>
       <div className="mon-phone-source-slot-data">
         <span>
-          <em>Fuente</em>
-          {primary ? <strong>{primary.label || primary.id}</strong> : <strong>Sin fuente vinculada</strong>}
+          <em>Nombre</em>
+          <strong>{primary ? nombreDeFuente(primary) : "Sin fuente vinculada"}</strong>
         </span>
+        {/* R2: el enlace por delante del identificador. El `asset_uid` recortado
+            a 38 caracteres no dice nada y no lleva a ninguna parte; abrir la
+            hoja o la encuesta sí. Cuando no hay dirección construible se dice
+            por qué, en vez de ofrecer un enlace roto. */}
         <span>
-          <em>{isPlatform ? "Servicio" : "Spreadsheet"}</em>
-          {isPlatform && primary ? (
-            <strong>{sourceProviderLabel(primary.kind)}</strong>
-          ) : primary && sourceSpreadsheetUrl(primary) ? (
-            <a href={sourceSpreadsheetUrl(primary)} target="_blank" rel="noreferrer" title={sourceSpreadsheetUrl(primary)} onClick={(event) => event.stopPropagation()}>
-              {sourceSpreadsheetDisplay(primary)}
+          <em>Abrir</em>
+          {enlacePrimario?.estado === "enlace" ? (
+            <a
+              href={enlacePrimario.href}
+              target="_blank"
+              rel="noreferrer"
+              title={enlacePrimario.titulo}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {enlacePrimario.texto}
             </a>
           ) : (
-            <strong>Enlace pendiente</strong>
+            <strong>{enlacePrimario?.mensaje ?? "Sin fuente vinculada"}</strong>
           )}
         </span>
         <span>
-          <em>{isPlatform ? "Encuesta / asset" : "Pestaña / rango"}</em>
-          <strong title={primary ? sourceExternalId(primary) : ""}>
+          <em>{isPlatform ? "Servicio" : "Pestaña"}</em>
+          <strong>
             {primary
               ? isPlatform
-                ? shortenMiddle(sourceExternalId(primary), 38)
+                ? servicioDeFuente(primary)
                 : [sourceSheetField(primary, "sheet_name"), sourceSheetField(primary, "range")].filter(Boolean).join(" · ") || "Sin pestaña"
               : "Pendiente"}
           </strong>
         </span>
         <span>
-          <em>Lectura</em>
-          <strong>{slot.sources.length ? `${fmt(active.length)}/${fmt(slot.sources.length)} activas` : statusDetail}</strong>
+          <em>Se lee</em>
+          <strong>{slot.sources.length ? `${fmt(active.length)} de ${fmt(slot.sources.length)} activas` : statusDetail}</strong>
         </span>
         <span>
           <em>Filas</em>
@@ -10053,7 +9942,7 @@ function AcreditacionPhoneInstrumentDecision({
     <section className={`mon-phone-instrument-decision${ready ? " is-ready" : " has-pending"}`} aria-label="Instrumento y filtro efectivo de Kobo">
       <header>
         <div>
-          <span><QrCode size={13} /> Instrumento Kobo</span>
+          <span><ListChecks size={13} /> Instrumento Kobo</span>
           <strong>{sourceTitle || "Encuesta pendiente"}</strong>
           <p>Kobo manda el avance efectivo; el barrido telefónico se lee en paralelo para confirmar estados y coincidencia por CodPulso.</p>
         </div>
@@ -10061,7 +9950,7 @@ function AcreditacionPhoneInstrumentDecision({
       </header>
       <div className="mon-phone-kobo-dossier">
         <article className={contract.platform.ready ? "is-ready" : "is-warning"}>
-          <span><QrCode size={13} /> Instrumento activo</span>
+          <span><ListChecks size={13} /> Instrumento activo</span>
           <strong>{sourceTitle || "Kobo pendiente"}</strong>
           <p>{primary ? "Este formulario alimenta el conteo de efectivas. El avance se valida con filtro y se contrasta contra el barrido por CodPulso." : "Selecciona el formulario Kobo que alimentará el avance telefónico."}</p>
           <div>
@@ -10341,25 +10230,27 @@ function AcreditacionPhoneSourcesContractPanel({
         ? "base de universo"
         : item === "barrido"
           ? "barrido"
-          : "Kobo"
+          : "la encuesta"
     )).join(", ")
     : "contrato completo";
+  // R1: cada pestaña se nombra por la pregunta que responde, no por el servicio
+  // del que salen los datos. El proveedor sigue visible dentro de la tarjeta.
   const focusCopy = focus === "sheets"
     ? {
-      eyebrow: "Base y barrido",
-      title: "Sheets operativos para llamar y registrar estados",
-      detail: "Aquí se revisan solo las hojas que definen población, responsables, intentos, estados y fechas de llamada.",
+      eyebrow: "Universo y barrido",
+      title: "A quién llamar y qué pasó en cada llamada",
+      detail: "La base de universo fija la población; la hoja de barrido registra responsable, intentos, estado y fecha.",
     }
     : focus === "kobo"
       ? {
-        eyebrow: "Kobo",
-        title: "Instrumento y filtro que cuentan efectivas",
-        detail: "Aquí se escoge la encuesta Kobo y la pregunta de consentimiento que transforma respuestas completas en efectivas del monitoreo.",
+        eyebrow: "Encuestas",
+        title: "Qué respuesta cuenta como efectiva",
+        detail: "La encuesta aporta las respuestas; la pregunta de consentimiento decide cuáles cuentan en el avance.",
       }
       : {
-        eyebrow: "Paquete",
-        title: "Contrato de fuentes telefónicas",
-        detail: "La base define a quién llamar; el barrido registra operación telefónica; Kobo valida efectivas por CodPulso.",
+        eyebrow: "Fuentes activas",
+        title: "Las tres fuentes que sostienen el monitoreo",
+        detail: "El universo define a quién llamar, el barrido registra la operación y la encuesta valida las efectivas por CodPulso.",
       };
   const showSheetsDecision = focus === "sheets";
   const showKoboDecision = focus === "kobo";
@@ -10387,7 +10278,7 @@ function AcreditacionPhoneSourcesContractPanel({
     },
     {
       label: "Efectivas",
-      value: contract.platform.ready ? "Kobo listo" : "Falta Kobo",
+      value: contract.platform.ready ? "Encuesta lista" : "Falta la encuesta",
       detail: `${fmt(activeKoboCount)} encuesta${activeKoboCount === 1 ? "" : "s"}`,
       tone: contract.platform.ready ? "ready" : "warning",
     },
@@ -10407,7 +10298,7 @@ function AcreditacionPhoneSourcesContractPanel({
           <AcreditacionPhoneSourceSlotCard
             key={slot.key}
             slot={slot}
-            icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <QrCode size={15} />}
+            icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <ListChecks size={15} />}
             rowFallback={slot.key === "universo" ? nRows : undefined}
             syncFallback={syncedAt}
             onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "encuestas" : "universo")}
@@ -10479,8 +10370,8 @@ function AcreditacionPhoneSourcesContractPanel({
       </details>
       <details className="mon-phone-source-editors" open={showKoboEditor}>
         <summary>
-          <span><QrCode size={14} /> Seleccionar Kobo</span>
-          <em>{contract.platform.ready ? "Editar Kobo" : "Falta Kobo"}</em>
+          <span><ListChecks size={14} /> Seleccionar Kobo</span>
+          <em>{contract.platform.ready ? "Editar encuestas" : "Falta la encuesta"}</em>
         </summary>
         <div className="mon-phone-source-editor-grid mon-phone-source-editor-grid--platform">
           <AcreditacionKoboSourcePicker
@@ -10627,7 +10518,7 @@ function AcreditacionSourcesWorkbench({
 
   if (activeTab === "universo") {
     return (
-      <div className="mon-profile-stack">
+      <div className="mon-profile-stack fuentes-resumen-stack">
         {sourceStatus}
         {phoneSourceContract("sheets")}
         {isPhoneSourceModel ? (
@@ -10638,10 +10529,7 @@ function AcreditacionSourcesWorkbench({
             onStateChange={onStateChange}
           />
         ) : (
-          <AcreditacionSheetsByActorView
-            sources={operationalSources}
-            onStateChange={onStateChange}
-          />
+          <FuentesUniverso sources={operationalSources} />
         )}
       </div>
     );
@@ -10963,16 +10851,6 @@ function casePlatformActionDetail(item: MonitoreoInternalQueryCase, allCases: Mo
     return "La parcial queda como trazabilidad; el mismo caso tiene una completa posterior que cuenta en avance.";
   }
   return "Sin decisión o subsanación operativa asociada.";
-}
-
-function caseSubsanacionActionDetail(item: MonitoreoInternalQueryCase) {
-  if (caseIsActionableSubsanacion(item)) {
-    return "Respuesta completa o parcial sin cruce: puede vincularse con evidencia y nota.";
-  }
-  if (internalCaseResponseStateValue(item) === "refusal") {
-    return "Rechazo no identificable: queda explicado, no se puede asignar al universo sin evidencia.";
-  }
-  return "No hay respuesta efectiva que mover al avance.";
 }
 
 function caseIsAuditable(item: MonitoreoInternalQueryCase) {
@@ -12093,7 +11971,7 @@ function acreditacionQueryAnswerCopy(
   const scope = activeFilters ? "con los filtros activos" : "en este corte";
   if (tab === "plataforma") {
     return {
-      icon: QrCode,
+      icon: ListChecks,
       tone: "base",
       heading: "Registros recibidos",
       title: `${formatCaseLabel(summary.total)} de plataforma ${scope}.`,
@@ -12103,7 +11981,11 @@ function acreditacionQueryAnswerCopy(
   if (tab === "base") {
     return {
       icon: Table2,
-      tone: "pending",
+      // Ámbar, no azul. Medido: `pending` (#365d8f) y el `base` de la pestaña
+      // vecina (#2f6f90) son el mismo azul a ojo —`rgb(54,93,143)` contra
+      // `rgb(47,111,144)`—, así que el tono no separaba nada. Y encaja mejor:
+      // esta pestaña muestra a quién FALTA llegar del universo, no lo recibido.
+      tone: "partial",
       heading: "Estado de la base",
       title: `${formatCaseLabel(summary.total)} del universo ${scope}.`,
       detail: `${fmt(summary.effective)} completas, ${fmt(summary.partial)} parciales, ${fmt(summary.refusal)} rechazos y ${fmt(summary.pending)} sin respuesta.`,
@@ -12603,54 +12485,34 @@ function AcreditacionCaseKeyTrace({ item }: { item: MonitoreoInternalQueryCase }
 
 function AcreditacionSubsanacionCoach({ item }: { item: MonitoreoInternalQueryCase }) {
   const guide = acreditacionSubsanacionCaseGuide(item);
+  const motivo = motivoDeNoCruce(
+    item,
+    internalCaseResponseStateValue(item),
+    internalCaseCrossingValue(item),
+  );
   return (
     <section className={`mon-acr-subsanacion-coach is-${guide.tone}`} aria-label="Qué hacer ahora">
       <header>
         <span><Target size={14} /> Qué hacer ahora</span>
         <em>{guide.badge}</em>
         <strong>{guide.title}</strong>
+        {/* El motivo concreto va antes que la guía: `guide.detail` puede ser la
+            nota que escribió el usuario al decidir, y esa no se sustituye. */}
+        <p className="mon-acr-coach-motivo">{motivo.etiqueta}</p>
         <p>{guide.detail}</p>
       </header>
+      {/* Viñetas, no números: la ruta numerada es la de la bandeja. Aquí son
+          los pasos del caso abierto, que acompañan y no compiten con ella. */}
       <div>
-        {guide.steps.map((step, index) => (
+        {guide.steps.map((step) => (
           <span key={step}>
-            <em>{index + 1}</em>
+            <em className="mon-acr-vineta" aria-hidden="true" />
             <strong>{step}</strong>
           </span>
         ))}
       </div>
       <small><CheckCircle2 size={13} /> {guide.primaryAction}</small>
     </section>
-  );
-}
-
-function AcreditacionSubsanacionWorkflow({
-  actionable,
-  explanatory,
-  manual,
-}: {
-  actionable: number;
-  explanatory: number;
-  manual: number;
-}) {
-  return (
-    <div className="mon-acr-subsanacion-workflow" aria-label="Ruta de decisión de subsanación">
-      <span className="is-warning">
-        <em>1</em>
-        <strong>Prioriza</strong>
-        <small>{fmt(actionable)} accionables</small>
-      </span>
-      <span className="is-base">
-        <em>2</em>
-        <strong>Comprueba</strong>
-        <small>llave y auxiliares</small>
-      </span>
-      <span className={manual ? "is-effective" : explanatory ? "is-refusal" : "is-base"}>
-        <em>3</em>
-        <strong>Decide</strong>
-        <small>{manual ? `${fmt(manual)} con constancia` : `${fmt(explanatory)} explicativos`}</small>
-      </span>
-    </div>
   );
 }
 
@@ -12854,7 +12716,7 @@ function AcreditacionQueryBreakdownCard({
     { value: totals.partial, color: "#b97611" },
     { value: totals.refusal, color: "#a61d4f" },
     { value: totals.pending, color: "#7a8796" },
-    { value: totals.review, color: "#5f6b7a" },
+    { value: totals.review, color: "#474f5b" },
   ];
 
   if (!limitedRows.length) {
@@ -13036,7 +12898,7 @@ function AcreditacionEffectivesView({
           title="Por recopilador"
           dimension="collector"
           rows={byCollector}
-          icon={<QrCode size={15} />}
+          icon={<ListChecks size={15} />}
           onSelect={(collector) => onFilter({ collector })}
         />
       </div>
@@ -13149,7 +13011,7 @@ function AcreditacionPlatformRecordsView({
         <header className="mon-query-section-head">
           <div>
             <span>Registros en plataforma</span>
-            <strong><QrCode size={16} /> Respuestas por última actualización</strong>
+            <strong><ListChecks size={16} /> Respuestas por última actualización</strong>
           </div>
           <em>{fmt(cases.length)} filas</em>
         </header>
@@ -13456,7 +13318,9 @@ function AcreditacionCrossingsView({
   onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
   onJumpToSubsanacion: (item: MonitoreoInternalQueryCase) => void;
 }) {
-  const visible = cases.slice(0, 160);
+  // Agrupado por qué se puede hacer con cada caso, no por el orden de llegada:
+  // 160 filas planas no decían por dónde empezar.
+  const filas = filasDeCruceDeCasos(cases, 45);
   const selectedId = selectedCase ? caseIdentity(selectedCase) : "";
   return (
     <div className="mon-acr-crossing-grid">
@@ -13465,11 +13329,11 @@ function AcreditacionCrossingsView({
           <div>
             <span>Cruces efectivos</span>
             <strong><Link2 size={16} /> Razón de cruce o no cruce</strong>
-            <small>Duplicados, diferencias y respuestas fuera de base se leen aquí sin mezclar conteo final con explicación técnica.</small>
+            <small>{lecturaDeCruceDeCasos(cases)}</small>
           </div>
           <em>{fmt(cases.length)} registros</em>
         </header>
-        {visible.length ? (
+        {filas.length ? (
           <div className="mon-query-table-wrap">
             <table className="mon-query-table mon-acr-crossing-table">
               <thead>
@@ -13482,7 +13346,24 @@ function AcreditacionCrossingsView({
                 </tr>
               </thead>
               <tbody>
-                {visible.map((item) => {
+                {filas.map((fila) => {
+                  if (fila.tipo === "grupo") {
+                    return (
+                      <tr key={`grupo-${fila.clave}`} className={`mon-acr-crossing-group is-${fila.clave}`}>
+                        {/* El flex va dentro, no en el `th`: un `display:flex`
+                            sobre la celda la saca del modelo de tabla y anula
+                            el colSpan, dejándola en 42px. */}
+                        <th scope="rowgroup" colSpan={5}>
+                          <span>
+                            <strong>{fila.titulo}</strong>
+                            <small>{fila.detalle}</small>
+                            <em>{fmt(fila.total)}</em>
+                          </span>
+                        </th>
+                      </tr>
+                    );
+                  }
+                  const item = fila.item;
                   const id = caseIdentity(item);
                   const selected = id === selectedId;
                   const explanation = buildCaseCrossingExplanation(item);
@@ -13545,10 +13426,10 @@ function AcreditacionSubsanacionView({
   onCaseSelect: (item: MonitoreoInternalQueryCase) => void;
   onDecision?: (payload: AcreditacionCaseReconciliationPayload) => void;
 }) {
-  const actionable = cases.filter(caseIsActionableSubsanacion);
-  const explanatory = cases.filter((item) => !caseIsActionableSubsanacion(item));
-  const manual = cases.filter((item) => item.assisted_review?.manual_decision).length;
-  const selectedVisible = selectedCase && cases.some((item) => caseIdentity(item) === caseIdentity(selectedCase)) ? selectedCase : cases[0] ?? null;
+  // Recuperables primero: una respuesta completa que no cruza se rescata y suma.
+  // Lo que el canal ya explica (rechazo, parcial que cortó antes del código) va al final.
+  const { paso, setPaso, conteo, visibles, grupos, motivoDe } = useBandejaDeSubsanacion(cases);
+  const selectedVisible = selectedCase && visibles.some((item) => caseIdentity(item) === caseIdentity(selectedCase)) ? selectedCase : visibles[0] ?? null;
   return (
     <div className="mon-acr-subsanacion-grid">
       <section className="mon-query-issues-panel" aria-label="Lista de subsanación">
@@ -13556,24 +13437,33 @@ function AcreditacionSubsanacionView({
           <div>
             <span>Subsanación</span>
             <strong><ShieldAlert size={16} /> Bandeja de decisión</strong>
-            <small>Trabaja primero las completas/parciales sin cruce; cada caso debe terminar incluido con salvedad o explicado.</small>
+            <small>Cada caso termina incluido con salvedad o explicado. Empieza por los recuperables.</small>
           </div>
-          <em>{fmt(cases.length)} casos</em>
+          <em>{fmt(visibles.length)} casos</em>
         </header>
-        <AcreditacionSubsanacionWorkflow actionable={actionable.length} explanatory={explanatory.length} manual={manual} />
-        {cases.length ? (
+        <RutaDeSubsanacion paso={paso} conteo={conteo} onPaso={setPaso} />
+        {visibles.length ? (
           <div className="mon-acr-subsanacion-list">
-            {[{ title: "Accionables", rows: actionable }, { title: "Explicativos", rows: explanatory }].map((group) => (
+            {grupos.map((group) => (
               <section key={group.title}>
-                <span>{group.title}</span>
+                <span>{group.title} <small>{group.detalle}</small></span>
                 {group.rows.length ? group.rows.slice(0, 80).map((item) => {
                   const selected = selectedVisible && caseIdentity(selectedVisible) === caseIdentity(item);
-                  const trace = caseKeyTraceSummary(item);
+                  const motivo = motivoDe(item);
+                  // El motivo ya dice qué pasó con la llave, así que la segunda
+                  // línea lleva por dónde y cuándo entró: es lo que permite ir a
+                  // buscar a la persona cuando 247 casos comparten el motivo.
                   return (
                     <button key={caseIdentity(item)} type="button" className={selected ? "is-active" : ""} onClick={() => onCaseSelect(item)}>
                       <strong>{caseDisplayName(item)}</strong>
-                      <small>{item.actor || "Sin actor"} · {caseSubsanacionActionDetail(item)}</small>
-                      <span className="mon-acr-subsanacion-key">{trace.strategyLabel} · {trace.primaryEvidence}</span>
+                      <span className="mon-acr-motivo">{motivo.etiqueta}</span>
+                      {/* Con nombres de recopilador largos esta línea se recorta
+                          (45 de 45 filas en acrconta). El recorte es aceptable
+                          —la ficha tiene el detalle— pero sin `title` el dato se
+                          perdía del todo. */}
+                      <small title={`${item.actor || "Sin actor"} · ${formatInternalQueryDateLabel(item.date)} · ${internalQueryCollectorDisplayLabel(item)}`}>
+                        {item.actor || "Sin actor"} · {formatInternalQueryDateLabel(item.date)} · {internalQueryCollectorDisplayLabel(item)}
+                      </small>
                       <em>{caseSubsanacionActionLabel(item)}</em>
                     </button>
                   );
@@ -13842,13 +13732,19 @@ function AcreditacionConsultasPanel({
       {controlledActiveTab ? null : <AcreditacionConsultaTabs active={activeTab} counts={queryTabCounts} onChange={setActiveTab} />}
 
       <section className={`mon-case-explorer${isTableOnlyTab ? " is-platform-table-only" : ""}`} aria-label="Explorador de casos del monitoreo">
-        {isTableOnlyTab ? null : (
-          <section className={`mon-query-answer is-${queryAnswer.tone}`} aria-label="Lectura activa del explorador">
-            <span><QueryAnswerIcon size={16} /> {queryAnswer.heading}</span>
-            <strong>{queryAnswer.title}</strong>
-            <p>{queryAnswer.detail}</p>
-          </section>
-        )}
+        {/* «Registros en plataforma» y «Estado de la base» se confundían entre
+          * sí porque `isTableOnlyTab` las trataba igual y les apagaba la única
+          * señal que las diferenciaba. Son inversas: una mira lo que LLEGÓ y la
+          * otra a quién había que LLEGAR. La lectura vuelve, en una línea, para
+          * no quitarle el alto a la tabla que motivó apagarla. */}
+        <section
+          className={`mon-query-answer is-${queryAnswer.tone}${isTableOnlyTab ? " is-compacta" : ""}`}
+          aria-label="Lectura activa del explorador"
+        >
+          <span><QueryAnswerIcon size={16} /> {queryAnswer.heading}</span>
+          <strong>{queryAnswer.title}</strong>
+          {isTableOnlyTab ? null : <p>{queryAnswer.detail}</p>}
+        </section>
         {isTableOnlyTab ? null : (
           <AcreditacionCaseExplorerToolbar
             summary={summary}
@@ -15221,7 +15117,7 @@ function mechanismIcon(value: AcreditacionActorMechanism["modality"]) {
   if (value === "sweep" || value === "telefono") return PhoneCall;
   if (value === "presencial") return ContactRound;
   if (value === "email") return Link2;
-  return QrCode;
+  return ListChecks;
 }
 
 function compactMechanismLabel(label: string) {
@@ -15932,7 +15828,7 @@ function AcreditacionAdvanceDailyMini({
         xanchor: "center" as const,
         yanchor: "top" as const,
         align: "center" as const,
-        font: { color: "#5f6b7a", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
+        font: { color: "#474f5b", size: 10, family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
       })),
     ],
     xaxis: {
@@ -15945,11 +15841,11 @@ function AcreditacionAdvanceDailyMini({
       ticktext: tickRows.map((point) => (isCompactChart ? point.displayLabel : point.axisLabel)),
       showticklabels: isCompactChart,
       ticks: "",
-      tickfont: { color: "#5f6b7a", size: isCompactChart ? 9 : 10 },
+      tickfont: { color: "#474f5b", size: isCompactChart ? 9 : 10 },
       automargin: true,
     },
     yaxis: {
-      title: isCompactChart ? undefined : { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#5f6b7a", size: 11 } },
+      title: isCompactChart ? undefined : { text: effectiveOnly ? "Efectivas/día" : "Respuestas/día", font: { color: "#474f5b", size: 11 } },
       fixedrange: true,
       range: dailyAxisMax ? [0, dailyAxisMax] : undefined,
       rangemode: "tozero",
@@ -15957,7 +15853,7 @@ function AcreditacionAdvanceDailyMini({
       showticklabels: !isCompactChart,
       zeroline: false,
       gridcolor: "rgba(15, 23, 42, 0.06)",
-      tickfont: { color: "#5f6b7a", size: 10 },
+      tickfont: { color: "#474f5b", size: 10 },
     },
     yaxis2: {
       title: isCompactChart ? undefined : { text: "Acumulado", font: { color: "#17212f", size: 11 } },
@@ -17095,7 +16991,7 @@ function AcreditacionAdvancePhoneKoboWorkbench({
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
           <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><QrCode size={16} /> Kobo efectivo</span></h2>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><ListChecks size={16} /> Kobo efectivo</span></h2>
           <p className="pulso-panel-hint">Kobo manda el avance; el barrido telefónico se lee en paralelo como estado de consulta.</p>
         </div>
         <div className="pulso-panel-actions mon-advance-meta">
@@ -17274,7 +17170,7 @@ function AcreditacionAdvanceSurveysWorkbench({
       <header className="pulso-panel-header">
         <div className="pulso-panel-heading">
           <span className="pulso-panel-eyebrow">Avance</span>
-          <h2 className="pulso-panel-title"><span className="mon-title-icon"><QrCode size={16} /> Encuestas, canales y recopiladores</span></h2>
+          <h2 className="pulso-panel-title"><span className="mon-title-icon"><ListChecks size={16} /> Encuestas, canales y recopiladores</span></h2>
           <p className="pulso-panel-hint">Fuentes exactas integradas por actor, canal y ritmo diario de respuesta.</p>
         </div>
         <div className="pulso-panel-actions mon-advance-meta">
@@ -17437,6 +17333,17 @@ function controlVariableRows(
   }).sort((a, b) => a.actor.localeCompare(b.actor, "es") || a.variable.localeCompare(b.variable, "es") || a.value.localeCompare(b.value, "es", { numeric: true }));
 }
 
+/**
+ * ¿Las categorías de esta variable son años?
+ *
+ * Se exige que TODAS lo sean: una sola categoría suelta como «Sin dato» no debe
+ * decidir el orden del resto, pero tampoco convertir la serie en alfabética.
+ */
+function esSerieDeAnios(rows: { value: string }[]) {
+  if (rows.length < 2) return false;
+  return rows.every((row) => /^(19|20)\d{2}$/.test(row.value.trim()));
+}
+
 function groupControlVariableRows(rows: AcreditacionControlVariableRow[]) {
   const actorMap = new Map<string, Map<string, AcreditacionControlVariableRow[]>>();
   rows.forEach((row) => {
@@ -17450,7 +17357,15 @@ function groupControlVariableRows(rows: AcreditacionControlVariableRow[]) {
     actor,
     variables: Array.from(variables.entries()).map(([variable, variableRows]) => ({
       variable,
-      rows: variableRows.sort((a, b) => b.universe - a.universe || a.value.localeCompare(b.value, "es", { numeric: true })),
+      // Una cohorte se lee en orden cronológico, no por tamaño: «2021, 2023,
+      // 2025, 2022» obliga a releer la columna para situarse. El resto de
+      // variables —categoría, área, dedicación— no tienen orden natural, así
+      // que ahí sigue mandando el peso en el universo.
+      rows: variableRows.sort((a, b) => (
+        esSerieDeAnios(variableRows)
+          ? a.value.localeCompare(b.value, "es", { numeric: true })
+          : b.universe - a.universe || a.value.localeCompare(b.value, "es", { numeric: true })
+      )),
     })),
   }));
 }
@@ -18085,13 +18000,13 @@ function AcreditacionAdvanceSummaryWorkbench({
         </div>
         <div className="mon-phone-advance-rule-console" aria-label="Regla operativa Kobo para avance telefónico">
           <section className={phoneFilterConfigured ? "is-ready" : "is-warning"}>
-            <span><QrCode size={13} /> Regla Kobo</span>
+            <span><ListChecks size={13} /> Regla Kobo</span>
             <strong>{phoneFilterConfigured ? "Efectiva = completa y pasa filtro" : "Falta elegir filtro de efectiva"}</strong>
             <p>{phoneFilterConfigured ? "Kobo cuenta el avance; el barrido queda como consulta operativa y CodPulso prueba coincidencia individual." : "Sin filtro, el tablero muestra la producción leída, pero la validación de avance todavía no queda cerrada."}</p>
           </section>
           <div className="mon-phone-advance-rule-steps">
             <button type="button" className={phonePlatformSource ? "is-ready" : "is-warning"} onClick={() => onNavigateLocalTab?.("fuentes", "encuestas")}>
-              <span><QrCode size={13} /> Instrumento</span>
+              <span><ListChecks size={13} /> Instrumento</span>
               <strong>{phoneInstrumentTitle}</strong>
               <em>{phoneInstrumentAsset ? shortenMiddle(phoneInstrumentAsset, 38) : "Selecciona Kobo"}</em>
             </button>
@@ -18389,12 +18304,28 @@ function renderAcreditacionView(
     // (384) sobre un barrido que estaba en cero. Sin fuente propia se pasa 0 y
     // la vista dice S/D, nunca otro denominador.
     const esEstudioTelefonico = isTelefonicoMonitoreoState(options.state);
+    if ((options.activePhoneTab ?? "resumen") === "estados") {
+      // Los crudos salen del bloque que ya publica el motor; el definidor no
+      // inventa estados, confirma los que el corte trajo.
+      const filas = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
+      return (
+        <DefinidorDeEstados
+          entradas={filas.map((fila) => ({
+            label: phoneRowValue(fila, ["Estado", "Estatus", "Categoria", "Categoría"], ""),
+            value: phoneRowNumber(fila, ["Casos", "Valor", "Total"], 0),
+          }))}
+          config={options.state?.config}
+          onStateChange={options.onStateChange}
+        />
+      );
+    }
     return renderPhoneView(
       reports,
       options.activePhoneTab ?? "resumen",
       esEstudioTelefonico ? num(options.state?.dashboard?.kpis?.valid, 0) : 0,
       esEstudioTelefonico,
       options.state?.sources ?? [],
+      options.state?.config?.operational_model?.state_rules ?? [],
     );
   }
   const isPhoneModel = isTelefonicoMonitoreoState(options.state);
@@ -18686,48 +18617,34 @@ export function localTabsForAcreditacionView(
     return railDeFuentesAcreditacion(sourceStats);
   }
 
+  // Modelo no publica subpestañas: tiene una sola vista. El rail vacío hace que
+  // el chrome no dibuje un carril de un solo destino, que es navegación que no
+  // navega. Ver `AcreditacionCanonicalModelWorkbench`.
   if (view === "modelo") {
-    const [structure, schedule, summary] = ACREDITACION_MODEL_TABS;
-    if (isPhoneRoute && phoneStats) {
-      return [
-        railTab(structure, {
-          label: "Cuotas",
-          detail: modelStats.phoneQuotaRows
-            ? `${countText(modelStats.phoneQuotaVariables, "variable")} · metas Kobo`
-            : "define metas por variable",
-          badge: modelStats.phoneQuotaRows ? fmt(modelStats.phoneQuotaRows) : undefined,
-          estado: readyStatus(modelStats.phoneQuotaRows > 0),
-        }),
-        railTab(schedule, {
-          label: "Cronograma",
-          detail: modelStats.schedule,
-          badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
-          estado: readyStatus(modelStats.phases > 0),
-        }),
-        railTab(summary, {
-          label: "Lectura",
-          detail: `${phoneStats.sourceReady}/3 fuentes · ${countText(phoneStats.totals.total, "caso")}`,
-          badge: `${phoneStats.sourceReady}/3`,
-          estado: readyStatus(phoneStats.sourceReady === 3),
-        }),
-      ];
-    }
+    // Modelo volvió a tener rail al ganar una segunda decisión —con qué variable
+    // se abre el avance—, que no es una subdivisión de las metas sino otra cosa
+    // sobre el mismo actor. Las pestañas «estrategias» y «resumen» siguen fuera
+    // desde B1: se ocultaron porque no aportaban, no por falta de sitio.
+    const [estructura, distribucion, cronograma] = ACREDITACION_MODEL_TABS;
+    const conVariable = (state?.config?.operational_model?.interest_variables ?? []).length;
+    const actores = (state?.sources ?? []).filter((source) => String(source.role ?? "") === "universo").length;
     return [
-      railTab(structure, {
-        detail: modelStats.actors ? `${countText(modelStats.actors, "actor")} · ${countText(modelStats.goals, "meta")}` : "define actores y metas",
-        badge: modelStats.actors ? fmt(modelStats.actors) : undefined,
-        estado: readyStatus(modelStats.actors > 0 || modelStats.goals > 0),
+      railTab(estructura, {
+        detail: modelStats.goals ? `${countText(modelStats.goals, "meta")} por actor` : "sin metas declaradas",
+        badge: modelStats.goals ? fmt(modelStats.goals) : undefined,
+        estado: readyStatus(modelStats.goals > 0),
       }),
-      railTab(schedule, {
-        detail: modelStats.schedule,
+      railTab(distribucion, {
+        detail: conVariable
+          ? `${countText(conVariable, "variable")} declarada${conVariable === 1 ? "" : "s"}`
+          : "elige con qué abrir el avance",
+        badge: conVariable ? fmt(conVariable) : undefined,
+        estado: readyStatus(conVariable > 0),
+      }),
+      railTab(cronograma, {
+        detail: modelStats.phases ? `${countText(modelStats.phases, "fase")} de campo` : "sin fases declaradas",
         badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
         estado: readyStatus(modelStats.phases > 0),
-      }),
-      railTab(summary, {
-        label: "Lectura",
-        detail: `${sourceStats.enabled}/${sourceStats.total || 0} fuentes · sin editar`,
-        badge: sourceStats.total ? `${sourceStats.enabled}/${sourceStats.total}` : undefined,
-        estado: readyStatus(sourceStats.enabled > 0),
       }),
     ];
   }
@@ -18770,7 +18687,22 @@ export function localTabsForAcreditacionView(
   }
 
   if (view === "telefonico" && phoneStats) {
-    const [summary, day, incidence, responsible, alerts, supervision] = ACREDITACION_PHONE_TABS;
+    // Por clave, no por posición. El destructuring posicional se rompió en
+    // silencio al insertar «Estados» en el segundo puesto: cada pestaña heredó
+    // la etiqueta de la siguiente, y la de Estados anunciaba «Ritmo diario».
+    // El test de orden no lo vio porque comprueba el CATÁLOGO, no el rail.
+    const porClave = <K extends AcreditacionPhoneTab>(key: K) => {
+      const tab = ACREDITACION_PHONE_TABS.find((item) => item.key === key);
+      if (!tab) throw new Error(`Pestaña telefónica desconocida: ${key}`);
+      return tab;
+    };
+    const summary = porClave("resumen");
+    const estados = porClave("estados");
+    const day = porClave("dia");
+    const incidence = porClave("incidencia");
+    const responsible = porClave("responsables");
+    const alerts = porClave("alertas");
+    const supervision = porClave("supervision");
     return [
       railTab(summary, {
         label: "Barrido + Kobo",
@@ -18779,6 +18711,10 @@ export function localTabsForAcreditacionView(
           : `${fmt(phoneStats.totals.effective)} efectivas declaradas`,
         badge: phoneStats.comparisonRows ? fmt(phoneStats.comparisonRows) : undefined,
         estado: readyStatus(phoneStats.comparisonRows > 0, phoneStats.comparison.mismatch > 0),
+      }),
+      railTab(estados, {
+        detail: "confirma los estados de la base de barrido",
+        estado: "parcial",
       }),
       railTab(day, {
         label: "Ritmo diario",
@@ -19212,9 +19148,12 @@ function AcreditacionClarityStrip({
           );
         })}
       </div>
-      {seccionActiva === "telefonico" && (route?.family === "telefonico" || hasAcreditacionPhoneSourceActors(state?.sources ?? []))
-        ? <AcreditacionSemanticStatusLegend rows={phoneStatusRows} />
-        : null}
+      {/* Aquí vivía una tira con los estados de la base telefónica. La sección
+        * «Estado de la base de llamadas» de más abajo muestra EXACTAMENTE los
+        * mismos cinco estados, con barra proporcional y sin recortar: la tira
+        * los comprimía a «Sin conta…» y «Número in…» sobre la misma pantalla.
+        * Un dato, un lugar (R3). `AcreditacionSemanticStatusLegend` sigue
+        * disponible para quien la necesite en otro contexto. */}
     </section>
   );
 }

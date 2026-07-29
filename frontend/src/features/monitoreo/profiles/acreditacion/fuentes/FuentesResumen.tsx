@@ -14,7 +14,7 @@
 //   · rótulos que dicen cuándo se actualizó en vez de «Snapshot local listo»
 //     y «Metadata real lista» (A5/§3).
 
-import { AlertTriangle, CheckCircle2, ExternalLink, Layers3, PhoneCall, QrCode } from "../../../../../vendor/lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Layers3, ListChecks, PhoneCall } from "../../../../../vendor/lucide-react";
 import type { LucideIcon } from "../../../../../vendor/lucide-react";
 import type { MonitoreoLinkCollector, MonitoreoSource } from "../../../../../api/client";
 import { detalleTecnico, enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../../fuentes/enlacesDeFuente";
@@ -42,7 +42,7 @@ type Papel = {
 
 const PAPELES: readonly Papel[] = [
   { key: "universo", titulo: "Universo", icon: Layers3 },
-  { key: "respuestas", titulo: "Respuestas", icon: QrCode },
+  { key: "respuestas", titulo: "Respuestas", icon: ListChecks },
   { key: "barrido", titulo: "Barrido", icon: PhoneCall },
 ];
 
