@@ -23,6 +23,16 @@ import type { CanvasArista, CanvasNodo } from "../../../api/bitacora";
 export const ALTO_PIEZA = 72;
 export const ALTO_DATO = 118;
 export const ANCHO_NODO = 240;
+/** Lo que crece el cuadro por cada anotación que se le añade. */
+export const ALTO_ITEM = 22;
+/**
+ * Franja reservada para el botón de anotar. Se reserva SIEMPRE, esté o no
+ * seleccionado el nodo: sin ella, seleccionar un cuadro metía un botón en un
+ * alto que no lo contemplaba y el recorte se comía la cabecera.
+ */
+export const ALTO_ANOTAR = 30;
+/** Espejo de `BITACORA_MAX_ITEMS_NODO`: más viñetas y el nodo deja de ser nodo. */
+export const MAX_ITEMS_NODO = 12;
 
 // La jerarquía crece HACIA LA DERECHA y los hermanos se apilan HACIA ABAJO.
 //
@@ -33,7 +43,10 @@ export const ANCHO_NODO = 240;
 // orientación de un mapa mental, y no por gusto: un nodo es más de tres veces
 // más ancho que alto, así que crecer a lo alto cuesta mucho menos espacio.
 const PASO_X = 288;
-const PASO_Y = 92;
+/** Aire entre dos hermanos. El apilado acumula el ALTO REAL de cada uno, no un
+ * paso fijo: un hito mide 148 y una pieza 102, así que un paso único o los
+ * superpone o deja un hueco enorme entre piezas. */
+const AIRE_Y = 18;
 
 export type PiezaAInsertar = {
   target_type: "modulo" | "tarea" | "entrada";
@@ -42,6 +55,16 @@ export type PiezaAInsertar = {
 };
 
 export type Ramificacion = { nodes: CanvasNodo[]; edges: CanvasArista[] };
+
+/**
+ * Alto de un cuadro según lo que contiene. UNA sola función: calcularlo en el
+ * layout y otra vez al anotar es exactamente cómo las dos cuentas divergen y el
+ * cuadro termina recortando su propio contenido.
+ */
+export function altoDeNodo(tipo: PiezaAInsertar["target_type"], items: number): number {
+  const base = tipo === "modulo" ? ALTO_PIEZA : ALTO_DATO;
+  return base + items * ALTO_ITEM + (items ? 10 : 0) + ALTO_ANOTAR;
+}
 
 /**
  * @param origen punto de mundo donde nace la ramificación (el centro de la vista).
@@ -92,39 +115,46 @@ export function disponerRamificacion(
   // —cada fila llenada de izquierda a derecha sin mirar de quién cuelga— las
   // aristas cruzan todo el ancho: con 5 secciones y 5 pestañas de padres
   // distintos, el mapa se vuelve una maraña.
-  let fila = 0;
-  let filaMaxima = 0;
+  let cursorY = 0;
+  let pieDelArbol = 0;
   const situar = (r: Rama, nivel: number) => {
     r.x = nivel;
+    const alto = altoDeNodo(r.pieza.target_type, 0);
     if (!r.hijos.length) {
-      r.y = fila++;
-      filaMaxima = Math.max(filaMaxima, r.y);
+      r.y = cursorY;
+      cursorY += alto + AIRE_Y;
+      pieDelArbol = Math.max(pieDelArbol, r.y + alto);
       return;
     }
     r.hijos.forEach((h) => situar(h, nivel + 1));
-    r.y = (r.hijos[0].y + r.hijos[r.hijos.length - 1].y) / 2;
+    const primero = r.hijos[0];
+    const ultimo = r.hijos[r.hijos.length - 1];
+    const centro = (primero.y + ultimo.y + altoDeNodo(ultimo.pieza.target_type, 0)) / 2;
+    r.y = centro - alto / 2;
+    pieDelArbol = Math.max(pieDelArbol, r.y + alto);
   };
   raices.forEach((r) => situar(r, 0));
 
   // Las anotaciones cierran el mapa, en una franja propia bajo el árbol.
   anotaciones.forEach((r, i) => {
     r.x = i;
-    r.y = filaMaxima + 2;
+    r.y = pieDelArbol + AIRE_Y * 3;
   });
 
   const nodes: CanvasNodo[] = [];
   const emitir = (r: Rama) => {
-    const alto = r.pieza.target_type === "modulo" ? ALTO_PIEZA : ALTO_DATO;
+    const alto = altoDeNodo(r.pieza.target_type, 0);
     nodes.push({
       id: idPorDestino.get(clave(r.pieza))!,
       type: "referencia",
       x: origen.x + r.x * PASO_X,
-      y: origen.y + r.y * PASO_Y,
+      y: origen.y + r.y,
       w: ANCHO_NODO,
       h: alto,
       z: 0,
       color: "neutro",
       text: r.pieza.titulo,
+      items: [],
       ref: { target_type: r.pieza.target_type, target_id: r.pieza.target_id },
       links: [],
     });

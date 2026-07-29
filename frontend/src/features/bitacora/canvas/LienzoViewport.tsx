@@ -379,6 +379,7 @@ export function LienzoViewport({
         z: 0,
         color: "neutro",
         text: "",
+        items: [],
         ref: null,
         links: [],
       },

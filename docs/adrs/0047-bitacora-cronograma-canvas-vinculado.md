@@ -366,6 +366,18 @@ reasigna a Campo las tareas que estaban en Diseño, respetando `fase_manual`:
 ni se descartan ni quedan sin clasificar, que dejaría filas que el compositor no
 sabe dónde poner.
 
+### El cuadro es un contenedor, no un enlace (posterior a la fase 9)
+
+| Decisión | Alternativa descartada | Por qué | Costo de revertir |
+|---|---|---|---|
+| Ir a la pieza PIDE CONFIRMACIÓN | Enlace directo | Navegar saca del lienzo; un click de más mientras se acomoda el mapa costaba el lugar donde estabas. Es la acción destructiva de esta superficie | Bajo |
+| La confirmación TAPA el cuadro | Meterla en el flujo de la tarjeta | El nodo tiene alto fijo: en el flujo, la pregunta recortaba el título y hacía desaparecer las anotaciones | Bajo |
+| Conectar tiene botón propio en el cuadro | Solo anclas y atajo `C` | Conectar es el gesto principal de un mapa —una pieza y la entrada que la explica— y estaba escondido en un ancla que solo aparecía al seleccionar | Bajo |
+| Cada cuadro contiene sus propias anotaciones | Solo el resumen vivo | El resumen dice qué ES el destino y lo resuelve la app; los items dicen qué anotó el usuario SOBRE él en ESTE mapa. Anotar «faltó el criterio de edad» sobre Validación no puede reescribir la sección para todo el proyecto | Medio — el campo viaja en el `.pulso` |
+| `altoDeNodo` es la ÚNICA cuenta del alto | Calcularlo en el layout y otra vez al anotar | Las dos cuentas divergieron en el primer intento y el cuadro terminó recortando su propia cabecera | Bajo |
+| El apilado acumula el alto REAL de cada hermano | Paso vertical fijo | Un hito mide 148 y una pieza 102: un paso único o los superpone o deja un hueco enorme | Bajo |
+| Escape descarta la anotación en curso | Confirmar en `blur` sin más | Cerrar el campo dispara `blur`, así que cancelar terminaba agregando justo lo que se descartó | Bajo |
+
 ## Deuda registrada
 
 Las tres deudas de contraste que este ADR registró al cierre de la fase 9 —el

@@ -139,6 +139,8 @@ export type CanvasTipoNodo = "texto" | "referencia" | "grupo";
 export type CanvasColor = "neutro" | "acento" | "exito" | "riesgo" | "info" | "aviso";
 export type CanvasAncla = "t" | "r" | "b" | "l";
 
+export type CanvasItem = { id: string; text: string; done: boolean };
+
 export type CanvasNodo = {
   id: string;
   type: CanvasTipoNodo;
@@ -149,6 +151,12 @@ export type CanvasNodo = {
   z: number;
   color: CanvasColor;
   text: string;
+  /**
+   * Anotaciones propias del cuadro. Conviven con el resumen vivo sin
+   * mezclarse: el resumen dice qué ES el destino y lo resuelve la app; los
+   * items dicen qué anotó el usuario SOBRE él en ESTE mapa.
+   */
+  items: CanvasItem[];
   /** Solo en nodos de referencia. El resumen se resuelve aparte, en vivo. */
   ref: { target_type: BitacoraTipoDestino; target_id: string } | null;
   links: BitacoraVinculo[];
