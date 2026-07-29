@@ -1729,7 +1729,7 @@ function BarrasPlot({
       const row = rows.find((r) => r.grupo === groups[gi] && r.axis_label === axes[ai]);
       const v = row?.score_round ?? null;
       if (v == null) continue;
-      const color = colorOfScore(v) ?? "#5f6b7a";
+      const color = colorOfScore(v) ?? "#474f5b";
       annotations.push({
         x: isV ? ai + offset : v,
         y: isV ? v : ai + offset,

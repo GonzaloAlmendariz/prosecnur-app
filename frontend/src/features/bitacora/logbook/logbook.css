@@ -38,7 +38,7 @@
 }
 
 .bit-rapida-campo::placeholder {
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
 }
 
 /* El foco se marca en el contenedor, no en el textarea: el anillo alrededor de
@@ -71,7 +71,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
   font-size: 11.5px;
   white-space: nowrap;
 }
@@ -159,7 +159,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
 }
 
 .bit-filtros-busqueda input {
@@ -189,7 +189,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
 }
 
 .bit-filtros-modulo select {
@@ -198,7 +198,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
   font-size: 12.5px;
 }
 
@@ -211,7 +211,7 @@
 
 .bit-filtros-conteo {
   font-size: 12px;
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -234,7 +234,7 @@
   margin: 0 0 7px;
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
 }
 
 .bit-timeline-fecha small {
@@ -298,7 +298,7 @@
   flex-wrap: wrap;
   gap: 7px;
   font-size: 11.5px;
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-faint);
 }
 
 .bit-entrada-cuerpo strong {

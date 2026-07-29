@@ -1406,7 +1406,7 @@ function badgeConfig(arq: Arquetipo, paired: boolean, _tipoStyle: { bg: string; 
   if (arq === "auto") return { label: "Auto", bg: "#e6d9f2", fg: "#4a2d66", icon: IconAI };
   if (arq === "solitaria") return { label: "Solitaria", bg: "#f3f4f6", fg: "#4b5563", icon: Check };
   if (arq === "huerfana") return { label: "Texto libre", bg: "#fef3c7", fg: "#78350f", icon: CircleAlert };
-  if (arq === "adoptada") return { label: "Conectada", bg: "#f0f4fa", fg: "#5f6b7a", icon: Link2 };
+  if (arq === "adoptada") return { label: "Conectada", bg: "#f0f4fa", fg: "#474f5b", icon: Link2 };
   if (arq === "no-aplica") return { label: "Inactiva", bg: "#f3f4f6", fg: "#9ca3af", icon: Check };
   if ((arq === "pareja-so" || arq === "pareja-sm") && paired) {
     return { label: "Emparejada", bg: "var(--pulso-success-bg)", fg: "var(--pulso-success-fg)", icon: Link2 };

@@ -194,7 +194,7 @@ export default function LogsPanel() {
           style={{
             padding: "6px 16px",
             fontSize: 10,
-            color: "#5f6b7a",
+            color: "#474f5b",
             borderTop: "1px solid #d8e0ef",
             background: "#f8faff",
           }}

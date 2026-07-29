@@ -321,11 +321,35 @@ sin dejar ninguna sin clasificar. Los endpoints `/api/plan-trabajo/*` y
 | El vacío del lienzo va fuera del mundo transformado | Un nodo-guía dentro del lienzo | Así la invitación no se desplaza ni se achica con la cámara, y `pointer-events: none` deja pasar el doble clic que propone | Bajo |
 | El selector de referencia navega con flechas y Enter | Solo Tab | Con 25 piezas más hitos y entradas, llegar con Tab es inviable | Bajo |
 
+### Escala de texto neutro (corrección posterior a la fase 9)
+
+| Decisión | Alternativa descartada | Por qué | Costo de revertir |
+|---|---|---|---|
+| Corregir la escala en el TOKEN, no superficie por superficie | Reemplazar el token en cada CSS de feature | Un token compartido tiene que verse igual de bien en los ocho módulos; parchear por feature deja el resto de la app por debajo de AA y multiplica la deriva | Medio — revertir devuelve a 2.88 de contraste |
+| Bajar también `--pulso-text-soft` | Bajar solo `faint` | Con `faint` en el piso de AA queda a 1.08 de `soft` y la jerarquía de tres niveles colapsa a dos; bajando los dos hay 1.96 y 1.65 de separación | Bajo |
+| Unificar la escala en los TRES sistemas de tokens | Cambiar solo `theme.css` | `boot.css` (pantalla de arranque) y `dashboard/theme/tokens.css` tenían los mismos valores copiados: sin tocarlos, el arranque y el Dashboard se verían distintos del resto | Bajo |
+| Sincronizar las 27 copias en JS | Dejarlas | Plotly no lee variables CSS; sin actualizarlas los ejes de todos los gráficos quedan con el gris viejo mientras el resto de la app usa el nuevo | Bajo |
+
+La escala quedó así, con los tres niveles sobre AA (4.5) contra las tres
+superficies y separaciones de 1.96 y 1.65 entre ellos:
+
+| Token | Antes | Después | vs `surface` | vs `surface-3` |
+|---|---|---|---|---|
+| `--pulso-text` | `#17212f` | sin cambio | 16.22 | 14.84 |
+| `--pulso-text-soft` | `#5f6b7a` | `#474f5b` | 5.43 → 8.28 | 4.96 → 7.57 |
+| `--pulso-text-faint` | `#8792a2` | `#657082` | 3.15 → 5.01 | 2.88 → 4.58 |
+
+Medido en la app con datos reales: cero elementos por debajo de AA en las cuatro
+secciones de Procesamiento, Monitoreo, Hojas de ruta, las cuatro de Bitácora y el
+Dashboard. El conmutador de vistas pasó de 3.7 a 5.00 y los números del
+calendario de 3.15 a 5.01 sin tocar ninguno de los dos: los arregló el token.
+
 ## Deuda registrada
 
-- **`--pulso-text-faint` no alcanza AA en ninguna superficie** (2.88–3.15 medido). Este trabajo lo sacó del CSS del subsistema Bitácora, pero el token sigue en uso en el resto de la app. Saldarlo es una unidad propia: hay que decidir si se oscurece el token —lo que cambia el aspecto de toda la app— o si se reemplaza superficie por superficie.
-- **El conmutador Fases | Gantt | Lista queda en 3.7** de contraste. Hereda los tokens de la banda de chrome compartida (`--pulso-section-pill-*`), así que corregirlo toca la banda de los ocho módulos; no se hace al cierre de esta unidad.
-- **El calendario tiene textos por debajo de AA** (números de día y etiquetas de evento, 3.15). Es código preexistente a este ADR (`Calendar.tsx`), fuera del alcance de este trabajo.
+Las tres deudas de contraste que este ADR registró al cierre de la fase 9 —el
+token atenuado global, el conmutador de vistas y el calendario— quedaron saldadas
+al corregir la escala en el token compartido en vez de superficie por superficie.
+Ver «Escala de texto neutro» abajo.
 
 1. **`LogicCanvas.tsx` conserva su cámara propia.** Convive con `lib/lienzo/`
    hasta que se migre. Saldarlo exige una unidad de trabajo con QA visual del
