@@ -133,7 +133,7 @@
  *
  * Las columnas se declaran ACÁ, una sola vez, y cada fila las hereda con
  * `subgrid`. Con una grid por fila, cada una dimensionaba sus columnas `auto`
- * según su propio contenido: el chip "Planificada" es más ancho que "En marcha"
+ * según su propio contenido: el chip "Planificada" es más ancho que "Con avance"
  * y eso corría los campos de fecha 2px entre filas. Medido, no supuesto. */
 .bit-compositor-fases {
   display: grid;
@@ -234,14 +234,21 @@
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-fase-destino {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: var(--module-accent, var(--pulso-text-soft));
+  /* El acento puro del módulo da 4.3 de contraste sobre la fila y AA pide 4.5.
+   * Mezclarlo con el color de texto conserva el tinte que identifica al módulo
+   * y sube el contraste: el color sigue diciendo cuál es, y ahora se lee. */
+  /* El fallback va en la variable intermedia, no anidado dentro de `color-mix`:
+   * anidarlo invalida la declaración entera y el enlace pierde el color de su
+   * módulo — se veía negro en las seis fases. */
+  --tinte-destino: var(--module-accent, var(--pulso-primary));
+  color: color-mix(in srgb, var(--tinte-destino) 82%, var(--pulso-text));
   text-decoration: none;
   border-radius: 3px;
 }
@@ -291,7 +298,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-fase-fechas input[type="date"] {
@@ -375,12 +382,12 @@
 }
 
 .bit-fase-actividad small {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 
 .bit-fase-actividad.is-done {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   text-decoration: line-through;
 }
 
@@ -483,7 +490,7 @@
 
 .bit-riel-modulo {
   font-size: 10.5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   white-space: nowrap;
 }
 
@@ -652,11 +659,11 @@
 
 .bit-lista-cuerpo small {
   font-size: 11.5px;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
 }
 
 .bit-lista-item.is-done .bit-lista-cuerpo strong {
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   text-decoration: line-through;
 }
 

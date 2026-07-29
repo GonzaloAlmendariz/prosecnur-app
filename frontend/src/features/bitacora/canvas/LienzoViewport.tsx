@@ -400,6 +400,20 @@ export function LienzoViewport({
       onPointerCancel={alSoltar}
       onDoubleClick={alDobleClic}
     >
+      {/* C3: un lienzo vacío contiene su propio vacío. Sin esto son 700 px de
+          rejilla que no dicen si la vista falló o si todavía no hay nada.
+          Va FUERA del mundo, sin transform: la invitación no se desplaza ni
+          se achica con la cámara, y `pointer-events: none` la deja atravesar. */}
+      {nodes.length === 0 && (
+        <p className="bcanvas-vacio">
+          <span>Este lienzo está vacío</span>
+          <small>
+            Doble clic para escribir una nota, o <kbd>Referencia</kbd> para traer un módulo,
+            un hito o una entrada.
+          </small>
+        </p>
+      )}
+
       <div ref={worldRef} className="bcanvas-world" style={{ transform: transformDeCamara(camaraInicial) }}>
         <svg className="bcanvas-aristas" aria-hidden="true">
           {edges.map((a) => {

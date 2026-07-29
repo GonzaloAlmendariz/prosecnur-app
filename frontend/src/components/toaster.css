@@ -145,7 +145,7 @@
   border: 0;
   border-radius: var(--pulso-nav-item-radius);
   background: transparent;
-  color: var(--pulso-text-faint);
+  color: var(--pulso-text-soft);
   cursor: pointer;
 }
 

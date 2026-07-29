@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Flag, Search, X } from "../../../vendor/lucide-react";
 
 import type { BitacoraEstado } from "../../../api/bitacora";
@@ -37,6 +37,8 @@ export function SelectorDeReferencia({
   onCerrar: () => void;
 }) {
   const [texto, setTexto] = useState("");
+  const [cursor, setCursor] = useState(0);
+  const listaRef = useRef<HTMLUListElement>(null);
 
   const candidatos = useMemo(() => {
     const q = normalizar(texto);
@@ -76,6 +78,34 @@ export function SelectorDeReferencia({
       .slice(0, 60);
   }, [estado, texto]);
 
+  // Con 25 piezas más los hitos y las entradas, llegar con Tab es inviable: se
+  // escribe para filtrar y se elige con las flechas sin soltar el teclado.
+  const activo = candidatos[Math.min(cursor, candidatos.length - 1)];
+
+  useEffect(() => {
+    setCursor(0);
+  }, [texto]);
+
+  useEffect(() => {
+    listaRef.current
+      ?.querySelector('[data-activo="true"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, [cursor, texto]);
+
+  function alTeclear(event: React.KeyboardEvent) {
+    if (event.key === "Escape") return onCerrar();
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const paso = event.key === "ArrowDown" ? 1 : -1;
+      setCursor((c) => (c + paso + candidatos.length) % Math.max(candidatos.length, 1));
+      return;
+    }
+    if (event.key === "Enter" && activo) {
+      event.preventDefault();
+      onElegir({ target_type: activo.tipo, target_id: activo.id, titulo: activo.titulo });
+    }
+  }
+
   return (
     <div className="bcanvas-selector" role="dialog" aria-label="Referenciar en el lienzo">
       <div className="bcanvas-selector-cabecera">
@@ -88,9 +118,15 @@ export function SelectorDeReferencia({
             value={texto}
             placeholder="Módulo, sección, hito o entrada"
             onChange={(event) => setTexto(event.target.value)}
+            role="combobox"
+            aria-expanded
+            aria-controls="bcanvas-selector-lista"
+            aria-activedescendant={activo ? `bcanvas-ref-${activo.clave}` : undefined}
             onKeyDown={(event) => {
-              if (event.key === "Escape") onCerrar();
+              // El lienzo escucha teclas sueltas (N, C, flechas): sin esto,
+              // buscar «nota» crearía nodos mientras se escribe.
               event.stopPropagation();
+              alTeclear(event);
             }}
           />
         </label>
@@ -102,13 +138,17 @@ export function SelectorDeReferencia({
       {candidatos.length === 0 ? (
         <p className="bcanvas-selector-vacio">Nada calza con esa búsqueda.</p>
       ) : (
-        <ul className="bcanvas-selector-lista">
+        <ul className="bcanvas-selector-lista" id="bcanvas-selector-lista" ref={listaRef} role="listbox">
           {candidatos.map((c) => {
             const Icono = c.identidad?.icono ?? null;
             return (
-              <li key={c.clave}>
+              <li key={c.clave} role="presentation">
                 <button
                   type="button"
+                  id={`bcanvas-ref-${c.clave}`}
+                  role="option"
+                  aria-selected={c === activo}
+                  data-activo={c === activo}
                   style={c.identidad?.vars}
                   onClick={() => onElegir({ target_type: c.tipo, target_id: c.id, titulo: c.titulo })}
                 >
