@@ -125,10 +125,15 @@
   background: color-mix(in srgb, var(--pulso-border) 45%, transparent);
 }
 
+/* El piso de altura es lo que separa «ese día no hubo rechazos» de «hubo uno y
+ * no se ve». Medido en acrconta: con el día grande llevándose 118 de los 148 px
+ * de la columna, 6 de 32 segmentos caían por debajo de 3 px y desaparecían.
+ * 4 px se perciben y la cifra exacta sigue estando en el hover, así que el piso
+ * no miente: solo declara presencia. */
 .mon-apilado-segmento {
   display: block;
   width: 100%;
-  min-height: 2px;
+  min-height: 4px;
   transition: filter 120ms ease;
 }
 
