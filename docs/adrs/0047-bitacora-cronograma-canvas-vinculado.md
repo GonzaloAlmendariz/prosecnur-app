@@ -288,6 +288,17 @@ sin dejar ninguna sin clasificar. Los endpoints `/api/plan-trabajo/*` y
 | Identidad compartida cronograma↔lienzo | Tabla propia en el canvas | Evita que las dos superficies diverjan en íconos y colores | Bajo |
 | Import y export de Excel degradados | Retirar el import; dejarlos como están | El export sigue siendo el formato que el cliente espera | Bajo |
 
+### Fase 7 — nodos de referencia
+
+| Decisión | Alternativa descartada | Por qué | Costo de revertir |
+|---|---|---|---|
+| Un nodo puede referenciar una PIEZA DE LA APP (módulo o sección) | Solo hitos y entradas | Es lo que convierte el lienzo en un mapa del estudio en vez de un pizarrón; el equivalente de embeber una nota en Obsidian Canvas | Bajo |
+| El catálogo de piezas lo resuelve el frontend contra `lib/modules.ts` | Duplicar el catálogo de módulos en R | Una segunda copia divergiría en el primer renombre de sección, y R no tiene por qué conocer la navegación | Bajo |
+| Un destino `modulo` siempre está vivo para el gc de vínculos | Validarlo contra el universo del proyecto | El universo del proyecto no contiene módulos: validar ahí borraría todos los nodos de referencia en cada limpieza | Bajo |
+| El resumen del nodo se resuelve en el cliente (`resumenVivo`) | Leer `vinculos.resumenes` del servidor | Ese índice se arma desde vínculos PERSISTIDOS, así que un nodo recién insertado se leía como huérfano; «destino perdido» tiene que significar «lo borraron», no «todavía no guardaste» | Bajo |
+| El nodo guarda el título al insertar, como respaldo | Guardar solo `{target_type, target_id}` | Al borrarse el destino, el huérfano puede decir «apuntaba a Campo» en vez de escupir un uuid — justo cuando más falta hace | Bajo |
+| El selector es un popover anclado, no un bloque en el flujo | Panel que empuja el lienzo | Medido: empujando, el lienzo caía de 773 a 439 px al abrirlo; el marco de una superficie no puede cambiar de tamaño según lo que el usuario esté haciendo (C2) | Bajo |
+
 ## Deuda registrada
 
 1. **`LogicCanvas.tsx` conserva su cámara propia.** Convive con `lib/lienzo/`

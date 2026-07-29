@@ -9,6 +9,7 @@ import type { DisenoEstudioBitacoraEntry } from "./disenoEstudio";
 import type {
   BitacoraRecordatorio,
   BitacoraRecurrencia,
+  BitacoraTipoDestino,
   BitacoraVinculo,
   PlanTrabajoPlan,
   PlanTrabajoPrioridad,
@@ -149,7 +150,7 @@ export type CanvasNodo = {
   color: CanvasColor;
   text: string;
   /** Solo en nodos de referencia. El resumen se resuelve aparte, en vivo. */
-  ref: { target_type: string; target_id: string } | null;
+  ref: { target_type: BitacoraTipoDestino; target_id: string } | null;
   links: BitacoraVinculo[];
 };
 

@@ -17,7 +17,12 @@ export type PlanTrabajoTaskKind = "activity" | "milestone" | "deliverable" | "fi
 export type PlanTrabajoTemporalKind = "punto" | "rango" | "recurrente" | string;
 export type PlanTrabajoPrioridad = "critica" | "alta" | "media" | "baja" | string;
 
-export type BitacoraTipoDestino = "tarea" | "entrada" | "nodo" | "lienzo";
+/**
+ * `modulo` es el único destino que no vive en el proyecto: apunta a una pieza
+ * de la app (`"<slug>"` o `"<slug>/<seccion>"`). Siempre existe, así que el gc
+ * de vínculos no lo puede dar por huérfano.
+ */
+export type BitacoraTipoDestino = "tarea" | "entrada" | "nodo" | "lienzo" | "modulo";
 export type BitacoraRelacion = "menciona" | "deriva_de" | "documenta" | "bloquea" | string;
 
 /** Se guarda en un solo sentido; la vista inversa la arma un índice derivado. */
