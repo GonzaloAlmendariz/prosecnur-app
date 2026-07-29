@@ -7161,7 +7161,7 @@ function AcreditacionPhoneDailyTrend({
       </div>
 
       <div className={`mon-phone-trend-parallel${statusSeries.length ? "" : " is-single"}`}>
-        <div className="mon-phone-trend-chart">
+        <div className="mon-phone-trend-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
           <PlotlyChart
             data={chartData}
             layout={chartLayout}
@@ -17831,16 +17831,6 @@ function AcreditacionAdvanceDailyMini({
     showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
   );
   const dateLabelRows = isCompactChart || isEffectiveGeneralChart ? [] : chartRows;
-  // Ventana visible del eje temporal: pasados los 45 cortes se muestran los
-  // últimos 45 y el resto se alcanza arrastrando, con los ejes de valores
-  // anclados a sus bordes. Ver `ritmoDiario.css`.
-  const VENTANA_MAX_CORTES = 45;
-  const hayVentanaDeslizante = !isCompactChart && chartRows.length > VENTANA_MAX_CORTES;
-  const rangoVisibleX = !chartRows.length
-    ? undefined
-    : hayVentanaDeslizante
-      ? [chartRows.length - VENTANA_MAX_CORTES - 0.55, chartRows.length - 0.45]
-      : [-0.55, Math.max(0.55, chartRows.length - 0.45)];
   const xAxisTickRows = isEffectiveGeneralChart ? chartRows : tickRows;
   const xAxisTickText = isEffectiveGeneralChart
     ? xAxisTickRows.map((point) => `${fmt(point.dailyTotal)}<br>${point.axisLabel}`)
@@ -17921,7 +17911,7 @@ function AcreditacionAdvanceDailyMini({
   const chartLayout = {
     barmode: "stack" as const,
     bargap: chartRows.length <= 1 ? (isCompactChart ? 0.72 : 0.5) : chartRows.length <= 7 ? 0.42 : 0.24,
-    dragmode: (hayVentanaDeslizante ? "pan" : false) as "pan" | false,
+    dragmode: false as const,
     font: {
       family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
       color: "#17212f",
@@ -17995,10 +17985,10 @@ function AcreditacionAdvanceDailyMini({
       })),
     ],
     xaxis: {
-      fixedrange: !hayVentanaDeslizante,
+      fixedrange: true,
       showgrid: false,
       zeroline: false,
-      range: rangoVisibleX,
+      range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
       tickangle: 0,
       tickvals: xAxisTickRows.map((point) => point.x),
       ticktext: xAxisTickText,
@@ -18090,7 +18080,7 @@ function AcreditacionAdvanceDailyMini({
       </header>
       {hasDailySignal ? (
         <div className="mon-advance-daily-board">
-          <div className={`mon-advance-line-chart${usesEffectiveAxisBand ? " is-phone-effective-axis" : ""}${plotlyReady ? " is-plotly-ready" : " is-plotly-loading"}`}>
+          <div className={`mon-advance-line-chart${usesEffectiveAxisBand ? " is-phone-effective-axis" : ""}${plotlyReady ? " is-plotly-ready" : " is-plotly-loading"}`} style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
             <PlotlyChart
               data={chartData}
               layout={chartLayout}
