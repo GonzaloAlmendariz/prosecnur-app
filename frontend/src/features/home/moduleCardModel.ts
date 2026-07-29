@@ -122,6 +122,12 @@ function formatCount(value: number): string {
   return Math.max(0, value).toLocaleString("es-PE");
 }
 
+/** Concordancia de número en las etiquetas del pie: "1 bases" se lee como un
+ *  descuido. El plural regular se forma quitando la "s" final en singular. */
+function pluralLabel(count: number, plural: string): string {
+  return count === 1 ? plural.replace(/s$/, "") : plural;
+}
+
 export function formatSavedAt(iso: string, now?: number): string {
   if (!iso) return "";
   const date = new Date(iso);
@@ -274,7 +280,10 @@ export function buildModuleCardView(
             { label: "variables", value: formatCount(metrics.variables_count) },
           ]
         : [
-            { label: "bases", value: formatCount(metrics.bases_count) },
+            {
+              label: pluralLabel(metrics.bases_count, "bases"),
+              value: formatCount(metrics.bases_count),
+            },
             { label: "registros", value: formatCount(metrics.records_count) },
             { label: "variables", value: formatCount(metrics.variables_count) },
           ];

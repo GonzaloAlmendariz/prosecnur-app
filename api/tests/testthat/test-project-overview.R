@@ -213,3 +213,57 @@ test_that("overview deriva el nombre del proyecto del .pulso cuando el titulo es
   # Sin titulo ni ruta: cae al sentinel.
   expect_equal(.overview_project_name(list(), ""), "Estudio sin título")
 })
+
+test_that("facts.editor lee el instrumento vinculado y no el borrador del editor", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+
+  # Caso real (ACNUR ACG): el estudio tiene un instrumento vinculado de decenas
+  # de preguntas y el borrador del editor esta practicamente vacio. La tarjeta
+  # decia "1 pregunta" para un cuestionario de 100 variables.
+  session_set(sid, "xlsform_state", list(workbook = list(
+    survey = list(
+      columns = list("type", "name"),
+      rows = list(list("text", "unica_del_borrador"))
+    ),
+    choices = list(columns = list("list_name"), rows = list(list("si_no")))
+  )))
+  session_set(sid, "rp_inst", list(
+    survey = data.frame(
+      type = c("begin_group", "text", "select_one", "integer", "end_group", "note"),
+      name = c("grupo", "p1", "p2", "p3", "", "aviso"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("sexo", "sexo", "edad"),
+      stringsAsFactors = FALSE
+    )
+  ))
+
+  editor <- .project_overview_payload(sid)$facts$editor
+  expect_equal(editor$questions_count, 4L)
+  expect_equal(editor$sections_count, 1L)
+  expect_equal(editor$catalogs_count, 2L)
+  expect_equal(editor$instruments_count, 1L)
+})
+
+test_that("sin instrumento vinculado, facts.editor sigue leyendo el borrador", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  session_set(sid, "xlsform_state", list(
+    source = list(kind = "xlsform"),
+    workbook = list(
+      survey = list(
+        columns = list("type", "name"),
+        rows = list(list("text", "p1"), list("text", "p2"), list("begin_group", "g"))
+      ),
+      choices = list(columns = list("list_name"), rows = list(list("si_no")))
+    )
+  ))
+  editor <- .project_overview_payload(sid)$facts$editor
+  expect_equal(editor$questions_count, 2L)
+  expect_equal(editor$sections_count, 1L)
+  expect_equal(editor$instruments_count, 0L)
+})
