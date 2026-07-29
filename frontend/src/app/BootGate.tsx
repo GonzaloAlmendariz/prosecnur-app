@@ -667,6 +667,20 @@ export default function BootGate({ loadSuite }: BootGateProps) {
   const [displayProgressPercent, setDisplayProgressPercent] = useState(0);
   const mountedRef = useRef(true);
   const suiteLoadRef = useRef<Promise<void> | null>(null);
+  // Descarga del chunk de AppSuite (singleton). Se dispara en paralelo con el
+  // warmup para que al cerrar el gate el suite ya esté en caché; si la descarga
+  // falla (red/reload del dev server), se limpia el ref y enterSuite reintenta.
+  const suitePrefetchRef = useRef<Promise<AppSuiteModule> | null>(null);
+
+  const prefetchSuite = useCallback(() => {
+    if (!suitePrefetchRef.current) {
+      suitePrefetchRef.current = loadSuite().catch((err) => {
+        suitePrefetchRef.current = null;
+        throw err;
+      });
+    }
+    return suitePrefetchRef.current;
+  }, [loadSuite]);
 
   const hasElectron = typeof window !== "undefined" && Boolean(window.prosecnurApi);
   const busy = phase === "initializing" || phase === "opening" || phase === "warming" || phase === "loading";
@@ -737,13 +751,15 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     if (suiteLoadRef.current) return suiteLoadRef.current;
     setPhase("loading");
     suiteLoadRef.current = (async () => {
-      const mod = await loadSuite();
+      // Reutiliza la descarga lanzada al inicio del warmup; si aquella falló,
+      // prefetchSuite ya limpió su ref y esto vuelve a intentar el import.
+      const mod = await prefetchSuite();
       if (!mountedRef.current) return;
       setSuite(() => mod.default);
       setPhase("suite");
     })();
     return suiteLoadRef.current;
-  }, [loadSuite]);
+  }, [prefetchSuite]);
 
   const pollBackendWarmup = useCallback(async (jobId: string) => {
     while (mountedRef.current) {
@@ -768,6 +784,11 @@ export default function BootGate({ loadSuite }: BootGateProps) {
   }, []);
 
   const runWarmStart = useCallback(async (path: string) => {
+    // Prefetch del chunk de AppSuite en paralelo con el warmup: solo descarga,
+    // NO monta nada antes del gate (enterSuite sigue siendo el único punto de
+    // montaje). El catch evita un unhandled rejection; el reintento vive en
+    // enterSuite vía prefetchSuite.
+    void prefetchSuite().catch(() => {});
     rememberBootProject(path);
     setActiveProjectPath(path);
     setPhase("warming");
@@ -857,7 +878,7 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       if (!mountedRef.current) return;
       setBackgroundWarmup(false);
     });
-  }, [enterSuite, pollBackendWarmup]);
+  }, [enterSuite, pollBackendWarmup, prefetchSuite]);
 
   const openProject = useCallback(async (pathOpt?: string | null, opts?: { preserveRoute?: boolean }) => {
     setError("");
