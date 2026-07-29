@@ -29,6 +29,7 @@ import {
   type BootJobSnapshot,
   type BootJobProgress,
   type BootManifestPeekItem,
+  type BootWarmupPlan,
   type BootWarmupResult,
   type BootWarmupTask,
 } from "../api/bootClient";
@@ -189,6 +190,23 @@ function readVisualQaWarmupModuleIds() {
   } catch {
     return null;
   }
+}
+
+/**
+ * El plan de warmup se calcula en el backend sobre la sesión viva
+ * (`.project_warmup_plan(sid)` lee `session_get(sid)`): depende del proyecto
+ * YA abierto, así que solo puede pedirse DESPUÉS de `project/open` o
+ * `project/save` — solaparlo con el open cambiaría la respuesta (saldría el
+ * plan del proyecto anterior o el fallback). Lo que sí se solapa es la
+ * espera: la petición parte apenas el proyecto está en la sesión y viaja en
+ * paralelo con los IPC de recientes de Electron, que no dependen del plan.
+ * Devuelve null cuando el override de QA visual va a ignorar el plan, para
+ * no gastar un round-trip que nadie leerá. El catch interno evita un
+ * unhandled rejection si runWarmStart no llega a consumir la promesa.
+ */
+function startWarmupPlanFetch(): Promise<BootWarmupPlan | null> | null {
+  if (readVisualQaWarmupModuleIds()) return null;
+  return bootApiProjectWarmupPlan().catch(() => null);
 }
 
 function shouldSkipVisualQaBackendWarmup() {
@@ -783,7 +801,10 @@ export default function BootGate({ loadSuite }: BootGateProps) {
     return null;
   }, []);
 
-  const runWarmStart = useCallback(async (path: string) => {
+  const runWarmStart = useCallback(async (
+    path: string,
+    opts?: { warmupPlanPromise?: Promise<BootWarmupPlan | null> | null },
+  ) => {
     // Prefetch del chunk de AppSuite en paralelo con el warmup: solo descarga,
     // NO monta nada antes del gate (enterSuite sigue siendo el único punto de
     // montaje). El catch evita un unhandled rejection; el reintento vive en
@@ -803,9 +824,12 @@ export default function BootGate({ loadSuite }: BootGateProps) {
 
     const visualQaWarmupModuleIds = readVisualQaWarmupModuleIds();
     const skipBackendWarmup = shouldSkipVisualQaBackendWarmup();
+    // Si openProject/createProject ya lanzó la petición del plan (solapada
+    // con los IPC de recientes), aquí solo se espera; el camino directo
+    // (proyecto ya abierto en la sesión al arrancar) la pide recién ahora.
     const plan = visualQaWarmupModuleIds
       ? null
-      : await bootApiProjectWarmupPlan().catch(() => null);
+      : await (opts?.warmupPlanPromise ?? bootApiProjectWarmupPlan().catch(() => null));
     const rawPlannedFrontendModuleIds = visualQaWarmupModuleIds ??
       (Array.isArray(plan?.frontend_modules) && plan.frontend_modules.length
         ? plan.frontend_modules
@@ -898,13 +922,16 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       }
       const opened = await bootApiProjectOpen(chosenPath);
       const finalPath = opened.project_path || chosenPath;
+      // Con el proyecto ya en la sesión, el plan de warmup viaja en paralelo
+      // con los IPC de recientes (ver startWarmupPlanFetch).
+      const warmupPlanPromise = startWarmupPlanFetch();
       clearDevProjectPath();
       if (!opts?.preserveRoute) resetRouteToProjectHome();
       if (window.prosecnurApi) {
         await window.prosecnurApi.pushRecentProject(finalPath).catch(() => []);
       }
       await refreshRecents();
-      await runWarmStart(finalPath);
+      await runWarmStart(finalPath, { warmupPlanPromise });
     } catch (err) {
       if (!mountedRef.current) return;
       setError(err instanceof Error ? err.message : String(err));
@@ -932,12 +959,15 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       }
       await bootApiCreateSession({ fresh: true });
       const saved = await bootApiProjectSave(chosenPath, projectName(chosenPath));
+      // Igual que en openProject: el proyecto ya vive en la sesión, así que
+      // el plan de warmup se solapa con los IPC de recientes.
+      const warmupPlanPromise = startWarmupPlanFetch();
       resetRouteToProjectHome();
       if (window.prosecnurApi) {
         await window.prosecnurApi.pushRecentProject(saved.path).catch(() => []);
       }
       await refreshRecents();
-      await runWarmStart(saved.path);
+      await runWarmStart(saved.path, { warmupPlanPromise });
     } catch (err) {
       if (!mountedRef.current) return;
       setError(err instanceof Error ? err.message : String(err));
@@ -962,16 +992,28 @@ export default function BootGate({ loadSuite }: BootGateProps) {
       }
       setPhase("initializing");
       try {
+        // health y bootstrap viajan juntos: health no decide nada que
+        // bootstrap necesite, y ninguno de los dos emite X-Pulso-Session,
+        // así que no hay carrera de sesión. bootstrap conserva su catch
+        // propio (nunca rechaza); si health cae, el await de abajo lleva al
+        // mismo estado de error de siempre sin unhandled rejection.
+        const bootstrapPromise = bootApiSystemBootstrap().catch(() => ({ sid: null as string | null }));
+        // Los recientes viven en IPC de Electron (o localStorage en dev) y
+        // no dependen de la sesión: se refrescan en paralelo con toda la
+        // cadena bootstrap→status→session. refreshRecents nunca rechaza.
+        const recentsPromise = refreshRecents();
         const health = await bootApiHealth();
         if (!cancelled && mountedRef.current) {
           const v = (health?.prosecnur_version || health?.version || "").trim();
           if (v) setAppVersion(v);
         }
-        const boot = await bootApiSystemBootstrap().catch(() => ({ sid: null }));
+        // El orden de decisión bootstrap→status→session se mantiene intacto:
+        // bootstrap decide qué corre después.
+        const boot = await bootstrapPromise;
         const bootSid = typeof boot.sid === "string" && boot.sid.trim() ? boot.sid : null;
         let status = !bootSid ? await bootApiProjectStatus().catch(() => null) : null;
         if (!bootSid && !status?.has_project) await bootApiCreateSession();
-        await refreshRecents();
+        await recentsPromise;
         if (cancelled || !mountedRef.current) return;
 
         const devPath = readDevProjectPath();
