@@ -299,6 +299,18 @@ sin dejar ninguna sin clasificar. Los endpoints `/api/plan-trabajo/*` y
 | El nodo guarda el título al insertar, como respaldo | Guardar solo `{target_type, target_id}` | Al borrarse el destino, el huérfano puede decir «apuntaba a Campo» en vez de escupir un uuid — justo cuando más falta hace | Bajo |
 | El selector es un popover anclado, no un bloque en el flujo | Panel que empuja el lienzo | Medido: empujando, el lienzo caía de 773 a 439 px al abrirlo; el marco de una superficie no puede cambiar de tamaño según lo que el usuario esté haciendo (C2) | Bajo |
 
+### Fase 8 — portabilidad
+
+| Decisión | Alternativa descartada | Por qué | Costo de revertir |
+|---|---|---|---|
+| Importación en dos pasos con token ligado al estado | Un solo POST que valida y aplica | Sin la ligadura la vista previa es decorativa: muestra un plan y aplica otro si el proyecto cambió en el medio | Bajo |
+| La huella mira el CONJUNTO de ids, no el contenido | Hash del documento completo | Un typo en un campo que la importación ni mira obligaría a rehacer la vista previa | Bajo |
+| Importar SUMA; lo que el archivo no menciona se conserva | Reemplazar el estado por el del archivo | Borrar lo no mencionado convierte cada importación en una pérdida de datos silenciosa | Medio — cambiar la semántica después rompe expectativas |
+| Lo importado se agrega al final | Ordenar por el archivo | No reordena un cronograma que el usuario ya acomodó | Bajo |
+| Un ciclo importado se rechaza en el servidor | Confiar en la validación del formulario | El import es el único camino que no pasa por el formulario | Bajo |
+| Los avisos disparados NO viajan en el export | Exportar el libro completo | Son historia de esta instalación, no del estudio: importarlos silenciaría avisos que este usuario nunca vio | Bajo |
+| Velo de vidrio derivado de `--pulso-surface-2` | Token de scrim nuevo en `theme.css` | El theme está congelado a crecimiento; `color-mix` sobre un token que ya cambia con el tema resuelve claro y oscuro sin hex propio | Bajo |
+
 ## Deuda registrada
 
 1. **`LogicCanvas.tsx` conserva su cámara propia.** Convive con `lib/lienzo/`
