@@ -85,6 +85,7 @@ export { default as Columns3 } from "lucide-react/dist/esm/icons/columns-3.mjs";
 export { default as Combine } from "lucide-react/dist/esm/icons/combine.mjs";
 export { default as Compass } from "lucide-react/dist/esm/icons/compass.mjs";
 export { default as ContactRound } from "lucide-react/dist/esm/icons/contact-round.mjs";
+export { default as CornerDownLeft } from "lucide-react/dist/esm/icons/corner-down-left.mjs";
 export { default as Copy } from "lucide-react/dist/esm/icons/copy.mjs";
 export { default as Database } from "lucide-react/dist/esm/icons/database.mjs";
 export { default as DatabaseZap } from "lucide-react/dist/esm/icons/database-zap.mjs";
@@ -126,6 +127,7 @@ export { default as GripVertical } from "lucide-react/dist/esm/icons/grip-vertic
 export { default as HandHeart } from "lucide-react/dist/esm/icons/hand-heart.mjs";
 export { default as Hash } from "lucide-react/dist/esm/icons/hash.mjs";
 export { default as HelpCircle } from "lucide-react/dist/esm/icons/circle-question-mark.mjs";
+export { default as History } from "lucide-react/dist/esm/icons/history.mjs";
 export { default as Home } from "lucide-react/dist/esm/icons/house.mjs";
 export { default as Image } from "lucide-react/dist/esm/icons/image.mjs";
 export { default as ImageOff } from "lucide-react/dist/esm/icons/image-off.mjs";

@@ -135,7 +135,10 @@
 
 .diseno_bitacora_save <- function(sid, entries) {
   entries <- lapply(entries %||% list(), .diseno_bitacora_entry)
-  if (length(entries) > 200L) entries <- entries[seq_len(200L)]
+  # Cupos separados para vivas y archivadas (bitacora_entradas.R): con un tope
+  # único, las archivadas consumirían lugar y expulsarían entradas activas, que
+  # es lo contrario de lo que archivar promete.
+  entries <- .bit_entradas_cap(entries)
   session_set(sid, "diseno_estudio_bitacora", entries)
   entries
 }
@@ -145,8 +148,13 @@
   normalized <- .diseno_bitacora_entry(entry)
   existing_idx <- which(vapply(entries, function(item) identical(item$id, normalized$id), logical(1)))
   if (length(existing_idx) > 0L) {
-    normalized$created_at <- entries[[existing_idx[[1L]]]]$created_at
+    previa <- entries[[existing_idx[[1L]]]]
+    normalized$created_at <- previa$created_at
     normalized$updated_at <- .diseno_now_iso()
+    normalized$archived_at <- previa$archived_at
+    # La bitácora es un registro, no un borrador: editar conserva lo que decía
+    # antes (ADR 0047).
+    normalized <- .bit_entrada_revisar(previa, normalized)
     entries[[existing_idx[[1L]]]] <- normalized
   } else {
     entries <- c(list(normalized), entries)

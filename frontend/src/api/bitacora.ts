@@ -243,6 +243,43 @@ export async function apiBitacoraAvisoDescartar(clave: string) {
   );
 }
 
+export async function apiBitacoraEntradaArchivar(id: string, archivar = true) {
+  return handle<BitacoraEstado>(
+    await apiFetch(`/api/bitacora/entradas/${encodeURIComponent(id)}/archivar`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ archivar }),
+    }),
+  );
+}
+
+/** Borrado permanente de una entrada. La ruta normal es archivar. */
+export async function apiBitacoraEntradaBorrar(id: string) {
+  return handle<BitacoraEstado>(
+    await apiFetch(`/api/bitacora/entradas/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: headers(),
+    }),
+  );
+}
+
+/**
+ * Exporta a markdown EXACTAMENTE lo filtrado.
+ *
+ * El filtro se resuelve en el servidor a propósito: con dos implementaciones
+ * —una para la vista y otra para el archivo— bastaría una diferencia para que
+ * lo descargado no coincida con lo que el usuario está mirando.
+ */
+export async function apiBitacoraEntradasExportar(filtro: BitacoraPreferencias["bitacora"]) {
+  return handle<{ ok: true; schema: string; total: number; markdown: string }>(
+    await apiFetch("/api/bitacora/entradas/exportar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ filtro }),
+    }),
+  );
+}
+
 /** Parche por sección: manda solo la que cambió y el resto se conserva. */
 export async function apiBitacoraPreferencias(
   preferencias: Partial<BitacoraPreferencias>,
