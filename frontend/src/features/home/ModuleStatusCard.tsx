@@ -1,7 +1,7 @@
 import { forwardRef, useRef, useState, type CSSProperties } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
-import { ArrowRight, MoreHorizontal, TriangleAlert } from "lucide-react";
+import { MoreHorizontal, TriangleAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { homeModuleVars, type ProsecnurModuleMeta } from "../../lib/modules";
 import type { ModuleCardView, ModuleCardViz } from "./moduleCardModel";
@@ -51,13 +51,11 @@ function PhaseView({
           ))}
         </span>
       </span>
-      <span className="home-mc-stat is-inline">
+      <span className="home-mc-stat">
         <strong>{done}/{total}</strong>
-        <span className="home-mc-stat-meta">
-          <span className="home-mc-stat-label">fases</span>
-          <span className="home-mc-stat-sub">{sub}</span>
-        </span>
+        <span className="home-mc-stat-label">fases</span>
       </span>
+      <span className="home-mc-stat-sub">{sub}</span>
     </span>
   );
 }
@@ -74,10 +72,7 @@ function ProgressView({
     : 0;
   return (
     <span className="home-mc-viz is-progress">
-      <span className="home-mc-activity">
-        <span>Ahora</span>
-        <strong>{sub}</strong>
-      </span>
+      <span className="home-mc-stat-sub">{sub}</span>
       <span className="home-mc-progress-row">
         <span
           className="home-mc-progress-track"
@@ -117,29 +112,19 @@ function StatView({
   activityFirst: boolean;
 }) {
   const isWord = /[a-zá-úñ]/i.test(value);
-  if (activityFirst) {
-    return (
-      <span className="home-mc-viz is-activity">
-        <span className="home-mc-activity">
-          <span>Ahora</span>
-          <strong>{sub}</strong>
-        </span>
-        <span className="home-mc-secondary-stat">
-          <strong>{value}</strong>
-          <span>{label}</span>
-        </span>
-      </span>
-    );
-  }
+  // Una sola lectura primaria: la cifra manda y la frase de estado es su
+  // subtítulo. Antes competían dos bloques del mismo peso, precedidos por un
+  // eyebrow "Ahora" que solo gastaba alto (regla 12 del sistema: nada de
+  // títulos interiores cuando el contexto ya nombra el bloque).
+  // `activityFirst` invierte el orden cuando la cifra no dice nada útil
+  // ("Sin cálculo"), pero mantiene la misma estructura.
   return (
-    <span className="home-mc-viz">
-      <span className={`home-mc-stat is-hero${isWord ? " is-text" : ""}`}>
+    <span className={`home-mc-viz${activityFirst ? " is-activity" : ""}`}>
+      <span className={`home-mc-stat${isWord ? " is-text" : ""}`}>
         <strong>{value}</strong>
-        <span className="home-mc-stat-meta">
-          <span className="home-mc-stat-label">{label}</span>
-          <span className="home-mc-stat-sub">{sub}</span>
-        </span>
+        <span className="home-mc-stat-label">{label}</span>
       </span>
+      {sub && <span className="home-mc-stat-sub">{sub}</span>}
     </span>
   );
 }
@@ -201,8 +186,6 @@ export const ModuleStatusCard = forwardRef<
         onClick={() => navigate(view.action.route)}
         aria-label={`${view.action.label}: ${module.title}`}
       >
-        <Icon className="home-mc-watermark" aria-hidden="true" strokeWidth={1.4} />
-
         <span className="home-mc-head">
           <span className="home-mc-head-id">
             <span className="home-mc-badge" aria-hidden="true"><Icon size={17} /></span>
@@ -211,21 +194,23 @@ export const ModuleStatusCard = forwardRef<
               <span className="home-mc-tagline">{module.tagline}</span>
             </span>
           </span>
-          {/* Un solo aviso por tarjeta. Con los dos, "Requiere atención" y
-              "57 por revisar" decían lo mismo ocupando 167px, y el nombre del
-              módulo se comprimía a 52px: los avisos tapaban la identidad de la
-              tarjeta. Cuando hay alerta gana la alerta, que además dice cuánto;
-              el estado sigue leyéndose en el color del chip y del marco. */}
-          <span className="home-mc-signals">
-            {view.alert ? (
-              <span className="home-mc-alert" title={`${view.statusLabel}: ${view.alert}`}>
-                <TriangleAlert size={11} strokeWidth={2.6} aria-hidden="true" />
-                {view.alert}
-              </span>
-            ) : (
-              <span className={`home-mc-status is-${view.state}`}>{view.statusLabel}</span>
-            )}
-          </span>
+          {/* Solo se muestra lo excepcional. "Al día" y "En curso" son el caso
+              normal de casi todas las tarjetas: repetidos ocho veces no dicen
+              nada y compiten con el nombre del módulo. El estado normal ya se
+              lee en la cifra y en la frase; el chip queda para lo que sí exige
+              una decisión: una alerta, o un módulo sin empezar. */}
+          {(view.alert || view.state === "pending") && (
+            <span className="home-mc-signals">
+              {view.alert ? (
+                <span className="home-mc-alert" title={`${view.statusLabel}: ${view.alert}`}>
+                  <TriangleAlert size={11} strokeWidth={2.6} aria-hidden="true" />
+                  {view.alert}
+                </span>
+              ) : (
+                <span className="home-mc-status is-pending">{view.statusLabel}</span>
+              )}
+            </span>
+          )}
         </span>
 
         {view.viz.kind === "phases" && (
@@ -247,22 +232,23 @@ export const ModuleStatusCard = forwardRef<
         )}
         {view.viz.kind === "date" && <DateView viz={view.viz} sub={view.sub} />}
 
-        <span className="home-mc-foot">
-          {view.facts.length > 0 && (
-            <span className="home-mc-facts" aria-label={`Datos de ${module.shortLabel}`}>
-              {view.facts.slice(0, 4).map((fact) => (
-                <span className="home-mc-fact" key={fact.label}>
-                  <strong>{fact.value}</strong>
-                  <span>{fact.label}</span>
-                </span>
-              ))}
-            </span>
-          )}
-          <span className="home-mc-cta" aria-hidden="true">
-            <span>{view.action.label}</span>
-            <span className="home-mc-cta-arrow"><ArrowRight size={14} /></span>
+        {/* Línea de metadatos, no tres mini-stats. Los facts de módulos
+            distintos no son comparables entre sí (nadie compara "universo" de
+            Monitoreo con "catálogos" de Formularios), así que alinearlos en
+            columnas con cifras grandes era ruido: es material de contexto y va
+            como pie discreto, al estilo del pie de Finder. El CTA se fue
+            porque la tarjeta entera ya es el botón. */}
+        {view.facts.length > 0 && (
+          <span className="home-mc-foot" aria-label={`Datos de ${module.shortLabel}`}>
+            {view.facts.slice(0, 4).map((fact, index) => (
+              <span className="home-mc-fact" key={fact.label}>
+                {index > 0 && <span className="home-mc-fact-dot" aria-hidden="true">·</span>}
+                <strong>{fact.value}</strong>
+                <span>{fact.label}</span>
+              </span>
+            ))}
           </span>
-        </span>
+        )}
       </button>
 
       <Popover.Root

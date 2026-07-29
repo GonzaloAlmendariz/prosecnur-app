@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef } from "react";
-import { Plus } from "lucide-react";
 import { PROSECNUR_PRIMARY_ACTIVE_MODULES } from "../../lib/modules";
 import type { ProjectOverview } from "../../api/client";
 import { ModuleStatusCard } from "./ModuleStatusCard";
@@ -7,17 +6,24 @@ import { buildModuleCardView, formatSavedAt, type ProcState } from "./moduleCard
 
 export type { ProcState } from "./moduleCardModel";
 
+// Columnas por cantidad de tarjetas, para que la última fila nunca quede
+// huérfana: 5-6 módulos reparten 3+3 o 3+2, y 7-8 reparten 4+4 o 4+3.
+function gridColumns(count: number): number {
+  if (count <= 2) return Math.max(1, count);
+  if (count <= 4) return count === 4 ? 4 : 3;
+  if (count <= 6) return 3;
+  return 4;
+}
+
 export function MissionControl({
   overview,
   proc,
   addedSlugs,
-  onAddModule,
   onRemoveModule,
 }: {
   overview: ProjectOverview;
   proc: ProcState;
   addedSlugs: string[];
-  onAddModule: () => void;
   onRemoveModule: (slug: string) => void;
 }) {
   const cards = PROSECNUR_PRIMARY_ACTIVE_MODULES.filter((module) =>
@@ -75,36 +81,21 @@ export function MissionControl({
       aria-label="Estado del proyecto"
       data-audit-ready="home"
     >
-      {/* El nombre del proyecto ya vive en el chip del topbar, así que aquí se
-          reduce a una sola línea: conserva un h1 real (la página necesita
-          encabezado accesible) sin gastar en un titular el alto que las
-          tarjetas necesitan para caber sin scroll. */}
-      <header className="home-mission-head">
-        <div className="home-mission-id">
-          <h1 className="home-mission-title">{overview.project.name}</h1>
-          {metaLine.length > 0 && (
-            <p className="home-mission-client">
-              {metaLine.map((part, index) => (
-                <span key={index}>
-                  {index > 0 && (
-                    <span className="home-mission-meta-dot" aria-hidden="true">·</span>
-                  )}
-                  {part}
-                </span>
-              ))}
-            </p>
-          )}
-        </div>
-        <button type="button" className="home-mission-add-btn" onClick={onAddModule}>
-          <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
-          <span>Agregar módulo</span>
-        </button>
-      </header>
+      {/* Sin franja de título. El nombre del proyecto, su archivo y el estado
+          de guardado ya viven en el chip del topbar, y la norma del sistema es
+          explícita: la identidad va en el chrome de la app, no en una fila
+          introductoria que consume el primer viewport. Queda el h1 para
+          lectores de pantalla, que sí necesitan encabezado. */}
+      <h1 className="pulso-sr-only">{[overview.project.name, ...metaLine].join(" · ")}</h1>
 
+      {/* Las columnas las decide la cantidad de módulos, no el ancho: con
+          `auto-fill` seis tarjetas caían como 4+2 y la fila huérfana se leía
+          rota. Por cantidad, seis quedan 3+3 y ocho 4+4. */}
       <div
         className="home-mission-grid"
         data-qa-geometry-group="home-module-cards"
         data-qa-geometry-contract="equal"
+        style={{ ["--home-cols" as string]: gridColumns(cards.length) }}
         data-density={cards.length <= 3 ? "spacious" : cards.length <= 6 ? "balanced" : "dense"}
       >
         {cards.map(({ module, view }, index) => (
