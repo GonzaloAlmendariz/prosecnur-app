@@ -159,6 +159,7 @@ import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./acreditacionTelefono.css";
+import "../../ritmoDiario.css";
 
 const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -15929,7 +15930,9 @@ function AcreditacionAdvanceDailyMini({
       </header>
       {hasDailySignal ? (
         <div className="mon-advance-daily-board">
-          <div className="mon-advance-line-chart">
+          {/* Pasado el mes de campo, las fechas se encimaban («maymaymay…»):
+              el número de cortes fija el ancho mínimo y el gráfico scrollea. */}
+          <div className="mon-advance-line-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
             <PlotlyChart
               data={chartData}
               layout={chartLayout}

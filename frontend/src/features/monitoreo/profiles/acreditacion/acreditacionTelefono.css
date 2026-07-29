@@ -33,24 +33,6 @@
  * alto, así que la fila única es justamente la disposición que hay que
  * conservar. */
 
-/* ── Ritmo diario: pasado el mes, el gráfico scrollea en vez de apretarse ──
- *
- * Con el campo largo, Plotly mete todas las fechas en el ancho disponible y las
- * etiquetas acaban ilegibles unas sobre otras. El ancho mínimo se deriva del
- * número de cortes (`--trend-cortes`, que pone la vista): 44 px por corte es lo
- * que necesita una fecha para respirar. Con menos de ~30 cortes el mínimo no
- * llega al ancho de la caja y no hay scroll; a partir de ahí, la tarjeta se
- * queda quieta y lo que se desplaza es el gráfico dentro (No Scroll Jail).
- */
-.mon-phone-trend-chart {
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.mon-phone-trend-chart .dash-plotly-chart {
-  min-width: calc(var(--trend-cortes, 0) * 44px);
-}
-
 /* ── Consultas: distinguir «plataforma» de «base» ─────────────────────────
  *
  * Las dos pestañas se veían casi idénticas: `isTableOnlyTab` las trataba igual

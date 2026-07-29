@@ -144,6 +144,7 @@ import { SourceSyncActions, type SourceSyncActionsProgress } from "../../compone
 import { proveedoresDeFuentes } from "../../fuentes/vocabulario";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
+import "../../ritmoDiario.css";
 import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./telefonicoProfile.css";
@@ -7160,7 +7161,7 @@ function AcreditacionPhoneDailyTrend({
       </div>
 
       <div className={`mon-phone-trend-parallel${statusSeries.length ? "" : " is-single"}`}>
-        <div className="mon-phone-trend-chart">
+        <div className="mon-phone-trend-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
           <PlotlyChart
             data={chartData}
             layout={chartLayout}
@@ -18079,7 +18080,7 @@ function AcreditacionAdvanceDailyMini({
       </header>
       {hasDailySignal ? (
         <div className="mon-advance-daily-board">
-          <div className={`mon-advance-line-chart${usesEffectiveAxisBand ? " is-phone-effective-axis" : ""}${plotlyReady ? " is-plotly-ready" : " is-plotly-loading"}`}>
+          <div className={`mon-advance-line-chart${usesEffectiveAxisBand ? " is-phone-effective-axis" : ""}${plotlyReady ? " is-plotly-ready" : " is-plotly-loading"}`} style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
             <PlotlyChart
               data={chartData}
               layout={chartLayout}
