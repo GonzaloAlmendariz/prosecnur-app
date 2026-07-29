@@ -158,6 +158,19 @@ todo tiene que estar ya disponible y rápido**. Por lo tanto:
   de monitoreo). **Pendiente de la ola**: 1.4 (`sheets/sync` async por
   default) — cross-layer, exige congelar contrato; entra con la Ola 2.
 
+- **2026-07-29 · Ola 2 casi completa (2.1, 2.2, 2.3, 2.4)**: los 7 endpoints
+  de import/refresh de Carga/SM multibase tienen camino async opt-in
+  (sandbox de sesión + diff; result_data = payload síncrono exacto; secretos
+  por job_save_rds; 539 aserciones). El tick de sync re-renderiza solo el
+  wrapper del chrome (store zustand por perfil) y los 4 charts de avance van
+  memoizados con builders puros. `useJob` reintenta transitorios, declara
+  `lost` tras 5×404 y expira a los 30 min con cancel — spinners eternos
+  cerrados de raíz. Boy-scout mayor: Telefónico −983 y Acreditación −1,018
+  líneas (bases 20534/18564). Pase visual /ver-ui sobre acrconta en verde;
+  mecanismos de reposo confirmados en CSSOM vivo. **Restan de la ola**: la
+  adopción frontend de async + `sheets/sync` (en curso) y el smoke del worker
+  callr real (va al gate de /preparar-release).
+
 ## Protocolo
 
 1. Cada unidad se ejecuta por la rama que corresponda (1.1–1.3 frontend;
