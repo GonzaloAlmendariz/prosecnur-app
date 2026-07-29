@@ -1930,12 +1930,11 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   s <- session_get(sid)
   sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
   snapshot <- s$monitoreo_snapshot %||% NULL
-  data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
-  data <- .monitoreo_apply_source_metadata_to_data(data, sources)
-  cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
-  family <- cfg$monitoreo_profile$family %||% "acreditacion"
+  # Unidad 3.1: token barato ANTES de anotar/normalizar; hit = derivados cacheados (monitoreo_state_cache.R).
+  derived <- monitoreo_state_derived(sid, s, sources)
+  data <- derived$data; cfg <- derived$cfg; family <- derived$family
   territorial_light_state <- identical(family, "territorial") && !isTRUE(include_reports)
-  display_data <- if (identical(family, "territorial")) .monitoreo_territorial_filter_data_for_phase(data, cfg) else data
+  display_data <- derived$display_data
   if (isTRUE(include_reports) && identical(family, "territorial") && !identical(report_scope, "light")) {
     territorial_report_cache_info <- .monitoreo_territorial_report_cache_key_info(sid, snapshot %||% list(), data, cfg, report_scope = report_scope)
   }
@@ -2142,6 +2141,7 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
     scope = report_scope,
     include_reports = if (isTRUE(include_reports)) "1" else "0",
     rows = nrow(display_data),
+    derived = derived$timing_label,
     dashboard = dashboard_source,
     build_ms = dashboard_build_ms,
     report_cache = territorial_report_cache_meta$cache_source %||% "",

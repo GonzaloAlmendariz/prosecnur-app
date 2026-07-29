@@ -225,6 +225,9 @@ monitoreo_perf_variables_cache_invalidate <- function(sid = NULL) {
   # también debe soltar las tabs de publicación cacheadas: derivan de la misma
   # data/config que acaba de declararse sucia.
   monitoreo_perf_publication_tabs_invalidate(sid)
+  # Unidad 3.1: y los derivados del state payload (data anotada + config
+  # normalizado), cuyo supuesto de frescura es el mismo de este archivo.
+  monitoreo_state_derived_invalidate(sid)
   invisible(NULL)
 }
 
