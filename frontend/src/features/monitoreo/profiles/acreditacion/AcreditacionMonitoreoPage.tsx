@@ -6336,10 +6336,7 @@ function AcreditacionPhoneDailyTrend({
       </div>
 
       <div className="mon-phone-trend-parallel is-single">
-        {/* El número de cortes decide el ancho mínimo del gráfico: pasado el mes
-            de campo, apretar 40 fechas en la caja las vuelve ilegibles, así que
-            a partir de ~30 el gráfico scrollea dentro de su tarjeta. */}
-        <div className="mon-phone-trend-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
+        <div className="mon-phone-trend-chart">
           <PlotlyChart
             data={chartData}
             layout={chartLayout}
@@ -15698,6 +15695,21 @@ function AcreditacionAdvanceDailyMini({
     showDenseDailyLabels ? dailyLabelCandidates.length : variant === "general" ? 8 : 5,
   );
   const dateLabelRows = isCompactChart ? [] : chartRows;
+  // Ventana visible del eje temporal.
+  //
+  // Pasados los 45 cortes el gráfico deja de comprimir el campo entero: muestra
+  // los últimos 45 —donde está el trabajo en curso— y el resto se alcanza
+  // arrastrando. Se prefiere esto al scroll del contenedor porque desplazar la
+  // caja arrastraba también los ejes: con la ventana, «Respuestas/día» y
+  // «Acumulado» se quedan anclados a sus bordes y solo se mueven las barras y
+  // las fechas, que es lo que se está leyendo.
+  const VENTANA_MAX_CORTES = 45;
+  const hayVentanaDeslizante = !isCompactChart && chartRows.length > VENTANA_MAX_CORTES;
+  const rangoVisibleX = !chartRows.length
+    ? undefined
+    : hayVentanaDeslizante
+      ? [chartRows.length - VENTANA_MAX_CORTES - 0.55, chartRows.length - 0.45]
+      : [-0.55, Math.max(0.55, chartRows.length - 0.45)];
   const chartBottomMargin = isCompactChart ? 36 : variant === "general" ? 86 : variant === "actor" ? 78 : 72;
   const maxDaily = chartRows.reduce((max, point) => Math.max(max, point.dailyTotal), 0);
   const maxCumulative = chartRows.reduce((max, point) => Math.max(max, point.cumulative), 0);
@@ -15774,7 +15786,7 @@ function AcreditacionAdvanceDailyMini({
   const chartLayout = {
     barmode: "stack" as const,
     bargap: chartRows.length <= 1 ? 0.72 : chartRows.length <= 7 ? 0.42 : 0.24,
-    dragmode: false as const,
+    dragmode: (hayVentanaDeslizante ? "pan" : false) as "pan" | false,
     font: {
       family: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
       color: "#17212f",
@@ -15850,10 +15862,13 @@ function AcreditacionAdvanceDailyMini({
       })),
     ],
     xaxis: {
-      fixedrange: true,
+      // Solo el eje temporal se deja mover, y solo cuando hay más campo del que
+      // cabe. El eje de valores queda fijo (`yaxis.fixedrange`), así que
+      // arrastrar no puede descuadrar la escala.
+      fixedrange: !hayVentanaDeslizante,
       showgrid: false,
       zeroline: false,
-      range: chartRows.length ? [-0.55, Math.max(0.55, chartRows.length - 0.45)] : undefined,
+      range: rangoVisibleX,
       tickangle: 0,
       tickvals: tickRows.map((point) => point.x),
       ticktext: tickRows.map((point) => (isCompactChart ? point.displayLabel : point.axisLabel)),
@@ -15890,6 +15905,8 @@ function AcreditacionAdvanceDailyMini({
     displayModeBar: false,
     doubleClick: false,
     responsive: true,
+    // La rueda sigue siendo de la página: hacer zoom al pasar por encima
+    // secuestraría el scroll del panel.
     scrollZoom: false,
   };
   const dailyLabel = effectiveOnly ? "efectivas" : "respuestas";
@@ -15941,9 +15958,7 @@ function AcreditacionAdvanceDailyMini({
       </header>
       {hasDailySignal ? (
         <div className="mon-advance-daily-board">
-          {/* Pasado el mes de campo, las fechas se encimaban («maymaymay…»):
-              el número de cortes fija el ancho mínimo y el gráfico scrollea. */}
-          <div className="mon-advance-line-chart" style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
+          <div className="mon-advance-line-chart">
             <PlotlyChart
               data={chartData}
               layout={chartLayout}
