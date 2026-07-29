@@ -326,6 +326,49 @@
   )
 }
 
+# Instrumento VINCULADO al estudio (el que se uso para cargar la data), que no
+# es lo mismo que el borrador del editor XLSForm. Un estudio puede tener un
+# instrumento de 80 preguntas y un borrador vacio: leer solo el borrador hacia
+# que la tarjeta dijera "1 pregunta" para un cuestionario de 100 variables.
+# Ojo: nada de `%||%` sobre data.frames o listas largas. El operador de la casa
+# es `if (is.null(a) || (length(a) == 1 && is.na(a))) b else a`, y con una
+# estructura de mas de un elemento el `is.na` truena en coercion a logical(1).
+.overview_instrumento_vinculado <- function(s) {
+  fuentes <- s$rp_inst_sources
+  if (is.list(fuentes) && length(fuentes) > 0L && is.list(fuentes[[1L]])) return(fuentes[[1L]])
+  if (is.list(s$rp_inst)) return(s$rp_inst)
+  if (is.list(s$instrumento)) return(s$instrumento)
+  NULL
+}
+
+# Cuenta preguntas/secciones/catalogos de un instrumento ya normalizado
+# (survey + choices). Mismo criterio que el conteo del borrador del editor,
+# para que las dos lecturas sean comparables.
+.overview_instrumento_conteos <- function(inst) {
+  if (!is.list(inst)) return(NULL)
+  survey <- inst$survey
+  tipos <- .overview_col_values(survey, "type")
+  nombres <- .overview_col_values(survey, "name")
+  if (!length(tipos) || !length(nombres)) return(NULL)
+  n <- min(length(tipos), length(nombres))
+  grupos <- c("begin_group", "begin group", "begin_repeat", "begin repeat")
+  cierres <- c("end_group", "end group", "end_repeat", "end repeat", "")
+  preguntas <- 0L; secciones <- 0L
+  for (i in seq_len(n)) {
+    base <- tolower(trimws(sub("\\s.*$", "", tipos[[i]])))
+    if (base %in% grupos) { secciones <- secciones + 1L; next }
+    if (base %in% cierres) next
+    if (nzchar(trimws(nombres[[i]]))) preguntas <- preguntas + 1L
+  }
+  listas <- .overview_col_values(inst$choices, "list_name")
+  listas <- unique(listas[nzchar(listas)])
+  list(
+    questions_count = as.integer(preguntas),
+    sections_count = as.integer(secciones),
+    catalogs_count = as.integer(length(listas))
+  )
+}
+
 # Editor XLSForm: cuestionario propio (preguntas/secciones/catalogos/origen),
 # no la data del estudio.
 .overview_form_facts <- function(s) {
@@ -362,6 +405,15 @@
       if (li <= length(cells)) cells[[li]] else ""
     }, character(1))
     catalogs <- length(unique(lists[nzchar(lists)]))
+  }
+  # El instrumento vinculado describe el estudio; el borrador del editor solo
+  # describe lo que se esta editando. Cuando hay vinculado, manda ese.
+  vinculado <- .overview_instrumento_conteos(.overview_instrumento_vinculado(s))
+  if (!is.null(vinculado) && vinculado$questions_count > questions) {
+    questions <- vinculado$questions_count
+    sections <- vinculado$sections_count
+    catalogs <- vinculado$catalogs_count
+    if (!nzchar(source_kind)) source_kind <- "xlsform"
   }
   list(
     source_kind = source_kind,

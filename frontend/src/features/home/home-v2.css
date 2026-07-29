@@ -1154,6 +1154,11 @@
   grid-template-columns: repeat(var(--home-cols, 4), minmax(0, 1fr));
   grid-auto-rows: minmax(0, auto);
   gap: 14px;
+  /* Techo por columna: con dos módulos, repartir todo el ancho daba tarjetas
+     de 715px con el contenido flotando en el medio. La tarjeta tiene un ancho
+     cómodo (~400) y de ahí no crece; el sobrante se vuelve margen centrado. */
+  max-width: calc(var(--home-cols, 4) * 400px);
+  margin-inline: auto;
 }
 
 @media (max-width: 1180px) {
@@ -1303,6 +1308,11 @@
   gap: 8px;
   padding-right: 34px;
   min-width: 0;
+  /* Alto reservado: la tarjeta que oculta su descripción (porque lleva chip de
+     alerta) quedaba 4px más baja que las hermanas y desplazaba todo su
+     contenido respecto a la fila. El marco no puede depender de qué datos
+     tenga cada módulo. */
+  min-height: 32px;
 }
 
 /* Orden de prioridad en la cabecera: el chip conserva su tamaño natural (es
