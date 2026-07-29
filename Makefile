@@ -289,10 +289,10 @@ reference-project-visual-matrix:
 
 build:
 	@started=$$(date +%s); \
-	  cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build; \
-	  cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp; \
-	  elapsed=$$(( $$(date +%s) - started )); \
-	  echo "✓ Frontend compilado en $${elapsed}s."
+	  cd frontend && UV_THREADPOOL_SIZE="$(NODE_UV_THREADPOOL_SIZE)" pnpm build && \
+	  cd "$(REPO_ROOT)" && node scripts/frontend-build-status.mjs --stamp && \
+	  { elapsed=$$(( $$(date +%s) - started )); \
+	    echo "✓ Frontend compilado en $${elapsed}s."; }
 
 build-if-stale:
 	@started=$$(date +%s); \
