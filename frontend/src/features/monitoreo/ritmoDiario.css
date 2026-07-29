@@ -1,17 +1,19 @@
-/* Gráficos de ritmo diario: pasado el mes, se desplazan en vez de apretarse.
+/* Gráficos de ritmo diario: con el campo largo se desplazan en vez de apretarse.
  *
- * Con el campo largo, Plotly reparte el ancho disponible entre todos los cortes
- * por muchos que sean, y las fechas acaban encimadas —medido en un estudio de
- * 45 días: los meses se leían «maymaymaymay» y ningún día era identificable—.
+ * Plotly reparte el ancho disponible entre todos los cortes por muchos que
+ * sean, y las fechas acaban encimadas —medido en un estudio con 59 cortes en el
+ * eje, del 25 de mayo al 22 de julio: los meses se leían «maymaymaymay» y
+ * ningún día era identificable—.
  *
  * El ancho mínimo se deriva del número de cortes, que la vista publica en
- * `--trend-cortes`: 44 px es lo que necesita una fecha de dos líneas para
- * respirar. Por debajo de ~30 cortes el mínimo no alcanza el ancho de la caja y
- * no aparece scroll; por encima, la tarjeta se queda quieta y lo que se
- * desplaza es el gráfico dentro de ella (No Scroll Jail).
+ * `--trend-cortes`. Por debajo de ~45 cortes el mínimo no alcanza el ancho de
+ * la caja y no aparece scroll; por encima, la tarjeta se queda quieta y lo que
+ * se desplaza es el gráfico dentro de ella (No Scroll Jail).
  *
  * No hay umbral escrito en ninguna parte: sale del mínimo por corte contra el
- * ancho disponible, así que se ajusta solo a la pantalla y al zoom.
+ * ancho disponible, así que se ajusta solo a la pantalla y al zoom. Los 28 px
+ * son ese umbral traducido —mes y medio de campo en una pantalla de ~1.280 px—:
+ * subirlos adelanta el scroll, bajarlos lo retrasa.
  */
 
 .mon-phone-trend-chart,
@@ -22,5 +24,5 @@
 
 .mon-phone-trend-chart .dash-plotly-chart,
 .mon-advance-line-chart .dash-plotly-chart {
-  min-width: calc(var(--trend-cortes, 0) * 44px);
+  min-width: calc(var(--trend-cortes, 0) * 28px);
 }
