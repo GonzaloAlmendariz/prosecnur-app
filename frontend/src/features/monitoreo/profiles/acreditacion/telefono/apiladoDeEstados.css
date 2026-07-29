@@ -117,13 +117,13 @@
   --apilado-eje: 13px;
   --apilado-hueco: 3px;
   position: relative;
-  /* El día no baja de 40 px: es lo que necesita «15 jun» para no encimarse con
-   * el de al lado. Con pocos días el `flex-grow` los reparte y no hay scroll;
-   * pasado el mes —a partir de unos 30 cortes— la suma supera la caja y el
-   * gráfico scrollea en horizontal en vez de apretar las fechas hasta que no se
-   * leen. El scroll es del gráfico, no de la página (No Scroll Jail). */
-  flex: 1 1 40px;
-  min-width: 40px;
+  /* El día no baja de 28 px, el mismo mínimo por corte que usan los gráficos de
+   * ritmo (`ritmoDiario.css`): con pocos días el `flex-grow` los reparte y no
+   * hay scroll; pasados los ~45 cortes —mes y medio de campo— la suma supera la
+   * caja y el gráfico se desplaza en horizontal en vez de comprimir los días
+   * hasta que no se distinguen. El scroll es del gráfico, no de la página. */
+  flex: 1 1 28px;
+  min-width: 28px;
   height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) var(--apilado-eje);
