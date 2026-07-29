@@ -125,6 +125,31 @@ todo tiene que estar ya disponible y rápido**. Por lo tanto:
   camino síncrono de arranque en dev; bind del puerto antes de cargar el
   bootstrap `.pulso`.
 
+### Ola 5 — el warmup deja de ser la suma de sus partes
+
+Contexto medido (2026-07-29): con acrconta el warmup tarda ~60–70 s; la fase
+larga es "Preparando consultas de revisión" (reconstruir la reconciliación de
+acreditación ≈ 66 s, dato ya registrado en memoria del proyecto). El costo es
+honesto y está en el lugar correcto (barra de preparación) — pero es serial en
+el hilo único y re-paga derivados que ya se calcularon en la sesión anterior.
+El contrato del warmup NO cambia: al cerrar la barra, todo caliente.
+
+- **5.0 Medición**: desglose instrumentado del warmup por tarea (la
+  instrumentación ya existe: details del task + timings), sobre acrconta y
+  acnur_acg. Define el orden de ataque con números, no con memoria.
+- **5.1 La reconciliación viaja en el .pulso** (y cualquier otro derivado caro
+  que hoy no viaje y la medición confirme): whitelist de persistencia +
+  invalidación por fingerprint de datos (infra ya existente). Doctrina del
+  dueño aplicada: pesar más OK, abrir caliente no negociable. Revisión de
+  `guardian-contratos` obligatoria (frontera de persistencia .pulso).
+- **5.2 Warmup paralelo en workers**: las tareas pesadas del warmup corren en
+  2–3 workers `callr` simultáneos reusando la maquinaria de hoy (sandbox de
+  sesión + diff de 2.1; session_patch con guard de carrera de 3.2); el hilo
+  solo aplica resultados. El minuto pasa de suma(partes) a máx(partes).
+- **Norte de la ola**: acrconta de ~65 s → ~15–25 s de preparación, sin
+  recortar qué se precalienta. (La variante "gate progresivo por destino" se
+  evaluó y se DESCARTÓ por defecto: relaja el contrato de todo-caliente.)
+
 ## Métricas del loop (medir al cierre de cada ola)
 
 | Métrica | 2026-07-29 mañana | Cierre Olas 1–3 (2026-07-29) | Norte |
