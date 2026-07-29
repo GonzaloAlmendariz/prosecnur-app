@@ -313,17 +313,6 @@ export function CanvasSection({
     [cerrarAbanico, ramificando, store],
   );
 
-  /** Arranca el gesto de conectar desde el botón del cuadro, no desde un ancla. */
-  const empezarConexion = useCallback(
-    (id: string) => {
-      const s = store.getState();
-      s.enfocar(id);
-      s.seleccionar(new Set([id]));
-      setArmandoConexion(true);
-    },
-    [store],
-  );
-
   /** Un destino que desapareció se convierte en nota, sin perder su lugar. */
   const convertirEnNota = useCallback(
     (id: string) => {
@@ -635,7 +624,6 @@ export function CanvasSection({
               onAgregarItem={agregarItem}
               onAlternarItem={alternarItem}
               onQuitarItem={quitarItem}
-              onConectar={empezarConexion}
               ramasLibres={ramasPorNodo.get(nodo.id) ?? 0}
               ramificando={ramificando === nodo.id}
               onRamificar={(id) => setRamificando((actual) => (actual === id ? null : id))}
