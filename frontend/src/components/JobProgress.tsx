@@ -87,9 +87,20 @@ function formatMessage(message?: string, phase?: string) {
 }
 
 export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCancelled, onProgress }: Props<T>) {
-  const { snapshot, error, cancel } = useJob<T>(jobId);
+  const { snapshot, error, cancel, retrying, pollFailure } = useJob<T>(jobId);
   const notifiedRef = useRef<string | null>(null);
   const progressNotifiedRef = useRef<string | null>(null);
+
+  // Terminales del poll (job perdido / timeout / backend inalcanzable): llegan
+  // por el mismo canal onError que los errores del worker, para que el
+  // consumidor destrabe su estado (todos limpian jobId y muestran el mensaje).
+  useEffect(() => {
+    if (!pollFailure || !jobId) return;
+    const key = `${jobId}:poll:${pollFailure}`;
+    if (notifiedRef.current === key) return;
+    notifiedRef.current = key;
+    onError?.(error);
+  }, [pollFailure, jobId, error, onError]);
 
   useEffect(() => {
     if (!snapshot || !jobId) return;
@@ -135,7 +146,9 @@ export function JobProgress<T = unknown>({ label, jobId, onDone, onError, onCanc
     const counterTxt = progress?.current != null && progress?.total != null
       ? `${progress.current}/${progress.total}`
       : null;
-    const messageTxt = formatMessage(progress?.message, progress?.phase);
+    const messageTxt = retrying
+      ? "Reintentando conexión…"
+      : formatMessage(progress?.message, progress?.phase);
 
     return (
       <div className="job-progress">
