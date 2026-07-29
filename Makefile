@@ -1,4 +1,10 @@
 SHELL := /bin/bash
+# Locale fijo para toda receta: los shells no interactivos llegan con LC_CTYPE=C
+# y eso rompe el parseo de tildes en R (falso "unexpected input" en archivos
+# UTF-8) y el formato de horas que monitoreo-engine espera ("03:15pm").
+# Tiene que ser en_US.UTF-8: C rompe tildes y es_ES.UTF-8 da "03:15p. m.".
+export LANG := en_US.UTF-8
+export LC_ALL := en_US.UTF-8
 REPO_ROOT := $(shell pwd)
 PACKAGE_NAME := Prosecnur
 # Usamos `dist.nosync/` en vez de `dist/` porque macOS trata el sufijo
