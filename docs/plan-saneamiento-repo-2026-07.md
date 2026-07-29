@@ -189,6 +189,14 @@ No tiene unidad de trabajo propia: es la métrica de resultado de las fases
   51 empates hoy (+5 vs los 46 del 2026-07-24) — vigilar en la próxima
   auditoría. Próxima unidad más rentable: Fase 1 (split de theme.css) con el
   contrato ya congelado.
+- **2026-07-29 · iteración 3 — Fase 2 arranca por regla boy-scout**: la Ola 1
+  del plan de performance tocó los polls de los monolitos y la regla aplicó:
+  `waitForSourceSyncJob`, `normalizeSourceSyncProgress`, `jobErrorMessage` y
+  el prefetch de scopes salieron a `<perfil>/sync/pollSourceSync.ts` y
+  `<perfil>/sync/scopePrefetch.ts` (dos copias deliberadas, nombres
+  `Acreditacion*` conservados). Telefónico 21577→21517 (−60), Acreditación
+  19632→19582 (−50); líneas base bajadas en el manifest. Primera reducción
+  monótona real de los monolitos.
 - **2026-07-29 · iteración 2 — Fase 1 ejecutada**: `tokens.css` (540 líneas)
   + `theme.css` con `@import`. Evidencia del gate: chunk de producción
   **byte-idéntico con el mismo hash** (`theme-IAsXqeBX.css`, `cmp` limpio),

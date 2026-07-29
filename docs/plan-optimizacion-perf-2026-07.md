@@ -138,6 +138,26 @@ todo tiene que estar ya disponible y rápido**. Por lo tanto:
 | Spinners sin salida (useJob sin timeout) | 10+ features | 0 (patrón jobPolling) |
 | Animaciones perpetuas en reposo | 2 con repaint CPU | 0 |
 
+## Bitácora del loop
+
+- **2026-07-29 · Ola 1 ejecutada (1.1, 1.2, 1.3, 1.5, 1.6)**: payload estático
+  pre-render **349 → 128 KB gz (−63.3%)**; index.html queda con
+  app-core + index solamente (monitoreo-core y api-client fuera, 1.28 MB de
+  CSS ya no se parsean por arranque); contrato del warmup verificado
+  (warmupRegistry precarga MonitoreoShell → arrastra monitoreo-core JS+CSS, y
+  el fallback sin plan del backend incluye monitoreo/monitoreo_datos);
+  prefetch de AppSuite solapado con el warmup; cero ciclos de chunks
+  (anti-TDZ verificado); smoke de producción en runtime OK (BootGate monta,
+  consola limpia). Polls: territorial deja de duplicar cadencia,
+  `waitForSourceSyncJob` y los prefetch de scopes con cancelación al unmount,
+  Acreditación en paridad de guards con Telefónico. Reposo: `home-dot-pulse`
+  compositable (transform/opacity en ::after) y halo del editor pausado salvo
+  hover/foco. Boy-scout: Telefónico −60 líneas, Acreditación −50; líneas base
+  bajadas (21517 / 19582). Flip de cascada por la salida de monitoreo-core.css
+  del index.html: descartado con el detector (0 empates que involucren hojas
+  de monitoreo). **Pendiente de la ola**: 1.4 (`sheets/sync` async por
+  default) — cross-layer, exige congelar contrato; entra con la Ola 2.
+
 ## Protocolo
 
 1. Cada unidad se ejecuta por la rama que corresponda (1.1–1.3 frontend;
