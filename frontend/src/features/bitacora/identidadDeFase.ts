@@ -28,7 +28,12 @@ export type IdentidadDeFase = {
   vars: ReturnType<typeof moduleChromeVars> | undefined;
   /** "Módulo · Sección" cuando la etapa apunta a una sección concreta. */
   etiquetaModulo: string;
-  /** Solo el módulo. Para superficies compactas donde la sección no cabe. */
+  /**
+   * La pieza más específica en una sola palabra: la sección si la hay, el
+   * módulo si no. Para superficies compactas donde "Módulo · Sección" no cabe
+   * y donde repetir el módulo no distinguiría nada — dos etapas pueden vivir
+   * en el mismo módulo y solo la sección las separa.
+   */
   etiquetaCorta: string;
 };
 
@@ -68,6 +73,6 @@ export function identidadDeFase(
     href: seccion?.to ?? modulo.to ?? "",
     vars: moduleChromeVars(modulo),
     etiquetaModulo: seccion ? `${modulo.shortLabel} · ${seccion.label}` : modulo.shortLabel,
-    etiquetaCorta: modulo.shortLabel,
+    etiquetaCorta: seccion?.label ?? modulo.shortLabel,
   };
 }
