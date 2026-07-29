@@ -18,14 +18,48 @@
 
 # El orden es el del estudio y se respeta en la UI: es el recorrido natural, no
 # un orden alfabético.
+#
+# Cada fase declara DOS cosas distintas que antes estaban mezcladas:
+#
+#   `modulo` / `seccion` — a qué parte de la app se refiere la etapa. Es lo que
+#     le da IDENTIDAD: el frontend resuelve de ahí el ícono y el color del
+#     módulo, para que el usuario reconozca la etapa por el mismo sello que ve
+#     en la barra de módulos y en el home. Una etapa que no se puede señalar en
+#     la app es una etapa que el usuario no puede accionar.
+#
+#   `evidencia` — con qué claves de sesión se comprueba si esa etapa ya
+#     arrancó de verdad. No coinciden con el slug del módulo: "carga" y
+#     "validacion" son secciones de Procesamiento, y "reportes" no es un módulo
+#     sino el conjunto de salidas. Mezclarlas con la identidad era lo que hacía
+#     que una fase no tuviera un módulo al que apuntar.
 .bit_fases_catalogo <- function() {
   list(
-    list(id = "diseno",         label = "Diseño",         modulos = c("diseno-estudio")),
-    list(id = "muestra",        label = "Muestra",        modulos = c("calc-muestra")),
-    list(id = "instrumento",    label = "Instrumento",    modulos = c("editor-xlsform")),
-    list(id = "campo",          label = "Campo",          modulos = c("monitoreo", "hojas-ruta", "recopiladores")),
-    list(id = "procesamiento",  label = "Procesamiento",  modulos = c("carga", "validacion", "codificacion", "analitica")),
-    list(id = "entregables",    label = "Entregables",    modulos = c("graficos", "dashboard", "reportes"))
+    # Sin sección: el aterrizaje del módulo YA es la bitácora, y declararla
+    # produciría "Bitácora · Bitácora".
+    list(id = "diseno", label = "Diseño",
+         modulo = "diseno-estudio", seccion = "",
+         evidencia = c("diseno-estudio")),
+    list(id = "muestra", label = "Muestra",
+         modulo = "calc-muestra", seccion = "",
+         evidencia = c("calc-muestra")),
+    list(id = "instrumento", label = "Instrumento",
+         modulo = "editor-xlsform", seccion = "",
+         evidencia = c("editor-xlsform")),
+    list(id = "campo", label = "Campo",
+         modulo = "monitoreo", seccion = "",
+         evidencia = c("monitoreo", "hojas-ruta", "recopiladores")),
+    # Procesamiento es la tubería que deja la base limpia y codificada: carga,
+    # validación y codificación. Analítica y Gráficos NO entran acá — producen
+    # las salidas, no la base — y viven en Entregables.
+    list(id = "procesamiento", label = "Procesamiento",
+         modulo = "procesamiento", seccion = "carga",
+         evidencia = c("carga", "validacion", "codificacion")),
+    # Entregables apunta a Dashboard y no a la sección Gráficos para no repetir
+    # el color de Procesamiento: dos etapas contiguas con el mismo sello dejan
+    # de funcionar como sello.
+    list(id = "entregables", label = "Entregables",
+         modulo = "dashboard", seccion = "",
+         evidencia = c("analitica", "graficos", "dashboard", "reportes"))
   )
 }
 
@@ -41,10 +75,20 @@ BITACORA_FASES <- c("diseno", "muestra", "instrumento", "campo", "procesamiento"
   hit[[1]]$label
 }
 
+# Claves de evidencia de la fase. Es lo que viaja como `sync_targets` y lo que
+# alimenta `.plan_windows`.
 .bit_fase_modulos <- function(fase) {
   hit <- Filter(function(f) identical(f$id, fase), .bit_fases_catalogo())
   if (!length(hit)) return(character(0))
-  hit[[1]]$modulos
+  hit[[1]]$evidencia
+}
+
+# Identidad de la fase: a qué módulo (y opcionalmente a qué sección) apunta.
+# El frontend resuelve de acá el ícono y el color.
+.bit_fase_identidad <- function(fase) {
+  hit <- Filter(function(f) identical(f$id, fase), .bit_fases_catalogo())
+  if (!length(hit)) return(list(modulo = "", seccion = ""))
+  list(modulo = hit[[1]]$modulo, seccion = hit[[1]]$seccion)
 }
 
 # --- Traducción desde los `sync_targets` heredados ---------------------------
@@ -61,10 +105,11 @@ BITACORA_FASES <- c("diseno", "muestra", "instrumento", "campo", "procesamiento"
   "reportes"       = "entregables",
   "graficos"       = "entregables",
   "dashboard"      = "entregables",
+  # Analítica produce salidas, no la base: va con Entregables, junto a Gráficos.
+  "analitica"      = "entregables",
   "carga"          = "procesamiento",
   "validacion"     = "procesamiento",
   "codificacion"   = "procesamiento",
-  "analitica"      = "procesamiento",
   "calc-muestra"   = "muestra",
   "editor-xlsform" = "instrumento",
   "diseno-estudio" = "diseno",

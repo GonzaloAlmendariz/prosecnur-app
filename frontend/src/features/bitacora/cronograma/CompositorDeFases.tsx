@@ -10,6 +10,7 @@ import {
 } from "../../../api/bitacora";
 import { Alert } from "../../../components/Alert";
 import { toISODate } from "../dateUtils";
+import { identidadDeFase } from "../identidadDeFase";
 import { FilaDeFase } from "./FilaDeFase";
 import { etiquetaRango, fasesSolapadas, rangoDelEstudio } from "./fases";
 
@@ -92,18 +93,29 @@ export function CompositorDeFases({
       <div className="bit-compositor-vacio" data-audit-ready="bitacora-cronograma-vacio">
         <strong>Arma el cronograma del estudio</strong>
 
-        {/* El recorrido se muestra, no se describe: seis fases en fila dicen de
-            un vistazo lo que un párrafo tarda cuatro líneas en explicar. */}
-        <ol className="bit-riel" aria-label="Las seis fases de un estudio">
-          {estado.catalogo_fases.map((f, i) => (
-            <li key={f.id} className="bit-riel-paso">
-              <span className="bit-riel-punto" aria-hidden="true">{i + 1}</span>
-              <span className="bit-riel-nombre">{f.label}</span>
-            </li>
-          ))}
+        {/* El recorrido se muestra, no se describe. Y cada paso lleva el sello
+            de su módulo —el mismo ícono y color que el usuario ya ve en la
+            barra de módulos—, así la etapa se reconoce como una parte concreta
+            de la app y no como una abstracción de cronograma. */}
+        <ol className="bit-riel" aria-label="Las seis etapas de un estudio">
+          {estado.catalogo_fases.map((f) => {
+            const id = identidadDeFase(f.modulo, f.seccion);
+            const Icono = id.icono;
+            return (
+              <li key={f.id} className="bit-riel-paso" style={id.vars}>
+                <span className="bit-riel-punto" aria-hidden="true">
+                  {Icono ? <Icono size={14} /> : null}
+                </span>
+                <span className="bit-riel-nombre">{f.label}</span>
+                {/* Solo el módulo: la sección se nombra en la fila, donde hay
+                    ancho. Acá una etiqueta larga rompería el paso constante. */}
+                <small className="bit-riel-modulo">{id.etiquetaCorta}</small>
+              </li>
+            );
+          })}
         </ol>
 
-        <p>Pones dos fechas por fase. El resto lo arma la app.</p>
+        <p>Pones dos fechas por etapa. El resto lo arma la app.</p>
 
         {error && <Alert kind="error">{error}</Alert>}
         <div className="bit-compositor-vacio-acciones">

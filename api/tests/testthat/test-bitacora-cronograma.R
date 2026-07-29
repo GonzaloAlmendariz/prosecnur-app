@@ -19,12 +19,43 @@ test_that("el catálogo tiene las seis fases del estudio en orden de recorrido",
   expect_equal(ids, BITACORA_FASES)
 })
 
-test_that("cada fase mapea a módulos y ninguno queda huérfano entre fases", {
-  todos <- unlist(lapply(.bit_fases_catalogo(), function(f) f$modulos), use.names = FALSE)
-  # Un módulo en dos fases haría ambigua la evidencia: la misma señal contaría
+test_that("cada fase mapea a claves de evidencia y ninguna se repite entre fases", {
+  todos <- unlist(lapply(.bit_fases_catalogo(), function(f) f$evidencia), use.names = FALSE)
+  # Una clave en dos fases haría ambigua la evidencia: la misma señal contaría
   # para dos ventanas distintas.
   expect_equal(length(todos), length(unique(todos)))
   expect_true(all(vapply(BITACORA_FASES, function(f) length(.bit_fase_modulos(f)) > 0L, logical(1))))
+})
+
+test_that("cada fase apunta a un módulo real de la app y con sello propio", {
+  # El sello (ícono + color del módulo) es lo que ancla la etapa a una parte
+  # concreta de la app. Una fase sin módulo sería una abstracción de cronograma,
+  # que es justo lo que el ADR 0047 vino a evitar.
+  slugs_reales <- c("diseno-estudio", "calc-muestra", "editor-xlsform", "hojas-ruta",
+                    "recopiladores", "monitoreo", "procesamiento", "dashboard")
+  modulos <- vapply(.bit_fases_catalogo(), function(f) f$modulo, character(1))
+
+  expect_true(all(nzchar(modulos)), info = "hay una fase sin módulo de identidad")
+  expect_true(
+    all(modulos %in% slugs_reales),
+    info = paste("módulos que no existen en la app:", paste(setdiff(modulos, slugs_reales), collapse = ", "))
+  )
+  # Dos etapas con el mismo módulo compartirían color y el sello dejaría de
+  # distinguir.
+  expect_equal(length(modulos), length(unique(modulos)))
+})
+
+test_that("la identidad de la fase viaja en la vista para que el cliente resuelva el sello", {
+  vista <- .bit_cron_vista_fases(list(), .plan_empty_plan())
+  for (f in vista) {
+    expect_true(nzchar(f$modulo), info = paste("la fase", f$id, "no declara módulo"))
+    expect_true("seccion" %in% names(f))
+  }
+  campo <- Filter(function(f) f$id == "campo", vista)[[1]]
+  expect_equal(campo$modulo, "monitoreo")
+  proc <- Filter(function(f) f$id == "procesamiento", vista)[[1]]
+  expect_equal(proc$modulo, "procesamiento")
+  expect_equal(proc$seccion, "carga")
 })
 
 test_that("los siete targets heredados mapean a una fase sin dejar ninguno afuera", {
@@ -42,6 +73,9 @@ test_that("los siete targets heredados mapean a una fase sin dejar ninguno afuer
   expect_equal(.bit_fase_de_targets(list("monitoreo")), "campo")
   expect_equal(.bit_fase_de_targets(list("reportes")), "entregables")
   expect_equal(.bit_fase_de_targets(list("carga")), "procesamiento")
+  # Analítica es salida, no tubería: un .pulso viejo con ese target aterriza en
+  # Entregables, no en Procesamiento.
+  expect_equal(.bit_fase_de_targets(list("analitica")), "entregables")
   # El fallback histórico de la regex cae en Diseño, nunca se descarta.
   expect_equal(.bit_fase_de_targets(list("plan-trabajo")), "diseno")
   expect_equal(.bit_fase_de_targets(list()), "diseno")
@@ -93,8 +127,10 @@ test_that("declarar la fase reescribe los sync_targets y con ellos la ventana", 
     start_date = "2026-03-21",
     end_date = "2026-03-30"
   ))
+  # Procesamiento deja la base limpia y codificada; Analítica y Gráficos
+  # producen salidas y pertenecen a Entregables.
   targets <- unlist(plan$tasks[[1]]$sync_targets, use.names = FALSE)
-  expect_setequal(targets, c("carga", "validacion", "codificacion", "analitica"))
+  expect_setequal(targets, c("carga", "validacion", "codificacion"))
   # Las ventanas de `.plan_windows` siguen vivas porque se alimentan de targets.
   modulos <- vapply(plan$windows, function(w) w$module_id, character(1))
   expect_true("validacion" %in% modulos)
