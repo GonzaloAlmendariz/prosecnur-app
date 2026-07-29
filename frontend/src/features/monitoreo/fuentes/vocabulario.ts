@@ -75,3 +75,59 @@ export function contar(total: number, singular: string, plural: string) {
   if (!Number.isFinite(total) || total <= 0) return `Sin ${plural}`;
   return total === 1 ? `1 ${singular}` : `${total.toLocaleString("es-PE")} ${plural}`;
 }
+
+/**
+ * Texto comparable: sin tildes, sin mayúsculas y sin espacios de sobra.
+ *
+ * Para comparar lo que escribe una persona con lo que viene de una plataforma.
+ * `localeCompare` con `sensitivity: "base"` resuelve la igualdad, pero no sirve
+ * para `includes`, que es lo que hace falta cuando se busca «Egresados» dentro
+ * de «Encuesta de acreditación — Egresados 2026».
+ */
+export function sinTildes(texto: string) {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+/**
+ * Los proveedores presentes en un juego de fuentes, en nombre propio.
+ *
+ * R1: la cabecera dice QU\u00c9 hay \u2014encuestas\u2014, y de d\u00f3nde viene es metadato para
+ * el `title`. Vive aqu\u00ed y no en cada p\u00e1gina porque Acreditaci\u00f3n y Telef\u00f3nico
+ * muestran la misma cabecera, y tenerlo dos veces es c\u00f3mo se desincronizan.
+ */
+export function proveedoresDeFuentes(fuentes: ReadonlyArray<{ kind?: string }>) {
+  return Array.from(
+    new Set(fuentes.map((fuente) => (fuente.kind === "kobo" ? "Kobo" : "SurveyMonkey"))),
+  ).sort();
+}
+
+/**
+ * \u00bfEl nombre de la fuente contradice el actor que se le est\u00e1 declarando?
+ *
+ * Al conectar una fuente el actor se elige en el paso 1, antes de ver de qu\u00e9
+ * encuesta se trata. Guardar \u00abrespuestas de Administrativos\u00bb sobre una encuesta
+ * llamada \u00ab\u2026Estudiantes\u00bb es un error silencioso: nada falla, y el corte reparte
+ * las respuestas al actor equivocado hasta que alguien revisa los denominadores.
+ *
+ * Devuelve el actor que el nombre sugiere, o `null` si no hay contradicci\u00f3n. Se
+ * exige que el sugerido est\u00e9 entre los actores conocidos del estudio: buscar
+ * cualquier palabra suelta dar\u00eda falsos avisos con nombres gen\u00e9ricos.
+ */
+export function actorQueContradiceElNombre(
+  nombreDeLaFuente: string,
+  actorDeclarado: string,
+  actoresConocidos: readonly string[],
+) {
+  const declarado = sinTildes(actorDeclarado);
+  if (!declarado) return null;
+  const nombre = sinTildes(nombreDeLaFuente);
+  if (!nombre) return null;
+  const sugerido = actoresConocidos.find(
+    (item) => sinTildes(item) && nombre.includes(sinTildes(item)),
+  );
+  if (!sugerido || sinTildes(sugerido) === declarado) return null;
+  // Si el nombre menciona AMBOS \u2014\u00abDocentes y Estudiantes\u00bb\u2014 no hay contradicci\u00f3n
+  // que reportar: el nombre no desmiente lo declarado.
+  if (nombre.includes(declarado)) return null;
+  return sugerido;
+}

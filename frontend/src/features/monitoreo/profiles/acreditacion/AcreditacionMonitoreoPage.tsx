@@ -144,7 +144,7 @@ import { DefinidorDeEstados } from "./telefono/DefinidorDeEstados";
 import { DistribucionPorActor } from "./modelo/DistribucionPorActor";
 import { GraficoDeEstadosPorDia } from "./telefono/GraficoDeEstadosPorDia";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
-import { textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "../../fuentes/vocabulario";
+import { proveedoresDeFuentes, textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "../../fuentes/vocabulario";
 import { PanelConectarFuente } from "./fuentes/PanelConectarFuente";
 import { railDeFuentesAcreditacion, railDeFuentesTelefonico } from "./fuentes/railDeFuentes";
 import {
@@ -8883,6 +8883,7 @@ function AcreditacionPlatformSurveySourcesView({
   const surveySources = sources.filter(isSurveyMonkeyResponseSource);
   const koboSources = sources.filter(isKoboResponseSource);
   const platformSources = sources.filter(isPlatformResponseSource);
+  const platformProviders = proveedoresDeFuentes(platformSources);
   const linkCollectors = config?.operational_model.link_collectors ?? [];
   const configuredActorOptions = acreditacionActorOptions(platformSources);
   const actorOptions = acreditacionActorOptions(platformSources, ACREDITACION_DEFAULT_ACTORS);
@@ -8964,7 +8965,9 @@ function AcreditacionPlatformSurveySourcesView({
         <div className="mon-acr-object-surface-head">
           <div>
             <span>Encuestas en plataforma</span>
-            <strong>{fmt(platformSources.length)} fuente{platformSources.length === 1 ? "" : "s"} SurveyMonkey/Kobo</strong>
+            <strong title={platformProviders.length ? `Vienen de ${platformProviders.join(" y ")}` : undefined}>
+              {fmt(platformSources.length)} encuesta{platformSources.length === 1 ? "" : "s"} conectada{platformSources.length === 1 ? "" : "s"}
+            </strong>
           </div>
           <em>{fmt(configuredActorOptions.length)} actores detectados</em>
         </div>
@@ -18972,37 +18975,6 @@ export function acreditacionPhoneStatusLegendItems(rows: Array<Record<string, un
   }));
 }
 
-function phoneSemanticToneClass(tone: ReturnType<typeof phoneStatusTone>) {
-  if (tone === "good") return "is-effective";
-  if (tone === "warn") return "is-partial";
-  if (tone === "risk") return "is-refusal";
-  if (tone === "unswept") return "is-pending";
-  return "is-assignment";
-}
-
-function AcreditacionSemanticStatusLegend({ rows }: { rows: Array<Record<string, unknown>> }) {
-  const items = acreditacionPhoneStatusLegendItems(rows);
-  if (!items.length) return null;
-  return (
-    <div className="mon-semantic-legend is-phone" aria-label="Estados de la base telefónica">
-      {items.map((item) => (
-        <span
-          key={item.key}
-          className={phoneSemanticToneClass(item.tone)}
-          style={{ "--clarity-accent": item.palette.color } as CSSProperties}
-          title={item.detalle.length > 1
-            ? `${item.label}: ${fmt(item.value)}\n${item.detalle.map((d) => `· ${d.label}: ${fmt(d.value)}`).join("\n")}`
-            : `${item.label}: ${fmt(item.value)}`}
-        >
-          <i aria-hidden="true" />
-          <em>{item.label}</em>
-          <strong>{fmt(item.value)}</strong>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 const ETIQUETA_ESTADO_PESTANA: Record<NonNullable<MonitoreoWorkbenchRailTab["estado"]>, string> = {
   "sin-configurar": "Sin configurar",
   "no-evaluado": "No evaluado",
@@ -19152,8 +19124,9 @@ function AcreditacionClarityStrip({
         * «Estado de la base de llamadas» de más abajo muestra EXACTAMENTE los
         * mismos cinco estados, con barra proporcional y sin recortar: la tira
         * los comprimía a «Sin conta…» y «Número in…» sobre la misma pantalla.
-        * Un dato, un lugar (R3). `AcreditacionSemanticStatusLegend` sigue
-        * disponible para quien la necesite en otro contexto. */}
+        * Un dato, un lugar (R3). El componente se retiró junto con su CSS;
+        * `acreditacionPhoneStatusLegendItems` se conserva porque es quien
+        * calcula los estados y la sección de abajo se apoya en ese cálculo. */}
     </section>
   );
 }
