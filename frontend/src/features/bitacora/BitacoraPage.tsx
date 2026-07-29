@@ -25,9 +25,11 @@ import {
 import { LogbookSection } from "./LogbookSection";
 import { CronogramaSection } from "./CronogramaSection";
 import { Calendar } from "./Calendar";
+import { CanvasSection } from "./canvas/CanvasSection";
+import { apiBitacoraEstado, type BitacoraEstado } from "../../api/bitacora";
 import "./bitacora.css";
 
-type Tab = "bitacora" | "cronograma" | "calendario";
+type Tab = "bitacora" | "cronograma" | "calendario" | "canvas";
 
 const BITACORA_MODULE =
   PROSECNUR_MODULES.find((module) => module.slug === "diseno-estudio") ?? PROSECNUR_MODULES[0];
@@ -35,7 +37,12 @@ const BITACORA_MODULE =
 type BitacoraSection = ProsecnurModuleSectionMeta & { id: Tab };
 
 function isBitacoraSection(section: ProsecnurModuleSectionMeta): section is BitacoraSection {
-  return section.id === "bitacora" || section.id === "cronograma" || section.id === "calendario";
+  return (
+    section.id === "bitacora" ||
+    section.id === "cronograma" ||
+    section.id === "calendario" ||
+    section.id === "canvas"
+  );
 }
 
 const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isBitacoraSection);
@@ -46,7 +53,7 @@ const BITACORA_SECTIONS = BITACORA_MODULE.sections.filter(isBitacoraSection);
 function seccionFromSearch(search: string): Tab {
   const params = new URLSearchParams(search);
   const value = params.get(PARAMS_DIRECCION.seccion) ?? params.get("tab");
-  if (value === "cronograma" || value === "calendario") return value;
+  if (value === "cronograma" || value === "calendario" || value === "canvas") return value;
   return "bitacora";
 }
 
@@ -54,6 +61,7 @@ export default function BitacoraPage() {
   const location = useLocation();
   const [tab, setTab] = useState<Tab>(() => seccionFromSearch(location.search));
   const [plan, setPlan] = useState<PlanTrabajoState | null>(null);
+  const [bitacoraEstado, setBitacoraEstado] = useState<BitacoraEstado | null>(null);
   const [entries, setEntries] = useState<DisenoEstudioBitacoraEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,12 +74,14 @@ export default function BitacoraPage() {
     setError(null);
     setLoading(true);
     try {
-      const [planState, bitacora] = await Promise.all([
+      const [planState, bitacora, consolidado] = await Promise.all([
         apiPlanTrabajoState(),
         apiBitacoraState(),
+        apiBitacoraEstado(),
       ]);
       setPlan(planState);
       setEntries(bitacora.bitacora);
+      setBitacoraEstado(consolidado);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo abrir la bitácora.");
     } finally {
@@ -156,6 +166,9 @@ export default function BitacoraPage() {
           )}
           {tab === "calendario" && plan && (
             <Calendar state={plan} onChange={setPlan} />
+          )}
+          {tab === "canvas" && bitacoraEstado && (
+            <CanvasSection estado={bitacoraEstado} onEstado={setBitacoraEstado} />
           )}
         </div>
       </div>

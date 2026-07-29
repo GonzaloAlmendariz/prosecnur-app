@@ -131,6 +131,56 @@ export type BitacoraVinculosPayload = {
   resumenes: Record<string, BitacoraResumenDestino>;
 };
 
+// ---- Lienzo (ADR 0047) ------------------------------------------------------
+
+export type CanvasTipoNodo = "texto" | "referencia" | "grupo";
+/** El color guarda el NOMBRE del token, nunca un hex: el tema resuelve. */
+export type CanvasColor = "neutro" | "acento" | "exito" | "riesgo" | "info" | "aviso";
+export type CanvasAncla = "t" | "r" | "b" | "l";
+
+export type CanvasNodo = {
+  id: string;
+  type: CanvasTipoNodo;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z: number;
+  color: CanvasColor;
+  text: string;
+  /** Solo en nodos de referencia. El resumen se resuelve aparte, en vivo. */
+  ref: { target_type: string; target_id: string } | null;
+  links: BitacoraVinculo[];
+};
+
+export type CanvasArista = {
+  id: string;
+  from_node: string;
+  from_anchor: CanvasAncla;
+  to_node: string;
+  to_anchor: CanvasAncla;
+  label: string;
+  relation: string;
+};
+
+export type CanvasLienzo = {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  archived_at: string;
+  viewport: { x: number; y: number; zoom: number };
+  nodes: CanvasNodo[];
+  edges: CanvasArista[];
+};
+
+export type BitacoraCanvasPayload = {
+  schema: "bitacora_canvas_v1" | string;
+  updated_at: string;
+  active_canvas_id: string;
+  canvases: CanvasLienzo[];
+};
+
 export type BitacoraEstado = {
   ok: true;
   schema: "bitacora_estado_v1" | string;
@@ -143,6 +193,7 @@ export type BitacoraEstado = {
   bitacora: DisenoEstudioBitacoraEntry[];
   avisos: BitacoraAvisosPayload;
   vinculos: BitacoraVinculosPayload;
+  canvas: BitacoraCanvasPayload;
   preferencias: BitacoraPreferencias;
   contadores: { tareas: number; archivadas: number; entradas: number };
 };
@@ -343,6 +394,43 @@ export async function apiBitacoraDesvincular(
         origen_tipo: origenTipo, origen_id: origenId,
         destino_tipo: destinoTipo, destino_id: destinoId,
       }),
+    }),
+  );
+}
+
+export async function apiBitacoraCanvasCrear(title?: string) {
+  return handle<BitacoraEstado>(
+    await apiFetch("/api/bitacora/canvas", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ title }),
+    }),
+  );
+}
+
+/**
+ * Guarda un lienzo completo.
+ *
+ * Se manda el lienzo entero y no un parche porque el autosave ya viene con
+ * debounce: a esa cadencia, reconstruir el estado desde parches sería más
+ * frágil que reemplazarlo, y un parche perdido dejaría el lienzo desfasado sin
+ * que nadie lo note.
+ */
+export async function apiBitacoraCanvasGuardar(lienzo: CanvasLienzo) {
+  return handle<BitacoraEstado>(
+    await apiFetch(`/api/bitacora/canvas/${encodeURIComponent(lienzo.id)}`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ lienzo }),
+    }),
+  );
+}
+
+export async function apiBitacoraCanvasBorrar(id: string) {
+  return handle<BitacoraEstado>(
+    await apiFetch(`/api/bitacora/canvas/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: headers(),
     }),
   );
 }

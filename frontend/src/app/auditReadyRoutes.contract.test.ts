@@ -466,10 +466,13 @@ describe("audit-ready route root contract", () => {
     const { tag } = defaultPageRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
     const value = readinessValue(tag, "auditReady", "Bitácora");
 
+    // El lienzo entra como cuarta sección con el ADR 0047: es la vista que
+    // aporta la ramificación que un cronograma lineal no puede expresar.
     expect(bitacoraKeys(), "Bitácora audit tab keys").toEqual([
       "bitacora",
       "cronograma",
       "calendario",
+      "canvas",
     ]);
     expect(hasBitacoraTabKey(value), "Bitácora readiness must be `bitacora-${tab}`").toBe(true);
     expectNegatedGuard(value, "Bitácora", "loading");

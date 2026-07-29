@@ -1,0 +1,314 @@
+/* Lienzo espacial (ADR 0047). Solo tokens `--pulso-*`.
+ *
+ * Archivo propio y contenido: el umbral de monolito nuevo del audit es 8000
+ * líneas, y un lienzo es de las superficies que más CSS acumulan. Si crece,
+ * se parte antes de acercarse.
+ */
+
+.bcanvas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+}
+
+/* --- Barra --------------------------------------------------------------- */
+
+.bcanvas-barra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.bcanvas-lienzos {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.bcanvas-lienzo-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--pulso-control-height-lg);
+  padding-inline: 11px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  color: var(--pulso-text-soft);
+  font-size: 13px;
+  font-weight: var(--pulso-control-weight);
+  cursor: pointer;
+}
+
+.bcanvas-lienzo-tab:hover {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bcanvas-lienzo-tab.is-activo {
+  border-color: var(--module-accent-border, var(--pulso-border-strong));
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.bcanvas-lienzo-tab small {
+  padding: 0 5px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-3);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bcanvas-lienzo-nuevo,
+.bcanvas-acciones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--pulso-control-height-lg);
+  padding-inline: 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12.5px;
+  font-weight: var(--pulso-control-weight);
+  cursor: pointer;
+}
+
+.bcanvas-lienzo-nuevo:hover,
+.bcanvas-acciones button:hover:not(:disabled) {
+  background: var(--pulso-surface-3);
+  color: var(--pulso-text);
+}
+
+.bcanvas-acciones button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bcanvas-lienzo-tab:focus-visible,
+.bcanvas-lienzo-nuevo:focus-visible,
+.bcanvas-acciones button:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 1px;
+}
+
+.bcanvas-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-start: auto;
+}
+
+.bcanvas-pista {
+  margin: 0;
+  padding: 5px 10px;
+  border: 1px dashed var(--module-accent-border, var(--pulso-border-strong));
+  border-radius: var(--pulso-radius);
+  background: var(--module-accent-soft, var(--pulso-surface-2));
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+/* --- Viewport ------------------------------------------------------------ */
+
+.bcanvas-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  /* La rejilla se dibuja con un gradiente y no con elementos: 10.000 puntos en
+   * el DOM matarían el desplazamiento. */
+  background-image: radial-gradient(circle, var(--pulso-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.bcanvas-viewport:active {
+  cursor: grabbing;
+}
+
+.bcanvas-viewport:focus-visible {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: -2px;
+}
+
+.bcanvas-world {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  /* `will-change` SOLO acá y en lo que se arrastra. Global crearía una capa de
+   * compositor por nodo y la memoria de video se dispara. */
+  will-change: transform;
+}
+
+.bcanvas-aristas {
+  position: absolute;
+  /* El SVG cubre una zona grande y fija: las aristas viven en coordenadas de
+   * mundo y la capa entera se transforma con la cámara. */
+  left: -10000px;
+  top: -10000px;
+  width: 20000px;
+  height: 20000px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.bcanvas-aristas > * {
+  transform: translate(10000px, 10000px);
+}
+
+.bcanvas-arista {
+  fill: none;
+  stroke: var(--pulso-border-strong);
+  stroke-width: 1.5;
+}
+
+.bcanvas-arista.is-fantasma {
+  stroke: var(--module-accent, var(--pulso-primary));
+  stroke-dasharray: 4 4;
+}
+
+/* --- Nodo ---------------------------------------------------------------- */
+
+.bcanvas-nodo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  cursor: grab;
+  /* Culling barato: lo que queda fuera del viewport no se pinta, y el tamaño
+   * intrínseco evita que el layout salte al volver a entrar. */
+  content-visibility: auto;
+  contain-intrinsic-size: 220px 120px;
+}
+
+.bcanvas-nodo.is-seleccionado {
+  border-color: var(--module-accent, var(--pulso-primary));
+  box-shadow: 0 0 0 2px var(--module-accent-soft, var(--pulso-primary-soft));
+}
+
+.bcanvas-nodo.is-enfocado {
+  outline: 2px solid var(--pulso-primary-focus);
+  outline-offset: 2px;
+}
+
+.bcanvas-nodo.is-grupo {
+  background: transparent;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.bcanvas-nodo.color-acento { border-color: var(--pulso-primary-border); }
+.bcanvas-nodo.color-exito { border-color: var(--pulso-success-border); background: var(--pulso-success-bg); }
+.bcanvas-nodo.color-riesgo { border-color: var(--pulso-warn-border); background: var(--pulso-warn-bg); }
+.bcanvas-nodo.color-aviso { border-color: var(--pulso-danger-border); background: var(--pulso-danger-bg); }
+.bcanvas-nodo.color-info { border-color: var(--pulso-info-border); background: var(--pulso-info-bg); }
+
+.bcanvas-nodo-texto,
+.bcanvas-nodo-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pulso-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+.bcanvas-nodo-editor {
+  border: 0;
+  background: transparent;
+  resize: none;
+  font: inherit;
+}
+
+.bcanvas-nodo-editor:focus-visible {
+  outline: none;
+}
+
+.bcanvas-nodo-vacio {
+  color: var(--pulso-text-faint);
+}
+
+/* --- Anclajes ------------------------------------------------------------ */
+
+.bcanvas-ancla {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  cursor: crosshair;
+}
+
+.bcanvas-ancla.is-t { top: -5px; left: calc(50% - 5px); }
+.bcanvas-ancla.is-b { bottom: -5px; left: calc(50% - 5px); }
+.bcanvas-ancla.is-l { left: -5px; top: calc(50% - 5px); }
+.bcanvas-ancla.is-r { right: -5px; top: calc(50% - 5px); }
+
+/* --- Marco de selección -------------------------------------------------- */
+
+.bcanvas-marco {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px solid var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent-soft, var(--pulso-primary-soft));
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* --- Vacío --------------------------------------------------------------- */
+
+.bcanvas-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--pulso-text-soft);
+}
+
+.bcanvas-vacio strong {
+  font-size: 16px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.bcanvas-vacio p {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bcanvas-world {
+    will-change: auto;
+  }
+}

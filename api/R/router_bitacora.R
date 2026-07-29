@@ -86,6 +86,7 @@
     bitacora = .diseno_bitacora_entries(s),
     avisos = .bit_avisos_payload(s),
     vinculos = .bit_vinculos_payload(s),
+    canvas = .bit_canvas_leer(s),
     preferencias = .bit_prefs_leer(s),
     contadores = list(
       tareas = length(Filter(function(t) !nzchar(calc_str(t$archived_at, "")), plan$tasks %||% list())),
@@ -249,6 +250,41 @@ mount_bitacora <- function(pr) {
         total = length(entradas),
         markdown = markdown
       )
+    })) |>
+
+    # --- Lienzo --------------------------------------------------------------
+    plumber::pr_post("/api/bitacora/canvas",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      canvas <- .bit_canvas_crear(.bit_canvas_leer(session_get(sid)), body$title)
+      .bit_canvas_guardar(sid, canvas)
+      .bit_estado_payload(sid)
+    })) |>
+
+    # Guarda el lienzo COMPLETO. El autosave del cliente ya viene con debounce,
+    # así que a esa cadencia reemplazar es más robusto que parchear: un parche
+    # perdido dejaría el lienzo desfasado sin que nadie lo note.
+    plumber::pr_post("/api/bitacora/canvas/<id>",
+                     wrap_endpoint(function(req, res, id, ...) {
+      sid <- session_header(req)
+      body <- .bit_parse_body(req)
+      canvas <- .bit_canvas_reemplazar(
+        .bit_canvas_leer(session_get(sid)),
+        .bit_id_de_ruta(id),
+        body$lienzo %||% body
+      )
+      .bit_canvas_guardar(sid, canvas)
+      .bit_estado_payload(sid)
+    })) |>
+
+    plumber::pr_delete("/api/bitacora/canvas/<id>",
+                       wrap_endpoint(function(req, res, id, ...) {
+      sid <- session_header(req)
+      canvas <- .bit_canvas_borrar(.bit_canvas_leer(session_get(sid)), .bit_id_de_ruta(id))
+      .bit_canvas_guardar(sid, canvas)
+      .bit_recolectar_vinculos(sid)
+      .bit_estado_payload(sid)
     })) |>
 
     # --- Vínculos ------------------------------------------------------------
