@@ -14,6 +14,7 @@ import {
   apiBitacoraCanvasBorrar,
   apiBitacoraCanvasCrear,
   type BitacoraEstado,
+  type CanvasItem,
   type CanvasLienzo,
 } from "../../../api/bitacora";
 import { Alert } from "../../../components/Alert";
@@ -30,7 +31,7 @@ import { anclasAutomaticas } from "./aristaPath";
 import { escribiendoEnCampo, resolverAtajo } from "./atajos";
 import { NodoReferencia } from "./NodoReferencia";
 import { resumenVivo } from "./resumenVivo";
-import { disponerRamificacion } from "./ramificacion";
+import { altoDeNodo, disponerRamificacion, MAX_ITEMS_NODO } from "./ramificacion";
 import { ExploradorDeReferencias, type ReferenciaElegida } from "./ExploradorDeReferencias";
 import { LienzoViewport, type ApiViewport } from "./LienzoViewport";
 import { useCanvasAutosave } from "./useCanvasAutosave";
@@ -98,7 +99,7 @@ export function CanvasSection({
       const id = `nodo-${Date.now()}`;
       s.setNodes([
         ...s.nodes,
-        { id, type: "texto", x: p.x, y: p.y, w: 220, h: 120, z: 0, color: "neutro", text: "", ref: null, links: [] },
+        { id, type: "texto", x: p.x, y: p.y, w: 220, h: 120, z: 0, color: "neutro", text: "", items: [], ref: null, links: [] },
       ]);
       s.enfocar(id);
       s.seleccionar(new Set([id]));
@@ -141,6 +142,58 @@ export function CanvasSection({
       );
     },
     [cajas, store],
+  );
+
+  /**
+   * Las anotaciones cambian el alto del cuadro: si no creciera, la segunda
+   * anotación quedaría fuera de la tarjeta y el mapa mentiría sobre lo que
+   * contiene.
+   */
+  const conItems = useCallback(
+    (id: string, aplicar: (items: CanvasItem[]) => CanvasItem[]) => {
+      const s = store.getState();
+      s.setNodes(
+        s.nodes.map((n) => {
+          if (n.id !== id) return n;
+          const items = aplicar(n.items ?? []);
+          const tipo = n.ref?.target_type === "modulo" ? "modulo" : "entrada";
+          return { ...n, items, h: altoDeNodo(tipo, items.length) };
+        }),
+      );
+    },
+    [store],
+  );
+
+  const agregarItem = useCallback(
+    (id: string, texto: string) =>
+      conItems(id, (items) =>
+        items.length >= MAX_ITEMS_NODO
+          ? items
+          : [...items, { id: `item-${Date.now()}`, text: texto, done: false }],
+      ),
+    [conItems],
+  );
+
+  const alternarItem = useCallback(
+    (id: string, itemId: string) =>
+      conItems(id, (items) => items.map((i) => (i.id === itemId ? { ...i, done: !i.done } : i))),
+    [conItems],
+  );
+
+  const quitarItem = useCallback(
+    (id: string, itemId: string) => conItems(id, (items) => items.filter((i) => i.id !== itemId)),
+    [conItems],
+  );
+
+  /** Arranca el gesto de conectar desde el botón del cuadro, no desde un ancla. */
+  const empezarConexion = useCallback(
+    (id: string) => {
+      const s = store.getState();
+      s.enfocar(id);
+      s.seleccionar(new Set([id]));
+      setArmandoConexion(true);
+    },
+    [store],
   );
 
   /** Un destino que desapareció se convierte en nota, sin perder su lugar. */
@@ -443,6 +496,10 @@ export function CanvasSection({
               // recién insertado no se lee como huérfano.
               resumen={resumenVivo(estado, nodo.ref)}
               onDesvincular={convertirEnNota}
+              onAgregarItem={agregarItem}
+              onAlternarItem={alternarItem}
+              onQuitarItem={quitarItem}
+              onConectar={empezarConexion}
               {...handlers}
             />
           )}

@@ -100,9 +100,37 @@ BITACORA_ANCLAS_ARISTA <- c("t", "r", "b", "l")
     z = calc_int(x$z, 0L, min = 0L, max = 100000L),
     color = calc_enum(x$color, BITACORA_COLORES_NODO, "neutro"),
     text = .bit_texto(x$text, 4000L),
+    items = .bit_canvas_items(x$items),
     ref = ref,
     links = .bit_vinculos(x$links)
   )
+}
+
+# Tope de anotaciones dentro de un cuadro. Una tarjeta con 40 viñetas dejó de
+# ser un nodo de un mapa: es un documento, y para eso está la bitácora.
+BITACORA_MAX_ITEMS_NODO <- 12L
+
+#' Anotaciones propias de un nodo.
+#'
+#' Conviven con el resumen vivo sin mezclarse: el resumen dice qué ES el destino
+#' y lo resuelve la app; los items dicen qué anotó el usuario SOBRE él y no los
+#' toca nadie más. Por eso viven en el nodo y no en el destino — anotar «faltó
+#' el criterio de edad» sobre Validación en ESTE mapa no puede reescribir la
+#' sección Validación para todo el proyecto.
+.bit_canvas_items <- function(x) {
+  if (is.null(x) || !is.list(x)) return(list())
+  fuera <- lapply(x, function(item) {
+    texto <- .bit_texto(if (is.list(item)) item$text else item, 240L)
+    if (!nzchar(texto)) return(NULL)
+    list(
+      id = { i <- .bit_texto(if (is.list(item)) item$id else "", 80L); if (nzchar(i)) i else .bit_id("item") },
+      text = texto,
+      done = calc_bool(if (is.list(item)) item$done else FALSE, FALSE)
+    )
+  })
+  fuera <- Filter(Negate(is.null), fuera)
+  if (length(fuera) > BITACORA_MAX_ITEMS_NODO) fuera <- fuera[seq_len(BITACORA_MAX_ITEMS_NODO)]
+  unname(fuera)
 }
 
 .bit_canvas_arista <- function(x = list(), ids_nodos = character(0)) {

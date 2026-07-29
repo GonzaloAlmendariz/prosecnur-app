@@ -1,9 +1,10 @@
-import { memo } from "react";
-import { Link } from "react-router-dom";
-import { ArrowUpRight, Flag, Unlink } from "../../../vendor/lucide-react";
+import { memo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowUpRight, Check, Flag, Link2, Plus, Unlink, X } from "../../../vendor/lucide-react";
 
 import type { BitacoraResumenDestino, CanvasNodo } from "../../../api/bitacora";
 import { identidadDeDestino } from "../identidadDeFase";
+import { MAX_ITEMS_NODO } from "./ramificacion";
 import { etiquetaTono } from "../logbook/gramatica";
 import type { Ancla } from "./aristaPath";
 
@@ -36,6 +37,10 @@ export const NodoReferencia = memo(
     onPointerDown,
     onAnclaPointerDown,
     onDesvincular,
+    onAgregarItem,
+    onAlternarItem,
+    onQuitarItem,
+    onConectar,
   }: {
     nodo: CanvasNodo;
     resumen: BitacoraResumenDestino;
@@ -45,7 +50,18 @@ export const NodoReferencia = memo(
     onPointerDown: (event: React.PointerEvent, id: string) => void;
     onAnclaPointerDown: (event: React.PointerEvent, id: string, ancla: Ancla) => void;
     onDesvincular: (id: string) => void;
+    onAgregarItem: (id: string, texto: string) => void;
+    onAlternarItem: (id: string, itemId: string) => void;
+    onQuitarItem: (id: string, itemId: string) => void;
+    onConectar: (id: string) => void;
   }) {
+    const navegar = useNavigate();
+    const [confirmando, setConfirmando] = useState(false);
+    const [nuevoItem, setNuevoItem] = useState<string | null>(null);
+    // Escape cierra el campo, y cerrarlo dispara `blur`, que confirmaría lo
+    // escrito: cancelar terminaba agregando la anotación que se descartó. La
+    // marca vive en una ref porque el `blur` lee el closure del render viejo.
+    const canceladoRef = useRef(false);
     const ref = nodo.ref;
     const esPieza = ref?.target_type === "modulo";
     const identidad = esPieza ? identidadDeDestino(ref!.target_id) : null;
@@ -100,16 +116,36 @@ export const NodoReferencia = memo(
                   «Módulo» —hasta los que no lo eran—. */}
               <small>{contexto}</small>
             </span>
-            {/* El nodo no describe el lugar: lleva a él. Un mapa que no se
-                puede recorrer es un dibujo. */}
-            <Link
-              to={identidad.href}
-              className="bcanvas-ref-ir"
-              onPointerDown={(event) => event.stopPropagation()}
-              aria-label={`Ir a ${identidad.etiquetaModulo}`}
-            >
-              <ArrowUpRight size={13} />
-            </Link>
+            <span className="bcanvas-ref-acciones">
+              {/* Conectar es el gesto PRINCIPAL de un cuadro: un mapa se arma
+                  cableando piezas con las entradas que las explican. Antes solo
+                  se podía arrastrando desde un ancla diminuta que aparecía al
+                  seleccionar, o con un atajo — invisible para quien no lo sabe. */}
+              <button
+                type="button"
+                className="bcanvas-ref-boton"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onConectar(nodo.id)}
+                title="Conectar con otro cuadro"
+                aria-label={`Conectar ${identidad.etiquetaCorta} con otro cuadro`}
+              >
+                <Link2 size={13} />
+              </button>
+              {/* Ir PIDE CONFIRMACIÓN: navegar saca del lienzo, y un click de
+                  más mientras se acomoda el mapa no puede costar el lugar donde
+                  estabas. Es la acción destructiva de esta superficie. */}
+              <button
+                type="button"
+                className="bcanvas-ref-boton"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => setConfirmando(true)}
+                aria-expanded={confirmando}
+                title={`Ir a ${identidad.etiquetaModulo}`}
+                aria-label={`Ir a ${identidad.etiquetaModulo}`}
+              >
+                <ArrowUpRight size={13} />
+              </button>
+            </span>
           </div>
         ) : (
           <div className="bcanvas-ref-dato">
@@ -125,6 +161,110 @@ export const NodoReferencia = memo(
             {resumen.detalle && <p>{resumen.detalle}</p>}
             {resumen.fecha && <small>{resumen.fecha}</small>}
           </div>
+        )}
+
+        {confirmando && (
+          <div className="bcanvas-ref-confirmar" role="alertdialog" aria-label="Salir del lienzo">
+            <span>Salir del lienzo e ir a {identidad?.etiquetaModulo}?</span>
+            <span className="bcanvas-ref-confirmar-botones">
+              <button
+                type="button"
+                className="is-primario"
+                autoFocus
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => navegar(identidad?.href ?? "")}
+              >
+                Ir
+              </button>
+              <button
+                type="button"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => setConfirmando(false)}
+              >
+                Quedarme
+              </button>
+            </span>
+          </div>
+        )}
+
+        {/* Anotaciones del cuadro. Van bajo el resumen y separadas de él: lo de
+            arriba lo resuelve la app y cambia solo; esto lo escribió el usuario
+            sobre ESTE mapa y no lo toca nadie más. */}
+        {(nodo.items.length > 0 || nuevoItem !== null) && (
+          <ul className="bcanvas-ref-items">
+            {nodo.items.map((item) => (
+              <li key={item.id} className={item.done ? "is-hecho" : undefined}>
+                <button
+                  type="button"
+                  className="bcanvas-ref-item-marca"
+                  role="checkbox"
+                  aria-checked={item.done}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => onAlternarItem(nodo.id, item.id)}
+                >
+                  {item.done ? <Check size={10} /> : null}
+                </button>
+                <span>{item.text}</span>
+                <button
+                  type="button"
+                  className="bcanvas-ref-item-quitar"
+                  aria-label={`Quitar ${item.text}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => onQuitarItem(nodo.id, item.id)}
+                >
+                  <X size={10} />
+                </button>
+              </li>
+            ))}
+            {nuevoItem !== null && (
+              <li className="is-nuevo">
+                <input
+                  autoFocus
+                  value={nuevoItem}
+                  placeholder="Qué anotas sobre esto"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onChange={(event) => setNuevoItem(event.target.value)}
+                  onBlur={() => {
+                    if (canceladoRef.current) {
+                      canceladoRef.current = false;
+                      return;
+                    }
+                    if (nuevoItem.trim()) onAgregarItem(nodo.id, nuevoItem.trim());
+                    setNuevoItem(null);
+                  }}
+                  onKeyDown={(event) => {
+                    // El lienzo escucha teclas sueltas: sin esto, escribir
+                    // «nota» crea nodos mientras se anota.
+                    event.stopPropagation();
+                    if (event.key === "Escape") {
+                      canceladoRef.current = true;
+                      setNuevoItem(null);
+                    }
+                    if (event.key === "Enter") {
+                      if (nuevoItem.trim()) onAgregarItem(nodo.id, nuevoItem.trim());
+                      // Se queda abierto: anotar dos cosas seguidas es lo normal.
+                      setNuevoItem("");
+                    }
+                  }}
+                />
+              </li>
+            )}
+          </ul>
+        )}
+
+        {/* Siempre visible, no solo al seleccionar: su espacio ya está
+            reservado en el alto, así que esconderlo deja un hueco mudo y la
+            capacidad de anotar queda sin descubrir. Atenuado hasta el hover. */}
+        {nuevoItem === null && nodo.items.length < MAX_ITEMS_NODO && (
+          <button
+            type="button"
+            className="bcanvas-ref-anadir"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => setNuevoItem("")}
+          >
+            <Plus size={11} />
+            <span>Anotar</span>
+          </button>
         )}
 
         {(seleccionado || enfocado) && (
