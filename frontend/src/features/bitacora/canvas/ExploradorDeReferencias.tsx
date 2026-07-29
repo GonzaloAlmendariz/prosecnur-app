@@ -11,7 +11,7 @@ import {
 
 import type { BitacoraEstado } from "../../../api/bitacora";
 import type { BitacoraTipoDestino } from "../../../api/planTrabajo";
-import { aplanarArbol, arbolDeLaApp, resolverDestino, type NodoApp } from "../arbolDeLaApp";
+import { aplanarArbol, arbolReferenciable, resolverDestino, type NodoApp } from "../arbolDeLaApp";
 import "./canvas.css";
 
 export type ReferenciaElegida = {
@@ -77,7 +77,7 @@ export function ExploradorDeReferencias({
     if (!actual) {
       // Raíz: los módulos, más el material del proyecto como dos ramas propias.
       return [
-        ...arbolDeLaApp().map(filaDePieza),
+        ...arbolReferenciable().map(filaDePieza),
         ramaDelProyecto("hitos", "Hitos del cronograma", estado.plan.tasks.filter((t) => !t.archived_at).length),
         ramaDelProyecto("entradas", "Entradas de bitácora", estado.bitacora.filter((e) => !e.archived_at).length),
       ];

@@ -356,6 +356,9 @@ calendario de 3.15 a 5.01 sin tocar ninguno de los dos: los arregló el token.
 | Las aristas de ramificación dicen `contiene` | Reusar `bloquea` | «Bloquea» haría que el mapa se lea como un grafo de precedencias | Bajo |
 | **Se retira la fase «Diseño»** | Mantener las seis | El cronograma se construye DESDE la bitácora: una fase que apunta al módulo donde el usuario ya está parado es la superficie mirándose a sí misma. Lo que se planifica desde acá empieza después | Medio — hay que rehacer la migración 2→3 |
 | El fallback de clasificación pasa a Campo | Dejarlo en Diseño (que ya no existe) | En un estudio de encuestas lo que no se supo clasificar casi siempre es trabajo de campo; descartarlo dejaría el cronograma con huecos | Bajo |
+| **Bitácora y sus secciones no se ofrecen como destino** | Ofrecer los 8 módulos | Misma razón que la fase «Diseño»: el lienzo vive dentro de Bitácora, así que un nodo que apunta a Cronograma, Calendario o al propio Lienzo es la superficie mirándose a sí misma | Bajo |
+| El árbol de RESOLUCIÓN sigue completo | Filtrar también la resolución | Si encogiera junto con la oferta, los nodos ya guardados que apuntan a Bitácora se leerían como huérfanos y ofrecerían convertirse en nota | Bajo |
+| La búsqueda busca sobre lo ofrecible | Buscar sobre el árbol completo | Sería una puerta trasera: escribir «cronograma» devolvería lo que el recorrido esconde | Bajo |
 
 El cronograma queda con **cinco** fases —Muestra, Instrumento, Campo,
 Procesamiento y Entregables— y el plan sube a `plan_trabajo_v3`. El salto 2→3

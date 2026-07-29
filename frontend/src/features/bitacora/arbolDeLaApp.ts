@@ -52,9 +52,29 @@ const SEP_MODO = "::";
 /**
  * Árbol completo. Se construye en cada llamada porque es barato (~70 nodos) y
  * memorizarlo obligaría a invalidar la caché al cambiar el registro.
+ *
+ * Incluye TODO, también lo que no se ofrece como destino: se usa para resolver
+ * claves ya guardadas, y un nodo dejaría de resolver —y se leería como
+ * huérfano— si el árbol de resolución encogiera junto con el de oferta.
  */
 export function arbolDeLaApp(): NodoApp[] {
   return PROSECNUR_MODULES.map(nodoDeModulo);
+}
+
+/**
+ * Módulos que NO se ofrecen como destino de una referencia.
+ *
+ * El lienzo vive dentro de Bitácora, así que un nodo que apunta a Bitácora —o a
+ * Cronograma, Calendario o al propio Lienzo— es la superficie mirándose a sí
+ * misma: no declara nada, igual que la fase «Diseño» que se retiró del
+ * cronograma por la misma razón. Los hitos y las entradas SÍ se ofrecen: son
+ * contenido del estudio, no la superficie que los muestra.
+ */
+export const MODULOS_NO_REFERENCIABLES: readonly string[] = ["diseno-estudio"];
+
+/** El árbol que el explorador ofrece: todo menos la superficie que lo contiene. */
+export function arbolReferenciable(): NodoApp[] {
+  return arbolDeLaApp().filter((n) => !MODULOS_NO_REFERENCIABLES.includes(n.moduloSlug));
 }
 
 function nodoDeModulo(modulo: ProsecnurModuleMeta): NodoApp {
@@ -169,13 +189,17 @@ export function padreDe(clave: string): string | null {
   return corte > 0 ? clave.slice(0, corte) : null;
 }
 
-/** Todas las hojas y ramas en una sola lista, para buscar por texto. */
+/**
+ * Todas las hojas y ramas ofrecibles, en una sola lista, para buscar por texto.
+ * Busca sobre lo mismo que se puede recorrer: si la búsqueda ofreciera algo que
+ * el árbol no muestra, sería una puerta trasera a lo que se decidió no ofrecer.
+ */
 export function aplanarArbol(): NodoApp[] {
   const salida: NodoApp[] = [];
   const visitar = (n: NodoApp) => {
     salida.push(n);
     n.hijos.forEach(visitar);
   };
-  arbolDeLaApp().forEach(visitar);
+  arbolReferenciable().forEach(visitar);
   return salida;
 }
