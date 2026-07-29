@@ -65,7 +65,8 @@ monitoreo_territorial_overview_facts <- function(dashboard) {
 # `avance_universo_pct` es el respaldo cuando no hay meta que perseguir.
 .MONITOREO_OVERVIEW_EFECTIVIDAD_KEYS <- c(
   "efectivas", "universo", "parciales", "sin_respuesta", "meta",
-  "avance_pct", "avance_universo_pct", "actores", "inconsistencias"
+  "avance_pct", "avance_universo_pct", "actores", "actores_cumplidos",
+  "rezagado", "rezagado_pct", "inconsistencias"
 )
 
 # Suma una columna de un tabular que puede venir orientado por columna
@@ -115,6 +116,11 @@ monitoreo_efectividad_overview_facts <- function(dashboard) {
   pct_meta <- .monitoreo_client_report_pct(efectivas, meta)
   pct_universo <- .monitoreo_client_report_pct(efectivas, universo)
   as_pct <- function(p) if (is.finite(p)) round(100 * p, 1) else -1
+  # Con cuotas por actor, el agregado esconde al que esta parado: en un estudio
+  # real Egresados iba al 58% y Estudiantes al 1%, y el promedio decia 36%. El
+  # agregado sigue siendo la cifra (orienta y es comparable entre proyectos)
+  # pero viaja ademas quien va ultimo, que es donde hay que mirar.
+  rezagado <- .monitoreo_overview_worst_actor(actors)
   list(
     efectivas = as.integer(efectivas),
     universo = as.integer(universo),
@@ -124,8 +130,54 @@ monitoreo_efectividad_overview_facts <- function(dashboard) {
     avance_pct = as_pct(pct_meta),
     avance_universo_pct = as_pct(pct_universo),
     actores = as.integer(.monitoreo_overview_rows_count(actors)),
+    actores_cumplidos = as.integer(.monitoreo_overview_actors_done(actors)),
+    rezagado = .monitoreo_scalar(rezagado$actor, ""),
+    rezagado_pct = if (is.finite(rezagado$pct)) round(100 * rezagado$pct, 1) else -1,
     inconsistencias = as.integer(.monitoreo_num((dashboard$kpis %||% list())$inconsistencies, 0))
   )
+}
+
+# Fila-a-fila del tabular de actores, tolerando df o lista de registros.
+.monitoreo_overview_actor_rows <- function(actors) {
+  if (is.data.frame(actors)) {
+    if (!nrow(actors)) return(list())
+    return(lapply(seq_len(nrow(actors)), function(i) as.list(actors[i, , drop = FALSE])))
+  }
+  if (is.list(actors)) return(actors)
+  list()
+}
+
+# Avance de un actor: contra su meta si la declara, contra su universo si no.
+.monitoreo_overview_actor_pct <- function(row) {
+  efectivas <- .monitoreo_num(row$Efectivas, NA_real_)
+  meta <- .monitoreo_num(row$Meta, NA_real_)
+  den <- if (is.finite(meta) && meta > 0) meta else .monitoreo_num(row$Universo, NA_real_)
+  .monitoreo_client_report_pct(efectivas, den)
+}
+
+.monitoreo_overview_worst_actor <- function(actors) {
+  rows <- .monitoreo_overview_actor_rows(actors)
+  # Con un solo actor no hay "rezagado": el agregado ya lo dice todo.
+  if (length(rows) < 2L) return(list(actor = "", pct = NA_real_))
+  worst <- list(actor = "", pct = NA_real_)
+  for (row in rows) {
+    if (!is.list(row)) next
+    pct <- .monitoreo_overview_actor_pct(row)
+    if (!is.finite(pct)) next
+    if (!is.finite(worst$pct) || pct < worst$pct) {
+      worst <- list(actor = .monitoreo_scalar(row$Actor, ""), pct = pct)
+    }
+  }
+  worst
+}
+
+.monitoreo_overview_actors_done <- function(actors) {
+  rows <- .monitoreo_overview_actor_rows(actors)
+  sum(vapply(rows, function(row) {
+    if (!is.list(row)) return(FALSE)
+    pct <- .monitoreo_overview_actor_pct(row)
+    isTRUE(is.finite(pct) && pct >= 1)
+  }, logical(1)))
 }
 
 # Espejo de aulas universitarias. Aqui el tablero de la familia ya vive bajo

@@ -154,6 +154,7 @@
   # familias (respuestas recolectadas vs universo contactado).
   valid_label <- "válidos"; collected_label <- "recolectados"
   avance_label <- "avance de campo"
+  actors_total <- 0L; actors_done <- 0L; lagging <- ""; lagging_pct <- -1
   if (identical(fam, "territorial")) {
     k <- snap$territorial_overview_facts %||% (dash$territorial_reports %||% list())$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total_respuestas, 0))
@@ -199,6 +200,12 @@
         avance <- .overview_pct(k$avance_universo_pct)
         avance_label <- "avance sobre universo"
       }
+      # Cuotas por actor/segmento: el agregado orienta, pero quien decide donde
+      # mirar es el que va ultimo. Sin el, un 36% global esconde un actor al 1%.
+      actors_total <- as.integer(.diseno_num(k$actores, 0))
+      actors_done <- as.integer(.diseno_num(k$actores_cumplidos, 0))
+      lagging <- .diseno_scalar(k$rezagado, "")
+      lagging_pct <- .overview_pct(k$rezagado_pct)
     } else {
       # Sin modelo de efectividad (aun no se sirvio el modulo) degradamos a un
       # conteo honesto: cuantas respuestas hay. NO se reporta avance ni
@@ -208,11 +215,13 @@
       alerts <- as.integer(.diseno_num(gk$inconsistencies, 0))
     }
   } else {
+    # Cualquier otra familia declarada por el engine (hoy `digital_general`) y
+    # las que vengan: se reporta INVENTARIO, no avance. El bloque `kpis`
+    # generico divide filas crudas entre `objetivo_total`, que es de donde
+    # salia el 444.9% de acreditacion; publicar ese cociente para una familia
+    # cuyo modelo no conocemos repetiria el mismo error con otro nombre.
     k <- dash$kpis %||% list()
     collected <- as.integer(.diseno_num(k$total, 0))
-    valid <- as.integer(.diseno_num(k$valid, 0))
-    target <- as.integer(.diseno_num(k$target, 0))
-    avance <- .overview_pct(k$avance_pct)
     alerts <- as.integer(.diseno_num(k$inconsistencies, 0))
   }
   list(
@@ -225,7 +234,11 @@
     alerts = alerts,
     valid_label = valid_label,
     collected_label = collected_label,
-    avance_label = avance_label
+    avance_label = avance_label,
+    actors_count = actors_total,
+    actors_done = actors_done,
+    lagging_actor = lagging,
+    lagging_pct = lagging_pct
   )
 }
 
@@ -354,7 +367,31 @@
     source_kind = source_kind,
     questions_count = as.integer(questions),
     sections_count = as.integer(sections),
-    catalogs_count = as.integer(catalogs)
+    catalogs_count = as.integer(catalogs),
+    # Cuantos instrumentos hay vinculados al estudio: el borrador del editor es
+    # UNO de ellos, asi que con varios la cuenta de preguntas de arriba no
+    # describe el estudio y la tarjeta debe decir cuantos hay.
+    instruments_count = as.integer(.diseno_instruments_count(s))
+  )
+}
+
+# Procesamiento: forma del proyecto (unibase vs multibase) y cuantas bases
+# llegaron a tener analitica lista. El avance de las cinco fases es GLOBAL en
+# sesion (auditoria_run, codif_aplicado...), no por base; lo unico que si esta
+# por base es `analitica_status_por_base`. Se publica lo que existe y no se
+# inventa un avance por base que el backend no sabe.
+.overview_procesamiento_facts <- function(s, protocol) {
+  por_base <- s$analitica_status_por_base %||% list()
+  listas <- 0L
+  if (is.list(por_base)) {
+    listas <- sum(vapply(por_base, function(estado) {
+      is.list(estado) && length(estado) > 0L
+    }, logical(1)))
+  }
+  list(
+    processing_mode = .diseno_scalar(protocol$processing_mode, "multibase"),
+    bases_count = as.integer(.diseno_num(protocol$bases_count, 0)),
+    bases_con_analitica = as.integer(listas)
   )
 }
 
@@ -438,7 +475,8 @@
                      list(family = "", has_snapshot = FALSE, collected = 0L, valid = 0L,
                           target = 0L, avance_pct = -1, alerts = 0L,
                           valid_label = "válidos", collected_label = "recolectados",
-                          avance_label = "avance de campo")),
+                          avance_label = "avance de campo", actors_count = 0L,
+                          actors_done = 0L, lagging_actor = "", lagging_pct = -1)),
     calc = safe(.overview_calc_facts(s),
                 list(macro_familia = "", mode = "general", aulas_titulares = 0L,
                      students_covered = 0L, faculties_count = 0L, territories_count = 0L,
@@ -452,7 +490,10 @@
                               faculties_count = 0L, eligible_total = 0L)),
     editor = safe(.overview_form_facts(s),
                   list(source_kind = "", questions_count = 0L, sections_count = 0L,
-                       catalogs_count = 0L)),
+                       catalogs_count = 0L, instruments_count = 0L)),
+    procesamiento = safe(.overview_procesamiento_facts(s, protocol),
+                         list(processing_mode = "multibase", bases_count = 0L,
+                              bases_con_analitica = 0L)),
     dashboard = safe(.overview_dashboard_facts(s),
                      list(sections_count = 0L, excluded_vars_count = 0L, confirmed = FALSE,
                           published = FALSE, published_at = "", rows_count = 0L))

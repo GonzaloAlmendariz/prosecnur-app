@@ -67,6 +67,15 @@ export type ProjectOverviewFacts = {
     valid_label?: string;
     collected_label?: string;
     avance_label?: string;
+    /**
+     * Cuotas por actor/segmento. El agregado orienta y es comparable entre
+     * proyectos, pero esconde al que está parado: sin `lagging_actor`, un 65%
+     * global no deja ver un actor al 1%. `-1` en `lagging_pct` = sin dato.
+     */
+    actors_count?: number;
+    actors_done?: number;
+    lagging_actor?: string;
+    lagging_pct?: number;
   };
   calc: {
     macro_familia: string;
@@ -103,6 +112,17 @@ export type ProjectOverviewFacts = {
     questions_count: number;
     sections_count: number;
     catalogs_count: number;
+    /** Instrumentos vinculados al estudio. El borrador del editor es uno de
+        ellos, así que con varios `questions_count` no describe el estudio. */
+    instruments_count?: number;
+  };
+  procesamiento?: {
+    /** "unibase" | "multibase". */
+    processing_mode: string;
+    bases_count: number;
+    /** Bases que ya tienen analítica. Las otras 4 fases son flags globales de
+        sesión, no por base: no hay avance por base que reportar. */
+    bases_con_analitica: number;
   };
   dashboard: {
     sections_count: number;

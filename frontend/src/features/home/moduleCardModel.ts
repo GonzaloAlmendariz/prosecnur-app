@@ -259,11 +259,25 @@ export function buildModuleCardView(
         proc.ppt ? "PPT" : "",
         proc.word ? "Word" : "",
       ].filter(Boolean);
-      const cardFacts: ModuleCardFact[] = [
-        { label: "bases", value: formatCount(metrics.bases_count) },
-        { label: "registros", value: formatCount(metrics.records_count) },
-        { label: "variables", value: formatCount(metrics.variables_count) },
-      ];
+      // Multibase: el avance de las 5 fases es global, pero la analítica sí se
+      // registra por base. Decir "1 de 3 bases" evita que un 2/5 global se lea
+      // como si el estudio entero estuviera parejo.
+      const processing = facts.procesamiento;
+      const multibase = (processing?.bases_count ?? metrics.bases_count) > 1;
+      const cardFacts: ModuleCardFact[] = multibase
+        ? [
+            {
+              label: "bases con analítica",
+              value: `${formatCount(processing?.bases_con_analitica ?? 0)} de ${formatCount(processing?.bases_count ?? metrics.bases_count)}`,
+            },
+            { label: "registros", value: formatCount(metrics.records_count) },
+            { label: "variables", value: formatCount(metrics.variables_count) },
+          ]
+        : [
+            { label: "bases", value: formatCount(metrics.bases_count) },
+            { label: "registros", value: formatCount(metrics.records_count) },
+            { label: "variables", value: formatCount(metrics.variables_count) },
+          ];
       if (outputParts.length > 0) {
         cardFacts.push({ label: "salidas", value: outputParts.join(" · ") });
       }
@@ -338,6 +352,17 @@ export function buildModuleCardView(
           : monitoring.collected > 0
             ? `${formatCount(monitoring.valid)} ${validLabel} de ${formatCount(monitoring.collected)}`
             : "";
+      // Con cuotas por actor el agregado no basta: la tarjeta nombra al que va
+      // último, que es donde hay que mirar. Solo cuando hay más de un actor y
+      // de verdad está rezagado respecto del conjunto.
+      const lagging =
+        monitoring.actors_count && monitoring.actors_count > 1 &&
+        monitoring.lagging_actor &&
+        typeof monitoring.lagging_pct === "number" &&
+        monitoring.lagging_pct >= 0 &&
+        monitoring.lagging_pct < monitoring.avance_pct
+          ? `${monitoring.lagging_actor} al ${Math.round(monitoring.lagging_pct)}%`
+          : "";
       const alertText =
         monitoring.alerts > 0 ? `${formatCount(monitoring.alerts)} por revisar` : "";
       return {
@@ -353,7 +378,7 @@ export function buildModuleCardView(
             : undefined,
         viz,
         sub:
-          progressText ||
+          [progressText, lagging].filter(Boolean).join(" · ") ||
           alertText ||
           (nodeState === "ready"
             ? "Tablero operativo conectado"
@@ -456,6 +481,10 @@ export function buildModuleCardView(
     case "editor-xlsform": {
       const editor = facts.editor;
       const hasQuestions = editor.questions_count > 0;
+      // Un estudio puede vincular varios instrumentos; el editor solo cuenta
+      // las preguntas de UNO. Con más de uno, la cifra honesta es cuántos hay.
+      const instruments = editor.instruments_count ?? 0;
+      const multiInstrument = instruments > 1;
       const origin =
         FORM_ORIGIN_LABEL[editor.source_kind] ??
         (editor.source_kind ? capitalize(editor.source_kind) : "Sin origen registrado");
@@ -463,10 +492,16 @@ export function buildModuleCardView(
         state: nodeState,
         statusLabel: stateLabel(nodeState),
         emphasis: hasQuestions ? undefined : "activity",
-        viz: hasQuestions
-          ? { kind: "stat", value: formatCount(editor.questions_count), label: "preguntas" }
-          : { kind: "stat", value: "Sin preguntas", label: "cuestionario" },
-        sub: hasQuestions ? "Cuestionario en edición" : "Empieza o importa un formulario",
+        viz: multiInstrument
+          ? { kind: "stat", value: formatCount(instruments), label: "instrumentos" }
+          : hasQuestions
+            ? { kind: "stat", value: formatCount(editor.questions_count), label: "preguntas" }
+            : { kind: "stat", value: "Sin preguntas", label: "cuestionario" },
+        sub: multiInstrument
+          ? `${formatCount(editor.questions_count)} preguntas en el que estás editando`
+          : hasQuestions
+            ? "Cuestionario en edición"
+            : "Empieza o importa un formulario",
         facts: [
           { label: "secciones", value: formatCount(editor.sections_count) },
           { label: "catálogos", value: formatCount(editor.catalogs_count) },
