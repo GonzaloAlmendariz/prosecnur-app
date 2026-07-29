@@ -35,6 +35,18 @@
 # / Efectivas / Parciales / Sin respuesta / Meta — la misma fuente del "Reporte
 # de avance para cliente" que ve el usuario. Agregarla da exactamente el par
 # (efectivas, universo) que el modulo publica.
+#
+# ASIMETRIA DELIBERADA entre familias, que NO hay que "corregir" por simetria:
+#
+#   territorial (Kobo)      las de REVISION SI cuentan como avance. Siguen
+#                           siendo efectivas; solo estan en revision.
+#   acreditacion (SurveyMonkey)  las PARCIALES NO cuentan como efectivas, salvo
+#                           que el estudio declare una excepcion explicita.
+#
+# El motivo es de plataforma: "parcial" es un concepto de SurveyMonkey (usado en
+# acreditaciones) y significa cuestionario incompleto. Kobo no tiene ese
+# concepto, asi que en territorial no existe nada equivalente que excluir: una
+# respuesta en revision es un levantamiento completo pendiente de aprobar.
 
 # KPIs minimos que consume la tarjeta de Monitoreo territorial del home. Deben
 # coincidir con las llaves que lee .overview_monitoreo_facts (project_overview.R).
@@ -124,6 +136,8 @@ monitoreo_efectividad_overview_facts <- function(dashboard, goals = NULL) {
   list(
     efectivas = as.integer(efectivas),
     universo = as.integer(universo),
+    # Se espejan para poder mostrarlas, pero NO entran en `efectivas`: una
+    # entrevista parcial no es una entrevista (ver la nota de asimetria arriba).
     parciales = as.integer(.monitoreo_overview_sum_col(actors, "Parciales")),
     sin_respuesta = as.integer(.monitoreo_overview_sum_col(actors, "Sin respuesta")),
     meta = as.integer(meta),
