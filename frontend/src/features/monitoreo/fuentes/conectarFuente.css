@@ -66,7 +66,7 @@
   background:
     linear-gradient(168deg, color-mix(in srgb, var(--module-accent) 13%, transparent), transparent 74%),
     color-mix(in srgb, var(--module-accent) 4%, var(--pulso-bg));
-  padding: 18px 16px;
+  padding: 18px 20px;
   overflow-y: auto;
 }
 
@@ -110,7 +110,7 @@
 
 .fuentes-conectar-guion ol {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -129,7 +129,7 @@
   border: 1px solid transparent;
   border-radius: var(--pulso-radius-card);
   background: transparent;
-  padding: 11px 12px;
+  padding: 12px 12px;
   text-align: left;
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
@@ -163,7 +163,7 @@
 .fuentes-conectar-guion li button strong {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: 12.5px;
   font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
@@ -296,7 +296,7 @@
 .fuentes-conectar-pasos li {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: 11px;
   color: var(--pulso-text-faint);
 }
@@ -357,7 +357,7 @@
 .fuentes-conectar-grupo input {
   width: 100%;
   min-height: var(--pulso-control-height-lg);
-  padding: 0 11px;
+  padding: 0 12px;
   border: 1px solid var(--pulso-border-strong);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
@@ -386,10 +386,10 @@
 .fuentes-conectar-opciones button {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
   min-height: 62px;
-  padding: 12px 13px;
+  padding: 12px 12px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
@@ -454,7 +454,7 @@
 .fuentes-conectar-hecho {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   margin: 0 0 12px;
   padding: 8px 10px;
   border: 1px solid var(--pulso-success-border);
@@ -467,7 +467,7 @@
 .fuentes-conectar-error {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   margin: 0 0 12px;
   padding: 8px 10px;
   border: 1px solid var(--pulso-danger-border);
@@ -494,7 +494,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
@@ -550,7 +550,7 @@
   margin-top: 4px;
 }
 .fuentes-conectar-columnas i {
-  padding: 2px 7px;
+  padding: 2px 8px;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-surface);

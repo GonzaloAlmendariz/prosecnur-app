@@ -125,6 +125,31 @@ esta corrección pueden estar altos por la misma razón; las versalitas que se
 retiraron allí sí eran visibles —se comprobaron en captura—, pero el número que
 las acompaña no es fiable.
 
+## Sideover «Conectar fuente» — 2026-07-30
+
+Primer objetivo del pase nuevo, señalado por Gonzalo como lo más flojo. El
+componente es **compartido** (`fuentes/ConectarFuente.tsx` y su CSS), así que lo
+medido y lo corregido alcanza a telefónico y a acreditación a la vez.
+
+Lo que **no** estaba mal, y conviene no "arreglarlo": el panel ocupa el alto
+completo, es direccionable (`panel=conectar-fuente`), el rail es dueño de su
+propio scroll, y a 1024×600 el pie queda en pantalla sin contenido cortado ni
+scroll anidado. Cero solapes y cero recortes.
+
+Lo que sí: **once valores de `gap` y once combinaciones de `padding`** en un solo
+panel, con `12px 13px` junto a `12px 14px` junto a `11px 12px`. Un píxel de
+diferencia no se lee como jerarquía, se lee como ruido —el mismo hallazgo que
+tuvieron los radios—. Colapsados los pares a 1 px, el padding horizontal pasa de
+cuatro valores a **dos**: 20 en el borde del panel, 12 dentro de tarjetas. El
+rail y el cuerpo tenían bordes distintos (16 contra 20) y el panel se leía como
+dos piezas pegadas.
+
+Y una ausencia vestida de opción: en Google Sheets se pintaba un grupo titulado
+«O elige del catálogo de tu cuenta» cuyo único contenido era el aviso de que ese
+catálogo no existe. Tapando el bloque entero no se pierde nada —el campo de
+arriba es el único camino—, así que no se pinta. Kobo y SurveyMonkey conservan
+su catálogo y su botón; comprobado en pantalla, que era el riesgo del cambio.
+
 ## Hallazgos no estéticos
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
