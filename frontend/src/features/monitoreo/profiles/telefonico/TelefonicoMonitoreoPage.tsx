@@ -7000,11 +7000,11 @@ function phonePlatformComparisonLabel(row: Record<string, unknown>) {
   const phoneEffective = phoneBooleanValue(row, ["Efectiva telefónica", "Efectiva telefonica"]);
   const platformComplete = phoneBooleanValue(row, ["Efectiva Kobo", "Plataforma completa"]);
   const phoneStatus = phoneRowValue(row, ["Estado telefónico", "Estado telefonico", "Avance telefónico", "Avance telefonico"], "");
-  if (platformComplete && !phoneEffective) return `Kobo efectiva; estado telefonico actual: ${phoneStatus || "pendiente"}`;
+  if (platformComplete && !phoneEffective) return `Kobo efectiva; estado telefónico actual: ${phoneStatus || "pendiente"}`;
   if (phoneEffective && !platformComplete) return "Tel. efectiva sin efectiva Kobo";
   const detail = phoneRowValue(row, ["Coincidencia", "Detalle"], "");
   if (detail) return detail;
-  if (tone === "warning") return "Revisar estado telefonico";
+  if (tone === "warning") return "Revisar estado telefónico";
   if (tone === "ok") return "Coincide como efectiva";
   return "Sin efectiva en ambas fuentes";
 }
@@ -7159,7 +7159,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
   const matchedPct = safePercentValue(totals.matchedEffective, comparableDenominator) ?? 0;
   const traceablePct = safePercentValue(traceableCodes, Math.max(1, totals.total)) ?? 0;
   const summaryItems = [
-    { key: "phone", label: "Tel. efectivas", value: totals.phoneEffective, pct: safePercentValue(totals.phoneEffective, comparableDenominator), tone: "effective", hint: "estado telefonico efectivo" },
+    { key: "phone", label: "Tel. efectivas", value: totals.phoneEffective, pct: safePercentValue(totals.phoneEffective, comparableDenominator), tone: "effective", hint: "estado telefónico efectivo" },
     { key: "platform", label: "Kobo valida", value: totals.platformComplete, pct: safePercentValue(totals.platformComplete, comparableDenominator), tone: "platform", hint: "pasan filtro y completan" },
     { key: "matched", label: "Kobo + tel.", value: totals.matchedEffective, pct: safePercentValue(totals.matchedEffective, comparableDenominator), tone: "ok", hint: `${effectiveMatchLabel} con ambos estados` },
     { key: "mismatch", label: "Pendiente tel.", value: totals.platformWithoutPhone, pct: safePercentValue(totals.platformWithoutPhone, comparableDenominator), tone: totals.platformWithoutPhone ? "warning" : "ok", hint: phoneCodPulsoDifferenceHint(totals) },
@@ -7181,7 +7181,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
         >
           <span><PhoneCall size={13} /> Tel. efectivas</span>
           <strong>{formatMetric(totals.phoneEffective)}</strong>
-          <em>estado telefonico efectivo</em>
+          <em>estado telefónico efectivo</em>
           <i aria-hidden="true" />
         </section>
         <div
@@ -7195,7 +7195,7 @@ function AcreditacionPhonePlatformComparison({ rows }: { rows: Array<Record<stri
           <span><KeyRound size={14} /> CodPulso individual</span>
           <p>
             {totals.mismatch
-              ? `${formatMetric(totals.platformWithoutPhone)} efectivas Kobo tienen estado telefonico pendiente.`
+              ? `${formatMetric(totals.platformWithoutPhone)} efectivas Kobo tienen estado telefónico pendiente.`
               : comparableEffective
                 ? "Las efectivas telefonicas estan alineadas con Kobo por codigo."
                 : "Aún no hay efectivas comparables por código."}
@@ -11730,7 +11730,7 @@ function phoneComparisonRowToConsultedCase(row: Record<string, unknown>, index: 
   const baseResult = !code
     ? "Sin CodPulso para ubicar en base"
     : platformComplete && !phoneEffective
-      ? "CodPulso ubicado; estado telefonico pendiente"
+      ? "CodPulso ubicado; estado telefónico pendiente"
       : phoneEffective && !platformComplete
         ? "CodPulso ubicado; tel. efectiva sin Kobo"
         : mismatch
@@ -12936,8 +12936,8 @@ function acreditacionQueryAnswerCopy(
       icon: Link2,
       tone: summary.review || summary.total ? "warning" : "base",
       heading: "Estado tel. vs Kobo",
-      title: `${fmt(summary.total)} CodPulso con Kobo efectiva o telefono efectivo ${scope}.`,
-      detail: "CodPulso ubicado no significa caso barrido: esta vista separa base, estado telefonico leido y efectiva Kobo.",
+      title: `${fmt(summary.total)} CodPulso con Kobo efectiva o teléfono efectivo ${scope}.`,
+      detail: "CodPulso ubicado no significa caso barrido: esta vista separa base, estado telefónico leído y efectiva Kobo.",
     };
   }
   if (tab === "plataforma") {
@@ -13316,7 +13316,7 @@ function AcreditacionCaseExplorerToolbar({
         <strong><Search size={16} /> Casos del corte</strong>
         <p>
           {isPhoneMode
-            ? `${formatCaseLabel(summary.total)} visibles de ${formatCaseLabel(allSummary.total)}. Cada fila separa CodPulso/base, estado telefonico leido y efectiva Kobo.`
+            ? `${formatCaseLabel(summary.total)} visibles de ${formatCaseLabel(allSummary.total)}. Cada fila separa CodPulso/base, estado telefónico leído y efectiva Kobo.`
             : `${formatCaseLabel(summary.total)} visibles de ${formatCaseLabel(allSummary.total)}. Cada fila separa respuesta, cruce con base y decisión de avance.`}
         </p>
       </div>
@@ -14368,7 +14368,7 @@ function AcreditacionCrossingsView({
       <section className="mon-query-table-panel" aria-label={isPhoneMode ? "Entrevistas y su estado en la hoja" : "Cruces efectivos"}>
         <header className="mon-query-section-head">
           <div>
-            <span>{isPhoneMode ? "Telefono vs Kobo" : "Cruces efectivos"}</span>
+            <span>{isPhoneMode ? "Teléfono vs Kobo" : "Cruces efectivos"}</span>
           <strong><Link2 size={16} /> {crossingHeading}</strong>
           <small>
             {isPhoneMode
@@ -14381,7 +14381,7 @@ function AcreditacionCrossingsView({
         {isPhoneMode ? (
           <div className="mon-phone-crossing-summary" aria-label="Resumen de alineación barrido-Kobo por CodPulso">
             <span className="is-platform"><em>Kobo efectivas</em><strong>{fmt(phonePlatformEffective)}</strong><small>completas y con consentimiento</small></span>
-            <span className="is-phone"><em>Tel. efectivas</em><strong>{fmt(phoneSweepEffective)}</strong><small>estado telefonico efectivo</small></span>
+            <span className="is-phone"><em>Tel. efectivas</em><strong>{fmt(phoneSweepEffective)}</strong><small>estado telefónico efectivo</small></span>
             <span className={phoneReviewCount ? "is-warning" : "is-ready"}><em>Kobo + tel.</em><strong>{fmt(phoneMatchedEffective)}/{fmt(phonePlatformEffective)}</strong><small>{phoneReviewCount ? "mismo CodPulso en ambos lados" : "CodPulso alineados"}</small></span>
             <span className={phonePlatformWithoutSweep ? "is-warning" : "is-ready"}><em>Tel. pendiente</em><strong>{fmt(phonePlatformWithoutSweep)}</strong><small>{phonePlatformWithoutSweep ? "Kobo cuenta; barrido aun no declara efectiva" : "sin brecha Kobo-tel."}</small></span>
           </div>
@@ -16758,7 +16758,7 @@ function AcreditacionAdvanceStorage({
   const phoneSweptWithoutEffective = phoneContext?.phoneSweptWithoutEffective ?? Math.max(0, phoneSwept - phoneEffective);
   const segments = isPhoneScope
     ? [
-      { key: "completed", label: "Tel. efectivas", value: phoneEffective, pct: safePercentValue(phoneEffective, phoneUniverse) ?? 0, hint: "estado efectivo", detail: "Casos que el barrido telefonico declara como efectivos; se contrastan con Kobo por CodPulso." },
+      { key: "completed", label: "Tel. efectivas", value: phoneEffective, pct: safePercentValue(phoneEffective, phoneUniverse) ?? 0, hint: "estado efectivo", detail: "Casos que el barrido telefónico declara como efectivos; se contrastan con Kobo por CodPulso." },
       { key: "phone", label: "Sin efectiva tel.", value: phoneSweptWithoutEffective, pct: safePercentValue(phoneSweptWithoutEffective, phoneUniverse) ?? 0, hint: "barridas no efectivas", detail: "Casos ya barridos con un estado telefonico distinto de efectivo." },
       { key: "pending", label: "Por barrer", value: phonePending, pct: safePercentValue(phonePending, phoneUniverse) ?? 0, hint: "base telefonica", detail: "Casos de la base telefonica que todavia no tienen estado de llamada." },
     ]
