@@ -173,6 +173,7 @@ import {
   type AcreditacionTelephoneChannel,
 } from "./TelefonicoSourcesModel";
 import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
+import { LlenadoDeFuentes } from "./LlenadoDeFuentes";
 import { proveedoresDeFuentes } from "../../fuentes/vocabulario";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
@@ -8638,7 +8639,7 @@ function AcreditacionSheetSourceEditor({
       ) : null}
       <div className="mon-acr-sheet-form">
         <label>
-          <span>Spreadsheet</span>
+          <span>Enlace del Google Sheet</span>
           <input
             value={spreadsheetId}
             onChange={(event) => setSpreadsheetId(event.currentTarget.value)}
@@ -8656,7 +8657,7 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <label>
-          <span>Nombre operativo</span>
+          <span>Nombre para reconocerla</span>
           <input
             value={sourceLabel}
             onChange={(event) => setSourceLabel(event.currentTarget.value)}
@@ -8665,7 +8666,7 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <label>
-          <span>Rango</span>
+          <span>Rango de celdas</span>
           <input
             value={range}
             onChange={(event) => setRange(event.currentTarget.value)}
@@ -9241,7 +9242,7 @@ function AcreditacionKoboSourcePicker({
     <div className={`mon-acr-source-editor mon-acr-survey-add mon-acr-kobo-add${assets.length ? " has-results" : " is-compact"}`} aria-label="Selector de encuesta Kobo en plataforma">
       <div className="mon-acr-survey-add-head">
         <label>
-          <span>URL Kobo</span>
+          <span>Servidor de Kobo</span>
           <input
             value={baseUrl}
             onChange={(event) => setBaseUrl(event.currentTarget.value)}
@@ -9250,7 +9251,7 @@ function AcreditacionKoboSourcePicker({
           />
         </label>
         <label>
-          <span>Perfil</span>
+          <span>Cuenta</span>
           {profiles.length ? (
             <select
               value={profileId}
@@ -9280,7 +9281,7 @@ function AcreditacionKoboSourcePicker({
           )}
         </label>
         <label>
-          <span>Filtro</span>
+          <span>Buscar</span>
           <input
             value={filter}
             onChange={(event) => setFilter(event.currentTarget.value)}
@@ -9901,7 +9902,7 @@ function AcreditacionSheetsByActorView({
             </div>
             <div className="mon-acr-sheet-form">
               <label>
-                <span>Spreadsheet</span>
+                <span>Enlace del Google Sheet</span>
                 <input value={spreadsheetId} onChange={(event) => setSpreadsheetId(event.currentTarget.value)} placeholder="https://docs.google.com/spreadsheets/d/..." disabled={Boolean(busy) || !selectedActor} />
               </label>
               <label>
@@ -9909,7 +9910,7 @@ function AcreditacionSheetsByActorView({
                 <input value={sheetName} onChange={(event) => setSheetName(event.currentTarget.value)} placeholder={selectedActor || "Actor"} disabled={Boolean(busy) || !selectedActor} />
               </label>
               <label>
-                <span>Rango</span>
+                <span>Rango de celdas</span>
                 <input value={range} onChange={(event) => setRange(event.currentTarget.value)} placeholder="Opcional" disabled={Boolean(busy) || !selectedActor} />
               </label>
               <div className="mon-acr-sheet-actions">
@@ -11170,18 +11171,15 @@ function AcreditacionPhoneSourcesContractPanel({
           />
         </>
       ) : null}
-      {!contract.ready ? (
-        <div className="mon-phone-source-contract-alert">
-          <AlertCircle size={15} />
-          <span>
-            {!contract.universe.ready
-              ? "Primero vincula la base de universo; luego el barrido telefónico y Kobo para separar población, operación diaria y avance."
-              : !contract.sweep.ready
-                ? "La base de universo ya está vinculada. Falta registrar la hoja de barrido con responsables, estados e intentos."
-                : "Base y barrido ya están vinculados. Falta seleccionar la encuesta Kobo que alimenta la comparación de efectivas."}
-          </span>
-        </div>
-      ) : null}
+      {/* El orden de las tres piezas se muestra, no se narra: antes había aquí un
+        * párrafo que describía la secuencia según cuál faltara. */}
+      <LlenadoDeFuentes
+        pasos={[
+          { titulo: "Base telefónica", aporta: "A quién llamar", lista: contract.universe.ready },
+          { titulo: "Barrido telefónico", aporta: "Qué pasó en cada llamada", lista: contract.sweep.ready },
+          { titulo: "Encuesta en Kobo", aporta: "Qué cuenta como efectiva", lista: contract.platform.ready },
+        ]}
+      />
       <details className="mon-phone-source-editors" open={showSheetsEditors}>
         <summary>
           <span><Table2 size={14} /> Configurar base y barrido</span>
