@@ -112,11 +112,14 @@ export function FuentesUniverso({
   }, [location.pathname, location.search, navigate]);
 
   return (
-    <div className="fuentes-universo">
+    <div
+      className="fuentes-universo"
+      data-qa-geometry-group="fuentes-universo-bloques"
+      data-qa-geometry-contract="intrinsic"
+    >
       <header className="fuentes-universo-cabecera">
         <div>
-          <span>Universo</span>
-          <strong>{`${cubiertos} de ${actores.length} ${actores.length === 1 ? "actor con base" : "actores con base"}`}</strong>
+          <strong>{`${cubiertos} con base de ${actores.length} ${actores.length === 1 ? "actor" : "actores"}`}</strong>
         </div>
       </header>
 
