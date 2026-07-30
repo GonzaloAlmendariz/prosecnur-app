@@ -369,7 +369,7 @@
     is.list(s$hojas_ruta_ui_state) ||
     is.list(s$hojas_ruta_workspace_outputs) ||
     length(s$hojas_ruta_runs %||% list()) > 0L
-  family <- .project_warmup_monitoreo_family(sid)
+  family <- .project_warmup_monitoreo_family_rapida(sid)
   if (isTRUE(has_hojas_ruta)) {
     for (id in c("hojas_ruta", "hojas_ruta_cartografia")) {
       added <- add_module(ids, reasons, id, "Hojas de ruta presente en el proyecto")
@@ -470,7 +470,7 @@
 }
 
 .project_warmup_monitoreo_territorial <- function(sid, progress = NULL) {
-  family <- .project_warmup_monitoreo_family(sid)
+  family <- .project_warmup_monitoreo_family_rapida(sid)
   if (!identical(family, "territorial")) {
     return(.project_warmup_skip("El proyecto no usa perfil territorial."))
   }
@@ -568,7 +568,7 @@
   if (is.null(s$monitoreo_config) && is.null(s$monitoreo_snapshot)) {
     return(.project_warmup_skip("Sin configuracion local de monitoreo."))
   }
-  family <- .project_warmup_monitoreo_family(sid)
+  family <- .project_warmup_monitoreo_family_rapida(sid)
   compact_scopes <- .project_warmup_monitoreo_compact_scopes(family)
   if (length(compact_scopes)) {
     started_at <- Sys.time()
@@ -974,7 +974,8 @@
                                 mode = "full",
                                 budget_ms = .project_warmup_default_budget_ms,
                                 modules = NULL,
-                                progress_path = NULL) {
+                                progress_path = NULL,
+                                session_path = NULL) {
   mode <- .project_warmup_mode(mode)
   budget_ms <- .project_warmup_budget_ms(budget_ms)
   started_at <- Sys.time()
@@ -985,6 +986,19 @@
   if (length(module_ids)) {
     tasks <- Filter(function(task) task$id %in% module_ids, tasks)
     if (!length(tasks)) tasks <- .project_warmup_tasks()[1]
+  }
+  # Unidad 5.2: si el bloque territorial aplica, sus sub-workers arrancan YA
+  # (comparten el RDS de sesión que este worker recibió) y su cosecha se mueve
+  # al final de la cola para que el resto de tareas corra en paralelo con
+  # ellos. Detalles y mecanismo en project_warmup_paralelo.R.
+  paralelo <- .project_warmup_paralelo_iniciar_seguro(
+    sid,
+    session_path = session_path,
+    task_ids = vapply(tasks, `[[`, character(1), "id")
+  )
+  if (!is.null(paralelo)) {
+    idx_terr <- which(vapply(tasks, function(task) identical(task$id, "monitoreo_territorial"), logical(1)))
+    if (length(idx_terr)) tasks <- c(tasks[-idx_terr], tasks[idx_terr])
   }
   total <- length(tasks)
   results <- list()
@@ -1022,8 +1036,13 @@
       total_tasks = total,
       module = tasks[[idx]]$module
     )
+    task_actual <- if (!is.null(paralelo) && identical(tasks[[idx]]$id, "monitoreo_territorial")) {
+      .project_warmup_paralelo_task(paralelo)
+    } else {
+      tasks[[idx]]
+    }
     executed <- .project_warmup_execute_task(
-      tasks[[idx]],
+      task_actual,
       sid,
       remaining_ms = remaining,
       progress = task_progress
@@ -1040,6 +1059,10 @@
       message = sprintf("%s preparado.", tasks[[idx]]$module)
     )
   }
+
+  # Presupuesto agotado antes de cosechar: los sub-workers pendientes se
+  # cancelan y quedan para background, igual que las tareas seriales.
+  .project_warmup_paralelo_abandonar(paralelo)
 
   status_values <- vapply(results, function(item) as.character(item$status %||% ""), character(1))
   report(
@@ -1076,7 +1099,8 @@
     mode = mode,
     budget_ms = budget_ms,
     modules = modules,
-    progress_path = progress_path
+    progress_path = progress_path,
+    session_path = session_path
   )
 }
 attr(.project_warmup_job, "prosecnur_job_function_name") <- ".project_warmup_job"
