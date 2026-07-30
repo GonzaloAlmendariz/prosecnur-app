@@ -5144,3 +5144,31 @@
   letter-spacing: 0;
   text-transform: none;
 }
+
+/* ── Llamadas › Sin efectiva ───────────────────────────────────────────────
+ *
+ * 224 cajas, la superficie más densa del modo. Con ese volumen la escala
+ * importa más que en ninguna otra: 8 y 12 conviviendo en la misma pantalla
+ * hacen que 224 rectángulos parezcan puestos a mano uno por uno.
+ *
+ * Los nueve contenedores con scroll anidado que esta pestaña tuvo —diagnóstico
+ * del 2026-07-26— ya no están: medido `scrollsAnidados: 0`. */
+.is-telefonico-profile .mon-phone-ops-card {
+  border-radius: var(--pulso-radius-card);
+}
+
+.is-telefonico-profile .mon-phone-pending-person {
+  border-radius: var(--pulso-radius);
+}
+
+/* Los tres niveles de insistencia conservan su color —es la señal— y solo
+ * adoptan el radio de celda. */
+.is-telefonico-profile .mon-phone-pending-person.is-low,
+.is-telefonico-profile .mon-phone-pending-person.is-medium,
+.is-telefonico-profile .mon-phone-pending-person.is-high {
+  border-radius: var(--pulso-radius);
+}
+
+.is-telefonico-profile .mon-phone-noanswer-list > article {
+  border-radius: var(--pulso-radius);
+}
