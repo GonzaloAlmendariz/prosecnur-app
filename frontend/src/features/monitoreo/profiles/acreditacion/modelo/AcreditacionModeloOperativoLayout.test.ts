@@ -31,6 +31,7 @@ const workbench = between(
   "function AcreditacionCanonicalModelWorkbench(",
   "function AcreditacionFieldSchedulePanel(",
 );
+const schedulePanel = between(page, "function AcreditacionFieldSchedulePanel(", "function AcreditacionModelWorkbench(");
 
 describe("Acreditación > Modelo operativo", () => {
   test("aísla el pulido de estructura frente a Teléfono y las otras pestañas", () => {
@@ -127,10 +128,51 @@ describe("Acreditación > Modelo operativo > Distribución", () => {
   test("alinea resumen, encabezado y vacíos con la tarea", () => {
     expect(page).toContain('pestanaActiva === "distribucion" ? [');
     expect(page).toContain('{ label: "Variables", value: fmt(interestVariables.length)');
-    expect(workbench).toContain('activeVisibleTab !== "distribucion" ? <div className="mon-acr-model-map"');
+    expect(workbench).toContain('activeVisibleTab !== "distribucion" && (activeVisibleTab !== "estrategias" || isPhoneModel) ? <div className="mon-acr-model-map"');
     expect(distributionPage).toContain("Variables para abrir el detalle de cada actor");
     expect(distributionPage).not.toContain("<span>Distribución</span>");
     expect(distributionPage).toContain("No hay columnas elegibles");
     expect(distributionPage).not.toContain("No quedan columnas por declarar");
+  });
+});
+
+describe("Acreditación > Modelo operativo > Cronograma", () => {
+  test("aísla el pulido frente al cronograma telefónico y retira el resumen heredado", () => {
+    expect(workbench).toContain('activeVisibleTab === "estrategias" && !isPhoneModel ? " is-accreditation-schedule" : ""');
+    expect(workbench).toContain('activeVisibleTab !== "estrategias" || isPhoneModel');
+    expect(css).toContain(".mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel");
+    expect(css).not.toMatch(/(^|\n)\.mon-field-schedule-panel/);
+  });
+
+  test("declara el resumen y los cinco controles como colecciones auditables", () => {
+    expect(schedulePanel).toContain('data-qa-geometry-group="acreditacion-schedule-summary" data-qa-geometry-contract="equal"');
+    expect(schedulePanel).toContain('data-qa-geometry-group="acreditacion-schedule-fields" data-qa-geometry-contract="intrinsic"');
+    expect(schedulePanel.match(/data-qa-geometry-member/g)).toHaveLength(5);
+    expect(ruleBody(".mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel > .mon-acr-active-kpis")).toMatch(/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/);
+  });
+
+  test("contrasta plan y ejecución antes del editor sin inventar proyecciones", () => {
+    expect(schedulePanel).toContain('"Fuera del plan"');
+    expect(schedulePanel).toContain('"Dentro del plan"');
+    expect(schedulePanel).toContain("Sin corte observado");
+    expect(schedulePanel).toContain("La comparación aparecerá cuando el corte tenga respuestas con fecha.");
+    expect(schedulePanel).not.toMatch(/proyecci[oó]n|ritmo requerido/i);
+  });
+
+  test("usa lenguaje de tarea, un solo scroll exterior y materia canónica", () => {
+    expect(schedulePanel).toContain("Plan y ejecución de campo");
+    expect(schedulePanel).toContain("Guardar plan");
+    expect(workbench).toContain('style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}');
+    expect(ruleBody(".mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel")).not.toMatch(/overflow:/);
+    expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|!important/i);
+    expect(css).toContain("var(--pulso-radius-panel)");
+    expect(css).toContain("var(--pulso-shadow-low)");
+  });
+
+  test("da a la franja superior métricas propias de Cronograma", () => {
+    expect(page).toContain('pestanaActiva === "estrategias" ? [');
+    expect(page).toContain('{ label: "Plan", value: countText(claritySchedule.durationWeeks');
+    expect(page).toContain('{ label: "Fechas", value: claritySchedule.startDate && claritySchedule.endDate ? "Declaradas" : "Pendientes"');
+    expect(page).toContain('{ label: "Reporte", value: calendarReportWeekdayLabel(claritySchedule.reportWeekday)');
   });
 });
