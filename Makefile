@@ -39,7 +39,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -71,6 +71,7 @@ help:
 	@echo "  reference-projects-build   Build all anonymized real-study fixtures"
 	@echo "  reference-project-build    Build one fixture; use REFERENCE_PROJECT=<slug>"
 	@echo "  reference-project-verify   Gate: no PII + declared coverage holds"
+	@echo "  reference-project-seed-aulas Derive a run copy with the aulas selection already run"
 	@echo "  reference-project-run      Run dev stack on an isolated fixture copy"
 	@echo "  reference-project-visual-matrix Run ui-quick-check across a fixture's routes"
 	@echo "  package-local    Generate distributable in dist.nosync/Prosecnur/"
@@ -256,6 +257,18 @@ reference-project-build:
 
 reference-project-verify:
 	Rscript api/scripts/reference_project_verify.R
+
+reference-project-seed-aulas:
+	@test -n "$(REFERENCE_PROJECT)" || (echo "uso: make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026"; exit 1)
+	@set -e; \
+	  RUN_MANIFEST="$$(Rscript api/scripts/reference_project_seed_aulas_selection.R --project "$(REFERENCE_PROJECT)" --root "$(REFERENCE_RUNS_DIR)")"; \
+	  if [ -z "$$RUN_MANIFEST" ] || [ ! -f "$$RUN_MANIFEST" ]; then \
+	    echo "[reference] seed_aulas_selection no devolvio un manifiesto valido: '$$RUN_MANIFEST'"; exit 1; \
+	  fi; \
+	  PROJECT_PATH="$$(Rscript -e 'cat(jsonlite::fromJSON(commandArgs(TRUE)[1])$$project_path)' "$$RUN_MANIFEST")"; \
+	  echo "[reference] run manifest: $$RUN_MANIFEST"; \
+	  echo "[reference] proyecto con seleccion: $$PROJECT_PATH"; \
+	  echo "[reference] abrelo con: /ver-ui o ?pulso=$$PROJECT_PATH"
 
 reference-project-run:
 	@test -n "$(REFERENCE_PROJECT)" || (echo "uso: make reference-project-run REFERENCE_PROJECT=acnur_acg"; exit 1)
