@@ -34,7 +34,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | telefónico | Fuentes › Fuentes activas | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
 | telefónico | Fuentes › Universo y barrido | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
 | telefónico | Fuentes › Encuestas | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
-| telefónico | Modelo operativo › Modelo operativo | pendiente |  |  |
+| telefónico | Modelo operativo › Cuotas | hecho | gobernador radio 9 sin sombra → 14 con materia; eslabones y resumen sin caja; 3 frases de AI slop retiradas; título pasa de la mecánica a la pregunta | este commit |
 | telefónico | Modelo operativo › Cronograma | pendiente |  |  |
 | telefónico | Modelo operativo › Resumen | pendiente |  |  |
 | telefónico | Llamadas › Resumen | pendiente |  |  |
@@ -87,7 +87,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
 |---|---|---|---|---|---|
-| — | — | — | Ninguno hallado en esta iteración. | — | — |
+| duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |
 
 ## Evidencia de la última iteración
 

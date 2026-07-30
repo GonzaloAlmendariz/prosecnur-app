@@ -3134,10 +3134,19 @@ function AcreditacionPhoneQuotaEditor({
   return (
     <section className="mon-contract-block mon-contract-block--wide mon-phone-quota-editor">
       <div className="mon-phone-quota-editor-head">
+        {/* El subtítulo decía «Kobo aporta efectivas; el barrido conserva estados
+          * telefónicos en paralelo»: el mismo hecho que la cabecera de Cuotas
+          * enuncia con otra redacción, y en ninguna de las dos habla de lo que
+          * esa superficie mide —ambas son de metas, no de fuentes—. Además cada
+          * cifra ya se rotula «Efectivas Kobo» o «barridos». Diagnosticado en
+          * plan-fuentes-legibles §4.4 y pendiente desde entonces.
+          *
+          * El título tampoco nombra la pregunta: «Sede organiza categorías y
+          * metas» describe la mecánica de la variable. Lo que se decide aquí es
+          * cuánto se quiere de cada categoría. */}
         <div>
           <span>Modelo telefónico</span>
-          <strong>{activeVariable ? `${activeVariableLabel} organiza categorías y metas` : "Elige la variable rectora"}</strong>
-          <small>Kobo aporta efectivas; el barrido conserva estados telefónicos en paralelo.</small>
+          <strong>{activeVariable ? `Cuánto se quiere de cada ${activeVariableLabel.toLocaleLowerCase("es")}` : "Elige la variable rectora"}</strong>
         </div>
         <div className="mon-phone-quota-editor-controls">
           <label>
@@ -3180,7 +3189,11 @@ function AcreditacionPhoneQuotaEditor({
           <div>
             <span><SlidersHorizontal size={13} /> Variable rectora</span>
             <strong>{activeVariable ? activeVariableLabel : "Seleccionar variable"}</strong>
-            <p>{activeVariable ? "Cada categoría cruza meta, base telefónica y efectivas Kobo para leer cumplimiento." : "Elige la variable que define las cuotas operativas del estudio telefónico."}</p>
+            {/* Con variable elegida sobra el párrafo: enumeraba meta, base
+              * telefónica y efectivas Kobo, que son las columnas que la tabla de
+              * abajo ya rotula. Sin variable sí hace falta, porque entonces no
+              * hay nada que mirar y hay que decir qué se elige. */}
+            {activeVariable ? null : <p>Elige la variable que define las cuotas operativas del estudio telefónico.</p>}
           </div>
         </div>
         <div className="mon-phone-quota-decision-path" aria-label="Regla de lectura de cuotas telefónicas">
@@ -5394,7 +5407,10 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
         <div>
           <span>Cuotas telefónicas</span>
           <strong>Base objetivo por variable</strong>
-          <small>Kobo aporta efectivas; el barrido aporta estado de llamada. {formatMetric(visibleRows.length)} categoría{visibleRows.length === 1 ? "" : "s"}.</small>
+          {/* La otra mitad del mismo enunciado a dos redacciones. Se conserva el
+            * dato que lo acompañaba —cuántas categorías— porque eso sí es de
+            * esta superficie. */}
+          <small>{formatMetric(visibleRows.length)} categoría{visibleRows.length === 1 ? "" : "s"}</small>
         </div>
         <div className="mon-phone-quota-actions">
           <em>{formatMetric(variables.length)} variable{variables.length === 1 ? "" : "s"}</em>
