@@ -372,3 +372,13 @@ borde. Lo que dice qué aporta cada pieza no se recorta (C4).
    desplazamiento no molesta; es el sitio a tocar si algún día se quiere un
    campo largo legible sin desplazar.
 5. Revisar el cache de reportes en **Aulas** y en el dashboard general.
+6. **Aulas tiene su especificación desde el 2026-07-30**
+   (`plan-monitoreo-aulas-2026-07.md`): la auditoría del Excel con el que se
+   operó PUCP 2025, con las cinco secciones que el perfil debe tener, el modelo
+   de datos mínimo y 18 criterios de aceptación con cifras. Lo primero que pide
+   es lo que §5 de este documento predice: separar `contact_status` de
+   `application_status` —el Excel los mezclaba en una columna y por eso dos
+   aplicaciones reales figuraban como agendadas—, y tomar la asistencia de los
+   eventos de campo en vez de un pegado manual que ya iba 85 asistentes
+   desfasado. Y el guion de conexión declara dos fuentes donde la
+   especificación exige cuatro.
