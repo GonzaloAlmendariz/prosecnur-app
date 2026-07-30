@@ -188,6 +188,12 @@ Para no repetir trabajo, lee antes:
   Acreditación y Telefónico, cada una con qué evaluar en los demás modos.
 - `docs/plan-fuentes-legibles-2026-07.md` — Fuentes en los cuatro modos.
 - `docs/ui-layout-grammar.md` — la norma de layout y el Contrato de Superficie.
+- `docs/plan-monitoreo-aulas-2026-07.md` — **antes de tocar el modo Aulas.** Es
+  la auditoría del Excel con el que se operó PUCP 2025 convertida en
+  especificación: qué secciones debe tener el perfil, qué reconciliaciones, y
+  una línea base de cifras para comprobar que lo que se muestra cuadra. Ahí
+  buena parte de lo que parecerá un defecto estético será una pieza que todavía
+  no existe —y eso se anota, no se maquilla—.
 
 Telefónico › Fuentes quedó pulido el 2026-07-30 y sirve de patrón. **Territorial
 y cursos-horario no se han mirado**, y el guion de conexión de Acreditación está
