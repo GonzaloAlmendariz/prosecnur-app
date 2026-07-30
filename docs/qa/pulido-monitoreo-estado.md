@@ -12,7 +12,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 |---|---|---|---|---|
 | acreditación | Fuentes › Resumen | hecho | C1 medía 16 miembros en vez de 3; tarjetas planas de radio 16→14 con materia; título y total duplicados retirados | este commit |
 | acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: `d28a6bbf`; registro adelantado en `767eaa42` |
-| acreditación | Fuentes › Encuestas y recopiladores | pendiente |  |  |
+| acreditación | Fuentes › Encuestas y recopiladores | hecho | cobertura con deriva máxima 110 px → cuatro marcos iguales; 4 colecciones quedan medibles; nombres operativos envuelven y 3 minitarjetas métricas se aplanan | producto: `0e421dc3` |
 | acreditación | Modelo operativo › Modelo operativo | pendiente |  |  |
 | acreditación | Modelo operativo › Distribución | pendiente |  |  |
 | acreditación | Modelo operativo › Cronograma | pendiente |  |  |
@@ -94,6 +94,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | scroll anidado (C4) | telefónico | Consultas › CodPulso | Dos contenedores con scroll propio dentro de la pestaña. La norma pide un solo dueño de scroll por pantalla; resolverlo exige decidir cuál de los dos cede el alto, y eso cambia el layout | medido el 2026-07-30 en `acnur_pdm` | abierto |
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |
 | pieza ausente | acreditación | Fuentes › Universo | La fila visible no presenta documento, pestaña y rango simultáneamente; muestra la pestaña, pero el rango prometido por la especificación no está disponible en esta lectura. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
+| pieza ausente | acreditación | Fuentes › Encuestas y recopiladores | La especificación promete abrir Recopiladores filtrado por «por clasificar», pero la vista presenta la colección completa. Incorporarlo requiere estado y lógica de filtro, no un ajuste estético. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
 
 ## Modo telefónico — cerrado el 2026-07-30
 
@@ -117,14 +118,15 @@ Tres cosas que se decidió NO tocar, y conviene que no se «arreglen» después:
 ## Evidencia de la última iteración
 
 - Proyecto: copia temporal de `api/inst/reference_projects/acrconta/acrconta.pulso`.
-- Dirección: `monitoreo/acreditacion/fuentes/universo`.
+- Dirección: `monitoreo/acreditacion/fuentes/encuestas`.
 - Viewports: `1440×1000` y `1024×600`.
-- Antes: tres superficies de panel usaban radio 16 sin sombra; el antetítulo
-  «Universo» repetía la pestaña y la hoja interna podía adueñarse del scroll corto.
-- Después: cabecera, lista y Barrido conservan radio 16 con sombra baja; las cuatro
-  filas miden `56 px` con `ΔH = 0` y `ΔW = 0` en ambos viewports; en compacto el
-  contenedor exterior posee `32 px` de scroll y alcanza el último contenido.
+- Antes: las cuatro coberturas medían `92/202/99/147 px` en ancho amplio y
+  `99/208.99/99/153.99 px` en compacto; las colecciones no tenían contrato QA y
+  «Auditoria de la información financiera 2» se recortaba `250 → 212 px`.
+- Después: 4 actores, 7 encuestas, 7 selectores y 20 recopiladores miden
+  `ΔH = 0` y `ΔW = 0` en ambos viewports; todos los nombres operativos caben y
+  el scroll exterior llega al último control (`3546/4740 px`, `atEnd = true`).
 - Resultado automatizado: 2 capturas, 0 incidencias visuales, 0 scroll-jails,
-  0 desbordes globales, 0 errores de geometría y 0 errores de página/API.
-- C5: el proyecto tiene 4/4 actores con base y 1 hoja de barrido, por lo que no
-  hay estado vacío que clasificar; la ausencia del rango queda registrada arriba.
+  0 desbordes globales, 0 errores de geometría/cobertura y 0 errores de página/API.
+- C5: el proyecto hidratado cubre 7 encuestas, 4 actores y 20 recopiladores; los
+  vacíos legítimos no aparecen en este fixture y el filtro ausente queda registrado.
