@@ -509,16 +509,19 @@ const TerritorialWorkbenchHead = memo(function TerritorialWorkbenchHead({
         pestanaLabel={pestanaLabel}
         pestanaEstado={pestanaEstado}
         detail={activeDef.desc}
-        // "N registros" a secas era el conteo crudo del snapshot y se leía como
-        // casos defendibles. La píldora lo nombra por lo que es.
+        // "N registros" a secas era el conteo crudo y se leía como casos
+        // defendibles. La píldora lo nombra por lo que es. Dice «recibidas» y no
+        // «en el snapshot» —cómo lo guarda la app— para hablar igual que los
+        // otros perfiles; la distinción con las válidas es la que importa y se
+        // mantiene.
         pills={fuenteView ? [
           `${activeSources} fuentes`,
-          `${fmt(nRows)} en el snapshot`,
+          `${fmt(nRows)} recibidas`,
           `${fmt(headerValidas)} efectivas`,
           headerMeta == null ? "sin meta declarada" : `${fmt(headerMeta)} meta`,
         ] : [
           `${activeSources} fuentes`,
-          `${fmt(nRows)} en el snapshot`,
+          `${fmt(nRows)} recibidas`,
           `${fmt(headerValidas)} válidas`,
           headerMeta == null ? "sin meta declarada" : `${fmt(headerMeta)} meta`,
           pct(headerAvance),

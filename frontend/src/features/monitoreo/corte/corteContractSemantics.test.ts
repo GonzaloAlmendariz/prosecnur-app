@@ -86,7 +86,9 @@ describe("máquina de estados visual", () => {
 
 describe("honestidad de los conteos", () => {
   it("la banda territorial no llama 'registros' al conteo crudo", () => {
-    expect(TERRITORIAL).toContain("en el snapshot");
+    // Lo verificado es la distinción, no la palabra: pasó de «en el snapshot» a
+    // «recibidas» para hablar igual que los otros perfiles.
+    expect(TERRITORIAL).toContain("recibidas");
     expect(TERRITORIAL).not.toContain("`${fmt(nRows)} registros`");
   });
 
