@@ -166,6 +166,7 @@ import { FuentesResumen } from "./fuentes/FuentesResumen";
 import { FuentesUniverso } from "./fuentes/FuentesUniverso";
 import { DefinidorDeEstados } from "./telefono/DefinidorDeEstados";
 import { DistribucionPorActor } from "./modelo/DistribucionPorActor";
+import "./modelo/modeloOperativo.css";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
 import { proveedoresDeFuentes, textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "../../fuentes/vocabulario";
 import { PanelConectarFuente } from "../../fuentes/PanelConectarFuente";
@@ -606,9 +607,9 @@ function AcreditacionModelActorSummaryCard({
         </div>
         <em>{card.meta == null ? "Meta pendiente" : "Meta confirmada"}</em>
       </header>
-      <div className="mon-acr-model-actor-metrics">
+      <div className="mon-acr-model-actor-metrics" data-qa-geometry-group={`acreditacion-model-flow-${card.id}`} data-qa-geometry-contract="equal">
         <AcreditacionActorFlowNode label="Universo" value={fmt(card.universe)} tone="base" />
-        <AcreditacionActorFlowNode label="Mínimo actor" value={card.meta == null ? "S/M" : fmt(card.meta)} tone={card.meta == null ? "warning" : "target"} />
+        <AcreditacionActorFlowNode label="Mínimo actor" value={card.meta == null ? "Pendiente" : fmt(card.meta)} tone={card.meta == null ? "warning" : "target"} />
         <AcreditacionActorFlowNode label="Efectivas" value={fmt(card.effective)} tone="ready" />
       </div>
       <div className="mon-acr-model-minimum-editor" aria-label={`Meta de ${card.actor}`}>
@@ -634,7 +635,7 @@ function AcreditacionModelActorSummaryCard({
           />
         </label>
         <button type="button" className="is-adjust" onClick={saveGoal} disabled={saving || !canSaveGoal}>
-          {saving ? "Guardando" : "Ajustar"}
+          {saving ? "Guardando" : "Guardar meta"}
         </button>
       </div>
       <div className="mon-acr-model-channel-strip">
@@ -663,6 +664,7 @@ function AcreditacionModelActorSummaryCard({
             {responseMechanisms.map(renderMechanism)}
           </section>
         ) : null}
+        {!baseMechanisms.length && !responseMechanisms.length ? <p className="mon-acr-model-source-empty">Sin fuentes vinculadas. Asígnalas en Fuentes.</p> : null}
       </div>
     </article>
   );
@@ -1260,7 +1262,7 @@ function AcreditacionCanonicalModelWorkbench({
   }, [onStateChange, state?.config]);
 
   return (
-    <div className="mon-stage mon-stage--model mon-stage--acr-model">
+    <div className={`mon-stage mon-stage--model mon-stage--acr-model${activeVisibleTab === "estructura" && !isPhoneModel ? " is-accreditation-structure" : ""}`}>
       <section
         className="pulso-panel mon-fill-panel mon-acr-model-panel"
         style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
@@ -1277,7 +1279,8 @@ function AcreditacionCanonicalModelWorkbench({
           </div>
         </header>
         {goalStatus ? <span className={`mon-acr-model-action-status is-${goalStatus.tone}`}>{goalStatus.message}</span> : null}
-        <div className="mon-acr-model-map" aria-label="Mapa operativo de acreditación">
+        <div className="mon-acr-model-map" aria-label="Resumen del modelo operativo"
+          data-qa-geometry-group={activeVisibleTab === "estructura" && !isPhoneModel ? "acreditacion-model-summary" : undefined} data-qa-geometry-contract={activeVisibleTab === "estructura" && !isPhoneModel ? "equal" : undefined}>
           {isPhoneModel ? (
             <>
               <AcreditacionActorDashboardTile label="Variable rectora" value={phoneQuotaVariable ? phoneQuotaVariableLabel(phoneQuotaVariable) : "Pendiente"} hint={`${fmt(phoneQuotaEditorRows.length)} categorías`} tone={phoneQuotaVariable ? "ready" : "warning"} />
@@ -1292,7 +1295,7 @@ function AcreditacionCanonicalModelWorkbench({
                 * «519 procesables» del embudo de arriba. Quedan los dos datos
                 * que Modelo posee y nadie más muestra: la suma de mínimos que
                 * se está fijando aquí, y la ventana de campo. */}
-              <AcreditacionActorDashboardTile label="Mínimo actor" value={metaTotal ? fmt(metaTotal) : "S/M"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
+              <AcreditacionActorDashboardTile label="Mínimo actor" value={metaTotal ? fmt(metaTotal) : "Pendiente"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
               <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
             </>
           )}
@@ -1304,7 +1307,7 @@ function AcreditacionCanonicalModelWorkbench({
                 <span>Actores definidos en Fuentes</span>
                 <strong>{countText(sourceActorRoster.length, "actor", "actores")}</strong>
               </div>
-              <p>Nombres y canales se administran en Fuentes. Modelo organiza metas, mecanismos y calendario sin duplicar esa configuración.</p>
+              <p>Nombres y canales se editan en Fuentes; aquí se asignan las metas.</p>
             </header>
             {sourceActorRoster.length ? (
               <div
@@ -1320,9 +1323,7 @@ function AcreditacionCanonicalModelWorkbench({
                   </span>
                 ))}
               </div>
-            ) : (
-              <p className="mon-acr-model-roster__empty">Fuentes todavía no declara actores activos.</p>
-            )}
+            ) : null}
           </section>
         ) : null}
         {activeVisibleTab === "distribucion" ? (

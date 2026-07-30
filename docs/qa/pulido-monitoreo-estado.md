@@ -68,7 +68,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Consultas internas › Tiempo corto/muy corto | hecho | idem | este commit |
 | territorial | Consultas internas › Cruce responsable | hecho | idem | este commit |
 | territorial | Consultas internas › Subsanaciones | hecho | idem | este commit |
-| territorial | Avance territorial › Resumen | pendiente |  |  |
+| territorial | Avance territorial › Resumen | hecho | radios 8/9/13 → 10/14 | este commit |
 | territorial | Avance territorial › Distritos | pendiente |  |  |
 | territorial | Avance territorial › Mapa y UMP | pendiente |  |  |
 | territorial | Avance territorial › Ritmo diario | pendiente |  |  |
