@@ -69,10 +69,10 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Consultas internas › Cruce responsable | hecho | idem | este commit |
 | territorial | Consultas internas › Subsanaciones | hecho | idem | este commit |
 | territorial | Avance territorial › Resumen | hecho | radios 8/9/13 → 10/14 | este commit |
-| territorial | Avance territorial › Distritos | pendiente |  |  |
-| territorial | Avance territorial › Mapa y UMP | pendiente |  |  |
-| territorial | Avance territorial › Ritmo diario | pendiente |  |  |
-| territorial | Avance territorial › Salidas | pendiente |  |  |
+| territorial | Avance territorial › Distritos | hecho | radios 8/11/13 → 10/14. La tarjeta de distrito la declaran dos reglas —suelta y bajo `.mon-page .pulso-panel`—, hay que replicar las dos | este commit |
+| territorial | Avance territorial › Mapa y UMP | **parcial** | 321 cajas y seis radios → 10/14/16. **20 recortes siguen abiertos**: sus contenedores no tienen clase estable, así que el selector no agarra | este commit |
+| territorial | Avance territorial › Ritmo diario | hecho | radio 12 → 14; sus 3 «recortes» eran falsos positivos del detector (etiquetas dentro del SVG de Plotly) | este commit |
+| territorial | Avance territorial › Salidas | hecho | radios 9/12 → 10/14. Los controles con token propio del kit se dejan | este commit |
 | territorial | Ocurrencias de campo › Resumen | pendiente |  |  |
 | territorial | Ocurrencias de campo › Distritos | pendiente |  |  |
 | territorial | Ocurrencias de campo › Reporte UMP | pendiente |  |  |
@@ -84,6 +84,17 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | cursos-horario | Avance | pendiente |  |  |
 | cursos-horario | Validación | pendiente |  |  |
 | cursos-horario | Consultas | pendiente |  |  |
+
+## Segunda corrección del instrumento — 2026-07-30
+
+El conteo de **recortes** también tenía falsos positivos: incluía elementos
+dentro de SVG, donde `scrollWidth > clientWidth` no significa recorte visual
+—los `<text>` se dibujan completos—. Lo delató Ritmo diario, con tres etiquetas
+de leyenda de Plotly contadas como recortadas y legibles en pantalla.
+
+Los recortes reportados antes de esta corrección **sí eran reales**: los de
+Cuotas (156), Duración (11) y las tablas tenían padres HTML, comprobados por su
+cadena de ancestros. Pero el detector ahora excluye SVG.
 
 ## Riesgo operativo: dos sesiones sobre el mismo backend
 
@@ -120,6 +131,7 @@ las acompaña no es fiable.
 |---|---|---|---|---|---|
 | scroll anidado (C4) | territorial | Modelo › Cobertura | **Seis** contenedores con scroll propio en una pestaña, más 7 recortes. La norma pide un solo dueño de scroll; con mapa, rail y listas de distrito conviviendo, resolverlo es rehacer el reparto de alto de la superficie | medido el 2026-07-30 en `acnur_acg` | abierto |
 | ~~bug de datos~~ **RESUELTO** `a61b21b8` | territorial | Consultas › Registro | **Sexo y Edad salían «S/D» en las 318 filas** mientras el resto de columnas tiene dato. Dos causas distintas: (1) `sex_var` está **vacía** en la config del proyecto —y en `.monitoreo_territorial_default_mapping` es la **única** de las doce variables cuyo fallback es `""`; las demás caen a un nombre real como `Core/M5_district` o `codigo_pulso`—, así que cuando el instrumento no usa ninguno de los alias previstos (`Core/E2_sex`, `E2_sex`, `sexo`, `sex`, `gender`, `genero`) queda sin mapear **en silencio**. (2) `age_var` sí resuelve a `Core/E1_age` y aun así sale S/D: el motor tiene un relleno desde la fuente (`age_fill`/`sex_fill`, `monitoreo_engine.R:30155`) que recupera el valor cuando el audit no lo trae, pero **solo corre en la ruta de publicación**; el `response_audit` que consume la tabla de la app sale por `.monitoreo_territorial_df_rows(audit)` sin ese paso. La tabla tampoco tiene fallbacks en el front: `row.sex` y `row.age` se leen a pelo mientras las columnas vecinas encadenan dos o tres alternativas | medido el 2026-07-30 en la app y en R sobre `acnur_acg` | **cerrado**: el fallo real no era ninguna de las dos causas que se anotaron primero. La base sí trae `Core/E1_age` y `Core/E2_sex`, la config sí las mapea y el motor sí las resuelve (1.441 de 1.732). La tabla no se construye desde `response_audit` —ese payload solo viaja con `include_validation_payload` y la pestaña pide `queries_summary`— sino desde `internal_queries$review_cases`, y esa función exportaba treinta campos del audit sin incluir estos dos |
+| deuda compartida | los cuatro modos | Avance › Salidas | `mon-outputs-*` es un componente compartido y su escala se ha alineado **por perfil**: primero en telefónico, ahora en territorial, con reglas duplicadas. Es el parche que este trabajo quiere evitar. Debería tener una escala única, fuera de los perfiles | 2026-07-30 | abierto |
 | contrato | territorial | autodetección de mapeos | `sex_var` es la única de las doce variables cuyo fallback es la cadena vacía; las demás caen a un nombre real (`Core/M5_district`, `codigo_pulso`). Un instrumento que no use ninguno de los alias previstos deja sexo sin mapear **y sin avisar**. Es decisión de contrato, no bug | `monitoreo_engine.R:3415-3416` | abierto |
 | recorte en tabla | territorial | Consultas internas | Diez datos recortados dentro de las tablas de revisión («P597 · Vargas Carlos A…»). Mismo caso que Encuestadores: envolver redistribuye columnas | medido el 2026-07-30 | abierto |
 | recorte en tabla | territorial | Fuente › Encuestadores | Ocho datos recortados dentro de celdas de tabla («+5 reconciliadas»). La norma prohíbe elipsis en dato operativo, pero permitir el envoltorio en una tabla redistribuye las columnas: hay que decidir el ancho de esa columna, no solo el `white-space` | medido el 2026-07-30 en `acnur_acg` | abierto |
