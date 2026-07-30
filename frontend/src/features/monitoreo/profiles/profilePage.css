@@ -4050,7 +4050,7 @@
   grid-template-columns: minmax(260px, 1fr) minmax(260px, 0.72fr);
   gap: 8px;
   border: 1px solid var(--pulso-border);
-  border-radius: 8px;
+  border-radius: var(--pulso-radius-card);
   background: #fff;
   padding: 9px;
 }
@@ -4075,7 +4075,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 20%, var(--pulso-border));
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 42%, #fff);
   color: var(--pulso-module-monitoring);
   font-size: 11px;
@@ -4397,7 +4397,7 @@
   align-items: stretch;
   gap: 7px 8px;
   border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-border));
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--pulso-surface) 96%, var(--pulso-module-monitoring-soft)), #fff);
   padding: 8px;
