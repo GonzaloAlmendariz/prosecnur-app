@@ -13531,6 +13531,12 @@ monitoreo_territorial_occurrences_report <- function(data, cfg, context = NULL) 
         chr(i, "responsible_display", chr(i, "enumerator_assigned", chr(i, "submitted_by", "")))
       ),
       submitted_by = chr(i, "submitted_by", ""),
+      # Sexo y edad viajan con el caso: la tabla de Consultas los muestra en
+      # columna propia y hasta ahora los pintaba "S/D" en todas las filas.
+      # El audit los trae resueltos —1.441 de 1.732 en acnur_acg— y esta
+      # función exportaba treinta campos suyos sin incluirlos.
+      sex = chr(i, "sex", ""),
+      age = num(i, "age"),
       pulso_code = chr(i, "pulso_code_normalized", chr(i, "pulso_code", "")),
       pulso_code_raw = chr(i, "pulso_code_raw", ""),
       pulso_code_recognized = isTRUE(value(i, "pulso_code_recognized", FALSE)),
