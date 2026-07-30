@@ -548,3 +548,28 @@
   overflow-wrap: normal;
   hyphens: auto;
 }
+
+/* ── Consultas internas: el nombre del responsable deja de elidirse ────────
+ *
+ * Nueve recortes de «P597 · Vargas Carlos Angel» en la tabla de revisión, más
+ * el chip «52 corta · 3 muy corta» de la franja de métricas.
+ *
+ * Aquí sí hay una `<table>` de verdad, que es donde el argumento de «envolver
+ * redistribuye las columnas» tendría sentido. **Y tampoco se sostiene**: la
+ * tabla declara `table-layout: fixed`, y con eso los anchos los fijan la
+ * primera fila y las anchuras explícitas, no el contenido. Medidas las 26
+ * columnas antes y después: idénticas. La tabla crece 58 px de alto sobre
+ * 16.884, que es lo que ocupa envolver unas cuantas filas.
+ *
+ * De ahí sale el criterio que faltaba y que vale para todo el módulo:
+ * **envolver solo puede mover columnas si la tabla es `table-layout: auto`**.
+ * Con `fixed`, o con una rejilla de columnas resueltas, es seguro. Se mira la
+ * propiedad antes de decidir; hasta hoy se decidía de memoria. */
+.mon-territorial-review-table td strong,
+.mon-territorial-review-metrics span small {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  hyphens: auto;
+}
