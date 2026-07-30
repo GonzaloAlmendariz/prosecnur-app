@@ -1015,6 +1015,37 @@ Gate A: paridad visual antes/después en las 6 direcciones a 1710×1107 y
 1024×600; unit tests del adapter y del parser manual de portapapeles; fixtures
 `collection_plan/v1` válidos para aulas, acreditación y establecimientos.
 
+**Cerrada el 2026-07-29.**
+
+- **Unidad 2** — el adapter sale a `frontend/src/features/recopiladores/aulas/`
+  en seis módulos (texto, filas, plantilla, manifiesto, importarEnlaces, agenda)
+  más barrel. El page-file baja de 2.633 a 2.225 líneas. 45 tests nuevos.
+  Paridad verificada en la app con el fixture de 2.373 cursos-horario: las seis
+  pestañas renderizan lo mismo, y el pegado manual aplicado por la UI entra 2 de
+  5 líneas dejando la franja en «2 con enlace, 2.371 faltan».
+
+  Dos comportamientos se fijaron como contrato en vez de «arreglarse», porque
+  cambiarlos cambiaría lo que la app muestra hoy: `fmt` no alcanza su fallback
+  con `""` ni con `null` —ambos son 0 finito—, solo con `undefined`; y el parser
+  no adivina columnas por posición cuando hay cabecera.
+
+- **Unidad 4** — `api/R/collection_contracts.R` con validadores de
+  `collection_plan/v1`, `collection_deployment/v1` y el binding de acceso, más
+  seis fixtures en `api/inst/collection_fixtures/` (plan + deployment por
+  perfil). 85 aserciones.
+
+  Los validadores son **puros**: devuelven la lista de problemas y no lanzan.
+  Registrar códigos `E_*` para endpoints que todavía no existen sería inventar
+  vocabulario de API por adelantado, y el gate de `errors_registry.R` exige que
+  cada código tenga fila en el mismo commit. El router de la unidad 5 traduce
+  estos problemas a `stop_api`.
+
+  Los tres fixtures no son el mismo caso con otro nombre, y hay un test que lo
+  exige: entre ellos ejercitan los cuatro `access_kind`, los dos proveedores y
+  tres de los cuatro estados. Lo que los validadores defienden de verdad es la
+  regla 1 del ADR —las seis identidades no se reciclan entre slots—, que es el
+  bug original de `collector_id` significando canal y unidad a la vez.
+
 #### Ola B — Cimientos de estado y de render (2 writers, en paralelo)
 
 | Unidad | Owner | Globs de escritura |

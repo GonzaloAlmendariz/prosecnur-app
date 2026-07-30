@@ -1,0 +1,58 @@
+{
+  "schema": "collection_deployment/v1",
+  "deployment_id": "deployment-aulas-hsvg2026-01",
+  "plan_id": "plan-aulas-hsvg2026",
+  "plan_fingerprint": "sha256:1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809",
+  "target": {
+    "provider": "kobo",
+    "connection_profile_id": "profile-kobo-global",
+    "remote_ref": {
+      "asset_uid": "aXbYcZ1234567890",
+      "version_id": "vHsvg2026rev03"
+    }
+  },
+  "capabilities": {
+    "parameterized_link": { "observed": true, "source": "observed" },
+    "provider_collector": { "observed": false, "source": "unsupported" },
+    "recipient_link": { "observed": false, "source": "unsupported" },
+    "remote_write": { "observed": false, "source": "disabled_v1" }
+  },
+  "bindings": [
+    {
+      "access_id": "access-aulas-0001",
+      "logical_collector_id": "logical-aulas-0001",
+      "unit_id": "unit-aula-0001",
+      "provider_collector_id": null,
+      "recipient_id": null,
+      "operator_id": null,
+      "access_kind": "parameterized_link",
+      "access_ref": "https://kf.kobotoolbox.org/x/aXbYcZ1234567890",
+      "prefill": { "collectorID": "unit-aula-0001" },
+      "status": "ready"
+    },
+    {
+      "access_id": "access-aulas-0002",
+      "logical_collector_id": "logical-aulas-0002",
+      "unit_id": "unit-aula-0002",
+      "provider_collector_id": null,
+      "recipient_id": null,
+      "operator_id": null,
+      "access_kind": "parameterized_link",
+      "access_ref": "https://kf.kobotoolbox.org/x/aXbYcZ1234567890",
+      "prefill": { "collectorID": "unit-aula-0002" },
+      "status": "ready"
+    }
+  ],
+  "coverage": {
+    "units_total": 2,
+    "units_with_access": 2,
+    "units_missing_access": 0,
+    "by_group": {
+      "M1": { "total": 1, "with_access": 1 },
+      "Extra": { "total": 1, "with_access": 1 }
+    }
+  },
+  "sensitivity": { "access_urls": "operational" },
+  "status": "prepared",
+  "handoff": null
+}

@@ -1,0 +1,84 @@
+{
+  "schema": "collection_deployment/v1",
+  "deployment_id": "deployment-acreditacion-acrconta-03",
+  "plan_id": "plan-acreditacion-acrconta",
+  "plan_fingerprint": "sha256:3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b",
+  "target": {
+    "provider": "surveymonkey",
+    "connection_profile_id": "profile-sm-pulso",
+    "remote_ref": { "survey_id": "SV123456789" }
+  },
+  "capabilities": {
+    "parameterized_link": { "observed": true, "source": "observed" },
+    "provider_collector": { "observed": true, "source": "observed" },
+    "recipient_link": { "observed": true, "source": "observed" },
+    "remote_write": { "observed": false, "source": "disabled_v1" }
+  },
+  "bindings": [
+    {
+      "access_id": "access-acred-0001",
+      "logical_collector_id": "logical-acred-docentes",
+      "unit_id": "unit-actor-docentes",
+      "provider_collector_id": "sm-collector-441122",
+      "recipient_id": null,
+      "operator_id": null,
+      "access_kind": "provider_collector",
+      "access_ref": "https://www.surveymonkey.com/r/DOCENTES26",
+      "prefill": { "actor": "docentes" },
+      "status": "ready"
+    },
+    {
+      "access_id": "access-acred-0002",
+      "logical_collector_id": "logical-acred-estudiantes",
+      "unit_id": "unit-actor-estudiantes",
+      "provider_collector_id": "sm-collector-441123",
+      "recipient_id": null,
+      "operator_id": null,
+      "access_kind": "parameterized_link",
+      "access_ref": "https://www.surveymonkey.com/r/ESTUD26",
+      "prefill": { "actor": "estudiantes" },
+      "status": "ready"
+    },
+    {
+      "access_id": "access-acred-0003",
+      "logical_collector_id": "logical-acred-egresados",
+      "unit_id": "unit-actor-egresados",
+      "provider_collector_id": "sm-collector-441124",
+      "recipient_id": "sm-recipient-99001",
+      "operator_id": null,
+      "access_kind": "recipient_link",
+      "access_ref": "sha256:c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3",
+      "prefill": {},
+      "status": "ready"
+    },
+    {
+      "access_id": "access-acred-0004",
+      "logical_collector_id": "logical-acred-empleadores",
+      "unit_id": "unit-actor-empleadores",
+      "provider_collector_id": null,
+      "recipient_id": null,
+      "operator_id": "operator-coord-01",
+      "access_kind": "manual_handoff",
+      "access_ref": "external:planilla-empleadores-2026-07",
+      "prefill": {},
+      "status": "ready"
+    }
+  ],
+  "coverage": {
+    "units_total": 4,
+    "units_with_access": 4,
+    "units_missing_access": 0,
+    "by_group": {
+      "internos": { "total": 2, "with_access": 2 },
+      "externos": { "total": 2, "with_access": 2 }
+    }
+  },
+  "sensitivity": { "access_urls": "restricted" },
+  "status": "handed_off",
+  "handoff": {
+    "handed_off_at": "2026-07-28T14:20:00-05:00",
+    "receipt_id": "handoff-acrconta-03",
+    "consumer": "monitoreo",
+    "idempotency_key": "sha256:d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4"
+  }
+}

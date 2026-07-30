@@ -1,0 +1,52 @@
+{
+  "schema": "collection_plan/v1",
+  "plan_id": "plan-acreditacion-acrconta",
+  "adapter": { "id": "acreditacion_v1", "version": 1 },
+  "source_ref": {
+    "module": "monitoreo",
+    "run_id": "acred-actores-2026-07",
+    "fingerprint": "sha256:2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a"
+  },
+  "instrument_ref": {
+    "revision_id": "rev-acrconta-07",
+    "sha256": "8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a09f",
+    "provider": "surveymonkey"
+  },
+  "unit_type": "actor_audience",
+  "units": [
+    {
+      "unit_id": "unit-actor-docentes",
+      "label": "Docentes",
+      "role": "titular",
+      "group": "internos",
+      "dimensions": { "actor": "docentes", "goal": 120 },
+      "scheduling": { "wave": "M1", "sequence": 1 }
+    },
+    {
+      "unit_id": "unit-actor-estudiantes",
+      "label": "Estudiantes",
+      "role": "titular",
+      "group": "internos",
+      "dimensions": { "actor": "estudiantes", "goal": 380 },
+      "scheduling": { "wave": "M1", "sequence": 2 }
+    },
+    {
+      "unit_id": "unit-actor-egresados",
+      "label": "Egresados",
+      "role": "titular",
+      "group": "externos",
+      "dimensions": { "actor": "egresados", "goal": 90 },
+      "scheduling": { "wave": "M1", "sequence": 3 }
+    },
+    {
+      "unit_id": "unit-actor-empleadores",
+      "label": "Empleadores",
+      "role": "titular",
+      "group": "externos",
+      "dimensions": { "actor": "empleadores", "goal": 40 },
+      "scheduling": { "wave": "M1", "sequence": 4 }
+    }
+  ],
+  "revision": 3,
+  "input_fingerprint": "sha256:3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b"
+}
