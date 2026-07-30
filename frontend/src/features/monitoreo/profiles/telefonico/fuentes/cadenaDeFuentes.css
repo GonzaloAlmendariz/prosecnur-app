@@ -144,16 +144,22 @@
   font-size: 11px;
 }
 
-/* El nombre del documento manda; el identificador viaja en el `title`. */
+/* El nombre del documento manda; el identificador viaja en el `title`.
+ *
+ * Y si manda, no se elide: «PDM Medios de Vida 2026 - Homologación y…» pedía
+ * 369 px en 348 y perdía el final, que es justo lo que distingue una base de
+ * otra cuando el estudio tiene varias del mismo año. Es dato operativo, no
+ * etiqueta larga, y no está en tabla: envolver no redistribuye columnas. */
 .mon-tel-cadena-pie a,
 .mon-tel-cadena-pie span {
   min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
 }
