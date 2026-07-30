@@ -1,0 +1,55 @@
+{
+  "schema": "collection_deployment/v1",
+  "deployment_id": "deployment-establecimientos-piloto-01",
+  "plan_id": "plan-establecimientos-piloto",
+  "plan_fingerprint": "sha256:5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d",
+  "target": {
+    "provider": "kobo",
+    "connection_profile_id": "profile-kobo-eu",
+    "remote_ref": { "asset_uid": "bYcZdA0987654321", "version_id": "vEst2026rev01" }
+  },
+  "capabilities": {
+    "parameterized_link": { "observed": true, "source": "observed" },
+    "provider_collector": { "observed": false, "source": "unsupported" },
+    "recipient_link": { "observed": false, "source": "unsupported" },
+    "remote_write": { "observed": false, "source": "disabled_v1" }
+  },
+  "bindings": [
+    {
+      "access_id": "access-est-0001",
+      "logical_collector_id": "logical-est-0001",
+      "unit_id": "unit-est-0001",
+      "provider_collector_id": null,
+      "recipient_id": null,
+      "operator_id": "operator-brigada-a",
+      "access_kind": "parameterized_link",
+      "access_ref": "https://eu.kobotoolbox.org/x/bYcZdA0987654321",
+      "prefill": { "collectorID": "unit-est-0001" },
+      "status": "ready"
+    },
+    {
+      "access_id": "access-est-0003",
+      "logical_collector_id": "logical-est-0003",
+      "unit_id": "unit-est-0003",
+      "provider_collector_id": null,
+      "recipient_id": null,
+      "operator_id": "operator-brigada-b",
+      "access_kind": "parameterized_link",
+      "access_ref": "https://eu.kobotoolbox.org/x/bYcZdA0987654321",
+      "prefill": { "collectorID": "unit-est-0003" },
+      "status": "ready"
+    }
+  ],
+  "coverage": {
+    "units_total": 3,
+    "units_with_access": 2,
+    "units_missing_access": 1,
+    "by_group": {
+      "distrito-01": { "total": 2, "with_access": 1 },
+      "distrito-02": { "total": 1, "with_access": 1 }
+    }
+  },
+  "sensitivity": { "access_urls": "operational" },
+  "status": "draft",
+  "handoff": null
+}

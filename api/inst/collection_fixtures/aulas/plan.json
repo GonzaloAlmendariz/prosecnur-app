@@ -1,0 +1,46 @@
+{
+  "schema": "collection_plan/v1",
+  "plan_id": "plan-aulas-hsvg2026",
+  "adapter": { "id": "aulas_v1", "version": 1 },
+  "source_ref": {
+    "module": "calc-muestra",
+    "run_id": "sel_aulas_20260729220444_4fda3cad",
+    "fingerprint": "sha256:6b6f2f47e2b4a2c9d4e1f0a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8"
+  },
+  "instrument_ref": {
+    "revision_id": "rev-hsvg2026-03",
+    "sha256": "9f8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a39281706f5e4d3c2b1a0",
+    "provider": "kobo"
+  },
+  "unit_type": "classroom_course_schedule",
+  "units": [
+    {
+      "unit_id": "unit-aula-0001",
+      "label": "AULA 1",
+      "role": "titular",
+      "group": "M1",
+      "dimensions": {
+        "faculty": "Facultad A",
+        "course_id": "MAT146",
+        "schedule": "0404",
+        "venue": "Pabellón A - 201"
+      },
+      "scheduling": { "wave": "M1", "sequence": 1 }
+    },
+    {
+      "unit_id": "unit-aula-0002",
+      "label": "EXTRA 1",
+      "role": "extra_reserve_pool",
+      "group": "Extra",
+      "dimensions": {
+        "faculty": "Facultad A",
+        "course_id": "FIS100",
+        "schedule": "0201",
+        "venue": "Pabellón B - 105"
+      },
+      "scheduling": { "wave": "Extra", "sequence": 2 }
+    }
+  ],
+  "revision": 1,
+  "input_fingerprint": "sha256:1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f809"
+}
