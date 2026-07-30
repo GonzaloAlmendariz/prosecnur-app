@@ -14869,7 +14869,7 @@ function TelefonicoCaveatsView({
           </div>
           <span>Salvedades CodPulso</span>
           <strong>Sin efectivas con salvedad</strong>
-          <p>Kobo no trae efectivas no identificables con los filtros activos. Si aparece una, se listará aquí con CodPulso, fecha, responsable y lectura del barrido.</p>
+          <p>Con los filtros activos, todas las efectivas de Kobo se pudieron identificar. Si alguna deja de identificarse, aparece aquí con su CodPulso, fecha, responsable y lectura del barrido.</p>
           <div className="mon-phone-caveats-empty-metrics" aria-label="Resumen de salvedades">
             <span><em>Efectivas revisadas</em><strong>{fmt(reviewedCount)}</strong></span>
             <span><em>Salvedades</em><strong>0</strong></span>
