@@ -11,12 +11,12 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { Plus } from "../../../../../vendor/lucide-react";
-import type { MonitoreoSource, MonitoreoSourceRole, MonitoreoState } from "../../../../../api/client";
-import { PANELES_POR_MODULO } from "../../../../../lib/navegacion/manifiesto";
-import { usePanelDireccionable } from "../../../../../lib/navegacion/paneles";
+import { Plus } from "../../../vendor/lucide-react";
+import type { MonitoreoSource, MonitoreoSourceRole, MonitoreoState } from "../../../api/client";
+import { PANELES_POR_MODULO } from "../../../lib/navegacion/manifiesto";
+import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { ConectarFuente } from "./ConectarFuente";
-import "./fuentes.css";
+import "./conectarFuente.css";
 
 // La declaración vive en el manifiesto —que es lo que recorre el QA visual— y
 // aquí solo se consume, para que no haya dos copias que se desincronicen.

@@ -1,0 +1,384 @@
+/* Agregador de fuentes: el flujo de tres pasos para conectar una.
+ *
+ * Hoja propia porque el componente pasó a `monitoreo/fuentes/`: lo usan los
+ * perfiles, pero no pertenece a ninguno. Antes vivía dentro de la hoja del
+ * subsistema de Acreditación, y al mover el componente el import quedó
+ * apuntando a un archivo de otro perfil —el typecheck no ve los `.css`, así que
+ * lo detectó vitest—.
+ */
+
+/* z-index 1400: convención de la casa para overlays, por encima del toolbar
+ * que va en 1000. */
+.fuentes-conectar-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(15, 23, 42, 0.28);
+  display: flex;
+  justify-content: flex-end;
+  /* El panel se ancla arriba y deja aire alrededor: es una hoja que flota
+   * sobre la vista, no una columna pegada al borde de la pantalla. */
+  align-items: flex-start;
+  padding: 14px;
+  animation: fuentes-conectar-velo 140ms ease-out;
+}
+/* El panel entra deslizando desde su propio borde: una superficie que aparece
+ * de golpe obliga a releer la pantalla entera para saber qué cambió, y el
+ * desplazamiento dice de dónde vino y por dónde se va. */
+.fuentes-conectar {
+  animation: fuentes-conectar-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* El alto lo pone el contenido, no la pantalla.
+ *
+ * Con `height: 100%` el primer paso dejaba 542 px muertos entre el campo Actor
+ * y el botón Continuar —el contenido medía 251 de 793—, y un panel que reserva
+ * el triple de lo que usa se lee como una vista rota, no como espacio. El
+ * El `min-height` es deliberadamente bajo: solo evita que un paso casi vacío
+ * quede raquítico. Subirlo para igualar todos los pasos reintroduce el mismo
+ * vacío en el paso más corto —con 380 px, el paso «Cuál» dejaba 180 px
+ * muertos—, así que cada paso ocupa su alto natural y el sheet se redimensiona
+ * al avanzar, como una hoja de macOS. */
+.fuentes-conectar {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  height: auto;
+  min-height: min(240px, 100%);
+  max-height: 100%;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 12px 32px rgba(15, 23, 42, 0.16);
+}
+/* Las dos barras comparten el margen lateral del cuerpo (20px) para que
+ * título, contenido y botón caigan sobre la misma línea vertical. */
+.fuentes-conectar-cabecera {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--pulso-border);
+  flex: 0 0 auto;
+}
+.fuentes-conectar-cabecera > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.fuentes-conectar-cabecera span {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-cabecera strong {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+.fuentes-conectar-cabecera > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--pulso-control-height-md);
+  height: var(--pulso-control-height-md);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+}
+/* Los tres pasos son estado, no navegación: no se puede saltar al 3 sin haber
+ * leído, así que se pintan como indicador y nunca como botones. */
+.fuentes-conectar-pasos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fuentes-conectar-pasos li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-pasos i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border-strong);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+}
+.fuentes-conectar-pasos li.is-actual {
+  color: var(--pulso-text);
+}
+.fuentes-conectar-pasos li.is-actual i {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: var(--module-accent, var(--pulso-primary));
+  color: #fff;
+}
+.fuentes-conectar-pasos li.is-hecho i {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+/* El cuerpo es el único dueño de scroll del panel (C4). */
+.fuentes-conectar-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+}
+.fuentes-conectar-paso {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.fuentes-conectar-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.fuentes-conectar-grupo legend {
+  padding: 0;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-grupo input {
+  width: 100%;
+  min-height: var(--pulso-control-height-lg);
+  padding: 0 10px;
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+.fuentes-conectar-grupo input:focus-visible {
+  outline: 2px solid var(--module-accent, var(--pulso-primary));
+  outline-offset: -1px;
+}
+/* C2: las tarjetas de servicio son un grupo par. Su marco lo fija el grid, no
+ * el largo de la descripción. */
+.fuentes-conectar-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  align-items: stretch;
+  gap: 8px;
+}
+.fuentes-conectar-opciones.is-compacto {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+/* `min-width: 0` es obligatorio: los items de un grid arrancan en
+ * `min-width: auto`, que les impide encogerse por debajo de su contenido, y
+ * por eso «Bases de universo y hojas de barrido» se recortaba en seco a 136 px
+ * en vez de envolver. C4 no admite recorte duro. */
+.fuentes-conectar-opciones button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+.fuentes-conectar-opciones button:hover:not(.is-elegido) {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-bg);
+}
+.fuentes-conectar-opciones button svg {
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-opciones button strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+.fuentes-conectar-opciones button em,
+.fuentes-conectar-opciones button strong {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.fuentes-conectar-opciones button em {
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.4;
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-opciones button.is-elegido {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, transparent);
+}
+.fuentes-conectar-opciones button.is-elegido svg {
+  color: var(--module-accent, var(--pulso-primary));
+}
+/* Pista de validación: aparece mientras se escribe y ocupa su renglón desde el
+ * principio, para que el formulario no salte cuando el diagnóstico cambia. */
+.fuentes-conectar-pista {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  min-height: 17px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.fuentes-conectar-pista svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.fuentes-conectar-pista.is-ok { color: var(--pulso-success-fg); }
+.fuentes-conectar-pista.is-aviso { color: var(--pulso-warn-fg); }
+.fuentes-conectar-pista.is-neutra { color: var(--pulso-text-soft); }
+.fuentes-conectar-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-danger-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+  font-size: 11.5px;
+}
+/* El catálogo posee su propio scroll: con 200 encuestas, la lista no puede
+ * empujar el pie del panel fuera de la pantalla (C3/C4). */
+.fuentes-conectar-catalogo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.fuentes-conectar-catalogo.is-corto {
+  max-height: 190px;
+}
+.fuentes-conectar-catalogo button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+}
+.fuentes-conectar-catalogo button strong {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+.fuentes-conectar-catalogo button em {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-catalogo button.is-elegido {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, transparent);
+}
+.fuentes-conectar-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-bg);
+}
+.fuentes-conectar-resultado > span {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-resultado > strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+.fuentes-conectar-resultado > em {
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--pulso-text-soft);
+}
+.fuentes-conectar-columnas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.fuentes-conectar-columnas i {
+  padding: 2px 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-soft);
+}
+.fuentes-conectar-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--pulso-border);
+  background: var(--pulso-bg);
+  flex: 0 0 auto;
+}
+
+/* Animación de entrada y ajustes de pantalla baja: viajan con el componente,
+ * no con el perfil que lo monta. */
+
+@keyframes fuentes-conectar-velo {
+  from { background: rgba(15, 23, 42, 0); }
+}
+
+@keyframes fuentes-conectar-entrada {
+  from { transform: translateX(24px); opacity: 0; }
+}
+
+/* Quien pidió menos movimiento no recibe ninguno. */
+@media (prefers-reduced-motion: reduce) {
+  .fuentes-conectar-fondo,
+  .fuentes-conectar {
+    animation: none;
+  }
+}
+
+@media (max-height: 720px) {
+  .fuentes-conectar-catalogo { max-height: 200px; }
+  .fuentes-conectar-catalogo.is-corto { max-height: 140px; }
+}
