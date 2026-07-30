@@ -32,29 +32,29 @@ import {
   Search,
   Table2,
   X,
-} from "../../../../../vendor/lucide-react";
-import type { LucideIcon } from "../../../../../vendor/lucide-react";
+} from "../../../vendor/lucide-react";
+import type { LucideIcon } from "../../../vendor/lucide-react";
 import type {
   MonitoreoKoboAssetItem,
   MonitoreoSheetsInspectResult,
   MonitoreoSource,
   MonitoreoSourceRole,
   MonitoreoState,
-} from "../../../../../api/client";
+} from "../../../api/client";
 import {
   apiMonitoreoKoboAssets,
   apiMonitoreoSheetsInspect,
   apiMonitoreoSheetsSource,
   apiMonitoreoSource,
-} from "../../../../../api/client";
-import { apiSurveyMonkeyMultibaseListSurveys } from "../../../../../api/surveymonkey";
+} from "../../../api/client";
+import { apiSurveyMonkeyMultibaseListSurveys } from "../../../api/surveymonkey";
 import {
   admiteDireccionPegada,
   leerDireccion,
-} from "../../../fuentes/direccionDeFuente";
-import type { ServicioDeFuente } from "../../../fuentes/direccionDeFuente";
-import { actorQueContradiceElNombre, contar } from "../../../fuentes/vocabulario";
-import "./fuentes.css";
+} from "./direccionDeFuente";
+import type { ServicioDeFuente } from "./direccionDeFuente";
+import { actorQueContradiceElNombre, contar } from "./vocabulario";
+import "./conectarFuente.css";
 
 const SM_API = "https://api.surveymonkey.com/v3";
 const KOBO_POR_DEFECTO = "https://kf.kobotoolbox.org";

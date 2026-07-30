@@ -168,7 +168,7 @@ import { DefinidorDeEstados } from "./telefono/DefinidorDeEstados";
 import { DistribucionPorActor } from "./modelo/DistribucionPorActor";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
 import { proveedoresDeFuentes, textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "../../fuentes/vocabulario";
-import { PanelConectarFuente } from "./fuentes/PanelConectarFuente";
+import { PanelConectarFuente } from "../../fuentes/PanelConectarFuente";
 import { railDeFuentesAcreditacion, railDeFuentesTelefonico } from "./fuentes/railDeFuentes";
 import {
   PESTANAS_DE_FUENTES,
