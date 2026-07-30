@@ -21,10 +21,10 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | acreditación | Consultas › Estado de la base | auditada | limpia de recortes y solapes; **519 botones en radio 8** pendientes | — |
 | acreditación | Consultas › Cruces efectivos | auditada | 0 solapes. **45 recortes de «Cruzó por llave» dentro de tabla** (2 px cada uno): entra en la decisión de ancho de columna que ya está abierta para territorial | — |
 | acreditación | Consultas › Subsanación | hecho | **109 rótulos recortados**: «Estudiantes · 22 julio · Enlace QR Estudiant…» pedía 242 px en 218. No está en tabla, así que envuelve; las filas quedan uniformes en 81 px. Radios 7 y 9 pendientes | este commit |
-| acreditación | Monitoreo telefónico › Resumen | pendiente |  |  |
-| acreditación | Monitoreo telefónico › Estados | pendiente |  |  |
-| acreditación | Monitoreo telefónico › Día | pendiente |  |  |
-| acreditación | Monitoreo telefónico › Incidencias de la base | pendiente |  |  |
+| acreditación | Monitoreo telefónico › **Barrido + Kobo** | auditada | 0 solapes, 0 contenido cortado. Chips de estado en 8 px pendientes | — |
+| acreditación | Monitoreo telefónico › Estados | hecho | conforme: lo único fuera de escala es el chrome de la app (`pulso-command-bar` en 18) | — |
+| acreditación | Monitoreo telefónico › **Ritmo diario** | auditada | **1 contenido cortado real**: una columna de barra apilada mide 7,9 px y sus 3 segmentos piden 12. Es codificación de gráfico —qué hacer con un día de muy pocos casos—, no CSS | — |
+| acreditación | Monitoreo telefónico › **Sin efectiva** | hecho | 61 filas-tarjeta de 563×57 en 8 px → 10. Confirma que el desajuste de denominador de las barras de insistencia también está aquí, no solo en telefónico | este commit |
 | acreditación | Monitoreo telefónico › Responsables | pendiente |  |  |
 | acreditación | Monitoreo telefónico › Alertas | pendiente |  |  |
 | acreditación | Monitoreo telefónico › Supervisión telefónica | pendiente |  |  |
