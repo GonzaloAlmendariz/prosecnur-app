@@ -63,7 +63,7 @@ function FilaDeFuente({ source }: { source: MonitoreoSource }) {
   // título, y el enlace cae a un rótulo genérico cuando repetiría el nombre.
   const subtitulo = [servicioDeFuente(source), actor === nombre ? "" : actor].filter(Boolean).join(" · ");
   return (
-    <article className="fuentes-resumen-fila" data-qa-geometry-member>
+    <article className="fuentes-resumen-fila">
       <div className="fuentes-resumen-fila-titulo">
         {/* R1: el nombre humano es el título. El identificador vive abajo. */}
         <strong>{nombre}</strong>
@@ -153,7 +153,7 @@ function NotaDeServicios({ sources }: { sources: MonitoreoSource[] }) {
   if (!servicios.length) return null;
   return (
     <p className="fuentes-resumen-nota-servicio">
-      {`${servicios.join(" y ")} no ${servicios.length === 1 ? "expone" : "exponen"} la dirección de la encuesta. El identificador está en el detalle técnico de cada fuente.`}
+      {`${servicios.join(" y ")} no ${servicios.length === 1 ? "ofrece" : "ofrecen"} un enlace directo. ${servicios.length === 1 ? "Su identificador queda" : "Sus identificadores quedan"} en «Detalle técnico».`}
     </p>
   );
 }
@@ -223,10 +223,9 @@ export function FuentesResumen({
     <div className="fuentes-resumen">
       <header className="fuentes-resumen-cabecera">
         <div>
-          <span>Resumen de fuentes</span>
-          {/* R3: ni «13/13» ni «13 piezas». Ese cociente ya lo dicen la barra de
-            * módulo y la franja de sección; repetirlo por tercera vez fue A7. */}
-          <strong>{contar(activas.length, "fuente activa", "fuentes activas")}</strong>
+          {/* R3: el total ya vive en la barra de módulo y en la franja de
+            * sección. Aquí se declara la pregunta que responde la vista. */}
+          <strong>De dónde salen los datos</strong>
           <em>{textoDeActualizacion(resumen.lastSync)}</em>
         </div>
         <MapaDeCobertura actores={actores} sources={activas} />
@@ -241,7 +240,7 @@ export function FuentesResumen({
         ) : (
           <p className="fuentes-resumen-aviso is-listo">
             <CheckCircle2 size={14} />
-            <span>Cada actor con encuesta tiene su base de universo.</span>
+            <span>Cobertura completa</span>
           </p>
         )}
       </header>
