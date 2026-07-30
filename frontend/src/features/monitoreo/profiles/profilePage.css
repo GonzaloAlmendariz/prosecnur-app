@@ -131,7 +131,7 @@
   min-height: 27px;
   grid-template-columns: 15px minmax(0, 1fr);
   gap: 4px;
-  border-radius: 7px;
+  border-radius: var(--pulso-radius);
   padding: 3px 6px;
 }
 
@@ -12509,7 +12509,7 @@
   display: grid;
   gap: 5px;
   border: 1px solid var(--pulso-border);
-  border-radius: 9px;
+  border-radius: var(--pulso-radius);
   background: rgba(255, 255, 255, 0.74);
   padding: 10px;
 }
@@ -12552,7 +12552,7 @@
   gap: 7px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, transparent);
-  border-radius: 11px;
+  border-radius: var(--pulso-radius-card);
   background: color-mix(in srgb, #fff 78%, var(--pulso-surface-2) 22%);
   padding: 8px;
 }
@@ -12628,7 +12628,7 @@
   gap: 7px;
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--pulso-border) 78%, transparent);
-  border-radius: 9px;
+  border-radius: var(--pulso-radius);
   background: rgba(255, 255, 255, 0.62);
   padding: 7px;
 }
@@ -12639,7 +12639,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary);
 }
@@ -17944,7 +17944,7 @@ button.mon-acr-requirement-metric:active {
   align-items: center;
   border: 1px solid rgba(15, 61, 99, 0.10);
   background: #fff;
-  border-radius: 9px;
+  border-radius: var(--pulso-radius);
   padding: 9px;
 }
 
