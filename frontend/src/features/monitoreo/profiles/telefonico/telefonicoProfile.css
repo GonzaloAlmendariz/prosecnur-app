@@ -5097,3 +5097,27 @@
   text-transform: none;
   color: var(--pulso-text);
 }
+
+/* ── Llamadas › Resumen operativo ──────────────────────────────────────────
+ *
+ * La sección más densa del modo: 77 cajas, 76 sin sombra. Su composición ya
+ * era buena —el embudo «De dónde sale la cifra» y la tabla de mínimos por
+ * cuota se leen sin esfuerzo—, así que lo que faltaba era la materia, no la
+ * estructura.
+ *
+ * El panel contenedor es el único bloque de primer nivel; dárselo a él asienta
+ * la sección sin tocar las 76 cajas internas, que son celdas de dato y no
+ * deben competir con su contenedor. */
+.is-telefonico-profile .mon-phone-panel.is-standalone-phone {
+  border-radius: var(--pulso-radius-panel);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-border));
+  box-shadow: var(--pulso-shadow-low);
+}
+
+/* Las tarjetas de bloque interno suben a la escala de tarjeta. Se listan por
+ * nombre en vez de por un selector amplio porque la sección mezcla tarjetas
+ * con celdas, y un `> *` alcanzaría también a las celdas. */
+.is-telefonico-profile .mon-tel-goal,
+.is-telefonico-profile .mon-phone-storage {
+  border-radius: var(--pulso-radius-card);
+}
