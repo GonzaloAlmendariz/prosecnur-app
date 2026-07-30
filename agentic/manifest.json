@@ -392,7 +392,7 @@
       "api/R/hojas_ruta_engine.R": 10305,
       "frontend/src/features/carga/carga-v2.css": 9501,
       "frontend/src/features/hojasRuta/HojasRutaPage.tsx": 8991,
-      "frontend/src/features/recopiladores/RecopiladoresPage.tsx": 2225,
+      "frontend/src/features/recopiladores/RecopiladoresPage.tsx": 2208,
       "frontend/src/features/recopiladores/recopiladores.css": 3311,
       "frontend/src/app/tokens.css": 540
     },

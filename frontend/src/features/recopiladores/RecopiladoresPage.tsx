@@ -93,6 +93,7 @@ import {
   statusLabel,
 } from "./aulas";
 import type { LinkParseResult, ManualLinkRecord, PackageOutputGroup, TemplateContext } from "./aulas";
+import { useRecopiladoresStore } from "./store";
 import "./recopiladores.css";
 
 type QrSection = RecopiladoresSeccion;
@@ -997,8 +998,6 @@ function KoboLinkPanel({
 export default function RecopiladoresPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [state, setState] = useState<MonitoreoState | null>(null);
-  const [calcState, setCalcState] = useState<CalcMuestraState | null>(null);
   // La navegación NO es estado local: vive en la dirección, como en el resto de
   // la app. Antes eran dos `useState` y por eso `?seccion=&pestana=` se leía en
   // el inspector pero no movía la pantalla.
@@ -1031,27 +1030,31 @@ export default function RecopiladoresPage() {
     );
     navigate(`${location.pathname}${canonico}`, { replace: true });
   }, [seccionUrl, pestanaUrl, activeSection, activeTab, location.pathname, location.search, navigate]);
-  const [selectedFaculty, setSelectedFaculty] = useState("todas");
-  const [query, setQuery] = useState("");
-  const [selectedKey, setSelectedKey] = useState("");
-  const [linkPaste, setLinkPaste] = useState("");
-  const [manualLinks, setManualLinks] = useState<Map<string, ManualLinkRecord>>(() => new Map());
-  const [koboConnection, setKoboConnection] = useState<ConnectionTokenState | null>(null);
-  const [koboProfileId, setKoboProfileId] = useState("");
-  const [koboBaseUrl, setKoboBaseUrl] = useState(KOBO_DEFAULT_BASE_URL);
-  const [koboAssets, setKoboAssets] = useState<MonitoreoKoboAssetItem[]>([]);
-  const [koboAssetUid, setKoboAssetUid] = useState("");
-  const [koboBaseLink, setKoboBaseLink] = useState("");
-  const [koboParamTemplate, setKoboParamTemplate] = useState(KOBO_PARAM_TEMPLATE);
-  const [koboLoading, setKoboLoading] = useState(false);
-  const [koboResolving, setKoboResolving] = useState(false);
-  const [koboResolvedFrom, setKoboResolvedFrom] = useState("");
-  const [koboError, setKoboError] = useState("");
-  const [returnCopied, setReturnCopied] = useState(false);
-  const [returnSaving, setReturnSaving] = useState(false);
-  const [returnSaveMessage, setReturnSaveMessage] = useState("");
-  const [returnSaveError, setReturnSaveError] = useState("");
-  const [printPreparedAt, setPrintPreparedAt] = useState("");
+  // El estado de UI vive en el store del feature (`store.ts`), no en un racimo
+  // de `useState`: las transiciones que van juntas —elegir perfil de Kobo
+  // descarta assets, asset, enlace y error del anterior— son una acción y no una
+  // convención que cada handler tiene que recordar.
+  const {
+    selectedFaculty, query, selectedKey,
+    linkPaste, manualLinks,
+    koboConnection, koboProfileId, koboBaseUrl, koboAssets, koboAssetUid,
+    koboBaseLink, koboParamTemplate, koboLoading, koboResolving, koboResolvedFrom, koboError,
+    returnCopied, returnSaving, returnSaveMessage, returnSaveError,
+    printPreparedAt,
+    setSelectedFaculty, setQuery, setSelectedKey,
+    setLinkPaste, aplicarPegado, limpiarPegado, aplicarEnlacesGenerados,
+    setKoboConnection, elegirPerfilKobo, sembrarConexionKobo, setKoboBaseUrl,
+    setKoboAssets, agregarAssetKobo, elegirAssetKobo,
+    setKoboBaseLink, setKoboParamTemplate, setKoboLoading,
+    empezarResolucionKobo, terminarResolucionKobo, setKoboError,
+    setReturnCopied, empezarGuardado, guardadoConExito, guardadoConError,
+    setPrintPreparedAt,
+  } = useRecopiladoresStore();
+
+  // El ciclo de fetch sí es local: nace y muere con este montaje, y subirlo al
+  // store solo agregaría una forma de que sobreviva a la vista que lo pidió.
+  const [state, setState] = useState<MonitoreoState | null>(null);
+  const [calcState, setCalcState] = useState<CalcMuestraState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -1321,26 +1324,31 @@ export default function RecopiladoresPage() {
       koboProfiles.find((profile) => profile.is_default)?.id ||
       koboProfiles[0]?.id ||
       "";
-    if (preferredProfile) {
-      setKoboProfileId((current) => current || preferredProfile);
-    }
     const preferredBase = cleanKoboBaseUrl(
       koboConnection.active_profile_base_url ||
       koboProfiles.find((profile) => profile.id === preferredProfile)?.base_url ||
       koboProfiles[0]?.base_url ||
       KOBO_DEFAULT_BASE_URL,
     );
-    setKoboBaseUrl((current) => current && current !== KOBO_DEFAULT_BASE_URL ? current : preferredBase);
-  }, [koboConnection, koboProfiles]);
+    // Sembrar sin pisar lo elegido es una sola regla, así que es una sola acción.
+    sembrarConexionKobo(preferredProfile, preferredBase);
+  }, [koboConnection, koboProfiles, sembrarConexionKobo]);
 
-  function selectKoboAsset(uid: string) {
-    setKoboAssetUid(uid);
-    setKoboResolvedFrom("");
-    // El campo no se siembra con la landing administrativa: el enlace sale de
-    // "Resolver enlace" o lo pega el usuario. Un enlace heredado que no captura
-    // se limpia al cambiar de formulario en vez de arrastrarse al QR.
-    setKoboBaseLink((current) => (captureUrlOk(current) ? current : ""));
-  }
+  // El enlace no se siembra con la landing administrativa: sale de "Resolver
+  // enlace" o lo pega el usuario. `elegirAssetKobo` conserva el que sí captura y
+  // descarta el que no, para que un enlace heredado no llegue al QR.
+  const selectKoboAsset = elegirAssetKobo;
+
+  // Cambiar de perfil arrastra su servidor: el perfil elegido y la base son un
+  // solo hecho, y ofrecer los formularios de un servidor bajo otro es cómo se
+  // resuelve un enlace contra el sitio equivocado.
+  const cambiarPerfilKobo = useCallback(
+    (profileId: string) => {
+      const perfil = koboProfiles.find((p) => p.id === profileId);
+      elegirPerfilKobo(profileId, cleanKoboBaseUrl(perfil?.base_url));
+    },
+    [koboProfiles, elegirPerfilKobo],
+  );
 
   async function loadKoboAssets() {
     if (!koboConnection?.has_token) {
@@ -1357,11 +1365,7 @@ export default function RecopiladoresPage() {
       });
       setKoboAssets(result.assets);
       const nextAsset = result.assets.find((asset) => asset.uid === koboAssetUid) ?? result.assets[0] ?? null;
-      setKoboAssetUid(nextAsset?.uid ?? "");
-      if (nextAsset) {
-        setKoboBaseLink((current) => (captureUrlOk(current) ? current : ""));
-        setKoboResolvedFrom("");
-      }
+      elegirAssetKobo(nextAsset?.uid ?? "");
     } catch (e) {
       setKoboError((e as Error).message || String(e));
     } finally {
@@ -1379,8 +1383,7 @@ export default function RecopiladoresPage() {
       setKoboError("Configura Kobo en Usuarios antes de resolver el enlace desde el deployment.");
       return;
     }
-    setKoboResolving(true);
-    setKoboError("");
+    empezarResolucionKobo();
     try {
       const cleanBase = cleanKoboBaseUrl(koboBaseUrl || selectedKoboProfile?.base_url);
       setKoboBaseUrl(cleanBase);
@@ -1392,30 +1395,25 @@ export default function RecopiladoresPage() {
       // Solo `survey_url` sirve para colgar los parámetros de unidad. Si Kobo no
       // resolvió un formulario, el campo se queda vacío y se dice por qué: la
       // landing administrativa no es un reemplazo silencioso.
-      setKoboBaseLink(result.survey_url || "");
-      setKoboResolvedFrom(result.resolved_from || "unresolved");
-      if (!result.survey_url) {
-        setKoboError(
-          result.capture_message ||
+      terminarResolucionKobo({
+        link: result.survey_url || "",
+        resolvedFrom: result.resolved_from || "unresolved",
+        error: result.survey_url
+          ? ""
+          : result.capture_message ||
             "Kobo no devolvió un formulario web para este proyecto. Copia el enlace del formulario desde Kobo y pégalo.",
-        );
-      }
-      if (result.name && !koboAssets.some((asset) => asset.uid === assetUid)) {
-        setKoboAssets((current) => [
-          ...current,
-          {
-            uid: assetUid,
-            name: result.name,
-            version_id: result.version_id,
-            date_modified: null,
-            deployment_active: result.deployment_active,
-          },
-        ]);
+      });
+      if (result.name) {
+        agregarAssetKobo({
+          uid: assetUid,
+          name: result.name,
+          version_id: result.version_id,
+          date_modified: null,
+          deployment_active: result.deployment_active,
+        });
       }
     } catch (e) {
-      setKoboError((e as Error).message || String(e));
-    } finally {
-      setKoboResolving(false);
+      terminarResolucionKobo({ error: (e as Error).message || String(e) });
     }
   }
 
@@ -1450,10 +1448,7 @@ export default function RecopiladoresPage() {
         sample: selectedKoboAsset?.name || "Kobo",
       });
     });
-    setManualLinks(next);
-    setKoboError("");
-    setReturnSaveMessage("");
-    setReturnSaveError("");
+    aplicarEnlacesGenerados(next);
   }
 
   function changeSection(section: QrSection) {
@@ -1488,12 +1483,10 @@ export default function RecopiladoresPage() {
   async function saveReturnToMonitoring() {
     const linkedRows = agendaRows.filter((row) => Boolean(rowLink(row)));
     if (!linkedRows.length) {
-      setReturnSaveError("No hay enlaces para guardar todavía.");
+      guardadoConError("No hay enlaces para guardar todavía.");
       return;
     }
-    setReturnSaving(true);
-    setReturnSaveError("");
-    setReturnSaveMessage("");
+    empezarGuardado();
     try {
       const packageStatus = printPreparedAt ? "pdf_preparado" : undefined;
       if (monitorRows.length) {
@@ -1511,12 +1504,9 @@ export default function RecopiladoresPage() {
         });
         setState(result.state);
       }
-      setManualLinks(new Map());
-      setReturnSaveMessage(`${fmt(linkedRows.length)} enlaces guardados en Monitoreo.`);
+      guardadoConExito(`${fmt(linkedRows.length)} enlaces guardados en Monitoreo.`);
     } catch (e) {
-      setReturnSaveError((e as Error).message || String(e));
-    } finally {
-      setReturnSaving(false);
+      guardadoConError((e as Error).message || String(e));
     }
   }
 
@@ -1526,17 +1516,10 @@ export default function RecopiladoresPage() {
       const key = normalizeMatchKey(record.key);
       if (key) next.set(key, record);
     });
-    setManualLinks(next);
-    setReturnSaveMessage("");
-    setReturnSaveError("");
+    aplicarPegado(next);
   }
 
-  function clearPastedLinks() {
-    setLinkPaste("");
-    setManualLinks(new Map());
-    setReturnSaveMessage("");
-    setReturnSaveError("");
-  }
+  const clearPastedLinks = limpiarPegado;
 
   return (
     <div className="rec-page" style={MODULE_TONES.recopiladores as CSSProperties} data-audit-ready={!loading && (state !== null || calcState !== null) ? "recopiladores" : undefined}>
@@ -2168,7 +2151,7 @@ export default function RecopiladoresPage() {
                     resolvedFrom={koboResolvedFrom}
                     agendaCount={baseAgendaRows.length}
                     linkedCount={withLink}
-                    onProfileChange={setKoboProfileId}
+                    onProfileChange={cambiarPerfilKobo}
                     onBaseUrlChange={setKoboBaseUrl}
                     onLoadAssets={loadKoboAssets}
                     onResolveLink={resolveKoboSurveyLink}
