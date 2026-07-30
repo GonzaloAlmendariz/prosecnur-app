@@ -9,7 +9,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | Modo | Sección › Pestaña | Estado | Hallazgos | Commit |
 |---|---|---|---|---|
 | acreditación | Fuentes › Resumen | hecho | C1 medía 16 miembros en vez de 3; tarjetas planas de radio 16→14 con materia; título y total duplicados retirados | este commit |
-| acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: este commit; registro adelantado en `767eaa42` |
+| acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: `d28a6bbf`; registro adelantado en `767eaa42` |
 | acreditación | Fuentes › Encuestas y recopiladores | pendiente |  |  |
 | acreditación | Modelo operativo › Modelo operativo | pendiente |  |  |
 | acreditación | Modelo operativo › Distribución | pendiente |  |  |
