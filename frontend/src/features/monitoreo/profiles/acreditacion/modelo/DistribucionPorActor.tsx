@@ -79,7 +79,7 @@ function Reparto({ columna, normalizacion }: { columna: VariableCandidata; norma
   const maximo = Math.max(...valores.map((item) => item.count));
   return (
     <div className="mon-dist-reparto">
-      <ul>
+      <ul data-qa-geometry-capacity="owned" data-qa-geometry-content>
         {valores.map((item) => (
           <li key={item.value}>
             <span className="mon-dist-etiqueta" title={item.value}>{item.value}</span>
@@ -122,7 +122,7 @@ function TarjetaDeActor({
 
   if (!item.columnas.length) {
     return (
-      <article className="mon-dist-actor is-vacia" data-qa-geometry-capacity="owned">
+      <article className="mon-dist-actor is-vacia" data-qa-geometry-member>
         <header><strong>{item.actor}</strong></header>
         <p className="mon-dist-vacio">
           La base de este actor todavía no se ha sincronizado, así que no hay columnas que ofrecer.
@@ -132,7 +132,7 @@ function TarjetaDeActor({
   }
 
   return (
-    <article className="mon-dist-actor" data-qa-geometry-capacity="owned">
+    <article className="mon-dist-actor" data-qa-geometry-member>
       <header>
         <strong>{item.actor}</strong>
         <em>
@@ -198,7 +198,11 @@ function TarjetaDeActor({
           }}
         >
           <option value="">
-            {disponibles.length ? "Elegir una columna…" : "No quedan columnas por declarar"}
+            {disponibles.length
+              ? "Elegir una columna…"
+              : elegibles.length
+                ? "Todas las columnas elegibles ya están declaradas"
+                : "No hay columnas elegibles"}
           </option>
           {item.columnas.filter((columna) => !yaDeclarada(columna.name)).map((columna) => (
             <option
@@ -247,15 +251,14 @@ export function DistribucionPorActor({
   }
 
   return (
-    <div className="mon-dist" data-qa-geometry-group="acreditacion-distribucion" data-qa-geometry-contract="equal">
+    <div className="mon-dist">
       <header className="mon-dist-head">
         <div>
-          <span>Distribución</span>
-          <strong>Con qué variables se abre el avance de cada actor</strong>
-          <small>Salen de la base de universo del actor. Avance las usa para su reporte detallado.</small>
+          <strong>Variables para abrir el detalle de cada actor</strong>
+          <small>Decláralas desde su base de universo; Avance mostrará sus categorías y cobertura.</small>
         </div>
       </header>
-      <div className="mon-dist-grid">
+      <div className="mon-dist-grid" data-qa-geometry-group="acreditacion-distribucion-actores" data-qa-geometry-contract="intrinsic">
         {actores.map((item) => (
           <TarjetaDeActor
             key={item.sourceId}

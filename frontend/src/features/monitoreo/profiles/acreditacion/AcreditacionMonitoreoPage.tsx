@@ -1144,14 +1144,6 @@ function AcreditacionCanonicalModelWorkbench({
       scheduleWindow,
       reportWeekdayLabel,
     ];
-  // Modelo tiene TRES vistas, una por decisión: cuánto quiero de cada actor
-  // (metas), cómo quiero verlo repartido (distribución) y cuándo se hace el
-  // campo (cronograma).
-  //
-  // En B1 se quedó con una sola porque las tres subpestañas de entonces eran
-  // una subdivisión decorativa de la misma decisión; «Lectura de Fuentes» sigue
-  // retirada por eso mismo —era mirar Fuentes sin poder editarlas—. Estas dos
-  // vuelven con contenido propio, no como subdivisión.
   const activeVisibleTab: AcreditacionModelVisibleTab =
     activeTab === "distribucion" || activeTab === "estrategias" ? activeTab : "estructura";
   const modelCopy = isPhoneModel
@@ -1279,8 +1271,7 @@ function AcreditacionCanonicalModelWorkbench({
           </div>
         </header>
         {goalStatus ? <span className={`mon-acr-model-action-status is-${goalStatus.tone}`}>{goalStatus.message}</span> : null}
-        <div className="mon-acr-model-map" aria-label="Resumen del modelo operativo"
-          data-qa-geometry-group={activeVisibleTab === "estructura" && !isPhoneModel ? "acreditacion-model-summary" : undefined} data-qa-geometry-contract={activeVisibleTab === "estructura" && !isPhoneModel ? "equal" : undefined}>
+        {activeVisibleTab !== "distribucion" ? <div className="mon-acr-model-map" aria-label="Resumen del modelo operativo" data-qa-geometry-group={activeVisibleTab === "estructura" && !isPhoneModel ? "acreditacion-model-summary" : undefined} data-qa-geometry-contract={activeVisibleTab === "estructura" && !isPhoneModel ? "equal" : undefined}>
           {isPhoneModel ? (
             <>
               <AcreditacionActorDashboardTile label="Variable rectora" value={phoneQuotaVariable ? phoneQuotaVariableLabel(phoneQuotaVariable) : "Pendiente"} hint={`${fmt(phoneQuotaEditorRows.length)} categorías`} tone={phoneQuotaVariable ? "ready" : "warning"} />
@@ -1290,16 +1281,11 @@ function AcreditacionCanonicalModelWorkbench({
             </>
           ) : (
             <>
-              {/* R3: esta tira decía «Actores 4» a dos centímetros de otra que
-                * ya lo decía, y «Universo 519» que es literalmente el
-                * «519 procesables» del embudo de arriba. Quedan los dos datos
-                * que Modelo posee y nadie más muestra: la suma de mínimos que
-                * se está fijando aquí, y la ventana de campo. */}
               <AcreditacionActorDashboardTile label="Mínimo actor" value={metaTotal ? fmt(metaTotal) : "Pendiente"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
               <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
             </>
           )}
-        </div>
+        </div> : null}
         {activeVisibleTab === "estructura" && !isPhoneModel ? (
           <section className="mon-acr-model-roster" aria-label="Actores definidos en Fuentes">
             <header>
@@ -17975,6 +17961,10 @@ function AcreditacionClarityStrip({
     })
     : [];
   const phoneQuotaGoal = phoneQuotaVariable && state?.config ? phoneQuotaGoalTotal(state.config.goals ?? [], phoneQuotaVariable) : 0;
+  const interestVariables = state?.config?.operational_model?.interest_variables ?? [];
+  const distributionActorCount = (state?.sources ?? []).filter((source) => String(source.role ?? "") === "universo").length;
+  const distributionDeclaredActors = new Set(interestVariables.map((item) => normalizeSourceMatch(item.actor))).size;
+  const distributionPendingActors = Math.max(0, distributionActorCount - distributionDeclaredActors);
   const itemsByView = {
     fuentes: [
       { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: sourceGap ? `${sourceGap} pendientes` : "paquete listo", tone: sourceGap ? "warning" : "ready", icon: ClipboardCheck },
@@ -17985,6 +17975,10 @@ function AcreditacionClarityStrip({
       { label: "Variable rectora", value: phoneQuotaVariable ? phoneQuotaVariableLabel(phoneQuotaVariable) : "Pendiente", hint: `${fmt(phoneQuotaEditorRows.length)} categorías`, tone: phoneQuotaVariable ? "base" : "warning", icon: SlidersHorizontal },
       { label: "Objetivo Kobo", value: phoneQuotaGoal ? fmt(phoneQuotaGoal) : "S/M", hint: "efectivas filtradas", tone: phoneQuotaGoal ? "ready" : "warning", icon: Target },
       { label: "Categorías", value: fmt(phoneQuotaEditorRows.length), hint: phoneQuotaVariable ? `metas por ${phoneQuotaVariableLabel(phoneQuotaVariable).toLowerCase()}` : "define variable", tone: phoneQuotaEditorRows.length ? "ready" : "warning", icon: ShieldAlert },
+    ] : pestanaActiva === "distribucion" ? [
+      { label: "Actores", value: fmt(distributionActorCount), hint: "con base de universo", tone: distributionActorCount ? "base" : "warning", icon: ClipboardCheck },
+      { label: "Variables", value: fmt(interestVariables.length), hint: "para abrir Avance", tone: interestVariables.length ? "ready" : "warning", icon: BarChartBig },
+      { label: "Pendientes", value: fmt(distributionPendingActors), hint: "sin variable declarada", tone: distributionPendingActors ? "warning" : "ready", icon: AlertCircle },
     ] : [
       { label: "Actores", value: fmt(actorRows.length), hint: "cortes del reporte", tone: actorRows.length ? "base" : "warning", icon: ClipboardCheck },
       { label: "Metas", value: fmt(configuredGoals), hint: "configuradas", tone: configuredGoals ? "ready" : "warning", icon: Target },
