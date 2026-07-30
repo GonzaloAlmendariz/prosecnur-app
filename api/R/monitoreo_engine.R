@@ -684,14 +684,8 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
   out
 }
 
-.monitoreo_text_key <- function(x) {
-  x <- trimws(tolower(as.character(x %||% "")))
-  x[is.na(x)] <- ""
-  x <- iconv(x, to = "ASCII//TRANSLIT", sub = "")
-  x <- gsub("[`'´’]", "", x)
-  x <- gsub("\\s+", " ", x)
-  x
-}
+# .monitoreo_text_key vive en monitoreo_reconciliacion_memo.R (memoizada; era
+# el 62% del costo de la reconciliación cuando se computaba string a string).
 
 .monitoreo_email_key <- function(x) {
   x <- .monitoreo_text_key(x)
@@ -18121,7 +18115,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   cases_df[keep, , drop = FALSE]
 }
 
-.monitoreo_acreditacion_case_rollup_df <- function(data, profile = list(), internal_queries = NULL) {
+# Fachada memoizada en monitoreo_reconciliacion_memo.R; este es el cuerpo real.
+.monitoreo_acreditacion_case_rollup_df_impl <- function(data, profile = list(), internal_queries = NULL) {
   profile <- monitoreo_normalize_profile(profile)
   if (!.monitoreo_scalar(profile$family, "") %in% c("acreditacion", "telefonico")) return(data.frame())
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(data.frame())
@@ -18569,7 +18564,8 @@ monitoreo_build_dashboard <- function(data, config = list(), include_reports = T
   )
 }
 
-.monitoreo_acreditacion_internal_queries <- function(data, profile = list()) {
+# Fachada memoizada en monitoreo_reconciliacion_memo.R; este es el cuerpo real.
+.monitoreo_acreditacion_internal_queries_impl <- function(data, profile = list()) {
   if (is.null(data) || !is.data.frame(data) || !nrow(data)) return(.monitoreo_internal_empty_queries())
   profile <- monitoreo_normalize_profile(profile)
   response_mask <- .monitoreo_report_role_mask(data, "respuestas")
