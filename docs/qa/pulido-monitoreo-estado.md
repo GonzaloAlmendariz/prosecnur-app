@@ -73,12 +73,12 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Avance territorial › Mapa y UMP | **parcial** | 321 cajas y seis radios → 10/14/16. **20 recortes siguen abiertos**: sus contenedores no tienen clase estable, así que el selector no agarra | este commit |
 | territorial | Avance territorial › Ritmo diario | hecho | radio 12 → 14; sus 3 «recortes» eran falsos positivos del detector (etiquetas dentro del SVG de Plotly) | este commit |
 | territorial | Avance territorial › Salidas | hecho | radios 9/12 → 10/14. Los controles con token propio del kit se dejan | este commit |
-| territorial | Ocurrencias de campo › Resumen | pendiente |  |  |
-| territorial | Ocurrencias de campo › Distritos | pendiente |  |  |
-| territorial | Ocurrencias de campo › Reporte UMP | pendiente |  |  |
-| territorial | Ocurrencias de campo › UMP | pendiente |  |  |
-| territorial | Ocurrencias de campo › Alertas | pendiente |  |  |
-| territorial | Ocurrencias de campo › Ritmo | pendiente |  |  |
+| territorial | Ocurrencias de campo › Resumen | hecho | radios 10/12/14 → 10/14; conforme y sin recortes | este commit |
+| territorial | Ocurrencias de campo › Distritos | hecho | las 42 casillas de conteo por distrito (87×65, son fichas) estaban en 8 → 10 | este commit |
+| territorial | Ocurrencias de campo › Reporte UMP | hecho | cabecera, barra y tabla de 12 → 14; KPI de 9 → 10; «150» dejaba de caber en su caja de 24 px. **83 recortes abiertos**, todos celdas de `register-table` | este commit |
+| territorial | Ocurrencias de campo › UMP | hecho | **la superficie del hallazgo**: 148 tarjetas de UMP renderizaban idénticas porque una regla de botones de barra pisaba su diseño. Ver abajo | este commit |
+| territorial | Ocurrencias de campo › Alertas | hecho | las 80 filas de alerta eran el único 11 del modo fuera de Reconciliación → 14; «Incompleta sin reporte» salía con elipsis por 2 px en 3 filas y ahora envuelve | este commit |
+| territorial | Ocurrencias de campo › Ritmo | hecho | 32 barras diarias en 8 y 4 KPI en 9 → 10. 1 scroll anidado abierto | este commit |
 | cursos-horario | Fuentes | pendiente |  |  |
 | cursos-horario | Agenda de cursos-horario | pendiente |  |  |
 | cursos-horario | Avance | pendiente |  |  |
@@ -139,6 +139,59 @@ las acompaña no es fiable.
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |
 | pieza ausente | acreditación | Fuentes › Universo | La fila visible no presenta documento, pestaña y rango simultáneamente; muestra la pestaña, pero el rango prometido por la especificación no está disponible en esta lectura. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
 | pieza ausente | acreditación | Fuentes › Encuestas y recopiladores | La especificación promete abrir Recopiladores filtrado por «por clasificar», pero la vista presenta la colección completa. Incorporarlo requiere estado y lógica de filtro, no un ajuste estético. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
+| **regla que se come componentes** | todo Monitoreo | cualquier panel | `.mon-page .pulso-panel button` (0,2,1) da forma de botón de barra —32 px de alto, 12 px de fuente, `inline-flex` centrado, radio 6, fondo blanco— a **cualquier** `<button>` dentro de un panel. Alcanza a componentes que no son botones de barra y les borra el diseño escrito, sin que nadie se entere: la declaración perdedora sigue en el archivo y se lee como si aplicara. Confirmados: la tarjeta de UMP (arreglada aquí), el CTA de la barra de fuente (arreglado aquí) y **`.pulso-button` del kit**, que dentro de Monitoreo renderiza en radio 6 en vez de su escala propia. El repo ya lo parcheó tres veces subiendo especificidad con `button.<componente>` (`territorialProfile.css:15513`). Arreglarlo de raíz es acotar el selector a barras de verdad, y eso toca `monitoreo.css`, que está congelado | `monitoreo.css:17082`; medido el 2026-07-30 en `acnur_acg` | abierto |
+| deuda compartida | los cuatro modos | chrome de sección | El contenido de cada sección ya está en escala, pero el marco que las envuelve no: `mon-workbench-head-icon` en 9 y los botones de `mon-rail-phase-switch` en 7 y 9. Son chrome compartido (`components/MonitoreoWorkbenchHead.tsx`, declarado 3 veces en `monitoreo.css`), así que arreglarlo dentro de un perfil repetiría el parche de `mon-outputs`. Va con esa misma unidad de unificación | medido el 2026-07-30 en las 6 pestañas de Ocurrencias | abierto |
+| recorte en tabla | territorial | Ocurrencias › Reporte UMP | 83 datos recortados dentro de `register-table` («SAN JUAN DE MIRAFLORES · Zona 01…»). Tercera superficie con el mismo caso —Encuestadores y Consultas internas son las otras—: ya no es un defecto suelto sino **una decisión pendiente de ancho de columna en las tablas de territorial**, que conviene tomar una vez para las tres | medido el 2026-07-30 en `acnur_acg` | abierto |
+| scroll anidado (C4) | territorial | Ocurrencias › Ritmo | `mon-field-occurrences-history-list` muestra 260 px de 843 y su contenedor `mon-workbench-content` también desborda: dos dueños de scroll. Resolverlo exige decidir cuál cede el alto | medido el 2026-07-30 en `acnur_acg` | abierto |
+
+## Tercera y cuarta corrección del instrumento — 2026-07-30
+
+El detector de recortes tenía otros dos falsos positivos, los dos encontrados
+en Ocurrencias:
+
+- **Elementos `pulso-sr-only`**, que existen solo para el lector de pantalla.
+  Son 5 de los 89 que reportaba en Reporte UMP y no se ven, así que no pueden
+  recortarse. Ahora se excluyen los ocultos por `visibility`, `display` y esa
+  clase, y los de área menor a 4×4.
+- **`overflow: visible`**. Un elemento puede medir `scrollWidth > clientWidth`
+  y pintar el texto entero fuera de su caja: se lee perfectamente. Contarlo
+  como recorte es contar el arreglo como si fuera el defecto.
+
+La segunda tiene una trampa que costó una iteración: **pintar fuera de la caja
+sí puede solapar al vecino**. Al «arreglar» el «150» de Reporte UMP con
+`overflow: visible`, el número pasó a invadir 3 px el rótulo que tiene al lado.
+El arreglo bueno era otro —que el ítem flex no encoja bajo su contenido— y solo
+apareció al medir la geometría del hermano, no la del propio elemento.
+
+Van cuatro correcciones al instrumento en este barrido. Las cuatro salieron de
+contrastar la medición con la pantalla, en un sentido o en el otro.
+
+## Modo territorial — cerrado el 2026-07-30
+
+Veintiocho superficies en seis secciones, todas en la escala 0/10/14/16.
+
+El hallazgo del modo no fue la dispersión de radios sino **reglas muertas**: en
+Ocurrencias › UMP, las 148 tarjetas renderizaban idénticas —borde gris, fondo
+blanco— pese a que cada una calcula bien su `--occurrence-status-color` y a que
+el perfil declara dos veces su borde y su degradado teñidos por estado. Las dos
+declaraciones perdían por especificidad frente a una regla pensada para botones
+de barra. El color de estado, que es la señal de la superficie, no llegaba a
+pantalla y solo se leía en el chip.
+
+Eso convierte una observación de método en la regla central del archivo
+`escalaDeSuperficies.css`: **una declaración escrita no es una declaración
+aplicada**, y la única forma de saberlo es enumerar qué gana sobre el elemento
+real. Sin eso, un radio «ya corregido» en el código puede llevar meses sin
+verse.
+
+Lo que se decidió NO tocar en este modo, y conviene que no se «arregle» luego:
+
+- `.pulso-button` dentro de Monitoreo, que rinde en radio 6 por la misma regla.
+  Es del kit y se arregla en la raíz, no perfil por perfil.
+- El chrome de sección (`mon-workbench-head-icon`, `mon-rail-phase-switch`),
+  por lo mismo: es compartido.
+- Los bordes de las filas de alerta, que llevan color de estado y sí llegan a
+  pantalla —son `<article>`, no `<button>`—.
 
 ## Modo telefónico — cerrado el 2026-07-30
 
