@@ -379,3 +379,123 @@
 .mon-outputs-readiness__granos > div {
   border-radius: var(--pulso-radius);
 }
+
+/* ── Ocurrencias de campo ──────────────────────────────────────────────────
+ *
+ * Última sección de territorial, y la que deja el hallazgo más caro del
+ * barrido: aquí no había deriva de escala, había reglas muertas.
+ *
+ * `monitoreo.css:17082` agrupa `.mon-page .pulso-panel button` con
+ * `.mon-toolbar button` y `.mon-commandbar button` para dar forma a los
+ * botones de barra: 32 px de alto, 12 px de fuente, `inline-flex` centrado,
+ * radio 6. Pero ese selector (0,2,1) alcanza a **cualquier** `<button>` dentro
+ * de un panel, y en esta sección hay dos que no son botones de barra: la
+ * tarjeta de UMP —645×158, que es `<button>` para que la fila entera sea
+ * clicable— y el CTA de la barra de fuente.
+ *
+ * Las dos tenían su diseño escrito y ninguno llegaba a pantalla. La tarjeta se
+ * declara dos veces en el perfil, con radio 11 y con radio 10 (0,1,0): las dos
+ * pierden. Lo que se perdía no era solo el radio —también `padding: 9px`,
+ * `font: inherit` y, sobre todo, el borde y el degradado teñidos con
+ * `--occurrence-status-color`—. La variable se calcula bien en las 148 filas
+ * (`#a16207` en revisar_cruce, `#b66a2c` en reportada_no_efectiva) y ninguna
+ * la pintaba: todas salían con el gris genérico y fondo blanco. El estado solo
+ * se leía en el chip.
+ *
+ * El repo ya había tropezado con esto y lo resolvió subiendo la especificidad
+ * con `button.<componente>` (0,3,1) en `territorialProfile.css:15513` para el
+ * acordeón de rutas. Se sigue ese mismo idioma, que además obliga a
+ * re-declarar cada propiedad que la regla de barra filtra. */
+.mon-page .pulso-panel button.mon-field-occurrences-ump-row {
+  display: grid;
+  width: 100%;
+  justify-content: stretch;
+  align-items: stretch;
+  text-align: left;
+  font: inherit;
+  padding: 9px;
+  border-radius: var(--pulso-radius);
+  border: 1px solid color-mix(in srgb, var(--occurrence-status-color) 16%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--occurrence-status-color) 4%, #fff), rgba(255, 255, 255, 0.98)),
+    #fff;
+}
+
+/* El CTA es una píldora deliberada: hace juego con el pill «Sincronizado» que
+ * tiene a su izquierda en la misma barra. No es una declaración huérfana, así
+ * que aquí se restituye tal cual en vez de llevarla a la escala de control. */
+.mon-page .pulso-panel button.mon-occurrences-sourcebar__cta {
+  min-height: 0;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-page .pulso-panel button.mon-occurrences-sourcebar__cta:hover {
+  border-color: var(--pulso-nav-selected);
+  color: var(--pulso-nav-selected);
+}
+
+/* Contenedores de la sección: 12 en todas las pestañas → escala de tarjeta. */
+.mon-stage--ocurrencias .mon-field-occurrences-chart-card,
+.mon-stage--ocurrencias .mon-field-occurrences-districts,
+.mon-stage--ocurrencias .mon-field-occurrences-register-head,
+.mon-stage--ocurrencias .mon-field-occurrences-register-toolbar,
+.mon-stage--ocurrencias .mon-field-occurrences-register-table,
+.mon-stage--ocurrencias .mon-field-occurrences-workspace-head,
+.mon-stage--ocurrencias .mon-field-occurrences-workspace-filters,
+.mon-stage--ocurrencias .mon-field-occurrences-ump-index,
+.mon-stage--ocurrencias .mon-field-occurrences-alerts-panel,
+.mon-stage--ocurrencias .mon-field-occurrences-alerts-toolbar {
+  border-radius: var(--pulso-radius-card);
+}
+
+/* Las 80 filas de alerta son el único 11 del modo fuera de Reconciliación.
+ * Son tarjetas, no controles: van a escala de tarjeta. Conservan su borde de
+ * estado, que aquí sí llega a pantalla —son `<article>`, no `<button>`—. */
+.mon-stage--ocurrencias .mon-field-occurrences-alert-row {
+  border-radius: var(--pulso-radius-card);
+}
+
+/* Controles y KPI en 8 y 9: el mismo «1 px de diferencia que no se lee como
+ * jerarquía» que ya se corrigió en telefónico. Las seis casillas de conteo por
+ * distrito miden 87×65 —son fichas, no adornos de barra— y estaban en 8. */
+.mon-stage--ocurrencias .mon-field-occurrences-search,
+.mon-stage--ocurrencias .mon-field-occurrences-search input,
+.mon-stage--ocurrencias .mon-field-occurrences-alert-search input,
+.mon-stage--ocurrencias .mon-field-occurrences-register-kpis > span,
+.mon-stage--ocurrencias .mon-field-occurrences-district-counts > span,
+.mon-stage--ocurrencias .mon-field-occurrences-workspace-stats > span,
+.mon-stage--ocurrencias .mon-field-occurrences-rhythm-kpis > span,
+.mon-stage--ocurrencias .mon-field-occurrences-daily-values > span,
+.mon-stage--ocurrencias select {
+  border-radius: var(--pulso-radius);
+}
+
+/* «150» se recortaba a 24 px necesitando 32: es un dato operativo, y la norma
+ * no admite elipsis ahí. El primer intento fue `overflow: visible`, y estaba
+ * mal: el número pintaba fuera de su caja y se metía 3 px dentro del rótulo
+ * que tiene al lado. La causa real es que es un ítem flex al que una regla de
+ * `min-width: 0` le permite encogerse por debajo de su contenido; lo que
+ * corresponde es que no encoja y empuje al rótulo.
+ *
+ * Los recortes restantes de esta sección son celdas de `register-table` y
+ * quedan abiertos: envolver ahí redistribuye columnas. */
+.mon-stage--ocurrencias .mon-field-occurrences-register-kpis > span > strong {
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
+/* «Incompleta sin reporte» sale con elipsis en 3 de las 80 filas de alerta: la
+ * fila es una rejilla `28px 1086px 138px` y al `b` de la tercera columna le
+ * quedan 136 útiles. Es un nombre de estado, no una etiqueta larga —el mismo
+ * caso que «Colgó / Cortó la llamada» en telefónico—, así que envuelve. Solo
+ * afecta a las que no caben; las otras 77 no cambian. */
+.mon-stage--ocurrencias .mon-field-occurrences-alert-row > b {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
