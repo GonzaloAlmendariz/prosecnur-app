@@ -109,9 +109,11 @@ Tipografía, medida en las referencias:
 ### 3b. El detector, y por qué él mismo se audita
 
 Medir a ojo no escala y medir mal es peor que no medir: un informe con cifras
-infladas se defiende solo. Este detector lleva ya **seis** familias de falso
-positivo, y las seis salieron de contrastar la medición contra la pantalla —en
-un sentido o en el otro—. Están todas excluidas abajo y **no se quitan**:
+infladas se defiende solo. Este detector lleva ya **nueve** familias de falso
+positivo, y las nueve salieron de contrastar la medición contra la pantalla —en
+un sentido o en el otro—. Las seis de geometría van excluidas abajo y **no se
+quitan**; las tres de composición —jerarquía sancionada, columna única y zonas
+de toolbar centradas— están anotadas en §4 junto a su criterio:
 
 1. **Dentro de `<svg>`**: un `<text>` de Plotly mide `scrollWidth > clientWidth`
    y se dibuja entero. No es recorte.
@@ -261,11 +263,23 @@ se anota en el registro como propuesta y se sigue.
 
 - Radios de un mismo nivel que no coinciden entre superficies hermanas.
 - Tarjetas sin materia: rectángulos con una línea gris.
-- Cajas concéntricas. Más de dos marcos y el ojo no sabe cuál es la unidad.
+- Cajas concéntricas. **La jerarquía sancionada tiene tres niveles** —panel 16 ›
+  tarjeta 14 › control 10— y contar «tres marcos anidados» la marca entera como
+  defecto: en telefónico daba 35 avisos por superficie, todos legítimos. Lo que
+  sí es concéntrico es un **cuarto** marco, o una tarjeta dentro de otra tarjeta
+  del mismo nivel.
 - Grupos pares sin `equal`: una tarjeta que colapsa a su contenido convierte
-  cualquier diferencia de datos en desalineación.
+  cualquier diferencia de datos en desalineación. **Solo aplica en rejillas de
+  varias columnas o filas que envuelven**, donde las alturas desiguales dejan un
+  borde irregular. En una columna única, que cada tarjeta se ciña a su contenido
+  es lo correcto —ocho tarjetas apiladas con una de 190 px entre siete de 214 no
+  desalinean nada—.
 - Recorte de dato operativo. Elipsis en etiqueta larga sí; en dato, nunca.
-- Toolbars desbalanceados: `1fr` inanicia los lados.
+- Toolbars desbalanceados: `1fr` inanicia los lados. Lo que se mide es el
+  **ancho de las zonas laterales**, que deben coincidir —en telefónico dan
+  388,523 y 388,531 px, o sea ya está resuelto—. Las alturas distintas entre
+  zonas **no** son defecto si el contenedor centra (`align-items: center`): una
+  fila de píldoras es más alta que un texto suelto y se alinea igual.
 - Vacío exterior sin dueño y scroll anidado (un solo dueño de scroll por
   pantalla).
 

@@ -203,6 +203,23 @@ Dos cosas que impiden automatizarlo, y por eso es decisión y no tarea:
    escala arranca en 4, así que forzarlos sería empeorar. Descontados, la
    migración real son ~3.900 declaraciones.
 
+## Telefónico, tercera pasada: composición — 2026-07-30
+
+Aplicados los dos criterios de composición que faltaban —cajas concéntricas y
+grupos pares desalineados— a las cinco superficies de Llamadas. **Cero defectos
+de producto.** Los tres avisos que salieron eran del instrumento:
+
+- **35 «cajas concéntricas» por superficie** que son la jerarquía sancionada
+  `mon-workbench › pulso-panel › tarjeta`, o sea panel › tarjeta › control. El
+  umbral de tres marcos marcaba la estructura correcta de la casa.
+- **8 tarjetas con 24 px de deriva** en Sin efectiva, en una rejilla de **una
+  sola columna**: ahí ceñirse al contenido es lo correcto y no hay borde
+  irregular que romper.
+- **Zonas de toolbar con alturas 34/42/32**: están centradas verticalmente y sus
+  lados miden 388,523 y 388,531 px. El desbalance del `1fr` que registraba la
+  memoria **ya está resuelto**; lo que queda es contenido de distinta altura,
+  que con `align-items: center` no es defecto.
+
 ## Hallazgos no estéticos
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
