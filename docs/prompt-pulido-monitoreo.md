@@ -109,8 +109,8 @@ Tipografía, medida en las referencias:
 ### 3b. El detector, y por qué él mismo se audita
 
 Medir a ojo no escala y medir mal es peor que no medir: un informe con cifras
-infladas se defiende solo. Este detector lleva ya **nueve** familias de falso
-positivo, y las nueve salieron de contrastar la medición contra la pantalla —en
+infladas se defiende solo. Este detector lleva ya **diez** familias de falso
+positivo, y las diez salieron de contrastar la medición contra la pantalla —en
 un sentido o en el otro—. Las seis de geometría van excluidas abajo y **no se
 quitan**; las tres de composición —jerarquía sancionada, columna única y zonas
 de toolbar centradas— están anotadas en §4 junto a su criterio:
@@ -131,6 +131,11 @@ de toolbar centradas— están anotadas en §4 junto a su criterio:
    ascendente + descendente del font, no el glifo. Con `line-height: 1` esa
    caja desborda casi siempre —en el embudo de telefónico daba 18 contra 16—
    y las cifras se pintan enteras. Se mide la tinta con `measureText`.
+7. **El orden del DOM no es el orden visual**: con `flex-wrap`, `order`,
+   `row-reverse` o `margin-left: auto`, el hermano siguiente puede pintarse a
+   la izquierda del anterior. Comparar «derecho del uno contra izquierdo del
+   otro» daba 830 px de solape entre cajas que no se tocan. Se intersecan
+   rectángulos, y en las dos dimensiones.
 
 La exclusión 3 tiene cola, y es la que abre el detector de solapes: **pintar
 fuera de la caja puede invadir al vecino**. Un `overflow: visible` puesto para
@@ -152,6 +157,25 @@ window.__auditar = () => {
 
   const rotulo = (el) =>
     el.tagName.toLowerCase() + "." + (String(el.className || "").trim().split(/\s+/)[0] || "");
+
+  /**
+   * El rectángulo que de verdad se pinta, no el que mide la caja. El ensanche
+   * por `overflow: visible` solo vale en HOJAS: en un contenedor `scrollWidth`
+   * incluye hijos absolutos —un rótulo de tooltip de 71 px dentro de una
+   * casilla de 36— y eso no es un solape.
+   */
+  const pintado = (el) => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const esHoja = el.children.length === 0;
+    const desborda = esHoja && (cs.overflow === "visible" || cs.overflowX === "visible");
+    return {
+      left: r.left,
+      right: desborda ? r.left + Math.max(el.scrollWidth, r.width) : r.right,
+      top: r.top,
+      bottom: r.bottom,
+    };
+  };
 
   // `scrollHeight` de una hoja de texto mide la CAJA DE LÍNEA del font
   // —ascendente + descendente—, no la tinta. Con `line-height: 1` esa caja
@@ -209,21 +233,23 @@ window.__auditar = () => {
     if (cs.paddingTop !== "0px") padsV[cs.paddingTop] = (padsV[cs.paddingTop] || 0) + 1;
 
     // — solape entre hermanos en flujo —
+    // Se intersecan RECTÁNGULOS, no se compara «el derecho del anterior contra
+    // el izquierdo del siguiente»: con `flex-wrap`, `order`, `row-reverse` o un
+    // `margin-left: auto`, el orden del DOM no es el orden visual. Ese atajo
+    // reportaba 830 px de solape entre un botón en x 1125–1271 y un bloque en
+    // 443–1118, que no se tocan.
     const hijos = [...el.children].filter(
       (h) => seVe(h) && !/absolute|fixed/.test(getComputedStyle(h).position));
-    for (let i = 0; i < hijos.length - 1; i++) {
-      const a = hijos[i], b = hijos[i + 1];
-      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-      const ca = getComputedStyle(a);
-      // El borde que de verdad se pinta, no el que mide la caja. Solo en HOJAS:
-      // en un contenedor, `scrollWidth` incluye hijos absolutos —un rótulo de
-      // tooltip de 71 px dentro de una casilla de 36— y eso no es un solape.
-      const esHoja = a.children.length === 0;
-      const derecha = (esHoja && (ca.overflow === "visible" || ca.overflowX === "visible"))
-        ? ra.left + Math.max(a.scrollWidth, ra.width) : ra.right;
-      if (Math.abs(ra.top - rb.top) < 4 && derecha > rb.left + 0.5) {
-        solapes.push({ sobre: rotulo(a), invade: rotulo(b),
-                       px: Math.round(derecha - rb.left), txt: a.textContent.trim().slice(0, 24) });
+    for (let i = 0; i < hijos.length; i++) {
+      for (let j = i + 1; j < hijos.length; j++) {
+        const a = pintado(hijos[i]), b = pintado(hijos[j]);
+        const cruzaX = a.right > b.left + 0.5 && b.right > a.left + 0.5;
+        const cruzaY = a.bottom > b.top + 0.5 && b.bottom > a.top + 0.5;
+        if (cruzaX && cruzaY) {
+          solapes.push({ sobre: rotulo(hijos[i]), invade: rotulo(hijos[j]),
+                         px: Math.round(Math.min(a.right, b.right) - Math.max(a.left, b.left)),
+                         txt: hijos[i].textContent.trim().slice(0, 24) });
+        }
       }
     }
   }

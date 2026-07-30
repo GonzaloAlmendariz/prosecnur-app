@@ -10,7 +10,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 
 | Modo | Sección › Pestaña | Estado | Hallazgos | Commit |
 |---|---|---|---|---|
-| acreditación | Fuentes › Resumen | hecho | C1 medía 16 miembros en vez de 3; tarjetas planas de radio 16→14 con materia; título y total duplicados retirados | este commit |
+| acreditación | ~~Fuentes › Resumen~~ → **Actores** | reenumerado 16:40 | La sección monta hoy `actores`, `fuentes` y `recopiladores`; las etiquetas del registro («Resumen», «Universo», «Encuestas y recopiladores») ya no existen. Auditada con los detectores nuevos: 0 recortes, 0 solapes, 0 contenido cortado. Radios 7/8 fuera de escala, pendientes | C1 medía 16 miembros en vez de 3; tarjetas planas de radio 16→14 con materia; título y total duplicados retirados | este commit |
 | acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: `d28a6bbf`; registro adelantado en `767eaa42` |
 | acreditación | Fuentes › Encuestas y recopiladores | hecho | cobertura con deriva máxima 110 px → cuatro marcos iguales; 4 colecciones quedan medibles; nombres operativos envuelven y 3 minitarjetas métricas se aplanan | producto: `0e421dc3` |
 | acreditación | Modelo operativo › Modelo operativo | hecho | 2 KPI ocupaban media franja → 2 columnas completas; roster 4×58 sin elipsis; tarjetas 304→352 y solo Egresados conserva scroll interno; “S/M”/“Ajustar” pasan a lenguaje de tarea; 8 grupos medidos | producto: `89321af3` |
@@ -219,6 +219,30 @@ de producto.** Los tres avisos que salieron eran del instrumento:
   lados miden 388,523 y 388,531 px. El desbalance del `1fr` que registraba la
   memoria **ya está resuelto**; lo que queda es contenido de distinta altura,
   que con `align-items: center` no es defecto.
+
+## Acreditación, desbloqueada sin tocar a nadie — 2026-07-30
+
+Tres iteraciones sin poder llegar a este modo: el tope de cinco dev servers
+dejaba un solo slot y hacían falta dos (backend + Vite). La salida no era pedir
+un puerto, era **no necesitar Vite**: `make build` y el propio Plumber sirve el
+SPA.
+
+Faltaba una pieza. El puente `window.__pulsoNav` está gateado —`import.meta.env.DEV`
+**o** `?qaWarmup=skip`, la marca que ya usan los runners de QA visual—, así que
+en un build de producción se habilita con ese parámetro. El deep-link `?pulso=`
+sí es solo de dev, pero el proyecto se abre desde el propio BootGate.
+
+Receta, para no volver a perder tres pases:
+
+```
+make build
+# backend propio en un puerto libre, con PULSO_BOOTSTRAP_PROJECT
+http://localhost:<puerto>/monitoreo?qaWarmup=skip&modo=<modo>&seccion=<seccion>
+```
+
+Aviso: el SPA compilado congela el código del momento del build, así que incluye
+el trabajo sin terminar de otra sesión. Antes de arreglar algo medido ahí hay que
+comprobar si su CSS está en HEAD o en el diff ajeno.
 
 ## Hallazgos no estéticos
 
