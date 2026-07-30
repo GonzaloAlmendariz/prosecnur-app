@@ -10687,53 +10687,50 @@ function AcreditacionPhoneSourceSlotCard({
         </div>
         <span className="mon-phone-source-slot-status">{statusLabel}</span>
       </div>
+      {/* Tres datos, no seis campos de formulario.
+        *
+        * Decía «Nombre: Barrido», «Abrir: Barrido» y «Pestaña: Barrido ·
+        * Barrido!A1:Y2297»: el mismo nombre tres veces y un rango de hoja de
+        * cálculo a la vista. Ahora el volumen manda —es lo que se viene a ver—,
+        * el origen va en una línea con el enlace por delante y el rango baja al
+        * `title`, y «Último sync» pasa a «Actualizada». «Se lee» solo aparece
+        * cuando hay más de una fuente, que es cuando dice algo. */}
       <div className="mon-phone-source-slot-data">
-        <span>
-          <em>Nombre</em>
-          <strong>{primary ? nombreDeFuente(primary) : "Sin fuente vinculada"}</strong>
-        </span>
-        {/* R2: el enlace por delante del identificador. El `asset_uid` recortado
-            a 38 caracteres no dice nada y no lleva a ninguna parte; abrir la
-            hoja o la encuesta sí. Cuando no hay dirección construible se dice
-            por qué, en vez de ofrecer un enlace roto. */}
-        <span>
-          <em>Abrir</em>
+        {/* Sin cifra no hay bloque: un «Listo» a 19 px ocupaba el sitio del
+          * número y se leía como si fuera el dato. El estado ya lo dice el
+          * distintivo de la cabecera. */}
+        {rows ? (
+          <span className="is-volumen">
+            <strong>{fmt(rows)}</strong>
+            <em>{isPlatform ? "respuestas" : slot.key === "universo" ? "personas por llamar" : "casos registrados"}</em>
+          </span>
+        ) : null}
+        <span className="is-origen">
+          <em>{isPlatform ? "Encuesta" : "Hoja"}</em>
           {enlacePrimario?.estado === "enlace" ? (
             <a
               href={enlacePrimario.href}
               target="_blank"
               rel="noreferrer"
-              title={enlacePrimario.titulo}
+              title={[enlacePrimario.titulo, !isPlatform ? sourceSheetField(primary, "range") : null].filter(Boolean).join(" · ")}
               onClick={(event) => event.stopPropagation()}
             >
-              {enlacePrimario.texto}
+              {primary ? nombreDeFuente(primary) : enlacePrimario.texto}
             </a>
           ) : (
             <strong>{enlacePrimario?.mensaje ?? "Sin fuente vinculada"}</strong>
           )}
         </span>
         <span>
-          <em>{isPlatform ? "Servicio" : "Pestaña"}</em>
-          <strong>
-            {primary
-              ? isPlatform
-                ? servicioDeFuente(primary)
-                : [sourceSheetField(primary, "sheet_name"), sourceSheetField(primary, "range")].filter(Boolean).join(" · ") || "Sin pestaña"
-              : "Pendiente"}
-          </strong>
-        </span>
-        <span>
-          <em>Se lee</em>
-          <strong>{slot.sources.length ? `${fmt(active.length)} de ${fmt(slot.sources.length)} activas` : statusDetail}</strong>
-        </span>
-        <span>
-          <em>Filas</em>
-          <strong>{rows ? fmt(rows) : slot.ready ? "Listo" : "S/D"}</strong>
-        </span>
-        <span>
-          <em>Último sync</em>
+          <em>Actualizada</em>
           <strong>{displayedSync}</strong>
         </span>
+        {slot.sources.length > 1 ? (
+          <span>
+            <em>Se leen</em>
+            <strong>{fmt(active.length)} de {fmt(slot.sources.length)}</strong>
+          </span>
+        ) : null}
       </div>
       <div className="mon-phone-source-slot-tags" aria-label={`Columnas esperadas para ${slot.label}`}>
         {slot.expected.map((item) => <i key={item}>{item}</i>)}
@@ -19929,7 +19926,7 @@ function AcreditacionClarityStrip({
     fuentes: [
       { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: sourceGap ? `${sourceGap} pendientes` : "paquete listo", tone: sourceGap ? "warning" : "ready", icon: ClipboardCheck },
       { label: "Base", value: state?.n_rows ? fmt(state.n_rows) : "S/D", hint: "registros leídos", tone: state?.n_rows ? "base" : "warning", icon: Table2 },
-      { label: "Sync", value: reports ? "Listo" : "Pendiente", hint: reports?.generated_at ? formatDate(reports.generated_at) : "requiere corte", tone: reports ? "ready" : "warning", icon: RefreshCw },
+      { label: "Corte", value: reports ? "Listo" : "Pendiente", hint: reports?.generated_at ? formatDate(reports.generated_at) : "requiere corte", tone: reports ? "ready" : "warning", icon: RefreshCw },
     ],
     modelo: isPhoneState ? [
       { label: "Filtro Kobo", value: phoneFilterRailValue, hint: phoneFilterRailHint, tone: phoneFilterConfigured ? "ready" : "warning", icon: Filter },

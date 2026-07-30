@@ -508,9 +508,11 @@ export function buildAcreditacionPhoneSourceContract(
   };
   const platform: AcreditacionPhoneSourceSlot = {
     key: "plataforma",
-    label: "Kobo",
+    // «Kobo» a secas nombraba el servicio; esto nombra el objeto y conserva
+    // dónde vive, que en telefónico el usuario sí necesita distinguir de la hoja.
+    label: "Encuesta en Kobo",
     purpose: "Efectivas Kobo filtradas para comparar avance por CodPulso.",
-    expected: ["CodPulso", "consentimiento", "fecha", "respuesta", "asset"],
+    expected: ["CodPulso", "consentimiento", "fecha", "respuesta"],
     sources: platformSources,
     ready: platformStatus === "ready",
     status: platformStatus,

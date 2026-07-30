@@ -4642,3 +4642,38 @@
     justify-content: start;
   }
 }
+
+/* ── Tarjeta de fuente: el volumen manda ──────────────────────────────────
+ *
+ * La tarjeta era una rejilla de seis campos con el mismo peso —Nombre, Abrir,
+ * Pestaña, Se lee, Filas, Último sync— y quien la mira solo viene a saber dos
+ * cosas: cuántos casos hay y de qué hoja salen. Ahora el volumen se lee como
+ * cifra y el resto acompaña.
+ */
+.mon-phone-source-slot-data .is-volumen strong {
+  font-size: 19px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El sustantivo va debajo del número, no encima: primero el dato, después de
+ * qué es. En los demás campos el orden natural es el inverso. */
+.mon-phone-source-slot-data .is-volumen {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+}
+
+/* El origen es el único campo con enlace, así que se le deja respirar a lo
+ * ancho: un nombre de hoja truncado a la mitad no sirve para reconocerla. */
+.mon-phone-source-slot-data .is-origen {
+  min-width: 0;
+}
+
+.mon-phone-source-slot-data .is-origen a,
+.mon-phone-source-slot-data .is-origen strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

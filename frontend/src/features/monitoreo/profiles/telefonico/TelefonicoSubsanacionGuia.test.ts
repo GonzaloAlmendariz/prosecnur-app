@@ -133,7 +133,14 @@ describe("Telefónico: el contrato de fuentes prioriza enlaces sobre identificad
     const tarjeta = fuente.match(/<div className="mon-phone-source-slot-data">[\s\S]*?<\/div>/)?.[0] ?? "";
     expect(tarjeta).not.toContain('"Spreadsheet"');
     expect(tarjeta).not.toContain('"Encuesta / asset"');
-    expect(tarjeta).toContain("<em>Abrir</em>");
+    // R2 sigue verificado, pero por el enlace y no por su rótulo: la tarjeta
+    // dejó de tener un campo «Abrir» aparte —decía el nombre de la hoja tres
+    // veces— y ahora el enlace ES el nombre.
+    expect(tarjeta).toContain("<a");
+    expect(tarjeta).toContain("nombreDeFuente(primary)");
+    // Y el rango de la hoja (`Barrido!A1:Y2297`) baja al `title`: es metadato,
+    // no un dato que el usuario venga a leer.
+    expect(tarjeta).toMatch(/title=\{\[enlacePrimario\.titulo/);
   });
 
   it.each(copias)("%s no rotula la pestaña con el proveedor ni explica con \"Aquí se…\"", (_perfil, fuente) => {
