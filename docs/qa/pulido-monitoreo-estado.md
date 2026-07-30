@@ -150,6 +150,21 @@ catálogo no existe. Tapando el bloque entero no se pierde nada —el campo de
 arriba es el único camino—, así que no se pinta. Kobo y SurveyMonkey conservan
 su catálogo y su botón; comprobado en pantalla, que era el riesgo del cambio.
 
+## Telefónico, segunda pasada con los detectores nuevos — 2026-07-30
+
+Las 14 superficies del modo, medidas sobre `PDM_MedVida2026` —un estudio real y
+con datos, no el fixture de la primera pasada— con los criterios que no existían
+entonces: solapes, contenido cortado y dueños de scroll.
+
+Resultado: **cero solapes y cero contenido cortado** en las catorce. Un solo
+dueño de scroll por superficie (`mon-workbench-content`) salvo **Consultas ›
+CodPulso**, que sigue con dos —`mon-query-table-wrap` y `aside.mon-query-detail`—
+y confirma el hallazgo que ya estaba abierto.
+
+El único aviso nuevo resultó ser del instrumento y no del modo: cuatro cifras
+del embudo de Llamadas › Resumen operativo aparecían como «contenido cortado»
+—18 px de contenido en 16 de caja— y se pintan enteras. Ver la sexta corrección.
+
 ## Hallazgos no estéticos
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |

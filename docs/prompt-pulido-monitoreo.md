@@ -109,10 +109,9 @@ Tipografía, medida en las referencias:
 ### 3b. El detector, y por qué él mismo se audita
 
 Medir a ojo no escala y medir mal es peor que no medir: un informe con cifras
-infladas se defiende solo. En un único barrido este detector dio **cuatro**
-familias de falso positivo, y las cuatro salieron de contrastar la medición
-contra la captura —en un sentido o en el otro—. Están todas excluidas abajo y
-**no se quitan**:
+infladas se defiende solo. Este detector lleva ya **seis** familias de falso
+positivo, y las seis salieron de contrastar la medición contra la pantalla —en
+un sentido o en el otro—. Están todas excluidas abajo y **no se quitan**:
 
 1. **Dentro de `<svg>`**: un `<text>` de Plotly mide `scrollWidth > clientWidth`
    y se dibuja entero. No es recorte.
@@ -123,6 +122,13 @@ contra la captura —en un sentido o en el otro—. Están todas excluidas abajo
 4. **Versalitas que no transforman nada**: `text-transform: uppercase` se hereda,
    y «UMP 2» se ve igual con y sin él. Solo cuenta si el texto tiene minúsculas
    que de verdad cambian.
+5. **`scrollWidth` de un contenedor**: incluye hijos absolutos. Un rótulo de
+   tooltip de 71 px dentro de una casilla de 36 daba «solape» donde no lo hay.
+   La lógica de borde pintado solo vale en hojas.
+6. **Caja de línea contra tinta**: en una hoja de texto, `scrollHeight` mide
+   ascendente + descendente del font, no el glifo. Con `line-height: 1` esa
+   caja desborda casi siempre —en el embudo de telefónico daba 18 contra 16—
+   y las cifras se pintan enteras. Se mide la tinta con `measureText`.
 
 La exclusión 3 tiene cola, y es la que abre el detector de solapes: **pintar
 fuera de la caja puede invadir al vecino**. Un `overflow: visible` puesto para
@@ -144,6 +150,22 @@ window.__auditar = () => {
 
   const rotulo = (el) =>
     el.tagName.toLowerCase() + "." + (String(el.className || "").trim().split(/\s+/)[0] || "");
+
+  // `scrollHeight` de una hoja de texto mide la CAJA DE LÍNEA del font
+  // —ascendente + descendente—, no la tinta. Con `line-height: 1` esa caja
+  // desborda casi siempre y los glifos se pintan enteros igual: en el embudo
+  // de telefónico daba 18 contra 16 y no se recortaba nada. Con hijos el
+  // desborde sí es real; en una hoja hay que medir la tinta.
+  const tintaCabe = (el) => {
+    if (el.children.length > 0) return false;
+    const txt = el.textContent.trim();
+    if (!txt) return true;
+    const cs = getComputedStyle(el);
+    const c = document.createElement("canvas").getContext("2d");
+    c.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
+    const m = c.measureText(txt);
+    return m.actualBoundingBoxAscent + m.actualBoundingBoxDescent <= el.clientHeight + 0.5;
+  };
 
   const fuera = {}, recortes = [], cortados = [], duenos = [], solapes = [];
   const gaps = {}, padsV = {};
@@ -170,7 +192,7 @@ window.__auditar = () => {
     if (el.scrollHeight > el.clientHeight + 1) {
       if (cs.overflowY === "auto" || cs.overflowY === "scroll") {
         duenos.push({ el: rotulo(el), ve: el.clientHeight, hay: el.scrollHeight });
-      } else if (cs.overflowY === "hidden") {
+      } else if (cs.overflowY === "hidden" && !tintaCabe(el)) {
         // lo peor: se corta y NADIE puede llegar a lo que falta
         cortados.push({ el: rotulo(el), ve: el.clientHeight, hay: el.scrollHeight });
       }
