@@ -14,7 +14,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: `d28a6bbf`; registro adelantado en `767eaa42` |
 | acreditación | Fuentes › Encuestas y recopiladores | hecho | cobertura con deriva máxima 110 px → cuatro marcos iguales; 4 colecciones quedan medibles; nombres operativos envuelven y 3 minitarjetas métricas se aplanan | producto: `0e421dc3` |
 | acreditación | Modelo operativo › Modelo operativo | hecho | 2 KPI ocupaban media franja → 2 columnas completas; roster 4×58 sin elipsis; tarjetas 304→352 y solo Egresados conserva scroll interno; “S/M”/“Ajustar” pasan a lenguaje de tarea; 8 grupos medidos | producto: `89321af3` |
-| acreditación | Modelo operativo › Distribución | pendiente |  |  |
+| acreditación | Modelo operativo › Distribución | hecho | contrato comparaba cabecera 44 con rejilla 655 (Δ611) → 4 tarjetas intrínsecas; balance 4×1/2×2; KPI ajenos se retiran; actores recuperan scroll exterior y nombres completos. C5 funcional diferido: una declaración sin catálogo aún se silencia | producto: `943ffa08` |
 | acreditación | Modelo operativo › Cronograma | pendiente |  |  |
 | acreditación | Modelo operativo › Resumen | pendiente |  |  |
 | acreditación | Consultas › Registros en plataforma | pendiente |  |  |
