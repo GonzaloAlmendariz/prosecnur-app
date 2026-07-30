@@ -2,7 +2,9 @@
 
 Registro iniciado el 2026-07-30 desde un proyecto `acrconta` abierto. El
 inventario sigue el orden publicado por `window.__pulsoNav.manifiesto`: cuatro
-modos y 26 nodos de modo/sección. Las pestañas corresponden a los catálogos que
+modos y 26 nodos de modo/sección. **Las etiquetas de sección no son sus claves**
+—«UMPs» es `modelo`, «Fuente» es `fuentes`—, así que para navegar hay que mirar
+el manifiesto y no esta tabla. Las pestañas corresponden a los catálogos que
 esas direcciones montan en el DOM. Una fila representa una superficie concreta;
 una sección sin pestañas internas cuenta como una sola superficie.
 
@@ -54,8 +56,8 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Fuente › Encuestadores | hecho | radios 9/12 → 10/14; el título «Lista de encuestadores» se recortaba y ahora envuelve. **8 recortes quedan abiertos**: son celdas de tabla y envolver ahí cambia el reparto de columnas | este commit |
 | territorial | Fuente › Reconciliación | hecho | **seis radios en una pestaña** (9/10/11/12/13/14), con 11 y 13 apareciendo solo aquí en todo el modo. Queda en 10/14. Quedan 3 recortes y 2 scrolls anidados | este commit |
 | territorial | Fuente › Historial | hecho | ya estaba conforme: 10/14, sin recortes. Se verificó, no se tocó | — |
-| territorial | UMPs › Cobertura | pendiente |  |  |
-| territorial | UMPs › Manzanas | pendiente |  |  |
+| territorial | Modelo › Cobertura | hecho | 5 radios (10/11/12/13/14) → 10/14. **6 scrolls anidados y 7 recortes** quedan abiertos: es la superficie con más scroll del modo | este commit |
+| territorial | Modelo › Manzanas | pendiente |  |  |
 | territorial | Validación › Geolocalización | pendiente |  |  |
 | territorial | Validación › Reconciliación UMP | pendiente |  |  |
 | territorial | Validación › Duración de tiempo | pendiente |  |  |
@@ -87,6 +89,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
 |---|---|---|---|---|---|
+| scroll anidado (C4) | territorial | Modelo › Cobertura | **Seis** contenedores con scroll propio en una pestaña, más 7 recortes. La norma pide un solo dueño de scroll; con mapa, rail y listas de distrito conviviendo, resolverlo es rehacer el reparto de alto de la superficie | medido el 2026-07-30 en `acnur_acg` | abierto |
 | recorte en tabla | territorial | Fuente › Encuestadores | Ocho datos recortados dentro de celdas de tabla («+5 reconciliadas»). La norma prohíbe elipsis en dato operativo, pero permitir el envoltorio en una tabla redistribuye las columnas: hay que decidir el ancho de esa columna, no solo el `white-space` | medido el 2026-07-30 en `acnur_acg` | abierto |
 | scroll anidado (C4) | telefónico | Consultas › CodPulso | Dos contenedores con scroll propio dentro de la pestaña. La norma pide un solo dueño de scroll por pantalla; resolverlo exige decidir cuál de los dos cede el alto, y eso cambia el layout | medido el 2026-07-30 en `acnur_pdm` | abierto |
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |

@@ -17195,3 +17195,24 @@
 .mon-territorial-reconciliation-metrics span {
   border-radius: var(--pulso-radius);
 }
+
+/* ── Modelo › Cobertura ────────────────────────────────────────────────────
+ * Cinco radios —10, 11, 12, 13, 14— y otra vez el 13, que solo aparece en las
+ * superficies de hoja de ruta. */
+.mon-territorial-route-summary-hero,
+.mon-territorial-route-summary-panel,
+.mon-territorial-route-atlas-map-panel,
+.mon-territorial-route-atlas-rail,
+.mon-territorial-route-coverage-map-frame,
+.mon-territorial-route-atlas-phase {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-route-summary-metrics .mon-territorial-route-kpi {
+  border-radius: var(--pulso-radius);
+}
+
+.mon-territorial-route-bucket-panel,
+.mon-territorial-route-district-coverage {
+  border-radius: var(--pulso-radius-card);
+}
