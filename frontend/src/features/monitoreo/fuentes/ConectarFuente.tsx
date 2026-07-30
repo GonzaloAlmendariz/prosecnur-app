@@ -510,8 +510,7 @@ export function ConectarFuente({
               {servicio === "google_sheets" ? null : (
               <fieldset className="fuentes-conectar-grupo">
                 <legend>{admiteDireccionPegada(servicio) ? "O elige del catálogo de tu cuenta" : "Catálogo de tu cuenta"}</legend>
-                {(servicio === "kobo" ? assetsKobo : servicio === "surveymonkey" ? encuestasSm : null) === null
-                  && servicio !== "google_sheets" ? (
+                {(servicio === "kobo" ? assetsKobo : encuestasSm) === null ? (
                   <button
                     type="button"
                     className="pulso-button"
@@ -521,10 +520,6 @@ export function ConectarFuente({
                     {ocupado === "catalogo" ? <Loader2 size={14} className="pulso-spin" /> : <Search size={14} />}
                     <span>Ver mis {servicio === "kobo" ? "formularios" : "encuestas"}</span>
                   </button>
-                ) : servicio === "google_sheets" ? (
-                  <p className="fuentes-conectar-pista is-neutra">
-                    Google Sheets se conecta pegando la dirección del documento.
-                  </p>
                 ) : (
                   <>
                     <input
