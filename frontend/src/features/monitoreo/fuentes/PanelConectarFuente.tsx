@@ -12,10 +12,11 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { Plus } from "../../../vendor/lucide-react";
-import type { MonitoreoSource, MonitoreoSourceRole, MonitoreoState } from "../../../api/client";
+import type { MonitoreoSource, MonitoreoState } from "../../../api/client";
 import { PANELES_POR_MODULO } from "../../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { ConectarFuente } from "./ConectarFuente";
+import type { PapelDeFuente } from "./guionDeConexion";
 import "./conectarFuente.css";
 
 // La declaración vive en el manifiesto —que es lo que recorre el QA visual— y
@@ -24,13 +25,16 @@ const PANEL = PANELES_POR_MODULO.monitoreo![0];
 
 export function PanelConectarFuente({
   sources,
+  familia,
   actoresSugeridos,
   papelInicial,
   onStateChange,
 }: {
   sources: MonitoreoSource[];
+  /** Familia del perfil: decide el guion que el panel presenta. */
+  familia?: string;
   actoresSugeridos: string[];
-  papelInicial?: Extract<MonitoreoSourceRole, "universo" | "barrido" | "respuestas">;
+  papelInicial?: PapelDeFuente;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const panel = usePanelDireccionable(PANEL);
@@ -77,6 +81,7 @@ export function PanelConectarFuente({
         >
           <ConectarFuente
             sources={sources}
+            familia={familia}
             actoresSugeridos={actorEnFoco ? [actorEnFoco, ...actoresSugeridos.filter((item) => item !== actorEnFoco)] : actoresSugeridos}
             papelInicial={papelInicial}
             onCerrar={panel.cerrar}

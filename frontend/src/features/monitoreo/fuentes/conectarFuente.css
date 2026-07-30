@@ -16,10 +16,8 @@
   background: rgba(15, 23, 42, 0.28);
   display: flex;
   justify-content: flex-end;
-  /* El panel se ancla arriba y deja aire alrededor: es una hoja que flota
-   * sobre la vista, no una columna pegada al borde de la pantalla. */
-  align-items: flex-start;
-  padding: 14px;
+  align-items: stretch;
+  padding: 0;
   animation: fuentes-conectar-velo 140ms ease-out;
 }
 /* El panel entra deslizando desde su propio borde: una superficie que aparece
@@ -28,31 +26,219 @@
 .fuentes-conectar {
   animation: fuentes-conectar-entrada 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
-/* El alto lo pone el contenido, no la pantalla.
+/* Alto completo y dos columnas.
  *
- * Con `height: 100%` el primer paso dejaba 542 px muertos entre el campo Actor
- * y el botón Continuar —el contenido medía 251 de 793—, y un panel que reserva
- * el triple de lo que usa se lee como una vista rota, no como espacio. El
- * El `min-height` es deliberadamente bajo: solo evita que un paso casi vacío
- * quede raquítico. Subirlo para igualar todos los pasos reintroduce el mismo
- * vacío en el paso más corto —con 380 px, el paso «Cuál» dejaba 180 px
- * muertos—, así que cada paso ocupa su alto natural y el sheet se redimensiona
- * al avanzar, como una hoja de macOS. */
+ * La versión anterior dejaba que el alto lo pusiera el contenido, y con razón:
+ * un panel de un solo formulario que reserva 793 px para 251 se lee como una
+ * vista rota. Lo que cambió no es el criterio sino el contenido — ahora la
+ * columna izquierda lleva el guion del modo, que está siempre y ocupa el alto
+ * de verdad—. Con guion, el sheet de altura variable saltaba de tamaño en cada
+ * paso teniendo una columna fija al lado.
+ *
+ * El acento del módulo se hereda del scope de Monitoreo; el panel va en portal
+ * al `body`, así que lo declara aquí y no lo da por heredado. */
 .fuentes-conectar {
-  display: flex;
-  flex-direction: column;
-  width: min(520px, 100%);
-  height: auto;
-  min-height: min(240px, 100%);
+  --module-accent: var(--pulso-module-monitoring);
+  --module-accent-soft: var(--pulso-module-monitoring-soft);
+  display: grid;
+  grid-template-columns: minmax(238px, 0.34fr) minmax(0, 1fr);
+  width: min(840px, 100%);
+  height: 100%;
   max-height: 100%;
   background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
-  border-radius: 14px;
+  border-left: 1px solid var(--pulso-border);
   overflow: hidden;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.06),
-    0 12px 32px rgba(15, 23, 42, 0.16);
+  box-shadow: -18px 0 46px rgba(15, 23, 42, 0.18);
 }
+
+/* La columna del guion: qué necesita ESTE modo, en su orden y con su estado.
+ * Lleva el color del módulo porque es lo que dice de qué monitoreo se está
+ * hablando —el panel se abre igual desde los cuatro—. */
+.fuentes-conectar-guion {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 1px solid color-mix(in srgb, var(--module-accent) 26%, var(--pulso-border));
+  /* El tinte se nota: el panel se abre igual desde los cuatro modos y el color
+     es lo que dice de cuál se está hablando. Al 9% no lo decía —medido en
+     pantalla, indistinguible del gris de fondo—. */
+  background:
+    linear-gradient(168deg, color-mix(in srgb, var(--module-accent) 13%, transparent), transparent 74%),
+    color-mix(in srgb, var(--module-accent) 4%, var(--pulso-bg));
+  padding: 18px 16px;
+  overflow-y: auto;
+}
+
+.fuentes-conectar-guion > header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 1px;
+}
+
+/* El distintivo del módulo: el mismo lenguaje que la franja de fuentes de la
+   vista de la que se abre. */
+.fuentes-conectar-guion > header i {
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--module-accent) 32%, transparent);
+  background: color-mix(in srgb, var(--module-accent) 12%, #fff);
+  color: var(--module-accent);
+}
+
+.fuentes-conectar-guion > header span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--module-accent) 78%, var(--pulso-text-soft));
+}
+
+.fuentes-conectar-guion > header strong {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-black);
+  line-height: 1.2;
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-guion ol {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cada pieza es alcanzable: el guion no es solo un indicador de progreso, es
+ * por donde se elige qué conectar. Nada obliga a empezar por la primera —un
+ * estudio puede traer el padrón antes que el barrido—, pero el orden y el
+ * destaque dicen cuál toca. */
+.fuentes-conectar-guion li button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  padding: 9px 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.fuentes-conectar-guion li button:hover {
+  border-color: color-mix(in srgb, var(--module-accent) 24%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.fuentes-conectar-guion li button b {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text) 8%, transparent);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+}
+
+.fuentes-conectar-guion li button > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.fuentes-conectar-guion li button strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.fuentes-conectar-guion li button strong svg {
+  flex: none;
+  color: var(--pulso-text-faint);
+}
+
+/* `white-space: normal` explícito: el panel va en portal al `body`, pero
+   arrastra reglas del kit que ponen `nowrap` en `em`. Medido en 1024×600, «A
+   quién hay que llamar y las variables de cuota» ocupaba 250 px dentro de una
+   columna de 154 y se salía por el borde. Lo que dice qué aporta cada pieza no
+   se recorta: envuelve (C4). */
+.fuentes-conectar-guion li button em,
+.fuentes-conectar-guion li button i {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.fuentes-conectar-guion li button em {
+  font-style: normal;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+
+/* Los actores que ya tienen la pieza: es la respuesta a «¿de quién me falta?»,
+ * que es lo que trae a alguien a este panel en acreditación. */
+.fuentes-conectar-guion li button i {
+  font-style: normal;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--pulso-text-faint);
+}
+
+.fuentes-conectar-guion li button.is-lista b {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.fuentes-conectar-guion li button.is-actual {
+  border-color: color-mix(in srgb, var(--module-accent) 40%, var(--pulso-border));
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.fuentes-conectar-guion li button.is-actual strong svg {
+  color: var(--module-accent);
+}
+
+.fuentes-conectar-guion li button.is-actual.is-pendiente b {
+  background: var(--module-accent);
+  color: #fff;
+}
+
+/* Nombra el siguiente paso concreto; no explica qué son las fuentes. */
+.fuentes-conectar-guion-pista {
+  margin: auto 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--module-accent) 14%, var(--pulso-border));
+  padding-top: 12px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+/* Columna de trabajo: cabecera, cuerpo con el único scroll, y pie. */
+.fuentes-conectar-obra {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Las dos barras comparten el margen lateral del cuerpo (20px) para que
  * título, contenido y botón caigan sobre la misma línea vertical. */
 .fuentes-conectar-cabecera {
@@ -70,15 +256,13 @@
   min-width: 0;
 }
 .fuentes-conectar-cabecera span {
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text-faint);
 }
 .fuentes-conectar-cabecera strong {
   font-size: 15px;
-  font-weight: var(--pulso-weight-semibold);
+  font-weight: var(--pulso-weight-heavy);
   color: var(--pulso-text);
 }
 .fuentes-conectar-cabecera > button {
@@ -255,6 +439,22 @@
 .fuentes-conectar-pista.is-ok { color: var(--pulso-success-fg); }
 .fuentes-conectar-pista.is-aviso { color: var(--pulso-warn-fg); }
 .fuentes-conectar-pista.is-neutra { color: var(--pulso-text-soft); }
+/* Lo que se acaba de conectar. Aparece donde estaba el paso anterior, para que
+ * el salto de pieza tenga una causa visible en vez de parecer que el panel se
+ * reinició solo. */
+.fuentes-conectar-hecho {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-success-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
 .fuentes-conectar-error {
   display: flex;
   align-items: center;
@@ -367,7 +567,33 @@
 }
 
 @keyframes fuentes-conectar-entrada {
-  from { transform: translateX(24px); opacity: 0; }
+  from { transform: translateX(38px); opacity: 0; }
+}
+
+/* Pantalla estrecha: el guion se apila encima y pierde su columna, pero no
+   desaparece —es lo que dice en qué modo se está y qué falta—. */
+@media (max-width: 900px) {
+  .fuentes-conectar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .fuentes-conectar-guion {
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--module-accent) 16%, var(--pulso-border));
+    overflow: visible;
+  }
+
+  .fuentes-conectar-guion ol {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    grid-auto-flow: column;
+  }
+
+  .fuentes-conectar-guion li button em,
+  .fuentes-conectar-guion-pista {
+    display: none;
+  }
 }
 
 /* Quien pidió menos movimiento no recibe ninguno. */
