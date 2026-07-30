@@ -96,3 +96,19 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: 6px;
 }
+
+/* No hay regla gemela de «Equipo asignado» aquí, y conviene que quede escrito
+ * para que nadie la añada creyendo que falta.
+ *
+ * Se escribió y se retiró el mismo día: no podía aplicar nunca. En telefónico
+ * el bloque vive en `mon-phone-summary-secondary`, una rejilla de dos columnas
+ * donde comparte fila con ratio de incidencias y por eso necesita marco propio.
+ * Acreditación tiene **su propia copia del workbench**
+ * —`AcreditacionMonitoreoPage.tsx:6372` frente a `TelefonicoMonitoreoPage.tsx:7291`—
+ * y esa copia no monta esa sección: aquí el bloque es el contenido entero de la
+ * pestaña Responsables, dentro de un `pulso-panel` que ya le da su marco.
+ * Añadirle otro sería el defecto de cajas concéntricas.
+ *
+ * Comprobado en la app, no deducido: `matches()` sobre el elemento real
+ * devuelve false para el selector, y su cadena de ancestros es
+ * `mon-phone-layout--responsables › mon-phone-tabbody › pulso-panel`. */
