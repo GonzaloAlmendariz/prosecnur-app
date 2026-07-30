@@ -2,6 +2,8 @@
 
 Estado: Aceptado
 
+Implementacion: En curso
+
 Fecha: 2026-07-27; aceptado el 2026-07-29
 
 ## Contexto

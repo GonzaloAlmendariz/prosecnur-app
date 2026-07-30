@@ -48,6 +48,51 @@ import {
   type RecopiladoresSeccion,
 } from "./navegacion";
 import { captureUrlIssue, captureUrlMessage, captureUrlOk } from "../../lib/captureUrl";
+// Adapter `aulas_v1`: normalización, matching, plantillas de enlace, manifiesto y
+// parser del pegado manual. Salió de este archivo en la unidad 2 del plan y se
+// consume por el barrel, no módulo por módulo: cuando el ADR 0046 materialice
+// `collection_deployment/v1`, lo que se reemplaza es un contrato y no 40 imports.
+import {
+  KOBO_DEFAULT_BASE_URL,
+  KOBO_PARAM_TEMPLATE,
+  LINK_IMPORT_EXAMPLE,
+  RETURN_MANIFEST_HEADERS,
+  appendPersonalizedParams,
+  applyManualLinks,
+  buildPackageOutputGroups,
+  calcSelectionAgenda,
+  classroomLabel,
+  cleanKoboBaseUrl,
+  dashboardFromState,
+  facultyOptions,
+  fichaId,
+  fichaVenue,
+  fillTemplate,
+  fmt,
+  hasQr,
+  isUrl,
+  koboProfileLabel,
+  monitorAgendaFromState,
+  normalizeMatchKey,
+  normalizeText,
+  packageLabel,
+  rowMatchKeys,
+  parseLinkClipboard,
+  returnAgendaUpdate,
+  returnManifestRecord,
+  returnManifestTsv,
+  roleLabel,
+  rowFaculty,
+  rowKey,
+  rowLink,
+  rowTemplateContext,
+  sampleLabel,
+  savedQrSrc,
+  sourceRowNumber,
+  sourceRowText,
+  statusLabel,
+} from "./aulas";
+import type { LinkParseResult, ManualLinkRecord, PackageOutputGroup, TemplateContext } from "./aulas";
 import "./recopiladores.css";
 
 type QrSection = RecopiladoresSeccion;
@@ -60,22 +105,6 @@ type TabDefinition = {
   detail: string;
   icon: LucideIcon;
 };
-
-type ManualLinkRecord = {
-  key: string;
-  surveyLink: string;
-  qr: string;
-  word: string;
-  pdf: string;
-  sample: string;
-};
-
-type LinkParseResult = {
-  records: ManualLinkRecord[];
-  ignored: number;
-};
-
-type TemplateContext = Record<string, string>;
 
 /**
  * Las etiquetas e íconos salen del manifiesto: duplicar aquí el catálogo fue la
@@ -192,445 +221,8 @@ const SIDEBAR_NOTES: Record<QrTab, { icon: typeof ClipboardList; title: string; 
   },
 };
 
-const numberFormat = new Intl.NumberFormat("es-PE");
-const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
-const KOBO_PARAM_TEMPLATE = "d[collectorID]={curso_horario}";
 const PULSO_LOGO_SRC = "/pulso-pucp-logo.png";
-const LINK_IMPORT_EXAMPLE = [
-  "cursohorario\tenlace\tqr\tword\tpdf",
-  "MAT146-0205\thttps://encuesta/aula/MAT146-0205\thttps://drive/qr\thttps://drive/word\thttps://drive/pdf",
-].join("\n");
 
-const RETURN_MANIFEST_HEADERS = [
-  "curso_horario",
-  "facultad",
-  "carrera",
-  "curso",
-  "horario",
-  "docente",
-  "muestra",
-  "enlace_aplicacion",
-  "qr_estado",
-  "word_link",
-  "pdf_link",
-  "fuente_enlace",
-];
-
-function fmt(value: unknown, fallback = "0") {
-  const n = Number(value);
-  if (Number.isFinite(n)) return numberFormat.format(n);
-  const text = String(value ?? "").trim();
-  return text || fallback;
-}
-
-function normalizeText(value: unknown) {
-  return String(value ?? "").trim();
-}
-
-function normalizeMatchKey(value: unknown) {
-  return normalizeText(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es-PE")
-    .replace(/[^a-z0-9]+/g, "");
-}
-
-function normalizeHeader(value: unknown) {
-  return normalizeMatchKey(value);
-}
-
-function isUrl(value: unknown) {
-  return /^https?:\/\//i.test(normalizeText(value));
-}
-
-function classroomLabel(row: MonitoreoAulasPlanRow) {
-  return normalizeText(row.operational_code) ||
-    normalizeText(row.titular_operational_code) ||
-    normalizeText(row.classroom_id) ||
-    normalizeText(row.label) ||
-    `Curso-horario ${fmt(row.orden)}`;
-}
-
-function rowFaculty(row: MonitoreoAulasPlanRow) {
-  return normalizeText(row.faculty) || "Sin facultad";
-}
-
-function rowKey(row: MonitoreoAulasPlanRow, index: number) {
-  return `${classroomLabel(row)}-${normalizeText(row.wave)}-${index}`;
-}
-
-function rowMatchKeys(row: MonitoreoAulasPlanRow) {
-  return [
-    classroomLabel(row),
-    row.classroom_id,
-    row.operational_code,
-    row.selection_slot_id,
-    row.course_id && row.schedule ? `${row.course_id}-${row.schedule}` : "",
-    row.course_id && row.section ? `${row.course_id}-${row.section}` : "",
-  ].map(normalizeMatchKey).filter(Boolean);
-}
-
-function cleanKoboBaseUrl(value: unknown) {
-  return normalizeText(value).replace(/\/+$/, "") || KOBO_DEFAULT_BASE_URL;
-}
-
-function koboProfileLabel(profile: ConnectionProfileState) {
-  return [profile.alias || "Kobo", profile.server_label || profile.base_url || ""].filter(Boolean).join(" · ");
-}
-
-function rowTemplateContext(row: MonitoreoAulasPlanRow, asset: MonitoreoKoboAssetItem | null): TemplateContext {
-  return {
-    aula: classroomLabel(row),
-    curso_horario: classroomLabel(row),
-    curso_id: normalizeText(row.course_id),
-    curso: normalizeText(row.course_name),
-    seccion: normalizeText(row.section),
-    horario: normalizeText(row.schedule),
-    docente: normalizeText(row.teacher),
-    correo_docente: normalizeText(row.teacher_email),
-    facultad: rowFaculty(row),
-    carrera: normalizeText(row.program),
-    nivel: normalizeText(row.level),
-    muestra: sampleLabel(row),
-    rol: roleLabel(row),
-    orden: normalizeText(row.orden),
-    estudiantes: normalizeText(row.eligible_n),
-    asset_uid: normalizeText(asset?.uid),
-    formulario: normalizeText(asset?.name),
-    version: normalizeText(asset?.version_id),
-  };
-}
-
-function fillTemplate(value: string, context: TemplateContext) {
-  return value.replace(/\{([a-z0-9_]+)\}/gi, (_, key: string) => context[key.toLowerCase()] ?? "");
-}
-
-function appendPersonalizedParams(baseLink: string, paramsTemplate: string, context: TemplateContext) {
-  const base = fillTemplate(normalizeText(baseLink), context);
-  const rawParams = fillTemplate(normalizeText(paramsTemplate), context).replace(/^[?&]+/, "");
-  if (!base || !rawParams) return base;
-  const encoded = rawParams
-    .split("&")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => {
-      const [key, ...rest] = part.split("=");
-      const cleanKey = key.trim();
-      const cleanValue = rest.join("=").trim();
-      if (!cleanKey) return "";
-      return `${encodeURIComponent(cleanKey)}=${encodeURIComponent(cleanValue)}`;
-    })
-    .filter(Boolean)
-    .join("&");
-  if (!encoded) return base;
-  const separator = base.includes("?")
-    ? base.endsWith("?") || base.endsWith("&") ? "" : "&"
-    : "?";
-  return `${base}${separator}${encoded}`;
-}
-
-function rowLink(row: MonitoreoAulasPlanRow) {
-  return normalizeText(row.link);
-}
-
-function savedQrSrc(row: MonitoreoAulasPlanRow) {
-  const saved = normalizeText(row.qr);
-  if (/^(https?:|data:image)/i.test(saved)) return saved;
-  return "";
-}
-
-function hasQr(row: MonitoreoAulasPlanRow) {
-  return Boolean(savedQrSrc(row) || rowLink(row));
-}
-
-function returnManifestCell(value: unknown) {
-  return normalizeText(value).replace(/[\t\r\n]+/g, " ");
-}
-
-function returnManifestRecord(row: MonitoreoAulasPlanRow) {
-  const link = rowLink(row);
-  return {
-    curso_horario: classroomLabel(row),
-    facultad: rowFaculty(row),
-    carrera: normalizeText(row.program),
-    curso: normalizeText(row.course_name),
-    horario: normalizeText(row.schedule),
-    docente: normalizeText(row.teacher),
-    muestra: sampleLabel(row),
-    enlace_aplicacion: link,
-    qr_estado: savedQrSrc(row) ? "qr importado" : link ? "qr generado localmente" : "sin enlace",
-    word_link: normalizeText(row.word_link),
-    pdf_link: normalizeText(row.pdf_link),
-    fuente_enlace: sourceRowText(row as Record<string, unknown>, ["manual_link_source", "collector_id"]) || (link ? "agenda" : ""),
-  };
-}
-
-function returnManifestTsv(rows: MonitoreoAulasPlanRow[]) {
-  const body = rows.map((row) => {
-    const record = returnManifestRecord(row);
-    return RETURN_MANIFEST_HEADERS.map((header) => returnManifestCell(record[header as keyof typeof record])).join("\t");
-  });
-  return [RETURN_MANIFEST_HEADERS.join("\t"), ...body].join("\n");
-}
-
-function returnAgendaUpdate(row: MonitoreoAulasPlanRow, packageStatus?: string): Partial<MonitoreoAulasPlanRow> {
-  return {
-    classroom_id: normalizeText(row.classroom_id),
-    operational_code: normalizeText(row.operational_code),
-    link: rowLink(row),
-    qr: savedQrSrc(row),
-    word_link: normalizeText(row.word_link),
-    pdf_link: normalizeText(row.pdf_link),
-    package_label: packageLabel(row),
-    package_status: packageStatus || (rowLink(row) ? "listo_para_pdf" : "pendiente_enlace"),
-    collector_id: sourceRowText(row as Record<string, unknown>, ["collector_id", "manual_link_source"]),
-    responsible: normalizeText(row.responsible),
-  };
-}
-
-function roleLabel(row: MonitoreoAulasPlanRow) {
-  const role = normalizeText(row.sample_role);
-  if (role === "titular" || normalizeText(row.wave) === "M1") return "Titular";
-  if (role === "chain_reserve") return `Reserva ${normalizeText(row.wave) || ""}`.trim();
-  if (role === "extra_reserve_pool") return "Reserva adicional";
-  return normalizeText(row.wave) || "Curso-horario";
-}
-
-function sampleLabel(row: MonitoreoAulasPlanRow) {
-  return normalizeText(row.wave) ||
-    sourceRowText(row as Record<string, unknown>, ["muestra", "sample", "selection_label"]) ||
-    "Selección";
-}
-
-function packageLabel(row: MonitoreoAulasPlanRow) {
-  return sourceRowText(row as Record<string, unknown>, ["package_label", "selection_label", "seleccion", "muestra"]) ||
-    sampleLabel(row);
-}
-
-function fichaId(row: MonitoreoAulasPlanRow) {
-  return sourceRowText(row as Record<string, unknown>, ["cursohorario", "curso_horario", "course_schedule_id", "id_match"]) ||
-    classroomLabel(row);
-}
-
-function fichaVenue(row: MonitoreoAulasPlanRow) {
-  return sourceRowText(row as Record<string, unknown>, [
-    "pabellon_aula",
-    "pabellon",
-    "aula",
-    "salon",
-    "room",
-    "building_room",
-    "venue",
-    "label",
-    "section",
-  ]) || "Por confirmar";
-}
-
-function statusLabel(row: MonitoreoAulasPlanRow) {
-  const status = normalizeText(row.operational_status);
-  const labels: Record<string, string> = {
-    agendada: "Agendada",
-    aplicada: "Aplicada",
-    parcial: "Parcial",
-    pendiente: "Pendiente",
-    sin_acceso: "Sin acceso",
-    cancelada: "Cancelada",
-    reemplazo_pendiente: "Reemplazo pendiente",
-    reemplazada: "Reemplazada",
-    cerrada: "Cerrada",
-  };
-  return labels[status] ?? (status || "Pendiente");
-}
-
-function dashboardFromState(state: MonitoreoState | null): MonitoreoAulasDashboard | null {
-  return state?.dashboard?.aulas_universitarias_reports ?? null;
-}
-
-function monitorAgendaFromState(state: MonitoreoState | null) {
-  const dashboard = dashboardFromState(state);
-  if (dashboard?.agenda?.length) return dashboard.agenda;
-  return state?.config?.aulas_universitarias?.plan ?? [];
-}
-
-function sourceRowText(row: Record<string, unknown>, keys: string[]) {
-  for (const key of keys) {
-    const value = normalizeText(row[key]);
-    if (value) return value;
-  }
-  return "";
-}
-
-function sourceRowNumber(row: Record<string, unknown>, keys: string[], fallback = 0) {
-  for (const key of keys) {
-    const value = Number(row[key]);
-    if (Number.isFinite(value)) return value;
-  }
-  return fallback;
-}
-
-function splitImportLine(line: string) {
-  if (line.includes("\t")) return line.split("\t");
-  if (line.includes(";")) return line.split(";");
-  return line.split(",");
-}
-
-function headerIndex(headers: string[], names: string[]) {
-  return headers.findIndex((header) => names.includes(header));
-}
-
-function parseLinkClipboard(input: string): LinkParseResult {
-  const lines = input.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  if (!lines.length) return { records: [], ignored: 0 };
-  const first = splitImportLine(lines[0]).map(normalizeHeader);
-  const hasHeader = first.some((cell) => [
-    "documentid",
-    "id",
-    "cursohorario",
-    "cursohorario",
-    "qrlink",
-    "wordlink",
-    "pdflink",
-    "url",
-    "acortador",
-  ].includes(cell));
-  const headers = hasHeader ? first : [];
-  const rows = hasHeader ? lines.slice(1) : lines;
-  const keyIndex = hasHeader ? headerIndex(headers, ["documentid", "id", "idmatch", "cursohorario", "cursohorario", "classroomid", "aulacodigo"]) : 0;
-  const urlIndex = hasHeader ? headerIndex(headers, ["url", "acortador", "link", "enlace", "surveylink"]) : -1;
-  const qrIndex = hasHeader ? headerIndex(headers, ["qrlink", "qr", "qrcode", "enlaceqr"]) : -1;
-  const wordIndex = hasHeader ? headerIndex(headers, ["wordlink", "word", "docx", "fichaword"]) : -1;
-  const pdfIndex = hasHeader ? headerIndex(headers, ["pdflink", "pdf", "fichapdf"]) : -1;
-  const sampleIndex = hasHeader ? headerIndex(headers, ["muestra", "sample", "seleccion"]) : -1;
-  const records: ManualLinkRecord[] = [];
-  let ignored = 0;
-  rows.forEach((line) => {
-    const cells = splitImportLine(line).map((cell) => cell.trim());
-    const key = normalizeText(cells[keyIndex >= 0 ? keyIndex : 0]);
-    const urls = cells.filter(isUrl);
-    const surveyLink = normalizeText(urlIndex >= 0 ? cells[urlIndex] : hasHeader ? "" : urls[0]);
-    const qr = normalizeText(qrIndex >= 0 ? cells[qrIndex] : "");
-    const word = normalizeText(wordIndex >= 0 ? cells[wordIndex] : "");
-    const pdf = normalizeText(pdfIndex >= 0 ? cells[pdfIndex] : "");
-    const sample = normalizeText(sampleIndex >= 0 ? cells[sampleIndex] : "");
-    if (!key || (!surveyLink && !qr && !word && !pdf)) {
-      ignored += 1;
-      return;
-    }
-    records.push({ key, surveyLink, qr, word, pdf, sample });
-  });
-  return { records, ignored };
-}
-
-function applyManualLinks(rows: MonitoreoAulasPlanRow[], links: Map<string, ManualLinkRecord>) {
-  if (!links.size) return rows;
-  return rows.map((row) => {
-    const match = rowMatchKeys(row).map((key) => links.get(key)).find(Boolean);
-    if (!match) return row;
-    return {
-      ...row,
-      link: match.surveyLink || row.link,
-      qr: match.qr || row.qr,
-      collector_id: match.sample || row.collector_id,
-      word_link: match.word || row.word_link,
-      pdf_link: match.pdf || row.pdf_link,
-      manual_link_source: match.sample || row.manual_link_source || "pegado",
-    };
-  });
-}
-
-function calcSelectionAgenda(calcState: CalcMuestraState | null): MonitoreoAulasPlanRow[] {
-  const selection = calcState?.aulas?.selection;
-  const rows = (selection?.selection ?? []) as Array<Record<string, unknown>>;
-  return rows.map((row, index) => {
-    const wave = sourceRowText(row, ["wave", "muestra", "sample_wave"]) || "M1";
-    const role = sourceRowText(row, ["sample_role", "rol_muestra"]) || (wave === "M1" ? "titular" : "chain_reserve");
-    const classroomId = sourceRowText(row, ["classroom_id", "curso_horario", "course_schedule_id", "id_match", "id"]);
-    return {
-      selection_run_id: selection?.selection_run_id ?? "",
-      operational_code: sourceRowText(row, ["operational_code", "codigo_operativo", "selection_slot_id"]) || classroomId,
-      titular_operational_code: sourceRowText(row, ["titular_operational_code"]),
-      replacement_chain_code: sourceRowText(row, ["replacement_chain_code"]),
-      operational_sequence: sourceRowNumber(row, ["operational_sequence", "orden"], index + 1),
-      selection_slot_id: sourceRowText(row, ["selection_slot_id"]),
-      sample_role: role,
-      wave,
-      replacement_order: sourceRowNumber(row, ["replacement_order"], 0),
-      orden: sourceRowNumber(row, ["orden", "rank"], index + 1),
-      classroom_id: classroomId || `aula-${index + 1}`,
-      label: sourceRowText(row, ["label", "classroom_label", "sesiones_y_aula", "aula", "section"]),
-      course_id: sourceRowText(row, ["course_id", "curso_id", "curso"]),
-      course_name: sourceRowText(row, ["course_name", "nombre_del_curso", "nombre_curso"]),
-      section: sourceRowText(row, ["section", "seccion"]),
-      schedule: sourceRowText(row, ["schedule", "horario"]),
-      teacher: sourceRowText(row, ["teacher", "docente", "nombre_de_docente"]),
-      teacher_email: sourceRowText(row, ["teacher_email", "correo_docente"]),
-      faculty: sourceRowText(row, ["faculty", "facultad", "stratum"]),
-      program: sourceRowText(row, ["program", "programa", "carrera"]),
-      level: sourceRowText(row, ["level", "nivel", "ciclo"]),
-      stratum: sourceRowText(row, ["stratum", "faculty", "facultad"]),
-      eligible_n: sourceRowNumber(row, ["eligible_n", "matriculados_poblacion", "students_n"]),
-      expected_valid: sourceRowNumber(row, ["expected_valid", "validos_esperados"], 0),
-      link: sourceRowText(row, ["link", "url", "acortador", "enlace", "survey_link"]),
-      qr: sourceRowText(row, ["qr", "qr_url", "qr_link"]),
-      cursohorario: classroomId || sourceRowText(row, ["cursohorario", "curso_horario", "course_schedule_id", "id_match"]),
-      pabellon_aula: sourceRowText(row, ["pabellon_aula", "pabellon", "aula", "salon", "room", "building_room", "venue", "label"]),
-      collector_id: sourceRowText(row, ["collector_id", "recopilador_id"]),
-      responsible: sourceRowText(row, ["responsible", "responsable"]),
-      operational_status: "pendiente",
-      replacement_for: sourceRowText(row, ["replacement_for"]),
-      replacement_reason: sourceRowText(row, ["replacement_reason"]),
-      replacement_note: sourceRowText(row, ["replacement_note"]),
-      updated_at: selection?.generated_at ?? "",
-    };
-  });
-}
-
-function facultyOptions(rows: MonitoreoAulasPlanRow[]) {
-  return Array.from(new Set(rows.map(rowFaculty))).sort((a, b) => a.localeCompare(b, "es"));
-}
-
-type PackageOutputGroup = {
-  label: string;
-  total: number;
-  linked: number;
-  missing: number;
-  qr: number;
-  word: number;
-  pdf: number;
-  students: number;
-  ready: boolean;
-};
-
-function buildPackageOutputGroups(rows: MonitoreoAulasPlanRow[]): PackageOutputGroup[] {
-  const groups = new Map<string, PackageOutputGroup>();
-  rows.forEach((row) => {
-    const label = packageLabel(row) || "Selección";
-    const current = groups.get(label) ?? {
-      label,
-      total: 0,
-      linked: 0,
-      missing: 0,
-      qr: 0,
-      word: 0,
-      pdf: 0,
-      students: 0,
-      ready: false,
-    };
-    const linked = Boolean(rowLink(row));
-    current.total += 1;
-    current.linked += linked ? 1 : 0;
-    current.missing += linked ? 0 : 1;
-    current.qr += hasQr(row) ? 1 : 0;
-    current.word += normalizeText(row.word_link) ? 1 : 0;
-    current.pdf += normalizeText(row.pdf_link) ? 1 : 0;
-    const n = Number(row.eligible_n);
-    current.students += Number.isFinite(n) ? n : 0;
-    groups.set(label, current);
-  });
-  return Array.from(groups.values())
-    .map((group) => ({ ...group, ready: group.total > 0 && group.missing === 0 }))
-    .sort((a, b) => a.label.localeCompare(b.label, "es", { numeric: true }) || b.total - a.total);
-}
 
 function Metric({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
