@@ -57,7 +57,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Fuente › Reconciliación | hecho | **seis radios en una pestaña** (9/10/11/12/13/14), con 11 y 13 apareciendo solo aquí en todo el modo. Queda en 10/14. Quedan 3 recortes y 2 scrolls anidados | este commit |
 | territorial | Fuente › Historial | hecho | ya estaba conforme: 10/14, sin recortes. Se verificó, no se tocó | — |
 | territorial | Modelo › Cobertura | hecho | 5 radios (10/11/12/13/14) → 10/14. **6 scrolls anidados y 7 recortes** quedan abiertos: es la superficie con más scroll del modo | este commit |
-| territorial | Modelo › Manzanas | pendiente |  |  |
+| territorial | Modelo › Manzanas | hecho | **siete radios en una pestaña** (0/9/10/11/12/13/14), récord del barrido → 0/10/14. Las 150 versalitas que quedan son los chips «UMP TITULAR» de cada fila: badge, que es patrón de la casa. 3 scrolls anidados abiertos | este commit |
 | territorial | Validación › Geolocalización | pendiente |  |  |
 | territorial | Validación › Reconciliación UMP | pendiente |  |  |
 | territorial | Validación › Duración de tiempo | pendiente |  |  |
@@ -84,6 +84,19 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | cursos-horario | Avance | pendiente |  |  |
 | cursos-horario | Validación | pendiente |  |  |
 | cursos-horario | Consultas | pendiente |  |  |
+
+## Corrección de método — 2026-07-30
+
+El conteo de versalitas de las primeras iteraciones estaba **inflado**. Medía
+`text-transform: uppercase` computado, que se hereda, y contaba elementos cuyo
+texto no cambia al aplicarlo: «UMP 2» con `uppercase` se ve igual que sin él.
+En `Modelo › Manzanas` eso daba 320 cuando las reales eran 168.
+
+El criterio correcto exige las dos cosas: la propiedad **y** que el texto tenga
+minúsculas que de verdad se transformen. Los conteos de telefónico anteriores a
+esta corrección pueden estar altos por la misma razón; las versalitas que se
+retiraron allí sí eran visibles —se comprobaron en captura—, pero el número que
+las acompaña no es fiable.
 
 ## Hallazgos no estéticos
 

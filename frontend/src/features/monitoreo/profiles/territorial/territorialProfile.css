@@ -17216,3 +17216,29 @@
 .mon-territorial-route-district-coverage {
   border-radius: var(--pulso-radius-card);
 }
+
+/* ── Modelo › Manzanas ─────────────────────────────────────────────────────
+ * Siete radios en una pestaña: 0, 9, 10, 11, 12, 13 y 14. Es el récord del
+ * modo y de todo el barrido. */
+.mon-territorial-route-table-card,
+.mon-territorial-route-map-card,
+.mon-territorial-route-context-hero,
+.mon-territorial-route-context-family {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-route-table-scroll,
+.mon-territorial-route-primary-block,
+.mon-territorial-route-replacement-row,
+.mon-territorial-route-context-metrics span {
+  border-radius: var(--pulso-radius);
+}
+
+.mon-territorial-route-table-filters,
+.mon-territorial-route-context-card {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-route-context-family-row {
+  border-radius: var(--pulso-radius);
+}
