@@ -239,6 +239,24 @@ El contrato del warmup NO cambia: al cerrar la barra, todo caliente.
   Queda la Ola 4 (estructural, coordinar con saneamiento) y dos residuales:
   smoke del worker callr real (gate de /preparar-release) y evidencia visual
   de imports con progreso (exige secretos de plataforma).
+- **2026-07-29 · OLA 5 COMPLETA (salvo 5.1c, decisión del dueño)**:
+  - 5.1a+b (651e127a): reconciliación 3×→1× con memo por digest de contenido
+    y text_key memoizada — ciclo advance+queries 265 s → 44.3 s (6×), golden
+    810/810 idéntico, decisiones manuales invalidan por construcción, el
+    engine ENCOGE (39979→39975).
+  - 5.2 (08637ebd): territorial en 2 workers (no 3: la medición de
+    concurrencia mató al tercero, y gps→base resultó cadena serial del
+    engine) — acnur_acg frío 82.8→59.0 s (−28.7%) con paridad exacta de
+    claves y hashes; escape PULSO_WARMUP_PARALELO=0.
+  - Efecto compuesto estimado sobre el warmup frío de acrconta medido en 5.0
+    (299.7 s): dedup+memo bajan el task de monitoreo de ~290 s a ~50-60 s;
+    con cache del .pulso (ya probado): ~14-29 s. Re-medición formal de la
+    tabla completa: en la próxima corrida de referencia (mismo runner que el
+    smoke callr de /preparar-release).
+  - **5.1c queda abierta esperando decisión de Gonzalo**: auto-persistir
+    caches sin guardado explícito (toca la filosofía de guardado) o
+    regenerar los fixtures de referencia con caches calientes. Con 5.1a+b
+    el peor caso sin guardar ya es tolerable; no urge.
 
 ## Protocolo
 
