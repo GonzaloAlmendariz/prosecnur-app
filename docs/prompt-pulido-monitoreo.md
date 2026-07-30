@@ -38,6 +38,21 @@ pestaña concreta de un modo concreto —`telefónico › Fuentes › Universo y
 barrido`—, no un módulo entero. Si el registro está vacío, constrúyelo
 enumerando con `window.__pulsoNav.manifiesto` sobre un proyecto abierto.
 
+**El inventario caduca, así que se reenumera en cada pase.** Las pestañas de
+Monitoreo cambian —se añaden, se funden, se renombran—, y ya pasó dos veces que
+el registro anunciara superficies que el runtime no monta: el inventario inicial
+salió de catálogos estáticos compartidos entre perfiles y prometía en telefónico
+tres pestañas que no existen. Antes de elegir, contrasta la sección con
+`window.__pulsoNav.pestanasDeLaSeccion()`; si difiere del registro, corrige el
+registro primero. Una fila que ya no existe se tacha con el motivo; una nueva
+entra como pendiente aunque el resto del modo esté cerrado. **Un modo cerrado
+no queda cerrado para siempre**: si sus pestañas cambiaron, vuelve a estar
+pendiente.
+
+Y cuando el registro no tenga nada pendiente, no se acaba el loop: se vuelve a
+empezar con el criterio más fino de §4, que es más exigente que el del pase
+anterior.
+
 ### 2. Verla, no leerla
 
 Ábrela con el skill `/ver-ui` y **júzgala en pantalla**. No se diagnostica
@@ -91,6 +106,133 @@ Tipografía, medida en las referencias:
   encabeza nada.
 - Cifra: 22 px, `--pulso-weight-black`, `font-variant-numeric: tabular-nums`.
 
+### 3b. El detector, y por qué él mismo se audita
+
+Medir a ojo no escala y medir mal es peor que no medir: un informe con cifras
+infladas se defiende solo. En un único barrido este detector dio **cuatro**
+familias de falso positivo, y las cuatro salieron de contrastar la medición
+contra la captura —en un sentido o en el otro—. Están todas excluidas abajo y
+**no se quitan**:
+
+1. **Dentro de `<svg>`**: un `<text>` de Plotly mide `scrollWidth > clientWidth`
+   y se dibuja entero. No es recorte.
+2. **`pulso-sr-only`**: existe solo para el lector de pantalla. No se ve, no se
+   puede recortar.
+3. **`overflow: visible`**: el texto pinta fuera de su caja y se lee completo.
+   Contarlo como recorte es contar el arreglo como si fuera el defecto.
+4. **Versalitas que no transforman nada**: `text-transform: uppercase` se hereda,
+   y «UMP 2» se ve igual con y sin él. Solo cuenta si el texto tiene minúsculas
+   que de verdad cambian.
+
+La exclusión 3 tiene cola, y es la que abre el detector de solapes: **pintar
+fuera de la caja puede invadir al vecino**. Un `overflow: visible` puesto para
+«arreglar» un recorte metió un número 3 px dentro de su rótulo.
+
+```js
+window.__auditar = () => {
+  const raiz = document.querySelector(".mon-stage") || document.querySelector(".mon-page") || document.body;
+  const EN_ESCALA = new Set(["0px", "10px", "14px", "16px", "999px", "9999px", "9997px", "50%"]);
+
+  const seVe = (el) => {
+    if (el.closest("svg")) return false;
+    if (el.classList.contains("pulso-sr-only") || el.closest(".pulso-sr-only")) return false;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === "hidden" || cs.display === "none" || cs.opacity === "0") return false;
+    const b = el.getBoundingClientRect();
+    return b.width > 4 && b.height > 4;
+  };
+
+  const rotulo = (el) =>
+    el.tagName.toLowerCase() + "." + (String(el.className || "").trim().split(/\s+/)[0] || "");
+
+  const fuera = {}, recortes = [], cortados = [], duenos = [], solapes = [];
+  const gaps = {}, padsV = {};
+
+  for (const el of raiz.querySelectorAll("*")) {
+    if (!seVe(el)) continue;
+    const cs = getComputedStyle(el);
+
+    // — escala —
+    if (!EN_ESCALA.has(cs.borderRadius)) {
+      const k = cs.borderRadius + " " + rotulo(el);
+      fuera[k] = (fuera[k] || 0) + 1;
+    }
+
+    // — recorte horizontal REAL —
+    const puedeScrollX = cs.overflowX === "auto" || cs.overflowX === "scroll";
+    const pintaFuera = cs.overflow === "visible" || cs.overflowX === "visible";
+    if (el.scrollWidth > el.clientWidth + 1 && !puedeScrollX && !pintaFuera) {
+      recortes.push({ el: rotulo(el), enTabla: !!el.closest("table, [class*='-table']"),
+                      txt: el.textContent.trim().slice(0, 32) });
+    }
+
+    // — alto: contenido perdido vs dueño de scroll —
+    if (el.scrollHeight > el.clientHeight + 1) {
+      if (cs.overflowY === "auto" || cs.overflowY === "scroll") {
+        duenos.push({ el: rotulo(el), ve: el.clientHeight, hay: el.scrollHeight });
+      } else if (cs.overflowY === "hidden") {
+        // lo peor: se corta y NADIE puede llegar a lo que falta
+        cortados.push({ el: rotulo(el), ve: el.clientHeight, hay: el.scrollHeight });
+      }
+    }
+
+    // — espaciado, para comparar DENTRO de la superficie —
+    if (cs.display.includes("grid") || cs.display.includes("flex")) {
+      [cs.rowGap, cs.columnGap].forEach((g) => {
+        if (g && g !== "normal" && g !== "0px") gaps[g] = (gaps[g] || 0) + 1;
+      });
+    }
+    if (cs.paddingTop !== "0px") padsV[cs.paddingTop] = (padsV[cs.paddingTop] || 0) + 1;
+
+    // — solape entre hermanos en flujo —
+    const hijos = [...el.children].filter(
+      (h) => seVe(h) && !/absolute|fixed/.test(getComputedStyle(h).position));
+    for (let i = 0; i < hijos.length - 1; i++) {
+      const a = hijos[i], b = hijos[i + 1];
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      const ca = getComputedStyle(a);
+      // El borde que de verdad se pinta, no el que mide la caja. Solo en HOJAS:
+      // en un contenedor, `scrollWidth` incluye hijos absolutos —un rótulo de
+      // tooltip de 71 px dentro de una casilla de 36— y eso no es un solape.
+      const esHoja = a.children.length === 0;
+      const derecha = (esHoja && (ca.overflow === "visible" || ca.overflowX === "visible"))
+        ? ra.left + Math.max(a.scrollWidth, ra.width) : ra.right;
+      if (Math.abs(ra.top - rb.top) < 4 && derecha > rb.left + 0.5) {
+        solapes.push({ sobre: rotulo(a), invade: rotulo(b),
+                       px: Math.round(derecha - rb.left), txt: a.textContent.trim().slice(0, 24) });
+      }
+    }
+  }
+
+  const orden = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]);
+  return {
+    fueraDeEscala: orden(fuera),
+    recortes: { total: recortes.length, enTabla: recortes.filter((r) => r.enTabla).length, muestra: recortes.slice(0, 6) },
+    contenidoCortado: cortados,      // ← C4: se pierde en silencio
+    duenosDeScroll: duenos,          // ← más de uno anidado es hallazgo
+    solapes,
+    espaciado: { gaps: orden(gaps), paddingsVerticales: orden(padsV) },
+  };
+};
+```
+
+El detector de solapes se comprobó **por mutación**, que es la única forma de
+saber que no está simplemente ciego: se inyecta el defecto real —un `<strong>`
+de 24 px con `overflow: visible` pintando «150» sobre su rótulo—, se confirma
+que lo marca con los píxeles exactos, se retira y se confirma que vuelve a cero.
+Si tocas el detector, repite esa comprobación antes de fiarte de un informe
+limpio.
+
+**Sobre el espaciado, y esto importa: la casa no tiene escala de espaciado.**
+Medida en una superficie de referencia, los `gap` conviven en 1, 2, 4, 6, 8, 10,
+11, 12 y 14 px, y no hay tokens `--pulso-space-*` que arbitren. Así que el
+detector **informa, no reprueba**: no inventes una escala global y la impongas
+—eso es una decisión de diseño de Gonzalo, no del loop—. Lo que sí es defecto,
+y se arregla, es la incoherencia **dentro de una misma superficie**: dos gaps de
+1 px de diferencia en el mismo nivel, o un panel cuyo padding no guarda relación
+con el de sus hermanos. Si al medir aparece un patrón que pide escala global,
+se anota en el registro como propuesta y se sigue.
+
 ### 4. Qué buscar
 
 **Geometría y espaciado**
@@ -104,6 +246,48 @@ Tipografía, medida en las referencias:
 - Toolbars desbalanceados: `1fr` inanicia los lados.
 - Vacío exterior sin dueño y scroll anidado (un solo dueño de scroll por
   pantalla).
+
+**Encimados, alto y scroll** — lo que reportan `solapes`, `contenidoCortado` y
+`duenosDeScroll`:
+
+- **Elementos que se pisan.** Dos hermanos en flujo no deben cruzarse nunca. El
+  caso típico no es un `position` mal puesto sino un ítem flex al que un
+  `min-width: 0` deja encoger por debajo de su contenido: la caja mide menos de
+  lo que pinta y el texto entra en el vecino. Se arregla donde está la causa
+  —que el ítem no encoja— y no tapando con `overflow: hidden`, que cambia un
+  solape por un recorte.
+- **Contenido cortado en silencio** (`overflow: hidden` + desbordado). Es el
+  peor caso de los tres, porque no hay barra que avise ni forma de llegar a lo
+  que falta. Si la superficie necesita un tope de alto, el tope va con
+  `overflow: auto`, no con `hidden`.
+- **Alto máximo que no se respeta**, en los dos sentidos: un contenedor que
+  crece sin límite y empuja el resto fuera de pantalla, y un `max-height` que
+  recorta sin dar scroll. En una superficie con datos, la lista larga scrollea
+  dentro y el marco se queda quieto.
+- **El vacío no hereda el alto de lo lleno.** Un envoltorio con `height: 100%`
+  para que la tabla llene el panel es correcto con datos y, sin ellos, convierte
+  un aviso de una línea en cientos de píxeles de blanco enmarcado que se leen
+  como carga fallida. Con `:has()` se distingue el caso vacío y se ciñe.
+
+**Paneles y sideovers.** Es donde más se rompe el espaciado. Los de **agregar
+fuente** en acreditación y en telefónico están señalados por Gonzalo como los
+más flojos hoy y todavía no se han medido: son el primer objetivo del pase.
+Qué se comprueba en ellos:
+
+- El panel ocupa el alto completo y reparte cabecera, cuerpo y pie con un solo
+  dueño de scroll: el cuerpo. Cabecera y pie no se van con el scroll.
+- Padding uniforme en los cuatro lados del cuerpo, y el mismo que usan los
+  paneles de la sección. Un sideover con padding propio se nota enseguida.
+- Los pasos del guion respiran igual entre sí. Un paso activo puede tener más
+  materia, no más margen.
+- El pie con las acciones queda siempre alcanzable, también en 1024×600 y con el
+  contenido más largo que el panel admita.
+
+**Ausencias que se notan al llenar**
+
+Si la superficie se auditó sin datos, no puede darse por cerrada: márcala
+**parcial** en el registro y di explícitamente qué no se ha visto nunca. Un modo
+entero puede pasar por conforme solo porque estaba vacío.
 
 **Redacción**
 
@@ -122,6 +306,34 @@ Tipografía, medida en las referencias:
   validez metodológica sino haber alcanzado el 70 % del denominador. Cuando el
   rótulo engaña, se cambia el rótulo —eso es texto, entra en el alcance—; lo que
   no se toca es el cálculo que hay debajo.
+
+**Cómo se reconoce el AI slop**
+
+La prueba es una sola: **tapa la frase y pregunta qué se pierde.** Si no se
+pierde nada, era slop. Ese hueco de la pantalla es para el dato.
+
+Las cuatro formas que más aparecen aquí:
+
+1. **Parafrasear el título.** «Cuotas» y debajo «Aquí se gestionan las cuotas».
+2. **Escribir la afordancia.** «Haz clic para ver el detalle» sobre algo
+   clicable. Si no se entiende que es clicable, el defecto es el estilo.
+3. **Rellenar una ausencia.** Prosa donde debería haber una cifra que el
+   producto todavía no calcula. Eso se anota en el registro, no se maquilla.
+4. **Filtrar el nombre del campo.** `selection_run_id`, `snapshot`, `payload`
+   puestos como si fueran texto de interfaz. El usuario no puede accionar el
+   nombre de una variable.
+
+Y el reverso, que también es slop: **el superlativo vacío**. Un rótulo no
+necesita decir que es «completo», «avanzado» o «inteligente».
+
+**Elegancia, en concreto**
+
+«Más profesional» no es un criterio accionable, así que se traduce en cosas
+medibles: una sola escala de radios por nivel; materia de tarjeta completa —las
+tres capas, sin la luz interior el gradiente solo aplana—; una sola familia de
+sombra; cifras en `tabular-nums` para que las columnas no bailen; versalitas
+únicamente donde encabezan; y ningún borde de más. El borde se gana: si no
+codifica estado ni separa dos superficies distintas, sobra.
 
 **Didáctica**
 
@@ -175,6 +387,22 @@ instrucción de correr el loop es la aprobación. Solo interrumpes si un cambio
 exigiría tocar funcionalidad, si dos criterios se contradicen sin árbitro, o si
 lo que encuentras es un bug de datos y no de estética —eso se reporta y se
 sigue—.
+
+No detenerse es la regla que más se incumple, y siempre de la misma forma: no
+parando de golpe sino **programando una espera cuando no hay nada que esperar**.
+Si el trabajo es tuyo y está por delante, encadena la siguiente superficie en el
+mismo turno; una espera solo se justifica cuando hay algo externo de verdad
+—una corrida, un servidor levantando—, y aun así se elige por lo que tarda eso,
+no por costumbre.
+
+Tampoco cuenta como avance dar una superficie por buena sin haberla medido
+después del cambio. **El pase no termina en el commit, termina en la
+comprobación**: se vuelve a correr `__auditar()` sobre la superficie ya tocada y
+se mira la captura. Dos veces en un mismo barrido se escribieron reglas que no
+llegaban a aplicar y el registro las dio por hechas.
+
+Cuando el registro se quede sin pendientes, se reenumera todo (§1) y se vuelve
+a empezar. El loop lo cierra Gonzalo, no el inventario.
 
 ---
 
