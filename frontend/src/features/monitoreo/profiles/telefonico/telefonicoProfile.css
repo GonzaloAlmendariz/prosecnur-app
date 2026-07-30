@@ -56,6 +56,46 @@
   padding: 7px 9px;
 }
 
+/* ── Escala del perfil ─────────────────────────────────────────────────────
+ *
+ * Regla transversal, no parche por superficie. Auditando el modo pestaña a
+ * pestaña aparece siempre la misma desviación —radio 8/9 y ninguna sombra, así
+ * que todo pesa igual y ninguna jerarquía se lee—, y arreglarla caso por caso
+ * produce justo lo contrario de la uniformidad que se busca: cada superficie
+ * pulida en un momento distinto con una decisión ligeramente distinta.
+ *
+ * `.mon-contract-block` es la unidad de bloque del módulo. Dársela aquí alcanza
+ * a todas las secciones del perfil de una vez; lo que necesite otra cosa la
+ * declara después de este bloque y con más especificidad.
+ *
+ * Medido en Modelo › Cronograma antes de aplicarla: 16 de 17 cajas sin sombra.
+ */
+.is-telefonico-profile .mon-contract-block {
+  border-radius: var(--pulso-radius-card);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 18%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 4px 12px rgba(0, 36, 87, 0.05);
+}
+
+/* Las celdas de dato dentro de un bloque no llevan caja: el bloque ya la tiene,
+ * y encajar marcos concéntricos es lo que impide saber cuál es la unidad. */
+.is-telefonico-profile .mon-contract-block .mon-field-schedule-evidence-summary,
+.is-telefonico-profile .mon-contract-block .mon-field-schedule-evidence-days {
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 4%, var(--pulso-surface-2));
+}
+
+/* Las celdas del cronograma **conservan su borde**: cada una lleva el color de
+ * su estado (`--field-schedule-card`) en borde y fondo, así que ahí el marco no
+ * es decoración sino la señal. La regla de «celda sin caja» vale para las que
+ * solo agrupan un dato, no para las que codifican. Su alineación con la casa
+ * está al final del archivo, que es donde gana el orden de cascada. */
+
 /* ── Modelo operativo › Cuotas ─────────────────────────────────────────────
  *
  * Misma desviación que tenía Fuentes: el gobernador medía radio 9 y no tenía
@@ -5000,4 +5040,60 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── Alineación con la escala de la casa, al final por orden de cascada ─────
+ *
+ * Va aquí y no arriba porque estas superficies declaran sus propias reglas más
+ * abajo en este mismo archivo, y con igual especificidad gana la última. Subir
+ * la especificidad en su lugar dejaría el archivo con dos reglas compitiendo
+ * para el mismo elemento, que es peor de leer que respetar el orden.
+ *
+ * Lo que se alinea es el radio y la versalita. El borde y el color de estado se
+ * conservan: en el cronograma cada celda lleva el color de su estado, y ahí el
+ * marco es la señal, no adorno.
+ */
+
+.is-telefonico-profile .mon-field-schedule-window,
+.is-telefonico-profile .mon-field-schedule-cards span,
+.is-telefonico-profile .mon-field-schedule-evidence-summary,
+.is-telefonico-profile .mon-field-schedule-evidence-days {
+  border-radius: var(--pulso-radius);
+}
+
+.is-telefonico-profile .mon-field-schedule-window {
+  border-radius: var(--pulso-radius-card);
+}
+
+/* 26 versalitas en una sola pestaña, y ninguna encabezaba nada: son etiquetas
+ * de celda, que en Gráficos y en el editor de formularios van en texto normal. */
+.is-telefonico-profile .mon-field-schedule-cards em,
+.is-telefonico-profile .mon-field-schedule-evidence-summary em,
+.is-telefonico-profile .mon-field-schedule-evidence-days em,
+.is-telefonico-profile .mon-field-schedule-window > span {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days article {
+  border-radius: var(--pulso-radius);
+}
+
+.is-telefonico-profile .mon-field-schedule-evidence-days article em,
+.is-telefonico-profile .mon-field-schedule-evidence-days article small {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Labels del formulario del cronograma —«Semana inicio», «Fecha campo fin»—:
+ * son campos que se rellenan, no encabezados de grupo. Misma escala que el
+ * editor de formularios. */
+.is-telefonico-profile .mon-contract-block .mon-form label > span {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--pulso-text);
 }

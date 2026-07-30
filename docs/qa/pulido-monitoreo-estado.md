@@ -35,7 +35,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | telefónico | Fuentes › Universo y barrido | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
 | telefónico | Fuentes › Encuestas | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
 | telefónico | Modelo operativo › Cuotas | hecho | gobernador radio 9 sin sombra → 14 con materia; eslabones y resumen sin caja; 3 frases de AI slop retiradas; título pasa de la mecánica a la pregunta | este commit |
-| telefónico | Modelo operativo › Cronograma | pendiente |  |  |
+| telefónico | Modelo operativo › Cronograma | hecho | 16 de 17 cajas sin sombra; radios 8/9 → 10/14; versalitas 26 → 14, las que quedan son antetítulos de franja y sí encabezan. Las celdas de estado **conservan** su borde: llevan el color de su estado y ahí el marco es la señal | este commit |
 | telefónico | Modelo operativo › Resumen | pendiente |  |  |
 | telefónico | Llamadas › Resumen | pendiente |  |  |
 | telefónico | Llamadas › Tiempos | pendiente |  |  |
