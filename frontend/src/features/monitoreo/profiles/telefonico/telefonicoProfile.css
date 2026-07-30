@@ -2265,7 +2265,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--phone-model-tone) 5%, #fff)),
     var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-subtle);
+  box-shadow: var(--pulso-shadow-low);
 }
 
 .is-telefonico-profile .mon-phone-model-reading-rule {
@@ -2442,7 +2442,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, #e7f8fb 28%, #fff)),
     var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-subtle);
+  box-shadow: var(--pulso-shadow-low);
 }
 
 .is-telefonico-profile .mon-field-schedule-window {
@@ -2595,7 +2595,7 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--pulso-module-monitoring) 4%, #fff)),
     var(--pulso-surface);
-  box-shadow: var(--pulso-shadow-subtle);
+  box-shadow: var(--pulso-shadow-low);
 }
 
 .is-telefonico-profile .mon-field-schedule-evidence-summary {
