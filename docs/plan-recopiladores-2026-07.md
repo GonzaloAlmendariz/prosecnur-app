@@ -1062,6 +1062,62 @@ Gate B: cero estado duro en `useState` dentro de la página —hoy hay 29— y c
 panel en archivo propio; página PNG y PDF equivalentes de una ficha, con el QR
 decodificado de forma independiente desde el PNG que emite el propio render.
 
+**Cerrada parcialmente el 2026-07-29.**
+
+- **Unidad 3-resto — store hecho, reparto de componentes pendiente.**
+  `store.ts` reemplaza los 26 `useState` del componente principal por 4. Lo que
+  se ganó no son líneas: las transiciones que siempre van juntas dejaron de ser
+  una convención que cada handler tenía que recordar. Elegir perfil de Kobo
+  descarta assets, asset, enlace y error del anterior en una sola acción; las
+  tres formas de cambiar el conjunto de enlaces invalidan el feedback del
+  guardado anterior; el guardado exitoso descarta el overlay local.
+
+  Los 4 `useState` que quedan son el ciclo de fetch, que nace y muere con el
+  montaje. Subirlos al store solo agregaría una forma de que sobrevivan a la
+  vista que los pidió.
+
+  Un store global trae un riesgo que el `useState` no tenía —sobrevivir al cambio
+  de proyecto— resuelto con la suscripción a `pulso:session-changed` que ya usan
+  `carga` y `hojasRuta`. 25 tests, todos sobre invalidaciones.
+
+  **Queda pendiente** el reparto de los componentes presentacionales a archivo
+  propio. El default export sigue en 1.210 líneas y ese es el monolito real
+  ahora; los 13 componentes inline suman ~760.
+
+- **Unidad 10 — spike de render hecho.** `api/R/collection_render_ficha.R`
+  dibuja una ficha A4 con el kit `grid` compartido y el QR generado en R con
+  `qrcode` de CRAN, que entra a `Imports` de `DESCRIPTION`. 30 aserciones.
+
+  `.crf_draw_ficha()` es el único cuerpo de dibujo: PDF y PNG difieren en el
+  device y en nada más, que es lo que el ADR §14 pide literalmente. No se
+  rasteriza el PDF ni se depende de ImageMagick.
+
+  Va en `Imports` y no en `Suggests` a propósito: un `requireNamespace` con
+  fallback silencioso es el bug que ya ocurrió con `sampling` en los goldens de
+  aulas, donde la ausencia del paquete cambiaba el resultado sin decirlo.
+
+  **Lo que el spike descubrió, que es para lo que existe:**
+
+  1. **A4 no es cuadrada.** Dibujar los módulos del QR con `width` y `height` en
+     npc los estira un 41% verticalmente y el QR deja de ser un QR. Se corrige
+     con un viewport cuadrado en pulgadas. Un schema de material congelado antes
+     de este hallazgo habría descrito el QR como una caja en npc.
+  2. **El device PDF por defecto no codifica U+2014.** Un guión largo como valor
+     vacío sale con warning y sustitución. Las cadenas de relleno del template no
+     pueden asumir tipografía Unicode completa.
+  3. La verificación del QR es **fidelidad de módulos**, no decodificación de
+     terceros: releer el PNG y comparar contra la matriz de `qrcode`. Decodificar
+     de verdad exigiría zbar u OpenCV, librerías de sistema que el ADR §13 evita
+     porque el R embebido de Electron no las garantiza. Lo que se verifica es
+     donde el dibujo falla —escala, antialiasing, inversión, quiet zone— y un QR
+     con módulos y quiet zone correctos es decodificable por construcción.
+  4. **La composición tiene ~35% de vacío** con el reparto actual: las cinco
+     filas de datos a 0,055 npc dejan huecos grandes arriba y abajo. Es entrada
+     para las unidades 11 y 12, no algo que el spike deba pulir.
+
+  Lo que el spike **no** hace, por diseño: no congela schema, no registra
+  archivos, no emite manifest y no corre como job. Eso es 11, 12 y 13.
+
 #### Ola C — API propia y clientes saneados (2 writers, en paralelo)
 
 | Unidad | Owner | Globs de escritura |
