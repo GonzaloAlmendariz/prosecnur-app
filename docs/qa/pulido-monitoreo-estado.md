@@ -25,9 +25,9 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | acreditación | Monitoreo telefónico › Estados | hecho | conforme: lo único fuera de escala es el chrome de la app (`pulso-command-bar` en 18) | — |
 | acreditación | Monitoreo telefónico › **Ritmo diario** | auditada | **1 contenido cortado real**: una columna de barra apilada mide 7,9 px y sus 3 segmentos piden 12. Es codificación de gráfico —qué hacer con un día de muy pocos casos—, no CSS | — |
 | acreditación | Monitoreo telefónico › **Sin efectiva** | hecho | 61 filas-tarjeta de 563×57 en 8 px → 10. Confirma que el desajuste de denominador de las barras de insistencia también está aquí, no solo en telefónico | este commit |
-| acreditación | Monitoreo telefónico › Responsables | pendiente |  |  |
-| acreditación | Monitoreo telefónico › Alertas | pendiente |  |  |
-| acreditación | Monitoreo telefónico › Supervisión telefónica | pendiente |  |  |
+| acreditación | Monitoreo telefónico › Responsables | auditada | 0 recortes, 0 solapes. Chips de estado en 8 px pendientes; las mitades con radio 999 a un lado son barras partidas y están bien | — |
+| acreditación | Monitoreo telefónico › Alertas reales | hecho | «Casos impactados» se recortaba **otra vez**: el arreglo de telefónico estaba scopeado y el defecto es de la regla compartida. Movido a `profilePage.css` y retirado el duplicado; verificado en los dos modos | este commit |
+| acreditación | Monitoreo telefónico › Supervisión | auditada | 0 recortes, 0 solapes, 0 contenido cortado. Radios 8 y 9 en chips pendientes | — |
 | acreditación | Avance › Resumen | hecho | `mon-clarity-card` en 7 px → 10. Gana `.mon-profile-canonical-shell .mon-clarity-card` (0,2,0), no la declaración suelta de 9 | este commit |
 | acreditación | Avance › Actores | hecho | nodos de flujo y mecanismos de 9 y 8 → 10; el grupo de mecanismos de 11 → 14. 7 recortes de «respuestas» pendientes | este commit |
 | acreditación | Avance › Encuestas | hecho | tarjeta de encuesta 12 → 14; chips de estado en 9 pendientes. 0 recortes | este commit |

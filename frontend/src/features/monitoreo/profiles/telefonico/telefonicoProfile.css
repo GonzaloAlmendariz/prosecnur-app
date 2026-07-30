@@ -4516,7 +4516,6 @@
   align-items: start;
 }
 
-
 /* El grid del resumen repartía sus filas como `1fr` sobre una altura de
    viewport: cada bloque recibía ~190 px sin importar cuánto midiera y el
    sobrante se pintaba encima del vecino. Con `overflow: hidden` en el panel el
@@ -4545,7 +4544,6 @@
   flex: 0 0 auto;
   min-height: 0;
 }
-
 
 /* Recortes silenciosos: contenedores intermedios que conservaban `overflow:
    hidden` y altura de viewport después de devolver el scroll a la página. En
@@ -5320,24 +5318,11 @@
   overflow-wrap: anywhere;
 }
 
-/* ── Llamadas › Alertas: el rótulo de la métrica deja de elidirse ──────────
- *
- * «Casos impactados» pedía 110 px y tenía 104: seis de elipsis en el rótulo de
- * un KPI. La regla que lo recorta vive en `profilePage.css`, que está congelado
- * y lo comparten los cuatro modos, así que el arreglo se scopea aquí en vez de
- * tocarla —cambiarla allí alcanzaría a acreditación, territorial y aulas, que
- * no se han mirado con este criterio—.
- *
- * Envolver es seguro: las tres fichas viven en una rejilla de tres columnas
- * iguales que estira la fila, así que suben las tres a la vez y no se
- * desalinean. Comprobado midiendo el contenedor, no a ojo. */
-.is-telefonico-profile .mon-quality-alert-stats em {
-  min-width: 0;
-  overflow: visible;
-  white-space: normal;
-  text-overflow: clip;
-  overflow-wrap: anywhere;
-}
+/* El arreglo de «Casos impactados» que vivía aquí se movió a `profilePage.css`.
+ * Estaba scopeado a telefónico y el defecto es de la regla compartida, así que
+ * acreditación seguía recortando el mismo rótulo: se comprobó midiéndolo allí.
+ * Scopear por perfil un defecto compartido no lo arregla, lo esconde en tres
+ * cuartas partes del módulo. */
 
 /* ── Modelo › Cuotas: la cadena de decisión deja de comerse los nombres ────
  *
