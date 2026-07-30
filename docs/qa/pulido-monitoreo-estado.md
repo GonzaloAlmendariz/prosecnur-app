@@ -165,6 +165,44 @@ El único aviso nuevo resultó ser del instrumento y no del modo: cuatro cifras
 del embudo de Llamadas › Resumen operativo aparecían como «contenido cortado»
 —18 px de contenido en 16 de caja— y se pintan enteras. Ver la sexta corrección.
 
+## Adoptar la escala de espaciado en Monitoreo — medido el 2026-07-30
+
+La escala existe (`--pulso-space-1..9` = 4, 8, 12, 16, 20, 24, 32, 40, 48 sobre
+base 4), está gobernada por dos contratos y el kit compartido la usa en 68
+sitios. **Monitoreo no la usa en ninguno.** Medido sobre sus declaraciones de
+`gap` y `padding`:
+
+| | valores |
+|---|---|
+| en la escala | 2.115 |
+| **fuera** | **4.514 (68 %)** |
+
+Los que más pesan, con su vecino más cercano:
+
+| valor | usos | más cercano | delta |
+|---|---|---|---|
+| 6px | 814 | 4 u 8 | 2 (empate) |
+| 10px | 805 | 8 o 12 | 2 (empate) |
+| 7px | 765 | 8 (`space-2`) | 1 |
+| 5px | 494 | 4 (`space-1`) | 1 |
+| 2px | 474 | 4 (`space-1`) | 2 |
+| 9px | 450 | 8 (`space-2`) | 1 |
+| 3px | 333 | 4 (`space-1`) | 1 |
+
+Concentración por archivo: `monitoreo.css` 2.108, `profilePage.css` 1.080,
+`territorialProfile.css` 689, `telefonicoProfile.css` 229. Es decir, **el 70 %
+de la deuda vive en los dos archivos compartidos y congelados**, que es
+exactamente por qué colapsar los pares en un perfil no movió la pantalla.
+
+Dos cosas que impiden automatizarlo, y por eso es decisión y no tarea:
+
+1. **6px y 10px empatan** entre dos peldaños (2 px a cada lado) y suman 1.619
+   usos. Elegir 4 u 8 para el primero, y 8 o 12 para el segundo, cambia la
+   densidad de casi todo el módulo. No hay respuesta mecánica.
+2. **1px y 2px no son deuda**: son hairlines y pilas de texto muy juntas. La
+   escala arranca en 4, así que forzarlos sería empeorar. Descontados, la
+   migración real son ~3.900 declaraciones.
+
 ## Hallazgos no estéticos
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
