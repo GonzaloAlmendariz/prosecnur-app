@@ -22033,7 +22033,7 @@ button.mon-territorial-ump-audit-scrim {
   align-items: center;
   gap: 5px 10px;
   border: 1px solid color-mix(in srgb, #dca33a 16%, var(--pulso-border));
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: rgba(255, 255, 255, 0.86);
   padding: 7px;
 }
