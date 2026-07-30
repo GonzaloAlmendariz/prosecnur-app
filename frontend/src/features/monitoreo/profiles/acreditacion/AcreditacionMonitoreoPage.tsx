@@ -7730,7 +7730,7 @@ function AcreditacionSheetSourceEditor({
       ) : null}
       <div className="mon-acr-sheet-form">
         <label>
-          <span>Spreadsheet</span>
+          <span>Enlace del Google Sheet</span>
           <input
             value={spreadsheetId}
             onChange={(event) => setSpreadsheetId(event.currentTarget.value)}
@@ -7748,7 +7748,7 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <label>
-          <span>Nombre operativo</span>
+          <span>Nombre para reconocerla</span>
           <input
             value={sourceLabel}
             onChange={(event) => setSourceLabel(event.currentTarget.value)}
@@ -7757,7 +7757,7 @@ function AcreditacionSheetSourceEditor({
           />
         </label>
         <label>
-          <span>Rango</span>
+          <span>Rango de celdas</span>
           <input
             value={range}
             onChange={(event) => setRange(event.currentTarget.value)}
@@ -8267,7 +8267,7 @@ function AcreditacionKoboSourcePicker({
     <div className={`mon-acr-source-editor mon-acr-survey-add mon-acr-kobo-add${assets.length ? " has-results" : " is-compact"}`} aria-label="Selector de encuesta Kobo en plataforma">
       <div className="mon-acr-survey-add-head">
         <label>
-          <span>URL Kobo</span>
+          <span>Servidor de Kobo</span>
           <input
             value={baseUrl}
             onChange={(event) => setBaseUrl(event.currentTarget.value)}
@@ -8276,7 +8276,7 @@ function AcreditacionKoboSourcePicker({
           />
         </label>
         <label>
-          <span>Perfil</span>
+          <span>Cuenta</span>
           <input
             value={profileId}
             onChange={(event) => setProfileId(event.currentTarget.value)}
@@ -8285,7 +8285,7 @@ function AcreditacionKoboSourcePicker({
           />
         </label>
         <label>
-          <span>Filtro</span>
+          <span>Buscar</span>
           <input
             value={filter}
             onChange={(event) => setFilter(event.currentTarget.value)}
