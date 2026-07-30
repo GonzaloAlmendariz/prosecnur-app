@@ -10791,76 +10791,6 @@ function AcreditacionPhoneSourceSlotCard({
   );
 }
 
-function AcreditacionPhoneInstrumentDecision({
-  contract,
-  state,
-  syncedAt,
-}: {
-  contract: AcreditacionPhoneSourceContract;
-  state?: MonitoreoState | null;
-  syncedAt?: string;
-}) {
-  const activePlatformSources = contract.platform.sources.filter((source) => source.enabled);
-  const primary = activePlatformSources[0] ?? contract.platform.sources[0] ?? null;
-  const responseCount = activePlatformSources.reduce((sum, source) => sum + acreditacionSourceResponseCount(source), 0);
-  const filter = normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter);
-  const filterConfigured = Boolean(filter.enabled && filter.variable && filter.values.length);
-  const filterQuestion = filter.label || filter.variable;
-  const filterValue = filter.value_label || filter.values[0] || "";
-  const instrumentSync = primary ? sourceSyncLabel(primary) : syncedAt ? formatDate(syncedAt) : "Sin sync";
-  const sourceTitle = primary ? acreditacionSurveySourceName(primary) : "";
-  const ready = contract.platform.ready && contract.sweep.ready && contract.universe.ready && filterConfigured;
-  const assetLabel = primary ? shortenMiddle(sourceExternalId(primary), 48) : "Selecciona un formulario Kobo";
-  const filterLabel = filterConfigured ? `${filterQuestion || filter.variable} = ${filterValue}` : "Elige consentimiento/elegibilidad";
-  const responseLabel = responseCount ? `${fmt(responseCount)} respuestas` : primary ? "sin respuestas leídas" : "pendiente";
-  return (
-    <section className={`mon-phone-instrument-decision${ready ? " is-ready" : " has-pending"}`} aria-label="Instrumento y filtro efectivo de Kobo">
-      <header>
-        <div>
-          <span><ListChecks size={13} /> Instrumento Kobo</span>
-          <strong>{sourceTitle || "Encuesta pendiente"}</strong>
-          
-        </div>
-        <em>{ready ? "Listo para avance" : "Revisar decisión"}</em>
-      </header>
-      <div className="mon-phone-kobo-dossier">
-        <article className={contract.platform.ready ? "is-ready" : "is-warning"}>
-          <span><ListChecks size={13} /> Instrumento activo</span>
-          <strong>{sourceTitle || "Kobo pendiente"}</strong>
-          {primary ? null : <p>Selecciona el formulario Kobo que alimentará el avance telefónico.</p>}
-          <div>
-            <em>{primary ? sourceProviderLabel(primary.kind) : "Kobo"}</em>
-            <em>{assetLabel}</em>
-            <em>{instrumentSync}</em>
-          </div>
-        </article>
-        <div className="mon-phone-kobo-decision-stack" aria-label="Decisiones que convierten Kobo en avance">
-          <span className={contract.platform.ready ? "is-ready" : "is-warning"}>
-            <em>1 · Instrumento</em>
-            <strong>{sourceTitle || "Pendiente"}</strong>
-            <small>{responseLabel}</small>
-          </span>
-          <span className={filterConfigured ? "is-ready" : "is-warning"}>
-            <em>2 · Filtro efectiva</em>
-            <strong>{filterLabel}</strong>
-            <small>{filterConfigured ? "cuenta como efectiva Kobo" : "sin filtro no hay cierre de avance"}</small>
-          </span>
-          <span className={contract.universe.ready && contract.sweep.ready ? "is-ready" : "is-warning"}>
-            <em>3 · Contraste telefónico</em>
-            <strong>{contract.universe.ready && contract.sweep.ready ? "Base + barrido listos" : "Faltan Sheets"}</strong>
-            <small>estados telefónicos en paralelo</small>
-          </span>
-          <span className={primary ? "is-ready" : "is-warning"}>
-            <em>4 · Llave CodPulso</em>
-            <strong>{primary ? "Cruce individual" : "Pendiente"}</strong>
-            <small>{responseLabel}</small>
-          </span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function AcreditacionPhoneEffectiveFilterEditor({
   state,
   variables,
@@ -10889,9 +10819,6 @@ function AcreditacionPhoneEffectiveFilterEditor({
     ...likelyFilterOptions.map((option) => option.value),
   ]).map((value) => options.find((option) => option.value === value)).filter(Boolean).slice(0, 3) as PhoneEffectiveFilterQuestionOption[];
   const configured = Boolean(draft.variable.trim() && draft.value.trim());
-  const displayLabel = configured
-    ? `${selectedOption ? phoneEffectiveFilterLabel(selectedOption) : draft.variable} = ${draft.value}`
-    : "Sin filtro";
 
   useEffect(() => {
     setDraft({
@@ -10930,11 +10857,16 @@ function AcreditacionPhoneEffectiveFilterEditor({
 
   return (
     <section className={`mon-platform-rejection-rule mon-phone-effective-filter${configured ? " is-configured" : " is-empty"}`} aria-label="Filtro de efectiva Kobo">
+      {/* El título decía «Intro/Consent = Yes» y las tres celdas de abajo lo
+        * componen otra vez, campo a campo, a 40 px. Aquí va lo que la superficie
+        * hace; el valor vive en la fila de decisión, que es donde se cambia.
+        *
+        * También sale el párrafo que describía los propios controles: «Pregunta
+        * de selección única» y «Valor que cuenta» ya se rotulan solos. */}
       <header>
         <div>
           <span><Filter size={12} /> Filtro de efectiva Kobo</span>
-          <strong>{displayLabel}</strong>
-          <p>Selecciona la pregunta de consentimiento o elegibilidad y el valor que convierte una respuesta completa en efectiva.</p>
+          <strong>La respuesta cuenta cuando</strong>
         </div>
         <button type="button" onClick={() => void saveFilter()} disabled={saving || !state?.config}>
           {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
@@ -11050,6 +10982,9 @@ function AcreditacionPhoneSourcesContractPanel({
   const sweepPreset = ACREDITACION_SOURCE_PRESETS[1];
   const platformSources = contract.platform.sources;
   const koboSources = platformSources.filter(isKoboResponseSource);
+  const respuestasLeidas = platformSources
+    .filter((source) => source.enabled)
+    .reduce((sum, source) => sum + acreditacionSourceResponseCount(source), 0);
   const missingLabel = contract.missing.length
     ? contract.missing.map((item) => (
       item === "universo"
@@ -11073,8 +11008,15 @@ function AcreditacionPhoneSourcesContractPanel({
         ? "Los estados del barrido son consulta operativa; la efectiva la decide Kobo."
         : undefined,
     },
-    // Se conserva: nombra la regla que decide, no parafrasea el título.
-    survey: { title: "Qué respuesta cuenta como efectiva", detail: "El consentimiento decide cuáles cuentan en el avance." },
+    // Una encuesta conectada que no trajo nada es un problema silencioso: el
+    // avance sale en cero y no hay nada roto que mirar. Cuando pasa, el detalle
+    // lo dice en vez de la regla, que en ese caso no aplica a nada.
+    survey: {
+      title: "Qué respuesta cuenta como efectiva",
+      detail: contract.platform.ready && !respuestasLeidas
+        ? "La encuesta está conectada pero no ha traído respuestas. Sincroniza Kobo."
+        : "El consentimiento decide cuáles cuentan en el avance.",
+    },
     activas: { title: "De dónde salen los números del monitoreo" },
   };
   const copia = titulos[pestana];
@@ -11114,20 +11056,18 @@ function AcreditacionPhoneSourcesContractPanel({
           ))}
         </div>
       ) : null}
+      {/* Sin bloque de instrumento intermedio: decía el nombre de la encuesta
+        * tres veces más —cabecera, «Instrumento activo» y el paso 1 de su
+        * tira—, repetía el filtro que el editor de abajo ya declara, y uno de
+        * sus cuatro pasos hablaba de las hojas, que se deciden en otra pestaña.
+        * El formulario lo declara su tarjeta, con enlace; el filtro, el editor. */}
       {reparto.decisionKobo ? (
-        <>
-          <AcreditacionPhoneInstrumentDecision
-            contract={contract}
-            state={state}
-            syncedAt={syncedAt}
-          />
-          <AcreditacionPhoneEffectiveFilterEditor
-            state={state}
-            variables={state?.variables ?? []}
-            platformSources={platformSources}
-            onStateChange={onStateChange}
-          />
-        </>
+        <AcreditacionPhoneEffectiveFilterEditor
+          state={state}
+          variables={state?.variables ?? []}
+          platformSources={platformSources}
+          onStateChange={onStateChange}
+        />
       ) : null}
       {reparto.editorSheets ? (
         <details className="mon-phone-source-editors" open={pestana === "sheets"}>

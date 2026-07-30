@@ -52,6 +52,31 @@ describe("cada pestaña de Fuentes muestra sólo lo suyo", () => {
     expect(page).not.toContain("Sheets listos para operación");
   });
 
+  it("el nombre de la encuesta se dice una vez en la pestaña Encuestas", () => {
+    // Medido en pantalla sobre acnur_pdm: «Post-Distribution Monitoring -
+    // Espacios de Protección 2026 Q2» aparecía cuatro veces —la tarjeta, la
+    // cabecera del bloque de instrumento, su «Instrumento activo» y el paso 1 de
+    // su tira—, dos de ellas recortadas. Las tres últimas eran del mismo bloque,
+    // que además repetía el filtro del editor de abajo y dedicaba un paso a las
+    // hojas, que se deciden en otra pestaña.
+    const page = readFileSync(resolve(__dirname, "..", "TelefonicoMonitoreoPage.tsx"), "utf8");
+    expect(page).not.toContain("AcreditacionPhoneInstrumentDecision");
+    expect(page).not.toContain("3 · Contraste telefónico");
+    // `sourceTitle` era la variable que las tres copias pintaban.
+    expect(page).not.toContain("const sourceTitle = primary");
+    // Quien lo dice es la tarjeta de la fuente, con su enlace.
+    expect(page).toContain("AcreditacionPhoneSourceSlotCard");
+  });
+
+  it("el filtro de efectiva se lee una vez, donde se cambia", () => {
+    // El título del editor componía «Intro/Consent = Yes» y las tres celdas de
+    // abajo lo vuelven a componer campo a campo, a 40 px de distancia.
+    const page = readFileSync(resolve(__dirname, "..", "TelefonicoMonitoreoPage.tsx"), "utf8");
+    expect(page).not.toContain("const displayLabel = configured");
+    // Y el párrafo que describía los propios controles rotulados.
+    expect(page).not.toContain("Selecciona la pregunta de consentimiento");
+  });
+
   it("cada slot se pinta en una sola pestaña", () => {
     const todos = PESTANAS.flatMap((pestana) => repartoDeFuentes(pestana, true).slots);
     expect(todos).toHaveLength(new Set(todos).size);
