@@ -28,11 +28,11 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | acreditación | Monitoreo telefónico › Responsables | pendiente |  |  |
 | acreditación | Monitoreo telefónico › Alertas | pendiente |  |  |
 | acreditación | Monitoreo telefónico › Supervisión telefónica | pendiente |  |  |
-| acreditación | Avance › Resumen | pendiente |  |  |
-| acreditación | Avance › Actores | pendiente |  |  |
-| acreditación | Avance › Encuestas | pendiente |  |  |
-| acreditación | Avance › Detalle | pendiente |  |  |
-| acreditación | Avance › Salidas | pendiente |  |  |
+| acreditación | Avance › Resumen | hecho | `mon-clarity-card` en 7 px → 10. Gana `.mon-profile-canonical-shell .mon-clarity-card` (0,2,0), no la declaración suelta de 9 | este commit |
+| acreditación | Avance › Actores | hecho | nodos de flujo y mecanismos de 9 y 8 → 10; el grupo de mecanismos de 11 → 14. 7 recortes de «respuestas» pendientes | este commit |
+| acreditación | Avance › Encuestas | hecho | tarjeta de encuesta 12 → 14; chips de estado en 9 pendientes. 0 recortes | este commit |
+| acreditación | Avance › Detalle | hecho | fila de variable de control 9 → 10. 0 recortes, 0 solapes | este commit |
+| acreditación | Avance › Salidas | auditada | limpia; queda un `input` en 9 px que debería heredar el 8 de la app | — |
 | telefónico | Fuentes › Fuentes activas | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
 | telefónico | Fuentes › Universo y barrido | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
 | telefónico | Fuentes › Encuestas | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |

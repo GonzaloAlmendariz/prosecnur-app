@@ -15818,7 +15818,7 @@ button.mon-territorial-ump-audit-scrim {
   gap: 9px 12px;
   align-items: stretch;
   border: 1px solid color-mix(in srgb, var(--pulso-module-dashboard) 18%, var(--pulso-border));
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 253, 0.96)),
     #fff;
