@@ -52,8 +52,8 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Fuente › Formulario | hecho | 6 radios en 18 cajas → 10/14, y los 2 recortes de T6 resueltos. La clave fue enumerar qué regla gana sobre el elemento real: las ganadoras llevaban `.is-tab-form`, y el recorte vivía en `route-sheet-source-metrics`, no en la clase que se había supuesto | este commit |
 | territorial | Fuente › Filtro y distritos | hecho | radios 9/12 → 0/10/14 | este commit |
 | territorial | Fuente › Encuestadores | hecho | radios 9/12 → 10/14; el título «Lista de encuestadores» se recortaba y ahora envuelve. **8 recortes quedan abiertos**: son celdas de tabla y envolver ahí cambia el reparto de columnas | este commit |
-| territorial | Fuente › Reconciliación | pendiente |  |  |
-| territorial | Fuente › Historial | pendiente |  |  |
+| territorial | Fuente › Reconciliación | hecho | **seis radios en una pestaña** (9/10/11/12/13/14), con 11 y 13 apareciendo solo aquí en todo el modo. Queda en 10/14. Quedan 3 recortes y 2 scrolls anidados | este commit |
+| territorial | Fuente › Historial | hecho | ya estaba conforme: 10/14, sin recortes. Se verificó, no se tocó | — |
 | territorial | UMPs › Cobertura | pendiente |  |  |
 | territorial | UMPs › Manzanas | pendiente |  |  |
 | territorial | Validación › Geolocalización | pendiente |  |  |
