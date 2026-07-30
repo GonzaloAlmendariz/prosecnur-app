@@ -51,8 +51,11 @@ export function MarcoDeRitmo({
     ? marcasDeEje(ejeDerecho.maximo, alto, margenSuperior, margenInferior, ejeDerecho.formatear)
     : [];
 
+  // `minHeight` y no `height`: en telefónico el contenido lleva una banda de
+  // etiquetas debajo del gráfico, y con alto fijo quedaba recortada. Los ejes se
+  // anclan por `top`, así que crecer por abajo no los descoloca.
   return (
-    <div className="mon-ritmo-marco" style={{ height: alto }}>
+    <div className="mon-ritmo-marco" style={{ minHeight: alto }}>
       <div className="mon-ritmo-eje is-izquierdo" aria-hidden="true">
         {ejeIzquierdo.titulo ? <span className="mon-ritmo-eje-titulo">{ejeIzquierdo.titulo}</span> : null}
         {izquierdas.map((marca) => (

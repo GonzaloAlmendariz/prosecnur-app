@@ -5,6 +5,7 @@ import { PlotlyChart } from "../../../../../lib/PlotlyChart";
 import { countText, fmt } from "../formato";
 import { EmptyPanel } from "../EmptyPanel";
 import { COLOR_RESULTADO, COLOR_SEPARADOR_BARRA } from "../../../coloresDeResultado";
+import { MarcoDeEjesSiHaceFalta } from "../../../ritmo/MarcoDeEjesSiHaceFalta";
 import {
   calendarReportWeekdayFromDate,
   compactAdvanceDateTickLabel,
@@ -68,7 +69,8 @@ export function AcreditacionAdvanceDailyMini({
   const {
     orderedPoints, visiblePoints, totals, isCompactChart, usesEffectiveAxisBand, chartRows,
     hasDailySignal, chartData, chartLayout, chartHeight, chartSignature, averageLabel,
-    dailyLabel, signalDayCount,
+    dailyLabel, signalDayCount, dailyAxisMax, cumulativeAxisMax, chartBottomMargin,
+    hayMarcoDeEjes, anchoDelCampo,
   } = model;
   const [readyChartSignature, setReadyChartSignature] = useState("");
   useEffect(() => {
@@ -112,7 +114,19 @@ export function AcreditacionAdvanceDailyMini({
       </header>
       {hasDailySignal ? (
         <div className="mon-advance-daily-board">
-          <div className={`mon-advance-line-chart${usesEffectiveAxisBand ? " is-phone-effective-axis" : ""}${plotlyReady ? " is-plotly-ready" : " is-plotly-loading"}`} style={{ "--trend-cortes": chartRows.length } as CSSProperties}>
+          <div className={`mon-advance-line-chart${hayMarcoDeEjes ? " is-con-marco" : ""}${usesEffectiveAxisBand ? " is-phone-effective-axis" : ""}${plotlyReady ? " is-plotly-ready" : " is-plotly-loading"}`}>
+            {/* Con marco, el gráfico y su banda de etiquetas viajan JUNTOS en la
+                columna que se desplaza: la banda es un eje X propio y si se
+                quedara fuera dejaría de alinearse con las barras al scrollear. */}
+            <MarcoDeEjesSiHaceFalta
+              activo={hayMarcoDeEjes}
+              alto={chartHeight}
+              margenInferior={chartBottomMargin}
+              maximoIzquierdo={dailyAxisMax ?? 0}
+              maximoDerecho={cumulativeAxisMax ?? 0}
+              tituloIzquierdo={effectiveOnly ? "Efectivas/día" : "Respuestas/día"}
+              anchoContenido={anchoDelCampo}
+            >
             <PlotlyChart
               data={chartData}
               layout={chartLayout}
@@ -137,6 +151,7 @@ export function AcreditacionAdvanceDailyMini({
                 })}
               </div>
             ) : null}
+            </MarcoDeEjesSiHaceFalta>
           </div>
         </div>
       ) : (
@@ -258,6 +273,9 @@ function buildAdvanceDailyMiniModel({
   const maxCumulative = chartRows.reduce((max, point) => Math.max(max, point.cumulative), 0);
   const dailyAxisMax = paddedAdvanceAxisMax(maxDaily);
   const cumulativeAxisMax = paddedAdvanceAxisMax(maxCumulative);
+  // Pasados los 45 cortes el gráfico se desplaza y los ejes se dibujan fuera de
+  // la columna que se mueve (`MarcoDeRitmo`), así que Plotly les cede su margen.
+  const hayMarcoDeEjes = !isCompactChart && chartRows.length > 45;
   const hoverData = chartRows.map((point) => [
     point.date,
     point.effective,
@@ -337,8 +355,8 @@ function buildAdvanceDailyMiniModel({
     hovermode: "closest" as const,
     showlegend: false,
     margin: {
-      l: usesEffectiveAxisBand ? 54 : isCompactChart ? 24 : 48,
-      r: usesEffectiveAxisBand ? 56 : isCompactChart ? 28 : 58,
+      l: hayMarcoDeEjes ? 0 : usesEffectiveAxisBand ? 54 : isCompactChart ? 24 : 48,
+      r: hayMarcoDeEjes ? 0 : usesEffectiveAxisBand ? 56 : isCompactChart ? 28 : 58,
       t: isCompactChart ? 20 : 36,
       b: chartBottomMargin,
     },
@@ -453,6 +471,7 @@ function buildAdvanceDailyMiniModel({
   return {
     orderedPoints, visiblePoints, totals, isCompactChart, usesEffectiveAxisBand, chartRows,
     hasDailySignal, chartData, chartLayout, chartHeight, chartSignature, averageLabel,
-    dailyLabel, signalDayCount,
+    dailyLabel, signalDayCount, dailyAxisMax, cumulativeAxisMax, chartBottomMargin,
+    hayMarcoDeEjes, anchoDelCampo: chartRows.length * 28, effectiveOnly,
   };
 }
