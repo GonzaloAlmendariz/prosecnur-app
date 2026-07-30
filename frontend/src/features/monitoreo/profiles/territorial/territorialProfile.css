@@ -17278,7 +17278,11 @@
 /* «86 N · 0 C · 1 MC» se recortaba en once filas del gráfico diario. Es el
  * conteo del día —dato operativo— y no está en una tabla, así que envolver no
  * redistribuye ninguna columna. */
-.mon-duration-daily-value > * {
+/* `.mon-duration-daily-value small` —una clase y un elemento— gana a un
+ * `> *`, que solo suma la clase. Escribir el descendiente universal dejaba la
+ * regla declarada y sin efecto. */
+.mon-duration-daily-value small,
+.mon-duration-daily-value strong {
   min-width: 0;
   overflow: visible;
   white-space: normal;
@@ -17317,4 +17321,8 @@
 
 .mon-territorial-quota-commandbar {
   border-radius: var(--pulso-radius-card);
+}
+
+.mon-duration-daily-rows > article {
+  border-radius: var(--pulso-radius);
 }
