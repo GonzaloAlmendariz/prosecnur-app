@@ -17326,3 +17326,28 @@
 .mon-duration-daily-rows > article {
   border-radius: var(--pulso-radius);
 }
+
+/* ── Validación › Anulación ────────────────────────────────────────────────
+ * Superficie entera en radio 8, como Cuotas: las dos se construyeron con su
+ * propia escala de principio a fin. */
+.mon-production-annulments__hero,
+.mon-production-annulments__control,
+.mon-production-annulments__tablewrap,
+.mon-production-annulments__history-list article {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-production-annulments__chips span,
+.mon-production-annulments__metrics span,
+.mon-production-annulments__responsible-picker,
+.mon-production-annulments__responsible,
+.mon-production-annulments__control select,
+.mon-production-annulments__control input,
+.mon-production-annulments__control textarea {
+  border-radius: var(--pulso-radius);
+}
+
+.mon-production-annulments__impact,
+.mon-production-annulments__history {
+  border-radius: var(--pulso-radius-card);
+}

@@ -62,7 +62,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Validación › Reconciliación UMP | hecho | solo el vacío espacial fuera de escala (9 → 14) | este commit |
 | territorial | Validación › Duración de tiempo | hecho | radios 8/9 → 0/10/14 y los 11 recortes resueltos. La regla anterior perdía por especificidad: `.mon-duration-daily-value small` (0,1,1) gana a un `> *` (0,1,0) | este commit |
 | territorial | Validación › Cuotas | hecho | toda la superficie en radio 8 sin excepción —escala propia de principio a fin— y **156 recortes, el récord del barrido**: «8 encuestas por comple…», «Resta de Hombre · Muje…», que son las razones de cada brecha. Ninguno en tabla, así que envolver fue seguro: 156 → 0 | este commit |
-| territorial | Validación › Anulación | pendiente |  |  |
+| territorial | Validación › Anulación | hecho | superficie entera en radio 8, como Cuotas: las dos se construyeron con escala propia de principio a fin. Queda en 10/14 | este commit |
 | territorial | Consultas internas › Registro | pendiente |  |  |
 | territorial | Consultas internas › GPS con señal | pendiente |  |  |
 | territorial | Consultas internas › Tiempo corto/muy corto | pendiente |  |  |
