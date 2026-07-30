@@ -11,12 +11,12 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | Modo | Sección › Pestaña | Estado | Hallazgos | Commit |
 |---|---|---|---|---|
 | acreditación | ~~Fuentes › Resumen~~ → **Actores** | reenumerado 16:40 | La sección monta hoy `actores`, `fuentes` y `recopiladores`; las etiquetas del registro («Resumen», «Universo», «Encuestas y recopiladores») ya no existen. Auditada con los detectores nuevos: 0 recortes, 0 solapes, 0 contenido cortado. Radios 7/8 fuera de escala, pendientes | C1 medía 16 miembros en vez de 3; tarjetas planas de radio 16→14 con materia; título y total duplicados retirados | este commit |
-| acreditación | ~~Fuentes › Universo~~ → **Fuentes y universo** | hecho (reenumerada) | 0 recortes, 0 solapes, 0 contenido cortado. Radios 8 de `mon-acr-source-object-*` pendientes | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: `d28a6bbf`; registro adelantado en `767eaa42` |
+| acreditación | ~~Fuentes › Universo~~ → **Fuentes y universo** | hecho | 0 recortes, 0 solapes, 0 contenido cortado. Las 7 tarjetas de encuesta (1183×302) pasan de 8 a escala de tarjeta, y su icono y su cuerpo interno a escala de ficha. Queda sin materia: darle sombra exige añadir propiedad a un archivo congelado | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: `d28a6bbf`; registro adelantado en `767eaa42` |
 | acreditación | ~~Fuentes › Encuestas y recopiladores~~ → **Recopiladores** | hecho (reenumerada) | 0 recortes, 0 solapes. Los 60 controles en 8 y 9 px —métrica de recopilador, icono de uso y selector de canal— pasan a 10 desde el archivo compartido, sin duplicar por perfil | cobertura con deriva máxima 110 px → cuatro marcos iguales; 4 colecciones quedan medibles; nombres operativos envuelven y 3 minitarjetas métricas se aplanan | producto: `0e421dc3` |
 | acreditación | Modelo operativo › Modelo operativo | hecho | 2 KPI ocupaban media franja → 2 columnas completas; roster 4×58 sin elipsis; tarjetas 304→352 y solo Egresados conserva scroll interno; “S/M”/“Ajustar” pasan a lenguaje de tarea; 8 grupos medidos | producto: `89321af3` |
 | acreditación | Modelo operativo › Distribución | hecho | contrato comparaba cabecera 44 con rejilla 655 (Δ611) → 4 tarjetas intrínsecas; balance 4×1/2×2; KPI ajenos se retiran; actores recuperan scroll exterior y nombres completos. C5 funcional diferido: una declaración sin catálogo aún se silencia | producto: `943ffa08` |
 | acreditación | Modelo operativo › Cronograma | hecho | resumen heredado de metas retirado; plan y ejecución pasan a dos regiones; 4 KPI 2×2 y 5 controles quedan auditables; “Fuera/Dentro del plan” hace explícito el desvío y el vacío sin corte deja de silenciarse; un solo scroll exterior | producto: `cc43dcc9` |
-| acreditación | Modelo operativo › Resumen | pendiente |  |  |
+| acreditación | ~~Modelo operativo › Resumen~~ | no existe | La sección monta tres pestañas —Modelo operativo, Distribución y Cronograma—; el «Resumen» salía del catálogo estático |  |
 | acreditación | Consultas › Registros en plataforma | auditada | 0 solapes, 0 contenido cortado, 1 recorte. **301 botones en radio 8** pendientes de escala | — |
 | acreditación | Consultas › Estado de la base | auditada | limpia de recortes y solapes; **519 botones en radio 8** pendientes | — |
 | acreditación | Consultas › Cruces efectivos | auditada | 0 solapes. **45 recortes de «Cruzó por llave» dentro de tabla** (2 px cada uno): entra en la decisión de ancho de columna que ya está abierta para territorial | — |
@@ -243,6 +243,25 @@ http://localhost:<puerto>/monitoreo?qaWarmup=skip&modo=<modo>&seccion=<seccion>
 Aviso: el SPA compilado congela el código del momento del build, así que incluye
 el trabajo sin terminar de otra sesión. Antes de arreglar algo medido ahí hay que
 comprobar si su CSS está en HEAD o en el diff ajeno.
+
+## Modo acreditación — auditado entero el 2026-07-30
+
+Veintidós pestañas en cinco secciones, todas medidas con los detectores nuevos
+—escala, recortes, solapes, contenido cortado y dueños de scroll—.
+
+**Modelo operativo sale limpia entera**: cero fuera de escala en dos de sus tres
+pestañas y un solo botón en la tercera. El trabajo que hizo ahí la otra sesión
+aguanta criterios que no existían cuando lo hizo.
+
+Lo corregido en este modo: 60 controles de Recopiladores, 109 rótulos de la
+bandeja de subsanación, 61 filas de casos sin contestar, siete reglas de Avance,
+las tarjetas de encuesta de Fuentes y «Casos impactados», que resultó estar mal
+arreglado desde telefónico.
+
+Queda abierto y anotado: los chips de estado en 8 y 9 px repartidos por varias
+pestañas, las tarjetas de encuesta sin materia —darles sombra exige añadir una
+propiedad a un archivo congelado—, y los dos hallazgos que no son CSS (el
+denominador de las barras de insistencia y la columna del gráfico diario).
 
 ## Hallazgos no estéticos
 
