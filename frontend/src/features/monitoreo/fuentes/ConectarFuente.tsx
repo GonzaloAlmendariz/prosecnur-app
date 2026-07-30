@@ -503,6 +503,11 @@ export function ConectarFuente({
                 </p>
               )}
 
+              {/* Google Sheets no tiene catálogo. Pintar aquí un grupo titulado
+                  «O elige del catálogo de tu cuenta» cuyo único contenido era el
+                  aviso de que ese catálogo no existe ofrecía una alternativa que
+                  no está: el campo de arriba es el único camino. */}
+              {servicio === "google_sheets" ? null : (
               <fieldset className="fuentes-conectar-grupo">
                 <legend>{admiteDireccionPegada(servicio) ? "O elige del catálogo de tu cuenta" : "Catálogo de tu cuenta"}</legend>
                 {(servicio === "kobo" ? assetsKobo : servicio === "surveymonkey" ? encuestasSm : null) === null
@@ -551,6 +556,7 @@ export function ConectarFuente({
                   </>
                 )}
               </fieldset>
+              )}
             </div>
           ) : null}
 
