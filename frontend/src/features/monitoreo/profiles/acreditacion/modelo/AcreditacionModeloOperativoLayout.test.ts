@@ -5,6 +5,8 @@ import { describe, expect, test } from "vitest";
 
 const modeloDir = path.dirname(fileURLToPath(import.meta.url));
 const css = fs.readFileSync(path.join(modeloDir, "modeloOperativo.css"), "utf8");
+const distributionCss = fs.readFileSync(path.join(modeloDir, "distribucionPorActor.css"), "utf8");
+const distributionPage = fs.readFileSync(path.join(modeloDir, "DistribucionPorActor.tsx"), "utf8");
 const page = fs.readFileSync(path.join(modeloDir, "..", "AcreditacionMonitoreoPage.tsx"), "utf8");
 
 function between(source: string, start: string, end: string): string {
@@ -14,9 +16,9 @@ function between(source: string, start: string, end: string): string {
   return source.slice(startAt, endAt);
 }
 
-function ruleBody(selector: string): string {
+function ruleBody(selector: string, source = css): string {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return css.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  return source.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
 }
 
 const actorCard = between(
@@ -89,5 +91,46 @@ describe("Acreditación > Modelo operativo", () => {
     expect(css).not.toContain("!important");
     expect(css).toContain("var(--pulso-radius-card)");
     expect(css).toContain("var(--pulso-control-height-md)");
+  });
+});
+
+describe("Acreditación > Modelo operativo > Distribución", () => {
+  test("mide las tarjetas con un contrato intrínseco y no la cabecera", () => {
+    expect(distributionPage).not.toContain('className="mon-dist" data-qa-geometry-group');
+    expect(distributionPage).toContain('className="mon-dist-grid" data-qa-geometry-group="acreditacion-distribucion-actores" data-qa-geometry-contract="intrinsic"');
+    expect(distributionPage.match(/data-qa-geometry-member/g)).toHaveLength(2);
+  });
+
+  test("deja el scroll de actores al panel y posee solo la lista de categorías", () => {
+    expect(ruleBody(".mon-dist", distributionCss)).toMatch(/grid-template-rows:\s*auto\s+auto;/);
+    expect(ruleBody(".mon-dist-grid", distributionCss)).toMatch(/overflow:\s*visible;/);
+    expect(ruleBody(".mon-dist-grid", distributionCss)).not.toMatch(/overflow-y:\s*auto;/);
+    expect(distributionPage).toMatch(/<ul data-qa-geometry-capacity="owned" data-qa-geometry-content>/);
+  });
+
+  test("equilibra cuatro actores y permite leer nombres operativos completos", () => {
+    expect(distributionCss).toMatch(/@media \(max-width:\s*1180px\)[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/);
+    expect(ruleBody(".mon-dist-etiqueta", distributionCss)).toMatch(/white-space:\s*normal;/);
+    expect(ruleBody(".mon-dist-declarada-head strong", distributionCss)).toMatch(/overflow-wrap:\s*anywhere;/);
+    expect(distributionCss).not.toMatch(/text-overflow:\s*ellipsis;/);
+  });
+
+  test("aplana la variable declarada y usa la escala de materia", () => {
+    const declared = ruleBody(".mon-dist-declarada", distributionCss);
+    expect(declared).toMatch(/border:\s*0;/);
+    expect(declared).toMatch(/border-radius:\s*0;/);
+    expect(declared).toMatch(/background:\s*transparent;/);
+    expect(ruleBody(".mon-dist-actor", distributionCss)).toMatch(/border-radius:\s*var\(--pulso-radius-card\);/);
+    expect(distributionCss).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|!important/i);
+  });
+
+  test("alinea resumen, encabezado y vacíos con la tarea", () => {
+    expect(page).toContain('pestanaActiva === "distribucion" ? [');
+    expect(page).toContain('{ label: "Variables", value: fmt(interestVariables.length)');
+    expect(workbench).toContain('activeVisibleTab !== "distribucion" ? <div className="mon-acr-model-map"');
+    expect(distributionPage).toContain("Variables para abrir el detalle de cada actor");
+    expect(distributionPage).not.toContain("<span>Distribución</span>");
+    expect(distributionPage).toContain("No hay columnas elegibles");
+    expect(distributionPage).not.toContain("No quedan columnas por declarar");
   });
 });

@@ -1,18 +1,9 @@
-/* Distribución por actor: elegir la variable de interés y ver su reparto.
- *
- * Una tarjeta por actor, todas del mismo alto (C2): el marco no depende de
- * cuántas categorías tenga la variable elegida, o cambiar de columna haría
- * saltar la rejilla entera. */
-
-/* La vista toma el alto que le den y lo reparte: cabecera arriba, rejilla
- * debajo. `minmax(0, 1fr)` en la fila de la rejilla es lo que permite que su
- * contenido scrollee dentro en vez de estirar el panel. */
+/* Distribución por actor: elegir variables de interés y leer su reparto. */
 .mon-dist {
   min-width: 0;
-  min-height: 0;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   gap: 12px;
 }
 
@@ -20,14 +11,6 @@
   min-width: 0;
   display: grid;
   gap: 1px;
-}
-
-.mon-dist-head span {
-  font-size: 10px;
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--pulso-text-faint);
 }
 
 .mon-dist-head strong {
@@ -41,18 +24,17 @@
   color: var(--pulso-text-soft);
 }
 
-/* `align-content: start` es deliberado: la rejilla ocupa todo el alto, pero las
- * tarjetas conservan el suyo natural. Estirarlas para llenar el hueco dejaría
- * tarjetas altas y huecas por dentro, que se lee peor que el espacio libre. */
+/* Las tarjetas son intrínsecas: un actor puede declarar varias variables y no
+ * debe fingir la misma capacidad que uno todavía vacío. El panel exterior es
+ * el único dueño del scroll entre actores. */
 .mon-dist-grid {
   min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   align-content: start;
   align-items: stretch;
   gap: 10px;
+  overflow: visible;
 }
 
 .mon-dist-actor {
@@ -61,7 +43,7 @@
   flex-direction: column;
   gap: 10px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   padding: 12px 13px;
 }
@@ -104,7 +86,7 @@
   min-height: var(--pulso-control-height-md);
   padding: 0 8px;
   border: 1px solid var(--pulso-border-strong);
-  border-radius: var(--pulso-radius);
+  border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);
   color: var(--pulso-text);
   font-size: 12px;
@@ -161,17 +143,19 @@
 
 .mon-dist-etiqueta {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-size: 11.5px;
+  line-height: 1.2;
   color: var(--pulso-text);
 }
 
 .mon-dist-barra {
   display: block;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--pulso-border) 60%, transparent);
   overflow: hidden;
 }
@@ -179,7 +163,7 @@
 .mon-dist-barra i {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--pulso-radius-chip);
   background: var(--module-accent, var(--pulso-primary));
 }
 
@@ -208,7 +192,7 @@
   gap: 4px;
   justify-items: start;
   border: 1px dashed var(--pulso-border-strong);
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card);
   padding: 16px;
 }
 
@@ -224,19 +208,16 @@
   color: var(--pulso-text-soft);
 }
 
-/* Bloque de una variable ya declarada.
- *
- * Estas tres clases se quedaron sin CSS al pasar de una variable por actor a
- * varias: el encabezado caía a `display: block` y el nombre salía pegado al
- * porcentaje —«Ciclo de egreso100%»—. */
+/* La variable declarada es contenido de la tarjeta, no otra tarjeta anidada. */
 .mon-dist-declarada {
   min-width: 0;
   display: grid;
   gap: 7px;
-  border: 1px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, var(--pulso-border));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 4%, var(--pulso-surface));
-  padding: 9px 10px;
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 46%, var(--pulso-border));
+  border-radius: 0;
+  background: transparent;
+  padding: 2px 0 2px 10px;
 }
 
 .mon-dist-declarada-head {
@@ -249,9 +230,10 @@
 
 .mon-dist-declarada-head strong {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-size: 12.5px;
   font-weight: var(--pulso-weight-black);
   color: var(--pulso-text);
@@ -266,14 +248,17 @@
 
 .mon-dist-quitar {
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--pulso-radius-chip);
   background: transparent;
   padding: 2px 8px;
   font-size: 10.5px;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-soft);
   cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-standard),
+    color var(--motion-dur-fast) var(--motion-ease-standard),
+    background var(--motion-dur-fast) var(--motion-ease-standard);
 }
 
 .mon-dist-quitar:hover:not(:disabled) {
@@ -285,4 +270,16 @@
 .mon-dist-quitar:disabled {
   cursor: default;
   opacity: 0.5;
+}
+
+@media (max-width: 1180px) {
+  .mon-dist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .mon-dist-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
