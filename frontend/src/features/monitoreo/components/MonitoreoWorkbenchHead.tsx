@@ -45,6 +45,22 @@ export function MonitoreoWorkbenchHead({
 }: MonitoreoWorkbenchHeadProps) {
   const visiblePills = pills.filter((item) => item !== null && item !== undefined && item !== false);
 
+  // El detalle de la sección no se repite si ya lo dice la pestaña activa.
+  //
+  // Medido en Telefónico › Fuentes: la cabecera decía «Fuentes / Universo y
+  // barrido / Universo y barrido», porque el `desc` de la sección en el registro
+  // es el nombre de una de sus pestañas. Cuando coinciden, el detalle no añade
+  // nada y ocupa la línea donde debería ir otra cosa.
+  // Solo se compara cuando ambos son texto: `detail` es un `ReactNode` y puede
+  // traer marcado, y en ese caso no hay repetición literal que detectar.
+  const normalizar = (valor: unknown) =>
+    typeof valor === "string" ? valor.trim().toLocaleLowerCase("es") : null;
+  const detalleTexto = normalizar(detail);
+  const pestanaTexto = normalizar(pestanaLabel);
+  const detalleUtil = detalleTexto !== null && pestanaTexto !== null && detalleTexto === pestanaTexto
+    ? null
+    : detail;
+
   return (
     <header className={joinClasses("mon-workbench-head", className)}>
       <span aria-hidden="true" className="mon-workbench-head-icon">
@@ -61,7 +77,7 @@ export function MonitoreoWorkbenchHead({
             ) : null}
           </p>
         ) : null}
-        {detail ? <p>{detail}</p> : null}
+        {detalleUtil ? <p>{detalleUtil}</p> : null}
       </div>
       {visiblePills.length ? (
         <div className="mon-workbench-pills" aria-label={pillsAriaLabel}>

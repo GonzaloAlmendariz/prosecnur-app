@@ -9401,7 +9401,8 @@ function AcreditacionKoboSourcePicker({
           <Search size={15} />
           <div>
             <strong>Selecciona la encuesta Kobo de plataforma</strong>
-            <span>{phoneMode ? "Lista los formularios Kobo y elige el instrumento que cuenta efectivas contra CodPulso." : "Lista los formularios Kobo y elige cuál alimenta el avance contra la base de barrido."}</span>
+            {/* Qué está en juego al elegir, no cómo funciona el control. */}
+            <span>{phoneMode ? "Es el formulario que cuenta las efectivas contra CodPulso." : "Es el que alimenta el avance contra la base de barrido."}</span>
           </div>
         </div>
       )}
@@ -10769,7 +10770,7 @@ function AcreditacionPhoneInstrumentDecision({
         <div>
           <span><ListChecks size={13} /> Instrumento Kobo</span>
           <strong>{sourceTitle || "Encuesta pendiente"}</strong>
-          <p>Kobo manda el avance efectivo; el barrido telefónico se lee en paralelo para confirmar estados por CodPulso.</p>
+          
         </div>
         <em>{ready ? "Listo para avance" : "Revisar decisión"}</em>
       </header>
@@ -10777,7 +10778,7 @@ function AcreditacionPhoneInstrumentDecision({
         <article className={contract.platform.ready ? "is-ready" : "is-warning"}>
           <span><ListChecks size={13} /> Instrumento activo</span>
           <strong>{sourceTitle || "Kobo pendiente"}</strong>
-          <p>{primary ? "Este formulario alimenta el conteo de efectivas. El avance se valida con filtro y se contrasta contra el barrido por CodPulso." : "Selecciona el formulario Kobo que alimentará el avance telefónico."}</p>
+          {primary ? null : <p>Selecciona el formulario Kobo que alimentará el avance telefónico.</p>}
           <div>
             <em>{primary ? sourceProviderLabel(primary.kind) : "Kobo"}</em>
             <em>{assetLabel}</em>
@@ -10835,7 +10836,7 @@ function AcreditacionPhoneSheetsDecision({
         <div>
           <span><Table2 size={13} /> Base y barrido</span>
           <strong>{ready ? "Sheets listos para operación" : "Completa universo y barrido"}</strong>
-          <p>La base define a quién llamar; el barrido conserva responsables, intentos, estados y fechas. Kobo queda separado como validación de efectivas.</p>
+          {/* Sin repetir el reparto: este bloque dice si están listos. */}
         </div>
         <em>{ready ? "Listo para llamadas" : "Faltan Sheets"}</em>
       </header>
@@ -11060,17 +11061,19 @@ function AcreditacionPhoneSourcesContractPanel({
     : "contrato completo";
   // R1: cada pestaña se nombra por la pregunta que responde, no por el servicio
   // del que salen los datos. El proveedor sigue visible dentro de la tarjeta.
+  // El reparto universo/barrido/encuesta se explica UNA vez, en «Fuentes
+  // activas»: aquí el título ya lo dice.
   const focusCopy = focus === "sheets"
     ? {
       eyebrow: "Universo y barrido",
       title: "A quién llamar y qué pasó en cada llamada",
-      detail: "La base de universo fija la población; la hoja de barrido registra responsable, intentos, estado y fecha.",
     }
     : focus === "kobo"
       ? {
         eyebrow: "Encuestas",
         title: "Qué respuesta cuenta como efectiva",
-        detail: "La encuesta aporta las respuestas; la pregunta de consentimiento decide cuáles cuentan en el avance.",
+        // Se conserva: nombra la regla que decide, no parafrasea el título.
+        detail: "El consentimiento decide cuáles cuentan en el avance.",
       }
       : {
         eyebrow: "Fuentes activas",
@@ -19840,7 +19843,7 @@ function AcreditacionWorkbenchHead({
       detail={meta.desc}
       pills={[
         `${activeSources} fuentes`,
-        `${fmt(state?.n_rows ?? 0)} en el snapshot`,
+        `${fmt(state?.n_rows ?? 0)} recibidas`,
         `${fmt(valid)} válidas`,
         lastPill,
       ]}

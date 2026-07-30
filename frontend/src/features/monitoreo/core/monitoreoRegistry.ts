@@ -149,7 +149,7 @@ export const MONITOREO_MODOS: MonitoreoModoDefinicion[] = [
 ];
 
 export const MONITOREO_SECCIONES: MonitoreoSeccionDefinicion[] = [
-  { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Sheets, encuestas y recopiladores", icon: PlugZap },
+  { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Universo, encuestas y recopiladores", icon: PlugZap },
   { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas, mecanismos y barrido", icon: ListChecks },
   { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Casos, cruces y trazabilidad", icon: Search },
   { key: "telefonico", label: "Monitoreo telefónico", shortLabel: "Teléfono", desc: "Modelo, barrido y supervisión", icon: PhoneCall },
@@ -157,7 +157,7 @@ export const MONITOREO_SECCIONES: MonitoreoSeccionDefinicion[] = [
 ];
 
 export const TELEFONICO_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
-  { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Universo y barrido", icon: PlugZap },
+  { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Encuestas, universo y barrido", icon: PlugZap },
   { key: "modelo", label: "Modelo operativo", shortLabel: "Modelo", desc: "Metas y cuotas telefónicas", icon: ListChecks },
   { key: "telefonico", label: "Llamadas", shortLabel: "Llamadas", desc: "Estados, barrido y supervisión", icon: PhoneCall },
   { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Efectivas, CodPulso y salvedades", icon: Search },

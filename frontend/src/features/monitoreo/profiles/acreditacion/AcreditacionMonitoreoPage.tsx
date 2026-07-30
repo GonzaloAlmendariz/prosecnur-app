@@ -8378,7 +8378,8 @@ function AcreditacionKoboSourcePicker({
           <Search size={15} />
           <div>
             <strong>Selecciona la encuesta Kobo de plataforma</strong>
-            <span>{phoneMode ? "Lista los formularios Kobo y elige el instrumento que cuenta efectivas contra CodPulso." : "Lista los formularios Kobo y elige cuál alimenta el avance contra la base de barrido."}</span>
+            {/* Qué está en juego al elegir, no cómo funciona el control. */}
+            <span>{phoneMode ? "Es el formulario que cuenta las efectivas contra CodPulso." : "Es el que alimenta el avance contra la base de barrido."}</span>
           </div>
         </div>
       )}
@@ -9542,7 +9543,7 @@ function AcreditacionPhoneInstrumentDecision({
         <div>
           <span><ListChecks size={13} /> Instrumento Kobo</span>
           <strong>{sourceTitle || "Encuesta pendiente"}</strong>
-          <p>Kobo manda el avance efectivo; el barrido telefónico se lee en paralelo para confirmar estados y coincidencia por CodPulso.</p>
+          
         </div>
         <em>{ready ? "Listo para avance" : "Revisar decisión"}</em>
       </header>
@@ -9550,7 +9551,7 @@ function AcreditacionPhoneInstrumentDecision({
         <article className={contract.platform.ready ? "is-ready" : "is-warning"}>
           <span><ListChecks size={13} /> Instrumento activo</span>
           <strong>{sourceTitle || "Kobo pendiente"}</strong>
-          <p>{primary ? "Este formulario alimenta el conteo de efectivas. El avance se valida con filtro y se contrasta contra el barrido por CodPulso." : "Selecciona el formulario Kobo que alimentará el avance telefónico."}</p>
+          {primary ? null : <p>Selecciona el formulario Kobo que alimentará el avance telefónico.</p>}
           <div>
             <em>{primary ? sourceProviderLabel(primary.kind) : "Kobo"}</em>
             <em>{assetLabel}</em>
@@ -17875,7 +17876,7 @@ function AcreditacionWorkbenchHead({
       detail={meta.desc}
       pills={[
         `${activeSources} fuentes`,
-        `${fmt(state?.n_rows ?? 0)} en el snapshot`,
+        `${fmt(state?.n_rows ?? 0)} recibidas`,
         `${fmt(valid)} válidas`,
         lastPill,
       ]}
