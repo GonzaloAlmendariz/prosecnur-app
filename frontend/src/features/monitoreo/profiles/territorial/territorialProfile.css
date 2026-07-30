@@ -11423,7 +11423,7 @@
   border-color: color-mix(in srgb, var(--pulso-primary-border) 58%, var(--pulso-border));
   background: #fff;
   color: var(--pulso-text);
-  box-shadow: var(--pulso-shadow-xs);
+  box-shadow: var(--pulso-shadow-low);
 }
 
 .mon-territorial-enumerator-mode button:disabled {
