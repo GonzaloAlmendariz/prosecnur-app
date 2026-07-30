@@ -1,3 +1,65 @@
+/* La franja de fuentes en telefónico es la barra de acción de la sección, no
+   una segunda lectura de métricas: la de arriba ya dice `Fuentes 3/3 · Base
+   2.726 · Corte Listo`, y repetir ahí «Fuentes» con el mismo valor y «Base» con
+   otro significado era el defecto medido en pantalla. A la izquierda queda la
+   fecha de la última lectura —junto al botón que la cambia— y a la derecha las
+   acciones. */
+/* Especificidad deliberada: el shell canónico declara sus propias columnas con
+   dos clases, y un empate lo resolvería el orden del bundle —que no es algo
+   sobre lo que convenga apoyarse—. */
+.mon-profile-canonical-shell .mon-acr-source-status-strip.is-phone,
+.mon-acr-source-status-strip.is-phone {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.mon-acr-source-status-strip.is-phone > header {
+  display: none;
+}
+
+.mon-acr-source-status-sync {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+}
+
+.mon-acr-source-status-sync em {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mon-acr-source-status-sync strong {
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+/* Sincronizar lo que ya está y traer algo nuevo son las dos cosas que se hacen
+   en esta franja, así que van juntas y al mismo lado. */
+.mon-acr-source-status-tools {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+/* Cada pestaña reparte su rejilla según cuántas fuentes le toquen: dos hojas en
+   Universo y barrido, una encuesta en Encuestas. El resumen no tiene rejilla de
+   fuentes —tiene la cadena—. */
+.mon-phone-source-contract.is-pestana-survey .mon-phone-source-contract-grid {
+  grid-template-columns: minmax(280px, 0.42fr);
+}
+
+.mon-phone-source-contract.is-pestana-sheets .mon-phone-source-contract-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .is-telefonico-profile .mon-phone-quota-rhythm-grid {
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
@@ -207,13 +269,20 @@
   margin-top: 0;
 }
 
-.is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-slot-data span {
+/* Las tres variantes, no sólo `is-package`.
+ *
+ * Estas reglas nacieron cuando «Fuentes activas» pintaba las tres tarjetas de
+ * fuente; ahora esa pestaña lleva la cadena y las tarjetas viven en las dos de
+ * decisión. Dejarlas atadas a `is-package` las convertía en CSS que no aplica a
+ * nada mientras las tarjetas que sí se pintan perdían la celda de alto fijo y
+ * el nombre completo de la hoja. */
+.is-telefonico-profile .mon-phone-source-tab .mon-phone-source-slot-data span {
   min-height: 54px;
   grid-template-rows: auto minmax(0, 1fr);
   align-content: start;
 }
 
-.is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-slot-data :is(strong, a) {
+.is-telefonico-profile .mon-phone-source-tab .mon-phone-source-slot-data :is(strong, a) {
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
@@ -4535,11 +4604,16 @@
     overflow: visible;
   }
 
-  /* A 1024 px el paquete dispone de unos 912 px útiles: mantener tres
-     columnas convierte cada fuente en una tarjeta de 299 px y recorta sus
-     decisiones operativas. Las tres variantes conservan el mismo marco, pero
-     se apilan dentro del scroll que ya posee Fuentes. */
-  .is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-contract-grid {
+  /* A 1024 px la sección dispone de unos 912 px útiles: mantener dos columnas
+     convierte cada fuente en una tarjeta de 450 px y recorta sus decisiones
+     operativas. Se apilan dentro del scroll que ya posee Fuentes. */
+  .is-telefonico-profile .mon-phone-source-tab .mon-phone-source-contract-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* La cadena también se apila: tres eslabones de 290 px dejan de leerse, y en
+     columna el nexo horizontal desaparece por su propia consulta. */
+  .mon-tel-cadena ol {
     grid-template-columns: minmax(0, 1fr);
   }
 

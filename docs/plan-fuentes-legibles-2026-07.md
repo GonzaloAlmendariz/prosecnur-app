@@ -399,12 +399,80 @@ profundidad, porque mezclarlas ha sido la forma de no terminar ninguna.
 1. `AcreditacionSurveySourcePicker` quedó sin montar tras retirar su `details`.
    Se retira cuando se confirme en producción que el catálogo del panel lo
    cubre; el de Kobo sigue vivo porque lo usa el contrato telefónico.
-2. Territorial (§4.2) y Telefónico (§4.4).
+2. Territorial (§4.2).
 5. La divergencia `1.693` vs `1.697` de Territorial (T3), como diagnóstico
    aparte.
 6. La línea base de `api/R/reporte_plan_ppt.R` en `agentic/manifest.json` quedó
    desfasada (+8) por un commit anterior; la auditoría lo reporta y no es de
    este trabajo.
+
+## Telefónico y el panel de conexión — 2026-07-29
+
+Reportado por el usuario sobre `acnur_pdm`: las tres pestañas de Fuentes «no
+están bien diferenciadas conceptualmente», y el panel de conectar «se ve muy
+genérico».
+
+**Las tres pestañas mostraban lo mismo, y la causa era estructural.** Se
+llamaban por su pregunta pero renderizaban un solo componente con un `focus`
+que sólo gobernaba las tarjetas: los dos bloques de configuración se montaban
+en las tres —«Encuestas» ofrecía configurar hojas de cálculo—, y «Fuentes
+activas» era la unión literal de las otras dos. El reparto pasó a
+`profiles/telefonico/fuentes/repartoDePestanas.ts`, con test: cada decisión
+aparece en una pestaña y sólo en una.
+
+| Pestaña | Qué responde | Qué tiene |
+|---|---|---|
+| **Fuentes activas** (1.ª) | De dónde salen los números | La cadena + la lista de lo conectado + la puerta para conectar. Ningún editor |
+| **Universo y barrido** | A quién llamar y qué pasó | Las dos tarjetas de hoja y su editor. Nada de Kobo |
+| **Encuestas** | Qué cuenta como efectiva | El formulario y el filtro de efectiva. Nada de hojas |
+
+El resumen pasa a primero y es donde se aterriza: es la única que se lee sin
+decidir nada.
+
+**La cadena** (`fuentes/CadenaDeFuentes.tsx`) sustituye a tres piezas que decían
+lo mismo —una tira de estados, un párrafo con el reparto y una lista de pasos
+pendientes—. Tres eslabones unidos por un conector que se apaga donde la cadena
+se corta; la dependencia es el dibujo, no una frase.
+
+**El panel de conexión no sabía en qué modo estaba.** Preguntaba el servicio
+—Google Sheets / Kobo / SurveyMonkey— igual para todos: en un estudio telefónico
+ofrecía SurveyMonkey con el mismo peso que las otras dos y preseleccionaba
+«Universo» cuando lo que ordena el estudio es el barrido. Ahora manda el guion de
+la familia (`fuentes/guionDeConexion.ts`):
+
+- **Telefónico**: barrido → universo → encuesta. El servicio no se pregunta
+  —una hoja de barrido es una hoja de cálculo— y ese paso desaparece del flujo.
+- **Acreditación**: parte de los instrumentos, dice qué actores ya tienen el
+  suyo, y sumar otro es el caso normal, no el final del flujo.
+- Al conectar, el panel **no se cierra si queda algo**: avanza a la pieza
+  siguiente, y en una pieza por actor a la siguiente **de ese mismo actor**.
+- Sideover a alto completo, dos columnas —guion y trabajo— con el acento de
+  Monitoreo declarado en el propio panel (va en portal al `body`).
+
+> **`cubiertaPor` no es un atajo, es dominio.** Muchos estudios telefónicos
+> llevan universo y barrido en la misma hoja: cada fila es una persona a llamar
+> con su estado al lado. El motor ya lo resolvía así, y sin declararlo el guion
+> pedía conectar un padrón que el estudio ya tenía, contradiciendo a la pantalla
+> de al lado que lo daba por completo.
+
+Duplicaciones retiradas, todas medidas en pantalla: la franja de fuentes decía
+`Fuentes 3/3 · Base 1 · Kobo 1` bajo otra que decía `Fuentes 3/3 · Base 2.726 ·
+Corte Listo` —«Base» con dos significados a 20 px—; el antetítulo del panel
+repetía el nombre de la pestaña activa; «Último sync» salía tres veces; y
+«Fuentes configuradas» declaraba `3/3 operativas` sobre una lista con una fuente
+marcada INACTIVA, porque contaba piezas del contrato bajo una cabecera que
+contaba fuentes.
+
+`LlenadoDeFuentes` se retiró: la cadena lo absorbe. `AcreditacionPhoneSheetsDecision`
+también —repetía universo, barrido y sync de las tarjetas de arriba; lo único
+suyo, que los estados del barrido no son las efectivas de Kobo, pasó al detalle
+del encabezado—. `TelefonicoMonitoreoPage.tsx` queda 58 líneas por debajo de su
+línea base.
+
+**Verificado** en `acnur_pdm` a 1440×1000 y 1024×600: typecheck limpio, 2.426
+vitest, auditoría del agentic OS sin ERROR. **Acreditación no se verificó en
+pantalla** —su guion está cubierto por test pero abrir `acrconta` cuesta ~3,5 min
+por recarga—.
 
 > **Trampa operativa medida:** abrir `acrconta` cuesta ~3,5 min de warm start, y
 > se paga **en cada recarga** del navegador. Los proyectos de referencia son

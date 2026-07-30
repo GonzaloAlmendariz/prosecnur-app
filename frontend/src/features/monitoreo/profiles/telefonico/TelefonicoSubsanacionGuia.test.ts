@@ -145,9 +145,19 @@ describe("Telefónico: el contrato de fuentes prioriza enlaces sobre identificad
 
   it.each(copias)("%s no rotula la pestaña con el proveedor ni explica con \"Aquí se…\"", (_perfil, fuente) => {
     expect(fuente).not.toContain('eyebrow: "Kobo"');
+    expect(fuente).not.toContain('eyebrow: "Bases en Sheets"');
     expect(fuente).not.toContain('detail: "Aquí se');
-    expect(fuente).toContain('eyebrow: "Encuestas"');
-    expect(fuente).toContain('eyebrow: "Universo y barrido"');
+  });
+
+  it("el nombre por pregunta vive en el catálogo de pestañas, no en el panel", () => {
+    // El panel llevaba un antetítulo que repetía el nombre de la pestaña activa
+    // —el chrome ya lo dice justo encima—, así que «Universo y barrido» se leía
+    // tres veces en la misma pantalla. El nombre por pregunta se conserva; lo
+    // que se retira es la tercera copia.
+    const catalogo = readFileSync(resolve(__dirname, "pestanasDeFuentes.ts"), "utf8");
+    expect(catalogo).toContain('label: "Encuestas"');
+    expect(catalogo).toContain('label: "Universo y barrido"');
+    expect(page).not.toContain('eyebrow: "Universo y barrido"');
   });
 
   it.each(copias)("%s dice qué falta sin nombrar el producto", (_perfil, fuente) => {

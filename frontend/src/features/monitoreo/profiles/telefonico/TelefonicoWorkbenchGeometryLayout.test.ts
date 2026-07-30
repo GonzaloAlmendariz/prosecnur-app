@@ -135,9 +135,12 @@ describe("Telefónico: geometría del workbench", () => {
     expect(explanationBodies.some((body) => /display:\s*none;/.test(body))).toBe(true);
   });
 
-  test("en compacto el paquete conserva completas sus tres fuentes", () => {
+  test("en compacto las fuentes se apilan en una columna", () => {
+    // `is-package` ya no pinta tarjetas de fuente: esa pestaña lleva la cadena y
+    // las tarjetas viven en las dos de decisión. Atado a la clase vieja, este
+    // caso seguía verde sobre CSS que no aplicaba a nada.
     const bodies = ruleBodies(
-      ".is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-contract-grid",
+      ".is-telefonico-profile .mon-phone-source-tab .mon-phone-source-contract-grid",
     );
 
     expect(bodies.some((body) => (
@@ -145,12 +148,20 @@ describe("Telefónico: geometría del workbench", () => {
     ))).toBe(true);
   });
 
-  test("en Paquete reserva celdas iguales y muestra completos sus valores operativos", () => {
+  test("en compacto la cadena de fuentes también se apila", () => {
+    const bodies = ruleBodies(".mon-tel-cadena ol");
+
+    expect(bodies.some((body) => (
+      /grid-template-columns:\s*minmax\(0,\s*1fr\);/.test(body)
+    ))).toBe(true);
+  });
+
+  test("las tarjetas de fuente reservan celdas iguales y muestran completos sus valores operativos", () => {
     const cells = ruleBodies(
-      ".is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-slot-data span",
+      ".is-telefonico-profile .mon-phone-source-tab .mon-phone-source-slot-data span",
     );
     const values = ruleBodies(
-      ".is-telefonico-profile .mon-phone-source-tab.is-package .mon-phone-source-slot-data :is(strong, a)",
+      ".is-telefonico-profile .mon-phone-source-tab .mon-phone-source-slot-data :is(strong, a)",
     );
 
     expect(cells.some((body) => (

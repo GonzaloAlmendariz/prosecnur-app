@@ -107,6 +107,9 @@ export { compactAdvanceDateTickLabel };
 import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetch";
 import { RutaDeSubsanacion, useBandejaDeSubsanacion } from "../../components/RutaDeSubsanacion";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
+import { leerDireccionDeSheets } from "../../fuentes/direccionDeFuente";
+import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "./fuentes/camposDeFuente";
+import { eslabonesDelContrato } from "./fuentes/eslabonesDelContrato";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
@@ -173,7 +176,15 @@ import {
   type AcreditacionTelephoneChannel,
 } from "./TelefonicoSourcesModel";
 import { SourceSyncActions, type SourceSyncActionsProgress } from "../../components";
-import { LlenadoDeFuentes } from "./LlenadoDeFuentes";
+import { CadenaDeFuentes } from "./fuentes/CadenaDeFuentes";
+import type { EslabonDeFuente } from "./fuentes/modeloDeCadena";
+import {
+  pestanaDeFuentesDesde,
+  repartoDeFuentes,
+  type PestanaDeFuentes,
+  type RepartoDeFuentes,
+} from "./fuentes/repartoDePestanas";
+import { PanelConectarFuente } from "../../fuentes/PanelConectarFuente";
 import { proveedoresDeFuentes } from "../../fuentes/vocabulario";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
@@ -7497,16 +7508,6 @@ function sourceFlatField(source: MonitoreoSource, key: string) {
   return String(value ?? "").trim();
 }
 
-function sourceSheetField(source: MonitoreoSource, key: "spreadsheet_id" | "sheet_name" | "range" | "last_read_at" | "row_count") {
-  const binding = source.sheet_binding as unknown as Record<string, unknown> | undefined;
-  return String(binding?.[key] ?? sourceFlatField(source, key) ?? "").trim();
-}
-
-function sourceRowCount(source: MonitoreoSource) {
-  const raw = Number(sourceSheetField(source, "row_count"));
-  return Number.isFinite(raw) && raw > 0 ? raw : 0;
-}
-
 function sourceSpreadsheetUrl(source: MonitoreoSource) {
   const raw = sourceSheetField(source, "spreadsheet_id");
   if (!raw) return "";
@@ -7521,23 +7522,6 @@ function sourceSpreadsheetDisplay(source: MonitoreoSource) {
   const embeddedId = raw.match(/spreadsheets\/d\/([^/?#]+)/i)?.[1];
   const value = embeddedId || raw;
   return value ? shortenMiddle(value.replace(/^https?:\/\//i, ""), 42) : "Abrir spreadsheet";
-}
-
-function sourceSyncLabel(source: MonitoreoSource) {
-  if (!source.enabled) return "Inactiva";
-  const stamps = [
-    source.last_sync_at,
-    sourceSheetField(source, "last_read_at"),
-    source.sync_cursor?.updated_at,
-    ...(source.collectors ?? []).flatMap((collector) => [collector.last_sync_at, collector.synced_at]),
-  ].filter((value): value is string => Boolean(value));
-  if (!stamps.length) return "Sin sync";
-  const [latest] = stamps.sort((a, b) => {
-    const left = new Date(a).getTime();
-    const right = new Date(b).getTime();
-    return (Number.isFinite(right) ? right : 0) - (Number.isFinite(left) ? left : 0);
-  });
-  return formatDate(latest);
 }
 
 function actorInitialLabel(value: string) {
@@ -8253,11 +8237,12 @@ function AcreditacionSourceStatusStrip({
   sources,
   reports,
   phoneMode = false,
-  activeTab,
   status,
   busy,
   progress = null,
-  onSourceTabChange,
+  papelAlConectar = "universo",
+  actoresSugeridos = [],
+  onStateChange,
   onSyncSheets,
   onSyncSurvey,
   onSyncAll,
@@ -8265,11 +8250,12 @@ function AcreditacionSourceStatusStrip({
   sources: MonitoreoSource[];
   reports: MonitoreoAcreditacionReports;
   phoneMode?: boolean;
-  activeTab?: AcreditacionSourceTab;
   status?: AcreditacionActionStatus;
   busy: boolean;
   progress?: SourceSyncActionsProgress | null;
-  onSourceTabChange?: (tab: AcreditacionSourceTab) => void;
+  papelAlConectar?: "universo" | "barrido" | "respuestas";
+  actoresSugeridos?: string[];
+  onStateChange?: (state: MonitoreoState) => void;
   onSyncSheets: () => Promise<void>;
   onSyncSurvey: () => Promise<void>;
   onSyncAll: () => Promise<void>;
@@ -8283,81 +8269,100 @@ function AcreditacionSourceStatusStrip({
   const surveyCount = phoneContract ? phoneContract.platform.sources.filter((source) => source.enabled).length : activeSources.filter(isPlatformResponseSource).length;
   const baseCount = phoneContract ? (phoneContract.universe.ready ? 1 : 0) : sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[0]).length;
   const sweepCount = phoneContract ? (phoneContract.sweep.ready ? 1 : 0) : sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[1]).length;
+  // La lectura más reciente de las fuentes que están activas: es la que explica
+  // de cuándo son las cifras del corte.
+  const lastSyncLabel = activeSources
+    .map((source) => sourceSyncLabel(source))
+    .filter((label) => label && label !== "Sin sync")[0] ?? "";
   const statusMetrics = [
     {
-      key: phoneContract ? "activas" as AcreditacionSourceTab : null,
       className: packageActiveCount >= packageTotalCount && packageTotalCount ? "is-ready" : "is-warning",
       icon: PlugZap,
       label: "Fuentes",
       value: `${fmt(packageActiveCount)}/${fmt(packageTotalCount)}`,
-      detail: phoneContract ? "paquete operativo" : "paquete activo",
+      detail: "paquete activo",
     },
     {
-      key: phoneContract ? "sheets" as AcreditacionSourceTab : null,
       className: baseCount ? "is-ready" : "is-warning",
       icon: Layers3,
       label: "Base",
       value: fmt(baseCount),
-      detail: phoneContract ? `${fmt(sweepCount)} barrido` : "fuentes base",
+      detail: "fuentes base",
     },
     {
-      key: phoneContract ? "survey" as AcreditacionSourceTab : null,
       className: surveyCount ? "is-ready" : "is-warning",
       icon: ListChecks,
-      label: phoneContract ? "Kobo" : "Plataforma",
+      label: "Plataforma",
       value: fmt(surveyCount),
-      detail: phoneContract ? "efectivas" : `${fmt(sweepCount)} barrido`,
+      detail: `${fmt(sweepCount)} barrido`,
     },
   ];
   return (
-    <section className="mon-acr-source-status-strip" aria-label="Estado de fuentes de acreditación">
+    <section className={`mon-acr-source-status-strip${phoneContract ? " is-phone" : ""}`} aria-label="Estado de fuentes de acreditación">
       {status ? <span className={`mon-acr-model-action-status is-${status.tone}`}>{status.message}</span> : null}
       <header>
         <span>Fuentes</span>
         <strong>{phoneContract ? "Paquete telefónico" : "Paquete de acreditación"}</strong>
         <p>{fmt(packageTotalCount)} operativas · {fmt(packageActiveCount)} listas · corte {formatDate(reports.generated_at)}</p>
       </header>
-      <div className="mon-acr-source-status-metrics">
-        {statusMetrics.map((item) => {
-          const Icon = item.icon;
-          const active = Boolean(phoneContract && activeTab === item.key);
-          const targetTab = item.key;
-          const content = (
-            <>
-              <Icon size={14} />
-              <em>{item.label}</em>
-              <strong>{item.value}</strong>
-              <small>{item.detail}</small>
-            </>
-          );
-          return phoneContract && targetTab ? (
-            <button
-              key={item.label}
-              type="button"
-              className={`${item.className}${active ? " is-active" : ""}`}
-              aria-pressed={active}
-              title={`Ver ${item.label.toLowerCase()}: ${item.detail}`}
-              onClick={() => onSourceTabChange?.(targetTab)}
-            >
-              {content}
-            </button>
-          ) : (
-            <span key={item.label} className={item.className}>{content}</span>
-          );
-        })}
+      {/* En telefónico esta franja no lleva métricas.
+        *
+        * Decía `Fuentes 3/3 · Base 1 · Kobo 1` justo debajo de la franja de
+        * lectura, que dice `Fuentes 3/3 · Base 2.726 · Corte Listo`: «Fuentes»
+        * repetido con el mismo valor, y «Base» con dos significados —una hoja
+        * contra 2.726 registros— a 20 px de distancia. Cada franja se queda con
+        * un papel: arriba se lee el corte, aquí se actúa sobre las fuentes.
+        *
+        * Lo que ocupa su lugar es la fecha de la última lectura, que estaba
+        * repetida en tres sitios de la misma pantalla y en ninguno junto al
+        * botón que la cambia. */}
+      {phoneContract ? (
+        <p className="mon-acr-source-status-sync">
+          <em>Última lectura</em>
+          <strong>{lastSyncLabel || "Sin sincronizar"}</strong>
+        </p>
+      ) : (
+        <div className="mon-acr-source-status-metrics">
+          {statusMetrics.map((item) => {
+            const Icon = item.icon;
+            return (
+              <span key={item.label} className={item.className}>
+                <Icon size={14} />
+                <em>{item.label}</em>
+                <strong>{item.value}</strong>
+                <small>{item.detail}</small>
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <div className="mon-acr-source-status-tools">
+        <AcreditacionSourceSyncActions
+          sheetCount={sheetCount}
+          surveyCount={surveyCount}
+          totalCount={activeSources.length}
+          busy={busy}
+          progress={progress}
+          surveyLabel={phoneContract ? "Kobo" : "encuestas"}
+          surveyTitle={phoneContract ? "fuentes Kobo activas" : "encuestas de plataforma activas"}
+          onSyncSheets={onSyncSheets}
+          onSyncSurvey={onSyncSurvey}
+          onSyncAll={onSyncAll}
+        />
+        {/* La puerta única de §4.3, que hasta ahora sólo montaba Acreditación.
+          * En telefónico agregar una fuente era pulsar «Nueva» dentro del editor
+          * de otra fuente y pegar un identificador a mano en un campo rotulado
+          * «Enlace del Google Sheet». */}
+        {phoneContract ? (
+          <PanelConectarFuente
+            sources={sources}
+            familia="telefonico"
+            actoresSugeridos={actoresSugeridos}
+            papelInicial={papelAlConectar}
+            onStateChange={onStateChange}
+          />
+        ) : null}
       </div>
-      <AcreditacionSourceSyncActions
-        sheetCount={sheetCount}
-        surveyCount={surveyCount}
-        totalCount={activeSources.length}
-        busy={busy}
-        progress={progress}
-        surveyLabel={phoneContract ? "Kobo" : "encuestas"}
-        surveyTitle={phoneContract ? "fuentes Kobo activas" : "encuestas de plataforma activas"}
-        onSyncSheets={onSyncSheets}
-        onSyncSurvey={onSyncSurvey}
-        onSyncAll={onSyncAll}
-      />
     </section>
   );
 }
@@ -8528,6 +8533,12 @@ function AcreditacionSheetSourceEditor({
   const [inspection, setInspection] = useState<MonitoreoSheetsInspectResult | null>(null);
   const [busy, setBusy] = useState<"inspect" | "save" | null>(null);
   const [status, setStatus] = useState<AcreditacionActionStatus>(null);
+  // Se arma con lo que hay escrito, no con lo guardado: sirve para comprobar
+  // que lo que se acaba de pegar apunta al documento correcto antes de guardar.
+  const lecturaDelSpreadsheet = leerDireccionDeSheets(spreadsheetId);
+  const enlaceDelSpreadsheet = lecturaDelSpreadsheet.ok && lecturaDelSpreadsheet.servicio === "google_sheets"
+    ? `https://docs.google.com/spreadsheets/d/${lecturaDelSpreadsheet.spreadsheetId}`
+    : "";
 
   useEffect(() => {
     const next = sources[0] ?? null;
@@ -8639,7 +8650,17 @@ function AcreditacionSheetSourceEditor({
       ) : null}
       <div className="mon-acr-sheet-form">
         <label>
-          <span>Enlace del Google Sheet</span>
+          {/* El rótulo decía «Enlace del Google Sheet» sobre un campo que
+            * muestra el identificador guardado —`1V9Tjh-suREXNEyZ8Za…`—, que no
+            * es un enlace ni lleva a ninguna parte. El campo admite las dos
+            * formas, así que se rotula por lo que es y el enlace de verdad va
+            * al lado, construido a partir de lo que haya escrito (R2). */}
+          <span>
+            Dirección del Google Sheet
+            {enlaceDelSpreadsheet ? (
+              <a href={enlaceDelSpreadsheet} target="_blank" rel="noreferrer">Abrir</a>
+            ) : null}
+          </span>
           <input
             value={spreadsheetId}
             onChange={(event) => setSpreadsheetId(event.currentTarget.value)}
@@ -10419,6 +10440,15 @@ function AcreditacionConfiguredSourcesList({
   const [savingId, setSavingId] = useState("");
   const [status, setStatus] = useState<AcreditacionActionStatus>(null);
   const phoneContract = phoneMode ? buildAcreditacionPhoneSourceContract(sources) : null;
+  // La cabecera cuenta lo que la lista muestra.
+  //
+  // Decía «3 seleccionadas» junto a «3/3 operativas» sobre una lista con una
+  // fuente marcada INACTIVA: dos denominadores distintos —fuentes conectadas y
+  // piezas del contrato— bajo la misma cabecera, y el segundo desmentido por la
+  // propia lista. Las piezas del contrato ya las cuenta la cadena de arriba;
+  // aquí lo que hace falta saber es cuántas de las conectadas están en uso, que
+  // es lo único que esta superficie muestra y ninguna otra.
+  const unusedCount = sources.filter((source) => !source.enabled).length;
   const activeCount = phoneContract ? phoneContractReadyCount(phoneContract) : sources.filter((source) => source.enabled).length;
   const totalCount = phoneContract ? 3 : sources.length;
 
@@ -10442,9 +10472,15 @@ function AcreditacionConfiguredSourcesList({
       <div className="mon-source-configured-head">
         <div>
           <span className="mon-source-list-head">Fuentes configuradas</span>
-          <strong>{sources.length ? `${fmt(sources.length)} seleccionadas` : "Sin fuentes"}</strong>
+          <strong>{sources.length ? `${fmt(sources.length)} conectadas` : "Sin fuentes"}</strong>
         </div>
-        <em>{fmt(activeCount)}/{fmt(totalCount || 0)} {phoneContract ? "operativas" : "activas"}</em>
+        <em className={phoneContract && unusedCount ? "is-aviso" : undefined}>
+          {phoneContract
+            ? unusedCount
+              ? `${fmt(unusedCount)} sin usar en el corte`
+              : "todas en uso"
+            : `${fmt(activeCount)}/${fmt(totalCount || 0)} activas`}
+        </em>
       </div>
       {status ? <div className={status.tone === "error" ? "mon-sm-error" : "mon-sm-meta"}>{status.message}</div> : null}
       <div className="mon-source-list">
@@ -10486,7 +10522,22 @@ function AcreditacionConfiguredSourcesList({
                   </div>
                 ) : null}
               </div>
-              <span>{saving ? "Guardando..." : sourceExternalId(source)}</span>
+              {/* R1: el identificador no ocupa una columna.
+                *
+                * Era `1V9Tjh-suREXNEyZ8Za…` recortado en cada fila: no dice
+                * nada, no lleva a ninguna parte y desplazaba a lo único que
+                * esa esquina puede aportar —cómo abrir la fuente—. El enlace
+                * ocupa su sitio y el identificador viaja en el `title`. */}
+              <span>
+                {saving ? "Guardando..." : (() => {
+                  const enlace = enlaceDeFuente(source);
+                  return enlace.estado === "enlace" ? (
+                    <a href={enlace.href} target="_blank" rel="noreferrer" title={sourceExternalId(source)}>
+                      Abrir
+                    </a>
+                  ) : <i title={sourceExternalId(source)}>{sourceProviderLabel(source.kind)}</i>;
+                })()}
+              </span>
               <em>{displayedSync}</em>
             </div>
           );
@@ -10810,60 +10861,6 @@ function AcreditacionPhoneInstrumentDecision({
   );
 }
 
-function AcreditacionPhoneSheetsDecision({
-  contract,
-  syncedAt,
-  nRows = 0,
-}: {
-  contract: AcreditacionPhoneSourceContract;
-  syncedAt?: string;
-  nRows?: number;
-}) {
-  const universePrimary = contract.universe.sources.find((source) => source.enabled) ?? contract.universe.sources[0] ?? null;
-  const sweepPrimary = contract.sweep.sources.find((source) => source.enabled) ?? contract.sweep.sources[0] ?? null;
-  const universeRows = contract.universe.sources.reduce((sum, source) => sum + sourceRowCount(source), 0) || nRows;
-  const sweepRows = contract.sweep.sources.reduce((sum, source) => sum + sourceRowCount(source), 0);
-  const sheetSync = [universePrimary, sweepPrimary]
-    .map((source) => source ? sourceSyncLabel(source) : "")
-    .find((label) => label && label !== "Sin sync")
-    ?? (syncedAt ? formatDate(syncedAt) : "Sin sync");
-  const ready = contract.universe.ready && contract.sweep.ready;
-  return (
-    <section className={`mon-phone-instrument-decision mon-phone-sheets-decision${ready ? " is-ready" : " has-pending"}`} aria-label="Base y barrido telefónico">
-      <header>
-        <div>
-          <span><Table2 size={13} /> Base y barrido</span>
-          <strong>{ready ? "Sheets listos para operación" : "Completa universo y barrido"}</strong>
-          {/* Sin repetir el reparto: este bloque dice si están listos. */}
-        </div>
-        <em>{ready ? "Listo para llamadas" : "Faltan Sheets"}</em>
-      </header>
-      <div className="mon-phone-instrument-grid">
-        <span className={contract.universe.ready ? "is-ready" : "is-warning"}>
-          <em>Universo</em>
-          <strong>{universeRows ? fmt(universeRows) : contract.universe.ready ? "Listo" : "Pendiente"}</strong>
-          <small>{universePrimary ? sourceSheetField(universePrimary, "sheet_name") || "pestaña vinculada" : "base y cuotas"}</small>
-        </span>
-        <span className={contract.sweep.ready ? "is-ready" : "is-warning"}>
-          <em>Barrido</em>
-          <strong>{sweepRows ? fmt(sweepRows) : contract.sweep.ready ? "Listo" : "Pendiente"}</strong>
-          <small>{sweepPrimary ? sourceSheetField(sweepPrimary, "sheet_name") || "pestaña vinculada" : "responsables y estados"}</small>
-        </span>
-        <span className={contract.sweep.ready ? "is-ready" : "is-warning"}>
-          <em>Estados telefónicos</em>
-          <strong>{contract.sweep.ready ? "Separados" : "Pendientes"}</strong>
-          <small>consulta operativa, no efectiva Kobo</small>
-        </span>
-        <span className={ready ? "is-ready" : "is-warning"}>
-          <em>Último sync</em>
-          <strong>{sheetSync}</strong>
-          <small>lectura local de Sheets</small>
-        </span>
-      </div>
-    </section>
-  );
-}
-
 function AcreditacionPhoneEffectiveFilterEditor({
   state,
   variables,
@@ -11031,7 +11028,7 @@ function AcreditacionPhoneSourcesContractPanel({
   sources,
   syncedAt,
   nRows = 0,
-  focus = "all",
+  pestana = "activas",
   onStateChange,
   onSourceTabChange,
 }: {
@@ -11039,11 +11036,16 @@ function AcreditacionPhoneSourcesContractPanel({
   sources: MonitoreoSource[];
   syncedAt?: string;
   nRows?: number;
-  focus?: "all" | "sheets" | "kobo";
+  pestana?: PestanaDeFuentes;
   onStateChange?: (state: MonitoreoState) => void;
   onSourceTabChange?: (tab: AcreditacionSourceTab) => void;
 }) {
   const contract = buildAcreditacionPhoneSourceContract(sources);
+  // El reparto por pestaña vive en `fuentes/repartoDePestanas`, con test. Antes
+  // eran cinco booleanos aquí, y dos de ellos sólo gobernaban el `open` del
+  // `<details>`: los dos bloques de configuración se montaban en las tres
+  // pestañas, así que «Encuestas» ofrecía configurar hojas de cálculo.
+  const reparto = repartoDeFuentes(pestana, contract.ready);
   const basePreset = ACREDITACION_SOURCE_PRESETS[0];
   const sweepPreset = ACREDITACION_SOURCE_PRESETS[1];
   const platformSources = contract.platform.sources;
@@ -11057,106 +11059,62 @@ function AcreditacionPhoneSourcesContractPanel({
           : "la encuesta"
     )).join(", ")
     : "contrato completo";
-  // R1: cada pestaña se nombra por la pregunta que responde, no por el servicio
-  // del que salen los datos. El proveedor sigue visible dentro de la tarjeta.
-  // El reparto universo/barrido/encuesta se explica UNA vez, en «Fuentes
-  // activas»: aquí el título ya lo dice.
-  const focusCopy = focus === "sheets"
-    ? {
-      eyebrow: "Universo y barrido",
+  // El título declara qué es esta superficie (C1). No lleva antetítulo: el
+  // chrome ya dice el nombre de la pestaña justo encima, y repetirlo ahí era la
+  // tercera vez que se leía «Universo y barrido» en la misma pantalla.
+  const titulos: Record<PestanaDeFuentes, { title: string; detail?: string }> = {
+    // El detalle no parafrasea el título: dice la distinción metodológica que
+    // sostiene toda la pestaña —los estados del barrido no son las efectivas de
+    // Kobo— y que antes vivía en un bloque aparte cuyas otras tres celdas
+    // repetían el universo, el barrido y el sync de las tarjetas de arriba.
+    sheets: {
       title: "A quién llamar y qué pasó en cada llamada",
-    }
-    : focus === "kobo"
-      ? {
-        eyebrow: "Encuestas",
-        title: "Qué respuesta cuenta como efectiva",
-        // Se conserva: nombra la regla que decide, no parafrasea el título.
-        detail: "El consentimiento decide cuáles cuentan en el avance.",
-      }
-      : {
-        eyebrow: "Fuentes activas",
-        title: "Las tres fuentes que sostienen el monitoreo",
-        detail: "El universo define a quién llamar, el barrido registra la operación y la encuesta valida las efectivas por CodPulso.",
-      };
-  const showSheetsDecision = focus === "sheets";
-  const showKoboDecision = focus === "kobo";
-  const showKoboEditor = focus === "kobo" || !contract.platform.ready;
-  const showSheetsEditors = focus === "sheets" || !contract.ready;
-  const activeSweepSource = contract.sweep.sources.find((source) => source.enabled) ?? contract.sweep.sources[0] ?? null;
-  const activeKoboCount = koboSources.filter((source) => source.enabled).length;
-  const sourceSlots = focus === "kobo"
-    ? [contract.platform]
-    : focus === "sheets"
-      ? [contract.universe, contract.sweep]
-      : [contract.universe, contract.sweep, contract.platform];
-  const packageSteps = [
-    {
-      label: "Población",
-      value: contract.universe.ready ? "Base lista" : "Falta base",
-      detail: `${fmt(nRows)} casos`,
-      tone: contract.universe.ready ? "ready" : "warning",
+      detail: contract.sweep.ready
+        ? "Los estados del barrido son consulta operativa; la efectiva la decide Kobo."
+        : undefined,
     },
-    {
-      label: "Operación",
-      value: contract.sweep.ready ? "Barrido listo" : "Falta barrido",
-      detail: activeSweepSource ? sourceSheetField(activeSweepSource, "sheet_name") || "responsables y estados" : "responsables y estados",
-      tone: contract.sweep.ready ? "ready" : "warning",
-    },
-    {
-      label: "Efectivas",
-      value: contract.platform.ready ? "Encuesta lista" : "Falta la encuesta",
-      detail: `${fmt(activeKoboCount)} encuesta${activeKoboCount === 1 ? "" : "s"}`,
-      tone: contract.platform.ready ? "ready" : "warning",
-    },
-  ] as const;
+    // Se conserva: nombra la regla que decide, no parafrasea el título.
+    survey: { title: "Qué respuesta cuenta como efectiva", detail: "El consentimiento decide cuáles cuentan en el avance." },
+    activas: { title: "De dónde salen los números del monitoreo" },
+  };
+  const copia = titulos[pestana];
+  const slotPorClave: Record<RepartoDeFuentes["slots"][number], AcreditacionPhoneSourceSlot> = {
+    universo: contract.universe,
+    barrido: contract.sweep,
+    plataforma: contract.platform,
+  };
   return (
-    <section className={`mon-phone-source-contract is-focus-${focus}${contract.ready ? " is-ready" : " has-missing"}`} aria-label="Contrato de fuentes telefónicas">
+    <section className={`mon-phone-source-contract is-pestana-${pestana}${contract.ready ? " is-ready" : " has-missing"}`} aria-label="Contrato de fuentes telefónicas">
       <header className="mon-phone-source-contract-head">
         <div>
-          <span><PlugZap size={14} /> {focusCopy.eyebrow}</span>
-          <strong>{focusCopy.title}</strong>
-          <p>{focusCopy.detail}</p>
+          <strong>{copia.title}</strong>
+          {copia.detail ? <p>{copia.detail}</p> : null}
         </div>
         <em>{contract.ready ? "Listo para monitoreo" : `Falta ${missingLabel}`}</em>
       </header>
-      {/* Cada pestaña muestra los slots de los que se ocupa. Antes las tres
-          pintaban los tres, así que «Paquete» era la unión literal de las otras
-          dos (plan §9). */}
-      <div className="mon-phone-source-contract-grid">
-        {sourceSlots.filter((slot) => (
-          focus === "all"
-            || (focus === "sheets" && (slot.key === "universo" || slot.key === "barrido"))
-            || (focus === "kobo" && slot.key === "plataforma")
-        )).map((slot) => (
-          <AcreditacionPhoneSourceSlotCard
-            key={slot.key}
-            slot={slot}
-            icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <ListChecks size={15} />}
-            rowFallback={slot.key === "universo" ? nRows : undefined}
-            syncFallback={syncedAt}
-            onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "survey" : "sheets")}
-          />
-        ))}
-      </div>
-      {focus === "all" ? (
-        <div className="mon-phone-source-package-map" aria-label="Lectura del paquete telefónico">
-          {packageSteps.map((step) => (
-            <span key={step.label} className={`is-${step.tone}`}>
-              <em>{step.label}</em>
-              <strong>{step.value}</strong>
-              <small>{step.detail}</small>
-            </span>
+      {/* El resumen muestra la cadena; las pestañas de decisión, sus tarjetas.
+        * Ninguna pinta las dos cosas: eso era lo que hacía de «Fuentes activas»
+        * la unión literal de las otras dos. */}
+      {reparto.cadena ? (
+        <CadenaDeFuentes
+          eslabones={eslabonesDelContrato(contract, nRows, syncedAt)}
+          onIr={(clave) => onSourceTabChange?.(clave === "plataforma" ? "survey" : "sheets")}
+        />
+      ) : null}
+      {reparto.slots.length ? (
+        <div className="mon-phone-source-contract-grid">
+          {reparto.slots.map((clave) => (
+            <AcreditacionPhoneSourceSlotCard
+              key={clave}
+              slot={slotPorClave[clave]}
+              icon={clave === "universo" ? <Layers3 size={15} /> : clave === "barrido" ? <PhoneCall size={15} /> : <ListChecks size={15} />}
+              rowFallback={clave === "universo" ? nRows : undefined}
+              syncFallback={syncedAt}
+            />
           ))}
         </div>
       ) : null}
-      {showSheetsDecision ? (
-        <AcreditacionPhoneSheetsDecision
-          contract={contract}
-          syncedAt={syncedAt}
-          nRows={nRows}
-        />
-      ) : null}
-      {showKoboDecision ? (
+      {reparto.decisionKobo ? (
         <>
           <AcreditacionPhoneInstrumentDecision
             contract={contract}
@@ -11171,46 +11129,41 @@ function AcreditacionPhoneSourcesContractPanel({
           />
         </>
       ) : null}
-      {/* El orden de las tres piezas se muestra, no se narra: antes había aquí un
-        * párrafo que describía la secuencia según cuál faltara. */}
-      <LlenadoDeFuentes
-        pasos={[
-          { titulo: "Base telefónica", aporta: "A quién llamar", lista: contract.universe.ready },
-          { titulo: "Barrido telefónico", aporta: "Qué pasó en cada llamada", lista: contract.sweep.ready },
-          { titulo: "Encuesta en Kobo", aporta: "Qué cuenta como efectiva", lista: contract.platform.ready },
-        ]}
-      />
-      <details className="mon-phone-source-editors" open={showSheetsEditors}>
-        <summary>
-          <span><Table2 size={14} /> Configurar base y barrido</span>
-          <em>{contract.ready ? "Editar fuentes" : "Completar fuentes"}</em>
-        </summary>
-        <div className="mon-phone-source-editor-grid">
-          <AcreditacionSheetSourceEditor
-            preset={basePreset}
-            sources={contract.universe.sources}
-            onStateChange={onStateChange}
-          />
-          <AcreditacionSheetSourceEditor
-            preset={sweepPreset}
-            sources={contract.sweep.sources}
-            onStateChange={onStateChange}
-          />
-        </div>
-      </details>
-      <details className="mon-phone-source-editors" open={showKoboEditor}>
-        <summary>
-          <span><ListChecks size={14} /> Seleccionar Kobo</span>
-          <em>{contract.platform.ready ? "Editar encuestas" : "Falta la encuesta"}</em>
-        </summary>
-        <div className="mon-phone-source-editor-grid mon-phone-source-editor-grid--platform">
-          <AcreditacionKoboSourcePicker
-            sources={koboSources}
-            phoneMode
-            onStateChange={onStateChange}
-          />
-        </div>
-      </details>
+      {reparto.editorSheets ? (
+        <details className="mon-phone-source-editors" open={pestana === "sheets"}>
+          <summary>
+            <span><Table2 size={14} /> Ajustar la hoja de universo y la de barrido</span>
+            <em>{contract.ready ? "Ya conectadas" : "Sin conectar"}</em>
+          </summary>
+          <div className="mon-phone-source-editor-grid">
+            <AcreditacionSheetSourceEditor
+              preset={basePreset}
+              sources={contract.universe.sources}
+              onStateChange={onStateChange}
+            />
+            <AcreditacionSheetSourceEditor
+              preset={sweepPreset}
+              sources={contract.sweep.sources}
+              onStateChange={onStateChange}
+            />
+          </div>
+        </details>
+      ) : null}
+      {reparto.editorKobo ? (
+        <details className="mon-phone-source-editors" open={pestana === "survey"}>
+          <summary>
+            <span><ListChecks size={14} /> Cambiar el formulario que se lee</span>
+            <em>{contract.platform.ready ? "Ya conectado" : "Falta la encuesta"}</em>
+          </summary>
+          <div className="mon-phone-source-editor-grid mon-phone-source-editor-grid--platform">
+            <AcreditacionKoboSourcePicker
+              sources={koboSources}
+              phoneMode
+              onStateChange={onStateChange}
+            />
+          </div>
+        </details>
+      ) : null}
     </section>
   );
 }
@@ -11251,23 +11204,26 @@ function AcreditacionSourcesWorkbench({
       sources={operationalSources}
       reports={reports}
       phoneMode={isPhoneSourceModel}
-      activeTab={activeTab}
       status={syncStatus}
       busy={Boolean(syncBusy)}
       progress={syncProgress}
-      onSourceTabChange={onSourceTabChange}
+      // El papel llega precargado desde la pestaña: quien está en «Encuestas»
+      // viene a conectar respuestas, no una hoja de universo.
+      papelAlConectar={repartoDeFuentes(pestanaDeFuentesDesde(activeTab), true).papelAlConectar}
+      actoresSugeridos={acreditacionActorOptions(operationalSources)}
+      onStateChange={onStateChange}
       onSyncSheets={() => syncSheets(activeSheetSources.map((source) => source.id))}
       onSyncSurvey={() => syncExternal("survey", activeSurveySources.map((source) => source.id), isPhoneSourceModel ? "Actualizacion Kobo" : "Actualizacion de plataforma", "full")}
       onSyncAll={() => syncExternal("all", activeSources.map((source) => source.id), "Actualizacion completa", "full")}
     />
   );
-  const phoneSourceContract = (focus: "all" | "sheets" | "kobo" = "all") => isPhoneSourceModel ? (
+  const phoneSourceContract = (pestana: PestanaDeFuentes = "activas") => isPhoneSourceModel ? (
     <AcreditacionPhoneSourcesContractPanel
       state={state}
       sources={operationalSources}
       syncedAt={state?.synced_at ?? reports.generated_at}
       nRows={state?.n_rows ?? 0}
-      focus={focus}
+      pestana={pestana}
       onStateChange={onStateChange}
       onSourceTabChange={onSourceTabChange}
     />
@@ -11277,7 +11233,7 @@ function AcreditacionSourcesWorkbench({
     return (
       <div className="mon-profile-stack mon-phone-source-tab is-kobo">
         {sourceStatus}
-        {isPhoneSourceModel ? phoneSourceContract("kobo") : (
+        {isPhoneSourceModel ? phoneSourceContract("survey") : (
           <AcreditacionPlatformSurveySourcesView
             sources={operationalSources}
             config={state?.config}
@@ -11321,7 +11277,7 @@ function AcreditacionSourcesWorkbench({
       {sourceStatus}
       {isPhoneSourceModel ? (
         <>
-          {phoneSourceContract("all")}
+          {phoneSourceContract("activas")}
           <AcreditacionConfiguredSourcesList
             sources={operationalSources}
             syncFallback={state?.synced_at ?? reports.generated_at}
@@ -19482,7 +19438,22 @@ export function localTabsForTelefonicoView(
   if (view === "fuentes") {
     if (isPhoneRoute && phoneStats) {
       const { survey, sheets, activas: active } = pestanasDeFuentesPorClave();
+      // El resumen va primero: es la única que se lee sin decidir nada, y es
+      // donde está la puerta para conectar. Detrás, las dos pestañas de
+      // decisión en el orden en que dependen una de otra.
       return [
+        railTab(active, {
+          label: "Fuentes activas",
+          detail: `${phoneStats.sourceReady}/3 conectadas · de dónde salen los números`,
+          badge: `${phoneStats.sourceReady}/3`,
+          estado: readyStatus(phoneStats.sourceReady === 3),
+        }),
+        railTab(sheets, {
+          label: "Universo y barrido",
+          detail: `${phoneStats.sheetReady}/2 hojas · a quién llamar y qué pasó`,
+          badge: `${phoneStats.sheetReady}/2`,
+          estado: readyStatus(phoneStats.sheetReady === 2),
+        }),
         railTab(survey, {
           label: "Encuestas",
           detail: phoneStats.contract.platform.ready
@@ -19490,18 +19461,6 @@ export function localTabsForTelefonicoView(
             : "elige encuesta y filtro de efectiva",
           badge: phoneStats.koboSources ? fmt(phoneStats.koboSources) : undefined,
           estado: readyStatus(phoneStats.contract.platform.ready && phoneStats.phoneFilterConfigured),
-        }),
-        railTab(sheets, {
-          label: "Universo y barrido",
-          detail: `${phoneStats.sheetReady}/2 Sheets · universo y estados`,
-          badge: `${phoneStats.sheetReady}/2`,
-          estado: readyStatus(phoneStats.sheetReady === 2),
-        }),
-        railTab(active, {
-          label: "Fuentes activas",
-          detail: `${phoneStats.sourceReady}/3 fuentes · corte local`,
-          badge: `${phoneStats.sourceReady}/3`,
-          estado: readyStatus(phoneStats.sourceReady === 3),
         }),
       ];
     }
@@ -19992,7 +19951,9 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", seccionesDelModo(route)));
   const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() =>
-    pestanaInicialDeSeccion("fuentes", seccionActiva, isPhone ? "sheets" : "survey", ACREDITACION_SOURCE_TABS.map((tab) => tab.key)));
+    // Telefónico aterriza en el resumen, no en una pestaña de configuración:
+    // la primera pregunta al abrir Fuentes es de dónde salen los números.
+    pestanaInicialDeSeccion("fuentes", seccionActiva, isPhone ? "activas" : "survey", ACREDITACION_SOURCE_TABS.map((tab) => tab.key)));
   const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() =>
     pestanaInicialDeSeccion("modelo", seccionActiva, "estructura", ACREDITACION_MODEL_TABS.map((tab) => tab.key)));
   const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() =>

@@ -1,0 +1,236 @@
+/* La cadena de fuentes: la dependencia es el dibujo.
+ *
+ * Tres eslabones del mismo papel unidos por un conector. El conector no es
+ * decoración: es lo que distingue una cadena de una lista de tres cosas, y se
+ * apaga donde la cadena se corta.
+ */
+
+/* Sin marco propio: va dentro del panel de contrato, que ya aporta el suyo.
+   Anidar una caja dentro de otra con el mismo tratamiento produce el doble
+   borde que la pantalla mostraba. */
+.mon-tel-cadena {
+  min-width: 0;
+  display: grid;
+}
+
+/* El nexo vive en el hueco: los eslabones conservan el mismo ancho entre sí y
+   la flecha no le roba columna a ninguno. De ahí que la lista no use `gap` en
+   el eje horizontal sino padding en el `li`. */
+.mon-tel-cadena ol {
+  min-width: 0;
+  /* El contenedor de la consulta es la propia lista, no el viewport: los
+     eslabones se apilan cuando la pestaña es estrecha, y eso no depende del
+     ancho de la ventana sino del de esta caja. */
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* 22 px y no 8: el hueco tiene que dar cabida al nexo. Con el gap estrecho la
+     flecha se montaba sobre el borde de la tarjeta siguiente y se leía como un
+     defecto de dibujo en vez de como un conector. */
+  column-gap: 22px;
+  row-gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-tel-cadena li {
+  min-width: 0;
+  position: relative;
+  display: grid;
+}
+
+.mon-tel-cadena li > article {
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  /* Filas declaradas: título, cifra y pie ocupan lo suyo aunque un eslabón
+     traiga menos. Sin esto las tres se reparten el alto y la cifra flota. */
+  grid-template-rows: auto 1fr auto;
+  gap: 7px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 12px;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+  padding: 10px 11px 9px;
+}
+
+.mon-tel-cadena-titulo {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+/* El anillo es el ancla del eslabón: mismo tamaño esté listo o no, para que la
+   fila no se mueva al completarse. */
+.mon-tel-cadena-titulo b {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text) 8%, transparent);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+}
+
+.mon-tel-cadena-titulo > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.mon-tel-cadena-titulo strong {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.mon-tel-cadena-titulo em {
+  font-style: normal;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-cadena-cifra {
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+}
+
+.mon-tel-cadena-cifra strong {
+  font-size: 22px;
+  line-height: 1.05;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Conectada pero sin filas: el hueco de la cifra dice qué pasó en vez de
+   quedarse en blanco, y no se disfraza de número. */
+.mon-tel-cadena-cifra strong.is-vacia {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-tel-cadena-pie {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  font-size: 11px;
+}
+
+/* El nombre del documento manda; el identificador viaja en el `title`. */
+.mon-tel-cadena-pie a,
+.mon-tel-cadena-pie span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-soft);
+}
+
+.mon-tel-cadena-pie a {
+  color: var(--module-accent, var(--pulso-primary));
+  text-decoration: none;
+}
+
+.mon-tel-cadena-pie a:hover {
+  text-decoration: underline;
+}
+
+.mon-tel-cadena-pie a svg {
+  flex: none;
+  opacity: 0.7;
+}
+
+.mon-tel-cadena-pie i {
+  font-style: normal;
+  color: var(--pulso-text-faint);
+}
+
+/* Falta: el hueco de la cifra y el pie lo ocupa la acción. Un eslabón sin
+   conectar no tiene datos que mostrar, así que lo único que puede ofrecer es
+   por dónde seguir. */
+.mon-tel-cadena-accion {
+  grid-row: 2 / span 2;
+  align-self: end;
+  justify-self: start;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: 999px;
+  background: var(--pulso-warn-bg);
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-warn-fg);
+  cursor: pointer;
+}
+
+.mon-tel-cadena-accion:hover {
+  border-color: var(--pulso-warn-accent);
+}
+
+/* Listo: el eslabón no se apaga. Su presencia con su cifra es lo que explica
+   qué alimenta el monitoreo. */
+.mon-tel-cadena li.is-lista .mon-tel-cadena-titulo b {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+/* Donde se corta: el único eslabón destacado, porque hay un solo sitio donde
+   continuar. */
+.mon-tel-cadena li.is-corte > article {
+  border-color: var(--pulso-warn-accent);
+  background: color-mix(in srgb, var(--pulso-warn-accent) 5%, var(--pulso-surface));
+}
+
+.mon-tel-cadena li.is-corte .mon-tel-cadena-titulo b {
+  background: var(--pulso-warn-accent);
+  color: #fff;
+}
+
+/* Después del corte todavía no toca. */
+.mon-tel-cadena li.is-pendiente {
+  opacity: 0.62;
+}
+
+/* El nexo. Se dibuja en el borde derecho del eslabón, sobre el hueco de la
+   grilla, y desaparece cuando los eslabones se apilan —en columna la flecha
+   apuntaría hacia el lado equivocado—. */
+.mon-tel-cadena-nexo {
+  position: absolute;
+  top: 50%;
+  right: -19px;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pulso-text-faint);
+  pointer-events: none;
+}
+
+/* La cadena se corta a la vista: el nexo que entra al eslabón que falta pierde
+   color. No es adorno —es la diferencia entre «tres cosas» y «una depende de
+   la otra»—. */
+.mon-tel-cadena li.is-corte .mon-tel-cadena-nexo,
+.mon-tel-cadena li.is-pendiente .mon-tel-cadena-nexo {
+  opacity: 0.35;
+}
+
+@container (max-width: 700px) {
+  .mon-tel-cadena-nexo {
+    display: none;
+  }
+}
