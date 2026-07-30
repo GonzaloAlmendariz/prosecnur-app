@@ -237,6 +237,23 @@ Esto vale para cualquier trabajo visual en el repo:
   evento nativo para aislar.
 - **HMR stale produce errores fantasma.** Dos veces apareció un
   `ReferenceError` de un símbolo que sí existía en disco y con typecheck limpio.
+- **`node_modules` puede estar corrupto sin que nada lo diga.** El 2026-07-29 el
+  dev server dejó de arrancar con `unknown node of type "ExpressionStatement"` en
+  `main.tsx`, un archivo intacto en git. `pnpm install` respondía **«Already up
+  to date»**: comprueba el lockfile, no la integridad del contenido. Estaban
+  corruptos `@babel/generator` y `@babel/traverse` —a este último le faltaba
+  `lib/path/replacement.js` entero—, junto a 182 directorios vacíos con sufijo
+  `" 2"` en `.pnpm`, la firma de una copia de Finder/iCloud a medias.
+  > Lo que ahorra tiempo es **reproducir fuera de la herramienta**: tres líneas
+  > —`parser.parse('a.b = 1;')` pasado por `generator`— aislaron en un minuto lo
+  > que dos reinicios del dev server y un borrado de `node_modules/.vite` no
+  > tocaron. Antes de eso di dos diagnósticos equivocados razonando sobre el
+  > árbol de dependencias sin ejecutarlo.
+  >
+  > La reparación es borrar los paquetes afectados de `node_modules/.pnpm/` y
+  > reinstalar: pnpm los repone desde el store sin tocar el lockfile. Y el
+  > **build de producción no lo detecta** —usa esbuild, no Babel—, así que un
+  > verde de `pnpm build` no dice nada del dev server.
 - **El warm start es el coste dominante.** Abrir el proyecto real cuesta varios
   minutos y una recarga completa obliga a recalcular; conviene levantar el stack
   una vez y verificar todo en esa sesión. El backend al 99 % de CPU no está
