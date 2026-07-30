@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { MonitoreoReportWeekday } from "../../../../../api/client";
 import { PlotlyChart } from "../../../../../lib/PlotlyChart";
-import { MarcoDeRitmo } from "../../../ritmo/MarcoDeRitmo";
+import { MarcoDeEjesSiHaceFalta } from "../../../ritmo/MarcoDeEjesSiHaceFalta";
 import { countText, fmt } from "../formato";
 import { EmptyPanel } from "../EmptyPanel";
 import { COLOR_RESULTADO, COLOR_SEPARADOR_BARRA } from "../../../coloresDeResultado";
@@ -104,24 +104,15 @@ export function AcreditacionAdvanceDailyMini({
       {hasDailySignal ? (
         <div className="mon-advance-daily-board">
           <div className={`mon-advance-line-chart${hayDesplazamiento ? " is-con-marco" : ""}`}>
-            {hayDesplazamiento ? (
-              <MarcoDeRitmo
-                alto={chartHeight}
-                margenSuperior={36}
-                margenInferior={chartBottomMargin}
-                ejeIzquierdo={{ titulo: effectiveOnly ? "Efectivas/día" : "Respuestas/día", maximo: dailyAxisMax ?? 0 }}
-                ejeDerecho={{ titulo: "Acumulado", maximo: cumulativeAxisMax ?? 0 }}
-                anchoMinimoContenido={anchoDelCampo}
-              >
-                <PlotlyChart
-                  data={chartData}
-                  layout={chartLayout}
-                  config={MINI_CHART_CONFIG}
-                  height={chartHeight}
-                  ariaLabel={`Avance diario y acumulado: ${title}`}
-                />
-              </MarcoDeRitmo>
-            ) : (
+            <MarcoDeEjesSiHaceFalta
+              activo={hayDesplazamiento}
+              alto={chartHeight}
+              margenInferior={chartBottomMargin}
+              maximoIzquierdo={dailyAxisMax ?? 0}
+              maximoDerecho={cumulativeAxisMax ?? 0}
+              tituloIzquierdo={effectiveOnly ? "Efectivas/día" : "Respuestas/día"}
+              anchoContenido={anchoDelCampo}
+            >
               <PlotlyChart
                 data={chartData}
                 layout={chartLayout}
@@ -129,7 +120,7 @@ export function AcreditacionAdvanceDailyMini({
                 height={chartHeight}
                 ariaLabel={`Avance diario y acumulado: ${title}`}
               />
-            )}
+            </MarcoDeEjesSiHaceFalta>
           </div>
         </div>
       ) : (
