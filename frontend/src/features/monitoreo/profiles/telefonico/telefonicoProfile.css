@@ -5198,3 +5198,39 @@
 .is-telefonico-profile .mon-quality-alert-rulebook > div {
   border-radius: var(--pulso-radius);
 }
+
+/* ── Consultas ─────────────────────────────────────────────────────────────
+ * 803 cajas: es una tabla, y ahí las celdas van sin radio por definición. Lo
+ * único fuera de escala eran sus dos contenedores. Las versalitas son los
+ * encabezados de columna, que es exactamente su sitio. */
+.is-telefonico-profile .mon-case-explorer,
+.is-telefonico-profile .mon-query-table-panel {
+  border-radius: var(--pulso-radius-panel);
+}
+
+/* Cruces efectivos: siete radios distintos en una sola pestaña —0, 8, 9, 10,
+ * 11, 12 y 16—. Es la mayor dispersión de escala de todo el modo. */
+.is-telefonico-profile .mon-case-explorer {
+  border-radius: var(--pulso-radius-panel);
+}
+
+.is-telefonico-profile .mon-query-detail,
+.is-telefonico-profile .mon-query-decision-card {
+  border-radius: var(--pulso-radius-card);
+}
+
+.is-telefonico-profile .mon-case-key-trace {
+  border-radius: var(--pulso-radius);
+}
+
+/* Especificidad de tres clases: `profilePage.css` declara el explorador bajo
+ * `.mon-profile-canonical-shell .mon-acr-cases--canonical`, y con dos clases no
+ * se le gana. */
+.is-telefonico-profile .mon-acr-cases--canonical .mon-case-explorer {
+  border-radius: var(--pulso-radius-panel);
+}
+
+.is-telefonico-profile .mon-phone-crossing-summary > span,
+.is-telefonico-profile .mon-case-key-evidence > span {
+  border-radius: var(--pulso-radius);
+}

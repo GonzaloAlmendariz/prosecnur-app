@@ -9,7 +9,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | Modo | Sección › Pestaña | Estado | Hallazgos | Commit |
 |---|---|---|---|---|
 | acreditación | Fuentes › Resumen | hecho | C1 medía 16 miembros en vez de 3; tarjetas planas de radio 16→14 con materia; título y total duplicados retirados | este commit |
-| acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | este commit |
+| acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | producto: este commit; registro adelantado en `767eaa42` |
 | acreditación | Fuentes › Encuestas y recopiladores | pendiente |  |  |
 | acreditación | Modelo operativo › Modelo operativo | pendiente |  |  |
 | acreditación | Modelo operativo › Distribución | pendiente |  |  |
@@ -42,10 +42,10 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | telefónico | Llamadas › Sin efectiva | hecho | 224 cajas, la más densa del modo; radios 8/12 → 10/14/16, cero fuera de escala. Las 14 versalitas restantes son antetítulos de cabecera y sí encabezan. Los nueve scrolls anidados del diagnóstico de 2026-07-26 ya no están: medido 0 | este commit |
 | telefónico | Llamadas › Responsables | hecho | tres familias de celda en radio 8 —totales de brecha, filas de lista, pie de responsable— a 10; color de estado conservado | este commit |
 | telefónico | Llamadas › Alertas reales | hecho | seis radios distintos (0/8/9/10/12/16) en 26 cajas: la mayor dispersión del modo pese a ser de las más pequeñas. Queda en 10/14/16 | este commit |
-| telefónico | Consultas › Registros en plataforma | pendiente |  |  |
-| telefónico | Consultas › Estado de la base | pendiente |  |  |
-| telefónico | Consultas › Cruces efectivos | pendiente |  |  |
-| telefónico | Consultas › Subsanación | pendiente |  |  |
+| telefónico | Consultas › Efectivas Kobo | hecho | 803 cajas, pero es una tabla y ahí la celda va sin radio: lo único fuera de escala eran sus dos contenedores. Versalitas = encabezados de columna, su sitio | este commit |
+| telefónico | ~~Consultas › Estado de la base~~ | no existe | Runtime monta 2 pestañas (Efectivas Kobo, CodPulso), no las 4 del catálogo estático |  |
+| telefónico | Consultas › CodPulso | hecho | **siete radios distintos** (0/8/9/10/11/12/16) en una pestaña: la mayor dispersión de todo el modo. Queda en 0/10/14/16 | este commit |
+| telefónico | ~~Consultas › Subsanación~~ | no existe | Idem: sale del catálogo compartido con acreditación |  |
 | telefónico | Avance › Resumen | pendiente |  |  |
 | telefónico | Avance › Actores | pendiente |  |  |
 | telefónico | Avance › Salidas | pendiente |  |  |
@@ -87,6 +87,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
 |---|---|---|---|---|---|
+| scroll anidado (C4) | telefónico | Consultas › CodPulso | Dos contenedores con scroll propio dentro de la pestaña. La norma pide un solo dueño de scroll por pantalla; resolverlo exige decidir cuál de los dos cede el alto, y eso cambia el layout | medido el 2026-07-30 en `acnur_pdm` | abierto |
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |
 | pieza ausente | acreditación | Fuentes › Universo | La fila visible no presenta documento, pestaña y rango simultáneamente; muestra la pestaña, pero el rango prometido por la especificación no está disponible en esta lectura. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
 
