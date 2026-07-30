@@ -5172,3 +5172,29 @@
 .is-telefonico-profile .mon-phone-noanswer-list > article {
   border-radius: var(--pulso-radius);
 }
+
+/* ── Llamadas › Responsables ───────────────────────────────────────────────
+ * Tres familias de celda en radio 8 —totales de brecha, filas de la lista y
+ * el pie de cada responsable—. Adoptan el radio de celda y conservan su color
+ * de estado, que es lo que distingue efectiva de no efectiva. */
+.is-telefonico-profile .mon-team-gap-totals > span,
+.is-telefonico-profile .mon-team-gap-list > li,
+.is-telefonico-profile .mon-phone-responsible-foot > span {
+  border-radius: var(--pulso-radius);
+}
+
+/* ── Llamadas › Alertas reales ─────────────────────────────────────────────
+ * Seis radios distintos en 26 cajas: 0, 8, 9, 10, 12 y 16. Es la superficie
+ * con más dispersión de escala del modo pese a ser de las más pequeñas. */
+.is-telefonico-profile .mon-quality-alert-panel {
+  border-radius: var(--pulso-radius-panel);
+}
+
+.is-telefonico-profile .mon-quality-alert-card {
+  border-radius: var(--pulso-radius-card);
+}
+
+.is-telefonico-profile .mon-quality-alert-stats > span,
+.is-telefonico-profile .mon-quality-alert-rulebook > div {
+  border-radius: var(--pulso-radius);
+}

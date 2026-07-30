@@ -9,7 +9,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | Modo | Sección › Pestaña | Estado | Hallazgos | Commit |
 |---|---|---|---|---|
 | acreditación | Fuentes › Resumen | hecho | C1 medía 16 miembros en vez de 3; tarjetas planas de radio 16→14 con materia; título y total duplicados retirados | este commit |
-| acreditación | Fuentes › Universo | pendiente |  |  |
+| acreditación | Fuentes › Universo | hecho | 3 paneles planos sin sombra → radio 16 con sombra baja; antetítulo repetido retirado; en viewport corto el scroll vuelve al contenedor exterior | este commit |
 | acreditación | Fuentes › Encuestas y recopiladores | pendiente |  |  |
 | acreditación | Modelo operativo › Modelo operativo | pendiente |  |  |
 | acreditación | Modelo operativo › Distribución | pendiente |  |  |
@@ -40,8 +40,8 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | telefónico | Llamadas › Resumen operativo | hecho | 77 cajas, 76 sin sombra. La composición ya era buena —el embudo y la tabla de mínimos se leen sin esfuerzo—, así que faltaba materia y no estructura: el panel contenedor sube a 16 con sombra y las tarjetas internas a 14 | este commit |
 | telefónico | Llamadas › Validación de tiempo | hecho | tres escalas (8/9/10) para tres niveles reales, pero con 1 px de diferencia entre sí: eso no se lee como jerarquía. Queda en 10/14/16 y cero versalitas | este commit |
 | telefónico | Llamadas › Sin efectiva | hecho | 224 cajas, la más densa del modo; radios 8/12 → 10/14/16, cero fuera de escala. Las 14 versalitas restantes son antetítulos de cabecera y sí encabezan. Los nueve scrolls anidados del diagnóstico de 2026-07-26 ya no están: medido 0 | este commit |
-| telefónico | Llamadas › Responsables | pendiente |  |  |
-| telefónico | Llamadas › Alertas | pendiente |  |  |
+| telefónico | Llamadas › Responsables | hecho | tres familias de celda en radio 8 —totales de brecha, filas de lista, pie de responsable— a 10; color de estado conservado | este commit |
+| telefónico | Llamadas › Alertas reales | hecho | seis radios distintos (0/8/9/10/12/16) en 26 cajas: la mayor dispersión del modo pese a ser de las más pequeñas. Queda en 10/14/16 | este commit |
 | telefónico | Consultas › Registros en plataforma | pendiente |  |  |
 | telefónico | Consultas › Estado de la base | pendiente |  |  |
 | telefónico | Consultas › Cruces efectivos | pendiente |  |  |
@@ -88,17 +88,19 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
 |---|---|---|---|---|---|
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |
+| pieza ausente | acreditación | Fuentes › Universo | La fila visible no presenta documento, pestaña y rango simultáneamente; muestra la pestaña, pero el rango prometido por la especificación no está disponible en esta lectura. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
 
 ## Evidencia de la última iteración
 
 - Proyecto: copia temporal de `api/inst/reference_projects/acrconta/acrconta.pulso`.
-- Dirección: `monitoreo/acreditacion/fuentes/resumen`.
+- Dirección: `monitoreo/acreditacion/fuentes/universo`.
 - Viewports: `1440×1000` y `1024×600`.
-- Antes: el grupo `fuentes-resumen-papeles` mezclaba 3 tarjetas y 13 filas;
-  las tarjetas usaban radio de panel, fondo plano y ninguna materia propia.
-- Después: C1 mide solo 3 tarjetas; `ΔH = 0` y `ΔW ≤ 0.01 px` en ancho amplio,
-  `ΔH = 0` y `ΔW = 0` en compacto; el último contenido es alcanzable.
+- Antes: tres superficies de panel usaban radio 16 sin sombra; el antetítulo
+  «Universo» repetía la pestaña y la hoja interna podía adueñarse del scroll corto.
+- Después: cabecera, lista y Barrido conservan radio 16 con sombra baja; las cuatro
+  filas miden `56 px` con `ΔH = 0` y `ΔW = 0` en ambos viewports; en compacto el
+  contenedor exterior posee `32 px` de scroll y alcanza el último contenido.
 - Resultado automatizado: 2 capturas, 0 incidencias visuales, 0 scroll-jails,
   0 desbordes globales, 0 errores de geometría y 0 errores de página/API.
-- C5: el proyecto tiene 13 fuentes (4 de universo, 8 de respuestas y 1 de
-  barrido), por lo que no hay estado vacío que clasificar en esta superficie.
+- C5: el proyecto tiene 4/4 actores con base y 1 hoja de barrido, por lo que no
+  hay estado vacío que clasificar; la ausencia del rango queda registrada arriba.
