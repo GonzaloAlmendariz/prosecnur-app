@@ -2551,7 +2551,12 @@ export default function RecopiladoresPage() {
               <div className="rec-audit-strip">
                 <strong>{activeTab === "canales" ? "Revisión de enlaces" : activeTab === "unidades" ? "Agenda de cursos-horario" : "Lista de cursos-horario"}</strong>
                 <span>{activeTab === "vinculacion" || activeTab === "unidades" ? `${fmt(filteredRows.length)} visibles` : withLink ? `${fmt(withLink)} con enlace` : "sin enlaces"}</span>
-                <span>{missingLinks ? `${fmt(missingLinks)} faltan` : "cobertura completa"}</span>
+                {/* `missingLinks` es cero sin agenda porque no hay filas, no
+                    porque estén todas enlazadas: el chip afirmaba «cobertura
+                    completa» al lado de «sin agenda». Se omite, no se reescribe. */}
+                {agendaRows.length ? (
+                  <span>{missingLinks ? `${fmt(missingLinks)} faltan` : "cobertura completa"}</span>
+                ) : null}
                 <span>{agendaSource || "sin agenda"}</span>
               </div>
               {activeTab === "canales" ? (

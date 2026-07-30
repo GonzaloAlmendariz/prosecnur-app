@@ -228,7 +228,7 @@ describe("moduleCardModel", () => {
     expect(JSON.stringify(card)).not.toContain("—");
   });
 
-  it("muestra progreso propio en Fichas QR y Dashboard", () => {
+  it("muestra progreso propio en Recopiladores y Dashboard", () => {
     const qr = view("recopiladores");
     expect(qr.viz.kind).toBe("progress");
     expect(JSON.stringify(qr)).toContain("0/4");
@@ -306,7 +306,7 @@ describe("moduleCardModel", () => {
     expect(bitacora.facts.find(({ label }) => label === "fecha de cronograma")?.value).toContain("10");
   });
 
-  it("evita un progreso indeterminado 0/0 en Fichas QR", () => {
+  it("evita un progreso indeterminado 0/0 en Recopiladores", () => {
     const overview = makeOverview();
     overview.facts.recopiladores = {
       ...overview.facts.recopiladores,

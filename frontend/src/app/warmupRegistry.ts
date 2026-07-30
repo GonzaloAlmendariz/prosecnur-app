@@ -512,7 +512,7 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
   },
   {
     id: "recopiladores",
-    label: "Fichas QR",
+    label: "Recopiladores",
     load: () => import("../features/recopiladores/RecopiladoresPage"),
   },
   {
