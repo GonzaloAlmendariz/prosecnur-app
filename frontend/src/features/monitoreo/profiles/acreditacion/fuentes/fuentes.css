@@ -798,3 +798,178 @@
     overflow-y: visible;
   }
 }
+
+/* ══ Encuestas y recopiladores ═════════════════════════════════════════════
+ *
+ * La raíz propia evita que estos ajustes alcancen Resumen, Universo o el
+ * perfil Telefónico. El workbench exterior conserva el único scroll; aquí
+ * solo se igualan colecciones repetidas y su capacidad queda dentro de ellas.
+ */
+
+.fuentes-encuestas-stack .mon-acr-object-surface {
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 12px;
+}
+
+.fuentes-encuestas-stack :is(
+  .mon-acr-survey-declaration-map,
+  .mon-acr-survey-declaration-list article,
+  .mon-acr-source-object-card,
+  .mon-acr-collector-picker button,
+  .mon-acr-metadata-missing,
+  .mon-acr-collector-row
+) {
+  border-radius: var(--pulso-radius-card);
+  box-shadow: none;
+}
+
+.fuentes-encuestas-stack .mon-acr-object-surface-head strong,
+.fuentes-encuestas-stack .mon-acr-survey-declaration-map > header strong,
+.fuentes-encuestas-stack .mon-acr-survey-declaration-main strong,
+.fuentes-encuestas-stack .mon-acr-survey-declaration-surveys > span > strong,
+.fuentes-encuestas-stack .mon-acr-source-object-main strong,
+.fuentes-encuestas-stack .mon-acr-collector-picker button strong,
+.fuentes-encuestas-stack .mon-collector-title strong,
+.fuentes-encuestas-stack :is(.mon-acr-empty-state, .mon-acr-metadata-missing) strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.18;
+}
+
+.fuentes-encuestas-stack :is(
+  .mon-acr-object-surface-head em,
+  .mon-acr-survey-declaration-main small,
+  .mon-acr-survey-declaration-main em,
+  .mon-acr-survey-declaration-surveys > span > small,
+  .mon-acr-source-object-main em,
+  .mon-acr-source-object-metrics small,
+  .mon-acr-collector-picker button em,
+  .mon-acr-collector-picker button b,
+  .mon-collector-title em,
+  .mon-collector-metric span,
+  .mon-acr-source-object-routing label > span,
+  .mon-acr-actor-field label > span,
+  .mon-acr-collector-controls label > span,
+  .mon-acr-channel-declare-field > span,
+  .mon-acr-empty-state span,
+  .mon-acr-metadata-missing span,
+  .mon-acr-metadata-missing em,
+  .mon-sm-empty
+) {
+  font-size: 10.75px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.38;
+  text-transform: none;
+}
+
+/* C2: los cuatro actores siguen en cuatro columnas incluso en 1024 px. Los
+ * artículos comparten pista y la lista de encuestas posee el aire que sobra. */
+.fuentes-encuestas-stack .mon-acr-survey-declaration-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+}
+
+.fuentes-encuestas-stack .mon-acr-survey-declaration-list article {
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.fuentes-encuestas-stack .mon-acr-survey-declaration-surveys {
+  min-height: 0;
+  height: 100%;
+  align-content: start;
+}
+
+/* Las otras tres colecciones también fijan filas equivalentes. Ninguna abre
+ * un scroll propio: si crecen, el exceso sigue perteneciendo al workbench. */
+.fuentes-encuestas-stack :is(
+  .mon-acr-survey-card-grid,
+  .mon-acr-collector-picker,
+  .mon-acr-collector-list
+) {
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+  overflow: visible;
+}
+
+.fuentes-encuestas-stack .mon-acr-source-object-card,
+.fuentes-encuestas-stack .mon-acr-collector-picker button,
+.fuentes-encuestas-stack .mon-acr-collector-row {
+  height: 100%;
+}
+
+/* Los nombres son datos operativos: envuelven completos en vez de terminar en
+ * puntos suspensivos o quedar recortados por el selector. */
+.fuentes-encuestas-stack :is(
+  .mon-acr-source-object-main strong,
+  .mon-acr-source-object-main em,
+  .mon-acr-survey-declaration-main strong,
+  .mon-acr-survey-declaration-surveys > span > strong,
+  .mon-acr-collector-picker button strong,
+  .mon-acr-collector-picker button em,
+  .mon-collector-title strong,
+  .mon-collector-title em
+) {
+  display: block;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset;
+}
+
+.fuentes-encuestas-stack .mon-acr-collector-picker button {
+  overflow: visible;
+}
+
+/* Las tres cifras de una encuesta son una sola lectura, no tres tarjetas
+ * anidadas dentro de otra tarjeta. */
+.fuentes-encuestas-stack .mon-acr-source-object-metrics {
+  align-items: stretch;
+  border-top: 1px solid var(--pulso-border);
+  padding-top: 8px;
+}
+
+.fuentes-encuestas-stack .mon-acr-source-object-metrics span {
+  align-content: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 2px 8px;
+}
+
+.fuentes-encuestas-stack .mon-acr-source-object-metrics span + span {
+  border-left: 1px solid var(--pulso-border);
+}
+
+.fuentes-encuestas-stack .mon-acr-source-object-metrics strong,
+.fuentes-encuestas-stack .mon-collector-metric strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.18;
+}
+
+/* Escalera de control desktop: 36 px y radio 10. Los botones que representan
+ * tarjetas conservan alto intrínseco y no entran en esta regla. */
+.fuentes-encuestas-stack .mon-acr-object-surface-head > button,
+.fuentes-encuestas-stack .mon-acr-source-object-routing input,
+.fuentes-encuestas-stack .mon-acr-source-object-routing > button,
+.fuentes-encuestas-stack .mon-acr-channel-choice-strip button,
+.fuentes-encuestas-stack .mon-acr-actor-choice-row button,
+.fuentes-encuestas-stack .mon-acr-collector-controls input:not([type="checkbox"]),
+.fuentes-encuestas-stack .mon-acr-collector-controls select {
+  min-height: 36px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.fuentes-encuestas-stack .mon-acr-source-object-routing,
+.fuentes-encuestas-stack .mon-acr-collector-controls .mon-switch-line {
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+/* ══ Fin Encuestas y recopiladores ══════════════════════════════════════════ */
