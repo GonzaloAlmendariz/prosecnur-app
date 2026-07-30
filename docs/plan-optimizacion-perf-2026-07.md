@@ -134,21 +134,42 @@ honesto y está en el lugar correcto (barra de preparación) — pero es serial 
 el hilo único y re-paga derivados que ya se calcularon en la sesión anterior.
 El contrato del warmup NO cambia: al cerrar la barra, todo caliente.
 
-- **5.0 Medición**: desglose instrumentado del warmup por tarea (la
-  instrumentación ya existe: details del task + timings), sobre acrconta y
-  acnur_acg. Define el orden de ataque con números, no con memoria.
-- **5.1 La reconciliación viaja en el .pulso** (y cualquier otro derivado caro
-  que hoy no viaje y la medición confirme): whitelist de persistencia +
-  invalidación por fingerprint de datos (infra ya existente). Doctrina del
-  dueño aplicada: pesar más OK, abrir caliente no negociable. Revisión de
-  `guardian-contratos` obligatoria (frontera de persistencia .pulso).
-- **5.2 Warmup paralelo en workers**: las tareas pesadas del warmup corren en
-  2–3 workers `callr` simultáneos reusando la maquinaria de hoy (sandbox de
-  sesión + diff de 2.1; session_patch con guard de carrera de 3.2); el hilo
-  solo aplica resultados. El minuto pasa de suma(partes) a máx(partes).
-- **Norte de la ola**: acrconta de ~65 s → ~15–25 s de preparación, sin
-  recortar qué se precalienta. (La variante "gate progresivo por destino" se
-  evaluó y se DESCARTÓ por defecto: relaja el contrato de todo-caliente.)
+- **5.0 Medición ✅ (2026-07-29)**: el desglose real reordenó todo. acrconta
+  frío = **299.7 s de pared**, de los cuales ~261 s son la reconciliación de
+  acreditación (`.monitoreo_acreditacion_internal_queries`) calculada **tres
+  veces** en el mismo warmup (advance_summary ×2 —rollup no compartido y
+  fallback de controls—, queries_summary ×1), y el 62% de cada corrida es
+  `.monitoreo_text_key` normalizando texto fila a fila (Rprof). acnur_acg
+  frío = 123 s (territorial: fases + map cache gps). **La persistencia ya
+  funciona y está probada de punta a punta**: el cache viaja en el .pulso al
+  guardar (schema v2, fingerprint valida solo) — sesión caliente guardada y
+  reabierta: 299.7 s → **29 s**. El costo repetido solo golpea .pulso viejos
+  (pre-schema) y sesiones que nunca se guardan. Logs crudos en el scratchpad
+  de la sesión del 2026-07-29.
+- **5.1a Deduplicar la reconciliación (3×→1×)**: computar
+  `internal_queries`/`case_rollup` una vez por build y compartirla con los
+  tres consumidores. ~290 s → ~110 s sin tocar persistencia. Test de
+  regresión: contador de invocaciones (hoy 3, debe dar 1).
+- **5.1b Vectorizar `.monitoreo_text_key`**: el 62% del costo es
+  trimws/sub/gsub/tolower por fila; vectorizado por columna debe bajar la
+  reconciliación de ~90 s a segundos. Con a+b, hasta el peor caso
+  (.pulso viejo, nunca guardado) queda tolerable.
+- **5.1c Persistencia — decisión pendiente del dueño**: para sesiones que
+  nunca se guardan, ¿auto-persistir caches mutando el .pulso sin guardado
+  explícito? Toca la filosofía de guardado explícito → NO se implementa sin
+  decisión de Gonzalo; con a+b probablemente sea innecesario. Alternativa
+  barata: regenerar los fixtures de referencia con caches calientes.
+- **5.2 Warmup paralelo en workers — reajustado por la medición**: en
+  acrconta casi no aporta (98% es una tarea); donde sí: territorial
+  (fase field ∥ fase pilot ∥ map cache: 115 s → ~60–70 s en frío) y el caso
+  "la data cambió". Diseño con el mapa de dependencias medido (territorial
+  muta config de fase → copia de sesión propia; merges ya disjuntos).
+  Ojo: el overhead de 5–8 s del job se multiplica por worker salvo RDS de
+  sesión compartido. Incluye los baratos: check de family sin normalize
+  completo (−1.5 s) y light-state derived reusado entre workers.
+- **Norte de la ola (re-medido)**: acrconta frío ~300 s → ~15–30 s;
+  acnur_acg frío 123 s → ~20–60 s según caso; sin recortar qué se
+  precalienta. (El gate progresivo por destino sigue DESCARTADO.)
 
 ## Métricas del loop (medir al cierre de cada ola)
 
