@@ -604,10 +604,10 @@ export function buildModuleCardView(
         action: moduleAction(
           module,
           state === "warning"
-            ? "Revisar fichas QR"
+            ? "Revisar recopiladores"
             : collectors.without_link > 0
               ? "Completar enlaces"
-              : "Abrir fichas QR",
+              : "Abrir recopiladores",
         ),
         alert: nodeAlert,
         summary,

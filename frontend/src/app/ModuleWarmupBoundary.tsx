@@ -123,7 +123,7 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
   },
   {
     key: "recopiladores",
-    title: "Fichas QR",
+    title: "Recopiladores",
     moduleTo: "/recopiladores",
     frontend: ["recopiladores"],
     backend: ["project", "monitoreo"],
