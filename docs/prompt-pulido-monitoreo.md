@@ -116,6 +116,12 @@ Tipografía, medida en las referencias:
 - El mismo dato en dos sitios de la misma pantalla; la misma etiqueta sobre dos
   denominadores distintos.
 - Identificadores opacos ocupando el sitio de un enlace o de un nombre humano.
+- **Rótulos heredados que mienten.** Un nombre puede venir de la planilla con la
+  que se operaba y significar otra cosa: en el Excel de cursos-horario, `CORTAS`
+  y `LARGAS` no eran minutos sino rutas del cuestionario, y `VÁLIDO` no era
+  validez metodológica sino haber alcanzado el 70 % del denominador. Cuando el
+  rótulo engaña, se cambia el rótulo —eso es texto, entra en el alcance—; lo que
+  no se toca es el cálculo que hay debajo.
 
 **Didáctica**
 
@@ -125,9 +131,18 @@ acción que lo resuelve; un estado completo no añade prosa. Cuando un dato falt
 por una razón que el usuario puede corregir, se dice esa razón en el sitio donde
 se corrige.
 
+Y cuando una cifra convive con su denominador, el denominador se nombra. Una
+tasa por encima del 100 % no es necesariamente un error —puede ser un
+denominador desactualizado o gente de otra sección—, así que se explica en vez
+de esconderse o de bloquear.
+
 ### 5. Reglas duras
 
 - **Funcionalidad intacta.** CSS y texto. Nada de lógica, contratos ni datos.
+- **No se maquilla una ausencia.** Si una superficie se ve pobre porque le falta
+  una pieza que el producto todavía no tiene, eso se anota en el registro con su
+  referencia y se deja tal cual. Rellenar el hueco con copy es exactamente el
+  AI slop que este loop existe para quitar.
 - **Tokens `--pulso-*`.** Ningún hex en CSS de feature.
 - **Archivos congelados** (`agentic/manifest.json`): lo nuevo va a archivo
   propio. Comprueba con `node agentic/sync-agentic-os.mjs --audit`.
@@ -163,6 +178,65 @@ sigue—.
 
 ---
 
+## Cursos-horario: el único modo con especificación previa
+
+Antes de tocar ese modo, lee `docs/plan-monitoreo-aulas-2026-07.md`. Es la
+auditoría del Excel con el que se operó PUCP 2025 —`Base de control`, 47
+columnas, 194 curso-horario— convertida en requisitos. Cambia cómo se audita el
+modo en tres cosas.
+
+### Sabes qué secciones debe tener
+
+Cinco: **Fuentes, Agenda, Avance, Validación y Consultas**, y la §5 del plan
+dice qué responde cada una. Si una superficie no responde lo suyo, el defecto no
+es de espaciado. Anótalo como hallazgo estructural y sigue puliendo lo que sí
+está.
+
+### Sabes qué cifras deben cuadrar
+
+El plan trae una línea base histórica que sirve de oráculo:
+
+| Indicador | 2025 |
+|---|---:|
+| Registros de campo | 196 |
+| Aplicaciones reales | 194 |
+| Respuestas crudas | 3.708 |
+| Respuestas atribuibles | 3.698 |
+| Sin curso–horario | 10 |
+| Exclusiones de ruta | 394 |
+| Elegibles | 3.304 |
+| Mujeres / hombres | 1.741 / 1.563 |
+| Cumplen 70 % de población | 58 |
+
+No es para hardcodearla ni para exigir que `hsvg2026` la reproduzca —es otro
+estudio—. Es para reconocer la **forma** de las relaciones: los tres filtros
+suman las exclusiones, elegibles más exclusiones son las atribuibles, mujeres
+más hombres son los elegibles. Si una pantalla muestra cifras que no cierran
+así, es un bug de datos: se reporta y se sigue con la estética.
+
+### Sabes qué está ausente y no debe maquillarse
+
+El plan documenta piezas que el producto todavía no tiene, y el guion de
+conexión declara dos fuentes donde la especificación exige cuatro. Lo que
+encuentres de esta lista se anota, no se rellena:
+
+- **Estado de contacto y estado de aplicación en la misma columna.** En el Excel
+  hacía figurar dos aplicaciones reales como agendadas. Son dos campos.
+- **Asistencia pegada a mano** en vez de derivada de eventos de campo: iba 85
+  asistentes por detrás de la fuente.
+- **Aula planificada tratada como aula real.** Son `planned_room` y
+  `actual_room`, y ocho cursos ni siquiera permitían extraer la planificada.
+- **Elegibles calculados restando tres negativas**, que deja pasar como elegible
+  cualquier respuesta con los consentimientos vacíos.
+- **Reemplazos sin cadena longitudinal** hasta su titular.
+
+Y hay diez preguntas metodológicas abiertas en la §8 del plan —qué es el 70 %,
+qué separa elegible de validada, cuándo se activa un reemplazo—. Ninguna la
+decide este loop. Si una superficie depende de una de ellas, se anota con el
+número de la pregunta y se deja.
+
+---
+
 ## El registro
 
 `docs/qa/pulido-monitoreo-estado.md`, con una fila por superficie:
@@ -171,12 +245,17 @@ sigue—.
 | Modo | Sección › Pestaña | Estado | Hallazgos | Commit |
 |---|---|---|---|---|
 | telefónico | Fuentes › Fuentes activas | hecho | escala 9→14, celdas sin caja | 5b8d3db9 |
-| telefónico | Modelo › Cuotas | pendiente | | |
+| cursos-horario | Agenda | pendiente | | |
 ```
 
-Cuando todas estén en `hecho`, empieza otra vuelta: baja el umbral —alineación
-óptica, ritmo vertical, coherencia de estados entre modos— y marca todo como
-`pendiente (vuelta 2)`.
+Los hallazgos que no son estéticos van a una segunda tabla del mismo archivo,
+separados por tipo —pieza ausente, bug de datos, pregunta metodológica—, con la
+referencia al plan que los respalda. Esa tabla es la que convierte el loop en
+algo más que un pase de CSS.
+
+Cuando todas las superficies estén en `hecho`, empieza otra vuelta: baja el
+umbral —alineación óptica, ritmo vertical, coherencia de estados entre modos— y
+marca todo como `pendiente (vuelta 2)`.
 
 ---
 
@@ -187,13 +266,8 @@ Para no repetir trabajo, lee antes:
 - `docs/lecciones-monitoreo-2026-07.md` — las 13 lecciones del rediseño de
   Acreditación y Telefónico, cada una con qué evaluar en los demás modos.
 - `docs/plan-fuentes-legibles-2026-07.md` — Fuentes en los cuatro modos.
+- `docs/plan-monitoreo-aulas-2026-07.md` — la especificación de cursos-horario.
 - `docs/ui-layout-grammar.md` — la norma de layout y el Contrato de Superficie.
-- `docs/plan-monitoreo-aulas-2026-07.md` — **antes de tocar el modo Aulas.** Es
-  la auditoría del Excel con el que se operó PUCP 2025 convertida en
-  especificación: qué secciones debe tener el perfil, qué reconciliaciones, y
-  una línea base de cifras para comprobar que lo que se muestra cuadra. Ahí
-  buena parte de lo que parecerá un defecto estético será una pieza que todavía
-  no existe —y eso se anota, no se maquilla—.
 
 Telefónico › Fuentes quedó pulido el 2026-07-30 y sirve de patrón. **Territorial
 y cursos-horario no se han mirado**, y el guion de conexión de Acreditación está
