@@ -17104,3 +17104,38 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Escala de la casa en Fuente › Formulario ──────────────────────────────
+ *
+ * Primera superficie de territorial en el loop de pulido. Seis radios en 18
+ * cajas —8, 9, 10, 11, 12 y 14—, que es la misma dispersión que tenía
+ * telefónico antes de normalizarlo. El archivo declara 59 radios de 8, 49 de 9
+ * y 13 de 11, así que esto se irá haciendo superficie a superficie y no de
+ * golpe: un `border-radius` global aquí alcanzaría a celdas que codifican
+ * estado con su marco, y eso ya se comprobó que es información, no adorno.
+ */
+.mon-territorial-source-console .mon-territorial-source-card,
+.mon-territorial-source-console .mon-territorial-form-readiness,
+.mon-territorial-source-console.is-tab-form .mon-territorial-route-sheet-source {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-source-console .mon-territorial-source-top-metrics > *,
+.mon-territorial-source-console .mon-territorial-source-stats > *,
+.mon-territorial-source-console .mon-territorial-phase-source-strip > * {
+  border-radius: var(--pulso-radius);
+}
+
+/* T6 del plan de Fuentes legibles, medido de nuevo el 2026-07-30 y todavía
+ * presente: «0 sin primera e…» y «0 UMP sospech…». Son datos operativos de la
+ * tira de hoja de ruta, y la norma no admite elipsis en dato. */
+.mon-territorial-source-console .mon-territorial-source-top-metrics em,
+.mon-territorial-source-console .mon-territorial-source-top-metrics small,
+.mon-territorial-source-console .mon-territorial-source-stats em,
+.mon-territorial-source-console .mon-territorial-source-stats small {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}

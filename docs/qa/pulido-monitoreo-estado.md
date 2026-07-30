@@ -49,7 +49,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | telefónico | Avance › Diario | hecho | 6 radios en 22 cajas → 0/10/14/16; «Colgó / Cortó la llamada» se recortaba y es nombre de estado, no etiqueta larga: ahora envuelve | este commit |
 | telefónico | Avance › Cuotas | hecho | radios 9/12 → 10/14 | este commit |
 | telefónico | Avance › Salidas | hecho | radios 8/9/12 → 10/14. El control deslizante del kit (`pulso-gliding-tab-list`) se deja en 8: su escala la fija el kit compartido y cambiarla por perfil rompería la uniformidad con el resto de la app | este commit |
-| territorial | Fuente › Formulario | pendiente |  |  |
+| territorial | Fuente › Formulario | **parcial** | 6 radios en 18 cajas → 4. La tarjeta de fuente y las métricas ya entran en escala; **siguen fuera** las celdas `is-ready`/`is-active` de la tira de fase (9 y 12) y **persisten los 2 recortes** de T6 («0 sin primera e…», «0 UMP sospech…»). Motivo: `territorialProfile.css` declara el mismo elemento en tres reglas con especificidades distintas, y sin inspeccionar cuál gana en cada caso el ajuste no aplica | este commit |
 | territorial | Fuente › Filtro y distritos | pendiente |  |  |
 | territorial | Fuente › Encuestadores | pendiente |  |  |
 | territorial | Fuente › Reconciliación | pendiente |  |  |
