@@ -501,3 +501,25 @@
  * No son la misma cosa. Cinco selectores de aquí llevaban controles nativos a
  * 10 y los alejaban del resto de Prosecnur: se retiran para que hereden su
  * base. Los envoltorios (`…-search`, que es el `label`) sí se quedan en 10. */
+
+/* ── Modelo › Cobertura: la leyenda del mapa existía y no se veía ──────────
+ *
+ * El detector de solapes lo cazó y la prueba decisiva fue `elementFromPoint`:
+ * en el centro exacto de la leyenda lo que se pintaba era un `path` del SVG del
+ * mapa. La leyenda —«Bordes · Lima Metropolitana · Titulares · Reemplazos»—
+ * estaba en el DOM, visible, con opacidad 1, y ningún usuario la había visto.
+ *
+ * La causa es de rejilla: el contenedor declara filas `269px 31px 0px` y el
+ * marco del mapa medía 454, así que se derramaba 185 px sobre la fila de la
+ * leyenda y sobre el panel de distritos. Es el caso clásico de CSS Grid —un
+ * ítem tiene `min-height: auto` por defecto y su contenido alto le impide
+ * respetar la pista—, y por eso se resuelve en la causa y no tapando el
+ * síntoma.
+ *
+ * El primer intento fue subir la leyenda con `z-index`. Se veía, sí, pero
+ * flotando sobre el mapa: hacer visible algo mal colocado no es arreglarlo.
+ * Con `min-height: 0` el marco vuelve a sus 269 px, la leyenda ocupa su fila y
+ * el panel de distritos evaluados —que estaba igual de tapado— reaparece. */
+.mon-territorial-route-coverage-map-frame {
+  min-height: 0;
+}
