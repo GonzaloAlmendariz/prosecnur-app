@@ -119,8 +119,8 @@ Tipografía, medida en las referencias:
 ### 3b. El detector, y por qué él mismo se audita
 
 Medir a ojo no escala y medir mal es peor que no medir: un informe con cifras
-infladas se defiende solo. Este detector lleva ya **once** familias de falso
-positivo, y las once salieron de contrastar la medición contra la pantalla —en
+infladas se defiende solo. Este detector lleva ya **trece** familias de falso
+positivo, y las trece salieron de contrastar la medición contra la pantalla —en
 un sentido o en el otro—. Las seis de geometría van excluidas abajo y **no se
 quitan**; las tres de composición —jerarquía sancionada, columna única y zonas
 de toolbar centradas— están anotadas en §4 junto a su criterio:
@@ -145,7 +145,13 @@ de toolbar centradas— están anotadas en §4 junto a su criterio:
    oculta su contenido con `overflow`, y eso es su función. En Manzanas daba
    149 «contenidos cortados» que eran filas cerradas. Se comprueba si el
    elemento tiene estado de apertura antes de contarlo.
-8. **El orden del DOM no es el orden visual**: con `flex-wrap`, `order`,
+8. **Visores de mapa y lienzo**: un `.mon-*-map-viewport` con su SVG y sus
+   controles de zoom recorta por definición, y lo que queda fuera se alcanza
+   moviendo el mapa. En Geolocalización daba «contenido cortado» por 4 px.
+9. **Desbordes de 4 px o menos** en un contenedor: son redondeo de subpíxel y
+   bordes, no contenido perdido. El umbral separa lo que se lee de lo que se
+   mide.
+10. **El orden del DOM no es el orden visual**: con `flex-wrap`, `order`,
    `row-reverse` o `margin-left: auto`, el hermano siguiente puede pintarse a
    la izquierda del anterior. Comparar «derecho del uno contra izquierdo del
    otro» daba 830 px de solape entre cajas que no se tocan. Se intersecan

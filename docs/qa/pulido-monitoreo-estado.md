@@ -263,6 +263,26 @@ pestañas, las tarjetas de encuesta sin materia —darles sombra exige añadir u
 propiedad a un archivo congelado—, y los dos hallazgos que no son CSS (el
 denominador de las barras de insistencia y la columna del gráfico diario).
 
+## Territorial, segunda pasada — 2026-07-30
+
+Repasado con los detectores que no existían en la primera. Fuente, Historial y
+Anulación salen limpias; los hallazgos reales fueron dos, ambos de Modelo:
+
+- **La leyenda del mapa de cobertura, invisible** por desborde de rejilla.
+  Arreglado en `01f08ec1`; de paso reapareció el panel de distritos evaluados.
+- **La fila del UMP seleccionado, colapsada a 2 px**. Registrada sin tocar: lo
+  que oculta ya lo muestra la Ficha UMP y arreglarla superpone filas.
+
+Y tres familias nuevas de falso positivo, que es lo que más deja esta pasada:
+acordeones colapsados (149 avisos en Manzanas), visores de mapa con sus
+controles de zoom (Geolocalización, por 4 px) y desbordes de 4 px o menos, que
+son redondeo de subpíxel.
+
+Pendiente de barrer con estos criterios: Consultas internas, Avance territorial
+y Ocurrencias de campo. Las superficies de este modo son pesadas —mapas y
+listas de 150 filas— y cada navegación tarda más que el límite de una llamada,
+así que van de una en una.
+
 ## Hallazgos no estéticos
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
