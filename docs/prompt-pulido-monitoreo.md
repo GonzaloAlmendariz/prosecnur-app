@@ -150,7 +150,10 @@ de toolbar centradas— están anotadas en §4 junto a su criterio:
    moviendo el mapa. En Geolocalización daba «contenido cortado» por 4 px.
 9. **Desbordes de 4 px o menos** en un contenedor: son redondeo de subpíxel y
    bordes, no contenido perdido. El umbral separa lo que se lee de lo que se
-   mide.
+   mide. **Ojo con la excepción**: en un elemento con `text-overflow: ellipsis`
+   basta 1 px para que el navegador dibuje los puntos y se coma una letra, así
+   que ahí el umbral no vale —«Cruzó por llave» se elidía por 2 px en 45 chips
+   de acreditación—. El umbral es para cajas, no para texto elidido.
 10. **El orden del DOM no es el orden visual**: con `flex-wrap`, `order`,
    `row-reverse` o `margin-left: auto`, el hermano siguiente puede pintarse a
    la izquierda del anterior. Comparar «derecho del uno contra izquierdo del
