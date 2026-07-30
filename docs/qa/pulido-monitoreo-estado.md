@@ -49,9 +49,9 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | telefónico | Avance › Diario | hecho | 6 radios en 22 cajas → 0/10/14/16; «Colgó / Cortó la llamada» se recortaba y es nombre de estado, no etiqueta larga: ahora envuelve | este commit |
 | telefónico | Avance › Cuotas | hecho | radios 9/12 → 10/14 | este commit |
 | telefónico | Avance › Salidas | hecho | radios 8/9/12 → 10/14. El control deslizante del kit (`pulso-gliding-tab-list`) se deja en 8: su escala la fija el kit compartido y cambiarla por perfil rompería la uniformidad con el resto de la app | este commit |
-| territorial | Fuente › Formulario | **parcial** | 6 radios en 18 cajas → 4. La tarjeta de fuente y las métricas ya entran en escala; **siguen fuera** las celdas `is-ready`/`is-active` de la tira de fase (9 y 12) y **persisten los 2 recortes** de T6 («0 sin primera e…», «0 UMP sospech…»). Motivo: `territorialProfile.css` declara el mismo elemento en tres reglas con especificidades distintas, y sin inspeccionar cuál gana en cada caso el ajuste no aplica | este commit |
-| territorial | Fuente › Filtro y distritos | pendiente |  |  |
-| territorial | Fuente › Encuestadores | pendiente |  |  |
+| territorial | Fuente › Formulario | hecho | 6 radios en 18 cajas → 10/14, y los 2 recortes de T6 resueltos. La clave fue enumerar qué regla gana sobre el elemento real: las ganadoras llevaban `.is-tab-form`, y el recorte vivía en `route-sheet-source-metrics`, no en la clase que se había supuesto | este commit |
+| territorial | Fuente › Filtro y distritos | hecho | radios 9/12 → 0/10/14 | este commit |
+| territorial | Fuente › Encuestadores | hecho | radios 9/12 → 10/14; el título «Lista de encuestadores» se recortaba y ahora envuelve. **8 recortes quedan abiertos**: son celdas de tabla y envolver ahí cambia el reparto de columnas | este commit |
 | territorial | Fuente › Reconciliación | pendiente |  |  |
 | territorial | Fuente › Historial | pendiente |  |  |
 | territorial | UMPs › Cobertura | pendiente |  |  |
@@ -87,6 +87,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
 |---|---|---|---|---|---|
+| recorte en tabla | territorial | Fuente › Encuestadores | Ocho datos recortados dentro de celdas de tabla («+5 reconciliadas»). La norma prohíbe elipsis en dato operativo, pero permitir el envoltorio en una tabla redistribuye las columnas: hay que decidir el ancho de esa columna, no solo el `white-space` | medido el 2026-07-30 en `acnur_acg` | abierto |
 | scroll anidado (C4) | telefónico | Consultas › CodPulso | Dos contenedores con scroll propio dentro de la pestaña. La norma pide un solo dueño de scroll por pantalla; resolverlo exige decidir cuál de los dos cede el alto, y eso cambia el layout | medido el 2026-07-30 en `acnur_pdm` | abierto |
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |
 | pieza ausente | acreditación | Fuentes › Universo | La fila visible no presenta documento, pestaña y rango simultáneamente; muestra la pestaña, pero el rango prometido por la especificación no está disponible en esta lectura. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
