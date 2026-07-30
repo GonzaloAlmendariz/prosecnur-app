@@ -5234,3 +5234,57 @@
 .is-telefonico-profile .mon-case-key-evidence > span {
   border-radius: var(--pulso-radius);
 }
+
+/* ── Avance ────────────────────────────────────────────────────────────────
+ * Seis radios en 22 cajas. El panel de avance y sus tableros comparten nivel
+ * con las celdas de estado, y ninguno declaraba la escala. */
+.is-telefonico-profile .mon-advance-panel {
+  border-radius: var(--pulso-radius-panel);
+}
+
+.is-telefonico-profile .mon-advance-daily-mini,
+.is-telefonico-profile .mon-advance-daily-board,
+.is-telefonico-profile .mon-phone-advance-parallel {
+  border-radius: var(--pulso-radius-card);
+}
+
+.is-telefonico-profile .mon-phone-advance-parallel-grid > *,
+.is-telefonico-profile .mon-phone-advance-status-list > *,
+.is-telefonico-profile .mon-advance-storage-chart > * {
+  border-radius: var(--pulso-radius);
+}
+
+.is-telefonico-profile .mon-phone-advance-grid > * {
+  border-radius: var(--pulso-radius-card);
+}
+
+/* «Colgó / Cortó la llamada» se recortaba. Es el nombre de un estado del
+ * barrido —dato operativo, no una etiqueta larga—, y la norma no admite
+ * elipsis ahí: envuelve. */
+.is-telefonico-profile .mon-phone-advance-status-list span > em,
+.is-telefonico-profile .mon-phone-advance-status-list span > strong {
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm {
+  border-radius: var(--pulso-radius-card);
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-progress {
+  border-radius: var(--pulso-radius);
+}
+
+/* Avance › Salidas. `pulso-gliding-tab-indicator` no entra: es la pastilla
+ * deslizante del kit compartido y su radio lo fija el propio control. */
+.is-telefonico-profile .mon-outputs-readiness,
+.is-telefonico-profile .mon-outputs-processing-hint {
+  border-radius: var(--pulso-radius-card);
+}
+
+.is-telefonico-profile .mon-outputs-readiness__granos > div {
+  border-radius: var(--pulso-radius);
+}
