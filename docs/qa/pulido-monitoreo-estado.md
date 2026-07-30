@@ -79,11 +79,11 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Ocurrencias de campo › UMP | hecho | **la superficie del hallazgo**: 148 tarjetas de UMP renderizaban idénticas porque una regla de botones de barra pisaba su diseño. Ver abajo | este commit |
 | territorial | Ocurrencias de campo › Alertas | hecho | las 80 filas de alerta eran el único 11 del modo fuera de Reconciliación → 14; «Incompleta sin reporte» salía con elipsis por 2 px en 3 filas y ahora envuelve | este commit |
 | territorial | Ocurrencias de campo › Ritmo | hecho | 32 barras diarias en 8 y 4 KPI en 9 → 10. 1 scroll anidado abierto | este commit |
-| cursos-horario | Fuentes | pendiente |  |  |
-| cursos-horario | Agenda de cursos-horario | pendiente |  |  |
-| cursos-horario | Avance | pendiente |  |  |
-| cursos-horario | Validación | pendiente |  |  |
-| cursos-horario | Consultas | pendiente |  |  |
+| cursos-horario | Fuentes | **parcial (sin datos)** | radios 8/12 → 10/14; «selection_run_id» se mostraba como pista al usuario. Auditada con el modo VACÍO: ver nota abajo | este commit |
+| cursos-horario | Agenda de cursos-horario | **parcial (sin datos)** | el aviso de vacío ocupaba ~700 px de blanco y se leía como carga fallida; ahora 79 px | este commit |
+| cursos-horario | Avance | **parcial (sin datos)** | idem vacío contenido; escala de KPI a 14 | este commit |
+| cursos-horario | Validación | **parcial (sin datos)** | idem | este commit |
+| cursos-horario | Consultas | **parcial (sin datos)** | idem | este commit |
 
 ## Segunda corrección del instrumento — 2026-07-30
 
@@ -165,6 +165,40 @@ apareció al medir la geometría del hermano, no la del propio elemento.
 
 Van cuatro correcciones al instrumento en este barrido. Las cuatro salieron de
 contrastar la medición con la pantalla, en un sentido o en el otro.
+
+## Cursos-horario: auditado con el modo vacío — 2026-07-30
+
+Las cinco superficies se auditaron sobre `hsvg2026`, **el único proyecto de
+referencia del modo**, y ahí el modo está en cero: 0 cursos-horario, 0
+aplicadas, 0 válidas, `S/D` en representatividad, `0/0` en cuotas. El fixture
+trae el marco de aulas a escala pero no datos de monitoreo, y la familia
+`aulas` ni siquiera venía declarada —hubo que elegirla en el selector inicial,
+sobre una copia temporal—.
+
+Consecuencia, y por eso las filas quedan en **parcial**: aquí solo se puede
+juzgar el estado vacío y la escala. **Nada de lo denso —tablas con filas,
+avance por estrato, brechas, cuotas por sexo/facultad— se ha visto nunca.** El
+modo necesita una segunda pasada con datos antes de darse por pulido.
+
+Lo que sí se pudo cerrar es justamente lo que solo se ve vacío, y era el
+defecto más visible del modo: los cuatro avisos de vacío se estiraban a ~700 px
+de blanco porque `mon-profile-table-wrap` lleva `height: 100%` para que la
+tabla llene el panel. Con datos es correcto; sin datos convierte «No hay agenda
+importada» en algo que parece no haber cargado. C3 pide contener el vacío, no
+agrandarlo.
+
+**Advertencia de método**, que costó una iteración: al elegir el modo en el
+selector inicial hay que apuntar al botón exacto. Un selector que buscaba «la
+tarjeta que menciona cursos-horario» agarró un ancestro y clicó Acreditación,
+que quedó guardada en el proyecto —el modo lo fija el estudio y la ruta no lo
+puede sobreescribir, así que no hay vuelta atrás por navegación—. Se resolvió
+regenerando la copia. La tarjeta **es** el botón: `button.mon-mode-choice__option`.
+
+Además, este modo se auditó en un stack propio (Plumber 8799 + Vite en puerto
+autoasignado) para no cambiarle el proyecto a la sesión de acreditación, que
+comparte el 8787. Origen distinto significa `localStorage` distinto y por tanto
+`sid` distinto: es la forma de aislar dos loops de verdad, y evita el incidente
+que ya está documentado más arriba.
 
 ## Modo territorial — cerrado el 2026-07-30
 

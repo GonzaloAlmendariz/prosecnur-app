@@ -39,7 +39,9 @@ export function AulasOperationsPanel({ config, sources, busy, onImportPlan, onSy
       icon: Target,
       label: "Selección",
       value: imported ? "Conectada" : "Pendiente",
-      hint: config?.selection_run_id ? aulasOpsShortId(config.selection_run_id) : "selection_run_id",
+      // Sin corrida, aquí se leía «selection_run_id»: el nombre del campo del
+      // backend, no algo que el usuario pueda accionar.
+      hint: config?.selection_run_id ? aulasOpsShortId(config.selection_run_id) : "sin corrida importada",
       ready: imported,
     },
     {

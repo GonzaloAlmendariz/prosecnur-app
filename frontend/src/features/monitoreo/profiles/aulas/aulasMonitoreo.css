@@ -39,7 +39,7 @@
   gap: 4px;
   padding: 9px 12px 10px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card);
   background: rgba(255, 255, 255, 0.92);
 }
 
@@ -133,7 +133,7 @@
   min-height: 0;
   max-height: none; /* mata el cap de 420px que dejaba el espacio muerto */
   height: 100%;
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table-wrap > .mon-profile-muted {
@@ -189,7 +189,7 @@
   row-gap: 2px;
   padding: 8px 10px;
   border: 1px solid var(--pulso-border);
-  border-radius: 12px;
+  border-radius: var(--pulso-radius-card);
   background: color-mix(in srgb, var(--pulso-surface-2) 60%, #fff);
 }
 
@@ -199,7 +199,7 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   color: var(--pulso-text-soft);
   background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, #fff);
   border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-border));
@@ -254,7 +254,7 @@
   height: 28px;
   padding: 0 12px;
   border: 1px solid var(--pulso-border);
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: #fff;
   color: var(--pulso-text);
   font-size: 13px;
@@ -485,4 +485,41 @@
     min-height: 128px;
     height: 100%;
   }
+}
+
+/* ── El vacío se contiene, no se estira ────────────────────────────────────
+ *
+ * `mon-profile-table-wrap` lleva `height: 100%` y su aviso `min-height: 100%`
+ * para que la tabla llene el panel y scrollee dentro —el comentario de arriba
+ * dice que eso mató un cap de 420 px que dejaba espacio muerto—. Con datos es
+ * correcto; **sin datos produce el problema opuesto**: en un proyecto sin
+ * agenda importada, «No hay agenda importada para cursos-horario.» se queda
+ * sola en el centro de unos 700 px de blanco, y eso no se lee como un estado
+ * previsto sino como algo que no cargó.
+ *
+ * C3 pide que la superficie contenga su vacío, no que lo agrande. Cuando el
+ * envoltorio solo trae el aviso, la fila deja de estirar y el panel se ciñe. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table-wrap:has(> .mon-profile-muted) {
+  height: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-table-wrap > .mon-profile-muted {
+  min-height: 0;
+  padding: 30px 16px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(.mon-profile-table-wrap > .mon-profile-muted) {
+  grid-template-rows: auto auto;
+  align-content: start;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack:has(.mon-profile-table-wrap > .mon-profile-muted) {
+  grid-template-rows: auto;
+  align-content: start;
+}
+
+.mon-profile-page.is-aulas-flow
+  .aulas-mon-view
+  > .mon-profile-stack:has(.mon-aulas-handoff-panel):has(.mon-profile-table-wrap > .mon-profile-muted) {
+  grid-template-rows: auto auto;
 }
