@@ -17179,3 +17179,19 @@
 .mon-territorial-enumerator-table-toolbar {
   border-radius: var(--pulso-radius-card);
 }
+
+/* ── Fuente › Reconciliación ───────────────────────────────────────────────
+ * Seis radios en una pestaña —9, 10, 11, 12, 13 y 14—, con 11 y 13 apareciendo
+ * solo aquí en todo el modo. */
+.mon-territorial-source-console.is-tab-reconciliation .mon-territorial-source-command,
+.mon-territorial-reconciliation-panel,
+.mon-territorial-reconciliation-queue,
+.mon-territorial-reconciliation-list article,
+.mon-territorial-reconciliation-list button {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-reconciliation-batchbar,
+.mon-territorial-reconciliation-metrics span {
+  border-radius: var(--pulso-radius);
+}
