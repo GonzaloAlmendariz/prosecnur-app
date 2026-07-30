@@ -408,6 +408,14 @@ Antes de commitear, y con el alcance acotado al diff:
 - `pnpm -C frontend exec tsc --noEmit --pretty false`.
 - `pnpm -C frontend exec vitest run src/features/monitoreo`.
 
+**Y `tsc -b` cuando el cambio estrecha un tipo.** Envolver JSX en un
+condicional o añadir un guard estrecha la unión dentro de la rama y puede dejar
+código inalcanzable que `--noEmit` suelto no reporta y `tsc -b` sí: pasó al
+excluir Google Sheets del grupo de catálogo —las comprobaciones internas que
+seguían preguntando por él quedaron muertas y el build de producción dejó de
+compilar—. Filtrar la salida del typecheck por el nombre del archivo tampoco
+sirve de red: el error existía y el grep no lo vio porque no llegó a emitirse.
+
 Verde por conformidad, no por ausencia. Si un caso falla, córrelo aislado antes
 de acusar a tu cambio: `MonitoringProfilesReadinessContract` recorre el AST de
 los page-files completos y cae por contención en la suite, no por regresión.
