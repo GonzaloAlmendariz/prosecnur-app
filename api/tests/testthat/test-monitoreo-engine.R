@@ -9028,3 +9028,52 @@ test_that("auditoria telefonica distingue enlace usado y codigo final escrito", 
   egresados <- summary[summary$Unidad == "Egresados", , drop = FALSE]
   expect_equal(egresados$Efectivas, 1)
 })
+
+test_that("los casos de revisión territorial llevan sexo y edad", {
+  # La tabla de Consultas > Registro los muestra en columna propia y pintaba
+  # «S/D» en las 318 filas de acnur_acg. El audit los trae resueltos —1.441 de
+  # 1.732 en ese proyecto—, pero `internal_review_cases` exportaba treinta
+  # campos suyos sin incluir estos dos, así que el dato existía y no llegaba.
+  data <- data.frame(
+    `Core/M5_district` = c("sjm", "sjm"),
+    `Core/E1_age` = c(34, 27),
+    `Core/E2_sex` = c("2", "1"),
+    `_geolocation` = c("-12.2 -77.2", "-12.1 -77.0"),
+    consent = c("1", "1"),
+    `_status` = rep("submitted_via_web", 2),
+    `_uuid` = c("caso-lejos", "caso-cerca"),
+    `_submitted_by` = c("enc1", "enc2"),
+    start = rep("2026-06-01T10:00:00Z", 2),
+    end = c("2026-06-01T10:12:00Z", "2026-06-01T10:40:00Z"),
+    check.names = FALSE
+  )
+  cfg <- monitoreo_normalize_config(list(
+    monitoreo_profile = list(family = "territorial", status = "active")
+  ), data)
+  context <- list(
+    phase = "pilot",
+    blocks = list(list(id_manzana = "150133001001", ubigeo = "150133", distrito = "SAN JUAN DE MIRAFLORES", zona = "001", manzana = "001", entrevistas = 2)),
+    geo_results = data.frame(
+      lat = c(-12.2, -12.1),
+      lon = c(-77.2, -77.0),
+      gps_parseable = c(TRUE, TRUE),
+      geo_estado = c("geo_no_defendible", "geo_ok"),
+      distance_m = c(900, 12),
+      nearest_block_id = rep("150133001001", 2),
+      nearest_block_type = rep("titular", 2),
+      geometry_match = c("far_gt_300m", "inside_selected_block"),
+      stringsAsFactors = FALSE
+    )
+  )
+  report <- monitoreo_territorial_reportes(data, cfg, context)
+  casos <- report$internal_queries$review_cases %||% list()
+  skip_if(length(casos) == 0L, "el fixture no produjo casos de revisión")
+  expect_true(all(vapply(casos, function(x) "sex" %in% names(x), logical(1))))
+  expect_true(all(vapply(casos, function(x) "age" %in% names(x), logical(1))))
+  # Y con valor, no solo con la clave: exportar el campo vacío dejaría el mismo
+  # «S/D» en pantalla y el test en verde.
+  edades <- vapply(casos, function(x) suppressWarnings(as.numeric(x$age %||% NA)), numeric(1))
+  expect_true(any(is.finite(edades)))
+  sexos <- vapply(casos, function(x) as.character(x$sex %||% ""), character(1))
+  expect_true(any(nzchar(trimws(sexos))))
+})
