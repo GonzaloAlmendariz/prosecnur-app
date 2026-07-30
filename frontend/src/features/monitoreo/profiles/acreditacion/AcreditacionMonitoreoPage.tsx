@@ -8509,8 +8509,6 @@ function AcreditacionPlatformSurveySourcesView({
   config?: MonitoreoConfig;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
-  const surveySources = sources.filter(isSurveyMonkeyResponseSource);
-  const koboSources = sources.filter(isKoboResponseSource);
   const platformSources = sources.filter(isPlatformResponseSource);
   const platformProviders = proveedoresDeFuentes(platformSources);
   const linkCollectors = config?.operational_model.link_collectors ?? [];
@@ -8554,7 +8552,7 @@ function AcreditacionPlatformSurveySourcesView({
     const draft = drafts[source.id];
     if (!draft) return;
     setSavingId(source.id);
-    setStatus({ tone: "info", message: `Guardando declaracion de ${acreditacionSurveySourceName(source)}...` });
+    setStatus({ tone: "info", message: `Guardando declaración de ${acreditacionSurveySourceName(source)}...` });
     try {
       const result = await apiMonitoreoSource(sourcePayloadFromExisting(source, {
         label: acreditacionSurveySourceName(source),
@@ -8570,7 +8568,7 @@ function AcreditacionPlatformSurveySourcesView({
         }),
       }));
       onStateChange?.(result.state);
-      setStatus({ tone: "success", message: `${result.source.label || source.id} quedo declarada.` });
+      setStatus({ tone: "success", message: `${result.source.label || source.id} quedó declarada.` });
     } catch (error) {
       setStatus({ tone: "error", message: (error as Error).message });
     } finally {
@@ -8606,9 +8604,9 @@ function AcreditacionPlatformSurveySourcesView({
               <span><Route size={14} /> Cobertura</span>
               <strong>Qué actor usa qué encuesta y por qué canal</strong>
             </header>
-            <div className="mon-acr-survey-declaration-list">
+            <div className="mon-acr-survey-declaration-list" data-qa-geometry-group="fuentes-encuestas-actores" data-qa-geometry-contract="equal">
               {declarationGroups.map((group) => (
-                <article key={normalizeSourceMatch(group.actor) || group.actor}>
+                <article key={normalizeSourceMatch(group.actor) || group.actor} data-qa-geometry-member>
                   <div className="mon-acr-survey-declaration-main">
                     <ContactRound size={14} />
                     <span>
@@ -8617,7 +8615,7 @@ function AcreditacionPlatformSurveySourcesView({
                     </span>
                     <em>{fmt(group.sources.length)} encuesta{group.sources.length === 1 ? "" : "s"}</em>
                   </div>
-                  <div className="mon-acr-survey-declaration-surveys">
+                  <div className="mon-acr-survey-declaration-surveys" data-qa-geometry-capacity="owned" data-qa-geometry-content>
                     {group.sources.slice(0, 3).map((source) => {
                       const channel = channelVisualForValue(drafts[source.id]?.channel || sourceChannelLabel(source), "Canal sin declarar");
                       const Icon = channel.icon;
@@ -8636,7 +8634,7 @@ function AcreditacionPlatformSurveySourcesView({
             </div>
           </div>
         ) : null}
-        <div className="mon-acr-survey-card-grid">
+        <div className="mon-acr-survey-card-grid" data-qa-geometry-group={platformSources.length ? "fuentes-encuestas-tarjetas" : undefined} data-qa-geometry-contract={platformSources.length ? "equal" : undefined}>
           {platformSources.map((source) => {
             const draft = drafts[source.id] ?? {
               actor: sourceActorLabel(source) === "Sin actor" ? "" : sourceActorLabel(source),
@@ -8661,7 +8659,7 @@ function AcreditacionPlatformSurveySourcesView({
             const dirty = draft.actor !== (sourceActorLabel(source) === "Sin actor" ? "" : sourceActorLabel(source))
               || draft.channel !== channelOptionForValue(sourceChannelLabel(source)).value;
             return (
-              <article key={source.id} className={`mon-acr-source-object-card${source.enabled ? "" : " is-disabled"}`}>
+              <article key={source.id} className={`mon-acr-source-object-card${source.enabled ? "" : " is-disabled"}`} data-qa-geometry-member>
                 <div className="mon-acr-source-object-main">
                   <span className="mon-acr-source-object-icon" role="img" aria-label={`Actor ${sourceActor}`}>
                     {actorInitial}
@@ -8711,7 +8709,7 @@ function AcreditacionPlatformSurveySourcesView({
             <div className="mon-acr-empty-state">
               <ListChecks size={18} />
               <strong>Sin encuestas conectadas</strong>
-              <span>Agrega SurveyMonkey o selecciona una encuesta Kobo de plataforma y después asigna cada una al actor correcto.</span>
+              <span>Conecta una fuente de respuestas y asigna la encuesta al actor correspondiente.</span>
             </div>
           ) : null}
         </div>
@@ -8810,7 +8808,7 @@ function AcreditacionCollectorsSourceView({
             Confirmar cambios
           </button>
         </div>
-        <div className="mon-acr-collector-picker">
+        <div className="mon-acr-collector-picker" data-qa-geometry-group={surveySources.length ? "fuentes-encuestas-selector" : undefined} data-qa-geometry-contract={surveySources.length ? "equal" : undefined}>
           {surveySources.map((source) => {
             const count = acreditacionCollectorCountForSource(source, draftCollectors);
             const hasMetadata = Boolean(source.collectors?.length);
@@ -8821,35 +8819,36 @@ function AcreditacionCollectorsSourceView({
                 type="button"
                 className={`${source.id === selectedSource?.id ? "is-active" : ""}${hasMetadata ? "" : " is-missing"}`}
                 onClick={() => setSelectedSourceId(source.id)}
+                data-qa-geometry-member
               >
                 <AcreditacionChannelBadge channel={channel} />
                 <span>
                   <strong>{acreditacionSurveySourceName(source)}</strong>
-                  <em>{sourceActorLabel(source)} · {sourceExternalId(source)}</em>
+                  <em>{sourceActorLabel(source)}</em>
                 </span>
-                <b>{hasMetadata ? `${fmt(count)} recopiladores` : "Sin metadata"}</b>
+                <b>{hasMetadata ? `${fmt(count)} recopiladores` : "Nombres sin actualizar"}</b>
               </button>
             );
           })}
-          {!surveySources.length ? <div className="mon-sm-empty">No hay encuestas SurveyMonkey activas.</div> : null}
+          {!surveySources.length ? <div className="mon-sm-empty">Conecta una fuente de respuestas para elegir la encuesta.</div> : null}
         </div>
         {selectedSource && !selectedHasMetadata ? (
           <div className="mon-acr-metadata-missing">
             <AlertCircle size={16} />
             <div>
-              <strong>Falta metadata real de recopiladores</strong>
-              <span>Ejecuta Actualizar todo para guardar los nombres reales de plataforma. No se muestran nombres inventados desde IDs o alias antiguos.</span>
-              {selectedSavedCount ? <em>{fmt(selectedSavedCount)} relaciones guardadas se usaran en Avance.</em> : null}
+              <strong>Faltan los nombres de recopiladores</strong>
+              <span>Actualiza las fuentes para traer los nombres usados en la plataforma. No se muestran códigos ni alias antiguos como si fueran nombres.</span>
+              {selectedSavedCount ? <em>{fmt(selectedSavedCount)} relaciones guardadas se usarán en Avance.</em> : null}
             </div>
           </div>
         ) : null}
-        <div className="mon-acr-collector-list">
+        <div className="mon-acr-collector-list" data-qa-geometry-group={collectorRows.length ? "fuentes-encuestas-recopiladores" : undefined} data-qa-geometry-contract={collectorRows.length ? "equal" : undefined}>
           {collectorRows.map((row) => {
             const operationalUse = normalizeCollectorUse(row.saved?.operational_use ?? row.operationalUse);
             const useOption = collectorUseOption(operationalUse);
             const UseIcon = useOption.icon;
             return (
-              <article key={row.key} className={`mon-collector-card mon-acr-collector-row is-${row.modality}${row.enabled ? "" : " is-disabled"}`}>
+              <article key={row.key} className={`mon-collector-card mon-acr-collector-row is-${row.modality}${row.enabled ? "" : " is-disabled"}`} data-qa-geometry-member>
                 <div className="mon-collector-title">
                   <span className="mon-collector-use-icon"><UseIcon size={14} /></span>
                   <div>
@@ -8875,7 +8874,6 @@ function AcreditacionCollectorsSourceView({
                     />
                     <span>
                       <strong>{row.enabled ? "Incluido" : "Excluido"}</strong>
-                      <em>{row.enabled ? "Cuenta" : "No cuenta"}</em>
                     </span>
                   </label>
                   <label>
@@ -8906,7 +8904,7 @@ function AcreditacionCollectorsSourceView({
             );
           })}
           {selectedHasMetadata && !collectorRows.length ? (
-            <div className="mon-sm-empty">Esta encuesta no tiene recopiladores persistidos.</div>
+            <div className="mon-sm-empty">Esta encuesta no tiene recopiladores disponibles.</div>
           ) : null}
         </div>
       </section>
@@ -10046,7 +10044,7 @@ function AcreditacionSourcesWorkbench({
   // saltar de pestaña para tomar media decisión.
   if (activeTab === "encuestas") {
     return (
-      <div className="mon-profile-stack">
+      <div className="mon-profile-stack fuentes-encuestas-stack">
         {sourceStatus}
         {isPhoneSourceModel ? phoneSourceContract("kobo") : (
           <>
