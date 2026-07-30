@@ -3563,7 +3563,7 @@
 .mon-channel-select-field .mon-channel-select-control {
   min-height: 32px;
   grid-template-columns: 30px minmax(0, 1fr);
-  border-radius: 9px;
+  border-radius: var(--pulso-radius);
   background:
     linear-gradient(180deg, color-mix(in srgb, #fff 86%, var(--channel-soft, var(--pulso-primary-soft)) 14%), #fff 88%),
     var(--pulso-surface);
@@ -14147,7 +14147,7 @@ button.mon-acr-requirement-metric:active {
   grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--channel-accent, var(--pulso-primary)) 24%, var(--pulso-border));
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background:
     linear-gradient(180deg, color-mix(in srgb, #fff 86%, var(--channel-soft, var(--pulso-primary-soft)) 14%), #fff);
   color: var(--channel-accent, var(--pulso-primary));
@@ -14395,7 +14395,7 @@ button.mon-acr-requirement-metric:active {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--pulso-border);
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: #fff;
   color: var(--pulso-module-monitoring);
 }
@@ -14447,7 +14447,7 @@ button.mon-acr-requirement-metric:active {
   display: grid;
   gap: 1px;
   border: 1px solid var(--pulso-border);
-  border-radius: 8px;
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
   padding: 3px 5px;
 }
