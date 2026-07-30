@@ -1,8 +1,8 @@
 # ADR 0046: Recopiladores prepara el despliegue de recolección
 
-Estado: Propuesto
+Estado: Aceptado
 
-Fecha: 2026-07-27
+Fecha: 2026-07-27; aceptado el 2026-07-29
 
 ## Contexto
 
@@ -96,8 +96,14 @@ Se adoptan estas reglas:
     código `grid` del PDF cambiando únicamente el device a PNG. No se rasteriza
     el PDF ni se depende de ImageMagick.
 
-Hasta que el ADR sea aceptado e implementado, ADR 0019 conserva la autoridad
-actual de Monitoreo sobre agenda y links/QR de aulas.
+La aceptación no mueve la autoridad por sí sola. Hasta que esté implementado el
+handoff idempotente (unidad 7 del plan), **ADR 0019 conserva la autoridad actual
+de Monitoreo sobre agenda y links/QR de aulas**.
+
+La revisión parcial de ADR 0019 que este ADR exige se redacta al cerrar esa
+unidad, no antes: recién ahí se sabe qué parte del contrato de aulas v1 queda en
+pie y qué la reemplaza. Redactarla ahora sería congelar un reparto que la
+implementación todavía puede corregir.
 
 ## Consecuencias
 

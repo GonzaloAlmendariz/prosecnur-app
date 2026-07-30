@@ -103,6 +103,15 @@ Costos y riesgos:
 
 ## Notas
 
+**Revisión parcial pendiente.** El [ADR 0046](0046-recopiladores-despliegue-recoleccion.md),
+aceptado el 2026-07-29, traslada a Recopiladores la preparación de accesos,
+links/QR y materiales de aulas. Este ADR **conserva su autoridad completa hasta
+que el handoff idempotente esté implementado**; a partir de ahí, Monitoreo
+consume el deployment en lectura y sigue gobernando agenda viva,
+reprogramaciones, reemplazos, sincronización, respuestas, brechas, calidad y
+cierre. La revisión se redacta al cerrar esa unidad; hasta entonces, lo que este
+ADR dice sobre agenda y links/QR de aulas sigue vigente.
+
 Relacionado con [ADR 0010](0010-monitoreo-centro-control-operativo-sheets.md),
 [ADR 0011](0011-cache-persistida-mapas-monitoreo-territorial.md) y
 [ADR 0016](0016-monitoreo-solo-google-sheets.md).
