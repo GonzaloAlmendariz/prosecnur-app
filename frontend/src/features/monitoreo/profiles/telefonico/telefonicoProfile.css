@@ -5338,3 +5338,41 @@
   text-overflow: clip;
   overflow-wrap: anywhere;
 }
+
+/* ── Modelo › Cuotas: la cadena de decisión deja de comerse los nombres ────
+ *
+ * Los cinco pasos son `flex: 1 1 0` —cinco columnas iguales de 100 px— y el
+ * texto va con `nowrap` + `overflow: hidden`. «Consentimiento informado» pide
+ * 216 px y tiene 82: se perdía más de la mitad y en pantalla se leía
+ * «Consen…». No es una etiqueta larga que se pueda abreviar, es el nombre del
+ * filtro que define la efectiva: lo que la cadena existe para decir.
+ *
+ * El reparto pasa a `flex: 1 1 auto`, así que cada paso toma el ancho que pide
+ * su contenido —198, 71, 67, 54 y 108 px— en vez de cinco columnas iguales, y
+ * la cadena sigue cabiendo sin desbordar.
+ *
+ * Sobre la guionación, que costó tres intentos medirla bien: con
+ * `overflow-wrap: anywhere` el texto se parte a media palabra y salía
+ * «Consenti/miento/informad/o», peor que la elipsis. Sin guionar, «filtradas»
+ * pide 43 px en 36 y vuelve a recortarse. Con `hyphens: auto` —y el documento
+ * declara `lang="es"`— solo se guiona donde hace falta: «Consentimiento
+ * informado» queda entero en dos líneas y las fichas estrechas parten con
+ * guion, que se lee. Un recorte no.
+ *
+ * La regla que recortaba vive en `monitoreo.css`, congelado y compartido por
+ * los cuatro modos, así que se corrige scopeada en vez de tocarla allí. */
+.is-telefonico-profile .mon-phone-quota-decision-path span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.is-telefonico-profile .mon-phone-quota-decision-path strong,
+.is-telefonico-profile .mon-phone-quota-decision-path small {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: auto;
+}
