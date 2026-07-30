@@ -1,0 +1,182 @@
+/* Modelo operativo de acreditación: una superficie de metas, sin afectar
+ * Distribución, Cronograma ni el modelo telefónico que comparten componente. */
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-panel {
+  gap: 10px;
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: none;
+  padding: 10px 12px 12px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-map {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 8px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-map .mon-actor-dashboard-tile {
+  height: 100%;
+  min-height: 48px;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: none;
+  padding: 9px 12px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster {
+  grid-template-columns: minmax(230px, 0.6fr) minmax(0, 1.4fr);
+  gap: 12px;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  padding: 8px 10px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster > header {
+  gap: 3px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster__items {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 58px;
+  gap: 6px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster__items > span {
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: 1px;
+  border-radius: var(--pulso-radius-card);
+  padding: 6px 8px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster__items strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster__items em {
+  white-space: normal;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster__items small {
+  grid-column: 1;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-actor-grid {
+  grid-auto-rows: 352px;
+  gap: 8px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-actor {
+  height: 100%;
+  grid-template-rows: auto auto auto auto minmax(92px, 1fr);
+  gap: 8px;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: none;
+  padding: 12px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-actor:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-actor-head {
+  padding: 0 0 7px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-actor-metrics {
+  align-items: stretch;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-actor-metrics .mon-actor-flow-node {
+  height: 100%;
+  min-height: 48px;
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: none;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-minimum-editor {
+  gap: 6px;
+  border: 0;
+  border-top: 1px solid var(--pulso-border);
+  border-bottom: 1px solid var(--pulso-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 7px 0;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-minimum-editor input,
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-minimum-editor button {
+  min-height: var(--pulso-control-height-md);
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-channel-strip span {
+  min-height: 20px;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px 7px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-source-list {
+  min-height: 92px;
+  max-height: 184px;
+  gap: 12px;
+  overflow: auto;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-source-group {
+  gap: 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  padding: 0 0 0 8px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-source-group::before {
+  width: 2px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-source-group > header {
+  padding: 0 0 5px 3px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-source-item {
+  min-height: 34px;
+  border: 0;
+  border-top: 1px solid var(--pulso-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 5px 4px;
+}
+
+.mon-stage--acr-model.is-accreditation-structure .mon-acr-model-source-empty {
+  grid-column: 1 / -1;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  margin: 0;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .mon-stage--acr-model.is-accreditation-structure .mon-acr-model-roster {
+    grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.28fr);
+  }
+}

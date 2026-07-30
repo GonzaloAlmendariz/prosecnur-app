@@ -98,6 +98,9 @@ import {
 import "../../monitoreo.css";
 import "../../shell/monitoreoShell.css";
 import "./territorialProfile.css";
+// Después del perfil a propósito: alinea radios que ese archivo declara antes,
+// y con igual especificidad gana el orden.
+import "./escalaDeSuperficies.css";
 
 const TERRITORIAL_FIELD_SCOPES: MonitoreoReportScope[] = [
   "source",
