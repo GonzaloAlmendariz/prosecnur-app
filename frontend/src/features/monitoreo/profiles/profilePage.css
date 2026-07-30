@@ -10948,9 +10948,9 @@
 .mon-acr-subsanacion-list button small,
 .mon-acr-subsanacion-key {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .mon-acr-subsanacion-list button strong {

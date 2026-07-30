@@ -17,10 +17,10 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | acreditación | Modelo operativo › Distribución | hecho | contrato comparaba cabecera 44 con rejilla 655 (Δ611) → 4 tarjetas intrínsecas; balance 4×1/2×2; KPI ajenos se retiran; actores recuperan scroll exterior y nombres completos. C5 funcional diferido: una declaración sin catálogo aún se silencia | producto: `943ffa08` |
 | acreditación | Modelo operativo › Cronograma | hecho | resumen heredado de metas retirado; plan y ejecución pasan a dos regiones; 4 KPI 2×2 y 5 controles quedan auditables; “Fuera/Dentro del plan” hace explícito el desvío y el vacío sin corte deja de silenciarse; un solo scroll exterior | producto: `cc43dcc9` |
 | acreditación | Modelo operativo › Resumen | pendiente |  |  |
-| acreditación | Consultas › Registros en plataforma | pendiente |  |  |
-| acreditación | Consultas › Estado de la base | pendiente |  |  |
-| acreditación | Consultas › Cruces efectivos | pendiente |  |  |
-| acreditación | Consultas › Subsanación | pendiente |  |  |
+| acreditación | Consultas › Registros en plataforma | auditada | 0 solapes, 0 contenido cortado, 1 recorte. **301 botones en radio 8** pendientes de escala | — |
+| acreditación | Consultas › Estado de la base | auditada | limpia de recortes y solapes; **519 botones en radio 8** pendientes | — |
+| acreditación | Consultas › Cruces efectivos | auditada | 0 solapes. **45 recortes de «Cruzó por llave» dentro de tabla** (2 px cada uno): entra en la decisión de ancho de columna que ya está abierta para territorial | — |
+| acreditación | Consultas › Subsanación | hecho | **109 rótulos recortados**: «Estudiantes · 22 julio · Enlace QR Estudiant…» pedía 242 px en 218. No está en tabla, así que envuelve; las filas quedan uniformes en 81 px. Radios 7 y 9 pendientes | este commit |
 | acreditación | Monitoreo telefónico › Resumen | pendiente |  |  |
 | acreditación | Monitoreo telefónico › Estados | pendiente |  |  |
 | acreditación | Monitoreo telefónico › Día | pendiente |  |  |
