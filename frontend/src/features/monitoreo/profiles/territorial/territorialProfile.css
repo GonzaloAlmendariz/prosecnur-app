@@ -17242,3 +17242,79 @@
 .mon-territorial-route-context-family-row {
   border-radius: var(--pulso-radius);
 }
+
+/* ── Validación › Geolocalización ──────────────────────────────────────────
+ * Ocho radios en una pestaña: 0, 7, 8, 9, 10, 12, 14 y 16. El 7 no aparece en
+ * ninguna otra superficie de la app. */
+.mon-territorial-route-map-viewport {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-geo-case-scroll,
+.mon-territorial-geo-district-trigger,
+.mon-territorial-geo-district-risk {
+  border-radius: var(--pulso-radius);
+}
+
+.mon-territorial-spatial-empty {
+  border-radius: var(--pulso-radius-card);
+}
+
+/* ── Validación › Duración de tiempo ───────────────────────────────────────
+ * Cuatro escalas y once recortes. Los recortes son de esta superficie: se
+ * miden aparte porque conviven con cuatro contenedores de scroll. */
+.mon-duration-category-grid article,
+.mon-duration-daily-chart {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-duration-overview dl span,
+.mon-duration-rule-row span,
+.mon-duration-review-scroll,
+.mon-duration-enumerator-scroll {
+  border-radius: var(--pulso-radius);
+}
+
+/* «86 N · 0 C · 1 MC» se recortaba en once filas del gráfico diario. Es el
+ * conteo del día —dato operativo— y no está en una tabla, así que envolver no
+ * redistribuye ninguna columna. */
+.mon-duration-daily-value > * {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+/* ── Validación › Cuotas ───────────────────────────────────────────────────
+ * Toda la superficie en radio 8, sin una sola excepción: se construyó entera
+ * con una escala propia. */
+.mon-territorial-quota-consistency,
+.mon-territorial-quota-block-card,
+.mon-territorial-quota-observed {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-quota-margin-group,
+.mon-territorial-quota-layer-strip > span,
+.mon-territorial-quota-observed-scroll {
+  border-radius: var(--pulso-radius);
+}
+
+/* 156 datos recortados en esta sola pestaña, el récord del barrido: «8
+ * encuestas por comple…», «Resta de Hombre · Muje…». Son las razones de cada
+ * brecha de cuota —lo que el usuario viene a leer— y ninguno está en una tabla,
+ * así que envolver no redistribuye columnas. */
+.mon-territorial-quota-observed [class*="is-real-missing"] > *,
+.mon-territorial-quota-observed [class*="is-reassigned"] > *,
+.mon-territorial-quota-observed [class*="is-subsanado"] > * {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+.mon-territorial-quota-commandbar {
+  border-radius: var(--pulso-radius-card);
+}

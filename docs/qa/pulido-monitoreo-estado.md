@@ -58,10 +58,10 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Fuente › Historial | hecho | ya estaba conforme: 10/14, sin recortes. Se verificó, no se tocó | — |
 | territorial | Modelo › Cobertura | hecho | 5 radios (10/11/12/13/14) → 10/14. **6 scrolls anidados y 7 recortes** quedan abiertos: es la superficie con más scroll del modo | este commit |
 | territorial | Modelo › Manzanas | hecho | **siete radios en una pestaña** (0/9/10/11/12/13/14), récord del barrido → 0/10/14. Las 150 versalitas que quedan son los chips «UMP TITULAR» de cada fila: badge, que es patrón de la casa. 3 scrolls anidados abiertos | este commit |
-| territorial | Validación › Geolocalización | pendiente |  |  |
-| territorial | Validación › Reconciliación UMP | pendiente |  |  |
-| territorial | Validación › Duración de tiempo | pendiente |  |  |
-| territorial | Validación › Cuotas | pendiente |  |  |
+| territorial | Validación › Geolocalización | hecho | **ocho radios** (0/7/8/9/10/12/14/16); el 7 no aparece en ninguna otra superficie de la app. Queda en 0/10/14/16 | este commit |
+| territorial | Validación › Reconciliación UMP | hecho | solo el vacío espacial fuera de escala (9 → 14) | este commit |
+| territorial | Validación › Duración de tiempo | **parcial** | radios 8/9 → 0/10/14. **11 recortes siguen abiertos**: «86 N · 0 C · 1 MC» en el gráfico diario; la regla escrita no aplicó y falta identificar cuál gana | este commit |
+| territorial | Validación › Cuotas | hecho | toda la superficie en radio 8 sin excepción —escala propia de principio a fin— y **156 recortes, el récord del barrido**: «8 encuestas por comple…», «Resta de Hombre · Muje…», que son las razones de cada brecha. Ninguno en tabla, así que envolver fue seguro: 156 → 0 | este commit |
 | territorial | Validación › Anulación | pendiente |  |  |
 | territorial | Consultas internas › Registro | pendiente |  |  |
 | territorial | Consultas internas › GPS con señal | pendiente |  |  |
