@@ -119,8 +119,8 @@ Tipografía, medida en las referencias:
 ### 3b. El detector, y por qué él mismo se audita
 
 Medir a ojo no escala y medir mal es peor que no medir: un informe con cifras
-infladas se defiende solo. Este detector lleva ya **diez** familias de falso
-positivo, y las diez salieron de contrastar la medición contra la pantalla —en
+infladas se defiende solo. Este detector lleva ya **once** familias de falso
+positivo, y las once salieron de contrastar la medición contra la pantalla —en
 un sentido o en el otro—. Las seis de geometría van excluidas abajo y **no se
 quitan**; las tres de composición —jerarquía sancionada, columna única y zonas
 de toolbar centradas— están anotadas en §4 junto a su criterio:
@@ -141,7 +141,11 @@ de toolbar centradas— están anotadas en §4 junto a su criterio:
    ascendente + descendente del font, no el glifo. Con `line-height: 1` esa
    caja desborda casi siempre —en el embudo de telefónico daba 18 contra 16—
    y las cifras se pintan enteras. Se mide la tinta con `measureText`.
-7. **El orden del DOM no es el orden visual**: con `flex-wrap`, `order`,
+7. **Widgets de divulgación colapsados**: un acordeón o un `details` cerrado
+   oculta su contenido con `overflow`, y eso es su función. En Manzanas daba
+   149 «contenidos cortados» que eran filas cerradas. Se comprueba si el
+   elemento tiene estado de apertura antes de contarlo.
+8. **El orden del DOM no es el orden visual**: con `flex-wrap`, `order`,
    `row-reverse` o `margin-left: auto`, el hermano siguiente puede pintarse a
    la izquierda del anterior. Comparar «derecho del uno contra izquierdo del
    otro» daba 830 px de solape entre cajas que no se tocan. Se intersecan
