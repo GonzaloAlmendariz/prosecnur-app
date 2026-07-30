@@ -40,6 +40,33 @@
       "autoPort": true
     },
     {
+      "name": "Frontend (dev vs 8801)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8801"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "Backend acnur_pdm (8801)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8801",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "outputs/reference-runs/acnur_pdm-20260730-151412/acnur_pdm.pulso"
+      },
+      "port": 8801
+    },
+    {
       "name": "Backend (Plumber API)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
@@ -85,6 +112,19 @@
       },
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "Backend acrconta (8799)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8799",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "outputs/reference-runs/acrconta-20260730-141424/acrconta.pulso"
+      },
+      "port": 8799
     }
   ]
 }
