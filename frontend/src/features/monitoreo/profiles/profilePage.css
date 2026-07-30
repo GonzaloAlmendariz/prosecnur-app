@@ -15659,15 +15659,15 @@ button.mon-acr-requirement-metric:active {
 .mon-quality-alert-stats em,
 .mon-quality-alert-stats small {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-style: normal;
   font-weight: var(--pulso-weight-heavy);
   line-height: 1.1;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .mon-quality-alert-stats small {
