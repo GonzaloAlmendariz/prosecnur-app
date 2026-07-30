@@ -319,7 +319,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 7px;
+  gap: 8px;
 }
 
 /* Cada pestaña reparte su rejilla según cuántas fuentes le toquen: dos hojas en
@@ -465,7 +465,7 @@
   --phone-kobo-portability: var(--pulso-info-fg, #2563eb);
   display: flex;
   align-items: flex-start;
-  gap: 9px;
+  gap: 10px;
   padding: 9px 11px;
   border: 1px solid color-mix(in srgb, var(--phone-kobo-portability) 22%, var(--pulso-border));
   border-radius: 8px;
@@ -514,7 +514,7 @@
 .is-telefonico-profile .mon-kobo-source-actions {
   min-width: 0;
   display: flex;
-  gap: 7px;
+  gap: 8px;
   align-items: end;
   justify-content: flex-end;
 }
@@ -1252,7 +1252,7 @@
   height: 100%;
   grid-template-rows: auto auto minmax(0, 1fr);
   align-content: stretch;
-  gap: 7px;
+  gap: 8px;
   overflow: hidden;
   padding: 9px;
 }
@@ -1269,7 +1269,7 @@
   grid-auto-rows: minmax(32px, 1fr);
   align-content: stretch;
   align-items: stretch;
-  gap: 5px;
+  gap: 6px;
   overflow: auto;
   padding-bottom: 2px;
   overscroll-behavior: contain;
@@ -1459,7 +1459,7 @@
 
 .is-telefonico-profile .mon-phone-advance-rule-steps {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 5px;
+  gap: 6px;
 }
 
 .is-telefonico-profile .mon-phone-advance-rule-steps button {
@@ -1899,7 +1899,7 @@
   --phone-time-case-tone: var(--pulso-success-fg);
   min-width: 0;
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .is-telefonico-profile .mon-phone-time-cases > section.is-warning {
@@ -2006,7 +2006,7 @@
 .is-telefonico-profile .mon-phone-time-case-status {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   justify-self: start;
   color: var(--phone-time-case);
   font-size: 10px;
@@ -2065,7 +2065,7 @@
 .is-telefonico-profile .mon-phone-time-control-head span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .is-telefonico-profile .mon-phone-time-control-head small {
@@ -2106,7 +2106,7 @@
 }
 
 .is-telefonico-profile .mon-phone-time-guide {
-  gap: 5px;
+  gap: 6px;
 }
 
 .is-telefonico-profile .mon-phone-time-guide span {
@@ -2123,7 +2123,7 @@
 }
 
 .is-telefonico-profile .mon-phone-time-cases {
-  gap: 7px;
+  gap: 8px;
   border: 1px solid color-mix(in srgb, var(--phone-time-accent, var(--pulso-success-fg)) 16%, var(--pulso-border));
   border-radius: 10px;
   background:
@@ -2201,12 +2201,12 @@
 }
 
 .is-telefonico-profile .mon-phone-time-case-list {
-  gap: 3px;
+  gap: 4px;
 }
 
 .is-telefonico-profile .mon-phone-time-case-row {
   grid-template-columns: minmax(128px, 0.82fr) minmax(96px, 0.58fr) minmax(72px, 0.38fr) minmax(82px, 0.42fr) minmax(148px, 0.88fr) minmax(150px, 1fr);
-  gap: 7px;
+  gap: 8px;
   border-radius: 7px;
   padding: 5px 7px;
 }
@@ -2271,7 +2271,7 @@
 .is-telefonico-profile .mon-phone-model-reading-rule {
   display: grid;
   align-content: center;
-  gap: 5px;
+  gap: 6px;
   padding: 10px;
 }
 
@@ -2529,7 +2529,7 @@
   --field-schedule-card: #64748b;
   display: grid;
   align-content: center;
-  gap: 3px;
+  gap: 4px;
   border-color: color-mix(in srgb, var(--field-schedule-card) 14%, var(--pulso-border));
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, var(--field-schedule-card) 5%, #fff)),
@@ -2601,7 +2601,7 @@
 .is-telefonico-profile .mon-field-schedule-evidence-summary {
   display: grid;
   align-content: stretch;
-  gap: 7px;
+  gap: 8px;
   padding: 10px;
 }
 
@@ -2635,7 +2635,7 @@
 .is-telefonico-profile .mon-field-schedule-evidence-summary div {
   min-width: 0;
   display: grid;
-  gap: 5px;
+  gap: 6px;
   align-content: start;
 }
 
@@ -2770,7 +2770,7 @@
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm-row .mon-phone-quota-rhythm-card-head {
@@ -2962,7 +2962,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   border: 1px solid color-mix(in srgb, var(--phone-consulted-accent) 18%, var(--pulso-border));
   border-radius: 8px;
   background: color-mix(in srgb, var(--phone-consulted-accent) 6%, #fff);
@@ -3014,7 +3014,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
 }
 
 .is-telefonico-profile .mon-phone-consulted-filters .mon-acr-base-search-pill {
@@ -3130,7 +3130,7 @@
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 7px;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
@@ -3551,7 +3551,7 @@
   }
 
   .is-telefonico-profile .mon-phone-quota-rhythm-row-summary {
-    gap: 5px;
+    gap: 6px;
   }
 
   .is-telefonico-profile .mon-phone-quota-rhythm-progress {
@@ -3614,7 +3614,7 @@
   }
 
   .is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-source-contract {
-    gap: 7px;
+    gap: 8px;
     padding: 8px;
   }
 
@@ -3626,7 +3626,7 @@
 
   .is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-kobo-dossier,
   .is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-kobo-decision-stack {
-    gap: 5px;
+    gap: 6px;
   }
 
   .is-telefonico-profile .mon-phone-source-tab.is-kobo .mon-phone-kobo-decision-stack span {
@@ -3635,7 +3635,7 @@
 
   .is-telefonico-profile .mon-acr-crossing-grid:has(.mon-phone-crossing-summary) {
     grid-template-columns: minmax(0, 1fr) minmax(260px, 0.3fr);
-    gap: 7px;
+    gap: 8px;
   }
 
   .is-telefonico-profile .mon-acr-crossing-grid:has(.mon-phone-crossing-summary) .mon-query-section-head small {
@@ -3644,7 +3644,7 @@
 
   .is-telefonico-profile .mon-phone-crossing-summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 5px;
+    gap: 6px;
     margin-bottom: 4px;
   }
 
@@ -3723,7 +3723,7 @@
   }
 
   .is-telefonico-profile .mon-phone-time-hero-kpis {
-    gap: 5px;
+    gap: 6px;
   }
 
   .is-telefonico-profile .mon-phone-time-hero-kpis span {
@@ -3737,7 +3737,7 @@
   }
 
   .is-telefonico-profile .mon-phone-time-control {
-    gap: 5px;
+    gap: 6px;
     padding: 6px;
   }
 
@@ -3746,7 +3746,7 @@
   }
 
   .is-telefonico-profile .mon-phone-time-buckets {
-    gap: 5px;
+    gap: 6px;
   }
 
   .is-telefonico-profile .mon-phone-time-buckets article {
@@ -3755,7 +3755,7 @@
   }
 
   .is-telefonico-profile .mon-phone-time-cases {
-    gap: 5px;
+    gap: 6px;
     padding: 5px;
   }
 
@@ -3772,7 +3772,7 @@
   }
 
   .is-telefonico-profile .mon-phone-time-case-row {
-    gap: 5px;
+    gap: 6px;
     padding: 4px 6px;
   }
 }
@@ -5313,6 +5313,25 @@
  * el rótulo de una métrica. No está en tabla, así que envolver no redistribuye
  * ninguna columna. */
 .is-telefonico-profile .mon-phone-caveats-empty-metrics em {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+/* ── Llamadas › Alertas: el rótulo de la métrica deja de elidirse ──────────
+ *
+ * «Casos impactados» pedía 110 px y tenía 104: seis de elipsis en el rótulo de
+ * un KPI. La regla que lo recorta vive en `profilePage.css`, que está congelado
+ * y lo comparten los cuatro modos, así que el arreglo se scopea aquí en vez de
+ * tocarla —cambiarla allí alcanzaría a acreditación, territorial y aulas, que
+ * no se han mirado con este criterio—.
+ *
+ * Envolver es seguro: las tres fichas viven en una rejilla de tres columnas
+ * iguales que estira la fila, así que suben las tres a la vez y no se
+ * desalinean. Comprobado midiendo el contenedor, no a ojo. */
+.is-telefonico-profile .mon-quality-alert-stats em {
   min-width: 0;
   overflow: visible;
   white-space: normal;
