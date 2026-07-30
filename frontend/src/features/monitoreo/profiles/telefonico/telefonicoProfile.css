@@ -44,6 +44,135 @@
   border-color: color-mix(in srgb, var(--pulso-success-fg) 26%, var(--pulso-border));
 }
 
+/* La única puerta al cableado de la pieza.
+ *
+ * Reposada y al pie: cambiar la conexión de una hoja no es la acción frecuente
+ * de esta pantalla —se hace una vez por estudio— y competir con el volumen de
+ * la tarjeta la haría parecer el trabajo principal. Sube de tono al pasar por
+ * encima, que es cuando alguien la está buscando. */
+.is-telefonico-profile .mon-phone-source-slot-cambiar {
+  /* La tarjeta es un grid, así que la alineación horizontal es `justify-self`:
+     con `align-self` la acción se estiraba a todo el ancho y pesaba como si
+     fuera lo principal de la tarjeta. */
+  justify-self: start;
+  align-self: end;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 82%, transparent);
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.is-telefonico-profile .mon-phone-source-slot-cambiar:hover {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 42%, var(--pulso-border));
+  background: var(--pulso-surface);
+  color: var(--pulso-module-monitoring);
+}
+
+.is-telefonico-profile .mon-phone-source-slot-cambiar:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pulso-module-monitoring) 60%, transparent);
+  outline-offset: 2px;
+}
+
+/* ── Filtro de efectiva con varios criterios ───────────────────────────────
+ *
+ * Cada fila es una condición y se exigen todas. La conjunción va escrita —
+ * «Cuenta si … y … y …»— porque una lista de filas sin operador se lee igual
+ * de bien como alternativas, y esa lectura invertiría el significado del
+ * filtro sin que nada se vea roto.
+ *
+ * La hoja base (`profilePage.css`) está congelada a crecimiento: el grid de la
+ * fila se redefine aquí para hacer sitio a la conjunción y a la acción de
+ * quitar. */
+.is-telefonico-profile .mon-phone-filter-criterios {
+  display: grid;
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-filter-criterios .mon-platform-rule-row--filter {
+  grid-template-columns: 56px minmax(200px, 1.2fr) minmax(150px, 0.8fr) 30px;
+  align-items: end;
+  gap: 10px;
+}
+
+.is-telefonico-profile .mon-phone-filter-conjuncion {
+  padding-bottom: 8px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.03em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.is-telefonico-profile .mon-phone-filter-quitar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 30px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pulso-text-soft);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.is-telefonico-profile .mon-phone-filter-quitar:hover {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg, #a61d4f) 32%, var(--pulso-border));
+  background: var(--pulso-surface-2);
+  color: var(--pulso-danger-fg, #a61d4f);
+}
+
+.is-telefonico-profile .mon-phone-filter-agregar {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  /* Alineado con la primera columna de campos, no con la conjunción: es una
+     acción sobre la lista, no otra condición. */
+  margin-left: 66px;
+  border: 1px dashed color-mix(in srgb, var(--pulso-border) 88%, transparent);
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.is-telefonico-profile .mon-phone-filter-agregar:hover {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 42%, var(--pulso-border));
+  background: var(--pulso-surface-2);
+  color: var(--pulso-module-monitoring);
+}
+
+@media (max-width: 1100px) {
+  .is-telefonico-profile .mon-phone-filter-criterios .mon-platform-rule-row--filter {
+    grid-template-columns: 44px minmax(0, 1fr) 30px;
+  }
+
+  /* Con dos columnas, el valor baja debajo de la pregunta y la conjunción
+     conserva su casilla: perder el «y» al estrechar cambiaría lo que la lista
+     significa. */
+  .is-telefonico-profile .mon-phone-filter-criterios .mon-platform-rule-row--filter > label:nth-of-type(2) {
+    grid-column: 2 / 3;
+  }
+
+  .is-telefonico-profile .mon-phone-filter-agregar {
+    margin-left: 54px;
+  }
+}
+
 /* Las celdas pierden su caja.
  *
  * Con borde propio dentro de una tarjeta que ya tiene borde, la pestaña
@@ -602,10 +731,84 @@
   overflow: hidden;
 }
 
+/* Dos mitades a todo el ancho.
+ *
+ * Eran tres columnas y la tercera —el embudo— es una cadena de tres cifras que
+ * no necesita ancho; se lo quitaba a las dos barras apiladas, que sí. El embudo
+ * subió a franja propia y aquí quedan las dos lecturas que se comparan entre
+ * sí: cuánto de la base se barrió, y en qué estado quedó. */
 .is-telefonico-profile .mon-phone-overview-grid {
   min-height: 0;
-  grid-template-columns: minmax(0, 0.96fr) minmax(420px, 1.04fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
+}
+
+/* ── El embudo, en franja ──────────────────────────────────────────────────
+ *
+ * Los tres pasos en fila y las bajas entre ellos, como una cadena que se lee de
+ * izquierda a derecha. En columna ocupaba el alto de un panel para decir tres
+ * números. */
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel {
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel > header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding-right: 18px;
+  border-right: 1px solid color-mix(in srgb, var(--pulso-border) 62%, transparent);
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel > ol {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel > ol > li {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+/* La baja va encima de la cifra a la que lleva, no en su propio renglón: es la
+   resta que explica el salto entre un paso y el siguiente. */
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel .mon-tel-funnel-drop {
+  padding: 0;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel .mon-tel-funnel-step {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "cifra rotulo" "barra barra";
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel .mon-tel-funnel-step > strong {
+  grid-area: cifra;
+  font-size: 19px;
+  font-weight: var(--pulso-weight-black);
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel .mon-tel-funnel-step > em {
+  grid-area: rotulo;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-layout--summary > .mon-tel-funnel .mon-tel-funnel-step > i {
+  grid-area: barra;
+  height: 5px;
+  margin-top: 3px;
 }
 
 .is-telefonico-profile .mon-phone-overview-grid > .mon-phone-storage {
@@ -1088,16 +1291,25 @@
   font-size: 19px;
 }
 
+/* Una lectura por fila, a todo el ancho.
+ *
+ * Eran tres columnas de ~330 px compartiendo una franja, y ninguna cabía: el
+ * universo apretaba su barra apilada y sus cuatro cifras, el contexto metía dos
+ * tarjetas más el apilado diario en el mismo hueco, y la tercera repetía la
+ * pestaña Cuotas recortada. Retirada esa tercera, las dos que quedan responden
+ * preguntas distintas —de qué está hecho el universo, y cuánto se separan Kobo
+ * y barrido— y cada una tiene sitio para contestarla entera. */
 .is-telefonico-profile .mon-phone-advance-grid {
-  height: 100%;
-  max-height: 100%;
+  height: auto;
+  max-height: none;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(330px, 0.78fr) minmax(300px, 0.64fr);
-  grid-template-rows: minmax(300px, 0.92fr) minmax(300px, 1.08fr);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
   grid-template-areas:
-    "daily daily daily"
-    "storage context focus";
+    "daily"
+    "storage"
+    "context";
   align-items: stretch;
   align-content: start;
   gap: 8px;
@@ -1118,24 +1330,69 @@
 
 .is-telefonico-profile .mon-phone-advance-grid > .mon-phone-advance-parallel {
   grid-area: context;
-  overflow: hidden;
+  height: auto;
+  overflow: visible;
 }
 
+/* Con fila propia miden su contenido: el `100%` y el scroll interno eran para
+   caber en una franja compartida que ya no existe, y un bloque que scrollea
+   dentro de otro que scrollea es la trampa de la jaula de scroll. */
 .is-telefonico-profile .mon-phone-advance-grid > .mon-advance-storage {
   grid-area: storage;
-  height: 100%;
-  overflow: auto;
+  height: auto;
+  overflow: visible;
 }
 
-.is-telefonico-profile .mon-phone-advance-grid > .mon-advance-focus {
-  grid-area: focus;
-  height: 100%;
+/* La franja de KPI acomoda los que haya.
+ *
+ * Eran cuatro columnas fijas de 135 px. Con las cifras de cierre —que llegaron
+ * desde Llamadas— son ocho, y en 135 px se truncaban rótulo y valor a la vez
+ * («PROYECC… 3 D…»). Con `auto-fit` cada casilla toma el ancho que necesita y
+ * el resto envuelve. */
+.is-telefonico-profile .mon-phone-quota-rhythm-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
 }
 
+/* El panel de Avance deja de ser una cápsula del alto del viewport.
+ *
+ * Medido: el panel imponía 727 px al grid, y como sus hijos llevan
+ * `min-height: 0`, las tres filas se comprimían a partes iguales (239/239/233)
+ * en vez de medir su contenido —el ritmo pedía 248 y le recortaban las barras—.
+ * Es la misma cápsula heredada de Acreditación que el resto del modo ya soltó:
+ * el contenido crece y el scroll pertenece al workbench. */
+.is-telefonico-profile .mon-workbench-content--avance > .mon-phone-advance-summary {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  flex: 0 0 auto;
+  grid-template-rows: auto;
+  align-content: start;
+}
+
+/* El ritmo mide su contenido.
+ *
+ * `minmax(0, 1fr)` repartía el alto de una franja fija; desde que la fila es
+ * propia y crece, ese `1fr` no tiene nada que repartir y colapsaba por debajo
+ * del gráfico —el board quedaba en 134 px sobre un Plotly de 170 y las barras
+ * salían cortadas por arriba—. */
 .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general {
   min-height: 0;
-  align-content: stretch;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: auto;
+  align-content: start;
+  grid-template-rows: auto auto auto;
+}
+
+/* Y el gráfico cabe entero.
+ *
+ * El contenedor del chart tiene `overflow: hidden` y `min-height: 0`: pensado
+ * para encoger dentro de una franja fija. Con la fila creciendo, encogía a
+ * 112 px sobre un Plotly de 170 y le cortaba las barras por arriba —el gráfico
+ * mentía sobre su propia escala—. */
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general .mon-advance-daily-board,
+.is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general .mon-advance-line-chart {
+  min-height: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .is-telefonico-profile .mon-phone-advance-summary .mon-advance-daily-mini.is-general > header strong {
@@ -1399,10 +1656,257 @@
 .is-telefonico-profile .mon-phone-quota-rhythm-grid {
   min-height: 0;
   max-height: none;
-  overflow: auto;
+  /* Scroll SOLO vertical.
+   *
+   * Con `overflow: auto` la sección se desbordaba a lo ancho: Plotly fija el
+   * ancho del SVG en píxeles al primer render y no lo recalcula cuando el grid
+   * se estrecha, así que un gráfico de 808 px empujaba la fila entera fuera del
+   * panel. La lista de cuotas crece hacia abajo, nunca a los lados. */
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-right: 2px;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+/* La columna del gráfico contiene lo suyo aunque su contenido mida de más. */
+.is-telefonico-profile .mon-phone-quota-rhythm-row-chart {
+  min-width: 0;
+  overflow: hidden;
+  /* Dos piezas apiladas —ritmo y estados— que miden lo que miden. Sin esto la
+     columna repartía su alto entre las dos y la de arriba se estiraba. */
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 8px;
+}
+
+/* ── Barrido del segmento, en vertical ─────────────────────────────────────
+ *
+ * Los tres tramos suman el universo de la cuota: lo logrado, lo trabajado sin
+ * lograrlo y lo que queda por llamar. Es lo que le da sentido a «faltan 25»,
+ * que solo con la cifra se lee igual con la base entera por delante que con la
+ * base agotada.
+ *
+ * Vertical por dos razones. La primera es el sitio: la fila creció cuando el
+ * apilado de estados pasó a colgar del ritmo, y esta columna se quedó con un
+ * hueco del alto de un gráfico. La segunda es que la altura de cada tramo pone
+ * su cifra a su lado —barra y etiquetas comparten las mismas filas del grid—,
+ * así que no hay que emparejar por color como en una leyenda aparte.
+ *
+ * Los tramos se declaran en `fr` desde el componente (`--tramo-*`) y no en
+ * porcentaje: `fr` reparte el alto REAL disponible, así que la barra crece con
+ * la fila sin que nadie tenga que calcular píxeles. */
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido {
+  /* `flex-basis: 0` es la pieza clave: con `auto`, el alto que pide el grid de
+     dentro entra en el cálculo del contenedor y lo infla —medido aquí, 829 px
+     que estiraban la fila entera a 970 y empujaban la segunda cuota fuera de la
+     pantalla—. Con base cero la barra no aporta altura propia salvo su piso, y
+     el reparto lo decide el flex. */
+  flex: 1 1 0;
+  min-height: 132px;
+  display: grid;
+  /* 20 px y no 11: con la barra fina, la columna se leía como una línea
+     decorativa al borde de un espacio vacío en vez de como la pieza que
+     sostiene la lectura. */
+  grid-template-columns: 20px minmax(0, 1fr);
+  /* El mínimo por tramo evita que uno pequeño quede sin sitio para su cifra;
+     un tramo en cero conserva su fila porque «0 por barrer» —la base agotada—
+     es justo el dato que cambia cómo se lee la brecha. */
+  grid-template-rows:
+    minmax(30px, var(--tramo-efectiva, 1fr))
+    minmax(30px, var(--tramo-barrido, 1fr))
+    minmax(30px, var(--tramo-por-barrer, 1fr))
+    auto;
+  column-gap: 10px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > i {
+  grid-column: 1;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-block: 0;
+}
+
+/* La barra es una sola pieza: solo redondean los extremos. */
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > i:first-of-type {
+  border-radius: 999px 999px 0 0;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > i:nth-of-type(3) {
+  border-radius: 0 0 999px 999px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > i.is-efectiva {
+  background: var(--pulso-success-fg);
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > i.is-barrido {
+  background: #0a6b8f;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > i.is-por-barrer {
+  background: color-mix(in srgb, var(--pulso-text-soft) 34%, transparent);
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > span {
+  grid-column: 2;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  align-content: center;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > span strong {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1.05;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > span em {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* El total al pie cierra la barra: los tres tramos suman esto.
+ *
+ * Con caja propia y no como texto suelto: era la única línea de la columna sin
+ * forma, y al lado del pie quedaban dos renglones planos flotando bajo una
+ * composición que sí la tiene. */
+.is-telefonico-profile .mon-phone-quota-rhythm-barrido > b {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 8px;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 76%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ── Pie de la cuota ───────────────────────────────────────────────────────
+ *
+ * Cada cifra con su rótulo encima. La línea corrida que había —«Último día
+ * ago 08 · 4 efectivas Kobo»— hacía leer esas 4 como el total de la cuota,
+ * que son 14 y están dos centímetros más arriba. */
+.is-telefonico-profile .mon-phone-quota-rhythm-pie {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 62%, transparent);
+  padding-top: 8px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-pie span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-pie em {
+  overflow: hidden;
+  color: var(--pulso-text-soft);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-pie strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Las dos mitades del resumen ───────────────────────────────────────────
+ *
+ * Cumplimiento arriba, barrido abajo, y el alto sobrante repartido en partes
+ * iguales entre las dos. Son las dos respuestas que esta columna da —cuánto
+ * llevo de la meta, y con qué cuento para lo que falta— y ninguna es
+ * subordinada de la otra: con el anillo a 48 px sobre una barra de 400, la
+ * primera se leía como un rótulo de la segunda. */
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > .mon-phone-quota-rhythm-progress {
+  flex: 1 1 0;
+  min-height: 132px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > .mon-phone-quota-rhythm-progress .mon-phone-quota-rhythm-donut {
+  width: 100%;
+  height: 100%;
+  place-items: center;
+}
+
+/* El anillo crece con la caja pero tiene techo: pasado cierto tamaño deja de
+   aportar lectura y solo desplaza al resto. */
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > .mon-phone-quota-rhythm-progress .mon-phone-quota-rhythm-donut > i {
+  width: min(100%, 118px);
+  height: auto;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > .mon-phone-quota-rhythm-progress .mon-phone-quota-rhythm-progress-value {
+  font-size: 26px;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > .mon-phone-quota-rhythm-progress .mon-phone-quota-rhythm-progress-copy {
+  justify-items: center;
+  text-align: center;
+}
+
+.is-telefonico-profile .mon-phone-quota-rhythm-row-summary > .mon-phone-quota-rhythm-progress .mon-phone-quota-rhythm-progress-copy strong {
+  font-size: 20px;
+}
+
+/* ── Sin marco envolvente ──────────────────────────────────────────────────
+ *
+ * Cada cuota es su propio cuadro. El panel que las encerraba a todas ponía un
+ * segundo borde alrededor de bordes que ya existían, y el ojo tenía que decidir
+ * cuál era la unidad: la lista o la cuota. La unidad es la cuota. La cabecera
+ * («Ritmo por …» y sus KPIs) se queda, porque resume el conjunto, pero deja de
+ * dibujar una caja. */
+.is-telefonico-profile .mon-phone-quota-lane-workbench {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-inline: 0;
+}
+
+.is-telefonico-profile .mon-phone-quota-lane-workbench > .mon-phone-quota-rhythm {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm > header {
@@ -1504,9 +2008,8 @@
     height: auto;
     grid-template-areas:
       "daily"
-      "context"
       "storage"
-      "focus";
+      "context";
     grid-template-rows:
       minmax(330px, auto)
       minmax(230px, auto)
@@ -2880,7 +3383,15 @@
 }
 
 .is-telefonico-profile .mon-phone-quota-rhythm-row-chart > .mon-advance-daily-mini {
-  min-height: 100%;
+  /* Mide su contenido, no la celda.
+   *
+   * El `100%` era correcto cuando el ritmo era la única pieza de esta columna y
+   * llenarla era lo que se quería. Desde que el apilado de estados cuelga
+   * debajo, ese 100% se refiere a una celda mucho más alta: la tarjeta
+   * reservaba ~300 px para un gráfico de 184 y dejaba el resto en blanco dentro
+   * de su propio marco, y como la fila crece con ella empujaba la segunda cuota
+   * fuera de la pantalla. */
+  min-height: 0;
   border-color: color-mix(in srgb, #168a55 18%, var(--pulso-border));
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.92)),
@@ -4189,7 +4700,10 @@
 }
 
 .mon-tel-goal.is-brecha .mon-tel-goal-head > div > strong {
-  color: var(--pulso-warn-accent);
+  /* `--pulso-warn-accent` (#d97706) es el naranja de BORDES del sistema; como
+     color de un titular de 19 px se comía la superficie entera. El texto de
+     aviso tiene su propio token, más oscuro y sin gritar. */
+  color: var(--pulso-warn-fg);
 }
 
 .mon-tel-goal-head > div > em {
@@ -4228,7 +4742,10 @@
   height: 100%;
   width: var(--goal-size);
   border-radius: 999px;
-  background: var(--pulso-warn-accent);
+  /* Lo logrado se pinta como logrado. En naranja, la barra decía «vas mal» con
+     la misma forma con que Avance dice «llevas esto» en verde, y las dos
+     pantallas hablaban del mismo 70% con signos opuestos. */
+  background: var(--pulso-success-fg);
 }
 
 .mon-tel-goal.is-cubierto .mon-tel-goal-bar > i,
@@ -4256,7 +4773,7 @@
 }
 
 .mon-tel-goal-cats > li.is-brecha {
-  background: color-mix(in srgb, var(--pulso-warn-accent) 9%, var(--pulso-surface));
+  background: color-mix(in srgb, var(--pulso-warn-fg) 6%, var(--pulso-surface));
 }
 
 .mon-tel-goal-cat-name strong {
@@ -4280,7 +4797,7 @@
 
 .mon-tel-goal-cats > li.is-brecha .mon-tel-goal-cat-bar {
   background:
-    linear-gradient(90deg, var(--pulso-warn-accent) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
+    linear-gradient(90deg, var(--pulso-success-fg) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
 }
 
 .mon-tel-goal-cat-figures,
@@ -4346,7 +4863,7 @@
 
 .mon-tel-goal-foot > span.is-lead strong {
   font-size: 19px;
-  color: var(--pulso-warn-accent);
+  color: var(--pulso-text);
 }
 
 .mon-tel-goal-foot > span.is-quiet strong {
@@ -4363,7 +4880,7 @@
 .mon-tel-goal-plain .is-warn strong,
 .mon-tel-goal-foot .is-warn strong,
 .mon-tel-goal-foot small.is-warn {
-  color: var(--pulso-warn-accent);
+  color: var(--pulso-warn-fg);
 }
 
 .mon-tel-funnel > header {
@@ -4651,7 +5168,7 @@
 
 .is-telefonico-profile .mon-tel-goal-table tr.is-brecha td.is-bar > i {
   background:
-    linear-gradient(90deg, var(--pulso-warn-accent) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
+    linear-gradient(90deg, var(--pulso-success-fg) var(--goal-size), color-mix(in srgb, var(--pulso-border) 60%, transparent) var(--goal-size));
 }
 
 .is-telefonico-profile .mon-tel-goal-table td.is-ok {
@@ -4659,8 +5176,10 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+/* La cifra que falta sigue avisando, en el tono de texto del sistema y no en el
+   naranja de bordes: es un dato, no una alarma de incendio. */
 .is-telefonico-profile .mon-tel-goal-table td.is-warn {
-  color: var(--pulso-warn-accent);
+  color: var(--pulso-warn-fg);
   font-weight: var(--pulso-weight-bold);
 }
 
@@ -4794,20 +5313,24 @@
   grid-column: 1 / -1;
 }
 
-/* El resumen ancho tiene una composición deliberada: una fila de ritmo y tres
-   superficies paralelas debajo. El auto-fit genérico anterior creaba tracks
-   residuales (incluso uno de 0 px) y hacía que Contexto, Universo y Actor se
-   solaparan. El apilado sigue gobernado por el breakpoint compacto. */
+/* Una lectura por fila, también en escritorio.
+   Eran tres columnas paralelas: ritmo arriba, y debajo Universo, Contexto y
+   Actor repartiéndose el ancho. La tercera se retiró —repetía la pestaña
+   Cuotas— y las dos que quedan no compiten por el mismo sitio: responden
+   preguntas distintas y cada una necesita el ancho entero para contestarla.
+   El alto deja de ser el del panel; la lista crece y el workbench scrollea,
+   como el resto del modo. */
 @media (min-width: 1201px) {
   .is-telefonico-profile .mon-phone-advance-summary .mon-phone-advance-grid {
-    height: 100%;
-    max-height: 100%;
-    grid-template-columns: minmax(360px, 1fr) minmax(330px, 0.78fr) minmax(300px, 0.64fr);
-    grid-template-rows: minmax(300px, 0.92fr) minmax(300px, 1.08fr);
+    height: auto;
+    max-height: none;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
     grid-template-areas:
-      "daily daily daily"
-      "storage context focus";
-    overflow: hidden;
+      "daily"
+      "storage"
+      "context";
+    overflow: visible;
     padding-right: 0;
   }
 }
@@ -4955,9 +5478,8 @@
     grid-template-rows: repeat(4, auto);
     grid-template-areas:
       "daily"
-      "context"
       "storage"
-      "focus";
+      "context";
   }
 
   .is-telefonico-profile .mon-phone-advance-summary .mon-advance-line-chart.is-phone-effective-axis {
@@ -5360,4 +5882,40 @@
   overflow-wrap: normal;
   word-break: normal;
   hyphens: auto;
+}
+
+/* ── Llamadas › Resumen: «Equipo asignado» recupera su contenedor ──────────
+ *
+ * Señalado por Gonzalo sobre el elemento: «tiene alto indefinido y no tiene
+ * contenedor cuando debería tenerlo como ratio de incidencias y el mismo
+ * alto». Medido, las dos cosas eran ciertas.
+ *
+ * Su columna hermana —`mon-phone-ops-insights`, la de ratio de incidencias—
+ * envuelve todo su contenido en un `mon-phone-ops-card`: borde, radio 14,
+ * sombra, fondo y padding. `mon-phone-responsibles` no tenía nada: sus diez
+ * hijos —la cabecera, ocho tarjetas de responsable y el aside de no
+ * asignados— quedaban sueltos sobre el fondo de la página, y el bloque crecía
+ * a 1.609 px sin marco que lo contuviera.
+ *
+ * Recibe la materia de tarjeta de la casa, la misma que su hermana, y las dos
+ * columnas quedan a la misma altura (1.593 px medidos). La cabecera se queda
+ * pegada arriba: el contenedor ya scrollea —eso venía de antes— y sin
+ * `sticky` el rótulo del bloque se iba al desplazar. */
+.is-telefonico-profile .mon-phone-summary-secondary .mon-phone-responsibles {
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 86%, #fff);
+  border-radius: var(--pulso-radius-card);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.93)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 4px 12px rgba(0, 36, 87, 0.052);
+  padding: 9px;
+  gap: 8px;
+}
+
+.is-telefonico-profile .mon-phone-summary-secondary .mon-phone-responsibles-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
