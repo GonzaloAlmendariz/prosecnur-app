@@ -1,3 +1,61 @@
+/* ── Materia de las superficies de Fuentes ─────────────────────────────────
+ *
+ * Medido en pantalla el 2026-07-30, comparando con Gráficos y el editor de
+ * formularios, que es donde la casa tiene su gramática asentada:
+ *
+ *              Fuentes (antes)   Gráficos / XLSForm      la casa
+ *   panel      radio 10          radio 16                --pulso-radius-panel
+ *   tarjeta    radio 9, plana    radio 14 con materia    --pulso-radius-card
+ *   celda      radio 7 con caja  sin caja propia         —
+ *
+ * Dos defectos, y ninguno es de color. **Todo estaba entre 7 y 10**, así que
+ * panel, tarjeta y celda pesaban lo mismo y ninguna jerarquía se leía. Y las
+ * tarjetas no tenían sombra: eran rectángulos con una línea gris alrededor.
+ *
+ * Lo que hace que una tarjeta de Gráficos se vea asentada son tres cosas juntas
+ * —gradiente que aclara arriba, luz interior de 1 px en el borde superior y
+ * sombra difusa muy baja—, no una de ellas. La luz interior es la que da el
+ * canto; sin ella el gradiente solo aplana más.
+ */
+
+.is-telefonico-profile .mon-phone-source-contract {
+  border-radius: var(--pulso-radius-panel);
+  padding: 14px;
+  gap: 12px;
+}
+
+.is-telefonico-profile .mon-phone-source-slot {
+  border-radius: var(--pulso-radius-card);
+  /* Altura mínima como en la field-card de Gráficos: una tarjeta que colapsa a
+     su contenido convierte cualquier diferencia de datos en desalineación. */
+  min-height: 132px;
+  padding: 13px 14px;
+  gap: 10px;
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 22%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.93)),
+    var(--pulso-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 4px 12px rgba(0, 36, 87, 0.052);
+}
+
+.is-telefonico-profile .mon-phone-source-slot.is-ready {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 26%, var(--pulso-border));
+}
+
+/* Las celdas pierden su caja.
+ *
+ * Con borde propio dentro de una tarjeta que ya tiene borde, la pestaña
+ * mostraba tres marcos concéntricos y el ojo no sabía cuál era la unidad.
+ * Gráficos no encaja cajas: el campo se distingue por fondo y aire. */
+.is-telefonico-profile .mon-phone-source-slot-data span {
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 4%, var(--pulso-surface-2));
+  padding: 7px 9px;
+}
+
 /* La franja de fuentes en telefónico es la barra de acción de la sección, no
    una segunda lectura de métricas: la de arriba ya dice `Fuentes 3/3 · Base
    2.726 · Corte Listo`, y repetir ahí «Fuentes» con el mismo valor y «Base» con
@@ -24,19 +82,152 @@
   gap: 1px;
 }
 
+/* Las mayúsculas se reservan al antetítulo de sección.
+ *
+ * La pestaña las usaba en cada etiqueta de cada celda —«HOJA», «ACTUALIZADA»,
+ * «PERSONAS POR LLAMAR»— a 10 px con letter-spacing. En Gráficos y en el editor
+ * de formularios el label de un campo es texto normal de 12 px semibold; las
+ * versales solo encabezan un grupo. Con todo en versalita nada encabeza nada. */
 .mon-acr-source-status-sync em {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: 11px;
   font-style: normal;
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .mon-acr-source-status-sync strong {
   color: var(--pulso-text);
   font-size: 12.5px;
   font-weight: var(--pulso-weight-heavy);
+}
+
+.is-telefonico-profile .mon-phone-source-slot-data em {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--pulso-text-soft);
+}
+
+.is-telefonico-profile .mon-phone-source-slot-tags i {
+  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--pulso-border) 70%, transparent);
+  background: var(--pulso-surface-2);
+}
+
+/* El editor de hoja, con la misma gramática que el resto de la pestaña.
+ *
+ * Era lo último que quedaba del estilo viejo: labels en versalita de 10 px,
+ * inputs de 34 px con radio 8 y el valor en negrita —un identificador de
+ * Google Sheets a peso de titular—. El editor de formularios pone el label en
+ * 12 px semibold y el valor en peso normal: lo que destaca es el rótulo, no el
+ * dato opaco. */
+.is-telefonico-profile .mon-acr-sheet-form label > span {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.is-telefonico-profile .mon-acr-sheet-form input,
+.is-telefonico-profile .mon-acr-sheet-form select {
+  min-height: var(--pulso-control-height-lg);
+  border-radius: var(--pulso-radius);
+  border-color: var(--pulso-border-strong);
+  font-weight: var(--pulso-weight-regular);
+  padding: 6px 11px;
+}
+
+.is-telefonico-profile .mon-acr-sheet-form label {
+  gap: 6px;
+}
+
+/* La lista de fuentes conectadas ocupa media pantalla del resumen y era lo
+ * último con el estilo viejo: filas de radio 8 sin materia, label «NOMBRE DE
+ * BASE» en versalita sobre un input que abarca todo el ancho. Un campo de
+ * formulario a ancho completo por fila hace que la lista se lea como un
+ * formulario y no como un inventario de lo conectado. */
+.is-telefonico-profile .mon-source-item {
+  border-radius: var(--pulso-radius-card);
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 16%, var(--pulso-border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.94)),
+    var(--pulso-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  padding: 11px 13px;
+  gap: 8px 12px;
+}
+
+.is-telefonico-profile .mon-source-item.is-disabled {
+  background: var(--pulso-surface-2);
+  box-shadow: none;
+}
+
+.is-telefonico-profile .mon-source-alias > span {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* El nombre es el dato de la fila, no un campo que rellenar: se lee como texto
+   y solo revela su caja al apuntarlo o al enfocarlo. */
+.is-telefonico-profile .mon-source-alias input {
+  border-color: transparent;
+  border-radius: var(--pulso-radius);
+  background: transparent;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  padding: 5px 8px;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.is-telefonico-profile .mon-source-alias input:hover:not(:disabled) {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.is-telefonico-profile .mon-source-alias input:focus-visible {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface);
+}
+
+/* El selector de fuente comparte la escala de los demás campos: es uno más. */
+.is-telefonico-profile .mon-acr-sheet-source-select > span {
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.is-telefonico-profile .mon-acr-sheet-source-select select {
+  min-height: var(--pulso-control-height-lg);
+  border-radius: var(--pulso-radius);
+  border-color: var(--pulso-border-strong);
+  font-weight: var(--pulso-weight-regular);
+}
+
+/* El enlace «Abrir» que acompaña a la dirección: el rótulo y su acción en la
+   misma línea, como el «Ver lámina» de Gráficos. */
+.is-telefonico-profile .mon-acr-sheet-form label > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.is-telefonico-profile .mon-acr-sheet-form label > span a {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--module-accent, var(--pulso-primary));
+  text-decoration: none;
+}
+
+.is-telefonico-profile .mon-acr-sheet-form label > span a:hover {
+  text-decoration: underline;
 }
 
 /* Sincronizar lo que ya está y traer algo nuevo son las dos cosas que se hacen
@@ -4611,10 +4802,27 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* La cadena también se apila: tres eslabones de 290 px dejan de leerse, y en
-     columna el nexo horizontal desaparece por su propia consulta. */
+  /* La cadena también se apila: tres eslabones de 290 px dejan de leerse. */
   .mon-tel-cadena ol {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* En columna, dos cosas de la fila estorban y son la misma decisión, así que
+     viven donde se toma —aquí— y no en una consulta de contenedor aparte, que
+     medía el ancho del `ol` (1002 px a este viewport) y por eso no disparaba:
+     el `ol` es ancho aunque su contenido vaya en una sola columna.
+
+     - El nexo apuntaba a la derecha, hacia el vacío, en vez de al eslabón
+       siguiente, que ahora está debajo.
+     - La altura mínima existe para igualar hermanas en fila; sin hermanas al
+       lado solo abre un hueco entre el título y el pie. */
+  .mon-tel-cadena-nexo {
+    display: none;
+  }
+
+  .mon-tel-cadena li > article {
+    min-height: 0;
+    grid-template-rows: auto auto auto;
   }
 
   /* La explicación ya está presente en el encabezado del editor. En compacto
