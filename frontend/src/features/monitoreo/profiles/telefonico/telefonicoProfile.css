@@ -5121,3 +5121,26 @@
 .is-telefonico-profile .mon-phone-storage {
   border-radius: var(--pulso-radius-card);
 }
+
+/* ── Llamadas › Validación de tiempo ───────────────────────────────────────
+ *
+ * Seis cajas y tres escalas distintas (8, 9, 10) para tres niveles que sí son
+ * distintos —la tarjeta grande, el control y los tres bins de duración—, pero
+ * con una diferencia de 1 px entre ellos, que no se lee como jerarquía sino
+ * como descuido. Las tres versalitas son las etiquetas de los bins, que son
+ * dato («Menos de 2 min»), no encabezado. */
+.is-telefonico-profile .mon-phone-time-hero {
+  border-radius: var(--pulso-radius-card);
+}
+
+.is-telefonico-profile .mon-phone-time-track > span,
+.is-telefonico-profile .mon-phone-time-buckets > article {
+  border-radius: var(--pulso-radius);
+}
+
+/* «Menos de 2 min» es el dato de la celda, no un encabezado: los tres bins de
+ * duración salen de la versalita. */
+.is-telefonico-profile .mon-phone-time-buckets > article > * {
+  letter-spacing: 0;
+  text-transform: none;
+}

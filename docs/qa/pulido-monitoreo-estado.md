@@ -38,7 +38,7 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | telefónico | Modelo operativo › Cronograma | hecho | 16 de 17 cajas sin sombra; radios 8/9 → 10/14; versalitas 26 → 14, las que quedan son antetítulos de franja y sí encabezan. Las celdas de estado **conservan** su borde: llevan el color de su estado y ahí el marco es la señal | este commit |
 | telefónico | ~~Modelo operativo › Resumen~~ | no existe | El inventario salió del catálogo estático `ACREDITACION_MODEL_TABS`, que trae tres pestañas; telefónico monta solo dos (`void summary` en `localTabsForTelefonicoView`). `window.__pulsoNav.pestanasDeLaSeccion()` lo confirma en runtime | — |
 | telefónico | Llamadas › Resumen operativo | hecho | 77 cajas, 76 sin sombra. La composición ya era buena —el embudo y la tabla de mínimos se leen sin esfuerzo—, así que faltaba materia y no estructura: el panel contenedor sube a 16 con sombra y las tarjetas internas a 14 | este commit |
-| telefónico | Llamadas › Tiempos | pendiente |  |  |
+| telefónico | Llamadas › Validación de tiempo | hecho | tres escalas (8/9/10) para tres niveles reales, pero con 1 px de diferencia entre sí: eso no se lee como jerarquía. Queda en 10/14/16 y cero versalitas | este commit |
 | telefónico | Llamadas › Sin efectiva | pendiente |  |  |
 | telefónico | Llamadas › Responsables | pendiente |  |  |
 | telefónico | Llamadas › Alertas | pendiente |  |  |
