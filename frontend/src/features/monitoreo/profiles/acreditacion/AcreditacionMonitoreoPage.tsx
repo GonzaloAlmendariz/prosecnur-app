@@ -7430,13 +7430,16 @@ function AcreditacionSourceStatusStrip({
         <p>{fmt(packageTotalCount)} operativas · {fmt(packageActiveCount)} listas · corte {formatDate(reports.generated_at)}</p>
       </header>
       <FranjaDeFuentes universo={baseCount} encuestas={surveyCount} barrido={sweepCount} />
-      {phoneContract ? null : (
-        <PanelConectarFuente
-          sources={sources}
-          actoresSugeridos={acreditacionActorOptions(sources, ACREDITACION_DEFAULT_ACTORS)}
-          onStateChange={onStateChange}
-        />
-      )}
+      {/* La familia decide el guion del panel: en acreditación se parte de los
+        * instrumentos y se suma un actor cada vez; un estudio telefónico dentro
+        * de este mismo perfil necesita barrido, padrón y encuesta en ese orden.
+        * Sin este dato el panel preguntaba el proveedor y ofrecía los tres. */}
+      <PanelConectarFuente
+        sources={sources}
+        familia={phoneContract ? "telefonico" : "acreditacion"}
+        actoresSugeridos={acreditacionActorOptions(sources, ACREDITACION_DEFAULT_ACTORS)}
+        onStateChange={onStateChange}
+      />
       <AcreditacionSourceSyncActions
         sheetCount={sheetCount}
         surveyCount={surveyCount}
