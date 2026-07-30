@@ -252,10 +252,7 @@
 .mon-production-annulments__chips span,
 .mon-production-annulments__metrics span,
 .mon-production-annulments__responsible-picker,
-.mon-production-annulments__responsible,
-.mon-production-annulments__control select,
-.mon-production-annulments__control input,
-.mon-production-annulments__control textarea {
+.mon-production-annulments__responsible {
   border-radius: var(--pulso-radius);
 }
 
@@ -462,14 +459,11 @@
  * jerarquía» que ya se corrigió en telefónico. Las seis casillas de conteo por
  * distrito miden 87×65 —son fichas, no adornos de barra— y estaban en 8. */
 .mon-stage--ocurrencias .mon-field-occurrences-search,
-.mon-stage--ocurrencias .mon-field-occurrences-search input,
-.mon-stage--ocurrencias .mon-field-occurrences-alert-search input,
 .mon-stage--ocurrencias .mon-field-occurrences-register-kpis > span,
 .mon-stage--ocurrencias .mon-field-occurrences-district-counts > span,
 .mon-stage--ocurrencias .mon-field-occurrences-workspace-stats > span,
 .mon-stage--ocurrencias .mon-field-occurrences-rhythm-kpis > span,
-.mon-stage--ocurrencias .mon-field-occurrences-daily-values > span,
-.mon-stage--ocurrencias select {
+.mon-stage--ocurrencias .mon-field-occurrences-daily-values > span {
   border-radius: var(--pulso-radius);
 }
 
@@ -499,3 +493,11 @@
   text-overflow: clip;
   overflow-wrap: anywhere;
 }
+
+/* Corrección del 2026-07-30, y va aquí porque el error fue de este archivo:
+ * `button`, `input`, `select` y `textarea` valen **8 px** en `theme.css`, que
+ * es la escala de control de toda la app, y `--pulso-radius` (10) es la del
+ * contenedor pequeño —ficha, celda, casilla—, con unos 180 usos en features.
+ * No son la misma cosa. Cinco selectores de aquí llevaban controles nativos a
+ * 10 y los alejaban del resto de Prosecnur: se retiran para que hereden su
+ * base. Los envoltorios (`…-search`, que es el `label`) sí se quedan en 10. */

@@ -82,7 +82,17 @@ ojo, y compara:
 |---|---|---|
 | Panel de sección | `--pulso-radius-panel` (16) | borde + `--pulso-shadow-low` |
 | Tarjeta | `--pulso-radius-card` (14) | gradiente + luz interior + sombra difusa |
-| Control / celda | `--pulso-radius` (10) o 999 en chip | fondo, **sin caja propia** |
+| Ficha / celda | `--pulso-radius` (10) o 999 en chip | fondo, **sin caja propia** |
+| **Control nativo** | **8, de `theme.css`** | el de la app: no se toca por superficie |
+
+**La última fila es una corrección, y evita un error que ya se cometió.** `button`,
+`input`, `select` y `textarea` valen 8 px en `theme.css:196`, igual que
+`.pulso-button` del kit: esa es la escala de control de **toda** la app.
+`--pulso-radius` (10) es otra cosa —la ficha, la celda, la casilla pequeña—, con
+unos 180 usos en features. Confundirlas hace que un `<select>` normalizado a 10
+quede distinto de todos los selects de Prosecnur: se ve peor, no mejor, y encima
+parece prolijo. Cuando midas un 8 en un control nativo, **está bien**; lo que se
+corrige es el 8 en una ficha o un contenedor.
 
 La materia de tarjeta son tres cosas **juntas**, y ninguna sobra:
 
