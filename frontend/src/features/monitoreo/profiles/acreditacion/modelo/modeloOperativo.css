@@ -180,3 +180,134 @@
     grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.28fr);
   }
 }
+
+/* Cronograma de Acreditación: compara plan y ejecución sin alterar la misma
+ * superficie cuando la consume el perfil Telefónico. */
+.mon-stage--acr-model.is-accreditation-schedule .mon-acr-model-panel {
+  gap: 10px;
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: none;
+  padding: 10px 12px 12px;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel {
+  grid-template-columns: minmax(300px, 0.82fr) minmax(420px, 1.18fr);
+  grid-template-areas:
+    "head head"
+    "summary form"
+    "observed form"
+    "status status";
+  align-content: start;
+  align-items: start;
+  gap: 10px 14px;
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-low);
+  padding: 14px;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel > .mon-contract-block-head {
+  grid-area: head;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel > .mon-acr-active-kpis {
+  grid-area: summary;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(58px, 1fr);
+  align-self: stretch;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel .mon-profile-stat {
+  height: 100%;
+  align-content: center;
+  border-radius: var(--pulso-radius-card);
+  box-shadow: none;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel .mon-profile-stat strong {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado {
+  grid-area: observed;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 10px;
+  border: 0;
+  border-top: 1px solid var(--pulso-border);
+  border-bottom: 1px solid var(--pulso-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 2px;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado[data-desvio="si"] {
+  border-color: var(--pulso-warn-border);
+  background: transparent;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado__label {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  text-transform: uppercase;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado strong {
+  justify-self: end;
+  color: var(--pulso-success-fg);
+  font-size: 13px;
+  text-transform: none;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado[data-desvio="si"] strong {
+  color: var(--pulso-warn-text);
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado > span:not(.mon-field-schedule-observado__label),
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado em {
+  grid-column: 1 / -1;
+  white-space: normal;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-observado.is-empty em {
+  color: var(--pulso-text-soft);
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel > .mon-form {
+  grid-area: form;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 10px;
+  border-left: 1px solid var(--pulso-border);
+  padding-left: 14px;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel > .mon-form > label:last-child {
+  grid-column: 1 / -1;
+}
+
+.mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel > .mon-acr-model-action-status {
+  grid-area: status;
+}
+
+@media (max-width: 900px) {
+  .mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "head" "summary" "observed" "form" "status";
+  }
+
+  .mon-stage--acr-model.is-accreditation-schedule .mon-field-schedule-panel > .mon-form {
+    border-left: 0;
+    border-top: 1px solid var(--pulso-border);
+    padding-top: 12px;
+    padding-left: 0;
+  }
+}

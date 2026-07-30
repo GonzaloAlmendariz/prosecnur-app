@@ -1092,10 +1092,7 @@ function AcreditacionCanonicalModelWorkbench({
   }), [actorDailySeries, dailyRows, modelActorRows, sourceRows, state?.config?.goals, state?.dashboard?.progress, state?.sources]);
   const totals = advanceTotals(cards);
   const goalSummary = actorGoalSummary(cards);
-  // La ventana de campo EJECUTADA, para confrontarla con la planificada. El
-  // periodo de campo va en la ficha técnica del expediente, así que no puede
-  // quedar como un dato opcional que nadie llena: en acrconta el cronograma
-  // decía "Semana 1 · 1 semana" con nueve semanas de campo ya corridas.
+  // La ventana ejecutada permite confrontar el plan sin estimar métricas.
   const campoObservado = useMemo(
     () => acreditacionVentanaCampoObservada(dailyRows),
     [dailyRows],
@@ -1254,7 +1251,7 @@ function AcreditacionCanonicalModelWorkbench({
   }, [onStateChange, state?.config]);
 
   return (
-    <div className={`mon-stage mon-stage--model mon-stage--acr-model${activeVisibleTab === "estructura" && !isPhoneModel ? " is-accreditation-structure" : ""}`}>
+    <div className={`mon-stage mon-stage--model mon-stage--acr-model${activeVisibleTab === "estructura" && !isPhoneModel ? " is-accreditation-structure" : ""}${activeVisibleTab === "estrategias" && !isPhoneModel ? " is-accreditation-schedule" : ""}`}>
       <section
         className="pulso-panel mon-fill-panel mon-acr-model-panel"
         style={{ minHeight: 0, overflowY: "auto", scrollbarGutter: "stable" } as CSSProperties}
@@ -1271,7 +1268,7 @@ function AcreditacionCanonicalModelWorkbench({
           </div>
         </header>
         {goalStatus ? <span className={`mon-acr-model-action-status is-${goalStatus.tone}`}>{goalStatus.message}</span> : null}
-        {activeVisibleTab !== "distribucion" ? <div className="mon-acr-model-map" aria-label="Resumen del modelo operativo" data-qa-geometry-group={activeVisibleTab === "estructura" && !isPhoneModel ? "acreditacion-model-summary" : undefined} data-qa-geometry-contract={activeVisibleTab === "estructura" && !isPhoneModel ? "equal" : undefined}>
+        {activeVisibleTab !== "distribucion" && (activeVisibleTab !== "estrategias" || isPhoneModel) ? <div className="mon-acr-model-map" aria-label="Resumen del modelo operativo" data-qa-geometry-group={activeVisibleTab === "estructura" && !isPhoneModel ? "acreditacion-model-summary" : undefined} data-qa-geometry-contract={activeVisibleTab === "estructura" && !isPhoneModel ? "equal" : undefined}>
           {isPhoneModel ? (
             <>
               <AcreditacionActorDashboardTile label="Variable rectora" value={phoneQuotaVariable ? phoneQuotaVariableLabel(phoneQuotaVariable) : "Pendiente"} hint={`${fmt(phoneQuotaEditorRows.length)} categorías`} tone={phoneQuotaVariable ? "ready" : "warning"} />
@@ -1353,18 +1350,11 @@ function AcreditacionCanonicalModelWorkbench({
             )}
           </div>
         ) : null}
-        {/* El cronograma vuelve a ser pestaña propia, al final de las otras dos.
-            En B1 bajó a bloque al pie de las metas porque Modelo hacía una sola
-            cosa; con tres decisiones distintas —cuánto, cómo se reparte y
-            cuándo— cada una vuelve a merecer su sitio. */}
+        {/* Cuánto, cómo se reparte y cuándo son decisiones distintas. */}
         {activeVisibleTab === "estrategias" ? (
           <AcreditacionFieldSchedulePanel config={state?.config ?? null} campoObservado={campoObservado} onStateChange={onStateChange} />
         ) : null}
-        {/* Aquí vivía «Resumen de Fuentes», la tercera subpestaña: cuatro
-          * contadores y un párrafo que admitía que Fuentes era quien mandaba
-          * («Canales, recopiladores, barrido… se editan en Fuentes»). Una vista
-          * cuyo propio texto dice que hay que mirar en otro sitio no es una
-          * vista: es un desvío. La sección Fuentes ya lo cuenta con enlaces. */}
+        {/* El antiguo resumen duplicaba Fuentes y no constituye una vista. */}
       </section>
     </div>
   );
@@ -1424,16 +1414,16 @@ function AcreditacionFieldSchedulePanel({
   return (
     <section className="mon-contract-block mon-contract-block--wide mon-field-schedule-panel" aria-label="Cronograma operativo">
       <div className="mon-contract-block-head">
-        <span>Cronograma de campo</span>
+        <span>Plan y ejecución de campo</span>
         <button type="button" onClick={() => { void saveSchedule(); }} disabled={saving}>
           {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
-          Guardar cronograma
+          Guardar plan
         </button>
       </div>
-      <div className="mon-acr-active-kpis">
-        <StatTile label="Ventana" value={previewWindow} tone="good" />
-        <StatTile label="Semanas" value={fmt(draft.durationWeeks)} tone={draft.durationWeeks ? "good" : "warn"} />
-        <StatTile label="Fechas" value={dateWindow} tone={draft.startDate && draft.endDate ? "good" : "warn"} />
+      <div className="mon-acr-active-kpis" data-qa-geometry-group="acreditacion-schedule-summary" data-qa-geometry-contract="equal">
+        <StatTile label="Semana del plan" value={previewWindow} tone="good" />
+        <StatTile label="Semanas del plan" value={fmt(draft.durationWeeks)} tone={draft.durationWeeks ? "good" : "warn"} />
+        <StatTile label="Fechas del plan" value={dateWindow} tone={draft.startDate && draft.endDate ? "good" : "warn"} />
         <StatTile label="Reporte" value={calendarReportWeekdayLabel(draft.reportWeekday)} tone={draft.reportWeekday ? "good" : "warn"} />
       </div>
       {campoObservado ? (
@@ -1442,17 +1432,14 @@ function AcreditacionFieldSchedulePanel({
           data-desvio={campoObservado.semanas > draft.durationWeeks ? "si" : "no"}
           role="note"
         >
-          <strong>Campo ejecutado</strong>
-          <span>
-            {campoObservado.inicio} a {campoObservado.fin} · {countText(campoObservado.semanas, "semana", "semanas")} · {countText(campoObservado.diasConRespuesta, "día", "días")} con respuesta
-          </span>
-          {campoObservado.semanas > draft.durationWeeks ? (
-            <em>El plan declara {countText(draft.durationWeeks, "semana", "semanas")}; el campo ya lleva {campoObservado.semanas}.</em>
-          ) : null}
+          <span className="mon-field-schedule-observado__label">Campo ejecutado</span>
+          <strong>{campoObservado.semanas > draft.durationWeeks ? "Fuera del plan" : "Dentro del plan"}</strong>
+          <span>{campoObservado.inicio} a {campoObservado.fin} · {countText(campoObservado.semanas, "semana", "semanas")} · {countText(campoObservado.diasConRespuesta, "día", "días")} con respuesta</span>
+          <em>{campoObservado.semanas > draft.durationWeeks ? `El plan declara ${countText(draft.durationWeeks, "semana", "semanas")}; el campo ya lleva ${campoObservado.semanas}.` : `El campo observado no supera las ${countText(draft.durationWeeks, "semana", "semanas")} declaradas.`}</em>
         </p>
-      ) : null}
-      <div className="mon-form mon-form--two">
-        <label>
+      ) : <p className="mon-field-schedule-observado is-empty" role="note"><span className="mon-field-schedule-observado__label">Campo ejecutado</span><strong>Sin corte observado</strong><em>La comparación aparecerá cuando el corte tenga respuestas con fecha.</em></p>}
+      <div className="mon-form mon-form--two" aria-label="Plan editable" data-qa-geometry-group="acreditacion-schedule-fields" data-qa-geometry-contract="intrinsic">
+        <label data-qa-geometry-member>
           <span>Semana inicio</span>
           <input
             type="number"
@@ -1462,7 +1449,7 @@ function AcreditacionFieldSchedulePanel({
             onChange={(event) => patchDraft({ startWeek: positiveInteger(event.currentTarget.value, 1) })}
           />
         </label>
-        <label>
+        <label data-qa-geometry-member>
           <span>Cantidad de semanas</span>
           <input
             type="number"
@@ -1472,7 +1459,7 @@ function AcreditacionFieldSchedulePanel({
             onChange={(event) => patchDraft({ durationWeeks: positiveInteger(event.currentTarget.value, 1) })}
           />
         </label>
-        <label>
+        <label data-qa-geometry-member>
           <span>Fecha campo inicio</span>
           <input
             type="date"
@@ -1481,7 +1468,7 @@ function AcreditacionFieldSchedulePanel({
             onChange={(event) => patchDraft({ startDate: event.currentTarget.value })}
           />
         </label>
-        <label>
+        <label data-qa-geometry-member>
           <span>Fecha campo fin</span>
           <input
             type="date"
@@ -1491,7 +1478,7 @@ function AcreditacionFieldSchedulePanel({
             onChange={(event) => patchDraft({ endDate: event.currentTarget.value })}
           />
         </label>
-        <label>
+        <label data-qa-geometry-member>
           <span>Día de reporte de avance</span>
           <select
             value={draft.reportWeekday}
@@ -17965,6 +17952,7 @@ function AcreditacionClarityStrip({
   const distributionActorCount = (state?.sources ?? []).filter((source) => String(source.role ?? "") === "universo").length;
   const distributionDeclaredActors = new Set(interestVariables.map((item) => normalizeSourceMatch(item.actor))).size;
   const distributionPendingActors = Math.max(0, distributionActorCount - distributionDeclaredActors);
+  const claritySchedule = acreditacionScheduleDraftFromPhases(state?.config?.strategy_phases ?? []);
   const itemsByView = {
     fuentes: [
       { label: "Fuentes", value: `${activeSources}/${sourceTotal || 0}`, hint: sourceGap ? `${sourceGap} pendientes` : "paquete listo", tone: sourceGap ? "warning" : "ready", icon: ClipboardCheck },
@@ -17979,6 +17967,10 @@ function AcreditacionClarityStrip({
       { label: "Actores", value: fmt(distributionActorCount), hint: "con base de universo", tone: distributionActorCount ? "base" : "warning", icon: ClipboardCheck },
       { label: "Variables", value: fmt(interestVariables.length), hint: "para abrir Avance", tone: interestVariables.length ? "ready" : "warning", icon: BarChartBig },
       { label: "Pendientes", value: fmt(distributionPendingActors), hint: "sin variable declarada", tone: distributionPendingActors ? "warning" : "ready", icon: AlertCircle },
+    ] : pestanaActiva === "estrategias" ? [
+      { label: "Plan", value: countText(claritySchedule.durationWeeks, "semana", "semanas"), hint: calendarWeekRangeLabel(claritySchedule.startWeek, claritySchedule.startWeek + claritySchedule.durationWeeks - 1), tone: "base", icon: CalendarRange },
+      { label: "Fechas", value: claritySchedule.startDate && claritySchedule.endDate ? "Declaradas" : "Pendientes", hint: "periodo de campo", tone: claritySchedule.startDate && claritySchedule.endDate ? "ready" : "warning", icon: ClipboardCheck },
+      { label: "Reporte", value: calendarReportWeekdayLabel(claritySchedule.reportWeekday), hint: "día de avance", tone: claritySchedule.reportWeekday ? "ready" : "warning", icon: RefreshCw },
     ] : [
       { label: "Actores", value: fmt(actorRows.length), hint: "cortes del reporte", tone: actorRows.length ? "base" : "warning", icon: ClipboardCheck },
       { label: "Metas", value: fmt(configuredGoals), hint: "configuradas", tone: configuredGoals ? "ready" : "warning", icon: Target },
