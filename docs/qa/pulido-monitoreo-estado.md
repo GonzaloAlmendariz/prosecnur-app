@@ -91,6 +91,25 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |
 | pieza ausente | acreditación | Fuentes › Universo | La fila visible no presenta documento, pestaña y rango simultáneamente; muestra la pestaña, pero el rango prometido por la especificación no está disponible en esta lectura. | `docs/plan-fuentes-legibles-2026-07.md` §4.1 | pendiente; fuera del alcance CSS/texto |
 
+## Modo telefónico — cerrado el 2026-07-30
+
+Trece superficies reales (el catálogo estático anunciaba dieciséis; tres no se
+montan en este modo). Todas en la escala 0/10/14/16 de la casa.
+
+Lo que se repitió en todas y por eso pasó a ser regla de perfil en vez de
+parche: radios entre 8 y 12 conviviendo sin jerarquía, y ninguna sombra. La
+dispersión máxima fueron **siete radios distintos en una sola pestaña**
+(Consultas › CodPulso) y **seis en veintiséis cajas** (Llamadas › Alertas).
+
+Tres cosas que se decidió NO tocar, y conviene que no se «arreglen» después:
+
+- Las celdas del cronograma y los niveles de insistencia **conservan su borde**:
+  llevan el color de su estado, y ahí el marco es la señal, no adorno.
+- Las versalitas que encabezan un bloque o rotulan una columna se quedan. Solo
+  salieron las que rotulaban celdas de dato.
+- El control deslizante de Salidas se queda en radio 8: su escala la fija el kit
+  compartido y cambiarla por perfil rompe la uniformidad con el resto de la app.
+
 ## Evidencia de la última iteración
 
 - Proyecto: copia temporal de `api/inst/reference_projects/acrconta/acrconta.pulso`.
