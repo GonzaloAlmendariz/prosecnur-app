@@ -247,10 +247,104 @@ Esto vale para cualquier trabajo visual en el repo:
 
 ---
 
+## 11. Una pestaña que no decide nada no es una pestaña
+
+Añadido tras Telefónico, 2026-07-29. §9 dice cuándo se **añade** una pestaña;
+esto es su reverso, y salió de un caso que ninguna de las reglas anteriores
+atrapaba.
+
+Las tres pestañas de Fuentes en Telefónico se llamaban por su pregunta —lo que
+§1 pide— y aun así el usuario las reportó como indistinguibles. Tenían razón: el
+nombre estaba bien y el contenido no. Renderizaban un solo componente con un
+`focus` que gobernaba las tarjetas pero **no** los dos bloques de configuración,
+que se montaban en las tres. «Encuestas» ofrecía configurar hojas de cálculo, y
+«Fuentes activas» era la unión literal de las otras dos.
+
+Lo que lo dejó pasar es que dos de los cinco booleanos del reparto sólo
+controlaban el atributo `open` del `<details>`, no su presencia. Un `focus` que
+parece gobernar el contenido y sólo gobierna un adorno es indistinguible de uno
+correcto leyendo el código.
+
+**A evaluar:** en cada sección con pestañas, montar dos y comparar. Si el diff es
+sólo qué está plegado, no son dos pestañas. Y el reparto conviene sacarlo a un
+módulo con test —`profiles/telefonico/fuentes/repartoDePestanas.ts` es el
+patrón—: «cada decisión aparece en una pestaña y sólo en una» es una aserción,
+no una intención.
+
+---
+
+## 12. Un flujo genérico no sirve a cuatro modos que trabajan distinto
+
+El panel de conectar fuente empezaba preguntando el **servicio** —Google Sheets /
+Kobo / SurveyMonkey— igual para todos. Es §1 otra vez, pero en un flujo en vez de
+en un rótulo, y por eso se escapó: los rótulos ya estaban corregidos.
+
+Medido en `acnur_pdm`: un estudio telefónico, que lee su padrón de Sheets y sus
+efectivas de Kobo, recibía SurveyMonkey como tercera opción de igual peso, y
+«Universo» preseleccionado cuando lo que ordena el estudio es el barrido.
+
+La reparación fue declarar el guion de cada familia (`fuentes/guionDeConexion.ts`):
+qué piezas necesita, en qué orden dependen una de otra, qué servicios admite cada
+una y si el estudio la reparte por actor. Con eso:
+
+- El servicio **deja de preguntarse** donde no hay decisión —una hoja de barrido
+  es una hoja de cálculo— y ese paso desaparece del flujo en vez de pedir un
+  «Continuar» sobre una pantalla que repite el nombre de la pieza.
+- Al conectar, el panel **no se cierra si queda algo**: avanza a la pieza
+  siguiente, y en una pieza por actor a la siguiente **de ese mismo actor**.
+  Cerrar devolvía al usuario a la pantalla anterior con el estudio a medio
+  configurar y le obligaba a reabrir el panel para lo que él mismo acababa de ver
+  marcado como pendiente.
+- Una pieza `porActor` **nunca está terminada**: siempre puede entrar otro actor,
+  y ese es justamente el caso que lleva a alguien al panel en Acreditación. Lo
+  que se dice de ella no es «lista» sino cuáles ya lo tienen.
+
+> **`cubiertaPor` es dominio, no atajo.** Muchos estudios telefónicos llevan
+> universo y barrido en la misma hoja: cada fila es una persona a llamar con su
+> estado al lado. El motor ya lo resolvía así, y sin declararlo el guion pedía
+> conectar un padrón que el estudio ya tenía —contradiciendo a la pantalla de al
+> lado, que lo daba por completo—. Una regla que el motor aplica y la UI ignora
+> produce dos verdades sobre el mismo dato.
+
+**A evaluar:** Territorial y Aulas tienen su guion declarado pero sin verificar
+en pantalla. Y el mismo patrón aplica a cualquier flujo de alta compartido entre
+modos: si el primer paso es elegir un proveedor, el flujo no sabe dónde está.
+
+---
+
+## 13. El sideover lleva la identidad del módulo desde el que se abre
+
+El panel iba en portal al `body` —obligatorio: `position: fixed` no se ancla al
+viewport si un ancestro tiene `transform`— y ahí **pierde el scope del módulo**,
+así que salía gris en los cuatro modos. Se declara el acento en el propio panel.
+
+Dos medidas de la misma vuelta:
+
+- El tinte al 9 % es indistinguible del gris de fondo. Si el color tiene que
+  decir de qué módulo se habla, tiene que verse: 13 % en el degradado más un 4 %
+  en la base, y un distintivo con el icono del módulo.
+- **Alto completo o alto por contenido, según qué haya dentro.** La versión
+  anterior dejaba que el alto lo pusiera el contenido, y con razón: un panel de
+  un solo formulario que reserva 793 px para 251 se lee como una vista rota. Con
+  el guion al lado —que está siempre y ocupa el alto de verdad— el criterio se
+  invierte, porque un sheet de altura variable salta de tamaño en cada paso
+  teniendo una columna fija al lado.
+
+Y una trampa que sólo aparece midiendo: el panel arrastra reglas del kit que
+ponen `white-space: nowrap` en `em`. A 1024×600, «A quién hay que llamar y las
+variables de cuota» ocupaba 250 px dentro de una columna de 154 y se salía por el
+borde. Lo que dice qué aporta cada pieza no se recorta (C4).
+
+---
+
 ## Pendientes que salen de aquí
 
-1. **Territorial** (§4.2 del plan) y el resto de **Telefónico** (§4.4): aplicar
-   §1–§4 y §8 de este documento.
+1. **Territorial** (§4.2 del plan): aplicar §1–§4, §8 y §11–§13. Telefónico
+   (§4.4) quedó hecho el 2026-07-29.
+0. El guion de conexión de **Territorial**, **Aulas** y el genérico está
+   declarado pero **sin verificar en pantalla**: sólo se comprobó Telefónico
+   sobre `acnur_pdm`. Acreditación tiene su guion cubierto por test y tampoco se
+   miró en la app —abrir `acrconta` cuesta ~3,5 min por recarga—.
 2. El gráfico general de **Telefónico** conserva el scroll simple: sus ejes se
    desplazan. Lleva una banda propia montada sobre la geometría del gráfico
    (`usesEffectiveAxisBand`) y meterle el marco exige verificar esa interacción.

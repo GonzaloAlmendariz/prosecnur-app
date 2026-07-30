@@ -45,7 +45,12 @@ describe("localTabsForTelefonicoView — catálogo del perfil telefónico", () =
   ) => localTabsForTelefonicoView(view, state, reportsArg, telefonicoRoute as never).map((t) => t.key);
 
   test("Fuentes omite Recopiladores: el paquete telefónico son Kobo, Sheets y corte", () => {
-    expect(keysFor("fuentes")).toEqual(["survey", "sheets", "activas"]);
+    // El resumen va primero. No es un gusto de orden: es la única pestaña que se
+    // lee sin decidir nada —responde de dónde salen los números— y es donde vive
+    // la puerta para conectar. Detrás van las dos de decisión, en el orden en
+    // que dependen una de otra: sin universo y barrido, la encuesta no tiene
+    // contra qué cruzar.
+    expect(keysFor("fuentes")).toEqual(["activas", "sheets", "survey"]);
   });
 
   test("Modelo no expone la pestaña Resumen/Lectura que sí tiene acreditación", () => {
