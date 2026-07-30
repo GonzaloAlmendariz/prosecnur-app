@@ -520,3 +520,31 @@
 .mon-territorial-route-coverage-map-frame {
   min-height: 0;
 }
+
+/* ── Ocurrencias › Reporte UMP: los nombres de distrito dejan de elidirse ──
+ *
+ * **Corrige una suposición que sobrevivió cuatro iteraciones.** Los recortes de
+ * esta tabla —84, con «SAN JUAN DE MIRAFLORES · Zona 01…» pidiendo 317 px en
+ * 258— se venían dejando abiertos con el argumento de que «envolver en una
+ * tabla redistribuye las columnas y eso es una decisión de ancho». Nunca se
+ * comprobó.
+ *
+ * Comprobado ahora: **no es una tabla**. Es una rejilla con columnas ya
+ * resueltas (`258px 143px 208px 208px 162px 129px`), así que envolver no las
+ * mueve. Medido antes y después: las seis columnas idénticas al píxel y los 84
+ * recortes en cero. Las filas con nombre largo crecen a dos líneas, que es
+ * exactamente lo que se quería.
+ *
+ * La lección no es el CSS, es que el argumento para no arreglarlo era una
+ * hipótesis con aspecto de norma. Las otras tablas con este mismo hallazgo
+ * —Encuestadores, Consultas internas, Cruces efectivos— hay que medirlas igual
+ * antes de repetir la excusa. */
+.mon-stage--ocurrencias .mon-field-occurrences-register-table em,
+.mon-stage--ocurrencias .mon-field-occurrences-register-table strong {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: normal;
+  hyphens: auto;
+}
