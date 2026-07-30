@@ -1636,7 +1636,7 @@
   display: grid;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: var(--pulso-radius-md, 12px);
+  border-radius: var(--pulso-radius-card);
   border: 1px solid var(--pulso-state-unchecked-border);
   background: var(--pulso-state-unchecked-bg);
 }
@@ -1703,7 +1703,7 @@
   display: grid;
   gap: 1px;
   padding: 8px 10px;
-  border-radius: 9px;
+  border-radius: var(--pulso-radius);
   background: color-mix(in srgb, var(--pulso-surface) 76%, transparent);
   border: 1px solid var(--pulso-border-subtle, var(--pulso-border));
 }

@@ -5800,13 +5800,11 @@
 
 /* Avance › Salidas. `pulso-gliding-tab-indicator` no entra: es la pastilla
  * deslizante del kit compartido y su radio lo fija el propio control. */
-.is-telefonico-profile .mon-outputs-readiness,
+/* Los radios de `mon-outputs-*` se retiraron de aquí: el componente lo comparten
+ * los cuatro modos y su escala vive ahora en `salidas/outputsWorkbench.css`.
+ * `mon-outputs-processing-hint` sí se queda, que es de este perfil. */
 .is-telefonico-profile .mon-outputs-processing-hint {
   border-radius: var(--pulso-radius-card);
-}
-
-.is-telefonico-profile .mon-outputs-readiness__granos > div {
-  border-radius: var(--pulso-radius);
 }
 
 /* ── Consultas › Salvedades: la versalita vuelve a encabezar ───────────────

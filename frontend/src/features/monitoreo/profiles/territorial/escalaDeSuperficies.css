@@ -369,13 +369,10 @@
  * Los controles con token propio —`--pulso-gliding-indicator-radius`,
  * `--mon-output-control-radius`— no se tocan: son del kit y su escala se cambia
  * ahí o no se cambia. */
-.mon-outputs-readiness {
-  border-radius: var(--pulso-radius-card);
-}
-
-.mon-outputs-readiness__granos > div {
-  border-radius: var(--pulso-radius);
-}
+/* Los radios de `mon-outputs-*` que estaban aquí se retiraron: el componente lo
+ * comparten los cuatro modos y su escala vive ahora en
+ * `salidas/outputsWorkbench.css`, donde toca. Duplicarla por perfil fue la
+ * deuda que este propio archivo registró el día que se escribió. */
 
 /* ── Ocurrencias de campo ──────────────────────────────────────────────────
  *
