@@ -321,6 +321,12 @@ se anota en el registro como propuesta y se sigue.
   es lo correcto —ocho tarjetas apiladas con una de 190 px entre siete de 214 no
   desalinean nada—.
 - Recorte de dato operativo. Elipsis en etiqueta larga sí; en dato, nunca.
+  **Y «está en una tabla» no es excusa para dejarlo**: envolver solo puede mover
+  columnas si la tabla declara `table-layout: auto`. Con `fixed`, o en una
+  rejilla de columnas ya resueltas, los anchos no dependen del contenido y
+  envolver es seguro. Se mira la propiedad —tres tablas de territorial se
+  dejaron sin arreglar durante cuatro iteraciones por suponerlo en vez de
+  medirlo, y en las tres era seguro.
 - Toolbars desbalanceados: `1fr` inanicia los lados. Lo que se mide es el
   **ancho de las zonas laterales**, que deben coincidir —en telefónico dan
   388,523 y 388,531 px, o sea ya está resuelto—. Las alturas distintas entre
