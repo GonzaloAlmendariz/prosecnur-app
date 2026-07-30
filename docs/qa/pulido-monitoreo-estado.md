@@ -85,6 +85,22 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | cursos-horario | Validación | pendiente |  |  |
 | cursos-horario | Consultas | pendiente |  |  |
 
+## Riesgo operativo: dos sesiones sobre el mismo backend
+
+Este loop y el de acreditación comparten el Plumber de `:8787`. Dos veces el
+proyecto abierto cambió a mitad de auditoría —de `acnur_acg` a `v7_work`— y con
+él el **modo**: navegar a `avance` acabó en `monitoreo/acreditacion/avance` en
+vez de territorial, porque el perfil lo decide el estudio y no la ruta.
+
+Consecuencia práctica: **confirmar `describir()` antes de medir no basta**, hay
+que confirmar también el modo. Una superficie auditada creyendo que era
+territorial y medida sobre acreditación produce reglas escritas en el archivo
+equivocado, y encima pisa el trabajo de la otra sesión.
+
+Regla para las siguientes iteraciones: reabrir el `.pulso` del modo con `?pulso=`
+al empezar cada modo, y comprobar que `describir()` empieza por el modo esperado
+—no solo que la sección coincida—.
+
 ## Corrección de método — 2026-07-30
 
 El conteo de versalitas de las primeras iteraciones estaba **inflado**. Medía
