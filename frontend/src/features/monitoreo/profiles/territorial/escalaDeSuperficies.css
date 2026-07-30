@@ -312,3 +312,70 @@
 .mon-territorial-exec-cut {
   border-radius: var(--pulso-radius-card);
 }
+
+/* ── Avance › Distritos ────────────────────────────────────────────────────
+ * La tarjeta de distrito la declaran dos reglas: una suelta y otra bajo
+ * `.mon-page .pulso-panel`. Se replican las dos para no dejar la mitad fuera. */
+.mon-territorial-exec-districts,
+.mon-territorial-exec-district-card,
+.mon-page .pulso-panel .mon-territorial-exec-district-card {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-exec-district-metrics dl div {
+  border-radius: var(--pulso-radius);
+}
+
+/* ── Avance › Ritmo diario y Mapa/UMP ──────────────────────────────────────
+ * Comparten la regla de 12 px con las tarjetas de estado de UMP. */
+.mon-territorial-rhythm-chart,
+.mon-territorial-ump-status-card {
+  border-radius: var(--pulso-radius-card);
+}
+
+/* ── Avance › Mapa y UMP ───────────────────────────────────────────────────
+ * 321 cajas y seis radios. La superficie con mapa mezcla su propio juego —11 y
+ * 12 para el visor y sus tiras— con el 8/9 de las celdas. */
+.mon-territorial-map-viewport,
+.mon-territorial-advance-map-legend,
+.mon-territorial-advance-map-focus-strip,
+.mon-territorial-ump-toolbar {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-advance-map-footer span,
+.mon-territorial-ump-map-nav-row,
+.mon-territorial-ump-detail-grid div,
+.mon-territorial-ump-gps-strip span {
+  border-radius: var(--pulso-radius);
+}
+
+/* 21 datos recortados en las tiras del mapa: «300 manzanas con geometr…»,
+ * «CHORRILLOS · Zona 01600 …», el nombre del encuestador. Ninguno está en
+ * tabla, así que envolver no redistribuye columnas. */
+.mon-territorial-advance-map-selection > *,
+.mon-territorial-advance-map-focus-strip > *,
+.mon-territorial-advance-map-footer span > * {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+/* ── Avance › Salidas ──────────────────────────────────────────────────────
+ * `mon-outputs-*` es un componente COMPARTIDO por los cuatro modos, y su
+ * escala se alineó primero solo en telefónico. Repetirla aquí es el parche que
+ * este trabajo quiere evitar, pero dejar territorial peor que telefónico
+ * tampoco vale: queda anotado en el registro como deuda a unificar.
+ *
+ * Los controles con token propio —`--pulso-gliding-indicator-radius`,
+ * `--mon-output-control-radius`— no se tocan: son del kit y su escala se cambia
+ * ahí o no se cambia. */
+.mon-outputs-readiness {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-outputs-readiness__granos > div {
+  border-radius: var(--pulso-radius);
+}
