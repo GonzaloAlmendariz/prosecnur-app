@@ -63,11 +63,11 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | territorial | Validación › Duración de tiempo | hecho | radios 8/9 → 0/10/14 y los 11 recortes resueltos. La regla anterior perdía por especificidad: `.mon-duration-daily-value small` (0,1,1) gana a un `> *` (0,1,0) | este commit |
 | territorial | Validación › Cuotas | hecho | toda la superficie en radio 8 sin excepción —escala propia de principio a fin— y **156 recortes, el récord del barrido**: «8 encuestas por comple…», «Resta de Hombre · Muje…», que son las razones de cada brecha. Ninguno en tabla, así que envolver fue seguro: 156 → 0 | este commit |
 | territorial | Validación › Anulación | hecho | superficie entera en radio 8, como Cuotas: las dos se construyeron con escala propia de principio a fin. Queda en 10/14 | este commit |
-| territorial | Consultas internas › Registro | pendiente |  |  |
-| territorial | Consultas internas › GPS con señal | pendiente |  |  |
-| territorial | Consultas internas › Tiempo corto/muy corto | pendiente |  |  |
-| territorial | Consultas internas › Cruce responsable | pendiente |  |  |
-| territorial | Consultas internas › Subsanaciones | pendiente |  |  |
+| territorial | Consultas internas › Registro | hecho | radios 8/12 → 10/14; rótulos de métrica dejan de recortarse. Las cinco pestañas comparten armazón, así que la escala alcanza a todas | este commit |
+| territorial | Consultas internas › GPS con señal | hecho | cubierta por la escala del armazón de revisión | este commit |
+| territorial | Consultas internas › Tiempo corto/muy corto | hecho | idem | este commit |
+| territorial | Consultas internas › Cruce responsable | hecho | idem | este commit |
+| territorial | Consultas internas › Subsanaciones | hecho | idem | este commit |
 | territorial | Avance territorial › Resumen | pendiente |  |  |
 | territorial | Avance territorial › Distritos | pendiente |  |  |
 | territorial | Avance territorial › Mapa y UMP | pendiente |  |  |
@@ -103,6 +103,7 @@ las acompaña no es fiable.
 | Tipo | Modo | Superficie | Hallazgo | Referencia | Estado |
 |---|---|---|---|---|---|
 | scroll anidado (C4) | territorial | Modelo › Cobertura | **Seis** contenedores con scroll propio en una pestaña, más 7 recortes. La norma pide un solo dueño de scroll; con mapa, rail y listas de distrito conviviendo, resolverlo es rehacer el reparto de alto de la superficie | medido el 2026-07-30 en `acnur_acg` | abierto |
+| recorte en tabla | territorial | Consultas internas | Diez datos recortados dentro de las tablas de revisión («P597 · Vargas Carlos A…»). Mismo caso que Encuestadores: envolver redistribuye columnas | medido el 2026-07-30 | abierto |
 | recorte en tabla | territorial | Fuente › Encuestadores | Ocho datos recortados dentro de celdas de tabla («+5 reconciliadas»). La norma prohíbe elipsis en dato operativo, pero permitir el envoltorio en una tabla redistribuye las columnas: hay que decidir el ancho de esa columna, no solo el `white-space` | medido el 2026-07-30 en `acnur_acg` | abierto |
 | scroll anidado (C4) | telefónico | Consultas › CodPulso | Dos contenedores con scroll propio dentro de la pestaña. La norma pide un solo dueño de scroll por pantalla; resolverlo exige decidir cuál de los dos cede el alto, y eso cambia el layout | medido el 2026-07-30 en `acnur_pdm` | abierto |
 | duplicación estructural | telefónico | Modelo › Cuotas | «Sede» se lee **9 veces** en la misma pantalla y «400» **5**. No es copy repetido sino cuatro superficies que muestran el mismo modelo con distinto formato: la franja de 4 cajas, la cadena de la regla de lectura, la fila de 5 KPIs bajo las categorías y las tarjetas editables. Las 5 categorías se listan **dos veces** —resumen con base·meta·% y tarjetas con universo/meta/efectivas/brecha/tasa/reserva—. Retirar la redundancia exige decidir qué superficie es la de lectura y cuál la de edición, y eso es estructura, no CSS. | medido el 2026-07-30 en `acnur_pdm`, `monitoreo/telefonico/modelo/estructura` | abierto |

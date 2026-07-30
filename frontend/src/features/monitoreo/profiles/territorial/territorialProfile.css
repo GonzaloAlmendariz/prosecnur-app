@@ -17351,3 +17351,32 @@
 .mon-production-annulments__history {
   border-radius: var(--pulso-radius-card);
 }
+
+/* ── Consultas ─────────────────────────────────────────────────────────────
+ * Las cinco pestañas comparten el mismo armazón de revisión, así que la escala
+ * se declara una vez y alcanza a todas. */
+.mon-territorial-review-hero,
+.mon-territorial-review-table-shell {
+  border-radius: var(--pulso-radius-card);
+}
+
+.mon-territorial-review-metrics span,
+.mon-territorial-review-table-scroll {
+  border-radius: var(--pulso-radius);
+}
+
+.mon-territorial-review-filterbar {
+  border-radius: var(--pulso-radius-card);
+}
+
+/* Los rótulos de métrica se recortaban —«Tiempo corto/muy corto», «52 corta ·
+ * 3 muy corta»—. Los de dentro de la tabla no se tocan: envolver ahí
+ * redistribuye columnas y eso es una decisión de layout, no de CSS. */
+.mon-territorial-review-metrics em,
+.mon-territorial-review-metrics strong {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
