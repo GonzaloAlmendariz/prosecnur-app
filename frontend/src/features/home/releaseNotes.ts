@@ -12,6 +12,20 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.6.0",
+    date: "2026-07-31",
+    highlights: [
+      "Bitácora: el estudio ahora se puede dibujar. Un lienzo espacial permite colocar nodos, conectarlos y desplegar sus ramas sin salir del propio lienzo, con deshacer y rehacer; los nodos pueden referirse a piezas reales de la app, a hitos o a entradas de la bitácora, y el mapa completo se exporta e importa. El cronograma del estudio se arma por fases dentro de la app, y un centro de avisos reúne las alertas sin interrumpir el trabajo.",
+      "Toda vista tiene su propia dirección y se puede compartir. Cada pantalla —incluidos los paneles y las pestañas internas— queda descrita en la barra de direcciones, así que puedes guardar el enlace de una vista concreta y volver a ella, o pasársela a alguien del equipo. Al abrir un proyecto se aterriza siempre en su propio inicio, nunca en una pantalla heredada de otro estudio.",
+      "Monitoreo territorial: la correspondencia entre las variables que el módulo necesita y las columnas de tu base se declara a mano, en la primera pestaña de UMPs. Antes se adivinaba sola y podía equivocarse en silencio —eligiendo una columna vacía o una parecida pero distinta—, lo que producía cifras creíbles y erróneas. Ahora cada variable muestra qué porcentaje de la base tiene dato y un ejemplo real, para confirmar la elección de un vistazo.",
+      "Monitoreo: las fuentes se organizan por la pregunta que respondes —qué se está recogiendo, con qué actores y por dónde entra— en lugar de por el servicio técnico del que provienen. El ritmo diario muestra en qué terminó cada llamada del día, el embudo se lee en Avance (que es donde se pregunta cuánto se lleva) y un caso completo que no cruza aparece primero, porque es lo que hay que rescatar.",
+      "Recopiladores: un módulo nuevo para preparar la salida a campo — plan de recolección, accesos, materiales y entrega, con ficha de encuestador y su código QR.",
+      "Cálculo de muestra: el Marco distingue el total de los elegibles del promedio por curso-horario, y nombra cada cifra por lo que realmente es, para que no se lean como conteo de personas.",
+      "Rendimiento: la app abre más rápido —comprobaciones de arranque y proyectos recientes se resuelven en paralelo— y Monitoreo deja de rehacer cálculos que ya tenía: los reportes se guardan dentro del proyecto y las consultas en curso se cancelan de verdad al cambiar de pantalla. Importar desde SurveyMonkey o Kobo ya no congela la interfaz mientras trabaja.",
+      "Correcciones de legibilidad en toda la app: los nombres de distrito, de responsable y de base dejan de recortarse; el texto de Monitoreo telefónico recupera sus tildes; las barras de insistencia vuelven a sumar 100%; un avance sin meta declarada deja de mostrarse como 0%; y los errores de Kobo que puedes resolver tú se explican como tales en vez de llegar como fallo interno.",
+    ],
+  },
+  {
     version: "0.5.19",
     date: "2026-07-24",
     highlights: [
