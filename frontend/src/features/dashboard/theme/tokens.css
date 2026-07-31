@@ -996,11 +996,22 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
-/* Fase inicial de curaduría. */
+/* Fase inicial de curaduría.
+ *
+ * `min-height: 0` + `overflow-y: auto` no son adorno: `.dashboard-scope` es una
+ * columna flex con `overflow: hidden` (theme.css) bajo la premisa de que sus
+ * paneles se llevan el scroll. La curaduría no lo hacía, y con un instrumento
+ * de 7 secciones y 54 variables su contenido medía 2.906 px dentro de una caja
+ * de 889: 2.017 px inalcanzables, incluidas cinco de las siete secciones que
+ * hay que curar. Un flex item sin `min-height: 0` se niega a encogerse por
+ * debajo de su contenido, así que las dos declaraciones van juntas o no
+ * funciona ninguna. */
 .dashboard-scope .dash-curation {
   width: 100%;
   max-width: none;
   padding: 16px;
+  min-height: 0;
+  overflow-y: auto;
 }
 .dashboard-scope .dash-curation > .dash-cardbox-header {
   align-items: flex-start;
