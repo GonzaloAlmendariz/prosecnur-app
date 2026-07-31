@@ -3,13 +3,6 @@
   color: var(--pulso-text);
 }
 
-.rec-context {
-  color: var(--pulso-text-soft);
-  font-size: 13px;
-  font-weight: var(--pulso-weight-semibold);
-  white-space: nowrap;
-}
-
 .rec-section-selector,
 .rec-tab-list {
   align-items: center;

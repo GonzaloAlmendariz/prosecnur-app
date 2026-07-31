@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { apiRecopiladoresState, type CollectionArtifactReceipt, type CollectionStatePayload } from "../../api/recopiladores";
+import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
 import { PageFrame } from "../../components/PageFrame";
@@ -150,7 +151,23 @@ export function RecopiladoresShell() {
       chrome={(
         <ModuleCommandBar
           modulo="recopiladores"
-          contexto={<span className="rec-context">{MODULE.title}</span>}
+          contexto={state?.plan ? (
+            // La zona de contexto lleva el dato, no el nombre del módulo: eso ya
+            // lo dice el ícono activo del rail y repetirlo desperdicia el único
+            // hueco donde los demás módulos ponen su cifra —Bitácora pone
+            // entradas, Hojas de ruta distritos, Cálculo la mesa—. Aquí el dato
+            // es la forma del plan: cuántas unidades y de qué tipo.
+            <ChromeIndicatorGroup ariaLabel="Contexto de Recopiladores">
+              <ChromeIndicator
+                label="Unidades"
+                value={String(state.plan.units.length)}
+                prioridad="alta"
+              />
+              {state.plan.unit_type ? (
+                <ChromeIndicator label="Tipo" value={state.plan.unit_type} />
+              ) : null}
+            </ChromeIndicatorGroup>
+          ) : null}
           secciones={sectionSelector}
           acciones={[{
             id: "refresh",
