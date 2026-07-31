@@ -17,8 +17,7 @@
   "monitoreo",
   "monitoreo_territorial",
   "dashboard",
-  "editor_xlsform",
-  "enciclopedia"
+  "editor_xlsform"
 )
 
 .project_warmup_default_budget_ms <- 320000L
@@ -426,8 +425,7 @@
     monitoreo = c("monitoreo", "monitoreo_datos"),
     monitoreo_territorial = c("monitoreo", "monitoreo_datos"),
     dashboard = c("dashboard", "dashboard_datos", "plotly", "html_to_image"),
-    editor_xlsform = c("editor_xlsform"),
-    enciclopedia = c("enciclopedia")
+    editor_xlsform = c("editor_xlsform")
   )
   frontend <- unique(unlist(frontend_map[ids], use.names = FALSE))
   list(
@@ -910,21 +908,6 @@
         }
         .project_warmup_ready("Estado del editor XLSForm disponible.", list(
           has_workbook = is.list(s$xlsform_state$workbook %||% NULL)
-        ))
-      }
-    ),
-    list(
-      id = "enciclopedia",
-      module = "Enciclopedia",
-      run = function(sid, remaining_ms) {
-        if (!exists(".enc_load", mode = "function")) {
-          return(.project_warmup_skip("Catalogos metodologicos no disponibles."))
-        }
-        catalogo <- .enc_load("catalogo_metodologias.json")
-        glosario <- .enc_load("glosario.json")
-        .project_warmup_ready("Catalogos metodologicos leidos desde disco.", list(
-          n_metodologias = length(catalogo$metodologias %||% list()),
-          n_glosario = length(glosario$terminos %||% list())
         ))
       }
     )

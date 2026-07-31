@@ -72,7 +72,7 @@ describe("gramática de direcciones", () => {
   });
 
   it("devuelve null fuera de la jerarquía de módulos", () => {
-    expect(parsearDireccion("/enciclopedia")).toBeNull();
+    expect(parsearDireccion("/ruta-que-no-existe")).toBeNull();
     expect(parsearDireccion("/no-existe")).toBeNull();
   });
 

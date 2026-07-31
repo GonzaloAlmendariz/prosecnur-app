@@ -77,14 +77,6 @@ const BitacoraPage = lazyWithReload(
   () => import("../features/bitacora/BitacoraPage"),
   "BitacoraPage",
 );
-const EnciclopediaHome = lazyWithReload(
-  () => import("../features/enciclopedia/EnciclopediaHome"),
-  "EnciclopediaHome",
-);
-const FichaMetodologica = lazyWithReload(
-  () => import("../features/enciclopedia/FichaMetodologica"),
-  "FichaMetodologica",
-);
 const CalcMuestraPage = lazyWithReload(
   () => import("../features/calcMuestra/CalcMuestraPage"),
   "CalcMuestraPage",
@@ -162,8 +154,6 @@ export default function App() {
                   <Route path="/plan-trabajo" element={<Navigate to="/bitacora?tab=cronograma" replace />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
-                  <Route path="/enciclopedia" element={<EnciclopediaHome />} />
-                  <Route path="/enciclopedia/metodologia/:id" element={<FichaMetodologica />} />
                   <Route path="/muestra" element={<MuestraHub />} />
                   <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra?mesa=aulas" replace />} />
                   <Route path="/monitoreo" element={<MonitoreoShell />} />

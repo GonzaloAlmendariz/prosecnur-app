@@ -43,7 +43,6 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   Lightbulb,
-  Library,
   Loader2,
   Map,
   MapPin,
@@ -118,7 +117,6 @@ export const IconCollector = QrCode;
 export const IconMonitor = Activity;
 export const IconHome = Home;
 export const IconSample = Calculator;
-export const IconEncyclopedia = Library;
 export const IconStudyDesign = ClipboardList;
 export const IconWorkPlan = GanttChart;
 

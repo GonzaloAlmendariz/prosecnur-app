@@ -147,14 +147,6 @@ const MODULE_PROFILES: ModuleWarmupProfile[] = [
     messages: ["Preparando formulario", "Leyendo estructura", "Abriendo editor"],
   },
   {
-    key: "enciclopedia",
-    title: "Enciclopedia",
-    moduleTo: "/enciclopedia",
-    frontend: ["enciclopedia"],
-    backend: ["project", "enciclopedia"],
-    messages: ["Leyendo catalogo", "Preparando fichas", "Abriendo biblioteca"],
-  },
-  {
     key: "bitacora",
     title: "Bitácora",
     moduleTo: "/bitacora",
@@ -188,9 +180,6 @@ function warmupProfileForPath(pathname: string) {
   }
   if (path === "/tablero") return MODULE_PROFILES.find((profile) => profile.key === "dashboard") ?? null;
   if (path === "/editor-xlsform") return MODULE_PROFILES.find((profile) => profile.key === "editor-xlsform") ?? null;
-  if (path === "/enciclopedia" || path.startsWith("/enciclopedia/")) {
-    return MODULE_PROFILES.find((profile) => profile.key === "enciclopedia") ?? null;
-  }
   if (path === "/codificacion" || path.startsWith("/codificacion/")) {
     return MODULE_PROFILES.find((profile) => profile.key === "codificacion") ?? null;
   }

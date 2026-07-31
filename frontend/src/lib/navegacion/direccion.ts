@@ -209,9 +209,9 @@ function normalizarToken(raw: string): string {
 /**
  * Convierte una URL de la app en dirección canónica.
  *
- * Devuelve `null` cuando el pathname no pertenece a ningún módulo (`/`,
- * `/enciclopedia`, rutas públicas). Eso no es un error: hay pantallas fuera de
- * la jerarquía de módulos y la gramática no pretende cubrirlas.
+ * Devuelve `null` cuando el pathname no pertenece a ningún módulo (`/`, el
+ * homepage del proyecto, rutas públicas). Eso no es un error: hay pantallas
+ * fuera de la jerarquía de módulos y la gramática no pretende cubrirlas.
  */
 export function parsearDireccion(
   pathname: string,
