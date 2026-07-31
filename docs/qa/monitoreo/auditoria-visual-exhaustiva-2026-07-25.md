@@ -50,11 +50,14 @@ tres motivos:
 
 ### Evidencia reproducible
 
-- [Territorial: 26 pestañas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/)
-- [Acreditación: 22 pestañas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v2/acreditacion/)
-- [Aulas: 5 pestañas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/)
-- [Telefónico: 15 pestañas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/)
-- [Matriz de cinco viewports](../../../outputs/ux-audit/monitoreo-2026-07-25/viewports/)
+Los artefactos fueron salidas locales ignoradas por Git. Se conservan como
+rutas históricas, no como enlaces portables:
+
+- Territorial, 26 pestañas: `outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/`.
+- Acreditación, 22 pestañas: `outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v2/acreditacion/`.
+- Aulas, 5 pestañas: `outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/`.
+- Telefónico, 15 pestañas: `outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/`.
+- Matriz de cinco viewports: `outputs/ux-audit/monitoreo-2026-07-25/viewports/`.
 
 En cada pestaña se tomó una captura inicial. Cuando un contenedor tenía más
 contenido que altura visible, se midió el dueño del scroll y se tomaron
@@ -102,9 +105,9 @@ La evidencia confirma contenido no alcanzable en:
 
 Ejemplos:
 
-- [Filtro y distritos](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/02-fuente-filtro-y-distritos.png)
-- [Ocurrencias / Alertas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/25-ocurrencias-alertas.png)
-- [Ocurrencias / UMP](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/24-ocurrencias-ump.png)
+- Filtro y distritos: `outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/02-fuente-filtro-y-distritos.png`.
+- Ocurrencias / Alertas: `outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/25-ocurrencias-alertas.png`.
+- Ocurrencias / UMP: `outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/24-ocurrencias-ump.png`.
 
 **Mejora:** liberar la altura del hijo o convertir el contenedor correcto en
 scroll owner. Las listas de UMP deben mostrar al menos dos tarjetas completas
@@ -128,7 +131,8 @@ crudo, explicar la regla causal con un enlace directo al bloqueo.
 
 #### P1: salidas sin avance válido
 
-[Avance / Salidas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/21-avance-salidas.png)
+`Avance / Salidas` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/territorial/screenshots/tabs/21-avance-salidas.png`—
 ofrece PDF y paquete con 0 válidas. El gate actual se apoya en snapshot y número
 de filas, no en registros procesables.
 
@@ -172,7 +176,8 @@ Las 22 pestañas actuales están hidratadas y el contenido es alcanzable. Los 45
 
 #### P1 compartido: salida publicable con estado indeterminado
 
-[Avance / Salidas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v2/acreditacion/screenshots/tabs/22-avance-salidas.png)
+`Avance / Salidas` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v2/acreditacion/screenshots/tabs/22-avance-salidas.png`—
 muestra `ESTADO Pendiente`, `EFECTIVAS S/D` y, al mismo tiempo, botones
 habilitados para generar PDFs.
 
@@ -218,7 +223,8 @@ trazabilidad permanecen comprensibles durante el scroll.
 
 #### P1: corte no defendible
 
-[Avance / Resumen](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/01-avance-resumen.png)
+`Avance / Resumen` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/01-avance-resumen.png`—
 presenta:
 
 - 0 cursos-horario aplicados;
@@ -233,7 +239,8 @@ desactualizado, debe existir un banner explícito.
 
 #### P1: pasos verdes sin evidencia
 
-[Agenda / Aulas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/02-agenda-aulas.png)
+`Agenda / Aulas` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/02-agenda-aulas.png`—
 pinta en verde `Kobo + QR` y `Fichas PDF/Word`, pero el detalle dice `0/8`,
 `pendiente` y `sin enlaces`.
 
@@ -251,9 +258,10 @@ paginación/virtualización y mensaje “Mostrando N de M”.
 
 #### P1: Consultas mezcla granos
 
-[Inicio](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/04-consultas-brechas.png)
+`Inicio` y `final del scroll` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/04-consultas-brechas.png`
 y
-[final del scroll](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/04-consultas-brechas-scroll-consultas-0-bottom.png)
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs/aulas_universitarias/screenshots/tabs/04-consultas-brechas-scroll-consultas-0-bottom.png`—
 muestran cursos repetidos en “Reemplazos y brechas”, sin columna que distinga
 tipo, motivo o relación titular–reemplazo.
 
@@ -285,10 +293,12 @@ La pasada final recorrió las cinco secciones y 15 pestañas actuales:
 
 #### P1: fuentes y avance no comparten la misma verdad
 
-[Fuentes / Paquete](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/screenshots/tabs/03-fuentes-paquete.png)
+`Fuentes / Paquete` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/screenshots/tabs/03-fuentes-paquete.png`—
 declara 2/3 fuentes, `Falta Kobo`, 0 encuestas y `Sin sync`.
 
-[Avance / Salidas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/screenshots/tabs/15-avance-salidas.png)
+`Avance / Salidas` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/screenshots/tabs/15-avance-salidas.png`—
 declara 9 efectivas Kobo, CodPulso 9/9 y habilita PDFs mientras el estado global
 continúa “Pendiente”.
 
@@ -302,7 +312,8 @@ marca de agua y advertencia.
 
 #### P1: Alertas ofrece falsa certeza
 
-[Llamadas / Alertas](../../../outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/screenshots/tabs/12-telefono-alertas.png)
+`Llamadas / Alertas` —evidencia local en
+`outputs/ux-audit/monitoreo-2026-07-25/deep-tabs-v3/telefonico/screenshots/tabs/12-telefono-alertas.png`—
 muestra 2/3 fuentes y estado pendiente, pero comunica que no hay observaciones
 y que la consistencia está lista.
 

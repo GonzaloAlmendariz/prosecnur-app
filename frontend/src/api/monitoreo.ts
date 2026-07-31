@@ -3266,6 +3266,59 @@ export async function apiMonitoreoSheetsInspect(binding: Partial<MonitoreoSheetB
   );
 }
 
+/**
+ * Una unidad del elenco de actores.
+ *
+ * `origin` distingue el actor que el estudio DECLARÓ del que Fuentes dedujo de
+ * una fuente conectada. No es metadato decorativo: el backend recalcula los
+ * derivados en cada normalización y solo respeta los declarados, así que
+ * perder este campo al viajar es perder el elenco.
+ */
+export type MonitoreoActorUnit = {
+  id: string;
+  type: string;
+  actor: string;
+  label: string;
+  segment: string;
+  group: string;
+  origin: "declarado" | "fuentes";
+  phone: { enabled: boolean; role: string };
+};
+
+export type MonitoreoActorRosterResult = {
+  ok: true;
+  actores: MonitoreoActorUnit[];
+  state: MonitoreoState;
+  saved_project?: boolean;
+};
+
+/** Guarda el elenco completo. El orden que se envía es el orden que manda. */
+export async function apiMonitoreoActores(units: Array<Partial<MonitoreoActorUnit>>) {
+  return handle<MonitoreoActorRosterResult>(
+    await apiFetch("/api/monitoreo/actores", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ units }),
+    }),
+  );
+}
+
+/**
+ * Renombra un actor en el elenco y en todas sus fuentes, de forma atómica.
+ *
+ * No es lo mismo que guardar el elenco con el nombre cambiado: eso dejaría al
+ * actor viejo vivo en las fuentes que lo nombran y el estudio acabaría con dos.
+ */
+export async function apiMonitoreoActorRename(from: string, to: string) {
+  return handle<MonitoreoActorRosterResult & { from: string; to: string }>(
+    await apiFetch("/api/monitoreo/actores/rename", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ from, to }),
+    }),
+  );
+}
+
 export async function apiMonitoreoSheetsSource(payload: MonitoreoSourcePayload) {
   return handle<{ ok: true; source: MonitoreoSource; validation: unknown; state: MonitoreoState }>(
     await apiFetch("/api/monitoreo/sheets/source", {

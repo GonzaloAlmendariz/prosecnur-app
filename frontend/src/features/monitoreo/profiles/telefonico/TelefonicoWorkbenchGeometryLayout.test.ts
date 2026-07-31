@@ -38,23 +38,38 @@ describe("Telefónico: geometría del workbench", () => {
     );
     const statusBodies = ruleBodies(".is-telefonico-profile .mon-phone-advance-status-list");
 
-    expect(parallelBodies.some((body) => /overflow:\s*hidden;/.test(body))).toBe(true);
+    // Lo que la regla pide es que este bloque NO sea dueño de scroll, no un
+    // valor literal. Con `hidden` no scrolleaba pero recortaba; desde que tiene
+    // fila propia y crece con su contenido, `visible` cumple lo mismo sin
+    // esconder nada. Lo que no puede aparecer nunca es `auto` ni `scroll`.
+    expect(parallelBodies.some((body) => /overflow:\s*(hidden|visible);/.test(body))).toBe(true);
+    expect(parallelBodies.some((body) => /overflow(-y)?:\s*(auto|scroll);/.test(body))).toBe(false);
     expect(statusBodies.some((body) => (
       /height:\s*auto;/.test(body)
       && /overflow:\s*auto;/.test(body)
     ))).toBe(true);
   });
 
-  test("en escritorio conserva tres columnas explícitas sin auto-fit ni solapamiento", () => {
+  test("en escritorio da una fila por lectura, con columnas explícitas", () => {
+    // Antes eran tres columnas paralelas —Universo, Contexto y Actor—. La
+    // tercera se retiró porque repetía la pestaña Cuotas, y las dos que quedan
+    // pasaron a fila propia: ninguna cabía en un tercio del ancho.
+    //
+    // Lo que este test sigue protegiendo es lo que motivó la regla original: las
+    // pistas se declaran explícitas. Con el `repeat(auto-fit, …)` genérico que
+    // había antes aparecían tracks residuales —uno de 0 px— y las superficies se
+    // solapaban entre sí.
     const bodies = ruleBodies(
       ".is-telefonico-profile .mon-phone-advance-summary .mon-phone-advance-grid",
     );
 
     expect(bodies.some((body) => (
-      /grid-template-columns:\s*minmax\(360px,\s*1fr\)\s+minmax\(330px,\s*0\.78fr\)\s+minmax\(300px,\s*0\.64fr\);/.test(body)
-      && /grid-template-areas:\s*"daily daily daily"\s*"storage context focus";/.test(body)
-      && /overflow:\s*hidden;/.test(body)
+      /grid-template-columns:\s*minmax\(0,\s*1fr\);/.test(body)
+      && /grid-template-areas:\s*"daily"\s*"storage"\s*"context";/.test(body)
     ))).toBe(true);
+    expect(bodies.some((body) => /auto-fit|auto-fill/.test(body))).toBe(false);
+    // El área del bloque retirado no puede reaparecer sin que nadie la monte.
+    expect(bodies.some((body) => /"focus"|focus;/.test(body))).toBe(false);
   });
 
   test("en compacto delega el scroll al workbench y deja crecer el resumen", () => {

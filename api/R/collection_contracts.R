@@ -19,6 +19,7 @@
 
 COLLECTION_PLAN_SCHEMA <- "collection_plan/v1"
 COLLECTION_DEPLOYMENT_SCHEMA <- "collection_deployment/v1"
+COLLECTION_STATE_SCHEMA <- "collection_state/v1"
 
 # `stale` no es un cuarto paso: es a dónde cae cualquiera de los tres cuando
 # cambia el plan, la selección, la revisión del instrumento o el target remoto.
@@ -53,6 +54,96 @@ COLLECTION_IDENTITY_FIELDS <- c(
 
 .cc_is_fingerprint <- function(x) {
   .cc_is_scalar_string(x) && grepl("^sha256:[0-9a-f]{64}$", x)
+}
+
+.cc_is_integer_ge <- function(x, minimum = 0L) {
+  if (!is.numeric(x) || length(x) != 1L || is.na(x)) return(FALSE)
+  identical(as.numeric(as.integer(x)), as.numeric(x)) && as.integer(x) >= minimum
+}
+
+# Normaliza objetos antes de hashearlos. Los nombres de un objeto JSON no
+# tienen orden semántico; los arrays sí. Sin esta separación, dos requests
+# equivalentes con keys en distinto orden producirían deployments distintos.
+.cc_canonicalize <- function(x) {
+  if (inherits(x, "POSIXt")) {
+    return(format(x, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  }
+  if (is.factor(x)) return(as.character(x))
+  if (is.data.frame(x)) {
+    cols <- sort(names(x))
+    return(lapply(seq_len(nrow(x)), function(i) {
+      .cc_canonicalize(as.list(x[i, cols, drop = FALSE]))
+    }))
+  }
+  if (is.list(x)) {
+    nms <- names(x)
+    is_object <- !is.null(nms) && length(nms) == length(x) &&
+      all(nzchar(nms)) && !anyDuplicated(nms)
+    if (is_object) {
+      nms <- sort(nms)
+      out <- lapply(nms, function(nm) .cc_canonicalize(x[[nm]]))
+      names(out) <- nms
+      return(out)
+    }
+    return(lapply(x, .cc_canonicalize))
+  }
+  if (is.atomic(x) && length(x) > 1L) {
+    return(lapply(as.list(x), .cc_canonicalize))
+  }
+  x
+}
+
+#' Fingerprint SHA-256 canónico de un objeto de colección.
+#'
+#' @param value objeto R serializable a JSON.
+#' @return string `sha256:<64 hex>`.
+collection_fingerprint <- function(value) {
+  canonical <- jsonlite::toJSON(
+    .cc_canonicalize(value),
+    auto_unbox = TRUE,
+    null = "null",
+    digits = NA,
+    force = TRUE
+  )
+  paste0("sha256:", tolower(digest::digest(canonical, algo = "sha256", serialize = FALSE)))
+}
+
+.cc_security_problems <- function(x, path = "value") {
+  problems <- list()
+  if (is.raw(x)) {
+    return(list(.cc_problem(path, "binary_in_state", "El estado no puede contener binarios.")))
+  }
+  if (is.character(x) && length(x)) {
+    bad <- which(grepl("^data:(image|application|audio|video)/", x, ignore.case = TRUE))
+    for (i in bad) {
+      problems[[length(problems) + 1L]] <- .cc_problem(
+        sprintf("%s[%d]", path, i), "binary_in_state",
+        "Data-URLs y previews regenerables quedan fuera del .pulso."
+      )
+    }
+  }
+  if (!is.list(x)) return(problems)
+
+  nms <- names(x)
+  for (i in seq_along(x)) {
+    nm <- if (!is.null(nms) && !is.na(nms[[i]]) && nzchar(nms[[i]])) {
+      nms[[i]]
+    } else {
+      sprintf("[%d]", i)
+    }
+    child_path <- if (startsWith(nm, "[")) paste0(path, nm) else paste(path, nm, sep = ".")
+    if (grepl(
+      "(^|_)(token|access_token|refresh_token|api_key|password|secret|authorization|credential|private_key|client_secret)($|_)",
+      tolower(nm)
+    )) {
+      problems[[length(problems) + 1L]] <- .cc_problem(
+        child_path, "secret_in_state",
+        sprintf("`%s` parece una credencial y no puede persistirse en collection_state.", nm)
+      )
+    }
+    problems <- c(problems, .cc_security_problems(x[[i]], child_path))
+  }
+  problems
 }
 
 .cc_problem <- function(path, code, detail) {
@@ -109,7 +200,7 @@ collection_plan_validate <- function(plan) {
   }
   problems <- .cc_require_fingerprint(plan, "input_fingerprint", "plan", problems)
 
-  if (!is.numeric(plan$revision) || length(plan$revision) != 1L || plan$revision < 1) {
+  if (!.cc_is_integer_ge(plan$revision, 1L)) {
     problems[[length(problems) + 1L]] <- .cc_problem(
       "plan.revision", "bad_revision", "`revision` debe ser un entero >= 1."
     )
@@ -122,6 +213,12 @@ collection_plan_validate <- function(plan) {
     )
   } else {
     problems <- .cc_require_string(adapter, "id", "plan.adapter", problems)
+    if (!.cc_is_integer_ge(adapter$version, 1L)) {
+      problems[[length(problems) + 1L]] <- .cc_problem(
+        "plan.adapter.version", "bad_adapter_version",
+        "`adapter.version` debe ser un entero >= 1."
+      )
+    }
   }
 
   src <- plan$source_ref
@@ -132,6 +229,7 @@ collection_plan_validate <- function(plan) {
     )
   } else {
     problems <- .cc_require_string(src, "module", "plan.source_ref", problems)
+    problems <- .cc_require_string(src, "run_id", "plan.source_ref", problems)
     problems <- .cc_require_fingerprint(src, "fingerprint", "plan.source_ref", problems)
   }
 
@@ -181,6 +279,8 @@ collection_plan_validate <- function(plan) {
     }
   }
 
+  problems <- c(problems, .cc_security_problems(plan, "plan"))
+
   list(ok = length(problems) == 0L, problems = problems)
 }
 
@@ -205,6 +305,12 @@ collection_binding_problems <- function(binding, path = "binding", unit_ids = NU
 
   for (field in c("access_id", "logical_collector_id", "unit_id", "access_kind", "status")) {
     problems <- .cc_require_string(binding, field, path, problems)
+  }
+  if (!is.null(binding$access_ref) && !.cc_is_scalar_string(binding$access_ref)) {
+    problems[[length(problems) + 1L]] <- .cc_problem(
+      paste0(path, ".access_ref"), "bad_access_ref",
+      "Si se declara, access_ref debe ser una referencia escalar no vacía."
+    )
   }
 
   kind <- binding$access_kind
@@ -250,6 +356,12 @@ collection_binding_problems <- function(binding, path = "binding", unit_ids = NU
       problems[[length(problems) + 1L]] <- .cc_problem(
         paste0(path, ".prefill"), "missing_prefill",
         "Un `parameterized_link` sin `prefill` no identifica su unidad."
+      )
+    } else if (is.null(names(prefill)) || any(!nzchar(names(prefill))) ||
+               any(!vapply(prefill, .cc_is_scalar_string, logical(1)))) {
+      problems[[length(problems) + 1L]] <- .cc_problem(
+        paste0(path, ".prefill"), "bad_prefill",
+        "prefill debe ser un objeto de strings escalares con keys no vacías."
       )
     }
   }
@@ -324,6 +436,16 @@ collection_deployment_validate <- function(deployment, plan = NULL) {
     }
   }
 
+  capabilities <- deployment$capabilities
+  remote_write <- if (is.list(capabilities)) capabilities$remote_write else NULL
+  if (!is.list(remote_write) || !identical(remote_write$observed, FALSE) ||
+      !identical(remote_write$source, "disabled_v1")) {
+    problems[[length(problems) + 1L]] <- .cc_problem(
+      "deployment.capabilities.remote_write", "remote_write_enabled",
+      "V1 exige exactamente remote_write.observed=false y remote_write.source='disabled_v1'."
+    )
+  }
+
   sens <- deployment$sensitivity
   if (!is.list(sens) || !.cc_is_scalar_string(sens$access_urls)) {
     problems[[length(problems) + 1L]] <- .cc_problem(
@@ -359,7 +481,7 @@ collection_deployment_validate <- function(deployment, plan = NULL) {
     for (i in seq_along(bindings)) {
       path <- sprintf("deployment.bindings[%d]", i)
       problems <- c(problems, collection_binding_problems(bindings[[i]], path, unit_ids))
-      aid <- bindings[[i]]$access_id
+      aid <- if (is.list(bindings[[i]])) bindings[[i]]$access_id else NULL
       if (.cc_is_scalar_string(aid)) {
         if (aid %in% seen_access) {
           problems[[length(problems) + 1L]] <- .cc_problem(
@@ -384,6 +506,63 @@ collection_deployment_validate <- function(deployment, plan = NULL) {
     }
   }
 
+
+  # La sensibilidad del deployment es agregada: puede ser restricted porque
+  # contiene recipients aunque otros bindings sean Web Links compartidos. El
+  # que nunca puede viajar completo es el recipient_link individual.
+  for (i in seq_along(bindings %||% list())) {
+    binding <- bindings[[i]] %||% list()
+    ref <- binding$access_ref
+    if (identical(binding$access_kind, "recipient_link") &&
+        .cc_is_scalar_string(ref) && grepl("^https?://", ref, ignore.case = TRUE)) {
+      problems[[length(problems) + 1L]] <- .cc_problem(
+        sprintf("deployment.bindings[%d].access_ref", i), "sensitive_url_in_state",
+        "Un recipient link completo no puede persistirse; use hash o referencia externa."
+      )
+    }
+  }
+
+  problems <- c(problems, .cc_security_problems(deployment, "deployment"))
+
+  list(ok = length(problems) == 0L, problems = problems)
+}
+
+#' Valida el contenedor persistente `collection_state/v1`.
+#'
+#' @param state estado completo de Recopiladores.
+#' @return lista con `ok` y `problems`.
+collection_state_validate <- function(state) {
+  if (!is.list(state)) {
+    return(list(ok = FALSE, problems = list(.cc_problem(
+      "state", "not_object", "collection_state debe ser un objeto."
+    ))))
+  }
+  problems <- list()
+  if (!identical(state$schema, COLLECTION_STATE_SCHEMA)) {
+    problems[[length(problems) + 1L]] <- .cc_problem(
+      "state.schema", "bad_schema", sprintf("Se esperaba '%s'.", COLLECTION_STATE_SCHEMA)
+    )
+  }
+  if (!.cc_is_integer_ge(state$state_revision, 0L)) {
+    problems[[length(problems) + 1L]] <- .cc_problem(
+      "state.state_revision", "bad_revision", "`state_revision` debe ser un entero >= 0."
+    )
+  }
+  if (!is.null(state$plan)) {
+    plan_result <- collection_plan_validate(state$plan)
+    problems <- c(problems, plan_result$problems)
+  }
+  if (!is.null(state$deployment)) {
+    if (is.null(state$plan)) {
+      problems[[length(problems) + 1L]] <- .cc_problem(
+        "state.deployment", "deployment_without_plan",
+        "Un deployment persistido exige un plan en el mismo estado."
+      )
+    }
+    dep_result <- collection_deployment_validate(state$deployment, state$plan)
+    problems <- c(problems, dep_result$problems)
+  }
+  problems <- c(problems, .cc_security_problems(state, "state"))
   list(ok = length(problems) == 0L, problems = problems)
 }
 

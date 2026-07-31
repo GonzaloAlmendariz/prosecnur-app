@@ -8,14 +8,16 @@
 // Vive aparte de `ConectarFuente.tsx` para que ese archivo no sepa nada de
 // enrutamiento: recibe `onCerrar` y ya.
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Plus } from "../../../vendor/lucide-react";
-import type { MonitoreoSource, MonitoreoState } from "../../../api/client";
+import type { MonitoreoActorUnit, MonitoreoSource, MonitoreoState } from "../../../api/client";
 import { PANELES_POR_MODULO } from "../../../lib/navegacion/manifiesto";
 import { usePanelDireccionable } from "../../../lib/navegacion/paneles";
 import { ConectarFuente } from "./ConectarFuente";
+import { actorEnFoco, fuenteEnFoco } from "./abrirConectarFuente";
 import type { PapelDeFuente } from "./guionDeConexion";
 import "./conectarFuente.css";
 
@@ -28,6 +30,8 @@ export function PanelConectarFuente({
   familia,
   actoresSugeridos,
   papelInicial,
+  elenco,
+  renderCanal,
   onStateChange,
 }: {
   sources: MonitoreoSource[];
@@ -35,24 +39,47 @@ export function PanelConectarFuente({
   familia?: string;
   actoresSugeridos: string[];
   papelInicial?: PapelDeFuente;
+  /** El elenco declarado, para la cardinalidad. Ver `ConectarFuente`. */
+  elenco?: MonitoreoActorUnit[];
+  /** El selector de canal del perfil. Ver `ConectarFuente`. */
+  renderCanal?: (value: string, onChange: (value: string) => void) => ReactNode;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const panel = usePanelDireccionable(PANEL);
   const location = useLocation();
+  const navigate = useNavigate();
   // `?foco=` trae el actor sobre el que se pulsó en Universo, para que el panel
-  // no vuelva a preguntar algo que el usuario ya eligió al abrirlo.
-  const actorEnFoco = new URLSearchParams(location.search).get("foco") ?? "";
+  // no vuelva a preguntar algo que el usuario ya eligió al abrirlo. Con el
+  // prefijo `fuente:` trae, en cambio, la conexión que se viene a cambiar.
+  const actorPulsado = actorEnFoco(location.search);
+  const idAEditar = fuenteEnFoco(location.search);
+  const fuenteAEditar = idAEditar
+    ? sources.find((source) => source.id === idAEditar) ?? null
+    : null;
+
+  // Cerrar limpia también el foco: si se quedara puesto, el siguiente
+  // «Conectar fuente» abriría el panel sobre la conexión anterior.
+  const cerrar = useCallback(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.has("foco")) {
+      params.delete("foco");
+      params.delete("panel");
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : "" }, { replace: true });
+      return;
+    }
+    panel.cerrar();
+  }, [location.pathname, location.search, navigate, panel]);
 
   // Escape cierra. Es lo que todo el mundo intenta primero en un overlay, y
   // sin esto la única salida era acertarle a la X o al velo.
   useEffect(() => {
     if (!panel.abierto) return;
     const alPulsar = (event: KeyboardEvent) => {
-      if (event.key === "Escape") panel.cerrar();
+      if (event.key === "Escape") cerrar();
     };
     window.addEventListener("keydown", alPulsar);
     return () => window.removeEventListener("keydown", alPulsar);
-  }, [panel.abierto, panel.cerrar]);
+  }, [panel.abierto, cerrar]);
 
   return (
     <>
@@ -76,15 +103,18 @@ export function PanelConectarFuente({
           // del panel que termine sobre el fondo por arrastre no debe descartar
           // lo que se lleva escrito.
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) panel.cerrar();
+            if (event.target === event.currentTarget) cerrar();
           }}
         >
           <ConectarFuente
             sources={sources}
             familia={familia}
-            actoresSugeridos={actorEnFoco ? [actorEnFoco, ...actoresSugeridos.filter((item) => item !== actorEnFoco)] : actoresSugeridos}
+            actoresSugeridos={actorPulsado ? [actorPulsado, ...actoresSugeridos.filter((item) => item !== actorPulsado)] : actoresSugeridos}
             papelInicial={papelInicial}
-            onCerrar={panel.cerrar}
+            elenco={elenco}
+            renderCanal={renderCanal}
+            fuenteAEditar={fuenteAEditar}
+            onCerrar={cerrar}
             onStateChange={onStateChange}
           />
         </div>

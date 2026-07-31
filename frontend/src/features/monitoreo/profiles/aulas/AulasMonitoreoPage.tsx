@@ -15,10 +15,13 @@ import { MODULE_TONES } from "../../../../lib/modules";
 import {
   modoIdDesdeFamily, AULAS_WORKBENCH_VIEWS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import {
+  pestanaInicialDeSeccion,
   seccionInicialMonitoreo,
   useMonitoreoDireccion,
 } from "../../useMonitoreoDireccion";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
+import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
+import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
   aulasFieldLabel,
   presentAulasRow,
@@ -29,8 +32,14 @@ import "../profilePage.css";
 import "../../shell/monitoreoShell.css";
 import "./aulasMonitoreo.css";
 import { recorteTabla } from "../../corte/corteContract";
+import { corteAulas } from "../../corte/corteAdapters";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
+
+// Avance es la única sección con pestañas: el resto siguen siendo hojas del
+// árbol. «Salidas» es donde vive la publicación a Sheets del perfil (ADR 0019).
+const AULAS_PESTANAS_AVANCE = ["resumen", "salidas"] as const;
+type AulasPestanaAvance = (typeof AULAS_PESTANAS_AVANCE)[number];
 
 function fmt(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
@@ -386,9 +395,24 @@ function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashbo
 export default function AulasMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS));
-  // Cursos-horario no tiene pestañas: sus secciones son hojas del árbol.
-  useMonitoreoDireccion(seccionActiva, undefined, "aulas", {
+  // Avance se abre en Resumen o en Salidas; el resto de secciones son hojas del
+  // árbol y por eso la pestaña solo viaja en la URL cuando Avance está activa.
+  const [pestanaAvance, setPestanaAvance] = useState<AulasPestanaAvance>(() =>
+    pestanaInicialDeSeccion(
+      "avance",
+      seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS),
+      "resumen",
+      AULAS_PESTANAS_AVANCE,
+    ),
+  );
+  useMonitoreoDireccion(seccionActiva, seccionActiva === "avance" ? pestanaAvance : undefined, "aulas", {
     onSeccionPedida: setActiveView,
+    onPestanaPedida: (pestana, seccion) => {
+      if (seccion !== "avance") return;
+      if ((AULAS_PESTANAS_AVANCE as readonly string[]).includes(pestana)) {
+        setPestanaAvance(pestana as AulasPestanaAvance);
+      }
+    },
   });
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
@@ -399,6 +423,7 @@ export default function AulasMonitoreoPage() {
     [seccionActiva],
   );
   const dashboard = dashboardFromState(state);
+  const corte = useMemo(() => corteAulas(state, dashboard), [state, dashboard]);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
   const imported = aulasPlanImported(aulasConfig);
   const sourceTotal = state?.sources?.length ?? 0;
@@ -530,8 +555,47 @@ export default function AulasMonitoreoPage() {
           ) : null}
           <div className="aulas-mon-view">
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
+            {seccionActiva === "avance" ? (
+              <GlidingTabList
+                activeKey={pestanaAvance}
+                className="aulas-mon-tabs"
+                role="tablist"
+                aria-label="Pestañas de Avance de cursos-horario"
+              >
+                {AULAS_PESTANAS_AVANCE.map((pestana) => (
+                  <button
+                    key={pestana}
+                    type="button"
+                    role="tab"
+                    data-gliding-key={pestana}
+                    data-nav-item=""
+                    data-nav-shape="pill"
+                    data-nav-state={pestanaAvance === pestana ? "selected" : undefined}
+                    aria-selected={pestanaAvance === pestana}
+                    className={pestanaAvance === pestana ? "is-active" : ""}
+                    onClick={() => setPestanaAvance(pestana)}
+                  >
+                    {pestana === "resumen" ? "Resumen" : "Salidas"}
+                  </button>
+                ))}
+              </GlidingTabList>
+            ) : null}
             {loading ? (
               <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
+            ) : seccionActiva === "avance" && pestanaAvance === "salidas" ? (
+              // Salidas se muestra aunque no haya dashboard: el workbench declara
+              // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la
+              // pestaña muda.
+              <MonitoreoOutputsWorkbench
+                family="aulas"
+                routeLabel="Cursos-horario"
+                config={state?.config}
+                clientSheets={state?.publication?.client_last_sheets ?? null}
+                internalSheets={state?.publication?.internal_last_sheets ?? null}
+                corte={corte}
+                syncedAt={state?.synced_at ?? ""}
+                onPublished={() => { void loadView(seccionActiva, true); }}
+              />
             ) : renderAulasView(
               seccionActiva,
               dashboard,

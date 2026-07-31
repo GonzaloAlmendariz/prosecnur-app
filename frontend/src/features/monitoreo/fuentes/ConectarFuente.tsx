@@ -24,7 +24,8 @@
 // exactamente cómo se llega a una fuente conectada que no trae filas y que
 // nadie mira hasta que el avance sale en cero.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -43,6 +44,7 @@ import {
 } from "../../../vendor/lucide-react";
 import type { LucideIcon } from "../../../vendor/lucide-react";
 import type {
+  MonitoreoActorUnit,
   MonitoreoKoboAssetItem,
   MonitoreoSheetsInspectResult,
   MonitoreoSource,
@@ -55,6 +57,7 @@ import {
   apiMonitoreoSource,
 } from "../../../api/client";
 import { apiSurveyMonkeyMultibaseListSurveys } from "../../../api/surveymonkey";
+import { SelectorDeActor } from "./SelectorDeActor";
 import {
   admiteDireccionPegada,
   leerDireccion,
@@ -63,6 +66,7 @@ import type { ServicioDeFuente } from "./direccionDeFuente";
 import { guionConEstado, piezaPorLaQueSeguir, piezaSiguienteTrasConectar } from "./guionDeConexion";
 import type { PapelDeFuente, PiezaConEstado } from "./guionDeConexion";
 import { actorQueContradiceElNombre, contar } from "./vocabulario";
+import { conflictoDeCardinalidad } from "./rosterDeActores";
 import "./conectarFuente.css";
 
 const SM_API = "https://api.surveymonkey.com/v3";
@@ -118,11 +122,39 @@ type Lectura =
   | { tipo: "sheets"; inspeccion: MonitoreoSheetsInspectResult; hoja: string }
   | { tipo: "encuesta"; nombre: string; detalle: string };
 
+/**
+ * La dirección de una fuente ya guardada, en la forma que el panel sabe leer.
+ *
+ * Cambiar una conexión empieza por ver la que hay: un campo vacío obliga a
+ * recordar de memoria a qué hoja apuntaba el estudio, que es justo lo que
+ * nadie recuerda. Sheets acepta el identificador suelto; Kobo necesita la URL
+ * completa, así que se reconstruye desde el servidor y el uid guardados.
+ */
+function direccionGuardadaDe(source: MonitoreoSource | null | undefined): string {
+  if (!source) return "";
+  if (source.kind === "google_sheets") return source.sheet_binding?.spreadsheet_id ?? "";
+  if (source.kind === "kobo" && source.base_url && source.asset_uid) {
+    return `${source.base_url.replace(/\/+$/, "")}/#/forms/${source.asset_uid}`;
+  }
+  return "";
+}
+
+function servicioDe(source: MonitoreoSource | null | undefined): ServicioDeFuente | null {
+  if (!source) return null;
+  if (source.kind === "google_sheets" || source.kind === "kobo" || source.kind === "surveymonkey") {
+    return source.kind;
+  }
+  return null;
+}
+
 export function ConectarFuente({
   sources,
   familia,
   actoresSugeridos,
   papelInicial,
+  fuenteAEditar,
+  elenco = [],
+  renderCanal,
   onCerrar,
   onStateChange,
 }: {
@@ -131,28 +163,71 @@ export function ConectarFuente({
   familia?: string;
   actoresSugeridos: string[];
   papelInicial?: PapelDeFuente;
+  /**
+   * La fuente que se viene a cambiar, si el panel se abrió desde su tarjeta.
+   *
+   * Con ella el panel deja de ser un alta: arranca en la pieza que le
+   * corresponde, con su dirección delante, y al guardar actualiza esa misma
+   * fuente en vez de registrar una segunda apuntando al mismo sitio.
+   */
+  fuenteAEditar?: MonitoreoSource | null;
+  /**
+   * El elenco declarado, para comprobar la cardinalidad antes de pedir nada.
+   * El servidor la vuelve a comprobar y tiene la última palabra.
+   */
+  elenco?: MonitoreoActorUnit[];
+  /**
+   * El selector de canal de la encuesta, inyectado por el perfil.
+   *
+   * El vocabulario de canales es de acreditación y este panel lo comparten
+   * todas las familias, así que el control llega como render prop en vez de
+   * importar UI de un perfil concreto.
+   */
+  renderCanal?: (value: string, onChange: (value: string) => void) => ReactNode;
   onCerrar: () => void;
   onStateChange?: (state: MonitoreoState) => void;
 }) {
   const { guion, piezas } = useMemo(() => guionConEstado(familia, sources), [familia, sources]);
   const sugerida = useMemo(() => piezaPorLaQueSeguir(piezas), [piezas]);
 
+  // Editar manda sobre el guion: quien abrió la tarjeta de una hoja concreta ya
+  // dijo qué viene a tocar, y proponerle «sigue por el barrido» sería contestar
+  // otra pregunta.
+  const editando = fuenteAEditar ?? null;
+
   const [papel, setPapel] = useState<PapelDeFuente>(() => (
-    piezas.find((pieza) => pieza.papel === papelInicial)?.papel
+    piezas.find((pieza) => pieza.papel === editando?.role)?.papel
+      ?? piezas.find((pieza) => pieza.papel === papelInicial)?.papel
       ?? sugerida?.papel
       ?? piezas[0]?.papel
       ?? "universo"
   ));
   const pieza = piezas.find((item) => item.papel === papel) ?? piezas[0] ?? null;
   const pasos = pasosDeLaPieza(pieza);
-  const primerPaso = pasos[0];
+  // Cambiar salta la elección de pieza: se entra por «de dónde sale», que es lo
+  // que se viene a corregir.
+  const primerPaso = editando ? "cual" : pasos[0];
 
   const [paso, setPaso] = useState<Paso>(primerPaso);
   const [servicio, setServicio] = useState<ServicioDeFuente>(() => (
-    pieza?.servicios[0] ?? "google_sheets"
+    servicioDe(editando) ?? pieza?.servicios[0] ?? "google_sheets"
   ));
-  const [actor, setActor] = useState(actoresSugeridos[0] ?? "");
-  const [pegado, setPegado] = useState("");
+  const [actor, setActor] = useState(editando?.dimensions?.actor || actoresSugeridos[0] || "");
+  // El texto libre se abre solo si el actor que traemos no es ninguno del
+  // roster —editar una fuente vieja con un nombre propio—; si no, estorba.
+  const [actorEsLibre, setActorEsLibre] = useState(() => {
+    const actual = String(editando?.dimensions?.actor ?? "").trim().toLocaleLowerCase("es-PE");
+    if (!actual) return false;
+    return !actoresSugeridos.some((item) => item.trim().toLocaleLowerCase("es-PE") === actual);
+  });
+  const [pegado, setPegado] = useState(() => direccionGuardadaDe(editando));
+  // El canal de la encuesta se declara AQUÍ. Antes la fuente nacía sin canal y
+  // `acreditacionSourceChannel` lo adivinaba —una de sus reglas era si el
+  // nombre del actor contenía «docent» o «administr»—, y ese canal adivinado es
+  // el que después heredaban todos sus recopiladores.
+  const [canal, setCanal] = useState(() => (
+    String((editando?.dimensions as Record<string, unknown> | undefined)?.canal ?? "")
+  ));
   const [eleccion, setEleccion] = useState<Eleccion | null>(null);
   const [lectura, setLectura] = useState<Lectura | null>(null);
   const [ocupado, setOcupado] = useState<"catalogo" | "leyendo" | "guardando" | null>(null);
@@ -173,10 +248,22 @@ export function ConectarFuente({
   // Cambiar de pieza o de servicio invalida todo lo elegido después: dejar un
   // asset de Kobo colgando mientras la cabecera dice «Google Sheets» es cómo se
   // guardan fuentes con el servicio de una y el identificador de otra.
+  //
+  // Solo cuando cambian DE VERDAD, no cada vez que el efecto se ejecuta: el
+  // estado inicial ya trae lo que corresponde —vacío al conectar, la dirección
+  // guardada al cambiar— y limpiarlo al montar borraba la precarga. Comparar
+  // contra el valor anterior y no un `primerRender` booleano porque en
+  // desarrollo StrictMode monta, desmonta y vuelve a montar: con el booleano,
+  // la segunda pasada ya lo encontraba en `true` y limpiaba igual.
+  const ultimaEleccionDeFuente = useRef(`${servicio}|${papel}`);
   useEffect(() => {
+    const actual = `${servicio}|${papel}`;
+    if (ultimaEleccionDeFuente.current === actual) return;
+    ultimaEleccionDeFuente.current = actual;
     setEleccion(null);
     setLectura(null);
     setPegado("");
+    setCanal("");
     setError("");
   }, [servicio, papel]);
 
@@ -186,7 +273,10 @@ export function ConectarFuente({
     if (paso !== "pieza") setHecho("");
   }, [paso]);
 
+  const ultimoPapel = useRef(papel);
   useEffect(() => {
+    if (ultimoPapel.current === papel) return;
+    ultimoPapel.current = papel;
     if (!pieza) return;
     if (!pieza.servicios.includes(servicio)) setServicio(pieza.servicios[0]);
     // Cambiar de pieza empieza su flujo por donde le toca a ella, que no es el
@@ -263,6 +353,13 @@ export function ConectarFuente({
    * como pendiente.
    */
   function seguirODCerrar(estado: MonitoreoState, papelConectado: PapelDeFuente) {
+    // Cambiar una fuente es una tarea de una pieza: encadenar a la siguiente
+    // convertiría «corregir la hoja del barrido» en un recorrido por todo el
+    // guion que nadie pidió.
+    if (editando) {
+      onCerrar();
+      return;
+    }
     const { piezas: actualizadas } = guionConEstado(familia, estado.sources ?? []);
     const siguiente = piezaSiguienteTrasConectar(actualizadas, papelConectado, actor);
     if (!siguiente) {
@@ -283,8 +380,16 @@ export function ConectarFuente({
       if (eleccion.servicio === "google_sheets") {
         const hoja = lectura?.tipo === "sheets" ? lectura.hoja : "";
         const result = await apiMonitoreoSheetsSource({
+          // Con `id` el backend actualiza esa fuente; sin él registra una nueva.
+          // Es la diferencia entre corregir la hoja del estudio y acabar con dos
+          // fuentes apuntando al mismo sitio, que es lo que pasaba cuando el
+          // único camino para cambiarla era volver a darla de alta.
+          ...(editando ? { id: editando.id } : {}),
           kind: "google_sheets",
-          label: pieza.papel === "barrido" ? "Barrido telefónico" : `Base ${actor}`.trim(),
+          // Al cambiar se respeta el nombre con el que el estudio ya la conoce:
+          // reetiquetarla por corregir su dirección rompería el reconocimiento.
+          label: editando?.label
+            || (pieza.papel === "barrido" ? "Barrido telefónico" : `Base ${actor}`.trim()),
           enabled: true,
           role: pieza.papel,
           integration_mode: "connected_read",
@@ -300,6 +405,7 @@ export function ConectarFuente({
         seguirODCerrar(result.state, pieza.papel);
       } else {
         const result = await apiMonitoreoSource({
+          ...(editando ? { id: editando.id } : {}),
           kind: eleccion.servicio,
           label: eleccion.nombre,
           enabled: true,
@@ -307,7 +413,16 @@ export function ConectarFuente({
           ...(eleccion.servicio === "kobo"
             ? { asset_uid: eleccion.assetUid, base_url: eleccion.baseUrl }
             : { survey_id: eleccion.surveyId, base_url: SM_API }),
-          dimensions: { actor, segmento: actor, survey_title: eleccion.nombre },
+          // `canal` es la declaración del usuario, no una deducción. Cuando el
+          // perfil no ofrece el control (familias sin canal) se omite el campo
+          // en vez de guardar una cadena vacía que se leería como «declarado
+          // sin canal».
+          dimensions: {
+            actor,
+            segmento: actor,
+            survey_title: eleccion.nombre,
+            ...(canal.trim() ? { canal: canal.trim() } : {}),
+          },
         });
         onStateChange?.(result.state);
         seguirODCerrar(result.state, pieza.papel);
@@ -322,7 +437,25 @@ export function ConectarFuente({
   // telefónico hay un solo padrón y un solo barrido: preguntarlo ahí era un
   // campo obligatorio sin respuesta correcta.
   const pideActor = Boolean(pieza?.porActor);
-  const puedeAvanzarDeLaPieza = Boolean(pieza) && (!pideActor || Boolean(actor.trim()));
+
+  /**
+   * Si esta combinación de pieza y actor rompe la cardinalidad del estudio.
+   *
+   * Espejo de `monitoreo_actor_roster_conflict` en el backend, que es quien
+   * corta de verdad con un 409. Aquí solo sirve para decirlo a tiempo.
+   */
+  const conflicto = useMemo(() => (
+    pieza
+      ? conflictoDeCardinalidad({
+        sources,
+        elenco,
+        papel: pieza.papel,
+        actor,
+        idExcluido: editando?.id ?? "",
+      })
+      : null
+  ), [pieza, sources, elenco, actor, editando]);
+  const puedeAvanzarDeLaPieza = Boolean(pieza) && (!pideActor || Boolean(actor.trim())) && !conflicto;
 
   // El actor se declara al elegir la pieza, pero es al verificar —con el nombre
   // real de la encuesta delante— cuando se ve si estaba bien. Antes había que
@@ -333,18 +466,45 @@ export function ConectarFuente({
     : "";
   const actorQueSugiereElNombre = actorQueContradiceElNombre(nombreDeLaFuente, actor, actoresSugeridos);
 
+  /**
+   * El catálogo entero de la cuenta, sin tope: la lista es dueña de su scroll
+   * y tiene alto para ejercerlo. Recortarla a las más recientes escondía
+   * encuestas detrás de una búsqueda que hay que adivinar; con 76 nombres
+   * delante, bajar es más barato que recordar cómo se llamaba.
+   */
+  const catalogoCompleto = useMemo(() => (
+    servicio === "kobo"
+      ? (assetsKobo ?? []).map((asset) => ({
+        id: asset.uid,
+        nombre: asset.name,
+        extra: asset.deployment_active ? "Desplegado" : "Inactivo",
+      }))
+      : (encuestasSm ?? []).map((survey) => ({ id: survey.id, nombre: survey.title, extra: "" }))
+  ), [servicio, assetsKobo, encuestasSm]);
+
+  const catalogoVisible = useMemo(() => {
+    const termino = busqueda.trim().toLocaleLowerCase("es-PE");
+    if (!termino) return catalogoCompleto;
+    return catalogoCompleto.filter((item) => item.nombre.toLocaleLowerCase("es-PE").includes(termino));
+  }, [catalogoCompleto, busqueda]);
+
   const indiceDelPaso = Math.max(0, pasos.indexOf(paso));
 
   return (
-    <div className="fuentes-conectar" role="dialog" aria-modal="true" aria-label="Conectar fuente">
+    <div
+      className="fuentes-conectar"
+      role="dialog"
+      aria-modal="true"
+      aria-label={editando ? "Cambiar fuente" : "Conectar fuente"}
+    >
       {/* Columna del guion: qué necesita ESTE modo, en su orden y con su estado.
         * Es lo que convierte el panel en una guía en vez de un formulario: quien
         * lo abre ve de un vistazo qué le falta al estudio y por dónde va. */}
       <aside className="fuentes-conectar-guion">
         <header>
           <i aria-hidden="true"><PlugZap size={17} /></i>
-          <span>Conectar fuente</span>
-          <strong>{guion.modo}</strong>
+          <span>{editando ? "Cambiar fuente" : "Conectar fuente"}</span>
+          <strong>{editando ? editando.label || guion.modo : guion.modo}</strong>
         </header>
         <ol>
           {piezas.map((item, index) => {
@@ -451,21 +611,56 @@ export function ConectarFuente({
               {pideActor ? (
                 <fieldset className="fuentes-conectar-grupo">
                   <legend>Actor</legend>
-                  <input
-                    list="fuentes-conectar-actores"
-                    value={actor}
-                    onChange={(event) => setActor(event.currentTarget.value)}
-                    placeholder="Estudiantes, Docentes, Egresados…"
+                  <SelectorDeActor
+                    valor={actor}
+                    sugeridos={actoresSugeridos}
+                    yaConectados={pieza.actores}
+                    onElegir={(elegido) => {
+                      setActorEsLibre(false);
+                      setActor(elegido);
+                    }}
+                    textoLibreAbierto={actorEsLibre}
+                    onAbrirTextoLibre={() => setActorEsLibre(true)}
                   />
-                  <datalist id="fuentes-conectar-actores">
-                    {actoresSugeridos.map((item) => <option key={item} value={item} />)}
-                  </datalist>
-                  {pieza.actores.length ? (
-                    <p className="fuentes-conectar-pista is-neutra">
-                      Ya tienen {pieza.titulo.toLocaleLowerCase("es")}: {pieza.actores.join(", ")}.
-                    </p>
+                  {actorEsLibre ? (
+                    <input
+                      value={actor}
+                      onChange={(event) => setActor(event.currentTarget.value)}
+                      placeholder="Nombre del actor"
+                      aria-label="Nombre del actor"
+                      autoFocus
+                      // Llega con el actor que estaba elegido; si abriste
+                      // «Otro» es porque no es ese, así que escribir lo
+                      // reemplaza en vez de obligarte a borrarlo.
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
                   ) : null}
                 </fieldset>
+              ) : null}
+
+              {/* El canal solo se pregunta en las respuestas: un padrón no se
+                * «aplica» por ningún medio y una hoja de barrido es telefónica
+                * por definición. */}
+              {pieza.papel === "respuestas" && renderCanal ? (
+                <fieldset className="fuentes-conectar-grupo">
+                  <legend>Cómo se aplica</legend>
+                  {renderCanal(canal, setCanal)}
+                  {/* La frase decía «Es el canal base de la encuesta: …», que es
+                    * repetir el rótulo que está justo encima. Queda lo único que
+                    * el rótulo no dice y no se ve en ningún otro sitio. */}
+                  <p className="fuentes-conectar-pista is-neutra">
+                    Los recopiladores lo heredan; cada uno puede declarar su excepción.
+                  </p>
+                </fieldset>
+              ) : null}
+
+              {/* La cardinalidad se dice antes de pedir la dirección. Enterarse
+                * de que el padrón ya existía después de pegar la URL y esperar la
+                * lectura es el ciclo que este panel vino a matar. */}
+              {conflicto ? (
+                <p className="fuentes-conectar-pista is-alerta">
+                  <AlertTriangle size={13} /> {conflicto.message}
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -525,15 +720,10 @@ export function ConectarFuente({
                     <input
                       value={busqueda}
                       onChange={(event) => setBusqueda(event.currentTarget.value)}
-                      placeholder="Filtrar por nombre"
+                      placeholder={`Buscar entre ${catalogoCompleto.length}`}
                     />
                     <div className="fuentes-conectar-catalogo" data-qa-geometry-capacity="owned">
-                      {(servicio === "kobo"
-                        ? (assetsKobo ?? []).map((asset) => ({ id: asset.uid, nombre: asset.name, extra: asset.deployment_active ? "Desplegado" : "Inactivo" }))
-                        : (encuestasSm ?? []).map((survey) => ({ id: survey.id, nombre: survey.title, extra: "" }))
-                      )
-                        .filter((item) => !busqueda.trim() || item.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()))
-                        .map((item) => (
+                      {catalogoVisible.map((item) => (
                           <button
                             key={item.id}
                             type="button"
@@ -615,15 +805,27 @@ export function ConectarFuente({
               {pideActor ? (
                 <fieldset className="fuentes-conectar-grupo">
                   <legend>Se leerá como respuestas de</legend>
-                  <input
-                    list="fuentes-conectar-actores-confirmar"
-                    value={actor}
-                    onChange={(event) => setActor(event.currentTarget.value)}
-                    placeholder="Estudiantes, Docentes, Egresados…"
+                  <SelectorDeActor
+                    valor={actor}
+                    sugeridos={actoresSugeridos}
+                    yaConectados={pieza.actores}
+                    onElegir={(elegido) => {
+                      setActorEsLibre(false);
+                      setActor(elegido);
+                    }}
+                    textoLibreAbierto={actorEsLibre}
+                    onAbrirTextoLibre={() => setActorEsLibre(true)}
                   />
-                  <datalist id="fuentes-conectar-actores-confirmar">
-                    {actoresSugeridos.map((item) => <option key={item} value={item} />)}
-                  </datalist>
+                  {actorEsLibre ? (
+                    <input
+                      value={actor}
+                      onChange={(event) => setActor(event.currentTarget.value)}
+                      placeholder="Nombre del actor"
+                      aria-label="Nombre del actor"
+                      autoFocus
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                  ) : null}
                   {actorQueSugiereElNombre ? (
                     <p className="fuentes-conectar-pista is-aviso">
                       <AlertTriangle size={13} /> El nombre de esta fuente menciona «{actorQueSugiereElNombre}» y la vas a

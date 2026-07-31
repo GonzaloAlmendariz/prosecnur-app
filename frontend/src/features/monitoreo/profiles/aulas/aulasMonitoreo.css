@@ -98,6 +98,34 @@
   gap: 10px;
 }
 
+/* Avance suma su rail de pestañas (Resumen · Salidas) sobre el canvas. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(.aulas-mon-tabs) {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(.mon-profile-error):has(.aulas-mon-tabs) {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-tabs {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Solo geometría y reposo: hover, activo y foco los gobierna nav-states.css a
+ * través de `data-nav-item`, y el relleno del activo lo pinta el indicador
+ * deslizante de GlidingTabList. */
+.mon-profile-page.is-aulas-flow .aulas-mon-tabs button {
+  padding: 7px 14px;
+  border: 1px solid var(--pulso-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+}
+
 /* Stack de una sola tabla (avance, fuentes, calidad, consultas): la tabla llena */
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack {
   min-height: 0;

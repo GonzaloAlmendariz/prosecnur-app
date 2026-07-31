@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, XCircle } from "lucide-react";
+import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ChevronDown, ClipboardCheck, Clock3, ContactRound, Download, Eye, FileCheck2, Filter, KeyRound, Layers3, Link2, Loader2, Mail, PhoneCall, PlugZap, Plus, ListChecks, QrCode, RefreshCw, Route, Save, Search, ShieldAlert, SlidersHorizontal, Table2, Target, X, XCircle } from "lucide-react";
 import { PageFrame } from "../../../../components/PageFrame";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 import {
@@ -45,6 +45,7 @@ import {
   type MonitoreoSource,
   type MonitoreoSourcePayload,
   type MonitoreoState,
+  type MonitoreoStateRule,
   type MonitoreoStrategyReportException,
   type MonitoreoStrategyPhase,
   type MonitoreoSurveyMonkeyCollector,
@@ -93,7 +94,6 @@ import {
   parseAcreditacionDailyDate,
   phoneStatusPalette,
   phoneStatusTone,
-  shortAdvanceDateLabel,
   sortAcreditacionDailyPoints,
   type AcreditacionAdvanceDailyPoint,
   type AcreditacionDailyReportCut,
@@ -186,6 +186,13 @@ import {
   type RepartoDeFuentes,
 } from "./fuentes/repartoDePestanas";
 import { PanelConectarFuente } from "../../fuentes/PanelConectarFuente";
+import { useAbrirConectarFuente } from "../../fuentes/abrirConectarFuente";
+import { DefinidorDeEstados } from "../../estados/DefinidorDeEstados";
+import { criteriosDesdeFiltro, filtroDesdeCriterios, resumenDeCriterios } from "../../filtroEfectiva/criterios";
+import { contarSegmentos, nombreDelSegmento, pluralDelSegmento } from "./segmentoDeCuotas";
+import { GraficoDeEstadosPorDia } from "../../estados/GraficoDeEstadosPorDia";
+import { estadosPorDiaDeLaCuota } from "../../estados/estadosPorCuota";
+import { acreditacionDeclaracionesDesdeReglas } from "../../estados/familiasDeLlamada";
 import { proveedoresDeFuentes } from "../../fuentes/vocabulario";
 import type { MonitoreoReportScope } from "../types";
 import "../../monitoreo.css";
@@ -1384,14 +1391,21 @@ function AcreditacionPhoneModelReadingPanel({
     { slot: contract.sweep, value: contract.sweep.ready ? "Listo" : "Pendiente", hint: "estados telefónicos", icon: PhoneCall },
     { slot: contract.platform, value: quotaEffectiveTotal ? fmt(quotaEffectiveTotal) : "S/D", hint: "efectivas filtradas", icon: ListChecks },
   ] as const;
+  const missingPackageLabel = slotItems
+    .filter(({ slot }) => !slot.ready)
+    .map(({ slot }) => slot.label.toLocaleLowerCase("es"))
+    .join(", ") || "nada";
 
   return (
     <section className={`mon-phone-model-reading is-${packageTone}`} aria-label="Lectura del modelo telefónico">
       <div className="mon-phone-model-reading-main">
+        {/* El rótulo lleva el estado del paquete, no un enunciado. Decía «Kobo
+          * cuenta avance; barrido explica operación» y debajo un párrafo que
+          * describía qué hace cada sección de la app: dos frases verdaderas que
+          * no cambian nunca y que no dicen nada de ESTE estudio. */}
         <div className="mon-phone-model-reading-rule">
           <span><ClipboardCheck size={14} /> Lectura del modelo</span>
-          <strong>Kobo cuenta avance; barrido explica operación</strong>
-          <p>Modelo define categorías y metas. Avance muestra cumplimiento diario; Llamadas compara estados telefónicos contra Kobo por CodPulso.</p>
+          <strong>{contract.ready ? "Paquete completo" : `Falta ${missingPackageLabel}`}</strong>
         </div>
         <div className="mon-phone-model-reading-slots" aria-label="Fuentes que alimentan el modelo telefónico">
           {slotItems.map(({ slot, value, hint, icon: Icon }) => (
@@ -4431,6 +4445,12 @@ function scopeForView(requestedSection: MonitoreoSeccion, profileFamily?: string
   if (requestedSection === "telefonico") return "phone_summary";
   if (requestedSection === "modelo" && profileFamily === "telefonico") return "phone_summary";
   if (requestedSection === "consultas" && profileFamily === "telefonico") return "phone_summary";
+  // Fuentes dejó de ser sólo lectura de conexiones: en telefónico declara qué
+  // significa cada estado de la hoja de barrido, y para eso necesita los estados
+  // que ESTE corte trajo, que sólo viajan en `phone_summary`. Con `source` el
+  // definidor se montaba siempre vacío diciendo que el corte no traía estados,
+  // que era falso —ya se cargaban en segundo plano para la sección de al lado—.
+  if (requestedSection === "fuentes" && profileFamily === "telefonico") return "phone_summary";
   if (requestedSection === "consultas") return "queries_summary";
   if (requestedSection === "modelo") return "advance_summary";
   if (requestedSection === "fuentes") return "source";
@@ -4446,7 +4466,9 @@ const ACREDITACION_BACKGROUND_SCOPES: MonitoreoReportScope[] = [
 
 function backgroundScopesForView(view: MonitoreoSeccion, family?: string): MonitoreoReportScope[] {
   if (family === "telefonico") {
-    if (view === "fuentes" || view === "modelo") return ["phone_summary"];
+    // `fuentes` y `modelo` ya piden `phone_summary` en primer plano; lo que les
+    // conviene precalentar es el otro.
+    if (view === "fuentes" || view === "modelo") return ["source"];
     if (view === "telefonico") return ["source"];
     if (view === "consultas" || view === "avance") return ["phone_summary"];
     return ["phone_summary"];
@@ -7426,13 +7448,27 @@ function AcreditacionPhoneOperationsWorkbench({
                 plataformaLabel={platformLabel}
               />
             ) : null}
-            {/* El cumplimiento preside la portada: responde «¿llegamos?» antes
-                que cualquier lectura de cobertura del barrido (plan §5). */}
-            <TelefonicoCumplimientoPanel cumplimiento={cumplimiento} />
+            {/* Sin el panel de cumplimiento.
+              *
+              * «¿Llegamos a la meta?» es la pregunta de Avance, y allí se
+              * responde entera: cuota por cuota, con su base, su ritmo y sus
+              * estados. Aquí presidía la portada repitiendo esa misma tabla
+              * —Faltan 31, 70 de 100, logradas/mínimo/falta por categoría— y
+              * empujaba hacia abajo lo que sí es de esta sección. Llamadas
+              * responde otra cosa: cuánto de la base se ha barrido y en qué
+              * estado quedó. Las cifras de cierre que solo estaban aquí
+              * —reserva, ritmo, proyección y rendimiento— viajaron a la
+              * cabecera de Avance › Cuotas, que es donde se decide si alcanza. */}
+            {/* El embudo sube a franja: es una cadena de tres cifras y se leía
+              * de arriba abajo en una columna de un tercio, mientras las dos
+              * barras apiladas de al lado —que sí necesitan ancho— se apretaban
+              * para dejarle sitio. Arriba ocupa una línea y devuelve el ancho a
+              * quien lo aprovecha. */}
+            {corte ? <TelefonicoEmbudo corte={corte} /> : null}
             <section className="mon-phone-overview-grid" aria-label="Resumen de barrido telefónico">
               <AcreditacionPhoneStorage totals={totals} />
               <AcreditacionPhoneStatusStorage rows={visibleStatusRows} total={totals.total} />
-              {corte ? <TelefonicoEmbudo corte={corte} /> : <AcreditacionPhoneQuotaPanel rows={quotaRows} />}
+              {corte ? null : <AcreditacionPhoneQuotaPanel rows={quotaRows} />}
             </section>
             <section className="mon-phone-summary-secondary" aria-label="Lectura operativa del barrido">
               <AcreditacionPhoneIncidenceSection responsibleRows={visibleResponsibleRows} />
@@ -10712,12 +10748,15 @@ function AcreditacionPhoneSourceSlotCard({
   syncFallback,
   rowFallback = 0,
   onSelect,
+  onCambiar,
 }: {
   slot: AcreditacionPhoneSourceSlot;
   icon: ReactNode;
   syncFallback?: string;
   rowFallback?: number;
   onSelect?: () => void;
+  /** Abre el panel de conexión sobre la fuente de esta pieza. */
+  onCambiar?: () => void;
 }) {
   const active = slot.sources.filter((source) => source.enabled);
   const primary = active[0] ?? slot.sources[0] ?? null;
@@ -10804,6 +10843,19 @@ function AcreditacionPhoneSourceSlotCard({
       <div className="mon-phone-source-slot-tags" aria-label={`Columnas esperadas para ${slot.label}`}>
         {slot.expected.map((item) => <i key={item}>{item}</i>)}
       </div>
+      {/* La única puerta al cableado, y va al panel que ya conoce el guion del
+        * estudio. Antes cada pestaña llevaba su propio formulario con la
+        * dirección, la pestaña y el rango a la vista: dos caminos para lo mismo,
+        * y el de Fuentes sin saber en qué orden pide las piezas este modo. */}
+      {onCambiar ? (
+        <button
+          type="button"
+          className="mon-phone-source-slot-cambiar"
+          onClick={(event) => { event.stopPropagation(); onCambiar(); }}
+        >
+          {primary ? "Cambiar conexión" : "Conectar"}
+        </button>
+      ) : null}
     </article>
   );
 }
@@ -10819,30 +10871,47 @@ function AcreditacionPhoneEffectiveFilterEditor({
   platformSources: MonitoreoSource[];
   onStateChange?: (state: MonitoreoState) => void;
 }) {
-  const savedFilter = normalizePhoneEffectiveFilter(state?.config?.monitoreo_profile?.platform_effective_filter);
-  const filterKey = JSON.stringify(savedFilter);
+  const filtroGuardado = state?.config?.monitoreo_profile?.platform_effective_filter;
+  const criteriosGuardados = useMemo(() => criteriosDesdeFiltro(filtroGuardado), [filtroGuardado]);
+  const filterKey = JSON.stringify(criteriosGuardados);
   const options = phoneEffectiveFilterQuestionOptions(variables, state?.source_metadata, platformSources);
-  const [draft, setDraft] = useState(() => ({
-    variable: savedFilter.variable,
-    value: savedFilter.values[0] ?? "",
-  }));
+  // Un criterio en edición es una variable y UN valor: los estudios declaran
+  // «Consent = Yes», no un conjunto. La lista de valores del contrato sigue
+  // existiendo para leer proyectos que sí traigan varios.
+  const [borrador, setBorrador] = useState<Array<{ variable: string; value: string }>>(
+    () => criteriosGuardados.map((criterio) => ({ variable: criterio.variable, value: criterio.values[0] ?? "" })),
+  );
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<AcreditacionActionStatus>(null);
-  const selectedOption = options.find((option) => normalizeSourceMatch(option.value) === normalizeSourceMatch(draft.variable)) ?? null;
-  const valueOptions = phoneEffectiveFilterAnswerOptions(options, draft.variable, draft.value);
+  const opcionDe = (variable: string) => (
+    options.find((option) => normalizeSourceMatch(option.value) === normalizeSourceMatch(variable)) ?? null
+  );
   const likelyFilterOptions = options.filter((option) => phoneEffectiveFilterQuestionScore(option) <= 2);
-  const suggestedOptions = uniqueDisplayValues([
-    ...(selectedOption ? [selectedOption.value] : []),
-    ...likelyFilterOptions.map((option) => option.value),
-  ]).map((value) => options.find((option) => option.value === value)).filter(Boolean).slice(0, 3) as PhoneEffectiveFilterQuestionOption[];
-  const configured = Boolean(draft.variable.trim() && draft.value.trim());
+  // Las candidatas solo tienen sentido mientras no hay nada declarado: con un
+  // criterio puesto, proponer «la pregunta que probablemente sea» compite con lo
+  // que el usuario ya decidió.
+  const suggestedOptions = (borrador.length ? [] : uniqueDisplayValues(
+    likelyFilterOptions.map((option) => option.value),
+  ).map((value) => options.find((option) => option.value === value)).filter(Boolean).slice(0, 3)) as PhoneEffectiveFilterQuestionOption[];
+  const criterios = borrador
+    .filter((item) => item.variable.trim() && item.value.trim())
+    .map((item) => ({
+      variable: item.variable.trim(),
+      values: [item.value.trim()],
+      label: (() => { const option = opcionDe(item.variable); return option ? phoneEffectiveFilterLabel(option) : item.variable.trim(); })(),
+      value_label: item.value.trim(),
+    }));
+  const configured = criterios.length > 0;
 
   useEffect(() => {
-    setDraft({
-      variable: savedFilter.variable,
-      value: savedFilter.values[0] ?? "",
-    });
+    setBorrador(criteriosGuardados.map((criterio) => ({ variable: criterio.variable, value: criterio.values[0] ?? "" })));
   }, [filterKey]);
+
+  const agregarCriterio = () => setBorrador((actual) => [...actual, { variable: "", value: "" }]);
+  const quitarCriterio = (indice: number) => setBorrador((actual) => actual.filter((_, i) => i !== indice));
+  const cambiarCriterio = (indice: number, cambio: { variable?: string; value?: string }) => {
+    setBorrador((actual) => actual.map((item, i) => (i === indice ? { ...item, ...cambio } : item)));
+  };
 
   const saveFilter = async () => {
     if (!state?.config) return;
@@ -10853,14 +10922,7 @@ function AcreditacionPhoneEffectiveFilterEditor({
         ...state.config,
         monitoreo_profile: {
           ...state.config.monitoreo_profile,
-          platform_effective_filter: {
-            enabled: configured,
-            variable: draft.variable.trim(),
-            values: configured ? [draft.value.trim()] : [],
-            label: selectedOption ? phoneEffectiveFilterLabel(selectedOption) : draft.variable.trim(),
-            value_label: draft.value.trim(),
-            source_kind: "kobo",
-          },
+          platform_effective_filter: filtroDesdeCriterios(criterios),
         },
       });
       onStateChange?.(result.state);
@@ -10874,48 +10936,32 @@ function AcreditacionPhoneEffectiveFilterEditor({
 
   return (
     <section className={`mon-platform-rejection-rule mon-phone-effective-filter${configured ? " is-configured" : " is-empty"}`} aria-label="Filtro de efectiva Kobo">
-      {/* El título decía «Intro/Consent = Yes» y las tres celdas de abajo lo
-        * componen otra vez, campo a campo, a 40 px. Aquí va lo que la superficie
-        * hace; el valor vive en la fila de decisión, que es donde se cambia.
+      {/* El título decía «Intro/Consent = Yes» y las celdas de abajo lo componen
+        * otra vez, campo a campo, a 40 px. Aquí va lo que la superficie hace; el
+        * valor vive en las filas, que es donde se cambia.
         *
         * También sale el párrafo que describía los propios controles: «Pregunta
         * de selección única» y «Valor que cuenta» ya se rotulan solos. */}
       <header>
         <div>
           <span><Filter size={12} /> Filtro de efectiva Kobo</span>
-          <strong>La respuesta cuenta cuando</strong>
+          <strong>{resumenDeCriterios(criterios)}</strong>
         </div>
         <button type="button" onClick={() => void saveFilter()} disabled={saving || !state?.config}>
           {saving ? <Loader2 size={13} className="pulso-spin" /> : <Save size={13} />}
           Guardar filtro
         </button>
       </header>
-      <div className="mon-phone-filter-decision" aria-label="Decisión del filtro Kobo">
-        <span className={draft.variable ? "is-ready" : "is-empty"}>
-          <em>Pregunta</em>
-          <strong>{selectedOption ? phoneEffectiveFilterLabel(selectedOption) : draft.variable || "Pendiente"}</strong>
-        </span>
-        <span className={draft.value ? "is-ready" : "is-empty"}>
-          <em>Valor que cuenta</em>
-          <strong>{draft.value || "Pendiente"}</strong>
-        </span>
-        <span className={configured ? "is-ready" : "is-warning"}>
-          <em>Resultado</em>
-          <strong>{configured ? "Cuenta como efectiva Kobo" : "No valida avance"}</strong>
-        </span>
-      </div>
       {suggestedOptions.length ? (
         <div className="mon-phone-filter-suggestions" aria-label="Sugerencias de filtro de efectiva">
           <span>Preguntas candidatas</span>
           {suggestedOptions.map((option) => {
             const value = preferredPhoneEffectiveValue(option.choices);
-            const active = normalizeSourceMatch(option.value) === normalizeSourceMatch(draft.variable);
             return (
               <button
                 key={option.value}
                 type="button"
-                className={active ? "is-active" : ""}
-                onClick={() => setDraft({ variable: option.value, value })}
+                onClick={() => setBorrador([{ variable: option.value, value }])}
                 disabled={saving}
               >
                 <strong>{phoneEffectiveFilterLabel(option)}</strong>
@@ -10925,43 +10971,71 @@ function AcreditacionPhoneEffectiveFilterEditor({
           })}
         </div>
       ) : null}
-      <div className="mon-platform-rule-list">
-        <article className="mon-platform-rule-row mon-platform-rule-row--filter">
-          <label>
-            <span>Pregunta de selección única</span>
-            <select
-              value={draft.variable}
-              onChange={(event) => {
-                const variable = event.target.value;
-                const option = options.find((item) => item.value === variable);
-                const value = option?.choices.some((choice) => normalizeSourceMatch(choice) === normalizeSourceMatch(draft.value))
-                  ? draft.value
-                  : preferredPhoneEffectiveValue(option?.choices ?? []);
-                setDraft({ variable, value });
-              }}
-              disabled={saving}
-            >
-              <option value="">Seleccionar pregunta</option>
-              {options.map((option) => (
-                <option key={option.value} value={option.value} title={phoneEffectiveFilterLabel(option)}>
-                  {compactSelectLabel(phoneEffectiveFilterLabel(option))}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Valor que cuenta</span>
-            <select
-              value={draft.value}
-              onChange={(event) => setDraft((current) => ({ ...current, value: event.target.value }))}
-              disabled={saving || !draft.variable}
-            >
-              {valueOptions.length ? valueOptions.map((value) => (
-                <option key={value} value={value}>{value}</option>
-              )) : <option value={draft.value}>{draft.value || "Sin valores"}</option>}
-            </select>
-          </label>
-        </article>
+      {/* Los criterios se exigen todos a la vez. El «y» entre filas no es
+        * decorativo: es la única operación posible, y decirlo evita que alguien
+        * lea la lista como alternativas. */}
+      <div className="mon-platform-rule-list mon-phone-filter-criterios">
+        {borrador.map((item, indice) => {
+          const option = opcionDe(item.variable);
+          const valueOptions = phoneEffectiveFilterAnswerOptions(options, item.variable, item.value);
+          return (
+            <article key={indice} className="mon-platform-rule-row mon-platform-rule-row--filter">
+              <i className="mon-phone-filter-conjuncion" aria-hidden="true">{indice === 0 ? "Cuenta si" : "y"}</i>
+              <label>
+                <span>Pregunta de selección única</span>
+                <select
+                  value={item.variable}
+                  onChange={(event) => {
+                    const variable = event.target.value;
+                    const elegida = options.find((candidata) => candidata.value === variable);
+                    const value = elegida?.choices.some((choice) => normalizeSourceMatch(choice) === normalizeSourceMatch(item.value))
+                      ? item.value
+                      : preferredPhoneEffectiveValue(elegida?.choices ?? []);
+                    cambiarCriterio(indice, { variable, value });
+                  }}
+                  disabled={saving}
+                >
+                  <option value="">Seleccionar pregunta</option>
+                  {options.map((candidata) => (
+                    <option key={candidata.value} value={candidata.value} title={phoneEffectiveFilterLabel(candidata)}>
+                      {compactSelectLabel(phoneEffectiveFilterLabel(candidata))}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Valor que cuenta</span>
+                <select
+                  value={item.value}
+                  onChange={(event) => cambiarCriterio(indice, { value: event.target.value })}
+                  disabled={saving || !item.variable}
+                >
+                  {valueOptions.length ? valueOptions.map((value) => (
+                    <option key={value} value={value}>{value}</option>
+                  )) : <option value={item.value}>{item.value || "Sin valores"}</option>}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="mon-phone-filter-quitar"
+                onClick={() => quitarCriterio(indice)}
+                disabled={saving}
+                aria-label={`Quitar criterio ${option ? phoneEffectiveFilterLabel(option) : indice + 1}`}
+              >
+                <X size={13} />
+              </button>
+            </article>
+          );
+        })}
+        <button
+          type="button"
+          className="mon-phone-filter-agregar"
+          onClick={agregarCriterio}
+          disabled={saving}
+        >
+          <Plus size={13} />
+          <span>{borrador.length ? "Agregar otra condición" : "Definir la primera condición"}</span>
+        </button>
       </div>
       <footer>
         <span>{fmt(options.length)} preguntas con valores</span>
@@ -10975,6 +11049,7 @@ function AcreditacionPhoneEffectiveFilterEditor({
 function AcreditacionPhoneSourcesContractPanel({
   state,
   sources,
+  reports,
   syncedAt,
   nRows = 0,
   pestana = "activas",
@@ -10983,6 +11058,8 @@ function AcreditacionPhoneSourcesContractPanel({
 }: {
   state?: MonitoreoState | null;
   sources: MonitoreoSource[];
+  /** El corte: de él salen los estados crudos que el barrido trajo. */
+  reports: MonitoreoAcreditacionReports;
   syncedAt?: string;
   nRows?: number;
   pestana?: PestanaDeFuentes;
@@ -10995,10 +11072,17 @@ function AcreditacionPhoneSourcesContractPanel({
   // `<details>`: los dos bloques de configuración se montaban en las tres
   // pestañas, así que «Encuestas» ofrecía configurar hojas de cálculo.
   const reparto = repartoDeFuentes(pestana, contract.ready);
-  const basePreset = ACREDITACION_SOURCE_PRESETS[0];
-  const sweepPreset = ACREDITACION_SOURCE_PRESETS[1];
+  const abrirConectarFuente = useAbrirConectarFuente();
+  // Los crudos salen del bloque que el motor ya publica: el definidor no inventa
+  // estados, confirma los que ESTE corte trajo, con su volumen.
+  const estadosDelBarrido = useMemo(
+    () => rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]).map((fila) => ({
+      label: phoneRowValue(fila, ["Estado", "Estatus", "Categoria", "Categoría"], ""),
+      value: phoneRowNumber(fila, ["Casos", "Valor", "Total"], 0),
+    })),
+    [reports],
+  );
   const platformSources = contract.platform.sources;
-  const koboSources = platformSources.filter(isKoboResponseSource);
   const respuestasLeidas = platformSources
     .filter((source) => source.enabled)
     .reduce((sum, source) => sum + acreditacionSourceResponseCount(source), 0);
@@ -11014,27 +11098,23 @@ function AcreditacionPhoneSourcesContractPanel({
   // El título declara qué es esta superficie (C1). No lleva antetítulo: el
   // chrome ya dice el nombre de la pestaña justo encima, y repetirlo ahí era la
   // tercera vez que se leía «Universo y barrido» en la misma pantalla.
+  //
+  // Y no lleva sermón. Los detalles decían «Los estados del barrido son consulta
+  // operativa; la efectiva la decide Kobo» o «El consentimiento decide cuáles
+  // cuentan en el avance»: enunciados de doctrina, verdaderos y sin uso, que
+  // ocupaban el sitio donde debía ir el dato de ESTE corte. El único detalle que
+  // sobrevive es el que informa de algo que está pasando y que no se ve en
+  // ningún otro sitio —una encuesta conectada que no ha traído nada, con el
+  // avance en cero y nada roto que mirar—.
   const titulos: Record<PestanaDeFuentes, { title: string; detail?: string }> = {
-    // El detalle no parafrasea el título: dice la distinción metodológica que
-    // sostiene toda la pestaña —los estados del barrido no son las efectivas de
-    // Kobo— y que antes vivía en un bloque aparte cuyas otras tres celdas
-    // repetían el universo, el barrido y el sync de las tarjetas de arriba.
-    sheets: {
-      title: "A quién llamar y qué pasó en cada llamada",
-      detail: contract.sweep.ready
-        ? "Los estados del barrido son consulta operativa; la efectiva la decide Kobo."
+    sheets: { title: "Universo y barrido" },
+    survey: {
+      title: "Encuesta",
+      detail: contract.platform.ready && !respuestasLeidas
+        ? "Conectada, sin respuestas todavía. Sincroniza Kobo."
         : undefined,
     },
-    // Una encuesta conectada que no trajo nada es un problema silencioso: el
-    // avance sale en cero y no hay nada roto que mirar. Cuando pasa, el detalle
-    // lo dice en vez de la regla, que en ese caso no aplica a nada.
-    survey: {
-      title: "Qué respuesta cuenta como efectiva",
-      detail: contract.platform.ready && !respuestasLeidas
-        ? "La encuesta está conectada pero no ha traído respuestas. Sincroniza Kobo."
-        : "El consentimiento decide cuáles cuentan en el avance.",
-    },
-    activas: { title: "De dónde salen los números del monitoreo" },
+    activas: { title: "Fuentes del estudio" },
   };
   const copia = titulos[pestana];
   const slotPorClave: Record<RepartoDeFuentes["slots"][number], AcreditacionPhoneSourceSlot> = {
@@ -11069,6 +11149,10 @@ function AcreditacionPhoneSourcesContractPanel({
               icon={clave === "universo" ? <Layers3 size={15} /> : clave === "barrido" ? <PhoneCall size={15} /> : <ListChecks size={15} />}
               rowFallback={clave === "universo" ? nRows : undefined}
               syncFallback={syncedAt}
+              onCambiar={() => abrirConectarFuente.abrirParaCambiar(
+                slotPorClave[clave].sources.find((source) => source.enabled)?.id
+                  ?? slotPorClave[clave].sources[0]?.id,
+              )}
             />
           ))}
         </div>
@@ -11086,40 +11170,23 @@ function AcreditacionPhoneSourcesContractPanel({
           onStateChange={onStateChange}
         />
       ) : null}
-      {reparto.editorSheets ? (
-        <details className="mon-phone-source-editors" open={pestana === "sheets"}>
-          <summary>
-            <span><Table2 size={14} /> Ajustar la hoja de universo y la de barrido</span>
-            <em>{contract.ready ? "Ya conectadas" : "Sin conectar"}</em>
-          </summary>
-          <div className="mon-phone-source-editor-grid">
-            <AcreditacionSheetSourceEditor
-              preset={basePreset}
-              sources={contract.universe.sources}
-              onStateChange={onStateChange}
-            />
-            <AcreditacionSheetSourceEditor
-              preset={sweepPreset}
-              sources={contract.sweep.sources}
-              onStateChange={onStateChange}
-            />
-          </div>
-        </details>
-      ) : null}
-      {reparto.editorKobo ? (
-        <details className="mon-phone-source-editors" open={pestana === "survey"}>
-          <summary>
-            <span><ListChecks size={14} /> Cambiar el formulario que se lee</span>
-            <em>{contract.platform.ready ? "Ya conectado" : "Falta la encuesta"}</em>
-          </summary>
-          <div className="mon-phone-source-editor-grid mon-phone-source-editor-grid--platform">
-            <AcreditacionKoboSourcePicker
-              sources={koboSources}
-              phoneMode
-              onStateChange={onStateChange}
-            />
-          </div>
-        </details>
+      {/* Sin editores de conexión: la dirección de la hoja, su pestaña, el rango
+        * y el servidor de Kobo se declaran al conectar la fuente, y esta sección
+        * no es donde se cablea el estudio sino donde se declara qué significan
+        * sus números. La puerta al cableado es «Cambiar conexión» en la tarjeta
+        * de cada pieza, que abre el mismo panel con esa fuente cargada.
+        *
+        * Lo que sí se decide aquí es el significado: qué familia y qué color le
+        * corresponde a cada estado que el cliente escribió en su hoja de
+        * barrido. El vocabulario lo pone él y cambia entre estudios; hasta ahora
+        * lo clasificaba una heurística sola y sin que nadie pudiera corregirla,
+        * y los colores estaban escritos a mano en cada vista que los pintaba. */}
+      {reparto.declaracionDeEstados ? (
+        <DefinidorDeEstados
+          entradas={estadosDelBarrido}
+          config={state?.config}
+          onStateChange={onStateChange}
+        />
       ) : null}
     </section>
   );
@@ -11178,6 +11245,7 @@ function AcreditacionSourcesWorkbench({
     <AcreditacionPhoneSourcesContractPanel
       state={state}
       sources={operationalSources}
+      reports={reports}
       syncedAt={state?.synced_at ?? reports.generated_at}
       nRows={state?.n_rows ?? 0}
       pestana={pestana}
@@ -16867,11 +16935,33 @@ function AcreditacionPhoneQuotaRhythmBoard({
   cards,
   variable,
   cutDate,
+  statusActorRows = [],
+  stateRules = [],
+  cierre = null,
 }: {
   cards: AcreditacionActorCard[];
   variable: string;
   cutDate?: string;
+  /** `estatus_actor_dia`: la composición del barrido, desglosada por cuota. */
+  statusActorRows?: Array<Record<string, unknown>>;
+  stateRules?: MonitoreoStateRule[];
+  /** Si la base alcanza para cerrar: reserva, ritmo, proyección y rendimiento. */
+  cierre?: {
+    reserva: number;
+    reservaAlcanza: boolean | null;
+    reservaTitulo: string;
+    porDia: string | null;
+    diasProyectados: number | null;
+    costoPorEfectiva: string | null;
+  } | null;
 }) {
+  // Los colores del apilado son los que el usuario confirmó en el definidor de
+  // estados: la tabla de Fuentes y este gráfico leen la misma declaración y no
+  // pueden discrepar.
+  const declaracionesDeEstado = useMemo(
+    () => acreditacionDeclaracionesDesdeReglas(stateRules),
+    [stateRules],
+  );
   const quotaCards = [...cards].sort((a, b) => (
     (b.missing ?? -1) - (a.missing ?? -1)
     || b.universe - a.universe
@@ -16901,6 +16991,34 @@ function AcreditacionPhoneQuotaRhythmBoard({
           <span><em>Meta</em><strong>{totalMeta ? fmt(totalMeta) : "S/M"}</strong></span>
           <span className={totalGap ? "is-warning" : "is-ready"}><em>Faltan</em><strong>{fmt(totalGap)}</strong></span>
           <span className="is-ready"><em>Fechadas</em><strong>{datedLabel}</strong></span>
+          {/* Las cifras de cierre. Vivían en Llamadas, dentro de un panel que
+            * repetía esta misma tabla de cuotas; son las únicas que no estaban
+            * aquí y son las que contestan si la base alcanza para cerrar. */}
+          {cierre ? (
+            <>
+              <span className={cierre.reservaAlcanza === false ? "is-warning" : ""} title={cierre.reservaTitulo}>
+                <em>Reserva</em><strong>{fmt(cierre.reserva)}</strong>
+              </span>
+              {cierre.porDia != null ? (
+                <span><em>Ritmo</em><strong>{cierre.porDia}<small>/día</small></strong></span>
+              ) : null}
+              {cierre.diasProyectados != null ? (
+                // «Cierre» y no «Proyección»: es más corto —el rótulo largo se
+                // truncaba— y dice lo que se viene a saber, que es cuándo.
+                <span title="Días que tomaría cerrar la brecha al ritmo observado">
+                  <em>Cierre</em><strong>{fmt(cierre.diasProyectados)}<small> días</small></strong>
+                </span>
+              ) : null}
+              {cierre.costoPorEfectiva != null ? (
+                // Sin el sufijo «por efectiva» dentro de la cifra: en una casilla
+                // de 135 px truncaba el rótulo y el valor a la vez. Vive en el
+                // `title`, que es donde no le quita sitio a nada.
+                <span title="Registros de base consumidos por cada efectiva lograda">
+                  <em>Rendimiento</em><strong>{cierre.costoPorEfectiva}</strong>
+                </span>
+              ) : null}
+            </>
+          ) : null}
         </div>
       </header>
       <div className="mon-phone-quota-rhythm-grid">
@@ -16910,6 +17028,20 @@ function AcreditacionPhoneQuotaRhythmBoard({
           const orderedDaily = sortAcreditacionDailyPoints(card.dailyPoints)
             .filter((point) => isDatedAcreditacionDailyPoint(point) && dailyEffectiveValue(point) > 0);
           const latestDatedPoint = orderedDaily.at(-1) ?? null;
+          // El barrido del segmento en tres tramos que suman el universo. Se
+          // deriva por resta y no se lee de otro sitio para que los tres no
+          // puedan contradecirse: lo trabajado sin lograr entrevista es lo que
+          // queda entre las efectivas y lo que aún no se ha llamado.
+          const barridoSinEfectiva = Math.max(0, card.universe - card.effective - card.pending);
+          const porcentaje = (parte: number) => (card.universe > 0
+            ? Math.max(0, Math.min(100, (parte / card.universe) * 100))
+            : 0);
+          const pctEfectiva = porcentaje(card.effective);
+          const pctBarrido = porcentaje(barridoSinEfectiva);
+          const pctPorBarrer = porcentaje(card.pending);
+          const estadosDeLaCuota = buildAcreditacionPhoneDailyStatusSeries(
+            estadosPorDiaDeLaCuota(statusActorRows, card.actor),
+          );
           return (
             <article key={card.id} className={`mon-phone-quota-rhythm-row ${card.dailyPoints.length ? "has-series" : "is-missing-series"}`}>
               <div className="mon-phone-quota-rhythm-row-summary">
@@ -16930,16 +17062,86 @@ function AcreditacionPhoneQuotaRhythmBoard({
                     <small>{card.missing == null ? "meta pendiente" : card.missing > 0 ? `${fmt(card.missing)} faltan` : "cuota cubierta"}</small>
                   </span>
                 </div>
-                <div className="mon-phone-quota-rhythm-card-metrics">
-                  <span><em>Base</em><strong>{fmt(card.universe)}</strong></span>
-                  <span><em>Faltan</em><strong>{card.missing == null ? "S/M" : fmt(card.missing)}</strong></span>
-                  <span><em>Fechadas</em><strong>{cardDated ? fmt(cardDated) : "S/D"}</strong></span>
-                </div>
-                <small>
-                  {latestDatedPoint
-                    ? `Último día ${inlineAdvanceDateTickLabel(latestDatedPoint.date).replace("<br>", " ")} · ${fmt(dailyEffectiveValue(latestDatedPoint))} efectivas Kobo`
-                    : "Sin serie diaria para esta cuota."}
-                </small>
+                {/* Cuánto de este segmento se ha barrido, en vertical.
+                  *
+                  * «Faltan 25» solo se puede leer sabiendo con qué se cuenta
+                  * para cubrirlas: 25 con la base entera por delante es una
+                  * situación y 25 con la base agotada es otra. La cifra sola no
+                  * distingue las dos, y era lo único que había.
+                  *
+                  * Vertical y no horizontal por el sitio: la fila creció cuando
+                  * el apilado de estados se metió debajo del ritmo, y la
+                  * columna del resumen se quedó con un hueco del alto de un
+                  * gráfico. Una barra vertical lo ocupa, y de paso deja cada
+                  * cifra a la altura de su tramo en vez de en una leyenda
+                  * aparte que hay que emparejar por color.
+                  *
+                  * Se fueron de aquí «Base», «Faltan» y «Fechadas»: los tres
+                  * estaban dichos ya. La base es el total de la barra, las que
+                  * faltan las dice el anillo, y las fechadas solo aportan
+                  * cuando no coinciden con las efectivas. */}
+                {card.universe > 0 ? (
+                  <div
+                    className="mon-phone-quota-rhythm-barrido"
+                    role="img"
+                    aria-label={`${fmt(card.effective)} efectivas, ${fmt(barridoSinEfectiva)} barrido sin efectiva y ${fmt(card.pending)} por barrer de ${fmt(card.universe)}`}
+                    style={{
+                      "--tramo-efectiva": `${pctEfectiva}fr`,
+                      "--tramo-barrido": `${pctBarrido}fr`,
+                      "--tramo-por-barrer": `${pctPorBarrer}fr`,
+                    } as CSSProperties}
+                  >
+                    <i className="is-efectiva" aria-hidden="true" />
+                    <span className="is-efectiva">
+                      <strong>{fmt(card.effective)}</strong>
+                      <em>Efectivas</em>
+                    </span>
+                    <i className="is-barrido" aria-hidden="true" />
+                    <span className="is-barrido">
+                      <strong>{fmt(barridoSinEfectiva)}</strong>
+                      <em>Sin efectiva</em>
+                    </span>
+                    <i className="is-por-barrer" aria-hidden="true" />
+                    <span className="is-por-barrer">
+                      <strong>{fmt(card.pending)}</strong>
+                      <em>Por barrer</em>
+                    </span>
+                    <b>{fmt(card.universe)} en la base</b>
+                  </div>
+                ) : null}
+                {/* El pie, con rótulo por dato.
+                  *
+                  * Decía «Último día ago 08 · 4 efectivas Kobo» en una línea
+                  * corrida, y esas 4 se leían como el total de la cuota —que
+                  * son 14, dos centímetros más arriba—. Son las de ESE día, y
+                  * ahora cada cifra lleva encima de qué está hablando. */}
+                <footer className="mon-phone-quota-rhythm-pie">
+                  {latestDatedPoint ? (
+                    <>
+                      <span>
+                        <em>Último día</em>
+                        <strong>{inlineAdvanceDateTickLabel(latestDatedPoint.date).replace("<br>", " ")}</strong>
+                      </span>
+                      <span>
+                        <em>Ese día</em>
+                        <strong>{fmt(dailyEffectiveValue(latestDatedPoint))} efectivas</strong>
+                      </span>
+                    </>
+                  ) : (
+                    <span>
+                      <em>Serie diaria</em>
+                      <strong>Sin fechas</strong>
+                    </span>
+                  )}
+                  {/* Solo cuando difiere: si todas las efectivas tienen fecha,
+                    * repetir la cifra del anillo no informa de nada. */}
+                  {cardDated && cardDated !== card.effective ? (
+                    <span>
+                      <em>Con fecha</em>
+                      <strong>{fmt(cardDated)} de {fmt(card.effective)}</strong>
+                    </span>
+                  ) : null}
+                </footer>
               </div>
               <div className="mon-phone-quota-rhythm-row-chart">
                 <AcreditacionAdvanceDailyMini
@@ -16950,6 +17152,20 @@ function AcreditacionPhoneQuotaRhythmBoard({
                   compact
                   compactHeight={218}
                 />
+                {/* Debajo del ritmo, no al lado: son dos lecturas del mismo
+                  * periodo —efectivas Kobo arriba, composición del barrido
+                  * abajo— y el ritmo por sí solo no dice a costa de qué se
+                  * consiguieron esas efectivas.
+                  *
+                  * Las filas son las de ESTA cuota. Con el bloque global el
+                  * gráfico sería idéntico para las dos y afirmaría que el
+                  * barrido de una cuota de 27 casos es el del estudio entero. */}
+                {estadosDeLaCuota.length ? (
+                  <GraficoDeEstadosPorDia
+                    series={estadosDeLaCuota}
+                    declaraciones={declaracionesDeEstado}
+                  />
+                ) : null}
               </div>
             </article>
           );
@@ -17190,110 +17406,6 @@ function AcreditacionActorProgressCardView({
   );
 }
 
-function AcreditacionPhoneQuotaLaneCard({ card }: { card: AcreditacionActorCard }) {
-  const meta = card.meta ?? 0;
-  const metaProgress = meta > 0 ? safePercentValue(card.effective, meta) ?? 0 : safePercentValue(card.effective, card.universe) ?? 0;
-  const baseProgress = safePercentValue(card.effective, card.universe) ?? 0;
-  const targetPct = safePercentValue(meta, card.universe) ?? 0;
-  const gap = card.missing ?? Math.max(0, meta - card.effective);
-  const orderedDaily = sortAcreditacionDailyPoints(card.dailyPoints).filter((point) => dailyEffectiveValue(point) > 0);
-  const visibleDaily = orderedDaily.slice(-6);
-  const maxDaily = Math.max(1, ...visibleDaily.map(dailyEffectiveValue));
-  const lastPoint = orderedDaily.at(-1) ?? null;
-  const dailyTotal = orderedDaily.reduce((sum, point) => sum + dailyEffectiveValue(point), 0);
-  return (
-    <article
-      className={`mon-phone-quota-lane is-${card.statusTone}`}
-      style={{
-        "--phone-quota-lane-pct": `${Math.max(baseProgress ? 3 : 0, Math.min(100, baseProgress))}%`,
-        "--phone-quota-lane-target": `${Math.max(0, Math.min(100, targetPct))}%`,
-      } as CSSProperties}
-    >
-      <div className="mon-phone-quota-lane-title">
-        <span>Sede</span>
-        <strong>{card.actor}</strong>
-        <em>{gap > 0 ? `${fmt(gap)} por cumplir` : "cuota cubierta"}</em>
-      </div>
-      <div className="mon-phone-quota-lane-progress" aria-label={`Avance de cuota de ${card.actor}`}>
-        <div>
-          <strong>{meta > 0 ? `${fmt(card.effective)} / ${fmt(meta)}` : fmt(card.effective)}</strong>
-          <span>{formatPercentLabel(metaProgress)} de la meta Kobo</span>
-        </div>
-        <i aria-hidden="true"><b /></i>
-        <small>Base {fmt(card.universe)} · por barrer {fmt(card.pending)}</small>
-      </div>
-      <div className="mon-phone-quota-lane-metrics" aria-label={`Indicadores de ${card.actor}`}>
-        <span><em>Meta</em><strong>{meta ? fmt(meta) : "S/M"}</strong></span>
-        <span><em>Kobo</em><strong>{fmt(card.effective)}</strong></span>
-        <span className={gap ? "is-warning" : "is-ready"}><em>Pendiente</em><strong>{fmt(gap)}</strong></span>
-      </div>
-      <div className="mon-phone-quota-lane-spark" aria-label={`Ritmo diario de ${card.actor}`}>
-        <span>
-          <em>{fmt(orderedDaily.length)} día{orderedDaily.length === 1 ? "" : "s"}</em>
-          <strong>{lastPoint ? shortAdvanceDateLabel(lastPoint.date) : "Sin fecha"}</strong>
-        </span>
-        <div>
-          {visibleDaily.length ? visibleDaily.map((point) => {
-            const value = dailyEffectiveValue(point);
-            return (
-              <i
-                key={point.date}
-                title={`${shortAdvanceDateLabel(point.date)}: ${fmt(value)} efectivas Kobo`}
-                style={{ "--phone-quota-lane-day": `${Math.max(8, Math.min(100, safePercentValue(value, maxDaily) ?? 0))}%` } as CSSProperties}
-              />
-            );
-          }) : <em>Sin serie</em>}
-        </div>
-        <small>{fmt(dailyTotal)} fechadas</small>
-      </div>
-    </article>
-  );
-}
-
-function AcreditacionPhoneQuotaLaneBoard({
-  cards,
-  totals,
-  generatedAt,
-}: {
-  cards: AcreditacionActorCard[];
-  totals: ReturnType<typeof advanceTotals>;
-  generatedAt: string;
-}) {
-  const withMeta = cards.filter((card) => card.meta != null);
-  const reached = withMeta.filter((card) => (card.missing ?? 0) <= 0).length;
-  const metaTotal = cards.reduce((sum, card) => sum + Math.max(0, card.meta ?? 0), 0);
-  const gapTotal = cards.reduce((sum, card) => sum + Math.max(0, card.missing ?? 0), 0);
-  const datedTotal = cards.reduce(
-    (sum, card) => sum + card.dailyPoints.reduce((inner, point) => inner + dailyEffectiveValue(point), 0),
-    0,
-  );
-  return (
-    <div className="mon-phone-quota-lane-board">
-      <section className="mon-phone-quota-lane-brief" aria-label="Resumen de cuotas Kobo por sede">
-        <div>
-          <span>Cuotas Kobo por sede</span>
-          <strong>{fmt(totals.effective)} efectivas de {metaTotal ? fmt(metaTotal) : "S/M"}</strong>
-          <p>Todas las sedes quedan visibles en una sola lectura: meta, efectivas Kobo, pendiente por cumplir y señal diaria fechada.</p>
-        </div>
-        <div className="mon-phone-quota-lane-kpis">
-          <span><em>Sedes</em><strong>{fmt(cards.length)}</strong></span>
-          <span><em>Cubiertas</em><strong>{fmt(reached)}/{fmt(withMeta.length || cards.length)}</strong></span>
-          <span className={gapTotal ? "is-warning" : "is-ready"}><em>Pendiente</em><strong>{fmt(gapTotal)}</strong></span>
-          <span><em>Fechadas</em><strong>{fmt(datedTotal)}</strong></span>
-          {generatedAt ? <span><em>Corte</em><strong>{generatedAt}</strong></span> : null}
-        </div>
-      </section>
-      <div className="mon-phone-quota-lane-list" aria-label="Carriles de avance por sede">
-        {cards.length ? cards.map((card) => (
-          <AcreditacionPhoneQuotaLaneCard key={card.id} card={card} />
-        )) : (
-          <EmptyPanel title="Sin cuotas operativas" detail="El reporte telefónico aún no trae categorías de cuota para mostrar metas, efectivas Kobo y pendientes." />
-        )}
-      </div>
-    </div>
-  );
-}
-
 function AcreditacionAdvanceActorsWorkbench({
   reports,
   state,
@@ -17320,16 +17432,26 @@ function AcreditacionAdvanceActorsWorkbench({
     sources: state?.sources ?? [],
     progressRows: state?.dashboard?.progress ?? [],
   });
-  const scopeLabel = isPhoneModel && phoneQuotaCards.length ? "Sede" : "Actor";
+  // Cómo se llama el segmento de cuotas en ESTE estudio. Ver
+  // `segmentoDeCuotas.ts`: estaba escrito «Sede» a mano en cinco sitios, y en
+  // PDM MedVida el segmento es `Actor`.
+  const esCuotaTelefonica = isPhoneModel && phoneQuotaCards.length > 0;
+  const segmentoDeLasCuotas = useMemo(
+    () => nombreDelSegmento(
+      phoneQuotaRowsForPanel(
+        rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
+      ).map((row) => row.variable),
+    ),
+    [reports],
+  );
+  const scopeLabel = esCuotaTelefonica ? segmentoDeLasCuotas : "Actor";
   const totals = advanceTotals(cards);
   const goals = actorGoalSummary(cards);
   const completionPct = safePercentValue(totals.effective, totals.universe);
   const generatedAt = reports.generated_at ? formatDate(reports.generated_at) : "";
   const mechanismTotal = cards.reduce((sum, card) => sum + card.mechanisms.length, 0);
-  const unitCountLabel = scopeLabel === "Sede"
-    ? `${fmt(cards.length)} sede${cards.length === 1 ? "" : "s"}`
-    : `${fmt(cards.length)} actor${cards.length === 1 ? "" : "es"}`;
-  const mechanismSummary = scopeLabel === "Sede"
+  const unitCountLabel = contarSegmentos(cards.length, scopeLabel);
+  const mechanismSummary = esCuotaTelefonica
     ? `${fmt(cards.filter((card) => card.meta != null).length)} metas`
     : `${fmt(mechanismTotal)} mecanismos`;
   const phoneQuotaWithMeta = cards.filter((card) => card.meta != null).length;
@@ -17342,6 +17464,53 @@ function AcreditacionAdvanceActorsWorkbench({
     () => acreditacionReportWeekdayFromPhases(state?.config?.strategy_phases ?? []),
     [state?.config?.strategy_phases],
   );
+  const statusActorDayRows = useMemo(
+    () => rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_actor_dia"]),
+    [reports],
+  );
+  // Si la base alcanza para cerrar. Se calcula con el mismo modelo que usaba el
+  // panel de cumplimiento en Llamadas —de donde vienen estas cifras— para que
+  // ninguna de las dos pantallas invente su propia versión.
+  const cierreDeCuotas = useMemo(() => {
+    if (!esCuotaTelefonica) return null;
+    const { reserva, ritmo } = buildTelefonicoCumplimiento({
+      categorias: cards.map((card) => ({
+        clave: card.id,
+        etiqueta: card.actor,
+        universo: card.universe,
+        minimo: card.meta,
+        logrado: card.effective,
+      })),
+      logradoTotal: cards.reduce((sum, card) => sum + card.effective, 0),
+      porBarrer: cards.reduce((sum, card) => sum + card.pending, 0),
+      barridos: cards.reduce((sum, card) => sum + Math.max(0, card.universe - card.pending), 0),
+      // El ritmo del estudio es la suma por día de todas las cuotas, no la
+      // concatenación de sus series: dos cuotas que trabajan el mismo día son
+      // un día, no dos.
+      serieDiaria: [...cards
+        .flatMap((card) => card.dailyPoints)
+        .reduce((porDia, point) => {
+          const dia = String(point.date ?? "");
+          if (!dia) return porDia;
+          porDia.set(dia, (porDia.get(dia) ?? 0) + dailyEffectiveValue(point));
+          return porDia;
+        }, new Map<string, number>())
+        .values()],
+    });
+    if (!reserva) return null;
+    return {
+      reserva: reserva.disponible,
+      reservaAlcanza: reserva.suficiente,
+      reservaTitulo: reserva.necesariaEstimada != null && reserva.suficiente === false
+        ? `No alcanza: se estiman ${fmt(reserva.necesariaEstimada)} para cerrar`
+        : "Casos de la base todavía sin trabajar",
+      porDia: ritmo ? ritmo.porDia.toLocaleString("es-PE", { maximumFractionDigits: 1 }) : null,
+      diasProyectados: ritmo?.diasProyectados ?? null,
+      costoPorEfectiva: reserva.costoPorEfectiva != null
+        ? reserva.costoPorEfectiva.toLocaleString("es-PE", { maximumFractionDigits: 1 })
+        : null,
+    };
+  }, [cards, esCuotaTelefonica]);
 
   if (isPhoneModel) {
     return (
@@ -17353,8 +17522,11 @@ function AcreditacionAdvanceActorsWorkbench({
         <header className="pulso-panel-header">
           <div className="pulso-panel-heading">
             <span className="pulso-panel-eyebrow">Avance</span>
-            <h2 className="pulso-panel-title"><span className="mon-title-icon"><Layers3 size={16} /> Cuotas Kobo por sede</span></h2>
-            <p className="pulso-panel-hint">Meta, efectivas Kobo, pendiente por cumplir y ritmo diario fechable sin mezclarlo con estados telefónicos.</p>
+            <h2 className="pulso-panel-title">
+              <span className="mon-title-icon">
+                <Layers3 size={16} /> Cuotas Kobo por {scopeLabel.toLocaleLowerCase("es")}
+              </span>
+            </h2>
           </div>
           <div className="pulso-panel-actions mon-actor-dashboard-actions">
             <span>{unitCountLabel}</span>
@@ -17366,6 +17538,9 @@ function AcreditacionAdvanceActorsWorkbench({
           cards={cards}
           variable={scopeLabel}
           cutDate={reports.generated_at}
+          statusActorRows={statusActorDayRows}
+          stateRules={state?.config?.operational_model?.state_rules ?? []}
+          cierre={cierreDeCuotas}
         />
       </section>
     );
@@ -17396,7 +17571,7 @@ function AcreditacionAdvanceActorsWorkbench({
           <p>{isPhoneModel ? `Cada ${scopeLabel.toLowerCase()} muestra la base telefónica, la meta, las efectivas Kobo y lo que falta cumplir.` : `Lee cada ${scopeLabel.toLowerCase()} como una unidad operativa: universo/base, meta, avance real y mecanismos que alimentan el corte.`}</p>
         </div>
         <div className="mon-advance-hero-kpis">
-          <AcreditacionAdvanceMetric label={scopeLabel === "Sede" ? "Sedes" : "Actores"} value={fmt(cards.length)} hint={mechanismSummary} tone="base" />
+          <AcreditacionAdvanceMetric label={pluralDelSegmento(scopeLabel)} value={fmt(cards.length)} hint={mechanismSummary} tone="base" />
           <AcreditacionAdvanceMetric
             label={isPhoneModel ? "Cuotas cumplidas" : `Metas ${scopeLabel.toLowerCase()}`}
             value={isPhoneModel ? `${fmt(phoneQuotaReached)}/${fmt(phoneQuotaWithMeta || cards.length)}` : actorGoalValue(goals)}
@@ -18774,7 +18949,17 @@ function AcreditacionAdvanceSummaryWorkbench({
       ? phoneQuotaCards
       : advanceCardsFromRows(actorRows, state?.config.goals ?? [])
   ), [actorRows, isPhoneModel, phoneQuotaCards, state?.config.goals]);
-  const scopeLabel = isPhoneModel && phoneQuotaCards.length ? "Sede" : "Actor";
+  // El nombre del segmento lo declara el estudio, no la vista. Ver
+  // `segmentoDeCuotas.ts`.
+  const segmentoDeLasCuotas = useMemo(
+    () => nombreDelSegmento(
+      phoneQuotaRowsForPanel(
+        rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]),
+      ).map((row) => row.variable),
+    ),
+    [reports],
+  );
+  const scopeLabel = isPhoneModel && phoneQuotaCards.length ? segmentoDeLasCuotas : "Actor";
   const rawDailyPoints = useMemo(() => (
     isPhoneModel ? phoneKoboDailyPointsFromRows(dailyRows) : dailyPointsFromRows(dailyRows)
   ), [dailyRows, isPhoneModel]);
@@ -18799,6 +18984,21 @@ function AcreditacionAdvanceSummaryWorkbench({
   const phoneStatusRows = isPhoneModel
     ? rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"])
     : [];
+  // La serie temporal del barrido. Cuando el corte no la trae —estudios sin
+  // fecha de estado— se cae a la lista de totales, que es peor lectura pero es
+  // la que hay: dejar el hueco vacío escondería estados que sí existen.
+  const estadosPorDia = useMemo(
+    () => (isPhoneModel
+      ? buildAcreditacionPhoneDailyStatusSeries(
+        rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_dia", "estados_dia", "estatus_telefonico_dia"]),
+      )
+      : []),
+    [isPhoneModel, reports],
+  );
+  const declaracionesDeEstado = useMemo(
+    () => acreditacionDeclaracionesDesdeReglas(state?.config?.operational_model?.state_rules ?? []),
+    [state?.config?.operational_model?.state_rules],
+  );
   const phoneStatusRawTotal = phoneStatusRows.reduce((sum, row) => sum + phoneRowNumber(row, ["Casos", "Valor", "Total"], 0), 0);
   const phoneStatusTotal = Math.max(1, phoneStatusRawTotal);
   const phoneStatusCount = (matches: (key: string) => boolean) => phoneStatusRows.reduce((sum, row) => {
@@ -18863,9 +19063,17 @@ function AcreditacionAdvanceSummaryWorkbench({
           />
           <section className="mon-phone-advance-parallel" aria-label="Estados de plataforma y estados telefónicos en paralelo">
             <header>
+              {/* Decía «La llamada explica operación; Kobo valida avance»: la
+                * misma doctrina que ya está en el modelo, sobre un bloque que
+                * enfrenta dos cifras. Lo que hace falta saber es cuánto se
+                * separan, que es la única razón para mirarlo. */}
               <div>
                 <span>Contexto telefónico</span>
-                <strong>La llamada explica operación; Kobo valida avance</strong>
+                <strong>
+                  {comparison.mismatch
+                    ? `${fmt(Math.abs(comparison.phoneEffective - platformEffective))} de diferencia`
+                    : "Kobo y barrido coinciden"}
+                </strong>
               </div>
               <em>{fmt(dailySignalDays)} día{dailySignalDays === 1 ? "" : "s"} con efectivas{undatedPhoneEffective ? ` · ${fmt(undatedPhoneEffective)} sin fecha` : ""}</em>
             </header>
@@ -18883,20 +19091,35 @@ function AcreditacionAdvanceSummaryWorkbench({
 	                <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(comparison.phoneEffective, totals.universe) ?? 0))}%` } as CSSProperties} />
 	              </article>
             </div>
-            <div className="mon-phone-advance-status-list" aria-label="Distribución de estados telefónicos">
-              {phoneStatusItems.length ? phoneStatusItems.map((item) => (
-                <span key={item.key} className={`is-${item.tone}`}>
-                  <em>{item.label}</em>
-                  <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(item.value, phoneStatusTotal) ?? 0))}%` } as CSSProperties} />
-                  <strong>{fmt(item.value)}</strong>
-                </span>
-              )) : (
-                <span className="is-muted"><em>Sin estados telefónicos</em><strong>S/D</strong></span>
-              )}
-            </div>
+            {/* La composición del barrido, en el tiempo y no como lista suelta.
+              *
+              * Aquí había la misma tabla de estados que ya pinta Llamadas ›
+              * Resumen —Efectivo 72, No contesta 35, Apagado 16…— con los
+              * mismos números y sin nada que Avance aporte. Duplicaba una
+              * lectura y no respondía la pregunta de esta pantalla, que es
+              * cómo se movió el campo día a día. */}
+            {estadosPorDia.length ? (
+              <GraficoDeEstadosPorDia series={estadosPorDia} declaraciones={declaracionesDeEstado} />
+            ) : (
+              <div className="mon-phone-advance-status-list" aria-label="Distribución de estados telefónicos">
+                {phoneStatusItems.length ? phoneStatusItems.map((item) => (
+                  <span key={item.key} className={`is-${item.tone}`}>
+                    <em>{item.label}</em>
+                    <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(item.value, phoneStatusTotal) ?? 0))}%` } as CSSProperties} />
+                    <strong>{fmt(item.value)}</strong>
+                  </span>
+                )) : (
+                  <span className="is-muted"><em>Sin estados telefónicos</em><strong>S/D</strong></span>
+                )}
+              </div>
+            )}
           </section>
+          {/* Sin el bloque de foco por cuota: era la tercera columna y decía lo
+            * mismo que la pestaña Cuotas —cada cuota con su meta, sus efectivas
+            * y lo que le falta— en versión recortada a cinco filas y sin la
+            * base ni el ritmo. La pestaña de al lado lo cuenta entero; aquí solo
+            * quitaba sitio a las dos lecturas que sí son de esta pantalla. */}
           <AcreditacionAdvanceStorage cards={cards} scopeLabel={scopeLabel} phoneContext={phoneStorageContext} />
-          <AcreditacionAdvanceFocus cards={cards} scopeLabel={scopeLabel} />
         </div>
       </section>
     );

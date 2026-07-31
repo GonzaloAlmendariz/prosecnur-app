@@ -43,6 +43,19 @@
     0 22px 60px rgba(15, 23, 42, 0.18),
     0 4px 16px rgba(15, 23, 42, 0.08);
   --pulso-radius: 10px;
+
+  /* Escala canónica: branding/identity.json, identidad frozen v1.3.0. */
+  --pulso-space-base: 4px;
+  --pulso-space-1: 4px;
+  --pulso-space-2: 8px;
+  --pulso-space-3: 12px;
+  --pulso-space-4: 16px;
+  --pulso-space-5: 20px;
+  --pulso-space-6: 24px;
+  --pulso-space-7: 32px;
+  --pulso-space-8: 40px;
+  --pulso-space-9: 48px;
+
   --pulso-chart-panel: #f8faff;
   --pulso-chart-border: #d8e0ef;
   --pulso-chart-chip-bg: rgba(255, 255, 255, 0.84);

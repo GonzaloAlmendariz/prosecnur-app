@@ -188,6 +188,7 @@ kobo_api_asset_data_url <- function(asset_uid,
   if (!is.finite(page) || page < 1L) page <- 1L
   if (!is.finite(page_size) || page_size < 1L) page_size <- 1000L
   page_size <- min(page_size, 1000L)
+  start <- as.integer((page - 1L) * page_size)
   query_json <- .kobo_api_query_json(query)
   query_part <- if (nzchar(query_json)) {
     paste0("&query=", utils::URLencode(query_json, reserved = TRUE))
@@ -195,13 +196,68 @@ kobo_api_asset_data_url <- function(asset_uid,
     ""
   }
   sprintf(
-    "%s/api/v2/assets/%s/data/?format=json&page=%d&page_size=%d%s",
+    "%s/api/v2/assets/%s/data/?format=json&start=%d&limit=%d%s",
     .kobo_api_trim_base_url(base_url),
     utils::URLencode(uid, reserved = TRUE),
-    page,
+    start,
     page_size,
     query_part
   )
+}
+
+kobo_api_validate_import_response <- function(payload, stage = c("accepted", "completed")) {
+  stage <- match.arg(stage)
+  errors <- character(0)
+  if (!is.list(payload)) {
+    return(list(ok = FALSE, stage = stage, errors = "response_not_object", asset_uid = "", status_url = ""))
+  }
+  status <- tolower(trimws(as.character(payload$status %||% payload$state %||% "")[1]))
+  status_url <- .kobo_api_absolute_url(
+    payload$url %||% payload$detail_url %||% payload$status_url,
+    kobo_api_default_base_url()
+  )
+  asset_uid <- kobo_api_import_asset_uid(payload)
+  failed <- status %in% c("error", "failed", "failure")
+  if (failed) errors <- c(errors, "provider_reported_failure")
+  if (identical(stage, "accepted") && !nzchar(status_url) && !nzchar(asset_uid)) {
+    errors <- c(errors, "missing_status_or_asset_reference")
+  }
+  if (identical(stage, "completed") && !failed && !nzchar(asset_uid)) {
+    errors <- c(errors, "missing_created_asset_uid")
+  }
+  list(
+    ok = !length(errors),
+    stage = stage,
+    status = status,
+    status_url = status_url,
+    asset_uid = asset_uid,
+    errors = unname(errors)
+  )
+}
+
+kobo_api_validate_deploy_response <- function(payload, asset_uid = "") {
+  errors <- character(0)
+  if (!is.list(payload)) {
+    return(list(ok = FALSE, errors = "response_not_object", active = NA, asset_uid = ""))
+  }
+  observed_uid <- trimws(as.character(
+    payload$uid %||% payload$asset_uid %||% payload$asset$uid %||% ""
+  )[1])
+  expected_uid <- trimws(as.character(asset_uid %||% "")[1])
+  if (nzchar(expected_uid) && nzchar(observed_uid) && !identical(expected_uid, observed_uid)) {
+    errors <- c(errors, "asset_uid_mismatch")
+  }
+  active_raw <- payload$active %||% payload$deployment__active %||%
+    (payload$deployment %||% list())$active
+  active <- if (is.null(active_raw) || !length(active_raw)) {
+    NA
+  } else if (is.logical(active_raw)) {
+    isTRUE(active_raw[[1]])
+  } else {
+    tolower(trimws(as.character(active_raw[[1]]))) %in% c("true", "1", "active", "deployed")
+  }
+  if (identical(active, FALSE)) errors <- c(errors, "deployment_not_active")
+  list(ok = !length(errors), errors = unname(errors), active = active, asset_uid = observed_uid)
 }
 
 kobo_api_import_xlsform <- function(path,
@@ -223,6 +279,13 @@ kobo_api_import_xlsform <- function(path,
     res <- .kobo_api_request_json(url, token, method = "POST", form = form, fail = FALSE)
     if (isTRUE(res$ok)) {
       parsed <- res$parsed %||% list()
+      validation <- kobo_api_validate_import_response(parsed, stage = "accepted")
+      if (!isTRUE(validation$ok)) {
+        stop(
+          paste("Kobo devolvio una respuesta de importacion no valida:", paste(validation$errors, collapse = ", ")),
+          call. = FALSE
+        )
+      }
       parsed$endpoint_url <- url
       return(parsed)
     }
@@ -252,6 +315,13 @@ kobo_api_poll_import <- function(import_payload,
       status <- tolower(as.character(payload$status %||% payload$state %||% "")[1])
       asset_uid <- kobo_api_import_asset_uid(payload)
       if (nzchar(asset_uid) || status %in% c("complete", "completed", "success", "successful", "done", "error", "failed", "failure")) {
+        validation <- kobo_api_validate_import_response(payload, stage = "completed")
+        if (!isTRUE(validation$ok)) {
+          stop(
+            paste("Kobo devolvio un resultado de importacion no valido:", paste(validation$errors, collapse = ", ")),
+            call. = FALSE
+          )
+        }
         return(payload)
       }
     }
@@ -271,8 +341,7 @@ kobo_api_import_asset_uid <- function(payload) {
     payload$assetUid,
     payload$asset$uid,
     first_uid(payload$messages$created %||% list()),
-    first_uid(payload$messages$updated %||% list()),
-    payload$uid
+    first_uid(payload$messages$updated %||% list())
   )
   out <- trimws(as.character(unlist(candidates, use.names = FALSE)))
   out <- out[!is.na(out) & nzchar(out)]
@@ -297,9 +366,17 @@ kobo_api_deploy_asset <- function(asset_uid,
   if (!isTRUE(res$ok) && res$status_code == 405L) {
     res <- .kobo_api_request_json(url, token, method = "PATCH", form = form, fail = TRUE)
   } else if (!isTRUE(res$ok)) {
-    .kobo_api_request_json(url, token, method = "POST", form = form, fail = TRUE)
+    res <- .kobo_api_request_json(url, token, method = "POST", form = form, fail = TRUE)
   }
-  res$parsed %||% list(ok = TRUE)
+  payload <- res$parsed %||% list(ok = TRUE)
+  validation <- kobo_api_validate_deploy_response(payload, asset_uid = uid)
+  if (!isTRUE(validation$ok)) {
+    stop(
+      paste("Kobo devolvio una respuesta de despliegue no valida:", paste(validation$errors, collapse = ", ")),
+      call. = FALSE
+    )
+  }
+  payload
 }
 
 #' URL administrativa del proyecto en Kobo.
@@ -368,41 +445,60 @@ kobo_api_survey_url <- function(asset_uid,
 
 kobo_api_fetch_assets <- function(token,
                                   base_url = kobo_api_default_base_url(),
-                                  limit = 100L) {
+                                  limit = 100L,
+                                  max_pages = Inf) {
   limit <- suppressWarnings(as.integer(limit %||% 100L))
   if (!is.finite(limit) || limit < 1L) limit <- 100L
   limit <- min(limit, 500L)
-  url <- sprintf(
-    "%s/api/v2/assets/?format=json&limit=%d",
+  max_pages <- suppressWarnings(as.numeric(max_pages %||% Inf))
+  if (is.na(max_pages) || max_pages < 1) max_pages <- Inf
+  next_url <- sprintf(
+    "%s/api/v2/assets/?format=json&asset_type=survey&limit=%d",
     .kobo_api_trim_base_url(base_url),
     limit
   )
-  payload <- .kobo_api_fetch_json(url, token)
-  rows <- payload$results %||% list()
   assets <- list()
-  for (i in seq_along(rows)) {
-    item <- rows[[i]]
-    if (!is.list(item)) next
-    uid <- as.character(item$uid %||% item$asset_uid %||% item$id %||% "")[1]
-    name <- as.character(item$name %||% item$label %||% item$title %||% uid)[1]
-    if (!nzchar(uid)) next
-    assets[[length(assets) + 1L]] <- list(
-      uid = uid,
-      name = if (nzchar(name)) name else uid,
-      version_id = as.character(
-        item$version_id %||%
-          item$deployed_version_id %||%
-          item$deployment__version_id %||%
-          item$latest_deployed_version_id %||%
-          ""
-      )[1],
-      date_modified = as.character(item$date_modified %||% item$dateModified %||% "")[1],
-      deployment_active = isTRUE(item$deployment__active %||% item$deployment_active %||% FALSE)
-    )
+  page <- 0L
+  total <- NA_integer_
+  repeat {
+    page <- page + 1L
+    payload <- .kobo_api_fetch_json(next_url, token)
+    rows <- payload$results %||% list()
+    total <- suppressWarnings(as.integer(payload$count %||% total))
+    for (i in seq_along(rows)) {
+      item <- rows[[i]]
+      if (!is.list(item)) next
+      asset_type <- tolower(trimws(as.character(item$asset_type %||% item$assetType %||% "")[1]))
+      if (nzchar(asset_type) && !identical(asset_type, "survey")) next
+      uid <- as.character(item$uid %||% item$asset_uid %||% item$id %||% "")[1]
+      name <- as.character(item$name %||% item$label %||% item$title %||% uid)[1]
+      if (!nzchar(uid)) next
+      assets[[length(assets) + 1L]] <- list(
+        uid = uid,
+        name = if (nzchar(name)) name else uid,
+        asset_type = if (nzchar(asset_type)) asset_type else "survey",
+        version_id = as.character(
+          item$version_id %||%
+            item$deployed_version_id %||%
+            item$deployment__version_id %||%
+            item$latest_deployed_version_id %||%
+            ""
+        )[1],
+        date_modified = as.character(item$date_modified %||% item$dateModified %||% "")[1],
+        deployment_active = isTRUE(item$deployment__active %||% item$deployment_active %||% FALSE)
+      )
+    }
+    next_value <- trimws(as.character(payload[["next"]] %||% "")[1])
+    if (!nzchar(next_value)) break
+    if (is.finite(max_pages) && page >= max_pages) {
+      stop("Se alcanzo el limite de paginas configurado para los assets Kobo.", call. = FALSE)
+    }
+    next_url <- .kobo_api_absolute_url(next_value, base_url)
   }
   list(
     ok = TRUE,
-    count = as.integer(payload$count %||% length(assets)),
+    count = as.integer(length(assets)),
+    total = if (is.finite(total)) as.integer(total) else as.integer(length(assets)),
     assets = assets
   )
 }

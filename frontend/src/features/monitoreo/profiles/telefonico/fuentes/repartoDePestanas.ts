@@ -34,52 +34,52 @@ export type RepartoDeFuentes = {
   slots: Array<"universo" | "barrido" | "plataforma">;
   /** La cadena de las tres piezas: sólo en el resumen, o no sería un resumen. */
   cadena: boolean;
-  /** Instrumento Kobo y el filtro que decide qué cuenta como efectiva. */
+  /** El filtro que decide qué cuenta como efectiva. */
   decisionKobo: boolean;
-  /** Editor de las hojas de universo y barrido. */
-  editorSheets: boolean;
-  /** Selector del formulario Kobo. */
-  editorKobo: boolean;
+  /**
+   * Qué significa cada estado que el cliente escribió en la hoja de barrido:
+   * a qué familia va y de qué color se pinta.
+   *
+   * Va con las hojas y no con la encuesta porque es una propiedad del barrido,
+   * no de Kobo: son las etiquetas de ESA hoja las que hay que confirmar.
+   */
+  declaracionDeEstados: boolean;
   /** Lista de todo lo conectado, con su estado. */
   listaConfigurada: boolean;
   papelAlConectar: PapelAlConectar;
 };
 
 const REPARTO: Record<PestanaDeFuentes, RepartoDeFuentes> = {
-  // Resumen. Responde «¿de dónde salen mis números?» y no decide nada: por eso
-  // no lleva editores. Lo que sí lleva es la lista de lo conectado, que es la
-  // única superficie donde una fuente inactiva o duplicada se ve.
+  // Resumen. Responde «¿de dónde salen mis números?» y no decide nada. Lo que sí
+  // lleva es la lista de lo conectado, que es la única superficie donde una
+  // fuente inactiva o duplicada se ve.
   activas: {
     slots: [],
     cadena: true,
     decisionKobo: false,
-    editorSheets: false,
-    editorKobo: false,
+    declaracionDeEstados: false,
     listaConfigurada: true,
     papelAlConectar: undefined,
   },
-  // A quién llamar y qué pasó en cada llamada. Las dos hojas y nada de Kobo.
+  // Las dos hojas y nada de Kobo.
   //
   // No lleva un bloque de lectura aparte: el que había decía «Sheets listos para
   // operación» y repetía universo, barrido y último sync, que ya están en las
-  // tarjetas. Lo único suyo —que los estados del barrido no son las efectivas de
-  // Kobo— pasó al detalle del encabezado.
+  // tarjetas.
   sheets: {
     slots: ["universo", "barrido"],
     cadena: false,
     decisionKobo: false,
-    editorSheets: true,
-    editorKobo: false,
+    declaracionDeEstados: true,
     listaConfigurada: false,
     papelAlConectar: undefined,
   },
-  // Qué respuesta cuenta como efectiva. El formulario y su filtro, sin hojas.
+  // El formulario y su filtro, sin hojas.
   survey: {
     slots: ["plataforma"],
     cadena: false,
     decisionKobo: true,
-    editorSheets: false,
-    editorKobo: true,
+    declaracionDeEstados: false,
     listaConfigurada: false,
     papelAlConectar: "respuestas",
   },
@@ -100,9 +100,9 @@ export function pestanaDeFuentesDesde(clave: string | undefined): PestanaDeFuent
 /**
  * El reparto de una pestaña.
  *
- * `contratoCompleto` es la única excepción a la regla: con alguna pieza sin
- * conectar, el resumen abre la puerta que falta en vez de mandar a buscarla —es
- * la pantalla donde se ve que falta—.
+ * `contratoCompleto` deja al resumen mostrar las piezas que faltan en vez de
+ * mandar a buscarlas: es la pantalla donde se ve que falta algo, y cada tarjeta
+ * abre el panel de conexión sobre su pieza.
  */
 export function repartoDeFuentes(
   pestana: PestanaDeFuentes,
@@ -110,5 +110,5 @@ export function repartoDeFuentes(
 ): RepartoDeFuentes {
   const base = REPARTO[pestana];
   if (pestana !== "activas" || contratoCompleto) return base;
-  return { ...base, editorSheets: true, editorKobo: true };
+  return { ...base, slots: ["universo", "barrido", "plataforma"] };
 }

@@ -88,19 +88,11 @@
   }
   not_test <- !.monitoreo_report_platform_test_mask(df, profile)
   if (!isTRUE(filter$enabled)) return(not_test)
-  field <- .monitoreo_scalar(filter$variable %||% "", "")
-  accepted <- .monitoreo_text_key(.monitoreo_chr_vec(filter$values))
-  accepted <- accepted[nzchar(accepted)]
-  if (!nzchar(field) || !length(accepted)) return(not_test)
-
-  col <- .monitoreo_report_filter_column(df, field)
-  if (!nzchar(col)) return(rep(FALSE, nrow(df)))
-
-  raw <- as.character(df[[col]] %||% "")
-  raw[is.na(raw)] <- ""
-  clean <- .monitoreo_text_key(raw)
-  clean_compound <- .monitoreo_text_key(gsub("\\s*[|/]\\s*", " ", raw))
-  (clean %in% accepted | clean_compound %in% accepted) & not_test
+  # Todos los criterios declarados, no solo el primero: una efectiva cumple
+  # todo lo que el estudio pide. Ver `monitoreo_filtro_efectiva.R`.
+  criterios <- .monitoreo_effective_criteria(filter, profile)
+  if (!length(criterios)) return(not_test)
+  .monitoreo_effective_criteria_mask(df, criterios) & not_test
 }
 
 # --- Conflictos de llave y conciliación barrido↔Kobo -------------------------
@@ -399,7 +391,10 @@
     }
   }
   fallback <- intersect(c("distrito", "grupo", "dim_segmento", "dim_carrera", "carrera", "segmento", "dim_actor"), names(phone))
-  unique(c(configured, goal_vars, fallback))
+  # `unique()` solo descarta nombres repetidos; `Actor` y `dim_actor` son la
+  # misma dimensión con dos nombres y hay que compararlas por su contenido.
+  # Ver `monitoreo_telefonico_cuotas.R`.
+  .monitoreo_phone_quota_vars_unicas(phone, unique(c(configured, goal_vars, fallback)))
 }
 
 .monitoreo_report_phone_quota_value <- function(phone, idx, variable) {
@@ -1212,7 +1207,13 @@
     # ya se calcula arriba pase lo que pase, así que publicarlo no cuesta nada;
     # tenerlo escondido dejaba a la acreditación con barrido telefónico sin
     # forma de leer cómo se movieron los estados en el tiempo.
-    .monitoreo_report_block("estatus_dia", "Estados telefónicos por día", status_day)
+    .monitoreo_report_block("estatus_dia", "Estados telefónicos por día", status_day),
+    # El mismo apilado, desglosado por cuota. Ver `monitoreo_telefonico_estados_dia.R`.
+    .monitoreo_report_block(
+      "estatus_actor_dia",
+      "Estados telefónicos por cuota y día",
+      .monitoreo_phone_status_actor_day(actors, status, dates, status_labels, dates_sorted)
+    )
   )
   blocks <- c(blocks, list(
     .monitoreo_report_block("avance_efectivo_actor_dia", "Avance efectivo por actor y día", actor_day),

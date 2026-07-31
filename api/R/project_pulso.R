@@ -2012,6 +2012,14 @@ load_pulso <- function(src_path) {
     s_bit <- .bitacora_migrar_estado(session_get(new_sid))
     .session_env[[new_sid]] <- s_bit
   })
+  # Migración aditiva de Recopiladores: un proyecto legacy con agenda de aulas
+  # recibe collection_state/v1 una sola vez. Es migración de lectura, por eso
+  # conserva project_dirty=FALSE y nunca reescribe monitoreo_aulas_plan.
+  local({
+    s_collection <- collection_state_migrate_legacy(session_get(new_sid))
+    s_collection$project_dirty <- FALSE
+    .session_env[[new_sid]] <- s_collection
+  })
   .pulso_repair_multibase_variant_xlsforms(new_sid)
   .pulso_repair_parent_recod_columns(new_sid)
   .pulso_rebuild_estudio_runtime_sources(new_sid)

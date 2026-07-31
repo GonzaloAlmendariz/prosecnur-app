@@ -435,7 +435,11 @@ export default function ExplorarTab({
             />
 
             {/* KPIs a todo el ancho (no se parten con el cruce). */}
-            <div className="pulso-validacion-kpi-grid">
+            <div
+              className="pulso-validacion-kpi-grid"
+              data-qa-geometry-group="validacion/explorar-kpis"
+              data-qa-geometry-contract="equal"
+            >
               {uni.kpis.map((k, i) => (
                 <PlotlyView key={i} view={k} />
               ))}

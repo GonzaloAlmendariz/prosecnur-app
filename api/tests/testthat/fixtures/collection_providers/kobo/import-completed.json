@@ -1,0 +1,13 @@
+{
+  "uid": "importJob123",
+  "status": "complete",
+  "messages": {
+    "created": [
+      {
+        "uid": "aCreatedSurvey",
+        "asset_type": "survey"
+      }
+    ],
+    "updated": []
+  }
+}

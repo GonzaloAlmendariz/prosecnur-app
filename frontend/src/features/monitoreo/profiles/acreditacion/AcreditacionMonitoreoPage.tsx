@@ -155,7 +155,7 @@ import {
   acreditacionVentanaCampoObservada,
   type AcreditacionVentanaCampo,
 } from "./AcreditacionVentanaCampo";
-import { acreditacionAgruparEstados } from "./AcreditacionEstadosLlamada";
+import { acreditacionAgruparEstados } from "../../estados/familiasDeLlamada";
 import { motivoDeNoCruce } from "../../core/motivoDeNoCruce";
 import { filasDeCruceDeCasos, lecturaDeCruceDeCasos } from "../../core/crucesDeCasos";
 import { RutaDeSubsanacion, useBandejaDeSubsanacion } from "../../components/RutaDeSubsanacion";
@@ -165,13 +165,29 @@ import type { MonitoreoReportScope } from "../types";
 import { FranjaDeFuentes } from "./fuentes/FranjaDeFuentes";
 import { FuentesResumen } from "./fuentes/FuentesResumen";
 import { FuentesUniverso } from "./fuentes/FuentesUniverso";
-import { DefinidorDeEstados } from "./telefono/DefinidorDeEstados";
+import { DefinidorDeEstados } from "../../estados/DefinidorDeEstados";
 import { DistribucionPorActor } from "./modelo/DistribucionPorActor";
 import "./modelo/modeloOperativo.css";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
 import { proveedoresDeFuentes, textoDeAlias, textoDeCanalPorDefecto, textoDeHerencia } from "../../fuentes/vocabulario";
 import { PanelConectarFuente } from "../../fuentes/PanelConectarFuente";
 import { railDeFuentesAcreditacion, railDeFuentesTelefonico } from "./fuentes/railDeFuentes";
+import { CampoDeActor, SelectorDeCanalBase } from "./fuentes/camposDeDeclaracion";
+import { actorInitialLabel } from "./formato";
+import { ActoresDelEstudio } from "./fuentes/ActoresDelEstudio";
+import { ACTORES_SEMILLA, claveDeActor, cuentasPorActor, elencoVisible } from "../../fuentes/rosterDeActores";
+import type { MonitoreoActorUnit } from "../../../../api/client";
+import {
+  ACREDITACION_CHANNEL_OPTIONS,
+  acreditacionChannelKey,
+  acreditacionChannelLabel,
+  channelOptionForValue,
+  channelVisualForValue,
+} from "./fuentes/canales";
+// `acreditacionChannelLabel` se sigue re-exportando desde aquí: su suite de
+// tests y otras superficies lo importan de este módulo desde antes de la
+// extracción, y romper esa ruta no aporta nada.
+export { acreditacionChannelLabel } from "./fuentes/canales";
 import {
   PESTANAS_DE_FUENTES,
   PESTANA_DE_FUENTES_POR_DEFECTO,
@@ -194,7 +210,25 @@ const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telef
 // su encuesta. Ver docs/plan-fuentes-legibles-2026-07.md §4.1.
 const ACREDITACION_SOURCE_TABS = PESTANAS_DE_FUENTES;
 type AcreditacionSourceTab = PestanaDeFuentes;
-const ACREDITACION_DEFAULT_ACTORS = ["Estudiantes", "Docentes", "Egresados", "Administrativos", "Empleadores"];
+// Los cinco nombres habituales ya no viven aquí: son la SEMILLA del elenco
+// (`fuentes/rosterDeActores.ts`) y solo se ofrecen mientras el estudio todavía
+// no declaró los suyos. En cuanto hay elenco, manda el elenco.
+const ACREDITACION_DEFAULT_ACTORS = [...ACTORES_SEMILLA];
+
+/**
+ * Los actores que se ofrecen al asignar una encuesta.
+ *
+ * El elenco declarado manda; los nombres habituales solo entran cuando no hay
+ * ninguno todavía. Antes esta lista era la constante y siempre incluía
+ * «Empleadores» aunque el estudio no lo tuviera.
+ */
+function opcionesDeActor(
+  unidades: MonitoreoActorUnit[] | undefined,
+  sources: MonitoreoSource[],
+) {
+  const elenco = elencoVisible(unidades, sources).map((unit) => unit.actor).filter(Boolean);
+  return elenco.length ? elenco : [...ACTORES_SEMILLA];
+}
 const KOBO_DEFAULT_BASE_URL = "https://kf.kobotoolbox.org";
 type AcreditacionSourcePresetKey = "base_trabajada" | "barrido_telefonico" | "respuestas_surveymonkey";
 type AcreditacionSourcePreset = {
@@ -1945,21 +1979,10 @@ const MODEL_MODALITY_OPTIONS: Array<{ value: MonitoreoStrategyPhase["modality"];
   { value: "mixto", label: "Mixto" },
 ];
 
-type AcreditacionChannelToneKey = "correo" | "telefono" | "presencial" | "enlace" | "kobo" | "desconocido";
 
-const ACREDITACION_CHANNEL_OPTIONS: Array<{
-  value: string;
-  label: string;
-  key: AcreditacionChannelToneKey;
-  modality: MonitoreoStrategyPhase["modality"];
-  icon: typeof Link2;
-}> = [
-  { value: "Correo", label: "Correo", key: "correo", modality: "email", icon: Mail },
-  { value: "Presencial (Ficha QR)", label: "Ficha QR", key: "presencial", modality: "presencial", icon: QrCode },
-  { value: "Enlace personalizado (Whatsapp)", label: "Enlace", key: "enlace", modality: "whatsapp", icon: Link2 },
-  { value: "Kobo", label: "Kobo", key: "kobo", modality: "mixto", icon: ListChecks },
-  { value: "Telefónico", label: "Telefónico", key: "telefono", modality: "telefono", icon: PhoneCall },
-];
+// El catálogo de canales vive en `fuentes/canales.ts`: lo comparten este perfil,
+// el telefónico y el bloque de Actores, y estaba duplicado literal en los dos
+// monolitos.
 
 const MODEL_COLLECTOR_USE_OPTIONS: Array<{
   value: MonitoreoCollectorUse;
@@ -6655,20 +6678,6 @@ function sourceSyncLabel(source: MonitoreoSource) {
   return formatDate(latest);
 }
 
-function actorInitialLabel(value: string) {
-  const normalized = String(value ?? "").trim();
-  if (!normalized || normalizeSourceMatch(normalized) === "sin actor") return "?";
-  const words = normalized
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .split(/\s+/)
-    .filter(Boolean);
-  const letters = words.length > 1
-    ? words.slice(0, 2).map((word) => word.charAt(0)).join("")
-    : (words[0] ?? normalized).slice(0, 2);
-  return letters.toLocaleUpperCase("es-PE");
-}
-
 function sourcesForPreset(sources: MonitoreoSource[], preset: AcreditacionSourcePreset) {
   if (preset.key === "respuestas_surveymonkey") {
     return sources.filter(isPlatformResponseSource);
@@ -6809,30 +6818,6 @@ function collectorChannelForUse(value: MonitoreoCollectorUse) {
   return collectorUseOption(value).channel;
 }
 
-function channelOptionForValue(value: unknown) {
-  const key = acreditacionChannelKey(String(value ?? ""));
-  return ACREDITACION_CHANNEL_OPTIONS.find((option) => option.key === key)
-    ?? ACREDITACION_CHANNEL_OPTIONS[0];
-}
-
-function channelVisualForValue(value: unknown, emptyLabel = "Elegir canal") {
-  const raw = String(value ?? "").trim();
-  const key = acreditacionChannelKey(raw);
-  if (key === "desconocido") {
-    return {
-      key,
-      label: raw || emptyLabel,
-      icon: SlidersHorizontal,
-    };
-  }
-  const option = ACREDITACION_CHANNEL_OPTIONS.find((item) => item.key === key) ?? ACREDITACION_CHANNEL_OPTIONS[0];
-  return {
-    key: option.key,
-    label: option.label,
-    icon: option.icon,
-  };
-}
-
 function AcreditacionChannelSelect({
   value,
   onChange,
@@ -6869,44 +6854,6 @@ function AcreditacionChannelSelect({
         </select>
       </div>
     </label>
-  );
-}
-
-function AcreditacionChannelDeclarationPicker({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}) {
-  const current = channelOptionForValue(value).value;
-  return (
-    <div className="mon-acr-channel-declare-field">
-      <span>Canal base</span>
-      <div className="mon-acr-channel-choice-strip" role="radiogroup" aria-label="Canal base de la encuesta">
-        {ACREDITACION_CHANNEL_OPTIONS.map((option) => {
-          const Icon = option.icon;
-          const active = option.value === current;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              className={`is-${option.key}${active ? " is-active" : ""}`}
-              aria-pressed={active}
-              aria-label={option.label}
-              title={option.label}
-              disabled={disabled}
-              onClick={() => onChange(option.value)}
-            >
-              <Icon size={13} />
-              <span>{option.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -7366,6 +7313,7 @@ function surveyMonkeyDisplayTitle(survey: SurveyMonkeyMultibaseListItem) {
 
 function AcreditacionSourceStatusStrip({
   sources,
+  unidades,
   reports,
   phoneMode = false,
   status,
@@ -7377,6 +7325,8 @@ function AcreditacionSourceStatusStrip({
   onStateChange,
 }: {
   sources: MonitoreoSource[];
+  /** El elenco declarado del estudio. Alimenta el panel de conectar fuente. */
+  unidades?: MonitoreoActorUnit[];
   reports: MonitoreoAcreditacionReports;
   phoneMode?: boolean;
   status?: AcreditacionActionStatus;
@@ -7412,7 +7362,13 @@ function AcreditacionSourceStatusStrip({
       <PanelConectarFuente
         sources={sources}
         familia={phoneContract ? "telefonico" : "acreditacion"}
-        actoresSugeridos={acreditacionActorOptions(sources, ACREDITACION_DEFAULT_ACTORS)}
+        actoresSugeridos={opcionesDeActor(unidades, sources)}
+        elenco={elencoVisible(unidades, sources)}
+        // El canal se declara al conectar, con el mismo control que usa la
+        // ficha de la encuesta. Antes la fuente nacía sin canal y se adivinaba.
+        renderCanal={(value, onChange) => (
+          <SelectorDeCanalBase value={value} onChange={onChange} label="Canal base" />
+        )}
         onStateChange={onStateChange}
       />
       <AcreditacionSourceSyncActions
@@ -8030,7 +7986,7 @@ function AcreditacionSurveySourcePicker({
                     <span>Nombre real en plataforma</span>
                     <input value={labels[selectedSurvey.id] ?? ""} onChange={(event) => setLabels((prev) => ({ ...prev, [selectedSurvey.id]: event.currentTarget.value }))} placeholder={selectedSurvey.title || "Nombre visible"} />
                   </label>
-                  <AcreditacionActorAssignableField
+                  <CampoDeActor
                     value={actors[selectedSurvey.id] ?? ""}
                     options={actorOptions}
                     disabled={Boolean(busy)}
@@ -8428,53 +8384,6 @@ function AcreditacionSurveyInspectionCard({
   );
 }
 
-function AcreditacionActorAssignableField({
-  value,
-  options,
-  disabled,
-  onChange,
-}: {
-  value: string;
-  options: string[];
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  const currentKey = normalizeSourceMatch(value);
-  const visibleOptions = options.slice(0, 8);
-  return (
-    <div className="mon-acr-actor-field">
-      <label>
-        <span>Actor</span>
-        <input
-          value={value}
-          onChange={(event) => onChange(event.currentTarget.value)}
-          placeholder="Escribir actor o elegir sugerencia"
-          disabled={disabled}
-        />
-      </label>
-      {visibleOptions.length ? (
-        <div className="mon-acr-actor-choice-row" aria-label="Actores sugeridos">
-          {visibleOptions.map((actor) => {
-            const active = normalizeSourceMatch(actor) === currentKey;
-            return (
-              <button
-                key={actor}
-                type="button"
-                className={active ? "is-active" : ""}
-                onClick={() => onChange(actor)}
-                disabled={disabled}
-              >
-                {active ? <CheckCircle2 size={12} /> : null}
-                {actor}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function AcreditacionPlatformSurveySourcesView({
   sources,
   config,
@@ -8488,7 +8397,10 @@ function AcreditacionPlatformSurveySourcesView({
   const platformProviders = proveedoresDeFuentes(platformSources);
   const linkCollectors = config?.operational_model.link_collectors ?? [];
   const configuredActorOptions = acreditacionActorOptions(platformSources);
-  const actorOptions = acreditacionActorOptions(platformSources, ACREDITACION_DEFAULT_ACTORS);
+  const actorOptions = opcionesDeActor(
+    (config?.monitoreo_profile?.units ?? []) as unknown as MonitoreoActorUnit[],
+    platformSources,
+  );
   const [drafts, setDrafts] = useState<Record<string, { actor: string; channel: string }>>({});
   const [savingId, setSavingId] = useState("");
   const [status, setStatus] = useState<AcreditacionActionStatus>(null);
@@ -8654,13 +8566,13 @@ function AcreditacionPlatformSurveySourcesView({
                   <span><small>Respuestas</small><strong>{fmt(responseCount)}</strong></span>
                 </div>
                 <div className="mon-acr-source-object-routing" aria-label="Declaración operativa de la encuesta">
-                  <AcreditacionActorAssignableField
+                  <CampoDeActor
                     value={draft.actor}
                     options={actorOptions}
                     disabled={Boolean(savingId)}
                     onChange={(actor) => setDrafts((current) => ({ ...current, [source.id]: { ...draft, actor } }))}
                   />
-                  <AcreditacionChannelDeclarationPicker
+                  <SelectorDeCanalBase
                     value={draft.channel}
                     disabled={Boolean(savingId)}
                     onChange={(nextChannel) => setDrafts((current) => ({ ...current, [source.id]: { ...draft, channel: nextChannel } }))}
@@ -9807,23 +9719,17 @@ function AcreditacionPhoneSourcesContractPanel({
     : "contrato completo";
   // R1: cada pestaña se nombra por la pregunta que responde, no por el servicio
   // del que salen los datos. El proveedor sigue visible dentro de la tarjeta.
+  //
+  // Sin `detail`: los tres decían en prosa lo que la propia pantalla enseña
+  // —«la base de universo fija la población; la hoja de barrido registra
+  // responsable, intentos, estado y fecha»— justo encima de las tarjetas que
+  // muestran esa base, esa hoja y esas columnas. El título nombra el objeto y
+  // el dato lo ponen las tarjetas.
   const focusCopy = focus === "sheets"
-    ? {
-      eyebrow: "Universo y barrido",
-      title: "A quién llamar y qué pasó en cada llamada",
-      detail: "La base de universo fija la población; la hoja de barrido registra responsable, intentos, estado y fecha.",
-    }
+    ? { eyebrow: "Universo y barrido", title: "Universo y barrido" }
     : focus === "kobo"
-      ? {
-        eyebrow: "Encuestas",
-        title: "Qué respuesta cuenta como efectiva",
-        detail: "La encuesta aporta las respuestas; la pregunta de consentimiento decide cuáles cuentan en el avance.",
-      }
-      : {
-        eyebrow: "Fuentes activas",
-        title: "Las tres fuentes que sostienen el monitoreo",
-        detail: "El universo define a quién llamar, el barrido registra la operación y la encuesta valida las efectivas por CodPulso.",
-      };
+      ? { eyebrow: "Encuestas", title: "Encuesta" }
+      : { eyebrow: "Fuentes activas", title: "Fuentes del estudio" };
   const showSheetsDecision = focus === "sheets";
   const showKoboDecision = focus === "kobo";
   const showKoboEditor = focus === "kobo" || !contract.platform.ready;
@@ -9861,7 +9767,6 @@ function AcreditacionPhoneSourcesContractPanel({
         <div>
           <span><PlugZap size={14} /> {focusCopy.eyebrow}</span>
           <strong>{focusCopy.title}</strong>
-          <p>{focusCopy.detail}</p>
         </div>
         <em>{contract.ready ? "Listo para monitoreo" : `Falta ${missingLabel}`}</em>
       </header>
@@ -9873,7 +9778,10 @@ function AcreditacionPhoneSourcesContractPanel({
             icon={slot.key === "universo" ? <Layers3 size={15} /> : slot.key === "barrido" ? <PhoneCall size={15} /> : <ListChecks size={15} />}
             rowFallback={slot.key === "universo" ? nRows : undefined}
             syncFallback={syncedAt}
-            onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "encuestas" : "universo")}
+            // Las claves de pestaña son las canónicas nuevas: en el perfil
+            // telefónico la celda «Encuestas» es `recopiladores` y la de
+            // universo/barrido es `fuentes`. Ver `fuentes/railDeFuentes.ts`.
+            onSelect={() => onSourceTabChange?.(slot.key === "plataforma" ? "recopiladores" : "fuentes")}
           />
         ))}
       </div>
@@ -9991,6 +9899,7 @@ function AcreditacionSourcesWorkbench({
   const sourceStatus = (
     <AcreditacionSourceStatusStrip
       sources={operationalSources}
+      unidades={(state?.config?.monitoreo_profile?.units ?? []) as unknown as MonitoreoActorUnit[]}
       reports={reports}
       phoneMode={isPhoneSourceModel}
       status={syncStatus}
@@ -10017,48 +9926,43 @@ function AcreditacionSourcesWorkbench({
   // «Encuestas y recopiladores» son una sola pestaña: el recopilador hereda el
   // canal de su encuesta, así que separar la regla de su excepción obligaba a
   // saltar de pestaña para tomar media decisión.
-  if (activeTab === "encuestas") {
+  // Recopiladores: la EXCEPCIÓN al canal. La regla —el canal base de cada
+  // encuesta— se declara en «Fuentes y universo», donde viven las fichas.
+  if (activeTab === "recopiladores") {
     return (
       <div className="mon-profile-stack fuentes-encuestas-stack">
         {sourceStatus}
         {isPhoneSourceModel ? phoneSourceContract("kobo") : (
-          <>
-            <AcreditacionPlatformSurveySourcesView
-              sources={operationalSources}
-              config={state?.config}
-              onStateChange={onStateChange}
-            />
-            <AcreditacionCollectorsSourceView
-              sources={operationalSources}
-              config={state?.config}
-              onStateChange={onStateChange}
-            />
-          </>
+          <AcreditacionCollectorsSourceView
+            sources={operationalSources}
+            config={state?.config}
+            onStateChange={onStateChange}
+          />
         )}
       </div>
     );
   }
 
-  if (activeTab === "universo") {
+  if (activeTab === "actores") {
     return (
       <div className="mon-profile-stack fuentes-resumen-stack">
         {sourceStatus}
-        {phoneSourceContract("sheets")}
-        {isPhoneSourceModel ? (
-          <AcreditacionConfiguredSourcesList
-            sources={operationalSources}
-            syncFallback={state?.synced_at ?? reports.generated_at}
-            phoneMode={isPhoneSourceModel}
-            onStateChange={onStateChange}
-          />
-        ) : (
-          <FuentesUniverso sources={operationalSources} />
-        )}
+        <ActoresDelEstudio
+          sources={operationalSources}
+          unidades={(state?.config?.monitoreo_profile?.units ?? []) as unknown as MonitoreoActorUnit[]}
+          onStateChange={onStateChange}
+        />
       </div>
     );
   }
 
-  // Resumen: lectura pura, sin un solo control que cambie el estudio.
+  // «Fuentes y universo»: qué está conectado y de quién es.
+  //
+  // Reúne lo que eran tres pestañas. Iban por separado y respondían la misma
+  // pregunta: el resumen decía cuántas fuentes hay, «Universo» cuál es el
+  // padrón de cada actor, y las fichas de encuesta de quién es cada encuesta y
+  // por qué canal se aplica. El orden va de lo general a la decisión: primero
+  // se lee el inventario, después se declara.
   if (!isPhoneSourceModel) {
     return (
       <div className="mon-profile-stack fuentes-resumen-stack">
@@ -10066,6 +9970,12 @@ function AcreditacionSourcesWorkbench({
         <FuentesResumen
           sources={operationalSources}
           linkCollectors={state?.config?.operational_model.link_collectors ?? []}
+        />
+        <FuentesUniverso sources={operationalSources} />
+        <AcreditacionPlatformSurveySourcesView
+          sources={operationalSources}
+          config={state?.config}
+          onStateChange={onStateChange}
         />
       </div>
     );
@@ -15398,27 +15308,6 @@ function AcreditacionAdvanceActorsWorkbench({
   );
 }
 
-function acreditacionChannelKey(value: string): AcreditacionChannelToneKey {
-  const normalized = normalizeSourceMatch(value);
-  if (!normalized || normalized === "sin canal" || normalized === "sin dato" || normalized === "desconocido") return "desconocido";
-  if (normalized.includes("kobo")) return "kobo";
-  if (normalized.includes("telefon")) return "telefono";
-  if (normalized.includes("presencial") || normalized.includes("qr")) return "presencial";
-  if (normalized.includes("correo") || normalized.includes("email") || normalized.includes("mail")) return "correo";
-  if (normalized.includes("whatsapp") || normalized.includes("sms") || normalized.includes("web") || normalized.includes("link") || normalized.includes("enlace")) return "enlace";
-  return "desconocido";
-}
-
-export function acreditacionChannelLabel(value: string) {
-  const key = acreditacionChannelKey(value);
-  if (key === "correo") return "Correo";
-  if (key === "telefono") return "Telefónico";
-  if (key === "presencial") return "Ficha QR";
-  if (key === "enlace") return "Enlace";
-  if (key === "kobo") return "Kobo";
-  return "Sin canal";
-}
-
 function acreditacionChannelDisplay(value: unknown, fallback = "Sin canal") {
   const raw = String(value ?? "").trim();
   if (!raw) return fallback;
@@ -16962,9 +16851,15 @@ function AcreditacionAdvanceSummaryWorkbench({
           />
           <section className="mon-phone-advance-parallel" aria-label="Estados de plataforma y estados telefónicos en paralelo">
             <header>
+              {/* Un enunciado de doctrina sobre un bloque que enfrenta dos
+                * cifras. Lo que hace falta saber es cuánto se separan. */}
               <div>
                 <span>Contexto telefónico</span>
-                <strong>La llamada explica operación; Kobo valida avance</strong>
+                <strong>
+                  {comparison.mismatch
+                    ? `${fmt(Math.abs(comparison.phoneEffective - platformEffective))} de diferencia`
+                    : "Kobo y barrido coinciden"}
+                </strong>
               </div>
               <em>{fmt(dailySignalDays)} día{dailySignalDays === 1 ? "" : "s"} con efectivas{undatedPhoneEffective ? ` · ${fmt(undatedPhoneEffective)} sin fecha` : ""}</em>
             </header>
@@ -17519,7 +17414,15 @@ export function localTabsForAcreditacionView(
         filtroDefinido: phoneStats.phoneFilterConfigured,
       });
     }
-    return railDeFuentesAcreditacion(sourceStats);
+    const elenco = elencoVisible(
+      (state?.config?.monitoreo_profile?.units ?? []) as unknown as MonitoreoActorUnit[],
+      state?.sources ?? [],
+    );
+    const cuentas = cuentasPorActor(state?.sources ?? []);
+    return railDeFuentesAcreditacion(sourceStats, {
+      declarados: elenco.length,
+      sinPadron: elenco.filter((unit) => !(cuentas.get(claveDeActor(unit.actor))?.universo)).length,
+    });
   }
 
   // Modelo no publica subpestañas: tiene una sola vista. El rail vacío hace que

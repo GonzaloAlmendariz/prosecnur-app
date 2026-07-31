@@ -149,7 +149,7 @@ export function acreditacionAgruparEstados(
 // que no hay contrato nuevo. El campo `color` se añadió a la whitelist de R
 // (`monitoreo_engine.R`), porque si no se nombra ahí se descarta al guardar.
 
-import type { MonitoreoStateRule } from "../../../../api/client";
+import type { MonitoreoStateRule } from "../../../api/client";
 
 /** Lo que el usuario declaró para una familia. */
 export type AcreditacionDeclaracionEstado = {

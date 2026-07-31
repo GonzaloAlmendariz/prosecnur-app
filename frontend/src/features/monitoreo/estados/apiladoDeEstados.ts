@@ -18,8 +18,8 @@
  * Gráfico y tabla no pueden discrepar porque leen la misma declaración.
  */
 
-import { contar } from "../../../fuentes/vocabulario";
-import type { AcreditacionPhoneDailyStatusSeries } from "../AcreditacionPhoneDailyTrend";
+import { contar } from "../fuentes/vocabulario";
+import type { AcreditacionPhoneDailyStatusSeries } from "../profiles/acreditacion/AcreditacionPhoneDailyTrend";
 import {
   ACREDITACION_ORDEN_FAMILIAS,
   acreditacionColorDeFamilia,
@@ -27,7 +27,7 @@ import {
   acreditacionFamiliaDeclarada,
   type AcreditacionDeclaracionEstado,
   type AcreditacionFamiliaLlamada,
-} from "../AcreditacionEstadosLlamada";
+} from "./familiasDeLlamada";
 
 export type SegmentoApilado = {
   familia: AcreditacionFamiliaLlamada;

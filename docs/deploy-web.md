@@ -85,13 +85,16 @@ Para regenerar, publica de nuevo con el mismo nombre. El endpoint usa
 ## Seguridad del artefacto publicado
 
 El contenedor arranca con `PULSO_PUBLIC_MODE=1`. En ese modo Plumber aplica una
-whitelist: solo pasan los endpoints read-only necesarios para tabs, filtros y
-graficos del dashboard o el reporte agregado de Monitoreo. Uploads, edicion,
-sync, Kobo/Sheets, PDF, exports, shutdown y publish responden `403`.
+whitelist; uploads, edicion, sync, Kobo/Sheets, PDF, exports, shutdown y publish
+responden `403`.
 
-El reporte web de Monitoreo no expone respuestas individuales, GPS puntual,
-correos, telefonos, `response_id`, `internal_queries`, auditorias de caso ni
-trazabilidad cruda.
+La publicación vigente usa este runtime solo para Dashboard. El backend aún
+conserva por compatibilidad el endpoint legacy
+`GET /api/monitoreo/public-report`; no es una vía autorizada de publicación de
+Monitoreo y su payload puede depender de un artefacto interno. Hasta retirarlo
+o endurecer su contrato, no se debe desplegar en el runtime público un proyecto
+que contenga datos de Monitoreo. La divergencia está registrada en la
+[auditoría ADR de 2026-07-29](adrs/estado-adr-2026-07-29.md).
 
 El frontend se construye con `VITE_PULSO_PUBLIC_MODE=true`, oculta la barra de
 admin y agrega `noindex,nofollow` al HTML.

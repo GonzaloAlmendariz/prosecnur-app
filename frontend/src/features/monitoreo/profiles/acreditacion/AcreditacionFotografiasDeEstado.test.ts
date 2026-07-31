@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { acreditacionSerieDeEstados } from "./AcreditacionFotografiasDeEstado";
-import { acreditacionDeclaracionesDesdeReglas } from "./AcreditacionEstadosLlamada";
+import { acreditacionDeclaracionesDesdeReglas } from "../../estados/familiasDeLlamada";
 import type { MonitoreoStateRule } from "../../../../api/client";
 
 // Regla de dominio: los estados telefónicos son FOTOGRAFÍAS del momento, no

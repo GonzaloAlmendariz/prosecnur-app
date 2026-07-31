@@ -1,4 +1,14 @@
-// Definidor de estados telefónicos — C2 del plan.
+// Definidor de estados telefónicos.
+//
+// Vive fuera de los perfiles porque lo montan los dos: Acreditación en su mesa
+// de teléfono y Telefónico en Fuentes › Universo y barrido. Era el mismo
+// trabajo —confirmar qué significa cada estado que escribió el cliente— y
+// tenerlo dentro de `profiles/acreditacion/` obligaba al otro perfil a importar
+// del vecino o a escribir su copia.
+//
+// El catálogo de familias lo acompaña (`familiasDeLlamada.ts`): mientras vivía
+// en `profiles/acreditacion/`, montar esto en telefónico violaba el contrato de
+// frontera entre perfiles (`profiles/profileImports.test.ts`).
 //
 // La hoja de barrido la escribe el cliente y su vocabulario cambia entre
 // estudios: en `acrconta` conviven once categorías, incluida «Número
@@ -20,19 +30,19 @@
 // y `final_state` la familia. El `color` se añadió a la whitelist de R.
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, Save } from "../../../../../vendor/lucide-react";
-import type { MonitoreoConfig, MonitoreoState, MonitoreoStateRule } from "../../../../../api/client";
-import { apiMonitoreoConfig } from "../../../../../api/client";
-import { contar } from "../../../fuentes/vocabulario";
+import { AlertTriangle, CheckCircle2, Loader2, Save } from "../../../vendor/lucide-react";
+import type { MonitoreoConfig, MonitoreoState, MonitoreoStateRule } from "../../../api/client";
+import { apiMonitoreoConfig } from "../../../api/client";
+import { contar } from "../fuentes/vocabulario";
 import {
   ACREDITACION_ORDEN_FAMILIAS,
   acreditacionColorDeFamilia,
   acreditacionDeclaracionesDesdeReglas,
   acreditacionEstadosDetectados,
   acreditacionEtiquetaDeFamilia,
-} from "../AcreditacionEstadosLlamada";
-import type { AcreditacionFamiliaLlamada } from "../AcreditacionEstadosLlamada";
-import "./telefono.css";
+} from "./familiasDeLlamada";
+import type { AcreditacionFamiliaLlamada } from "./familiasDeLlamada";
+import "./definidorDeEstados.css";
 
 type Entrada = { label: string; value: number };
 

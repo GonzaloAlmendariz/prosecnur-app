@@ -8,11 +8,14 @@ import {
 } from "./pestanas";
 
 describe("catálogo de pestañas de Fuentes", () => {
-  test("la primera pestaña es la que responde de dónde vienen los datos (A2)", () => {
-    // El ANTES ponía «Fuentes activas» —la más legible de las cuatro— en cuarto
-    // lugar y abría en «Encuestas en plataforma», que ya exige decisiones.
-    expect(PESTANAS_DE_FUENTES[0]?.key).toBe("resumen");
-    expect(PESTANA_DE_FUENTES_POR_DEFECTO).toBe("resumen");
+  test("el modo son tres pasos y empieza por el elenco", () => {
+    // El ANTES eran cuatro pestañas hermanas que abrían en «Encuestas en
+    // plataforma», la que más decisiones exige (A2). Ahora el orden es el del
+    // estudio: se declara quién responde, se conecta lo suyo, y solo entonces
+    // se afina por dónde llegó cada respuesta.
+    expect(PESTANAS_DE_FUENTES.map((pestana) => pestana.key))
+      .toEqual(["actores", "fuentes", "recopiladores"]);
+    expect(PESTANA_DE_FUENTES_POR_DEFECTO).toBe("actores");
   });
 
   test("ninguna pestaña se llama por el servicio del que salen los datos (A1)", () => {
@@ -25,35 +28,39 @@ describe("catálogo de pestañas de Fuentes", () => {
 
 describe("resolverPestanaDeFuentes", () => {
   test("las claves canónicas se resuelven a sí mismas", () => {
-    expect(resolverPestanaDeFuentes("resumen")).toBe("resumen");
-    expect(resolverPestanaDeFuentes("universo")).toBe("universo");
-    expect(resolverPestanaDeFuentes("encuestas")).toBe("encuestas");
+    expect(resolverPestanaDeFuentes("actores")).toBe("actores");
+    expect(resolverPestanaDeFuentes("fuentes")).toBe("fuentes");
+    expect(resolverPestanaDeFuentes("recopiladores")).toBe("recopiladores");
   });
 
-  test("las claves viejas siguen aterrizando donde corresponde", () => {
-    expect(resolverPestanaDeFuentes("activas")).toBe("resumen");
-    expect(resolverPestanaDeFuentes("sheets")).toBe("universo");
+  test("las claves viejas aterrizan donde vive AHORA su contenido", () => {
+    // El mapeo es por contenido, no por posición: quien guardó `?pestana=survey`
+    // buscaba las fichas de encuesta, y esas se mudaron a «Fuentes y universo»
+    // aunque la pestaña que ocupa su antiguo sitio sea «Recopiladores».
+    expect(resolverPestanaDeFuentes("resumen")).toBe("fuentes");
+    expect(resolverPestanaDeFuentes("universo")).toBe("fuentes");
+    expect(resolverPestanaDeFuentes("sheets")).toBe("fuentes");
+    expect(resolverPestanaDeFuentes("survey")).toBe("fuentes");
+    expect(resolverPestanaDeFuentes("encuestas")).toBe("fuentes");
+    expect(resolverPestanaDeFuentes("collectors")).toBe("recopiladores");
+    expect(resolverPestanaDeFuentes("elenco")).toBe("actores");
   });
 
-  test("survey y collectors colapsan en la pestaña que ahora contiene a las dos", () => {
-    expect(resolverPestanaDeFuentes("survey")).toBe("encuestas");
-    expect(resolverPestanaDeFuentes("collectors")).toBe("encuestas");
-  });
-
-  test("una dirección rota aterriza en lectura, nunca en una pestaña con decisiones", () => {
-    expect(resolverPestanaDeFuentes("")).toBe("resumen");
-    expect(resolverPestanaDeFuentes(null)).toBe("resumen");
-    expect(resolverPestanaDeFuentes("no-existe")).toBe("resumen");
+  test("una dirección rota aterriza donde se empieza", () => {
+    expect(resolverPestanaDeFuentes("")).toBe("actores");
+    expect(resolverPestanaDeFuentes(null)).toBe("actores");
+    expect(resolverPestanaDeFuentes("no-existe")).toBe("actores");
   });
 
   test("no distingue mayúsculas ni espacios sobrantes", () => {
-    expect(resolverPestanaDeFuentes("  Collectors ")).toBe("encuestas");
+    expect(resolverPestanaDeFuentes("  Collectors ")).toBe("recopiladores");
   });
 });
 
 describe("clavesAceptadasDeFuentes", () => {
   test("incluye canónicas y heredadas, y todas resuelven", () => {
     const claves = clavesAceptadasDeFuentes();
+    expect(claves).toContain("actores");
     expect(claves).toContain("resumen");
     expect(claves).toContain("collectors");
     for (const clave of claves) {

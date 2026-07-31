@@ -31,3 +31,25 @@ export function normalizeSourceMatch(value: unknown) {
     .toLowerCase()
     .trim();
 }
+
+/**
+ * La marca de dos letras de un actor.
+ *
+ * Dos y no una: con una sola, «Egresados» y «Estudiantes» son ambos «E» y la
+ * marca deja de distinguir justo en el par que más aparece junto. Con dos
+ * palabras toma la inicial de cada una («Ex alumnos» → «EA»); con una, sus dos
+ * primeras letras.
+ */
+export function actorInitialLabel(value: string) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized || normalizeSourceMatch(normalized) === "sin actor") return "?";
+  const words = normalized
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const letters = words.length > 1
+    ? words.slice(0, 2).map((word) => word.charAt(0)).join("")
+    : (words[0] ?? normalized).slice(0, 2);
+  return letters.toLocaleUpperCase("es-PE");
+}

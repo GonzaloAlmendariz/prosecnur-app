@@ -8,7 +8,7 @@
  * nueve, y una vista que se quedara atrás pintaba dos cosas distintas del mismo
  * color sin que nada fallara.
  *
- * No confundir con los estados de la LLAMADA (`AcreditacionEstadosLlamada`), que
+ * No confundir con los estados de la LLAMADA (`familiasDeLlamada`), que
  * el usuario declara por estudio y tienen su propia fuente: aquí viven los
  * desenlaces de la encuesta, que no dependen del estudio.
  *

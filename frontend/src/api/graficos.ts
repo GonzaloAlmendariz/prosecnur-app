@@ -972,12 +972,24 @@ export type GraficosConsolidadoPreflight = {
   n_slides: number;
   n_comparison_slides: number;
   warnings: string[];
+  /** Solo con `includePlan`: el plan sugerido que respalda `n_slides`. */
+  plan?: { slides: unknown[] };
 };
 
-/** Un único PPTX que compone todas las bases hermanas aprobadas. */
-export async function apiGraficosConsolidadoPreflight() {
+/**
+ * Un único PPTX que compone todas las bases hermanas aprobadas.
+ *
+ * `includePlan` trae además el plan sugerido que el backend ya armó para
+ * contar `n_slides`. Es opt-in porque pesa ~48 KB contra los ~4 KB de los
+ * contadores: el menú del conjunto se abre muchas veces y no lo necesita; el
+ * editor compartido sí, para sembrar sus láminas sin recalcular nada.
+ */
+export async function apiGraficosConsolidadoPreflight(
+  options: { includePlan?: boolean } = {},
+) {
+  const query = options.includePlan ? "?include_plan=1" : "";
   return handle<GraficosConsolidadoPreflight>(
-    await apiFetch("/api/graficos/consolidado/preflight", { headers: headers() }),
+    await apiFetch(`/api/graficos/consolidado/preflight${query}`, { headers: headers() }),
   );
 }
 

@@ -63,6 +63,20 @@ describe("boot.css y tokens.css comparten valores", () => {
     expect(divergentes, `Tokens que divergen entre boot.css y tokens.css:\n  ${divergentes.join("\n  ")}`).toEqual([]);
   });
 
+  test("replica la escala operativa mínima de spacing durante el arranque", () => {
+    const spacing = new Map([
+      ["--pulso-space-1", "4px"],
+      ["--pulso-space-2", "8px"],
+      ["--pulso-space-3", "12px"],
+      ["--pulso-space-4", "16px"],
+    ]);
+
+    for (const [name, value] of spacing) {
+      expect(resolve(boot.get(name) ?? "", boot), `token ausente en boot.css: ${name}`).toBe(value);
+      expect(resolve(theme.get(name) ?? "", theme), `token ausente en tokens.css: ${name}`).toBe(value);
+    }
+  });
+
   test("los acentos de módulo son idénticos en ambos archivos", () => {
     // El espectro modular es identidad congelada (identity.json). Si boot y
     // theme no coinciden, el módulo cambia de color al terminar el arranque.

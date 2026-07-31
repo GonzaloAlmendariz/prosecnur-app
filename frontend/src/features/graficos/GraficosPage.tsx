@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, BarChart2, CheckCircle2, Database, FileSpreadsheet } from "lucide-react";
 import {
@@ -15,7 +15,7 @@ import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
-import { usePlanStore } from "./store";
+import { usePlanStore, type GraficosConfig } from "./store";
 import { useGraficosAutosave } from "./useGraficosAutosave";
 import { useGraficosShortcuts } from "./useGraficosShortcuts";
 import { ShortcutsModal } from "./ShortcutsModal";
@@ -25,6 +25,7 @@ import { EditorShell } from "./v2/shell/EditorShell";
 import { useShortcutsV2 } from "./v2/shortcuts/useShortcutsV2";
 import { buildGraficosConfigFromStore } from "./configSnapshot";
 import { GraficosReportScopeProvider, parseGraficosReportScope } from "./reportScope";
+import { shouldSeedSharedPlan } from "./sharedPlanSeed";
 import {
   sharedReportPendingRequirements,
   type SharedReportPreflightStatus,
@@ -42,7 +43,9 @@ export default function GraficosPage() {
   const hydrated = usePlanStore((s) => s.hydrated);
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
-  const { saveConsolidatedNow } = useGraficosAutosave(reportScope);
+  const { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan } =
+    useGraficosAutosave(reportScope);
+  const dirty = usePlanStore((s) => s.dirty);
   // Atajos: Cmd/Ctrl+Z (undo), +Shift+Z (redo), +D (duplicar), ? (ayuda).
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useGraficosShortcuts({ onOpenHelp: () => setShortcutsOpen(true) });
@@ -61,6 +64,8 @@ export default function GraficosPage() {
   const [sharedPreflight, setSharedPreflight] = useState<GraficosConsolidadoPreflight | null>(null);
   const [sharedPreflightStatus, setSharedPreflightStatus] = useState<SharedReportPreflightStatus>("idle");
   const [sharedPreflightError, setSharedPreflightError] = useState("");
+  const seededRef = useRef(false);
+  const [seededSlideCount, setSeededSlideCount] = useState(0);
 
   const prepOk = !!state?.analitica_prep_ok;
   const sharedReady = sharedPreflightStatus === "ready" && sharedPreflight?.ready === true;
@@ -71,7 +76,10 @@ export default function GraficosPage() {
     setSharedPreflightStatus("loading");
     setSharedPreflightError("");
     try {
-      const result = await apiGraficosConsolidadoPreflight();
+      // includePlan: el editor siembra sus láminas con este mismo plan, así el
+      // conteo que promete el menú del conjunto y lo que aparece en el lienzo
+      // salen del único cálculo que ya se paga aquí.
+      const result = await apiGraficosConsolidadoPreflight({ includePlan: true });
       setSharedPreflight(result);
       setSharedPreflightStatus(result.ready ? "ready" : "blocked");
       return result;
@@ -90,6 +98,36 @@ export default function GraficosPage() {
     window.addEventListener("pulso:session-changed", reload);
     return () => window.removeEventListener("pulso:session-changed", reload);
   }, [isSharedReport, loadSharedPreflight, state?.session_id]);
+  // Siembra del informe compartido: si el borrador nunca se guardó y el plan
+  // está vacío, el lienzo aterriza con las láminas que el preflight propuso en
+  // vez del estado "Sin slides aún" que contradecía al menú del conjunto.
+  useEffect(() => {
+    const suggested = sharedPreflight?.plan;
+    const suggestedSlides = Array.isArray(suggested?.slides) ? suggested.slides : [];
+    if (!shouldSeedSharedPlan({
+      scope: reportScope,
+      hydrated,
+      dirty,
+      draftRevision: consolidatedDraftRevision,
+      currentSlideCount: plan.slides.length,
+      suggestedSlideCount: suggestedSlides.length,
+      alreadySeeded: seededRef.current,
+    })) return;
+    seededRef.current = true;
+    seedConsolidatedPlan(suggested as GraficosConfig["plan"]);
+    setSeededSlideCount(suggestedSlides.length);
+  }, [
+    consolidatedDraftRevision, dirty, hydrated, plan.slides.length,
+    reportScope, seedConsolidatedPlan, sharedPreflight,
+  ]);
+
+  // Una sesión nueva estrena su propio borrador: la semilla vuelve a estar
+  // disponible.
+  useEffect(() => {
+    seededRef.current = false;
+    setSeededSlideCount(0);
+  }, [state?.session_id, reportScope]);
+
   useEffect(() => {
     function onActiveBaseChanged() {
       setPptFileId(null);
@@ -187,6 +225,13 @@ export default function GraficosPage() {
 
           {isSharedReport && sharedPreflightStatus === "loading" && (
             <Alert kind="info">Comprobando las aprobaciones de todas las bases…</Alert>
+          )}
+
+          {isSharedReport && seededSlideCount > 0 && !dirty && (
+            <Alert kind="info">
+              {seededSlideCount} láminas compuestas desde {sharedPreflight?.source_order.length ?? 0} bases
+              aprobadas. Todavía no se guardan: quedan fijadas al editar o exportar.
+            </Alert>
           )}
 
           {isSharedReport && sharedPreflightStatus === "blocked" && (

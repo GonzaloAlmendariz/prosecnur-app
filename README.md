@@ -37,8 +37,8 @@ Fases del producto:
 4. **Analítica** (frecuencias, cruces, bases, codebook, enumeradores) — listo.
 5. **Gráficos** (PPT + Word) — listo.
 
-Plan actualizado (fork + multi-base):
-`../.claude/plans/lo-que-sigue-faltando-compiled-balloon.md`.
+La entrada única a arquitectura, decisiones, planes, QA y capacitación está en
+la [documentación de Prosecnur](docs/README.md).
 
 ## Requisitos
 

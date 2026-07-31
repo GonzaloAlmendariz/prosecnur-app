@@ -124,7 +124,7 @@
 @container pulso-chrome (max-width: 1400px) {
   .pulso-module-command-bar > .pulso-command-bar-zone[data-zone="contexto"],
   .pulso-module-command-bar > .pulso-command-bar-zone[data-zone="acciones"] {
-    gap: 4px;
+    gap: var(--pulso-space-1);
   }
 }
 
@@ -194,7 +194,7 @@
   }
 
   .pulso-chrome-indicator {
-    padding: 0 8px;
+    padding: 0 var(--pulso-space-2);
   }
 }
 

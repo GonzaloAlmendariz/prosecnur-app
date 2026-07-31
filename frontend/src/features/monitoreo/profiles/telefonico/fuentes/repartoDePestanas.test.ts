@@ -15,14 +15,12 @@ const PESTANAS: PestanaDeFuentes[] = ["activas", "sheets", "survey"];
 describe("cada pestaña de Fuentes muestra sólo lo suyo", () => {
   it("Universo y barrido no ofrece configurar Kobo", () => {
     const reparto = repartoDeFuentes("sheets", true);
-    expect(reparto.editorKobo).toBe(false);
     expect(reparto.decisionKobo).toBe(false);
     expect(reparto.slots).toEqual(["universo", "barrido"]);
   });
 
-  it("Encuestas no ofrece configurar hojas de cálculo", () => {
+  it("Encuestas no ofrece hojas de cálculo", () => {
     const reparto = repartoDeFuentes("survey", true);
-    expect(reparto.editorSheets).toBe(false);
     expect(reparto.slots).toEqual(["plataforma"]);
   });
 
@@ -36,12 +34,10 @@ describe("cada pestaña de Fuentes muestra sólo lo suyo", () => {
   });
 
   it("ninguna decisión aparece en dos pestañas a la vez", () => {
-    const cuenta = (campo: "decisionKobo" | "editorSheets" | "editorKobo") => (
+    const cuenta = (campo: "decisionKobo") => (
       PESTANAS.filter((pestana) => repartoDeFuentes(pestana, true)[campo]).length
     );
     expect(cuenta("decisionKobo")).toBe(1);
-    expect(cuenta("editorSheets")).toBe(1);
-    expect(cuenta("editorKobo")).toBe(1);
   });
 
   it("el bloque de lectura de Sheets no vuelve por la puerta de atrás", () => {
@@ -85,18 +81,17 @@ describe("cada pestaña de Fuentes muestra sólo lo suyo", () => {
 });
 
 describe("el resumen abre la puerta cuando falta una pieza", () => {
-  it("con el contrato incompleto ofrece conectar sin mandar a otra pestaña", () => {
+  it("con el contrato incompleto muestra las tres piezas para conectarlas", () => {
     // Es la pantalla donde se ve que falta; mandar a buscar el formulario a otro
     // sitio es cómo un estudio a medio configurar se queda a medio configurar.
+    // Cada tarjeta lleva al panel de conexión sobre su pieza.
     const reparto = repartoDeFuentes("activas", false);
-    expect(reparto.editorSheets).toBe(true);
-    expect(reparto.editorKobo).toBe(true);
+    expect(reparto.slots).toEqual(["universo", "barrido", "plataforma"]);
   });
 
   it("con el contrato completo el resumen vuelve a ser sólo lectura", () => {
     const reparto = repartoDeFuentes("activas", true);
-    expect(reparto.editorSheets).toBe(false);
-    expect(reparto.editorKobo).toBe(false);
+    expect(reparto.slots).toEqual([]);
   });
 
   it("las pestañas de decisión no cambian con el estado del contrato", () => {
@@ -129,5 +124,33 @@ describe("el page-file dejó de repartir por booleanos sueltos", () => {
     expect(page).not.toContain("const showSheetsEditors =");
     expect(page).not.toContain("const showKoboEditor =");
     expect(page).toContain("repartoDeFuentes(");
+  });
+});
+
+describe("Fuentes declara, no cablea", () => {
+  // El cableado —dirección del Sheet, pestaña, rango, servidor de Kobo— se
+  // decide al conectar la fuente y en ningún otro sitio. Tenerlo también dentro
+  // de las pestañas eran dos caminos para lo mismo, y el de Fuentes ignoraba el
+  // orden en que el guion del modo pide las piezas.
+  const contrato = () => readFileSync(
+    resolve(__dirname, "..", "TelefonicoMonitoreoPage.tsx"),
+    "utf8",
+  ).split("function AcreditacionPhoneSourcesContractPanel")[1] ?? "";
+
+  it("ninguna pestaña monta el editor de hojas ni el selector de Kobo", () => {
+    const seccion = contrato();
+    expect(seccion).not.toContain("<AcreditacionSheetSourceEditor");
+    expect(seccion).not.toContain("<AcreditacionKoboSourcePicker");
+  });
+
+  it("no pide la dirección del Sheet ni el rango de celdas", () => {
+    const seccion = contrato();
+    expect(seccion).not.toContain("Dirección del Google Sheet");
+    expect(seccion).not.toContain("Rango de celdas");
+    expect(seccion).not.toContain("Leer pestañas");
+  });
+
+  it("la puerta al cableado es el panel de conexión", () => {
+    expect(contrato()).toContain("abrirParaCambiar");
   });
 });

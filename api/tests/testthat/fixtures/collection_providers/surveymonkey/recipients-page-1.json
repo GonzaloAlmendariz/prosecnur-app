@@ -1,0 +1,28 @@
+{
+  "page": 1,
+  "per_page": 2,
+  "total": 3,
+  "data": [
+    {
+      "id": "recipient-1",
+      "phone_number": "+51900000001",
+      "mail_status": "sent",
+      "survey_response_status": "not_responded",
+      "survey_link": "https://es.surveymonkey.com/r/native-1",
+      "custom_fields": {
+        "actor": "docente",
+        "codigo": "D-001"
+      }
+    },
+    {
+      "id": "recipient-2",
+      "phone_number": "+51900000002",
+      "mail_status": "sent",
+      "survey_response_status": "responded",
+      "custom_fields": {
+        "key": "unidad",
+        "value": "U-02"
+      }
+    }
+  ]
+}

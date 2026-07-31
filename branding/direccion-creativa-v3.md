@@ -300,7 +300,7 @@ entrar a `theme.css`; esa promoción es una unidad determinista separada.
 
 ```text
 Espaciado
---space-1: 4px  …  --space-8: 32px
+--pulso-space-1: 4px  …  --pulso-space-9: 48px
 
 Tipografía
 --pulso-type-display
@@ -328,8 +328,10 @@ Navegación
 --nav-icon-size: 18px
 ```
 
-Los aliases operativos finales usarán namespace `--pulso-*`; la compilación
-externa usa `--prosecnur-*`. No se agregan hex a CSS de features.
+Los aliases operativos finales usan namespace `--pulso-*`; la compilación
+externa usa `--prosecnur-*`. La escala de espaciado mantiene los nueve pasos
+congelados en `branding/identity.json`; no se recorta ni se extiende desde CSS.
+No se agregan hex a CSS de features.
 
 ### Patrones maestros v3
 

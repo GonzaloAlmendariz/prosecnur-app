@@ -7,7 +7,7 @@ import {
   acreditacionEstadosDetectados,
   acreditacionFamiliaDeclarada,
   acreditacionFamiliaDeEstado,
-} from "./AcreditacionEstadosLlamada";
+} from "../../estados/familiasDeLlamada";
 
 // Los estados telefónicos los escribe el cliente y cambian entre estudios, así
 // que la heurística por regex no puede ser la última palabra. Estas pruebas

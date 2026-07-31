@@ -198,11 +198,24 @@ monitoreo_client_snapshot_with_carga_universe <- function(snapshot, session_stat
   names(data)[[candidates[[which.max(populated + exact_bonus)]]]]
 }
 
-.mtpdf_reconcile_response_counts <- function(model, data) {
+.mtpdf_reconcile_response_counts <- function(model, data, profile = list()) {
   if (!is.data.frame(data) || !nrow(data) || !(".source_role" %in% names(data))) return(model)
   is_response <- tolower(trimws(as.character(data$.source_role))) == "respuestas"
   responses <- data[is_response, , drop = FALSE]
   if (!nrow(responses)) return(model)
+
+  # Solo las respuestas EFECTIVAS alimentan los conteos de este reporte. El motor
+  # ya aplica este criterio (consentimiento del perfil y exclusión de pruebas) al
+  # calcular las cuotas; contar acá las filas crudas hacía que la columna
+  # Efectivas dejara de producir el "Avance meta" y la "Brecha" de su propia fila.
+  # Se reusa la máscara del motor, no una reimplementación: fuera de la familia
+  # telefónica devuelve todo TRUE y el conteo por filas queda igual que antes.
+  effective <- .monitoreo_report_effective_filter_mask(responses, profile)
+  if (length(effective) == nrow(responses)) {
+    effective[is.na(effective)] <- FALSE
+    responses <- responses[effective, , drop = FALSE]
+    if (!nrow(responses)) return(model)
+  }
 
   model$metrics <- model$metrics %||% list()
   # La unidad del avance es la encuesta efectiva, no el código de contacto.
@@ -241,6 +254,7 @@ monitoreo_client_snapshot_with_carga_universe <- function(snapshot, session_stat
   value_col <- intersect(c("Valor", "Segmento", "Grupo"), names(quotas))[1]
   actual_col <- intersect(c("Efectivas", "Válidas", "Validas", "Logrado"), names(quotas))[1]
   if (nrow(quotas) && !is.na(variable_col) && !is.na(value_col) && !is.na(actual_col)) {
+    touched <- integer(0)
     for (dimension in unique(as.character(quotas[[variable_col]]))) {
       data_col <- .mtpdf_match_data_column(responses, dimension, prefer_populated = TRUE)
       if (!nzchar(data_col)) next
@@ -250,10 +264,43 @@ monitoreo_client_snapshot_with_carga_universe <- function(snapshot, session_stat
       actual <- as.integer(counts[values])
       actual[is.na(actual)] <- 0L
       quotas[[actual_col]][rows] <- actual
+      touched <- c(touched, rows)
     }
+    # Reescribir Efectivas sin reescribir lo que se deriva de ella deja la fila
+    # contradiciéndose: el "Avance meta" y la "Brecha" seguían saliendo del conteo
+    # del motor. Se recalculan con la misma regla del motor
+    # (.monitoreo_report_phone_quota_df) para que la tabla nunca afirme dos cifras
+    # incompatibles sobre la misma cuota.
+    quotas <- .mtpdf_refresh_quota_gap(quotas, unique(touched), actual_col)
     model$quotas <- quotas
   }
   model
+}
+
+# Deriva "Avance meta", "Brecha" y "Estado cuota" del conteo efectivo de cada fila.
+# Espeja la regla del motor: brecha con piso en cero y "Cumple" al alcanzar la meta.
+.mtpdf_refresh_quota_gap <- function(quotas, rows, actual_col) {
+  if (!length(rows) || is.na(actual_col) || !(actual_col %in% names(quotas))) return(quotas)
+  meta_col <- intersect(c("Meta", "Cuota", "Objetivo"), names(quotas))[1]
+  if (is.na(meta_col)) return(quotas)
+  advance_col <- intersect(c("Avance meta", "Avance"), names(quotas))[1]
+  gap_col <- intersect(c("Brecha", "Faltante"), names(quotas))[1]
+  state_col <- intersect(c("Estado cuota", "Estado"), names(quotas))[1]
+  for (i in rows) {
+    meta <- suppressWarnings(as.numeric(quotas[[meta_col]][[i]]))
+    effective <- suppressWarnings(as.numeric(quotas[[actual_col]][[i]]))
+    if (!is.finite(effective)) next
+    if (!is.na(advance_col)) {
+      quotas[[advance_col]][[i]] <- if (is.finite(meta) && meta > 0) round(100 * effective / meta, 1) else NA_real_
+    }
+    if (!is.na(gap_col)) {
+      quotas[[gap_col]][[i]] <- if (is.finite(meta)) as.integer(max(0, meta - effective)) else NA_integer_
+    }
+    if (!is.na(state_col)) {
+      quotas[[state_col]][[i]] <- if (!is.finite(meta)) "Sin meta" else if (effective >= meta) "Cumple" else "Brecha"
+    }
+  }
+  quotas
 }
 
 build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targets = FALSE) {
@@ -322,7 +369,7 @@ build_monitoreo_telefonico_report_model <- function(snapshot, cfg, include_targe
       }
     )
   )
-  .mtpdf_reconcile_response_counts(model, data)
+  .mtpdf_reconcile_response_counts(model, data, cfg$monitoreo_profile %||% list())
 }
 
 .mtpdf_wrap <- function(x, width = 90L) paste(strwrap(.mtpdf_text(x), width = width), collapse = "\n")

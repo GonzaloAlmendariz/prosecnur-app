@@ -381,7 +381,11 @@ export function DataReviewPane() {
             <strong>Revisión de etiquetas</strong>
             <small>Variables, secciones y labels que alimentan todos los reportes.</small>
           </div>
-          <div className="pulso-data-review-command">
+          <div
+            className="pulso-data-review-command"
+            role="toolbar"
+            aria-label="Comandos de revisión de datos"
+          >
             <span className="pulso-data-review-command-chip">{includedCount}/{variables.length} incluidas</span>
             {excludedCount > 0 ? (
               <span className="pulso-data-review-command-chip">{excludedCount} excluida{excludedCount === 1 ? "" : "s"} · autoguardadas</span>
@@ -450,7 +454,11 @@ export function DataReviewPane() {
                 No hay variables preparadas para revisar. Verifica la fuente activa o vuelve a preparar Analítica.
               </div>
             ) : null}
-            <div className="pulso-data-review-section-list">
+            <div
+              className="pulso-data-review-section-list"
+              data-qa-geometry-group="analitica/data-review-sections"
+              data-qa-geometry-contract="intrinsic"
+            >
               {groups.map((group) => (
                 <DataReviewSection
                   key={group.id}

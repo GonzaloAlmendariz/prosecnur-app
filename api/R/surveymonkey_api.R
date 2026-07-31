@@ -305,6 +305,28 @@ sm_api_list_surveys <- function(token, base_url = "https://api.surveymonkey.com/
   out
 }
 
+.sm_api_collector_fields <- c(
+  "id", "name", "type", "status", "url", "response_count",
+  "date_created", "date_modified"
+)
+
+.sm_api_recipient_fields <- c(
+  "id", "email", "phone_number", "first_name", "last_name", "custom_value",
+  "custom_fields", "mail_status", "survey_response_status", "survey_link"
+)
+
+.sm_api_page_limit <- function(value) {
+  limit <- suppressWarnings(as.numeric(value %||% Inf))
+  if (is.na(limit) || limit < 1) Inf else limit
+}
+
+.sm_api_pagination_complete <- function(rows, collected, total, page, per_page, max_pages) {
+  if (length(rows) < per_page) return(TRUE)
+  if (is.finite(total) && length(collected) >= total) return(TRUE)
+  if (is.finite(max_pages) && page >= max_pages) return(TRUE)
+  FALSE
+}
+
 #' Lista colectores de una encuesta de SurveyMonkey.
 #'
 #' Solo devuelve metadatos de colectores. No expone links de encuestados.
@@ -313,15 +335,13 @@ sm_api_fetch_collectors <- function(survey_id,
                                     token,
                                     base_url = "https://api.surveymonkey.com/v3",
                                     per_page = 100L,
-                                    max_pages = 50L) {
+                                    max_pages = Inf) {
   survey_id <- trimws(as.character(survey_id %||% "")[1])
   if (!nzchar(survey_id)) stop("Falta 'survey_id'.", call. = FALSE)
   per_page <- suppressWarnings(as.integer(per_page %||% 100L))
   if (!is.finite(per_page)) per_page <- 100L
   per_page <- min(100L, max(1L, per_page))
-  max_pages <- suppressWarnings(as.integer(max_pages %||% 50L))
-  if (!is.finite(max_pages)) max_pages <- 50L
-  max_pages <- max(1L, max_pages)
+  max_pages <- .sm_api_page_limit(max_pages)
   page <- 1L
   out <- list()
   total <- NA_integer_
@@ -330,16 +350,27 @@ sm_api_fetch_collectors <- function(survey_id,
       sprintf("/surveys/%s/collectors", utils::URLencode(survey_id, reserved = TRUE)),
       token = token,
       base_url = base_url,
-      query = list(page = page, per_page = per_page)
+      query = list(
+        page = page,
+        per_page = per_page,
+        fields = paste(.sm_api_collector_fields, collapse = ",")
+      )
     )
     payload <- res$data %||% list()
     rows <- payload$data %||% list()
     if (length(rows)) out <- c(out, rows)
     total <- suppressWarnings(as.integer(payload$total %||% total))
-    if (length(rows) < per_page || page >= max_pages) break
+    if (.sm_api_pagination_complete(rows, out, total, page, per_page, max_pages)) break
     page <- page + 1L
   }
-  list(ok = TRUE, total = if (is.finite(total)) total else length(out), data = out)
+  truncated <- is.finite(total) && length(out) < total
+  list(
+    ok = TRUE,
+    total = if (is.finite(total)) total else length(out),
+    scanned = as.integer(length(out)),
+    truncated = truncated,
+    data = out
+  )
 }
 
 #' Trae detalle agregado de un colector SurveyMonkey.
@@ -352,7 +383,8 @@ sm_api_fetch_collector_detail <- function(collector_id,
   res <- .sm_api_fetch_json(
     sprintf("/collectors/%s", utils::URLencode(collector_id, reserved = TRUE)),
     token = token,
-    base_url = base_url
+    base_url = base_url,
+    query = list(fields = paste(.sm_api_collector_fields, collapse = ","))
   )
   res$data %||% list()
 }
@@ -363,15 +395,13 @@ sm_api_fetch_collector_recipients <- function(collector_id,
                                               token,
                                               base_url = "https://api.surveymonkey.com/v3",
                                               per_page = 100L,
-                                              max_pages = 50L) {
+                                              max_pages = Inf) {
   collector_id <- trimws(as.character(collector_id %||% "")[1])
   if (!nzchar(collector_id)) stop("Falta 'collector_id'.", call. = FALSE)
   per_page <- suppressWarnings(as.integer(per_page %||% 100L))
   if (!is.finite(per_page)) per_page <- 100L
   per_page <- min(100L, max(1L, per_page))
-  max_pages <- suppressWarnings(as.integer(max_pages %||% 50L))
-  if (!is.finite(max_pages)) max_pages <- 50L
-  max_pages <- max(1L, max_pages)
+  max_pages <- .sm_api_page_limit(max_pages)
   page <- 1L
   out <- list()
   total <- NA_integer_
@@ -380,20 +410,40 @@ sm_api_fetch_collector_recipients <- function(collector_id,
       sprintf("/collectors/%s/recipients", utils::URLencode(collector_id, reserved = TRUE)),
       token = token,
       base_url = base_url,
-      query = list(page = page, per_page = per_page),
+      query = list(
+        page = page,
+        per_page = per_page,
+        fields = paste(.sm_api_recipient_fields, collapse = ",")
+      ),
       allow_status = c(404L)
     )
     if (!isTRUE(res$ok)) {
-      return(list(ok = FALSE, available = FALSE, status_code = res$status_code, total = 0L, data = list()))
+      return(list(
+        ok = FALSE,
+        available = FALSE,
+        status_code = res$status_code,
+        total = 0L,
+        scanned = 0L,
+        truncated = FALSE,
+        data = list()
+      ))
     }
     payload <- res$data %||% list()
     rows <- payload$data %||% list()
     if (length(rows)) out <- c(out, rows)
     total <- suppressWarnings(as.integer(payload$total %||% total))
-    if (length(rows) < per_page || page >= max_pages) break
+    if (.sm_api_pagination_complete(rows, out, total, page, per_page, max_pages)) break
     page <- page + 1L
   }
-  list(ok = TRUE, available = TRUE, total = if (is.finite(total)) total else length(out), data = out)
+  truncated <- is.finite(total) && length(out) < total
+  list(
+    ok = TRUE,
+    available = TRUE,
+    total = if (is.finite(total)) total else length(out),
+    scanned = as.integer(length(out)),
+    truncated = truncated,
+    data = out
+  )
 }
 
 sm_api_fetch_collector_recipient_detail <- function(collector_id,
@@ -441,16 +491,41 @@ sm_api_fetch_collector_recipient_detail <- function(collector_id,
   }
   custom_variables <- x$custom_variables %||% x$customVariables %||% list()
   if (is.list(custom_variables) && length(custom_variables)) {
-    for (nm in names(custom_variables)) append_pair(nm, custom_variables[[nm]])
+    for (nm in names(custom_variables)) {
+      item <- custom_variables[[nm]]
+      if (is.list(item)) {
+        append_pair(
+          item$name %||% item$key %||% nm,
+          item$value %||% item$field_value %||% item$fieldValue
+        )
+      } else {
+        append_pair(nm, item)
+      }
+    }
   }
   custom_fields <- x$custom_fields %||% x$customFields %||% list()
   if (is.list(custom_fields) && length(custom_fields)) {
-    for (item in custom_fields) {
-      if (!is.list(item)) next
-      append_pair(
-        item$name %||% item$key %||% item$field_name %||% item$fieldName,
-        item$value %||% item$field_value %||% item$fieldValue
-      )
+    pair_name <- custom_fields$name %||% custom_fields$key %||%
+      custom_fields$field_name %||% custom_fields$fieldName
+    pair_value <- custom_fields$value %||% custom_fields$field_value %||%
+      custom_fields$fieldValue
+    if (!is.null(pair_name) && !is.null(pair_value)) {
+      append_pair(pair_name, pair_value)
+      return(out)
+    }
+    field_names <- names(custom_fields)
+    if (is.null(field_names)) field_names <- rep("", length(custom_fields))
+    for (i in seq_along(custom_fields)) {
+      item <- custom_fields[[i]]
+      fallback_name <- field_names[[i]]
+      if (is.list(item)) {
+        append_pair(
+          item$name %||% item$key %||% item$field_name %||% item$fieldName %||% fallback_name,
+          item$value %||% item$field_value %||% item$fieldValue
+        )
+      } else {
+        append_pair(fallback_name, item)
+      }
     }
   }
   out
@@ -461,6 +536,7 @@ sm_api_fetch_collector_recipient_detail <- function(collector_id,
   out <- list(
     recipient_id = .sm_api_recipient_scalar(x, "id", "recipient_id"),
     recipient_email = .sm_api_recipient_scalar(x, "email", "email_address", "emailAddress"),
+    recipient_phone = .sm_api_recipient_scalar(x, "phone_number", "phoneNumber", "phone", "mobile_number"),
     recipient_first_name = .sm_api_recipient_scalar(x, "first_name", "firstName"),
     recipient_last_name = .sm_api_recipient_scalar(x, "last_name", "lastName"),
     recipient_custom_value = .sm_api_recipient_scalar(x, "custom_value", "customValue", "custom_id", "customId"),
@@ -472,6 +548,42 @@ sm_api_fetch_collector_recipient_detail <- function(collector_id,
     out[[paste0("recipient_cv_", nm)]] <- custom_pairs[[nm]]
   }
   out
+}
+
+sm_api_normalize_collector <- function(collector, recipient_summary = list()) {
+  collector <- if (is.list(collector)) collector else list()
+  collector_type <- tolower(trimws(as.character(
+    collector$type %||% collector$collector_type %||% collector$collectorType %||% ""
+  )[1]))
+  normalized_type <- if (collector_type %in% c("sms", "text_message", "text message")) {
+    "sms"
+  } else if (collector_type %in% c("email", "collector_email", "email_invitation")) {
+    "email"
+  } else if (collector_type %in% c("weblink", "web_link", "web link", "web", "link")) {
+    "web_link"
+  } else {
+    if (nzchar(collector_type)) collector_type else "unknown"
+  }
+  url <- trimws(as.character(collector$url %||% collector$weblink_url %||% collector$href %||% "")[1])
+  operational_use <- switch(
+    normalized_type,
+    sms = "sms",
+    email = "correo_autoaplicado",
+    web_link = "enlace_abierto",
+    if (nzchar(url)) "enlace_abierto" else "sin_clasificar"
+  )
+  list(
+    id = trimws(as.character(collector$id %||% collector$collector_id %||% "")[1]),
+    name = trimws(as.character(collector$name %||% collector$title %||% "")[1]),
+    type = normalized_type,
+    raw_type = collector_type,
+    status = trimws(as.character(collector$status %||% "")[1]),
+    url = url,
+    response_count = suppressWarnings(as.integer(collector$response_count %||% 0L)),
+    recipient_count = suppressWarnings(as.integer(recipient_summary$total %||% 0L)),
+    operational_use = operational_use,
+    operational_use_evidence = if (normalized_type %in% c("sms", "email", "web_link")) "provider_type" else if (nzchar(url)) "observed_url" else "unknown"
+  )
 }
 
 sm_api_fetch_collector_recipient_rows <- function(collector_id,
@@ -677,6 +789,8 @@ sm_api_collector_recipient_summary <- function(collector_id,
       scanned = 0L,
       truncated = FALSE,
       personalized_link_count = 0L,
+      personalized_link_count_evidence = "unknown",
+      personalized_link_count_complete = FALSE,
       mail_status_counts = list(),
       response_status_counts = list()
     ))
@@ -687,18 +801,16 @@ sm_api_collector_recipient_summary <- function(collector_id,
     mail_status <- vapply(rows, function(row) as.character(row$mail_status %||% row$status %||% ""), character(1))
     response_status <- vapply(rows, function(row) as.character(row$survey_response_status %||% row$response_status %||% ""), character(1))
     direct_links <- vapply(rows, function(row) as.character(row$survey_link %||% ""), character(1))
-    inferred_links <- if (length(rows)) {
-      link_count <- sum(!is.na(direct_links) & nzchar(trimws(direct_links)))
-      if (link_count > 0L) link_count else if (is.finite(total)) total else length(rows)
-    } else {
-      0L
-    }
+    observed_links <- sum(!is.na(direct_links) & nzchar(trimws(direct_links)))
+    truncated <- isTRUE(recipients$truncated) || (is.finite(total) && total > length(rows))
     return(list(
       available = TRUE,
       total = if (is.finite(total)) as.integer(total) else length(rows),
       scanned = as.integer(length(rows)),
-      truncated = FALSE,
-      personalized_link_count = as.integer(inferred_links),
+      truncated = truncated,
+      personalized_link_count = as.integer(observed_links),
+      personalized_link_count_evidence = "observed",
+      personalized_link_count_complete = !truncated,
       mail_status_counts = .sm_api_count_values(mail_status),
       response_status_counts = .sm_api_count_values(response_status)
     ))
@@ -731,8 +843,10 @@ sm_api_collector_recipient_summary <- function(collector_id,
     available = TRUE,
     total = if (is.finite(total)) as.integer(total) else length(rows),
     scanned = as.integer(scan_n),
-    truncated = is.finite(total) && total > scan_n,
+    truncated = isTRUE(recipients$truncated) || (is.finite(total) && total > scan_n),
     personalized_link_count = as.integer(sum(link_present, na.rm = TRUE)),
+    personalized_link_count_evidence = "observed",
+    personalized_link_count_complete = is.finite(total) && total <= scan_n,
     mail_status_counts = .sm_api_count_values(mail_status),
     response_status_counts = .sm_api_count_values(response_status)
   )

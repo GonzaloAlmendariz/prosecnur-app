@@ -1,0 +1,20 @@
+{
+  "count": 3,
+  "next": "https://kf.example.test/api/v2/assets/?format=json&asset_type=survey&limit=2&offset=2",
+  "previous": null,
+  "results": [
+    {
+      "uid": "aSurveyOne",
+      "name": "Encuesta uno",
+      "asset_type": "survey",
+      "version_id": "v1",
+      "deployment__active": true
+    },
+    {
+      "uid": "aLibraryNoise",
+      "name": "Biblioteca fuera de contrato",
+      "asset_type": "collection",
+      "deployment__active": false
+    }
+  ]
+}

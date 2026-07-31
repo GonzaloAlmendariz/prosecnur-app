@@ -20,9 +20,9 @@ const RAIZ = join(__dirname, "profiles");
 // - `ritmoDiario.ts` no pinta resultados: pinta el semáforo de cumplimiento de
 //   una cuota (va bien / atención / riesgo). Coincide en color por ahora, y
 //   unificarlo acoplaría dos escalas que pueden divergir.
-// - `AcreditacionEstadosLlamada.ts` es la fuente de los estados de LLAMADA, que
+// - `familiasDeLlamada.ts` es la fuente de los estados de LLAMADA, que
 //   el usuario declara por estudio; sus valores de fábrica son suyos.
-const EXCEPCIONES = ["ritmoDiario.ts", "AcreditacionEstadosLlamada.ts"];
+const EXCEPCIONES = ["ritmoDiario.ts", "familiasDeLlamada.ts"];
 
 function archivosDeVista(dir: string): string[] {
   return readdirSync(dir).flatMap((nombre) => {

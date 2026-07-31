@@ -569,6 +569,13 @@ Una implementación que reproduzca este corte —con los errores históricos cor
 
 ## 10. Prioridades de implementación
 
+> Este bloque ordena la **paridad funcional con la operación histórica**. Los
+> pendientes del perfil frente a su decisión de arquitectura —cobertura de la
+> publicación a Sheets, reemplazos inescribibles desde la UI, cierre operativo—
+> se ordenan aparte, en
+> [la auditoría del ADR 0019](qa/auditoria-adr-0019-cursos-horario-2026-07-30.md).
+> Los dos conjuntos son complementarios: aquel mide el ADR, este mide el Excel.
+
 ### P0 — contrato y verdad operativa
 
 - Definir `application_event_uuid`.

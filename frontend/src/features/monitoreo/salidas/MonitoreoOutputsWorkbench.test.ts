@@ -15,6 +15,7 @@ import {
   monitoreoProcessingHandoffDetail,
   monitoreoProcessingHandoffFileLinks,
   preflightHasOnlyColdPerformanceWarnings,
+  PDF_POR_FAMILIA,
 } from "./MonitoreoOutputsWorkbench";
 
 function reviewResult(
@@ -453,5 +454,23 @@ describe("MonitoreoOutputsWorkbench processing handoff package", () => {
         downloadUrl: "/api/files/data-file/download",
       },
     ]);
+  });
+});
+
+describe("PDF por familia", () => {
+  test("cursos-horario no ofrece PDF: su modelo cae al de acreditación", () => {
+    // El permiso vive en la tabla y no en el call site a propósito. Mientras
+    // `.monitoreo_client_report_model_for_snapshot` solo ramifique para
+    // territorial y telefónico, un botón de PDF en cursos-horario entrega el
+    // documento de acreditación —con actores y encuestas que este perfil no
+    // tiene—. Encender esto exige un modelo de reporte propio, no cambiar la
+    // bandera.
+    expect(PDF_POR_FAMILIA.aulas).toEqual({ client: false, production: false });
+  });
+
+  test("las familias con modelo propio conservan sus dos PDF", () => {
+    for (const family of ["acreditacion", "territorial", "telefonico"] as const) {
+      expect(PDF_POR_FAMILIA[family], family).toEqual({ client: true, production: true });
+    }
   });
 });

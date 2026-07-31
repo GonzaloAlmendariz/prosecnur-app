@@ -4766,6 +4766,10 @@ button.pulso-focus-calculation-recipe {
   cursor: not-allowed;
 }
 
+.pulso-focus-quicklook-grid {
+  grid-auto-rows: 1fr;
+}
+
 .pulso-focus-quicklook-item.is-accent .pulso-focus-quicklook-icon {
   border-color: color-mix(in srgb, var(--pulso-primary) 22%, var(--xls-border));
   background: color-mix(in srgb, var(--pulso-primary) 8%, #ffffff);

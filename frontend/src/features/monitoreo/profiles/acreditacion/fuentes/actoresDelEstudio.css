@@ -1,0 +1,231 @@
+/* Bloque «Actores del estudio» — el paso 0 de Fuentes.
+ *
+ * Reusa la superficie y la tipografía de las otras vistas de Fuentes
+ * (`mon-acr-object-surface`, `mon-acr-empty-state`, `mon-switch-line`) para que
+ * el bloque nuevo no se lea como una pantalla ajena pegada al lado. Lo único
+ * propio de aquí es la rejilla de tarjetas y sus tres estados de lectura:
+ * lista, le falta algo, o el nombre choca. */
+
+/* La superficie mide su contenido; el canvas se queda con el resto.
+ *
+ * C3, en dos pasos. El primero: la rejilla de la superficie repartía el alto
+ * sobrante ENTRE sus filas —~140px de aire entre la cabecera y las tarjetas,
+ * ~230px más antes del pie—, así que `align-content: start` las empaqueta.
+ *
+ * El segundo: aun empaquetadas, la superficie seguía estirada a 749px para
+ * ~170px de contenido, y una tarjeta con medio metro de fondo vacío dentro no
+ * es «vacío contenido», es una caja que miente sobre lo que tiene. Midiendo su
+ * contenido, el sobrante queda en el canvas, que es de quien es. */
+.mon-acr-actores-view {
+  align-content: start;
+}
+
+.mon-acr-actores-view .mon-acr-object-surface {
+  align-content: start;
+}
+
+.mon-acr-actores-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  /* Las tarjetas se igualan ENTRE SÍ, no con la altura de la superficie.
+   *
+   * C3: la superficie de Fuentes es una rejilla y estira sus filas para llenar
+   * el alto disponible. Sin `align-self`, la fila de tarjetas se comía los 177px
+   * sobrantes y cada tarjeta quedaba con 326px de alto para 149px de contenido:
+   * un hueco muerto en medio de cada actor. El vacío pertenece a la superficie,
+   * que sí tiene marco para contenerlo. */
+  align-self: start;
+  align-content: start;
+  align-items: stretch;
+}
+
+.mon-acr-actor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  /* C2: la tarjeta mantiene su marco tenga o no fuentes conectadas. Sin esto
+   * un actor recién agregado colapsa a la altura de su input y la rejilla
+   * queda dentada. Es el alto del contenido real, no un colchón: cuatro filas
+   * cortas no necesitan más y estirarlas era el otro sitio donde sobraba aire. */
+  min-height: 132px;
+}
+
+.mon-acr-actor-card.is-invalid {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.mon-acr-actor-card-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.mon-acr-actor-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Ancho mínimo, no fijo: la marca son dos letras y «AD» no cabe en el cuadro
+   * que bastaba para «A». */
+  min-width: 30px;
+  padding: 0 5px;
+  height: 28px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-acr-actor-card-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mon-acr-actor-card-name > span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.mon-acr-actor-card-name input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-bg);
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.mon-acr-actor-card-name input[aria-invalid="true"] {
+  border-color: var(--pulso-danger-border);
+}
+
+.mon-acr-actor-card-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  cursor: pointer;
+}
+
+.mon-acr-actor-card-remove:hover:not(:disabled) {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.mon-acr-actor-card-phone > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mon-acr-actor-card-fuentes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.mon-acr-actor-card-fuentes > span {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.mon-acr-actor-card-fuentes > span.is-ready {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.mon-acr-actor-card-fuentes > span.is-missing {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+.mon-acr-actor-card-nota {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.mon-acr-actor-card-nota .is-ready { color: var(--pulso-success-fg); }
+.mon-acr-actor-card-nota .is-missing { color: var(--pulso-text-soft); }
+.mon-acr-actor-card-nota .is-pending { color: var(--pulso-primary); }
+
+.mon-acr-actor-card-nota .is-invalid {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pulso-danger-fg);
+}
+
+.mon-acr-actores-agregar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pulso-border);
+}
+
+.mon-acr-actores-agregar > button,
+.mon-acr-actores-sugeridos button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
+}
+
+.mon-acr-actores-agregar > button:hover:not(:disabled),
+.mon-acr-actores-sugeridos button:hover:not(:disabled) {
+  border-color: var(--pulso-primary-border);
+  background: var(--pulso-primary-soft);
+  color: var(--pulso-primary);
+}
+
+.mon-acr-actores-sugeridos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.mon-acr-actores-sugeridos > span {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.mon-acr-actores-sugeridos button {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}

@@ -3,7 +3,8 @@ import { ArgMetadata, GraficadorRef } from "../../api/client";
 import { usePlanStore, PaletaPorLista } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { usePresetsMetadata } from "./usePresetsMetadata";
-import { useVariables } from "./useVariables";
+import { useVariables, type VarWithSource } from "./useVariables";
+import { evaluateScaleCompat, multiApiladasScaleGroups, type ScaleVar } from "./multiApiladasScale";
 import { formatNumericRange, hasMeaningfulValue, validateNumericArgValue } from "./numericArgValidation";
 import { isDerivedReportVariableRef } from "./derivedReportVariables";
 
@@ -21,6 +22,11 @@ import { isDerivedReportVariableRef } from "./derivedReportVariables";
 //   - "paleta-monocromatica": una paleta tiene muchos colores con hue
 //     muy parecido — dificulta distinguir categorías en un apilado.
 //   - "plan-vacio": el plan no tiene slides.
+//   - "scale-mismatch": un multi-apiladas apila preguntas de escalas
+//     distintas. Es ERROR y no warning porque el renderer no lo salva: la
+//     lámina sale degradada a "Sin datos" con el título de la primera
+//     pregunta y una base que no sustenta nada. El constructor ya lo avisa
+//     mientras editas; esto es lo que impide que llegue al entregable.
 //
 // Severidad: "error" bloquea export; "warning" solo avisa.
 
@@ -32,7 +38,8 @@ export type ValidationIssue = {
     | "var-unknown"
     | "icon-unknown"
     | "paleta-monocromatica"
-    | "numeric-invalid";
+    | "numeric-invalid"
+    | "scale-mismatch";
   message: string;
   slideId?: string;       // para poder saltar al slide afectado
   slotName?: string;
@@ -77,6 +84,14 @@ export function usePlanValidator(): ValidationSummary {
       variables.flatMap((v) => multi ? [`${v.source}$${v.name}`] : [v.name, `${v.source}$${v.name}`]),
     );
     const iconIds = new Set(iconos.map((i) => i.id));
+    // Mismo criterio de resolución que `varNames`: en single-base la ref
+    // puede venir con o sin prefijo de fuente.
+    const varsByRef = new Map<string, VarWithSource>();
+    for (const v of variables) {
+      varsByRef.set(`${v.source}$${v.name}`, v);
+      if (!multi && !varsByRef.has(v.name)) varsByRef.set(v.name, v);
+    }
+    const resolveVar = (ref: string) => varsByRef.get(ref);
 
     for (const slide of slides) {
       const slideMeta = slidesById[slide.tipo];
@@ -105,6 +120,12 @@ export function usePlanValidator(): ValidationSummary {
               slotName: slot,
             },
           ));
+
+          issues.push(...checkScaleCompat(graf, resolveVar, {
+            scope: `"${slideMeta.titulo_humano}" (${humanizeSlot(slot)})`,
+            slideId: slide.id,
+            slotName: slot,
+          }));
 
           // Variable desconocida dentro del graficador
           checkVarRefs(graf, varNames).forEach((varName) => {
@@ -237,6 +258,32 @@ function collectVarRefs(args: Record<string, unknown>): string[] {
   }
 
   return refs;
+}
+
+// Solo multi-apiladas concilia escalas entre preguntas; el resto de
+// graficadores apila una sola variable o no apila.
+const SCALE_SENSITIVE_GRAFICADORES = new Set(["p_barras_multiapiladas"]);
+
+function checkScaleCompat(
+  graf: GraficadorRef,
+  resolve: (ref: string) => ScaleVar | undefined,
+  context: { scope: string; slideId?: string; slotName?: string },
+): ValidationIssue[] {
+  if (!SCALE_SENSITIVE_GRAFICADORES.has(graf.graficador)) return [];
+  const groups = multiApiladasScaleGroups(graf.args ?? {});
+  const issues: ValidationIssue[] = [];
+  for (const refs of groups) {
+    const verdict = evaluateScaleCompat(refs, resolve);
+    if (verdict.tone !== "error") continue;
+    issues.push({
+      severity: "error",
+      code: "scale-mismatch",
+      message: `${context.scope}: ${verdict.message}`,
+      slideId: context.slideId,
+      slotName: context.slotName,
+    });
+  }
+  return issues;
 }
 
 function checkNumericArgs(

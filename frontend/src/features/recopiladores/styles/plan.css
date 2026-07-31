@@ -1,0 +1,153 @@
+.rec-plan-layout {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(210px, 270px) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.rec-summary-card,
+.rec-data-card {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.rec-summary-card {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.rec-summary-card > svg {
+  color: var(--rec-accent);
+}
+
+.rec-summary-card > span,
+.rec-data-card header span {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.rec-summary-card > strong {
+  font-size: 22px;
+}
+
+.rec-summary-card dl,
+.rec-handoff-card dl,
+.rec-package-card dl {
+  display: grid;
+  gap: 0;
+  margin: 8px 0 0;
+}
+
+.rec-summary-card dl div,
+.rec-handoff-card dl div,
+.rec-package-card dl div {
+  border-top: 1px solid var(--pulso-border);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(70px, .8fr) minmax(0, 1.2fr);
+  padding: 9px 0;
+}
+
+.rec-summary-card dt,
+.rec-handoff-card dt,
+.rec-package-card dt {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.rec-summary-card dd,
+.rec-handoff-card dd,
+.rec-package-card dd {
+  font-size: 12px;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.rec-data-card {
+  min-width: 0;
+  padding: 0 16px 16px;
+}
+
+.rec-data-card > header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  justify-content: space-between;
+  padding: 16px 2px 12px;
+}
+
+.rec-data-card h2 {
+  font-size: 16px;
+  margin: 3px 0 0;
+}
+
+.rec-data-card code {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.rec-plan-data-meta {
+  align-items: flex-end;
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+}
+
+.rec-data-card .rec-table-scroll {
+  max-height: clamp(300px, calc(100vh - 340px), 680px);
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.rec-data-card .rec-table-scroll thead {
+  background: var(--pulso-surface);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.rec-plan-pagination {
+  align-items: center;
+  color: var(--pulso-text-soft);
+  display: flex;
+  font-size: 12px;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 2px 0;
+}
+
+.rec-plan-pagination > div {
+  display: flex;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .rec-plan-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rec-plan-data-meta {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .rec-plan-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rec-plan-pagination > div {
+    justify-content: space-between;
+  }
+}

@@ -7,8 +7,8 @@ import {
   buildAcreditacionPhoneDailyStatusSeries,
   type AcreditacionPhoneDailyPoint,
 } from "../AcreditacionPhoneDailyTrend";
-import { acreditacionDeclaracionesDesdeReglas } from "../AcreditacionEstadosLlamada";
-import { GraficoDeEstadosPorDia } from "../telefono/GraficoDeEstadosPorDia";
+import { acreditacionDeclaracionesDesdeReglas } from "../../../estados/familiasDeLlamada";
+import { GraficoDeEstadosPorDia } from "../../../estados/GraficoDeEstadosPorDia";
 import { formatMetric } from "../formato";
 import { EmptyPanel } from "../EmptyPanel";
 import { COLOR_RESULTADO } from "../../../coloresDeResultado";

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../api/client";
-import { corteAcreditacion, corteTerritorial } from "./corteAdapters";
+import type {
+  MonitoreoAulasDashboard,
+  MonitoreoState,
+  MonitoreoTerritorialDashboard,
+} from "../../../api/client";
+import { corteAcreditacion, corteAulas, corteTerritorial } from "./corteAdapters";
 import { readinessDeSalidas } from "./corteContract";
 
 function estado(overrides: Partial<MonitoreoState> = {}) {
@@ -106,5 +110,75 @@ describe("corteAcreditacion", () => {
     );
     expect(readiness.puedePublicarCliente).toBe(false);
     expect(readiness.bloqueos.map((b) => b.codigo)).toContain("CORTE_INCOMPLETO");
+  });
+});
+
+describe("corteAulas", () => {
+  function aula(overrides: Record<string, unknown> = {}) {
+    return { sample_role: "titular", expected_valid: 10, ...overrides };
+  }
+
+  function dashboardAulas(overrides: Record<string, unknown> = {}) {
+    return {
+      generated_at: "2026-07-20T10:00:00Z",
+      kpis: { total_aulas: 3, aulas_aplicadas: 2, respuestas_validas: 18, filter_passed: 24, brechas: 1 },
+      agenda: [aula(), aula(), aula()],
+      ...overrides,
+    } as unknown as MonitoreoAulasDashboard;
+  }
+
+  it("nombra los tres granos del perfil", () => {
+    const corte = corteAulas(estado({ n_rows: 30 }), dashboardAulas());
+    expect(corte.ingesta).toBe(30);
+    expect(corte.procesable).toBe(24);
+    expect(corte.oficial).toBe(18);
+    expect(corte.meta).toBe(30);
+  });
+
+  it("el pool de reservas extra no infla la meta", () => {
+    // Solo las aulas rastreadas cuentan, igual que en `avance_por_estrato`.
+    const corte = corteAulas(
+      estado(),
+      dashboardAulas({ agenda: [aula(), aula(), aula({ sample_role: "extra_reserve_pool" })] }),
+    );
+    expect(corte.meta).toBe(20);
+  });
+
+  it("un aula que sobrecumple no sube la meta", () => {
+    // `validas + brecha` habría dado 24: la brecha se satura en cero y el
+    // sobrecumplimiento se colaba al denominador.
+    const corte = corteAulas(
+      estado(),
+      dashboardAulas({
+        kpis: { total_aulas: 2, aulas_aplicadas: 2, respuestas_validas: 24, filter_passed: 24, brechas: 0 },
+        agenda: [aula(), aula()],
+      }),
+    );
+    expect(corte.meta).toBe(20);
+    expect(corte.brecha).toBe(0);
+  });
+
+  it("sin dashboard el oficial queda sin determinar, no en cero", () => {
+    const corte = corteAulas(estado(), null);
+    expect(corte.oficial).toBeNull();
+    expect(corte.meta).toBeNull();
+    const readiness = readinessDeSalidas(corte);
+    expect(readiness.puedePublicarCliente).toBe(false);
+    expect(readiness.estado).toBe("no-evaluado");
+  });
+
+  it("un plan importado sin respuestas válidas bloquea la publicación", () => {
+    const corte = corteAulas(
+      estado({ n_rows: 0 }),
+      dashboardAulas({ kpis: { total_aulas: 3, aulas_aplicadas: 0, respuestas_validas: 0, filter_passed: 0, brechas: 3 } }),
+    );
+    const readiness = readinessDeSalidas(corte);
+    expect(readiness.puedePublicarCliente).toBe(false);
+    expect(readiness.bloqueos.map((b) => b.codigo)).toContain("SIN_VALIDAS");
+  });
+
+  it("un corte completo con válidas habilita la publicación", () => {
+    const readiness = readinessDeSalidas(corteAulas(estado({ n_rows: 30 }), dashboardAulas()));
+    expect(readiness.puedePublicarCliente).toBe(true);
   });
 });

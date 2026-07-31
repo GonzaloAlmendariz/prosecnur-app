@@ -337,6 +337,9 @@ session_schema <- function() {
     "monitoreo_dashboard_light_cache", "literal", "cache_stripped", "router_monitoreo.R", "directa", "",
     "monitoreo_dashboard_light_cache_token", "literal", "cache_stripped", "router_monitoreo.R", "directa", "",
 
+    # --- Recopiladores (ADR 0046: estado propio, aditivo al legado de aulas) ---
+    "collection_state",           "literal", "persistible",    "collection_engine.R", "directa",     "schema collection_state/v1; load_pulso siembra aulas_v1 sin marcar dirty",
+
     # --- Hojas de ruta ---
     "hojas_ruta_config",           "literal", "persistible",    "router_hojas_ruta.R", "session_set", "",
     "hojas_ruta_runs",             "literal", "persistible",    "router_hojas_ruta.R", "session_set", "",

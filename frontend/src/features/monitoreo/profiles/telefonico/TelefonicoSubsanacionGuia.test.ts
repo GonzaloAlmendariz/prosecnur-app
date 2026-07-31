@@ -162,7 +162,12 @@ describe("Telefónico: el contrato de fuentes prioriza enlaces sobre identificad
 
   it.each(copias)("%s dice qué falta sin nombrar el producto", (_perfil, fuente) => {
     expect(fuente).not.toContain('"Falta Kobo"');
-    expect(fuente).toContain('"Falta la encuesta"');
+    // El objeto del estudio, no el servicio que lo aloja. Se comprueba sobre el
+    // objeto y no sobre la frase entera («Falta la encuesta») porque telefónico
+    // la compone desde `contract.missing` en vez de escribirla: al retirar los
+    // editores de conexión desapareció el único sitio donde estaba literal, y
+    // la regla —nombrar la encuesta, no Kobo— seguía cumpliéndose igual.
+    expect(fuente).toContain('"la encuesta"');
   });
 });
 

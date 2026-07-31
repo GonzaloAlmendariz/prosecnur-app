@@ -2,7 +2,15 @@
 
 Estado: Propuesto
 
+Implementacion: No iniciada
+
 Fecha: YYYY-MM-DD
+
+Fecha de decision: —
+
+Reemplaza: —
+
+Extiende: —
 
 ## Contexto
 
@@ -23,7 +31,8 @@ trade-offs; si no aparecen, aun no estan suficientemente explicitados.
 
 Describir como se comprobara que el codigo y la documentacion siguen
 obedeciendo esta decision. Puede incluir tests, checks con `rg`, revisiones de
-PR o reglas de empaquetado.
+PR o reglas de empaquetado. Nombrar invariantes y evidencia concreta; no usar
+«implementado» como unico criterio.
 
 ## Notas
 

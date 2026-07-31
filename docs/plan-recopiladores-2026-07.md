@@ -6,12 +6,12 @@ SurveyMonkey, Kobo y fuentes manuales.
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.1 |
-| Fecha | 2026-07-27; auditoría de ejecución 2026-07-29 |
-| Estado | Vigente; ADR 0046 aceptado el 2026-07-29 |
-| Ejecución | Ola 0 cerrada. Estado por unidad en §11.0 y olas en §11.1 |
+| Versión | 1.2 |
+| Fecha | 2026-07-27; auditoría 2026-07-29; cierre de implementación 2026-07-30 |
+| Estado | Completado; ADR 0046 implementado el 2026-07-30 |
+| Ejecución | Unidades 1–14 cerradas. Evidencia en §11.0 y §13 |
 | Alcance | Contrato de módulo, investigación oficial SurveyMonkey/Kobo, persistencia `.pulso`, adapters, UI, compatibilidad y fases de implementación |
-| Fuera de alcance | Implementación, migración destructiva, llamadas autenticadas, creación real de collectors/assets, envío de correo/SMS y cambios de permisos remotos |
+| Fuera de alcance | Migración destructiva, creación real de collectors/assets, envío de correo/SMS y cambios de permisos remotos |
 | ADR | [0046 — Recopiladores como despliegue de recolección](adrs/0046-recopiladores-despliegue-recoleccion.md) |
 
 ---
@@ -48,7 +48,7 @@ El nombre visible puede mantenerse como **Recopiladores** por compatibilidad,
 con el subtítulo **Canales, accesos y materiales de recolección**. El slug
 `recopiladores` y la ruta `/recopiladores` permanecen estables.
 
-## 1. Diagnóstico del sistema actual
+## 1. Diagnóstico inicial, cerrado el 2026-07-30
 
 La UI existente tiene identidad de módulo, pero no ownership de dominio:
 
@@ -390,17 +390,16 @@ Prosecnur ya puede:
 - descargar submissions paginadas;
 - manejar perfiles Global/EU/otros y secretos fuera del `.pulso`.
 
-No puede todavía:
+Permanece fuera de V1:
 
 - inspeccionar de forma contractual el modo/auth policy;
 - administrar usuarios o permisos;
 - crear recipients o campañas —entidades que Kobo no posee—;
 - revocar un link parametrizado;
-- garantizar que el fallback de URL sea una URL de submission y no la landing
-  del asset.
+- ejecutar mutaciones remotas como consecuencia de guardar estado local.
 
-La auditoría del cliente actual añade cuatro bloqueos previos a habilitar un
-adapter Kobo nuevo:
+La auditoría inicial identificó cuatro bloqueos antes de habilitar el adapter
+Kobo; los cuatro quedaron cerrados el 2026-07-30:
 
 1. `/#/forms/{uid}/landing` es una landing administrativa, no un web form de
    captura; parametrizarla después del fragmento `#` no entrega `d[]` al
@@ -741,9 +740,9 @@ sin duplicarlos. El binario queda fuera del `.pulso`; el proyecto conserva
 | Archivos | Registra, descarga y guarda binarios mediante `file_id` | Interpretar templates, deployments o bindings |
 | Gráficos | Conserva planes analíticos, slides y visualizaciones | Ser editor o renderer de materiales de aplicación en V1 |
 
-ADR 0019 mantiene vigencia hasta que ADR 0046 sea aceptado e implementado. La
-transición mueve solo preparación inicial de links/QR/fichas; Monitoreo conserva
-agenda viva, reprogramaciones, reemplazos, sincronización, brechas y cierre.
+ADR 0019 quedó revisado al implementar ADR 0046. Recopiladores posee la
+preparación inicial de links/QR/fichas y Monitoreo conserva agenda viva,
+reprogramaciones, reemplazos, sincronización, brechas y cierre.
 
 ## 8. Persistencia, privacidad y artefactos
 
@@ -918,26 +917,52 @@ orden lo fija la dependencia dura, no la numeración de fases.
 | # | Unidad | Depende de | Gate parcial | Estado |
 |---|---|---|---|---|
 | 1 | Bloqueo de landing Kobo como URL de captura, en front y backend | — | Test de que una landing o URL con fragmento administrativo bloquea la generación | **Hecha** |
-| 2 | Extracción de `aulas_v1` desde `RecopiladoresPage.tsx`: normalización, matching, plantillas, manifiesto y QR | 1 | Paridad visual antes/después + unit tests del adapter y del parser manual | Pendiente |
-| 3 | Separación de componentes, store y direcciones URL; cuatro secciones en `modules.ts` | 2 | Direcciones enlazables `?seccion=&pestana=`; QA visual | **Parcial**: direcciones y secciones hechas; componentes y store no |
-| 4 | Schemas `collection_plan/v1` y `collection_deployment/v1` + fixtures + validadores | — | Fixtures válidos para aulas, acreditación y establecimientos | Pendiente |
-| 5 | `router_recopiladores.R` y engine propio; seed desde `monitoreo_aulas_plan` | 3, 4 | Proyecto legacy abre, genera, guarda y reabre con el mismo manifiesto | Pendiente |
-| 6 | Fingerprints, estado `stale` y round-trip `.pulso` | 5 | Cambiar selección, instrumento o versión remota invalida el deployment | Pendiente |
-| 7 | Handoff idempotente a Monitoreo | 6 | Repetir handoff es no-op; Monitoreo no regenera accesos | Pendiente |
-| 8 | Saneamiento de `kobo_api.R` y `surveymonkey_api.R` | — | Fixtures HTTP sin red; **gate ampliado a Carga y Monitoreo** | **Parcial**: 1 de los 10 gaps de §3.6/§4.7 cerrado (la landing) |
-| 9 | Adapters read-only detrás de capabilities + `collection_capability_preflight/v1` | 5, 8 | Ninguna capability se infiere falsamente | Pendiente |
-| 10 | Spike de render: una ficha dibujada con el kit grid, sin schema congelado | 2 | Página PNG y PDF equivalentes; QR decodificable | Pendiente |
-| 11 | Congelamiento de `collection_material_template/v1`, instancia, layout y recibo | 10 | Schemas revisados contra lo que el spike demostró renderizable | Pendiente |
-| 12 | Compilador de layout: wrapping, cajas, paginación, overflow y mapa `page → unit_id/access_id` | 11 | Fixtures de texto extremo, URL máxima y acceso ausente | Pendiente |
-| 13 | Job de render: PDF/ZIP/TSV con `file_id`, SHA-256, page count y manifest único | 12 | Artefactos verificados estructural y visualmente; nada entra al `.pulso` | Pendiente |
-| 14 | Editor semántico de materiales: outline, canvas, inspector, undo/redo y preview | 13 | QA del editor en 1710×1107, 1024×600 y Windows 125/150%, incluido teclado | Pendiente |
+| 2 | Extracción de `aulas_v1` desde `RecopiladoresPage.tsx`: normalización, matching, plantillas, manifiesto y QR | 1 | Paridad visual antes/después + unit tests del adapter y del parser manual | **Hecha** |
+| 3 | Separación de componentes, store y direcciones URL; cuatro secciones en `modules.ts` | 2 | Direcciones enlazables `?seccion=&pestana=`; QA visual | **Hecha** |
+| 4 | Schemas `collection_plan/v1` y `collection_deployment/v1` + fixtures + validadores | — | Fixtures válidos para aulas, acreditación y establecimientos | **Hecha** |
+| 5 | `router_recopiladores.R` y engine propio; seed desde `monitoreo_aulas_plan` | 3, 4 | Proyecto legacy abre, genera, guarda y reabre con el mismo manifiesto | **Hecha** |
+| 6 | Fingerprints, estado `stale` y round-trip `.pulso` | 5 | Cambiar selección, instrumento o versión remota invalida el deployment | **Hecha** |
+| 7 | Handoff idempotente a Monitoreo | 6 | Repetir handoff es no-op; Monitoreo no regenera accesos | **Hecha** |
+| 8 | Saneamiento de `kobo_api.R` y `surveymonkey_api.R` | — | Fixtures HTTP sin red; **gate ampliado a Carga y Monitoreo** | **Hecha** |
+| 9 | Adapters read-only detrás de capabilities + `collection_capability_preflight/v1` | 5, 8 | Ninguna capability se infiere falsamente | **Hecha** |
+| 10 | Spike de render: una ficha dibujada con el kit grid, sin schema congelado | 2 | Página PNG y PDF equivalentes; QR decodificable | **Hecha** |
+| 11 | Congelamiento de `collection_material_template/v1`, instancia, layout y recibo | 10 | Schemas revisados contra lo que el spike demostró renderizable | **Hecha** |
+| 12 | Compilador de layout: wrapping, cajas, paginación, overflow y mapa `page → unit_id/access_id` | 11 | Fixtures de texto extremo, URL máxima y acceso ausente | **Hecha** |
+| 13 | Job de render: PDF/ZIP/TSV con `file_id`, SHA-256, page count y manifest único | 12 | Artefactos verificados estructural y visualmente; nada entra al `.pulso` | **Hecha** |
+| 14 | Editor semántico de materiales: outline, canvas, inspector, undo/redo y preview | 13 | QA del editor en 1710×1107, 1024×600 y Windows 125/150%, incluido teclado | **Hecha**; escalado Windows permanece en el checklist manual de release |
 
 Las unidades 1, 4, 8 y 10 no dependen de ninguna otra y pueden adelantarse. La
 unidad 10 se ejecuta **antes** de congelar los schemas de material: un spike de
 render que descubre que un bloque no es dibujable es barato; un schema congelado
 que no lo es, no.
 
-### 11.1 Ejecución de las unidades restantes (auditoría 2026-07-29)
+### Cierre del loop — 2026-07-30
+
+- 13 rutas propias montadas y estado `collection_state/v1` con migración
+  aditiva, revisión optimista, fingerprints, `stale` y handoff idempotente.
+- Cinco adapters V1 read-only con fixtures Kobo/SurveyMonkey sin red y política
+  `remote_write=disabled_v1` verificable.
+- Renderer único `grid` para PNG/PDF, paquete PDF+TSV, recibo-manifest único y
+  artefactos registrados fuera del `.pulso`.
+- UI dividida en shell y cuatro secciones; los archivos congelados quedaron en
+  6 y 4 líneas. Typecheck y suites específicas frontend pasan.
+- QA con el proyecto real derivado `hsvg2026-aulas-sel`: 12 capturas sobre las
+  seis direcciones a 1710×1107 y 1024×600, sin overflow, clipping, scroll jail,
+  errores de API o geometría. El canvas de Materiales fue recapturado después de
+  corregir la presentación de campos etiquetados. Una comprobación adicional
+  adaptó sus 2.373 aulas desde `calc_muestra_aulas_selection`, preservó los
+  2.373 nombres de curso y conteos de elegibles, y verificó el plan paginado en
+  ambos viewports sin capturar el estado transitorio de carga.
+- La suite R combinada cubre contratos, engine, router, round-trip, adapters,
+  clientes, renderer, materiales, job, sesión y registro de errores. Un smoke
+  adicional ejecutó el render PNG mediante `callr` en un worker limpio y
+  verificó registro de `file_id` y recibo.
+
+### 11.1 Historial de ejecución (auditoría 2026-07-29)
+
+Esta sección conserva el estado intermedio de la auditoría. Sus marcas
+`pendiente` o `parcial` quedaron superadas por el cierre del 2026-07-30
+documentado arriba; no describen deuda vigente.
 
 Esto es un **loop de convergencia**, no una lista que se agota: cada ola
 re-audita el módulo antes de abrir la siguiente, y la última palabra sobre si

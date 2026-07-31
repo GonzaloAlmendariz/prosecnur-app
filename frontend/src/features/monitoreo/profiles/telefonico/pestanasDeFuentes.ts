@@ -24,8 +24,12 @@ export const ACREDITACION_SOURCE_TABS = [
   { key: "survey", label: "Encuestas", detail: "Quién responde y qué cuenta", icon: ListChecks },
   // «Universo y barrido» y no solo «Universo»: es el nombre que ya usa el rail de
   // la sección (`fuentes/railDeFuentes.ts`, con test), y en telefónico la hoja
-  // trae las dos cosas —a quién llamar y qué pasó en cada llamada—.
-  { key: "sheets", label: "Universo y barrido", detail: "A quién llamar y qué pasó", icon: Table2 },
+  // trae las dos cosas.
+  //
+  // El detalle dice lo que la pestaña deja decidir, no vuelve a contar lo que el
+  // título ya dijo: «A quién llamar y qué pasó» era el título traducido, y en la
+  // pantalla se leía dos veces seguidas.
+  { key: "sheets", label: "Universo y barrido", detail: "Estados y colores", icon: Table2 },
   { key: "collectors", label: "Recopiladores", detail: "Inclusión y alias", icon: ContactRound },
   { key: "activas", label: "Fuentes activas", detail: "Estado del paquete", icon: PlugZap },
 ] as const;

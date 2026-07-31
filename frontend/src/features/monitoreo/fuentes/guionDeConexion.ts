@@ -52,6 +52,15 @@ export type PiezaDelGuion = {
    */
   porActor: boolean;
   /**
+   * Si el estudio puede cerrarse sin esta pieza.
+   *
+   * Una pieza opcional se ofrece pero no cuenta como pendiente: el barrido de
+   * acreditación solo existe para los actores con canal telefónico, y marcarlo
+   * como faltante en un estudio íntegramente web convertiría el guion en una
+   * lista de tareas que nunca se termina.
+   */
+  opcional?: boolean;
+  /**
    * Otra pieza que puede cubrir a esta.
    *
    * Regla de dominio de telefónico, y no un atajo: muchos estudios llevan
@@ -120,6 +129,22 @@ const GUIONES: Record<FamiliaDeMonitoreo, GuionDeConexion> = {
         aporta: "Cuánta gente hay y contra qué se mide el avance",
         servicios: SHEETS,
         porActor: true,
+      },
+      {
+        // El barrido faltaba en este guion y el estudio sí lo usa: `acrconta`
+        // tiene una hoja de barrido para Egresados que NO se puede conectar
+        // desde aquí. Vivía como preset heredado y se confirmaba desde la
+        // sección Teléfono, así que Fuentes —que se presenta como el mostrador
+        // de todas las fuentes— tenía un agujero y una segunda puerta en otro
+        // sitio. Es `opcional` porque solo aplica a los actores con canal
+        // telefónico: exigirlo a todos marcaría el guion como incompleto en un
+        // estudio que solo aplica encuestas web.
+        papel: "barrido",
+        titulo: "Barrido telefónico del actor",
+        aporta: "Responsable, intentos, estado y fecha de cada llamada",
+        servicios: SHEETS,
+        porActor: true,
+        opcional: true,
       },
     ],
   },
@@ -234,7 +259,7 @@ export function guionConEstado(
     return {
       ...pieza,
       conectadas,
-      lista: propia || Boolean(cubridora),
+      lista: propia || Boolean(cubridora) || Boolean(pieza.opcional),
       actores,
       cubiertaCon: cubridora?.titulo ?? "",
     };

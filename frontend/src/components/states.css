@@ -105,8 +105,8 @@
 }
 
 .pulso-empty-state--panel {
-  gap: 8px;
-  padding: 40px 20px;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-8) var(--pulso-space-5);
   min-height: 240px;
 }
 
@@ -166,7 +166,7 @@
 }
 
 .pulso-empty-state-cta {
-  margin-top: 4px;
+  margin-top: var(--pulso-space-1);
 }
 
 @keyframes pulso-states-fade-in-up {
