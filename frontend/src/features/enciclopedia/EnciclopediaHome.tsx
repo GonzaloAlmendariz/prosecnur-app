@@ -20,7 +20,7 @@ import {
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
-import { Math } from "./shared/components/Math";
+import { Math } from "../../components/Math";
 
 type TabId = "catalogo" | "glosario" | "comparador" | "estudios" | "tipos";
 

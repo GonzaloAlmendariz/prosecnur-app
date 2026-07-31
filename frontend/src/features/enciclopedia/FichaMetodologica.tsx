@@ -14,7 +14,7 @@ import {
 import { Panel } from "../../components/Panel";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
-import { Math as KMath } from "./shared/components/Math";
+import { Math as KMath } from "../../components/Math";
 
 type TabId = "definicion" | "formulas" | "parametros" | "decisiones" | "aplicaciones";
 
