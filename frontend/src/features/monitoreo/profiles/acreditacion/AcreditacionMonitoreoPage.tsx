@@ -58,6 +58,7 @@ import {
 } from "../../useMonitoreoDireccion";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
+import { DetalleDeCelda } from "../../celdas/DetalleDeCelda";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail, type MonitoreoWorkbenchRailTab } from "../../components";
 import {
   filterInternalQueryCases,
@@ -12580,11 +12581,11 @@ function AcreditacionPlatformRecordsView({
                       </td>
                       <td>
                         <CaseStatusPill value={internalCaseResponseStateValue(item)} />
-                        <small>{item.response_id || "sin response_id"}</small>
+                        <DetalleDeCelda referencia={caseDisplayName(item)} detalle={item.response_id} />
                       </td>
 	                      <td>
 	                        <span>{caseResponseDateTimeLabel(item)}</span>
-	                        <small>{caseResponseTimeDetailLabel(item)}</small>
+	                        <DetalleDeCelda referencia={caseResponseDateTimeLabel(item)} detalle={caseResponseTimeDetailLabel(item)} />
 	                      </td>
                       <td>
                         <span>{acreditacionChannelLabel(item.channel || item.source_label)}</span>
@@ -12592,7 +12593,7 @@ function AcreditacionPlatformRecordsView({
                       </td>
                       <td>
                         <CaseCrossingPill value={internalCaseCrossingValue(item)} />
-                        <small>{item.base_record || item.base_source || item.base_result || "Sin base"}</small>
+                        <DetalleDeCelda referencia={internalCaseCrossingLabel(internalCaseCrossingValue(item))} detalle={item.base_record || item.base_source || item.base_result} />
                       </td>
                       <td>
                         {canOpenSubsanacion ? (

@@ -17,8 +17,8 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | acreditación | Modelo operativo › Distribución | hecho | contrato comparaba cabecera 44 con rejilla 655 (Δ611) → 4 tarjetas intrínsecas; balance 4×1/2×2; KPI ajenos se retiran; actores recuperan scroll exterior y nombres completos. C5 funcional diferido: una declaración sin catálogo aún se silencia | producto: `943ffa08` |
 | acreditación | Modelo operativo › Cronograma | hecho | resumen heredado de metas retirado; plan y ejecución pasan a dos regiones; 4 KPI 2×2 y 5 controles quedan auditables; “Fuera/Dentro del plan” hace explícito el desvío y el vacío sin corte deja de silenciarse; un solo scroll exterior | producto: `cc43dcc9` |
 | acreditación | ~~Modelo operativo › Resumen~~ | no existe | La sección monta tres pestañas —Modelo operativo, Distribución y Cronograma—; el «Resumen» salía del catálogo estático |  |
-| acreditación | Consultas › Registros en plataforma | auditada | 0 solapes, 0 contenido cortado, 1 recorte. **301 botones en radio 8** pendientes de escala | — |
-| acreditación | Consultas › Estado de la base | auditada | limpia de recortes y solapes; **519 botones en radio 8** pendientes | — |
+| acreditación | Consultas › Registros en plataforma | hecho | **Tres de las seis columnas repetían debajo lo que ya decían arriba.** Medido sobre las 160 filas que la tabla pinta: la hora repetía la del sello de fecha **160 de 160**, el resultado del cruce repetía su propia píldora **141**, y el `response_id` repetía el código del caso **134** — «Sin llave / Sin llave» una debajo de otra. Son **435 cadenas redundantes** en pantalla. No se borran, se comparan: las 19 filas que sí cruzaron traen la llave concreta y las 26 que se identifican por nombre o código de alumno traen el único `response_id` de la fila. El alto de fila **no cambia** (11.751 px antes y después): lo fija Canal/fuente, así que la ganancia es de claridad y no de densidad. Los **301 botones en radio 8 no eran deuda**: es `theme.css:196`, el radio de control nativo de la app | este commit |
+| acreditación | Consultas › Estado de la base | hecho (conforme) | limpia de recortes y solapes; los **519 botones en radio 8** son el mismo `theme.css:196` y quedan como están | — |
 | acreditación | Consultas › Cruces efectivos | auditada · diagnosticada | 0 solapes. Los **45 recortes de «Cruzó por llave» quedan diagnosticados y sin arreglar**, con la causa exacta: el chip declara `width: fit-content` bajo el `box-sizing: border-box` global, así que sus 16 px de padding y 2 de borde se comen el contenido y al texto le faltan **exactamente 2 px**. Comprobado que `box-sizing: content-box` lo lleva de 45 a 0, y que la celda tiene 20 px de holgura. **No se aplica** porque es una propiedad nueva en `profilePage.css`, que está congelado a crecimiento: cambiar un valor en sitio no lo hace crecer, añadir una declaración sí. Meterlo en otra hoja de acreditación sería ponerlo donde no toca. Y de paso: la tabla es `table-layout: fixed`, así que envolver también habría sido seguro | `profilePage.css:3161`; medido el 2026-07-30 en `acrconta` | abierto — necesita subir la línea base |
 | acreditación | Consultas › Subsanación | hecho | **109 rótulos recortados**: «Estudiantes · 22 julio · Enlace QR Estudiant…» pedía 242 px en 218. No está en tabla, así que envuelve; las filas quedan uniformes en 81 px. Radios 7 y 9 pendientes | este commit |
 | acreditación | Monitoreo telefónico › **Barrido + Kobo** | auditada | 0 solapes, 0 contenido cortado. Chips de estado en 8 px pendientes | — |
@@ -84,6 +84,42 @@ una sección sin pestañas internas cuenta como una sola superficie.
 | cursos-horario | Avance | **parcial (sin datos)** | idem vacío contenido; escala de KPI a 14 | este commit |
 | cursos-horario | Validación | **parcial (sin datos)** | idem | este commit |
 | cursos-horario | Consultas | **parcial (sin datos)** | idem | este commit |
+
+## Lo que queda abierto en Registros en plataforma — 2026-07-30
+
+Quitadas las 435 repeticiones, la columna **Canal / fuente** queda como la única
+razón de que la fila mida 68 px: pinta tres líneas de procedencia —«QR
+presencial: pregunta de código PUCP · SurveyMonkey · Estudiantes · Web · Enlace
+QR Estudiantes»— y en 67 de 160 filas es **exactamente la misma cadena**. Cabrían
+el doble de registros en pantalla si esa procedencia se resumiera y el detalle
+viviera en el inspector de caso, que ya existe.
+
+No lo toco en esta pasada por dos razones: a diferencia de las otras tres
+columnas, aquí el detalle **sí varía** entre filas —no es redundancia, es
+verbosidad—, y decidir qué parte de la procedencia es la que importa es criterio
+de dominio, no de CSS. Queda medido para cuando se decida.
+
+## El radio 8 de los botones no era deuda — 2026-07-30
+
+Varias filas del registro anotaban «N botones en radio 8 pendientes de escala»
+—301 en Registros en plataforma, 519 en Estado de la base—. Es `theme.css:196`,
+la regla `button { }` de la casa, que da a **todo** control nativo su radio de 8.
+Ninguna hoja de Monitoreo interviene: comprobado desactivando hojas una a una
+—solo `theme` mueve el valor— y contra un `<iframe>` sin estilos, donde el
+navegador da 0 y no 8.
+
+Dos cosas que aprender de aquí. Una: **la enumeración de reglas ganadoras tenía
+un agujero**. Partir `selectorText` por comas rompe los grupos `:is()`/`:where()`
+y `matches()` devuelve falso; hay que probar el selector entero. Aun así este
+caso no aparecía, y lo que lo resolvió fue desactivar hojas, no leer selectores:
+**cuando la enumeración dice que nada gana y algo se ve, la enumeración está
+mal, no la pantalla.** Dos: el 8 de un control no se cuenta como fuera de escala,
+y eso ya está en la tabla del protocolo — las filas que lo anotaban se
+escribieron antes de esa corrección.
+
+Ojo con no sobregeneralizar: los chips `span.is-effective` y compañía que siguen
+anotados en 8 px **no** son controles nativos, no los cubre esta regla y siguen
+abiertos.
 
 ## Segunda corrección del instrumento — 2026-07-30
 
