@@ -83,7 +83,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 7 módulos | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **38** | ↑ hasta cubrir toda colección |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **40** | ↑ hasta cubrir toda colección |
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
@@ -204,9 +204,24 @@ no renderizan», y era falsa —mi sonda estaba en el flag equivocado—. Antes 
 declarar rota una superficie hay que descartar que el instrumento esté mirando
 en el momento equivocado.
 
-**Nota de cierre:** la matriz de cinco viewports del tablero construido quedó
-corriendo al cerrar la vuelta; lo verificado aquí es el viewport 1440x1000. La
-iteración 15 recoge su resultado.
+**Resultado de la matriz** (recogido al llegar): los cinco viewports del tablero
+construido dieron `issues=0`, `scrollJails=0` y `waitSelectorMisses=0` —los
+gráficos pintaron en todos— con `coverageMisses=5`: el tablero no declaraba
+geometría. Se declararon sus dos colecciones en la misma vuelta (`0cd6828f`), y
+al hacerlo el comprobador señaló que la colección **no era homogénea**: la
+etiqueta «N: 1.283» vivía dentro del stack de tarjetas y se medía como si fuera
+una. Es el encabezado del perfil, no un indicador. Salió del stack, con su
+separación devuelta a mano y la captura verificada idéntica. **No se ajustó el
+contrato para que pasara: se corrigió la estructura que el contrato señalaba.**
+
+**Y un error propio, grave, que conviene dejar escrito.** El texto de ayuda de
+`--sembrar` se escribió citando un flag con acentos graves **dentro del template
+literal**, y eso cerró la cadena: `ui-quick-check` dejó de parsear entero y se
+commiteó así. Los cinco tests que fallaron a continuación se atribuyeron a un
+choque de puertos con una matriz en background —una explicación cómoda que
+estaba a mano— y se aceptó sin comprobarla. `node --check` la habría descartado
+en un segundo. **Un rojo explicado sin verificar es un rojo ignorado**; reparado
+en `3d89ef81`.
 
 ### Nota de la iteración 13
 
