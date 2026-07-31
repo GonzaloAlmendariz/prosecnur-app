@@ -56,6 +56,9 @@
  * hablando —el panel se abre igual desde los cuatro—. */
 .fuentes-conectar-guion {
   min-width: 0;
+  /* Misma razón que en `-obra`: sin esto su `overflow-y: auto` de abajo no se
+   * activa nunca, porque el ítem de grid crece con su contenido. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -251,8 +254,18 @@
 }
 
 /* Columna de trabajo: cabecera, cuerpo con el único scroll, y pie. */
+/* `min-height: 0` es lo que hace que el cuerpo pueda scrollear de verdad.
+ *
+ * Es la misma trampa que el `min-inline-size` del fieldset, en el otro eje: un
+ * ítem de grid arranca en `min-height: auto` y no encoge por debajo de su
+ * contenido. Sin esto, la obra crecía a 3.100 px dentro de una celda de 987, el
+ * cuerpo heredaba ese alto y su `overflow-y: auto` no llegaba a activarse
+ * nunca. Como el panel es `overflow: hidden`, lo que pasaba de 987 no se veía
+ * NI se podía alcanzar (C4). El `max-height: 320px` que tenía el catálogo lo
+ * tapaba: mantenía el total por debajo del alto del panel. */
 .fuentes-conectar-obra {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
