@@ -31,12 +31,18 @@ test_that("todo fixture instalado pasa el gate de PII y de cobertura", {
   }
 })
 
-test_that("los fixtures instalados son read-only", {
+test_that("verificar un fixture lo deja sellado como read-only", {
+  # El modo 0444 lo pone el build, pero git no versiona permisos: en un clon o
+  # en CI el fixture llega 0644. Por eso el invariante no se asume del arbol
+  # —ahi solo se cumple en la maquina donde alguien hizo el chmod— sino que lo
+  # restablece `reference_project_verify()`, que es el gate declarado del
+  # fixture. Si el sellado dejara de funcionar, esto falla.
   instalados <- Filter(function(s) file.exists(reference_project_path(s)),
                        reference_project_catalog()$slug)
   testthat::skip_if(length(instalados) == 0, "no hay fixtures instalados")
 
   for (slug in instalados) {
+    reference_project_verify(slug)
     modo <- as.character(file.info(reference_project_path(slug))$mode)
     expect_true(grepl("4[04]4$", modo), info = sprintf("%s tiene modo %s", slug, modo))
   }
