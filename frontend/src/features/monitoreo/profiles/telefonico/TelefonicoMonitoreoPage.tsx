@@ -13196,7 +13196,7 @@ function AcreditacionTraceStep({
       <i>{icon}</i>
       <em>{label}</em>
       <strong>{value}</strong>
-      <small>{hint}</small>
+      {hint && hint !== value ? <small>{hint}</small> : null}
     </span>
   );
 }
@@ -16493,7 +16493,7 @@ function AcreditacionAdvanceMetric({
     <span className={`mon-advance-metric is-${tone}`}>
       <em>{label}</em>
       <strong>{value}</strong>
-      <small>{hint}</small>
+      {hint && hint !== value ? <small>{hint}</small> : null}
     </span>
   );
 }
