@@ -83,11 +83,11 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 7 módulos | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **42** | ↑ hasta cubrir toda colección |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **43** | ↑ hasta cubrir toda colección |
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **10** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **11** | ↓ |
 | Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | Definiciones duplicadas de formateadores en Monitoreo | 31 | **28** | ↓ |
@@ -129,7 +129,7 @@ una letra; el loop sigue solo mientras tanto.
 | 5 | Telefónico · Modelo › Cuotas | Cuál de las cuatro superficies es la de lectura y cuál la de edición | abierta |
 | 6 | Telefónico · Consultas › CodPulso | Cuál de los dos nodos duplicados sobra | abierta |
 | 7 | Territorial · autodetección | `sex_var` es la única de doce con fallback vacío: deja sexo sin mapear y sin avisar | abierta |
-| **8** | **Todo el frontend · vocabulario de contratos** | **Falta un contrato para «mismo alto, ancho intrínseco»**, que es la forma de toda tira de chips, toolbar y banda de estado de la app. Hoy `equal` exige mismo alto **y** mismo ancho, e `intrinsic` llama desperdicio al `min-height` de un control. Medido en Formularios: con `intrinsic`, capacity-drift de 10,5 px que es el alto de control del chip; con `equal`, width-drift de 118 px y 55 px. **A:** agregar un tercer contrato (`banda`) con alto igual y ancho libre. **B:** partir `equal` en ejes (`equal-height` / `equal-width`) y permitir combinarlos. **C:** dejar las tiras sin declarar y aceptar el hueco de cobertura. **Recomiendo B**: es el que además deja declarar el caso inverso —ancho igual, alto libre— que ya apareció en las rejillas que colapsan a una columna. **Segundo caso medido (iteración 16, Cálculo de muestra › Marco)**: las tres listas de categorías son «ancho igual, alto de control declarado, con excepciones por contenido» —`min-height: 44px` de objetivo táctil, y una etiqueta larga que envuelve a dos líneas—. Con `intrinsic` da capacity-drift uniforme de 8,55 px; con `equal`, drift de alto. Ya no es un caso aislado de Formularios: son 3 coberturas más que no se pueden cerrar sin esto | abierta |
+| **8** | **Todo el frontend · vocabulario de contratos** | **Falta un contrato para «mismo alto, ancho intrínseco»**, que es la forma de toda tira de chips, toolbar y banda de estado de la app. Hoy `equal` exige mismo alto **y** mismo ancho, e `intrinsic` llama desperdicio al `min-height` de un control. Medido en Formularios: con `intrinsic`, capacity-drift de 10,5 px que es el alto de control del chip; con `equal`, width-drift de 118 px y 55 px. **A:** agregar un tercer contrato (`banda`) con alto igual y ancho libre. **B:** partir `equal` en ejes (`equal-height` / `equal-width`) y permitir combinarlos. **C:** dejar las tiras sin declarar y aceptar el hueco de cobertura. **Recomiendo B**: es el que además deja declarar el caso inverso —ancho igual, alto libre— que ya apareció en las rejillas que colapsan a una columna. **Segundo caso medido (iteración 16, Cálculo de muestra › Marco)**: las tres listas de categorías son «ancho igual, alto de control declarado, con excepciones por contenido» —`min-height: 44px` de objetivo táctil, y una etiqueta larga que envuelve a dos líneas—. Con `intrinsic` da capacity-drift uniforme de 8,55 px; con `equal`, drift de alto. Ya no es un caso aislado de Formularios: son 3 coberturas más que no se pueden cerrar sin esto. **Acotación de la iteración 18**: el caso inverso —«ancho igual, alto libre», el riel de fases de Bitácora— resultó **cubierto por `intrinsic`**, que no mira el ancho. Así que el hueco real es **solo** «mismo alto, ancho intrínseco», y la opción **A** (un tercer contrato `banda`) alcanza y es más barata que partir `equal` en ejes. **Cambio mi recomendación de B a A** | abierta |
 
 | **9** | **Todo el frontend · estado vacío del kit** | **`.pulso-empty-state--panel` no dibuja panel**: no tiene fondo, ni borde, ni radio, pese al nombre y pese a ser el estado vacío canónico. Son ~96 de los 105 usos de `EmptyState` en la app. Al menos dos features ya se escribieron su propio marco alrededor (`cmv2-calc-escenarios-panel`, `cmv2-marco-vacio`), que es la duplicación que el kit compartido debería evitar. **A:** darle materia de panel al kit —arregla ~96 superficies de una vez, pero deja cajas concéntricas donde ya hay marco propio, y esos hay que retirarlos—. **B:** dejar el kit sin marco y que cada superficie envuelva su vacío, como hizo la iteración 8 en Bitácora —más trabajo, pero respeta que el marco es de la superficie, no del mensaje—. **C:** renombrar la variante para que deje de prometer lo que no da. **Recomiendo B**, y renombrar la variante como parte de ella: el marco es de la superficie | abierta |
 
@@ -180,6 +180,34 @@ a empezar.
 | 16 | 31 jul | **Cálculo de muestra** | **Segundo defecto de dato del goal, y el de mayor consecuencia**: la cifra hero del Marco se presentaba como conteo de personas y son pares estudiante×curso —79.771 sobre un universo de 27.765— | defectos reparados 8→**9** · coverageMisses en Marco 4→**3** · decisión 10 abierta | `dc556097`, `53bec49e` |
 
 | 17 | 31 jul | **Formularios** | **El instrumento reportó `ok=true` sobre la pantalla equivocada**, y solo se supo al abrir la captura. Ahora un click que cambia de módulo falla | falso verde cerrado · defectos reparados 9→**10** · N8 abierto | `3e01f20e` |
+
+| 18 | 31 jul | **Bitácora** | **Cuarto defecto de dato**: el cronograma decía «Sembrar las seis fases» y mostraba cinco. El canon son cinco por decisión explícita; los textos no se enteraron | coverageMisses 1→**0** · defectos reparados 10→**11** · las 3 secciones verdes por conformidad | `ceccc046` |
+
+### Nota de la iteración 18
+
+**Cuarto defecto de dato del goal, y el más fácil de haber visto antes.** El
+botón prometía «seis fases» y el riel de al lado mostraba cinco. No hacía falta
+ningún instrumento: hacía falta contar. Salió, como los tres anteriores, de leer
+la captura contra sí misma.
+
+**La causa es la misma clase que ya apareció en Enciclopedia y en `pct`: un dato
+escrito a mano donde había una fuente.** El catálogo de fases vive en
+`bitacora_fases.R` y la sexta se quitó por una decisión explícita —«NO hay fase
+Diseño», documentada ahí mismo—, pero el conteo estaba hardcodeado en el texto,
+así que envejeció en silencio. La reparación no fue cambiar «seis» por «cinco»
+sino **derivarlo del catálogo**: un número escrito a mano puede volver a mentir;
+uno derivado, no.
+
+**Y el caso inverso de la decisión 8 apareció y `intrinsic` lo cubrió.** El riel
+es «ancho igual por rejilla, alto libre por contenido» —`grid-auto-columns:
+minmax(104px, 1fr)` con `align-items: start`—, que es justo la combinación que
+motivó recomendar la opción B. Resulta que `intrinsic` la acepta, porque no mira
+el ancho. Eso **acota la decisión 8**: el hueco real es solo «mismo alto, ancho
+intrínseco», no las cuatro combinaciones. La opción A (un tercer contrato
+`banda`) alcanzaría, y es más barata que partir `equal` en ejes.
+
+Queda anotado sin tocar: el ADR 0047 dice «seis etapas» en dos lugares. Es
+registro histórico y hay otra sesión editándolo.
 
 ### Nota de la iteración 17
 
