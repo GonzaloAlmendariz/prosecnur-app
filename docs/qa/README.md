@@ -21,8 +21,13 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   patrones extraídos de iteraciones visuales.
 - [Prompt de validación visual de referencia](prompt-validacion-visual-referencia.md):
   guía reutilizable para una revisión, no resultado de verificación.
+
+## Cursos y horarios
+
 - [Auditoría metodológica de cursos y horarios](auditoria-interventor-cursos-horario-2026-07-13.md):
   informe fechado con evidencia externa al repositorio.
+- [Auditoría de cumplimiento del ADR 0019](auditoria-adr-0019-cursos-horario-2026-07-30.md):
+  contraste estático del perfil contra su decisión arquitectónica y sus pruebas.
 
 ## Carga y procesamiento multibase
 
@@ -75,6 +80,9 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Retiro del monolito de Monitoreo](monitoreo/monitoreo_monolith_retirement.md).
 - [Goal loop de Monitoreo](monitoreo/goal-loop-monitoreo-2026-07-27.md).
 - [Repaso de utilidad de ocurrencias](monitoreo/ocurrencias-repaso-utilidad-2026-07-26.md).
+- [Estado del pulido estético de Monitoreo](pulido-monitoreo-estado.md):
+  registro vivo y fechado del protocolo de pulido; no certifica por sí solo el
+  estado actual del producto.
 
 ## Regla de lectura
 

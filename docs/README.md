@@ -85,6 +85,9 @@ Antes de seguir uno, revise el estado y la fecha que declara en su cabecera.
   Monitoreo; ante conflicto prevalecen los ADR aceptados.
 - [Lecciones de Acreditación](lecciones-monitoreo-2026-07.md): retrospectiva
   fechada para revisar otros perfiles, no norma independiente.
+- [Protocolo de pulido estético](prompt-pulido-monitoreo.md): prompt operativo
+  para iterar sobre las superficies de Monitoreo; su registro de avance es
+  evidencia fechada, no contrato de producto.
 
 ### Entregables
 
@@ -124,6 +127,7 @@ Empiece por el [índice y arbitraje de la suite](plan-revamp-ui-2026-07-INDICE.m
 Las piezas se conservan para trazabilidad, incluso cuando el índice las marca
 como reemplazadas o parcialmente aplicables:
 
+- [Plan continuo de armonía y espaciado](plan-armonia-espaciado-2026-07.md).
 - [Plan base](plan-revamp-ui-2026-07.md).
 - [Guía de sidebar](plan-revamp-ui-2026-07-guia-sidebar.md).
 - [Indicación 2](plan-revamp-ui-2026-07-indicacion-2.md).
