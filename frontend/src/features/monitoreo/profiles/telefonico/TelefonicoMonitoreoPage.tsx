@@ -190,6 +190,7 @@ import { useAbrirConectarFuente } from "../../fuentes/abrirConectarFuente";
 import { DefinidorDeEstados } from "../../estados/DefinidorDeEstados";
 import { criteriosDesdeFiltro, filtroDesdeCriterios, resumenDeCriterios } from "../../filtroEfectiva/criterios";
 import { contarSegmentos, nombreDelSegmento, pluralDelSegmento } from "./segmentoDeCuotas";
+import { TelefonicoEffectiveConsultedFilters } from "./TelefonicoEffectiveConsultedFilters";
 import { GraficoDeEstadosPorDia } from "../../estados/GraficoDeEstadosPorDia";
 import { estadosPorDiaDeLaCuota } from "../../estados/estadosPorCuota";
 import { acreditacionDeclaracionesDesdeReglas } from "../../estados/familiasDeLlamada";
@@ -7008,6 +7009,9 @@ function AcreditacionPhoneOperationsWorkbench({
   const summaryRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["resumen_telefonico"]);
   const statusRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["estatus_telefonico"]);
   const quotaRows = rowsForSheetBlock(reports, "monitoreo_telefonico", ["cuotas_variable", "cuotas_telefonicas", "cuotas_por_variable"]);
+  // Mismo origen que en la vista de cuotas: el nombre lo declara el estudio en
+  // `control_vars` y viaja en la columna `Variable` de cada fila.
+  const segmentoDeLasCuotas = nombreDelSegmento(phoneQuotaRowsForPanel(quotaRows).map((row) => row.variable));
   const responsibleRows = mergeAcreditacionPhoneResponsibleRows(
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["operacion_responsable"]),
     rowsForSheetBlock(reports, "monitoreo_telefonico", ["efectivos_responsable"]),
@@ -7108,7 +7112,7 @@ function AcreditacionPhoneOperationsWorkbench({
       <div className="mon-phone-tabbody">
         {activeTab === "consultados" ? (
           <div className="mon-phone-layout">
-            <TelefonicoConsultedWorkbench cases={consultedCases} />
+            <TelefonicoConsultedWorkbench cases={consultedCases} segmento={segmentoDeLasCuotas} />
           </div>
         ) : activeTab === "dia" ? (
           <div className="mon-phone-layout mon-phone-layout--alerts">
@@ -14389,75 +14393,11 @@ function AcreditacionCasesWorkspace({
   );
 }
 
-function TelefonicoEffectiveConsultedFilters({
-  filters,
-  actorOptions,
-  dateOptions,
-  sourceOptions,
-  collectorOptions,
-  activeFilters,
-  onFilter,
-  onClear,
-}: {
-  filters: AcreditacionCaseFilters;
-  actorOptions: Array<{ value: string; label: string; count: number }>;
-  dateOptions: Array<{ value: string; label: string; count: number }>;
-  sourceOptions: Array<{ value: string; label: string; count: number }>;
-  collectorOptions: Array<{ value: string; label: string; count: number }>;
-  activeFilters: boolean;
-  onFilter: (patch: Partial<AcreditacionCaseFilters>) => void;
-  onClear: () => void;
-}) {
-  return (
-    <div className="mon-phone-consulted-filters" aria-label="Filtros de efectivas Kobo">
-      <label className={`mon-acr-base-search-pill${filters.search ? " is-active" : ""}`}>
-        <Search size={14} />
-        <input
-          value={filters.search}
-          onChange={(event) => onFilter({ search: event.target.value })}
-          placeholder="Buscar CodPulso, responsable o encuesta"
-        />
-      </label>
-      <AcreditacionBaseCapsuleSelect
-        label="Sede"
-        value={filters.actor}
-        options={actorOptions}
-        allLabel="Todas las sedes"
-        onChange={(actor) => onFilter({ actor })}
-      />
-      <AcreditacionBaseCapsuleSelect
-        label="Fecha"
-        value={filters.date}
-        options={dateOptions}
-        allLabel="Todas las fechas"
-        onChange={(date) => onFilter({ date })}
-      />
-      <AcreditacionBaseCapsuleSelect
-        label="Encuesta"
-        value={filters.source}
-        options={sourceOptions}
-        allLabel="Todas las encuestas"
-        onChange={(source) => onFilter({ source })}
-      />
-      <AcreditacionBaseCapsuleSelect
-        label="Responsable"
-        value={filters.collector}
-        options={collectorOptions}
-        allLabel="Todos"
-        onChange={(collector) => onFilter({ collector })}
-      />
-      <button type="button" className="mon-acr-base-clear-pill" onClick={onClear} disabled={!activeFilters} title="Limpiar filtros">
-        <XCircle size={14} />
-        <span>Limpiar</span>
-      </button>
-    </div>
-  );
-}
-
 function TelefonicoEffectiveConsultedView({
   cases,
   selectedCase,
   filters,
+  segmento = "Actor",
   actorOptions,
   dateOptions,
   sourceOptions,
@@ -14470,6 +14410,10 @@ function TelefonicoEffectiveConsultedView({
   cases: MonitoreoInternalQueryCase[];
   selectedCase: MonitoreoInternalQueryCase | null;
   filters: AcreditacionCaseFilters;
+  /** Cómo llama este estudio al segmento de cuotas. Ver `segmentoDeCuotas.ts`.
+   *  Por defecto «Actor», el mismo respaldo que ya usaba `scopeLabel`: nunca
+   *  «Sede», que es justo el hardcodeo que la decisión 5a prohíbe. */
+  segmento?: string;
   actorOptions: Array<{ value: string; label: string; count: number }>;
   dateOptions: Array<{ value: string; label: string; count: number }>;
   sourceOptions: Array<{ value: string; label: string; count: number }>;
@@ -14521,6 +14465,8 @@ function TelefonicoEffectiveConsultedView({
 
         <TelefonicoEffectiveConsultedFilters
           filters={filters}
+          segmento={segmento}
+          formatOptionLabel={(option) => `${compactSelectLabel(option.label, 34)} (${fmt(option.count)})`}
           actorOptions={actorOptions}
           dateOptions={dateOptions}
           sourceOptions={sourceOptions}
@@ -14711,7 +14657,7 @@ function TelefonicoCaveatsView({
   );
 }
 
-function TelefonicoConsultedWorkbench({ cases }: { cases: MonitoreoInternalQueryCase[] }) {
+function TelefonicoConsultedWorkbench({ cases, segmento }: { cases: MonitoreoInternalQueryCase[]; segmento: string }) {
   const [filters, setFilters] = useState<AcreditacionCaseFilters>({ ...EMPTY_CASE_FILTERS });
   const [selectedId, setSelectedId] = useState("");
   const activeFilters = Object.values(filters).some(Boolean);
@@ -14756,6 +14702,7 @@ function TelefonicoConsultedWorkbench({ cases }: { cases: MonitoreoInternalQuery
       cases={filteredCases}
       selectedCase={selectedCase}
       filters={filters}
+      segmento={segmento}
       actorOptions={actorOptions}
       dateOptions={dateOptions}
       sourceOptions={sourceOptions}
