@@ -66,6 +66,7 @@ function parseArgs(argv) {
     geometryTolerance: Number(process.env.UI_QA_GEOMETRY_TOLERANCE || "2"),
     requireGeometry: false,
     clickTabs: [],
+    sembrar: [],
     direcciones: [],
     name: "quick",
     routeProvided: false,
@@ -109,6 +110,8 @@ function parseArgs(argv) {
       out.apiPort = Number(next());
     } else if (arg === "--click-tab") {
       out.clickTabs.push(next());
+    } else if (arg === "--sembrar") {
+      out.sembrar.push(next());
     } else if (arg === "--ir") {
       out.direcciones.push(next());
     } else if (arg === "--name") {
@@ -201,6 +204,10 @@ Opciones:
   --api auto|stub|real      Default auto: stub sin proyecto, real con proyecto.
   --out DIR                 Carpeta de reporte. Default: tmp/visual-qa/quick/<timestamp>.
   --click-tab TEXT          Hace click en una pestaña/control antes de capturar. Puede repetirse.
+  --sembrar TEXT            Pulsa un control que CONSTRUYE estado y tolera que ya no
+                            esté (la sesión es una sola para toda la matriz, así que
+                            solo existe en la primera captura). Ej: "Cargar fuente"
+                            en Dashboard. Puede repetirse.
   --wait-after-click-selector CSS
                               Selector opcional a esperar después de cada click.
   --post-click-wait-selector CSS
@@ -1041,7 +1048,9 @@ async function esperarListo(page, timeoutMs) {
   return ultimo ?? { listo: false, motivo: "timeout" };
 }
 
-async function clickNamedControl(page, label, timeoutMs) {
+// Devuelve `true` si pulsó. Con `opcional`, un control ausente no es error:
+// devuelve `false` y deja seguir. Sin `opcional`, lanza como siempre.
+async function clickNamedControl(page, label, timeoutMs, { opcional = false } = {}) {
   const pattern = new RegExp(escapeRegExp(label), "i");
   const startsWithPattern = new RegExp(`^\\s*${escapeRegExp(label)}(?:\\s|$)`, "i");
   const clickTimeout = Math.min(timeoutMs, DEFAULT_CLICK_TIMEOUT_MS);
@@ -1056,11 +1065,12 @@ async function clickNamedControl(page, label, timeoutMs) {
   for (const locator of candidates) {
     try {
       await locator.click({ timeout: clickTimeout });
-      return;
+      return true;
     } catch (error) {
       lastError = error;
     }
   }
+  if (opcional) return false;
   throw lastError ?? new Error(`No se pudo hacer click en "${label}".`);
 }
 
@@ -1131,6 +1141,19 @@ async function runCaptures(opts, stack) {
         }
         for (const destino of opts.direcciones) {
           await irADireccion(page, destino, opts.timeoutMs);
+        }
+        // Siembra: pulsa el control que construye estado —«Cargar fuente» en
+        // Dashboard, por ejemplo— y **tolera que ya no esté**. La sesión es una
+        // sola para toda la matriz, así que el control existe en la primera
+        // captura y desaparece en las cuatro siguientes, cuando el estado ya
+        // quedó sembrado. Por eso no comparte camino con `--click-tab`, donde
+        // un control ausente sí es un fallo que hay que ver.
+        for (const semilla of opts.sembrar) {
+          const sembrado = await clickNamedControl(page, semilla, opts.timeoutMs, { opcional: true });
+          if (sembrado) {
+            await cederRenderDeTransicion(page);
+            await esperarListo(page, opts.timeoutMs);
+          }
         }
         for (const tab of opts.clickTabs) {
           await clickNamedControl(page, tab, opts.timeoutMs);
