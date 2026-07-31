@@ -227,11 +227,17 @@ export function CronogramaSection({
   }
 
   return (
-    <div className="plan-shell plan-shell--embedded">
+    <div
+      className="plan-shell plan-shell--embedded"
+      role="tabpanel"
+      id={`plan-vista-panel-${vista}`}
+      aria-labelledby={`plan-vista-tab-${vista}`}
+    >
       <div className="pulso-command-bar plan-commandbar" aria-label="Acciones del cronograma">
         <GlidingTabList
           className="plan-vista-switch plan-command-side"
           activeKey={vista}
+          role="tablist"
           aria-label="Vista del cronograma"
           onRovingKeyChange={(clave) => setVista(clave as VistaCronograma)}
         >
@@ -240,10 +246,12 @@ export function CronogramaSection({
             return (
               <button
                 key={item.id}
+                id={`plan-vista-tab-${item.id}`}
                 type="button"
                 role="tab"
                 data-gliding-key={item.id}
                 aria-selected={vista === item.id}
+                aria-controls={`plan-vista-panel-${item.id}`}
                 className={`plan-vista-boton${vista === item.id ? " is-active" : ""}`}
                 onClick={() => setVista(item.id)}
               >

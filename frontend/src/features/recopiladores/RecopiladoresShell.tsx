@@ -192,7 +192,7 @@ export function RecopiladoresShell() {
                   role="tab"
                   data-gliding-key={tab.id}
                   aria-selected={active}
-                  aria-controls={active ? "rec-tabpanel" : undefined}
+                  aria-controls={`rec-tab-panel-${tab.id}`}
                   tabIndex={active ? 0 : -1}
                   onClick={() => selectTab(tab.id as RecopiladoresPestana)}
                 >
@@ -204,10 +204,10 @@ export function RecopiladoresShell() {
         ) : null}
 
         <section
-          id="rec-tabpanel"
+          id={tabs.length > 1 ? `rec-tab-panel-${direction.pestana}` : undefined}
           className="rec-tab-panel"
-          role="tabpanel"
-          aria-labelledby={`rec-tab-${direction.pestana}`}
+          role={tabs.length > 1 ? "tabpanel" : undefined}
+          aria-labelledby={tabs.length > 1 ? `rec-tab-${direction.pestana}` : undefined}
           data-qa-geometry-group={`recopiladores/${direction.seccion}`}
           data-qa-geometry-contract="intrinsic"
         >

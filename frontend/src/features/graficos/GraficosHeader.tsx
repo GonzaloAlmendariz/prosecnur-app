@@ -1347,12 +1347,22 @@ function ConstructorViewControls({ issueCount }: { issueCount: number }) {
         )}
       </div>
 
-      <GlidingTabList activeKey={viewMode} className="pulso-gv2-mode-tabs pulso-gv2-segmented" role="tablist" aria-label="Modo de trabajo">
+      <GlidingTabList
+        activeKey={viewMode}
+        mode="tabs"
+        className="pulso-gv2-mode-tabs pulso-gv2-segmented"
+        role="radiogroup"
+        aria-label="Modo de trabajo"
+        onRovingKeyChange={(key) => {
+          const mode = CONSTRUCTOR_VIEW_MODES.find((candidate) => candidate.key === key);
+          if (mode) setViewMode(mode.key);
+        }}
+      >
         {CONSTRUCTOR_VIEW_MODES.map(({ key, label, Icon, hint }) => (
           <button
             key={key}
-            role="tab"
-            aria-selected={viewMode === key}
+            role="radio"
+            aria-checked={viewMode === key}
             data-gliding-key={key}
             type="button"
             className={`pulso-gv2-mode-tab ${viewMode === key ? "is-active" : ""}`}

@@ -743,9 +743,11 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
             {sections.map((section) => (
               <button
                 key={section.id}
+                id={`home-settings-tab-${section.id}`}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === section.id}
+                aria-controls={`home-settings-panel-${section.id}`}
                 data-gliding-key={section.id}
                 className={activeTab === section.id ? "is-active" : ""}
                 onClick={() => setActiveTab(section.id)}
@@ -780,9 +782,14 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
             </button>
           </header>
 
-        <div className="home-settings-body">
+        <div
+          className="home-settings-body"
+          role="tabpanel"
+          id={`home-settings-panel-${activeTab}`}
+          aria-labelledby={`home-settings-tab-${activeTab}`}
+        >
           {activeTab === "appearance" && (
-            <div className="home-settings-panel" role="tabpanel">
+            <div className="home-settings-panel">
               <div className="home-layout-preset-list" role="radiogroup" aria-label="Disposición de pantalla">
                 {LAYOUT_PRESET_OPTIONS.map((option) => (
                   <button
@@ -812,7 +819,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           )}
 
           {activeTab === "connections" && (
-            <div className="home-settings-panel" role="tabpanel">
+            <div className="home-settings-panel">
               {loadError && (
                 <div className="home-settings-alert is-error">
                   <AlertTriangle size={14} />
@@ -870,7 +877,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           )}
 
           {activeTab === "notes" && (
-            <div className="home-settings-panel home-settings-panel--notes" role="tabpanel">
+            <div className="home-settings-panel home-settings-panel--notes">
               {notes.map((note, idx) => (
                 <section key={note.version} className={`home-release ${idx === 0 ? "is-latest" : ""}`}>
                   <header className="home-release-head">
@@ -892,7 +899,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
           )}
 
           {activeTab === "credits" && (
-            <div className="home-settings-panel home-credits-body" role="tabpanel">
+            <div className="home-settings-panel home-credits-body">
               <section className="home-credit-section">
                 <span className="home-credit-label">Para quién fue hecho</span>
                 <p>

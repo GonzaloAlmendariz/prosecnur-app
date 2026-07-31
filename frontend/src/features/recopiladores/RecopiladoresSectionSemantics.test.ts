@@ -24,8 +24,9 @@ describe("Fichas QR section selector semantics", () => {
   it("keeps the nested local tabs associated with their real panel", () => {
     const source = fs.readFileSync(path.join(__dirname, "RecopiladoresShell.tsx"), "utf8");
 
-    expect(source).toContain('aria-controls={active ? "rec-tabpanel" : undefined}');
-    expect(source).toContain('role="tabpanel"');
-    expect(source).toContain('aria-labelledby={`rec-tab-${direction.pestana}`}');
+    expect(source).toContain('aria-controls={`rec-tab-panel-${tab.id}`}');
+    expect(source).toContain('id={tabs.length > 1 ? `rec-tab-panel-${direction.pestana}` : undefined}');
+    expect(source).toContain('role={tabs.length > 1 ? "tabpanel" : undefined}');
+    expect(source).toContain('aria-labelledby={tabs.length > 1 ? `rec-tab-${direction.pestana}` : undefined}');
   });
 });
