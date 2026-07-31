@@ -347,7 +347,7 @@ export function CriteriosMarcoTab({
         <div className="cmv2-crit-elegibles" data-audit-ready="true">
           <CifraFila>
             <CifraMotor
-              label="Elegibles del estudio"
+              label="Elegibles por curso-horario"
               value={fmtInt(elegiblesTotal)}
               detalle="suma de los elegibles de cada curso-horario incluido — un estudiante matriculado en varios cuenta en cada uno"
               origen="motor"
