@@ -17,6 +17,9 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   auditoría integral; no es autoridad normativa.
 - [Rollout del agentic OS](agentic-os-rollout-2026-07-19.md): estado y evidencia
   del despliegue agentic.
+- [Goal loop visual de toda la aplicación](goal-loop-visual-app-2026-07-30.md):
+  objetivo operativo permanente para auditar y reparar los nueve módulos en
+  órbita; no certifica por sí solo el estado visual vigente.
 - [Lecciones operativas de revamps visuales](revamps-visuales-lecciones-operativas-2026-07-26.md):
   patrones extraídos de iteraciones visuales.
 - [Prompt de validación visual de referencia](prompt-validacion-visual-referencia.md):
