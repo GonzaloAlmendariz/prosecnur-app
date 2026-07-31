@@ -279,6 +279,11 @@ test_that("proyectos canonicos generan .pulso portables con centinelas y fuentes
       expect_true("Rechazo" %in% s$monitoreo_snapshot$data$estado)
       expect_true("link_personalizado" %in% names(s$monitoreo_snapshot$data))
       expect_equal(s$monitoreo_snapshot$dashboard$acreditacion_reports$report_scope, "phone_summary")
+      # La fuente del dashboard se reconstruye en el warmup o al leerla, no al
+      # abrir el proyecto: `s` se capturó antes y no la trae. Pedimos el estado
+      # fresco por el mismo hook que usa la capa de lectura. Si la fuente no
+      # fuera reconstruible, `dashboard_rp_data` seguiría vacío y esto falla.
+      s <- .dashboard_fuente_lazy(s)
       expect_true(all(c(".source_role", "distrito", "grupo", "dim_actor", "responsable") %in% names(s$dashboard_rp_data)))
       expect_equal(sum(as.character(s$dashboard_rp_data$.source_role %||% "") == "barrido"), 48L)
       expect_true(all(c("distrito", "grupo", "dim_actor") %in% s$monitoreo_config$control_vars))
