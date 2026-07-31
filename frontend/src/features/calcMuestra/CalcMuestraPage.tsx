@@ -2586,10 +2586,15 @@ function CalcMuestraContextSidebar({
 
         <GlidingTabList
           activeKey={activeTabId}
+          mode="tabs"
           orientation="vertical"
           className={`cmv2-section-local-tabs${desk === "opinion_universitaria" ? " is-guided" : ""}`}
-          role="tablist"
+          role="radiogroup"
           aria-label={`Pestañas de ${activeMeta?.label ?? "la sección"}`}
+          onRovingKeyChange={(key) => {
+            const tab = tabs.find((candidate) => (candidate.classroomTab ?? candidate.id) === key);
+            if (tab) selectTab(tab);
+          }}
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -2605,9 +2610,9 @@ function CalcMuestraContextSidebar({
               <button
                 key={tab.id}
                 type="button"
-                role="tab"
+                role="radio"
                 data-gliding-key={tab.classroomTab ?? tab.id}
-                aria-selected={active}
+                aria-checked={active}
                 className={`cmv2-section-local-tab is-${tab.status}${active ? " is-active" : ""}`}
                 // Rail de íconos persistente: el detalle aparece como tooltip
                 // flotante ESTILIZADO en hover (patrón de los sidebars de

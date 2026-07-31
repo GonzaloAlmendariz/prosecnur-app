@@ -190,13 +190,15 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               })}
             </div>
 
-            <GlidingTabList as="nav" activeKey={tab} className="pulso-gv2-estilo-tabs" role="tablist">
+            <GlidingTabList as="nav" activeKey={tab} className="pulso-gv2-estilo-tabs" role="tablist" aria-label="Secciones de estilo global">
               {TABS.map(({ key, label, eyebrow, Icon, hint }) => (
                 <button
                   key={key}
+                  id={`pulso-gv2-estilo-tab-${key}`}
                   role="tab"
                   type="button"
                   aria-selected={tab === key}
+                  aria-controls={`pulso-gv2-estilo-panel-${key}`}
                   data-gliding-key={key}
                   className={`pulso-gv2-estilo-tab ${tab === key ? "is-active" : ""}`}
                   onClick={() => setTab(key)}
@@ -214,7 +216,12 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
             </GlidingTabList>
           </aside>
 
-          <section className="pulso-gv2-estilo-panel" aria-label={activeTab.label}>
+          <section
+            className="pulso-gv2-estilo-panel"
+            role="tabpanel"
+            id={`pulso-gv2-estilo-panel-${tab}`}
+            aria-labelledby={`pulso-gv2-estilo-tab-${tab}`}
+          >
             <div className="pulso-gv2-estilo-sectionbar">
               <span className="pulso-gv2-estilo-section-icon" aria-hidden="true">
                 <activeTab.Icon size={14} />

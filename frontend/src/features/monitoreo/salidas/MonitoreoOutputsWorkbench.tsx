@@ -1332,7 +1332,16 @@ export function MonitoreoOutputsWorkbench({
             <strong>Cliente e interno</strong>
             <small>Las audiencias se publican por separado para preservar el alcance de cada salida.</small>
           </div>
-          <GlidingTabList activeKey={activeAudience} className="mon-outputs-audience-tabs" role="tablist" aria-label="Audiencia de salida">
+          <GlidingTabList
+            activeKey={activeAudience}
+            mode="tabs"
+            className="mon-outputs-audience-tabs"
+            role="radiogroup"
+            aria-label="Audiencia de salida"
+            onRovingKeyChange={(key) => {
+              if (key === "client" || key === "internal") setActiveAudience(key);
+            }}
+          >
             {(["client", "internal"] as const).map((audience) => {
               const ready = Boolean(published[audience]?.spreadsheetId);
               const status = statuses[audience];
@@ -1340,9 +1349,9 @@ export function MonitoreoOutputsWorkbench({
                 <button
                   key={audience}
                   type="button"
-                  role="tab"
+                  role="radio"
                   data-gliding-key={audience}
-                  aria-selected={activeAudience === audience}
+                  aria-checked={activeAudience === audience}
                   className={`is-${audience}${activeAudience === audience ? " is-active" : ""}${ready ? " is-ready" : ""}${status.kind === "error" ? " is-error" : ""}`}
                   onClick={() => setActiveAudience(audience)}
                 >

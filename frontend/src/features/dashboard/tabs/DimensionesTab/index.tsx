@@ -527,11 +527,18 @@ function PanelVista({
   return (
     <>
       <label className="dash-dim-label">Modo</label>
-      <GlidingTabList className="dash-source-segments" activeKey={modo} role="tablist" aria-label="Modo de vista">
+      <GlidingTabList className="dash-source-segments" activeKey={modo}
+        mode="tabs"
+        role="radiogroup"
+        aria-label="Modo de vista"
+        onRovingKeyChange={(key) => {
+          if (key === "general" || key === "indicadores") onModo(key);
+        }}
+      >
         <button
           type="button"
-          role="tab"
-          aria-selected={modo === "general"}
+          role="radio"
+          aria-checked={modo === "general"}
           data-gliding-key="general"
           className={`dash-source-segment ${modo === "general" ? "is-active" : ""}`}
           onClick={() => onModo("general")}
@@ -540,8 +547,8 @@ function PanelVista({
         </button>
         <button
           type="button"
-          role="tab"
-          aria-selected={modo === "indicadores"}
+          role="radio"
+          aria-checked={modo === "indicadores"}
           data-gliding-key="indicadores"
           className={`dash-source-segment ${modo === "indicadores" ? "is-active" : ""}`}
           onClick={() => onModo("indicadores")}
@@ -880,7 +887,24 @@ function VisualizadorCard({
     <section className="dash-cardbox dash-dim-vis" data-visual-mode={effectiveVisualMode}>
       <h2 className="pulso-sr-only">{fsTitle}</h2>
       <div className="dash-dim-vis-header">
-        <GlidingTabList className="dash-dim-vis-segmented" activeKey={effectiveVisualMode} role="tablist" aria-label="Modo de visualización">
+        <GlidingTabList
+          className="dash-dim-vis-segmented"
+          activeKey={effectiveVisualMode}
+          mode="tabs"
+          role="radiogroup"
+          aria-label="Modo de visualización"
+          onRovingKeyChange={(key) => {
+            switch (key) {
+              case "construccion":
+              case "heatmap":
+              case "barras":
+              case "radar":
+              case "foda":
+              case "matriz":
+                setDim({ visualMode: key });
+            }
+          }}
+        >
           {dim.modo === "general" && (
             <SegmentedItem
               glideKey="construccion"
@@ -927,8 +951,8 @@ function VisualizadorCard({
             icon={<Grid3x3 size={13} />}
             label="Matriz"
           />
-          <FullscreenButton ctx={fs} />
         </GlidingTabList>
+        <FullscreenButton ctx={fs} />
       </div>
 
       {(showDimContext || showIterStepper) && (
@@ -1283,8 +1307,8 @@ function SegmentedItem({
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected={active}
+      role="radio"
+      aria-checked={active}
       data-gliding-key={glideKey}
       aria-disabled={disabled}
       disabled={disabled}
@@ -2017,14 +2041,21 @@ function FodaView({
   return (
     <div className={`dash-foda ${maxed ? "is-fullscreen" : ""}`}>
       <div className="dash-foda-toolbar">
-        <GlidingTabList className="dash-foda-view-switch" activeKey={fodaVista} role="tablist" aria-label="Vista FODA">
+        <GlidingTabList
+          className="dash-foda-view-switch"
+          activeKey={fodaVista}
+          mode="tabs"
+          role="radiogroup"
+          aria-label="Vista FODA"
+          onRovingKeyChange={setFodaVista}
+        >
           {/* "Lectura" — vista virtual pedagógica que enseña a leer la
               matriz. Va primero para que el usuario nuevo entienda los
               cuadrantes antes de entrar a los datos reales. */}
           <button
             type="button"
-            role="tab"
-            aria-selected={isLectura}
+            role="radio"
+            aria-checked={isLectura}
             data-gliding-key="lectura"
             className={`dash-source-segment ${isLectura ? "is-active" : ""}`}
             onClick={() => setFodaVista("lectura")}
@@ -2037,8 +2068,8 @@ function FodaView({
             <button
               key={view.id}
               type="button"
-              role="tab"
-              aria-selected={fodaVista === view.id}
+              role="radio"
+              aria-checked={fodaVista === view.id}
               data-gliding-key={view.id}
               className={`dash-source-segment ${fodaVista === view.id ? "is-active" : ""}`}
               onClick={() => setFodaVista(view.id)}
@@ -2217,13 +2248,23 @@ function FodaLectura() {
       <div className="dash-foda-lectura-caption">
         <span className="dash-foda-lectura-caption-label">{stop.label}</span>
         <span className="dash-foda-lectura-caption-hint">{stop.hint}</span>
-        <GlidingTabList className="dash-foda-lectura-dots" activeKey={FODA_LECTURA_STOPS[stopIdx]?.id} role="tablist" aria-label="Cuadrante en foco">
+        <GlidingTabList
+          className="dash-foda-lectura-dots"
+          activeKey={FODA_LECTURA_STOPS[stopIdx]?.id}
+          mode="tabs"
+          role="radiogroup"
+          aria-label="Cuadrante en foco"
+          onRovingKeyChange={(key) => {
+            const nextIndex = FODA_LECTURA_STOPS.findIndex((candidate) => candidate.id === key);
+            if (nextIndex >= 0) setStopIdx(nextIndex);
+          }}
+        >
           {FODA_LECTURA_STOPS.map((s, i) => (
             <button
               key={s.id}
               type="button"
-              role="tab"
-              aria-selected={i === stopIdx}
+              role="radio"
+              aria-checked={i === stopIdx}
               data-gliding-key={s.id}
               className={`dash-foda-lectura-dot ${i === stopIdx ? "is-active" : ""}`}
               onClick={() => setStopIdx(i)}

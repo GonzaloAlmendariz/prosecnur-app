@@ -137,9 +137,11 @@ export function Inspector({
           return (
             <button
               key={tab.id}
+              id={`pulso-inspector-tab-${tab.id}`}
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-controls={`pulso-inspector-panel-${tab.id}`}
               data-gliding-key={tab.id}
               className={`pulso-inspector-tab-trigger ${isActive ? "is-active" : ""}`}
               onClick={() => setActiveTab(tab.id)}
@@ -151,7 +153,12 @@ export function Inspector({
         })}
       </GlidingTabList>
 
-      <div className="pulso-inspector-tabpanel" role="tabpanel">
+      <div
+        className="pulso-inspector-tabpanel"
+        role="tabpanel"
+        id={`pulso-inspector-panel-${activeTab}`}
+        aria-labelledby={`pulso-inspector-tab-${activeTab}`}
+      >
         {activeTab === "basic" && (
           <BasicTab
             node={node}

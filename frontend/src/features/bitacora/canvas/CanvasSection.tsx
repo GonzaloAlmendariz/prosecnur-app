@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import {
   Link2,
   Maximize2,
@@ -452,6 +459,41 @@ export function CanvasSection({
     }
   }
 
+  function seleccionarLienzo(canvasId: string) {
+    if (canvasId === lienzo?.id) return;
+    void mutar(async () => {
+      const siguiente = { ...estado };
+      siguiente.canvas = { ...estado.canvas, active_canvas_id: canvasId };
+      return siguiente;
+    });
+  }
+
+  function navegarLienzos(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('[role="tab"]')
+      : null;
+    if (!target || !event.currentTarget.contains(target)) return;
+
+    const lienzos = estado.canvas.canvases;
+    const actual = lienzos.findIndex((item) => item.id === target.dataset.canvasId);
+    if (actual < 0) return;
+
+    let siguiente = actual;
+    if (event.key === "ArrowRight") siguiente = (actual + 1) % lienzos.length;
+    else if (event.key === "ArrowLeft") siguiente = (actual - 1 + lienzos.length) % lienzos.length;
+    else if (event.key === "Home") siguiente = 0;
+    else if (event.key === "End") siguiente = lienzos.length - 1;
+    else return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const destino = lienzos[siguiente];
+    seleccionarLienzo(destino.id);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`bcanvas-lienzo-tab-${destino.id}`)?.focus();
+    });
+  }
+
   if (!lienzo) {
     return (
       <div className="bcanvas-vacio" data-audit-ready="bitacora-canvas-vacio">
@@ -478,34 +520,35 @@ export function CanvasSection({
   return (
     <div className="bcanvas" data-audit-ready="bitacora-canvas">
       <div className="bcanvas-barra">
-        <div
-          className="bcanvas-lienzos"
-          role="tablist"
-          aria-label="Lienzos del proyecto"
-          data-gliding-opt-out="El índice de lienzos es un selector de documento, no el recorrido del módulo: su indicador es el borde de la pestaña activa y la lista crece con cada lienzo, así que una píldora deslizante señalaría el archivo abierto en vez de la posición dentro de un recorrido fijo."
-        >
-          {estado.canvas.canvases.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              role="tab"
-              aria-selected={c.id === lienzo.id}
-              className={`bcanvas-lienzo-tab${c.id === lienzo.id ? " is-activo" : ""}`}
-              onClick={() =>
-                void mutar(async () => {
-                  const siguiente = { ...estado };
-                  siguiente.canvas = { ...estado.canvas, active_canvas_id: c.id };
-                  return siguiente;
-                })
-              }
-            >
-              {c.title}
-              {/* El lienzo ACTIVO cuenta desde el store: el del servidor va un
-                  autosave por detrás y mostraría 0 justo después de crear tres
-                  nodos, que es cuando el contador más se mira. */}
-              <small>{c.id === lienzo.id ? nodes.length : c.nodes.length}</small>
-            </button>
-          ))}
+        <div className="bcanvas-lienzos">
+          <div
+            className="bcanvas-lienzos-tablist"
+            role="tablist"
+            aria-label="Lienzos del proyecto"
+            onKeyDown={navegarLienzos}
+            data-gliding-opt-out="El índice de lienzos es un selector de documento, no el recorrido del módulo: su indicador es el borde de la pestaña activa y la lista crece con cada lienzo, así que una píldora deslizante señalaría el archivo abierto en vez de la posición dentro de un recorrido fijo."
+          >
+            {estado.canvas.canvases.map((c) => (
+              <button
+                key={c.id}
+                id={`bcanvas-lienzo-tab-${c.id}`}
+                type="button"
+                role="tab"
+                aria-selected={c.id === lienzo.id}
+                aria-controls={`bcanvas-lienzo-panel-${c.id}`}
+                tabIndex={c.id === lienzo.id ? 0 : -1}
+                data-canvas-id={c.id}
+                className={`bcanvas-lienzo-tab${c.id === lienzo.id ? " is-activo" : ""}`}
+                onClick={() => seleccionarLienzo(c.id)}
+              >
+                {c.title}
+                {/* El lienzo ACTIVO cuenta desde el store: el del servidor va un
+                    autosave por detrás y mostraría 0 justo después de crear tres
+                    nodos, que es cuando el contador más se mira. */}
+                <small>{c.id === lienzo.id ? nodes.length : c.nodes.length}</small>
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className="bcanvas-lienzo-nuevo"
@@ -585,7 +628,12 @@ export function CanvasSection({
         </p>
       )}
 
-      <div className="bcanvas-tablero">
+      <div
+        className="bcanvas-tablero"
+        role="tabpanel"
+        id={`bcanvas-lienzo-panel-${lienzo.id}`}
+        aria-labelledby={`bcanvas-lienzo-tab-${lienzo.id}`}
+      >
         {eligiendoReferencia && (
           <ExploradorDeReferencias
             estado={estado}

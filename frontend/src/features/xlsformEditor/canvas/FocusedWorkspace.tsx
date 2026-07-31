@@ -194,11 +194,18 @@ export function FocusedWorkspace({
         </div>
 
         <div className="pulso-focus-workspace-controls">
-          <GlidingTabList className="pulso-focus-mode-toggle" activeKey={mode} role="tablist" aria-label="Vista del builder">
+          <GlidingTabList
+            className="pulso-focus-mode-toggle"
+            activeKey={mode}
+            mode="tabs"
+            role="radiogroup"
+            aria-label="Vista del builder"
+            onRovingKeyChange={(key) => onModeChange(key as FocusWorkspaceMode)}
+          >
             <button
               type="button"
-              role="tab"
-              aria-selected={mode === "focus"}
+              role="radio"
+              aria-checked={mode === "focus"}
               data-gliding-key="focus"
               className={mode === "focus" ? "is-on" : ""}
               onClick={() => onModeChange("focus")}
@@ -207,8 +214,8 @@ export function FocusedWorkspace({
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={mode === "overview"}
+              role="radio"
+              aria-checked={mode === "overview"}
               data-gliding-key="overview"
               className={mode === "overview" ? "is-on" : ""}
               onClick={() => onModeChange("overview")}
@@ -573,9 +580,11 @@ function FocusedSurveyWorkspace({
             return (
               <button
                 key={tab.id}
+                id={`pulso-focus-tab-${tab.id}`}
                 type="button"
                 role="tab"
                 aria-selected={isActive}
+                aria-controls={`pulso-focus-panel-${tab.id}`}
                 data-gliding-key={tab.id}
                 className={isActive ? "is-active" : ""}
                 onClick={() => setActiveTab(tab.id)}
@@ -587,7 +596,12 @@ function FocusedSurveyWorkspace({
           })}
         </GlidingTabList>
 
-        <div className="pulso-focus-config-body" role="tabpanel">
+        <div
+          className="pulso-focus-config-body"
+          role="tabpanel"
+          id={`pulso-focus-panel-${activeTab}`}
+          aria-labelledby={`pulso-focus-tab-${activeTab}`}
+        >
           {activeTab === "content" && (
             <ContentTab
               node={node}

@@ -175,16 +175,21 @@ export function FichaTecnicaPane() {
             <div className="analitica-ficha-commandbar">
               <GlidingTabList
                 activeKey={ficha.layout ?? "pulso_oficial"}
+                mode="tabs"
                 className="analitica-segmented"
-                role="tablist"
+                role="radiogroup"
                 aria-label="Formato de ficha"
+                onRovingKeyChange={(key) => {
+                  const layout = LAYOUTS.find((candidate) => candidate.key === key);
+                  if (layout) setFichaTecnica({ layout: layout.key });
+                }}
               >
                 {LAYOUTS.map((layout) => (
                   <button
                     key={layout.key}
                     type="button"
-                    role="tab"
-                    aria-selected={(ficha.layout ?? "pulso_oficial") === layout.key}
+                    role="radio"
+                    aria-checked={(ficha.layout ?? "pulso_oficial") === layout.key}
                     data-gliding-key={layout.key}
                     className={(ficha.layout ?? "pulso_oficial") === layout.key ? "is-on" : undefined}
                     onClick={() => setFichaTecnica({ layout: layout.key })}

@@ -553,7 +553,12 @@ export default function AulasMonitoreoPage() {
               action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
             />
           ) : null}
-          <div className="aulas-mon-view">
+          <div
+            className="aulas-mon-view"
+            role={seccionActiva === "avance" ? "tabpanel" : undefined}
+            id={seccionActiva === "avance" ? `aulas-mon-panel-${pestanaAvance}` : undefined}
+            aria-labelledby={seccionActiva === "avance" ? `aulas-mon-tab-${pestanaAvance}` : undefined}
+          >
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
             {seccionActiva === "avance" ? (
               <GlidingTabList
@@ -565,8 +570,10 @@ export default function AulasMonitoreoPage() {
                 {AULAS_PESTANAS_AVANCE.map((pestana) => (
                   <button
                     key={pestana}
+                    id={`aulas-mon-tab-${pestana}`}
                     type="button"
                     role="tab"
+                    aria-controls={`aulas-mon-panel-${pestana}`}
                     data-gliding-key={pestana}
                     data-nav-item=""
                     data-nav-shape="pill"

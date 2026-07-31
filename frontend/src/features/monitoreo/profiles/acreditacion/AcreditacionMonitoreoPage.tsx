@@ -11145,10 +11145,9 @@ function AcreditacionConsultaTabs({
         const selected = active === tab.key;
         return (
           <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            data-gliding-key={tab.key}
+            key={tab.key} id={`mon-acr-query-tab-${tab.key}`}
+            type="button" role="tab"
+            data-gliding-key={tab.key} aria-controls={`mon-acr-query-panel-${tab.key}`}
             aria-selected={selected}
             className={selected ? "is-active" : ""}
             onClick={() => onChange(tab.key)}
@@ -13164,7 +13163,7 @@ function AcreditacionConsultasPanel({
       {showCutStatusStrip ? <AcreditacionConsultaStatusStrip reports={reports} model={model} officialCases={officialCases} sources={sources} /> : null}
       {controlledActiveTab ? null : <AcreditacionConsultaTabs active={activeTab} counts={queryTabCounts} onChange={setActiveTab} />}
 
-      <section className={`mon-case-explorer${isTableOnlyTab ? " is-platform-table-only" : ""}`} aria-label="Explorador de casos del monitoreo">
+      <section className={`mon-case-explorer${isTableOnlyTab ? " is-platform-table-only" : ""}`} aria-label="Explorador de casos del monitoreo" role={controlledActiveTab ? undefined : "tabpanel"} id={controlledActiveTab ? undefined : `mon-acr-query-panel-${activeTab}`} aria-labelledby={controlledActiveTab ? undefined : `mon-acr-query-tab-${activeTab}`}>
         {/* «Registros en plataforma» y «Estado de la base» se confundían entre
           * sí porque `isTableOnlyTab` las trataba igual y les apagaba la única
           * señal que las diferenciaba. Son inversas: una mira lo que LLEGÓ y la
@@ -16626,10 +16625,9 @@ function AcreditacionGsReportsPanel({ reports }: { reports: MonitoreoAcreditacio
       <GlidingTabList activeKey={activeSheet.id} className="mon-gs-report-tabs" role="tablist" aria-label="Pestañas de reporte de acreditación">
         {sheets.map((sheet) => (
           <button
-            key={sheet.id}
-            type="button"
-            role="tab"
-            data-gliding-key={sheet.id}
+            key={sheet.id} id={`mon-gs-report-tab-${sheet.id}`}
+            type="button" role="tab"
+            data-gliding-key={sheet.id} aria-controls={`mon-gs-report-panel-${sheet.id}`}
             aria-selected={sheet.id === activeSheet.id}
             className={sheet.id === activeSheet.id ? "is-active" : ""}
             onClick={() => setActiveId(sheet.id)}
@@ -16639,7 +16637,7 @@ function AcreditacionGsReportsPanel({ reports }: { reports: MonitoreoAcreditacio
           </button>
         ))}
       </GlidingTabList>
-      <div className="mon-gs-report-body" data-report-sheet={activeSheet.id}>
+      <div className="mon-gs-report-body" data-report-sheet={activeSheet.id} role="tabpanel" id={`mon-gs-report-panel-${activeSheet.id}`} aria-labelledby={`mon-gs-report-tab-${activeSheet.id}`}>
         <p>{description}</p>
         <div className="mon-gs-report-blocks">
           {activeSheet.blocks.map((block) => (

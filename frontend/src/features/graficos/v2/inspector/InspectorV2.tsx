@@ -171,9 +171,11 @@ export function InspectorV2() {
               return (
                 <button
                   key={key}
+                  id={`pulso-gv2-inspector-tab-${key}`}
                   role="tab"
                   type="button"
                   aria-selected={inspectorTab === key}
+                  aria-controls={`pulso-gv2-inspector-panel-${key}`}
                   data-gliding-key={key}
                   disabled={disabled}
                   onClick={() => setInspectorTab(key)}
@@ -211,7 +213,12 @@ export function InspectorV2() {
         </div>
       </div>
 
-      <div className="pulso-gv2-inspector-body">
+      <div
+        className="pulso-gv2-inspector-body"
+        role="tabpanel"
+        id={`pulso-gv2-inspector-panel-${activeTab.key}`}
+        aria-labelledby={`pulso-gv2-inspector-tab-${activeTab.key}`}
+      >
         {loading && <LoadingBlock variant="inline" label="Cargando opciones del slide…" />}
 
         {/* Tab Contenido: solo args de textos */}

@@ -241,7 +241,12 @@ export function PanelBasePane() {
 
   return (
     <Panel className="analitica-panel-base-panel">
-      <div className="analitica-report-shell analitica-panel-workbench">
+      <div
+        className="analitica-report-shell analitica-panel-workbench"
+        role={!loading && !error && info?.available ? "tabpanel" : undefined}
+        id={!loading && !error && info?.available ? `analitica-panel-view-panel-${view}` : undefined}
+        aria-labelledby={!loading && !error && info?.available ? `analitica-panel-view-tab-${view}` : undefined}
+      >
         <div className="analitica-panel-docbar">
           <span className="analitica-panel-docbar-icon" aria-hidden="true">
             <GitMerge size={16} />
@@ -291,9 +296,11 @@ export function PanelBasePane() {
                 {VIEWS.map((item) => (
                   <button
                     key={item.key}
+                    id={`analitica-panel-view-tab-${item.key}`}
                     type="button"
                     role="tab"
                     aria-selected={view === item.key}
+                    aria-controls={`analitica-panel-view-panel-${item.key}`}
                     data-gliding-key={item.key}
                     className={view === item.key ? "is-on" : undefined}
                     onClick={() => setView(item.key)}
