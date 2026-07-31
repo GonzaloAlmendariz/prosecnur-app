@@ -73,8 +73,9 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 8 módulos | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | 27 | ↑ hasta cubrir toda colección |
-| Módulos con 0 declaraciones geométricas | 3 | 3 | ↓ a 0 |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **29** | ↑ hasta cubrir toda colección |
+| Módulos con 0 declaraciones geométricas | 3 | **2** | ↓ a 0 |
+| Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
@@ -82,7 +83,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 9 | 1 de 9 | ↑ a 9 |
+| Módulos auditados con el instrumento | 1 de 9 | **2 de 9** | ↑ a 9 |
 
 ## Hallazgos nuevos, medidos por el loop
 
@@ -120,6 +121,32 @@ estado a escala) y vuelve a empezar.
 |---|---|---|---|---|---|
 | — | 30 jul | — | apertura del goal | — | — |
 | 1 | 30 jul | Monitoreo | **El audit estaba en rojo: tres congelados crecieron durante la tanda de pulido.** No se subieron las líneas base: se pagó el peaje. Tres extracciones literales, sin tocar un cuerpo de función | engine -1.319 · router -930 · telefónico -166 · audit rojo→**verde** | `fbe7a791`, `712159f7`, `89145285` |
+| 2 | 30 jul | **Gráficos** | **El módulo estaba fuera del instrumento, no solo sin declarar.** `/graficos` no figuraba en `PROCESSING_ROUTES`, así que la matriz por defecto nunca lo miró: 33.023 líneas de CSS y cero geometría, sin que nada se quejara | geometryGroups 0→10 · coverageMisses 5→0 · módulos sin geometría 3→**2** · rutas de la matriz 4→5 | `f2dfb95a` |
+
+### Nota de la iteración 2
+
+La órbita funcionó exactamente como se esperaba: apuntar el instrumento a un
+módulo que nunca había visto encontró algo que ninguna cantidad de pulido de
+Monitoreo habría encontrado.
+
+Lo importante no fue que a Gráficos le faltaran declaraciones —eso ya estaba
+medido al abrir el goal—, sino **por qué** le faltaban y nadie lo notó:
+`/graficos` no estaba en el set de rutas de la matriz. Procesamiento tiene cinco
+secciones y la lista tenía cuatro. **Estar fuera de la lista de rutas es la
+forma silenciosa de quedar verde por ausencia**, y no la detecta ningún
+comprobador de geometría, porque el comprobador nunca llega a correr. Conviene
+revisar la misma pregunta en cada módulo de la órbita antes de auditarlo: ¿el
+instrumento lo alcanza?
+
+**Duodécima familia de falso positivo: decoración con lienzo declarado.** Se le
+puso `intrinsic` al stack de previsualización y marcó `capacity-drift` en las
+cinco capturas. No era deuda: son mockups de lámina con `min-height` y
+`align-content: center`, y ese lienzo es lo que las hace parecer diapositivas.
+La regla que faltaba: **un contrato geométrico gobierna superficies que deben
+sostener su marco frente a sus DATOS.** Un elemento `aria-hidden` sin datos no
+tiene marco que sostener, y declararlo produce un rojo que solo se puede saldar
+rompiendo el dibujo. Se retiró la declaración con la razón escrita en el código,
+no en un registro aparte.
 
 ### Nota de la iteración 1
 
