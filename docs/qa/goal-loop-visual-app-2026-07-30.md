@@ -73,9 +73,11 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 8 módulos | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **29** | ↑ hasta cubrir toda colección |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **31** | ↑ hasta cubrir toda colección |
 | Módulos con 0 declaraciones geométricas | 3 | **2** | ↓ a 0 |
+| Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
+| Defectos C4 abiertos (contenido inalcanzable) | — | **0 en Procesamiento** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
@@ -83,7 +85,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 9 | **2 de 9** | ↑ a 9 |
+| Módulos auditados con el instrumento | 1 de 9 | **3 de 9** | ↑ a 9 |
 
 ## Hallazgos nuevos, medidos por el loop
 
@@ -122,6 +124,35 @@ estado a escala) y vuelve a empezar.
 | — | 30 jul | — | apertura del goal | — | — |
 | 1 | 30 jul | Monitoreo | **El audit estaba en rojo: tres congelados crecieron durante la tanda de pulido.** No se subieron las líneas base: se pagó el peaje. Tres extracciones literales, sin tocar un cuerpo de función | engine -1.319 · router -930 · telefónico -166 · audit rojo→**verde** | `fbe7a791`, `712159f7`, `89145285` |
 | 2 | 30 jul | **Gráficos** | **El módulo estaba fuera del instrumento, no solo sin declarar.** `/graficos` no figuraba en `PROCESSING_ROUTES`, así que la matriz por defecto nunca lo miró: 33.023 líneas de CSS y cero geometría, sin que nada se quejara | geometryGroups 0→10 · coverageMisses 5→0 · módulos sin geometría 3→**2** · rutas de la matriz 4→5 | `f2dfb95a` |
+| 3 | 30 jul | **Procesamiento** | **Primer defecto C4 del goal: Carga atrapaba 300 px en pantallas cortas.** Y las dos colecciones que el comprobador descubrió solas quedan declaradas | issues 1→**0** · geometryGroups 15→**60** · coverageMisses 45→**0** · secciones sin geometría 5→3 | `ccbb2f61`, `11cde117` |
+
+### Nota de la iteración 3
+
+**La válvula de escape existía y estaba mal cableada.** El defecto de Carga no
+era una pantalla corta sin contemplar: `@media (max-height: 700px)` estaba
+escrita justo para eso. Lo que hacía era poner `overflow: visible` sobre el
+elemento que *es* `.pulso-adaptive-main` —el dueño del scroll designado por la
+gramática de layout—, así que la regla escrita para salvar la pantalla corta era
+la que quitaba el scroll. Con `visible` el contenido se derrama y lo recorta un
+ancestro; con el `hidden` de base se recorta ahí mismo. Ninguno de los dos
+alcanza. **Cuando una válvula de escape existe y el defecto persiste, revisa qué
+valor pone, no si está.**
+
+Queda anotado, sin arreglar: el comentario de `is-plan` afirma que la capacidad
+se absorbe «dentro de Cobertura», y **no hay ningún scroller interno en la
+pestaña**. La intención está escrita pero no implementada. Mientras no lo esté,
+el marco no puede ser el que atrape — que es lo que este fix garantiza.
+
+**El comprobador descubre colecciones solo.** No hace falta adivinar qué
+declarar: `geometry-undeclared` nombra el contenedor y su texto. Las 40
+coberturas de Analítica eran una sola familia vista ocho veces —8 secciones, una
+lista por sección—, así que una declaración cerró las cuarenta. Conviene contar
+familias, no incidencias, antes de estimar el trabajo.
+
+**Trampa de sintaxis, para no repetirla:** `{/* comentario */}` es válido entre
+hijos JSX, pero **no** dentro de un `cond && ( … )`, donde se está en contexto de
+expresión y va como `/* comentario */` a secas. Rompió el archivo y lo atrapó el
+typecheck.
 
 ### Nota de la iteración 2
 
