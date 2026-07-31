@@ -594,7 +594,15 @@ function DataReviewSection({
         </div>
       </div>
 
-      <div className="pulso-data-review-variable-list">
+      {/* `intrinsic` y no `equal`: una variable con opciones editables monta
+          además su barra de «Etiquetas de opciones», así que el alto de cada
+          fila es función de los datos de esa variable. Son hermanas de la
+          misma variante con capacidad distinta, no un marco desparejo. */}
+      <div
+        className="pulso-data-review-variable-list"
+        data-qa-geometry-group="analitica/datos-variables"
+        data-qa-geometry-contract="intrinsic"
+      >
         {group.variables.map((variable) => {
           const included = !excluded.has(variable.name);
           const draftLabel = draftVariableLabels[variable.name] ?? dataReviewEffectiveVariableLabel(variable);
