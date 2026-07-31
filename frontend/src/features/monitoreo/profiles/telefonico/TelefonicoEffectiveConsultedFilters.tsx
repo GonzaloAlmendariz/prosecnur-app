@@ -85,7 +85,10 @@ export function TelefonicoEffectiveConsultedFilters({
         <input
           value={filters.search}
           onChange={(event) => onFilter({ search: event.target.value })}
-          placeholder="Buscar CodPulso, responsable o encuesta"
+          // Sin el verbo: la lupa al lado ya dice que esto busca, y con
+          // «Buscar» delante el texto se recortaba 1,9 px a 1440. El placeholder
+          // sirve para decir POR QUÉ se puede buscar, no qué hace el control.
+          placeholder="CodPulso, responsable o encuesta"
         />
       </label>
       <CapsulaDeFiltro
