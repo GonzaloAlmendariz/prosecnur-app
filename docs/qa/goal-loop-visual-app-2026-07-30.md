@@ -82,7 +82,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 7 módulos + Enciclopedia | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **36** | ↑ hasta cubrir toda colección |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **38** | ↑ hasta cubrir toda colección |
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
@@ -94,7 +94,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 8 | **5 de 8** | ↑ a 8 |
+| Módulos auditados con el instrumento | 1 de 8 | **6 de 8** | ↑ a 8 |
 | Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
@@ -119,6 +119,7 @@ una letra; el loop sigue solo mientras tanto.
 | 5 | Telefónico · Modelo › Cuotas | Cuál de las cuatro superficies es la de lectura y cuál la de edición | abierta |
 | 6 | Telefónico · Consultas › CodPulso | Cuál de los dos nodos duplicados sobra | abierta |
 | 7 | Territorial · autodetección | `sex_var` es la única de doce con fallback vacío: deja sexo sin mapear y sin avisar | abierta |
+| **8** | **Todo el frontend · vocabulario de contratos** | **Falta un contrato para «mismo alto, ancho intrínseco»**, que es la forma de toda tira de chips, toolbar y banda de estado de la app. Hoy `equal` exige mismo alto **y** mismo ancho, e `intrinsic` llama desperdicio al `min-height` de un control. Medido en Formularios: con `intrinsic`, capacity-drift de 10,5 px que es el alto de control del chip; con `equal`, width-drift de 118 px y 55 px. **A:** agregar un tercer contrato (`banda`) con alto igual y ancho libre. **B:** partir `equal` en ejes (`equal-height` / `equal-width`) y permitir combinarlos. **C:** dejar las tiras sin declarar y aceptar el hueco de cobertura. **Recomiendo B**: es el que además deja declarar el caso inverso —ancho igual, alto libre— que ya apareció en las rejillas que colapsan a una columna | abierta |
 
 ## Cuándo cierra
 
@@ -143,6 +144,36 @@ a empezar.
 | 5 | 30 jul | **Hojas de ruta** | La última superficie principal con cero geometría. Declaradas la lista de distritos —que crece con el marco— y la banda de KPIs territoriales, **sin sumar una sola línea** al page-file congelado | geometryGroups 0→**10** · coverageMisses 5→**0** · superficies sin geometría 1→**0** | `53cf69a4` |
 
 | 6 | 31 jul | **Cálculo de muestra** | **Un indicador con el nombre recortado —«UNIVERSO DE CURSOS-HORAR…»— que el comprobador NO marcó.** Apareció al mirar la captura. Envuelto, y la franja declarada `equal` | geometryGroups 0→**5** · coverageMisses 5→**0** · defectos reparados 1→**2** | `d753a645` |
+
+| 7 | 31 jul | **Formularios** | **El vocabulario de contratos se quedó corto y el loop no lo forzó.** Dos colecciones declaradas y pasando; las dos tiras de chips quedan sin declarar con la razón medida, y sube la decisión 8 | geometryGroups 5→**15** · coverageMisses 20→**10** · geometryIssues **0** | `7a47ef01` |
+
+### Nota de la iteración 7
+
+**Primera vez que el instrumento se queda corto, y conviene no disimularlo.**
+Una tira de chips es «mismo alto, ancho intrínseco». El vocabulario tiene
+`equal` (mismo alto **y** mismo ancho) e `intrinsic` (cada uno ciñe su
+contenido), y ninguno de los dos la describe. Se midió en los dos sentidos antes
+de concluirlo: con `intrinsic`, `capacity-drift` de 10,5 px que resultan ser el
+`min-height: 22px` del chip contra su `line-height: 1` —alto de control
+deliberado—; con `equal`, `width-drift` de 118 px y 55 px. «Nuevo» y «Guardado
+ahora» son el caso limpio: misma variante, mismo alto por diseño, ancho distinto
+por contenido.
+
+Había dos salidas cómodas y las dos son falsas: forzar `intrinsic` deja un rojo
+que solo se salda rompiendo el diseño, y forzar `equal` deja un rojo peor.
+También se podía subir la tolerancia hasta que pasara, que es comprar el verde.
+**Se eligió no declarar, escribir la medición en el código y elevar la
+decisión** — un hueco de cobertura reconocido vale más que un contrato que
+miente.
+
+Es la tercera familia de «esto no es deuda» del goal, después de la decoración
+con lienzo (iteración 2): **control con alto de control declarado**. Las dos
+comparten raíz —un `min-height` intencional no es interior desperdiciado— pero
+esta no se resuelve retirando la declaración, sino ampliando el vocabulario.
+Por eso va a la bandeja y no al registro de falsos positivos.
+
+`ok=false` al cerrar, y está bien: quedan 10 coberturas abiertas a propósito.
+Declararlas es lo que desbloquea la decisión 8, no al revés.
 
 ### Nota de la iteración 6
 
