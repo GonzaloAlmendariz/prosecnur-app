@@ -97,16 +97,8 @@
     "verificador": "gate"
   },
   "external_skills": [
-    "cronograma-encuestas",
     "emil-design-eng",
-    "govern-visual-harmony",
-    "prosecnur-architecture",
-    "prosecnur-design-system",
-    "prosecnur-pdf-engine",
-    "prosecnur-project",
-    "prosecnur-project-ui-check",
-    "prosecnur-ux-evaluator",
-    "visual-ui-inspector"
+    "govern-visual-harmony"
   ],
   "orchestration": {
     "strategy": "adaptive-waves",
@@ -138,9 +130,7 @@
         "contrato-superficie",
         "cerrar-trabajo"
       ],
-      "external": [
-        "prosecnur-architecture"
-      ],
+      "external": [],
       "pools": {
         "discovery": [
           "diagnosticador-regresiones",
@@ -173,12 +163,8 @@
         "cerrar-trabajo"
       ],
       "external": [
-        "prosecnur-design-system",
-        "govern-visual-harmony",
         "emil-design-eng",
-        "prosecnur-project-ui-check",
-        "prosecnur-ux-evaluator",
-        "visual-ui-inspector"
+        "govern-visual-harmony"
       ],
       "pools": {
         "discovery": [
@@ -208,10 +194,7 @@
         "jobs-asincronos",
         "cerrar-trabajo"
       ],
-      "external": [
-        "prosecnur-pdf-engine",
-        "cronograma-encuestas"
-      ],
+      "external": [],
       "pools": {
         "discovery": [
           "diagnosticador-regresiones",
@@ -270,9 +253,7 @@
         "orquestar-trabajo",
         "cerrar-trabajo"
       ],
-      "external": [
-        "prosecnur-architecture"
-      ],
+      "external": [],
       "pools": {
         "discovery": [
           "diagnosticador-regresiones",
@@ -298,9 +279,7 @@
         "estudio-real",
         "dominio-prosecnur"
       ],
-      "external": [
-        "prosecnur-project"
-      ],
+      "external": [],
       "pools": {
         "discovery": [
           "revisor-metodologico",
@@ -341,9 +320,7 @@
         "orquestar-trabajo",
         "dominio-prosecnur"
       ],
-      "external": [
-        "prosecnur-architecture"
-      ],
+      "external": [],
       "pools": {
         "discovery": [
           "guardian-contratos",
@@ -377,6 +354,59 @@
     "code_change_final_gate": "verificador",
     "repair_protocol": "docs/loops-reparacion.md",
     "generated_adapters_are_editable": false,
+    "semantic_contract": {
+      "navigation": {
+        "version": 3,
+        "grammar": [
+          "modulo",
+          "modo",
+          "seccion",
+          "pestana",
+          "panel"
+        ],
+        "manifest_path": "frontend/src/lib/modules.ts",
+        "direction_path": "frontend/src/lib/navegacion/direccion.ts"
+      },
+      "frontend_api": {
+        "directory": "frontend/src/api",
+        "compatibility_barrel": "frontend/src/api/client.ts"
+      },
+      "external_skills": {
+        "allowed": [
+          "emil-design-eng",
+          "govern-visual-harmony"
+        ],
+        "route": "disenar",
+        "forbidden_prefixes": [
+          "prosecnur-"
+        ]
+      },
+      "instructions": {
+        "roots": [
+          "CLAUDE.md",
+          ".claude/skills",
+          ".claude/agents"
+        ],
+        "forbidden_fragments": [
+          "contrato de navegación v2",
+          "`PROSECNUR_NAVIGATION_CONTRACT` v2",
+          "uno de estos tres niveles",
+          "uno de esos tres niveles",
+          "`src/api/client.ts` (~15k líneas",
+          "tipada en `client.ts`",
+          "**NO existe conector de API**",
+          "Fichas QR",
+          "cronograma-encuestas",
+          "prosecnur-architecture",
+          "prosecnur-design-system",
+          "prosecnur-pdf-engine",
+          "prosecnur-project",
+          "prosecnur-project-ui-check",
+          "prosecnur-ux-evaluator",
+          "visual-ui-inspector"
+        ]
+      }
+    },
     "frozen_growth_threshold": 8000,
     "frozen_growth_baseline": {
       "api/R/monitoreo_engine.R": 39981,

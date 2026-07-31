@@ -1,118 +1,140 @@
 ---
 name: ver-ui
-description: Abre la UI profunda de Prosecnur en el preview de Claude en UN paso - deep-link de dev que salta el BootGate, abre un .pulso y aterriza en el módulo/pestaña exacto para observar, iterar con HMR y verificar. Usar SIEMPRE que haya que ver, verificar o iterar una vista que vive detrás de un proyecto abierto (monitoreo, analítica, gráficos, dashboard, calc-muestra, etc.).
+description: Abre y verifica una vista profunda de Prosecnur con un proyecto .pulso, dirección canónica y herramientas locales del repo. Usar siempre que una UI detrás de proyecto deba observarse, iterarse o auditarse.
 ---
 
-# Ver UI profunda (deep-link de dev)
+# Ver UI profunda
 
-La app arranca en BootGate → elegir proyecto → clicks. Este skill salta todo eso: el frontend en dev soporta `?pulso=<ruta absoluta al .pulso>` (leído por `readDevProjectPath()` en `BootGate.tsx`, **solo en `import.meta.env.DEV`**) y la ruta profunda sobrevive al warm start. Verificado en vivo el 2026-07-10.
+La ruta local de inspección usa un proyecto abierto, el deep-link de desarrollo
+y el puente `window.__pulsoNav`. No requiere scripts fuera del repositorio.
 
-## Receta
+## 1. Elige proyecto
 
-1. **Backend**: si el puerto 8787 ya responde (`curl -s localhost:8787/api/system/health` o fetch vía proxy), reutilízalo — suele ser el proceso R del usuario, no lo mates. Si no, `preview_start` con "Backend (Plumber API)".
-2. **Frontend**: `preview_start` con "Frontend (Vite dev server)" (puerto 5173, proxy `/api` → 8787).
-3. **Proyecto**: el `.pulso` que indique el usuario. Sin indicación, elige según lo que necesites ver (ADR 0043):
+Si el usuario no indica uno, selecciona por cobertura:
 
-   | Necesitas | Usa | Qué trae |
-   |---|---|---|
-   | Estado real de un módulo | `api/inst/reference_projects/<slug>/<slug>.pulso` | ver tabla abajo |
-   | Algo mínimo y determinista | `api/inst/audit_reference/prosecnur_audit_reference.pulso` | semilla sintética |
+| Proyecto | Cobertura principal |
+|---|---|
+| `acnur_acg` | pipeline completo, gráficos y territorio |
+| `acnur_pdm` | repeats, universo y dashboard |
+| `acrconta` | acreditación multiactor, Sheets y plan |
+| `hsvg2026` | cálculo de muestra de cursos-horario a escala |
 
-   Los cuatro proyectos de referencia son **estudios reales anonimizados** y versionados. Elige por lo que aporta, no por su nombre:
+Los proyectos reales anonimizados viven en
+`api/inst/reference_projects/<slug>/<slug>.pulso`. Verifica cobertura/PII con
+`make reference-project-verify`. Para interacción o mutación usa siempre la
+copia temporal que prepara:
 
-   | slug | módulos | úsalo para |
-   |---|---|---|
-   | `acnur_acg` | 9 | el más completo: carga → validación → codificación → analítica → gráficos, hojas de ruta territorial |
-   | `acnur_pdm` | 7 | repeat groups Kobo reales, filtro de universo, dashboard |
-   | `acrconta` | 7 | acreditación multiactor (4 actores, 13 fuentes), Sheets, plan de trabajo |
-   | `hsvg2026` | 2 | calc-muestra de aulas a escala real (29 mil estudiantes, 5.263 cursos-horario) |
+```bash
+make reference-project-run REFERENCE_PROJECT=<slug>
+```
 
-   Son **read-only a propósito** (`0444`) y así están bien para observar: la app los abre sin problema y el permiso impide que un autosave los pise. Solo si vas a *modificar* el proyecto, saca una copia de corrida con
-   `Rscript api/scripts/reference_project_prepare_run.R --project <slug>` (imprime un manifest con `project_path` ya escribible).
+Para un estado mínimo sintético y determinista, usa
+`api/inst/audit_reference/prosecnur_audit_reference.pulso` y prepara su copia
+con:
 
-   Los `.pulso` de cliente sin anonimizar **no se copian al repo** ni se dejan en rutas versionadas.
-4. **Navega en un paso** con la dirección canónica (ADR 0044). La jerarquía es
-   **módulo → [modo] → sección → pestaña → panel**, y los cinco niveles viven
-   en la URL:
+```bash
+make audit-reference-run
+```
 
-   ```js
-   window.location.href = '/monitoreo?modo=territorial&seccion=avance&pestana=ump&pulso=' + encodeURIComponent('<ruta absoluta al .pulso>')
-   ```
+Para un proyecto dado por el usuario, arranca la pila local con:
 
-   Params canónicos: `?modo=` `?seccion=` `?pestana=` `?panel=` `?foco=`.
-   Los viejos (`tab`, `stage`, `mesa`, `desk`, `step`, `reporte`) todavía se
-   leen, pero la app los reescribe a la forma canónica.
+```bash
+make dev-pulso PULSO=/ruta/absoluta/proyecto.pulso
+```
 
-   Rutas: `/monitoreo`, `/analitica`, `/graficos`, `/tablero`, `/calc-muestra`,
-   `/bitacora`, `/carga`, `/validacion`, `/codificacion`, `/hojas-ruta`,
-   `/editor-xlsform`.
+No copies estudios sin anonimizar al repo ni edites un fixture canónico.
 
-   El `?pulso=` se consume al abrir el proyecto; **el resto de la dirección
-   sobrevive al warm start** y aterrizas donde pediste.
-5. **Espera el warm start** (~15–30 s la primera vez; con proyectos de
-   referencia puede pasar el minuto). Sondea `window.__pulsoNav.listo()`, que
-   distingue los tres casos que importan:
+## 2. Navega por dirección
 
-   | `motivo` | qué significa | qué hacer |
-   |---|---|---|
-   | `warm-start` | la pantalla de progreso sigue arriba | seguir sondeando |
-   | `sin-marca-de-readiness` | la vista no declara `data-audit-ready` | no va a virar sola: reportar y seguir |
-   | `marca-en-false` | la vista dice explícitamente que no está lista | seguir sondeando |
+La gramática v3 es:
 
-   No uses sleeps ciegos.
+```
+módulo → modo → sección → pestaña → panel
+```
 
-   **Con proyectos de referencia esto no es opcional, es la trampa principal.** Traen datos de verdad, así que el warm start tarda de verdad, y una captura temprana muestra una vista que parece rota sin estarlo. Medido el 2026-07-24 sobre `acrconta` en `/monitoreo`:
+El módulo vive en el pathname; los demás niveles usan `modo`, `seccion`,
+`pestana` y `panel`. `foco` puede señalar una entidad dentro de la vista. Los
+aliases heredados sólo se leen para compatibilidad y no se generan.
 
-   | | captura temprana | tras el warm start |
-   |---|---|---|
-   | Fuentes | `0/0` | `13/13` |
-   | Registros | `0` | `1.277` |
-   | Sync | `Pendiente` | `Listo` |
+Ejemplo:
 
-   Antes de juzgar una vista como vacía, confirma que el header del módulo dejó de decir `Pendiente`/`Preparando` y que los contadores dejaron de ser cero. Si ves la pantalla de progreso con el anillo de porcentaje, todavía estás en warm start: sigue sondeando.
-6. **Estado profundo**: ya no hace falta clickear. Todo nivel se pide por URL,
-   y la app expone su navegación en `window.__pulsoNav` (dev y QA visual):
+```js
+window.location.href =
+  "/monitoreo?modo=territorial&seccion=avance&pestana=ump&pulso=" +
+  encodeURIComponent("/ruta/absoluta/proyecto.pulso");
+```
 
-   ```js
-   window.__pulsoNav.manifiesto           // TODAS las vistas direccionables
-   window.__pulsoNav.ir("monitoreo/territorial/avance")  // navega sin recargar
-   window.__pulsoNav.describir()          // dónde estoy ahora
-   window.__pulsoNav.hijos()              // qué cuelga de aquí
-   window.__pulsoNav.listo()              // readiness real, no un sleep
-   window.__pulsoNav.paneles()            // overlays declarados vs montados
-   window.__pulsoNav.pestanasDeLaSeccion() // catálogo runtime de la sección actual
-   ```
+`pulso` sólo funciona en desarrollo y se consume al abrir el proyecto. La
+dirección restante sobrevive al warm start. Las rutas principales se consultan
+en `frontend/src/lib/modules.ts`; no mantengas una segunda matriz manual.
 
-   `ir()` conserva el proyecto abierto: saltar entre vistas no vuelve a pagar
-   el warm start. Los runners lo consumen con `--ir <clave>`.
+## 3. Espera readiness real
 
-   **Clickear por nombre es el fallback frágil**, no el método: depende del
-   texto visible, que cambia, se trunca en viewport compacto y no existe hasta
-   que termina el warm start.
-7. **Itera solo si eres implementador**: con la vista abierta, el owner `frontend-react` puede editar sus globs y aprovechar HMR. Si invoca este skill `qa-visual-desktop` o `verificador`, permanece read-only y limita cualquier evidencia a rutas temporales fuera del árbol versionado.
-8. **Evidencia**: cierra con `preview_screenshot` (y `preview_resize` para el viewport compacto 1024x600 si tocaste layout).
+Controla la pestaña con el Browser integrado y sondea:
 
-## Higiene de servers (obligatoria)
+```js
+window.__pulsoNav.listo()
+```
 
-Historial del repo: sesiones que abren previews y no los cierran → 5+ servers simultáneos con la mayoría huérfanos.
+- `warm-start`: sigue esperando;
+- `marca-en-false`: la vista aún declara trabajo pendiente;
+- `sin-marca-de-readiness`: reporta una laguna de contrato; un sleep no la
+  vuelve válida.
 
-- **Antes de levantar nada**: `preview_list` — si ya hay un frontend corriendo en esta sesión, reúsalo. Para el backend, si el 8787 responde (`curl -s localhost:8787/api/system/health`), es el proceso del usuario: reúsalo y NUNCA lo mates.
-- **Al terminar la tarea**: si TÚ levantaste el server y el usuario no está iterando activamente sobre la vista, ciérralo con `preview_stop`. Si el usuario sigue mirando, déjalo y dilo explícitamente en el cierre ("dejé el preview corriendo en :5173").
-- **Si sospechas huérfanos** (de sesiones anteriores): `make dev-status` lista todos los servers dev con edad y conexiones; `make dev-prune` mata los huérfanos (vites sin puerto de preview) y los stale (>24 h sin conexiones). El prune jamás toca el backend R del 8787.
+No juzgues una vista mientras el header siga en `Pendiente`/`Preparando`, los
+contadores estén en cero o la pantalla de progreso siga montada. Los proyectos
+reales pueden tardar más de un minuto.
 
-## Trampas
+## 4. Recorre sin clicks frágiles
 
-- **Contaminación de navegación en barridos multi-celda.** Medido en un barrido
-  de 21 secciones: el segundo viewport heredaba la última pestaña visitada y el
-  lote entero hubo que descartarlo. Si recorres más de una celda: precalienta la
-  sección para que monte su catálogo antes de enumerar, exige
-  `actual === expectedActual` **en cada captura** (no solo al final) y elimina
-  resúmenes residuales antes de reintentar. Una dirección que "resolvió" no
-  prueba que la superficie montó: compara la marca de readiness real, no la ruta.
-- El catálogo de pestañas **no** es estático: lo publica la vista montada en
-  runtime. Enumera con `window.__pulsoNav.pestanasDeLaSeccion()`, nunca desde una
-  matriz histórica — duplicar ese catálogo ya produjo una copia desincronizada.
-- `?pulso=` solo funciona en dev build; en producción/Electron no existe.
-- Si el backend se reinició, el `sid` del browser muere (`E_NO_SESSION`) — la app se auto-recupera, pero el proyecto hay que re-abrirlo: vuelve a navegar con `?pulso=`.
-- Vista con datos pesados (monitoreo territorial): el primer render puede tardar; el estado "Pendiente" en el header del módulo es normal hasta el primer refresh.
-- Alternativa por script (sin preview tools): `node ~/.claude/skills/prosecnur-project-ui-check/scripts/open-pulso-session.mjs --project <ruta> --route /monitoreo` crea sesión + abre proyecto vía API y devuelve `route_url` + `session_id` (inyectable con `localStorage.setItem("pulso.sessionId", sid)`).
+```js
+window.__pulsoNav.manifiesto
+window.__pulsoNav.ir("monitoreo/territorial/avance")
+window.__pulsoNav.describir()
+window.__pulsoNav.hijos()
+window.__pulsoNav.paneles()
+window.__pulsoNav.pestanasDeLaSeccion()
+```
+
+`ir()` conserva el proyecto y evita pagar otro warm start. Enumera pestañas
+desde el runtime después de montar la sección. Clickear por texto es sólo un
+fallback: puede truncarse, cambiar o no existir durante hidratación.
+
+En barridos, exige que la dirección observada coincida con la esperada antes de
+cada captura. No reutilices una pestaña residual del viewport anterior.
+
+## 5. Evidencia reproducible
+
+Para una inspección automatizada puntual:
+
+```bash
+node scripts/ui-quick-check.mjs \
+  --project /ruta/copia.pulso \
+  --route /monitoreo \
+  --ir monitoreo/territorial/avance \
+  --viewport 1440x1000 \
+  --viewport 1024x600 \
+  --require-geometry \
+  --fail-on-issues
+```
+
+Para matriz por estudio:
+
+```bash
+make reference-project-visual-matrix REFERENCE_PROJECT=<slug>
+```
+
+Guarda evidencia en la ruta temporal reportada por el runner. Registra proyecto,
+URL/dirección final, readiness, viewport, screenshot y errores de
+página/API/recursos. Quien actúe como QA o gate permanece read-only; sólo el
+owner de implementación aprovecha HMR para editar sus globs.
+
+## 6. Higiene
+
+- Antes de levantar procesos usa `make dev-status`; reutiliza la pila de la
+  sesión y nunca mates el backend del usuario.
+- Detén sólo los procesos que tú iniciaste. `make dev-prune` se reserva para
+  huérfanos identificados, no para una sesión activa.
+- Si el backend reinicia y el `sid` expira, vuelve a abrir con `pulso`; no
+  inyectes una sesión inventada.
+- Cierra informando si dejaste una pila local activa y en qué puertos.
