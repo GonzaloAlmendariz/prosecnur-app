@@ -4108,7 +4108,7 @@ function DistrictSelectorGrid({
           </button>
         </div>
       </div>
-      <div className="hojas-ruta-district-grid">
+      <div className="hojas-ruta-district-grid" data-qa-geometry-group="hojas-ruta/distritos" data-qa-geometry-contract="equal">
         {filteredTerritories.map((t) => {
           const isDraft = draft.includes(t.ubigeo);
           const isConfirmed = confirmed.includes(t.ubigeo);
@@ -7870,7 +7870,7 @@ export default function HojasRutaPage() {
                 <section className="hojas-ruta-side-section is-summary">
                   <div className="hojas-ruta-side-kicker">Marco territorial</div>
                   <div className="hojas-ruta-side-title">{frame.coverage}</div>
-                  <div className="hojas-ruta-summary-grid">
+                  <div className="hojas-ruta-summary-grid" data-qa-geometry-group="hojas-ruta/marco-kpis" data-qa-geometry-contract="equal">
                     <MiniMetric label="Distritos disponibles" value={formatNumber(frame.n_distritos)} />
                     <MiniMetric label="Manzanas censales" value={formatNumber(frame.n_manzanas)} />
                     <MiniMetric label="Viviendas censadas" value={formatNumber(frame.viviendas)} />
