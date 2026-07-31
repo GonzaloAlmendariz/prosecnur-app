@@ -87,7 +87,8 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3 · contexto) | — | **4** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto) | — | **5** | ↓ |
+| Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
@@ -103,9 +104,9 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 |---|---|---|---|
 | N1 | telefónico y acreditación | `phoneRowValue` está **definido cuatro veces** en el repo con el mismo cuerpo: en los dos page-files y en `TelefonicoPhoneDailyTrend.ts:198` y `AcreditacionPhoneDailyTrend.ts:198`. Cada perfil puede mantener el suyo —esa es la decisión de independencia— pero tener dos copias *dentro* del mismo perfil no la sirve | abierto |
 | N2 | telefónico | El racimo `AcreditacionPhone*` de comparación teléfono↔plataforma (`TelefonicoMonitoreoPage.tsx:7117-7483`) tiene **35 dependencias hacia declaraciones del page-file**, la más lejana en la línea 15.016. Es la atadura medida que impide extraerlo: cualquier intento crea un ciclo de imports. Cortarla es su propia unidad de trabajo | abierto |
-| N3 | Dashboard | **Ningún proyecto de referencia trae datos de dashboard**, así que `/tablero` rinde su compuerta de fuente y el estado cargado —el que monta los gráficos de plotly, ~10 MB de chunks— nunca se audita. La cobertura de Dashboard es de la compuerta, no del tablero. Cerrarlo exige o un proyecto de referencia con dashboard construido, o que el instrumento sepa pulsar «Cargar fuente» y esperar el render | abierto |
+| N3 | Dashboard | **CERRADO** en la iteración 11 con `--sembrar "Cargar fuente"`: el tablero cargado entra a la matriz y ahí apareció el defecto de 2.017 px. Texto original: **Ningún proyecto de referencia trae datos de dashboard**, así que `/tablero` rinde su compuerta de fuente y el estado cargado —el que monta los gráficos de plotly, ~10 MB de chunks— nunca se audita. La cobertura de Dashboard es de la compuerta, no del tablero. Cerrarlo exige o un proyecto de referencia con dashboard construido, o que el instrumento sepa pulsar «Cargar fuente» y esperar el render | **cerrado** |
 | N4 | Bitácora | **Ningún proyecto de referencia tiene entradas de bitácora** (los cuatro dan 0), así que el estado lleno del timeline no se puede verificar visualmente. Por eso la iteración 8 enmarcó solo la rama vacía y no tocó la poblada. Mismo patrón que N3 con Dashboard | abierto |
-| N5 | Dashboard, Bitácora y Recopiladores | **Patrón, no incidencia: los proyectos de referencia cubren el pipeline de análisis y no los módulos operativos aguas abajo.** Tres de los ocho módulos solo se pueden auditar vacíos —Dashboard sin datos de tablero, Bitácora con 0 entradas, Recopiladores sin plan—, y en los tres el estado con datos es la mayor parte de la superficie. Mientras no se cierre, la línea «8 de 8 auditados» significa «8 de 8 visitados», no «8 de 8 cubiertos». **Cerrarlo es su propia unidad de trabajo**: o se enriquecen los fixtures, o el instrumento aprende a sembrar estado | abierto |
+| N5 | Dashboard, Bitácora y Recopiladores | **Dashboard CERRADO** (iteración 11: `--sembrar` lo mete a la matriz cargado). Bitácora y Recopiladores siguen abiertos, y peor de lo anotado: ninguno de los cuatro fixtures trae el estado **aguas arriba** —`monitoreo_aulas_plan` y `calc_muestra_aulas_selection` en cero—, así que `POST /api/recopiladores/seed` devuelve `seed_available: false`. Cerrarlos exige fixtures nuevos, no un flag. Texto original: **Patrón, no incidencia: los proyectos de referencia cubren el pipeline de análisis y no los módulos operativos aguas abajo.** Tres de los ocho módulos solo se pueden auditar vacíos —Dashboard sin datos de tablero, Bitácora con 0 entradas, Recopiladores sin plan—, y en los tres el estado con datos es la mayor parte de la superficie. Mientras no se cierre, la línea «8 de 8 auditados» significa «8 de 8 visitados», no «8 de 8 cubiertos». **Cerrarlo es su propia unidad de trabajo**: o se enriquecen los fixtures, o el instrumento aprende a sembrar estado | abierto |
 
 ## Bandeja de decisiones
 
@@ -156,6 +157,42 @@ a empezar.
 | 9 | 31 jul | **Recopiladores** | **Cierra la primera órbita.** Reporte verde a la primera; el defecto salió de comparar la captura con las de las ocho vueltas previas: era el único módulo que ponía su propio nombre donde los demás ponen su cifra | issues 0 · defectos reparados 3→**4** · módulos visitados 7→**8 de 8** | `5a0ee445` |
 
 | 10 | 31 jul | **Enciclopedia — retirada** | Auditada (`geometryGroups=0`, `coverageMisses=5`, verde por ausencia como las demás) y, en la misma vuelta, **retirada de la app por decisión del dueño**. La órbita pasa de nueve posiciones a ocho | superficie, router, 3 JSON huérfanos y `TabStrip` fuera · [ADR 0051](../adrs/0051-retiro-de-enciclopedia.md) | `44374172`, y el retiro |
+
+| 11 | 31 jul | **N5 · Dashboard** | **El instrumento aprende a sembrar (`--sembrar`) y el Dashboard cargado entra por primera vez a la matriz.** Detrás del estado sembrado apareció el mayor defecto del goal: 2.017 px de curaduría inalcanzables | scrollJails 1→**0** · defectos reparados 4→**5** · N5 cerrado para Dashboard | `23d20376`, `774828d8`, `486a5f7b` |
+
+### Nota de la iteración 11
+
+**Sembrar valió exactamente lo que N5 prometía.** La primera captura del
+Dashboard con datos encontró `dashboard-scope--editor` con `overflow: hidden`,
+`scrollOwner: null` y 2.906 px de contenido en 889: **cinco de las siete
+secciones de curaduría eran inalcanzables**, y con ellas la decisión que esa
+pantalla existe para pedir. Diez vueltas de auditoría no lo habían visto porque
+la ruta siempre rendía su compuerta.
+
+**Tercera aparición del mismo patrón** —Carga, Bitácora, ahora Dashboard— y ya
+merece nombre: *un contenedor que recorta apostando a que sus hijos scrollean
+tiene que verificar que **todos** lo hagan, no la mayoría.* En los tres casos la
+premisa estaba escrita (`scrollOwner="panels"`, `overflow: hidden` sobre una
+columna flex) y un hijo no la cumplía.
+
+**`--click-tab` no servía y relajarlo habría sido peor.** La sesión es una sola
+para toda la matriz: el control de siembra existe en la primera captura y
+desaparece en las cuatro siguientes. Pero en `--click-tab` un control ausente
+**sí** es un fallo que hay que ver, así que la tolerancia va en un flag propio,
+`--sembrar`, con su semántica escrita.
+
+**N5 se cierra solo para Dashboard, y el resto empeoró al medirlo.** No es que
+falte el estado de Recopiladores: falta el de **aguas arriba**. Los cuatro
+fixtures tienen `monitoreo_aulas_plan` y `calc_muestra_aulas_selection` en cero,
+así que el endpoint de siembra que parecía la solución devuelve
+`seed_available: false`. Bitácora y Recopiladores necesitan fixtures nuevos, no
+un flag — y eso es una unidad de trabajo propia, no media iteración.
+
+**Y una del gate, que es mía.** El retiro de Enciclopedia dejó cuatro tests del
+catálogo visual en rojo y el gate de esa unidad no los vio: corrí tsc, vitest,
+build, testthat y audit, pero no `node --test scripts/tests/`. **Escalar el gate
+al diff incluye preguntarse qué suites cubren lo que se borró**, no solo lo que
+se escribió: un borrado no deja archivos nuevos que delaten su área.
 
 ### Nota de la iteración 10
 
