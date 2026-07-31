@@ -8,6 +8,16 @@ const net = require("node:net");
 const os = require("node:os");
 const path = require("node:path");
 const { createCloseGuard, createStdioMirror } = require("./lifecycle.cjs");
+const { createHfPublishBroker } = require("./hf-publish-broker.cjs");
+const {
+  buildContentSecurityPolicy,
+  canPersistSecret,
+  canReuseStoredSecret,
+  createNavigationPolicy,
+  isTrustedIpcEvent,
+  resolveAuditLaunchConfig,
+  writeJsonAtomically,
+} = require("./security.cjs");
 
 let stdoutMirror = null;
 let stderrMirror = null;
@@ -83,23 +93,28 @@ const ELECTRON_DEV = process.env.PROSECNUR_ELECTRON_DEV === "1";
 const DEFAULT_VITE_URL = "http://localhost:5173";
 const MIN_R_PORT = 1024;
 const MAX_R_PORT = 49151;
-const SMOKE_CDP_PORT = process.env.PROSECNUR_SMOKE_CDP_PORT;
 const AUDIT_MANIFEST_PATH = process.env.PULSO_AUDIT_RUN_MANIFEST || "";
-const AUDIT_USER_DATA_DIR =
-  process.env.PROSECNUR_USER_DATA_DIR ||
-  (AUDIT_MANIFEST_PATH ? path.join(path.dirname(AUDIT_MANIFEST_PATH), "electron-user-data") : "");
+const DEFAULT_USER_DATA_DIR = app.getPath("userData");
+const AUDIT_LAUNCH = resolveAuditLaunchConfig({
+  manifestPath: AUDIT_MANIFEST_PATH,
+  requestedUserDataDir: process.env.PROSECNUR_USER_DATA_DIR || "",
+  defaultUserDataDir: DEFAULT_USER_DATA_DIR,
+  cdpPort: process.env.PROSECNUR_SMOKE_CDP_PORT || "",
+});
+const AUDIT_USER_DATA_DIR = AUDIT_LAUNCH.userDataDir;
 const ALLOW_MULTI_INSTANCE =
   process.env.PULSO_ALLOW_MULTI_INSTANCE === "true" ||
   process.env.PULSO_ALLOW_MULTI_INSTANCE === "1" ||
-  Boolean(AUDIT_MANIFEST_PATH);
+  AUDIT_LAUNCH.auditEnabled;
 
 if (AUDIT_USER_DATA_DIR) {
-  fs.mkdirSync(AUDIT_USER_DATA_DIR, { recursive: true });
+  fs.mkdirSync(AUDIT_USER_DATA_DIR, { recursive: true, mode: 0o700 });
+  fs.chmodSync(AUDIT_USER_DATA_DIR, 0o700);
   app.setPath("userData", AUDIT_USER_DATA_DIR);
 }
 
-if (SMOKE_CDP_PORT && /^\d+$/.test(SMOKE_CDP_PORT)) {
-  app.commandLine.appendSwitch("remote-debugging-port", SMOKE_CDP_PORT);
+if (AUDIT_LAUNCH.cdpPort) {
+  app.commandLine.appendSwitch("remote-debugging-port", AUDIT_LAUNCH.cdpPort);
 }
 
 // Token aleatorio por arranque. Lo pasamos al backend R vía env var
@@ -137,6 +152,7 @@ let logStream = null;
 // para que el usuario pueda abrirla rápido cuando algo falla.
 let logsDir = null;
 let pendingLaunchProject = null;
+let loadAuthorizedInternalDataUrl = null;
 
 function pulsoArgFromArgv(argv = []) {
   const hit = argv.find((arg) => (
@@ -208,8 +224,7 @@ function readRecentProjects() {
 
 function writeRecentProjects(list) {
   try {
-    fs.mkdirSync(path.dirname(recentProjectsPath()), { recursive: true });
-    fs.writeFileSync(recentProjectsPath(), JSON.stringify(list, null, 2), "utf8");
+    writeJsonAtomically(recentProjectsPath(), list);
   } catch (e) {
     stderrMirror.write(`[prosecnur-desktop] No pude escribir recent-projects: ${e.message}\n`);
   }
@@ -274,27 +289,51 @@ function normalizeSecretRecord(record) {
   return { encrypted: true, value: "" };
 }
 
+function safeStoragePersistenceState() {
+  let encryptionAvailable = false;
+  let selectedBackend = "";
+  try {
+    encryptionAvailable = safeStorage.isEncryptionAvailable();
+    if (
+      process.platform === "linux" &&
+      typeof safeStorage.getSelectedStorageBackend === "function"
+    ) {
+      selectedBackend = safeStorage.getSelectedStorageBackend();
+    }
+  } catch (_error) {
+    encryptionAvailable = false;
+  }
+  return {
+    encryptionAvailable,
+    selectedBackend,
+    canPersist: canPersistSecret({
+      encryptionAvailable,
+      platform: process.platform,
+      selectedBackend,
+    }),
+  };
+}
+
 function encryptSecret(value) {
   const text = String(value || "");
   if (!text) return { encrypted: true, value: "" };
-  if (safeStorage.isEncryptionAvailable()) {
+  if (!safeStoragePersistenceState().canPersist) return null;
+  try {
     return {
       encrypted: true,
       value: safeStorage.encryptString(text).toString("base64")
     };
+  } catch (_error) {
+    return null;
   }
-  return {
-    encrypted: false,
-    value: Buffer.from(text, "utf8").toString("base64")
-  };
 }
 
 function decryptSecret(record) {
-  if (!record || !record.value) return "";
+  if (!record || !record.value || record.encrypted === false) return "";
+  if (!safeStoragePersistenceState().canPersist) return "";
   try {
     const buf = Buffer.from(record.value, "base64");
-    if (record.encrypted) return safeStorage.decryptString(buf);
-    return buf.toString("utf8");
+    return safeStorage.decryptString(buf);
   } catch (_e) {
     return "";
   }
@@ -356,6 +395,7 @@ function hfTokenMeta(entry) {
     name: entry.name || entry.hf_username || "Token HF",
     hf_username: entry.hf_username || "",
     masked_token: entry.masked_token || "••••",
+    requires_reauth: entry.hf_token?.encrypted === false,
     created_at: entry.created_at || null,
     last_used_at: entry.last_used_at || null
   };
@@ -502,37 +542,31 @@ function readHfSettingsRaw() {
 }
 
 function writeHfSettingsRaw(raw) {
-  fs.mkdirSync(path.dirname(hfSettingsPath()), { recursive: true });
-  fs.writeFileSync(hfSettingsPath(), JSON.stringify(raw, null, 2), "utf8");
+  writeJsonAtomically(hfSettingsPath(), raw);
 }
 
 function encryptionAvailableForSettings() {
-  // En macOS consultar Safe Storage puede tocar el llavero segun el estado del
-  // sistema. El listado de tokens solo necesita metadata, no validar el secreto.
-  if (process.platform === "darwin") return true;
-  return safeStorage.isEncryptionAvailable();
+  return safeStoragePersistenceState().canPersist;
 }
 
 function readHfSettings() {
   const raw = readHfSettingsRaw();
+  const encryptionAvailable = encryptionAvailableForSettings();
   return {
     hf_username: raw.hf_username || "",
     default_namespace: raw.default_namespace || "",
     token_configured: raw.tokens.length > 0,
-    encryption_available: encryptionAvailableForSettings(),
+    encryption_available: encryptionAvailable,
+    persistence_status: encryptionAvailable ? "available" : "unavailable",
     saved_tokens: raw.tokens.map(hfTokenMeta),
     recent_destinations: raw.destinations.map(hfDestinationMeta)
   };
 }
 
-function getHfToken(id) {
+function resolveSavedHfToken(id) {
   const raw = readHfSettingsRaw();
   const entry = raw.tokens.find((t) => t.id === id);
-  if (!entry) return null;
-  return {
-    ...hfTokenMeta(entry),
-    hf_token: cachedHfToken(entry)
-  };
+  return entry ? cachedHfToken(entry) : "";
 }
 
 function rememberSuccessfulHfToken(settings = {}) {
@@ -549,6 +583,13 @@ function rememberSuccessfulHfToken(settings = {}) {
   const destinationNamespace = normalizeHfNamespace(settings.destination_namespace || settings.namespace);
   const name = String(settings.name || username || destinationNamespace || "Token HF").trim();
   if (!token) return readHfSettings();
+  const encryptedToken = encryptSecret(token);
+  if (!encryptedToken) {
+    return {
+      ...readHfSettings(),
+      persistence_status: "unavailable"
+    };
+  }
   const raw = readHfSettingsRaw();
   const now = new Date().toISOString();
   const fingerprint = secretFingerprint(token);
@@ -556,12 +597,16 @@ function rememberSuccessfulHfToken(settings = {}) {
     raw.tokens.find((entry) => entry.hf_username === username && entry.token_fingerprint === fingerprint);
   let cachedEntry = null;
   if (existing) {
-    const sameStoredToken =
-      (existing.token_fingerprint && existing.token_fingerprint === fingerprint) ||
-      cachedHfTokenMatches(existing, token);
+    const sameStoredToken = canReuseStoredSecret({
+      storedSecret: existing.hf_token,
+      fingerprintMatches:
+        Boolean(existing.token_fingerprint) &&
+        existing.token_fingerprint === fingerprint,
+      cacheMatches: cachedHfTokenMatches(existing, token),
+    });
     existing.name = name;
     existing.hf_username = username;
-    if (!sameStoredToken) existing.hf_token = encryptSecret(token);
+    if (!sameStoredToken) existing.hf_token = encryptedToken;
     existing.masked_token = maskSecret(token);
     existing.token_fingerprint = fingerprint;
     existing.created_at = existing.created_at || now;
@@ -576,7 +621,7 @@ function rememberSuccessfulHfToken(settings = {}) {
       id: randomUUID(),
       name,
       hf_username: username,
-      hf_token: encryptSecret(token),
+      hf_token: encryptedToken,
       masked_token: maskSecret(token),
       token_fingerprint: fingerprint,
       created_at: now,
@@ -673,6 +718,29 @@ function saveHfDefaultNamespace(settings = {}) {
   return readHfSettings();
 }
 
+function recordSavedHfPublishSuccess(settings = {}, result = {}) {
+  const tokenId = String(settings.token_id || "").trim();
+  const raw = readHfSettingsRaw();
+  const tokenEntry = raw.tokens.find((entry) => entry.id === tokenId);
+  if (tokenEntry) tokenEntry.last_used_at = new Date().toISOString();
+
+  rememberHfDestination({
+    destination_namespace: settings.hf_username,
+    space_name: settings.space_name,
+    repo_id: result.repo_id,
+    app_url: result.app_url,
+    module: "dashboard",
+    private: settings.private,
+  }, raw);
+  writeHfSettingsRaw({
+    hf_username: raw.hf_username || "",
+    default_namespace: raw.default_namespace || "",
+    destinations: raw.destinations || [],
+    tokens: raw.tokens || [],
+    updated_at: new Date().toISOString(),
+  });
+}
+
 function requestHfJson(pathname, token) {
   return new Promise((resolve) => {
     const req = https.request({
@@ -713,8 +781,7 @@ async function checkHfToken(settings = {}) {
   const explicitToken = String(settings.hf_token || "").trim();
   let token = explicitToken;
   if (!token && id) {
-    const saved = getHfToken(id);
-    token = String(saved?.hf_token || "").trim();
+    token = String(resolveSavedHfToken(id) || "").trim();
   }
   if (!token) {
     return { ok: false, status_code: 0, error: "Pega un token HF o selecciona uno guardado." };
@@ -774,6 +841,24 @@ function forgetHfDestination(settings = {}) {
 // ===========================================================================
 
 function registerIpcHandlers() {
+  const trustedHandle = (channel, listener) => {
+    ipcMain.handle(channel, (event, ...args) => {
+      if (!isTrustedIpcEvent(event, { mainWindow, rendererOrigins: rendererOrigins() })) {
+        throw new Error("E_UNTRUSTED_IPC");
+      }
+      return listener(event, ...args);
+    });
+  };
+  const trustedOn = (channel, listener) => {
+    ipcMain.on(channel, (event, ...args) => {
+      if (!isTrustedIpcEvent(event, { mainWindow, rendererOrigins: rendererOrigins() })) {
+        writeLog(`[ipc] invocación rechazada: ${channel}\n`);
+        return;
+      }
+      listener(event, ...args);
+    });
+  };
+
   function dialogDefaultPath(args = {}, fallbackDir = app.getPath("documents"), filename = "") {
     const raw = args.defaultPath && typeof args.defaultPath === "string"
       ? args.defaultPath
@@ -782,7 +867,7 @@ function registerIpcHandlers() {
     return filename ? path.join(base || fallbackDir, filename) : (base || fallbackDir);
   }
 
-  ipcMain.handle("project:openDialog", async (_event, args = {}) => {
+  trustedHandle("project:openDialog", async (_event, args = {}) => {
     const result = await dialog.showOpenDialog(mainWindow || undefined, {
       title: "Abrir proyecto Prosecnur",
       defaultPath: dialogDefaultPath(args),
@@ -796,7 +881,7 @@ function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
-  ipcMain.handle("project:saveDialog", async (_event, args) => {
+  trustedHandle("project:saveDialog", async (_event, args) => {
     const defaultName = (args && args.defaultName) || "MiProyecto";
     const filename = defaultName.endsWith(".pulso") ? defaultName : `${defaultName}.pulso`;
     const defaultPath = dialogDefaultPath(args || {}, app.getPath("documents"), filename);
@@ -809,7 +894,7 @@ function registerIpcHandlers() {
     return result.filePath;
   });
 
-  ipcMain.handle("project:saveEntregableDialog", async (_event, args = {}) => {
+  trustedHandle("project:saveEntregableDialog", async (_event, args = {}) => {
     const defaultName = args.defaultName || "entregable";
     const filters = args.filters || [{ name: "Todos", extensions: ["*"] }];
     const defaultPath = args.defaultPath || dialogDefaultPath(args, app.getPath("documents"), defaultName);
@@ -822,45 +907,73 @@ function registerIpcHandlers() {
     return result.filePath;
   });
 
-  ipcMain.handle("project:getRecent", () => readRecentProjects());
+  trustedHandle("project:getRecent", () => readRecentProjects());
 
-  ipcMain.handle("project:getLaunchProject", () => {
+  trustedHandle("project:getLaunchProject", () => {
     const p = pendingLaunchProject;
     pendingLaunchProject = null;
     return p;
   });
 
-  ipcMain.handle("project:pushRecent", (_event, args = {}) => {
+  trustedHandle("project:pushRecent", (_event, args = {}) => {
     if (args.path) pushRecentProject(args.path);
     return readRecentProjects();
   });
 
-  ipcMain.handle("project:removeRecent", (_event, args = {}) => {
+  trustedHandle("project:removeRecent", (_event, args = {}) => {
     if (args.path) removeRecentProject(args.path);
     return readRecentProjects();
   });
 
-  ipcMain.handle("hf:getSettings", () => readHfSettings());
+  trustedHandle("hf:getSettings", () => readHfSettings());
 
-  ipcMain.handle("hf:getToken", (_event, args = {}) => getHfToken(args.id));
+  trustedHandle("hf:rememberSuccessfulToken", (_event, args = {}) => rememberSuccessfulHfToken(args));
 
-  ipcMain.handle("hf:rememberSuccessfulToken", (_event, args = {}) => rememberSuccessfulHfToken(args));
+  trustedHandle("hf:checkToken", (_event, args = {}) => checkHfToken(args));
 
-  ipcMain.handle("hf:checkToken", (_event, args = {}) => checkHfToken(args));
+  trustedHandle("hf:forgetToken", (_event, args = {}) => forgetHfToken(args));
 
-  ipcMain.handle("hf:forgetToken", (_event, args = {}) => forgetHfToken(args));
+  trustedHandle("hf:rememberDestination", (_event, args = {}) => rememberHfDestination(args));
 
-  ipcMain.handle("hf:rememberDestination", (_event, args = {}) => rememberHfDestination(args));
+  trustedHandle("hf:saveDefaultNamespace", (_event, args = {}) => saveHfDefaultNamespace(args));
 
-  ipcMain.handle("hf:saveDefaultNamespace", (_event, args = {}) => saveHfDefaultNamespace(args));
+  trustedHandle("hf:forgetDestination", (_event, args = {}) => forgetHfDestination(args));
 
-  ipcMain.handle("hf:forgetDestination", (_event, args = {}) => forgetHfDestination(args));
+  trustedHandle("hf:publishDashboard", async (_event, args = {}) => {
+    const destination = `${String(args.hf_username || "").trim()}/${String(args.space_name || "").trim()}`;
+    const confirmation = await dialog.showMessageBox(mainWindow, {
+      type: "question",
+      title: "Confirmar publicación externa",
+      message: `Publicar el dashboard en ${destination}`,
+      detail: "La credencial guardada permanecerá en este equipo, pero los archivos del dashboard se enviarán a Hugging Face.",
+      buttons: ["Publicar", "Cancelar"],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true,
+    });
+    if (confirmation.response !== 0) {
+      throw new Error("Publicación cancelada.");
+    }
+    const broker = createHfPublishBroker({
+      getBackendPort: () => backendPort,
+      resolveSavedToken: async (id) => resolveSavedHfToken(id),
+      fetch: globalThis.fetch,
+      logger: {
+        warn: (eventName, detail) => {
+          writeLog(`[hf-broker] ${eventName} ${JSON.stringify(detail)}\n`);
+        },
+      },
+    });
+    const result = await broker.publish(args);
+    recordSavedHfPublishSuccess(args, result);
+    return result;
+  });
 
-  ipcMain.on("app:closeGuardReady", (_event, ready) => {
+  trustedOn("app:closeGuardReady", (_event, ready) => {
     closeGuard.setRendererReady(ready);
   });
 
-  ipcMain.handle("app:confirmClose", async () => {
+  trustedHandle("app:confirmClose", async () => {
     closeGuard.confirmClose();
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.close();
@@ -1040,7 +1153,11 @@ function renderLoadingPage(elapsedMs) {
     <p>${escapeHtml(hint)}</p>
   `;
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlPage(APP_NAME, body))}`);
+    const url = `data:text/html;charset=utf-8,${encodeURIComponent(htmlPage(APP_NAME, body))}`;
+    const load = loadAuthorizedInternalDataUrl || ((value) => mainWindow.loadURL(value));
+    void load(url).catch((error) => {
+      writeLog(`[renderer] no pude mostrar loading interno: ${error.message}\n`);
+    });
   }
 }
 
@@ -1071,7 +1188,11 @@ function showError(message) {
     <h1>No se pudo abrir Prosecnur</h1>
     <p>${escapeHtml(message)}</p>
   `;
-  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlPage(APP_NAME, body))}`);
+  const url = `data:text/html;charset=utf-8,${encodeURIComponent(htmlPage(APP_NAME, body))}`;
+  const load = loadAuthorizedInternalDataUrl || ((value) => mainWindow.loadURL(value));
+  void load(url).catch((error) => {
+    writeLog(`[renderer] no pude mostrar error interno: ${error.message}\n`);
+  });
 }
 
 // Dialog nativo con botones Reintentar / Ver logs / Salir. Reemplaza
@@ -1206,10 +1327,6 @@ function rendererOrigins() {
   if (backendPort) origins.add(`http://${HOST}:${backendPort}`);
   if (ELECTRON_DEV) origins.add(devRendererUrlObject().origin);
   return Array.from(origins);
-}
-
-function wsOriginFor(httpOrigin) {
-  return httpOrigin.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
 }
 
 async function clearRendererCaches() {
@@ -1587,8 +1704,12 @@ function createMenu() {
       label: "Ver",
       submenu: [
         { role: "reload", label: "Recargar" },
-        { role: "toggleDevTools", label: "Herramientas de desarrollo" },
-        { type: "separator" },
+        ...((ELECTRON_DEV || AUDIT_LAUNCH.auditEnabled)
+          ? [
+              { role: "toggleDevTools", label: "Herramientas de desarrollo" },
+              { type: "separator" },
+            ]
+          : []),
         { role: "resetZoom", label: "Tamaño real" },
         { role: "zoomIn", label: "Acercar" },
         { role: "zoomOut", label: "Alejar" },
@@ -1633,33 +1754,75 @@ function createMenu() {
 // webPreferences hardened del main, lo cual es una puerta que
 // preferimos cerrar de una vez.
 function hardenWindowNavigation(win) {
-  // 1) Bloquear navegación a orígenes distintos al renderer permitido.
-  //    En producción es el backend local; en desarrollo visual puede ser Vite.
-  win.webContents.on("will-navigate", (event, url) => {
-    let target;
-    try {
-      target = new URL(url);
-    } catch (_error) {
-      event.preventDefault();
-      return;
+  let pendingInternalDataUrl = "";
+
+  const decide = (url, phase) => {
+    const policy = createNavigationPolicy({
+      rendererOrigins: rendererOrigins(),
+      pendingInternalDataUrl,
+    });
+    const decision = policy.decide(url, { phase });
+    if (
+      decision.action === "allow" &&
+      pendingInternalDataUrl &&
+      url === pendingInternalDataUrl
+    ) {
+      pendingInternalDataUrl = "";
     }
-    if (target.protocol === "data:" || rendererOrigins().includes(target.origin)) {
-      return;
-    }
-    if (target.protocol === "http:" || target.protocol === "https:") {
-      event.preventDefault();
-      shell.openExternal(url);
-      return;
-    }
+    return decision;
+  };
+
+  const openExternalHttps = (url) => {
+    void shell.openExternal(url).catch((error) => {
+      writeLog(`[navigation] no pude abrir URL externa: ${error.message}\n`);
+    });
+  };
+
+  const applyNavigationDecision = (event, rawDetails, phase) => {
+    const url =
+      typeof rawDetails === "string" ? rawDetails : String(rawDetails?.url || "");
+    const decision = decide(url, phase);
+    if (decision.action === "allow") return;
     event.preventDefault();
+    if (decision.action === "open-external") {
+      openExternalHttps(decision.url);
+    }
+  };
+
+  // will-navigate cubre el main frame; will-frame-navigate evita que un
+  // iframe futuro cargue un origen no aprobado; will-redirect impide que un
+  // origen permitido salte a otro mediante 30x.
+  win.webContents.on("will-navigate", (event, details) => {
+    applyNavigationDecision(event, details, "navigate");
+  });
+  win.webContents.on("will-frame-navigate", (event, details) => {
+    applyNavigationDecision(event, details, "frame");
+  });
+  win.webContents.on("will-redirect", (event, details) => {
+    applyNavigationDecision(event, details, "redirect");
   });
 
-  // 2) Intercepta window.open / target="_blank": siempre abrir en el
-  //    navegador externo del SO, nunca en una BrowserWindow hija.
+  // window.open / target=_blank nunca crea una BrowserWindow hija. Solo HTTPS
+  // validado sale al navegador del sistema; data:, file:, javascript:, HTTP
+  // externo y esquemas custom quedan denegados.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    const decision = createNavigationPolicy({
+      rendererOrigins: rendererOrigins(),
+    }).decide(url);
+    if (decision.action === "open-external") {
+      openExternalHttps(decision.url);
+    }
     return { action: "deny" };
   });
+
+  loadAuthorizedInternalDataUrl = async (url) => {
+    pendingInternalDataUrl = url;
+    try {
+      await win.loadURL(url);
+    } finally {
+      if (pendingInternalDataUrl === url) pendingInternalDataUrl = "";
+    }
+  };
 }
 
 // CSP defensiva: limita al renderer a conectarse solo a sí mismo (el
@@ -1668,26 +1831,15 @@ function hardenWindowNavigation(win) {
 // incluye ws://localhost por si agregamos websockets más adelante.
 function installCsp() {
   const { session } = require("electron");
+  session.defaultSession.setPermissionRequestHandler(
+    (_webContents, _permission, callback) => callback(false),
+  );
+  session.defaultSession.setPermissionCheckHandler(() => false);
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const httpSources = rendererOrigins();
-    const wsSources = httpSources.map(wsOriginFor);
-    const sourceList = httpSources.join(" ");
-    const connectList = [...httpSources, ...wsSources].join(" ");
-    const csp = [
-      `default-src 'self'${sourceList ? ` ${sourceList}` : ""}`,
-      // 'unsafe-inline' y 'unsafe-eval' son concesiones al bundle de
-      // Vite/React + plotly.js que los requiere. Si en algún momento
-      // migramos a CSP estricta (hash-based), acá se endurece.
-      `script-src 'self' 'unsafe-inline' 'unsafe-eval'${sourceList ? ` ${sourceList}` : ""}`,
-      `style-src 'self' 'unsafe-inline'${sourceList ? ` ${sourceList}` : ""}`,
-      `img-src 'self' data: blob:${sourceList ? ` ${sourceList}` : ""}`,
-      `font-src 'self' data:${sourceList ? ` ${sourceList}` : ""}`,
-      `connect-src 'self'${connectList ? ` ${connectList}` : ""}`,
-      "object-src 'none'",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'"
-    ].join("; ");
+    const csp = buildContentSecurityPolicy({
+      isDev: ELECTRON_DEV,
+      rendererOrigins: rendererOrigins(),
+    });
     callback({
       responseHeaders: {
         ...details.responseHeaders,
@@ -1712,6 +1864,7 @@ async function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      devTools: ELECTRON_DEV || AUDIT_LAUNCH.auditEnabled,
       // Bridge mínimo entre renderer y main: dialogs nativos, recientes y
       // eventos de menú. Ver desktop/preload.cjs para la superficie.
       preload: path.join(__dirname, "preload.cjs")
@@ -1726,6 +1879,7 @@ async function createWindow() {
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
+    loadAuthorizedInternalDataUrl = null;
     closeGuard.invalidateRenderer();
   });
 

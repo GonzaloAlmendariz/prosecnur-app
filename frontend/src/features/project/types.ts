@@ -13,8 +13,30 @@ export type HfSavedToken = {
   name: string;
   hf_username: string;
   masked_token: string;
+  requires_reauth: boolean;
   created_at: string | null;
   last_used_at: string | null;
+};
+
+export type HfSavedPublishRequest = {
+  session_id: string;
+  token_id: string;
+  hf_username: string;
+  space_name: string;
+  private?: boolean;
+};
+
+export type HfSavedPublishResponse = {
+  ok: true;
+  repo_id: string;
+  space_name: string;
+  url: string;
+  app_url: string;
+  published_at: string;
+  files_uploaded: number;
+  total_bytes: number;
+  project_size: number;
+  uploaded: Array<{ path: string; size: number }>;
 };
 
 export type HfSavedDestination = {
@@ -51,12 +73,13 @@ export type ProsecnurApi = {
     default_namespace: string;
     token_configured: boolean;
     encryption_available: boolean;
+    persistence_status?: "available" | "unavailable";
     saved_tokens: HfSavedToken[];
     recent_destinations: HfSavedDestination[];
   }>;
-  getHfToken: (id: string) => Promise<(HfSavedToken & {
-    hf_token: string;
-  }) | null>;
+  publishDashboardWithSavedToken: (
+    settings: HfSavedPublishRequest,
+  ) => Promise<HfSavedPublishResponse>;
   rememberSuccessfulHfToken: (settings: {
     id?: string;
     token_id?: string;
@@ -77,6 +100,7 @@ export type ProsecnurApi = {
     default_namespace: string;
     token_configured: boolean;
     encryption_available: boolean;
+    persistence_status?: "available" | "unavailable";
     saved_tokens: HfSavedToken[];
     recent_destinations: HfSavedDestination[];
   }>;

@@ -57,10 +57,11 @@ contextBridge.exposeInMainWorld("prosecnurApi", {
 
   getHfSettings: () => ipcRenderer.invoke("hf:getSettings"),
 
-  getHfToken: (id) => ipcRenderer.invoke("hf:getToken", { id }),
-
   rememberSuccessfulHfToken: (settings) =>
     ipcRenderer.invoke("hf:rememberSuccessfulToken", settings || {}),
+
+  publishDashboardWithSavedToken: (settings) =>
+    ipcRenderer.invoke("hf:publishDashboard", settings || {}),
 
   checkHfToken: (settings) =>
     ipcRenderer.invoke("hf:checkToken", settings || {}),

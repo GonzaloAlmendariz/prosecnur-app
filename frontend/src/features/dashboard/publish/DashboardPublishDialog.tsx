@@ -1,6 +1,12 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ExternalLink, Loader2, Rocket, X } from "lucide-react";
-import { apiDashboardConfigPut, apiDashboardPublish, type DashboardLastDeploy } from "../../../api/client";
+import {
+  apiDashboardConfigPut,
+  apiDashboardPublish,
+  getSession,
+  type DashboardLastDeploy,
+  type DashboardPublishResponse,
+} from "../../../api/client";
 import {
   openHuggingFaceTokens,
   PULSO_HF_DEFAULT_NAMESPACE,
@@ -40,9 +46,12 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [result, setResult] = useState<{ url: string; app_url: string; repo_id: string } | null>(null);
   const selectedSavedToken = savedTokens.find((saved) => saved.id === selectedTokenId) ?? null;
-  const hfCredentialReady = selectedTokenId ? true : /^hf_[A-Za-z0-9_]+$/.test(token.trim());
+  const hfCredentialReady = selectedSavedToken
+    ? !selectedSavedToken.requires_reauth
+    : /^hf_[A-Za-z0-9_]+$/.test(token.trim());
 
   const canPublish = useMemo(
     () => !!username.trim() && hfCredentialReady && /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(spaceName.trim()),
@@ -63,10 +72,11 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
         setUsername(lastDeploy?.hf_username || settings.default_namespace || settings.recent_destinations?.[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE);
         const nextTokens = settings.saved_tokens ?? [];
         setSavedTokens(nextTokens);
-        if (nextTokens.length) {
-          setSelectedTokenId((current) => current || nextTokens[0].id);
+        const firstUsableToken = nextTokens.find((item) => !item.requires_reauth);
+        if (firstUsableToken) {
+          setSelectedTokenId((current) => current || firstUsableToken.id);
           setToken("");
-          setTokenName(nextTokens[0].name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+          setTokenName(firstUsableToken.name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
         }
       } catch (_e) {
         // La app puede correr fuera de Electron. En ese caso el usuario
@@ -80,26 +90,17 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
   }, []);
 
   async function handleSavedTokenChange(id: string) {
-    setSelectedTokenId(id);
     setToken("");
     const saved = savedTokens.find((item) => item.id === id);
+    if (saved?.requires_reauth) {
+      setSelectedTokenId("");
+      setTokenName(saved.name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
+      setError("Ese token se guardó sin cifrado seguro. Pégalo de nuevo para volver a autenticarlo.");
+      return;
+    }
+    setError("");
+    setSelectedTokenId(id);
     if (saved) setTokenName(saved.name || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-  }
-
-  async function resolveHfTokenForPublish() {
-    const pasted = token.trim();
-    if (pasted) return pasted;
-    if (!selectedTokenId) return "";
-    if (!window.prosecnurApi?.getHfToken) {
-      throw new Error("No pude leer la credencial guardada de Hugging Face en esta sesion.");
-    }
-    const saved = await window.prosecnurApi.getHfToken(selectedTokenId);
-    const savedToken = saved?.hf_token?.trim() ?? "";
-    if (!savedToken) {
-      throw new Error("La credencial guardada no pudo descifrarse. Selecciona otro token o pegalo manualmente.");
-    }
-    setTokenName(saved?.name || tokenName || PULSO_HF_DEFAULT_TOKEN_ALIAS);
-    return savedToken;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -107,32 +108,58 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
     if (!canPublish || publishing) return;
     setPublishing(true);
     setError("");
+    setNotice("");
     setResult(null);
     try {
       await apiDashboardConfigPut(sanitizeConfig(useDashboardStore.getState().config));
       window.dispatchEvent(new CustomEvent("pulso:project-status-changed"));
       useDashboardStore.getState().markClean();
-      const hfToken = await resolveHfTokenForPublish();
-      const out = await apiDashboardPublish({
-        hf_username: username.trim(),
-        hf_token: hfToken,
-        space_name: spaceName.trim(),
-        private: isPrivate,
-      });
-      if (window.prosecnurApi?.rememberSuccessfulHfToken) {
+      const pastedToken = token.trim();
+      let out: DashboardPublishResponse;
+      if (selectedSavedToken && !pastedToken) {
+        const sessionId = getSession();
+        if (!sessionId) {
+          throw new Error("La sesión local ya no está disponible. Vuelve a abrir el proyecto.");
+        }
+        if (!window.prosecnurApi?.publishDashboardWithSavedToken) {
+          throw new Error("La publicación con credencial guardada requiere la app de escritorio.");
+        }
+        out = await window.prosecnurApi.publishDashboardWithSavedToken({
+          session_id: sessionId,
+          token_id: selectedTokenId,
+          hf_username: username.trim(),
+          space_name: spaceName.trim(),
+          private: isPrivate,
+        });
+      } else {
+        out = await apiDashboardPublish({
+          hf_username: username.trim(),
+          hf_token: pastedToken,
+          space_name: spaceName.trim(),
+          private: isPrivate,
+        });
+      }
+      if (pastedToken && window.prosecnurApi?.rememberSuccessfulHfToken) {
         const settings = await window.prosecnurApi.rememberSuccessfulHfToken({
-          id: selectedTokenId || undefined,
           name: tokenName.trim() || username.trim(),
-          credential_username: savedTokens.find((saved) => saved.id === selectedTokenId)?.hf_username || "",
+          credential_username: username.trim(),
           destination_namespace: username.trim(),
           space_name: spaceName.trim(),
           repo_id: out.repo_id,
           app_url: out.app_url,
           module: "dashboard",
           private: isPrivate,
-          hf_token: hfToken,
+          hf_token: pastedToken,
         });
         setSavedTokens(settings.saved_tokens ?? []);
+        if (
+          settings.persistence_status === "unavailable" ||
+          !settings.encryption_available
+        ) {
+          setNotice(
+            "El dashboard se publicó, pero el sistema no ofrece cifrado seguro: el token no quedó guardado.",
+          );
+        }
       }
       setResult({ url: out.url, app_url: out.app_url, repo_id: out.repo_id });
     } catch (err) {
@@ -179,6 +206,7 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
                 {savedTokens.map((saved) => (
                   <option key={saved.id} value={saved.id}>
                     {saved.name} · {saved.hf_username ? `cuenta ${saved.hf_username}` : "sin cuenta verificada"} · {saved.masked_token}
+                    {saved.requires_reauth ? " · volver a autenticar" : ""}
                   </option>
                 ))}
               </select>
@@ -188,7 +216,11 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
             <div className="dash-publish-saved-credential dash-publish-wide">
               <span>Credencial activa</span>
               <strong>{selectedSavedToken.name || "Token HF"}</strong>
-              <small>{selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"} · se descifra solo al publicar.</small>
+              <small>
+                {selectedSavedToken.requires_reauth
+                  ? "Esta referencia requiere volver a autenticarla antes de publicar."
+                  : `${selectedSavedToken.hf_username ? `Cuenta/alias ${selectedSavedToken.hf_username}` : "Cuenta HF no verificada"} · el valor permanece en el proceso principal.`}
+              </small>
             </div>
           ) : null}
           <label>
@@ -261,6 +293,7 @@ export function DashboardPublishDialog({ defaultTitle, lastDeploy, onClose }: Pr
         )}
 
         {error && <div className="dash-admin-toolbar-error" role="alert">{error}</div>}
+        {notice && <div className="dash-publish-status" role="status"><span>{notice}</span></div>}
 
         {result && (
           <div className="dash-publish-result">

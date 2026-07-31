@@ -76,6 +76,7 @@ type HfSettingsState = {
   default_namespace: string;
   token_configured: boolean;
   encryption_available: boolean;
+  persistence_status?: "available" | "unavailable";
   saved_tokens: HfSavedToken[];
   recent_destinations: HfSavedDestination[];
 };
@@ -510,21 +511,33 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
     }
   }
 
-  async function useSavedHfToken(id: string) {
-    if (!id || !window.prosecnurApi?.getHfToken) return;
+  function useSavedHfToken(id: string) {
+    if (!id) return;
     setHfBusy("load");
     setHfMessage(null);
-    setHfSelectedTokenId(id);
     try {
-      const saved = await window.prosecnurApi.getHfToken(id);
+      const saved = hfSettings.saved_tokens.find((item) => item.id === id);
       if (!saved) {
         setHfMessage({ kind: "error", text: "No encontré ese token guardado." });
         return;
       }
+      if (saved.requires_reauth) {
+        setHfSelectedTokenId("");
+        setHfToken("");
+        setHfMessage({
+          kind: "error",
+          text: "Este token proviene de un almacenamiento anterior sin cifrado seguro. Pégalo otra vez para volver a autenticarlo.",
+        });
+        return;
+      }
+      setHfSelectedTokenId(id);
       setHfUsername(saved.hf_username || "");
       setHfTokenName(saved.name || "Hugging Face");
-      setHfToken(saved.hf_token || "");
-      setHfMessage({ kind: "ok", text: "Token cargado para publicar o verificar." });
+      setHfToken("");
+      setHfMessage({
+        kind: "ok",
+        text: "Credencial seleccionada. El valor permanece fuera de la interfaz.",
+      });
     } catch (error) {
       setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
     } finally {
@@ -556,7 +569,14 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
       setHfUsername(settings.hf_username || username);
       setHfToken("");
       setHfSelectedTokenId("");
-      setHfMessage({ kind: "ok", text: "Token de Hugging Face guardado en este equipo." });
+      setHfMessage(
+        settings.persistence_status === "unavailable" || !settings.encryption_available
+          ? {
+              kind: "error",
+              text: "El sistema no ofrece cifrado seguro. El token no se guardó; podrás usarlo solo pegándolo de nuevo.",
+            }
+          : { kind: "ok", text: "Token de Hugging Face guardado en este equipo." },
+      );
     } catch (error) {
       setHfMessage({ kind: "error", text: String((error as Error)?.message ?? error) });
     } finally {
@@ -838,7 +858,7 @@ export function GlobalSettingsDialog({ open, notes, pulsoName, onClose }: Global
                   onDefaultNamespaceChange={setHfDefaultNamespace}
                   onTokenChange={setHfToken}
                   onTokenNameChange={setHfTokenName}
-                  onUseSavedToken={(id) => void useSavedHfToken(id)}
+                  onUseSavedToken={useSavedHfToken}
                   onSave={() => void saveHfToken()}
                   onSaveDefaultNamespace={() => void saveHfDefaultNamespace()}
                   onCheck={() => void checkHfToken()}
@@ -949,14 +969,19 @@ function HuggingFaceConnectionCard({
   onDeleteDestination: (id: string) => void;
 }) {
   const savedTokens = settings.saved_tokens ?? [];
+  const usableTokens = savedTokens.filter((item) => !item.requires_reauth);
   const destinations = settings.recent_destinations ?? [];
-  const selected = savedTokens.find((item) => item.id === selectedTokenId) ?? savedTokens[0] ?? null;
-  const hasTokens = savedTokens.length > 0;
+  const selected = savedTokens.find((item) => item.id === selectedTokenId) ?? usableTokens[0] ?? savedTokens[0] ?? null;
+  const hasTokens = usableTokens.length > 0;
   const [detailsOpen, setDetailsOpen] = useState(false);
   const effectiveDefaultNamespace = defaultNamespace.trim() || settings.default_namespace || destinations[0]?.namespace || PULSO_HF_DEFAULT_NAMESPACE;
   const defaultDestination = destinations.find((item) => item.namespace === effectiveDefaultNamespace) ?? destinations[0] ?? null;
   const canSave = desktopAvailable && busy == null && token.trim().length > 0;
-  const canCheck = desktopAvailable && busy == null && (token.trim().length > 0 || selectedTokenId.length > 0);
+  const selectedToken = savedTokens.find((item) => item.id === selectedTokenId);
+  const canCheck = desktopAvailable && busy == null && (
+    token.trim().length > 0 ||
+    Boolean(selectedTokenId && selectedToken && !selectedToken.requires_reauth)
+  );
   const canSaveNamespace = desktopAvailable && busy == null && isValidHfNamespace(defaultNamespace);
 
   return (
@@ -967,11 +992,15 @@ function HuggingFaceConnectionCard({
         </span>
         <div className="home-connection-title">
           <h4>Hugging Face Spaces</h4>
-          <p>Publicación web de Dashboard y Monitoreo por audiencia.</p>
+          <p>Publicación web de dashboards derivados.</p>
         </div>
         <span className={`home-connection-status ${hasTokens ? "is-ready" : ""}`}>
           {hasTokens ? <ShieldCheck size={13} /> : <AlertTriangle size={13} />}
-          {hasTokens ? "Token guardado en este equipo" : "Sin token HF"}
+          {hasTokens
+            ? "Token guardado en este equipo"
+            : savedTokens.length
+              ? "Reautenticación requerida"
+              : "Sin token HF"}
         </span>
       </div>
 
@@ -980,7 +1009,10 @@ function HuggingFaceConnectionCard({
           <div className="home-connection-current">
             <span>Credencial local</span>
             <strong>{selected.name || selected.hf_username || "Token HF"}</strong>
-            <small>{selected.hf_username ? `Cuenta/alias ${selected.hf_username}` : "Cuenta HF no verificada"} · {selected.masked_token || "••••"}</small>
+            <small>
+              {selected.hf_username ? `Cuenta/alias ${selected.hf_username}` : "Cuenta HF no verificada"} · {selected.masked_token || "••••"}
+              {selected.requires_reauth ? " · vuelve a autenticar" : ""}
+            </small>
           </div>
         ) : (
           <div className="home-connection-empty">
@@ -1019,11 +1051,18 @@ function HuggingFaceConnectionCard({
                 <div key={saved.id} className={`home-connection-profile ${saved.id === selectedTokenId ? "is-default" : ""}`}>
                   <div className="home-connection-profile-copy">
                     <strong>{saved.name || "Token HF"}</strong>
-                    <small>{saved.hf_username ? `Cuenta/alias ${saved.hf_username}` : "Cuenta HF no verificada"} · {saved.masked_token || "••••"}</small>
+                    <small>
+                      {saved.hf_username ? `Cuenta/alias ${saved.hf_username}` : "Cuenta HF no verificada"} · {saved.masked_token || "••••"}
+                      {saved.requires_reauth ? " · almacenamiento anterior no seguro" : ""}
+                    </small>
                   </div>
                   <div className="home-connection-profile-actions">
                     <button type="button" onClick={() => onUseSavedToken(saved.id)} disabled={busy != null}>
-                      {busy === "load" && saved.id === selectedTokenId ? "Abriendo" : "Usar"}
+                      {saved.requires_reauth
+                        ? "Reautenticar"
+                        : busy === "load" && saved.id === selectedTokenId
+                          ? "Abriendo"
+                          : "Usar"}
                     </button>
                     <button type="button" className="is-danger" onClick={() => onDelete(saved.id)} disabled={busy != null}>
                       Quitar
@@ -1032,7 +1071,7 @@ function HuggingFaceConnectionCard({
                 </div>
               ))}
             </div>
-            <p>Se usa al publicar web cliente/interno. Los XLSX y Sheets de Monitoreo usan la conexión Google Sheets.</p>
+            <p>Se usa al publicar Dashboard. Los XLSX y Sheets de Monitoreo usan la conexión Google Sheets.</p>
           </div>
         )}
 
