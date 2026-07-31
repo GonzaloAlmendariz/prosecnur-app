@@ -33,8 +33,20 @@ export function InspectorField({
   );
 }
 
+// `intrinsic` y no `equal`: un bloque agrupa campos de la misma variante, pero
+// el alto de cada uno lo fija su control —un editor de texto enriquecido no
+// mide lo que un select o una casilla—. Declararlo aquí, en el primitivo,
+// cubre todos los bloques del inspector de una sola vez.
 export function InspectorBlock({ children }: { children: ReactNode }) {
-  return <div className="pulso-inspector-block">{children}</div>;
+  return (
+    <div
+      className="pulso-inspector-block"
+      data-qa-geometry-group="xlsform/inspector-bloque"
+      data-qa-geometry-contract="intrinsic"
+    >
+      {children}
+    </div>
+  );
 }
 
 export function InspectorEyebrow({

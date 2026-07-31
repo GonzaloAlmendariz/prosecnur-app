@@ -176,7 +176,7 @@ export function FocusedWorkspace({
             />
             <p>{header.subtitle}</p>
             {focusStatus.length > 0 && (
-              <div className="pulso-focus-status-strip" aria-label="Estado rápido del elemento seleccionado">
+              <div className="pulso-focus-status-strip" aria-label="Estado rápido del elemento seleccionado" data-qa-geometry-group="xlsform/tira-foco" data-qa-geometry-contract="intrinsic">
                 {focusStatus.map((item) => (
                   <span key={item.key} className={`pulso-focus-status-chip is-${item.tone}`}>
                     <span className="pulso-focus-status-icon" aria-hidden="true">

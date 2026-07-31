@@ -3069,6 +3069,13 @@ export default function XlsformEditorPage() {
       toolbar={workbook ? (
         <div className="pulso-command-bar pulso-xlsform-commandbar" aria-label="Comandos del formulario activo">
           <div className="pulso-xlsform-commandbar-group pulso-xlsform-commandbar-group--document">
+            {/* Sin contrato geométrico: el vocabulario no tiene el que le toca.
+                Una tira de chips es «mismo alto, ancho intrínseco», y hoy solo
+                existen `equal` (mismo alto Y mismo ancho) e `intrinsic` (cada
+                uno ciñe su contenido). Medido: con `intrinsic` da capacity-drift
+                —los 10,5 px libres son el `min-height: 22px` del chip, un alto
+                de control deliberado, no desperdicio— y con `equal` da
+                width-drift de 118 px. Ver la decisión abierta en el goal. */}
             <div className="pulso-xlsform-document-strip" aria-label="Resumen del formulario">
               <FormSwitcher
                 forms={forms}
@@ -3089,6 +3096,10 @@ export default function XlsformEditorPage() {
                   zona de modos, ya es el indicador de diagnósticos y además
                   lleva al aviso. Tenerlo dos veces sumaba ruido sin informar. */}
             </div>
+            {/* Misma razón que la tira de arriba, y aquí el caso es más limpio:
+                «Nuevo» y «Guardado ahora» son dos chips de la misma variante,
+                con el mismo alto por diseño y 55 px de diferencia de ancho por
+                contenido. Es exactamente lo que el vocabulario no sabe decir. */}
             <div className="pulso-xlsform-state-strip" aria-label="Estado del formulario">
               <StatusChip
                 label={formatSource(source?.kind ?? null)}
