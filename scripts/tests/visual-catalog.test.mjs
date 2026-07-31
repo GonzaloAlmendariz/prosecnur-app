@@ -351,11 +351,10 @@ test("cada ocurrencia usa una sección registrada en su módulo", () => {
 
 test("expande tuplas, records, factories y arrays de controles críticos", () => {
   assertExactLabels(
-    "frontend/src/features/bitacora/LogbookSection.tsx",
-    "MODULE_OPTIONS",
+    "frontend/src/features/bitacora/logbook/gramatica.ts",
+    "MODULOS_BITACORA",
     [
       "Bitácora",
-      "Cronograma",
       "Muestra",
       "Formulario",
       "Rutas",
@@ -371,8 +370,8 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
     ],
   );
   assertExactLabels(
-    "frontend/src/features/bitacora/LogbookSection.tsx",
-    "TONE_OPTIONS",
+    "frontend/src/features/bitacora/logbook/gramatica.ts",
+    "TONOS",
     ["Nota", "Decisión", "Avance", "Riesgo", "Bloqueo"],
   );
   assertExactLabels(
@@ -538,7 +537,7 @@ test("traza hosts polimórficos e iconos dinámicos hasta su proveedor", () => {
   assert.ok(selectedIcon.visualVariants.includes("icon-option=Sliders"));
 });
 
-test("materializa navegación y estados de Hojas, Fichas y Monitoreo", () => {
+test("materializa navegación y estados de Hojas, Recopiladores y Monitoreo", () => {
   const hojasFile =
     "frontend/src/features/hojasRuta/hojasRutaNavigation.ts";
   const hojasSections = declared(hojasFile, "sections");
@@ -560,22 +559,33 @@ test("materializa navegación y estados de Hojas, Fichas y Monitoreo", () => {
     assert.ok(entry.stateModel);
   }
 
-  const fichasFile =
-    "frontend/src/features/recopiladores/RecopiladoresPage.tsx";
-  assert.deepEqual(labels(declared(fichasFile, "SECTIONS")), [
-    "Preparación",
-    "Fichas",
-    "Paquete",
+  const recopiladoresNavigationFile =
+    "frontend/src/features/recopiladores/navegacion.ts";
+  assert.deepEqual(labels(declared(recopiladoresNavigationFile, "SECCIONES")), [
+    "plan-recoleccion",
+    "accesos",
+    "materiales",
+    "entrega-campo",
   ]);
-  assert.deepEqual(
-    labels(
-      catalog.declarations.filter(
-        (entry) =>
-          entry.source.file === fichasFile &&
-          entry.componentContext.startsWith("SECTION_TABS."),
-      ),
+  const recopiladoresTabs = catalog.declarations.filter(
+    (entry) =>
+      entry.source.file === recopiladoresNavigationFile &&
+      entry.componentContext.startsWith("PESTANAS_POR_SECCION."),
+  );
+  assert.deepEqual(labels(recopiladoresTabs), [
+    "unidades",
+    "canales",
+    "vinculacion",
+    "vista",
+    "paquetes",
+    "traspaso",
+  ]);
+  assert.ok(
+    recopiladoresTabs.every(
+      (entry) =>
+        entry.renderSource.file ===
+        "frontend/src/features/recopiladores/RecopiladoresShell.tsx",
     ),
-    ["Agenda", "Enlaces", "Vista previa", "Lista", "PDF final", "Monitoreo"],
   );
 
   const registryFile =
