@@ -9412,7 +9412,7 @@
   .pulso-carga-content--framed.is-plan > .pulso-carga-scrollarea {
     grid-template-rows: auto;
     align-content: start;
-    overflow: visible;
+    overflow: auto;
   }
 
   .pulso-carga-plan-overview {
