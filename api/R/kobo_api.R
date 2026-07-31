@@ -82,7 +82,7 @@ kobo_api_default_base_url <- function() {
 }
 
 .kobo_api_fetch_json <- function(url, token) {
-  if (!nzchar(token)) stop("Falta el token de KoboToolbox.", call. = FALSE)
+  if (!nzchar(token)) stop_api(400, "E_KOBO_TOKEN", "Falta el token de KoboToolbox.")
   if (!requireNamespace("curl", quietly = TRUE)) {
     stop("El paquete R 'curl' no esta instalado.", call. = FALSE)
   }
@@ -94,11 +94,19 @@ kobo_api_default_base_url <- function() {
   body <- rawToChar(res$content)
   Encoding(body) <- "UTF-8"
 
+  # Tipados, y no por prolijidad: un `stop()` crudo aquí llega al cliente como
+  # E_INTERNAL con una referencia hexadecimal, porque `handle_api_error` se
+  # traga a propósito el mensaje de los errores sin tipo —puede filtrar rutas
+  # del sistema—. Medido el 2026-07-30 en telefónico: el catálogo de Kobo
+  # respondía «Error interno del servidor (ref. 286B7740)» cuando lo que
+  # pasaba era que el token no tenía permiso para listar. El diagnóstico
+  # existía y se perdía en el camino. Es el mismo patrón que SurveyMonkey ya
+  # aplica en `.sm_mb_stop_catalog_api_error`.
   if (res$status_code == 401L || res$status_code == 403L) {
-    stop("Token rechazado por KoboToolbox. Verifica permisos y servidor.", call. = FALSE)
+    stop_api(401, "E_KOBO_TOKEN_REJECTED", "Token rechazado por KoboToolbox. Verifica permisos y servidor.")
   }
   if (res$status_code == 404L) {
-    stop("Proyecto Kobo no encontrado. Verifica el asset UID.", call. = FALSE)
+    stop_api(404, "E_KOBO_NOT_FOUND", "Proyecto Kobo no encontrado. Verifica el asset UID.")
   }
   if (res$status_code >= 400L) {
     stop(sprintf("KoboToolbox devolvio HTTP %d: %s", res$status_code, body), call. = FALSE)
@@ -113,7 +121,7 @@ kobo_api_default_base_url <- function() {
                                    form = NULL,
                                    json_body = NULL,
                                    fail = TRUE) {
-  if (!nzchar(token)) stop("Falta el token de KoboToolbox.", call. = FALSE)
+  if (!nzchar(token)) stop_api(400, "E_KOBO_TOKEN", "Falta el token de KoboToolbox.")
   if (!requireNamespace("curl", quietly = TRUE)) {
     stop("El paquete R 'curl' no esta instalado.", call. = FALSE)
   }
@@ -145,11 +153,13 @@ kobo_api_default_base_url <- function() {
   }
   ok <- res$status_code < 400L
   if (!ok && isTRUE(fail)) {
+    # Mismo motivo que en `.kobo_api_fetch_json`: si no se tipa, el diagnóstico
+    # se pierde y al cliente le llega E_INTERNAL.
     if (res$status_code == 401L || res$status_code == 403L) {
-      stop("Token rechazado por KoboToolbox. Verifica permisos y servidor.", call. = FALSE)
+      stop_api(401, "E_KOBO_TOKEN_REJECTED", "Token rechazado por KoboToolbox. Verifica permisos y servidor.")
     }
     if (res$status_code == 404L) {
-      stop("Proyecto o endpoint Kobo no encontrado.", call. = FALSE)
+      stop_api(404, "E_KOBO_NOT_FOUND", "Proyecto o endpoint Kobo no encontrado.")
     }
     stop(sprintf("KoboToolbox devolvio HTTP %d: %s", res$status_code, body), call. = FALSE)
   }
