@@ -33,6 +33,7 @@ import "../../shell/monitoreoShell.css";
 import "./aulasMonitoreo.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
+import { pct } from "../../core/formatoComun";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
@@ -48,11 +49,6 @@ function fmt(value: unknown, fallback = "0") {
   return String(value);
 }
 
-function pct(value: unknown) {
-  const n = value == null || value === "" ? NaN : Number(value);
-  if (!Number.isFinite(n)) return "S/D";
-  return `${Math.round(n)}%`;
-}
 
 function scopeForView(view: MonitoreoSeccion): MonitoreoReportScope {
   if (view === "calidad") return "validation_summary";

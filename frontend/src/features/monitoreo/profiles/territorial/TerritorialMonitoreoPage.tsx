@@ -101,6 +101,7 @@ import "./territorialProfile.css";
 // Después del perfil a propósito: alinea radios que ese archivo declara antes,
 // y con igual especificidad gana el orden.
 import "./escalaDeSuperficies.css";
+import { pct } from "../../core/formatoComun";
 
 const TERRITORIAL_FIELD_SCOPES: MonitoreoReportScope[] = [
   "source",
@@ -264,11 +265,6 @@ function fmt(value: unknown, fallback = "0") {
   return String(value);
 }
 
-function pct(value: unknown) {
-  const n = value == null || value === "" ? NaN : Number(value);
-  if (!Number.isFinite(n)) return "S/D";
-  return `${Math.round(n)}%`;
-}
 
 function territorialOperationalDurationLabel(row: Partial<TerritorialResponseAuditRow>) {
   const seconds = Number(row.duration_seconds);
