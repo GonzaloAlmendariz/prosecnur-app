@@ -93,3 +93,81 @@ monitoreo_territorial_mapeo_aviso <- function(config = NULL, data = NULL) {
     )
   )
 }
+
+# Una muestra corta del contenido de la columna. Sin esto el selector obliga a
+# elegir a ciegas entre nombres como `Core/E2_sex` y `condicion_sexual`, que es
+# justo el error que el mapeo manual existe para evitar.
+.monitoreo_territorial_columna_ejemplo <- function(valores, max_chars = 40L) {
+  if (is.null(valores) || !length(valores)) return("")
+  txt <- tryCatch(as.character(valores), error = function(e) character(0))
+  txt <- txt[!is.na(txt) & nzchar(trimws(txt))]
+  if (!length(txt)) return("")
+  muestra <- trimws(txt[[1]])
+  if (nchar(muestra) > max_chars) paste0(substr(muestra, 1L, max_chars - 1L), "…") else muestra
+}
+
+#' Inventario de columnas de la base, para elegir el mapeo a mano.
+#'
+#' Cada entrada trae `nombre`, un `ejemplo` del contenido y `cobertura`, la
+#' proporción de filas con dato. La cobertura importa tanto como el nombre: una
+#' columna que existe pero viene vacía en el 100 % de las filas mapea sin error
+#' y no sirve para nada.
+monitoreo_territorial_columnas <- function(data = NULL) {
+  if (!is.data.frame(data) || !ncol(data)) return(list())
+  n <- nrow(data)
+  lapply(names(data), function(nm) {
+    col <- data[[nm]]
+    llenos <- if (!n) 0L else {
+      txt <- tryCatch(as.character(col), error = function(e) rep(NA_character_, n))
+      sum(!is.na(txt) & nzchar(trimws(txt)))
+    }
+    list(
+      nombre = nm,
+      ejemplo = .monitoreo_territorial_columna_ejemplo(col),
+      no_vacios = as.integer(llenos),
+      cobertura = if (!n) 0 else round(llenos / n, 4)
+    )
+  })
+}
+
+#' Payload completo de la pestaña de mapeo manual.
+#'
+#' Reúne en una sola respuesta lo que la pestaña necesita para no depender de
+#' una estructura de instrumento estándar: qué variables pide la app, a qué
+#' columna apunta hoy cada una, y qué columnas ofrece realmente la base.
+#'
+#' `variables[[i]]$resuelta` es TRUE cuando la variable apunta a una columna
+#' que existe. **No garantiza que sea la columna correcta**: la autodetección
+#' casa por subcadena y puede acertar el nombre y errar la variable. Por eso el
+#' campo se llama «resuelta» y no «correcta», y por eso esta pestaña existe.
+monitoreo_territorial_mapeo_payload <- function(config = NULL, data = NULL, fase = "") {
+  tcfg <- if (is.list(config) && is.list(config$territorial)) config$territorial else config
+  columnas <- monitoreo_territorial_columnas(data)
+  disponibles <- vapply(columnas, function(c) c$nombre, character(1))
+  pendientes <- monitoreo_territorial_mapeo_pendiente(config, data)
+  motivo_por_campo <- list()
+  for (p in pendientes) motivo_por_campo[[p$campo]] <- p$motivo
+  variables <- lapply(.MONITOREO_TERRITORIAL_VARS_DE_INTERES, function(v) {
+    apunta_a <- if (is.list(tcfg)) tryCatch(as.character(tcfg[[v$campo]] %||% ""), error = function(e) "") else ""
+    if (length(apunta_a) != 1L || is.na(apunta_a)) apunta_a <- ""
+    motivo <- motivo_por_campo[[v$campo]] %||% ""
+    list(
+      campo = v$campo,
+      etiqueta = v$etiqueta,
+      apunta_a = apunta_a,
+      resuelta = !nzchar(motivo) && nzchar(apunta_a),
+      motivo = motivo,
+      cobertura = {
+        idx <- match(apunta_a, disponibles)
+        if (is.na(idx)) NULL else columnas[[idx]]$cobertura
+      }
+    )
+  })
+  list(
+    ok = TRUE,
+    fase = .monitoreo_scalar(fase, ""),
+    columnas = columnas,
+    variables = variables,
+    aviso = monitoreo_territorial_mapeo_aviso(config, data)
+  )
+}
