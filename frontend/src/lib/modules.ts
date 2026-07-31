@@ -108,7 +108,7 @@ export type ProsecnurModuleChromeMeta = {
    */
   progreso: "none" | "numbered";
   densidad: "normal" | "compact";
-  /** El módulo tiene rail de pestañas (tercer nivel) además de secciones. */
+  /** El módulo tiene rail de pestañas (cuarta dimensión) además de secciones. */
   rail: boolean;
   /**
    * Quién dibuja la banda. `shell` es la familia Procesamiento, cuyas secciones
