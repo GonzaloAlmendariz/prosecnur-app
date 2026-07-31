@@ -87,7 +87,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **9** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **10** | ↓ |
 | Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | Definiciones duplicadas de formateadores en Monitoreo | 31 | **28** | ↓ |
@@ -112,6 +112,8 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | N6 | los cuatro perfiles de Monitoreo | **`pct` CERRADO** (iteración 13: extraído a `core/formatoComun.ts`, los cuatro perfiles lo importan). Quedan **28 definiciones** de otros cinco: `fmt` ×8, `rowNumber` ×7, `num` ×5, `pctFrom` ×2, `columnLabel` ×2 — no verificadas como idénticas todavía. Texto original: **Segundo formateador genérico copiado cuatro veces con el mismo defecto**, después de `phoneRowValue` (N1): `pct` estaba idéntico en los cuatro perfiles y los cuatro imprimían `0%` para un `null`. La decisión de independencia entre perfiles es sobre **semántica de familia**, no sobre formateadores genéricos —`pct`, `fmt`, `num`, `rowNumber` no tienen nada de familia—. Mientras vivan copiados, un defecto en uno es un defecto en cuatro y se arregla cuatro veces o no se arregla. **Es su propia unidad**: mover las primitivas puras a un módulo compartido del módulo Monitoreo sin tocar la semántica de perfil | abierto |
 
 | N7 | Dashboard y toda superficie con gráficos | **La readiness no cubre el render asíncrono.** Con `!loading` corregido, la vista se declara lista cuando montó, pero los gráficos de plotly pintan después: la captura sale con títulos y leyendas y sin figuras. Hoy se sortea desde el auditor con `--post-click-wait-selector ".js-plotly-plot"`. Cerrarlo de raíz exige decidir qué significa «listo» para una superficie que pinta en dos tiempos —`PlotlyChart` ya expone `onReady`, así que la señal existe—, y esa decisión también afecta al boundary de warmup, que hoy suelta la espera antes de tiempo | abierto |
+
+| N8 | Formularios | **La vista Hojas del editor no es enlazable y por eso no es auditable.** `editorMode` (Constructor/Hojas) vive en un `useState` suelto, así que incumple el ADR 0044 —«toda vista es enlazable»— y el instrumento no puede pedirla por dirección. Se intentó conectarla al param `pestana` y **no basta**: `openWorkbookAsForm` hace `setEditorMode("builder")` y corre también en la carga inicial del proyecto, así que borra el param apenas se monta. Cerrarlo exige distinguir la primera carga de una importación posterior, que es una decisión de comportamiento —¿importar un formulario debe sacarte de la vista de hojas?—, no un arreglo mecánico. Ese es el conocimiento caro: la vía obvia está probada y descartada | abierto |
 
 ## Bandeja de decisiones
 
@@ -176,6 +178,33 @@ a empezar.
 | 15 | 31 jul | **Hojas de ruta** | **Nueve defectos en una auditoría, el conteo más alto del goal** — y aparecieron al bajar un nivel: la primera órbita solo había visto el aterrizaje. Los nueve son el mismo recorte de nombre de distrito en la matriz poblacional | issues 9→**0** · defectos reparados 7→**8** | `544a787e` |
 
 | 16 | 31 jul | **Cálculo de muestra** | **Segundo defecto de dato del goal, y el de mayor consecuencia**: la cifra hero del Marco se presentaba como conteo de personas y son pares estudiante×curso —79.771 sobre un universo de 27.765— | defectos reparados 8→**9** · coverageMisses en Marco 4→**3** · decisión 10 abierta | `dc556097`, `53bec49e` |
+
+| 17 | 31 jul | **Formularios** | **El instrumento reportó `ok=true` sobre la pantalla equivocada**, y solo se supo al abrir la captura. Ahora un click que cambia de módulo falla | falso verde cerrado · defectos reparados 9→**10** · N8 abierto | `3e01f20e` |
+
+### Nota de la iteración 17
+
+**La vuelta empezó con un verde falso y esa es toda la lección.** Para llegar a
+la vista Hojas del editor usé `--click-tab "Hojas"`; el matcher cazó «Hojas de
+ruta» del rail de módulos, la corrida navegó a otro módulo, lo midió y devolvió
+`ok=true` con `issues=0`. Estuve a un paso de anotar «Formularios sale limpio».
+Lo delató la captura: un mapa de Lima donde debía estar el editor.
+
+**Un verde falso es peor que un rojo**, porque un rojo se investiga y un verde
+se archiva. Por eso el arreglo no fue documentar la trampa —ya estaba
+documentada en CLAUDE.md, «navegar es pedir una dirección, no clickear una
+etiqueta»— sino hacerla fallar: si el pathname cambia durante un `--click-tab`,
+la corrida se corta. **Una advertencia que no falla sola no protege de nada.**
+
+**Y el hallazgo de fondo (N8) quedó abierto con su vía obvia ya descartada.** La
+vista Hojas no es enlazable: `editorMode` es un `useState`, contra el ADR 0044.
+Se intentó conectarla al param `pestana` y no alcanza, porque
+`openWorkbookAsForm` resetea a Constructor y corre también en la carga inicial,
+borrando el param al montar. Distinguir «primera carga» de «importación
+posterior» es una decisión de comportamiento, no un arreglo.
+
+Se revirtió el intento en vez de dejarlo a medias. **Media conexión a la URL es
+peor que ninguna**: la vista parecería direccionable y no lo sería. Lo que queda
+escrito en N8 es justamente lo que no habría que volver a descubrir.
 
 ### Nota de la iteración 16
 
