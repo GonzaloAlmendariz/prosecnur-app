@@ -10,6 +10,26 @@ const SEMVER = new RegExp(`^${SEMVER_SOURCE}$`)
 const RELEASE_TAG = new RegExp(`^v${SEMVER_SOURCE}$`)
 const MODES = new Set(['preview', 'prepare', 'stable'])
 
+// Serie 3.x: deuda histórica, no una serie de producto (ADR 0053). Entre junio
+// y julio de 2026 los cortes se nombraban «Corte 3.1» refiriéndose a la versión
+// 0.3.1, y en algún momento el número del corte pasó a ser el de versión: se
+// publicaron siete releases 3.3.1–3.4.2 y después se retomó la serie real en
+// 0.5.0. Comparar contra ese máximo obligaría a saltar a 4.0.0 y consagraría el
+// accidente como si fuera la línea buena.
+//
+// La lista es explícita y cerrada a propósito: excluir por patrón (`^v3\.`)
+// dejaría la puerta abierta a que un 3.x futuro se colara sin decisión humana.
+// La monotonicidad sigue siendo estricta dentro de la serie vigente.
+const LEGACY_RELEASE_TAGS = new Set([
+  'v3.3.1',
+  'v3.3.2',
+  'v3.3.3',
+  'v3.3.4',
+  'v3.4.0',
+  'v3.4.1',
+  'v3.4.2'
+])
+
 const SURFACE_PATHS = {
   api: 'api/DESCRIPTION',
   desktop: 'desktop/package.json',
@@ -239,6 +259,12 @@ function maxReleaseTag(tags) {
   return tags.length ? tags[tags.length - 1] : null
 }
 
+// Los tags legacy siguen listándose en el reporte —son publicaciones reales y
+// ocultarlos sería peor— pero no participan del cálculo de monotonicidad.
+function comparableReleaseTags(tags) {
+  return tags.filter(({ tag }) => !LEGACY_RELEASE_TAGS.has(tag))
+}
+
 function pushSurfaceProblems(result, mode) {
   for (const [surface, value] of Object.entries(result.surfaces)) {
     if (!value.problem) continue
@@ -272,7 +298,7 @@ function requireGithubNotesVersion(result, expected) {
 }
 
 function baseResult(mode, tag, surfaces, gitState) {
-  const maximum = maxReleaseTag(gitState.releaseTags)
+  const maximum = maxReleaseTag(comparableReleaseTags(gitState.releaseTags))
   return {
     schemaVersion: 1,
     mode,
@@ -355,7 +381,7 @@ export function evaluateReleaseContract(repoRoot, {
 
     if (expected !== null) {
       result.targetTag = `v${expected}`
-      const maximum = maxReleaseTag(gitState.releaseTags)
+      const maximum = maxReleaseTag(comparableReleaseTags(gitState.releaseTags))
       if (maximum && compareSemVer(expected, maximum.version) <= 0) {
         result.recommendedVersion = nextMajor(maximum.version)
         const diagnostic = issue(
@@ -396,7 +422,8 @@ export function evaluateReleaseContract(repoRoot, {
         requireSurfaceVersion({ ...result, surfaces }, surface, targetVersion)
       }
 
-      const comparisonTags = gitState.releaseTags.filter(({ tag: releaseTag }) => releaseTag !== tag)
+      const comparisonTags = comparableReleaseTags(gitState.releaseTags)
+        .filter(({ tag: releaseTag }) => releaseTag !== tag)
       const comparisonMaximum = maxReleaseTag(comparisonTags)
       result.comparisonMaxTag = comparisonMaximum?.tag ?? null
       if (comparisonMaximum && compareSemVer(targetVersion, comparisonMaximum.version) <= 0) {

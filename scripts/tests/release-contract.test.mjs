@@ -86,12 +86,47 @@ test('preview acepta las cuatro superficies operativas y advierte notas GitHub d
 
   assert.equal(result.ok, true)
   assert.equal(result.currentVersion, '0.5.19')
-  assert.equal(result.maxTag, 'v3.4.2')
-  assert.equal(result.recommendedVersion, '4.0.0')
+  // v3.4.2 es legacy (ADR 0053): sigue existiendo como tag, pero no cuenta
+  // para monotonicidad, así que el máximo comparable es la serie vigente.
+  assert.equal(result.maxTag, 'v0.5.19')
+  assert.equal(result.recommendedVersion, '1.0.0')
   assert.deepEqual(codes(result.errors), [])
   assert.ok(codes(result.warnings).includes('GITHUB_NOTES_MISMATCH'))
   assert.ok(codes(result.warnings).includes('CURRENT_NOT_ABOVE_TAGS'))
   assert.match(result.warnings.find(({ code }) => code === 'GITHUB_NOTES_MISMATCH').message, /0\.5\.16/)
+})
+
+test('la exclusión legacy no tapa un tag ajeno a la lista del ADR 0053', (t) => {
+  // Falsabilidad de la exclusión: un 4.1.0 que NO está en LEGACY_RELEASE_TAGS
+  // debe seguir bloqueando el corte. Si esta prueba pasara a verde, la
+  // exclusión habría dejado de ser una lista cerrada y estaría filtrando por
+  // forma —justo lo que el ADR prohíbe.
+  const root = fixture(t, {
+    githubNotes: '0.5.19',
+    tags: ['v0.5.19', 'v3.4.2', 'v4.1.0']
+  })
+
+  const result = evaluateReleaseContract(root, { mode: 'prepare' })
+
+  assert.equal(result.maxTag, 'v4.1.0')
+  assert.ok(codes(result.errors).includes('CURRENT_NOT_ABOVE_TAGS'))
+})
+
+test('prepare deja pasar un corte que supera la serie vigente pese al legacy 3.x', (t) => {
+  const root = fixture(t, {
+    api: '0.6.0',
+    desktop: '0.6.0',
+    inApp: '0.6.0',
+    docs: '0.6.0',
+    githubNotes: '0.6.0',
+    tags: ['v0.5.19', 'v3.4.2']
+  })
+
+  const result = evaluateReleaseContract(root, { mode: 'prepare' })
+
+  assert.equal(result.maxTag, 'v0.5.19')
+  assert.deepEqual(codes(result.errors), [])
+  assert.equal(result.targetTag, 'v0.6.0')
 })
 
 test('preview falla si una de las cuatro superficies operativas diverge', (t) => {
@@ -147,7 +182,8 @@ test('prepare diagnostica notas desfasadas, versión no monótona y tag ocupado'
   assert.ok(codes(result.errors).includes('GITHUB_NOTES_MISMATCH'))
   assert.ok(codes(result.errors).includes('CURRENT_NOT_ABOVE_TAGS'))
   assert.ok(codes(result.errors).includes('TARGET_TAG_EXISTS'))
-  assert.equal(result.recommendedVersion, '4.0.0')
+  // Se recomienda sobre la serie vigente, no sobre el legacy 3.x (ADR 0053).
+  assert.equal(result.recommendedVersion, '1.0.0')
 })
 
 test('stable pasa cuando las cinco superficies coinciden y el tag máximo propio apunta a HEAD', (t) => {
@@ -168,20 +204,28 @@ test('stable pasa cuando las cinco superficies coinciden y el tag máximo propio
 })
 
 test('stable excluye su propio tag, pero exige superar todos los demás', (t) => {
+  // La versión anterior de esta prueba usaba v3.4.1 y v3.4.2, que el ADR 0053
+  // volvió legacy: al quedar ambos fuera de la comparación no había nada que
+  // superar y la prueba pasaba por vacío. Se rehace sobre la serie vigente,
+  // que es donde la monotonicidad sigue siendo estricta.
   const root = fixture(t, {
-    api: '3.4.1',
-    tags: ['v3.4.1', 'v3.4.2']
+    api: '0.5.18',
+    desktop: '0.5.18',
+    inApp: '0.5.18',
+    docs: '0.5.18',
+    githubNotes: '0.5.18',
+    tags: ['v0.5.18', 'v0.5.19']
   })
 
   const result = evaluateReleaseContract(root, {
     mode: 'stable',
-    tag: 'v3.4.1'
+    tag: 'v0.5.18'
   })
 
   assert.equal(result.ok, false)
   assert.ok(codes(result.errors).includes('TARGET_NOT_ABOVE_OTHER_TAGS'))
-  assert.equal(result.comparisonMaxTag, 'v3.4.2')
-  assert.equal(result.recommendedVersion, '4.0.0')
+  assert.equal(result.comparisonMaxTag, 'v0.5.19')
+  assert.equal(result.recommendedVersion, '1.0.0')
 })
 
 test('stable exige las cinco superficies y que el tag exista en HEAD', (t) => {

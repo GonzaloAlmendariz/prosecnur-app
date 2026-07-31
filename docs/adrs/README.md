@@ -125,5 +125,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0050](0050-entorno-r-reproducible-ci-inmutable.md) | Aceptado | 2026-07-30 | El entorno R usa un lock exacto y CI fija runners, acciones, cachés y bundles verificables |
 | [0051](0051-retiro-de-enciclopedia.md) | Aceptado | 2026-07-31 | Enciclopedia se retira entera; se conserva lo que Bitácora y Cálculo de muestra consumen |
 | [0052](0052-excepcion-auditada-brace-expansion-empaquetado.md) | Aceptado | 2026-07-31 | Excepción por advisory (no por umbral) para GHSA-mh99-v99m-4gvg en el árbol de build de Electron, con condiciones de admisión y caducidad en cada corte |
+| [0053](0053-serie-3x-como-deuda-historica-de-versionado.md) | Aceptado | 2026-07-31 | La serie 3.x es deuda histórica de nomenclatura, no la línea de versionado: se excluye de la monotonicidad por lista explícita y el producto sigue en la serie 0.x |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
