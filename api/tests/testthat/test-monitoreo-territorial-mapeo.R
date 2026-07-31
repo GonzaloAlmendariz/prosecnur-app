@@ -147,3 +147,15 @@ test_that("sin base el payload no inventa columnas ni acusa pendientes", {
   expect_true(pl$aviso$ok)
   expect_equal(length(pl$variables), length(.MONITOREO_TERRITORIAL_VARS_DE_INTERES))
 })
+
+test_that("sin base ninguna variable se declara resuelta", {
+  # Salió al probar el endpoint contra acnur_acg: la config traía doce nombres
+  # y el payload los daba por resueltos con la base vacía. La config afirma, no
+  # comprueba.
+  cfg <- list(territorial = monitoreo_territorial_default_config(NULL))
+  pl <- monitoreo_territorial_mapeo_payload(cfg, data.frame())
+  expect_true(all(vapply(pl$variables, function(v) !isTRUE(v$resuelta), logical(1))))
+  distrito <- Filter(function(v) v$campo == "district_var", pl$variables)[[1]]
+  expect_equal(distrito$apunta_a, "Core/M5_district")
+  expect_false(distrito$resuelta)
+})

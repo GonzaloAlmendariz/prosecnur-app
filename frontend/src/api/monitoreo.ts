@@ -3568,6 +3568,43 @@ export async function apiMonitoreoTerritorialConfig(territorial: Partial<Monitor
   );
 }
 
+/** Una columna real de la base, con lo mínimo para reconocerla sin abrirla. */
+export type MonitoreoTerritorialColumna = {
+  nombre: string;
+  ejemplo: string;
+  no_vacios: number;
+  /** Proporción de filas con dato, 0–1. Una columna existente y vacía mapea sin error. */
+  cobertura: number;
+};
+
+/**
+ * Una variable de interés y la columna a la que apunta hoy.
+ *
+ * `resuelta` significa que la columna existe, **no** que sea la correcta: la
+ * autodetección casa por subcadena y puede acertar el nombre y errar la
+ * variable. Esa es la razón de ser del mapeo manual.
+ */
+export type MonitoreoTerritorialVariableMapeo = {
+  campo: string;
+  etiqueta: string;
+  apunta_a: string;
+  /** FALSE también cuando no hay base cargada: no hay contra qué comprobar. */
+  resuelta: boolean;
+  motivo: "" | "sin_mapear" | "columna_ausente";
+};
+
+export type MonitoreoTerritorialMapeo = {
+  ok: true;
+  fase: string;
+  columnas: MonitoreoTerritorialColumna[];
+  variables: MonitoreoTerritorialVariableMapeo[];
+  aviso: { ok: boolean; n_pendientes: number; mensaje: string };
+};
+
+export async function apiMonitoreoTerritorialMapeo() {
+  return handle<MonitoreoTerritorialMapeo>(await apiFetch("/api/monitoreo/territorial/mapeo", { headers: headers() }));
+}
+
 export async function apiMonitoreoTerritorialEnumeratorCodeReconciliation(entry: MonitoreoTerritorialCodeReconciliation) {
   return handle<{
     ok: true;

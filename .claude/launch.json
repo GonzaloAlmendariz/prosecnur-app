@@ -2,6 +2,60 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Backend HST probe (8806)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8806",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/private/tmp/claude-501/-Users-gonzaloalmendariz-Documents-Pulso-prosecnur-app/bbe32290-9463-4535-8ffd-3c6420460cf2/scratchpad/HST_PROBE.pulso"
+      },
+      "port": 8806
+    },
+    {
+      "name": "Frontend (dev vs 8806)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8806"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "Backend acnur_acg (8804)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8804",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "outputs/reference-runs/acnur_acg-20260731-093312/acnur_acg.pulso"
+      },
+      "port": 8804
+    },
+    {
+      "name": "Frontend (dev vs 8804)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8804"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
       "name": "Backend hsvg2026 (8803)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [

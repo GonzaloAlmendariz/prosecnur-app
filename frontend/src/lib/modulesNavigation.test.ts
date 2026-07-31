@@ -283,7 +283,7 @@ describe("manifiesto primario de navegación", () => {
     ]);
   });
 
-  it("adjunta a Monitoreo las mismas 68 pestañas del catálogo canónico", () => {
+  it("adjunta a Monitoreo las mismas 69 pestañas del catálogo canónico", () => {
     const monitoring = PROSECNUR_MODULES.find((module) => module.slug === "monitoreo");
     const catalogos = MONITOREO_PESTANAS as unknown as Record<
       string,
@@ -293,13 +293,13 @@ describe("manifiesto primario de navegación", () => {
       .flatMap((secciones) => Object.values(secciones))
       .flat();
 
-    expect(TOTAL_PESTANAS_MONITOREO).toBe(68);
-    expect(declaradas).toHaveLength(68);
+    expect(TOTAL_PESTANAS_MONITOREO).toBe(69);
+    expect(declaradas).toHaveLength(69);
 
     const adjuntas = monitoring?.modos?.flatMap((modo) =>
       modo.sections.flatMap((section) => section.tabs ?? []),
     ) ?? [];
-    expect(adjuntas).toHaveLength(68);
+    expect(adjuntas).toHaveLength(69);
 
     for (const modo of monitoring?.modos ?? []) {
       for (const section of modo.sections) {

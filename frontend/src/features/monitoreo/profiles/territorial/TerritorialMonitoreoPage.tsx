@@ -88,6 +88,7 @@ import { corteTerritorial } from "../../corte/corteAdapters";
 import { estadoVisual, readinessDeSalidas } from "../../corte/corteContract";
 import { TerritorialOutputsPanel } from "./TerritorialOutputsPanel";
 import { TerritorialModelWorkbench } from "./TerritorialModelWorkbench";
+import { TerritorialVariableMappingWorkbench } from "./TerritorialVariableMappingWorkbench";
 import { TerritorialQuotaConsistencyPanel } from "./TerritorialQuotaConsistencyPanel";
 import { TerritorialProductionAnnulmentWorkspace } from "./TerritorialProductionAnnulmentWorkspace";
 import { TerritorialReviewCasesWorkbench } from "./TerritorialReviewCasesWorkbench";
@@ -1228,6 +1229,16 @@ function renderView(
     );
   }
   if (view === "modelo") {
+    // El mapeo no consume el tablero de UMPs: lee la base directo y por eso
+    // deriva antes de construir `reports`, no dentro del workbench de Modelo.
+    if (options.pestanaActiva === "variables") {
+      return (
+        <TerritorialVariableMappingWorkbench
+          onError={options.onError}
+          onReload={options.onReload ?? noop}
+        />
+      );
+    }
     return (
       <TerritorialModelWorkbench
         pestanaActiva={options.pestanaActiva}
