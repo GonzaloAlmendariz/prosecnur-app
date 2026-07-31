@@ -296,10 +296,14 @@ que lo marca con los píxeles exactos, se retira y se confirma que vuelve a cero
 Si tocas el detector, repite esa comprobación antes de fiarte de un informe
 limpio.
 
-**Sobre el espaciado, y esto importa: la casa no tiene escala de espaciado.**
-Medida en una superficie de referencia, los `gap` conviven en 1, 2, 4, 6, 8, 10,
-11, 12 y 14 px, y no hay tokens `--pulso-space-*` que arbitren. Así que el
-detector **informa, no reprueba**: no inventes una escala global y la impongas
+**Sobre el espaciado: la escala existe, pero Monitoreo no la usa.** Este párrafo
+decía lo contrario —«la casa no tiene escala de espaciado»— y era falso: mi grep
+estaba mal acotado. `--pulso-space-1..9` (4, 8, 12, 16, 20, 24, 32, 40, 48) vive
+en los tokens, la gobiernan dos contratos y el kit compartido la usa en 68
+sitios; Monitoreo, en ninguno, con el 68 % de sus valores fuera de escala. El
+detalle medido está en el registro. Así que el detector **informa, no reprueba**,
+pero por otra razón: no porque falte árbitro, sino porque adoptarlo son 4.514
+valores y dos empates de 1.619 usos. No inventes una escala global y la impongas
 —eso es una decisión de diseño de Gonzalo, no del loop—. Lo que sí es defecto,
 y se arregla, es la incoherencia **dentro de una misma superficie**: dos gaps de
 1 px de diferencia en el mismo nivel, o un panel cuyo padding no guarda relación

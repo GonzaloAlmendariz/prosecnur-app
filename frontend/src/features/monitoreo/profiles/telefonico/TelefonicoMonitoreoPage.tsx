@@ -107,6 +107,7 @@ export { compactAdvanceDateTickLabel };
 import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetch";
 import { RutaDeSubsanacion, useBandejaDeSubsanacion } from "../../components/RutaDeSubsanacion";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
+import { DetalleDeCelda } from "../../celdas/DetalleDeCelda";
 import { leerDireccionDeSheets } from "../../fuentes/direccionDeFuente";
 import { sourceRowCount, sourceSheetField, sourceSyncLabel } from "./fuentes/camposDeFuente";
 import { eslabonesDelContrato } from "./fuentes/eslabonesDelContrato";
@@ -14084,11 +14085,11 @@ function AcreditacionPlatformRecordsView({
                       </td>
                       <td>
                         <CaseStatusPill value={internalCaseResponseStateValue(item)} />
-                        <small>{item.response_id || "sin response_id"}</small>
+                        <DetalleDeCelda referencia={caseDisplayName(item)} detalle={item.response_id} />
                       </td>
 	                      <td>
 	                        <span>{caseResponseDateTimeLabel(item)}</span>
-	                        <small>{caseResponseTimeDetailLabel(item)}</small>
+	                        <DetalleDeCelda referencia={caseResponseDateTimeLabel(item)} detalle={caseResponseTimeDetailLabel(item)} />
 	                      </td>
                       <td>
                         <span>{acreditacionChannelLabel(item.channel || item.source_label)}</span>
@@ -14096,7 +14097,7 @@ function AcreditacionPlatformRecordsView({
                       </td>
                       <td>
                         <CaseCrossingPill value={internalCaseCrossingValue(item)} />
-                        <small>{item.base_record || item.base_source || item.base_result || "Sin base"}</small>
+                        <DetalleDeCelda referencia={internalCaseCrossingLabel(internalCaseCrossingValue(item))} detalle={item.base_record || item.base_source || item.base_result} />
                       </td>
                       <td>
                         {canOpenSubsanacion ? (
