@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { planScenario } from '../orchestration-policy.mjs'
 
@@ -7,6 +8,20 @@ const auditLines = [
   { agent: 'guardian-contratos', profile: 'read-only', ownedFiles: [] },
   { agent: 'revisor-metodologico', profile: 'read-only', ownedFiles: [] }
 ]
+
+test('skill canónico alinea contrato y ownership con la política ejecutable', () => {
+  const skill = readFileSync(
+    new URL('../../.claude/skills/orquestar-trabajo/SKILL.md', import.meta.url),
+    'utf8'
+  )
+  const contract = skill.match(/```text\nORCHESTRATION CONTRACT\n(?<body>[\s\S]*?)```/)?.groups?.body
+
+  assert.doesNotMatch(skill, /\bnormaliza rutas y casing\b/i)
+  assert.match(contract ?? '', /^Condición de unión:$/m)
+  assert.match(skill, /Prefiere entradas\s+`\{ path, kind: "file" \| "tree" \}`/)
+  assert.match(skill, /Preserva rutas y casing:\s+no normalices casing,\s+`\.` ni `\.\.`/)
+  assert.match(skill, /Rechaza rutas absolutas,[^.]*segmentos vacíos o ambiguos,[^.]*globs/s)
+})
 
 test('smoke Codex: tres investigaciones independientes ocupan tres workers', () => {
   const plan = planScenario({ provider: 'codex', lines: auditLines })

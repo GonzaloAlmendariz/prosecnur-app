@@ -37,6 +37,7 @@ Evidencia requerida:
 Allowed globs:
 Excluded globs:
 Dependencias/contrato de entrada:
+Condición de unión:
 Stopping rule:
 Salida: COMPLETE | BLOCKED | FAILED + hallazgos/cambios + archivos + evidencia + pendientes
 ```
@@ -48,10 +49,14 @@ exclusiva. El especialista prevalece sobre el generalista en integraciones,
 entregables y packaging.
 
 Antes de abrir una oleada de escritura, materializa los globs en una lista
-exacta `ownedFiles`, normaliza rutas y casing, y ejecuta el preflight de
-colisiones. Un writer sin `ownedFiles`, un perfil desconocido o un glob sin
-resolver bloquea el lanzamiento. Si sobran líneas por los caps, consérvalas como
-`pending` para la siguiente oleada; ninguna se pierde.
+exacta `ownedFiles` y ejecuta el preflight de colisiones. Prefiere entradas
+`{ path, kind: "file" | "tree" }`; trata los strings heredados como archivos,
+salvo cuando terminan en `/`. Preserva rutas y casing: no normalices casing,
+`.` ni `..`. Rechaza rutas absolutas, backslashes, caracteres de control,
+segmentos vacíos o ambiguos, globs y `kind` desconocidos. Un writer sin
+`ownedFiles`, un perfil desconocido, una identidad inválida o una colisión
+exacta o tree/descendiente bloquea el lanzamiento. Si sobran líneas por los
+caps, consérvalas como `pending` para la siguiente oleada; ninguna se pierde.
 
 ## Oleadas
 
