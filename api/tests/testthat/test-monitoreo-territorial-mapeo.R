@@ -86,3 +86,64 @@ test_that("pick() casa por subcadena, y eso mapea a columnas que no son la varia
   pendientes <- monitoreo_territorial_mapeo_pendiente(cfg, data)
   expect_equal(length(Filter(function(p) p$campo == "sex_var", pendientes)), 0L)
 })
+
+# --- Payload de la pestaña de mapeo manual -----------------------------------
+
+test_that("el inventario de columnas trae ejemplo y cobertura, no solo nombres", {
+  data <- data.frame(
+    `Core/M5_district` = c("ATE", "ATE", "SJL"),
+    supervisor = c("", NA, "Ana"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  cols <- monitoreo_territorial_columnas(data)
+  distrito <- Filter(function(c) c$nombre == "Core/M5_district", cols)[[1]]
+  expect_equal(distrito$ejemplo, "ATE")
+  expect_equal(distrito$cobertura, 1)
+  # Una columna que existe pero viene casi vacía mapea sin error y no sirve:
+  # la cobertura es lo único que lo delata.
+  sup <- Filter(function(c) c$nombre == "supervisor", cols)[[1]]
+  expect_equal(sup$no_vacios, 1L)
+  expect_equal(sup$cobertura, round(1 / 3, 4))
+})
+
+test_that("el payload dice a qué apunta cada variable y qué columnas hay para elegir", {
+  data <- data.frame(
+    `Core/M5_district` = "ATE", p_identidad = "F",
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  cfg <- list(territorial = monitoreo_territorial_default_config(data))
+  pl <- monitoreo_territorial_mapeo_payload(cfg, data, fase = "pilot")
+  expect_equal(pl$fase, "pilot")
+  expect_equal(length(pl$variables), length(.MONITOREO_TERRITORIAL_VARS_DE_INTERES))
+  expect_setequal(vapply(pl$columnas, function(c) c$nombre, character(1)),
+                  c("Core/M5_district", "p_identidad"))
+  distrito <- Filter(function(v) v$campo == "district_var", pl$variables)[[1]]
+  expect_true(distrito$resuelta)
+  expect_equal(distrito$apunta_a, "Core/M5_district")
+  sexo <- Filter(function(v) v$campo == "sex_var", pl$variables)[[1]]
+  expect_false(sexo$resuelta)
+  expect_equal(sexo$motivo, "sin_mapear")
+  expect_false(pl$aviso$ok)
+})
+
+test_that("«resuelta» significa que la columna existe, no que sea la correcta", {
+  # El mismo caso de subcadena de arriba, visto desde el payload: sale
+  # `resuelta = TRUE` apuntando a una columna que no es la variable buscada.
+  # Fijarlo aquí evita que alguien lea el campo como un certificado.
+  data <- data.frame(
+    `Core/M5_district` = "ATE", condicion_sexual = "soltero",
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  cfg <- list(territorial = monitoreo_territorial_default_config(data))
+  pl <- monitoreo_territorial_mapeo_payload(cfg, data)
+  sexo <- Filter(function(v) v$campo == "sex_var", pl$variables)[[1]]
+  expect_true(sexo$resuelta)
+  expect_equal(sexo$apunta_a, "condicion_sexual")
+})
+
+test_that("sin base el payload no inventa columnas ni acusa pendientes", {
+  pl <- monitoreo_territorial_mapeo_payload(NULL, NULL)
+  expect_equal(length(pl$columnas), 0L)
+  expect_true(pl$aviso$ok)
+  expect_equal(length(pl$variables), length(.MONITOREO_TERRITORIAL_VARS_DE_INTERES))
+})
