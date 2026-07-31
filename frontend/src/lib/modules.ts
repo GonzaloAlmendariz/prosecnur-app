@@ -28,7 +28,6 @@ import {
   IconCollector,
   IconDashboard,
   IconEditor,
-  IconEncyclopedia,
   IconGpsValid,
   IconMonitor,
   IconOpen,
@@ -815,16 +814,10 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
   },
 ];
 
-export const PROSECNUR_GLOBAL_NAV_ITEMS: readonly ProsecnurNavigationLeafMeta[] = [
-  {
-    id: "enciclopedia",
-    label: "Enciclopedia metodológica",
-    shortLabel: "Enciclopedia",
-    icon: IconEncyclopedia,
-    to: "/enciclopedia",
-    layoutPolicy: "legacy-scroll",
-  },
-];
+// Vacío desde el retiro de Enciclopedia. Se conserva la lista —y no se borra el
+// concepto— porque el contrato de navegación distingue módulo de utilidad
+// global, y esa distinción sigue siendo cierta aunque hoy no haya ninguna.
+export const PROSECNUR_GLOBAL_NAV_ITEMS: readonly ProsecnurNavigationLeafMeta[] = [];
 
 // Cronograma se fusionó dentro de Bitácora; ya no hay módulos secundarios.
 export const PROSECNUR_PRIMARY_MODULES: ProsecnurModuleMeta[] = PROSECNUR_MODULES;

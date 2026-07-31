@@ -269,22 +269,12 @@ describe("manifiesto primario de navegación", () => {
     ]);
   });
 
-  it("modela Enciclopedia como utilidad global y no como módulo del proyecto", () => {
-    expect(PROSECNUR_GLOBAL_NAV_ITEMS.map(({ id, label, shortLabel, to, layoutPolicy }) => ({
-      id,
-      label,
-      shortLabel,
-      to,
-      layoutPolicy,
-    }))).toEqual([
-      {
-        id: "enciclopedia",
-        label: "Enciclopedia metodológica",
-        shortLabel: "Enciclopedia",
-        to: "/enciclopedia",
-        layoutPolicy: "legacy-scroll",
-      },
-    ]);
+  it("no tiene utilidades globales tras el retiro de Enciclopedia", () => {
+    // La lista existe vacía a propósito: el contrato distingue módulo del
+    // proyecto de utilidad global, y esa distinción sigue siendo cierta aunque
+    // hoy no haya ninguna. El test fija que la app no volvió a colgar una
+    // pantalla fuera de la jerarquía de módulos sin decidirlo.
+    expect(PROSECNUR_GLOBAL_NAV_ITEMS).toEqual([]);
     expect(PROSECNUR_MODULES.some((module) => module.to === "/enciclopedia")).toBe(false);
   });
 });

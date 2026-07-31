@@ -62,9 +62,6 @@ Los ocho módulos del proyecto son:
 | Procesamiento | `/procesamiento` | carga · validación · codificación · analítica · gráficos |
 | Dashboard | `/tablero` | dashboard (code-split: plotly no entra al bundle principal) |
 
-Enciclopedia (`/enciclopedia`) es una utilidad global, no un noveno módulo del
-proyecto.
-
 Rutas legacy (`/diseno-estudio`, `/plan-trabajo`, `/diseno-muestra`, `/muestra-aulas`) redirigen; no reintroducirlas como destinos.
 
 ## Enrutamiento del agentic OS

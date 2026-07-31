@@ -21,7 +21,6 @@ describe("warmup registry", () => {
       "dashboard",
       "dashboard_datos",
       "editor_xlsform",
-      "enciclopedia",
       "plotly",
       "html_to_image",
     ]));

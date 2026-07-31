@@ -369,7 +369,6 @@ function friendlyWarmupMessage(raw: string | null | undefined, phase: GatePhase)
   if (moduleName.includes("dashboard")) return "Preparando dashboard";
   if (moduleName.includes("xlsform")) return "Cargando editor de formularios";
   if (moduleName.includes("diseno") || moduleName.includes("diseño")) return "Cargando diseño del estudio";
-  if (moduleName.includes("enciclopedia")) return "Cargando biblioteca metodológica";
   /* Último recurso para un scope que todavía no tiene nombre propio: se acentúa
    * lo que el backend manda sin tildes y se le quita el punto final, para que no
    * desentone al lado de las etiquetas ya traducidas. */

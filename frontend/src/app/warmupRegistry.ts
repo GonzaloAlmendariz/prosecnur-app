@@ -541,14 +541,6 @@ export const WARMUP_MODULES: WarmupModuleEntry[] = [
     load: () => import("../features/xlsformEditor/XlsformEditorPage"),
   },
   {
-    id: "enciclopedia",
-    label: "Enciclopedia",
-    load: () => Promise.all([
-      import("../features/enciclopedia/EnciclopediaHome"),
-      import("../features/enciclopedia/FichaMetodologica"),
-    ]),
-  },
-  {
     id: "diseno_estudio",
     label: "Bitácora",
     load: () => import("../features/bitacora/BitacoraPage"),

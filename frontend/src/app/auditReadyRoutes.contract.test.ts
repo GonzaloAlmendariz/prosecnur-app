@@ -502,16 +502,4 @@ describe("audit-ready route root contract", () => {
     );
   });
 
-  test("Enciclopedia waits for all four catalog loads", () => {
-    const { tag } = pageFunctionRoot("features/enciclopedia/EnciclopediaHome.tsx", "PageFrame");
-    const value = readinessValue(tag, "auditReady", "Enciclopedia");
-
-    expectSemanticReadiness(value, "Enciclopedia", "enciclopedia");
-    for (const load of ["catalogo", "glosario", "tabla", "tipos"]) {
-      expect(references(value, load), `Enciclopedia readiness must wait for ${load}`).toBe(true);
-    }
-    expect(compactExpression(value), "Enciclopedia requires all four non-null loads").toBe(
-      'catalogo!==null&&glosario!==null&&tabla!==null&&tipos!==null?"enciclopedia":false',
-    );
-  });
 });

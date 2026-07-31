@@ -1,6 +1,6 @@
 /**
  * Fórmula matemática en LaTeX (KaTeX) con procedencia y términos explicados:
- * la expresión se renderiza con el componente Math de la enciclopedia, y cada
+ * la expresión se renderiza con el componente Math del kit, y cada
  * símbolo puede llevar un chip interactivo (glosario + valor vivo del motor).
  * Regla del recorrido: si los valores sustituidos vienen del preview TS, el
  * badge debe ser "preview"; si vienen del motor R, "validado".

@@ -501,12 +501,6 @@
   --module-accent-border: var(--pulso-module-collectors-border);
 }
 
-.pulso-enciclopedia-frame {
-  --module-accent: var(--pulso-module-encyclopedia);
-  --module-accent-soft: var(--pulso-module-encyclopedia-soft);
-  --module-accent-border: var(--pulso-module-encyclopedia-border);
-}
-
 .hojas-ruta-frame {
   --module-accent: var(--pulso-module-routes);
   --module-accent-soft: var(--pulso-module-routes-soft);
@@ -534,7 +528,6 @@
 .mon-module-chrome,
 .bitacora-frame,
 .rec-page,
-.pulso-enciclopedia-frame,
 .hojas-ruta-frame,
 .cmv2-frame.pulso-page-frame {
   --pulso-primary: var(--module-accent);

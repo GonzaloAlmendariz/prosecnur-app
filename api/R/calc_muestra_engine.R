@@ -41,7 +41,7 @@
 #   7. listado_externo_meta_fija       → compatibilidad legacy; no se ofrece
 #      como flujo nuevo del calculador.
 #
-# Medición recurrente queda documentada en la enciclopedia pero aún levanta
+# Medición recurrente queda fuera de la Fase 1 y aún levanta
 # `E_METODOLOGIA_NO_IMPLEMENTADA` desde el endpoint /calcular.
 
 # ---------------------------------------------------------------------------
@@ -1089,8 +1089,7 @@ calc_muestra_calcular_componente <- function(comp) {
 
   if (!comp$tecnica %in% .CM_TECNICAS_FASE_1) {
     stop_api(501, "E_METODOLOGIA_NO_IMPLEMENTADA",
-             sprintf(paste("La técnica '%s' está documentada en la enciclopedia",
-                           "pero no implementada en el calculador (Fase 1)."),
+             sprintf("La técnica '%s' todavía no está implementada en el calculador.",
                      comp$tecnica))
   }
 

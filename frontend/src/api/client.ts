@@ -22,4 +22,3 @@ export * from "./calcMuestra";
 export * from "./planTrabajo";
 export * from "./disenoEstudio";
 export * from "./overview";
-export * from "./enciclopedia";

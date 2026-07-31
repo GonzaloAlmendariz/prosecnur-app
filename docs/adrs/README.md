@@ -123,5 +123,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0048](0048-identidad-version-y-canales-distribucion.md) | Aceptado | 2026-07-30 | Identidad de versión única y canales de distribución separados: preview interno sin publicación y stable fail-closed |
 | [0049](0049-fronteras-confianza-electron-credenciales-hf.md) | Aceptado | 2026-07-30 | Electron valida navegación e IPC; los tokens HF guardados permanecen en el proceso principal detrás de un broker loopback tipado |
 | [0050](0050-entorno-r-reproducible-ci-inmutable.md) | Aceptado | 2026-07-30 | El entorno R usa un lock exacto y CI fija runners, acciones, cachés y bundles verificables |
+| [0051](0051-retiro-de-enciclopedia.md) | Aceptado | 2026-07-31 | Enciclopedia se retira entera; se conserva lo que Bitácora y Cálculo de muestra consumen |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
