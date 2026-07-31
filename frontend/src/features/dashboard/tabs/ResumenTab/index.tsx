@@ -85,11 +85,24 @@ export function ResumenTab() {
               Perfil de la muestra
             </h3>
           </div>
-          <div className="dash-kpi-stack">
-            <div className="dash-kpi-n">
-              N:{" "}
-              {(kpisPayload?.n_total ?? payload?.n_total ?? 0).toLocaleString("es-PE")}
-            </div>
+          {/* El tamaño muestral es el encabezado del perfil, no uno de sus
+              indicadores, y vivía dentro del stack. Eso hacía que la colección
+              no fuera homogénea: al declararla, el comprobador medía la
+              etiqueta «N: 1.283» como si fuera una tarjeta y reportaba 17 px de
+              interior sin usar que no son más que su padding. Sale del stack y
+              la colección queda con miembros de una sola variante. */}
+          <div className="dash-kpi-n">
+            N:{" "}
+            {(kpisPayload?.n_total ?? payload?.n_total ?? 0).toLocaleString("es-PE")}
+          </div>
+          {/* `intrinsic`: cada tarjeta del perfil mide lo que pide su leyenda
+              —«¿En qué distrito vive?» lista seis y «¿Cuál es su sexo?» dos—,
+              así que su alto es función de los datos de esa variable. */}
+          <div
+            className="dash-kpi-stack"
+            data-qa-geometry-group="dashboard/perfil-muestra"
+            data-qa-geometry-contract="intrinsic"
+          >
             {kpisPayload?.kpis?.length === 0 && (
               <div className="dash-kpi-empty">
                 Sin indicadores configurados.
@@ -137,7 +150,10 @@ export function ResumenTab() {
                 />
               )}
               {!loadingPay && payload && payload.rows.length > 0 && (
-                <div>
+                <div
+                  data-qa-geometry-group="dashboard/resumen-preguntas"
+                  data-qa-geometry-contract="intrinsic"
+                >
                   {payload.rows.map((row) => (
                     <PreguntaRow key={row.var} row={row} />
                   ))}

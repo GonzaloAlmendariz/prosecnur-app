@@ -650,6 +650,10 @@
   gap: 11px;
 }
 .dashboard-scope .dash-kpi-n {
+  /* Vivía dentro de `.dash-kpi-stack` y heredaba su `gap: 11px`. Al salir del
+   * stack —es el encabezado del perfil, no un indicador— hay que devolverle esa
+   * separación a mano, o queda pegada a la primera tarjeta. */
+  margin-bottom: 11px;
   background: var(--dash-superficie-2);
   border: 1px solid var(--dash-borde);
   border-radius: var(--dash-radius-md);
