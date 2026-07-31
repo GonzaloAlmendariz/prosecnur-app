@@ -5,7 +5,7 @@
  * Regla del recorrido: si los valores sustituidos vienen del preview TS, el
  * badge debe ser "preview"; si vienen del motor R, "validado".
  */
-import { Math as LatexMath } from "../../../enciclopedia/shared/components/Math";
+import { Math as LatexMath } from "../../../../components/Math";
 import { BadgeMotor } from "../../didactica/PasoDidactico";
 import { TerminoChip } from "./TerminoChip";
 import "./ui.css";

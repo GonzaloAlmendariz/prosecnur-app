@@ -2,12 +2,20 @@ import { useEffect, useRef } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
-// Componente para renderizar LaTeX con KaTeX.
+// Renderizador de LaTeX con KaTeX.
+//
+// Vivía en `features/enciclopedia/shared/components/`, que es lo que lo volvió
+// un problema: envoltorio de una librería de terceros —infraestructura, no
+// dominio— enterrado dentro de una feature, y Cálculo de muestra importándolo
+// a través de tres niveles de `../`. Al retirarse Enciclopedia habría caído con
+// ella un componente del que depende otro módulo. Su sitio es el kit.
+//
 // Modos:
 //   - inline (default): se mezcla en el flujo de texto
 //   - display (block): centrado en su propio bloque, tamaño mayor
 //
-// Falla gracefully a texto plano si la fórmula no parsea (no rompe la UI).
+// Falla a texto plano si la fórmula no parsea, para no tumbar la vista por una
+// expresión mal escrita.
 
 type Props = {
   expression: string;          // string LaTeX (sin $ ni $$)
@@ -41,7 +49,7 @@ export function Math({ expression, display = false, className }: Props) {
   return (
     <span
       ref={ref}
-      className={`enc-math ${display ? "enc-math--display" : ""} ${className ?? ""}`}
+      className={`pulso-math ${display ? "pulso-math--display" : ""} ${className ?? ""}`}
     />
   );
 }
