@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # El lienzo es la cuarta vista del subsistema y la que aporta la RAMIFICACIÓN:
-# el cronograma es lineal por naturaleza —seis etapas, una detrás de otra— pero
+# el cronograma es lineal por naturaleza —una etapa detrás de otra— pero
 # un estudio real se bifurca, y esa forma no entra en una línea de tiempo.
 #
 # Referencia conceptual: Obsidian Canvas. Se replica el modelo de interacción,
