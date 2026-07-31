@@ -1,5 +1,11 @@
 # GOAL — Monitoreo: geometría gobernada, no vigilada a mano
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-27
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de reparaciones visuales de Monitoreo](../historico/monitoreo-reparaciones-visuales-2026-07.md)
+
 **Fecha de apertura:** 27 de julio de 2026
 **Estado:** objetivo permanente en curso. **Solo Gonzalo lo cierra.**
 **Antecedente:** `docs/qa/monitoreo/territorial_telefonico_visual_cleanup_20260726.md`

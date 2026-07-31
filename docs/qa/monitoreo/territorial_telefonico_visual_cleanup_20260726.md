@@ -1,5 +1,11 @@
 # Limpieza visual profunda: Territorial y Telefónico (2026-07-26)
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-26
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo territorial](../historico/monitoreo-territorial-2026-06.md)
+
 ## Contrato y alcance
 
 - Categoría: reparación visual del workbench de Monitoreo.

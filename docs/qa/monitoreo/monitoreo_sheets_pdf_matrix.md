@@ -1,5 +1,11 @@
 # Monitoreo Sheets/PDF matrix
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-29
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de entregables de Monitoreo](../historico/monitoreo-entregables-2026-06.md)
+
 Date: 2026-06-29
 
 This matrix separates data correctness, formatting and professional quality for

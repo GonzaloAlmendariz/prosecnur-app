@@ -1,5 +1,11 @@
 # Acreditacion multibase en Carga/Procesamiento
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-02
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Carga y acreditación](../historico/carga-acreditacion-2026-07.md)
+
 Fecha: 2026-07-02
 
 ## Loop de reparacion

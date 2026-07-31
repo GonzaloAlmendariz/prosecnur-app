@@ -1,17 +1,23 @@
 # GOAL — La app entera se ve como una sola aplicación
 
+Tipo: Goal operativo QA
+Estado: En curso
+Fecha: 2026-07-30
+Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado visual
+
 **Fecha de apertura:** 30 de julio de 2026
 **Estado:** objetivo permanente en curso. **Solo Gonzalo lo cierra.**
 **Antecedente:** `docs/qa/monitoreo/goal-loop-monitoreo-2026-07-27.md` (Monitoreo,
 geometría gobernada) y `docs/qa/pulido-monitoreo-estado.md` (16 hallazgos abiertos).
-Este goal **no reemplaza** al de Monitoreo: lo absorbe y lo extiende a los nueve módulos.
+Este goal **no reemplaza** al de Monitoreo: lo absorbe y lo extiende a los ocho
+módulos del proyecto y a Enciclopedia como utilidad global.
 
 ## Objetivo
 
-> Prosecnur debe verse como **una sola aplicación profesional en los nueve
-> módulos**, no como un módulo pulido y ocho sin auditar. El instrumento de
-> medición ya existe y ha visto uno de nueve; este goal lo pone en órbita sobre
-> todos.
+> Prosecnur debe verse como **una sola aplicación profesional en los ocho
+> módulos del proyecto**, no como un módulo pulido y siete sin auditar. El
+> instrumento de medición ya existe y ha visto uno de ocho; este goal lo pone en
+> órbita sobre todos y revisa Enciclopedia como utilidad global.
 >
 > Y arreglar la app **no puede seguir agrandando la app**: cada reparación deja
 > su archivo más chico que como lo encontró.
@@ -23,8 +29,8 @@ Medición del 2026-07-30:
 | Hecho medido | Consecuencia |
 |---|---|
 | El audit del agentic OS está **en rojo**: 3 congelados crecieron esta semana (+6, +104, +136) | El pulido está pagándose con deuda estructural |
-| 4.117 hex sin token en CSS de features; **1.081 fuera de Monitoreo** | Ocho módulos con deriva de color jamás medida |
-| Gráficos (33.023 líneas CSS), Dashboard y Hojas de ruta: **0** `data-qa-geometry-group` | Verdes por ausencia, no por conformidad |
+| 4.117 hex sin token en CSS de features; **1.081 fuera de Monitoreo** | Siete módulos y la utilidad global con deriva de color jamás medida |
+| Gráficos, sección de Procesamiento (33.023 líneas CSS), Dashboard y Hojas de ruta: **0** `data-qa-geometry-group` | Verdes por ausencia, no por conformidad |
 | 44 declaraciones de geometría en total, **17 son de Monitoreo** | El resto es cobertura simbólica |
 | 16 hallazgos abiertos en Monitoreo, **7 bloqueados en decisión** | El loop anterior se frenaba esperando respuesta |
 | Eje "Evolución modular" del corte de escalabilidad | **Rojo** |
@@ -36,12 +42,15 @@ un número del ledger estrictamente más bajo.** Igualar no cierra la iteración
 
 ## Órbita
 
-El loop rota por los nueve módulos en orden fijo. Ningún módulo se salta, ninguno
-monopoliza. Monitoreo es **una** posición de nueve, no la mitad del trabajo.
+El loop rota por los ocho módulos del proyecto en orden fijo. Ningún módulo se
+salta, ninguno monopoliza. Monitoreo es **una** posición de ocho, no la mitad
+del trabajo. Enciclopedia se inspecciona como utilidad global al cerrar cada
+vuelta, sin convertirla en un noveno módulo.
 
 ```
-Monitoreo → Gráficos → Procesamiento → Dashboard → Hojas de ruta
-   → Calc-muestra → Editor XLSForm → Bitácora → Fichas QR → (vuelve)
+Monitoreo → Procesamiento → Dashboard → Hojas de ruta
+   → Cálculo de muestra → Formularios → Bitácora → Recopiladores
+   → Enciclopedia (utilidad global) → (vuelve)
 ```
 
 Al llegar a un módulo, el loop hace **auditar → reparar** en la misma visita:
@@ -72,9 +81,9 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 |---|---:|---:|---|
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
-| Hex sin token — otros 8 módulos | 1.081 | 1.081 | ↓ |
+| Hex sin token — otros 7 módulos + Enciclopedia | 1.081 | 1.081 | ↓ |
 | `data-qa-geometry-group` fuera de Monitoreo | 27 | **31** | ↑ hasta cubrir toda colección |
-| Módulos con 0 declaraciones geométricas | 3 | **2** | ↓ a 0 |
+| Superficies principales con 0 declaraciones geométricas | 3 | **2** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
 | Defectos C4 abiertos (contenido inalcanzable) | — | **0 en Procesamiento** | ↓ |
@@ -85,7 +94,8 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 9 | **3 de 9** | ↑ a 9 |
+| Módulos auditados con el instrumento | 1 de 8 | **2 de 8** | ↑ a 8 |
+| Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
 
@@ -111,11 +121,12 @@ una letra; el loop sigue solo mientras tanto.
 
 ## Cuándo cierra
 
-Solo Gonzalo. La condición **medible** es: audit verde, los nueve módulos
-auditados con el instrumento, cero módulos sin contrato geométrico, cero hallazgos
-abiertos y bandeja vacía. Alcanzada esa condición el loop **no termina**: reabre la
-órbita con un nivel de exigencia mayor (viewport más estrecho, estado vacío,
-estado a escala) y vuelve a empezar.
+Solo Gonzalo. La condición **medible** es: audit verde, los ocho módulos
+auditados con el instrumento, Enciclopedia inspeccionada como utilidad global,
+cero módulos sin contrato geométrico, cero hallazgos abiertos y bandeja vacía.
+Alcanzada esa condición el loop **no termina**: reabre la órbita con un nivel de
+exigencia mayor (viewport más estrecho, estado vacío, estado a escala) y vuelve
+a empezar.
 
 ## Bitácora de iteraciones
 
@@ -123,7 +134,7 @@ estado a escala) y vuelve a empezar.
 |---|---|---|---|---|---|
 | — | 30 jul | — | apertura del goal | — | — |
 | 1 | 30 jul | Monitoreo | **El audit estaba en rojo: tres congelados crecieron durante la tanda de pulido.** No se subieron las líneas base: se pagó el peaje. Tres extracciones literales, sin tocar un cuerpo de función | engine -1.319 · router -930 · telefónico -166 · audit rojo→**verde** | `fbe7a791`, `712159f7`, `89145285` |
-| 2 | 30 jul | **Gráficos** | **El módulo estaba fuera del instrumento, no solo sin declarar.** `/graficos` no figuraba en `PROCESSING_ROUTES`, así que la matriz por defecto nunca lo miró: 33.023 líneas de CSS y cero geometría, sin que nada se quejara | geometryGroups 0→10 · coverageMisses 5→0 · módulos sin geometría 3→**2** · rutas de la matriz 4→5 | `f2dfb95a` |
+| 2 | 30 jul | **Procesamiento · Gráficos** | **La sección estaba fuera del instrumento, no solo sin declarar.** `/graficos` no figuraba en `PROCESSING_ROUTES`, así que la matriz por defecto nunca la miró: 33.023 líneas de CSS y cero geometría, sin que nada se quejara | geometryGroups 0→10 · coverageMisses 5→0 · superficies principales sin geometría 3→**2** · rutas de la matriz 4→5 | `f2dfb95a` |
 | 3 | 30 jul | **Procesamiento** | **Primer defecto C4 del goal: Carga atrapaba 300 px en pantallas cortas.** Y las dos colecciones que el comprobador descubrió solas quedan declaradas | issues 1→**0** · geometryGroups 15→**60** · coverageMisses 45→**0** · secciones sin geometría 5→3 | `ccbb2f61`, `11cde117` |
 
 ### Nota de la iteración 3
@@ -156,9 +167,9 @@ typecheck.
 
 ### Nota de la iteración 2
 
-La órbita funcionó exactamente como se esperaba: apuntar el instrumento a un
-módulo que nunca había visto encontró algo que ninguna cantidad de pulido de
-Monitoreo habría encontrado.
+La órbita funcionó exactamente como se esperaba: apuntar el instrumento a una
+sección de Procesamiento que nunca había visto encontró algo que ninguna
+cantidad de pulido de Monitoreo habría encontrado.
 
 Lo importante no fue que a Gráficos le faltaran declaraciones —eso ya estaba
 medido al abrir el goal—, sino **por qué** le faltaban y nadie lo notó:
@@ -166,8 +177,8 @@ medido al abrir el goal—, sino **por qué** le faltaban y nadie lo notó:
 secciones y la lista tenía cuatro. **Estar fuera de la lista de rutas es la
 forma silenciosa de quedar verde por ausencia**, y no la detecta ningún
 comprobador de geometría, porque el comprobador nunca llega a correr. Conviene
-revisar la misma pregunta en cada módulo de la órbita antes de auditarlo: ¿el
-instrumento lo alcanza?
+revisar la misma pregunta en cada módulo y sección de la órbita antes de
+auditarlo: ¿el instrumento los alcanza?
 
 **Duodécima familia de falso positivo: decoración con lienzo declarado.** Se le
 puso `intrinsic` al stack de previsualización y marcó `capacity-drift` en las
@@ -184,8 +195,8 @@ no en un registro aparte.
 Esta iteración **no** corrió el instrumento sobre ningún módulo: fue el
 prerrequisito estructural. El invariante exige terminar con el audit en verde y
 el audit estaba en rojo desde antes de abrir el goal, así que la primera vuelta
-tenía que saldarlo. La órbita avanza a **Gráficos** en la iteración 2, que sí
-empieza por auditar.
+tenía que saldarlo. La órbita avanza a **Procesamiento · Gráficos** en la
+iteración 2, que sí empieza por auditar.
 
 Tres cosas que aprendió el loop y que valen para las próximas vueltas:
 

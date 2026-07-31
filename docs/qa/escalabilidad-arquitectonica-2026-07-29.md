@@ -1,9 +1,8 @@
 # Escalabilidad arquitectónica — corte 2026-07-29
 
 Tipo: Evaluación QA de arquitectura
-
-Estado: Vigente como línea base fechada
-
+Estado: Vigente
+Fecha: 2026-07-29
 Autoridad: Evidencia; no reemplaza ADR ni contrato ejecutable
 
 Última revisión: 2026-07-29

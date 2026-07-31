@@ -1,5 +1,10 @@
 # Revamps visuales: errores recurrentes y gate operativo
 
+Tipo: Contrato operativo QA
+Estado: Vigente
+Fecha: 2026-07-26
+Autoridad: Regla de validación visual complementaria a la gramática de layout y los loops de reparación
+
 **Fecha:** 26 de julio de 2026
 **Estado:** evidencia post-incidente y contrato obligatorio para futuros revamps
 **Origen:** ocho chats recientes de Prosecnur, la auditoría visual de Monitoreo
@@ -27,7 +32,10 @@ Este contrato complementa `docs/ui-layout-grammar.md`,
 
 Se tomaron los ocho chats Prosecnur más recientes visibles al iniciar esta
 síntesis. Los identificadores son trazabilidad local de Codex; la evidencia
-persistente es la que se cita después bajo `docs/qa/` y `tmp/visual-qa/`.
+persistente es la que se versiona y enlaza desde `docs/qa/`. Las capturas
+locales transitorias solo sirven durante la iteración que las produce: una
+conclusión reutilizable debe quedar respaldada por un artefacto versionable o
+por un gate reproducible.
 
 | # | Chat | Aporte al diagnóstico |
 |---:|---|---|

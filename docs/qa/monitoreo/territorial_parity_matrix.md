@@ -1,5 +1,11 @@
 # Territorial Monitoreo parity matrix
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-27
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo territorial](../historico/monitoreo-territorial-2026-06.md)
+
 Truth source: `frontend/src/features/monitoreo/MonitoreoPage.tsx`.
 
 Target audited: `frontend/src/features/monitoreo/profiles/territorial/TerritorialMonitoreoPage.tsx`.

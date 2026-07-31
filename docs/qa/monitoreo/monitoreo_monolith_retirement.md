@@ -1,5 +1,11 @@
 # Monitoreo monolith retirement map
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-29
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de performance y arquitectura de Monitoreo](../historico/monitoreo-performance-arquitectura-2026-06.md)
+
 Updated: 2026-06-29
 
 Scope lock for this repair loop:

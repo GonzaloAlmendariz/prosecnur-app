@@ -1,5 +1,11 @@
 # Acreditacion channel selector matrix
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-29
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo de acreditación](../historico/monitoreo-acreditacion-2026-06.md)
+
 Fecha: 2026-06-29
 
 ## Scope lock

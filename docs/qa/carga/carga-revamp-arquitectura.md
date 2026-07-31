@@ -1,5 +1,11 @@
 # Revamp de Carga: arquitectura de pestañas y matriz de ingreso
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-25
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Carga y acreditación](../historico/carga-acreditacion-2026-07.md)
+
 Fecha: 2026-07-25
 
 Estado: implementado y validado

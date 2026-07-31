@@ -1,5 +1,10 @@
 # Baseline de deuda técnica
 
+Tipo: Baseline QA
+Estado: Vigente
+Fecha: 2026-07-24
+Autoridad: Línea base comparativa; la medición viva la produce el gate de deuda
+
 Medición de referencia contra la que compara el skill `/auditoria-deuda` (agente `auditor-deuda`, comandos canónicos en `.claude/agents/auditor-deuda.md`). Al re-medir, actualizar la columna "Hoy" y mover la anterior al histórico.
 
 ## Baseline — 2026-07-10 · Anterior — 2026-07-23 · Hoy — 2026-07-24
@@ -65,5 +70,5 @@ Estos indicadores complementan los ocho ejes y se miden durante
 | Tonos canónicos distintivos | 8 de 8 | 8 de 8 |
 
 Los tonos vigentes siguen siendo distintos: Bitácora `#A16207`, Cálculo
-`#7C3AED`, Formularios `#6D5DFC`, Hojas `#C2410C`, Fichas QR `#0891B2`,
+`#7C3AED`, Formularios `#6D5DFC`, Hojas `#C2410C`, Recopiladores `#0891B2`,
 Monitoreo `#BE123C`, Procesamiento `#0F766E` y Dashboard `#2563EB`.

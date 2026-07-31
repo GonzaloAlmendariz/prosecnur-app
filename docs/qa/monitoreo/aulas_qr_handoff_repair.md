@@ -1,5 +1,11 @@
 # Reparación: flujo aulas, fichas QR y monitoreo
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-28
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo territorial](../historico/monitoreo-territorial-2026-06.md)
+
 Fecha: 2026-06-28
 
 ## Scope lock

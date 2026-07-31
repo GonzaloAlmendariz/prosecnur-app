@@ -1,5 +1,11 @@
 # Auditoría integral del interventor universitario por cursos-horario
 
+Tipo: Auditoría QA fechada
+Estado: Reemplazado
+Fecha: 2026-07-13
+Autoridad: Evidencia histórica; conserva referencias locales transitorias de la auditoría original
+Reemplazado por: [Auditoría de cumplimiento del ADR 0019](auditoria-adr-0019-cursos-horario-2026-07-30.md)
+
 **Fecha:** 13 de julio de 2026  
 **Proyecto de referencia para QA:** HSVG2026 (lectura y prueba sin guardar)  
 **Estado:** reparación implementada y validada; queda abierto únicamente el pendiente metodológico señalado en §7

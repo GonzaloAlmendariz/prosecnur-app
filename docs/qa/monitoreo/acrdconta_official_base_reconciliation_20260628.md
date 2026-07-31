@@ -1,5 +1,11 @@
 # ACRDCONTA official-base reconciliation - 2026-06-28
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-28
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo de acreditación](../historico/monitoreo-acreditacion-2026-06.md)
+
 Loop category: Monitoreo backend/data repair.
 
 Controlling source of truth: the official universe/base rows and their actor
