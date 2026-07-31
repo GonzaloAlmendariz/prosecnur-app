@@ -483,7 +483,13 @@ export function PreguntasLanding() {
       )}
 
       {visibleSections.length > 0 && (
-        <div className="pulso-codificacion-sections-grid">
+        /* `intrinsic` porque la rejilla ya declara `align-items: start`: cada
+           sección mide lo que piden sus preguntas, que son cuantas sean. */
+        <div
+          className="pulso-codificacion-sections-grid"
+          data-qa-geometry-group="codificacion/secciones"
+          data-qa-geometry-contract="intrinsic"
+        >
           {visibleSections.map((s) => (
             <SectionBlock
               key={s.id}
