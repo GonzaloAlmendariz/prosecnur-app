@@ -112,6 +112,7 @@ export { compactAdvanceDateTickLabel };
 import { schedulePrefetchScopes, usePrefetchTimeouts } from "./sync/scopePrefetch";
 import { estadoVisual, readinessDeSalidas, recorteTabla } from "../../corte/corteContract";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
+import { pct } from "../../core/formatoComun";
 import {
   ACREDITACION_PHONE_ALERT_RULES,
   acreditacionQualityActionLabel,
@@ -331,11 +332,6 @@ function formatCaseLabel(value: number) {
   return `${fmt(value)} caso${value === 1 ? "" : "s"}`;
 }
 
-function pct(value: unknown) {
-  const n = value == null || value === "" ? NaN : Number(value);
-  if (!Number.isFinite(n)) return "S/D";
-  return `${Math.round(n)}%`;
-}
 
 function pctFrom(value: number, total: number) {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return "S/D";

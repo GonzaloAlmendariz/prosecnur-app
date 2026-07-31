@@ -42,6 +42,8 @@ import type {
   MonitoreoState,
 } from "../../../../api/client";
 import type { AcreditacionSourceTab } from "./pestanasDeFuentes";
+export { pct } from "../../core/formatoComun";
+import { pct } from "../../core/formatoComun";
 
 export const ACREDITACION_ROUTE = MONITOREO_MODOS.find((route) => route.family === "acreditacion") ?? MONITOREO_MODOS[0];
 export const TELEFONICO_ROUTE = MONITOREO_MODOS.find((route) => route.family === "telefonico") ?? ACREDITACION_ROUTE;
@@ -164,11 +166,6 @@ export function formatCaseLabel(value: number) {
   return `${fmt(value)} caso${value === 1 ? "" : "s"}`;
 }
 
-export function pct(value: unknown) {
-  const n = value == null || value === "" ? NaN : Number(value);
-  if (!Number.isFinite(n)) return "S/D";
-  return `${Math.round(n)}%`;
-}
 
 export function pctFrom(value: number, total: number) {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return "S/D";
