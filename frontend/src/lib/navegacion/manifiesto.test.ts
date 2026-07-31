@@ -15,8 +15,8 @@ import {
 } from "./runtime";
 
 describe("manifiesto de navegación", () => {
-  it("mantiene el inventario completo de 201 nodos", () => {
-    expect(MANIFIESTO_NAVEGACION).toHaveLength(201);
+  it("mantiene el inventario completo de 202 nodos", () => {
+    expect(MANIFIESTO_NAVEGACION).toHaveLength(202);
   });
 
   it("cubre los ocho módulos y no inventa ninguno", () => {
@@ -104,11 +104,11 @@ describe("manifiesto de navegación", () => {
     expect(territorial!.clave).not.toBe(aulas!.clave);
   });
 
-  it("expone las 68 pestañas posibles de los perfiles de Monitoreo", () => {
+  it("expone las 69 pestañas posibles de los perfiles de Monitoreo", () => {
     const pestanas = nodosDe("monitoreo").filter((nodo) => nodo.nivel === "pestana");
 
-    expect(pestanas).toHaveLength(68);
-    expect(new Set(pestanas.map((nodo) => nodo.clave)).size).toBe(68);
+    expect(pestanas).toHaveLength(69);
+    expect(new Set(pestanas.map((nodo) => nodo.clave)).size).toBe(69);
     expect(pestanas).toContainEqual(
       nodoPorClave("monitoreo/telefonico/consultas/subsanacion"),
     );

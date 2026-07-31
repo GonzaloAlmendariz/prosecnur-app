@@ -1,0 +1,192 @@
+/* Mapeo manual de variables de interés — Territorial › Modelo › Variables.
+ *
+ * Archivo propio y no apéndice de `territorialProfile.css`: ese está congelado
+ * a crecimiento (`agentic/manifest.json`) y esto es material nuevo.
+ *
+ * La superficie declara su geometría (`territorial-mapeo-variables`, contrato
+ * `equal`), así que las tarjetas tienen que medir igual pase lo que pase con el
+ * texto de la columna: de ahí el `align-items: stretch` de la grilla y el
+ * `min-height` de la pista, no un alto fijo que recorte el contenido.
+ */
+
+.mapeo-var {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.mapeo-var__command {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mapeo-var__title p {
+  margin: 4px 0 0;
+  max-width: 62ch;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+.mapeo-var__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mapeo-var__aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.mapeo-var__aviso.is-warning {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+  color: var(--pulso-warn-fg);
+}
+
+.mapeo-var__aviso.is-ready {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+/* El dueño del scroll es esta pista, no la página: la grilla crece con las
+ * doce variables y la superficie no debe empujar el marco del módulo. */
+.mapeo-var__list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mapeo-var__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  align-items: stretch;
+  gap: 10px;
+}
+
+.mapeo-var__item {
+  display: grid;
+  grid-template-rows: auto auto minmax(2.4em, auto);
+  gap: 8px;
+  padding: 12px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  border-left-width: 3px;
+  border-radius: var(--pulso-radius-card);
+}
+
+.mapeo-var__item.is-ready {
+  border-left-color: var(--pulso-success-border);
+}
+
+.mapeo-var__item.is-warning {
+  border-left-color: var(--pulso-warn-border);
+}
+
+.mapeo-var__item.is-dirty {
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.mapeo-var__item > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mapeo-var__item > header strong {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-heavy);
+  color: var(--pulso-text);
+}
+
+.mapeo-var__item > header code {
+  font-size: 10px;
+  color: var(--pulso-text-faint);
+}
+
+.mapeo-var__field {
+  display: grid;
+  gap: 4px;
+}
+
+.mapeo-var__field-label {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-faint);
+}
+
+.mapeo-var__field select {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.mapeo-var__hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+.mapeo-var__item.is-warning .mapeo-var__hint {
+  color: var(--pulso-warn-fg);
+}
+
+/* C3: el vacío se resuelve dentro de la superficie, no dejando el marco en
+ * blanco. Si no hay base sincronizada esta pista dice qué falta y dónde. */
+.mapeo-var__empty {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px;
+  text-align: center;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text-muted);
+}
+
+.mapeo-var__empty-icon {
+  display: inline-flex;
+  color: var(--pulso-text-faint);
+}
+
+.mapeo-var__empty strong {
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+
+.mapeo-var__empty p {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 12px;
+}
+
+/* Estado de carga: mismas doce cajas, misma altura, sin contenido. El marco
+ * no puede encogerse a cero mientras vuelve el fetch —una captura a 1024x600
+ * mostró la pista completamente en blanco y el instrumento la dio por buena—. */
+.mapeo-var__item.is-loading {
+  min-height: 118px;
+  border-left-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+  opacity: 0.55;
+}

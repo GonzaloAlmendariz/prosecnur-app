@@ -140,10 +140,14 @@ monitoreo_territorial_columnas <- function(data = NULL) {
 #' que existe. **No garantiza que sea la columna correcta**: la autodetección
 #' casa por subcadena y puede acertar el nombre y errar la variable. Por eso el
 #' campo se llama «resuelta» y no «correcta», y por eso esta pestaña existe.
+#'
+#' Sin base cargada `resuelta` es FALSE en todas: la config trae nombres, pero
+#' no hay contra qué comprobarlos. Decir TRUE ahí sería afirmar algo que nadie
+#' verificó, que es exactamente el silencio que esta pestaña vino a romper.
 monitoreo_territorial_mapeo_payload <- function(config = NULL, data = NULL, fase = "") {
   tcfg <- if (is.list(config) && is.list(config$territorial)) config$territorial else config
   columnas <- monitoreo_territorial_columnas(data)
-  disponibles <- vapply(columnas, function(c) c$nombre, character(1))
+  hay_base <- length(columnas) > 0L
   pendientes <- monitoreo_territorial_mapeo_pendiente(config, data)
   motivo_por_campo <- list()
   for (p in pendientes) motivo_por_campo[[p$campo]] <- p$motivo
@@ -155,12 +159,8 @@ monitoreo_territorial_mapeo_payload <- function(config = NULL, data = NULL, fase
       campo = v$campo,
       etiqueta = v$etiqueta,
       apunta_a = apunta_a,
-      resuelta = !nzchar(motivo) && nzchar(apunta_a),
-      motivo = motivo,
-      cobertura = {
-        idx <- match(apunta_a, disponibles)
-        if (is.na(idx)) NULL else columnas[[idx]]$cobertura
-      }
+      resuelta = hay_base && !nzchar(motivo) && nzchar(apunta_a),
+      motivo = motivo
     )
   })
   list(

@@ -162,6 +162,9 @@ export const MONITOREO_PESTANAS = {
       pestana("territorial", "fuentes", "history", "Historial", "Eventos del corte", Clock),
     ],
     modelo: [
+      // Va primera —y por eso es la pestaña por defecto de Modelo— porque es
+      // lo que hay que resolver antes de creerle una cifra al resto del módulo.
+      pestana("territorial", "modelo", "variables", "Variables", "Mapeo manual de la base", ListChecks),
       pestana("territorial", "modelo", "resumen", "Cobertura", "Zonas, UMP y responsables", BarChart3),
       pestana("territorial", "modelo", "tabla", "Manzanas", "Orden, titulares y reemplazos", Table2),
     ],
