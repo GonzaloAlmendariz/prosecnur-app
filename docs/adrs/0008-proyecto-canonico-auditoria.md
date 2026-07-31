@@ -73,6 +73,9 @@ en el flujo automatico para no introducir tokens ni dependencia de red.
   aislada, no la semilla original.
 - `make desktop-audit` debe usar `build-if-stale`, `PROSECNUR_USER_DATA_DIR`
   por corrida y puerto CDP dedicado.
+- El puerto CDP solo se habilita cuando existe
+  `PULSO_AUDIT_RUN_MANIFEST` y el `userData` resuelto es distinto del perfil
+  normal. Un `PROSECNUR_SMOKE_CDP_PORT` aislado no concede acceso remoto.
 - `make audit-projects-build` debe regenerar las cuatro familias sinteticas en
   `outputs/audit-projects/seeds/`.
 - `make audit-project-build PROJECT=<slug>` debe regenerar una familia concreta.

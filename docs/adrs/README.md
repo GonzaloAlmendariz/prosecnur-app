@@ -121,5 +121,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0046](0046-recopiladores-despliegue-recoleccion.md) | Aceptado | 2026-07-27 | Recopiladores prepara accesos, materiales y handoff de recolección mediante adapters con capacidades reales de SurveyMonkey y Kobo |
 | [0047](0047-bitacora-cronograma-canvas-vinculado.md) | Propuesto | 2026-07-28 | Bitácora, cronograma y canvas como cuatro vistas de un grafo vinculado: la fase se elige en vez de adivinarse, avisos in-app con disparo único y núcleo de lienzo compartido |
 | [0048](0048-identidad-version-y-canales-distribucion.md) | Aceptado | 2026-07-30 | Identidad de versión única y canales de distribución separados: preview interno sin publicación y stable fail-closed |
+| [0049](0049-fronteras-confianza-electron-credenciales-hf.md) | Aceptado | 2026-07-30 | Electron valida navegación e IPC; los tokens HF guardados permanecen en el proceso principal detrás de un broker loopback tipado |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

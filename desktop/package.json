@@ -47,6 +47,8 @@
     "files": [
       "main.cjs",
       "lifecycle.cjs",
+      "security.cjs",
+      "hf-publish-broker.cjs",
       "preload.cjs",
       "auto-updater.cjs",
       "mac-bootstrap.cjs",

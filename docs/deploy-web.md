@@ -15,11 +15,19 @@ Sheets cliente e interno publicados desde el modulo Monitoreo.
 4. Elige el namespace destino, pega el token `hf_...` y define el nombre del
    Space.
 
-En la app de escritorio el token se guarda con `electron.safeStorage` dentro del
-directorio `userData` de Electron. No se escribe en el repo. La lista visible
-de tokens guarda solo metadatos no secretos, como nombre, alias/cuenta y
-mascara; el valor cifrado se descifra solo cuando el usuario selecciona un token
-guardado o publica con el.
+En la app de escritorio el token solo se guarda si `electron.safeStorage`
+ofrece cifrado real dentro del directorio `userData`. No se escribe en el repo.
+La lista visible guarda solo metadatos no secretos, como nombre, alias/cuenta y
+máscara. Al publicar con una credencial guardada, React envía su ID a un broker
+del proceso principal; el valor se descifra allí y viaja únicamente al endpoint
+loopback fijo de Dashboard. El renderer nunca recibe el plaintext.
+
+Si el sistema no ofrece un almacén seguro —incluido `basic_text` en Linux— el
+token no se persiste y debe pegarse de nuevo en el siguiente uso. Las
+referencias antiguas guardadas sin cifrado real se muestran como
+«reautenticación requerida»: no se descifran ni se borran automáticamente.
+`hf-settings.json` se reemplaza atómicamente con permisos `0600` dentro de un
+directorio `0700`.
 
 La credencial y el destino son conceptos separados. Un token puede pertenecer a
 una cuenta personal y publicar en una organizacion, por ejemplo el token local
@@ -34,6 +42,11 @@ destinos recientes y un namespace por defecto como metadata no secreta.
 3. Pulsa `Deploy`.
 4. Define un nombre de Space, por ejemplo `pulso-cliente-giz`.
 5. Pulsa `Publicar`.
+
+Una credencial guardada solo puede publicar en
+`/api/dashboard/publish` del backend local. La interfaz no puede suministrar
+otra URL, path o headers al broker. Electron muestra además una confirmación
+nativa con el namespace y Space antes de usar el secreto persistido.
 
 La primera construccion de Docker suele tomar 10 a 15 minutos porque instala
 paquetes R y dependencias Node. Los siguientes builds deberian ser mas rapidos
