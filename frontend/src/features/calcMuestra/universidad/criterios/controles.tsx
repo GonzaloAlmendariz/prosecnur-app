@@ -57,7 +57,20 @@ export function ControlFlat({
   return (
     <div className="cmv2-crit-cats">
       <AccionesSet variable={variable} onSel={onSel} />
-      <ul className="cmv2-crit-list" data-long={long ? "true" : undefined} aria-label={`Categorías de ${variable.label}`}>
+      {/* Sin contrato geométrico, y medido en los dos sentidos. Con
+          `intrinsic` el comprobador reporta ~8,55 px de interior sin usar en
+          CADA ítem: son el `min-height: 44px` de `.cmv2-crit-item` —el objetivo
+          táctil— repartido por `align-items: center`, no capacidad
+          desperdiciada. Con `equal` falla el alto, porque una etiqueta larga
+          como «POR SER ALUMNO DE LA ESC.ED ESTUDIOS ESPECI» envuelve a dos
+          líneas y su fila mide el doble. Es el mismo hueco de vocabulario que
+          bloquea las tiras de chips de Formularios: ver la decisión 8 del goal
+          visual. */}
+      <ul
+        className="cmv2-crit-list"
+        data-long={long ? "true" : undefined}
+        aria-label={`Categorías de ${variable.label}`}
+      >
         {cats.map((cat) => {
           const checked = categoriaMarcada(sel, cat.key);
           // Solo variantes que agregan información: si la única variante es el
