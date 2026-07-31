@@ -82,11 +82,11 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 7 módulos + Enciclopedia | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **35** | ↑ hasta cubrir toda colección |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **36** | ↑ hasta cubrir toda colección |
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos C4 abiertos (contenido inalcanzable) | — | **0 en Procesamiento** | ↓ |
+| Defectos reparados por el loop (C4 · recorte) | — | **2** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
@@ -94,7 +94,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 8 | **4 de 8** | ↑ a 8 |
+| Módulos auditados con el instrumento | 1 de 8 | **5 de 8** | ↑ a 8 |
 | Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
@@ -141,6 +141,29 @@ a empezar.
 | 4 | 30 jul | **Dashboard** | Tercera superficie principal con cero geometría. Las dos colecciones de la compuerta de fuente quedan declaradas `equal`. **Pero solo se auditó la compuerta**: ningún proyecto de referencia trae datos de dashboard | geometryGroups 0→**10** · coverageMisses 5→**0** · superficies sin geometría 2→**1** | `80f843e7` |
 
 | 5 | 30 jul | **Hojas de ruta** | La última superficie principal con cero geometría. Declaradas la lista de distritos —que crece con el marco— y la banda de KPIs territoriales, **sin sumar una sola línea** al page-file congelado | geometryGroups 0→**10** · coverageMisses 5→**0** · superficies sin geometría 1→**0** | `53cf69a4` |
+
+| 6 | 31 jul | **Cálculo de muestra** | **Un indicador con el nombre recortado —«UNIVERSO DE CURSOS-HORAR…»— que el comprobador NO marcó.** Apareció al mirar la captura. Envuelto, y la franja declarada `equal` | geometryGroups 0→**5** · coverageMisses 5→**0** · defectos reparados 1→**2** | `d753a645` |
+
+### Nota de la iteración 6
+
+**El instrumento acota el trabajo, no lo agota.** Las cinco capturas dieron
+`issues=0` y aun así la franja mostraba «UNIVERSO DE CURSOS-HORAR…»: un
+`text-overflow: ellipsis` deliberado no dispara la regla de recorte del
+detector, porque desde su punto de vista el autor pidió esa elipsis. El defecto
+apareció al **mirar la imagen**. Conviene seguir abriendo una captura por
+iteración aunque el reporte venga limpio.
+
+**Se reusó un criterio ya ganado en vez de deliberar de nuevo.** La pregunta
+«¿envolver desacomoda las columnas?» ya estaba resuelta en las tablas de
+territorial: solo las mueve si el ancho lo decide el contenido. Aquí lo deciden
+seis `1fr`, así que envolver era seguro y no hacía falta medir 26 columnas otra
+vez. Los criterios del registro son reutilizables entre módulos; el detector no
+los sabe, pero el loop sí.
+
+**El contrato como prueba del arreglo, no solo como guard.** `equal` sobre la
+franja pasa *con la etiqueta ya envuelta*: esa es la evidencia de que crecer una
+celda no rompió el marco, porque las seis crecieron juntas. Declarar y reparar
+en la misma vuelta deja el arreglo demostrado, no supuesto.
 
 ### Nota de la iteración 5
 
