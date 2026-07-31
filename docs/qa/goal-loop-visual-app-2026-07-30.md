@@ -83,11 +83,11 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 7 módulos | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **40** | ↑ hasta cubrir toda colección |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **42** | ↑ hasta cubrir toda colección |
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **8** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **9** | ↓ |
 | Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | Definiciones duplicadas de formateadores en Monitoreo | 31 | **28** | ↓ |
@@ -127,9 +127,11 @@ una letra; el loop sigue solo mientras tanto.
 | 5 | Telefónico · Modelo › Cuotas | Cuál de las cuatro superficies es la de lectura y cuál la de edición | abierta |
 | 6 | Telefónico · Consultas › CodPulso | Cuál de los dos nodos duplicados sobra | abierta |
 | 7 | Territorial · autodetección | `sex_var` es la única de doce con fallback vacío: deja sexo sin mapear y sin avisar | abierta |
-| **8** | **Todo el frontend · vocabulario de contratos** | **Falta un contrato para «mismo alto, ancho intrínseco»**, que es la forma de toda tira de chips, toolbar y banda de estado de la app. Hoy `equal` exige mismo alto **y** mismo ancho, e `intrinsic` llama desperdicio al `min-height` de un control. Medido en Formularios: con `intrinsic`, capacity-drift de 10,5 px que es el alto de control del chip; con `equal`, width-drift de 118 px y 55 px. **A:** agregar un tercer contrato (`banda`) con alto igual y ancho libre. **B:** partir `equal` en ejes (`equal-height` / `equal-width`) y permitir combinarlos. **C:** dejar las tiras sin declarar y aceptar el hueco de cobertura. **Recomiendo B**: es el que además deja declarar el caso inverso —ancho igual, alto libre— que ya apareció en las rejillas que colapsan a una columna | abierta |
+| **8** | **Todo el frontend · vocabulario de contratos** | **Falta un contrato para «mismo alto, ancho intrínseco»**, que es la forma de toda tira de chips, toolbar y banda de estado de la app. Hoy `equal` exige mismo alto **y** mismo ancho, e `intrinsic` llama desperdicio al `min-height` de un control. Medido en Formularios: con `intrinsic`, capacity-drift de 10,5 px que es el alto de control del chip; con `equal`, width-drift de 118 px y 55 px. **A:** agregar un tercer contrato (`banda`) con alto igual y ancho libre. **B:** partir `equal` en ejes (`equal-height` / `equal-width`) y permitir combinarlos. **C:** dejar las tiras sin declarar y aceptar el hueco de cobertura. **Recomiendo B**: es el que además deja declarar el caso inverso —ancho igual, alto libre— que ya apareció en las rejillas que colapsan a una columna. **Segundo caso medido (iteración 16, Cálculo de muestra › Marco)**: las tres listas de categorías son «ancho igual, alto de control declarado, con excepciones por contenido» —`min-height: 44px` de objetivo táctil, y una etiqueta larga que envuelve a dos líneas—. Con `intrinsic` da capacity-drift uniforme de 8,55 px; con `equal`, drift de alto. Ya no es un caso aislado de Formularios: son 3 coberturas más que no se pueden cerrar sin esto | abierta |
 
 | **9** | **Todo el frontend · estado vacío del kit** | **`.pulso-empty-state--panel` no dibuja panel**: no tiene fondo, ni borde, ni radio, pese al nombre y pese a ser el estado vacío canónico. Son ~96 de los 105 usos de `EmptyState` en la app. Al menos dos features ya se escribieron su propio marco alrededor (`cmv2-calc-escenarios-panel`, `cmv2-marco-vacio`), que es la duplicación que el kit compartido debería evitar. **A:** darle materia de panel al kit —arregla ~96 superficies de una vez, pero deja cajas concéntricas donde ya hay marco propio, y esos hay que retirarlos—. **B:** dejar el kit sin marco y que cada superficie envuelva su vacío, como hizo la iteración 8 en Bitácora —más trabajo, pero respeta que el marco es de la superficie, no del mensaje—. **C:** renombrar la variante para que deje de prometer lo que no da. **Recomiendo B**, y renombrar la variante como parte de ella: el marco es de la superficie | abierta |
+
+| **10** | **Cálculo de muestra · Marco** | **Cómo se llama la cifra hero de 79.771 y si merece serlo.** El motor suma `eligible_n` por curso-horario incluido, así que son **pares estudiante×curso**, no personas: con `hsvg2026` da 79.771 sobre un universo de 27.765 y junto a «Estudiantes elegibles: 20.392». La descripción ya se corrigió para decir lo que el motor calcula (`dc556097`), pero el titular «Elegibles del estudio» sigue leyéndose como headcount, en hero y con badge de «cifra validada». **A:** renombrarla a la magnitud real —«Cupos elegibles» o «Elegibles por curso-horario»— y conservar el hero. **B:** bajarla de hero y subir en su lugar los estudiantes elegibles únicos, que es la cifra comparable con el universo. **C:** dejar el titular y confiar en la descripción. **Recomiendo A**, pero el nombre es vocabulario metodológico y lo elige el dueño del método | abierta |
 
 ## Cuándo cierra
 
@@ -172,6 +174,40 @@ a empezar.
 | 14 | 31 jul | **Dashboard** | **Primera vez que se ve el tablero construido**, encadenando dos siembras. Y ahí apareció que la página se declaraba lista mientras renderizaba «Cargando dashboard…» | readiness honesta · defectos reparados 6→**7** · N7 abierto | `db517c85` |
 
 | 15 | 31 jul | **Hojas de ruta** | **Nueve defectos en una auditoría, el conteo más alto del goal** — y aparecieron al bajar un nivel: la primera órbita solo había visto el aterrizaje. Los nueve son el mismo recorte de nombre de distrito en la matriz poblacional | issues 9→**0** · defectos reparados 7→**8** | `544a787e` |
+
+| 16 | 31 jul | **Cálculo de muestra** | **Segundo defecto de dato del goal, y el de mayor consecuencia**: la cifra hero del Marco se presentaba como conteo de personas y son pares estudiante×curso —79.771 sobre un universo de 27.765— | defectos reparados 8→**9** · coverageMisses en Marco 4→**3** · decisión 10 abierta | `dc556097`, `53bec49e` |
+
+### Nota de la iteración 16
+
+**Las secciones salieron sin un solo defecto visual** —`issues=0` en las cuatro—
+y aun así la vuelta encontró lo más grave hasta ahora, leyendo las cifras de una
+captura entre sí: «ELEGIBLES DEL ESTUDIO 79.771» convive con «UNIVERSO DE
+ESTUDIANTES 27.765» y «ESTUDIANTES ELEGIBLES 20.392» en la misma pantalla.
+
+**El número estaba bien y mentía su descripción.** El motor suma `eligible_n`
+por curso-horario, y `eligible_n` es `length(unique_student_ids)` de ese curso:
+un estudiante matriculado en varios cuenta en cada uno. Tan es así que el propio
+sorteo lleva descuento secuencial con `covered` para no contarlo dos veces. La
+descripción decía «quiénes cumplen los criterios», que es headcount.
+
+**Dónde se puso la frontera.** Corregir una descripción que afirma algo que el
+código no calcula no requiere decidir nada y se hizo. Cómo se llama la magnitud
+—y si merece ser el número grande con badge de «validada»— es vocabulario
+metodológico y va a la bandeja (decisión 10). La regla que sale de aquí:
+**describir lo que el código hace es reparación; nombrar lo que la magnitud
+significa es decisión.**
+
+**Y el hueco de vocabulario dejó de ser anecdótico.** Las tres listas de
+categorías del Marco son «ancho igual, alto de control declarado, con
+excepciones por contenido» —`min-height: 44px` de objetivo táctil, y una
+etiqueta larga que envuelve—. Medido en los dos sentidos: `intrinsic` da drift
+uniforme de 8,55 px, `equal` da drift de alto. Es el segundo módulo con el mismo
+bloqueo, así que la decisión 8 ya no cuesta 2 coberturas sino 5.
+
+Dos torpezas propias, ambas repetidas de vueltas anteriores y ambas atrapadas
+por el typecheck: `{/* */}` dentro de un `cond && (` —la misma de la iteración
+3— y un commit cuyo mensaje describía un cambio y arrastraba otro del mismo
+archivo, corregido por enmienda.
 
 ### Nota de la iteración 15
 
