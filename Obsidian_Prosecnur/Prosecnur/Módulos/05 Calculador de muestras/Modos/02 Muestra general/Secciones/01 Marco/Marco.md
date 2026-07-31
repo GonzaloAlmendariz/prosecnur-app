@@ -64,5 +64,3 @@ Si N declarado no coincide con estratos o grupos, revisa cobertura y duplicados 
 ## Ubicación en la jerarquía
 
 - Padre: [[Muestra general]].
-
-

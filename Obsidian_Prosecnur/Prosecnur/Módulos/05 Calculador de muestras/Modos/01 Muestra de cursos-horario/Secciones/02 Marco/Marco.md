@@ -64,4 +64,3 @@ Al completar **Marco universitario** quedan visibles los supuestos utilizados, l
 ## Ubicación en la jerarquía
 
 - Padre: [[Muestra de cursos-horario]].
-

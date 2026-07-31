@@ -15,4 +15,3 @@ Fuente canónica: `.claude/agents/auditor-deuda.md`.
 ## Toca direcciones
 
 - Capacidad sistémica; no declara una superficie de producto propia.
-

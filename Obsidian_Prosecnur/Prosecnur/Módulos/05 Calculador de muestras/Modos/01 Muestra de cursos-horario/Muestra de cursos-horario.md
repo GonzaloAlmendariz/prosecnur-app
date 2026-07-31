@@ -67,4 +67,3 @@ Al completar **Muestra universitaria por cursos-horario** quedan visibles los su
 ## Ubicación en la jerarquía
 
 - Padre: [[Calculador de muestras]].
-

@@ -40,4 +40,3 @@ Queda una lectura por actor que acompaña al modelo operativo y al cronograma.
 ## Ubicación en la jerarquía
 
 - Padre: [[Modelo operativo de acreditación]].
-

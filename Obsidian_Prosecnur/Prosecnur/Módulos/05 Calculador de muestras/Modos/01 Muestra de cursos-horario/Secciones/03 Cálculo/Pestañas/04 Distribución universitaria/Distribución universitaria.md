@@ -60,5 +60,3 @@ Si la suma de cuotas no coincide con el tamaño objetivo, revisa redondeos, mín
 ## Ubicación en la jerarquía
 
 - Padre: [[Cálculo]].
-
-

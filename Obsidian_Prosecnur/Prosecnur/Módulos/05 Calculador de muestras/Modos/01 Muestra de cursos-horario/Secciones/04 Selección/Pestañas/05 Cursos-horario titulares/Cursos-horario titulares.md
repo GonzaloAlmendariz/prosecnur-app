@@ -64,5 +64,3 @@ Si un titular no pertenece al marco firmado, invalida la propuesta y revisa firm
 ## Ubicación en la jerarquía
 
 - Padre: [[Selección]].
-
-

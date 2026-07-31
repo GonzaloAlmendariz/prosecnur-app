@@ -64,5 +64,3 @@ Si la población de un actor proviene de otra categoría o periodo, detén el c�
 ## Ubicación en la jerarquía
 
 - Padre: [[Acreditación]].
-
-

@@ -64,5 +64,3 @@ Si las métricas cambian entre ejecuciones, confirma marco, objetivo y semilla; 
 ## Ubicación en la jerarquía
 
 - Padre: [[Selección]].
-
-

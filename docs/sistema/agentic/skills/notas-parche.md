@@ -13,4 +13,3 @@ Fuente canónica: `.claude/skills/notas-parche/SKILL.md`.
 ## Toca direcciones
 
 - Capacidad sistémica; no declara una superficie de producto propia.
-

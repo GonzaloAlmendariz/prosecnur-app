@@ -40,4 +40,3 @@ Los estados quedan interpretados de forma trazable para las pestañas de ritmo, 
 ## Ubicación en la jerarquía
 
 - Padre: [[Monitoreo telefónico de acreditación]].
-

@@ -64,5 +64,3 @@ Si una métrica no coincide con la pestaña que la originó, compara versiones y
 ## Ubicación en la jerarquía
 
 - Padre: [[Selección]].
-
-

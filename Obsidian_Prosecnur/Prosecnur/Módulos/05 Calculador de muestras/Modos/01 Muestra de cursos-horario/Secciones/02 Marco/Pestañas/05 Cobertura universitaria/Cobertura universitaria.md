@@ -59,4 +59,3 @@ Si estudiantes y cursos-horario muestran coberturas muy diferentes, revisa prime
 ## Ubicación en la jerarquía
 
 - Padre: [[Marco]].
-

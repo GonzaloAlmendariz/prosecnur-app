@@ -65,5 +65,3 @@ Si el mismo actor aparece duplicado por alias, normaliza la categoría antes de 
 ## Ubicación en la jerarquía
 
 - Padre: [[Acreditación]].
-
-

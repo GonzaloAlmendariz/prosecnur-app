@@ -19,4 +19,3 @@ Cambio de código: **sí**.
 - **Implementan:** [autor-regresiones](../agentes/autor-regresiones.md), [frontend-react](../agentes/frontend-react.md)
 - **Revisan:** [qa-visual-desktop](../agentes/qa-visual-desktop.md), [guardian-contratos](../agentes/guardian-contratos.md)
 - **Gate:** [verificador](../agentes/verificador.md)
-

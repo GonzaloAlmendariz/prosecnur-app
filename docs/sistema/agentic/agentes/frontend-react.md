@@ -24,4 +24,3 @@ Fuente canónica: `.claude/agents/frontend-react.md`.
 - `monitoreo` — raíz; incluye sus descendientes.
 - `procesamiento` — raíz; incluye sus descendientes.
 - `dashboard` — raíz; incluye sus descendientes.
-

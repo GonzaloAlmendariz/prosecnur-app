@@ -18,4 +18,3 @@ Fuente canónica: `.claude/skills/cerrar-trabajo/SKILL.md`.
 ## Toca direcciones
 
 - Capacidad sistémica; no declara una superficie de producto propia.
-

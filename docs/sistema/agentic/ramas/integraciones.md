@@ -19,4 +19,3 @@ Cambio de código: **sí**.
 - **Implementan:** [autor-regresiones](../agentes/autor-regresiones.md), [especialista-integraciones](../agentes/especialista-integraciones.md), [frontend-react](../agentes/frontend-react.md)
 - **Revisan:** [guardian-contratos](../agentes/guardian-contratos.md), [revisor-metodologico](../agentes/revisor-metodologico.md)
 - **Gate:** [verificador](../agentes/verificador.md)
-

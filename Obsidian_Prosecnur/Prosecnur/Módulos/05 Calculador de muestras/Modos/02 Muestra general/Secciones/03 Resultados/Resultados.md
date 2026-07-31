@@ -66,5 +66,3 @@ Si reporte y pantalla difieren, compara la versión de parámetros y vuelve a ej
 ## Ubicación en la jerarquía
 
 - Padre: [[Muestra general]].
-
-

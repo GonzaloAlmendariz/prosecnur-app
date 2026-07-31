@@ -40,4 +40,3 @@ Queda definido quién responde el estudio y qué actor debe recibir cada fuente.
 ## Ubicación en la jerarquía
 
 - Padre: [[Fuentes de acreditación]].
-

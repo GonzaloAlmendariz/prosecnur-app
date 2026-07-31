@@ -41,4 +41,3 @@ Cada actor queda asociado a respuestas y a un denominador verificable. Continúa
 ## Ubicación en la jerarquía
 
 - Padre: [[Fuentes de acreditación]].
-

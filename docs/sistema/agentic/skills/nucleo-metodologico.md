@@ -13,4 +13,3 @@ Fuente canónica: `.claude/skills/nucleo-metodologico/SKILL.md`.
 ## Toca direcciones
 
 - `procesamiento` — raíz; incluye sus descendientes.
-

@@ -63,5 +63,3 @@ Si Monitoreo recibe unidades distintas a las tablas, compara identificador de ve
 ## Ubicación en la jerarquía
 
 - Padre: [[Entrega]].
-
-

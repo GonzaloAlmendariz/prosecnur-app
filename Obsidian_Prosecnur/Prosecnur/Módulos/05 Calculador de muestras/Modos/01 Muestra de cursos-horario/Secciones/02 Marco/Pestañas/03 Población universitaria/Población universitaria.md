@@ -59,4 +59,3 @@ Si el total por facultad no suma la población elegible, busca etiquetas vacías
 ## Ubicación en la jerarquía
 
 - Padre: [[Marco]].
-

@@ -50,4 +50,3 @@
 - [qa-visual-desktop](agentes/qa-visual-desktop.md)
 - [revisor-metodologico](agentes/revisor-metodologico.md)
 - [verificador](agentes/verificador.md)
-

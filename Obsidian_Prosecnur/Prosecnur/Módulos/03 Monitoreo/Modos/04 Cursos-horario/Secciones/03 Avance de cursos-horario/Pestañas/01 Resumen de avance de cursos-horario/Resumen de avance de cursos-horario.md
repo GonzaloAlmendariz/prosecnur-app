@@ -35,4 +35,3 @@ Queda una lectura operativa del avance; usa [[Salidas de cursos-horario]] para p
 ## Ubicación en la jerarquía
 
 - Padre: [[Avance de cursos-horario]].
-

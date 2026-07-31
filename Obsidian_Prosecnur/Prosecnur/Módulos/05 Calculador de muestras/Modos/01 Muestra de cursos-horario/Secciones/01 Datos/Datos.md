@@ -61,4 +61,3 @@ Al completar **Datos universitarios** quedan visibles los supuestos utilizados, 
 ## Ubicación en la jerarquía
 
 - Padre: [[Muestra de cursos-horario]].
-

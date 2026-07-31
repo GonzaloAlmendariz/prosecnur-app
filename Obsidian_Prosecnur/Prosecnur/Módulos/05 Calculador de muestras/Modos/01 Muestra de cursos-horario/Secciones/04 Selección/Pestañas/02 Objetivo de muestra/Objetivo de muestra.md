@@ -63,5 +63,3 @@ Si el objetivo exige más unidades que las elegibles, vuelve a cuotas o parámet
 ## Ubicación en la jerarquía
 
 - Padre: [[Selección]].
-
-

@@ -68,4 +68,3 @@ Al completar **Calculador de muestras** quedan visibles los supuestos utilizados
 ## Ubicación en la jerarquía
 
 - Padre: [[Prosecnur]].
-

@@ -54,4 +54,3 @@ Al completar **Muestra territorial para Hojas de ruta** quedan visibles los supu
 ## Ubicación en la jerarquía
 
 - Padre: [[Calculador de muestras]].
-
