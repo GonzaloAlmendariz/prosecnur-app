@@ -1416,7 +1416,7 @@ a { color: var(--pulso-primary); }
 .pulso-project-confirm-scrim {
   position: fixed;
   inset: 0;
-  z-index: 220;
+  z-index: 1500; /* sobre la command bar del editor XLSForm (1000) y el graph overlay (1400): con 220 el scrim difuminaba el header pero dejaba la command bar nítida encima */
   display: grid;
   place-items: center;
   padding: 24px;
