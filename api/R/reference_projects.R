@@ -323,6 +323,21 @@ reference_project_build <- function(slug, origen = NULL, sal = NULL, out_dir = N
 }
 
 #' Verifica un fixture instalado: PII, cobertura declarada y hash.
+#' Restablece el sello read-only del fixture.
+#'
+#' El build sella a 0444 al generar, pero git no versiona permisos: en un clon
+#' —o en CI— el fixture reaparece como 0644 y deja de estar protegido contra
+#' una escritura en sitio, que es justo lo que se pierde en silencio porque
+#' regenerarlo exige la sal. Sellar aqui vuelve el invariante independiente de
+#' la maquina en vez de depender de un chmod que alguien hizo una vez.
+.reference_project_sellar <- function(path) {
+  if (!file.exists(path)) return(invisible(FALSE))
+  modo <- as.character(file.info(path)$mode)
+  if (grepl("4[04]4$", modo)) return(invisible(TRUE))
+  Sys.chmod(path, mode = "0444")
+  invisible(grepl("4[04]4$", as.character(file.info(path)$mode)))
+}
+
 reference_project_verify <- function(slug) {
   path <- reference_project_path(slug)
   manifest_path <- file.path(dirname(path), "reference-project.json")
@@ -332,6 +347,8 @@ reference_project_verify <- function(slug) {
     return(list(ok = FALSE, slug = slug,
                 problemas = sprintf("Fixture ausente: %s", path)))
   }
+
+  .reference_project_sellar(path)
   if (!file.exists(manifest_path)) {
     problemas <- c(problemas, "Falta reference-project.json")
   }
