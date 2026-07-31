@@ -30,6 +30,10 @@
 import type { CSSProperties } from "react";
 import { AlertCircle, BarChart3, CalendarRange, CheckCircle2, ClipboardCheck, Clock3, ContactRound, Download, Layers3, Link2, ListChecks, PhoneCall, ShieldAlert, Table2, Target } from "lucide-react";
 import { MONITOREO_MODOS } from "../../core/monitoreoRegistry";
+import {
+  MONITOREO_PESTANAS,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO,
+} from "../../../../lib/navegacion/catalogos/monitoreo";
 import { normalizeInternalQueries, summarizeInternalCases } from "../../internalQueries";
 import { fmt } from "./formato";
 import type {
@@ -104,42 +108,56 @@ export const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
     sourceLabel: "Respuestas de plataforma",
   },
 ];
+const [modeloEstructura, modeloEstrategias] = MONITOREO_PESTANAS.telefonico.modelo;
 export const ACREDITACION_MODEL_TABS = [
-  { key: "estructura", label: "Modelo operativo", detail: "Metas por actor", icon: Target },
-  { key: "estrategias", label: "Cronograma", detail: "Campo y reportes", icon: CalendarRange },
-  { key: "resumen", label: "Resumen", detail: "Lectura de Fuentes", icon: BarChart3 },
+  modeloEstructura,
+  modeloEstrategias,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.modelo.resumen,
 ] as const;
 export type AcreditacionModelVisibleTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
 export type AcreditacionModelTab = AcreditacionModelVisibleTab | "enlaces" | "casos" | "reglas";
+const [consultaPlataforma, consultaCruces, consultaSubsanacion] =
+  MONITOREO_PESTANAS.telefonico.consultas;
 export const ACREDITACION_CONSULTA_TABS = [
-  { key: "plataforma", label: "Registros en plataforma", detail: "Respuestas y cruce", icon: ListChecks },
-  { key: "base", label: "Estado de la base", detail: "Actor por actor", icon: Table2 },
-  { key: "cruces", label: "Cruces efectivos", detail: "Razón de cruce", icon: Link2 },
-  { key: "subsanacion", label: "Subsanación", detail: "Decisión auditada", icon: ShieldAlert },
+  consultaPlataforma,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.consultas.base,
+  consultaCruces,
+  consultaSubsanacion,
 ] as const;
 export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
+const [
+  telefonoResumen,
+  telefonoTiempos,
+  telefonoIncidencia,
+  telefonoResponsables,
+  telefonoAlertas,
+] = MONITOREO_PESTANAS.telefonico.telefonico;
 export const ACREDITACION_PHONE_TABS = [
-  { key: "resumen", label: "Resumen", detail: "Cumplimiento y casos", icon: PhoneCall },
-  { key: "consultados", label: "Consultados", detail: "Efectivas Kobo", icon: CheckCircle2 },
-  { key: "dia", label: "Día", detail: "Efectivas Kobo", icon: CalendarRange },
-  { key: "tiempos", label: "Tiempos", detail: "Duración Kobo", icon: Clock3 },
-  { key: "incidencia", label: "Sin efectiva", detail: "Insistencia y reintentos", icon: AlertCircle },
-  { key: "responsables", label: "Responsables", detail: "Equipo y carga", icon: ContactRound },
-  { key: "alertas", label: "Alertas", detail: "Alertas reales", icon: ShieldAlert },
-  { key: "supervision", label: "Supervisión telefónica", detail: "Control y muestra", icon: ClipboardCheck },
+  telefonoResumen,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.telefonico.consultados,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.telefonico.dia,
+  telefonoTiempos,
+  telefonoIncidencia,
+  telefonoResponsables,
+  telefonoAlertas,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.telefonico.supervision,
 ] as const;
 export type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
+const [avanceResumen, avanceActores, avanceSalidas] =
+  MONITOREO_PESTANAS.telefonico.avance;
 export const ACREDITACION_ADVANCE_TABS = [
-  { key: "resumen", label: "Resumen", detail: "Avance general", icon: BarChart3 },
-  { key: "actores", label: "Actores", detail: "Brechas por unidad", icon: Layers3 },
-  { key: "encuestas", label: "Encuestas", detail: "Fuentes y canales", icon: ListChecks },
-  { key: "detalle", label: "Detalle", detail: "Controles", icon: Table2 },
-  { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
+  avanceResumen,
+  avanceActores,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.avance.encuestas,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.avance.detalle,
+  avanceSalidas,
 ] as const;
 export type AcreditacionAdvanceTab = typeof ACREDITACION_ADVANCE_TABS[number]["key"];
 export type AcreditacionLocalTabKey = AcreditacionSourceTab | AcreditacionModelTab | AcreditacionConsultaTab | AcreditacionPhoneTab | AcreditacionAdvanceTab;
-export const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] = ["resumen", "tiempos", "incidencia", "responsables", "alertas"];
-export const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] = ["resumen", "actores", "salidas"];
+export const TELEFONICO_VISIBLE_PHONE_TABS: readonly AcreditacionPhoneTab[] =
+  MONITOREO_PESTANAS.telefonico.telefonico.map((tab) => tab.key);
+export const TELEFONICO_VISIBLE_ADVANCE_TABS: readonly AcreditacionAdvanceTab[] =
+  MONITOREO_PESTANAS.telefonico.avance.map((tab) => tab.key);
 
 export function isTelefonicoVisiblePhoneTab(tab: AcreditacionLocalTabKey): tab is AcreditacionPhoneTab {
   return TELEFONICO_VISIBLE_PHONE_TABS.includes(tab as AcreditacionPhoneTab);

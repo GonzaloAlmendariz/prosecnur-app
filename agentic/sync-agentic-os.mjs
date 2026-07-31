@@ -16,6 +16,7 @@ const ADAPTER_PATHS = Object.freeze({
   codex_agents_dir: '.codex/agents',
   codex_skills_dir: '.agents/skills'
 })
+const AGENTIC_INDEX_DIR = 'docs/sistema/agentic'
 const PROTECTED_PATHS = Object.freeze(['.claude'])
 const REQUIRED_SERIAL_CONDITIONS = Object.freeze([
   'single_file', 'undefined_contract', 'overlapping_ownership',
@@ -198,6 +199,130 @@ function expectedAgentAdapter(name, description, profile) {
   return `# ${GENERATED}\nname = ${JSON.stringify(name)}\ndescription = ${JSON.stringify(description)}\nsandbox_mode = ${JSON.stringify(sandbox)}\ndeveloper_instructions = ${JSON.stringify(instructions)}\n`
 }
 
+function generatedMarkdown(title, body) {
+  return `<!-- ${GENERATED} -->\n\n# ${title}\n\n${body.join('\n')}\n`
+}
+
+function markdownList(items, empty) {
+  return items.length ? items.map((item) => `- ${item}`).join('\n') : `- ${empty}`
+}
+
+function navigationRoots(kind, name) {
+  const key = kind === 'skill' ? 'skill_navigation_roots' : 'agent_navigation_roots'
+  return manifest.documentation[key][name]
+}
+
+function routesForSkill(name) {
+  return Object.entries(manifest.routes)
+    .filter(([, route]) => route.skills.includes(name))
+    .map(([routeName]) => routeName)
+}
+
+function routesForAgent(name) {
+  return Object.entries(manifest.routes)
+    .filter(([, route]) => Object.values(route.pools).some((members) => members.includes(name)))
+    .map(([routeName]) => routeName)
+}
+
+function expectedSkillIndex(name, metadata) {
+  const routes = routesForSkill(name)
+  const roots = navigationRoots('skill', name)
+  return generatedMarkdown(`Skill · ${name}`, [
+    metadata.description,
+    '',
+    `Fuente canónica: \`${manifest.canonical.skills_dir}/${name}/SKILL.md\`.`,
+    '',
+    '## Sirve ramas',
+    '',
+    markdownList(routes.map((route) => `[${route}](../ramas/${route}.md)`), 'No está asignado a una rama.'),
+    '',
+    '## Toca direcciones',
+    '',
+    markdownList(roots.map((root) => `\`${root}\` — raíz; incluye sus descendientes.`), 'Capacidad sistémica; no declara una superficie de producto propia.'),
+    '',
+  ])
+}
+
+function expectedAgentIndex(name, metadata) {
+  const routes = routesForAgent(name)
+  const roots = navigationRoots('agent', name)
+  return generatedMarkdown(`Agente · ${name}`, [
+    metadata.description,
+    '',
+    `Perfil: \`${manifest.agent_profiles[name]}\`.`,
+    '',
+    `Fuente canónica: \`${manifest.canonical.agents_dir}/${name}.md\`.`,
+    '',
+    '## Sirve ramas',
+    '',
+    markdownList(routes.map((route) => `[${route}](../ramas/${route}.md)`), 'No está asignado a una rama.'),
+    '',
+    '## Toca direcciones',
+    '',
+    markdownList(roots.map((root) => `\`${root}\` — raíz; incluye sus descendientes.`), 'Capacidad sistémica; no declara una superficie de producto propia.'),
+    '',
+  ])
+}
+
+function expectedRouteIndex(routeName, route) {
+  const poolLabels = {
+    discovery: 'Descubren',
+    implementation: 'Implementan',
+    review: 'Revisan',
+    gate: 'Gate',
+  }
+  const body = [
+    `Cambio de código: **${route.code_change ? 'sí' : 'no'}**.`,
+    '',
+    '## Skills',
+    '',
+    markdownList(route.skills.map((name) => `[${name}](../skills/${name}.md)`), 'Sin skills propios.'),
+    '',
+    '## Agentes por fase',
+    '',
+  ]
+  for (const [poolName, label] of Object.entries(poolLabels)) {
+    const links = route.pools[poolName].map((name) => `[${name}](../agentes/${name}.md)`).join(', ')
+    body.push(`- **${label}:** ${links || '—'}`)
+  }
+  body.push('')
+  return generatedMarkdown(`Rama · ${routeName}`, body)
+}
+
+function buildAgenticIndex() {
+  const base = manifest.documentation.agentic_index_dir
+  for (const name of manifest.skills) {
+    const source = absolute(`${manifest.canonical.skills_dir}/${name}/SKILL.md`)
+    if (!fs.existsSync(source)) continue
+    addExpected(`${base}/skills/${name}.md`, expectedSkillIndex(name, parseFrontmatter(source)))
+  }
+  for (const name of manifest.agents) {
+    const source = absolute(`${manifest.canonical.agents_dir}/${name}.md`)
+    if (!fs.existsSync(source)) continue
+    addExpected(`${base}/agentes/${name}.md`, expectedAgentIndex(name, parseFrontmatter(source)))
+  }
+  for (const [routeName, route] of Object.entries(manifest.routes)) {
+    addExpected(`${base}/ramas/${routeName}.md`, expectedRouteIndex(routeName, route))
+  }
+  addExpected(`${base}/README.md`, generatedMarkdown('Agentic OS · índice navegable', [
+    '> Adaptador documental del manifiesto y las fuentes canónicas. No concede autoridad',
+    '> sobre direcciones de producto: “toca” expresa superficie potencial de trabajo.',
+    '',
+    '## Ramas',
+    '',
+    ...Object.keys(manifest.routes).map((name) => `- [${name}](ramas/${name}.md)`),
+    '',
+    '## Skills',
+    '',
+    ...manifest.skills.map((name) => `- [${name}](skills/${name}.md)`),
+    '',
+    '## Agentes',
+    '',
+    ...manifest.agents.map((name) => `- [${name}](agentes/${name}.md)`),
+    '',
+  ]))
+}
+
 function addExpected(repoPath, content) {
   const filePath = absolute(repoPath)
   ensureInsideRepo(filePath)
@@ -207,7 +332,7 @@ function addExpected(repoPath, content) {
 
 function validateManifest() {
   if (manifest.schema_version !== 2) fail('manifest.json debe usar schema_version=2')
-  const objectSections = ['canonical', 'providers', 'adapters', 'profiles', 'agent_profiles', 'orchestration', 'routes', 'policy']
+  const objectSections = ['canonical', 'providers', 'adapters', 'profiles', 'agent_profiles', 'documentation', 'orchestration', 'routes', 'policy']
   let structureValid = true
   for (const section of objectSections) {
     if (!manifest[section] || typeof manifest[section] !== 'object' || Array.isArray(manifest[section])) {
@@ -287,6 +412,42 @@ function validateManifest() {
   }
   for (const agent of Object.keys(manifest.agent_profiles)) {
     if (!agents.includes(agent)) fail(`agent_profiles referencia agente inexistente: ${agent}`)
+  }
+  const documentation = manifest.documentation
+  if (documentation.agentic_index_dir !== AGENTIC_INDEX_DIR) {
+    fail(`documentation.agentic_index_dir debe ser ${AGENTIC_INDEX_DIR}`)
+  } else {
+    try {
+      assertNoSymlink(absolute(documentation.agentic_index_dir))
+    } catch (error) {
+      fail(error.message)
+    }
+  }
+  if (typeof documentation.navigation_scope_semantics !== 'string' || !documentation.navigation_scope_semantics.trim()) {
+    fail('documentation.navigation_scope_semantics debe explicar la semántica de raíces')
+  }
+  for (const [label, names] of [
+    ['skill_navigation_roots', skills],
+    ['agent_navigation_roots', agents],
+  ]) {
+    const scopes = documentation[label]
+    if (!scopes || typeof scopes !== 'object' || Array.isArray(scopes)) {
+      fail(`documentation.${label} debe ser un objeto`)
+      continue
+    }
+    const missing = names.filter((name) => !Object.hasOwn(scopes, name))
+    const extra = Object.keys(scopes).filter((name) => !names.includes(name))
+    if (missing.length) fail(`documentation.${label} omite: ${missing.join(', ')}`)
+    if (extra.length) fail(`documentation.${label} referencia inexistentes: ${extra.join(', ')}`)
+    for (const name of names) {
+      const roots = ensureArray(scopes[name], `documentation.${label}.${name}`)
+      if (new Set(roots).size !== roots.length) fail(`documentation.${label}.${name} contiene duplicados`)
+      for (const root of roots) {
+        if (typeof root !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(root)) {
+          fail(`documentation.${label}.${name} declara raíz inválida: ${String(root)}`)
+        }
+      }
+    }
   }
   if (!agents.includes(manifest.policy.code_change_final_gate)) fail('policy.code_change_final_gate referencia agente inexistente')
   else if (manifest.agent_profiles[manifest.policy.code_change_final_gate] !== 'gate') fail('policy.code_change_final_gate debe usar perfil gate')
@@ -454,10 +615,13 @@ function isGenerated(filePath) {
     const match = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n\r?\n([^\r\n]+)/)
     return match?.[1] === `<!-- ${GENERATED} -->`
   }
+  if (relative.startsWith(`${AGENTIC_INDEX_DIR}/`) && relative.endsWith('.md')) {
+    return content.startsWith(`<!-- ${GENERATED} -->\n`)
+  }
   return false
 }
 
-function adapterFiles() {
+function generatedFiles() {
   const files = []
   function walk(dir) {
     if (!fs.existsSync(dir)) return
@@ -470,6 +634,7 @@ function adapterFiles() {
   }
   walk(absolute(manifest.adapters.codex_agents_dir))
   walk(absolute(manifest.adapters.codex_skills_dir))
+  walk(absolute(manifest.documentation.agentic_index_dir))
   return files
 }
 
@@ -485,7 +650,7 @@ function validateCollisionsAndDrift() {
       else if (!writeMode) fail(`${rel(filePath)} está desincronizado`)
     }
   }
-  for (const filePath of adapterFiles()) {
+  for (const filePath of generatedFiles()) {
     if (expectedFiles.has(filePath)) continue
     if (!isGenerated(filePath)) fail(`${rel(filePath)} es un adaptador manual u obsoleto; se preservó`)
     else if (!writeMode) fail(`${rel(filePath)} es un adaptador generado obsoleto`)
@@ -507,8 +672,7 @@ function atomicWrite(filePath, content) {
   }
 }
 
-function pruneEmptyParents(filePath) {
-  const stop = absolute(manifest.adapters.codex_skills_dir)
+function pruneEmptyParents(filePath, stop) {
   let current = path.dirname(filePath)
   while (current !== stop && current.startsWith(`${stop}${path.sep}`)) {
     if (fs.readdirSync(current).length) break
@@ -517,12 +681,21 @@ function pruneEmptyParents(filePath) {
   }
 }
 
-function writeAdapters() {
-  const stale = adapterFiles().filter((filePath) => !expectedFiles.has(filePath) && isGenerated(filePath))
-  for (const [filePath, content] of expectedFiles) atomicWrite(filePath, content)
+function writeGeneratedFiles() {
+  const stale = generatedFiles().filter((filePath) => !expectedFiles.has(filePath) && isGenerated(filePath))
+  for (const [filePath, content] of expectedFiles) {
+    if (fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf8') === content) continue
+    atomicWrite(filePath, content)
+  }
   for (const filePath of stale) {
     fs.unlinkSync(filePath)
-    pruneEmptyParents(filePath)
+    const roots = [
+      absolute(manifest.adapters.codex_skills_dir),
+      absolute(manifest.adapters.codex_agents_dir),
+      absolute(manifest.documentation.agentic_index_dir),
+    ]
+    const stop = roots.find((root) => filePath.startsWith(`${root}${path.sep}`))
+    if (stop) pruneEmptyParents(filePath, stop)
   }
 }
 
@@ -532,6 +705,7 @@ if (manifest) {
   if (structureValid && !errors.length) {
     validateAgentsAndBuildAdapters()
     validateRoutes()
+    buildAgenticIndex()
     validateProviderConfiguration()
     validateExternalSkills()
   }
@@ -555,7 +729,7 @@ if (errors.length) {
   process.exit(1)
 }
 
-if (writeMode) writeAdapters()
+if (writeMode) writeGeneratedFiles()
 
 if (auditSummary) {
   console.log(auditSummary)

@@ -3,19 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
 import {
   BarChart2,
-  BookOpen,
-  ClipboardList,
   Database,
   FileSpreadsheet,
-  FileText,
-  Grid3x3,
-  GitBranch,
-  GitMerge,
-  Layers,
-  ListOrdered,
-  Scale,
-  Table2,
-  type LucideIcon,
 } from "lucide-react";
 import { apiAnaliticaBaseSheet, apiAnaliticaPreparar } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
@@ -26,6 +15,11 @@ import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { ChromeBaseSelector } from "../../components/ChromeBaseSelector";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { ContextTabRail } from "../../components/ContextTabRail";
+import {
+  PROCESAMIENTO_PESTANAS,
+  pestanasAnaliticaDisponibles,
+  type AnaliticaTabId,
+} from "../../lib/navegacion/catalogos/procesamiento";
 import { useAnaliticaAutosave } from "./useAnaliticaAutosave";
 import { AnaliticaHeader } from "./AnaliticaHeader";
 import { CodebookPane } from "./panes/CodebookPane";
@@ -45,36 +39,9 @@ import { ProcessingReleasePanel } from "./ProcessingReleasePanel";
 import "./analitica-v2.css";
 
 // Revisión de data primero; enumeradores vive en Monitoreo.
-type Reporte = "datos" | "base_final" | "codebook" | "bases" | "ponderacion" | "frecuencias" | "multibase" | "panel" | "ficha" | "cruces" | "orden" | "dimensiones";
-
-type ReporteMeta = {
-  key: Reporte;
-  label: string;
-  icon: LucideIcon;
-  desc: string;
-  /**
-   * El pane declara su propia marca de readiness (carga sus datos aparte del
-   * `preparar` de la sección). La sección no la adelanta: `estadoListo()` lee
-   * la primera marca del DOM y el shell es ancestro del pane, así que
-   * publicarla aquí taparía el gate del pane con un verde prematuro.
-   */
-  readinessPropia?: true;
-};
-
-const REPORTES: ReporteMeta[] = [
-  { key: "datos",        label: "Datos",             icon: ClipboardList, desc: "Etiquetas y variables" },
-  { key: "base_final",   label: "Base final",        icon: Table2, desc: "Tabla lista para exportar" },
-  { key: "codebook",     label: "Libro de códigos",  icon: BookOpen,  desc: "Diccionario del estudio" },
-  { key: "bases",        label: "Bases e instrumentos", icon: Database,  desc: "Archivos y versiones" },
-  { key: "ponderacion",  label: "Ponderación",       icon: Scale,     desc: "Representar a la población" },
-  { key: "frecuencias",  label: "Frecuencias",       icon: BarChart2, desc: "Distribución de respuestas" },
-  { key: "multibase",    label: "Tablas multibase",  icon: GitBranch, desc: "Comparación entre bases" },
-  { key: "panel",        label: "Base panel",        icon: GitMerge,  desc: "Personas y mediciones" },
-  { key: "ficha",        label: "Ficha técnica",     icon: FileText,  desc: "Metodología e informe" },
-  { key: "cruces",       label: "Cruces",            icon: Grid3x3,   desc: "Comparaciones 2D" },
-  { key: "orden",        label: "Orden de categorías", icon: ListOrdered, desc: "Secuencia de respuestas ordinales", readinessPropia: true },
-  { key: "dimensiones",  label: "Dimensiones",       icon: Layers,    desc: "Índices y puntajes" },
-];
+type Reporte = AnaliticaTabId;
+type ReporteMeta = typeof PROCESAMIENTO_PESTANAS.analitica[number];
+const REPORTES = PROCESAMIENTO_PESTANAS.analitica;
 
 export default function AnaliticaPage() {
   const { state, refresh } = useSession();
@@ -86,9 +53,9 @@ export default function AnaliticaPage() {
   const prepOk = !!state?.analitica_prep_ok;
   const prereqOk = prepOk || (!!state?.xlsform && !!state?.data);
   const independentSiblings = state?.estudio_processing_mode === "independent_siblings";
-  const reportes = REPORTES.filter((r) => {
-    if (r.key === "multibase" && independentSiblings) return false;
-    return r.key !== "multibase" || !!state?.analitica_multibase_available;
+  const reportes = pestanasAnaliticaDisponibles({
+    multibaseDisponible: Boolean(state?.analitica_multibase_available),
+    basesHermanasIndependientes: independentSiblings,
   });
 
   // Preparar auto-on-mount. Antes era un paso manual; ahora se ejecuta
@@ -298,12 +265,7 @@ function AnaliticaSidebar({
     <ContextTabRail
       ariaLabel="Pestañas de analítica"
       activeKey={active}
-      items={reportes.map(({ key, label, icon, desc }) => ({
-        key,
-        label,
-        icon,
-        description: desc,
-      }))}
+      items={reportes}
       panelId="analitica-panel"
       tabId={(key) => `analitica-tab-${key}`}
       onChange={onChange}

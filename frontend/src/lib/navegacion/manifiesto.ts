@@ -35,6 +35,8 @@ export type NodoNavegacion = {
   direccion: DireccionProsecnur;
   /** URL relativa lista para navegar. */
   href: string;
+  /** Si la URL representa de verdad esta dirección completa. */
+  direccionPublicada: boolean;
   /** Clave del nodo padre, o `null` en la raíz de un módulo. */
   padre: string | null;
 };
@@ -44,13 +46,15 @@ function nodo(
   label: string,
   direccion: DireccionProsecnur,
   padre: string | null,
+  opciones: { href?: string; direccionPublicada?: boolean } = {},
 ): NodoNavegacion {
   return {
     clave: describirDireccion(direccion),
     nivel,
     label,
     direccion,
-    href: serializarDireccion(direccion),
+    href: opciones.href ?? serializarDireccion(direccion),
+    direccionPublicada: opciones.direccionPublicada ?? true,
     padre,
   };
 }
@@ -76,6 +80,10 @@ function nodosDeModulo(modulo: ProsecnurModuleMeta): NodoNavegacion[] {
             pestana.label,
             { ...direccion, pestana: pestana.id },
             nodoSeccion.clave,
+            {
+              href: pestana.to,
+              direccionPublicada: pestana.direccionPublicada ?? true,
+            },
           ),
         );
       }
@@ -108,6 +116,10 @@ function nodosDeModulo(modulo: ProsecnurModuleMeta): NodoNavegacion[] {
             pestana.label,
             { ...direccion, pestana: pestana.id },
             nodoSeccion.clave,
+            {
+              href: pestana.to,
+              direccionPublicada: pestana.direccionPublicada ?? true,
+            },
           ),
         );
       }
@@ -187,6 +199,7 @@ export function recorridoCompleto(opciones?: {
   return MANIFIESTO_NAVEGACION.filter(
     (item) =>
       niveles.includes(item.nivel) &&
+      item.direccionPublicada &&
       (!modulos || modulos.includes(item.direccion.modulo)),
   );
 }

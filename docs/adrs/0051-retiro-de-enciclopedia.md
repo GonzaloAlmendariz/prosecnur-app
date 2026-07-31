@@ -10,7 +10,7 @@ Fecha de decision: 2026-07-31
 
 Reemplaza: —
 
-Extiende: [0044](0044-gramatica-de-navegacion-y-direcciones.md)
+Extiende: [0044](0044-jerarquia-y-direcciones-de-navegacion.md)
 
 ## Contexto
 

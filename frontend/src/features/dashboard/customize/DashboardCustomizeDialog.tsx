@@ -30,6 +30,7 @@ import {
   useDashboardStore,
 } from "../store";
 import { useDimSeccionesVars } from "../useDashboardData";
+import { DASHBOARD_PESTANAS } from "../../../lib/navegacion/catalogos/dashboard";
 
 type CustomizePanel = "marca" | "pestanas" | "foda" | "graficos" | "semaforo" | "dimensiones" | "matriz" | "iconos";
 
@@ -43,15 +44,6 @@ const PANELS: Array<{ id: CustomizePanel; label: string; icon: typeof SlidersHor
   { id: "semaforo", label: "Semáforo", icon: SlidersHorizontal },
   { id: "dimensiones", label: "Dimensiones", icon: Layers },
 ];
-
-const TAB_LABELS: Record<DashboardTabId, string> = {
-  resumen: "Resumen",
-  relaciones: "Relaciones",
-  base_datos: "Base de datos",
-  dimensiones: "Dimensiones",
-};
-
-const TAB_ORDER: DashboardTabId[] = ["resumen", "relaciones", "base_datos", "dimensiones"];
 
 // Presets del color principal del dashboard, nombrados por familia de
 // color (no por marca institucional). El "Pulso" devuelve al azul
@@ -442,9 +434,10 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
                 />
 
                 <div className="dash-customize-tabs-list">
-                  {TAB_ORDER.map((id) => {
+                  {DASHBOARD_PESTANAS.map((tab) => {
+                    const id: DashboardTabId = tab.id;
                     const enabled = tabsEnabled[id];
-                    const enabledCount = TAB_ORDER.filter((t) => tabsEnabled[t]).length;
+                    const enabledCount = DASHBOARD_PESTANAS.filter((item) => tabsEnabled[item.id]).length;
                     const isLastEnabled = enabled && enabledCount === 1;
                     return (
                       <label
@@ -457,7 +450,7 @@ export function DashboardCustomizeDialog({ onClose }: { onClose: () => void }) {
                           disabled={isLastEnabled}
                           onChange={(e) => setTabEnabled(id, e.target.checked)}
                         />
-                        <span className="dash-customize-tab-name">{TAB_LABELS[id]}</span>
+                        <span className="dash-customize-tab-name">{tab.label}</span>
                         {isLastEnabled && (
                           <span className="dash-customize-tab-hint">Mínimo una activa</span>
                         )}

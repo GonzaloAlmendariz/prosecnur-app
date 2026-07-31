@@ -11,6 +11,10 @@ import {
   DashboardVarMode,
   DashboardVarOverride,
 } from "../../api/client";
+import {
+  DASHBOARD_PESTANAS,
+  DEFAULT_DASHBOARD_PESTANA_ID,
+} from "../../lib/navegacion/catalogos/dashboard";
 
 // Máximo de logos en el header. Tres es el número práctico que cabe sin
 // apretar el título y que sirve a la mayoría de los reportes (logo
@@ -21,12 +25,9 @@ export const MAX_DASHBOARD_LOGOS = 3;
 // Personalizar; viven solo del lado del switch del visualizador y se
 // preservan al rehidratar (sin esto, el sanitizer las pisa con "conductores").
 export const VIRTUAL_FODA_VIEWS = new Set<string>(["lectura"]);
-export const DEFAULT_TABS_ENABLED: Record<DashboardTabId, boolean> = {
-  resumen: true,
-  relaciones: true,
-  base_datos: true,
-  dimensiones: true,
-};
+export const DEFAULT_TABS_ENABLED = Object.fromEntries(
+  DASHBOARD_PESTANAS.map((tab) => [tab.id, true]),
+) as Record<DashboardTabId, boolean>;
 
 // Store del Dashboard. Patrón mismo que features/analitica/store.ts:
 // hidrata desde backend al montar, autosave debounced 2s, setters
@@ -598,7 +599,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
   hydrated: false,
   dirty: false,
 
-  tabActiva: "resumen",
+  tabActiva: DEFAULT_DASHBOARD_PESTANA_ID,
   seccionActiva: null,
   filtros: [],
   relacion: DEFAULT_RELACION_STATE,
@@ -612,7 +613,7 @@ export const useDashboardStore = create<DashboardStore>((set) => ({
       config: DEFAULT_DASHBOARD_CONFIG,
       hydrated: false,
       dirty: false,
-      tabActiva: "resumen",
+      tabActiva: DEFAULT_DASHBOARD_PESTANA_ID,
       seccionActiva: null,
       filtros: [],
       relacion: DEFAULT_RELACION_STATE,

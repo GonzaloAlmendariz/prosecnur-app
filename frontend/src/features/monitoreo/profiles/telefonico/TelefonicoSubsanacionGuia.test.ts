@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
+import { MONITOREO_PESTANAS } from "../../../../lib/navegacion/catalogos/monitoreo";
 
 /**
  * El perfil Telefónico es un fork deliberado del de Acreditación (no se
@@ -91,9 +92,14 @@ describe("Telefónico: el rail de Fuentes nombra el objeto del estudio, no el se
     expect(railDeFuentes).not.toBe("");
     expect(railDeFuentes).not.toContain('label: "Kobo"');
     expect(railDeFuentes).not.toContain('label: "Plataforma"');
-    expect(railDeFuentes).toContain('label: "Encuestas"');
-    expect(railDeFuentes).toContain('label: "Universo"');
-    expect(railDeFuentes).toContain('label: "Universo y barrido"');
+    expect(railDeFuentes).toContain("railTab(active");
+    expect(railDeFuentes).toContain("railTab(sheets");
+    expect(railDeFuentes).toContain("railTab(survey");
+    expect(MONITOREO_PESTANAS.telefonico.fuentes.map((tab) => tab.label)).toEqual([
+      "Fuentes activas",
+      "Universo y barrido",
+      "Encuestas",
+    ]);
   });
 
   it("toma las pestañas por clave y no por posición", () => {
@@ -154,9 +160,9 @@ describe("Telefónico: el contrato de fuentes prioriza enlaces sobre identificad
     // —el chrome ya lo dice justo encima—, así que «Universo y barrido» se leía
     // tres veces en la misma pantalla. El nombre por pregunta se conserva; lo
     // que se retira es la tercera copia.
-    const catalogo = readFileSync(resolve(__dirname, "pestanasDeFuentes.ts"), "utf8");
-    expect(catalogo).toContain('label: "Encuestas"');
-    expect(catalogo).toContain('label: "Universo y barrido"');
+    const labels = MONITOREO_PESTANAS.telefonico.fuentes.map((tab) => tab.label);
+    expect(labels).toContain("Encuestas");
+    expect(labels).toContain("Universo y barrido");
     expect(page).not.toContain('eyebrow: "Universo y barrido"');
   });
 
@@ -189,4 +195,3 @@ describe("el texto recortado de la bandeja conserva su contenido", () => {
     },
   );
 });
-

@@ -54,6 +54,7 @@ import { Alert } from "../../../../components/Alert";
 import { ContextTabRail } from "../../../../components/ContextTabRail";
 import type { ContextTabRailEstado } from "../../../../components/ContextTabRail";
 import { PageFrame } from "../../../../components/PageFrame";
+import { MONITOREO_PESTANAS } from "../../../../lib/navegacion/catalogos/monitoreo";
 import {
   MonitoreoRailLastUpdate,
   MonitoreoWorkbenchChrome,
@@ -128,60 +129,7 @@ const VIEW_ICONS: Partial<Record<MonitoreoSeccion, typeof Route>> = {
   ocurrencias: MapPinned,
 };
 const TERRITORIAL_ROUTE = MONITOREO_MODOS.find((route) => route.family === "territorial") ?? MONITOREO_MODOS[0];
-type TerritorialLocalTabDefinition = {
-  key: string;
-  label: string;
-  detail: string;
-  icon: typeof Route;
-};
-const TERRITORIAL_LOCAL_TABS = {
-  fuentes: [
-    { key: "form", label: "Formulario", detail: "Kobo y corte local", icon: DatabaseZap },
-    { key: "filter", label: "Filtro y distritos", detail: "Efectivas y alcance", icon: SlidersHorizontal },
-    { key: "roster", label: "Encuestadores", detail: "Códigos Pulso", icon: ContactRound },
-    { key: "reconciliation", label: "Reconciliación", detail: "Códigos y UMP", icon: Link2 },
-    { key: "history", label: "Historial", detail: "Eventos del corte", icon: Clock },
-  ],
-  modelo: [
-    { key: "resumen", label: "Cobertura", detail: "Zonas, UMP y responsables", icon: BarChart3 },
-    { key: "tabla", label: "Manzanas", detail: "Orden, titulares y reemplazos", icon: Table2 },
-  ],
-  calidad: [
-    { key: "geolocalizacion", label: "Geolocalización", detail: "GPS y cartografía", icon: MapPin },
-    { key: "reconciliacion", label: "Reconciliación UMP", detail: "Sospechas espaciales", icon: Route },
-    { key: "duracion", label: "Duración de tiempo", detail: "Normal, corta y muy corta", icon: Clock },
-    { key: "cuotas", label: "Cuotas", detail: "Marginales y brechas", icon: Target },
-    { key: "anulacion", label: "Anulación", detail: "Tacha auditada", icon: Trash2 },
-  ],
-  consultas: [
-    { key: "registro", label: "Registro", detail: "Tabla principal", icon: Table2 },
-    { key: "gps", label: "GPS con señal", detail: "Distancia y cruce", icon: MapPin },
-    { key: "duracion", label: "Tiempo corto/muy corto", detail: "Normal, corta y muy corta", icon: Clock },
-    { key: "responsable", label: "Cruce responsable", detail: "UMP y equipo", icon: ContactRound },
-    { key: "subsanaciones", label: "Subsanaciones", detail: "Excedentes y brechas", icon: ArrowRight },
-  ],
-  avance: [
-    // «Resumen» cargaba cinco bloques en 1.248px y el tablero de distritos
-    // —660px él solo— empujaba prioridades y corte operativo fuera del pliegue.
-    // Cada pestaña responde ahora una pregunta: cómo vamos / dónde estamos.
-    { key: "resumen", label: "Resumen", detail: "Estado del campo y corte", icon: BarChart3 },
-    { key: "distritos", label: "Distritos", detail: "Cobertura y cuotas", icon: MapPinned },
-    { key: "ump", label: "Mapa y UMP", detail: "Ritmo por manzana", icon: Route },
-    { key: "ritmo", label: "Ritmo diario", detail: "Tendencia del corte", icon: CalendarRange },
-    { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
-  ],
-  ocurrencias: [
-    // La matriz por distrito sale de «Resumen»: allí competía con la tasa de no
-    // efectividad y sus motivos, que son la lectura que manda.
-    { key: "states", label: "Resumen", detail: "No efectividad y motivos", icon: ClipboardCheck },
-    { key: "distritos", label: "Distritos", detail: "Estados por distrito", icon: MapPinned },
-    { key: "registro", label: "Reporte UMP", detail: "Con/sin reporte", icon: Table2 },
-    { key: "ump", label: "UMP", detail: "Con/sin ocurrencia", icon: Route },
-    { key: "alerts", label: "Alertas", detail: "Cruces y observaciones", icon: ShieldAlert },
-    { key: "rhythm", label: "Ritmo", detail: "Dias e historial", icon: CalendarRange },
-  ],
-  telefonico: [],
-} satisfies Record<MonitoreoSeccion, readonly TerritorialLocalTabDefinition[]>;
+const TERRITORIAL_LOCAL_TABS = MONITOREO_PESTANAS.territorial;
 const TERRITORIAL_ADVANCE_TABS = TERRITORIAL_LOCAL_TABS.avance;
 type TerritorialAdvanceLocalTab = typeof TERRITORIAL_ADVANCE_TABS[number]["key"];
 
@@ -1721,7 +1669,7 @@ export default function TerritorialMonitoreoPage() {
     }
   }, [seccionActiva]);
   useEffect(() => {
-    const tabsByKey = new Map(localTabs.map((tab) => [tab.key, tab]));
+    const tabsByKey = new Map(localTabs.map((tab) => [String(tab.key), tab]));
     function handleLocalTabActive(event: Event) {
       const detail = (event as CustomEvent<{ view?: string; key?: unknown }>).detail;
       const key = typeof detail?.key === "string" ? detail.key : "";

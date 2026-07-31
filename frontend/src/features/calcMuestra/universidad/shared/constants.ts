@@ -1,13 +1,4 @@
 import {
-  BarChart3,
-  Database,
-  FileText,
-  RefreshCw,
-  Settings2,
-  Table2,
-  Target,
-} from "lucide-react";
-import {
   type CalcMuestraAulasObjectiveConfig,
   type CalcMuestraEstrato,
   type CalcMuestraWorkspaceAulasConfig,
@@ -19,18 +10,14 @@ import {
   type CalcMuestraWorkspaceSourceMode,
   type CalcMuestraWorkspaceVariableMapping,
 } from "../../../../api/client";
+import {
+  CALC_MUESTRA_UNIVERSIDAD_PESTANAS,
+  type ClassroomLabTab,
+} from "../../../../lib/navegacion/catalogos/calcMuestra";
 
-export type ClassroomLabTab = "marco" | "objetivo" | "metodo" | "laboratorio" | "seleccion" | "reemplazos" | "auditoria";
+export type { ClassroomLabTab };
 
-export const CLASSROOM_LAB_TABS: Array<{ id: ClassroomLabTab; label: string; detail: string; icon: typeof Database }> = [
-  { id: "marco", label: "Marco de cursos-horario", detail: "Base convertida en unidades seleccionables", icon: Database },
-  { id: "objetivo", label: "Objetivo de muestra", detail: "Cuotas y cursos-horario necesarios", icon: Target },
-  { id: "metodo", label: "Comparar métodos", detail: "Elegir la opción más representativa", icon: Settings2 },
-  { id: "laboratorio", label: "Simulación", detail: "Estabilidad y repetidos", icon: BarChart3 },
-  { id: "seleccion", label: "Cursos-horario titulares", detail: "Unidades que se intentan primero", icon: Table2 },
-  { id: "reemplazos", label: "Reemplazos por curso-horario", detail: "Rutas Rn.1, Rn.2...", icon: RefreshCw },
-  { id: "auditoria", label: "Sustento técnico", detail: "Campos, pesos y fuentes", icon: FileText },
-];
+export const CLASSROOM_LAB_TABS = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas;
 
 export const UNIVERSITY_TOTAL_COMPONENT_ID = "estudiantes_universidad";
 export const UNIVERSITY_FACULTY_COMPONENT_ID = "estudiantes_facultad";

@@ -1,0 +1,17 @@
+{
+	"nodes":[
+		{"id":"7348e3bb435cc840","x":-560,"y":-60,"width":250,"height":50,"type":"text","text":"Monitoreo Acreditación"},
+		{"id":"cdf8f94962a3421c","x":-220,"y":-65,"width":250,"height":90,"type":"text","text":"Fuentes\nestado:: exploración"},
+		{"id":"68c0e6665c6fe266","type":"text","text":"Fuentes: \n- Mostrador y agregador de fuentes. \n- Explica que por cada actor es necesario 1 base de universo, por lo menos una base de plataforma (surveymonkey) donde deifinoms de forma profeiosnal el canal de la ecuesta.\n- Ademas en base telefonica se puede agregar una base telefonica de barrido por cada actor que tenga un canal telefonico, en realidad solo se deberia pemrimitr una base telefonica por actor ","x":0,"y":-140,"width":250,"height":500},
+		{"id":"7c2ae89fece48517","type":"text","text":"Recopiladores ue a su vez definen sus porpios canales, por defecto heredan el de la encuesta pero peudes cambiar el canal para ellosunicamente. Y detalle acrca de los recopiladores y cada uno. A fecha de hoy 30/07 la seccion de recopiladores esta bastante solida","x":0,"y":440,"width":400,"height":180},
+		{"id":"a866f099f378a51a","x":0,"y":-260,"width":250,"height":60,"type":"text","text":"Actores: Cuantos y sus nombres"},
+		{"id":"14eaf67c046248f2","x":470,"y":430,"width":330,"height":150,"type":"text","text":"Validación retrospectiva · módulo Recopiladores\ndireccion:: recopiladores\npromovido:: true\ntrazabilidad:: retrospectiva\nEl ADR 0046 ya estaba aceptado; este puente comprueba su implementación sin afirmar causalidad."}
+	],
+	"edges":[
+		{"id":"07bb8815f7d2b496","fromNode":"7348e3bb435cc840","fromSide":"right","toNode":"cdf8f94962a3421c","toSide":"left"},
+		{"id":"6435195255890ae4","fromNode":"cdf8f94962a3421c","fromSide":"right","toNode":"a866f099f378a51a","toSide":"left"},
+		{"id":"b9ed331c19a5ce54","fromNode":"cdf8f94962a3421c","fromSide":"right","toNode":"68c0e6665c6fe266","toSide":"left"},
+		{"id":"aa5090d6d899d953","fromNode":"cdf8f94962a3421c","fromSide":"right","toNode":"7c2ae89fece48517","toSide":"left"},
+		{"id":"76d8ed6e7383485b","fromNode":"7c2ae89fece48517","fromSide":"right","toNode":"14eaf67c046248f2","toSide":"left"}
+	]
+}

@@ -247,7 +247,7 @@ test("incluye todos los módulos canónicos y utilidades globales", () => {
     "calculo-muestra",
     "formularios",
     "hojas-ruta",
-    "fichas-qr",
+    "recopiladores",
     "monitoreo",
     "procesamiento",
     "dashboard",
@@ -298,6 +298,24 @@ test("documenta la jerarquía real de secciones y pestañas", () => {
     "Titulares",
     "Reemplazos",
   ]);
+  assert.deepEqual(
+    moduleSections("recopiladores").map((section) => section.id),
+    ["plan-recoleccion", "accesos", "materiales", "entrega-campo"],
+  );
+  assert.deepEqual(canonicalTabs("recopiladores", "plan-recoleccion"), [
+    "Unidades",
+  ]);
+  assert.deepEqual(canonicalTabs("recopiladores", "accesos"), [
+    "Canales",
+    "Vinculación",
+  ]);
+  assert.deepEqual(canonicalTabs("recopiladores", "materiales"), [
+    "Vista previa",
+    "Paquetes",
+  ]);
+  assert.deepEqual(canonicalTabs("recopiladores", "entrega-campo"), [
+    "Monitoreo",
+  ]);
   assert.ok(
     canonicalTabs("calculo-muestra", "universidad-seleccion").includes(
       "Sustento técnico",
@@ -314,16 +332,13 @@ test("documenta la jerarquía real de secciones y pestañas", () => {
     "Base de datos",
     "Dimensiones",
   ]);
-  assert.ok(
-    canonicalTabs("monitoreo", "territorial-validacion").includes(
-      "Reconciliación UMP",
-    ),
-  );
-  assert.ok(
-    canonicalTabs("monitoreo", "territorial-validacion").includes(
-      "Duración de tiempo",
-    ),
-  );
+  assert.deepEqual(canonicalTabs("monitoreo", "territorial-validacion"), [
+    "Geolocalización",
+    "Reconciliación UMP",
+    "Duración de tiempo",
+    "Cuotas",
+    "Anulación",
+  ]);
 });
 
 test("cada ocurrencia usa una sección registrada en su módulo", () => {
@@ -367,8 +382,8 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
     ["Nota", "Decisión", "Avance", "Riesgo", "Bloqueo"],
   );
   assertExactLabels(
-    "frontend/src/features/calcMuestra/universidad/shared/constants.ts",
-    "CLASSROOM_LAB_TABS",
+    "frontend/src/lib/navegacion/catalogos/calcMuestra.ts",
+    "CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas",
     [
       "Marco de cursos-horario",
       "Objetivo de muestra",
@@ -604,8 +619,8 @@ test("materializa navegación y estados de Hojas, Recopiladores y Monitoreo", ()
 
 test("cubre tabs y paneles representativos de Procesamiento y Dashboard", () => {
   assertExactLabels(
-    "frontend/src/features/validacion/ValidacionPage.tsx",
-    "TABS",
+    "frontend/src/lib/navegacion/catalogos/procesamiento.ts",
+    "PROCESAMIENTO_PESTANAS.validacion",
     [
       "Explorar respuestas",
       "Reglas del formulario",
@@ -855,7 +870,7 @@ test("los ocho módulos mantienen sus acentos distintivos en el catálogo", () =
       calculo: tones["calculo-muestra"],
       formularios: tones.formularios,
       hojas: tones["hojas-ruta"],
-      fichas: tones["fichas-qr"],
+      recopiladores: tones.recopiladores,
       monitoreo: tones.monitoreo,
       procesamiento: tones.procesamiento,
       dashboard: tones.dashboard,
@@ -865,7 +880,7 @@ test("los ocho módulos mantienen sus acentos distintivos en el catálogo", () =
       calculo: "#7260AE",
       formularios: "#7172C1",
       hojas: "#AC563B",
-      fichas: "#106E8C",
+      recopiladores: "#106E8C",
       monitoreo: "#A0464E",
       procesamiento: "#0F766E",
       dashboard: "#4A6EB6",
@@ -958,7 +973,7 @@ test("el índice humano conserva el lenguaje módulo-sección-pestaña", () => {
     "## Cálculo de muestra",
     "## Editor de formularios",
     "## Hojas de ruta",
-    "## Fichas QR",
+    "## Recopiladores",
     "## Monitoreo",
     "## Procesamiento",
     "## Dashboard",

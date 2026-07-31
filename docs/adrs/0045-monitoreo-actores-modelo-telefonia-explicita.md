@@ -87,3 +87,7 @@ Complementa [ADR 0010](0010-monitoreo-centro-control-operativo-sheets.md) y
 [ADR 0040](0040-flujo-acreditacion-formularios-monitoreo-procesamiento-ppt.md).
 La implementación se divide en contrato persistido, filtrado de reportes y UI
 para mantener cada reparación falsable.
+
+## Gobierna
+
+- `monitoreo/acreditacion/fuentes`

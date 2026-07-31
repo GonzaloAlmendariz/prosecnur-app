@@ -96,6 +96,195 @@
     "revisor-metodologico": "read-only",
     "verificador": "gate"
   },
+  "documentation": {
+    "agentic_index_dir": "docs/sistema/agentic",
+    "navigation_scope_semantics": "Cada dirección listada es una raíz del contrato vivo e incluye sus descendientes; [] declara una capacidad sistémica sin superficie de producto propia.",
+    "skill_navigation_roots": {
+      "auditoria-deuda": [],
+      "cerrar-trabajo": [],
+      "contrato-superficie": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "dominio-prosecnur": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "entregables-oficina": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "estudio-real": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "integraciones-datos": [
+        "editor-xlsform",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "jobs-asincronos": [
+        "calc-muestra",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "notas-parche": [],
+      "nucleo-metodologico": [
+        "procesamiento"
+      ],
+      "orquestar-trabajo": [],
+      "preparar-release": [],
+      "publicar": [],
+      "revamp-visual": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "scope-lock": [],
+      "ver-ui": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ]
+    },
+    "agent_navigation_roots": {
+      "auditor-deuda": [],
+      "autor-regresiones": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "backend-r": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "curador-commits": [],
+      "desktop-packaging": [],
+      "diagnosticador-regresiones": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "especialista-entregables": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "especialista-integraciones": [
+        "editor-xlsform",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "frontend-react": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "guardian-contratos": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "qa-visual-desktop": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "revisor-metodologico": [
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ],
+      "verificador": [
+        "diseno-estudio",
+        "calc-muestra",
+        "editor-xlsform",
+        "hojas-ruta",
+        "recopiladores",
+        "monitoreo",
+        "procesamiento",
+        "dashboard"
+      ]
+    }
+  },
   "external_skills": [
     "emil-design-eng",
     "govern-visual-harmony"

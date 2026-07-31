@@ -6,6 +6,20 @@ import {
   PROSECNUR_NAVIGATION_CONTRACT,
   type ProsecnurModuleSlug,
 } from "./modules";
+import {
+  MONITOREO_PESTANAS,
+  TOTAL_PESTANAS_MONITOREO,
+  type PestanaMonitoreoCatalogo,
+} from "./navegacion/catalogos/monitoreo";
+import {
+  CALC_MUESTRA_UNIVERSIDAD_PESTANAS,
+  TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD,
+} from "./navegacion/catalogos/calcMuestra";
+import {
+  PROCESAMIENTO_PESTANAS,
+  TOTAL_PESTANAS_PROCESAMIENTO,
+} from "./navegacion/catalogos/procesamiento";
+import { DASHBOARD_PESTANAS } from "./navegacion/catalogos/dashboard";
 
 const EXPECTED_PRIMARY_NAVIGATION: Record<
   Exclude<ProsecnurModuleSlug, "plan-trabajo">,
@@ -99,7 +113,7 @@ describe("manifiesto primario de navegación", () => {
       grammar: "modulo/modo/seccion/pestana/panel",
       coverage: "primary-routes-v1",
       modosCoverage: "monitoring-profiles-v1+calc-muestra-v1",
-      tabsCoverage: "hojas-ruta-v1",
+      tabsCoverage: "all-current-tabsets-v1",
       shellCoverage: "hojas-ruta-v1",
       consumableByShell: true,
       addressable: true,
@@ -109,8 +123,8 @@ describe("manifiesto primario de navegación", () => {
   it("da a los ocho módulos un landing y secciones primarias válidas", () => {
     expect(PROSECNUR_MODULES).toHaveLength(8);
 
-    const sectionIds: string[] = [];
-    const sectionRoutes: string[] = [];
+    const navigationKeys: string[] = [];
+    const publishedRoutes: string[] = [];
 
     for (const module of PROSECNUR_MODULES) {
       const expected =
@@ -146,8 +160,8 @@ describe("manifiesto primario de navegación", () => {
         expect(["viewport", "legacy-scroll"]).toContain(section.layoutPolicy);
         expect(section.icon).toBeTruthy();
         expect(section).not.toHaveProperty("lockedReason");
-        sectionIds.push(section.id);
-        sectionRoutes.push(section.to);
+        navigationKeys.push(`${module.slug}/${section.id}`);
+        publishedRoutes.push(section.to);
         for (const tab of section.tabs ?? []) {
           expect(tab.id.trim()).not.toBe("");
           expect(tab.label.trim()).not.toBe("");
@@ -157,14 +171,14 @@ describe("manifiesto primario de navegación", () => {
           expect(tab.layoutPolicy).toBe("viewport");
           expect(tab.icon).toBeTruthy();
           expect(tab).not.toHaveProperty("lockedReason");
-          sectionIds.push(tab.id);
-          sectionRoutes.push(tab.to);
+          navigationKeys.push(`${module.slug}/${section.id}/${tab.id}`);
+          if (tab.direccionPublicada !== false) publishedRoutes.push(tab.to);
         }
       }
     }
 
-    expect(new Set(sectionIds).size).toBe(sectionIds.length);
-    expect(new Set(sectionRoutes).size).toBe(sectionRoutes.length);
+    expect(new Set(navigationKeys).size).toBe(navigationKeys.length);
+    expect(new Set(publishedRoutes).size).toBe(publishedRoutes.length);
   });
 
   it("define las cinco etapas y los tres destinos subordinados de Entrega", () => {
@@ -267,6 +281,76 @@ describe("manifiesto primario de navegación", () => {
         ],
       },
     ]);
+  });
+
+  it("adjunta a Monitoreo las mismas 68 pestañas del catálogo canónico", () => {
+    const monitoring = PROSECNUR_MODULES.find((module) => module.slug === "monitoreo");
+    const catalogos = MONITOREO_PESTANAS as unknown as Record<
+      string,
+      Record<string, readonly PestanaMonitoreoCatalogo[]>
+    >;
+    const declaradas = Object.values(catalogos)
+      .flatMap((secciones) => Object.values(secciones))
+      .flat();
+
+    expect(TOTAL_PESTANAS_MONITOREO).toBe(68);
+    expect(declaradas).toHaveLength(68);
+
+    const adjuntas = monitoring?.modos?.flatMap((modo) =>
+      modo.sections.flatMap((section) => section.tabs ?? []),
+    ) ?? [];
+    expect(adjuntas).toHaveLength(68);
+
+    for (const modo of monitoring?.modos ?? []) {
+      for (const section of modo.sections) {
+        // modules.ts no clona ni traduce el catálogo: Shell y perfil reciben
+        // exactamente el mismo array y, por extensión, los mismos objetos.
+        expect(section.tabs).toBe(catalogos[modo.id]?.[section.id]);
+        for (const tab of catalogos[modo.id]?.[section.id] ?? []) {
+          expect(tab.id).toBe(tab.key);
+          expect(tab.to).toBe(
+            `/monitoreo?modo=${modo.id}&seccion=${section.id}&pestana=${tab.id}`,
+          );
+        }
+      }
+    }
+
+    expect(
+      declaradas
+        .filter((tab) => tab.disponibilidad === "condicional")
+        .map((tab) => tab.key),
+    ).toEqual(["subsanacion"]);
+  });
+
+  it("adjunta sin clonar los catálogos de Muestra, Procesamiento y Dashboard", () => {
+    const muestra = PROSECNUR_MODULES.find((module) => module.slug === "calc-muestra");
+    const universidad = muestra?.modos?.find(
+      (modo) => modo.id === "opinion-universitaria",
+    );
+    const procesamiento = PROSECNUR_MODULES.find(
+      (module) => module.slug === "procesamiento",
+    );
+    const dashboard = PROSECNUR_MODULES.find((module) => module.slug === "dashboard");
+
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(24);
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(25);
+    expect(DASHBOARD_PESTANAS).toHaveLength(4);
+
+    for (const [seccion, pestanas] of Object.entries(
+      CALC_MUESTRA_UNIVERSIDAD_PESTANAS,
+    )) {
+      expect(universidad?.sections.find((item) => item.id === seccion)?.tabs).toBe(
+        pestanas,
+      );
+    }
+    for (const [seccion, pestanas] of Object.entries(PROCESAMIENTO_PESTANAS)) {
+      expect(procesamiento?.sections.find((item) => item.id === seccion)?.tabs).toBe(
+        pestanas,
+      );
+    }
+    expect(dashboard?.sections.find((item) => item.id === "dashboard")?.tabs).toBe(
+      DASHBOARD_PESTANAS,
+    );
   });
 
   it("no tiene utilidades globales tras el retiro de Enciclopedia", () => {

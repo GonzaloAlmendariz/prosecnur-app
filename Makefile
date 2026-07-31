@@ -39,7 +39,7 @@ QA_URL ?= http://localhost:5173/
 QA_API ?= auto
 QA_OUT ?= $(REPO_ROOT)/outputs/visual-qa/$(shell date +%Y%m%d-%H%M%S)
 
-.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
+.PHONY: help dev-api dev-frontend dev-pulso dev-electron-vite dev-status dev-prune visual-qa ui-quick-check vaults-audit vaults-check vaults-index monitoreo-qa audit-reference-build audit-reference-run audit-reference-smoke desktop-audit audit-projects-build audit-project-build audit-project-run audit-project-visual-matrix audit-project-deliverables reference-projects-build reference-project-build reference-project-verify reference-project-seed-aulas reference-project-run reference-project-visual-matrix build build-if-stale build-if-stale-fast dev-port-preflight clean install-r install-frontend install-desktop desktop desktop-fast package-local package-windows-self-contained package-mac-dmg
 
 help:
 	@echo "Entrada normal del usuario:"
@@ -57,6 +57,9 @@ help:
 	@echo "  visual-qa        Run reusable Playwright visual QA against a route/project"
 	@echo "  ui-quick-check   Fast Playwright UI check; starts free ports and optional PULSO project"
 	@echo "  monitoreo-qa     Run visual QA for /monitoreo with a .pulso project"
+	@echo "  vaults-audit     Report Obsidian vault drift without failing"
+	@echo "  vaults-check     Fail when either vault drifts from the live navigation contract"
+	@echo "  vaults-index     Regenerate docs/sistema/direcciones from the contract and ## Gobierna"
 	@echo "  build            Build the frontend into api/inst/www"
 	@echo "  desktop-fast     Run Electron, rebuilding frontend only if stale"
 	@echo "  audit-reference-build Generate the canonical audit .pulso"
@@ -161,6 +164,15 @@ ui-quick-check:
 	@node scripts/ui-quick-check.mjs \
 	  $(if $(PULSO),--project "$(PULSO)",) \
 	  $(UI_QA_ARGS)
+
+vaults-audit:
+	@node scripts/vaults-check.mjs $(VAULTS_ARGS)
+
+vaults-check:
+	@node scripts/vaults-check.mjs --check $(VAULTS_ARGS)
+
+vaults-index:
+	@node scripts/vaults-check.mjs --generar
 
 monitoreo-qa:
 	@test -n "$(PULSO)" || (echo "uso: make monitoreo-qa PULSO=/ruta/al/proyecto.pulso [QA_API=auto]"; exit 1)

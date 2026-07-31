@@ -37,6 +37,10 @@ import {
   IconStudyDesign,
   IconWorkPlan,
 } from "./icons";
+import { MONITOREO_PESTANAS } from "./navegacion/catalogos/monitoreo";
+import { CALC_MUESTRA_UNIVERSIDAD_PESTANAS } from "./navegacion/catalogos/calcMuestra";
+import { PROCESAMIENTO_PESTANAS } from "./navegacion/catalogos/procesamiento";
+import { DASHBOARD_PESTANAS } from "./navegacion/catalogos/dashboard";
 
 export type ProsecnurModuleSlug =
   | "editor-xlsform"
@@ -64,6 +68,8 @@ export type ProsecnurNavigationLeafMeta = {
   icon: LucideIcon;
   to: string;
   layoutPolicy: ProsecnurNavigationLayoutPolicy;
+  /** `false`: identidad auditable sin prometer una URL de pestaña inexistente. */
+  direccionPublicada?: boolean;
 };
 
 export type ProsecnurModuleSectionMeta = ProsecnurNavigationLeafMeta & {
@@ -132,7 +138,7 @@ export const PROSECNUR_NAVIGATION_CONTRACT = {
   grammar: "modulo/modo/seccion/pestana/panel",
   coverage: "primary-routes-v1",
   modosCoverage: "monitoring-profiles-v1+calc-muestra-v1",
-  tabsCoverage: "hojas-ruta-v1",
+  tabsCoverage: "all-current-tabsets-v1",
   shellCoverage: "hojas-ruta-v1",
   consumableByShell: true,
   addressable: true,
@@ -296,19 +302,19 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
     // La "mesa" del módulo es un MODO de la gramática: lo determina el estudio
     // del proyecto, no un click, y reescribe el juego de secciones. Declararlo
     // aquí es lo que permite que `useSeccion` resuelva el default por modo y que
-    // la dirección sobreviva a un enlace pegado. El catálogo de PESTAÑAS se
-    // queda en la feature (`universidad/universidadTabs.ts`), que ya resuelve
-    // sus alias históricos: duplicarlo aquí crearía dos fuentes que derivan.
+    // la dirección sobreviva a un enlace pegado. Las pestañas universitarias
+    // vienen del mismo catálogo que consume su página; los alias históricos
+    // siguen resolviéndose dentro de la feature.
     modos: [
       {
         id: "opinion-universitaria",
         label: "Muestra de cursos-horario",
         sections: [
-          { id: "definicion", label: "Datos", icon: IconStudyDesign, to: "/calc-muestra?modo=opinion-universitaria&seccion=definicion", layoutPolicy: "viewport" },
-          { id: "marco", label: "Marco", icon: ClipboardList, to: "/calc-muestra?modo=opinion-universitaria&seccion=marco", layoutPolicy: "viewport" },
-          { id: "calculo", label: "Cálculo", icon: IconSample, to: "/calc-muestra?modo=opinion-universitaria&seccion=calculo", layoutPolicy: "viewport" },
-          { id: "aulas", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=opinion-universitaria&seccion=aulas", layoutPolicy: "viewport" },
-          { id: "salidas", label: "Entrega", icon: Route, to: "/calc-muestra?modo=opinion-universitaria&seccion=salidas", layoutPolicy: "viewport" },
+          { id: "definicion", label: "Datos", icon: IconStudyDesign, to: "/calc-muestra?modo=opinion-universitaria&seccion=definicion", layoutPolicy: "viewport", tabs: CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion },
+          { id: "marco", label: "Marco", icon: ClipboardList, to: "/calc-muestra?modo=opinion-universitaria&seccion=marco", layoutPolicy: "viewport", tabs: CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco },
+          { id: "calculo", label: "Cálculo", icon: IconSample, to: "/calc-muestra?modo=opinion-universitaria&seccion=calculo", layoutPolicy: "viewport", tabs: CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo },
+          { id: "aulas", label: "Selección", icon: Shuffle, to: "/calc-muestra?modo=opinion-universitaria&seccion=aulas", layoutPolicy: "viewport", tabs: CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas },
+          { id: "salidas", label: "Entrega", icon: Route, to: "/calc-muestra?modo=opinion-universitaria&seccion=salidas", layoutPolicy: "viewport", tabs: CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas },
         ],
       },
       {
@@ -624,45 +630,45 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         id: "acreditacion",
         label: "Acreditación",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Monitoreo telefónico", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.fuentes },
+          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.modelo },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.consultas },
+          { id: "telefonico", label: "Monitoreo telefónico", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.telefonico },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.acreditacion.avance },
         ],
       },
       {
         id: "telefonico",
         label: "Telefónico",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
-          { id: "telefonico", label: "Llamadas", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.fuentes },
+          { id: "modelo", label: "Modelo operativo", icon: ListChecks, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.modelo },
+          { id: "telefonico", label: "Llamadas", icon: PhoneCall, to: "/monitoreo?seccion=telefonico", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.telefonico },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.consultas },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.telefonico.avance },
         ],
       },
       {
         id: "territorial",
         label: "Territorial",
         sections: [
-          { id: "fuentes", label: "Fuente", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "UMPs", icon: Route, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas internas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance territorial", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
-          { id: "ocurrencias", label: "Ocurrencias de campo", icon: ClipboardCheck, to: "/monitoreo?seccion=ocurrencias", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuente", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.fuentes },
+          { id: "modelo", label: "UMPs", icon: Route, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.modelo },
+          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.calidad },
+          { id: "consultas", label: "Consultas internas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.consultas },
+          { id: "avance", label: "Avance territorial", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.avance },
+          { id: "ocurrencias", label: "Ocurrencias de campo", icon: ClipboardCheck, to: "/monitoreo?seccion=ocurrencias", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.territorial.ocurrencias },
         ],
       },
       {
         id: "aulas",
         label: "Cursos-horario",
         sections: [
-          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport" },
-          { id: "modelo", label: "Agenda de cursos-horario", icon: CalendarRange, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport" },
-          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport" },
-          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport" },
-          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport" },
+          { id: "fuentes", label: "Fuentes", icon: PlugZap, to: "/monitoreo?seccion=fuentes", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.fuentes },
+          { id: "modelo", label: "Agenda de cursos-horario", icon: CalendarRange, to: "/monitoreo?seccion=modelo", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.modelo },
+          { id: "avance", label: "Avance", icon: BarChart3, to: "/monitoreo?seccion=avance", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.avance },
+          { id: "calidad", label: "Validación", icon: ShieldAlert, to: "/monitoreo?seccion=calidad", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.calidad },
+          { id: "consultas", label: "Consultas", icon: Search, to: "/monitoreo?seccion=consultas", layoutPolicy: "viewport", tabs: MONITOREO_PESTANAS.aulas.consultas },
         ],
       },
     ],
@@ -701,43 +707,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconOpen,
         to: "/carga",
         layoutPolicy: "viewport",
-        tabs: [
-          {
-            id: "plan",
-            label: "Plan",
-            icon: ClipboardCheck,
-            to: "/carga?pestana=plan",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "fuentes",
-            label: "Fuentes",
-            icon: PlugZap,
-            to: "/carga?pestana=fuentes",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "revision",
-            label: "Revisión",
-            icon: ShieldAlert,
-            to: "/carga?pestana=revision",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "estructura",
-            label: "Estructura",
-            icon: ListChecks,
-            to: "/carga?pestana=estructura",
-            layoutPolicy: "viewport",
-          },
-          {
-            id: "datos",
-            label: "Datos",
-            icon: Table2,
-            to: "/carga?pestana=datos",
-            layoutPolicy: "viewport",
-          },
-        ],
+        tabs: PROCESAMIENTO_PESTANAS.carga,
       },
       {
         id: "validacion",
@@ -745,6 +715,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconGpsValid,
         to: "/validacion",
         layoutPolicy: "viewport",
+        tabs: PROCESAMIENTO_PESTANAS.validacion,
       },
       {
         id: "codificacion",
@@ -752,6 +723,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconChecklist,
         to: "/codificacion",
         layoutPolicy: "viewport",
+        tabs: PROCESAMIENTO_PESTANAS.codificacion,
       },
       {
         id: "analitica",
@@ -759,6 +731,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconBranching,
         to: "/analitica",
         layoutPolicy: "viewport",
+        tabs: PROCESAMIENTO_PESTANAS.analitica,
       },
       {
         id: "graficos",
@@ -809,6 +782,7 @@ export const PROSECNUR_MODULES: ProsecnurModuleMeta[] = [
         icon: IconDashboard,
         to: "/tablero",
         layoutPolicy: "viewport",
+        tabs: DASHBOARD_PESTANAS,
       },
     ],
   },

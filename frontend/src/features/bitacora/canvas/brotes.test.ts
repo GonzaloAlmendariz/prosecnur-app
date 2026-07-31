@@ -35,7 +35,7 @@ describe("brotesDe", () => {
   });
 
   it("una hoja del árbol no ofrece nada", () => {
-    expect(brotesDe(nodo("procesamiento/validacion"), [])).toEqual([]);
+    expect(brotesDe(nodo("procesamiento/validacion/explorar"), [])).toEqual([]);
   });
 
   it("un nodo de texto no ofrece nada", () => {

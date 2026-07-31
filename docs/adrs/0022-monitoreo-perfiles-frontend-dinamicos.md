@@ -125,3 +125,16 @@ Segundo loop de modularizacion territorial: el perfil `territorial` ya carga
 `MonitoreoWorkbenchChrome` para conservar el chrome canonico de Monitoreo; el
 perfil `acreditacion` permanece en el fallback historico. No se modificaron
 backend, schemas `.pulso`, conectores ni scopes de reportes.
+
+## Gobierna
+
+Direcciones del contrato de navegación que esta decisión explica
+(`scripts/vaults-check.mjs` las verifica contra `frontend/src/lib/modules.ts`):
+
+- `monitoreo`
+- `monitoreo/acreditacion`
+- `monitoreo/telefonico`
+- `monitoreo/territorial`
+- `monitoreo/aulas` — el contrato conserva el identificador antiguo mientras el
+  vocabulario del proyecto ya dice «cursos-horario»; la divergencia está
+  registrada en el loop de bóvedas.

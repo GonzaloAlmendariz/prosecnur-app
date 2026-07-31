@@ -19320,19 +19320,16 @@ export function localTabsForTelefonicoView(
       // decisión en el orden en que dependen una de otra.
       return [
         railTab(active, {
-          label: "Fuentes activas",
           detail: `${phoneStats.sourceReady}/3 conectadas · de dónde salen los números`,
           badge: `${phoneStats.sourceReady}/3`,
           estado: readyStatus(phoneStats.sourceReady === 3),
         }),
         railTab(sheets, {
-          label: "Universo y barrido",
           detail: `${phoneStats.sheetReady}/2 hojas · a quién llamar y qué pasó`,
           badge: `${phoneStats.sheetReady}/2`,
           estado: readyStatus(phoneStats.sheetReady === 2),
         }),
         railTab(survey, {
-          label: "Encuestas",
           detail: phoneStats.contract.platform.ready
             ? `${countText(phoneStats.koboSources, "encuesta")} · ${phoneStats.phoneFilterConfigured ? "filtro listo" : "elige filtro"}`
             : "elige encuesta y filtro de efectiva",
@@ -19376,7 +19373,6 @@ export function localTabsForTelefonicoView(
       void summary;
       return [
         railTab(structure, {
-          label: "Cuotas",
           detail: modelStats.phoneQuotaRows
             ? `${countText(modelStats.phoneQuotaVariables, "variable")} · metas Kobo`
             : "define metas por variable",
@@ -19384,7 +19380,6 @@ export function localTabsForTelefonicoView(
           estado: readyStatus(modelStats.phoneQuotaRows > 0),
         }),
         railTab(schedule, {
-          label: "Cronograma",
           detail: modelStats.schedule,
           badge: modelStats.phases ? fmt(modelStats.phases) : undefined,
           estado: readyStatus(modelStats.phases > 0),
@@ -19430,13 +19425,11 @@ export function localTabsForTelefonicoView(
       const caveatCases = effectiveCases.filter(telefonicoCaseHasEffectiveCaveat);
       const phoneConsultaTabs = [
         railTab(platform, {
-          label: "Efectivas Kobo",
           detail: effectiveCases.length ? `${countText(effectiveCases.length, "caso efectivo", "casos efectivos")} · pasan filtro` : "sin efectivas Kobo",
           badge: effectiveCases.length ? fmt(effectiveCases.length) : undefined,
           estado: readyStatus(effectiveCases.length > 0),
         }),
         railTab(crosses, {
-          label: "CodPulso",
           detail: crossingComparable
             ? `${crossingMatchLabel} coinciden${crossingReview ? ` · ${fmt(crossingReview)} revisar` : ""}`
             : `${countText(effectiveCases.length, "efectiva")} · sin cruce`,
@@ -19446,7 +19439,6 @@ export function localTabsForTelefonicoView(
       ];
       if (caveatCases.length) {
         phoneConsultaTabs.push(railTab(fixes, {
-          label: "Salvedades",
           detail: `${countText(caveatCases.length, "caso")} · no identificable`,
           badge: fmt(caveatCases.length),
           estado: "parcial",
@@ -19486,13 +19478,11 @@ export function localTabsForTelefonicoView(
     void supervision;
     return [
       railTab(summary, {
-        label: "Resumen operativo",
         detail: `${fmt(phoneStats.totals.effective)} efectivas tel. · ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.totals.total ? fmt(phoneStats.totals.total) : undefined,
         estado: readyStatus(phoneStats.totals.total > 0, phoneStats.totals.unswept > 0),
       }),
       railTab(times, {
-        label: "Validación de tiempo",
         detail: phoneStats.timeRows
           ? `${fmt(phoneStats.timeRows)} efectivas · ${fmt(phoneStats.timeUnder2 + phoneStats.timeUnder5)} revisar`
           : "sin tabla de duración",
@@ -19500,19 +19490,16 @@ export function localTabsForTelefonicoView(
         estado: readyStatus(phoneStats.timeRows > 0, phoneStats.timeUnder2 + phoneStats.timeUnder5 + phoneStats.timeMissing > 0),
       }),
       railTab(incidence, {
-        label: "Sin efectiva",
         detail: `${fmt(phoneStats.totals.incidents)} sin efectiva · ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.pendingRows ? fmt(phoneStats.pendingRows) : undefined,
         estado: phoneStats.totals.incidents || phoneStats.totals.unswept ? "parcial" : "listo",
       }),
       railTab(responsible, {
-        label: "Responsables",
         detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")} · carga`,
         badge: phoneStats.totals.responsables ? fmt(phoneStats.totals.responsables) : undefined,
         estado: readyStatus(phoneStats.responsibleRows > 0),
       }),
       railTab(alerts, {
-        label: "Alertas reales",
         detail: phoneStats.alertObservations
           ? `${countText(phoneStats.alertObservations, "observación", "observaciones")} · ${fmt(phoneStats.alerts)} casos`
           : "sin observaciones activas",
@@ -19529,13 +19516,11 @@ export function localTabsForTelefonicoView(
       void detail;
       return [
         railTab(summary, {
-          label: "Diario",
           detail: `${countText(phoneStats.platformEffective, "efectiva")} · ritmo Kobo`,
           badge: phoneStats.platformEffective ? fmt(phoneStats.platformEffective) : undefined,
           estado: readyStatus(phoneStats.platformEffective > 0 && phoneStats.phoneFilterConfigured),
         }),
         railTab(actors, {
-          label: "Cuotas",
           detail: phoneStats.quotaCategoryRows
             ? `${countText(phoneStats.quotaCategoryRows, phoneStats.quotaCategoryNoun)} · ${fmt(phoneStats.quotaEffective)} efectivas${phoneStats.quotaGap ? ` · ${fmt(phoneStats.quotaGap)} faltan` : ""}`
             : "sin cuotas leídas",
@@ -19543,7 +19528,6 @@ export function localTabsForTelefonicoView(
           estado: readyStatus(phoneStats.quotaCategoryRows > 0),
         }),
         railTab(outputs, {
-          label: "Salidas",
           detail: "publica PDF y hojas de avance",
           estado: state?.has_snapshot ? "listo" : "sin-configurar",
         }),

@@ -175,6 +175,15 @@ export function CriteriosMarcoTab({
   // Salida visible del bloque de estudiante: N elegibles del marco (insumo que
   // alimenta el resto del recorrido). null cuando aún no hay exploración.
   const elegiblesTotal = exploracion?.totales.elegibles_total ?? null;
+  // El total y el promedio son dos cosas distintas y relacionadas, y mostrar
+  // solo una invita a leerla como la otra: «Elegibles por curso-horario» suena
+  // a promedio cuando es la suma. El denominador son los cursos-horario
+  // ELEGIBLES —no todos—, porque el numerador solo suma sobre esos.
+  const chElegibles = exploracion?.totales.ch_elegibles ?? null;
+  const elegiblesPromedio =
+    elegiblesTotal != null && chElegibles != null && chElegibles > 0
+      ? elegiblesTotal / chElegibles
+      : null;
 
   // Puente al Explorador desde la tarjeta de tipo de sesión. Depende de que el
   // desk pase `onNavigate`; sin él, el link no se muestra. En la vista integrada
@@ -352,6 +361,19 @@ export function CriteriosMarcoTab({
               detalle="suma de los elegibles de cada curso-horario incluido — un estudiante matriculado en varios cuenta en cada uno"
               origen="motor"
               hero
+            />
+            <CifraMotor
+              label="Promedio por curso-horario"
+              value={elegiblesPromedio == null ? "S/D" : elegiblesPromedio.toLocaleString("es-PE", { maximumFractionDigits: 1 })}
+              // Sin nombrar el denominador a propósito. Este bloque lee de la
+              // EXPLORACIÓN y la franja de arriba del MARCO EJECUTADO, y las dos
+              // instantáneas pueden diferir —con hsvg2026 son 2.373 contra
+              // 2.265—. Imprimir aquí el conteo ponía dos cifras de cursos-
+              // horario elegibles en la misma pantalla contradiciéndose, que es
+              // justo el defecto que este bloque venía a corregir. El promedio
+              // sí es válido: numerador y denominador salen de la misma fuente.
+              detalle="elegibles que aporta en promedio cada curso-horario incluido"
+              origen="motor"
             />
           </CifraFila>
         </div>

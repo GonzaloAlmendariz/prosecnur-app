@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Activity, Compass, Database, ListTree, PieChart, ShieldCheck } from "lucide-react";
+import { Compass, Database } from "lucide-react";
 import {
   apiEstudioActiveBaseSet,
   apiEstudioGet,
@@ -13,7 +13,8 @@ import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { EmptyState, ErrorBlock } from "../../components/States";
-import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
+import { ContextTabRail } from "../../components/ContextTabRail";
+import { PROCESAMIENTO_PESTANAS } from "../../lib/navegacion/catalogos/procesamiento";
 import BaseSelector from "./BaseSelector";
 import LimpiezaTab from "./tabs/LimpiezaTab";
 import InstrumentoTab from "./tabs/InstrumentoTab";
@@ -42,32 +43,7 @@ import "./validacion-v2.css";
 //
 // Sprint 1: shell + stubs. Sprints 2-5 llenan cada tab.
 
-const TABS: ContextTabRailItem<ValidacionTabId>[] = [
-  {
-    key: "explorar",
-    label: "Explorar respuestas",
-    icon: Compass,
-    description: "Distribuciones y señales de revisión",
-  },
-  {
-    key: "instrumento",
-    label: "Reglas del formulario",
-    icon: ListTree,
-    description: "Saltos, rangos y catálogos",
-  },
-  {
-    key: "reglas_custom",
-    label: "Criterios de revisión",
-    icon: PieChart,
-    description: "Señales adicionales",
-  },
-  {
-    key: "limpieza",
-    label: "Cierre de base",
-    icon: Activity,
-    description: "Limpieza y normalización",
-  },
-];
+const TABS = PROCESAMIENTO_PESTANAS.validacion;
 
 export default function ValidacionPage() {
   const { sessionId, state } = useSession();

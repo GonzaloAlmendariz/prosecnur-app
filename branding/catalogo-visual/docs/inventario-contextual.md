@@ -270,44 +270,51 @@ PDF unificado, PDF aleatorio y descargas históricas.
 Fuente de todas las secciones:
 `frontend/src/features/hojasRuta/HojasRutaPage.tsx`.
 
-## Fichas QR
+## Recopiladores
 
-### Preparación
+### Plan
 
-- Agenda: Preparar enlaces, Revisar muestra, Abrir Monitoreo, métricas,
-  facultad, búsqueda, Copiar enlace y tabla seleccionable.
-- Enlaces: cuenta/servidor Kobo, formularios, selector, Resolver enlace, URL,
-  identificador, Generar/Regenerar, pegar/importar, Limpiar/Aplicar.
+Pestaña Unidades. Confirma el plan de recolección y las unidades ya decididas,
+sin rediseñar la muestra ni el instrumento.
 
-### Fichas
+### Accesos
 
-- Vista previa: filtros, Copiar enlace, Generar PDF, Guardar en Monitoreo y
-  documento con QR, curso, aula, horario, facultad, docente, URL y campos
-  impresos.
-- Lista: filtros, tabla, abrir ficha, Completar enlaces y Generar PDF.
+Pestañas Canales y Vinculación. Prepara los accesos permitidos por el proveedor
+y conserva la relación trazable entre cada unidad y su enlace.
 
-### Paquete
+### Materiales
 
-- PDF final: resumen, estado de QR/Word/PDF/consolidado/Monitoreo, grupos,
-  portada y bloques imprimibles.
-- Monitoreo: Copiar respaldo, Guardar, manifest y guía de cierre.
+Pestañas Vista previa y Paquetes. Revisa las piezas con QR y produce PNG, PDF o
+el paquete de campo mediante el renderer autoritativo.
 
-Fuente: `frontend/src/features/recopiladores/RecopiladoresPage.tsx`.
+### Entrega
+
+Pestaña Monitoreo. Entrega el deployment local y conserva el recibo trazable
+para el seguimiento de campo.
+
+Fuentes: `frontend/src/lib/modules.ts`,
+`frontend/src/features/recopiladores/RecopiladoresShell.tsx`,
+`frontend/src/features/recopiladores/PlanSection.tsx`,
+`frontend/src/features/recopiladores/AccessSection.tsx`,
+`frontend/src/features/recopiladores/MaterialsSection.tsx`,
+`frontend/src/features/recopiladores/DeliverySection.tsx`.
 
 ## Monitoreo
 
-El perfil efectivo depende del backend; la sección principal usa `?tab=` y las
-pestañas locales mantienen estado interno.
+El modo efectivo depende del backend. Las direcciones usan los parámetros
+canónicos `modo`, `seccion` y `pestana`.
 
 ### Territorial
 
 - Fuente: Formulario, Filtro y distritos, Encuestadores, Reconciliación,
   Historial.
 - UMPs: Cobertura, Manzanas.
-- Validación: Geolocalización, Reconciliación, Duración, Cuotas, Anulación.
-- Consultas internas: Registro, GPS, Duración, Responsable, Subsanaciones.
-- Avance: Resumen, Mapa y UMP, Ritmo, Salidas.
-- Ocurrencias: Resumen, Reporte UMP, UMP, Alertas, Ritmo.
+- Validación: Geolocalización, Reconciliación UMP, Duración de tiempo, Cuotas,
+  Anulación.
+- Consultas internas: Registro, GPS con señal, Tiempo corto/muy corto, Cruce
+  responsable, Subsanaciones.
+- Avance: Resumen, Distritos, Mapa y UMP, Ritmo diario, Salidas.
+- Ocurrencias: Resumen, Distritos, Reporte UMP, UMP, Alertas, Ritmo.
 
 Fuentes: `frontend/src/features/monitoreo/profiles/territorial/**/*`.
 
