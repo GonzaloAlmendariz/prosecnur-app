@@ -39,10 +39,20 @@ explica la ruptura de comparabilidad.
    - una implementación modular sucesora puede abrir una serie suplementaria,
      pero nunca se suma retroactivamente a la serie retirada.
 4. Ejecuta el comando exacto y conserva su salida. Prefiere `rg`, `rg --files`,
-   `find`, `wc` y scripts versionados. Si cambias un patrón de búsqueda,
-   reporta `CAMBIO DE MÉTODO` y no calcules un delta engañoso.
+   `find`, `wc` y el medidor canónico:
+
+   ```bash
+   node scripts/debt-audit.mjs --check
+   node scripts/debt-audit.mjs --json
+   ```
+
+   Si amplías un patrón de búsqueda, reporta `CAMBIO DE MÉTODO` y no calcules
+   un delta engañoso.
 5. Distingue coincidencias literales de violaciones reales: inspecciona los
-   falsos positivos y publica ambos números cuando difieran.
+   falsos positivos y publica ambos números cuando difieran. Conserva como
+   serie comparable las métricas de `scripts/debt-audit.mjs`; un AST o una
+   revisión manual puede añadir una serie semántica, no reescribir
+   retroactivamente la histórica.
 
 ## Archivos congelados
 
@@ -70,7 +80,8 @@ Para cada eje solicitado:
   indirecta antes de recomendar una suite;
 - en working tree, distingue cambios de producto, tests, documentación,
   gobernanza y artefactos;
-- no cites una herramienta de deuda futura como si ya existiera.
+- si el medidor canónico y un comando manual difieren, reporta ambos métodos y
+  trata la discrepancia como defecto del medidor o cambio de universo.
 
 ## Formato de salida
 
