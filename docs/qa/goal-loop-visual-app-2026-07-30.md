@@ -87,7 +87,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3 · contexto) | — | **5** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso) | — | **6** | ↓ |
 | Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
@@ -107,6 +107,8 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | N3 | Dashboard | **CERRADO** en la iteración 11 con `--sembrar "Cargar fuente"`: el tablero cargado entra a la matriz y ahí apareció el defecto de 2.017 px. Texto original: **Ningún proyecto de referencia trae datos de dashboard**, así que `/tablero` rinde su compuerta de fuente y el estado cargado —el que monta los gráficos de plotly, ~10 MB de chunks— nunca se audita. La cobertura de Dashboard es de la compuerta, no del tablero. Cerrarlo exige o un proyecto de referencia con dashboard construido, o que el instrumento sepa pulsar «Cargar fuente» y esperar el render | **cerrado** |
 | N4 | Bitácora | **Ningún proyecto de referencia tiene entradas de bitácora** (los cuatro dan 0), así que el estado lleno del timeline no se puede verificar visualmente. Por eso la iteración 8 enmarcó solo la rama vacía y no tocó la poblada. Mismo patrón que N3 con Dashboard | abierto |
 | N5 | Dashboard, Bitácora y Recopiladores | **Dashboard CERRADO** (iteración 11: `--sembrar` lo mete a la matriz cargado). Bitácora y Recopiladores siguen abiertos, y peor de lo anotado: ninguno de los cuatro fixtures trae el estado **aguas arriba** —`monitoreo_aulas_plan` y `calc_muestra_aulas_selection` en cero—, así que `POST /api/recopiladores/seed` devuelve `seed_available: false`. Cerrarlos exige fixtures nuevos, no un flag. Texto original: **Patrón, no incidencia: los proyectos de referencia cubren el pipeline de análisis y no los módulos operativos aguas abajo.** Tres de los ocho módulos solo se pueden auditar vacíos —Dashboard sin datos de tablero, Bitácora con 0 entradas, Recopiladores sin plan—, y en los tres el estado con datos es la mayor parte de la superficie. Mientras no se cierre, la línea «8 de 8 auditados» significa «8 de 8 visitados», no «8 de 8 cubiertos». **Cerrarlo es su propia unidad de trabajo**: o se enriquecen los fixtures, o el instrumento aprende a sembrar estado | abierto |
+
+| N6 | los cuatro perfiles de Monitoreo | **Segundo formateador genérico copiado cuatro veces con el mismo defecto**, después de `phoneRowValue` (N1): `pct` estaba idéntico en los cuatro perfiles y los cuatro imprimían `0%` para un `null`. La decisión de independencia entre perfiles es sobre **semántica de familia**, no sobre formateadores genéricos —`pct`, `fmt`, `num`, `rowNumber` no tienen nada de familia—. Mientras vivan copiados, un defecto en uno es un defecto en cuatro y se arregla cuatro veces o no se arregla. **Es su propia unidad**: mover las primitivas puras a un módulo compartido del módulo Monitoreo sin tocar la semántica de perfil | abierto |
 
 ## Bandeja de decisiones
 
@@ -159,6 +161,36 @@ a empezar.
 | 10 | 31 jul | **Enciclopedia — retirada** | Auditada (`geometryGroups=0`, `coverageMisses=5`, verde por ausencia como las demás) y, en la misma vuelta, **retirada de la app por decisión del dueño**. La órbita pasa de nueve posiciones a ocho | superficie, router, 3 JSON huérfanos y `TabStrip` fuera · [ADR 0051](../adrs/0051-retiro-de-enciclopedia.md) | `44374172`, y el retiro |
 
 | 11 | 31 jul | **N5 · Dashboard** | **El instrumento aprende a sembrar (`--sembrar`) y el Dashboard cargado entra por primera vez a la matriz.** Detrás del estado sembrado apareció el mayor defecto del goal: 2.017 px de curaduría inalcanzables | scrollJails 1→**0** · defectos reparados 4→**5** · N5 cerrado para Dashboard | `23d20376`, `774828d8`, `486a5f7b` |
+
+| 12 | 31 jul | **Monitoreo** | **Primera vez que este goal mide Monitoreo** —la iteración 1 fue el prerrequisito estructural, no una auditoría—. Reporte limpio; el defecto salió de leer la captura contra sí misma: el rail decía `Avance 0%` y la superficie de abajo, «sin meta declarada» | rail `0%` → **`S/D`** · defectos reparados 5→**6** · 4 copias corregidas sin crecer | `f43429be` |
+
+### Nota de la iteración 12
+
+**El defecto no salió de comparar módulos sino de leer una captura contra sí
+misma.** El rail afirmaba `Avance 0%` y quince centímetros más abajo la misma
+pantalla decía «sin meta declarada». Ninguna de las dos frases es incorrecta
+por separado; juntas se contradicen, y eso solo se ve mirando la imagen
+completa. El comprobador dio `ok=true` en los cinco viewports.
+
+**El backend estaba bien y el defecto era una coerción.** `Number(null) === 0`
+y `Number.isFinite(0) === true`, así que un `avance_pct: null` —que el motor
+manda correctamente cuando no hay meta— se imprimía como `0%`. El backend decía
+«no sé» y la interfaz lo traducía a «cero». Es la clase de defecto que ningún
+detector visual encuentra: **la geometría estaba perfecta, el dato era falso.**
+
+Vale anotar el contraste con el resto del goal: once vueltas encontrando marcos,
+recortes y scroll, y la primera que toca el significado de una cifra viene del
+mismo método —mirar— aplicado a otra capa.
+
+**La regla ya estaba escrita.** `corteContract.ts` dice, en un comentario:
+«un porcentaje sin denominador es una afirmación sin respaldo», y su
+`textoAvance` maneja el caso. El contrato existía; faltaba aplicarlo en el rail.
+Cuando una regla de la casa está escrita y hay un sitio que no la cumple, el
+trabajo no es decidir nada: es ir a aplicarla.
+
+**Y el patrón vuelve** (N6): segundo formateador genérico copiado cuatro veces
+con el mismo defecto, después de `phoneRowValue`. La independencia entre
+perfiles es sobre semántica de familia; `pct` y `fmt` no tienen familia.
 
 ### Nota de la iteración 11
 
