@@ -87,7 +87,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **7** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **8** | ↓ |
 | Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | Definiciones duplicadas de formateadores en Monitoreo | 31 | **28** | ↓ |
@@ -170,6 +170,38 @@ a empezar.
 | 13 | 31 jul | **Procesamiento** + N6 | Procesamiento sale **limpio en las 25 capturas** y sus cifras no se contradicen. Sin defecto que reparar ahí, la vuelta ataca N6: `pct` deja de estar copiado cuatro veces | 25 capturas ok · duplicados 31→**28** · 4 archivos más chicos | `5a162b71` |
 
 | 14 | 31 jul | **Dashboard** | **Primera vez que se ve el tablero construido**, encadenando dos siembras. Y ahí apareció que la página se declaraba lista mientras renderizaba «Cargando dashboard…» | readiness honesta · defectos reparados 6→**7** · N7 abierto | `db517c85` |
+
+| 15 | 31 jul | **Hojas de ruta** | **Nueve defectos en una auditoría, el conteo más alto del goal** — y aparecieron al bajar un nivel: la primera órbita solo había visto el aterrizaje. Los nueve son el mismo recorte de nombre de distrito en la matriz poblacional | issues 9→**0** · defectos reparados 7→**8** | `544a787e` |
+
+### Nota de la iteración 15
+
+**Auditar el aterrizaje no es auditar el módulo.** Hojas de ruta cerró la
+primera órbita en verde midiendo solo `/hojas-ruta`, que aterriza en Territorio.
+Bastó pedir `?seccion=poblacion` y `?seccion=muestra` para que salieran nueve
+recortes. La lección para el resto de la segunda órbita: **la matriz de
+viewports cubre anchos, no profundidad**; un módulo con secciones necesita una
+dirección por sección o su cobertura es del vestíbulo.
+
+**El criterio se reusó por tercera vez y ya no hizo falta medir.** «¿Envolver
+desacomoda las columnas?» se resolvió en las tablas de territorial (iteración
+previa al goal), se reusó en la franja de Cálculo de muestra (iteración 6) y
+aquí otra vez: la columna está clavada por `width/min-width/max-width` y es
+`sticky`, así que su ancho lo decide la declaración. Un criterio bien escrito se
+amortiza; el detector no lo sabe, el registro sí.
+
+**Una regla correcta aplicada de más.** `white-space: nowrap` sobre todo `th`/
+`td` es lo que corresponde a las columnas numéricas y lo contrario de lo que
+necesita la etiqueta de fila. El defecto no era una regla equivocada sino una
+regla sin excepción declarada.
+
+**Y una nota de método:** la tabla vive bajo el pliegue —`y ≈ 1.433` en un
+viewport de 1.000—, así que la captura de QA no la muestra. Verificarla exigió
+subir el alto del viewport a 1.900. **El detector mide el documento entero; la
+captura solo el viewport.** Cuando el reporte señala algo que la imagen no
+contiene, la imagen es la que se queda corta.
+
+Queda abierto: las cuatro secciones internas no declaran geometría
+(`coverageMisses=4`). Se anota para la próxima visita al módulo.
 
 ### Nota de la iteración 14
 
