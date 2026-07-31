@@ -91,6 +91,9 @@ jobs:
       - name: Repository script contract tests
         run: node --test scripts/tests/*.test.mjs
 
+      - name: Check technical-debt baseline
+        run: node scripts/debt-audit.mjs --check
+
       - name: Frontend typecheck
         run: pnpm -C frontend exec tsc --noEmit --pretty false
 
