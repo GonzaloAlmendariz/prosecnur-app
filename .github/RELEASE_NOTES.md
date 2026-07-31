@@ -1,6 +1,10 @@
-# Prosecnur 0.5.16 — Apertura segura de formularios
+# Prosecnur 0.6.0 — Bitácora espacial y navegación direccionable
 
-- Editor de formularios: permite abrir los instrumentos guardados en el proyecto también desde una instalación nueva, otra computadora o una sesión sin caché local.
-- Editor de formularios: recupera correctamente instrumentos que no incluyen una hoja opcional de diagnóstico, sin obligarte a importarlos nuevamente.
-- Editor de formularios: distingue con claridad una publicación bloqueada de la posibilidad de abrir y continuar editando el instrumento.
-- Editor de formularios: muestra la primera observación que impide publicar y cuántas quedan pendientes, para orientar la revisión.
+- Bitácora: el estudio se puede dibujar en un lienzo espacial con nodos, conexiones y despliegue de ramas, con deshacer y rehacer. Los nodos apuntan a piezas reales de la app, a hitos o a entradas de la bitácora, y el mapa completo se exporta e importa. El cronograma se arma por fases dentro de la app y un centro de avisos reúne las alertas sin interrumpir el trabajo.
+- Navegación: toda vista tiene dirección propia y se puede compartir. Cada pantalla, panel y pestaña queda descrita en la barra de direcciones, así que un enlace lleva exactamente a donde estabas. Al abrir un proyecto se aterriza en su propio inicio, nunca en una pantalla heredada de otro estudio, y los ocho módulos comparten el mismo encabezado.
+- Monitoreo territorial: la correspondencia entre las variables que el módulo necesita y las columnas de la base se declara a mano, en la primera pestaña de UMPs. Antes se adivinaba sola y podía errar en silencio —una columna vacía, o una parecida pero distinta—, produciendo cifras creíbles y equivocadas. Cada variable muestra ahora su cobertura de datos y un ejemplo real.
+- Monitoreo: las fuentes se organizan por la pregunta que responden —qué se recoge, con qué actores y por dónde entra— en lugar de por el servicio técnico de origen. El ritmo diario muestra en qué terminó cada llamada, el embudo se lee en Avance y un caso completo que no cruza aparece primero, porque es lo que hay que rescatar.
+- Recopiladores: módulo nuevo para preparar la salida a campo, con plan de recolección, accesos, materiales y entrega, incluida la ficha de encuestador con su código QR.
+- Cálculo de muestra: el Marco distingue el total de elegibles del promedio por curso-horario y nombra cada cifra por lo que es, para que no se lean como conteo de personas.
+- Rendimiento: el arranque resuelve en paralelo sus comprobaciones y los proyectos recientes; Monitoreo conserva sus reportes dentro del proyecto en vez de recalcularlos y cancela de verdad las consultas al cambiar de pantalla; importar desde SurveyMonkey o Kobo ya no congela la interfaz.
+- Correcciones de legibilidad: los nombres de distrito, responsable y base dejan de recortarse; el texto de Monitoreo telefónico recupera sus tildes; las barras de insistencia vuelven a sumar 100%; un avance sin meta declarada deja de mostrarse como 0%; y los errores de Kobo que el usuario puede resolver se explican como tales en vez de llegar como fallo interno.
