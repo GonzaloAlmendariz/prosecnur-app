@@ -88,8 +88,14 @@ jobs:
       - name: Desktop lifecycle tests
         run: pnpm -C desktop test
 
+      # Los contratos de scripts se reparten por la infraestructura que exigen,
+      # no por tema: aquí corren los que sólo necesitan Node y el node_modules
+      # del frontend (css-cascade-audit resuelve postcss desde ahí). Se excluye
+      # por nombre en vez de listar los incluidos, para que un test nuevo entre
+      # a este job por defecto en lugar de quedar sin correr en ninguno.
       - name: Repository script contract tests
-        run: node --test scripts/tests/*.test.mjs
+        run: |
+          node --test $(ls scripts/tests/*.test.mjs | grep -vE 'check-r-lock|ui-quick-check-geometry|ui-quick-check-readiness-contract|visual-qa-readiness')
 
       - name: Check product and system vaults
         run: node scripts/vaults-check.mjs --check
@@ -130,6 +136,18 @@ jobs:
         uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: ${{ env.R_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Vive aquí y no en `frontend` porque ejecuta los descargadores de
+      # binarios R con Rscript: sin R en el PATH el proceso ni arranca y el
+      # assert sólo puede reportar `null null`. Va antes del grueso del job
+      # para que un lock roto avise en segundos, no a los 27 minutos.
+      - name: R lock and offline installer contract tests
+        run: node --test scripts/tests/check-r-lock.test.mjs
 
       - name: Install R system dependencies
         run: |
@@ -192,3 +210,41 @@ jobs:
 
       - name: R tests
         run: Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); pkgload::load_all('api', quiet = TRUE); testthat::test_dir('api/tests/testthat', reporter = 'summary')"
+
+  # Los contratos del inspector visual arrancan Chromium de verdad
+  # (ui-quick-check.mjs hace chromium.launch() con el @playwright/test del
+  # frontend). Corriendo en el job `frontend`, que no instala navegadores, el
+  # runner moría sin escribir su report.json y el síntoma era un ENOENT que no
+  # nombraba la causa. Job propio: es el único que paga la descarga del
+  # navegador, y no bloquea al typecheck ni al suite R.
+  ui-contracts:
+    name: UI contracts (quick-check, visual QA)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install frontend dependencies
+        run: pnpm -C frontend install --frozen-lockfile
+
+      # --with-deps trae las librerías de sistema que Chromium necesita en
+      # ubuntu headless; sin ellas el navegador instala pero no levanta.
+      - name: Install Chromium for Playwright
+        run: pnpm -C frontend exec playwright install --with-deps chromium
+
+      - name: UI quick-check and visual QA contract tests
+        run: |
+          node --test \
+            scripts/tests/ui-quick-check-geometry.test.mjs \
+            scripts/tests/ui-quick-check-readiness-contract.test.mjs \
+            scripts/tests/visual-qa-readiness.test.mjs
