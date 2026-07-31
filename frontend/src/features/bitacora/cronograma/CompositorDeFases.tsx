@@ -24,7 +24,7 @@ import { etiquetaRango, fasesSolapadas, rangoDelEstudio } from "./fases";
  * Vista de entrada del cronograma (ADR 0047).
  *
  * La unidad que el usuario crea es el RANGO DE FECHAS DE UNA FASE, elegida de
- * las seis del catálogo. Antes el cronograma era el espejo de un Excel y el
+ * las del catálogo. Antes el cronograma era el espejo de un Excel y el
  * backend adivinaba a qué módulo pertenecía cada actividad leyendo su texto;
  * acá la fase se elige y esa elección no se vuelve a pisar.
  *
@@ -108,7 +108,17 @@ export function CompositorDeFases({
             de su módulo —el mismo ícono y color que el usuario ya ve en la
             barra de módulos—, así la etapa se reconoce como una parte concreta
             de la app y no como una abstracción de cronograma. */}
-        <ol className="bit-riel" aria-label="Las seis etapas de un estudio">
+        {/* El número sale del catálogo, no del texto. Decía «seis» y el
+            canon tiene cinco desde que se quitó la fase «Diseño» a propósito
+            —`bitacora_fases.R` lo explica: una fase que apunta al módulo donde
+            ya estás parado no declara nada—. Un conteo escrito a mano envejece
+            en silencio; derivado, no puede. */}
+        <ol
+          className="bit-riel"
+          aria-label={`Las ${estado.catalogo_fases.length} etapas de un estudio`}
+          data-qa-geometry-group="bitacora/riel-fases"
+          data-qa-geometry-contract="intrinsic"
+        >
           {estado.catalogo_fases.map((f) => {
             const id = identidadDeFase(f.modulo, f.seccion);
             const Icono = id.icono;
@@ -138,7 +148,7 @@ export function CompositorDeFases({
             onClick={() => void ejecutar(() => apiBitacoraSembrarFases())}
           >
             {guardando ? <Loader2 size={15} className="spin" /> : <Sparkles size={15} />}
-            <span>Sembrar las seis fases</span>
+            <span>Sembrar las {estado.catalogo_fases.length} fases</span>
           </button>
           <button
             type="button"
