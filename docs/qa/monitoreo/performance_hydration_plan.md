@@ -1,5 +1,11 @@
 # Monitoreo performance & hydration plan
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-28
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de performance y arquitectura de Monitoreo](../historico/monitoreo-performance-arquitectura-2026-06.md)
+
 Updated: 2026-06-28
 
 Scope: Monitoreo Territorial and Monitoreo Acreditacion. Source of truth:

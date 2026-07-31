@@ -1,5 +1,10 @@
 # Auditoría del ADR 0019 — Monitoreo de cursos-horario
 
+Tipo: Auditoría QA
+Estado: Vigente
+Fecha: 2026-07-30
+Autoridad: Evidencia de cumplimiento del ADR 0019; no sustituye la decisión arquitectónica
+
 **Fecha:** 30 de julio de 2026
 **Pregunta que la origina:** ¿el perfil de cursos-horario tiene todos los elementos que propone su ADR?
 **Método:** lectura estática del backend R, el frontend y la suite de tests, contrastada cláusula por cláusula

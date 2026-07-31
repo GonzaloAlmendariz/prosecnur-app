@@ -1,5 +1,11 @@
 # Acreditacion UI audit
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-27
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo de acreditación](../historico/monitoreo-acreditacion-2026-06.md)
+
 Loop date: 2026-06-27
 
 ## Scope lock evidence

@@ -1,5 +1,10 @@
 # Plan de trabajo de mejoras — 2026-07
 
+Tipo: Plan QA
+Estado: En curso
+Fecha: 2026-07-23
+Autoridad: Priorización operativa; no reemplaza ADR, contratos ni gates ejecutables
+
 Derivado de la auditoría integral del 2026-07-23 (4 ejes: deuda estructural, backend R,
 frontend/estética, metodología) y de las 2 pasadas profundas de Monitoreo
 (`deuda-monitoreo.md`). Principio rector: **primero blindar, luego detener el crecimiento,

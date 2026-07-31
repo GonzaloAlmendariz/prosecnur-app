@@ -1,5 +1,11 @@
 # Plan end-to-end: Editor, Monitoreo, Procesamiento y PPT de acreditacion
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-20
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Carga y acreditación](../historico/carga-acreditacion-2026-07.md)
+
 Fecha: 2026-07-20
 
 Decision controladora: [ADR 0040](../../adrs/0040-flujo-acreditacion-formularios-monitoreo-procesamiento-ppt.md).

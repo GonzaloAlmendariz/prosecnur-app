@@ -9,6 +9,10 @@ const MARKDOWN_LINK = /!?\[[^\]]*\]\((<[^>]+>|[^)\s]+)(?:\s+["'][^)]*["'])?\)/g
 const ADR_FILE = /^(\d{4})-[^/]+\.md$/
 const ADR_HEADING = /^#\s+ADR\s+(\d{4})\b/m
 const REQUIRED_ADR_SECTIONS = ['Contexto', 'Decision', 'Consecuencias', 'Cumplimiento', 'Notas']
+const QA_STATUSES = ['Vigente', 'En curso', 'Histórico', 'Reemplazado']
+const QA_REQUIRED_FIELDS = ['Tipo', 'Estado', 'Fecha', 'Autoridad']
+const QA_LIFECYCLE_LINK = /^\[[^\]\n]+\]\(([^)\s]+\.md(?:#[^)\s]+)?)\)$/
+const QA_TRANSIENT_PATH = /\/Users\/|\/private\/tmp\/|\/private\/var\/|\/tmp\/|file:\/\/|(?:^|[\s("'`=:])(?:tmp|output|outputs|artifacts|screenshots)\//im
 
 const slash = (value) => value.split(path.sep).join('/')
 
@@ -75,6 +79,19 @@ function canonicalStatus(raw) {
 
 function canonicalDate(raw) {
   return raw?.match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0] ?? null
+}
+
+function validIsoDate(raw) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw ?? '')) return false
+  const parsed = new Date(`${raw}T00:00:00Z`)
+  return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === raw
+}
+
+function markdownLocalDocumentLink(raw) {
+  const match = raw?.match(QA_LIFECYCLE_LINK)
+  if (!match) return false
+  const target = localTarget(match[1])
+  return target !== null && !path.isAbsolute(target)
 }
 
 function canonicalSection(value) {
@@ -157,6 +174,40 @@ export function runDocsGovernanceAudit(repoRoot) {
   const orphans = docs.filter((file) => !reachable.has(file)).map((file) => slash(path.relative(repoRoot, file)))
   for (const orphan of orphans) errors.push(`${orphan}: Markdown no alcanzable desde docs/README.md`)
 
+  const qaRoot = path.join(docsRoot, 'qa')
+  const qaIndexPaths = new Set([
+    path.join(qaRoot, 'README.md'),
+    path.join(qaRoot, 'historico', 'README.md')
+  ])
+  const qaFiles = docs.filter((file) => file.startsWith(`${qaRoot}${path.sep}`) && !qaIndexPaths.has(file))
+  const qaStatusCounts = Object.fromEntries(QA_STATUSES.map((status) => [status, 0]))
+
+  for (const file of qaFiles) {
+    const relFile = slash(path.relative(repoRoot, file))
+    const text = fs.readFileSync(file, 'utf8')
+    const fields = Object.fromEntries(QA_REQUIRED_FIELDS.map((field) => [field, firstField(text, field)]))
+
+    for (const field of QA_REQUIRED_FIELDS) {
+      if (!fields[field]) errors.push(`${relFile}: ${field} ausente o vacío`)
+    }
+
+    const status = fields.Estado
+    if (status && !QA_STATUSES.includes(status)) errors.push(`${relFile}: Estado QA no canónico: ${status}`)
+    else if (status) qaStatusCounts[status] += 1
+
+    if (fields.Fecha && !validIsoDate(fields.Fecha)) errors.push(`${relFile}: Fecha ISO inválida: ${fields.Fecha}`)
+
+    if (status === 'Histórico' && !markdownLocalDocumentLink(firstField(text, 'Consolidado en'))) {
+      errors.push(`${relFile}: Consolidado en exige un enlace Markdown local hacia .md`)
+    }
+    if (status === 'Reemplazado' && !markdownLocalDocumentLink(firstField(text, 'Reemplazado por'))) {
+      errors.push(`${relFile}: Reemplazado por exige un enlace Markdown local hacia .md`)
+    }
+    if ((status === 'Vigente' || status === 'En curso') && QA_TRANSIENT_PATH.test(text)) {
+      errors.push(`${relFile}: documento ${status} contiene una ruta local o transitoria`)
+    }
+  }
+
   const adrDir = path.join(docsRoot, 'adrs')
   const adrFiles = docs.filter((file) => path.dirname(file) === adrDir && ADR_FILE.test(path.basename(file)) && !path.basename(file).startsWith('0000-'))
   const indexPath = path.join(adrDir, 'README.md')
@@ -213,7 +264,9 @@ export function runDocsGovernanceAudit(repoRoot) {
       adrFiles: adrFiles.length,
       adrIds: ids.size,
       adrIndexRows: indexRows.length,
-      statusCounts
+      statusCounts,
+      qaFiles: qaFiles.length,
+      qaStatusCounts
     }
   }
 }
@@ -224,6 +277,7 @@ export function formatDocsGovernanceAudit(result) {
     `Markdown: ${report.reachable}/${report.markdownFiles} alcanzables; ${report.linksChecked} enlaces locales verificados.`,
     `ADR: ${report.adrFiles} archivos, ${report.adrIds} IDs, ${report.adrIndexRows} filas de índice.`,
     `Estados: ${Object.entries(report.statusCounts).map(([status, count]) => `${status}=${count}`).join(', ')}.`,
+    `QA: ${report.qaFiles} documentos; ${Object.entries(report.qaStatusCounts).map(([status, count]) => `${status}=${count}`).join(', ')}.`,
     `Errores: ${result.errors.length}; advertencias: ${result.warnings.length}.`
   ].join('\n')
 }

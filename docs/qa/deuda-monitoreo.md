@@ -1,5 +1,10 @@
 # Deuda estructural del módulo Monitoreo
 
+Tipo: Medición QA
+Estado: Vigente
+Fecha: 2026-07-23
+Autoridad: Evidencia estructural fechada; complementa el baseline de deuda
+
 Registro detallado de la deuda más grande del repo, medida el 2026-07-23 con dos auditorías
 de solo lectura (arquitectura/dependencias y performance/caché). Complementa el eje 1 de
 `deuda-baseline.md`. Origen conocido: los cuatro tipos de monitoreo nacieron dentro de un

@@ -1,5 +1,11 @@
 # Auditoría visual exhaustiva de Monitoreo
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-25
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de reparaciones visuales de Monitoreo](../historico/monitoreo-reparaciones-visuales-2026-07.md)
+
 **Fecha:** 25 de julio de 2026
 **Alcance:** Territorial, Acreditación, Aulas universitarias y Telefónico
 **Veredicto global:** **RECHAZADO VISUALMENTE hasta resolver los P1**

@@ -1,5 +1,11 @@
 # ACRDCONTA: checklist de revision de logica
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-20
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Carga y acreditación](../historico/carga-acreditacion-2026-07.md)
+
 Fecha de preparacion: 2026-07-20
 
 Proyecto de trabajo recomendado:

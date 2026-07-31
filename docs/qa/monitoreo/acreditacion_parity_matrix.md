@@ -1,5 +1,11 @@
 # Acreditacion parity matrix
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-28
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo de acreditación](../historico/monitoreo-acreditacion-2026-06.md)
+
 Scoring: 0 = absent, 1 = label only, 2 = partial UI without backend parity, 3 = useful partial, 4 = near-complete for the worked slice, 5 = complete with visual/function/backend evidence.
 
 | Attempt | Section | Sidebar tab | UI score | Functional score | Backend exposure | States score | Visual polish | Cache/Perf | Outputs | Status | Evidence | Next repair |

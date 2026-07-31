@@ -1,5 +1,11 @@
 # Ocurrencias de campo — repaso de utilidad de las cinco pestañas
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-26
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de reparaciones visuales de Monitoreo](../historico/monitoreo-reparaciones-visuales-2026-07.md)
+
 **Fecha:** 26 de julio de 2026
 **Referente:** `acnur_acg` (ACNUR ACG) — 1.693 registros, 158 reportes de ocurrencia,
 10.649 intentos, 138/150 UMP con registro, 7 distritos

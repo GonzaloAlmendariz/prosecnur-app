@@ -1,5 +1,11 @@
 # Auditoría y rollout de Agentic OS — 2026-07-19
 
+Tipo: Auditoría QA fechada
+Estado: Reemplazado
+Fecha: 2026-07-19
+Autoridad: Evidencia histórica; el contrato vigente reside en la documentación de Agentic OS
+Reemplazado por: [Agentic OS de Prosecnur](../agentic-os.md)
+
 Estado: núcleo global instalado y verificado; pilotos read-only completados.
 Adopción project-local permanece opt-in.
 

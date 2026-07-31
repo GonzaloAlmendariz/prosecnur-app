@@ -1,5 +1,10 @@
 # Estado del pulido estético de Monitoreo
 
+Tipo: Registro QA
+Estado: En curso
+Fecha: 2026-07-30
+Autoridad: Bitácora operativa; no certifica por sí sola el estado actual del producto
+
 Registro iniciado el 2026-07-30 desde un proyecto `acrconta` abierto. El
 inventario sigue el orden publicado por `window.__pulsoNav.manifiesto`: cuatro
 modos y 26 nodos de modo/sección. **Las etiquetas de sección no son sus claves**

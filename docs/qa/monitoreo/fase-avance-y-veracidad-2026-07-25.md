@@ -1,5 +1,11 @@
 # Fase «Avance y veracidad» — reparación de Monitoreo
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-07-25
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de reparaciones visuales de Monitoreo](../historico/monitoreo-reparaciones-visuales-2026-07.md)
+
 **Origen:** [auditoría visual exhaustiva del 25-07-2026](auditoria-visual-exhaustiva-2026-07-25.md)
 **Estado:** plan aprobado para ejecución en oleadas
 **Foco declarado:** las pestañas de la sección **Avance** en Territorial y Acreditación

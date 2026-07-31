@@ -1,5 +1,11 @@
 # Territorial canonical extraction map
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-27
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo territorial](../historico/monitoreo-territorial-2026-06.md)
+
 This map was created before code changes in the canonical extraction loop. The source of truth is `frontend/src/features/monitoreo/MonitoreoPage.tsx`; `frontend/src/features/monitoreo/profiles/territorial/TerritorialMonitoreoPage.tsx` is treated as an incomplete target until each row has concrete target evidence.
 
 ## Baseline evidence

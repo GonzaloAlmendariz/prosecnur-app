@@ -1,5 +1,11 @@
 # Acreditacion UI deep audit
 
+Tipo: Fuente histórica QA
+Estado: Histórico
+Fecha: 2026-06-30
+Autoridad: Evidencia histórica fechada; no certifica el producto actual
+Consolidado en: [Síntesis de Monitoreo de acreditación](../historico/monitoreo-acreditacion-2026-06.md)
+
 ## Scope lock - Iteration 24
 
 - Module: `Monitoreo > Acreditacion > Modelo > Enlaces`.

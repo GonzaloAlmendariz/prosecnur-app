@@ -1,5 +1,10 @@
 # Prompt — validación visual sobre proyectos de referencia
 
+Tipo: Prompt operativo QA
+Estado: Vigente
+Fecha: 2026-07-30
+Autoridad: Guía reutilizable de validación; no constituye evidencia de una ejecución
+
 Prompt reutilizable para abrir una sesión nueva que valide la UI de Prosecnur
 contra los estudios reales anonimizados (ADR 0043) en vez de la semilla
 sintética. Copiar desde la línea siguiente.
