@@ -122,7 +122,7 @@ una letra; el loop sigue solo mientras tanto.
 
 | # | Módulo · superficie | Decisión | Estado |
 |---|---|---|---|
-| 1 | Telefónico · Llamadas › Sin efectiva | Denominador de las barras de insistencia (dan 130%) | **RESUELTA (31 jul) → A**: el denominador pasa a ser los casos con **≥1 intento**, de modo que la distribución cierre en 100. Pendiente de implementar: es cálculo, va con su verificación sobre `acnur_pdm` |
+| 1 | Telefónico · Llamadas › Sin efectiva | Denominador de las barras de insistencia (dan 130%) | **RESUELTA (31 jul) → A**: el denominador pasa a ser los casos con **≥1 intento**, de modo que la distribución cierre en 100. **Implementada** en `b48336f6`. Eran **dos** defectos superpuestos: el denominador equivocado y el suelo de visibilidad de 3 % aplicado sin renormalizar —con seis segmentos son 18 % de piso, así que arreglar solo el denominador no habría cerrado la distribución—. La garantía vive en `anchosDeSegmentos.test.ts` y **no** en una captura: la pestaña «Sin efectiva» está bloqueada en el proyecto de referencia (N5) |
 | 2 | Territorial · Modelo › Manzanas | La fila del UMP expandido colapsa a 2 px. **A:** retirar la expansión inline (la Ficha UMP ya muestra el dato). **B:** rehacer el reparto de alto. Recomiendo A | abierta |
 | 3 | Territorial · tablas | Ancho de columna en las tres tablas (83 datos recortados en Reporte UMP). Decisión única para las tres | abierta |
 | 4 | Los cuatro modos · espaciado | Adoptar `--pulso-space-1..9` en el chrome compartido (`monitoreo.css`, `profilePage.css`) | abierta |
