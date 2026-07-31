@@ -52,14 +52,49 @@ tres anteriores. No se da por cerrado un corte si una de las cinco diverge.
 - Patrón: `Módulo: verbo en presente + beneficio`.
 - Explica qué cambió y para qué sirve; omite archivos, funciones, SHAs,
   refactors, stack traces y herramientas internas.
-- Usa verbos de valor: agrega, permite, muestra, corrige, acelera, estabiliza,
-  evita.
 - Consolida series de commits; no los traduzcas uno por uno ni inventes efectos
   para llenar la lista.
 - Un fix describe el comportamiento correcto conseguido, no detalles
   vergonzosos del defecto.
 - El nombre del corte en el documento sigue el patrón ya existente y resume el
   tema dominante.
+- Una idea por viñeta, y como mucho tres oraciones. Una viñeta con cuatro
+  cláusulas subordinadas no es exhaustiva: es un párrafo sin decidir qué
+  importa. Pártela o recórtala.
+
+### Prohibiciones de redacción
+
+Estas no son preferencias de gusto. Cada una marca prosa escrita en piloto
+automático, y quien lee las notas reconoce el tono antes que el contenido.
+
+- **Nada de guion largo (`—`)**. En español el inciso va con comas, con
+  paréntesis o con punto y seguido. El guion largo se volvió muletilla y
+  aparece donde el autor no decidió la puntuación. Verificable:
+  `grep -c '—' frontend/src/features/home/releaseNotes.ts` debe dar 0 en las
+  entradas nuevas.
+- **Ni «permite» ni «posibilita» ni «brinda la posibilidad de»**. El sujeto es
+  la app o la persona: «Codificación asigna una respuesta a varias
+  categorías», no «Codificación permite asignar». Si el verbo real no aparece,
+  la frase no dice qué pasa.
+- **Sin la coletilla «para que puedas…»**. El beneficio se enuncia, no se
+  justifica al final de cada línea.
+- **Sin adjetivos de folleto**: robusto, potente, optimizado, intuitivo,
+  moderno, fluido, mejorado, avanzado. No aportan información y no se pueden
+  comprobar.
+- **No parafrasear el nombre del módulo**. «Monitoreo: mejora el monitoreo del
+  campo» gasta la línea que debía traer el dato.
+- **No abrir todas las viñetas igual.** Tres «Ahora puedes…» seguidos delatan
+  plantilla.
+- **Nada de superlativos ni de cifras vagas** («mucho más rápido»,
+  «notablemente»). O va el número medido, o va el hecho sin adorno.
+
+### El criterio de fondo
+
+Una nota sirve cuando alguien que usó la versión anterior reconoce qué le
+cambia el trabajo. Antes de dejar una viñeta, comprueba que responde a **qué
+puede hacer hoy que ayer no**, o **qué dejó de fallar**. Si la respuesta es
+«se mejoró internamente», es un commit, no un highlight: va a la fila del
+documento de versiones, no a las notas que lee la persona usuaria.
 
 ## Cierre
 
