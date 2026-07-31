@@ -82,8 +82,8 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 7 módulos + Enciclopedia | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **31** | ↑ hasta cubrir toda colección |
-| Superficies principales con 0 declaraciones geométricas | 3 | **2** | ↓ a 0 |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **33** | ↑ hasta cubrir toda colección |
+| Superficies principales con 0 declaraciones geométricas | 3 | **1** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
 | Defectos C4 abiertos (contenido inalcanzable) | — | **0 en Procesamiento** | ↓ |
@@ -94,7 +94,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 8 | **2 de 8** | ↑ a 8 |
+| Módulos auditados con el instrumento | 1 de 8 | **3 de 8** | ↑ a 8 |
 | Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
@@ -103,6 +103,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 |---|---|---|---|
 | N1 | telefónico y acreditación | `phoneRowValue` está **definido cuatro veces** en el repo con el mismo cuerpo: en los dos page-files y en `TelefonicoPhoneDailyTrend.ts:198` y `AcreditacionPhoneDailyTrend.ts:198`. Cada perfil puede mantener el suyo —esa es la decisión de independencia— pero tener dos copias *dentro* del mismo perfil no la sirve | abierto |
 | N2 | telefónico | El racimo `AcreditacionPhone*` de comparación teléfono↔plataforma (`TelefonicoMonitoreoPage.tsx:7117-7483`) tiene **35 dependencias hacia declaraciones del page-file**, la más lejana en la línea 15.016. Es la atadura medida que impide extraerlo: cualquier intento crea un ciclo de imports. Cortarla es su propia unidad de trabajo | abierto |
+| N3 | Dashboard | **Ningún proyecto de referencia trae datos de dashboard**, así que `/tablero` rinde su compuerta de fuente y el estado cargado —el que monta los gráficos de plotly, ~10 MB de chunks— nunca se audita. La cobertura de Dashboard es de la compuerta, no del tablero. Cerrarlo exige o un proyecto de referencia con dashboard construido, o que el instrumento sepa pulsar «Cargar fuente» y esperar el render | abierto |
 
 ## Bandeja de decisiones
 
@@ -136,6 +137,26 @@ a empezar.
 | 1 | 30 jul | Monitoreo | **El audit estaba en rojo: tres congelados crecieron durante la tanda de pulido.** No se subieron las líneas base: se pagó el peaje. Tres extracciones literales, sin tocar un cuerpo de función | engine -1.319 · router -930 · telefónico -166 · audit rojo→**verde** | `fbe7a791`, `712159f7`, `89145285` |
 | 2 | 30 jul | **Procesamiento · Gráficos** | **La sección estaba fuera del instrumento, no solo sin declarar.** `/graficos` no figuraba en `PROCESSING_ROUTES`, así que la matriz por defecto nunca la miró: 33.023 líneas de CSS y cero geometría, sin que nada se quejara | geometryGroups 0→10 · coverageMisses 5→0 · superficies principales sin geometría 3→**2** · rutas de la matriz 4→5 | `f2dfb95a` |
 | 3 | 30 jul | **Procesamiento** | **Primer defecto C4 del goal: Carga atrapaba 300 px en pantallas cortas.** Y las dos colecciones que el comprobador descubrió solas quedan declaradas | issues 1→**0** · geometryGroups 15→**60** · coverageMisses 45→**0** · secciones sin geometría 5→3 | `ccbb2f61`, `11cde117` |
+
+| 4 | 30 jul | **Dashboard** | Tercera superficie principal con cero geometría. Las dos colecciones de la compuerta de fuente quedan declaradas `equal`. **Pero solo se auditó la compuerta**: ningún proyecto de referencia trae datos de dashboard | geometryGroups 0→**10** · coverageMisses 5→**0** · superficies sin geometría 2→**1** | `80f843e7` |
+
+### Nota de la iteración 4
+
+**`equal` no es una promesa universal, es una promesa sobre los viewports que se
+miden.** `.dash-source-grid` colapsa a una columna bajo 700 px, y ahí sus dos
+paneles tendrían alturas distintas —correctamente, porque apilados ya no
+comparten fila—. Declarar `equal` habría sido falso si la matriz bajara hasta
+ese ancho; como baja hasta 1024, es exacto. **Antes de declarar `equal` en una
+rejilla que colapsa, hay que mirar dónde está el breakpoint contra la matriz**,
+y dejarlo escrito para que el siguiente no tenga que redescubrirlo.
+
+**Lo que esta iteración NO cubrió, dicho con todas las letras.** `/tablero`
+rinde su compuerta de fuente porque `acnur_acg` no trae dashboard construido. El
+estado cargado —el que monta los gráficos de plotly— sigue sin auditar, y con él
+la mayor parte de la superficie del módulo. Contar Dashboard como «auditado» en
+el ledger sería exactamente el verde por ausencia que este goal persigue, así
+que queda como hallazgo N3 y el módulo volverá a la órbita con esa deuda
+explícita.
 
 ### Nota de la iteración 3
 
