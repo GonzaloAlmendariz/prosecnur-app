@@ -28,44 +28,127 @@ if (!file.exists(desc_path)) {
   stop("No se encontró api/DESCRIPTION. Ejecutá este script desde la carpeta de Prosecnur.", call. = FALSE)
 }
 
+lock_path <- file.path(repo_root, "api", "renv.lock")
+if (!file.exists(lock_path)) {
+  stop("No se encontró api/renv.lock; no se instalarán dependencias sin resolución exacta.", call. = FALSE)
+}
+
 cat(sprintf("[Prosecnur] carpeta = %s\n", repo_root))
 
-repos <- getOption("repos")
-if (is.null(repos) || is.na(repos["CRAN"]) || identical(unname(repos["CRAN"]), "@CRAN@")) {
-  options(repos = c(CRAN = "https://cloud.r-project.org"))
-}
-
-desc <- read.dcf(desc_path)[1, ]
-dependency_fields <- intersect(c("Depends", "Imports"), names(desc))
-dependency_text <- paste(stats::na.omit(desc[dependency_fields]), collapse = ",")
-pkgs <- trimws(unlist(strsplit(dependency_text, ","), use.names = FALSE))
-pkgs <- sub("\\s*\\(.*\\)$", "", pkgs)
-# `quarto` es opcional para Prosecnur (solo lo usa el reporte de
-# enumeradores en PDF) por eso vive en Suggests, no en Imports.
-# Aún así lo instalamos por default — el launcher chequea el binario
-# Quarto CLI por separado y ofrece instalarlo si falta. El paquete R
-# `quarto` solo expone el wrapper para llamar al CLI desde R.
-pkgs <- unique(c("pkgload", "quarto", pkgs))
-pkgs <- setdiff(pkgs[nzchar(pkgs)], "R")
-
-missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
-
-if (length(missing) == 0) {
-  cat("[Prosecnur] Dependencias R listas.\n")
-  quit(save = "no", status = 0)
-}
-
-cat("[Prosecnur] Instalando paquetes R faltantes:\n")
-cat(paste(sprintf("  - %s", missing), collapse = "\n"), "\n", sep = "")
-install.packages(missing)
-
-still_missing <- missing[!vapply(missing, requireNamespace, logical(1), quietly = TRUE)]
-if (length(still_missing) > 0) {
+target_r <- "4.5.1"
+if (as.character(getRversion()) != target_r) {
   stop(
-    "No se pudieron instalar estas dependencias: ",
-    paste(still_missing, collapse = ", "),
+    "api/renv.lock exige R ", target_r,
+    "; esta sesión usa R ", as.character(getRversion()), ".",
     call. = FALSE
   )
 }
 
-cat("[Prosecnur] Dependencias R instaladas correctamente.\n")
+repo <- "https://cloud.r-project.org"
+options(repos = c(CRAN = repo))
+
+user_lib <- Sys.getenv("R_LIBS_USER", unset = "")
+if (!nzchar(user_lib)) {
+  user_lib <- file.path(path.expand("~"), "R", paste0("library-", target_r))
+}
+dir.create(user_lib, recursive = TRUE, showWarnings = FALSE)
+.libPaths(unique(c(user_lib, .libPaths())))
+
+extract_field <- function(block, field) {
+  pattern <- sprintf('"%s"\\s*:\\s*"([^"]+)"', field)
+  match <- regexec(pattern, block, perl = TRUE)
+  value <- regmatches(block, match)[[1]]
+  if (length(value) == 2) value[[2]] else NA_character_
+}
+
+canonical_package_version <- function(value) {
+  tryCatch(
+    as.character(base::package_version(value)),
+    error = function(e) NA_character_
+  )
+}
+
+lock_text <- paste(readLines(lock_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+renv_match <- regexpr('(?s)"renv"\\s*:\\s*\\{.*?\\n\\s*\\}', lock_text, perl = TRUE)
+if (renv_match[[1]] == -1) {
+  stop("api/renv.lock no fija el paquete bootstrap renv.", call. = FALSE)
+}
+renv_block <- regmatches(lock_text, renv_match)
+renv_version <- extract_field(renv_block, "Version")
+renv_md5 <- extract_field(renv_block, "MD5sum")
+if (is.na(renv_version) || is.na(renv_md5) || !grepl("^[0-9a-f]{32}$", renv_md5)) {
+  stop("El registro renv del lock no contiene Version y MD5sum verificables.", call. = FALSE)
+}
+
+renv_version_canonical <- canonical_package_version(renv_version)
+installed_renv <- tryCatch(
+  canonical_package_version(utils::packageVersion("renv")),
+  error = function(e) NA_character_
+)
+if (!identical(installed_renv, renv_version_canonical)) {
+  tarball <- tempfile(sprintf("renv_%s_", renv_version), fileext = ".tar.gz")
+  urls <- c(
+    sprintf("%s/src/contrib/renv_%s.tar.gz", repo, renv_version),
+    sprintf("%s/src/contrib/Archive/renv/renv_%s.tar.gz", repo, renv_version)
+  )
+  downloaded <- FALSE
+  for (url in urls) {
+    status <- tryCatch(
+      utils::download.file(url, tarball, mode = "wb", quiet = TRUE),
+      error = function(e) 1L,
+      warning = function(w) 1L
+    )
+    if (identical(status, 0L) && file.exists(tarball) && file.info(tarball)$size > 0) {
+      downloaded <- TRUE
+      break
+    }
+  }
+  if (!downloaded) stop("No se pudo descargar renv ", renv_version, " desde CRAN.", call. = FALSE)
+  actual_md5 <- unname(tools::md5sum(tarball))
+  if (!identical(actual_md5, renv_md5)) {
+    stop("Checksum inválido para el bootstrap renv: esperado ", renv_md5, ", recibido ", actual_md5, ".", call. = FALSE)
+  }
+  utils::install.packages(tarball, repos = NULL, type = "source", lib = user_lib)
+}
+
+if (!requireNamespace("renv", quietly = TRUE) ||
+    canonical_package_version(utils::packageVersion("renv")) != renv_version_canonical) {
+  stop("No se pudo activar renv ", renv_version, ".", call. = FALSE)
+}
+
+lock <- renv::lockfile_read(lock_path)
+packages <- names(lock$Packages)
+cat("[Prosecnur] Restaurando ", length(packages), " paquetes desde api/renv.lock.\n", sep = "")
+renv::restore(
+  project = repo_root,
+  library = user_lib,
+  lockfile = lock_path,
+  packages = packages,
+  repos = c(CRAN = repo),
+  prompt = FALSE
+)
+
+versions <- vapply(
+  packages,
+  function(package) {
+    tryCatch(
+      canonical_package_version(utils::packageVersion(package)),
+      error = function(e) NA_character_
+    )
+  },
+  character(1)
+)
+expected_raw <- vapply(lock$Packages, `[[`, character(1), "Version")
+expected <- vapply(expected_raw, canonical_package_version, character(1))
+mismatch <- packages[is.na(versions) | versions != expected]
+if (length(mismatch)) {
+  details <- sprintf(
+    "%s (esperado %s; instalado %s)",
+    mismatch,
+    expected_raw[mismatch],
+    versions[mismatch]
+  )
+  stop("La restauración no coincide con el lock: ", paste(details, collapse = ", "), call. = FALSE)
+}
+
+cat("[Prosecnur] Dependencias R restauradas y verificadas contra api/renv.lock.\n")

@@ -90,6 +90,17 @@ fi
 
 echo "[Prosecnur] Descargando/actualizando paquetes R Windows offline..."
 Rscript packaging/windows/download-r-win-binaries.R "$CACHE_DIR/r-packages" "$R_VERSION"
+if [ ! -s "$CACHE_DIR/r-packages/manifest.csv" ]; then
+  echo "[Prosecnur] ERROR: falta el manifest verificado para Windows." >&2
+  exit 1
+fi
+shopt -s nullglob
+r_binary_files=("$CACHE_DIR/r-packages/"*.zip)
+shopt -u nullglob
+if [ "${#r_binary_files[@]}" -eq 0 ]; then
+  echo "[Prosecnur] ERROR: el caché Windows no contiene binarios R." >&2
+  exit 1
+fi
 
 rm -rf "$STAGING" "$OUT_DIR" "$ZIP_PATH" "$INSTALLER_PATH"
 mkdir -p "$STAGING/Internals" "$STAGING/runtime/electron" "$STAGING/runtime/r-installer" "$STAGING/runtime/r-packages" "$STAGING/assets"

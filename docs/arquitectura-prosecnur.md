@@ -1,6 +1,6 @@
 # Arquitectura de Prosecnur
 
-Actualizado: 2026-07-27
+Actualizado: 2026-07-30
 
 ## Proposito
 
@@ -186,7 +186,7 @@ cierre. El detalle de transición, investigación y gates está en
 |---|---|---|---|
 | Mantenibilidad | El equipo puede cambiar un modulo sin comprender toda la app | Routers `router_*.R`, features de React por dominio, helpers compartidos | Revisar que nuevas rutas caigan en el modulo correcto y tengan tests proporcionales |
 | Extensibilidad | Nuevos flujos metodologicos se agregan como modulos, no como parches al nucleo | Monolito modular con prefijos `/api/<dominio>` y carpetas `frontend/src/features/<dominio>` | Nuevo modulo requiere contrato, estado, endpoints, dependencias y ADR si cambia la estructura |
-| Reproducibilidad | Un proyecto puede reabrirse y regenerar entregables desde inputs y decisiones | `.pulso` guarda estado e inputs; caches grandes se regeneran | Cambios al formato `.pulso` requieren compatibilidad, migracion o ADR |
+| Reproducibilidad | Un proyecto puede reabrirse y regenerar entregables, y el mismo commit reconstruye su entorno técnico | `.pulso` guarda estado e inputs; `api/renv.lock` fija R 4.5.1 y el grafo completo; CI y bundles verifican acciones, cachés, versiones y checksums | Cambios al formato `.pulso` requieren compatibilidad, migracion o ADR; dependencias R cambian sólo mediante revisión del lock y sus gates |
 | Trazabilidad | Se puede explicar de donde salio una decision o resultado | Decisiones de limpieza/codificacion/configuracion viven en sesion y proyecto | Las transformaciones deben guardar regla, autor implicito de sesion, fecha cuando aplique y version de estructura |
 | Auditabilidad | Un tercero tecnico puede reconstruir decisiones arquitectonicas y metodologicas | ADRs en `docs/adrs`, logs locales, errores normalizados | Toda decision arquitectonicamente significativa debe tener ADR |
 | Confiabilidad | La app responde de forma predecible aunque haya trabajos largos o errores de usuario | Jobs asincronos, `wrap_endpoint()`, codigos de error, sesiones separadas | Rutas nuevas deben fallar con codigos claros y no dejar estado parcial silencioso |
@@ -205,6 +205,7 @@ cierre. El detalle de transición, investigación y gates está en
 | Monolito modular en vez de microservicios | Instalacion simple, menor latencia, depuracion directa, cohesion metodologica | Despliegue independiente por modulo, escalado horizontal por servicio | ADR 0004, contratos de modulo y revision de dependencias |
 | Escalabilidad local en vez de escalado cloud de la app principal | Manejo realista de proyectos grandes sin introducir infraestructura remota ni multiusuario | La capacidad queda limitada por la maquina local y requiere diseno cuidadoso de jobs, memoria y archivos | Procesos pesados por jobs, caches excluidos de `.pulso`, previews acotados, limites documentados |
 | Motor R integrado en `prosecnurapp` en vez de paquete externo activo | Reproducibilidad del release, un solo repo, menos friccion para escritorio | Paquete mas grande, menor reutilizacion independiente, riesgo de mezclar UI/API/motor | ADR 0003, separacion por archivos `reporte_*`, `graficador_*`, `validacion_*` |
+| Entorno R exacto en vez de resolver dependencias al instalar | Mismo grafo en desarrollo, CI y packaging; cachés y binarios verificables | Actualizaciones deliberadas del lock y mantenimiento de pins, snapshots y runners | ADR 0050, `api/renv.lock`, `scripts/check-r-lock.mjs`, manifests y checksums offline |
 | `.pulso` portable en vez de base de datos persistente | Archivo unico, facil de compartir, inspeccionable como zip, compatible con trabajo local | Menos concurrencia, migraciones manuales, riesgo de crecimiento si se guardan caches | ADR 0002, caches excluidos, entregables fuera del proyecto |
 | Estado de sesion en memoria en vez de backend persistente | Flujo rapido, menos infraestructura, aislamiento por proceso local | Reinicio pierde sesiones efimeras, necesita `.pulso` para continuidad | Banners de sesion perdida, guardado explicito del proyecto y guardia de salida |
 | Dashboard publicable desde una app siempre local | Permite compartir resultados en HF sin convertir Prosecnur en SaaS | Superficie de seguridad adicional del artefacto hospedado, dependencia de proveedor externo | Rutas read-only controladas para el artefacto; Prosecnur sigue ejecutandose localmente |

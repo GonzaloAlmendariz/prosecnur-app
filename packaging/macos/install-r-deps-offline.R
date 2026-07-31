@@ -37,6 +37,45 @@ if (!length(tgz_files)) {
   stop("No hay paquetes .tgz en: ", package_dir, call. = FALSE)
 }
 
+manifest_path <- file.path(package_dir, "manifest.csv")
+if (!file.exists(manifest_path) || file.info(manifest_path)$size <= 0) {
+  stop("Falta manifest.csv para verificar los paquetes offline.", call. = FALSE)
+}
+manifest <- utils::read.csv(
+  manifest_path,
+  colClasses = "character",
+  check.names = FALSE,
+  stringsAsFactors = FALSE
+)
+required_manifest_fields <- c("package", "version", "binary_md5", "file")
+if (!nrow(manifest) || !all(required_manifest_fields %in% names(manifest))) {
+  stop("manifest.csv no cumple el contrato de paquetes offline.", call. = FALSE)
+}
+if (
+  anyNA(manifest[required_manifest_fields]) ||
+  any(!nzchar(manifest$file)) ||
+  anyDuplicated(manifest$file) ||
+  any(basename(manifest$file) != manifest$file) ||
+  any(!grepl("^[0-9A-Fa-f]{32}$", manifest$binary_md5))
+) {
+  stop("manifest.csv contiene entradas inválidas o duplicadas.", call. = FALSE)
+}
+expected_files <- sort(manifest$file)
+actual_files <- sort(basename(tgz_files))
+if (!identical(actual_files, expected_files)) {
+  stop("El bundle macOS no coincide exactamente con manifest.csv.", call. = FALSE)
+}
+declared_md5 <- setNames(tolower(manifest$binary_md5), manifest$file)
+actual_md5 <- unname(tools::md5sum(file.path(package_dir, expected_files)))
+invalid_md5 <- expected_files[actual_md5 != unname(declared_md5[expected_files])]
+if (length(invalid_md5)) {
+  stop(
+    "Checksum inválido en paquetes offline macOS: ",
+    paste(invalid_md5, collapse = ", "),
+    call. = FALSE
+  )
+}
+
 cat("[Prosecnur] Libreria R offline: ", library_dir, "\n", sep = "")
 cat("[Prosecnur] Instalando ", length(tgz_files), " paquetes mac desde bundle local...\n", sep = "")
 utils::install.packages(tgz_files, repos = NULL, type = "mac.binary", lib = library_dir)
