@@ -491,3 +491,19 @@
     margin-inline-start: 0;
   }
 }
+
+/* El marco del vacío juega con el mismo contrato que su hermano `.bit-timeline`:
+ * bajo `scrollOwner="panels"` el cuerpo de la página no scrollea, así que cada
+ * panel tiene que poder encogerse y llevarse su propio scroll. Sin `min-height: 0`
+ * el piso de 240 px del estado vacío del kit desbordaba el cuerpo a 1024x600 y
+ * dejaba la página sin nadie que scrollee —medido: scroll-jail en
+ * `pulso-page-frame-body--fill`—. Quitar el piso no quita el marco: el panel
+ * sigue dibujándose, solo deja de exigir un alto que no le corresponde. */
+.bit-timeline-vacio {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bit-timeline-vacio .pulso-empty-state--panel {
+  min-height: 0;
+}

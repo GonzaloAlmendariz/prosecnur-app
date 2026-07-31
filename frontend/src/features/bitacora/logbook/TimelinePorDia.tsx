@@ -39,12 +39,19 @@ export function TimelinePorDia({
   }, [entradas]);
 
   if (entradas.length === 0) {
+    // C3: el vacío vive dentro de un contenedor visible, no entre superficies.
+    // Sin este marco el estado vacío flotaba sobre ~680 px de lienzo desnudo,
+    // mientras las dos superficies de arriba —alta rápida y filtros— sí tenían
+    // el suyo. Se reusa `pulso-panel` del kit en vez de escribir una materia
+    // propia, que es además la misma que usan esas dos.
     return (
-      <EmptyState
-        icon={<History size={26} aria-hidden="true" />}
-        title="La bitácora está vacía"
-        hint="Registra decisiones, riesgos y bloqueos mientras pasan. Escribe arriba y pulsa Enter: lo que anotes acá es lo que vas a agradecer tener cuando toque explicar el estudio."
-      />
+      <div className="pulso-panel bit-timeline-vacio" data-qa-geometry-capacity="owned">
+        <EmptyState
+          icon={<History size={26} aria-hidden="true" />}
+          title="La bitácora está vacía"
+          hint="Registra decisiones, riesgos y bloqueos mientras pasan. Escribe arriba y pulsa Enter: lo que anotes acá es lo que vas a agradecer tener cuando toque explicar el estudio."
+        />
+      </div>
     );
   }
 
