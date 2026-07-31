@@ -86,7 +86,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3) | — | **3** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto) | — | **4** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
@@ -94,7 +94,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 8 | **7 de 8** | ↑ a 8 |
+| Módulos auditados con el instrumento | 1 de 8 | **8 de 8 — primera órbita completa** | ↑ a 8 |
 | Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
@@ -105,6 +105,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | N2 | telefónico | El racimo `AcreditacionPhone*` de comparación teléfono↔plataforma (`TelefonicoMonitoreoPage.tsx:7117-7483`) tiene **35 dependencias hacia declaraciones del page-file**, la más lejana en la línea 15.016. Es la atadura medida que impide extraerlo: cualquier intento crea un ciclo de imports. Cortarla es su propia unidad de trabajo | abierto |
 | N3 | Dashboard | **Ningún proyecto de referencia trae datos de dashboard**, así que `/tablero` rinde su compuerta de fuente y el estado cargado —el que monta los gráficos de plotly, ~10 MB de chunks— nunca se audita. La cobertura de Dashboard es de la compuerta, no del tablero. Cerrarlo exige o un proyecto de referencia con dashboard construido, o que el instrumento sepa pulsar «Cargar fuente» y esperar el render | abierto |
 | N4 | Bitácora | **Ningún proyecto de referencia tiene entradas de bitácora** (los cuatro dan 0), así que el estado lleno del timeline no se puede verificar visualmente. Por eso la iteración 8 enmarcó solo la rama vacía y no tocó la poblada. Mismo patrón que N3 con Dashboard | abierto |
+| N5 | Dashboard, Bitácora y Recopiladores | **Patrón, no incidencia: los proyectos de referencia cubren el pipeline de análisis y no los módulos operativos aguas abajo.** Tres de los ocho módulos solo se pueden auditar vacíos —Dashboard sin datos de tablero, Bitácora con 0 entradas, Recopiladores sin plan—, y en los tres el estado con datos es la mayor parte de la superficie. Mientras no se cierre, la línea «8 de 8 auditados» significa «8 de 8 visitados», no «8 de 8 cubiertos». **Cerrarlo es su propia unidad de trabajo**: o se enriquecen los fixtures, o el instrumento aprende a sembrar estado | abierto |
 
 ## Bandeja de decisiones
 
@@ -151,6 +152,35 @@ a empezar.
 | 7 | 31 jul | **Formularios** | **El vocabulario de contratos se quedó corto y el loop no lo forzó.** Dos colecciones declaradas y pasando; las dos tiras de chips quedan sin declarar con la razón medida, y sube la decisión 8 | geometryGroups 5→**15** · coverageMisses 20→**10** · geometryIssues **0** | `7a47ef01` |
 
 | 8 | 31 jul | **Bitácora** | **El reporte dio verde a la primera y la captura mostró el defecto:** el vacío flotaba sobre 680 px de lienzo sin marco (C3). Al enmarcarlo apareció un scroll-jail que ya estaba latente | issues 0 · scrollJails 0 · defectos reparados 2→**3** · módulos auditados 6→**7** de 8 | `ddb711cc` |
+
+| 9 | 31 jul | **Recopiladores** | **Cierra la primera órbita.** Reporte verde a la primera; el defecto salió de comparar la captura con las de las ocho vueltas previas: era el único módulo que ponía su propio nombre donde los demás ponen su cifra | issues 0 · defectos reparados 3→**4** · módulos visitados 7→**8 de 8** | `5a0ee445` |
+
+### Nota de la iteración 9 — cierre de la primera órbita
+
+**El defecto de esta vuelta no lo encontró el instrumento ni una captura suelta:
+lo encontró la serie.** Recopiladores dio verde en todo y su zona de contexto
+decía «Recopiladores». Eso solo se ve como defecto al ponerlo al lado de las
+otras ocho capturas, donde ese hueco lleva `ENTRADAS · sin entradas`,
+`DISTRITOS 6`, `MESA · Muestra de cursos-horario`, `DATOS sin cargar`. **La
+comparación entre módulos es un instrumento en sí misma, y solo existe una vez
+que la órbita dio la vuelta completa.** Es el primer hallazgo que la órbita
+habilita y que ninguna pasada por un módulo aislado habría dado.
+
+**Balance honesto de la primera órbita.** Ocho módulos visitados, cuatro
+defectos reparados, 38 declaraciones geométricas fuera de Monitoreo contra 27 al
+abrir, cero superficies principales sin contrato y el audit verde en las nueve
+vueltas. Pero la línea del ledger dice «8 de 8 visitados», no «8 de 8
+cubiertos», y la diferencia está escrita en N5: **tres de los ocho módulos solo
+se pueden auditar vacíos** porque los proyectos de referencia cubren el pipeline
+de análisis y no los módulos operativos aguas abajo. En Dashboard, Bitácora y
+Recopiladores el estado con datos es la mayor parte de la superficie y sigue sin
+mirarse.
+
+Lo que la segunda órbita debería atacar, en ese orden: cerrar N5 —o fixtures más
+ricos, o que el instrumento siembre estado—, porque sin eso toda cobertura
+posterior arrastra el mismo asterisco; después las dos decisiones abiertas (8 y
+9), que juntas gobiernan cómo se declara media app; y recién después seguir
+declarando secciones internas.
 
 ### Nota de la iteración 8
 
