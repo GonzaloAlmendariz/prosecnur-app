@@ -202,6 +202,13 @@
   min-width: 0;
 }
 
+/* El nombre del KPI envuelve en vez de recortarse. «UNIVERSO DE CURSOS-HORARIO»
+ * no entra en una sexta parte del ancho a 10px con versalita, y con `nowrap`
+ * quedaba «UNIVERSO DE CURSOS-HORAR…»: un indicador cuyo nombre no se puede
+ * leer. Envolver es seguro porque la franja reparte `repeat(6, minmax(0, 1fr))`
+ * —el ancho de columna lo deciden los `1fr`, no el contenido—, así que las seis
+ * celdas siguen midiendo lo mismo y solo crece el alto de la fila, para todas a
+ * la vez. */
 .rec-resumen-item small {
   overflow: hidden;
   color: var(--pulso-text-soft);
@@ -209,9 +216,8 @@
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: 0.035em;
   line-height: 1.2;
-  text-overflow: ellipsis;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .rec-resumen-item strong {

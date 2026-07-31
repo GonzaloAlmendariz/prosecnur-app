@@ -149,7 +149,17 @@ export function ResumenDiseno({
           )}
         </span>
       </header>
-      <div className="rec-resumen" role="status" aria-label="Resultados del diseño">
+      {/* `equal`: los seis indicadores son la misma lectura del diseño vigente y
+          comparten franja. La rejilla los reparte en `repeat(6, minmax(0, 1fr))`,
+          así que ninguno puede ensancharse ni crecer por su cuenta según el
+          largo de su nombre o de su cifra. */}
+      <div
+        className="rec-resumen"
+        role="status"
+        aria-label="Resultados del diseño"
+        data-qa-geometry-group="calc-muestra/resumen-diseno"
+        data-qa-geometry-contract="equal"
+      >
         {metrics.map((metric) => (
           <div className="rec-resumen-item" data-tone={metric.tone} key={metric.label}>
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
