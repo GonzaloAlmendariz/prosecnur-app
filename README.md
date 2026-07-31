@@ -42,10 +42,16 @@ la [documentación de Prosecnur](docs/README.md).
 
 ## Requisitos
 
-- R ≥ 4.1
+- R 4.5.1 para desarrollo, CI y empaquetado reproducibles. El paquete declara
+  compatibilidad mínima con R ≥ 4.2.
 - Node ≥ 20 con pnpm (si no tienes pnpm: `corepack enable`)
 - (Opcional) [Quarto CLI](https://quarto.org) para el reporte de
   enumeradores en PDF.
+
+La resolución completa de dependencias R vive en `api/renv.lock`. El launcher
+la restaura de forma exacta y falla si el runtime, una versión o un checksum no
+coinciden; `api/DESCRIPTION` conserva el contrato público del paquete, no
+reemplaza el lock.
 
 ## Cómo abrir Prosecnur
 

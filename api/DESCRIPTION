@@ -3,6 +3,8 @@ Type: Package
 Title: Prosecnur — App + motor analítico integrado
 Version: 0.5.19
 Authors@R: person("Gonzalo", "Almendariz", email = "gonzaloalmendariz@gmail.com", role = c("aut", "cre"))
+Author: Gonzalo Almendariz [aut, cre]
+Maintainer: Gonzalo Almendariz <gonzaloalmendariz@gmail.com>
 Description: App local (REST API en Plumber + frontend React) con el
     motor analítico prosecnur integrado. Incluye lectura de XLSForm,
     validación de consistencia, codificación de preguntas abiertas,
@@ -13,7 +15,7 @@ Description: App local (REST API en Plumber + frontend React) con el
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:
-    R (>= 4.1)
+    R (>= 4.2)
 Imports:
     plumber (>= 1.2.0),
     jsonlite,

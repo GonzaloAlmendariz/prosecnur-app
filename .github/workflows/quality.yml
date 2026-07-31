@@ -28,13 +28,13 @@ env:
 jobs:
   agentic-os:
     name: Agentic OS (sync, contracts, smokes)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -50,23 +50,32 @@ jobs:
       - name: Audit governance truth
         run: node agentic/sync-agentic-os.mjs --audit --platform=none
 
+      - name: Check exact R lock and immutable CI
+        run: node scripts/check-r-lock.mjs
+
+      - name: Check documentation governance
+        run: node scripts/check-docs-governance.mjs
+
+      - name: Check release preview contract
+        run: node scripts/release-contract.mjs preview
+
   # Frontend y backend corren en paralelo: el typecheck roto avisa en ~3-4 min
   # en vez de esperar los ~15 min del suite R (historial: dos releases muertos
   # por TS2307 que recién se supo a los 20 min).
   frontend:
     name: Frontend (typecheck, tests, build, audits)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -79,6 +88,9 @@ jobs:
       - name: Desktop lifecycle tests
         run: pnpm -C desktop test
 
+      - name: Repository script contract tests
+        run: node --test scripts/tests/*.test.mjs
+
       - name: Frontend typecheck
         run: pnpm -C frontend exec tsc --noEmit --pretty false
 
@@ -88,48 +100,25 @@ jobs:
       - name: Frontend production build
         run: pnpm -C frontend exec vite build --outDir /tmp/prosecnur-vite-build --emptyOutDir
 
-      # npm retiró el endpoint clásico de `npm audit` (responde 410 →
-      # ERR_PNPM_AUDIT_BAD_RESPONSE). Toleramos SOLO ese caso (endpoint caído)
-      # para no tumbar el CI; una vulnerabilidad real de nivel high sigue
-      # fallando. Revisar cuando pnpm use el bulk advisory endpoint.
       - name: Frontend audit
-        run: |
-          code=0
-          out=$(pnpm -C frontend audit --audit-level=high 2>&1) || code=$?
-          echo "$out"
-          if [ "$code" != "0" ]; then
-            if echo "$out" | grep -q "ERR_PNPM_AUDIT_BAD_RESPONSE"; then
-              echo "::warning::pnpm audit endpoint retirado (npm 410); audit omitido."
-            else
-              exit "$code"
-            fi
-          fi
+        run: pnpm -C frontend audit --audit-level=high
 
       - name: Desktop audit
-        run: |
-          code=0
-          out=$(pnpm -C desktop audit --audit-level=high 2>&1) || code=$?
-          echo "$out"
-          if [ "$code" != "0" ]; then
-            if echo "$out" | grep -q "ERR_PNPM_AUDIT_BAD_RESPONSE"; then
-              echo "::warning::pnpm audit endpoint retirado (npm 410); audit omitido."
-            else
-              exit "$code"
-            fi
-          fi
+        run: pnpm -C desktop audit --audit-level=high
 
   backend-r:
-    name: Backend R (load_all + testthat)
-    runs-on: ubuntu-latest
+    name: Backend R (lock + R CMD check + testthat)
+    runs-on: ubuntu-24.04
+    env:
+      R_LIBS_USER: ${{ runner.temp }}/prosecnur-r-library
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup R
-        uses: r-lib/actions/setup-r@v2
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: ${{ env.R_VERSION }}
-          use-public-rspm: true
 
       - name: Install R system dependencies
         run: |
@@ -155,12 +144,30 @@ jobs:
             poppler-utils \
             qpdf
 
-      - name: Install R package dependencies
-        run: |
-          Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); options(repos = c(CRAN = Sys.getenv('RSPM', 'https://packagemanager.posit.co/cran/__linux__/noble/latest'))); desc <- read.dcf('api/DESCRIPTION')[1, ]; fields <- intersect(c('Depends', 'Imports', 'Suggests'), names(desc)); pkgs <- trimws(unlist(strsplit(paste(stats::na.omit(desc[fields]), collapse = ','), ','), use.names = FALSE)); pkgs <- sub('[[:space:]]*[(].*$', '', pkgs); pkgs <- unique(setdiff(pkgs[nzchar(pkgs)], 'R')); installed <- rownames(installed.packages(lib.loc = .libPaths())); missing <- setdiff(pkgs, installed); if (length(missing)) install.packages(missing, lib = .libPaths()[1]); installed <- rownames(installed.packages(lib.loc = .libPaths())); missing_after <- setdiff(pkgs, installed); if (length(missing_after)) stop('Missing R packages after install: ', paste(missing_after, collapse = ', '))"
+      - name: Cache exact R library
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: r-library-${{ runner.os }}-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
+
+      - name: Restore and verify exact R dependencies
+        run: Rscript launcher/install-r-deps.R
 
       - name: R load_all
         run: Rscript -e "dir.create(Sys.getenv('R_LIBS_USER'), recursive = TRUE, showWarnings = FALSE); .libPaths(c(Sys.getenv('R_LIBS_USER'), .libPaths())); pkgload::load_all('api', quiet = TRUE)"
+
+      - name: R CMD build
+        run: |
+          cd "${RUNNER_TEMP}"
+          R CMD build --no-build-vignettes "${GITHUB_WORKSPACE}/api"
+
+      - name: R CMD check
+        run: |
+          package_version="$(awk -F': *' '/^Version:/ {print $2; exit}' api/DESCRIPTION)"
+          package_tarball="${RUNNER_TEMP}/prosecnurapp_${package_version}.tar.gz"
+          test -s "$package_tarball"
+          mkdir -p "${RUNNER_TEMP}/r-check"
+          R CMD check --no-manual --no-build-vignettes --output="${RUNNER_TEMP}/r-check" "$package_tarball"
 
       # Los workers callr de jobs deserializan closures contra el paquete
       # INSTALADO (trampa conocida: jobs.R re-resuelve por nombre en el

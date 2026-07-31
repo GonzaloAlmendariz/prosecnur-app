@@ -33,17 +33,20 @@ env:
 jobs:
   contract:
     name: Validate release channel contract
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout with release history
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate exact R lock and immutable workflow inputs
+        run: node scripts/check-r-lock.mjs
 
       - name: Validate internal-preview identity
         if: github.event_name == 'workflow_dispatch'
@@ -64,26 +67,25 @@ jobs:
   build-windows:
     name: Build Windows
     needs: quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup R
-        uses: r-lib/actions/setup-r@v2
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: ${{ env.R_VERSION }}
-          use-public-rspm: true
 
       - name: Install Windows build and verification dependencies
         run: |
@@ -97,12 +99,10 @@ jobs:
             unzip
 
       - name: Cache R Windows binaries
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: dist.nosync/windows-cache
-          key: r-win-cache-${{ env.R_VERSION }}-${{ hashFiles('api/DESCRIPTION') }}
-          restore-keys: |
-            r-win-cache-${{ env.R_VERSION }}-
+          key: r-win-cache-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
 
       - name: Install pnpm dependencies
         run: |
@@ -160,7 +160,7 @@ jobs:
 
       - name: Upload Windows internal preview
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: internal-preview-windows
           retention-days: 7
@@ -171,7 +171,7 @@ jobs:
 
       - name: Upload Windows stable payload
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stable-windows
           retention-days: 7
@@ -182,39 +182,36 @@ jobs:
             dist.nosync/latest.yml
 
   build-mac:
-    name: Build macOS
+    name: Build macOS (arm64 + x64)
     needs: quality
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Setup R
-        uses: r-lib/actions/setup-r@v2
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: ${{ env.R_VERSION }}
-          use-public-rspm: true
 
       - name: Install macOS build dependencies
         run: brew install librsvg imagemagick
 
       - name: Cache R macOS binaries
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: dist.nosync/mac-cache
-          key: r-mac-cache-${{ env.R_VERSION }}-${{ hashFiles('api/DESCRIPTION') }}
-          restore-keys: |
-            r-mac-cache-${{ env.R_VERSION }}-
+          key: r-mac-cache-${{ env.R_VERSION }}-${{ hashFiles('api/renv.lock') }}
 
       - name: Install pnpm dependencies
         run: |
@@ -316,7 +313,7 @@ jobs:
 
       - name: Upload macOS internal preview
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: internal-preview-macos
           retention-days: 7
@@ -325,7 +322,7 @@ jobs:
 
       - name: Upload macOS stable payload
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stable-macos
           retention-days: 7
@@ -340,22 +337,22 @@ jobs:
     name: Publish stable GitHub Release
     needs: [contract, quality, build-windows, build-mac]
     if: github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: write
     steps:
       - name: Checkout release notes
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Download Windows stable payload
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: stable-windows
           path: artifacts/windows
 
       - name: Download macOS stable payload
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: stable-macos
           path: artifacts/mac
@@ -382,7 +379,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Prosecnur ${{ github.ref_name }}

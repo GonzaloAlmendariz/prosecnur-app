@@ -140,8 +140,20 @@ build_for_arch() {
   rm -rf "$RUNTIME_DIR"
   mkdir -p "$RUNTIME_DIR/r-packages"
   cp "$r_pkg_cache" "$RUNTIME_DIR/$r_pkg"
-  cp "$pkgs_cache/"*.tgz "$RUNTIME_DIR/r-packages/" 2>/dev/null || true
-  cp "$pkgs_cache/manifest.csv" "$RUNTIME_DIR/r-packages/manifest.csv" 2>/dev/null || true
+  local binary_files=()
+  shopt -s nullglob
+  binary_files=("$pkgs_cache/"*.tgz)
+  shopt -u nullglob
+  if [ "${#binary_files[@]}" -eq 0 ]; then
+    echo "[Prosecnur] ERROR: el caché macOS $arch_cran no contiene binarios R." >&2
+    exit 1
+  fi
+  if [ ! -s "$pkgs_cache/manifest.csv" ]; then
+    echo "[Prosecnur] ERROR: falta el manifest verificado para macOS $arch_cran." >&2
+    exit 1
+  fi
+  cp "${binary_files[@]}" "$RUNTIME_DIR/r-packages/"
+  cp "$pkgs_cache/manifest.csv" "$RUNTIME_DIR/r-packages/manifest.csv"
   cp packaging/macos/install-r-deps-offline.R "$RUNTIME_DIR/install-r-deps-offline.R"
 
   echo "[Prosecnur] Limpiando atributos extendidos macOS..."
