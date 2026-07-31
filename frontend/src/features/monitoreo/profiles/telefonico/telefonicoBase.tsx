@@ -165,7 +165,7 @@ export function formatCaseLabel(value: number) {
 }
 
 export function pct(value: unknown) {
-  const n = Number(value);
+  const n = value == null || value === "" ? NaN : Number(value);
   if (!Number.isFinite(n)) return "S/D";
   return `${Math.round(n)}%`;
 }
