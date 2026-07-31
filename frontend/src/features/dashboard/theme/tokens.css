@@ -510,7 +510,7 @@
   border-radius: 10px;
   box-shadow: var(--dash-shadow-raised);
   min-width: 0;
-  padding: 12px;
+  padding: var(--pulso-space-3, 12px);
   transition:
     border-color var(--dash-dur-hover) var(--dash-ease-out),
     box-shadow var(--dash-dur-hover) var(--dash-ease-out);

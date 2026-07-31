@@ -31,6 +31,13 @@
     unit_type <- trimws(.monitoreo_scalar(item$type %||% item$tipo, "actor"))
     if (!nzchar(unit_type)) unit_type <- "actor"
 
+    # De donde viene el actor. Un perfil antiguo no lo trae y por definicion
+    # sus unidades eran derivadas de las fuentes, asi que "fuentes" es el
+    # unico default que preserva el comportamiento anterior: se recalculan.
+    # Solo el elenco declarado por el usuario sobrevive a la normalizacion.
+    origin <- .monitoreo_text_key(.monitoreo_scalar(item$origin %||% item$origen, ""))
+    if (!identical(origin, "declarado")) origin <- "fuentes"
+
     normalized[[length(normalized) + 1L]] <- list(
       id = id,
       type = unit_type,
@@ -38,6 +45,7 @@
       label = label,
       segment = trimws(.monitoreo_scalar(item$segment %||% item$segmento, "")),
       group = trimws(.monitoreo_scalar(item$group %||% item$grupo, "")),
+      origin = origin,
       phone = list(
         enabled = phone_enabled,
         role = if (isTRUE(phone_enabled)) "target" else "none"
@@ -157,6 +165,9 @@
       label = item$actor,
       segment = .monitoreo_scalar(strategy$segment, ""),
       group = .monitoreo_scalar(strategy$group, ""),
+      # Estas unidades las dedujo Fuentes; no son el elenco que el usuario
+      # declaro. La distincion la consume `monitoreo_actor_roster_merge`.
+      origin = "fuentes",
       phone = list(
         enabled = phone_enabled,
         role = if (phone_enabled) "target" else "none"

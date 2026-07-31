@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigPut,
@@ -102,6 +102,14 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   const timer = useRef<number | null>(null);
   const draftRevision = useRef<number | null>(null);
   const saveInFlight = useRef<Promise<number> | null>(null);
+  // Espejo en estado de `draftRevision`: la siembra del plan compartido decide
+  // por `revision === 0` y necesita re-renderizar cuando el borrador carga.
+  const [consolidatedDraftRevision, setConsolidatedDraftRevision] = useState<number | null>(null);
+
+  const rememberRevision = useCallback((revision: number | null) => {
+    draftRevision.current = revision;
+    setConsolidatedDraftRevision(revision);
+  }, []);
 
   const persistConsolidated = useCallback(async (config: unknown): Promise<number> => {
     const previous = saveInFlight.current;
@@ -111,7 +119,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         throw new Error("El borrador compartido aun no termino de cargar.");
       }
       const saved = await apiGraficosConsolidadoDraftPut(config, draftRevision.current);
-      draftRevision.current = saved.revision;
+      rememberRevision(saved.revision);
       return saved.revision;
     })();
     saveInFlight.current = operation;
@@ -120,7 +128,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     } finally {
       if (saveInFlight.current === operation) saveInFlight.current = null;
     }
-  }, []);
+  }, [rememberRevision]);
 
   const saveConsolidatedNow = useCallback(async (config: unknown): Promise<number> => {
     if (reportScope !== "consolidated") {
@@ -145,11 +153,18 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
 
     async function hydrateFromBackend() {
       if (cancelled) return;
+      // Invalidar ANTES de pedir: la revisión es el criterio con el que la
+      // siembra distingue "borrador nuevo" de "vaciado a propósito", y si
+      // sobrevive al cambio de scope decide con el valor del scope anterior.
+      // Medido: entrar al informe compartido con un plan vaciado (revision 1)
+      // volvía a sembrar 92 láminas porque el efecto leía el 0 anterior antes
+      // de que respondiera esta carga.
+      rememberRevision(null);
       try {
         if (reportScope === "consolidated") {
           const r = await apiGraficosConsolidadoDraftGet();
           if (!cancelled) {
-            draftRevision.current = r.revision;
+            rememberRevision(r.revision);
             hydrate(mergeWithDefaults(r.config));
           }
           return;
@@ -157,7 +172,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         const r = await apiGraficosConfigGet();
         if (!cancelled) hydrate(mergeWithDefaults(r.config));
       } catch {
-        draftRevision.current = null;
+        rememberRevision(null);
         if (!cancelled) hydrate(DEFAULT_CONFIG);
       }
     }
@@ -233,5 +248,33 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     dirty, hydrated, markClean,
   ]);
 
-  return { saveConsolidatedNow };
+  // Aterriza el plan sugerido del preflight en el editor compartido. Hidrata
+  // en vez de usar los setters del plan a propósito: la semilla es una
+  // propuesta, no una edición, así que no marca `dirty` ni dispara autosave.
+  // Se persiste recién cuando el usuario toca algo o exporta (que llama a
+  // `saveConsolidatedNow`), y hasta entonces el borrador sigue en revision 0.
+  const seedConsolidatedPlan = useCallback((seededPlan: GraficosConfig["plan"]) => {
+    hydrate({
+      version: "graficos/4",
+      plan: seededPlan,
+      presets,
+      w_presets: wPresets,
+      selected_slide_id: seededPlan.slides.length ? null : selectedSlideId,
+      paletas,
+      iconos,
+      overrides_reusables: overridesReusables,
+      debug_ph: debugPh,
+      view_mode: viewMode,
+      inspector_tab: inspectorTab,
+      density,
+      canvas_viewport: canvasViewport,
+      scope_rules: scopeRules,
+    });
+  }, [
+    hydrate, presets, wPresets, selectedSlideId, paletas, iconos,
+    overridesReusables, debugPh, viewMode, inspectorTab, density,
+    canvasViewport, scopeRules,
+  ]);
+
+  return { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan };
 }

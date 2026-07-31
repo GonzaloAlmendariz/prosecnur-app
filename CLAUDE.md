@@ -27,7 +27,7 @@ launcher/       launch.R (entry del backend) + install-r-deps.R
 agentic/        Sincronizador de adaptadores Claude↔Codex + política de orquestación
 .claude/        agents/ (13) · skills/ (15) · workflows/ — fuentes canónicas
 .codex/, .agents/  Adaptadores GENERADOS; nunca editar a mano
-docs/           adrs/ (0001–0042), qa/, arquitectura, layout, versiones-app.md
+docs/           adrs/ (0001–0047), qa/, arquitectura, layout, versiones-app.md
 branding/       Identidad visual v3, tokens, logos, catálogo
 packaging/, deploy/, scripts/   Instaladores, deploy web y utilidades de QA
 ```

@@ -17,6 +17,7 @@ const RAIL = leer("components/MonitoreoWorkbenchRail.tsx");
 const TERRITORIAL = leer("profiles/territorial/TerritorialMonitoreoPage.tsx");
 const ACREDITACION = leer("profiles/acreditacion/AcreditacionMonitoreoPage.tsx");
 const TELEFONICO = leer("profiles/telefonico/TelefonicoMonitoreoPage.tsx");
+const AULAS = leer("profiles/aulas/AulasMonitoreoPage.tsx");
 
 describe("gate de salidas", () => {
   it("el workbench de salidas recibe el corte, no el conteo crudo de filas", () => {
@@ -32,7 +33,7 @@ describe("gate de salidas", () => {
     expect(OUTPUTS).not.toContain("hasSnapshot && nRows > 0 && !pdfJobId");
   });
 
-  it("los tres perfiles construyen el corte en vez de pasar n_rows a las salidas", () => {
+  it("los cuatro perfiles construyen el corte en vez de pasar n_rows a las salidas", () => {
     // Solo se inspecciona el bloque JSX del panel de salidas: la banda superior
     // del módulo sí muestra el conteo del snapshot, y con ese rótulo es correcto.
     const bloqueSalidas = (fuente: string) => {
@@ -44,6 +45,7 @@ describe("gate de salidas", () => {
       ["territorial", TERRITORIAL],
       ["acreditación", ACREDITACION],
       ["telefónico", TELEFONICO],
+      ["cursos-horario", AULAS],
     ] as const) {
       const bloque = bloqueSalidas(fuente);
       expect(bloque, `${nombre} debe montar un panel de salidas`).toBeTruthy();

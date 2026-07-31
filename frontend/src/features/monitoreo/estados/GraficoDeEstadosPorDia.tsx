@@ -8,9 +8,9 @@
 
 import { useState, type CSSProperties } from "react";
 
-import type { AcreditacionDeclaracionEstado } from "../AcreditacionEstadosLlamada";
-import type { AcreditacionPhoneDailyStatusSeries } from "../AcreditacionPhoneDailyTrend";
-import { contar } from "../../../fuentes/vocabulario";
+import type { AcreditacionDeclaracionEstado } from "./familiasDeLlamada";
+import type { AcreditacionPhoneDailyStatusSeries } from "../profiles/acreditacion/AcreditacionPhoneDailyTrend";
+import { contar } from "../fuentes/vocabulario";
 import { construirApiladoDeEstados, detalleDeSegmento, resumenDelDia, tituloDelDia } from "./apiladoDeEstados";
 
 import "./apiladoDeEstados.css";

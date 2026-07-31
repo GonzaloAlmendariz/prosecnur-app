@@ -21,9 +21,9 @@
 //      significa que la base cambió de tamaño o que la fuente mezcló cortes, y
 //      las dos cosas hay que verlas, no suavizarlas.
 
-import type { AcreditacionFamiliaLlamada } from "./AcreditacionEstadosLlamada";
-import { acreditacionFamiliaDeclarada } from "./AcreditacionEstadosLlamada";
-import type { AcreditacionDeclaracionEstado } from "./AcreditacionEstadosLlamada";
+import type { AcreditacionFamiliaLlamada } from "../../estados/familiasDeLlamada";
+import { acreditacionFamiliaDeclarada } from "../../estados/familiasDeLlamada";
+import type { AcreditacionDeclaracionEstado } from "../../estados/familiasDeLlamada";
 
 /** Una lectura cruda: un estado del cliente, con su conteo y su marca de tiempo. */
 export type AcreditacionLecturaDeEstado = {

@@ -22,6 +22,10 @@ import {
 import { GraficadorRef } from "../../api/client";
 import { mergeMultiApiladasArgsPatch } from "./multiApiladasExtraBarModel";
 import { VarWithSource, formatVarRef, parseVarRef, useVariables } from "./useVariables";
+import { describeScale, evaluateScaleCompat, scaleKeyOf, type ScaleTone, type ScaleVerdict } from "./multiApiladasScale";
+import { useSession } from "../../lib/SessionContext";
+import { processingBaseScopePresentation } from "../procesamiento/baseScopeModel";
+import { blockFromArgs, carryCruce, carryVars } from "./multiApiladasCarry";
 import VariableRespondentSummary from "./VariableRespondentSummaryView";
 
 type Props = {
@@ -100,6 +104,17 @@ const INTENTS: {
 
 export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
   const { variables, multi, sources, loading } = useVariables();
+  // Un estudio de bases hermanas expone una sola fuente mientras editas por
+  // base: el modo multi-fuente existe, pero vive en el informe compartido.
+  // Decirle "carga varias bases" a quien ya tiene cuatro era falso.
+  const { state } = useSession();
+  const sharedReportAvailable = processingBaseScopePresentation(
+    state?.estudio_processing_mode,
+    state?.n_bases,
+  ).showSharedReports;
+  const multiSourceHint = sharedReportAvailable
+    ? "Disponible en el informe compartido."
+    : "Requiere un estudio con varias bases.";
   const [reviewRequested, setReviewRequested] = useState(false);
   const args = graf.args ?? {};
   const intent = detectIntent(args);
@@ -113,13 +128,21 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
     onArgs(mergeMultiApiladasArgsPatch(args, patch));
   }
 
+  // Cambiar de intención NO debe costar la selección. El constructor invita
+  // a probar lecturas ("Elige como quieres leer los datos"), y hasta esta
+  // unidad explorar salía caro: pasar a Combinar bloques vaciaba `vars` y
+  // volver dejaba "Ninguna pregunta seleccionada", sin aviso y sin que el
+  // deshacer del editor lo recuperara. Ahora las preguntas viajan entre
+  // modos, incluso a través de la ida y vuelta por bloques.
   function setIntent(next: Intent) {
     if (next === "publicos_tema" && (!multi || sources.length < 2)) return;
     setReviewRequested(false);
+    const carriedVars = carryVars(args);
+    const carriedCruce = carryCruce(args);
     if (next === "comparar") {
       commitArgs({
         modo: "var",
-        vars: asStringArray(args.vars),
+        vars: carriedVars,
         var: null,
         cruces: null,
         bloques: null,
@@ -129,33 +152,42 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
       commitArgs({
         modo: "cruce",
         vars: null,
-        var: typeof args.var === "string" ? args.var : "",
-        cruces: typeof args.cruces === "string" ? args.cruces : "",
+        var: typeof args.var === "string" && args.var ? args.var : (carriedVars[0] ?? ""),
+        cruces: carriedCruce,
         bloques: null,
         titulos_grupo: null,
       });
     } else if (next === "preguntas_grupos") {
       commitArgs({
         modo: "var_cruce",
-        vars: Array.isArray(args.vars) ? args.vars : [],
+        vars: carriedVars,
         var: null,
-        cruces: typeof args.cruces === "string" ? args.cruces : "",
+        cruces: carriedCruce,
         bloques: null,
       });
     } else if (next === "publicos_tema") {
       const topics = topicsFromArgs(args.vars, args.titulos_grupo);
+      const seeded = topics.length
+        ? topics
+        : carriedVars.length
+          ? [{ ...newTopic(1), vars: carriedVars }]
+          : [newTopic(1)];
       commitArgs({
         modo: "var_cruce",
-        vars: topicsToVars(topics.length ? topics : [newTopic(1)]),
-        titulos_grupo: topicsToTitles(topics.length ? topics : [newTopic(1)]),
+        vars: topicsToVars(seeded),
+        titulos_grupo: topicsToTitles(seeded),
         var: null,
         cruces: null,
         bloques: null,
       });
     } else {
+      const existing = asBlocks(args.bloques);
       commitArgs({
         modo: "multilista",
-        bloques: asBlocks(args.bloques).length ? asBlocks(args.bloques) : [{ modo: "var", vars: [] }],
+        // Un bloque sembrado con lo que ya había: "Combinar bloques" con un
+        // solo bloque es exactamente la lectura anterior, así que la ida es
+        // reversible y no hay nada que volver a elegir.
+        bloques: existing.length ? existing : [blockFromArgs(args, carriedVars, carriedCruce)],
         vars: null,
         var: null,
         cruces: null,
@@ -205,7 +237,7 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
                   <strong>{item.title}</strong>
                 </span>
                 <span className="pulso-gv2-multi-intent-desc">
-                  {disabled ? "Requiere varias bases cargadas." : item.description}
+                  {disabled ? multiSourceHint : item.description}
                 </span>
               </button>
             );
@@ -226,10 +258,10 @@ export default function MultiApiladasBuilder({ graf, onArgs }: Props) {
         <QuestionsByGroups args={args} onArgs={commitArgs} variables={variables} multi={multi} />
       )}
       {intent === "publicos_tema" && (
-        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} />
+        <PublicsByTopic args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} />
       )}
       {intent === "combinar" && (
-        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} />
+        <MultiListBlocks args={args} onArgs={commitArgs} variables={variables} multi={multi} sourceCount={sources.length} multiSourceHint={multiSourceHint} />
       )}
     </div>
   );
@@ -296,15 +328,10 @@ function QuestionsByGroups({ args, onArgs, variables, multi }: BuilderSectionPro
   );
 }
 
-function PublicsByTopic({ args, onArgs, variables, multi, sourceCount }: BuilderSectionProps & { sourceCount: number }) {
+function PublicsByTopic({ args, onArgs, variables, multi, sourceCount, multiSourceHint }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string }) {
   const topics = topicsFromArgs(args.vars, args.titulos_grupo);
   if (!multi || sourceCount < 2) {
-    return (
-      <RequirementPanel
-        title="Esta intención requiere varias bases"
-        text="Para comparar publicos por tema, primero declara y carga varias bases del estudio en Carga. Luego cada fila podra representar una fuente."
-      />
-    );
+    return <RequirementPanel title="Esta lectura compara fuentes" text={multiSourceHint} />;
   }
   return (
     <BuilderSection title="Temas y publicos" hint="Cada tema agrupa variables equivalentes de distintas fuentes. No se usa variable de cruce.">
@@ -320,7 +347,7 @@ function PublicsByTopic({ args, onArgs, variables, multi, sourceCount }: Builder
   );
 }
 
-function MultiListBlocks({ args, onArgs, variables, multi, sourceCount }: BuilderSectionProps & { sourceCount: number }) {
+function MultiListBlocks({ args, onArgs, variables, multi, sourceCount, multiSourceHint }: BuilderSectionProps & { sourceCount: number; multiSourceHint: string }) {
   const blocks = asBlocks(args.bloques);
   const normalized = blocks.length ? blocks : [{ modo: "var", vars: [] }];
 
@@ -339,6 +366,7 @@ function MultiListBlocks({ args, onArgs, variables, multi, sourceCount }: Builde
             variables={variables}
             multi={multi}
             sourceCount={sourceCount}
+            multiSourceHint={multiSourceHint}
             onChange={(patch) => {
               const next = normalized.map((b, i) => (
                 i === index ? mergeMultiApiladasArgsPatch(b, patch) : b
@@ -373,6 +401,7 @@ function BlockEditor({
   variables,
   multi,
   sourceCount,
+  multiSourceHint,
   onChange,
   onRemove,
   onMove,
@@ -382,6 +411,7 @@ function BlockEditor({
   variables: VarWithSource[];
   multi: boolean;
   sourceCount: number;
+  multiSourceHint: string;
   onChange: (patch: MultiBlock) => void;
   onRemove: () => void;
   onMove: (direction: "up" | "down") => void;
@@ -491,7 +521,7 @@ function BlockEditor({
       )}
       {blockIntent === "publicos_tema" && (
         (!multi || sourceCount < 2) ? (
-          <RequirementPanel title="Requiere varias bases" text="Este bloque compara fuentes. Primero activa y carga varias bases en Carga." />
+          <RequirementPanel title="Este bloque compara fuentes" text={multiSourceHint} />
         ) : (
           <TopicBlocksEditor
             topics={topicsFromArgs(block.vars, block.titulos_grupo)}
@@ -582,6 +612,10 @@ function MultiVarPicker({
         multi={multi}
         excludeRefs={selected}
         compact={compact}
+        // La primera pregunta fija la escala del bloque: el selector marca
+        // desde ahí cuáles concilian, en vez de dejar que el conflicto
+        // aparezca recién al terminar de elegir.
+        scaleAnchor={findVar(value[0] ?? "", variables, multi)}
         placeholder="Agregar pregunta"
         emptyHint={`${Math.max(0, variables.length - selected.size)} disponible${variables.length - selected.size === 1 ? "" : "s"}`}
         onPick={(ref) => onChange([...value, ref])}
@@ -623,6 +657,7 @@ function VariableChoicePopover({
   placeholder,
   emptyHint,
   allowEmpty = false,
+  scaleAnchor,
   onPick,
 }: {
   value?: string;
@@ -633,6 +668,8 @@ function VariableChoicePopover({
   placeholder: string;
   emptyHint: string;
   allowEmpty?: boolean;
+  /** Variable cuya escala ya fijó el bloque, si la hay. */
+  scaleAnchor?: VarWithSource;
   onPick: (ref: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -789,6 +826,9 @@ function VariableChoicePopover({
             )}
             {options.map((v) => {
               const isSelected = v.ref === value;
+              const escala = describeScale(v);
+              const anchorKey = scaleKeyOf(scaleAnchor);
+              const otraEscala = Boolean(anchorKey) && Boolean(scaleKeyOf(v)) && scaleKeyOf(v) !== anchorKey;
               return (
                 <button
                   key={`${v.source}:${v.name}`}
@@ -812,6 +852,14 @@ function VariableChoicePopover({
                       {v.seccion && <em>{v.seccion}</em>}
                       {v.tipo && <em>{friendlyVarType(v.tipo)}</em>}
                       {typeof v.n_non_empty === "number" && <em>{v.n_non_empty} respuestas</em>}
+                      {/* La escala decide si la pregunta puede entrar al
+                          bloque; sin ella el analista elegía a ciegas entre
+                          homónimos y descubría el conflicto al final.
+                          `is-muted` es el tono de aviso que ya usa el picker
+                          — el CSS del editor v2 está congelado a crecimiento. */}
+                      {v.choices?.length ? (
+                        <em className={otraEscala ? "is-muted" : undefined}>{escala}</em>
+                      ) : null}
                     </span>
                   </span>
                 </button>
@@ -869,7 +917,17 @@ function TopicBlocksEditor({
           </div>
           <MultiVarPicker
             value={topic.vars}
-            onChange={(vars) => onChange(normalized.map((t, i) => i === index ? { ...t, vars } : t))}
+            onChange={(vars) => onChange(normalized.map((t, i) => {
+              if (i !== index) return t;
+              // El título del tema es la columna izquierda del gráfico. Con
+              // el default "Tema 1" la lámina salía rotulada así; la etiqueta
+              // de la primera pregunta es el nombre que el analista habría
+              // escrito, y sigue siendo editable.
+              const title = isDefaultTopicTitle(t.title, index)
+                ? (findVar(vars[0] ?? "", variables, multi)?.label ?? t.title)
+                : t.title;
+              return { ...t, vars, title };
+            }))}
             variables={variables}
             multi={multi}
             compact
@@ -1036,8 +1094,8 @@ function RequirementPanel({ title, text }: { title: string; text: string }) {
 }
 
 type ValidationIssue = { kind: "error" | "warning"; message: string };
-type Tone = "idle" | "ok" | "warning" | "error";
-type ScaleResult = { tone: Tone; label: string; message: string };
+type Tone = ScaleTone;
+type ScaleResult = ScaleVerdict;
 
 function detectIntent(args: Record<string, unknown>): Intent {
   if (args.modo === "multilista") return "combinar";
@@ -1139,23 +1197,11 @@ function choicesCount(ref: unknown, variables: VarWithSource[], multi: boolean):
   return findVar(ref, variables, multi)?.choices?.length ?? 0;
 }
 
+// La compatibilidad de escalas vive en `multiApiladasScale.ts` para que el
+// validador del plan bloquee el export con el MISMO criterio que se avisa
+// aquí; antes eran dos lógicas y el error se veía sin impedir el entregable.
 function scaleSummary(refs: string[], variables: VarWithSource[], multi: boolean): ScaleResult {
-  if (!refs.length) return { tone: "idle", label: "Escala por detectar", message: "Cuando elijas preguntas, se revisara si comparten escala." };
-  const found = refs.map((ref) => findVar(ref, variables, multi));
-  if (found.some((v) => !v)) return { tone: "warning", label: "Variables por revisar", message: "Hay variables que no aparecen en el instrumento cargado." };
-  const keys = found.map((v) => scaleKey(v)).filter(Boolean);
-  if (!keys.length) return { tone: "warning", label: "Escala no detectada", message: "No se detecto escala en estas preguntas. El preview confirmara si esta combinacion se puede graficar." };
-  const unique = Array.from(new Set(keys));
-  if (unique.length > 1) return { tone: "error", label: "Escalas distintas", message: "Estas preguntas no comparten una escala compatible. Usa Combinar bloques si necesitas mezclar escalas." };
-  const first = found.find(Boolean);
-  const choiceN = first?.choices?.length ?? 0;
-  const listName = first?.list_name || "escala compatible";
-  return { tone: "ok", label: choiceN ? `${listName} (${choiceN})` : listName, message: choiceN ? `Estas preguntas comparten escala: ${listName}, ${choiceN} categorias.` : `Estas preguntas comparten escala: ${listName}.` };
-}
-
-function scaleKey(v: VarWithSource | undefined): string {
-  if (!v) return "";
-  return v.scale_signature || v.list_name || "";
+  return evaluateScaleCompat(refs, (ref) => findVar(ref, variables, multi));
 }
 
 function findVar(ref: string, variables: VarWithSource[], multi: boolean): VarWithSource | undefined {
@@ -1234,6 +1280,12 @@ function topicsToTitles(topics: TopicBlock[]): Record<string, string> {
 
 function newTopic(n: number): TopicBlock {
   return { key: `tema_${n}`, title: `Tema ${n}`, vars: [] };
+}
+
+/** ¿El título sigue siendo el marcador de posición, o el analista lo escribió? */
+function isDefaultTopicTitle(title: string, index: number): boolean {
+  const t = (title ?? "").trim();
+  return t === "" || t === `Tema ${index + 1}`;
 }
 
 function splitList(text: string): string[] {
@@ -1463,3 +1515,5 @@ function StatusPill({ tone, children, onClick }: { tone: Tone; children: React.R
     </span>
   );
 }
+
+export { isDefaultTopicTitle as _isDefaultTopicTitle };

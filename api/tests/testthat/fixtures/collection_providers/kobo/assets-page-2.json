@@ -1,0 +1,14 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": "https://kf.example.test/api/v2/assets/?format=json&asset_type=survey&limit=2",
+  "results": [
+    {
+      "uid": "aSurveyTwo",
+      "name": "Encuesta dos",
+      "asset_type": "survey",
+      "version_id": "v4",
+      "deployment__active": true
+    }
+  ]
+}

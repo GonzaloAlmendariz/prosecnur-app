@@ -1,0 +1,6 @@
+{
+  "uid": "aCreatedSurvey",
+  "active": true,
+  "version_id": "v1",
+  "enketo_url": "https://ee.example.test/x/opaque-form"
+}

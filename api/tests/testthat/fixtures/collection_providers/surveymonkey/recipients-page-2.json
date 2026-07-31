@@ -1,0 +1,13 @@
+{
+  "page": 2,
+  "per_page": 2,
+  "total": 3,
+  "data": [
+    {
+      "id": "recipient-3",
+      "phone_number": "+51900000003",
+      "mail_status": "delivered",
+      "survey_response_status": "not_responded"
+    }
+  ]
+}

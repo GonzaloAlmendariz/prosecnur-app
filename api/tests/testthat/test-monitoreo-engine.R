@@ -136,8 +136,8 @@ test_that("Kobo arma URL incremental con query por _id", {
   )
 
   expect_match(url, "^https://kobo\\.unhcr\\.org/api/v2/assets/asset%201/data/")
-  expect_match(url, "page=2", fixed = TRUE)
-  expect_match(url, "page_size=1000", fixed = TRUE)
+  expect_match(url, "start=1000", fixed = TRUE)
+  expect_match(url, "limit=1000", fixed = TRUE)
   expect_match(utils::URLdecode(url), '"_id":{"$gt":123', fixed = TRUE)
 })
 

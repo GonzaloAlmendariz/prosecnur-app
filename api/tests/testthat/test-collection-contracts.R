@@ -61,6 +61,29 @@ test_that("ningun fixture declara remote_write habilitado", {
   }
 })
 
+test_that("remote_write habilitado y secretos anidados se rechazan", {
+  plan <- leer_fixture("aulas", "plan")
+  dep <- leer_fixture("aulas", "deployment")
+
+  dep$capabilities$remote_write$observed <- TRUE
+  res <- collection_deployment_validate(dep, plan)
+  expect_false(res$ok)
+  expect_true(any(vapply(res$problems, function(p) p$code == "remote_write_enabled", logical(1))))
+
+  dep <- leer_fixture("aulas", "deployment")
+  dep$target$remote_ref$auth <- list(token = "no-persistir")
+  res <- collection_deployment_validate(dep, plan)
+  expect_false(res$ok)
+  expect_true(any(vapply(res$problems, function(p) p$code == "secret_in_state", logical(1))))
+})
+
+test_that("fingerprints canonicos no dependen del orden de keys", {
+  a <- list(provider = "kobo", remote_ref = list(asset_uid = "a1", version_id = "v1"))
+  b <- list(remote_ref = list(version_id = "v1", asset_uid = "a1"), provider = "kobo")
+  expect_identical(collection_fingerprint(a), collection_fingerprint(b))
+  expect_match(collection_fingerprint(a), "^sha256:[0-9a-f]{64}$")
+})
+
 test_that("el plan rechaza schema, fingerprint y revision malos", {
   plan <- leer_fixture("aulas", "plan")
 

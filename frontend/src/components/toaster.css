@@ -14,7 +14,7 @@
   z-index: 1500;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--pulso-space-2);
   /* El contenedor no intercepta el puntero; cada tarjeta sí. Sin esto, una
    * franja invisible bloquearía los clics del rincón inferior derecho. */
   pointer-events: none;
@@ -24,7 +24,7 @@
 .pulso-toaster-deck {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--pulso-space-2);
 }
 
 .pulso-toast {
@@ -33,7 +33,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: start;
   gap: 10px;
-  padding: 11px 12px;
+  padding: 11px var(--pulso-space-3);
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface);

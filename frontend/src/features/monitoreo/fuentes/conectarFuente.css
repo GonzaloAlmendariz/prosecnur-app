@@ -120,15 +120,22 @@
  * por donde se elige qué conectar. Nada obliga a empezar por la primera —un
  * estudio puede traer el padrón antes que el barrido—, pero el orden y el
  * destaque dicen cuál toca. */
+/* Materia en REPOSO, que es el estándar de rail de la casa. Antes la pieza no
+ * elegida iba con `border-color: transparent` y `background: transparent`: no
+ * era una tarjeta tenue, es que no había tarjeta —solo la actual dibujaba
+ * marco—, y el rail se leía como una lista de texto suelto con un recuadro
+ * encima. Las tres son piezas conectables y las tres tienen que verse como
+ * tales; la actual se distingue por acento y elevación, no por ser la única
+ * que existe. */
 .fuentes-conectar-guion li button {
   width: 100%;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: 10px;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 74%, transparent);
   border-radius: var(--pulso-radius-card);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.52);
   padding: 12px 12px;
   text-align: left;
   cursor: pointer;
@@ -180,7 +187,12 @@
    columna de 154 y se salía por el borde. Lo que dice qué aporta cada pieza no
    se recorta: envuelve (C4). */
 .fuentes-conectar-guion li button em,
-.fuentes-conectar-guion li button i {
+.fuentes-conectar-guion li button i,
+/* El `strong` se quedó fuera de este arreglo cuando se hizo para `em` e `i`, y
+ * es el que lleva el título: «Barrido telefónico del actor» pedía 233 px en
+ * 197 y se cortaba en «…del act». Va con `inline-flex` por el icono, así que
+ * necesita además que su caja pueda encoger. */
+.fuentes-conectar-guion li button strong {
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -337,12 +349,20 @@
   flex-direction: column;
   gap: 20px;
 }
+/* `min-inline-size: 0` no es cosmético: el navegador impone a TODO `<fieldset>`
+ * un `min-inline-size: min-content`, así que el grupo no puede encoger por
+ * debajo de su contenido más ancho. Con el catálogo dentro, el nombre más largo
+ * —«Encuesta a representantes directivos de empresas certificadas en igualdad
+ * de género en Colombia»— estiraba el grupo a 647 px dentro de un cuerpo de
+ * 601 y el panel entero se iba 66 px por la derecha. Medido: con 0, 561 y cero
+ * desborde. */
 .fuentes-conectar-grupo {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin: 0;
   padding: 0;
+  min-inline-size: 0;
   border: none;
 }
 /* Label de campo como en el editor de formularios: 12 px semibold en color de
@@ -353,6 +373,11 @@
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text);
+  /* El `gap: 8px` del fieldset NO alcanza al legend: Chrome lo saca del
+   * contexto flex y lo pinta aparte, así que el rótulo quedaba pegado a su
+   * control —medido: legend bottom 89, contenido top 89, cero de hueco—.
+   * El margen propio es la única forma de separarlo. */
+  margin-bottom: var(--pulso-space-2);
 }
 .fuentes-conectar-grupo input {
   width: 100%;
@@ -430,6 +455,81 @@
 .fuentes-conectar-opciones button.is-elegido svg {
   color: var(--module-accent, var(--pulso-primary));
 }
+/* Roster de actores. Es la misma rejilla que las tarjetas de servicio, con el
+ * mismo estado elegido, para que el paso se lea como una sola familia de
+ * decisiones y no como un formulario con un campo de texto en medio. */
+.fuentes-conectar-actores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: stretch;
+  gap: 8px;
+}
+.fuentes-conectar-actores button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+.fuentes-conectar-actores button:hover:not(.is-elegido) {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-bg);
+}
+.fuentes-conectar-actores button.is-elegido {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 22%, transparent);
+}
+.fuentes-conectar-actores button strong {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+/* La ficha de inicial es el objeto de Fuentes › Actores
+ * (`mon-acr-source-object-icon`), con sus mismas medidas y tokens: si el actor
+ * se dibuja distinto según dónde lo mires, deja de ser el mismo actor. */
+.fuentes-conectar-actor-inicial {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 20%, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 42%, #fff);
+  color: var(--pulso-module-monitoring);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0;
+}
+/* La marca de «ya tiene esta pieza» sustituye a la frase que los enumeraba a
+ * todos debajo del campo: el estado se ve en el actor que lo tiene. */
+.fuentes-conectar-actor-marca {
+  flex: 0 0 auto;
+  color: var(--pulso-success-fg);
+}
+.fuentes-conectar-actores button.is-otro .fuentes-conectar-actor-inicial {
+  border-style: dashed;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-faint);
+}
+.fuentes-conectar-actores button.is-otro strong {
+  color: var(--pulso-text-soft);
+}
+
 /* Pista de validación: aparece mientras se escribe y ocupa su renglón desde el
  * principio, para que el formulario no salte cuando el diagnóstico cambia. */
 .fuentes-conectar-pista {
@@ -478,21 +578,32 @@
 }
 /* El catálogo posee su propio scroll: con 200 encuestas, la lista no puede
  * empujar el pie del panel fuera de la pantalla (C3/C4). */
+/* El catálogo se pinta entero y NO scrollea por dentro: el dueño del scroll es
+ * el cuerpo, como dice la regla de arriba. Antes tenía `max-height: 320px` con
+ * su propio `overflow-y`, así que 76 encuestas se recorrían de siete en siete
+ * dentro de una franja fija mientras el panel dejaba ~250 px de blanco debajo,
+ * y encima eran dos scrolls anidados. Ahora la lista ocupa lo que necesita y
+ * se baja por el panel. */
 .fuentes-conectar-catalogo {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 320px;
-  overflow-y: auto;
   padding-right: 2px;
 }
-.fuentes-conectar-catalogo.is-corto {
-  max-height: 190px;
-}
+/* `is-corto` ya no acorta con `max-height`: sin `overflow-y` propio, un tope de
+ * alto no scrollea, recorta. La lista corta lo es por traer menos filas. */
+/* `flex: 0 0 auto` es la otra mitad del arreglo de envoltura. El catálogo es
+ * un flex en COLUMNA con `max-height`, y ahí el `flex-shrink: 1` por defecto
+ * actúa sobre el alto: con más contenido del que cabe, en vez de hacer scroll
+ * el navegador aplasta las filas. La única que envolvía a dos líneas pedía
+ * 37 px y se quedaba con 26, así que su segunda línea desaparecía —el nombre
+ * envolvía y no se leía igual—. Con 0, la fila mide 47 y el contenedor
+ * scrollea, que es de quien es el trabajo. */
 .fuentes-conectar-catalogo button {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  flex: 0 0 auto;
   gap: 10px;
   padding: 8px 10px;
   border: 1px solid var(--pulso-border);
@@ -501,7 +612,14 @@
   text-align: left;
   cursor: pointer;
 }
+/* El nombre de una encuesta puede ser una frase entera. Antes iba en `nowrap`
+ * heredado del kit y era él quien fijaba el ancho del grupo; ahora que el
+ * grupo puede encoger, la fila crece hacia abajo, que es la dirección donde
+ * hay sitio. */
 .fuentes-conectar-catalogo button strong {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-size: 12px;
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
@@ -614,7 +732,5 @@
   }
 }
 
-@media (max-height: 720px) {
-  .fuentes-conectar-catalogo { max-height: 200px; }
-  .fuentes-conectar-catalogo.is-corto { max-height: 140px; }
-}
+/* En pantalla corta tampoco se topa el catálogo: el cuerpo scrollea igual y un
+ * `max-height` aquí sería un recorte, no una franja. */

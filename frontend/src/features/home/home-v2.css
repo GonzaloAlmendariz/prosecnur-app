@@ -1286,10 +1286,7 @@
 }
 
 .home-mc-head,
-.home-mc-viz,
-
-.home-mc-cta { color: var(--home-mod-accent, var(--pulso-primary)); }
-}
+.home-mc-viz { color: var(--home-mod-accent, var(--pulso-primary)); }
 
 .home-mc-head,
 .home-mc-viz,

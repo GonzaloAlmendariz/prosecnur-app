@@ -635,14 +635,8 @@ monitoreo_normalize_profile <- function(profile = list(), acreditacion = NULL) {
     groups = groups,
     minimums = minimums,
     rejection_rules = rejection_rules,
-    platform_effective_filter = list(
-      enabled = .monitoreo_bool(effective_filter_raw$enabled %||% effective_filter_raw$activo, effective_filter_configured),
-      variable = effective_filter_variable,
-      values = as.list(effective_filter_values),
-      label = .monitoreo_scalar(effective_filter_raw$label %||% effective_filter_raw$etiqueta, effective_filter_variable),
-      value_label = .monitoreo_scalar(effective_filter_raw$value_label %||% effective_filter_raw$etiqueta_valor, ""),
-      source_kind = .monitoreo_scalar(effective_filter_raw$source_kind %||% effective_filter_raw$provider %||% effective_filter_raw$proveedor, "")
-    ),
+    # Admite más de un criterio; ver `monitoreo_filtro_efectiva.R`.
+    platform_effective_filter = .monitoreo_effective_filter_block(effective_filter_raw, profile),
     platform_test_filter = list(
       enabled = .monitoreo_bool(test_filter_raw$enabled %||% test_filter_raw$activo, test_filter_configured),
       variable = test_filter_variable,
@@ -3844,10 +3838,16 @@ monitoreo_normalize_config <- function(config = list(), data = NULL, previous_co
     acreditacion = acreditacion
   )
   if (identical(profile$family %||% "", "acreditacion")) {
+    # Lo declarado manda y lo derivado completa. Antes esta rama SOBRESCRIBIA
+    # `profile$units` con lo deducido de las fuentes, y por eso el elenco no se
+    # podia guardar: no era que nadie lo escribiera, es que se pisaba en cada
+    # normalizacion. Ver `monitoreo_actor_roster.R`.
+    declared_units <- monitoreo_actor_roster_declared(profile$units %||% list())
     source_units <- .monitoreo_source_declared_actor_units(data, profile$units %||% list())
-    if (isTRUE(attr(source_units, "source_contract_present", exact = TRUE))) {
-      attr(source_units, "source_contract_present") <- NULL
-      profile$units <- source_units
+    contract_present <- isTRUE(attr(source_units, "source_contract_present", exact = TRUE))
+    attr(source_units, "source_contract_present") <- NULL
+    if (contract_present || length(declared_units)) {
+      profile$units <- monitoreo_actor_roster_merge(declared_units, source_units)
     }
   }
 	  territorial_input <- config$territorial %||% config$monitoreo_territorial %||% list()

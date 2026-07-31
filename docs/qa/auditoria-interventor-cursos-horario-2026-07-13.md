@@ -46,17 +46,23 @@ La reparación establece una gramática única:
 
 ## 2. Fuentes revisadas
 
-La auditoría contrastó la aplicación con los dos repositorios documentales solicitados:
+La auditoría contrastó la aplicación con dos repositorios documentales
+externos, no versionados con Prosecnur. Sus rutas locales se omiten para que
+este informe sea portable:
 
-- [`Documentación Definitiva HST`](</Users/gonzaloalmendariz/Documents/Pulso/HST UNSA/Documentación Definitiva HST>), especialmente cifras canónicas, población versus unidad, criterios, marco, cálculo, comparación por años, auditorías y formatos DTI.
-- [`Diseño Muestral PUCP — 2 escenarios (2025–2026)`](</Users/gonzaloalmendariz/Documents/Pulso/HST UNSA/Diseño Muestral PUCP- 2 Escenarios 2 (2025-2026)>), incluyendo el Excel de dos escenarios, la metodología DOCX/PDF, la base ponderada 2025 y la sintaxis de proporción de éxito.
+- `Documentación Definitiva HST`, especialmente cifras canónicas, población
+  versus unidad, criterios, marco, cálculo, comparación por años, auditorías y
+  formatos DTI.
+- `Diseño Muestral PUCP — 2 escenarios (2025–2026)`, incluyendo el Excel de
+  dos escenarios, la metodología DOCX/PDF, la base ponderada 2025 y la sintaxis
+  de proporción de éxito.
 
 Los documentos de control más relevantes fueron:
 
-- [`02 · Cifras canónicas.md`](</Users/gonzaloalmendariz/Documents/Pulso/HST UNSA/Documentación Definitiva HST/02 · Cifras canónicas.md>);
-- [`03.4 Aulas y marco muestral.md`](</Users/gonzaloalmendariz/Documents/Pulso/HST UNSA/Documentación Definitiva HST/03 · El método paso a paso/03.4 Aulas y marco muestral.md>);
-- [`03.6 Cálculo de muestra y de aulas.md`](</Users/gonzaloalmendariz/Documents/Pulso/HST UNSA/Documentación Definitiva HST/03 · El método paso a paso/03.6 Cálculo de muestra y de aulas.md>);
-- [`04.7 Auditoría de granularidad y llave curso-horario.md`](</Users/gonzaloalmendariz/Documents/Pulso/HST UNSA/Documentación Definitiva HST/04 · Análisis y hallazgos/04.7 Auditoría de granularidad y llave curso-horario.md>).
+- `02 · Cifras canónicas.md`;
+- `03.4 Aulas y marco muestral.md`;
+- `03.6 Cálculo de muestra y de aulas.md`;
+- `04.7 Auditoría de granularidad y llave curso-horario.md`.
 
 La última contiene la demostración cuantitativa completa de los dos hallazgos metodológicos tratados aquí. Este informe no sustituye esa evidencia: la conecta con el comportamiento y el contrato de Prosecnur.
 
@@ -277,8 +283,12 @@ La prueba dedicada [`test-calc-muestra-aulas-identidad.R`](../../api/tests/testt
 
 ## 10. Evidencia visual
 
-- Vista 1920×1080: [`final2-1920`](../../tmp/visual-qa/interventor-toolbar-2026-07-13/final2-1920/quick-calc-muestra-1920x1080-portable.png).
-- Vista 1280×800: [`final-1280`](../../tmp/visual-qa/interventor-toolbar-2026-07-13/final-1280/quick-calc-muestra-1280x800-portable.png).
+Las capturas de esta auditoría fueron artefactos locales de QA bajo `tmp/` y no
+se versionaron. Se conservan sus rutas como trazabilidad histórica, no como
+enlaces portables:
+
+- Vista 1920×1080: `tmp/visual-qa/interventor-toolbar-2026-07-13/final2-1920/quick-calc-muestra-1920x1080-portable.png`.
+- Vista 1280×800: `tmp/visual-qa/interventor-toolbar-2026-07-13/final-1280/quick-calc-muestra-1280x800-portable.png`.
 
 En ambas capturas:
 
@@ -388,9 +398,9 @@ La prueba automatizada en una sesión aislada observó:
 
 ### 15.2 Evidencia visual
 
-- Estado confirmado, 1710×1107: [`criterios confirmados`](../../tmp/visual-qa/criterios-confirmacion-2026-07-13/1710/quick-calc-muestra-1710x1107-portable.png).
-- Estado confirmado, 1280×800: [`composición compacta`](../../tmp/visual-qa/criterios-confirmacion-2026-07-13/1280/final-1280x800.png).
-- Estado pendiente, 1280×800: [`confirmación individual de Formación`](../../tmp/visual-qa/criterios-confirmacion-2026-07-13/fresh-1280/pendiente-centrado-1280x800.png).
+- Estado confirmado, 1710×1107: `tmp/visual-qa/criterios-confirmacion-2026-07-13/1710/quick-calc-muestra-1710x1107-portable.png`.
+- Estado confirmado, 1280×800: `tmp/visual-qa/criterios-confirmacion-2026-07-13/1280/final-1280x800.png`.
+- Estado pendiente, 1280×800: `tmp/visual-qa/criterios-confirmacion-2026-07-13/fresh-1280/pendiente-centrado-1280x800.png`.
 
 En 1280 px no existe overflow global y las cinco opciones de Formación miden 371×53 px, sin overflow interior. Los cinco avisos del inspector pertenecen al rail lateral colapsado y son los mismos falsos positivos documentados en la sección 10.
 
@@ -436,8 +446,8 @@ En `Marco → Criterios de inclusión` también se retiró el bloque explicativo
 | Diferencias con whitespace inválido | ✅ `git diff --check`. |
 | QA 1710×1107 y 1280×800 | Sin overflow global, scroll jails, errores de página, API o recursos. |
 
-- Vista final 1710×1107: [`cabecera fija de Criterios de inclusión`](../../tmp/visual-qa/tab-header-minimal-2026-07-13/final-fixed/quick-calc-muestra-1710x1107-portable.png).
-- Vista final 1280×800: [`composición portable`](../../tmp/visual-qa/tab-header-minimal-2026-07-13/final-fixed/quick-calc-muestra-1280x800-portable.png).
+- Vista final 1710×1107: `tmp/visual-qa/tab-header-minimal-2026-07-13/final-fixed/quick-calc-muestra-1710x1107-portable.png`.
+- Vista final 1280×800: `tmp/visual-qa/tab-header-minimal-2026-07-13/final-fixed/quick-calc-muestra-1280x800-portable.png`.
 
 El inspector conserva cinco avisos por viewport, todos atribuibles al contenido textual deliberadamente oculto del rail icon-only. No hay desbordamiento del documento ni del workbench.
 
@@ -482,9 +492,9 @@ Se conservó texto únicamente cuando está vinculado a una acción, un estado, 
 | Diferencias con whitespace inválido | ✅ `git diff --check`. |
 | QA visual | 1710×1107, 1280×800 y 1024×600 sin overflow global, scroll jail, errores de página, API o recursos. |
 
-- Comparación transversal posterior: [`15 pestañas depuradas`](../../tmp/visual-qa/meta-text-pruning-2026-07-13/after/contact-sheet.png).
-- Criterios, 1280×800: [`solo título de alcance`](../../tmp/visual-qa/meta-text-pruning-2026-07-13/final/quick-calc-muestra-1280x800-portable.png).
-- Criterios, 1024×600: [`layout compacto`](../../tmp/visual-qa/meta-text-pruning-2026-07-13/final/quick-calc-muestra-1024x600-portable.png).
+- Comparación transversal posterior: `tmp/visual-qa/meta-text-pruning-2026-07-13/after/contact-sheet.png`.
+- Criterios, 1280×800: `tmp/visual-qa/meta-text-pruning-2026-07-13/final/quick-calc-muestra-1280x800-portable.png`.
+- Criterios, 1024×600: `tmp/visual-qa/meta-text-pruning-2026-07-13/final/quick-calc-muestra-1024x600-portable.png`.
 
 Los cinco avisos del inspector por viewport siguen correspondiendo al texto deliberadamente oculto del rail lateral icon-only; no representan desbordamiento visible.
 
@@ -556,12 +566,12 @@ En las tarjetas de Criterios de inclusión se retiraron el componente, el dispar
 | Suite frontend | ✅ 68 archivos, 767 pruebas aprobadas. |
 | Contraste con blanco | Hombre 5.17:1; Mujer 4.93:1. |
 
-- [`Sexo o género — población`](../../tmp/visual-qa/sex-palette-2026-07-13/sexo-poblacion-card.png).
-- [`Sexo por facultad`](../../tmp/visual-qa/sex-palette-2026-07-13/sexo-facultad-card.png).
-- [`Sexo por curso-horario`](../../tmp/visual-qa/sex-palette-2026-07-13/sexo-curso-horario-card.png).
-- [`Distribución 1710×1107`](../../tmp/visual-qa/sex-palette-2026-07-13/distribucion-1710x1107.png).
-- [`Distribución 1280×720`](../../tmp/visual-qa/sex-palette-2026-07-13/distribucion-1280x720.png).
-- [`Criterios sin el desplegable meta`](../../tmp/visual-qa/sex-palette-2026-07-13/criterios-1710x1107.png).
+- Sexo o género — población: `tmp/visual-qa/sex-palette-2026-07-13/sexo-poblacion-card.png`.
+- Sexo por facultad: `tmp/visual-qa/sex-palette-2026-07-13/sexo-facultad-card.png`.
+- Sexo por curso-horario: `tmp/visual-qa/sex-palette-2026-07-13/sexo-curso-horario-card.png`.
+- Distribución 1710×1107: `tmp/visual-qa/sex-palette-2026-07-13/distribucion-1710x1107.png`.
+- Distribución 1280×720: `tmp/visual-qa/sex-palette-2026-07-13/distribucion-1280x720.png`.
+- Criterios sin el desplegable meta: `tmp/visual-qa/sex-palette-2026-07-13/criterios-1710x1107.png`.
 
 ### 18.5 Contrato de iteración
 
@@ -606,9 +616,9 @@ La tarjeta agregada de sexo ocupaba solo media fila y dejaba una columna vacía.
 | Escritorio 1710×1107 | ancho del documento = ancho del viewport; sin overflow horizontal ni errores de consola. |
 | Escritorio 1280×800 | ancho del documento = ancho del viewport; la lectura vertical permanece dentro del único scroll de la pestaña. |
 
-- [`Sexo o género — ancho completo y referencia final`](../../tmp/visual-qa/sex-reference-2026-07-13/sexo-general-wide-final.png).
-- [`Sexo por facultad — barras gruesas y referencia`](../../tmp/visual-qa/sex-reference-2026-07-13/sexo-facultad-wide.png).
-- [`Sexo o género — composición compacta 1280 px`](../../tmp/visual-qa/sex-reference-2026-07-13/sexo-general-compact.png).
+- Sexo o género — ancho completo y referencia final: `tmp/visual-qa/sex-reference-2026-07-13/sexo-general-wide-final.png`.
+- Sexo por facultad — barras gruesas y referencia: `tmp/visual-qa/sex-reference-2026-07-13/sexo-facultad-wide.png`.
+- Sexo o género — composición compacta 1280 px: `tmp/visual-qa/sex-reference-2026-07-13/sexo-general-compact.png`.
 
 La inspección se ejecutó con la copia QA `tmp/visual-qa/tab-header-minimal-2026-07-13/HSVG2026-QA.pulso`; no se abrió ni se modificó el proyecto HSVG original.
 
@@ -660,12 +670,12 @@ Cada superficie se recorrió con datos reales de la copia QA en dos tamaños de 
 
 | Superficie | 1710 × 1107 | 1280 × 800 |
 |---|---|---|
-| Población | [`vista amplia`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/poblacion-1710x1107.png) | [`vista compacta`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/poblacion-1280x800.png) |
-| Cursos-horario | [`vista amplia`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cursos-horario-1710x1107.png) | [`vista compacta`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cursos-horario-1280x800.png) |
-| Consistencia | [`vista amplia`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/consistencia-1710x1107.png) | [`vista compacta`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/consistencia-1280x800.png) |
-| Cobertura | [`vista amplia`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cobertura-1710x1107.png) | [`vista compacta`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cobertura-1280x800.png) |
-| Supuestos | [`vista amplia`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-supuestos-1710x1107.png) | [`vista compacta`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-supuestos-1280x800.png) |
-| Diseño | [`vista amplia`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-diseno-1710x1107.png) | [`vista compacta`](../../tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-diseno-1280x800.png) |
+| Población | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/poblacion-1710x1107.png` | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/poblacion-1280x800.png` |
+| Cursos-horario | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cursos-horario-1710x1107.png` | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cursos-horario-1280x800.png` |
+| Consistencia | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/consistencia-1710x1107.png` | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/consistencia-1280x800.png` |
+| Cobertura | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cobertura-1710x1107.png` | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/cobertura-1280x800.png` |
+| Supuestos | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-supuestos-1710x1107.png` | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-supuestos-1280x800.png` |
+| Diseño | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-diseno-1710x1107.png` | `tmp/visual-qa/deep-aesthetic-review-2026-07-13/final/calculo-diseno-1280x800.png` |
 
 La consola de estos recorridos no registró errores de página, API ni recursos. Solo aparecieron los dos avisos informativos preexistentes de migración futura de React Router. El inspector automatizado continúa reportando como overflow el texto accesible deliberadamente oculto de los cinco botones icon-only del rail; el documento y el body no desbordan.
 
@@ -769,9 +779,9 @@ En presentación, un embudo válido de dos pasos ya no se oculta. Entre dos y cu
 
 Evidencia visual reconstruida con la copia QA, sin abrir el HSVG original:
 
-- [`embudo dinámico · 1710×1107`](../../tmp/visual-qa/embudo-dinamico-2026-07-13-run2/dynamic-1710x1107.png);
-- [`embudo dinámico · 1440×1000`](../../tmp/visual-qa/embudo-dinamico-2026-07-13-run2/dynamic-1440x1000.png);
-- [`embudo dinámico · 1280×800`](../../tmp/visual-qa/embudo-dinamico-2026-07-13-run2/dynamic-1280x800.png).
+- Embudo dinámico · 1710×1107: `tmp/visual-qa/embudo-dinamico-2026-07-13-run2/dynamic-1710x1107.png`;
+- embudo dinámico · 1440×1000: `tmp/visual-qa/embudo-dinamico-2026-07-13-run2/dynamic-1440x1000.png`;
+- embudo dinámico · 1280×800: `tmp/visual-qa/embudo-dinamico-2026-07-13-run2/dynamic-1280x800.png`.
 
 La stopping rule se cumple: las etiquetas visibles salen de los criterios confirmados del proyecto, los criterios no accionables se omiten, el flujo mínimo se conserva, el flujo largo no se comprime y el último conteo coincide con el marco final. La política evaluativa de un set vacío se conserva como no-op; la reparación evita presentarlo como un filtro ficticio. Permanece fuera de esta iteración cualquier cambio a la política de señales ausentes.
 
@@ -813,12 +823,12 @@ La copia QA usada fue `tmp/visual-qa/tab-header-minimal-2026-07-13/HSVG2026-QA.p
 
 | Superficie | Evidencia amplia | Evidencia compacta |
 |---|---|---|
-| Criterios de inclusión | [`1710 × 1107`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/marco-criterios/quick-calc-muestra-1710x1107-auto.png) | [`1280 × 800`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/marco-criterios/quick-calc-muestra-1280x800-auto.png) |
-| Cursos-horario | [`1710 × 1107`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/marco-cursos-horario/quick-calc-muestra-1710x1107-auto.png) | [`1280 × 800`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/marco-cursos-horario/quick-calc-muestra-1280x800-auto.png) |
-| Diseño | [`1710 × 1107`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-diseno/quick-calc-muestra-1710x1107-auto.png) | [`1280 × 800 final`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-diseno-final2/quick-calc-muestra-1280x800-auto.png) |
-| Propuestas | [`1710 × 1107`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-propuestas/quick-calc-muestra-1710x1107-auto.png) | [`1280 × 800`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-propuestas/quick-calc-muestra-1280x800-auto.png) |
-| Supuestos | [`1710 × 1107`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-supuestos/quick-calc-muestra-1710x1107-auto.png) | [`1280 × 800`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-supuestos/quick-calc-muestra-1280x800-auto.png) |
-| Distribución | [`1710 × 1107`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-distribucion/quick-calc-muestra-1710x1107-auto.png) | [`1280 × 800 final`](../../tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-distribucion-final/quick-calc-muestra-1280x800-auto.png) |
+| Criterios de inclusión | `tmp/visual-qa/sophisticated-pass-2026-07-13/marco-criterios/quick-calc-muestra-1710x1107-auto.png` | `tmp/visual-qa/sophisticated-pass-2026-07-13/marco-criterios/quick-calc-muestra-1280x800-auto.png` |
+| Cursos-horario | `tmp/visual-qa/sophisticated-pass-2026-07-13/marco-cursos-horario/quick-calc-muestra-1710x1107-auto.png` | `tmp/visual-qa/sophisticated-pass-2026-07-13/marco-cursos-horario/quick-calc-muestra-1280x800-auto.png` |
+| Diseño | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-diseno/quick-calc-muestra-1710x1107-auto.png` | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-diseno-final2/quick-calc-muestra-1280x800-auto.png` |
+| Propuestas | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-propuestas/quick-calc-muestra-1710x1107-auto.png` | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-propuestas/quick-calc-muestra-1280x800-auto.png` |
+| Supuestos | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-supuestos/quick-calc-muestra-1710x1107-auto.png` | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-supuestos/quick-calc-muestra-1280x800-auto.png` |
+| Distribución | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-distribucion/quick-calc-muestra-1710x1107-auto.png` | `tmp/visual-qa/sophisticated-pass-2026-07-13/calculo-distribucion-final/quick-calc-muestra-1280x800-auto.png` |
 
 El proyecto QA tenía tres pasos efectivos en su embudo reconstruido. Para no inferir el caso largo, se verificó además el mismo componente con seis etapas y etiquetas extensas en el navegador real: a 1280 px la retícula midió **1,122 × 132 px**, produjo tres columnas de 362 px, conservó las seis etapas y obtuvo `scrollWidth = clientWidth`. La prueba de React exige además `data-orientacion="adaptive"` y las seis etiquetas del payload.
 

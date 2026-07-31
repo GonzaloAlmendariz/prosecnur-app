@@ -41,7 +41,24 @@ import { MonitoreoOutputsReadiness } from "./MonitoreoOutputsReadiness";
 import "./outputsWorkbench.css";
 
 type OutputAudience = "client" | "internal";
-type OutputFamily = "acreditacion" | "territorial" | "telefonico";
+type OutputFamily = "acreditacion" | "territorial" | "telefonico" | "aulas";
+
+/**
+ * Qué PDF sabe emitir cada familia.
+ *
+ * La garantía vive acá y no en el call site a propósito:
+ * `.monitoreo_client_report_model_for_snapshot` solo ramifica para territorial y
+ * telefónico, así que cursos-horario cae al modelo de acreditación y el botón
+ * entregaría un documento con actores y encuestas que ese perfil no tiene. Si el
+ * permiso dependiera de que cada montaje recuerde pasar la prop, el primer
+ * montaje que la olvide vuelve a ofrecer el documento equivocado.
+ */
+export const PDF_POR_FAMILIA: Record<OutputFamily, { client: boolean; production: boolean }> = {
+  acreditacion: { client: true, production: true },
+  territorial: { client: true, production: true },
+  telefonico: { client: true, production: true },
+  aulas: { client: false, production: false },
+};
 type PublicationStatus = {
   kind: "idle" | "checking" | "publishing" | "success" | "error";
   message: string;
@@ -98,6 +115,12 @@ export type MonitoreoOutputsWorkbenchProps = {
   corte: MonitoreoCorte;
   syncedAt?: string;
   includeTargetsSupported?: boolean;
+  /**
+   * Override puntual de lo que `PDF_POR_FAMILIA` ya declara. Solo para un
+   * montaje que necesite recortar más; el default por familia no depende de que
+   * el call site recuerde pasarlo.
+   */
+  pdfSupport?: { client?: boolean; production?: boolean };
   className?: string;
   onPublished?: () => void;
 };
@@ -179,6 +202,18 @@ function copyForFamily(family: OutputFamily) {
       sheetsTitle: "Salidas telefónicas a Sheets",
     };
   }
+  if (family === "aulas") {
+    return {
+      eyebrow: "PDF de cursos-horario",
+      title: "PDF de avance por cursos-horario",
+      detail: "Aplicación por aula, cuotas y brechas del corte activo.",
+      button: "Generar PDF de avance",
+      progress: "Generando PDF de avance",
+      ready: "PDF de avance listo para descargar.",
+      download: "Descargar PDF de cursos-horario",
+      sheetsTitle: "Salidas de cursos-horario a Sheets",
+    };
+  }
   return {
     eyebrow: "PDF ejecutivo",
     title: "PDF ejecutivo",
@@ -214,6 +249,17 @@ function productionCopyForFamily(family: OutputFamily) {
       download: "Descargar producción telefónica",
     };
   }
+  if (family === "aulas") {
+    return {
+      eyebrow: "Producción",
+      title: "Producción por responsable",
+      detail: "Cursos-horario aplicados por responsable de campo y trazabilidad de la agenda.",
+      button: "Generar PDF de producción",
+      progress: "Generando PDF de producción",
+      ready: "PDF de producción listo para descargar.",
+      download: "Descargar producción",
+    };
+  }
   return {
     eyebrow: "Producción",
     title: "Producción por responsable",
@@ -233,7 +279,11 @@ function productionPdfTitleSeed(family: OutputFamily, defaultTitle: string, rout
   if (family === "telefonico") {
     return base && !generic.test(base) ? `Producción telefónica - ${base}` : "Producción telefónica";
   }
-  const fallback = family === "territorial" ? "monitoreo territorial" : "monitoreo de acreditación";
+  const fallback = family === "territorial"
+    ? "monitoreo territorial"
+    : family === "aulas"
+      ? "monitoreo de cursos-horario"
+      : "monitoreo de acreditación";
   return `Producción - ${base && !generic.test(base) ? base : fallback}`;
 }
 
@@ -557,9 +607,13 @@ export function MonitoreoOutputsWorkbench({
   corte,
   syncedAt,
   includeTargetsSupported = true,
+  pdfSupport,
   className = "",
   onPublished,
 }: MonitoreoOutputsWorkbenchProps) {
+  const pdfDeLaFamilia = PDF_POR_FAMILIA[family] ?? { client: true, production: true };
+  const ofreceClientPdf = pdfSupport?.client ?? pdfDeLaFamilia.client;
+  const ofreceProductionPdf = pdfSupport?.production ?? pdfDeLaFamilia.production;
   const hasSnapshot = corte.hasSnapshot;
   const nRows = corte.ingesta;
   const readiness = useMemo(() => readinessDeSalidas(corte), [corte]);
@@ -1079,123 +1133,127 @@ export function MonitoreoOutputsWorkbench({
 
       <div className="mon-outputs-grid">
         <div className="mon-outputs-side-stack">
-          <article className="mon-outputs-card mon-outputs-card--pdf">
-            <div className="mon-outputs-card__head">
-              <span>{copy.eyebrow}</span>
-              <strong>{copy.title}</strong>
-              <small>{copy.detail}</small>
-            </div>
-            {readiness.bloqueos.length ? (
-              <div className="mon-outputs-alert is-error">
-                <AlertTriangle size={14} /> {readiness.bloqueos[0].mensaje}
+          {ofreceClientPdf ? (
+            <article className="mon-outputs-card mon-outputs-card--pdf">
+              <div className="mon-outputs-card__head">
+                <span>{copy.eyebrow}</span>
+                <strong>{copy.title}</strong>
+                <small>{copy.detail}</small>
               </div>
-            ) : null}
-            <button
-              type="button"
-              className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
-              onClick={() => { void generatePdf(); }}
-              disabled={!canGeneratePdf}
-              style={{ "--mon-output-action-progress": `${pdfButtonProgress}%` } as CSSProperties}
-            >
-              {pdfJobId ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
-              {pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
-            </button>
-            <JobStatusLine
-              jobId={pdfJobId}
-              label={copy.progress}
-              onProgress={setPdfProgress}
-              onDone={() => {
-                setPdfJobId(null);
-                setPdfProgress(100);
-                setPdfReady(true);
-                setPdfMessage(copy.ready);
-              }}
-              onError={(message) => {
-                setPdfJobId(null);
-                setPdfProgress(null);
-                setPdfError(message);
-              }}
-              onCancelled={() => {
-                setPdfJobId(null);
-                setPdfProgress(null);
-                setPdfMessage("Generación cancelada.");
-              }}
-            />
-            {pdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {pdfError}</div> : null}
-            {pdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {pdfMessage}</div> : null}
-            {pdfReady ? (
-              <a className="mon-outputs-download" href={monitoreoClientReportPdfDownloadUrl()} download>
-                <Download size={14} />
-                {copy.download}
-              </a>
-            ) : null}
-          </article>
-
-          <article className="mon-outputs-card mon-outputs-card--production">
-            <div className="mon-outputs-card__head">
-              <span><UsersRound size={14} /> {productionCopy.eyebrow}</span>
-              <strong>{productionCopy.title}</strong>
-              <small>{productionCopy.detail}</small>
-            </div>
-            <div className="mon-outputs-production-tags" aria-label="Contenido del reporte de producción">
-              <span>Orden por apellido</span>
-              <span>Detalle por responsable</span>
-            </div>
-            <label className="mon-outputs-field mon-outputs-production-title">
-              <span>Título del PDF</span>
-              <input
-                type="text"
-                value={productionPdfTitle}
-                maxLength={140}
-                placeholder={productionDefaultTitle}
-                disabled={Boolean(productionPdfJobId)}
-                onChange={(event) => setProductionPdfTitle(event.target.value)}
+              {readiness.bloqueos.length ? (
+                <div className="mon-outputs-alert is-error">
+                  <AlertTriangle size={14} /> {readiness.bloqueos[0].mensaje}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className={`mon-outputs-primary mon-outputs-action-progress${pdfJobId ? " is-running" : ""}${pdfReady ? " is-complete" : ""}`}
+                onClick={() => { void generatePdf(); }}
+                disabled={!canGeneratePdf}
+                style={{ "--mon-output-action-progress": `${pdfButtonProgress}%` } as CSSProperties}
+              >
+                {pdfJobId ? <Loader2 size={14} className="pulso-spin" /> : pdfReady ? <CheckCircle2 size={14} /> : <Download size={14} />}
+                {pdfJobId ? copy.progress : pdfReady ? copy.ready : copy.button}
+              </button>
+              <JobStatusLine
+                jobId={pdfJobId}
+                label={copy.progress}
+                onProgress={setPdfProgress}
+                onDone={() => {
+                  setPdfJobId(null);
+                  setPdfProgress(100);
+                  setPdfReady(true);
+                  setPdfMessage(copy.ready);
+                }}
+                onError={(message) => {
+                  setPdfJobId(null);
+                  setPdfProgress(null);
+                  setPdfError(message);
+                }}
+                onCancelled={() => {
+                  setPdfJobId(null);
+                  setPdfProgress(null);
+                  setPdfMessage("Generación cancelada.");
+                }}
               />
-              <small>Se usará en la portada y en el encabezado del reporte.</small>
-            </label>
-            {!hasSnapshot ? (
-              <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> Sincroniza un corte antes de generar producción.</div>
-            ) : null}
-            <button
-              type="button"
-              className={`mon-outputs-primary mon-outputs-action-progress${productionPdfJobId ? " is-running" : ""}${productionPdfReady ? " is-complete" : ""}`}
-              onClick={() => { void generateProductionPdf(); }}
-              disabled={!canGenerateProductionPdf}
-              style={{ "--mon-output-action-progress": `${productionPdfButtonProgress}%` } as CSSProperties}
-            >
-              {productionPdfJobId ? <Loader2 size={14} className="pulso-spin" /> : productionPdfReady ? <CheckCircle2 size={14} /> : <UsersRound size={14} />}
-              {productionPdfJobId ? productionCopy.progress : productionPdfReady ? productionCopy.ready : productionCopy.button}
-            </button>
-            <JobStatusLine
-              jobId={productionPdfJobId}
-              label={productionCopy.progress}
-              onProgress={setProductionPdfProgress}
-              onDone={() => {
-                setProductionPdfJobId(null);
-                setProductionPdfProgress(100);
-                setProductionPdfReady(true);
-                setProductionPdfMessage(productionCopy.ready);
-              }}
-              onError={(message) => {
-                setProductionPdfJobId(null);
-                setProductionPdfProgress(null);
-                setProductionPdfError(message);
-              }}
-              onCancelled={() => {
-                setProductionPdfJobId(null);
-                setProductionPdfProgress(null);
-                setProductionPdfMessage("Generación cancelada.");
-              }}
-            />
-            {productionPdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {productionPdfError}</div> : null}
-            {productionPdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {productionPdfMessage}</div> : null}
-            {productionPdfReady ? (
-              <a className="mon-outputs-download" href={monitoreoProductionReportPdfDownloadUrl()} download>
-                <Download size={14} />
-                {productionCopy.download}
-              </a>
-            ) : null}
-          </article>
+              {pdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {pdfError}</div> : null}
+              {pdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {pdfMessage}</div> : null}
+              {pdfReady ? (
+                <a className="mon-outputs-download" href={monitoreoClientReportPdfDownloadUrl()} download>
+                  <Download size={14} />
+                  {copy.download}
+                </a>
+              ) : null}
+            </article>
+          ) : null}
+
+          {ofreceProductionPdf ? (
+            <article className="mon-outputs-card mon-outputs-card--production">
+              <div className="mon-outputs-card__head">
+                <span><UsersRound size={14} /> {productionCopy.eyebrow}</span>
+                <strong>{productionCopy.title}</strong>
+                <small>{productionCopy.detail}</small>
+              </div>
+              <div className="mon-outputs-production-tags" aria-label="Contenido del reporte de producción">
+                <span>Orden por apellido</span>
+                <span>Detalle por responsable</span>
+              </div>
+              <label className="mon-outputs-field mon-outputs-production-title">
+                <span>Título del PDF</span>
+                <input
+                  type="text"
+                  value={productionPdfTitle}
+                  maxLength={140}
+                  placeholder={productionDefaultTitle}
+                  disabled={Boolean(productionPdfJobId)}
+                  onChange={(event) => setProductionPdfTitle(event.target.value)}
+                />
+                <small>Se usará en la portada y en el encabezado del reporte.</small>
+              </label>
+              {!hasSnapshot ? (
+                <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> Sincroniza un corte antes de generar producción.</div>
+              ) : null}
+              <button
+                type="button"
+                className={`mon-outputs-primary mon-outputs-action-progress${productionPdfJobId ? " is-running" : ""}${productionPdfReady ? " is-complete" : ""}`}
+                onClick={() => { void generateProductionPdf(); }}
+                disabled={!canGenerateProductionPdf}
+                style={{ "--mon-output-action-progress": `${productionPdfButtonProgress}%` } as CSSProperties}
+              >
+                {productionPdfJobId ? <Loader2 size={14} className="pulso-spin" /> : productionPdfReady ? <CheckCircle2 size={14} /> : <UsersRound size={14} />}
+                {productionPdfJobId ? productionCopy.progress : productionPdfReady ? productionCopy.ready : productionCopy.button}
+              </button>
+              <JobStatusLine
+                jobId={productionPdfJobId}
+                label={productionCopy.progress}
+                onProgress={setProductionPdfProgress}
+                onDone={() => {
+                  setProductionPdfJobId(null);
+                  setProductionPdfProgress(100);
+                  setProductionPdfReady(true);
+                  setProductionPdfMessage(productionCopy.ready);
+                }}
+                onError={(message) => {
+                  setProductionPdfJobId(null);
+                  setProductionPdfProgress(null);
+                  setProductionPdfError(message);
+                }}
+                onCancelled={() => {
+                  setProductionPdfJobId(null);
+                  setProductionPdfProgress(null);
+                  setProductionPdfMessage("Generación cancelada.");
+                }}
+              />
+              {productionPdfError ? <div className="mon-outputs-alert is-error"><AlertTriangle size={14} /> {productionPdfError}</div> : null}
+              {productionPdfMessage ? <div className="mon-outputs-alert is-info"><CheckCircle2 size={14} /> {productionPdfMessage}</div> : null}
+              {productionPdfReady ? (
+                <a className="mon-outputs-download" href={monitoreoProductionReportPdfDownloadUrl()} download>
+                  <Download size={14} />
+                  {productionCopy.download}
+                </a>
+              ) : null}
+            </article>
+          ) : null}
 
           <article className="mon-outputs-card mon-outputs-card--processing">
             <div className="mon-outputs-card__head">

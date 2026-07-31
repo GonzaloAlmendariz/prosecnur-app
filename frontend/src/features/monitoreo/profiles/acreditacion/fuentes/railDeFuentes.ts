@@ -1,4 +1,4 @@
-// Las tres pestañas de Fuentes, con su estado y lo que falta para cerrarlas.
+// Las pestañas de Fuentes, con su estado y lo que falta para cerrarlas.
 //
 // Vive fuera de `AcreditacionMonitoreoPage.tsx` porque ese archivo está
 // congelado a crecimiento (`agentic/manifest.json`) y porque el texto del rail
@@ -12,6 +12,7 @@
 
 import type { MonitoreoWorkbenchRailTab } from "../../../components";
 import { PESTANAS_DE_FUENTES } from "./pestanas";
+import type { PestanaDeFuentes } from "./pestanas";
 
 type Estado = NonNullable<MonitoreoWorkbenchRailTab["estado"]>;
 
@@ -35,6 +36,26 @@ export type ConteosTelefonicos = {
   filtroDefinido: boolean;
 };
 
+/**
+ * La definición de una pestaña por su clave.
+ *
+ * Se buscan por clave y no por posición. La destructuración por índice
+ * —`const [resumen, universo, encuestas] = PESTANAS_DE_FUENTES`— reasignaba en
+ * silencio el texto de cada pestaña a la siguiente en cuanto se insertaba una
+ * nueva en medio, que es exactamente lo que pasó al añadir «Actores».
+ */
+function definicion(key: PestanaDeFuentes) {
+  const encontrada = PESTANAS_DE_FUENTES.find((pestana) => pestana.key === key);
+  if (!encontrada) throw new Error(`Pestaña de Fuentes desconocida: ${key}`);
+  return encontrada;
+}
+
+/** Lo que el rail necesita saber del elenco declarado. */
+export type ConteosDeActores = {
+  declarados: number;
+  sinPadron: number;
+};
+
 function estado(listo: boolean): Estado {
   return listo ? "listo" : "parcial";
 }
@@ -43,42 +64,55 @@ function cuenta(total: number, singular: string, plural: string) {
   return `${total.toLocaleString("es-PE")} ${total === 1 ? singular : plural}`;
 }
 
-export function railDeFuentesAcreditacion(conteos: ConteosDeFuentes): MonitoreoWorkbenchRailTab[] {
-  const [resumen, universo, encuestas] = PESTANAS_DE_FUENTES;
+export function railDeFuentesAcreditacion(
+  conteos: ConteosDeFuentes,
+  actores: ConteosDeActores = { declarados: 0, sinPadron: 0 },
+): MonitoreoWorkbenchRailTab[] {
   return [
     {
-      ...resumen,
-      detail: conteos.total
-        ? `${cuenta(conteos.enabled, "fuente activa", "fuentes activas")} de ${conteos.total}`
-        : "sin fuentes conectadas",
+      ...definicion("actores"),
+      detail: actores.declarados
+        ? (actores.sinPadron
+          ? `${cuenta(actores.declarados, "actor", "actores")} · ${actores.sinPadron} sin padrón`
+          : cuenta(actores.declarados, "actor declarado", "actores declarados"))
+        : "declara quiénes responden el estudio",
+      badge: actores.declarados ? String(actores.declarados) : undefined,
+      estado: estado(actores.declarados > 0),
+    },
+    {
+      ...definicion("fuentes"),
+      // Una sola pestaña con tres cosas dentro necesita decir cuál falta, no
+      // cuántas hay en total: «13 de 13» no distingue un estudio con todos los
+      // padrones y ninguna encuesta de su inverso.
+      detail: !conteos.total
+        ? "conecta el padrón y la encuesta de cada actor"
+        : !conteos.sheetsEnabled
+          ? "falta la base de cada actor"
+          : !conteos.platformEnabled
+            ? "faltan las encuestas de cada actor"
+            : `${cuenta(conteos.sheetsEnabled, "base activa", "bases activas")} · ${cuenta(conteos.platformEnabled, "encuesta activa", "encuestas activas")}`,
       badge: conteos.total ? `${conteos.enabled}/${conteos.total}` : undefined,
-      estado: estado(conteos.total > 0 && conteos.enabled === conteos.total),
+      estado: estado(conteos.sheetsEnabled > 0 && conteos.platformEnabled > 0),
     },
     {
-      ...universo,
-      detail: conteos.sheets
-        ? cuenta(conteos.sheetsEnabled, "base activa", "bases activas")
-        : "falta la base de cada actor",
-      badge: conteos.sheets ? String(conteos.sheets) : undefined,
-      estado: estado(conteos.sheetsEnabled > 0),
-    },
-    {
-      ...encuestas,
-      detail: conteos.platform
-        ? `${cuenta(conteos.platformEnabled, "encuesta activa", "encuestas activas")} · ${cuenta(conteos.collectors, "recopilador", "recopiladores")}`
-        : "faltan las encuestas de cada actor",
-      badge: conteos.platform ? String(conteos.platform) : undefined,
-      estado: estado(conteos.platformEnabled > 0),
+      ...definicion("recopiladores"),
+      detail: conteos.collectors
+        ? cuenta(conteos.collectors, "recopilador", "recopiladores")
+        : "sin recopiladores en las encuestas conectadas",
+      badge: conteos.collectors ? String(conteos.collectors) : undefined,
+      estado: estado(conteos.collectors > 0),
     },
   ];
 }
 
 export function railDeFuentesTelefonico(conteos: ConteosTelefonicos): MonitoreoWorkbenchRailTab[] {
-  const [resumen, universo, encuestas] = PESTANAS_DE_FUENTES;
+  // El perfil telefónico no reparte por actor: reusa las mismas tres celdas del
+  // rail con su propio vocabulario, sin pestaña de elenco.
   const faltan = 3 - conteos.fuentesListas;
   return [
     {
-      ...resumen,
+      ...definicion("actores"),
+      label: "Modelo",
       detail: faltan <= 0
         ? "las 3 fuentes del modelo están listas"
         : `${faltan === 1 ? "falta 1 fuente" : `faltan ${faltan} fuentes`} de las 3 del modelo`,
@@ -86,7 +120,7 @@ export function railDeFuentesTelefonico(conteos: ConteosTelefonicos): MonitoreoW
       estado: estado(conteos.fuentesListas === 3),
     },
     {
-      ...universo,
+      ...definicion("fuentes"),
       label: "Universo y barrido",
       detail: conteos.hojasListas === 2
         ? "base y barrido conectados"
@@ -95,7 +129,7 @@ export function railDeFuentesTelefonico(conteos: ConteosTelefonicos): MonitoreoW
       estado: estado(conteos.hojasListas === 2),
     },
     {
-      ...encuestas,
+      ...definicion("recopiladores"),
       label: "Encuestas",
       detail: conteos.plataformaLista
         ? `${cuenta(conteos.encuestasKobo, "encuesta", "encuestas")} · ${conteos.filtroDefinido ? "filtro de efectiva definido" : "define el filtro de efectiva"}`

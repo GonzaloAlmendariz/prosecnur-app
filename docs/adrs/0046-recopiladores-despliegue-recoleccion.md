@@ -2,9 +2,9 @@
 
 Estado: Aceptado
 
-Implementacion: En curso
+Implementacion: Completa
 
-Fecha: 2026-07-27; aceptado el 2026-07-29
+Fecha: 2026-07-27; aceptado el 2026-07-29; implementado el 2026-07-30
 
 ## Contexto
 
@@ -36,7 +36,7 @@ integraciones salientes, privacidad y compatibilidad con ADR 0019.
 
 ## Decisión
 
-Si este ADR es aceptado, Recopiladores será el módulo responsable de preparar y
+Recopiladores es el módulo responsable de preparar y
 entregar el **despliegue pre-campo de la recolección**.
 
 Su entrada será un plan/listado ya decidido y una revisión local inmutable del
@@ -98,14 +98,17 @@ Se adoptan estas reglas:
     código `grid` del PDF cambiando únicamente el device a PNG. No se rasteriza
     el PDF ni se depende de ImageMagick.
 
-La aceptación no mueve la autoridad por sí sola. Hasta que esté implementado el
-handoff idempotente (unidad 7 del plan), **ADR 0019 conserva la autoridad actual
-de Monitoreo sobre agenda y links/QR de aulas**.
+El handoff idempotente quedó implementado. Recopiladores posee la preparación
+pre-campo —plan, target, accesos, materiales, deployment y recibo— y proyecta el
+deployment localmente hacia el contrato compatible de aulas. Monitoreo consume
+esa proyección y conserva agenda viva, reprogramaciones, reemplazos activados,
+sincronización, respuestas, brechas, calidad y cierre. Repetir el mismo handoff
+no muta la revisión ni su sello temporal y nunca ejecuta efectos remotos.
 
-La revisión parcial de ADR 0019 que este ADR exige se redacta al cerrar esa
-unidad, no antes: recién ahí se sabe qué parte del contrato de aulas v1 queda en
-pie y qué la reemplaza. Redactarla ahora sería congelar un reparto que la
-implementación todavía puede corregir.
+La revisión parcial exigida por este ADR quedó materializada en
+[ADR 0019](0019-monitoreo-aulas-universitarias.md). Los keys y endpoints de
+aulas v1 permanecen como compatibilidad aditiva, no como autoridad del nuevo
+recorrido de preparación.
 
 ## Consecuencias
 
@@ -121,9 +124,10 @@ Beneficios:
 
 Costos y riesgos:
 
-- debe extraerse una pantalla monolítica y crearse estado/API propios;
-- ADR 0019 necesitará una actualización parcial al materializar el handoff;
-- habrá un periodo de doble lectura compatible entre schemas v1 y v2;
+- la extracción de la pantalla monolítica y el estado/API propios amplían la
+  superficie que debe mantenerse;
+- ADR 0019 quedó actualizado parcialmente al materializar el handoff;
+- permanece un periodo de doble lectura compatible entre schemas v1 y v2;
 - links individuales pueden contener PII o comportarse como credenciales;
 - el aprovisionamiento remoto futuro exige idempotencia, permisos, límites,
   consentimiento y recuperación de fallos parciales;
@@ -131,7 +135,8 @@ Costos y riesgos:
   proveedor o plan;
 - el editor y el compilador de layout son superficies nuevas con riesgo de
   overflow, drift de preview y scope creep;
-- el contrato fino del renderer PDF debe congelarse antes de implementarlo.
+- el contrato fino del renderer PDF quedó congelado y ahora exige compatibilidad
+  explícita para futuras extensiones.
 
 Se descarta convertir Recopiladores en herramienta de emailing/SMS en V1. Se
 descarta también crear un asset Kobo por unidad: un deployment puede producir
@@ -172,6 +177,30 @@ múltiples accesos parametrizados.
   evidencia de resultado.
 
 ## Notas
+
+### Evidencia de implementación
+
+- `collection_state/v1`, `collection_plan/v1` y
+  `collection_deployment/v1` persisten con revisión optimista, fingerprints,
+  migración legacy y reconciliación `stale`.
+- `/api/recopiladores/*` expone 13 rutas propias para estado, plan, deployment,
+  handoff, preflight, preview, templates, instancias y render.
+- Cinco adapters V1 inspeccionan aulas, enlaces manuales, Kobo y SurveyMonkey
+  sin mutaciones remotas; `remote_write` permanece `disabled_v1`.
+- El preset `ficha_aplicacion_a4_v1`, el registro cerrado de nueve bloques y el
+  mismo compilador `grid` producen preview PNG, PDF y paquete con recibo único,
+  SHA-256, `file_id` y conteo de páginas; los binarios quedan fuera del
+  `.pulso`.
+- La UI propia ofrece Plan, Accesos, Materiales y Entrega, editor semántico con
+  undo/redo y direcciones canónicas. El gate visual con proyecto real cubrió
+  las seis direcciones a 1710×1107 y 1024×600 sin overflow, clipping, scroll
+  jail, errores de API ni incumplimientos geométricos. La selección real de
+  2.373 aulas se adapta sin ensuciar el proyecto ni crear estado de Monitoreo,
+  conserva `course_name`, `eligible_n`, muestra y ubicación, y se presenta en
+  páginas contenidas con el último renglón alcanzable.
+- La verificación de cierre ejecutó las suites específicas de R y frontend,
+  typecheck, round-trip `.pulso` y un render asíncrono real en un worker R
+  limpio; el plan enlazado conserva el detalle de comandos y criterios.
 
 Plan e investigación detallados en
 [Plan de Recopiladores 2026-07](../plan-recopiladores-2026-07.md).

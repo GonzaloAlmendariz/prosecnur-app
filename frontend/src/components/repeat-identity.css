@@ -36,7 +36,7 @@
 /* Variante compacta (solo ícono + "Repetible" corto), para filas densas. */
 .pulso-repeat-badge.is-compact {
   padding: 1px 7px;
-  gap: 4px;
+  gap: var(--pulso-space-1);
 }
 
 /* Indicador de grano — banner que contextualiza la base hija activa. */
@@ -44,7 +44,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 10px var(--pulso-space-3);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-repeat-bg);
   border: 1px solid var(--pulso-repeat-border);

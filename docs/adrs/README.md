@@ -18,6 +18,56 @@ Usar la [plantilla ADR](0000-template.md). Cada decision debe incluir:
 - cumplimiento;
 - fecha.
 
+Los ADR nuevos también separan el estado de la decisión del avance de
+implementación. Esta separación se migra de forma progresiva en los ADR
+históricos; la ausencia del campo en un documento antiguo no cambia su estado.
+
+## Autoridad y ciclo de vida
+
+Un ADR registra una decisión, no una lista de tareas. Sus estados permitidos
+son:
+
+| Estado | Autoridad |
+|---|---|
+| `Propuesto` | Borrador no autoritativo; puede cambiar antes de ratificarse. |
+| `Aceptado` | Decisión ratificada y vigente, aunque su implementación siga en curso. |
+| `Rechazado` | Alternativa evaluada que nunca entró en vigor. Se conserva como historia. |
+| `Reemplazado` | Decisión antes vigente cuyo ámbito fue asumido por un ADR posterior. |
+
+La implementación se declara por separado como `No iniciada`, `En curso`,
+`Completa`, `Retirada` o `No aplica`. El código no cambia automáticamente un
+ADR de `Propuesto` a `Aceptado`: la ratificación es una decisión explícita.
+
+`Reemplaza` contradice o retira el mismo ámbito y debe enlazarse en ambos
+sentidos. `Extiende` agrega un ámbito compatible y deja ambos ADR aceptados. Un
+reemplazo parcial conserva el ADR anterior como aceptado, declara qué ámbito
+sigue vigente y enlaza al sucesor.
+
+## Identidad y edición
+
+- Cada decisión nueva recibe un ID numérico de cuatro dígitos, único e
+  inmutable. Filename, encabezado e índice deben coincidir.
+- Una decisión aceptada no se reescribe para cambiar su sentido normativo: se
+  crea un ADR que la reemplaza o extiende.
+- Un ADR propuesto sí puede consolidarse antes de su aceptación.
+- Los aliases históricos conservan enlaces antiguos, pero no cuentan como una
+  segunda decisión canónica.
+- `## Cumplimiento` nombra invariantes y evidencia verificable. «Implementado»
+  sin un test, comando, ruta o revisión responsable no es evidencia suficiente.
+
+Existe una colisión histórica: Cálculo de muestra y Editor XLSForm comparten el
+ID 0035. Se mantiene visible hasta que el dueño apruebe una migración de
+identidad; no debe usarse como precedente para IDs nuevos.
+
+## Auditorías
+
+- [Estado completo de los ADR — 2026-07-29](estado-adr-2026-07-29.md): 48
+  decisiones físicas, 47 IDs, estado documental, muestra estática de
+  implementación y deuda pendiente.
+- El gate documental se ejecuta con `node scripts/check-docs-governance.mjs`.
+  Los enlaces rotos, documentos huérfanos y desalineaciones índice–archivo
+  fallan; la deuda editorial heredada se informa como advertencia.
+
 ## Indice
 
 | ADR | Estado | Fecha | Decision |

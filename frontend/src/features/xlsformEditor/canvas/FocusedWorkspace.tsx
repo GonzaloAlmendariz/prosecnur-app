@@ -873,7 +873,11 @@ function FocusQuestionQuicklook({
         <span className="pulso-section-eyebrow">Resumen rápido</span>
         <strong>{location}</strong>
       </div>
-      <div className="pulso-focus-quicklook-grid">
+      <div
+        className="pulso-focus-quicklook-grid"
+        data-qa-geometry-group="xlsform/focus-quicklook"
+        data-qa-geometry-contract="equal"
+      >
         {items.map((item) => {
           const Icon = item.icon;
           return (

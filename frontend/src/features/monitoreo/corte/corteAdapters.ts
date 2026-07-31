@@ -5,7 +5,11 @@
 // autorizada: si una superficie necesita "cuántas válidas hay", pide el corte,
 // no rebusca en `reports`.
 
-import type { MonitoreoState, MonitoreoTerritorialDashboard } from "../../../api/client";
+import type {
+  MonitoreoAulasDashboard,
+  MonitoreoState,
+  MonitoreoTerritorialDashboard,
+} from "../../../api/client";
 import { construirCorte, type MonitoreoCorte } from "./corteContract";
 
 function numero(value: unknown): number | null {
@@ -94,5 +98,43 @@ export function corteAcreditacion(
     direccionOficial: "seccion=avance&pestana=actores",
     fuentesActivas: opciones.fuentesActivas,
     fuentesRequeridas: opciones.fuentesRequeridas,
+  });
+}
+
+/**
+ * Cursos-horario. El grano procesable es `filter_passed` —las respuestas que
+ * pasan el filtro declarado en la fuente— y el oficial `respuestas_validas`.
+ *
+ * La meta se suma sobre `expected_valid` del plan, no sobre `brecha`: el engine
+ * define la brecha como `max(0, expected_valid - validas)`, así que un aula que
+ * sobrecumple aporta su brecha en cero y reconstruir la meta como
+ * `validas + brecha` la inflaría hasta el sobrecumplimiento. Se excluye el pool
+ * de reservas extra por la misma razón que el engine lo excluye de
+ * `avance_por_estrato`: son aulas que todavía no pertenecen a la muestra.
+ */
+export function corteAulas(
+  state: MonitoreoState | null | undefined,
+  dashboard: MonitoreoAulasDashboard | null | undefined,
+): MonitoreoCorte {
+  const kpis = dashboard?.kpis;
+  const agenda = dashboard?.agenda ?? [];
+  const rastreadas = agenda.filter((row) => row.sample_role !== "extra_reserve_pool");
+  const metasDeclaradas = rastreadas.filter((row) => numero(row.expected_valid) != null);
+  const meta = metasDeclaradas.length
+    ? metasDeclaradas.reduce((sum, row) => sum + (numero(row.expected_valid) ?? 0), 0)
+    : null;
+
+  return construirCorte({
+    ingesta: numero(state?.n_rows) ?? numero(kpis?.respuestas_total) ?? 0,
+    procesable: numero(kpis?.filter_passed),
+    oficial: numero(kpis?.respuestas_validas),
+    meta,
+    cutAt: state?.synced_at || dashboard?.generated_at || "",
+    hasSnapshot: Boolean(state?.has_snapshot),
+    generationStatus: state?.generation_status,
+    reglaProcesable: "Respuestas fuera del filtro declarado para la aplicación en aula.",
+    direccionProcesable: "seccion=fuentes",
+    reglaOficial: "Respuestas sin curso-horario reconocido o descartadas por el control de validez.",
+    direccionOficial: "seccion=calidad",
   });
 }

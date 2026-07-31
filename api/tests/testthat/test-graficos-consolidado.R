@@ -620,3 +620,30 @@ test_that("job real genera y registra un PPTX con un unico manifiesto", {
   expect_equal(sum(roles == "deliverable"), 1L)
   expect_equal(sum(roles == "manifest"), 1L)
 })
+
+test_that("el flag include_plan del preflight interpreta las formas usuales", {
+  expect_false(.graficos_consolidado_truthy(NULL))
+  expect_false(.graficos_consolidado_truthy(list()))
+  expect_false(.graficos_consolidado_truthy("0"))
+  expect_false(.graficos_consolidado_truthy("false"))
+  expect_false(.graficos_consolidado_truthy(FALSE))
+  expect_true(.graficos_consolidado_truthy("1"))
+  expect_true(.graficos_consolidado_truthy("true"))
+  expect_true(.graficos_consolidado_truthy(" TRUE "))
+  expect_true(.graficos_consolidado_truthy(TRUE))
+})
+
+test_that("n_slides del preflight cuenta el mismo plan que el editor siembra", {
+  # El menu del conjunto promete "N diapositivas" con `n_slides` y el editor
+  # compartido aterriza con `plan$slides`. Si dejaran de salir del mismo
+  # calculo volveria el hueco que motivo la siembra: el menu prometiendo
+  # laminas que el lienzo no tenia.
+  sid <- .gcc_test_setup()
+  on.exit(session_delete(sid), add = TRUE)
+
+  preflight <- graficos_consolidado_preflight(sid)
+
+  expect_true(preflight$ready)
+  expect_gt(preflight$n_slides, 0L)
+  expect_identical(preflight$n_slides, as.integer(length(preflight$plan$slides)))
+})

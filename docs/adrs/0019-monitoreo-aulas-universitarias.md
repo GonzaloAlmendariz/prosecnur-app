@@ -103,14 +103,30 @@ Costos y riesgos:
 
 ## Notas
 
-**Revisión parcial pendiente.** El [ADR 0046](0046-recopiladores-despliegue-recoleccion.md),
-aceptado el 2026-07-29, traslada a Recopiladores la preparación de accesos,
-links/QR y materiales de aulas. Este ADR **conserva su autoridad completa hasta
-que el handoff idempotente esté implementado**; a partir de ahí, Monitoreo
-consume el deployment en lectura y sigue gobernando agenda viva,
-reprogramaciones, reemplazos, sincronización, respuestas, brechas, calidad y
-cierre. La revisión se redacta al cerrar esa unidad; hasta entonces, lo que este
-ADR dice sobre agenda y links/QR de aulas sigue vigente.
+**Revisión parcial materializada el 2026-07-30.** El
+[ADR 0046](0046-recopiladores-despliegue-recoleccion.md) asigna a
+Recopiladores la preparación pre-campo de accesos, links/QR, materiales y
+deployment de aulas. Monitoreo consume el handoff local idempotente y sigue
+gobernando agenda viva, reprogramaciones, reemplazos, sincronización,
+respuestas, brechas, calidad y cierre. `monitoreo_aulas_plan` y sus endpoints v1
+permanecen como proyección compatible para proyectos legacy y consumidores de
+campo; ya no son la autoridad del nuevo recorrido de preparación.
+
+**Publicación alcanzable desde la app desde el 2026-07-30.** Hasta esa fecha el
+backend construía los dos workbooks de la familia pero ninguna superficie los
+ofrecía: el perfil no montaba el workbench de salidas. Cursos-horario ya tiene
+la pestaña `avance/salidas`, con su corte canónico propio (`corteAulas`) como
+gate. Los dos PDF del workbench quedan apagados de forma deliberada mientras la
+familia no tenga modelo de reporte propio — el genérico produce el documento de
+acreditación.
+
+**Cumplimiento verificado parcialmente.** La auditoría
+[del 2026-07-30](../qa/auditoria-adr-0019-cursos-horario-2026-07-30.md) contrasta
+las siete comprobaciones exigidas más abajo contra la suite real: cinco tienen
+prueba, y queda sin cobertura la que este ADR considera crítica —que el workbook
+cliente no exponga PII y el interno conserve trazabilidad—. Ese documento lleva
+también los pendientes operativos del perfil (reemplazos inescribibles desde la
+UI, cierre operativo sin flujo) y un riesgo de plan leído desde dos sitios.
 
 Relacionado con [ADR 0010](0010-monitoreo-centro-control-operativo-sheets.md),
 [ADR 0011](0011-cache-persistida-mapas-monitoreo-territorial.md) y

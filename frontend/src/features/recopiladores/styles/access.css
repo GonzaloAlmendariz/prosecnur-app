@@ -1,0 +1,191 @@
+.rec-access-layout,
+.rec-package-layout,
+.rec-delivery-layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.rec-target-panel,
+.rec-access-result,
+.rec-package-card,
+.rec-render-card,
+.rec-handoff-card,
+.rec-receipt-card {
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  box-shadow: var(--pulso-shadow-low);
+  min-width: 0;
+  padding: 16px;
+}
+
+.rec-target-panel,
+.rec-access-result {
+  align-content: start;
+  display: grid;
+  gap: 13px;
+}
+
+.rec-target-panel header,
+.rec-access-result > header,
+.rec-package-card header,
+.rec-render-card > header,
+.rec-handoff-card header,
+.rec-receipt-card > header {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  justify-content: space-between;
+}
+
+.rec-target-panel header > div,
+.rec-access-result header > div,
+.rec-package-card header > div,
+.rec-render-card header > div,
+.rec-handoff-card header > div,
+.rec-receipt-card header > div {
+  flex: 1;
+}
+
+.rec-target-panel header span,
+.rec-access-result header span,
+.rec-package-card header span,
+.rec-render-card header span,
+.rec-handoff-card header span,
+.rec-receipt-card header span {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.rec-target-panel h2,
+.rec-access-result h2,
+.rec-package-card h2,
+.rec-render-card h2,
+.rec-handoff-card h2,
+.rec-receipt-card h2 {
+  font-size: 16px;
+  margin: 2px 0 0;
+}
+
+.rec-target-panel label,
+.rec-inspector-fields > label {
+  color: var(--pulso-text-soft);
+  display: grid;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  gap: 5px;
+}
+
+.rec-target-panel input,
+.rec-target-panel select,
+.rec-target-panel textarea,
+.rec-editor-toolbar select,
+.rec-inspector-fields input,
+.rec-inspector-fields select,
+.rec-inspector-fields textarea {
+  background: var(--pulso-bg);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  min-height: var(--pulso-control-height-md);
+  padding: 6px 8px;
+}
+
+.rec-target-panel textarea,
+.rec-inspector-fields textarea {
+  resize: vertical;
+}
+
+.rec-target-panel .rec-check,
+.rec-inspector .rec-check {
+  align-items: center;
+  display: flex;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.rec-target-panel .rec-check input,
+.rec-inspector .rec-check input {
+  min-height: auto;
+}
+
+.rec-target-actions,
+.rec-result-actions,
+.rec-render-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.rec-capability-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.rec-capability-grid article {
+  background: var(--pulso-bg);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  display: grid;
+  gap: 5px;
+  min-height: 106px;
+  padding: 12px;
+}
+
+.rec-capability-grid article.is-ready {
+  background: var(--pulso-success-bg);
+  border-color: var(--pulso-success-border);
+}
+
+.rec-capability-grid article.is-disabled {
+  background: var(--pulso-warn-bg);
+  border-color: var(--pulso-warn-border);
+}
+
+.rec-capability-grid article span,
+.rec-capability-grid article small {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.rec-blockers {
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-panel);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  padding: 11px 13px;
+}
+
+.rec-blockers ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.rec-state {
+  border-radius: var(--pulso-radius-chip);
+  display: inline-flex;
+  font-size: 11px;
+  padding: 3px 7px;
+}
+
+.rec-state.is-ready {
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+@media (max-width: 900px) {
+  .rec-access-layout,
+  .rec-package-layout,
+  .rec-delivery-layout {
+    grid-template-columns: 1fr;
+  }
+}

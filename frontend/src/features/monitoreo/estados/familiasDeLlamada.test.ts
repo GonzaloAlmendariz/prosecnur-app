@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   acreditacionAgruparEstados,
   acreditacionFamiliaDeEstado,
-} from "./AcreditacionEstadosLlamada";
+} from "./familiasDeLlamada";
 
 describe("clasificación de estados crudos del cliente", () => {
   it("tolera el error de tipeo real de la hoja de acrconta", () => {

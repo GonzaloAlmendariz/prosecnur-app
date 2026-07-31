@@ -7,6 +7,19 @@
   })
 }
 
+# El preflight ya arma el plan sugerido para poder contarlo (`n_slides`), y
+# hasta la unidad de siembra lo descartaba. El editor compartido lo necesita
+# para aterrizar con laminas en vez de un lienzo vacio, pero recalcularlo
+# cuesta ~7-9 s sobre cuatro bases reales y Plumber es de un solo hilo: pedirlo
+# de nuevo bloquearia la app entera. Por eso viaja en la MISMA respuesta que ya
+# se calcula, y opt-in: el menu de la barra solo muestra contadores (3.8 KB) y
+# no debe cargar los ~48 KB del plan cada vez que se abre.
+.graficos_consolidado_truthy <- function(value) {
+  if (is.null(value) || !length(value)) return(FALSE)
+  if (is.logical(value)) return(isTRUE(value[[1]]))
+  tolower(trimws(as.character(value[[1]]))) %in% c("1", "true", "yes", "si", "sí")
+}
+
 mount_graficos_consolidado <- function(pr) {
   pr |>
     plumber::pr_get("/api/graficos/consolidado/draft", wrap_endpoint(function(req, res) {
@@ -20,14 +33,14 @@ mount_graficos_consolidado <- function(pr) {
         expected_revision = parsed$expected_revision
       )
     })) |>
-    plumber::pr_get("/api/graficos/consolidado/preflight", wrap_endpoint(function(req, res) {
+    plumber::pr_get("/api/graficos/consolidado/preflight", wrap_endpoint(function(req, res, include_plan = NULL, includePlan = NULL) {
       sid <- session_header(req)
       preview <- graficos_consolidado_preflight(
         sid,
         config = graficos_consolidado_draft_get(sid)$config
       )
       preview$sources <- NULL
-      preview$plan <- NULL
+      if (!.graficos_consolidado_truthy(include_plan %||% includePlan)) preview$plan <- NULL
       preview$config <- NULL
       preview
     })) |>

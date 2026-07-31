@@ -3275,8 +3275,30 @@ attr(.monitoreo_territorial_map_prepare_job, "prosecnur_job_function_name") <- "
   base
 }
 
+#' Corta una fuente que rompe la cardinalidad del estudio antes de guardarla.
+#'
+#' Solo en los caminos INTERACTIVOS de alta de una fuente. La restauracion en
+#' bloque desde un `.pulso` (`/api/monitoreo/sources`) no pasa por aqui a
+#' proposito: un proyecto guardado antes de esta regla tiene que seguir
+#' abriendose, y bloquear su carga convertiria una advertencia en un proyecto
+#' inservible.
+.monitoreo_assert_actor_cardinality <- function(sid, source) {
+  s <- session_get(sid)
+  cfg <- s$monitoreo_config %||% list()
+  profile <- cfg$monitoreo_profile %||% cfg$profile %||% list()
+  roster <- if (is.list(profile)) profile$units %||% list() else list()
+  conflict <- monitoreo_actor_roster_conflict(
+    sources = monitoreo_normalize_sources(s$monitoreo_sources %||% list()),
+    incoming = source,
+    roster = roster
+  )
+  if (!is.null(conflict)) stop_api(409, conflict$code, conflict$message)
+  invisible(NULL)
+}
+
 .monitoreo_store_sheet_source <- function(sid, source) {
   source <- monitoreo_normalize_sources(list(source))[[1]]
+  .monitoreo_assert_actor_cardinality(sid, source)
   validation <- .monitoreo_validate_source(source, sid)
   sources <- monitoreo_upsert_source(session_get(sid)$monitoreo_sources %||% list(), source)
   session_set(sid, "monitoreo_sources", sources)
@@ -5681,6 +5703,88 @@ mount_monitoreo <- function(pr) {
       cfg <- .monitoreo_request_config(parsed$config %||% parsed, s$monitoreo_config %||% list(), data)
       cfg <- .monitoreo_store_config(sid, cfg)
       list(ok = TRUE, config = cfg, state = .monitoreo_state_payload(sid))
+    })) |>
+    # ── Elenco de actores ────────────────────────────────────────────────────
+    # El estudio declara sus actores ANTES de conectar nada. Hasta aqui el
+    # actor nacia del texto libre de la primera fuente que lo nombraba, asi que
+    # un actor sin fuentes no se podia expresar y renombrar uno era editar N
+    # strings a mano. Ver `monitoreo_actor_roster.R`.
+    plumber::pr_post("/api/monitoreo/actores", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      units <- monitoreo_actor_roster_normalize(
+        parsed$units %||% parsed$actores %||% parsed$actors %||% list()
+      )
+      s <- session_get(sid)
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      data <- .monitoreo_apply_source_metadata_to_data(
+        data, monitoreo_normalize_sources(s$monitoreo_sources %||% list())
+      )
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      profile <- cfg$monitoreo_profile %||% list()
+      profile$units <- units
+      cfg$monitoreo_profile <- profile
+      cfg <- .monitoreo_store_config(sid, cfg)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        actores = (cfg$monitoreo_profile %||% list())$units %||% list(),
+        config = cfg,
+        state = .monitoreo_state_payload(sid),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
+    plumber::pr_post("/api/monitoreo/actores/rename", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      from <- trimws(.monitoreo_scalar(parsed$from %||% parsed$desde %||% parsed$actor, ""))
+      to <- trimws(.monitoreo_scalar(parsed$to %||% parsed$hasta %||% parsed$nombre, ""))
+      if (!nzchar(from) || !nzchar(to)) {
+        stop_api(400, "E_MONITOREO_ACTOR_RENAME", "Pasa from y to para renombrar un actor.")
+      }
+      s <- session_get(sid)
+      # El renombrado es atomico entre fuentes y elenco. Tocar solo una de las
+      # dos caras es exactamente como el nombre se partia en dos actores.
+      sources <- monitoreo_normalize_sources(s$monitoreo_sources %||% list())
+      sources <- monitoreo_actor_roster_rename_sources(sources, from, to)
+      sources <- monitoreo_normalize_sources(sources)
+      session_set(sid, "monitoreo_sources", sources)
+
+      snapshot <- s$monitoreo_snapshot %||% NULL
+      data <- if (!is.null(snapshot) && is.data.frame(snapshot$data)) snapshot$data else data.frame()
+      # Las filas ya materializaron el nombre del actor en `dim_actor`. Sin
+      # reescribirlas, el actor viejo revive desde el snapshot y el elenco
+      # muestra un fantasma con cero fuentes.
+      data <- monitoreo_actor_roster_rename_snapshot(data, from, to)
+      data <- .monitoreo_apply_source_metadata_to_data(data, sources)
+      if (is.list(snapshot) && is.data.frame(snapshot$data)) {
+        snapshot$data <- data
+        session_set(sid, "monitoreo_snapshot", snapshot)
+      }
+      cfg <- monitoreo_normalize_config(s$monitoreo_config %||% list(), data)
+      profile <- cfg$monitoreo_profile %||% list()
+      declared <- monitoreo_actor_roster_declared(profile$units %||% list())
+      declared <- lapply(declared, function(unit) {
+        if (identical(.monitoreo_actor_key(unit$actor), .monitoreo_actor_key(from))) {
+          unit$actor <- to
+          unit$label <- to
+        }
+        unit
+      })
+      profile$units <- monitoreo_actor_roster_normalize(declared)
+      cfg$monitoreo_profile <- profile
+      cfg <- .monitoreo_store_config(sid, cfg)
+      .monitoreo_invalidate_dashboard_caches(sid)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        from = from,
+        to = to,
+        actores = (cfg$monitoreo_profile %||% list())$units %||% list(),
+        state = .monitoreo_state_payload(sid),
+        saved_project = !is.null(saved_project)
+      )
     })) |>
     plumber::pr_post("/api/monitoreo/acreditacion/case-reconciliation", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)

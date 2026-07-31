@@ -182,14 +182,24 @@ test_that("normalización legacy conserva shape v2 para 0, 1 y N units", {
     expect_identical(normalized$schema_version, "monitoreo_profile_v2")
     expect_length(normalized$units, expected_lengths[[i]])
     expect_true(all(vapply(normalized$units, function(unit) {
+      # `origin` entra al contrato con el elenco declarable: distingue el actor
+      # que el estudio DECLARO del que Fuentes dedujo. Ver
+      # `monitoreo_actor_roster.R`; sin ese campo la normalizacion no puede
+      # saber cual conservar y los pisaba todos.
       setequal(
         names(unit),
-        c("id", "type", "actor", "label", "segment", "group", "phone")
+        c("id", "type", "actor", "label", "segment", "group", "origin", "phone")
       ) && identical(
         isTRUE(unit$phone$enabled),
         identical(unit$phone$role, "target")
       )
     }, logical(1))))
+    # Un perfil legado no trae `origin` y sus unidades eran, por definicion,
+    # derivadas de las fuentes: ese es el unico default que no congela un
+    # elenco que nadie declaro.
+    expect_true(all(vapply(
+      normalized$units, function(unit) identical(unit$origin, "fuentes"), logical(1)
+    )))
   }
 
   one <- monitoreo_normalize_profile(profiles[[2]])$units[[1]]

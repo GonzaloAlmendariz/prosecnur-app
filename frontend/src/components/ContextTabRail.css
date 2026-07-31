@@ -169,7 +169,7 @@
     max-width: none;
     height: auto;
     min-height: var(--pulso-nav-item-height);
-    padding: 4px 8px 4px 2px;
+    padding: var(--pulso-space-1) var(--pulso-space-2) var(--pulso-space-1) 2px;
     text-align: left;
   }
 

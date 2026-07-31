@@ -48,7 +48,7 @@
 
 .pulso-bases-inspector-list {
   display: grid;
-  gap: 8px;
+  gap: var(--pulso-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -118,7 +118,7 @@
 .pulso-bases-inspector-grid dt {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--pulso-space-1);
   color: var(--pulso-text-soft);
   font-size: 10px;
   font-weight: var(--pulso-weight-heavy);
@@ -187,7 +187,7 @@
  * la escala tipográfica es lo que lo integra en la banda. */
 .pulso-bases-inspector-trigger.is-selector {
   max-width: 260px;
-  gap: 8px;
+  gap: var(--pulso-space-2);
   padding: 0 10px;
 }
 
@@ -240,7 +240,7 @@
  * compartidos de nav-states.css, así el hover y el foco son los de la app. */
 .pulso-bases-inspector-item[data-seleccionable] .pulso-bases-inspector-item-head {
   width: 100%;
-  padding: 2px 4px;
+  padding: 2px var(--pulso-space-1);
   margin: -2px -4px 0;
   border: 1px solid transparent;
   background: transparent;

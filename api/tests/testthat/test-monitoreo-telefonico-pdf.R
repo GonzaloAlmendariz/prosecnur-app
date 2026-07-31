@@ -142,6 +142,129 @@ test_that("avance cuenta respuestas efectivas aunque compartan código de contac
   expect_equal(reconciled$quotas$Efectivas, c(2L, 1L))
 })
 
+test_that("la reconciliación no cuenta respuestas sin consentimiento ni de prueba", {
+  # Regresión: el modelo del PDF sobreescribía Efectivas con un table() crudo de
+  # las filas de plataforma, sin aplicar el filtro de efectividad del perfil. La
+  # fila quedaba contradiciéndose sola: Efectivas de la cuota no producía el
+  # "Avance meta" ni la "Brecha" de esa misma fila, calculados por el motor.
+  data <- data.frame(
+    .source_role = rep("respuestas", 5L),
+    CodPulso = c("MV0001", "MV0002", "MV0003", "MV0004", "MV0005"),
+    kobo_fecha_iso = rep("2026-08-04", 5L),
+    Actor = c("Homologación", "Homologación", "Homologación", "Homologación", "Vinculación"),
+    `Intro/Consent` = c("Yes", "Yes", "No", "Yes", "Yes"),
+    `Intro/testreal` = c("real", "real", "real", "test", "real"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  profile <- list(
+    family = "telefonico",
+    platform_effective_filter = list(enabled = TRUE, variable = "Intro/Consent", values = list("Yes")),
+    platform_test_filter = list(enabled = TRUE, variable = "Intro/testreal",
+                                values = list("test"), real_values = list("real"))
+  )
+  model <- list(
+    metrics = list(kobo_effective = 0L),
+    daily = data.frame(Fecha = as.Date("2026-08-04"), `Efectivas Kobo` = 0L, check.names = FALSE),
+    quotas = data.frame(
+      Variable = c("Actor", "Actor"),
+      Valor = c("Homologación", "Vinculación"),
+      Efectivas = c(2L, 1L),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  reconciled <- .mtpdf_reconcile_response_counts(model, data, profile)
+
+  # De las 4 respuestas de Homologación, una no consintió y otra es de prueba.
+  expect_equal(reconciled$quotas$Efectivas, c(2L, 1L))
+  expect_equal(reconciled$metrics$kobo_effective, 3L)
+  expect_equal(reconciled$daily$`Efectivas Kobo`, 3L)
+})
+
+test_that("la cuota reconciliada no se contradice: avance y brecha salen de sus efectivas", {
+  # Regresión: 86058c82 sobreescribía Efectivas y dejaba "Avance meta", "Brecha" y
+  # "Estado cuota" con el cálculo del motor. La fila afirmaba dos cifras
+  # incompatibles sobre la misma cuota.
+  data <- data.frame(
+    .source_role = rep("respuestas", 4L),
+    kobo_fecha_iso = rep("2026-08-04", 4L),
+    Actor = c(rep("Homologación", 3L), "Vinculación"),
+    stringsAsFactors = FALSE
+  )
+  model <- list(
+    quotas = data.frame(
+      Variable = c("Actor", "Actor"),
+      Valor = c("Homologación", "Vinculación"),
+      Meta = c(4L, 1L),
+      Efectivas = c(1L, 1L),
+      `Avance meta` = c(25, 100),
+      Brecha = c(3L, 0L),
+      `Estado cuota` = c("Brecha", "Cumple"),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+  )
+
+  q <- .mtpdf_reconcile_response_counts(model, data)$quotas
+
+  expect_equal(q$Efectivas, c(3L, 1L))
+  expect_equal(q$`Avance meta`, c(75, 100))
+  expect_equal(q$Brecha, c(1L, 0L))
+  expect_equal(q$`Estado cuota`, c("Brecha", "Cumple"))
+
+  # La invariante que no se puede volver a romper: el avance de cada fila es su
+  # propio conteo sobre su propia meta.
+  expect_equal(q$`Avance meta`, round(100 * q$Efectivas / q$Meta, 1))
+  expect_equal(q$Brecha, pmax(0L, q$Meta - q$Efectivas))
+})
+
+test_that("la brecha reconciliada no baja de cero al superar la meta", {
+  data <- data.frame(
+    .source_role = rep("respuestas", 3L),
+    kobo_fecha_iso = rep("2026-08-04", 3L),
+    Actor = rep("Homologación", 3L),
+    stringsAsFactors = FALSE
+  )
+  model <- list(quotas = data.frame(
+    Variable = "Actor", Valor = "Homologación", Meta = 2L, Efectivas = 0L,
+    `Avance meta` = 0, Brecha = 2L, `Estado cuota` = "Brecha",
+    check.names = FALSE, stringsAsFactors = FALSE
+  ))
+
+  q <- .mtpdf_reconcile_response_counts(model, data)$quotas
+
+  expect_equal(q$Efectivas, 3L)
+  expect_equal(q$`Avance meta`, 150)
+  expect_equal(q$Brecha, 0L)
+  expect_equal(q$`Estado cuota`, "Cumple")
+})
+
+test_that("sin perfil telefónico la reconciliación conserva su conteo por filas", {
+  # El filtro solo aplica a la familia telefónica: sin perfil, el comportamiento
+  # de 86058c82 (contar respuestas, no códigos únicos) queda intacto.
+  data <- data.frame(
+    .source_role = rep("respuestas", 3L),
+    kobo_fecha_iso = rep("2026-08-04", 3L),
+    Sede = c("Centro", "Centro", "Sur"),
+    `Intro/Consent` = c("Yes", "No", "Yes"),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  model <- list(
+    metrics = list(kobo_effective = 0L),
+    quotas = data.frame(
+      Variable = c("Sede", "Sede"), Valor = c("Centro", "Sur"),
+      Efectivas = c(0L, 0L), stringsAsFactors = FALSE
+    )
+  )
+
+  reconciled <- .mtpdf_reconcile_response_counts(model, data)
+
+  expect_equal(reconciled$quotas$Efectivas, c(2L, 1L))
+  expect_equal(reconciled$metrics$kobo_effective, 3L)
+})
+
 test_that("reporte cliente conserva las cifras de referencia y composición", {
   model <- list(
     metrics = list(total = 2296L, swept = 631L, not_swept = 1665L, phone_effective = 222L, kobo_effective = 423L),
