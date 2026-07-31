@@ -25,15 +25,28 @@ function parseRoute(relativePath: string): ts.SourceFile {
   );
 }
 
-function defaultPageRoot(relativePath: string, expectedTag: string): RouteRoot {
+function pageFunctionRoot(
+  relativePath: string,
+  expectedTag: string,
+  functionName?: string,
+): RouteRoot {
   const sourceFile = parseRoute(relativePath);
   const component = sourceFile.statements.find(
     (statement): statement is ts.FunctionDeclaration =>
       ts.isFunctionDeclaration(statement) &&
-      statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword) === true,
+      (functionName
+        ? statement.name?.text === functionName
+        : statement.modifiers?.some(
+          (modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword,
+        ) === true),
   );
 
-  expect(component, `${relativePath} must keep a default page function`).toBeDefined();
+  expect(
+    component,
+    `${relativePath} must keep ${
+      functionName ? `a named ${functionName} function` : "a default page function"
+    }`,
+  ).toBeDefined();
 
   const rootReturns = component?.body?.statements.filter(ts.isReturnStatement) ?? [];
   const rootReturn = rootReturns[rootReturns.length - 1];
@@ -164,22 +177,6 @@ function expectNegatedGuard(value: ts.Node, routeLabel: string, name: string): v
   ).toBe(true);
 }
 
-function hasStateFallback(node: ts.Node): boolean {
-  return visit(node, (candidate) => {
-    if (!ts.isBinaryExpression(candidate)) return false;
-    if (
-      candidate.operatorToken.kind !== ts.SyntaxKind.BarBarToken &&
-      candidate.operatorToken.kind !== ts.SyntaxKind.QuestionQuestionToken
-    ) {
-      return false;
-    }
-    return (
-      (references(candidate.left, "state") && references(candidate.right, "calcState")) ||
-      (references(candidate.left, "calcState") && references(candidate.right, "state"))
-    );
-  });
-}
-
 function literalClassNames(tag: JsxTag): string[] {
   const className = attribute(tag, "className")?.initializer;
   return className && ts.isStringLiteral(className)
@@ -289,7 +286,7 @@ describe("audit-ready route root contract", () => {
       ["Validación", "features/validacion/ValidacionPage.tsx"],
     ] as const;
     const premature = shells.flatMap(([label, relativePath]) => {
-      const { tag } = defaultPageRoot(relativePath, "PageFrame");
+      const { tag } = pageFunctionRoot(relativePath, "PageFrame");
       return attribute(tag, "auditReady") ? [label] : [];
     });
 
@@ -424,7 +421,7 @@ describe("audit-ready route root contract", () => {
     // Regresión: la marca solo existía en el pane de Orden de categorías, así que
     // un proyecto que aterrizaba en Analítica sin esa pestaña dejaba la ruta sin
     // readiness y la matriz visual se cortaba con "sin-marca-de-readiness".
-    const { tag } = defaultPageRoot("features/analitica/AnaliticaPage.tsx", "PageFrame");
+    const { tag } = pageFunctionRoot("features/analitica/AnaliticaPage.tsx", "PageFrame");
     expect(
       attribute(tag, "auditReady"),
       "Analítica PageFrame shell publishes readiness before its active panel",
@@ -463,7 +460,7 @@ describe("audit-ready route root contract", () => {
   });
 
   test("Bitácora publishes an exact semantic key for each guarded tab", () => {
-    const { tag } = defaultPageRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
+    const { tag } = pageFunctionRoot("features/bitacora/BitacoraPage.tsx", "PageFrame");
     const value = readinessValue(tag, "auditReady", "Bitácora");
 
     // El lienzo entra como cuarta sección con el ADR 0047: es la vista que
@@ -483,29 +480,30 @@ describe("audit-ready route root contract", () => {
     );
   });
 
-  test("Recopiladores marks only its rec-page root after either data source loads", () => {
-    const { tag } = defaultPageRoot(
+  test("Recopiladores delegates its exact directional readiness to the shell", () => {
+    pageFunctionRoot(
       "features/recopiladores/RecopiladoresPage.tsx",
-      "div",
+      "RecopiladoresShell",
     );
-    expect(literalClassNames(tag), "Recopiladores audit marker must live on div.rec-page").toContain(
-      "rec-page",
+    const { tag } = pageFunctionRoot(
+      "features/recopiladores/RecopiladoresShell.tsx",
+      "PageFrame",
+      "RecopiladoresShell",
     );
-
-    const value = readinessValue(tag, "data-audit-ready", "Recopiladores");
-    expectSemanticReadiness(value, "Recopiladores", "recopiladores");
-    expectNegatedGuard(value, "Recopiladores", "loading");
     expect(
-      hasStateFallback(value),
-      "Recopiladores readiness must accept state or calcState after loading",
-    ).toBe(true);
-    expect(compactExpression(value), "Recopiladores exact conjunction, fallback, and polarity").toBe(
-      '!loading&&(state!==null||calcState!==null)?"recopiladores":undefined',
+      literalClassNames(tag),
+      "Recopiladores audit marker must live on PageFrame.rec-page",
+    ).toContain("rec-page");
+
+    const value = readinessValue(tag, "auditReady", "Recopiladores");
+    expectSemanticReadiness(value, "Recopiladores", "recopiladores/");
+    expect(compactExpression(value), "Recopiladores exact directional readiness and polarity").toBe(
+      "loading?false:`recopiladores/${direction.seccion}/${direction.pestana}`",
     );
   });
 
   test("Enciclopedia waits for all four catalog loads", () => {
-    const { tag } = defaultPageRoot("features/enciclopedia/EnciclopediaHome.tsx", "PageFrame");
+    const { tag } = pageFunctionRoot("features/enciclopedia/EnciclopediaHome.tsx", "PageFrame");
     const value = readinessValue(tag, "auditReady", "Enciclopedia");
 
     expectSemanticReadiness(value, "Enciclopedia", "enciclopedia");

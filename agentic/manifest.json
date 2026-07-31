@@ -379,7 +379,7 @@
     "generated_adapters_are_editable": false,
     "frozen_growth_threshold": 8000,
     "frozen_growth_baseline": {
-      "api/R/monitoreo_engine.R": 39975,
+      "api/R/monitoreo_engine.R": 39981,
       "api/R/router_monitoreo.R": 6046,
       "api/R/reporte_plan_ppt.R": 9418,
       "frontend/src/features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx": 20486,
