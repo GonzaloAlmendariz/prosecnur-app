@@ -228,7 +228,6 @@ export function runRLockAudit(repoRoot) {
   if (qualityText !== null) {
     const required = [
       ['node scripts/check-r-lock.mjs', 'falta gate del lock R'],
-      ['node --test scripts/tests/*.test.mjs', 'falta suite de scripts'],
       ['node scripts/check-docs-governance.mjs', 'falta gate documental'],
       ['node scripts/release-contract.mjs preview', 'falta gate preview de release'],
       ['Rscript launcher/install-r-deps.R', 'falta restauración exacta del lock'],
@@ -239,6 +238,40 @@ export function runRLockAudit(repoRoot) {
     ]
     for (const [needle, message] of required) {
       if (!qualityText.includes(needle)) errors.push(`.github/workflows/quality.yml: ${message}`)
+    }
+
+    // La suite de scripts dejó de ser una sola invocación: cada contrato corre
+    // en el job que le da su infraestructura (R, navegador, sólo Node). Exigir
+    // la cadena literal `node --test scripts/tests/*.test.mjs` ya no dice nada
+    // sobre la verdad, así que se comprueba lo que importa: que ningún archivo
+    // de scripts/tests/ se quede sin correr en ningún job. Un test nuevo que no
+    // caiga ni en el glob ni en una lista explícita es deuda invisible —pasaría
+    // por verde sin haberse ejecutado— y aquí se vuelve un error.
+    const suiteDir = path.join(repoRoot, 'scripts', 'tests')
+    const suiteFiles = fs.existsSync(suiteDir)
+      ? fs.readdirSync(suiteDir).filter((name) => name.endsWith('.test.mjs')).sort()
+      : []
+    if (!suiteFiles.length) {
+      errors.push('scripts/tests: no hay contratos de scripts que auditar')
+    }
+    // Cualquier forma del glob cuenta como cobertura amplia: tanto la invocación
+    // directa `node --test scripts/tests/*.test.mjs` como el `ls … | grep -vE`
+    // que reparte. Atarse a una sola forma haría que volver a la otra marcara
+    // todos los contratos como huérfanos.
+    const globPresent = /scripts\/tests\/\*\.test\.mjs/.test(qualityText)
+    const excluded = []
+    for (const match of qualityText.matchAll(/ls\s+scripts\/tests\/\*\.test\.mjs\s*\|\s*grep\s+-vE\s+'([^']+)'/g)) {
+      for (const token of match[1].split('|')) {
+        const trimmed = token.trim()
+        if (trimmed) excluded.push(trimmed)
+      }
+    }
+    for (const file of suiteFiles) {
+      const namedExplicitly = qualityText.includes(`scripts/tests/${file}`)
+      const coveredByGlob = globPresent && !excluded.some((token) => file.includes(token))
+      if (!namedExplicitly && !coveredByGlob) {
+        errors.push(`.github/workflows/quality.yml: scripts/tests/${file} no corre en ningún job`)
+      }
     }
     if (!/(?:^|\n)\s*(?:-\s*)?(?:run:\s*)?R CMD check\b/.test(qualityText)) {
       errors.push('.github/workflows/quality.yml: falta R CMD check')

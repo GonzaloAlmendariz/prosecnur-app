@@ -86,6 +86,11 @@ jobs:
       - run: pnpm -C frontend audit --audit-level=high
       - run: pnpm -C desktop audit --audit-level=high
 `)
+  // El fixture representa un repo válido, y uno válido tiene contratos de
+  // scripts: la auditoría comprueba que cada archivo de scripts/tests/ corra
+  // en algún job, así que sin este archivo el repo sintético no ejercitaría
+  // esa regla.
+  write(root, 'scripts/tests/ejemplo.test.mjs', 'export default null\n')
   write(root, '.github/workflows/release.yml', `
 jobs:
   linux:
