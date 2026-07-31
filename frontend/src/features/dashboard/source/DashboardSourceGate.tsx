@@ -190,7 +190,15 @@ export function DashboardSourceGate({
         </div>
       )}
 
-      <div className="dash-source-grid">
+      {/* `equal`: los dos paneles de la compuerta son caminos alternativos para
+          lo mismo —traer XLSForm y data—, así que comparten marco. La rejilla
+          los reparte en `1fr 1fr` y solo colapsa a una columna bajo 700 px, un
+          ancho que la matriz de QA no mide (baja hasta 1024). */}
+      <div
+        className="dash-source-grid"
+        data-qa-geometry-group="dashboard/fuente-caminos"
+        data-qa-geometry-contract="equal"
+      >
         <div className="dash-source-panel">
           <div className="dash-source-panel-head">
             <FolderOpen size={15} />
@@ -259,7 +267,14 @@ export function DashboardSourceGate({
             <Upload size={15} />
             <span>Subir archivos</span>
           </div>
-          <div className="dash-source-upload-stack">
+          {/* `equal`: las dos ranuras tienen la misma estructura —etiqueta,
+              ícono, nombre de archivo, pista y botón—, así que una debe medir
+              lo mismo que la otra tenga o no archivo elegido. */}
+          <div
+            className="dash-source-upload-stack"
+            data-qa-geometry-group="dashboard/fuente-ranuras"
+            data-qa-geometry-contract="equal"
+          >
             <DashboardUploadSlot
               label="XLSForm"
               file={xlsFile}
