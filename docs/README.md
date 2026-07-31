@@ -103,6 +103,8 @@ Antes de seguir uno, revise el estado y la fecha que declara en su cabecera.
   público controlado.
 - [Versiones de la aplicación](versiones-app.md): historial de cortes; la fuente
   única de la versión actual es `api/DESCRIPTION`.
+- [Identidad de versión y canales de distribución](adrs/0048-identidad-version-y-canales-distribucion.md):
+  decisión aceptada que separa preview interno y stable fail-closed.
 - [Deuda estructural del pipeline](deuda-estructural-pipeline-2026-07.md):
   constancia fechada de deuda diferida, no descripción del estado actual.
 
