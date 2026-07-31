@@ -115,11 +115,16 @@ jobs:
   backend-r:
     name: Backend R (lock + R CMD check + testthat)
     runs-on: ubuntu-24.04
-    env:
-      R_LIBS_USER: ${{ runner.temp }}/prosecnur-r-library
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # El contexto `runner` no existe a nivel de job: declarar aquí
+      # `env: R_LIBS_USER: ${{ runner.temp }}/…` invalida el workflow entero y
+      # GitHub lo rechaza sin crear un solo job. Se exporta desde un step, que
+      # es donde $RUNNER_TEMP sí está resuelto, y queda visible para el resto.
+      - name: Configure R library path
+        run: echo "R_LIBS_USER=${RUNNER_TEMP}/prosecnur-r-library" >> "$GITHUB_ENV"
 
       - name: Setup R
         uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
