@@ -82,8 +82,8 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
 | Hex sin token — otros 7 módulos + Enciclopedia | 1.081 | 1.081 | ↓ |
-| `data-qa-geometry-group` fuera de Monitoreo | 27 | **33** | ↑ hasta cubrir toda colección |
-| Superficies principales con 0 declaraciones geométricas | 3 | **1** | ↓ a 0 |
+| `data-qa-geometry-group` fuera de Monitoreo | 27 | **35** | ↑ hasta cubrir toda colección |
+| Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
 | Defectos C4 abiertos (contenido inalcanzable) | — | **0 en Procesamiento** | ↓ |
@@ -94,7 +94,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 8 | **3 de 8** | ↑ a 8 |
+| Módulos auditados con el instrumento | 1 de 8 | **4 de 8** | ↑ a 8 |
 | Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
@@ -139,6 +139,30 @@ a empezar.
 | 3 | 30 jul | **Procesamiento** | **Primer defecto C4 del goal: Carga atrapaba 300 px en pantallas cortas.** Y las dos colecciones que el comprobador descubrió solas quedan declaradas | issues 1→**0** · geometryGroups 15→**60** · coverageMisses 45→**0** · secciones sin geometría 5→3 | `ccbb2f61`, `11cde117` |
 
 | 4 | 30 jul | **Dashboard** | Tercera superficie principal con cero geometría. Las dos colecciones de la compuerta de fuente quedan declaradas `equal`. **Pero solo se auditó la compuerta**: ningún proyecto de referencia trae datos de dashboard | geometryGroups 0→**10** · coverageMisses 5→**0** · superficies sin geometría 2→**1** | `80f843e7` |
+
+| 5 | 30 jul | **Hojas de ruta** | La última superficie principal con cero geometría. Declaradas la lista de distritos —que crece con el marco— y la banda de KPIs territoriales, **sin sumar una sola línea** al page-file congelado | geometryGroups 0→**10** · coverageMisses 5→**0** · superficies sin geometría 1→**0** | `53cf69a4` |
+
+### Nota de la iteración 5
+
+**Declarar geometría no puede costar volumen en un archivo congelado.**
+`HojasRutaPage.tsx` está a 8.991 líneas y ahí se queda: los atributos
+`data-qa-geometry-*` van en la misma línea del elemento, no en líneas propias.
+Es la diferencia entre gobernar un monolito y engordarlo con su propio
+gobierno. Vale para los cinco congelados de frontend que quedan.
+
+**`equal` sobre una lista de datos es una afirmación fuerte, y aquí se
+sostuvo.** Declararlo en la lista de distritos dice que el marco de una tarjeta
+no puede moverse porque el nombre del distrito sea más largo. Comprobado en los
+cinco viewports incluido 1024: «SAN JUAN DE LURIGANCHO» y «SAN MARTIN DE
+PORRES» conviven con «ATE» sin desalinear la lista. Cuando el contrato pasa a la
+primera sobre una colección real, lo que se gana no es un arreglo sino un guard:
+de ahora en más, romperlo falla solo.
+
+Con esto **las tres superficies principales que abrieron el goal en cero quedan
+en cero**: Gráficos, Dashboard y Hojas de ruta. Lo que sigue no es cobertura de
+superficie sino profundidad: secciones internas sin declarar, el estado cargado
+de Dashboard (N3) y los 1.081 hex sin token fuera de Monitoreo, que el ledger
+sigue registrando intactos.
 
 ### Nota de la iteración 4
 
