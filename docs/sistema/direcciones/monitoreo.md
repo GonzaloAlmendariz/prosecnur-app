@@ -6,11 +6,11 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `monitoreo` · ruta `/monitoreo` · 94 direcciones.
+Módulo `monitoreo` · ruta `/monitoreo` · 95 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `monitoreo` | modulo | Monitoreo de campo | sí | 6441edee | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo` | modulo | Monitoreo de campo | sí | a077517e | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/acreditacion` | modo | Acreditación | sí | 9836d3a0 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/acreditacion/fuentes` | seccion | Fuentes | sí | b99ffc5a | sí | [0045-monitoreo-actores-modelo-telefonia-explicita](../../adrs/0045-monitoreo-actores-modelo-telefonia-explicita.md) |
 | `monitoreo/acreditacion/fuentes/actores` | pestana | Actores | sí | 84e6e4d6 | sí | — |
@@ -61,14 +61,15 @@ Módulo `monitoreo` · ruta `/monitoreo` · 94 direcciones.
 | `monitoreo/telefonico/avance/resumen` | pestana | Diario | sí | a043381d | sí | — |
 | `monitoreo/telefonico/avance/actores` | pestana | Cuotas | sí | 1b44c2fa | sí | — |
 | `monitoreo/telefonico/avance/salidas` | pestana | Salidas | sí | b18fa6cd | sí | — |
-| `monitoreo/territorial` | modo | Territorial | sí | d8c1f255 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
+| `monitoreo/territorial` | modo | Territorial | sí | 300b6366 | sí | [0022-monitoreo-perfiles-frontend-dinamicos](../../adrs/0022-monitoreo-perfiles-frontend-dinamicos.md) |
 | `monitoreo/territorial/fuentes` | seccion | Fuente | sí | 9b9a162c | sí | — |
 | `monitoreo/territorial/fuentes/form` | pestana | Formulario | sí | 55272360 | sí | — |
 | `monitoreo/territorial/fuentes/filter` | pestana | Filtro y distritos | sí | 2162404e | sí | — |
 | `monitoreo/territorial/fuentes/roster` | pestana | Encuestadores | sí | 03db2ae7 | sí | — |
 | `monitoreo/territorial/fuentes/reconciliation` | pestana | Reconciliación | sí | 6390678c | sí | — |
 | `monitoreo/territorial/fuentes/history` | pestana | Historial | sí | 8c8716e4 | sí | — |
-| `monitoreo/territorial/modelo` | seccion | UMPs | sí | 263dbf75 | sí | — |
+| `monitoreo/territorial/modelo` | seccion | UMPs | sí | 8023b682 | sí | — |
+| `monitoreo/territorial/modelo/variables` | pestana | Variables | sí | a61be7cc | sí | — |
 | `monitoreo/territorial/modelo/resumen` | pestana | Cobertura | sí | d1fac296 | sí | — |
 | `monitoreo/territorial/modelo/tabla` | pestana | Manzanas | sí | 2987e1b9 | sí | — |
 | `monitoreo/territorial/calidad` | seccion | Validación | sí | e8d9a291 | sí | — |

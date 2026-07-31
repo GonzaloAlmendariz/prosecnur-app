@@ -2,7 +2,7 @@
 tipo: pestana
 padres:
   - "[[UMPs territoriales]]"
-orden: 2
+orden: 3
 documentacion: parcial
 ruta_app: "/monitoreo?modo=territorial&seccion=modelo&pestana=tabla"
 nodo: "monitoreo/territorial/modelo/tabla"
