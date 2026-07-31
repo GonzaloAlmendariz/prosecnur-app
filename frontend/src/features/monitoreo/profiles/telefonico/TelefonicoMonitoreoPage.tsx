@@ -203,6 +203,7 @@ import "./telefonicoProfile.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 
 import {
+  anchosDeSegmentos,
   ACREDITACION_ADVANCE_TABS,
   ACREDITACION_CONSULTA_TABS,
   ACREDITACION_DEFAULT_ACTORS,
@@ -6338,7 +6339,7 @@ function AcreditacionPhonePendingInsistence({
           const swept = Math.max(0, row.swept ?? Math.max(0, assigned - row.pending));
           const pendingPct = safePercentValue(row.pending, assigned) ?? 0;
           const sweptPct = safePercentValue(swept, assigned) ?? 0;
-          const attemptTotal = Math.max(1, row.noAnswer);
+          const anchosIntentos = anchosDeSegmentos(row.buckets.map((bucket) => bucket.value));
           return (
             <section key={row.key} className={`mon-phone-pending-person is-${row.pending ? "pending" : "clear"}`}>
               <header>
@@ -6383,7 +6384,7 @@ function AcreditacionPhonePendingInsistence({
                   <span><strong>{formatMetric(row.reattemptable ?? 0)}</strong><em>casos reintentables</em></span>
                 </div>
                 <div className="mon-phone-attempt-track" aria-label={`${row.name}: distribución de intentos en casos que no contestan`}>
-                  {row.buckets.map((bucket) => (
+                  {row.buckets.map((bucket, indiceBucket) => (
                     bucket.value > 0 ? (
                       <i
                         key={`${row.key}-${bucket.key}`}
@@ -6391,7 +6392,7 @@ function AcreditacionPhonePendingInsistence({
                         tabIndex={0}
                         title={`${row.name}: ${bucket.detail}, ${formatMetric(bucket.value)} casos`}
                         aria-label={`${row.name}: ${bucket.detail}, ${formatMetric(bucket.value)} casos`}
-                        style={{ "--phone-segment": `${Math.max(3, Math.min(100, phoneOpsPercent(bucket.value, attemptTotal)))}%` } as CSSProperties}
+                        style={{ "--phone-segment": `${anchosIntentos[indiceBucket]}%` } as CSSProperties}
                       />
                     ) : null
                   ))}

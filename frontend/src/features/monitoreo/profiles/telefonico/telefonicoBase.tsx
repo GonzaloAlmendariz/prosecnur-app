@@ -386,3 +386,32 @@ export function AcreditacionMetric({ label, value, hint }: { label: string; valu
   );
 }
 
+
+/**
+ * Reparte una pista apilada en porcentajes que **suman exactamente 100**.
+ *
+ * Decisión 1 del goal visual. Las barras de insistencia daban 130, 129, 129 y
+ * 133 % en las cuatro filas medidas, y eran dos defectos superpuestos:
+ *
+ *   1. El denominador era «casos sin respuesta» mientras los segmentos contaban
+ *      casos por número de intentos. Conjuntos distintos: una fila con buckets
+ *      de 1+2+5 = 8 casos se dividía entre 6.
+ *   2. El suelo de visibilidad se aplicaba y ya. Con seis segmentos diminutos
+ *      son 18 % de piso, así que la suma pasaba de 100 aunque el denominador
+ *      fuera correcto.
+ *
+ * Al pasar de 100 el apilado desborda y `overflow: hidden` recorta el segmento
+ * dominante —justo el que más importa—. Por eso el suelo se aplica y **después**
+ * se renormaliza: un segmento chico sigue viéndose y el reparto cierra.
+ *
+ * El denominador es la suma de los propios valores, así que no puede volver a
+ * quedar desalineado de los numeradores que reparte.
+ */
+export function anchosDeSegmentos(valores: number[], minPct = 3): number[] {
+  const positivos = valores.map((v) => (Number.isFinite(v) && v > 0 ? v : 0));
+  const total = positivos.reduce((suma, v) => suma + v, 0);
+  if (total <= 0) return positivos.map(() => 0);
+  const conSuelo = positivos.map((v) => (v > 0 ? Math.max(minPct, (v / total) * 100) : 0));
+  const sumaConSuelo = conSuelo.reduce((suma, p) => suma + p, 0);
+  return conSuelo.map((p) => (p / sumaConSuelo) * 100);
+}
