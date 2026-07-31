@@ -165,9 +165,11 @@ jobs:
             libproj-dev \
             libqpdf-dev \
             librsvg2-dev \
+            libsodium-dev \
             libssl-dev \
             libtiff-dev \
             libudunits2-dev \
+            libuv1-dev \
             libxml2-dev \
             libxt6 \
             poppler-utils \
