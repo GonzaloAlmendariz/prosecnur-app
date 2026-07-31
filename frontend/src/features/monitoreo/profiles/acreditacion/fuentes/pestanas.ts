@@ -25,38 +25,14 @@
 // usuario con `?pestana=collectors` tiene que seguir aterrizando donde
 // corresponde.
 
-import { Layers3, ListChecks, Users } from "../../../../../vendor/lucide-react";
-import type { LucideIcon } from "../../../../../vendor/lucide-react";
+import { MONITOREO_PESTANAS } from "../../../../../lib/navegacion/catalogos/monitoreo";
 
-export type PestanaDeFuentes = "actores" | "fuentes" | "recopiladores";
+export type PestanaDeFuentes = typeof MONITOREO_PESTANAS.acreditacion.fuentes[number]["key"];
 
-export type PestanaDeFuentesDefinicion = {
-  key: PestanaDeFuentes;
-  label: string;
-  detail: string;
-  icon: LucideIcon;
-};
+export type PestanaDeFuentesDefinicion = typeof MONITOREO_PESTANAS.acreditacion.fuentes[number];
 
-export const PESTANAS_DE_FUENTES: readonly PestanaDeFuentesDefinicion[] = [
-  {
-    key: "actores",
-    label: "Actores",
-    detail: "Quiénes responden el estudio",
-    icon: Users,
-  },
-  {
-    key: "fuentes",
-    label: "Fuentes y universo",
-    detail: "Qué está conectado y de quién es",
-    icon: Layers3,
-  },
-  {
-    key: "recopiladores",
-    label: "Recopiladores",
-    detail: "Por dónde llegó cada respuesta",
-    icon: ListChecks,
-  },
-];
+export const PESTANAS_DE_FUENTES: readonly PestanaDeFuentesDefinicion[] =
+  MONITOREO_PESTANAS.acreditacion.fuentes;
 
 /**
  * Dónde se aterriza en Fuentes.

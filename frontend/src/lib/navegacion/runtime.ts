@@ -65,41 +65,58 @@ export function estadoListo(): EstadoListo {
 // Pestañas declaradas en runtime
 // ---------------------------------------------------------------------------
 //
-// Las pestañas de Monitoreo NO se pueden enumerar estáticamente: su catálogo
-// vive dentro de cada página de perfil (cargada por lazy import) y depende del
-// modo, de la sección y a veces del estado del proyecto. Importarlas al
-// manifiesto arrastraría el bundle entero de Monitoreo a `lib/`, y copiarlas
-// produciría un segundo catálogo que se desincroniza — que es exactamente lo
-// que pasó con `monitoreoSectionTabs.ts`, retirado el 2026-07-26: declaraba
-// pestañas de acreditación (Sheets, SurveyMonkey, Recopiladores,
-// Reconciliación) que ya no existían y que no consumía nadie.
-//
-// Así que las contribuye la vista montada: el manifiesto estático da módulos,
-// modos y secciones; la vista activa completa sus pestañas. El inspector
-// recorre secciones por el manifiesto y, en cada una, pregunta por sus hijas.
+// El manifiesto enumera todas las pestañas posibles sin montar los perfiles.
+// La vista activa registra el SUBCONJUNTO visible en el estado actual; por
+// ejemplo, Telefónico > Consultas solo publica «Salvedades» cuando hay casos
+// que la necesitan. Runtime sustituye al catálogo estático mientras la sección
+// está montada, nunca agrega claves que el contrato no declare.
 
 const PESTANAS_EN_RUNTIME = new Map<string, NodoNavegacion[]>();
+
+function pestanasDeclaradasDeSeccion(claveSeccion: string): NodoNavegacion[] {
+  return hijosDe(claveSeccion).filter((nodo) => nodo.nivel === "pestana");
+}
+
+/** Catálogo posible o, si la vista está montada, su subconjunto visible. */
+export function pestanasDisponiblesDeSeccion(claveSeccion: string): NodoNavegacion[] {
+  if (PESTANAS_EN_RUNTIME.has(claveSeccion)) {
+    return PESTANAS_EN_RUNTIME.get(claveSeccion) ?? [];
+  }
+  return pestanasDeclaradasDeSeccion(claveSeccion);
+}
 
 export function registrarPestanasDeSeccion(
   claveSeccion: string,
   direccionSeccion: DireccionProsecnur,
   pestanas: ReadonlyArray<{ key: string; label: string }>,
 ): void {
+  const claveDireccion = describirDireccion(direccionSeccion);
+  if (claveDireccion !== claveSeccion) {
+    throw new Error(
+      `Registro runtime desalineado: ${claveSeccion} != ${claveDireccion}`,
+    );
+  }
+  const declaradas = pestanasDeclaradasDeSeccion(claveSeccion);
+  const porId = new Map(
+    declaradas.map((nodo) => [nodo.direccion.pestana, nodo] as const),
+  );
+  const desconocidas = pestanas
+    .map((pestana) => pestana.key)
+    .filter((key) => !porId.has(key));
+
+  if (desconocidas.length > 0) {
+    throw new Error(
+      `Pestañas runtime fuera del contrato en ${claveSeccion}: ${desconocidas.join(", ")}`,
+    );
+  }
+
+  // Reutiliza los nodos estáticos: labels, hrefs e ids siguen teniendo un solo
+  // dueño aunque la página enriquezca el rail con badges o readiness.
   PESTANAS_EN_RUNTIME.set(
     claveSeccion,
-    pestanas.map((pestana) => {
-      const direccion: DireccionProsecnur = {
-        ...direccionSeccion,
-        pestana: pestana.key,
-      };
-      return {
-        clave: describirDireccion(direccion),
-        nivel: "pestana" as const,
-        label: pestana.label,
-        direccion,
-        href: serializarDireccion(direccion),
-        padre: claveSeccion,
-      };
+    pestanas.flatMap((pestana) => {
+      const declarada = porId.get(pestana.key);
+      return declarada ? [declarada] : [];
     }),
   );
 }
@@ -167,12 +184,9 @@ export function instalarPuenteNavegacion(navegar: NavegadorRuntime): () => void 
       const direccion = direccionActual();
       if (!direccion) return [];
       const clave = describirDireccion(direccion);
-      const estaticos = hijosDe(clave);
-      const enRuntime = PESTANAS_EN_RUNTIME.get(clave) ?? [];
-      // Un mismo id no puede aparecer dos veces si algún día una pestaña
-      // llega por los dos caminos.
-      const vistos = new Set(estaticos.map((nodo) => nodo.clave));
-      return [...estaticos, ...enRuntime.filter((nodo) => !vistos.has(nodo.clave))];
+      return PESTANAS_EN_RUNTIME.has(clave)
+        ? pestanasDisponiblesDeSeccion(clave)
+        : hijosDe(clave);
     },
     // Hijas de la sección en la que estamos parados, aunque la dirección
     // apunte a una pestaña: es lo que el inspector necesita para recorrer las
@@ -181,7 +195,7 @@ export function instalarPuenteNavegacion(navegar: NavegadorRuntime): () => void 
       const direccion = direccionActual();
       if (!direccion) return [];
       const { pestana: _ignorada, panel: _tampoco, ...seccion } = direccion;
-      return PESTANAS_EN_RUNTIME.get(describirDireccion(seccion)) ?? [];
+      return pestanasDisponiblesDeSeccion(describirDireccion(seccion));
     },
     paneles: () => ({
       declarados: Object.values(PANELES_POR_MODULO).flatMap(
@@ -191,16 +205,22 @@ export function instalarPuenteNavegacion(navegar: NavegadorRuntime): () => void 
     }),
     listo: estadoListo,
     ir: (destino) => {
-      const direccion =
-        typeof destino === "string"
-          ? nodoPorClave(destino)?.direccion ??
-            // Las pestañas contribuidas por la vista activa no están en el
-            // manifiesto estático, pero son destinos igual de válidos.
-            [...PESTANAS_EN_RUNTIME.values()]
-              .flat()
-              .find((nodo) => nodo.clave === destino)?.direccion ??
-            null
-          : destino;
+      const clave = typeof destino === "string"
+        ? destino
+        : describirDireccion(destino);
+      const nodoDestino = nodoPorClave(clave) ??
+        // Compatibilidad defensiva para contribuciones runtime antiguas.
+        [...PESTANAS_EN_RUNTIME.values()]
+          .flat()
+          .find((nodo) => nodo.clave === clave) ??
+        null;
+      // Un nodo documental sin URL publicada puede existir en el árbol y en
+      // la bóveda, pero el puente no debe fabricar el deep-link que la página
+      // todavía no entiende. La regla aplica igual a claves y a objetos.
+      if (nodoDestino && !nodoDestino.direccionPublicada) return false;
+      const direccion = typeof destino === "string"
+        ? nodoDestino?.direccion ?? null
+        : destino;
       if (!direccion) return false;
       // Conserva el proyecto abierto: el `?pulso=` de dev no debe perderse al
       // saltar entre vistas durante un recorrido.

@@ -11,6 +11,7 @@ import type {
   ExplorerRepeatVariableCount,
   ExplorerRepeatVariableScope,
 } from "../../lib/rosterExplorer";
+import type { ValidacionTabId as ValidacionTabIdCatalogo } from "../../lib/navegacion/catalogos/procesamiento";
 
 /**
  * Tipo de visualización que el frontend sabe renderizar. Se mapea a una
@@ -325,11 +326,7 @@ export type LimpiezaSummary = {
 // -----------------------------------------------------------------------------
 // Identificadores de pestañas (deep-links)
 // -----------------------------------------------------------------------------
-export type ValidacionTabId =
-  | "limpieza"
-  | "instrumento"
-  | "explorar"
-  | "reglas_custom";
+export type ValidacionTabId = ValidacionTabIdCatalogo;
 
 export type InstrumentoEstado = {
   ok: true;

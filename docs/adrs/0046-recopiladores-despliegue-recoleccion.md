@@ -212,3 +212,14 @@ Relacionado con [ADR 0004](0004-monolito-modular-microkernel.md),
 [ADR 0019](0019-monitoreo-aulas-universitarias.md),
 [ADR 0032](0032-handoff-instrumento-siempre-local.md) y
 [ADR 0045](0045-monitoreo-actores-modelo-telefonia-explicita.md).
+
+## Gobierna
+
+Direcciones del contrato de navegación que esta decisión explica
+(`scripts/vaults-check.mjs` las verifica contra `frontend/src/lib/modules.ts`):
+
+- `recopiladores`
+- `recopiladores/plan-recoleccion`
+- `recopiladores/accesos`
+- `recopiladores/materiales`
+- `recopiladores/entrega-campo`

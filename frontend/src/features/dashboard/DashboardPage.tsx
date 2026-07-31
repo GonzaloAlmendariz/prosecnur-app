@@ -2,17 +2,12 @@ import "./theme/tokens.css";
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Database,
   Eye,
   EyeOff,
-  GitBranch,
-  LayoutDashboard,
-  Layers,
   Palette,
   Rocket,
   Settings,
   UploadCloud,
-  type LucideIcon,
 } from "lucide-react";
 import { type DashboardTabId } from "../../api/client";
 import { DashboardCurationGate } from "./curation/DashboardCurationGate";
@@ -34,12 +29,11 @@ import { isPublicMode } from "../../lib/runtime";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { ChromeIndicator, ChromeIndicatorGroup } from "../../components/ChromeIndicator";
 import { ModuleCommandBar } from "../../components/ModuleCommandBar";
+import { DASHBOARD_PESTANAS } from "../../lib/navegacion/catalogos/dashboard";
 
-const DASHBOARD_SECTION_ICONS: Record<DashboardTabId, LucideIcon> = {
-  resumen: LayoutDashboard,
-  relaciones: GitBranch,
-  base_datos: Database,
-  dimensiones: Layers,
+type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
+  available: boolean;
+  reason: string | null;
 };
 
 // Página principal del Dashboard.
@@ -109,10 +103,14 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
     () => ({ ...DEFAULT_TABS_ENABLED, ...(config.tabs_enabled ?? {}) }),
     [config.tabs_enabled],
   );
-  const visibleTabs = useMemo(
-    () => (manifest?.tabs ?? []).filter((t) => tabsEnabled[t.id] !== false),
-    [manifest, tabsEnabled],
-  );
+  const visibleTabs = useMemo<DashboardVisibleTab[]>(() => {
+    const runtimePorId = new Map((manifest?.tabs ?? []).map((tab) => [tab.id, tab]));
+    return DASHBOARD_PESTANAS.flatMap((tab) => {
+      const runtime = runtimePorId.get(tab.id);
+      if (!runtime || tabsEnabled[tab.id] === false) return [];
+      return [{ ...tab, available: runtime.available, reason: runtime.reason }];
+    });
+  }, [manifest, tabsEnabled]);
   const unavailableVisibleTabs = useMemo(
     () => visibleTabs.filter((t) => !t.available),
     [visibleTabs],
@@ -367,7 +365,7 @@ function TabNav({
   activeId,
   onSelect,
 }: {
-  tabs: { id: DashboardTabId; label: string; available: boolean; reason: string | null }[];
+  tabs: readonly DashboardVisibleTab[];
   activeId: DashboardTabId;
   onSelect: (id: DashboardTabId) => void;
 }) {
@@ -390,11 +388,11 @@ function DashboardSectionTab({
   active,
   onSelect,
 }: {
-  tab: { id: DashboardTabId; label: string; available: boolean; reason: string | null };
+  tab: DashboardVisibleTab;
   active: boolean;
   onSelect: (id: DashboardTabId) => void;
 }) {
-  const Icon = DASHBOARD_SECTION_ICONS[tab.id];
+  const Icon = tab.icon;
   return (
     <button
       id={`dash-tab-${tab.id}`}

@@ -42,9 +42,10 @@ api/inst/standalone/
 # Local Claude/Codex worktrees
 .claude/worktrees/
 
-# Bóveda Obsidian de referencia local. Se consulta desde este workspace,
-# pero su contenido y estado de editor no se publican con la aplicación.
-/Obsidian_Prosecnur/
+# La bóveda de producto es un contrato documental versionado. Solo el estado
+# local del editor y los metadatos del sistema operativo quedan fuera.
+/Obsidian_Prosecnur/.obsidian/
+/Obsidian_Prosecnur/.DS_Store
 
 # Tests
 /tests/e2e/results/
@@ -98,3 +99,6 @@ output/entrega_acnur_pdm_analitica/
 # Cubre los subdirectorios específicos listados arriba y cualquier corte nuevo.
 output/*
 !output/.gitkeep
+
+# Configuración local de la bóveda de sistema (docs/ abierto como vault).
+/docs/.obsidian/

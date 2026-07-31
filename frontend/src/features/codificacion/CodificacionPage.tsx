@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION } from "../../lib/navegacion/direccion";
-import { AlertCircle, ChevronDown, Database, FileSpreadsheet, Layers, Network, Tags, Wand2 } from "lucide-react";
+import { AlertCircle, ChevronDown, Database, FileSpreadsheet, Tags } from "lucide-react";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
 import { BaseSelectorTrigger, BasesInspectorMenu } from "../../components/BasesInspectorMenu";
 import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
-import { ContextTabRail, type ContextTabRailItem } from "../../components/ContextTabRail";
+import { ContextTabRail } from "../../components/ContextTabRail";
+import {
+  PROCESAMIENTO_PESTANAS,
+  type CodificacionTabId,
+} from "../../lib/navegacion/catalogos/procesamiento";
 import { LoadingBlock } from "../../components/States";
 import { PreguntasLanding } from "./PreguntasLanding";
 import { CodificarWizard } from "./CodificarWizard";
@@ -18,7 +22,7 @@ import { CodingConfigActions } from "./CodingConfigActions";
 import { ProcessingPrereqGate } from "../procesamiento/ProcessingPrereqGate";
 import "./codificacion-v2.css";
 
-type Step = "organizar" | "codificar" | "matrices" | "adaptar";
+type Step = CodificacionTabId;
 
 export default function CodificacionPage() {
   const { state, refresh: refreshSession } = useSession();
@@ -232,9 +236,4 @@ function CodificacionModeSidebar({
 }
 
 // Definición de los pasos del flujo de codificación.
-const CODIFICACION_STEPS: ContextTabRailItem<Step>[] = [
-  { key: "organizar", label: "Preparar", icon: Layers, description: "Emparejar y marcar" },
-  { key: "codificar", label: "Codificar", icon: Tags, description: "Agrupar respuestas" },
-  { key: "matrices", label: "Matrices", icon: Network, description: "Mapear textos abiertos" },
-  { key: "adaptar", label: "Adaptación", icon: Wand2, description: "Confirmar y aplicar" },
-];
+const CODIFICACION_STEPS = PROCESAMIENTO_PESTANAS.codificacion;

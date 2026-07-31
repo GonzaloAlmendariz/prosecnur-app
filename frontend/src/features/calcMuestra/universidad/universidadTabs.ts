@@ -1,21 +1,4 @@
-import {
-  BarChart3,
-  Calculator,
-  CheckCircle2,
-  ClipboardList,
-  Compass,
-  Database,
-  FileCheck2,
-  FileText,
-  Gauge,
-  Grid3X3,
-  GraduationCap,
-  PieChart,
-  Send,
-  Sigma,
-  Table2,
-  Users,
-} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
@@ -23,6 +6,7 @@ import {
   type CalcMuestraWorkspace,
 } from "../../../api/client";
 import { guideStatus, rowsFrom, safeNumber, type GuideStatus } from "../sharedCore";
+import { CALC_MUESTRA_UNIVERSIDAD_PESTANAS } from "../../../lib/navegacion/catalogos/calcMuestra";
 import {
   CLASSROOM_LAB_TABS,
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -43,7 +27,7 @@ export type CalcMuestraSidebarTab = {
   id: string;
   label: string;
   detail: string;
-  icon: typeof Database;
+  icon: LucideIcon;
   status: GuideStatus;
   targetId?: string;
   classroomTab?: ClassroomLabTab;
@@ -217,13 +201,14 @@ export function universitySidebarTabs({
     // Datos solo declara el insumo: identidad, fuentes y mapeo. Los criterios de
     // inclusión viven en Marco → Criterios (un solo hogar); Datos no muestra
     // resultados del marco (la antigua pestaña Institución los adelantaba).
+    const [estudioTab, basesTab, consistenciaTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
     return [
-      { id: "def-estudio", label: "Estudio", detail: "nombre, cliente y alcance", icon: ClipboardList, status: guideStatus(Boolean(estudio.titulo)), targetId: "cmv2-local-def-estudio" },
-      { id: "def-bases", label: "Fuentes", detail: "archivos, hojas y lectura", icon: Database, status: guideStatus(baseReady, hasSource), targetId: "cmv2-local-def-bases" },
+      { ...estudioTab, status: guideStatus(Boolean(estudio.titulo)) },
+      { ...basesTab, status: guideStatus(baseReady, hasSource) },
       // Consistencia vive en Datos (§3.2): la calidad del enlace entre bases se
       // evalúa AL CARGAR los datos, no al armar el marco.
-      { id: "def-consistencia", label: "Consistencia", detail: "enlace entre bases (base única o dos bases)", icon: CheckCircle2, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-def-consistencia" },
-      { id: "def-variables", label: "Variables", detail: "columnas de la base", icon: Table2, status: guideStatus(baseConfigured, baseReady || hasSource), targetId: "cmv2-local-def-variables" },
+      { ...consistenciaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
     ];
   }
   if (activeSection === "marco") {
@@ -232,47 +217,46 @@ export function universitySidebarTabs({
     // definimos quién es elegible (criterios del estudiante → N elegibles),
     // luego perfilamos dónde están esos elegibles por curso-horario decidiendo
     // los criterios de aula CON la radiografía del marco a la vista.
+    const [criteriosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
     return [
-      { id: "marco-criterios-alumno", label: "Criterios del estudiante", detail: "quién es elegible: formación, condición, edad, facultades y nivel", icon: GraduationCap, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame), targetId: "cmv2-local-marco-criterios-alumno" },
+      { ...criteriosTab, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame) },
       // La radiografía es el contenido dominante de esta pestaña integrada, así
       // que gatea con el marco descriptivo (igual que marco-aulas): sin frame no
       // hay dónde perfilar los criterios de aula.
-      { id: "marco-ch-radiografia", label: "Cursos-horario: criterios + radiografía", detail: "define los criterios de aula viendo dónde están los elegibles por facultad", icon: Compass, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-ch-radiografia" },
-      { id: "marco-poblacion", label: "Población", detail: "elegibles y estructura (base real)", icon: Users, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-poblacion" },
-      { id: "marco-aulas", label: "Cursos-horario", detail: "unidades del marco (base real)", icon: Grid3X3, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource), targetId: "cmv2-local-marco-aulas" },
-      { id: "marco-cobertura", label: "Cobertura", detail: "elegibles vs. no elegibles por facultad", icon: BarChart3, status: guideStatus(effectiveMarcoReady), targetId: "cmv2-local-marco-cobertura" },
+      { ...radiografiaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...poblacionTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...aulasTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...coberturaTab, status: guideStatus(effectiveMarcoReady) },
     ];
   }
   if (activeSection === "calculo") {
+    const [disenoTab, propuestasTab, chFacultadTab, distribucionTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo;
     return [
       // Diseño absorbe los supuestos de la fórmula (§5.1.2): fórmula, significado
       // y regulación de cada parámetro (global y por facultad).
-      { id: "calculo-diseno", label: "Diseño", detail: "fórmula, parámetros y supuestos", icon: Sigma, status: guideStatus(true), targetId: "cmv2-local-calculo-diseno" },
-      { id: "calculo-propuestas", label: "Propuestas", detail: "N y cuotas por facultad (motor R)", icon: Calculator, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-propuestas" },
+      { ...disenoTab, status: guideStatus(true) },
+      { ...propuestasTab, status: guideStatus(hasResult, effectiveMarcoReady) },
       // Nueva pestaña (§5.3) en el slot que dejó Supuestos: alumnos por CH y CH
       // definitivos por facultad.
-      { id: "calculo-ch-facultad", label: "Cursos-horario por facultad", detail: "alumnos por CH y CH definitivos", icon: Grid3X3, status: guideStatus(hasResult, effectiveMarcoReady), targetId: "cmv2-local-calculo-ch-facultad" },
-      { id: "calculo-distribucion", label: "Distribución", detail: "población y muestra por unidad × sexo", icon: PieChart, status: guideStatus(true), targetId: "cmv2-local-calculo-distribucion" },
+      { ...chFacultadTab, status: guideStatus(hasResult, effectiveMarcoReady) },
+      { ...distribucionTab, status: guideStatus(true) },
     ];
   }
   if (activeSection === "aulas") {
     const statuses = classroomLabStatusesForSidebar(estudio, aulasState);
     return CLASSROOM_LAB_TABS.map((tab) => ({
-      id: tab.id,
-      label: tab.label,
-      detail: tab.detail,
-      icon: tab.icon,
+      ...tab,
       status: statuses[tab.id],
-      classroomTab: tab.id,
     }));
   }
   if (activeSection === "salidas") {
     const deliverablesReady = hasResult && selectionReady && publicationConfigured;
+    const [guiaTab, entregablesTab, resultadosTab, monitoreoTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
     return [
-      { id: "salidas-guia", label: "Cierre", detail: "ficha ejecutiva del diseño", icon: FileCheck2, status: guideStatus(hasResult && selectionReady && replacementReady, effectiveMarcoReady), targetId: "cmv2-local-salidas-guia" },
-      { id: "salidas-entregables", label: "Entregables", detail: "Excel, Sheets y privacidad", icon: FileText, status: guideStatus(deliverablesReady, hasResult && selectionReady), targetId: "cmv2-local-salidas-entregables" },
-      { id: "salidas-resultados", label: "Tablas", detail: "cuotas finales por facultad y sexo", icon: BarChart3, status: guideStatus(hasResult), targetId: "cmv2-local-salidas-resultados" },
-      { id: "salidas-monitoreo", label: "Pase a Monitoreo", detail: "handoff operativo y reservas", icon: Send, status: guideStatus(selectionReady && replacementReady, comparisonReady), targetId: "cmv2-local-salidas-monitoreo" },
+      { ...guiaTab, status: guideStatus(hasResult && selectionReady && replacementReady, effectiveMarcoReady) },
+      { ...entregablesTab, status: guideStatus(deliverablesReady, hasResult && selectionReady) },
+      { ...resultadosTab, status: guideStatus(hasResult) },
+      { ...monitoreoTab, status: guideStatus(selectionReady && replacementReady, comparisonReady) },
     ];
   }
   return null;

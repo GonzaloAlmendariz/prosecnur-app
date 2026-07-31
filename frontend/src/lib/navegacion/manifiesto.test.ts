@@ -8,8 +8,17 @@ import {
   nodosDe,
   recorridoCompleto,
 } from "./manifiesto";
+import {
+  olvidarPestanasDeSeccion,
+  pestanasDisponiblesDeSeccion,
+  registrarPestanasDeSeccion,
+} from "./runtime";
 
 describe("manifiesto de navegación", () => {
+  it("mantiene el inventario completo de 201 nodos", () => {
+    expect(MANIFIESTO_NAVEGACION).toHaveLength(201);
+  });
+
   it("cubre los ocho módulos y no inventa ninguno", () => {
     const modulos = MANIFIESTO_NAVEGACION.filter((n) => n.nivel === "modulo");
     expect(modulos).toHaveLength(PROSECNUR_MODULES.length);
@@ -37,12 +46,20 @@ describe("manifiesto de navegación", () => {
 
   it("emite hrefs que vuelven a parsear a la misma dirección", () => {
     for (const nodo of MANIFIESTO_NAVEGACION) {
-      if (nodo.nivel === "modulo" || nodo.nivel === "modo") continue;
+      if (
+        nodo.nivel === "modulo"
+        || nodo.nivel === "modo"
+        || !nodo.direccionPublicada
+      ) continue;
       const vuelta = parsearDireccionDesdeHref(nodo.href);
       expect(vuelta, nodo.clave).not.toBeNull();
       expect(vuelta?.modulo, nodo.clave).toBe(nodo.direccion.modulo);
       expect(vuelta?.seccion, nodo.clave).toBe(nodo.direccion.seccion);
-      expect(vuelta?.pestana, nodo.clave).toBe(nodo.direccion.pestana);
+      // El parser global normaliza `_` a `-`; la página conserva el id raw en
+      // el query (p. ej. `base_final`) para no romper enlaces existentes.
+      expect(vuelta?.pestana, nodo.clave).toBe(
+        nodo.direccion.pestana?.replaceAll("_", "-"),
+      );
     }
   });
 
@@ -85,6 +102,102 @@ describe("manifiesto de navegación", () => {
     expect(territorial).not.toBeNull();
     expect(aulas).not.toBeNull();
     expect(territorial!.clave).not.toBe(aulas!.clave);
+  });
+
+  it("expone las 68 pestañas posibles de los perfiles de Monitoreo", () => {
+    const pestanas = nodosDe("monitoreo").filter((nodo) => nodo.nivel === "pestana");
+
+    expect(pestanas).toHaveLength(68);
+    expect(new Set(pestanas.map((nodo) => nodo.clave)).size).toBe(68);
+    expect(pestanas).toContainEqual(
+      nodoPorClave("monitoreo/telefonico/consultas/subsanacion"),
+    );
+  });
+
+  it("expone las 24 pestañas de Muestra, 25 de Procesamiento y 4 de Dashboard", () => {
+    const muestra = nodosDe("calc-muestra").filter(
+      (nodo) =>
+        nodo.nivel === "pestana"
+        && nodo.direccion.modo === "opinion-universitaria",
+    );
+    const procesamiento = nodosDe("procesamiento").filter(
+      (nodo) => nodo.nivel === "pestana",
+    );
+    const dashboard = nodosDe("dashboard").filter(
+      (nodo) => nodo.nivel === "pestana",
+    );
+
+    expect(muestra).toHaveLength(24);
+    expect(procesamiento).toHaveLength(25);
+    expect(dashboard).toHaveLength(4);
+  });
+
+  it("conserva ocho pestañas auditables sin prometer una URL inexistente", () => {
+    const noPublicadas = MANIFIESTO_NAVEGACION.filter(
+      (nodo) => !nodo.direccionPublicada,
+    );
+
+    expect(noPublicadas.map((nodo) => nodo.clave)).toEqual([
+      "procesamiento/validacion/explorar",
+      "procesamiento/validacion/instrumento",
+      "procesamiento/validacion/reglas_custom",
+      "procesamiento/validacion/limpieza",
+      "dashboard/dashboard/resumen",
+      "dashboard/dashboard/relaciones",
+      "dashboard/dashboard/base_datos",
+      "dashboard/dashboard/dimensiones",
+    ]);
+    expect(noPublicadas.slice(0, 4).every((nodo) => nodo.href === "/validacion")).toBe(
+      true,
+    );
+    expect(noPublicadas.slice(4).every((nodo) => nodo.href === "/tablero")).toBe(
+      true,
+    );
+
+    const clavesQA = new Set(recorridoCompleto().map((nodo) => nodo.clave));
+    expect(noPublicadas.every((nodo) => !clavesQA.has(nodo.clave))).toBe(true);
+  });
+
+  it("permite que runtime sustituya una sección por un subconjunto declarado", () => {
+    const clave = "monitoreo/telefonico/consultas";
+
+    expect(
+      pestanasDisponiblesDeSeccion(clave).map((nodo) => nodo.direccion.pestana),
+    ).toEqual(["plataforma", "cruces", "subsanacion"]);
+
+    try {
+      registrarPestanasDeSeccion(
+        clave,
+        { modulo: "monitoreo", modo: "telefonico", seccion: "consultas" },
+        [
+          { key: "plataforma", label: "copy runtime ignorado" },
+          { key: "cruces", label: "copy runtime ignorado" },
+        ],
+      );
+
+      const visibles = pestanasDisponiblesDeSeccion(clave);
+      expect(visibles.map((nodo) => nodo.direccion.pestana)).toEqual([
+        "plataforma",
+        "cruces",
+      ]);
+      expect(visibles[0]).toBe(
+        nodoPorClave("monitoreo/telefonico/consultas/plataforma"),
+      );
+      expect(visibles[0]?.label).toBe("Efectivas Kobo");
+      expect(() =>
+        registrarPestanasDeSeccion(
+          clave,
+          { modulo: "monitoreo", modo: "telefonico", seccion: "consultas" },
+          [{ key: "fuera-del-contrato", label: "No existe" }],
+        ),
+      ).toThrow(/fuera-del-contrato/);
+    } finally {
+      olvidarPestanasDeSeccion(clave);
+    }
+
+    expect(
+      pestanasDisponiblesDeSeccion(clave).map((nodo) => nodo.direccion.pestana),
+    ).toEqual(["plataforma", "cruces", "subsanacion"]);
   });
 
   it("expone las pestañas de Entrega de Hojas de ruta", () => {

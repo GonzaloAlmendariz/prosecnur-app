@@ -59,8 +59,8 @@ const MODULES = [
     aliases: ["hojasRuta"],
   },
   {
-    id: "fichas-qr",
-    label: "Fichas QR",
+    id: "recopiladores",
+    label: "Recopiladores",
     accent: "#106E8C",
     aliases: ["recopiladores"],
   },
@@ -320,18 +320,27 @@ const HIERARCHY = [
     ],
   },
   {
-    module: "fichas-qr",
+    module: "recopiladores",
     sections: [
-      { id: "preparacion", label: "Preparación", tabs: ["Agenda", "Enlaces"] },
       {
-        id: "fichas",
-        label: "Fichas",
-        tabs: ["Vista previa", "Lista"],
+        id: "plan-recoleccion",
+        label: "Plan",
+        tabs: ["Unidades"],
       },
       {
-        id: "paquete",
-        label: "Paquete",
-        tabs: ["PDF final", "Monitoreo"],
+        id: "accesos",
+        label: "Accesos",
+        tabs: ["Canales", "Vinculación"],
+      },
+      {
+        id: "materiales",
+        label: "Materiales",
+        tabs: ["Vista previa", "Paquetes"],
+      },
+      {
+        id: "entrega-campo",
+        label: "Entrega",
+        tabs: ["Monitoreo"],
       },
     ],
   },
@@ -359,8 +368,8 @@ const HIERARCHY = [
         label: "Territorial · Validación",
         tabs: [
           "Geolocalización",
-          "Reconciliación",
-          "Duración",
+          "Reconciliación UMP",
+          "Duración de tiempo",
           "Cuotas",
           "Anulación",
         ],
@@ -711,20 +720,20 @@ const DECLARED_VISUAL_SURFACES = [
     "frontend/src/features/hojasRuta/HojasRutaPage.tsx",
   ),
   surface(
-    "fichas-qr",
-    "fichas",
+    "recopiladores",
+    "materiales",
     "Vista previa",
     "Código QR generado",
     "Bitmap asíncrono embebido como data URL, con estados cargando, generado, fallido y sin enlace.",
-    "frontend/src/features/recopiladores/RecopiladoresPage.tsx",
+    "frontend/src/features/recopiladores/MaterialsSection.tsx",
   ),
   surface(
-    "fichas-qr",
-    "paquete",
-    "PDF final",
+    "recopiladores",
+    "materiales",
+    "Paquetes",
     "Documento paginado imprimible",
     "Portada y fichas por facultad con bloques ocultos en pantalla y visibles al imprimir.",
-    "frontend/src/features/recopiladores/RecopiladoresPage.tsx",
+    "frontend/src/features/recopiladores/MaterialsSection.tsx",
   ),
   surface(
     "monitoreo",
@@ -938,7 +947,7 @@ const SOURCE_CONTEXT_RULES = [
   ),
   rule(/features\/xlsformEditor\//, "formularios", "constructor", null),
   rule(/features\/hojasRuta\//, "hojas-ruta", "territorio", null),
-  rule(/features\/recopiladores\//, "fichas-qr", "preparacion", null),
+  rule(/features\/recopiladores\//, "recopiladores", "plan-recoleccion", null),
   rule(
     /features\/monitoreo\/profiles\/territorial\/TerritorialSourceConsole/,
     "monitoreo",
@@ -1750,30 +1759,34 @@ function refineContext(
     }
   }
 
-  if (context.module === "fichas-qr") {
+  if (context.module === "recopiladores") {
     const sectionMap = {
-      prep: "preparacion",
-      preparacion: "preparacion",
-      agenda: "preparacion",
-      enlace: "preparacion",
-      ficha: "fichas",
-      preview: "fichas",
-      paquete: "paquete",
-      pdf: "paquete",
-      monitoreo: "paquete",
+      plan: "plan-recoleccion",
+      unidad: "plan-recoleccion",
+      access: "accesos",
+      acceso: "accesos",
+      canal: "accesos",
+      vinculacion: "accesos",
+      material: "materiales",
+      preview: "materiales",
+      vista: "materiales",
+      paquete: "materiales",
+      pdf: "materiales",
+      delivery: "entrega-campo",
+      entrega: "entrega-campo",
+      traspaso: "entrega-campo",
     };
     for (const [needle, section] of Object.entries(sectionMap)) {
       if (haystack.includes(needle)) next.section = section;
     }
     const tabMap = {
-      agenda: "Agenda",
-      enlace: "Enlaces",
+      unidad: "Unidades",
+      canal: "Canales",
+      vinculacion: "Vinculación",
       preview: "Vista previa",
       vista: "Vista previa",
-      listado: "Lista",
-      lista: "Lista",
-      pdf: "PDF final",
-      retorno: "Monitoreo",
+      paquete: "Paquetes",
+      traspaso: "Monitoreo",
       monitoreo: "Monitoreo",
     };
     for (const [needle, tab] of Object.entries(tabMap)) {
@@ -2647,7 +2660,7 @@ function refineDeclaredContext(
       [/^\/calc-muestra|^\/muestra/, "calculo-muestra", "mesas"],
       [/^\/editor-xlsform/, "formularios", "biblioteca"],
       [/^\/hojas-ruta/, "hojas-ruta", url.searchParams.get("stage") || "territorio"],
-      [/^\/recopiladores/, "fichas-qr", "preparacion"],
+      [/^\/recopiladores/, "recopiladores", "plan-recoleccion"],
       [/^\/monitoreo/, "monitoreo", "acreditacion-fuentes"],
       [/^\/carga/, "procesamiento", "carga"],
       [/^\/validacion/, "procesamiento", "validacion"],
@@ -2665,9 +2678,44 @@ function refineDeclaredContext(
       }
     }
     if (next.module === "hojas-ruta") {
-      next.tab = url.searchParams.get("tab")
-        ? capitalize(url.searchParams.get("tab"))
+      next.tab = url.searchParams.get("pestana")
+        ? capitalize(url.searchParams.get("pestana"))
         : null;
+    }
+    if (next.module === "calculo-muestra") {
+      const universidadSectionMap = {
+        definicion: "universidad-datos",
+        marco: "universidad-marco",
+        calculo: "universidad-calculo",
+        aulas: "universidad-seleccion",
+        salidas: "universidad-entrega",
+      };
+      const seccion = url.searchParams.get("seccion");
+      if (
+        url.searchParams.get("modo") === "opinion-universitaria" &&
+        universidadSectionMap[seccion]
+      ) {
+        next.section = universidadSectionMap[seccion];
+      }
+    }
+    if (next.module === "recopiladores") {
+      const section = url.searchParams.get("seccion") || "plan-recoleccion";
+      const validSections = new Set([
+        "plan-recoleccion",
+        "accesos",
+        "materiales",
+        "entrega-campo",
+      ]);
+      if (validSections.has(section)) next.section = section;
+      const tabMap = {
+        unidades: "Unidades",
+        canales: "Canales",
+        vinculacion: "Vinculación",
+        vista: "Vista previa",
+        paquetes: "Paquetes",
+        traspaso: "Monitoreo",
+      };
+      next.tab = tabMap[url.searchParams.get("pestana")] ?? next.tab;
     }
     if (next.module === "monitoreo") {
       const profileLabel = ancestryLabels
@@ -2677,11 +2725,12 @@ function refineDeclaredContext(
             value,
           ),
         );
-      const tabId = url.searchParams.get("tab");
-      if (tabId) {
+      const sectionId = url.searchParams.get("seccion");
+      const modeId = url.searchParams.get("modo");
+      if (sectionId) {
         next.section = monitoringDeclaredSection(
-          profileLabel ?? "acreditacion",
-          tabId,
+          modeId ?? profileLabel ?? "acreditacion",
+          sectionId,
         );
       }
     }
@@ -2690,10 +2739,49 @@ function refineDeclaredContext(
   const normalizedLabel = normalizedVocabulary(label);
   const normalizedAncestry = ancestryLabels.map(normalizedVocabulary);
 
-  if (next.module === "calculo-muestra" && /classroom-lab-tabs/.test(normalizedContainer)) {
+  if (
+    /calc-muestra-universidad-pestanas-(definicion|marco|calculo|aulas|salidas)/.test(
+      normalizedContainer,
+    )
+  ) {
+    const sectionByCatalogKey = {
+      definicion: "universidad-datos",
+      marco: "universidad-marco",
+      calculo: "universidad-calculo",
+      aulas: "universidad-seleccion",
+      salidas: "universidad-entrega",
+    };
+    const catalogKey = normalizedContainer.match(
+      /calc-muestra-universidad-pestanas-(definicion|marco|calculo|aulas|salidas)/,
+    )?.[1];
+    next.module = "calculo-muestra";
+    next.section = sectionByCatalogKey[catalogKey];
+    next.tab = label;
+    next.confidence = "exacta-por-catálogo-canónico";
+  } else if (
+    next.module === "calculo-muestra" &&
+    /classroom-lab-tabs/.test(normalizedContainer)
+  ) {
     next.section = "universidad-seleccion";
     next.tab = label;
     next.confidence = "exacta-por-registro";
+  }
+
+  const procesamientoCatalogKey = normalizedContainer.match(
+    /procesamiento-pestanas-(carga|validacion|codificacion|analitica)/,
+  )?.[1];
+  if (procesamientoCatalogKey) {
+    next.module = "procesamiento";
+    next.section = procesamientoCatalogKey;
+    next.tab = label;
+    next.confidence = "exacta-por-catálogo-canónico";
+  }
+
+  if (/(?:^|-)dashboard-pestanas(?:-|$)/.test(normalizedContainer)) {
+    next.module = "dashboard";
+    next.section = "tablero";
+    next.tab = label;
+    next.confidence = "exacta-por-catálogo-canónico";
   }
 
   if (next.module === "hojas-ruta") {
@@ -2725,39 +2813,30 @@ function refineDeclaredContext(
     }
   }
 
-  if (next.module === "fichas-qr") {
-    const sectionByToken = {
-      preparacion: "preparacion",
-      fichas: "fichas",
-      paquete: "paquete",
-    };
+  if (next.module === "recopiladores") {
     const tabByToken = {
-      agenda: ["preparacion", "Agenda"],
-      enlaces: ["preparacion", "Enlaces"],
-      vista: ["fichas", "Vista previa"],
-      listado: ["fichas", "Lista"],
-      salida: ["paquete", "PDF final"],
-      retorno: ["paquete", "Monitoreo"],
+      unidades: ["plan-recoleccion", "Unidades"],
+      canales: ["accesos", "Canales"],
+      vinculacion: ["accesos", "Vinculación"],
+      vista: ["materiales", "Vista previa"],
+      paquetes: ["materiales", "Paquetes"],
+      traspaso: ["entrega-campo", "Monitoreo"],
     };
-    const token = Object.keys(tabByToken).find((key) =>
-      normalizedContainer.endsWith(`-${key}`),
+    const tabToken = Object.keys(tabByToken).find(
+      (key) => normalizedLabel === key,
     );
-    if (token) {
-      [next.section, next.tab] = tabByToken[token];
+    if (tabToken && /pestanas-por-seccion/.test(normalizedContainer)) {
+      [next.section, next.tab] = tabByToken[tabToken];
       next.confidence = "exacta-por-registro";
-    } else {
-      const sectionToken = Object.keys(sectionByToken).find(
-        (key) =>
-          normalizedContainer.endsWith(`-${key}`) ||
-          normalizedLabel === key,
-      );
-      if (sectionToken && /sections?/.test(normalizedContainer)) {
-        next.section = sectionByToken[sectionToken];
-        next.tab = /section-tabs/.test(normalizedContainer)
-          ? label
-          : TAB_SCOPE_TRANSVERSAL;
-        next.confidence = "exacta-por-registro";
-      }
+    } else if (
+      ["plan-recoleccion", "accesos", "materiales", "entrega-campo"].includes(
+        normalizedLabel,
+      ) &&
+      /secciones/.test(normalizedContainer)
+    ) {
+      next.section = normalizedLabel;
+      next.tab = TAB_SCOPE_TRANSVERSAL;
+      next.confidence = "exacta-por-registro";
     }
   }
 
@@ -2997,6 +3076,7 @@ function scanDeclarationFile(file, externalUsageIndex = new Map()) {
   const visitedRecords = new Set();
   const expandedCandidatePositions = new Set();
   const localInitializers = new Map();
+  const localFactories = new Map();
   const defaultExportedLocalNames = new Set(
     sourceFile.statements
       .filter(
@@ -3029,11 +3109,25 @@ function scanDeclarationFile(file, externalUsageIndex = new Map()) {
 
   const indexInitializers = (node) => {
     if (
+      ts.isFunctionDeclaration(node) &&
+      node.name &&
+      node.body
+    ) {
+      localFactories.set(node.name.text, node);
+    }
+    if (
       ts.isVariableDeclaration(node) &&
       ts.isIdentifier(node.name) &&
       node.initializer
     ) {
-      localInitializers.set(node.name.text, unwrapExpression(node.initializer));
+      const initializer = unwrapExpression(node.initializer);
+      localInitializers.set(node.name.text, initializer);
+      if (
+        initializer &&
+        (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
+      ) {
+        localFactories.set(node.name.text, initializer);
+      }
     }
     ts.forEachChild(node, indexInitializers);
   };
@@ -3088,6 +3182,192 @@ function scanDeclarationFile(file, externalUsageIndex = new Map()) {
       }
     }
     return properties;
+  };
+
+  const resolveBoundExpression = (node, bindings, seen = new Set()) => {
+    const current = unwrapExpression(node);
+    if (!current) return null;
+    if (ts.isIdentifier(current)) {
+      if (seen.has(current.text)) return current;
+      const resolved = bindings.get(current.text) ?? localInitializers.get(current.text);
+      if (!resolved) return current;
+      return resolveBoundExpression(
+        resolved,
+        bindings,
+        new Set([...seen, current.text]),
+      );
+    }
+    if (ts.isPropertyAccessExpression(current)) {
+      const owner = resolveBoundExpression(current.expression, bindings, seen);
+      if (owner && ts.isObjectLiteralExpression(owner)) {
+        const property = owner.properties.find(
+          (candidate) =>
+            (ts.isPropertyAssignment(candidate) ||
+              ts.isShorthandPropertyAssignment(candidate)) &&
+            propertyNameText(candidate.name, sourceFile) === current.name.text,
+        );
+        if (property && ts.isPropertyAssignment(property)) {
+          return resolveBoundExpression(property.initializer, bindings, seen);
+        }
+        if (property && ts.isShorthandPropertyAssignment(property)) {
+          return resolveBoundExpression(property.name, bindings, seen);
+        }
+      }
+    }
+    return current;
+  };
+
+  const boundLiteralVariants = (node, bindings, seen = new Set()) => {
+    const current = resolveBoundExpression(node, bindings, seen);
+    if (!current) return [];
+    if (
+      ts.isStringLiteral(current) ||
+      ts.isNoSubstitutionTemplateLiteral(current) ||
+      ts.isNumericLiteral(current)
+    ) {
+      return [cleanText(current.text, 240)].filter(Boolean);
+    }
+    if (current.kind === ts.SyntaxKind.TrueKeyword) return ["true"];
+    if (current.kind === ts.SyntaxKind.FalseKeyword) return ["false"];
+    if (ts.isConditionalExpression(current)) {
+      return [
+        ...boundLiteralVariants(current.whenTrue, bindings, seen),
+        ...boundLiteralVariants(current.whenFalse, bindings, seen),
+      ];
+    }
+    if (
+      ts.isBinaryExpression(current) &&
+      current.operatorToken.kind === ts.SyntaxKind.PlusToken
+    ) {
+      const left = boundLiteralVariants(current.left, bindings, seen);
+      const right = boundLiteralVariants(current.right, bindings, seen);
+      if (left.length && right.length) {
+        return left.flatMap((a) => right.map((b) => `${a}${b}`));
+      }
+    }
+    if (ts.isTemplateExpression(current)) {
+      let variants = [current.head.text];
+      for (const span of current.templateSpans) {
+        const values = boundLiteralVariants(span.expression, bindings, seen);
+        if (!values.length) return [];
+        variants = variants.flatMap((prefix) =>
+          values.map((value) => `${prefix}${value}${span.literal.text}`),
+        );
+      }
+      return variants.map((value) => cleanText(value, 240)).filter(Boolean);
+    }
+    return [];
+  };
+
+  const boundSimpleDeclaredValue = (node, bindings) => {
+    const variants = [...new Set(boundLiteralVariants(node, bindings))];
+    if (variants.length) return variants.join(" / ");
+    const current = resolveBoundExpression(node, bindings);
+    return cleanText(current?.getText(sourceFile) ?? "", 180);
+  };
+
+  const factoryReturnExpressions = (factory) => {
+    if (
+      (ts.isArrowFunction(factory) || ts.isFunctionExpression(factory)) &&
+      !ts.isBlock(factory.body)
+    ) {
+      return [factory.body];
+    }
+    const body = factory.body;
+    if (!body || !ts.isBlock(body)) return [];
+    const returns = [];
+    const collect = (node) => {
+      if (
+        node !== body &&
+        (ts.isArrowFunction(node) ||
+          ts.isFunctionExpression(node) ||
+          ts.isFunctionDeclaration(node))
+      ) {
+        return;
+      }
+      if (ts.isReturnStatement(node) && node.expression) {
+        returns.push(node.expression);
+        return;
+      }
+      ts.forEachChild(node, collect);
+    };
+    collect(body);
+    return returns;
+  };
+
+  const describeFactoryCall = (
+    call,
+    inheritedBindings = new Map(),
+    seenFactories = new Set(),
+  ) => {
+    const expression = unwrapExpression(call.expression);
+    if (!expression || !ts.isIdentifier(expression)) return null;
+    const factoryName = expression.text;
+    const factory = localFactories.get(factoryName);
+    if (!factory || seenFactories.has(factoryName)) return null;
+
+    const bindings = new Map(inheritedBindings);
+    factory.parameters.forEach((parameter, index) => {
+      if (!ts.isIdentifier(parameter.name) || !call.arguments[index]) return;
+      bindings.set(
+        parameter.name.text,
+        resolveBoundExpression(call.arguments[index], inheritedBindings) ??
+          call.arguments[index],
+      );
+    });
+
+    const attributes = {};
+    const labelVariants = [];
+    const detailVariants = [];
+    const addProperty = (key, valueNode) => {
+      if (!UI_DECLARATION_PROPERTY_KEYS.has(key)) return;
+      attributes[key] = boundSimpleDeclaredValue(valueNode, bindings);
+      if (UI_DECLARATION_PRIMARY_KEYS.includes(key)) {
+        labelVariants.push(...boundLiteralVariants(valueNode, bindings));
+      }
+      if (UI_DECLARATION_DETAIL_KEYS.includes(key)) {
+        detailVariants.push(...boundLiteralVariants(valueNode, bindings));
+      }
+    };
+    const addObject = (objectNode) => {
+      for (const property of objectNode.properties) {
+        if (ts.isPropertyAssignment(property)) {
+          addProperty(
+            propertyNameText(property.name, sourceFile),
+            property.initializer,
+          );
+          continue;
+        }
+        if (ts.isShorthandPropertyAssignment(property)) {
+          addProperty(property.name.text, property.name);
+          continue;
+        }
+        if (!ts.isSpreadAssignment(property)) continue;
+        const spread = resolveBoundExpression(property.expression, bindings);
+        if (spread && ts.isObjectLiteralExpression(spread)) {
+          addObject(spread);
+          continue;
+        }
+        if (spread && ts.isCallExpression(spread)) {
+          const nested = describeFactoryCall(
+            spread,
+            bindings,
+            new Set([...seenFactories, factoryName]),
+          );
+          if (!nested) continue;
+          Object.assign(attributes, nested.attributes);
+          labelVariants.push(...nested.labelVariants);
+          detailVariants.push(...nested.detailVariants);
+        }
+      }
+    };
+
+    for (const returnExpression of factoryReturnExpressions(factory)) {
+      const returned = resolveBoundExpression(returnExpression, bindings);
+      if (returned && ts.isObjectLiteralExpression(returned)) addObject(returned);
+    }
+    if (!labelVariants.length) return null;
+    return { attributes, labelVariants, detailVariants };
   };
   const renderReferenceCache = new Map();
   const localRenderReference = (containerName, fallbackPosition) => {
@@ -3170,48 +3450,51 @@ function scanDeclarationFile(file, externalUsageIndex = new Map()) {
   };
 
   const emitObject = (
-    objectNode,
+    sourceNode,
     containerName,
     ancestryLabels,
     evidence,
+    factoryDescription = null,
   ) => {
-    const attributes = {};
-    const labelVariants = [];
-    const detailVariants = [];
-    for (const property of resolvedObjectProperties(objectNode)) {
-      const key = propertyNameText(property.name, sourceFile);
-      if (!UI_DECLARATION_PROPERTY_KEYS.has(key)) continue;
-      const initializer =
-        resolveLocalExpression(property.initializer) ?? property.initializer;
-      attributes[key] = simpleDeclaredValue(initializer, sourceFile);
-      if (UI_DECLARATION_PRIMARY_KEYS.includes(key)) {
-        labelVariants.push(
-          ...literalVariants(initializer, sourceFile),
-        );
-      }
-      if (UI_DECLARATION_DETAIL_KEYS.includes(key)) {
-        detailVariants.push(
-          ...literalVariants(initializer, sourceFile),
-        );
+    const attributes = factoryDescription?.attributes ?? {};
+    const labelVariants = [...(factoryDescription?.labelVariants ?? [])];
+    const detailVariants = [...(factoryDescription?.detailVariants ?? [])];
+    if (!factoryDescription && ts.isObjectLiteralExpression(sourceNode)) {
+      for (const property of resolvedObjectProperties(sourceNode)) {
+        const key = propertyNameText(property.name, sourceFile);
+        if (!UI_DECLARATION_PROPERTY_KEYS.has(key)) continue;
+        const initializer =
+          resolveLocalExpression(property.initializer) ?? property.initializer;
+        attributes[key] = simpleDeclaredValue(initializer, sourceFile);
+        if (UI_DECLARATION_PRIMARY_KEYS.includes(key)) {
+          labelVariants.push(
+            ...literalVariants(initializer, sourceFile),
+          );
+        }
+        if (UI_DECLARATION_DETAIL_KEYS.includes(key)) {
+          detailVariants.push(
+            ...literalVariants(initializer, sourceFile),
+          );
+        }
       }
     }
     const labels = [...new Set(labelVariants.filter(Boolean))];
     if (!labels.length) return [];
-    expandedCandidatePositions.add(objectNode.getStart(sourceFile));
+    expandedCandidatePositions.add(sourceNode.getStart(sourceFile));
     const emittedLabels = [];
     labels.forEach((label, variantIndex) => {
-      const recordKey = `${objectNode.getStart(sourceFile)}:${label}`;
+      const recordKey = `${sourceNode.getStart(sourceFile)}:${label}`;
       if (visitedRecords.has(recordKey)) return;
       visitedRecords.add(recordKey);
       const position = lineAndColumn(
         lineStarts,
-        objectNode.getStart(sourceFile),
+        sourceNode.getStart(sourceFile),
       );
       const nearestComponent = findNearestComponentName(
-        objectNode,
+        sourceNode,
         sourceFile,
       );
-      const rawCondition = findRenderCondition(objectNode, sourceFile);
+      const rawCondition = findRenderCondition(sourceNode, sourceFile);
       const condition =
         rawCondition === "Siempre que se renderiza su componente contenedor"
           ? `Cuando ${containerName} se consume desde ${nearestComponent}`
@@ -3269,7 +3552,7 @@ function scanDeclarationFile(file, externalUsageIndex = new Map()) {
         ancestry: ancestryLabels,
         renderSource: localRenderReference(
           containerName,
-          objectNode.getStart(sourceFile),
+          sourceNode.getStart(sourceFile),
         ),
         source: {
           file: sourceRelativePath,
@@ -3433,6 +3716,19 @@ function scanDeclarationFile(file, externalUsageIndex = new Map()) {
           isLiteralDeclarationContainer(containerName)
         ) {
           emitLiteral(item, containerName, ancestryLabels, evidence);
+        }
+        continue;
+      }
+      if (ts.isCallExpression(item)) {
+        const factoryDescription = describeFactoryCall(item);
+        if (factoryDescription) {
+          emitObject(
+            item,
+            containerName,
+            ancestryLabels,
+            `${evidence}-factory-local`,
+            factoryDescription,
+          );
         }
         continue;
       }

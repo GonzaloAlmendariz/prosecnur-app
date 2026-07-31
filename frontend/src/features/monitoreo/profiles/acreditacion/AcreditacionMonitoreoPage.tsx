@@ -50,6 +50,10 @@ import {
 } from "../../../../api/client";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
+  MONITOREO_PESTANAS,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_ACREDITACION,
+} from "../../../../lib/navegacion/catalogos/monitoreo";
+import {
   modoIdDesdeFamily, MONITOREO_MODOS, MONITOREO_SECCIONES, seccionesDelModo, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import {
   pestanaInicialDeSeccion,
@@ -282,37 +286,16 @@ const ACREDITACION_SOURCE_PRESETS: AcreditacionSourcePreset[] = [
   },
 ];
 export const ACREDITACION_MODEL_TABS = [
-  { key: "estructura", label: "Modelo operativo", detail: "Metas por actor", icon: Target },
-  { key: "distribucion", label: "Distribución", detail: "Variable de interés por actor", icon: BarChartBig },
-  { key: "estrategias", label: "Cronograma", detail: "Campo y reportes", icon: CalendarRange },
-  { key: "resumen", label: "Resumen", detail: "Lectura de Fuentes", icon: BarChart3 },
+  ...MONITOREO_PESTANAS.acreditacion.modelo,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_ACREDITACION.modelo.resumen,
 ] as const;
 type AcreditacionModelVisibleTab = typeof ACREDITACION_MODEL_TABS[number]["key"];
 type AcreditacionModelTab = AcreditacionModelVisibleTab | "enlaces" | "casos" | "reglas";
-export const ACREDITACION_CONSULTA_TABS = [
-  { key: "plataforma", label: "Registros en plataforma", detail: "Respuestas y cruce", icon: ListChecks },
-  { key: "base", label: "Estado de la base", detail: "Actor por actor", icon: Table2 },
-  { key: "cruces", label: "Cruces efectivos", detail: "Razón de cruce", icon: Link2 },
-  { key: "subsanacion", label: "Subsanación", detail: "Decisión auditada", icon: ShieldAlert },
-] as const;
+export const ACREDITACION_CONSULTA_TABS = MONITOREO_PESTANAS.acreditacion.consultas;
 export type AcreditacionConsultaTab = typeof ACREDITACION_CONSULTA_TABS[number]["key"];
-export const ACREDITACION_PHONE_TABS = [
-  { key: "resumen", label: "Resumen", detail: "Barrido telefónico", icon: PhoneCall },
-  { key: "estados", label: "Estados", detail: "Confirma y colorea", icon: SlidersHorizontal },
-  { key: "dia", label: "Día", detail: "Efectivas Kobo", icon: CalendarRange },
-  { key: "incidencia", label: "Incidencias de la base", detail: "Sin efectiva e insistencia", icon: AlertCircle },
-  { key: "responsables", label: "Responsables", detail: "Equipo y carga", icon: ContactRound },
-  { key: "alertas", label: "Alertas", detail: "Alertas reales", icon: ShieldAlert },
-  { key: "supervision", label: "Supervisión telefónica", detail: "Control y muestra", icon: ClipboardCheck },
-] as const;
+export const ACREDITACION_PHONE_TABS = MONITOREO_PESTANAS.acreditacion.telefonico;
 type AcreditacionPhoneTab = typeof ACREDITACION_PHONE_TABS[number]["key"];
-const ACREDITACION_ADVANCE_TABS = [
-  { key: "resumen", label: "Resumen", detail: "Avance general", icon: BarChart3 },
-  { key: "actores", label: "Actores", detail: "Brechas por unidad", icon: Layers3 },
-  { key: "encuestas", label: "Encuestas", detail: "Fuentes y canales", icon: ListChecks },
-  { key: "detalle", label: "Detalle", detail: "Controles", icon: Table2 },
-  { key: "salidas", label: "Salidas", detail: "PDF y Sheets", icon: Download },
-] as const;
+const ACREDITACION_ADVANCE_TABS = MONITOREO_PESTANAS.acreditacion.avance;
 type AcreditacionAdvanceTab = typeof ACREDITACION_ADVANCE_TABS[number]["key"];
 type AcreditacionLocalTabKey = AcreditacionSourceTab | AcreditacionModelTab | AcreditacionConsultaTab | AcreditacionPhoneTab | AcreditacionAdvanceTab;
 export type AcreditacionProfileMode = "acreditacion" | "telefonico";
@@ -17374,11 +17357,8 @@ function acreditacionRailAdvanceStats(state: MonitoreoState | null, reports: Mon
   };
 }
 
-// Tiene un gemelo deliberado en el perfil telefónico
-// (`localTabsForTelefonicoView`, profiles/telefonico/TelefonicoMonitoreoPage.tsx).
-// No son una copia pendiente de unificar: telefónico es un fork vivo con su
-// propio juego de pestañas por sección. Si tocas las ramas `isPhoneRoute` de
-// aquí, revisa allá — cada catálogo está fijado por su propio test.
+// El catálogo común fija identidad, copy y destino. Cada perfil conserva aquí
+// únicamente su adaptación runtime: badges, detalle y estado del proyecto.
 export function localTabsForAcreditacionView(
   view: MonitoreoSeccion,
   state: MonitoreoState | null,
@@ -17507,7 +17487,6 @@ export function localTabsForAcreditacionView(
     const supervision = porClave("supervision");
     return [
       railTab(summary, {
-        label: "Barrido + Kobo",
         detail: phoneStats.comparisonRows
           ? `${fmt(phoneStats.comparison.matchedEffective)} coinciden · ${fmt(phoneStats.comparison.mismatch)} dif.`
           : `${fmt(phoneStats.totals.effective)} efectivas declaradas`,
@@ -17519,31 +17498,26 @@ export function localTabsForAcreditacionView(
         estado: "parcial",
       }),
       railTab(day, {
-        label: "Ritmo diario",
         detail: `${countText(phoneStats.dailyRows, "día", "días")} · ${fmt(phoneStats.platformEffective)} Kobo`,
         badge: phoneStats.dailyRows ? fmt(phoneStats.dailyRows) : undefined,
         estado: readyStatus(phoneStats.dailyRows > 0),
       }),
       railTab(incidence, {
-        label: "Sin efectiva",
         detail: `${fmt(phoneStats.totals.incidents)} sin efectiva · ${fmt(phoneStats.totals.unswept)} por barrer`,
         badge: phoneStats.pendingRows ? fmt(phoneStats.pendingRows) : undefined,
         estado: phoneStats.totals.incidents || phoneStats.totals.unswept ? "parcial" : "listo",
       }),
       railTab(responsible, {
-        label: "Responsables",
         detail: `${countText(phoneStats.totals.responsables || phoneStats.responsibleRows, "persona")} · carga`,
         badge: phoneStats.totals.responsables ? fmt(phoneStats.totals.responsables) : undefined,
         estado: readyStatus(phoneStats.responsibleRows > 0),
       }),
       railTab(alerts, {
-        label: "Alertas reales",
         detail: phoneStats.alerts ? countText(phoneStats.alerts, "alerta localizada", "alertas localizadas") : "sin alertas activas",
         badge: phoneStats.alerts ? fmt(phoneStats.alerts) : undefined,
         estado: readyStatus(!phoneStats.alerts, phoneStats.alerts > 0),
       }),
       railTab(supervision, {
-        label: "Supervisión",
         detail: phoneStats.comparison.mismatch
           ? `${fmt(phoneStats.comparison.mismatch)} diferencias priorizadas`
           : `${fmt(phoneStats.totals.effective)} efectivas para control`,

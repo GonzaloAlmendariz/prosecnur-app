@@ -43,10 +43,15 @@ Antes de seguir uno, revise el estado y la fecha que declara en su cabecera.
   todos los ADR. Los ADR propuestos todavía no alteran el contrato.
 - [Agentic OS](agentic-os.md): compatibilidad Claude–Codex, manifiesto y
   adaptadores generados.
+- [Grafo del Agentic OS](sistema/agentic/README.md): las 16 skills, 13 agentes
+  y 8 ramas de enrutamiento, generadas desde el manifiesto canónico.
 - [Loops de reparación](loops-reparacion.md): protocolo de alcance, iteración,
   evidencia y parada.
 - [Gramática de layout](ui-layout-grammar.md): jerarquía y contrato de las
   superficies de la aplicación.
+- [Índice de direcciones](sistema/direcciones/README.md): cada dirección del
+  contrato de navegación con su sello, qué documento la gobierna y si la bóveda
+  de producto la documenta. Generado por `make vaults-index`; no editar a mano.
 
 ## Referencias por dominio
 
@@ -122,6 +127,8 @@ arquitectura canónica.
 - [Optimización de performance](plan-optimizacion-perf-2026-07.md).
 - [Recopiladores](plan-recopiladores-2026-07.md).
 - [Saneamiento del repositorio](plan-saneamiento-repo-2026-07.md).
+- [Loop de bóvedas](plan-vaults-2026-07.md): la bóveda de producto, esta
+  documentación y la costura verificable entre ambas.
 
 ### Suite de revamp visual
 

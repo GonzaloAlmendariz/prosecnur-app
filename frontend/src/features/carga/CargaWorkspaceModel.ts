@@ -1,9 +1,9 @@
-export type CargaWorkspaceTab =
-  | "plan"
-  | "fuentes"
-  | "revision"
-  | "estructura"
-  | "datos";
+import {
+  PROCESAMIENTO_PESTANAS,
+  type CargaWorkspaceTab,
+} from "../../lib/navegacion/catalogos/procesamiento";
+
+export type { CargaWorkspaceTab };
 
 export type CargaWorkspaceState =
   | "neutral"
@@ -34,21 +34,10 @@ export type CargaWorkspaceItem = CargaWorkspaceMetadata & {
   description: string;
 };
 
-export const CARGA_WORKSPACE_TABS = [
-  { key: "plan", label: "Plan", summary: "Organización de las bases" },
-  { key: "fuentes", label: "Fuentes", summary: "Formulario y respuestas" },
-  { key: "revision", label: "Revisión", summary: "Incidencias de carga" },
-  { key: "estructura", label: "Estructura", summary: "Variables y códigos" },
-  { key: "datos", label: "Datos", summary: "Respuestas en tabla" },
-] as const satisfies readonly CargaWorkspaceMetadata[];
+export const CARGA_WORKSPACE_TABS = PROCESAMIENTO_PESTANAS.carga;
 
-export const CARGA_WORKSPACE_TAB_KEYS = [
-  "plan",
-  "fuentes",
-  "revision",
-  "estructura",
-  "datos",
-] as const satisfies readonly CargaWorkspaceTab[];
+export const CARGA_WORKSPACE_TAB_KEYS: readonly CargaWorkspaceTab[] =
+  CARGA_WORKSPACE_TABS.map((tab) => tab.key);
 
 export const CARGA_WORKSPACE_STATE_LABELS: Readonly<
   Record<CargaWorkspaceState, string>

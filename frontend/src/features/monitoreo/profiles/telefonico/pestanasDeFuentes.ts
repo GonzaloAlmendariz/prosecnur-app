@@ -9,7 +9,10 @@
  * el rail de Teléfono en Acreditación.
  */
 
-import { ContactRound, ListChecks, PlugZap, Table2 } from "../../../../vendor/lucide-react";
+import {
+  MONITOREO_PESTANAS,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO,
+} from "../../../../lib/navegacion/catalogos/monitoreo";
 
 /**
  * Cada pestaña se nombra por la pregunta que responde, no por el servicio que
@@ -20,18 +23,16 @@ import { ContactRound, ListChecks, PlugZap, Table2 } from "../../../../vendor/lu
  *
  * «barrido» se conserva: es vocabulario del estudio, no de la implementación.
  */
+const [activas, sheets, survey] = MONITOREO_PESTANAS.telefonico.fuentes;
+
+// Conserva el orden histórico que todavía consume la rama de compatibilidad
+// del clon, pero cada objeto viene del catálogo común. El perfil telefónico
+// público usa únicamente `activas`, `sheets` y `survey`.
 export const ACREDITACION_SOURCE_TABS = [
-  { key: "survey", label: "Encuestas", detail: "Quién responde y qué cuenta", icon: ListChecks },
-  // «Universo y barrido» y no solo «Universo»: es el nombre que ya usa el rail de
-  // la sección (`fuentes/railDeFuentes.ts`, con test), y en telefónico la hoja
-  // trae las dos cosas.
-  //
-  // El detalle dice lo que la pestaña deja decidir, no vuelve a contar lo que el
-  // título ya dijo: «A quién llamar y qué pasó» era el título traducido, y en la
-  // pantalla se leía dos veces seguidas.
-  { key: "sheets", label: "Universo y barrido", detail: "Estados y colores", icon: Table2 },
-  { key: "collectors", label: "Recopiladores", detail: "Inclusión y alias", icon: ContactRound },
-  { key: "activas", label: "Fuentes activas", detail: "Estado del paquete", icon: PlugZap },
+  survey,
+  sheets,
+  MONITOREO_PESTANAS_COMPATIBILIDAD_TELEFONICO.fuentes.collectors,
+  activas,
 ] as const;
 
 export type AcreditacionSourceTab = typeof ACREDITACION_SOURCE_TABS[number]["key"];

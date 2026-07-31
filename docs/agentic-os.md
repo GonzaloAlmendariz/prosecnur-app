@@ -28,6 +28,7 @@ flowchart TB
   subgraph GEN["ADAPTADORES — generados, nunca editar"]
     CS[".agents/skills/"]
     CA[".codex/agents/"]
+    DG["docs/sistema/agentic/<br/>ramas · skills · agentes"]
   end
   subgraph PROV["PROVEEDORES"]
     CL["Claude<br/>subagentes · Agent Teams"]
@@ -39,6 +40,7 @@ flowchart TB
   M --> SY
   SY -->|--write| CS
   SY -->|--write| CA
+  SY -->|--write| DG
   I --> CL
   S --> CL
   A --> CL
@@ -115,6 +117,9 @@ Ambos corren en el job `Agentic OS` de `quality.yml`.
 - `agentic/manifest.json` (schema v2) declara perfiles, proveedores, límites,
   pools por ruta, condiciones seriales, gate final y el contrato semántico que
   debe seguir siendo cierto aunque el schema del archivo no cambie.
+- `docs/sistema/agentic/` es el adaptador navegable del mismo manifiesto: una
+  nota por rama, skill y agente. `sync-agentic-os.mjs --check` verifica su
+  inventario y contenido exactos; nunca se edita a mano.
 - `agentic/orchestration-policy.mjs` selecciona una oleada y conserva las líneas
   pendientes; sus smokes deterministas no reemplazan el juicio del lead.
 
@@ -153,6 +158,16 @@ pero describa un producto antiguo:
 
 El contrato semántico usa la versión del producto que declara cada fuente; no
 cambia `schema_version: 2` del manifiesto.
+
+### Alcance documental del agentic OS
+
+`documentation.skill_navigation_roots` y
+`documentation.agent_navigation_roots` declaran qué raíces del contrato vivo
+puede tocar cada capacidad. Una raíz incluye sus descendientes; `[]` significa
+que la capacidad es sistémica y no posee una superficie de producto. “Tocar”
+no equivale a gobernar: la autoridad de producto sigue viviendo en contratos y
+ADRs aceptados. El índice generado usa por eso `## Toca direcciones`, nunca
+`## Gobierna`.
 
 ## Contrato de orquestación
 

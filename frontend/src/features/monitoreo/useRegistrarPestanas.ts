@@ -1,9 +1,9 @@
 // Publica el catálogo de pestañas de la sección activa en el puente de
 // navegación, para que el inspector pueda enumerarlas.
 //
-// Las pestañas de Monitoreo viven dentro de cada página de perfil y no se
-// pueden conocer desde `lib/modules.ts`. En vez de duplicar el catálogo —lo
-// que ya produjo una copia desincronizada— la vista montada lo contribuye.
+// El catálogo posible vive en `lib/navegacion/catalogos/monitoreo.ts`. La
+// página montada contribuye únicamente el subconjunto visible para que el
+// inspector no intente abrir pestañas condicionales ausentes en este proyecto.
 
 import { useEffect } from "react";
 import {
@@ -18,9 +18,8 @@ export function useRegistrarPestanasMonitoreo(
   seccion: MonitoreoSeccion,
   pestanas: ReadonlyArray<{ key: string; label: string }>,
 ): void {
-  // El catálogo se compara por contenido: las páginas de perfil lo definen con
-  // literales de módulo, pero algunas lo derivan por sección y producen un
-  // array nuevo en cada render.
+  // Se compara por contenido porque varias páginas enriquecen los objetos del
+  // catálogo con readiness y producen un array nuevo en cada render.
   const firma = pestanas.map((p) => `${p.key}:${p.label}`).join("|");
 
   useEffect(() => {

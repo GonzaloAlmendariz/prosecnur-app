@@ -13,12 +13,17 @@ import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel"
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
+  MONITOREO_PESTANAS,
+  pestanasDeMonitoreo,
+} from "../../../../lib/navegacion/catalogos/monitoreo";
+import {
   modoIdDesdeFamily, AULAS_WORKBENCH_VIEWS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import {
   pestanaInicialDeSeccion,
   seccionInicialMonitoreo,
   useMonitoreoDireccion,
 } from "../../useMonitoreoDireccion";
+import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
@@ -39,8 +44,8 @@ const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_univ
 
 // Avance es la única sección con pestañas: el resto siguen siendo hojas del
 // árbol. «Salidas» es donde vive la publicación a Sheets del perfil (ADR 0019).
-const AULAS_PESTANAS_AVANCE = ["resumen", "salidas"] as const;
-type AulasPestanaAvance = (typeof AULAS_PESTANAS_AVANCE)[number];
+const AULAS_PESTANAS_AVANCE = MONITOREO_PESTANAS.aulas.avance;
+type AulasPestanaAvance = typeof AULAS_PESTANAS_AVANCE[number]["key"];
 
 function fmt(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
@@ -398,18 +403,23 @@ export default function AulasMonitoreoPage() {
       "avance",
       seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS),
       "resumen",
-      AULAS_PESTANAS_AVANCE,
+      AULAS_PESTANAS_AVANCE.map((pestana) => pestana.key),
     ),
   );
   useMonitoreoDireccion(seccionActiva, seccionActiva === "avance" ? pestanaAvance : undefined, "aulas", {
     onSeccionPedida: setActiveView,
     onPestanaPedida: (pestana, seccion) => {
       if (seccion !== "avance") return;
-      if ((AULAS_PESTANAS_AVANCE as readonly string[]).includes(pestana)) {
+      if (AULAS_PESTANAS_AVANCE.some((item) => item.key === pestana)) {
         setPestanaAvance(pestana as AulasPestanaAvance);
       }
     },
   });
+  useRegistrarPestanasMonitoreo(
+    "aulas",
+    seccionActiva,
+    pestanasDeMonitoreo("aulas", seccionActiva),
+  );
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState("");
@@ -565,20 +575,20 @@ export default function AulasMonitoreoPage() {
               >
                 {AULAS_PESTANAS_AVANCE.map((pestana) => (
                   <button
-                    key={pestana}
-                    id={`aulas-mon-tab-${pestana}`}
+                    key={pestana.key}
+                    id={`aulas-mon-tab-${pestana.key}`}
                     type="button"
                     role="tab"
-                    aria-controls={`aulas-mon-panel-${pestana}`}
-                    data-gliding-key={pestana}
+                    aria-controls={`aulas-mon-panel-${pestana.key}`}
+                    data-gliding-key={pestana.key}
                     data-nav-item=""
                     data-nav-shape="pill"
-                    data-nav-state={pestanaAvance === pestana ? "selected" : undefined}
-                    aria-selected={pestanaAvance === pestana}
-                    className={pestanaAvance === pestana ? "is-active" : ""}
-                    onClick={() => setPestanaAvance(pestana)}
+                    data-nav-state={pestanaAvance === pestana.key ? "selected" : undefined}
+                    aria-selected={pestanaAvance === pestana.key}
+                    className={pestanaAvance === pestana.key ? "is-active" : ""}
+                    onClick={() => setPestanaAvance(pestana.key)}
                   >
-                    {pestana === "resumen" ? "Resumen" : "Salidas"}
+                    {pestana.label}
                   </button>
                 ))}
               </GlidingTabList>

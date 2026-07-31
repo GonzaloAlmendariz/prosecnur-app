@@ -57,11 +57,19 @@ function generatedAgents(root) {
   return fs.readdirSync(path.join(root, '.codex/agents')).filter((name) => name.endsWith('.toml')).sort()
 }
 
-test('genera exactamente los 13 agentes y mantiene check reproducible', () => {
+function generatedAgenticDocs(root, kind) {
+  return fs.readdirSync(path.join(root, 'docs/sistema/agentic', kind)).filter((name) => name.endsWith('.md')).sort()
+}
+
+test('genera adaptadores y el grafo agentic exacto; check es reproducible', () => {
   const root = fixture()
   const write = run(root, '--write')
   assert.equal(write.status, 0, write.stderr)
   assert.equal(generatedAgents(root).length, 13)
+  assert.equal(generatedAgenticDocs(root, 'skills').length, 16)
+  assert.equal(generatedAgenticDocs(root, 'agentes').length, 13)
+  assert.equal(generatedAgenticDocs(root, 'ramas').length, 8)
+  assert.ok(fs.existsSync(path.join(root, 'docs/sistema/agentic/README.md')))
   assert.equal(run(root, '--check').status, 0)
 })
 
@@ -102,6 +110,8 @@ test('alta y baja canónica generan y podan solo adaptadores marcados', () => {
   manifest.skills.push('skill-fixture')
   manifest.agents.push('agente-fixture')
   manifest.agent_profiles['agente-fixture'] = 'read-only'
+  manifest.documentation.skill_navigation_roots['skill-fixture'] = []
+  manifest.documentation.agent_navigation_roots['agente-fixture'] = []
   writeManifest(root, manifest)
 
   const skillDir = path.join(root, '.claude/skills/skill-fixture')
@@ -118,10 +128,14 @@ test('alta y baja canónica generan y podan solo adaptadores marcados', () => {
   manifest.skills = manifest.skills.filter((name) => name !== 'skill-fixture')
   manifest.agents = manifest.agents.filter((name) => name !== 'agente-fixture')
   delete manifest.agent_profiles['agente-fixture']
+  delete manifest.documentation.skill_navigation_roots['skill-fixture']
+  delete manifest.documentation.agent_navigation_roots['agente-fixture']
   writeManifest(root, manifest)
   assert.equal(run(root, '--write').status, 0)
   assert.equal(fs.existsSync(path.join(root, '.agents/skills/skill-fixture/SKILL.md')), false)
   assert.equal(fs.existsSync(path.join(root, '.codex/agents/agente-fixture.toml')), false)
+  assert.equal(fs.existsSync(path.join(root, 'docs/sistema/agentic/skills/skill-fixture.md')), false)
+  assert.equal(fs.existsSync(path.join(root, 'docs/sistema/agentic/agentes/agente-fixture.md')), false)
 })
 
 test('detecta deriva generada y preserva colisiones manuales', () => {
@@ -150,6 +164,22 @@ test('preserva y denuncia adaptadores extra no marcados', () => {
   assert.notEqual(result.status, 0)
   assert.match(result.stderr, /adaptador manual u obsoleto/)
   assert.equal(fs.readFileSync(manual, 'utf8'), 'contenido manual\n')
+})
+
+test('detecta deriva y colisión manual en el índice agentic generado', () => {
+  const root = fixture()
+  assert.equal(run(root, '--write').status, 0)
+  const generated = path.join(root, 'docs/sistema/agentic/skills/scope-lock.md')
+  fs.appendFileSync(generated, '\nderiva\n')
+  const drift = run(root, '--check')
+  assert.notEqual(drift.status, 0)
+  assert.match(drift.stderr, /scope-lock\.md está desincronizado/)
+
+  fs.writeFileSync(generated, '# Nota manual\n')
+  const collision = run(root, '--write')
+  assert.notEqual(collision.status, 0)
+  assert.match(collision.stderr, /scope-lock\.md colisiona con un archivo manual/)
+  assert.equal(fs.readFileSync(generated, 'utf8'), '# Nota manual\n')
 })
 
 test('no acepta un marcador generado incrustado en un adaptador stale manual', () => {
@@ -186,7 +216,7 @@ test('rechaza symlink intermedio sin escribir fuera del repo', () => {
 })
 
 test('reporta secciones obligatorias ausentes sin excepción ni mutación', () => {
-  for (const section of ['canonical', 'providers', 'adapters', 'profiles', 'agent_profiles', 'orchestration', 'routes', 'policy']) {
+  for (const section of ['canonical', 'providers', 'adapters', 'profiles', 'agent_profiles', 'documentation', 'orchestration', 'routes', 'policy']) {
     const root = fixture()
     const manifest = readManifest(root)
     delete manifest[section]
@@ -196,6 +226,21 @@ test('reporta secciones obligatorias ausentes sin excepción ni mutación', () =
     assert.match(result.stderr, new RegExp(`no declara ${section}`))
     assert.doesNotMatch(result.stderr, /TypeError/)
     assert.equal(fs.existsSync(path.join(root, '.codex/agents')), false)
+  }
+})
+
+test('exige scope documental explícito y exhaustivo para skills y agentes', () => {
+  for (const [key, name] of [
+    ['skill_navigation_roots', 'scope-lock'],
+    ['agent_navigation_roots', 'frontend-react'],
+  ]) {
+    const root = fixture()
+    const manifest = readManifest(root)
+    delete manifest.documentation[key][name]
+    writeManifest(root, manifest)
+    const result = run(root, '--write')
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, new RegExp(`documentation\\.${key} omite: ${name}`))
   }
 })
 
