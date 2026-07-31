@@ -89,12 +89,6 @@ const MODULES = [
     accent: "#4A6EB6",
     aliases: ["dashboard"],
   },
-  {
-    id: "enciclopedia",
-    label: "Enciclopedia",
-    accent: "#A16207",
-    aliases: ["enciclopedia"],
-  },
 ];
 
 const HIERARCHY = [
@@ -598,27 +592,6 @@ const HIERARCHY = [
       },
     ],
   },
-  {
-    module: "enciclopedia",
-    sections: [
-      {
-        id: "enciclopedia",
-        label: "Enciclopedia metodológica",
-        tabs: ["Catálogo", "Glosario", "Comparador", "Estudios", "Tipos"],
-      },
-      {
-        id: "ficha",
-        label: "Ficha metodológica",
-        tabs: [
-          "Definición",
-          "Fórmulas",
-          "Parámetros",
-          "Decisiones",
-          "Aplicaciones",
-        ],
-      },
-    ],
-  },
 ];
 
 const DECLARED_VISUAL_SURFACES = [
@@ -1046,7 +1019,6 @@ const SOURCE_CONTEXT_RULES = [
     null,
   ),
   rule(/features\/dashboard\//, "dashboard", "tablero", null),
-  rule(/features\/enciclopedia\//, "enciclopedia", "enciclopedia", null),
 ];
 
 const CATEGORY_DESCRIPTIONS = {
@@ -2683,7 +2655,6 @@ function refineDeclaredContext(
       [/^\/analitica/, "procesamiento", "analitica"],
       [/^\/graficos/, "procesamiento", "graficos"],
       [/^\/tablero/, "dashboard", "tablero"],
-      [/^\/enciclopedia/, "enciclopedia", "enciclopedia"],
     ];
     for (const [pattern, module, section] of routeMap) {
       if (pattern.test(pathname)) {

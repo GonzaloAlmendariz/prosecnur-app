@@ -251,7 +251,6 @@ test("incluye todos los módulos canónicos y utilidades globales", () => {
     "monitoreo",
     "procesamiento",
     "dashboard",
-    "enciclopedia",
   ];
   const modules = new Set(catalog.modules.map((entry) => entry.id));
   for (const module of expected) assert.ok(modules.has(module), module);
@@ -314,13 +313,6 @@ test("documenta la jerarquía real de secciones y pestañas", () => {
     "Relaciones",
     "Base de datos",
     "Dimensiones",
-  ]);
-  assert.deepEqual(canonicalTabs("enciclopedia", "ficha"), [
-    "Definición",
-    "Fórmulas",
-    "Parámetros",
-    "Decisiones",
-    "Aplicaciones",
   ]);
   assert.ok(
     canonicalTabs("monitoreo", "territorial-validacion").includes(
@@ -610,7 +602,7 @@ test("materializa navegación y estados de Hojas, Recopiladores y Monitoreo", ()
   }
 });
 
-test("cubre tabs y paneles representativos de Procesamiento, Dashboard y Enciclopedia", () => {
+test("cubre tabs y paneles representativos de Procesamiento y Dashboard", () => {
   assertExactLabels(
     "frontend/src/features/validacion/ValidacionPage.tsx",
     "TABS",
@@ -634,20 +626,6 @@ test("cubre tabs y paneles representativos de Procesamiento, Dashboard y Enciclo
       "Semáforo",
       "Dimensiones",
     ],
-  );
-  assert.equal(
-    declared(
-      "frontend/src/features/enciclopedia/EnciclopediaHome.tsx",
-      "tabs",
-    ).length,
-    5,
-  );
-  assert.equal(
-    declared(
-      "frontend/src/features/enciclopedia/FichaMetodologica.tsx",
-      "tabs",
-    ).length,
-    5,
   );
 });
 
@@ -984,7 +962,6 @@ test("el índice humano conserva el lenguaje módulo-sección-pestaña", () => {
     "## Monitoreo",
     "## Procesamiento",
     "## Dashboard",
-    "## Enciclopedia",
   ]) {
     assert.match(inventory, new RegExp(heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
