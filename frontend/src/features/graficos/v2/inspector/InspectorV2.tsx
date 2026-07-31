@@ -267,12 +267,22 @@ function EmptyPlanStart({
         <p>
           Empieza con una lámina base. Después podrás ajustar contenido, variables y estilo desde el editor.
         </p>
-        <div className="pulso-gv2-start-route" aria-label="Flujo sugerido">
+        <div
+          className="pulso-gv2-start-route"
+          aria-label="Flujo sugerido"
+          data-qa-geometry-group="graficos/inicio-flujo"
+          data-qa-geometry-contract="equal"
+        >
           <span>Modelo</span>
           <span>Datos</span>
           <span>Estilo</span>
         </div>
-        <div className="pulso-gv2-start-actions" aria-label="Crear primer slide">
+        <div
+          className="pulso-gv2-start-actions"
+          aria-label="Crear primer slide"
+          data-qa-geometry-group="graficos/inicio-modelos"
+          data-qa-geometry-contract="equal"
+        >
           {STARTER_SLIDES.map(({ tipo, label, detail, tone, Icon }) => (
             <button
               key={tipo}
@@ -299,6 +309,15 @@ function EmptyPlanStart({
           <span>02</span>
           <span>03</span>
         </div>
+        {/* Sin contrato geométrico a propósito. Se le declaró `intrinsic` y el
+            comprobador marcó `capacity-drift` en `is-section` (3,5 px de
+            interior sin usar) en los cinco viewports. No es deuda: estas tres
+            cajas son mockups de lámina, con `min-height` y `align-content:
+            center`, y ese lienzo es exactamente lo que las hace parecer
+            diapositivas. Un contrato geométrico gobierna superficies que deben
+            sostener su marco frente a sus DATOS; esto es decoración
+            `aria-hidden` sin datos, así que declararlo solo produce un rojo
+            que no se puede saldar sin romper el dibujo. */}
         <div className="pulso-gv2-start-preview-stack">
           <div className="pulso-gv2-start-slide is-cover">
             <span />
