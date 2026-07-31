@@ -59,6 +59,10 @@ test_that("audit reference builds a portable .pulso and reopens in fresh session
   expect_true(is.list(s$xlsform_state))
   expect_equal(s$xlsform_state$source$kind, "xlsform")
   expect_gt(length(s$xlsform_state$workbook$survey$rows), 20L)
+  # Ver nota en test-audit-projects.R: la fuente del dashboard es lazy desde
+  # que se movió al warmup, así que hay que pedir el estado fresco en vez de
+  # asumir que `s` la trae desde el open.
+  s <- .dashboard_fuente_lazy(s)
   expect_s3_class(s$dashboard_rp_data, "data.frame")
   expect_true(is.list(s$codif_por_base[[AUDIT_REFERENCE_BASE]]))
   expect_true("comentario_open" %in% names(s$codif_por_base[[AUDIT_REFERENCE_BASE]]$grupos_recod))
