@@ -115,6 +115,9 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 
 | N8 | Formularios | **La vista Hojas del editor no es enlazable y por eso no es auditable.** `editorMode` (Constructor/Hojas) vive en un `useState` suelto, así que incumple el ADR 0044 —«toda vista es enlazable»— y el instrumento no puede pedirla por dirección. Se intentó conectarla al param `pestana` y **no basta**: `openWorkbookAsForm` hace `setEditorMode("builder")` y corre también en la carga inicial del proyecto, así que borra el param apenas se monta. Cerrarlo exige distinguir la primera carga de una importación posterior, que es una decisión de comportamiento —¿importar un formulario debe sacarte de la vista de hojas?—, no un arreglo mecánico. Ese es el conocimiento caro: la vía obvia está probada y descartada | abierto |
 
+| N9 | Cálculo de muestra · Marco | **Dos instantáneas de «cursos-horario elegibles» conviven en la misma pantalla y no coinciden.** La franja superior lee del **marco ejecutado** (`frameProfile.marco_aulas`) y el bloque de criterios de la **exploración** (`totales.ch_elegibles`): con `hsvg2026` son 2.265 contra 2.373. La cifra hero de 79.771 ya venía de la exploración, así que la divergencia es preexistente; se hizo visible al intentar imprimir el denominador del promedio (`4a5a16d0`), y se retiró ese conteo para no publicar la contradicción. **Decidir cuál manda en esa pantalla, o rotular ambas con su momento**, es trabajo aparte | abierto |
+| N10 | Territorial · autodetección | **`pick()` casa por subcadena, así que puede mapear a la columna equivocada sin que nada avise.** El alias «sex» casa con `condicion_sexual` y «edad» con `edad_cumplida`. Como la columna existe, el diagnóstico de mapeo (`972464b5`) no puede detectarlo: es un fallo sin rastro. Fijado en un test que documenta el comportamiento. **Es el argumento más fuerte para U1**: solo un mapeo declarado a mano lo cierra | abierto |
+
 ## Bandeja de decisiones
 
 Cada entrada: qué se decide, opciones, recomendación, costo. Gonzalo responde con
@@ -140,9 +143,9 @@ una letra; el loop sigue solo mientras tanto.
 | # | Unidad | Origen | Qué es |
 |---|---|---|---|
 | **U1** | **Mapeo manual de variables de interés** | decisiones **5** y **7** | Las dos respuestas convergen en la misma causa raíz: **la app asume que el instrumento tiene una estructura estándar y escribe nombres de variable a mano**. Por eso «Sede» aparece hardcodeada en Cuotas y por eso `sex_var` queda sin mapear en silencio cuando el instrumento no usa uno de los seis alias previstos. La unidad es una **pestaña inicial en Modelo** donde el estudio declara, a mano, qué columna es cada variable de interés y con qué nombre se muestra; todo lo demás lee de ahí. Cierra las dos decisiones a la vez y elimina la clase entera de defecto —no un caso—. **Es una feature, no una vuelta del loop**: cruza frontend, backend y contrato de configuración |
-| **U2** | Denominador de insistencia | decisión **1** | Cambiar el denominador a casos con ≥1 intento y verificar sobre `acnur_pdm` que las cuatro filas medidas cierren en 100 % |
+| ~~U2~~ | Denominador de insistencia | decisión **1** | **HECHA** (`b48336f6`). Eran dos defectos, no uno: el denominador y el suelo de 3 % sin renormalizar |
 | **U3** | Lectura de Cuotas telefónico | decisión **5c** | Con U1 resuelta: promover avance y estados diarios como lectura principal, y retirar los KPIs redundantes |
-| **U4** | Promedio vs total por curso-horario | decisión **10** | Mostrar diferenciados el total de elegibles y el promedio por curso-horario |
+| ~~U4~~ | Promedio vs total por curso-horario | decisión **10** | **HECHA** (`4a5a16d0`): las dos cifras se muestran juntas y rotuladas. Sin backend nuevo —`ch_elegibles` ya venía en `totales`— |
 | **U5** | Legibilidad de la traza de decisión | decisión **6** | Que los valores de CodPulso dejen de ser crípticos |
 
 ## Cuándo cierra
