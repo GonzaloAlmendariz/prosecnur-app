@@ -93,10 +93,10 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Definiciones duplicadas de formateadores en Monitoreo | 31 | **28** | ↓ |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
-| `TelefonicoMonitoreoPage.tsx` | 20.622 | **20.320** | ↓ |
+| `TelefonicoMonitoreoPage.tsx` | 20.622 | **20.250** | ↓ |
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
-| Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
+| Hallazgos abiertos (todos los módulos) | 16 | 21 | ↓ |
 | Módulos auditados con el instrumento | 1 de 8 | **8 de 8 · segunda órbita: 2 de 8** | ↑ a 8 |
 
 ## Hallazgos nuevos, medidos por el loop
@@ -118,6 +118,9 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | N9 | Cálculo de muestra · Marco | **Dos instantáneas de «cursos-horario elegibles» conviven en la misma pantalla y no coinciden.** La franja superior lee del **marco ejecutado** (`frameProfile.marco_aulas`) y el bloque de criterios de la **exploración** (`totales.ch_elegibles`): con `hsvg2026` son 2.265 contra 2.373. La cifra hero de 79.771 ya venía de la exploración, así que la divergencia es preexistente; se hizo visible al intentar imprimir el denominador del promedio (`4a5a16d0`), y se retiró ese conteo para no publicar la contradicción. **Decidir cuál manda en esa pantalla, o rotular ambas con su momento**, es trabajo aparte | abierto |
 | N10 | Territorial · autodetección | **`pick()` casa por subcadena, así que puede mapear a la columna equivocada sin que nada avise.** El alias «sex» casa con `condicion_sexual` y «edad» con `edad_cumplida`. Como la columna existe, el diagnóstico de mapeo (`972464b5`) no puede detectarlo: es un fallo sin rastro. Fijado en un test que documenta el comportamiento. **Es el argumento más fuerte para U1**: solo un mapeo declarado a mano lo cierra | abierto |
 
+| N11 | Territorial · Avance | **El mismo `.pulso` da dos cifras de «válidas» según cuándo se mire.** Dos corridas del instrumento sobre la misma copia de `acnur_acg`, con el archivo intacto en disco entre ambas, dieron 1.283 válidas / 107 % y 1.393 / 116 %. Ninguna de las dos se presenta como provisional. No es del mapeo ni de la pestaña nueva: salió al comparar las capturas de la iteración. **Sospecha, no diagnóstico**: la readiness de la página dispara antes de que el cache territorial termine de regenerar, así que la captura —y el usuario— leen un intermedio | abierto |
+| N12 | Instrumento · readiness | **`data-audit-ready` es de la página y no de la pestaña, así que una superficie que carga sus propios datos se captura vacía y el instrumento la da por buena.** La pestaña de mapeo salió `ok=true` a 1024x600 con la pista completamente en blanco. Se reparó la superficie —el estado de carga ahora dibuja su marco—, pero **el agujero del instrumento sigue**: cualquier pestaña con fetch propio puede pasar el gate sin haber mostrado nada. Es el caso de libro de «verde por ausencia» | abierto |
+
 ## Bandeja de decisiones
 
 Cada entrada: qué se decide, opciones, recomendación, costo. Gonzalo responde con
@@ -129,9 +132,9 @@ una letra; el loop sigue solo mientras tanto.
 | 2 | Territorial · Modelo › Manzanas | La fila del UMP expandido colapsa a 2 px. **A:** retirar la expansión inline (la Ficha UMP ya muestra el dato). **B:** rehacer el reparto de alto. Recomiendo A | abierta |
 | 3 | Territorial · tablas | Ancho de columna en las tres tablas (83 datos recortados en Reporte UMP). Decisión única para las tres | abierta |
 | 4 | Los cuatro modos · espaciado | Adoptar `--pulso-space-1..9` en el chrome compartido (`monitoreo.css`, `profilePage.css`) | abierta |
-| 5 | Telefónico · Modelo › Cuotas | Cuál de las cuatro superficies es la de lectura y cuál la de edición | **RESUELTA (31 jul)**: (a) **«Sede» no se hardcodea nunca** — la variable de interés se define y se le asigna un nombre a mano, y ese nombre gobierna todo lo que se muestre; (b) la **lectura principal** es el avance diario, los estados diarios y sus cajas junto a avance y estado general; (c) los KPIs y demás son **secundarios y pueden retirarse** si resultan redundantes. Deriva en la unidad **U1** |
+| 5 | Telefónico · Modelo › Cuotas | Cuál de las cuatro superficies es la de lectura y cuál la de edición | **RESUELTA (31 jul)**: (a) **«Sede» no se hardcodea nunca** — la variable de interés se define y se le asigna un nombre a mano, y ese nombre gobierna todo lo que se muestre; (b) la **lectura principal** es el avance diario, los estados diarios y sus cajas junto a avance y estado general; (c) los KPIs y demás son **secundarios y pueden retirarse** si resultan redundantes. Deriva en la unidad **U1**. **(a) implementada** en `2ba7f385`: el último resto del hardcodeo vivía en la barra de filtros de «Efectivas Kobo». **(c) sigue en U3** |
 | 6 | Telefónico · Consultas › CodPulso | Cuál de los dos nodos duplicados sobra | **RESUELTA (31 jul)**: se queda el `<strong>`. Implementada en `65bfb1a1` con guard en el componente, así que cubre a todos sus llamadores. **Queda abierta su segunda mitad**: buscar mejores formas de mostrar esos valores para que no sean crípticos — es diseño, no duplicación |
-| 7 | Territorial · autodetección | `sex_var` es la única de doce con fallback vacío | **RESUELTA (31 jul)**: debe **avisar**. Y el pedido va más lejos: en Modelo debe haber **una pestaña inicial que permita mapear a mano todas las variables de interés**, para no depender de que el instrumento tenga la estructura estándar — las mismas variables pueden venir en otro orden o escritas distinto. Deriva en la unidad **U1** |
+| 7 | Territorial · autodetección | `sex_var` es la única de doce con fallback vacío | **RESUELTA (31 jul)**: debe **avisar**. Y el pedido va más lejos: en Modelo debe haber **una pestaña inicial que permita mapear a mano todas las variables de interés**, para no depender de que el instrumento tenga la estructura estándar — las mismas variables pueden venir en otro orden o escritas distinto. Deriva en la unidad **U1**, **implementada** en `f2b81a8b` + `71888ac3` |
 | **8** | **Todo el frontend · vocabulario de contratos** | **Falta un contrato para «mismo alto, ancho intrínseco»**, que es la forma de toda tira de chips, toolbar y banda de estado de la app. Hoy `equal` exige mismo alto **y** mismo ancho, e `intrinsic` llama desperdicio al `min-height` de un control. Medido en Formularios: con `intrinsic`, capacity-drift de 10,5 px que es el alto de control del chip; con `equal`, width-drift de 118 px y 55 px. **A:** agregar un tercer contrato (`banda`) con alto igual y ancho libre. **B:** partir `equal` en ejes (`equal-height` / `equal-width`) y permitir combinarlos. **C:** dejar las tiras sin declarar y aceptar el hueco de cobertura. **Recomiendo B**: es el que además deja declarar el caso inverso —ancho igual, alto libre— que ya apareció en las rejillas que colapsan a una columna. **Segundo caso medido (iteración 16, Cálculo de muestra › Marco)**: las tres listas de categorías son «ancho igual, alto de control declarado, con excepciones por contenido» —`min-height: 44px` de objetivo táctil, y una etiqueta larga que envuelve a dos líneas—. Con `intrinsic` da capacity-drift uniforme de 8,55 px; con `equal`, drift de alto. Ya no es un caso aislado de Formularios: son 3 coberturas más que no se pueden cerrar sin esto. **Acotación de la iteración 18**: el caso inverso —«ancho igual, alto libre», el riel de fases de Bitácora— resultó **cubierto por `intrinsic`**, que no mira el ancho. Así que el hueco real es **solo** «mismo alto, ancho intrínseco», y la opción **A** (un tercer contrato `banda`) alcanza y es más barata que partir `equal` en ejes. **Cambio mi recomendación de B a A** | abierta |
 
 | **9** | **Todo el frontend · estado vacío del kit** | **`.pulso-empty-state--panel` no dibuja panel**: no tiene fondo, ni borde, ni radio, pese al nombre y pese a ser el estado vacío canónico. Son ~96 de los 105 usos de `EmptyState` en la app. Al menos dos features ya se escribieron su propio marco alrededor (`cmv2-calc-escenarios-panel`, `cmv2-marco-vacio`), que es la duplicación que el kit compartido debería evitar. **A:** darle materia de panel al kit —arregla ~96 superficies de una vez, pero deja cajas concéntricas donde ya hay marco propio, y esos hay que retirarlos—. **B:** dejar el kit sin marco y que cada superficie envuelva su vacío, como hizo la iteración 8 en Bitácora —más trabajo, pero respeta que el marco es de la superficie, no del mensaje—. **C:** renombrar la variante para que deje de prometer lo que no da. **Recomiendo B**, y renombrar la variante como parte de ella: el marco es de la superficie | abierta |
@@ -142,11 +145,11 @@ una letra; el loop sigue solo mientras tanto.
 
 | # | Unidad | Origen | Qué es |
 |---|---|---|---|
-| **U1** | **Mapeo manual de variables de interés** | decisiones **5** y **7** | Las dos respuestas convergen en la misma causa raíz: **la app asume que el instrumento tiene una estructura estándar y escribe nombres de variable a mano**. Por eso «Sede» aparece hardcodeada en Cuotas y por eso `sex_var` queda sin mapear en silencio cuando el instrumento no usa uno de los seis alias previstos. La unidad es una **pestaña inicial en Modelo** donde el estudio declara, a mano, qué columna es cada variable de interés y con qué nombre se muestra; todo lo demás lee de ahí. Cierra las dos decisiones a la vez y elimina la clase entera de defecto —no un caso—. **Es una feature, no una vuelta del loop**: cruza frontend, backend y contrato de configuración |
+| **U1** | **Mapeo manual de variables de interés** | decisiones **5** y **7** | Las dos respuestas convergen en la misma causa raíz: **la app asume que el instrumento tiene una estructura estándar y escribe nombres de variable a mano**. Por eso «Sede» aparece hardcodeada en Cuotas y por eso `sex_var` queda sin mapear en silencio cuando el instrumento no usa uno de los seis alias previstos. La unidad es una **pestaña inicial en Modelo** donde el estudio declara, a mano, qué columna es cada variable de interés y con qué nombre se muestra; todo lo demás lee de ahí. Cierra las dos decisiones a la vez y elimina la clase entera de defecto —no un caso—. **Es una feature, no una vuelta del loop**: cruza frontend, backend y contrato de configuración. **HECHA** (`f2b81a8b` API, `71888ac3` pestaña, `2ba7f385` el resto del hardcodeo de «Sede»). Alcance real entregado: la pestaña gobierna **territorial**; en telefónico se cerró la parte (a) de la decisión 5 sin pestaña propia, porque ahí el nombre ya se derivaba del corte y solo faltaba un filtro por enhebrar |
 | ~~U2~~ | Denominador de insistencia | decisión **1** | **HECHA** (`b48336f6`). Eran dos defectos, no uno: el denominador y el suelo de 3 % sin renormalizar |
-| **U3** | Lectura de Cuotas telefónico | decisión **5c** | Con U1 resuelta: promover avance y estados diarios como lectura principal, y retirar los KPIs redundantes |
+| **U3** | Lectura de Cuotas telefónico | decisión **5c** | **PENDIENTE, y es la única mitad de una decisión respondida que queda sin hacer.** Promover avance y estados diarios como lectura principal y retirar los KPIs redundantes. No se hizo con el resto porque no es un arreglo: exige abrir `ACNUR_PDM.pulso`, tomar baseline de las cuatro superficies y decidir **cuáles** KPIs son redundantes —la decisión dice «pueden retirarse si lo son», no cuáles lo son—. Es una vuelta completa del loop sobre telefónico |
 | ~~U4~~ | Promedio vs total por curso-horario | decisión **10** | **HECHA** (`4a5a16d0`): las dos cifras se muestran juntas y rotuladas. Sin backend nuevo —`ch_elegibles` ya venía en `totales`— |
-| **U5** | Legibilidad de la traza de decisión | decisión **6** | Que los valores de CodPulso dejen de ser crípticos |
+| **U5** | Legibilidad de la traza de decisión | decisión **6** | **PENDIENTE.** La propia decisión la enmarca como diseño y no como duplicación: «buscar mejores formas de mostrar esos valores». No hay defecto que reparar —la duplicación ya se cerró en `65bfb1a1`—, así que entra por la rama de revamp visual y no por la de fix |
 
 ## Cuándo cierra
 
@@ -158,6 +161,49 @@ exigencia mayor (viewport más estrecho, estado vacío, estado a escala) y vuelv
 a empezar.
 
 ## Bitácora de iteraciones
+
+### Cierre de tramo — 31 de julio de 2026: las decisiones respondidas
+
+La órbita se pausó a pedido para implementar el Grupo A de decisiones antes de
+seguir iterando. Este es el corte de ese tramo.
+
+**Implementado**
+
+| Decisión | Commit | Qué quedó |
+|---|---|---|
+| 1 · denominador de insistencia | `b48336f6` | Eran dos defectos: el denominador y el suelo de 3 % sin renormalizar |
+| 10 · nombre de la cifra hero | `48ae69a7`, `4a5a16d0` | «Elegibles por curso-horario», y el promedio al lado como cifra distinta |
+| 7 · avisar cuando no mapea | `972464b5` | Diagnóstico que distingue «sin mapear» de «apunta a una columna ausente» |
+| 7 · pestaña de mapeo manual | `f2b81a8b`, `71888ac3` | Territorial › Modelo › Variables, primera del rail |
+| 5a · «Sede» nunca hardcodeada | `2ba7f385` | Último resto, en el filtro de Efectivas Kobo |
+| 6 · nodo duplicado de CodPulso | `65bfb1a1` | Se quedó el `<strong>`, con guard en el componente |
+
+**Pendiente, y por qué no se hizo**
+
+- **U3** (decisión 5c) es la única mitad de una decisión respondida que queda
+  abierta. No es un arreglo: hay que decidir **cuáles** KPIs son redundantes, y
+  eso pide baseline sobre `ACNUR_PDM.pulso`. Es una vuelta del loop, no un
+  remate de esta.
+- **U5** (decisión 6, segunda mitad) la propia decisión la enmarca como diseño.
+- Siguen sin responder las decisiones **2, 3, 4, 8 y 9**, y los hallazgos
+  **N1, N2, N4, N5, N6, N7, N8, N9, N10, N11 y N12**.
+- La órbita quedó a media **iteración 19 (Recopiladores)**: sus tres secciones
+  auditaron limpias pero el balance de la segunda órbita no se escribió.
+
+**Lo que enseñó el tramo**
+
+1. **Aplicar una decisión mide la decisión.** Las seis se respondieron sobre un
+   hallazgo, y al implementarlas el hallazgo resultó incompleto en cuatro de
+   ellas: el denominador escondía un segundo defecto, `sex_var` no era una de
+   doce sino cinco, el promedio destapó dos instantáneas que no coinciden
+   (N9), y la autodetección resultó tener un tercer modo de fallo sin rastro
+   (N10). Ninguna se habría visto sin escribir el código.
+2. **El instrumento aprueba superficies que nunca mostró.** `data-audit-ready`
+   es de la página; una pestaña con fetch propio se captura en blanco y sale
+   `ok=true` (N12). Se reparó la superficie; el agujero del gate sigue.
+3. **Probar el endpoint contra un proyecto real vale más que el test.** Los
+   tests pasaban y el payload daba las doce variables por resueltas con la base
+   vacía. Lo delató la primera llamada HTTP, no la suite.
 
 | # | Fecha | Módulo | Hallazgo | Números movidos | Commit |
 |---|---|---|---|---|---|
