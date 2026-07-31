@@ -3771,12 +3771,20 @@
   background: color-mix(in srgb, var(--module-accent) 5%, #fff);
 }
 
+/* El nombre del distrito envuelve en vez de recortarse. La regla general de la
+ * tabla pone `white-space: nowrap` en todo `th`/`td`, que es lo correcto para
+ * las columnas numéricas —«1.283» no debe partirse— y equivocado para esta:
+ * «SAN JUAN DE LURIGANCHO» mide 196 px en una celda de 159 y perdía 37.
+ * Envolver es seguro porque la columna está clavada en 160 px por su propio
+ * `width/min-width/max-width` y además es `position: sticky`: su ancho lo
+ * decide la declaración, no el contenido. Es el mismo criterio con el que se
+ * resolvieron las tablas de territorial y la franja de Cálculo de muestra. */
 .hojas-ruta-pop-table .is-row-label {
   color: var(--pulso-text);
   font-size: 12px;
   font-weight: var(--pulso-weight-black);
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 .hojas-ruta-pop-table .is-number {
