@@ -113,7 +113,8 @@ Ambos corren en el job `Agentic OS` de `quality.yml`.
   canónicas editables.
 - `.agents/skills/` y `.codex/agents/` son adaptadores generados para Codex.
 - `agentic/manifest.json` (schema v2) declara perfiles, proveedores, límites,
-  pools por ruta, condiciones seriales y gate final.
+  pools por ruta, condiciones seriales, gate final y el contrato semántico que
+  debe seguir siendo cierto aunque el schema del archivo no cambie.
 - `agentic/orchestration-policy.mjs` selecciona una oleada y conserva las líneas
   pendientes; sus smokes deterministas no reemplazan el juicio del lead.
 
@@ -121,14 +122,37 @@ Los adaptadores llevan una marca generada. El sincronizador nunca sobrescribe
 una colisión manual ni borra un archivo sin esa marca, protege `.claude/` y
 escribe cada salida mediante archivo temporal + rename atómico.
 
-Este OS local v2 no es reemplazado por el catálogo global definido en el
+El Agentic OS local no es reemplazado por el catálogo global definido en el
 [ADR 0039](adrs/0039-agentic-os-multirepo-provider-neutral.md). El núcleo
-provider-neutral vive en un checkout independiente, publica sólo nombres
-`agentic-core-*` y aporta disponibilidad. Las instrucciones, fuentes canónicas
-y overlays de este repositorio siguen teniendo autoridad. Packs de stack son
-opt-in; ningún skill específico de Prosecnur se copia globalmente. El alcance y
-los pilotos auditados se registran en el
+provider-neutral vive en un checkout independiente y aporta disponibilidad.
+Las instrucciones y overlays de producto permanecen locales: 16 skills en
+`.claude/skills/` y 13 agentes en `.claude/agents/`, materializados para Codex
+solo mediante adaptadores generados. Los únicos skills externos permitidos son
+`emil-design-eng` y `govern-visual-harmony`, métodos transversales de diseño;
+ninguna dependencia externa sustituye arquitectura, dominio, entregables, QA o
+proyectos de referencia propios. El alcance y los pilotos auditados se
+registran en el
 [informe de rollout](qa/agentic-os-rollout-2026-07-19.md).
+
+### Contrato semántico ejecutable
+
+`policy.semantic_contract` evita que el inventario esté formalmente sincronizado
+pero describa un producto antiguo:
+
+- **Navegación v3:** el manifiesto vive en
+  `frontend/src/lib/modules.ts`; la dirección canónica, en
+  `frontend/src/lib/navegacion/direccion.ts`. Sus cinco dimensiones ordenadas
+  son módulo, modo, sección, pestaña y panel.
+- **API frontend modular:** las funciones y tipos viven por dominio en
+  `frontend/src/api/`; `frontend/src/api/client.ts` es únicamente el barrel de
+  compatibilidad para imports existentes.
+- **Overlays locales:** las instrucciones gobernadas son `CLAUDE.md`,
+  `.claude/skills/` y `.claude/agents/`. El auditor rechaza afirmaciones
+  obsoletas sobre navegación, API, integraciones o dependencias externas
+  retiradas.
+
+El contrato semántico usa la versión del producto que declara cada fuente; no
+cambia `schema_version: 2` del manifiesto.
 
 ## Contrato de orquestación
 

@@ -5,50 +5,123 @@ description: Mapa maestro del dominio de Prosecnur - pipeline canónico de encue
 
 # Dominio Prosecnur
 
-Conocimiento transversal que no se deduce rápido del código. Cinco invariantes; violarlos produce resultados que *parecen* correctos.
+Mapa transversal del producto. La autoridad de estas reglas es repo-local:
+`CLAUDE.md`, `frontend/src/lib/modules.ts`,
+`frontend/src/lib/navegacion/direccion.ts`, `api/R/` y los ADR aceptados.
+Si la prosa y esas fuentes divergen, corrige este skill; no inventes una tercera
+variante.
 
 ## 0. Jerarquía canónica de la UI (vocabulario oficial)
 
-Tres niveles, y solo tres — definidos por el usuario como la jerarquía del producto:
+El contrato `PROSECNUR_NAVIGATION_CONTRACT` es v3 y tiene cinco dimensiones,
+en este orden exacto:
 
-1. **Familia / Módulo** — lo que aparece en el homepage del proyecto, cada uno con su paleta de color propia (Bitácora, Cálculo de muestra, Editor de formularios, Hojas de ruta, Fichas QR, Monitoreo, Procesamiento, Dashboard, Enciclopedia). Catálogo en `frontend/src/lib/modules.ts`. Al abrir un proyecto, el usuario aterriza en el homepage con las cards de avance de sus módulos activos.
-2. **Sección** — dentro del módulo, en el top bar. Ej.: Procesamiento tiene las secciones Carga, Validación, Codificación, Analítica y Gráficos; Monitoreo (perfil Aulas) tiene Fuentes, Agenda, Avance, Validación y Consultas.
-3. **Pestaña dinámica** — dentro de una sección, cuando aplica (varían según estado/perfil del proyecto).
+1. **Módulo** — homepage, ruta y tono propios.
+2. **Modo** — variante opcional que reescribe el juego de secciones y la
+   determina el estudio, no un click.
+3. **Sección** — recorrido del módulo en su top bar.
+4. **Pestaña** — subdivisión de una sección.
+5. **Panel** — popover, sideover, drawer, diálogo o inspector direccionable.
 
-Reglas derivadas: la navegación de nivel 1 vive SOLO en el homepage/rail; la de nivel 2 SOLO en el top bar del módulo (nunca duplicarla como segunda barra de pasos); UI nueva se cuelga de uno de estos tres niveles, no inventa niveles intermedios. Al hablar con el usuario, usar exactamente estas palabras: familia/módulo, sección, pestaña.
+`foco` identifica una entidad seleccionada y no añade un sexto nivel. UI nueva
+se cuelga de una de las cinco dimensiones y no duplica la navegación de una
+dimensión en otra.
 
-⚠️ En el **backend** la palabra "familia" significa otras cosas (familias de auditoría en `audit_projects.R`, familias metodológicas en docs/tipos-estudio, familias del paquete) — ver §4. En conversación de UI/UX, "familia" = módulo del homepage.
+Los ocho módulos vigentes son Bitácora, Cálculo de muestra, Editor de
+formularios, Hojas de ruta, Recopiladores, Monitoreo, Procesamiento y
+Dashboard. Enciclopedia es una utilidad global, no un noveno módulo del
+proyecto. El catálogo ejecutable —slugs, rutas, modos, secciones, pestañas y
+tonos— vive en `frontend/src/lib/modules.ts`; no copies otro catálogo al código
+o a docs.
+
+Una dirección serializada usa ruta para el módulo y query para el resto:
+
+```text
+/<modulo>?modo=<modo>&seccion=<seccion>&pestana=<pestana>&panel=<panel>&foco=<id>
+```
+
+Los parámetros canónicos son `modo`, `seccion`, `pestana`, `panel` y `foco`;
+`pulso` es un parámetro de desarrollo ortogonal. Los nombres heredados
+(`perfil`, `family`, `camino`, `ruta`, `tab`, `vista`, `view`, `stage`,
+`etapa`, `mesa`, `desk`, `tipo`, `step`, `paso`, `reporte`) se aceptan solo al
+parsear, por módulo. Nunca se escriben en enlaces nuevos. El parser y
+serializador únicos viven en `frontend/src/lib/navegacion/direccion.ts`.
+
+En el backend, `family` sigue siendo parte del cable R↔React y del `.pulso`;
+la traducción a `modo` ocurre en el borde. Además, “familia” nombra familias de
+auditoría, metodológicas y de paquete: no la uses como sinónimo nuevo de módulo
+en contratos de navegación.
 
 ## 1. Pipeline canónico
 
-**Pre-campo**: Bitácora (plan) → Cálculo de muestra → Editor XLSForm → salidas hacia Hojas de Ruta (territorial) / Recopiladores QR (aulas) / Monitoreo (todos).
-**Post-campo** (meta-módulo Procesamiento, máquina de estados en `ProcesamientoEntry.tsx` sobre `session.state`): Carga (`!xlsform||!data`) → Validación (`!auditoria_run`) → Codificación (`!codif_aplicado`) → Analítica (`!analitica_prep_ok`) → Gráficos → Dashboard.
-Los módulos se conectan por deep-links con query params (`?mesa=`, `?tab=`) y por `session_store.R` como bus de estado (`s$estudio`, fuentes scopeadas por base). Rutas legacy `/diseno-estudio`, `/plan-trabajo`, `/muestra` son puro `<Navigate>` — no revivirlas.
+**Pre-campo**: Bitácora → Cálculo de muestra → Formularios → Hojas de ruta
+(territorial) / Recopiladores (despliegue y acceso) / Monitoreo.
+
+**Post-campo**: Procesamiento recorre Carga → Validación → Codificación →
+Analítica → Gráficos; Dashboard consume las salidas. La máquina de entrada se
+apoya en `session.state`, pero el estado duro sigue en `api/R/session_store.R`.
+
+Los módulos se conectan con direcciones canónicas y con estado scopeado por
+base. Las rutas heredadas declaradas como redirecciones en
+`frontend/src/app/App.tsx` no vuelven a ser destinos.
 
 ## 2. Modelo multibase (el concepto más transversal)
 
-Un "estudio" tiene 1..N bases (par instrumento+data) en `session_store.R:83-490`. Dos modos: **bases hermanas independientes** vs **base integrada** (apilada). Back-compat: `s$rp_data`/`s$rp_inst` apuntan a la PRIMERA base para routers no migrados — si tocas uno, verifica de cuál lado está. Promoción/propagación de lógica compartida entre hermanas: `session_store.R:259-439`. Docs: `docs/arquitectura-multi-base.md`. Los motores de reporte son single-base por firma; multibase se logra envolviendo con `run_report_multibase()` (prefija `base__archivo`, ZIP si >1 base), nunca reescribiendo el motor.
+Un estudio tiene una o más bases, cada una como par instrumento+data, en
+`api/R/session_store.R`. Hay bases hermanas independientes y base integrada.
+`s$rp_data`/`s$rp_inst` son compatibilidad con routers aún single-base y apuntan
+a la primera base: cualquier uso nuevo debe demostrar qué base necesita.
+
+La promoción de lógica compartida entre hermanas y sus invariantes están en
+`docs/arquitectura-multi-base.md`. Los motores de reporte conservan firma
+single-base; `run_report_multibase()` los envuelve, prefija archivos y produce
+ZIP cuando corresponde. No dupliques el motor por base.
 
 ## 3. Contrato del `.pulso` (portabilidad silenciosamente frágil)
 
-ZIP con `manifest.json` + `state.rds` (env de sesión FILTRADO) + `files/` (solo INPUTS). Invariantes (`project_pulso.R:1-35`, ADRs 0002/0005):
-- **Outputs/entregables NO viajan** en el zip; se exportan aparte vía `/api/fs/save-to-project`.
-- **Caches derivables se excluyen** del save y se regeneran al load — EXCEPTO `monitoreo_territorial_map_cache` y `territorial_report_cache` que SÍ viajan (recomputar cruces `sf` es carísimo).
-- Paths absolutos se reescriben al tempdir destino al cargar.
-- **Secretos (tokens Kobo/SM) SIEMPRE fuera del `.pulso`** (`secrets.R`).
-- Autosave: cualquier mutación de estado debe llamar `.mark_project_dirty()`.
+ZIP con `manifest.json`, `state.rds` filtrado y `files/` para inputs. Autoridad:
+`api/R/project_pulso.R` y ADR 0005.
+
+- Los entregables no viajan dentro del ZIP; se exportan por separado.
+- Las caches derivables se excluyen y se regeneran, salvo las excepciones
+  explícitas de cartografía/reporte declaradas en el contrato de persistencia.
+- Los paths absolutos se reescriben al directorio temporal de destino.
+- Tokens, OAuth y credenciales viven en `api/R/secrets.R`, fuera del `.pulso`.
+- Toda mutación persistible marca el proyecto dirty.
+
+No agregues una rama a `state.rds` sin revisar save, load, anonimización y
+compatibilidad con proyectos anteriores.
 
 ## 4. Taxonomía de estudios PULSO
 
-La decisión "¿este estudio se calcula, se cubre, se cuotea o queda fuera del calculador?" NO está en el flujo de la app: está en `docs/tipos-estudio-2024-2026.md` + catálogos `api/inst/catalogos/` (`catalogo_tipos_estudio.json`, `tabla_maestra_estudios.json`, `catalogo_metodologias.json`, presets acreditación/HSVG). Anti-patrón explícito: asumir que todo estudio requiere cálculo estadístico de n.
-**Ojo con la palabra "familia"** — significa 4 cosas distintas: familias metodológicas (docs/tipos-estudio), familias de auditoría (`audit_projects.R:32-60`: territorial/acreditacion/procesamiento/telefonico), perfiles de Monitoreo (`monitoreo/profiles/registry.ts`: + aulas_universitarias), y familias de código del paquete (`familias_paquete.R`). Nunca las mezcles.
+La decisión “¿se calcula, se cubre, se cuotea o queda fuera del calculador?”
+vive en `docs/tipos-estudio-2024-2026.md` y `api/inst/catalogos/`, no en una
+heurística de UI. No todo estudio requiere cálculo estadístico de `n`.
+
+Antes de tocar muestra o Monitoreo, distingue taxonomía metodológica, familia de
+auditoría, modo de navegación y familia de código. Parecerse en el nombre no
+los vuelve intercambiables.
 
 ## 5. Valores especiales y ponderación
 
-- Estándar de códigos: 90 No aplica/perdido · 94 NS/NR · 95 No piensa votar · 96 Blanco/Viciado · 97 No votó · 98 No sabe · 99 No responde. En el código, el mecanismo es `codigos_solo_si_presentes` (referencia `c(96,97,98,99)` en `reporte_frecuencias.R:794`, `reporte_codebook.R`, `analitica_multibase.R`): los códigos **no se borran de la data, se condicionan en la presentación** a que existan.
-- Ponderación (`ponderacion_engine.R` → `ponderacion_compute(data, config)`): pesos de diseño (share_pob/share_muestra) + raking/IPF a mano (sin paquete `survey`) + trim + diagnósticos (DEFF de Kish, n_eff). La columna `peso` se **recomputa determinísticamente, jamás se persiste** como dato.
-- En R los datos van **por código, no por label**: nada de labels en `attributes`/`names`; los labels se re-aplican solo al renderizar, desde el instrumento (fuente de verdad).
+- Códigos estándar: 90 No aplica/perdido · 94 NS/NR · 95 No piensa votar ·
+  96 Blanco/Viciado · 97 No votó · 98 No sabe · 99 No responde. No se borran
+  de la base: su presentación se condiciona a que estén presentes.
+- `api/R/ponderacion_engine.R` calcula pesos de diseño, raking/IPF, trim, DEFF
+  de Kish y `n_eff`. `peso` se recompone de forma determinista; no se trata
+  como dato fuente persistido.
+- En R los datos viajan por código. Los labels se recuperan del instrumento al
+  renderizar, no se convierten en una fuente paralela dentro de atributos.
 
 ## Enrutamiento fino
 
-Ingesta/conectores → skill `integraciones-datos` · trabajo pesado/exports → skill `jobs-asincronos` · PPT/Word/XLSX → skill `entregables-oficina` · reglas/codificación/limpieza/pesos → skill `nucleo-metodologico` · PDF → skill global `prosecnur-pdf-engine` · auditar proyecto de cliente → skill `estudio-real`.
+- Ingesta y conectores → `integraciones-datos`.
+- Trabajo pesado, progreso, cancelación o archivos → `jobs-asincronos`.
+- PDF, PPT, Word, XLSX, SAV, HTML, gráficos e interactivos →
+  `entregables-oficina`.
+- Reglas, codificación, limpieza y ponderación → `nucleo-metodologico`.
+- Auditoría de cliente, fixture anonimizado o seed sintético → `estudio-real`.
+
+Checklist de salida: vocabulario v3 correcto; dirección serializada canónica;
+estado scopeado por base; persistencia `.pulso` revisada; denominador y grano
+de evidencia declarados; tests del dominio afectado ejecutados.

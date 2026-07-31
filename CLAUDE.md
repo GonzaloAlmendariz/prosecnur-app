@@ -7,27 +7,27 @@ App local-first para investigación por encuestas: Electron + React/Vite/TS (`fr
 ```
 api/            Paquete R `prosecnurapp` — REST API (Plumber) + motor analítico
   DESCRIPTION     Fuente única de la versión de la app (hoy 0.5.19)
-  R/              ~226 archivos: router_*.R (23), *_engine.R, reporte_*.R,
-                  graficador_*.R, validacion_*.R, codificacion_*.R, calc_muestra_*.R,
+  R/              router_*.R, *_engine.R, reporte_*.R, graficador_*.R,
+                  validacion_*.R, codificacion_*.R, calc_muestra_*.R,
                   monitoreo_*.R, surveymonkey_*.R, kobo_api.R, hojas_ruta_*.R
                   Infraestructura: plumber_app.R, session_store.R, jobs.R, errors.R,
                   project_pulso.R, io.R, helpers_*.R
   inst/samples/   Datasets demo · inst/audit_reference/ .pulso sintético canónico
   inst/www/       Build del frontend (generado; no versionado)
-  tests/testthat/ ~233 suites: test-*.R (REST) y test-engine-*.R (motor)
+  tests/testthat/ test-*.R (REST, motores y contratos)
 frontend/       React 18 + Vite 6 + TS estricto + zustand + react-router
   src/app/        Shell: App.tsx (rutas), Layout.tsx, BootGate.tsx, theme.css
-  src/features/   18 features por dominio (ver tabla de módulos)
+  src/features/   Features por dominio (ver tabla de módulos)
   src/api/        Cliente por dominio; client.ts es solo barrel de compatibilidad
   src/components/ Primitivas compartidas (PageFrame, GlidingTabList, Panel, …)
-  src/lib/        modules.ts (contrato de navegación v2), SessionContext, icons
+  src/lib/        modules.ts (manifiesto de navegación v3), navegacion/direccion.ts, SessionContext, icons
   src/vendor/     Shim de lucide-react (imports directos por icono)
 desktop/        Shell Electron (main.cjs, preload.cjs, auto-updater.cjs)
 launcher/       launch.R (entry del backend) + install-r-deps.R
 agentic/        Sincronizador de adaptadores Claude↔Codex + política de orquestación
-.claude/        agents/ (13) · skills/ (15) · workflows/ — fuentes canónicas
+.claude/        agents/ (13) · skills/ (16) · workflows/ — fuentes canónicas
 .codex/, .agents/  Adaptadores GENERADOS; nunca editar a mano
-docs/           adrs/ (0001–0047), qa/, arquitectura, layout, versiones-app.md
+docs/           adrs/ (0001–0048), qa/, arquitectura, layout, versiones-app.md
 branding/       Identidad visual v3, tokens, logos, catálogo
 packaging/, deploy/, scripts/   Instaladores, deploy web y utilidades de QA
 ```
@@ -39,51 +39,81 @@ No versionados y voluminosos: `tmp/`, `output(s)/`, `dist.nosync/`, `api/inst/ww
 - **Runtime**: Plumber (R) escucha en `127.0.0.1:8787`, sirve la API REST bajo `/api/*` y los assets estáticos del SPA. Electron abre la ventana; en dev, Vite corre en `:5173` con proxy `/api` → `VITE_API_PROXY_TARGET`/`PULSO_PORT`.
 - **Sesión**: efímera y en memoria (`session_store.R`), un `sid` por sesión, archivos en `tempdir()/prosecnur/<sid>/{uploads,state,jobs,downloads}`. `PULSO_BOOTSTRAP_PROJECT` precarga un `.pulso` y lo expone en `/api/system/bootstrap`.
 - **`.pulso`**: zip con `manifest.json` + `state.rds` (estado de sesión sin caches derivables) + `files/` (inputs: XLSForm, data, plantillas editadas). Los entregables NO viven dentro; se exportan al lado vía `/api/fs/save-to-project`. Guardado explícito; `project_dirty` marca mutaciones. Secretos (SurveyMonkey/Kobo/Sheets) fuera del `.pulso` — ADR 0005.
-- **Jobs**: operaciones pesadas van a `callr::r_bg` (`jobs.R`) con archivo de progreso y polling desde el front. Dos trampas conocidas: el worker arranca sin el namespace de `prosecnurapp` (hay que cargarlo dentro) y el locale UTF-8 se pierde. Skill `/jobs-asincronos`.
+- **Jobs**: operaciones pesadas van a `callr::r_bg` (`jobs.R`) con archivo de progreso y polling desde el front. Dos trampas conocidas: el worker resuelve funciones contra el paquete instalado y necesita el bootstrap de locale UTF-8. Skill `/jobs-asincronos`.
 - **Modo público**: build web read-only (HF Spaces / Fly) que reusa el backend real pero sin shell admin (`isPublicMode()`, `PublicArtifactApp`).
 
 ## Módulos y rutas
 
-Registro canónico en `frontend/src/lib/modules.ts` (`PROSECNUR_NAVIGATION_CONTRACT` v2); cada módulo tiene slug, tono `--pulso-module-*` y sus secciones.
+Registro canónico en `frontend/src/lib/modules.ts` (`PROSECNUR_NAVIGATION_CONTRACT`
+v3) y gramática en `frontend/src/lib/navegacion/direccion.ts`. Sus cinco
+dimensiones son módulo → modo → sección → pestaña → panel; cada módulo declara
+slug, tono `--pulso-module-*`, secciones y, cuando aplican, modos y pestañas.
 
-| Módulo | Ruta | Secciones |
+Los ocho módulos del proyecto son:
+
+| Módulo | Ruta | Modos / secciones |
 |---|---|---|
-| Bitácora (`diseno-estudio`) | `/bitacora` | bitácora · cronograma · calendario |
-| Cálculo de muestra | `/calc-muestra` | calc-muestra (`?mesa=aulas`) |
+| Bitácora (`diseno-estudio`) | `/bitacora` | bitácora · cronograma · calendario · canvas |
+| Cálculo de muestra | `/calc-muestra` | modos `opinion-universitaria`, `marco-disponible`, `acreditacion`, `territorial-handoff` |
 | Formularios (`editor-xlsform`) | `/editor-xlsform` | formularios |
 | Hojas de ruta | `/hojas-ruta` | territorio · población · muestra · manzanas · entrega (tabs: cuotas, titulares, reemplazos) |
-| Fichas QR (`recopiladores`) | `/recopiladores` | recopiladores |
-| Monitoreo | `/monitoreo` | monitoreo · acreditación · telefónico · territorial · aulas (perfiles dinámicos, ADR 0022) |
+| Recopiladores | `/recopiladores` | plan de recolección · accesos · materiales · entrega a campo |
+| Monitoreo | `/monitoreo` | modos acreditación · telefónico · territorial · cursos-horario (ADR 0022) |
 | Procesamiento | `/procesamiento` | carga · validación · codificación · analítica · gráficos |
 | Dashboard | `/tablero` | dashboard (code-split: plotly no entra al bundle principal) |
-| Enciclopedia | `/enciclopedia` | fichas metodológicas |
+
+Enciclopedia (`/enciclopedia`) es una utilidad global, no un noveno módulo del
+proyecto.
 
 Rutas legacy (`/diseno-estudio`, `/plan-trabajo`, `/diseno-muestra`, `/muestra-aulas`) redirigen; no reintroducirlas como destinos.
 
 ## Enrutamiento del agentic OS
 
-Subagentes en `.claude/agents/`, skills en `.claude/skills/`. El lead carga `/orquestar-trabajo` para toda tarea no trivial, construye oleadas de hasta tres trabajadores y conserva contrato, ownership, integración y gate. Clasifica la tarea en una de las 8 ramas:
+Las 16 skills de producto en `.claude/skills/` y los 13 agentes en
+`.claude/agents/` son overlays locales y fuentes canónicas. Codex los consume
+mediante adaptadores generados en `.agents/skills/` y `.codex/agents/`; nunca
+se editan esos adaptadores a mano. Los únicos skills externos autorizados son
+`emil-design-eng` y `govern-visual-harmony`, ambos transversales de diseño.
 
-Estas rutas siguen siendo la fuente canónica para Claude. Codex las consume mediante adaptadores generados en `.codex/agents/` y `.agents/skills/`; validar la sincronización con `node agentic/sync-agentic-os.mjs --check` y nunca editar los adaptadores a mano. Contrato: `docs/agentic-os.md`.
+El lead carga `/orquestar-trabajo` para toda tarea no trivial, construye oleadas
+de hasta tres trabajadores y conserva contrato, ownership, integración y gate.
+Clasifica la tarea en una de las 8 ramas:
+
+Validar la sincronización con `node agentic/sync-agentic-os.mjs --check`.
+Contrato: `docs/agentic-os.md`.
 
 **Rama 1 — Construir (feature/fix en la app)**
 `/scope-lock` → bug/regresión: `diagnosticador-regresiones` + revisores aplicables en paralelo → `autor-regresiones` para fijar rojo → máximo dos writers entre `backend-r`/`frontend-react` → revisiones paralelas → `verificador` serial → `/cerrar-trabajo`. Features cross-layer congelan contrato antes de lanzar frontend/backend. Cargar `dominio-prosecnur` y `/nucleo-metodologico` cuando cambie lógica de encuesta (validación, codificación, limpieza, ponderación). Si el cambio crea o toca una superficie de UI, `/contrato-superficie` — la cláusula C1 se cumple al construir, no en el QA.
 
 **Rama 2 — Diseñar (revamp/pulido visual, la tarea más frecuente)**
-skill `/revamp-visual` + `govern-visual-harmony` congelan dirección y contrato geométrico → `qa-visual-desktop` toma baseline → `frontend-react` implementa → QA independiente después → `verificador`. La auditoría UX profunda usa `prosecnur-ux-evaluator`; navegación/arquitectura suma `guardian-contratos`.
+skill local `/revamp-visual` + `govern-visual-harmony` congelan dirección y
+contrato geométrico; `emil-design-eng` complementa microinteracciones cuando
+aplica → `qa-visual-desktop` toma baseline → `frontend-react` implementa → QA
+independiente y `guardian-contratos` revisan → `verificador`.
 
 **Contrato de Superficie** (`/contrato-superficie`, norma en `docs/ui-layout-grammar.md`): toda superficie declara qué es (**C1**), mantiene su marco pase lo que pase con sus datos (**C2**), contiene su propio vacío (**C3**), deja todo alcanzable (**C4**) y entrega lo que su función promete (**C5**). C1–C4 las verifica `ui-quick-check`; C5 exige `dominio-prosecnur` y `revisor-metodologico`. Se cita por código: `C2 en Modelo > Cuotas`, nunca "se ve raro". Regla de gate: **verde por conformidad, no por ausencia** — un `visualIssues=0` con `geometry-undeclared` o con vacíos sin clasificar no aprueba.
 
 **Regla de observación**: para ver/iterar cualquier vista que viva detrás de un proyecto abierto, usa el skill `/ver-ui` (deep-link `?pulso=` en dev que salta el BootGate, más la dirección canónica del ADR 0044). Nunca digas "no puedo llegar a esa vista" sin haberlo intentado con `/ver-ui`. **Navegar es pedir una dirección, no clickear una etiqueta**: `window.__pulsoNav.ir("monitoreo/territorial/avance")` y `--ir <clave>` en los runners; `--click-tab` es fallback frágil. **Higiene de servers**: reusar antes de levantar (`preview_list`; el 8787 es del usuario, nunca matarlo), cerrar al terminar lo que tú levantaste, y ante huérfanos de otras sesiones `make dev-status` / `make dev-prune`.
 
 **Rama 3 — Entregables (motores de salida)**
-`especialista-entregables` implementa. PDF → `prosecnur-pdf-engine`; PPT/Word/XLSX → `entregables-oficina`; cronogramas → `cronograma-encuestas`. `revisor-metodologico` revisa grano/denominadores y `guardian-contratos` jobs/artefactos; termina en `verificador`.
+`especialista-entregables` implementa PDF, PPT, Word, XLSX, SAV, HTML, gráficos
+e interactivos con los motores locales; `/entregables-oficina` gobierna sus
+contratos de salida y los cronogramas se resuelven dentro del dominio local.
+`revisor-metodologico` revisa grano/denominadores y `guardian-contratos`
+jobs/artefactos; termina en `verificador`.
 
 **Rama 4 — Integrar datos**
 SurveyMonkey/Kobo/Sheets → `dominio-prosecnur` + `integraciones-datos` → `especialista-integraciones`; diagnóstico, contratos y metodología pueden investigar en paralelo. Tests sin red y gate `verificador`.
 
 **Rama 5 — Estudios reales (datos de cliente)**
-skill `/estudio-real` (ACNUR/UNSA/Polarización-style: instrumento, cuotas, base procesable, pesos, pipeline). Auditoría sintética canónica → skill global `prosecnur-project`. Para reproducir un bug sobre estado real usar los **proyectos de referencia** (ADR 0043): cuatro estudios anonimizados y versionados en `api/inst/reference_projects/` (`acnur_pdm` repeats Kobo, `acnur_acg` pipeline completo hasta analítica, `hsvg2026` marco de aulas a escala, `acrconta` multiactor + Sheets). Nunca commitear un `.pulso` de cliente sin pasarlo por `api/scripts/pulso_anonimizar.R`.
+skill local `/estudio-real` (ACNUR/UNSA/Polarización-style: instrumento,
+cuotas, base procesable, pesos, pipeline) + `dominio-prosecnur`. Para reproducir
+un bug sobre estado real usar los **proyectos de referencia** (ADR 0043): cuatro
+estudios anonimizados y versionados en `api/inst/reference_projects/`
+(`acnur_pdm` repeats Kobo, `acnur_acg` pipeline completo hasta analítica,
+`hsvg2026` marco de aulas a escala, `acrconta` multiactor + Sheets). Nunca
+commitear un `.pulso` de cliente sin pasarlo por
+`api/scripts/pulso_anonimizar.R`.
 
 **Rama 6 — Escritorio y release técnico**
 Electron, R embebido, asociación `.pulso`, instaladores, updater y workflows → `desktop-packaging` + revisiones aplicables → `verificador`. Construir no autoriza firmar, publicar, taggear ni subir.
@@ -92,7 +122,9 @@ Electron, R embebido, asociación `.pulso`, instaladores, updater y workflows �
 Working tree grande / fin de sesión → `/cerrar-trabajo` · push o diagnóstico de CI → `/publicar` (pre-flight local espejo del CI + monitoreo + auto-diagnóstico) · corte de versión → `/preparar-release` · notas de versión (in-app + doc + GitHub) y versiones sin mapear → `/notas-parche` · salud del código (mensual) → `/auditoria-deuda` · commits sueltos → agente `curador-commits`.
 
 **Rama 8 — Gobernar (decisiones)**
-Arquitectura/ADRs → `prosecnur-architecture` + `guardian-contratos`; mapa de dominio → `dominio-prosecnur`; significado metodológico → `revisor-metodologico`. Las revisiones independientes se sintetizan por el lead.
+Arquitectura/ADRs → documentación local + `guardian-contratos`; mapa de dominio
+→ `dominio-prosecnur`; significado metodológico → `revisor-metodologico`. Las
+revisiones independientes se sintetizan por el lead.
 
 Regla transversal: **toda rama que toque código termina en el agente `verificador`** antes de declararse lista.
 
@@ -121,7 +153,7 @@ Regla transversal: **toda rama que toque código termina en el agente `verificad
 
 ## Reglas de código — frontend
 
-- **Jerarquía canónica de navegación** (vocabulario oficial, ADR 0043→0044): **Módulo** (homepage, paleta propia) → **Modo** (opcional; reescribe el juego de secciones y lo determina el estudio, no un click — Monitoreo y Cálculo de muestra) → **Sección** (top bar; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → **Pestaña** → **Panel** (popover/sideover/diálogo/inspector). UI nueva se cuelga de uno de esos cinco niveles; nunca duplicar la navegación de un nivel en otro. Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto. El chrome de módulo es top bar uniforme (ADR 0042; el sidebar del ADR 0041 fue revertido).
+- **Contrato de navegación v3 y sus cinco dimensiones** (vocabulario oficial, ADR 0043→0044): **Módulo** (homepage, paleta propia) → **Modo** (opcional; reescribe el juego de secciones y lo determina el estudio, no un click — Monitoreo y Cálculo de muestra) → **Sección** (top bar; en Procesamiento: Carga, Validación, Codificación, Analítica, Gráficos) → **Pestaña** → **Panel** (popover/sideover/diálogo/inspector). UI nueva se cuelga de una de esas cinco dimensiones; nunca duplicar la navegación de una dimensión en otra. Al abrir un proyecto se aterriza en el homepage del proyecto (cards de avance), jamás en una ruta heredada de otro proyecto. El chrome de módulo es top bar uniforme (ADR 0042; el sidebar del ADR 0041 fue revertido).
 - **Toda vista es enlazable**: ruta = módulo, query = el resto (`/monitoreo?modo=territorial&seccion=avance&pestana=ump&panel=filtros`). Params canónicos `modo/seccion/pestana/panel/foco` (`lib/navegacion/direccion.ts`); los nombres viejos (`tab`, `stage`, `mesa`, `desk`, `step`, `reporte`) se leen como alias pero **nunca se escriben**. Un overlay nuevo se conecta con `usePanelDireccionable`, no con un `useState` suelto.
 - Rutas y navegación se declaran en `src/lib/modules.ts` + `src/app/App.tsx`; hay tests de contrato (`auditReadyRoutes.contract.test.ts`, `uiQuickCheckNavigation.contract.test.ts`) que fallan si el registro y las rutas divergen.
 - TS estricto se mantiene: sin `any` nuevos en producción, sin `@ts-ignore`.
