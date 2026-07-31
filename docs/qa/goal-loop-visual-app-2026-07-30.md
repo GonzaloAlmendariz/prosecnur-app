@@ -90,13 +90,14 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso) | — | **6** | ↓ |
 | Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
+| Definiciones duplicadas de formateadores en Monitoreo | 31 | **28** | ↓ |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
 | `TelefonicoMonitoreoPage.tsx` | 20.622 | **20.320** | ↓ |
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 8 | **8 de 8 — primera órbita completa** | ↑ a 8 |
+| Módulos auditados con el instrumento | 1 de 8 | **8 de 8 · segunda órbita: 2 de 8** | ↑ a 8 |
 
 ## Hallazgos nuevos, medidos por el loop
 
@@ -108,7 +109,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | N4 | Bitácora | **Ningún proyecto de referencia tiene entradas de bitácora** (los cuatro dan 0), así que el estado lleno del timeline no se puede verificar visualmente. Por eso la iteración 8 enmarcó solo la rama vacía y no tocó la poblada. Mismo patrón que N3 con Dashboard | abierto |
 | N5 | Dashboard, Bitácora y Recopiladores | **Dashboard CERRADO** (iteración 11: `--sembrar` lo mete a la matriz cargado). Bitácora y Recopiladores siguen abiertos, y peor de lo anotado: ninguno de los cuatro fixtures trae el estado **aguas arriba** —`monitoreo_aulas_plan` y `calc_muestra_aulas_selection` en cero—, así que `POST /api/recopiladores/seed` devuelve `seed_available: false`. Cerrarlos exige fixtures nuevos, no un flag. Texto original: **Patrón, no incidencia: los proyectos de referencia cubren el pipeline de análisis y no los módulos operativos aguas abajo.** Tres de los ocho módulos solo se pueden auditar vacíos —Dashboard sin datos de tablero, Bitácora con 0 entradas, Recopiladores sin plan—, y en los tres el estado con datos es la mayor parte de la superficie. Mientras no se cierre, la línea «8 de 8 auditados» significa «8 de 8 visitados», no «8 de 8 cubiertos». **Cerrarlo es su propia unidad de trabajo**: o se enriquecen los fixtures, o el instrumento aprende a sembrar estado | abierto |
 
-| N6 | los cuatro perfiles de Monitoreo | **Segundo formateador genérico copiado cuatro veces con el mismo defecto**, después de `phoneRowValue` (N1): `pct` estaba idéntico en los cuatro perfiles y los cuatro imprimían `0%` para un `null`. La decisión de independencia entre perfiles es sobre **semántica de familia**, no sobre formateadores genéricos —`pct`, `fmt`, `num`, `rowNumber` no tienen nada de familia—. Mientras vivan copiados, un defecto en uno es un defecto en cuatro y se arregla cuatro veces o no se arregla. **Es su propia unidad**: mover las primitivas puras a un módulo compartido del módulo Monitoreo sin tocar la semántica de perfil | abierto |
+| N6 | los cuatro perfiles de Monitoreo | **`pct` CERRADO** (iteración 13: extraído a `core/formatoComun.ts`, los cuatro perfiles lo importan). Quedan **28 definiciones** de otros cinco: `fmt` ×8, `rowNumber` ×7, `num` ×5, `pctFrom` ×2, `columnLabel` ×2 — no verificadas como idénticas todavía. Texto original: **Segundo formateador genérico copiado cuatro veces con el mismo defecto**, después de `phoneRowValue` (N1): `pct` estaba idéntico en los cuatro perfiles y los cuatro imprimían `0%` para un `null`. La decisión de independencia entre perfiles es sobre **semántica de familia**, no sobre formateadores genéricos —`pct`, `fmt`, `num`, `rowNumber` no tienen nada de familia—. Mientras vivan copiados, un defecto en uno es un defecto en cuatro y se arregla cuatro veces o no se arregla. **Es su propia unidad**: mover las primitivas puras a un módulo compartido del módulo Monitoreo sin tocar la semántica de perfil | abierto |
 
 ## Bandeja de decisiones
 
@@ -163,6 +164,36 @@ a empezar.
 | 11 | 31 jul | **N5 · Dashboard** | **El instrumento aprende a sembrar (`--sembrar`) y el Dashboard cargado entra por primera vez a la matriz.** Detrás del estado sembrado apareció el mayor defecto del goal: 2.017 px de curaduría inalcanzables | scrollJails 1→**0** · defectos reparados 4→**5** · N5 cerrado para Dashboard | `23d20376`, `774828d8`, `486a5f7b` |
 
 | 12 | 31 jul | **Monitoreo** | **Primera vez que este goal mide Monitoreo** —la iteración 1 fue el prerrequisito estructural, no una auditoría—. Reporte limpio; el defecto salió de leer la captura contra sí misma: el rail decía `Avance 0%` y la superficie de abajo, «sin meta declarada» | rail `0%` → **`S/D`** · defectos reparados 5→**6** · 4 copias corregidas sin crecer | `f43429be` |
+
+| 13 | 31 jul | **Procesamiento** + N6 | Procesamiento sale **limpio en las 25 capturas** y sus cifras no se contradicen. Sin defecto que reparar ahí, la vuelta ataca N6: `pct` deja de estar copiado cuatro veces | 25 capturas ok · duplicados 31→**28** · 4 archivos más chicos | `5a162b71` |
+
+### Nota de la iteración 13
+
+**Una vuelta sin defecto en su módulo es un resultado, no un fracaso.** Las 25
+capturas de Procesamiento dieron `issues=0`, `scrollJails=0`,
+`coverageMisses=0`, y leídas contra sí mismas las cifras cierran: 1.283
+registros, 1.283 válidos, 0 sin respuesta, `2 / 94` contra 94 campos. Es la
+primera posición de la órbita que pasa la segunda visita sin encontrar nada, y
+tiene sentido: las iteraciones 2 y 3 la trabajaron a fondo.
+
+Cuando eso pasa, el invariante sigue exigiendo mover un número, así que la
+vuelta se gasta en el hallazgo abierto de mayor radio en vez de inventar trabajo
+en el módulo limpio.
+
+**N6 no necesitaba decisión, y conviene entender por qué.** La independencia
+entre perfiles parecía bloquearlo, pero el registro de deuda ya había acotado la
+excepción: «extraer al kit solo infraestructura genérica **sin semántica de
+familia**». Un formateador de porcentaje no sabe qué es un actor ni una cuota.
+**Antes de subir una decisión a la bandeja conviene releer si la decisión ya
+está tomada con más precisión de la que uno recordaba.**
+
+**Y una corrección a la iteración 12.** Dije «las cuatro copias de `pct`» y hay
+**siete** definiciones de ese nombre. No era un error de conteo sino de lectura:
+son **dos funciones distintas** con el mismo nombre —`pct(value: unknown)`, que
+presenta, y `pct(value, total)`, que calcula el cociente y sí guarda su
+denominador—. El arreglo de ayer cubría las cuatro que correspondía. Que un
+nombre signifique dos cosas en el mismo módulo no es un defecto, pero es una
+trampa para quien lee, y por eso queda escrito en la cabecera del archivo nuevo.
 
 ### Nota de la iteración 12
 
