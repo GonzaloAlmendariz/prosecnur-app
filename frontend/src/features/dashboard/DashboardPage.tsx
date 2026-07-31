@@ -262,7 +262,13 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
       )}
 
       <DashboardHeader />
-      {manifest && (
+      {/* `!loading` no es un detalle: el span se emitía en cuanto existía el
+          manifiesto, y la línea de abajo renderiza «Cargando dashboard…». La
+          página se declaraba lista mientras decía que estaba cargando, así que
+          quien espera el puente —el QA y el boundary de warmup— capturaba un
+          estado en transición y lo daba por final. Bitácora y Recopiladores ya
+          condicionan su readiness a `!loading`; Dashboard era el único que no. */}
+      {manifest && !loading && (
         <span
           hidden
           data-audit-ready="dashboard"
