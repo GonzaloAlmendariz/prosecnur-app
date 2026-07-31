@@ -213,7 +213,7 @@ Opciones:
                             superficie sembrada trae gráficos, acompáñalo de
                             --post-click-wait-selector ".js-plotly-plot" o la captura
                             sale con los títulos y sin las figuras.
-                            `--wait-selector` NO sirve: se evalúa ANTES de sembrar.
+                            --wait-selector NO sirve: se evalúa ANTES de sembrar.
   --wait-after-click-selector CSS
                               Selector opcional a esperar después de cada click.
   --post-click-wait-selector CSS
