@@ -102,6 +102,18 @@ const ALIAS_LEGACY: Partial<Record<ProsecnurModuleSlug, AliasPorNivel>> = {
   },
 };
 
+const PARAMS_RESERVADOS = new Set<string>([
+  ...PARAMS_CANONICOS,
+  PARAM_PROYECTO,
+  "devPulso",
+  "devProject",
+  ...Object.values(ALIAS_LEGACY).flatMap((porNivel) =>
+    porNivel
+      ? Object.values(porNivel).flatMap((aliases) => aliases ?? [])
+      : [],
+  ),
+]);
+
 // ---------------------------------------------------------------------------
 // Tabla de rutas, derivada del manifiesto de módulos
 // ---------------------------------------------------------------------------
@@ -296,17 +308,12 @@ export function serializarDireccion(direccion: DireccionProsecnur): string {
   // viejos y no queremos propagarlos desde aquí.
   const nodoRuta = TABLA_RUTAS.get(normalizarPathname(pathname));
   const seccionImplicita = nodoRuta?.seccion === direccion.seccion;
-  const alias = ALIAS_LEGACY[direccion.modulo] ?? {};
-  for (const clave of [
-    ...PARAMS_CANONICOS,
-    ...(alias.modo ?? []),
-    ...(alias.seccion ?? []),
-    ...(alias.pestana ?? []),
-  ]) {
+  for (const clave of PARAMS_RESERVADOS) {
     params.delete(clave);
   }
 
   for (const [clave, valor] of Object.entries(direccion.extra ?? {})) {
+    if (PARAMS_RESERVADOS.has(clave)) continue;
     params.set(clave, valor);
   }
 

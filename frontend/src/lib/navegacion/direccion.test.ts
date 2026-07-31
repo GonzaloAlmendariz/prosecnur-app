@@ -82,6 +82,29 @@ describe("gramática de direcciones", () => {
     expect(serializarDireccion(direccion!)).toContain("scope=consolidado");
   });
 
+  it("no permite que `extra` reinyecte params reservados al serializar", () => {
+    const href = serializarDireccion({
+      modulo: "hojas-ruta",
+      seccion: "entrega",
+      pestana: "titulares",
+      panel: "filtros",
+      extra: {
+        tab: "cuotas",
+        stage: "muestra",
+        modo: "legacy",
+        scope: "consolidado",
+      },
+    });
+    const url = new URL(href, "http://local.prosecnur");
+
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      scope: "consolidado",
+      seccion: "entrega",
+      pestana: "titulares",
+      panel: "filtros",
+    });
+  });
+
   it("escribe siempre la forma canónica, nunca el alias por el que entró", () => {
     const direccion = parsearDireccion("/hojas-ruta", "?stage=entrega&tab=cuotas");
     const href = serializarDireccion(direccion!);
