@@ -126,5 +126,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0051](0051-retiro-de-enciclopedia.md) | Aceptado | 2026-07-31 | Enciclopedia se retira entera; se conserva lo que Bitácora y Cálculo de muestra consumen |
 | [0052](0052-excepcion-auditada-brace-expansion-empaquetado.md) | Aceptado | 2026-07-31 | Excepción por advisory (no por umbral) para GHSA-mh99-v99m-4gvg en el árbol de build de Electron, con condiciones de admisión y caducidad en cada corte |
 | [0053](0053-serie-3x-como-deuda-historica-de-versionado.md) | Aceptado | 2026-07-31 | La serie 3.x es deuda histórica de nomenclatura, no la línea de versionado: se excluye de la monotonicidad por lista explícita y el producto sigue en la serie 0.x |
+| [0054](0054-publicacion-manual-sin-firma-0-6-0.md) | Aceptado | 2026-07-31 | Excepción acotada a la 0.6.0: se publica a mano con los binarios del preview, sin firma ni updater, dejando intactos los gates del ADR 0048 |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
