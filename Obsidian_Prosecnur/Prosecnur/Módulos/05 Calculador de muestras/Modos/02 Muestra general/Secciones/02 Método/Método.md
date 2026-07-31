@@ -66,5 +66,3 @@ Si el motor acepta una técnica incompatible con la unidad seleccionable, vuelve
 ## Ubicación en la jerarquía
 
 - Padre: [[Muestra general]].
-
-

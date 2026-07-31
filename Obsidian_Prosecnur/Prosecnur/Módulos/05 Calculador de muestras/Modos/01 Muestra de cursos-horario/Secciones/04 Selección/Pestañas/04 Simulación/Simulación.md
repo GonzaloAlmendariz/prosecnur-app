@@ -64,5 +64,3 @@ Si una unidad elegible mantiene probabilidad cero, revisa su tamaño, estrato, r
 ## Ubicación en la jerarquía
 
 - Padre: [[Selección]].
-
-

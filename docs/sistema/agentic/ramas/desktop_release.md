@@ -16,4 +16,3 @@ Cambio de código: **sí**.
 - **Implementan:** [autor-regresiones](../agentes/autor-regresiones.md), [desktop-packaging](../agentes/desktop-packaging.md)
 - **Revisan:** [guardian-contratos](../agentes/guardian-contratos.md), [qa-visual-desktop](../agentes/qa-visual-desktop.md)
 - **Gate:** [verificador](../agentes/verificador.md)
-

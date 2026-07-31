@@ -57,5 +57,3 @@ Si el nombre coincide pero cliente o alcance no, detén la carga de fuentes y co
 ## Ubicación en la jerarquía
 
 - Padre: [[Datos]].
-
-

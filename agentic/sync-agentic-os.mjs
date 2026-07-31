@@ -200,7 +200,8 @@ function expectedAgentAdapter(name, description, profile) {
 }
 
 function generatedMarkdown(title, body) {
-  return `<!-- ${GENERATED} -->\n\n# ${title}\n\n${body.join('\n')}\n`
+  const content = body.join('\n').replace(/\n+$/, '')
+  return `<!-- ${GENERATED} -->\n\n# ${title}\n\n${content}\n`
 }
 
 function markdownList(items, empty) {

@@ -19,4 +19,3 @@ Cambio de código: **sí**.
 - **Implementan:** [curador-commits](../agentes/curador-commits.md)
 - **Revisan:** —
 - **Gate:** [verificador](../agentes/verificador.md)
-

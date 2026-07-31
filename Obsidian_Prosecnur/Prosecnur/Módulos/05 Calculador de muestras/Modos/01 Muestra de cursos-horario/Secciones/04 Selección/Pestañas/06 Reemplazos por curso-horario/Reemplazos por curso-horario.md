@@ -63,5 +63,3 @@ Si dos titulares comparten la misma primera reserva, revisa la política de excl
 ## Ubicación en la jerarquía
 
 - Padre: [[Selección]].
-
-

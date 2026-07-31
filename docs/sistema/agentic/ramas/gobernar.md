@@ -15,4 +15,3 @@ Cambio de código: **no**.
 - **Implementan:** —
 - **Revisan:** —
 - **Gate:** —
-

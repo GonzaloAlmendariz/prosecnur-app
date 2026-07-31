@@ -65,5 +65,3 @@ Si los totales cambian al abrir Hojas de ruta, compara versión, identificadores
 ## Ubicación en la jerarquía
 
 - Padre: [[Territorial]].
-
-

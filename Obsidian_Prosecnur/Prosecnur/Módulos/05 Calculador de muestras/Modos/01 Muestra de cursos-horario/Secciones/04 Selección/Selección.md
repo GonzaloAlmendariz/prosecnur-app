@@ -72,4 +72,3 @@ Al completar **Selección universitaria** quedan visibles los supuestos utilizad
 ## Ubicación en la jerarquía
 
 - Padre: [[Muestra de cursos-horario]].
-

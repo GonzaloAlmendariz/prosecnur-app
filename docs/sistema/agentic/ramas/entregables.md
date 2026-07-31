@@ -18,4 +18,3 @@ Cambio de código: **sí**.
 - **Implementan:** [autor-regresiones](../agentes/autor-regresiones.md), [especialista-entregables](../agentes/especialista-entregables.md)
 - **Revisan:** [guardian-contratos](../agentes/guardian-contratos.md), [revisor-metodologico](../agentes/revisor-metodologico.md), [qa-visual-desktop](../agentes/qa-visual-desktop.md)
 - **Gate:** [verificador](../agentes/verificador.md)
-

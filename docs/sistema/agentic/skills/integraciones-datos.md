@@ -16,4 +16,3 @@ Fuente canónica: `.claude/skills/integraciones-datos/SKILL.md`.
 - `monitoreo` — raíz; incluye sus descendientes.
 - `procesamiento` — raíz; incluye sus descendientes.
 - `dashboard` — raíz; incluye sus descendientes.
-

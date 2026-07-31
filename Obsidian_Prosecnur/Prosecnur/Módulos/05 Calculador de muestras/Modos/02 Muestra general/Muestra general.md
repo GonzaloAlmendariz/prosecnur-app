@@ -60,4 +60,3 @@ Al completar **Cálculo de muestra general** quedan visibles los supuestos utili
 ## Ubicación en la jerarquía
 
 - Padre: [[Calculador de muestras]].
-

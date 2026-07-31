@@ -60,4 +60,3 @@ Al completar **Muestra para acreditación** quedan visibles los supuestos utiliz
 ## Ubicación en la jerarquía
 
 - Padre: [[Calculador de muestras]].
-

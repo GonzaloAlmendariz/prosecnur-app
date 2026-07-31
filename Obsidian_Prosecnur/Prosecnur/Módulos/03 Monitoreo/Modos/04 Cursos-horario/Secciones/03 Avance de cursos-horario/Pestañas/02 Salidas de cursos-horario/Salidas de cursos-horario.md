@@ -40,4 +40,3 @@ El equipo recibe una salida compartible con el estado vigente de cursos-horario 
 ## Ubicación en la jerarquía
 
 - Padre: [[Avance de cursos-horario]].
-

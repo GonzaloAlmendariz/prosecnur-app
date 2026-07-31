@@ -66,5 +66,3 @@ Si el agregado no coincide con la suma de componentes, revisa actores inactivos,
 ## Ubicación en la jerarquía
 
 - Padre: [[Acreditación]].
-
-

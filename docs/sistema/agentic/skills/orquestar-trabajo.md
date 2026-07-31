@@ -20,4 +20,3 @@ Fuente canónica: `.claude/skills/orquestar-trabajo/SKILL.md`.
 ## Toca direcciones
 
 - Capacidad sistémica; no declara una superficie de producto propia.
-

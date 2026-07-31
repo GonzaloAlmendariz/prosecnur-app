@@ -63,5 +63,3 @@ Si la firma cambia sin una modificación reconocida, revisa ordenamiento, normal
 ## Ubicación en la jerarquía
 
 - Padre: [[Selección]].
-
-

@@ -60,5 +60,3 @@ Si los totales coinciden pero las llaves no, no declares consistencia; revisa ti
 ## Ubicación en la jerarquía
 
 - Padre: [[Datos]].
-
-
