@@ -333,12 +333,23 @@ export function CriteriosMarcoTab({
       )}
 
       {showAlumno && elegiblesTotal != null && (
+        /* El motor suma `eligible_n` de cada curso-horario incluido, y
+            `eligible_n` es la cantidad de estudiantes elegibles DE ESE curso.
+            Un estudiante matriculado en varios cuenta en cada uno —por eso el
+            sorteo lleva descuento secuencial con `covered`—, así que esta cifra
+            NO es un conteo de personas: con hsvg2026 da 79.771 sobre un
+            universo de 27.765. Su descripción decía «quiénes cumplen los
+            criterios de estudiante», que se lee como headcount y contradice a
+            «Estudiantes elegibles: 20.392» de la franja de arriba, en la misma
+            pantalla. Aquí se corrige la descripción, que afirmaba algo que el
+            motor no calcula; el titular y su condición de cifra hero son
+           vocabulario metodológico y están en la bandeja del goal visual. */
         <div className="cmv2-crit-elegibles" data-audit-ready="true">
           <CifraFila>
             <CifraMotor
               label="Elegibles del estudio"
               value={fmtInt(elegiblesTotal)}
-              detalle="quiénes cumplen los criterios de estudiante — el insumo que luego perfilamos por curso-horario"
+              detalle="suma de los elegibles de cada curso-horario incluido — un estudiante matriculado en varios cuenta en cada uno"
               origen="motor"
               hero
             />
@@ -370,7 +381,14 @@ export function CriteriosMarcoTab({
                   <p className="cmv2-crit-scope-hint">de la hoja de matrícula (una fila por estudiante)</p>
                 </div>
               </header>
-              <div className="cmv2-crit-grid">
+              {/* `intrinsic`: cada tarjeta de criterio mide lo que piden sus
+                  categorías —Facultad lista decenas y Sexo dos—, así que su
+                  alto es función de los datos de esa variable. */}
+              <div
+                className="cmv2-crit-grid"
+                data-qa-geometry-group="calc-muestra/criterios"
+                data-qa-geometry-contract="intrinsic"
+              >
                 {alumno.map((variable) => (
                   <CriterioCard
                     key={variable.id}
@@ -400,7 +418,14 @@ export function CriteriosMarcoTab({
                   <p className="cmv2-crit-scope-hint">de la hoja de catálogo de cursos y horarios</p>
                 </div>
               </header>
-              <div className="cmv2-crit-grid">
+              {/* `intrinsic`: cada tarjeta de criterio mide lo que piden sus
+                  categorías —Facultad lista decenas y Sexo dos—, así que su
+                  alto es función de los datos de esa variable. */}
+              <div
+                className="cmv2-crit-grid"
+                data-qa-geometry-group="calc-muestra/criterios"
+                data-qa-geometry-contract="intrinsic"
+              >
                 {aula.map((variable) => (
                   <CriterioCard
                     key={variable.id}
