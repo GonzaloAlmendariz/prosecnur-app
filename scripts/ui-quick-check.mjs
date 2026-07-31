@@ -19,7 +19,12 @@ const DEFAULT_TIMEOUT_MS = Number(process.env.UI_QA_TIMEOUT_MS || "30000");
 const DEFAULT_PREFETCH_TIMEOUT_MS = Number(process.env.UI_QA_PREFETCH_TIMEOUT_MS || "90000");
 const DEFAULT_CLICK_TIMEOUT_MS = Number(process.env.UI_QA_CLICK_TIMEOUT_MS || "30000");
 const HEAVY_MONITOREO_SCOPES = new Set(["advance_summary", "queries_summary", "phone_summary", "validation_summary"]);
-const PROCESSING_ROUTES = ["/carga", "/validacion", "/codificacion", "/analitica"];
+// Las CINCO secciones de Procesamiento. `/graficos` faltaba, y por eso la
+// matriz por defecto nunca lo miró: el módulo llegó a tener 33.000 líneas de
+// CSS y cero grupos geométricos declarados sin que ningún comprobador se
+// quejara. Estar fuera de esta lista es la forma silenciosa de quedar verde
+// por ausencia; si mañana nace una sección nueva, va aquí el mismo día.
+const PROCESSING_ROUTES = ["/carga", "/validacion", "/codificacion", "/analitica", "/graficos"];
 const LAYOUT_VIEWPORTS = [
   { width: 1710, height: 1107 },
   { width: 1440, height: 1000 },
