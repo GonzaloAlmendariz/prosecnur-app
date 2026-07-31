@@ -10,14 +10,14 @@ Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado visu
 **Antecedente:** `docs/qa/monitoreo/goal-loop-monitoreo-2026-07-27.md` (Monitoreo,
 geometría gobernada) y `docs/qa/pulido-monitoreo-estado.md` (16 hallazgos abiertos).
 Este goal **no reemplaza** al de Monitoreo: lo absorbe y lo extiende a los ocho
-módulos del proyecto y a Enciclopedia como utilidad global.
+módulos del proyecto.
 
 ## Objetivo
 
 > Prosecnur debe verse como **una sola aplicación profesional en los ocho
 > módulos del proyecto**, no como un módulo pulido y siete sin auditar. El
 > instrumento de medición ya existe y ha visto uno de ocho; este goal lo pone en
-> órbita sobre todos y revisa Enciclopedia como utilidad global.
+> órbita sobre todos.
 >
 > Y arreglar la app **no puede seguir agrandando la app**: cada reparación deja
 > su archivo más chico que como lo encontró.
@@ -29,7 +29,7 @@ Medición del 2026-07-30:
 | Hecho medido | Consecuencia |
 |---|---|
 | El audit del agentic OS está **en rojo**: 3 congelados crecieron esta semana (+6, +104, +136) | El pulido está pagándose con deuda estructural |
-| 4.117 hex sin token en CSS de features; **1.081 fuera de Monitoreo** | Siete módulos y la utilidad global con deriva de color jamás medida |
+| 4.117 hex sin token en CSS de features; **1.081 fuera de Monitoreo** | Siete módulos con deriva de color jamás medida |
 | Gráficos, sección de Procesamiento (33.023 líneas CSS), Dashboard y Hojas de ruta: **0** `data-qa-geometry-group` | Verdes por ausencia, no por conformidad |
 | 44 declaraciones de geometría en total, **17 son de Monitoreo** | El resto es cobertura simbólica |
 | 16 hallazgos abiertos en Monitoreo, **7 bloqueados en decisión** | El loop anterior se frenaba esperando respuesta |
@@ -44,14 +44,15 @@ un número del ledger estrictamente más bajo.** Igualar no cierra la iteración
 
 El loop rota por los ocho módulos del proyecto en orden fijo. Ningún módulo se
 salta, ninguno monopoliza. Monitoreo es **una** posición de ocho, no la mitad
-del trabajo. Enciclopedia se inspecciona como utilidad global al cerrar cada
-vuelta, sin convertirla en un noveno módulo.
+del trabajo.
 
 ```
 Monitoreo → Procesamiento → Dashboard → Hojas de ruta
-   → Cálculo de muestra → Formularios → Bitácora → Recopiladores
-   → Enciclopedia (utilidad global) → (vuelve)
+   → Cálculo de muestra → Formularios → Bitácora → Recopiladores → (vuelve)
 ```
+
+La novena posición era Enciclopedia, retirada de la app el 2026-07-31
+([ADR 0051](../adrs/0051-retiro-de-enciclopedia.md)). La órbita queda en ocho.
 
 Al llegar a un módulo, el loop hace **auditar → reparar** en la misma visita:
 
@@ -81,7 +82,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 |---|---:|---:|---|
 | Audit del agentic OS | rojo (3) | **verde** | verde, siempre |
 | Hex sin token — Monitoreo | 3.036 | 3.036 | ↓ |
-| Hex sin token — otros 7 módulos + Enciclopedia | 1.081 | 1.081 | ↓ |
+| Hex sin token — otros 7 módulos | 1.081 | 1.081 | ↓ |
 | `data-qa-geometry-group` fuera de Monitoreo | 27 | **38** | ↑ hasta cubrir toda colección |
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
@@ -95,7 +96,6 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
 | Módulos auditados con el instrumento | 1 de 8 | **8 de 8 — primera órbita completa** | ↑ a 8 |
-| Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
 
@@ -128,8 +128,8 @@ una letra; el loop sigue solo mientras tanto.
 ## Cuándo cierra
 
 Solo Gonzalo. La condición **medible** es: audit verde, los ocho módulos
-auditados con el instrumento, Enciclopedia inspeccionada como utilidad global,
-cero módulos sin contrato geométrico, cero hallazgos abiertos y bandeja vacía.
+auditados con el instrumento, cero módulos sin contrato geométrico, cero
+hallazgos abiertos y bandeja vacía.
 Alcanzada esa condición el loop **no termina**: reabre la órbita con un nivel de
 exigencia mayor (viewport más estrecho, estado vacío, estado a escala) y vuelve
 a empezar.
@@ -154,6 +154,36 @@ a empezar.
 | 8 | 31 jul | **Bitácora** | **El reporte dio verde a la primera y la captura mostró el defecto:** el vacío flotaba sobre 680 px de lienzo sin marco (C3). Al enmarcarlo apareció un scroll-jail que ya estaba latente | issues 0 · scrollJails 0 · defectos reparados 2→**3** · módulos auditados 6→**7** de 8 | `ddb711cc` |
 
 | 9 | 31 jul | **Recopiladores** | **Cierra la primera órbita.** Reporte verde a la primera; el defecto salió de comparar la captura con las de las ocho vueltas previas: era el único módulo que ponía su propio nombre donde los demás ponen su cifra | issues 0 · defectos reparados 3→**4** · módulos visitados 7→**8 de 8** | `5a0ee445` |
+
+| 10 | 31 jul | **Enciclopedia — retirada** | Auditada (`geometryGroups=0`, `coverageMisses=5`, verde por ausencia como las demás) y, en la misma vuelta, **retirada de la app por decisión del dueño**. La órbita pasa de nueve posiciones a ocho | superficie, router, 3 JSON huérfanos y `TabStrip` fuera · [ADR 0051](../adrs/0051-retiro-de-enciclopedia.md) | `44374172`, y el retiro |
+
+### Nota de la iteración 10
+
+**El módulo se auditó y se retiró en la misma vuelta**, y el orden importó: la
+auditoría dio lo mismo que los demás —cero geometría, cinco coberturas— pero
+esa medición quedó sin destino. Lo que sirvió del trabajo previo fue otra cosa:
+la costumbre de medir dependencias antes de tocar.
+
+**Borrar una carpeta no es borrar un módulo.** Medido antes de tocar nada:
+
+- `enciclopedia/shared/components/Math.tsx` —envoltorio de KaTeX— lo importaba
+  **Cálculo de muestra**. Borrar la carpeta habría roto otro módulo. Se movió al
+  kit primero, en su propio commit, y recién después se retiró la feature.
+- `catalogo_metodologias.json` y `catalogo_tipos_estudio.json` los lee
+  **Bitácora** (`router_diseno_estudio.R:247`). Se quedan.
+- Los tokens `--pulso-module-encyclopedia*` son, pese al nombre, la fuente del
+  **ámbar de Bitácora**, que los aliasa. Borrarlos habría cambiado la paleta de
+  otro módulo.
+- `components/TabStrip.tsx` quedó huérfano al irse sus dos únicos consumidores.
+  Se retiró también, **anotado aparte** por ser del kit y no de la feature.
+
+Tres de esas cuatro no se ven leyendo la carpeta: se ven grepeando por nombre
+de archivo y por token desde fuera. **La pregunta antes de un borrado no es qué
+hay dentro, sino quién entra desde afuera.**
+
+Y una consecuencia de método: `glosario` aparecía en seis archivos de Cálculo
+de muestra y ninguno era el JSON —era la palabra, en prosa y en clases CSS—.
+Buscar por concepto da falsos positivos; buscar por nombre de archivo, no.
 
 ### Nota de la iteración 9 — cierre de la primera órbita
 
