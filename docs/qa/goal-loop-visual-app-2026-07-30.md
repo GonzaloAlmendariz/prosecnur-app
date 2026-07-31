@@ -86,7 +86,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte) | — | **2** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3) | — | **3** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | `monitoreo_engine.R` | 39.981 | **38.662** | ↓ |
 | `router_monitoreo.R` | 6.150 | **5.116** | ↓ |
@@ -94,7 +94,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | `AcreditacionMonitoreoPage.tsx` | 18.403 | 18.403 | ↓ |
 | `monitoreo.css` | 38.160 | 38.160 | ↓ |
 | Hallazgos abiertos (todos los módulos) | 16 | 18 | ↓ |
-| Módulos auditados con el instrumento | 1 de 8 | **6 de 8** | ↑ a 8 |
+| Módulos auditados con el instrumento | 1 de 8 | **7 de 8** | ↑ a 8 |
 | Utilidad global Enciclopedia auditada | no | no | sí |
 
 ## Hallazgos nuevos, medidos por el loop
@@ -104,6 +104,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | N1 | telefónico y acreditación | `phoneRowValue` está **definido cuatro veces** en el repo con el mismo cuerpo: en los dos page-files y en `TelefonicoPhoneDailyTrend.ts:198` y `AcreditacionPhoneDailyTrend.ts:198`. Cada perfil puede mantener el suyo —esa es la decisión de independencia— pero tener dos copias *dentro* del mismo perfil no la sirve | abierto |
 | N2 | telefónico | El racimo `AcreditacionPhone*` de comparación teléfono↔plataforma (`TelefonicoMonitoreoPage.tsx:7117-7483`) tiene **35 dependencias hacia declaraciones del page-file**, la más lejana en la línea 15.016. Es la atadura medida que impide extraerlo: cualquier intento crea un ciclo de imports. Cortarla es su propia unidad de trabajo | abierto |
 | N3 | Dashboard | **Ningún proyecto de referencia trae datos de dashboard**, así que `/tablero` rinde su compuerta de fuente y el estado cargado —el que monta los gráficos de plotly, ~10 MB de chunks— nunca se audita. La cobertura de Dashboard es de la compuerta, no del tablero. Cerrarlo exige o un proyecto de referencia con dashboard construido, o que el instrumento sepa pulsar «Cargar fuente» y esperar el render | abierto |
+| N4 | Bitácora | **Ningún proyecto de referencia tiene entradas de bitácora** (los cuatro dan 0), así que el estado lleno del timeline no se puede verificar visualmente. Por eso la iteración 8 enmarcó solo la rama vacía y no tocó la poblada. Mismo patrón que N3 con Dashboard | abierto |
 
 ## Bandeja de decisiones
 
@@ -120,6 +121,8 @@ una letra; el loop sigue solo mientras tanto.
 | 6 | Telefónico · Consultas › CodPulso | Cuál de los dos nodos duplicados sobra | abierta |
 | 7 | Territorial · autodetección | `sex_var` es la única de doce con fallback vacío: deja sexo sin mapear y sin avisar | abierta |
 | **8** | **Todo el frontend · vocabulario de contratos** | **Falta un contrato para «mismo alto, ancho intrínseco»**, que es la forma de toda tira de chips, toolbar y banda de estado de la app. Hoy `equal` exige mismo alto **y** mismo ancho, e `intrinsic` llama desperdicio al `min-height` de un control. Medido en Formularios: con `intrinsic`, capacity-drift de 10,5 px que es el alto de control del chip; con `equal`, width-drift de 118 px y 55 px. **A:** agregar un tercer contrato (`banda`) con alto igual y ancho libre. **B:** partir `equal` en ejes (`equal-height` / `equal-width`) y permitir combinarlos. **C:** dejar las tiras sin declarar y aceptar el hueco de cobertura. **Recomiendo B**: es el que además deja declarar el caso inverso —ancho igual, alto libre— que ya apareció en las rejillas que colapsan a una columna | abierta |
+
+| **9** | **Todo el frontend · estado vacío del kit** | **`.pulso-empty-state--panel` no dibuja panel**: no tiene fondo, ni borde, ni radio, pese al nombre y pese a ser el estado vacío canónico. Son ~96 de los 105 usos de `EmptyState` en la app. Al menos dos features ya se escribieron su propio marco alrededor (`cmv2-calc-escenarios-panel`, `cmv2-marco-vacio`), que es la duplicación que el kit compartido debería evitar. **A:** darle materia de panel al kit —arregla ~96 superficies de una vez, pero deja cajas concéntricas donde ya hay marco propio, y esos hay que retirarlos—. **B:** dejar el kit sin marco y que cada superficie envuelva su vacío, como hizo la iteración 8 en Bitácora —más trabajo, pero respeta que el marco es de la superficie, no del mensaje—. **C:** renombrar la variante para que deje de prometer lo que no da. **Recomiendo B**, y renombrar la variante como parte de ella: el marco es de la superficie | abierta |
 
 ## Cuándo cierra
 
@@ -146,6 +149,41 @@ a empezar.
 | 6 | 31 jul | **Cálculo de muestra** | **Un indicador con el nombre recortado —«UNIVERSO DE CURSOS-HORAR…»— que el comprobador NO marcó.** Apareció al mirar la captura. Envuelto, y la franja declarada `equal` | geometryGroups 0→**5** · coverageMisses 5→**0** · defectos reparados 1→**2** | `d753a645` |
 
 | 7 | 31 jul | **Formularios** | **El vocabulario de contratos se quedó corto y el loop no lo forzó.** Dos colecciones declaradas y pasando; las dos tiras de chips quedan sin declarar con la razón medida, y sube la decisión 8 | geometryGroups 5→**15** · coverageMisses 20→**10** · geometryIssues **0** | `7a47ef01` |
+
+| 8 | 31 jul | **Bitácora** | **El reporte dio verde a la primera y la captura mostró el defecto:** el vacío flotaba sobre 680 px de lienzo sin marco (C3). Al enmarcarlo apareció un scroll-jail que ya estaba latente | issues 0 · scrollJails 0 · defectos reparados 2→**3** · módulos auditados 6→**7** de 8 | `ddb711cc` |
+
+### Nota de la iteración 8
+
+**La regla de abrir la captura se pagó sola.** `ui-quick-check` devolvió
+`ok=true`, `issues=0`, `coverageMisses=0` — y la pantalla mostraba «La bitácora
+está vacía» flotando sobre 680 px de lienzo desnudo, junto a dos superficies que
+sí tenían marco. El detector mide recorte, scroll y geometría; **no mide si un
+vacío tiene dónde vivir**. C3 no es comprobable con el instrumento actual.
+
+La causa estaba en el código, no en el CSS: `TimelinePorDia` devuelve un
+contenedor cuando hay datos y el `EmptyState` pelado cuando no. **El marco
+existía solo si había entradas** — que es C2 leído al revés: la superficie no
+sostiene su marco frente a sus datos.
+
+**El arreglo destapó un defecto mayor que el que venía a corregir.** Al enmarcar
+apareció un `scroll-jail` a 1024x600 sobre `pulso-page-frame-body--fill`, con
+`overflowY: hidden` y `scrollOwner: null`. No lo causó el marco: Bitácora
+declara `scrollOwner="panels"` y el panel nuevo no cumplía ese contrato —se
+traía el piso de 240 px del estado vacío del kit sin poder encogerse—. Con
+entradas reales habría desbordado igual. **Un arreglo que destapa un rojo latente
+no es un arreglo que rompió algo; es uno que hizo visible lo que ya estaba.**
+
+**Lo que no se tocó, y por qué.** Ningún proyecto de referencia tiene entradas
+(los cuatro dan 0), así que el estado poblado del timeline no se puede ver.
+Se enmarcó solo la rama vacía —la que sí se puede verificar— y la poblada quedó
+intacta. Cambiar a ciegas lo que no se puede mirar es justo lo que este goal
+evita. Queda como N4, hermano de N3.
+
+Y de aquí sale la decisión 9: el estado vacío canónico del kit se llama `panel`
+y **no dibuja panel**. Son ~96 de 105 usos en la app, y dos features ya se
+escribieron su propio marco alrededor. No se tocó de forma unilateral porque
+cambiarlo mueve 96 superficies a la vez y deja cajas concéntricas donde ya hay
+marco propio.
 
 ### Nota de la iteración 7
 
