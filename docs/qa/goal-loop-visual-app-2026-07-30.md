@@ -87,7 +87,7 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | Superficies principales con 0 declaraciones geométricas | 3 | **0** | ↓ a 0 |
 | Secciones con 0 declaraciones geométricas | 5 | **3** | ↓ a 0 |
 | Rutas en la matriz por defecto del instrumento | 4 | **5** | = las secciones que existan |
-| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso) | — | **6** | ↓ |
+| Defectos reparados por el loop (C4 · recorte · C3 · contexto · dato falso · readiness) | — | **7** | ↓ |
 | Píxeles de contenido recuperados | — | **~2.300** | ↓ |
 | Tokens `--pulso-*` usados sin definir | 29 | 29 | ↓ a 0 |
 | Definiciones duplicadas de formateadores en Monitoreo | 31 | **28** | ↓ |
@@ -110,6 +110,8 @@ de tres, el loop las presenta juntas y sigue trabajando en lo desbloqueado.
 | N5 | Dashboard, Bitácora y Recopiladores | **Dashboard CERRADO** (iteración 11: `--sembrar` lo mete a la matriz cargado). Bitácora y Recopiladores siguen abiertos, y peor de lo anotado: ninguno de los cuatro fixtures trae el estado **aguas arriba** —`monitoreo_aulas_plan` y `calc_muestra_aulas_selection` en cero—, así que `POST /api/recopiladores/seed` devuelve `seed_available: false`. Cerrarlos exige fixtures nuevos, no un flag. Texto original: **Patrón, no incidencia: los proyectos de referencia cubren el pipeline de análisis y no los módulos operativos aguas abajo.** Tres de los ocho módulos solo se pueden auditar vacíos —Dashboard sin datos de tablero, Bitácora con 0 entradas, Recopiladores sin plan—, y en los tres el estado con datos es la mayor parte de la superficie. Mientras no se cierre, la línea «8 de 8 auditados» significa «8 de 8 visitados», no «8 de 8 cubiertos». **Cerrarlo es su propia unidad de trabajo**: o se enriquecen los fixtures, o el instrumento aprende a sembrar estado | abierto |
 
 | N6 | los cuatro perfiles de Monitoreo | **`pct` CERRADO** (iteración 13: extraído a `core/formatoComun.ts`, los cuatro perfiles lo importan). Quedan **28 definiciones** de otros cinco: `fmt` ×8, `rowNumber` ×7, `num` ×5, `pctFrom` ×2, `columnLabel` ×2 — no verificadas como idénticas todavía. Texto original: **Segundo formateador genérico copiado cuatro veces con el mismo defecto**, después de `phoneRowValue` (N1): `pct` estaba idéntico en los cuatro perfiles y los cuatro imprimían `0%` para un `null`. La decisión de independencia entre perfiles es sobre **semántica de familia**, no sobre formateadores genéricos —`pct`, `fmt`, `num`, `rowNumber` no tienen nada de familia—. Mientras vivan copiados, un defecto en uno es un defecto en cuatro y se arregla cuatro veces o no se arregla. **Es su propia unidad**: mover las primitivas puras a un módulo compartido del módulo Monitoreo sin tocar la semántica de perfil | abierto |
+
+| N7 | Dashboard y toda superficie con gráficos | **La readiness no cubre el render asíncrono.** Con `!loading` corregido, la vista se declara lista cuando montó, pero los gráficos de plotly pintan después: la captura sale con títulos y leyendas y sin figuras. Hoy se sortea desde el auditor con `--post-click-wait-selector ".js-plotly-plot"`. Cerrarlo de raíz exige decidir qué significa «listo» para una superficie que pinta en dos tiempos —`PlotlyChart` ya expone `onReady`, así que la señal existe—, y esa decisión también afecta al boundary de warmup, que hoy suelta la espera antes de tiempo | abierto |
 
 ## Bandeja de decisiones
 
@@ -166,6 +168,45 @@ a empezar.
 | 12 | 31 jul | **Monitoreo** | **Primera vez que este goal mide Monitoreo** —la iteración 1 fue el prerrequisito estructural, no una auditoría—. Reporte limpio; el defecto salió de leer la captura contra sí misma: el rail decía `Avance 0%` y la superficie de abajo, «sin meta declarada» | rail `0%` → **`S/D`** · defectos reparados 5→**6** · 4 copias corregidas sin crecer | `f43429be` |
 
 | 13 | 31 jul | **Procesamiento** + N6 | Procesamiento sale **limpio en las 25 capturas** y sus cifras no se contradicen. Sin defecto que reparar ahí, la vuelta ataca N6: `pct` deja de estar copiado cuatro veces | 25 capturas ok · duplicados 31→**28** · 4 archivos más chicos | `5a162b71` |
+
+| 14 | 31 jul | **Dashboard** | **Primera vez que se ve el tablero construido**, encadenando dos siembras. Y ahí apareció que la página se declaraba lista mientras renderizaba «Cargando dashboard…» | readiness honesta · defectos reparados 6→**7** · N7 abierto | `db517c85` |
+
+### Nota de la iteración 14
+
+**El tablero construido se vio por primera vez** encadenando `--sembrar "Cargar
+fuente"` y `--sembrar "Confirmar y construir dashboard"`. Leído contra sí mismo
+y contra las vueltas anteriores, cierra: `N: 1.283` coincide con los 1.283
+registros de Validación, y «DIMENSIONES pendientes» concuerda con la pestaña
+Dimensiones deshabilitada y con su banner.
+
+**El defecto lo delató una discrepancia entre el texto y la imagen de la misma
+captura.** El `textSample` ya traía las pestañas del tablero; el PNG mostraba
+todavía la curaduría con «Cargando dashboard…» encima. Una captura de la mitad
+del camino. La causa: el span de readiness se emitía con solo existir el
+manifiesto, dos líneas antes del `{loading && …}` que pinta el cartel de carga.
+
+Es **el mismo defecto que `Avance 0%` en otra capa**: declarar como cierto algo
+que no se ha comprobado. Ahí un porcentaje sin denominador; acá una readiness
+sin render. Y se encontró con la misma técnica de la iteración 9 —comparar
+módulos—: Bitácora y Recopiladores ya condicionaban su readiness a `!loading`,
+Dashboard era el único de los ocho que no.
+
+**Lo que el puente no cubre, y ahora está escrito.** Que la vista montó no
+significa que su contenido asíncrono se pintó. Con el `!loading` arreglado, la
+captura seguía saliendo con títulos y leyendas pero **sin las figuras**: los
+gráficos de plotly pintan después. Se comprobó en los dos sentidos y el remedio
+—`--post-click-wait-selector ".js-plotly-plot"`— quedó documentado en la ayuda
+de `--sembrar`, junto con la trampa de que `--wait-selector` no sirve porque se
+evalúa **antes** de sembrar.
+
+Y un error propio que conviene no repetir: la primera lectura fue «los gráficos
+no renderizan», y era falsa —mi sonda estaba en el flag equivocado—. Antes de
+declarar rota una superficie hay que descartar que el instrumento esté mirando
+en el momento equivocado.
+
+**Nota de cierre:** la matriz de cinco viewports del tablero construido quedó
+corriendo al cerrar la vuelta; lo verificado aquí es el viewport 1440x1000. La
+iteración 15 recoge su resultado.
 
 ### Nota de la iteración 13
 
