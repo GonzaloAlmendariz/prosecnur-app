@@ -1162,8 +1162,23 @@ async function runCaptures(opts, stack) {
           }
         }
         for (const tab of opts.clickTabs) {
+          // Un `--click-tab` que cambia de módulo no es un click en pestaña: es
+          // el matcher pescando otra cosa. Pasó de verdad —`--click-tab "Hojas"`
+          // en el editor de formularios cazó «Hojas de ruta» del rail de
+          // módulos— y la corrida siguió, midió la pantalla equivocada y
+          // reportó `ok=true`. Un falso verde vale menos que un rojo: si el
+          // pathname cambia, se corta.
+          const rutaAntes = new URL(page.url()).pathname;
           await clickNamedControl(page, tab, opts.timeoutMs);
           await cederRenderDeTransicion(page);
+          const rutaDespues = new URL(page.url()).pathname;
+          if (rutaDespues !== rutaAntes) {
+            throw new Error(
+              `El click en "${tab}" cambió de ruta (${rutaAntes} → ${rutaDespues}). ` +
+              "Eso no es una pestaña: el texto colisiona con un destino de navegación. " +
+              "Usa --ir con la dirección canónica, o una etiqueta que no colisione.",
+            );
+          }
           const tabReadiness = await esperarListo(page, opts.timeoutMs);
           if (!tabReadiness?.listo) {
             throw new Error(
