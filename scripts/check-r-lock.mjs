@@ -266,10 +266,24 @@ export function runRLockAudit(repoRoot) {
         if (trimmed) excluded.push(trimmed)
       }
     }
+    // Un job puede nombrar sus contratos por patrón (`ui-quick-check-*.test.mjs`)
+    // en vez de uno a uno. Se reconocen ambas formas: listar archivo por archivo
+    // hacía que cada test nuevo de una familia naciera fuera de su job hasta que
+    // alguien lo notara, que es el fallo que este gate existe para impedir.
+    // `*.test.mjs` a secas es el glob general del job por defecto, y matchearía
+    // todo: se descarta aquí porque su cobertura se decide más abajo contra la
+    // lista de exclusión. Dejarlo entrar volvía el gate incapaz de fallar.
+    const referencias = [...qualityText.matchAll(/scripts\/tests\/([A-Za-z0-9_*-]+\.test\.mjs)/g)]
+      .map((match) => match[1])
+      .filter((referencia) => referencia !== '*.test.mjs')
+    const cubrePorReferencia = (file) => referencias.some((referencia) => {
+      if (!referencia.includes('*')) return referencia === file
+      const patron = new RegExp(`^${referencia.split('*').map((parte) => parte.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`)
+      return patron.test(file)
+    })
     for (const file of suiteFiles) {
-      const namedExplicitly = qualityText.includes(`scripts/tests/${file}`)
       const coveredByGlob = globPresent && !excluded.some((token) => file.includes(token))
-      if (!namedExplicitly && !coveredByGlob) {
+      if (!cubrePorReferencia(file) && !coveredByGlob) {
         errors.push(`.github/workflows/quality.yml: scripts/tests/${file} no corre en ningún job`)
       }
     }
