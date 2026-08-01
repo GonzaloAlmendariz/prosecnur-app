@@ -12,6 +12,25 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.6.2",
+    date: "2026-08-01",
+    highlights: [
+      "Monitoreo telefónico: una hoja de barrido que trae varios actores en una sola columna vuelve a repartir el universo entre ellos. Antes no atribuía las filas a ninguno y los dos actores quedaban en universo 0.",
+      "Monitoreo telefónico: el botón Avance vuelve a leer las hojas de Google. Se caían del refresco, así que el barrido quedaba sin actualizar y el estudio entero se mostraba sin base, con universo 0 y brechas «S/M», igual que uno recién conectado.",
+      "Monitoreo telefónico: las metas de cuota se escriben completas y se confirman al final. Cada tecla guardaba y recalculaba, de modo que teclear «80» dejaba sedimentado el «8» del camino y borrar el campo lo devolvía a 0. Ahora los cambios se acumulan en un borrador, una franja dice cuántos esperan confirmación, y el recálculo ocurre una sola vez. Descartar vuelve a lo guardado.",
+      "Monitoreo telefónico: el equipo se cuenta por personas y no por asignaciones, tanto en los estados por encuestador como en las tarjetas de producción. Quien cubría dos componentes aparecía dos veces, así que un equipo de cuatro se reportaba como ocho y una carga pareja de 46, 46, 45 y 46 se leía como 40 y 6. Los porcentajes se recalculan sobre los totales de cada persona, no se promedian entre sus filas.",
+      "Fuentes: el catálogo de formularios de Kobo consulta el servidor de la cuenta conectada. Con una cuenta en servidor propio el token viajaba al servidor público y volvía un error de credenciales, cuando lo que estaba mal era la dirección.",
+    ],
+  },
+  {
+    version: "0.6.1",
+    date: "2026-08-01",
+    highlights: [
+      "Monitoreo: un estudio recién abierto conecta sus fuentes desde el primer día. La pantalla de Fuentes exigía un corte ya sincronizado, y el corte sale justamente de sincronizar: un proyecto nuevo veía «0/3 · Sin corte» y un panel vacío en el lugar del botón de conectar. Las pantallas sin datos traen ahora la cifra de este proyecto y la puerta a donde se resuelve.",
+      "Editor de formularios: un nombre de formulario o una ruta de exportación sin espacios deja de salirse de su caja. El conmutador recorta el nombre largo y lo muestra completo al posar el cursor, y el detalle del aviso quiebra la ruta dentro de la ventana.",
+    ],
+  },
+  {
     version: "0.6.0",
     date: "2026-07-31",
     highlights: [

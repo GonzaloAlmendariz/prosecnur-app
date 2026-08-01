@@ -9202,6 +9202,55 @@
   opacity: 0.5;
 }
 
+/* Ajustar metas y confirmarlas son dos actos: esta franja es el segundo. Solo
+ * aparece cuando hay metas tocadas sin confirmar, así que su ausencia es la
+ * señal de que lo que se ve en pantalla es lo que está calculado. */
+.mon-phone-quota-editor-confirm {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 26%, #fff);
+  padding: 8px 10px;
+}
+
+.mon-phone-quota-editor-confirm > span {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.mon-phone-quota-editor-confirm > div {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.mon-phone-quota-editor-confirm button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--phone-quota-editor-accent) 24%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: #fff;
+  color: var(--phone-quota-editor-accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  padding: 6px 10px;
+}
+
+.mon-phone-quota-editor-confirm button.is-primary {
+  border-color: var(--phone-quota-editor-accent);
+  background: var(--phone-quota-editor-accent);
+  color: #fff;
+}
+
 .mon-phone-quota-editor-list {
   min-width: 0;
   display: grid;
