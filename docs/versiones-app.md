@@ -52,7 +52,7 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 ## Version actual
 
 Estamos en `0.6.1` (corte `0.6.1`), preparada para publicarse como `v0.6.1`.
-El ADR 0055 retiro del canal `stable` la exigencia de firma de distribucion y
+El ADR 0056 retiro del canal `stable` la exigencia de firma de distribucion y
 los payloads de updater de macOS, que el repositorio no puede producir sin
 certificados, de modo que el corte vuelve a publicarse por push del tag. Los
 instalables salen sin firmar: SmartScreen advierte en Windows y Gatekeeper
@@ -62,6 +62,6 @@ ADR 0054, que ya no hace falta repetir.
 
 La serie `3.x` del historial no es la linea de versionado del producto: nacio
 de nombrar «Corte 3.1» a la version `0.3.1` y quedo como siete tags publicados
-entre junio de 2026. El ADR 0053 la declara deuda historica cerrada y la
+entre junio de 2026. El ADR 0056 la declara deuda historica cerrada y la
 excluye del calculo de monotonicidad, de modo que la serie vigente sigue
 siendo `0.x`.

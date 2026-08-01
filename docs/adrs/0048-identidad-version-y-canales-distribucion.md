@@ -1,6 +1,6 @@
 # ADR 0048: Identidad de versión y canales de distribución
 
-Estado: Aceptado
+Estado: Reemplazado por 0056
 
 Implementacion: En curso
 
@@ -11,6 +11,11 @@ Fecha de decision: 2026-07-30
 Reemplaza: —
 
 Extiende: —
+
+> Nota (2026-08-01): el ADR 0056 consolida en un solo documento la mecanica
+> de publicacion que estaba repartida entre los ADRs 0048, 0053, 0054 y 0055.
+> Este texto se conserva como registro de la decision y su fecha; para saber
+> como se publica hoy, ver [0056](0056-como-se-publica-prosecnur.md).
 
 ## Contexto
 

@@ -86,7 +86,7 @@ test('preview acepta las cuatro superficies operativas y advierte notas GitHub d
 
   assert.equal(result.ok, true)
   assert.equal(result.currentVersion, '0.5.19')
-  // v3.4.2 es legacy (ADR 0053): sigue existiendo como tag, pero no cuenta
+  // v3.4.2 es legacy (ADR 0056): sigue existiendo como tag, pero no cuenta
   // para monotonicidad, así que el máximo comparable es la serie vigente.
   assert.equal(result.maxTag, 'v0.5.19')
   assert.equal(result.recommendedVersion, '1.0.0')
@@ -96,7 +96,7 @@ test('preview acepta las cuatro superficies operativas y advierte notas GitHub d
   assert.match(result.warnings.find(({ code }) => code === 'GITHUB_NOTES_MISMATCH').message, /0\.5\.16/)
 })
 
-test('la exclusión legacy no tapa un tag ajeno a la lista del ADR 0053', (t) => {
+test('la exclusión legacy no tapa un tag ajeno a la lista del ADR 0056', (t) => {
   // Falsabilidad de la exclusión: un 4.1.0 que NO está en LEGACY_RELEASE_TAGS
   // debe seguir bloqueando el corte. Si esta prueba pasara a verde, la
   // exclusión habría dejado de ser una lista cerrada y estaría filtrando por
@@ -182,7 +182,7 @@ test('prepare diagnostica notas desfasadas, versión no monótona y tag ocupado'
   assert.ok(codes(result.errors).includes('GITHUB_NOTES_MISMATCH'))
   assert.ok(codes(result.errors).includes('CURRENT_NOT_ABOVE_TAGS'))
   assert.ok(codes(result.errors).includes('TARGET_TAG_EXISTS'))
-  // Se recomienda sobre la serie vigente, no sobre el legacy 3.x (ADR 0053).
+  // Se recomienda sobre la serie vigente, no sobre el legacy 3.x (ADR 0056).
   assert.equal(result.recommendedVersion, '1.0.0')
 })
 
@@ -204,7 +204,7 @@ test('stable pasa cuando las cinco superficies coinciden y el tag máximo propio
 })
 
 test('stable excluye su propio tag, pero exige superar todos los demás', (t) => {
-  // La versión anterior de esta prueba usaba v3.4.1 y v3.4.2, que el ADR 0053
+  // La versión anterior de esta prueba usaba v3.4.1 y v3.4.2, que el ADR 0056
   // volvió legacy: al quedar ambos fuera de la comparación no había nada que
   // superar y la prueba pasaba por vacío. Se rehace sobre la serie vigente,
   // que es donde la monotonicidad sigue siendo estricta.
@@ -339,7 +339,7 @@ test('el workflow separa preview interno de publicación stable y falla cerrado'
   assert.doesNotMatch(macPreview, /latest-mac\.yml|\.blockmap|\.zip/)
   assert.doesNotMatch(workflow, /continue-on-error/)
   assert.equal((workflow.match(/contents:\s*write/g) ?? []).length, 1)
-  // El ADR 0055 retira la firma de distribucion y los payloads de updater de
+  // El ADR 0056 retira la firma de distribucion y los payloads de updater de
   // macOS: exigirlos dejaba `stable` inalcanzable por construccion, no por un
   // defecto del build. Se afirma su AUSENCIA, y no solo se borra la afirmacion
   // contraria, para que reintroducirlos sin certificados vuelva a romper aqui
@@ -347,7 +347,7 @@ test('el workflow separa preview interno de publicación stable y falla cerrado'
   assert.doesNotMatch(workflow, /osslsigncode/)
   assert.doesNotMatch(workflow, /codesign --verify/)
   assert.doesNotMatch(workflow, /Authority=Developer ID Application/)
-  assert.match(workflow, /ADR 0055/)
+  assert.match(workflow, /ADR 0056/)
   // macOS ausente avisa pero no falla: es best-effort. Se exige que AVISE, para
   // que un release sin DMG no pase inadvertido en el log.
   assert.match(workflow, /::warning::Release sin los dos DMG de macOS/)
@@ -374,7 +374,7 @@ test('precheck reusa Quality del mismo SHA sin abrir un canal sin gate', () => {
   // Los dos builds SIGUEN detras del gate. Desengancharlos para ganar
   // paralelismo dejaria `internal-preview` sin verificacion alguna: ahi no
   // corre `publish`, que es el unico job que comprueba Quality, y los
-  // artefactos de un gate rojo son los que el ADR 0054 manda adjuntar a mano.
+  // artefactos de un gate rojo son los que el ADR 0056 manda adjuntar a mano.
   for (const job of ['build-windows', 'build-mac']) {
     const body = jobOf(job)
     assert.match(body, /needs: \[precheck, quality\]/)
