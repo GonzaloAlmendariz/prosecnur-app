@@ -210,6 +210,7 @@ import "./telefonicoProfile.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { MetaCuotaInput } from "./MetaCuotaInput";
 import { resumenDeEquipo } from "./conteoDeEquipo";
+import { fusionarResponsablesPorPersona } from "./fusionDeResponsables";
 import {
   aplicarMetasPendientes,
   etiquetaDeConfirmacion,
@@ -4938,7 +4939,15 @@ function mergeAcreditacionPhoneResponsibleRows(...rowGroups: Array<Array<Record<
     byResponsible.set(key, current);
   });
 
-  return Array.from(byResponsible.values()).map((row) => {
+  // Segunda pasada: lo de arriba junta columnas complementarias de cuatro
+  // bloques sobre la misma (persona · actor); esto junta a la persona consigo
+  // misma cuando cubre varios actores. Va antes del recálculo para que los
+  // ratios salgan de los conteos ya sumados. Ver fusionDeResponsables.ts.
+  return fusionarResponsablesPorPersona(
+    Array.from(byResponsible.values()),
+    (row) => normalizeSourceMatch(phoneResponsibleBaseName(row)),
+    (row) => phoneResponsibleActorName(row),
+  ).map((row) => {
     const metrics = phoneResponsibleMetrics(row);
     if (metrics.assigned != null && metrics.unswept != null && metrics.swept == null) row.Barridos = Math.max(0, metrics.assigned - metrics.unswept);
     if (metrics.swept != null && metrics.nonEffective != null && metrics.incidencePct == null) {
