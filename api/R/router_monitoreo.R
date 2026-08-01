@@ -2148,6 +2148,12 @@
       parsed$codigo_pucp_label %||%
       parsed$codigoPucpLabel %||%
       "",
+    # El actor de cada fila puede venir de una columna en vez de una constante:
+    # una hoja de barrido con varios actores no se puede expresar con
+    # `dimensions`, que es escalar. Ver monitoreo_source_dimension_vars.R.
+    actor_var = parsed$actor_var %||% parsed$actorVar %||%
+      parsed$actor_column %||% parsed$actorColumn %||% "",
+    dimension_vars = parsed$dimension_vars %||% parsed$dimensionVars %||% list(),
     dimensions = parsed$dimensions %||% parsed$dimensiones %||% list(
       actor = parsed$actor %||% "",
       servicio = parsed$servicio %||% "",
@@ -5018,7 +5024,9 @@ mount_monitoreo <- function(pr) {
       }
       sources <- Filter(function(src) !identical(.monitoreo_scalar(src$role, ""), "ocurrencias_campo"), sources)
       if (.monitoreo_sync_mode_is_advance(sync_mode)) {
-        sources <- Filter(function(src) .monitoreo_scalar(src$kind, "") %in% c("surveymonkey", "kobo"), sources)
+        # Espejo de fuentesSincronizables.ts: en telefónico el avance también
+        # lee las hojas de universo y barrido. Ver monitoreo_sync_fuentes.R.
+        sources <- monitoreo_fuentes_avance(sources, monitoreo_config_family(s$monitoreo_config))
       }
       if (!length(sources)) {
         message <- if (.monitoreo_sync_mode_is_advance(sync_mode)) {
