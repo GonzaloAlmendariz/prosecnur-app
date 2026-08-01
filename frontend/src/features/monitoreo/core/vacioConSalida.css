@@ -1,0 +1,32 @@
+/* Vacío que ofrece una salida. Ver `VacioConSalida.tsx`.
+ *
+ * Hoja propia y no `profilePage.css`: esa está congelada a crecimiento y el
+ * vacío es superficie nueva. Reusa `.mon-profile-empty` para el marco —el mismo
+ * recuadro punteado que el resto de vacíos del módulo— y sólo añade la acción.
+ *
+ * La acción va con el tono del módulo, no reposada como «Cambiar conexión»:
+ * ahí la acción es secundaria frente al volumen de la tarjeta; aquí es lo único
+ * que la pantalla tiene para ofrecer. */
+
+.mon-vacio-con-salida__accion {
+  margin-top: 4px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 34%, var(--pulso-border));
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, var(--pulso-surface));
+  color: var(--pulso-module-monitoring);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.mon-vacio-con-salida__accion:hover {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 14%, var(--pulso-surface));
+}
+
+.mon-vacio-con-salida__accion:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--pulso-module-monitoring) 60%, transparent);
+  outline-offset: 2px;
+}
