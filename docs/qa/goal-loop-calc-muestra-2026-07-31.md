@@ -178,9 +178,9 @@ trabajando en lo desbloqueado.
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
-| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 12 grupos conformes en cuatro destinos de I7; 7 candidatos sin declaración concentrados en Radiografía de CH, por confirmar | ↑ con cobertura conforme |
+| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 16 grupos conformes en los cuatro destinos de I7; Radiografía de CH aporta 5 por viewport y el guard final suma 15 auditorías, 0 misses/issues | ↑ con cobertura conforme |
 | Navegaciones canónicas Marco/Aulas que aterrizan arriba tras forzar el owner origen | por medir; I0-O1 sin secuencia reproducible | 13 de 13 navegaciones nuevas + 1 de 1 POP en 1710×1107; reset desde primer frame y estable | = 100 % |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 2 observaciones por confirmar (I0-O2 e I7-O3); N9, I0-O1, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 1 observación por confirmar (I0-O2); N9, I0-O1, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7, I3-H8 e I7-O3 cerrados | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -190,7 +190,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | ID | Frente | Hallazgo | Estado / evidencia |
 |---|---|---|---|
 | N9 | F0 | Marco publica dos instantáneas no reconciliadas de CH elegibles (2.265 y 2.373 en `hsvg2026`) | **resuelto I1**: owner, perfil, audit y exploración del fixture vigente cuadran en 2.373; un payload legacy contradictorio queda en S/D + reconstrucción; D1 sigue abierta |
-| I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | **cerrado I1**: 30 grupos medidos en cinco viewports, 0 misses y 0 issues |
+| I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | **cerrado I1 en su alcance de Criterios**: 30 auditorías en cinco viewports, 0 misses/issues; el hueco distinto de Radiografía quedó separado como I7-O3 y cerrado I8 |
 | I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | **cerrado I6**: piso de 240 px, tier 1100 y wrap normal eliminan cortes; el compuesto conserva texto/ARIA y solo admite quiebres tras sus comas |
 | I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | **cerrado I2**: Datos queda con 3 pestañas y Marco con 6; Consistencia tiene un único hogar, el sexto de Marco |
 | I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | **cerrado I5**: Selección conserva seis hogares vivos, la dirección publicada reemplaza a `marco/marco-aulas` y Sustento recibe guard, fecha y respaldo sin mezclar versiones |
@@ -200,7 +200,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I3-H8 | F3 / C5 | El gauge conserva umbrales React 70 %/90 % y una zona «sólido» ajenos al `status` de R | **cerrado I3**: barra puramente descriptiva, tono del audit y regresión que prohíbe ticks, escala y zonas semánticas locales |
 | I0-O1 | F2 / navegación | Marco y Aulas pueden conservar scroll inicial al navegar por `--ir` en 1710×1107 | **cerrado I7**: el baseline confirmó 661 px heredados en Marco; el owner real se resetea pre-paint y el guard final pasa 13/13 navegaciones nuevas + POP |
 | I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | por medir con rectángulos; no suma FAIL en iteración 0 |
-| I7-O3 | F1 / guard C1 | Radiografía de CH expone siete candidatos geométricos sin `data-qa-geometry-group` | por confirmar; 1 grupo declarado conforme y 7 misses de cobertura en 1710×1107, sin issue geométrico probado todavía |
+| I7-O3 | F1 / guard C1 | Radiografía de CH expone siete candidatos geométricos sin `data-qa-geometry-group` | **cerrado I8**: 4 colecciones reales declaran contrato `intrinsic`; controles envueltos, badges y leyenda quedan excluidos por semántica, no por opt-out; 3 viewports, 15 auditorías, 0 misses/issues |
 
 ## Bandeja de decisiones (solo Gonzalo)
 
@@ -214,13 +214,14 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | # | Fecha | Frente | Qué se hizo | Evidencia | Ledger movido |
 |---|---|---|---|---|---|
 | 0 | 2026-07-31 | F0–F4 · baseline | Se midieron estructura, contratos parciales, orden de las 24 pestañas y las cinco secciones reales de `hsvg2026`; no se tocó producto | `wc`/`rg` con `archivo:línea`; revisión metodológica 24/24; `ui-quick-check --require-geometry` 25/25 en el bundle `prosecnur-visual-iter0` (PASS 20, FAIL 5 por C1 en Marco, demás contadores duros en 0) | F3: por auditar → 20/24 justificadas; geometría: por medir → 4 locales; contratos: se reconoció 1 parcial probado; hallazgos: 1 → 7 + 2 observaciones |
-| 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; bundle final `prosecnur-visual-iter1-final-r3/marco/report.json` 5/5 PASS, 30 grupos, 0 misses/issues/errores | N9: 1 → 0 cifras sin dueño; geometría Marco: 20 → 0 misses; hallazgos abiertos: 7 + 2 → 5 + 2, con N9 e I0-H1 cerrados |
+| 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; `prosecnur-visual-iter1-final-r3/marco/report.json` acreditó Criterios 5/5, 30 auditorías y 0 misses/issues; la revisión I8 dejó explícito que el reporte hermano de Radiografía seguía rojo con 35 misses | N9: 1 → 0 cifras sin dueño; geometría de Criterios: 20 → 0 misses; N9 e I0-H1 cerrados en ese alcance. El hueco de Radiografía no se contabilizó entonces y queda cerrado aparte en I8 |
 | 2 | 2026-08-01 | F3/I0-H3 + I0-H6 | Se devolvió `def-consistencia` al final de Marco en catálogo, sidebar, render y bóveda; la URL antes publicada y el alias histórico se leen como parejas explícitas y se reemplazan por `marco/def-consistencia`, sin inferir sección desde un tab suelto | regresión 10 rojas/20 verdes → 30/30; suite 2.805/2.805 y typecheck verdes; bóveda sin V1/V3; contrato aprobado y método aprobado con I2-H7 separado; bundle `prosecnur-visual-iter2-final/runtime-probe/report.json` 3/3 PASS, 3 grupos, 0 misses/issues/errores/scroll/overflow | F3: 20/24 → 21/24; H3 y H6 cerrados; hallazgos 5 + 2 → 4 + 2 al incorporar H7 |
 | 3 | 2026-08-01 | F3/guard I2-H7 + C5/I3-H8 | Se tipó el audit existente y se congeló una decisión compartida por sidebar/panel: sin frame `pending`, dos bases solo `ready` con `used===true/status=ok` sin incidencias y toda contradicción falla cerrada; el panel dirige a Datos → Marco → Diseño, la bóveda replica el contrato y el gauge quedó descriptivo, sin umbrales React | regresión principal 31 rojas/29 verdes → 60/60; guard C5 1 roja/17 verdes → 23/23; suite 2.839/2.839, typecheck, 118/118 R, bóveda y diff-check verdes; método y contrato aprobados; bundle `prosecnur-visual-iter3-final-delta/runtime-probe/report.json` 2/2 PASS, 2 grupos y todos los contadores duros en 0 | I2-H7 e I3-H8 cerrados; hallazgos abiertos 4 + 2 → 3 + 2; F3 se mantiene 21/24 porque el guard no mueve pestañas |
 | 4 | 2026-08-01 | F3/I0-H5 | Se ordenó Salida como Cierre → Tablas → Entregables → Pase en catálogo, estados y render, sin cambiar identidades ni deep-links; se alinearon inventario, bóveda e índice generado con los movimientos Tablas `03→02` y Entregables `02→03` | regresión causal 2 fallos/7 pruebas → foco de navegación 34/34; suite 339 archivos y 2.840/2.840 pruebas, typecheck, bóveda y diff-check verdes; método y contrato aprobados; bundle `prosecnur-visual-iter4-final/runtime-probe/report.json` 8/8 PASS, C1–C5, 16 grupos y todos los contadores duros en 0 | F3: 21/24 → 23/24; I0-H5 cerrado; hallazgos abiertos 3 + 2 → 2 + 2 |
 | 5 | 2026-08-01 | F3/I0-H4 | Se retiró el hogar duplicado `aulas/marco`; la pareja histórica reemplaza a `marco/marco-aulas`; Selección abre en Objetivo y conserva seis gates; fecha, respaldo y firmas histórica/vigente quedaron separados en Sustento; bóveda y manifiesto se renumeraron sin cambiar ids vivos | regresión de retiro 9 fallos/61 pruebas → 61/61; veto metodológico del sello 2 fallos/8 → 8/8; veto visual C1 1 fallo/9 → 9/9; veto del verificador a CSS posicional 1 fallo/10 → 10/10; foco final 65/65, suite 340 archivos y 2.857/2.857, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; método, contrato y verificador serial aprobados; A/B 4/4 PASS en el bundle `prosecnur-visual-iter5-final/runtime-probe/report.json` y C final 2/2 PASS en `prosecnur-visual-iter5-final-typography/report.json`, 14 grupos finales y todos los contadores duros en 0 | F3 histórico: 23/24 → 24/24 y vivo 23/23; Aulas F2 cambia denominador 7 → 6 vivas; I0-H4 cerrado; hallazgos 2 + 2 → 1 + 2 |
 | 6 | 2026-08-01 | F1/F2/I0-H2 | Se amplió la capacidad de las categorías planas, se congeló la cascada 1350→1100→620 y se retiró `anywhere` solo de sus rótulos; el rótulo compuesto conserva texto y nombre accesible e incorpora oportunidades de corte únicamente después de sus seis comas | guard CSS 3 fallos/3 verdes → 6/6; veto visual C3 → regresión semántica 1 fallo/6 verdes → 7/7; foco 108/108, suite 340 archivos y 2.861/2.861, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter6-final-wbr/report.json` 7/7 PASS, columnas 6/5/4/4/3/3/2, 0/217 rótulos partidos, 42 grupos y todos los contadores duros en 0; el veto documental posterior corrigió índice, `Fecha` y portabilidad: 21/21 tests y árbol propuesto 196/196, 0 errores | I0-H2 cerrado; hallazgos abiertos 1 + 2 → 0 + 2; F1/F2 conservan sus denominadores porque la iteración cierra un defecto, no acredita una radiografía ni un revamp completo |
 | 7 | 2026-08-01 | F2/I0-O1 | Se identificó `.cmv2-tab-panel` como owner único, se le dio un ref local y se resetea pre-paint al cambiar sección o pestaña; se retiraron los dos RAF muertos sobre `.cmv2-main`, sin mover foco ni alterar navegación/historial | runtime rojo Marco 661→661; guard fuente 3 fallos→3/3; foco estructural 9/9; suite 341 archivos y 2.864/2.864, typecheck, bóveda (201/206) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter7-final/report.json`: 13/13 navegaciones nuevas + POP PASS, owner en 0 desde rAF, sin salto a +600 ms ni errores duros | Navegación pasa de observación sin denominador a 13/13 + POP; I0-O1 cerrado. I7-O3 entra como observación separada, por lo que hallazgos agregados quedan 0 + 2; geometría expone 7 misses de cobertura sin promoverlos a FAIL |
+| 8 | 2026-08-01 | F1/I7-O3 | Se auditó la Radiografía de CH 7×3: cuatro colecciones reales recibieron C1 `intrinsic`; el detector aprendió a excluir controles envueltos y átomos `span` inline, incluida su blockification como flex-item, sin opt-out ni clases locales. Pasos poseen su capacidad; decisiones solo declaran membresía | historia causal: I1 ya tenía 35 misses; detector 7→4 y fuente 3/3 rojos → detector 5/5, fuente 3/3 y foco 21/21 verdes; suite 342 archivos y 2.867/2.867, typecheck, bóveda 201/206 y diff-check verdes. Un veto visual capturó blockification (6 misses) y un veto contractual impidió ocultar `span-flex+input`; ambos ganaron regresión. Bundle final `prosecnur-visual-iter8-final-r3`: 3/3, 15 auditorías, 0 misses/issues/errores, 51/51 headers y 12/12 últimos miembros | I7-O3 cerrado; geometría pasa de 12 grupos + 7 candidatos a 16 grupos conformes y 0 misses en el alcance; hallazgos abiertos 0 + 2 → 0 + 1. I0-O2 queda como única observación; D1/D2 intactas |
 
 ### Contrato de iteración 0
 
@@ -243,14 +244,14 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **8 — F1/I7-O3, confirmar o cerrar los siete
-candidatos geométricos sin C1 de Radiografía de CH**. No quedan defectos
-confirmados; O3 pasa delante de O2 porque un hueco de cobertura puede hacer verde
-el guard por ausencia precisamente en una radiografía estadística de Marco. Se
-clasificarán los siete candidatos por colección/owner/capacidad y solo los grupos
-semánticos reales recibirán contrato y guard; no se anotarán wrappers para
-maquillar el contador. O2 permanece en cola para la siguiente rotación. D1 y D2
-siguen abiertas; no se añadió una decisión nueva.
+**Siguiente iteración programada:** **9 — F2/I0-O2, confirmar o cerrar la
+capacidad exterior amplia de Aulas y Salidas en escritorio grande**. No quedan
+defectos confirmados y O2 es la única observación abierta. Se medirán primero
+rectángulos, contenido alcanzable y owner de capacidad en 1710×1107, 1440×1000
+y 1280×800, separando vacío exterior legítimo de panel inflado; no se hará un
+revamp por intuición. Si aparece dato/estadístico en la superficie, F0 gatea
+cualquier cambio funcional. D1 y D2 siguen abiertas; no se añadió una decisión
+nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -297,8 +298,11 @@ siguen abiertas; no se añadió una decisión nueva.
   frame contradictorio o no verificable muestra S/D y reconstrucción. N9 e
   I0-H1 quedan cerrados con regresión y evidencia visual comparable.
 - **Validación ejecutada:** 191/191 R; 2.797/2.797 frontend; typecheck y
-  diff-check verdes; revisiones contractual y metodológica aprobadas; r3 5/5
-  PASS con 30 grupos, 0 misses/issues y todos los contadores duros en cero.
+  diff-check verdes; revisiones contractual y metodológica aprobadas. El r3
+  citado para el cierre fue `marco/report.json`, Criterios del estudiante: 5/5
+  PASS con 30 auditorías, 0 misses/issues y contadores duros en cero. La revisión
+  histórica de I8 deja explícito que `radiografia/report.json`, generado en la
+  misma corrida, conservaba 35 misses y `ok=false`; era otro alcance C1.
 - **Siguiente acción:** iteración 2, F3/I0-H6 — diagnosticar por qué el alias
   cross-section resuelve el id pero conserva la sección equivocada, fijar una
   regresión de dirección y reparar la primera divergencia sin bundlear las
@@ -928,6 +932,140 @@ siguen abiertas; no se añadió una decisión nueva.
 - **Siguiente acción:** iteración 8, F1/I7-O3 — medir los siete candidatos de
   Radiografía de CH por rectángulo, cardinalidad, owner y capacidad, contrastar
   el cierre I0-H1 y decidir cuáles son colecciones C1 reales antes de editar.
+
+### Contrato de iteración 8 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F1/I7-O3, gobernada por C1 del Contrato de
+  Superficie y por la geometría real de `hsvg2026` en dirección canónica
+  `calc-muestra/marco/marco-ch-radiografia`. Una colección semántica repetida
+  debe declarar grupo, columnas y cardinalidad; un wrapper, una composición
+  narrativa o un único bloque no se convierte en grupo solo para subir cobertura.
+- **Pregunta causal congelada:** determinar si los siete candidatos reportados
+  por el probe de I7 son colecciones C1 sin contrato, o falsos positivos del
+  detector por descendientes/estructuras internas. La observación no se promueve
+  a defecto antes de identificar cada nodo, sus hermanos, su layout y su dueño.
+- **Matriz de auditoría:** para cada candidato registrar selector estable y
+  componente fuente; rectángulos de todos sus hijos visibles; cardinalidad;
+  `display`, columnas efectivas, gap, wrap y overflow; owner de capacidad;
+  etiqueta/rol semántico; relación con el grupo declarado existente; y estado
+  en 1710×1107, 1280×800 y 390×844. Contrastar además las reglas y el cierre de
+  I0-H1 para no reabrir una geometría ya acreditada con otro denominador.
+- **Criterio de clasificación:** `MISS_REAL` solo si hay al menos dos ítems
+  semánticamente pares que comparten layout/capacidad y carecen de contrato C1;
+  `NO_GRUPO` si es wrapper, bloque singular, pareja etiqueta-valor, composición
+  anidada o detector duplicado; `ISSUE` solo si la medición demuestra además
+  corte, colisión, overflow o capacidad injustificada. Cada caso debe tener
+  evidencia fuente + runtime, no inferencia por nombre de clase.
+- **Archivos previstos en la fase de auditoría:** únicamente este ledger. Los
+  runners, reportes y capturas viven en un bundle temporal portable. Si aparece
+  un `MISS_REAL`, se cerrará primero un delta de scope con el componente dueño y
+  una regresión C1 exacta; no se toca producto con esta lista todavía abierta.
+- **Peaje estructural:** localizar la frontera componente→colección→layout antes
+  de proponer anotaciones. Está prohibido declarar wrappers para satisfacer el
+  contador, duplicar ownership, mover cálculo estadístico a React o agrandar
+  `aulasParts.tsx`. Si un candidato contiene datos/estadísticos, F0 gatea cualquier
+  cambio funcional: esta iteración solo puede contratar su geometría existente.
+- **Exclusiones explícitas:** I0-O2/revamp de capacidad exterior, D1/D2,
+  navegación y scroll ya cerrados, engine R y payloads, persistencia/.pulso,
+  catálogos F3, CSS global, `aulasParts.tsx`, puerto 8787 y el prompt no rastreado
+  del usuario.
+- **Riesgo principal:** gamificar C1 agregando metadatos a falsos grupos, o
+  concluir ausencia de defecto con una sola captura grande. La auditoría exige
+  tres viewports, fuente, rectángulos de hijos y dueño de capacidad.
+- **Baseline de checks:** `5c6d82c1`; post-I7 no hay cambios rastreados y el
+  único path ajeno es `docs/qa/prompt-goal-loop-calc-muestra.md` como `??`.
+  I7 dejó 1 grupo declarado conforme y 7 candidatos sin declaración, sin issue
+  geométrico demostrado.
+- **Primera divergencia:** no nació en I7. El bundle contemporáneo de I1
+  `prosecnur-visual-iter1-final-r3/radiografia/report.json` ya tenía 35 misses
+  —los mismos siete por cinco viewports— y `ok=false`; I1 cerró citando solo el
+  reporte vecino verde `marco/report.json` de Criterios del estudiante y
+  generalizó el resultado a todo Marco. Ninguno de los cinco componentes ni el
+  detector cambió entre `09fb8560` y este baseline. I7 hizo visible un hueco de
+  integración del gate, no una regresión reciente del producto.
+- **Clasificación 7/7 congelada:** son `MISS_REAL` la pareja de tarjetas
+  `.cmv2-chfp-global-grid`, los dos pasos `.cmv2-crit-pasos`, los 17 acordeones
+  `.cmv2-chfp-bloques` y las seis superficies `.cmv2-chfp-decision > section`.
+  Son `NO_GRUPO` los dos `label` que envuelven inputs, los badges inline y la
+  leyenda de condición. El detector sobreincluye esos tres porque solo excluye
+  controles interactivos directos y firma cualquier par `tag + clases`.
+- **Baseline visual:** el bundle `prosecnur-visual-iter8-c1` reproduce siete
+  misses en cada uno de 1710×1107, 1280×800 y 390×844 (21 total), con tres
+  grupos declarados, 0 issues geométricos/visuales, 0 scroll-jails, 0 overflow
+  global y 0 errores. El probe 3×7 confirma los cuatro contratos `intrinsic`,
+  últimos miembros alcanzables y 0 cortes/overflow/colisiones. El aparente
+  solape móvil del header de facultad quedó falsado: 0/17 intersecciones y
+  0/17 overflow en los tres viewports.
+- **Contrato de reparación:** declarar únicamente cuatro grupos:
+  `calc-muestra/criterios-ch-globales`,
+  `calc-muestra/composicion-ch-pasos`, `calc-muestra/facultades-ch` y
+  `calc-muestra/decision-ch-facultad`, todos `intrinsic`. Los pasos llevan
+  miembro explícito y `capacity="owned"`; el grupo mixto de decisión audita solo
+  sus `section` mediante miembros explícitos. El detector excluye un `label`
+  únicamente cuando envuelve un control interactivo y excluye conjuntos de
+  átomos `span` con display inline/inline-block/inline-flex sin descendientes
+  estructurales; un `li` o una tarjeta con controles descendientes sigue siendo
+  candidato. No se añade opt-out al markup ni se anota un falso grupo.
+- **Delta exacto autorizado:** `scripts/ui-quick-check.mjs`,
+  `scripts/tests/ui-quick-check-geometry.test.mjs`,
+  `frontend/src/features/calcMuestra/universidad/marco/CursosHorarioBaseGlobal.tsx`,
+  `frontend/src/features/calcMuestra/universidad/criterios/CriterioComposicionCard.tsx`,
+  `frontend/src/features/calcMuestra/universidad/marco/CursosHorarioMarcoTab.tsx`,
+  `frontend/src/features/calcMuestra/universidad/marco/FacultadDecisionBloque.tsx`,
+  `frontend/src/features/calcMuestra/universidad/marco/AulasFinalesCard.tsx`, una
+  regresión nueva
+  `frontend/src/features/calcMuestra/universidad/marco/__tests__/CursosHorarioGeometry.contract.test.ts`
+  y este ledger. CSS permanece excluido porque la auditoría no encontró issue.
+- **Guard rojo previsto:** el fixture del detector debe pasar de siete
+  candidatos a cuatro sin ocultar un `li` con controles; hoy sobrecuenta tres.
+  La regresión fuente debe exigir los cuatro nombres/contratos, ownership de
+  los pasos y cuatro definiciones que producen seis `section` runtime; hoy no
+  existe ninguna declaración.
+  El baseline existente pasa 5/5 en el detector y 21/21 en cuatro tests de CH.
+- **Guard rojo y reparación:** la regresión fuente falló 3/3 por cuatro
+  fronteras ausentes, dos pasos sin ownership y cuatro definiciones de decisión
+  sin membresía; el fixture del detector pasó 4/5 y devolvió siete candidatos
+  frente a cuatro. La reparación añade solo metadatos C1 a los cinco componentes
+  y corrige la inferencia general: `label` con control descendiente y grupos de
+  átomos `span` inline no son superficies. Un veto contractual retiró de la
+  prueba `capacity="owned"` para decisiones: sus 50 px son contenido + padding +
+  borde, sin reserva; la ausencia física del atributo queda guardada.
+- **Veto visual y segunda iteración interna:** el primer guard final midió
+  15 grupos y 0 issues, pero dejó seis misses —badges y leyenda, dos por
+  viewport— porque el navegador blockifica `inline-flex` a `flex` dentro de un
+  padre flex. El fixture se corrigió para reproducirlo y volvió a rojo 4/5,
+  seis candidatos frente a cuatro. El detector ahora reconoce esa blockification
+  solo para `span` sin descendientes estructurales bajo padre flex/inline-flex;
+  `article`, `li`, `section` y `span` grid siguen siendo candidatos. El detector
+  vuelve a 5/5 y la regresión fuente a 3/3.
+- **Veto contractual y tercera iteración interna:** la regla blockified todavía
+  podía ocultar una tarjeta real `span` con `display:flex` e input bajo padre
+  flex. El fixture incorporó ese quinto positivo y volvió a rojo 4/5 porque el
+  detector devolvía cuatro frente a cinco. `isInlineSpanAtom` rechaza ahora
+  cualquier descendiente interactivo además del estructural: la tarjeta flex
+  permanece candidata y badges/leyenda siguen fuera. Detector 5/5; contrato
+  final aprobado sin cambio público, ADR ni migración.
+- **Guard visual final:** el bundle `prosecnur-visual-iter8-final-r3` pasa 3/3
+  en 1710×1107, 1280×800 y 390×844, con 15 auditorías (5 por viewport), 0
+  misses/issues/overflow/errores y badges, leyenda y controles presentes pero
+  correctamente fuera de cobertura. El probe focal confirma 51/51 headers sin
+  colisión/overflow y 12/12 últimos miembros alcanzables; URL, cabecera, foco y
+  readiness pasan 3/3; el detector contractual conserva cinco positivos,
+  incluido `span-flex+input`. SHA de copia/canónico permanece estable, proyecto
+  `dirty=false`, 5188 cerrado y 8787/procesos ajenos intactos.
+- **Validación escalada ejecutada:** detector 5/5, regresión fuente
+  3/3, foco existente 21/21, suite frontend 342 archivos y 2.867/2.867,
+  `typecheck`, bóveda 201/206 y `git diff --check` verdes; contrato final
+  aprobado y guard r3 conforme. Gobernanza del árbol propuesto: 196/196
+  documentos, 648 enlaces y 0 errores; verificador serial aprobado.
+- **Resultado:** mejor. I7-O3 queda cerrado: cuatro colecciones reales tienen
+  contrato y tres falsos grupos salen por semántica reproducible, no por opt-out.
+  Radiografía de CH pasa de 1 grupo + 7 candidatos a 5 grupos por viewport y
+  0 misses; el agregado queda 0 confirmados + 1 observación (I0-O2). F0, F2,
+  D1 y D2 no cambian.
+- **Siguiente acción:** iteración 9, F2/I0-O2 — medir capacidad exterior de
+  Aulas y Salidas por rectángulo, contenido alcanzable y owner en tres viewports
+  de escritorio antes de decidir si existe defecto o vacío legítimo.
 
 ## Cómo se corre cada visita
 

@@ -89,11 +89,26 @@ const undeclaredGeometryPageHtml = `<!doctype html>
       main { display: grid; gap: 12px; padding: 16px; }
       .declared-group,
       .undeclared-group,
-      .mixed-variants { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+      .mixed-variants,
+      .undeclared-list,
+      .undeclared-cards,
+      .undeclared-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+      .undeclared-flex-cards { display: flex; gap: 16px; align-items: flex-start; }
       .candidate-card { border: 1px solid #999; padding: 12px; }
       .declared-group > .candidate-card { height: 120px; }
       .undeclared-group > .candidate-card:first-child { height: 110px; }
       .undeclared-group > .candidate-card:last-child { height: 160px; }
+      .candidate-list-row,
+      .candidate-control-card,
+      .candidate-control-section,
+      .candidate-flex-control-card { border: 1px solid #999; padding: 12px; }
+      span.candidate-control-card { display: grid; }
+      span.candidate-flex-control-card { display: flex; gap: 8px; }
+      .false-field-labels { margin: 8px 0; }
+      .false-inline-badges,
+      .false-inline-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+      .candidate-inline-badge,
+      .candidate-inline-legend { display: inline-flex; }
       nav,
       [role="tablist"] { display: flex; gap: 8px; align-items: flex-start; }
       nav > .candidate-card:first-child,
@@ -114,9 +129,37 @@ const undeclaredGeometryPageHtml = `<!doctype html>
         <article class="candidate-card"><div>Declarada dos</div></article>
       </section>
       <section class="undeclared-group">
-        <article class="candidate-card"><div>Candidata corta</div></article>
-        <article class="candidate-card"><div>Candidata alta</div></article>
+        <article class="candidate-card"><label>Candidata corta <input type="checkbox"></label></article>
+        <article class="candidate-card"><label>Candidata alta <input type="checkbox"></label></article>
       </section>
+      <ol class="undeclared-list">
+        <li class="candidate-list-row"><span>Paso uno</span><button type="button">Activar</button></li>
+        <li class="candidate-list-row"><span>Paso dos</span><button type="button">Activar</button></li>
+      </ol>
+      <section class="undeclared-cards">
+        <span class="candidate-control-card"><strong>Umbral uno</strong><input type="number" value="10"></span>
+        <span class="candidate-control-card"><strong>Umbral dos</strong><input type="number" value="20"></span>
+      </section>
+      <div class="undeclared-sections">
+        <section class="candidate-control-section"><button type="button">Criterio uno</button></section>
+        <section class="candidate-control-section"><button type="button">Criterio dos</button></section>
+      </div>
+      <div class="undeclared-flex-cards">
+        <span class="candidate-flex-control-card"><strong>Tarjeta flexible uno</strong><input type="checkbox"></span>
+        <span class="candidate-flex-control-card"><strong>Tarjeta flexible dos</strong><input type="checkbox"></span>
+      </div>
+      <div class="false-field-labels">
+        <label class="candidate-field-label">Mínimo <input type="number" value="10"></label>
+        <label class="candidate-field-label">Máximo <input type="number" value="20"></label>
+      </div>
+      <div class="false-inline-badges">
+        <span class="candidate-inline-badge">Activa</span>
+        <span class="candidate-inline-badge">Heredada</span>
+      </div>
+      <div class="false-inline-legend">
+        <span class="candidate-inline-legend"><span class="legend-key">A</span><span class="legend-label"> Incluida</span></span>
+        <span class="candidate-inline-legend"><span class="legend-key">B</span><span class="legend-label"> Excluida</span></span>
+      </div>
       <nav aria-label="Navegación negativa">
         <a class="candidate-card" href="#uno">Sección uno</a>
         <a class="candidate-card" href="#dos">Sección dos</a>
@@ -527,7 +570,7 @@ test("ui-quick-check follows visible wrappers without crossing clips or nested o
   assert.equal(issues.some((issue) => /\bnested-outer-owner\b/.test(issue.owner.className)), false);
 });
 
-test("ui-quick-check reports one undeclared candidate-card geometry group", async (t) => {
+test("ui-quick-check reports only structural undeclared geometry groups", async (t) => {
   const fixture = await startFixtureServer();
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "prosecnur-ui-geometry-undeclared-"));
   t.after(async () => {
@@ -540,15 +583,25 @@ test("ui-quick-check reports one undeclared candidate-card geometry group", asyn
   const report = JSON.parse(await fs.readFile(path.join(out, "report.json"), "utf8"));
 
   assert.equal(report.summary.geometryGroups, 1);
-  assert.equal(
-    report.summary.geometryCoverageMisses,
-    1,
+  const misses = report.results[0].geometryCoverageMisses;
+  assert.deepEqual(
+    misses.map((miss) => ({
+      type: miss.type,
+      parent: miss.parent.className,
+      variant: miss.variant,
+      count: miss.count,
+    })),
+    [
+      { type: "geometry-undeclared", parent: "undeclared-group", variant: "article.candidate-card", count: 2 },
+      { type: "geometry-undeclared", parent: "undeclared-list", variant: "li.candidate-list-row", count: 2 },
+      { type: "geometry-undeclared", parent: "undeclared-cards", variant: "span.candidate-control-card", count: 2 },
+      { type: "geometry-undeclared", parent: "undeclared-sections", variant: "section.candidate-control-section", count: 2 },
+      { type: "geometry-undeclared", parent: "undeclared-flex-cards", variant: "span.candidate-flex-control-card", count: 2 },
+    ],
     `runner status=${result.status}\n${result.stdout}\n${result.stderr}`,
   );
-  assert.equal(report.results[0].geometryCoverageMisses.length, 1);
-  const miss = report.results[0].geometryCoverageMisses[0];
-  assert.equal(miss.type, "geometry-undeclared");
-  assert.match(miss.parent.className, /\bundeclared-group\b/);
+  assert.equal(report.summary.geometryCoverageMisses, 5);
+  assert.equal(misses.length, 5);
   assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
 });
 

@@ -1686,6 +1686,25 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         "[contenteditable='true']",
         "[role='button']", "[role='tab']", "[role='menuitem']", "[role='option']",
       ].join(",");
+      const structuralGeometryDescendant = [
+        "article", "section", "div", "main", "header", "footer", "aside", "nav",
+        "ul", "ol", "li", "table", "form", "fieldset",
+      ].join(",");
+      const inlineGeometryDisplays = new Set(["inline", "inline-block", "inline-flex"]);
+      const isInlineSpanAtom = (member) => {
+        if (
+          member.tagName !== "SPAN"
+          || member.querySelector(structuralGeometryDescendant)
+          || member.querySelector(interactiveGeometryMember)
+        ) return false;
+        const display = window.getComputedStyle(member).display;
+        if (inlineGeometryDisplays.has(display)) return true;
+        const parent = member.parentElement;
+        const parentDisplay = parent && isVisibleElement(parent)
+          ? window.getComputedStyle(parent).display
+          : null;
+        return display === "flex" && (parentDisplay === "flex" || parentDisplay === "inline-flex");
+      };
       const variantSignature = (member) => {
         const structuralClasses = Array.from(member.classList)
           .filter((className) => !geometryStateClasses.has(className))
@@ -1711,6 +1730,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
               declaredGeometryGroups.has(member)
               || member instanceof SVGElement
               || member.matches(interactiveGeometryMember)
+              || (member.tagName === "LABEL" && member.querySelector(interactiveGeometryMember))
             ) continue;
             const signature = variantSignature(member);
             if (!signature) continue;
@@ -1721,6 +1741,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
 
           for (const [variant, members] of variants) {
             if (members.length < 2) continue;
+            if (members.every(isInlineSpanAtom)) continue;
             geometryCoverageMisses.push({
               type: "geometry-undeclared",
               selector: null,
