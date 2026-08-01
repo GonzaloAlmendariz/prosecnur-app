@@ -61,13 +61,20 @@ in-app, `docs/versiones-app.md` y `.github/RELEASE_NOTES.md`.
   `contents: write`.
 - **stable**: solo tag `vX.Y.Z` alineado, monótono y apuntando al commit
   construido. Quality y ambas plataformas son bloqueantes. Windows exige
-  Authenticode e integridad del instalador/portable; macOS exige DMG y ZIP por
-  arquitectura, blockmaps, `latest-mac.yml` y firma Developer ID válida. La
-  publicación ocurre únicamente después de validar el payload completo.
+  integridad del instalador/portable y su `latest.yml`; macOS exige los dos DMG
+  verificados con `hdiutil`. La publicación ocurre únicamente después de
+  validar el payload completo.
 
-Stable es **fail-closed**: firma, secreto, arquitectura, payload o runner
-ausente significa bloqueo, nunca éxito parcial ni tolerancia best-effort. No
-debilites el gate para acomodar el packaging actual.
+Stable es **fail-closed**: secreto, arquitectura, payload o runner ausente
+significa bloqueo, nunca éxito parcial ni tolerancia best-effort. No debilites
+el gate para acomodar el packaging actual.
+
+La firma de distribución dejó de ser un gate (ADR 0055): no hay certificados
+cargados y `mac.target` sólo emite DMG, de modo que exigir Authenticode,
+Developer ID o los payloads de updater de macOS dejaba el canal inalcanzable
+por construcción. Reintroducirlos exige cargar antes los certificados y añadir
+`zip` a `mac.target`; el test de contrato afirma su ausencia para que el
+intento falle en milisegundos y no dentro del runner de macOS.
 
 ## Forma de trabajo y evidencia
 

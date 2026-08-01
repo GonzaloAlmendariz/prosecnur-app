@@ -127,5 +127,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0052](0052-excepcion-auditada-brace-expansion-empaquetado.md) | Aceptado | 2026-07-31 | Excepción por advisory (no por umbral) para GHSA-mh99-v99m-4gvg en el árbol de build de Electron, con condiciones de admisión y caducidad en cada corte |
 | [0053](0053-serie-3x-como-deuda-historica-de-versionado.md) | Aceptado | 2026-07-31 | La serie 3.x es deuda histórica de nomenclatura, no la línea de versionado: se excluye de la monotonicidad por lista explícita y el producto sigue en la serie 0.x |
 | [0054](0054-publicacion-manual-sin-firma-0-6-0.md) | Aceptado | 2026-07-31 | Excepción acotada a la 0.6.0: se publica a mano con los binarios del preview, sin firma ni updater, dejando intactos los gates del ADR 0048 |
+| [0055](0055-retiro-de-la-firma-de-distribucion.md) | Aceptado | 2026-08-01 | El canal stable deja de exigir firma de distribución y payloads de updater de macOS, que el repositorio no puede producir sin certificados; se publica por tag con instalables sin firmar y macOS por DMG |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).

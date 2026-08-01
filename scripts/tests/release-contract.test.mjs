@@ -339,9 +339,18 @@ test('el workflow separa preview interno de publicación stable y falla cerrado'
   assert.doesNotMatch(macPreview, /latest-mac\.yml|\.blockmap|\.zip/)
   assert.doesNotMatch(workflow, /continue-on-error/)
   assert.equal((workflow.match(/contents:\s*write/g) ?? []).length, 1)
-  assert.match(workflow, /osslsigncode verify/)
-  assert.match(workflow, /codesign --verify --deep --strict/)
-  assert.match(workflow, /Stable exige exactamente dos ZIP macOS/)
+  // El ADR 0055 retira la firma de distribucion y los payloads de updater de
+  // macOS: exigirlos dejaba `stable` inalcanzable por construccion, no por un
+  // defecto del build. Se afirma su AUSENCIA, y no solo se borra la afirmacion
+  // contraria, para que reintroducirlos sin certificados vuelva a romper aqui
+  // en vez de romper a los veinte minutos dentro del runner de macOS.
+  assert.doesNotMatch(workflow, /osslsigncode/)
+  assert.doesNotMatch(workflow, /codesign --verify/)
+  assert.doesNotMatch(workflow, /Authority=Developer ID Application/)
+  assert.match(workflow, /ADR 0055/)
+  // Lo que si sigue siendo fail-closed sin depender de un certificado.
+  assert.match(workflow, /El payload stable de macOS está incompleto/)
+  assert.doesNotMatch(workflow, /artifacts\/mac\/latest-mac\.yml/)
   assert.match(workflow, /needs: \[contract, quality, build-windows, build-mac\]/)
   assert.match(workflow, /fail_on_unmatched_files:\s*true/)
 })
