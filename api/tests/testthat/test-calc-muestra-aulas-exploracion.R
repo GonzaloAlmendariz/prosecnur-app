@@ -368,15 +368,17 @@ test_that("tolerancia: frame vacío y columnas ausentes degradan sin error", {
 test_that("el bloque solo AGREGA exploracion: el resto del frame no cambia", {
   frame <- .exp_frame()
   expect_true("exploracion" %in% names(frame))
-  # Cross-check contra la auditoría preexistente (mismos números, otra vía).
+  # `aula_frame$included` es el dueño del conteo del marco ejecutado. Perfil,
+  # auditoría y radiografía son proyecciones del mismo frame y deben cuadrar.
   audit <- frame$audit
+  included_n <- sum(frame$aula_frame$included %in% TRUE)
+  audit_included_n <- as.integer(audit$value[audit$metric == "classroom_included_n"])
+  expect_equal(frame$perfil$marco_aulas, included_n)
+  expect_equal(frame$exploracion$totales$ch_elegibles, included_n)
+  expect_equal(audit_included_n, included_n)
   expect_equal(
     frame$exploracion$totales$ch_total,
     as.integer(audit$value[audit$metric == "classroom_n"])
-  )
-  expect_equal(
-    frame$exploracion$totales$ch_elegibles,
-    as.integer(audit$value[audit$metric == "classroom_included_n"])
   )
   # El hash del marco se calcula ANTES del bloque descriptivo: dos builds del
   # mismo insumo comparten hash y el bloque no participa de él.

@@ -90,7 +90,7 @@ export function FacultadRadiografiaCard({
           </span>
           <span className="cmv2-explorador-card-hero">
             {fmtInt(fac.elegibles_total)}
-            <em>elegibles</em>
+            <em>matrículas elegibles</em>
           </span>
         </button>
       ) : null}

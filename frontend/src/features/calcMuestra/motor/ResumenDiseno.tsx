@@ -12,6 +12,7 @@ import {
 } from "../../../api/client";
 import { CountUp } from "./CountUp";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
+import { frameIntegrity } from "../universidad/shared/frameIntegrity";
 import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
   UNIVERSITY_TOTAL_COMPONENT_ID,
@@ -45,6 +46,9 @@ export function ResumenDiseno({
   const { perfil } = motor;
   const frame = aulasState?.frame ?? null;
   const frameProfile = frame?.perfil ?? null;
+  const integridadFrame = frameIntegrity(frame);
+  const marcoPublicable = integridadFrame.status === "consistent";
+  const marcoIncoherente = integridadFrame.status === "inconsistent";
 
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
 
@@ -54,9 +58,8 @@ export function ResumenDiseno({
   const universoEstudiantes = frameProfile?.universo ?? null;
   const universoCursosHorario =
     frameProfile?.aulas_totales ?? (frameAuditNumber(frame, "classroom_n") || null);
-  const estudiantesElegibles = frameProfile?.poblacion_n ?? null;
-  const cursosHorarioElegibles =
-    frameProfile?.marco_aulas ?? (frameAuditNumber(frame, "classroom_included_n") || null);
+  const estudiantesElegibles = marcoPublicable ? frameProfile?.poblacion_n ?? null : null;
+  const cursosHorarioElegibles = integridadFrame.marcoAulas;
 
   // ¿El marco quedó desactualizado? Señal EXACTA (no una estimación viva): los
   // criterios confirmados en el workspace difieren de los que produjeron el
@@ -72,6 +75,11 @@ export function ResumenDiseno({
   );
   const estudiantesDesactualizados = estudiantesElegibles != null && marcoDesactualizado;
   const cursosDesactualizados = cursosHorarioElegibles != null && marcoDesactualizado;
+  const notaIntegridad = marcoIncoherente
+    ? "frame incoherente · reconstruye"
+    : !marcoPublicable
+      ? "frame no verificable · reconstruye"
+      : null;
 
   // Metas operativas: SOLO tras ejecutar el cálculo (resultado persistido del
   // componente). Sin corrida de cálculo → "—" (no hay diseño calculado aún).
@@ -103,16 +111,16 @@ export function ResumenDiseno({
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente",
+      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
-      tone: estudiantesDesactualizados ? "estimated" : "confirmed",
+      tone: estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente",
+      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: cursosDesactualizados ? "estimated" : "confirmed",
+      tone: cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Muestra objetivo",

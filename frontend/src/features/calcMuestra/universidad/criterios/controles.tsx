@@ -69,6 +69,8 @@ export function ControlFlat({
       <ul
         className="cmv2-crit-list"
         data-long={long ? "true" : undefined}
+        data-qa-geometry-group="calc-muestra/criterios-categorias"
+        data-qa-geometry-contract="intrinsic"
         aria-label={`Categorías de ${variable.label}`}
       >
         {cats.map((cat) => {
@@ -79,7 +81,13 @@ export function ControlFlat({
             (variante) => variante.trim().toLocaleLowerCase("es") !== cat.label.trim().toLocaleLowerCase("es"),
           );
           return (
-            <li key={cat.key} className="cmv2-crit-item" data-checked={checked}>
+            <li
+              key={cat.key}
+              className="cmv2-crit-item"
+              data-checked={checked}
+              data-qa-geometry-member
+              data-qa-geometry-capacity="owned"
+            >
               <div className="cmv2-crit-item-main">
                 <Switch checked={checked} onToggle={() => onSel(toggleCategoria(sel, cat.key))} ariaLabel={cat.label} />
                 <span className="cmv2-crit-item-label">{cat.label}</span>
@@ -133,11 +141,21 @@ export function ControlHierarchical({
                 {fmtInt(group.aulas)} <em>cursos-horario</em>
               </span>
             </div>
-            <ul className="cmv2-crit-list cmv2-crit-list-nested">
+            <ul
+              className="cmv2-crit-list cmv2-crit-list-nested"
+              data-qa-geometry-group="calc-muestra/criterios-subcategorias"
+              data-qa-geometry-contract="intrinsic"
+            >
               {group.children.map((child) => {
                 const checked = categoriaMarcada(sel, child.key);
                 return (
-                  <li key={child.key} className="cmv2-crit-item" data-checked={checked}>
+                  <li
+                    key={child.key}
+                    className="cmv2-crit-item"
+                    data-checked={checked}
+                    data-qa-geometry-member
+                    data-qa-geometry-capacity="owned"
+                  >
                     <div className="cmv2-crit-item-main">
                       <Switch checked={checked} onToggle={() => onSel(toggleCategoria(sel, child.key))} ariaLabel={child.label} />
                       <span className="cmv2-crit-item-label">{child.label}</span>

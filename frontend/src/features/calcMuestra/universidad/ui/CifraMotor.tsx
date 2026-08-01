@@ -43,5 +43,13 @@ export function CifraMotor({
 
 /** Fila responsiva de CifraMotor. */
 export function CifraFila({ children }: { children: React.ReactNode }) {
-  return <div className="cmv2-uni-cifra-fila">{children}</div>;
+  return (
+    <div
+      className="cmv2-uni-cifra-fila"
+      data-qa-geometry-group="calc-muestra/cifra-fila"
+      data-qa-geometry-contract="equal"
+    >
+      {children}
+    </div>
+  );
 }
