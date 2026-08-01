@@ -209,6 +209,12 @@ import "../profilePage.css";
 import "./telefonicoProfile.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { MetaCuotaInput } from "./MetaCuotaInput";
+import {
+  aplicarMetasPendientes,
+  etiquetaDeConfirmacion,
+  metasQueCambian,
+  type MetasPendientes,
+} from "./metasPendientes";
 
 import {
   anchosDeSegmentos,
@@ -2682,6 +2688,7 @@ function AcreditacionPhoneQuotaEditor({
   onPatchConfig: (patch: Partial<MonitoreoConfig>) => void;
 }) {
   const [newValue, setNewValue] = useState("");
+  const [metasPendientes, setMetasPendientes] = useState<MetasPendientes>({});
   const variableOptions = phoneQuotaVariableOptions(variables, draft.control_vars, quotaRows, draft.goals);
   const [activeVariable, setActiveVariable] = useState(() => preferredPhoneQuotaVariable(variables, draft.control_vars, quotaRows, draft.goals));
 
@@ -2842,8 +2849,27 @@ function AcreditacionPhoneQuotaEditor({
     if (!activeVariable) return;
     patchGoals(phoneQuotaUpsertGoal(draft.goals, activeVariable, value, meta, keepZero));
   };
+  // Ajustar metas no recalcula: se acumulan acá y el recálculo ocurre una vez,
+  // al confirmar. Ver metasPendientes.ts.
+  const metaGuardada = (value: string) => rows.find((row) => row.value === value)?.meta ?? 0;
+  const metasCambiadas = metasQueCambian(metasPendientes, metaGuardada);
+  const confirmarMetas = () => {
+    if (!activeVariable || !metasCambiadas.length) return;
+    patchGoals(aplicarMetasPendientes(
+      draft.goals,
+      metasPendientes,
+      metaGuardada,
+      (goals, value, meta) => phoneQuotaUpsertGoal(goals, activeVariable, value, meta, true),
+    ));
+    setMetasPendientes({});
+  };
+  const descartarMetas = () => setMetasPendientes({});
   const removeValue = (value: string) => {
     if (!activeVariable) return;
+    setMetasPendientes((current) => {
+      const { [value]: _quitada, ...resto } = current;
+      return resto;
+    });
     patchGoals(phoneQuotaRemoveGoal(draft.goals, activeVariable, value));
   };
   const addCategory = () => {
@@ -2994,6 +3020,15 @@ function AcreditacionPhoneQuotaEditor({
         <input value={newValue} onChange={(event) => setNewValue(event.target.value)} placeholder={`Nuevo valor de ${activeVariable ? phoneQuotaVariableLabel(activeVariable).toLowerCase() : "variable"}`} />
         <button type="button" onClick={addCategory} disabled={!activeVariable || !newValue.trim()}><Plus size={13} /> Agregar categoría</button>
       </div>
+      {metasCambiadas.length ? (
+        <div className="mon-phone-quota-editor-confirm" role="status">
+          <span>{metasCambiadas.length === 1 ? "1 meta ajustada sin confirmar" : `${fmt(metasCambiadas.length)} metas ajustadas sin confirmar`}</span>
+          <div>
+            <button type="button" onClick={descartarMetas}>Descartar</button>
+            <button type="button" className="is-primary" onClick={confirmarMetas}>{etiquetaDeConfirmacion(metasCambiadas.length)}</button>
+          </div>
+        </div>
+      ) : null}
       {rows.length ? (
         <div className="mon-phone-quota-editor-list">
           {rows.map((row) => {
@@ -3029,9 +3064,9 @@ function AcreditacionPhoneQuotaEditor({
                   <label>
                     <span>Meta</span>
                     <MetaCuotaInput
-                      value={row.meta}
+                      value={metasPendientes[row.value] ?? row.meta}
                       ariaLabel={`Meta de ${row.value}`}
-                      onCommit={(meta) => updateMeta(row.value, meta, true)}
+                      onCommit={(meta) => setMetasPendientes((current) => ({ ...current, [row.value]: meta }))}
                     />
                   </label>
                   <span><em>Efectivas</em><strong>{fmt(row.effective)}</strong></span>
