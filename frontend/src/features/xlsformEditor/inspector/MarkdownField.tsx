@@ -139,11 +139,16 @@ export function MarkdownField({
     onPress,
     title,
     ariaLabel,
+    abrePopover,
+    abierto,
     children,
   }: {
     onPress: () => void;
     title: string;
     ariaLabel: string;
+    /** Declara que el botón despliega una superficie, no que ejecuta un comando. */
+    abrePopover?: boolean;
+    abierto?: boolean;
     children: React.ReactNode;
   }) => (
     <button
@@ -155,6 +160,8 @@ export function MarkdownField({
       }}
       title={title}
       aria-label={ariaLabel}
+      aria-haspopup={abrePopover ? "menu" : undefined}
+      aria-expanded={abrePopover ? Boolean(abierto) : undefined}
     >
       {children}
     </button>
@@ -201,6 +208,8 @@ export function MarkdownField({
               onPress={() => setColorOpen((v) => !v)}
               title="Color de texto"
               ariaLabel="Color de texto"
+              abrePopover
+              abierto={colorOpen}
             >
               <Palette size={13} />
             </ToolbarButton>
