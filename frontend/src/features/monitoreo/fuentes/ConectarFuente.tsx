@@ -57,6 +57,8 @@ import {
   apiMonitoreoSource,
 } from "../../../api/client";
 import { apiSurveyMonkeyMultibaseListSurveys } from "../../../api/surveymonkey";
+import { apiConnectionsList } from "../../../api/multiIntegrado";
+import { KOBO_SERVIDOR_PUBLICO, perfilKoboActivo, servidorKoboActivo } from "./servidorKobo";
 import { SelectorDeActor } from "./SelectorDeActor";
 import {
   admiteDireccionPegada,
@@ -70,7 +72,9 @@ import { conflictoDeCardinalidad } from "./rosterDeActores";
 import "./conectarFuente.css";
 
 const SM_API = "https://api.surveymonkey.com/v3";
-const KOBO_POR_DEFECTO = "https://kf.kobotoolbox.org";
+// El servidor de Kobo NO es una constante del wizard: sale del perfil de
+// conexión activo. Ver servidorKobo.ts.
+const KOBO_POR_DEFECTO = KOBO_SERVIDOR_PUBLICO;
 
 const NOMBRE_DE_SERVICIO: Record<ServicioDeFuente, string> = {
   google_sheets: "Google Sheets",
@@ -237,6 +241,10 @@ export function ConectarFuente({
 
   // Catálogos de la cuenta, cargados solo cuando el paso 2 los necesita.
   const [assetsKobo, setAssetsKobo] = useState<MonitoreoKoboAssetItem[] | null>(null);
+  // A qué servidor de Kobo pertenece la cuenta conectada. Se resuelve del
+  // perfil activo en vez de asumir el público: ver servidorKobo.ts.
+  const [koboServidor, setKoboServidor] = useState(KOBO_POR_DEFECTO);
+  const [koboPerfil, setKoboPerfil] = useState("");
   const [encuestasSm, setEncuestasSm] = useState<Array<{ id: string; title: string }> | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
@@ -244,6 +252,25 @@ export function ConectarFuente({
     () => (admiteDireccionPegada(servicio) ? leerDireccion(servicio, pegado) : null),
     [servicio, pegado],
   );
+
+  // El servidor de Kobo se resuelve al entrar al paso, no solo al abrir el
+  // catálogo: el placeholder de la dirección lo nombra, y anunciar el servidor
+  // público a quien tiene cuenta en otro es la pista falsa que hacía pegar la
+  // URL equivocada. Si la consulta falla, el público sigue siendo el respaldo.
+  useEffect(() => {
+    if (servicio !== "kobo") return undefined;
+    let vigente = true;
+    apiConnectionsList()
+      .then((data) => {
+        if (!vigente) return;
+        setKoboServidor(servidorKoboActivo(data.connections));
+        setKoboPerfil(perfilKoboActivo(data.connections));
+      })
+      .catch(() => undefined);
+    return () => {
+      vigente = false;
+    };
+  }, [servicio]);
 
   // Cambiar de pieza o de servicio invalida todo lo elegido después: dejar un
   // asset de Kobo colgando mientras la cabecera dice «Google Sheets» es cómo se
@@ -299,7 +326,15 @@ export function ConectarFuente({
     setError("");
     try {
       if (servicio === "kobo") {
-        const data = await apiMonitoreoKoboAssets(KOBO_POR_DEFECTO, 100);
+        // El servidor se resuelve acá y no al montar: es el dato que decide a
+        // dónde va el token, y pedirlo tarde es preferible a pedirlo con una
+        // conexión que el usuario acaba de cambiar en otra pestaña.
+        const conexiones = await apiConnectionsList().catch(() => null);
+        const servidor = servidorKoboActivo(conexiones?.connections);
+        const perfil = perfilKoboActivo(conexiones?.connections);
+        setKoboServidor(servidor);
+        setKoboPerfil(perfil);
+        const data = await apiMonitoreoKoboAssets(servidor, 100, { profile_id: perfil });
         setAssetsKobo(data.assets ?? []);
       } else if (servicio === "surveymonkey") {
         const data = await apiSurveyMonkeyMultibaseListSurveys("", 200, 12);
@@ -674,7 +709,7 @@ export function ConectarFuente({
                     value={pegado}
                     onChange={(event) => setPegado(event.currentTarget.value)}
                     placeholder={servicio === "kobo"
-                      ? "https://kf.kobotoolbox.org/#/forms/…"
+                      ? `${koboServidor}/#/forms/…`
                       : "https://docs.google.com/spreadsheets/d/…"}
                     autoFocus
                   />
@@ -729,7 +764,7 @@ export function ConectarFuente({
                             type="button"
                             onClick={() => {
                               void verificar(servicio === "kobo"
-                                ? { servicio: "kobo", baseUrl: KOBO_POR_DEFECTO, assetUid: item.id, nombre: item.nombre }
+                                ? { servicio: "kobo", baseUrl: koboServidor, assetUid: item.id, nombre: item.nombre }
                                 : { servicio: "surveymonkey", surveyId: item.id, nombre: item.nombre });
                             }}
                           >

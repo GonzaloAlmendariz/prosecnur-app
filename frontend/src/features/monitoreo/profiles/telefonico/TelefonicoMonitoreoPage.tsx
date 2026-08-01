@@ -208,6 +208,15 @@ import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./telefonicoProfile.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { MetaCuotaInput } from "./MetaCuotaInput";
+import { resumenDeEquipo } from "./conteoDeEquipo";
+import { fusionarResponsablesPorPersona } from "./fusionDeResponsables";
+import {
+  aplicarMetasPendientes,
+  etiquetaDeConfirmacion,
+  metasQueCambian,
+  type MetasPendientes,
+} from "./metasPendientes";
 
 import {
   anchosDeSegmentos,
@@ -2681,6 +2690,7 @@ function AcreditacionPhoneQuotaEditor({
   onPatchConfig: (patch: Partial<MonitoreoConfig>) => void;
 }) {
   const [newValue, setNewValue] = useState("");
+  const [metasPendientes, setMetasPendientes] = useState<MetasPendientes>({});
   const variableOptions = phoneQuotaVariableOptions(variables, draft.control_vars, quotaRows, draft.goals);
   const [activeVariable, setActiveVariable] = useState(() => preferredPhoneQuotaVariable(variables, draft.control_vars, quotaRows, draft.goals));
 
@@ -2841,8 +2851,27 @@ function AcreditacionPhoneQuotaEditor({
     if (!activeVariable) return;
     patchGoals(phoneQuotaUpsertGoal(draft.goals, activeVariable, value, meta, keepZero));
   };
+  // Ajustar metas no recalcula: se acumulan acá y el recálculo ocurre una vez,
+  // al confirmar. Ver metasPendientes.ts.
+  const metaGuardada = (value: string) => rows.find((row) => row.value === value)?.meta ?? 0;
+  const metasCambiadas = metasQueCambian(metasPendientes, metaGuardada);
+  const confirmarMetas = () => {
+    if (!activeVariable || !metasCambiadas.length) return;
+    patchGoals(aplicarMetasPendientes(
+      draft.goals,
+      metasPendientes,
+      metaGuardada,
+      (goals, value, meta) => phoneQuotaUpsertGoal(goals, activeVariable, value, meta, true),
+    ));
+    setMetasPendientes({});
+  };
+  const descartarMetas = () => setMetasPendientes({});
   const removeValue = (value: string) => {
     if (!activeVariable) return;
+    setMetasPendientes((current) => {
+      const { [value]: _quitada, ...resto } = current;
+      return resto;
+    });
     patchGoals(phoneQuotaRemoveGoal(draft.goals, activeVariable, value));
   };
   const addCategory = () => {
@@ -2993,6 +3022,15 @@ function AcreditacionPhoneQuotaEditor({
         <input value={newValue} onChange={(event) => setNewValue(event.target.value)} placeholder={`Nuevo valor de ${activeVariable ? phoneQuotaVariableLabel(activeVariable).toLowerCase() : "variable"}`} />
         <button type="button" onClick={addCategory} disabled={!activeVariable || !newValue.trim()}><Plus size={13} /> Agregar categoría</button>
       </div>
+      {metasCambiadas.length ? (
+        <div className="mon-phone-quota-editor-confirm" role="status">
+          <span>{metasCambiadas.length === 1 ? "1 meta ajustada sin confirmar" : `${fmt(metasCambiadas.length)} metas ajustadas sin confirmar`}</span>
+          <div>
+            <button type="button" onClick={descartarMetas}>Descartar</button>
+            <button type="button" className="is-primary" onClick={confirmarMetas}>{etiquetaDeConfirmacion(metasCambiadas.length)}</button>
+          </div>
+        </div>
+      ) : null}
       {rows.length ? (
         <div className="mon-phone-quota-editor-list">
           {rows.map((row) => {
@@ -3027,7 +3065,11 @@ function AcreditacionPhoneQuotaEditor({
                   <span><em>Universo</em><strong>{fmt(row.universe)}</strong></span>
                   <label>
                     <span>Meta</span>
-                    <input type="number" min={0} value={row.meta ?? 0} onChange={(event) => updateMeta(row.value, Number(event.target.value) || 0, true)} />
+                    <MetaCuotaInput
+                      value={metasPendientes[row.value] ?? row.meta}
+                      ariaLabel={`Meta de ${row.value}`}
+                      onCommit={(meta) => setMetasPendientes((current) => ({ ...current, [row.value]: meta }))}
+                    />
                   </label>
                   <span><em>Efectivas</em><strong>{fmt(row.effective)}</strong></span>
                   <span><em>Brecha</em><strong>{row.gap == null ? "S/M" : fmt(row.gap)}</strong></span>
@@ -4897,7 +4939,15 @@ function mergeAcreditacionPhoneResponsibleRows(...rowGroups: Array<Array<Record<
     byResponsible.set(key, current);
   });
 
-  return Array.from(byResponsible.values()).map((row) => {
+  // Segunda pasada: lo de arriba junta columnas complementarias de cuatro
+  // bloques sobre la misma (persona · actor); esto junta a la persona consigo
+  // misma cuando cubre varios actores. Va antes del recálculo para que los
+  // ratios salgan de los conteos ya sumados. Ver fusionDeResponsables.ts.
+  return fusionarResponsablesPorPersona(
+    Array.from(byResponsible.values()),
+    (row) => normalizeSourceMatch(phoneResponsibleBaseName(row)),
+    (row) => phoneResponsibleActorName(row),
+  ).map((row) => {
     const metrics = phoneResponsibleMetrics(row);
     if (metrics.assigned != null && metrics.unswept != null && metrics.swept == null) row.Barridos = Math.max(0, metrics.assigned - metrics.unswept);
     if (metrics.swept != null && metrics.nonEffective != null && metrics.incidencePct == null) {
@@ -5437,7 +5487,7 @@ function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string
           <span>Equipo asignado</span>
           <strong>Producción por responsable y asignación</strong>
         </div>
-        <em>{formatMetric(assignedRows.length)} responsables</em>
+        <em>{resumenDeEquipo(assignedRows.map((row, index) => phoneResponsibleBaseName(row, index))).etiqueta}</em>
       </header>
       {assignedRows.length ? assignedRows.map((row, index) => {
         const name = phoneResponsibleName(row, index);
