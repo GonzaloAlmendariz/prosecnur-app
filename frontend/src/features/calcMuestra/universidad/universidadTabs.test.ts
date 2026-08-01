@@ -3,7 +3,10 @@ import type {
   CalcMuestraEstudio,
   CalcMuestraWorkspace,
 } from "../../../api/client";
-import { universitySidebarTabs } from "./universidadTabs";
+import {
+  resolveUniversityClassroomTab,
+  universitySidebarTabs,
+} from "./universidadTabs";
 
 const estudioConResultado = {
   titulo: "Estudio mínimo",
@@ -39,6 +42,34 @@ describe("universitySidebarTabs — Salida", () => {
       "salidas-resultados:ready",
       "salidas-entregables:pending",
       "salidas-monitoreo:pending",
+    ]);
+  });
+});
+
+describe("universitySidebarTabs — Selección", () => {
+  it("cae en Objetivo cuando la pestaña se omite o ya no existe", () => {
+    expect(resolveUniversityClassroomTab(null)).toBe("objetivo");
+    expect(resolveUniversityClassroomTab(undefined)).toBe("objetivo");
+    expect(resolveUniversityClassroomTab("marco")).toBe("objetivo");
+    expect(resolveUniversityClassroomTab("fuera-del-catalogo")).toBe("objetivo");
+    expect(resolveUniversityClassroomTab("auditoria")).toBe("auditoria");
+  });
+
+  it("expone solo las seis pestañas vivas y conserva sus gates", () => {
+    const tabs = universitySidebarTabs({
+      activeSection: "aulas",
+      estudio: estudioConResultado,
+      workspace: workspaceSinPublicacion,
+      aulasState: null,
+    });
+
+    expect(tabs?.map(({ id, status }) => `${id}:${status}`)).toEqual([
+      "objetivo:ready",
+      "metodo:working",
+      "laboratorio:working",
+      "seleccion:pending",
+      "reemplazos:pending",
+      "auditoria:working",
     ]);
   });
 });

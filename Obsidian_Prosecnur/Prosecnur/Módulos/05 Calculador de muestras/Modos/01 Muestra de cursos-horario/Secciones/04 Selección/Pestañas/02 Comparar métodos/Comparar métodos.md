@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Selección]]"]
-orden: 3
+orden: 2
 documentacion: parcial
 ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=aulas&pestana=metodo"
 nodo: "calc-muestra/opinion-universitaria/aulas/metodo"

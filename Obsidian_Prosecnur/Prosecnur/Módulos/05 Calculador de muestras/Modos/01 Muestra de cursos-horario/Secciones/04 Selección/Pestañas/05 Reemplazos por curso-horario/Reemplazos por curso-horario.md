@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Selección]]"]
-orden: 6
+orden: 5
 documentacion: parcial
 ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=aulas&pestana=reemplazos"
 nodo: "calc-muestra/opinion-universitaria/aulas/reemplazos"

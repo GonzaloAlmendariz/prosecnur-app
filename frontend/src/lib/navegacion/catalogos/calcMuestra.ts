@@ -28,7 +28,6 @@ export type CalcMuestraUniversidadSeccionId =
   | "salidas";
 
 export type ClassroomLabTab =
-  | "marco"
   | "objetivo"
   | "metodo"
   | "laboratorio"
@@ -82,7 +81,7 @@ function pestanaAula<const Key extends ClassroomLabTab>(
   };
 }
 
-/** Las 24 pestañas públicas del escritorio de muestra universitaria. */
+/** Las 23 pestañas públicas del escritorio de muestra universitaria. */
 export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   definicion: [
     pestana("definicion", "def-estudio", "Estudio", "nombre, cliente y alcance", ClipboardList, { targetId: "cmv2-local-def-estudio" }),
@@ -104,7 +103,6 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestana("calculo", "calculo-distribucion", "Distribución", "población y muestra por unidad × sexo", PieChart, { targetId: "cmv2-local-calculo-distribucion" }),
   ],
   aulas: [
-    pestanaAula("marco", "Marco de cursos-horario", "Base convertida en unidades seleccionables", Database),
     pestanaAula("objetivo", "Objetivo de muestra", "Cuotas y cursos-horario necesarios", Target),
     pestanaAula("metodo", "Comparar métodos", "Elegir la opción más representativa", Settings2),
     pestanaAula("laboratorio", "Simulación", "Estabilidad y repetidos", BarChart3),

@@ -148,6 +148,36 @@ describe("dirección de Cálculo de muestra", () => {
         esperado: { seccion: "marco", pestana: "def-consistencia" },
       },
       {
+        nombre: "mueve el antiguo Marco de selección a su hogar canónico",
+        seccion: "aulas",
+        pestana: "marco",
+        esperado: { seccion: "marco", pestana: "marco-aulas" },
+      },
+      {
+        nombre: "deja estable el hogar canónico de cursos-horario",
+        seccion: "marco",
+        pestana: "marco-aulas",
+        esperado: { seccion: "marco", pestana: "marco-aulas" },
+      },
+      {
+        nombre: "no interpreta una pestaña marco fuera de Selección",
+        seccion: "otra-seccion",
+        pestana: "marco",
+        esperado: { seccion: "otra-seccion", pestana: "marco" },
+      },
+      {
+        nombre: "no infiere el hogar desde una pestaña marco suelta",
+        seccion: null,
+        pestana: "marco",
+        esperado: { seccion: null, pestana: "marco" },
+      },
+      {
+        nombre: "no mueve otra pestaña de Selección",
+        seccion: "aulas",
+        pestana: "objetivo",
+        esperado: { seccion: "aulas", pestana: "objetivo" },
+      },
+      {
         nombre: "no interpreta marco-validacion fuera de Marco",
         seccion: "definicion",
         pestana: "marco-validacion",

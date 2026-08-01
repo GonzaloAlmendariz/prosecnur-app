@@ -332,7 +332,15 @@ describe("manifiesto primario de navegación", () => {
     );
     const dashboard = PROSECNUR_MODULES.find((module) => module.slug === "dashboard");
 
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(24);
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(23);
+    expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas.map((tab) => tab.id)).toEqual([
+      "objetivo",
+      "metodo",
+      "laboratorio",
+      "seleccion",
+      "reemplazos",
+      "auditoria",
+    ]);
     expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(25);
     expect(DASHBOARD_PESTANAS).toHaveLength(4);
 

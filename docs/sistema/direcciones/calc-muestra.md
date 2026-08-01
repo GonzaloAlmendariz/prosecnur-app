@@ -6,12 +6,12 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
+Módulo `calc-muestra` · ruta `/calc-muestra` · 42 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 5967583d | sí | — |
-| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | e214fa25 | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 871f6a85 | sí | — |
+| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | 6c3d29b5 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | 328e7bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-bases` | pestana | Fuentes | sí | 63cd982d | sí | — |
@@ -28,8 +28,7 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
 | `calc-muestra/opinion-universitaria/calculo/calculo-propuestas` | pestana | Propuestas | sí | 19f0c7d7 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-ch-facultad` | pestana | Cursos-horario por facultad | sí | 0eea158a | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-distribucion` | pestana | Distribución | sí | 70d96f11 | sí | — |
-| `calc-muestra/opinion-universitaria/aulas` | seccion | Selección | sí | ec395067 | sí | — |
-| `calc-muestra/opinion-universitaria/aulas/marco` | pestana | Marco de cursos-horario | sí | 56315d8a | sí | — |
+| `calc-muestra/opinion-universitaria/aulas` | seccion | Selección | sí | 458ffc24 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/objetivo` | pestana | Objetivo de muestra | sí | f9575405 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/metodo` | pestana | Comparar métodos | sí | 18b9eef5 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/laboratorio` | pestana | Simulación | sí | 3da06c70 | sí | — |

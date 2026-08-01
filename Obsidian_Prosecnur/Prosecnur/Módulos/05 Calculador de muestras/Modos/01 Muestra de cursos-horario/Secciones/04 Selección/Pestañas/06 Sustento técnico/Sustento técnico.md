@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Selección]]"]
-orden: 7
+orden: 6
 documentacion: parcial
 ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=aulas&pestana=auditoria"
 nodo: "calc-muestra/opinion-universitaria/aulas/auditoria"
@@ -31,19 +31,25 @@ flowchart LR
 | Fórmula de brecha | Compara porcentaje de muestra y marco | Sustenta el ajuste de perfil |
 | Probabilidad de inclusión | Expone pi final y su fuente | Permite reconstruir ponderadores |
 | Peso del curso-horario | Usa el inverso de la probabilidad | Define contribución analítica |
-| Sello reproducible | Registra semilla, firma, método y corrida | Permite replicar el sorteo |
+| Sello reproducible | Registra semilla, firma, fecha del marco, método y corrida | Permite replicar el sorteo |
+| Control de vigencia | Compara la firma actual con la usada por la selección | Invalida titulares y reemplazos desactualizados |
 | Corridas Monte Carlo | Documenta la auditoría empírica | Respalda probabilidades simuladas |
 ## Cómo se usa
 1. Revisa las fórmulas con valores reales del estudio.
 2. Confirma la fuente de probabilidad reportada.
-3. Comprueba semilla, firma del marco, método y corrida.
-4. Conserva estos datos junto con las tablas finales.
+3. Comprueba por separado la firma usada por la selección, la firma del marco
+   actual y la fecha de generación del marco actual, además de semilla, método
+   y corrida.
+4. Si la firma actual difiere de la usada por la selección, vuelve a comparar métodos y a seleccionar antes de continuar.
+5. Conserva estos datos y el respaldo metodológico junto con las tablas finales.
 ## Resultado y siguiente paso
 - Sustento reproducible de la selección; continúa con Cierre de muestra universitaria.
 ## Estados, alertas y límites
 - Sin selección, las fórmulas no pueden mostrar valores validados.
 - Peso y probabilidad deben corresponder a la misma corrida y unidad.
-- Una firma distinta del marco invalida la reproducción del sorteo.
+- Una firma actual distinta de la firma usada en la selección invalida titulares y reemplazos; Sustento muestra ambos sellos y exige recalcular.
+- La fecha de generación pertenece al marco, no a la corrida de selección.
+- El respaldo «De la muestra de personas a la lista de cursos-horario» conserva la justificación trazable de conversión, sorteo y reemplazos.
 
 ## Cómo interpretar lo que ves
 

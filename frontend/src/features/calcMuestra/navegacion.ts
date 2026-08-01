@@ -97,7 +97,7 @@ export function sinAliasDeModo(search: string): string {
 }
 
 /**
- * Canonicaliza únicamente las dos direcciones históricas de Consistencia.
+ * Canonicaliza únicamente parejas históricas con un hogar inequívoco.
  *
  * La sección es parte indispensable de la pareja: una pestaña suelta no puede
  * inferir su hogar porque la dirección explícita manda sobre cualquier default
@@ -107,6 +107,9 @@ export function resolverDireccionHistoricaUniversidad(
   seccion: string | null,
   pestana: string | null,
 ): { seccion: string | null; pestana: string | null } {
+  if (seccion === "aulas" && pestana === "marco") {
+    return { seccion: "marco", pestana: "marco-aulas" };
+  }
   if (
     (seccion === "definicion" && pestana === "def-consistencia") ||
     (seccion === "marco" && pestana === "marco-validacion")
