@@ -13,6 +13,7 @@ import {
   type CalcMuestraComponente,
   type CalcMuestraEstudio,
   type CalcMuestraParametros,
+  type CalcMuestraReferenciaAsistencia,
   type CalcMuestraWorkspace,
   type CalcMuestraWorkspaceAulasConfig,
   type CalcMuestraWorkspaceSourceBinding,
@@ -61,6 +62,7 @@ import { useMotorStore } from "../store";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
 import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
 import { UniversityTabHeader } from "./ui/UniversityTabHeader";
+import { universityFrameSourceBindings } from "./shared/categorias";
 
 export function universityContextTabId(section: string, key: string) {
   return `cmv2-context-tab-${section}-${key}`;
@@ -70,6 +72,7 @@ export function UniversidadDesk({
   estudio,
   workspace,
   aulasState,
+  referenciaAsistencia,
   motor,
   busy,
   activeSection,
@@ -86,6 +89,7 @@ export function UniversidadDesk({
   onSimularReemplazos,
   onSourceUpload,
   onSourceBuild,
+  onReferenceSheetChange,
   uploadingSourceId,
   calculando,
   onGenerarReporte,
@@ -103,6 +107,7 @@ export function UniversidadDesk({
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  referenciaAsistencia: CalcMuestraReferenciaAsistencia | null;
   motor: MotorEfectivo;
   busy: string | null;
   activeSection: string;
@@ -129,6 +134,10 @@ export function UniversidadDesk({
   onSimularReemplazos: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onSourceUpload: (binding: CalcMuestraWorkspaceSourceBinding, file: File) => void | Promise<void>;
   onSourceBuild: (workspace: CalcMuestraWorkspace) => void | Promise<void>;
+  onReferenceSheetChange: (
+    binding: CalcMuestraWorkspaceSourceBinding,
+    workspace: CalcMuestraWorkspace,
+  ) => void | Promise<void>;
   uploadingSourceId: string | null;
   calculando: boolean;
   /** Navegación del Recorrido: cambia de sección del rail y/o de pestaña local. */
@@ -282,8 +291,10 @@ export function UniversidadDesk({
   const opcionalesActivosMotor = useMotorStore((s) => s.decisiones.opcionalesActivos);
 
   // Reconstrucción del marco duro (motor R): habilitada cuando hay una fuente
-  // con archivo declarado. La suite de criterios la dispara al aplicar cambios.
-  const puedeReconstruirMarco = (syncedWorkspace.source_bindings ?? []).some((binding) => binding.file_id);
+  // DEL MARCO con archivo declarado. La referencia histórica es analítica y no
+  // acredita este gate. La suite de criterios lo dispara al aplicar cambios.
+  const puedeReconstruirMarco = universityFrameSourceBindings(syncedWorkspace.source_bindings)
+    .some((binding) => binding.file_id);
 
   // Lleva los parámetros del diseño reactivo al estudio real y calcula con R
   // (misma vía que el resto del desk: patch compartido + prepare + calcular).
@@ -368,7 +379,8 @@ export function UniversidadDesk({
     aulasFrameReady &&
     !componentMarcoReady &&
     rowsFrom(aulasState?.frame?.population).length === 0 &&
-    (syncedWorkspace.source_bindings ?? []).some((binding) => binding.file_id);
+    universityFrameSourceBindings(syncedWorkspace.source_bindings)
+      .some((binding) => binding.file_id);
 
   return (
     <div className="cmv2-desk cmv2-university-desk">
@@ -414,9 +426,11 @@ export function UniversidadDesk({
               <DefBasesTab
                 workspace={syncedWorkspace}
                 aulasState={aulasState}
+                referencia={referenciaAsistencia}
                 onWorkspace={onWorkspace}
                 onSourceUpload={onSourceUpload}
                 onSourceBuild={onSourceBuild}
+                onReferenceSheetChange={onReferenceSheetChange}
                 uploadingSourceId={uploadingSourceId}
               />
             </div>}
@@ -512,6 +526,7 @@ export function UniversidadDesk({
               <CalculoDisenoTab
                 totalComp={totalComp}
                 facultyComp={facultyComp}
+                referenciaAsistencia={referenciaAsistencia}
                 marcoReady={marcoReady}
                 onSetComponentes={onSetComponentes}
                 onCalcular={calculateSample}

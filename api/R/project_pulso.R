@@ -41,6 +41,164 @@
 # Helpers de filtrado
 # -----------------------------------------------------------------------------
 
+.pulso_safe_scalar <- function(value) {
+  if (is.atomic(value) && length(value) <= 1L) value else NULL
+}
+
+.pulso_whitelist_scalar_fields <- function(value, fields) {
+  if (!is.list(value)) value <- list()
+  out <- stats::setNames(vector("list", length(fields)), fields)
+  for (i in seq_along(fields)) {
+    out[i] <- list(.pulso_safe_scalar(value[[fields[[i]]]]))
+  }
+  out
+}
+
+.pulso_record_list <- function(value) {
+  if (is.data.frame(value)) {
+    return(lapply(seq_len(nrow(value)), function(i) {
+      as.list(value[i, , drop = FALSE])
+    }))
+  }
+  if (is.list(value)) unname(value) else list()
+}
+
+.pulso_sanitize_calc_muestra_asistencia_cell <- function(value) {
+  if (!is.list(value)) return(NULL)
+  .pulso_whitelist_scalar_fields(value, c(
+    "celda_key", "celda_label", "orden", "k", "matriculados", "asistentes",
+    "tasa", "estimador", "media_ch", "sd_ch", "ic_low", "ic_high",
+    "metodo_ic", "suficiencia", "tasa_publicada", "k_publicada",
+    "fuente_publicada"
+  ))
+}
+
+.pulso_sanitize_calc_muestra_asistencia_dimension <- function(value) {
+  if (!is.list(value)) return(NULL)
+  out <- .pulso_whitelist_scalar_fields(
+    value,
+    c("dimension_key", "dimension_label", "orden")
+  )
+  filas <- lapply(
+    .pulso_record_list(value$filas),
+    .pulso_sanitize_calc_muestra_asistencia_cell
+  )
+  out["filas"] <- list(Filter(Negate(is.null), filas))
+  out
+}
+
+.pulso_sanitize_calc_muestra_asistencia_chain <- function(value) {
+  if (!is.list(value)) return(list())
+  fields <- c(
+    "key", "label", "k", "numerador", "denominador", "tasa", "ic_low",
+    "ic_high", "metodo_ic"
+  )
+  allowed <- c("asistencia", "completitud", "validez", "producto")
+  out <- list()
+  for (key in intersect(allowed, names(value))) {
+    segment <- value[[key]]
+    if (is.list(segment)) {
+      out[[key]] <- .pulso_whitelist_scalar_fields(segment, fields)
+    }
+  }
+  out
+}
+
+.pulso_sanitize_calc_muestra_asistencia <- function(value) {
+  if (!is.list(value)) return(NULL)
+  root_fields <- c(
+    "schema", "owner", "momento", "transferible", "modelo", "combinable",
+    "unidad", "denominador", "estudio", "cobertura", "identidad", "umbrales",
+    "cadena", "global", "dimensiones", "advertencias"
+  )
+  out <- stats::setNames(vector("list", length(root_fields)), root_fields)
+  for (field in root_fields[seq_len(8L)]) {
+    out[field] <- list(.pulso_safe_scalar(value[[field]]))
+  }
+  out["estudio"] <- list(.pulso_whitelist_scalar_fields(
+    value$estudio,
+    c("id", "label", "periodo", "fuente")
+  ))
+  out["cobertura"] <- list(.pulso_whitelist_scalar_fields(
+    value$cobertura,
+    c("agendados", "aplicados", "observados")
+  ))
+  out["identidad"] <- list(.pulso_whitelist_scalar_fields(
+    value$identidad,
+    c("regla", "verificada", "verificables", "inconsistentes")
+  ))
+  out["umbrales"] <- list(.pulso_whitelist_scalar_fields(
+    value$umbrales,
+    c(
+      "insuficiente_max", "delgada_min", "solida_min", "bootstrap_n",
+      "nivel_ic", "quantile_type"
+    )
+  ))
+  out["cadena"] <- list(.pulso_sanitize_calc_muestra_asistencia_chain(value$cadena))
+  out["global"] <- list(.pulso_whitelist_scalar_fields(
+    value$global,
+    c(
+      "k", "matriculados", "asistentes", "enviadas", "validas",
+      "no_respondieron", "tasa", "media_ch", "sd_ch", "ic_low", "ic_high",
+      "metodo_ic"
+    )
+  ))
+  dimensiones <- lapply(
+    .pulso_record_list(value$dimensiones),
+    .pulso_sanitize_calc_muestra_asistencia_dimension
+  )
+  out["dimensiones"] <- list(Filter(Negate(is.null), dimensiones))
+  advertencias <- value$advertencias
+  if (is.atomic(advertencias)) advertencias <- as.list(advertencias)
+  if (!is.list(advertencias)) advertencias <- list()
+  advertencias <- lapply(advertencias, .pulso_safe_scalar)
+  out["advertencias"] <- list(unname(Filter(Negate(is.null), advertencias)))
+  out
+}
+
+.pulso_sanitize_calc_muestra_reference_bindings <- function(bindings) {
+  if (is.data.frame(bindings)) {
+    if (!("role" %in% names(bindings)) || !nrow(bindings)) return(bindings)
+    role <- as.character(bindings$role)
+    idx <- which(!is.na(role) & role == "referencia_asistencia")
+    if (!length(idx)) return(bindings)
+    if ("status" %in% names(bindings)) {
+      bindings$status <- as.character(bindings$status)
+      bindings$status[idx] <- "pendiente"
+    }
+    for (field in intersect(c("file_id", "fileId", "file_name", "fileName"), names(bindings))) {
+      bindings[[field]] <- as.character(bindings[[field]])
+      bindings[[field]][idx] <- ""
+    }
+    for (field in intersect(c("sheet_diagnostics", "diagnostics"), names(bindings))) {
+      column <- bindings[[field]]
+      if (is.list(column)) {
+        column[idx] <- rep(list(list()), length(idx))
+      } else {
+        column[idx] <- NA
+      }
+      bindings[[field]] <- column
+    }
+    return(bindings)
+  }
+  if (!is.list(bindings)) return(bindings)
+  lapply(bindings, function(binding) {
+    if (!is.list(binding)) return(binding)
+    role <- as.character(binding$role %||% "")
+    if (!length(role) || is.na(role[[1L]]) || role[[1L]] != "referencia_asistencia") {
+      return(binding)
+    }
+    binding$status <- "pendiente"
+    binding$file_id <- ""
+    binding$file_name <- ""
+    binding$fileId <- NULL
+    binding$fileName <- NULL
+    binding$sheet_diagnostics <- list()
+    binding$diagnostics <- NULL
+    binding
+  })
+}
+
 # Devuelve una copia del session state sin los caches derivables. NO toca
 # el env original — solo construye la versión "liviana" para saveRDS.
 .pulso_strip_caches <- function(s) {
@@ -105,6 +263,16 @@
       selection$selection[pii_cols] <- NULL
     }
     s$calc_muestra_aulas_selection <- selection
+  }
+  s$calc_muestra_referencia_asistencia <-
+    .pulso_sanitize_calc_muestra_asistencia(s$calc_muestra_referencia_asistencia)
+  calc_muestra_estudio <- s$calc_muestra_estudio
+  if (is.list(calc_muestra_estudio) && is.list(calc_muestra_estudio$workspace)) {
+    calc_muestra_estudio$workspace$source_bindings <-
+      .pulso_sanitize_calc_muestra_reference_bindings(
+        calc_muestra_estudio$workspace$source_bindings
+      )
+    s$calc_muestra_estudio <- calc_muestra_estudio
   }
   # No limpiar s$monitoreo_territorial_map_cache ni
   # s$monitoreo_snapshot$territorial_report_cache: son caches persistentes,
@@ -1290,15 +1458,24 @@
   collect_binding <- function(binding) {
     if (is.null(binding)) return(invisible(NULL))
     if (is.data.frame(binding)) {
+      include <- rep(TRUE, nrow(binding))
+      if ("role" %in% names(binding)) {
+        role <- as.character(binding$role)
+        include <- is.na(role) | role != "referencia_asistencia"
+      }
       if ("file_id" %in% names(binding)) {
-        for (value in binding$file_id) add_fid(value)
+        for (value in binding$file_id[include]) add_fid(value)
       }
       if ("fileId" %in% names(binding)) {
-        for (value in binding$fileId) add_fid(value)
+        for (value in binding$fileId[include]) add_fid(value)
       }
       return(invisible(NULL))
     }
     if (!is.list(binding)) return(invisible(NULL))
+    role <- as.character(binding$role %||% "")
+    if (length(role) && !is.na(role[[1L]]) && role[[1L]] == "referencia_asistencia") {
+      return(invisible(NULL))
+    }
     add_fid(binding$file_id %||% binding$fileId)
     invisible(NULL)
   }

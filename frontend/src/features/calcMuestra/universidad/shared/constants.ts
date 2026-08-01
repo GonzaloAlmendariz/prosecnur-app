@@ -183,17 +183,30 @@ export const UNIVERSITY_SOURCE_MODE_OPTIONS: Array<{
   },
 ];
 
+export const UNIVERSITY_REFERENCE_ASSISTANCE_BINDING_DEFAULT: CalcMuestraWorkspaceSourceBinding = {
+  id: "src-referencia-asistencia",
+  role: "referencia_asistencia",
+  label: "Referencia histórica de asistencia",
+  status: "pendiente",
+  sheet_name: "Base de control",
+  suggested_sheet: "Base de control",
+  notes: "Fuente opcional post hoc: calibra tasas agregadas sin modificar el marco ni el sorteo.",
+};
+
 export const UNIVERSITY_SOURCE_BINDING_DEFAULTS: Record<CalcMuestraWorkspaceSourceMode, CalcMuestraWorkspaceSourceBinding[]> = {
   base_madre: [
     { id: "src-base-madre", role: "base_madre", label: "Base principal de matrícula", status: "pendiente", sheet_name: "", notes: "Una fila por estudiante en cada curso y horario." },
+    { ...UNIVERSITY_REFERENCE_ASSISTANCE_BINDING_DEFAULT },
   ],
   dos_bases: [
     { id: "src-estudiantes", role: "estudiantes", label: "Base principal de matrícula", status: "pendiente", sheet_name: "MATRICULADO", notes: "Puede ser estudiante elegible o, idealmente, estudiante por curso y horario." },
     { id: "src-cursos", role: "catalogo_curso_horario", label: "Catálogo de cursos y horarios", status: "pendiente", sheet_name: "CURSO Y HORARIO", notes: "Curso, horario, salón, docente y cupos. Completa la lectura cuando existe." },
+    { ...UNIVERSITY_REFERENCE_ASSISTANCE_BINDING_DEFAULT },
   ],
   seleccion_existente: [
     { id: "src-muestra", role: "muestra_previa", label: "Muestra seleccionada", status: "pendiente", sheet_name: "Muestra", notes: "Cursos-horario titulares y reemplazos si existen." },
     { id: "src-agenda", role: "agenda", label: "Agenda de cursos-horario", status: "pendiente", sheet_name: "BD Agenda", notes: "Docente, fecha, responsable, estado y aplicación." },
+    { ...UNIVERSITY_REFERENCE_ASSISTANCE_BINDING_DEFAULT },
   ],
 };
 

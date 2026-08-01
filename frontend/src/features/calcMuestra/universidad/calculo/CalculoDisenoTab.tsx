@@ -14,11 +14,16 @@
  */
 import { useMemo, useState } from "react";
 import { AlertTriangle, Calculator, Check, Loader2, RotateCcw, Sigma } from "lucide-react";
-import type { CalcMuestraComponente, CalcMuestraParametros } from "../../../../api/client";
+import type {
+  CalcMuestraComponente,
+  CalcMuestraParametros,
+  CalcMuestraReferenciaAsistencia,
+} from "../../../../api/client";
 import { fmtInt, fmtPct, safeNumber } from "../../sharedCore";
 import { hasUsefulResult } from "../shared/study";
 import { FormulaLatex } from "../ui";
 import { CampoNumero, SwapValor, ltxInt, ltxNum } from "./calculoUi";
+import { ReferenciaAsistenciaTau } from "./ReferenciaAsistenciaTau";
 import {
   CampanaZ,
   CurvaP,
@@ -45,6 +50,7 @@ export function CalculoDisenoTab({
   onSetComponentes,
   onCalcular,
   calculando,
+  referenciaAsistencia = null,
 }: {
   totalComp: CalcMuestraComponente;
   facultyComp: CalcMuestraComponente;
@@ -53,6 +59,7 @@ export function CalculoDisenoTab({
   onSetComponentes: (componentes: CalcMuestraComponente[]) => void;
   onCalcular: () => void;
   calculando: boolean;
+  referenciaAsistencia?: CalcMuestraReferenciaAsistencia | null;
 }) {
   const [draftTotal, setDraftTotal] = useState<ParamPatch>({});
   const [draftFaculty, setDraftFaculty] = useState<ParamPatch>({});
@@ -289,11 +296,14 @@ export function CalculoDisenoTab({
               </>
             }
             visual={
-              <p className="cmv2-calc-svg-nota">
-                Con τ = {Math.round(tau * 100)}%, lograr 100 encuestas completas exige intentar
-                ≈{fmtInt(Math.ceil(100 / Math.max(tau, 0.01)))} por curso-horario. La sobremuestra
-                (universidad {fmtPct(oversampleT)}) es colchón adicional, no reemplazo.
-              </p>
+              <>
+                <p className="cmv2-calc-svg-nota">
+                  Con τ = {Math.round(tau * 100)}%, lograr 100 encuestas completas exige intentar
+                  ≈{fmtInt(Math.ceil(100 / Math.max(tau, 0.01)))} por curso-horario. La sobremuestra
+                  (universidad {fmtPct(oversampleT)}) es colchón adicional, no reemplazo.
+                </p>
+                <ReferenciaAsistenciaTau tauActual={tau} referencia={referenciaAsistencia} />
+              </>
             }
           />
         </div>

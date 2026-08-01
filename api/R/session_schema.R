@@ -351,6 +351,7 @@ session_schema <- function() {
 
     # --- Cálculo de muestra ---
     "calc_muestra_estudio",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
+    "calc_muestra_referencia_asistencia", "literal", "persistible", "router_calc_muestra.R", "session_set", "solo tabla agregada calibrada (celda/k/tasa/IC); sin filas por CH ni PII; fuente raw efímera no viaja",
     "calc_muestra_reporte",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_config",   "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_frame",    "literal", "persistible",    "router_calc_muestra.R", "session_set", "sanitizada en save: PII (unique_student_ids) y population/exclusions fuera",

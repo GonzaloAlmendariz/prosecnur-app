@@ -179,12 +179,12 @@ trabajando en lo desbloqueado.
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
-| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 17 grupos conformes: I11 añade la colección `session-type-radiografia`; su matriz final mide 21 grupos por viewport/estado, 0 misses/issues | ↑ con cobertura conforme |
+| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 19 grupos conformes: I12 añade los owners `referencia-asistencia-fuente` y `referencia-asistencia-tau`; sus cuatro capturas finales tienen 0 misses/issues | ↑ con cobertura conforme |
 | Navegaciones canónicas Marco/Aulas que aterrizan arriba tras forzar el owner origen | por medir; I0-O1 sin secuencia reproducible | 13 de 13 navegaciones nuevas + 1 de 1 POP en 1710×1107; reset desde primer frame y estable | = 100 % |
 | Captura e inspección del runner sobre el mismo estado de motion finito | sin contrato; I9-H9 | 1 contrato probado: screenshot lleva finitas al final, DOM reutiliza ese estado y opacidad efectiva 0 queda fuera | = 100 % del caso causal |
-| Eslabones de τ con ancla histórica publicada (asistencia · completitud · validez) | 0 de 3; τ es un escalar sin dato detrás | 0 de 3 | = 3 |
-| Referencia histórica de asistencia calibrable desde el desk | no existe | no existe | disponible, con `k` e intervalo por celda y degradación visible |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 2 confirmados + 0 observaciones: I12-H11 e I12-H12; I11-H10 y todos los hallazgos anteriores quedan cerrados | ↓ a 0 |
+| Eslabones de τ con ancla histórica publicada (asistencia · completitud · validez) | 0 de 3; τ es un escalar sin dato detrás | 3 de 3 publicados con dueño, `k`, IC y producto, sin escribir τ | = 3 |
+| Referencia histórica de asistencia calibrable desde el desk | no existe | disponible desde Datos > Fuentes y visible en Cálculo > Diseño, con `k`, IC y degradación global solo para `k=1…11` | disponible, con `k` e intervalo por celda y degradación visible |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 1 confirmado + 0 observaciones: I12-H11; I12-H12 y todos los hallazgos anteriores quedan cerrados | ↓ a 0 |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -208,7 +208,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I9-H9 | guard visual transversal | `ui-quick-check` puede capturar después de dos RAF mientras siguen animaciones escalonadas y contar como visibles nodos con `opacity: 0` | **cerrado I10**: ambos screenshots usan el fast-forward finito de Playwright antes de `inspectDom`; un único predicado excluye opacidad computada 0 propia/ancestral en overflow y geometría, conserva `.35` y no espera infinitas. Regresión causal 5/6 roja → 6/6; suite del runner 21/21 |
 | I11-H10 | F0/F1 | La radiografía parcial agrupa `aula_frame$session_type`/`faculty` modales, pero el selector y su gate usan las señales efectivas catálogo→fallback de `.cm_criterios_valores_aula`; el gráfico puede describir otra categoría/facultad | **cerrado I11**: el sibling v1 nace exclusivamente de `criterios$seleccion_aula$valores`, reconstruye el marco ejecutado antes de publicar deltas y React falla cerrado sin fabricar el contrato desde el bloque legacy. Engine, normalizador, UI, revisión metodológica/contractual y matriz visual quedaron verdes |
 | I12-H11 | F2 / dimensionamiento | El sorteo real corre siempre con 30 aulas fijas: `selector$n_aulas` tiene default `30L`, no está en ninguna whitelist y el frontend nunca lo envía, así que el `aulas_base_total` que calcula el engine es decorativo | **confirmado I12 por lectura de fuente**: default en `calc_muestra_aulas.R:367`, normalización `:478`, consumo `:1872/:2421/:3188/:3833/:4155`; ausente de `.cm_normalize_workspace_aulas_config` (`calc_muestra_engine.R:462-611`) y de `DEFAULT_UNIVERSITY_AULAS_CONFIG`; única escritura real en la demo `:4630`. No se repara en I12: D6 excluye tocar el dimensionamiento |
-| I12-H12 | F0 / supuesto | τ es un escalar sin dato detrás y su default contradice su propia definición: vale `0.7` en el engine y `0.53` en el espejo del frontend, pero el contrato lo declara «producto de asistencia × aceptación × validez histórica» | **confirmado I12 por medición**: default `calc_muestra_engine.R:176`, semántica `:2334-2338`, espejo `universidad/shared/constants.ts:323`. Sobre 190 CH aplicados del estudio PUCP 2025 la cadena real es 0.698 × 0.753 × 0.893 = **0.469**; el 0.7 equivale a la asistencia sola e ignora los otros dos eslabones. Lo repara I12 publicando la referencia, sin escribir τ |
+| I12-H12 | F0 / supuesto | τ es un escalar sin dato detrás y su default contradice su propia definición: vale `0.7` en el engine y `0.53` en el espejo del frontend, pero el contrato lo declara «producto de asistencia × aceptación × validez histórica» | **cerrado I12**: la referencia histórica publica los tres eslabones y el producto 0.698 × 0.753 × 0.893 = **0.469**, con dueño, momento, `k`, IC, suficiencia y degradación explícitos; no escribe τ, no pega CH a CH y no combina marginales |
 
 ## Bandeja de decisiones (solo Gonzalo)
 
@@ -237,6 +237,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 9 | 2026-08-01 | F2/I0-O2 + guard I9-H9 | Se separó capacidad interior de margen exterior en las diez pestañas vivas; ninguna retiene vacío ni corta el final. La captura de apertura se explicó por stagger no asentado y margen fuera de la ficha; no se tocó producto | baseline funcional 17/17; guard visual 10/10 direcciones, 30/30 capturas, 45 grupos y todos los duros en 0. Probe causal v2: 25 `NO_DEFECT`, 5 `DENSITY_OPPORTUNITY`, 0 `CAPACITY_ISSUE`, 0 `REACHABILITY_ISSUE`, gap raíz 0 y terminal 0–1 px. El v1 fue vetado por elegir descendientes de `details` cerrados y confundir padding con capacidad | Capacidad/alcance: por medir → 10/10 × 3; I0-O2 cerrado; observaciones 1 → 0. Entra I9-H9 como único hallazgo confirmado del guard; revamp F2 y D1/D2 no cambian |
 | 10 | 2026-08-01 | guard transversal/I9-H9 | Se asentaron animaciones finitas en los screenshots antes de inspeccionar y se unificó la visibilidad por opacidad efectiva para el barrido de overflow y la geometría; las infinitas no se esperan y motion normal no se sustituye por reduced motion | detector baseline 5/5; fixture causal 5 verdes + 1 roja por tres miembros desplazados y `opacity:0` incluida → 6/6. Un veto contractual detectó que overflow aún ignoraba opacidad; el fixture ganó controles equivalentes bajo ancestros 0/.35 y volvió a 6/6. Suite runner 21/21, `node --check`, help y diff-check verdes; contrato final aprobado | I9-H9 cerrado; guard motion sin contrato → 1 contrato probado; hallazgos 1 + 0 → 0 + 0. F1 sigue 0 completos, F2 0/6 y `aulasParts.tsx` 1.612. Durante el cierre Gonzalo resolvió D1=(a) y D2=(c); su implementación entra en I11 |
 | 11 | 2026-08-01 | F0/F1/I11-H10 | Se publicó desde R el sibling opcional `criterios_radiografia` sobre tipo y facultad efectivos, con cuantiles type 7, medias elegible/total, denominadores estrictos y contrafactual causal por categoría; React lo normaliza atómicamente y presenta dentro del embudo por facultad, con fallback legacy explícito | R 119 + 191 + 70 expectativas; normalizador contractual 41/41; Marco 12 archivos/113 tests; typecheck, diff-check, auditoría agentic y bóveda verdes; gobernanza propuesta 196/196 y 0 errores. Método, contrato y `verificador` serial aprobados. Matriz final `prosecnur-visual-iter11-radiografia-final-approved`: 3/3 PASS, 21 grupos, 0 issues/misses/overflow/scroll/errors; QA visual independiente C1–C5 aprobado | Componentes F1 0→1; contratos estadísticos 0→1; criterios con delta visible 0→1; I11-H10 cerrado; hallazgos 3→2. F2 sigue 0/6 y `aulasParts.tsx` permanece 1.612 |
+| 12 | 2026-08-01 | F0/F4/I12-H12 | Se incorporó una fuente histórica opcional con engine R propio, contrato agregado y persistencia `.pulso` sin raw/PII; el endpoint publica estudio, reporte y referencia atómicamente; Datos muestra cobertura, cadena y celdas, y Cálculo contrasta τ sin escribirlo. `k=0` queda vacío, `k=1…11` publica global, `k=12…29` es delgada y `k≥30` sólida | Tres regresiones de arranque rojas y vetos de atomicidad, normalización, IC y rótulo `k=0` reparados con guard. Gate final: 10 archivos R/841 expectativas, feature 63 archivos/634 tests, typecheck, diff-check y auditoría agentic verdes; E2E HTTP/UI con la hoja real reproduce 194/192/190, cadena 0.698/0.753/0.893=0.469 y T1–T5; round-trip `.pulso` conserva solo agregado. Matriz visual 4/4 PASS, cero contadores duros; método, contrato y `verificador` serial aprobados | Anclas de τ 0→3; referencia de asistencia inexistente→disponible; geometría 17→19; I12-H12 cerrado y hallazgos 2→1. F2 sigue 0/6 y `aulasParts.tsx` permanece 1.612 |
 
 ### Contrato de iteración 0
 
@@ -259,16 +260,11 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **12 — F4 gobernada por F0, referencia
-histórica de asistencia**. I11 ya cerró el primer contrato F1 completo; el árbol
-debe quedar limpio con su commit antes de tocar los dos archivos compartidos de
-I12. El contrato exhaustivo de I12 vive más abajo y D3–D6 están congeladas por
-Gonzalo: esta entrega publica la referencia histórica con dueño, `k`, intervalo
-y degradación visible, sin escribir τ ni `n_aulas`.
-
-**Después de la 12:** **13 — F2/I12-H11**, medir por dirección qué aulas sortea
-realmente el motor frente a las que calcula y conectar `n_aulas` con su
-whitelist/espejo antes de evaluar cualquier cambio del divisor de la Cadena B.
+**Siguiente iteración programada:** **13 — F2/I12-H11**, medir por dirección qué
+aulas sortea realmente el motor frente a las que calcula y conectar `n_aulas`
+con su whitelist/espejo antes de evaluar cualquier cambio del divisor de la
+Cadena B. I12 deja la referencia histórica publicada sin escribir τ ni
+`n_aulas`; no reabre D6 por sustitución.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -1412,11 +1408,11 @@ whitelist/espejo antes de evaluar cualquier cambio del divisor de la Cadena B.
   ya congelado de referencia histórica de asistencia, con D3–D6 resueltas y sin
   tocar τ, `n_aulas` ni el divisor de la Cadena B.
 
-### Contrato de iteración 12 (scope lock cerrado, ejecución pendiente)
+### Contrato de iteración 12 (scope lock cerrado)
 
-Se ejecuta **después de cerrar I11**: I12 escribe en
-`api/R/calc_muestra_aulas.R` y en `frontend/src/api/calcMuestra.ts`, que I11
-tiene en vuelo. Arrancar antes mezclaría dos unidades en el mismo árbol.
+I11 cerró limpia en `cf05c845`; I12 puede escribir en
+`api/R/calc_muestra_aulas.R` y en `frontend/src/api/calcMuestra.ts` sin mezclar
+las dos unidades.
 
 - **Origen.** Gonzalo aportó la hoja «Base de control» de
   `Historico 2025/Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx` y pidió
@@ -1510,17 +1506,58 @@ tiene en vuelo. Arrancar antes mezclaría dos unidades en el mismo árbol.
   `api/R/calc_muestra_asistencia_referencia.R`,
   `api/tests/testthat/test-calc-muestra-asistencia-referencia.R`,
   `api/tests/testthat/test-calc-muestra-asistencia-fuente.R`,
+  `api/tests/testthat/test-http-contract-calc-muestra-asistencia.R`,
   `universidad/definicion/ReferenciaAsistenciaCard.tsx` con su CSS,
   `universidad/calculo/ReferenciaAsistenciaTau.tsx` y los dos Vitest. Backend
   modificado: `api/R/calc_muestra_aulas.R` (solo el clasificador de hoja y su
   `role_rank`; no crece con lógica), `api/R/router_calc_muestra.R` (endpoint y
   `.cm_state_payload`), `api/R/session_schema.R`, `api/R/errors_registry.R`,
-  `api/R/project_pulso.R`. Frontend modificado:
+  `api/R/project_pulso.R`, `api/R/session_store.R` (publicación multi-clave
+  atómica). Frontend modificado:
   `frontend/src/api/calcMuestra.ts`, `universidad/shared/constants.ts`,
   `universidad/shared/categorias.ts`,
   `universidad/definicion/DefBasesTab.tsx`, `CalcMuestraPage.tsx`,
+  `frontend/src/features/calcMuestra/calcMuestra.css`,
+  `universidad/UniversidadDesk.tsx`,
+  `universidad/definicion/DefEstudioTab.tsx`,
+  `universidad/marco/MarcoConsistenciaTab.tsx`,
+  `universidad/universidadTabs.ts`,
   `universidad/calculo/CalculoDisenoTab.tsx`. Este goal es el único archivo
-  compartido y lo posee el lead.
+  compartido y lo posee el lead. Los cuatro archivos adicionales de transporte
+  y readiness entraron por el censo posterior descrito abajo; no agregan una
+  superficie ni una regla metodológica.
+- **Ampliación medida del scope frontend.** El rojo de whitelist exige que
+  `ensureUniversitySourceBindings()` materialice siempre el binding opcional.
+  El barrido de sus consumidores encontró cuatro gates que reducían cualquier
+  `file_id` a «hay base»: el recorrido de `DefEstudioTab`, el rail en
+  `universidadTabs`, la reconstrucción en `UniversidadDesk` y las tarjetas de
+  relación en `MarcoConsistenciaTab`. La referencia histórica no es insumo del
+  marco; por eso todos consumen un único filtro central
+  `role != referencia_asistencia`. `UniversidadDesk` además es el passthrough
+  mínimo de la clave top-level hacia Datos y Cálculo: evitarlo requeriría dos
+  fetches o un contexto nuevo. La ampliación solo evita falsos verdes y no
+  cambia ningún gate para las fuentes existentes.
+- **Ampliaciones medidas durante el cierre.** El Excel real trae encabezado
+  agrupado en dos filas, 40.578 filas físicas por formato contra 194 unidades
+  materiales, `tipo_sesion` ausente y aliases históricos exactos; el engine
+  promueve el encabezado, descarta solo colas completamente vacías y agrupa el
+  tipo ausente como «Sin dato», sin fuzzy matching. La revisión contractual
+  demostró que «subir archivo» + `PUT estudio` era una escritura partida: el
+  endpoint ganó `workspace` opcional y `session_set_many()` publica estudio,
+  reporte y referencia en una sola asignación, conservando el cliente v1 sin
+  `workspace`. La primera revisión final vetó además publicaciones TS
+  incompatibles con `k` y la ausencia del IC por celda; tres regresiones
+  causales quedaron rojas y el normalizador ahora cruza conteos, tasas, cadena,
+  intervalo, suficiencia y fuente publicada antes de exponer el bloque. C5
+  muestra `IC 95%` para T1–T5 y «Sin IC» cuando `k < 12`.
+- **Ampliaciones medidas por el guard real.** La matriz vacía detectó capacidad
+  propia sin dueño en el estado vacío de τ y seis inputs file nativos de 18×14;
+  se declaró la capacidad y se anuló borde/padding/margen nativos sin cambiar la
+  interacción. La matriz poblada detectó lo mismo en la alerta de degradación.
+  Finalmente la carga real reveló encabezados repetidos en la vista de columnas
+  con claves React duplicadas; la identidad de render pasó a posición+texto.
+  Cada hallazgo se reprodujo antes de reparar y volvió a cero en el mismo
+  viewport/dirección.
 - **Orden obligatorio de censos y whitelists, todo en el mismo commit.** Primero
   `session_schema.R` —o `test-session-schema` queda rojo entre pasos—, con la
   nota «solo tabla agregada calibrada (celda/k/tasa/IC); sin filas por CH ni
@@ -1583,6 +1620,13 @@ tiene en vuelo. Arrancar antes mezclaría dos unidades en el mismo árbol.
   secuestra; (3) `ensureUniversitySourceBindings("base_madre", [...rol
   nuevo...])` devuelve hoy un array sin ese binding, demostrando la pérdida
   silenciosa.
+- **Arranque medido.** En la rama `codex/goal-loop-calculo-muestra`, el test R
+  nuevo falla solo en dos aserciones: la clave no existe en `session_schema()`
+  y «Base de control» cae como `catalogo_curso_horario`; el Vitest nuevo falla
+  solo porque `ensureUniversitySourceBindings` elimina
+  `referencia_asistencia`. Son 3/3 rojos causales, sin datos de cliente ni
+  fallos incidentales. En ese punto I12 permanecía activa y el ledger aún no se
+  movía.
 - **Validación mínima.** Sobre el fixture sintético: la cadena reproduce
   0.698 / 0.753 / 0.893 con producto 0.469 (tolerancia 0.002); monotonía T1..T5;
   una celda k=9 da `suficiencia == "insuficiente"`,
@@ -1617,6 +1661,36 @@ tiene en vuelo. Arrancar antes mezclaría dos unidades en el mismo árbol.
   y su montaje, que solo depende del tipo TS del carril anterior). Serial al
   cierre: integración end-to-end, gate, QA visual y ledger. Máximo tres
   trabajadores y dos writers.
+- **Historia causal y peaje estructural.** Los tres rojos de arranque quedaron
+  verdes sin cargar datos de cliente al repo. La lógica estadística vive en
+  `calc_muestra_asistencia_referencia.R`; `calc_muestra_aulas.R` solo ganó la
+  clasificación/orden del rol y `aulasParts.tsx` permanece en 1.612 líneas. La
+  publicación multi-clave es atómica y el normalizador React falla cerrado ante
+  conteos, cadena, IC, suficiencia o fuente incoherentes. Dos vetos finales
+  ganaron regresión literal: `sin_publicacion` ya no puede ocultar un global
+  publicable y una celda `k=0` no se rotula como degradada al global.
+- **E2E con la fuente real, sin persistirla.** En API aislada, la subida y el
+  POST con workspace produjeron 194 agendados, 192 aplicados, 190 observados,
+  identidad 142/142 y cadena 0.69844046 × 0.75333890 × 0.89279778 =
+  0.46975660; directo, estado y estudio quedaron iguales. En dirección canónica
+  sobre una copia aislada de `hsvg2026`, la UI mostró T1–T5 con k
+  14/39/56/47/34 e IC, y «mañana especial» k=9 publicó el global. El round-trip
+  `.pulso` conservó schema y 190 observados, sin filas, raw ni PII. Los puertos
+  aislados se cerraron y el 8787 no se tocó.
+- **Gate escalado.** Diez archivos R suman 841 expectativas verdes; el feature
+  React pasa 63 archivos/634 pruebas y `tsc -b`; `git diff --check` y
+  `node agentic/sync-agentic-os.mjs --audit` pasan con 0 huérfanos y 0 rutas
+  rotas. Las matrices pobladas de Datos y Cálculo pasan 4/4 capturas en
+  1440×1000 y 1024×600, con 0 issues, misses, overflow, scroll jail o errores.
+  La revisión contractual aprobó los cinco casos de publicación y la revisión
+  metodológica aprobó grano, denominadores, identidad, bootstrap, umbrales y la
+  separación vacío/degradación. El `verificador` serial repitió 10/10 archivos
+  R, 63/63 archivos y 634/634 pruebas React, typecheck, diff-check y auditoría;
+  aprobó el diff, la persistencia, los guards y la coherencia ledger→I13.
+- **Resultado:** mejor. I12-H12 queda cerrado; el ledger pasa de 0 a
+  3 anclas de τ, de referencia inexistente a disponible, de 17 a 19 owners
+  geométricos y de 2 a 1 hallazgos. No se acredita F2, no se escribe τ ni
+  `n_aulas`, y no hay decisión nueva en bandeja.
 - **Siguiente acción.** Iteración 13, F2/I12-H11 — medir por dirección qué aulas
   sortea realmente el motor frente a las que calcula, conectar `n_aulas` con su
   whitelist y su espejo TS, y recién entonces evaluar si el divisor de la

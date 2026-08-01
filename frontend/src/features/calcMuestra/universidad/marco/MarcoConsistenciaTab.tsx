@@ -19,6 +19,7 @@ import {
   sourceBindingSelectedDiagnostic,
   sourceBindingSelectedSheet,
   sourceRoleLabel,
+  universityFrameSourceBindings,
 } from "../shared/categorias";
 import { decidirConsistenciaMarco, frameAuditNumber } from "../shared/frame";
 import { CifraMotor } from "../ui";
@@ -142,7 +143,9 @@ export function MarcoConsistenciaTab({
         ? "warn"
         : "pending";
   const sourceMode = workspace.source_mode ?? "base_madre";
-  const sourceBindings = ensureUniversitySourceBindings(sourceMode, workspace.source_bindings);
+  const sourceBindings = universityFrameSourceBindings(
+    ensureUniversitySourceBindings(sourceMode, workspace.source_bindings),
+  );
   const sourceCards = sourceBindings.map((binding) => {
     const compatible = sourceBindingCompatibleForBuild(binding);
     const diagnostic = sourceBindingSelectedDiagnostic(binding);
