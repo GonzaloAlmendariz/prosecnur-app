@@ -4244,6 +4244,10 @@ monitoreo_normalize_sources <- function(sources = list()) {
       integration_mode = integration_mode,
       sheet_binding = sheet_binding,
       dimensions = .monitoreo_source_dimensions(src),
+      # Dimensiones que salen de una columna en vez de una constante; ver
+      # monitoreo_source_dimension_vars.R.
+      actor_var = .monitoreo_source_actor_var(src),
+      dimension_vars = src$dimension_vars %||% src$dimensionVars %||% list(),
       declared_person_code_var = .monitoreo_scalar(
         src$declared_person_code_var %||%
           src$declaredPersonCodeVar %||%
@@ -4358,6 +4362,9 @@ monitoreo_upsert_source <- function(sources, source) {
   for (nm in names(values)) {
     data[[nm]] <- if (n > 0L) rep(.monitoreo_scalar(values[[nm]], ""), n) else character(0)
   }
+  # Una dimension declarada como VARIABLE pisa la constante que acabamos de
+  # difundir: `dim_actor` pasa a valer lo que dice su columna, fila a fila.
+  data <- monitoreo_apply_source_dimension_vars(data, source)
   data <- .monitoreo_restore_variable_labels(data, variable_labels)
   .monitoreo_set_source_variable_labels(data, source$id, variable_labels)
 }

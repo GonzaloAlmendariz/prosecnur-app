@@ -2148,6 +2148,12 @@
       parsed$codigo_pucp_label %||%
       parsed$codigoPucpLabel %||%
       "",
+    # El actor de cada fila puede venir de una columna en vez de una constante:
+    # una hoja de barrido con varios actores no se puede expresar con
+    # `dimensions`, que es escalar. Ver monitoreo_source_dimension_vars.R.
+    actor_var = parsed$actor_var %||% parsed$actorVar %||%
+      parsed$actor_column %||% parsed$actorColumn %||% "",
+    dimension_vars = parsed$dimension_vars %||% parsed$dimensionVars %||% list(),
     dimensions = parsed$dimensions %||% parsed$dimensiones %||% list(
       actor = parsed$actor %||% "",
       servicio = parsed$servicio %||% "",
