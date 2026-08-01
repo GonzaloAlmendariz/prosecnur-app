@@ -434,7 +434,7 @@
 }
 .cmv2-crit-cats > .cmv2-crit-list {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 6px;
 }
 .cmv2-crit-list-nested { margin-left: 22px; }
@@ -508,6 +508,12 @@
   color: var(--pulso-text);
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+.cmv2-crit-cats > .cmv2-crit-list > .cmv2-crit-item .cmv2-crit-item-label {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  white-space: normal;
 }
 .cmv2-crit-item-count {
   margin-left: 0;
@@ -986,6 +992,11 @@
 @media (max-width: 1350px) {
   .cmv2-crit-cats > .cmv2-crit-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cmv2-crit-list[data-long="true"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1100px) {
+  .cmv2-crit-cats > .cmv2-crit-list,
+  .cmv2-crit-list[data-long="true"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {

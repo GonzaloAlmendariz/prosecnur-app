@@ -2,7 +2,7 @@
 
 Tipo: Goal operativo de producto + QA
 Estado: En curso
-Fecha de apertura: 2026-07-31
+Fecha: 2026-07-31
 Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado del módulo
 
 **Estado:** loop permanente en curso. **Solo Gonzalo lo cierra.** Ninguna
@@ -179,7 +179,7 @@ trabajando en lo desbloqueado.
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 7 locales en fuente; 6 grupos renderizados por viewport de Marco, 0 misses y 0 issues | ↑ con cobertura conforme |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 1 confirmado + 2 observaciones por confirmar; N9, I0-H1, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -190,7 +190,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 |---|---|---|---|
 | N9 | F0 | Marco publica dos instantáneas no reconciliadas de CH elegibles (2.265 y 2.373 en `hsvg2026`) | **resuelto I1**: owner, perfil, audit y exploración del fixture vigente cuadran en 2.373; un payload legacy contradictorio queda en S/D + reconstrucción; D1 sigue abierta |
 | I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | **cerrado I1**: 30 grupos medidos en cinco viewports, 0 misses y 0 issues |
-| I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | confirmado; breakpoint mantiene cinco columnas y `overflow-wrap:anywhere` |
+| I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | **cerrado I6**: piso de 240 px, tier 1100 y wrap normal eliminan cortes; el compuesto conserva texto/ARIA y solo admite quiebres tras sus comas |
 | I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | **cerrado I2**: Datos queda con 3 pestañas y Marco con 6; Consistencia tiene un único hogar, el sexto de Marco |
 | I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | **cerrado I5**: Selección conserva seis hogares vivos, la dirección publicada reemplaza a `marco/marco-aulas` y Sustento recibe guard, fecha y respaldo sin mezclar versiones |
 | I0-H5 | F3 | Entrega ordena Entregables antes de Tablas | **cerrado I4**: Cierre → Tablas → Entregables → Pase coincide en catálogo, sidebar, render, bóveda y manifiesto; ids, direcciones, paneles, contenido y estados permanecen unidos a su identidad |
@@ -211,12 +211,13 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 
 | # | Fecha | Frente | Qué se hizo | Evidencia | Ledger movido |
 |---|---|---|---|---|---|
-| 0 | 2026-07-31 | F0–F4 · baseline | Se midieron estructura, contratos parciales, orden de las 24 pestañas y las cinco secciones reales de `hsvg2026`; no se tocó producto | `wc`/`rg` con `archivo:línea`; revisión metodológica 24/24; `ui-quick-check --require-geometry` 25/25 en `/private/tmp/prosecnur-visual-iter0` (PASS 20, FAIL 5 por C1 en Marco, demás contadores duros en 0) | F3: por auditar → 20/24 justificadas; geometría: por medir → 4 locales; contratos: se reconoció 1 parcial probado; hallazgos: 1 → 7 + 2 observaciones |
-| 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 en cifras/listas | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; matriz final `/private/tmp/prosecnur-visual-iter1-final-r3/marco/report.json` 5/5 PASS, 30 grupos, 0 misses/issues/errores | N9: 1 → 0 cifras sin dueño; geometría Marco: 20 → 0 misses; hallazgos abiertos: 7 + 2 → 5 + 2, con N9 e I0-H1 cerrados |
-| 2 | 2026-08-01 | F3/I0-H3 + I0-H6 | Se devolvió `def-consistencia` al final de Marco en catálogo, sidebar, render y bóveda; la URL antes publicada y el alias histórico se leen como parejas explícitas y se reemplazan por `marco/def-consistencia`, sin inferir sección desde un tab suelto | regresión 10 rojas/20 verdes → 30/30; suite 2.805/2.805 y typecheck verdes; bóveda sin V1/V3; contrato aprobado y método aprobado con I2-H7 separado; `/private/tmp/prosecnur-visual-iter2-final/runtime-probe/report.json` 3/3 PASS, 3 grupos, 0 misses/issues/errores/scroll/overflow | F3: 20/24 → 21/24; H3 y H6 cerrados; hallazgos 5 + 2 → 4 + 2 al incorporar H7 |
-| 3 | 2026-08-01 | F3/guard I2-H7 + C5/I3-H8 | Se tipó el audit existente y se congeló una decisión compartida por sidebar/panel: sin frame `pending`, dos bases solo `ready` con `used===true/status=ok` sin incidencias y toda contradicción falla cerrada; el panel dirige a Datos → Marco → Diseño, la bóveda replica el contrato y el gauge quedó descriptivo, sin umbrales React | regresión principal 31 rojas/29 verdes → 60/60; guard C5 1 roja/17 verdes → 23/23; suite 2.839/2.839, typecheck, 118/118 R, bóveda y diff-check verdes; método y contrato aprobados; `/private/tmp/prosecnur-visual-iter3-final-delta/runtime-probe/report.json` 2/2 PASS, 2 grupos y todos los contadores duros en 0 | I2-H7 e I3-H8 cerrados; hallazgos abiertos 4 + 2 → 3 + 2; F3 se mantiene 21/24 porque el guard no mueve pestañas |
-| 4 | 2026-08-01 | F3/I0-H5 | Se ordenó Salida como Cierre → Tablas → Entregables → Pase en catálogo, estados y render, sin cambiar identidades ni deep-links; se alinearon inventario, bóveda e índice generado con los movimientos Tablas `03→02` y Entregables `02→03` | regresión causal 2 fallos/7 pruebas → foco de navegación 34/34; suite 339 archivos y 2.840/2.840 pruebas, typecheck, bóveda y diff-check verdes; método y contrato aprobados; `/private/tmp/prosecnur-visual-iter4-final/runtime-probe/report.json` 8/8 PASS, C1–C5, 16 grupos y todos los contadores duros en 0 | F3: 21/24 → 23/24; I0-H5 cerrado; hallazgos abiertos 3 + 2 → 2 + 2 |
-| 5 | 2026-08-01 | F3/I0-H4 | Se retiró el hogar duplicado `aulas/marco`; la pareja histórica reemplaza a `marco/marco-aulas`; Selección abre en Objetivo y conserva seis gates; fecha, respaldo y firmas histórica/vigente quedaron separados en Sustento; bóveda y manifiesto se renumeraron sin cambiar ids vivos | regresión de retiro 9 fallos/61 pruebas → 61/61; veto metodológico del sello 2 fallos/8 → 8/8; veto visual C1 1 fallo/9 → 9/9; veto del verificador a CSS posicional 1 fallo/10 → 10/10; foco final 65/65, suite 340 archivos y 2.857/2.857, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; método, contrato y verificador serial aprobados; A/B 4/4 PASS en `/private/tmp/prosecnur-visual-iter5-final/runtime-probe/report.json` y C final 2/2 PASS en `/private/tmp/prosecnur-visual-iter5-final-typography/report.json`, 14 grupos finales y todos los contadores duros en 0 | F3 histórico: 23/24 → 24/24 y vivo 23/23; Aulas F2 cambia denominador 7 → 6 vivas; I0-H4 cerrado; hallazgos 2 + 2 → 1 + 2 |
+| 0 | 2026-07-31 | F0–F4 · baseline | Se midieron estructura, contratos parciales, orden de las 24 pestañas y las cinco secciones reales de `hsvg2026`; no se tocó producto | `wc`/`rg` con `archivo:línea`; revisión metodológica 24/24; `ui-quick-check --require-geometry` 25/25 en el bundle `prosecnur-visual-iter0` (PASS 20, FAIL 5 por C1 en Marco, demás contadores duros en 0) | F3: por auditar → 20/24 justificadas; geometría: por medir → 4 locales; contratos: se reconoció 1 parcial probado; hallazgos: 1 → 7 + 2 observaciones |
+| 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; bundle final `prosecnur-visual-iter1-final-r3/marco/report.json` 5/5 PASS, 30 grupos, 0 misses/issues/errores | N9: 1 → 0 cifras sin dueño; geometría Marco: 20 → 0 misses; hallazgos abiertos: 7 + 2 → 5 + 2, con N9 e I0-H1 cerrados |
+| 2 | 2026-08-01 | F3/I0-H3 + I0-H6 | Se devolvió `def-consistencia` al final de Marco en catálogo, sidebar, render y bóveda; la URL antes publicada y el alias histórico se leen como parejas explícitas y se reemplazan por `marco/def-consistencia`, sin inferir sección desde un tab suelto | regresión 10 rojas/20 verdes → 30/30; suite 2.805/2.805 y typecheck verdes; bóveda sin V1/V3; contrato aprobado y método aprobado con I2-H7 separado; bundle `prosecnur-visual-iter2-final/runtime-probe/report.json` 3/3 PASS, 3 grupos, 0 misses/issues/errores/scroll/overflow | F3: 20/24 → 21/24; H3 y H6 cerrados; hallazgos 5 + 2 → 4 + 2 al incorporar H7 |
+| 3 | 2026-08-01 | F3/guard I2-H7 + C5/I3-H8 | Se tipó el audit existente y se congeló una decisión compartida por sidebar/panel: sin frame `pending`, dos bases solo `ready` con `used===true/status=ok` sin incidencias y toda contradicción falla cerrada; el panel dirige a Datos → Marco → Diseño, la bóveda replica el contrato y el gauge quedó descriptivo, sin umbrales React | regresión principal 31 rojas/29 verdes → 60/60; guard C5 1 roja/17 verdes → 23/23; suite 2.839/2.839, typecheck, 118/118 R, bóveda y diff-check verdes; método y contrato aprobados; bundle `prosecnur-visual-iter3-final-delta/runtime-probe/report.json` 2/2 PASS, 2 grupos y todos los contadores duros en 0 | I2-H7 e I3-H8 cerrados; hallazgos abiertos 4 + 2 → 3 + 2; F3 se mantiene 21/24 porque el guard no mueve pestañas |
+| 4 | 2026-08-01 | F3/I0-H5 | Se ordenó Salida como Cierre → Tablas → Entregables → Pase en catálogo, estados y render, sin cambiar identidades ni deep-links; se alinearon inventario, bóveda e índice generado con los movimientos Tablas `03→02` y Entregables `02→03` | regresión causal 2 fallos/7 pruebas → foco de navegación 34/34; suite 339 archivos y 2.840/2.840 pruebas, typecheck, bóveda y diff-check verdes; método y contrato aprobados; bundle `prosecnur-visual-iter4-final/runtime-probe/report.json` 8/8 PASS, C1–C5, 16 grupos y todos los contadores duros en 0 | F3: 21/24 → 23/24; I0-H5 cerrado; hallazgos abiertos 3 + 2 → 2 + 2 |
+| 5 | 2026-08-01 | F3/I0-H4 | Se retiró el hogar duplicado `aulas/marco`; la pareja histórica reemplaza a `marco/marco-aulas`; Selección abre en Objetivo y conserva seis gates; fecha, respaldo y firmas histórica/vigente quedaron separados en Sustento; bóveda y manifiesto se renumeraron sin cambiar ids vivos | regresión de retiro 9 fallos/61 pruebas → 61/61; veto metodológico del sello 2 fallos/8 → 8/8; veto visual C1 1 fallo/9 → 9/9; veto del verificador a CSS posicional 1 fallo/10 → 10/10; foco final 65/65, suite 340 archivos y 2.857/2.857, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; método, contrato y verificador serial aprobados; A/B 4/4 PASS en el bundle `prosecnur-visual-iter5-final/runtime-probe/report.json` y C final 2/2 PASS en `prosecnur-visual-iter5-final-typography/report.json`, 14 grupos finales y todos los contadores duros en 0 | F3 histórico: 23/24 → 24/24 y vivo 23/23; Aulas F2 cambia denominador 7 → 6 vivas; I0-H4 cerrado; hallazgos 2 + 2 → 1 + 2 |
+| 6 | 2026-08-01 | F1/F2/I0-H2 | Se amplió la capacidad de las categorías planas, se congeló la cascada 1350→1100→620 y se retiró `anywhere` solo de sus rótulos; el rótulo compuesto conserva texto y nombre accesible e incorpora oportunidades de corte únicamente después de sus seis comas | guard CSS 3 fallos/3 verdes → 6/6; veto visual C3 → regresión semántica 1 fallo/6 verdes → 7/7; foco 108/108, suite 340 archivos y 2.861/2.861, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter6-final-wbr/report.json` 7/7 PASS, columnas 6/5/4/4/3/3/2, 0/217 rótulos partidos, 42 grupos y todos los contadores duros en 0; el veto documental posterior corrigió índice, `Fecha` y portabilidad: 21/21 tests y árbol propuesto 196/196, 0 errores | I0-H2 cerrado; hallazgos abiertos 1 + 2 → 0 + 2; F1/F2 conservan sus denominadores porque la iteración cierra un defecto, no acredita una radiografía ni un revamp completo |
 
 ### Contrato de iteración 0
 
@@ -239,13 +240,15 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **6 — F1/F2/I0-H2, impedir que las
-etiquetas de criterios se partan dentro de una palabra en 1366×768**. Es el
-único defecto confirmado restante: el baseline mantiene cinco columnas y
-`overflow-wrap:anywhere` en la radiografía de criterios. Se medirá primero la
-dirección exacta y el rectángulo causal, luego se fijará el contrato responsive
-mínimo sin mover cálculo al frontend ni hacer crecer `aulasParts.tsx`. D1 y D2
-permanecen abiertas; no se añadió una decisión nueva.
+**Siguiente iteración programada:** **7 — F2/I0-O1, confirmar o cerrar la
+conservación de scroll inicial al navegar por dirección en Marco y Aulas a
+1710×1107**. Ya no quedan defectos confirmados; O1 tiene mayor radio que O2
+porque puede afectar toda navegación profunda y accesibilidad, mientras O2 sigue
+siendo una hipótesis de capacidad exterior. Se medirá primero sin tocar producto,
+comparando entrada canónica, cambio entre pestañas y retorno, con owner de scroll,
+foco y cabecera activa registrados. Solo si se confirma se congela la semántica
+de reset/restauración y se abre reparación. D1 y D2 permanecen abiertas; no se
+añadió una decisión nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -346,7 +349,7 @@ permanecen abiertas; no se añadió una decisión nueva.
   normalización o teletransportar una pareja desconocida a otra sección.
 - **Baseline disponible:** 22/22 pruebas focales verdes en el estado defectuoso;
   reproducción `hsvg2026` 1440×1000 en
-  `/private/tmp/prosecnur-visual-iter2-baseline`: las parejas
+  el bundle `prosecnur-visual-iter2-baseline`: las parejas
   `marco/marco-validacion` y `marco/def-consistencia` renderizan por error
   Criterios del estudiante, mientras `definicion/def-consistencia` sí muestra
   Consistencia; 0 errores, overflow, scroll o fallos geométricos.
@@ -445,7 +448,7 @@ permanecen abiertas; no se añadió una decisión nueva.
   reconocidas fallan cerradas.
 - **Baseline disponible:** test R focal 80/80 y Vitest Marco 10/10 verdes en el
   estado defectuoso; baseline visual
-  `/private/tmp/prosecnur-visual-iter3-baseline` reproduce «Listo» con
+  el bundle `prosecnur-visual-iter3-baseline` reproduce «Listo» con
   `source_mode=dos_bases`, `status=revisar`, match 0,9998, 2 issues y 1 warning;
   C1–C4 pasan y C5 falla, sin errores/misses/overflow/scroll.
 - **Validación mínima:** regresiones rojas para la matriz del helper/sidebar,
@@ -532,7 +535,7 @@ permanecen abiertas; no se añadió una decisión nueva.
 - **Baseline disponible:** catálogo 6/6 y focal de navegación 33/33 verdes en
   el estado defectuoso; bóvedas verdes con 202 nodos/207 notas (ese check no
   valida orden). `hsvg2026` en
-  `/private/tmp/prosecnur-visual-iter4-baseline/runtime-probe/report.json`
+  el bundle `prosecnur-visual-iter4-baseline/runtime-probe/report.json`
   reproduce el orden viejo de manera idéntica en DOM/runtime/manifiesto; las
   ocho visitas por dirección son alcanzables y geométricamente sanas, con una
   falla conceptual de orden, 16 grupos y todos los contadores duros en cero.
@@ -573,7 +576,7 @@ permanecen abiertas; no se añadió una decisión nueva.
   tests. Hoy el flujo es catálogo → `modules.ts`/manifiesto → sidebar →
   `UniversidadDesk` → `AulasMarcoTab`.
 - **Baseline medido por dirección:**
-  `/private/tmp/prosecnur-visual-iter5-baseline/report.json` reproduce
+  el bundle `prosecnur-visual-iter5-baseline/report.json` reproduce
   `aulas/marco` como primer tab en DOM, runtime y manifiesto, y visita también
   `aulas/objetivo` y `marco/marco-aulas` en 1440×1000 y 1024×600. Las seis
   superficies pasan C1–C4, 10 grupos, cero misses/issues/scroll/overflow o
@@ -686,6 +689,130 @@ permanecen abiertas; no se añadió una decisión nueva.
 - **Siguiente acción:** iteración 6, F1/F2/I0-H2 — reproducir por dirección y
   rectángulo el corte intrapalabra en 1366×768, congelar el breakpoint/contrato
   tipográfico mínimo y repararlo con guard visual escalado.
+
+### Contrato de iteración 6 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F1/F2/I0-H2. La fuente es la etiqueta
+  completa del catálogo R→React y el contrato C5 de legibilidad: una categoría
+  puede envolver entre palabras o separadores, pero no cortar un token por falta
+  de capacidad. C1–C4 siguen gateando geometría, adaptación, capacidad y acceso.
+- **Dirección y baseline medidos:**
+  `calc-muestra/opinion-universitaria/marco/marco-criterios-alumno` sobre
+  `hsvg2026` en 1440×1000, 1366×768, 1280×720 y 1024×600. El reporte
+  el bundle `prosecnur-visual-iter6-baseline/report.json` da `hardPass` 4/4
+  y `typographyPass` 0/4: 7 etiquetas y 9 cortes intrapalabra. C1–C4 pasan con
+  24 grupos, 0 issues/misses/overflow/scroll-jails o errores; C5 falla. Se
+  inspeccionaron las ocho capturas. La transición primaria exacta es 1351 FAIL
+  → 1350 PASS, pero el corte reaparece en rangos inferiores por el rótulo largo
+  y la capacidad variable.
+- **Primera divergencia causal e historia:** `6df7c5fb` introdujo en un mismo
+  cambio `auto-fit/minmax(220px)`, `overflow-wrap:anywhere` y el breakpoint
+  `max-width:1350px`. En 1366 Formación conserva cinco tracks de ~230,4 px;
+  switch y conteo `nowrap` dejan 60–77 px al label y cortan `PREGRA|DO`,
+  `DOCTORAD|O` y `ESPECIALID|AD`. En 1024 tres tracks de 282 px dejan 118 px y
+  cortan `REINCORPORACIO|N`. Los demás cortes afectan tokens del rótulo
+  compuesto de ingreso en 1440/1280/1024.
+- **Contrato responsive congelado:** en
+  `frontend/src/features/calcMuestra/universidad/criterios/criterios.css`, la
+  lista plana usa `repeat(auto-fit,minmax(240px,1fr))`; solo sus labels directos
+  declaran `overflow-wrap:normal`, `word-break:normal`, `hyphens:none` y
+  `white-space:normal`; un tier independiente `max-width:1100px`, ubicado entre
+  los de 1350 y 620, lleva tanto la lista plana como `data-long=true` a dos
+  columnas. Resultado exigido: 1440→5, 1366→4, 1280→3, 1024→2 y ≤620→1,
+  sin cortes, elipsis, ocultamiento ni overflow.
+- **Archivos previstos:** producto únicamente
+  `frontend/src/features/calcMuestra/universidad/criterios/criterios.css` y,
+  por el veto visual descrito abajo,
+  `frontend/src/features/calcMuestra/universidad/criterios/controles.tsx`;
+  regresión únicamente
+  `frontend/src/features/calcMuestra/universidad/criterios/__tests__/CriteriosGeometry.contract.test.ts`;
+  y este ledger. Un writer posee el test y otro el CSS, sin globs solapados.
+- **Guard previsto:** ampliar el contrato estático para fallar con el piso
+  220, la política `anywhere`, la ausencia del tier 1100 o una cascada donde
+  620 no gane. El guard visual final repite las cuatro celdas, mide columnas y
+  cada palabra por `Range`, y añade 1710×1107 como extremo ancho; exige C1–C5,
+  cero cortes y todos los contadores duros en 0.
+- **Peaje estructural:** una regla CSS y un helper presentacional local; no se
+  crea un componente público, no crece `aulasParts.tsx`, no se cambia el contrato
+  `intrinsic/owned` de listas e ítems y no se toca la lista jerárquica, toggles
+  por facultad, variantes ni cabeceras del media query de 900 px.
+- **Exclusiones explícitas:** componentes TSX distintos de `controles.tsx`,
+  catálogo/contenido/datos, estadísticas, engine/API R, payloads, persistencia,
+  `.pulso`, navegación, Aulas/F3 ya cerrada, O1/O2, D1/D2 y el prompt no
+  versionado del usuario.
+- **Riesgo principal:** arreglar 1366 y trasladar el desborde a 1024 o a códigos
+  sin espacios. Por eso el wrap se acota a la lista plana, el tier 2 columnas
+  se prueba en 1024 y el detector recorre todos los labels, no solo los tres
+  ejemplos originales.
+- **Baseline de checks:** el contrato estructural vigente pasa 3/3 aunque el
+  defecto existe; esa insuficiencia debe producir la roja. En la apertura no
+  había cambios de producto y el árbol conservaba únicamente el prompt no
+  rastreado.
+- **Primer guard y delta de scope:** la regresión CSS falló 3/6 y cerró 6/6;
+  el foco de Criterios pasó 107/107. El primer guard final confirmó columnas
+  7/7 y cero cortes en 217 labels, pero vetó C3: el rótulo compuesto
+  `INGRESO(EV.TAL,1OP,CEPR,ITS,PAEE,BACH,EX.ING)` no tiene espacios y desborda
+  en las siete celdas con `overflow-wrap:normal`. La reparación autorizada
+  mantiene ese texto y su `aria-label`, e inserta oportunidades `<wbr>` solo
+  después de sus comas en el render plano; no reabre `anywhere` ni cambia el
+  catálogo. Debe probarse roja antes de tocar `controles.tsx`.
+- **Validación mínima:** roja/verde focal; foco de criterios; suite frontend y
+  `typecheck`; `vaults-check --check`; `git diff --check`; guard visual
+  `hsvg2026` 1710/1440/1366/1280/1024; revisión contractual y `verificador`
+  serial antes del commit.
+- **Roja y reparación enfocada:** el guard estructural nuevo falló 3/6 por el
+  piso de 220 px, `anywhere` y la ausencia del tier 1100; la cascada congelada
+  cerró 6/6. El primer guard Chromium eliminó los nueve cortes originales,
+  pero vetó C3 en 7/7 celdas: el token compuesto sin espacios medía 315 px,
+  desbordaba su label y se superponía con el conteo. Una regresión de render
+  falló 1/7; el helper local insertó seis `<wbr>` después de las comas y cerró
+  7/7 sin cambiar texto concatenado, `aria-label`, catálogo ni labels simples.
+- **Cambio y peaje estructural:** el piso de la lista plana pasa 220 → 240 px;
+  solo sus labels directos usan wrap normal; el tier 1100 impone dos columnas y
+  el de 620 conserva una. `ControlFlat` suma un helper presentacional local;
+  listas jerárquicas, toggles, variantes, API, engine, persistencia y
+  navegación quedan intactos. `aulasParts.tsx` permanece en 1.612 líneas.
+- **Validación ejecutada:** guard fuente 6/6 y render 7/7; foco de Criterios
+  108/108; suite frontend 340 archivos y 2.861/2.861 pruebas; `typecheck`,
+  `vaults-check --check` (201 nodos/206 notas) y `git diff --check` verdes. El
+  revisor contractual aprobó compatibilidad, accesibilidad y alcance, sin ADR ni
+  migración. El guard final
+  el bundle `prosecnur-visual-iter6-final-wbr/report.json` pasa 7/7 en
+  1710/1440/1366/1351/1350/1280/1024: columnas 6/5/4/4/3/3/2, 217 labels,
+  cero cortes, desbordes o colisiones, 42 grupos, 0 issues/misses y todos los
+  contadores de scroll/error/readiness en 0. Las 21 capturas se inspeccionaron,
+  el SHA de la copia canónica permaneció estable y los puertos propios se
+  cerraron sin tocar 8787.
+- **Resultado:** mejor. I0-H2 queda cerrado y los hallazgos bajan 1 + 2 →
+  0 + 2; no se acredita una radiografía F1 completa ni una pestaña F2 porque
+  esta iteración corrige legibilidad/capacidad, no completa esos contratos.
+  D1/D2 siguen abiertas y la bandeja no recibe decisiones nuevas.
+- **Siguiente acción:** iteración 7, F2/I0-O1 — medir por dirección canónica
+  entrada, cambio de pestaña y retorno en Marco/Aulas a 1710×1107, localizar el
+  owner de scroll y confirmar o cerrar la observación antes de tocar producto.
+- **Veto documental y delta de scope:** el primer `verificador` aprobó producto,
+  pruebas y las 21 capturas, pero vetó `check-docs-governance`: este goal nació
+  fuera del índice QA, usa `Fecha de apertura` en vez del campo canónico `Fecha`
+  y conserva identificadores de evidencia con raíz efímera. Además, el preflight
+  incluye deliberadamente Markdown no rastreado y permitió que el prompt privado
+  del usuario vetara un commit que lo excluye. Se conserva esa política; el
+  contrato se amplía únicamente a `docs/qa/README.md`: el índice enlaza el goal,
+  sus evidencias se expresan mediante IDs portátiles y el campo `Fecha` vuelve a
+  ser canónico. No se edita, enlaza, stagea ni versiona el prompt del usuario.
+  El comando sobre el árbol compartido debe quedar con ese único error ajeno y
+  el mismo gate sobre un espejo del árbol propuesto —sin untracked excluidos del
+  commit— debe dar cero errores. La reparación exige ambas evidencias y un
+  segundo `verificador` serial; no cambia checker ni política documental.
+- **Levantamiento del veto documental:** `docs/qa/README.md` alcanza ahora este
+  goal, el encabezado declara `Fecha: 2026-07-31` y las trece referencias a
+  bundles visuales conservan su identificador sin raíz local. Los 21 tests del
+  checker pasan. El preflight del working tree informa 196/197 alcanzables y un
+  único error, exactamente el prompt no rastreado; `git ls-files
+  --error-unmatch` confirma que no pertenece al índice. El espejo del árbol
+  propuesto `prosecnur-i6-proposed.0Jpf4M`, construido desde `HEAD` y solo los
+  cinco archivos previstos, pasa 196/196, 648 enlaces y `Errores: 0`. Bóveda
+  201/206 y `git diff --check` permanecen verdes. Este resultado justifica el
+  baseline ajeno sin ocultarlo y deja el commit verificable en aislamiento.
 
 ## Cómo se corre cada visita
 

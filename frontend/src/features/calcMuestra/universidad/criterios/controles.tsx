@@ -25,6 +25,16 @@ import { Switch, SwitchTri } from "./Switch";
 
 type SelChange = (next: CriterioSeleccion) => void;
 
+function etiquetaFlatConCortes(label: string) {
+  if (!label.includes(",")) return label;
+  const segmentos = label.split(",");
+  return segmentos.flatMap((segmento, index) => (
+    index < segmentos.length - 1
+      ? [segmento, ",", <wbr key={index} />]
+      : [segmento]
+  ));
+}
+
 /** Barra "Todas / Ninguna" para sets flat (fuerza modo include). */
 function AccionesSet({ variable, onSel }: { variable: CriterioVariable; onSel: SelChange }) {
   const claves = clavesDeVariable(variable);
@@ -90,7 +100,7 @@ export function ControlFlat({
             >
               <div className="cmv2-crit-item-main">
                 <Switch checked={checked} onToggle={() => onSel(toggleCategoria(sel, cat.key))} ariaLabel={cat.label} />
-                <span className="cmv2-crit-item-label">{cat.label}</span>
+                <span className="cmv2-crit-item-label">{etiquetaFlatConCortes(cat.label)}</span>
               </div>
               <span className="cmv2-crit-item-count">
                 {fmtInt(cat.aulas)} <em>{unidad}</em>

@@ -22,6 +22,8 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 
 ## En curso
 
+- [Goal loop de Cálculo de muestra](goal-loop-calc-muestra-2026-07-31.md):
+  selector con evidencia estadística, revamp de Aulas y ledger de iteraciones.
 - [Goal loop visual de toda la aplicación](goal-loop-visual-app-2026-07-30.md):
   órbita de los ocho módulos del proyecto y Enciclopedia como utilidad global.
 - [Plan de mejoras de julio de 2026](plan-mejoras-2026-07.md): priorización
