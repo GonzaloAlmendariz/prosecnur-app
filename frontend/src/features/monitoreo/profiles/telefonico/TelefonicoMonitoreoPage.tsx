@@ -209,6 +209,7 @@ import "../profilePage.css";
 import "./telefonicoProfile.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { MetaCuotaInput } from "./MetaCuotaInput";
+import { resumenDeEquipo } from "./conteoDeEquipo";
 import {
   aplicarMetasPendientes,
   etiquetaDeConfirmacion,
@@ -5477,7 +5478,7 @@ function AcreditacionPhoneResponsibleCards({ rows }: { rows: Array<Record<string
           <span>Equipo asignado</span>
           <strong>Producción por responsable y asignación</strong>
         </div>
-        <em>{formatMetric(assignedRows.length)} responsables</em>
+        <em>{resumenDeEquipo(assignedRows.map((row, index) => phoneResponsibleBaseName(row, index))).etiqueta}</em>
       </header>
       {assignedRows.length ? assignedRows.map((row, index) => {
         const name = phoneResponsibleName(row, index);
