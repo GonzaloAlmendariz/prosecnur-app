@@ -1005,6 +1005,18 @@ async function cederRenderDeTransicion(page) {
   }));
 }
 
+async function capturarVistaAsentada(page, { screenshot, fullScreenshot }) {
+  // Playwright lleva las animaciones finitas a su estado final antes de cada
+  // captura. Ese estado no se revierte, de modo que inspectDom observa después
+  // la misma geometría que quedó en el PNG. Las animaciones infinitas se
+  // cancelan temporalmente al estado inicial y luego se reanudan: no intentamos
+  // esperarlas ni inventar un timeout.
+  await page.screenshot({ path: screenshot, animations: "disabled" });
+  if (fullScreenshot) {
+    await page.screenshot({ path: fullScreenshot, fullPage: true, animations: "disabled" });
+  }
+}
+
 async function irADireccion(page, destino, timeoutMs) {
   const resultado = await page.evaluate((clave) => {
     const nav = window.__pulsoNav;
@@ -1216,8 +1228,7 @@ async function runCaptures(opts, stack) {
         const shotBase = `${opts.name}-${safeSlug(route)}-${viewportName(viewport)}-${opts.layoutPreset}`;
         const screenshot = path.join(opts.out, `${shotBase}.png`);
         const fullScreenshot = opts.fullPage ? path.join(opts.out, `${shotBase}-full.png`) : null;
-        await page.screenshot({ path: screenshot });
-        if (fullScreenshot) await page.screenshot({ path: fullScreenshot, fullPage: true });
+        await capturarVistaAsentada(page, { screenshot, fullScreenshot });
 
         const dom = await inspectDom(page, {
           projectMode: Boolean(opts.project),
@@ -1267,6 +1278,16 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     const root = document.documentElement;
     const body = document.body;
     const text = body?.innerText || "";
+    const hasEffectiveOpacity = (el) => {
+      let current = el;
+      while (current instanceof Element) {
+        const opacity = Number.parseFloat(window.getComputedStyle(current).opacity);
+        if (Number.isFinite(opacity) && opacity === 0) return false;
+        const rootNode = current.getRootNode();
+        current = current.parentElement || (rootNode instanceof ShadowRoot ? rootNode.host : null);
+      }
+      return true;
+    };
     const selector = [
       "button",
       "input",
@@ -1323,7 +1344,11 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     for (const el of Array.from(ambito.querySelectorAll(selector))) {
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
-      const visible = rect.width > 1 && rect.height > 1 && style.display !== "none" && style.visibility !== "hidden";
+      const visible = rect.width > 1
+        && rect.height > 1
+        && style.display !== "none"
+        && style.visibility !== "hidden"
+        && hasEffectiveOpacity(el);
       if (!visible) continue;
       const overflowXAllowed = ["auto", "scroll"].includes(style.overflowX);
       const overflowYAllowed = ["auto", "scroll"].includes(style.overflowY);
@@ -1462,7 +1487,8 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         && rect.width > 1
         && rect.height > 1
         && style.display !== "none"
-        && style.visibility !== "hidden";
+        && style.visibility !== "hidden"
+        && hasEffectiveOpacity(el);
     };
     const measurementCanvas = document.createElement("canvas");
     const measurementContext = measurementCanvas.getContext("2d");
