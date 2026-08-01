@@ -38,6 +38,10 @@ const RETIRADAS = [
   "La respuesta cuenta cuando",
   "De dónde salen los números del monitoreo",
   "El consentimiento decide cuáles cuentan en el avance",
+  // El vacío de una sección sin corte. Decía que no había nada y nada más: ni
+  // en qué punto está el proyecto ni por dónde se sale. Lo sustituye
+  // `core/CorteAusente`, que pone la cifra de fuentes y la puerta a Fuentes.
+  "Todavia no hay reporte local preparado para esta vista",
 ];
 
 /**

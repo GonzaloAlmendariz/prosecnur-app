@@ -37,6 +37,27 @@ export const ACREDITACION_SOURCE_TABS = [
 
 export type AcreditacionSourceTab = typeof ACREDITACION_SOURCE_TABS[number]["key"];
 
+/**
+ * Dónde se aterriza en Fuentes.
+ *
+ * En el resumen: la primera pregunta al abrir Fuentes es de dónde salen los
+ * números, no cuál de las tres piezas configurar. Su gemelo en Acreditación es
+ * `fuentes/pestanas.ts`, que declara «actores» por la razón simétrica.
+ *
+ * Vive aquí y no en el page-file porque allí había DOS defaults para lo mismo:
+ * el `useState` de la página abría en «activas» —con un comentario explicando
+ * por qué— y el despachador de secciones, 1.400 líneas más arriba, caía en
+ * `?? "survey"`. Hoy no se nota porque la página siempre pasa su valor; el día
+ * que alguien llame al despachador sin él, telefónico aterriza en el paso 3 del
+ * guion de un estudio que no tiene el paso 1.
+ */
+export const PESTANA_DE_FUENTES_POR_DEFECTO_TELEFONICO: AcreditacionSourceTab = "activas";
+
+/** El aterrizaje de cada modo, para que no se declare dos veces. */
+export function pestanaDeFuentesInicial(esTelefonico: boolean): AcreditacionSourceTab {
+  return esTelefonico ? PESTANA_DE_FUENTES_POR_DEFECTO_TELEFONICO : "survey";
+}
+
 export function pestanasDeFuentesPorClave() {
   const porClave = (key: AcreditacionSourceTab) => {
     const tab = ACREDITACION_SOURCE_TABS.find((item) => item.key === key);

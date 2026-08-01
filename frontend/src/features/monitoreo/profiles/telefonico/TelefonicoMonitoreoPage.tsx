@@ -57,6 +57,11 @@ import { MODULE_TONES } from "../../../../lib/modules";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import {
   modoIdDesdeFamily, MONITOREO_MODOS, MONITOREO_SECCIONES, seccionesDelModo, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import { CORTE_VACIO } from "../../core/corteVacio";
+import { CorteAusente } from "../../core/CorteAusente";
+import { coberturaDelCorte } from "../../core/coberturaDelCorte";
+import { fuentesSincronizables, motivoSinFuentes } from "../../core/fuentesSincronizables";
+import { PIEZAS_DEL_PAQUETE_TELEFONICO, piezasRequeridas } from "../../core/paqueteDeFuentes";
 import {
   pestanaInicialDeSeccion,
   seccionInicialMonitoreo,
@@ -66,6 +71,7 @@ import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { buildCaseCrossingExplanation } from "../../core/acreditacionActorCases";
 import {
   ACREDITACION_SOURCE_TABS,
+  pestanaDeFuentesInicial,
   pestanasDeFuentesPorClave,
   type AcreditacionSourceTab,
 } from "./pestanasDeFuentes";
@@ -8020,7 +8026,7 @@ function AcreditacionSourceStatusStrip({
   const phoneContract = phoneMode ? buildAcreditacionPhoneSourceContract(sources) : null;
   const phoneReadyCount = phoneContract ? phoneContractReadyCount(phoneContract) : 0;
   const packageActiveCount = phoneContract ? phoneReadyCount : activeSources.length;
-  const packageTotalCount = phoneContract ? 3 : sources.length;
+  const packageTotalCount = piezasRequeridas(Boolean(phoneContract), sources.length);
   const sheetCount = activeSources.filter((source) => source.kind === "google_sheets").length;
   const surveyCount = phoneContract ? phoneContract.platform.sources.filter((source) => source.enabled).length : activeSources.filter(isPlatformResponseSource).length;
   const baseCount = phoneContract ? (phoneContract.universe.ready ? 1 : 0) : sourcesForPreset(sources, ACREDITACION_SOURCE_PRESETS[0]).length;
@@ -10206,7 +10212,7 @@ function AcreditacionConfiguredSourcesList({
   // es lo único que esta superficie muestra y ninguna otra.
   const unusedCount = sources.filter((source) => !source.enabled).length;
   const activeCount = phoneContract ? phoneContractReadyCount(phoneContract) : sources.filter((source) => source.enabled).length;
-  const totalCount = phoneContract ? 3 : sources.length;
+  const totalCount = piezasRequeridas(Boolean(phoneContract), sources.length);
 
   const updateSource = async (source: MonitoreoSource, patch: Partial<MonitoreoSourcePayload>) => {
     setSavingId(source.id);
@@ -18857,7 +18863,9 @@ function corteTelefonicoDeReports(
   const esTelefonico = isTelefonicoMonitoreoState(state ?? null);
   const fuentes = {
     fuentesActivas: activeSourceCount(state ?? null),
-    fuentesRequeridas: esTelefonico ? 3 : (state?.sources?.length ?? null),
+    fuentesRequeridas: esTelefonico
+      ? PIEZAS_DEL_PAQUETE_TELEFONICO.length
+      : (state?.sources?.length ?? null),
   };
   if (!reports) return corteAcreditacion(state, [], fuentes);
   const actorRows = reports.client_report?.actors?.length
@@ -18893,6 +18901,9 @@ function renderAcreditacionView(
     onNavigateLocalTab?: (view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => void;
     routeLabel?: string;
     savingAcreditacion?: boolean;
+    /** Las mismas cifras que pinta el chrome, para el vacío sin corte. */
+    fuentesActivas?: number;
+    fuentesRequeridas?: number;
   } = {},
 ) {
   if (view === "avance" && options.activeAdvanceTab === "salidas") {
@@ -18912,21 +18923,30 @@ function renderAcreditacionView(
       />
     );
   }
-  if (!reports) {
-    return <EmptyPanel title="Resumen pendiente" detail="Todavia no hay reporte local preparado para esta vista." />;
-  }
-  const client = reports.client_report;
+  // Fuentes va ANTES del guardia del corte: es la sección que produce el corte.
+  // Detrás del guardia, un estudio recién abierto veía «Resumen pendiente» en el
+  // único sitio donde podía conectar sus tres fuentes. Ver `core/corteVacio`.
   if (view === "fuentes") {
     return (
       <AcreditacionSourcesWorkbench
-        reports={reports}
+        reports={reports ?? CORTE_VACIO}
         state={options.state}
-        activeTab={options.activeSourceTab ?? "survey"}
+        activeTab={options.activeSourceTab ?? pestanaDeFuentesInicial(isTelefonicoMonitoreoState(options.state))}
         onStateChange={options.onStateChange}
         onSourceTabChange={(tab) => options.onNavigateLocalTab?.("fuentes", tab)}
       />
     );
   }
+  if (!reports) {
+    return (
+      <CorteAusente
+        fuentesActivas={options.fuentesActivas ?? 0}
+        fuentesRequeridas={options.fuentesRequeridas ?? 0}
+        onIrAFuentes={() => options.onNavigateLocalTab?.("fuentes", "activas")}
+      />
+    );
+  }
+  const client = reports.client_report;
   if (view === "modelo") {
     return (
       <AcreditacionModelWorkbench
@@ -19623,7 +19643,7 @@ function AcreditacionClarityStrip({
   reports: MonitoreoAcreditacionReports | null;
 }) {
   const isPhoneState = isTelefonicoMonitoreoState(state);
-  const sourceTotal = isPhoneState ? 3 : state?.sources?.length ?? 0;
+  const sourceTotal = piezasRequeridas(isPhoneState, state?.sources?.length ?? 0);
   const activeSources = activeSourceCount(state);
   const sourceGap = Math.max(0, sourceTotal - activeSources);
   const summary = stateFromReports(reports, num(state?.dashboard?.kpis?.total ?? state?.n_rows, 0), num(state?.dashboard?.kpis?.valid, 0));
@@ -19759,9 +19779,9 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", seccionesDelModo(route)));
   const [activeSourceTab, setActiveSourceTab] = useState<AcreditacionSourceTab>(() =>
-    // Telefónico aterriza en el resumen, no en una pestaña de configuración:
-    // la primera pregunta al abrir Fuentes es de dónde salen los números.
-    pestanaInicialDeSeccion("fuentes", seccionActiva, isPhone ? "activas" : "survey", ACREDITACION_SOURCE_TABS.map((tab) => tab.key)));
+    // El aterrizaje lo declara el catálogo, no este useState: era el segundo
+    // sitio donde se decidía lo mismo. Ver `pestanasDeFuentes`.
+    pestanaInicialDeSeccion("fuentes", seccionActiva, pestanaDeFuentesInicial(isPhone), ACREDITACION_SOURCE_TABS.map((tab) => tab.key)));
   const [activeModelTab, setActiveModelTab] = useState<AcreditacionModelTab>(() =>
     pestanaInicialDeSeccion("modelo", seccionActiva, "estructura", ACREDITACION_MODEL_TABS.map((tab) => tab.key)));
   const [activeConsultaTab, setActiveConsultaTab] = useState<AcreditacionConsultaTab>(() =>
@@ -19921,7 +19941,13 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   const applyStateChange = useCallback((nextState: MonitoreoState) => {
     clearScopeStateCache();
     setState(nextState);
-    const reportScope = scopeForView(activeViewRef.current, route.family);
+    // El estado se cachea bajo el scope que TRAE, no bajo el que la vista
+    // quería. Al revés, un payload de `source` devuelto por una mutación
+    // quedaba archivado como si fuera el corte de Avance, y la siguiente
+    // visita a Avance lo servía desde caché sin volver a pedirlo: el desajuste
+    // dejaba de ser transitorio y se hacía permanente.
+    const reportScope = nextState.dashboard?.acreditacion_reports?.report_scope
+      ?? scopeForView(activeViewRef.current, route.family);
     stateByScopeRef.current.set(reportScope, nextState);
     warmedScopesRef.current.add(reportScope);
   }, [clearScopeStateCache, route.family]);
@@ -19993,24 +20019,14 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     }
   }, [clearScopeStateCache]);
   const runProfileSourceSync = useCallback(async (syncMode: "full" | "advance") => {
-    const currentSources = state?.sources ?? [];
-    const sourceIds = currentSources
-      .filter((source) => {
-        if (!source.enabled) return false;
-        if (syncMode === "full") return true;
-        if (route.family === "telefonico") {
-          if (source.kind === "google_sheets") return source.role === "universo" || source.role === "barrido" || !source.role;
-          return source.kind === "kobo" && (source.role === "respuestas" || !source.role || Boolean(source.asset_uid));
-        }
-        return (source.kind === "surveymonkey" || source.kind === "kobo") && (source.role === "respuestas" || !source.role);
-      })
-      .map((source) => source.id);
+    const sourceIds = fuentesSincronizables(state?.sources ?? [], syncMode, route.family).map((source) => source.id);
     if (!sourceIds.length) {
-      const message = syncMode === "full"
-        ? "No hay fuentes activas para actualizar."
-        : "No hay fuentes de respuesta activas para actualizar avance.";
-      setError(message);
-      setActionStatus({ tone: "error", message });
+      // Sin fuentes que leer no hay fallo que reportar: el botón ya está
+      // apagado con esta misma cuenta y su título dice por qué. Este camino
+      // queda como respaldo —una fuente puede desactivarse entre el render y el
+      // click— y por eso informa por el canal de estado, no por `setError`, que
+      // marca la vista como rota y le tumba la readiness.
+      setActionStatus({ tone: "info", message: motivoSinFuentes(syncMode) });
       return;
     }
     sourceSyncActions.start({
@@ -20065,7 +20081,11 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       sourceSyncActions.finish();
     }
   }, [clearScopeStateCache, route.family, state?.config, state?.sources]);
-  const sourceTotal = isPhone ? 3 : state?.sources?.length ?? 0;
+  // El botón se apaga con la misma cuenta con la que la acción se rendiría: la
+  // afordancia y lo que hace no pueden discrepar. Ver `core/fuentesSincronizables`.
+  const sinFuentesFull = !fuentesSincronizables(state?.sources ?? [], "full", route.family).length;
+  const sinFuentesAvance = !fuentesSincronizables(state?.sources ?? [], "advance", route.family).length;
+  const sourceTotal = piezasRequeridas(isPhone, state?.sources?.length ?? 0);
   const activeSources = activeSourceCount(state);
   const chromeBusy = savingAcreditacion || sourceSyncing || Boolean(caseReconciliationBusyId);
   const refreshTitle = sourceSyncing ? "Sincronizando fuentes..." : loading ? "Actualizando vista..." : `Actualizar ${activeDef.shortLabel ?? activeDef.label}`;
@@ -20127,11 +20147,43 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     navigateSection(view);
   }, [changeLocalTab, navigateSection]);
   const loadedReportScope = state?.dashboard?.acreditacion_reports?.report_scope;
-  const auditReady = !loading
-    && !error
-    && Boolean(state)
-    && (loadedReportScope === scopeForView(seccionActiva, isPhone ? "telefonico" : "acreditacion")
-      || loadedReportScope === "full");
+  // Un estudio sin corte también termina de cargar.
+  //
+  // La readiness colgaba entera del scope del corte, así que un proyecto recién
+  // abierto —el que todavía no ha conectado ninguna fuente— no la publicaba
+  // nunca: `window.__pulsoNav.listo()` respondía `sin-marca-de-readiness` y el
+  // QA visual no podía gatear la pantalla del primer día. Justo la pantalla
+  // donde se conectan las fuentes que producen el corte.
+  //
+  // Sin corte no hay scope que comparar, y no hay nada más que esperar: cada
+  // sección ya está en su estado final —Fuentes con sus tarjetas por conectar,
+  // el resto con su vacío declarado—. `loading`, `error` y `state` siguen
+  // mandando; lo único que se retira es la exigencia de un corte que este
+  // proyecto todavía no tiene.
+  //
+  // Y un corte de OTRA sección no es esta sección cargada. El estado se
+  // reemplaza entero cada vez que algo lo devuelve, y las mutaciones traen el
+  // scope que su endpoint decidió: guardar desde un panel mientras se mira
+  // Avance dejaba en pantalla un corte de `source`. La vista se quedaba callada
+  // —sin readiness, sin recargar, con cifras ajenas— y ese silencio no se
+  // distingue de «cargando» ni de «esto está bien». Ver `core/coberturaDelCorte`.
+  const cobertura = coberturaDelCorte(
+    loadedReportScope,
+    scopeForView(seccionActiva, isPhone ? "telefonico" : "acreditacion"),
+  );
+  const seccionCargando = loading || Boolean(state && !error && cobertura === "otra-seccion");
+  const auditReady = !seccionCargando && !error && Boolean(state);
+  // Pedir el corte que falta, una vez por desajuste observado. El tope no es
+  // defensivo de más: si el backend devolviera siempre un scope que no cubre,
+  // reintentar sin límite convertiría un dato incompleto en un bucle de red.
+  const desajusteAtendido = useRef("");
+  useEffect(() => {
+    if (loading || error || cobertura !== "otra-seccion") return;
+    const marca = `${seccionActiva}|${loadedReportScope ?? ""}`;
+    if (desajusteAtendido.current === marca) return;
+    desajusteAtendido.current = marca;
+    void loadView(seccionActiva, true);
+  }, [cobertura, error, loadView, loading, loadedReportScope, seccionActiva]);
 
   return (
     <div className={`mon-profile-canonical-shell ${isPhone ? "is-telefonico-profile" : "is-acreditacion-profile"}`} style={MODULE_TONES.monitoreo as CSSProperties}>
@@ -20148,7 +20200,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         <span
           hidden
           data-audit-ready={auditReady ? (isPhone ? "monitoreo-telefonico" : "monitoreo-acreditacion") : undefined}
-          data-audit-loading={loading ? "true" : "false"}
+          data-audit-loading={seccionCargando ? "true" : "false"}
           data-audit-has-dashboard={state?.dashboard ? "true" : "false"}
         />
         {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
@@ -20169,13 +20221,13 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           nRows={state?.n_rows ?? 0}
           hasSnapshot={Boolean(state?.has_snapshot)}
           syncing={loading || sourceSyncing}
-          syncDisabled={loading || sourceSyncing}
+          syncDisabled={loading || sourceSyncing || sinFuentesFull}
           syncLabel="Todo"
-          syncTitle="Actualizar todas las fuentes activas"
+          syncTitle={sinFuentesFull ? motivoSinFuentes("full") : "Actualizar todas las fuentes activas"}
           onSyncAll={() => { void runProfileSourceSync("full"); }}
-          advanceSyncDisabled={loading || sourceSyncing}
+          advanceSyncDisabled={loading || sourceSyncing || sinFuentesAvance}
           advanceSyncLabel="Avance"
-          advanceSyncTitle={refreshTitle}
+          advanceSyncTitle={sinFuentesAvance ? motivoSinFuentes("advance") : refreshTitle}
           onSyncAdvance={() => { void runProfileSourceSync("advance"); }}
           onCambioSeccion={navigateSection}
         />
@@ -20216,7 +20268,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           )}
           status={null}
         >
-          {loading ? (
+          {seccionCargando ? (
             <AcreditacionLoadingPanel view={seccionActiva} label={activeDef.label} phoneMode={isPhone} />
           ) : renderAcreditacionView(seccionActiva, reports, {
             activeSourceTab,
@@ -20238,6 +20290,8 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
             onNavigateLocalTab: navigateLocalTab,
             routeLabel: profileLabel,
             savingAcreditacion,
+            fuentesActivas: activeSources,
+            fuentesRequeridas: sourceTotal,
           })}
         </MonitoreoWorkbenchChrome>
       </PageFrame>

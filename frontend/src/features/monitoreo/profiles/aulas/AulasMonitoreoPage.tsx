@@ -10,6 +10,7 @@ import {
   type MonitoreoState,
 } from "../../../../api/client";
 import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel";
+import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
@@ -275,7 +276,12 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
   );
 }
 
-function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashboard | null, operations?: ReactNode) {
+function renderAulasView(
+  view: MonitoreoSeccion,
+  dashboard: MonitoreoAulasDashboard | null,
+  operations: ReactNode,
+  vacioSinTablero: ReactNode,
+) {
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
     // sin dashboard: importar el plan es justamente la acción de arranque.
@@ -308,9 +314,9 @@ function renderAulasView(view: MonitoreoSeccion, dashboard: MonitoreoAulasDashbo
       </div>
     );
   }
-  if (!dashboard) {
-    return <EmptyPanel title="Resumen pendiente" detail="Todavía no hay un panel local preparado para cursos-horario." />;
-  }
+  // El vacío lo pone la página, que es la que sabe si el plan está importado.
+  // Ver `VacioSinTablero`.
+  if (!dashboard) return vacioSinTablero;
   if (view === "modelo") {
     return (
       <div className="mon-profile-stack">
@@ -618,6 +624,12 @@ export default function AulasMonitoreoPage() {
                 busy={busy}
                 onImportPlan={() => { void importPlan(); }}
                 onSyncField={() => { void syncField(); }}
+              />,
+              <VacioSinTablero
+                planImportado={imported}
+                fuentesActivas={activeSources}
+                fuentesDeclaradas={sourceTotal}
+                onIrAFuentes={() => setActiveView("fuentes")}
               />,
             )}
           </div>
