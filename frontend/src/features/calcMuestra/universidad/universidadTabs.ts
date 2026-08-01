@@ -23,6 +23,7 @@ import {
   frameAuditNumber,
 } from "./shared/frame";
 import { hasUsefulResult } from "./shared/study";
+import { universityFrameSourceBindings } from "./shared/categorias";
 
 export type CalcMuestraSidebarTab = {
   id: string;
@@ -100,7 +101,7 @@ export function universitySectionStates({
     (comp.marco.estratos ?? []).some((row) => safeNumber(row.N, 0) > 0),
   );
   const hasResult = componentes.some(hasUsefulResult);
-  const declaredSourcesReady = (workspace.source_bindings ?? []).some((source) =>
+  const declaredSourcesReady = universityFrameSourceBindings(workspace.source_bindings).some((source) =>
     Boolean(source.file_name || source.file_id || source.spreadsheet_id || source.status === "cargada" || source.status === "validada"),
   );
   const requiredMapped = UNIVERSITY_REQUIRED_VARIABLES
@@ -167,7 +168,7 @@ export function universitySidebarTabs({
   );
   const hasResult = componentes.some(hasUsefulResult);
   const hasSource = Boolean(workspace.fuente_marco || workspace.marco_disponible);
-  const declaredSources = workspace.source_bindings ?? [];
+  const declaredSources = universityFrameSourceBindings(workspace.source_bindings);
   const declaredSourcesReady = declaredSources.some((source) =>
     Boolean(source.file_name || source.file_id || source.spreadsheet_id || source.status === "cargada" || source.status === "validada"),
   );

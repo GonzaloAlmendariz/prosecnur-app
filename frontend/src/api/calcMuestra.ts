@@ -2415,9 +2415,681 @@ export type CalcMuestraAulasState = {
   stale_job_result?: Record<string, unknown> | null;
 };
 
+export const CALC_MUESTRA_REFERENCIA_ASISTENCIA_SCHEMA =
+  "calc_muestra_referencia_asistencia_v1" as const;
+
+export type CalcMuestraReferenciaAsistenciaMetodoIc =
+  | "bootstrap_percentil"
+  | "no_aplica";
+
+export type CalcMuestraReferenciaAsistenciaSuficiencia =
+  | "vacia"
+  | "insuficiente"
+  | "delgada"
+  | "solida";
+
+export type CalcMuestraReferenciaAsistenciaFuentePublicada =
+  | "celda"
+  | "global"
+  | "sin_publicacion";
+
+export type CalcMuestraReferenciaAsistenciaEstudio = {
+  id: string;
+  label: string;
+  periodo: string;
+  fuente: string;
+};
+
+export type CalcMuestraReferenciaAsistenciaCobertura = {
+  agendados: number;
+  aplicados: number;
+  observados: number;
+};
+
+export type CalcMuestraReferenciaAsistenciaIdentidad = {
+  regla: "A = E + no_respondieron";
+  verificada: boolean;
+  verificables: number;
+  inconsistentes: number;
+};
+
+export type CalcMuestraReferenciaAsistenciaUmbrales = {
+  insuficiente_max: 11;
+  delgada_min: 12;
+  solida_min: 30;
+  bootstrap_n: number;
+  nivel_ic: 0.95;
+  quantile_type: 7;
+};
+
+export type CalcMuestraReferenciaAsistenciaTramoKey =
+  | "asistencia"
+  | "completitud"
+  | "validez"
+  | "producto";
+
+export type CalcMuestraReferenciaAsistenciaTramo = {
+  key: CalcMuestraReferenciaAsistenciaTramoKey;
+  label: string;
+  k: number;
+  numerador: number | null;
+  denominador: number | null;
+  tasa: number | null;
+  ic_low: number | null;
+  ic_high: number | null;
+  metodo_ic: CalcMuestraReferenciaAsistenciaMetodoIc;
+};
+
+export type CalcMuestraReferenciaAsistenciaCadena = {
+  asistencia: CalcMuestraReferenciaAsistenciaTramo;
+  completitud: CalcMuestraReferenciaAsistenciaTramo;
+  validez: CalcMuestraReferenciaAsistenciaTramo;
+  producto: CalcMuestraReferenciaAsistenciaTramo;
+};
+
+export type CalcMuestraReferenciaAsistenciaGlobal = {
+  k: number;
+  matriculados: number | null;
+  asistentes: number | null;
+  enviadas: number | null;
+  validas: number | null;
+  no_respondieron: number | null;
+  tasa: number | null;
+  media_ch: number | null;
+  sd_ch: number | null;
+  ic_low: number | null;
+  ic_high: number | null;
+  metodo_ic: CalcMuestraReferenciaAsistenciaMetodoIc;
+};
+
+export type CalcMuestraReferenciaAsistenciaCelda = {
+  celda_key: string;
+  celda_label: string;
+  orden: number;
+  k: number;
+  matriculados: number | null;
+  asistentes: number | null;
+  tasa: number | null;
+  estimador: "razon_agregada";
+  media_ch: number | null;
+  sd_ch: number | null;
+  ic_low: number | null;
+  ic_high: number | null;
+  metodo_ic: CalcMuestraReferenciaAsistenciaMetodoIc;
+  suficiencia: CalcMuestraReferenciaAsistenciaSuficiencia;
+  tasa_publicada: number | null;
+  k_publicada: number | null;
+  fuente_publicada: CalcMuestraReferenciaAsistenciaFuentePublicada;
+};
+
+export type CalcMuestraReferenciaAsistenciaDimensionKey =
+  | "tamano"
+  | "rango_horario"
+  | "facultad"
+  | "tipo_sesion";
+
+export type CalcMuestraReferenciaAsistenciaDimension = {
+  dimension_key: CalcMuestraReferenciaAsistenciaDimensionKey;
+  dimension_label: string;
+  orden: number;
+  filas: CalcMuestraReferenciaAsistenciaCelda[];
+};
+
+/**
+ * Agregado post hoc transferible por celda. Sus cuatro dimensiones son
+ * marginales independientes: el frontend puede formatearlas, nunca combinarlas
+ * ni recalcular tasas, intervalos o degradaciones.
+ */
+export type CalcMuestraReferenciaAsistencia = {
+  schema: typeof CALC_MUESTRA_REFERENCIA_ASISTENCIA_SCHEMA;
+  owner: "estudio_historico_externo";
+  momento: "post_hoc_estudio_previo";
+  transferible: "modelo_por_celda";
+  modelo: "marginales_independientes";
+  combinable: false;
+  unidad: "curso_horario_aplicado";
+  denominador: "matriculados_totales";
+  estudio: CalcMuestraReferenciaAsistenciaEstudio;
+  cobertura: CalcMuestraReferenciaAsistenciaCobertura;
+  identidad: CalcMuestraReferenciaAsistenciaIdentidad;
+  umbrales: CalcMuestraReferenciaAsistenciaUmbrales;
+  cadena: CalcMuestraReferenciaAsistenciaCadena;
+  global: CalcMuestraReferenciaAsistenciaGlobal;
+  dimensiones: CalcMuestraReferenciaAsistenciaDimension[];
+  advertencias: string[];
+};
+
+/**
+ * Valida atómicamente el contrato de referencia de asistencia. jsonlite puede
+ * envolver escalares en arrays de longitud uno; solo `null` y el texto `NA`
+ * representan ausencia numérica. Un cero válido permanece cero.
+ */
+export function normalizeCalcMuestraReferenciaAsistencia(
+  raw: unknown,
+): CalcMuestraReferenciaAsistencia | null {
+  if (raw == null || typeof raw !== "object") return null;
+
+  const unwrap = (value: unknown): unknown =>
+    Array.isArray(value) && value.length === 1 ? value[0] : value;
+  const asRecord = (value: unknown): Record<string, unknown> | null => {
+    const unwrapped = unwrap(value);
+    return typeof unwrapped === "object" && unwrapped !== null && !Array.isArray(unwrapped)
+      ? (unwrapped as Record<string, unknown>)
+      : null;
+  };
+  const asList = (value: unknown): unknown[] => {
+    if (value == null) return [];
+    return Array.isArray(value) ? value : [value];
+  };
+  const asText = (value: unknown, allowEmpty = false): string | null => {
+    const unwrapped = unwrap(value);
+    if (typeof unwrapped !== "string") return null;
+    const text = unwrapped.trim();
+    if (text.toUpperCase() === "NA") return null;
+    return text || allowEmpty ? text : null;
+  };
+  const INVALID_NUMBER = Symbol("invalid-reference-number");
+  type ParsedNullableNumber = number | null | typeof INVALID_NUMBER;
+  const asFiniteOrNull = (value: unknown): ParsedNullableNumber => {
+    const unwrapped = unwrap(value);
+    if (unwrapped === null) return null;
+    if (typeof unwrapped === "number") {
+      return Number.isFinite(unwrapped) ? unwrapped : INVALID_NUMBER;
+    }
+    if (typeof unwrapped === "string") {
+      const text = unwrapped.trim();
+      if (text.toUpperCase() === "NA") return null;
+      if (!text) return INVALID_NUMBER;
+      const parsed = Number(text);
+      return Number.isFinite(parsed) ? parsed : INVALID_NUMBER;
+    }
+    return INVALID_NUMBER;
+  };
+  const asNonNegativeInteger = (value: unknown): number | typeof INVALID_NUMBER => {
+    const parsed = asFiniteOrNull(value);
+    return parsed !== INVALID_NUMBER && parsed !== null && Number.isInteger(parsed) && parsed >= 0
+      ? parsed
+      : INVALID_NUMBER;
+  };
+  const asPositiveInteger = (value: unknown): number | typeof INVALID_NUMBER => {
+    const parsed = asNonNegativeInteger(value);
+    return parsed !== INVALID_NUMBER && parsed > 0 ? parsed : INVALID_NUMBER;
+  };
+  const asNullableNonNegativeInteger = (value: unknown): ParsedNullableNumber => {
+    const parsed = asFiniteOrNull(value);
+    return parsed !== INVALID_NUMBER &&
+      (parsed === null || (Number.isInteger(parsed) && parsed >= 0))
+      ? parsed
+      : INVALID_NUMBER;
+  };
+  const asMetodoIc = (value: unknown): CalcMuestraReferenciaAsistenciaMetodoIc | null => {
+    const text = asText(value);
+    return text === "bootstrap_percentil" || text === "no_aplica" ? text : null;
+  };
+
+  const root = asRecord(raw);
+  if (!root) return null;
+  if (
+    asText(root.schema) !== CALC_MUESTRA_REFERENCIA_ASISTENCIA_SCHEMA ||
+    asText(root.owner) !== "estudio_historico_externo" ||
+    asText(root.momento) !== "post_hoc_estudio_previo" ||
+    asText(root.transferible) !== "modelo_por_celda" ||
+    asText(root.modelo) !== "marginales_independientes" ||
+    unwrap(root.combinable) !== false ||
+    asText(root.unidad) !== "curso_horario_aplicado" ||
+    asText(root.denominador) !== "matriculados_totales"
+  ) return null;
+
+  const studyRecord = asRecord(root.estudio);
+  if (!studyRecord) return null;
+  const studyId = asText(studyRecord.id);
+  const studyLabel = asText(studyRecord.label);
+  const studyPeriod = asText(studyRecord.periodo, true);
+  const studySource = asText(studyRecord.fuente);
+  if (!studyId || !studyLabel || studyPeriod === null || !studySource) return null;
+  const estudio: CalcMuestraReferenciaAsistenciaEstudio = {
+    id: studyId,
+    label: studyLabel,
+    periodo: studyPeriod,
+    fuente: studySource,
+  };
+
+  const coverageRecord = asRecord(root.cobertura);
+  if (!coverageRecord) return null;
+  const agendados = asNonNegativeInteger(coverageRecord.agendados);
+  const aplicados = asNonNegativeInteger(coverageRecord.aplicados);
+  const observados = asNonNegativeInteger(coverageRecord.observados);
+  if (
+    agendados === INVALID_NUMBER ||
+    aplicados === INVALID_NUMBER ||
+    observados === INVALID_NUMBER ||
+    aplicados > agendados ||
+    observados > aplicados
+  ) return null;
+  const cobertura: CalcMuestraReferenciaAsistenciaCobertura = {
+    agendados,
+    aplicados,
+    observados,
+  };
+
+  const identityRecord = asRecord(root.identidad);
+  if (!identityRecord) return null;
+  const identityRule = asText(identityRecord.regla);
+  const identityVerified = unwrap(identityRecord.verificada);
+  const verificables = asNonNegativeInteger(identityRecord.verificables);
+  const inconsistentes = asNonNegativeInteger(identityRecord.inconsistentes);
+  if (
+    identityRule !== "A = E + no_respondieron" ||
+    typeof identityVerified !== "boolean" ||
+    verificables === INVALID_NUMBER ||
+    inconsistentes === INVALID_NUMBER ||
+    inconsistentes > verificables ||
+    (identityVerified && (verificables === 0 || inconsistentes !== 0))
+  ) return null;
+  const identidad: CalcMuestraReferenciaAsistenciaIdentidad = {
+    regla: "A = E + no_respondieron",
+    verificada: identityVerified,
+    verificables,
+    inconsistentes,
+  };
+
+  const thresholdsRecord = asRecord(root.umbrales);
+  if (!thresholdsRecord) return null;
+  const insuficienteMax = asNonNegativeInteger(thresholdsRecord.insuficiente_max);
+  const delgadaMin = asPositiveInteger(thresholdsRecord.delgada_min);
+  const solidaMin = asPositiveInteger(thresholdsRecord.solida_min);
+  const bootstrapN = asPositiveInteger(thresholdsRecord.bootstrap_n);
+  const nivelIc = asFiniteOrNull(thresholdsRecord.nivel_ic);
+  const quantileType = asPositiveInteger(thresholdsRecord.quantile_type);
+  if (
+    insuficienteMax !== 11 ||
+    delgadaMin !== 12 ||
+    solidaMin !== 30 ||
+    bootstrapN === INVALID_NUMBER ||
+    nivelIc !== 0.95 ||
+    quantileType !== 7
+  ) return null;
+  const umbrales: CalcMuestraReferenciaAsistenciaUmbrales = {
+    insuficiente_max: 11,
+    delgada_min: 12,
+    solida_min: 30,
+    bootstrap_n: bootstrapN,
+    nivel_ic: 0.95,
+    quantile_type: 7,
+  };
+
+  const advertencias: string[] = [];
+  for (const item of asList(root.advertencias)) {
+    const warning = asText(item);
+    if (!warning) return null;
+    advertencias.push(warning);
+  }
+  if (!advertencias.length) return null;
+  const hasCountWarning = (key: string) => advertencias.some((warning) =>
+    new RegExp(`^${key}:[1-9]\\d*$`).test(warning),
+  );
+  const hasInvalidAttendanceRateWarning = hasCountWarning(
+    "asistentes_mayor_matriculados",
+  );
+  const isProbability = (value: number | null): value is number =>
+    value !== null && value >= 0 && value <= 1;
+  const isAllowedDiagnosticRate = (value: number | null) =>
+    value === null || isProbability(value) ||
+    (value > 1 && hasInvalidAttendanceRateWarning);
+  const sameSerializedRate = (left: number, right: number) =>
+    Math.abs(left - right) <= 5e-4 * Math.max(1, Math.abs(left), Math.abs(right));
+  const isNonNegativeCountOrNull = (value: number | null) =>
+    value === null || (Number.isInteger(value) && value >= 0);
+  const ratioMatchesCounts = (
+    numerator: number | null,
+    denominator: number | null,
+    rate: number | null,
+  ) => {
+    if (numerator === null || denominator === null || denominator <= 0) {
+      return rate === null;
+    }
+    return rate !== null && sameSerializedRate(rate, numerator / denominator);
+  };
+  const intervalMatchesMethod = (
+    k: number,
+    rate: number | null,
+    low: number | null,
+    high: number | null,
+    method: CalcMuestraReferenciaAsistenciaMetodoIc,
+    allowsDiagnostic: (value: number | null) => boolean,
+  ) => {
+    if (method === "no_aplica") {
+      return low === null && high === null && (k < 12 || rate === null);
+    }
+    return k >= 12 &&
+      rate !== null &&
+      low !== null &&
+      high !== null &&
+      low <= high &&
+      allowsDiagnostic(low) &&
+      allowsDiagnostic(high);
+  };
+  const warningForTramo = (key: CalcMuestraReferenciaAsistenciaTramoKey) => {
+    if (key === "asistencia") return hasInvalidAttendanceRateWarning;
+    if (key === "completitud") return hasCountWarning("enviadas_mayor_asistentes");
+    if (key === "validez") return hasCountWarning("validas_mayor_enviadas");
+    return hasInvalidAttendanceRateWarning ||
+      hasCountWarning("enviadas_mayor_asistentes") ||
+      hasCountWarning("validas_mayor_enviadas");
+  };
+
+  const parseTramo = (
+    value: unknown,
+    expectedKey: CalcMuestraReferenciaAsistenciaTramoKey,
+  ): CalcMuestraReferenciaAsistenciaTramo | null => {
+    const record = asRecord(value);
+    if (!record || asText(record.key) !== expectedKey) return null;
+    const label = asText(record.label);
+    const k = asNonNegativeInteger(record.k);
+    const numerador = asFiniteOrNull(record.numerador);
+    const denominadorTramo = asFiniteOrNull(record.denominador);
+    const tasa = asFiniteOrNull(record.tasa);
+    const icLow = asFiniteOrNull(record.ic_low);
+    const icHigh = asFiniteOrNull(record.ic_high);
+    const metodoIc = asMetodoIc(record.metodo_ic);
+    if (
+      !label ||
+      k === INVALID_NUMBER ||
+      numerador === INVALID_NUMBER ||
+      denominadorTramo === INVALID_NUMBER ||
+      tasa === INVALID_NUMBER ||
+      icLow === INVALID_NUMBER ||
+      icHigh === INVALID_NUMBER ||
+      !metodoIc ||
+      !isNonNegativeCountOrNull(numerador) ||
+      !isNonNegativeCountOrNull(denominadorTramo)
+    ) return null;
+    const allowsDiagnostic = (candidate: number | null) =>
+      candidate === null || isProbability(candidate) ||
+      (candidate > 1 && warningForTramo(expectedKey));
+    if (
+      !allowsDiagnostic(tasa) ||
+      !ratioMatchesCounts(numerador, denominadorTramo, tasa) ||
+      !intervalMatchesMethod(k, tasa, icLow, icHigh, metodoIc, allowsDiagnostic)
+    ) return null;
+    return {
+      key: expectedKey,
+      label,
+      k,
+      numerador,
+      denominador: denominadorTramo,
+      tasa,
+      ic_low: icLow,
+      ic_high: icHigh,
+      metodo_ic: metodoIc,
+    };
+  };
+  const chainRecord = asRecord(root.cadena);
+  if (!chainRecord) return null;
+  const asistencia = parseTramo(chainRecord.asistencia, "asistencia");
+  const completitud = parseTramo(chainRecord.completitud, "completitud");
+  const validez = parseTramo(chainRecord.validez, "validez");
+  const producto = parseTramo(chainRecord.producto, "producto");
+  if (!asistencia || !completitud || !validez || !producto) return null;
+  if (
+    asistencia.k !== completitud.k ||
+    asistencia.k !== validez.k ||
+    asistencia.k !== producto.k ||
+    asistencia.numerador !== completitud.denominador ||
+    completitud.numerador !== validez.denominador ||
+    validez.numerador !== producto.numerador ||
+    asistencia.denominador !== producto.denominador ||
+    (asistencia.tasa !== null &&
+      completitud.tasa !== null &&
+      validez.tasa !== null &&
+      producto.tasa !== null &&
+      !sameSerializedRate(
+        producto.tasa,
+        asistencia.tasa * completitud.tasa * validez.tasa,
+      ))
+  ) return null;
+  const cadena: CalcMuestraReferenciaAsistenciaCadena = {
+    asistencia,
+    completitud,
+    validez,
+    producto,
+  };
+
+  const globalRecord = asRecord(root.global);
+  if (!globalRecord) return null;
+  const globalK = asNonNegativeInteger(globalRecord.k);
+  const globalMatriculados = asFiniteOrNull(globalRecord.matriculados);
+  const globalAsistentes = asFiniteOrNull(globalRecord.asistentes);
+  const globalEnviadas = asFiniteOrNull(globalRecord.enviadas);
+  const globalValidas = asFiniteOrNull(globalRecord.validas);
+  const globalNoRespondieron = asFiniteOrNull(globalRecord.no_respondieron);
+  const globalTasa = asFiniteOrNull(globalRecord.tasa);
+  const globalMedia = asFiniteOrNull(globalRecord.media_ch);
+  const globalSd = asFiniteOrNull(globalRecord.sd_ch);
+  const globalIcLow = asFiniteOrNull(globalRecord.ic_low);
+  const globalIcHigh = asFiniteOrNull(globalRecord.ic_high);
+  const globalMetodoIc = asMetodoIc(globalRecord.metodo_ic);
+  if (
+    globalK === INVALID_NUMBER ||
+    globalMatriculados === INVALID_NUMBER ||
+    globalAsistentes === INVALID_NUMBER ||
+    globalEnviadas === INVALID_NUMBER ||
+    globalValidas === INVALID_NUMBER ||
+    globalNoRespondieron === INVALID_NUMBER ||
+    globalTasa === INVALID_NUMBER ||
+    globalMedia === INVALID_NUMBER ||
+    globalSd === INVALID_NUMBER ||
+    globalIcLow === INVALID_NUMBER ||
+    globalIcHigh === INVALID_NUMBER ||
+    !globalMetodoIc ||
+    !isAllowedDiagnosticRate(globalTasa) ||
+    !isNonNegativeCountOrNull(globalMatriculados) ||
+    !isNonNegativeCountOrNull(globalAsistentes) ||
+    !isNonNegativeCountOrNull(globalEnviadas) ||
+    !isNonNegativeCountOrNull(globalValidas) ||
+    !isNonNegativeCountOrNull(globalNoRespondieron) ||
+    globalK !== cobertura.observados ||
+    globalK !== asistencia.k ||
+    globalMatriculados !== asistencia.denominador ||
+    globalAsistentes !== asistencia.numerador ||
+    globalEnviadas !== completitud.numerador ||
+    globalValidas !== validez.numerador ||
+    !ratioMatchesCounts(globalAsistentes, globalMatriculados, globalTasa) ||
+    !intervalMatchesMethod(
+      globalK,
+      globalTasa,
+      globalIcLow,
+      globalIcHigh,
+      globalMetodoIc,
+      isAllowedDiagnosticRate,
+    )
+  ) return null;
+  const global: CalcMuestraReferenciaAsistenciaGlobal = {
+    k: globalK,
+    matriculados: globalMatriculados,
+    asistentes: globalAsistentes,
+    enviadas: globalEnviadas,
+    validas: globalValidas,
+    no_respondieron: globalNoRespondieron,
+    tasa: globalTasa,
+    media_ch: globalMedia,
+    sd_ch: globalSd,
+    ic_low: globalIcLow,
+    ic_high: globalIcHigh,
+    metodo_ic: globalMetodoIc,
+  };
+
+  const dimensionKeys: CalcMuestraReferenciaAsistenciaDimensionKey[] = [
+    "tamano",
+    "rango_horario",
+    "facultad",
+    "tipo_sesion",
+  ];
+  const rawDimensions = asList(root.dimensiones);
+  if (rawDimensions.length !== dimensionKeys.length) return null;
+  const dimensiones: CalcMuestraReferenciaAsistenciaDimension[] = [];
+  for (let dimensionIndex = 0; dimensionIndex < dimensionKeys.length; dimensionIndex += 1) {
+    const expectedKey = dimensionKeys[dimensionIndex]!;
+    const record = asRecord(rawDimensions[dimensionIndex]);
+    if (!record) return null;
+    const label = asText(record.dimension_label);
+    const order = asPositiveInteger(record.orden);
+    if (
+      asText(record.dimension_key) !== expectedKey ||
+      !label ||
+      order === INVALID_NUMBER ||
+      order !== dimensionIndex + 1
+    ) return null;
+
+    const rawRows = asList(record.filas);
+    const filas: CalcMuestraReferenciaAsistenciaCelda[] = [];
+    const cellKeys = new Set<string>();
+    for (let rowIndex = 0; rowIndex < rawRows.length; rowIndex += 1) {
+      const row = asRecord(rawRows[rowIndex]);
+      if (!row) return null;
+      const cellKey = asText(row.celda_key);
+      const cellLabel = asText(row.celda_label);
+      const cellOrder = asPositiveInteger(row.orden);
+      const k = asNonNegativeInteger(row.k);
+      const matriculados = asFiniteOrNull(row.matriculados);
+      const asistentesCelda = asFiniteOrNull(row.asistentes);
+      const tasa = asFiniteOrNull(row.tasa);
+      const estimador = asText(row.estimador);
+      const mediaCh = asFiniteOrNull(row.media_ch);
+      const sdCh = asFiniteOrNull(row.sd_ch);
+      const icLow = asFiniteOrNull(row.ic_low);
+      const icHigh = asFiniteOrNull(row.ic_high);
+      const metodoIc = asMetodoIc(row.metodo_ic);
+      const suficiencia = asText(row.suficiencia);
+      const tasaPublicada = asFiniteOrNull(row.tasa_publicada);
+      const kPublicada = asNullableNonNegativeInteger(row.k_publicada);
+      const fuentePublicada = asText(row.fuente_publicada);
+      const expectedSufficiency: CalcMuestraReferenciaAsistenciaSuficiencia =
+        k === INVALID_NUMBER || k === 0
+          ? "vacia"
+          : k <= umbrales.insuficiente_max
+            ? "insuficiente"
+            : k < umbrales.solida_min
+              ? "delgada"
+              : "solida";
+      if (
+        !cellKey ||
+        !cellLabel ||
+        cellKeys.has(cellKey) ||
+        cellOrder === INVALID_NUMBER ||
+        cellOrder !== rowIndex + 1 ||
+        k === INVALID_NUMBER ||
+        matriculados === INVALID_NUMBER ||
+        asistentesCelda === INVALID_NUMBER ||
+        tasa === INVALID_NUMBER ||
+        estimador !== "razon_agregada" ||
+        mediaCh === INVALID_NUMBER ||
+        sdCh === INVALID_NUMBER ||
+        icLow === INVALID_NUMBER ||
+        icHigh === INVALID_NUMBER ||
+        !metodoIc ||
+        (suficiencia !== "vacia" &&
+          suficiencia !== "insuficiente" &&
+          suficiencia !== "delgada" &&
+          suficiencia !== "solida") ||
+        tasaPublicada === INVALID_NUMBER ||
+        kPublicada === INVALID_NUMBER ||
+        (fuentePublicada !== "celda" &&
+          fuentePublicada !== "global" &&
+          fuentePublicada !== "sin_publicacion") ||
+        suficiencia !== expectedSufficiency ||
+        !isNonNegativeCountOrNull(matriculados) ||
+        !isNonNegativeCountOrNull(asistentesCelda) ||
+        (mediaCh !== null && mediaCh < 0) ||
+        (sdCh !== null && sdCh < 0) ||
+        !ratioMatchesCounts(asistentesCelda, matriculados, tasa) ||
+        !intervalMatchesMethod(
+          k,
+          tasa,
+          icLow,
+          icHigh,
+          metodoIc,
+          isAllowedDiagnosticRate,
+        ) ||
+        (k === 0 && (
+          matriculados !== null ||
+          asistentesCelda !== null ||
+          tasa !== null ||
+          mediaCh !== null ||
+          sdCh !== null
+        )) ||
+        (tasaPublicada !== null && !isProbability(tasaPublicada)) ||
+        !isAllowedDiagnosticRate(tasa) ||
+        (fuentePublicada === "celda" &&
+          (k < umbrales.delgada_min ||
+            !isProbability(tasa) ||
+            tasaPublicada !== tasa ||
+            kPublicada !== k)) ||
+        (fuentePublicada === "global" &&
+          (k === 0 ||
+            (k >= umbrales.delgada_min && isProbability(tasa)) ||
+            !isProbability(global.tasa) ||
+            tasaPublicada !== global.tasa ||
+            kPublicada !== global.k)) ||
+        (fuentePublicada === "sin_publicacion" &&
+          (tasaPublicada !== null ||
+            kPublicada !== null ||
+            (k >= umbrales.delgada_min && isProbability(tasa)) ||
+            (k > 0 && isProbability(global.tasa))))
+      ) return null;
+      cellKeys.add(cellKey);
+      filas.push({
+        celda_key: cellKey,
+        celda_label: cellLabel,
+        orden: cellOrder,
+        k,
+        matriculados,
+        asistentes: asistentesCelda,
+        tasa,
+        estimador: "razon_agregada",
+        media_ch: mediaCh,
+        sd_ch: sdCh,
+        ic_low: icLow,
+        ic_high: icHigh,
+        metodo_ic: metodoIc,
+        suficiencia,
+        tasa_publicada: tasaPublicada,
+        k_publicada: kPublicada,
+        fuente_publicada: fuentePublicada,
+      });
+    }
+    dimensiones.push({
+      dimension_key: expectedKey,
+      dimension_label: label,
+      orden: order,
+      filas,
+    });
+  }
+
+  return {
+    schema: CALC_MUESTRA_REFERENCIA_ASISTENCIA_SCHEMA,
+    owner: "estudio_historico_externo",
+    momento: "post_hoc_estudio_previo",
+    transferible: "modelo_por_celda",
+    modelo: "marginales_independientes",
+    combinable: false,
+    unidad: "curso_horario_aplicado",
+    denominador: "matriculados_totales",
+    estudio,
+    cobertura,
+    identidad,
+    umbrales,
+    cadena,
+    global,
+    dimensiones,
+    advertencias,
+  };
+}
+
 export type CalcMuestraState = {
   estudio: CalcMuestraEstudio;
   aulas?: CalcMuestraAulasState;
+  referencia_asistencia?: CalcMuestraReferenciaAsistencia | null;
   reporte: CalcMuestraReporteMeta;
 };
 
@@ -2604,6 +3276,62 @@ export async function apiCalcMuestraMarcoInspeccionarArchivo(file_id: string) {
       body: JSON.stringify({ file_id }),
     }),
   );
+}
+
+export type CalcMuestraAsistenciaReferenciaInput = {
+  referencia_asistencia_file_id: string;
+  referencia_asistencia_sheet?: string;
+  estudio: CalcMuestraReferenciaAsistenciaEstudio;
+  workspace?: CalcMuestraWorkspace;
+};
+
+/**
+ * Calibra la fuente histórica y exige que tanto la respuesta directa como el
+ * sibling de sesión cumplan íntegramente el schema v1 antes de exponerlos.
+ */
+export async function apiCalcMuestraAsistenciaReferencia(
+  payload: CalcMuestraAsistenciaReferenciaInput,
+) {
+  const response = await handle<{
+    ok: true;
+    estudio?: CalcMuestraEstudio;
+    referencia_asistencia: unknown;
+    state: unknown;
+  }>(
+    await apiFetch("/api/calc-muestra/asistencia/referencia", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+  const referencia = normalizeCalcMuestraReferenciaAsistencia(
+    response.referencia_asistencia,
+  );
+  const stateRecord = response.state != null && typeof response.state === "object" && !Array.isArray(response.state)
+    ? response.state as Record<string, unknown>
+    : null;
+  const referenciaState = normalizeCalcMuestraReferenciaAsistencia(
+    stateRecord?.referencia_asistencia,
+  );
+  if (
+    !referencia ||
+    !stateRecord ||
+    !referenciaState ||
+    JSON.stringify(referencia) !== JSON.stringify(referenciaState)
+  ) {
+    throw new Error(
+      "El backend devolvió una referencia histórica de asistencia con contrato inválido.",
+    );
+  }
+  return {
+    ok: true as const,
+    estudio: response.estudio,
+    referencia_asistencia: referencia,
+    state: {
+      ...(response.state as CalcMuestraState),
+      referencia_asistencia: referenciaState,
+    },
+  };
 }
 
 export async function apiCalcMuestraMarcoConstruir(payload: {

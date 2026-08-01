@@ -45,6 +45,7 @@ import {
   apiCalcMuestraAulasExportar,
   apiCalcMuestraAulasSeleccionar,
   apiCalcMuestraAulasSimularReemplazos,
+  apiCalcMuestraAsistenciaReferencia,
   apiCalcMuestraCalcular,
   apiCalcMuestraEstudioPut,
   apiCalcMuestraIniciarEstudio,
@@ -58,6 +59,7 @@ import {
   apiUpload,
   calcMuestraReporteDescargarUrl,
   downloadUrl,
+  normalizeCalcMuestraReferenciaAsistencia,
   type CalcMuestraCanalRecojo,
   type CalcMuestraAulasFileInspection,
   type CalcMuestraAulasSheetInspectionSheet,
@@ -67,6 +69,7 @@ import {
   type CalcMuestraEstudio,
   type CalcMuestraMacroFamilia,
   type CalcMuestraMatrizOperativaCelda,
+  type CalcMuestraReferenciaAsistencia,
   type CalcMuestraState,
   type CalcMuestraTecnica,
   type CalcMuestraWorkspace,
@@ -126,6 +129,7 @@ import {
   sourceBindingBuildMessage,
   sourceBindingCompatibleForBuild,
   sourceBindingRole,
+  sourceBindingSelectedSheet,
   universityInspectedColumnOptions,
 } from "./universidad/shared/categorias";
 import {
@@ -1018,12 +1022,17 @@ export default function CalcMuestraPage() {
   const [deskOverride, setDeskOverride] = useState<ActiveDesk | null>(null);
   const [pendingDeskReset, setPendingDeskReset] = useState<ActiveDesk | null>(null);
   const [aulasState, setAulasState] = useState<CalcMuestraAulasState | null>(null);
+  const [referenciaAsistencia, setReferenciaAsistencia] =
+    useState<CalcMuestraReferenciaAsistencia | null>(null);
   const [aulasStateChecked, setAulasStateChecked] = useState(false);
   const [uploadingSourceId, setUploadingSourceId] = useState<string | null>(null);
   const [paqueteEnCurso, setPaqueteEnCurso] = useState(false);
   const [paquetePasos, setPaquetePasos] = useState<PaqueteDefensaPaso[] | null>(null);
   const handleHydratedState = useCallback((state: CalcMuestraState) => {
     setAulasState(state.aulas ?? null);
+    setReferenciaAsistencia(
+      normalizeCalcMuestraReferenciaAsistencia(state.referencia_asistencia),
+    );
     setAulasStateChecked(true);
     setReporteStale(Boolean(state.reporte?.stale));
   }, []);
@@ -1237,7 +1246,12 @@ export default function CalcMuestraPage() {
     let alive = true;
     apiCalcMuestraState()
       .then((state) => {
-        if (alive) setAulasState(state.aulas ?? null);
+        if (alive) {
+          setAulasState(state.aulas ?? null);
+          setReferenciaAsistencia(
+            normalizeCalcMuestraReferenciaAsistencia(state.referencia_asistencia),
+          );
+        }
       })
       .catch(() => undefined)
       .finally(() => {
@@ -1273,6 +1287,9 @@ export default function CalcMuestraPage() {
       // estratos pre-poblados quedó solo como fixture de tests del backend.
       const res = await apiCalcMuestraIniciarEstudio(tipo, "vacio");
       setAulasState(res.state?.aulas ?? null);
+      setReferenciaAsistencia(
+        normalizeCalcMuestraReferenciaAsistencia(res.state?.referencia_asistencia),
+      );
       let componentes = res.estudio.componentes;
       if (mode === "marco_disponible" && componentes.length === 0) {
         componentes = [
@@ -1814,6 +1831,7 @@ export default function CalcMuestraPage() {
     setMsg(null);
     setUploadingSourceId(binding.id);
     setBusy("Subiendo Excel");
+    const isReference = binding.role === "referencia_asistencia";
     try {
       const sourceMode = workspace.source_mode ?? "base_madre";
       const bindings = ensureUniversitySourceBindings(sourceMode, workspace.source_bindings);
@@ -1850,20 +1868,46 @@ export default function CalcMuestraPage() {
         ...workspace,
         source_mode: sourceMode,
         source_bindings: nextBindings,
-        variable_mappings: reconcileUniversityVariableMappingsForColumns(
-          workspace.variable_mappings,
-          universityInspectedColumnOptions({ ...workspace, source_bindings: nextBindings }),
-        ),
-        marco_disponible: workspace.marco_disponible || "Base institucional",
-        fuente_marco: workspace.fuente_marco || "Base institucional",
+        ...(isReference
+          ? {}
+          : {
+              variable_mappings: reconcileUniversityVariableMappingsForColumns(
+                workspace.variable_mappings,
+                universityInspectedColumnOptions({ ...workspace, source_bindings: nextBindings }),
+              ),
+              marco_disponible: workspace.marco_disponible || "Base institucional",
+              fuente_marco: workspace.fuente_marco || "Base institucional",
+            }),
       };
+      const uploadedBinding = nextBindings.find((item) => item.id === binding.id) ?? nextBindingPreview;
+      if (isReference) {
+        const selectedReferenceSheet = sourceBindingSelectedSheet(uploadedBinding);
+        const referenceRes = await apiCalcMuestraAsistenciaReferencia({
+          referencia_asistencia_file_id: uploaded.file_id,
+          referencia_asistencia_sheet: selectedReferenceSheet || undefined,
+          workspace: nextWorkspace,
+          estudio: {
+            id: binding.id,
+            label: uploaded.original_name,
+            periodo: "",
+            fuente: selectedReferenceSheet || "archivo_subido",
+          },
+        });
+        setWorkspace(nextWorkspace);
+        setReferenciaAsistencia(referenceRes.referencia_asistencia);
+        setMsg({
+          kind: "info",
+          text: `Referencia histórica calibrada: ${fmtInt(referenceRes.referencia_asistencia.cobertura.observados)} cursos-horario observados. No modifica el marco, el sorteo ni τ.`,
+        });
+        return;
+      }
+
       setWorkspace(nextWorkspace);
       await apiCalcMuestraEstudioPut({ ...estudio, workspace: nextWorkspace });
 
       // Cargar la base NO construye el marco: es un paso consciente. El universo
       // (estudiantes / cursos-horario) y el marco se calculan SOLO cuando el
       // usuario pulsa «Construir marco» (DefBasesTab) — nada automático al subir.
-      const uploadedBinding = nextBindings.find((item) => item.id === binding.id) ?? nextBindingPreview;
       setMsg({
         kind: "info",
         text: canBuildUniversityFrame(nextWorkspace)
@@ -1874,6 +1918,48 @@ export default function CalcMuestraPage() {
       });
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cargar el Excel de la base." });
+    } finally {
+      setUploadingSourceId(null);
+      setBusy(null);
+    }
+  }
+
+  async function recalibrarReferenciaAsistencia(
+    binding: CalcMuestraWorkspaceSourceBinding,
+    nextWorkspace: CalcMuestraWorkspace,
+  ) {
+    setMsg(null);
+    setUploadingSourceId(binding.id);
+    setBusy("Recalibrando referencia histórica");
+    try {
+      if (!binding.file_id) {
+        throw new Error("Vuelve a subir la referencia histórica antes de cambiar su hoja.");
+      }
+      const selectedSheet = sourceBindingSelectedSheet(binding);
+      const referenceRes = await apiCalcMuestraAsistenciaReferencia({
+        referencia_asistencia_file_id: binding.file_id,
+        referencia_asistencia_sheet: selectedSheet || undefined,
+        workspace: nextWorkspace,
+        estudio: {
+          id: binding.id,
+          label: binding.file_name?.trim() || binding.label,
+          periodo: "",
+          fuente: selectedSheet || "archivo_subido",
+        },
+      });
+      setWorkspaceSiCambia(nextWorkspace);
+      setReferenciaAsistencia(referenceRes.referencia_asistencia);
+      setMsg({
+        kind: "info",
+        text: `Referencia histórica recalibrada con la hoja «${selectedSheet || "seleccionada"}»: ${fmtInt(referenceRes.referencia_asistencia.cobertura.observados)} cursos-horario observados.`,
+      });
+    } catch (e) {
+      setMsg({
+        kind: "error",
+        text: e instanceof Error
+          ? e.message
+          : "No se pudo recalibrar la referencia histórica con esa hoja.",
+      });
     } finally {
       setUploadingSourceId(null);
       setBusy(null);
@@ -2400,6 +2486,7 @@ export default function CalcMuestraPage() {
               estudio={estudio}
               workspace={workspace}
               aulasState={aulasState}
+              referenciaAsistencia={referenciaAsistencia}
               motor={universityMotor}
               busy={busy}
               activeSection={activeRailSection}
@@ -2416,6 +2503,7 @@ export default function CalcMuestraPage() {
               onSimularReemplazos={simularReemplazosAulas}
               onSourceUpload={cargarFuenteUniversitaria}
               onSourceBuild={construirMarcoDesdeFuentes}
+              onReferenceSheetChange={recalibrarReferenciaAsistencia}
               uploadingSourceId={uploadingSourceId}
               calculando={calculando}
               onGenerarReporte={(formato) => void generarReporte(formato)}

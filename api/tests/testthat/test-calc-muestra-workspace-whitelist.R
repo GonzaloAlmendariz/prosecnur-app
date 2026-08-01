@@ -102,3 +102,38 @@ test_that("ausencia de los campos de reemplazos aplica los defaults del TS (= mo
   ))$aulas_config
   expect_equal(cfg_vacia$replacement_equivalence_vars, list())
 })
+
+test_that("binding referencia_asistencia sobrevive dos round-trips sin contaminar aulas", {
+  esperado <- list(
+    id = "src-referencia-asistencia",
+    role = "referencia_asistencia",
+    label = "Referencia de asistencia",
+    status = "pendiente",
+    sheet_name = "Base de control",
+    notes = "Resumen histórico agregado"
+  )
+  ws_1 <- .ws_roundtrip(list(
+    frame_mode = "acreditacion",
+    source_mode = "dos_bases",
+    source_bindings = list(c(
+      esperado,
+      list(
+        frame_hash = "hash-que-no-debe-entrar",
+        aulas_config = list(selector = "no-corresponde")
+      )
+    )),
+    frame_hash = "hash-workspace-que-no-debe-entrar",
+    aulas_config = list(frame_hash = "hash-config-que-no-debe-entrar")
+  ))
+  ws_2 <- .ws_roundtrip(ws_1)
+
+  campos <- names(esperado)
+  expect_identical(ws_1$source_bindings[[1L]][campos], esperado)
+  expect_identical(ws_2$source_bindings[[1L]][campos], esperado)
+  expect_identical(ws_2$source_bindings, ws_1$source_bindings)
+  expect_null(ws_1$frame_hash)
+  expect_null(ws_1$aulas_config$frame_hash)
+  expect_null(ws_1$aulas_config$source_bindings)
+  expect_null(ws_1$source_bindings[[1L]]$frame_hash)
+  expect_null(ws_1$source_bindings[[1L]]$aulas_config)
+})

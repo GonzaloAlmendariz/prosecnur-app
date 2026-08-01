@@ -543,6 +543,8 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
   if (grepl("agenda|aplicacion|campo|correo|envio", sheet_key)) {
     return(list(role = "agenda", label = "Agenda operativa", confidence = 0.82))
   }
+  asistencia_hint <- .cm_asist_sheet_role_hint(df)
+  if (!is.null(asistencia_hint)) return(asistencia_hint)
   if (grepl("muestra|muestral|reserva", sheet_key)) {
     return(list(role = "muestra_previa", label = "Muestra previa", confidence = 0.84))
   }
@@ -585,7 +587,7 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
         confidence = role$confidence
       )
     })
-    role_rank <- c(base_madre = 1L, estudiantes = 2L, inscripciones = 3L, catalogo_curso_horario = 4L, muestra_previa = 5L, agenda = 6L, desconocida = 9L)
+    role_rank <- c(base_madre = 1L, estudiantes = 2L, inscripciones = 3L, catalogo_curso_horario = 4L, referencia_asistencia = 5L, muestra_previa = 6L, agenda = 7L, desconocida = 9L)
     scores <- vapply(sheets, function(item) {
       rank <- role_rank[[item$role]] %||% 9L
       (10 - rank) + (.cm_aulas_num(item$confidence, 0) * 2)

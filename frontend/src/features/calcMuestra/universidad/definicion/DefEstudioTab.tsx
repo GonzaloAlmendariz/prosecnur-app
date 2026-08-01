@@ -21,7 +21,10 @@ import type {
 import { BadgeMotor, RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { EJEMPLO_TRABAJADO } from "../../didactica/referencia/corpus";
 import { fmtInt, safeNumber } from "../../sharedCore";
-import { ensureUniversitySourceBindings } from "../shared/categorias";
+import {
+  ensureUniversitySourceBindings,
+  universityFrameSourceBindings,
+} from "../shared/categorias";
 import { UNIVERSITY_REQUIRED_VARIABLES, UNIVERSITY_SOURCE_MODE_OPTIONS } from "../shared/constants";
 import { classroomM1RowsForState, frameAuditNumber } from "../shared/frame";
 import { FlujoVertical, MuestraFlowDiagram, type FlujoEtapa, type MuestraFlowNodeKey } from "../ui";
@@ -30,7 +33,7 @@ import "./definicion.css";
 
 export type MuestraRecorridoInputs = {
   tituloDefinido: boolean;
-  /** true si algún source_binding declara un archivo cargado. */
+  /** true si algún source_binding del marco declara un archivo cargado. */
   hasFileBinding: boolean;
   /** `input_rows` del marco construido (aulasState.frame), 0 si no hay marco. */
   inputRows: number;
@@ -129,7 +132,8 @@ export function DefEstudioTab({
   // Recorrido completo: qué pasos ya rindieron resultado. Con nada cargado
   // (ni base ni marco) el tab abre con el hero de primera vez; con avance, el
   // recorrido se compacta y el "Estás aquí" apunta al primer paso pendiente.
-  const hasFileBinding = (workspace.source_bindings ?? []).some((binding) => Boolean(binding.file_id));
+  const hasFileBinding = universityFrameSourceBindings(workspace.source_bindings)
+    .some((binding) => Boolean(binding.file_id));
   const variablesListas = UNIVERSITY_REQUIRED_VARIABLES
     .filter((row) => row.required)
     .every((row) => (workspace.variable_mappings ?? []).some((m) => m.role === row.role && m.column));

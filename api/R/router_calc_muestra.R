@@ -18,6 +18,7 @@
 #   POST /api/calc-muestra/iniciar-estudio     — inicia estudio por tipo
 #   POST /api/calc-muestra/modo-trabajo        — transición de modo
 #   POST /api/calc-muestra/marco/config        — configura marco de aulas
+#   POST /api/calc-muestra/asistencia/referencia — calcula referencia histórica
 #   POST /api/calc-muestra/marco/construir     — construye marco de aulas
 #   POST /api/calc-muestra/aulas/comparar-metodos — compara motores
 #   POST /api/calc-muestra/aulas/seleccionar   — selecciona aulas M1..Mk
@@ -217,6 +218,7 @@
   reporte_meta <- s$calc_muestra_reporte %||% list(disponible = FALSE)
   list(
     estudio = estudio,
+    referencia_asistencia = s$calc_muestra_referencia_asistencia %||% NULL,
     aulas = list(
       config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
       frame = s$calc_muestra_aulas_frame %||% NULL,
@@ -488,6 +490,84 @@ mount_calc_muestra <- function(pr) {
         file_id = file_id,
         original_name = meta$original_name,
         inspection = inspection
+      )
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/asistencia/referencia — calcula y guarda el
+    # agregado metodológico de un estudio histórico externo.
+    # Body: { referencia_asistencia|referencia_asistencia_file_id,
+    #         referencia_asistencia_sheet?, estudio?: {...}, workspace?: {...} }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/asistencia/referencia",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      has_workspace <- "workspace" %in% names(body)
+      if (has_workspace && !is.list(body$workspace)) {
+        stop_api(
+          400,
+          "E_CALC_MUESTRA_ASISTENCIA_REFERENCE",
+          "workspace debe ser una lista."
+        )
+      }
+
+      estudio_vigente <- s$calc_muestra_estudio %||%
+        calc_muestra_normalize_estudio(list())
+      estudio_actualizado <- NULL
+      reporte_actualizado <- NULL
+      if (has_workspace) {
+        propuesta <- estudio_vigente
+        propuesta$workspace <- body$workspace
+        estudio_actualizado <- calc_muestra_normalize_estudio(propuesta)
+        reporte_actualizado <- calc_muestra_reporte_meta_tras_estudio(
+          s$calc_muestra_reporte,
+          estudio_vigente,
+          estudio_actualizado
+        )
+      }
+
+      estudio_input <- body$estudio %||% s$calc_muestra_estudio %||% list()
+      estudio_referencia <- if (is.list(estudio_input)) {
+        list(
+          id = calc_str(estudio_input$id, ""),
+          label = calc_str(estudio_input$label %||% estudio_input$titulo, ""),
+          periodo = calc_str(estudio_input$periodo, ""),
+          fuente = calc_str(estudio_input$fuente, "")
+        )
+      } else {
+        estudio_input
+      }
+      referencia <- tryCatch({
+        tabla <- .cm_table_from_payload(sid, body, "referencia_asistencia")
+        calc_muestra_asistencia_referencia(tabla, estudio = estudio_referencia)
+      }, error = function(e) {
+        if (inherits(e, "api_error")) stop(e)
+        stop_api(
+          400,
+          "E_CALC_MUESTRA_ASISTENCIA_REFERENCE",
+          conditionMessage(e)
+        )
+      })
+
+      if (has_workspace) {
+        session_set_many(sid, list(
+          calc_muestra_estudio = estudio_actualizado,
+          calc_muestra_reporte = reporte_actualizado,
+          calc_muestra_referencia_asistencia = referencia
+        ))
+      } else {
+        # Compatibilidad v1: clientes previos publican solo la referencia.
+        session_set(sid, "calc_muestra_referencia_asistencia", referencia)
+      }
+
+      state <- .cm_state_payload(sid)
+      list(
+        ok = TRUE,
+        estudio = state$estudio,
+        referencia_asistencia = referencia,
+        state = state
       )
     })) |>
 

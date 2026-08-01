@@ -14,6 +14,7 @@ import { Popover } from "../../../../components/Popover";
 import { EmptyState } from "../../../../components/States";
 import type {
   CalcMuestraAulasState,
+  CalcMuestraReferenciaAsistencia,
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceSourceBinding,
   CalcMuestraWorkspaceSourceMode,
@@ -33,12 +34,14 @@ import {
   sourceBindingSelectedDiagnostic,
   sourceBindingSelectedSheet,
   sourceRoleLabel,
+  universityFrameSourceBindings,
   universityInspectedColumnOptions,
 } from "../shared/categorias";
 import { frameAuditNumber } from "../shared/frame";
 import { FlujoVertical, TerminoChip, type FlujoEtapa } from "../ui";
 import { useValorSwap } from "../ui/useValorSwap";
 import { SolicitudDtiButton } from "./SolicitudDtiButton";
+import { ReferenciaAsistenciaCard } from "./ReferenciaAsistenciaCard";
 import "./definicion.css";
 
 const MODE_BADGES: Record<CalcMuestraWorkspaceSourceMode, string> = {
@@ -120,6 +123,14 @@ function whatIsForRole(role: string): ReactNode {
         <>
           Es la agenda operativa de los cursos-horario: docente, fecha, responsable y estado. Si
           falta, la lectura no puede reconstruir el plan de campo de la selección.
+        </>
+      );
+    case "referencia_asistencia":
+      return (
+        <>
+          Es la base de control de un estudio ya aplicado. Solo transfiere tasas
+          agregadas por celda; no entra al marco vigente ni modifica el número de
+          cursos-horario a seleccionar.
         </>
       );
     default:
@@ -266,8 +277,8 @@ function BaseUploadCard({
             <details className="cmv2-defi-upload-cols">
               <summary>Ver columnas detectadas ({columnas.length})</summary>
               <div className="cmv2-defi-upload-cols-list">
-                {columnas.map((columna) => (
-                  <span key={columna}>{columna}</span>
+                {columnas.map((columna, index) => (
+                  <span key={`${index}:${columna}`}>{columna}</span>
                 ))}
               </div>
             </details>
@@ -288,16 +299,23 @@ function BaseUploadCard({
 export function DefBasesTab({
   workspace,
   aulasState,
+  referencia,
   onWorkspace,
   onSourceUpload,
   onSourceBuild,
+  onReferenceSheetChange,
   uploadingSourceId,
 }: {
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  referencia: CalcMuestraReferenciaAsistencia | null;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   onSourceUpload: (binding: CalcMuestraWorkspaceSourceBinding, file: File) => void | Promise<void>;
   onSourceBuild: (workspace: CalcMuestraWorkspace) => void | Promise<void>;
+  onReferenceSheetChange: (
+    binding: CalcMuestraWorkspaceSourceBinding,
+    workspace: CalcMuestraWorkspace,
+  ) => void | Promise<void>;
   uploadingSourceId: string | null;
 }) {
   const [construyendo, setConstruyendo] = useState(false);
@@ -305,19 +323,21 @@ export function DefBasesTab({
   const inputRows = frameAuditNumber(frame, "input_rows");
   const populationN = frameAuditNumber(frame, "population_n");
   const sourceMode = workspace.source_mode ?? "base_madre";
-  const sourceBindings = ensureUniversitySourceBindings(sourceMode, workspace.source_bindings);
-  const loadedCount = sourceBindings.filter((binding) => binding.file_id).length;
+  const allBindings = ensureUniversitySourceBindings(sourceMode, workspace.source_bindings);
+  const frameBindings = universityFrameSourceBindings(allBindings);
+  const referenceBinding = allBindings.find((binding) => binding.role === "referencia_asistencia");
+  const loadedCount = frameBindings.filter((binding) => binding.file_id).length;
   const primaryLoaded = sourceMode !== "dos_bases" ||
-    Boolean(sourceBindings.find((item) => item.role === "estudiantes")?.file_id);
+    Boolean(frameBindings.find((item) => item.role === "estudiantes")?.file_id);
   const readyToBuild = sourceMode === "base_madre"
-    ? Boolean(sourceBindings.find((item) => item.role === "base_madre" && sourceBindingCompatibleForBuild(item))?.file_id)
+    ? Boolean(frameBindings.find((item) => item.role === "base_madre" && sourceBindingCompatibleForBuild(item))?.file_id)
     : sourceMode === "dos_bases"
-      ? canBuildUniversityDeskFrameFromBindings(sourceBindings)
+      ? canBuildUniversityDeskFrameFromBindings(frameBindings)
       : false;
 
   // Franja de compatibilidad: sobre las columnas ya inspeccionadas, cuántas de
   // las variables requeridas se detectan solas (mapeo guardado o inferencia).
-  const inspectedColumns = universityInspectedColumnOptions({ ...workspace, source_bindings: sourceBindings });
+  const inspectedColumns = universityInspectedColumnOptions({ ...workspace, source_bindings: frameBindings });
   const requiredVariables = UNIVERSITY_REQUIRED_VARIABLES.filter((row) => row.required);
   const detectedRequired = requiredVariables.filter((row) => {
     const mapped = (workspace.variable_mappings ?? []).find((m) => m.role === row.role && m.column);
@@ -337,12 +357,13 @@ export function DefBasesTab({
   }
 
   function updateBinding(id: string, patch: Partial<CalcMuestraWorkspaceSourceBinding>) {
-    const nextBindings = sourceBindings.map((item) => (item.id === id ? { ...item, ...patch } : item));
+    const nextBindings = allBindings.map((item) => (item.id === id ? { ...item, ...patch } : item));
+    const nextBinding = nextBindings.find((item) => item.id === id);
     const nextWorkspace: CalcMuestraWorkspace = {
       ...workspace,
       source_bindings: nextBindings,
     };
-    if (patch.sheet_name !== undefined) {
+    if (patch.sheet_name !== undefined && nextBinding?.role !== "referencia_asistencia") {
       const inspected = universityInspectedColumnOptions(nextWorkspace);
       if (inspected.length) {
         nextWorkspace.variable_mappings = reconcileUniversityVariableMappingsForColumns(
@@ -355,22 +376,30 @@ export function DefBasesTab({
   }
 
   function updateSheet(id: string, sheetName: string) {
-    const binding = sourceBindings.find((item) => item.id === id);
+    const binding = allBindings.find((item) => item.id === id);
     if (!binding) return;
-    if ((binding.available_sheets ?? []).length > 0) {
-      updateBinding(id, sourceBindingPatchForSheet(binding, sheetName));
-    } else {
-      updateBinding(id, { sheet_name: sheetName });
+    const patch = (binding.available_sheets ?? []).length > 0
+      ? sourceBindingPatchForSheet(binding, sheetName)
+      : { sheet_name: sheetName };
+    if (binding.role === "referencia_asistencia" && binding.file_id) {
+      const nextBinding = { ...binding, ...patch };
+      const nextWorkspace: CalcMuestraWorkspace = {
+        ...workspace,
+        source_bindings: allBindings.map((item) => (item.id === id ? nextBinding : item)),
+      };
+      void onReferenceSheetChange(nextBinding, nextWorkspace);
+      return;
     }
+    updateBinding(id, patch);
   }
 
   const etapasMini: FlujoEtapa[] = [
     {
       id: "archivo",
       label: "Archivo",
-      valor: `${loadedCount}/${sourceBindings.length}`,
+      valor: `${loadedCount}/${frameBindings.length}`,
       detalle: loadedCount ? "Excel cargados" : "sube el Excel institucional",
-      estado: loadedCount === sourceBindings.length && loadedCount > 0 ? "ready" : loadedCount > 0 ? "working" : "pending",
+      estado: loadedCount === frameBindings.length && loadedCount > 0 ? "ready" : loadedCount > 0 ? "working" : "pending",
     },
     {
       id: "lectura",
@@ -451,7 +480,7 @@ export function DefBasesTab({
         </AvisoModulo>
       )}
       <div className="cmv2-source-binding-list cmv2-defi-upload-list cmv2-uni-stagger" aria-label="Bases declaradas">
-        {sourceBindings.map((binding, index) => (
+        {frameBindings.map((binding, index) => (
           <BaseUploadCard
             key={binding.id}
             binding={binding}
@@ -464,6 +493,19 @@ export function DefBasesTab({
           />
         ))}
       </div>
+      <ReferenciaAsistenciaCard referencia={referencia}>
+        {referenceBinding ? (
+          <BaseUploadCard
+            binding={referenceBinding}
+            index={0}
+            isUploading={uploadingSourceId === referenceBinding.id}
+            gated={false}
+            filasMotor={0}
+            onUpload={(next, file) => void onSourceUpload(next, file)}
+            onSheet={updateSheet}
+          />
+        ) : null}
+      </ReferenciaAsistenciaCard>
       {sourceMode !== "seleccion_existente" && <SolicitudDtiButton />}
       {showCompat && (
         <AvisoModulo tone={compatOk ? "success" : "warn"} role="status" compact>
@@ -490,7 +532,7 @@ export function DefBasesTab({
               onClick={() => {
                 setConstruyendo(true);
                 void Promise.resolve(
-                  onSourceBuild({ ...workspace, source_mode: sourceMode, source_bindings: sourceBindings }),
+                  onSourceBuild({ ...workspace, source_mode: sourceMode, source_bindings: frameBindings }),
                 ).finally(() => setConstruyendo(false));
               }}
               disabled={!readyToBuild || construyendo || Boolean(uploadingSourceId)}
