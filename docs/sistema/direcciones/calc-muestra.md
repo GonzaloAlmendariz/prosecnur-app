@@ -10,8 +10,8 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 43208460 | sí | — |
-| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | ce452ddb | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 5967583d | sí | — |
+| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | e214fa25 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | 328e7bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-bases` | pestana | Fuentes | sí | 63cd982d | sí | — |
@@ -36,10 +36,10 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
 | `calc-muestra/opinion-universitaria/aulas/seleccion` | pestana | Cursos-horario titulares | sí | 9a9670e8 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/reemplazos` | pestana | Reemplazos por curso-horario | sí | fe9330a1 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/auditoria` | pestana | Sustento técnico | sí | 60e11b53 | sí | — |
-| `calc-muestra/opinion-universitaria/salidas` | seccion | Entrega | sí | 058bf519 | sí | — |
+| `calc-muestra/opinion-universitaria/salidas` | seccion | Entrega | sí | 870e8de5 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-guia` | pestana | Cierre | sí | a3a21ce5 | sí | — |
-| `calc-muestra/opinion-universitaria/salidas/salidas-entregables` | pestana | Entregables | sí | c1249bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-resultados` | pestana | Tablas | sí | c7a193de | sí | — |
+| `calc-muestra/opinion-universitaria/salidas/salidas-entregables` | pestana | Entregables | sí | c1249bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-monitoreo` | pestana | Pase a Monitoreo | sí | a28cb348 | sí | — |
 | `calc-muestra/marco-disponible` | modo | Muestra general | sí | 25f366e7 | sí | — |
 | `calc-muestra/marco-disponible/marco` | seccion | Marco | sí | 404a402f | sí | — |

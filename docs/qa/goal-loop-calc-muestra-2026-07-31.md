@@ -176,10 +176,10 @@ trabajando en lo desbloqueado.
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
 | Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 7 | ↑ a 7 |
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
-| Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 21 de 24 (87,5 %); 24 de 24 auditadas | 100 % |
+| Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 23 de 24 (95,8 %); 24 de 24 auditadas | 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 7 locales en fuente; 6 grupos renderizados por viewport de Marco, 0 misses y 0 issues | ↑ con cobertura conforme |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 3 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H3, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 2 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H3, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -193,7 +193,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | confirmado; breakpoint mantiene cinco columnas y `overflow-wrap:anywhere` |
 | I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | **cerrado I2**: Datos queda con 3 pestañas y Marco con 6; Consistencia tiene un único hogar, el sexto de Marco |
 | I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | confirmado; `calcMuestra.ts:107` y spec líneas 87-98 |
-| I0-H5 | F3 | Entrega ordena Entregables antes de Tablas | confirmado; afecta dos pestañas del denominador F3 |
+| I0-H5 | F3 | Entrega ordena Entregables antes de Tablas | **cerrado I4**: Cierre → Tablas → Entregables → Pase coincide en catálogo, sidebar, render, bóveda y manifiesto; ids, direcciones, paneles, contenido y estados permanecen unidos a su identidad |
 | I0-H6 | F3 / navegación | El alias cross-section `marco-validacion → def-consistencia` cae en la primera pestaña de Marco | **cerrado I2**: alias y URL publicada anterior canonicalizan con `replace` a `marco/def-consistencia`; 3/3 visitas reales |
 | I2-H7 | F3 / guard metodológico | Consistencia puede publicar «Listo» con dos bases aunque `relation_audit.status` sea `revisar` o `critico` | **cerrado I3**: sidebar y panel comparten una decisión fail-closed; dos bases solo acreditan `used===true/status=ok` sin incidencias |
 | I3-H8 | F3 / C5 | El gauge conserva umbrales React 70 %/90 % y una zona «sólido» ajenos al `status` de R | **cerrado I3**: barra puramente descriptiva, tono del audit y regresión que prohíbe ticks, escala y zonas semánticas locales |
@@ -215,6 +215,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 en cifras/listas | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; matriz final `/private/tmp/prosecnur-visual-iter1-final-r3/marco/report.json` 5/5 PASS, 30 grupos, 0 misses/issues/errores | N9: 1 → 0 cifras sin dueño; geometría Marco: 20 → 0 misses; hallazgos abiertos: 7 + 2 → 5 + 2, con N9 e I0-H1 cerrados |
 | 2 | 2026-08-01 | F3/I0-H3 + I0-H6 | Se devolvió `def-consistencia` al final de Marco en catálogo, sidebar, render y bóveda; la URL antes publicada y el alias histórico se leen como parejas explícitas y se reemplazan por `marco/def-consistencia`, sin inferir sección desde un tab suelto | regresión 10 rojas/20 verdes → 30/30; suite 2.805/2.805 y typecheck verdes; bóveda sin V1/V3; contrato aprobado y método aprobado con I2-H7 separado; `/private/tmp/prosecnur-visual-iter2-final/runtime-probe/report.json` 3/3 PASS, 3 grupos, 0 misses/issues/errores/scroll/overflow | F3: 20/24 → 21/24; H3 y H6 cerrados; hallazgos 5 + 2 → 4 + 2 al incorporar H7 |
 | 3 | 2026-08-01 | F3/guard I2-H7 + C5/I3-H8 | Se tipó el audit existente y se congeló una decisión compartida por sidebar/panel: sin frame `pending`, dos bases solo `ready` con `used===true/status=ok` sin incidencias y toda contradicción falla cerrada; el panel dirige a Datos → Marco → Diseño, la bóveda replica el contrato y el gauge quedó descriptivo, sin umbrales React | regresión principal 31 rojas/29 verdes → 60/60; guard C5 1 roja/17 verdes → 23/23; suite 2.839/2.839, typecheck, 118/118 R, bóveda y diff-check verdes; método y contrato aprobados; `/private/tmp/prosecnur-visual-iter3-final-delta/runtime-probe/report.json` 2/2 PASS, 2 grupos y todos los contadores duros en 0 | I2-H7 e I3-H8 cerrados; hallazgos abiertos 4 + 2 → 3 + 2; F3 se mantiene 21/24 porque el guard no mueve pestañas |
+| 4 | 2026-08-01 | F3/I0-H5 | Se ordenó Salida como Cierre → Tablas → Entregables → Pase en catálogo, estados y render, sin cambiar identidades ni deep-links; se alinearon inventario, bóveda e índice generado con los movimientos Tablas `03→02` y Entregables `02→03` | regresión causal 2 fallos/7 pruebas → foco de navegación 34/34; suite 339 archivos y 2.840/2.840 pruebas, typecheck, bóveda y diff-check verdes; método y contrato aprobados; `/private/tmp/prosecnur-visual-iter4-final/runtime-probe/report.json` 8/8 PASS, C1–C5, 16 grupos y todos los contadores duros en 0 | F3: 21/24 → 23/24; I0-H5 cerrado; hallazgos abiertos 3 + 2 → 2 + 2 |
 
 ### Contrato de iteración 0
 
@@ -237,13 +238,13 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **4 — F3/I0-H5, Tablas antes de
-Entregables en Salida**. Es el hallazgo conceptual abierto de mayor radio:
-afecta dos posiciones del denominador F3 y contradice la cadena citable
-Cierre → Tablas → Entregables → Pase a Monitoreo. Se medirá primero la
-dirección canónica y la compatibilidad de tabs guardados; después se alinearán
-catálogo, sidebar, render y bóveda sin renombrar ids. D1 y D2 permanecen
-abiertas; no se añadió una decisión nueva.
+**Siguiente iteración programada:** **5 — F3/I0-H4, retirar «Marco de
+cursos-horario» duplicado de Selección**. Es la última divergencia conceptual
+del denominador F3: la spec vigente termina Selección en Sustento técnico y
+ubica el marco solo en Marco, mientras catálogo/sidebar/render/bóveda conservan
+una dirección redundante. Se medirá primero su contenido, enlaces y memoria para
+decidir la compatibilidad de la URL publicada antes de retirar el hogar
+duplicado. D1 y D2 permanecen abiertas; no se añadió una decisión nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -478,6 +479,85 @@ abiertas; no se añadió una decisión nueva.
 - **Siguiente acción:** iteración 4, F3/I0-H5 — medir por dirección la sección
   Salida, congelar Cierre → Tablas → Entregables → Pase a Monitoreo y
   demostrar el orden incorrecto antes de cambiar catálogo/sidebar/render/bóveda.
+
+### Contrato de iteración 4 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F3/I0-H5. La spec vigente
+  `docs/calc-muestra-recorrido-spec.md:102-109` fija Salida como Cierre →
+  Tablas → Entregables → Pase a Monitoreo: primero se leen cuotas, totales
+  y procedencia; después se configura audiencia, privacidad y publicación.
+- **Primera divergencia medida:**
+  `frontend/src/lib/navegacion/catalogos/calcMuestra.ts` publica Cierre →
+  Entregables → Tablas → Pase. `modules.ts` y el generador preservan ese
+  array por referencia; `universidadTabs.ts` además lo destructura por posición,
+  de modo que intercambiar solo el catálogo cruzaría los estados de Tablas y
+  Entregables. `UniversidadDesk.tsx`, la bóveda y el inventario metodológico
+  repiten el orden heredado.
+- **Historia causal:** `41bbd5054` introdujo el orden en el desk; `08dc6a81d`
+  publicó después la spec contraria sin alinear la UI, primera divergencia
+  contractual; `4a5a16d07` extrajo el orden heredado a catálogo, test, bóveda e
+  índice generado.
+- **Matriz congelada por identidad:** `salidas-guia` conserva el gate de
+  cierre; `salidas-resultados` conserva `guideStatus(hasResult)`;
+  `salidas-entregables` conserva el gate de resultado + selección +
+  publicación; `salidas-monitoreo` conserva selección + reemplazos. Solo cambian
+  las posiciones 2/3; ids, `targetId`, URL, contenido y estados viajan con su
+  identidad. No se añade bloqueo por visita.
+- **Archivos previstos de producto/prueba:**
+  `frontend/src/lib/navegacion/catalogos/calcMuestra.ts`;
+  `frontend/src/lib/navegacion/catalogos/catalogos.test.ts`;
+  `frontend/src/features/calcMuestra/universidad/universidadTabs.ts`;
+  la regresión nueva
+  `frontend/src/features/calcMuestra/universidad/universidadTabs.test.ts`; y
+  `frontend/src/features/calcMuestra/universidad/UniversidadDesk.tsx`.
+- **Costura documental prevista:**
+  `docs/calc-muestra-copys-metodologicos.md`; la dirección generada
+  `docs/sistema/direcciones/calc-muestra.md`; `Entrega.md` y las notas Cierre,
+  Tablas y Entregables bajo `Secciones/05 Entrega`, moviendo carpetas/notas
+  `Tablas 03→02` y `Entregables 02→03` con `orden` y siguiente paso; y este
+  ledger. `ruta_app`, `nodo` e ids se conservan.
+- **Exclusiones explícitas:** la spec autoritativa, `modules.ts`,
+  `CalcMuestraPage.tsx`, aliases/resolvers y memoria de pestaña, componentes
+  internos de Salidas, API/R, cálculo/payload, CSS, `.pulso`, `aulasParts.tsx`,
+  H2/H4/O1/O2, D1/D2, Consistencia ya cerrada y el prompt no versionado.
+- **Cambio enfocado:** intercambiar Tablas/Entregables en catálogo, retorno del
+  sidebar y orden declarativo de render; actualizar contrato documental sin
+  renombrar ni teletransportar direcciones. No hay dato nuevo, gráfico ni
+  peaje de extracción.
+- **Riesgo principal:** asociar `deliverablesReady` a Tablas o `hasResult` a
+  Entregables por destructuring posicional, o romper un deep-link/tab guardado
+  aunque los ids no cambien. La regresión comprobará orden y estado juntos por
+  id.
+- **Baseline disponible:** catálogo 6/6 y focal de navegación 33/33 verdes en
+  el estado defectuoso; bóvedas verdes con 202 nodos/207 notas (ese check no
+  valida orden). `hsvg2026` en
+  `/private/tmp/prosecnur-visual-iter4-baseline/runtime-probe/report.json`
+  reproduce el orden viejo de manera idéntica en DOM/runtime/manifiesto; las
+  ocho visitas por dirección son alcanzables y geométricamente sanas, con una
+  falla conceptual de orden, 16 grupos y todos los contadores duros en cero.
+- **Regresión causal:** el nuevo contrato de orden y estado por id produjo 2
+  fallos en 7 pruebas sobre la implementación previa; tras la reparación, el
+  foco ampliado de catálogo, manifiesto, navegación y sidebar cerró 34/34.
+- **Cambio ejecutado:** se intercambiaron Tablas/Entregables en el catálogo,
+  el destructuring/retorno del sidebar y el render declarativo. El inventario
+  metodológico, la bóveda y su índice generado reflejan la misma cadena; las
+  notas se movieron completas y conservaron `ruta_app` y `nodo`.
+- **Peaje estructural:** no aparece un concepto, payload ni componente nuevo;
+  la corrección usa el catálogo existente como owner. `modules.ts`, aliases,
+  memoria, componentes internos, API/R, CSS y `aulasParts.tsx` permanecen fuera
+  del diff.
+- **Validación ejecutada:** suite frontend 339 archivos y 2.840/2.840 pruebas,
+  `typecheck`, `vaults-check --check` (202 nodos/207 notas) y
+  `git diff --check` verdes. Revisión metodológica y contractual aprobadas sin
+  migración ni ADR. QA `hsvg2026` 8/8 PASS en 1440×1000 y 1024×600:
+  DOM/runtime/manifiesto coinciden; URL, panel, contenido, estado y clase C5 se
+  preservan por id; C1–C5, 16 grupos y todos los contadores duros quedan en 0;
+  el 8787 no se tocó.
+- **Resultado:** mejor. I0-H5 queda cerrado y F3 avanza 21/24 → 23/24 sin
+  teletransportar direcciones ni cruzar estados.
+- **Siguiente acción:** iteración 5, F3/I0-H4 — auditar la dirección
+  redundante «Marco de cursos-horario» en Selección, fijar la compatibilidad de
+  su URL publicada y retirar el hogar duplicado sin perder contenido único.
 
 ## Cómo se corre cada visita
 

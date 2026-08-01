@@ -53,8 +53,8 @@ describe("catálogos canónicos de pestañas", () => {
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas)).toEqual([
       "salidas-guia:Cierre",
-      "salidas-entregables:Entregables",
       "salidas-resultados:Tablas",
+      "salidas-entregables:Entregables",
       "salidas-monitoreo:Pase a Monitoreo",
     ]);
   });

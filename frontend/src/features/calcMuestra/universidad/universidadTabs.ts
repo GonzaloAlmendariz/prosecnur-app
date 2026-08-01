@@ -250,11 +250,11 @@ export function universitySidebarTabs({
   }
   if (activeSection === "salidas") {
     const deliverablesReady = hasResult && selectionReady && publicationConfigured;
-    const [guiaTab, entregablesTab, resultadosTab, monitoreoTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
+    const [guiaTab, resultadosTab, entregablesTab, monitoreoTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
     return [
       { ...guiaTab, status: guideStatus(hasResult && selectionReady && replacementReady, effectiveMarcoReady) },
-      { ...entregablesTab, status: guideStatus(deliverablesReady, hasResult && selectionReady) },
       { ...resultadosTab, status: guideStatus(hasResult) },
+      { ...entregablesTab, status: guideStatus(deliverablesReady, hasResult && selectionReady) },
       { ...monitoreoTab, status: guideStatus(selectionReady && replacementReady, comparisonReady) },
     ];
   }
