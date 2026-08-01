@@ -175,12 +175,13 @@ trabajando en lo desbloqueado.
 | Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 0 | ↑ |
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
 | Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 6 vivas; la séptima era la dirección redundante retirada en I5 | ↑ a 6 |
+| Pestañas de Aulas/Salidas con capacidad y alcance C3–C4 auditados | por medir; I0-O2 no tenía rectángulos propios | 10 de 10 × 3 viewports: 30/30 alcanzables, 0 problemas de capacidad; 5 oportunidades solo exteriores | = 100 %; no acredita revamp F2 |
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 16 grupos conformes en los cuatro destinos de I7; Radiografía de CH aporta 5 por viewport y el guard final suma 15 auditorías, 0 misses/issues | ↑ con cobertura conforme |
 | Navegaciones canónicas Marco/Aulas que aterrizan arriba tras forzar el owner origen | por medir; I0-O1 sin secuencia reproducible | 13 de 13 navegaciones nuevas + 1 de 1 POP en 1710×1107; reset desde primer frame y estable | = 100 % |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 1 observación por confirmar (I0-O2); N9, I0-O1, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7, I3-H8 e I7-O3 cerrados | ↓ |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 1 confirmado (I9-H9) + 0 observaciones; N9, I0-O1, I0-O2, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7, I3-H8 e I7-O3 cerrados | ↓ hasta 0 |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -199,8 +200,9 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I2-H7 | F3 / guard metodológico | Consistencia puede publicar «Listo» con dos bases aunque `relation_audit.status` sea `revisar` o `critico` | **cerrado I3**: sidebar y panel comparten una decisión fail-closed; dos bases solo acreditan `used===true/status=ok` sin incidencias |
 | I3-H8 | F3 / C5 | El gauge conserva umbrales React 70 %/90 % y una zona «sólido» ajenos al `status` de R | **cerrado I3**: barra puramente descriptiva, tono del audit y regresión que prohíbe ticks, escala y zonas semánticas locales |
 | I0-O1 | F2 / navegación | Marco y Aulas pueden conservar scroll inicial al navegar por `--ir` en 1710×1107 | **cerrado I7**: el baseline confirmó 661 px heredados en Marco; el owner real se resetea pre-paint y el guard final pasa 13/13 navegaciones nuevas + POP |
-| I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | por medir con rectángulos; no suma FAIL en iteración 0 |
+| I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | **cerrado I9 como no defecto**: 30/30 celdas alcanzables, gap interior 0–1 px y 0 `CAPACITY_ISSUE`; cinco celdas solo ofrecen densidad exterior. La impresión de I0 mezcló stagger sin asentar con margen legítimo |
 | I7-O3 | F1 / guard C1 | Radiografía de CH expone siete candidatos geométricos sin `data-qa-geometry-group` | **cerrado I8**: 4 colecciones reales declaran contrato `intrinsic`; controles envueltos, badges y leyenda quedan excluidos por semántica, no por opt-out; 3 viewports, 15 auditorías, 0 misses/issues |
+| I9-H9 | guard visual transversal | `ui-quick-check` puede capturar después de dos RAF mientras siguen animaciones escalonadas y contar como visibles nodos con `opacity: 0` | **confirmado I9**: en el origen de O2 la captura normal muestra 3/7 etapas y la inmediata `-full` 5/7; el runner no espera `animationend` ni emula reduced motion. Programado I10 con fixture rojo y estabilización antes de inspección/captura |
 
 ## Bandeja de decisiones (solo Gonzalo)
 
@@ -222,6 +224,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 6 | 2026-08-01 | F1/F2/I0-H2 | Se amplió la capacidad de las categorías planas, se congeló la cascada 1350→1100→620 y se retiró `anywhere` solo de sus rótulos; el rótulo compuesto conserva texto y nombre accesible e incorpora oportunidades de corte únicamente después de sus seis comas | guard CSS 3 fallos/3 verdes → 6/6; veto visual C3 → regresión semántica 1 fallo/6 verdes → 7/7; foco 108/108, suite 340 archivos y 2.861/2.861, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter6-final-wbr/report.json` 7/7 PASS, columnas 6/5/4/4/3/3/2, 0/217 rótulos partidos, 42 grupos y todos los contadores duros en 0; el veto documental posterior corrigió índice, `Fecha` y portabilidad: 21/21 tests y árbol propuesto 196/196, 0 errores | I0-H2 cerrado; hallazgos abiertos 1 + 2 → 0 + 2; F1/F2 conservan sus denominadores porque la iteración cierra un defecto, no acredita una radiografía ni un revamp completo |
 | 7 | 2026-08-01 | F2/I0-O1 | Se identificó `.cmv2-tab-panel` como owner único, se le dio un ref local y se resetea pre-paint al cambiar sección o pestaña; se retiraron los dos RAF muertos sobre `.cmv2-main`, sin mover foco ni alterar navegación/historial | runtime rojo Marco 661→661; guard fuente 3 fallos→3/3; foco estructural 9/9; suite 341 archivos y 2.864/2.864, typecheck, bóveda (201/206) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter7-final/report.json`: 13/13 navegaciones nuevas + POP PASS, owner en 0 desde rAF, sin salto a +600 ms ni errores duros | Navegación pasa de observación sin denominador a 13/13 + POP; I0-O1 cerrado. I7-O3 entra como observación separada, por lo que hallazgos agregados quedan 0 + 2; geometría expone 7 misses de cobertura sin promoverlos a FAIL |
 | 8 | 2026-08-01 | F1/I7-O3 | Se auditó la Radiografía de CH 7×3: cuatro colecciones reales recibieron C1 `intrinsic`; el detector aprendió a excluir controles envueltos y átomos `span` inline, incluida su blockification como flex-item, sin opt-out ni clases locales. Pasos poseen su capacidad; decisiones solo declaran membresía | historia causal: I1 ya tenía 35 misses; detector 7→4 y fuente 3/3 rojos → detector 5/5, fuente 3/3 y foco 21/21 verdes; suite 342 archivos y 2.867/2.867, typecheck, bóveda 201/206 y diff-check verdes. Un veto visual capturó blockification (6 misses) y un veto contractual impidió ocultar `span-flex+input`; ambos ganaron regresión. Bundle final `prosecnur-visual-iter8-final-r3`: 3/3, 15 auditorías, 0 misses/issues/errores, 51/51 headers y 12/12 últimos miembros | I7-O3 cerrado; geometría pasa de 12 grupos + 7 candidatos a 16 grupos conformes y 0 misses en el alcance; hallazgos abiertos 0 + 2 → 0 + 1. I0-O2 queda como única observación; D1/D2 intactas |
+| 9 | 2026-08-01 | F2/I0-O2 + guard I9-H9 | Se separó capacidad interior de margen exterior en las diez pestañas vivas; ninguna retiene vacío ni corta el final. La captura de apertura se explicó por stagger no asentado y margen fuera de la ficha; no se tocó producto | baseline funcional 17/17; guard visual 10/10 direcciones, 30/30 capturas, 45 grupos y todos los duros en 0. Probe causal v2: 25 `NO_DEFECT`, 5 `DENSITY_OPPORTUNITY`, 0 `CAPACITY_ISSUE`, 0 `REACHABILITY_ISSUE`, gap raíz 0 y terminal 0–1 px. El v1 fue vetado por elegir descendientes de `details` cerrados y confundir padding con capacidad | Capacidad/alcance: por medir → 10/10 × 3; I0-O2 cerrado; observaciones 1 → 0. Entra I9-H9 como único hallazgo confirmado del guard; revamp F2 y D1/D2 no cambian |
 
 ### Contrato de iteración 0
 
@@ -244,14 +247,14 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **9 — F2/I0-O2, confirmar o cerrar la
-capacidad exterior amplia de Aulas y Salidas en escritorio grande**. No quedan
-defectos confirmados y O2 es la única observación abierta. Se medirán primero
-rectángulos, contenido alcanzable y owner de capacidad en 1710×1107, 1440×1000
-y 1280×800, separando vacío exterior legítimo de panel inflado; no se hará un
-revamp por intuición. Si aparece dato/estadístico en la superficie, F0 gatea
-cualquier cambio funcional. D1 y D2 siguen abiertas; no se añadió una decisión
-nueva.
+**Siguiente iteración programada:** **10 — guard transversal/I9-H9, asentar
+animaciones antes de inspeccionar y capturar con `ui-quick-check`**. El defecto
+instrumental tiene radio sobre F1–F4: dos RAF no garantizan el estado final y
+`opacity: 0` puede contarse como visible. Se escribirá primero el fixture mínimo
+que reproduzca una colección `intrinsic` escalonada; después se congelará una
+única estrategia de estabilización, sin ocultar animaciones reales del producto
+ni alterar screenshots ajenos. F0 no se activa porque el cambio no calcula ni
+publica cifras. D1 y D2 siguen abiertas; no se añadió decisión nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -1066,6 +1069,102 @@ nueva.
 - **Siguiente acción:** iteración 9, F2/I0-O2 — medir capacidad exterior de
   Aulas y Salidas por rectángulo, contenido alcanzable y owner en tres viewports
   de escritorio antes de decidir si existe defecto o vacío legítimo.
+
+### Contrato de iteración 9 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F2/I0-O2, gobernada por C3 (pertenencia),
+  C4 (alcance) y la gramática local de layout. El vacío exterior de una página
+  corta no es capacidad propia; sí lo es el espacio reservado dentro de un
+  panel, tarjeta o miembro que declara/impone altura, crecimiento o stretch.
+- **Pregunta causal congelada:** confirmar si la amplitud observada en Aulas y
+  Salidas a escritorio grande pertenece al viewport después del último contenido
+  —oportunidad de densidad, no defecto— o si algún componente posee capacidad
+  interior injustificada, corta el recorrido o hace parecer incompleta la
+  superficie. No se propone revamp antes de localizar el owner exacto.
+- **Matriz de auditoría:** las seis pestañas vivas de Aulas (`objetivo`,
+  `metodo`, `laboratorio`, `seleccion`, `reemplazos`, `auditoria`) y las cuatro
+  de Salidas (`salidas-guia`, `salidas-resultados`, `salidas-entregables`,
+  `salidas-monitoreo`) por dirección canónica en 1710×1107, 1440×1000 y
+  1280×800: 30 celdas. Registrar panel/owner, primer y último contenido visible,
+  rectángulos, `client/scroll` width/height, gaps interior/exterior, reglas
+  `min-height`/height/flex/grid, scroll 0/medio/máximo, foco, readiness y C1–C5.
+- **Criterio de clasificación:** `NO_DEFECT` si el último contenido termina
+  antes del viewport sin caja que reclame el resto y toda la superficie es
+  alcanzable; `DENSITY_OPPORTUNITY` si solo cabe más información sin violar
+  pertenencia/capacidad; `CAPACITY_ISSUE` si un owner visible retiene vacío
+  interior > tolerancia por height/min-height/grow/stretch sin propósito;
+  `REACHABILITY_ISSUE` si contenido final no se alcanza, se corta o queda bajo
+  otro owner. Solo los dos últimos promueven O2 a defecto.
+- **Archivos previstos en la fase de auditoría:** únicamente este ledger. Los
+  probes, reportes y capturas viven en un bundle temporal portable. Si aparece
+  un defecto, se congela antes un delta exacto con componente/CSS dueño y una
+  regresión roja; no se toca producto mientras la matriz esté abierta.
+- **Peaje estructural:** trazar PageFrame→workbench→panel→último miembro y
+  distinguir espacio exterior, capacidad del panel y capacidad de colección.
+  Está prohibido reducir alturas globales, añadir scroll interno, llenar huecos
+  con copy o mover datos solo para compactar una captura.
+- **Exclusiones explícitas:** I7-O3 y navegación ya cerrados, F0/estadísticos y
+  engine R, payloads, persistencia/.pulso, orden F3, D1/D2, CSS global,
+  `aulasParts.tsx`, puerto 8787 y el prompt no rastreado del usuario.
+- **Riesgo principal:** convertir un margen exterior legítimo en densidad
+  artificial o medir solo el primer viewport y perder contenido inferior. Por
+  eso cada celda registra owner, último contenido y posiciones de scroll.
+- **Baseline de checks:** `53290ed1`; post-I8 no hay cambios rastreados y el
+  único path ajeno es `docs/qa/prompt-goal-loop-calc-muestra.md` como `??`.
+  O2 sigue siendo observación: no suma FAIL ni autoriza CSS todavía.
+- **Validación mínima:** inventario 30/30 con rectángulos y owner falsables,
+  evidencia visual comparable y clasificación por pestaña; C1–C5 y contadores
+  duros, foco/readiness/URL, SHA/dirty y limpieza de procesos. Si hay reparación:
+  regresión roja, foco afectado, suite/typecheck, bóveda, gobernanza propuesta,
+  revisión contractual y `verificador` serial. Ledger/registro deben cerrar o
+  promover O2 y programar I10 antes del commit.
+- **Diagnóstico causal:** I0 no auditó capacidad de las diez pestañas. Sus dos
+  defaults se fotografiaron después de solo dos RAF mientras seguía un stagger
+  de hasta 240 ms: Aulas normal muestra 3/7 etapas y la captura inmediata
+  `-full` 5/7; Salidas también gana contenido entre ambas. El cero geométrico
+  de aquellos reports pertenecía a otro grupo. La vista histórica de Aulas fue
+  retirada en I5 por duplicación metodológica, no por este supuesto hueco.
+- **Peaje estructural pagado:** PageFrame y workbench llenan el shell; el owner
+  C4 es `.cmv2-tab-panel` (`flex: 1`, `overflow: auto`). Sus hijos
+  `.cmv2-aulas-stack` y `.cmv2-sal-stack` son grids intrínsecos con
+  `align-content: start`, sin altura, crecimiento ni overflow. En runtime el
+  borde de cada raíz coincide con su último hijo de flujo: 0 px de capacidad
+  raíz y 0–1 px terminal en las 30 celdas.
+- **Veto interno del instrumento focal:** el probe v1 produjo 18 falsos
+  `CAPACITY_ISSUE` y 6 falsos `REACHABILITY_ISSUE` porque tomó descendientes de
+  `details` cerrados fuera de la caja, exigió que una colección más alta que el
+  viewport cupiera completa y llamó capacidad al padding hasta un nodo de texto.
+  La v2 usa último hijo de flujo, borde inferior alcanzable y padding descontado;
+  conserva el v1 como evidencia rechazada, no como resultado.
+- **Evidencia visual final:** el bundle `prosecnur-visual-iter9-capacity`
+  contiene `summary.md`, `matrix.md`, `report.json`, `capacity-report.json` y
+  `guard-index.json`. Son 10/10 direcciones, 30/30 capturas y 45 grupos, con
+  misses/issues/scroll-jails/overflow/errores en 0. La matriz causal queda
+  25 `NO_DEFECT` + 5 `DENSITY_OPPORTUNITY` exteriores —Laboratorio 1710,
+  Guía 1710/1440 y Resultados 1710/1440—, 0 `CAPACITY_ISSUE` y 0
+  `REACHABILITY_ISSUE`; URL, foco, readiness, máximo de scroll y borde final
+  pasan 30/30. SHA copia/canónico coincide, proyecto `dirty=false`, 5188 quedó
+  cerrado y 8787/procesos ajenos no se tocaron.
+- **Guard nuevo separado:** la explicación de O2 confirma I9-H9: el runner
+  general puede inspeccionar/capturar un estado animado intermedio y considera
+  visible `opacity: 0`. No se mezcla esa reparación transversal con el cierre
+  documental de O2; I10 empieza por una regresión mínima del runner.
+- **Validación antes del verificador:** foco funcional existente 17/17 y
+  `git diff --check` verdes. La gobernanza literal del árbol reporta únicamente
+  el prompt privado ajeno sin índice; el árbol propuesto sin ese `??` pasa
+  196/196 documentos, 648 enlaces y 0 errores. El diff rastreado sigue limitado
+  a este goal y el prompt no fue leído, editado, enlazado ni preparado.
+- **Verificador serial:** `APPROVED`; recalculó 30/30, 25/5/0/0, gaps 0–1,
+  navegación/alcance 30/30, guards 10/10 y 17/17 pruebas, confirmó SHA/limpieza,
+  el único error literal externo y la coherencia ledger→cola→registro→I10.
+- **Resultado:** mejor. I0-O2 queda cerrado como no defecto, la capacidad y el
+  alcance pasan de sin denominador a 10/10 × 3 y no se acredita un revamp F2.
+  El agregado cambia de 0 confirmados + 1 observación a 1 confirmado + 0
+  observaciones por I9-H9. F0, D1 y D2 no cambian.
+- **Siguiente acción:** iteración 10, guard transversal/I9-H9 — reproducir con
+  un fixture `intrinsic` escalonado el estado intermedio de dos RAF y estabilizar
+  `ui-quick-check` antes de inspección y screenshot, preservando la capacidad
+  de auditar motion y sin convertir una espera abierta en flakiness.
 
 ## Cómo se corre cada visita
 
