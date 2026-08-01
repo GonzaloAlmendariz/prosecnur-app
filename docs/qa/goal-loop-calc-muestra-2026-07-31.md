@@ -127,33 +127,52 @@ pasan por F0. Regla de la casa: no sobreexplicar — el hueco es para el dato.
 
 ## Mecánica de cada iteración
 
-Una iteración = una visita a un frente, orquestada según la rama que toque:
+> **Régimen vigente desde I15 (decisión de Gonzalo, 2026-08-01).** Las catorce
+> primeras iteraciones se midieron y el resultado obligó a cambiar la mecánica:
+> tres entregaron producto cero y cuatro menos de 50 líneas, todas con
+> contratos de 110–169 líneas — hasta **7 líneas de contrato por línea de
+> código**. El 73 % del producto salió en 2 de 13 commits. La ceremonia era de
+> tamaño fijo y el producto no, así que una iteración de 20 líneas pagaba el
+> mismo peaje que una de 2.879 y cada visita costaba de 2 a 4 horas. Eso no
+> compraba seguridad: compraba lentitud, y ahogaba los mandatos 2 y 4.
 
-1. **Auditar (medido, no leído).** `/ver-ui` con `hsvg2026` sobre la dirección
-   canónica (`/calc-muestra?modo=opinion-universitaria&seccion=…&pestana=…`),
-   matriz de viewports, `ui-quick-check` con `--require-geometry`. Los
-   hallazgos se anotan con `archivo:línea`. Auditar produce combustible;
-   reparar lo consume — por eso el loop nunca se queda sin trabajo.
-2. **Clasificar y orquestar.**
-   - Visual puro → Rama 2: `/revamp-visual` + `govern-visual-harmony` congelan
-     dirección; `qa-visual-desktop` toma baseline; `frontend-react` implementa;
-     QA independiente + `guardian-contratos` revisan.
-   - Estadísticos o datos nuevos → Rama 1 con `/scope-lock`: contrato del
-     payload congelado primero; `backend-r` (engine + test testthat) y
-     `frontend-react` (normalizador defensivo + render) en paralelo;
-     `revisor-metodologico` valida grano y denominadores;
-     `dominio-prosecnur`/`/nucleo-metodologico` cargados si cambia lógica de
-     encuesta.
-   - Máximo tres trabajadores, dos writers, globs sin solape; el lead
-     sintetiza, no concatena.
-3. **Pagar el peaje estructural.** Componente nuevo en archivo nuevo; lo tocado
-   de un archivo grande se extrae primero.
-4. **Dejar guard.** `data-qa-geometry-group`, tokens, test de contrato del
+Una iteración = **un lote entregable**, orquestado según la rama que toque:
+
+1. **Lote mínimo.** Una iteración cubre una **sección completa**, una
+   **capacidad nueva** o un **barrido de defectos afines**. Nunca un defecto
+   suelto: los hallazgos chicos se acumulan y se cierran juntos bajo un solo
+   contrato. Si el producto previsto no llega a una superficie entera, no es
+   una iteración — es una entrada de la bandeja.
+2. **Auditar es el paso 1, no una iteración.** `/ver-ui` con `hsvg2026` sobre
+   la dirección canónica, matriz de viewports, `ui-quick-check` con
+   `--require-geometry`; hallazgos con `archivo:línea`. Una visita que solo
+   audita **no se registra como iteración ni se commitea sola**.
+3. **Contrato proporcional al riesgo.**
+   - Superficie (visual, informativo, layout): **contrato corto**, 10–15
+     líneas — categoría, scope lock, riesgo principal, stopping rule. Basta.
+   - Engine, datos, metodología o persistencia: contrato largo, con primera
+     divergencia medida y revisión metodológica, como hasta ahora.
+4. **Dos carriles con presupuesto propio.** Carril A = correctitud (F0, N9,
+   engine, whitelist). Carril B = superficie y creatividad (mandatos 1, 2 y 4).
+   **Ninguna iteración puede excluir el carril B por defecto**: si B queda
+   fuera, se dice por qué y se agenda. El histórico de exclusiones fue lo que
+   dejó el mandato 2 sin ejecutar durante catorce visitas.
+5. **Pagar el peaje estructural.** Componente nuevo en archivo nuevo; lo tocado
+   de un archivo grande se extrae primero. En un lote grande la extracción se
+   hace **de entrada**, no como peaje por pestaña.
+6. **Dejar guard.** `data-qa-geometry-group`, tokens, test de contrato del
    payload — la violación futura debe fallar sola.
-5. **Gate escalado al diff** (typecheck + vitest del feature + testthat de los
-   `test-calc_muestra*` afectados + chequeo visual) → **`verificador`** →
-   commit atómico en español.
-6. **Registrar**: ledger actualizado y fila en el registro de iteraciones.
+7. **Gate proporcional, de verdad escalado.**
+   - Superficie: typecheck + vitest del feature + `ui-quick-check` en
+     `1440x1000` y `1024x600`. Sin cadena completa de revisión independiente.
+   - Engine, datos o contrato público: lo anterior + testthat de los
+     `test-calc_muestra*` afectados + **`verificador`** serial.
+   - Regla heredada de `CLAUDE.md` que este loop había dejado de aplicar:
+     **verificar de más también es deuda**.
+   - Trampa medida: correr vitest con el dev server encendido produce falsos
+     rojos — Vite y vitest comparten `node_modules/.vite`. Ante un rojo
+     aislado, reproducirlo antes de diagnosticarlo.
+8. **Registrar**: ledger actualizado y fila en el registro de iteraciones.
    **El estado vive en este doc, no en la conversación.**
 
 ## Regla de no-bloqueo
@@ -1859,6 +1878,44 @@ prompt privado quedaron explícitamente fuera de su stage y commit.
   `verificador` serial. I14 solo acredita 1/6 cuando Objetivo complete C1–C5,
   mantenga el target R intacto, reduzca o conserve 1.551 líneas y el ledger se
   actualice. Estado actual: auditoría activa, sin cambios de producto I14.
+- **Superada por I15.** Su auditoría se conserva como insumo; su alcance de una
+  pestaña queda absorbido por el lote de la sección completa.
+
+### Contrato de iteración 15 (lote — primera bajo el régimen nuevo)
+
+- **Categoría:** F2/Aulas, carril B (superficie), mandato 2. Lote = **las seis
+  pestañas vivas**, no una.
+- **Baseline medido (2026-08-01, `hsvg2026-i12-populated`, 1440×1000).**
+  Recorrido por dirección canónica sobre las seis:
+  - `objetivo`: columna `EST./CURSO-HORARIO` entera en `—`; `RESERVAS` repite
+    `R1-R11` en las 14 filas; `EXTRA` todo `0`; Muestra objetivo y Sobremuestra
+    en «falta calcular» pese a haber cuotas por facultad.
+  - `metodo`: cuatro cards con «fórmula» como único affordance; el peso de la
+    pantalla está en párrafos explicativos, no en métricas comparables.
+  - `laboratorio`, `seleccion`, `reemplazos`: **las tres en estado
+    «pendiente»**, con tarjetas que repiten el mismo botón y media pantalla
+    vacía. Ninguna muestra datos porque no hay selección ejecutada — tampoco en
+    el `.pulso` llamado «poblado».
+  - `auditoria`: la única con densidad real (fórmulas, semilla, reproducibilidad).
+  - Estructura: `aulasParts.tsx` 1.551 líneas, `aulas.css` 1.679 líneas.
+- **Scope lock.** `universidad/aulas/**` (las seis tabs, componentes nuevos en
+  archivo propio, `aulas.css`) y sus Vitest focales. Fuera: engine R, fórmulas,
+  selector/sorteo, target/handoff de I13, navegación y aliases, persistencia
+  `.pulso`, datos reales, la unidad ajena del catálogo visual y el prompt privado.
+- **Peaje estructural, de entrada.** `aulasParts.tsx` se descompone **antes** de
+  tocar las pestañas, no como peaje por cada una. Ninguna tab crece sobre el
+  monolito.
+- **Estado de prueba requerido.** Cuatro de las seis pestañas solo son
+  juzgables con selección ejecutada: sembrarla con
+  `make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026` y auditar el
+  par **vacío / lleno** (C2 y C5 exigen ambos).
+- **Riesgo principal.** Que el revamp maquille los estados «pendiente» en vez
+  de resolver qué informa cada pestaña cuando no hay selección — convertir C3
+  en decoración. El vacío se clasifica, no se rellena.
+- **Stopping rule.** I15 cierra cuando las seis cumplan C1–C5 en ambos
+  viewports con estado vacío y lleno, `aulasParts.tsx` haya bajado de 1.551
+  líneas, y el gate de superficie esté verde. Sin `verificador` serial salvo
+  que el lote termine tocando engine o contrato público.
 
 ## Cómo se corre cada visita
 
