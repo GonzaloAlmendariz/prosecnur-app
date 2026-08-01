@@ -179,7 +179,7 @@ trabajando en lo desbloqueado.
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 21 de 24 (87,5 %); 24 de 24 auditadas | 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 7 locales en fuente; 6 grupos renderizados por viewport de Marco, 0 misses y 0 issues | ↑ con cobertura conforme |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 4 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H3 e I0-H6 cerrados; I2-H7 añadido | ↓ |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 3 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H3, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -195,7 +195,8 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | confirmado; `calcMuestra.ts:107` y spec líneas 87-98 |
 | I0-H5 | F3 | Entrega ordena Entregables antes de Tablas | confirmado; afecta dos pestañas del denominador F3 |
 | I0-H6 | F3 / navegación | El alias cross-section `marco-validacion → def-consistencia` cae en la primera pestaña de Marco | **cerrado I2**: alias y URL publicada anterior canonicalizan con `replace` a `marco/def-consistencia`; 3/3 visitas reales |
-| I2-H7 | F3 / guard metodológico | Consistencia puede publicar «Listo» con dos bases aunque `relation_audit.status` sea `revisar` o `critico` | confirmado en revisión I2; el gate mira existencia de frame, y el panel conflata `used=false` con base única |
+| I2-H7 | F3 / guard metodológico | Consistencia puede publicar «Listo» con dos bases aunque `relation_audit.status` sea `revisar` o `critico` | **cerrado I3**: sidebar y panel comparten una decisión fail-closed; dos bases solo acreditan `used===true/status=ok` sin incidencias |
+| I3-H8 | F3 / C5 | El gauge conserva umbrales React 70 %/90 % y una zona «sólido» ajenos al `status` de R | **cerrado I3**: barra puramente descriptiva, tono del audit y regresión que prohíbe ticks, escala y zonas semánticas locales |
 | I0-O1 | F2 / navegación | Marco y Aulas pueden conservar scroll inicial al navegar por `--ir` en 1710×1107 | por confirmar; no suma FAIL en iteración 0 |
 | I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | por medir con rectángulos; no suma FAIL en iteración 0 |
 
@@ -213,6 +214,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 0 | 2026-07-31 | F0–F4 · baseline | Se midieron estructura, contratos parciales, orden de las 24 pestañas y las cinco secciones reales de `hsvg2026`; no se tocó producto | `wc`/`rg` con `archivo:línea`; revisión metodológica 24/24; `ui-quick-check --require-geometry` 25/25 en `/private/tmp/prosecnur-visual-iter0` (PASS 20, FAIL 5 por C1 en Marco, demás contadores duros en 0) | F3: por auditar → 20/24 justificadas; geometría: por medir → 4 locales; contratos: se reconoció 1 parcial probado; hallazgos: 1 → 7 + 2 observaciones |
 | 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 en cifras/listas | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; matriz final `/private/tmp/prosecnur-visual-iter1-final-r3/marco/report.json` 5/5 PASS, 30 grupos, 0 misses/issues/errores | N9: 1 → 0 cifras sin dueño; geometría Marco: 20 → 0 misses; hallazgos abiertos: 7 + 2 → 5 + 2, con N9 e I0-H1 cerrados |
 | 2 | 2026-08-01 | F3/I0-H3 + I0-H6 | Se devolvió `def-consistencia` al final de Marco en catálogo, sidebar, render y bóveda; la URL antes publicada y el alias histórico se leen como parejas explícitas y se reemplazan por `marco/def-consistencia`, sin inferir sección desde un tab suelto | regresión 10 rojas/20 verdes → 30/30; suite 2.805/2.805 y typecheck verdes; bóveda sin V1/V3; contrato aprobado y método aprobado con I2-H7 separado; `/private/tmp/prosecnur-visual-iter2-final/runtime-probe/report.json` 3/3 PASS, 3 grupos, 0 misses/issues/errores/scroll/overflow | F3: 20/24 → 21/24; H3 y H6 cerrados; hallazgos 5 + 2 → 4 + 2 al incorporar H7 |
+| 3 | 2026-08-01 | F3/guard I2-H7 + C5/I3-H8 | Se tipó el audit existente y se congeló una decisión compartida por sidebar/panel: sin frame `pending`, dos bases solo `ready` con `used===true/status=ok` sin incidencias y toda contradicción falla cerrada; el panel dirige a Datos → Marco → Diseño, la bóveda replica el contrato y el gauge quedó descriptivo, sin umbrales React | regresión principal 31 rojas/29 verdes → 60/60; guard C5 1 roja/17 verdes → 23/23; suite 2.839/2.839, typecheck, 118/118 R, bóveda y diff-check verdes; método y contrato aprobados; `/private/tmp/prosecnur-visual-iter3-final-delta/runtime-probe/report.json` 2/2 PASS, 2 grupos y todos los contadores duros en 0 | I2-H7 e I3-H8 cerrados; hallazgos abiertos 4 + 2 → 3 + 2; F3 se mantiene 21/24 porque el guard no mueve pestañas |
 
 ### Contrato de iteración 0
 
@@ -235,11 +237,13 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **3 — F3/guard I2-H7, falso «Listo» de
-Consistencia**. Se congelará primero la matriz `base_madre` / `dos_bases` ×
-`relation_audit`, se escribirá la regresión roja y luego se hará que el estado
-y el copy impidan continuar a Diseño con una conciliación no acreditada. D1 y
-D2 permanecen abiertas; no se añadió una decisión nueva.
+**Siguiente iteración programada:** **4 — F3/I0-H5, Tablas antes de
+Entregables en Salida**. Es el hallazgo conceptual abierto de mayor radio:
+afecta dos posiciones del denominador F3 y contradice la cadena citable
+Cierre → Tablas → Entregables → Pase a Monitoreo. Se medirá primero la
+dirección canónica y la compatibilidad de tabs guardados; después se alinearán
+catálogo, sidebar, render y bóveda sin renombrar ids. D1 y D2 permanecen
+abiertas; no se añadió una decisión nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -380,6 +384,100 @@ D2 permanecen abiertas; no se añadió una decisión nueva.
   para base única y dos bases, demostrar el falso «Listo» con una regresión y
   consumir el `status` ya calculado por el engine sin crear un estadístico en
   React. Después alinear el copy de acción con el paso a Diseño.
+
+### Contrato de iteración 3 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F3/guard I2-H7. El owner es
+  `frame.relation_audit`, calculado por `api/R/calc_muestra_aulas.R`: `used`
+  declara si entró catálogo y `status` acredita `ok`, `revisar`, `critico` o
+  `sin_catalogo`. React solo interpreta ese estado; no calcula un umbral ni un
+  estadístico nuevo.
+- **Primera divergencia medida:** el engine entrega correctamente el audit y el
+  panel lo muestra, pero `universitySidebarTabs` reduce Consistencia a
+  `guideStatus(hasDescriptiveFrame)`. En `hsvg2026`, dos bases +
+  `used=true/status=revisar` + dos issues se publica por ello como «Listo».
+  El defecto nació en `41bbd505`; no está en R, router ni serialización.
+- **Matriz congelada:** sin frame siempre `pending`; una fuente acredita
+  `ready` solo cuando la conciliación no aplica de forma coherente (audit
+  legacy ausente sin evidencia de catálogo, o `used=false/sin_catalogo` sin
+  issues); dos bases acreditan `ready` únicamente con audit presente,
+  `used=true` y `status=ok`. Todo status desconocido, `revisar`, `critico`,
+  mismatch modo/`used`, audit ausente con dos bases o issue contradictorio
+  falla cerrado como `working`. `catalog_audit` legacy puede mostrar evidencia,
+  nunca acreditar por sí solo.
+- **Módulos afectados:** tipo del contrato de audit, helper de frame compartido,
+  estado del sidebar, presentación/copy del panel, contrato R ya existente,
+  regresiones y nota de bóveda de Consistencia.
+- **Archivos previstos:**
+  `api/tests/testthat/test-calc-muestra-aulas.R`;
+  `frontend/src/api/calcMuestra.ts`;
+  `frontend/src/features/calcMuestra/universidad/shared/frame.ts`;
+  `frontend/src/features/calcMuestra/universidad/shared/__tests__/frame.test.ts`;
+  `frontend/src/features/calcMuestra/universidad/universidadTabs.ts`;
+  `frontend/src/features/calcMuestra/universidad/marco/MarcoConsistenciaTab.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/__tests__/marcoConsistencia.test.tsx`;
+  la nota `Consistencia de fuentes.md` bajo Marco/06; y este ledger.
+- **Exclusiones explícitas:** `api/R/**`, routers y forma del payload,
+  navegación H3/H6, `CalcMuestraPage.tsx`, bloqueo o disabled de Diseño,
+  estadísticas/umbrales React, CSS, migraciones `.pulso`, `aulasParts.tsx`,
+  I0-H2/H4/H5/O1/O2, D1/D2 y el prompt no versionado.
+- **Ampliación medida por el gate completo:**
+  `frontend/src/features/calcMuestra/universidad/marco/__tests__/marcoMotion.test.tsx`
+  pertenece al alcance de pruebas: su fixture de dos bases declaraba un
+  `relation_audit` sin ninguna unidad ni N auditado, pero esperaba evidencia de
+  un marco construido. Se añadirá una unidad mínima al fixture; no se relaja el
+  guard de frame utilizable ni se cambia producto por ese estado imposible.
+- **Hallazgo del gate contractual:** aunque el tono ya obedecía al `status` de
+  R, el gauge conservaba marcas y zonas semánticas React en 70 %/90 %. Un 95 %
+  con `status=revisar` quedaba visualmente dentro de «sólido» y contradecía el
+  veredicto. Se congeló retirar ticks/escala y dejar solo una barra descriptiva,
+  con regresión negativa; no cambia ningún cálculo ni payload.
+- **Cambio enfocado:** tipar y normalizar defensivamente el audit existente en
+  un helper único; usar su veredicto tanto en sidebar como en el panel; sustituir
+  copy que posterga la revisión hasta el sorteo o nombra la antigua
+  «Definición» por acciones Datos → Fuentes/Variables y Diseño. No se bloqueará
+  navegación ni se cambiará cálculo.
+- **Riesgo principal:** convertir un frame legacy de fuente única en falso
+  pendiente, o acreditar un audit contradictorio por coerción de `used`; por
+  eso solo el booleano `true` acredita catálogo y las combinaciones no
+  reconocidas fallan cerradas.
+- **Baseline disponible:** test R focal 80/80 y Vitest Marco 10/10 verdes en el
+  estado defectuoso; baseline visual
+  `/private/tmp/prosecnur-visual-iter3-baseline` reproduce «Listo» con
+  `source_mode=dos_bases`, `status=revisar`, match 0,9998, 2 issues y 1 warning;
+  C1–C4 pasan y C5 falla, sin errores/misses/overflow/scroll.
+- **Validación mínima:** regresiones rojas para la matriz del helper/sidebar,
+  SSR de estados/copy y contratos R `sin_catalogo/revisar`; Vitest focal y
+  suite completa + `typecheck`; test R focal; `vaults-check --check` y
+  `git diff --check`; QA `hsvg2026` en 1440×1000 y 1024×600 con
+  `--require-geometry`; revisión metodológica/contractual y `verificador`
+  serial.
+- **Fallo o cuello:** React recibía el audit correcto pero reducía el rail a
+  existencia de frame y el panel confundía audit ausente/`used=false` con
+  fuente única. El primer gate contractual encontró además un segundo falso
+  significado: marcas 70 %/90 % que podían rotular «sólido» un `revisar`.
+- **Cambio enfocado:** tipo retrocompatible del audit, decisión única
+  `source_mode × relation_audit`, consumo común en rail/panel, copy causal y
+  nota de bóveda. El porcentaje queda como evidencia formateada; no acredita ni
+  define bandas. No se bloqueó Diseño ni se cambió R, router o payload.
+- **Resultado:** mejor. El caso real `hsvg2026` con 5.262/5.263 coincidencias,
+  dos incidencias y `status=revisar` publica «Siguiente paso» y reconstrucción,
+  no «Listo» ni fuente única. Una fuente única legacy coherente conserva el
+  no-aplica; malformados y contradicciones fallan cerrados. I2-H7 e I3-H8
+  quedan cerrados.
+- **Validación ejecutada:** rojo causal 31/60 y verde focal 60/60; guard C5
+  rojo 1/18 y verde combinado 23/23; suite frontend 338 archivos y
+  2.839/2.839 pruebas; `typecheck`, `git diff --check` y bóvedas verdes; test R
+  118/118. Revisión metodológica aprobada y revisor contractual aprobó el
+  delta tras levantar su veto C5. QA final delta 2/2 PASS en 1440×1000 y
+  1024×600, con porcentaje accesible, cero ticks/escala locales, 2 grupos y
+  cero misses, issues, errores, scroll-jails u overflow; 8787 intacto.
+- **Hallazgo producido y consumido:** I3-H8 se detectó en el primer gate de
+  contrato, recibió regresión roja y se cerró en la misma iteración; por eso no
+  aumenta el contador abierto.
+- **Siguiente acción:** iteración 4, F3/I0-H5 — medir por dirección la sección
+  Salida, congelar Cierre → Tablas → Entregables → Pase a Monitoreo y
+  demostrar el orden incorrecto antes de cambiar catálogo/sidebar/render/bóveda.
 
 ## Cómo se corre cada visita
 

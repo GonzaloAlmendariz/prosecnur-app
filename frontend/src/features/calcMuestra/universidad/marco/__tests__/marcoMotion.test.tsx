@@ -125,6 +125,7 @@ describe("motion del marco", () => {
         workspace={{ ...baseWorkspace, source_mode: "dos_bases" } as CalcMuestraWorkspace}
         aulasState={{
           frame: {
+            aula_frame: [{ classroom_id: "CH-1" }],
             audit: [],
             warnings: [],
             relation_audit: { used: true, status: "revisar", match_rate_classrooms: 0.8, issues: [] },

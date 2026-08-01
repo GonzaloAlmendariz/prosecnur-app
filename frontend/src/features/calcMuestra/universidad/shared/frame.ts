@@ -4,7 +4,7 @@ import {
   type CriteriosSeleccionMarco,
 } from "../../../../api/client";
 import { seleccionActiva, seleccionVariable } from "../../dominio/criteriosMarco";
-import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
+import { fmtInt, rowsFrom, safeNumber, type GuideStatus } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "./format";
 import { filtrosLegacyPayload, normalizeTeacherTypeOrden } from "./study";
 
@@ -182,6 +182,231 @@ export function marcoCriteriosDesactualizado(
   return false;
 }
 
+export type MarcoConsistenciaDecision = {
+  status: GuideStatus;
+  title: string;
+  hint: string;
+  /** Audit que puede mostrarse como evidencia. Nunca acredita por sí mismo. */
+  evidence: Record<string, unknown>;
+  showRelationEvidence: boolean;
+};
+
+function auditRecord(value: unknown): Record<string, unknown> | null {
+  return value != null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+/** Cuenta también formas legacy malformadas sin convertirlas en "cero issues". */
+function relationIssueCount(value: unknown): number {
+  if (value == null) return 0;
+  if (Array.isArray(value)) return value.length;
+  if (typeof value !== "object") return 1;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (!keys.length) return 0;
+  const rows = rowsFrom(record);
+  if (rows.length) return rows.length;
+  if (Object.values(record).every((item) => Array.isArray(item) && item.length === 0)) return 0;
+  return 1;
+}
+
+/** Un frame existe metodológicamente solo cuando contiene unidades o un N auditado. */
+function marcoFrameUtilizable(frame: CalcMuestraAulasState["frame"] | null | undefined) {
+  return Boolean(
+    frame &&
+    (
+      rowsFrom(frame.aula_frame).length > 0 ||
+      rowsFrom(frame.population).length > 0 ||
+      frameAuditNumber(frame, "classroom_n") > 0 ||
+      frameAuditNumber(frame, "classroom_included_n") > 0 ||
+      frameAuditNumber(frame, "population_n") > 0
+    )
+  );
+}
+
+/**
+ * Autoridad única del veredicto y copy de Consistencia. Interpreta el
+ * `relation_audit` ya calculado por R; no deriva umbrales ni estadísticos.
+ */
+export function decidirConsistenciaMarco(
+  sourceMode: string | null | undefined,
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+): MarcoConsistenciaDecision {
+  const pending: MarcoConsistenciaDecision = {
+    status: "pending",
+    title: "Construye el marco para validar la consistencia.",
+    hint: "Completa Datos → Fuentes y Datos → Variables, construye el marco y vuelve aquí antes de continuar a Diseño.",
+    evidence: {},
+    showRelationEvidence: false,
+  };
+  if (!frame || !marcoFrameUtilizable(frame)) return pending;
+
+  const relationPresent = Object.prototype.hasOwnProperty.call(frame, "relation_audit");
+  const relation = auditRecord(frame.relation_audit);
+  const catalogLegacy = auditRecord(frame.catalog_audit);
+  const evidence = relation ?? catalogLegacy ?? {};
+  const used = relation?.used;
+  const status = typeof relation?.status === "string" ? relation.status : undefined;
+  const issueCount = relationIssueCount(relation?.issues);
+  const legacyCatalogUsed = catalogLegacy?.used === true;
+  const showRelationEvidence = Boolean(
+    (relation && (used === true || issueCount > 0)) ||
+    (!relation && legacyCatalogUsed),
+  );
+  const result = (
+    decisionStatus: GuideStatus,
+    title: string,
+    hint: string,
+  ): MarcoConsistenciaDecision => ({
+    status: decisionStatus,
+    title,
+    hint,
+    evidence,
+    showRelationEvidence,
+  });
+
+  if (sourceMode === "dos_bases") {
+    if (!relationPresent) {
+      return result(
+        "working",
+        "La conciliación no está acreditada.",
+        "El marco vigente no trae la auditoría de relación entre las dos fuentes. Reconstrúyelo antes de continuar a Diseño.",
+      );
+    }
+    if (!relation) {
+      return result(
+        "working",
+        "La conciliación no está acreditada.",
+        "El motor no devolvió un estado reconocido para la relación entre fuentes. Reconstruye el marco antes de continuar a Diseño.",
+      );
+    }
+    if (used === false) {
+      return result(
+        "working",
+        "El catálogo no entró en la conciliación.",
+        "Datos declara dos fuentes, pero el motor no usó un catálogo de cursos-horario. Revisa Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+      );
+    }
+    if (used === true && status === "ok" && issueCount === 0) {
+      return result(
+        "ready",
+        "Relación acreditada.",
+        "El motor validó la relación entre la base principal y el catálogo. Puedes continuar a Diseño.",
+      );
+    }
+    if (used === true && (status === "revisar" || (status === "ok" && issueCount > 0))) {
+      return result(
+        "working",
+        "La relación requiere revisión.",
+        "Resuelve los hallazgos y reconstruye el marco antes de continuar a Diseño.",
+      );
+    }
+    if (used === true && status === "critico") {
+      return result(
+        "working",
+        "La relación tiene problemas críticos.",
+        "Corrige Datos → Fuentes o Datos → Variables y reconstruye el marco antes de continuar a Diseño.",
+      );
+    }
+    return result(
+      "working",
+      "La conciliación no está acreditada.",
+      "El motor no devolvió un estado reconocido para la relación entre fuentes. Reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+
+  const singleSourceMode = sourceMode == null || sourceMode === "" || sourceMode === "base_madre";
+  if (!singleSourceMode) {
+    return result(
+      "working",
+      "La auditoría del marco no es reconocible.",
+      "Revisa Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+
+  if (!relationPresent && !legacyCatalogUsed) {
+    return result(
+      "ready",
+      "Fuente única: la conciliación entre bases no aplica.",
+      "El estudio usa una sola fuente; no hay una segunda base que conciliar. Puedes continuar a Diseño.",
+    );
+  }
+  if (!relationPresent && legacyCatalogUsed) {
+    return result(
+      "working",
+      "El marco vigente no coincide con la configuración de fuentes.",
+      "El marco usó un catálogo separado, pero Datos declara una fuente única. Revisa Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+  if (!relation) {
+    return result(
+      "working",
+      "La auditoría del marco no es reconocible.",
+      "Revisa Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+  if (used === false && issueCount > 0) {
+    return result(
+      "working",
+      "La fuente única requiere revisión.",
+      "El motor reportó problemas en la llave de curso-horario. Revisa Datos → Variables y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+  if (legacyCatalogUsed && used !== true) {
+    return result(
+      "working",
+      "El marco vigente no coincide con la configuración de fuentes.",
+      "El marco usó un catálogo separado, pero Datos declara una fuente única. Revisa Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+  if (
+    used === false &&
+    issueCount === 0 &&
+    (status === undefined || status === "sin_catalogo") &&
+    !legacyCatalogUsed
+  ) {
+    return result(
+      "ready",
+      "Fuente única: la conciliación entre bases no aplica.",
+      "El estudio usa una sola fuente; no hay una segunda base que conciliar. Puedes continuar a Diseño.",
+    );
+  }
+  if (used === true && status === "ok") {
+    return result(
+      "working",
+      "El marco vigente no coincide con la configuración de fuentes.",
+      "El marco usó un catálogo separado, pero Datos declara una fuente única. Revisa Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+  if (used === true && status === "revisar") {
+    return result(
+      "working",
+      "El marco vigente usó un catálogo separado y requiere revisión.",
+      "Alinea Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+  if (used === true && status === "critico") {
+    return result(
+      "working",
+      "La relación usada por el marco tiene problemas críticos.",
+      "Corrige Datos → Fuentes o Datos → Variables y reconstruye el marco antes de continuar a Diseño.",
+    );
+  }
+  return result(
+    "working",
+    "La auditoría del marco no es reconocible.",
+    "Revisa Datos → Fuentes y reconstruye el marco antes de continuar a Diseño.",
+  );
+}
+
+export function evaluarConsistenciaMarco(
+  sourceMode: string | null | undefined,
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+): GuideStatus {
+  return decidirConsistenciaMarco(sourceMode, frame).status;
+}
+
 export function frameAuditValue(frame: CalcMuestraAulasState["frame"] | null | undefined, metric: string) {
   const auditRows = rowsFrom<Record<string, unknown>>(frame?.audit);
   const row = auditRows.find((item) => classroomRowText(item, ["metric"]) === metric);
@@ -245,14 +470,7 @@ export function frameAuditCards(frame: CalcMuestraAulasState["frame"] | null | u
 }
 
 export function classroomFrameReady(aulasState: CalcMuestraAulasState | null) {
-  const frame = aulasState?.frame ?? null;
-  return Boolean(
-    rowsFrom(frame?.aula_frame).length ||
-    rowsFrom(frame?.population).length ||
-    frameAuditNumber(frame, "classroom_n") > 0 ||
-    frameAuditNumber(frame, "classroom_included_n") > 0 ||
-    frameAuditNumber(frame, "population_n") > 0,
-  );
+  return marcoFrameUtilizable(aulasState?.frame ?? null);
 }
 
 export function classroomComparisonForState(aulasState: CalcMuestraAulasState | null) {

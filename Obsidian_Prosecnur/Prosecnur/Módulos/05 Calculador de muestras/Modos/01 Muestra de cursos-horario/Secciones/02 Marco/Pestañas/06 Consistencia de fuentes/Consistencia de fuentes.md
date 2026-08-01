@@ -34,11 +34,11 @@ flowchart LR
 1. Revisa las claves propuestas o mapeadas.
 2. Compara conteos de ambas fuentes.
 3. Resuelve huérfanos y duplicados.
-4. Continúa en Diseño universitario cuando la conciliación sea confiable.
+4. Continúa en Diseño universitario solo cuando el estado de la conciliación esté acreditado.
 ## Resultado y siguiente paso
-- Enlace evaluado; sigue Diseño universitario.
+- Conciliación evaluada; continúa a Diseño solo cuando el estado esté acreditado.
 ## Estados, alertas y límites
-- La consistencia se evalúa al cargar datos, no al calcular.
+- La consistencia se evalúa al construir o reconstruir el marco y debe resolverse antes de continuar a Diseño.
 - Un diagnóstico rojo exige corregir las fuentes y reconstruir antes de diseñar.
 
 ## Cómo interpretar lo que ves

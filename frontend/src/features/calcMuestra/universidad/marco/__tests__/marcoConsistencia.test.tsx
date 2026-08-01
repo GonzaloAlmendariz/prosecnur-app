@@ -33,6 +33,7 @@ const estudioMinimo = {
 function aulasStateWithRelation(): CalcMuestraAulasState {
   return {
     frame: {
+      aula_frame: [{ classroom_id: "CH-1" }],
       audit: [{ metric: "catalog_match_rate_classrooms", value: "0.62" }],
       relation_audit: {
         used: true,
@@ -59,12 +60,40 @@ function aulasStateWithRelation(): CalcMuestraAulasState {
   } as unknown as CalcMuestraAulasState;
 }
 
+function aulasStateConAudit(relationAudit?: unknown): CalcMuestraAulasState {
+  return {
+    frame: {
+      aula_frame: [{ classroom_id: "CH-1" }],
+      audit: [],
+      warnings: [],
+      ...(relationAudit !== undefined ? { relation_audit: relationAudit } : {}),
+    },
+  } as unknown as CalcMuestraAulasState;
+}
+
+function renderConsistencia(sourceMode: "base_madre" | "dos_bases" | undefined, aulasState: CalcMuestraAulasState | null) {
+  const workspace = { ...baseWorkspace, source_mode: sourceMode } as CalcMuestraWorkspace;
+  return renderToStaticMarkup(
+    <MarcoConsistenciaTab workspace={workspace} aulasState={aulasState} />,
+  );
+}
+
+function consistenciaSidebarStatus(
+  sourceMode: "base_madre" | "dos_bases" | undefined,
+  aulasState: CalcMuestraAulasState | null,
+) {
+  const workspace = { ...baseWorkspace, source_mode: sourceMode } as CalcMuestraWorkspace;
+  return universitySidebarTabs({
+    activeSection: "marco",
+    estudio: estudioMinimo,
+    workspace,
+    aulasState,
+  })?.find((tab) => tab.id === "def-consistencia")?.status;
+}
+
 describe("MarcoConsistenciaTab", () => {
   it("con catálogo muestra llave compuesta, reconciliación y acción sugerida", () => {
-    const workspace = { ...baseWorkspace, source_mode: "dos_bases" } as CalcMuestraWorkspace;
-    const html = renderToStaticMarkup(
-      <MarcoConsistenciaTab workspace={workspace} aulasState={aulasStateWithRelation()} />,
-    );
+    const html = renderConsistencia("dos_bases", aulasStateWithRelation());
     expect(html).toContain("cmv2-marco-gauge");
     expect(html).toContain('data-tone="danger"');
     expect(html).toContain("Llave de unión");
@@ -74,23 +103,66 @@ describe("MarcoConsistenciaTab", () => {
     expect(html).toContain("Solo base principal</small><strong>38");
     expect(html).toContain("Solo 62% de los cursos-horario empatan");
     expect(html).toContain("mayúsculas, tildes o códigos");
+    expect(html).toContain("La relación requiere revisión.");
+    expect(html).toContain("antes de continuar a Diseño");
     expect(html).not.toContain("cmv2-marco-venn");
     expect(html).not.toContain("no hay catálogo que validar");
+    expect(html).not.toContain("antes del sorteo");
+    expect(html).not.toContain("aceptable");
   });
 
-  it("con una sola base se auto-simplifica sin gauge ni conjuntos", () => {
-    const workspace = { ...baseWorkspace, source_mode: "base_madre" } as CalcMuestraWorkspace;
-    const state = { frame: { audit: [], warnings: [] } } as unknown as CalcMuestraAulasState;
-    const html = renderToStaticMarkup(
-      <MarcoConsistenciaTab workspace={workspace} aulasState={state} />,
-    );
-    expect(html).toContain("Una sola base: no hay catálogo que validar");
+  it("con fuente única explica que la conciliación entre bases no aplica", () => {
+    const html = renderConsistencia("base_madre", aulasStateConAudit());
+    expect(html).toContain("Fuente única: la conciliación entre bases no aplica.");
     expect(html).not.toContain("cmv2-marco-gauge");
     expect(html).not.toContain("cmv2-marco-reconciliation");
   });
 
+  it("sin frame pide construirlo antes de validar la consistencia", () => {
+    const html = renderConsistencia("dos_bases", null);
+    expect(html).toContain("Construye el marco para validar la consistencia.");
+    expect(html).not.toContain("Relación acreditada.");
+  });
+
+  it("con dos bases y audit ausente no finge fuente única", () => {
+    const html = renderConsistencia("dos_bases", aulasStateConAudit());
+    expect(html).toContain("La conciliación no está acreditada.");
+    expect(html).toContain("antes de continuar a Diseño");
+    expect(html).not.toContain("Una sola base");
+    expect(html).not.toContain("Fuente única");
+    expect(html).not.toContain("Relación acreditada.");
+  });
+
+  it("con dos bases y used=false explica que el catálogo no fue conciliado", () => {
+    const html = renderConsistencia("dos_bases", aulasStateConAudit({
+      used: false,
+      status: "sin_catalogo",
+      issues: [],
+    }));
+    expect(html).toContain("El catálogo no entró en la conciliación.");
+    expect(html).toContain("antes de continuar a Diseño");
+    expect(html).not.toContain("Una sola base");
+    expect(html).not.toContain("Fuente única");
+    expect(html).not.toContain("Relación acreditada.");
+  });
+
+  it("con dos bases y status ok acredita la relación para Diseño", () => {
+    const html = renderConsistencia("dos_bases", aulasStateConAudit({
+      used: true,
+      status: "ok",
+      match_rate_classrooms: 1,
+      matched_classrooms: 1,
+      base_classrooms: 1,
+      unmatched_base_classrooms: 0,
+      catalog_only_classrooms: 0,
+      issues: [],
+    }));
+    expect(html).toContain("Relación acreditada.");
+    expect(html).toContain("El motor validó la relación entre la base principal y el catálogo. Puedes continuar a Diseño.");
+    expect(html).not.toContain("aceptable");
+  });
+
   it("explica una coincidencia sólida con revisión pendiente sin duplicar el banner del motor", () => {
-    const workspace = { ...baseWorkspace, source_mode: "dos_bases" } as CalcMuestraWorkspace;
     const state = aulasStateWithRelation();
     state.frame!.relation_audit = {
       ...state.frame!.relation_audit,
@@ -99,12 +171,68 @@ describe("MarcoConsistenciaTab", () => {
       unmatched_base_classrooms: 1,
     };
     state.frame!.warnings = ["La validacion entre base principal y catalogo curso-horario requiere revision."];
-    const html = renderToStaticMarkup(
-      <MarcoConsistenciaTab workspace={workspace} aulasState={state} />,
-    );
-    expect(html).toContain("Coincidencia sólida; hay calidad del catálogo por revisar");
+    const html = renderConsistencia("dos_bases", state);
+    expect(html).toContain("cmv2-marco-gauge");
+    expect(html).toContain("cmv2-marco-gauge-fill");
+    expect(html).toContain("La relación requiere revisión.");
+    expect(html).toContain("antes de continuar a Diseño");
+    expect(html).not.toContain("Relación acreditada.");
+    expect(html).not.toContain("cmv2-marco-gauge-tick");
+    expect(html).not.toContain("cmv2-marco-gauge-scale");
+    expect(html).not.toContain("70%");
+    expect(html).not.toContain("90%");
+    expect(html).not.toContain("sólido");
     expect(html).not.toContain("cmv2-frame-warning-list");
     expect(html).not.toContain("requiere revision");
+  });
+
+  it.each(["revisar", "critico", "desconocido"])(
+    "status %s nunca acredita la relación",
+    (status) => {
+      const html = renderConsistencia("dos_bases", aulasStateConAudit({
+        used: true,
+        status,
+        match_rate_classrooms: 1,
+        matched_classrooms: 1,
+        base_classrooms: 1,
+        unmatched_base_classrooms: 0,
+        catalog_only_classrooms: 0,
+        issues: [],
+      }));
+      expect(html).not.toContain("Relación acreditada.");
+    },
+  );
+
+  it("retira vocabulario heredado y dirige las acciones a Datos", () => {
+    const html = renderConsistencia("dos_bases", aulasStateConAudit({
+      used: true,
+      status: "revisar",
+      match_rate_classrooms: 0.9,
+      matched_classrooms: 9,
+      base_classrooms: 10,
+      unmatched_base_classrooms: 1,
+      catalog_only_classrooms: 1,
+      issues: [
+        {
+          code: "base_sin_llave_aula",
+          severity: "media",
+          title: "La base no tiene llave de aula",
+          detail: "Falta una llave común.",
+        },
+        {
+          code: "catalogo_fuera_de_base",
+          severity: "baja",
+          title: "El catálogo tiene aulas fuera de base",
+          detail: "Hay un curso-horario adicional.",
+        },
+      ],
+    }));
+    expect(html).toContain("Datos → Variables");
+    expect(html).toContain("Datos → Fuentes");
+    expect(html).not.toContain("Definición →");
+    expect(html).not.toContain("No bloquea");
+    expect(html).not.toContain("antes del sorteo");
+    expect(html).not.toContain("aceptable");
   });
 
   it("resuelve pestañas retiradas dentro de su sección", () => {
@@ -114,6 +242,41 @@ describe("MarcoConsistenciaTab", () => {
     // Al devolver Consistencia a Marco, este vuelve a ser un alias local. La
     // normalización de URLs sigue exigiendo la pareja explícita sección/tab.
     expect(resolveUniversityLocalTab("marco-validacion")).toBe("def-consistencia");
+  });
+
+  it.each([
+    {
+      caso: "sin frame",
+      sourceMode: "dos_bases" as const,
+      aulasState: null,
+      esperado: "pending",
+    },
+    {
+      caso: "fuente única legacy",
+      sourceMode: "base_madre" as const,
+      aulasState: aulasStateConAudit(),
+      esperado: "ready",
+    },
+    {
+      caso: "dos bases sin audit",
+      sourceMode: "dos_bases" as const,
+      aulasState: aulasStateConAudit(),
+      esperado: "working",
+    },
+    {
+      caso: "dos bases en revisión",
+      sourceMode: "dos_bases" as const,
+      aulasState: aulasStateConAudit({ used: true, status: "revisar", issues: [] }),
+      esperado: "working",
+    },
+    {
+      caso: "dos bases acreditadas",
+      sourceMode: "dos_bases" as const,
+      aulasState: aulasStateConAudit({ used: true, status: "ok", issues: [] }),
+      esperado: "ready",
+    },
+  ])("sidebar: $caso → $esperado", ({ sourceMode, aulasState, esperado }) => {
+    expect(consistenciaSidebarStatus(sourceMode, aulasState)).toBe(esperado);
   });
 
   it("mantiene Consistencia en un único hogar, al final de Marco", () => {

@@ -19,6 +19,7 @@ import {
   classroomFrameReady,
   classroomReplacementReady,
   classroomSelectionReady,
+  evaluarConsistenciaMarco,
   frameAuditNumber,
 } from "./shared/frame";
 import { hasUsefulResult } from "./shared/study";
@@ -224,7 +225,7 @@ export function universitySidebarTabs({
       { ...poblacionTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...aulasTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...coberturaTab, status: guideStatus(effectiveMarcoReady) },
-      { ...consistenciaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...consistenciaTab, status: evaluarConsistenciaMarco(workspace.source_mode, aulasState?.frame) },
     ];
   }
   if (activeSection === "calculo") {
