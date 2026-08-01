@@ -1,6 +1,7 @@
 /**
- * Pestaña "Consistencia" de Marco (id local marco-validacion). Reconstruye el
- * antiguo UniversityFrameValidationPanel: gauge del match base-catálogo con
+ * Pestaña "Consistencia" de Marco (id público def-consistencia; alias histórico
+ * marco-validacion). Reconstruye el antiguo UniversityFrameValidationPanel:
+ * gauge del match base-catálogo con
  * umbrales semánticos, reconciliación cuantitativa (emparejados / solo base /
  * solo catálogo), hallazgos con severidad y acción sugerida, y ejemplos para
  * revisar. Con una sola base se auto-simplifica: no hay catálogo que validar.

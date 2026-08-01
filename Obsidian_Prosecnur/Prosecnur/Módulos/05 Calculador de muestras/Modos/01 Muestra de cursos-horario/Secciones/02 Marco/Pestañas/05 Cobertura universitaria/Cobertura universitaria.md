@@ -21,7 +21,7 @@ flowchart LR
     A[Población fuente] --> B[Aplicar criterios]
     B --> C[Incluidos vs excluidos]
     C --> D[Cobertura por facultad]
-    D --> E[Diseño]
+    D --> E[Consistencia]
 ```
 ## Elementos de la pantalla
 | Elemento | Para qué sirve | Qué cambia o produce |
@@ -33,9 +33,9 @@ flowchart LR
 1. Revisa cobertura global.
 2. Compara facultades y tipos de unidad.
 3. Vuelve a criterios si hay una pérdida problemática.
-4. Continúa en Diseño universitario.
+4. Continúa en Consistencia de fuentes.
 ## Resultado y siguiente paso
-- Cobertura revisada; sigue Diseño universitario.
+- Cobertura revisada; sigue Consistencia de fuentes.
 ## Estados, alertas y límites
 - Sin marco construido, la pantalla explica qué falta.
 - Criterios cambiados vuelven los conteos obsoletos.

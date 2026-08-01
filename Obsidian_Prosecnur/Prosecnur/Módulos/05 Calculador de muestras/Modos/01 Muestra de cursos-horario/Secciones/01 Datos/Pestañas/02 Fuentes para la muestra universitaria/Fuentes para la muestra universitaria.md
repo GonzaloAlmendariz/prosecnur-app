@@ -23,7 +23,7 @@ Vincular una base única o dos bases y registrar de dónde sale cada tabla.
 flowchart LR
     A[Elegir esquema] --> B[Agregar fuentes]
     B --> C[Inspeccionar hojas]
-    C --> D[Consistencia]
+    C --> D[Variables]
 ```
 ## Elementos de la pantalla
 | Elemento | Para qué sirve | Qué cambia o produce |
@@ -36,9 +36,9 @@ flowchart LR
 1. Elige el esquema de fuentes.
 2. Vincula cada archivo u hoja.
 3. Inspecciona columnas sin inferir mapeos entre hojas.
-4. Continúa en Consistencia de fuentes.
+4. Continúa en Variables universitarias.
 ## Resultado y siguiente paso
-- Fuentes declaradas; sigue Consistencia de fuentes.
+- Fuentes declaradas; sigue Variables universitarias.
 ## Estados, alertas y límites
 - El mapeo es manual y exclusivo por hoja.
 - Declarar una fuente no prueba que las bases enlacen correctamente.

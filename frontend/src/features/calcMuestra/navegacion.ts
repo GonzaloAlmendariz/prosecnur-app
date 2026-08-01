@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { conNivel } from "../../lib/navegacion/direccion";
+import { conNivel, parsearDireccion } from "../../lib/navegacion/direccion";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
 
 /**
@@ -96,6 +96,26 @@ export function sinAliasDeModo(search: string): string {
   return query ? `?${query}` : "";
 }
 
+/**
+ * Canonicaliza únicamente las dos direcciones históricas de Consistencia.
+ *
+ * La sección es parte indispensable de la pareja: una pestaña suelta no puede
+ * inferir su hogar porque la dirección explícita manda sobre cualquier default
+ * resuelto por el manifiesto.
+ */
+export function resolverDireccionHistoricaUniversidad(
+  seccion: string | null,
+  pestana: string | null,
+): { seccion: string | null; pestana: string | null } {
+  if (
+    (seccion === "definicion" && pestana === "def-consistencia") ||
+    (seccion === "marco" && pestana === "marco-validacion")
+  ) {
+    return { seccion: "marco", pestana: "def-consistencia" };
+  }
+  return { seccion, pestana };
+}
+
 export type ControlCalcMuestra = ReturnType<typeof useSeccion> & {
   /** La sección vigente, ya validada contra las secciones del modo real. */
   seccionVigente: string;
@@ -130,31 +150,70 @@ export function useCalcMuestraDireccion(
   const location = useLocation();
   const navigate = useNavigate();
 
-  // El modo real se publica en la dirección; el selector queda desnudo.
+  // Para migrar una pareja histórica importa lo que la URL pidió de forma
+  // explícita, no la sección por defecto que `useSeccion` resuelve al faltar el
+  // param. Así `?pestana=def-consistencia` no se interpreta como una dirección
+  // de Datos ni se mueve de sección por inferencia.
+  const direccionExplicita = useMemo(
+    () => parsearDireccion(location.pathname, location.search),
+    [location.pathname, location.search],
+  );
+  const direccionUniversidad = useMemo(
+    () => resolverDireccionHistoricaUniversidad(
+      direccionExplicita?.seccion ?? null,
+      direccionExplicita?.pestana ?? null,
+    ),
+    [direccionExplicita?.pestana, direccionExplicita?.seccion],
+  );
+  const debeMigrarDireccion = deskReal === "opinion_universitaria" && (
+    direccionUniversidad.seccion !== (direccionExplicita?.seccion ?? null) ||
+    direccionUniversidad.pestana !== (direccionExplicita?.pestana ?? null)
+  );
+
+  // El modo real y la pareja histórica se publican en un solo replace para que
+  // no compitan dos efectos sobre el mismo search. `conNivel` conserva pulso,
+  // panel, foco y cualquier parámetro ajeno a la gramática.
   useEffect(() => {
     if (!listoParaPublicar) return;
-    const conAlias = modoCrudoDeLaDireccion(location.search);
     const debePublicar = deskReal !== "sin_definir";
     const modoEsperado = modoDeDesk(deskReal);
-    const yaEscrito = nav.modo === modoEsperado && !conAlias;
-
-    if (debePublicar && yaEscrito) return;
-    if (!debePublicar && !nav.modo && !conAlias) return;
-
-    const base = sinAliasDeModo(location.search);
-    const siguiente = conNivel(base, "modo", debePublicar ? modoEsperado : null);
+    let siguiente = sinAliasDeModo(location.search);
+    siguiente = conNivel(siguiente, "modo", debePublicar ? modoEsperado : null);
+    if (debeMigrarDireccion) {
+      siguiente = conNivel(siguiente, "seccion", direccionUniversidad.seccion);
+      siguiente = conNivel(siguiente, "pestana", direccionUniversidad.pestana);
+    }
     if (siguiente === location.search) return;
     navigate({ pathname: location.pathname, search: siguiente }, { replace: true });
-  }, [deskReal, listoParaPublicar, location.pathname, location.search, nav.modo, navigate]);
+  }, [
+    debeMigrarDireccion,
+    deskReal,
+    direccionUniversidad.pestana,
+    direccionUniversidad.seccion,
+    listoParaPublicar,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
+
+  // El replace ocurre después del paint. Durante ese frame exponemos ya la
+  // pareja canónica para que el rail y el panel no caigan a su primer tab.
+  const seccionEfectiva = debeMigrarDireccion
+    ? direccionUniversidad.seccion
+    : nav.seccion;
+  const pestanaEfectiva = debeMigrarDireccion
+    ? direccionUniversidad.pestana
+    : nav.pestana;
 
   // `useSeccion` resuelve contra el modo que la dirección trae, que durante el
   // primer render puede no ser todavía el real. Revalidar acá evita que el rail
   // parpadee con la sección de otra mesa.
   const seccionVigente = useMemo(() => {
-    const deLaDireccion = nav.seccion;
+    if (debeMigrarDireccion && seccionEfectiva) return seccionEfectiva;
+    const deLaDireccion = seccionEfectiva;
     if (deLaDireccion && nav.secciones.some((s) => s.id === deLaDireccion)) return deLaDireccion;
     return seccionPorDefecto;
-  }, [nav.seccion, nav.secciones, seccionPorDefecto]);
+  }, [debeMigrarDireccion, nav.secciones, seccionEfectiva, seccionPorDefecto]);
 
   const irASeccion = useCallback(
     (id: string) => {
@@ -182,5 +241,13 @@ export function useCalcMuestraDireccion(
     [nav, navigate],
   );
 
-  return { ...nav, seccionVigente, irASeccion, irAPestana, irASeccionYPestana };
+  return {
+    ...nav,
+    seccion: seccionEfectiva,
+    pestana: pestanaEfectiva,
+    seccionVigente,
+    irASeccion,
+    irAPestana,
+    irASeccionYPestana,
+  };
 }

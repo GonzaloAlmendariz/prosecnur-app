@@ -416,9 +416,6 @@ export function UniversidadDesk({
                 uploadingSourceId={uploadingSourceId}
               />
             </div>}
-            {showLocalTab("def-consistencia") && <div id="cmv2-local-def-consistencia">
-              <MarcoConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
-            </div>}
             {showLocalTab("def-variables") && <div id="cmv2-local-def-variables" className="cmv2-definition-stack">
               <DefVariablesTab
                 workspace={syncedWorkspace}
@@ -464,6 +461,9 @@ export function UniversidadDesk({
             </div>}
             {showLocalTab("marco-aulas") && <div id="cmv2-local-marco-aulas">
               <MarcoAulasTab workspace={syncedWorkspace} aulasState={aulasState} onWorkspace={onWorkspace} />
+            </div>}
+            {showLocalTab("def-consistencia") && <div id="cmv2-local-def-consistencia">
+              <MarcoConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
             </div>}
           </div>
         )}

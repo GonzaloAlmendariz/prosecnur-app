@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Datos]]"]
-orden: 4
+orden: 3
 documentacion: parcial
 ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=definicion&pestana=def-variables"
 nodo: "calc-muestra/opinion-universitaria/definicion/def-variables"
@@ -16,7 +16,7 @@ fuentes:
 ## Objetivo
 Mapear identificador, facultad, curso-horario, sexo y demás variables requeridas.
 ## Antes de empezar
-- Tener fuentes consistentes y columnas inspeccionadas.
+- Tener fuentes declaradas y columnas inspeccionadas; la consistencia del enlace se comprobará al cerrar Marco.
 ## Mapa de la pantalla
 ```mermaid
 flowchart LR

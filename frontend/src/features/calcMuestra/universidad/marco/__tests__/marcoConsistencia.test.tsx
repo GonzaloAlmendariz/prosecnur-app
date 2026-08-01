@@ -5,9 +5,13 @@
  */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { CalcMuestraAulasState, CalcMuestraWorkspace } from "../../../../../api/client";
+import type {
+  CalcMuestraAulasState,
+  CalcMuestraEstudio,
+  CalcMuestraWorkspace,
+} from "../../../../../api/client";
 import { MarcoConsistenciaTab } from "../MarcoConsistenciaTab";
-import { resolveUniversityLocalTab } from "../../universidadTabs";
+import { resolveUniversityLocalTab, universitySidebarTabs } from "../../universidadTabs";
 
 const baseWorkspace = {
   version: 2,
@@ -20,6 +24,11 @@ const baseWorkspace = {
   escenarios: [],
   notas_diseno: "",
 } as unknown as CalcMuestraWorkspace;
+
+const estudioMinimo = {
+  titulo: "",
+  componentes: [],
+} as unknown as CalcMuestraEstudio;
 
 function aulasStateWithRelation(): CalcMuestraAulasState {
   return {
@@ -98,12 +107,37 @@ describe("MarcoConsistenciaTab", () => {
     expect(html).not.toContain("requiere revision");
   });
 
-  it("resuelve pestañas retiradas hacia marco-poblacion", () => {
+  it("resuelve pestañas retiradas dentro de su sección", () => {
     expect(resolveUniversityLocalTab("marco-cruces")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-estructura")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-cadena")).toBe("marco-poblacion");
-    // Consistencia se reubicó de Marco a Datos (§3.2): un tab guardado aterriza
-    // en su nuevo hogar def-consistencia.
+    // Al devolver Consistencia a Marco, este vuelve a ser un alias local. La
+    // normalización de URLs sigue exigiendo la pareja explícita sección/tab.
     expect(resolveUniversityLocalTab("marco-validacion")).toBe("def-consistencia");
+  });
+
+  it("mantiene Consistencia en un único hogar, al final de Marco", () => {
+    const fixture = {
+      estudio: estudioMinimo,
+      workspace: baseWorkspace,
+      aulasState: null,
+    };
+    const datos = universitySidebarTabs({ activeSection: "definicion", ...fixture }) ?? [];
+    const marco = universitySidebarTabs({ activeSection: "marco", ...fixture }) ?? [];
+
+    expect(datos.map((tab) => tab.id)).toEqual([
+      "def-estudio",
+      "def-bases",
+      "def-variables",
+    ]);
+    expect(marco.map((tab) => tab.id)).toEqual([
+      "marco-criterios-alumno",
+      "marco-ch-radiografia",
+      "marco-poblacion",
+      "marco-aulas",
+      "marco-cobertura",
+      "def-consistencia",
+    ]);
+    expect(marco.at(-1)?.targetId).toBe("cmv2-local-def-consistencia");
   });
 });
