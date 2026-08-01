@@ -95,7 +95,7 @@ jobs:
       # a este job por defecto en lugar de quedar sin correr en ninguno.
       - name: Repository script contract tests
         run: |
-          node --test $(ls scripts/tests/*.test.mjs | grep -vE 'check-r-lock|ui-quick-check-geometry|ui-quick-check-readiness-contract|visual-qa-readiness')
+          node --test $(ls scripts/tests/*.test.mjs | grep -vE 'check-r-lock|ui-quick-check-|visual-qa-readiness')
 
       - name: Check product and system vaults
         run: node scripts/vaults-check.mjs --check
@@ -244,9 +244,13 @@ jobs:
       - name: Install Chromium for Playwright
         run: pnpm -C frontend exec playwright install --with-deps chromium
 
+      # El prefijo `ui-quick-check-` entra entero, no test por test: todos los
+      # contratos de esa familia arrancan Chromium, y nombrarlos uno a uno hacía
+      # que cada archivo nuevo naciera en el job equivocado hasta que alguien lo
+      # notara. El de exclusión en `frontend` usa el mismo prefijo, así que las
+      # dos listas no pueden separarse.
       - name: UI quick-check and visual QA contract tests
         run: |
           node --test \
-            scripts/tests/ui-quick-check-geometry.test.mjs \
-            scripts/tests/ui-quick-check-readiness-contract.test.mjs \
+            scripts/tests/ui-quick-check-*.test.mjs \
             scripts/tests/visual-qa-readiness.test.mjs
