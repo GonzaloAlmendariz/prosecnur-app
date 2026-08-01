@@ -102,3 +102,8 @@ output/*
 
 # Configuración local de la bóveda de sistema (docs/ abierto como vault).
 /docs/.obsidian/
+
+# Metadata que el lector de cartografía deja junto a cada .geojson.gz al
+# descomprimirlo (compressed_size/uncompressed_size). Es derivable del propio
+# archivo y cambia por máquina; los .gz sí se versionan.
+api/inst/hojas_ruta/cartografia/**/*.properties
