@@ -181,7 +181,8 @@ trabajando en lo desbloqueado.
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 16 grupos conformes en los cuatro destinos de I7; Radiografía de CH aporta 5 por viewport y el guard final suma 15 auditorías, 0 misses/issues | ↑ con cobertura conforme |
 | Navegaciones canónicas Marco/Aulas que aterrizan arriba tras forzar el owner origen | por medir; I0-O1 sin secuencia reproducible | 13 de 13 navegaciones nuevas + 1 de 1 POP en 1710×1107; reset desde primer frame y estable | = 100 % |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 1 confirmado (I9-H9) + 0 observaciones; N9, I0-O1, I0-O2, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7, I3-H8 e I7-O3 cerrados | ↓ hasta 0 |
+| Captura e inspección del runner sobre el mismo estado de motion finito | sin contrato; I9-H9 | 1 contrato probado: screenshot lleva finitas al final, DOM reutiliza ese estado y opacidad efectiva 0 queda fuera | = 100 % del caso causal |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 0 observaciones; N9, I0-O1, I0-O2, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7, I3-H8, I7-O3 e I9-H9 cerrados | = 0 |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -190,7 +191,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 
 | ID | Frente | Hallazgo | Estado / evidencia |
 |---|---|---|---|
-| N9 | F0 | Marco publica dos instantáneas no reconciliadas de CH elegibles (2.265 y 2.373 en `hsvg2026`) | **resuelto I1**: owner, perfil, audit y exploración del fixture vigente cuadran en 2.373; un payload legacy contradictorio queda en S/D + reconstrucción; D1 sigue abierta |
+| N9 | F0 | Marco publica dos instantáneas no reconciliadas de CH elegibles (2.265 y 2.373 en `hsvg2026`) | **resuelto I1 + decisión D1**: owner, perfil, audit y exploración del fixture vigente cuadran en 2.373; un payload legacy contradictorio queda en S/D + reconstrucción; Gonzalo fijó que manda el marco ejecutado y la exploración se rotula previa |
 | I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | **cerrado I1 en su alcance de Criterios**: 30 auditorías en cinco viewports, 0 misses/issues; el hueco distinto de Radiografía quedó separado como I7-O3 y cerrado I8 |
 | I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | **cerrado I6**: piso de 240 px, tier 1100 y wrap normal eliminan cortes; el compuesto conserva texto/ARIA y solo admite quiebres tras sus comas |
 | I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | **cerrado I2**: Datos queda con 3 pestañas y Marco con 6; Consistencia tiene un único hogar, el sexto de Marco |
@@ -202,14 +203,14 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I0-O1 | F2 / navegación | Marco y Aulas pueden conservar scroll inicial al navegar por `--ir` en 1710×1107 | **cerrado I7**: el baseline confirmó 661 px heredados en Marco; el owner real se resetea pre-paint y el guard final pasa 13/13 navegaciones nuevas + POP |
 | I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | **cerrado I9 como no defecto**: 30/30 celdas alcanzables, gap interior 0–1 px y 0 `CAPACITY_ISSUE`; cinco celdas solo ofrecen densidad exterior. La impresión de I0 mezcló stagger sin asentar con margen legítimo |
 | I7-O3 | F1 / guard C1 | Radiografía de CH expone siete candidatos geométricos sin `data-qa-geometry-group` | **cerrado I8**: 4 colecciones reales declaran contrato `intrinsic`; controles envueltos, badges y leyenda quedan excluidos por semántica, no por opt-out; 3 viewports, 15 auditorías, 0 misses/issues |
-| I9-H9 | guard visual transversal | `ui-quick-check` puede capturar después de dos RAF mientras siguen animaciones escalonadas y contar como visibles nodos con `opacity: 0` | **confirmado I9**: en el origen de O2 la captura normal muestra 3/7 etapas y la inmediata `-full` 5/7; el runner no espera `animationend` ni emula reduced motion. Programado I10 con fixture rojo y estabilización antes de inspección/captura |
+| I9-H9 | guard visual transversal | `ui-quick-check` puede capturar después de dos RAF mientras siguen animaciones escalonadas y contar como visibles nodos con `opacity: 0` | **cerrado I10**: ambos screenshots usan el fast-forward finito de Playwright antes de `inspectDom`; un único predicado excluye opacidad computada 0 propia/ancestral en overflow y geometría, conserva `.35` y no espera infinitas. Regresión causal 5/6 roja → 6/6; suite del runner 21/21 |
 
 ## Bandeja de decisiones (solo Gonzalo)
 
 | # | Decisión | Opciones | Recomendación | Estado |
 |---|---|---|---|---|
-| D1 | N9: ¿qué instantánea de «CH elegibles» manda en Marco? | (a) manda el marco ejecutado y la exploración se rotula «exploración previa»; (b) manda la exploración; (c) ambas visibles con rótulo de momento | (a): el marco ejecutado es el que produce la muestra; la exploración es borrador | abierta |
-| D2 | Denominador del promedio de alumnos por CH en la radiografía | (a) CH elegibles bajo los criterios activos; (b) todos los CH del marco; (c) ambos, elegibles como cifra principal | (c): el contraste elegible/total es información de ponderación | abierta |
+| D1 | N9: ¿qué instantánea de «CH elegibles» manda en Marco? | (a) manda el marco ejecutado y la exploración se rotula «exploración previa»; (b) manda la exploración; (c) ambas visibles con rótulo de momento | (a): el marco ejecutado es el que produce la muestra; la exploración es borrador | **resuelta por Gonzalo 2026-08-01: (a)** |
+| D2 | Denominador del promedio de alumnos por CH en la radiografía | (a) CH elegibles bajo los criterios activos; (b) todos los CH del marco; (c) ambos, elegibles como cifra principal | (c): el contraste elegible/total es información de ponderación | **resuelta por Gonzalo 2026-08-01: (c)** |
 
 ## Registro de iteraciones
 
@@ -225,6 +226,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 7 | 2026-08-01 | F2/I0-O1 | Se identificó `.cmv2-tab-panel` como owner único, se le dio un ref local y se resetea pre-paint al cambiar sección o pestaña; se retiraron los dos RAF muertos sobre `.cmv2-main`, sin mover foco ni alterar navegación/historial | runtime rojo Marco 661→661; guard fuente 3 fallos→3/3; foco estructural 9/9; suite 341 archivos y 2.864/2.864, typecheck, bóveda (201/206) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter7-final/report.json`: 13/13 navegaciones nuevas + POP PASS, owner en 0 desde rAF, sin salto a +600 ms ni errores duros | Navegación pasa de observación sin denominador a 13/13 + POP; I0-O1 cerrado. I7-O3 entra como observación separada, por lo que hallazgos agregados quedan 0 + 2; geometría expone 7 misses de cobertura sin promoverlos a FAIL |
 | 8 | 2026-08-01 | F1/I7-O3 | Se auditó la Radiografía de CH 7×3: cuatro colecciones reales recibieron C1 `intrinsic`; el detector aprendió a excluir controles envueltos y átomos `span` inline, incluida su blockification como flex-item, sin opt-out ni clases locales. Pasos poseen su capacidad; decisiones solo declaran membresía | historia causal: I1 ya tenía 35 misses; detector 7→4 y fuente 3/3 rojos → detector 5/5, fuente 3/3 y foco 21/21 verdes; suite 342 archivos y 2.867/2.867, typecheck, bóveda 201/206 y diff-check verdes. Un veto visual capturó blockification (6 misses) y un veto contractual impidió ocultar `span-flex+input`; ambos ganaron regresión. Bundle final `prosecnur-visual-iter8-final-r3`: 3/3, 15 auditorías, 0 misses/issues/errores, 51/51 headers y 12/12 últimos miembros | I7-O3 cerrado; geometría pasa de 12 grupos + 7 candidatos a 16 grupos conformes y 0 misses en el alcance; hallazgos abiertos 0 + 2 → 0 + 1. I0-O2 queda como única observación; D1/D2 intactas |
 | 9 | 2026-08-01 | F2/I0-O2 + guard I9-H9 | Se separó capacidad interior de margen exterior en las diez pestañas vivas; ninguna retiene vacío ni corta el final. La captura de apertura se explicó por stagger no asentado y margen fuera de la ficha; no se tocó producto | baseline funcional 17/17; guard visual 10/10 direcciones, 30/30 capturas, 45 grupos y todos los duros en 0. Probe causal v2: 25 `NO_DEFECT`, 5 `DENSITY_OPPORTUNITY`, 0 `CAPACITY_ISSUE`, 0 `REACHABILITY_ISSUE`, gap raíz 0 y terminal 0–1 px. El v1 fue vetado por elegir descendientes de `details` cerrados y confundir padding con capacidad | Capacidad/alcance: por medir → 10/10 × 3; I0-O2 cerrado; observaciones 1 → 0. Entra I9-H9 como único hallazgo confirmado del guard; revamp F2 y D1/D2 no cambian |
+| 10 | 2026-08-01 | guard transversal/I9-H9 | Se asentaron animaciones finitas en los screenshots antes de inspeccionar y se unificó la visibilidad por opacidad efectiva para el barrido de overflow y la geometría; las infinitas no se esperan y motion normal no se sustituye por reduced motion | detector baseline 5/5; fixture causal 5 verdes + 1 roja por tres miembros desplazados y `opacity:0` incluida → 6/6. Un veto contractual detectó que overflow aún ignoraba opacidad; el fixture ganó controles equivalentes bajo ancestros 0/.35 y volvió a 6/6. Suite runner 21/21, `node --check`, help y diff-check verdes; contrato final aprobado | I9-H9 cerrado; guard motion sin contrato → 1 contrato probado; hallazgos 1 + 0 → 0 + 0. F1 sigue 0 completos, F2 0/6 y `aulasParts.tsx` 1.612. Durante el cierre Gonzalo resolvió D1=(a) y D2=(c); su implementación entra en I11 |
 
 ### Contrato de iteración 0
 
@@ -247,14 +249,14 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **10 — guard transversal/I9-H9, asentar
-animaciones antes de inspeccionar y capturar con `ui-quick-check`**. El defecto
-instrumental tiene radio sobre F1–F4: dos RAF no garantizan el estado final y
-`opacity: 0` puede contarse como visible. Se escribirá primero el fixture mínimo
-que reproduzca una colección `intrinsic` escalonada; después se congelará una
-única estrategia de estabilización, sin ocultar animaciones reales del producto
-ni alterar screenshots ajenos. F0 no se activa porque el cambio no calcula ni
-publica cifras. D1 y D2 siguen abiertas; no se añadió decisión nueva.
+**Siguiente iteración programada:** **11 — F0/F1, convertir el contrato parcial
+`session_type × facultad` en el primer contrato estadístico completo del
+selector**. D1=(a) y D2=(c) fueron congeladas por Gonzalo: manda el marco
+ejecutado, la exploración se rotula previa y el promedio elegible será principal
+con el total como contraste. Se trazará primero el owner R y el grano
+CH×facultad; el engine añadirá con tests p10/p90, ambos promedios y el delta
+marginal activar/desactivar. React solo formateará el payload probado. F2 queda
+expresamente después de acreditar este primer contrato F1 completo.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -1165,6 +1167,76 @@ publica cifras. D1 y D2 siguen abiertas; no se añadió decisión nueva.
   un fixture `intrinsic` escalonado el estado intermedio de dos RAF y estabilizar
   `ui-quick-check` antes de inspección y screenshot, preservando la capacidad
   de auditar motion y sin convertir una espera abierta en flakiness.
+
+### Contrato de iteración 10 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** guard visual transversal/I9-H9. La captura
+  y la inspección geométrica deben observar el mismo estado final determinista;
+  readiness de la app y dos RAF no equivalen al fin de una animación CSS. El
+  contrato público vigente de `ui-quick-check` y la semántica de Playwright
+  controlan la estabilización; no el timing casual de una máquina.
+- **Pregunta causal congelada:** demostrar con un fixture mínimo que una
+  colección `intrinsic` escalonada puede seguir en su estado inicial después de
+  dos RAF y que un nodo `opacity: 0` puede entrar hoy al conjunto visible. La
+  reparación debe estabilizar antes de screenshot e inspección, o excluir lo
+  realmente invisible, sin sleeps arbitrarios ni espera indefinida.
+- **Archivos previstos:** `scripts/ui-quick-check.mjs`,
+  `scripts/tests/ui-quick-check-geometry.test.mjs` y este goal. La prueba posee
+  el fixture; el runner posee la solución. Evidencia efímera, si hace falta,
+  vive en una corrida temporal de I10.
+- **Peaje estructural:** congelar una única función/límite de “vista asentada”
+  reutilizada en la captura final; no dispersar esperas alrededor de navegación,
+  clicks y screenshots. La detección de visibilidad debe considerar `details`
+  cerrados y opacidad efectiva sin convertir elementos translúcidos en ausentes.
+- **Exclusiones explícitas:** todo `frontend/src/**`, `api/**`, CSS y motion de
+  producto, payloads/estadísticos/F0, proyectos `.pulso`, navegación, detectores
+  C1 ajenos a visibilidad, D1/D2, puertos/procesos del usuario, publicación y el
+  prompt privado no rastreado. No se añade un flag CLI ni se cambia una captura
+  visual existente salvo que el contrato independiente pruebe que es necesario.
+- **Riesgo principal:** obtener screenshots “verdes” desactivando más de lo que
+  el inspector mide, ocultar una animación infinita legítima o introducir una
+  espera flaky. El fixture exige estado final y consistencia captura→DOM; los
+  tests existentes protegen geometría, scroll, terminales y candidatos.
+- **Baseline de checks:** `5b98c087`; post-I9 solo queda
+  `docs/qa/prompt-goal-loop-calc-muestra.md` como `??`. Antes de reparar se corre
+  el test del detector existente y luego la nueva regresión debe fallar por el
+  estado intermedio, no por timeout, puerto o matcher.
+- **Validación mínima:** rojo/verde del fixture causal; suite completa de tests
+  de `ui-quick-check`; `node --check`, help/CLI si el contrato cambia,
+  `git diff --check`, gobernanza propuesta, revisión de contrato y
+  `verificador` serial. I9-H9 solo cierra con evidencia de que captura e
+  inspección ven el mismo estado asentado y el ledger programa I11.
+- **Regresión causal:** el detector existente abrió con 5/5. El fixture nuevo,
+  con stagger finito de 30/31/32 s, spinner infinito y ancestros con opacidad
+  0/.35, falló 1 de 6 porque tres miembros seguían desplazados y el oculto se
+  auditaba. Tras reparar pasa 6/6; el caso positivo conserva como hallazgo el
+  overflow bajo `.35` y excluye únicamente su equivalente bajo opacidad 0.
+- **Implementación y peaje estructural:** una sola función captura viewport y
+  full-page con `animations: "disabled"`; ambas ocurren antes de `inspectDom`,
+  por lo que Playwright lleva las animaciones finitas a su final sin esperar las
+  infinitas. Un único predicado recorre ancestros y shadow host para excluir
+  opacidad computada exactamente 0 tanto en overflow como en geometría; no se
+  altera `prefers-reduced-motion` ni se añaden sleeps o flags.
+- **Veto contractual pagado:** la primera revisión detectó que el predicado de
+  opacidad solo gobernaba geometría y dejaba falsos overflow. Se movió al límite
+  común y la regresión ganó dos controles equivalentes bajo ancestros 0/.35. La
+  segunda revisión quedó `APPROVED`, sin bloqueos.
+- **Gate final:** suite focal del runner 21/21, test del checker documental
+  21/21, `node --check`, help y `git diff --check` verdes. El checker literal
+  conserva 196/197 alcanzables y un único error —el prompt privado `??`—; el
+  espejo del árbol propuesto pasa 196/196, 648 enlaces y 0 errores.
+- **Verificador serial:** `APROBADO`; repitió 21/21 y los gates de sintaxis/CLI,
+  confirmó orden screenshot→DOM, opacidad simétrica incluida a través de shadow
+  host, alcance exacto de tres archivos y ausencia de stage. Confirmó también
+  que I10 no acredita F1/F2 y que el prompt privado sigue fuera del diff.
+- **Resultado:** mejor. I9-H9 queda cerrado y el runner gana un contrato
+  reproducible para que captura e inspección compartan estado finito asentado.
+  F1 permanece 0 componentes completos, F2 0/6 y `aulasParts.tsx` 1.612 líneas;
+  D1=(a) y D2=(c), resueltas durante el cierre, no se implementan en este diff.
+- **Siguiente acción:** iteración 11, F0/F1 — convertir
+  `session_type × facultad` en el primer contrato estadístico completo desde el
+  engine R: p10/p90, promedio elegible principal frente al total y delta
+  marginal, con tests antes de que React formatee o publique esos datos.
 
 ## Cómo se corre cada visita
 

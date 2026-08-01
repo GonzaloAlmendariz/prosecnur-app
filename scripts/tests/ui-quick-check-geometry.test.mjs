@@ -305,6 +305,89 @@ const terminalContentPageHtml = `<!doctype html>
   </body>
 </html>`;
 
+const settledMotionPageHtml = `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Settled motion geometry fixture</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 16px sans-serif; }
+      @keyframes settle-member {
+        from { opacity: 0; transform: translateY(48px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes decorative-spin {
+        to { transform: rotate(360deg); }
+      }
+      .settled-motion-group {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin: 16px;
+        align-items: start;
+      }
+      .settled-member,
+      .visibility-wrapper > article {
+        border: 1px solid #999;
+        padding: 12px;
+      }
+      .settled-member {
+        opacity: 0;
+        transform: translateY(48px);
+        animation: settle-member 1ms linear forwards;
+      }
+      .settled-member:nth-child(1) { animation-delay: 30s; }
+      .settled-member:nth-child(2) { animation-delay: 31s; }
+      .settled-member:nth-child(3) { animation-delay: 32s; }
+      .partially-visible { opacity: .35; }
+      .actually-hidden { opacity: 0; }
+      .opacity-overflow {
+        width: 44px;
+        overflow: visible;
+        white-space: nowrap;
+      }
+      .decorative-spinner {
+        display: block;
+        width: 16px;
+        height: 16px;
+        margin: 16px;
+        border: 2px solid #777;
+        animation: decorative-spin 250ms linear infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .settled-member {
+          animation: none;
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-audit-ready="settled-motion">
+      <span class="decorative-spinner" aria-hidden="true"></span>
+      <section
+        class="settled-motion-group"
+        data-qa-geometry-group="settled-motion"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <article id="settled-one" class="settled-member" data-qa-geometry-member><strong>Etapa uno</strong></article>
+        <article id="settled-two" class="settled-member" data-qa-geometry-member><strong>Etapa dos</strong></article>
+        <article id="settled-three" class="settled-member" data-qa-geometry-member><strong>Etapa tres</strong></article>
+        <div class="visibility-wrapper partially-visible">
+          <article id="partially-visible" data-qa-geometry-member><strong>Visible parcial</strong></article>
+          <button class="opacity-overflow" type="button">Desborde visible con opacidad positiva</button>
+        </div>
+        <div class="visibility-wrapper actually-hidden">
+          <article id="actually-hidden" data-qa-geometry-member><strong>No visible</strong></article>
+          <button class="opacity-overflow" type="button">Desborde oculto por opacidad cero</button>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`;
+
 async function startFixtureServer() {
   const server = createServer((request, response) => {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8", connection: "close" });
@@ -319,6 +402,8 @@ async function startFixtureServer() {
           ? zeroCapacityScrollPageHtml
           : request.url === "/terminal-content"
             ? terminalContentPageHtml
+            : request.url === "/settled-motion"
+              ? settledMotionPageHtml
           : pageHtml,
     );
   });
@@ -439,6 +524,29 @@ async function runUnequalWidthQuickCheck({ url, out }) {
       "--out", out,
       "--geometry-group", "equal::.equal-width",
       "--geometry-tolerance", "2",
+      "--require-geometry",
+      "--fail-on-issues",
+    ], { cwd: repoRoot, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.once("error", reject);
+    child.once("close", (status) => resolve({ status, stdout, stderr }));
+  });
+}
+
+async function runSettledMotionQuickCheck({ url, out }) {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [
+      quickCheckPath,
+      "--url", url,
+      "--api", "stub",
+      "--route", "/settled-motion",
+      "--viewport", "900x700",
+      "--out", out,
       "--require-geometry",
       "--fail-on-issues",
     ], { cwd: repoRoot, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
@@ -629,4 +737,38 @@ test("ui-quick-check reports unequal widths for an equal geometry group", async 
     tolerance: 2,
     memberWidths: [200, 260],
   }]);
+});
+
+test("ui-quick-check inspects settled staggered motion and excludes effective opacity zero", async (t) => {
+  const fixture = await startFixtureServer();
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "prosecnur-ui-settled-motion-"));
+  t.after(async () => {
+    await new Promise((resolve, reject) => fixture.server.close((error) => error ? reject(error) : resolve()));
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  });
+
+  const result = await runSettledMotionQuickCheck({ url: fixture.url, out: tempRoot });
+  assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
+
+  const report = JSON.parse(await fs.readFile(path.join(tempRoot, "report.json"), "utf8"));
+  assert.equal(report.ok, false);
+  assert.equal(report.summary.visualIssues, 1);
+  assert.equal(report.summary.geometryGroups, 1);
+  assert.equal(report.summary.geometryIssues, 0);
+  assert.equal(report.summary.geometryCoverageMisses, 0);
+  assert.deepEqual(
+    report.results[0].issues.map((issue) => issue.label),
+    ["Desborde visible con opacidad positiva"],
+    "opacity: .35 remains auditable while an equivalent overflow under opacity: 0 stays absent",
+  );
+
+  const audit = report.results[0].geometryAudits[0];
+  assert.equal(audit.contract, "intrinsic");
+  assert.deepEqual({
+    memberIds: audit.members.map((member) => member.id),
+    allAtFinalY: audit.members.every((member) => member.rect.y === audit.group.rect.y),
+  }, {
+    memberIds: ["settled-one", "settled-two", "settled-three", "partially-visible"],
+    allAtFinalY: true,
+  }, "the stagger must settle, positive opacity must remain, and effective opacity: 0 must stay absent");
 });
