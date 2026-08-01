@@ -1462,7 +1462,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # las señales ya adjuntadas en out$particularidades. Un solo call-site; la
   # lógica vive en calc_muestra_aulas_exploracion.R (este archivo no debe
   # crecer).
-  out <- .cm_exploracion_adjuntar(out)
+  out <- .cm_exploracion_adjuntar(out, criterios = criterios)
   # Impacto del tipo de sesión por facultad (guard §12 «doble selección del
   # taller», schema cm_session_type_impacto_v1): un solo call-site; la lógica
   # vive en calc_muestra_aulas_criterios.R (este archivo no debe crecer).

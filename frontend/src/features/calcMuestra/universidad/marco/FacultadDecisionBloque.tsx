@@ -15,6 +15,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 import type {
+  CalcMuestraAulasCriteriosRadiografia,
   CalcMuestraAulasExploracion,
   CalcMuestraAulasExploracionFacultad,
   CriterioSeleccion,
@@ -65,6 +66,7 @@ function CriterioFacultadCard({
   facLabel,
   fac,
   exploracion,
+  criteriosRadiografia,
   onSel,
 }: {
   variable: CriterioVariable;
@@ -74,6 +76,7 @@ function CriterioFacultadCard({
   /** Radiografía de la facultad (para el detalle por tipo junto al criterio). */
   fac: CalcMuestraAulasExploracionFacultad;
   exploracion: CalcMuestraAulasExploracion | null;
+  criteriosRadiografia: CalcMuestraAulasCriteriosRadiografia | null;
   onSel: (next: CriterioSeleccion) => void;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
@@ -126,7 +129,13 @@ function CriterioFacultadCard({
       {abierto ? (
         <>
           {variable.id === SESSION_TYPE_VARIABLE_ID ? (
-            <FacultadRadiografiaCard fac={fac} modo="tipos" />
+            <FacultadRadiografiaCard
+              fac={fac}
+              modo="tipos"
+              criteriosRadiografia={criteriosRadiografia}
+              facultadKey={excKey}
+              contextoRadiografia="editable"
+            />
           ) : variable.id === "condicion_curso" ? (
             <FacultadRadiografiaCard fac={fac} modo="condicion" />
           ) : null}
@@ -384,6 +393,7 @@ export function FacultadDecisionBloque({
   rangeVariable,
   seleccion,
   exploracion,
+  criteriosRadiografia,
   aulaFrame,
   umbralGeneral,
   tasa,
@@ -402,6 +412,7 @@ export function FacultadDecisionBloque({
   /** Borrador de la selección de criterios. */
   seleccion: CriteriosSeleccionMarco;
   exploracion: CalcMuestraAulasExploracion | null;
+  criteriosRadiografia: CalcMuestraAulasCriteriosRadiografia | null;
   /** Lista individual de CH del último marco (para la selección manual final). */
   aulaFrame: MonitoreoRow[];
   umbralGeneral: number;
@@ -491,6 +502,7 @@ export function FacultadDecisionBloque({
                   facLabel={facLabel}
                   fac={fac}
                   exploracion={exploracion}
+                  criteriosRadiografia={criteriosRadiografia}
                   onSel={(next) => onToggleVariable(variable.id, next)}
                 />
               );
@@ -532,6 +544,7 @@ export function FacultadDecisionBloque({
                 facLabel={facLabel}
                 fac={fac}
                 exploracion={exploracion}
+                criteriosRadiografia={criteriosRadiografia}
                 onSel={(next) => onToggleVariable(sessionVar.id, next)}
               />
             ) : null}

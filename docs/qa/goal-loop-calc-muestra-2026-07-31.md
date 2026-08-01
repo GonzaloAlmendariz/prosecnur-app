@@ -170,19 +170,21 @@ trabajando en lo desbloqueado.
 | Métrica | Apertura (31 jul) | Hoy | Dirección |
 |---|---:|---:|---|
 | Cifras de CH sin dueño reconciliado en pantalla (N9) | 1 | 0; toda radiografía publicable cuadra con `aula_frame.included` y las discrepancias fallan cerrado | = 0 |
-| Componentes de criterio con radiografía estadística propia | 1 (`BoxplotElegibles` vía `FacultadRadiografiaCard`) | 0 completas según la meta F1; 1 robusta parcial (`session_type`); 4 superficies con evidencia contextual | ↑ hasta cubrir el selector |
-| Estadísticos por criterio × facultad expuestos por el engine (cuantiles, media, mediana, promedio alumnos/CH) | 0 contratos | 0 contratos completos; 1 parcial probado para `session_type × facultad` (p25/p50/p75, media, min/max; faltan p10/p90 y delta) | ↑ con test por estadístico |
-| Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 0 | ↑ |
+| Componentes de criterio con radiografía estadística propia | 1 (`BoxplotElegibles` vía `FacultadRadiografiaCard`) | 1 completa (`session_type`); el resumen legacy queda solo como fallback explícito para frames anteriores | ↑ hasta cubrir el selector |
+| Estadísticos por criterio × facultad expuestos por el engine (cuantiles, media, mediana, promedio alumnos/CH) | 0 contratos | 1 contrato completo y probado para `session_type × facultad`: p10/p25/p50/p75/p90, media elegible principal, media total de contraste y denominadores estrictos | ↑ con test por estadístico |
+| Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 1 (`session_type × facultad`, acción y delta CH/matrículas firmados contra el marco ejecutado) | ↑ |
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
 | Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 6 vivas; la séptima era la dirección redundante retirada en I5 | ↑ a 6 |
 | Pestañas de Aulas/Salidas con capacidad y alcance C3–C4 auditados | por medir; I0-O2 no tenía rectángulos propios | 10 de 10 × 3 viewports: 30/30 alcanzables, 0 problemas de capacidad; 5 oportunidades solo exteriores | = 100 %; no acredita revamp F2 |
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
-| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 16 grupos conformes en los cuatro destinos de I7; Radiografía de CH aporta 5 por viewport y el guard final suma 15 auditorías, 0 misses/issues | ↑ con cobertura conforme |
+| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 17 grupos conformes: I11 añade la colección `session-type-radiografia`; su matriz final mide 21 grupos por viewport/estado, 0 misses/issues | ↑ con cobertura conforme |
 | Navegaciones canónicas Marco/Aulas que aterrizan arriba tras forzar el owner origen | por medir; I0-O1 sin secuencia reproducible | 13 de 13 navegaciones nuevas + 1 de 1 POP en 1710×1107; reset desde primer frame y estable | = 100 % |
 | Captura e inspección del runner sobre el mismo estado de motion finito | sin contrato; I9-H9 | 1 contrato probado: screenshot lleva finitas al final, DOM reutiliza ese estado y opacidad efectiva 0 queda fuera | = 100 % del caso causal |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 0 observaciones; N9, I0-O1, I0-O2, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7, I3-H8, I7-O3 e I9-H9 cerrados | = 0 |
+| Eslabones de τ con ancla histórica publicada (asistencia · completitud · validez) | 0 de 3; τ es un escalar sin dato detrás | 0 de 3 | = 3 |
+| Referencia histórica de asistencia calibrable desde el desk | no existe | no existe | disponible, con `k` e intervalo por celda y degradación visible |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 2 confirmados + 0 observaciones: I12-H11 e I12-H12; I11-H10 y todos los hallazgos anteriores quedan cerrados | ↓ a 0 |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -204,6 +206,9 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | **cerrado I9 como no defecto**: 30/30 celdas alcanzables, gap interior 0–1 px y 0 `CAPACITY_ISSUE`; cinco celdas solo ofrecen densidad exterior. La impresión de I0 mezcló stagger sin asentar con margen legítimo |
 | I7-O3 | F1 / guard C1 | Radiografía de CH expone siete candidatos geométricos sin `data-qa-geometry-group` | **cerrado I8**: 4 colecciones reales declaran contrato `intrinsic`; controles envueltos, badges y leyenda quedan excluidos por semántica, no por opt-out; 3 viewports, 15 auditorías, 0 misses/issues |
 | I9-H9 | guard visual transversal | `ui-quick-check` puede capturar después de dos RAF mientras siguen animaciones escalonadas y contar como visibles nodos con `opacity: 0` | **cerrado I10**: ambos screenshots usan el fast-forward finito de Playwright antes de `inspectDom`; un único predicado excluye opacidad computada 0 propia/ancestral en overflow y geometría, conserva `.35` y no espera infinitas. Regresión causal 5/6 roja → 6/6; suite del runner 21/21 |
+| I11-H10 | F0/F1 | La radiografía parcial agrupa `aula_frame$session_type`/`faculty` modales, pero el selector y su gate usan las señales efectivas catálogo→fallback de `.cm_criterios_valores_aula`; el gráfico puede describir otra categoría/facultad | **cerrado I11**: el sibling v1 nace exclusivamente de `criterios$seleccion_aula$valores`, reconstruye el marco ejecutado antes de publicar deltas y React falla cerrado sin fabricar el contrato desde el bloque legacy. Engine, normalizador, UI, revisión metodológica/contractual y matriz visual quedaron verdes |
+| I12-H11 | F2 / dimensionamiento | El sorteo real corre siempre con 30 aulas fijas: `selector$n_aulas` tiene default `30L`, no está en ninguna whitelist y el frontend nunca lo envía, así que el `aulas_base_total` que calcula el engine es decorativo | **confirmado I12 por lectura de fuente**: default en `calc_muestra_aulas.R:367`, normalización `:478`, consumo `:1872/:2421/:3188/:3833/:4155`; ausente de `.cm_normalize_workspace_aulas_config` (`calc_muestra_engine.R:462-611`) y de `DEFAULT_UNIVERSITY_AULAS_CONFIG`; única escritura real en la demo `:4630`. No se repara en I12: D6 excluye tocar el dimensionamiento |
+| I12-H12 | F0 / supuesto | τ es un escalar sin dato detrás y su default contradice su propia definición: vale `0.7` en el engine y `0.53` en el espejo del frontend, pero el contrato lo declara «producto de asistencia × aceptación × validez histórica» | **confirmado I12 por medición**: default `calc_muestra_engine.R:176`, semántica `:2334-2338`, espejo `universidad/shared/constants.ts:323`. Sobre 190 CH aplicados del estudio PUCP 2025 la cadena real es 0.698 × 0.753 × 0.893 = **0.469**; el 0.7 equivale a la asistencia sola e ignora los otros dos eslabones. Lo repara I12 publicando la referencia, sin escribir τ |
 
 ## Bandeja de decisiones (solo Gonzalo)
 
@@ -211,6 +216,10 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 |---|---|---|---|---|
 | D1 | N9: ¿qué instantánea de «CH elegibles» manda en Marco? | (a) manda el marco ejecutado y la exploración se rotula «exploración previa»; (b) manda la exploración; (c) ambas visibles con rótulo de momento | (a): el marco ejecutado es el que produce la muestra; la exploración es borrador | **resuelta por Gonzalo 2026-08-01: (a)** |
 | D2 | Denominador del promedio de alumnos por CH en la radiografía | (a) CH elegibles bajo los criterios activos; (b) todos los CH del marco; (c) ambos, elegibles como cifra principal | (c): el contraste elegible/total es información de ponderación | **resuelta por Gonzalo 2026-08-01: (c)** |
+| D3 | ¿Sobre qué marco corre la selección 2026? | (a) marco nuevo de DTI; (b) el 2025-2 ya cargado, donde los 194 CH del histórico empatan uno a uno; (c) sin definir | (a): es el supuesto robusto y degrada bien | **resuelta por Gonzalo 2026-08-01: (a)**. No habrá join CH a CH; solo transfiere el modelo por celda |
+| D4 | ¿Cómo entra el histórico de aplicación a la app? | (a) fuente subible en Datos > Fuentes; (b) tabla de referencia versionada en el paquete; (c) ambas | (a): generaliza a 2027 y a otros clientes, y mantiene el dato de cliente fuera del repo | **resuelta por Gonzalo 2026-08-01: (a)**. En el `.pulso` se persiste solo la tabla agregada, sin PII ni filas por CH |
+| D5 | ¿Qué se modela de la hoja de control? | (a) encuestas largas; (b) enviadas; (c) la asistencia como eje | (c) | **resuelta por Gonzalo 2026-08-01: (c)**. Se modela cuántos asisten el día de aplicación y, condicional a eso, cuántos completan; τ queda descompuesto en sus tres eslabones |
+| D6 | Alcance de la primera entrega de la referencia | (a) solo publicar la referencia; (b) + corregir el divisor de la Cadena B; (c) + conectar `n_aulas` | (a): reversible y no mueve el presupuesto de campo | **resuelta por Gonzalo 2026-08-01: (a)**. No cambia el número de aulas |
 
 ## Registro de iteraciones
 
@@ -227,6 +236,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 8 | 2026-08-01 | F1/I7-O3 | Se auditó la Radiografía de CH 7×3: cuatro colecciones reales recibieron C1 `intrinsic`; el detector aprendió a excluir controles envueltos y átomos `span` inline, incluida su blockification como flex-item, sin opt-out ni clases locales. Pasos poseen su capacidad; decisiones solo declaran membresía | historia causal: I1 ya tenía 35 misses; detector 7→4 y fuente 3/3 rojos → detector 5/5, fuente 3/3 y foco 21/21 verdes; suite 342 archivos y 2.867/2.867, typecheck, bóveda 201/206 y diff-check verdes. Un veto visual capturó blockification (6 misses) y un veto contractual impidió ocultar `span-flex+input`; ambos ganaron regresión. Bundle final `prosecnur-visual-iter8-final-r3`: 3/3, 15 auditorías, 0 misses/issues/errores, 51/51 headers y 12/12 últimos miembros | I7-O3 cerrado; geometría pasa de 12 grupos + 7 candidatos a 16 grupos conformes y 0 misses en el alcance; hallazgos abiertos 0 + 2 → 0 + 1. I0-O2 queda como única observación; D1/D2 intactas |
 | 9 | 2026-08-01 | F2/I0-O2 + guard I9-H9 | Se separó capacidad interior de margen exterior en las diez pestañas vivas; ninguna retiene vacío ni corta el final. La captura de apertura se explicó por stagger no asentado y margen fuera de la ficha; no se tocó producto | baseline funcional 17/17; guard visual 10/10 direcciones, 30/30 capturas, 45 grupos y todos los duros en 0. Probe causal v2: 25 `NO_DEFECT`, 5 `DENSITY_OPPORTUNITY`, 0 `CAPACITY_ISSUE`, 0 `REACHABILITY_ISSUE`, gap raíz 0 y terminal 0–1 px. El v1 fue vetado por elegir descendientes de `details` cerrados y confundir padding con capacidad | Capacidad/alcance: por medir → 10/10 × 3; I0-O2 cerrado; observaciones 1 → 0. Entra I9-H9 como único hallazgo confirmado del guard; revamp F2 y D1/D2 no cambian |
 | 10 | 2026-08-01 | guard transversal/I9-H9 | Se asentaron animaciones finitas en los screenshots antes de inspeccionar y se unificó la visibilidad por opacidad efectiva para el barrido de overflow y la geometría; las infinitas no se esperan y motion normal no se sustituye por reduced motion | detector baseline 5/5; fixture causal 5 verdes + 1 roja por tres miembros desplazados y `opacity:0` incluida → 6/6. Un veto contractual detectó que overflow aún ignoraba opacidad; el fixture ganó controles equivalentes bajo ancestros 0/.35 y volvió a 6/6. Suite runner 21/21, `node --check`, help y diff-check verdes; contrato final aprobado | I9-H9 cerrado; guard motion sin contrato → 1 contrato probado; hallazgos 1 + 0 → 0 + 0. F1 sigue 0 completos, F2 0/6 y `aulasParts.tsx` 1.612. Durante el cierre Gonzalo resolvió D1=(a) y D2=(c); su implementación entra en I11 |
+| 11 | 2026-08-01 | F0/F1/I11-H10 | Se publicó desde R el sibling opcional `criterios_radiografia` sobre tipo y facultad efectivos, con cuantiles type 7, medias elegible/total, denominadores estrictos y contrafactual causal por categoría; React lo normaliza atómicamente y presenta dentro del embudo por facultad, con fallback legacy explícito | R 119 + 191 + 70 expectativas; normalizador contractual 41/41; Marco 12 archivos/113 tests; typecheck, diff-check, auditoría agentic y bóveda verdes; gobernanza propuesta 196/196 y 0 errores. Método, contrato y `verificador` serial aprobados. Matriz final `prosecnur-visual-iter11-radiografia-final-approved`: 3/3 PASS, 21 grupos, 0 issues/misses/overflow/scroll/errors; QA visual independiente C1–C5 aprobado | Componentes F1 0→1; contratos estadísticos 0→1; criterios con delta visible 0→1; I11-H10 cerrado; hallazgos 3→2. F2 sigue 0/6 y `aulasParts.tsx` permanece 1.612 |
 
 ### Contrato de iteración 0
 
@@ -249,14 +259,16 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **11 — F0/F1, convertir el contrato parcial
-`session_type × facultad` en el primer contrato estadístico completo del
-selector**. D1=(a) y D2=(c) fueron congeladas por Gonzalo: manda el marco
-ejecutado, la exploración se rotula previa y el promedio elegible será principal
-con el total como contraste. Se trazará primero el owner R y el grano
-CH×facultad; el engine añadirá con tests p10/p90, ambos promedios y el delta
-marginal activar/desactivar. React solo formateará el payload probado. F2 queda
-expresamente después de acreditar este primer contrato F1 completo.
+**Siguiente iteración programada:** **12 — F4 gobernada por F0, referencia
+histórica de asistencia**. I11 ya cerró el primer contrato F1 completo; el árbol
+debe quedar limpio con su commit antes de tocar los dos archivos compartidos de
+I12. El contrato exhaustivo de I12 vive más abajo y D3–D6 están congeladas por
+Gonzalo: esta entrega publica la referencia histórica con dueño, `k`, intervalo
+y degradación visible, sin escribir τ ni `n_aulas`.
+
+**Después de la 12:** **13 — F2/I12-H11**, medir por dirección qué aulas sortea
+realmente el motor frente a las que calcula y conectar `n_aulas` con su
+whitelist/espejo antes de evaluar cualquier cambio del divisor de la Cadena B.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -1237,6 +1249,379 @@ expresamente después de acreditar este primer contrato F1 completo.
   `session_type × facultad` en el primer contrato estadístico completo desde el
   engine R: p10/p90, promedio elegible principal frente al total y delta
   marginal, con tests antes de que React formatee o publique esos datos.
+
+### Contrato de iteración 11 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F0/F1, rama de estadísticos nuevos. El dueño
+  es el engine R y su `aula_frame` ejecutado; el grano es un curso-horario único
+  × facultad efectiva × categoría `session_type`. `eligible_n` es alumnado
+  elegible por CH, no matrícula administrativa. React solo normaliza y formatea.
+- **Decisiones de dominio congeladas:** D1=(a): manda el marco ejecutado y toda
+  exploración se rotula como previa. D2=(c): el promedio sobre CH elegibles es
+  principal y el promedio sobre todos los CH del mismo tipo/facultad es el
+  contraste. Ambos comparten grano, variable y semántica de NA.
+- **Pregunta causal congelada:** localizar la salida del evaluador que permita
+  calcular el contrafactual exacto de alternar una categoría de tipo de sesión
+  manteniendo constantes todos los demás criterios. Está prohibido llamar
+  “marginal” a `ch_total - ch_elegibles`: ese resto puede mezclar exclusiones de
+  docente, nivel, sede, umbral, manuales u otros criterios.
+- **Contrato objetivo:** para cada `session_type × facultad`, publicar desde R
+  N de CH total/elegible, N de alumnado elegible, p10/p25/p50/p75/p90 `type=7`,
+  media elegible principal, media total de contraste y el delta CH/alumnado de
+  alternar esa categoría contra la selección ejecutada. El payload debe declarar
+  schema, grano, owner y acción del delta, fallar honesto a NA y conservar los
+  campos v1 que ya consumen proyectos anteriores.
+- **Archivos previstos del engine:** nuevo
+  `api/R/calc_muestra_aulas_criterio_radiografia.R`, integración mínima en
+  `api/R/calc_muestra_aulas_exploracion.R` y regresión propia
+  `api/tests/testthat/test-calc-muestra-criterio-radiografia.R`; el test hermano
+  de exploración solo cambia si debe congelar la forma integrada. El diagnóstico
+  autorizó un único cambio de cableado en `api/R/calc_muestra_aulas.R`: pasar
+  `criterios` al adjuntador; no crece con lógica.
+- **Archivos previstos de superficie:** `frontend/src/api/calcMuestra.ts`,
+  `frontend/src/features/calcMuestra/universidad/marco/exploradorModel.ts`, su
+  test, `FacultadRadiografiaCard.tsx`, `CursosHorarioMarcoTab.tsx`,
+  `FacultadDecisionBloque.tsx`, `ExploradorAulasTab.tsx` y el componente nuevo
+  `TipoSesionRadiografia.tsx` con test/CSS local si hace falta. Este goal es el
+  único archivo compartido y lo posee el lead.
+- **Peaje estructural:** contrato estadístico nuevo en archivo R propio; ningún
+  cálculo de cuantiles, medias o deltas en TypeScript. Si la tabla de tipos gana
+  más presentación, se extrae a un componente nuevo y
+  `FacultadRadiografiaCard.tsx` no crece neto. C1–C5 se declaran en la nueva
+  colección sin aumentar `aulasParts.tsx`.
+- **Exclusiones explícitas:** otros criterios F1, revamp F2 y sus seis pestañas,
+  `aulasParts.tsx`, orden F3, engine general congelado
+  `api/R/calc_muestra_aulas.R` salvo el argumento autorizado del call-site,
+  persistencia/proyectos `.pulso`, migraciones, CSS global, puertos/procesos del
+  usuario, publicación y el prompt privado no rastreado. No se cambia un
+  denominador para hacer cuadrar una captura.
+- **Riesgo principal:** atribuir a `session_type` pérdidas causadas por otro
+  gate, mezclar el borrador React con el frame ejecutado o convertir ausencia de
+  datos en cero. El test debe incluir exclusiones solapadas y una categoría que
+  cambia de acción según la selección efectiva por facultad.
+- **Baseline de checks:** `dee04408`; después de I10 solo queda
+  `docs/qa/prompt-goal-loop-calc-muestra.md` como `??`. Antes de escribir se
+  corren los tests R de exploración/session-facultad y los tests TS del
+  normalizador/modelo; los writers parten solo tras congelar schema y delta con
+  diagnóstico, revisión metodológica y revisión de contrato.
+- **Validación mínima:** rojo/verde testthat por estadístico y contrafactual;
+  tests R hermanos, normalizador/modelo/componente en Vitest, typecheck, suite
+  escalada al diff, `git diff --check`, gobernanza propuesta, revisión
+  metodológica/contractual, `/ver-ui` por dirección canónica con `hsvg2026` y
+  `verificador` serial. Cierra solo si el ledger pasa de 0 a 1 contrato F1
+  completo y de 0 a 1 componente de criterio completo sin acreditar F2.
+- **Baseline medido:** TS `exploradorModel` 32/32; R exploración 191/191 y
+  session-facultad 70/70. El primer intento R fue bloqueado por `processx` en el
+  sandbox y el mismo comando fuera de él quedó verde. En el estado anonimizado
+  de `hsvg2026`, el owner trae 5.263 CH, 2.373 incluidos, 17 facultades y 11
+  categorías del catálogo; el agrupador legacy mezcla categorías con valores
+  modales ajenos. Esto confirma I11-H10 y el radio F0 del cambio.
+- **Diagnóstico causal:** `criterios$seleccion_aula$valores` posee tipo y
+  facultad efectivos; sus `pasos` conservan un flag por criterio y
+  `criterios$flags` los gates previos. Las decisiones manuales completas viven
+  en `out$particularidades$decisiones`. El contrafactual conjuga todos esos
+  flags menos `session_type`, aplica el toggle solo a su set efectivo y exige
+  que el resultado ejecutado reconstruido sea idéntico a
+  `aula_frame$included`; si no, delta `NA`, nunca un resto agregado.
+- **Contrato congelado:** sibling opcional
+  `frame.criterios_radiografia` con schema
+  `calc_muestra_aulas_criterios_radiografia_v1`, `owner`, `frame_hash`,
+  `momento=marco_ejecutado`, grano efectivo y unidad CH única. Cada fila trae
+  claves/labels de facultad y categoría, `n_ch_total`, `n_ch_elegibles`,
+  `n_matriculas_elegibles`, p10/p25/p50/p75/p90 `type=7`, media elegible
+  principal, media total de contraste y delta CH/matrículas firmado contra la
+  selección ejecutada. React no reconstruye el sibling desde v1.
+- **Semántica de acción:** el engine distingue `restringir_a_categoria`,
+  `agregar_categoria`, `quitar_categoria`, `quitar_restriccion` y `no_aplica`.
+  Un set efectivo vacío significa sin restricción, no “ninguna”: el último
+  toggle puede agregar CH y jamás se rotula como simple desactivación. Tipos sin
+  dato no son accionables. Una categoría real con 0 CH conserva su acción
+  contrafactual y puede producir delta distinto de 0 al cruzar set
+  vacío↔singleton; solo el bucket sintético de ausencia garantiza
+  `no_aplica`, delta 0/0 y estadísticos `NA`.
+- **NA e identidad:** `eligible_n` cuenta estudiantes únicos dentro de cada CH;
+  su suma entre CH son matrículas/exposiciones elegibles, no personas únicas ni
+  `enrolled_total`. Si cualquier CH del denominador carece de `eligible_n`, la
+  suma/media/cuantiles correspondientes degradan a `NA`; el delta de matrículas
+  también lo hace si cambia una fila sin dato.
+- **Revisiones previas a escritura:** metodología `APPROVED` bajo los
+  denominadores/NA anteriores; contrato `COMPATIBLE/APPROVED`, sin ADR ni
+  migración porque el sibling es opcional, agregado, sin PII y proyectos viejos
+  degradan a `null` hasta reconstruir. C1 usa grupo `intrinsic` propio; C4 exige
+  alcanzar todas las métricas en 1024×600 sin tabla horizontal cortada.
+
+- **Implementación ejecutada:** R publica
+  `calc_muestra_aulas_criterios_radiografia_v1` desde los valores efectivos del
+  evaluador, no desde las columnas modales de `aula_frame`. Por cada cruce
+  completo tipo × facultad entrega N total/elegible, matrículas elegibles,
+  p10/p25/p50/p75/p90 type 7, media elegible, media total y el toggle marginal
+  firmado. La reconstrucción causal mantiene constantes los flags previos, los
+  pasos distintos de `session_type` y las exclusiones manuales; si no reproduce
+  exactamente `included`, degrada el delta a `NA`.
+- **Contrato R→React:** el normalizador exige literales exactos de schema,
+  owner, momento, grano y unidad; rechaza atómicamente cualquier fila inválida,
+  claves duplicadas, denominadores incompletos o conteos no enteros. El `"NA"`
+  que emite jsonlite se conserva como `null`; React solo une por clave, ordena y
+  formatea. Frames anteriores muestran el resumen legacy rotulado, nunca una
+  radiografía completa inventada.
+- **Peaje estructural:** la lógica nueva quedó en
+  `calc_muestra_aulas_criterio_radiografia.R`; el engine general solo pasa el
+  argumento al adjuntador. La presentación vive en
+  `TipoSesionRadiografia.tsx`/CSS/test propios;
+  `FacultadRadiografiaCard.tsx` bajó a 205 líneas y `aulasParts.tsx` permanece
+  en 1.612. El grupo C1 se declara en el wrapper de datos, no en la sección, y
+  sus tarjetas conservan altura intrínseca sin stretch.
+- **Validación ejecutada:** testthat 119/119 del contrato nuevo, 191/191 de
+  exploración y 70/70 de session-facultad; normalizador contractual 41/41;
+  Vitest de Marco 12 archivos/113 pruebas; `typecheck` y `git diff --check`
+  verdes. El test incluye exclusiones solapadas, modo include/exclude,
+  excepciones por facultad, NA estricto, colisión entre valor real «Sin dato» y
+  bucket sintético, reconstrucción divergente y categoría real con 0 CH cuyo
+  delta puede ser ±.
+- **Límite del fixture y evidencia visual:** ADR 0043 impide reconstruir
+  cuantitativamente `hsvg2026` desde su Excel embebido sin los originales. El
+  intento de reconstrucción fue vetado: la anonimización dejó intersección 0
+  entre 15 claves seleccionadas y 18 efectivas, por lo que produjo 0 estudiantes
+  y 0/5.263 CH incluidos; sus deltas 0/0 no acreditan I11. La matriz válida usa
+  una copia que conserva el frame canónico (5.263 CH, 2.373 incluidos, 17
+  facultades) y siembra **solo para render** un sibling generado por el mismo
+  engine sobre las 11 categorías del catálogo efectivo: 187 filas y 180 deltas
+  no cero. Es evidencia de geometría/presentación, no de cifras metodológicas.
+- **QA visual final:** dirección canónica
+  `marco/marco-ch-radiografia`, control «Tipo de sesión» expandido y viewports
+  1710×1107, 1366×768 y 1024×600. El bundle
+  `prosecnur-visual-iter11-radiografia-final-approved/report.json`
+  pasa 3/3, 21 grupos, 0 issues, 0 `geometryIssues`, 0 misses, 0 overflow,
+  0 scroll jail y 0 errores de página/API/recursos/readiness. QA independiente
+  aprobó C1–C5: 11 tarjetas en 4/3/2 columnas, owner/momento/grano/unidad,
+  ambas medias, P10–P90, deltas y último contenido alcanzables. Un veto humano
+  detectó y corrigió antes del bundle final el chip de procedencia comprimido
+  en 1024.
+- **Revisiones finales:** metodología `APPROVED` y contrato
+  `COMPATIBLE/APPROVED`; ambas descartaron que el frame anonimizado degenerado
+  fuera un defecto del algoritmo marginal. La auditoría agentic y la bóveda
+  quedaron verdes; la gobernanza del árbol propuesto pasó 196/196 documentos,
+  648 enlaces y 0 errores, mientras el árbol compartido conservó como único
+  error el prompt privado ajeno no rastreado. El `verificador` serial aprobó
+  los 15 archivos de I11, los reruns R/React, la matriz visual y la coherencia
+  ledger→registro→I12. No hay decisión nueva en bandeja.
+- **Resultado:** mejor. I11-H10 queda cerrado y F1 acredita su primer componente
+  completo, su primer contrato estadístico y su primer delta marginal visible.
+  F2 sigue 0/6: esta iteración no acredita el revamp de Aulas.
+- **Siguiente acción:** iteración 12, F4 gobernada por F0 — ejecutar el contrato
+  ya congelado de referencia histórica de asistencia, con D3–D6 resueltas y sin
+  tocar τ, `n_aulas` ni el divisor de la Cadena B.
+
+### Contrato de iteración 12 (scope lock cerrado, ejecución pendiente)
+
+Se ejecuta **después de cerrar I11**: I12 escribe en
+`api/R/calc_muestra_aulas.R` y en `frontend/src/api/calcMuestra.ts`, que I11
+tiene en vuelo. Arrancar antes mezclaría dos unidades en el mismo árbol.
+
+- **Origen.** Gonzalo aportó la hoja «Base de control» de
+  `Historico 2025/Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx` y pidió
+  usarla como marco de referencia para la selección de aulas. La medición de esa
+  hoja y las decisiones D3–D6 son el insumo de esta iteración.
+- **Categoría / fuente de verdad:** F4 gobernada por F0. Es funcionalidad nueva
+  para ponderar la decisión, y por eso debe cumplir las tres condiciones de F4:
+  colgarse de una de las cinco dimensiones de navegación, declarar su Contrato
+  de Superficie al construirse y pasar sus números por F0. La fuente de verdad
+  es la hoja de control del estudio PUCP 2025: 194 CH agendados, 192 con status
+  `APLICADA`, 190 con asistencia observada.
+- **Fallo o cuello medido (I12-H12).** El motor trata los matriculados como si
+  fueran la medida útil del aula. El único descuento operativo es el escalar
+  `tau`, con default `0.7` (`calc_muestra_engine.R:176`) y `0.53` en el espejo
+  del frontend (`universidad/shared/constants.ts:323`). El contrato ya declara
+  que τ es «producto de asistencia × aceptación × validez histórica»
+  (`calc_muestra_engine.R:2334-2338`), pero no hay dato detrás: el `0.7`
+  equivale aproximadamente a la asistencia sola. La cadena real, sobre 190 CH y
+  con denominador matriculados totales, es asistencia **0.698** (4.792/6.861) ×
+  completitud **0.753** (3.610/4.792) × validez **0.893** (3.223/3.610) =
+  **0.469**. La asistencia es el eslabón que más varía y el único que no puede
+  conocerse sin histórico: su gradiente por tamaño de CH es monótono —0.826
+  (<15) · 0.767 (15-24) · 0.769 (25-39) · 0.701 (40-59) · 0.609 (60+)— y por
+  rango horario cae a 0.460 en «mañana especial» (k=9) frente a 0.719 en regular
+  (k=162). Por facultad va de 0.614 a 0.858 con k entre 4 y 40. La desviación
+  estándar intra-celda es ≈ **0.15** en todas: la predicción de un CH individual
+  es muy incierta y el valor está en el agregado. La hoja es internamente
+  consistente: `asistentes = enviadas + no_respondieron` se cumple 142/142.
+- **Encuadre congelado (D5).** El dato es *post hoc*: no se conoce hasta
+  aplicar, así que **no se pega CH a CH** a un marco futuro. Por D3 el marco
+  2026 será nuevo, de modo que lo único que transfiere es el **modelo por
+  celda**: dadas las características ex-ante de un CH —tamaño, rango horario,
+  facultad, tipo de sesión—, estimar cuántos alumnos asistirían. Cualquier
+  presentación que sugiera que la cifra es una medición del CH vigente incumple
+  F0.
+- **Peaje estructural.** La lógica vive en archivo nuevo
+  `api/R/calc_muestra_asistencia_referencia.R`: `calc_muestra_aulas.R` pasa de
+  4.600 líneas y la regla de archivos congelados prohíbe crecerlo con lógica. La
+  referencia recibe **clave de sesión propia**,
+  `calc_muestra_referencia_asistencia`, no un campo de `aulas_config`: es un
+  artefacto derivado con dueño y schema propios, hermano de `frame`. Meterla en
+  el workspace obligaría a tocar dos whitelists R más tres espejos TS y la haría
+  entrar en `frame_hash`, invalidando el marco al calibrar —justo lo que D6
+  prohíbe—. Las bandas de tamaño se definen aparte
+  (`.cm_asist_banda_tamano`, T1..T5) porque `aula_frame$size_group` corta en
+  20/30/40 sobre `eligible_n` (`calc_muestra_aulas.R:1257`) y es variable de
+  estratificación del selector: reusarlo movería el sorteo.
+- **Contrato congelado.** `calc_muestra_referencia_asistencia_v1`, siguiendo el
+  rotulado de `calc_muestra_aulas_criterios_radiografia_v1` que congela I11:
+  `owner = "estudio_historico_externo"`, `momento = "post_hoc_estudio_previo"`,
+  `transferible = "modelo_por_celda"`, `modelo = "marginales_independientes"`,
+  `combinable = false`, `unidad = "curso_horario_aplicado"`,
+  `denominador = "matriculados_totales"`, más `estudio`, `cobertura`,
+  `identidad`, `umbrales`, `cadena` (los tres eslabones y su producto, cada uno
+  con `k` e IC), `global`, `dimensiones[]` y `advertencias[]`. Cada celda trae
+  `celda_key`, `celda_label`, `orden`, `k`, `matriculados`, `asistentes`,
+  `tasa`, `estimador`, `media_ch`, `sd_ch`, `ic_low`, `ic_high`, `metodo_ic`,
+  `suficiencia`, `tasa_publicada`, `k_publicada` y `fuente_publicada`. Las
+  cuatro dimensiones son marginales independientes y el contrato lo declara para
+  que nadie las multiplique; la celda cruzada tamaño × facultad queda fuera.
+- **Degradación (la cláusula que hace cumplir F0).** `k = 0` ⇒ `tasa` en `NA` y
+  `suficiencia = "vacia"`; `k` de 1 a 11 ⇒ tasa observada rotulada, sin IC,
+  `insuficiente`, publica el global; `k` de 12 a 29 ⇒ `delgada` con bootstrap;
+  `k ≥ 30` ⇒ `solida`. Los umbrales salen de la dispersión medida: con
+  sd ≈ 0.15, `SE ≈ 0.15/√k` da ±0.085 en k=12 y ±0.054 en k=30. Así «mañana
+  especial» (k=9) y las facultades delgadas (k=4) degradan de forma **visible**
+  al global en vez de publicar ruido como si fuera dato. El bootstrap remuestrea
+  CH dentro de la celda y guarda/restaura `.Random.seed` con el patrón de
+  `calc_muestra_perfil.R:189-201`, para no perturbar la semilla del sorteo.
+- **Cómo entra la fuente (D4).** Rol nuevo `referencia_asistencia`. El
+  clasificador `.cm_asist_sheet_role_hint()` se llama desde
+  `.cm_aulas_sheet_role()` (`calc_muestra_aulas.R:529-559`) **después** de la
+  rama `agenda` —cuyo `grepl` ya captura «aplicacion»— y **antes** de
+  `base_madre`/`catalogo_curso_horario`, que hoy se la llevarían por
+  `has_classroom && has_schedule`. Resuelve columnas con
+  `.cm_criterios_col_exacta()`, nunca con el resolver fuzzy. El endpoint
+  `POST /api/calc-muestra/asistencia/referencia` reusa
+  `.cm_table_from_payload(sid, body, "referencia_asistencia")` sin modificar el
+  helper —ya es genérico por clave, `router_calc_muestra.R:57-66`—, es router
+  delgado y no toca ninguna clave del marco.
+- **Tres correcciones al mapa, verificadas antes de congelar el scope:**
+  `CalculoSupuestosTab.tsx` es superficie muerta —se exporta en
+  `universidad/calculo/index.ts:5` pero `UniversidadDesk.tsx:512` solo monta
+  `CalculoDisenoTab`—, así que el bloque aterriza en
+  `CalculoDisenoTab.tsx:260-297`, en el `SupuestoFila id="rendimiento"` vivo;
+  `ensureUniversitySourceBindings` dropea roles desconocidos
+  (`categorias.ts:26`, hace `defaults.map`), gemelo frontend del gotcha
+  whitelist-only, y exige su propia regresión roja; y el helper de tablas del
+  router ya es genérico, no hay que extenderlo.
+- **Archivos previstos.** Nuevos:
+  `api/R/calc_muestra_asistencia_referencia.R`,
+  `api/tests/testthat/test-calc-muestra-asistencia-referencia.R`,
+  `api/tests/testthat/test-calc-muestra-asistencia-fuente.R`,
+  `universidad/definicion/ReferenciaAsistenciaCard.tsx` con su CSS,
+  `universidad/calculo/ReferenciaAsistenciaTau.tsx` y los dos Vitest. Backend
+  modificado: `api/R/calc_muestra_aulas.R` (solo el clasificador de hoja y su
+  `role_rank`; no crece con lógica), `api/R/router_calc_muestra.R` (endpoint y
+  `.cm_state_payload`), `api/R/session_schema.R`, `api/R/errors_registry.R`,
+  `api/R/project_pulso.R`. Frontend modificado:
+  `frontend/src/api/calcMuestra.ts`, `universidad/shared/constants.ts`,
+  `universidad/shared/categorias.ts`,
+  `universidad/definicion/DefBasesTab.tsx`, `CalcMuestraPage.tsx`,
+  `universidad/calculo/CalculoDisenoTab.tsx`. Este goal es el único archivo
+  compartido y lo posee el lead.
+- **Orden obligatorio de censos y whitelists, todo en el mismo commit.** Primero
+  `session_schema.R` —o `test-session-schema` queda rojo entre pasos—, con la
+  nota «solo tabla agregada calibrada (celda/k/tasa/IC); sin filas por CH ni
+  PII». Después `errors_registry.R` con los tres `E_*`, antes de escribir sus
+  `stop_api`. Luego engine y router; `project_pulso.R` con el strip defensivo;
+  `.cm_state_payload()`, sin el cual el frontend nunca ve el bloque aunque
+  persista; `calcMuestra.ts` con tipos, normalizador defensivo y función de API;
+  `constants.ts` con el binding —**sin este paso el binding se borra en el
+  próximo render**—; `categorias.ts` con labels, hojas esperadas y la exclusión
+  de los gates de construcción; y al final el resto de UI.
+- **Dónde aterriza, sin navegación nueva.** Cero pestañas y cero rutas nuevas.
+  En **Datos > Fuentes** (`seccion=definicion&pestana=def-bases`) una tarjeta de
+  carga opcional, separada de las obligatorias, que reusa `BaseUploadCard`; tras
+  subir, la calibración es inmediata y la tarjeta publica estudio, cobertura, la
+  cadena con sus tres eslabones y su `k`, y el resultado de la verificación de
+  identidad. En **Cálculo > Diseño** (`seccion=calculo&pestana=calculo-diseno`),
+  dentro del `visual` del `SupuestoFila id="rendimiento"` ya existente, τ
+  descompuesto contra la referencia con su `k`, su intervalo y el rótulo de
+  dueño. **Read-only**: no escribe τ, no agrega un tercer preset y no bloquea
+  nada. El detalle por celda, si hiciera falta, va como overlay direccionable
+  `panel=referencia-asistencia` con `usePanelDireccionable`, nunca `useState`
+  suelto. Ambas superficies declaran `data-qa-geometry-group`
+  (`calc-muestra/referencia-asistencia-fuente` y `.../-tau`) y contienen su
+  propio vacío por C3.
+- **Exclusiones explícitas.** El divisor de la Cadena B, la aplicación de la
+  referencia a τ, `n_aulas` y el hallazgo I12-H11, la celda cruzada
+  tamaño × facultad, un estimador público `calc_muestra_asistencia_estimar()`
+  —que quedaría como código muerto—,
+  `.cm_normalize_workspace_aulas_config`, `calc_muestra_aulas_normalize_config`,
+  `DEFAULT_UNIVERSITY_AULAS_CONFIG`, `normalizeUniversityAulasConfig`,
+  `frame_hash`, el sorteo y sus goldens, `aulasParts.tsx`, el contrato F1 de
+  I11, los frentes F2 y F3, D1 y D2, puertos y procesos del usuario, la
+  publicación y el prompt privado no rastreado.
+- **PII y datos de cliente.** La hoja de 194 CH es dato de cliente y **no entra
+  al repo** en ninguna forma. Los tests usan un fixture sintético calibrado a
+  las tasas agregadas medidas. Lo único que se persiste en el `.pulso` es la
+  tabla de celdas: sin `classroom_id`, sin nombres de docente, sin
+  `unique_student_ids`, sin filas por CH. El engine nunca construye un bloque
+  `filas`; la tabla cruda vive en el file store de la sesión y muere ahí.
+- **Riesgo principal.** Publicar como dato duro una celda de k=4, o que la
+  iteración siguiente aplique la tasa sobre `eligible_n` en vez de
+  `enrolled_total` y subestime ~30 %. Contra lo primero, la matriz de
+  degradación y la `sd_ch` publicada en cada celda; contra lo segundo, el campo
+  `denominador` en el contrato y un test que lo fija. Riesgos secundarios: que
+  el clasificador secuestre la hoja hacia `agenda` o `catalogo_curso_horario`
+  (orden de ramas fijado por test, con no-regresión para ambas); que el binding
+  nuevo entre a `readyToBuild` y bloquee «Construir marco» (exclusión explícita
+  más test de que ese gate no cambia); que el bootstrap mueva `.Random.seed` y
+  rompa los goldens del sorteo (scoping con test de invariancia); y que las
+  etiquetas de facultad no sean comparables entre 2025 y el marco nuevo
+  (normalización con `.cm_criterios_fac_key()` y advertencia cuando el marco
+  vigente tenga facultades ausentes de la referencia).
+- **Baseline de checks.** El árbol debe estar limpio tras el cierre de I11.
+  Antes de reparar deben quedar en rojo, verificadas, las tres regresiones
+  causales: (1) `"calc_muestra_referencia_asistencia"` no está en
+  `session_schema()$clave`; (2) una hoja con
+  `curso_horario / matriculados / asistieron / enviadas` clasifica hoy como
+  `catalogo_curso_horario` —o `agenda` si el nombre contiene «aplicación»—,
+  nunca como `referencia_asistencia`, y el test documenta cuál rama la
+  secuestra; (3) `ensureUniversitySourceBindings("base_madre", [...rol
+  nuevo...])` devuelve hoy un array sin ese binding, demostrando la pérdida
+  silenciosa.
+- **Validación mínima.** Sobre el fixture sintético: la cadena reproduce
+  0.698 / 0.753 / 0.893 con producto 0.469 (tolerancia 0.002); monotonía T1..T5;
+  una celda k=9 da `suficiencia == "insuficiente"`,
+  `fuente_publicada == "global"`, `ic_low` en `NA` y tasa observada presente;
+  una celda k=0 da `tasa` en `NA_real_` y **no** 0; un `matriculados` faltante
+  deja la celda entera en `NA` por suma estricta; una fila que rompe la
+  identidad deja `identidad$verificada == FALSE` sin error; dos llamadas dan IC
+  idénticos y `.Random.seed` global queda igual; columnas ausentes producen
+  `stop_api` con el mensaje que lista lo encontrado. Del lado de la fuente:
+  clasificador en verde con no-regresión de agenda y catálogo, round-trip sin
+  `filas` ni PII, y un `.pulso` viejo sin la clave que carga con `NULL`. Se
+  amplía `test-calc-muestra-workspace-whitelist.R` con un binding del rol nuevo
+  que sobrevive el round-trip. Vitest: el normalizador falla cerrado ante schema
+  desconocido y un `null` de jsonlite no se vuelve `0`; ambas tarjetas declaran
+  su grupo geométrico literal, contienen su vacío y rotulan la degradación
+  cuando `fuente_publicada !== "celda"`. Gate escalado: `typecheck`, Vitest del
+  feature, los `test-calc-muestra-asistencia-*` más
+  `test-calc-muestra-workspace-whitelist`, `test-session-schema` y
+  `test-calc-muestra-aulas`, `ui-quick-check --require-geometry` sobre las dos
+  superficies, `node agentic/sync-agentic-os.mjs --audit`, revisión metodológica
+  y de contrato, y `verificador` serial.
+- **Verificación end-to-end, la que importa.** Con la app abierta sobre el
+  proyecto real, subir la hoja en Datos > Fuentes y comprobar en pantalla que la
+  cadena reproduce 0.698 / 0.753 / 0.893, que el gradiente por tamaño baja de
+  0.826 a 0.609 y que «mañana especial» aparece degradada a global por k=9.
+- **Orden de ejecución.** Serial y bloqueante: las tres regresiones rojas, luego
+  censo y registro de errores, luego el engine, que es el nudo del que dependen
+  router y frontend. Desde ahí, tres carriles con globs sin solape: backend
+  (router, `.cm_state_payload`, `project_pulso`, los dos tests R y la ampliación
+  del whitelist test); frontend de datos (tipos, normalizador, API, constants,
+  categorias, `DefBasesTab`, la tarjeta); y frontend de cálculo (el bloque de τ
+  y su montaje, que solo depende del tipo TS del carril anterior). Serial al
+  cierre: integración end-to-end, gate, QA visual y ledger. Máximo tres
+  trabajadores y dos writers.
+- **Siguiente acción.** Iteración 13, F2/I12-H11 — medir por dirección qué aulas
+  sortea realmente el motor frente a las que calcula, conectar `n_aulas` con su
+  whitelist y su espejo TS, y recién entonces evaluar si el divisor de la
+  Cadena B debe pasar de matriculados a asistentes esperados, con D6 reabierta
+  de forma explícita.
 
 ## Cómo se corre cada visita
 

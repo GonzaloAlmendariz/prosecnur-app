@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Compass, Layers3, MapPin } from "lucide-react";
 import { EmptyState } from "../../../../components/States";
 import {
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
   type CalcMuestraAulasExploracionFacultad,
@@ -60,6 +61,10 @@ export function ExploradorAulasTab({
     () => normalizeCalcMuestraAulasExploracion(frame?.exploracion ?? null),
     [frame?.exploracion],
   );
+  const criteriosRadiografia = useMemo(() => {
+    const normalizada = normalizeCalcMuestraAulasCriteriosRadiografia(frame?.criterios_radiografia ?? null);
+    return normalizada?.frame_hash === frame?.frame_hash ? normalizada : null;
+  }, [frame?.criterios_radiografia, frame?.frame_hash]);
   const particularidades = useMemo(
     () => normalizeCalcMuestraAulasParticularidades(frame?.particularidades ?? null),
     [frame?.particularidades],
@@ -214,6 +219,7 @@ export function ExploradorAulasTab({
                     setVerTodos(false);
                     setSort(EXPLORADOR_SORT_DEFAULT);
                   }}
+                  criteriosRadiografia={criteriosRadiografia}
                 />
               ))}
             </div>
