@@ -169,7 +169,7 @@ trabajando en lo desbloqueado.
 
 | Métrica | Apertura (31 jul) | Hoy | Dirección |
 |---|---:|---:|---|
-| Cifras de CH sin dueño reconciliado en pantalla (N9) | 1 | 1 | ↓ a 0 |
+| Cifras de CH sin dueño reconciliado en pantalla (N9) | 1 | 0; toda radiografía publicable cuadra con `aula_frame.included` y las discrepancias fallan cerrado | = 0 |
 | Componentes de criterio con radiografía estadística propia | 1 (`BoxplotElegibles` vía `FacultadRadiografiaCard`) | 0 completas según la meta F1; 1 robusta parcial (`session_type`); 4 superficies con evidencia contextual | ↑ hasta cubrir el selector |
 | Estadísticos por criterio × facultad expuestos por el engine (cuantiles, media, mediana, promedio alumnos/CH) | 0 contratos | 0 contratos completos; 1 parcial probado para `session_type × facultad` (p25/p50/p75, media, min/max; faltan p10/p90 y delta) | ↑ con test por estadístico |
 | Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 0 | ↑ |
@@ -178,8 +178,8 @@ trabajando en lo desbloqueado.
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 20 de 24 (83,3 %); 24 de 24 auditadas | 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
-| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 4 locales en fuente (3 sitios enrutables); C1 falla en 4 colecciones internas por viewport de Marco | ↑ con cobertura conforme |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 7 confirmados + 2 observaciones por confirmar | ↓ |
+| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 7 locales en fuente; 6 grupos renderizados por viewport de Marco, 0 misses y 0 issues | ↑ con cobertura conforme |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 5 confirmados + 2 observaciones por confirmar; N9 e I0-H1 cerrados | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -188,8 +188,8 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 
 | ID | Frente | Hallazgo | Estado / evidencia |
 |---|---|---|---|
-| N9 | F0 | Marco publica dos instantáneas no reconciliadas de CH elegibles (2.265 y 2.373 en `hsvg2026`) | confirmado; D1 abierta |
-| I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | confirmado; 4 misses × 5 viewports = 20 |
+| N9 | F0 | Marco publica dos instantáneas no reconciliadas de CH elegibles (2.265 y 2.373 en `hsvg2026`) | **resuelto I1**: owner, perfil, audit y exploración del fixture vigente cuadran en 2.373; un payload legacy contradictorio queda en S/D + reconstrucción; D1 sigue abierta |
+| I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | **cerrado I1**: 30 grupos medidos en cinco viewports, 0 misses y 0 issues |
 | I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | confirmado; breakpoint mantiene cinco columnas y `overflow-wrap:anywhere` |
 | I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | confirmado; `UniversidadDesk.tsx:419-421` |
 | I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | confirmado; `calcMuestra.ts:107` y spec líneas 87-98 |
@@ -210,6 +210,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | # | Fecha | Frente | Qué se hizo | Evidencia | Ledger movido |
 |---|---|---|---|---|---|
 | 0 | 2026-07-31 | F0–F4 · baseline | Se midieron estructura, contratos parciales, orden de las 24 pestañas y las cinco secciones reales de `hsvg2026`; no se tocó producto | `wc`/`rg` con `archivo:línea`; revisión metodológica 24/24; `ui-quick-check --require-geometry` 25/25 en `/private/tmp/prosecnur-visual-iter0` (PASS 20, FAIL 5 por C1 en Marco, demás contadores duros en 0) | F3: por auditar → 20/24 justificadas; geometría: por medir → 4 locales; contratos: se reconoció 1 parcial probado; hallazgos: 1 → 7 + 2 observaciones |
+| 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 en cifras/listas | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; matriz final `/private/tmp/prosecnur-visual-iter1-final-r3/marco/report.json` 5/5 PASS, 30 grupos, 0 misses/issues/errores | N9: 1 → 0 cifras sin dueño; geometría Marco: 20 → 0 misses; hallazgos abiertos: 7 + 2 → 5 + 2, con N9 e I0-H1 cerrados |
 
 ### Contrato de iteración 0
 
@@ -232,8 +233,62 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **1 — F0/N9, verdad y momento de los CH
-elegibles**. D1 y D2 permanecen abiertas; no se añadió una decisión nueva.
+**Siguiente iteración programada:** **2 — F3/I0-H6, alias cross-section
+`marco-validacion → def-consistencia`**. Se trazará la primera divergencia del
+resolver y se congelará la dirección canónica antes de editar navegación. D1 y
+D2 permanecen abiertas; no se añadió una decisión nueva.
+
+### Contrato de iteración 1 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F0/N9. `aula_frame.included` es el dueño
+  del conteo del marco ejecutado; `perfil.marco_aulas`,
+  `audit[classroom_included_n]` y `exploracion.totales.ch_elegibles` son
+  proyecciones del mismo frame y momento. I0-H1 se paga como guard estructural
+  porque la visita toca Marco.
+- **Módulos afectados:** integridad legacy R→React, consumidores de la
+  radiografía de Marco, resumen persistente, contratos geométricos C1 y sus
+  regresiones focales.
+- **Archivos previstos:**
+  `api/tests/testthat/test-calc-muestra-aulas-exploracion.R`;
+  `frontend/src/features/calcMuestra/motor/ResumenDiseno.tsx`;
+  `frontend/src/features/calcMuestra/universidad/shared/frameIntegrity.ts`;
+  `frontend/src/features/calcMuestra/universidad/criterios/CriteriosMarcoTab.tsx`;
+  `frontend/src/features/calcMuestra/universidad/criterios/controles.tsx`;
+  `frontend/src/features/calcMuestra/universidad/ui/CifraMotor.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/CursosHorarioMarcoTab.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/ExploradorAulasTab.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/FacultadDecisionBloque.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/FacultadRadiografiaCard.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/__tests__/CursosHorarioMarcoTab.test.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/__tests__/ExploradorAulasTab.test.tsx`;
+  y las regresiones nuevas
+  `CriteriosMarcoConsistency.test.tsx` y
+  `CriteriosGeometry.contract.test.ts` bajo `criterios/__tests__/`.
+- **Exclusiones explícitas:** `api/R/**`, routers, schemas y forma del payload,
+  persistencia o migraciones `.pulso`, navegación, `aulasParts.tsx`, otros
+  frentes F1–F4 y el prompt de arranque no versionado.
+- **Riesgo principal:** acreditar como vigente una radiografía incoherente o
+  degradar un frame legacy por su representación columnar/singleton; en C1,
+  declarar capacidad en un contenedor equivocado para ocultar un hueco real.
+- **Validación mínima:** regresiones Vitest focales + `typecheck`; test R de
+  exploración; `ui-quick-check --require-geometry` en los cinco viewports de
+  Marco; revisión metodológica y de contrato; `verificador` serial.
+- **Fallo o cuello:** un payload contradictorio podía publicar como vigentes
+  dos conteos de CH; además cuatro colecciones visibles de Marco no declaraban
+  C1 y producían 20 misses en la matriz.
+- **Cambio enfocado:** guard de integridad y rotulado sobre el contrato
+  existente, más instrumentación C1. No se eligió una cifra histórica, no se
+  añadió estadístico y no cambió el engine ni el payload.
+- **Resultado:** mejor. El frame vigente coherente conserva su radiografía; un
+  frame contradictorio o no verificable muestra S/D y reconstrucción. N9 e
+  I0-H1 quedan cerrados con regresión y evidencia visual comparable.
+- **Validación ejecutada:** 191/191 R; 2.797/2.797 frontend; typecheck y
+  diff-check verdes; revisiones contractual y metodológica aprobadas; r3 5/5
+  PASS con 30 grupos, 0 misses/issues y todos los contadores duros en cero.
+- **Siguiente acción:** iteración 2, F3/I0-H6 — diagnosticar por qué el alias
+  cross-section resuelve el id pero conserva la sección equivocada, fijar una
+  regresión de dirección y reparar la primera divergencia sin bundlear las
+  demás mudanzas conceptuales.
 
 ## Cómo se corre cada visita
 

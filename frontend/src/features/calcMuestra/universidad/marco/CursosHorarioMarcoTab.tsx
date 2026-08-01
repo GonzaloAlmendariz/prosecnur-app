@@ -42,6 +42,7 @@ import {
 import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
+import { frameIntegrity } from "../shared/frameIntegrity";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import {
   reconciliarBorradorCriterios,
@@ -82,22 +83,30 @@ export function CursosHorarioMarcoTab({
     () => normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null),
     [aulasState?.frame?.criterios_catalogo],
   );
-  const exploracion = useMemo(
+  const integridadFrame = useMemo(
+    () => frameIntegrity(aulasState?.frame),
+    [aulasState?.frame],
+  );
+  const marcoPublicable = integridadFrame.status === "consistent";
+  const marcoIncoherente = integridadFrame.status === "inconsistent";
+  const exploracionNormalizada = useMemo(
     () => normalizeCalcMuestraAulasExploracion(aulasState?.frame?.exploracion ?? null),
     [aulasState?.frame?.exploracion],
   );
+  const exploracion = marcoPublicable ? exploracionNormalizada : null;
   // Lista individual de cursos-horario del último marco (para la selección
   // manual final por facultad). El motor ya marcó `included` por facultad.
   const aulaFrame = useMemo<MonitoreoRow[]>(
     () => rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame),
     [aulasState?.frame?.aula_frame],
   );
-  const sessionTypeDominante = useMemo(
+  const sessionTypeDominanteNormalizado = useMemo(
     () =>
       normalizeCalcMuestraAulasParticularidades(aulasState?.frame?.particularidades ?? null)
         ?.session_type_dominante ?? null,
     [aulasState?.frame?.particularidades],
   );
+  const sessionTypeDominante = marcoPublicable ? sessionTypeDominanteNormalizado : null;
   const config = useMemo(
     () => normalizeUniversityAulasConfig(workspace.aulas_config),
     [workspace.aulas_config],
@@ -231,26 +240,31 @@ export function CursosHorarioMarcoTab({
 
   const totalPendientes = pendientes.size;
   const marcoConstruido = Boolean(aulasState?.frame);
+  const marcoNoVerificable = marcoConstruido && integridadFrame.status === "unverifiable";
   const marcoDesactualizado = marcoCriteriosDesactualizado(
     aulasState?.frame,
     config.criterios_seleccion,
     config.teacher_type_orden,
     { config, opcionalesActivos: opcionalesActivosMotor },
   );
-  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado;
+  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   const beam = necesitaRecalculo && listoParaRecalcular;
   const estadoResumen =
-    totalPendientes > 0
-      ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente de confirmar" : "variables pendientes de confirmar"}`
-      : !marcoConstruido
-        ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
-        : marcoDesactualizado
-          ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
-          : "El marco está al día con los criterios confirmados.";
+    marcoIncoherente
+      ? "La radiografía no corresponde al marco ejecutado. Reconstruye el marco para recuperar cifras coherentes."
+      : marcoNoVerificable
+        ? "El marco ejecutado no es verificable contra su radiografía. Reconstruye el marco para recuperar cifras acreditables."
+        : totalPendientes > 0
+          ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente de confirmar" : "variables pendientes de confirmar"}`
+          : !marcoConstruido
+            ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
+            : marcoDesactualizado
+              ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
+              : "El marco está al día con los criterios confirmados.";
 
   return (
-    <div className="cmv2-chfp" data-audit-ready={ready ? "true" : "false"}>
+    <div className="cmv2-chfp" data-audit-ready={ready && marcoPublicable ? "true" : "false"}>
       {onReconstruir && (
         <div
           className="cmv2-crit-apply cmv2-chfp-apply"
@@ -259,7 +273,7 @@ export function CursosHorarioMarcoTab({
           data-attention={necesitaRecalculo ? "true" : "false"}
         >
           <AvisoModulo
-            tone={totalPendientes > 0 || marcoDesactualizado ? "warn" : !marcoConstruido ? "info" : "success"}
+            tone={totalPendientes > 0 || marcoDesactualizado || marcoIncoherente || marcoNoVerificable ? "warn" : !marcoConstruido ? "info" : "success"}
             role="status"
             compact
             className="cmv2-crit-draft-summary"
@@ -346,55 +360,64 @@ export function CursosHorarioMarcoTab({
             />
           </section>
 
-          <section className="cmv2-chfp-facultades" aria-label="Decisión por facultad con su radiografía">
-            <header className="cmv2-chfp-section-head">
-              <span className="cmv2-chfp-section-icon" aria-hidden="true">
-                <School size={18} />
-              </span>
-              <div className="cmv2-chfp-section-copy">
-                <h3>Por facultad · información y decisión</h3>
-                <p>
-                  Ordenadas por elegibles. Abre una facultad para ver su radiografía y decidir sus criterios de
-                  curso-horario en la misma superficie, luego pasa a la siguiente.
-                </p>
-              </div>
-            </header>
-            {(totalPendientes > 0 || necesitaRecalculo) && bloques.length > 0 ? (
-              <AvisoModulo tone="warn" compact role="status" className="cmv2-chfp-aviso-recalcular">
-                Cambiaste criterios: las «aulas candidatas» y las distribuciones de abajo son del último marco
-                construido. Recalcula («Calcular población y cursos-horario elegibles») para que se ajusten en cascada
-                —cada criterio recorta y actualiza la información de los siguientes.
-              </AvisoModulo>
-            ) : null}
-            {bloques.length === 0 ? (
-              <AvisoModulo tone="info" role="status">
-                La radiografía por facultad se calcula junto con el marco. Ejecuta «Calcular población y cursos-horario
-                elegibles» con tu base cargada para ver cada facultad y decidir sus criterios propios.
-              </AvisoModulo>
-            ) : (
-              <div className="cmv2-chfp-bloques">
-                {bloques.map((bloque, index) => (
-                  <FacultadDecisionBloque
-                    key={bloque.excKey || bloque.facLabel}
-                    bloque={bloque}
-                    variablesToggle={aulaToggle}
-                    rangeVariable={rangeVariable}
-                    seleccion={borrador}
-                    exploracion={exploracion}
-                    aulaFrame={aulaFrame}
-                    umbralGeneral={umbralGeneral}
-                    tasa={tasa}
-                    defaultOpen={index === 0}
-                    onToggleVariable={editarVariable}
-                    onRango={(facultad, rangos) => editarRango(rangeVariable?.id ?? "course_level", facultad, rangos)}
-                    onMinimoFacultad={editarMinimoFacultad}
-                    onToggleAula={editarExclusionAula}
-                    onReactivarAulas={reactivarAulas}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+          {marcoPublicable ? (
+            <section className="cmv2-chfp-facultades" aria-label="Decisión por facultad con su radiografía">
+              <header className="cmv2-chfp-section-head">
+                <span className="cmv2-chfp-section-icon" aria-hidden="true">
+                  <School size={18} />
+                </span>
+                <div className="cmv2-chfp-section-copy">
+                  <h3>Por facultad · información y decisión</h3>
+                  <p>
+                    Ordenadas por matrículas elegibles. Abre una facultad para ver su radiografía y decidir sus
+                    criterios de curso-horario en la misma superficie, luego pasa a la siguiente.
+                  </p>
+                </div>
+              </header>
+              {(totalPendientes > 0 || necesitaRecalculo) && bloques.length > 0 ? (
+                <AvisoModulo tone="warn" compact role="status" className="cmv2-chfp-aviso-recalcular">
+                  Cambiaste criterios: las «aulas candidatas» y las distribuciones de abajo son del último marco
+                  construido. Recalcula («Calcular población y cursos-horario elegibles») para que se ajusten en cascada
+                  —cada criterio recorta y actualiza la información de los siguientes.
+                </AvisoModulo>
+              ) : null}
+              {bloques.length === 0 ? (
+                <AvisoModulo tone="info" role="status">
+                  La radiografía por facultad se calcula junto con el marco. Ejecuta «Calcular población y
+                  cursos-horario elegibles» con tu base cargada para ver cada facultad y decidir sus criterios propios.
+                </AvisoModulo>
+              ) : (
+                <div className="cmv2-chfp-bloques">
+                  {bloques.map((bloque, index) => (
+                    <FacultadDecisionBloque
+                      key={bloque.excKey || bloque.facLabel}
+                      bloque={bloque}
+                      variablesToggle={aulaToggle}
+                      rangeVariable={rangeVariable}
+                      seleccion={borrador}
+                      exploracion={exploracion}
+                      aulaFrame={aulaFrame}
+                      umbralGeneral={umbralGeneral}
+                      tasa={tasa}
+                      defaultOpen={index === 0}
+                      onToggleVariable={editarVariable}
+                      onRango={(facultad, rangos) =>
+                        editarRango(rangeVariable?.id ?? "course_level", facultad, rangos)}
+                      onMinimoFacultad={editarMinimoFacultad}
+                      onToggleAula={editarExclusionAula}
+                      onReactivarAulas={reactivarAulas}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : (
+            <AvisoModulo tone="warn" role="status">
+              {marcoIncoherente
+                ? "La radiografía por facultad queda oculta porque no corresponde al marco ejecutado. Reconstruye el marco para continuar."
+                : "La radiografía por facultad no es verificable con el marco ejecutado. Reconstruye el marco para continuar."}
+            </AvisoModulo>
+          )}
         </>
       )}
     </div>

@@ -452,7 +452,7 @@ export function FacultadDecisionBloque({
         </span>
         <span className="cmv2-chfp-bloque-hero">
           {fmtInt(fac.elegibles_total)}
-          <em>elegibles</em>
+          <em>matrículas elegibles</em>
         </span>
       </button>
 
