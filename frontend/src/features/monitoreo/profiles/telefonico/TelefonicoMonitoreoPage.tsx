@@ -208,6 +208,7 @@ import "../../shell/monitoreoShell.css";
 import "../profilePage.css";
 import "./telefonicoProfile.css";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { MetaCuotaInput } from "./MetaCuotaInput";
 
 import {
   anchosDeSegmentos,
@@ -3027,7 +3028,11 @@ function AcreditacionPhoneQuotaEditor({
                   <span><em>Universo</em><strong>{fmt(row.universe)}</strong></span>
                   <label>
                     <span>Meta</span>
-                    <input type="number" min={0} value={row.meta ?? 0} onChange={(event) => updateMeta(row.value, Number(event.target.value) || 0, true)} />
+                    <MetaCuotaInput
+                      value={row.meta}
+                      ariaLabel={`Meta de ${row.value}`}
+                      onCommit={(meta) => updateMeta(row.value, meta, true)}
+                    />
                   </label>
                   <span><em>Efectivas</em><strong>{fmt(row.effective)}</strong></span>
                   <span><em>Brecha</em><strong>{row.gap == null ? "S/M" : fmt(row.gap)}</strong></span>
