@@ -98,6 +98,13 @@ export function FormSwitcher({
                 role="menuitemradio"
                 aria-checked={isActive}
                 className={`pulso-more-views-item pulso-xf-form-switcher-item${isActive ? " is-active" : ""}`}
+                // El nombre lo escribe el usuario y el item lo recorta con
+                // elipsis cuando no cabe. Sin esto el resto del nombre no
+                // existiría para nadie: recortar solo es legítimo si el texto
+                // completo sigue alcanzable.
+                title={form.source?.original_name
+                  ? `${form.name} · ${form.source.original_name}`
+                  : form.name}
                 onClick={() => {
                   setOpen(false);
                   if (!isActive) onSwitch(form.id);

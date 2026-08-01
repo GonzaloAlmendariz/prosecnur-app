@@ -993,6 +993,25 @@
   color: var(--pulso-text-muted);
 }
 
+/* Los items del conmutador llevan un dato del usuario —el nombre del
+   formulario— y un nombre largo sin espacios desbordaba el popover por el
+   borde derecho. `.pulso-more-views-item` hereda `white-space: nowrap`, así
+   que la salida no es quebrar el texto sino recortarlo: el `strong` pasa a
+   bloque (el `flex` de base no admite `text-overflow`) y el texto se reparte
+   el ancho restante del item. */
+.pulso-xlsform-frame .pulso-xf-form-switcher-item .pulso-more-views-item-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-xf-form-switcher-item .pulso-more-views-item-text strong,
+.pulso-xlsform-frame .pulso-xf-form-switcher-item .pulso-more-views-item-text em {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .pulso-xlsform-frame .pulso-xf-form-switcher-item.is-active {
   background: var(--pulso-primary-soft);
 }
