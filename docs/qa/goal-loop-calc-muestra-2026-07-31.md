@@ -194,6 +194,9 @@ trabajando en lo desbloqueado.
 | Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 1 (`session_type × facultad`, acción y delta CH/matrículas firmados contra el marco ejecutado) | ↑ |
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
 | Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 6 vivas; la séptima era la dirección redundante retirada en I5 | ↑ a 6 |
+| **Estados vacíos que culpan a un artefacto que sí existe** | sin medir hasta I15 | **3 de 6** (`seleccion`, `laboratorio`, `reemplazos`): con selección vigente de 30 titulares M1 la UI declara «Todavía no hay selección»; lo que falta es el objetivo | = 0 |
+| Producto por iteración (líneas de `frontend`+`api` sin tests) | sin medir | I1–I14: 3 iteraciones con **0**, 4 con menos de 50; 73 % del producto en 2 de 13 commits | ↑ lote entregable |
+| Contrato escrito por línea de producto | sin medir | hasta **7:1** en las iteraciones chicas (110–169 líneas de contrato por 20–43 de código) | ↓ contrato proporcional |
 | Pestañas de Aulas/Salidas con capacidad y alcance C3–C4 auditados | por medir; I0-O2 no tenía rectángulos propios | 10 de 10 × 3 viewports: 30/30 alcanzables, 0 problemas de capacidad; 5 oportunidades solo exteriores | = 100 %; no acredita revamp F2 |
 | `aulasParts.tsx` | 1.612 | 1.551; la lista de riesgo salió a `ClassroomRiskList.tsx` y el handoff a `classroomHandoff.ts` | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
@@ -1883,39 +1886,62 @@ prompt privado quedaron explícitamente fuera de su stage y commit.
 
 ### Contrato de iteración 15 (lote — primera bajo el régimen nuevo)
 
-- **Categoría:** F2/Aulas, carril B (superficie), mandato 2. Lote = **las seis
-  pestañas vivas**, no una.
-- **Baseline medido (2026-08-01, `hsvg2026-i12-populated`, 1440×1000).**
-  Recorrido por dirección canónica sobre las seis:
+- **Categoría:** F2/Aulas. Nace como carril B (superficie, mandato 2) y la
+  medición lo obligó a incluir carril A: **el vacío miente sobre su causa**, y
+  eso es correctitud, no estética. Lote = **las seis pestañas vivas**, no una.
+- **Baseline medido (2026-08-01, 1440×1000, por dirección canónica).**
   - `objetivo`: columna `EST./CURSO-HORARIO` entera en `—`; `RESERVAS` repite
     `R1-R11` en las 14 filas; `EXTRA` todo `0`; Muestra objetivo y Sobremuestra
     en «falta calcular» pese a haber cuotas por facultad.
   - `metodo`: cuatro cards con «fórmula» como único affordance; el peso de la
     pantalla está en párrafos explicativos, no en métricas comparables.
-  - `laboratorio`, `seleccion`, `reemplazos`: **las tres en estado
-    «pendiente»**, con tarjetas que repiten el mismo botón y media pantalla
-    vacía. Ninguna muestra datos porque no hay selección ejecutada — tampoco en
-    el `.pulso` llamado «poblado».
+  - `laboratorio`, `seleccion`, `reemplazos`: las tres en estado «pendiente»,
+    con tarjetas que repiten el mismo botón y media pantalla vacía.
   - `auditoria`: la única con densidad real (fórmulas, semilla, reproducibilidad).
   - Estructura: `aulasParts.tsx` 1.551 líneas, `aulas.css` 1.679 líneas.
+- **Fallo causal medido — el vacío miente (hallazgo que gobierna I15).**
+  Sobre `hsvg2026-aulas-sel-20260801-174811` (seed con selección ejecutada), la
+  pestaña `seleccion` sigue mostrando «Todavía no hay selección». No es el
+  seed: `/api/calc-muestra/state` devuelve `aulas.selection` con
+  `selection_run_id = sel_aulas_20260801174812_4fda3cad`, **2.373 filas, 30
+  titulares M1**, `selector.n_aulas = 30` y `frame_hash` idéntico al del marco
+  vigente. `selectionReady`
+  (`universidad/aulas/classroomHandoff.ts:105`) exige **seis** condiciones
+  simultáneas; las cinco que dependen de la selección se cumplen y la que falla
+  es **`handoff.currentAulasTarget > 0`**: `aulas_base_total` es `null` en los
+  dos componentes y `aulas_config.n_aulas` está ausente del workspace. Es
+  decir: **existe una selección real y consistente, la UI la descarta entera
+  por falta de objetivo, y el mensaje culpa a la selección.** El mismo patrón
+  arrastra a `laboratorio` y `reemplazos`, que dependen de `selectionReady`.
+  Esto es **C5 violado** y es la causa raíz de que cuatro de seis pestañas se
+  vean idénticas a la versión anterior.
 - **Scope lock.** `universidad/aulas/**` (las seis tabs, componentes nuevos en
-  archivo propio, `aulas.css`) y sus Vitest focales. Fuera: engine R, fórmulas,
-  selector/sorteo, target/handoff de I13, navegación y aliases, persistencia
-  `.pulso`, datos reales, la unidad ajena del catálogo visual y el prompt privado.
+  archivo propio, `aulas.css`), `classroomHandoff.ts` solo para **explicar** el
+  estado —nunca para relajar un guard— y sus Vitest focales. Fuera: engine R,
+  fórmulas, selector/sorteo, target/handoff de I13, navegación y aliases,
+  persistencia `.pulso`, datos reales, la unidad ajena del catálogo visual y el
+  prompt privado.
 - **Peaje estructural, de entrada.** `aulasParts.tsx` se descompone **antes** de
   tocar las pestañas, no como peaje por cada una. Ninguna tab crece sobre el
   monolito.
-- **Estado de prueba requerido.** Cuatro de las seis pestañas solo son
-  juzgables con selección ejecutada: sembrarla con
-  `make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026` y auditar el
-  par **vacío / lleno** (C2 y C5 exigen ambos).
-- **Riesgo principal.** Que el revamp maquille los estados «pendiente» en vez
-  de resolver qué informa cada pestaña cuando no hay selección — convertir C3
-  en decoración. El vacío se clasifica, no se rellena.
-- **Stopping rule.** I15 cierra cuando las seis cumplan C1–C5 en ambos
-  viewports con estado vacío y lleno, `aulasParts.tsx` haya bajado de 1.551
-  líneas, y el gate de superficie esté verde. Sin `verificador` serial salvo
-  que el lote termine tocando engine o contrato público.
+- **Estado de prueba requerido (corregido tras medir).** `seed-aulas` **no
+  alcanza**: siembra la selección pero deja `aulas_base_total` en `null`, así
+  que las pestañas siguen vacías por una razón distinta de la que declaran. El
+  par a auditar es de **tres** estados, no dos: (a) sin marco, (b) con marco y
+  selección pero **sin objetivo** —el estado que hoy miente—, y (c) con
+  objetivo materializado y selección vigente. Falta una receta reproducible
+  para (c); conseguirla es la primera tarea de I15.
+- **Riesgo principal.** Que el revamp maquille los estados «pendiente» en vez de
+  decir qué falta y llevar ahí. Y su gemelo: que para «arreglar» el vacío se
+  relaje una de las seis condiciones de `selectionReady` —eso publicaría una
+  selección stale, exactamente lo que I13 hizo fallar cerrado—. El vacío se
+  clasifica y se explica; el guard no se toca.
+- **Stopping rule.** I15 cierra cuando: (1) ningún estado vacío de las seis
+  atribuya la falta a un artefacto que sí existe, y cada uno nombre la pieza
+  que falta y ofrezca el camino; (2) las seis cumplan C1–C5 en ambos viewports
+  en los tres estados; (3) `aulasParts.tsx` haya bajado de 1.551 líneas; (4) el
+  gate de superficie esté verde. `verificador` serial solo si el lote termina
+  tocando engine o contrato público.
 
 ## Cómo se corre cada visita
 
@@ -1931,3 +1957,29 @@ make dev-pulso PULSO=api/inst/reference_projects/hsvg2026.pulso
   propio, `make dev-status` / `make dev-prune` ante huérfanos.
 - Tests R focalizados: `Rscript -e 'pkgload::load_all("api"); testthat::test_file("api/tests/testthat/test-calc_muestra_aulas.R")'`
   (y los `test-calc_muestra*` hermanos según el diff).
+
+### Trampas de operación medidas (2026-08-01)
+
+Tres costaron tiempo real en la visita que abrió I15. Se anotan para no volver
+a pagarlas:
+
+1. **Un backend vivo no toma tus cambios de R.** `launch.R` carga la fuente con
+   `load_all` **al arrancar**: un proceso levantado hace horas sirve el código
+   de esa hora, aunque el árbol esté al día y el frontend sí refleje la rama
+   por HMR. Antes de juzgar un motor, comparar el arranque del proceso contra
+   el `mtime` de `api/R/*.R` y reiniciarlo si hace falta. Los jobs `callr`
+   corren aparte, contra el paquete **instalado**, que el propio `launch.R`
+   reinstala solo cuando detecta staleness.
+2. **El `?pulso=` se consume una sola vez.** Un `fetch('/api/system/bootstrap')`
+   hecho a mano antes de que monte la app se lleva el proyecto y deja el
+   BootGate vacío. No sondear ese endpoint: abrir con el deep-link y esperar
+   `window.__pulsoNav.listo()`.
+3. **No hay un solo `.pulso` que sirva para todo.** El fixture canónico llega
+   sin cálculo; el que dice «poblado» tampoco trae selección; `seed-aulas` trae
+   selección pero no objetivo. Elegir el estado según lo que se va a juzgar y
+   declararlo en la evidencia — un screenshot sin estado declarado no prueba
+   nada.
+
+Y una del gate, no de la operación: **vitest da falsos rojos con el dev server
+encendido** (comparten `node_modules/.vite`). Un rojo tipo «X is not a
+function» con typecheck verde se relanza antes de diagnosticarse.
