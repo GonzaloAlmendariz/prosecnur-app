@@ -11,11 +11,11 @@ fuentes: ["frontend/src/features/calcMuestra/universidad/universidadTabs.ts"]
 ---
 # Marco
 
-> En la UI: **Marco**. Define elegibilidad y construye el universo de estudiantes y cursos-horario.
+> En la UI: **Marco**. Define elegibilidad, construye el universo de estudiantes y cursos-horario y comprueba su enlace.
 
 ## Propósito de esta guía
 
-**Marco universitario** organiza decisiones que cambian el diseño muestral y sus salidas. En la UI: **Marco**. Define elegibilidad y construye el universo de estudiantes y cursos-horario. Cada vínculo de esta página conduce exclusivamente a un hijo directo y explica qué pregunta resuelve, qué debe comprobarse allí y qué evidencia queda preparada.
+**Marco universitario** organiza decisiones que cambian el diseño muestral y sus salidas. En la UI: **Marco**. Define elegibilidad, construye el universo de estudiantes y cursos-horario y comprueba al cierre que sus fuentes enlacen. Cada vínculo de esta página conduce exclusivamente a un hijo directo y explica qué pregunta resuelve, qué debe comprobarse allí y qué evidencia queda preparada.
 
 ## Antes de recorrer este nivel
 
@@ -31,6 +31,7 @@ flowchart TD
     N --> C3["Población universitaria"]
     N --> C4["Cursos-horario del marco"]
     N --> C5["Cobertura universitaria"]
+    N --> C6["Consistencia de fuentes"]
 ```
 
 ## Guía de destinos
@@ -42,6 +43,7 @@ flowchart TD
 | [[Población universitaria]] | cuando los criterios ya pueden aplicarse y necesitas inspeccionar la base elegible real. | En la UI: **Población**. Presenta elegibles y estructura de la base real. | población elegible cuantificada y descrita. |
 | [[Cursos-horario del marco]] | cuando la población elegible debe agregarse en las unidades que realmente pueden sortearse. | En la UI: **Cursos-horario**. Inspecciona las unidades seleccionables del marco real. | lista de cursos-horario seleccionables. |
 | [[Cobertura universitaria]] | cuando necesitas comprobar qué elegibles quedan incluidos o excluidos por facultad. | En la UI: **Cobertura**. Compara elegibles incluidos y excluidos por facultad. | diagnóstico de cobertura y exclusiones. |
+| [[Consistencia de fuentes]] | cuando el marco ya está construido y debes auditar si las llaves enlazan estudiantes con cursos-horario. | En la UI: **Consistencia**. Comprueba el enlace entre estudiantes y cursos-horario. | diagnóstico de conciliación y registros sin enlace. |
 
 ## Recorrido recomendado
 
@@ -50,8 +52,9 @@ flowchart TD
 3. **Población universitaria:** En la UI: **Población**. Presenta elegibles y estructura de la base real; al terminar, el resultado es población elegible cuantificada y descrita.
 4. **Cursos-horario del marco:** En la UI: **Cursos-horario**. Inspecciona las unidades seleccionables del marco real; al terminar, el resultado es lista de cursos-horario seleccionables.
 5. **Cobertura universitaria:** En la UI: **Cobertura**. Compara elegibles incluidos y excluidos por facultad; al terminar, el resultado es diagnóstico de cobertura y exclusiones.
+6. **Consistencia de fuentes:** En la UI: **Consistencia**. Comprueba el enlace entre estudiantes y cursos-horario; al terminar, el resultado es diagnóstico de conciliación y registros sin enlace.
 
-La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el método transforma esos insumos en metas o probabilidades; y el cierre conserva la evidencia. En **Marco universitario**, empieza por **Criterios del estudiante** y termina en **Cobertura universitaria**. Para una revisión puntual puedes abrir directamente el destino causal, pero recalcula las tareas posteriores si modificas su entrada.
+La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el método transforma esos insumos en metas o probabilidades; y el cierre conserva la evidencia. En **Marco universitario**, empieza por **Criterios del estudiante** y termina en **Consistencia de fuentes**. Para una revisión puntual puedes abrir directamente el destino causal, pero recalcula las tareas posteriores si modificas su entrada.
 
 ## Cómo interpretar avance y estados
 

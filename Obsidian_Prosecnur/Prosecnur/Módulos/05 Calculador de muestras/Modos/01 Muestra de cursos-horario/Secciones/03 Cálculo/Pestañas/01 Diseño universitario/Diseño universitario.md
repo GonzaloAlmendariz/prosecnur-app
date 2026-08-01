@@ -16,7 +16,7 @@ fuentes:
 ## Objetivo
 Definir el diseño que traduce población y precisión en una meta de entrevistas.
 ## Antes de empezar
-- Contar con un marco vigente y cobertura revisada.
+- Contar con un marco vigente, cobertura revisada y conciliación consistente.
 ## Mapa de la pantalla
 ```mermaid
 flowchart LR

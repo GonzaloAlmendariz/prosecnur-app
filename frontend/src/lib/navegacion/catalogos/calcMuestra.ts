@@ -87,7 +87,6 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   definicion: [
     pestana("definicion", "def-estudio", "Estudio", "nombre, cliente y alcance", ClipboardList, { targetId: "cmv2-local-def-estudio" }),
     pestana("definicion", "def-bases", "Fuentes", "archivos, hojas y lectura", Database, { targetId: "cmv2-local-def-bases" }),
-    pestana("definicion", "def-consistencia", "Consistencia", "enlace entre bases (base única o dos bases)", CheckCircle2, { targetId: "cmv2-local-def-consistencia" }),
     pestana("definicion", "def-variables", "Variables", "columnas de la base", Table2, { targetId: "cmv2-local-def-variables" }),
   ],
   marco: [
@@ -96,6 +95,7 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestana("marco", "marco-poblacion", "Población", "elegibles y estructura (base real)", Users, { targetId: "cmv2-local-marco-poblacion" }),
     pestana("marco", "marco-aulas", "Cursos-horario", "unidades del marco (base real)", Grid3X3, { targetId: "cmv2-local-marco-aulas" }),
     pestana("marco", "marco-cobertura", "Cobertura", "elegibles vs. no elegibles por facultad", BarChart3, { targetId: "cmv2-local-marco-cobertura" }),
+    pestana("marco", "def-consistencia", "Consistencia", "enlace entre bases (base única o dos bases)", CheckCircle2, { targetId: "cmv2-local-def-consistencia" }),
   ],
   calculo: [
     pestana("calculo", "calculo-diseno", "Diseño", "fórmula, parámetros y supuestos", Sigma, { targetId: "cmv2-local-calculo-diseno" }),

@@ -56,8 +56,8 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   "marco-criterios": "marco-criterios-alumno",
   "marco-categorias": "marco-criterios-alumno",
   "marco-explorador": "marco-ch-radiografia",
-  // Consistencia se reubicó de Marco a Datos (§3.2): un tab guardado aterriza
-  // en su nuevo hogar dentro de Datos.
+  // Consistencia conserva este alias local para restaurar memoria de sesión y
+  // tabs guardados; la URL histórica se canonicaliza solo con su sección.
   "marco-validacion": "def-consistencia",
   // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
   // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
@@ -201,13 +201,10 @@ export function universitySidebarTabs({
     // Datos solo declara el insumo: identidad, fuentes y mapeo. Los criterios de
     // inclusión viven en Marco → Criterios (un solo hogar); Datos no muestra
     // resultados del marco (la antigua pestaña Institución los adelantaba).
-    const [estudioTab, basesTab, consistenciaTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
+    const [estudioTab, basesTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
     return [
       { ...estudioTab, status: guideStatus(Boolean(estudio.titulo)) },
       { ...basesTab, status: guideStatus(baseReady, hasSource) },
-      // Consistencia vive en Datos (§3.2): la calidad del enlace entre bases se
-      // evalúa AL CARGAR los datos, no al armar el marco.
-      { ...consistenciaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
     ];
   }
@@ -217,7 +214,7 @@ export function universitySidebarTabs({
     // definimos quién es elegible (criterios del estudiante → N elegibles),
     // luego perfilamos dónde están esos elegibles por curso-horario decidiendo
     // los criterios de aula CON la radiografía del marco a la vista.
-    const [criteriosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
+    const [criteriosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab, consistenciaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
     return [
       { ...criteriosTab, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame) },
       // La radiografía es el contenido dominante de esta pestaña integrada, así
@@ -227,6 +224,7 @@ export function universitySidebarTabs({
       { ...poblacionTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...aulasTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...coberturaTab, status: guideStatus(effectiveMarcoReady) },
+      { ...consistenciaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
     ];
   }
   if (activeSection === "calculo") {

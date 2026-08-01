@@ -26,7 +26,6 @@ describe("catálogos canónicos de pestañas", () => {
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
-      "def-consistencia:Consistencia",
       "def-variables:Variables",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco)).toEqual([
@@ -35,6 +34,7 @@ describe("catálogos canónicos de pestañas", () => {
       "marco-poblacion:Población",
       "marco-aulas:Cursos-horario",
       "marco-cobertura:Cobertura",
+      "def-consistencia:Consistencia",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo)).toEqual([
       "calculo-diseno:Diseño",
@@ -127,6 +127,12 @@ describe("catálogos canónicos de pestañas", () => {
         expect(tab.direccionPublicada).toBe(true);
       }
     }
+    const consistencia = Object.values(CALC_MUESTRA_UNIVERSIDAD_PESTANAS)
+      .flat()
+      .find((tab) => tab.id === "def-consistencia");
+    expect(consistencia?.to).toBe(
+      "/calc-muestra?modo=opinion-universitaria&seccion=marco&pestana=def-consistencia",
+    );
 
     for (const [seccion, pestanas] of Object.entries(PROCESAMIENTO_PESTANAS)) {
       for (const tab of pestanas) {

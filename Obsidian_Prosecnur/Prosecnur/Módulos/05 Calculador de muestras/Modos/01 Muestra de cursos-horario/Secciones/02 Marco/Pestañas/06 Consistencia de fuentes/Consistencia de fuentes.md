@@ -1,10 +1,10 @@
 ---
 tipo: pestana
-padres: ["[[Datos]]"]
-orden: 3
+padres: ["[[Marco]]"]
+orden: 6
 documentacion: parcial
-ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=definicion&pestana=def-consistencia"
-nodo: "calc-muestra/opinion-universitaria/definicion/def-consistencia"
+ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=marco&pestana=def-consistencia"
+nodo: "calc-muestra/opinion-universitaria/marco/def-consistencia"
 tags:
   - Pestaña
 fuentes: ["frontend/src/features/calcMuestra/universidad/marco/MarcoConsistenciaTab.tsx"]
@@ -12,17 +12,17 @@ fuentes: ["frontend/src/features/calcMuestra/universidad/marco/MarcoConsistencia
 # Consistencia de fuentes
 > En la UI: **Consistencia**. Comprueba el enlace entre estudiantes y cursos-horario.
 ## Objetivo
-Detectar claves faltantes, huérfanos y duplicados antes de construir el marco.
+Comprobar al cierre de Marco las claves faltantes, huérfanos y duplicados que comprometen el frame vigente.
 ## Antes de empezar
-- Haber cargado una base única o las dos fuentes relacionadas.
+- Haber mapeado las variables, construido un marco vigente y revisado su cobertura.
 ## Mapa de la pantalla
 ```mermaid
 flowchart LR
-    A[Fuentes] --> B[Claves de enlace]
+    A[Cobertura revisada] --> B[Claves de enlace]
     B --> C[Diagnóstico]
     C --> D{Consistente}
-    D -->|Sí| E[Variables]
-    D -->|No| F[Corregir fuentes]
+    D -->|Sí| E[Diseño]
+    D -->|No| F[Corregir fuentes y reconstruir]
 ```
 ## Elementos de la pantalla
 | Elemento | Para qué sirve | Qué cambia o produce |
@@ -34,12 +34,12 @@ flowchart LR
 1. Revisa las claves propuestas o mapeadas.
 2. Compara conteos de ambas fuentes.
 3. Resuelve huérfanos y duplicados.
-4. Continúa en Variables universitarias.
+4. Continúa en Diseño universitario cuando la conciliación sea confiable.
 ## Resultado y siguiente paso
-- Enlace evaluado; sigue Variables universitarias.
+- Enlace evaluado; sigue Diseño universitario.
 ## Estados, alertas y límites
 - La consistencia se evalúa al cargar datos, no al calcular.
-- Un diagnóstico rojo bloquea un marco confiable.
+- Un diagnóstico rojo exige corregir las fuentes y reconstruir antes de diseñar.
 
 ## Cómo interpretar lo que ves
 
@@ -59,4 +59,4 @@ Si los totales coinciden pero las llaves no, no declares consistencia; revisa ti
 
 ## Ubicación en la jerarquía
 
-- Padre: [[Datos]].
+- Padre: [[Marco]].

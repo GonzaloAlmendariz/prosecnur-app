@@ -176,10 +176,10 @@ trabajando en lo desbloqueado.
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
 | Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 7 | ↑ a 7 |
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
-| Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 20 de 24 (83,3 %); 24 de 24 auditadas | 100 % |
+| Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 21 de 24 (87,5 %); 24 de 24 auditadas | 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 7 locales en fuente; 6 grupos renderizados por viewport de Marco, 0 misses y 0 issues | ↑ con cobertura conforme |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 5 confirmados + 2 observaciones por confirmar; N9 e I0-H1 cerrados | ↓ |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 4 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H3 e I0-H6 cerrados; I2-H7 añadido | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -191,10 +191,11 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | N9 | F0 | Marco publica dos instantáneas no reconciliadas de CH elegibles (2.265 y 2.373 en `hsvg2026`) | **resuelto I1**: owner, perfil, audit y exploración del fixture vigente cuadran en 2.373; un payload legacy contradictorio queda en S/D + reconstrucción; D1 sigue abierta |
 | I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | **cerrado I1**: 30 grupos medidos en cinco viewports, 0 misses y 0 issues |
 | I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | confirmado; breakpoint mantiene cinco columnas y `overflow-wrap:anywhere` |
-| I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | confirmado; `UniversidadDesk.tsx:419-421` |
+| I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | **cerrado I2**: Datos queda con 3 pestañas y Marco con 6; Consistencia tiene un único hogar, el sexto de Marco |
 | I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | confirmado; `calcMuestra.ts:107` y spec líneas 87-98 |
 | I0-H5 | F3 | Entrega ordena Entregables antes de Tablas | confirmado; afecta dos pestañas del denominador F3 |
-| I0-H6 | F3 / navegación | El alias cross-section `marco-validacion → def-consistencia` cae en la primera pestaña de Marco | confirmado; el resolver cambia id pero no sección |
+| I0-H6 | F3 / navegación | El alias cross-section `marco-validacion → def-consistencia` cae en la primera pestaña de Marco | **cerrado I2**: alias y URL publicada anterior canonicalizan con `replace` a `marco/def-consistencia`; 3/3 visitas reales |
+| I2-H7 | F3 / guard metodológico | Consistencia puede publicar «Listo» con dos bases aunque `relation_audit.status` sea `revisar` o `critico` | confirmado en revisión I2; el gate mira existencia de frame, y el panel conflata `used=false` con base única |
 | I0-O1 | F2 / navegación | Marco y Aulas pueden conservar scroll inicial al navegar por `--ir` en 1710×1107 | por confirmar; no suma FAIL en iteración 0 |
 | I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | por medir con rectángulos; no suma FAIL en iteración 0 |
 
@@ -211,6 +212,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 |---|---|---|---|---|---|
 | 0 | 2026-07-31 | F0–F4 · baseline | Se midieron estructura, contratos parciales, orden de las 24 pestañas y las cinco secciones reales de `hsvg2026`; no se tocó producto | `wc`/`rg` con `archivo:línea`; revisión metodológica 24/24; `ui-quick-check --require-geometry` 25/25 en `/private/tmp/prosecnur-visual-iter0` (PASS 20, FAIL 5 por C1 en Marco, demás contadores duros en 0) | F3: por auditar → 20/24 justificadas; geometría: por medir → 4 locales; contratos: se reconoció 1 parcial probado; hallazgos: 1 → 7 + 2 observaciones |
 | 1 | 2026-08-01 | F0/N9 + I0-H1 | Se congeló `aula_frame.included` como owner del conteo ejecutado; perfil, audit y exploración se validan como proyecciones; los cuatro consumidores fallan cerrado en mismatch/ausencia, conservan reconstrucción y rotulan `elegibles_total` como matrículas; se retiró el promedio React sin denominador decidido y se declaró C1 en cifras/listas | test R 191/191; Vitest afectado 29/29 y suite completa 2.797/2.797; typecheck y diff-check 0; contrato compatible y revisión metodológica aprobada; matriz final `/private/tmp/prosecnur-visual-iter1-final-r3/marco/report.json` 5/5 PASS, 30 grupos, 0 misses/issues/errores | N9: 1 → 0 cifras sin dueño; geometría Marco: 20 → 0 misses; hallazgos abiertos: 7 + 2 → 5 + 2, con N9 e I0-H1 cerrados |
+| 2 | 2026-08-01 | F3/I0-H3 + I0-H6 | Se devolvió `def-consistencia` al final de Marco en catálogo, sidebar, render y bóveda; la URL antes publicada y el alias histórico se leen como parejas explícitas y se reemplazan por `marco/def-consistencia`, sin inferir sección desde un tab suelto | regresión 10 rojas/20 verdes → 30/30; suite 2.805/2.805 y typecheck verdes; bóveda sin V1/V3; contrato aprobado y método aprobado con I2-H7 separado; `/private/tmp/prosecnur-visual-iter2-final/runtime-probe/report.json` 3/3 PASS, 3 grupos, 0 misses/issues/errores/scroll/overflow | F3: 20/24 → 21/24; H3 y H6 cerrados; hallazgos 5 + 2 → 4 + 2 al incorporar H7 |
 
 ### Contrato de iteración 0
 
@@ -233,9 +235,10 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **2 — F3/I0-H6, alias cross-section
-`marco-validacion → def-consistencia`**. Se trazará la primera divergencia del
-resolver y se congelará la dirección canónica antes de editar navegación. D1 y
+**Siguiente iteración programada:** **3 — F3/guard I2-H7, falso «Listo» de
+Consistencia**. Se congelará primero la matriz `base_madre` / `dos_bases` ×
+`relation_audit`, se escribirá la regresión roja y luego se hará que el estado
+y el copy impidan continuar a Diseño con una conciliación no acreditada. D1 y
 D2 permanecen abiertas; no se añadió una decisión nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
@@ -289,6 +292,94 @@ D2 permanecen abiertas; no se añadió una decisión nueva.
   cross-section resuelve el id pero conserva la sección equivocada, fijar una
   regresión de dirección y reparar la primera divergencia sin bundlear las
   demás mudanzas conceptuales.
+
+### Contrato de iteración 2 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F3/I0-H3 + I0-H6. La spec vigente
+  `docs/calc-muestra-recorrido-spec.md:51-69` fija Datos como Estudio → Fuentes
+  → Variables y Marco como Criterios → Radiografía → Población →
+  Cursos-horario → Cobertura → Consistencia. ADR 0044 exige que la dirección
+  canónica conserve juntos sección y pestaña.
+- **Primera divergencia medida:** `UNIVERSITY_LOCAL_TAB_ALIASES` traduce
+  `marco-validacion` a `def-consistencia`, pero no puede traducir su sección;
+  después `CalcMuestraPage` descarta esa pareja inválida y cae en la primera
+  pestaña de Marco. El parser global y `useSeccion` son coherentes con su
+  contrato. I0-H3 e I0-H6 son por ello una sola reparación causal: no se puede
+  corregir el alias sin devolver Consistencia al hogar que manda la spec.
+- **Módulos afectados:** catálogo canónico del desk universitario, sidebar y
+  render de Consistencia, compatibilidad de direcciones históricas y sus
+  regresiones focales.
+- **Archivos previstos:**
+  `frontend/src/lib/navegacion/catalogos/calcMuestra.ts`;
+  `frontend/src/lib/navegacion/catalogos/catalogos.test.ts`;
+  `frontend/src/features/calcMuestra/navegacion.ts`;
+  `frontend/src/features/calcMuestra/navegacion.test.ts`;
+  `frontend/src/features/calcMuestra/universidad/universidadTabs.ts`;
+  `frontend/src/features/calcMuestra/universidad/UniversidadDesk.tsx`;
+  `frontend/src/features/calcMuestra/universidad/marco/MarcoConsistenciaTab.tsx`
+  (solo corregir el comentario de identidad del id público);
+  `frontend/src/features/calcMuestra/universidad/marco/__tests__/marcoConsistencia.test.tsx`;
+  la dirección generada `docs/sistema/direcciones/calc-muestra.md`; las notas
+  de bóveda `Datos.md`, `Fuentes para la muestra universitaria.md`,
+  `Variables universitarias.md`, `Marco.md`, `Cobertura universitaria.md` y
+  `Consistencia de fuentes.md` y `Diseño universitario.md` bajo el modo
+  universitario (incluidas las
+  mudanzas ordinales `Variables 04→03` y `Consistencia Datos/03→Marco/06`); y
+  este ledger.
+- **Exclusiones explícitas:** parser y hook globales de dirección, manifiesto
+  de módulos fuera del catálogo compartido, API/R, schemas, persistencia o
+  migraciones `.pulso`, CSS y copy del panel, `aulasParts.tsx`, F0–F2, F4,
+  I0-H2/H4/H5/O1/O2 y el prompt de arranque no versionado.
+- **Cambio enfocado:** mover el id público `def-consistencia` al final de
+  Marco; mantenerlo sin renombrar; leer y normalizar con `replace` solo las dos
+  parejas históricas aprobadas (`definicion/def-consistencia` y
+  `marco/marco-validacion`) hacia `marco/def-consistencia`, preservando modo,
+  proyecto y parámetros ajenos. No se impondrá una regla genérica de
+  precedencia de pestaña sobre sección ni se inventarán aliases adicionales.
+- **Riesgo principal:** romper un deep-link publicado, producir un bucle de
+  normalización o teletransportar una pareja desconocida a otra sección.
+- **Baseline disponible:** 22/22 pruebas focales verdes en el estado defectuoso;
+  reproducción `hsvg2026` 1440×1000 en
+  `/private/tmp/prosecnur-visual-iter2-baseline`: las parejas
+  `marco/marco-validacion` y `marco/def-consistencia` renderizan por error
+  Criterios del estudiante, mientras `definicion/def-consistencia` sí muestra
+  Consistencia; 0 errores, overflow, scroll o fallos geométricos.
+- **Validación mínima:** regresión roja de catálogo, hogar de render y matriz
+  explícita de direcciones; Vitest focal + suite frontend completa +
+  `typecheck`; `vaults-check --generar` y `--check`; visita `hsvg2026` por las
+  tres direcciones con `--require-geometry`; revisiones contractual y
+  metodológica; `verificador` serial.
+- **Ampliación medida del peaje estructural:** al regenerar la dirección,
+  `vaults-check --check` detectó V1 para la nota aún anclada en
+  `definicion/def-consistencia` y V3 para el nuevo nodo
+  `marco/def-consistencia`. La mudanza de esa nota y la actualización de sus
+  dos índices padre, vecinos anterior/siguiente y ordinal de Variables forman
+  parte del mismo contrato documental; no amplían la lógica de producto.
+- **Fallo o cuello:** el alias histórico solo traducía el id y conservaba la
+  sección, por lo que Marco descartaba `def-consistencia` y caía en Criterios.
+  A la vez, el catálogo había congelado en Datos un hogar contrario a la spec.
+- **Cambio enfocado:** catálogo, estado y render trasladan el mismo panel sin
+  cambiar su cálculo; un resolver local de parejas reconoce exclusivamente las
+  dos direcciones históricas aprobadas y el efecto de publicación hace un solo
+  `replace`. La bóveda replica la misma cadena y conserva los ids públicos.
+- **Resultado:** mejor. Datos lista Estudio → Fuentes → Variables; Marco termina
+  en Consistencia. Las entradas canónica, publicada anterior y legacy terminan
+  en la misma URL y panel, sin fallback ni teletransporte de combinaciones no
+  publicadas. I0-H3 e I0-H6 quedan cerrados.
+- **Validación ejecutada:** rojo causal 10/30 y verde focal 30/30; suite
+  frontend completa 2.805/2.805; `typecheck`, `git diff --check` y
+  `vaults-check --check` verdes. Contrato aprobado; metodología aprobada para
+  H3/H6 con un hallazgo nuevo no bloqueante. QA `hsvg2026` 3/3 PASS en
+  1440×1000, URL final canónica en los tres ingresos, 3 grupos, 0 misses,
+  issues, errores, scroll u overflow; el 8787 permaneció intacto.
+- **Hallazgo producido por la auditoría:** I2-H7. El gate preservado acredita
+  Consistencia por existencia de frame, no por `relation_audit`; se separa de
+  H3/H6 porque es preexistente y el scope congeló contenido/gate, pero queda
+  primero en la cola por riesgo de falso verde antes de Diseño.
+- **Siguiente acción:** iteración 3, F3/guard I2-H7 — parametrizar el estado
+  para base única y dos bases, demostrar el falso «Listo» con una regresión y
+  consumir el `status` ya calculado por el engine sin crear un estadístico en
+  React. Después alinear el copy de acción con el paso a Diseño.
 
 ## Cómo se corre cada visita
 
