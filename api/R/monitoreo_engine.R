@@ -6026,7 +6026,10 @@ monitoreo_sync_sources <- function(sources, config = list(), since = NULL, progr
   sync_mode <- .monitoreo_sync_mode(sync_mode)
   sources <- Filter(function(s) isTRUE(s$enabled), monitoreo_normalize_sources(sources))
   if (.monitoreo_sync_mode_is_advance(sync_mode)) {
-    sources <- Filter(function(s) .monitoreo_scalar(s$kind, "") %in% c("surveymonkey", "kobo"), sources)
+    # El mismo filtro vive en el endpoint; este es el que decide de verdad,
+    # porque el job recibe las fuentes ya elegidas y vuelve a recortarlas.
+    # Ver monitoreo_sync_fuentes.R.
+    sources <- monitoreo_fuentes_avance(sources, monitoreo_config_family(config))
   }
   if (!length(sources)) stop("Configura al menos una fuente activa de monitoreo.", call. = FALSE)
   report <- if (!is.null(progress_path)) job_progress_writer(progress_path) else function(...) invisible(NULL)

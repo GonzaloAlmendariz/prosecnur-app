@@ -5024,7 +5024,9 @@ mount_monitoreo <- function(pr) {
       }
       sources <- Filter(function(src) !identical(.monitoreo_scalar(src$role, ""), "ocurrencias_campo"), sources)
       if (.monitoreo_sync_mode_is_advance(sync_mode)) {
-        sources <- Filter(function(src) .monitoreo_scalar(src$kind, "") %in% c("surveymonkey", "kobo"), sources)
+        # Espejo de fuentesSincronizables.ts: en telefónico el avance también
+        # lee las hojas de universo y barrido. Ver monitoreo_sync_fuentes.R.
+        sources <- monitoreo_fuentes_avance(sources, monitoreo_config_family(s$monitoreo_config))
       }
       if (!length(sources)) {
         message <- if (.monitoreo_sync_mode_is_advance(sync_mode)) {
