@@ -1,11 +1,8 @@
-# Prosecnur 0.6.0: bitácora espacial y navegación direccionable
+# Prosecnur 0.6.1 · fuentes desde el primer día
 
-- Bitácora: el estudio se dibuja en un lienzo espacial. Colocas nodos, los conectas y despliegas sus ramas sin salir del lienzo, con deshacer y rehacer. Los nodos apuntan a piezas reales de la app, a hitos o a entradas de la bitácora, y el mapa completo se exporta e importa.
-- Bitácora: el cronograma del estudio se arma por fases dentro de la app, y un centro de avisos reúne las alertas sin interrumpir el trabajo.
-- Navegación: toda vista tiene dirección propia y se comparte. Cada pantalla, panel y pestaña queda descrita en la barra de direcciones, así que un enlace lleva exactamente a donde estabas. Al abrir un proyecto aterrizas en su propio inicio, nunca en una pantalla heredada de otro estudio.
-- Monitoreo territorial: declaras a mano qué columna de tu base corresponde a cada variable, en la primera pestaña de UMPs. Antes se adivinaba sola y podía errar en silencio, eligiendo una columna vacía o una parecida pero distinta, con cifras creíbles y equivocadas como resultado. Cada variable muestra ahora su porcentaje de datos y un ejemplo real.
-- Monitoreo: las fuentes se ordenan por la pregunta que responden (qué se recoge, con qué actores y por dónde entra) y no por el servicio técnico de origen. El ritmo diario muestra en qué terminó cada llamada, el embudo se lee en Avance y un caso completo que no cruza aparece primero, porque es lo que hay que rescatar.
-- Recopiladores: módulo nuevo para preparar la salida a campo, con plan de recolección, accesos, materiales, entrega y ficha de encuestador con código QR.
-- Cálculo de muestra: el Marco separa el total de elegibles del promedio por curso-horario y nombra cada cifra por lo que es. Antes podían leerse como conteo de personas.
-- Rendimiento: la app abre más rápido, porque las comprobaciones de arranque y los proyectos recientes se resuelven en paralelo. Monitoreo conserva sus reportes dentro del proyecto en vez de recalcularlos y cancela las consultas al cambiar de pantalla. Importar desde SurveyMonkey o Kobo ya no congela la interfaz.
-- Legibilidad: los nombres de distrito, responsable y base dejan de recortarse. El texto de Monitoreo telefónico recupera sus tildes, las barras de insistencia vuelven a sumar 100%, un avance sin meta declarada deja de mostrarse como 0% y los errores de Kobo que puedes resolver tú se explican como tales.
+- Monitoreo: un estudio recién abierto conecta sus fuentes desde el primer día. La pantalla de Fuentes exigía un corte ya sincronizado, y el corte sale justamente de sincronizar: un proyecto nuevo veía «0/3 · Sin corte» y un panel vacío en el lugar del botón de conectar. Las pantallas sin datos traen ahora la cifra de este proyecto y la puerta a donde se resuelve.
+- Editor de formularios: un nombre de formulario o una ruta de exportación sin espacios deja de salirse de su caja. El conmutador recorta el nombre largo y lo muestra completo al posar el cursor, y el detalle del aviso quiebra la ruta dentro de la ventana.
+
+Instalación manual: el canal estable sigue bloqueado mientras el empaquetado no
+produzca firmas de distribución, así que esta versión se adjunta a mano y no
+llega por el actualizador automático.

@@ -12,6 +12,14 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.6.1",
+    date: "2026-08-01",
+    highlights: [
+      "Monitoreo: un estudio recién abierto conecta sus fuentes desde el primer día. La pantalla de Fuentes exigía un corte ya sincronizado, y el corte sale justamente de sincronizar: un proyecto nuevo veía «0/3 · Sin corte» y un panel vacío en el lugar del botón de conectar. Las pantallas sin datos traen ahora la cifra de este proyecto y la puerta a donde se resuelve.",
+      "Editor de formularios: un nombre de formulario o una ruta de exportación sin espacios deja de salirse de su caja. El conmutador recorta el nombre largo y lo muestra completo al posar el cursor, y el detalle del aviso quiebra la ruta dentro de la ventana.",
+    ],
+  },
+  {
     version: "0.6.0",
     date: "2026-07-31",
     highlights: [
