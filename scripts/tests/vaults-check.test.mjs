@@ -152,21 +152,48 @@ function escribirNotaEstructural(raiz, rutaApp) {
   return relativo
 }
 
-const run = spawnSync(process.execPath, [script, '--json', '--check'], {
-  cwd: REPO,
-  encoding: 'utf8',
-  timeout: 60_000,
-})
-
-let report = null
-try {
-  report = JSON.parse(run.stdout)
-} catch {
-  // El primer test conserva stdout/stderr completos en el mensaje de fallo.
+// La corrida sobre el repo real se hace perezosa y una sola vez.
+//
+// Estaba en el nivel superior del módulo, así que se ejecutaba al IMPORTAR el
+// archivo: justo cuando `node --test` carga toda la carpeta y levanta sus
+// workers, que es el pico de contención de la corrida. Con la máquina cargada
+// —un `R CMD check`, un vitest, otro agente compilando— el proceso no alcanzaba
+// a terminar dentro del plazo y `spawnSync` lo mataba: SIGTERM y rojo
+// intermitente, pese a que el check tarda ~1 s y su salida son 98 KB, lejos de
+// cualquier límite de buffer. Aislado no fallaba nunca, que es la firma de un
+// problema de contención y no de la lógica.
+//
+// Ejecutarlo dentro del primer test que lo necesita lo saca de esa ventana. El
+// plazo sube a 120 s porque este gate no debe opinar sobre la carga de la
+// máquina, solo sobre la bóveda, y `maxBuffer` queda explícito para que el día
+// que el vault crezca el fallo diga «salida demasiado grande» en vez de
+// repetir el mismo SIGTERM ambiguo.
+let corrida = null
+function correrVaults() {
+  if (corrida) return corrida
+  const run = spawnSync(process.execPath, [script, '--json', '--check'], {
+    cwd: REPO,
+    encoding: 'utf8',
+    maxBuffer: 8 * 1024 * 1024,
+    timeout: 120_000,
+  })
+  let report = null
+  try {
+    report = JSON.parse(run.stdout)
+  } catch {
+    // El primer test conserva stdout/stderr completos en el mensaje de fallo.
+  }
+  corrida = { run, report }
+  return corrida
 }
 
 test('vaults-check es silencioso, serializable y bloqueante', () => {
-  assert.equal(run.signal, null, `vaults-check terminó por señal ${run.signal}`)
+  const { run, report } = correrVaults()
+  assert.equal(
+    run.signal,
+    null,
+    `vaults-check terminó por señal ${run.signal}${run.signal === 'SIGTERM' ? ' (plazo de 120 s agotado, no un hallazgo de la bóveda)' : ''}`,
+  )
   assert.equal(run.error, undefined)
   assert.equal(run.stderr, '', `vaults-check escribió en stderr:\n${run.stderr}`)
   assert.ok(report, `salida no JSON:\n${run.stdout}`)
@@ -181,6 +208,8 @@ test('vaults-check es silencioso, serializable y bloqueante', () => {
 })
 
 test('la convergencia tiene cobertura real y no verde por ausencia', () => {
+  const { report } = correrVaults()
+  assert.ok(report, 'vaults-check no devolvió JSON; ver el test anterior')
   assert.ok(report.resumen.nodosContrato > 0)
   assert.ok(report.resumen.notasProducto > 0)
   assert.equal(Object.keys(report.contrato).length, report.resumen.nodosContrato)
