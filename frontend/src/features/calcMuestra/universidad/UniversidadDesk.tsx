@@ -6,7 +6,7 @@
  * navegación (sección, pestaña local y pestaña del laboratorio) sigue viviendo
  * en la página contenedora.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import {
   type CalcMuestraAulasState,
@@ -147,6 +147,7 @@ export function UniversidadDesk({
   );
   const [draftTargets, setDraftTargets] = useState<Record<string, number>>({});
   const [reporteFormato, setReporteFormato] = useState<"html" | "pdf">("html");
+  const activePanelRef = useRef<HTMLDivElement>(null);
 
   const currentTotal = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
   const currentFaculty = estudio.componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
@@ -318,6 +319,10 @@ export function UniversidadDesk({
   const activeContextTabKey = selectedSection === "aulas" ? activeLabTab : selectedLocalTab;
   const activeContextTabId = universityContextTabId(selectedSection, activeContextTabKey);
   const showLocalTab = (tabId: string) => selectedLocalTab === tabId;
+
+  useLayoutEffect(() => {
+    activePanelRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [selectedSection, activeContextTabKey]);
   const activeTabMeta = selectedSection === "aulas"
     ? localTabs.find((tab) => tab.classroomTab === activeLabTab)
     : localTabs.find((tab) => tab.id === selectedLocalTab);
@@ -393,7 +398,7 @@ export function UniversidadDesk({
       ) : null}
       <div className="cmv2-university-workbench" data-active-section={selectedSection}>
         {selectedSection === "definicion" && (
-          <div id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
+          <div ref={activePanelRef} id="cmv2-section-university-setup" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("def-estudio") && <div id="cmv2-local-def-estudio">
               <DefEstudioTab
                 estudio={estudio}
@@ -426,7 +431,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "marco" && (
-          <div id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
+          <div ref={activePanelRef} id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("marco-criterios-alumno") && <div id="cmv2-local-marco-criterios-alumno">
               <CriteriosMarcoTab
                 scope="alumno"
@@ -468,7 +473,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "aulas" && (
-          <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
+          <div ref={activePanelRef} id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {activeLabTab === "objetivo" && (
               <AulasObjetivoTab workspace={syncedWorkspace} model={labModel} onWorkspace={onWorkspace} />
             )}
@@ -502,7 +507,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "calculo" && (
-          <div id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
+          <div ref={activePanelRef} id="cmv2-section-university-calculo" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("calculo-diseno") && <div id="cmv2-local-calculo-diseno">
               <CalculoDisenoTab
                 totalComp={totalComp}
@@ -539,7 +544,7 @@ export function UniversidadDesk({
         )}
 
         {selectedSection === "salidas" && (
-          <div id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
+          <div ref={activePanelRef} id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("salidas-guia") && <div id="cmv2-local-salidas-guia">
               <SalidasCierreTab model={labModel} workspace={syncedWorkspace} />
             </div>}

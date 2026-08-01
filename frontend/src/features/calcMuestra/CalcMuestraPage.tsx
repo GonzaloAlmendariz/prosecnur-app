@@ -1348,9 +1348,6 @@ export default function CalcMuestraPage() {
     }
     setActiveRailSection(item.id);
     if (desk === "opinion_universitaria") {
-      window.requestAnimationFrame(() => {
-        document.querySelector(".cmv2-main")?.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      });
       return;
     }
     if (!item.targetId) return;
@@ -1364,9 +1361,6 @@ export default function CalcMuestraPage() {
 
   function navegarPestanaLocal(targetId?: string) {
     if (desk === "opinion_universitaria") {
-      window.requestAnimationFrame(() => {
-        document.querySelector(".cmv2-main")?.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      });
       return;
     }
     if (!targetId) return;

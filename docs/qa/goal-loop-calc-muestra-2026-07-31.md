@@ -178,8 +178,9 @@ trabajando en lo desbloqueado.
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
-| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 7 locales en fuente; 6 grupos renderizados por viewport de Marco, 0 misses y 0 issues | ↑ con cobertura conforme |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
+| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 12 grupos conformes en cuatro destinos de I7; 7 candidatos sin declaración concentrados en Radiografía de CH, por confirmar | ↑ con cobertura conforme |
+| Navegaciones canónicas Marco/Aulas que aterrizan arriba tras forzar el owner origen | por medir; I0-O1 sin secuencia reproducible | 13 de 13 navegaciones nuevas + 1 de 1 POP en 1710×1107; reset desde primer frame y estable | = 100 % |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 2 observaciones por confirmar (I0-O2 e I7-O3); N9, I0-O1, I0-H1, I0-H2, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -197,8 +198,9 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I0-H6 | F3 / navegación | El alias cross-section `marco-validacion → def-consistencia` cae en la primera pestaña de Marco | **cerrado I2**: alias y URL publicada anterior canonicalizan con `replace` a `marco/def-consistencia`; 3/3 visitas reales |
 | I2-H7 | F3 / guard metodológico | Consistencia puede publicar «Listo» con dos bases aunque `relation_audit.status` sea `revisar` o `critico` | **cerrado I3**: sidebar y panel comparten una decisión fail-closed; dos bases solo acreditan `used===true/status=ok` sin incidencias |
 | I3-H8 | F3 / C5 | El gauge conserva umbrales React 70 %/90 % y una zona «sólido» ajenos al `status` de R | **cerrado I3**: barra puramente descriptiva, tono del audit y regresión que prohíbe ticks, escala y zonas semánticas locales |
-| I0-O1 | F2 / navegación | Marco y Aulas pueden conservar scroll inicial al navegar por `--ir` en 1710×1107 | por confirmar; no suma FAIL en iteración 0 |
+| I0-O1 | F2 / navegación | Marco y Aulas pueden conservar scroll inicial al navegar por `--ir` en 1710×1107 | **cerrado I7**: el baseline confirmó 661 px heredados en Marco; el owner real se resetea pre-paint y el guard final pasa 13/13 navegaciones nuevas + POP |
 | I0-O2 | F2 / C3 | Aulas y Salidas dejan capacidad exterior amplia en escritorio grande | por medir con rectángulos; no suma FAIL en iteración 0 |
+| I7-O3 | F1 / guard C1 | Radiografía de CH expone siete candidatos geométricos sin `data-qa-geometry-group` | por confirmar; 1 grupo declarado conforme y 7 misses de cobertura en 1710×1107, sin issue geométrico probado todavía |
 
 ## Bandeja de decisiones (solo Gonzalo)
 
@@ -218,6 +220,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 4 | 2026-08-01 | F3/I0-H5 | Se ordenó Salida como Cierre → Tablas → Entregables → Pase en catálogo, estados y render, sin cambiar identidades ni deep-links; se alinearon inventario, bóveda e índice generado con los movimientos Tablas `03→02` y Entregables `02→03` | regresión causal 2 fallos/7 pruebas → foco de navegación 34/34; suite 339 archivos y 2.840/2.840 pruebas, typecheck, bóveda y diff-check verdes; método y contrato aprobados; bundle `prosecnur-visual-iter4-final/runtime-probe/report.json` 8/8 PASS, C1–C5, 16 grupos y todos los contadores duros en 0 | F3: 21/24 → 23/24; I0-H5 cerrado; hallazgos abiertos 3 + 2 → 2 + 2 |
 | 5 | 2026-08-01 | F3/I0-H4 | Se retiró el hogar duplicado `aulas/marco`; la pareja histórica reemplaza a `marco/marco-aulas`; Selección abre en Objetivo y conserva seis gates; fecha, respaldo y firmas histórica/vigente quedaron separados en Sustento; bóveda y manifiesto se renumeraron sin cambiar ids vivos | regresión de retiro 9 fallos/61 pruebas → 61/61; veto metodológico del sello 2 fallos/8 → 8/8; veto visual C1 1 fallo/9 → 9/9; veto del verificador a CSS posicional 1 fallo/10 → 10/10; foco final 65/65, suite 340 archivos y 2.857/2.857, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; método, contrato y verificador serial aprobados; A/B 4/4 PASS en el bundle `prosecnur-visual-iter5-final/runtime-probe/report.json` y C final 2/2 PASS en `prosecnur-visual-iter5-final-typography/report.json`, 14 grupos finales y todos los contadores duros en 0 | F3 histórico: 23/24 → 24/24 y vivo 23/23; Aulas F2 cambia denominador 7 → 6 vivas; I0-H4 cerrado; hallazgos 2 + 2 → 1 + 2 |
 | 6 | 2026-08-01 | F1/F2/I0-H2 | Se amplió la capacidad de las categorías planas, se congeló la cascada 1350→1100→620 y se retiró `anywhere` solo de sus rótulos; el rótulo compuesto conserva texto y nombre accesible e incorpora oportunidades de corte únicamente después de sus seis comas | guard CSS 3 fallos/3 verdes → 6/6; veto visual C3 → regresión semántica 1 fallo/6 verdes → 7/7; foco 108/108, suite 340 archivos y 2.861/2.861, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter6-final-wbr/report.json` 7/7 PASS, columnas 6/5/4/4/3/3/2, 0/217 rótulos partidos, 42 grupos y todos los contadores duros en 0; el veto documental posterior corrigió índice, `Fecha` y portabilidad: 21/21 tests y árbol propuesto 196/196, 0 errores | I0-H2 cerrado; hallazgos abiertos 1 + 2 → 0 + 2; F1/F2 conservan sus denominadores porque la iteración cierra un defecto, no acredita una radiografía ni un revamp completo |
+| 7 | 2026-08-01 | F2/I0-O1 | Se identificó `.cmv2-tab-panel` como owner único, se le dio un ref local y se resetea pre-paint al cambiar sección o pestaña; se retiraron los dos RAF muertos sobre `.cmv2-main`, sin mover foco ni alterar navegación/historial | runtime rojo Marco 661→661; guard fuente 3 fallos→3/3; foco estructural 9/9; suite 341 archivos y 2.864/2.864, typecheck, bóveda (201/206) y diff-check verdes; contrato aprobado; bundle `prosecnur-visual-iter7-final/report.json`: 13/13 navegaciones nuevas + POP PASS, owner en 0 desde rAF, sin salto a +600 ms ni errores duros | Navegación pasa de observación sin denominador a 13/13 + POP; I0-O1 cerrado. I7-O3 entra como observación separada, por lo que hallazgos agregados quedan 0 + 2; geometría expone 7 misses de cobertura sin promoverlos a FAIL |
 
 ### Contrato de iteración 0
 
@@ -240,15 +243,14 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **7 — F2/I0-O1, confirmar o cerrar la
-conservación de scroll inicial al navegar por dirección en Marco y Aulas a
-1710×1107**. Ya no quedan defectos confirmados; O1 tiene mayor radio que O2
-porque puede afectar toda navegación profunda y accesibilidad, mientras O2 sigue
-siendo una hipótesis de capacidad exterior. Se medirá primero sin tocar producto,
-comparando entrada canónica, cambio entre pestañas y retorno, con owner de scroll,
-foco y cabecera activa registrados. Solo si se confirma se congela la semántica
-de reset/restauración y se abre reparación. D1 y D2 permanecen abiertas; no se
-añadió una decisión nueva.
+**Siguiente iteración programada:** **8 — F1/I7-O3, confirmar o cerrar los siete
+candidatos geométricos sin C1 de Radiografía de CH**. No quedan defectos
+confirmados; O3 pasa delante de O2 porque un hueco de cobertura puede hacer verde
+el guard por ausencia precisamente en una radiografía estadística de Marco. Se
+clasificarán los siete candidatos por colección/owner/capacidad y solo los grupos
+semánticos reales recibirán contrato y guard; no se anotarán wrappers para
+maquillar el contador. O2 permanece en cola para la siguiente rotación. D1 y D2
+siguen abiertas; no se añadió una decisión nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -813,6 +815,119 @@ añadió una decisión nueva.
   cinco archivos previstos, pasa 196/196, 648 enlaces y `Errores: 0`. Bóveda
   201/206 y `git diff --check` permanecen verdes. Este resultado justifica el
   baseline ajeno sin ocultarlo y deja el commit verificable en aislamiento.
+
+### Contrato de iteración 7 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F2/I0-O1. La dirección canónica debe
+  identificar sección y pestaña, y el panel activo es el único owner del scroll
+  vertical del contenido. Esta iteración no presupone el fallo: una navegación
+  programática nueva debe mostrar la cabecera del destino; la restauración de
+  una entrada de historial se mide aparte y no se confunde con `ir`.
+- **Fallo o cuello por confirmar:** en el baseline I0, Marco y Aulas parecían
+  conservar un `scrollTop` previo al navegar por dirección a 1710×1107. La
+  observación no sumó FAIL porque no se capturaron owner, tiempo de lectura,
+  foco ni secuencia reproducible.
+- **Matriz de auditoría congelada:** sobre una copia de `hsvg2026`, registrar
+  entrada fría por URL canónica; entrada por `window.__pulsoNav.ir`; cambio entre
+  dos pestañas de Marco; cambio entre Objetivo y Sustento de Aulas; cruce
+  Marco→Aulas→Marco; y retorno de historial. Para cada paso medir en llamada,
+  siguiente frame y readiness estable: URL/dirección activa, panel visible,
+  `scrollTop/maxScroll`, rectángulo de cabecera, `document.activeElement` y todos
+  los owners desplazables. Antes de cada cambio se fuerza el owner origen al
+  fondo para que un falso reset sea observable.
+- **Criterio de clasificación:** O1 se cierra si toda entrada fría y todo `ir`
+  nuevo dejan el owner destino en 0, cabecera visible y sección/pestaña correctas,
+  sin saltos tardíos. Se promueve a hallazgo confirmado si cualquiera conserva
+  offset, enfoca contenido oculto o desplaza después de readiness. El historial
+  puede restaurar posición solo si su semántica es explícita, estable y no
+  contamina una navegación nueva.
+- **Archivos previstos:** la auditoría confirmó el defecto y el delta autoriza
+  únicamente `frontend/src/features/calcMuestra/universidad/UniversidadDesk.tsx`,
+  `frontend/src/features/calcMuestra/CalcMuestraPage.tsx`, una regresión nueva
+  `frontend/src/features/calcMuestra/universidad/UniversidadDeskScroll.contract.test.ts`
+  y este ledger. No se toca CSS ni navegación global.
+- **Peaje estructural:** localizar un owner único y el límite URL→estado→panel;
+  no introducir listeners globales, timers compensatorios ni reset por selector
+  DOM desde fuera del módulo. Cualquier reparación debe vivir en el dueño de la
+  transición y cubrir teclado/foco además del offset.
+- **Exclusiones explícitas:** cálculo/estadísticos y engine R, datos/payloads,
+  persistencia y `.pulso`, catálogos/orden ya cerrados por F3, revamp visual de
+  Aulas, O2, D1/D2, `aulasParts.tsx`, puerto 8787 y el prompt no rastreado del
+  usuario.
+- **Riesgo principal:** declarar un bug por medir demasiado pronto, o arreglar
+  `ir` destruyendo la restauración legítima de historial. Por eso la prueba
+  observa tres momentos y separa ambas clases de navegación.
+- **Baseline de checks:** post-I6 `741dbe30`; working tree sin cambios rastreados
+  y solo el prompt ajeno como `??`. No se abre server ni se toca producto antes
+  de este scope lock.
+- **Validación mínima:** navegación real por dirección en 1710×1107 con owner,
+  foco y cabecera; tests de navegación relevantes; C1–C5 y contadores duros del
+  guard si se toca producto; `typecheck`, bóveda, gobernanza del árbol propuesto,
+  `git diff --check`, revisor contractual y `verificador` serial. La iteración
+  termina con O1 cerrado o promovido/reparado, ledger actualizado y commit
+  atómico en español.
+- **Runtime rojo y primera divergencia:** Marco
+  `marco-criterios-alumno → marco-ch-radiografia` comparte el owner
+  `#cmv2-section-university-marco.cmv2-tab-panel`. Forzado a 661/661, `ir`
+  devuelve `true` y cambia URL/dirección en llamada y siguiente frame, pero en
+  estable y +600 ms conserva 661/1820; el título `Ajustes del marco` queda en
+  `top=-273.64/bottom=-256.64`. No hay salto tardío: el panel persistente nunca
+  se resetea. El caso está registrado en el bundle
+  `prosecnur-visual-iter7-baseline/quick-first.mjs`; la matriz ampliada sigue
+  midiendo Aulas, cruce e historial.
+- **Historia causal y baseline de tests:** `94904e47` introdujo pestañas dentro
+  de un panel persistente sin reset; `6df7c5fb` intentó corregirlo sobre
+  `.cmv2-main`; `b3469206` formalizó `.cmv2-tab-panel` como owner único y dejó
+  el main oculto; `27afc0c3` publicó sección/pestaña en URL y expuso el defecto
+  por `__pulsoNav.ir`. Ocho archivos de navegación/geometría/ARIA pasan 73/73,
+  pero ninguno fuerza scroll antes de un PUSH/POP.
+- **Contrato de reparación congelado:** `UniversidadDesk` posee un ref al panel
+  activo y un `useLayoutEffect` dependiente de sección + pestaña lo lleva a
+  `{top:0,left:0,behavior:"auto"}` antes de pintar una superficie nueva. La
+  misma superficie no dispara el efecto; PUSH, cambio de sección y POP sí,
+  porque todavía no existe restauración explícita por entrada. No se mueve foco:
+  el tab/control superviviente lo conserva y la cabecera solo debe ser visible.
+  Los dos RAF de `CalcMuestraPage` que escriben sobre `.cmv2-main` se retiran;
+  sus ramas universitarias quedan como retorno, sin selector compensatorio.
+- **Guard previsto:** roja estructural/conductual que exija ref sobre cada panel
+  universitario, reset pre-paint ligado a `selectedSection` y
+  `activeContextTabKey`, y ausencia de `scrollTo` sobre `.cmv2-main`. Después:
+  foco relevante, suite completa/typecheck y el mismo probe runtime con owner
+  origen forzado; destino debe quedar en 0 desde el siguiente frame hasta
+  readiness, con URL/tab/cabecera/foco coherentes.
+- **Reparación y peaje estructural:** el guard nuevo falló 3/3 por ausencia de
+  efecto, cinco paneles sin ref y dos resets sobre el no-owner. `UniversidadDesk`
+  incorpora un único `activePanelRef` y un `useLayoutEffect` dependiente de
+  `selectedSection` + `activeContextTabKey`; los cinco paneles condicionales
+  comparten el ref. `CalcMuestraPage` conserva sus retornos universitarios y
+  elimina solo los dos RAF inertes. No hay selector DOM nuevo, timer, foco,
+  cambio CSS ni clasificación global de PUSH/POP.
+- **Validación ejecutada:** guard 3/3, foco estructural adicional 9/9, suite
+  frontend 341 archivos y 2.864/2.864 pruebas, `typecheck`, bóveda 201/206 y
+  `git diff --check` verdes. El contrato aprobó owner/foco, compatibilidad sin
+  ADR/migración y semántica reset-top para POP mientras no exista restauración
+  explícita por entrada. El guard final fresco del bundle
+  `prosecnur-visual-iter7-final/report.json` pasa cuatro cold URLs, 13/13
+  navegaciones nuevas y 1/1 POP: Marco 661↔1820 y Aulas 382↔164 llegan a 0 en
+  el primer frame, quedan en 0 en readiness y +600 ms, con URL/tab/cabecera/foco
+  coherentes y cero errores duros. Las 18 capturas se inspeccionaron; SHA de
+  copia/canónico estable, proyecto limpio y puertos propios cerrados sin tocar
+  8787. Gobernanza pasa 196/196 y 648 enlaces con 0 errores en el árbol
+  propuesto `prosecnur-i7-proposed.qPqLhO`; el working tree compartido conserva
+  como único error el prompt ajeno no rastreado.
+- **Límites separados del guard:** C2/C3/C5 pasan 4/4 y los contadores duros C4
+  son 0. El selector suplementario de última hoja da dos falsos negativos sobre
+  descendientes dentro de contenido colapsable, aunque el owner único recorre
+  0/medio/máximo; no entra a la cola. Radiografía de CH sí deja una observación
+  reproducible distinta: 1 grupo C1 conforme y 7 candidatos sin declaración,
+  registrada como I7-O3 sin atribuirle todavía un defecto geométrico.
+- **Resultado:** mejor. I0-O1 queda cerrado y la navegación pasa de una
+  observación sin secuencia a 13/13 nuevas + POP conformes. Entra I7-O3, de modo
+  que el agregado permanece 0 confirmados + 2 observaciones (O2/O3), pero el
+  ledger gana un denominador de navegación al 100 %. F1/F2 y D1/D2 no cambian.
+- **Siguiente acción:** iteración 8, F1/I7-O3 — medir los siete candidatos de
+  Radiografía de CH por rectángulo, cardinalidad, owner y capacidad, contrastar
+  el cierre I0-H1 y decidir cuáles son colecciones C1 reales antes de editar.
 
 ## Cómo se corre cada visita
 
