@@ -14,10 +14,9 @@ import { CountUp } from "./CountUp";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import { frameIntegrity } from "../universidad/shared/frameIntegrity";
 import {
-  UNIVERSITY_FACULTY_COMPONENT_ID,
-  UNIVERSITY_TOTAL_COMPONENT_ID,
-} from "../universidad/shared/constants";
-import { normalizeUniversityAulasConfig } from "../universidad/shared/study";
+  normalizeUniversityAulasConfig,
+  universityComponentForScenario,
+} from "../universidad/shared/study";
 import { useMotorStore } from "../store";
 import type { MotorEfectivo } from "./usePerfilEfectivo";
 import "./motor.css";
@@ -29,6 +28,8 @@ type SummaryMetric = {
   icon: ReactNode;
   tone: "universe" | "estimated" | "confirmed" | "operation";
 };
+
+export const summaryComponentForScenario = universityComponentForScenario;
 
 export function ResumenDiseno({
   motor,
@@ -83,11 +84,8 @@ export function ResumenDiseno({
 
   // Metas operativas: SOLO tras ejecutar el cálculo (resultado persistido del
   // componente). Sin corrida de cálculo → "—" (no hay diseño calculado aún).
-  const totalComp =
-    estudio.componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ??
-    estudio.componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ??
-    estudio.componentes[0];
-  const resultado = totalComp?.resultado ?? null;
+  const selectedComp = summaryComponentForScenario(estudio.componentes, workspace);
+  const resultado = selectedComp?.resultado ?? null;
   const calcEjecutado = Boolean(resultado && Number(resultado.n_objetivo) > 0);
   const muestraObjetivo = calcEjecutado && resultado ? resultado.n_objetivo : null;
   const sobremuestraOperativa =

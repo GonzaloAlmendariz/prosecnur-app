@@ -24,16 +24,17 @@ import {
   UNIVERSITY_TOTAL_COMPONENT_ID,
   type ClassroomLabTab,
 } from "./shared/constants";
-import { classroomSelectionReady, frameAuditNumber, marcoCriteriosDesactualizado } from "./shared/frame";
+import { frameAuditNumber, marcoCriteriosDesactualizado } from "./shared/frame";
 import {
   componentFormulaBase,
   estratosDesdeFrame,
-  hasUsefulResult,
+  materializeUniversityAulasTarget,
   normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
   universityComponents,
   universityDefaultWorkspace,
   universityWorkspace,
+  type UniversityAulasScenario,
 } from "./shared/study";
 import { universitySidebarTabs } from "./universidadTabs";
 import { DefBasesTab, DefEstudioTab, DefVariablesTab } from "./definicion";
@@ -289,6 +290,9 @@ export function UniversidadDesk({
   // en vivo, compartidos por la franja de resultados y las pestañas del motor.
   const parametrosMotor = useMotorStore((s) => s.decisiones.parametros);
   const opcionalesActivosMotor = useMotorStore((s) => s.decisiones.opcionalesActivos);
+  const escenarioAulas = useMotorStore((s) => s.decisiones.escenario);
+  const cursosHorarioConfirmado = useMotorStore((s) => s.decisiones.cursosHorarioConfirmado);
+  const invalidarCursosHorarioPorMarco = useMotorStore((s) => s.invalidarCursosHorarioPorMarco);
 
   // Reconstrucción del marco duro (motor R): habilitada cuando hay una fuente
   // DEL MARCO con archivo declarado. La referencia histórica es analítica y no
@@ -348,8 +352,6 @@ export function UniversidadDesk({
     ),
   );
   const marcoReady = componentMarcoReady || aulasFrameReady;
-  const calculationReady = hasUsefulResult(totalComp) || hasUsefulResult(facultyComp);
-  const selectionReady = classroomSelectionReady(aulasState);
   // Frescura del marco para la tab de Cálculo: si los criterios cambiaron desde
   // que se construyó el marco, el # de CH del marco (y por tanto el # de aulas)
   // puede estar stale. Misma señal que la tab de Marco, para que Cálculo nunca
@@ -361,16 +363,31 @@ export function UniversidadDesk({
       return marcoCriteriosDesactualizado(
         aulasState?.frame,
         configVigente.criterios_seleccion,
-        undefined,
+        configVigente.teacher_type_orden,
         { config: configVigente, opcionalesActivos: opcionalesActivosMotor },
       );
     },
     [aulasState?.frame, syncedWorkspace.aulas_config, opcionalesActivosMotor],
   );
+  useEffect(() => {
+    if (cursosHorarioConfirmado) invalidarCursosHorarioPorMarco(marcoDesactualizado);
+  }, [marcoDesactualizado, cursosHorarioConfirmado, invalidarCursosHorarioPorMarco]);
+  function seleccionarEscenarioAulas(next: UniversityAulasScenario) {
+    if (next === escenarioAulas) return;
+    onWorkspace(materializeUniversityAulasTarget({
+      workspace: syncedWorkspace,
+      escenario: next,
+      totalComp,
+      facultyComp,
+    }));
+    useMotorStore.getState().setEscenario(next);
+  }
   const labModel = useMemo(
-    () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState }),
-    [syncedWorkspace, totalComp, facultyComp, aulasState],
+    () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado }),
+    [syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado],
   );
+  const calculationReady = labModel.selectedResultReady;
+  const selectionReady = labModel.selectionReady;
 
   // Marco construido pero cálculo en N = 0 y sin población en memoria
   // (proyectos guardados antes del sync automático): la reparación exige
@@ -549,11 +566,13 @@ export function UniversidadDesk({
               <CalculoCursosHorarioFacultadTab
                 componentes={[totalComp, facultyComp]}
                 aulasState={aulasState}
+                escenario={escenarioAulas}
+                onEscenario={seleccionarEscenarioAulas}
                 marcoDesactualizado={marcoDesactualizado}
               />
             </div>}
             {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido rec-recorrido--full">
-              <TabDistribucion perfil={motor.perfil} e1={motor.e1} />
+              <TabDistribucion perfil={motor.perfil} e1={motor.e1} marcoDesactualizado={marcoDesactualizado} />
             </div>}
           </div>
         )}

@@ -5,6 +5,7 @@ import {
   type CalcMuestraWorkspace,
   type CalcMuestraWorkspaceAulasConfig,
   type CalcMuestraWorkspaceAulasSelector,
+  type CalcMuestraWorkspaceAulasSizeGroup,
   type CalcMuestraWorkspaceEscenario,
 } from "../../../../api/client";
 import { calcNPreview, zFromConfidence } from "../../didactica/motorPreview";
@@ -50,6 +51,27 @@ function normalizePatternList(raw: string[] | undefined, fallback: string[]): st
 /** Proporción 0..1 con clamp (umbrales de c7/c8). */
 function normalizeProportion(raw: unknown, fallback: number): number {
   return Math.min(1, Math.max(0, safeNumber(raw, fallback)));
+}
+
+function normalizePositiveInteger(raw: unknown): number | undefined {
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647
+    ? value
+    : undefined;
+}
+
+export function normalizeAulasSizeGroups(raw: unknown): CalcMuestraWorkspaceAulasSizeGroup[] {
+  if (!Array.isArray(raw)) return DEFAULT_UNIVERSITY_AULAS_CONFIG.grupos_tamano.map((group) => ({ ...group }));
+  const groups = raw.flatMap((item, index) => {
+    if (item == null || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const min = Math.max(0, Math.round(safeNumber(record.min, 0)));
+    const parsedMax = safeNumber(record.max, Number.NaN);
+    const max = Number.isFinite(parsedMax) && parsedMax > 0 ? Math.max(min, Math.round(parsedMax)) : null;
+    const id = String(record.id ?? `G${index + 1}`).trim() || `G${index + 1}`;
+    return [{ id, label: String(record.label ?? id), min, max, descripcion: String(record.descripcion ?? "") }];
+  });
+  return groups.length ? groups : DEFAULT_UNIVERSITY_AULAS_CONFIG.grupos_tamano.map((group) => ({ ...group }));
 }
 
 /** Mapa nivel-por-unidad: conserva solo entradas con rangos {min,max} numéricos. */
@@ -104,6 +126,8 @@ function normalizeSessionExcepciones(
 
 export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["aulas_config"] | null): CalcMuestraWorkspaceAulasConfig {
   const raw: Partial<CalcMuestraWorkspaceAulasConfig> = config ?? {};
+  const { n_aulas: rawTarget, ...rawWithoutTarget } = raw;
+  const nAulas = normalizePositiveInteger(rawTarget);
   const selector = raw.selector ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.selector;
   const selectorEngine = normalizeAulasSelectorEngine(raw.selector_engine ?? selector);
   const acceptedConditions = (raw.accepted_conditions ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.accepted_conditions ?? ["regular"])
@@ -111,7 +135,8 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
     .filter(Boolean);
   return {
     ...DEFAULT_UNIVERSITY_AULAS_CONFIG,
-    ...raw,
+    ...rawWithoutTarget,
+    ...(nAulas == null ? {} : { n_aulas: nAulas }),
     modalidad: raw.modalidad ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.modalidad,
     selector,
     selector_engine: selectorEngine,
@@ -147,7 +172,7 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
     min_prevalence_pct: normalizeProportion(raw.min_prevalence_pct, 0.8),
     min_cycle_homogeneity_pct: normalizeProportion(raw.min_cycle_homogeneity_pct, 0.8),
     usar_grupos_tamano: raw.usar_grupos_tamano ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.usar_grupos_tamano,
-    grupos_tamano: raw.grupos_tamano?.length ? raw.grupos_tamano : DEFAULT_UNIVERSITY_AULAS_CONFIG.grupos_tamano,
+    grupos_tamano: normalizeAulasSizeGroups(raw.grupos_tamano),
     estratos_selector: raw.estratos_selector?.length ? raw.estratos_selector : DEFAULT_UNIVERSITY_AULAS_CONFIG.estratos_selector,
     balance_vars: raw.balance_vars?.length ? raw.balance_vars : DEFAULT_UNIVERSITY_AULAS_CONFIG.balance_vars,
     spread_vars: raw.spread_vars?.length ? raw.spread_vars : DEFAULT_UNIVERSITY_AULAS_CONFIG.spread_vars,
@@ -171,6 +196,84 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
     objective: raw.objective ?? DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
     notas_metodologicas: raw.notas_metodologicas ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.notas_metodologicas,
   };
+}
+
+export type UniversityAulasScenario = "e1" | "e2";
+
+export function universityAulasScenario(workspace: CalcMuestraWorkspace): UniversityAulasScenario {
+  return workspace.motor_recorrido?.decisiones?.escenario === "e2" ? "e2" : "e1";
+}
+
+/**
+ * Componente autoritativo del escenario persistido. La ausencia del actor
+ * esperado es un estado pendiente: nunca se cae al otro componente.
+ */
+export function universityComponentForScenario(
+  componentes: readonly CalcMuestraComponente[],
+  workspace: CalcMuestraWorkspace,
+): CalcMuestraComponente | undefined {
+  const actorId = universityAulasScenario(workspace) === "e2"
+    ? UNIVERSITY_FACULTY_COMPONENT_ID
+    : UNIVERSITY_TOTAL_COMPONENT_ID;
+  return componentes.find((component) => component.actor_id === actorId);
+}
+
+/** Materializa sin recalcular el objetivo titular publicado por R. */
+export function materializeUniversityAulasTarget({
+  workspace,
+  escenario,
+  totalComp,
+  facultyComp,
+}: {
+  workspace: CalcMuestraWorkspace;
+  escenario: UniversityAulasScenario;
+  totalComp: CalcMuestraComponente;
+  facultyComp: CalcMuestraComponente;
+}): CalcMuestraWorkspace {
+  const selected = escenario === "e2" ? facultyComp : totalComp;
+  const target = hasUsefulResult(selected)
+    ? normalizePositiveInteger(selected.resultado?.aulas_base_total)
+    : undefined;
+  const { n_aulas: _staleTarget, ...configWithoutTarget } = normalizeUniversityAulasConfig(workspace.aulas_config);
+  return {
+    ...workspace,
+    aulas_config: target == null
+      ? configWithoutTarget
+      : { ...configWithoutTarget, n_aulas: target },
+  };
+}
+
+/**
+ * Mantiene `aulas_config.n_aulas` alineado con el escenario y los resultados
+ * del engine. También elimina el target si falta cualquiera de los resultados
+ * necesarios para acreditar el handoff; así guardar/reabrir no revive cifras
+ * de un cálculo anterior.
+ */
+export function reconcileUniversityAulasTarget(
+  workspace: CalcMuestraWorkspace,
+  componentes: readonly CalcMuestraComponente[],
+): CalcMuestraWorkspace {
+  const selected = universityComponentForScenario(componentes, workspace);
+  const target = selected && hasUsefulResult(selected)
+    ? normalizePositiveInteger(selected.resultado?.aulas_base_total)
+    : undefined;
+  const { n_aulas: _staleTarget, ...configWithoutTarget } = normalizeUniversityAulasConfig(workspace.aulas_config);
+  return {
+    ...workspace,
+    aulas_config: target == null
+      ? configWithoutTarget
+      : { ...configWithoutTarget, n_aulas: target },
+  };
+}
+
+/** Un plan confirmado nunca es publicable sin target seleccionado vigente. */
+export function universityAulasTargetInvalidatesPlan(
+  current: CalcMuestraWorkspace,
+  next: CalcMuestraWorkspace,
+): boolean {
+  const currentTarget = normalizePositiveInteger(current.aulas_config?.n_aulas) ?? 0;
+  const nextTarget = normalizePositiveInteger(next.aulas_config?.n_aulas) ?? 0;
+  return nextTarget <= 0 || currentTarget !== nextTarget;
 }
 
 /**

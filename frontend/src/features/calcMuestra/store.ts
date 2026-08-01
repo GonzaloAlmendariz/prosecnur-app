@@ -177,6 +177,10 @@ type MotorState = {
   setResumenEstAula: (resumen: ResumenEstAula) => void;
   /** Confirma (o revoca) el plan definitivo de cursos-horario por facultad. */
   confirmarCursosHorario: (final: Record<string, number> | null) => void;
+  /** Revoca idempotentemente el plan cuando cambia el cálculo que lo sustenta. */
+  invalidarCursosHorario: () => void;
+  /** Revoca idempotentemente el plan si el marco que lo sustentaba quedó stale. */
+  invalidarCursosHorarioPorMarco: (marcoDesactualizado: boolean) => void;
   resetCanon: () => void;
   /**
    * Vuelve el motor al estado de fábrica (plantilla + decisiones canon, sin
@@ -248,7 +252,10 @@ export const useMotorStore = create<MotorState>((set) => ({
       decisiones: { ...state.decisiones, bolsaExtraPorFacultad: extraPorFacultad },
     })),
   setEscenario: (escenario) =>
-    set((state) => ({ tocado: true, decisiones: { ...state.decisiones, escenario } })),
+    set((state) => ({
+      tocado: true,
+      decisiones: { ...state.decisiones, escenario, cursosHorarioConfirmado: false },
+    })),
   setAulaExtraFacultad: (facultad, extra) =>
     set((state) => {
       const limpio = Math.max(0, Math.min(2, Math.round(extra)));
@@ -283,6 +290,22 @@ export const useMotorStore = create<MotorState>((set) => ({
         cursosHorarioFinal: final ?? state.decisiones.cursosHorarioFinal,
       },
     })),
+  invalidarCursosHorario: () =>
+    set((state) => {
+      if (!state.decisiones.cursosHorarioConfirmado) return state;
+      return {
+        tocado: true,
+        decisiones: { ...state.decisiones, cursosHorarioConfirmado: false },
+      };
+    }),
+  invalidarCursosHorarioPorMarco: (marcoDesactualizado) =>
+    set((state) => {
+      if (!marcoDesactualizado || !state.decisiones.cursosHorarioConfirmado) return state;
+      return {
+        tocado: true,
+        decisiones: { ...state.decisiones, cursosHorarioConfirmado: false },
+      };
+    }),
   resetCanon: () =>
     set((state) => ({ decisiones: decisionesPorDefecto(state.perfil), tocado: false })),
   resetInicial: () =>

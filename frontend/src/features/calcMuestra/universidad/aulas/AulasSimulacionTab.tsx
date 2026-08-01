@@ -17,11 +17,11 @@ import {
   ClassroomEmptyState,
   ClassroomLabCommandBar,
   ClassroomRecommendation,
-  ClassroomRiskList,
   RepresentativityMetricGrid,
   SimulationSummaryPanel,
   type ClassroomLabModel,
 } from "./aulasParts";
+import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
@@ -237,7 +237,7 @@ export function AulasSimulacionTab({
         </div>
         <aside className="cmv2-classroom-lab-side">
           <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
-          <ClassroomRiskList risks={riesgosAgregados} />
+          <ClassroomRiskList risks={riesgosAgregados} audited={model.comparisonReady || model.selectionReady} />
         </aside>
       </div>
     </div>

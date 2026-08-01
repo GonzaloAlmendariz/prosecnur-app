@@ -12,7 +12,7 @@
  *   f) confirma el plan definitivo y lo entrega en tabla y gráfico; ese plan es
  *      la fuente que reutiliza el gráfico de Distribución (§5.4).
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { AlertTriangle, Check, Grid3X3, Minus, Plus, RotateCcw } from "lucide-react";
 import type { CalcMuestraAulasState, CalcMuestraComponente } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
@@ -22,13 +22,14 @@ import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import { classroomRowNumber, classroomRowText, compareUniversityFacultyLabels, normalizeUniversityLabel } from "../shared/format";
-import { hasUsefulResult, universityDistributionRows } from "../shared/study";
+import { hasUsefulResult, universityDistributionRows, type UniversityAulasScenario } from "../shared/study";
 import { MetodoEstAulaSelector } from "./MetodoEstAulaSelector";
 import { METODOS_EST_AULA } from "./estAulaMetodo";
 import { Stepper } from "./Stepper";
 import {
   construirCursosHorarioModelo,
   cursosHorarioFinalMap,
+  estadoConfirmacionCursosHorario,
   type CursosHorarioEntradaFacultad,
   type CursosHorarioFilaFacultad,
 } from "./cursosHorarioModel";
@@ -144,10 +145,14 @@ function ReferenciaCelda({
 export function CalculoCursosHorarioFacultadTab({
   componentes,
   aulasState,
+  escenario,
+  onEscenario,
   marcoDesactualizado = false,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   aulasState: CalcMuestraAulasState | null;
+  escenario: UniversityAulasScenario;
+  onEscenario: (escenario: UniversityAulasScenario) => void;
   /** true si los criterios cambiaron desde que se construyó el marco: el # de CH
    *  (y el # de aulas) puede estar stale hasta reconstruir en Marco → Criterios. */
   marcoDesactualizado?: boolean;
@@ -157,6 +162,7 @@ export function CalculoCursosHorarioFacultadTab({
   const extraPorFacultad = useMotorStore((s) => s.decisiones.aulasExtraPorFacultad);
   const setExtra = useMotorStore((s) => s.setAulaExtraFacultad);
   const confirmado = useMotorStore((s) => s.decisiones.cursosHorarioConfirmado);
+  const planConfirmado = useMotorStore((s) => s.decisiones.cursosHorarioFinal);
   const confirmar = useMotorStore((s) => s.confirmarCursosHorario);
   // Método GLOBAL del divisor de estudiantes-por-aula (vive en el perfil).
   const resumen = useMotorStore((s) => s.perfil.resumenEstAula);
@@ -165,16 +171,12 @@ export function CalculoCursosHorarioFacultadTab({
   // Propuesta cuyas cuotas dimensionan las aulas: P1 (total universidad,
   // conglomerado) o P2 (por facultad, estratificado). Cada una da su propio
   // plan de aulas; el usuario elige cuál llevar a campo.
-  const [propuesta, setPropuesta] = useState<1 | 2>(1);
+  const propuesta: 1 | 2 = escenario === "e2" ? 2 : 1;
   const withDistribucion = (comp: CalcMuestraComponente | undefined) =>
     comp && (comp.resultado?.distribucion_estratos ?? []).length ? comp : null;
   const compTotal = componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ?? componentes[0];
   const compFacultad = componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ?? componentes[1];
-  const cuotasComp =
-    (propuesta === 1 ? withDistribucion(compTotal) : withDistribucion(compFacultad)) ??
-    withDistribucion(compFacultad) ??
-    withDistribucion(compTotal) ??
-    null;
+  const cuotasComp = propuesta === 1 ? withDistribucion(compTotal) : withDistribucion(compFacultad);
   const calculado = componentes.some(hasUsefulResult);
 
   const frameFacultades = useMemo(() => frameCursosHorarioPorFacultad(aulasState), [aulasState]);
@@ -221,6 +223,18 @@ export function CalculoCursosHorarioFacultadTab({
     return construirCursosHorarioModelo(entradas, base, resumen);
   }, [base, cuotasComp, extraPorFacultad, frameFacultades, facultadesR, resumen]);
 
+  const planActual = cursosHorarioFinalMap(modelo);
+  const estadoConfirmacion = estadoConfirmacionCursosHorario({
+    confirmado,
+    marcoDesactualizado,
+    completo: modelo.completo,
+    actual: planActual,
+    guardado: planConfirmado,
+  });
+  useEffect(() => {
+    if (confirmado && !estadoConfirmacion.vigente) confirmar(null);
+  }, [confirmado, estadoConfirmacion.vigente, confirmar]);
+
   if (!calculado || !cuotasComp) {
     return (
       <div className="cmv2-calc-stack">
@@ -234,7 +248,6 @@ export function CalculoCursosHorarioFacultadTab({
   }
 
   const maxFinal = Math.max(1, ...modelo.filas.map((f) => f.chFinal ?? 0));
-  const planIgualConfirmado = confirmado;
 
   // Bulk de la columna Extra: aplica un delta de CH extra a TODAS las facultades
   // visibles del modelo. El store (setAulaExtraFacultad) ya limita a [0, 2], así
@@ -261,10 +274,10 @@ export function CalculoCursosHorarioFacultadTab({
           <strong>Cursos-horario por facultad</strong>
           <div className="cmv2-panel-head-actions">
             <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
-              <button type="button" role="radio" aria-checked={propuesta === 1} data-active={propuesta === 1 || undefined} onClick={() => setPropuesta(1)}>
+              <button type="button" role="radio" aria-checked={propuesta === 1} data-active={propuesta === 1 || undefined} onClick={() => onEscenario("e1")}>
                 Propuesta 1
               </button>
-              <button type="button" role="radio" aria-checked={propuesta === 2} data-active={propuesta === 2 || undefined} onClick={() => setPropuesta(2)}>
+              <button type="button" role="radio" aria-checked={propuesta === 2} data-active={propuesta === 2 || undefined} onClick={() => onEscenario("e2")}>
                 Propuesta 2
               </button>
             </div>
@@ -407,14 +420,14 @@ export function CalculoCursosHorarioFacultadTab({
 
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar plan de cursos-horario">
         <div className="cmv2-calc-confirm-copy">
-          <strong>{planIgualConfirmado ? "Plan de cursos-horario confirmado" : "Plan de cursos-horario sin confirmar"}</strong>
+          <strong>{estadoConfirmacion.vigente ? "Plan de cursos-horario confirmado" : "Plan de cursos-horario sin confirmar"}</strong>
           <span>
             {fmtInt(modelo.totalFinal)} cursos-horario definitivos ({fmtInt(modelo.totalNecesarios)} necesarios + {fmtInt(modelo.totalExtra)} extra).
             {modelo.completo ? "" : " Falta medida de alumnos por CH en alguna facultad."}
           </span>
         </div>
         <div className="cmv2-inline-actions">
-          {planIgualConfirmado && (
+          {estadoConfirmacion.vigente && (
             <button type="button" className="cmv2-ghost" onClick={() => confirmar(null)}>
               <RotateCcw size={13} aria-hidden="true" /> Reabrir
             </button>
@@ -422,8 +435,8 @@ export function CalculoCursosHorarioFacultadTab({
           <button
             type="button"
             className="cmv2-primary"
-            disabled={!modelo.completo || planIgualConfirmado}
-            onClick={() => confirmar(cursosHorarioFinalMap(modelo))}
+            disabled={!estadoConfirmacion.puedeConfirmar}
+            onClick={() => confirmar(planActual)}
           >
             <Check size={13} aria-hidden="true" /> Confirmar plan
           </button>

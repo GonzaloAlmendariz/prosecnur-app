@@ -186,11 +186,9 @@ const ESPERADOS_KEYS = ["expected_completes", "expected_n", "esperados", "eligib
 
 export type SaludModelo = Pick<
   ClassroomLabModel,
-  | "totalComp"
-  | "facultyComp"
+  | "selectedComp"
   | "selectionReady"
   | "m1Rows"
-  | "totalTarget"
   | "targetForDisplay"
   | "facultades"
   | "currentRepresentativityScore"
@@ -214,7 +212,7 @@ function balanceFueraDeTolerancia(rows: CalcMuestraAulasProfileDistribution[]) {
 }
 
 export function piezasDesdeModel(model: SaludModelo): SaludPiezas {
-  const componentes = [model.totalComp, model.facultyComp].map((comp) => ({
+  const componentes = [model.selectedComp].map((comp) => ({
     etiqueta: proposalShortLabel(comp),
     nObjetivo: safeNumber(comp.resultado?.n_objetivo, 0),
     marcoN: safeNumber(comp.marco.marco_validado, 0),
@@ -236,7 +234,7 @@ export function piezasDesdeModel(model: SaludModelo): SaludPiezas {
     componentes,
     selectionReady: model.selectionReady,
     estudiantesEsperados,
-    objetivoEntrevistas: model.totalTarget || model.targetForDisplay,
+    objetivoEntrevistas: model.targetForDisplay,
     facultadesCubiertas: [...cubiertasPorNorm.values()],
     facultadesMarco: (model.facultades ?? []).map((estrato) => estrato.label).filter(Boolean),
     representatividad: Number.isFinite(model.currentRepresentativityScore) ? model.currentRepresentativityScore : null,

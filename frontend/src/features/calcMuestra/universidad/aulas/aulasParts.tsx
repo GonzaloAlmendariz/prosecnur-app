@@ -9,8 +9,6 @@
 import {
   ArrowRight,
   BarChart3,
-  CheckCircle2,
-  CircleAlert,
   Database,
   Gauge,
   Layers3,
@@ -18,7 +16,6 @@ import {
   RefreshCw,
   Route,
   Table2,
-  TriangleAlert,
   Users,
 } from "lucide-react";
 import {
@@ -45,33 +42,23 @@ import {
   normalizeStaleJobAviso,
 } from "./descuentoRepetidosModel";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
-import {
-  DEFAULT_UNIVERSITY_AULAS_OBJECTIVE,
-  UNIVERSITY_AULAS_MODALIDAD_OPTIONS,
-  UNIVERSITY_AULAS_SELECTOR_OPTIONS,
-} from "../shared/constants";
+import { DEFAULT_UNIVERSITY_AULAS_OBJECTIVE, UNIVERSITY_AULAS_MODALIDAD_OPTIONS, UNIVERSITY_AULAS_SELECTOR_OPTIONS } from "../shared/constants";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import {
   classroomComparisonForState,
-  classroomComparisonReady,
   classroomExtraReserveRowsForState,
-  classroomFrameReady,
   classroomM1RowsForState,
   classroomMetricValue,
-  classroomReplacementReady,
   classroomReplacementSimulationForState,
   classroomReserveRowsForState,
   classroomSelectionForState,
-  classroomSelectionReady,
   classroomSelectionRowsForState,
   frameAuditCards,
   frameAuditNumber,
+  frameAuditValue,
 } from "../shared/frame";
-import {
-  estimateClassroomBase,
-  estimateOperationalExtra,
-  normalizeUniversityAulasConfig,
-} from "../shared/study";
+import { estimateOperationalExtra } from "../shared/study";
+import { resolveClassroomArtifactStatus } from "./classroomHandoff";
 import { workspaceCategoryLabel } from "../shared/categorias";
 import {
   ClassroomBarPlot,
@@ -83,7 +70,6 @@ import {
 import "./aulas.css";
 /* Detalle técnico plegado del banner de riesgos (clases .cmv2-aviso-tecnico). */
 import "../shared/aviso.css";
-
 /* =============================================================================
    Primitivas compartidas (movidas del monolito; el monolito las importa de aquí)
    ============================================================================= */
@@ -233,22 +219,20 @@ export function buildClassroomLabModel({
   totalComp,
   facultyComp,
   aulasState,
+  marcoDesactualizado = false,
 }: {
   workspace: CalcMuestraWorkspace;
   totalComp: CalcMuestraComponente;
   facultyComp: CalcMuestraComponente;
   aulasState: CalcMuestraAulasState | null;
+  marcoDesactualizado?: boolean;
 }) {
   const frame = aulasState?.frame ?? null;
-  const comparison = classroomComparisonForState(aulasState);
-  const selection = classroomSelectionForState(aulasState);
-  const replacementSimulation = classroomReplacementSimulationForState(aulasState);
+  const rawComparison = classroomComparisonForState(aulasState);
+  const rawSelection = classroomSelectionForState(aulasState);
+  const rawReplacementSimulation = classroomReplacementSimulationForState(aulasState);
   const frameRows = rowsFrom<Record<string, unknown>>(frame?.aula_frame);
   const populationRows = rowsFrom<Record<string, unknown>>(frame?.population);
-  const frameReady = classroomFrameReady(aulasState);
-  const comparisonReady = classroomComparisonReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
   const framePopulationCount = Math.max(
     populationRows.length,
     safeNumber((frame as Record<string, unknown> | null)?.population_n, 0),
@@ -256,18 +240,29 @@ export function buildClassroomLabModel({
     frameAuditNumber(frame, "population_n"),
     frameAuditNumber(frame, "unique_students_n"),
   );
-  const selectionRows = classroomSelectionRowsForState(aulasState);
-  // El config vigente sale del eco de la última corrida (aulasState.config).
-  // `sequential_discount` es la excepción deliberada: es una decisión del
-  // usuario que vive en el workspace (autosave) y debe mandar sobre el eco
-  // para que el toggle no rebote ni viaje stale en la próxima corrida.
-  const sessionConfig = (aulasState?.config as CalcMuestraWorkspaceAulasConfig | undefined) ?? workspace.aulas_config;
-  const workspaceDiscount = workspace.aulas_config?.sequential_discount;
-  const config = normalizeUniversityAulasConfig(
-    sessionConfig == null || workspaceDiscount == null
-      ? sessionConfig
-      : { ...sessionConfig, sequential_discount: workspaceDiscount },
-  );
+  // El workspace manda sobre el eco stale en descuento y objetivo titular R.
+  const {
+    aulasScenario,
+    selectedComp,
+    selectedResultReady,
+    config,
+    currentAulasTarget,
+    frameReady,
+    marcoDesactualizado: artifactMarcoDesactualizado,
+    comparisonReady,
+    selectionReady,
+    replacementReady,
+  } = resolveClassroomArtifactStatus({
+    workspace,
+    totalComp,
+    facultyComp,
+    aulasState,
+    marcoDesactualizado,
+  });
+  const comparison = comparisonReady ? rawComparison : null;
+  const selection = selectionReady ? rawSelection : null;
+  const replacementSimulation = replacementReady ? rawReplacementSimulation : null;
+  const selectionRows = selectionReady ? classroomSelectionRowsForState(aulasState) : [];
   const objective = comparison?.objective_config ?? selection?.objective_config ?? config.objective ?? DEFAULT_UNIVERSITY_AULAS_OBJECTIVE;
   const objectiveVariables = rowsFrom<CalcMuestraAulasObjectiveConfig["variables"][number]>(objective.variables);
   const representativity = selection?.representativity ?? null;
@@ -285,24 +280,25 @@ export function buildClassroomLabModel({
   const currentRepresentativityScore = safeNumber(selection?.representativity_score ?? representativity?.representativity_score ?? comparison?.recommendation?.representativity_score, Number.NaN);
   const engineOption = UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((option) => option.id === config.selector_engine) ?? UNIVERSITY_AULAS_SELECTOR_OPTIONS[0];
   const modalidad = UNIVERSITY_AULAS_MODALIDAD_OPTIONS.find((option) => option.id === config.modalidad) ?? UNIVERSITY_AULAS_MODALIDAD_OPTIONS[0];
-  const m1Rows = classroomM1RowsForState(aulasState);
-  const reserveRows = classroomReserveRowsForState(aulasState);
-  const extraReserveRows = classroomExtraReserveRowsForState(aulasState);
+  const m1Rows = selectionReady ? classroomM1RowsForState(aulasState) : [];
+  const reserveRows = selectionReady ? classroomReserveRowsForState(aulasState) : [];
+  const extraReserveRows = selectionReady ? classroomExtraReserveRowsForState(aulasState) : [];
   const recommendedMethod = comparisonMethods.find((method) => method.method_id === recommendedMethodId) ?? null;
-  const totalBase = estimateClassroomBase(totalComp);
-  const facultyBase = estimateClassroomBase(facultyComp);
-  const referenciaBase = Math.max(totalBase ?? 0, facultyBase ?? 0);
-  const facultades = totalComp.marco.estratos ?? [];
+  const facultades = selectedComp.marco.estratos ?? [];
   const extraOperativo = estimateOperationalExtra(facultades, config);
-  const sobremuestraPct = Math.max(totalComp.parametros.oversample_pct, facultyComp.parametros.oversample_pct);
+  const sobremuestraPct = selectedComp.parametros.oversample_pct;
   const selectorFields = config.estratos_selector.map(selectorFieldLabel);
-  const facultyTarget = safeNumber(facultyComp.resultado?.n_objetivo, 0);
-  const totalTarget = safeNumber(totalComp.resultado?.n_objetivo, 0);
-  const frameTarget = safeNumber((frame as Record<string, unknown> | null)?.target_n, 0);
-  const targetForDisplay = Math.max(facultyTarget, totalTarget, frameTarget);
-  const calculatedQuotaEstimate = targetForDisplay > 0 ? Math.max(referenciaBase, safeNumber((frame as Record<string, unknown> | null)?.planned_m1, 0)) : 0;
-  const m1ForDisplay = selectionReady ? m1Rows.length : calculatedQuotaEstimate;
-  const hasCalculatedQuota = targetForDisplay > 0 || selectionReady;
+  const targetForDisplay = safeNumber(selectedComp.resultado?.n_objetivo, 0);
+  const auditedFrameCount = frameAuditValue(frame, "classroom_included_n");
+  const frameCapacityKnown = auditedFrameCount !== "" || frameRows.length > 0;
+  const selectableFrameCount = auditedFrameCount !== ""
+    ? frameAuditNumber(frame, "classroom_included_n")
+    : frameRows.length;
+  const m1ForDisplay = selectionReady
+    ? m1Rows.length
+    : frameCapacityKnown ? Math.min(currentAulasTarget, selectableFrameCount) : currentAulasTarget;
+  const hasCalculatedQuota = currentAulasTarget > 0 && !artifactMarcoDesactualizado &&
+    (!frameCapacityKnown || selectableFrameCount > 0);
   const frameAuditCardsForDisplay = frameAuditCards(frame);
   const topGaps = visibleProfiles
     .filter((row) => Number.isFinite(safeNumber(row.abs_error, Number.NaN)))
@@ -315,7 +311,7 @@ export function buildClassroomLabModel({
   const waveRows = rowsFrom<Record<string, unknown>>(diagnostics.waves);
   const probabilityRows = rowsFrom<Record<string, unknown>>(diagnostics.probabilities);
   // Traducción validada del motor: cuota → aulas por facultad (si existe).
-  const aulasPorEstrato = totalComp.resultado?.aulas_por_estrato ?? facultyComp.resultado?.aulas_por_estrato ?? [];
+  const aulasPorEstrato = selectedComp.resultado?.aulas_por_estrato ?? [];
   // F4: resultado de job NO aplicado por marco desactualizado (guard del
   // backend). Se muestra junto a las acciones de la mesa para pedir re-ejecutar.
   const staleJobAviso = normalizeStaleJobAviso(aulasState?.stale_job_result ?? null);
@@ -323,12 +319,17 @@ export function buildClassroomLabModel({
   return {
     totalComp,
     facultyComp,
+    aulasScenario,
+    selectedComp,
+    selectedResultReady,
+    currentAulasTarget,
     frame,
     comparison,
     selection,
     replacementSimulation,
     frameRows,
     frameReady,
+    marcoDesactualizado: artifactMarcoDesactualizado,
     comparisonReady,
     selectionReady,
     replacementReady,
@@ -356,9 +357,6 @@ export function buildClassroomLabModel({
     extraOperativo,
     sobremuestraPct,
     selectorFields,
-    facultyTarget,
-    totalTarget,
-    frameTarget,
     targetForDisplay,
     m1ForDisplay,
     hasCalculatedQuota,
@@ -1130,65 +1128,6 @@ export function ClassroomRecommendation({
       <span>{comparison.recommendation.operational_reason}</span>
       <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
       <em>{comparison.recommendation.methodological_reason}</em>
-    </div>
-  );
-}
-
-export function ClassroomRiskList({ risks }: { risks?: NonNullable<CalcMuestraAulasMethodComparison["risk_flags"]> | unknown }) {
-  // El comparador agrega los risk_flags de cada motor evaluado; un mismo
-  // riesgo (ej. "Baja profundidad de reservas") puede venir repetido con
-  // distinto `method`. Como la lista no muestra el método, se deduplica por
-  // severidad + título + detalle para no pintar entradas idénticas.
-  const seen = new Set<string>();
-  const riskRows = rowsFrom<Record<string, unknown>>(risks).filter((risk) => {
-    const key = `${String(risk.severity ?? "")}|${String(risk.title ?? "")}|${String(risk.detail ?? "")}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-  const visible = riskRows.length ? riskRows.slice(0, 8) : [{
-    code: "sin_alertas",
-    severity: "ok",
-    title: "Sin alertas críticas",
-    detail: "La auditoría interna no reporta riesgos activos para el último cálculo.",
-  }];
-  // Icono por severidad: el color solo no alcanza para escanear el rail.
-  const severityIcon = (severity: string) => {
-    if (severity === "alta") return TriangleAlert;
-    if (severity === "ok" || severity === "baja") return CheckCircle2;
-    return CircleAlert;
-  };
-  return (
-    <div className="cmv2-classroom-risk-list">
-      <div className="cmv2-subhead">
-        <strong>Riesgos</strong>
-      </div>
-      {visible.map((risk, index) => {
-        const severity = String(risk.severity ?? "media");
-        const Icon = severityIcon(severity);
-        const detail = String(risk.detail ?? "Revisa la auditoría técnica del selector.");
-        // QA H4: los namespaces R (BalancedSampling::lcube, sampling::samplecube…)
-        // no van en primer plano; el texto técnico queda plegado y el banner
-        // habla en llano.
-        const esTecnico = /\b[A-Za-z][\w.]*::[\w.]+/.test(detail);
-        return (
-          <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${severity}`}>
-            <small><Icon size={12} aria-hidden="true" />{severity}</small>
-            <strong>{String(risk.title ?? "Alerta metodológica")}</strong>
-            {esTecnico ? (
-              <>
-                <span>El motor usó una implementación alternativa equivalente para esta corrida.</span>
-                <details className="cmv2-aviso-tecnico">
-                  <summary>Detalle técnico</summary>
-                  <code>{detail}</code>
-                </details>
-              </>
-            ) : (
-              <span>{detail}</span>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }

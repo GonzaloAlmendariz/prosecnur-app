@@ -176,7 +176,7 @@ trabajando en lo desbloqueado.
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
 | Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 6 vivas; la séptima era la dirección redundante retirada en I5 | ↑ a 6 |
 | Pestañas de Aulas/Salidas con capacidad y alcance C3–C4 auditados | por medir; I0-O2 no tenía rectángulos propios | 10 de 10 × 3 viewports: 30/30 alcanzables, 0 problemas de capacidad; 5 oportunidades solo exteriores | = 100 %; no acredita revamp F2 |
-| `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
+| `aulasParts.tsx` | 1.612 | 1.551; la lista de riesgo salió a `ClassroomRiskList.tsx` y el handoff a `classroomHandoff.ts` | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 19 grupos conformes: I12 añade los owners `referencia-asistencia-fuente` y `referencia-asistencia-tau`; sus cuatro capturas finales tienen 0 misses/issues | ↑ con cobertura conforme |
@@ -184,7 +184,7 @@ trabajando en lo desbloqueado.
 | Captura e inspección del runner sobre el mismo estado de motion finito | sin contrato; I9-H9 | 1 contrato probado: screenshot lleva finitas al final, DOM reutiliza ese estado y opacidad efectiva 0 queda fuera | = 100 % del caso causal |
 | Eslabones de τ con ancla histórica publicada (asistencia · completitud · validez) | 0 de 3; τ es un escalar sin dato detrás | 3 de 3 publicados con dueño, `k`, IC y producto, sin escribir τ | = 3 |
 | Referencia histórica de asistencia calibrable desde el desk | no existe | disponible desde Datos > Fuentes y visible en Cálculo > Diseño, con `k`, IC y degradación global solo para `k=1…11` | disponible, con `k` e intervalo por celda y degradación visible |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 1 confirmado + 0 observaciones: I12-H11; I12-H12 y todos los hallazgos anteriores quedan cerrados | ↓ a 0 |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 0 confirmados + 0 observaciones; I12-H11 queda cerrado en I13 y todos los hallazgos anteriores permanecen cerrados | = 0 |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -207,7 +207,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I7-O3 | F1 / guard C1 | Radiografía de CH expone siete candidatos geométricos sin `data-qa-geometry-group` | **cerrado I8**: 4 colecciones reales declaran contrato `intrinsic`; controles envueltos, badges y leyenda quedan excluidos por semántica, no por opt-out; 3 viewports, 15 auditorías, 0 misses/issues |
 | I9-H9 | guard visual transversal | `ui-quick-check` puede capturar después de dos RAF mientras siguen animaciones escalonadas y contar como visibles nodos con `opacity: 0` | **cerrado I10**: ambos screenshots usan el fast-forward finito de Playwright antes de `inspectDom`; un único predicado excluye opacidad computada 0 propia/ancestral en overflow y geometría, conserva `.35` y no espera infinitas. Regresión causal 5/6 roja → 6/6; suite del runner 21/21 |
 | I11-H10 | F0/F1 | La radiografía parcial agrupa `aula_frame$session_type`/`faculty` modales, pero el selector y su gate usan las señales efectivas catálogo→fallback de `.cm_criterios_valores_aula`; el gráfico puede describir otra categoría/facultad | **cerrado I11**: el sibling v1 nace exclusivamente de `criterios$seleccion_aula$valores`, reconstruye el marco ejecutado antes de publicar deltas y React falla cerrado sin fabricar el contrato desde el bloque legacy. Engine, normalizador, UI, revisión metodológica/contractual y matriz visual quedaron verdes |
-| I12-H11 | F2 / dimensionamiento | El sorteo real corre siempre con 30 aulas fijas: `selector$n_aulas` tiene default `30L`, no está en ninguna whitelist y el frontend nunca lo envía, así que el `aulas_base_total` que calcula el engine es decorativo | **confirmado I12 por lectura de fuente**: default en `calc_muestra_aulas.R:367`, normalización `:478`, consumo `:1872/:2421/:3188/:3833/:4155`; ausente de `.cm_normalize_workspace_aulas_config` (`calc_muestra_engine.R:462-611`) y de `DEFAULT_UNIVERSITY_AULAS_CONFIG`; única escritura real en la demo `:4630`. No se repara en I12: D6 excluye tocar el dimensionamiento |
+| I12-H11 | F2 / dimensionamiento | El sorteo real corre siempre con 30 aulas fijas: `selector$n_aulas` tiene default `30L`, no está en ninguna whitelist y el frontend nunca lo envía, así que el `aulas_base_total` que calcula el engine es decorativo | **cerrado I13**: el entero positivo engine-owned sobrevive la whitelist y se materializa según el escenario persistido —E1 usa P1/universidad y E2 usa P2/facultad, sin máximo ni fallback cruzado— hasta `selector$n_aulas`. Comparación, selección, reemplazos, historia y salidas validan target, frame y corrida propios; perder/cambiar escenario o target invalida el plan. M1 queda probado como `min(n_aulas, marco elegible)` sin truncar el target persistido |
 | I12-H12 | F0 / supuesto | τ es un escalar sin dato detrás y su default contradice su propia definición: vale `0.7` en el engine y `0.53` en el espejo del frontend, pero el contrato lo declara «producto de asistencia × aceptación × validez histórica» | **cerrado I12**: la referencia histórica publica los tres eslabones y el producto 0.698 × 0.753 × 0.893 = **0.469**, con dueño, momento, `k`, IC, suficiencia y degradación explícitos; no escribe τ, no pega CH a CH y no combina marginales |
 
 ## Bandeja de decisiones (solo Gonzalo)
@@ -238,6 +238,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 10 | 2026-08-01 | guard transversal/I9-H9 | Se asentaron animaciones finitas en los screenshots antes de inspeccionar y se unificó la visibilidad por opacidad efectiva para el barrido de overflow y la geometría; las infinitas no se esperan y motion normal no se sustituye por reduced motion | detector baseline 5/5; fixture causal 5 verdes + 1 roja por tres miembros desplazados y `opacity:0` incluida → 6/6. Un veto contractual detectó que overflow aún ignoraba opacidad; el fixture ganó controles equivalentes bajo ancestros 0/.35 y volvió a 6/6. Suite runner 21/21, `node --check`, help y diff-check verdes; contrato final aprobado | I9-H9 cerrado; guard motion sin contrato → 1 contrato probado; hallazgos 1 + 0 → 0 + 0. F1 sigue 0 completos, F2 0/6 y `aulasParts.tsx` 1.612. Durante el cierre Gonzalo resolvió D1=(a) y D2=(c); su implementación entra en I11 |
 | 11 | 2026-08-01 | F0/F1/I11-H10 | Se publicó desde R el sibling opcional `criterios_radiografia` sobre tipo y facultad efectivos, con cuantiles type 7, medias elegible/total, denominadores estrictos y contrafactual causal por categoría; React lo normaliza atómicamente y presenta dentro del embudo por facultad, con fallback legacy explícito | R 119 + 191 + 70 expectativas; normalizador contractual 41/41; Marco 12 archivos/113 tests; typecheck, diff-check, auditoría agentic y bóveda verdes; gobernanza propuesta 196/196 y 0 errores. Método, contrato y `verificador` serial aprobados. Matriz final `prosecnur-visual-iter11-radiografia-final-approved`: 3/3 PASS, 21 grupos, 0 issues/misses/overflow/scroll/errors; QA visual independiente C1–C5 aprobado | Componentes F1 0→1; contratos estadísticos 0→1; criterios con delta visible 0→1; I11-H10 cerrado; hallazgos 3→2. F2 sigue 0/6 y `aulasParts.tsx` permanece 1.612 |
 | 12 | 2026-08-01 | F0/F4/I12-H12 | Se incorporó una fuente histórica opcional con engine R propio, contrato agregado y persistencia `.pulso` sin raw/PII; el endpoint publica estudio, reporte y referencia atómicamente; Datos muestra cobertura, cadena y celdas, y Cálculo contrasta τ sin escribirlo. `k=0` queda vacío, `k=1…11` publica global, `k=12…29` es delgada y `k≥30` sólida | Tres regresiones de arranque rojas y vetos de atomicidad, normalización, IC y rótulo `k=0` reparados con guard. Gate final: 10 archivos R/841 expectativas, feature 63 archivos/634 tests, typecheck, diff-check y auditoría agentic verdes; E2E HTTP/UI con la hoja real reproduce 194/192/190, cadena 0.698/0.753/0.893=0.469 y T1–T5; round-trip `.pulso` conserva solo agregado. Matriz visual 4/4 PASS, cero contadores duros; método, contrato y `verificador` serial aprobados | Anclas de τ 0→3; referencia de asistencia inexistente→disponible; geometría 17→19; I12-H12 cerrado y hallazgos 2→1. F2 sigue 0/6 y `aulasParts.tsx` permanece 1.612 |
+| 13 | 2026-08-01 | F2/I12-H11, gobernada por F0 | Se conectó `aulas_base_total` desde el resultado R al workspace y a `selector$n_aulas` según el escenario persistido; E1/P1 y E2/P2 fallan cerrado sin actor, target o marco vigentes. Comparación, sorteo, reemplazos, historia, paquete de defensa y Salidas exigen artefactos propios de target/frame/run. El riesgo de aula salió del monolito a componente propio | Whitelist R 42 expectativas; `test-calc-muestra-aulas.R` completo y focal `M1=min(target, marco)` verdes; feature React 70 archivos/673 pruebas, focos 11/84 y corridas 16/16, typecheck, diff-check y auditoría agentic verdes. El primer verificador vetó una carrera del paquete; la promesa diferida quedó 1 roja/3 verdes → 4/4 y el feature volvió a 673/673; el segundo verificador aprobó el límite post-`await` sin ventana restante. Método y contrato aprobaron. QA real 14/14 en 1440×1000 y 1024×600: P2 4.157/4.989/268, scroll final alcanzable, 36 popovers y todos los contadores duros en 0; 8787 intacto | I12-H11 cerrado; hallazgos 1→0; `aulasParts.tsx` 1.612→1.551. F2 permanece 0/6 porque I13 corrige el handoff y sus guards, no completa un revamp de pestaña |
 
 ### Contrato de iteración 0
 
@@ -260,11 +261,10 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **13 — F2/I12-H11**, medir por dirección qué
-aulas sortea realmente el motor frente a las que calcula y conectar `n_aulas`
-con su whitelist/espejo antes de evaluar cualquier cambio del divisor de la
-Cadena B. I12 deja la referencia histórica publicada sin escribir τ ni
-`n_aulas`; no reabre D6 por sustitución.
+**Siguiente iteración programada:** **14 — F2/Aulas · Objetivo**, primera visita
+completa del revamp a una de las seis pestañas vivas. Audita y pule por
+dirección la jerarquía de Objetivo sobre el contrato de target ya congelado en
+I13, sin recalcular cifras en React ni reabrir el handoff.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -1696,6 +1696,169 @@ las dos unidades.
   whitelist y su espejo TS, y recién entonces evaluar si el divisor de la
   Cadena B debe pasar de matriculados a asistentes esperados, con D6 reabierta
   de forma explícita.
+
+### Contrato de iteración 13 (scope lock cerrado)
+
+I12 cerró en `b2a5f538`; I13 se desarrolló en
+`codex/goal-loop-calculo-muestra`. Los cambios ajenos del catálogo visual y el
+prompt privado quedaron explícitamente fuera de su stage y commit.
+
+- **Categoría / fuente de verdad:** F2/I12-H11, gobernada por F0. El número de
+  cursos-horario titulares nace en el engine R como `resultado$aulas_base_total`
+  y el selector debe consumir exactamente ese resultado materializado como
+  `selector$n_aulas`; React puede transportar/elegir entre resultados ya
+  publicados, pero no recalcular el tamaño.
+- **Fallo causal medido.** `calc_muestra_aulas_default_config()` fija
+  `selector$n_aulas = 30L` y todos los engines de selección consumen esa clave.
+  Sin embargo `.cm_normalize_workspace_aulas_config(list(n_aulas = 47L))`
+  devuelve un workspace sin `n_aulas`, mientras
+  `calc_muestra_aulas_normalize_config(list(n_aulas = 47L))$selector$n_aulas`
+  sí devuelve 47. El frontend expone y muestra `aulas_base_total`, pero su tipo
+  de workspace no declara `n_aulas` y las acciones envían `model.config` tal
+  cual. La primera divergencia observable es, por tanto, el handoff/whitelist,
+  no el algoritmo de sorteo. La reproducción completa sobre la misma copia de
+  `hsvg2026` da `aulas_base_total = 163/478`, config 30 y M1=30 sobre 5.263 CH.
+- **Scope lock.** Producto candidato:
+  `api/R/calc_muestra_engine.R` (whitelist),
+  `frontend/src/api/calcMuestra.ts` (tipo),
+  `universidad/shared/study.ts` (normalización/handoff puro),
+  `CalcMuestraPage.tsx` (materialización post-cálculo) y
+  `universidad/aulas/aulasParts.tsx` solo si puede conservar exactamente 1.612
+  líneas. Tests candidatos: `test-calc-muestra-workspace-whitelist.R` y
+  Vitest hermanos de `study`/modelo Aulas. Este goal sigue siendo del lead.
+- **Exclusiones explícitas.** Fórmula y divisor de la Cadena B, τ y la
+  referencia I12, algoritmos/goldens del sorteo, `frame_hash`, revamp visual
+  completo de las seis pestañas, migración `.pulso`, datos reales, outputs,
+  procesos/puertos del usuario y el prompt privado.
+- **Riesgo principal.** Materializar una cifra stale o escoger sin contrato
+  entre las propuestas universidad/facultad, haciendo que la UI muestre un
+  objetivo y M1 sortee otro. Sin resultado vigente no se fabrica una nueva
+  cifra; el fallback 30 queda únicamente para clientes legacy del engine.
+- **Validación mínima / stopping rule.** Regresión R de round-trip; regresión
+  TS del resultado→workspace→payload; focal de selección que pruebe M1 igual a
+  `min(n_aulas, marco)`; feature React, typecheck, dirección canónica y
+  `verificador` serial. I13 solo cierra cuando el objetivo engine-owned
+  sobrevive guardar/reabrir y llega idéntico a compare/select, sin cambiar el
+  cálculo estadístico ni hacer crecer `aulasParts.tsx`.
+- **Orquestación.** Descubrimiento paralelo de backend y frontend, ambos de
+  solo lectura y con globs disjuntos. El carril metodológico se ejecutará en
+  serie al liberar un hilo (`FALLBACK: sequential (agent thread limit)`). No
+  hay writers hasta congelar cuál propuesta gobierna el selector y dejar las
+  regresiones rojas.
+- **Diagnóstico integrado.** Backend localizó la primera pérdida en la
+  whitelist de `.cm_normalize_workspace_aulas_config()`: una configuración
+  explícita de 38 llega a M1=38, mientras el mismo valor tras el round-trip
+  desaparece y cae a 30; sync y worker job repiten la misma divergencia. El
+  frontend confirmó que el `useState` P1/P2 local duplica una decisión que ya
+  existe y se persiste como `motor_recorrido.decisiones.escenario`, y que el
+  eco `aulasState.config` hoy pisa al workspace en las acciones. El máximo
+  163/478 que se usa para mostrar no representa una elección de campo.
+- **Contrato metodológico congelado (revisión: `APPROVE`).** Opción (b):
+  `e1`/P1 elige el `resultado$aulas_base_total` de
+  `estudiantes_universidad`; `e2`/P2 elige el de
+  `estudiantes_facultad`. Ese entero positivo se materializa sin recalcularlo
+  como `aulas_config$n_aulas` y llega idéntico a `selector$n_aulas`. Nunca se
+  toma el máximo entre propuestas. `cursosHorarioFinal` queda como
+  confirmación operativa separada: contiene extras y nace de una derivación
+  React, por lo que jamás alimenta M1 titular. Cambiar de propuesta invalida
+  la confirmación previa y deja stale cualquier comparación/selección hecha
+  con el target anterior. Si el escenario elegido no tiene resultado completo,
+  si el marco está stale o si la cifra es inválida, no hay fallback a la otra
+  propuesta: comparar/seleccionar queda bloqueado. La ausencia de resultado
+  elimina una cifra stale del workspace; no materializa 30. El 30 queda solo
+  como fallback interno de clientes legacy del selector y M1 conserva
+  `min(n_aulas, marco elegible)` sin recortar el target persistido.
+  No hace falta una decisión nueva de Gonzalo: el goal ya congeló al engine R
+  como dueño y el dominio persistido ya distingue E1/E2; D6 acotó I12, no
+  veta este handoff de I13.
+- **Regresión causal y reparación.** La whitelist abrió con tres fallos
+  (`47 → NULL → 30`) y React con 4/4 rojos: elegía eco 7/máximo 29 en vez de
+  P1=13, no tenía selector E1/E2 e ignoraba la invalidez de la confirmación al
+  cambiar escenario. El workspace preserva ahora solo enteros positivos; los
+  resultados real y demo publican su target en `selector`, y el handoff central
+  materializa o elimina `n_aulas` según el actor exacto del escenario.
+- **Delta medido de alcance.** La auditoría de consumidores encontró que no
+  bastaba con el puente inicial: comparación, selección, reemplazos, historial,
+  resumen, distribución, salud, sidebar, recuperación y paquete de defensa
+  podían acreditar ecos de otro escenario o artefactos stale. Todos consumen
+  ahora el componente seleccionado y firman target, `frame_hash` y corrida
+  propia. La propuesta P2 llega a Cálculo, Aulas y Salidas sin fallback P1.
+- **Invalidación fail-closed.** Cambiar escenario, recalcular, perder el actor o
+  reconciliar un target distinto elimina el plan confirmado. Método y Selección
+  bloquean acciones sin marco/target vigentes; historia no conserva una selección
+  sin corrida; el paquete vuelve a comprobar sus firmas entre reporte, export y
+  memoria, y aborta si el estado cambia durante la operación.
+- **Peaje estructural.** `ClassroomRiskList.tsx` y `classroomHandoff.ts` poseen
+  la lógica extraída; `aulasParts.tsx` baja 1.612 → 1.551 líneas. El frontend no
+  calcula el target ni modifica la fórmula: R conserva `aulas_base_total` y M1
+  usa `min(n_aulas, marco elegible)` sin truncar la configuración persistida.
+- **Veto del primer verificador y reparación.** El gate reprodujo una carrera:
+  `leerContextoPaquete()` capturaba E2 antes de esperar el refresco y podía
+  publicar su memoria aunque el store ya hubiera cambiado a E1. La regresión
+  con promesa diferida abrió 1 roja/3 verdes. El límite async refresca ahora
+  Aulas primero, relee estudio/workspace después del `await` y usa un ref para
+  el fallback local; E2 remoto + E1 local produce fingerprint nulo. La focal
+  cierra 4/4 y no se bloquean controles para simular consistencia.
+- **Gate escalado.** Whitelist R 42 expectativas; test completo de Aulas y
+  focal literal `m1-min-target-ok`; focos React 11 archivos/84 pruebas,
+  corridas 16/16 y feature completo 70 archivos/673 pruebas; `tsc -b`,
+  `git diff --check` y auditoría agentic verdes. Las revisiones metodológica y
+  contractual terminaron `APPROVE`; el segundo `verificador` levantó el veto
+  tras repetir focal 4/4, typecheck y diff-check. Sin decisión nueva de Gonzalo.
+- **QA real.** Matriz congelada 14/14 PASS en 1440×1000 y 1024×600. La copia
+  `hsvg2026` persistió P2 con objetivo 4.157, sobremuestra 4.989 y 268
+  cursos-horario. Método, Selección y Salidas rechazaron artefactos anteriores;
+  cuatro superficies llegaron literalmente de scrollTop 0 a su final. En 36
+  popovers y las siete direcciones hubo 0 issues, misses, overflow, scroll jail
+  y errores de consola, página, API, recursos, proyecto o readiness. El stack
+  aislado 5174/8788 quedó cerrado y el 8787 no se tocó.
+- **Resultado:** mejor. I12-H11 queda cerrado; los hallazgos pasan 1 → 0 y
+  `aulasParts.tsx` 1.612 → 1.551. F2 sigue 0/6: el handoff y sus guards son el
+  piso del revamp, no acreditan por sí solos una pestaña repasada.
+- **Siguiente acción.** Iteración 14, F2/Aulas · Objetivo — primera visita
+  completa del revamp a una pestaña viva, con baseline por dirección en ambos
+  viewports y el contrato engine-owned de I13 congelado.
+
+### Contrato de iteración 14 (scope lock activo, auditoría)
+
+- **Categoría / fuente de verdad:** F2/Aulas · Objetivo, gobernada por F0 y por
+  el handoff cerrado en I13. El objetivo publicado es el entero positivo del
+  actor seleccionado por el escenario; React puede explicar y formatear esa
+  cifra, nunca recalcularla ni reemplazarla con extras operativos.
+- **Dirección y medición:**
+  `calc-muestra/opinion-universitaria/aulas/objetivo` sobre `hsvg2026` en
+  1440×1000 y 1024×600, entrando por dirección canónica y aterrizando arriba.
+  La auditoría registra jerarquía, orden de lectura, comparación P1/P2, target
+  vigente, cadena hasta Método, inspector/rail, owner de scroll, C1–C5 y último
+  contenido alcanzable. El baseline final de I13 es la referencia previa.
+- **Cambio enfocado previsto:** completar el revamp visual e informativo de
+  `AulasObjetivoTab.tsx` con la gramática local de Aulas, haciendo inequívocos
+  escenario, cifra titular, sobremuestra y procedencia antes de pasar a Método.
+  Cualquier pieza extraíble nace en archivo propio; la tab y el rail conservan
+  su dirección e identidad.
+- **Archivos previstos:**
+  `frontend/src/features/calcMuestra/universidad/aulas/AulasObjetivoTab.tsx`,
+  `frontend/src/features/calcMuestra/universidad/aulas/aulas.css`, componentes
+  presentacionales nuevos bajo `universidad/aulas/`, sus Vitest focales y este
+  goal. Los helpers compartidos de solo lectura se incorporan únicamente si la
+  auditoría demuestra que ya son dueños del estado mostrado.
+- **Exclusiones explícitas:** las otras cinco pestañas vivas, fórmulas y engine
+  R, selector/sorteo, target/handoff I13, persistencia `.pulso`, navegación y
+  aliases, CSS global, datos reales, outputs, puertos/procesos del usuario,
+  catálogo visual ajeno y el prompt privado.
+- **Peaje estructural:** `aulasParts.tsx` no puede crecer sobre 1.551 líneas;
+  cualquier fragmento que Objetivo todavía consuma desde allí se extrae antes
+  de ampliarlo. No se crea navegación paralela ni un estado de escenario local.
+- **Riesgo principal:** que el pulido visual vuelva a mezclar P1/P2, presente
+  sobremuestra o extras como target titular, o esconda el estado stale que I13
+  hizo fallar cerrado. El guard debe probar procedencia y actor además de
+  geometría.
+- **Validación mínima / stopping rule:** baseline y final con `/ver-ui` y
+  `ui-quick-check --require-geometry` en ambos viewports; Vitest focal y feature,
+  typecheck, diff-check, Contrato de Superficie, revisión independiente y
+  `verificador` serial. I14 solo acredita 1/6 cuando Objetivo complete C1–C5,
+  mantenga el target R intacto, reduzca o conserve 1.551 líneas y el ledger se
+  actualice. Estado actual: auditoría activa, sin cambios de producto I14.
 
 ## Cómo se corre cada visita
 

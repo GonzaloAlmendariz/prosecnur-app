@@ -19,7 +19,6 @@ import { calcEPreview } from "../../didactica/motorPreview";
 import { fmtInt, fmtPct, fmtRatio, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { saludDesdeModel } from "../shared/salud";
-import { hasUsefulResult } from "../shared/study";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import { classroomMethodLabel, classroomScore, type ClassroomLabModel } from "../aulas/aulasParts";
 import { HistorialCorridas } from "./HistorialCorridas";
@@ -34,8 +33,9 @@ export function SalidasCierreTab({
   workspace: CalcMuestraWorkspace;
 }) {
   const {
-    totalComp,
-    facultyComp,
+    aulasScenario,
+    selectedComp,
+    selectedResultReady,
     frame,
     selection,
     selectionReady,
@@ -48,30 +48,30 @@ export function SalidasCierreTab({
     targetForDisplay,
   } = model;
 
-  const calculationReady = hasUsefulResult(totalComp) || hasUsefulResult(facultyComp);
-  const marcoN = Math.max(safeNumber(totalComp.marco.marco_validado), model.framePopulationCount);
+  const calculationReady = selectedResultReady;
+  const marcoN = Math.max(safeNumber(selectedComp.marco.marco_validado), model.framePopulationCount);
   // Margen real: retrocálculo del motor si vino (0 incluido: con n ≥ N el
   // error muestral es nulo); si el motor no lo trae, la vista previa TS
   // etiquetada como preview (misma vía que Cálculo → Propuestas), anclada al
   // escenario nivel universidad (n y marco del mismo componente).
-  const precisionRaw = totalComp.resultado?.precision_alcanzada;
+  const precisionRaw = selectedComp.resultado?.precision_alcanzada;
   const precisionMotor = precisionRaw == null ? Number.NaN : safeNumber(precisionRaw, Number.NaN);
-  const nUniversidad = safeNumber(totalComp.resultado?.n_objetivo, 0);
-  const precisionPreview = nUniversidad > 0
+  const nSeleccionado = safeNumber(selectedComp.resultado?.n_objetivo, 0);
+  const precisionPreview = aulasScenario === "e1" && nSeleccionado > 0
     ? safeNumber(
         calcEPreview(
-          nUniversidad,
-          safeNumber(totalComp.marco.marco_validado),
-          totalComp.parametros.p,
-          totalComp.parametros.z,
-          totalComp.parametros.deff,
+          nSeleccionado,
+          safeNumber(selectedComp.marco.marco_validado),
+          selectedComp.parametros.p,
+          selectedComp.parametros.z,
+          selectedComp.parametros.deff,
         ),
         Number.NaN,
       )
     : Number.NaN;
   const precisionEsMotor = Number.isFinite(precisionMotor);
   const precision = precisionEsMotor ? precisionMotor : precisionPreview;
-  const precisionCensal = precision === 0 && nUniversidad >= safeNumber(totalComp.marco.marco_validado) && nUniversidad > 0;
+  const precisionCensal = precision === 0 && nSeleccionado >= safeNumber(selectedComp.marco.marco_validado) && nSeleccionado > 0;
   const reservasTotal = reserveRows.length + extraReserveRows.length;
 
   // Profundidad mínima de reserva por celda (misma lectura que Aulas → Reemplazos).
@@ -178,8 +178,10 @@ export function SalidasCierreTab({
             label="Margen real alcanzado"
             value={Number.isFinite(precision) ? `±${fmtPct(precision)}` : "pendiente"}
             detalle={precisionCensal
-              ? "el n cubre todo el marco (nivel universidad)"
-              : "retrocálculo con el n final (nivel universidad)"}
+              ? "el n cubre todo el marco del escenario elegido"
+              : aulasScenario === "e2" && !precisionEsMotor
+                ? "varía por facultad; consulta el detalle del motor"
+                : "retrocálculo con el n final del escenario elegido"}
             origen={Number.isFinite(precision) ? (precisionEsMotor ? "motor" : "preview") : undefined}
           />
           <CifraMotor

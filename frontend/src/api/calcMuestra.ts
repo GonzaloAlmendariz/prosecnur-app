@@ -603,6 +603,8 @@ export type CalcMuestraWorkspaceAulasConfig = {
   schema: "calc_muestra_workspace_aulas_v1" | string;
   modalidad: CalcMuestraWorkspaceAulasModalidad;
   selector: CalcMuestraWorkspaceAulasSelector;
+  /** Cursos-horario titulares calculados por R para el escenario elegido. */
+  n_aulas?: number;
   selector_engine?: CalcMuestraWorkspaceAulasSelector | string;
   method_family?: string;
   min_elegibles_aula: number;
@@ -2326,6 +2328,8 @@ export type CalcMuestraAulasMethodComparison = {
   schema: "calc_muestra_aulas_method_comparison_v1" | string;
   generated_at: string;
   frame_hash: string;
+  /** Objetivo propio con que se produjo la comparación; acredita frescura. */
+  selector?: Record<string, unknown>;
   methods: CalcMuestraAulasMethodSummary[];
   recommendation?: {
     method_id?: string;

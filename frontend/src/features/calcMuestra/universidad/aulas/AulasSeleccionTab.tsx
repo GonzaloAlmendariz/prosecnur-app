@@ -75,7 +75,6 @@ export function AulasSeleccionTab({
     engineOption,
     targetForDisplay,
     m1ForDisplay,
-    totalTarget,
   } = model;
   const filteredSelectionRows = selectionRows.filter((row) => classroomRowSearch(row, tableQuery));
   const visibleSelectionRows = filteredSelectionRows.slice(0, tableLimit);
@@ -100,7 +99,7 @@ export function AulasSeleccionTab({
     <div className="cmv2-aulas-stack">
       <SeleccionAulasVisual
         seleccion={selection}
-        nObjetivo={totalTarget || targetForDisplay || null}
+        nObjetivo={targetForDisplay || null}
         totalFacultades={model.facultades.length || null}
       />
 

@@ -115,11 +115,14 @@ import {
   hasUsefulResult,
   normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
+  reconcileUniversityAulasTarget,
   estratosDesdeFrame,
-  universityComponents,
-  universityDefaultWorkspace,
   universityFacultyConfidence,
   universityFacultyError,
+  universityComponentForScenario,
+  universityComponents,
+  universityDefaultWorkspace,
+  universityAulasTargetInvalidatesPlan,
   universityWorkspace,
 } from "./universidad/shared/study";
 import {
@@ -132,6 +135,7 @@ import {
   sourceBindingSelectedSheet,
   universityInspectedColumnOptions,
 } from "./universidad/shared/categorias";
+import { resolveClassroomArtifactStatus } from "./universidad/aulas/classroomHandoff";
 import {
   applyRefreshedDiagnostics,
   sourceBindingsPendingInspection,
@@ -140,11 +144,17 @@ import { NumberCell } from "./universidad/aulas";
 import {
   corridaDeCalculo,
   corridaDeSeleccion,
-  historialCorridas,
   jsonIgual,
   registrarCorrida,
 } from "./corridas";
 import type { PaqueteDefensaPaso, PaqueteDefensaPasoId } from "./universidad/salidas";
+import {
+  construirMemoriaPaqueteDefensa,
+  leerContextoPaqueteTrasRefresco,
+  paqueteDefensaFingerprint,
+  paqueteDefensaFingerprintIgual,
+  type PaqueteDefensaFingerprint,
+} from "./universidad/salidas/paqueteDefensa";
 import {
   CM_JOB_MAX_NOT_FOUND,
   CM_JOB_POLL_TIMEOUT_MS,
@@ -669,13 +679,18 @@ function primaryMetric(comp: CalcMuestraComponente) {
   return `${fmtInt(r.n_objetivo)} casos`;
 }
 
-function calculatedTargetForComponents(componentes: CalcMuestraComponente[]) {
-  return componentes.reduce((peak, comp) => Math.max(peak, safeNumber(comp.resultado?.n_objetivo, 0)), 0);
-}
-
-function classroomRecoveryTarget(aulasState: CalcMuestraAulasState | null): { section: string; tab: string } {
-  if (classroomSelectionReady(aulasState)) return { section: "aulas", tab: "seleccion" };
-  if (classroomComparisonReady(aulasState)) return { section: "aulas", tab: "metodo" };
+function classroomRecoveryTarget(
+  estudio: CalcMuestraEstudio,
+  workspace: CalcMuestraWorkspace,
+  aulasState: CalcMuestraAulasState | null,
+): { section: string; tab: string } {
+  const totalComp = estudio.componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const facultyComp = estudio.componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const status = totalComp && facultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp, facultyComp, aulasState })
+    : null;
+  if (status?.selectionReady) return { section: "aulas", tab: "seleccion" };
+  if (status?.comparisonReady) return { section: "aulas", tab: "metodo" };
   if (classroomFrameReady(aulasState)) return { section: "marco", tab: "marco-aulas" };
   return { section: "definicion", tab: "def-bases" };
 }
@@ -729,7 +744,7 @@ function chromeStatusForDesk({
   return { label: "Sin componentes", detail: "declara el marco", tone: "idle", icon: ClipboardList };
 }
 
-function chromeTokensForDesk({
+export function chromeTokensForDesk({
   desk,
   estudio,
   workspace,
@@ -751,17 +766,21 @@ function chromeTokensForDesk({
   const sourceReady = Boolean(workspace.fuente_marco || workspace.marco_disponible);
 
   if (desk === "opinion_universitaria") {
-    const totalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ?? componentes[0];
-    const facultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ?? componentes[1] ?? componentes[0];
+    const totalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+    const facultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
     const estratos = totalComp?.marco.estratos ?? [];
     const marcoTotal = safeNumber(totalComp?.marco.marco_validado, 0);
-    const selectionReady = classroomSelectionReady(aulasState);
-    const comparisonReady = classroomComparisonReady(aulasState);
-    const target = calculatedTargetForComponents([totalComp, facultyComp].filter(Boolean) as CalcMuestraComponente[]);
+    const status = totalComp && facultyComp
+      ? resolveClassroomArtifactStatus({ workspace, totalComp, facultyComp, aulasState })
+      : null;
+    const selectionReady = status?.selectionReady ?? false;
+    const comparisonReady = status?.comparisonReady ?? false;
+    const target = safeNumber(status?.selectedComp.resultado?.n_objetivo, 0);
+    const selectedResultReady = status?.selectedResultReady ?? false;
     return [
       { label: "Mesa", value: "Muestra de cursos-horario", tone: "path" },
       { label: "Base", value: marcoTotal ? `${fmtInt(marcoTotal)} est.` : estratos.length ? `${fmtInt(estratos.length)} dominios` : "por validar", tone: marcoTotal ? "ready" : "working" },
-      { label: "Cálculo", value: target ? `${fmtInt(target)} objetivo` : hasResult ? "calculado" : "pendiente", tone: target || hasResult ? "ready" : "working" },
+      { label: "Cálculo", value: target ? `${fmtInt(target)} objetivo` : selectedResultReady ? "calculado" : "pendiente", tone: target || selectedResultReady ? "ready" : "working" },
       { label: "Cursos-horario", value: selectionReady ? "titulares + reemplazos" : comparisonReady ? "métodos listos" : "por seleccionar", tone: selectionReady ? "ready" : comparisonReady ? "working" : "neutral" },
     ];
   }
@@ -830,13 +849,19 @@ function contextChecksForDesk({
   const hasResult = componentes.some(hasUsefulResult);
   const hasVariables = workspace.variables_control.some((variable) => variable.disponible) ||
     componentes.some((comp) => (comp.marco.estratos ?? []).length > 0);
-  const totalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ?? componentes[0];
-  const facultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ?? componentes[1] ?? componentes[0];
+  const exactTotalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const exactFacultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const totalComp = exactTotalComp ?? componentes[0];
+  const facultyComp = exactFacultyComp ?? componentes[1] ?? componentes[0];
   const totalEstratos = totalComp?.marco.estratos ?? [];
   const hasSexo = totalEstratos.some((row) => safeNumber(row.N_a, 0) > 0 || safeNumber(row.N_b, 0) > 0);
-  const comparisonReady = classroomComparisonReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
+  const artifactStatus = exactTotalComp && exactFacultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp: exactTotalComp, facultyComp: exactFacultyComp, aulasState })
+    : null;
+  const comparisonReady = artifactStatus?.comparisonReady ?? false;
+  const selectionReady = artifactStatus?.selectionReady ?? false;
+  const replacementReady = artifactStatus?.replacementReady ?? false;
+  const selectedResultReady = artifactStatus?.selectedResultReady ?? false;
   const totalTarget = safeNumber(totalComp?.resultado?.n_objetivo, 0);
   const facultyTarget = safeNumber(facultyComp?.resultado?.n_objetivo, 0);
 
@@ -859,7 +884,7 @@ function contextChecksForDesk({
     }
     if (activeSection === "aulas") {
       return [
-        { label: "Cuotas", value: hasResult ? "calculadas" : "pendientes", ready: hasResult, icon: Target },
+        { label: "Cuotas", value: selectedResultReady ? "calculadas" : "pendientes", ready: selectedResultReady, icon: Target },
         { label: "Métodos", value: comparisonReady ? "comparados" : "por correr", ready: comparisonReady, icon: Settings2 },
         { label: "Cursos-horario titulares", value: selectionReady ? "plan listo" : "pendiente", ready: selectionReady, icon: Grid3X3 },
         { label: "Reemplazos", value: replacementReady ? "probados" : "pendiente", ready: replacementReady, icon: RefreshCw },
@@ -867,7 +892,7 @@ function contextChecksForDesk({
     }
     if (activeSection === "salidas") {
       return [
-        { label: "Cálculo", value: hasResult ? "listo" : "pendiente", ready: hasResult, icon: Calculator },
+        { label: "Cálculo", value: selectedResultReady ? "listo" : "pendiente", ready: selectedResultReady, icon: Calculator },
         { label: "Cursos-horario", value: selectionReady ? "plan generado" : "sin plan", ready: selectionReady, icon: Grid3X3 },
         { label: "Seguimiento", value: selectionReady ? "listo para usar" : "requiere plan", ready: selectionReady, icon: Route },
         { label: "Privacidad", value: "datos protegidos", ready: true, icon: FileText },
@@ -1022,6 +1047,10 @@ export default function CalcMuestraPage() {
   const [deskOverride, setDeskOverride] = useState<ActiveDesk | null>(null);
   const [pendingDeskReset, setPendingDeskReset] = useState<ActiveDesk | null>(null);
   const [aulasState, setAulasState] = useState<CalcMuestraAulasState | null>(null);
+  const aulasStateRef = useRef<CalcMuestraAulasState | null>(null);
+  useEffect(() => {
+    aulasStateRef.current = aulasState;
+  }, [aulasState]);
   const [referenciaAsistencia, setReferenciaAsistencia] =
     useState<CalcMuestraReferenciaAsistencia | null>(null);
   const [aulasStateChecked, setAulasStateChecked] = useState(false);
@@ -1080,6 +1109,18 @@ export default function CalcMuestraPage() {
     : null;
   const currentDesk = recoveredAulasDesk ?? inferredDesk;
   const desk: ActiveDesk = choosingDesk ? "sin_definir" : currentDesk;
+
+  // El target de aulas es un handoff materializado, no una preferencia suelta.
+  // Cualquier cambio de escenario o invalidación de resultados lo reconcilia
+  // aquí, incluso si ocurrió fuera de la pestaña de Cálculo (reset, Diseño o
+  // reconstrucción de Marco). Si cambia, el plan confirmado deja de ser vigente.
+  useEffect(() => {
+    if (!hydrated || desk !== "opinion_universitaria") return;
+    const next = reconcileUniversityAulasTarget(workspace, estudio.componentes);
+    const invalidatesPlan = universityAulasTargetInvalidatesPlan(workspace, next);
+    if (!jsonIgual(workspace, next)) setWorkspaceSiCambia(next);
+    if (invalidatesPlan) useMotorStore.getState().invalidarCursosHorario();
+  }, [desk, estudio.componentes, hydrated, setWorkspaceSiCambia, workspace]);
 
   // Sección y pestaña salen de la dirección. `seccionVigente` ya está validada
   // contra las secciones de la mesa real, así que el rail nunca queda sin
@@ -1202,7 +1243,7 @@ export default function CalcMuestraPage() {
       && direccion.secciones.some((s) => s.id === direccion.seccion);
 
     if (requestedDesk === "opinion_universitaria" && (inferredDesk === "opinion_universitaria" || hasAulasDeskState)) {
-      const recoveryTarget = classroomRecoveryTarget(aulasState);
+      const recoveryTarget = classroomRecoveryTarget(estudio, workspace, aulasState);
       setDeskOverride("opinion_universitaria");
       setChoosingDesk(false);
       setPendingDeskReset(null);
@@ -1494,6 +1535,7 @@ export default function CalcMuestraPage() {
       const res = await apiCalcMuestraCalcular();
       hydrate(res.estudio);
       registrarCorridaDeCalculo(res.estudio);
+      useMotorStore.getState().invalidarCursosHorario();
       const nComponentes = res.estudio.componentes.length;
       setMsg({
         kind: "info",
@@ -1510,18 +1552,23 @@ export default function CalcMuestraPage() {
   // Cada corrida exitosa (cálculo o selección de aulas) queda registrada en
   // workspace.run_history (cap 12, FIFO) y se persiste con el autosave normal.
   function registrarCorridaDeCalculo(estudioCalculado: CalcMuestraEstudio) {
-    const totalComp =
-      estudioCalculado.componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ??
-      estudioCalculado.componentes[0];
-    const nextWorkspace = normalizeWorkspace(estudioCalculado);
-    const corrida = corridaDeCalculo({ totalComp, workspace: nextWorkspace });
-    if (corrida) setWorkspace(registrarCorrida(nextWorkspace, corrida));
+    const normalizedWorkspace = normalizeWorkspace(estudioCalculado);
+    const nextWorkspace = normalizedWorkspace.frame_mode === "opinion_universitaria"
+      ? reconcileUniversityAulasTarget(normalizedWorkspace, estudioCalculado.componentes)
+      : normalizedWorkspace;
+    const selectedComp = universityComponentForScenario(estudioCalculado.componentes, nextWorkspace);
+    const corrida = corridaDeCalculo({ componente: selectedComp, workspace: nextWorkspace });
+    setWorkspaceSiCambia(corrida ? registrarCorrida(nextWorkspace, corrida) : nextWorkspace);
   }
 
   function registrarCorridaDeSeleccion(nextAulasState: CalcMuestraAulasState | null) {
-    const nextWorkspace = normalizeWorkspace(useCalcMuestraStore.getState().estudio);
+    const estudioActual = useCalcMuestraStore.getState().estudio;
+    const normalizedWorkspace = normalizeWorkspace(estudioActual);
+    const nextWorkspace = normalizedWorkspace.frame_mode === "opinion_universitaria"
+      ? reconcileUniversityAulasTarget(normalizedWorkspace, estudioActual.componentes)
+      : normalizedWorkspace;
     const corrida = corridaDeSeleccion({ aulasState: nextAulasState, workspace: nextWorkspace });
-    if (corrida) setWorkspace(registrarCorrida(nextWorkspace, corrida));
+    setWorkspaceSiCambia(corrida ? registrarCorrida(nextWorkspace, corrida) : nextWorkspace);
   }
 
   async function generarReporte(formato: "html" | "pdf" = "html") {
@@ -2094,9 +2141,51 @@ export default function CalcMuestraPage() {
     setPaquetePasos((prev) => (prev ? prev.map((paso) => (paso.id === id ? { ...paso, ...patch } : paso)) : prev));
   }
 
+  async function leerContextoPaquete() {
+    const contexto = await leerContextoPaqueteTrasRefresco({
+      refrescarAulas: async () => {
+        try {
+          const state = await apiCalcMuestraState();
+          return state.aulas ?? aulasStateRef.current;
+        } catch {
+          // El último estado conocido todavía debe pasar todos los gates locales.
+          return aulasStateRef.current;
+        }
+      },
+      leerContextoLocal: () => {
+        const estudioActual = useCalcMuestraStore.getState().estudio;
+        return {
+          estudio: estudioActual,
+          workspace: normalizeWorkspace(estudioActual),
+        };
+      },
+    });
+    return {
+      ...contexto,
+      fingerprint: paqueteDefensaFingerprint(contexto),
+    };
+  }
+
+  async function exigirContextoPaqueteVigente(inicial: PaqueteDefensaFingerprint) {
+    const actual = await leerContextoPaquete();
+    if (!paqueteDefensaFingerprintIgual(inicial, actual.fingerprint)) {
+      throw new Error("El escenario, el objetivo o la selección cambiaron durante el armado; genera el paquete nuevamente.");
+    }
+    return actual;
+  }
+
   async function generarPaqueteDefensa(formato: "html" | "pdf" = "html") {
     if (paqueteEnCurso) return;
     setMsg(null);
+    const contextoInicial = await leerContextoPaquete();
+    if (!contextoInicial.fingerprint) {
+      setMsg({
+        kind: "warn",
+        text: "El paquete requiere cálculo, marco y selección vigentes para el escenario elegido.",
+      });
+      return;
+    }
+    const fingerprintInicial = contextoInicial.fingerprint;
     setPaqueteEnCurso(true);
     setPaquetePasos([
       { id: "reporte", label: "Reporte metodológico", status: "pendiente" },
@@ -2109,10 +2198,12 @@ export default function CalcMuestraPage() {
     try {
       actualizarPasoPaquete("reporte", { status: "curso" });
       setReporteEnCurso(true);
-      await persistCurrent();
+      const contextoReporte = await exigirContextoPaqueteVigente(fingerprintInicial);
+      await persistCurrent(contextoReporte.estudio);
       const res = await apiCalcMuestraReporteIniciar(formato);
       setReporteMeta({ disponible: false, jobId: res.job_id });
       await esperarJobAulas(res.job_id, "Paquete de defensa — reporte metodológico");
+      await exigirContextoPaqueteVigente(fingerprintInicial);
       setReporteMeta({ disponible: true, jobId: res.job_id });
       actualizarPasoPaquete("reporte", {
         status: "ok",
@@ -2133,8 +2224,10 @@ export default function CalcMuestraPage() {
     try {
       actualizarPasoPaquete("aulas", { status: "curso" });
       setBusy("Paquete de defensa — exportando anexo de cursos-horario");
+      await exigirContextoPaqueteVigente(fingerprintInicial);
       const res = await apiCalcMuestraAulasExportar();
       setAulasState(res.state.aulas ?? null);
+      await exigirContextoPaqueteVigente(fingerprintInicial);
       actualizarPasoPaquete("aulas", {
         status: "ok",
         detalle: res.export?.filename ?? "workbook xlsx",
@@ -2152,44 +2245,8 @@ export default function CalcMuestraPage() {
     try {
       actualizarPasoPaquete("memoria", { status: "curso" });
       setBusy("Paquete de defensa — armando memoria JSON");
-      const estudioActual = useCalcMuestraStore.getState().estudio;
-      const workspaceActual = normalizeWorkspace(estudioActual);
-      let aulasActual = aulasState;
-      try {
-        const state = await apiCalcMuestraState();
-        aulasActual = state.aulas ?? aulasActual;
-      } catch {
-        // Sin estado fresco se usa el último conocido en memoria.
-      }
-      const totalComp =
-        estudioActual.componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ??
-        estudioActual.componentes[0];
-      const selection = aulasActual?.selection ?? null;
-      const memoria = {
-        schema: "prosecnur_paquete_defensa_v1",
-        proyecto: estudioActual.titulo,
-        cliente: estudioActual.contexto.cliente || null,
-        timestamp: new Date().toISOString(),
-        semilla: selection
-          ? safeNumber(selection.seed, safeNumber(workspaceActual.aulas_config?.semilla))
-          : workspaceActual.aulas_config?.semilla ?? null,
-        firma_marco: selection?.frame_hash ?? aulasActual?.frame?.frame_hash ?? null,
-        metodo: selection
-          ? String(selection.selector_engine_used ?? selection.selector_engine ?? "")
-          : null,
-        parametros_calculo: totalComp
-          ? {
-              z: totalComp.parametros.z,
-              p: totalComp.parametros.p,
-              e: totalComp.parametros.e,
-              deff: totalComp.parametros.deff,
-              sobremuestra: totalComp.parametros.oversample_pct,
-            }
-          : null,
-        n_objetivo: safeNumber(totalComp?.resultado?.n_objetivo, 0) || null,
-        decision_log: estudioActual.decision_log ?? null,
-        historial_corridas: historialCorridas(workspaceActual),
-      };
+      const contextoMemoria = await exigirContextoPaqueteVigente(fingerprintInicial);
+      const memoria = construirMemoriaPaqueteDefensa(contextoMemoria);
       const blob = new Blob([JSON.stringify(memoria, null, 2)], { type: "application/json" });
       if (memoriaUrlRef.current) URL.revokeObjectURL(memoriaUrlRef.current);
       const url = URL.createObjectURL(blob);

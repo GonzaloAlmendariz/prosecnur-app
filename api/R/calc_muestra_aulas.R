@@ -3591,6 +3591,7 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
     schema = "calc_muestra_aulas_method_comparison_v1",
     generated_at = .cm_aulas_now_iso(),
     frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
+    selector = list(n_aulas = selector$n_aulas),
     methods = .cm_aulas_records(metrics),
     recommendation = list(
       method_id = recommended$method_id[[1]],
@@ -4366,6 +4367,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     schema = "calc_muestra_aulas_method_comparison_v1",
     generated_at = .cm_aulas_now_iso(),
     frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
+    selector = list(n_aulas = config$selector$n_aulas),
     methods = methods,
     recommendation = list(
       method_id = "cube_balanceado",

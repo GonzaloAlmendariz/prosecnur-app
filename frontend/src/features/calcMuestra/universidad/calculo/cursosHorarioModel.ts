@@ -194,3 +194,34 @@ export function cursosHorarioFinalMap(modelo: CursosHorarioModelo): Record<strin
   }
   return mapa;
 }
+
+export function planesCursosHorarioIguales(
+  actual: Record<string, number>,
+  confirmado: Record<string, number>,
+): boolean {
+  const keys = Object.keys(actual);
+  return keys.length === Object.keys(confirmado).length &&
+    keys.every((key) => actual[key] === confirmado[key]);
+}
+
+/** Acredita que el plan confirmado aún coincide con el cálculo y el marco. */
+export function estadoConfirmacionCursosHorario({
+  confirmado,
+  marcoDesactualizado,
+  completo,
+  actual,
+  guardado,
+}: {
+  confirmado: boolean;
+  marcoDesactualizado: boolean;
+  completo: boolean;
+  actual: Record<string, number>;
+  guardado: Record<string, number>;
+}) {
+  const vigente = confirmado && completo && !marcoDesactualizado &&
+    planesCursosHorarioIguales(actual, guardado);
+  return {
+    vigente,
+    puedeConfirmar: completo && !marcoDesactualizado && !vigente,
+  };
+}

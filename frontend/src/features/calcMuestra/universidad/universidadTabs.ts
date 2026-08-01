@@ -15,15 +15,13 @@ import {
   type ClassroomLabTab,
 } from "./shared/constants";
 import {
-  classroomComparisonReady,
   classroomFrameReady,
-  classroomReplacementReady,
-  classroomSelectionReady,
   evaluarConsistenciaMarco,
   frameAuditNumber,
 } from "./shared/frame";
 import { hasUsefulResult } from "./shared/study";
 import { universityFrameSourceBindings } from "./shared/categorias";
+import { resolveClassroomArtifactStatus } from "./aulas/classroomHandoff";
 
 export type CalcMuestraSidebarTab = {
   id: string;
@@ -100,7 +98,12 @@ export function universitySectionStates({
     safeNumber(comp.marco.marco_validado, 0) > 0 ||
     (comp.marco.estratos ?? []).some((row) => safeNumber(row.N, 0) > 0),
   );
-  const hasResult = componentes.some(hasUsefulResult);
+  const totalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const facultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const artifactStatus = totalComp && facultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp, facultyComp, aulasState })
+    : null;
+  const selectedResultReady = artifactStatus?.selectedResultReady ?? false;
   const declaredSourcesReady = universityFrameSourceBindings(workspace.source_bindings).some((source) =>
     Boolean(source.file_name || source.file_id || source.spreadsheet_id || source.status === "cargada" || source.status === "validada"),
   );
@@ -108,15 +111,15 @@ export function universitySectionStates({
     .filter((row) => row.required)
     .every((required) => (workspace.variable_mappings ?? []).some((row) => row.role === required.role && row.column));
   const frameReady = classroomFrameReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
+  const selectionReady = artifactStatus?.selectionReady ?? false;
+  const replacementReady = artifactStatus?.replacementReady ?? false;
 
   const sections: Array<[string, boolean]> = [
     ["definicion", Boolean(estudio.titulo) && (declaredSourcesReady || frameReady) && requiredMapped],
     ["marco", marcoReady || frameReady],
-    ["calculo", hasResult],
+    ["calculo", selectedResultReady],
     ["aulas", selectionReady],
-    ["salidas", hasResult && selectionReady && replacementReady],
+    ["salidas", selectedResultReady && selectionReady && replacementReady],
   ];
 
   const states: Record<string, GuideStatus> = {};
@@ -132,12 +135,21 @@ export function universitySectionStates({
   return states;
 }
 
-function classroomLabStatusesForSidebar(estudio: CalcMuestraEstudio, aulasState: CalcMuestraAulasState | null): Record<ClassroomLabTab, GuideStatus> {
-  const hasCalculatedQuota = estudio.componentes.some(hasUsefulResult);
+function classroomLabStatusesForSidebar(
+  estudio: CalcMuestraEstudio,
+  workspace: CalcMuestraWorkspace,
+  aulasState: CalcMuestraAulasState | null,
+): Record<ClassroomLabTab, GuideStatus> {
+  const totalComp = estudio.componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const facultyComp = estudio.componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const status = totalComp && facultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp, facultyComp, aulasState })
+    : null;
+  const hasCalculatedQuota = status?.selectedResultReady ?? false;
   const frameReady = classroomFrameReady(aulasState);
-  const comparisonReady = classroomComparisonReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
+  const comparisonReady = status?.comparisonReady ?? false;
+  const selectionReady = status?.selectionReady ?? false;
+  const replacementReady = status?.replacementReady ?? false;
   return {
     objetivo: guideStatus(hasCalculatedQuota, frameReady),
     metodo: guideStatus(comparisonReady, hasCalculatedQuota),
@@ -160,8 +172,9 @@ export function universitySidebarTabs({
   aulasState: CalcMuestraAulasState | null;
 }): CalcMuestraSidebarTab[] | null {
   const componentes = estudio.componentes;
-  const totalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ?? componentes[0];
-  const facultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ?? componentes[1] ?? componentes[0];
+  const exactTotalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const exactFacultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const totalComp = exactTotalComp ?? componentes[0];
   const marcoReady = componentes.some((comp) =>
     safeNumber(comp.marco.marco_validado, 0) > 0 ||
     (comp.marco.estratos ?? []).some((row) => safeNumber(row.N, 0) > 0),
@@ -197,9 +210,13 @@ export function universitySidebarTabs({
     workspace.publication_config?.google_sheets_enabled ||
     workspace.publication_config?.spreadsheet_id,
   );
-  const comparisonReady = classroomComparisonReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
+  const artifactStatus = exactTotalComp && exactFacultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp: exactTotalComp, facultyComp: exactFacultyComp, aulasState })
+    : null;
+  const comparisonReady = artifactStatus?.comparisonReady ?? false;
+  const selectionReady = artifactStatus?.selectionReady ?? false;
+  const replacementReady = artifactStatus?.replacementReady ?? false;
+  const selectedResultReady = artifactStatus?.selectedResultReady ?? false;
   const effectiveMarcoReady = marcoReady || builtAulasFrameReady;
 
   if (activeSection === "definicion") {
@@ -248,19 +265,19 @@ export function universitySidebarTabs({
     ];
   }
   if (activeSection === "aulas") {
-    const statuses = classroomLabStatusesForSidebar(estudio, aulasState);
+    const statuses = classroomLabStatusesForSidebar(estudio, workspace, aulasState);
     return CLASSROOM_LAB_TABS.map((tab) => ({
       ...tab,
       status: statuses[tab.id],
     }));
   }
   if (activeSection === "salidas") {
-    const deliverablesReady = hasResult && selectionReady && publicationConfigured;
+    const deliverablesReady = selectedResultReady && selectionReady && publicationConfigured;
     const [guiaTab, resultadosTab, entregablesTab, monitoreoTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
     return [
-      { ...guiaTab, status: guideStatus(hasResult && selectionReady && replacementReady, effectiveMarcoReady) },
-      { ...resultadosTab, status: guideStatus(hasResult) },
-      { ...entregablesTab, status: guideStatus(deliverablesReady, hasResult && selectionReady) },
+      { ...guiaTab, status: guideStatus(selectedResultReady && selectionReady && replacementReady, effectiveMarcoReady) },
+      { ...resultadosTab, status: guideStatus(selectedResultReady) },
+      { ...entregablesTab, status: guideStatus(deliverablesReady, selectedResultReady && selectionReady) },
       { ...monitoreoTab, status: guideStatus(selectionReady && replacementReady, comparisonReady) },
     ];
   }
