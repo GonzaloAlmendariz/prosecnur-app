@@ -52,11 +52,13 @@ La fuente de verdad para empaquetado es `api/DESCRIPTION`.
 ## Version actual
 
 Estamos en `0.6.1` (corte `0.6.1`), preparada para publicarse como `v0.6.1`.
-El canal `stable` sigue bloqueado por el ADR 0048 mientras packaging no
-produzca firmas de distribucion ni los ZIP del updater, asi que este corte
-hereda la via del ADR 0054: se construye por `internal-preview` y se adjunta a
-mano a la GitHub Release, sin auto-updater. La 0.6.0 se publico exactamente
-asi.
+El ADR 0055 retiro del canal `stable` la exigencia de firma de distribucion y
+los payloads de updater de macOS, que el repositorio no puede producir sin
+certificados, de modo que el corte vuelve a publicarse por push del tag. Los
+instalables salen sin firmar: SmartScreen advierte en Windows y Gatekeeper
+pide «Open Anyway» en macOS. Windows conserva su auto-updater; macOS se
+distribuye por DMG y se actualiza a mano. La 0.6.0 salio por la via manual del
+ADR 0054, que ya no hace falta repetir.
 
 La serie `3.x` del historial no es la linea de versionado del producto: nacio
 de nombrar «Corte 3.1» a la version `0.3.1` y quedo como siete tags publicados

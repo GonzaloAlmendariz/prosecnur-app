@@ -61,7 +61,8 @@ Antes del tag exige:
 Después de crear localmente el tag autorizado, ejecuta
 `node scripts/release-contract.mjs stable --tag vX.Y.Z`. El push del tag es un
 segundo efecto externo y requiere autoridad. El workflow debe detenerse ante
-cualquier plataforma, firma, manifest o asset ausente.
+cualquier plataforma o asset ausente. La firma de distribución ya no es uno de
+esos gates (ADR 0055).
 
 ## 3. Monitoreo y diagnóstico
 
@@ -82,11 +83,14 @@ release estable, verifica además mediante GitHub API:
 
 - release no draft y asociado al tag correcto;
 - notas correspondientes a `.github/RELEASE_NOTES.md`;
-- instalador y ZIP Windows íntegros, con firma exigida;
-- dos DMG y dos ZIP macOS, firmas válidas y referencias coherentes en
-  `latest-mac.yml`;
-- `latest.yml`, blockmaps y todos los assets requeridos, sin extras de otro
-  canal.
+- instalador y ZIP Windows íntegros, con `latest.yml` presente;
+- dos DMG macOS, uno por arquitectura;
+- ningún asset de otro canal.
+
+El ADR 0055 retiró la exigencia de firma de distribución: los instalables salen
+sin firmar y macOS no publica ZIP, `latest-mac.yml` ni blockmaps porque
+`mac.target` no los emite. No los reclames como faltantes ni los reintroduzcas
+en el workflow sin cargar antes los certificados.
 
 Un job verde con release incompleto no es éxito. Cierra con SHA/tag, comandos
 externos ejecutados, enlace al run/release, conclusión de cada gate y cualquier
