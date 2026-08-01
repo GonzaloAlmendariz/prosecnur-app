@@ -387,7 +387,11 @@ export function CursosHorarioMarcoTab({
                   cursos-horario elegibles» con tu base cargada para ver cada facultad y decidir sus criterios propios.
                 </AvisoModulo>
               ) : (
-                <div className="cmv2-chfp-bloques">
+                <div
+                  className="cmv2-chfp-bloques"
+                  data-qa-geometry-group="calc-muestra/facultades-ch"
+                  data-qa-geometry-contract="intrinsic"
+                >
                   {bloques.map((bloque, index) => (
                     <FacultadDecisionBloque
                       key={bloque.excKey || bloque.facLabel}

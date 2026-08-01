@@ -100,8 +100,17 @@ export function CriterioComposicionCard({
           fuera sin haber fijado antes a quién pertenece el curso.
         </p>
 
-        <ol className="cmv2-crit-pasos">
-          <li className="cmv2-crit-paso" data-active={paso1 ? "true" : "false"}>
+        <ol
+          className="cmv2-crit-pasos"
+          data-qa-geometry-group="calc-muestra/composicion-ch-pasos"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <li
+            className="cmv2-crit-paso"
+            data-active={paso1 ? "true" : "false"}
+            data-qa-geometry-member
+            data-qa-geometry-capacity="owned"
+          >
             <span className="cmv2-crit-paso-rank" aria-hidden="true">1</span>
             <div className="cmv2-crit-paso-copy">
               <strong>Misma facultad del curso</strong>
@@ -123,7 +132,12 @@ export function CriterioComposicionCard({
               onToggle={() => onPatch({ require_faculty_prevalence: !paso1 })}
             />
           </li>
-          <li className="cmv2-crit-paso" data-active={paso2 ? "true" : "false"}>
+          <li
+            className="cmv2-crit-paso"
+            data-active={paso2 ? "true" : "false"}
+            data-qa-geometry-member
+            data-qa-geometry-capacity="owned"
+          >
             <span className="cmv2-crit-paso-rank" aria-hidden="true">2</span>
             <div className="cmv2-crit-paso-copy">
               <strong>Mismo nivel del curso</strong>

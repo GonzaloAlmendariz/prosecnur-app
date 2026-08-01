@@ -59,6 +59,7 @@ export function AulasFinalesCard({
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={propia ? "propia" : "hereda"}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}

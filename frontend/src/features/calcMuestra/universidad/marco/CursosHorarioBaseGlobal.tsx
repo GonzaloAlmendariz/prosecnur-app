@@ -254,7 +254,11 @@ export function CursosHorarioBaseGlobal({
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
 }) {
   return (
-    <div className="cmv2-crit-grid cmv2-chfp-global-grid">
+    <div
+      className="cmv2-crit-grid cmv2-chfp-global-grid"
+      data-qa-geometry-group="calc-muestra/criterios-ch-globales"
+      data-qa-geometry-contract="intrinsic"
+    >
       {!soloAjustes &&
         aulaVariables.map((variable) => (
           <GlobalCriterioCard

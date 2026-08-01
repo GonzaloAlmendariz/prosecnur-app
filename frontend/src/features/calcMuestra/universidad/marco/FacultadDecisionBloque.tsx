@@ -98,6 +98,7 @@ function CriterioFacultadCard({
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={fila.decision}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}
@@ -177,6 +178,7 @@ function NivelFacultadCard({
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={activo ? "propia" : "hereda"}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}
@@ -281,6 +283,7 @@ function MinFacultadCard({
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={propio != null ? "propia" : "hereda"}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}
@@ -464,7 +467,12 @@ export function FacultadDecisionBloque({
               <FacultadRadiografiaCard fac={fac} modo="resumen" />
             </div>
           </div>
-          <div className="cmv2-chfp-decision" aria-label={`Decisión de criterios para ${facLabel}`}>
+          <div
+            className="cmv2-chfp-decision"
+            aria-label={`Decisión de criterios para ${facLabel}`}
+            data-qa-geometry-group="calc-muestra/decision-ch-facultad"
+            data-qa-geometry-contract="intrinsic"
+          >
             <span className="cmv2-chfp-section-eyebrow">Decisión para esta facultad</span>
             <p className="cmv2-chfp-decision-hint">
               Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
