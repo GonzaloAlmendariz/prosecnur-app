@@ -220,7 +220,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       }}
     >
       <Icon size={16} color={meta.fg} style={{ flexShrink: 0, marginTop: 1 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* `detail` suele traer rutas absolutas o mensajes de error: un token sin
+          espacios desbordaba la tarjeta por el borde derecho de la pantalla.
+          `anywhere` quiebra dentro del ancho del deck. */}
+      <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
         <div style={{ fontWeight: 700, lineHeight: 1.35 }}>{toast.title}</div>
         {toast.detail && (
           <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", marginTop: 2, lineHeight: 1.45 }}>
