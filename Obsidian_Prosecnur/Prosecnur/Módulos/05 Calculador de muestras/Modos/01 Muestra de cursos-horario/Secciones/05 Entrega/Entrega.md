@@ -27,8 +27,8 @@ Trabaja con las bases de estudiantes y cursos-horario del mismo periodo académi
 flowchart TD
     N["Entrega universitaria"]
     N --> C1["Cierre de muestra universitaria"]
-    N --> C2["Entregables de muestra"]
-    N --> C3["Tablas de muestra"]
+    N --> C2["Tablas de muestra"]
+    N --> C3["Entregables de muestra"]
     N --> C4["Pase a Monitoreo"]
 ```
 
@@ -37,15 +37,15 @@ flowchart TD
 | Destino | Cuándo entrar | Qué hacer allí | Qué deja listo |
 |---|---|---|---|
 | [[Cierre de muestra universitaria]] | cuando marco, cálculo y selección están completos y debes comprobar su coherencia conjunta. | Resume la salud del diseño y verifica el camino desde el marco validado hasta los entregables. | diagnóstico de cierre de la muestra. |
-| [[Entregables de muestra]] | cuando el diseño está cerrado y debes definir audiencia, privacidad y destino de publicación. | Configura el paquete de defensa, la política de privacidad y los destinos Excel o Google Sheets. | paquete de entregables configurado. |
 | [[Tablas de muestra]] | cuando necesitas revisar o compartir la distribución final por componente. | Presenta la distribución validada del motor y las tablas de cierre por componente. | tablas de cierre validadas. |
+| [[Entregables de muestra]] | cuando el diseño está cerrado y debes definir audiencia, privacidad y destino de publicación. | Configura el paquete de defensa, la política de privacidad y los destinos Excel o Google Sheets. | paquete de entregables configurado. |
 | [[Pase a Monitoreo]] | cuando titulares, reservas, códigos y pesos están cerrados para iniciar seguimiento de campo. | Prepara la agenda cerrada de titulares, reservas, códigos y pesos para el seguimiento de campo. | agenda muestral transferible a Monitoreo. |
 
 ## Recorrido recomendado
 
 1. **Cierre de muestra universitaria:** Resume la salud del diseño y verifica el camino desde el marco validado hasta los entregables; al terminar, el resultado es diagnóstico de cierre de la muestra.
-2. **Entregables de muestra:** Configura el paquete de defensa, la política de privacidad y los destinos Excel o Google Sheets; al terminar, el resultado es paquete de entregables configurado.
-3. **Tablas de muestra:** Presenta la distribución validada del motor y las tablas de cierre por componente; al terminar, el resultado es tablas de cierre validadas.
+2. **Tablas de muestra:** Presenta la distribución validada del motor y las tablas de cierre por componente; al terminar, el resultado es tablas de cierre validadas.
+3. **Entregables de muestra:** Configura el paquete de defensa, la política de privacidad y los destinos Excel o Google Sheets; al terminar, el resultado es paquete de entregables configurado.
 4. **Pase a Monitoreo:** Prepara la agenda cerrada de titulares, reservas, códigos y pesos para el seguimiento de campo; al terminar, el resultado es agenda muestral transferible a Monitoreo.
 
 La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el método transforma esos insumos en metas o probabilidades; y el cierre conserva la evidencia. En **Entrega universitaria**, empieza por **Cierre de muestra universitaria** y termina en **Pase a Monitoreo**. Para una revisión puntual puedes abrir directamente el destino causal, pero recalcula las tareas posteriores si modificas su entrada.

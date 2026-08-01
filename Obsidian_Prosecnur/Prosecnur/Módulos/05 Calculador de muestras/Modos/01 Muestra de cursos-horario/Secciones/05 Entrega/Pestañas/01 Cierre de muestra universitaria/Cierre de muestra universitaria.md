@@ -39,7 +39,7 @@ flowchart LR
 3. Revisa titulares, profundidad de reserva y sello del sorteo.
 4. Resuelve observaciones antes de configurar salidas.
 ## Resultado y siguiente paso
-- Diseño revisado y listo para salida; continúa con Entregables de muestra.
+- Diseño revisado y listo para salida; continúa con Tablas de muestra.
 ## Estados, alertas y límites
 - Configurar un destino no compensa un cálculo o selección pendiente.
 - Las observaciones críticas requieren una decisión explícita.

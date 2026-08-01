@@ -470,7 +470,7 @@ Las fórmulas de Método, Sustento técnico y Simulación ya están citadas en l
 
 ### D.5 Salida
 
-**Pestañas:** Cierre (`SalidasCierreTab.tsx`) → Entregables (`SalidasEntregablesTab.tsx`) → Tablas/Resultados (`SalidasResultadosTab.tsx`) → Pase a Monitoreo (`SalidasMonitoreoTab.tsx`).
+**Pestañas:** Cierre (`SalidasCierreTab.tsx`) → Tablas/Resultados (`SalidasResultadosTab.tsx`) → Entregables (`SalidasEntregablesTab.tsx`) → Pase a Monitoreo (`SalidasMonitoreoTab.tsx`).
 
 #### `SalidasCierreTab.tsx`
 - **C-D56** (`:138-139`, encabezado): "El diseño completo, con las cifras que se defienden ante el cliente" — "El camino del diseño y lo que falta para cerrarlo".

@@ -114,8 +114,8 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   ],
   salidas: [
     pestana("salidas", "salidas-guia", "Cierre", "ficha ejecutiva del diseño", FileCheck2, { targetId: "cmv2-local-salidas-guia" }),
-    pestana("salidas", "salidas-entregables", "Entregables", "Excel, Sheets y privacidad", FileText, { targetId: "cmv2-local-salidas-entregables" }),
     pestana("salidas", "salidas-resultados", "Tablas", "cuotas finales por facultad y sexo", BarChart3, { targetId: "cmv2-local-salidas-resultados" }),
+    pestana("salidas", "salidas-entregables", "Entregables", "Excel, Sheets y privacidad", FileText, { targetId: "cmv2-local-salidas-entregables" }),
     pestana("salidas", "salidas-monitoreo", "Pase a Monitoreo", "handoff operativo y reservas", Send, { targetId: "cmv2-local-salidas-monitoreo" }),
   ],
 } as const satisfies Record<

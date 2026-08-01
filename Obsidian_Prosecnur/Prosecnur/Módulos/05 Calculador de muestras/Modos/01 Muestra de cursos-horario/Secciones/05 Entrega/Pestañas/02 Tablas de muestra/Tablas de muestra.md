@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Entrega]]"]
-orden: 3
+orden: 2
 documentacion: parcial
 ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=salidas&pestana=salidas-resultados"
 nodo: "calc-muestra/opinion-universitaria/salidas/salidas-resultados"
@@ -38,7 +38,7 @@ flowchart LR
 3. Verifica la procedencia de las cifras.
 4. Corrige el cálculo si una tabla no representa el diseño aprobado.
 ## Resultado y siguiente paso
-- Tablas validadas; continúa con Pase a Monitoreo.
+- Tablas validadas; continúa con Entregables de muestra.
 ## Estados, alertas y límites
 - Sin resultado calculado no hay distribución validada.
 - Las tablas muestran el resultado; no son un editor alternativo de cuotas.

@@ -545,6 +545,13 @@ export function UniversidadDesk({
             {showLocalTab("salidas-guia") && <div id="cmv2-local-salidas-guia">
               <SalidasCierreTab model={labModel} workspace={syncedWorkspace} />
             </div>}
+            {showLocalTab("salidas-resultados") && <div id="cmv2-local-salidas-resultados">
+              <SalidasResultadosTab
+                componentes={[totalComp, facultyComp]}
+                workspace={syncedWorkspace}
+                onWorkspace={onWorkspace}
+              />
+            </div>}
             {showLocalTab("salidas-entregables") && <div id="cmv2-local-salidas-entregables">
               <SalidasEntregablesTab
                 model={labModel}
@@ -575,13 +582,6 @@ export function UniversidadDesk({
                   pasos: paquetePasos,
                   onGenerar: () => onGenerarPaqueteDefensa(reporteFormato),
                 }}
-              />
-            </div>}
-            {showLocalTab("salidas-resultados") && <div id="cmv2-local-salidas-resultados">
-              <SalidasResultadosTab
-                componentes={[totalComp, facultyComp]}
-                workspace={syncedWorkspace}
-                onWorkspace={onWorkspace}
               />
             </div>}
             {showLocalTab("salidas-monitoreo") && <div id="cmv2-local-salidas-monitoreo">

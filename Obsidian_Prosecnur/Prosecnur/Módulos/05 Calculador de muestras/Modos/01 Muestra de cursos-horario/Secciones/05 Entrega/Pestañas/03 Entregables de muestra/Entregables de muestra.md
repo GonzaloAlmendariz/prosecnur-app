@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Entrega]]"]
-orden: 2
+orden: 3
 documentacion: parcial
 ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=salidas&pestana=salidas-entregables"
 nodo: "calc-muestra/opinion-universitaria/salidas/salidas-entregables"
@@ -39,7 +39,7 @@ flowchart LR
 3. Confirma tablas y columnas incluidas.
 4. Configura Excel local o Google Sheets y genera la salida.
 ## Resultado y siguiente paso
-- Paquete configurado o generado; continúa con Tablas de muestra.
+- Paquete configurado o generado; continúa con Pase a Monitoreo.
 ## Estados, alertas y límites
 - Las salidas para cliente no incluyen códigos de estudiante.
 - Google Sheets requiere un destino válido y conectividad.
