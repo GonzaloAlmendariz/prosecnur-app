@@ -4,12 +4,14 @@
  * motor sustituidos (peor brecha de perfil, peso de un aula concreta, π del
  * estudiante y n efectivo), con chips que referencian términos ya explicados
  * en Método y Simulación. La tarjeta de reproducibilidad defendible reúne
- * semilla, firma del marco, método, fuente de probabilidad, corrida y
- * corridas MC. Se conservan fuentes metodológicas, riesgos, brechas top y el
- * handoff operativo.
+ * semilla, firmas histórica y vigente del marco, método, fuente de
+ * probabilidad, corrida y corridas MC. Se conservan fuentes metodológicas,
+ * riesgos, brechas top y el handoff operativo.
  */
 import { FileText } from "lucide-react";
+import { RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { fmtDec, fmtInt, fmtPct, safeNumber } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FormulaLatex } from "../ui";
 import {
@@ -58,6 +60,10 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
   // replay-a su cascada: la evidencia nueva se ve llegar. Las cifras del sello
   // no se remontan: CifraMotor ya funde sus valores con blur-swap.
   const corridaKey = selection?.selection_run_id ? String(selection.selection_run_id) : "sin-corrida";
+  const frameHash = frame?.frame_hash ? String(frame.frame_hash) : "";
+  const selectionHash = selection?.frame_hash ? String(selection.frame_hash) : "";
+  const frameChangedAfterSelection = Boolean(frameHash && selectionHash && frameHash !== selectionHash);
+  const generatedAt = frame?.generated_at ? String(frame.generated_at).slice(0, 16).replace("T", " ") : "";
 
   return (
     <div className="cmv2-aulas-stack">
@@ -153,18 +159,35 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
                 value={String(safeNumber(selection?.seed, config.semilla))}
                 detalle="fija el sorteo completo"
                 origen={selection ? "motor" : "preview"}
-              />
-              <CifraMotor
-                label="Firma del marco"
-                value={selection?.frame_hash ? String(selection.frame_hash).slice(0, 10) : frame?.frame_hash ? String(frame.frame_hash).slice(0, 10) : "pendiente"}
-                detalle="marco congelado usado"
-                origen={selection?.frame_hash || frame?.frame_hash ? "motor" : undefined}
+                monospace
               />
               <CifraMotor
                 label="Método usado"
                 value={selection ? classroomMethodLabel(String(selection.selector_engine_used ?? selection.selector_engine ?? "")) : classroomMethodLabel(model.recommendedMethodId)}
                 detalle={selection ? "cálculo ejecutado" : "recomendado vigente"}
                 origen={selection ? "motor" : undefined}
+              />
+            </CifraFila>
+            <CifraFila>
+              <CifraMotor
+                label="Firma usada por la selección"
+                value={selectionHash ? selectionHash.slice(0, 10) : "pendiente"}
+                detalle="marco usado al ejecutar la selección"
+                origen={selectionHash ? "motor" : undefined}
+                monospace
+              />
+              <CifraMotor
+                label="Firma del marco actual"
+                value={frameHash ? frameHash.slice(0, 10) : "pendiente"}
+                detalle="firma del marco vigente"
+                origen={frameHash ? "motor" : undefined}
+                monospace
+              />
+              <CifraMotor
+                label="Marco actual generado"
+                value={generatedAt || "pendiente"}
+                detalle="fecha de construcción del marco vigente"
+                origen={generatedAt ? "motor" : undefined}
               />
             </CifraFila>
             <CifraFila>
@@ -179,6 +202,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
                 value={selection?.selection_run_id ? String(selection.selection_run_id) : "pendiente"}
                 detalle="identificador auditable"
                 origen={selection?.selection_run_id ? "motor" : undefined}
+                monospace
               />
               <CifraMotor
                 label="Corridas MC"
@@ -189,6 +213,12 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
             </CifraFila>
           </section>
 
+          {frameChangedAfterSelection && (
+            <AvisoModulo tone="warn" title="El marco cambió después de la selección.">
+              La selección vigente ({classroomMethodLabel(String(selection?.selector_engine_used ?? selection?.selector_engine ?? ""))}) se sorteó sobre la firma {selectionHash.slice(0, 10)}, pero el marco actual tiene la firma {frameHash.slice(0, 10)}. Vuelve a comparar métodos y seleccionar para que titulares y reemplazos correspondan al marco vigente.
+            </AvisoModulo>
+          )}
+
           <ClassroomMethodSources selection={selection} comparison={comparison} />
         </div>
         <aside className="cmv2-classroom-lab-side">
@@ -197,6 +227,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
           <ClassroomOperationalHandoffPanel selection={selection} replacementSimulation={replacementSimulation} />
         </aside>
       </div>
+      <RespaldoMetodologico paso="aulas" />
     </div>
   );
 }

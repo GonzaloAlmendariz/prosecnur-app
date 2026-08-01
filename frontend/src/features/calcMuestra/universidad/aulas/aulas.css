@@ -34,84 +34,7 @@
   min-height: 0;
 }
 
-/* --- Marco: flujo + lateral con chips y auditoría ----------------------------
-   Con tope de ancho: a 1710 la cadena se estiraba a ~950px con texto corto y
-   la columna lateral quedaba flotando sobre un vacío (QA H10). */
-.cmv2-aulas-marco-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
-  gap: 16px;
-  align-items: start;
-  max-width: 1320px;
-}
-
-@media (max-width: 1040px) {
-  .cmv2-aulas-marco-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.cmv2-aulas-marco-lateral {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-/* --- Chips de reglas del método (Popover) ------------------------------------ */
-.cmv2-aulas-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  background: var(--cmv2-surface-tint);
-}
-
-.cmv2-aulas-chips-titulo {
-  width: 100%;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-black);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.cmv2-aulas-chip {
-  min-height: 0;
-  padding: 4px 10px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: 999px;
-  background: var(--cmv2-surface);
-  color: var(--cmv2-accent-fg);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.3;
-  cursor: help;
-  transition:
-    background var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out);
-}
-
-/* Hover solo en punteros reales; el estado abierto (popover) usa el mismo look. */
-@media (hover: hover) {
-  .cmv2-aulas-chip:hover {
-    border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-    background: var(--cmv2-accent-soft);
-  }
-}
-
-.cmv2-aulas-chip[aria-expanded="true"] {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-  background: var(--cmv2-accent-soft);
-}
-
-.cmv2-aulas-chip:active {
-  transform: scale(0.96);
-}
-
+/* --- Contenido de los popovers metodológicos -------------------------------- */
 .cmv2-aulas-chip-pop {
   display: grid;
   gap: 6px;
@@ -140,7 +63,7 @@
   min-height: 0;
 }
 
-/* --- Reproducibilidad y alertas ----------------------------------------------- */
+/* --- Reproducibilidad --------------------------------------------------------- */
 .cmv2-aulas-repro {
   display: grid;
   gap: 8px;
@@ -148,38 +71,6 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 10px;
   background: var(--cmv2-surface);
-}
-
-.cmv2-aulas-alerta {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
-  padding: 10px 11px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: 10px;
-  background: var(--pulso-warn-bg);
-}
-
-.cmv2-aulas-alerta svg {
-  margin-top: 1px;
-  color: var(--pulso-warn-fg);
-}
-
-.cmv2-aulas-alerta strong {
-  display: block;
-  color: var(--pulso-warn-fg);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-black);
-  line-height: 1.3;
-}
-
-.cmv2-aulas-alerta span {
-  display: block;
-  margin-top: 2px;
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-  line-height: 1.5;
 }
 
 /* --- Objetivo: traducción de cuotas por facultad ------------------------------ */
@@ -735,9 +626,7 @@
   }
 }
 
-/* "Sello" de reproducibilidad: tinte de gradiente de acento compartido entre
-   Marco de aulas y Sustento técnico, para que ambas tarjetas se lean como el
-   mismo sello metodológico. */
+/* "Sello" de reproducibilidad de Sustento técnico. */
 .cmv2-aulas-stack .cmv2-aulas-sello {
   border-color: color-mix(in srgb, var(--cmv2-accent) 24%, var(--pulso-border));
   background:
@@ -799,30 +688,6 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* --- Marco: cascada de la cadena metodológica (etapas + aristas) ----------- */
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > * {
-    animation: cmv2-aulas-enter 200ms var(--cmv2-ease-out, ease-out) both;
-  }
-
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(2) { animation-delay: 20ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(3) { animation-delay: 40ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(4) { animation-delay: 60ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(5) { animation-delay: 80ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(6) { animation-delay: 100ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(7) { animation-delay: 120ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(8) { animation-delay: 140ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(9) { animation-delay: 160ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(10) { animation-delay: 180ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(11) { animation-delay: 200ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(12) { animation-delay: 220ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(n + 13) { animation-delay: 240ms; }
-
-  /* Alertas condicionales (ej. marco cambiado tras la selección): entrada
-     propia para que el aviso se perciba como evento, no como layout. */
-  .cmv2-aulas-alerta {
-    animation: cmv2-aulas-enter 220ms var(--cmv2-ease-out, ease-out) both;
-  }
-
   /* --- Objetivo: cascada de la traducción por facultad ----------------------- */
   .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila {
     animation: cmv2-aulas-enter 200ms var(--cmv2-ease-out, ease-out) both;
@@ -1746,10 +1611,9 @@
   white-space: normal;
 }
 
-/* Fila 1: semilla y firma · Fila 2: corrida de selección (posiciones fijas de
-   la ficha; los divs 2 y 3 del sello son las dos CifraFila). */
-.cmv2-aulas-repro .cmv2-uni-cifra-fila:nth-of-type(2) .cmv2-uni-cifra:nth-child(-n + 2) .cmv2-uni-cifra-valor,
-.cmv2-aulas-repro .cmv2-uni-cifra-fila:nth-of-type(3) .cmv2-uni-cifra:nth-child(2) .cmv2-uni-cifra-valor {
+/* Evidencia reproducible declarada por significado: semilla, firmas del marco
+   y corrida de selección se leen carácter por carácter. */
+.cmv2-aulas-repro .cmv2-uni-cifra[data-monospace="true"] .cmv2-uni-cifra-valor {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 15px;
   font-weight: var(--pulso-weight-bold);

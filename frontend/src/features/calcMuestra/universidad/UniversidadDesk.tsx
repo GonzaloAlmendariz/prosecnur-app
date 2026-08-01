@@ -41,7 +41,6 @@ import { CriteriosMarcoTab } from "./criterios";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoPropuestasTab } from "./calculo";
 import {
   AulasAuditoriaTab,
-  AulasMarcoTab,
   AulasMetodoTab,
   AulasObjetivoTab,
   AulasReemplazosTab,
@@ -470,7 +469,6 @@ export function UniversidadDesk({
 
         {selectedSection === "aulas" && (
           <div id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
-            {activeLabTab === "marco" && <AulasMarcoTab model={labModel} />}
             {activeLabTab === "objetivo" && (
               <AulasObjetivoTab workspace={syncedWorkspace} model={labModel} onWorkspace={onWorkspace} />
             )}

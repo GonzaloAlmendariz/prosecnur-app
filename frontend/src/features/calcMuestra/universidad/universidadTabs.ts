@@ -72,6 +72,12 @@ export function resolveUniversityLocalTab(id: string | null | undefined) {
   return UNIVERSITY_LOCAL_TAB_ALIASES[id] ?? id;
 }
 
+/** Resuelve únicamente pestañas vivas de Selección; todo legado cae en Objetivo. */
+export function resolveUniversityClassroomTab(id: string | null | undefined): ClassroomLabTab {
+  const resolved = resolveUniversityLocalTab(id);
+  return CLASSROOM_LAB_TABS.find((tab) => tab.id === resolved)?.id ?? "objetivo";
+}
+
 /**
  * Estado de avance por sección del rail (Definición → Marco → Cálculo →
  * Aulas → Salida) para el desk universitario. Reutiliza las mismas señales
@@ -132,7 +138,6 @@ function classroomLabStatusesForSidebar(estudio: CalcMuestraEstudio, aulasState:
   const selectionReady = classroomSelectionReady(aulasState);
   const replacementReady = classroomReplacementReady(aulasState);
   return {
-    marco: guideStatus(frameReady),
     objetivo: guideStatus(hasCalculatedQuota, frameReady),
     metodo: guideStatus(comparisonReady, hasCalculatedQuota),
     laboratorio: guideStatus(comparisonReady, hasCalculatedQuota),

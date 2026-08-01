@@ -91,7 +91,6 @@ import {
   type GuideStatus,
 } from "./sharedCore";
 import {
-  CLASSROOM_LAB_TABS,
   DEFAULT_UNIVERSITY_PUBLICATION_CONFIG,
   UNIVERSITY_FACULTY_COMPONENT_ID,
   UNIVERSITY_TOTAL_COMPONENT_ID,
@@ -154,7 +153,7 @@ import { debeResetearRailSection } from "./hooks/railReset";
 import { UniversidadDesk, universityContextTabId } from "./universidad/UniversidadDesk";
 import { JobProgressBanner } from "./JobProgressBanner";
 import { presentResultadoPrecision } from "./resultadoPrecision";
-import { resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
+import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
 
@@ -494,17 +493,6 @@ function inferDesk(estudio: CalcMuestraEstudio, workspace: CalcMuestraWorkspace)
 // pantallas compartían la misma dirección desnuda. Ahora el modo se publica —lo
 // escribe `useCalcMuestraModoPublicado`— y las 4 mesas más el selector están
 // declaradas en el manifiesto, que es de donde `useSeccion` saca el default.
-/**
- * La pestaña del laboratorio de cursos-horario que pide la dirección. Un id que
- * no existe cae en la primera: un enlace viejo debe aterrizar en algo, no dejar
- * el sidebar sin selección.
- */
-function resolverClassroomLabTab(pestana: string | null | undefined): ClassroomLabTab {
-  const pedida = resolveUniversityLocalTab(pestana);
-  const conocida = CLASSROOM_LAB_TABS.find((tab) => tab.id === pedida);
-  return conocida?.id ?? "marco";
-}
-
 export function modoPedidoDesdeDireccion(modo: string | null | undefined): ActiveDesk | null {
   const value = normalizeUniversityLabel(modo ?? "").replace(/[_-]/g, " ");
   if (!value) return null;
@@ -681,11 +669,11 @@ function calculatedTargetForComponents(componentes: CalcMuestraComponente[]) {
   return componentes.reduce((peak, comp) => Math.max(peak, safeNumber(comp.resultado?.n_objetivo, 0)), 0);
 }
 
-function classroomRecoveryTarget(aulasState: CalcMuestraAulasState | null): { section: string; tab: ClassroomLabTab } {
+function classroomRecoveryTarget(aulasState: CalcMuestraAulasState | null): { section: string; tab: string } {
   if (classroomSelectionReady(aulasState)) return { section: "aulas", tab: "seleccion" };
   if (classroomComparisonReady(aulasState)) return { section: "aulas", tab: "metodo" };
-  if (classroomFrameReady(aulasState)) return { section: "marco", tab: "marco" };
-  return { section: "definicion", tab: "marco" };
+  if (classroomFrameReady(aulasState)) return { section: "marco", tab: "marco-aulas" };
+  return { section: "definicion", tab: "def-bases" };
 }
 
 function productSummary(productos: CalcMuestraWorkspaceProducto[]) {
@@ -1091,7 +1079,7 @@ export default function CalcMuestraPage() {
   const activeRailSection = direccion.seccionVigente;
   const setActiveRailSection = direccion.irASeccion;
   const activeClassroomLabTab = useMemo<ClassroomLabTab>(
-    () => resolverClassroomLabTab(direccion.pestana),
+    () => resolveUniversityClassroomTab(direccion.pestana),
     [direccion.pestana],
   );
   const setActiveClassroomLabTab = useCallback(
@@ -1210,8 +1198,7 @@ export default function CalcMuestraPage() {
       setChoosingDesk(false);
       setPendingDeskReset(null);
       if (!direccionTraeSeccion) {
-        setActiveRailSection(recoveryTarget.section);
-        setActiveClassroomLabTab(recoveryTarget.tab);
+        direccion.irASeccionYPestana(recoveryTarget.section, recoveryTarget.tab);
       }
       return;
     }
@@ -1229,12 +1216,12 @@ export default function CalcMuestraPage() {
     aulasStateChecked,
     direccion.seccion,
     direccion.secciones,
+    direccion.irASeccionYPestana,
     hasAulasDeskState,
     hasExistingDesk,
     hydrated,
     inferredDesk,
     requestedDesk,
-    setActiveClassroomLabTab,
     setActiveRailSection,
   ]);
 

@@ -174,12 +174,12 @@ trabajando en lo desbloqueado.
 | Estadísticos por criterio × facultad expuestos por el engine (cuantiles, media, mediana, promedio alumnos/CH) | 0 contratos | 0 contratos completos; 1 parcial probado para `session_type × facultad` (p25/p50/p75, media, min/max; faltan p10/p90 y delta) | ↑ con test por estadístico |
 | Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 0 | ↑ |
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
-| Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 7 | ↑ a 7 |
+| Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 6 vivas; la séptima era la dirección redundante retirada en I5 | ↑ a 6 |
 | `aulasParts.tsx` | 1.612 | 1.612 | ↓ |
-| Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 23 de 24 (95,8 %); 24 de 24 auditadas | 100 % |
+| Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
 | Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 7 locales en fuente; 6 grupos renderizados por viewport de Marco, 0 misses y 0 issues | ↑ con cobertura conforme |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | 2 confirmados + 2 observaciones por confirmar; N9, I0-H1, I0-H3, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | 1 confirmado + 2 observaciones por confirmar; N9, I0-H1, I0-H3, I0-H4, I0-H5, I0-H6, I2-H7 e I3-H8 cerrados | ↓ |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -192,7 +192,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I0-H1 | F1 / guard | Marco incumple C1: `cmv2-uni-cifra` y tres listas `cmv2-crit-item` no declaran contrato geométrico | **cerrado I1**: 30 grupos medidos en cinco viewports, 0 misses y 0 issues |
 | I0-H2 | F1 / visual | Etiquetas de criterios se parten dentro de la palabra en 1366×768 | confirmado; breakpoint mantiene cinco columnas y `overflow-wrap:anywhere` |
 | I0-H3 | F3 | `def-consistencia` vive en Datos aunque el contrato la ubica al final de Marco | **cerrado I2**: Datos queda con 3 pestañas y Marco con 6; Consistencia tiene un único hogar, el sexto de Marco |
-| I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | confirmado; `calcMuestra.ts:107` y spec líneas 87-98 |
+| I0-H4 | F3 | Selección conserva «Marco de cursos-horario», duplicado que la spec manda retirar | **cerrado I5**: Selección conserva seis hogares vivos, la dirección publicada reemplaza a `marco/marco-aulas` y Sustento recibe guard, fecha y respaldo sin mezclar versiones |
 | I0-H5 | F3 | Entrega ordena Entregables antes de Tablas | **cerrado I4**: Cierre → Tablas → Entregables → Pase coincide en catálogo, sidebar, render, bóveda y manifiesto; ids, direcciones, paneles, contenido y estados permanecen unidos a su identidad |
 | I0-H6 | F3 / navegación | El alias cross-section `marco-validacion → def-consistencia` cae en la primera pestaña de Marco | **cerrado I2**: alias y URL publicada anterior canonicalizan con `replace` a `marco/def-consistencia`; 3/3 visitas reales |
 | I2-H7 | F3 / guard metodológico | Consistencia puede publicar «Listo» con dos bases aunque `relation_audit.status` sea `revisar` o `critico` | **cerrado I3**: sidebar y panel comparten una decisión fail-closed; dos bases solo acreditan `used===true/status=ok` sin incidencias |
@@ -216,6 +216,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 2 | 2026-08-01 | F3/I0-H3 + I0-H6 | Se devolvió `def-consistencia` al final de Marco en catálogo, sidebar, render y bóveda; la URL antes publicada y el alias histórico se leen como parejas explícitas y se reemplazan por `marco/def-consistencia`, sin inferir sección desde un tab suelto | regresión 10 rojas/20 verdes → 30/30; suite 2.805/2.805 y typecheck verdes; bóveda sin V1/V3; contrato aprobado y método aprobado con I2-H7 separado; `/private/tmp/prosecnur-visual-iter2-final/runtime-probe/report.json` 3/3 PASS, 3 grupos, 0 misses/issues/errores/scroll/overflow | F3: 20/24 → 21/24; H3 y H6 cerrados; hallazgos 5 + 2 → 4 + 2 al incorporar H7 |
 | 3 | 2026-08-01 | F3/guard I2-H7 + C5/I3-H8 | Se tipó el audit existente y se congeló una decisión compartida por sidebar/panel: sin frame `pending`, dos bases solo `ready` con `used===true/status=ok` sin incidencias y toda contradicción falla cerrada; el panel dirige a Datos → Marco → Diseño, la bóveda replica el contrato y el gauge quedó descriptivo, sin umbrales React | regresión principal 31 rojas/29 verdes → 60/60; guard C5 1 roja/17 verdes → 23/23; suite 2.839/2.839, typecheck, 118/118 R, bóveda y diff-check verdes; método y contrato aprobados; `/private/tmp/prosecnur-visual-iter3-final-delta/runtime-probe/report.json` 2/2 PASS, 2 grupos y todos los contadores duros en 0 | I2-H7 e I3-H8 cerrados; hallazgos abiertos 4 + 2 → 3 + 2; F3 se mantiene 21/24 porque el guard no mueve pestañas |
 | 4 | 2026-08-01 | F3/I0-H5 | Se ordenó Salida como Cierre → Tablas → Entregables → Pase en catálogo, estados y render, sin cambiar identidades ni deep-links; se alinearon inventario, bóveda e índice generado con los movimientos Tablas `03→02` y Entregables `02→03` | regresión causal 2 fallos/7 pruebas → foco de navegación 34/34; suite 339 archivos y 2.840/2.840 pruebas, typecheck, bóveda y diff-check verdes; método y contrato aprobados; `/private/tmp/prosecnur-visual-iter4-final/runtime-probe/report.json` 8/8 PASS, C1–C5, 16 grupos y todos los contadores duros en 0 | F3: 21/24 → 23/24; I0-H5 cerrado; hallazgos abiertos 3 + 2 → 2 + 2 |
+| 5 | 2026-08-01 | F3/I0-H4 | Se retiró el hogar duplicado `aulas/marco`; la pareja histórica reemplaza a `marco/marco-aulas`; Selección abre en Objetivo y conserva seis gates; fecha, respaldo y firmas histórica/vigente quedaron separados en Sustento; bóveda y manifiesto se renumeraron sin cambiar ids vivos | regresión de retiro 9 fallos/61 pruebas → 61/61; veto metodológico del sello 2 fallos/8 → 8/8; veto visual C1 1 fallo/9 → 9/9; veto del verificador a CSS posicional 1 fallo/10 → 10/10; foco final 65/65, suite 340 archivos y 2.857/2.857, typecheck, bóveda (201 nodos/206 notas) y diff-check verdes; método, contrato y verificador serial aprobados; A/B 4/4 PASS en `/private/tmp/prosecnur-visual-iter5-final/runtime-probe/report.json` y C final 2/2 PASS en `/private/tmp/prosecnur-visual-iter5-final-typography/report.json`, 14 grupos finales y todos los contadores duros en 0 | F3 histórico: 23/24 → 24/24 y vivo 23/23; Aulas F2 cambia denominador 7 → 6 vivas; I0-H4 cerrado; hallazgos 2 + 2 → 1 + 2 |
 
 ### Contrato de iteración 0
 
@@ -238,13 +239,13 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **5 — F3/I0-H4, retirar «Marco de
-cursos-horario» duplicado de Selección**. Es la última divergencia conceptual
-del denominador F3: la spec vigente termina Selección en Sustento técnico y
-ubica el marco solo en Marco, mientras catálogo/sidebar/render/bóveda conservan
-una dirección redundante. Se medirá primero su contenido, enlaces y memoria para
-decidir la compatibilidad de la URL publicada antes de retirar el hogar
-duplicado. D1 y D2 permanecen abiertas; no se añadió una decisión nueva.
+**Siguiente iteración programada:** **6 — F1/F2/I0-H2, impedir que las
+etiquetas de criterios se partan dentro de una palabra en 1366×768**. Es el
+único defecto confirmado restante: el baseline mantiene cinco columnas y
+`overflow-wrap:anywhere` en la radiografía de criterios. Se medirá primero la
+dirección exacta y el rectángulo causal, luego se fijará el contrato responsive
+mínimo sin mover cálculo al frontend ni hacer crecer `aulasParts.tsx`. D1 y D2
+permanecen abiertas; no se añadió una decisión nueva.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -558,6 +559,133 @@ duplicado. D1 y D2 permanecen abiertas; no se añadió una decisión nueva.
 - **Siguiente acción:** iteración 5, F3/I0-H4 — auditar la dirección
   redundante «Marco de cursos-horario» en Selección, fijar la compatibilidad de
   su URL publicada y retirar el hogar duplicado sin perder contenido único.
+
+### Contrato de iteración 5 (scope lock cerrado)
+
+- **Categoría / fuente de verdad:** F3/I0-H4. La spec vigente
+  `docs/calc-muestra-recorrido-spec.md:87-98` fija seis pestañas en Selección:
+  Objetivo → Método → Simulación → Titulares → Reemplazos → Sustento, y
+  ordena retirar «Marco de aulas» porque duplica Marco/Aulas.
+- **Primera divergencia e historia causal:** `41bbd5054` creó el tab
+  `aulas/marco` junto con su hogar canónico; `08dc6a81d` publicó después la
+  spec que lo elimina pero no alineó la UI, primera divergencia contractual.
+  `4a5a16d` consolidó el estado heredado en catálogo, manifiesto, bóveda y
+  tests. Hoy el flujo es catálogo → `modules.ts`/manifiesto → sidebar →
+  `UniversidadDesk` → `AulasMarcoTab`.
+- **Baseline medido por dirección:**
+  `/private/tmp/prosecnur-visual-iter5-baseline/report.json` reproduce
+  `aulas/marco` como primer tab en DOM, runtime y manifiesto, y visita también
+  `aulas/objetivo` y `marco/marco-aulas` en 1440×1000 y 1024×600. Las seis
+  superficies pasan C1–C4, 10 grupos, cero misses/issues/scroll/overflow o
+  errores; C5 falla solo por la duplicación conceptual. La URL vieja resuelve
+  exactamente al tab redundante y no existe migración.
+- **Clasificación de contenido:** la cadena general, conteos y cuatro reglas
+  tienen hogares funcionales en Marco, Objetivo, Método, Titulares,
+  Reemplazos y Entrega. No se conservará el overview duplicado. Sí se reubican
+  en Sustento técnico tres piezas únicas: el guard que compara
+  `frame.frame_hash` con `selection.frame_hash`, la fecha del marco y el único
+  `<RespaldoMetodologico paso="aulas" />`. Hashes distintos deben invalidar la
+  selección visible; hashes iguales o ausentes no producen falso positivo.
+- **Contrato de compatibilidad:** la pareja histórica exacta
+  `seccion=aulas&pestana=marco` canonicaliza con `replace` a
+  `seccion=marco&pestana=marco-aulas`, preservando modo y parámetros ajenos.
+  Una pestaña `marco` suelta u otra sección no permiten inferir hogar. Selección
+  sin tab, con memoria vieja o con tab desconocido cae en su primera dirección
+  viva, `objetivo`. La recuperación cross-section usa explícitamente
+  `marco/marco-aulas`; no reutiliza el id retirado por accidente de tipos.
+- **Archivos previstos de producto:**
+  `frontend/src/lib/navegacion/catalogos/calcMuestra.ts`;
+  `frontend/src/features/calcMuestra/navegacion.ts`;
+  `frontend/src/features/calcMuestra/CalcMuestraPage.tsx`;
+  `frontend/src/features/calcMuestra/universidad/universidadTabs.ts`;
+  `frontend/src/features/calcMuestra/universidad/UniversidadDesk.tsx`;
+  `frontend/src/features/calcMuestra/universidad/aulas/index.ts`;
+  `frontend/src/features/calcMuestra/universidad/aulas/AulasAuditoriaTab.tsx`;
+  `frontend/src/features/calcMuestra/universidad/aulas/aulas.css`; y retirar
+  `frontend/src/features/calcMuestra/universidad/aulas/AulasMarcoTab.tsx`.
+- **Regresiones previstas:**
+  `frontend/src/lib/navegacion/catalogos/catalogos.test.ts`;
+  `frontend/src/lib/modulesNavigation.test.ts`;
+  `frontend/src/lib/navegacion/manifiesto.test.ts`;
+  `frontend/src/features/calcMuestra/navegacion.test.ts`;
+  `frontend/src/features/calcMuestra/universidad/universidadTabs.test.ts`; y
+  una prueba nueva
+  `frontend/src/features/calcMuestra/universidad/aulas/__tests__/AulasAuditoriaTab.test.tsx`
+  para mismatch/igualdad/ausencia de firmas y respaldo conservado.
+- **Costura documental prevista:** actualizar
+  `docs/calc-muestra-copys-metodologicos.md`; regenerar solo
+  `docs/sistema/direcciones/calc-muestra.md`; retirar la nota duplicada
+  `Selección/Pestañas/01 Marco de cursos-horario`; renumerar Objetivo `02→01`,
+  Método `03→02`, Simulación `04→03`, Titulares `05→04`, Reemplazos
+  `06→05` y Sustento `07→06`; actualizar el padre Selección, el siguiente
+  paso de Distribución y el guard/respaldo en la nota Sustento; y cerrar este
+  ledger. `ruta_app`, `nodo`, ids y contenido de los seis tabs sobreviven.
+- **Peaje estructural:** retirar export, render, tipo/status y CSS exclusivos
+  del tab muerto; no dejar un componente de 240 líneas inalcanzable ni hacer
+  crecer `aulasParts.tsx`. El catálogo vivo pasa de 24 a 23 tabs y el manifiesto
+  de 43 a 42 direcciones; el denominador histórico F3 cierra 23/24 → 24/24 y
+  se acompaña con cobertura viva 23/23.
+- **Exclusiones explícitas:** la spec autoritativa, `modules.ts`, el motor R y
+  payloads, cálculo/selección/reemplazos, `aulasParts.tsx`, CSS no exclusivo,
+  `.pulso`, H2/O1/O2, D1/D2, I4 ya cerrada y el prompt no versionado.
+- **Riesgo principal:** perder el guard de obsolescencia de la selección o
+  hacer que un deep-link publicado aterrice silenciosamente en Objetivo sin
+  reemplazar su URL. El test y QA final deben probar ambos contratos por
+  dirección, no solo por orden del array.
+- **Baseline de checks:** foco de catálogo/manifiesto/navegación/sidebar 34/34
+  verde en el estado defectuoso; bóveda verde con 202 nodos/207 notas. Las
+  expectativas actuales consolidan 24 tabs y la dirección redundante.
+- **Validación mínima:** regresiones rojas de conteo/orden, pareja histórica,
+  default y guard de firmas; foco ampliado, suite frontend y `typecheck`;
+  `vaults-check --generar` seguido de `--check`; `git diff --check`; QA final
+  `hsvg2026` en ambos viewports que pruebe URL vieja → Marco/Cursos-horario,
+  Selección → Objetivo, seis tabs vivos y Sustento, con C1–C5; revisión
+  metodológica/contractual y `verificador` serial.
+- **Rojo y reparación enfocada:** el retiro produjo 9 fallos causales en 61
+  pruebas y cerró 61/61. La primera revisión metodológica vetó que una firma de
+  selección histórica compartiera sello con `frame.generated_at`: dos
+  regresiones fallaron, se separaron `Firma usada por la selección`, `Firma del
+  marco actual` y `Marco actual generado`, y quedaron 8/8. El primer guard
+  visual detectó que cinco cifras en una sola `CifraFila` se partían 3+2 con
+  alturas 80/92 px; una regresión estructural falló 1/9 y se recompuso el sello
+  en filas semánticas de 2, 3 y 3 cifras, hasta 9/9. El primer `verificador`
+  vetó después el CSS heredado por `nth-of-type`: ya no aplicaba tipografía de
+  evidencia a la firma usada ni a la corrida. Una regresión falló 1/10; se
+  declaró `monospace` por significado en cuatro cifras y cerró 10/10.
+- **Cambio y peaje estructural:** catálogo, tipo, sidebar, render y export
+  conservan solo seis ids vivos; `AulasMarcoTab.tsx` (240 líneas) y su CSS
+  exclusivo desaparecen; `aulasParts.tsx` permanece en 1.612 líneas. El
+  manifiesto baja 43 → 42 direcciones y la bóveda 207 → 206 notas; seis notas
+  supervivientes cambian solo de ordinal. El overview repetido no se
+  teletransporta y las tres evidencias únicas quedan en Sustento.
+- **Delta de scope exigido por el verificador:** se incorporó únicamente
+  `frontend/src/features/calcMuestra/universidad/ui/CifraMotor.tsx` para exponer
+  el marcador booleano `data-monospace`. Sustento lo activa en Semilla, ambas
+  firmas y Corrida de selección; `aulas.css` selecciona ese marcador y deja de
+  depender de fila o posición. No cambian otras instancias ni la geometría del
+  componente compartido.
+- **Guard y contrato:** la pareja histórica exacta usa un único `replace` a
+  `marco/marco-aulas` y no autoriza inferencia desde un id suelto. Sin tab, con
+  memoria `marco` o con id desconocido, Selección abre `objetivo`. Las firmas
+  solo invalidan si ambas existen y difieren; una ausencia legacy no inventa
+  obsolescencia ni atribuye la fecha actual a la selección.
+- **Validación ejecutada:** foco final 65/65, suite frontend 340 archivos y
+  2.857/2.857 pruebas, `typecheck`, `vaults-check --check` (201 nodos, 206
+  notas) y `git diff --check` verdes. Método aprobó tras levantar el veto y
+  contrato aprobó compatibilidad sin migración ni ADR. En `hsvg2026`, A/B
+  pasan 4/4 en 1440×1000 y 1024×600; el Sustento final pasa 2/2 tras las
+  reparaciones C1 y tipográfica. El compuesto cubre seis superficies, 14 grupos, C1–C5
+  y cero issues/misses/scroll/overflow o errores de consola, página, API,
+  recursos, proyecto y readiness; los servers propios se cerraron y el 8787
+  no se tocó. El `verificador` serial aprobó 65/65, typecheck, bóveda, diff,
+  screenshots y alcance final; no quedó un veto de I5.
+- **Resultado:** mejor. I0-H4 queda cerrado; F3 histórico completa 23/24 →
+  24/24 con cobertura viva 23/23. El denominador F2 de Aulas pasa de siete a
+  seis pestañas vivas sin acreditar todavía el revamp de ninguna. Hallazgos
+  abiertos bajan 2 + 2 → 1 + 2 y D1/D2 no cambian.
+- **Siguiente acción:** iteración 6, F1/F2/I0-H2 — reproducir por dirección y
+  rectángulo el corte intrapalabra en 1366×768, congelar el breakpoint/contrato
+  tipográfico mínimo y repararlo con guard visual escalado.
 
 ## Cómo se corre cada visita
 
