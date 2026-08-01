@@ -1233,6 +1233,42 @@ export function normalizeCriteriosCatalogo(raw: unknown): CriteriosCatalogo {
   };
 }
 
+export type CalcMuestraAulasRelationAuditIssue = {
+  code?: string;
+  severity?: string;
+  title?: string;
+  detail?: string;
+  [key: string]: unknown;
+};
+
+/**
+ * Auditoría de la relación base principal ↔ catálogo calculada por R.
+ * Todos los campos son opcionales para conservar la lectura de frames previos;
+ * `status` queda abierto porque el frontend debe fallar cerrado ante valores
+ * nuevos, no impedir que el payload se cargue.
+ */
+export type CalcMuestraAulasRelationAudit = {
+  used?: boolean;
+  status?: string;
+  base_rows?: number;
+  catalog_rows?: number;
+  base_rows_with_key?: number;
+  base_classrooms?: number;
+  catalog_classrooms?: number;
+  matched_rows?: number;
+  matched_classrooms?: number;
+  unmatched_base_classrooms?: number;
+  catalog_only_classrooms?: number;
+  duplicate_catalog_keys?: number;
+  match_rate_rows?: number;
+  match_rate_classrooms?: number;
+  unmatched_base_preview?: string[];
+  catalog_only_preview?: string[];
+  duplicate_catalog_preview?: string[];
+  issues?: CalcMuestraAulasRelationAuditIssue[] | Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 export type CalcMuestraAulasFrame = {
   schema: "calc_muestra_aulas_frame_v1" | string;
   generated_at: string;
@@ -1252,7 +1288,7 @@ export type CalcMuestraAulasFrame = {
   category_profiles?: MonitoreoRow[];
   audit: MonitoreoRow[];
   catalog_audit?: Record<string, unknown>;
-  relation_audit?: Record<string, unknown>;
+  relation_audit?: CalcMuestraAulasRelationAudit;
   warnings: string[];
   methodology?: Record<string, unknown>;
   /** Perfil agregado para el Recorrido muestral (retrocompatible: puede no venir). */

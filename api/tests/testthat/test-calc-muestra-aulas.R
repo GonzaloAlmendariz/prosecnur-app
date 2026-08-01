@@ -33,6 +33,8 @@ test_that("calc-muestra aulas construye el mismo marco desde base madre o dos ba
   rownames(b) <- NULL
   expect_equal(a, b)
   expect_equal(frame_madre$audit$value[frame_madre$audit$metric == "population_n"], "6")
+  expect_false(frame_madre$relation_audit$used)
+  expect_equal(frame_madre$relation_audit$status, "sin_catalogo")
 })
 
 test_that("marco resume aulas con pares coherentes de facultad y carrera", {
@@ -260,6 +262,42 @@ test_that("marco advierte cuando base y catalogo no empatan completamente", {
   expect_equal(frame$relation_audit$unmatched_base_classrooms, 1L)
   expect_equal(frame$relation_audit$catalog_only_classrooms, 1L)
   expect_true(any(grepl("problemas criticos", unlist(frame$warnings), fixed = TRUE)))
+})
+
+test_that("marco marca revisar cuando el catalogo deja una brecha no critica", {
+  base <- data.frame(
+    `Código PUCP` = paste0("20", 1:10),
+    Facultad = "CIENCIAS",
+    Carrera = "ESTADISTICA",
+    `Nivel curricular` = "pregrado",
+    Condición = "regular",
+    Sexo = rep(c("F", "M"), 5),
+    Edad = 20,
+    Curso = rep(paste0("EST", 1:5), each = 2),
+    Horario = rep(paste0("H", 1:5), each = 2),
+    Modalidad = "PRESENCIAL",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  catalogo <- data.frame(
+    Curso = paste0("EST", 1:4),
+    Horario = paste0("H", 1:4),
+    `Nombre de docente` = paste("Docente", 1:4),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+
+  frame <- calc_muestra_aulas_construir(
+    base_madre = base,
+    catalogo_curso_horario = catalogo,
+    config = cfg
+  )
+
+  expect_true(frame$relation_audit$used)
+  expect_equal(frame$relation_audit$status, "revisar")
+  expect_equal(frame$relation_audit$match_rate_classrooms, 0.8)
+  expect_true("aulas_base_sin_catalogo" %in% frame$relation_audit$issues$code)
 })
 
 test_that("lector de Excel permite elegir hoja especifica", {

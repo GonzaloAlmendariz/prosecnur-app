@@ -4,7 +4,11 @@ import type {
   CalcMuestraWorkspaceAulasConfig,
   CriteriosSeleccionMarco,
 } from "../../../../../api/client";
-import { marcoCriteriosDesactualizado, type MarcoConfigVigente } from "../frame";
+import {
+  evaluarConsistenciaMarco,
+  marcoCriteriosDesactualizado,
+  type MarcoConfigVigente,
+} from "../frame";
 
 // La selección que el frame ECHA desde el backend viene verbosa (fromValue "NA",
 // layer null, threshold {}, includeValues [], exceptions []); la del frontend es
@@ -234,5 +238,130 @@ describe("marcoCriteriosDesactualizado — filters_echo (criterio 8)", () => {
       config: configSuiteActiva({ require_cycle_homogeneity: true }),
     };
     expect(marcoCriteriosDesactualizado(frameConEco(eco), null, null, vigente)).toBe(false);
+  });
+});
+
+function frameListoConsistencia({
+  relationAudit,
+  catalogAudit,
+}: {
+  relationAudit?: unknown;
+  catalogAudit?: unknown;
+} = {}): CalcMuestraAulasState["frame"] {
+  return {
+    aula_frame: [{ classroom_id: "CH-1" }],
+    ...(relationAudit !== undefined ? { relation_audit: relationAudit } : {}),
+    ...(catalogAudit !== undefined ? { catalog_audit: catalogAudit } : {}),
+  } as unknown as CalcMuestraAulasState["frame"];
+}
+
+describe("evaluarConsistenciaMarco — gate de relation_audit", () => {
+  const guia = [
+    {
+      caso: "sin frame",
+      sourceMode: "dos_bases",
+      frame: null,
+      esperado: "pending",
+    },
+    {
+      caso: "base madre legacy sin audit",
+      sourceMode: "base_madre",
+      frame: frameListoConsistencia(),
+      esperado: "ready",
+    },
+    {
+      caso: "base madre sin catálogo, audit coherente y sin issues",
+      sourceMode: "base_madre",
+      frame: frameListoConsistencia({
+        relationAudit: { used: false, status: "sin_catalogo", issues: [] },
+      }),
+      esperado: "ready",
+    },
+    {
+      caso: "base madre con issue contradictorio",
+      sourceMode: "base_madre",
+      frame: frameListoConsistencia({
+        relationAudit: {
+          used: false,
+          status: "sin_catalogo",
+          issues: [{ code: "base_sin_llave_aula" }],
+        },
+      }),
+      esperado: "working",
+    },
+    ...["ok", "revisar", "critico", "pendiente", "sin_catalogo", "desconocido"].map((status) => ({
+      caso: `base madre con used=true/status=${status}`,
+      sourceMode: "base_madre",
+      frame: frameListoConsistencia({ relationAudit: { used: true, status, issues: [] } }),
+      esperado: "working",
+    })),
+    {
+      caso: "dos bases sin relation_audit aunque exista catalog_audit legacy",
+      sourceMode: "dos_bases",
+      frame: frameListoConsistencia({
+        catalogAudit: { used: true, matched_classrooms: 1, match_rate_classrooms: 1 },
+      }),
+      esperado: "working",
+    },
+    {
+      caso: "dos bases con used=false",
+      sourceMode: "dos_bases",
+      frame: frameListoConsistencia({
+        relationAudit: { used: false, status: "sin_catalogo", issues: [] },
+      }),
+      esperado: "working",
+    },
+    {
+      caso: "dos bases con used=true/status=ok",
+      sourceMode: "dos_bases",
+      frame: frameListoConsistencia({
+        relationAudit: { used: true, status: "ok", issues: [] },
+      }),
+      esperado: "ready",
+    },
+    {
+      caso: "dos bases con status ok pero issues contradictorios",
+      sourceMode: "dos_bases",
+      frame: frameListoConsistencia({
+        relationAudit: {
+          used: true,
+          status: "ok",
+          issues: [{ code: "catalogo_fuera_de_base" }],
+        },
+      }),
+      esperado: "working",
+    },
+    ...["revisar", "critico", "pendiente", "desconocido"].map((status) => ({
+      caso: `dos bases con used=true/status=${status}`,
+      sourceMode: "dos_bases",
+      frame: frameListoConsistencia({ relationAudit: { used: true, status, issues: [] } }),
+      esperado: "working",
+    })),
+    {
+      caso: "dos bases no coerciona used='false'",
+      sourceMode: "dos_bases",
+      frame: frameListoConsistencia({
+        relationAudit: { used: "false", status: "ok", issues: [] },
+      }),
+      esperado: "working",
+    },
+    {
+      caso: "source_mode ausente conserva fuente única legacy sin evidencia de catálogo",
+      sourceMode: undefined,
+      frame: frameListoConsistencia(),
+      esperado: "ready",
+    },
+    {
+      caso: "source_mode ausente falla cerrado ante evidencia de catálogo legacy",
+      sourceMode: undefined,
+      frame: frameListoConsistencia({
+        catalogAudit: { used: true, matched_classrooms: 1 },
+      }),
+      esperado: "working",
+    },
+  ];
+
+  it.each(guia)("$caso → $esperado", ({ sourceMode, frame, esperado }) => {
+    expect(evaluarConsistenciaMarco(sourceMode, frame)).toBe(esperado);
   });
 });

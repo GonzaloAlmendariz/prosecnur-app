@@ -1,8 +1,7 @@
 /**
  * Pestaña "Consistencia" de Marco (id público def-consistencia; alias histórico
  * marco-validacion). Reconstruye el antiguo UniversityFrameValidationPanel:
- * gauge del match base-catálogo con
- * umbrales semánticos, reconciliación cuantitativa (emparejados / solo base /
+ * gauge descriptivo del match base-catálogo, reconciliación cuantitativa (emparejados / solo base /
  * solo catálogo), hallazgos con severidad y acción sugerida, y ejemplos para
  * revisar. Con una sola base se auto-simplifica: no hay catálogo que validar.
  */
@@ -21,31 +20,27 @@ import {
   sourceBindingSelectedSheet,
   sourceRoleLabel,
 } from "../shared/categorias";
-import { frameAuditNumber } from "../shared/frame";
+import { decidirConsistenciaMarco, frameAuditNumber } from "../shared/frame";
 import { CifraMotor } from "../ui";
 import { InventarioUnicosPanel } from "./InventarioUnicosPanel";
-import {
-  frameRelationAudit,
-  recordNumber,
-  recordStringList,
-} from "./marcoCharts";
+import { recordNumber, recordStringList } from "./marcoCharts";
 import "../../didactica/didactica.css";
 import "./marco.css";
 
 /** Acción sugerida por código de hallazgo del motor R. */
 const MARCO_ISSUE_ACTIONS: Record<string, string> = {
-  base_sin_llave_aula: "Revisa en Definición → Variables las columnas de curso, horario y sección de la base principal.",
-  catalogo_sin_llave_aula: "Revisa en Definición → Bases que la hoja de catálogo traiga curso, horario y sección legibles.",
+  base_sin_llave_aula: "Revisa en Datos → Variables las columnas de curso, horario y sección de la base principal.",
+  catalogo_sin_llave_aula: "Revisa en Datos → Fuentes que la hoja de catálogo traiga curso, horario y sección legibles.",
   catalogo_llaves_duplicadas: "Depura las filas repetidas del catálogo o acepta el valor modal que la calculadora ya aplica.",
   sin_empate_catalogo: "Confirma que ambas hojas usan la misma llave de curso-horario y vuelve a construir el marco.",
   empate_bajo_catalogo: "Busca diferencias de mayúsculas, tildes o códigos en la llave común antes de recalcular.",
   aulas_base_sin_catalogo: "Revisa si a esos cursos-horario les falta docente, salón u horario, o confírmalos como cursos-horario sin ficha.",
-  catalogo_fuera_de_base: "No bloquea: esos cursos-horario quedan como contexto. Verifica que no falte población en la base.",
-  catalogo_sin_docente: "Asigna la columna Docente/contacto en Definición → Variables para preparar la agenda.",
+  catalogo_fuera_de_base: "Esos cursos-horario quedan como contexto. Revisa en Datos → Fuentes que no falte población en la base.",
+  catalogo_sin_docente: "Asigna la columna Docente/contacto en Datos → Variables para preparar la agenda.",
 };
 
 function issueAction(code: string) {
-  return MARCO_ISSUE_ACTIONS[code] ?? "Revisa la relación entre bases en Definición → Bases y reconstruye el marco.";
+  return MARCO_ISSUE_ACTIONS[code] ?? "Revisa la relación entre bases en Datos → Fuentes y reconstruye el marco.";
 }
 
 /** Normaliza terminología heredada solo en presentación; no altera el motor. */
@@ -60,28 +55,13 @@ function courseScheduleText(value: string) {
     .replace(/\baula\b/gi, "curso-horario");
 }
 
-function matchTone(rate: number) {
-  if (!Number.isFinite(rate)) return "pending";
-  if (rate >= 0.9) return "ok";
-  if (rate >= 0.7) return "warn";
-  return "danger";
-}
-
-/** Barra-gauge del match base-catálogo con umbrales 70% y 90%. */
-function MatchGauge({ rate }: { rate: number }) {
-  const tone = matchTone(rate);
+/** Barra descriptiva sin umbrales; su tono viene del veredicto del motor. */
+function MatchGauge({ rate, tone }: { rate: number; tone: "pending" | "ok" | "warn" | "danger" }) {
   const pct = Number.isFinite(rate) ? Math.max(0, Math.min(1, rate)) * 100 : 0;
   return (
     <div className="cmv2-marco-gauge" data-tone={tone} role="img" aria-label={`Coincidencia base-catálogo: ${Number.isFinite(rate) ? fmtPct(rate) : "pendiente"}`}>
       <div className="cmv2-marco-gauge-track">
         <i className="cmv2-marco-gauge-fill" style={{ width: `${pct}%` }} />
-        <span className="cmv2-marco-gauge-tick" style={{ left: "70%" }} data-nivel="warn"><em>70%</em></span>
-        <span className="cmv2-marco-gauge-tick" style={{ left: "90%" }} data-nivel="ok"><em>90%</em></span>
-      </div>
-      <div className="cmv2-marco-gauge-scale" aria-hidden="true">
-        <span>revisar</span>
-        <span>aceptable</span>
-        <span>sólido</span>
       </div>
     </div>
   );
@@ -143,11 +123,9 @@ export function MarcoConsistenciaTab({
   aulasState: CalcMuestraAulasState | null;
 }) {
   const frame = aulasState?.frame ?? null;
-  const relation = frameRelationAudit(frame);
-  const relationUsed = Boolean(relation.used);
-  const status = String(relation.status ?? (frame ? "ok" : "pendiente"));
+  const decision = decidirConsistenciaMarco(workspace.source_mode, frame);
+  const relation = decision.evidence;
   const issues = rowsFrom<Record<string, unknown>>(relation.issues);
-  const warnings = rowsFrom<string>(frame?.warnings);
   const relationRate = recordNumber(relation, "match_rate_classrooms", Number.NaN);
   const auditRate = frameAuditNumber(frame, "catalog_match_rate_classrooms");
   const matchRate = Number.isFinite(relationRate) ? relationRate : auditRate > 0 ? auditRate : Number.NaN;
@@ -155,6 +133,14 @@ export function MarcoConsistenciaTab({
   const baseClassrooms = recordNumber(relation, "base_classrooms");
   const baseOnly = recordNumber(relation, "unmatched_base_classrooms");
   const catalogOnly = recordNumber(relation, "catalog_only_classrooms");
+  const relationStatus = typeof relation.status === "string" ? relation.status : "";
+  const relationTone = decision.status === "ready"
+    ? "ok"
+    : relationStatus === "critico" || issues.some((issue) => classroomRowText(issue, ["severity"]) === "alta")
+      ? "danger"
+      : Number.isFinite(matchRate)
+        ? "warn"
+        : "pending";
   const sourceMode = workspace.source_mode ?? "base_madre";
   const sourceBindings = ensureUniversitySourceBindings(sourceMode, workspace.source_bindings);
   const sourceCards = sourceBindings.map((binding) => {
@@ -168,15 +154,6 @@ export function MarcoConsistenciaTab({
       review: Boolean(binding.file_id && !compatible),
     };
   });
-  const singleSource = sourceMode === "base_madre" || (Boolean(frame) && !relationUsed);
-  const hasReview = issues.length > 0 || warnings.length > 0 || ["revisar", "critico"].includes(status);
-  const relationState = Number.isFinite(matchRate) && matchRate >= 0.9
-    ? hasReview
-      ? "Coincidencia sólida; hay calidad del catálogo por revisar"
-      : "Coincidencia sólida y catálogo consistente"
-    : Number.isFinite(matchRate)
-      ? "La coincidencia requiere revisión antes del sorteo"
-      : "Falta una llave común verificable";
 
   return (
     <div className="cmv2-marco-stack">
@@ -204,22 +181,16 @@ export function MarcoConsistenciaTab({
           ))}
         </div>
 
-        {!frame ? (
+        <div className="cmv2-marco-vacio">
           <EmptyState
-            icon={<Database size={20} />}
-            title="Construye el marco para validar relaciones"
-            hint="En Definición carga la base principal y, si existe, el catálogo de cursos y horarios. Luego esta vista mostrará coincidencias, hallazgos y ejemplos."
+            variant="inline"
+            icon={decision.status === "ready" ? <CheckCircle2 size={18} /> : decision.status === "pending" ? <Database size={18} /> : <Link2 size={18} />}
+            title={decision.title}
+            hint={decision.hint}
           />
-        ) : singleSource ? (
-          <div className="cmv2-marco-vacio">
-            <EmptyState
-              variant="inline"
-              icon={<Link2 size={18} />}
-              title="Una sola base: no hay catálogo que validar"
-              hint="Toda la información sale de la base principal, así que no existe una segunda fuente que emparejar. Si más adelante llega un catálogo de cursos y horarios, decláralo en Definición → Bases y aquí verás su coincidencia."
-            />
-          </div>
-        ) : (
+        </div>
+
+        {decision.showRelationEvidence && (
           <>
             <div className="cmv2-marco-match-layout">
               <div className="cmv2-marco-match-gauge">
@@ -229,12 +200,9 @@ export function MarcoConsistenciaTab({
                   detalle={baseClassrooms > 0 ? `${fmtInt(matched)} de ${fmtInt(baseClassrooms)} cursos-horario de la base emparejados` : "cursos-horario de la base encontrados en el catálogo"}
                   origen={Number.isFinite(matchRate) ? "motor" : undefined}
                   hero
-                  tono={matchTone(matchRate) === "ok" ? "ok" : Number.isFinite(matchRate) ? "alerta" : undefined}
+                  tono={decision.status === "ready" ? "ok" : decision.status === "working" ? "alerta" : undefined}
                 />
-                <MatchGauge rate={matchRate} />
-                <p className={`cmv2-marco-relation-state is-${hasReview ? "review" : "ok"}`}>
-                  {relationState}
-                </p>
+                <MatchGauge rate={matchRate} tone={relationTone} />
               </div>
               <RelationSummary matched={matched} baseOnly={baseOnly} catalogOnly={catalogOnly} matchRate={matchRate} />
             </div>
@@ -253,10 +221,10 @@ export function MarcoConsistenciaTab({
                     </article>
                   );
                 }) : (
-                  <article className="is-ok">
-                    <small>ok</small>
-                    <strong>Las bases están relacionadas</strong>
-                    <span>No se detectaron problemas de relación o coincidencia en la revisión compacta.</span>
+                  <article className={decision.status === "ready" ? "is-ok" : "is-media"}>
+                    <small>{decision.status === "ready" ? "ok" : "revisar"}</small>
+                    <strong>{decision.status === "ready" ? "Las bases están relacionadas" : "La auditoría requiere atención"}</strong>
+                    <span>{decision.status === "ready" ? "No se detectaron problemas de relación en la auditoría del motor." : "El motor no entregó hallazgos detallados para este estado."}</span>
                   </article>
                 )}
               </div>
