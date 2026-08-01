@@ -7,6 +7,8 @@
  * territorialSummaryModel: el `.tsx` solo presenta.
  */
 import type {
+  CalcMuestraAulasCriterioRadiografiaFila,
+  CalcMuestraAulasCriteriosRadiografia,
   CalcMuestraAulasExploracion,
   CalcMuestraAulasExploracionCurso,
   CalcMuestraAulasExploracionFacultad,
@@ -19,6 +21,36 @@ import {
   classroomRowText,
   normalizeUniversityLabel,
 } from "../shared/format";
+
+/* ============================================================================
+   Contrato F1: unión por claves y orden de presentación, sin estadística TS.
+   ============================================================================ */
+
+/**
+ * Filas `session_type` de una facultad. La clave es autoritativa; el label solo
+ * resuelve la clave al consumir la colección desde el Explorador legacy, cuyo
+ * modelo histórico no expone `facultad_key`. No calcula ni agrega cifras.
+ */
+export function filasTipoSesionRadiografia(
+  radiografia: CalcMuestraAulasCriteriosRadiografia | null,
+  facultadKey: string,
+  facultadLabel = "",
+): CalcMuestraAulasCriterioRadiografiaFila[] {
+  if (!radiografia) return [];
+  const keySolicitada = facultadKey.trim();
+  const keyResuelta = keySolicitada || radiografia.filas.find(
+    (fila) =>
+      fila.criterio === "session_type" &&
+      normalizeUniversityLabel(fila.facultad_label) === normalizeUniversityLabel(facultadLabel),
+  )?.facultad_key || "";
+  if (!keyResuelta) return [];
+  return radiografia.filas
+    .filter((fila) => fila.criterio === "session_type" && fila.facultad_key === keyResuelta)
+    .sort((a, b) =>
+      a.categoria_label.localeCompare(b.categoria_label, "es") ||
+      a.categoria_key.localeCompare(b.categoria_key, "es"),
+    );
+}
 
 /* ============================================================================
    Elegibles efectivos: la ÚNICA derivación de la pestaña, con fórmula visible.

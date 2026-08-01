@@ -22,6 +22,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Building2, Compass, Loader2, RefreshCw, School } from "lucide-react";
 import {
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
   normalizeCriteriosCatalogo,
@@ -94,6 +95,14 @@ export function CursosHorarioMarcoTab({
     [aulasState?.frame?.exploracion],
   );
   const exploracion = marcoPublicable ? exploracionNormalizada : null;
+  const criteriosRadiografiaNormalizada = useMemo(
+    () => normalizeCalcMuestraAulasCriteriosRadiografia(aulasState?.frame?.criterios_radiografia ?? null),
+    [aulasState?.frame?.criterios_radiografia],
+  );
+  const criteriosRadiografia =
+    marcoPublicable && criteriosRadiografiaNormalizada?.frame_hash === aulasState?.frame?.frame_hash
+      ? criteriosRadiografiaNormalizada
+      : null;
   // Lista individual de cursos-horario del último marco (para la selección
   // manual final por facultad). El motor ya marcó `included` por facultad.
   const aulaFrame = useMemo<MonitoreoRow[]>(
@@ -400,6 +409,7 @@ export function CursosHorarioMarcoTab({
                       rangeVariable={rangeVariable}
                       seleccion={borrador}
                       exploracion={exploracion}
+                      criteriosRadiografia={criteriosRadiografia}
                       aulaFrame={aulaFrame}
                       umbralGeneral={umbralGeneral}
                       tasa={tasa}

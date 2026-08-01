@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeCalcMuestraAulasExploracion,
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   type CalcMuestraAulasExploracionFacultad,
   type CalcMuestraAulasExploracionTipoSesion,
   type CalcMuestraAulasParticularidades,
@@ -16,6 +17,7 @@ import {
   hayBoxplotElegibles,
   filtrarFacultades,
   formulaEfectivos,
+  filasTipoSesionRadiografia,
   nivelDistribucion,
   ordenarCursos,
   shareSinCondicion,
@@ -415,6 +417,296 @@ describe("normalizeCalcMuestraAulasExploracion — payloads jsonlite raros", () 
     });
     expect(out?.por_facultad[0].top_cursos).toHaveLength(1);
     expect(out?.por_facultad[0].top_cursos[0].faculty_match_share).toBe(1);
+  });
+});
+
+describe("normalizeCalcMuestraAulasCriteriosRadiografia — contrato F1", () => {
+  const raw = {
+    schema: ["calc_muestra_aulas_criterios_radiografia_v1"],
+    owner: ["calc_muestra_aulas_frame_v1.aula_frame"],
+    frame_hash: ["frame-abc"],
+    momento: ["marco_ejecutado"],
+    grano: ["session_type_x_facultad_efectiva"],
+    unidad: ["curso_horario_unico"],
+    filas: [
+      {
+        criterio: ["session_type"],
+        facultad_key: ["psicologia"],
+        facultad_label: ["PSICOLOGÍA"],
+        categoria_key: ["teorico"],
+        categoria_label: ["Teórico"],
+        n_ch_total: ["12"],
+        n_ch_elegibles: ["9"],
+        n_matriculas_elegibles: ["245"],
+        distribucion_elegible: [{
+          n_ch_con_dato: ["9"],
+          media: ["27.2"],
+          p10: ["12"],
+          p25: ["18"],
+          p50: ["25"],
+          p75: ["34"],
+          p90: ["48"],
+        }],
+        contraste_total: [{ n_ch_con_dato: ["12"], media: ["30.5"] }],
+        delta_marginal: [{
+          referencia: ["marco_ejecutado"],
+          accion: ["quitar_categoria"],
+          delta_ch: ["-9"],
+          delta_matriculas_elegibles: ["-245"],
+        }],
+      },
+      {
+        criterio: "session_type",
+        facultad_key: "psicologia",
+        facultad_label: "PSICOLOGÍA",
+        categoria_key: "laboratorio",
+        categoria_label: "Laboratorio",
+        n_ch_total: 3,
+        n_ch_elegibles: 2,
+        n_matriculas_elegibles: " NA ",
+        distribucion_elegible: {
+          n_ch_con_dato: 1,
+          media: "NA",
+          p10: "na",
+          p25: " Na ",
+          p50: "NA",
+          p75: "na",
+          p90: " NA ",
+        },
+        contraste_total: { n_ch_con_dato: 0, media: " na " },
+        delta_marginal: {
+          referencia: "marco_ejecutado",
+          accion: "agregar_categoria",
+          delta_ch: "NA",
+          delta_matriculas_elegibles: " Na ",
+        },
+      },
+    ],
+  };
+
+  const conPrimeraFila = (patch: Record<string, unknown>) => ({
+    ...raw,
+    filas: [{ ...raw.filas[0], ...patch }, raw.filas[1]],
+  });
+  const registroAnidado = (value: unknown): Record<string, unknown> => {
+    const unwrapped = Array.isArray(value) && value.length === 1 ? value[0] : value;
+    return typeof unwrapped === "object" && unwrapped !== null && !Array.isArray(unwrapped)
+      ? (unwrapped as Record<string, unknown>)
+      : {};
+  };
+
+  it("exige schema y metadatos, desempaca jsonlite y preserva null/deltas firmados", () => {
+    const out = normalizeCalcMuestraAulasCriteriosRadiografia(raw);
+    expect(out).not.toBeNull();
+    expect(out).toMatchObject({
+      schema: "calc_muestra_aulas_criterios_radiografia_v1",
+      owner: "calc_muestra_aulas_frame_v1.aula_frame",
+      frame_hash: "frame-abc",
+      momento: "marco_ejecutado",
+      grano: "session_type_x_facultad_efectiva",
+      unidad: "curso_horario_unico",
+    });
+    expect(out?.filas[0].distribucion_elegible).toEqual({
+      n_ch_con_dato: 9,
+      media: 27.2,
+      p10: 12,
+      p25: 18,
+      p50: 25,
+      p75: 34,
+      p90: 48,
+    });
+    expect(out?.filas[0].delta_marginal).toEqual({
+      referencia: "marco_ejecutado",
+      accion: "quitar_categoria",
+      delta_ch: -9,
+      delta_matriculas_elegibles: -245,
+    });
+    expect(out?.filas[1]).toMatchObject({
+      n_ch_total: 3,
+      n_ch_elegibles: 2,
+      n_matriculas_elegibles: null,
+      delta_marginal: { delta_ch: null, delta_matriculas_elegibles: null },
+    });
+    expect(out?.filas[1].distribucion_elegible).toEqual({
+      n_ch_con_dato: 1,
+      media: null,
+      p10: null,
+      p25: null,
+      p50: null,
+      p75: null,
+      p90: null,
+    });
+    expect(out?.filas[1].contraste_total.media).toBeNull();
+  });
+
+  it("exige literales canónicos y frame_hash no vacío", () => {
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia(null)).toBeNull();
+    for (const patch of [
+      { schema: "v2" },
+      { owner: "calc_muestra_criterios_radiografia" },
+      { frame_hash: "" },
+      { momento: "borrador" },
+      { grano: "facultad_categoria" },
+      { unidad: "curso_horario" },
+    ]) {
+      expect(normalizeCalcMuestraAulasCriteriosRadiografia({ ...raw, ...patch })).toBeNull();
+    }
+  });
+
+  it("exige filas no vacías y rechaza el sibling completo si cualquier fila es inválida", () => {
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({ ...raw, filas: undefined })).toBeNull();
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({ ...raw, filas: [] })).toBeNull();
+
+    const filaMala = { ...raw.filas[0], categoria_label: "" };
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({
+      ...raw,
+      filas: [...raw.filas, filaMala],
+    })).toBeNull();
+  });
+
+  it("exige criterio session_type, claves/labels no vacíos y pares únicos", () => {
+    const camposInvalidos: Array<Record<string, unknown>> = [
+      { criterio: "faculty" },
+      { facultad_key: "" },
+      { facultad_label: " " },
+      { categoria_key: "NA" },
+      { categoria_label: null },
+    ];
+    for (const patch of camposInvalidos) {
+      expect(normalizeCalcMuestraAulasCriteriosRadiografia(conPrimeraFila(patch))).toBeNull();
+    }
+
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({
+      ...raw,
+      filas: [...raw.filas, { ...raw.filas[0] }],
+    })).toBeNull();
+  });
+
+  it("rechaza conteos estructurales inválidos y relaciones imposibles", () => {
+    const distribucion = registroAnidado(raw.filas[0].distribucion_elegible);
+    const contraste = registroAnidado(raw.filas[0].contraste_total);
+    const filasInvalidas: Array<Record<string, unknown>> = [
+      { n_ch_total: -4 },
+      { n_ch_total: 12.5 },
+      { n_ch_total: null },
+      { n_ch_elegibles: -1 },
+      { n_ch_elegibles: 4.5 },
+      { n_ch_elegibles: null },
+      { n_ch_total: 8, n_ch_elegibles: 9 },
+      { n_matriculas_elegibles: -1 },
+      { n_matriculas_elegibles: 1.5 },
+      { n_matriculas_elegibles: Number.POSITIVE_INFINITY },
+      { distribucion_elegible: { ...distribucion, n_ch_con_dato: -1 } },
+      { distribucion_elegible: { ...distribucion, n_ch_con_dato: 2.5 } },
+      { distribucion_elegible: { ...distribucion, n_ch_con_dato: null } },
+      { distribucion_elegible: { ...distribucion, n_ch_con_dato: 10 } },
+      { contraste_total: { ...contraste, n_ch_con_dato: -1 } },
+      { contraste_total: { ...contraste, n_ch_con_dato: 1.5 } },
+      { contraste_total: { ...contraste, n_ch_con_dato: null } },
+      { contraste_total: { ...contraste, n_ch_con_dato: 13 } },
+    ];
+    for (const patch of filasInvalidas) {
+      expect(normalizeCalcMuestraAulasCriteriosRadiografia(conPrimeraFila(patch))).toBeNull();
+    }
+  });
+
+  it("congela completitud estadística para denominadores completos, parciales y cero", () => {
+    const distribucion = registroAnidado(raw.filas[0].distribucion_elegible);
+    const contraste = registroAnidado(raw.filas[0].contraste_total);
+    const filasInvalidas: Array<Record<string, unknown>> = [
+      { n_matriculas_elegibles: null },
+      { distribucion_elegible: { ...distribucion, media: null } },
+      { distribucion_elegible: { ...distribucion, p10: null } },
+      { distribucion_elegible: { ...distribucion, n_ch_con_dato: 8 } },
+      { contraste_total: { ...contraste, media: null } },
+      { contraste_total: { ...contraste, n_ch_con_dato: 11 } },
+    ];
+    for (const patch of filasInvalidas) {
+      expect(normalizeCalcMuestraAulasCriteriosRadiografia(conPrimeraFila(patch))).toBeNull();
+    }
+
+    const filaCero = {
+      ...raw.filas[0],
+      n_ch_total: 0,
+      n_ch_elegibles: 0,
+      n_matriculas_elegibles: 0,
+      distribucion_elegible: {
+        n_ch_con_dato: 0,
+        media: null,
+        p10: null,
+        p25: null,
+        p50: null,
+        p75: null,
+        p90: null,
+      },
+      contraste_total: { n_ch_con_dato: 0, media: null },
+      delta_marginal: {
+        referencia: "marco_ejecutado",
+        accion: "agregar_categoria",
+        delta_ch: 3,
+        delta_matriculas_elegibles: 81,
+      },
+    };
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({ ...raw, filas: [filaCero] })).not.toBeNull();
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({
+      ...raw,
+      filas: [{ ...filaCero, n_matriculas_elegibles: null }],
+    })).toBeNull();
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({
+      ...raw,
+      filas: [{
+        ...filaCero,
+        distribucion_elegible: { ...filaCero.distribucion_elegible, p50: 0 },
+      }],
+    })).toBeNull();
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia({
+      ...raw,
+      filas: [{ ...filaCero, contraste_total: { n_ch_con_dato: 0, media: 0 } }],
+    })).toBeNull();
+  });
+
+  it("no_aplica exige deltas literales 0/0 sin imponer la implicación inversa", () => {
+    const delta = registroAnidado(raw.filas[0].delta_marginal);
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia(conPrimeraFila({
+      delta_marginal: { ...delta, accion: "no_aplica", delta_ch: 0, delta_matriculas_elegibles: 0 },
+    }))).not.toBeNull();
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia(conPrimeraFila({
+      delta_marginal: { ...delta, accion: "no_aplica", delta_ch: 1, delta_matriculas_elegibles: 0 },
+    }))).toBeNull();
+    expect(normalizeCalcMuestraAulasCriteriosRadiografia(conPrimeraFila({
+      delta_marginal: { ...delta, accion: "no_aplica", delta_ch: 0, delta_matriculas_elegibles: null },
+    }))).toBeNull();
+  });
+
+  it("acepta ausencia estadística como null y rechaza cifras no finitas o delta_ch fraccional", () => {
+    const distribucion = registroAnidado(raw.filas[0].distribucion_elegible);
+    const contraste = registroAnidado(raw.filas[0].contraste_total);
+    const delta = registroAnidado(raw.filas[0].delta_marginal);
+    const filasInvalidas: Array<Record<string, unknown>> = [
+      { distribucion_elegible: { ...distribucion, media: Number.NaN } },
+      { distribucion_elegible: { ...distribucion, media: "" } },
+      { distribucion_elegible: { ...distribucion, media: undefined } },
+      { distribucion_elegible: { ...distribucion, media: [] } },
+      { distribucion_elegible: { ...distribucion, media: {} } },
+      { distribucion_elegible: { ...distribucion, p90: "no-numérico" } },
+      { contraste_total: { ...contraste, media: Number.NEGATIVE_INFINITY } },
+      { delta_marginal: { ...delta, delta_ch: 1.5 } },
+      { delta_marginal: { ...delta, delta_ch: Number.POSITIVE_INFINITY } },
+      { delta_marginal: { ...delta, delta_matriculas_elegibles: -1.5 } },
+      { delta_marginal: { ...delta, delta_matriculas_elegibles: Number.NaN } },
+    ];
+    for (const patch of filasInvalidas) {
+      expect(normalizeCalcMuestraAulasCriteriosRadiografia(conPrimeraFila(patch))).toBeNull();
+    }
+  });
+
+  it("une por facultad_key, filtra session_type y ordena por categoria_label", () => {
+    const out = normalizeCalcMuestraAulasCriteriosRadiografia(raw);
+    expect(filasTipoSesionRadiografia(out, "psicologia").map((fila) => fila.categoria_key)).toEqual([
+      "laboratorio",
+      "teorico",
+    ]);
+    expect(filasTipoSesionRadiografia(out, "otra")).toEqual([]);
   });
 });
 

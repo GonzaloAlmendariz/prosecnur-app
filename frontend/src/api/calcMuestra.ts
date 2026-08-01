@@ -1324,6 +1324,14 @@ export type CalcMuestraAulasFrame = {
    */
   exploracion?: CalcMuestraAulasExploracion | null;
   /**
+   * Radiografía estadística por criterio × facultad × categoría, calculada
+   * íntegramente por el engine R (schema
+   * calc_muestra_aulas_criterios_radiografia_v1). Es sibling de `exploracion`:
+   * esta última conserva el resumen legacy; el consumidor debe normalizar este
+   * payload crítico antes de acreditar cuantiles, medias o deltas marginales.
+   */
+  criterios_radiografia?: CalcMuestraAulasCriteriosRadiografia | null;
+  /**
    * Impacto de los tipos de sesión EXCLUIDOS del set global, por facultad
    * (contrato congelado cm_session_type_impacto_v1): qué facultades pierden CH
    * y elegibles por cada tipo excluido, y dónde ya está exceptuado.
@@ -1753,6 +1761,292 @@ export function normalizeCalcMuestraAulasExploracion(
   if (!por_facultad.length && !schema) return null;
 
   return { schema: schema || "calc_muestra_aulas_exploracion_v1", totales, por_facultad };
+}
+
+// ----------------------------------------------------------------------------
+// Radiografía estadística por criterio (contrato F1). El frontend únicamente
+// normaliza, une por claves, ordena y formatea: medias, cuantiles, conteos y
+// deltas pertenecen al engine R y nunca se reconstruyen desde `exploracion`.
+// ----------------------------------------------------------------------------
+
+export const CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_SCHEMA =
+  "calc_muestra_aulas_criterios_radiografia_v1" as const;
+export const CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_OWNER =
+  "calc_muestra_aulas_frame_v1.aula_frame" as const;
+export const CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_GRANO =
+  "session_type_x_facultad_efectiva" as const;
+export const CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_UNIDAD =
+  "curso_horario_unico" as const;
+
+export type CalcMuestraAulasCriterioRadiografiaAccion =
+  | "restringir_a_categoria"
+  | "agregar_categoria"
+  | "quitar_categoria"
+  | "quitar_restriccion"
+  | "no_aplica";
+
+export type CalcMuestraAulasCriterioDistribucionElegible = {
+  n_ch_con_dato: number;
+  media: number | null;
+  p10: number | null;
+  p25: number | null;
+  p50: number | null;
+  p75: number | null;
+  p90: number | null;
+};
+
+export type CalcMuestraAulasCriterioContrasteTotal = {
+  n_ch_con_dato: number;
+  media: number | null;
+};
+
+export type CalcMuestraAulasCriterioDeltaMarginal = {
+  referencia: "marco_ejecutado";
+  accion: CalcMuestraAulasCriterioRadiografiaAccion;
+  delta_ch: number | null;
+  delta_matriculas_elegibles: number | null;
+};
+
+export type CalcMuestraAulasCriterioRadiografiaFila = {
+  criterio: "session_type";
+  facultad_key: string;
+  facultad_label: string;
+  categoria_key: string;
+  categoria_label: string;
+  n_ch_total: number;
+  n_ch_elegibles: number;
+  /** Suma de matrículas en CH elegibles; no equivale a alumnado único. */
+  n_matriculas_elegibles: number | null;
+  distribucion_elegible: CalcMuestraAulasCriterioDistribucionElegible;
+  contraste_total: CalcMuestraAulasCriterioContrasteTotal;
+  delta_marginal: CalcMuestraAulasCriterioDeltaMarginal;
+};
+
+export type CalcMuestraAulasCriteriosRadiografia = {
+  schema: typeof CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_SCHEMA;
+  owner: typeof CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_OWNER;
+  frame_hash: string;
+  momento: "marco_ejecutado";
+  grano: typeof CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_GRANO;
+  unidad: typeof CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_UNIDAD;
+  filas: CalcMuestraAulasCriterioRadiografiaFila[];
+};
+
+/**
+ * Normaliza el sibling `frame.criterios_radiografia`. Falla cerrado ante
+ * schema desconocido, metadatos no canónicos o cualquier fila inválida: un
+ * frame legacy conserva su resumen histórico, pero no se presenta como
+ * contrato F1. Solo la ausencia estadística explícita permanece `null`;
+ * ningún conteo ni delta firmado se clampa.
+ */
+export function normalizeCalcMuestraAulasCriteriosRadiografia(
+  raw: unknown,
+): CalcMuestraAulasCriteriosRadiografia | null {
+  if (raw == null || typeof raw !== "object") return null;
+
+  const unwrap = (value: unknown): unknown =>
+    Array.isArray(value) && value.length === 1 ? value[0] : value;
+  const asRecord = (value: unknown): Record<string, unknown> => {
+    const unwrapped = unwrap(value);
+    return typeof unwrapped === "object" && unwrapped !== null && !Array.isArray(unwrapped)
+      ? (unwrapped as Record<string, unknown>)
+      : {};
+  };
+  const asList = (value: unknown): unknown[] => {
+    if (value == null) return [];
+    return Array.isArray(value) ? value : [value];
+  };
+  const asText = (value: unknown): string | null => {
+    const unwrapped = unwrap(value);
+    if (typeof unwrapped === "string") {
+      const text = unwrapped.trim();
+      return text && text.toUpperCase() !== "NA" ? text : null;
+    }
+    return null;
+  };
+  const INVALID_NUMBER = Symbol("invalid-number");
+  type ParsedNullableNumber = number | null | typeof INVALID_NUMBER;
+  const asFiniteOrNull = (value: unknown): ParsedNullableNumber => {
+    const unwrapped = unwrap(value);
+    if (unwrapped === null) return null;
+    if (typeof unwrapped === "number") {
+      return Number.isFinite(unwrapped) ? unwrapped : INVALID_NUMBER;
+    }
+    if (typeof unwrapped === "string") {
+      const text = unwrapped.trim();
+      if (!text) return INVALID_NUMBER;
+      if (text.toUpperCase() === "NA") return null;
+      const parsed = Number(text);
+      return Number.isFinite(parsed) ? parsed : INVALID_NUMBER;
+    }
+    return INVALID_NUMBER;
+  };
+  const asNonNegativeInteger = (value: unknown): number | typeof INVALID_NUMBER => {
+    const parsed = asFiniteOrNull(value);
+    return parsed !== INVALID_NUMBER && parsed !== null && Number.isInteger(parsed) && parsed >= 0
+      ? parsed
+      : INVALID_NUMBER;
+  };
+  const asSignedIntegerOrNull = (value: unknown): ParsedNullableNumber => {
+    const parsed = asFiniteOrNull(value);
+    return parsed !== INVALID_NUMBER && (parsed === null || Number.isInteger(parsed))
+      ? parsed
+      : INVALID_NUMBER;
+  };
+  const asAccion = (value: unknown): CalcMuestraAulasCriterioRadiografiaAccion | null => {
+    const text = asText(value);
+    return text === "restringir_a_categoria" ||
+      text === "agregar_categoria" ||
+      text === "quitar_categoria" ||
+      text === "quitar_restriccion" ||
+      text === "no_aplica"
+      ? text
+      : null;
+  };
+
+  const root = asRecord(raw);
+  if (asText(root.schema) !== CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_SCHEMA) return null;
+  const owner = asText(root.owner);
+  const frame_hash = asText(root.frame_hash);
+  const momento = asText(root.momento);
+  const grano = asText(root.grano);
+  const unidad = asText(root.unidad);
+  if (
+    owner !== CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_OWNER ||
+    !frame_hash ||
+    momento !== "marco_ejecutado" ||
+    grano !== CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_GRANO ||
+    unidad !== CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_UNIDAD
+  ) return null;
+
+  const rawFilas = asList(root.filas);
+  if (!rawFilas.length) return null;
+
+  const filas: CalcMuestraAulasCriterioRadiografiaFila[] = [];
+  const pares = new Set<string>();
+  for (const item of rawFilas) {
+    const row = asRecord(item);
+    const criterio = asText(row.criterio);
+    const facultad_key = asText(row.facultad_key);
+    const facultad_label = asText(row.facultad_label);
+    const categoria_key = asText(row.categoria_key);
+    const categoria_label = asText(row.categoria_label);
+    if (
+      criterio !== "session_type" ||
+      !facultad_key ||
+      !facultad_label ||
+      !categoria_key ||
+      !categoria_label
+    ) return null;
+
+    const par = JSON.stringify([facultad_key, categoria_key]);
+    if (pares.has(par)) return null;
+    pares.add(par);
+
+    const distribucion = asRecord(row.distribucion_elegible);
+    const contraste = asRecord(row.contraste_total);
+    const delta = asRecord(row.delta_marginal);
+    const referencia = asText(delta.referencia);
+    const accion = asAccion(delta.accion);
+    if (referencia !== "marco_ejecutado" || !accion) return null;
+
+    const n_ch_total = asNonNegativeInteger(row.n_ch_total);
+    const n_ch_elegibles = asNonNegativeInteger(row.n_ch_elegibles);
+    const n_matriculas_elegibles = asFiniteOrNull(row.n_matriculas_elegibles);
+    const distribucion_n_ch_con_dato = asNonNegativeInteger(distribucion.n_ch_con_dato);
+    const distribucion_media = asFiniteOrNull(distribucion.media);
+    const p10 = asFiniteOrNull(distribucion.p10);
+    const p25 = asFiniteOrNull(distribucion.p25);
+    const p50 = asFiniteOrNull(distribucion.p50);
+    const p75 = asFiniteOrNull(distribucion.p75);
+    const p90 = asFiniteOrNull(distribucion.p90);
+    const contraste_n_ch_con_dato = asNonNegativeInteger(contraste.n_ch_con_dato);
+    const contraste_media = asFiniteOrNull(contraste.media);
+    const delta_ch = asSignedIntegerOrNull(delta.delta_ch);
+    const delta_matriculas_elegibles = asSignedIntegerOrNull(delta.delta_matriculas_elegibles);
+    if (
+      n_ch_total === INVALID_NUMBER ||
+      n_ch_elegibles === INVALID_NUMBER ||
+      n_matriculas_elegibles === INVALID_NUMBER ||
+      (n_matriculas_elegibles !== null &&
+        (!Number.isInteger(n_matriculas_elegibles) || n_matriculas_elegibles < 0)) ||
+      distribucion_n_ch_con_dato === INVALID_NUMBER ||
+      distribucion_media === INVALID_NUMBER ||
+      p10 === INVALID_NUMBER ||
+      p25 === INVALID_NUMBER ||
+      p50 === INVALID_NUMBER ||
+      p75 === INVALID_NUMBER ||
+      p90 === INVALID_NUMBER ||
+      contraste_n_ch_con_dato === INVALID_NUMBER ||
+      contraste_media === INVALID_NUMBER ||
+      delta_ch === INVALID_NUMBER ||
+      delta_matriculas_elegibles === INVALID_NUMBER ||
+      n_ch_elegibles > n_ch_total ||
+      distribucion_n_ch_con_dato > n_ch_elegibles ||
+      contraste_n_ch_con_dato > n_ch_total
+    ) return null;
+
+    const estadisticosElegibles = [distribucion_media, p10, p25, p50, p75, p90];
+    const estadisticosElegiblesAusentes = estadisticosElegibles.every((value) => value === null);
+    const estadisticosElegiblesPresentes = estadisticosElegibles.every((value) => value !== null);
+    if (
+      (n_ch_elegibles === 0 && !(
+        n_matriculas_elegibles === 0 &&
+        distribucion_n_ch_con_dato === 0 &&
+        estadisticosElegiblesAusentes
+      )) ||
+      (n_ch_elegibles > 0 && distribucion_n_ch_con_dato < n_ch_elegibles && !(
+        n_matriculas_elegibles === null && estadisticosElegiblesAusentes
+      )) ||
+      (n_ch_elegibles > 0 && distribucion_n_ch_con_dato === n_ch_elegibles && !(
+        n_matriculas_elegibles !== null && estadisticosElegiblesPresentes
+      ))
+    ) return null;
+
+    const contrasteCompleto = n_ch_total > 0 && contraste_n_ch_con_dato === n_ch_total;
+    if ((contraste_media !== null) !== contrasteCompleto) return null;
+    if (accion === "no_aplica" && (delta_ch !== 0 || delta_matriculas_elegibles !== 0)) return null;
+
+    filas.push({
+      criterio: "session_type",
+      facultad_key,
+      facultad_label,
+      categoria_key,
+      categoria_label,
+      n_ch_total,
+      n_ch_elegibles,
+      n_matriculas_elegibles,
+      distribucion_elegible: {
+        n_ch_con_dato: distribucion_n_ch_con_dato,
+        media: distribucion_media,
+        p10,
+        p25,
+        p50,
+        p75,
+        p90,
+      },
+      contraste_total: {
+        n_ch_con_dato: contraste_n_ch_con_dato,
+        media: contraste_media,
+      },
+      delta_marginal: {
+        referencia: "marco_ejecutado",
+        accion,
+        delta_ch,
+        delta_matriculas_elegibles,
+      },
+    });
+  }
+
+  return {
+    schema: CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_SCHEMA,
+    owner: CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_OWNER,
+    frame_hash,
+    momento: "marco_ejecutado",
+    grano: CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_GRANO,
+    unidad: CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_UNIDAD,
+    filas,
+  };
 }
 
 // ----------------------------------------------------------------------------

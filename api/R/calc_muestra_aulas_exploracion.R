@@ -362,13 +362,21 @@ calc_muestra_aulas_exploracion <- function(aula_frame, particularidades = NULL) 
   )
 }
 
-# Punto de integración único al cierre de construir(): adjunta la radiografía
-# leyendo el aula_frame y las particularidades YA adjuntadas al frame.
-.cm_exploracion_adjuntar <- function(out) {
+# Punto de integración único al cierre de construir(): conserva la exploración
+# v1 y adjunta su sibling estadístico cuando existe el output efectivo del
+# evaluador. Ambos leen el aula_frame y las particularidades YA ejecutados.
+.cm_exploracion_adjuntar <- function(out, criterios = NULL) {
   if (!is.list(out)) return(out)
   out$exploracion <- calc_muestra_aulas_exploracion(
     aula_frame = out$aula_frame,
     particularidades = out$particularidades
+  )
+  out$criterios_radiografia <- calc_muestra_aulas_criterios_radiografia(
+    aula_frame = out$aula_frame,
+    criterios = criterios,
+    criterios_seleccion = out$criterios_seleccion,
+    particularidades = out$particularidades,
+    frame_hash = out$frame_hash
   )
   out
 }
