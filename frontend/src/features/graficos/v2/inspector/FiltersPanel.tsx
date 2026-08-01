@@ -193,6 +193,8 @@ function FilterRow({ rule, index, variables, onUpdate, onRemove }: {
         <button
           type="button"
           className="pulso-gv2-filter-cell-btn"
+          aria-haspopup="menu"
+          aria-expanded={varOpen}
           onClick={() => setVarOpen((o) => !o)}
         >
           <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -248,6 +250,8 @@ function FilterRow({ rule, index, variables, onUpdate, onRemove }: {
         <button
           type="button"
           className="pulso-gv2-filter-cell-btn"
+          aria-haspopup="menu"
+          aria-expanded={opOpen}
           onClick={() => setOpOpen((o) => !o)}
         >
           <span>{opLabel}</span>

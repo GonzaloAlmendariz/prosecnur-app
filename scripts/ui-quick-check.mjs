@@ -65,6 +65,7 @@ function parseArgs(argv) {
     geometryGroups: [],
     geometryTolerance: Number(process.env.UI_QA_GEOMETRY_TOLERANCE || "2"),
     requireGeometry: false,
+    barrerPopovers: process.env.UI_QA_SIN_POPOVERS === "1" ? false : true,
     clickTabs: [],
     sembrar: [],
     direcciones: [],
@@ -138,6 +139,8 @@ function parseArgs(argv) {
       out.geometryTolerance = Number(next());
     } else if (arg === "--require-geometry") {
       out.requireGeometry = true;
+    } else if (arg === "--sin-popovers") {
+      out.barrerPopovers = false;
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -231,6 +234,13 @@ Opciones:
   --geometry-tolerance PX  Diferencia máxima entre marcos equivalentes. Default: 2.
   --require-geometry       Exige cobertura: falla sin mediciones o ante colecciones
                            hermanas visibles sin contrato geométrico declarado.
+  --sin-popovers           Apaga el barrido de superficies que solo existen tras un
+                           click. Por defecto está ENCENDIDO: el runner abre cada
+                           disparador visible que declare [aria-haspopup] o
+                           [aria-expanded], mide su desborde con el mismo detector
+                           de la vista en reposo y lo devuelve a su estado. Sin él,
+                           un popover nunca llega a medirse: la vista quieta sale
+                           verde y el desborde vive en el menú que nadie abrió.
 
 El reporte marca scrollJails cuando un contenedor de layout tiene contenido
 vertical inaccesible por falta de scroll propio o ancestro scrollable. La
@@ -1215,7 +1225,14 @@ async function runCaptures(opts, stack) {
           geometryTolerance: opts.geometryTolerance,
           requireGeometry: opts.requireGeometry,
         });
+        // Después de medir la vista en reposo y con la captura ya tomada: abrir
+        // popovers cambia la pantalla, así que el barrido va al final para no
+        // contaminar el screenshot ni la geometría.
+        const popovers = opts.barrerPopovers
+          ? await barrerPopovers(page, { timeoutMs: opts.timeoutMs })
+          : [];
         results.push({
+          popovers,
           route,
           viewport,
           url: target,
@@ -1239,12 +1256,13 @@ async function runCaptures(opts, stack) {
   return results;
 }
 
-export async function inspectDom(page, { projectMode, geometryGroups, geometryTolerance, requireGeometry }) {
+export async function inspectDom(page, { projectMode, geometryGroups, geometryTolerance, requireGeometry, rootSelector = "" }) {
   return page.evaluate(({
     projectMode: wantsProject,
     geometryGroups: requestedGeometryGroups,
     geometryTolerance: geometryTolerancePx,
     requireGeometry: geometryRequired,
+    rootSelector: alcance,
   }) => {
     const root = document.documentElement;
     const body = document.body;
@@ -1292,8 +1310,17 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         return childBox.right <= maxRight && childBox.bottom <= maxBottom;
       });
     };
+    // Con `rootSelector` la medición se acota a una superficie recién abierta
+    // (un popover, un menú, un diálogo). Sin él mide el documento entero, que
+    // es el caso de la vista en reposo. Acotar evita volver a reportar los
+    // nodos de la vista de fondo una vez por cada disparador abierto.
+    const raizMedicion = alcance ? document.querySelector(alcance) : null;
+    if (alcance && !raizMedicion) {
+      return { issues: [], controlTextMetrics: [], scrollJails: [], geometryAudits: [], geometryIssues: [], geometryCoverageMisses: [], alcanceAusente: true };
+    }
+    const ambito = raizMedicion || document;
     const issues = [];
-    for (const el of Array.from(document.querySelectorAll(selector))) {
+    for (const el of Array.from(ambito.querySelectorAll(selector))) {
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
       const visible = rect.width > 1 && rect.height > 1 && style.display !== "none" && style.visibility !== "hidden";
@@ -1355,8 +1382,28 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
           return false;
         }
       };
+      // Un texto RECORTADO A PROPÓSITO con elipsis (`overflow:hidden` +
+      // `text-overflow:ellipsis` + `white-space:nowrap`) mide igual que un
+      // desborde: el `scrollWidth` es el del texto completo. La diferencia no
+      // está en la medición sino en si el usuario puede llegar al texto que
+      // falta. Por eso el perdón es CONDICIONAL a que el contenido siga
+      // alcanzable —un `title` o `aria-label` que lo exponga entero, propio o
+      // de un ancestro cercano—, que es justo lo que pide C4. Un recorte mudo
+      // sigue siendo un hallazgo: el dato existe y no hay forma de leerlo.
+      const elipsisAlcanzable = () => {
+        if (style.textOverflow !== "ellipsis") return false;
+        if (style.overflowX !== "hidden" && style.overflowX !== "clip") return false;
+        const completo = (el.textContent || "").replace(/\s+/g, " ").trim();
+        if (!completo) return false;
+        const portador = el.closest("[title],[aria-label]");
+        if (!portador) return false;
+        const expuesto = (portador.getAttribute("title") || portador.getAttribute("aria-label") || "")
+          .replace(/\s+/g, " ")
+          .trim();
+        return expuesto.includes(completo);
+      };
       const xOverflow = el.scrollWidth > el.clientWidth + 2 && !overflowXAllowed
-        && !nativeSelectBox && !nativeTextBox && !inkFitsBox();
+        && !nativeSelectBox && !nativeTextBox && !inkFitsBox() && !elipsisAlcanzable();
       const yOverflow = el.scrollHeight > el.clientHeight + 2 && !overflowYAllowed;
       if (!xOverflow && !yOverflow) continue;
       if (railTooltipEscape(el, style)) continue;
@@ -1381,6 +1428,11 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       });
       if (issues.length >= 80) break;
     }
+
+    // Una superficie efímera se mide por su desborde y nada más: el scroll jail,
+    // la geometría de colecciones y los rectángulos de layout son preguntas
+    // sobre el marco de la vista, y ese ya se auditó en reposo.
+    if (alcance) return { issues, acotadoA: alcance };
 
     const rectFor = (value) => {
       const el = document.querySelector(value);
@@ -1978,11 +2030,178 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     geometryGroups,
     geometryTolerance,
     requireGeometry,
+    rootSelector,
   });
 }
 
+// Barrido de superficies que solo existen tras un click.
+//
+// El detector de desborde de `inspectDom` es el mismo de siempre; lo que faltaba
+// era abrir la superficie para que hubiera algo que medir. Un popover cerrado no
+// tiene caja, así que la vista en reposo sale verde mientras el desborde vive
+// dentro del menú. Esto abre cada disparador declarado, mide SOLO su subárbol y
+// lo cierra antes de pasar al siguiente.
+//
+// Se apoya en dos contratos que la propia UI ya declara: `aria-haspopup` ("esto
+// abre una superficie") y `aria-expanded` ("esto tiene un estado abierto"). El
+// segundo trae además acordeones y filas expandibles —no son popovers, pero sí
+// contenido que solo existe tras un click, así que medirlos es correcto—; lo que
+// cambia es cómo se cierran, porque no responden a Escape.
+//
+// Un menú que no declare ninguno de los dos queda fuera del barrido, y esa
+// ausencia es en sí un hallazgo de accesibilidad: si el runner no sabe que ese
+// botón abre algo, un lector de pantalla tampoco.
+const POPOVER_TRIGGER_SELECTOR = "[aria-haspopup='menu'],[aria-haspopup='dialog'],[aria-haspopup='listbox'],[aria-haspopup='true'],[aria-expanded]";
+const POPOVER_SURFACE_SELECTOR = "[role='menu'],[role='dialog'],[role='listbox'],[class*='popover'],[class*='menu']";
+const POPOVER_SCOPE_ATTR = "data-qa-popover-scope";
+
+export async function barrerPopovers(page, { timeoutMs }) {
+  const disparadores = await page.evaluate(({ triggerSelector }) => {
+    return Array.from(document.querySelectorAll(triggerSelector))
+      .map((el, indice) => {
+        const rect = el.getBoundingClientRect();
+        const visible = rect.width > 1 && rect.height > 1;
+        const style = window.getComputedStyle(el);
+        if (!visible || style.display === "none" || style.visibility === "hidden") return null;
+        return {
+          indice,
+          etiqueta: (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80),
+          className: String(el.getAttribute("class") || "").slice(0, 120),
+          // De qué contrato salió y en qué estado estaba: el cierre tiene que
+          // devolver el disparador a este valor, no simplemente pulsar Escape.
+          declara: el.getAttribute("aria-haspopup") ? "haspopup" : "expanded",
+          expandidoAlEmpezar: el.getAttribute("aria-expanded"),
+        };
+      })
+      .filter(Boolean);
+  }, { triggerSelector: POPOVER_TRIGGER_SELECTOR });
+
+  const auditorias = [];
+  for (const disparador of disparadores) {
+    const rutaAntes = new URL(page.url()).pathname;
+    // El índice se resuelve en el momento: abrir un popover puede reordenar o
+    // reemplazar nodos, así que una referencia guardada del barrido anterior ya
+    // no sirve.
+    // Click REAL de Playwright (mousedown + mouseup + click), no `el.click()`
+    // del DOM. Hay disparadores que abren en `onMouseDown` para no perder la
+    // selección del texto —la barra del editor markdown lo hace a propósito— y
+    // con el click sintético del DOM no llegan a abrirse nunca: el barrido los
+    // daba por superficie ausente en vez de medirlos.
+    const abierto = await page.locator(POPOVER_TRIGGER_SELECTOR).nth(disparador.indice)
+      .click({ force: true, timeout: Math.min(5000, timeoutMs) })
+      .then(() => ({ estado: "click" }))
+      .catch((error) => ({ estado: "no-clickeable", detalle: String(error?.message || error).slice(0, 200) }));
+
+    if (abierto.estado !== "click") {
+      auditorias.push({ ...disparador, estado: abierto.estado, issues: [] });
+      continue;
+    }
+
+    await cederRenderDeTransicion(page);
+
+    const rutaDespues = new URL(page.url()).pathname;
+    if (rutaDespues !== rutaAntes) {
+      // No era un popover: el control navegó. Volver deja la vista donde estaba
+      // para que el resto del barrido siga siendo válido.
+      await page.goBack({ waitUntil: "domcontentloaded", timeout: timeoutMs }).catch(() => {});
+      await esperarListo(page, timeoutMs);
+      auditorias.push({ ...disparador, estado: "navego", issues: [] });
+      continue;
+    }
+
+    const marcado = await page.evaluate(({ triggerSelector, surfaceSelector, scopeAttr, indice }) => {
+      const el = document.querySelectorAll(triggerSelector)[indice];
+      const superficies = Array.from(document.querySelectorAll(surfaceSelector)).filter((nodo) => {
+        const rect = nodo.getBoundingClientRect();
+        if (rect.width <= 1 || rect.height <= 1) return false;
+        const style = window.getComputedStyle(nodo);
+        return style.display !== "none" && style.visibility !== "hidden";
+      });
+      if (superficies.length === 0) return { estado: "sin-superficie" };
+      // La superficie del disparador es la más cercana en el árbol; si no
+      // comparte ancestro (portal), la última visible es la recién montada.
+      const propia = el
+        ? superficies.find((nodo) => el.parentElement && el.parentElement.contains(nodo))
+        : null;
+      const elegida = propia || superficies[superficies.length - 1];
+      elegida.setAttribute(scopeAttr, "1");
+      return { estado: "abierto", enPortal: !propia };
+    }, {
+      triggerSelector: POPOVER_TRIGGER_SELECTOR,
+      surfaceSelector: POPOVER_SURFACE_SELECTOR,
+      scopeAttr: POPOVER_SCOPE_ATTR,
+      indice: disparador.indice,
+    });
+
+    let issues = [];
+    if (marcado.estado === "abierto") {
+      const medicion = await inspectDom(page, {
+        projectMode: false,
+        geometryGroups: [],
+        geometryTolerance: 2,
+        requireGeometry: false,
+        rootSelector: `[${POPOVER_SCOPE_ATTR}]`,
+      });
+      issues = (medicion.issues || []).map((issue) => ({
+        ...issue,
+        popover: disparador.etiqueta || disparador.className,
+      }));
+    }
+
+    await page.evaluate(({ scopeAttr }) => {
+      document.querySelectorAll(`[${scopeAttr}]`).forEach((nodo) => nodo.removeAttribute(scopeAttr));
+    }, { scopeAttr: POPOVER_SCOPE_ATTR });
+
+    // Cerrar en tres pasos, del más suave al más invasivo. Escape sirve para
+    // popovers y menús; un acordeón o una fila expandible lo ignora, y ahí lo
+    // correcto es volver a pulsar su propio disparador para devolverlo al
+    // estado en que estaba. Dejar una superficie abierta contamina la medición
+    // de todos los disparadores que vienen después.
+    await page.keyboard.press("Escape").catch(() => {});
+    await cederRenderDeTransicion(page);
+
+    const volvioASuEstado = await page.evaluate(({ triggerSelector, indice, expandidoAlEmpezar }) => {
+      const el = document.querySelectorAll(triggerSelector)[indice];
+      if (!el) return true;
+      return el.getAttribute("aria-expanded") === expandidoAlEmpezar;
+    }, {
+      triggerSelector: POPOVER_TRIGGER_SELECTOR,
+      indice: disparador.indice,
+      expandidoAlEmpezar: disparador.expandidoAlEmpezar,
+    });
+
+    if (!volvioASuEstado) {
+      await page.locator(POPOVER_TRIGGER_SELECTOR).nth(disparador.indice)
+        .click({ force: true, timeout: Math.min(5000, timeoutMs) })
+        .catch(() => {});
+      await cederRenderDeTransicion(page);
+    }
+
+    const sigueAbierto = await page.evaluate(({ surfaceSelector }) => {
+      return Array.from(document.querySelectorAll(surfaceSelector)).some((nodo) => {
+        const rect = nodo.getBoundingClientRect();
+        return rect.width > 1 && rect.height > 1;
+      });
+    }, { surfaceSelector: POPOVER_SURFACE_SELECTOR });
+    if (sigueAbierto) {
+      await page.mouse.click(2, 2).catch(() => {});
+      await cederRenderDeTransicion(page);
+    }
+
+    auditorias.push({ ...disparador, estado: marcado.estado, enPortal: marcado.enPortal ?? null, issues });
+  }
+
+  return auditorias;
+}
+
 function summarize(results, opts) {
-  const visualIssues = results.flatMap((item) => item.issues || []);
+  // Los desbordes hallados dentro de un popover son desbordes de la app: entran
+  // al mismo contador que los de la vista en reposo para que `--fail-on-issues`
+  // no distinga entre lo que se ve solo y lo que hay que abrir.
+  const popovers = results.flatMap((item) => item.popovers || []);
+  const popoverIssues = popovers.flatMap((item) => item.issues || []);
+  const popoversSinSuperficie = popovers.filter((item) => item.estado === "sin-superficie");
+  const visualIssues = [...results.flatMap((item) => item.issues || []), ...popoverIssues];
   const scrollJails = results.flatMap((item) => item.scrollJails || []);
   const geometryAudits = results.flatMap((item) => item.geometryAudits || []);
   const geometryIssues = results.flatMap((item) => item.geometryIssues || []);
@@ -2001,6 +2220,9 @@ function summarize(results, opts) {
     captures: results.length,
     screenshots: results.map((item) => item.screenshot),
     visualIssues: visualIssues.length,
+    popovers: popovers.length,
+    popoverIssues: popoverIssues.length,
+    popoversSinSuperficie: popoversSinSuperficie.length,
     scrollJails: scrollJails.length,
     geometryGroups: geometryAudits.length,
     geometryIssues: geometryIssues.length,
@@ -2111,7 +2333,7 @@ async function main() {
     if (stack.apiUrl) console.log(`[ui-quick-check] api: ${stack.apiUrl}`);
     if (stack.session) console.log(`[ui-quick-check] session: ${stack.session}`);
     for (const shot of summary.screenshots) console.log(`[ui-quick-check] screenshot: ${shot}`);
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} scrollJails=${summary.scrollJails} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();

@@ -186,6 +186,8 @@ function FreeCalculationEditor({
             <button
               type="button"
               className="pulso-logic-calc-insert"
+              aria-haspopup="listbox"
+              aria-expanded={varPickerOpen}
               onClick={() => setVarPickerOpen((v) => !v)}
               title="Insertar referencia a otra pregunta"
             >
