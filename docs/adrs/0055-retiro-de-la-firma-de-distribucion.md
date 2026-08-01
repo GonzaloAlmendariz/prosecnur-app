@@ -60,6 +60,34 @@ macOS se distribuye por DMG y **no participa del auto-updater**: sin ZIP no hay
 `latest-mac.yml` ni blockmaps que publicar. Windows conserva su `latest.yml` y
 su updater sigue funcionando.
 
+### Windows bloquea, macOS es best-effort
+
+`publish` exige exito de `build-windows` y **no** de `build-mac`. macOS sigue en
+`needs` para esperarlo y su DMG se adjunta cuando existe, pero un runner de
+macOS caido no deja sin release a los usuarios de Windows, que son la mayoria.
+Esto no es nuevo: era la politica del workflow anterior a `32aa1ec5`, que
+publicaba comprobando solo Windows, y `32aa1ec5` la endurecio sin decidirlo de
+forma explicita. Aqui se restituye y se deja escrita.
+
+La lista de assets se compone en un paso previo para conservar
+`fail_on_unmatched_files: true`: los tres archivos de Windows se listan siempre
+y los DMG solo si existen. Poner la bandera en `false` habria tolerado tambien
+un error de nombre del lado Windows, que es lo unico que no queremos tolerar.
+
+### Reuso de Quality por SHA
+
+`precheck` vuelve a buscar un run verde de `quality.yml` sobre el mismo commit y
+omite el gate cuando lo encuentra. Retirarlo en `32aa1ec5` llevo el release de
+~9 a ~31 minutos, porque el flujo normal (pushear `main`, esperar Quality verde,
+taggear ese mismo commit) pagaba el gate dos veces. El SHA fija el arbol entero,
+incluida la definicion de `quality.yml`, de modo que el run omitido no puede
+diferir del reusado.
+
+Los builds siguen detras del gate. Desengancharlos para ganar paralelismo
+dejaria `internal-preview` sin verificacion: ahi no corre `publish`, que es el
+unico job que comprueba Quality, y los artefactos de un gate rojo son
+precisamente los que el ADR 0054 manda adjuntar a mano.
+
 La ausencia de los gates se afirma en `scripts/tests/release-contract.test.mjs`
 en positivo, con `doesNotMatch`, y no borrando la afirmacion contraria:
 reintroducir la firma sin haber cargado antes los certificados debe romper en

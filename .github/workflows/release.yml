@@ -58,17 +58,58 @@ jobs:
         if: github.event_name == 'push'
         run: node scripts/release-contract.mjs stable --tag "${{ github.ref_name }}"
 
+  # Reusa un Quality ya verde del MISMO commit en vez de repetirlo. El SHA fija
+  # el arbol entero, incluida la definicion de quality.yml, asi que un run
+  # exitoso sobre ese commit no puede diferir del que correriamos ahora. Este
+  # job existia antes de 32aa1ec5 y su retiro llevo el release de ~9 a ~31+ min,
+  # porque el flujo normal (pushear main, esperar Quality verde, taggear ese
+  # mismo commit) paga el gate dos veces.
+  precheck:
+    name: ¿Quality ya pasó para este SHA?
+    needs: contract
+    runs-on: ubuntu-24.04
+    outputs:
+      skip_gate: ${{ steps.check.outputs.skip_gate }}
+    steps:
+      - name: Buscar Quality exitoso del mismo commit
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ok=$(gh api "repos/${{ github.repository }}/actions/workflows/quality.yml/runs?head_sha=${{ github.sha }}&status=completed&per_page=20" \
+            --jq '[.workflow_runs[] | select(.conclusion=="success")] | length' 2>/dev/null || echo 0)
+          if [ "${ok:-0}" -gt 0 ]; then
+            echo "skip_gate=true" >> "$GITHUB_OUTPUT"
+            echo "[precheck] Quality ya pasó para ${{ github.sha }}; se reusa ese verde."
+          else
+            echo "skip_gate=false" >> "$GITHUB_OUTPUT"
+            echo "[precheck] Sin Quality exitoso previo para este SHA; el gate corre completo."
+          fi
+
   quality:
     name: Quality gate
-    needs: contract
+    needs: precheck
+    if: needs.precheck.outputs.skip_gate != 'true'
     uses: ./.github/workflows/quality.yml
 
   # El bundle Windows se arma en Linux: no contiene módulos nativos propios y
   # NSIS resulta más estable aquí. Stable agrega una verificación Authenticode
   # separada; el workflow no crea ni presupone secretos de firma.
+  # El build sigue detras del gate a proposito. Desengancharlo para ganar
+  # paralelismo dejaria a `internal-preview` sin gate real: ahi no hay job
+  # `publish` que verifique Quality, asi que un Quality rojo produciria y subiria
+  # los artefactos de preview, que son justamente los que el ADR 0054 manda
+  # adjuntar a mano. Con `precheck` el paralelismo tampoco haria falta: en el
+  # flujo normal Quality queda SKIPPED y el build arranca igual de inmediato.
   build-windows:
     name: Build Windows
-    needs: quality
+    needs: [precheck, quality]
+    if: >-
+      always()
+      && needs.precheck.result == 'success'
+      && (needs.quality.result == 'success'
+          || (needs.precheck.outputs.skip_gate == 'true'
+              && needs.quality.result == 'skipped'))
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -186,7 +227,13 @@ jobs:
 
   build-mac:
     name: Build macOS (arm64 + x64)
-    needs: quality
+    needs: [precheck, quality]
+    if: >-
+      always()
+      && needs.precheck.result == 'success'
+      && (needs.quality.result == 'success'
+          || (needs.precheck.outputs.skip_gate == 'true'
+              && needs.quality.result == 'skipped'))
     runs-on: macos-26
     steps:
       - name: Checkout
@@ -293,8 +340,26 @@ jobs:
 
   publish:
     name: Publish stable GitHub Release
-    needs: [contract, quality, build-windows, build-mac]
-    if: github.event_name == 'push'
+    needs: [contract, precheck, quality, build-windows, build-mac]
+    # `always()` es obligatorio porque `quality` puede quedar SKIPPED cuando
+    # precheck reusa un verde previo, y un `needs` saltado saltaria tambien a
+    # este job. La condicion no se relaja por eso: cada dependencia bloqueante se
+    # exige 'success' de forma explicita, y a `quality` se le acepta 'skipped'
+    # solo si precheck declaro haber encontrado ese verde sobre el mismo SHA.
+    #
+    # `build-mac` figura en `needs` para esperarlo, pero NO se le exige exito:
+    # Windows es el artefacto bloqueante y el DMG de macOS es best-effort, sin
+    # code-signing. Un runner de macOS caido no puede dejar sin release a los
+    # usuarios de Windows, que son la mayoria.
+    if: >-
+      always()
+      && github.event_name == 'push'
+      && needs.contract.result == 'success'
+      && needs.precheck.result == 'success'
+      && needs['build-windows'].result == 'success'
+      && (needs.quality.result == 'success'
+          || (needs.precheck.outputs.skip_gate == 'true'
+              && needs.quality.result == 'skipped'))
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -309,7 +374,12 @@ jobs:
           name: stable-windows
           path: artifacts/windows
 
-      - name: Download macOS stable payload
+      # Solo se descarga si el build de macOS termino bien: si fallo, su
+      # artefacto no existe y la descarga romperia el release de Windows. Se
+      # expresa condicionando por el resultado del job, no tolerando el error del
+      # paso, que enmascararia tambien fallos de red o de permisos.
+      - name: Download macOS stable payload (best-effort)
+        if: needs['build-mac'].result == 'success'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: stable-macos
@@ -325,14 +395,36 @@ jobs:
           test -s artifacts/windows/Prosecnur-Windows-self-contained.zip
           test -s artifacts/windows/latest.yml
 
-          # macOS publica DMG y no participa del updater (ADR 0055): sin ZIP no
-          # hay `latest-mac.yml` ni blockmaps que exigir. Los dos DMG si son
-          # obligatorios, uno por arquitectura.
+          # Windows es bloqueante y sus tres archivos se exigen arriba. macOS es
+          # best-effort (ADR 0055): publica DMG, no participa del updater y su
+          # ausencia no detiene el release. Se avisa, que no es lo mismo que
+          # callarlo, pero no se falla.
           dmgs=(artifacts/mac/*.dmg)
-          if [ "${#dmgs[@]}" -ne 2 ]; then
-            echo "::error::El payload stable de macOS está incompleto"
-            exit 1
+          if [ "${#dmgs[@]}" -eq 2 ]; then
+            echo "macOS: dos DMG presentes; se adjuntan al release."
+          else
+            echo "::warning::Release sin los dos DMG de macOS (${#dmgs[@]} presentes). Se publica solo Windows."
           fi
+
+      # La lista se compone aqui para conservar `fail_on_unmatched_files: true`
+      # sin volver obligatorio el DMG: los tres archivos de Windows se listan
+      # siempre, y los de macOS solo si existen. Con la bandera en `false` un
+      # error de nombre en el lado Windows publicaria un release vacio en
+      # silencio, que es precisamente lo que no queremos tolerar.
+      - name: Compose release asset list
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          {
+            echo "files<<PROSECNUR_EOF"
+            echo "artifacts/windows/Prosecnur-Setup.exe"
+            echo "artifacts/windows/Prosecnur-Windows-self-contained.zip"
+            echo "artifacts/windows/latest.yml"
+            for dmg in artifacts/mac/*.dmg; do echo "$dmg"; done
+            echo "PROSECNUR_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
@@ -341,8 +433,4 @@ jobs:
           name: Prosecnur ${{ github.ref_name }}
           body_path: .github/RELEASE_NOTES.md
           fail_on_unmatched_files: true
-          files: |
-            artifacts/windows/Prosecnur-Setup.exe
-            artifacts/windows/Prosecnur-Windows-self-contained.zip
-            artifacts/windows/latest.yml
-            artifacts/mac/*.dmg
+          files: ${{ steps.assets.outputs.files }}

@@ -348,9 +348,59 @@ test('el workflow separa preview interno de publicación stable y falla cerrado'
   assert.doesNotMatch(workflow, /codesign --verify/)
   assert.doesNotMatch(workflow, /Authority=Developer ID Application/)
   assert.match(workflow, /ADR 0055/)
-  // Lo que si sigue siendo fail-closed sin depender de un certificado.
-  assert.match(workflow, /El payload stable de macOS está incompleto/)
+  // macOS ausente avisa pero no falla: es best-effort. Se exige que AVISE, para
+  // que un release sin DMG no pase inadvertido en el log.
+  assert.match(workflow, /::warning::Release sin los dos DMG de macOS/)
   assert.doesNotMatch(workflow, /artifacts\/mac\/latest-mac\.yml/)
-  assert.match(workflow, /needs: \[contract, quality, build-windows, build-mac\]/)
+  assert.match(workflow, /needs: \[contract, precheck, quality, build-windows, build-mac\]/)
   assert.match(workflow, /fail_on_unmatched_files:\s*true/)
+})
+
+test('precheck reusa Quality del mismo SHA sin abrir un canal sin gate', () => {
+  const workflow = fs.readFileSync(
+    new URL('../../.github/workflows/release.yml', import.meta.url),
+    'utf8'
+  )
+  const jobOf = (name) =>
+    workflow.match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [a-z-]+:\\n)`, 'm'))?.[1] ?? ''
+
+  // El reuso se hace por SHA exacto: el arbol, incluida la definicion de
+  // quality.yml, queda fijado por el commit, asi que un verde de ese SHA no
+  // puede diferir del run que se omite. Reusar por branch o por tag no valdria.
+  assert.match(jobOf('precheck'), /head_sha=\$\{\{ github\.sha \}\}/)
+  assert.match(jobOf('precheck'), /conclusion=="success"/)
+  assert.match(jobOf('quality'), /if: needs\.precheck\.outputs\.skip_gate != 'true'/)
+
+  // Los dos builds SIGUEN detras del gate. Desengancharlos para ganar
+  // paralelismo dejaria `internal-preview` sin verificacion alguna: ahi no
+  // corre `publish`, que es el unico job que comprueba Quality, y los
+  // artefactos de un gate rojo son los que el ADR 0054 manda adjuntar a mano.
+  for (const job of ['build-windows', 'build-mac']) {
+    const body = jobOf(job)
+    assert.match(body, /needs: \[precheck, quality\]/)
+    // Solo se acepta un Quality saltado cuando precheck declaro el verde previo.
+    assert.match(body, /needs\.quality\.result == 'success'/)
+    assert.match(body, /skip_gate == 'true'\n\s*&& needs\.quality\.result == 'skipped'/)
+  }
+
+  // Windows es el artefacto BLOQUEANTE; el DMG de macOS es best-effort y no
+  // tiene code-signing. Exigir exito en macOS para publicar dejaria sin release
+  // a la mayoria de usuarios por un runner caido, asi que la asimetria es
+  // deliberada y se afirma en las dos direcciones.
+  const publish = workflow.slice(workflow.indexOf('\n  publish:'))
+  assert.match(publish, /needs\['build-windows'\]\.result == 'success'/)
+  assert.doesNotMatch(publish, /needs\['build-mac'\]\.result == 'success'\n\s*&&/)
+  // macOS se espera (esta en needs) pero solo se descarga si construyo bien.
+  assert.match(publish, /needs: \[contract, precheck, quality, build-windows, build-mac\]/)
+  assert.match(publish, /if: needs\['build-mac'\]\.result == 'success'/)
+  // La garantia de Windows no se afloja: sus tres archivos se exigen con
+  // `test -s`, y la lista compuesta conserva fail_on_unmatched_files en true.
+  for (const asset of [
+    'Prosecnur-Setup\\.exe',
+    'Prosecnur-Windows-self-contained\\.zip',
+    'latest\\.yml'
+  ]) {
+    assert.match(publish, new RegExp(`test -s artifacts/windows/${asset}`))
+  }
+  assert.match(publish, /fail_on_unmatched_files:\s*true/)
 })
