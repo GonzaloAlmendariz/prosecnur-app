@@ -1,11 +1,12 @@
-# Prosecnur 0.6.0: bitácora espacial y navegación direccionable
+# Prosecnur 0.6.2 · monitoreo telefónico medido contra campo
 
-- Bitácora: el estudio se dibuja en un lienzo espacial. Colocas nodos, los conectas y despliegas sus ramas sin salir del lienzo, con deshacer y rehacer. Los nodos apuntan a piezas reales de la app, a hitos o a entradas de la bitácora, y el mapa completo se exporta e importa.
-- Bitácora: el cronograma del estudio se arma por fases dentro de la app, y un centro de avisos reúne las alertas sin interrumpir el trabajo.
-- Navegación: toda vista tiene dirección propia y se comparte. Cada pantalla, panel y pestaña queda descrita en la barra de direcciones, así que un enlace lleva exactamente a donde estabas. Al abrir un proyecto aterrizas en su propio inicio, nunca en una pantalla heredada de otro estudio.
-- Monitoreo territorial: declaras a mano qué columna de tu base corresponde a cada variable, en la primera pestaña de UMPs. Antes se adivinaba sola y podía errar en silencio, eligiendo una columna vacía o una parecida pero distinta, con cifras creíbles y equivocadas como resultado. Cada variable muestra ahora su porcentaje de datos y un ejemplo real.
-- Monitoreo: las fuentes se ordenan por la pregunta que responden (qué se recoge, con qué actores y por dónde entra) y no por el servicio técnico de origen. El ritmo diario muestra en qué terminó cada llamada, el embudo se lee en Avance y un caso completo que no cruza aparece primero, porque es lo que hay que rescatar.
-- Recopiladores: módulo nuevo para preparar la salida a campo, con plan de recolección, accesos, materiales, entrega y ficha de encuestador con código QR.
-- Cálculo de muestra: el Marco separa el total de elegibles del promedio por curso-horario y nombra cada cifra por lo que es. Antes podían leerse como conteo de personas.
-- Rendimiento: la app abre más rápido, porque las comprobaciones de arranque y los proyectos recientes se resuelven en paralelo. Monitoreo conserva sus reportes dentro del proyecto en vez de recalcularlos y cancela las consultas al cambiar de pantalla. Importar desde SurveyMonkey o Kobo ya no congela la interfaz.
-- Legibilidad: los nombres de distrito, responsable y base dejan de recortarse. El texto de Monitoreo telefónico recupera sus tildes, las barras de insistencia vuelven a sumar 100%, un avance sin meta declarada deja de mostrarse como 0% y los errores de Kobo que puedes resolver tú se explican como tales.
+- Monitoreo telefónico: una hoja de barrido que trae varios actores en una sola columna vuelve a repartir el universo entre ellos. Antes no atribuía las filas a ninguno y los dos actores quedaban en universo 0.
+- Monitoreo telefónico: el botón Avance vuelve a leer las hojas de Google. Se caían del refresco, así que el barrido quedaba sin actualizar y el estudio entero se mostraba sin base, con universo 0 y brechas «S/M», igual que uno recién conectado.
+- Monitoreo telefónico: las metas de cuota se escriben completas y se confirman al final. Cada tecla guardaba y recalculaba, de modo que teclear «80» dejaba sedimentado el «8» del camino y borrar el campo lo devolvía a 0. Ahora los cambios se acumulan en un borrador, una franja dice cuántos esperan confirmación, y el recálculo ocurre una sola vez. Descartar vuelve a lo guardado.
+- Monitoreo telefónico: el equipo se cuenta por personas y no por asignaciones, tanto en los estados por encuestador como en las tarjetas de producción. Quien cubría dos componentes aparecía dos veces, así que un equipo de cuatro se reportaba como ocho y una carga pareja de 46, 46, 45 y 46 se leía como 40 y 6. Los porcentajes se recalculan sobre los totales de cada persona, no se promedian entre sus filas.
+- Fuentes: el catálogo de formularios de Kobo consulta el servidor de la cuenta conectada. Con una cuenta en servidor propio el token viajaba al servidor público y volvía un error de credenciales, cuando lo que estaba mal era la dirección.
+
+Los instalables no están firmados: Windows mostrará el aviso de SmartScreen y
+macOS pedirá abrir desde el menú contextual la primera vez. En macOS la
+actualización es manual, descargando el DMG; en Windows el actualizador
+automático sigue funcionando.

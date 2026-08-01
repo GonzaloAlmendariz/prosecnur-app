@@ -137,7 +137,15 @@ function actorVisible(value: string) {
  * diagnostica la base, hacia el lado diagnostica al equipo.
  */
 export function buildTelefonicoStatusMatrix(rows: Array<Record<string, unknown>>): TelefonicoStatusMatrix {
-  const porResponsable = new Map<string, { responsable: string; actor: string; estados: Map<string, number> }>();
+  // La clave es la PERSONA, no el par actor × persona. Agrupar por el par
+  // partía a cada encuestador en una fila por componente sin decirlo en ningún
+  // lado: la tabla solo pinta el responsable, así que los cuatro del PDM
+  // Medios de Vida aparecían ocho veces. Peor, las filas del componente chico
+  // (6–7 casos) caían bajo el mínimo de comparación y se rotulaban «poco
+  // volumen», como si fueran gente con poca carga, cuando la carga real es
+  // pareja —46, 45, 46, 46— y así la muestra la tabla dinámica del propio
+  // estudio. Esta tabla mide personas; el corte por actor vive en Cuotas.
+  const porResponsable = new Map<string, { responsable: string; actores: Set<string>; estados: Map<string, number> }>();
   const totalesEstado = new Map<string, number>();
 
   rows.forEach((row) => {
@@ -148,12 +156,13 @@ export function buildTelefonicoStatusMatrix(rows: Array<Record<string, unknown>>
     const casos = pickNumber(row, ["Casos", "Total", "Valor"], 0);
     if (!(casos > 0)) return;
     const actor = actorVisible(pickText(row, ["Actor", "Unidad", "Segmento"], ""));
-    const key = `${norm(actor)}${norm(responsable)}`;
+    const key = norm(responsable);
     let entry = porResponsable.get(key);
     if (!entry) {
-      entry = { responsable, actor, estados: new Map() };
+      entry = { responsable, actores: new Set(), estados: new Map() };
       porResponsable.set(key, entry);
     }
+    if (actor) entry.actores.add(actor);
     entry.estados.set(estado, (entry.estados.get(estado) ?? 0) + casos);
     totalesEstado.set(estado, (totalesEstado.get(estado) ?? 0) + casos);
   });
@@ -186,7 +195,10 @@ export function buildTelefonicoStatusMatrix(rows: Array<Record<string, unknown>>
     .map((entry) => ({
       key: entry.key,
       responsable: entry.responsable,
-      actor: entry.actor,
+      // El actor solo etiqueta cuando es el único de esa persona. Quien cubre
+      // varios componentes no pertenece a ninguno, y elegir el primero sería
+      // afirmar algo falso sobre su carga.
+      actor: entry.actores.size === 1 ? [...entry.actores][0] : "",
       total: entry.total,
       celdas: estados.map((estado) => {
         const casos = entry.estados.get(estado) ?? 0;

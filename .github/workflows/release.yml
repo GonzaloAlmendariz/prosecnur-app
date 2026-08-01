@@ -7,7 +7,9 @@
 #
 # push de tag vX.Y.Z:
 #   stable; valida identidad/monotonicidad, ejecuta Quality y exige que Windows
-#   y macOS, incluidos sus gates de firma, terminen antes de publicar.
+#   y macOS terminen antes de publicar. Sin firma de distribución: el ADR 0056
+#   la retiró porque el repositorio no tiene certificados y exigirla dejaba el
+#   canal inalcanzable. Windows publica su updater; macOS va por DMG a mano.
 # =============================================================================
 name: Release
 
@@ -56,17 +58,58 @@ jobs:
         if: github.event_name == 'push'
         run: node scripts/release-contract.mjs stable --tag "${{ github.ref_name }}"
 
+  # Reusa un Quality ya verde del MISMO commit en vez de repetirlo. El SHA fija
+  # el arbol entero, incluida la definicion de quality.yml, asi que un run
+  # exitoso sobre ese commit no puede diferir del que correriamos ahora. Este
+  # job existia antes de 32aa1ec5 y su retiro llevo el release de ~9 a ~31+ min,
+  # porque el flujo normal (pushear main, esperar Quality verde, taggear ese
+  # mismo commit) paga el gate dos veces.
+  precheck:
+    name: ¿Quality ya pasó para este SHA?
+    needs: contract
+    runs-on: ubuntu-24.04
+    outputs:
+      skip_gate: ${{ steps.check.outputs.skip_gate }}
+    steps:
+      - name: Buscar Quality exitoso del mismo commit
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ok=$(gh api "repos/${{ github.repository }}/actions/workflows/quality.yml/runs?head_sha=${{ github.sha }}&status=completed&per_page=20" \
+            --jq '[.workflow_runs[] | select(.conclusion=="success")] | length' 2>/dev/null || echo 0)
+          if [ "${ok:-0}" -gt 0 ]; then
+            echo "skip_gate=true" >> "$GITHUB_OUTPUT"
+            echo "[precheck] Quality ya pasó para ${{ github.sha }}; se reusa ese verde."
+          else
+            echo "skip_gate=false" >> "$GITHUB_OUTPUT"
+            echo "[precheck] Sin Quality exitoso previo para este SHA; el gate corre completo."
+          fi
+
   quality:
     name: Quality gate
-    needs: contract
+    needs: precheck
+    if: needs.precheck.outputs.skip_gate != 'true'
     uses: ./.github/workflows/quality.yml
 
   # El bundle Windows se arma en Linux: no contiene módulos nativos propios y
   # NSIS resulta más estable aquí. Stable agrega una verificación Authenticode
   # separada; el workflow no crea ni presupone secretos de firma.
+  # El build sigue detras del gate a proposito. Desengancharlo para ganar
+  # paralelismo dejaria a `internal-preview` sin gate real: ahi no hay job
+  # `publish` que verifique Quality, asi que un Quality rojo produciria y subiria
+  # los artefactos de preview, que son justamente los que el ADR 0056 manda
+  # adjuntar a mano. Con `precheck` el paralelismo tampoco haria falta: en el
+  # flujo normal Quality queda SKIPPED y el build arranca igual de inmediato.
   build-windows:
     name: Build Windows
-    needs: quality
+    needs: [precheck, quality]
+    if: >-
+      always()
+      && needs.precheck.result == 'success'
+      && (needs.quality.result == 'success'
+          || (needs.precheck.outputs.skip_gate == 'true'
+              && needs.quality.result == 'skipped'))
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -94,7 +137,6 @@ jobs:
             imagemagick \
             librsvg2-bin \
             nsis \
-            osslsigncode \
             rsync \
             unzip
 
@@ -147,9 +189,11 @@ jobs:
             exit 1
           fi
 
-      - name: Verify Windows stable signature
-        if: github.event_name == 'push'
-        run: osslsigncode verify -in dist.nosync/Prosecnur-Setup.exe
+      # Sin firma Authenticode (ADR 0056): el repositorio no tiene certificado
+      # de distribucion y exigirlo dejaba `stable` inalcanzable. SmartScreen
+      # advertira al instalar, igual que en las diecinueve releases previas a
+      # 32aa1ec5. La integridad del ZIP y la version canonica si se verifican
+      # arriba, porque no dependen de un certificado.
 
       - name: Remove updater metadata from Windows internal preview
         if: github.event_name == 'workflow_dispatch'
@@ -183,7 +227,13 @@ jobs:
 
   build-mac:
     name: Build macOS (arm64 + x64)
-    needs: quality
+    needs: [precheck, quality]
+    if: >-
+      always()
+      && needs.precheck.result == 'success'
+      && (needs.quality.result == 'success'
+          || (needs.precheck.outputs.skip_gate == 'true'
+              && needs.quality.result == 'skipped'))
     runs-on: macos-26
     steps:
       - name: Checkout
@@ -247,55 +297,13 @@ jobs:
             hdiutil verify "$dmg"
           done
 
-      - name: Verify macOS stable updater payloads and signatures
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          output="dist.nosync/mac-builder-output"
-          manifest="$output/latest-mac.yml"
-          zips=("$output"/*.zip)
-
-          if [ "${#zips[@]}" -ne 2 ]; then
-            echo "::error::Stable exige exactamente dos ZIP macOS (arm64 y x64)"
-            exit 1
-          fi
-          if [ ! -s "$output"/*-arm64.zip ] || [ ! -s "$output"/*-x64.zip ]; then
-            echo "::error::Falta un ZIP macOS para arm64 o x64"
-            exit 1
-          fi
-          test -s "$manifest"
-
-          for zip in "${zips[@]}"; do
-            basename="$(basename "$zip")"
-            extract_dir="${RUNNER_TEMP}/${basename%.zip}"
-
-            unzip -tq "$zip"
-            if ! grep -F "$basename" "$manifest" > /dev/null; then
-              echo "::error::$manifest no referencia $basename"
-              exit 1
-            fi
-            if [ ! -s "$zip.blockmap" ]; then
-              echo "::error::Falta el blockmap de $basename"
-              exit 1
-            fi
-
-            mkdir -p "$extract_dir"
-            ditto -x -k "$zip" "$extract_dir"
-            apps=("$extract_dir"/*.app)
-            if [ "${#apps[@]}" -ne 1 ]; then
-              echo "::error::$basename no contiene exactamente una app"
-              exit 1
-            fi
-
-            codesign --verify --deep --strict --verbose=2 "${apps[0]}"
-            signature="$(codesign -dv --verbose=4 "${apps[0]}" 2>&1)"
-            if [[ "$signature" != *"Authority=Developer ID Application:"* ]]; then
-              echo "::error::La app dentro de $basename no tiene firma Developer ID Application"
-              exit 1
-            fi
-          done
+      # Sin firma Developer ID ni payloads de updater en macOS (ADR 0056).
+      # `mac.target` emite solo DMG, de modo que exigir dos ZIP, su manifest y
+      # sus blockmaps dejaba `stable` inalcanzable por construccion, no por un
+      # defecto del build. macOS se distribuye por DMG y se actualiza a mano;
+      # Windows conserva su `latest.yml` y su updater. La integridad de los dos
+      # DMG la verifica el paso anterior con `hdiutil verify`, que no depende
+      # de ningun certificado.
 
       - name: Remove updater payloads from macOS internal preview
         if: github.event_name == 'workflow_dispatch'
@@ -329,14 +337,29 @@ jobs:
           if-no-files-found: error
           path: |
             dist.nosync/mac-builder-output/*.dmg
-            dist.nosync/mac-builder-output/*.zip
-            dist.nosync/mac-builder-output/latest-mac.yml
-            dist.nosync/mac-builder-output/*.blockmap
 
   publish:
     name: Publish stable GitHub Release
-    needs: [contract, quality, build-windows, build-mac]
-    if: github.event_name == 'push'
+    needs: [contract, precheck, quality, build-windows, build-mac]
+    # `always()` es obligatorio porque `quality` puede quedar SKIPPED cuando
+    # precheck reusa un verde previo, y un `needs` saltado saltaria tambien a
+    # este job. La condicion no se relaja por eso: cada dependencia bloqueante se
+    # exige 'success' de forma explicita, y a `quality` se le acepta 'skipped'
+    # solo si precheck declaro haber encontrado ese verde sobre el mismo SHA.
+    #
+    # `build-mac` figura en `needs` para esperarlo, pero NO se le exige exito:
+    # Windows es el artefacto bloqueante y el DMG de macOS es best-effort, sin
+    # code-signing. Un runner de macOS caido no puede dejar sin release a los
+    # usuarios de Windows, que son la mayoria.
+    if: >-
+      always()
+      && github.event_name == 'push'
+      && needs.contract.result == 'success'
+      && needs.precheck.result == 'success'
+      && needs['build-windows'].result == 'success'
+      && (needs.quality.result == 'success'
+          || (needs.precheck.outputs.skip_gate == 'true'
+              && needs.quality.result == 'skipped'))
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -351,7 +374,12 @@ jobs:
           name: stable-windows
           path: artifacts/windows
 
-      - name: Download macOS stable payload
+      # Solo se descarga si el build de macOS termino bien: si fallo, su
+      # artefacto no existe y la descarga romperia el release de Windows. Se
+      # expresa condicionando por el resultado del job, no tolerando el error del
+      # paso, que enmascararia tambien fallos de red o de permisos.
+      - name: Download macOS stable payload (best-effort)
+        if: needs['build-mac'].result == 'success'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: stable-macos
@@ -366,17 +394,37 @@ jobs:
           test -s artifacts/windows/Prosecnur-Setup.exe
           test -s artifacts/windows/Prosecnur-Windows-self-contained.zip
           test -s artifacts/windows/latest.yml
-          test -s artifacts/mac/latest-mac.yml
 
+          # Windows es bloqueante y sus tres archivos se exigen arriba. macOS es
+          # best-effort (ADR 0056): publica DMG, no participa del updater y su
+          # ausencia no detiene el release. Se avisa, que no es lo mismo que
+          # callarlo, pero no se falla.
           dmgs=(artifacts/mac/*.dmg)
-          zips=(artifacts/mac/*.zip)
-          blockmaps=(artifacts/mac/*.blockmap)
-          if [ "${#dmgs[@]}" -ne 2 ] ||
-             [ "${#zips[@]}" -ne 2 ] ||
-             [ "${#blockmaps[@]}" -lt 2 ]; then
-            echo "::error::El payload stable de macOS está incompleto"
-            exit 1
+          if [ "${#dmgs[@]}" -eq 2 ]; then
+            echo "macOS: dos DMG presentes; se adjuntan al release."
+          else
+            echo "::warning::Release sin los dos DMG de macOS (${#dmgs[@]} presentes). Se publica solo Windows."
           fi
+
+      # La lista se compone aqui para conservar `fail_on_unmatched_files: true`
+      # sin volver obligatorio el DMG: los tres archivos de Windows se listan
+      # siempre, y los de macOS solo si existen. Con la bandera en `false` un
+      # error de nombre en el lado Windows publicaria un release vacio en
+      # silencio, que es precisamente lo que no queremos tolerar.
+      - name: Compose release asset list
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          {
+            echo "files<<PROSECNUR_EOF"
+            echo "artifacts/windows/Prosecnur-Setup.exe"
+            echo "artifacts/windows/Prosecnur-Windows-self-contained.zip"
+            echo "artifacts/windows/latest.yml"
+            for dmg in artifacts/mac/*.dmg; do echo "$dmg"; done
+            echo "PROSECNUR_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
@@ -385,11 +433,4 @@ jobs:
           name: Prosecnur ${{ github.ref_name }}
           body_path: .github/RELEASE_NOTES.md
           fail_on_unmatched_files: true
-          files: |
-            artifacts/windows/Prosecnur-Setup.exe
-            artifacts/windows/Prosecnur-Windows-self-contained.zip
-            artifacts/windows/latest.yml
-            artifacts/mac/*.dmg
-            artifacts/mac/*.zip
-            artifacts/mac/latest-mac.yml
-            artifacts/mac/*.blockmap
+          files: ${{ steps.assets.outputs.files }}

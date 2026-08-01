@@ -86,7 +86,7 @@ test('preview acepta las cuatro superficies operativas y advierte notas GitHub d
 
   assert.equal(result.ok, true)
   assert.equal(result.currentVersion, '0.5.19')
-  // v3.4.2 es legacy (ADR 0053): sigue existiendo como tag, pero no cuenta
+  // v3.4.2 es legacy (ADR 0056): sigue existiendo como tag, pero no cuenta
   // para monotonicidad, así que el máximo comparable es la serie vigente.
   assert.equal(result.maxTag, 'v0.5.19')
   assert.equal(result.recommendedVersion, '1.0.0')
@@ -96,7 +96,7 @@ test('preview acepta las cuatro superficies operativas y advierte notas GitHub d
   assert.match(result.warnings.find(({ code }) => code === 'GITHUB_NOTES_MISMATCH').message, /0\.5\.16/)
 })
 
-test('la exclusión legacy no tapa un tag ajeno a la lista del ADR 0053', (t) => {
+test('la exclusión legacy no tapa un tag ajeno a la lista del ADR 0056', (t) => {
   // Falsabilidad de la exclusión: un 4.1.0 que NO está en LEGACY_RELEASE_TAGS
   // debe seguir bloqueando el corte. Si esta prueba pasara a verde, la
   // exclusión habría dejado de ser una lista cerrada y estaría filtrando por
@@ -182,7 +182,7 @@ test('prepare diagnostica notas desfasadas, versión no monótona y tag ocupado'
   assert.ok(codes(result.errors).includes('GITHUB_NOTES_MISMATCH'))
   assert.ok(codes(result.errors).includes('CURRENT_NOT_ABOVE_TAGS'))
   assert.ok(codes(result.errors).includes('TARGET_TAG_EXISTS'))
-  // Se recomienda sobre la serie vigente, no sobre el legacy 3.x (ADR 0053).
+  // Se recomienda sobre la serie vigente, no sobre el legacy 3.x (ADR 0056).
   assert.equal(result.recommendedVersion, '1.0.0')
 })
 
@@ -204,7 +204,7 @@ test('stable pasa cuando las cinco superficies coinciden y el tag máximo propio
 })
 
 test('stable excluye su propio tag, pero exige superar todos los demás', (t) => {
-  // La versión anterior de esta prueba usaba v3.4.1 y v3.4.2, que el ADR 0053
+  // La versión anterior de esta prueba usaba v3.4.1 y v3.4.2, que el ADR 0056
   // volvió legacy: al quedar ambos fuera de la comparación no había nada que
   // superar y la prueba pasaba por vacío. Se rehace sobre la serie vigente,
   // que es donde la monotonicidad sigue siendo estricta.
@@ -339,9 +339,68 @@ test('el workflow separa preview interno de publicación stable y falla cerrado'
   assert.doesNotMatch(macPreview, /latest-mac\.yml|\.blockmap|\.zip/)
   assert.doesNotMatch(workflow, /continue-on-error/)
   assert.equal((workflow.match(/contents:\s*write/g) ?? []).length, 1)
-  assert.match(workflow, /osslsigncode verify/)
-  assert.match(workflow, /codesign --verify --deep --strict/)
-  assert.match(workflow, /Stable exige exactamente dos ZIP macOS/)
-  assert.match(workflow, /needs: \[contract, quality, build-windows, build-mac\]/)
+  // El ADR 0056 retira la firma de distribucion y los payloads de updater de
+  // macOS: exigirlos dejaba `stable` inalcanzable por construccion, no por un
+  // defecto del build. Se afirma su AUSENCIA, y no solo se borra la afirmacion
+  // contraria, para que reintroducirlos sin certificados vuelva a romper aqui
+  // en vez de romper a los veinte minutos dentro del runner de macOS.
+  assert.doesNotMatch(workflow, /osslsigncode/)
+  assert.doesNotMatch(workflow, /codesign --verify/)
+  assert.doesNotMatch(workflow, /Authority=Developer ID Application/)
+  assert.match(workflow, /ADR 0056/)
+  // macOS ausente avisa pero no falla: es best-effort. Se exige que AVISE, para
+  // que un release sin DMG no pase inadvertido en el log.
+  assert.match(workflow, /::warning::Release sin los dos DMG de macOS/)
+  assert.doesNotMatch(workflow, /artifacts\/mac\/latest-mac\.yml/)
+  assert.match(workflow, /needs: \[contract, precheck, quality, build-windows, build-mac\]/)
   assert.match(workflow, /fail_on_unmatched_files:\s*true/)
+})
+
+test('precheck reusa Quality del mismo SHA sin abrir un canal sin gate', () => {
+  const workflow = fs.readFileSync(
+    new URL('../../.github/workflows/release.yml', import.meta.url),
+    'utf8'
+  )
+  const jobOf = (name) =>
+    workflow.match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [a-z-]+:\\n)`, 'm'))?.[1] ?? ''
+
+  // El reuso se hace por SHA exacto: el arbol, incluida la definicion de
+  // quality.yml, queda fijado por el commit, asi que un verde de ese SHA no
+  // puede diferir del run que se omite. Reusar por branch o por tag no valdria.
+  assert.match(jobOf('precheck'), /head_sha=\$\{\{ github\.sha \}\}/)
+  assert.match(jobOf('precheck'), /conclusion=="success"/)
+  assert.match(jobOf('quality'), /if: needs\.precheck\.outputs\.skip_gate != 'true'/)
+
+  // Los dos builds SIGUEN detras del gate. Desengancharlos para ganar
+  // paralelismo dejaria `internal-preview` sin verificacion alguna: ahi no
+  // corre `publish`, que es el unico job que comprueba Quality, y los
+  // artefactos de un gate rojo son los que el ADR 0056 manda adjuntar a mano.
+  for (const job of ['build-windows', 'build-mac']) {
+    const body = jobOf(job)
+    assert.match(body, /needs: \[precheck, quality\]/)
+    // Solo se acepta un Quality saltado cuando precheck declaro el verde previo.
+    assert.match(body, /needs\.quality\.result == 'success'/)
+    assert.match(body, /skip_gate == 'true'\n\s*&& needs\.quality\.result == 'skipped'/)
+  }
+
+  // Windows es el artefacto BLOQUEANTE; el DMG de macOS es best-effort y no
+  // tiene code-signing. Exigir exito en macOS para publicar dejaria sin release
+  // a la mayoria de usuarios por un runner caido, asi que la asimetria es
+  // deliberada y se afirma en las dos direcciones.
+  const publish = workflow.slice(workflow.indexOf('\n  publish:'))
+  assert.match(publish, /needs\['build-windows'\]\.result == 'success'/)
+  assert.doesNotMatch(publish, /needs\['build-mac'\]\.result == 'success'\n\s*&&/)
+  // macOS se espera (esta en needs) pero solo se descarga si construyo bien.
+  assert.match(publish, /needs: \[contract, precheck, quality, build-windows, build-mac\]/)
+  assert.match(publish, /if: needs\['build-mac'\]\.result == 'success'/)
+  // La garantia de Windows no se afloja: sus tres archivos se exigen con
+  // `test -s`, y la lista compuesta conserva fail_on_unmatched_files en true.
+  for (const asset of [
+    'Prosecnur-Setup\\.exe',
+    'Prosecnur-Windows-self-contained\\.zip',
+    'latest\\.yml'
+  ]) {
+    assert.match(publish, new RegExp(`test -s artifacts/windows/${asset}`))
+  }
+  assert.match(publish, /fail_on_unmatched_files:\s*true/)
 })

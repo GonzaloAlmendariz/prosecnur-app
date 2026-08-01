@@ -988,6 +988,12 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
+  /* Las dos columnas comparten alto y cada una hace su propio scroll. Sin la
+   * fila acotada, la más larga estiraba la sección entera y la otra quedaba
+   * con un vacío del alto de la diferencia: con listas por responsable de
+   * distinto largo, una columna doblaba a la otra. */
+  grid-auto-rows: minmax(0, 1fr);
+  align-items: stretch;
   gap: 10px;
   overflow: hidden;
 }
