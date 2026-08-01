@@ -28,12 +28,12 @@ import {
   ClassroomEmptyState,
   ClassroomLabCommandBar,
   ClassroomRecommendation,
-  ClassroomRiskList,
   classroomMethodLabel,
   classroomMethodReason,
   classroomScore,
   type ClassroomLabModel,
 } from "./aulasParts";
+import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
@@ -223,7 +223,7 @@ export function AulasMetodoTab({
     });
   }
 
-  const hayComparacion = Boolean(comparison && comparisonMethods.length);
+  const hayComparacion = model.comparisonReady && Boolean(comparison && comparisonMethods.length);
 
   return (
     <div className="cmv2-aulas-stack">
@@ -245,7 +245,9 @@ export function AulasMetodoTab({
           <div className="cmv2-classroom-method-grid cmv2-uni-stagger">
             {["sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"].map((methodId) => {
               const option = UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((item) => item.id === methodId);
-              const compared = comparisonMethods.find((method) => method.method_id === methodId);
+              const compared = hayComparacion
+                ? comparisonMethods.find((method) => method.method_id === methodId)
+                : undefined;
               const active = String(config.selector_engine) === methodId;
               const recomendado = hayComparacion && methodId === recommendedMethodId;
               const label = option?.label ?? classroomMethodLabel(methodId);
@@ -297,7 +299,7 @@ export function AulasMetodoTab({
                         type="button"
                         className={recomendado ? "cmv2-primary" : "cmv2-ghost"}
                         onClick={() => void onSelectMethod(config, methodId)}
-                        disabled={Boolean(busy)}
+                        disabled={Boolean(busy) || !model.comparisonReady}
                       >
                         Usar método
                       </button>
@@ -331,7 +333,7 @@ export function AulasMetodoTab({
         </div>
         <aside className="cmv2-classroom-lab-side">
           <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
-          <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
+          <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady} />
           <AvisoModulo tone="neutral" icon={BarChart3}>
             El PPS queda como base auditable. El método balanceado es el recomendado cuando hay variables
             auxiliares; el pool controlado reduce estudiantes repetidos pero obliga a estimar probabilidades

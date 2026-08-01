@@ -12,20 +12,34 @@ const estudioConResultado = {
   titulo: "Estudio mínimo",
   componentes: [
     {
-      actor_id: "universidad_total",
+      actor_id: "estudiantes_universidad",
       marco: {
         marco_validado: 0,
         estratos: [],
       },
       resultado: {
         n_objetivo: 120,
+        aulas_base_total: 13,
       },
+    },
+    {
+      actor_id: "estudiantes_facultad",
+      marco: { marco_validado: 0, estratos: [] },
+      resultado: { n_objetivo: 180, aulas_base_total: 20 },
     },
   ],
 } as unknown as CalcMuestraEstudio;
 
 const workspaceSinPublicacion = {
   version: 2,
+  aulas_config: { n_aulas: 13 },
+  motor_recorrido: {
+    schema: "calc_muestra_workspace_motor_v1",
+    fuente: "proyecto",
+    perfil: null,
+    decisiones: { escenario: "e1" },
+    tocado: true,
+  },
 } as unknown as CalcMuestraWorkspace;
 
 describe("universitySidebarTabs — Salida", () => {

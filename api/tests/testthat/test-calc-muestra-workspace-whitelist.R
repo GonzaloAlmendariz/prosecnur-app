@@ -103,6 +103,29 @@ test_that("ausencia de los campos de reemplazos aplica los defaults del TS (= mo
   expect_equal(cfg_vacia$replacement_equivalence_vars, list())
 })
 
+test_that("n_aulas explicito sobrevive dos round-trips sin inventarse en legacy", {
+  ws_1 <- .ws_roundtrip(list(
+    frame_mode = "acreditacion",
+    aulas_config = list(n_aulas = 47L)
+  ))
+  ws_2 <- .ws_roundtrip(ws_1)
+
+  expect_identical(ws_1$aulas_config$n_aulas, 47L)
+  expect_identical(ws_2$aulas_config$n_aulas, 47L)
+
+  cfg <- calc_muestra_aulas_normalize_config(ws_2$aulas_config)
+  expect_identical(cfg$selector$n_aulas, 47L)
+
+  legacy <- .ws_roundtrip(list(frame_mode = "legacy"))
+  expect_false("n_aulas" %in% names(legacy$aulas_config))
+
+  invalido <- .ws_roundtrip(list(aulas_config = list(n_aulas = 0L)))
+  expect_false("n_aulas" %in% names(invalido$aulas_config))
+
+  alias <- .ws_roundtrip(list(aulas_config = list(aulas_titulares = 31L)))
+  expect_identical(alias$aulas_config$n_aulas, 31L)
+})
+
 test_that("binding referencia_asistencia sobrevive dos round-trips sin contaminar aulas", {
   esperado <- list(
     id = "src-referencia-asistencia",

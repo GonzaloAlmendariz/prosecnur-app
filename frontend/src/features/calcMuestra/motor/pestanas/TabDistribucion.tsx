@@ -12,12 +12,26 @@ import { BarrasDistribucion } from "../componentes/BarrasDistribucion";
 import { BarrasFacultad } from "../componentes/BarrasFacultad";
 import { useMotorStore } from "../../store";
 
+export function planCursosHorarioPublicable({
+  confirmado,
+  marcoDesactualizado,
+  final,
+}: {
+  confirmado: boolean;
+  marcoDesactualizado: boolean;
+  final: Record<string, number>;
+}) {
+  return confirmado && !marcoDesactualizado ? final : null;
+}
+
 export function TabDistribucion({
   perfil,
   e1,
+  marcoDesactualizado = false,
 }: {
   perfil: PerfilInstitucional;
   e1: ResultadoEscenario1;
+  marcoDesactualizado?: boolean;
 }) {
   // Plan definitivo de cursos-horario por facultad (§5.3): cuando el usuario lo
   // confirma, este gráfico deja de estimar y muestra las cifras acordadas.
@@ -34,7 +48,11 @@ export function TabDistribucion({
     );
   }
 
-  const definitivos = cursosHorarioConfirmado ? cursosHorarioFinal : null;
+  const definitivos = planCursosHorarioPublicable({
+    confirmado: cursosHorarioConfirmado,
+    marcoDesactualizado,
+    final: cursosHorarioFinal,
+  });
   const finalPorFacultad = (nombre: string): number | null => {
     if (!definitivos) return null;
     if (definitivos[nombre] != null) return definitivos[nombre];

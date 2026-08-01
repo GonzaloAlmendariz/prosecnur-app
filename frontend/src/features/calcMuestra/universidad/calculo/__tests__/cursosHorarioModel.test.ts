@@ -4,6 +4,7 @@ import {
   construirCursosHorarioModelo,
   cursosHorarioFinalMap,
   cursosHorarioNecesarios,
+  estadoConfirmacionCursosHorario,
   li95EsFiable,
   type CursosHorarioEntradaFacultad,
 } from "../cursosHorarioModel";
@@ -31,6 +32,29 @@ describe("cursosHorarioNecesarios", () => {
   it("null sin divisor y 0 sin sobremuestra", () => {
     expect(cursosHorarioNecesarios(100, null)).toBeNull();
     expect(cursosHorarioNecesarios(0, 30)).toBe(0);
+  });
+});
+
+describe("estadoConfirmacionCursosHorario", () => {
+  const base = {
+    confirmado: true,
+    marcoDesactualizado: false,
+    completo: true,
+    actual: { Derecho: 4, Ciencias: 6 },
+    guardado: { Derecho: 4, Ciencias: 6 },
+  };
+
+  it("solo acredita un plan idéntico, completo y sobre marco vigente", () => {
+    expect(estadoConfirmacionCursosHorario(base)).toEqual({ vigente: true, puedeConfirmar: false });
+    expect(estadoConfirmacionCursosHorario({ ...base, marcoDesactualizado: true }))
+      .toEqual({ vigente: false, puedeConfirmar: false });
+    expect(estadoConfirmacionCursosHorario({ ...base, completo: false }))
+      .toEqual({ vigente: false, puedeConfirmar: false });
+  });
+
+  it("permite reconfirmar un cálculo distinto solo si está fresco y completo", () => {
+    expect(estadoConfirmacionCursosHorario({ ...base, actual: { Derecho: 5, Ciencias: 6 } }))
+      .toEqual({ vigente: false, puedeConfirmar: true });
   });
 });
 

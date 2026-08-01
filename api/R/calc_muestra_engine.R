@@ -474,7 +474,7 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
   # Fuente única de los defaults de patrones de exclusión: el propio motor de
   # aulas (no se duplican literales aquí).
   filtros_default <- calc_muestra_aulas_default_config()$filters
-  list(
+  out <- list(
     schema = calc_str(cfg$schema, "calc_muestra_workspace_aulas_v1"),
     modalidad = calc_enum(cfg$modalidad, modalidad_values, "presencial_aula"),
     selector = calc_enum(cfg$selector, selector_values, "cube_balanceado"),
@@ -608,6 +608,14 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     ),
     notas_metodologicas = calc_str(cfg$notas_metodologicas, "")
   )
+  n_aulas <- calc_int(
+    cfg$n_aulas %||% cfg$aulas_titulares,
+    NA_integer_,
+    min = 1L,
+    max = .Machine$integer.max
+  )
+  if (!is.na(n_aulas)) out$n_aulas <- n_aulas
+  out
 }
 
 .cm_normalize_workspace_variables <- function(vars) {

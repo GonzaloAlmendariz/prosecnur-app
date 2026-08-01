@@ -17,12 +17,12 @@ import { CifraFila, CifraMotor, FormulaLatex } from "../ui";
 import {
   ClassroomMethodSources,
   ClassroomOperationalHandoffPanel,
-  ClassroomRiskList,
   ProfileBalanceChart,
   classroomMethodLabel,
   classroomProbabilitySourceLabel,
   type ClassroomLabModel,
 } from "./aulasParts";
+import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
@@ -222,7 +222,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
           <ClassroomMethodSources selection={selection} comparison={comparison} />
         </div>
         <aside className="cmv2-classroom-lab-side">
-          <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
+          <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady} />
           <ProfileBalanceChart rows={topGaps} />
           <ClassroomOperationalHandoffPanel selection={selection} replacementSimulation={replacementSimulation} />
         </aside>
