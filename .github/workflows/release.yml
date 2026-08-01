@@ -7,7 +7,7 @@
 #
 # push de tag vX.Y.Z:
 #   stable; valida identidad/monotonicidad, ejecuta Quality y exige que Windows
-#   y macOS terminen antes de publicar. Sin firma de distribución: el ADR 0055
+#   y macOS terminen antes de publicar. Sin firma de distribución: el ADR 0056
 #   la retiró porque el repositorio no tiene certificados y exigirla dejaba el
 #   canal inalcanzable. Windows publica su updater; macOS va por DMG a mano.
 # =============================================================================
@@ -98,7 +98,7 @@ jobs:
   # El build sigue detras del gate a proposito. Desengancharlo para ganar
   # paralelismo dejaria a `internal-preview` sin gate real: ahi no hay job
   # `publish` que verifique Quality, asi que un Quality rojo produciria y subiria
-  # los artefactos de preview, que son justamente los que el ADR 0054 manda
+  # los artefactos de preview, que son justamente los que el ADR 0056 manda
   # adjuntar a mano. Con `precheck` el paralelismo tampoco haria falta: en el
   # flujo normal Quality queda SKIPPED y el build arranca igual de inmediato.
   build-windows:
@@ -189,7 +189,7 @@ jobs:
             exit 1
           fi
 
-      # Sin firma Authenticode (ADR 0055): el repositorio no tiene certificado
+      # Sin firma Authenticode (ADR 0056): el repositorio no tiene certificado
       # de distribucion y exigirlo dejaba `stable` inalcanzable. SmartScreen
       # advertira al instalar, igual que en las diecinueve releases previas a
       # 32aa1ec5. La integridad del ZIP y la version canonica si se verifican
@@ -297,7 +297,7 @@ jobs:
             hdiutil verify "$dmg"
           done
 
-      # Sin firma Developer ID ni payloads de updater en macOS (ADR 0055).
+      # Sin firma Developer ID ni payloads de updater en macOS (ADR 0056).
       # `mac.target` emite solo DMG, de modo que exigir dos ZIP, su manifest y
       # sus blockmaps dejaba `stable` inalcanzable por construccion, no por un
       # defecto del build. macOS se distribuye por DMG y se actualiza a mano;
@@ -396,7 +396,7 @@ jobs:
           test -s artifacts/windows/latest.yml
 
           # Windows es bloqueante y sus tres archivos se exigen arriba. macOS es
-          # best-effort (ADR 0055): publica DMG, no participa del updater y su
+          # best-effort (ADR 0056): publica DMG, no participa del updater y su
           # ausencia no detiene el release. Se avisa, que no es lo mismo que
           # callarlo, pero no se falla.
           dmgs=(artifacts/mac/*.dmg)

@@ -11,7 +11,7 @@ La fuente editable de versión es `api/DESCRIPTION`. El contrato
 `frontend/src/features/home/releaseNotes.ts`, `docs/versiones-app.md` y
 `.github/RELEASE_NOTES.md`.
 
-La línea de versionado del producto es la serie `0.x`. El ADR 0053 declaró los
+La línea de versionado del producto es la serie `0.x`. El ADR 0056 declaró los
 siete tags `v3.3.1`–`v3.4.2` deuda histórica cerrada y los excluye del cálculo
 de monotonicidad, así que el candidato **no** es `4.0.0`: basta con superar el
 máximo de la serie vigente. Ojo con `recomendada` en la salida del contrato,
@@ -20,7 +20,7 @@ no hagas el bump por inferencia ni para “probar” el workflow.
 
 ## 1. Precondiciones
 
-- Lee `docs/adrs/0048-identidad-version-y-canales-distribucion.md`,
+- Lee `docs/adrs/0056-como-se-publica-prosecnur.md`,
   `.github/workflows/release.yml` y `.github/workflows/quality.yml`.
 - Exige working tree limpio y una unidad cerrada. Conserva cambios ajenos y no
   incorpores artefactos de QA o build.
@@ -80,10 +80,11 @@ visual proporcional con proyecto de referencia.
 - Corre `stable --tag`, Quality y ambos builds sin tolerancias.
 - Exige integridad del instalador y del ZIP Windows, su `latest.yml`, y los dos
   DMG de macOS verificados con `hdiutil`.
-- Publica sólo después de todos los gates; un archivo, plataforma o manifest
-  ausente detiene el release.
+- Windows es el artefacto **bloqueante**; el DMG de macOS es best-effort y su
+  ausencia deja un warning, no un fallo. Un archivo de Windows ausente sí
+  detiene el release.
 
-El ADR 0055 retiró de este canal la firma de distribución y los payloads de
+El ADR 0056 retiró de este canal la firma de distribución y los payloads de
 updater de macOS: el repositorio no tiene certificados y `mac.target` sólo
 emite DMG, de modo que exigirlos dejaba `stable` inalcanzable. Los instalables
 salen sin firmar y macOS se actualiza a mano; Windows conserva su updater. No

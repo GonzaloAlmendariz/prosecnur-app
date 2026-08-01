@@ -10,7 +10,7 @@ const SEMVER = new RegExp(`^${SEMVER_SOURCE}$`)
 const RELEASE_TAG = new RegExp(`^v${SEMVER_SOURCE}$`)
 const MODES = new Set(['preview', 'prepare', 'stable'])
 
-// Serie 3.x: deuda histórica, no una serie de producto (ADR 0053). Entre junio
+// Serie 3.x: deuda histórica, no una serie de producto (ADR 0056). Entre junio
 // y julio de 2026 los cortes se nombraban «Corte 3.1» refiriéndose a la versión
 // 0.3.1, y en algún momento el número del corte pasó a ser el de versión: se
 // publicaron siete releases 3.3.1–3.4.2 y después se retomó la serie real en

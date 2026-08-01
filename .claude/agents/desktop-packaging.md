@@ -60,16 +60,18 @@ in-app, `docs/versiones-app.md` y `.github/RELEASE_NOTES.md`.
   excluye manifests, ZIP y blockmaps del updater. Nunca publica ni recibe
   `contents: write`.
 - **stable**: solo tag `vX.Y.Z` alineado, monótono y apuntando al commit
-  construido. Quality y ambas plataformas son bloqueantes. Windows exige
-  integridad del instalador/portable y su `latest.yml`; macOS exige los dos DMG
-  verificados con `hdiutil`. La publicación ocurre únicamente después de
-  validar el payload completo.
+  construido. Quality es bloqueante, y **Windows es el artefacto bloqueante**:
+  exige integridad del instalador/portable y su `latest.yml`. El DMG de macOS es
+  best-effort, se verifica con `hdiutil` cuando existe y su ausencia deja un
+  warning, no un fallo. Un runner de macOS caído no puede dejar sin release a
+  los usuarios de Windows, que son la mayoría.
 
-Stable es **fail-closed**: secreto, arquitectura, payload o runner ausente
-significa bloqueo, nunca éxito parcial ni tolerancia best-effort. No debilites
-el gate para acomodar el packaging actual.
+Stable es **fail-closed del lado de Windows**: secreto, payload o archivo de
+Windows ausente significa bloqueo, nunca éxito parcial. La asimetría con macOS
+es deliberada y está afirmada en el test de contrato; no la conviertas en
+simetría «por prolijidad».
 
-La firma de distribución dejó de ser un gate (ADR 0055): no hay certificados
+La firma de distribución dejó de ser un gate (ADR 0056): no hay certificados
 cargados y `mac.target` sólo emite DMG, de modo que exigir Authenticode,
 Developer ID o los payloads de updater de macOS dejaba el canal inalcanzable
 por construcción. Reintroducirlos exige cargar antes los certificados y añadir
