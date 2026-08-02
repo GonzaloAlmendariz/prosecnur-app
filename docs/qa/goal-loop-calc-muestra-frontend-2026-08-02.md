@@ -2746,6 +2746,43 @@ cursos-horario. «Benchmark» pasa a «punto de comparación».
 puede nacer en el motor, y un guard que sólo mira `frontend/src` da una falsa
 sensación de barrido completo.
 
+### F67 — El vocabulario del motor, con criterio y no con reemplazo masivo
+
+Ampliado el barrido a `api/R`, donde F66 descubrió que también nace copy de
+pantalla. Aquí la reparación **no podía ser un find-replace**, y esa es la parte
+que importa:
+
+| dónde dice «aulas» | qué significa | qué se hizo |
+|---|---|---|
+| «conglomerado (**aulas**, manzanas, EESS)» | **ejemplo** entre tipos de estudio | **se conserva** — cambiarlo sería incorrecto |
+| «Encuestar por **aulas** agrupa a estudiantes…» | la unidad de este módulo | → cursos-horario |
+| «conglomerados (**aulas**) sobre un marco conocido» | ídem, en el diseño universitario | → «(aquí, cursos-horario)» |
+| «**aulas** que rinden menos de lo previsto» | ídem | → cursos-horario |
+| «72 **aulas** × 25 estudiantes ≈ 1800 encuestas» | referencia operativa PUCP | → cursos-horario |
+
+Un reemplazo masivo habría convertido «conglomerado (aulas, manzanas, EESS)» en
+algo falso: ahí «aula» es un ejemplo de conglomerado junto a manzanas y
+establecimientos de salud, no la unidad de este módulo.
+
+**Verificación honesta**: el cambio está comprobado por fuente y por la suite —50
+archivos de test R, **0 fallos**—, pero **no es visible en la app**: el proceso R
+vivo conserva el código anterior (trampa conocida de la casa) y reiniciarlo
+costaría el instrumento sembrado. Se verá al próximo arranque.
+
+### Corrección: mi commit se llevó trabajo ajeno
+
+El commit de F66 incluyó `calc_muestra_comparacion_escenarios.R` (779 líneas) y
+un cambio en `calc_muestra_distribucion.R` que **estaban en el árbol antes de esta
+sesión y no son míos**: `git add -A api/R` los arrastró.
+
+Deshecho con `reset --soft` y recommit sólo de mis archivos; ambos vuelven a estar
+sin commitear, como estaban. Es exactamente el riesgo que la casa documenta
+—«otra sesión commiteó todo el working tree»— y esta vez el causante habría sido
+yo.
+
+**Regla para el resto del loop**: `git add` con rutas explícitas de los archivos
+que toqué, nunca `-A` sobre un directorio compartido.
+
 ### Estado del loop
 
 | | |

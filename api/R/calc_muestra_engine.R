@@ -819,7 +819,7 @@ calc_muestra_normalize_componente <- function(comp = list()) {
                                 promedio_conglomerado = 25, tau = 0.50),
         aulas_referencia = 72L,
         regla = "conglomerados_z195_p050_e25_deff20_si_aula_y_N_>=_3001",
-        justificacion = "Estudiantes con N ≥ 3001 y marco de cursos-horario: conglomerados multietápico con parámetros canónicos PUCP (95% confianza, ±2.5%, deff=2, p=0.5, sobremuestra 50%). Referencia operativa: 72 aulas × 25 estudiantes ≈ 1800 encuestas base."
+        justificacion = "Estudiantes con N ≥ 3001 y marco de cursos-horario: conglomerados multietápico con parámetros canónicos PUCP (95% confianza, ±2.5%, deff=2, p=0.5, sobremuestra 50%). Referencia operativa: 72 cursos-horario × 25 estudiantes ≈ 1800 encuestas base."
       ))
     }
     return(list(
@@ -2470,7 +2470,7 @@ calc_muestra_explicar <- function(input) {
     list(
       paso = "modelo",
       decision = "Fórmula clásica de proporción con corrección por población finita (FPC) y efecto de diseño (deff).",
-      motivo = "Es el estándar para encuestas por conglomerados (aulas) sobre un marco conocido de N unidades.",
+      motivo = "Es el estándar para encuestas por conglomerados (aquí, cursos-horario) sobre un marco conocido de N unidades.",
       fuente = "Compendio metodológico PULSO §2"
     ),
     list(
@@ -2493,7 +2493,7 @@ calc_muestra_explicar <- function(input) {
     list(
       paso = "deff",
       decision = sprintf("Efecto de diseño deff = %s (n pasa de %d a %d).", format(deff), n_bruto, n_teorico),
-      motivo = paste("Encuestar por aulas agrupa a estudiantes que se parecen entre sí;",
+      motivo = paste("Encuestar por cursos-horario agrupa a estudiantes que se parecen entre sí;",
                      "el deff compensa esa pérdida de información aumentando el n."),
       fuente = "Estudios de referencia en universidades peruanas (2024-2026)"
     ),
@@ -2517,7 +2517,7 @@ calc_muestra_explicar <- function(input) {
       paso = "sobremuestra",
       decision = sprintf("Sobremuestra de %.0f%% → +%d casos (operativo: %d).",
                          oversample_pct * 100, sobremuestra, n_operativo),
-      motivo = paste("Cubre ausencias, cuestionarios incompletos y aulas que rinden menos de lo",
+      motivo = paste("Cubre ausencias, cuestionarios incompletos y cursos-horario que rinden menos de lo",
                      "previsto sin sacrificar la precisión objetivo."),
       fuente = "Estudios de referencia en universidades peruanas (2024-2026)"
     )

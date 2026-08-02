@@ -285,6 +285,17 @@ sensación de barrido completo.
 lee**, nazca donde nazca. Al revisar vocabulario se incluye `api/R` en la
 búsqueda, distinguiendo copy de códigos de error y de valores de contrato.
 
+### 16 · El mismo término puede ser correcto en una frase e incorrecto en la de al lado
+
+Al unificar «aula» → «curso-horario» en el motor, cuatro frases debían cambiar y
+una no: «conglomerado (**aulas**, manzanas, EESS)» usa «aula» como **ejemplo** de
+conglomerado junto a manzanas y establecimientos de salud, no como la unidad de
+este módulo. Un find-replace la habría convertido en una frase falsa.
+
+**Mecanismo**: los barridos de vocabulario se revisan frase por frase. Un guard
+puede señalar candidatos; la sustitución es una decisión de significado y no se
+automatiza.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
