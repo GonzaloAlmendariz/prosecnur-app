@@ -1008,12 +1008,19 @@ completos — P1 `n=2.304 → 2.500 → 3.750`, 269 CH; P2 `n=4.934 → 4.934 �
 **S6 · Propuestas, auditada con dato:** 2,5 pantallas, 2 párrafos / 48 palabras,
 **0 desbordes**, los dos escenarios lado a lado y comparables. **Pasa la vara.**
 
-Hallazgo abierto en esa pantalla (F0): la cabecera publica **21.362** estudiantes
-elegibles y las fichas de la fórmula **21.365** — dos N para el mismo concepto en
-la misma pantalla. Queda encolado con su medición.
+**Un falso hallazgo, cazado a tiempo.** La cabecera publicaba 21.362 y las fichas
+de la fórmula 21.365: parecía una divergencia F0 del producto. No lo era — la N
+de la fórmula sale de `comp.marco.marco_validado`, que **yo no actualicé** al
+reconstruir los estratos. Artefacto de la reparación del instrumento, no defecto
+de la superficie; corregido alineando `marco_validado` con la suma de estratos
+(21.365 → 21.362) en ambos componentes.
 
-Siguiente: **F16** — reconciliar el N de la fórmula con el de la cabecera, y
-seguir por S7 (CH requeridos y Distribución), que ya tienen dato.
+Queda anotado porque la lección es del loop: **una cifra que diverge después de
+tocar el instrumento se investiga contra el instrumento antes de acusar a la
+pantalla.** Es el mismo error que ya costó dos correcciones (el «31 % de prosa»
+de F1 y el «13.498 / 38.749» de S5).
+
+Siguiente: **F16** — S7 (CH requeridos y Distribución), que ya tienen dato.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
