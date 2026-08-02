@@ -1581,6 +1581,30 @@ criterio.
 Notado también: el 409 llega tras esperar **63 simulaciones**. El chequeo de
 vigencia debería correr antes de encolar el job, no después de gastarlo.
 
+### F37 — Salvedad sobre F34 y F35: la sonda iba incompleta
+
+Al recorrer el camino completo apareció un dato que obliga a matizar las dos
+iteraciones anteriores: **la comparación lanzada desde la UI sí se encola** y
+corre. El 409 que sostiene F34 y F35 lo obtuve con `POST … {}` —cuerpo vacío,
+sin `config` ni `objective_config`—, mientras la UI manda la configuración
+completa.
+
+Qué se sostiene y qué no, sin adornar:
+
+- **Se sostiene**: el frontend no referenciaba `E_CALC_MUESTRA_ALUMNOS_CH_DECISION`
+  ni una vez, y su fallback nombraba una causa falsa («construye primero el
+  marco»). Eso es un defecto con o sin sonda, y F34 lo repara.
+- **Se sostiene**: la salida de emergencia de F36 no daña nada. Sin señal del
+  motor el botón sigue bloqueado; sólo se reabre cuando el motor rechaza.
+- **Queda en duda**: si el usuario real llega alguna vez al callejón de F35. Con
+  el `config` correcto el motor puede no rechazar nunca, y entonces F35 describe
+  un estado que sólo alcanza una sonda mal formada.
+
+**No se cierra F35 hasta verlo por el camino real.** Registrar la duda vale más
+que el hallazgo: es la cuarta vez en la sesión que una medición apresurada
+apunta al lugar equivocado —los absolutos de S5, la prosa de F1, los SVG de
+S13—, y las tres anteriores las descubrí yo revisando, no el gate.
+
 ### F36 — La salida de emergencia (2026-08-02)
 
 Reparado el callejón de F35 por el único lado que le toca al frontend: cuando el
