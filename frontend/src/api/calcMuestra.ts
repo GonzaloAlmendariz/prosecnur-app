@@ -1365,7 +1365,7 @@ export type CalcMuestraAulasFrame = {
   session_type_impacto?: CalcMuestraSessionTypeImpacto | null;
   /** Distribución R que sustenta la decisión de alumnos por curso-horario. */
   alumnos_por_ch?: CalcMuestraAlumnosPorCh | null;
-};
+} & import("./calcMuestraCriteriosI18b").CalcMuestraCriteriosI18bFrameFields;
 
 // ----------------------------------------------------------------------------
 // Particularidades del marco de aulas (contrato congelado

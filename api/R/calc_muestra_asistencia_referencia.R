@@ -688,7 +688,7 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     list(global = global, chain = chain, dimensions = dimensions)
   })
 
-  list(
+  .cm_asist_criterios_adjuntar(list(
     schema = "calc_muestra_referencia_asistencia_v1",
     owner = "estudio_historico_externo",
     momento = "post_hoc_estudio_previo",
@@ -727,5 +727,5 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       prepared$advertencias,
       .cm_asist_hierarchy_warnings(model)
     )))
-  )
+  ), model, estudio, bootstrap_n, calculated$global)
 }

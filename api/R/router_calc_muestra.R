@@ -549,16 +549,9 @@ mount_calc_muestra <- function(pr) {
         )
       })
 
-      if (has_workspace) {
-        session_set_many(sid, list(
-          calc_muestra_estudio = estudio_actualizado,
-          calc_muestra_reporte = reporte_actualizado,
-          calc_muestra_referencia_asistencia = referencia
-        ))
-      } else {
-        # Compatibilidad v1: clientes previos publican solo la referencia.
-        session_set(sid, "calc_muestra_referencia_asistencia", referencia)
-      }
+      .cm_criterios_referencia_guardar(
+        sid, s, referencia, has_workspace, estudio_actualizado, reporte_actualizado
+      )
 
       state <- .cm_state_payload(sid)
       list(
@@ -598,8 +591,9 @@ mount_calc_muestra <- function(pr) {
         ),
         error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
       )
-      session_set(sid, "calc_muestra_aulas_config", frame$config)
-      session_set(sid, "calc_muestra_aulas_frame", frame)
+      frame <- .cm_criterios_frame_guardar(
+        sid, frame, s$calc_muestra_referencia_asistencia
+      )
       session_set(sid, "calc_muestra_aulas_selection", NULL)
       session_set(sid, "calc_muestra_aulas_method_comparison", NULL)
       session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
@@ -961,5 +955,6 @@ mount_calc_muestra <- function(pr) {
                     sprintf('%s; filename="%s"', modo, basename(meta$path)))
       res$body <- bytes
       res
-    }))
+    })) |>
+    mount_calc_muestra_criterios()
 }

@@ -353,7 +353,7 @@ export function CursosHorarioMarcoTab({
           <CriteriosRadiografiaConsola
             catalogo={catalogo}
             radiografia={criteriosRadiografia}
-            rawPresent={aulasState?.frame?.criterios_radiografia != null}
+            i18bSource={{ frame: marcoPublicable ? aulasState?.frame ?? null : null, config, borrador, previewEnabled: totalPendientes > 0 || marcoDesactualizado }}
             scope="aula"
             legacyCardIds={legacyCardIds}
           />

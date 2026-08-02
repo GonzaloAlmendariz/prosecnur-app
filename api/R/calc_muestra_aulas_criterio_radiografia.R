@@ -863,7 +863,7 @@ calc_muestra_aulas_criterios_radiografia <- function(
     status_by_id = status_by_id
   )
 
-  list(
+  structure(list(
     schema = "calc_muestra_aulas_criterios_radiografia_v2",
     owner = .cm_criterio_radiografia_owner,
     frame_hash = .cm_aulas_scalar(frame_hash, NA_character_),
@@ -874,5 +874,5 @@ calc_muestra_aulas_criterios_radiografia <- function(
     filas_grano = .cm_criterio_radiografia_filas_grano,
     filas = filas_publicas,
     criterios = criterios_out
-  )
+  ), calc_muestra_aulas_criterios_indice_alumno = indice_alumno)
 }
