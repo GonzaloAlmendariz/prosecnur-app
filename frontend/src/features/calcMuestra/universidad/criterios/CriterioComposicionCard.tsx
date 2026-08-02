@@ -70,7 +70,17 @@ export function CriterioComposicionCard({
   /** Persiste el patch en aulas_config (autosave inmediato del workspace). */
   onPatch: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
 }) {
-  const [legacyAbierto, setLegacyAbierto] = useState(false);
+  // ADR 0057 · Una regla ACTIVA no puede estar plegada.
+  //
+  // Esta métrica heredada normalmente está apagada, y por eso vivía tras un
+  // control cerrado. Pero cuando está encendida **recorta el marco**, y hacerlo
+  // desde detrás de un plegado es la peor versión del defecto que este ADR
+  // combate: no es que cueste encontrarla, es que el usuario no sabe que está
+  // operando. Apagada sigue contenida —no es contenido oculto, es una opción
+  // inactiva—; encendida se abre sola.
+  const [legacyAbierto, setLegacyAbierto] = useState(
+    config.require_min_prevalence ?? false,
+  );
   const paso1 = config.require_faculty_prevalence ?? false;
   const paso2 = config.require_cycle_homogeneity ?? false;
   const activos = (paso1 ? 1 : 0) + (paso2 ? 1 : 0);
