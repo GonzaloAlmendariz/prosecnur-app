@@ -1,0 +1,99 @@
+# ADR 0057 — La tarjeta de categoría es la unidad de decisión de Cálculo de muestra
+
+- **Estado**: aceptada
+- **Fecha**: 2026-08-02
+- **Contexto previo**: ADR 0043/0044 (gramática de navegación), `docs/ui-layout-grammar.md` (Contrato de Superficie), `docs/qa/goal-loop-calc-muestra-frontend-2026-08-02.md` (mediciones que motivan esta decisión)
+
+## Contexto
+
+La superficie de criterios de Cálculo de muestra creció por acumulación: un
+selector de criterio, una consola de radiografía aparte, un embudo con su propio
+lenguaje, tablas por facultad y una matriz de cierre. Cada pieza resolvía algo
+real, pero ninguna se hablaba con las demás.
+
+El síntoma medido en el instrumento sembrado: **637 elementos plegados** en una
+sola pestaña, la mayoría sin título; la radiografía de las quince facultades
+renderizada **dentro** del bloque de una sola (4.719 px repetidos por criterio);
+y una decisión que se toma en una zona de la pantalla con la evidencia en otra.
+
+El diagnóstico del usuario, tras varias rondas de ajustes: *«esto amerita un
+repensamiento completo y no ajustes superficiales»*. Las correcciones puntuales
+seguían encontrando el mismo defecto en sitios distintos porque el defecto era
+la estructura, no sus piezas.
+
+## Decisión
+
+**La unidad de diseño de la superficie de criterios es la categoría de criterio,
+no el criterio.**
+
+Cada categoría con cursos-horario disponibles se presenta como **un solo
+contenedor** que reúne, junto al control que la incluye o excluye:
+
+| Contenido | Por qué está ahí |
+|---|---|
+| Cantidad de cursos-horario | tamaño de lo que se decide |
+| Cantidad de alumnos | el otro grano, explícito, para no confundir matrículas con estudiantes |
+| Promedio de alumnos elegibles **con boxplot** | la forma de la distribución, no sólo su centro |
+| Cuantiles completos | decidir con P25 o con la mediana exige verlos |
+| Efecto de la categoría en el embudo | qué recorta esta decisión, en su sitio |
+| Tasa de asistencia | convierte elegibles en presentes esperados |
+
+Cinco reglas que se derivan de esa unidad:
+
+1. **Todos los criterios son por facultad.** No existe el criterio general. El
+   mínimo de matriculados es el criterio 1; los criterios 7 y 8 son los
+   penúltimos, antes del mayor detalle (los cursos-horario uno por uno).
+2. **La matriz pertenece al Panorama por facultad**, en la cabecera. No es un
+   cierre del recorrido.
+3. **Los boxplots comparten eje y lo muestran.** Un boxplot sin eje visible, o
+   normalizado contra su propio rango, no es comparable — y comparar es lo único
+   para lo que existe.
+4. **Radiografía y criterio son la misma cosa.** No hay una superficie que
+   decide y otra que describe.
+5. **Todo es dinámico a los criterios previos.** Cambiar un filtro anterior
+   recalcula cifras y gráficos de los siguientes.
+
+## Consecuencias
+
+**A favor**
+
+- La decisión y su evidencia ocupan el mismo espacio: se elige viendo.
+- Desaparece la duplicación estructural (una consola que repite lo que la tarjeta
+  ya muestra) y con ella la mayor parte del contenido plegado.
+- El grano queda declarado en cada tarjeta, que es donde se confunden matrículas
+  con estudiantes únicos.
+
+**En contra, y asumido**
+
+- La superficie es **más alta**. Con una facultad a la vez y nada oculto, un
+  criterio de veinte categorías ocupa varias pantallas. Se acepta: el usuario
+  elige una facultad y recorre su detalle. Si el alto resulta excesivo en uso
+  real, la palanca es decidir qué categorías merecen gráfico propio — no volver
+  a esconder.
+- El dinamismo depende del preview del motor, que hoy exige contexto transitorio
+  de sesión (ver «Pendiente»).
+
+**Invalidado por esta decisión**
+
+- Criterios generales en la pestaña de estudiante.
+- La matriz como bloque de cierre.
+- La separación entre la tarjeta de criterio y su radiografía.
+- Cualquier ajuste futuro que toque una de estas piezas por separado.
+
+## Lenguaje
+
+Los rótulos nombran lo que el dato es, no la metáfora de la interfaz. «Cascada
+viva», «embudo vivo» y similares describen la animación, no la función: se
+sustituyen por lo que la pieza informa. Nada técnico del contrato interno —hash,
+owner, grano, unidad— aparece en pantalla.
+
+## Pendiente
+
+- **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
+  que al abrir un `.pulso` guardado el recálculo dinámico se rechaza hasta
+  reconstruir el marco. El índice de alumnos que ese contexto necesita se anula
+  antes de persistir y `unique_student_ids` se retira por PII, de modo que la
+  reconstrucción barata no es viable sin perder el conteo de estudiantes únicos.
+- **Dato**: la lista de categorías de tipo de docente mezcla categorías con
+  nombres de personas. Cada valor distinto se convierte en control sin
+  distinguir qué es.
