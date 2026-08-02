@@ -216,10 +216,20 @@ describe("oportunidades de corte de las etiquetas planas", () => {
     );
     const largo = labels.find((contenido) => contenido.includes("INGRESO"));
 
-    expect(largo).toBe(labelLargo.replaceAll(",", ",<wbr/>"));
-    expect((largo?.match(/<wbr\/>/g) ?? [])).toHaveLength(6);
-    expect(largo?.replaceAll("<wbr/>", "")).toBe(labelLargo);
-    expect(html).toContain(`aria-label="${labelLargo}"`);
+    // T1 (2026-08-02): la etiqueta agrupa siete valores y la pantalla lo
+    // declara en vez de presentarlos como una categoría. El contrato que
+    // sustituye al de `<wbr>` es el mismo en el fondo — no perder información —
+    // pero ahora exige además que la agrupación sea legible.
+    expect(largo).toContain("INGRESO");
+    expect(largo).toContain("agrupa 8");
+    // Ningún valor se pierde: los siete siguen en el DOM y en el `title`.
+    for (const valor of ["EV.TAL", "1OP", "CEPR", "ITS", "PAEE", "BACH", "EX.ING"]) {
+      expect(html).toContain(valor);
+    }
+    expect(html).toContain('class="cmv2-crit-item-agrupadas"');
+    // El nombre accesible dice que agrupa, no finge una sola categoría.
+    expect(html).toContain('aria-label="INGRESO, agrupa 8 valores"');
+    // Una categoría que sí es una sola cosa no se toca.
     expect(labels).toContain(labelSimple);
   });
 });

@@ -1871,3 +1871,54 @@
   .cmv2-crit-tsf-bar-empty { grid-column: 1 / -1; }
   .cmv2-crit-tsf-estado { grid-column: 1 / -1; }
 }
+
+/* S1 · la radiografía del criterio vive dentro de la tarjeta que lo decide.
+   Abierta mientras la variable está en edición, plegada cuando ya se confirmó:
+   abrir las cinco a la vez empujaba los demás criterios fuera de pantalla. */
+.cmv2-crit-card-radiografia {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 10px;
+  border-top: 1px solid var(--cmv2-border);
+  padding-top: 10px;
+}
+
+.cmv2-crit-card-radiografia > summary {
+  cursor: pointer;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-crit-card-radiografia > summary:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-crit-card-radiografia[open] > summary {
+  margin-bottom: 10px;
+}
+
+/* T1 · la fuente concatena varios valores en una etiqueta: la pantalla lo dice
+   en vez de esconderlo. El nombre del grupo manda; los valores agrupados van
+   en una línea secundaria y en el `title`. */
+.cmv2-crit-item-agrupa {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.cmv2-crit-item-agrupadas {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+}

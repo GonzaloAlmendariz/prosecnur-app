@@ -118,12 +118,23 @@ describe("CriteriosRadiografiaConsola", () => {
       />,
     );
 
-    expect(html.indexOf(">Dato<")).toBeLessThan(html.indexOf(">Distribución<"));
-    expect(html.indexOf(">Distribución<")).toBeLessThan(html.indexOf(">Cascada viva<"));
-    expect(html.indexOf(">Cascada viva<")).toBeLessThan(html.indexOf(">Ancla histórica<"));
-    expect(html.indexOf(">Ancla histórica<")).toBeLessThan(html.indexOf(">Impacto marginal<"));
-    expect(html.indexOf(">Impacto marginal<")).toBeLessThan(html.indexOf(">Acción<"));
-    expect(html).toContain("Enfocar criterio");
+    // S1: los cinco pasos se recorren, no se apilan. El riel conserva el orden
+    // metodológico completo y la tarjeta abre en Distribución — el dato.
+    const riel = html.slice(html.indexOf('class="cmv2-crc-pasos"'));
+    expect(riel.indexOf("Distribución")).toBeLessThan(riel.indexOf("Cascada viva"));
+    expect(riel.indexOf("Cascada viva")).toBeLessThan(riel.indexOf("Ancla histórica"));
+    expect(riel.indexOf("Ancla histórica")).toBeLessThan(riel.indexOf("Impacto marginal"));
+    expect(riel.indexOf("Impacto marginal")).toBeLessThan(riel.indexOf("Acción"));
+    expect(html).toContain('data-paso="distribucion"');
+    expect(html).toContain('data-paso="accion"');
+    // La procedencia sigue completa pero al pie y plegada.
+    expect(html).toContain("Procedencia y contrato");
+    expect(html).toContain("<details");
+    // S1: un solo control para enfocar un criterio. El `<select>` que
+    // duplicaba la tira quedó retirado; su información vive en el chip.
+    expect(html).not.toContain("<select");
+    expect(html).toContain('aria-label="Enfocar criterio"');
+    expect(html).toContain("Radiografía v2");
     expect(html).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-consola"');
     expect(html).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"');
     expect(html).toContain('aria-label="Radiografía en Ingeniería"');
@@ -166,8 +177,12 @@ describe("CriteriosRadiografiaConsola", () => {
     expect(cardTags).toHaveLength(1);
     expect(cardTags[0]).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-pasos"');
     expect(cardTags[0]).toContain('data-qa-geometry-contract="intrinsic"');
+    // Los cinco pasos siguen en el DOM y en el contrato; solo el activo ocupa
+    // layout. Apilarlos visibles costaba 23.244 px por tarjeta.
     const stepTags = startTags(html, "section", "cmv2-crc-step");
-    expect(stepTags).toHaveLength(6);
+    expect(stepTags).toHaveLength(5);
+    expect(stepTags.filter((tag) => tag.includes("hidden"))).toHaveLength(4);
+    expect((html.match(/data-paso="/g) ?? [])).toHaveLength(5);
     expectOwnedGeometryMembers(stepTags);
 
     const segmentGroupTags = startTags(html, "div", "cmv2-crc-segments");

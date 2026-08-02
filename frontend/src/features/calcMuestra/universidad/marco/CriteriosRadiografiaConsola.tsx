@@ -21,6 +21,68 @@ import "./criteriosRadiografia.css";
 
 export { CriteriosRadiografiaCardDetalle } from "./CriteriosRadiografiaCardDetalle";
 
+/**
+ * S1: la radiografía de un criterio pertenece a la tarjeta que lo decide.
+ *
+ * `useCriteriosRadiografiaInline` entrega, por `cardId`, el detalle listo para
+ * incrustarse en su `CriterioCard`, más las alertas de contrato que son del
+ * bloque entero. La consola con selector propio queda solo para superficies que
+ * no tienen tarjetas donde colgar el detalle.
+ */
+export function useCriteriosRadiografiaInline({
+  catalogo,
+  radiografia,
+  rawPresent,
+  scope,
+  legacyCardIds,
+  i18bSource,
+}: {
+  catalogo: CriteriosCatalogo;
+  radiografia: CalcMuestraAulasCriteriosRadiografia | null;
+  rawPresent?: boolean;
+  scope: CriterioScope;
+  legacyCardIds?: ReadonlySet<string>;
+  i18bSource?: CriteriosI18bSurfaceSource | null;
+}) {
+  const i18b = useCriteriosI18bSurface(
+    i18bSource,
+    radiografia?.frame_hash ?? null,
+    radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2" ? radiografia : null,
+  );
+  const model = useMemo(
+    () => buildCriteriosRadiografiaModel({
+      catalogo,
+      radiografia,
+      rawPresent: rawPresent ?? i18b.rawRadiographyPresent,
+      legacyCardIds,
+    }),
+    [catalogo, i18b.rawRadiographyPresent, legacyCardIds, radiografia, rawPresent],
+  );
+  const cards = useMemo(() => criterioCardsForScope(model, scope), [model, scope]);
+  const framePresent = i18bSource?.frame != null;
+  const rawRadiographyPresent = rawPresent === true || i18b.rawRadiographyPresent;
+  const legacyContract = radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v1";
+  const needsRecovery = framePresent && (!rawRadiographyPresent || legacyContract);
+
+  const detalle = (cardId: string) => {
+    const card = cards.find((item) => item.cardId === cardId);
+    if (!card || needsRecovery) return null;
+    return (
+      <CriteriosRadiografiaCardDetalle
+        card={card}
+        radiografia={radiografia}
+        totals={i18b.totals}
+        cascade={i18b.cascade}
+        anchors={i18b.anchors}
+        previewRequest={i18b.previewRequest}
+        i18bComplete={i18b.status === "complete"}
+      />
+    );
+  };
+
+  return { cards, detalle, needsRecovery, model, invalid: i18b.invalid };
+}
+
 export function CriteriosRadiografiaConsola({
   catalogo,
   radiografia,
@@ -82,29 +144,15 @@ export function CriteriosRadiografiaConsola({
   return (
     <section className="cmv2-crc" aria-label={`Consola analítica de criterios de ${scope === "alumno" ? "estudiante" : "curso-horario"}`}>
       <header className="cmv2-crc-head">
-        <div>
-          <span className="cmv2-crc-eyebrow">Radiografía antes de decidir</span>
-          <h3>Dato → distribución → cascada → ancla → impacto → acción</h3>
-          <p>{cards.length} tarjetas de este bloque · {model.expectedGateIds.length} gates en el denominador completo.</p>
-        </div>
-        <label className="cmv2-crc-focus" htmlFor={`cmv2-crc-focus-${scope}`}>
-          <span>Enfocar criterio</span>
-          <select
-            id={`cmv2-crc-focus-${scope}`}
-            value={focused.cardId}
-            onChange={(event) => setFocusedId(event.target.value)}
-          >
-            {cards.map((card) => (
-              <option value={card.cardId} key={card.cardId}>
-                {card.label} · {CRITERIO_RADIOGRAFIA_STATE_COPY[card.state].label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <h3>Radiografía por facultad</h3>
+        <p>{cards.length} criterios · {model.expectedGateIds.length} gates</p>
       </header>
+      {/* Un solo control para enfocar un criterio. La tira reemplaza al
+          `<select>` que la duplicaba: lleva el estado de la evidencia encima,
+          así que no se pierde nada al quitarlo. */}
       <nav
         className="cmv2-crc-card-strip"
-        aria-label="Tarjetas dinámicas de criterios"
+        aria-label="Enfocar criterio"
         data-qa-geometry-group="calc-muestra/criterios-tarjetas"
         data-qa-geometry-contract="intrinsic"
       >
@@ -122,6 +170,7 @@ export function CriteriosRadiografiaConsola({
           >
             <strong>{card.label}</strong>
             <span>{card.gateIds.length} {card.gateIds.length === 1 ? "gate" : "gates"}</span>
+            <em data-state={card.state}>{CRITERIO_RADIOGRAFIA_STATE_COPY[card.state].label}</em>
           </button>
         ))}
       </nav>

@@ -54,7 +54,10 @@ import type { PresetCanonicoPlan } from "./presetCanonicoModel";
 import { MinElegiblesCard, type FacultadMinRef } from "./MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia } from "./minElegiblesModel";
 import type { FacultadRef } from "./facultades";
-import { CriteriosRadiografiaConsola } from "../marco/CriteriosRadiografiaConsola";
+import {
+  CriteriosRadiografiaConsola,
+  useCriteriosRadiografiaInline,
+} from "../marco/CriteriosRadiografiaConsola";
 import "./criterios.css";
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
@@ -298,6 +301,19 @@ export function CriteriosMarcoTab({
   });
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
+  // S1: el detalle de cada criterio se resuelve aquí una vez y se entrega a la
+  // tarjeta que decide ese criterio, en vez de vivir en una consola aparte.
+  const radiografiaInline = useCriteriosRadiografiaInline({
+    catalogo,
+    radiografia: criteriosRadiografia,
+    scope: "alumno",
+    i18bSource: {
+      frame: marcoPublicable ? aulasState?.frame ?? null : null,
+      config,
+      borrador,
+      previewEnabled: totalPendientes > 0 || marcoDesactualizado,
+    },
+  });
   // El haz de luz (Anexo A.2) solo cuando hace falta reconstruir y no hay nada
   // pendiente de confirmar (si hay pendientes, la acción primero es confirmar).
   const beam = necesitaRecalculo && listoParaRecalcular;
@@ -391,7 +407,10 @@ export function CriteriosMarcoTab({
         </div>
       ) : (
         <>
-          {showAlumno && alumno.length > 0 ? (
+          {/* S1: cuando el frame no publica radiografía, la recuperación sigue
+              siendo un bloque propio; con radiografía viva, el detalle de cada
+              criterio baja a su tarjeta y aquí no queda consola separada. */}
+          {showAlumno && alumno.length > 0 && radiografiaInline.needsRecovery ? (
             <CriteriosRadiografiaConsola
               catalogo={catalogo}
               radiografia={criteriosRadiografia}
@@ -401,6 +420,11 @@ export function CriteriosMarcoTab({
               puedeReconstruir={listoParaRecalcular}
               reconstruyendo={reconstruyendo}
             />
+          ) : null}
+          {showAlumno && alumno.length > 0 && radiografiaInline.invalid.length ? (
+            <div className="cmv2-crc-contract-alert" role="alert">
+              Evidencia I18b inválida u obsoleta: {radiografiaInline.invalid.join(", ")}. React no sustituye esos datos con cálculos locales.
+            </div>
           ) : null}
           {showAlumno && alumno.length > 0 && (
             <section className="cmv2-crit-section" data-scope="alumno">
@@ -433,6 +457,7 @@ export function CriteriosMarcoTab({
                     pendiente={pendientes.has(variable.id)}
                     onConfirmar={() => confirmarVariable(variable.id, variable.kind)}
                     onDescartar={() => descartarVariable(variable.id, variable.kind)}
+                    radiografia={radiografiaInline.detalle(variable.id)}
                   />
                 ))}
               </div>

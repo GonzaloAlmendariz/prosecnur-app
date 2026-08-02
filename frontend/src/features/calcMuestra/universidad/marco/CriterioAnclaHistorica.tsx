@@ -53,12 +53,60 @@ export function CriterioAnclaHistorica({
     );
   }
 
+  // Un aviso compartido por todas las facultades es UN hecho del criterio, no
+  // dieciocho. Cuando además ninguna fila publica tasa ni k, las nueve filas de
+  // metadatos por facultad no dicen nada que el bloque no diga mejor una vez.
+  const avisos = new Set(anchors.map((anchor) => anchor.warning ?? ""));
+  const avisoComun = avisos.size === 1 ? [...avisos][0] : null;
+  const niveles = new Set(anchors.map((anchor) => anchor.match_level));
+  const ningunaPublica = anchors.every((anchor) => anchor.k === null && anchor.tasa === null);
+
+  if (avisoComun && ningunaPublica) {
+    const primera = anchors[0];
+    return (
+      <div
+        className="cmv2-i18b-anchors"
+        data-qa-geometry-group="calc-muestra/criterios-anclas"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <article
+          className="cmv2-i18b-anchor cmv2-i18b-anchor-comun"
+          data-match-level={niveles.size === 1 ? primera.match_level : "mixto"}
+          data-anchor-shared="true"
+          data-qa-geometry-member
+          data-qa-geometry-capacity="owned"
+          role="status"
+        >
+          <header>
+            <div>
+              <strong>Sin coincidencia publicable en {anchors.length} {anchors.length === 1 ? "facultad" : "facultades"}</strong>
+              <span>{primera.requested_label ?? primera.requested_dimension ?? "Criterio sin característica histórica"}</span>
+            </div>
+            <span className="cmv2-i18b-anchor-level">{niveles.size === 1 ? primera.match_level : "mixto"}</span>
+          </header>
+          <dl>
+            <div><dt>Facultad del criterio</dt><dd>{facultyDimensionLabel(primera.faculty_dimension)}</dd></div>
+            <div><dt>Facultad de referencia</dt><dd>{facultyDimensionLabel(primera.reference_faculty_dimension)}</dd></div>
+            <div><dt>Periodo</dt><dd>{primera.periodo}</dd></div>
+          </dl>
+          <p role="note">{avisoComun}</p>
+          <p className="cmv2-i18b-anchor-facultades">
+            {anchors.map((anchor) => anchor.faculty_label).join(" · ")}
+          </p>
+        </article>
+      </div>
+    );
+  }
+
   return (
     <div
       className="cmv2-i18b-anchors"
       data-qa-geometry-group="calc-muestra/criterios-anclas"
       data-qa-geometry-contract="intrinsic"
     >
+      {avisoComun && anchors.length > 1 ? (
+        <p className="cmv2-i18b-anchor-aviso-comun" role="note" data-anchor-shared="true">{avisoComun}</p>
+      ) : null}
       {anchors.map((anchor, index) => (
         <article
           className="cmv2-i18b-anchor"
@@ -85,7 +133,7 @@ export function CriterioAnclaHistorica({
             <div><dt>Suficiencia</dt><dd>{anchor.suficiencia}</dd></div>
             <div><dt>Periodo</dt><dd>{anchor.periodo}</dd></div>
           </dl>
-          <p role="note">{anchor.warning}</p>
+          {avisoComun && anchors.length > 1 ? null : <p role="note">{anchor.warning}</p>}
         </article>
       ))}
     </div>

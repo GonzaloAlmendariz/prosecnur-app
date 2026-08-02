@@ -11,10 +11,26 @@ import type {
   CalcMuestraCriteriosTotalRow,
   CalcMuestraCriteriosTotales,
 } from "../../../../api/calcMuestraCriteriosI18b";
-import { useId } from "react";
+import { useId, useState } from "react";
+
+/** Los cinco pasos del recorrido de un criterio, en su orden metodológico. */
+type CriterioPasoId = "distribucion" | "cascada" | "ancla" | "impacto" | "accion";
+
+const CRITERIO_PASOS: ReadonlyArray<{ id: CriterioPasoId; label: string }> = [
+  { id: "distribucion", label: "Distribución" },
+  { id: "cascada", label: "Cascada viva" },
+  { id: "ancla", label: "Ancla histórica" },
+  { id: "impacto", label: "Impacto marginal" },
+  { id: "accion", label: "Acción" },
+];
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import { CriterioAnclaHistorica } from "./CriterioAnclaHistorica";
-import { CriterioBoxplotPercentilar } from "./CriterioBoxplotPercentilar";
+import {
+  boxplotDomain,
+  CriterioBoxplotLeyenda,
+  CriterioBoxplotPercentilar,
+  type BoxplotDomain,
+} from "./CriterioBoxplotPercentilar";
 import { CriteriosEmbudoVivo } from "./CriteriosEmbudoVivo";
 import "./criteriosRadiografia.css";
 
@@ -55,11 +71,13 @@ function Snapshot({
   snapshot,
   label,
   variant,
+  domain,
 }: {
   title: string;
   snapshot: CalcMuestraAulasCriterioRadiografiaV2Snapshot;
   label: string;
   variant: "actual" | "contraste";
+  domain: BoxplotDomain | null;
 }) {
   return (
     <div
@@ -68,21 +86,32 @@ function Snapshot({
       data-qa-geometry-capacity="owned"
     >
       <strong>{title}</strong>
-      <CriterioBoxplotPercentilar label={`${label} · ${title}`} distribution={snapshot.distribution} />
+      <CriterioBoxplotPercentilar label={`${label} · ${title}`} distribution={snapshot.distribution} domain={domain} />
       <dl className="cmv2-crc-counts">
         <div><dt>{variant === "actual" ? "CH elegibles" : "CH de contraste"}</dt><dd>{fmt(snapshot.n_ch)}</dd></div>
         <div><dt>CH con dato</dt><dd>{fmt(snapshot.n_ch_con_dato)}</dd></div>
         <div><dt>Alumnos únicos</dt><dd>{fmt(snapshot.n_estudiantes_unicos)}</dd></div>
         <div><dt>Matrículas</dt><dd>{fmt(snapshot.n_matriculas)}</dd></div>
       </dl>
-      <dl className="cmv2-crc-stats" aria-label={`${title}: media y cuantiles`}>
-        <div data-main><dt>Media</dt><dd>{fmt(snapshot.distribution.media)}</dd></div>
-        <div><dt>P10</dt><dd>{fmt(snapshot.distribution.p10)}</dd></div>
-        <div><dt>P25</dt><dd>{fmt(snapshot.distribution.p25)}</dd></div>
-        <div><dt>P50 · mediana</dt><dd>{fmt(snapshot.distribution.p50)}</dd></div>
-        <div><dt>P75</dt><dd>{fmt(snapshot.distribution.p75)}</dd></div>
-        <div><dt>P90</dt><dd>{fmt(snapshot.distribution.p90)}</dd></div>
-      </dl>
+      {/* Media y mediana se leen de un vistazo; los cinco cuantiles siguen
+          completos pero no repiten seis filas por snapshot × segmento ×
+          facultad, que era el grueso de las 46 pantallas. */}
+      <p className="cmv2-crc-stats-lead">
+        <span><em>Media</em> {fmt(snapshot.distribution.media)}</span>
+        <span><em>P50</em> {fmt(snapshot.distribution.p50)}</span>
+        <span><em>P10–P90</em> {fmt(snapshot.distribution.p10)}–{fmt(snapshot.distribution.p90)}</span>
+      </p>
+      <details className="cmv2-crc-stats-full">
+        <summary>Cuantiles completos</summary>
+        <dl className="cmv2-crc-stats" aria-label={`${title}: media y cuantiles`}>
+          <div data-main><dt>Media</dt><dd>{fmt(snapshot.distribution.media)}</dd></div>
+          <div><dt>P10</dt><dd>{fmt(snapshot.distribution.p10)}</dd></div>
+          <div><dt>P25</dt><dd>{fmt(snapshot.distribution.p25)}</dd></div>
+          <div><dt>P50 · mediana</dt><dd>{fmt(snapshot.distribution.p50)}</dd></div>
+          <div><dt>P75</dt><dd>{fmt(snapshot.distribution.p75)}</dd></div>
+          <div><dt>P90</dt><dd>{fmt(snapshot.distribution.p90)}</dd></div>
+        </dl>
+      </details>
     </div>
   );
 }
@@ -165,8 +194,39 @@ function GateMetadata({ entry }: { entry: CalcMuestraAulasCriterioRadiografiaV2E
   );
 }
 
-function Segment({ row }: { row: V2DisplayRow }) {
+function Segment({
+  row,
+  domain,
+  signalDomain,
+}: {
+  row: V2DisplayRow;
+  /** Escala del bloque para CH; la señal usa la suya porque es otra unidad. */
+  domain: BoxplotDomain | null;
+  signalDomain: BoxplotDomain | null;
+}) {
   const label = `${row.facultyLabel} · ${row.gateLabel} · ${row.segmentLabel}`;
+  // Un segmento sin CH ni distribución no merece el mismo espacio que uno con
+  // datos: se declara en una línea. Sigue presente y contable — no desaparece,
+  // que sería mentir sobre el inventario.
+  const vacio = row.actual.n_ch === 0 && row.actual.distribution.media === null
+    && row.contrasteTotal.n_ch === 0 && row.contrasteTotal.distribution.media === null;
+  if (vacio) {
+    return (
+      <article
+        className="cmv2-crc-segment"
+        data-criterion-id={row.criterionId}
+        data-segment-empty="true"
+        data-qa-geometry-member
+        data-qa-geometry-capacity="owned"
+        role="status"
+      >
+        <header>
+          <div><span>{row.gateLabel}</span><strong>{row.segmentLabel}</strong></div>
+          <small>0 CH en esta facultad</small>
+        </header>
+      </article>
+    );
+  }
   return (
     <article
       className="cmv2-crc-segment"
@@ -178,19 +238,23 @@ function Segment({ row }: { row: V2DisplayRow }) {
         <div><span>{row.gateLabel}</span><strong>{row.segmentLabel}</strong></div>
         <small>{row.segmentKind.replace("_", " ")}</small>
       </header>
+      {/* D2: elegibles como cifra principal y total como contraste, los dos a
+          la vista y sobre la misma escala. Plegar el contraste no bajaba la
+          altura (van en columnas) y escondía la comparación que la vara pide. */}
       <div
         className="cmv2-crc-snapshot-pair"
         data-qa-geometry-group="calc-muestra/criterios-radiografia-snapshots"
         data-qa-geometry-contract="intrinsic"
       >
-        <Snapshot title="Actual" snapshot={row.actual} label={label} variant="actual" />
-        <Snapshot title="Contraste total" snapshot={row.contrasteTotal} label={label} variant="contraste" />
+        <Snapshot title="Actual" snapshot={row.actual} label={label} variant="actual" domain={domain} />
+        <Snapshot title="Contraste total" snapshot={row.contrasteTotal} label={label} variant="contraste" domain={domain} />
       </div>
       {row.signalDistribution ? (
-        <div className="cmv2-crc-signal">
-          <strong>Señal · {row.signalDistribution.unit.replace("_", " ")}</strong>
-          <span>{fmt(row.signalDistribution.n_con_dato)} de {fmt(row.signalDistribution.n_total)} con dato</span>
-          <CriterioBoxplotPercentilar label={`${label} · señal`} distribution={row.signalDistribution} />
+        <details className="cmv2-crc-signal">
+          <summary>
+            Señal · {row.signalDistribution.unit.replace("_", " ")} · {fmt(row.signalDistribution.n_con_dato)} de {fmt(row.signalDistribution.n_total)} con dato
+          </summary>
+          <CriterioBoxplotPercentilar label={`${label} · señal`} distribution={row.signalDistribution} domain={signalDomain} />
           <dl className="cmv2-crc-stats" aria-label={`Señal de ${row.segmentLabel}: media y cuantiles`}>
             <div data-main><dt>Media</dt><dd>{fmt(row.signalDistribution.media)}</dd></div>
             <div><dt>P10</dt><dd>{fmt(row.signalDistribution.p10)}</dd></div>
@@ -199,7 +263,7 @@ function Segment({ row }: { row: V2DisplayRow }) {
             <div><dt>P75</dt><dd>{fmt(row.signalDistribution.p75)}</dd></div>
             <div><dt>P90</dt><dd>{fmt(row.signalDistribution.p90)}</dd></div>
           </dl>
-        </div>
+        </details>
       ) : null}
     </article>
   );
@@ -216,13 +280,21 @@ function V2Distribution({
 }) {
   const facultyRows = v2Rows(card);
   const rTotals = includeTotal ? totalRows(card, totals) : [];
-  const groups = rowsByFaculty([...facultyRows, ...rTotals]);
+  const all = [...facultyRows, ...rTotals];
+  const groups = rowsByFaculty(all);
+  // S4: una sola escala para todo el bloque. Comparar facultades es el único
+  // motivo por el que existe este gráfico; con normalización por figura todas
+  // las cajas salían del mismo ancho.
+  const domain = boxplotDomain(all.flatMap((row) => [row.actual.distribution, row.contrasteTotal.distribution]));
+  const signalDomain = boxplotDomain(all.map((row) => row.signalDistribution ?? null));
   return (
-    <div
-      className="cmv2-crc-faculties"
-      data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"
-      data-qa-geometry-contract="intrinsic"
-    >
+    <>
+      <CriterioBoxplotLeyenda domain={domain} unidad="alumnos por CH" />
+      <div
+        className="cmv2-crc-faculties"
+        data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"
+        data-qa-geometry-contract="intrinsic"
+      >
       {groups.map((group) => (
         <section
           className="cmv2-crc-faculty"
@@ -239,7 +311,12 @@ function V2Distribution({
             data-qa-geometry-contract="intrinsic"
           >
             {group.rows.map((row) => (
-              <Segment row={row} key={`${row.criterionId}:${row.segmentKey}:${row.segmentKind}`} />
+              <Segment
+                row={row}
+                domain={domain}
+                signalDomain={signalDomain}
+                key={`${row.criterionId}:${row.segmentKey}:${row.segmentKind}`}
+              />
             ))}
           </div>
         </section>
@@ -256,18 +333,22 @@ function V2Distribution({
           <p>El frontend no suma facultades, estudiantes únicos, matrículas ni deltas para fabricar este Total.</p>
         </section>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }
 
 function V1Distribution({ card }: { card: CriterioRadiografiaCard }) {
   if (!card.v1Rows.length) return null;
+  const domain = boxplotDomain(card.v1Rows.map((row) => row.distribucion_elegible));
   return (
-    <div
-      className="cmv2-crc-faculties"
-      data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"
-      data-qa-geometry-contract="intrinsic"
-    >
+    <>
+      <CriterioBoxplotLeyenda domain={domain} unidad="alumnos por CH" />
+      <div
+        className="cmv2-crc-faculties"
+        data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"
+        data-qa-geometry-contract="intrinsic"
+      >
       {card.v1Rows.map((row) => (
         <section
           className="cmv2-crc-faculty"
@@ -276,7 +357,7 @@ function V1Distribution({ card }: { card: CriterioRadiografiaCard }) {
           data-qa-geometry-capacity="owned"
         >
           <header><strong>{row.facultad_label}</strong><span>{row.categoria_label}</span></header>
-          <CriterioBoxplotPercentilar label={`${row.facultad_label} · ${row.categoria_label}`} distribution={row.distribucion_elegible} />
+          <CriterioBoxplotPercentilar label={`${row.facultad_label} · ${row.categoria_label}`} distribution={row.distribucion_elegible} domain={domain} />
           <dl className="cmv2-crc-counts">
             <div><dt>N CH total</dt><dd>{fmt(row.n_ch_total)}</dd></div>
             <div><dt>N CH elegibles</dt><dd>{fmt(row.n_ch_elegibles)}</dd></div>
@@ -293,7 +374,8 @@ function V1Distribution({ card }: { card: CriterioRadiografiaCard }) {
           </dl>
         </section>
       ))}
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -385,6 +467,12 @@ export function CriteriosRadiografiaCardDetalle({
   const meta = CRITERIO_RADIOGRAFIA_STATE_COPY[card.state];
   const hasDistribution = rows.length > 0 || v1Rows.length > 0;
   const idSuffix = `${card.cardId}-${context === "faculty" ? facultyKey ?? "facultad" : "global"}-${instanceId}`;
+  // Los cinco pasos publican cada uno las 19 facultades del criterio. Apilados
+  // sumaban 23.244 px (Cascada 7.284, Distribución 5.672, Impacto 4.756,
+  // Acción 3.379, Ancla 2.153): 36 pantallas de scroll para una tarjeta. Se
+  // recorren como pasos, uno a la vez; ninguno se pierde y el orden
+  // metodológico queda visible en el riel.
+  const [pasoActivo, setPasoActivo] = useState<CriterioPasoId>("distribucion");
   return (
     <article
       className="cmv2-crc-card"
@@ -404,46 +492,46 @@ export function CriteriosRadiografiaCardDetalle({
         <span className="cmv2-crc-state" data-state={card.state}>{meta.label}</span>
       </header>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-dato-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>1</span><h5 id={`crc-dato-${idSuffix}`}>Dato</h5></header>
-        <p>{meta.detail}</p>
-        {radiografia ? (
-          <dl className="cmv2-crc-root-meta">
-            <div><dt>Marco</dt><dd title={radiografia.frame_hash}>{radiografia.frame_hash}</dd></div>
-            <div><dt>Momento</dt><dd>{radiografia.momento}</dd></div>
-          </dl>
-        ) : null}
-        {!invalid && card.entries.length ? (
-          <div className="cmv2-crc-gates">{card.entries.map((entry) => <GateMetadata entry={entry} key={entry.id} />)}</div>
-        ) : null}
-      </section>
+      <nav className="cmv2-crc-pasos" aria-label={`Pasos de ${card.label}`}>
+        {CRITERIO_PASOS.map((paso, index) => (
+          <button
+            type="button"
+            key={paso.id}
+            data-paso={paso.id}
+            aria-pressed={paso.id === pasoActivo}
+            onClick={() => setPasoActivo(paso.id)}
+          >
+            <span>{index + 1}</span>
+            {paso.label}
+          </button>
+        ))}
+      </nav>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-dist-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>2</span><h5 id={`crc-dist-${idSuffix}`}>Distribución</h5></header>
-        <p>Boxplot percentilar P10–P90, media, denominadores y estadísticos publicados por R; NA permanece NA.</p>
+      <section className="cmv2-crc-step" hidden={pasoActivo !== "distribucion"} aria-labelledby={`crc-dist-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>1</span><h5 id={`crc-dist-${idSuffix}`}>Distribución</h5></header>
         {rows.length ? <V2Distribution card={card} totals={totals} includeTotal={context !== "faculty"} /> : v1Rows.length ? <V1Distribution card={card} /> : <EmptyDistribution card={card} />}
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-cascada-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>3</span><h5 id={`crc-cascada-${idSuffix}`}>Cascada viva</h5></header>
+      <section className="cmv2-crc-step" hidden={pasoActivo !== "cascada"} aria-labelledby={`crc-cascada-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>2</span><h5 id={`crc-cascada-${idSuffix}`}>Cascada viva</h5></header>
         <p>Secuencia real del motor. No es la matriz marginal y no suma impactos entre criterios.</p>
         <CriteriosEmbudoVivo cardId={card.cardId} executed={cascade} previewRequest={previewRequest} facultyKey={facultyKey} />
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-ancla-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>4</span><h5 id={`crc-ancla-${idSuffix}`}>Ancla histórica</h5></header>
+      <section className="cmv2-crc-step" hidden={pasoActivo !== "ancla"} aria-labelledby={`crc-ancla-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>3</span><h5 id={`crc-ancla-${idSuffix}`}>Ancla histórica</h5></header>
         <p>Coincidencia o degradación publicada por R; nunca combina marginales ni enlaza CH históricos.</p>
         <CriterioAnclaHistorica cardId={card.cardId} rows={anchors?.rows ?? []} facultyKey={facultyKey} />
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-impacto-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>5</span><h5 id={`crc-impacto-${idSuffix}`}>Impacto marginal</h5></header>
+      <section className="cmv2-crc-step" hidden={pasoActivo !== "impacto"} aria-labelledby={`crc-impacto-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>4</span><h5 id={`crc-impacto-${idSuffix}`}>Impacto marginal</h5></header>
         <p>Foto contrafactual por regla; no forma la cascada y sus deltas no son aditivos.</p>
         <ImpactoMarginal card={card} rows={rows} v1Rows={v1Rows} invalid={invalid} />
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-accion-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>6</span><h5 id={`crc-accion-${idSuffix}`}>Acción</h5></header>
+      <section className="cmv2-crc-step" hidden={pasoActivo !== "accion"} aria-labelledby={`crc-accion-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>5</span><h5 id={`crc-accion-${idSuffix}`}>Acción</h5></header>
         {rows.length ? (
           <ul className="cmv2-crc-actions">
             {rows.map(({ entry, row }) => (
@@ -464,6 +552,25 @@ export function CriteriosRadiografiaCardDetalle({
           </p>
         )}
       </section>
+
+      {/* La procedencia (hash del marco, momento, owner/grano/unidad de cada
+          gate) es trazabilidad, no el dato de la decisión: se conserva entera
+          pero deja de ocupar la portada de cada criterio. */}
+      {radiografia || (!invalid && card.entries.length) ? (
+        <details className="cmv2-crc-procedencia" data-qa-geometry-member data-qa-geometry-capacity="owned">
+          <summary>Procedencia y contrato</summary>
+          {radiografia ? (
+            <dl className="cmv2-crc-root-meta">
+              <div><dt>Marco</dt><dd title={radiografia.frame_hash}>{radiografia.frame_hash}</dd></div>
+              <div><dt>Momento</dt><dd>{radiografia.momento}</dd></div>
+              <div><dt>Evidencia</dt><dd>{meta.label}</dd></div>
+            </dl>
+          ) : null}
+          {!invalid && card.entries.length ? (
+            <div className="cmv2-crc-gates">{card.entries.map((entry) => <GateMetadata entry={entry} key={entry.id} />)}</div>
+          ) : null}
+        </details>
+      ) : null}
       {!hasDistribution && card.state === "legacy" ? (
         <p className="cmv2-crc-legacy-note">El resumen legacy permanece junto al control; no se presenta como contrato F1.</p>
       ) : null}
