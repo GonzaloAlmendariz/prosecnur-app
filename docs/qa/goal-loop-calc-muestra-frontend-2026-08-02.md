@@ -346,7 +346,8 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **5 de 13** (S1–S5) + T1 aplicado, **T6 y T7 cerradas** | 13 + 7 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **6 de 13** (S1–S6) + T1 aplicado, **T6 y T7 cerradas**, T4 desbloqueada en el instrumento | 13 + 7 |
+| Superficies bloqueadas por no poder ejecutar el cálculo | **7** (Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos, Entrega) | **0** | 0 |
 | Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
 | Elementos con desborde o ancho 0 a 1024×600 en Criterios | **1.006 / 987** | **0 / 0** | 0 |
 | Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
@@ -403,7 +404,7 @@ empieza por donde se decide y se termina por donde se entrega.
 | **T1** | Una categoría es una sola cosa | S7 | **inmediata** — dos «Facultad» bajo la misma palabra, etiquetas que esconden varias categorías, vocabularios mezclados y la doble representación anonimizada/en claro |
 | **T2** | Los gráficos comparan, en todo el módulo | S4 | parcial — hecho en la radiografía de criterios; falta el barrido de `marcoCharts`, Distribución, Simulación y el mapa |
 | **T3** | Cero prosa que no sea dato, en todo el módulo | S3 | **abierta** — 31 % en Criterios del estudiante; las reglas metodológicas compartidas se dicen una vez, no una por tarjeta |
-| **T4** | Instrumento y fixture honestos | invariante | El anonimizador debe reescribir base, config de criterios y catálogo a la vez, o negarse. Bloquea acreditar «por facultad» y el ancla histórica |
+| **T4** | Instrumento y fixture honestos | invariante | **desbloqueado en el instrumento (F15)**: los estratos se reconstruyen desde el marco sembrado y suman 21.362, la cifra de la cabecera. La reparación de fondo del anonimizador sigue siendo del loop v2 |
 | **T6** | La radiografía embebida es responsiva | S1/C4 | **cerrada en F9** — causa real: el bloque de señal conservó `display: flex` al pasar a `<details>` y colapsaba su rejilla a 0 px. 1.006 → 0 desbordes |
 | **T7** | «Confirmar decisión» de Alumnos por CH persiste | invariante | **cerrada en F14** — un método guardado vacío deshabilitaba en silencio el botón que reparaba el estado; y dos facultades con 0 CH bloqueaban el gate. La decisión ya persiste con su schema |
 | **T5** | Lo que la evidencia pida | — | abierto |
@@ -976,10 +977,43 @@ y no se resuelve aquí.
 
 Gate: typecheck 0 errores · Vitest **801/801**.
 
-Consecuencia para el plan: **S6 a S13 no se pueden auditar con dato sobre este
-instrumento** hasta que T4 se resuelva en el loop v2 (que el anonimizador
-reescriba base, config, catálogo y componentes a la vez, o se niegue). El
-eslabón de superficie ya no es el que bloquea.
+Consecuencia para el plan: quedaba T4 (la contradicción del anonimizador) como
+único bloqueo — resuelto para el instrumento en F15.
+
+### F15 — El instrumento llega hasta el cálculo (T4 en el instrumento, 2026-08-02)
+
+El cálculo fallaba con `facultades_incompletas`: los componentes P1/P2 declaran
+las **15 facultades reales** (`derecho`, `arquitectura_y_urbanismo`…) mientras el
+marco sembrado trae los **17 seudónimos** (`andres`, `elena_diego`…). El motor
+falla cerrado con razón; el fixture es el que se contradice.
+
+Reparación del instrumento (regla 2 del loop: no se detiene por el motor, se
+siembra un estado y se sigue): los estratos de ambos componentes se reconstruyen
+**desde el propio marco sembrado**.
+
+- Etiquetas y número de facultades: las 17 de `exploracion$por_facultad`.
+- `N` por facultad: alumnos **únicos** elegibles, del cruce
+  `facultad × sexo` de `population_cross_profiles`. Primer intento usó
+  `elegibles_total`, que son **matrículas** —sumaba 92.017, la cifra de
+  matrículas de la cabecera— e inflaba el N del diseño; corregido.
+- `N_a`/`N_b`: el reparto por sexo real del marco, no mitad y mitad.
+
+**Suma de los estratos: 21.362 — exactamente los estudiantes elegibles de la
+cabecera.** El instrumento queda internamente consistente.
+
+**Verificado: el cálculo corre.** Propuestas publica los dos escenarios
+completos — P1 `n=2.304 → 2.500 → 3.750`, 269 CH; P2 `n=4.934 → 4.934 → 5.921`,
+473 CH — con su fórmula y sus parámetros. **S6 a S13 vuelven a ser auditables.**
+
+**S6 · Propuestas, auditada con dato:** 2,5 pantallas, 2 párrafos / 48 palabras,
+**0 desbordes**, los dos escenarios lado a lado y comparables. **Pasa la vara.**
+
+Hallazgo abierto en esa pantalla (F0): la cabecera publica **21.362** estudiantes
+elegibles y las fichas de la fórmula **21.365** — dos N para el mismo concepto en
+la misma pantalla. Queda encolado con su medición.
+
+Siguiente: **F16** — reconciliar el N de la fórmula con el de la cabecera, y
+seguir por S7 (CH requeridos y Distribución), que ya tienen dato.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
