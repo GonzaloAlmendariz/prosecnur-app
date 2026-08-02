@@ -39,7 +39,11 @@ export function AulasFinalesCard({
   /** Reactiva todos los apagados de esta facultad (claves en text_key). */
   onReactivarTodas: (clavesTextKey: string[]) => void;
 }) {
-  const [abierto, setAbierto] = useState(false);
+  // ADR 0057 · Este es el «mayor detalle, ver uno por uno» que cierra el embudo
+  // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
+  // click para ver la lista que la facultad acaba de producir —«si algo está
+  // oculto es un error de diseño»—. Con una facultad a la vez hay alto de sobra.
+  const [abierto, setAbierto] = useState(true);
   const [q, setQ] = useState("");
   const claves = useMemo(() => aulas.map((a) => a.classroomKey), [aulas]);
   const total = aulas.length;

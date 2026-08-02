@@ -2182,6 +2182,31 @@ Al mover los transversales revertí un primer intento que dejaba «Composición�
 **sin control en ningún sitio**: preferí revertir a commitear una regresión, y
 la segunda versión conserva el control moviéndolo, no borrándolo.
 
+### F52 — El destino del embudo deja de estar plegado
+
+Barrido de lo que queda plegado en curso-horario, ahora que el orden y el grano
+están bien. Tres hallazgos, y **sólo dos son defecto** —la distinción importa
+tanto como la reparación—:
+
+| plegado | veredicto |
+|---|---|
+| **«Cursos-horario del marco»** (50 px) | **defecto**: es el «mayor detalle, uno por uno» que cierra el embudo, su destino, y exigía un click. Abierto: 50 → **445 px** |
+| **«Prevalencia de elegibles»** activa | **defecto**: es una regla heredada que **recorta el marco**; plegada no es difícil de encontrar, es **invisible mientras opera**. Ahora se abre sola cuando está encendida |
+| «Ver todas (42 sin cursos en esta facultad)» | **no es defecto**: es un filtro declarado que dice qué contiene y cuántos. Abrir 42 filas vacías sería el ruido que el propio Gonzalo señaló al domar las 52 categorías |
+
+La regla que se deriva y queda en el ADR: **una opción inactiva no es contenido
+oculto; una regla activa sí lo es si está plegada.** El criterio no es si algo
+está cerrado, sino si algo que opera puede pasar desapercibido.
+
+Guard: `composicionReglaActiva.test.tsx`, con las dos mitades —activa abre,
+apagada queda contenida—, para que abrir siempre no se convierta en ruido
+permanente.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Vitest | 835 → **837** |
+
 ### Estado del loop
 
 | | |
