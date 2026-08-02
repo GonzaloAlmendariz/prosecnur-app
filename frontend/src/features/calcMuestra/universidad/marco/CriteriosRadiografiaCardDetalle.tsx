@@ -578,7 +578,11 @@ export function CriteriosRadiografiaCardDetalle({
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "cascada"} aria-labelledby={`crc-cascada-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
         <header><span>{numeroPaso("cascada")}</span><h5 id={`crc-cascada-${idSuffix}`}>Cuánto recorta este criterio</h5></header>
-        <p>Secuencia real del motor. No es la matriz marginal y no suma impactos entre criterios.</p>
+        {/* La distinción es real y hay que conservarla —aquí los criterios se
+            aplican en orden, uno sobre el resultado del anterior—, pero decirla
+            nombrando otra tabla por su nombre técnico obliga a conocer las dos
+            para entender ésta. */}
+        <p>Los criterios se aplican en orden, cada uno sobre lo que dejó el anterior.</p>
         <CriteriosEmbudoVivo cardId={card.cardId} executed={cascade} previewRequest={previewRequest} facultyKey={facultyKey} />
       </section>
 
