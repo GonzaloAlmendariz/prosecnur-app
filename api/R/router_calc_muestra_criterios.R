@@ -77,7 +77,7 @@ mount_calc_muestra_criterios <- function(pr) {
       if (!is.list(config)) {
         stop_api(
           400, "E_CALC_MUESTRA_CRITERIOS_PREVIEW_INPUT",
-          "config debe ser un objeto de configuracion de aulas."
+          "config debe ser un objeto de configuración de cursos-horario."
         )
       }
       preview <- calc_muestra_aulas_criterios_preview(
