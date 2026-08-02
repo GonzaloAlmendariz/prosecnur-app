@@ -127,7 +127,7 @@ describe("CriteriosRadiografiaConsola", () => {
     expect(riel.indexOf("Distribución")).toBeLessThan(riel.indexOf("Cuánto recorta"));
     expect(riel.indexOf("Cuánto recorta")).toBeLessThan(riel.indexOf("Comparación con 2025"));
     expect(riel.indexOf("Comparación con 2025")).toBeLessThan(riel.indexOf("Si lo quitara"));
-    expect(riel.indexOf("Impacto marginal")).toBeLessThan(riel.indexOf("Acción"));
+    expect(riel.indexOf("Si lo quitara")).toBeLessThan(riel.indexOf("Decidir"));
     expect(html).toContain('data-paso="distribucion"');
     expect(html).toContain('data-paso="accion"');
     // F41 · «Procedencia y contrato» —hash, owner, grano, unidad— es el contrato
@@ -139,7 +139,10 @@ describe("CriteriosRadiografiaConsola", () => {
     // duplicaba la tira quedó retirado; su información vive en el chip.
     expect(html).not.toContain("<select");
     expect(html).toContain('aria-label="Enfocar criterio"');
-    expect(html).toContain("Radiografía v2");
+    // ADR 0057 · «Radiografía v2» es la versión del contrato interno, no algo que
+    // el usuario pueda usar. Lo que sí necesita saber es sobre qué se calculó.
+    expect(html).not.toContain("Radiografía v2");
+    expect(html).toContain("Del marco ejecutado");
     expect(html).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-consola"');
     expect(html).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"');
     expect(html).toContain('aria-label="Radiografía en Ingeniería"');

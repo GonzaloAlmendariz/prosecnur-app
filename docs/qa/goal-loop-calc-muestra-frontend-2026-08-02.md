@@ -2377,6 +2377,42 @@ Verificado en la app: cero apariciones de la jerga anterior.
 pantalla. Ninguna de mis mediciones —altos, desbordes, conteos— podía revelar que
 tres bloques distintos estaban diciendo lo mismo con escalas distintas.
 
+### F57 — Numeración que se contradecía y las últimas etiquetas de sistema
+
+Segunda captura mirada, tres defectos más —y el primero lo introduje yo en F56—.
+
+**El riel decía «1 Cuánto recorta» y el contenido «2 Cuánto recorta este
+criterio».** Al retirar el paso «Distribución» del contexto de facultad, los
+números del encabezado seguían escritos a mano. Un número que no coincide con su
+propio índice hace dudar del resto de la pantalla: si esto está mal, ¿qué más?
+
+Reparado en la raíz: el número **sale del riel realmente visible**
+(`numeroPaso()`), no de una constante. Escrito a mano volvería a descuadrarse en
+cuanto un paso deje de mostrarse.
+
+**Etiquetas de sistema que quedaban**, con la regla del ADR aplicada:
+
+| antes | después |
+|---|---|
+| Radiografía v2 | **Del marco ejecutado** |
+| Ancla histórica | **Comparación con 2025** |
+| Impacto marginal | **Si quitara este criterio** |
+| Acción | **Decidir** |
+
+«Radiografía v2» es la versión del contrato interno: no es algo que el usuario
+pueda usar. Lo que sí necesita saber es sobre qué se calculó.
+
+| | |
+|---|---:|
+| Riel vs contenido | «1» vs «2» → **1 · 1** |
+| Jerga restante en pantalla | **0** |
+| Alto | **21,8 pantallas** |
+| Desbordes | **0** |
+| Vitest | **842** en 101 archivos |
+
+Dos capturas seguidas han encontrado más defectos que las últimas seis
+iteraciones de medición. Queda anotado como patrón 9 del ADR.
+
 ### Estado del loop
 
 | | |

@@ -665,7 +665,7 @@ describe("superficie I18b de criterios", () => {
     expect(classroomRoute).toContain('data-context="faculty"');
     expect(classroomRoute).toContain('role="img"');
     expect(classroomRoute).toContain("Qué queda después de cada criterio");
-    expect(classroomRoute).toContain("Ancla histórica");
+    expect(classroomRoute).toContain("Comparación con 2025");
     expect(classroomRoute).toContain('data-match-level="exacta"');
     expect(classroomRoute.indexOf('aria-label="Radiografía de session_type en Ingeniería"')).toBeLessThan(
       classroomRoute.indexOf('aria-label="session_type en Ingeniería"'),
