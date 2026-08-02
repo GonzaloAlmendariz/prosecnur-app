@@ -2258,6 +2258,43 @@ la otra.
 | Desbordes | **0** |
 | Vitest | 837 → **840** en 101 archivos |
 
+### F54 — El eje mentía: marcas que no estaban sobre los datos
+
+Segunda mitad de la regla 3, y sale del mismo tipo de medición que F53. Con las
+cajas ya igualadas a 260 px, quedaba comprobar si el eje **estaba encima de
+ellas**:
+
+| | medido |
+|---|---|
+| Eje | x = **159** |
+| Cajas | x = **644, 653, 693, 637, 642** — cada una en su columna del grid |
+| Desalineadas | **5 de 5** |
+
+Un eje único no puede alinear con cajas repartidas en columnas. Y unas marcas que
+no están sobre los datos **son decoración con aspecto de precisión** —peor que no
+tener eje—, porque invitan a leer un valor que no corresponde.
+
+**Reparado en dos piezas, cada una donde sirve:**
+
+- La **escala se declara en palabras**, una vez por criterio, con sus extremos y
+  su unidad: «Escala común del criterio: 17,8 a 43 alumnos elegibles por
+  curso-horario. Todas las cajas se dibujan sobre ella, así que se pueden
+  comparar entre sí».
+- Los **extremos viajan pegados a cada caja**, con su mismo ancho, alineados por
+  construcción.
+
+| | antes → después |
+|---|---:|
+| Cajas con su escala alineada | 0 de 13 | **13 de 13** |
+| Desalineadas | 5 de 5 medidas | **0** |
+| Desbordes | 0 | **0** |
+| Vitest | 840 → **841** |
+
+**Las dos iteraciones juntas (F53 y F54) son la regla 3 completa**: primero que
+todas las cajas compartan ancho —si no, el dominio común no significa nada—, y
+después que su escala esté donde se lee. Ninguna de las dos se detecta con tests
+unitarios: la lógica del dominio estaba bien desde el principio.
+
 ### Estado del loop
 
 | | |

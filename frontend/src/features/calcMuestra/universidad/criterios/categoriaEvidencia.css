@@ -149,3 +149,22 @@
   color: var(--pulso-text-muted);
   font-style: italic;
 }
+
+/* Extremos de la escala pegados a la caja: alineados por construcción. */
+.cmv2-cat-escala {
+  display: flex;
+  justify-content: space-between;
+  width: var(--cmv2-cat-escala);
+  max-width: 100%;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: -2px;
+}
+.cmv2-cat-escala-nota {
+  margin: 2px 0 6px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  line-height: 1.45;
+}
+.cmv2-cat-escala-nota strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
