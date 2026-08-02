@@ -52,7 +52,7 @@ export function CriteriosEmbudoVivo({
   const previewState = useCascadePreview(previewRequest);
   const cascade = previewState?.status === "ready" ? previewState.data : executed;
   const firstIndex = cascade?.steps.findIndex((step) => step.card_id === cardId) ?? -1;
-  const downstream = firstIndex >= 0 ? cascade!.steps.slice(firstIndex) : [];
+  const siguientes = firstIndex >= 0 ? cascade!.steps.slice(firstIndex) : [];
 
   if (!cascade) {
     return (
@@ -73,13 +73,13 @@ export function CriteriosEmbudoVivo({
         <span>{cascade.momento === "borrador_no_persistido" ? "Borrador no persistido" : "Marco ejecutado"}</span>
       </header>
       {previewState?.status === "loading" ? (
-        <p className="cmv2-i18b-cascade-state" role="status">Actualizando el downstream con el borrador…</p>
+        <p className="cmv2-i18b-cascade-state" role="status">Recalculando lo que queda después de este criterio…</p>
       ) : previewState?.status === "stale" || previewState?.status === "error" ? (
         <p className="cmv2-i18b-cascade-state" role="alert" data-state={previewState.status}>
           {previewState.message} Se conserva visible la última cascada ejecutada.
         </p>
       ) : null}
-      {!downstream.length ? (
+      {!siguientes.length ? (
         <p className="cmv2-i18b-cascade-state" role="status">
           El motor no publicó un paso para esta tarjeta dentro de la cascada vigente.
         </p>
@@ -89,7 +89,7 @@ export function CriteriosEmbudoVivo({
           data-qa-geometry-group="calc-muestra/criterios-cascada-pasos"
           data-qa-geometry-contract="intrinsic"
         >
-          {downstream.map((step) => (
+          {siguientes.map((step) => (
             <li
               key={`${step.order}:${step.criterion_id}`}
               data-current-card={step.card_id === cardId ? "true" : "false"}
@@ -108,7 +108,7 @@ export function CriteriosEmbudoVivo({
                     ? step.status === "aplicado"
                       ? "recorta el marco"
                       : "no está recortando"
-                    : "no afecta al denominador"}
+                    : "no quita cursos-horario"}
                 </small>
               </header>
               <div className="cmv2-i18b-cascade-table-wrap">

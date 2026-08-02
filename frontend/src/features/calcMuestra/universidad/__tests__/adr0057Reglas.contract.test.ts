@@ -37,6 +37,24 @@ const leer = (rel: string) =>
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "");
 
+/**
+ * Fuente sin comentarios **ni atributos `data-*`**.
+ *
+ * Los `data-surface-contract`, `data-qa-geometry-*` y compañía son contratos de
+ * máquina que las herramientas de QA leen por nombre: cambiarlos para que un
+ * guard de vocabulario pase en verde rompería esas herramientas sin mejorar una
+ * sola palabra de la pantalla.
+ */
+const leerCopy = (rel: string) =>
+  leer(rel)
+    .replace(/data-[a-z-]+="[^"]*"/g, "")
+    // Códigos del motor (`marginales_no_combinables`, `tipo_sesion_ausente_…`):
+    // literales en snake_case, sin espacios ni mayúsculas. Son valores de
+    // contrato que se comparan, no palabras que alguien lee. Traducirlos para
+    // que el guard pase en verde rompería la comparación sin cambiar la
+    // pantalla.
+    .replace(/"[a-z0-9_]+"/g, "");
+
 describe("ADR 0057 · regla 4 — la radiografía es de curso-horario, no de estudiante", () => {
   // «No es necesaria la radiografía [en criterios de estudiante]: la radiografía
   // es la descripción de alumnos elegibles por alguna característica de
@@ -160,6 +178,36 @@ describe("ADR 0057 · lenguaje y transparencia", () => {
     for (const archivo of vistas) {
       const textos = leer(archivo).match(/>[^<>{}]*\baulas?\b[^<>{}]*</gi) ?? [];
       expect(textos, `${archivo}: ${textos.join(" | ")}`).toHaveLength(0);
+    }
+  });
+
+  it("no se usa vocabulario de método sin traducir", () => {
+    // Términos exactos que no se entienden sin saberlos de antes. La advertencia
+    // que llevan detrás se conserva siempre —evita cruzar dimensiones o sumar
+    // columnas—; lo que cambia es que se dice en palabras del estudio.
+    const jerga = [
+      "marginal",
+      "no aditivos",
+      "denominador",
+      "downstream",
+      "Dato de R",
+      "Radiografía v2",
+    ];
+    const vistas = [
+      "marco/CriteriosEmbudoVivo.tsx",
+      "marco/MatrizEmbudoCriterios.tsx",
+      "marco/CriterioFacultadRadiografia.tsx",
+      "definicion/ReferenciaAsistenciaCard.tsx",
+    ];
+    // Se comprueba sobre el fuente sin comentarios: tras la traducción, estos
+    // términos no aparecen en estas vistas ni en código ni en copy. Una regla
+    // simple y comprobable vale más que una regex que intenta distinguir
+    // etiqueta de identificador y acaba cazando ambas.
+    for (const archivo of vistas) {
+      const fuente = leerCopy(archivo).toLowerCase();
+      for (const termino of jerga) {
+        expect(fuente, `${archivo} · ${termino}`).not.toContain(termino.toLowerCase());
+      }
     }
   });
 

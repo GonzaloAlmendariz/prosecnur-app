@@ -136,7 +136,7 @@ export function MatrizEmbudoCriterios({
                    · nivel del curso`). Con tres columnas empezando igual, lo que
                    las distingue quedaba cortado. La clave pasa al `title`, donde
                    sigue disponible para trazar sin ocupar el rótulo. */
-                <th key={column.criterion_id} scope="col" data-status={column.status} title={`${column.label} · gate ${column.card_id}`}>
+                <th key={column.criterion_id} scope="col" data-status={column.status} title={`Criterio ${column.label}`}>
                   <span>{column.label}</span>
                 </th>
               ))}
