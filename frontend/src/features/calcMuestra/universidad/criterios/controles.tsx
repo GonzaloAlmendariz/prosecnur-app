@@ -8,6 +8,7 @@ import type {
   CriterioSeleccion,
   CriterioVariable,
 } from "../../../../api/client";
+import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import {
   categoriaMarcada,
   clavesDeVariable,
@@ -22,6 +23,7 @@ import {
 } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { analizarEtiquetaCategoria, type EtiquetaCategoria } from "./etiquetaCategoria";
+import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "./CategoriaEvidencia";
 import { Switch, SwitchTri } from "./Switch";
 
 type SelChange = (next: CriterioSeleccion) => void;
@@ -63,6 +65,15 @@ function AccionesSet({ variable, onSel }: { variable: CriterioVariable; onSel: S
 
 /** flat: lista de categorías con switch + conteo (estudiantes o aulas según scope). */
 /** Lo que una categoría aporta al marco ejecutado, publicado por R. */
+/**
+ * ADR 0057 · Lo que una categoría necesita para poder decidirse.
+ *
+ * La unidad de decisión es la categoría, no el criterio: todo lo que hace falta
+ * para incluirla o excluirla viaja con ella y se muestra en su mismo
+ * contenedor. Antes esta información vivía repartida entre el conmutador, una
+ * consola de radiografía aparte y un embudo con su propio lenguaje, así que se
+ * elegía en una zona de la pantalla mirando otra.
+ */
 export type AporteCategoria = {
   /** Alumnos únicos elegibles del marco con esta categoría. */
   elegibles: number | null;
@@ -70,6 +81,14 @@ export type AporteCategoria = {
   ch: number | null;
   /** Cursos-horario totales con esta categoría (contraste). */
   chContraste: number | null;
+  /**
+   * Distribución de alumnos elegibles por curso-horario en esta categoría.
+   * La calcula R; React sólo la dibuja. Da el promedio, su forma y los
+   * cuantiles con los que se elige P25 o mediana.
+   */
+  distribucion?: CalcMuestraAulasCriterioRadiografiaV2Distribution | null;
+  /** Proporción 0–1 esperada de asistencia: convierte elegibles en presentes. */
+  tasaAsistencia?: number | null;
 };
 
 export function ControlFlat({
@@ -95,9 +114,12 @@ export function ControlFlat({
   const unidad = unidadCriterio(variable);
   // Lista larga → fluye en varias columnas dentro de la tarjeta ancha.
   const long = cats.length >= 8;
+  // ADR 0057, regla 3: la escala es del criterio, no de cada caja.
+  const dominio = dominioCategorias(cats.map((cat) => aporte?.(cat.key) ?? null));
   return (
     <div className="cmv2-crit-cats">
       <AccionesSet variable={variable} onSel={onSel} />
+      {dominio ? <EjeCategorias dominio={dominio} /> : null}
       {/* Sin contrato geométrico, y medido en los dos sentidos. Con
           `intrinsic` el comprobador reporta ~8,55 px de interior sin usar en
           CADA ítem: son el `min-height: 44px` de `.cmv2-crit-item` —el objetivo
@@ -164,12 +186,19 @@ export function ControlFlat({
               {(() => {
                 const dato = aporte?.(cat.key) ?? null;
                 if (!dato || (dato.elegibles === null && dato.ch === null)) return null;
-                return (
-                  <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
-                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
-                    {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
-                  </span>
-                );
+                // ADR 0057 · Una categoría con CH disponibles trae su evidencia
+                // completa aquí mismo: cifras, distribución sobre la escala del
+                // criterio, cuantiles y presentes esperados. Sin CH no hay nada
+                // que distribuir, así que basta la línea de cifras.
+                if (!dato.distribucion || !dominio) {
+                  return (
+                    <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
+                      {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
+                      {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
+                    </span>
+                  );
+                }
+                return <CategoriaEvidencia aporte={dato} dominio={dominio} />;
               })()}
               {variantes.length ? (
                 <span className="cmv2-crit-item-variants" title={variantes.join(" · ")}>
