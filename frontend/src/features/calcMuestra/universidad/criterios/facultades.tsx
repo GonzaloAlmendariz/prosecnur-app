@@ -4,7 +4,7 @@
  * Presentacionales; la lógica evaluable vive en el dominio.
  */
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import type {
   CriterioSeleccion,
   CriterioVariable,
@@ -122,117 +122,113 @@ export function ExcepcionesFacultad({
   facultades: FacultadRef[];
   onSel: (next: CriterioSeleccion) => void;
 }) {
-  const [abierto, setAbierto] = useState(false);
   const cats = categoriasDeVariable(variable);
   const exceptions = sel.exceptions ?? {};
   const entradas = Object.entries(exceptions);
-  const facByKey = new Map(facultades.map((f) => [f.key, f.label]));
 
-  // Estado del formulario de alta.
-  const [facSel, setFacSel] = useState("");
-  const [op, setOp] = useState<"add" | "replace">("add");
-  const [catsSel, setCatsSel] = useState<string[]>([]);
-
-  const disponibles = facultades.filter((f) => !(f.key in exceptions));
-
-  function agregar() {
-    if (!facSel || catsSel.length === 0) return;
-    onSel(upsertExcepcion(sel, facSel, { categories: catsSel, op }));
-    setFacSel("");
-    setCatsSel([]);
-    setOp("add");
-  }
+  // F24 · La decisión vive junto a la facultad, no en un formulario de alta.
+  //
+  // Medido: la superficie de criterios no decía «excepción» ni una vez, porque
+  // esto era un toggle cerrado que abría un alta genérica —elige facultad,
+  // elige operación, elige categorías—. Ese orden exige saber de antemano cuál
+  // facultad se desvía, que es justo lo que el usuario viene a averiguar. Ahora
+  // se listan **todas** las facultades con lo que cada una aplica, y ajustar es
+  // tocar su fila. La estructura persistida no cambia: sigue compilando a
+  // `exceptions[facKey]`.
+  const [ajustando, setAjustando] = useState<string | null>(null);
 
   if (!facultades.length) return null;
 
+  const globalLabels = (sel.categories ?? []).map(
+    (k) => cats.find((c) => c.key === k)?.label ?? k,
+  );
+
+  function alternarCategoria(facKey: string, catKey: string) {
+    const actual = exceptions[facKey];
+    const base = actual ? actual.categories : (sel.categories ?? []);
+    const next = base.includes(catKey)
+      ? base.filter((k) => k !== catKey)
+      : [...base, catKey];
+    // Sin categorías propias la facultad no queda vacía: vuelve al general.
+    if (!next.length) {
+      onSel(removeExcepcion(sel, facKey));
+      return;
+    }
+    onSel(upsertExcepcion(sel, facKey, { categories: next, op: "replace" }));
+  }
+
   return (
-    <div className="cmv2-crit-exc">
-      <button
-        type="button"
-        className="cmv2-crit-exc-toggle"
-        aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
-      >
-        Excepciones por facultad {entradas.length ? `(${entradas.length})` : ""}
-      </button>
-      {abierto && (
-        <div className="cmv2-crit-exc-body">
-          {entradas.length > 0 && (
-            <ul className="cmv2-crit-exc-list">
-              {entradas.map(([facKey, override]) => (
-                <li key={facKey} className="cmv2-crit-exc-item">
-                  <span className="cmv2-crit-exc-fac">{facByKey.get(facKey) ?? facKey}</span>
-                  <span className="cmv2-crit-exc-op">{override.op === "replace" ? "reemplaza por" : "añade"}</span>
-                  <span className="cmv2-crit-exc-cats">
-                    {override.categories
-                      .map((k) => cats.find((c) => c.key === k)?.label ?? k)
-                      .join(", ")}
-                  </span>
+    <div className="cmv2-crit-exc" data-grano="facultad">
+      <div className="cmv2-crit-exc-head">
+        <strong>Decisión por facultad</strong>
+        <small>
+          {entradas.length
+            ? `${entradas.length} de ${facultades.length} con criterio propio`
+            : `las ${facultades.length} aplican el criterio general`}
+        </small>
+      </div>
+      <ul className="cmv2-crit-exc-list">
+        {facultades.map((f) => {
+          const propio = exceptions[f.key];
+          const labels = propio
+            ? propio.categories.map((k) => cats.find((c) => c.key === k)?.label ?? k)
+            : globalLabels;
+          const abierta = ajustando === f.key;
+          return (
+            <li
+              key={f.key}
+              className="cmv2-crit-exc-item"
+              data-propio={propio ? "true" : "false"}
+            >
+              <div className="cmv2-crit-exc-fila">
+                <span className="cmv2-crit-exc-fac">{f.label}</span>
+                <span className="cmv2-crit-exc-cats">
+                  {labels.length ? labels.join(", ") : "sin categorías"}
+                </span>
+                <span className="cmv2-crit-exc-op">
+                  {propio ? "criterio propio" : "general"}
+                </span>
+                <button
+                  type="button"
+                  className="cmv2-crit-exc-ajustar"
+                  aria-expanded={abierta}
+                  onClick={() => setAjustando(abierta ? null : f.key)}
+                >
+                  {abierta ? "Listo" : "Ajustar"}
+                </button>
+                {propio && (
                   <button
                     type="button"
                     className="cmv2-crit-exc-remove"
-                    aria-label={`Quitar excepción de ${facByKey.get(facKey) ?? facKey}`}
-                    onClick={() => onSel(removeExcepcion(sel, facKey))}
+                    aria-label={`Devolver ${f.label} al criterio general`}
+                    onClick={() => onSel(removeExcepcion(sel, f.key))}
                   >
                     <X size={13} aria-hidden="true" />
                   </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {disponibles.length > 0 ? (
-            <div className="cmv2-crit-exc-form">
-              <select
-                className="cmv2-crit-from-select"
-                value={facSel}
-                onChange={(e) => setFacSel(e.target.value)}
-                aria-label="Facultad de la excepción"
-              >
-                <option value="">Facultad…</option>
-                {disponibles.map((f) => (
-                  <option key={f.key} value={f.key}>{f.label}</option>
-                ))}
-              </select>
-              <div className="cmv2-crit-seg" role="group" aria-label="Operación de la excepción">
-                <button type="button" className="cmv2-crit-seg-btn" aria-pressed={op === "add"} onClick={() => setOp("add")}>
-                  Añadir
-                </button>
-                <button type="button" className="cmv2-crit-seg-btn" aria-pressed={op === "replace"} onClick={() => setOp("replace")}>
-                  Reemplazar
-                </button>
+                )}
               </div>
-              <div className="cmv2-crit-exc-cats-pick">
-                {cats.map((cat) => {
-                  const on = catsSel.includes(cat.key);
-                  return (
-                    <button
-                      key={cat.key}
-                      type="button"
-                      className="cmv2-crit-chip"
-                      aria-pressed={on}
-                      onClick={() =>
-                        setCatsSel((prev) => (on ? prev.filter((k) => k !== cat.key) : [...prev, cat.key]))
-                      }
-                    >
-                      {cat.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                className="cmv2-crit-exc-add"
-                disabled={!facSel || catsSel.length === 0}
-                onClick={agregar}
-              >
-                <Plus size={13} aria-hidden="true" /> Agregar excepción
-              </button>
-            </div>
-          ) : (
-            <p className="cmv2-crit-empty-note">Todas las facultades ya tienen una excepción.</p>
-          )}
-        </div>
-      )}
+              {abierta && (
+                <div className="cmv2-crit-exc-cats-pick">
+                  {cats.map((cat) => {
+                    const on = (propio ? propio.categories : (sel.categories ?? [])).includes(cat.key);
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        className="cmv2-crit-chip"
+                        aria-pressed={on}
+                        onClick={() => alternarCategoria(f.key, cat.key)}
+                      >
+                        {cat.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

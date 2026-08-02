@@ -1265,6 +1265,44 @@ reaudita desde S1 con la vara más alta, y el grano por facultad es ahora parte
 de esa vara —un criterio que solo se puede decidir en general no pasa la prueba
 de la decisión—.
 
+### F24 — La decisión por facultad deja de ser un formulario (2026-08-02)
+
+**Corrección de una medición mía.** En F23 escribí que «excepción» aparecía 0
+veces en la superficie de criterios. Estaba midiendo `marco-ch-radiografia`,
+donde los criterios son numéricos y de compuerta; los categóricos viven en
+`marco-criterios-alumno`, y ahí el bloque sí renderizaba. El defecto era otro y
+peor, así que la conclusión de F23 se sostiene por una razón distinta a la que
+di.
+
+**El defecto real, leído en el código**: `ExcepcionesFacultad` era un *alta
+genérica* detrás de un toggle cerrado —elige facultad de un desplegable, elige
+operación, elige categorías, «Agregar excepción»—. Ese orden exige **saber de
+antemano qué facultad se desvía**, que es exactamente lo que el usuario viene a
+averiguar. La decisión no vivía junto a la facultad: vivía en un formulario.
+
+**Reparado**: se listan las **quince facultades**, cada una con lo que aplica, de
+dónde viene (general o criterio propio) y su control. Ajustar es tocar la fila y
+los chips se abren dentro de ella. Quedarse sin categorías devuelve la facultad
+al general en vez de dejarla vacía. La estructura persistida no cambia: sigue
+compilando a `exceptions[facKey]`, así que el motor no se entera.
+
+| | antes → después |
+|---|---:|
+| Facultades visibles por criterio | 0 (tras un toggle cerrado) → **15** |
+| Pasos para apartar una facultad | 4 (abrir · elegir facultad · elegir op · agregar) → **2** (Ajustar · tocar categoría) |
+| Alto de la pestaña | 5,6 → **5,7 pantallas** |
+| Desbordes | 0 → **0** |
+
+Trampa evitada de entrada: `.cmv2-crit-exc-item` seguía en `display:flex` y la
+fila pasó a tener dos hijos apilados. Dejarlo habría puesto los chips al costado
+con ancho colapsado —el mismo bug de `.cmv2-crc-signal` que costó 1.006
+desbordes—. Guard: `ExcepcionesFacultad.test.tsx`, tres casos.
+
+**Sigue abierto para el loop v2** lo que el frontend no puede resolver: `exceptions`
+transporta solo `categories`, así que **edad y ciclos siguen sin grano por
+facultad**. Extenderlo a `threshold` / `includeValues` / `fromValue` es trabajo
+de motor y normalizador, no de React.
+
 ### Cierre de la sesión
 
 | | |
@@ -1284,7 +1322,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F24 (grano por facultad en la tarjeta de criterio)**
+Siguiente, en orden: **F25 — reauditoría desde S1 con el grano por facultad ya en la vara**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
