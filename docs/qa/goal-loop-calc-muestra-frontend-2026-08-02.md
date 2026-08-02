@@ -1324,6 +1324,37 @@ Alto 5,7 pantallas y 0 desbordes, sin cambio. Los cinco criterios de S1 declaran
 ahora su grano, así que S1 pasa la vara nueva **con la deuda de motor nombrada
 en la propia superficie**.
 
+### F26 — Reauditoría de S2 y S3 con la vara del grano (2026-08-02)
+
+| superficie | alto | desbordes | filas por facultad | veredicto |
+|---|---:|---:|---:|---|
+| Alumnos por CH (S2) | 2,2 | 0 | 16 | **pasa** |
+| Cursos-horario: criterios + radiografía (S3) | 5,8 | 0 | 35 | pasa con reserva de alto |
+| Cobertura | 1,8 | 0 | 0 | pasa (no es superficie de criterio) |
+
+**El renombre pedido no tiene dónde aplicarse.** «Embudo» no aparece en pantalla
+en ninguna de las tres superficies: vive solo en el código —el componente
+`CriteriosEmbudoVivo` y el campo de contrato `matriz_embudo`—. El AI slop era
+interno, no visible; renombrar el campo es cambio de contrato y no se hace desde
+aquí.
+
+**Hallazgo**: los criterios de curso-horario son una implementación paralela
+(`CursosHorarioBaseGlobal`) que se quedó sin el grano por facultad aunque el
+contrato lo admite igual que en la tarjeta de estudiante. Se le dio el mismo
+trato que en F24/F25: `ExcepcionesFacultad` para los categóricos y declaración de
+grano para umbral y ordinal.
+
+**Rendimiento real, medido y no inflado**: en este instrumento las variables de
+CH no son categóricas, así que `ExcepcionesFacultad` no monta (0 bloques) y el
+efecto visible hoy es **una** declaración de grano. El control queda correcto
+para el estudio que sí traiga variables categóricas de CH; decirlo de otro modo
+sería vender cobertura que la medición no respalda.
+
+Reserva anotada para la próxima pasada: S3 mide **5,8 pantallas y 1.008
+palabras**, la superficie más pesada del módulo. No la toco en esta iteración
+porque reducirla sin perder el detalle por facultad —que es justo lo que Gonzalo
+exige— es un rediseño, no un recorte.
+
 ### Cierre de la sesión
 
 | | |
@@ -1343,7 +1374,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F26 — seguir la reauditoría por S2 y S3 con la vara del grano**
+Siguiente, en orden: **F27 — S3 (5,8 pantallas) sin perder el detalle por facultad**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
