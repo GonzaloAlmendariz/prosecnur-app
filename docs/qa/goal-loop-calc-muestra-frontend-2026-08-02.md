@@ -2295,6 +2295,41 @@ todas las cajas compartan ancho —si no, el dominio común no significa nada—
 después que su escala esté donde se lee. Ninguna de las dos se detecta con tests
 unitarios: la lógica del dominio estaba bien desde el principio.
 
+### F55 — Mi propia animación corrompía el dato
+
+El defecto más grave encontrado desde el ADR, y lo introduje yo al buscar
+«animaciones elegantes».
+
+Medido en la app: la barra del intercuartil renderizaba **3 px** con un ancho
+computado de **154,7 px**. La causa, leída en el estilo computado:
+`transform: matrix(0.02, 0, 0, 1, 0, -6)` — clavada en el primer fotograma de su
+propia animación, `scaleX(0.02)`.
+
+**El ancho de esa barra es el dato**: va de P25 a P75. Una animación que lo escala
+no produce un defecto decorativo, produce una **lectura corrupta** — el usuario ve
+un intercuartil que no existe. Con trece categorías midiendo entre 0 y 3 px, el
+gráfico entero decía que todas las distribuciones eran idénticas y planas.
+
+| | antes → después |
+|---|---:|
+| Ancho de las barras | 0–3 px (todas) | **155, 118, 73, 29, 51, 15, 7, 110, 2, 2, 139, 2, 72** |
+| Discrepancia entre el % declarado y el renderizado | 13 de 13 | **0** |
+
+**Regla que se deriva y queda vigilada**: nada que codifique un valor —ancho,
+alto, posición— se anima con `transform`. El movimiento entra por opacidad, que
+no puede mentir sobre una magnitud.
+
+Al escribir el guard repetí el patrón 6 del ADR —se disparó contra el comentario
+que cita el valor culpable, empujando a borrar la explicación—. Corregido con el
+lector sin comentarios, y anotado: el error reaparece **incluso recién
+documentado**, que es la mejor prueba de que los mecanismos valen más que las
+buenas intenciones.
+
+| | |
+|---|---:|
+| Vitest | 841 → **842** en 101 archivos |
+| Desbordes | **0** |
+
 ### Estado del loop
 
 | | |
