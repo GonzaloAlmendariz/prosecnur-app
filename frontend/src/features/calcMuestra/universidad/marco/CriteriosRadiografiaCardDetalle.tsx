@@ -543,7 +543,7 @@ export function CriteriosRadiografiaCardDetalle({
     >
       <header className="cmv2-crc-card-head">
         <div>
-          <span>{context === "faculty" ? `Radiografía de ${facultyLabel ?? "la facultad"}` : card.scope === "alumno" ? "Estudiante" : "Curso-horario"}</span>
+          <span>{context === "faculty" ? "Efecto de este criterio" : card.scope === "alumno" ? "Estudiante" : "Curso-horario"}</span>
           <h4>{card.label}</h4>
         </div>
         <span className="cmv2-crc-state" data-state={card.state}>{meta.label}</span>

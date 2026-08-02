@@ -2837,6 +2837,33 @@ quitó—, porque la coherencia sólo se prueba con los dos casos.
 | Vitest | 849 → **851** en 104 archivos |
 | Desbordes | **0** |
 
+### F70 — Dos cabeceras separadas por una preposición
+
+Siguiendo la reauditoría: el criterio mostraba dos secciones tituladas
+**«RADIOGRAFÍA EN Karina E Karina»** y **«RADIOGRAFÍA DE Karina E Karina»**.
+Leídas seguidas parecen la misma sección repetida; la única diferencia era una
+preposición.
+
+Cada bloque pasa a nombrarse por lo que muestra:
+
+| antes | después | qué contiene |
+|---|---|---|
+| «Radiografía **en** {facultad}» | **«Distribución por categoría»** | las categorías con sus cajas y cuantiles |
+| «Radiografía **de** {facultad}» | **«Efecto de este criterio»** | cuánto recorta, comparación con 2025, si lo quitara, decidir |
+
+Verificado: 7 y 7 en la pestaña, 0 apariciones de las anteriores.
+
+**Otro error de medición mío, el quinto de la sesión.** Mi primera comprobación
+dio 0 para ambas etiquetas nuevas y concluí que había roto el render. No era eso:
+el CSS aplica `text-transform: uppercase` y `innerText` devuelve el texto ya
+transformado, así que «Distribución por categoría» no casaba con
+«DISTRIBUCIÓN POR CATEGORÍA». Antes de tocar nada revisé la consola y el conteo
+de nodos —8 criterios, 13 cajas, intactos—, que es lo que evitó una reparación
+sobre un problema inexistente.
+
+Regla añadida a mi instrumento: **las búsquedas de copy van sin distinguir
+mayúsculas**, porque la superficie transforma el texto.
+
 ### Estado del loop
 
 | | |

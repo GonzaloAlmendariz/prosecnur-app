@@ -109,7 +109,11 @@ export function CriterioFacultadRadiografia({
       <section className="cmv2-crc-compact" data-state={card.state}>
         <header className="cmv2-crc-compact-head">
           <div>
-            <span>Radiografía en {facultyLabel}</span>
+            {/* Dos cabeceras decían «Radiografía EN Karina E Karina» y
+                «Radiografía DE Karina E Karina», distinguidas sólo por una
+                preposición: leídas seguidas, parecen la misma sección repetida.
+                Cada una se nombra por lo que muestra. */}
+            <span>Distribución por categoría</span>
             {/* «Dato de R» nombra de dónde sale el número, no qué es. */}
             <strong>Elegibles por curso-horario según {card.label.toLocaleLowerCase("es-PE")}</strong>
           </div>
