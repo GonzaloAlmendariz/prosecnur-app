@@ -3088,6 +3088,38 @@ verifica cada caso antes de tocar**; el peligro real es el contrario —el que n
 marca nada y da falsa tranquilidad—, como el barrido de vocabulario que sólo
 miraba `frontend/src`.
 
+### F78 — Los avisos de error eran los más crípticos de la pantalla
+
+Auditados los estados vacíos y de error, que hasta ahora sólo había visto de
+pasada. Y son **los que peor estaban**, precisamente donde más importa: aparecen
+cuando algo falta, y entonces el usuario menos puede permitirse descifrar
+vocabulario.
+
+| estado | antes | después |
+|---|---|---|
+| `invalido` | «Contrato inválido — La evidencia no pasa el contrato y no se reemplaza por ceros.» | **«No verificable — La evidencia no cumple las comprobaciones del motor, y no se rellena con ceros para disimularlo.»** |
+| `legacy` | «Resumen legacy — faltan denominadores o contrafactual completo.» | **«Evidencia incompleta — faltan las bases de cálculo o la comparación con el escenario sin este criterio.»** |
+| `v1` | «Radiografía v1 — Contrato I11 compatible para tipo de sesión.» | **«Formato anterior — Calculado con la versión previa; sólo cubre tipo de sesión.»** |
+| `sin_dato` | «El engine no publicó señal suficiente…» | **«El motor no encontró información suficiente…»** |
+| `no_aplica` | «Este gate no altera el marco ejecutado…» | **«Este criterio no cambia el marco con la configuración actual.»** |
+| vacío por facultad | «R publicó el gate, pero no hay un segmento estadístico visible…» | **«El motor calculó este criterio, pero no publicó ninguna categoría con datos para esta facultad.»** |
+
+Un aviso en jerga deja a alguien bloqueado **sin saber si el problema es suyo,
+del dato o de la app** — que es la peor situación posible en una superficie de
+error.
+
+**Lo que no se tocó**: la garantía de que no se rellenan ceros. Es lo que hace
+fiable la cifra de al lado, y el guard la exige explícitamente para que quitar
+jerga no se lleve la promesa por delante.
+
+Guard: `estadosSinJerga.test.ts`, con tres reglas —sin vocabulario de
+implementación, con la garantía intacta, y cada detalle diciendo algo más que su
+etiqueta—.
+
+| | |
+|---|---:|
+| Vitest | 856 → **859** en 106 archivos |
+
 ### Estado del loop
 
 | | |

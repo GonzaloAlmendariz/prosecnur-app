@@ -60,13 +60,25 @@ import "./criteriosRadiografia.css";
 
 const NUMBER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
 
+/**
+ * ADR 0057 · Los estados se explican en palabras del estudio.
+ *
+ * Estos textos aparecen **cuando algo falta**, que es justo cuando el usuario
+ * menos puede permitirse descifrar vocabulario: «R publicó el gate», «contrato
+ * I11», «resumen legacy», «contrafactual». Un aviso de error escrito en jerga
+ * deja a alguien bloqueado sin saber si el problema es suyo, del dato o de la
+ * app.
+ *
+ * Se conserva íntegra la garantía que cada uno da —sobre todo la de que no se
+ * rellenan ceros—, porque es lo que hace fiable la cifra de al lado.
+ */
 export const CRITERIO_RADIOGRAFIA_STATE_COPY = {
   v2: { label: "Del marco ejecutado", detail: "Calculado sobre el último marco que se construyó." },
-  v1: { label: "Radiografía v1", detail: "Contrato I11 compatible para tipo de sesión." },
-  legacy: { label: "Resumen legacy", detail: "Hay evidencia histórica parcial; faltan denominadores o contrafactual completo." },
-  sin_dato: { label: "Sin dato", detail: "El engine no publicó señal suficiente para este criterio." },
-  no_aplica: { label: "No aplica", detail: "Este gate no altera el marco ejecutado en el estado actual." },
-  invalido: { label: "Contrato inválido", detail: "La evidencia no pasa el contrato y no se reemplaza por ceros." },
+  v1: { label: "Formato anterior", detail: "Calculado con la versión previa; sólo cubre tipo de sesión." },
+  legacy: { label: "Evidencia incompleta", detail: "Hay datos históricos parciales: faltan las bases de cálculo o la comparación con el escenario sin este criterio." },
+  sin_dato: { label: "Sin dato", detail: "El motor no encontró información suficiente para este criterio." },
+  no_aplica: { label: "No aplica", detail: "Este criterio no cambia el marco con la configuración actual." },
+  invalido: { label: "No verificable", detail: "La evidencia no cumple las comprobaciones del motor, y no se rellena con ceros para disimularlo." },
 } as const;
 
 const ACTION_COPY: Record<string, string> = {

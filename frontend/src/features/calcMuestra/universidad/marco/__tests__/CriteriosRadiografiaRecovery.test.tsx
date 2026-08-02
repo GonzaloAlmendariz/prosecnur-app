@@ -76,7 +76,12 @@ describe("CriteriosRadiografiaRecovery", () => {
       />,
     );
 
-    expect(html).toContain("Contrato inválido");
+    // ADR 0057 · Los estados de error se explican en palabras del estudio: son
+    // los que aparecen cuando algo falta, y ahí el usuario menos puede
+    // permitirse descifrar «contrato», «gate» o «contrafactual». La garantía de
+    // que no se rellenan ceros se conserva íntegra.
+    expect(html).toContain("No verificable");
+    // El detalle completo vive en el descriptor del estado; aquí basta la etiqueta.
     expect(html).toContain("El sibling de radiografía está presente");
     expect(html).not.toContain("Radiografía por facultad pendiente");
   });

@@ -342,6 +342,20 @@ prohíbe el literal `"NA"` como notación de ausencia. Lo que no se reconoce pas
 tal cual: un código nuevo del motor en pantalla es preferible a una etiqueta
 inventada que lo oculte.
 
+### 20 · Los estados de error son donde la jerga más daño hace
+
+Los avisos de estado —«Contrato inválido», «Resumen legacy», «R publicó el gate,
+pero no hay un segmento estadístico visible»— eran los textos más crípticos del
+módulo, y aparecen exactamente cuando algo falta: el momento en que el usuario
+menos puede permitirse descifrar vocabulario. Un aviso en jerga deja a alguien
+bloqueado sin saber si el problema es suyo, del dato o de la app.
+
+**Mecanismo**: los estados se auditan como copy de primera clase, no como
+mensajes técnicos de paso. El guard prohíbe vocabulario de implementación en
+etiqueta y detalle, **y exige que la garantía metodológica sobreviva** —«no se
+rellena con ceros»—, para que quitar jerga no se lleve la promesa que hace fiable
+la cifra de al lado.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
