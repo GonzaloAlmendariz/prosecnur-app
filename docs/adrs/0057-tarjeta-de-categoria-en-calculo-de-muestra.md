@@ -97,3 +97,17 @@ owner, grano, unidad— aparece en pantalla.
 - **Dato**: la lista de categorías de tipo de docente mezcla categorías con
   nombres de personas. Cada valor distinto se convierte en control sin
   distinguir qué es.
+
+  Investigado: el motor **ya separa** los roles `teacher` (nombre) y
+  `teacher_type` (categoría), con listas de alias distintas —«docente» a secas
+  mapea al nombre—. La mezcla no la produce el mapeo: **viene en la columna de
+  origen**. Y cuando el catálogo no publica distribución por facultad, no existe
+  ninguna señal que distinga una categoría real de un valor intruso, así que
+  filtrar exigiría una heurística que descartaría categorías legítimas.
+
+  **Dirección acordada con Gonzalo (2026-08-02)**: hace falta una superficie que
+  permita **mapear las categorías únicas** de las variables que conceptualmente
+  lo necesitan —pestaña propia después de Datos › Variables—, y que además
+  responda dónde vive mejor cada variable: en la base de estudiantes o en la de
+  curso-horario. Hoy esa pregunta no tiene dónde formularse, así que un catálogo
+  sucio sólo se descubre cuando ya se está decidiendo con él.
