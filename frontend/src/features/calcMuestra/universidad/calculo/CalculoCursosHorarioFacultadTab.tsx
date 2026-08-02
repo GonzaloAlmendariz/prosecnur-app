@@ -88,7 +88,7 @@ export function CalculoCursosHorarioFacultadTab({
           {marcoDesactualizado
             ? "Los criterios del marco cambiaron después del cálculo. Reconfirma Alumnos por CH y recalcula antes de publicar este plan."
             : frameHashVigente
-              ? "El resultado pertenece a otro frame. Reconfirma Alumnos por CH y recalcula antes de publicar este plan."
+              ? "El resultado pertenece a otro marco. Reconfirma Alumnos por CH y recalcula antes de publicar este plan."
               : "No existe un frame vigente que acredite este resultado. Reconstruye el marco y recalcula antes de publicar este plan."}
         </AvisoModulo>
       )}
@@ -131,7 +131,7 @@ export function CalculoCursosHorarioFacultadTab({
             </tbody>
           </table>
         </div>
-        <small className="cmv2-calc-diseno-nota">Frame firmado: {model.decision.frame_hash.slice(0, 12)} · confirmación {model.decision.confirmado_at}</small>
+        <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)} · confirmación {model.decision.confirmado_at}</small>
       </section>
 
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar cursos-horario requeridos" data-qa-geometry-member>

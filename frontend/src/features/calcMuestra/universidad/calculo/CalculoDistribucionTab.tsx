@@ -70,7 +70,7 @@ function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI1
         }
       : state.kind === "stale"
         ? {
-            title: "La distribución pertenece a otro frame",
+            title: "La distribución pertenece a otro marco",
             hint: "Reconfirma el marco vigente y recalcula ambas propuestas antes de leer cuotas o precisión.",
             icon: <RefreshCw size={20} aria-hidden="true" />,
           }
@@ -105,8 +105,8 @@ function AuditHeader({
   selection: CalculoDistribucionScenarioMeta;
 }) {
   const metrics = [
-    { label: "Población del frame", value: fmtInt(data.totals.population_frame_n) },
-    { label: "Población del diseño", value: fmtInt(data.totals.population_design_n) },
+    { label: "Estudiantes del marco", value: fmtInt(data.totals.population_frame_n) },
+    { label: "Estudiantes usados por el diseño", value: fmtInt(data.totals.population_design_n) },
     { label: "Cuota planificada", value: fmtInt(data.totals.sample_n) },
     { label: "Facultades", value: fmtInt(data.totals.faculty_n) },
   ];
@@ -134,7 +134,7 @@ function AuditHeader({
       </dl>
       <dl className="cmv2-dist-provenance" aria-label="Procedencia de la distribución">
         <div><dt>Calculado</dt><dd>{fmtDate(data.computed_at)}</dd></div>
-        <div><dt>Frame fuente</dt><dd title={data.source_frame_hash}>{fmtHash(data.source_frame_hash)}</dd></div>
+        <div><dt>Marco de origen</dt><dd title={data.source_frame_hash}>{fmtHash(data.source_frame_hash)}</dd></div>
         <div><dt>Población</dt><dd title={data.population_hash}>{fmtHash(data.population_hash)}</dd></div>
         <div><dt>Diseño</dt><dd title={data.design_hash}>{fmtHash(data.design_hash)}</dd></div>
         <div><dt>Grano</dt><dd>facultad efectiva × sexo</dd></div>
@@ -151,7 +151,7 @@ function CompositionTable({ data }: { data: CalcMuestraDistribucionUniversitaria
         <div>
           <span className="cmv2-dist-eyebrow">Composición</span>
           <h3>Población × cuota planificada por facultad y sexo</h3>
-          <p>La población del frame y la usada por el diseño viajan separadas; el redondeo de cada celda queda visible.</p>
+          <p>Los estudiantes del marco y los que usó el diseño viajan por separado; el redondeo de cada celda queda visible.</p>
         </div>
         <span className="cmv2-dist-count"><Table2 size={14} aria-hidden="true" /> {fmtInt(data.totals.sex_cell_n)} celdas</span>
       </header>
@@ -166,7 +166,7 @@ function CompositionTable({ data }: { data: CalcMuestraDistribucionUniversitaria
             <tr>
               <th>Facultad</th>
               <th>Sexo</th>
-              <th>Población frame</th>
+              <th>Estudiantes del marco</th>
               <th>Población diseño</th>
               <th>Cuota planificada</th>
               <th>Afijación cruda</th>
@@ -199,7 +199,7 @@ function CompositionTable({ data }: { data: CalcMuestraDistribucionUniversitaria
               <td>{fmtInt(data.totals.population_frame_n)}</td>
               <td>{fmtInt(data.totals.population_design_n)}</td>
               <td><strong>{fmtInt(data.totals.sample_n)}</strong></td>
-              <td colSpan={2}>Δ frame→diseño {fmtSignedInt(data.reconciliation.frame_design_delta)}</td>
+              <td colSpan={2}>Diferencia marco → diseño: {fmtSignedInt(data.reconciliation.frame_design_delta)} estudiantes</td>
             </tr>
           </tfoot>
         </table>

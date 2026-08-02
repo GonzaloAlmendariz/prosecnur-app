@@ -3019,6 +3019,42 @@ Los 24 restantes son nombres propios de pieza —«Alumnos por CH», «Mínimo d
 alumnos elegibles»—, que son los rótulos que Gonzalo usa y están en el contrato
 de navegación: renombrarlos es decisión suya, no barrido de vocabulario.
 
+### F76 — «frame» y «fallback»: la palabra del motor y la del programador
+
+Siguiendo el barrido de cifras sin unidad apareció otra familia: en Cálculo se
+leía **«Población del frame»**, **«Δ frame→diseño −2»** y **«no se aplicará
+ningún fallback en React»**.
+
+- **«frame»** es como el motor llama al marco. La app dice «marco» en todas
+  partes; convivían las dos en pestañas contiguas.
+- **«fallback en React»** describe una decisión de implementación. La garantía
+  —que la app no inventa un valor cuando el motor no lo publicó— es exactamente
+  la misma dicha sin exigir saber qué es un fallback.
+- **«Δ frame→diseño −2»** además no declaraba unidad: −2 ¿qué?
+
+| antes | después |
+|---|---|
+| Población del frame | **Estudiantes del marco** |
+| Población del diseño | **Estudiantes usados por el diseño** |
+| Δ frame→diseño −2 | **Diferencia marco → diseño: −2 estudiantes** |
+| Frame fuente · Frame firmado | **Marco de origen · Marco firmado** |
+| «no se aplicará ningún fallback en React» | **«React no rellenará ningún valor por su cuenta»** |
+| «pertenece a otro frame» ×3 | **«pertenece a otro marco»** |
+
+Verificado en las 18 superficies: **0 «frame», 0 «fallback»**.
+
+**El guard tropezó dos veces más con el patrón 13** —`denominador: "elegible"` y
+`frame_hash` son campos de contrato, no palabras que alguien lea— y exigir que
+cambien rompería el contrato sin mejorar la pantalla. Resuelto buscando
+construcciones inequívocamente de prosa: «el denominador», «otro frame», «del
+frame». **Tercera vez que este guard confunde identificador con copy**, y la
+solución que funciona no es afinar el extractor sino elegir mejor el término.
+
+| | |
+|---|---:|
+| Vitest | **856** en 105 archivos |
+| Desbordes | **0** |
+
 ### Estado del loop
 
 | | |

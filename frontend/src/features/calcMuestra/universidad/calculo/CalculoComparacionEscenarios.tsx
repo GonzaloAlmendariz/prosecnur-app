@@ -103,7 +103,7 @@ function ComparisonState({
         }
       : state.kind === "stale"
         ? {
-            title: "La comparación pertenece a otro frame",
+            title: "La comparación pertenece a otro marco",
             hint: "Reconfirma el marco vigente y recalcula P1 y P2.",
             icon: <RefreshCw size={20} aria-hidden="true" />,
           }
