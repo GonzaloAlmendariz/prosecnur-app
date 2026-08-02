@@ -2681,6 +2681,39 @@ mis capturas alcanzó.
 | Desbordes | **0** |
 | Vitest | 848 → **849** en 103 archivos |
 
+### F65 — El módulo entero, y el cuarto falso positivo de mi detector
+
+Barrido final de las **18 superficies** en los dos viewports.
+
+| | 1440×1000 | 1024×600 |
+|---|---:|---:|
+| Desbordes reales | **0** | **0** |
+| Comas decimales | **0** | — |
+| Jerga de origen frontend | **0** | — |
+
+**Y el episodio que más enseña del tramo.** A 1024 aparecieron «10 desbordes» en
+Propuestas. Hice **tres intentos de reparación seguidos** —dar `min-width: 0` a
+la etapa, permitir `overflow-wrap`, levantar el `white-space: nowrap`— y ninguno
+movió el número.
+
+Sólo entonces medí el **mecanismo** en vez del efecto: el flujo es
+`data-orientacion="horizontal"` con `overflow-x: auto`. **Es una cinta que
+scrollea**, y su contenido es alcanzable por diseño. Mi detector marcaba como
+desborde algo que el usuario puede ver desplazándose.
+
+Los tres intentos quedaron revertidos: eran CSS especulativo que no arreglaba
+nada y habría quedado como deuda.
+
+**Cuarto falso positivo de mi propio instrumento** en la sesión —tras los SVG de
+Entrega, el alcance del panel y la sonda recortada—. El detector quedó corregido
+para ignorar lo que vive dentro de un contenedor deslizable, y con esa corrección
+el módulo da **0 desbordes reales**.
+
+La lección, que ya es patrón 2 del ADR, se confirma con un coste medible: **medir
+el efecto y no el mecanismo cuesta tres reparaciones inútiles**. Y hay un
+corolario nuevo: cuando dos intentos seguidos no mueven el número, el siguiente
+paso no es un tercer intento, es dudar de la medición.
+
 ### Estado del loop
 
 | | |

@@ -263,6 +263,16 @@ ninguna captura alcanzó: un `title` con «gate composition», un aviso con
 atributos `data-*` y sin literales en `snake_case`. Lo que queda es copy, y sobre
 copy la regla es absoluta.
 
+### 14 · Dos intentos fallidos seguidos significan que la medición está mal
+
+Un detector marcó «10 desbordes» en una cinta con `overflow-x: auto` —contenido
+alcanzable por diseño—. Antes de comprobarlo se hicieron **tres reparaciones de
+CSS**, ninguna movió el número, y todas hubo que revertirlas.
+
+**Mecanismo**: cuando dos intentos consecutivos no cambian la métrica, el
+siguiente paso no es un tercer intento sino dudar del instrumento. Los detectores
+de geometría ignoran lo que vive dentro de un contenedor deslizable.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
