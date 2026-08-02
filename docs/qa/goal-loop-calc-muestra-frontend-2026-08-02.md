@@ -1379,6 +1379,28 @@ encima del trabajo por facultad. Queda anotado con su medición, no ejecutado:
 tocarlo sin entender qué controles de ahí son imprescindibles repetiría el error
 que esta iteración acaba de evitar.
 
+### F28 — «Ajustes del marco» tampoco tiene grasa (2026-08-02)
+
+Medido el único candidato que quedaba de S3:
+
+| pieza | alto | palabras |
+|---|---:|---:|
+| Cabecera de sección | 73 px | 40 |
+| Aviso | 41 px | 32 |
+| **Rejilla de criterios (controles reales)** | **645 px** | 246 |
+
+De los 782 px, **645 son controles**; solo 114 px son cabecera y aviso. La prosa
+de toda la superficie son **122 palabras en 4 párrafos** sobre 5,8 pantallas.
+
+**Iteración sin reparación, y ese es su resultado.** S3 no tiene qué recortar:
+su alto es función del grano por facultad y de los controles que ese grano
+exige. Registrarlo importa tanto como una reparación, porque la próxima pasada
+llegará con la misma intuición —«5,8 pantallas es mucho»— y aquí está la
+evidencia de que atacarla rompería el entregable.
+
+Con esto **S1, S2 y S3 pasan la vara del grano** y la reauditoría queda al día
+hasta S4.
+
 ### Cierre de la sesión
 
 | | |
@@ -1398,7 +1420,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F28 — «Ajustes del marco» (782 px / 318 palabras), el único candidato medido de S3**
+Siguiente, en orden: **F29 — reauditoría de S4 con la vara del grano**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
