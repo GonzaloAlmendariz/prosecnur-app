@@ -426,46 +426,6 @@ export function CursosHorarioMarcoTab({
               reconstruyendo={reconstruyendo}
             />
           ) : null}
-          <section
-            id="cmv2-chfp-global-adjustments"
-            className="cmv2-chfp-global"
-            aria-label="Ajustes globales del marco"
-          >
-            <header className="cmv2-chfp-section-head">
-              <span className="cmv2-chfp-section-icon" aria-hidden="true">
-                <Building2 size={18} />
-              </span>
-              <div className="cmv2-chfp-section-copy">
-                <h3>Ajustes del marco</h3>
-                <p>Transversales a todas las facultades: el mínimo general de elegibles (cada facultad lo ajusta abajo), la tasa de asistencia y la composición del aula. Los criterios de tipo, condición, nivel, docente y modalidad se deciden por facultad.</p>
-              </div>
-            </header>
-            {dti ? (
-              <AvisoModulo tone="info" compact role="note">
-                Tu base trae el tipo de curso <strong>agrupado por DTI</strong> («{dti.categoria}»): con esta base no se
-                puede separar teórico-práctico de teórico-laboratorio. La solicitud DTI 2026 (botón en Fuentes) pide el
-                dato desagregado.
-              </AvisoModulo>
-            ) : null}
-            <CursosHorarioBaseGlobal
-              aulaVariables={aula}
-              seleccion={borrador}
-              facultades={facRefs}
-              teacherTypeOrden={config.teacher_type_orden}
-              config={config}
-              soloAjustes
-              variablesPorFacultadIds={variablesPorFacultadIds}
-              onSelVariable={editarVariable}
-              onRango={(facultad, rangos) => {
-                const rangeVar = aula.find((v) => v.kind === "range");
-                editarRango(rangeVar?.id ?? "course_level", facultad, rangos);
-              }}
-              onTeacherTypeOrden={patchTeacherTypeOrden}
-              onUmbral={editarUmbral}
-              onTasa={editarTasa}
-              onPatchConfig={patchAulasConfig}
-            />
-          </section>
 
           {marcoPublicable ? (
             <section className="cmv2-chfp-facultades" aria-label="Decisión por facultad con su radiografía">
@@ -565,6 +525,56 @@ export function CursosHorarioMarcoTab({
                       onMinimoFacultad={editarMinimoFacultad}
                       onToggleAula={editarExclusionAula}
                       onReactivarAulas={reactivarAulas}
+                      slotApertura={
+                        /* ADR 0057, regla 1 · Matriculados abre el embudo de la
+                           facultad. Vivía en una sección «transversales» encima
+                           de todo, que lo leía como criterio general y lo sacaba
+                           del orden. Su valor sigue siendo común —el contrato no
+                           admite umbral por facultad— y la propia tarjeta lo
+                           dice. */
+                        <CursosHorarioBaseGlobal
+                        piezas="apertura"
+                        aulaVariables={aula}
+                        seleccion={borrador}
+                        facultades={facRefs}
+                        teacherTypeOrden={config.teacher_type_orden}
+                        config={config}
+                        soloAjustes
+                        variablesPorFacultadIds={variablesPorFacultadIds}
+                        onSelVariable={editarVariable}
+                        onRango={(facultad, rangos) => {
+                          const rangeVar = aula.find((v) => v.kind === "range");
+                          editarRango(rangeVar?.id ?? "course_level", facultad, rangos);
+                        }}
+                        onTeacherTypeOrden={patchTeacherTypeOrden}
+                        onUmbral={editarUmbral}
+                        onTasa={editarTasa}
+                        onPatchConfig={patchAulasConfig}
+            />
+                      }
+                      slotCierre={
+                        /* Mínimo de elegibles y composición: criterios 7 y 8,
+                           penúltimos, justo antes del mayor detalle. */
+                        <CursosHorarioBaseGlobal
+                        piezas="cierre"
+                        aulaVariables={aula}
+                        seleccion={borrador}
+                        facultades={facRefs}
+                        teacherTypeOrden={config.teacher_type_orden}
+                        config={config}
+                        soloAjustes
+                        variablesPorFacultadIds={variablesPorFacultadIds}
+                        onSelVariable={editarVariable}
+                        onRango={(facultad, rangos) => {
+                          const rangeVar = aula.find((v) => v.kind === "range");
+                          editarRango(rangeVar?.id ?? "course_level", facultad, rangos);
+                        }}
+                        onTeacherTypeOrden={patchTeacherTypeOrden}
+                        onUmbral={editarUmbral}
+                        onTasa={editarTasa}
+                        onPatchConfig={patchAulasConfig}
+            />
+                      }
                     />
                   ))}
                 </div>

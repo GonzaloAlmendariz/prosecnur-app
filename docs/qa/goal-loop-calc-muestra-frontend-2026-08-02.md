@@ -2135,6 +2135,53 @@ valores tienen presencia en el marco.
 | Vitest | 824 → **827** en 99 archivos |
 | Desbordes | **0** |
 
+### F51 — Las reglas dejan de vivir sólo en la prosa
+
+Gonzalo, en su mensaje: *«si todas esas indicaciones ya las tenías antes, ¿por
+qué sigues cometiendo los mismos errores y cómo los evitamos moving forward?»*.
+
+**La causa, sin adornos.** Las reglas estaban escritas —en el ADR y en este
+doc—, pero **nada las hacía cumplir**. Los tests de cada iteración confirman lo
+que se acaba de construir, no lo que está prohibido. Por eso montar la
+radiografía en la ruta de estudiante —contra una regla explícita, dicha dos
+veces— dejó **el gate entero en verde**. Y hay un segundo patrón: cada iteración
+se derivaba del último mensaje en vez del contrato acumulado, así que una regla
+de hace tres mensajes se caía sola.
+
+**El mecanismo**: `adr0057Reglas.contract.test.ts` vigila las reglas **por sí
+mismas**, sobre el fuente, con independencia de qué componente se toque:
+
+| Regla | Qué falla si se rompe |
+|---|---|
+| 4 · la radiografía es de curso-horario | `controles.tsx` no puede importar `CategoriaEvidencia`; y la contraparte: `FacultadCategoriaToggles.tsx` **debe** hacerlo |
+| 1 · no hay sección transversal | la pestaña no puede rotular «Ajustes del marco» ni «Transversales a todas las facultades»; y **debe** montar `slotApertura`/`slotCierre` |
+| 2 · la matriz pertenece al Panorama | su declaración debe preceder a los bloques de facultad |
+| 3 · eje común y visible | el dominio es parámetro obligatorio y `EjeCategorias` debe existir |
+| lenguaje y transparencia | ninguna superficie con `<details>`, «Procedencia y contrato» ni «trazabilidad completa» |
+
+Cada regla lleva la cita de Gonzalo que la origina, para que quien la lea sepa a
+qué se está comprometiendo.
+
+**El guard se autocorrigió en su primera corrida.** Falló contra los comentarios
+que documentan por qué se retiró «Procedencia y contrato». Un guard que se
+dispara con su propia documentación empuja a borrar la explicación para pasar en
+verde —peor que el defecto—, así que ahora lee el fuente sin comentarios: las
+reglas se vigilan sobre lo que se renderiza, y las razones se conservan escritas.
+
+**Las dos correcciones de esta iteración:**
+
+| | antes → después |
+|---|---:|
+| Boxplots en criterios de estudiante | 17 → **0** (regla 4) |
+| Boxplots en curso-horario | 13 → **13** |
+| Sección «Ajustes del marco · transversales» | presente → **retirada**; sus criterios se montan en el embudo de la facultad (matriculados abre, mínimo y composición cierran) |
+| Desbordes | **0** en ambas |
+| Vitest | 827 → **835** en 100 archivos |
+
+Al mover los transversales revertí un primer intento que dejaba «Composición»
+**sin control en ningún sitio**: preferí revertir a commitear una regresión, y
+la segunda versión conserva el control moviéndolo, no borrándolo.
+
 ### Estado del loop
 
 | | |

@@ -243,6 +243,7 @@ export function CursosHorarioBaseGlobal({
   teacherTypeOrden,
   config,
   soloAjustes = false,
+  piezas = "todas",
   variablesPorFacultadIds = [],
   onSelVariable,
   onRango,
@@ -260,6 +261,16 @@ export function CursosHorarioBaseGlobal({
   /** Solo los ajustes transversales del marco (mínimo general, tasa, composición
    *  c8) y las variables que no tienen un control equivalente por facultad. */
   soloAjustes?: boolean;
+  /**
+   * ADR 0057, regla 1 · Qué parte del bloque común se monta.
+   *
+   * Estos criterios no admiten override por facultad en el contrato vigente,
+   * pero presentarlos en una sección aparte rotulada «transversales» los hacía
+   * leer como criterios generales —que es lo que la regla 1 niega— y los sacaba
+   * del embudo. Se montan dentro del flujo de la facultad, en su posición:
+   * matriculados abre, mínimo y composición cierran antes del mayor detalle.
+   */
+  piezas?: "todas" | "apertura" | "cierre";
   /** Variables representadas por los controles de cada bloque de facultad. */
   variablesPorFacultadIds?: readonly string[];
   onSelVariable: (variableId: string, next: CriterioSeleccion) => void;
@@ -269,9 +280,10 @@ export function CursosHorarioBaseGlobal({
   onTasa: (tasa: number | null) => void;
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
 }) {
-  const variablesVisibles = soloAjustes
+  const comunes = soloAjustes
     ? aulaVariables.filter((variable) => !variablesPorFacultadIds.includes(variable.id))
     : aulaVariables;
+  const variablesVisibles = piezas === "cierre" ? [] : comunes;
   return (
     <div
       className="cmv2-crit-grid cmv2-chfp-global-grid"
@@ -290,13 +302,17 @@ export function CursosHorarioBaseGlobal({
             onTeacherTypeOrden={onTeacherTypeOrden}
           />
         ))}
-      <GlobalMinCard
-        seleccion={seleccion}
-        fallbackUmbral={config.min_elegibles_aula}
-        onUmbral={onUmbral}
-        onTasa={onTasa}
-      />
-      <CriterioComposicionCard config={config} onPatch={onPatchConfig} />
+      {piezas === "apertura" ? null : (
+        <>
+          <GlobalMinCard
+            seleccion={seleccion}
+            fallbackUmbral={config.min_elegibles_aula}
+            onUmbral={onUmbral}
+            onTasa={onTasa}
+          />
+          <CriterioComposicionCard config={config} onPatch={onPatchConfig} />
+        </>
+      )}
     </div>
   );
 }
