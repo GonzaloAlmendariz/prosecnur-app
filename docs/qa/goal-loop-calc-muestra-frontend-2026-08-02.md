@@ -345,7 +345,8 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Superficies del módulo pasadas por la vara | **0 de 23** | **3 de 23** (`marco-criterios-alumno`, `marco-ch-radiografia`, `marco-alumnos-ch`) | 23 de 23 |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **4 de 13** (S1, S2, S3, S4) + T1 aplicado en criterios | 13 + 6 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **4 de 13** (S1–S4) + T1 aplicado y **T6 cerrada** | 13 + 6 |
+| Elementos con desborde o ancho 0 a 1024×600 en Criterios | **1.006 / 987** | **0 / 0** | 0 |
 | Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
 | Gráficos comparables fuera de la radiografía de criterios | **0** | **16** tiras en Alumnos por CH sobre escala común con Total de referencia | todos |
 | Columnas que producen la decisión y no caben en el viewport | **1** («Valor elegido», tabla 1.331 px en 1.268 px) | **0** (tabla 1.268 px = contenedor) | 0 |
@@ -401,7 +402,7 @@ empieza por donde se decide y se termina por donde se entrega.
 | **T2** | Los gráficos comparan, en todo el módulo | S4 | parcial — hecho en la radiografía de criterios; falta el barrido de `marcoCharts`, Distribución, Simulación y el mapa |
 | **T3** | Cero prosa que no sea dato, en todo el módulo | S3 | **abierta** — 31 % en Criterios del estudiante; las reglas metodológicas compartidas se dicen una vez, no una por tarjeta |
 | **T4** | Instrumento y fixture honestos | invariante | El anonimizador debe reescribir base, config de criterios y catálogo a la vez, o negarse. Bloquea acreditar «por facultad» y el ancla histórica |
-| **T6** | La radiografía embebida es responsiva | S1/C4 | **inmediata** — 1.006 desbordes a 1024×600: sus rejillas asumen el ancho de la consola vieja y colapsan columnas a 0 px dentro de la tarjeta (medido en F8) |
+| **T6** | La radiografía embebida es responsiva | S1/C4 | **cerrada en F9** — causa real: el bloque de señal conservó `display: flex` al pasar a `<details>` y colapsaba su rejilla a 0 px. 1.006 → 0 desbordes |
 | **T5** | Lo que la evidencia pida | — | abierto |
 
 **La cola es el orden de trabajo, no el final del loop.** Ver «Numeración e
@@ -413,10 +414,10 @@ Gonzalo cierra.
 `73c60e08`); `F6` cerró **S2** (commit `80cb6391`). T1 queda aplicado en
 Criterios y sigue abierto para el resto del módulo.
 
-Siguiente iteración **`F9` (T6)**: la radiografía embebida es responsiva. F8
-midió 1.006 desbordes a 1024×600 dentro de la tarjeta del criterio; es efecto de
-haber movido la consola al interior de la tarjeta en F4 sin rehacer sus rejillas
-internas.
+Siguiente iteración **`F10` (S5)**: Población, Cursos-horario y Cobertura por la
+vara. Medido en la apertura: Cobertura publica «13.498 / 38.749» bajo «Alumnos
+por facultad» con la cabecera en 21.365/29.090 — tres denominadores para
+«alumnos» en una sola pantalla.
 
 ## Mecánica de cada iteración
 
@@ -726,8 +727,34 @@ columnas a 0 px dentro de la tarjeta. El `min-width: 160px` del boxplot ya se
 retiró (122 desbordes menos) y las rejillas de cuantiles pasaron a `auto-fit`.
 Lo que queda es un lote propio: **T6 · la radiografía embebida es responsiva**.
 
-Siguiente: **F9 (T6)** — cerrar el desborde de la radiografía embebida a
-1024×600, medido arriba.
+### F9 — La radiografía embebida es responsiva (T6, 2026-08-02) · **T6 cerrada**
+
+**El diagnóstico correcto era uno solo, no siete rejillas.** La hipótesis de F8
+era que las rejillas internas —`faculties` con `minmax(310px, 1fr)`,
+`snapshot-pair` a dos columnas fijas— no cabían en la tarjeta. Se pasaron todas
+al patrón `minmax(min(N, 100%), 1fr)` y **los 1.006 desbordes no se movieron**.
+
+Rastreando la cadena de un elemento con ancho 0 apareció la causa real: el
+bloque de **señal** pasó de `<div>` a `<details>` en F2 y conservó el
+`display: flex` de la fila que era antes. Su rejilla de cuantiles quedaba como
+ítem flex sin ancho intrínseco y **colapsaba a 0 px**, arrastrando a sus 987
+descendientes. Una línea de CSS.
+
+| medición | antes | después |
+|---|---:|---:|
+| Elementos con desborde a 1024×600 | **1.006** | **0** |
+| Elementos visibles con ancho 0 | **987** | **0** |
+| Desbordes a 1440×1000 | 0 | 0 |
+
+El paso al patrón `min()` se conserva: no era la causa, pero sí la protección
+para que la tarjeta pueda estrecharse sin volver a romperse.
+
+Gate: typecheck 0 errores · Vitest **799/799** · los dos viewports limpios.
+
+Siguiente: **F10 (S5)** — Población, Cursos-horario y Cobertura por la vara.
+Medido en la apertura: Cobertura publica «13.498 / 38.749» bajo el rótulo
+«Alumnos por facultad» mientras la cabecera marca 21.365 sobre 29.090 — tres
+denominadores para «alumnos» en una pantalla.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
