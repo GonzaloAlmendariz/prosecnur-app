@@ -2444,6 +2444,39 @@ de forma que parece un error.
 Tres capturas seguidas: tres tandas de defectos que ninguna medición numérica
 había encontrado.
 
+### F59 — Una unidad, un nombre (y el guard encontró lo que la vista no)
+
+Cuarta captura. La tarjeta final decía «646 aulas» y «aulas candidatas» en una
+superficie donde «cursos-horario» aparece **60 veces** bien escrito. Un sinónimo
+suelto obliga a preguntarse si nombra otra cosa —y en este módulo «aula» **sí fue
+otra cosa** en versiones anteriores, así que la duda es razonable—.
+
+Al convertir la regla en guard apareció lo interesante: **encontró dos casos que
+las capturas no mostraban** —«Mínimo de elegibles por aula» y «Elegibles por aula
+aquí»— y, tras corregirlos, un tercero: «Med/aula». Estaban fuera del scroll que
+yo había mirado.
+
+| | antes → después |
+|---|---:|
+| «aulas» en la superficie | 3 visibles + 3 ocultos al scroll | **0** |
+| «cursos-horario» | 60 | **61** |
+| Desbordes | **0** |
+| Vitest | 842 → **843** en 101 archivos |
+
+**Mirar y medir se complementan; ninguno basta.** Las capturas encontraron la
+duplicación de bloques y la jerga que las métricas no veían (F56–F58); el guard
+encontró las fugas de vocabulario que las capturas no alcanzaban. La conclusión
+para el ADR no es «mirar más», es **convertir cada regla en guard en cuanto se
+enuncia**, porque el guard recorre lo que el ojo no.
+
+### Nota sobre las etiquetas «Oscar 0831», «Elena 0931»
+
+La lista de cursos-horario los identifica con nombres de persona. **No es defecto
+del frontend**: la etiqueta sale de `course_name` y la app la muestra tal cual. Es
+el anonimizador otra vez —la misma raíz que el bug de categorías—, y refuerza la
+necesidad de la pestaña de mapeo que Gonzalo propuso: hoy un catálogo sucio sólo
+se descubre cuando ya se está decidiendo con él.
+
 ### Estado del loop
 
 | | |
