@@ -3055,6 +3055,39 @@ solución que funciona no es afinar el extractor sino elegir mejor el término.
 | Vitest | **856** en 105 archivos |
 | Desbordes | **0** |
 
+### F77 — Porcentajes sin base: dos reales entre muchos falsos positivos
+
+Último barrido de la familia: porcentajes cuya base no se declara. El detector
+marcó siete superficies, y **la mayoría eran falsos positivos míos**: Cobertura
+escribe «73,5% · 21.362 / 29.083» —la fracción está ahí, mi filtro no buscaba la
+barra— y τ **sí está definido** en Diseño («No todo curso-horario rinde completo:
+la tasa de rendimiento (τ) convierte encuestas objetivo en intentos»).
+
+Dos eran reales, y los dos por la misma razón: **el dato está bien, el rótulo no
+dice de qué es**.
+
+| dónde | antes | después |
+|---|---|---|
+| Ancla histórica | «Tasa · 69,8%» | **«Tasa de asistencia 2025»**, con `title` «Asistentes sobre matriculados en las celdas de referencia» |
+| Referencia τ | chip «τ actual · 53,0%» | **«Rendimiento actual (τ)»**, con `title` «proporción de encuestas completas por intento» |
+
+El símbolo τ **se conserva** —es el del compendio metodológico— pero acompañado
+de su nombre: un chip suelto obliga a buscar la definición en otro punto de la
+página. Y «k=142» pasa a declarar en su `title` que son celdas con dato.
+
+De paso cayó un último `"NA"`, en la coincidencia del ancla.
+
+| | |
+|---|---:|
+| Porcentajes sin base | 2 → **0** |
+| Vitest | **856** en 105 archivos |
+
+**Nota sobre el detector**: de siete superficies marcadas, cinco eran ruido de mi
+filtro. Un detector demasiado sensible cuesta tiempo pero **no produce daño si se
+verifica cada caso antes de tocar**; el peligro real es el contrario —el que no
+marca nada y da falsa tranquilidad—, como el barrido de vocabulario que sólo
+miraba `frontend/src`.
+
 ### Estado del loop
 
 | | |

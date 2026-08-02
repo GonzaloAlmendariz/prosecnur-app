@@ -113,7 +113,10 @@ describe("ReferenciaAsistenciaTau", () => {
     expect(html).toContain(
       'data-qa-geometry-group="calc-muestra/referencia-asistencia-tau"',
     );
-    expect(html).toContain("τ actual");
+    // Un chip con «τ» a secas obliga a buscar la definición en otro punto de la
+    // página. El símbolo se conserva —es el del compendio metodológico— junto a
+    // su nombre.
+    expect(html).toContain("Rendimiento actual (τ)");
     expect(html).toContain("72.0%");
     expect(html).toContain("Producto de referencia");
     expect(html).toContain("47.0%");
