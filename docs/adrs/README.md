@@ -129,5 +129,6 @@ identidad; no debe usarse como precedente para IDs nuevos.
 | [0054](0054-publicacion-manual-sin-firma-0-6-0.md) | Reemplazado por 0056 | 2026-07-31 | Excepción acotada a la 0.6.0: se publica a mano con los binarios del preview, sin firma ni updater, dejando intactos los gates del ADR 0048 |
 | [0056](0056-como-se-publica-prosecnur.md) | Aceptado | 2026-08-01 | Documento unico de publicacion: consolida 0048, 0053, 0054 y 0055; identidad de cinco superficies, serie 0.x, dos canales, sin firma de distribucion, Windows bloqueante con macOS best-effort y reuso de Quality por SHA |
 | [0055](0055-retiro-de-la-firma-de-distribucion.md) | Reemplazado por 0056 | 2026-08-01 | El canal stable deja de exigir firma de distribución y payloads de updater de macOS, que el repositorio no puede producir sin certificados; se publica por tag con instalables sin firmar y macOS por DMG |
+| [0057](0057-tarjeta-de-categoria-en-calculo-de-muestra.md) | Aceptada | 2026-08-02 | La unidad de decisión de Cálculo de muestra es la categoría de criterio: un contenedor por categoría con su control, CH, alumnos, boxplot con eje común, cuantiles, efecto en el embudo y tasa de asistencia, todo por facultad y dinámico a los criterios previos |
 
 Ver tambien la [guia arquitectonica canonica](../arquitectura-prosecnur.md).
