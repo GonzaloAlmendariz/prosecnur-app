@@ -345,7 +345,8 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Superficies del módulo pasadas por la vara | **0 de 23** | **3 de 23** (`marco-criterios-alumno`, `marco-ch-radiografia`, `marco-alumnos-ch`) | 23 de 23 |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **3 de 13** (S1, S2, S3) + T1 aplicado en criterios | 13 + 5 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **4 de 13** (S1, S2, S3, S4) + T1 aplicado en criterios | 13 + 6 |
+| Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
 | Gráficos comparables fuera de la radiografía de criterios | **0** | **16** tiras en Alumnos por CH sobre escala común con Total de referencia | todos |
 | Columnas que producen la decisión y no caben en el viewport | **1** («Valor elegido», tabla 1.331 px en 1.268 px) | **0** (tabla 1.268 px = contenedor) | 0 |
 | Unidades del loop sin commitear | **5** (F1–F5 en el árbol) | **0** (`73c60e08`, `80cb6391`) | 0 |
@@ -400,6 +401,7 @@ empieza por donde se decide y se termina por donde se entrega.
 | **T2** | Los gráficos comparan, en todo el módulo | S4 | parcial — hecho en la radiografía de criterios; falta el barrido de `marcoCharts`, Distribución, Simulación y el mapa |
 | **T3** | Cero prosa que no sea dato, en todo el módulo | S3 | **abierta** — 31 % en Criterios del estudiante; las reglas metodológicas compartidas se dicen una vez, no una por tarjeta |
 | **T4** | Instrumento y fixture honestos | invariante | El anonimizador debe reescribir base, config de criterios y catálogo a la vez, o negarse. Bloquea acreditar «por facultad» y el ancla histórica |
+| **T6** | La radiografía embebida es responsiva | S1/C4 | **inmediata** — 1.006 desbordes a 1024×600: sus rejillas asumen el ancho de la consola vieja y colapsan columnas a 0 px dentro de la tarjeta (medido en F8) |
 | **T5** | Lo que la evidencia pida | — | abierto |
 
 **La cola es el orden de trabajo, no el final del loop.** Ver «Numeración e
@@ -411,10 +413,10 @@ Gonzalo cierra.
 `73c60e08`); `F6` cerró **S2** (commit `80cb6391`). T1 queda aplicado en
 Criterios y sigue abierto para el resto del módulo.
 
-Siguiente iteración **`F8` (S4)**: Marco responde a lo que decido. El contrato R
-ya publica los tres —cascada al enfocar, hover-delta contrafactual y orden de
-recorte interrogable— y ninguno llega a la pantalla; están en el payload, no en
-la superficie.
+Siguiente iteración **`F9` (T6)**: la radiografía embebida es responsiva. F8
+midió 1.006 desbordes a 1024×600 dentro de la tarjeta del criterio; es efecto de
+haber movido la consola al interior de la tarjeta en F4 sin rehacer sus rejillas
+internas.
 
 ## Mecánica de cada iteración
 
@@ -689,9 +691,43 @@ Auditoría con el instrumento, una medición por hallazgo:
 Gate: typecheck 0 errores · Vitest **798/798** · 1440×1000 y 1024×600 sin
 scroll horizontal ni desbordes.
 
-Siguiente: **F8 (S4)** — Marco responde a lo que decido. El contrato R ya
-publica cascada al enfocar, hover-delta contrafactual y orden de recorte
-interrogable; ninguno de los tres llega a la pantalla.
+### F8 — El control decide contra el número correcto (S4/S5, 2026-08-02) · **S4 cerrada**
+
+**La auditoría cambió el lote.** S4 pedía «hover-delta contrafactual». Medido, la
+cascada al enfocar y el orden de recorte **ya llegaban** a la pantalla
+(`CriteriosEmbudoVivo` con su coordinador de preview). Lo que faltaba era peor
+que una animación:
+
+| hallazgo | medición |
+|---|---|
+| El conmutador que decide muestra el conteo del **catálogo**, anterior a todo criterio | PREGRADO marca «25.155 estudiantes»; R publica **20.879 alumnos únicos elegibles** y 2.799 CH para ese mismo segmento |
+| Una categoría con aporte nulo se ve igual que una que aporta todo | MAESTRIA marca «2.819 estudiantes» con aporte real **0 elegibles · 0 CH** |
+
+- Cada conmutador publica ahora, junto al conteo del catálogo —rotulado **«en la
+  base»**—, lo que esa categoría **aporta al marco ejecutado**: alumnos únicos
+  elegibles y CH, en color de acento, y atenuado cuando el aporte es cero.
+- El dato sale de la fila **Total que R recalcula por segmento**
+  (`criterios_totales`): React no suma facultades, que es justo lo que el
+  contrato prohíbe.
+- Guard: con aporte publicado la superficie muestra ambas cifras y marca
+  `data-aporta="cero"`; **sin** aporte no inventa nada.
+- **Regresión reparada dentro del lote:** el rótulo más largo («… en la base»)
+  dejó de caber en la columna `auto` del ítem y la etiqueta se solapaba con la
+  cifra. Ambas cifras bajan a su propia fila, alineadas entre sí — que además es
+  como se comparan. Solapes medidos después: **0**.
+
+Gate: typecheck 0 errores · Vitest **799/799** · 1440×1000 limpio.
+
+**Encolado con su medición (regla 4, no se detiene por alcance):** a **1024×600**
+la radiografía embebida en la tarjeta (efecto de F4) deja **1.006 elementos con
+desborde** — sus rejillas internas (`cmv2-crc-faculties` con `minmax(310px, 1fr)`,
+`snapshot-pair` a dos columnas) asumen el ancho de la consola vieja y colapsan
+columnas a 0 px dentro de la tarjeta. El `min-width: 160px` del boxplot ya se
+retiró (122 desbordes menos) y las rejillas de cuantiles pasaron a `auto-fit`.
+Lo que queda es un lote propio: **T6 · la radiografía embebida es responsiva**.
+
+Siguiente: **F9 (T6)** — cerrar el desborde de la radiografía embebida a
+1024×600, medido arriba.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 

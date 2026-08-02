@@ -80,7 +80,31 @@ export function useCriteriosRadiografiaInline({
     );
   };
 
-  return { cards, detalle, needsRecovery, model, invalid: i18b.invalid };
+  /**
+   * S4/S5 · Lo que una categoría aporta al **marco ejecutado**, publicado por R.
+   *
+   * El conmutador de cada categoría mostraba el conteo del catálogo —lo que hay
+   * en la base antes de aplicar nada— así que se decidía contra un número que
+   * no dice qué hace el criterio. Medido: PREGRADO marcaba «25.155 estudiantes»
+   * mientras el marco publica 20.879 alumnos únicos elegibles, y MAESTRIA
+   * marcaba «2.819» con aporte real 0.
+   *
+   * Devuelve la fila Total que R recalcula por segmento: no se suman facultades
+   * en React, que es justo lo que el contrato prohíbe.
+   */
+  const aporte = (cardId: string, segmentKey: string) => {
+    const fila = (i18b.totals?.rows ?? []).find(
+      (row) => row.card_id === cardId && row.segment_key === segmentKey,
+    );
+    if (!fila) return null;
+    return {
+      elegibles: fila.actual.n_estudiantes_unicos,
+      ch: fila.actual.n_ch,
+      chContraste: fila.contraste_total.n_ch,
+    };
+  };
+
+  return { cards, detalle, aporte, needsRecovery, model, invalid: i18b.invalid };
 }
 
 export function CriteriosRadiografiaConsola({

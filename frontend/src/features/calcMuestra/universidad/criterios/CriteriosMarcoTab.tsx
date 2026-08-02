@@ -458,6 +458,7 @@ export function CriteriosMarcoTab({
                     onConfirmar={() => confirmarVariable(variable.id, variable.kind)}
                     onDescartar={() => descartarVariable(variable.id, variable.kind)}
                     radiografia={radiografiaInline.detalle(variable.id)}
+                    aporte={(segmentKey) => radiografiaInline.aporte(variable.id, segmentKey)}
                   />
                 ))}
               </div>

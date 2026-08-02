@@ -13,6 +13,7 @@ import type {
   CriteriosSeleccionMarco,
 } from "../../../../api/client";
 import type { ReactNode } from "react";
+import type { AporteCategoria } from "./controles";
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import { resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
@@ -90,6 +91,7 @@ export function CriterioCard({
   sessionTypeDominante,
   onVerExplorador,
   radiografia,
+  aporte,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -122,6 +124,12 @@ export function CriterioCard({
    * criterio en una zona de la pantalla y se decidía en otra.
    */
   radiografia?: ReactNode;
+  /**
+   * S4/S5: lo que cada categoría aporta al marco ejecutado, según R. Sin esto
+   * el conmutador decide contra el conteo del catálogo, que es anterior a
+   * cualquier criterio.
+   */
+  aporte?: (segmentKey: string) => AporteCategoria | null;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
@@ -161,7 +169,7 @@ export function CriterioCard({
 
       <div className="cmv2-crit-card-body">
         {variable.id === "condicion_curso" ? <CondicionCursoAviso variable={variable} /> : null}
-        {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} />}
+        {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} aporte={aporte} />}
         {variable.kind === "hierarchical" && (
           <ControlHierarchical variable={variable} sel={sel} onSel={onSel} />
         )}
