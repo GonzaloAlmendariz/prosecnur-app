@@ -2477,11 +2477,33 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
 }
+/* S3 · La matriz cierra el recorrido: su resumen nombra lo que cierra y con
+   qué tamaño, en dos líneas legibles, en vez de un renglón que explicaba
+   cuándo abrirla. */
 .cmv2-chfp-transversal > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
   color: var(--pulso-text-muted);
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
   cursor: pointer;
+}
+
+.cmv2-chfp-transversal > summary > strong {
+  color: var(--pulso-text);
+}
+
+.cmv2-chfp-transversal > summary > span {
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-chfp-transversal[open] > summary {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cmv2-border);
 }
 .cmv2-chfp-transversal[open] > summary {
   color: var(--cmv2-accent-fg);

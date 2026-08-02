@@ -102,8 +102,12 @@ export function MatrizEmbudoCriterios({
               <th scope="col">Facultad</th>
               <th scope="col" className="cmv2-matriz-embudo-frame">Marco ejecutado</th>
               {matriz.columns.map((column) => (
-                <th key={column.criterion_id} scope="col" data-status={column.status}>
-                  <small>{column.card_id}</small>
+                /* Prueba del vocabulario: el encabezado publicaba la clave del
+                   gate en mayúsculas antes del nombre (`COMPOSITION Composición
+                   · nivel del curso`). Con tres columnas empezando igual, lo que
+                   las distingue quedaba cortado. La clave pasa al `title`, donde
+                   sigue disponible para trazar sin ocupar el rótulo. */
+                <th key={column.criterion_id} scope="col" data-status={column.status} title={`${column.label} · gate ${column.card_id}`}>
                   <span>{column.label}</span>
                 </th>
               ))}
