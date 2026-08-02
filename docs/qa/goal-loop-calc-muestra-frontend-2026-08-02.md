@@ -1886,6 +1886,30 @@ evitó convertir una superficie honesta en un defecto inventado.**
    preview», que no es lo que ocurrió —el motor pidió contexto transitorio—. El
    mensaje debe reflejar el código recibido y no una causa supuesta.
 
+### F46 — El aviso dice la causa real (2026-08-02)
+
+Reparada la deuda de frontend que dejó F45: ante un rechazo `stale`, la app
+sustituía el mensaje del motor por uno propio —«El marco cambió mientras se
+calculaba el preview»— que **no era lo que había pasado**.
+
+| | antes → después |
+|---|---|
+| Aviso en pantalla | «El marco cambió mientras se calculaba el preview» | **«El preview requiere el contexto transitorio del marco y criterios vigentes · E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE»** |
+| ¿Coincide con lo que respondió el motor? | no | **sí** |
+
+Verificado en la app con el instrumento sembrado: 7 avisos, todos con la causa
+real y ninguno con la inventada. Guard en `calcMuestraCriteriosI18b.test.ts`, que
+exige el texto del motor y prohíbe expresamente el sustituto.
+
+Quien lee un aviso inventado busca la causa donde no está: aquí habría ido a
+revisar por qué «cambió el marco» —que no cambió— en vez de ver que faltaba
+contexto transitorio en el motor. Es el mismo defecto que F34 encontró en la
+comparación, en otra superficie.
+
+**Queda, ya sólo del lado del motor**: el preview necesita el contexto
+transitorio del marco y los criterios vigentes; hoy responde 409 siempre, y por
+eso los gráficos no se actualizan aunque la UI los pida siete veces por cambio.
+
 ### F44 — El embudo no es activo (2026-08-02) · **CORREGIDA POR F45**
 
 Punto 5 de la dirección: «el embudo es activo y animado, si cambio un criterio
