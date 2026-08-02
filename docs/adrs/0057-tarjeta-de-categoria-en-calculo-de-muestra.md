@@ -356,6 +356,18 @@ etiqueta y detalle, **y exige que la garantía metodológica sobreviva** —«no
 rellena con ceros»—, para que quitar jerga no se lleve la promesa que hace fiable
 la cifra de al lado.
 
+### 21 · Una lista larga se mide en píxeles **y** en paradas de teclado
+
+La misma lista sin cota produjo dos defectos distintos: 39.899 px de contenido en
+una ventana de 360 —invisible salvo desplazándose 110 pantallas— y, en otra lista
+hermana, **646 paradas de tabulación** para pasarla con el teclado. Cada uno se
+detecta con un instrumento distinto y ninguno de los dos ve al otro.
+
+**Mecanismo**: toda lista que renderiza un control por fila se acota, declara su
+profundidad y ofrece una salida (búsqueda o «ver todos»). Se verifica en los dos
+ejes: alto del contenido frente a su ventana, y número de elementos enfocables de
+la superficie.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

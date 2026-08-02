@@ -3183,6 +3183,37 @@ Séptima vez que mi medición acusa al código sin razón, y **ninguna de las si
 llegó a producir una reparación equivocada**, porque en todas verifiqué el caso
 concreto antes de tocar. Ese es el hábito que vale, no la puntería del detector.
 
+### F81 — 740 paradas de tabulación en una sola pantalla
+
+Auditado el comportamiento con teclado de los controles nuevos. Ninguno queda
+fuera del orden de tabulación —eso estaba bien—, pero el conteo destapó algo que
+ninguna medición anterior podía ver:
+
+**740 paradas de tabulación en la superficie, 646 de ellas en la lista final de
+cursos-horario** —una por fila, cada una con su conmutador—. Para pasar de esa
+lista con el teclado hacían falta 646 pulsaciones de Tab.
+
+Es **el mismo defecto que F29 en otro eje**: allí una lista volcaba 39.899 px en
+una ventana de 360; aquí vuelca 646 controles en el recorrido de teclado. En los
+dos casos el contenido es «alcanzable»… si nadie usa el teclado y nadie mide el
+scroll.
+
+| | antes → después |
+|---|---:|
+| Paradas de tabulación | **740** | **135** |
+| Conmutadores | 667 | **61** |
+| Filas renderizadas | 646 | **40**, con «Ver todos» |
+| Alto | 21,8 → **22 pantallas** |
+
+La profundidad se declara con su salida —«Mostrando 40 de 646 · usa el buscador
+para llegar a uno concreto»— y el buscador de la cabecera llega a cualquier fila
+sin recorrerlas. Guard: `aulasFinalesTeclado.test.tsx`, con el caso de la lista
+que **sí** cabe para que el recorte no se vuelva permanente.
+
+| | |
+|---|---:|
+| Vitest | 862 → **865** en 108 archivos |
+
 ### Estado del loop
 
 | | |
