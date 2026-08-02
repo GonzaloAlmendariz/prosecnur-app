@@ -30,3 +30,13 @@ describe("didSexSeriesLabel", () => {
     expect(didSexSeriesLabel("Cohorte 2019")).toBe("Cohorte 2019");
   });
 });
+
+describe("sexSeriesLabel · hogar canónico", () => {
+  it("es la misma función que decide el color, no una copia", async () => {
+    // Etiqueta y color deben decidirse con el mismo criterio: si divergen,
+    // puede salir una barra rosa llamada «M». Por eso vive junto a
+    // `sexSeriesKind` y `didacticaCharts` sólo la reexporta.
+    const canonico = await import("../../sexoPalette");
+    expect(didSexSeriesLabel).toBe(canonico.sexSeriesLabel);
+  });
+});
