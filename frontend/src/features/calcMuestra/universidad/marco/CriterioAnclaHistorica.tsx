@@ -35,11 +35,15 @@ function facultyDimensionLabel(
 export function CriterioAnclaHistorica({
   cardId,
   rows,
+  facultyKey,
 }: {
   cardId: string;
   rows: CalcMuestraCriteriosAnchorRow[];
+  facultyKey?: string;
 }) {
-  const anchors = rows.filter((row) => row.card_id === cardId);
+  const anchors = rows.filter((row) => (
+    row.card_id === cardId && (!facultyKey || row.faculty_key === facultyKey)
+  ));
   if (!anchors.length) {
     return (
       <div className="cmv2-i18b-anchor-empty" role="status" data-state="sin_ancla">

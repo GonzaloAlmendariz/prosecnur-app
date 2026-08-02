@@ -1,0 +1,204 @@
+/* F1 integrado: la evidencia R vive dentro del criterio de una facultad. */
+.cmv2-crc-faculty-inline {
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.cmv2-crc-compact {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface) 94%, var(--cmv2-accent-soft));
+}
+
+.cmv2-crc-compact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-head > div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-head span,
+.cmv2-crc-compact-state {
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.cmv2-crc-compact-head strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-state {
+  flex: none;
+  padding: 3px 7px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--cmv2-accent-fg);
+  background: var(--pulso-surface);
+}
+
+.cmv2-crc-compact-segments {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-segment {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.cmv2-crc-compact-segment > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-segment > header strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-segment > header span {
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 8.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot {
+  gap: 0;
+  padding: 2px 4px;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot svg {
+  min-width: 0;
+  max-height: 30px;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot figcaption {
+  display: none;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot-empty {
+  min-height: 30px;
+  padding: 4px 6px;
+  font-size: 9px;
+}
+
+.cmv2-crc-compact-segment dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+}
+
+.cmv2-crc-compact-segment dl > div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-segment dt {
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-segment dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crc-compact-segment > p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 8.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-detail {
+  min-width: 0;
+}
+
+.cmv2-crc-compact-detail > summary {
+  width: fit-content;
+  color: var(--cmv2-accent-fg);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.cmv2-crc-compact-detail[open] > summary {
+  margin-bottom: 8px;
+}
+
+.cmv2-crc-card[data-context="faculty"] {
+  overflow: hidden;
+  border-color: var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-surface) 96%, var(--cmv2-accent-soft));
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-card-head {
+  background: color-mix(in srgb, var(--pulso-surface) 82%, var(--cmv2-accent-soft));
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-faculties {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-faculty {
+  padding: 9px;
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-step {
+  padding: 11px 12px;
+}
+
+@media (max-width: 1180px) {
+  .cmv2-crc-card[data-context="faculty"] .cmv2-crc-snapshot-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .cmv2-crc-compact-segments {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -11,6 +11,7 @@ import type {
   CalcMuestraCriteriosTotalRow,
   CalcMuestraCriteriosTotales,
 } from "../../../../api/calcMuestraCriteriosI18b";
+import { useId } from "react";
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import { CriterioAnclaHistorica } from "./CriterioAnclaHistorica";
 import { CriterioBoxplotPercentilar } from "./CriterioBoxplotPercentilar";
@@ -204,9 +205,17 @@ function Segment({ row }: { row: V2DisplayRow }) {
   );
 }
 
-function V2Distribution({ card, totals }: { card: CriterioRadiografiaCard; totals: CalcMuestraCriteriosTotales | null }) {
+function V2Distribution({
+  card,
+  totals,
+  includeTotal = true,
+}: {
+  card: CriterioRadiografiaCard;
+  totals: CalcMuestraCriteriosTotales | null;
+  includeTotal?: boolean;
+}) {
   const facultyRows = v2Rows(card);
-  const rTotals = totalRows(card, totals);
+  const rTotals = includeTotal ? totalRows(card, totals) : [];
   const groups = rowsByFaculty([...facultyRows, ...rTotals]);
   return (
     <div
@@ -235,7 +244,7 @@ function V2Distribution({ card, totals }: { card: CriterioRadiografiaCard; total
           </div>
         </section>
       ))}
-      {facultyRows.length > 0 && rTotals.length === 0 ? (
+      {includeTotal && facultyRows.length > 0 && rTotals.length === 0 ? (
         <section
           className="cmv2-crc-faculty cmv2-crc-total-empty"
           data-row-kind="total"
@@ -352,6 +361,9 @@ export function CriteriosRadiografiaCardDetalle({
   anchors = null,
   previewRequest = null,
   i18bComplete = false,
+  context = "standalone",
+  facultyKey,
+  facultyLabel,
 }: {
   card: CriterioRadiografiaCard;
   radiografia: CalcMuestraAulasCriteriosRadiografia | null;
@@ -360,7 +372,11 @@ export function CriteriosRadiografiaCardDetalle({
   anchors?: CalcMuestraCriteriosAnclasHistoricas | null;
   previewRequest?: CalcMuestraCriteriosPreviewInput | null;
   i18bComplete?: boolean;
+  context?: "standalone" | "faculty";
+  facultyKey?: string;
+  facultyLabel?: string;
 }) {
+  const instanceId = useId().replace(/:/g, "");
   const invalid = card.state === "invalido";
   const rows = invalid
     ? []
@@ -368,23 +384,28 @@ export function CriteriosRadiografiaCardDetalle({
   const v1Rows = invalid ? [] : card.v1Rows;
   const meta = CRITERIO_RADIOGRAFIA_STATE_COPY[card.state];
   const hasDistribution = rows.length > 0 || v1Rows.length > 0;
+  const idSuffix = `${card.cardId}-${context === "faculty" ? facultyKey ?? "facultad" : "global"}-${instanceId}`;
   return (
     <article
       className="cmv2-crc-card"
       data-card-id={card.cardId}
       data-gates={card.gateIds.length}
       data-state={card.state}
+      data-context={context}
       data-audit-ready={card.state === "v2" && i18bComplete}
       data-qa-geometry-group="calc-muestra/criterios-radiografia-pasos"
       data-qa-geometry-contract="intrinsic"
     >
       <header className="cmv2-crc-card-head">
-        <div><span>{card.scope === "alumno" ? "Estudiante" : "Curso-horario"}</span><h4>{card.label}</h4></div>
+        <div>
+          <span>{context === "faculty" ? `Radiografía de ${facultyLabel ?? "la facultad"}` : card.scope === "alumno" ? "Estudiante" : "Curso-horario"}</span>
+          <h4>{card.label}</h4>
+        </div>
         <span className="cmv2-crc-state" data-state={card.state}>{meta.label}</span>
       </header>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-dato-${card.cardId}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>1</span><h5 id={`crc-dato-${card.cardId}`}>Dato</h5></header>
+      <section className="cmv2-crc-step" aria-labelledby={`crc-dato-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>1</span><h5 id={`crc-dato-${idSuffix}`}>Dato</h5></header>
         <p>{meta.detail}</p>
         {radiografia ? (
           <dl className="cmv2-crc-root-meta">
@@ -397,32 +418,32 @@ export function CriteriosRadiografiaCardDetalle({
         ) : null}
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-dist-${card.cardId}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>2</span><h5 id={`crc-dist-${card.cardId}`}>Distribución</h5></header>
+      <section className="cmv2-crc-step" aria-labelledby={`crc-dist-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>2</span><h5 id={`crc-dist-${idSuffix}`}>Distribución</h5></header>
         <p>Boxplot percentilar P10–P90, media, denominadores y estadísticos publicados por R; NA permanece NA.</p>
-        {rows.length ? <V2Distribution card={card} totals={totals} /> : v1Rows.length ? <V1Distribution card={card} /> : <EmptyDistribution card={card} />}
+        {rows.length ? <V2Distribution card={card} totals={totals} includeTotal={context !== "faculty"} /> : v1Rows.length ? <V1Distribution card={card} /> : <EmptyDistribution card={card} />}
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-cascada-${card.cardId}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>3</span><h5 id={`crc-cascada-${card.cardId}`}>Cascada viva</h5></header>
+      <section className="cmv2-crc-step" aria-labelledby={`crc-cascada-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>3</span><h5 id={`crc-cascada-${idSuffix}`}>Cascada viva</h5></header>
         <p>Secuencia real del motor. No es la matriz marginal y no suma impactos entre criterios.</p>
-        <CriteriosEmbudoVivo cardId={card.cardId} executed={cascade} previewRequest={previewRequest} />
+        <CriteriosEmbudoVivo cardId={card.cardId} executed={cascade} previewRequest={previewRequest} facultyKey={facultyKey} />
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-ancla-${card.cardId}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>4</span><h5 id={`crc-ancla-${card.cardId}`}>Ancla histórica</h5></header>
+      <section className="cmv2-crc-step" aria-labelledby={`crc-ancla-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>4</span><h5 id={`crc-ancla-${idSuffix}`}>Ancla histórica</h5></header>
         <p>Coincidencia o degradación publicada por R; nunca combina marginales ni enlaza CH históricos.</p>
-        <CriterioAnclaHistorica cardId={card.cardId} rows={anchors?.rows ?? []} />
+        <CriterioAnclaHistorica cardId={card.cardId} rows={anchors?.rows ?? []} facultyKey={facultyKey} />
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-impacto-${card.cardId}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>5</span><h5 id={`crc-impacto-${card.cardId}`}>Impacto marginal</h5></header>
+      <section className="cmv2-crc-step" aria-labelledby={`crc-impacto-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>5</span><h5 id={`crc-impacto-${idSuffix}`}>Impacto marginal</h5></header>
         <p>Foto contrafactual por regla; no forma la cascada y sus deltas no son aditivos.</p>
         <ImpactoMarginal card={card} rows={rows} v1Rows={v1Rows} invalid={invalid} />
       </section>
 
-      <section className="cmv2-crc-step" aria-labelledby={`crc-accion-${card.cardId}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>6</span><h5 id={`crc-accion-${card.cardId}`}>Acción</h5></header>
+      <section className="cmv2-crc-step" aria-labelledby={`crc-accion-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
+        <header><span>6</span><h5 id={`crc-accion-${idSuffix}`}>Acción</h5></header>
         {rows.length ? (
           <ul className="cmv2-crc-actions">
             {rows.map(({ entry, row }) => (

@@ -241,7 +241,7 @@
   min-width: 0;
   padding: 9px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
 }
 
@@ -292,7 +292,7 @@
   align-content: start;
   padding: 10px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface-2);
 }
 
@@ -326,7 +326,7 @@
   min-width: 0;
   padding: 9px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
 }
 
@@ -356,7 +356,7 @@
   gap: 7px;
   min-width: 0;
   padding: 8px;
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
 }
 
@@ -420,7 +420,7 @@
   gap: 4px;
   padding: 14px;
   border: 1px dashed var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius);
   background: var(--pulso-surface-2);
 }
 
@@ -451,7 +451,7 @@
   gap: 4px 10px;
   padding: 8px 9px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
+  border-radius: var(--pulso-radius);
   color: var(--pulso-text);
   font-size: 11px;
 }

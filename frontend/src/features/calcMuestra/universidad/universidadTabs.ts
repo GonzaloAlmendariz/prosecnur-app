@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   normalizeCalcMuestraAlumnosPorCh,
   normalizeCalcMuestraAlumnosPorChDecision,
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraEstudio,
@@ -53,9 +54,10 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   "calculo-ajustes": "calculo-diseno",
   // Split de Marco (2026-07-15): "Criterios de inclusión" (marco-categorias,
   // que renderizaba ambos bloques) se partió en dos pestañas por el orden
-  // metodológico — primero el estudiante (elegibilidad), luego el aula con la
-  // radiografía integrada. El Explorador se absorbió en la segunda. Tabs
-  // guardados de los ids viejos aterrizan en su reemplazo.
+  // metodológico — primero el estudiante (elegibilidad), después la evidencia
+  // de alumnos por CH y finalmente el aula con la radiografía integrada. El
+  // Explorador se absorbió en la tercera. Tabs guardados de los ids viejos
+  // aterrizan en su reemplazo.
   "marco-criterios": "marco-criterios-alumno",
   "marco-categorias": "marco-criterios-alumno",
   "marco-explorador": "marco-ch-radiografia",
@@ -236,6 +238,13 @@ export function universitySidebarTabs({
   }
   if (activeSection === "marco") {
     const criteriosCatalogoReady = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null).variables.length > 0;
+    const criteriosRadiografia = normalizeCalcMuestraAulasCriteriosRadiografia(
+      aulasState?.frame?.criterios_radiografia ?? null,
+    );
+    const criteriosRadiografiaReady = Boolean(
+      criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2" &&
+      criteriosRadiografia.frame_hash === aulasState?.frame?.frame_hash,
+    );
     const alumnosPorChRaw = aulasState?.frame?.alumnos_por_ch ?? null;
     const alumnosPorChNormalizado = normalizeCalcMuestraAlumnosPorCh(alumnosPorChRaw);
     const alumnosPorCh = alumnosPorChNormalizado?.frame_hash === aulasState?.frame?.frame_hash
@@ -243,14 +252,14 @@ export function universitySidebarTabs({
       : null;
     const alumnosDecision = normalizeCalcMuestraAlumnosPorChDecision(workspace.aulas_config?.alumnos_por_ch_decision);
     const alumnosDecisionReady = alumnosPorChDecisionIsCurrent(alumnosPorCh, alumnosDecision);
-    const [criteriosTab, radiografiaTab, alumnosTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
+    const [criteriosTab, alumnosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
     return [
-      { ...criteriosTab, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame) },
-      // La radiografía es el contenido dominante de esta pestaña integrada, así
-      // que gatea con el marco descriptivo (igual que marco-aulas): sin frame no
-      // hay dónde perfilar los criterios de aula.
-      { ...radiografiaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...criteriosTab, status: guideStatus(criteriosCatalogoReady && criteriosRadiografiaReady, hasDescriptiveFrame) },
       { ...alumnosTab, status: guideStatus(alumnosDecisionReady, Boolean(alumnosPorCh || alumnosPorChRaw)) },
+      // La radiografía es el contenido dominante de esta pestaña integrada, así
+      // que solo queda lista cuando el contrato F1 v2 corresponde al frame. Un
+      // frame descriptivo legacy habilita su recuperación, pero no la acredita.
+      { ...radiografiaTab, status: guideStatus(criteriosRadiografiaReady, hasDescriptiveFrame || declaredSourcesReady || hasSource) },
       { ...poblacionTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...aulasTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...coberturaTab, status: guideStatus(effectiveMarcoReady) },
