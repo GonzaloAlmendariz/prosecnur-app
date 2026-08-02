@@ -68,10 +68,22 @@ describe("CategoriaEvidencia", () => {
     expect(html).toContain("sin distribución publicada");
   });
 
-  it("el eje se declara una vez y dice de qué es la escala", () => {
+  it("la escala se declara en palabras, con sus extremos y su unidad", () => {
+    // Antes dibujaba marcas que NO estaban encima de las cajas —eje en x=159,
+    // cajas en 637–693, cada una en su columna—. Unas marcas desalineadas son
+    // decoración con aspecto de precisión: peor que no tener eje. Los extremos
+    // viajan ahora pegados a cada caja, donde sí alinean.
     const html = renderToStaticMarkup(<EjeCategorias dominio={{ min: 10, max: 120 }} />);
-    expect(html).toContain("escala común del criterio");
+    expect(html).toContain("Escala común del criterio");
     expect(html).toContain("alumnos elegibles por curso-horario");
+    expect(html).toContain("10");
+    expect(html).toContain("120");
+  });
+
+  it("cada caja lleva los extremos de la escala pegados a ella", () => {
+    const dominio = dominioCategorias([aporte()])!;
+    const html = renderToStaticMarkup(<CategoriaEvidencia aporte={aporte()} dominio={dominio} />);
+    expect(html).toContain("cmv2-cat-escala");
   });
 });
 

@@ -50,15 +50,33 @@ const fmt = (v: number | null | undefined) =>
     ? v.toLocaleString("es-PE", { maximumFractionDigits: 1 })
     : "—";
 
-/** Eje del criterio: se declara una vez y vale para todas sus categorías. */
+/**
+ * Declaración de la escala del criterio.
+ *
+ * Antes esto dibujaba un eje con marcas — y **mentía**: medido en la app, el eje
+ * quedaba en x=159 y las cajas en 637–693, cada una en su columna del grid. Unas
+ * marcas que no están encima de los datos no se pueden leer contra ellos; son
+ * decoración con aspecto de precisión, que es peor que no tener eje.
+ *
+ * La escala se declara aquí una vez, en palabras, y las marcas viajan pegadas a
+ * cada caja, que es donde sí alinean.
+ */
 export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
-  const marcas = [dominio.min, (dominio.min + dominio.max) / 2, dominio.max];
   return (
-    <div className="cmv2-cat-eje" aria-hidden="true">
-      {marcas.map((marca, i) => (
-        <span key={i} style={{ left: `${pct(marca, dominio)}%` }}>{fmt(marca)}</span>
-      ))}
-      <small>alumnos elegibles por curso-horario · escala común del criterio</small>
+    <p className="cmv2-cat-escala-nota">
+      Escala común del criterio: <strong>{fmt(dominio.min)}</strong> a{" "}
+      <strong>{fmt(dominio.max)}</strong> alumnos elegibles por curso-horario.
+      Todas las cajas se dibujan sobre ella, así que se pueden comparar entre sí.
+    </p>
+  );
+}
+
+/** Extremos de la escala, bajo la caja y alineados con ella. */
+function EscalaCaja({ dominio }: { dominio: DominioCategorias }) {
+  return (
+    <div className="cmv2-cat-escala" aria-hidden="true">
+      <span>{fmt(dominio.min)}</span>
+      <span>{fmt(dominio.max)}</span>
     </div>
   );
 }
@@ -132,6 +150,7 @@ export function CategoriaEvidencia({
       {d && dominio ? (
         <>
           <Caja d={d} dominio={dominio} />
+          <EscalaCaja dominio={dominio} />
           <dl className="cmv2-cat-cuantiles">
             <div><dt>P10</dt><dd>{fmt(d.p10)}</dd></div>
             <div><dt>P25</dt><dd>{fmt(d.p25)}</dd></div>
