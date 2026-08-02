@@ -2025,6 +2025,39 @@ aparte y bloques vecinos que no se hablan.
 - La separación entre tarjeta de criterio y su radiografía (S1, F24).
 - Cualquier iteración futura que ajuste una de estas piezas por separado.
 
+### F48 — Primera pieza del rediseño: la tarjeta de categoría (ADR 0057)
+
+Escrito el **ADR 0057** y arrancado el rediseño por su pieza portante:
+`CategoriaEvidencia`, que reúne en un solo contenedor lo que ADR 0057 exige de
+cada categoría —CH, alumnos, media por CH, boxplot, cuantiles y presentes
+esperados con su tasa—.
+
+**Escala compartida por construcción.** `dominioCategorias()` calcula el dominio
+sobre **todas** las categorías del criterio y `EjeCategorias` lo declara una vez,
+con marcas visibles y la unidad escrita. Es la regla 3 del ADR resuelta en el
+tipo, no en el CSS: sin dominio no hay caja.
+
+**Animación con función.** La caja crece desde su P25 al aparecer y las cifras
+funden al recalcularse, para que se vea **cuál** cambió; nada se mueve por
+decorar, y `prefers-reduced-motion` lo apaga sin perder información.
+
+Guard: `CategoriaEvidencia.test.tsx`, seis casos, incluidos los dos que más veces
+se rompieron —una escala por criterio y no por caja; y no estimar presentes sin
+tasa ni dibujar caja sin distribución—.
+
+| | |
+|---|---:|
+| Ejes declarados en la superficie | **3** |
+| Cajas sobre escala común | **17** |
+| Desbordes | **0** |
+| Vitest | **820** en 97 archivos |
+
+**Dónde llegó y dónde falta.** La pieza está viva en la ruta que usa
+`ControlFlat` (criterios de estudiante). La ruta de curso-horario pasa por
+`CriterioFacultadCard`, que tiene su propio camino y **todavía no la consume**:
+es la siguiente iteración, y es la que importa según ADR 0057, porque allí es
+donde todos los criterios son por facultad.
+
 ### Estado del loop
 
 | | |

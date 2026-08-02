@@ -101,6 +101,10 @@ export function useCriteriosRadiografiaInline({
       elegibles: fila.actual.n_estudiantes_unicos,
       ch: fila.actual.n_ch,
       chContraste: fila.contraste_total.n_ch,
+      // ADR 0057 · La categoría decide con su distribución delante, no con una
+      // cifra suelta. La publica R en la misma fila de la radiografía; aquí
+      // sólo viaja hasta el conmutador que la usa.
+      distribucion: fila.actual.distribution ?? null,
     };
   };
 
