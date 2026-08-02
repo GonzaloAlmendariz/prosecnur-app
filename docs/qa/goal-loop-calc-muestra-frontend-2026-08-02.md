@@ -342,7 +342,7 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **11 de 23** (+ Propuestas, CH requeridos, Objetivo y Distribución) | 23 de 23 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **12 de 23** (+ Propuestas, CH requeridos, Objetivo, Distribución y Método) | 23 de 23 |
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
@@ -1099,6 +1099,42 @@ remedio.
 **Resultado: 5,1 → 2,8 pantallas** (2,2 en Sensibilidad), 0 desbordes.
 
 Ledger: superficies por la vara **10 → 11 de 23**.
+
+### F19 — Método, y el límite honesto de esta sesión (S9, 2026-08-02)
+
+**Método** (1,6 pantallas, 95 palabras) tenía **2 desbordes reales**: dentro del
+estado vacío compacto, el slot de 34×34 px reservado al icono lo heredaba
+cualquier hijo directo, y un `em` de 86 px desbordaba su caja. Corregido: los
+demás hijos ocupan la fila y pueden envolver. **Desbordes 2 → 0.** La narración
+de los cuatro métodos que I17 introdujo se conserva íntegra: es contenido, no
+paráfrasis.
+
+**Simulación y Selección no se pueden auditar todavía**, y la razón está
+medida: ambas publican «La evidencia almacenada no acredita la comparación
+vigente» — dependen de una corrida del comparador de métodos sobre el marco
+vigente, que no se ha ejecutado en este instrumento. No es un defecto de
+superficie: es el mismo principio de este loop, *auditar sobre pantallas vacías
+no es auditar*.
+
+**Estado del plan al cierre de la sesión:**
+
+| | |
+|---|---|
+| Superficies por la vara | **12 de 23** |
+| Lotes cerrados | **7 de 13** (S1–S7) + T1, T4 (instrumento), T6, T7 |
+| Pendientes con dato disponible | ninguno |
+| Pendientes que exigen una corrida previa | Simulación, Selección, Reemplazos, Sustento (comparador de métodos) |
+| Pendientes sin tocar | S12 Datos · S13 Entrega |
+
+Lo que la próxima visita debe hacer, en orden: correr el comparador de métodos
+sobre el instrumento para desbloquear **S10–S11**, auditar **S12–S13**, y
+versionar el guion de siembra para que el instrumento deje de vivir en el
+scratchpad.
+
+Y para el **loop v2**, dos hallazgos de contrato con evidencia en este doc: el
+`calcular` devuelve 200 con `resultado` vacío y deja componentes que él mismo
+rechaza después; y el contrato de Alumnos/CH y los estratos discrepan en qué
+hacer con una facultad de 0 CH elegibles.
 
 Siguiente, en orden: **S9–S11**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
