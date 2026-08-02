@@ -988,6 +988,22 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
       nivel_referencia_modal_aulas = as.integer(sum(stats$level_reference == "modal")),
       umbral_facultad = round(pct8fac, 4),
       umbral_nivel = round(pct8, 4)
+    ),
+    # Contexto EXCLUSIVAMENTE transitorio para construir el sibling agregado
+    # `criterios_radiografia`. No se adjunta al frame ni a la sesión: conserva
+    # las membresías alumno×CH solo hasta que el engine calcula los deltas y
+    # descarta ids/filas crudas antes de devolver el payload público.
+    radiografia_contexto = list(
+      filas = filas,
+      seleccion = seleccion,
+      catalog_signals = catalog_signals,
+      empty_bucket_cols = empty_bucket_cols,
+      min_eligible_fallback = .cm_criterios_min_eligible_efectivo(cfg),
+      aplica = aplica,
+      umbrales = list(c7 = pct7, c8_facultad = pct8fac, c8 = pct8),
+      evals = list(c7 = evals$c7, c8_facultad = evals$c8_facultad, c8 = evals$c8),
+      level_reference = stats$level_reference,
+      course_level_num = stats$course_level_num
     )
   )
 }

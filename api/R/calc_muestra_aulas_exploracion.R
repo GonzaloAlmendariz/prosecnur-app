@@ -376,7 +376,8 @@ calc_muestra_aulas_exploracion <- function(aula_frame, particularidades = NULL) 
     criterios = criterios,
     criterios_seleccion = out$criterios_seleccion,
     particularidades = out$particularidades,
-    frame_hash = out$frame_hash
+    frame_hash = out$frame_hash,
+    criterios_catalogo = out$criterios_catalogo
   )
   out
 }

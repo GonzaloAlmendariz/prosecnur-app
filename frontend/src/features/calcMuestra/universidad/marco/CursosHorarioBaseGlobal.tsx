@@ -230,6 +230,7 @@ export function CursosHorarioBaseGlobal({
   teacherTypeOrden,
   config,
   soloAjustes = false,
+  variablesPorFacultadIds = [],
   onSelVariable,
   onRango,
   onTeacherTypeOrden,
@@ -244,8 +245,10 @@ export function CursosHorarioBaseGlobal({
   teacherTypeOrden: string[] | undefined;
   config: CalcMuestraWorkspaceAulasConfig;
   /** Solo los ajustes transversales del marco (mínimo general, tasa, composición
-   *  c8); oculta los criterios de set/rango que ya se deciden por facultad. */
+   *  c8) y las variables que no tienen un control equivalente por facultad. */
   soloAjustes?: boolean;
+  /** Variables representadas por los controles de cada bloque de facultad. */
+  variablesPorFacultadIds?: readonly string[];
   onSelVariable: (variableId: string, next: CriterioSeleccion) => void;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
   onTeacherTypeOrden: (keys: string[]) => void;
@@ -253,14 +256,16 @@ export function CursosHorarioBaseGlobal({
   onTasa: (tasa: number | null) => void;
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
 }) {
+  const variablesVisibles = soloAjustes
+    ? aulaVariables.filter((variable) => !variablesPorFacultadIds.includes(variable.id))
+    : aulaVariables;
   return (
     <div
       className="cmv2-crit-grid cmv2-chfp-global-grid"
       data-qa-geometry-group="calc-muestra/criterios-ch-globales"
       data-qa-geometry-contract="intrinsic"
     >
-      {!soloAjustes &&
-        aulaVariables.map((variable) => (
+      {variablesVisibles.map((variable) => (
           <GlobalCriterioCard
             key={variable.id}
             variable={variable}

@@ -1280,6 +1280,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       classroom_id = classroom_id,
       student_id = student_id,
       level = level,
+      formation = formation,
+      condition = condition,
+      age = age,
       # Facultad del ESTUDIANTE por fila: insumo de faculty_match_share
       # (criterio 8, parte 1 — acuerdo 2026-07-15).
       faculty = faculty,
@@ -1287,7 +1290,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       course_level = course_level,
       condicion_curso = condicion_curso,
       campus = campus,
-      eligible_row = eligible_row
+      eligible_row = eligible_row,
+      row_base_ok = sid_ok & age_ok & condition_ok & level_ok & modality_ok &
+        session_ok & classroom_ok,
+      alumno_marco_ok = alumno_sel$marco_ok
     ),
     population = population,
     cfg = cfg,
