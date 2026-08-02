@@ -135,11 +135,16 @@ export function ParticularidadesPanel({
           <span className="cmv2-eyebrow">Particularidades del marco</span>
           <strong>Casos detectados para tu revisión manual</strong>
         </div>
-        <p className="cmv2-partic-lead">
-          La app solo detecta y muestra estas señales (reunión del diseño muestral): la decisión es
-          tuya y queda documentada. <strong>Las exclusiones se aplican al reconstruir el marco</strong>;
-          incluir o marcar como revisado solo documenta.
-        </p>
+        {/* S3: la regla de qué hace cada acción solo aplica cuando HAY casos que
+            decidir. Con el marco sin señales, el vacío ya dice lo suyo y esta
+            explicación ocupaba el hueco sin nada que explicar. */}
+        {haySenales ? (
+          <p className="cmv2-partic-lead">
+            La app solo detecta y muestra estas señales (reunión del diseño muestral): la decisión es
+            tuya y queda documentada. <strong>Las exclusiones se aplican al reconstruir el marco</strong>;
+            incluir o marcar como revisado solo documenta.
+          </p>
+        ) : null}
       </header>
 
       {!particularidades ? (
