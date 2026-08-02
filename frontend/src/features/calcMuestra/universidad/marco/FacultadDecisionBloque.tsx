@@ -27,6 +27,8 @@ import { rangosFacultad, seleccionVariable } from "../../dominio";
 import { aulasSupervivientesFacultad } from "../../dominio/criteriosImpacto";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
+import { evidenciaPorCategoria } from "../criterios/evidenciaPorCategoria";
+import { tasaAsistencia } from "../criterios/minElegiblesModel";
 import { Switch } from "../criterios/Switch";
 import { filasPorFacultad, SESSION_TYPE_VARIABLE_ID } from "../criterios/tipoSesionModel";
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
@@ -172,6 +174,7 @@ function CriterioFacultadCard({
             onSel={onSel}
             ariaLabel={`${variable.label} en ${facLabel}`}
             sinBarra={tieneRadiografia}
+            evidencia={evidenciaPorCategoria(radiografiaCard, excKey, tasaAsistencia(seleccion))}
           />
         </>
       ) : null}

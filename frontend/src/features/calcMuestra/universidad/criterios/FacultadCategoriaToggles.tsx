@@ -13,6 +13,8 @@ import type { CriterioSeleccion, CriterioVariable } from "../../../../api/client
 import { fmtInt, fmtPct } from "../../sharedCore";
 import { Switch } from "./Switch";
 import { heredarFacultad, toggleTipoEnFacultad, type FilaFacultad } from "./tipoSesionModel";
+import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "./CategoriaEvidencia";
+import type { AporteCategoria } from "./controles";
 
 /** A partir de tantas categorías se pliega el ruido (0 CH aquí y no activo). */
 const UMBRAL_PLEGADO = 8;
@@ -24,6 +26,7 @@ export function FacultadCategoriaToggles({
   onSel,
   ariaLabel,
   sinBarra = false,
+  evidencia,
 }: {
   /** Fila con las categorías de la facultad (CH/elegibles + activo efectivo). */
   fila: FilaFacultad;
@@ -35,6 +38,14 @@ export function FacultadCategoriaToggles({
   /** Oculta la mini-barra de proporción (cuando el criterio ya muestra su
    *  distribución en una tabla propia, p.ej. tipo de sesión): evita el % doble. */
   sinBarra?: boolean;
+  /**
+   * ADR 0057 · La evidencia de cada categoría, en su mismo contenedor.
+   *
+   * Devuelve CH, alumnos, distribución y tasa para una categoría de ESTA
+   * facultad. Sin ella el conmutador vuelve a decidirse contra una cifra suelta,
+   * que es lo que el ADR corrige.
+   */
+  evidencia?: (categoriaKey: string) => AporteCategoria | null;
 }) {
   const [verTodas, setVerTodas] = useState(false);
   // Domar listas largas (p.ej. condición del curso trae ~52 valores DTI, casi
@@ -47,6 +58,8 @@ export function FacultadCategoriaToggles({
   const ocultasN = fila.tipos.length - relevantes.length;
   const plegable = hayDistribucion && fila.tipos.length >= UMBRAL_PLEGADO && ocultasN > 0;
   const visibles = plegable && !verTodas ? relevantes : fila.tipos;
+  // Regla 3 del ADR: la escala es del criterio en esta facultad, no de cada caja.
+  const dominio = dominioCategorias(visibles.map((t) => evidencia?.(t.key) ?? null));
   return (
     <div className="cmv2-crit-tsf-detalle" role="group" aria-label={ariaLabel}>
       {!hayDistribucion ? (
@@ -54,6 +67,7 @@ export function FacultadCategoriaToggles({
           Sin distribución por facultad en el catálogo — marca las categorías que apliquen.
         </p>
       ) : null}
+      {dominio ? <EjeCategorias dominio={dominio} /> : null}
       <ul
         className="cmv2-crit-tsf-tipos"
         data-qa-geometry-group="calc-muestra/categorias-criterio-facultad"
@@ -85,6 +99,12 @@ export function FacultadCategoriaToggles({
                   <span className="cmv2-crit-item-pct">{fmtPct(pct)}</span>
                 </span>
               ) : null}
+              {(() => {
+                const dato = evidencia?.(t.key) ?? null;
+                return dato && dato.distribucion && dominio ? (
+                  <CategoriaEvidencia aporte={dato} dominio={dominio} />
+                ) : null;
+              })()}
               <span className="cmv2-crit-item-count">
                 {t.ch != null ? (
                   <>
