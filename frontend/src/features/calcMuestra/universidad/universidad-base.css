@@ -578,7 +578,14 @@
 
 .cmv2-profile-bars > div {
   display: grid;
-  grid-template-columns: minmax(180px, 0.86fr) minmax(180px, 1fr);
+  /* F37 · Los pisos de 180 px sumaban más que la columna que los aloja:
+     180 + 180 + 10 de gap + 20 de padding + 2 de borde = 392 px mínimos en una
+     columna lateral de 387. El desborde eran 5 px exactos, y arrastraba a los
+     tres ancestros —cuatro desbordes medidos, un solo defecto—. Sólo aparecía
+     con comparación acreditada, porque sin datos el gráfico no se dibuja: por
+     eso las pasadas anteriores lo daban por limpio. Con piso 0 la fila se
+     adapta a cualquier ancho y las proporciones las siguen fijando los `fr`. */
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
