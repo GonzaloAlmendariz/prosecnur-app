@@ -1303,6 +1303,27 @@ transporta solo `categories`, así que **edad y ciclos siguen sin grano por
 facultad**. Extenderlo a `threshold` / `includeValues` / `fromValue` es trabajo
 de motor y normalizador, no de React.
 
+### F25 — Reauditoría desde S1 con el grano en la vara (2026-08-02)
+
+La vara sube: **un criterio que solo se puede decidir en general no pasa la
+prueba de la decisión**. Primera pasada sobre S1 con esa regla:
+
+| criterio | grano |
+|---|---|
+| Formación · Condición de matrícula · Facultad | **por facultad** (15 filas cada uno) |
+| Edad · Ciclo o nivel curricular | **global**, por el tope de `exceptions` |
+
+Los dos globales no se pueden reparar desde React —el contrato no transporta
+`threshold` ni `includeValues` por facultad—, pero sí se puede dejar de
+aparentar. Ahora **lo declaran**: «aplica igual en las 15 facultades: el motor
+todavía no admite un umbral distinto por facultad». Callarlo los hacía parecer
+del mismo grano que los de arriba, y esa es la peor versión: no es que falte la
+capacidad, es que el usuario no sabía que faltaba.
+
+Alto 5,7 pantallas y 0 desbordes, sin cambio. Los cinco criterios de S1 declaran
+ahora su grano, así que S1 pasa la vara nueva **con la deuda de motor nombrada
+en la propia superficie**.
+
 ### Cierre de la sesión
 
 | | |
@@ -1322,7 +1343,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F25 — reauditoría desde S1 con el grano por facultad ya en la vara**
+Siguiente, en orden: **F26 — seguir la reauditoría por S2 y S3 con la vara del grano**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen

@@ -1982,3 +1982,12 @@
 .cmv2-crit-item-aporte[data-aporta="cero"] {
   color: var(--pulso-text-muted);
 }
+
+/* F25 · El grano del criterio se declara cuando no es por facultad. */
+.cmv2-crit-grano {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  line-height: 1.45;
+}
+.cmv2-crit-grano strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
