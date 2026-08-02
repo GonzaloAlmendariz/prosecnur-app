@@ -404,6 +404,7 @@ empieza por donde se decide y se termina por donde se entrega.
 | **T3** | Cero prosa que no sea dato, en todo el módulo | S3 | **abierta** — 31 % en Criterios del estudiante; las reglas metodológicas compartidas se dicen una vez, no una por tarjeta |
 | **T4** | Instrumento y fixture honestos | invariante | El anonimizador debe reescribir base, config de criterios y catálogo a la vez, o negarse. Bloquea acreditar «por facultad» y el ancla histórica |
 | **T6** | La radiografía embebida es responsiva | S1/C4 | **cerrada en F9** — causa real: el bloque de señal conservó `display: flex` al pasar a `<details>` y colapsaba su rejilla a 0 px. 1.006 → 0 desbordes |
+| **T7** | «Confirmar decisión» de Alumnos por CH persiste | invariante | **bloqueante** — el clic no emite ninguna petición; la decisión se guarda con los seis campos vacíos y el cálculo falla cerrado para siempre. Gatea Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos y Entrega |
 | **T5** | Lo que la evidencia pida | — | abierto |
 
 **La cola es el orden de trabajo, no el final del loop.** Ver «Numeración e
@@ -420,8 +421,11 @@ Criterios y sigue abierto para el resto del módulo.
 contrato que va al loop v2 (la decisión de Alumnos por CH se persiste con
 `schema` y `frame_hash` vacíos y el cálculo la rechaza siempre).
 
-Siguiente iteración **`F12`**: **S9 (Selección — Objetivo y Método)**, que no
-depende del contrato bloqueado.
+Siguiente iteración **`F14`**: **T7 — «Confirmar decisión» persiste**. Es el
+eslabón que gatea siete superficies del plan (Propuestas, Objetivo, CH
+requeridos, Distribución, Selección, Reemplazos y Entrega); mientras no
+persista, esas superficies no se pueden auditar con dato y encolarlas una por
+una solo repetiría el mismo muro.
 
 ## Mecánica de cada iteración
 
@@ -862,8 +866,45 @@ vez en la cabecera.
 Gate: typecheck 0 errores · Vitest **799/799** · 1440×1000 y 1024×600 sin
 desbordes; la tabla cabe en su contenedor (870 px) a 1024.
 
-Siguiente: **F13** — S9 (Selección: Objetivo y Método), que no depende del
-contrato bloqueado en F11.
+### F13 — El bloqueo que gatea la mitad del plan (2026-08-02) · **hallazgo mayor**
+
+Al intentar S9 (Objetivo) apareció el mismo muro que en F11: la pestaña publica
+`N OBJETIVO pendiente`. **Siete superficies dependen del mismo eslabón**
+—Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos y
+Entrega— así que se persiguió la causa en vez de encolarlas una por una.
+
+**Medido, en tres pasos:**
+
+1. `POST /api/calc-muestra/calcular` → **409
+   `E_CALC_MUESTRA_ALUMNOS_CH_DECISION`**, `reason: "schema_invalido"`.
+2. Se confirma la decisión desde Marco → Alumnos por CH y **se espera 25 s**
+   (no es debounce). La decisión persistida tiene sus seis campos **todos
+   vacíos**: `schema: ""`, `frame_hash: ""`, `denominador: ""`,
+   `estadistico_default: ""`, `confirmado_at` ausente.
+3. Se instrumenta `fetch` y se pulsa «Confirmar decisión» sobre recarga limpia:
+   **0 peticiones**. El `POST /api/calc-muestra/estudio` que se veía antes lo
+   dispara el flujo de cálculo, no la confirmación.
+
+**Conclusión: «Confirmar decisión» no persiste nada.** La decisión nunca sale
+del navegador, así que el motor recibe siempre una decisión vacía y falla
+cerrado — correctamente. Desde ese estado **no hay forma de avanzar** a nada
+aguas abajo.
+
+Descartado en el camino: el normalizador TS
+(`normalizeUniversityAulasConfig`) conserva la decisión con su rama
+*fail-closed* explícita, y el handoff (`applyAlumnosPorChDecision`) la escribe
+sobre la config. La pérdida está entre `onWorkspace(next.workspace)` y el
+autosave —candidatos: el `onInvalidateAulasArtifacts()` /
+`invalidarCursosHorario()` que corren justo después, o una comparación de
+autosave que no ve el cambio—; localizarlo exige una sesión de diagnóstico
+propia.
+
+**Es superficie, no motor**: el contrato R se comporta bien. Va como lote
+propio y **es el siguiente**, porque desbloquea siete superficies del plan.
+
+Siguiente: **F14 · «Confirmar decisión» persiste»** — reproducir con test,
+localizar la pérdida entre el handler y el autosave, y dejar guard. Con eso
+desbloqueado, S6 a S13 vuelven a ser auditables.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
