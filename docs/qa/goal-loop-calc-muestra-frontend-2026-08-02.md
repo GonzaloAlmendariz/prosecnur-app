@@ -414,9 +414,13 @@ Gonzalo cierra.
 `73c60e08`); `F6` cerró **S2** (commit `80cb6391`). T1 queda aplicado en
 Criterios y sigue abierto para el resto del módulo.
 
-Siguiente iteración **`F11` (S6)**: Cálculo — Diseño y Propuestas se entienden
-solos. **Bloque A (Marco) completo**: S1–S5 cerradas, seis superficies por la
-vara.
+**Bloque A (Marco) completo**: S1–S5 cerradas, seis superficies por la vara.
+**S6 quedó parcial**: Diseño afinado; Propuestas bloqueada por un defecto de
+contrato que va al loop v2 (la decisión de Alumnos por CH se persiste con
+`schema` y `frame_hash` vacíos y el cálculo la rechaza siempre).
+
+Siguiente iteración **`F12`**: **S9 (Selección — Objetivo y Método)**, que no
+depende del contrato bloqueado.
 
 ## Mecánica de cada iteración
 
@@ -782,7 +786,47 @@ casos; el vacío se explica solo. Prosa de la pestaña: **73 → 39 palabras**.
 
 Gate: typecheck 0 errores · Vitest **799/799** · desbordes reales 0 en las tres.
 
-Siguiente: **F11 (S6)** — Cálculo: Diseño y Propuestas se entienden solos.
+### F11 — Diseño y Propuestas (S6, 2026-08-02) · **parcial, con bloqueo medido**
+
+**Diseño.** 3,4 pantallas y 9 párrafos / 180 palabras: la prosa más densa del
+módulo. Juzgada una a una, **ocho de las nueve se ganan el sitio**: definen z, p,
+deff y τ con las cifras del propio estudio («con p = 0,3 Universidad trabaja con
+84 % de esa exigencia», «con τ = 53 %, lograr 100 encuestas completas exige
+intentar ≈189»). Eso es exactamente la prosa metodológica que S3 protege, no
+slop. La única que narraba la afordancia —«el plan de cursos-horario, en su
+pestaña; cada cambio se aplica con confirmación explícita», que el riel y el
+botón ya dicen— se reduce a lo que la pantalla no muestra. Prosa: **180 → 167
+palabras**, 26 → 13 en el bloque tocado.
+
+**Propuestas no se pudo auditar, y la razón es un bloqueo del flujo real.**
+La pestaña está vacía; ejecutar «Calcular muestra» devuelve **409
+`E_CALC_MUESTRA_ALUMNOS_CH_DECISION`** con `reason: "schema_invalido"`. Se
+confirmó la decisión desde Marco → Alumnos por CH y **el error se repite**. La
+decisión persistida tiene la forma correcta —los seis campos— pero con
+`schema: ""` y `frame_hash: ""`:
+
+```
+{schema: "", frame_hash: "", denominador, estadistico_default, por_facultad, confirmado_at}
+```
+
+Es decir: **«Confirmar decisión» guarda una decisión que el motor rechaza
+siempre**, y desde ese estado no hay forma de llegar a Propuestas ni a nada
+aguas abajo. Es dato/contrato, no superficie: **va al loop v2**. La superficie
+sí se comporta —muestra el error, visible y con su código— pero lo hace con el
+mensaje del motor («incompleta o usa un schema desconocido») y sin ofrecer el
+camino; eso queda como su parte de S6.
+
+Encolado con su medición:
+- **v2**: `alumnos_por_ch_decision` se persiste con `schema` y `frame_hash`
+  vacíos al confirmar; el cálculo falla cerrado para siempre.
+- **S6 (superficie)**: el error de decisión no ofrece la dirección
+  `marco/marco-alumnos-ch` ni traduce `schema_invalido` a lo que hay que hacer.
+- **S6 (Propuestas)**: sin auditar; auditar sobre pantalla vacía no es auditar.
+
+Gate: typecheck 0 errores · Vitest **799/799**.
+
+Siguiente: **F12** — retomar S6 cuando el v2 desbloquee la decisión, o seguir
+con **S9 (Selección: Objetivo y Método)**, que no depende de ese contrato.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
