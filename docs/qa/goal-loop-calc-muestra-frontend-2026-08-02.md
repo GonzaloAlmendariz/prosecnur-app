@@ -3149,6 +3149,40 @@ de una arrow function (`.map(x => ( {/* … */} <th/> ))`). El typecheck lo caza
 siempre en el acto, así que no llega a nada, pero conviene registrarlo: el
 comentario va **antes** del `.map`, no dentro.
 
+### F80 — Accesibilidad de lo que construí, y el séptimo falso positivo
+
+Auditado lo que este loop añadió a la pantalla: cajas percentilares, conmutadores
+por categoría, selector de facultad, escalas.
+
+**Lo que estaba bien y ahora está fijado**: las **13 cajas** llevan `aria-label`
+con sus cinco estadísticos —«De P25 18 a P75 38, mediana 26, media 28»—, no un
+«gráfico» genérico. Es lo mínimo en un módulo que produce entregables auditables:
+quien no ve la caja necesita sus cifras. Y los extremos de la escala van
+`aria-hidden` a propósito, porque esos números **ya viajan en el `aria-label`**:
+sin eso, un lector de pantalla los dictaría dos veces seguidas.
+
+Guard: `categoriaEvidenciaAccesible.test.tsx`, tres casos incluido el de la doble
+lectura.
+
+**Y el séptimo falso positivo de mi instrumento.** El detector marcó cinco
+controles «sin nombre accesible». Los cinco lo tienen: están **dentro de un
+`<label>` con texto visible** —«Mínimo general de elegibles», «Tasa de asistencia
+esperada (%)»— y mi comprobación sólo miraba `aria-label`, `title` y
+`aria-labelledby`. Corregido el detector para considerar el `label` envolvente y
+el `label[for]`: **0 controles sin nombre** en las nueve superficies con
+controles.
+
+| | |
+|---|---:|
+| Cajas con descripción completa | **13 de 13** |
+| Gráficos sin describir | **0** |
+| Controles sin nombre accesible | **0** |
+| Vitest | 859 → **862** en 107 archivos |
+
+Séptima vez que mi medición acusa al código sin razón, y **ninguna de las siete
+llegó a producir una reparación equivocada**, porque en todas verifiqué el caso
+concreto antes de tocar. Ese es el hábito que vale, no la puntería del detector.
+
 ### Estado del loop
 
 | | |
