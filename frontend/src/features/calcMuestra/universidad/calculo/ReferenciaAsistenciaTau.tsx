@@ -53,7 +53,11 @@ export function ReferenciaAsistenciaTau({
 
           <div className="cmv2-ref-tau-comparison" data-qa-geometry-member>
             <div>
-              <span>τ actual</span>
+              {/* El símbolo se explica en otro punto de la página, no aquí: un
+                  chip suelto con «τ» obliga a buscar su definición. */}
+              <span title="Tasa de rendimiento: proporción de encuestas completas por intento">
+                Rendimiento actual (τ)
+              </span>
               <strong>{fmtRate(tauActual)}</strong>
             </div>
             <div>

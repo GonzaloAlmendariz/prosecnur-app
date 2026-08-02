@@ -148,11 +148,14 @@ export function CriterioAnclaHistorica({
             <span className="cmv2-i18b-anchor-level">{anchor.match_level}</span>
           </header>
           <dl>
-            <div><dt>Coincidencia</dt><dd>{anchor.matched_label ?? anchor.matched_dimension ?? "NA"}</dd></div>
+            <div><dt>Coincidencia</dt><dd>{anchor.matched_label ?? anchor.matched_dimension ?? "—"}</dd></div>
             <div><dt>Facultad del criterio</dt><dd>{facultyDimensionLabel(anchor.faculty_dimension)}</dd></div>
             <div><dt>Facultad de referencia</dt><dd>{facultyDimensionLabel(anchor.reference_faculty_dimension)}</dd></div>
-            <div><dt>Cobertura</dt><dd>k={fmtK(anchor.k)}</dd></div>
-            <div><dt>Tasa</dt><dd>{fmtRate(anchor.tasa)}</dd></div>
+            <div><dt>Cobertura</dt><dd title="Número de celdas con dato detrás de esta referencia">k={fmtK(anchor.k)}</dd></div>
+            {/* «Tasa» a secas no dice de qué: es la asistencia observada en 2025
+                sobre los matriculados de esas celdas. Un porcentaje sin base no
+                se puede contrastar con nada. */}
+            <div><dt>Tasa de asistencia 2025</dt><dd title="Asistentes sobre matriculados en las celdas de referencia">{fmtRate(anchor.tasa)}</dd></div>
             <div><dt>Intervalo</dt><dd>{fmtInterval(anchor.ic_low, anchor.ic_high)}</dd></div>
             <div><dt>Método IC</dt><dd>{etiquetaMetodoIC(anchor.metodo_ic)}</dd></div>
             <div><dt>Suficiencia</dt><dd>{etiquetaSuficiencia(anchor.suficiencia)}</dd></div>
