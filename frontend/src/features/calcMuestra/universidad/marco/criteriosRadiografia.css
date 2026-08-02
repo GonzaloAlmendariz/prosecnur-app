@@ -526,3 +526,23 @@
   margin-bottom: 6px;
 }
 .cmv2-chfp-transversal > header span { color: var(--pulso-text-muted); font-size: 11px; }
+
+/* F42 · Cuantiles a la vista pero en una línea: nada oculto y el criterio cabe. */
+.cmv2-crc-stats-full[data-compacta="true"] .cmv2-crc-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+}
+.cmv2-crc-stats-full[data-compacta="true"] .cmv2-crc-stats > div {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  font-size: 11px;
+}
+.cmv2-crc-stats-full[data-compacta="true"] dt { color: var(--pulso-text-muted); }
+.cmv2-crc-stats-full[data-compacta="true"] dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* F42 · La señal declara su cifra; su gráfico vive en el bloque de detalle. */
+.cmv2-crc-signal[data-solo-cifra="true"] > :not(.cmv2-crc-signal-head) { display: none; }
+.cmv2-crc-signal[data-solo-cifra="true"] .cmv2-crc-signal-head { margin: 4px 0 0; font-size: 11px; color: var(--pulso-text-muted); }

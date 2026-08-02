@@ -99,7 +99,11 @@ function CriterioFacultadCard({
   // Colapsado por defecto cuando no hay decisión propia (el caso común): la
   // columna queda escaneable y solo se abre lo que se está decidiendo. Una
   // decisión propia arranca abierta para que el override quede a la vista.
-  const [abierto, setAbierto] = useState(propia);
+  // F42 · Con una facultad a la vez el acordeón por criterio sobra: cada
+  // criterio abre a ~954 px y plegarlos dejaba ocho cabeceras de 50 px que
+  // esconden el switch junto a su gráfico —y son una sola pieza, no dos—.
+  // Medido: ocho criterios cerrados por facultad.
+  const [abierto, setAbierto] = useState(true);
   // Criterios con radiografía propia arriba (tabla de tipos o barra apilada de
   // condición): el toggle no repite la mini-barra de proporción —evita el %
   // doble e inconsistente entre la radiografía y el toggle— y un rótulo separa
@@ -201,7 +205,7 @@ function NivelFacultadCard({
   const max = valores.length ? valores[valores.length - 1] : 0;
   const rangos = rangosFacultad(seleccion, facKey);
   const activo = rangos.length > 0;
-  const [abierto, setAbierto] = useState(activo);
+  const [abierto, setAbierto] = useState(true);
   const desde = activo ? rangos[0][0] : min;
   const hasta = activo ? rangos[0][1] : max;
   return (
@@ -304,7 +308,7 @@ function MinFacultadCard({
   onMinimoFacultad: (minKey: string, valor: number | null) => void;
 }) {
   const propio = minimoFacultad(seleccion, minKey);
-  const [abierto, setAbierto] = useState(propio != null);
+  const [abierto, setAbierto] = useState(true);
   const base = propio ?? umbralGeneral;
   const sugerido = minimoSugerido(base, tasa);
   const presentes = presentesEsperados(base, tasa);
@@ -442,7 +446,7 @@ function CriterioTransversalFacultadCard({
   facLabel: string;
   criterioEvidence: CriterioFacultadEvidence;
 }) {
-  const [abierto, setAbierto] = useState(false);
+  const [abierto, setAbierto] = useState(true);
   return (
     <section
       className="cmv2-chfp-crit"

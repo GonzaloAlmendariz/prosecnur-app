@@ -183,14 +183,19 @@ export function CriterioFacultadRadiografia({
           </div>
         )}
 
-        {/* F41 · «Ver trazabilidad completa» era un plegado que escondía el
-            detalle real del criterio tras una etiqueta técnica que no dice
-            nada al usuario. Con una facultad a la vez hay alto de sobra: el
-            detalle se muestra, y lo que se anuncia es cuánto hay. */}
-        <section className="cmv2-crc-compact-detail">
-          {hiddenRows ? (
-            <p className="cmv2-crc-compact-count">{hiddenRows} segmentos más de esta facultad</p>
-          ) : null}
+        {/* F42 · Medido: este bloque no era «el detalle de este criterio en esta
+            facultad» —era la radiografía de LAS QUINCE facultades (4.719 px de
+            `cmv2-crc-faculties`) incrustada dentro del bloque de una sola—.
+            Desplegarlo llevaba la pestaña a 25 pantallas repitiendo el módulo
+            entero por criterio.
+            No se resuelve mostrándolo ni escondiéndolo: **se resuelve
+            acotándolo a la facultad en foco**, que es lo que el usuario abrió.
+            Hasta que ese recorte exista, se contiene tras un control que ahora
+            dice lo que hay, en vez de «trazabilidad completa». */}
+        <details className="cmv2-crc-compact-detail">
+          <summary>
+            Comparar con las demás facultades{hiddenRows ? ` · ${hiddenRows} segmentos más` : ""}
+          </summary>
           <CriteriosRadiografiaCardDetalle
             card={facultyCard}
             radiografia={evidence.radiografia}
@@ -203,7 +208,7 @@ export function CriterioFacultadRadiografia({
             facultyKey={facultyKey}
             facultyLabel={facultyLabel}
           />
-        </section>
+        </details>
       </section>
     </div>
   );

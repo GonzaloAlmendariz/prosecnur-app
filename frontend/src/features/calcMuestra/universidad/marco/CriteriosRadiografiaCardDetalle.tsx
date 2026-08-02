@@ -101,9 +101,11 @@ function Snapshot({
         <span><em>P50</em> {fmt(snapshot.distribution.p50)}</span>
         <span><em>P10–P90</em> {fmt(snapshot.distribution.p10)}–{fmt(snapshot.distribution.p90)}</span>
       </p>
-      {/* F41 · Los cuantiles son EL dato de la distribución; plegarlos dejaba
-          la decisión apoyada en una sola cifra visible. */}
-      <div className="cmv2-crc-stats-full">
+      {/* F42 · Los cuantiles se muestran, pero en una línea y no en una tabla
+          por segmento: desplegados como `dl` completo, ~20 segmentos por
+          criterio llevaban la pestaña a 28 pantallas. Nada queda oculto —los
+          seis estadísticos siguen a la vista— y el criterio vuelve a caber. */}
+      <div className="cmv2-crc-stats-full" data-compacta="true">
         <dl className="cmv2-crc-stats" aria-label={`${title}: media y cuantiles`}>
           <div data-main><dt>Media</dt><dd>{fmt(snapshot.distribution.media)}</dd></div>
           <div><dt>P10</dt><dd>{fmt(snapshot.distribution.p10)}</dd></div>
@@ -253,8 +255,12 @@ function Segment({
         <Snapshot title="Actual" snapshot={row.actual} label={label} variant="actual" domain={domain} />
         <Snapshot title="Contraste total" snapshot={row.contrasteTotal} label={label} variant="contraste" domain={domain} />
       </div>
+      {/* F42 · La señal es un gráfico ADICIONAL por segmento: con ~20 segmentos
+          multiplicaba la pestaña a 26 pantallas. Su sitio es el bloque de mayor
+          detalle —«ver uno por uno», el último del embudo—, no repetido dentro
+          de cada criterio. Aquí se declara con su cifra, que es el dato. */}
       {row.signalDistribution ? (
-        <div className="cmv2-crc-signal">
+        <div className="cmv2-crc-signal" data-solo-cifra="true">
           <p className="cmv2-crc-signal-head">
             Señal · {row.signalDistribution.unit.replace("_", " ")} · {fmt(row.signalDistribution.n_con_dato)} de {fmt(row.signalDistribution.n_total)} con dato
           </p>
