@@ -100,17 +100,26 @@ export function CriteriosEmbudoVivo({
               <header>
                 <span>Paso {step.order}</span>
                 <strong>{step.label}</strong>
-                <small>{step.gate ? "gate" : "paso operativo fuera del denominador"} · {step.status}</small>
+                {/* ADR 0057 · «gate · aplicado» es vocabulario del motor. Lo
+                    que el usuario necesita saber es si este criterio está
+                    recortando el marco o no. */}
+                <small>
+                  {step.gate
+                    ? step.status === "aplicado"
+                      ? "recorta el marco"
+                      : "no está recortando"
+                    : "no afecta al denominador"}
+                </small>
               </header>
               <div className="cmv2-i18b-cascade-table-wrap">
                 <table>
-                  <thead><tr><th scope="col">Facultad efectiva</th><th scope="col">Secuencia CH</th><th scope="col">Excluye</th></tr></thead>
+                  <thead><tr><th scope="col">Facultad efectiva</th><th scope="col">Cursos-horario: antes → después</th><th scope="col">Quedan fuera</th></tr></thead>
                   <tbody>
                     {!facultyKey ? (
                       <tr data-row-kind="total">
                         <th scope="row">Total recalculado por R</th>
                         <td>{fmt(step.total.before_ch)} → {fmt(step.total.after_ch)}</td>
-                        <td>−{fmt(step.total.excluded_ch)}</td>
+                        <td>{step.total.excluded_ch ? `−${fmt(step.total.excluded_ch)}` : "ninguno"}</td>
                       </tr>
                     ) : null}
                     {step.faculties.filter((faculty) => (
@@ -119,7 +128,7 @@ export function CriteriosEmbudoVivo({
                       <tr key={faculty.faculty_key}>
                         <th scope="row">{faculty.label}</th>
                         <td>{fmt(faculty.before_ch)} → {fmt(faculty.after_ch)}</td>
-                        <td>−{fmt(faculty.excluded_ch)}</td>
+                        <td>{faculty.excluded_ch ? `−${fmt(faculty.excluded_ch)}` : "ninguno"}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -110,7 +110,8 @@ export function CriterioFacultadRadiografia({
         <header className="cmv2-crc-compact-head">
           <div>
             <span>Radiografía en {facultyLabel}</span>
-            <strong>Dato de R para decidir {card.label.toLocaleLowerCase("es-PE")}</strong>
+            {/* «Dato de R» nombra de dónde sale el número, no qué es. */}
+            <strong>Elegibles por curso-horario según {card.label.toLocaleLowerCase("es-PE")}</strong>
           </div>
           <span className="cmv2-crc-compact-state">{card.state === "v2" ? "vigente" : card.state.replace("_", " ")}</span>
         </header>
