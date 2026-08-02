@@ -2864,6 +2864,28 @@ sobre un problema inexistente.
 Regla añadida a mi instrumento: **las búsquedas de copy van sin distinguir
 mayúsculas**, porque la superficie transforma el texto.
 
+### F71 — «Regla efectiva» no dice cuál es la regla
+
+En los criterios numéricos —Matriculados/población, Mínimo de elegibles— la
+única fila de la distribución se titulaba **«Regla efectiva»**: nombra que hay
+una regla, no qué contiene la fila ni de qué está hablando.
+
+Esa fila **es el conjunto que cumple el criterio**, y eso sí se puede decir:
+
+| dónde | antes | después |
+|---|---|---|
+| criterios de curso-horario | «Regla efectiva» | **«Cursos-horario que cumplen»** |
+| criterios de estudiante | «Regla efectiva» | **«Estudiantes que cumplen»** |
+
+Nace en el motor —`calc_muestra_aulas_criterio_radiografia_aulas.R` y su gemelo
+de alumnos—, así que es otro caso del patrón 15: copy de pantalla escrito en R.
+`segment_key = "global"` no se toca: ese sí es la clave de contrato.
+
+R verde: **10 archivos** de test de radiografía y criterios, 0 fallos.
+
+Como el proceso R vivo conserva el código anterior, el cambio se verá al próximo
+arranque; queda comprobado por fuente y por suite.
+
 ### Estado del loop
 
 | | |

@@ -236,7 +236,7 @@
 .cm_criterio_radiografia_rows_global_aula <- function(
     aula_frame, facultades, actual_flag, counter_flag, action,
     preparado, signal = NULL, signal_unit = "valor_criterio",
-    segment_key = "global", segment_label = "Regla efectiva") {
+    segment_key = "global", segment_label = "Cursos-horario que cumplen") {
   n <- nrow(aula_frame)
   if (!n || length(facultades) != n || length(actual_flag) != n ||
       length(counter_flag) != n) {
