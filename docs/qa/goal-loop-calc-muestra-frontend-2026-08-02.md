@@ -1492,6 +1492,29 @@ concluir «el servidor no tiene la corrida»: ese endpoint **no existe**. Un 404
 una ruta inventada no es evidencia de nada, y la conclusión habría sido falsa.
 Verificado contra el router antes de escribirla.
 
+### F33 — El instrumento deja de vivir en un scratchpad (2026-08-02)
+
+Mientras la corrida del comparador avanzaba —no se espera de brazos cruzados— se
+cerró la deuda que sostenía todo el loop: **el script que siembra el instrumento
+existía sólo en el scratchpad de la sesión**, repartido en seis archivos sueltos
+(`seed.R`, `estratos.R`, `patch.R`, `patch2.R`, `cfg.R`, `ancla.R`). Al cerrar la
+sesión se perdía, y con él la reproducibilidad de cada medición de este doc.
+
+Ahora es uno versionado: **`api/scripts/qa_seed_calc_muestra_radiografia.R`**,
+parametrizado por origen y destino, que declara en su cabecera qué produce, qué
+**no** certifica —ni cifras canónicas ni etiquetas de facultad, que son
+seudónimos— y el límite heredado del anonimizador. Incorpora además las dos
+correcciones que costaron horas encontrar:
+
+- el N del diseño son alumnos **únicos**, no matrículas: `elegibles_total` infla
+  el N y descuadra la cabecera, y esa confusión de grano es justo la que el
+  módulo existe para evitar;
+- una facultad sin CH elegibles se excluye del diseño en vez de arrastrarse con
+  N = 0, que era lo que dejaba la decisión de Alumnos por CH inconfirmable.
+
+Sintaxis verificada (44 expresiones). La corrida lanzada por la UI seguía sin
+acreditar al cierre del tramo; su lectura queda para la próxima iteración.
+
 ### Cierre de la sesión
 
 | | |
@@ -1511,7 +1534,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F33 — leer la corrida lanzada por la UI y ver si acredita Simulación, Titulares, Reemplazos y Sustento**
+Siguiente, en orden: **F34 — leer la corrida de la UI; si sigue sin acreditar, resembrar con el script versionado y falsarlo ahí**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
