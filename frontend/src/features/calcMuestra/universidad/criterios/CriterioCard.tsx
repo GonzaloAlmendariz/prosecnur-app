@@ -178,6 +178,17 @@ export function CriterioCard({
         ) : null}
         {variable.kind === "numeric" && <ControlNumeric variable={variable} sel={sel} onSel={onSel} />}
         {variable.kind === "ordinal" && <ControlOrdinal variable={variable} sel={sel} onSel={onSel} />}
+        {/* F25 · Grano declarado. Los criterios categóricos y de rango se
+            deciden facultad por facultad; edad y ciclo no, porque `exceptions`
+            transporta solo categorías y no `threshold`/`includeValues`. Callarlo
+            los hacía parecer del mismo grano que los de arriba. Se dice, y se
+            dice por qué, hasta que el motor acepte el grano fino. */}
+        {(variable.kind === "numeric" || variable.kind === "ordinal") && (
+          <p className="cmv2-crit-grano" role="note">
+            Este criterio aplica <strong>igual en las {facultades.length} facultades</strong>:
+            el motor todavía no admite un umbral distinto por facultad.
+          </p>
+        )}
         {variable.kind === "range" && (
           <ControlRange variable={variable} seleccion={seleccion} facultades={facultades} onRango={onRango} />
         )}
