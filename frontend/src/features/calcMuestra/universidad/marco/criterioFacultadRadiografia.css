@@ -115,10 +115,15 @@
   font-size: 9px;
 }
 
+/*
+ * Cinco columnas fijas cabían a 1440 y no a 1024: cada celda quedaba en 34 px y
+ * «Matrículas 19.846» desbordaba 3 px, siete veces. `auto-fit` deja que las
+ * columnas se reacomoden por ancho disponible en vez de exigir cinco siempre.
+ */
 .cmv2-crc-compact-segment dl {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 4px 8px;
   margin: 0;
 }
 
