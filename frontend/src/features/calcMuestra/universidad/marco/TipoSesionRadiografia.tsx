@@ -150,6 +150,12 @@ export function TipoSesionRadiografia({
   const procedencia = contexto === "editable"
     ? "Exploración previa · último marco ejecutado"
     : "Marco ejecutado";
+  const filasOwner = radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2"
+    ? radiografia.filas_owner
+    : radiografia?.owner;
+  const filasGrano = radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2"
+    ? radiografia.filas_grano
+    : radiografia?.grano;
 
   return (
     <section
@@ -166,10 +172,10 @@ export function TipoSesionRadiografia({
               <strong>Tipo de sesión · radiografía por categoría</strong>
             </div>
             <dl className="cmv2-tsr-provenance" aria-label="Procedencia de la radiografía">
-              <div><dt>Motor</dt><dd>{radiografia.owner}</dd></div>
+              <div><dt>Motor</dt><dd>{filasOwner}</dd></div>
               <div><dt>Marco</dt><dd title={radiografia.frame_hash}>{radiografia.frame_hash.slice(0, 12)}</dd></div>
               <div><dt>Momento</dt><dd>{radiografia.momento}</dd></div>
-              <div><dt>Grano</dt><dd>{radiografia.grano}</dd></div>
+              <div><dt>Grano</dt><dd>{filasGrano}</dd></div>
               <div><dt>Unidad</dt><dd>{radiografia.unidad}</dd></div>
             </dl>
           </header>

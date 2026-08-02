@@ -1,12 +1,16 @@
 # GOAL — Cálculo de muestra: el selector decide con evidencia, no con etiquetas
 
 Tipo: Goal operativo de producto + QA
-Estado: En curso
+Estado: Histórico
 Fecha: 2026-07-31
 Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado del módulo
+Consolidado en: [GOAL v2](goal-loop-calc-muestra-v2-2026-08-01.md)
 
-**Estado:** loop permanente en curso. **Solo Gonzalo lo cierra.** Ninguna
-iteración lo termina; cada iteración lo deja más cerca.
+**Sucesión:** desde el 2026-08-01 este documento conserva I0–I15 y el scope
+lock congelado de I16 como archivo histórico. El estado vivo, la cola y el
+ledger están en `goal-loop-calc-muestra-v2-2026-08-01.md`; no ejecutar nuevas
+iteraciones desde aquí. El loop permanente continúa allí y solo Gonzalo lo
+cierra.
 **Antecedentes:** `docs/calc-muestra-recorrido-spec.md` (recorrido IA trazable),
 overhaul según sistematización de Ramiro (memorias 2026-07-16/17: Carril 1
 cerrado, Carril 2 —embudo por facultad— en curso), hallazgos N9 y N10 del
@@ -44,6 +48,46 @@ en un instrumento de decisión.
 4. **Libertad creativa gobernada**: agregar funcionalidades y visualizaciones
    nuevas que ayuden a ponderar la decisión, siempre dentro del contrato del
    repo (cinco dimensiones de navegación, tokens, Contrato de Superficie).
+
+### Quinto mandato y cola de lotes (boceto v2, 2026-08-01)
+
+El rumbo de producto vive en
+`Obsidian_Prosecnur/Boceto_Calculo_de_Aulas_v2.canvas` (sucesor del boceto v1,
+elaborado con Gonzalo el 2026-08-01). Añade un mandato y ordena la cola después
+de I16:
+
+5. **La Selección se entiende sola (reabre F2, con F4).** El revamp I15 dejó
+   las seis pestañas vivas y honestas, pero la sección sigue difícil de leer.
+   Un solo lote de sección («Selección legible») cubre cuatro capacidades:
+   - **Métodos narrados**: el recomendado primero con su porqué en una frase;
+     cada método contado como historia visual (mini-demo animada); el
+     comparador queda como bloque colapsado al final de Método (D9), nunca el
+     estado inicial de la pantalla.
+   - **Descuento secuencial visible**: `sequential_discount`
+     (`calc_muestra_aulas_descuento.R`) ya existe y está ON por defecto desde
+     la UI; se muestra como paso del sorteo con su narrativa. Los datos ya
+     existen (`aporte_neto`, `ya_cubiertos`, `discount_step`). Matiz que la UI
+     cuenta: muerde en-sorteo con sistemático/estratificado/pool y solo anota
+     post-hoc con cube/pivotal. Deuda menor: el default del engine sigue OFF
+     por goldens; alinear y documentar.
+   - **Código operativo canónico** `CH n` / `R n.k` con sufijo explícito desde
+     el primer reemplazo (D8): el engine ya emite `AULA 5` / `R5.1`; falta el
+     espacio, un solo helper compartido (hoy el re-etiquetado `AULA→CH` está
+     duplicado en 4 archivos) y presencia en toda superficie: tablas,
+     inspector, cadenas, simulación, exports y pase a Monitoreo.
+   - **El mapa de la muestra**: matriz completa titulares × reemplazos por
+     facultad, sin truncar (hoy las cadenas cortan en 24 titulares × 6 slots y
+     el único gráfico es un SVG de 8 burbujas), color por nivel de
+     equivalencia, profundidad de reserva de un vistazo, clic → inspector.
+
+**Cola de lotes tras I16:** (1) «Selección legible» (mandato 5); (2) Marco —
+matriz embudo facultad × criterio construida sobre el contrato I16 + pestaña
+«Alumnos por CH» después de Criterios (decide el valor por facultad; Cálculo y
+Selección la consumen sin recalcular) + mudanza de Consistencia a Datos (D7,
+con rigor F3); (3) Cálculo — renombrar «Cursos-horario por facultad» →
+«Cursos-horario requeridos» y densificar Distribución. El export
+Monitoreo → Excel histórico (formato que Datos > Fuentes consume) queda
+anotado para cuando toque ese módulo; no es un lote de este loop.
 
 ## Estado medido de apertura (2026-07-31)
 
@@ -194,6 +238,7 @@ trabajando en lo desbloqueado.
 | Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 1 (`session_type × facultad`, acción y delta CH/matrículas firmados contra el marco ejecutado) | ↑ |
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
 | Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | **6 de 6 vivas**: I15 cerró Objetivo, Método, Simulación, Selección, Reemplazos y Sustento como un único lote de sección | = 6 |
+| Capacidades del lote «Selección legible» (mandato 5: métodos narrados, descuento visible, código `CH n`/`R n.k`, mapa de la muestra) | no existía (entra 2026-08-01) | 0 de 4 | 4 de 4 en un solo lote |
 | **Estados vacíos que culpan a un artefacto que sí existe** | sin medir hasta I15 | **0 de 6**: sin marco dirige a Marco; con selección sin objetivo reconoce la corrida y dirige a Cálculo; los guards de vigencia permanecen intactos | = 0 |
 | Producto por iteración (líneas de `frontend`+`api` sin tests) | sin medir | I1–I14: 3 iteraciones con **0**, 4 con menos de 50; I15 entrega una sección completa 6/6 y su modelo de superficie en un lote | ↑ lote entregable |
 | Contrato escrito por línea de producto | sin medir | histórico de hasta **7:1**; I15 paga un solo contrato de sección y una sola matriz para las seis pestañas, sin contratos por defecto | ↓ contrato proporcional |
@@ -243,6 +288,9 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | D4 | ¿Cómo entra el histórico de aplicación a la app? | (a) fuente subible en Datos > Fuentes; (b) tabla de referencia versionada en el paquete; (c) ambas | (a): generaliza a 2027 y a otros clientes, y mantiene el dato de cliente fuera del repo | **resuelta por Gonzalo 2026-08-01: (a)**. En el `.pulso` se persiste solo la tabla agregada, sin PII ni filas por CH |
 | D5 | ¿Qué se modela de la hoja de control? | (a) encuestas largas; (b) enviadas; (c) la asistencia como eje | (c) | **resuelta por Gonzalo 2026-08-01: (c)**. Se modela cuántos asisten el día de aplicación y, condicional a eso, cuántos completan; τ queda descompuesto en sus tres eslabones |
 | D6 | Alcance de la primera entrega de la referencia | (a) solo publicar la referencia; (b) + corregir el divisor de la Cadena B; (c) + conectar `n_aulas` | (a): reversible y no mueve el presupuesto de campo | **resuelta por Gonzalo 2026-08-01: (a)**. No cambia el número de aulas |
+| D7 | Hogar definitivo de Consistencia (boceto v2) | (a) queda al final de Marco (I2); (b) se muda a Datos | — | **resuelta por Gonzalo 2026-08-01: (b)**. Revierte I2; mudanza única con rigor F3 (alias de `marco/def-consistencia`, justificación escrita, regresiones y bóveda). Programada en el lote «Matriz embudo + Alumnos por CH» del boceto v2 |
+| D8 | Código operativo de CH y reemplazos en Aulas | (a) gramática territorial `R 5` sin sufijo en el primero; (b) sufijo explícito `R 5.1` | — | **resuelta por Gonzalo 2026-08-01: (b)**. Titular `CH 5`, reemplazos `R 5.1`/`R 5.2`/`R 5.3`; un solo helper compartido en toda superficie. Divergencia consciente con territorial |
+| D9 | Hogar del comparador de métodos en Aulas | (a) pestaña secundaria propia; (b) bloque colapsado al final de Método | (b) | **resuelta por Gonzalo 2026-08-01: (b)**. Decidir es el default; comparar es opcional. El lote «Selección legible» del boceto v2 (`Obsidian_Prosecnur/Boceto_Calculo_de_Aulas_v2.canvas`) implementa D8+D9 |
 
 ## Registro de iteraciones
 
@@ -289,7 +337,10 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 selector**. El lote cubre el barrido de criterios vivos que todavía no tienen
 contrato estadístico propio; no se dividirá en una iteración por criterio. F0
 gatea el contrato engine y el carril B debe presentar la consola completa con
-dato antes que gráfico.
+dato antes que gráfico. **Después de I16 rige la cola de lotes del boceto v2**
+(ver «Quinto mandato»): I17 = «Selección legible» (mandato 5, F2/F4); I18 =
+Marco (matriz embudo + «Alumnos por CH» + mudanza Consistencia→Datos, D7);
+I19 = Cálculo (renombre + Distribución).
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -1958,7 +2009,7 @@ prompt privado quedaron explícitamente fuera de su stage y commit.
 - **Siguiente acción.** Iteración 16, F1: barrido completo de la radiografía de
   los criterios restantes del selector, como capacidad única y no por defecto.
 
-### Contrato de iteración 16 (lote activo — auditoría)
+### Contrato de iteración 16 (scope lock congelado)
 
 - **Categoría / fuente de verdad:** F0/F1; manda el criterio efectivo que el
   engine R aplicó al marco y el contrato `criterios_radiografia` abierto en I11.
@@ -1969,18 +2020,101 @@ prompt privado quedaron explícitamente fuera de su stage y commit.
   media/mediana y delta contrafactual; cualquier campo nuevo nace en R con test.
 - **Carril B:** jerarquía dato→distribución→impacto→acción, estados sin dato
   honestos y comparación legible en 1440×1000 y 1024×600.
-- **Scope lock inicial:** auditoría de solo lectura en engine de Cálculo de
-  muestra, normalizador y superficies Datos/Marco/Cálculo; los archivos exactos
-  se congelan tras localizar la primera divergencia y antes de editar producto.
+- **Primera divergencia:** el catálogo y el evaluador son dinámicos, pero el
+  sibling I11 exige `session_type`, excluye solo ese paso del contrafactual y
+  React rechaza cualquier otro `criterio` o grano. Además, la ruta viva de CH
+  omite `enrolled_total` y separa el mínimo/composición del selector genérico.
+- **Denominador:** cada variable que emite `criterios_catalogo` + una tarjeta
+  `minEligible` + una tarjeta Composición. En `hsvg2026` son **13 tarjetas**:
+  11 de catálogo + mínimo + composición. La composición publica tres gates
+  distinguibles (`c7`, `c8_facultad`, `c8`), por lo que el contrato acredita
+  **15 gates analíticos**; I11 ya cubre uno y este lote añade los 14 restantes.
+  El denominador de otros proyectos es dinámico y nunca inventa variables sin
+  señal.
+- **Límite metodológico:** no existe una fila uniforme válida para todas las
+  clases. El envelope común discrimina alumno flat/numeric/ordinal, aula
+  flat/hierarchical/range/numeric, `minEligible` y c7/c8. `p50` es la mediana,
+  los cuantiles son type 7 y la falta de dato en cualquier CH del denominador
+  degrada suma/media/cuantiles a NA. `eligible_n` cuenta personas únicas dentro
+  del CH; su suma entre CH son matrículas/exposiciones, no personas únicas.
+  La facultad del alumno no se confunde con la facultad efectiva del curso.
+  El root v2 pertenece a
+  `calc_muestra_aulas_frame_v1.criterios_radiografia`, declara grano
+  `criterio_x_facultad_x_segmento` y limita el owner/grano I11 a su colección
+  compatible `filas`. Cada entrada es una unión discriminada por familia y
+  declara owner, scope, kind, grain, unit, gate, capa efectiva y dimensión de
+  facultad (`alumno` o `curso_horario_efectiva`); combinaciones imposibles
+  fallan cerrado. En alumno, solo la capa `marco` gatea `poblacion`; las capas
+  `instrumento` y `procesamiento` se acreditan como `informativo`, con acción
+  `no_aplica`, reconstrucción falsa y deltas nulos, porque el evaluador las
+  reporta pero no reduce el marco. Una distribución de señal declara
+  `n_total` y `n_con_dato`: solo cobertura completa y positiva habilita sus
+  seis estadísticos; es obligatoria en cada fila disponible de familias
+  numeric, ordinal, range, threshold y proportion. `disponible` exige filas y
+  `sin_senal` no las fabrica. `reconstruccion_valida=true` exige los tres deltas enteros
+  firmados; si falta uno, la reconstrucción es falsa y los tres son nulos. La
+  colección legacy `filas` conserva la semántica I11 —incluido su delta parcial
+  bajo `eligible_n` incompleto—; la proyección v2 coincide con ella cuando la
+  cobertura es completa y explicita la divergencia atómica cuando no lo es.
+  Cada snapshot completo cumple personas únicas ≤ matrículas y cada fila
+  acredita `actual ⊆ contraste_total` en todos los conteos conocidos.
+- **Contrafactuales:** toda fila declara acción, referencia
+  `marco_ejecutado`, validez de reconstrucción y delta firmado
+  `contrafactual - ejecutado`; los gates ajenos, `manualExcludedClassrooms` y
+  las particularidades manuales se mantienen constantes. Manuales quedan fuera
+  del denominador F1 porque son selección puntual de aulas, no una tarjeta de
+  criterio. La tasa de asistencia de `minEligible` es informativa y no es gate.
+- **Contexto transitorio:** los deltas de alumno nacen en R antes del colapso,
+  mientras existen las membresías alumno×CH; el sibling persiste solo
+  agregados y prohíbe `student_id`, `classroom_id`, filas raw y sets manuales.
+- **Archivos R congelados:**
+  `api/R/calc_muestra_aulas_criterio_radiografia.R`,
+  `api/R/calc_muestra_aulas_criterios.R`,
+  `api/R/calc_muestra_aulas_exploracion.R`, cableado mínimo en
+  `api/R/calc_muestra_aulas.R` y
+  `api/tests/testthat/test-calc-muestra-criterio-radiografia.R`.
+- **Archivos React congelados:** extraer el contrato desde
+  `frontend/src/api/calcMuestra.ts` a
+  `frontend/src/api/calcMuestraCriteriosRadiografia.ts`; crear
+  `marco/criteriosRadiografiaModel.ts`,
+  `marco/CriteriosRadiografiaConsola.tsx`, CSS y pruebas propias; integrar la
+  consola en los hogares vivos de alumno y CH sin crecer
+  `FacultadDecisionBloque.tsx`, `marco.css`, `criterios.css` ni
+  `exploradorModel.ts`. Datos y Cálculo siguen siendo consumidores, no motores.
 - **Exclusiones:** F2 ya cerrado, selector/sorteo de Aulas, τ, persistencia
   `.pulso`, navegación, procesos/puertos del usuario y cambios ajenos del árbol.
 - **Riesgo principal:** agrupar por una etiqueta distinta de la señal efectiva
   o mezclar denominadores entre criterios, reproduciendo I11-H10 a mayor escala.
-- **Peaje y stopping rule:** extraer primero cualquier owner grande tocado;
-  cerrar solo con contratos R probados para el barrido, consola C1–C5, feature,
-  typecheck, testthat afectado, matriz visual y `verificador` serial.
-- **Estado:** auditoría activa; la primera tarea es medir el inventario vivo y
-  separar qué ya cubre I11 de lo que aún carece de contrato engine/UI.
+- **Baseline proporcional:** contrato I11, 119 expectativas R verdes; contrato
+  frontend focal, 44 pruebas verdes. No se abre una iteración de auditoría.
+- **Peaje y stopping rule:** extraer primero los owners API/superficie grandes;
+  cerrar solo cuando (1) `catalogo.variables + 2` produce exactamente una
+  tarjeta F1 sin duplicados/huérfanos; (2) los 15 gates de `hsvg2026` tienen
+  contrato R válido o un estado honesto discriminado; (3) la consola cumple
+  dato→distribución→impacto→acción y C1–C5; (4) testthat afectado, feature,
+  typecheck, matriz 1440×1000/1024×600 y `verificador` serial quedan verdes.
+- **Implementación cerrada:** el sibling v2 inventaría dinámicamente 13
+  tarjetas, 15 gates y 9 familias; conserva la colección I11, publica los seis
+  estadísticos y deltas atómicos desde R, y persiste solo agregados. React
+  valida la unión discriminada y presenta dato → distribución → impacto →
+  acción en los hogares de alumno y curso-horario, sin calcular estadísticos.
+- **Peaje estructural pagado:** el owner R se separó en núcleo, alumno y aula;
+  el contrato frontend salió de `calcMuestra.ts` y la consola/modelo/CSS viven
+  en archivos propios. Ningún archivo que era extraíble quedó creciendo.
+- **Regresión de escala encontrada y cerrada dentro del lote:** la primera
+  semilla canónica superó 21 minutos por reconstruir membresías y evaluar N
+  filas dentro de cada facultad × segmento. Un índice transitorio alumno×CH,
+  snapshots sobre enteros y evaluación flat vectorizada redujeron la misma
+  medición a 347,09 s y después a **128,03 s**, con el payload congelado
+  idéntico y 15/13/15 intactos. El focal termina en 23 bloques/269 expectativas.
+- **QA visual:** por el límite conocido de ADR 0043, el Excel anonimizado se
+  usó solo para medir rendimiento. La geometría se acreditó sobre una copia que
+  preserva el frame canónico 5.263/2.373 y siembra únicamente el sibling de
+  render generado por el engine. El primer guard vetó 28 colecciones sin
+  contrato; tras declararlas, la matriz final 2 rutas × 2 viewports quedó 4/4,
+  58 grupos, 0 misses/issues/overflow/scroll jail/errores y `ok=true`.
+- **Estado:** lote cerrado; el ledger y la cola vivos continúan en el doc v2,
+  con I17 «Selección legible» activa y sin decisiones nuevas en bandeja.
 
 ## Cómo se corre cada visita
 

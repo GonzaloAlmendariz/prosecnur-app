@@ -27,6 +27,13 @@ const criterios_catalogo = {
       ],
     },
     {
+      id: "enrolled_total",
+      scope: "aula",
+      label: "Matrículas inscritas por curso-horario",
+      kind: "numeric",
+      mappedColumn: "Matriculados",
+    },
+    {
       id: "faculty",
       scope: "alumno",
       label: "Facultad",
@@ -107,6 +114,9 @@ describe("CursosHorarioMarcoTab — vista integrada facultad-primaria", () => {
     // Ajustes del marco (lo transversal: mínimo general, tasa, composición c8);
     // los criterios de set/rango se decidieron por facultad, no aquí.
     expect(html).toContain("Ajustes del marco");
+    // Una variable numérica no representable en el bloque por facultad no se
+    // pierde por `soloAjustes`: conserva aquí su control global editable.
+    expect(html).toContain("Matrículas inscritas por curso-horario");
     // Bloque de la facultad con su radiografía visible (primer bloque abierto).
     expect(html).toContain("PSICOLOGÍA");
     expect(html).toContain("aulas candidatas");

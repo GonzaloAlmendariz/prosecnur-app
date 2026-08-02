@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GraduationCap, Loader2, RefreshCw, School, SlidersHorizontal } from "lucide-react";
 import {
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
   normalizeCalcMuestraSessionTypeImpacto,
@@ -53,6 +54,7 @@ import type { PresetCanonicoPlan } from "./presetCanonicoModel";
 import { MinElegiblesCard, type FacultadMinRef } from "./MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia } from "./minElegiblesModel";
 import type { FacultadRef } from "./facultades";
+import { CriteriosRadiografiaConsola } from "../marco/CriteriosRadiografiaConsola";
 import "./criterios.css";
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
@@ -110,6 +112,14 @@ export function CriteriosMarcoTab({
   const marcoPublicable = integridadFrame.status === "consistent";
   const marcoIncoherente = integridadFrame.status === "inconsistent";
   const exploracion = marcoPublicable ? exploracionNormalizada : null;
+  const criteriosRadiografiaNormalizada = useMemo(
+    () => normalizeCalcMuestraAulasCriteriosRadiografia(aulasState?.frame?.criterios_radiografia ?? null),
+    [aulasState?.frame?.criterios_radiografia],
+  );
+  const criteriosRadiografia =
+    marcoPublicable && criteriosRadiografiaNormalizada?.frame_hash === aulasState?.frame?.frame_hash
+      ? criteriosRadiografiaNormalizada
+      : null;
   const sessionTypeImpactoNormalizado = useMemo(
     () => normalizeCalcMuestraSessionTypeImpacto(aulasState?.frame?.session_type_impacto ?? null),
     [aulasState?.frame?.session_type_impacto],
@@ -374,6 +384,14 @@ export function CriteriosMarcoTab({
         </div>
       ) : (
         <>
+          {showAlumno && alumno.length > 0 ? (
+            <CriteriosRadiografiaConsola
+              catalogo={catalogo}
+              radiografia={criteriosRadiografia}
+              rawPresent={aulasState?.frame?.criterios_radiografia != null}
+              scope="alumno"
+            />
+          ) : null}
           {showAlumno && alumno.length > 0 && (
             <section className="cmv2-crit-section" data-scope="alumno">
               <header className="cmv2-crit-scope-head" data-scope="alumno">

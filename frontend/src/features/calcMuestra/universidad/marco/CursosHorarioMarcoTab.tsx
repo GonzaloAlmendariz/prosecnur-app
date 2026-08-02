@@ -58,6 +58,7 @@ import { rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque } from "./FacultadDecisionBloque";
 import { facultadesBloque, slugFacultad } from "./facultadDecisionModel";
+import { CriteriosRadiografiaConsola } from "./CriteriosRadiografiaConsola";
 import "../criterios/criterios.css";
 import "./marco.css";
 
@@ -103,6 +104,16 @@ export function CursosHorarioMarcoTab({
     marcoPublicable && criteriosRadiografiaNormalizada?.frame_hash === aulasState?.frame?.frame_hash
       ? criteriosRadiografiaNormalizada
       : null;
+  const legacyCardIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const facultad of exploracion?.por_facultad ?? []) {
+      if ((facultad.por_tipo_sesion ?? []).length) ids.add("session_type");
+      if ((facultad.por_condicion ?? []).length) ids.add("condicion_curso");
+      if ((facultad.por_nivel ?? []).length) ids.add("course_level");
+      if (facultad.est_aula_media != null || facultad.est_aula_mediana != null) ids.add("minEligible");
+    }
+    return ids;
+  }, [exploracion]);
   // Lista individual de cursos-horario del último marco (para la selección
   // manual final por facultad). El motor ya marcó `included` por facultad.
   const aulaFrame = useMemo<MonitoreoRow[]>(
@@ -137,6 +148,13 @@ export function CursosHorarioMarcoTab({
   );
   const sessionVariable = useMemo(() => aula.find((v) => v.id === "session_type") ?? null, [aula]);
   const rangeVariable = useMemo(() => aula.find((v) => v.kind === "range") ?? null, [aula]);
+  const variablesPorFacultadIds = useMemo(
+    () => [
+      ...aulaToggle.map((variable) => variable.id),
+      ...(rangeVariable ? [rangeVariable.id] : []),
+    ],
+    [aulaToggle, rangeVariable],
+  );
 
   const tiposBorrador = useMemo(() => {
     const tipos = new Map<string, TipoBorradorCriterio>();
@@ -333,6 +351,13 @@ export function CursosHorarioMarcoTab({
         </div>
       ) : (
         <>
+          <CriteriosRadiografiaConsola
+            catalogo={catalogo}
+            radiografia={criteriosRadiografia}
+            rawPresent={aulasState?.frame?.criterios_radiografia != null}
+            scope="aula"
+            legacyCardIds={legacyCardIds}
+          />
           <section className="cmv2-chfp-global" aria-label="Ajustes globales del marco">
             <header className="cmv2-chfp-section-head">
               <span className="cmv2-chfp-section-icon" aria-hidden="true">
@@ -357,6 +382,7 @@ export function CursosHorarioMarcoTab({
               teacherTypeOrden={config.teacher_type_orden}
               config={config}
               soloAjustes
+              variablesPorFacultadIds={variablesPorFacultadIds}
               onSelVariable={editarVariable}
               onRango={(facultad, rangos) => {
                 const rangeVar = aula.find((v) => v.kind === "range");

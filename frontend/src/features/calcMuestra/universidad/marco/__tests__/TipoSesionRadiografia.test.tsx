@@ -80,6 +80,19 @@ const radiografia: CalcMuestraAulasCriteriosRadiografia = {
   ],
 };
 
+const radiografiaV2: CalcMuestraAulasCriteriosRadiografia = {
+  schema: "calc_muestra_aulas_criterios_radiografia_v2",
+  owner: "calc_muestra_aulas_frame_v1.criterios_radiografia",
+  frame_hash: radiografia.frame_hash,
+  momento: "marco_ejecutado",
+  grano: "criterio_x_facultad_x_segmento",
+  unidad: "curso_horario_unico",
+  filas_owner: "calc_muestra_aulas_frame_v1.aula_frame",
+  filas_grano: "session_type_x_facultad_efectiva",
+  filas: radiografia.filas,
+  criterios: [],
+};
+
 describe("TipoSesionRadiografia — contrato F1 completo", () => {
   it("muestra procedencia, denominadores, cinco cuantiles, ambas medias y deltas firmados", () => {
     const html = renderToStaticMarkup(
@@ -126,6 +139,22 @@ describe("TipoSesionRadiografia — contrato F1 completo", () => {
     );
     expect(html).toContain("Exploración previa · último marco ejecutado");
     expect(html).toContain("El borrador entra al recalcular");
+  });
+
+  it("atribuye el adapter I11 a filas_owner/filas_grano y no al contenedor v2", () => {
+    const html = renderToStaticMarkup(
+      <TipoSesionRadiografia
+        facultad={facultad}
+        facultadKey="psicologia"
+        radiografia={radiografiaV2}
+        contexto="ejecutado"
+      />,
+    );
+
+    expect(html).toContain("calc_muestra_aulas_frame_v1.aula_frame");
+    expect(html).toContain("session_type_x_facultad_efectiva");
+    expect(html).not.toContain("calc_muestra_aulas_frame_v1.criterios_radiografia");
+    expect(html).not.toContain("criterio_x_facultad_x_segmento");
   });
 
   it("sin contrato conserva el resumen legacy y no afirma que sea una radiografía F1 completa", () => {

@@ -195,16 +195,35 @@
   hit[[1]]
 }
 
+.cr_entry <- function(out, id) {
+  hit <- Filter(function(x) identical(x$id, id), out$criterios)
+  expect_length(hit, 1L)
+  hit[[1]]
+}
+
+.cr_v2_row <- function(entry, faculty_key, segment_key) {
+  hit <- Filter(function(x) {
+    identical(x$faculty_key, faculty_key) && identical(x$segment_key, segment_key)
+  }, entry$rows)
+  expect_length(hit, 1L)
+  hit[[1]]
+}
+
 test_that("radiografía publica el contrato sibling con grano y owner explícitos", {
   out <- .cr_run(.cr_fixture())
 
-  expect_named(out, c("schema", "owner", "frame_hash", "momento", "grano", "unidad", "filas"))
-  expect_identical(out$schema, "calc_muestra_aulas_criterios_radiografia_v1")
-  expect_identical(out$owner, "calc_muestra_aulas_frame_v1.aula_frame")
+  expect_named(out, c(
+    "schema", "owner", "frame_hash", "momento", "grano", "unidad",
+    "filas_owner", "filas_grano", "filas", "criterios"
+  ))
+  expect_identical(out$schema, "calc_muestra_aulas_criterios_radiografia_v2")
+  expect_identical(out$owner, "calc_muestra_aulas_frame_v1.criterios_radiografia")
   expect_identical(out$frame_hash, "hash-fixture")
   expect_identical(out$momento, "marco_ejecutado")
-  expect_identical(out$grano, "session_type_x_facultad_efectiva")
+  expect_identical(out$grano, "criterio_x_facultad_x_segmento")
   expect_identical(out$unidad, "curso_horario_unico")
+  expect_identical(out$filas_owner, "calc_muestra_aulas_frame_v1.aula_frame")
+  expect_identical(out$filas_grano, "session_type_x_facultad_efectiva")
   expect_length(out$filas, 10L) # 2 facultades × 5 categorías, incl. Sin dato.
 
   fila <- .cr_row(out, "facultad_a", "teorico")
@@ -216,6 +235,415 @@ test_that("radiografía publica el contrato sibling con grano y owner explícito
   expect_identical(fila$criterio, "session_type")
   expect_identical(fila$facultad_label, "FACULTAD A")
   expect_identical(fila$categoria_label, "TEORICO")
+})
+
+test_that("inventario v2 no descarta modality cuando coexiste con session_type", {
+  base <- data.frame(
+    estudiante = c("E1", "E2", "E3"),
+    curso_horario = c("CH-1", "CH-2", "CH-3"),
+    facultad = c("FAC A", "FAC A", "FAC B"),
+    modalidad = c("PRESENCIAL", "VIRTUAL", "PRESENCIAL"),
+    tipo = c("TALLER", "TEORICO", "TALLER"),
+    nivel = c("3", "4", "5"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  frame <- calc_muestra_aulas_construir(
+    base_madre = base,
+    config = list(
+      mapping = list(
+        student_id = "estudiante", classroom_id = "curso_horario",
+        faculty = "facultad", modality = "modalidad", session_type = "tipo",
+        level = "nivel"
+      ),
+      filters = list(
+        require_adult = FALSE, require_undergraduate = FALSE,
+        require_in_person = FALSE, accepted_conditions = list(),
+        exclude_session_patterns = list(), min_eligible_per_class = 1L
+      ),
+      criterios_seleccion = list(byVariable = list(
+        modality = list(mode = "include", categories = list("presencial")),
+        session_type = list(mode = "include", categories = list("taller"))
+      ))
+    )
+  )
+
+  ids <- vapply(frame$criterios_radiografia$criterios, `[[`, character(1), "id")
+  expect_true(all(c("modality", "session_type") %in% ids))
+  modalidad <- .cr_entry(frame$criterios_radiografia, "modality")
+  expect_identical(modalidad$status, "disponible")
+  virtual <- .cr_v2_row(modalidad, "fac_a", "virtual")
+  expect_identical(virtual$delta$action, "agregar_categoria")
+  expect_true(virtual$delta$reconstruccion_valida)
+  # CH-2 sigue fuera por session_type: el delta no atribuye ese solape a
+  # modalidad.
+  expect_identical(virtual$delta$delta_ch, 0L)
+  expect_identical(virtual$delta$delta_matriculas, 0L)
+  expect_identical(virtual$delta$delta_estudiantes_unicos, 0L)
+})
+
+test_that("criterio alumno cambia membresías pero congela outcomes CH ajenos", {
+  base <- data.frame(
+    estudiante = c("E1", "E2"),
+    curso_horario = c("CH-1", "CH-1"),
+    facultad = c("FAC A", "FAC A"),
+    formacion = c("PREGRADO", "MAESTRIA"),
+    tipo = c("TALLER", "TALLER"),
+    nivel = c("3", "3"),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  config_base <- list(
+    mapping = list(
+      student_id = "estudiante", classroom_id = "curso_horario",
+      faculty = "facultad", formation = "formacion",
+      session_type = "tipo", level = "nivel"
+    ),
+    filters = list(
+      require_adult = FALSE, require_undergraduate = FALSE,
+      require_in_person = FALSE, accepted_conditions = list(),
+      exclude_session_patterns = list(), min_eligible_per_class = 1L
+    ),
+    criterios_seleccion = list(
+      byVariable = list(formation = list(
+        mode = "include", categories = list("pregrado", "maestria"), layer = "marco"
+      )),
+      minEligible = list(threshold = 2)
+    )
+  )
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = config_base)
+  formation <- .cr_entry(frame$criterios_radiografia, "formation")
+  maestria <- .cr_v2_row(formation, "fac_a", "maestria")
+  expect_identical(formation$gate, "poblacion")
+  expect_identical(formation$effective_layer, "marco")
+  expect_true(maestria$delta$reconstruccion_valida)
+  expect_identical(maestria$delta$action, "quitar_categoria")
+  # Quitar MAESTRIA lleva eligible_n 2→1 (cruza minEligible=2), pero el
+  # outcome del gate CH queda fijo por contrato marginal directo.
+  expect_identical(maestria$delta$delta_ch, 0L)
+  expect_identical(maestria$delta$delta_matriculas, -1L)
+  expect_identical(maestria$delta$delta_estudiantes_unicos, -1L)
+
+  config_info <- config_base
+  config_info$criterios_seleccion$byVariable$formation$layer <- "instrumento"
+  frame_info <- calc_muestra_aulas_construir(base_madre = base, config = config_info)
+  formation_info <- .cr_entry(frame_info$criterios_radiografia, "formation")
+  info_row <- .cr_v2_row(formation_info, "fac_a", "maestria")
+  expect_identical(formation_info$gate, "informativo")
+  expect_identical(formation_info$status, "disponible")
+  expect_identical(info_row$delta$action, "no_aplica")
+  expect_false(info_row$delta$reconstruccion_valida)
+  expect_true(all(is.na(unlist(info_row$delta[c(
+    "delta_ch", "delta_matriculas", "delta_estudiantes_unicos"
+  )]))))
+})
+
+test_that("teacher_type respeta el kind efectivo flat o hierarchical", {
+  construir <- function(docentes, categories) {
+    base <- data.frame(
+      estudiante = paste0("E", seq_along(docentes)),
+      curso_horario = paste0("CH", seq_along(docentes)),
+      facultad = "FAC A",
+      tipo_docente = docentes,
+      tipo_sesion = "TALLER",
+      nivel = "3",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    calc_muestra_aulas_construir(
+      base_madre = base,
+      config = list(
+        mapping = list(
+          student_id = "estudiante", classroom_id = "curso_horario",
+          faculty = "facultad", teacher_type = "tipo_docente",
+          session_type = "tipo_sesion", level = "nivel"
+        ),
+        filters = list(
+          require_adult = FALSE, require_undergraduate = FALSE,
+          require_in_person = FALSE, accepted_conditions = list(),
+          exclude_session_patterns = list(), min_eligible_per_class = 1L
+        ),
+        criterios_seleccion = list(byVariable = list(
+          teacher_type = list(mode = "include", categories = as.list(categories))
+        ))
+      )
+    )
+  }
+
+  flat <- construir(c("CONTRATADO", "ORDINARIO"), "contratado")
+  flat_entry <- .cr_entry(flat$criterios_radiografia, "teacher_type")
+  expect_identical(flat_entry$kind, "flat")
+  expect_identical(flat_entry$family, "classroom_flat")
+  expect_false(flat_entry$overlap)
+  expect_true(all(vapply(
+    flat_entry$rows, function(x) identical(x$segment_kind, "categoria"), logical(1)
+  )))
+
+  hier <- construir(c(
+    "DOCENTE ORDINARIO - PRINCIPAL",
+    "DOCENTE ORDINARIO - ASOCIADO",
+    "CONTRATADO"
+  ), "docente_ordinario")
+  hier_entry <- .cr_entry(hier$criterios_radiografia, "teacher_type")
+  expect_identical(hier_entry$kind, "hierarchical")
+  expect_identical(hier_entry$family, "classroom_hierarchical")
+  expect_true(hier_entry$overlap)
+  expect_true(any(vapply(
+    hier_entry$rows, function(x) identical(x$segment_kind, "grupo"), logical(1)
+  )))
+  expect_true(any(vapply(
+    hier_entry$rows, function(x) identical(x$segment_kind, "categoria"), logical(1)
+  )))
+  row_keys <- vapply(hier_entry$rows, function(x) {
+    paste(x$faculty_key, x$segment_key, sep = "::")
+  }, character(1))
+  expect_identical(length(unique(row_keys)), length(row_keys))
+})
+
+.cr_full_frame <- function() {
+  ch <- rep(paste0("CH-SECRET-", 1:4), each = 2L)
+  base <- data.frame(
+    estudiante = paste0("STUDENT-SECRET-", 1:8),
+    curso_horario = ch,
+    formacion = rep(c("PREGRADO", "MAESTRIA"), 4L),
+    condicion_alumno = rep(c("REGULAR", "ESPECIAL"), 4L),
+    edad = c(18, 19, 20, 21, 22, 23, 24, 25),
+    facultad_alumno = rep(c("FAC A", "FAC B"), each = 4L),
+    nivel_alumno = rep(c("2", "3", "4", "5"), each = 2L),
+    modalidad = rep(c("PRESENCIAL", "VIRTUAL"), each = 4L),
+    tipo_sesion = rep(c("TALLER", "TEORICO"), times = 4L),
+    tipo_docente = rep(c(
+      "DOCENTE ORDINARIO - PRINCIPAL", "DOCENTE ORDINARIO - ASOCIADO"
+    ), each = 4L),
+    nivel_curso = rep(c("2", "3", "4", "5"), each = 2L),
+    condicion_curso = rep(c("OBLIGATORIO", ""), each = 2L, times = 2L),
+    matriculados = rep(c(10, 20, 30, 40), each = 2L),
+    sede = rep(c("CENTRAL", "NORTE"), each = 4L),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  calc_muestra_aulas_construir(
+    base_madre = base,
+    config = list(
+      mapping = list(
+        student_id = "estudiante", classroom_id = "curso_horario",
+        formation = "formacion", condition = "condicion_alumno", age = "edad",
+        faculty = "facultad_alumno", level = "nivel_alumno",
+        modality = "modalidad", session_type = "tipo_sesion",
+        teacher_type = "tipo_docente", course_level = "nivel_curso",
+        condicion_curso = "condicion_curso", enrolled_total = "matriculados",
+        campus = "sede"
+      ),
+      filters = list(
+        require_adult = FALSE, require_undergraduate = FALSE,
+        require_in_person = FALSE, accepted_conditions = list(),
+        exclude_session_patterns = list(), min_eligible_per_class = 1L
+      ),
+      criterios_seleccion = list(minEligible = list(threshold = 1))
+    )
+  )
+}
+
+test_that("inventario dinámico cubre todas las familias sin huérfanos", {
+  frame <- .cr_full_frame()
+  radio <- frame$criterios_radiografia
+  catalog_ids <- vapply(frame$criterios_catalogo$variables, `[[`, character(1), "id")
+  ids <- vapply(radio$criterios, `[[`, character(1), "id")
+  cards <- vapply(radio$criterios, `[[`, character(1), "card_id")
+
+  expect_setequal(ids, c(catalog_ids, "minEligible", "c7", "c8_facultad", "c8"))
+  expect_identical(length(ids), length(catalog_ids) + 4L)
+  expect_identical(length(unique(ids)), length(ids))
+  expect_identical(length(unique(cards)), length(catalog_ids) + 2L)
+  expect_true(all(vapply(
+    radio$criterios, function(x) identical(x$status, "disponible"), logical(1)
+  )))
+  expect_true(all(vapply(radio$criterios, function(x) length(x$rows) > 0L, logical(1))))
+  expect_setequal(
+    unique(vapply(radio$criterios, `[[`, character(1), "family")),
+    c(
+      "student_flat", "student_numeric", "student_ordinal",
+      "classroom_flat", "classroom_hierarchical", "classroom_range",
+      "classroom_numeric", "threshold_gate", "proportion_gate"
+    )
+  )
+
+  requiere_signal <- c(
+    "student_numeric", "student_ordinal", "classroom_numeric",
+    "classroom_range", "threshold_gate", "proportion_gate"
+  )
+  for (entry in radio$criterios) {
+    if (!entry$family %in% requiere_signal) next
+    expect_true(all(vapply(
+      entry$rows, function(row) is.list(row$signal_distribution), logical(1)
+    )), info = entry$id)
+  }
+})
+
+test_that("numeric y ordinal calculan el delta solo en su faceta alumno", {
+  base <- data.frame(
+    estudiante = paste0("E", 1:5),
+    curso_horario = c("CHA", "CHA", "CHB", "CHB", "CHB"),
+    facultad = c("FAC A", "FAC A", "FAC B", "FAC B", "FAC B"),
+    edad = c(18, 22, 17, 19, 23),
+    nivel = c("2", "3", "1", "2", "3"),
+    tipo = "TALLER",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  construir <- function(by_variable) calc_muestra_aulas_construir(
+    base_madre = base,
+    config = list(
+      mapping = list(
+        student_id = "estudiante", classroom_id = "curso_horario",
+        faculty = "facultad", age = "edad", level = "nivel",
+        session_type = "tipo"
+      ),
+      filters = list(
+        require_adult = FALSE, require_undergraduate = FALSE,
+        require_in_person = FALSE, accepted_conditions = list(),
+        exclude_session_patterns = list(), min_eligible_per_class = 1L
+      ),
+      criterios_seleccion = list(
+        byVariable = by_variable,
+        minEligible = list(threshold = 1)
+      )
+    )
+  )
+
+  age <- construir(list(age = list(
+    threshold = list(op = ">=", min = 21), layer = "marco"
+  )))
+  age_entry <- .cr_entry(age$criterios_radiografia, "age")
+  age_a <- .cr_v2_row(age_entry, "fac_a", "global")
+  age_b <- .cr_v2_row(age_entry, "fac_b", "global")
+  expect_identical(age_a$delta$delta_ch, 0L)
+  expect_identical(age_b$delta$delta_ch, 0L)
+  expect_identical(age_a$delta$delta_matriculas, 1L)
+  expect_identical(age_b$delta$delta_matriculas, 2L)
+
+  level <- construir(list(level = list(
+    includeValues = list(3), layer = "marco"
+  )))
+  level_entry <- .cr_entry(level$criterios_radiografia, "level")
+  level_a <- .cr_v2_row(level_entry, "fac_a", "3")
+  level_b <- .cr_v2_row(level_entry, "fac_b", "3")
+  expect_identical(level_a$delta$delta_ch, 0L)
+  expect_identical(level_b$delta$delta_ch, 0L)
+  expect_identical(level_a$delta$delta_matriculas, 1L)
+  expect_identical(level_b$delta$delta_matriculas, 2L)
+})
+
+test_that("sibling v2 no filtra contexto alumno×CH y sobrevive strip/RDS", {
+  frame <- .cr_full_frame()
+  radio <- frame$criterios_radiografia
+  nombres <- character(0)
+  recolectar <- function(x) {
+    if (!is.list(x)) return(invisible(NULL))
+    nombres <<- c(nombres, names(x) %||% character(0))
+    invisible(lapply(x, recolectar))
+  }
+  recolectar(radio)
+  expect_false(any(nombres %in% c(
+    "student_id", "classroom_id", "radiografia_contexto",
+    "manualExcludedClassrooms", "filas_alumno", "raw_rows"
+  )))
+  serializado <- jsonlite::toJSON(radio, auto_unbox = TRUE, null = "null", na = "null")
+  expect_false(grepl("STUDENT-SECRET|CH-SECRET", serializado))
+
+  stripped <- .pulso_strip_caches(list(calc_muestra_aulas_frame = frame))
+  path <- tempfile(fileext = ".rds")
+  on.exit(unlink(path), add = TRUE)
+  saveRDS(stripped, path)
+  back <- readRDS(path)
+  expect_identical(
+    back$calc_muestra_aulas_frame$criterios_radiografia,
+    radio
+  )
+  expect_identical(
+    back$calc_muestra_aulas_frame$criterios_radiografia$schema,
+    "calc_muestra_aulas_criterios_radiografia_v2"
+  )
+})
+
+test_that("catálogo explícito vacío no inventa session_type", {
+  fx <- .cr_fixture()
+  out <- calc_muestra_aulas_criterios_radiografia(
+    aula_frame = fx$aula_frame,
+    criterios = fx$criterios,
+    criterios_seleccion = fx$criterios_seleccion,
+    particularidades = fx$particularidades,
+    frame_hash = fx$frame_hash,
+    criterios_catalogo = list(
+      schema = "calc_muestra_aulas_criterios_catalogo_v1", variables = list()
+    )
+  )
+  expect_length(out$filas, 0L)
+  expect_setequal(
+    vapply(out$criterios, `[[`, character(1), "id"),
+    c("minEligible", "c7", "c8_facultad", "c8")
+  )
+})
+
+test_that("segmento Sin dato de aula reconstruible conserva delta 0/0/0", {
+  base <- data.frame(
+    estudiante = c("E1", "E2"),
+    curso_horario = c("CH1", "CH2"),
+    facultad = "FAC A",
+    tipo = c("", "SIN DATO"),
+    nivel = "3",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  frame <- calc_muestra_aulas_construir(
+    base_madre = base,
+    config = list(
+      mapping = list(
+        student_id = "estudiante", classroom_id = "curso_horario",
+        faculty = "facultad", session_type = "tipo", level = "nivel"
+      ),
+      filters = list(
+        require_adult = FALSE, require_undergraduate = FALSE,
+        require_in_person = FALSE, accepted_conditions = list(),
+        exclude_session_patterns = list(), min_eligible_per_class = 1L
+      ),
+      criterios_seleccion = list(minEligible = list(threshold = 1))
+    )
+  )
+  missing <- .cr_v2_row(
+    .cr_entry(frame$criterios_radiografia, "session_type"),
+    "fac_a", "__missing_session_type__"
+  )
+  expect_identical(missing$segment_kind, "sin_dato")
+  expect_identical(missing$delta$action, "no_aplica")
+  expect_true(missing$delta$reconstruccion_valida)
+  expect_identical(
+    unlist(missing$delta[c("delta_ch", "delta_matriculas", "delta_estudiantes_unicos")]),
+    c(delta_ch = 0L, delta_matriculas = 0L, delta_estudiantes_unicos = 0L)
+  )
+})
+
+test_that("snapshots y señales degradan cobertura parcial sin aproximar", {
+  ids <- list(sets = list("E1", "E2"), valido = TRUE)
+  parcial <- .cm_criterio_radiografia_snapshot(1:2, c(1, NA), ids)
+  expect_identical(parcial$n_ch, 2L)
+  expect_identical(parcial$n_ch_con_dato, 1L)
+  expect_true(is.na(parcial$n_matriculas))
+  expect_true(is.na(parcial$n_estudiantes_unicos))
+  expect_true(all(is.na(unlist(parcial$distribution))))
+
+  vacio <- .cm_criterio_radiografia_snapshot(integer(0), numeric(0), ids)
+  expect_identical(vacio$n_ch, 0L)
+  expect_identical(vacio$n_matriculas, 0L)
+  expect_identical(vacio$n_estudiantes_unicos, 0L)
+  expect_true(all(is.na(unlist(vacio$distribution))))
+
+  signal <- .cm_criterio_radiografia_signal_distribution(c(0.5, NA), "proporcion")
+  expect_identical(signal$n_total, 2L)
+  expect_identical(signal$n_con_dato, 1L)
+  expect_true(all(is.na(unlist(signal[c(
+    "media", "p10", "p25", "p50", "p75", "p90"
+  )]))))
 })
 
 test_that("delta marginal reabre solo el CH que falla exclusivamente por tipo", {
@@ -266,6 +694,13 @@ test_that("cuantiles type 7, medias elegible/total y NA estricto nacen en R", {
   seminario <- .cr_row(out, "facultad_a", "seminario")
   expect_identical(seminario$delta_marginal$delta_ch, 1L)
   expect_true(is.na(seminario$delta_marginal$delta_matriculas_elegibles))
+  seminario_v2 <- .cr_v2_row(
+    .cr_entry(out, "session_type"), "facultad_a", "seminario"
+  )
+  expect_false(seminario_v2$delta$reconstruccion_valida)
+  expect_true(all(is.na(unlist(seminario_v2$delta[c(
+    "delta_ch", "delta_matriculas", "delta_estudiantes_unicos"
+  )]))))
 })
 
 test_that("cruce completo conserva 0 CH y el bucket Sin dato no es accionable", {
@@ -414,12 +849,53 @@ test_that("integración es aditiva y conserva intacto exploracion v1", {
   expect_named(frame$exploracion, c("schema", "totales", "por_facultad"))
   expect_identical(frame$exploracion$schema, "calc_muestra_aulas_exploracion_v1")
   expect_identical(frame$criterios_radiografia$frame_hash, frame$frame_hash)
-  expect_identical(frame$criterios_radiografia$owner, "calc_muestra_aulas_frame_v1.aula_frame")
+  expect_identical(frame$criterios_radiografia$filas_owner, "calc_muestra_aulas_frame_v1.aula_frame")
   expect_true(length(frame$criterios_radiografia$filas) > 0L)
   teorico <- .cr_row(frame$criterios_radiografia, "facultad_a", "teorico")
   expect_identical(teorico$delta_marginal$accion, "agregar_categoria")
   expect_identical(teorico$delta_marginal$delta_ch, 1L)
   expect_equal(teorico$delta_marginal$delta_matriculas_elegibles, 1)
+
+  session_v2 <- .cr_entry(frame$criterios_radiografia, "session_type")
+  expect_named(session_v2, c(
+    "id", "card_id", "label", "scope", "family", "status",
+    "effective_layer", "overlap", "faculty_dimension", "owner", "kind",
+    "grain", "unit", "gate", "rows"
+  ))
+  expect_identical(session_v2$family, "classroom_flat")
+  expect_false(session_v2$overlap)
+  fila_v2 <- .cr_v2_row(session_v2, "facultad_a", "teorico")
+  expect_named(fila_v2, c(
+    "faculty_key", "faculty_label", "segment_key", "segment_label",
+    "segment_kind", "actual", "contraste_total", "delta"
+  ))
+  expect_named(fila_v2$actual, c(
+    "n_ch", "n_ch_con_dato", "n_estudiantes_unicos", "n_matriculas",
+    "distribution"
+  ))
+  expect_named(fila_v2$actual$distribution, c("media", "p10", "p25", "p50", "p75", "p90"))
+  expect_named(fila_v2$delta, c(
+    "reference", "action", "reconstruccion_valida", "delta_ch",
+    "delta_matriculas", "delta_estudiantes_unicos"
+  ))
+  expect_true(fila_v2$delta$reconstruccion_valida)
+  expect_identical(fila_v2$delta$delta_ch, teorico$delta_marginal$delta_ch)
+  expect_identical(fila_v2$delta$delta_matriculas, as.integer(teorico$delta_marginal$delta_matriculas_elegibles))
+  expect_identical(fila_v2$delta$delta_estudiantes_unicos, 1L)
+  expect_lte(fila_v2$actual$n_ch, fila_v2$contraste_total$n_ch)
+  expect_lte(fila_v2$actual$n_matriculas, fila_v2$contraste_total$n_matriculas)
+  expect_lte(fila_v2$actual$n_estudiantes_unicos, fila_v2$contraste_total$n_estudiantes_unicos)
+
+  for (gate_id in c("minEligible", "c7", "c8_facultad", "c8")) {
+    gate <- .cr_entry(frame$criterios_radiografia, gate_id)
+    expect_identical(gate$status, "disponible", info = gate_id)
+    expect_true(length(gate$rows) > 0L, info = gate_id)
+    expect_named(gate$rows[[1]]$signal_distribution, c(
+      "unit", "n_total", "n_con_dato", "media", "p10", "p25", "p50", "p75", "p90"
+    ), info = gate_id)
+    expect_identical(gate$rows[[1]]$signal_distribution$n_total, 2L, info = gate_id)
+    expect_identical(gate$rows[[1]]$signal_distribution$n_con_dato, 2L, info = gate_id)
+  }
 
   # Sin output efectivo del evaluador (path legacy), el sibling es NULL: no
   # se proyectan las columnas modales del aula_frame como si fueran el grano.
@@ -487,4 +963,144 @@ test_that("integración I11-H10 usa tipo y facultad del catálogo, no los modale
     function(fila) paste(fila$facultad_key, fila$categoria_key),
     character(1)
   ), fixed = TRUE)))
+})
+
+test_that("índice alumno×CH se construye una vez por radiografía", {
+  donde <- environment(calc_muestra_aulas_criterios_radiografia)
+  nombre <- ".cm_criterio_radiografia_indice_alumno"
+  expect_true(exists(nombre, envir = donde, mode = "function", inherits = FALSE))
+
+  opcion <- "prosecnur.test.radiografia_indice_calls"
+  anterior <- getOption(opcion)
+  options(stats::setNames(list(0L), opcion))
+  on.exit(options(stats::setNames(list(anterior), opcion)), add = TRUE)
+  trace(
+    nombre,
+    tracer = quote(options(
+      prosecnur.test.radiografia_indice_calls =
+        getOption("prosecnur.test.radiografia_indice_calls", 0L) + 1L
+    )),
+    print = FALSE,
+    where = donde
+  )
+  on.exit(untrace(nombre, where = donde), add = TRUE)
+
+  simple <- calc_muestra_aulas_construir(
+    base_madre = data.frame(
+      estudiante = c("E1", "E2"),
+      curso_horario = c("CH1", "CH2"),
+      facultad = "FAC A",
+      formacion = c("PREGRADO", "MAESTRIA"),
+      nivel = c("2", "3"),
+      tipo = "TALLER",
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ),
+    config = list(
+      mapping = list(
+        student_id = "estudiante", classroom_id = "curso_horario",
+        faculty = "facultad", formation = "formacion",
+        level = "nivel", session_type = "tipo"
+      ),
+      filters = list(
+        require_adult = FALSE, require_undergraduate = FALSE,
+        require_in_person = FALSE, accepted_conditions = list(),
+        exclude_session_patterns = list(), min_eligible_per_class = 1L
+      ),
+      criterios_seleccion = list(minEligible = list(threshold = 1))
+    )
+  )
+  amplio <- .cr_full_frame()
+
+  expect_identical(getOption(opcion), 2L)
+  n_simple <- sum(vapply(
+    simple$criterios_radiografia$criterios,
+    function(x) length(x$rows), integer(1)
+  ))
+  n_amplio <- sum(vapply(
+    amplio$criterios_radiografia$criterios,
+    function(x) length(x$rows), integer(1)
+  ))
+  expect_gt(n_amplio, n_simple)
+
+  # Oráculo congelado antes de la optimización: detecta cualquier cambio de
+  # orden, tipo, NA, snapshot, estado o delta en el payload completo del fixture.
+  payload_json <- jsonlite::toJSON(
+    amplio$criterios_radiografia,
+    auto_unbox = TRUE, null = "null", na = "null", digits = NA
+  )
+  expect_identical(
+    digest::digest(payload_json, algo = "sha256", serialize = FALSE),
+    "462d41567ffc3c6ad2392d2d11e2532a4aff977b7c6578bc80626414d53bb699"
+  )
+})
+
+test_that("índice alumno×CH conserva ANY-row y no duplica estudiantes", {
+  aula_frame <- data.frame(
+    classroom_id = c("CH1", "CH2"),
+    eligible_n = c(1, 1),
+    included = TRUE,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  filas <- list(
+    student_id = c("E1", "E1", "E2", "E2"),
+    classroom_id = c("CH1", "CH1", "CH2", "CH2")
+  )
+  indice <- .cm_criterio_radiografia_indice_alumno(aula_frame, filas)
+  expect_true(indice$valido)
+
+  uno_por_cualquier_fila <- .cm_criterio_radiografia_membresias(
+    aula_frame, filas, c(FALSE, TRUE, FALSE, FALSE), indice
+  )
+  expect_identical(uno_por_cualquier_fila$eligible_n, c(1, 0))
+  expect_identical(uno_por_cualquier_fila$row_ok, c(FALSE, TRUE, FALSE, FALSE))
+  expect_identical(
+    .cm_criterio_radiografia_snapshot(
+      1:2, uno_por_cualquier_fila$eligible_n, uno_por_cualquier_fila$ids
+    )$n_estudiantes_unicos,
+    1L
+  )
+
+  duplicadas_activas <- .cm_criterio_radiografia_membresias(
+    aula_frame, filas, rep(TRUE, 4L), indice
+  )
+  expect_identical(duplicadas_activas$eligible_n, c(1, 1))
+  expect_identical(
+    .cm_criterio_radiografia_snapshot(
+      1:2, duplicadas_activas$eligible_n, duplicadas_activas$ids
+    )$n_estudiantes_unicos,
+    2L
+  )
+})
+
+test_that("flat alumno no reevalúa N filas dentro de cada segmento", {
+  cuerpo <- paste(deparse(body(
+    .cm_criterio_radiografia_rows_flat_alumno
+  )), collapse = "\n")
+  expect_false(grepl(
+    ".cm_criterios_eval_flat_vec", cuerpo, fixed = TRUE
+  ))
+
+  keys <- c("pregrado", "", "maestria", "doctorado")
+  for (mode in c("include", "exclude")) {
+    esperado <- .cm_criterios_eval_flat_vec(
+      keys,
+      list(
+        mode = mode, categories = c("pregrado", "maestria"),
+        exceptions = list()
+      ),
+      rep("fac_a", length(keys))
+    )
+    observado <- .cm_criterio_radiografia_eval_flat_faceta(
+      keys, mode, c("pregrado", "maestria")
+    )
+    expect_identical(observado, esperado, info = mode)
+  }
+  expect_identical(
+    .cm_criterio_radiografia_eval_flat_faceta(
+      keys, "include", character(0)
+    ),
+    rep(TRUE, length(keys))
+  )
 })
