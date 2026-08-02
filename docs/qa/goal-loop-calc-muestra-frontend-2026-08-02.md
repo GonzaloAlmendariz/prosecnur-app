@@ -1605,6 +1605,40 @@ que el hallazgo: es la cuarta vez en la sesión que una medición apresurada
 apunta al lugar equivocado —los absolutos de S5, la prosa de F1, los SVG de
 S13—, y las tres anteriores las descubrí yo revisando, no el gate.
 
+### F37b — La comparación acredita; F35 era mi sonda · **S10 cerrada**
+
+La corrida lanzada desde la UI **acreditó**: Método pasa a «Recomendado por el
+comparador vigente» y el aviso de condición desaparece. Queda confirmado lo que
+F37 sospechaba: **el callejón de F35 no existe por el camino real**, lo fabricó
+mi `POST` sin `config`. F34 se sostiene igual —el fallback nombraba una causa
+falsa y el código del motor no estaba referenciado— y F36 tampoco daña nada,
+porque sin señal del motor el botón sigue bloqueado.
+
+Con la comparación acreditada, **Simulación abre y pasa la vara**: 1,1 pantalla,
+170 palabras, 0 desbordes. Selección, Reemplazos y Sustento siguen esperando su
+propio paso, la corrida de selección.
+
+**Y el dato nuevo destapó un defecto que ninguna pasada anterior podía ver.**
+Sustento saltó de 0 a 4 desbordes al dibujarse el gráfico de balance, que sin
+datos no existía. Los cuatro eran uno solo, en cascada: `.cmv2-profile-bars > div`
+declaraba pisos de 180 + 180 px que, con gap, padding y borde, exigen **392 px
+mínimos dentro de una columna de 387**. Cinco píxeles exactos, arrastrando a tres
+ancestros.
+
+| | antes → después |
+|---|---:|
+| Desbordes en Sustento (1440×1000) | 4 → **0** |
+| Mínimo exigido por la fila | 392 px → **adaptable** (pisos a 0) |
+| Desbordes a 1024×600 (Método · Simulación · Sustento) | — → **0, 0, 0** |
+
+Guard: `profileBarsGeometry.contract.test.ts`, que mide la **regla** y no la
+pantalla —la regla estaba rota aunque nadie la mirara— y es falsable: con los
+pisos viejos da 392 > 387 y falla.
+
+**Lección**: auditar sobre pantallas vacías no sólo mide de menos, mide en falso.
+Esta superficie llevaba toda la sesión declarándose limpia porque su gráfico no
+tenía datos que dibujar.
+
 ### F36 — La salida de emergencia (2026-08-02)
 
 Reparado el callejón de F35 por el único lado que le toca al frontend: cuando el
@@ -1646,7 +1680,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F37 — recorrer el camino completo (refirmar → comparar → seleccionar) y auditar S10–S11 con dato real**
+Siguiente, en orden: **F38 — correr la selección y auditar Titulares, Reemplazos y Sustento con dato real**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
