@@ -167,10 +167,13 @@ export function CalculoDisenoTab({
             ]}
           />
         </SwapValor>
+        {/* S3: el riel de pestañas ya dice dónde vive cada paso y el botón de
+            confirmar ya declara que el cambio es explícito. De las tres frases
+            solo la primera aportaba algo que la pantalla no muestra: que aquí
+            se regula, no se ejecuta. */}
         <p className="cmv2-calc-diseno-nota">
           <Sigma size={13} aria-hidden="true" />
-          Diseño solo regula los parámetros. La cifra se ejecuta en <strong>Propuestas</strong>; el plan de
-          cursos-horario, en su pestaña. Cada cambio se aplica con confirmación explícita.
+          Aquí se regulan los parámetros; la cifra se ejecuta en <strong>Propuestas</strong>.
         </p>
       </section>
 
