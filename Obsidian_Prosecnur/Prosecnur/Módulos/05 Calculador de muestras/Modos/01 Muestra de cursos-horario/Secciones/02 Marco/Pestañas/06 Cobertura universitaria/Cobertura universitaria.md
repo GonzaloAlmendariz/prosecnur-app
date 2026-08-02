@@ -1,7 +1,7 @@
 ---
 tipo: pestana
 padres: ["[[Marco]]"]
-orden: 5
+orden: 6
 documentacion: parcial
 ruta_app: "/calc-muestra?modo=opinion-universitaria&seccion=marco&pestana=marco-cobertura"
 nodo: "calc-muestra/opinion-universitaria/marco/marco-cobertura"
@@ -21,7 +21,7 @@ flowchart LR
     A[Población fuente] --> B[Aplicar criterios]
     B --> C[Incluidos vs excluidos]
     C --> D[Cobertura por facultad]
-    D --> E[Consistencia]
+    D --> E[Marco acreditado]
 ```
 ## Elementos de la pantalla
 | Elemento | Para qué sirve | Qué cambia o produce |
@@ -33,9 +33,9 @@ flowchart LR
 1. Revisa cobertura global.
 2. Compara facultades y tipos de unidad.
 3. Vuelve a criterios si hay una pérdida problemática.
-4. Continúa en Consistencia de fuentes.
+4. Cierra Marco cuando la cobertura sea defendible; la consistencia causal de las fuentes se revisa antes en Datos > Fuentes.
 ## Resultado y siguiente paso
-- Cobertura revisada; sigue Consistencia de fuentes.
+- Cobertura revisada y Marco acreditado; sigue Cálculo.
 ## Estados, alertas y límites
 - Sin marco construido, la pantalla explica qué falta.
 - Criterios cambiados vuelven los conteos obsoletos.

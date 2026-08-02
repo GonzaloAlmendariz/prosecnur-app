@@ -5,8 +5,14 @@
 import { apiFetch, apiPath, downloadFailedMessage, handle, headers, SESSION_KEY } from "./core";
 import type { MonitoreoRow } from "./monitoreo";
 import type { CalcMuestraAulasCriteriosRadiografia } from "./calcMuestraCriteriosRadiografia";
+import type {
+  CalcMuestraAlumnosPorCh,
+  CalcMuestraAlumnosPorChDecision,
+} from "./calcMuestraAlumnosPorCh";
 
 export * from "./calcMuestraCriteriosRadiografia";
+export * from "./calcMuestraMatrizEmbudo";
+export * from "./calcMuestraAlumnosPorCh";
 
 // ============================================================================
 // [DEPRECATED] Cálculo de muestra por aulas universitarias
@@ -411,6 +417,16 @@ export type CalcMuestraAulasEstrato = {
   aulas_total: number;
   tipo_aula: string;
   precision_e: number | null;
+  /** Método y valor que R resolvió desde la decisión vigente de Marco. */
+  estadistico_usado?: CalcMuestraAlumnosPorChDecision["estadistico_default"];
+  alumnos_por_ch?: {
+    referencia: "marco_ejecutado";
+    frame_hash: string;
+    denominador: "elegible";
+    faculty_key: string;
+    estadistico: CalcMuestraAlumnosPorChDecision["estadistico_default"];
+    valor: number;
+  };
 };
 
 export type CalcMuestraCuotaMatriz = {
@@ -453,6 +469,8 @@ export type CalcMuestraResultado = {
   aulas_total?: number;
   aulas_base_total?: number;
   aulas_extra_total?: number;
+  /** Auditoría I18: la UI la presenta, pero no reinterpreta ni recalcula. */
+  alumnos_por_ch_decision?: Omit<CalcMuestraAlumnosPorChDecision, "por_facultad">;
   cuotas_matriz?: CalcMuestraCuotaMatriz[];
 };
 
@@ -641,6 +659,8 @@ export type CalcMuestraWorkspaceAulasConfig = {
    * sale del path legacy de patrones bit a bit idéntico. Lo puebla la suite de
    * criterios del marco a partir de `frame.criterios_catalogo`. */
   criterios_seleccion?: CriteriosSeleccionMarco;
+  /** Decisión confirmada en Marco → Alumnos por CH; firma el frame ejecutado. */
+  alumnos_por_ch_decision?: CalcMuestraAlumnosPorChDecision;
   /** Clave = NOMBRE de la unidad tal como aparece en la base; el motor matchea por slug interno. */
   nivel_por_unidad?: Record<string, Array<{ min: number; max: number }>>;
   accepted_campuses?: string[];
@@ -1343,6 +1363,8 @@ export type CalcMuestraAulasFrame = {
    * `normalizeCalcMuestraSessionTypeImpacto` (payload crítico).
    */
   session_type_impacto?: CalcMuestraSessionTypeImpacto | null;
+  /** Distribución R que sustenta la decisión de alumnos por curso-horario. */
+  alumnos_por_ch?: CalcMuestraAlumnosPorCh | null;
 };
 
 // ----------------------------------------------------------------------------

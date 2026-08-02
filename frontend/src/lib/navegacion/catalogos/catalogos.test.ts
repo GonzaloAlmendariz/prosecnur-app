@@ -31,10 +31,10 @@ describe("catálogos canónicos de pestañas", () => {
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco)).toEqual([
       "marco-criterios-alumno:Criterios del estudiante",
       "marco-ch-radiografia:Cursos-horario: criterios + radiografía",
+      "marco-alumnos-ch:Alumnos por CH",
       "marco-poblacion:Población",
       "marco-aulas:Cursos-horario",
       "marco-cobertura:Cobertura",
-      "def-consistencia:Consistencia",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo)).toEqual([
       "calculo-diseno:Diseño",
@@ -128,9 +128,10 @@ describe("catálogos canónicos de pestañas", () => {
     }
     const consistencia = Object.values(CALC_MUESTRA_UNIVERSIDAD_PESTANAS)
       .flat()
-      .find((tab) => tab.id === "def-consistencia");
-    expect(consistencia?.to).toBe(
-      "/calc-muestra?modo=opinion-universitaria&seccion=marco&pestana=def-consistencia",
+      .find((tab) => String(tab.id) === "def-consistencia");
+    expect(consistencia).toBeUndefined();
+    expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion[1].to).toBe(
+      "/calc-muestra?modo=opinion-universitaria&seccion=definicion&pestana=def-bases",
     );
 
     for (const [seccion, pestanas] of Object.entries(PROCESAMIENTO_PESTANAS)) {

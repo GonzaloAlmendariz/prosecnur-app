@@ -84,11 +84,11 @@ function consistenciaSidebarStatus(
 ) {
   const workspace = { ...baseWorkspace, source_mode: sourceMode } as CalcMuestraWorkspace;
   return universitySidebarTabs({
-    activeSection: "marco",
+    activeSection: "definicion",
     estudio: estudioMinimo,
     workspace,
     aulasState,
-  })?.find((tab) => tab.id === "def-consistencia")?.status;
+  })?.find((tab) => tab.id === "def-bases")?.status;
 }
 
 describe("MarcoConsistenciaTab", () => {
@@ -239,9 +239,8 @@ describe("MarcoConsistenciaTab", () => {
     expect(resolveUniversityLocalTab("marco-cruces")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-estructura")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-cadena")).toBe("marco-poblacion");
-    // Al devolver Consistencia a Marco, este vuelve a ser un alias local. La
-    // normalización de URLs sigue exigiendo la pareja explícita sección/tab.
-    expect(resolveUniversityLocalTab("marco-validacion")).toBe("def-consistencia");
+    expect(resolveUniversityLocalTab("marco-validacion")).toBe("def-bases");
+    expect(resolveUniversityLocalTab("def-consistencia")).toBe("def-bases");
   });
 
   it.each([
@@ -279,7 +278,7 @@ describe("MarcoConsistenciaTab", () => {
     expect(consistenciaSidebarStatus(sourceMode, aulasState)).toBe(esperado);
   });
 
-  it("mantiene Consistencia en un único hogar, al final de Marco", () => {
+  it("integra Consistencia dentro de Fuentes y conserva 3/6 tabs", () => {
     const fixture = {
       estudio: estudioMinimo,
       workspace: baseWorkspace,
@@ -296,11 +295,11 @@ describe("MarcoConsistenciaTab", () => {
     expect(marco.map((tab) => tab.id)).toEqual([
       "marco-criterios-alumno",
       "marco-ch-radiografia",
+      "marco-alumnos-ch",
       "marco-poblacion",
       "marco-aulas",
       "marco-cobertura",
-      "def-consistencia",
     ]);
-    expect(marco.at(-1)?.targetId).toBe("cmv2-local-def-consistencia");
+    expect(datos.find((tab) => tab.id === "def-bases")?.targetId).toBe("cmv2-local-def-bases");
   });
 });

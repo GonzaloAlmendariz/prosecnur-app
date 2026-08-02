@@ -1,5 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  normalizeCalcMuestraAlumnosPorCh,
+  normalizeCalcMuestraAlumnosPorChDecision,
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraEstudio,
@@ -22,6 +24,7 @@ import {
 import { hasUsefulResult } from "./shared/study";
 import { universityFrameSourceBindings } from "./shared/categorias";
 import { resolveClassroomArtifactStatus } from "./aulas/classroomHandoff";
+import { alumnosPorChDecisionIsCurrent } from "./marco/alumnosPorChDecisionModel";
 
 export type CalcMuestraSidebarTab = {
   id: string;
@@ -56,9 +59,10 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   "marco-criterios": "marco-criterios-alumno",
   "marco-categorias": "marco-criterios-alumno",
   "marco-explorador": "marco-ch-radiografia",
-  // Consistencia conserva este alias local para restaurar memoria de sesión y
-  // tabs guardados; la URL histórica se canonicaliza solo con su sección.
-  "marco-validacion": "def-consistencia",
+  // Consistencia vive dentro de Datos → Fuentes (D10). Estos aliases locales
+  // restauran memoria guardada; la URL se resuelve con su pareja explícita.
+  "marco-validacion": "def-bases",
+  "def-consistencia": "def-bases",
   // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
   // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
   // guardado de Elegibilidad/Institución aterriza en el mapeo de Variables.
@@ -222,33 +226,34 @@ export function universitySidebarTabs({
   if (activeSection === "definicion") {
     const baseReady = declaredSourcesReady || hasDescriptiveFrame;
     const baseConfigured = baseReady && requiredMapped;
-    // Datos solo declara el insumo: identidad, fuentes y mapeo. Los criterios de
-    // inclusión viven en Marco → Criterios (un solo hogar); Datos no muestra
-    // resultados del marco (la antigua pestaña Institución los adelantaba).
     const [estudioTab, basesTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
+    const consistencyStatus = evaluarConsistenciaMarco(workspace.source_mode, aulasState?.frame);
     return [
       { ...estudioTab, status: guideStatus(Boolean(estudio.titulo)) },
-      { ...basesTab, status: guideStatus(baseReady, hasSource) },
+      { ...basesTab, status: baseReady ? consistencyStatus : guideStatus(baseReady, hasSource) },
       { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
     ];
   }
   if (activeSection === "marco") {
     const criteriosCatalogoReady = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null).variables.length > 0;
-    // Orden metodológico (reunión del diseño muestral 2026-07-15): primero
-    // definimos quién es elegible (criterios del estudiante → N elegibles),
-    // luego perfilamos dónde están esos elegibles por curso-horario decidiendo
-    // los criterios de aula CON la radiografía del marco a la vista.
-    const [criteriosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab, consistenciaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
+    const alumnosPorChRaw = aulasState?.frame?.alumnos_por_ch ?? null;
+    const alumnosPorChNormalizado = normalizeCalcMuestraAlumnosPorCh(alumnosPorChRaw);
+    const alumnosPorCh = alumnosPorChNormalizado?.frame_hash === aulasState?.frame?.frame_hash
+      ? alumnosPorChNormalizado
+      : null;
+    const alumnosDecision = normalizeCalcMuestraAlumnosPorChDecision(workspace.aulas_config?.alumnos_por_ch_decision);
+    const alumnosDecisionReady = alumnosPorChDecisionIsCurrent(alumnosPorCh, alumnosDecision);
+    const [criteriosTab, radiografiaTab, alumnosTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
     return [
       { ...criteriosTab, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame) },
       // La radiografía es el contenido dominante de esta pestaña integrada, así
       // que gatea con el marco descriptivo (igual que marco-aulas): sin frame no
       // hay dónde perfilar los criterios de aula.
       { ...radiografiaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...alumnosTab, status: guideStatus(alumnosDecisionReady, Boolean(alumnosPorCh || alumnosPorChRaw)) },
       { ...poblacionTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...aulasTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...coberturaTab, status: guideStatus(effectiveMarcoReady) },
-      { ...consistenciaTab, status: evaluarConsistenciaMarco(workspace.source_mode, aulasState?.frame) },
     ];
   }
   if (activeSection === "calculo") {

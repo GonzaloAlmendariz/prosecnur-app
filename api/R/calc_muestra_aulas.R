@@ -410,7 +410,11 @@ calc_muestra_aulas_default_config <- function() {
     # Selección por categorías (scope alumno/aula). Nace vacía: sin ella el
     # marco sale por el path legacy de patrones (retro-compat bit a bit). La
     # lógica vive en calc_muestra_aulas_criterios.R.
-    criterios_seleccion = list()
+    criterios_seleccion = list(),
+    # Firma de la decisión que produjo el objetivo de esta corrida. No cambia
+    # el frame; impide que una comparación/selección vieja reviva si el nuevo
+    # cálculo coincide accidentalmente en `n_aulas`.
+    alumnos_por_ch_decision = NULL
   )
 }
 
@@ -509,6 +513,9 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     # calc_muestra_aulas_criterios.R. list() cuando no viene → path legacy.
     criterios_seleccion = .cm_criterios_normalize_seleccion(
       config$criterios_seleccion %||% config$criterios_marco %||% config$seleccion_criterios
+    ),
+    alumnos_por_ch_decision = .cm_alumnos_por_ch_decision_signature(
+      config$alumnos_por_ch_decision
     ),
     # ADR 0035: orden de jerarquía docente (ALTO→BAJO) para la etiqueta
     # teacher_type_top del aula_frame. Solo etiqueta/catálogo, no filtra.

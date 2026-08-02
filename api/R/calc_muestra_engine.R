@@ -50,6 +50,11 @@
 
 .CM_VERSION <- 1L
 
+# Dominio en el que un divisor por conglomerado sobrevive exactamente la
+# normalización y entra a las fórmulas sin el piso `max(valor, 1)`.
+.CM_CONGLOMERADO_DIVISOR_MIN <- 1
+.CM_CONGLOMERADO_DIVISOR_MAX <- 1000
+
 .CM_TECNICAS_FASE_1 <- c(
   "prob_aleatorio_simple",
   "prob_estratificado",
@@ -609,6 +614,9 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     particularidades_decisiones = .cm_particularidades_normalize_decisiones(
       cfg$particularidades_decisiones
     ),
+    alumnos_por_ch_decision = .cm_alumnos_por_ch_normalize_decision(
+      cfg$alumnos_por_ch_decision
+    ),
     notas_metodologicas = calc_str(cfg$notas_metodologicas, "")
   )
   n_aulas <- calc_int(
@@ -958,11 +966,13 @@ calc_muestra_normalize_componente <- function(comp = list()) {
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
-      promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0, max = 1000),
+      promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
+                                        max = .CM_CONGLOMERADO_DIVISOR_MAX),
       # Mediana del tamaño de conglomerado del estrato (opcional, la aporta el
       # perfil del marco de aulas: est_aula_mediana por facultad). Solo se usa
       # cuando parametros$estadistico_conglomerado la pide; 0 = ausente.
-      mediana_conglomerado  = calc_num(e$mediana_conglomerado, 0, min = 0, max = 1000),
+      mediana_conglomerado  = calc_num(e$mediana_conglomerado, 0, min = 0,
+                                       max = .CM_CONGLOMERADO_DIVISOR_MAX),
       tau                   = calc_num(e$tau, 0, min = 0, max = 1)
     )
   })
@@ -1015,7 +1025,9 @@ calc_muestra_normalize_componente <- function(comp = list()) {
                                  min = 0.01, max = 1),
     cobertura_objetivo = calc_num(par$cobertura_objetivo, .CM_DEFAULTS_PARAMS$cobertura_objetivo,
                                   min = 0.01, max = 1),
-    promedio_conglomerado = calc_num(par$promedio_conglomerado, 25, min = 1, max = 1000),
+    promedio_conglomerado = calc_num(par$promedio_conglomerado, 25,
+                                     min = .CM_CONGLOMERADO_DIVISOR_MIN,
+                                     max = .CM_CONGLOMERADO_DIVISOR_MAX),
     # Estadístico del tamaño de conglomerado para las cuotas por estrato.
     # Default "media" = comportamiento histórico bit a bit (back-compat);
     # "mediana"/"min_media_mediana" usan la mediana_conglomerado del estrato
@@ -1134,7 +1146,8 @@ calc_muestra_calcular_componente <- function(comp) {
 # media. `usado` audita esa degradación por estrato en la salida de cuotas.
 .cm_estadistico_conglomerado_estrato <- function(e, par) {
   media <- if ((e$promedio_conglomerado %||% 0) > 0) e$promedio_conglomerado else par$promedio_conglomerado
-  mediana <- calc_num(e$mediana_conglomerado, 0, min = 0, max = 1000)
+  mediana <- calc_num(e$mediana_conglomerado, 0, min = 0,
+                      max = .CM_CONGLOMERADO_DIVISOR_MAX)
   modo <- calc_enum(par$estadistico_conglomerado, c("media", "mediana", "min_media_mediana"), "media")
   if (identical(modo, "mediana") && mediana > 0) {
     return(list(valor = mediana, usado = "mediana"))
@@ -1192,7 +1205,7 @@ calc_muestra_calcular_componente <- function(comp) {
   sobremuestra <- as.integer(ceiling(n_operativo * par$oversample_pct))
 
   unidades_operativas_global <- as.integer(ceiling(
-    n_objetivo / (max(par$promedio_conglomerado, 1) * max(par$tau, 0.01))
+    n_objetivo / (max(par$promedio_conglomerado, .CM_CONGLOMERADO_DIVISOR_MIN) * max(par$tau, 0.01))
   ))
 
   precision_alcanzada <- calc_e_desde_n_muestra(
@@ -1265,7 +1278,7 @@ calc_muestra_calcular_componente <- function(comp) {
     aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
       as.integer(e$aulas_base_fijas)
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, 1) * max(tau_e, 0.01))))
+      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
     }
     aulas_reemplazo <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1617,7 +1630,7 @@ calc_muestra_calcular_componente <- function(comp) {
     aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
       as.integer(e$aulas_base_fijas)
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, 1) * max(tau_e, 0.01))))
+      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
     }
     aulas_extra <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1794,7 +1807,7 @@ calc_muestra_calcular_componente <- function(comp) {
   # Personas objetivo = % del universo
   personas_objetivo <- as.integer(ceiling(N * cobertura))
   # Unidades operativas necesarias = personas_objetivo / (promedio * tau)
-  promedio_aula <- max(par$promedio_conglomerado, 1)
+  promedio_aula <- max(par$promedio_conglomerado, .CM_CONGLOMERADO_DIVISOR_MIN)
   tau_efec <- max(par$tau, 0.01)
   unidades_operativas <- as.integer(ceiling(
     personas_objetivo / (promedio_aula * tau_efec)
@@ -2254,7 +2267,8 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
-      promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0, max = 1000),
+      promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
+                                        max = .CM_CONGLOMERADO_DIVISOR_MAX),
       tau                   = calc_num(e$tau, 0, min = 0, max = 1)
     )
   })
@@ -2407,7 +2421,8 @@ calc_muestra_explicar <- function(input) {
   deff <- calc_num(input$deff, .CM_DEFAULTS_PARAMS$deff, min = 1, max = 10)
   oversample_pct <- calc_num(input$oversample_pct, 0, min = 0, max = 2)
   meta_valor <- calc_int(input$meta_valor, 0L, min = 0L)
-  promedio_conglomerado <- calc_num(input$promedio_conglomerado, 0, min = 0, max = 1000)
+  promedio_conglomerado <- calc_num(input$promedio_conglomerado, 0, min = 0,
+                                    max = .CM_CONGLOMERADO_DIVISOR_MAX)
   tau <- calc_num(input$tau, .CM_DEFAULTS_PARAMS$tau, min = 0.01, max = 1)
 
   # z explícito manda; si no viene, se deriva de la confianza (two-sided).
@@ -2442,7 +2457,7 @@ calc_muestra_explicar <- function(input) {
   # final únicamente cuando existe (NULL serializa como {} y NA como "NA" con
   # el serializer unboxed de plumber — ninguno es un number|null válido).
   unidades_operativas <- if (promedio_conglomerado > 0) {
-    as.integer(ceiling(n_objetivo / (max(promedio_conglomerado, 1) * max(tau, 0.01))))
+    as.integer(ceiling(n_objetivo / (max(promedio_conglomerado, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau, 0.01))))
   } else {
     NULL
   }

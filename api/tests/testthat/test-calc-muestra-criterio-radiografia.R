@@ -1024,14 +1024,15 @@ test_that("índice alumno×CH se construye una vez por radiografía", {
   expect_gt(n_amplio, n_simple)
 
   # Oráculo congelado antes de la optimización: detecta cualquier cambio de
-  # orden, tipo, NA, snapshot, estado o delta en el payload completo del fixture.
+  # orden, tipo, NA, snapshot, estado, delta o matriz marginal en el payload
+  # completo del fixture.
   payload_json <- jsonlite::toJSON(
     amplio$criterios_radiografia,
     auto_unbox = TRUE, null = "null", na = "null", digits = NA
   )
   expect_identical(
     digest::digest(payload_json, algo = "sha256", serialize = FALSE),
-    "462d41567ffc3c6ad2392d2d11e2532a4aff977b7c6578bc80626414d53bb699"
+    "5f80ab3d00c80b26d77d4b3ed5835b55b5aae0d710ce9fdba2669871b57ab70f"
   )
 })
 

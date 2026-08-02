@@ -10,9 +10,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import {
   type CalcMuestraAulasState,
+  type CalcMuestraAlumnosPorChDecision,
   type CalcMuestraComponente,
   type CalcMuestraEstudio,
-  type CalcMuestraParametros,
   type CalcMuestraReferenciaAsistencia,
   type CalcMuestraWorkspace,
   type CalcMuestraWorkspaceAulasConfig,
@@ -37,8 +37,9 @@ import {
   type UniversityAulasScenario,
 } from "./shared/study";
 import { universitySidebarTabs } from "./universidadTabs";
-import { DefBasesTab, DefEstudioTab, DefVariablesTab } from "./definicion";
-import { CursosHorarioMarcoTab, MarcoAulasTab, MarcoConsistenciaTab, MarcoPoblacionTab } from "./marco";
+import { DefEstudioTab, DefFuentesConsistenciaTab, DefVariablesTab } from "./definicion";
+import { AlumnosPorChMarcoTab, CursosHorarioMarcoTab, MarcoAulasTab, MarcoPoblacionTab } from "./marco";
+import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoPropuestasTab } from "./calculo";
 import {
@@ -57,7 +58,6 @@ import {
   SalidasResultadosTab,
   type PaqueteDefensaPaso,
 } from "./salidas";
-import { zFromConfidence } from "../didactica/motorPreview";
 import type { MotorEfectivo } from "../motor/usePerfilEfectivo";
 import { useMotorStore } from "../store";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
@@ -78,12 +78,14 @@ export function UniversidadDesk({
   busy,
   activeSection,
   activeLocalTab,
+  activeFocus,
   activeLabTab,
   onTitulo,
   onContexto,
   onWorkspace,
   onComponente,
   onSetComponentes,
+  onInvalidateAulasArtifacts,
   onCalcular,
   onCompararAulas,
   onSeleccionarAulas,
@@ -113,6 +115,7 @@ export function UniversidadDesk({
   busy: string | null;
   activeSection: string;
   activeLocalTab: string;
+  activeFocus: string | null;
   activeLabTab: ClassroomLabTab;
   onGenerarReporte: (formato: "html" | "pdf") => void;
   reporteEnCurso: boolean;
@@ -129,6 +132,7 @@ export function UniversidadDesk({
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   onComponente: (id: string, patch: ComponentePatch) => void;
   onSetComponentes: (componentes: CalcMuestraComponente[]) => void;
+  onInvalidateAulasArtifacts: () => void;
   onCalcular: (estudioOverride?: CalcMuestraEstudio) => void | Promise<void>;
   onCompararAulas: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
   onSeleccionarAulas: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
@@ -251,44 +255,11 @@ export function UniversidadDesk({
     void onCalcular(nextEstudio);
   }
 
-  // Aplica el mismo patch de parámetros a ambos escenarios en UNA pasada
-  // (evita que dos updateComponente seguidos se pisen el estado) y anula el
-  // resultado, siguiendo la convención del desk: editar supuestos invalida.
-  function aplicarParametroCompartido(patch: Partial<CalcMuestraParametros>) {
-    onSetComponentes([
-      { ...totalComp, parametros: { ...totalComp.parametros, ...patch }, resultado: null },
-      { ...facultyComp, parametros: { ...facultyComp.parametros, ...patch }, resultado: null },
-    ]);
-  }
-
-  // Lleva los parámetros explorados en los sliders didácticos al estudio real
-  // y recalcula con el motor R (misma vía que el resto del desk).
-  function aplicarParametrosDidacticos(patch: Partial<CalcMuestraParametros>) {
-    const nextTotal: CalcMuestraComponente = {
-      ...totalComp,
-      parametros: { ...totalComp.parametros, ...patch },
-      resultado: null,
-    };
-    const nextFaculty: CalcMuestraComponente = {
-      ...facultyComp,
-      parametros: { ...facultyComp.parametros, ...patch },
-      resultado: null,
-    };
-    const nextEstudio = prepareUniversityStudyForCalculation(
-      { ...estudio, componentes: [nextTotal, nextFaculty], workspace: syncedWorkspace },
-      syncedWorkspace,
-    );
-    onSetComponentes(nextEstudio.componentes);
-    if (nextEstudio.workspace) onWorkspace(nextEstudio.workspace);
-    void onCalcular(nextEstudio);
-  }
-
   const selectedSection = ["definicion", "marco", "aulas", "calculo", "salidas"].includes(activeSection)
     ? activeSection
     : "definicion";
   // Motor reactivo: perfil efectivo (proyecto/manual/ejemplo) y resultados
   // en vivo, compartidos por la franja de resultados y las pestañas del motor.
-  const parametrosMotor = useMotorStore((s) => s.decisiones.parametros);
   const opcionalesActivosMotor = useMotorStore((s) => s.decisiones.opcionalesActivos);
   const escenarioAulas = useMotorStore((s) => s.decisiones.escenario);
   const cursosHorarioConfirmado = useMotorStore((s) => s.decisiones.cursosHorarioConfirmado);
@@ -300,28 +271,6 @@ export function UniversidadDesk({
   const puedeReconstruirMarco = universityFrameSourceBindings(syncedWorkspace.source_bindings)
     .some((binding) => binding.file_id);
 
-  // Lleva los parámetros del diseño reactivo al estudio real y calcula con R
-  // (misma vía que el resto del desk: patch compartido + prepare + calcular).
-  function aplicarDisenoAlEstudio() {
-    // Puente del estadístico de estudiantes-por-aula (reunión Ramiro 2026-07-15):
-    // el puente NO pasa un divisor crudo (promedio_conglomerado queda tal cual el
-    // escenario); en su lugar viaja el MISMO estadístico elegido en el Recorrido
-    // (perfil.resumenEstAula, default min_mediana_media) para que el motor R
-    // derive el divisor con ese criterio (parametros.estadistico_conglomerado).
-    // "li_bootstrap" no existe en el backend: cae al conservador mín(media,
-    // mediana), el mismo fallback del motor TS para facultades chicas.
-    const resumen = motor.perfil.resumenEstAula;
-    const estadistico_conglomerado =
-      resumen === "media" ? "media" : resumen === "mediana" ? "mediana" : "min_media_mediana";
-    aplicarParametrosDidacticos({
-      z: zFromConfidence(parametrosMotor.confianza),
-      p: parametrosMotor.proporcion,
-      e: parametrosMotor.margenError,
-      deff: parametrosMotor.deff,
-      oversample_pct: Math.max(parametrosMotor.factorSobremuestra - 1, 0),
-      estadistico_conglomerado,
-    });
-  }
   const localTabs = universitySidebarTabs({
     activeSection: selectedSection,
     estudio,
@@ -382,6 +331,17 @@ export function UniversidadDesk({
     }));
     useMotorStore.getState().setEscenario(next);
   }
+  function confirmarAlumnosPorCh(decision: CalcMuestraAlumnosPorChDecision) {
+    const next = applyAlumnosPorChDecision({
+      workspace: syncedWorkspace,
+      componentes: [totalComp, facultyComp],
+      decision,
+    });
+    onWorkspace(next.workspace);
+    onSetComponentes(next.componentes);
+    onInvalidateAulasArtifacts();
+    useMotorStore.getState().invalidarCursosHorario();
+  }
   const labModel = useMemo(
     () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado }),
     [syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado],
@@ -440,7 +400,8 @@ export function UniversidadDesk({
               />
             </div>}
             {showLocalTab("def-bases") && <div id="cmv2-local-def-bases" className="cmv2-definition-stack">
-              <DefBasesTab
+              <DefFuentesConsistenciaTab
+                focusConsistency={activeFocus === "def-consistencia"}
                 workspace={syncedWorkspace}
                 aulasState={aulasState}
                 referencia={referenciaAsistencia}
@@ -488,6 +449,13 @@ export function UniversidadDesk({
                 onNavigate={onNavigate}
               />
             </div>}
+            {showLocalTab("marco-alumnos-ch") && <div id="cmv2-local-marco-alumnos-ch">
+              <AlumnosPorChMarcoTab
+                workspace={syncedWorkspace}
+                aulasState={aulasState}
+                onConfirmDecision={confirmarAlumnosPorCh}
+              />
+            </div>}
             {showLocalTab("marco-cobertura") && <div id="cmv2-local-marco-cobertura" className="rec-recorrido rec-recorrido--full">
               <TabCobertura perfil={motor.perfil} aulasState={aulasState} />
             </div>}
@@ -496,9 +464,6 @@ export function UniversidadDesk({
             </div>}
             {showLocalTab("marco-aulas") && <div id="cmv2-local-marco-aulas">
               <MarcoAulasTab workspace={syncedWorkspace} aulasState={aulasState} onWorkspace={onWorkspace} />
-            </div>}
-            {showLocalTab("def-consistencia") && <div id="cmv2-local-def-consistencia">
-              <MarcoConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
             </div>}
           </div>
         )}
@@ -567,7 +532,6 @@ export function UniversidadDesk({
             {showLocalTab("calculo-ch-facultad") && <div id="cmv2-local-calculo-ch-facultad">
               <CalculoCursosHorarioFacultadTab
                 componentes={[totalComp, facultyComp]}
-                aulasState={aulasState}
                 escenario={escenarioAulas}
                 onEscenario={seleccionarEscenarioAulas}
                 marcoDesactualizado={marcoDesactualizado}

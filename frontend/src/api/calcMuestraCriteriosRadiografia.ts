@@ -3,6 +3,11 @@
 // Este módulo es deliberadamente puro: normaliza únicamente datos ya
 // calculados por el engine R. No deriva medias, cuantiles, conteos ni deltas.
 
+import {
+  normalizeCalcMuestraMatrizEmbudo,
+  type CalcMuestraMatrizEmbudo,
+} from "./calcMuestraMatrizEmbudo";
+
 export const CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_SCHEMA =
   "calc_muestra_aulas_criterios_radiografia_v1" as const;
 export const CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_V2_SCHEMA =
@@ -273,6 +278,8 @@ export type CalcMuestraAulasCriteriosRadiografiaV2 = {
   filas_grano: typeof CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_GRANO;
   filas: CalcMuestraAulasCriterioRadiografiaFila[];
   criterios: CalcMuestraAulasCriterioRadiografiaV2Entry[];
+  /** Matriz marginal I18; null significa payload presente pero no acreditable. */
+  matriz_embudo?: CalcMuestraMatrizEmbudo | null;
 };
 
 export type CalcMuestraAulasCriteriosRadiografia =
@@ -1030,6 +1037,10 @@ function normalizeV2(root: Record<string, unknown>): CalcMuestraAulasCriteriosRa
     } as CalcMuestraAulasCriterioRadiografiaV2Entry;
     compatibleRows = [];
   }
+  const matrizEmbudo = root.matriz_embudo == null
+    ? undefined
+    : normalizeCalcMuestraMatrizEmbudo(root.matriz_embudo);
+  const matrizAcreditada = matrizEmbudo?.frame_hash === frame_hash ? matrizEmbudo : null;
   return {
     schema: CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_V2_SCHEMA,
     owner,
@@ -1041,6 +1052,9 @@ function normalizeV2(root: Record<string, unknown>): CalcMuestraAulasCriteriosRa
     filas_grano: CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_GRANO,
     filas: compatibleRows,
     criterios,
+    ...(matrizEmbudo === undefined && root.matriz_embudo == null
+      ? {}
+      : { matriz_embudo: matrizAcreditada }),
   };
 }
 

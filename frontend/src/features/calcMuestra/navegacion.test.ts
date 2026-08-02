@@ -133,78 +133,83 @@ describe("dirección de Cálculo de muestra", () => {
         nombre: "mueve el antiguo hogar de Consistencia desde Datos",
         seccion: "definicion",
         pestana: "def-consistencia",
-        esperado: { seccion: "marco", pestana: "def-consistencia" },
+        esperado: { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" },
       },
       {
         nombre: "traduce el id retirado dentro de Marco",
         seccion: "marco",
         pestana: "marco-validacion",
-        esperado: { seccion: "marco", pestana: "def-consistencia" },
+        esperado: { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" },
       },
       {
-        nombre: "deja estable la dirección canónica",
+        nombre: "mueve el alias publicado de Marco al bloque real de Fuentes",
         seccion: "marco",
         pestana: "def-consistencia",
-        esperado: { seccion: "marco", pestana: "def-consistencia" },
+        esperado: { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" },
       },
       {
         nombre: "mueve el antiguo Marco de selección a su hogar canónico",
         seccion: "aulas",
         pestana: "marco",
-        esperado: { seccion: "marco", pestana: "marco-aulas" },
+        esperado: { seccion: "marco", pestana: "marco-aulas", foco: null },
       },
       {
         nombre: "deja estable el hogar canónico de cursos-horario",
         seccion: "marco",
         pestana: "marco-aulas",
-        esperado: { seccion: "marco", pestana: "marco-aulas" },
+        esperado: { seccion: "marco", pestana: "marco-aulas", foco: null },
       },
       {
         nombre: "no interpreta una pestaña marco fuera de Selección",
         seccion: "otra-seccion",
         pestana: "marco",
-        esperado: { seccion: "otra-seccion", pestana: "marco" },
+        esperado: { seccion: "otra-seccion", pestana: "marco", foco: null },
       },
       {
         nombre: "no infiere el hogar desde una pestaña marco suelta",
         seccion: null,
         pestana: "marco",
-        esperado: { seccion: null, pestana: "marco" },
+        esperado: { seccion: null, pestana: "marco", foco: null },
       },
       {
         nombre: "no mueve otra pestaña de Selección",
         seccion: "aulas",
         pestana: "objetivo",
-        esperado: { seccion: "aulas", pestana: "objetivo" },
+        esperado: { seccion: "aulas", pestana: "objetivo", foco: null },
       },
       {
         nombre: "no interpreta marco-validacion fuera de Marco",
         seccion: "definicion",
         pestana: "marco-validacion",
-        esperado: { seccion: "definicion", pestana: "marco-validacion" },
+        esperado: { seccion: "definicion", pestana: "marco-validacion", foco: null },
       },
       {
         nombre: "no infiere una sección desde def-consistencia",
         seccion: null,
         pestana: "def-consistencia",
-        esperado: { seccion: null, pestana: "def-consistencia" },
+        esperado: { seccion: null, pestana: "def-consistencia", foco: null },
       },
       {
         nombre: "no infiere una sección desde marco-validacion",
         seccion: null,
         pestana: "marco-validacion",
-        esperado: { seccion: null, pestana: "marco-validacion" },
+        esperado: { seccion: null, pestana: "marco-validacion", foco: null },
       },
       {
         nombre: "conserva una pareja desconocida",
         seccion: "otra-seccion",
         pestana: "otra-pestana",
-        esperado: { seccion: "otra-seccion", pestana: "otra-pestana" },
+        esperado: { seccion: "otra-seccion", pestana: "otra-pestana", foco: null },
       },
     ] as const;
 
     it.each(casos)("$nombre", ({ seccion, pestana, esperado }) => {
       expect(resolverDireccionHistoricaUniversidad(seccion, pestana)).toEqual(esperado);
+    });
+
+    it("conserva el foco canónico una vez aterrizado en Fuentes", () => {
+      expect(resolverDireccionHistoricaUniversidad("definicion", "def-bases", "def-consistencia"))
+        .toEqual({ seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" });
     });
   });
 });

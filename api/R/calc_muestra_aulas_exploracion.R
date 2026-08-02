@@ -379,5 +379,18 @@ calc_muestra_aulas_exploracion <- function(aula_frame, particularidades = NULL) 
     frame_hash = out$frame_hash,
     criterios_catalogo = out$criterios_catalogo
   )
+  out$alumnos_por_ch <- calc_muestra_alumnos_por_ch(
+    aula_frame = out$aula_frame,
+    frame_hash = out$frame_hash
+  )
+  if (is.list(out$criterios_radiografia)) {
+    out$criterios_radiografia$matriz_embudo <-
+      calc_muestra_aulas_matriz_embudo(
+        aula_frame = out$aula_frame,
+        radiografia = out$criterios_radiografia,
+        criterios = criterios,
+        particularidades = out$particularidades
+      )
+  }
   out
 }

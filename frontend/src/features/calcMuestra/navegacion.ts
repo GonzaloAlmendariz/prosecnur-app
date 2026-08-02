@@ -106,17 +106,18 @@ export function sinAliasDeModo(search: string): string {
 export function resolverDireccionHistoricaUniversidad(
   seccion: string | null,
   pestana: string | null,
-): { seccion: string | null; pestana: string | null } {
+  foco: string | null = null,
+): { seccion: string | null; pestana: string | null; foco: string | null } {
   if (seccion === "aulas" && pestana === "marco") {
-    return { seccion: "marco", pestana: "marco-aulas" };
+    return { seccion: "marco", pestana: "marco-aulas", foco };
   }
   if (
     (seccion === "definicion" && pestana === "def-consistencia") ||
-    (seccion === "marco" && pestana === "marco-validacion")
+    (seccion === "marco" && (pestana === "def-consistencia" || pestana === "marco-validacion"))
   ) {
-    return { seccion: "marco", pestana: "def-consistencia" };
+    return { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" };
   }
-  return { seccion, pestana };
+  return { seccion, pestana, foco };
 }
 
 export type ControlCalcMuestra = ReturnType<typeof useSeccion> & {
@@ -165,12 +166,14 @@ export function useCalcMuestraDireccion(
     () => resolverDireccionHistoricaUniversidad(
       direccionExplicita?.seccion ?? null,
       direccionExplicita?.pestana ?? null,
+      direccionExplicita?.foco ?? null,
     ),
-    [direccionExplicita?.pestana, direccionExplicita?.seccion],
+    [direccionExplicita?.foco, direccionExplicita?.pestana, direccionExplicita?.seccion],
   );
   const debeMigrarDireccion = deskReal === "opinion_universitaria" && (
     direccionUniversidad.seccion !== (direccionExplicita?.seccion ?? null) ||
-    direccionUniversidad.pestana !== (direccionExplicita?.pestana ?? null)
+    direccionUniversidad.pestana !== (direccionExplicita?.pestana ?? null) ||
+    direccionUniversidad.foco !== (direccionExplicita?.foco ?? null)
   );
 
   // El modo real y la pareja histórica se publican en un solo replace para que
@@ -185,6 +188,7 @@ export function useCalcMuestraDireccion(
     if (debeMigrarDireccion) {
       siguiente = conNivel(siguiente, "seccion", direccionUniversidad.seccion);
       siguiente = conNivel(siguiente, "pestana", direccionUniversidad.pestana);
+      siguiente = conNivel(siguiente, "foco", direccionUniversidad.foco);
     }
     if (siguiente === location.search) return;
     navigate({ pathname: location.pathname, search: siguiente }, { replace: true });
@@ -193,6 +197,7 @@ export function useCalcMuestraDireccion(
     deskReal,
     direccionUniversidad.pestana,
     direccionUniversidad.seccion,
+    direccionUniversidad.foco,
     listoParaPublicar,
     location.pathname,
     location.search,
@@ -207,6 +212,7 @@ export function useCalcMuestraDireccion(
   const pestanaEfectiva = debeMigrarDireccion
     ? direccionUniversidad.pestana
     : nav.pestana;
+  const focoEfectivo = debeMigrarDireccion ? direccionUniversidad.foco : nav.foco;
 
   // `useSeccion` resuelve contra el modo que la dirección trae, que durante el
   // primer render puede no ser todavía el real. Revalidar acá evita que el rail
@@ -227,9 +233,11 @@ export function useCalcMuestraDireccion(
 
   const irAPestana = useCallback(
     (id: string | null) => {
-      nav.irA("pestana", id);
+      const destino = nav.hrefDe("pestana", id);
+      const [pathname, search = ""] = destino.split("?");
+      navigate(`${pathname}${conNivel(search ? `?${search}` : "", "foco", null)}`);
     },
-    [nav],
+    [nav, navigate],
   );
 
   const irASeccionYPestana = useCallback(
@@ -238,7 +246,8 @@ export function useCalcMuestraDireccion(
       // la pestaña nueva se escribe encima del resultado, no del search actual.
       const conSeccion = nav.hrefDe("seccion", seccion);
       const [pathname, search = ""] = conSeccion.split("?");
-      const destino = conNivel(search ? `?${search}` : "", "pestana", pestana ?? null);
+      let destino = conNivel(search ? `?${search}` : "", "pestana", pestana ?? null);
+      destino = conNivel(destino, "foco", null);
       navigate(`${pathname}${destino}`);
     },
     [nav, navigate],
@@ -248,6 +257,7 @@ export function useCalcMuestraDireccion(
     ...nav,
     seccion: seccionEfectiva,
     pestana: pestanaEfectiva,
+    foco: focoEfectivo,
     seccionVigente,
     irASeccion,
     irAPestana,

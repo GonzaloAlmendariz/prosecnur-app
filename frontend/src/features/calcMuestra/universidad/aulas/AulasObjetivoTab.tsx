@@ -72,6 +72,7 @@ export function AulasObjetivoTab({
     (row) => safeNumber(row.cuota, 0) > 0 || safeNumber(row.aulas_base, 0) > 0,
   );
   const cuotaValidada = filasMotor.length > 0;
+  const decisionAlumnosPorCh = Boolean(config.alumnos_por_ch_decision);
   const filasTabla = cuotaValidada
     ? filasMotor.map((row) => ({
         estrato: String(row.estrato),
@@ -82,7 +83,7 @@ export function AulasObjetivoTab({
         extra: safeNumber(row.aulas_extra_operativas, 0) || config.aulas_extra_operativas_default,
         total: safeNumber(row.aulas_total, 0),
       }))
-    : facultades
+    : decisionAlumnosPorCh ? [] : facultades
         .filter((row) => safeNumber(row.cuota_fija, 0) > 0 || safeNumber(row.aulas_base_fijas, 0) > 0)
         .map((row) => ({
           estrato: String(row.label),
