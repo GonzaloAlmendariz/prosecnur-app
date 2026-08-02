@@ -347,7 +347,8 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
 | Lotes de la cola cerrados | **0 de 13** + 5 transversales | **6 de 13** (S1–S6) + T1 aplicado, **T6 y T7 cerradas**, T4 desbloqueada en el instrumento | 13 + 7 |
-| Superficies bloqueadas por no poder ejecutar el cálculo | **7** (Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos, Entrega) | **0** | 0 |
+| Superficies bloqueadas por no poder ejecutar el cálculo | **7** (Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos, Entrega) | **6**; Propuestas ya audita con dato | 0 |
+| Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **2 faltantes** (las de 0 CH elegibles) | 0 |
 | Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
 | Elementos con desborde o ancho 0 a 1024×600 en Criterios | **1.006 / 987** | **0 / 0** | 0 |
 | Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
@@ -1020,7 +1021,34 @@ tocar el instrumento se investiga contra el instrumento antes de acusar a la
 pantalla.** Es el mismo error que ya costó dos correcciones (el «31 % de prosa»
 de F1 y el «13.498 / 38.749» de S5).
 
-Siguiente: **F16** — S7 (CH requeridos y Distribución), que ya tienen dato.
+### F16 — Hasta dónde llega el instrumento (2026-08-02)
+
+Rehecha la secuencia completa sobre el backend de la semilla alineada —confirmar
+decisión → calcular— el cálculo **corre y publica** (Propuestas mostró P1
+`2.304 → 2.500 → 3.750`, 269 CH y P2 `4.934 → 4.934 → 5.921`, 473 CH). El
+`facultades_incompletas` bajó de **15 facultades sobrantes a 2 faltantes**:
+`nestor_de_posgrado` y `nestor_de_ricardo_diana` — precisamente **las dos con 0
+CH elegibles**, las mismas que en F14 bloqueaban la confirmación.
+
+Es coherente: una facultad sin CH elegibles no tiene fila en el contrato de
+Alumnos/CH, pero sí estrato en el componente. El motor exige coincidencia
+exacta. **Es la misma pregunta de fondo que resolvió F14 en la superficie —
+¿participa del diseño una facultad que no aporta unidades?— pero en el contrato
+R, así que su respuesta es del loop v2.**
+
+Estado real del instrumento, para que la próxima visita no lo redescubra:
+
+- ✅ llega hasta **Propuestas** con los dos escenarios completos y auditables.
+- ❌ **CH requeridos** y **Distribución** siguen vacías: dependen de que el
+  cálculo persista sin el 409 de las dos facultades sin CH.
+- El `.pulso` sembrado vive en el scratchpad de la sesión; **no es reproducible
+  entre sesiones**. Hacerlo reproducible —guion versionado que derive la semilla
+  desde el fixture— es lo que convierte este loop en repetible y debería ser el
+  siguiente lote de instrumento.
+
+Siguiente: **F17 · instrumento reproducible** (guion versionado de siembra) y, en
+el loop v2, decidir si una facultad con 0 CH elegibles forma parte del contrato
+de Alumnos/CH. Con eso, S7 a S13 se auditan de corrido.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
