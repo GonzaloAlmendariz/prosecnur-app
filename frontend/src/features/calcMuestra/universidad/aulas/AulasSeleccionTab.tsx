@@ -7,7 +7,6 @@
  * Simulación). Command bar: Seleccionar titulares + Probar reemplazos.
  */
 import { useState } from "react";
-import { Table2 } from "lucide-react";
 import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
@@ -19,7 +18,6 @@ import { CifraFila, CifraMotor } from "../ui";
 import { AulaInspectorPanel } from "./AulaInspectorPanel";
 import { DescuentoRepetidosPanel } from "./DescuentoRepetidosPanel";
 import {
-  ClassroomEmptyState,
   ClassroomLabCommandBar,
   ClassroomOverlapGraph,
   ClassroomSelectionPreparationPanel,
@@ -32,6 +30,11 @@ import {
   classroomScore,
   type ClassroomLabModel,
 } from "./aulasParts";
+import {
+  AulasStageNotice,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "./aulasSurfaceState";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
@@ -44,12 +47,14 @@ export function AulasSeleccionTab({
   busy,
   onSelectMethod,
   onSimulateReplacements,
+  onNavigate,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
   busy: string | null;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
+  onNavigate?: AulasNavigate;
 }) {
   const [tableQuery, setTableQuery] = useState("");
   // Tope visible de la tabla: parte en 80 filas y crece bajo demanda, con el
@@ -83,6 +88,7 @@ export function AulasSeleccionTab({
   const methodUsedLabel = classroomMethodLabel(
     String(selection?.selector_engine_used ?? selection?.selector_engine ?? engineOption.label),
   );
+  const stageNotice = resolveAulasStageNotice(model, "seleccion");
   const inspectByClassroomId = (classroomId: string) => {
     if (!classroomId) return;
     // Prefiere titular/reemplazo sobre la bolsa extra si el id se repitiera.
@@ -97,46 +103,41 @@ export function AulasSeleccionTab({
 
   return (
     <div className="cmv2-aulas-stack">
-      <SeleccionAulasVisual
-        seleccion={selection}
-        nObjetivo={targetForDisplay || null}
-        totalFacultades={model.facultades.length || null}
-      />
+      {stageNotice && (
+        <AulasStageNotice
+          notice={stageNotice}
+          onNavigate={onNavigate}
+          onAction={stageNotice.localAction === "select"
+            ? () => void onSelectMethod(model.config, recommendedMethodId)
+            : undefined}
+          disabled={Boolean(stageNotice.localAction) && (Boolean(busy) || !comparisonReady)}
+        />
+      )}
 
-      <ClassroomLabCommandBar
-        model={model}
-        busy={busy}
-        acciones={["seleccionar", "reemplazos"]}
-        onSelectMethod={onSelectMethod}
-        onSimulateReplacements={onSimulateReplacements}
-      />
-
-      <div className="cmv2-classroom-lab-grid">
-        <div className="cmv2-classroom-lab-main">
+      {!selectionReady ? (
+        <section
+          className="cmv2-panel cmv2-aulas-panel"
+        >
           <div className="cmv2-subhead">
-            <strong>Selección propuesta</strong>
+            <strong>Preparación de la selección</strong>
           </div>
-          {!selectionReady ? (
-            <>
-              <ClassroomSelectionPreparationPanel
-                frameReady={model.frameReady}
-                comparisonReady={comparisonReady}
-                recommendedMethodLabel={comparison?.recommendation?.method_label ?? classroomMethodLabel(recommendedMethodId)}
-                frameCount={frameRows.length}
-                targetForDisplay={targetForDisplay}
-                m1ForDisplay={m1ForDisplay}
-              />
-              <ClassroomEmptyState
-                icon={Table2}
-                title="Todavía no hay selección"
-                detail="Genera una selección desde el método recomendado o desde una tarjeta del comparador. Aquí aparecerán titulares, brechas, razones de selección y estudiantes repetidos."
-                actionLabel="Generar selección"
-                onAction={() => void onSelectMethod(model.config, recommendedMethodId)}
-                disabled={Boolean(busy) || !comparisonReady}
-              />
-            </>
-          ) : (
-            <>
+          <ClassroomSelectionPreparationPanel
+            frameReady={model.frameReady}
+            comparisonReady={comparisonReady}
+            recommendedMethodLabel={comparison?.recommendation?.method_label ?? classroomMethodLabel(recommendedMethodId)}
+            frameCount={frameRows.length}
+            targetForDisplay={targetForDisplay}
+            m1ForDisplay={m1ForDisplay}
+          />
+        </section>
+      ) : (
+        <>
+          <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-hero-panel">
+            <div className="cmv2-subhead">
+              <strong>Selección vigente</strong>
+              <small>resultado acreditado por objetivo y firma del marco</small>
+            </div>
+            <div>
               <CifraFila>
                 <CifraMotor
                   label="Cursos-horario titulares"
@@ -164,6 +165,28 @@ export function AulasSeleccionTab({
                   origen="motor"
                 />
               </CifraFila>
+            </div>
+          </section>
+
+          <ClassroomLabCommandBar
+            model={model}
+            busy={busy}
+            acciones={["seleccionar", "reemplazos"]}
+            onSelectMethod={onSelectMethod}
+            onSimulateReplacements={onSimulateReplacements}
+          />
+
+          <SeleccionAulasVisual
+            seleccion={selection}
+            nObjetivo={targetForDisplay || null}
+            totalFacultades={model.facultades.length || null}
+          />
+
+          <div className="cmv2-classroom-lab-grid">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <strong>Selección propuesta</strong>
+              </div>
               <CoverageOverlapPanel rows={coverageRows} selectionRows={m1Rows} framePopulation={framePopulationCount} />
               <DescuentoRepetidosPanel selection={selection} m1Rows={m1Rows} />
               <ClassroomSelectionRationaleDashboard rows={m1Rows} workspace={workspace} />
@@ -171,7 +194,11 @@ export function AulasSeleccionTab({
                 <strong>Ajuste frente al marco</strong>
               </div>
               <ProfileBalanceChart rows={visibleProfiles} />
-              <div className={`cmv2-aulas-tabla-inspector-layout${activeRow ? " has-inspector" : ""}`}>
+              <div
+                className={`cmv2-aulas-tabla-inspector-layout${activeRow ? " has-inspector" : ""}`}
+                data-qa-geometry-group="aulas-seleccion-tabla"
+                data-qa-geometry-contract="intrinsic"
+              >
                 <div className="cmv2-aulas-tabla-main">
                   <label className="cmv2-compact-field cmv2-classroom-table-filter">
                     <span>Filtrar cursos-horario</span>
@@ -214,13 +241,13 @@ export function AulasSeleccionTab({
                   />
                 )}
               </div>
-            </>
-          )}
-        </div>
-        <aside className="cmv2-classroom-lab-side">
-          <ClassroomOverlapGraph rows={m1Rows} />
-        </aside>
-      </div>
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <ClassroomOverlapGraph rows={m1Rows} />
+            </aside>
+          </div>
+        </>
+      )}
     </div>
   );
 }

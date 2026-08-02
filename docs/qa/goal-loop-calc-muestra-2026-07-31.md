@@ -193,20 +193,20 @@ trabajando en lo desbloqueado.
 | Estadísticos por criterio × facultad expuestos por el engine (cuantiles, media, mediana, promedio alumnos/CH) | 0 contratos | 1 contrato completo y probado para `session_type × facultad`: p10/p25/p50/p75/p90, media elegible principal, media total de contraste y denominadores estrictos | ↑ con test por estadístico |
 | Criterios con impacto marginal (delta activar/desactivar) visible | 0 | 1 (`session_type × facultad`, acción y delta CH/matrículas firmados contra el marco ejecutado) | ↑ |
 | Embudo por facultad (Carril 2) | en curso, sin cerrar | en curso; no cerrado | cerrar |
-| Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | 0 de 6 vivas; la séptima era la dirección redundante retirada en I5 | ↑ a 6 |
-| **Estados vacíos que culpan a un artefacto que sí existe** | sin medir hasta I15 | **3 de 6** (`seleccion`, `laboratorio`, `reemplazos`): con selección vigente de 30 titulares M1 la UI declara «Todavía no hay selección»; lo que falta es el objetivo | = 0 |
-| Producto por iteración (líneas de `frontend`+`api` sin tests) | sin medir | I1–I14: 3 iteraciones con **0**, 4 con menos de 50; 73 % del producto en 2 de 13 commits | ↑ lote entregable |
-| Contrato escrito por línea de producto | sin medir | hasta **7:1** en las iteraciones chicas (110–169 líneas de contrato por 20–43 de código) | ↓ contrato proporcional |
-| Pestañas de Aulas/Salidas con capacidad y alcance C3–C4 auditados | por medir; I0-O2 no tenía rectángulos propios | 10 de 10 × 3 viewports: 30/30 alcanzables, 0 problemas de capacidad; 5 oportunidades solo exteriores | = 100 %; no acredita revamp F2 |
-| `aulasParts.tsx` | 1.612 | 1.551; la lista de riesgo salió a `ClassroomRiskList.tsx` y el handoff a `classroomHandoff.ts` | ↓ |
+| Pestañas de Aulas repasadas por el revamp F2 | 0 de 7 | **6 de 6 vivas**: I15 cerró Objetivo, Método, Simulación, Selección, Reemplazos y Sustento como un único lote de sección | = 6 |
+| **Estados vacíos que culpan a un artefacto que sí existe** | sin medir hasta I15 | **0 de 6**: sin marco dirige a Marco; con selección sin objetivo reconoce la corrida y dirige a Cálculo; los guards de vigencia permanecen intactos | = 0 |
+| Producto por iteración (líneas de `frontend`+`api` sin tests) | sin medir | I1–I14: 3 iteraciones con **0**, 4 con menos de 50; I15 entrega una sección completa 6/6 y su modelo de superficie en un lote | ↑ lote entregable |
+| Contrato escrito por línea de producto | sin medir | histórico de hasta **7:1**; I15 paga un solo contrato de sección y una sola matriz para las seis pestañas, sin contratos por defecto | ↓ contrato proporcional |
+| Pestañas de Aulas/Salidas con capacidad y alcance C3–C4 auditados | por medir; I0-O2 no tenía rectángulos propios | 10 de 10 × 3 viewports históricas; I15 añade Aulas 6 × 3 estados × 2 viewports: 36/36 alcanzables y todos los contadores duros en 0 | = 100 % |
+| `aulasParts.tsx` | 1.612 | **51**; queda como fachada de compatibilidad y 11 dueños extraídos contienen modelo, rótulos y paneles | ↓ |
 | Pestañas con hogar/orden justificado por la cadena metodológica (F3) | por auditar en iteración 0 | 24 de 24 históricas justificadas (100 %); cobertura viva 23 de 23 | = 100 % |
 | Alias muertos que ya nadie escribe y pueden documentarse como históricos | 12 | 12 | = (no crecen sin porqué) |
-| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | 19 grupos conformes: I12 añade los owners `referencia-asistencia-fuente` y `referencia-asistencia-tau`; sus cuatro capturas finales tienen 0 misses/issues | ↑ con cobertura conforme |
+| Declaraciones `data-qa-geometry-group` en el desk universitario | por medir en iteración 0 | **29 declaraciones / 22 ids** conformes; I15 deja 11 grupos propios de Aulas y el estado C audita 48 instancias sin misses/issues | ↑ con cobertura conforme |
 | Navegaciones canónicas Marco/Aulas que aterrizan arriba tras forzar el owner origen | por medir; I0-O1 sin secuencia reproducible | 13 de 13 navegaciones nuevas + 1 de 1 POP en 1710×1107; reset desde primer frame y estable | = 100 % |
 | Captura e inspección del runner sobre el mismo estado de motion finito | sin contrato; I9-H9 | 1 contrato probado: screenshot lleva finitas al final, DOM reutiliza ese estado y opacidad efectiva 0 queda fuera | = 100 % del caso causal |
 | Eslabones de τ con ancla histórica publicada (asistencia · completitud · validez) | 0 de 3; τ es un escalar sin dato detrás | 3 de 3 publicados con dueño, `k`, IC y producto, sin escribir τ | = 3 |
 | Referencia histórica de asistencia calibrable desde el desk | no existe | disponible desde Datos > Fuentes y visible en Cálculo > Diseño, con `k`, IC y degradación global solo para `k=1…11` | disponible, con `k` e intervalo por celda y degradación visible |
-| Hallazgos abiertos del loop | 1 (N9 heredado) | **1 confirmado** (I15-H13, el vacío que miente) + 0 observaciones; I12-H11 quedó cerrado en I13 y los anteriores permanecen cerrados | = 0 |
+| Hallazgos abiertos del loop | 1 (N9 heredado) | **0 confirmados + 0 observaciones**; I15-H13 y todos los anteriores permanecen cerrados | = 0 |
 
 La **iteración 0** completa las celdas «por medir» con el instrumento, no a
 ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
@@ -231,8 +231,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | I11-H10 | F0/F1 | La radiografía parcial agrupa `aula_frame$session_type`/`faculty` modales, pero el selector y su gate usan las señales efectivas catálogo→fallback de `.cm_criterios_valores_aula`; el gráfico puede describir otra categoría/facultad | **cerrado I11**: el sibling v1 nace exclusivamente de `criterios$seleccion_aula$valores`, reconstruye el marco ejecutado antes de publicar deltas y React falla cerrado sin fabricar el contrato desde el bloque legacy. Engine, normalizador, UI, revisión metodológica/contractual y matriz visual quedaron verdes |
 | I12-H11 | F2 / dimensionamiento | El sorteo real corre siempre con 30 aulas fijas: `selector$n_aulas` tiene default `30L`, no está en ninguna whitelist y el frontend nunca lo envía, así que el `aulas_base_total` que calcula el engine es decorativo | **cerrado I13**: el entero positivo engine-owned sobrevive la whitelist y se materializa según el escenario persistido —E1 usa P1/universidad y E2 usa P2/facultad, sin máximo ni fallback cruzado— hasta `selector$n_aulas`. Comparación, selección, reemplazos, historia y salidas validan target, frame y corrida propios; perder/cambiar escenario o target invalida el plan. M1 queda probado como `min(n_aulas, marco elegible)` sin truncar el target persistido |
 | I12-H12 | F0 / supuesto | τ es un escalar sin dato detrás y su default contradice su propia definición: vale `0.7` en el engine y `0.53` en el espejo del frontend, pero el contrato lo declara «producto de asistencia × aceptación × validez histórica» | **cerrado I12**: la referencia histórica publica los tres eslabones y el producto 0.698 × 0.753 × 0.893 = **0.469**, con dueño, momento, `k`, IC, suficiencia y degradación explícitos; no escribe τ, no pega CH a CH y no combina marginales |
-
-| I15-H13 | F2 / C5 | El vacío miente sobre su causa: con selección vigente en el backend (`selection_run_id` propio, 2.373 filas, 30 titulares M1, `selector.n_aulas = 30`, `frame_hash` idéntico al marco), `seleccion` declara «Todavía no hay selección». De las seis condiciones de `selectionReady` (`universidad/aulas/classroomHandoff.ts:105`) falla solo `currentAulasTarget > 0`, porque `aulas_base_total` es `null` en ambos componentes y `aulas_config.n_aulas` está ausente del workspace. `laboratorio` y `reemplazos` heredan el mismo silencio | **abierto — gobierna I15**: medido el 2026-08-01 sobre `hsvg2026-aulas-sel-20260801-174811` en 1440×1000. La reparación explica el vacío y nombra la pieza faltante; **no** relaja ninguna de las seis condiciones, porque publicar una selección stale es justo lo que I13 hizo fallar cerrado |
+| I15-H13 | F2 / C5 | El vacío miente sobre su causa: con selección vigente en el backend (`selection_run_id` propio, 2.373 filas, 30 titulares M1, `selector.n_aulas = 30`, `frame_hash` idéntico al marco), `seleccion` declara «Todavía no hay selección». De las seis condiciones de `selectionReady` (`universidad/aulas/classroomHandoff.ts:105`) falla solo `currentAulasTarget > 0`, porque `aulas_base_total` es `null` en ambos componentes y `aulas_config.n_aulas` está ausente del workspace. `laboratorio` y `reemplazos` heredan el mismo silencio | **cerrado I15**: el modelo común distingue sin marco, selección almacenada sin objetivo, comparación, selección y reemplazos faltantes. El estado B conserva y nombra sus 30 titulares, dirige a Cálculo y nunca los publica como vigentes; ninguna condición de `selectionReady` se relajó. Matriz A/B/C × 6 tabs × 2 viewports verde |
 
 ## Bandeja de decisiones (solo Gonzalo)
 
@@ -263,6 +262,7 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
 | 11 | 2026-08-01 | F0/F1/I11-H10 | Se publicó desde R el sibling opcional `criterios_radiografia` sobre tipo y facultad efectivos, con cuantiles type 7, medias elegible/total, denominadores estrictos y contrafactual causal por categoría; React lo normaliza atómicamente y presenta dentro del embudo por facultad, con fallback legacy explícito | R 119 + 191 + 70 expectativas; normalizador contractual 41/41; Marco 12 archivos/113 tests; typecheck, diff-check, auditoría agentic y bóveda verdes; gobernanza propuesta 196/196 y 0 errores. Método, contrato y `verificador` serial aprobados. Matriz final `prosecnur-visual-iter11-radiografia-final-approved`: 3/3 PASS, 21 grupos, 0 issues/misses/overflow/scroll/errors; QA visual independiente C1–C5 aprobado | Componentes F1 0→1; contratos estadísticos 0→1; criterios con delta visible 0→1; I11-H10 cerrado; hallazgos 3→2. F2 sigue 0/6 y `aulasParts.tsx` permanece 1.612 |
 | 12 | 2026-08-01 | F0/F4/I12-H12 | Se incorporó una fuente histórica opcional con engine R propio, contrato agregado y persistencia `.pulso` sin raw/PII; el endpoint publica estudio, reporte y referencia atómicamente; Datos muestra cobertura, cadena y celdas, y Cálculo contrasta τ sin escribirlo. `k=0` queda vacío, `k=1…11` publica global, `k=12…29` es delgada y `k≥30` sólida | Tres regresiones de arranque rojas y vetos de atomicidad, normalización, IC y rótulo `k=0` reparados con guard. Gate final: 10 archivos R/841 expectativas, feature 63 archivos/634 tests, typecheck, diff-check y auditoría agentic verdes; E2E HTTP/UI con la hoja real reproduce 194/192/190, cadena 0.698/0.753/0.893=0.469 y T1–T5; round-trip `.pulso` conserva solo agregado. Matriz visual 4/4 PASS, cero contadores duros; método, contrato y `verificador` serial aprobados | Anclas de τ 0→3; referencia de asistencia inexistente→disponible; geometría 17→19; I12-H12 cerrado y hallazgos 2→1. F2 sigue 0/6 y `aulasParts.tsx` permanece 1.612 |
 | 13 | 2026-08-01 | F2/I12-H11, gobernada por F0 | Se conectó `aulas_base_total` desde el resultado R al workspace y a `selector$n_aulas` según el escenario persistido; E1/P1 y E2/P2 fallan cerrado sin actor, target o marco vigentes. Comparación, sorteo, reemplazos, historia, paquete de defensa y Salidas exigen artefactos propios de target/frame/run. El riesgo de aula salió del monolito a componente propio | Whitelist R 42 expectativas; `test-calc-muestra-aulas.R` completo y focal `M1=min(target, marco)` verdes; feature React 70 archivos/673 pruebas, focos 11/84 y corridas 16/16, typecheck, diff-check y auditoría agentic verdes. El primer verificador vetó una carrera del paquete; la promesa diferida quedó 1 roja/3 verdes → 4/4 y el feature volvió a 673/673; el segundo verificador aprobó el límite post-`await` sin ventana restante. Método y contrato aprobaron. QA real 14/14 en 1440×1000 y 1024×600: P2 4.157/4.989/268, scroll final alcanzable, 36 popovers y todos los contadores duros en 0; 8787 intacto | I12-H11 cerrado; hallazgos 1→0; `aulasParts.tsx` 1.612→1.551. F2 permanece 0/6 porque I13 corrige el handoff y sus guards, no completa un revamp de pestaña |
+| 15 | 2026-08-01 | F2/I15-H13 · lote de sección | Se descompuso `aulasParts.tsx` en dueños sin romper sus 35 exports y se renovaron juntas las seis pestañas: dato acreditado antes que explicación, una sola causa accionable por estado, columnas vacías omitidas, evidencia parcial conservada y navegación Marco→Cálculo→Método→Selección→Reemplazos. El estado B reconoce la selección real sin relajar los guards; porcentajes no finitos se publican como `—` | Estado reproducible A sin marco, B con selección/30 M1 sin objetivo y C con objetivo 175 + selección 175 M1 + 491 reemplazos. Feature final 71 archivos/695 pruebas, typecheck y diff-check verdes. Matriz 36/36 en 1440×1000 y 1024×600; tras los dos ajustes geométricos, recheck A/B 8/8 y C 12/12. Cero issues, misses, overflow, scroll jails o errores; 48 instancias geométricas en C. Sin `verificador`: no se tocó engine ni contrato público | F2 0/6→6/6; vacíos falsos 3/6→0/6; `aulasParts.tsx` 1.551→51; geometría 19→29 declaraciones; I15-H13 cerrado y hallazgos 1→0 |
 
 ### Contrato de iteración 0
 
@@ -285,10 +285,11 @@ ojo, y toma el baseline visual de las cinco secciones con `qa-visual-desktop`.
   en el payload y dejar un guard que impida mezclarlas sin resolver D1 por
   sustitución. Si la visita toca Marco, paga I0-H1 en la misma iteración.
 
-**Siguiente iteración programada:** **14 — F2/Aulas · Objetivo**, primera visita
-completa del revamp a una de las seis pestañas vivas. Audita y pule por
-dirección la jerarquía de Objetivo sobre el contrato de target ya congelado en
-I13, sin recalcular cifras en React ni reabrir el handoff.
+**Siguiente iteración programada:** **16 — F1/radiografía completa del
+selector**. El lote cubre el barrido de criterios vivos que todavía no tienen
+contrato estadístico propio; no se dividirá en una iteración por criterio. F0
+gatea el contrato engine y el carril B debe presentar la consola completa con
+dato antes que gráfico.
 
 ### Contrato de iteración 1 (scope lock cerrado)
 
@@ -1944,6 +1945,42 @@ prompt privado quedaron explícitamente fuera de su stage y commit.
   en los tres estados; (3) `aulasParts.tsx` haya bajado de 1.551 líneas; (4) el
   gate de superficie esté verde. `verificador` serial solo si el lote termina
   tocando engine o contrato público.
+- **Resultado.** Cerrada: las seis pestañas ordenan dato acreditado, causa y
+  acción; A/B/C distinguen sin marco, selección no acreditada y cadena vigente
+  sin inventar disponibilidad. `selectionReady` conserva sus seis condiciones.
+- **Peaje pagado.** `aulasParts.tsx` baja 1.551 → 51 y conserva sus 35 exports;
+  modelo, rótulos y paneles viven en once módulos dueños sin ciclos internos.
+- **Gate final.** 71 archivos/695 Vitest, typecheck y diff-check verdes. QA
+  A/B/C × 6 × 2 = 36/36; delta final A/B 8/8 + C 12/12, con todos los
+  contadores duros en 0. El estado C acredita 175 M1 y 491 reemplazos.
+- **Decisiones.** Ninguna nueva; D1–D6 permanecen resueltas. I15-H13 queda
+  cerrado y el ledger mueve F2 0/6 → 6/6, vacíos 3/6 → 0 y hallazgos 1 → 0.
+- **Siguiente acción.** Iteración 16, F1: barrido completo de la radiografía de
+  los criterios restantes del selector, como capacidad única y no por defecto.
+
+### Contrato de iteración 16 (lote activo — auditoría)
+
+- **Categoría / fuente de verdad:** F0/F1; manda el criterio efectivo que el
+  engine R aplicó al marco y el contrato `criterios_radiografia` abierto en I11.
+- **Lote:** completar la radiografía de todos los criterios vivos restantes del
+  selector y presentarlos como una sola consola analítica; no una iteración por
+  criterio ni gráficos que fabriquen estadísticos en React.
+- **Carril A:** inventariar criterio, señal efectiva, denominadores, cuantiles,
+  media/mediana y delta contrafactual; cualquier campo nuevo nace en R con test.
+- **Carril B:** jerarquía dato→distribución→impacto→acción, estados sin dato
+  honestos y comparación legible en 1440×1000 y 1024×600.
+- **Scope lock inicial:** auditoría de solo lectura en engine de Cálculo de
+  muestra, normalizador y superficies Datos/Marco/Cálculo; los archivos exactos
+  se congelan tras localizar la primera divergencia y antes de editar producto.
+- **Exclusiones:** F2 ya cerrado, selector/sorteo de Aulas, τ, persistencia
+  `.pulso`, navegación, procesos/puertos del usuario y cambios ajenos del árbol.
+- **Riesgo principal:** agrupar por una etiqueta distinta de la señal efectiva
+  o mezclar denominadores entre criterios, reproduciendo I11-H10 a mayor escala.
+- **Peaje y stopping rule:** extraer primero cualquier owner grande tocado;
+  cerrar solo con contratos R probados para el barrido, consola C1–C5, feature,
+  typecheck, testthat afectado, matriz visual y `verificador` serial.
+- **Estado:** auditoría activa; la primera tarea es medir el inventario vivo y
+  separar qué ya cubre I11 de lo que aún carece de contrato engine/UI.
 
 ## Cómo se corre cada visita
 

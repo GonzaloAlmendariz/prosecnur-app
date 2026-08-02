@@ -21,11 +21,10 @@ import { fmtInt, fmtPct, safeNumber } from "../../sharedCore";
 import { UNIVERSITY_AULAS_SELECTOR_OPTIONS } from "../shared/constants";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { normalizeAulasSelectorEngine, normalizeUniversityAulasConfig } from "../shared/study";
-import { FormulaLatex, TerminoChip } from "../ui";
+import { CifraFila, CifraMotor, FormulaLatex, TerminoChip } from "../ui";
 import { DescuentoRepetidosControl } from "./DescuentoRepetidosControl";
 import {
   ClassroomBalanceTable,
-  ClassroomEmptyState,
   ClassroomLabCommandBar,
   ClassroomRecommendation,
   classroomMethodLabel,
@@ -33,6 +32,11 @@ import {
   classroomScore,
   type ClassroomLabModel,
 } from "./aulasParts";
+import {
+  AulasStageNotice,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "./aulasSurfaceState";
 import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
@@ -136,7 +140,7 @@ function SaltoSistematicoRecta({ model }: { model: ClassroomLabModel }) {
         <small>
           {real
             ? `k = ${fmtInt(frameN)} cursos-horario del marco / ${fmtInt(titulares)} titulares = ${fmtInt(k)}`
-            : `ejemplo ilustrativo (sin selección todavía): ${fmtInt(N)} cursos-horario y ${fmtInt(n)} titulares → k = ${fmtInt(k)}`}
+            : `ejemplo ilustrativo (${model.hasStoredSelection ? "la corrida almacenada no está acreditada" : "aún sin selección acreditada"}): ${fmtInt(N)} cursos-horario y ${fmtInt(n)} titulares → k = ${fmtInt(k)}`}
           {" · arranque de ejemplo en la posición "}{fmtInt(start)}
           {truncated ? ` · se dibujan las primeras ${fmtInt(ticks)} posiciones de ${fmtInt(N)}` : ""}
         </small>
@@ -186,6 +190,7 @@ export function AulasMetodoTab({
   onWorkspace,
   onCompare,
   onSelectMethod,
+  onNavigate,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
@@ -193,6 +198,7 @@ export function AulasMetodoTab({
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
   onCompare: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
+  onNavigate?: AulasNavigate;
 }) {
   const { config, comparison, comparisonMethods, recommendedMethodId, engineOption } = model;
 
@@ -224,16 +230,65 @@ export function AulasMetodoTab({
   }
 
   const hayComparacion = model.comparisonReady && Boolean(comparison && comparisonMethods.length);
+  const stageNotice = resolveAulasStageNotice(model, "metodo");
 
   return (
     <div className="cmv2-aulas-stack">
-      <ClassroomLabCommandBar
-        model={model}
-        busy={busy}
-        acciones={["comparar", "seleccionar"]}
-        onCompare={onCompare}
-        onSelectMethod={onSelectMethod}
-      />
+      {hayComparacion && (
+        <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-hero-panel">
+          <div className="cmv2-subhead">
+            <strong>Resultado del comparador</strong>
+            <small>métricas acreditadas del método recomendado</small>
+          </div>
+          <div>
+            <CifraFila>
+              <CifraMotor
+                label="Método recomendado"
+                value={comparison?.recommendation?.method_label ?? classroomMethodLabel(recommendedMethodId)}
+                detalle="mejor resultado de la corrida vigente"
+                origen="motor"
+                hero
+              />
+              <CifraMotor
+                label="Representatividad"
+                value={classroomScore(model.recommendedMethod?.representativity_score ?? model.recommendedMethod?.overall_score)}
+                detalle="puntaje del objetivo"
+                origen="motor"
+              />
+              <CifraMotor
+                label="Balance"
+                value={classroomScore(model.recommendedMethod?.balance_score)}
+                detalle="ajuste frente al marco"
+                origen="motor"
+              />
+              <CifraMotor
+                label="Cobertura única"
+                value={fmtPct(model.recommendedMethod?.coverage_unique_pct ?? 0)}
+                detalle={`${fmtPct(model.recommendedMethod?.duplicate_loss ?? 0)} de pérdida por repetidos`}
+                origen="motor"
+              />
+            </CifraFila>
+          </div>
+        </section>
+      )}
+
+      {hayComparacion && (
+        <ClassroomLabCommandBar
+          model={model}
+          busy={busy}
+          acciones={["comparar"]}
+          onCompare={onCompare}
+        />
+      )}
+
+      {stageNotice && (
+        <AulasStageNotice
+          notice={stageNotice}
+          onNavigate={onNavigate}
+          onAction={stageNotice.localAction === "compare" ? runComparison : undefined}
+          disabled={Boolean(stageNotice.localAction) && (Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota)}
+        />
+      )}
 
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
@@ -242,7 +297,11 @@ export function AulasMetodoTab({
           </div>
           {/* Presentación canónica ÚNICA de los 4 métodos (QA H1): elección,
               métricas de la última corrida y acción en la misma tarjeta. */}
-          <div className="cmv2-classroom-method-grid cmv2-uni-stagger">
+          <div
+            className="cmv2-classroom-method-grid cmv2-uni-stagger"
+            data-qa-geometry-group="aulas-metodo-opciones"
+            data-qa-geometry-contract="equal"
+          >
             {["sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado"].map((methodId) => {
               const option = UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((item) => item.id === methodId);
               const compared = hayComparacion
@@ -316,20 +375,13 @@ export function AulasMetodoTab({
             onChange={setSequentialDiscount}
           />
 
-          <SaltoSistematicoRecta model={model} />
-
-          {!hayComparacion ? (
-            <ClassroomEmptyState
-              icon={BarChart3}
-              title="Comparación pendiente"
-              detail="Corre el comparador para evaluar representatividad, balance, cobertura, repetidos y riesgos de cada método."
-              actionLabel="Comparar métodos"
-              onAction={runComparison}
-              disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
-            />
-          ) : (
+          {hayComparacion && (
             <ClassroomBalanceTable rows={comparison?.balance ?? []} methodId={recommendedMethodId} />
           )}
+          <details className="cmv2-aulas-referencia cmv2-aulas-method-explainer">
+            <summary>Cómo opera el salto sistemático (explicación)</summary>
+            <SaltoSistematicoRecta model={model} />
+          </details>
         </div>
         <aside className="cmv2-classroom-lab-side">
           <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />

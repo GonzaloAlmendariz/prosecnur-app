@@ -18,9 +18,14 @@ import { fmtInt, safeNumber } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_AULAS_MODALIDAD_OPTIONS } from "../shared/constants";
 import { normalizeUniversityAulasConfig } from "../shared/study";
-import { PanelAvanzado } from "../ui";
+import { CifraFila, CifraMotor, PanelAvanzado } from "../ui";
 import { CadenaAulas } from "./CadenaAulas";
 import { NumberCell, ObjectiveWeightsPanel, type ClassroomLabModel } from "./aulasParts";
+import {
+  AulasStageNotice,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "./aulasSurfaceState";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
@@ -28,10 +33,12 @@ export function AulasObjetivoTab({
   workspace,
   model,
   onWorkspace,
+  onNavigate,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
+  onNavigate?: AulasNavigate;
 }) {
   const {
     config,
@@ -86,9 +93,55 @@ export function AulasObjetivoTab({
           extra: safeNumber(row.aulas_extra_operativas, 0),
           total: safeNumber(row.aulas_base_fijas, 0) + safeNumber(row.aulas_extra_operativas, 0),
         }));
+  const result = model.selectedComp.resultado;
+  const resultReady = model.selectedResultReady && Boolean(result);
+  const showEstAula = filasTabla.some((row) => row.estAula > 0);
+  const showReemplazos = filasTabla.some((row) => row.reemplazos > 0);
+  const showExtra = filasTabla.some((row) => row.extra > 0);
+  const showTotal = filasTabla.some((row) => row.total > 0);
+  const stageNotice = resolveAulasStageNotice(model, "objetivo");
 
   return (
     <div className="cmv2-aulas-stack">
+      <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-hero-panel">
+        <div className="cmv2-subhead">
+          <strong>Objetivo vigente</strong>
+          <small>resultado acreditado del escenario activo</small>
+        </div>
+        <div>
+          <CifraFila>
+            <CifraMotor
+              label="Escenario"
+              value={model.aulasScenario === "e2" ? "P2 · por facultad" : "P1 · universidad"}
+              detalle="componente que manda en Aulas"
+            />
+            <CifraMotor
+              label="n objetivo"
+              value={resultReady ? fmtInt(result?.n_objetivo) : "pendiente"}
+              detalle="entrevistas completas requeridas"
+              origen={resultReady ? "motor" : undefined}
+            />
+            <CifraMotor
+              label="n operativo"
+              value={resultReady ? fmtInt(result?.n_operativo) : "pendiente"}
+              detalle="incluye la cobertura prevista por el engine"
+              origen={resultReady ? "motor" : undefined}
+            />
+            <CifraMotor
+              label="Cursos-horario titulares"
+              value={model.currentAulasTarget > 0 ? fmtInt(model.currentAulasTarget) : "pendiente"}
+              detalle="target CH publicado por el engine R"
+              origen={model.currentAulasTarget > 0 ? "motor" : undefined}
+              hero
+            />
+          </CifraFila>
+        </div>
+      </section>
+
+      {stageNotice && (
+        <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
+      )}
+
       <section className="cmv2-panel cmv2-aulas-panel">
         <div className="cmv2-subhead">
           <strong>Conversión de N a cursos-horario</strong>
@@ -101,14 +154,19 @@ export function AulasObjetivoTab({
           />
         )}
 
-        <div className="cmv2-aulas-cuota-flujos" aria-label="Cursos-horario por facultad">
+        <div
+          className="cmv2-aulas-cuota-flujos"
+          aria-label="Cursos-horario por facultad"
+        >
           <div className="cmv2-aulas-cuota-head">
             <strong>Detalle por facultad</strong>
             <small>{cuotaValidada ? "cuotas y cursos-horario validados por la calculadora" : "con cuotas fijadas del marco; calcula la muestra para validar"}</small>
           </div>
           {!filasTabla.length ? (
             <p className="cmv2-aulas-nota-suave">
-              Cuando calcules el tamaño por facultad (sección Cálculo), aquí verás cómo cada cuota se convierte en aulas titulares, reservas y extra.
+              {resultReady
+                ? "El cálculo vigente todavía no incluye un desglose de cursos-horario por facultad. Recalcula la propuesta para materializarlo."
+                : "Cuando Cálculo publique el objetivo, aquí aparecerá la conversión por facultad."}
             </p>
           ) : (
             <div className="cmv2-table-wrap">
@@ -117,11 +175,11 @@ export function AulasObjetivoTab({
                   <tr>
                     <th>Facultad</th>
                     <th>Cuota</th>
-                    <th>Est./curso-horario</th>
+                    {showEstAula && <th>Est./curso-horario</th>}
                     <th>Titulares</th>
-                    <th>Reservas</th>
-                    <th>Extra</th>
-                    <th>A coordinar</th>
+                    {showReemplazos && <th>Reservas</th>}
+                    {showExtra && <th>Extra</th>}
+                    {showTotal && <th>A coordinar</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -129,11 +187,11 @@ export function AulasObjetivoTab({
                     <tr key={row.estrato}>
                       <td><strong>{row.estrato}</strong></td>
                       <td>{fmtInt(row.cuota)}</td>
-                      <td>{row.estAula > 0 ? Math.round(row.estAula) : "—"}</td>
+                      {showEstAula && <td>{row.estAula > 0 ? Math.round(row.estAula) : "—"}</td>}
                       <td>{fmtInt(row.titulares)}</td>
-                      <td>{row.reemplazos > 0 ? fmtInt(row.reemplazos) : `R1-R${config.bolsas_reemplazo}`}</td>
-                      <td>{fmtInt(row.extra)}</td>
-                      <td><strong>{fmtInt(row.total)}</strong></td>
+                      {showReemplazos && <td>{row.reemplazos > 0 ? fmtInt(row.reemplazos) : "—"}</td>}
+                      {showExtra && <td>{row.extra > 0 ? fmtInt(row.extra) : "—"}</td>}
+                      {showTotal && <td><strong>{row.total > 0 ? fmtInt(row.total) : "—"}</strong></td>}
                     </tr>
                   ))}
                 </tbody>
@@ -147,7 +205,11 @@ export function AulasObjetivoTab({
         <div className="cmv2-subhead">
           <strong>Criterios de selección</strong>
         </div>
-        <div className="cmv2-classroom-control-grid">
+        <div
+          className="cmv2-classroom-control-grid"
+          data-qa-geometry-group="aulas-objetivo-controles"
+          data-qa-geometry-contract="intrinsic"
+        >
           <label className="cmv2-compact-field cmv2-classroom-field-wide">
             <span>Modalidad</span>
             <select

@@ -140,6 +140,11 @@
   padding: 0;
 }
 
+.cmv2-aulas-stack .cmv2-classroom-method-grid,
+.cmv2-aulas-neff-layout > .cmv2-uni-cifra-fila {
+  grid-auto-rows: 1fr;
+}
+
 .cmv2-aulas-method-pick {
   display: block;
   width: 100%;
@@ -1676,4 +1681,154 @@
   border-top: 1px solid var(--cmv2-border);
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-heavy);
+}
+
+/* --- I15: causa única, dato primero y densidad útil -------------------------- */
+.cmv2-aulas-hero-panel {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 24%, var(--cmv2-border));
+  background:
+    linear-gradient(135deg, var(--cmv2-accent-soft), transparent 48%),
+    var(--cmv2-surface);
+}
+
+.cmv2-aulas-stage-notice {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
+  box-shadow: var(--cmv2-shadow-card);
+}
+
+.cmv2-aulas-stage-notice.is-stored-unaccredited,
+.cmv2-aulas-stage-notice.is-missing-frame,
+.cmv2-aulas-stage-notice.is-missing-objective {
+  border-color: var(--pulso-warn-border);
+  background:
+    linear-gradient(135deg, var(--pulso-warn-bg), transparent 56%),
+    var(--cmv2-surface);
+}
+
+.cmv2-aulas-stage-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-aulas-stage-notice.is-stored-unaccredited .cmv2-aulas-stage-icon,
+.cmv2-aulas-stage-notice.is-missing-frame .cmv2-aulas-stage-icon,
+.cmv2-aulas-stage-notice.is-missing-objective .cmv2-aulas-stage-icon {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-aulas-stage-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cmv2-aulas-stage-copy small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.cmv2-aulas-stage-copy strong {
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-black);
+  line-height: 1.25;
+}
+
+.cmv2-aulas-stage-copy p {
+  max-width: 86ch;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.cmv2-aulas-stage-notice > button {
+  min-width: 132px;
+  white-space: nowrap;
+}
+
+.cmv2-aulas-evidence-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-aulas-method-explainer {
+  margin-top: 10px;
+}
+
+.cmv2-aulas-method-explainer > .cmv2-aulas-recta {
+  margin: 10px;
+}
+
+/* El DOM mantiene la agrupación histórica para las regresiones, pero la ficha
+   de evidencia (Motor/Preview, semilla y hashes) se presenta antes de fórmulas. */
+.cmv2-aulas-audit-main {
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-aulas-audit-main .cmv2-aulas-sello {
+  order: -2;
+}
+
+.cmv2-aulas-audit-main > .cmv2-subhead:first-child,
+.cmv2-aulas-audit-main > .cmv2-classroom-empty:first-of-type {
+  order: -1;
+}
+
+@media (max-width: 900px) {
+  .cmv2-aulas-stage-notice {
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .cmv2-aulas-stage-notice > button {
+    grid-column: 2;
+    justify-self: start;
+    min-width: 0;
+  }
+
+  .cmv2-aulas-method-pick {
+    min-height: 96px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cmv2-aulas-stage-notice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmv2-aulas-stage-notice > button {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .cmv2-aulas-histo-bins {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    row-gap: 10px;
+  }
+
+  .cmv2-aulas-neff-marcas {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
 }

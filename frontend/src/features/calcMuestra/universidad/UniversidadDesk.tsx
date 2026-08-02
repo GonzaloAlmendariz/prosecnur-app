@@ -506,7 +506,7 @@ export function UniversidadDesk({
         {selectedSection === "aulas" && (
           <div ref={activePanelRef} id="cmv2-section-university-aulas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {activeLabTab === "objetivo" && (
-              <AulasObjetivoTab workspace={syncedWorkspace} model={labModel} onWorkspace={onWorkspace} />
+              <AulasObjetivoTab workspace={syncedWorkspace} model={labModel} onWorkspace={onWorkspace} onNavigate={onNavigate} />
             )}
             {activeLabTab === "metodo" && (
               <AulasMetodoTab
@@ -516,10 +516,11 @@ export function UniversidadDesk({
                 onWorkspace={onWorkspace}
                 onCompare={onCompararAulas}
                 onSelectMethod={onSeleccionarAulas}
+                onNavigate={onNavigate}
               />
             )}
             {activeLabTab === "laboratorio" && (
-              <AulasSimulacionTab model={labModel} busy={busy} onCompare={onCompararAulas} />
+              <AulasSimulacionTab model={labModel} busy={busy} onCompare={onCompararAulas} onNavigate={onNavigate} />
             )}
             {activeLabTab === "seleccion" && (
               <AulasSeleccionTab
@@ -528,12 +529,13 @@ export function UniversidadDesk({
                 busy={busy}
                 onSelectMethod={onSeleccionarAulas}
                 onSimulateReplacements={onSimularReemplazos}
+                onNavigate={onNavigate}
               />
             )}
             {activeLabTab === "reemplazos" && (
-              <AulasReemplazosTab model={labModel} busy={busy} onSimulateReplacements={onSimularReemplazos} />
+              <AulasReemplazosTab model={labModel} busy={busy} onSimulateReplacements={onSimularReemplazos} onNavigate={onNavigate} />
             )}
-            {activeLabTab === "auditoria" && <AulasAuditoriaTab model={labModel} />}
+            {activeLabTab === "auditoria" && <AulasAuditoriaTab model={labModel} onNavigate={onNavigate} />}
           </div>
         )}
 

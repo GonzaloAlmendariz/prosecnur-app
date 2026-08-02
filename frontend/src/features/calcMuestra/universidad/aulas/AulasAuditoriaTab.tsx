@@ -22,11 +22,22 @@ import {
   classroomProbabilitySourceLabel,
   type ClassroomLabModel,
 } from "./aulasParts";
+import {
+  AulasStageNotice,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "./aulasSurfaceState";
 import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
-export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
+export function AulasAuditoriaTab({
+  model,
+  onNavigate,
+}: {
+  model: ClassroomLabModel;
+  onNavigate?: AulasNavigate;
+}) {
   const {
     frame,
     selection,
@@ -64,11 +75,15 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
   const selectionHash = selection?.frame_hash ? String(selection.frame_hash) : "";
   const frameChangedAfterSelection = Boolean(frameHash && selectionHash && frameHash !== selectionHash);
   const generatedAt = frame?.generated_at ? String(frame.generated_at).slice(0, 16).replace("T", " ") : "";
+  const stageNotice = resolveAulasStageNotice(model, "auditoria");
 
   return (
     <div className="cmv2-aulas-stack">
+      {stageNotice && (
+        <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
+      )}
       <div className="cmv2-classroom-lab-grid">
-        <div className="cmv2-classroom-lab-main">
+        <div className="cmv2-classroom-lab-main cmv2-aulas-audit-main">
           <div className="cmv2-subhead">
             <strong>Fórmulas del diseño</strong>
           </div>
@@ -81,7 +96,12 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
               </div>
             </div>
           )}
-          <div key={corridaKey} className="cmv2-aulas-formulas cmv2-uni-stagger">
+          <div
+            key={corridaKey}
+            className="cmv2-aulas-formulas cmv2-uni-stagger"
+            data-qa-geometry-group="aulas-auditoria-formulas"
+            data-qa-geometry-contract="intrinsic"
+          >
             <FormulaLatex
               caption="Brecha de balance por categoría"
               expression={"b(c) = \\%_{\\mathit{muestra}}(c) - \\%_{\\mathit{marco}}(c)"}
@@ -149,7 +169,12 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
             />
           </div>
 
-          <section className="cmv2-aulas-repro cmv2-aulas-sello" aria-label="Reproducibilidad defendible">
+          <section
+            className="cmv2-aulas-repro cmv2-aulas-sello"
+            aria-label="Reproducibilidad defendible"
+            data-qa-geometry-group="aulas-auditoria-reproducibilidad"
+            data-qa-geometry-contract="intrinsic"
+          >
             <div className="cmv2-subhead">
               <strong>Reproducibilidad</strong>
             </div>
