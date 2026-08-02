@@ -1684,6 +1684,28 @@ volvería a regalar el no-op que el bloqueo existía para evitar.
 
 Gate: typecheck 0 · Vitest **811/811** en 94 archivos.
 
+### F39 — El estado ocupado pasa la vara, y mi instrumento no
+
+Con el comparador corriendo se pudo auditar algo que el loop nunca había mirado:
+la superficie **ocupada**. Todas las pasadas anteriores midieron pantallas
+inertes o cerradas.
+
+Primera lectura, acotada a `.cmv2-tab-panel`: Método y Simulación no decían nada
+del job y sólo Titulares informaba el avance. Iba a escribir que el estado
+ocupado estaba **invertido** —la pestaña que lanza no informa, la de al lado sí—.
+
+**Era falso.** Al medir el documento completo aparece la barra global: «Comparando
+métodos», «corrida 10 de 21», tiempo transcurrido y **botón de cancelar**
+(`cmv2-busy-cancel`). Un job global informado en una barra global es exactamente
+donde corresponde. El estado ocupado pasa la vara sin tocar nada.
+
+**Tercer error de alcance del mismo tipo en la sesión** —tras «excepción: 0
+veces» medido en la pestaña equivocada y los desbordes SVG de S13—: acoto la
+sonda al panel y concluyo sobre la aplicación. Queda escrito como regla del
+instrumento: **antes de declarar que algo falta, medir el documento, no el
+panel**. Las tres veces el error apuntaba en la misma dirección —creer que falta
+algo que sí está—, que es la dirección que produce trabajo inútil.
+
 ### Estado del loop
 
 | | |
@@ -1693,6 +1715,7 @@ Gate: typecheck 0 · Vitest **811/811** en 94 archivos.
 | Contenedores que esconden su profundidad | **0** |
 | Lotes cerrados | **12 de 13** (S1–S7, S9–S13) + T1, T4, T6, T7, D10 |
 | Gate más amplio corrido | **suite completa del frontend: 3.198 pruebas en 391 archivos**, typecheck 0, `sync-agentic-os --check` y `--audit` OK |
+| Estado ocupado | **pasa**: barra global con paso, tiempo y cancelar |
 | Pendiente | **Titulares, Reemplazos y Sustento con selección real**: la comparación corre al cerrar el tramo (método 4 de 4) |
 
 Lo que la próxima visita encuentra hecho: el instrumento llega de punta a punta y
