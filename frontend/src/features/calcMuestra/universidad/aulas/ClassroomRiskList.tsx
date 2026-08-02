@@ -47,8 +47,14 @@ export function ClassroomRiskList({
             {esTecnico ? (
               <>
                 <span>El motor usó una implementación alternativa equivalente para esta corrida.</span>
+                {/* ADR 0057 · Rotular el cajón «Detalle técnico» no dice qué
+                    hay dentro: es la etiqueta que obliga a abrir para saber si
+                    importa. Lo que contiene es el mensaje literal del motor, y
+                    eso sí se puede nombrar. Se mantiene contenido porque es
+                    diagnóstico —no cambia ninguna decisión del estudio— pero
+                    con su nombre puesto. */}
                 <details className="cmv2-aviso-tecnico">
-                  <summary>Detalle técnico</summary>
+                  <summary>Ver el mensaje del motor</summary>
                   <code>{detail}</code>
                 </details>
               </>

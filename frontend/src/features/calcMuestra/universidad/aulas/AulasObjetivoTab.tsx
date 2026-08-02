@@ -114,7 +114,7 @@ export function AulasObjetivoTab({
             <CifraMotor
               label="Escenario"
               value={model.aulasScenario === "e2" ? "P2 · por facultad" : "P1 · universidad"}
-              detalle="componente que manda en Aulas"
+              detalle="componente que manda en cursos-horario"
             />
             <CifraMotor
               label="n objetivo"
