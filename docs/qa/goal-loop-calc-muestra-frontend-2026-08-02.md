@@ -342,10 +342,10 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **3 de 23** (`marco-criterios-alumno`, `marco-ch-radiografia`, `marco-alumnos-ch`) | 23 de 23 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **6 de 23** (los tres criterios/alumnos-CH + Población, Cursos-horario y Cobertura) | 23 de 23 |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **4 de 13** (S1–S4) + T1 aplicado y **T6 cerrada** | 13 + 6 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **5 de 13** (S1–S5) + T1 aplicado y **T6 cerrada** | 13 + 6 |
 | Elementos con desborde o ancho 0 a 1024×600 en Criterios | **1.006 / 987** | **0 / 0** | 0 |
 | Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
 | Gráficos comparables fuera de la radiografía de criterios | **0** | **16** tiras en Alumnos por CH sobre escala común con Total de referencia | todos |
@@ -414,10 +414,9 @@ Gonzalo cierra.
 `73c60e08`); `F6` cerró **S2** (commit `80cb6391`). T1 queda aplicado en
 Criterios y sigue abierto para el resto del módulo.
 
-Siguiente iteración **`F10` (S5)**: Población, Cursos-horario y Cobertura por la
-vara. Medido en la apertura: Cobertura publica «13.498 / 38.749» bajo «Alumnos
-por facultad» con la cabecera en 21.365/29.090 — tres denominadores para
-«alumnos» en una sola pantalla.
+Siguiente iteración **`F11` (S6)**: Cálculo — Diseño y Propuestas se entienden
+solos. **Bloque A (Marco) completo**: S1–S5 cerradas, seis superficies por la
+vara.
 
 ## Mecánica de cada iteración
 
@@ -751,10 +750,39 @@ para que la tarjeta pueda estrecharse sin volver a romperse.
 
 Gate: typecheck 0 errores · Vitest **799/799** · los dos viewports limpios.
 
-Siguiente: **F10 (S5)** — Población, Cursos-horario y Cobertura por la vara.
-Medido en la apertura: Cobertura publica «13.498 / 38.749» bajo el rótulo
-«Alumnos por facultad» mientras la cabecera marca 21.365 sobre 29.090 — tres
-denominadores para «alumnos» en una pantalla.
+### F10 — Población, Cursos-horario y Cobertura (S5, 2026-08-02) · **S5 cerrada**
+
+**Dos correcciones de mediciones propias, ambas de la apertura.**
+
+1. **El hallazgo estrella de S5 no reproduce.** La apertura registró «tres
+   denominadores para *alumnos* en una pantalla»: Cobertura con
+   «13.498 / 38.749» contra una cabecera de 21.365/29.090. Sobre el
+   **instrumento**, Cobertura publica **73,5 % · 21.362 / 29.083** — exactamente
+   la cabecera. Aquella medición se tomó sobre el frame viejo, sin radiografía;
+   no era un defecto de la superficie sino del estado.
+2. **Dos de los «desbordes» eran del detector, no de la pantalla.** Los 8
+   contados a 1440×1000 son elementos **posicionados en absoluto** por diseño:
+   el conector entre etapas del flujo y la etiqueta del marcador de mínimo del
+   histograma. Contando solo elementos `position: static`, los desbordes reales
+   son **0**. El detector queda corregido para las siguientes iteraciones.
+
+Medido sobre el instrumento, las tres superficies ya pasan la vara:
+
+| superficie | alto | prosa | desbordes reales |
+|---|---:|---:|---:|
+| Población | 2,7 pantallas | 0 párrafos | 0 |
+| Cursos-horario | 2,6 pantallas | 39 palabras (era 73) | 0 |
+| Cobertura | 1,7 pantallas | 28 palabras | 0 |
+
+Lo único que sí era prosa en un hueco vacío: el panel de particularidades
+explicaba **qué hace cada acción** —«las exclusiones se aplican al reconstruir
+el marco; incluir o marcar como revisado solo documenta»— incluso cuando el
+marco no trae ninguna señal que decidir. Esa regla ahora solo aparece cuando hay
+casos; el vacío se explica solo. Prosa de la pestaña: **73 → 39 palabras**.
+
+Gate: typecheck 0 errores · Vitest **799/799** · desbordes reales 0 en las tres.
+
+Siguiente: **F11 (S6)** — Cálculo: Diseño y Propuestas se entienden solos.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
