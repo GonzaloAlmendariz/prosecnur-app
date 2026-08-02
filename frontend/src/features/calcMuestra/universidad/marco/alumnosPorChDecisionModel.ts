@@ -34,6 +34,28 @@ export function normalizeAlumnosPorChOverrides(
   );
 }
 
+/**
+ * Método utilizable de verdad.
+ *
+ * Una decisión heredada o a medio guardar llega con `estadistico_default: ""`.
+ * Como es cadena vacía y no `undefined`, el `?? "p25"` de la superficie no caía
+ * al recomendado: el método quedaba vacío, ninguna facultad resolvía valor y el
+ * botón «Confirmar decisión» se deshabilitaba **para siempre** — justo el botón
+ * que habría reparado el estado. Trampa que se perpetúa sola.
+ */
+export function esMetodoAlumnosPorChValido(
+  value: unknown,
+): value is CalcMuestraAlumnosPorChMethod {
+  return ALUMNOS_POR_CH_METHODS.some((method) => method.id === value);
+}
+
+/** Método de arranque: el guardado solo si sirve; si no, el recomendado. */
+export function metodoAlumnosPorChInicial(
+  guardado: unknown,
+): CalcMuestraAlumnosPorChMethod {
+  return esMetodoAlumnosPorChValido(guardado) ? guardado : "p25";
+}
+
 export function missingAlumnosPorChFaculties(
   snapshot: CalcMuestraAlumnosPorCh,
   defaultMethod: CalcMuestraAlumnosPorChMethod,
@@ -41,6 +63,12 @@ export function missingAlumnosPorChFaculties(
 ): string[] {
   return snapshot.filas
     .filter((row) => row.row_kind === "faculty")
+    // Una facultad sin CH elegibles no tiene distribución de la que salga un
+    // estadístico, y tampoco aporta unidades a la muestra: exigirle una decisión
+    // bloqueaba la confirmación —y con ella todo el cálculo aguas abajo— por
+    // facultades que no participan. Medido en el instrumento: dos facultades con
+    // 0 de 852 y 0 de 10 CH dejaban la decisión inconfirmable para siempre.
+    .filter((row) => (row.elegible?.n_ch ?? 0) > 0)
     .filter((row) => alumnosPorChValue(
       row.elegible,
       effectiveAlumnosPorChMethod(row.faculty_key, defaultMethod, overrides),

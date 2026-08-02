@@ -346,7 +346,8 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **5 de 13** (S1–S5) + T1 aplicado y **T6 cerrada** | 13 + 6 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **5 de 13** (S1–S5) + T1 aplicado, **T6 y T7 cerradas** | 13 + 7 |
+| Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
 | Elementos con desborde o ancho 0 a 1024×600 en Criterios | **1.006 / 987** | **0 / 0** | 0 |
 | Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
 | Gráficos comparables fuera de la radiografía de criterios | **0** | **16** tiras en Alumnos por CH sobre escala común con Total de referencia | todos |
@@ -404,7 +405,7 @@ empieza por donde se decide y se termina por donde se entrega.
 | **T3** | Cero prosa que no sea dato, en todo el módulo | S3 | **abierta** — 31 % en Criterios del estudiante; las reglas metodológicas compartidas se dicen una vez, no una por tarjeta |
 | **T4** | Instrumento y fixture honestos | invariante | El anonimizador debe reescribir base, config de criterios y catálogo a la vez, o negarse. Bloquea acreditar «por facultad» y el ancla histórica |
 | **T6** | La radiografía embebida es responsiva | S1/C4 | **cerrada en F9** — causa real: el bloque de señal conservó `display: flex` al pasar a `<details>` y colapsaba su rejilla a 0 px. 1.006 → 0 desbordes |
-| **T7** | «Confirmar decisión» de Alumnos por CH persiste | invariante | **bloqueante** — el clic no emite ninguna petición; la decisión se guarda con los seis campos vacíos y el cálculo falla cerrado para siempre. Gatea Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos y Entrega |
+| **T7** | «Confirmar decisión» de Alumnos por CH persiste | invariante | **cerrada en F14** — un método guardado vacío deshabilitaba en silencio el botón que reparaba el estado; y dos facultades con 0 CH bloqueaban el gate. La decisión ya persiste con su schema |
 | **T5** | Lo que la evidencia pida | — | abierto |
 
 **La cola es el orden de trabajo, no el final del loop.** Ver «Numeración e
@@ -926,9 +927,59 @@ Lo que queda acotado para F14, con lo descartado escrito para no repetirlo:
 **Es superficie, no motor**: el contrato R se comporta bien. Va como lote
 propio y **es el siguiente**, porque desbloquea siete superficies del plan.
 
-Siguiente: **F14 · «Confirmar decisión» persiste»** — reproducir con test,
-localizar la pérdida entre el handler y el autosave, y dejar guard. Con eso
-desbloqueado, S6 a S13 vuelven a ser auditables.
+### F14 — La trampa que se perpetuaba sola (T7, 2026-08-02) · **T7 cerrada**
+
+**Corrección del diagnóstico de F13.** Escribí que «Confirmar decisión no
+persiste». Era el encuadre equivocado: el clic no emitía peticiones porque el
+**botón estaba deshabilitado**, y la pantalla no lo decía. Instrumentar el
+control —en vez de seguir leyendo el camino de guardado— lo mostró en una
+medición.
+
+**Causa raíz, y es un bucle cerrado sobre sí mismo:**
+
+1. Una decisión heredada llega con `estadistico_default: ""`.
+2. `decision?.estadistico_default ?? "p25"` recibe cadena vacía, **no
+   `undefined`**, así que el `??` no cae al recomendado.
+3. Sin método válido, `alumnosPorChValue` devuelve `null` en las 17 facultades.
+4. `missing = 17` deshabilita **el botón que habría reparado el estado**.
+
+Un estado inválido que bloquea la única acción capaz de repararlo, en silencio.
+
+Lo entregado:
+
+- `metodoAlumnosPorChInicial` acepta el método guardado **solo si sirve**; si no,
+  cae al recomendado. Owner del modelo, con `esMetodoAlumnosPorChValido` al lado.
+- **Un control bloqueado nombra la pieza que falta** (C4/C5): «Falta el
+  estadístico en N facultades: …», con las tres primeras y el resto contado, más
+  `title` en el botón. Antes la única pista era «la propuesta aún no está
+  confirmada», que es el estado, no la causa.
+- Ese aviso destapó el segundo defecto: las dos facultades que bloqueaban tenían
+  **0 CH elegibles** (0 de 852 y 0 de 10). Una facultad sin CH no aporta unidades
+  ni tiene distribución de la que salga un estadístico: **exigirle una decisión
+  bloqueaba todo el cálculo por facultades que no participan**. El gate ahora las
+  excluye, y sigue nombrando a las que sí tienen CH y no resuelven.
+- Guards: una decisión heredada con método vacío no deshabilita el botón; una
+  facultad con 0 CH no bloquea; una facultad **con** CH y sin estadístico sí se
+  nombra.
+
+**Verificado de punta a punta en la app:** la decisión se confirma y persiste
+con `schema: calc_muestra_alumnos_por_ch_decision_v1`,
+`frame_hash: aa0ff9e104…`, `denominador: elegible`, `estadistico: p25`,
+`confirmado_at` presente. El 409 por `schema_invalido` desapareció.
+
+**Lo que queda, y es de otro dueño.** El cálculo ahora falla con un error
+**distinto**: `facultades_incompletas` — los componentes P1/P2 declaran las
+facultades reales (`derecho`, `arquitectura_y_urbanismo`…) y el marco sembrado
+trae los seudónimos (`andres`, `elena_diego`…). Es **T4, la contradicción del
+anonimizador**, ya registrada: el motor falla cerrado con razón. No es superficie
+y no se resuelve aquí.
+
+Gate: typecheck 0 errores · Vitest **801/801**.
+
+Consecuencia para el plan: **S6 a S13 no se pueden auditar con dato sobre este
+instrumento** hasta que T4 se resuelva en el loop v2 (que el anonimizador
+reescriba base, config, catálogo y componentes a la vez, o se niegue). El
+eslabón de superficie ya no es el que bloquea.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 

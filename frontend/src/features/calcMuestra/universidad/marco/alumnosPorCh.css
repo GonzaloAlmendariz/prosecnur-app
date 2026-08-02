@@ -246,3 +246,10 @@
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
+
+/* Causa del bloqueo junto al control bloqueado: sin esto, un botón deshabilitado
+   dejaba al usuario sin saber qué pieza falta. */
+.cmv2-alumnos-ch-bloqueo {
+  color: var(--pulso-danger-text, var(--pulso-text-muted));
+  font-size: 11px;
+}
