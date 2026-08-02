@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import type { CalcMuestraResultado } from "../../../api/client";
 import { PlotlyChart } from "../../../lib/PlotlyChart";
 import { BadgeMotor } from "./PasoDidactico";
-import { buildStackedBars, didPlotLayout, didSexSeriesColor, DID_PLOT_CONFIG, useDidTokens } from "./didacticaCharts";
+import { buildStackedBars, didPlotLayout, didSexSeriesLabel, didSexSeriesColor, DID_PLOT_CONFIG, useDidTokens } from "./didacticaCharts";
 
 export function DistribucionFacultadSexo({ resultado }: { resultado: CalcMuestraResultado | null | undefined }) {
   const tokens = useDidTokens();
@@ -21,7 +21,7 @@ export function DistribucionFacultadSexo({ resultado }: { resultado: CalcMuestra
     if (subs.length) {
       const subLabels = Array.from(new Set(subs.map((s) => s.sub)));
       const series = subLabels.map((sub, index) => ({
-        nombre: sub,
+        nombre: didSexSeriesLabel(sub),
         color: didSexSeriesColor(sub, tokens, index),
         valores: categorias.map(
           (estrato) => subs.find((s) => s.estrato === estrato && s.sub === sub)?.n ?? 0,

@@ -2886,6 +2886,43 @@ R verde: **10 archivos** de test de radiografía y criterios, 0 fallos.
 Como el proceso R vivo conserva el código anterior, el cambio se verá al próximo
 arranque; queda comprobado por fuente y por suite.
 
+### F72 — Un gráfico cuya leyenda hay que descifrar
+
+Reauditadas las ocho superficies de Datos y Entrega: **0 desbordes, 0 comas
+decimales, 0 jerga** en todas (el único término, «aulas agendadas», viene en el
+dato). La captura de Tablas encontró lo que la métrica no podía:
+
+**La leyenda del gráfico «Distribución por facultad y sexo» decía «F» y «M».**
+Son los códigos con que viene la base, no palabras. Un gráfico que obliga a saber
+la codificación para leer su leyenda no se entrega a un cliente —y esta es
+exactamente una tabla de salida—.
+
+Traducido con `didSexSeriesLabel`, junto al helper de color que ya distinguía
+masculino, femenino y sin dato:
+
+| valor | leyenda |
+|---|---|
+| `M` | **Hombres** |
+| `F` | **Mujeres** |
+| vacío | **Sin dato** |
+| cualquier otro | **tal cual** |
+
+Lo último importa: si un estudio subdivide por algo que no es sexo —turno,
+cohorte—, inventarle un nombre sería peor que mostrar su código. El guard fija
+las cuatro reglas, incluida la de no inventar.
+
+**Y una nota de método**: la primera verificación siguió mostrando «F» y «M», y
+estuve a punto de dar el cambio por fallido. Era Plotly memoizado: al navegar
+fuera y volver, la leyenda dice «Mujeres» y «Hombres». **Sexto caso de la sesión
+en que mi medición inicial acusa al código sin razón** —y el que más veces se
+repite, siempre igual: verificar sin forzar el remontaje de lo que se acaba de
+cambiar.
+
+| | |
+|---|---:|
+| Vitest | 851 → **854** en 105 archivos |
+| Desbordes | **0** |
+
 ### Estado del loop
 
 | | |
