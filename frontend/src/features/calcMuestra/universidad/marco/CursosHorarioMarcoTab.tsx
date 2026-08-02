@@ -512,12 +512,20 @@ export function CursosHorarioMarcoTab({
           )}
 
           {criteriosRadiografiaF1Lista ? (
+            /* S3: la matriz es el RESULTADO de las decisiones de arriba, así que
+               cierra el recorrido. Antes se plegaba tras un renglón que además
+               desaconsejaba abrirla («solo cuando necesites contrastar»). Sigue
+               plegada para no inflar la pestaña, pero el resumen dice lo que
+               cierra y con qué tamaño, no cómo usarla. */
             <details className="cmv2-chfp-transversal">
-              <summary>Vista transversal · matriz marginal de todas las facultades</summary>
-              <p>
-                Abre esta comparación solo cuando necesites contrastar facultades. La decisión principal permanece
-                dentro de cada facultad, con el dato de su criterio junto al control.
-              </p>
+              <summary>
+                <strong>Cierre del recorrido · impacto de cada criterio por facultad</strong>
+                {matrizEmbudo ? (
+                  <span>
+                    {matrizEmbudo.columns.length} criterios × {matrizEmbudo.rows.filter((row) => row.row_kind === "faculty").length} facultades sobre el marco ejecutado
+                  </span>
+                ) : null}
+              </summary>
               <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
             </details>
           ) : null}

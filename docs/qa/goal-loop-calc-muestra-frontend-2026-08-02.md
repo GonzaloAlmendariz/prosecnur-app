@@ -343,7 +343,9 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
 | Superficies del módulo pasadas por la vara | **0 de 23** | **3 de 23** (`marco-criterios-alumno`, `marco-ch-radiografia`, `marco-alumnos-ch`) | 23 de 23 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **2 de 13** (S1, S2) + T1 aplicado en criterios | 13 + 5 |
+| Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
+| Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **3 de 13** (S1, S2, S3) + T1 aplicado en criterios | 13 + 5 |
 | Gráficos comparables fuera de la radiografía de criterios | **0** | **16** tiras en Alumnos por CH sobre escala común con Total de referencia | todos |
 | Columnas que producen la decisión y no caben en el viewport | **1** («Valor elegido», tabla 1.331 px en 1.268 px) | **0** (tabla 1.268 px = contenedor) | 0 |
 | Unidades del loop sin commitear | **5** (F1–F5 en el árbol) | **0** (`73c60e08`, `80cb6391`) | 0 |
@@ -409,11 +411,10 @@ Gonzalo cierra.
 `73c60e08`); `F6` cerró **S2** (commit `80cb6391`). T1 queda aplicado en
 Criterios y sigue abierto para el resto del módulo.
 
-Siguiente iteración **`F7` (S3)**: la matriz embudo cierra el recorrido. Hoy
-vive como un enlace transversal de 36 px al pie de la pestaña de cursos-horario
-—medido en F1— cuando es el resultado que comprueba todas las decisiones
-previas. Entrega: se lee como cierre (qué recortó cada criterio, en qué orden,
-cuánto queda) y hereda la escala compartida de S1/S2.
+Siguiente iteración **`F8` (S4)**: Marco responde a lo que decido. El contrato R
+ya publica los tres —cascada al enfocar, hover-delta contrafactual y orden de
+recorte interrogable— y ninguno llega a la pantalla; están en el payload, no en
+la superficie.
 
 ## Mecánica de cada iteración
 
@@ -660,8 +661,37 @@ Guard nuevo: la escala aparece una sola vez y cada fila publica sus marcas
 `p25`/`p50`/`media` más la referencia del Total. Gate: typecheck 0 errores ·
 Vitest **798/798** · 1440×1000 y 1024×600 sin scroll horizontal ni desbordes.
 
-Siguiente: **F7 (S3)** — la matriz embudo cierra el recorrido en vez de vivir
-como un enlace de 36 px al pie.
+### F7 — La matriz cierra el recorrido (S3, 2026-08-02) · **S3 cerrada**
+
+Auditoría con el instrumento, una medición por hallazgo:
+
+| hallazgo | medición |
+|---|---|
+| El resultado está plegado **y desaconsejado** | `<details>` de 36 px al pie cuyo cuerpo decía «Abre esta comparación **solo cuando** necesites contrastar facultades» |
+| El resumen no dice qué cierra | el renglón visible explicaba cuándo abrirla, no qué contiene |
+| Los encabezados publican la clave del gate | `MODALITY Modalidad`, `SESSION_TYPE Tipo de sesión`; **tres columnas empiezan igual** (`COMPOSITION …`) y lo que las distingue quedaba cortado |
+
+- El bloque pasa a ser el **cierre nombrado** del recorrido: «Cierre del
+  recorrido · impacto de cada criterio por facultad», con su tamaño real
+  (**9 criterios × 17 facultades sobre el marco ejecutado**) en el propio
+  resumen. Sigue plegado —abrirlo suma 1.664 px— pero ya no hay que abrirlo
+  para saber qué es.
+- Se retira la frase que desaconsejaba abrirlo: era prosa sobre la afordancia,
+  y encima empujaba a no leer el resultado que comprueba todas las decisiones.
+- Los encabezados nombran el criterio; la clave del gate baja al `title`, donde
+  sigue disponible para trazar. Las tres columnas de composición ahora se
+  distinguen por lo que difiere: *prevalencia elegible*, *facultad del curso*,
+  *nivel del curso*.
+- Guard: el test de la superficie exige el rótulo de cierre, prohíbe la frase
+  desaconsejante y sigue exigiendo que la matriz vaya **después** de la decisión
+  por facultad.
+
+Gate: typecheck 0 errores · Vitest **798/798** · 1440×1000 y 1024×600 sin
+scroll horizontal ni desbordes.
+
+Siguiente: **F8 (S4)** — Marco responde a lo que decido. El contrato R ya
+publica cascada al enfocar, hover-delta contrafactual y orden de recorte
+interrogable; ninguno de los tres llega a la pantalla.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
