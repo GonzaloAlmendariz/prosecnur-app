@@ -52,7 +52,9 @@ function translatedWarning(
     return "La fuente no declaró el tipo de sesión; esos registros se agruparon como Sin dato.";
   }
   if (warning === "marginales_no_combinables") {
-    return "Las dimensiones son marginales independientes y se leen por separado.";
+    // «Marginales independientes» es exacto y no se entiende sin saberlo de
+    // antes. Lo que hay que evitar es que alguien cruce dos dimensiones.
+    return "Cada dimensión se leyó por separado: no se pueden cruzar entre sí (por ejemplo, facultad con tipo de sesión).";
   }
   const degradedWarning = warning.match(/^([^:]+):([^:]+):k_(\d+)_publica_global$/);
   if (degradedWarning) {
@@ -135,7 +137,7 @@ export function ReferenciaAsistenciaCard({
             <div>
               <small>Transferencia</small>
               <strong>Modelo por celda</strong>
-              <span>Marginales independientes · no combinables</span>
+              <span>Cada dimensión por separado · no se cruzan</span>
             </div>
           </div>
 

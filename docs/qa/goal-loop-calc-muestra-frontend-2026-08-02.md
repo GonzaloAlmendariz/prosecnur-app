@@ -2638,6 +2638,49 @@ primera corrida.
 por separado no puede. Ni Diseño ni Propuestas estaban «mal» aisladas; lo que
 estaba mal era que no coincidían.
 
+### F64 — Barrido de vocabulario en las 14 superficies, y un guard que aprendió a distinguir
+
+Aplicado a todo el módulo el método que F63 demostró: comparar superficies
+hermanas y barrer el vocabulario.
+
+**Resultado del barrido**: 0 comas decimales en las catorce pestañas, y dos
+últimos focos de jerga:
+
+| dónde | antes | después |
+|---|---|---|
+| Embudo | «no afecta al denominador» | **«no quita cursos-horario»** |
+| Embudo | «Actualizando el downstream con el borrador…» | **«Recalculando lo que queda después de este criterio…»** |
+| Matriz | tooltip «Modalidad · gate composition» | **«Criterio Modalidad»** |
+| Fuentes | «Las dimensiones son marginales independientes» | **«Cada dimensión se leyó por separado: no se pueden cruzar entre sí»** |
+| Fuentes | chip «Marginales independientes · no combinables» | **«Cada dimensión por separado · no se cruzan»** |
+
+La advertencia metodológica se conserva entera en todos los casos: lo que cambia
+es que se dice en palabras del estudio en vez de obligar a conocer el término.
+
+**El guard tuvo que aprender a distinguir tres cosas**, y cada corrección es una
+regla en sí misma:
+
+1. **Comentarios** — se disparaba contra la documentación del propio defecto.
+2. **Atributos `data-*`** — `data-surface-contract="matriz-marginal-criterios"`
+   es un contrato que las herramientas de QA leen por nombre. Cambiarlo para
+   pasar en verde rompería esas herramientas sin mejorar una palabra.
+3. **Códigos del motor** — `"marginales_no_combinables"` es un valor que se
+   compara, no que alguien lee. Traducirlo rompería la comparación.
+
+Los tres son la misma lección: **un guard que no distingue copy de identificador
+empuja a romper cosas para ponerse verde.**
+
+**Y lo que sí encontró siendo real**: el `title` de la matriz decía «gate
+composition» y el aviso decía «downstream» — dos textos visibles que ninguna de
+mis capturas alcanzó.
+
+| | |
+|---|---:|
+| Jerga de origen frontend | **0** en las 14 superficies |
+| «aulas agendadas» en Fuentes | **viene en el dato**, no en la app |
+| Desbordes | **0** |
+| Vitest | 848 → **849** en 103 archivos |
+
 ### Estado del loop
 
 | | |
