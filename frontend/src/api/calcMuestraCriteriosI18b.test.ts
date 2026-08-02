@@ -369,3 +369,27 @@ describe("coordinador de preview I18b", () => {
     expect(states.at(-1)).toMatchObject({ status: "stale" });
   });
 });
+
+describe("F45 · el aviso del preview no suplanta al motor", () => {
+  it("propaga el mensaje que envía el motor en un rechazo stale", async () => {
+    // Medido en la app: el motor responde
+    // `E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE` con «El preview requiere el
+    // contexto transitorio del marco y criterios vigentes», y la app lo
+    // reemplazaba por «el marco cambió mientras se calculaba el preview» —una
+    // causa que no ocurrió—. Quien lee un aviso inventado busca donde no está.
+    const estados: Array<{ status: string; message?: string }> = [];
+    const coordinator = createCriteriosPreviewCoordinator(async () => {
+      throw Object.assign(
+        new Error("El preview requiere el contexto transitorio del marco y criterios vigentes."),
+        { code: "E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE", status: 409 },
+      );
+    });
+    await coordinator.run(
+      { source_frame_hash: "h", config: {}, criteria_hash: "c" },
+      (estado) => estados.push(estado),
+    );
+    const stale = estados.find((e) => e.status === "stale");
+    expect(stale?.message).toContain("contexto transitorio");
+    expect(stale?.message).not.toContain("El marco cambió mientras");
+  });
+});

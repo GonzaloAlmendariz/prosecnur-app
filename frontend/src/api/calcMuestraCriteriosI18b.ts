@@ -968,8 +968,18 @@ export function createCriteriosPreviewCoordinator(
         onState({ status: "ready", data: response.preview });
       } catch (error) {
         if (controller.signal.aborted || ownGeneration !== generation || isAbort(error)) return;
+        // F45 · El motor manda el motivo; la app no lo suplanta.
+        //
+        // Medido: `E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE` llega con «El preview
+        // requiere el contexto transitorio del marco y criterios vigentes», y
+        // aquí se sustituía por «el marco cambió mientras se calculaba», que no
+        // fue lo que pasó. Quien lee un aviso inventado busca la causa donde no
+        // está. Si el motor explica, se muestra su explicación.
         onState(isStale(error)
-          ? { status: "stale", message: "El marco cambió mientras se calculaba el preview." }
+          ? {
+              status: "stale",
+              message: errorMessage(error) || "El marco cambió mientras se calculaba el preview.",
+            }
           : { status: "error", message: errorMessage(error) });
       }
     },
