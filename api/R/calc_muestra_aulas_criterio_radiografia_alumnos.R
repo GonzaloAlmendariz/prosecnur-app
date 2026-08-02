@@ -473,7 +473,7 @@
       faculty_key = fac$key,
       faculty_label = fac$label,
       segment_key = "global",
-      segment_label = "Regla efectiva",
+      segment_label = "Estudiantes que cumplen",
       segment_kind = "global",
       actual = .cm_criterio_radiografia_snapshot_alumno_segmento(
         estado_actual, fac_mask, aula_frame, filas, TRUE, indice_alumno
