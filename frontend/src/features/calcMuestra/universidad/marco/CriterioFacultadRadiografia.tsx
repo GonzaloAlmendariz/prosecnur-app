@@ -183,10 +183,14 @@ export function CriterioFacultadRadiografia({
           </div>
         )}
 
-        <details className="cmv2-crc-compact-detail">
-          <summary>
-            Ver trazabilidad completa{hiddenRows ? ` · ${hiddenRows} segmentos más` : ""}
-          </summary>
+        {/* F41 · «Ver trazabilidad completa» era un plegado que escondía el
+            detalle real del criterio tras una etiqueta técnica que no dice
+            nada al usuario. Con una facultad a la vez hay alto de sobra: el
+            detalle se muestra, y lo que se anuncia es cuánto hay. */}
+        <section className="cmv2-crc-compact-detail">
+          {hiddenRows ? (
+            <p className="cmv2-crc-compact-count">{hiddenRows} segmentos más de esta facultad</p>
+          ) : null}
           <CriteriosRadiografiaCardDetalle
             card={facultyCard}
             radiografia={evidence.radiografia}
@@ -199,7 +203,7 @@ export function CriterioFacultadRadiografia({
             facultyKey={facultyKey}
             facultyLabel={facultyLabel}
           />
-        </details>
+        </section>
       </section>
     </div>
   );

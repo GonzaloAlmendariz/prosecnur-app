@@ -127,9 +127,11 @@ describe("CriteriosRadiografiaConsola", () => {
     expect(riel.indexOf("Impacto marginal")).toBeLessThan(riel.indexOf("Acción"));
     expect(html).toContain('data-paso="distribucion"');
     expect(html).toContain('data-paso="accion"');
-    // La procedencia sigue completa pero al pie y plegada.
-    expect(html).toContain("Procedencia y contrato");
-    expect(html).toContain("<details");
+    // F41 · «Procedencia y contrato» —hash, owner, grano, unidad— es el contrato
+    // interno del motor, no información del estudio: sale de la superficie. Y
+    // con ella el último plegado: «si algo está oculto es un error de diseño».
+    expect(html).not.toContain("Procedencia y contrato");
+    expect(html).not.toContain("<details");
     // S1: un solo control para enfocar un criterio. El `<select>` que
     // duplicaba la tira quedó retirado; su información vive en el chip.
     expect(html).not.toContain("<select");

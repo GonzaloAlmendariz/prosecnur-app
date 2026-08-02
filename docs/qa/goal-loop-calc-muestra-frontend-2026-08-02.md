@@ -1753,6 +1753,47 @@ lleve radiografía, ni excepciones, ni un solo `<details>`—.
 6. **Quitar lo técnico**: nada de «trazabilidad completa» ni secciones que sólo
    se entienden por dentro.
 
+### F41 — Nada oculto, y el orden que pediste (2026-08-02)
+
+Puntos 1, 2, 3 y 6 de la dirección de F40, ejecutados y medidos.
+
+**Orden del embudo por facultad**, ahora exactamente el pedido:
+
+1. Matriculados / población · 2. Modalidad · 3. Condición del curso ·
+4. Nivel del curso · *(bisagra: aulas candidatas)* · 5. Tipo de sesión ·
+6. **Mínimo de elegibles por aula** · 7. **Composición del curso-horario** ·
+8. **Cursos-horario del marco** (el mayor detalle, uno por uno)
+
+**Una facultad a la vez, con selector.** Quince bloques plegados obligaban a
+abrir y cerrar para comparar. Ahora el selector muestra la facultad elegida
+entera —la cabecera deja de ser un botón que no hace nada— y hay alto de sobra
+para el detalle.
+
+**Nada plegado.** Cayeron los cinco `<details>` que quedaban: la matriz de
+impacto, «Ver trazabilidad completa», los cuantiles, la señal y «Procedencia y
+contrato».
+
+| | antes → después |
+|---|---:|
+| Elementos ocultos · criterios de estudiante | 637 → **0** |
+| Elementos ocultos · curso-horario | 5 → **0** |
+| Alto · criterios de estudiante | 5,6 → **2,3 pantallas** |
+| Alto · curso-horario | 5,8 → **6,7 pantallas** (sube porque ya no esconde) |
+| Desbordes | 0 → **0** |
+| Contenido técnico visible | «Procedencia y contrato», «trazabilidad completa» → **ninguno** |
+
+**Lo técnico sale, lo metodológico se queda.** «Procedencia y contrato» —hash,
+owner, grano, unidad— es el contrato interno del motor y no dice nada del
+estudio. Pero dentro de ese mismo bloque vivían dos avisos que **sí** cambian una
+lectura: que un criterio es informativo y no altera el N, y que unos segmentos
+se solapan y por tanto **no se suman**. Al retirar el bloque se fueron los
+cuatro; el test lo detectó y los avisos volvieron a la superficie, ya sin
+plegado. *Quitar ruido y quitar información se parecen mucho en un diff.*
+
+Pendiente de la dirección: **4** (switch y gráfico como una sola pieza) y **5**
+(embudo activo: cambiar un criterio previo actualiza los gráficos del
+siguiente).
+
 ### Estado del loop
 
 | | |
