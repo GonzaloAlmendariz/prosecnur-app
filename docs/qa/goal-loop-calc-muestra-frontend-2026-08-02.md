@@ -342,7 +342,8 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **6 de 23** (los tres criterios/alumnos-CH + Población, Cursos-horario y Cobertura) | 23 de 23 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **7 de 23** (los tres criterios/alumnos-CH + Población, Cursos-horario, Cobertura y Diseño) | 23 de 23 |
+| Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
 | Lotes de la cola cerrados | **0 de 13** + 5 transversales | **5 de 13** (S1–S5) + T1 aplicado y **T6 cerrada** | 13 + 6 |
@@ -825,8 +826,44 @@ Encolado con su medición:
 
 Gate: typecheck 0 errores · Vitest **799/799**.
 
-Siguiente: **F12** — retomar S6 cuando el v2 desbloquee la decisión, o seguir
-con **S9 (Selección: Objetivo y Método)**, que no depende de ese contrato.
+### F12 — Panorama de criterios de curso-horario (S6-bis, 2026-08-02)
+
+**Encargo directo de Gonzalo:** «evalúa una mejor forma de poder mostrar
+visualmente toda la información de los criterios de curso-horario».
+
+Auditoría de la superficie: el acordeón por facultad resuelve **bien la
+decisión** —cada criterio con su dato al lado, que es lo que S1 pedía— pero solo
+deja ver **una facultad a la vez**, y abrir una cuesta **1.962 px**. Con
+**17 facultades**, comparar exigía abrir, recordar y cerrar: la información
+completa de los criterios de CH **no se podía ver junta nunca**.
+
+| medición | antes | después |
+|---|---:|---:|
+| Facultades visibles a la vez | **1 de 17** | **17 de 17** |
+| Alto para ver el estado de todas | 17 × 1.962 px | **775 px** |
+| Escala para comparar CH entre facultades | ninguna | **común, 0 – 852 CH** |
+
+Owner nuevo `PanoramaCursosHorario.tsx` — la **foto**; el acordeón sigue siendo
+el **taller**:
+
+- una fila por facultad, ordenadas por elegibles como el acordeón;
+- barra de dos capas sobre **escala común**: CH totales al fondo, CH elegibles
+  en acento — de un vistazo se ve que «Elena Diego» conserva 45 de 454 mientras
+  «Karina E Karina» conserva 639 de 849;
+- mediana de elegibles por aula;
+- una columna por criterio de CH y otra para el mínimo, cada celda declarando
+  si la facultad **hereda el global** o **decide propio**;
+- la facultad ancla su fila (columna pegajosa) y su nombre abre su bloque.
+
+**Presenta, no calcula:** los CH, el total y la mediana los publica el marco por
+facultad; el estado propio/global sale de la selección. La escala se declara una
+vez en la cabecera.
+
+Gate: typecheck 0 errores · Vitest **799/799** · 1440×1000 y 1024×600 sin
+desbordes; la tabla cabe en su contenedor (870 px) a 1024.
+
+Siguiente: **F13** — S9 (Selección: Objetivo y Método), que no depende del
+contrato bloqueado en F11.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
