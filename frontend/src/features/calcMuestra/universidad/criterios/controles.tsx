@@ -23,7 +23,6 @@ import {
 } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { analizarEtiquetaCategoria, type EtiquetaCategoria } from "./etiquetaCategoria";
-import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "./CategoriaEvidencia";
 import { Switch, SwitchTri } from "./Switch";
 
 type SelChange = (next: CriterioSeleccion) => void;
@@ -114,12 +113,9 @@ export function ControlFlat({
   const unidad = unidadCriterio(variable);
   // Lista larga → fluye en varias columnas dentro de la tarjeta ancha.
   const long = cats.length >= 8;
-  // ADR 0057, regla 3: la escala es del criterio, no de cada caja.
-  const dominio = dominioCategorias(cats.map((cat) => aporte?.(cat.key) ?? null));
   return (
     <div className="cmv2-crit-cats">
       <AccionesSet variable={variable} onSel={onSel} />
-      {dominio ? <EjeCategorias dominio={dominio} /> : null}
       {/* Sin contrato geométrico, y medido en los dos sentidos. Con
           `intrinsic` el comprobador reporta ~8,55 px de interior sin usar en
           CADA ítem: son el `min-height: 44px` de `.cmv2-crit-item` —el objetivo
@@ -186,19 +182,17 @@ export function ControlFlat({
               {(() => {
                 const dato = aporte?.(cat.key) ?? null;
                 if (!dato || (dato.elegibles === null && dato.ch === null)) return null;
-                // ADR 0057 · Una categoría con CH disponibles trae su evidencia
-                // completa aquí mismo: cifras, distribución sobre la escala del
-                // criterio, cuantiles y presentes esperados. Sin CH no hay nada
-                // que distribuir, así que basta la línea de cifras.
-                if (!dato.distribucion || !dominio) {
-                  return (
-                    <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
-                      {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
-                      {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
-                    </span>
-                  );
-                }
-                return <CategoriaEvidencia aporte={dato} dominio={dominio} />;
+                // La radiografía —distribución, cuantiles, boxplot— describe
+                // elegibles según una característica del CURSO-HORARIO y vive
+                // en esa ruta. Aquí, en criterios de estudiante, sólo van las
+                // cifras: montar la evidencia completa fue un error mío en F48,
+                // corregido en F51 tras la observación de Gonzalo.
+                return (
+                  <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
+                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
+                    {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
+                  </span>
+                );
               })()}
               {variantes.length ? (
                 <span className="cmv2-crit-item-variants" title={variantes.join(" · ")}>

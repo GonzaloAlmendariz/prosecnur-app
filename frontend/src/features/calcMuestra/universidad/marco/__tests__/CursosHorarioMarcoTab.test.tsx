@@ -111,9 +111,13 @@ describe("CursosHorarioMarcoTab — vista integrada facultad-primaria", () => {
     expect(html).toContain('data-audit-ready="true"');
     // Barra global de recálculo (único punto que reconstruye el marco).
     expect(html).toContain("Calcular población y cursos-horario elegibles");
-    // Ajustes del marco (lo transversal: mínimo general, tasa, composición c8);
-    // los criterios de set/rango se decidieron por facultad, no aquí.
-    expect(html).toContain("Ajustes del marco");
+    // ADR 0057, regla 1 · Ya no hay sección «Ajustes del marco · transversales».
+    // Esos criterios no admiten override por facultad en el contrato vigente,
+    // pero presentarlos aparte los leía como criterios generales y los sacaba
+    // del embudo. Ahora se montan DENTRO del flujo de la facultad, en su
+    // posición: matriculados abre, mínimo y composición cierran.
+    expect(html).not.toContain("Ajustes del marco");
+    expect(html).not.toContain("Transversales a todas las facultades");
     // Una variable numérica no representable en el bloque por facultad no se
     // pierde por `soloAjustes`: conserva aquí su control global editable.
     expect(html).toContain("Matrículas inscritas por curso-horario");

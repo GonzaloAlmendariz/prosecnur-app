@@ -12,7 +12,7 @@
  * "replace") y `minEligible.byFaculty[minKey]`; nada cambia el marco hasta
  * recalcular (la barra global de la pestaña).
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
 import type {
   CalcMuestraAulasCriteriosRadiografia,
@@ -513,6 +513,8 @@ export function FacultadDecisionBloque({
   onToggleAula,
   onReactivarAulas,
   sinPlegado,
+  slotApertura,
+  slotCierre,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
@@ -539,6 +541,10 @@ export function FacultadDecisionBloque({
   onReactivarAulas: (clavesTextKey: string[]) => void;
   /** F41 · Se muestra una sola facultad: nada que plegar. */
   sinPlegado?: boolean;
+  /** ADR 0057 · Criterio que abre el embudo (matriculados / población). */
+  slotApertura?: ReactNode;
+  /** ADR 0057 · Criterios 7 y 8, penúltimos antes del mayor detalle. */
+  slotCierre?: ReactNode;
 }) {
   // F41 · Sin plegado, la facultad mostrada se ve entera. El acordeón sólo
   // sobrevive para usos que aún listan varias facultades a la vez.
@@ -625,6 +631,7 @@ export function FacultadDecisionBloque({
               Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
               esta facultad. Nada cambia el marco hasta recalcular.
             </p>
+            {slotApertura}
             {/* F41 · Orden pedido por Gonzalo: el mínimo de matriculados abre la
                 lista —es el primer criterio del embudo por facultad—, y
                 Elegibles por CH y Composición bajan a penúltimos, justo antes
@@ -716,6 +723,7 @@ export function FacultadDecisionBloque({
                 criterioEvidence={criterioEvidence}
               />
             ) : null}
+            {slotCierre}
             <AulasFinalesCard
               aulas={aulasFinales}
               seleccion={seleccion}
