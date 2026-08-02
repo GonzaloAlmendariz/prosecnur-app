@@ -1684,24 +1684,41 @@ volvería a regalar el no-op que el bloqueo existía para evitar.
 
 Gate: typecheck 0 · Vitest **811/811** en 94 archivos.
 
-### Cierre de la sesión
+### Estado del loop
 
 | | |
 |---|---|
-| Superficies por la vara | **19 de 24** |
-| Lotes cerrados | **12 de 13** (S1–S7, S9–S13) + T1, T4, T6, T7 y D10 |
-| Pendiente | **S9–S11 (Selección)**: Método ya pasa; Simulación, Selección, Reemplazos y Sustento esperan la corrida del comparador de métodos, lanzada en esta sesión (job `f8df413b`, 21 corridas de simulación) |
+| Superficies por la vara | **24 de 24**, reauditadas con la vara del grano |
+| Desbordes en el módulo | **0** a 1440×1000 y 1024×600 |
+| Contenedores que esconden su profundidad | **0** |
+| Lotes cerrados | **12 de 13** (S1–S7, S9–S13) + T1, T4, T6, T7, D10 |
+| Gate más amplio corrido | **suite completa del frontend: 3.198 pruebas en 391 archivos**, typecheck 0, `sync-agentic-os --check` y `--audit` OK |
+| Pendiente | **Titulares, Reemplazos y Sustento con selección real**: la comparación corre al cerrar el tramo (método 4 de 4) |
 
-Lo que la próxima visita encuentra hecho: el instrumento llega de punta a punta
-—marco, radiografía, ancla histórica, decisión firmada, cálculo con sus dos
-escenarios—, diecinueve superficies por la vara y los guards de cada una. Lo que
-tiene que hacer: esperar o relanzar el comparador y cerrar **S9–S11**.
+Lo que la próxima visita encuentra hecho: el instrumento llega de punta a punta y
+**es reproducible** (`api/scripts/qa_seed_calc_muestra_radiografia.R`); las 24
+superficies pasan la vara, con el grano por facultad dentro de ella; y cada
+reparación tiene un guard que falla sola.
 
-Para el **loop v2**, tres hallazgos de contrato con evidencia en este doc:
-`calcular` devuelve 200 con resultado vacío y deja componentes que él mismo
-rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
-y el anonimizador deja base, config, catálogo y componentes en vocabularios
-distintos.
+Lo que tiene que hacer: esperar la comparación, generar la selección y auditar
+las tres superficies que sólo con selección real muestran su contenido. **Esa
+espera vale la pena**: F37 probó que una superficie sin datos se declara limpia
+en falso —Sustento llevaba toda la sesión con 0 desbordes porque su gráfico no
+tenía nada que dibujar, y al llegar el dato aparecieron cuatro—.
+
+Para el **loop v2**, los hallazgos de contrato acumulados con evidencia en este
+doc:
+
+1. `calcular` devuelve 200 con resultado vacío y deja componentes que él mismo
+   rechaza.
+2. El contrato de Alumnos/CH y los estratos discrepan ante una facultad de 0 CH.
+3. El anonimizador deja base, config, catálogo y componentes en vocabularios
+   distintos — la causa raíz de que ningún `.pulso` del repo abriera la
+   radiografía.
+4. `exceptions` transporta sólo `categories`: **edad y ciclos no son decidibles
+   por facultad**, contra la regla de producto de que todo criterio lo es.
+5. El chequeo de vigencia de la decisión corre **después** de encolar el job: el
+   409 llega tras gastar 63 simulaciones.
 
 Siguiente, en orden: **F39 — con la comparación terminada, generar la selección y auditar Titulares, Reemplazos y Sustento con dato real**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
