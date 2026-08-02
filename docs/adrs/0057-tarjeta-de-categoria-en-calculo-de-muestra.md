@@ -201,6 +201,31 @@ por separado, estaba bien formado.
 con una captura mirada, no sólo con números verdes. Las métricas detectan
 defectos dentro de una pieza; la vista detecta que sobran piezas.
 
+### 10 · Repetir lo normal entierra lo excepcional
+
+Tres casos medidos en la misma superficie: «global» **56 veces** en el Panorama,
+«0 CH / 0 matrículas / 0 estudiantes únicos» en **90 celdas** de la matriz, y
+cinco cuantiles en guiones por cada categoría sin cursos. En los tres, el texto
+era **correcto**: esas facultades sí heredan, esos impactos sí son cero.
+
+Pero una etiqueta que aparece en casi todas las celdas no informa, y sobre todo
+**tapa las pocas que sí** —las dos facultades con criterio propio, las seis celdas
+con impacto real—, que son exactamente lo que la superficie existe para mostrar.
+
+**Mecanismo**: lo normal se marca (un punto) y se explica en `title`/`aria-label`;
+lo excepcional se nombra. Quitar la repetición no puede quitar la información: el
+guard exige que lo heredado siga siendo legible por título.
+
+### 11 · Una tabla en ceros se verifica antes de rediseñarse
+
+La matriz entera en cero parecía rota. Consultado el motor, los ceros eran
+correctos (`action: "no_aplica"`). Rediseñar sin comprobarlo habría escondido un
+dato válido o, peor, «arreglado» un cálculo que funcionaba.
+
+**Mecanismo**: ante una superficie vacía o uniforme, primero se consulta el estado
+del motor y sólo después se decide si el defecto es del dato o de su
+presentación.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
