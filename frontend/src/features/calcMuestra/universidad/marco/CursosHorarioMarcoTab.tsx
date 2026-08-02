@@ -57,7 +57,8 @@ import { MANUAL_EXCLUDED_ID, reactivarTodas, setAulaExcluida } from "../criterio
 import { rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque } from "./FacultadDecisionBloque";
-import { facultadesBloque, slugFacultad } from "./facultadDecisionModel";
+import { facultadesBloque, resumenDecisionFacultad, slugFacultad } from "./facultadDecisionModel";
+import { PanoramaCursosHorario } from "./PanoramaCursosHorario";
 import { CriteriosRadiografiaConsola } from "./CriteriosRadiografiaConsola";
 import {
   buildCriteriosRadiografiaModel,
@@ -203,6 +204,19 @@ export function CursosHorarioMarcoTab({
     () => facultadesBloque(exploracion, facRefs, facultadesMin),
     [exploracion, facRefs, facultadesMin],
   );
+
+  // Panorama: las decisiones de CH de TODAS las facultades en una vista. El
+  // acordeón solo deja ver una a la vez (≈1.960 px cada una); con 17 facultades
+  // la información completa de los criterios nunca se veía junta.
+  const panoramaFilas = useMemo(
+    () => bloques.map((bloque) => ({
+      bloque,
+      resumen: resumenDecisionFacultad(borrador, aulaToggle, bloque.excKey, bloque.minKey),
+    })),
+    [bloques, borrador, aulaToggle],
+  );
+
+  const [facultadFoco, setFacultadFoco] = useState<string | null>(null);
 
   const ready = catalogo.variables.length > 0;
   const umbralGeneral = minEligibleThreshold(borrador, config.min_elegibles_aula);
@@ -472,6 +486,13 @@ export function CursosHorarioMarcoTab({
                   cursos-horario elegibles» con tu base cargada para ver cada facultad y decidir sus criterios propios.
                 </AvisoModulo>
               ) : (
+                <>
+                <PanoramaCursosHorario
+                  filas={panoramaFilas}
+                  criterios={aulaToggle.map((v) => ({ id: v.id, label: v.label }))}
+                  facultadAbierta={facultadFoco}
+                  onAbrirFacultad={setFacultadFoco}
+                />
                 <div
                   className="cmv2-chfp-bloques"
                   data-qa-geometry-group="calc-muestra/facultades-ch"
@@ -501,6 +522,7 @@ export function CursosHorarioMarcoTab({
                     />
                   ))}
                 </div>
+                </>
               )}
             </section>
           ) : (
