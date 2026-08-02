@@ -2783,6 +2783,24 @@ yo.
 **Regla para el resto del loop**: `git add` con rutas explícitas de los archivos
 que toqué, nunca `-A` sobre un directorio compartido.
 
+### F68 — Lo que NO se toca, y por qué
+
+Cerrado el barrido del motor. De los seis «aulas» que quedaban, **sólo uno se
+cambió**, y las cinco decisiones de no tocar valen más que la reparación:
+
+| dónde | decisión | motivo |
+|---|---|---|
+| `router_calc_muestra_criterios.R` · «config debe ser un objeto de configuracion de aulas» | **cambiado** | mensaje de error que el usuario lee; de paso recupera la tilde |
+| `calc_muestra_engine.R` · «conglomerado (aulas, manzanas, EESS)» | **se queda** | «aula» es un ejemplo entre tipos de estudio, no la unidad de este módulo |
+| `calc_muestra_engine.R` · `agenda_sheet_name = "Agenda de aulas"` | **se queda** | es el **nombre de hoja usado como clave** entre Cálculo de muestra y Monitoreo (`monitoreo_engine.R`, `router_diseno_estudio.R`): renombrarlo rompe el enlace entre módulos |
+| `calc_muestra_distribucion.R` ×3 | **no se toca** | el archivo tiene **trabajo ajeno sin commitear**; la casa exige verificarlo antes de tocarlo, no arrastrarlo |
+
+Tres razones distintas para no cambiar tres cosas que un `sed` habría cambiado
+todas. La única regla común: **antes de sustituir una palabra hay que saber si es
+copy, ejemplo, clave de contrato o territorio de otro**.
+
+R verde: `test-calc-muestra-aulas-criterios` sin fallos.
+
 ### Estado del loop
 
 | | |
