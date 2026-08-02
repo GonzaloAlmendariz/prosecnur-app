@@ -102,7 +102,12 @@ export function CategoriaEvidencia({
   aporte: AporteCategoria;
   dominio: DominioCategorias | null;
 }) {
-  const d = aporte.distribucion ?? null;
+  // Una categoría sin cursos-horario en esta facultad no tiene nada que
+  // distribuir: cinco cuantiles en guiones ocupan espacio y no informan. Se dice
+  // lo único cierto —que aquí no hay cursos— y se calla el resto. Quitar cinco
+  // guiones no quita información; dejarlos sí quita atención.
+  const sinCursos = aporte.ch === 0;
+  const d = sinCursos ? null : aporte.distribucion ?? null;
   const presentes =
     typeof aporte.elegibles === "number" && typeof aporte.tasaAsistencia === "number"
       ? Math.round(aporte.elegibles * aporte.tasaAsistencia)
@@ -121,6 +126,9 @@ export function CategoriaEvidencia({
           </span>
         ) : null}
       </div>
+      {sinCursos ? (
+        <p className="cmv2-cat-sin-cursos">sin cursos-horario en esta facultad</p>
+      ) : null}
       {d && dominio ? (
         <>
           <Caja d={d} dominio={dominio} />

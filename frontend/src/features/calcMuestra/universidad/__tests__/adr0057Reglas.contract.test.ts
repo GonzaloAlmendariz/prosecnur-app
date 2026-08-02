@@ -92,6 +92,23 @@ describe("ADR 0057 · regla 3 — los boxplots comparten eje y lo muestran", () 
     expect(evidencia).toContain("function pct(valor: number, dominio: DominioCategorias)");
     expect(evidencia).toContain("export function EjeCategorias");
   });
+
+  it("el eje y todas las cajas comparten el mismo ancho de escala", () => {
+    // Medido en la app antes de la reparación: el eje medía 1.206 px y las cajas
+    // 274, 263, 284 y 315. Un dominio común no sirve de nada si cada caja lo
+    // proyecta sobre un ancho distinto —el mismo valor cae en un píxel diferente
+    // en cada categoría—, así que la escala es una constante compartida y no el
+    // espacio que sobre.
+    const css = readFileSync(
+      fileURLToPath(new URL("criterios/categoriaEvidencia.css", raiz)),
+      "utf8",
+    );
+    expect(css).toContain("--cmv2-cat-escala");
+    const eje = css.slice(css.indexOf(".cmv2-cat-eje {"));
+    const caja = css.slice(css.indexOf(".cmv2-cat-caja {"));
+    expect(eje.slice(0, eje.indexOf("}"))).toContain("width: var(--cmv2-cat-escala)");
+    expect(caja.slice(0, caja.indexOf("}"))).toContain("width: var(--cmv2-cat-escala)");
+  });
 });
 
 describe("ADR 0057 · lenguaje y transparencia", () => {
