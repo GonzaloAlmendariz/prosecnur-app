@@ -14,7 +14,7 @@ import type {
   CalcMuestraWorkspace,
 } from "../../../../api/client";
 import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
-import { sexSeriesCssColor, sexSeriesCssColorForKind, sexSeriesKind } from "../../sexoPalette";
+import { sexSeriesCssColor, sexSeriesCssColorForKind, sexSeriesKind, sexSeriesLabel } from "../../sexoPalette";
 import {
   classroomRowNumber,
   classroomRowText,
@@ -952,8 +952,12 @@ export function ClassroomBarPlot({
               }
             } : undefined}
           >
-            {/* title = etiqueta completa: la celda trunca con ellipsis (CSS del marco). */}
-            <span title={row.label}>{row.label}</span>
+            {/* title = etiqueta completa: la celda trunca con ellipsis (CSS del marco).
+                Cuando la serie es de sexo, se muestra su nombre y no el código:
+                el marco de población mostraba «M» y «F» tal como vienen de la
+                base. La etiqueta se decide con el mismo helper que el color, así
+                que no puede salir una barra rosa llamada «M». */}
+            <span title={row.label}>{colorBySex ? sexSeriesLabel(row.label) : row.label}</span>
             <div className={shareComparison ? "has-share-reference" : undefined} aria-hidden="true">
               <i
                 style={{
@@ -1069,8 +1073,15 @@ export function ClassroomStackedCrossPlot({
       style={{ minHeight: plotHeight }}
     >
       <div className="cmv2-native-legend">
+        {/* La leyenda mostraba «M» y «F» tal como vienen de la base. Se nombra
+            con el mismo criterio que se colorea —`sortByMaleSurplus` marca que
+            estas columnas SON series de sexo—, para que no salga una barra rosa
+            llamada «M». Lo que no se reconoce pasa tal cual. */}
         {displayTable.columns.map((column, index) => (
-          <span key={column}><i style={{ background: columnColor(column, index) }} />{column}</span>
+          <span key={column}>
+            <i style={{ background: columnColor(column, index) }} />
+            {sortByMaleSurplus ? sexSeriesLabel(column) : column}
+          </span>
         ))}
         {shareComparison && (
           <span className="cmv2-share-reference-key" aria-hidden="true">

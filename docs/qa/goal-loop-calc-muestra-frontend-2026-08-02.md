@@ -2923,6 +2923,33 @@ cambiar.
 | Vitest | 851 → **854** en 105 archivos |
 | Desbordes | **0** |
 
+### F73 — El mismo defecto en dos gráficos, y una etiqueta que debía vivir junto al color
+
+Buscado el patrón de F72 en el resto del módulo: **«M» y «F» también en el marco
+de población**, en la leyenda de la barra apilada.
+
+**La reparación correcta no era repetir el traductor.** `sexSeriesKind` —el que
+decide el **color** de cada serie— vive en `sexoPalette.ts`. Si la etiqueta se
+decidiera con otro criterio, una serie podría salir **rosa y llamarse «M»**. Así
+que `sexSeriesLabel` se mudó junto a él y `didacticaCharts` sólo lo reexporta;
+un test fija que son **la misma función**, no dos copias.
+
+| superficie | antes → después |
+|---|---|
+| Entrega · Tablas | «F», «M» | **«Mujeres», «Hombres»** |
+| Marco · Población | «M», «F» | **«Hombres», «Mujeres»** |
+| Códigos crudos en el módulo | 2 gráficos | **0** |
+
+Se traduce sólo donde el propio componente ya sabe que la serie es de sexo
+—`colorBySex`, `sortByMaleSurplus`—: fuera de ahí el valor pasa tal cual, porque
+si un estudio subdivide por turno o cohorte, inventarle un nombre sería peor que
+mostrar su código.
+
+| | |
+|---|---:|
+| Vitest | 854 → **855** en 105 archivos |
+| Desbordes | **0** |
+
 ### Estado del loop
 
 | | |
