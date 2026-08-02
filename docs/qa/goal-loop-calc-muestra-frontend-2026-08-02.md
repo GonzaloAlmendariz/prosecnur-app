@@ -1639,6 +1639,29 @@ pisos viejos da 392 > 387 y falla.
 Esta superficie llevaba toda la sesión declarándose limpia porque su gráfico no
 tenía datos que dibujar.
 
+### F38 — Un remedio apagado dice por qué (2026-08-02)
+
+Al ir a correr la selección apareció el defecto, esta vez **por el camino real**
+y no por una sonda: Titulares mostraba «La selección almacenada no es vigente ·
+Regenera titulares sin relajar la validación» **con su botón «Generar selección»
+deshabilitado, sin `title`, sin `aria-describedby` y sin una línea de texto**. La
+superficie nombraba el problema y apagaba su solución en silencio.
+
+La causa real, que ninguna parte de la pantalla decía: **la comparación seguía
+corriendo** —«Método 4 de 4 (Optimizada para evitar repetidos) · 06:54»—.
+
+| | antes → después |
+|---|---|
+| Motivo del bloqueo | invisible | **en pantalla y en el `title`**, con método y tiempo |
+| Qué podía deducir el usuario | si esperar, volver o si la app se rompió: nada | que hay una corrida en curso |
+| Desbordes | 0 | **0** |
+
+Guard: `stageNoticeMotivo.test.tsx`, con el caso negativo —sin bloqueo no se
+inventa un motivo— para que la explicación no se vuelva ruido permanente.
+
+Esto es la prueba del hueco en su forma más cara: la superficie no mentía, pero
+callaba justo el dato que convierte la espera en algo entendible.
+
 ### F36 — La salida de emergencia (2026-08-02)
 
 Reparado el callejón de F35 por el único lado que le toca al frontend: cuando el
@@ -1680,7 +1703,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F38 — correr la selección y auditar Titulares, Reemplazos y Sustento con dato real**
+Siguiente, en orden: **F39 — con la comparación terminada, generar la selección y auditar Titulares, Reemplazos y Sustento con dato real**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen

@@ -111,6 +111,13 @@ export function AulasSeleccionTab({
             ? () => void onSelectMethod(model.config, recommendedMethodId)
             : undefined}
           disabled={Boolean(stageNotice.localAction) && (Boolean(busy) || !comparisonReady)}
+          disabledReason={
+            busy
+              ? `No se puede generar mientras corre «${busy}».`
+              : !comparisonReady
+                ? "Falta una comparación de métodos vigente: se genera desde Comparar métodos."
+                : undefined
+          }
         />
       )}
 

@@ -206,11 +206,22 @@ export function AulasStageNotice({
   onNavigate,
   onAction,
   disabled,
+  disabledReason,
 }: {
   notice: AulasStageNoticeModel;
   onNavigate?: AulasNavigate;
   onAction?: () => void;
   disabled?: boolean;
+  /**
+   * F38 · Por qué el remedio está apagado.
+   *
+   * Medido en Titulares: el aviso ordenaba «regenera titulares» y su botón
+   * estaba deshabilitado **sin `title`, sin `aria-describedby` y sin texto** —la
+   * superficie nombraba el problema y apagaba su solución en silencio—. Un
+   * control inalcanzable sin causa visible no pasa la prueba del hueco: el
+   * usuario no puede saber si esperar, volver atrás o si la app se rompió.
+   */
+  disabledReason?: string;
 }) {
   const Icon = notice.icon ?? FileText;
   const canAct = Boolean(notice.destination ? onNavigate : onAction);
@@ -225,12 +236,16 @@ export function AulasStageNotice({
         <small>{notice.eyebrow} · siguiente condición</small>
         <strong>{notice.title}</strong>
         <p>{notice.detail}</p>
+        {disabled && disabledReason ? (
+          <p className="cmv2-aulas-stage-blocked">{disabledReason}</p>
+        ) : null}
       </div>
       {canAct && (
         <button
           type="button"
           className="cmv2-primary"
           disabled={disabled}
+          title={disabled ? disabledReason : undefined}
           onClick={() => {
             if (notice.destination) {
               onNavigate?.(notice.destination.section, notice.destination.tab);

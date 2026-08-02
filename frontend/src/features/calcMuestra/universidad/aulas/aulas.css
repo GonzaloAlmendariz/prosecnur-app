@@ -1832,3 +1832,10 @@
     gap: 2px;
   }
 }
+
+/* F38 · La causa de un remedio apagado se lee, no se adivina. */
+.cmv2-aulas-stage-blocked {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
