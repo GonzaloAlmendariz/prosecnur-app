@@ -1830,6 +1830,29 @@ Es la diferencia entre una excepción justificada y un descuido.
 punto **5** —embudo activo: cambiar un criterio previo actualiza los gráficos del
 siguiente—.
 
+### F43 — El detalle es de la facultad abierta (2026-08-02)
+
+Reparado lo que F42 dejó contenido: `V2Distribution` recibía `facultyKey` y **no
+lo usaba**, así que dentro del bloque de una facultad pintaba las quince. Ahora
+filtra por la facultad en foco.
+
+| | antes → después |
+|---|---:|
+| Facultades dentro de un criterio | 15 → **1**, la del selector |
+| Plegados en la pestaña | 1 → **0** |
+| Desbordes | 0 → **0** |
+
+Con el bloque acotado desaparece el motivo para plegarlo, así que cae el último
+`<details>`: **la pestaña ya no esconde nada**. La comparación entre facultades
+no se pierde —vive arriba, en el panorama y la matriz, que es su sitio—.
+
+**Lo que queda alto es honesto**: 25,3 pantallas para una facultad con todo
+visible, y el grueso es un criterio con ~20 categorías, cada una con su gráfico.
+No es duplicación ni relleno: es el detalle por segmento que Gonzalo pidió ver.
+Si esa altura resulta excesiva en uso real, la palanca ya no es esconder sino
+decidir cuántos segmentos merecen gráfico propio —y esa es una decisión de
+producto, no una reparación—.
+
 ### Estado del loop
 
 | | |

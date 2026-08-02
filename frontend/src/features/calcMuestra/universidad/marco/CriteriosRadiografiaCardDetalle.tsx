@@ -283,12 +283,28 @@ function V2Distribution({
   card,
   totals,
   includeTotal = true,
+  soloFacultad = null,
 }: {
   card: CriterioRadiografiaCard;
   totals: CalcMuestraCriteriosTotales | null;
   includeTotal?: boolean;
+  /**
+   * F43 · Acota la distribución a UNA facultad.
+   *
+   * Dentro del bloque de una facultad este componente pintaba las quince
+   * —4.719 px medidos, el módulo entero duplicado por criterio—. La comparación
+   * entre facultades ya vive arriba, en el panorama y la matriz; aquí lo que se
+   * busca es el mayor detalle **de la facultad abierta**, que es la que el
+   * usuario eligió en el selector.
+   */
+  soloFacultad?: string | null;
 }) {
-  const facultyRows = v2Rows(card);
+  const todasLasFilas = v2Rows(card);
+  const facultyRows = soloFacultad
+    ? todasLasFilas.filter(
+        (row) => row.facultyKey === soloFacultad || row.facultyLabel === soloFacultad,
+      )
+    : todasLasFilas;
   const rTotals = includeTotal ? totalRows(card, totals) : [];
   const all = [...facultyRows, ...rTotals];
   const groups = rowsByFaculty(all);
@@ -519,7 +535,14 @@ export function CriteriosRadiografiaCardDetalle({
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "distribucion"} aria-labelledby={`crc-dist-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
         <header><span>1</span><h5 id={`crc-dist-${idSuffix}`}>Distribución</h5></header>
-        {rows.length ? <V2Distribution card={card} totals={totals} includeTotal={context !== "faculty"} /> : v1Rows.length ? <V1Distribution card={card} /> : <EmptyDistribution card={card} />}
+        {rows.length ? (
+          <V2Distribution
+            card={card}
+            totals={totals}
+            includeTotal={context !== "faculty"}
+            soloFacultad={context === "faculty" ? (facultyKey || facultyLabel || null) : null}
+          />
+        ) : v1Rows.length ? <V1Distribution card={card} /> : <EmptyDistribution card={card} />}
       </section>
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "cascada"} aria-labelledby={`crc-cascada-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">

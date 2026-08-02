@@ -183,19 +183,16 @@ export function CriterioFacultadRadiografia({
           </div>
         )}
 
-        {/* F42 · Medido: este bloque no era «el detalle de este criterio en esta
-            facultad» —era la radiografía de LAS QUINCE facultades (4.719 px de
-            `cmv2-crc-faculties`) incrustada dentro del bloque de una sola—.
-            Desplegarlo llevaba la pestaña a 25 pantallas repitiendo el módulo
-            entero por criterio.
-            No se resuelve mostrándolo ni escondiéndolo: **se resuelve
-            acotándolo a la facultad en foco**, que es lo que el usuario abrió.
-            Hasta que ese recorte exista, se contiene tras un control que ahora
-            dice lo que hay, en vez de «trazabilidad completa». */}
-        <details className="cmv2-crc-compact-detail">
-          <summary>
-            Comparar con las demás facultades{hiddenRows ? ` · ${hiddenRows} segmentos más` : ""}
-          </summary>
+        {/* F43 · Acotado a la facultad en foco, este bloque deja de ser «las
+            quince dentro de una» —4.719 px, el módulo duplicado por criterio— y
+            pasa a ser lo que su nombre prometía: el detalle de esta facultad.
+            Ya no hay motivo para plegarlo, y por eso desaparece el último
+            `<details>` de la pestaña. La comparación entre facultades vive
+            arriba, en el panorama y la matriz, que es su sitio. */}
+        <section className="cmv2-crc-compact-detail">
+          {hiddenRows ? (
+            <p className="cmv2-crc-compact-count">{hiddenRows} segmentos más de esta facultad</p>
+          ) : null}
           <CriteriosRadiografiaCardDetalle
             card={facultyCard}
             radiografia={evidence.radiografia}
@@ -208,7 +205,7 @@ export function CriterioFacultadRadiografia({
             facultyKey={facultyKey}
             facultyLabel={facultyLabel}
           />
-        </details>
+        </section>
       </section>
     </div>
   );

@@ -638,13 +638,9 @@ describe("superficie I18b de criterios", () => {
     // facultades: «si algo está oculto es un error de diseño».
     expect(classroomRoute).toContain("Impacto de cada criterio por facultad");
     expect(classroomRoute).not.toContain("solo cuando necesites contrastar");
-    // F42 · Un plegado sobrevive, y es una decisión medida, no un descuido: el
-    // bloque «Comparar con las demás facultades» renderiza la radiografía de
-    // las quince dentro del bloque de una —4.719 px—, y desplegarlo llevaba la
-    // pestaña a 25 pantallas repitiendo el módulo por criterio. La reparación
-    // real es acotarlo a la facultad en foco; hasta entonces se contiene, con
-    // un rótulo que dice qué hay dentro.
-    expect(classroomRoute).toContain("Comparar con las demás facultades");
+    // F43 · Acotado a la facultad en foco, el bloque deja de duplicar el módulo
+    // y ya no hay motivo para plegarlo: la ruta no esconde nada.
+    expect(classroomRoute).not.toContain("<details");
     expect(classroomRoute).not.toContain("Ver trazabilidad completa");
     expect(classroomRoute).not.toContain("Procedencia y contrato");
     expect(classroomRoute.indexOf('aria-label="Decisión por facultad con su radiografía"')).toBeLessThan(
