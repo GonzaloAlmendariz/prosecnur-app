@@ -504,3 +504,25 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* F41 · Selector de facultad: una a la vez, con todo su detalle. */
+.cmv2-chfp-selector {
+  display: grid;
+  grid-template-columns: auto minmax(0, 260px) 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+.cmv2-chfp-selector > span { font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); }
+.cmv2-chfp-selector small { color: var(--pulso-text-muted); font-size: 11px; }
+.cmv2-chfp-bloque-head[data-fijo="true"] { cursor: default; }
+
+/* F41 · La matriz ya no se pliega: su cabecera es rótulo, no botón. */
+.cmv2-chfp-transversal > header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cmv2-chfp-transversal > header span { color: var(--pulso-text-muted); font-size: 11px; }

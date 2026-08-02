@@ -217,6 +217,14 @@ export function CursosHorarioMarcoTab({
   );
 
   const [facultadFoco, setFacultadFoco] = useState<string | null>(null);
+  // F41 · La facultad mostrada: la elegida, o la primera del panorama. Nunca
+  // «ninguna», porque una superficie que exige un click para mostrar su
+  // contenido esconde ese contenido.
+  const bloqueFoco = useMemo(
+    () =>
+      bloques.find((b) => (b.excKey || b.facLabel) === facultadFoco) ?? bloques[0] ?? null,
+    [bloques, facultadFoco],
+  );
 
   const ready = catalogo.variables.length > 0;
   const umbralGeneral = minEligibleThreshold(borrador, config.min_elegibles_aula);
@@ -498,9 +506,29 @@ export function CursosHorarioMarcoTab({
                   data-qa-geometry-group="calc-muestra/facultades-ch"
                   data-qa-geometry-contract="intrinsic"
                 >
-                  {bloques.map((bloque, index) => (
+                  {/* F41 · Una facultad a la vez, sin acordeón.
+                      Quince bloques plegados obligaban a abrir y cerrar para
+                      comparar y escondían la decisión detrás de un click. Con el
+                      selector, la facultad elegida se muestra entera: hay alto
+                      de sobra para el mayor detalle y no queda nada plegado. */}
+                  <label className="cmv2-chfp-selector">
+                    <span>Facultad</span>
+                    <select
+                      value={bloqueFoco?.excKey || bloqueFoco?.facLabel || ""}
+                      onChange={(e) => setFacultadFoco(e.currentTarget.value)}
+                    >
+                      {bloques.map((b) => (
+                        <option key={b.excKey || b.facLabel} value={b.excKey || b.facLabel}>
+                          {b.facLabel}
+                        </option>
+                      ))}
+                    </select>
+                    <small>{bloques.length} facultades · se muestra una a la vez con todo su detalle</small>
+                  </label>
+                  {(bloqueFoco ? [bloqueFoco] : []).map((bloque) => (
                     <FacultadDecisionBloque
                       key={bloque.excKey || bloque.facLabel}
+                      sinPlegado
                       bloque={bloque}
                       variablesToggle={aulaToggle}
                       rangeVariable={rangeVariable}
@@ -512,7 +540,6 @@ export function CursosHorarioMarcoTab({
                       aulaFrame={aulaFrame}
                       umbralGeneral={umbralGeneral}
                       tasa={tasa}
-                      defaultOpen={index === 0}
                       onToggleVariable={editarVariable}
                       onRango={(facultad, rangos) =>
                         editarRango(rangeVariable?.id ?? "course_level", facultad, rangos)}
@@ -539,17 +566,21 @@ export function CursosHorarioMarcoTab({
                desaconsejaba abrirla («solo cuando necesites contrastar»). Sigue
                plegada para no inflar la pestaña, pero el resumen dice lo que
                cierra y con qué tamaño, no cómo usarla. */
-            <details className="cmv2-chfp-transversal">
-              <summary>
-                <strong>Cierre del recorrido · impacto de cada criterio por facultad</strong>
+            <section className="cmv2-chfp-transversal" aria-labelledby="cmv2-chfp-matriz-title">
+              {/* F41 · La matriz deja de estar plegada. «Si algo está oculto es
+                  un error de diseño»: era el último `<details>` de la pestaña y
+                  guardaba justo el resumen que permite comparar criterios entre
+                  facultades. */}
+              <header>
+                <strong id="cmv2-chfp-matriz-title">Impacto de cada criterio por facultad</strong>
                 {matrizEmbudo ? (
                   <span>
                     {matrizEmbudo.columns.length} criterios × {matrizEmbudo.rows.filter((row) => row.row_kind === "faculty").length} facultades sobre el marco ejecutado
                   </span>
                 ) : null}
-              </summary>
+              </header>
               <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
-            </details>
+            </section>
           ) : null}
         </>
       )}

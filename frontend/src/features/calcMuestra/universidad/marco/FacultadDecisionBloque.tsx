@@ -505,6 +505,7 @@ export function FacultadDecisionBloque({
   onMinimoFacultad,
   onToggleAula,
   onReactivarAulas,
+  sinPlegado,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
@@ -529,8 +530,12 @@ export function FacultadDecisionBloque({
   onToggleAula: (classroomId: string, excluida: boolean) => void;
   /** Reactiva todos los CH apagados de esta facultad (claves en text_key). */
   onReactivarAulas: (clavesTextKey: string[]) => void;
+  /** F41 · Se muestra una sola facultad: nada que plegar. */
+  sinPlegado?: boolean;
 }) {
-  const [abierto, setAbierto] = useState(Boolean(defaultOpen));
+  // F41 · Sin plegado, la facultad mostrada se ve entera. El acordeón sólo
+  // sobrevive para usos que aún listan varias facultades a la vez.
+  const [abierto, setAbierto] = useState(Boolean(defaultOpen) || Boolean(sinPlegado));
   const { fac, facLabel, excKey, minKey } = bloque;
   // El tipo de curso es la decisión MÁS PARTICULAR del embudo: se separa del
   // resto para renderizarse al final, tras la bisagra de «aulas candidatas».
@@ -549,15 +554,10 @@ export function FacultadDecisionBloque({
 
   return (
     <article className="cmv2-chfp-bloque" data-open={abierto} data-decidido={resumen.propias > 0 || undefined}>
-      <button
-        type="button"
-        className="cmv2-chfp-bloque-head"
-        aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
-      >
-        <span className="cmv2-chfp-bloque-chevron" aria-hidden="true">
-          {abierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </span>
+      {/* F41 · Sin plegado la cabecera es un rótulo, no un control: ofrecer un
+          botón que no hace nada es peor que no ofrecerlo. */}
+      {sinPlegado ? (
+      <div className="cmv2-chfp-bloque-head" data-fijo="true">
         <span className="cmv2-chfp-bloque-title">
           <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
           <span className="cmv2-chfp-bloque-meta">
@@ -572,7 +572,32 @@ export function FacultadDecisionBloque({
           {fmtInt(fac.elegibles_total)}
           <em>matrículas elegibles</em>
         </span>
+      </div>
+      ) : (
+      <button
+        type="button"
+        className="cmv2-chfp-bloque-head"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+      >
+        <span className="cmv2-chfp-bloque-chevron" aria-hidden="true">
+          {abierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </span>        <span className="cmv2-chfp-bloque-title">
+          <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
+          <span className="cmv2-chfp-bloque-meta">
+            {fmtInt(fac.ch_elegibles)} de {fmtInt(fac.ch_total)} CH elegibles
+            {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
+          </span>
+        </span>
+        <span className="cmv2-chfp-bloque-estado" data-decidido={resumen.propias > 0 || undefined}>
+          {estadoTexto}
+        </span>
+        <span className="cmv2-chfp-bloque-hero">
+          {fmtInt(fac.elegibles_total)}
+          <em>matrículas elegibles</em>
+        </span>
       </button>
+      )}
 
       {abierto ? (
         <div className="cmv2-chfp-bloque-body">
@@ -593,6 +618,20 @@ export function FacultadDecisionBloque({
               Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
               esta facultad. Nada cambia el marco hasta recalcular.
             </p>
+            {/* F41 · Orden pedido por Gonzalo: el mínimo de matriculados abre la
+                lista —es el primer criterio del embudo por facultad—, y
+                Elegibles por CH y Composición bajan a penúltimos, justo antes
+                del mayor detalle. Antes, matriculados quedaba enterrado en
+                medio y el detalle uno-por-uno competía con criterios que
+                todavía no se habían aplicado. */}
+            {criterioEvidence && criterioCards.get("enrolled_total") ? (
+              <CriterioTransversalFacultadCard
+                card={criterioCards.get("enrolled_total")!}
+                facKey={excKey}
+                facLabel={facLabel}
+                criterioEvidence={criterioEvidence}
+              />
+            ) : null}
             {/* Criterios generales (del más amplio al más fino) + el mínimo,
                 que también recorta grueso: van antes de la bisagra. El nivel
                 del curso (rango) se intercala tras la condición del curso. */}
@@ -630,32 +669,6 @@ export function FacultadDecisionBloque({
               }
               return [card];
             })}
-            {criterioEvidence && criterioCards.get("enrolled_total") ? (
-              <CriterioTransversalFacultadCard
-                card={criterioCards.get("enrolled_total")!}
-                facKey={excKey}
-                facLabel={facLabel}
-                criterioEvidence={criterioEvidence}
-              />
-            ) : null}
-            <MinFacultadCard
-              seleccion={seleccion}
-              minKey={minKey}
-              fac={fac}
-              umbralGeneral={umbralGeneral}
-              tasa={tasa}
-              radiografiaCard={criterioCards.get("minEligible") ?? null}
-              criterioEvidence={criterioEvidence}
-              onMinimoFacultad={onMinimoFacultad}
-            />
-            {criterioEvidence && criterioCards.get("composition") ? (
-              <CriterioTransversalFacultadCard
-                card={criterioCards.get("composition")!}
-                facKey={excKey}
-                facLabel={facLabel}
-                criterioEvidence={criterioEvidence}
-              />
-            ) : null}
             {/* Bisagra del embudo: cuántas aulas quedan con los filtros
                 generales, antes de la decisión más particular (el tipo). */}
             <p className="cmv2-chfp-bisagra" role="note">
@@ -678,6 +691,24 @@ export function FacultadDecisionBloque({
             ) : null}
             {/* Criterio final y más granular: la lista de cursos-horario que
                 sobreviven en esta facultad, todos activos por defecto. */}
+            <MinFacultadCard
+              seleccion={seleccion}
+              minKey={minKey}
+              fac={fac}
+              umbralGeneral={umbralGeneral}
+              tasa={tasa}
+              radiografiaCard={criterioCards.get("minEligible") ?? null}
+              criterioEvidence={criterioEvidence}
+              onMinimoFacultad={onMinimoFacultad}
+            />
+            {criterioEvidence && criterioCards.get("composition") ? (
+              <CriterioTransversalFacultadCard
+                card={criterioCards.get("composition")!}
+                facKey={excKey}
+                facLabel={facLabel}
+                criterioEvidence={criterioEvidence}
+              />
+            ) : null}
             <AulasFinalesCard
               aulas={aulasFinales}
               seleccion={seleccion}

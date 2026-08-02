@@ -633,13 +633,14 @@ describe("superficie I18b de criterios", () => {
     expect(classroomRoute.match(/data-decision="transversal"/g)).toHaveLength(2);
     expect(classroomRoute).toContain("<strong>enrolled_total</strong>");
     expect(classroomRoute).toContain("<strong>Composición del curso-horario</strong>");
-    // S3 (F7): la matriz es el resultado, así que CIERRA el recorrido — va
-    // después de las decisiones y su resumen dice qué cierra y con qué tamaño,
-    // no cómo usarla.
-    expect(classroomRoute).toContain("Cierre del recorrido · impacto de cada criterio por facultad");
+    // F41 · La matriz deja de plegarse. Era el último `<details>` de la ruta y
+    // guardaba justo el resumen que permite comparar criterios entre
+    // facultades: «si algo está oculto es un error de diseño».
+    expect(classroomRoute).toContain("Impacto de cada criterio por facultad");
     expect(classroomRoute).not.toContain("solo cuando necesites contrastar");
+    expect(classroomRoute).not.toContain("<details");
     expect(classroomRoute.indexOf('aria-label="Decisión por facultad con su radiografía"')).toBeLessThan(
-      classroomRoute.indexOf("Cierre del recorrido · impacto de cada criterio por facultad"),
+      classroomRoute.indexOf("Impacto de cada criterio por facultad"),
     );
     expect(classroomRoute).toContain('class="cmv2-crc-compact"');
     expect(classroomRoute).toContain('data-context="faculty"');

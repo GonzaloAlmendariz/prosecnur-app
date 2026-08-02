@@ -101,8 +101,9 @@ function Snapshot({
         <span><em>P50</em> {fmt(snapshot.distribution.p50)}</span>
         <span><em>P10–P90</em> {fmt(snapshot.distribution.p10)}–{fmt(snapshot.distribution.p90)}</span>
       </p>
-      <details className="cmv2-crc-stats-full">
-        <summary>Cuantiles completos</summary>
+      {/* F41 · Los cuantiles son EL dato de la distribución; plegarlos dejaba
+          la decisión apoyada en una sola cifra visible. */}
+      <div className="cmv2-crc-stats-full">
         <dl className="cmv2-crc-stats" aria-label={`${title}: media y cuantiles`}>
           <div data-main><dt>Media</dt><dd>{fmt(snapshot.distribution.media)}</dd></div>
           <div><dt>P10</dt><dd>{fmt(snapshot.distribution.p10)}</dd></div>
@@ -111,7 +112,7 @@ function Snapshot({
           <div><dt>P75</dt><dd>{fmt(snapshot.distribution.p75)}</dd></div>
           <div><dt>P90</dt><dd>{fmt(snapshot.distribution.p90)}</dd></div>
         </dl>
-      </details>
+      </div>
     </div>
   );
 }
@@ -171,21 +172,24 @@ function rowsByFaculty(rows: V2DisplayRow[]) {
   return [...groups.values()];
 }
 
+/**
+ * F41 · Avisos del gate que el usuario SÍ necesita.
+ *
+ * Este bloque mezclaba dos cosas: metadatos del contrato interno (gate, owner,
+ * grano, unidad, capa) y advertencias metodológicas —que un criterio es
+ * informativo y no altera el N, o que sus segmentos se solapan y por tanto no se
+ * suman—. Al retirar «Procedencia y contrato» se fueron las dos, y las segundas
+ * hacen falta: sin ellas alguien suma segmentos solapados y se equivoca. Queda
+ * sólo lo que cambia una lectura.
+ */
 function GateMetadata({ entry }: { entry: CalcMuestraAulasCriterioRadiografiaV2Entry }) {
+  if (entry.gate !== "informativo" && !entry.overlap) return null;
   return (
     <div className="cmv2-crc-gate" data-status={entry.status}>
       <div className="cmv2-crc-gate-title">
         <strong>{entry.label}</strong>
         <span>{entry.status.replace("_", " ")}</span>
       </div>
-      <dl>
-        <div><dt>Gate</dt><dd>{entry.id}</dd></div>
-        <div><dt>Owner</dt><dd>{entry.owner}</dd></div>
-        <div><dt>Grano</dt><dd>{entry.grain}</dd></div>
-        <div><dt>Unidad</dt><dd>{entry.unit}</dd></div>
-        <div><dt>Facultad</dt><dd>{entry.faculty_dimension}</dd></div>
-        <div><dt>Capa</dt><dd>{entry.effective_layer ?? "marco"}</dd></div>
-      </dl>
       {entry.gate === "informativo" ? (
         <p role="note">Se aplica o reportará en la capa <strong>{entry.effective_layer}</strong>; no altera el N del marco.</p>
       ) : null}
@@ -250,10 +254,10 @@ function Segment({
         <Snapshot title="Contraste total" snapshot={row.contrasteTotal} label={label} variant="contraste" domain={domain} />
       </div>
       {row.signalDistribution ? (
-        <details className="cmv2-crc-signal">
-          <summary>
+        <div className="cmv2-crc-signal">
+          <p className="cmv2-crc-signal-head">
             Señal · {row.signalDistribution.unit.replace("_", " ")} · {fmt(row.signalDistribution.n_con_dato)} de {fmt(row.signalDistribution.n_total)} con dato
-          </summary>
+          </p>
           <CriterioBoxplotPercentilar label={`${label} · señal`} distribution={row.signalDistribution} domain={signalDomain} />
           <dl className="cmv2-crc-stats" aria-label={`Señal de ${row.segmentLabel}: media y cuantiles`}>
             <div data-main><dt>Media</dt><dd>{fmt(row.signalDistribution.media)}</dd></div>
@@ -263,7 +267,7 @@ function Segment({
             <div><dt>P75</dt><dd>{fmt(row.signalDistribution.p75)}</dd></div>
             <div><dt>P90</dt><dd>{fmt(row.signalDistribution.p90)}</dd></div>
           </dl>
-        </details>
+        </div>
       ) : null}
     </article>
   );
@@ -553,23 +557,15 @@ export function CriteriosRadiografiaCardDetalle({
         )}
       </section>
 
-      {/* La procedencia (hash del marco, momento, owner/grano/unidad de cada
-          gate) es trazabilidad, no el dato de la decisión: se conserva entera
-          pero deja de ocupar la portada de cada criterio. */}
-      {radiografia || (!invalid && card.entries.length) ? (
-        <details className="cmv2-crc-procedencia" data-qa-geometry-member data-qa-geometry-capacity="owned">
-          <summary>Procedencia y contrato</summary>
-          {radiografia ? (
-            <dl className="cmv2-crc-root-meta">
-              <div><dt>Marco</dt><dd title={radiografia.frame_hash}>{radiografia.frame_hash}</dd></div>
-              <div><dt>Momento</dt><dd>{radiografia.momento}</dd></div>
-              <div><dt>Evidencia</dt><dd>{meta.label}</dd></div>
-            </dl>
-          ) : null}
-          {!invalid && card.entries.length ? (
-            <div className="cmv2-crc-gates">{card.entries.map((entry) => <GateMetadata entry={entry} key={entry.id} />)}</div>
-          ) : null}
-        </details>
+      {/* F41 · «Procedencia y contrato» —hash del marco, owner, grano, unidad—
+          es información técnica del contrato interno, no del estudio. Gonzalo:
+          «lo técnico no tiene por qué mostrarse». Se retira de la superficie;
+          sigue viajando en el `.pulso` y en la auditoría del motor, que es
+          donde se consulta cuando hace falta. */}
+      {card.entries.some((entry) => entry.gate === "informativo" || entry.overlap) ? (
+        <div className="cmv2-crc-gates">
+          {card.entries.map((entry) => <GateMetadata entry={entry} key={entry.id} />)}
+        </div>
       ) : null}
       {!hasDistribution && card.state === "legacy" ? (
         <p className="cmv2-crc-legacy-note">El resumen legacy permanece junto al control; no se presenta como contrato F1.</p>
