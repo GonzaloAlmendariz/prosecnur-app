@@ -2801,6 +2801,42 @@ copy, ejemplo, clave de contrato o territorio de otro**.
 
 R verde: `test-calc-muestra-aulas-criterios` sin fallos.
 
+### F69 — Una etiqueta que contradecía la cifra de al lado (defecto que yo introduje)
+
+Reauditada la superficie de criterios con la vara nueva. El hallazgo es **mío, de
+F58**, y es de los peores que he cometido en el loop.
+
+Al traducir `gate · aplicado` escribí «recorta el marco». Pero `status ===
+"aplicado"` significa que el criterio **se ejecutó**, no que quitara nada. En
+pantalla quedaba así:
+
+> **Paso 6 · Modalidad** — *recorta el marco*
+> Karina E Karina · Cursos-horario: **849 → 849** · Quedan fuera: **ninguno**
+
+**La etiqueta afirmaba lo contrario de la fila que tenía debajo.** Y es peor que
+la jerga que vino a reemplazar: «gate · aplicado» era opaco, pero no afirmaba
+nada falso. Traducir mal es más caro que no traducir.
+
+Ahora la etiqueta **la decide el dato**, no el estado:
+
+| situación | dice |
+|---|---|
+| no es criterio de recorte | «no quita cursos-horario» |
+| aún no se aplicó | «todavía no se aplicó» |
+| se aplicó y excluyó | **«recorta el marco»** |
+| se aplicó y no excluyó nada | **«se aplicó y no quitó ninguno»** |
+
+Verificado en la app: los cuatro pasos visibles dicen «se aplicó y no quitó
+ninguno» junto a «849 → 849 · ninguno». Coinciden.
+
+Guard: `embudoEtiquetaCoherente.test.tsx`, con las dos mitades —quitó y no
+quitó—, porque la coherencia sólo se prueba con los dos casos.
+
+| | |
+|---|---:|
+| Vitest | 849 → **851** en 104 archivos |
+| Desbordes | **0** |
+
 ### Estado del loop
 
 | | |

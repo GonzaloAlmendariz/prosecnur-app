@@ -296,6 +296,22 @@ este módulo. Un find-replace la habría convertido en una frase falsa.
 puede señalar candidatos; la sustitución es una decisión de significado y no se
 automatiza.
 
+### 17 · Traducir jerga mal es peor que no traducirla
+
+`gate · aplicado` se tradujo por «recorta el marco». Pero «aplicado» significa
+que el criterio se ejecutó, no que excluyera algo: en pantalla quedó «recorta el
+marco» encima de «849 → 849 · quedan fuera: ninguno». **La etiqueta afirmaba lo
+contrario de su propia fila.**
+
+La jerga original era opaca pero no mentía. Una traducción que interpreta un
+estado técnico sin comprobar qué implica introduce una afirmación falsa donde
+antes sólo había una palabra difícil.
+
+**Mecanismo**: al traducir un estado del motor, la etiqueta se deriva del **dato
+que el usuario está viendo**, no del nombre del estado. Y el guard cubre los dos
+casos —cuando pasa y cuando no—, porque la coherencia sólo se demuestra con
+ambos.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
