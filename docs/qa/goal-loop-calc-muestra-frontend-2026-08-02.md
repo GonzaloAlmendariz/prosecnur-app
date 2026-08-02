@@ -342,11 +342,11 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **15 de 24** (+ Estudio, Fuentes y Consistencia; el inventario pasa a 24 por D10) | 24 de 24 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **19 de 24** (+ las cuatro de Entrega) | 24 de 24 |
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **8 de 13** (S1–S7, S12) + T1, **T6, T7 cerradas**, T4 desbloqueada, **D10 ejecutada** | 13 + 7 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **9 de 13** (S1–S7, S12, S13) + T1, **T6, T7**, T4 desbloqueada, **D10 ejecutada** | 13 + 7 |
 | Superficies bloqueadas por no poder ejecutar el cálculo | **7** | **0**; el cálculo publica resultado completo | 0 |
 | Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **0** | 0 |
 | Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
@@ -1170,6 +1170,43 @@ Gate: typecheck 0 errores · Vitest **994/994** en 107 archivos (incluye
 OK · 0 desbordes en ambas.
 
 Ledger: superficies por la vara **12 → 15 de 23**; lotes cerrados **8 de 13**.
+
+### F21 — Entrega por la vara (S13, 2026-08-02) · **S13 cerrada**
+
+Las cuatro superficies medidas con el instrumento:
+
+| superficie | alto | prosa | desbordes HTML |
+|---|---:|---:|---:|
+| Cierre | 1 pantalla | **0 párrafos** | 0 |
+| Tablas | 3,1 pantallas | 48 palabras | 0 |
+| Entregables | 1,3 pantallas | 75 palabras | 0 |
+| Pase a Monitoreo | 1,4 pantallas | 66 palabras | 0 |
+
+**Las cuatro pasan.** Tablas marcaba 13 desbordes: los trece son nodos SVG
+`<text>` de los ejes del gráfico, donde `scrollWidth` no significa lo mismo que
+en HTML. **Tercer falso positivo de mi propio detector en esta sesión** —tras
+los absolutos de S5 y el conteo de prosa de F1— y la misma lección otra vez:
+*el instrumento de medida también se audita*. Filtrando nodos no-HTML, los
+desbordes reales son **0**.
+
+### Cierre de la sesión
+
+| | |
+|---|---|
+| Superficies por la vara | **19 de 24** |
+| Lotes cerrados | **9 de 13** (S1–S7, S12, S13) + T1, T4, T6, T7 y D10 |
+| Pendiente | **S9–S11 (Selección)**: Método ya pasa; Simulación, Selección, Reemplazos y Sustento esperan la corrida del comparador de métodos, lanzada en esta sesión (job `f8df413b`, 21 corridas de simulación) |
+
+Lo que la próxima visita encuentra hecho: el instrumento llega de punta a punta
+—marco, radiografía, ancla histórica, decisión firmada, cálculo con sus dos
+escenarios—, diecinueve superficies por la vara y los guards de cada una. Lo que
+tiene que hacer: esperar o relanzar el comparador y cerrar **S9–S11**.
+
+Para el **loop v2**, tres hallazgos de contrato con evidencia en este doc:
+`calcular` devuelve 200 con resultado vacío y deja componentes que él mismo
+rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
+y el anonimizador deja base, config, catálogo y componentes en vocabularios
+distintos.
 
 Siguiente, en orden: **S9–S11**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
