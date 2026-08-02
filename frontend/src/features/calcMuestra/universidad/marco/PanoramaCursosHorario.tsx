@@ -71,8 +71,12 @@ export function PanoramaCursosHorario({
               <th scope="col">Facultad</th>
               <th scope="col">CH elegibles del total</th>
               <th scope="col">Mediana</th>
+              {/* Sin `title`: repetía exactamente el texto visible y la cabecera
+                  no trunca, así que el tooltip no aportaba nada. Un `title`
+                  redundante es ruido que además compite con los que sí explican
+                  algo. */}
               {criterios.map((criterio) => (
-                <th key={criterio.id} scope="col" title={criterio.label}>{criterio.label}</th>
+                <th key={criterio.id} scope="col">{criterio.label}</th>
               ))}
               <th scope="col">Mínimo</th>
             </tr>
