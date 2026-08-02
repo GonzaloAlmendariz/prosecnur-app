@@ -1355,6 +1355,30 @@ palabras**, la superficie más pesada del módulo. No la toco en esta iteración
 porque reducirla sin perder el detalle por facultad —que es justo lo que Gonzalo
 exige— es un rediseño, no un recorte.
 
+### F27 — El alto de S3 está ganado (2026-08-02)
+
+Antes de recortar, medir de qué está hecha. Los 3.765 px de S3:
+
+| bloque | alto | palabras |
+|---|---:|---:|
+| Aviso de aplicar | 58 px | 14 |
+| Ajustes del marco (transversales) | 782 px | 318 |
+| **Por facultad · información y decisión** | **2.830 px** | 675 |
+| Cierre del recorrido | 36 px | 19 |
+
+**El 75 % del alto es la sección por facultad**: 15 facultades a ~189 px cada
+una, con su información y su decisión juntas. Eso no es bulto, es el entregable
+—recortarlo sería deshacer F24 y volver a la decisión general que Gonzalo
+rechazó—. *La medición evitó el arreglo equivocado por segunda vez en la
+sesión*: la conclusión intuitiva («5,8 pantallas, hay que comprimir») habría
+atacado justo lo que hay que proteger.
+
+El candidato real, si en la próxima pasada hace falta bajar el alto, es
+**«Ajustes del marco»: 782 px y 318 palabras** de controles transversales por
+encima del trabajo por facultad. Queda anotado con su medición, no ejecutado:
+tocarlo sin entender qué controles de ahí son imprescindibles repetiría el error
+que esta iteración acaba de evitar.
+
 ### Cierre de la sesión
 
 | | |
@@ -1374,7 +1398,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F27 — S3 (5,8 pantallas) sin perder el detalle por facultad**
+Siguiente, en orden: **F28 — «Ajustes del marco» (782 px / 318 palabras), el único candidato medido de S3**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
