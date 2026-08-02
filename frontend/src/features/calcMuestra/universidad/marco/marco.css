@@ -3269,3 +3269,25 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-radiografia-condicion-item i[data-kind="otro"] {
   background: color-mix(in srgb, var(--pulso-text) 24%, transparent);
 }
+
+/* F29 · La profundidad de la lista de cursos-horario se declara en pantalla. */
+.cmv2-ch-sexo-depth {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-ch-sexo-depth button {
+  border: 0;
+  background: transparent;
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 5px;
+}
+.cmv2-ch-sexo-depth button:hover { background: var(--cmv2-accent-soft); }

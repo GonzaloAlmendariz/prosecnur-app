@@ -1401,6 +1401,32 @@ evidencia de que atacarla rompería el entregable.
 Con esto **S1, S2 y S3 pasan la vara del grano** y la reauditoría queda al día
 hasta S4.
 
+### F29 — Una lista deslizable declara su profundidad (S4, 2026-08-02)
+
+Barrido de S4 y del resto con la vara del grano: `marco-poblacion` (2,7),
+`def-estudio` (1,1), `def-variables` (3,2), `calculo-diseno` (3,4, 15 filas por
+facultad) y `calculo-propuestas` (2,3, 15 filas) pasan con **0 desbordes**. Una
+anomalía saltó: `marco-aulas` declaraba 2,6 pantallas pero **10.632 palabras**.
+
+La causa, medida: un único contenedor, `cmv2-ch-sexo-scroll`, con **39.899 px de
+filas dentro de una ventana de 360 px** —110 pantallas— porque volcaba los ~850
+cursos-horario de golpe. La barra de scroll no dice cuánto falta, así que la
+profundidad estaba escondida en un gesto.
+
+| | antes → después |
+|---|---:|
+| Contenido del contenedor | 39.899 px → **1.876 px** |
+| Filas renderizadas | ~850 → **40** |
+| Palabras de la pestaña | 10.632 → **849** |
+| Profundidad declarada | no → **«Mostrando los 40 de mayor tamaño · 849 cursos-horario»** |
+| Desbordes | 0 → **0** |
+
+No se agrega ni se resume nada —son las mismas filas del motor, acotadas—, y el
+orden ya pone delante lo que importa. «Ver todos» conserva el acceso completo:
+acotar no es esconder. Guard: `CursosHorarioSexoProfundidad.test.tsx`, con el
+tercer caso cuidando que una lista que **sí** cabe no se anuncie ni se recorte,
+porque un pie de profundidad sobre 8 filas sería el ruido que este loop combate.
+
 ### Cierre de la sesión
 
 | | |
@@ -1420,7 +1446,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F29 — reauditoría de S4 con la vara del grano**
+Siguiente, en orden: **F30 — barrer el resto de contenedores deslizables con la medida de profundidad de F29**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
