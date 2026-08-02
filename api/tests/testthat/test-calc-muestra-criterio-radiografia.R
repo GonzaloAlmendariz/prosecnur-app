@@ -400,6 +400,72 @@ test_that("teacher_type respeta el kind efectivo flat o hierarchical", {
   expect_identical(length(unique(row_keys)), length(row_keys))
 })
 
+test_that("teacher_type vacio no activa un filtro ausente en la radiografia", {
+  base <- data.frame(
+    estudiante = paste0("E", 1:3),
+    curso_horario = paste0("CH", 1:3),
+    facultad = "FAC A",
+    tipo_docente = c(
+      "DOCENTE ORDINARIO - PRINCIPAL",
+      "DOCENTE ORDINARIO - ASOCIADO",
+      ""
+    ),
+    tipo_sesion = "TALLER",
+    nivel = "3",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  config <- list(
+    mapping = list(
+      student_id = "estudiante", classroom_id = "curso_horario",
+      faculty = "facultad", teacher_type = "tipo_docente",
+      session_type = "tipo_sesion", level = "nivel"
+    ),
+    filters = list(
+      require_adult = FALSE, require_undergraduate = FALSE,
+      require_in_person = FALSE, accepted_conditions = list(),
+      exclude_session_patterns = list(), min_eligible_per_class = 1L
+    ),
+    criterios_seleccion = list(byVariable = list(
+      teacher_type = list(mode = "include", categories = list())
+    ))
+  )
+
+  inactive <- calc_muestra_aulas_construir(base_madre = base, config = config)
+  inactive_entry <- .cr_entry(inactive$criterios_radiografia, "teacher_type")
+  expect_identical(inactive_entry$family, "classroom_hierarchical")
+  expect_identical(inactive_entry$status, "disponible")
+  expect_true(all(inactive$aula_frame$included))
+
+  config$criterios_seleccion <- list(byVariable = list(
+    teacher_type = list(mode = "include", categories = list("docente_ordinario"))
+  ))
+  active <- calc_muestra_aulas_construir(base_madre = base, config = config)
+  active_entry <- .cr_entry(active$criterios_radiografia, "teacher_type")
+  expect_identical(active_entry$status, "disponible")
+  expect_identical(active$aula_frame$included, c(TRUE, TRUE, FALSE))
+})
+
+test_that("teacher_type vacio respeta la excepcion efectiva por facultad", {
+  criterion <- .cm_criterios_normalize_criterio(
+    list(
+      mode = "include",
+      categories = list(),
+      exceptions = list(
+        "FAC A" = list(op = "replace", categories = list("docente_ordinario"))
+      )
+    ),
+    .cm_criterios_var_registry()$teacher_type
+  )
+
+  expect_identical(
+    .cm_criterios_eval_teacher(
+      c("", ""), criterion, c("fac_a", "fac_b")
+    ),
+    c(FALSE, TRUE)
+  )
+})
+
 .cr_full_frame <- function() {
   ch <- rep(paste0("CH-SECRET-", 1:4), each = 2L)
   base <- data.frame(

@@ -109,7 +109,7 @@
   root_fields <- c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
     "unidad", "denominador", "estudio", "cobertura", "identidad", "umbrales",
-    "cadena", "global", "dimensiones", "advertencias"
+    "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
   )
   out <- stats::setNames(vector("list", length(root_fields)), root_fields)
   for (field in root_fields[seq_len(8L)]) {
@@ -153,6 +153,9 @@
   if (!is.list(advertencias)) advertencias <- list()
   advertencias <- lapply(advertencias, .pulso_safe_scalar)
   out["advertencias"] <- list(unname(Filter(Negate(is.null), advertencias)))
+  out["celdas_criterios"] <- list(
+    .pulso_sanitize_calc_muestra_asistencia_criteria(value$celdas_criterios)
+  )
   out
 }
 
@@ -246,13 +249,17 @@
   # base se strippeaba arriba).
   s$graficos_preview_cache <- NULL
   s$explorador_cache <- NULL
+  s$calc_muestra_aulas_criterios_contexto <- NULL
   if (!is.null(s$calc_muestra_aulas_frame) && is.list(s$calc_muestra_aulas_frame)) {
-    frame <- s$calc_muestra_aulas_frame
+    frame <- .pulso_sanitize_calc_muestra_criteria_frame(
+      s$calc_muestra_aulas_frame
+    )
     if (is.data.frame(frame$aula_frame) && nrow(frame$aula_frame)) {
       pii_cols <- intersect(c("unique_student_ids"), names(frame$aula_frame))
       frame$aula_frame[pii_cols] <- NULL
     }
     frame$population <- NULL
+    frame$population_pool <- NULL
     frame$exclusions <- NULL
     s$calc_muestra_aulas_frame <- frame
   }

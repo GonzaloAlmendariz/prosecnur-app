@@ -157,7 +157,7 @@ test_that("el root exacto declara procedencia, estudio, umbrales y dimensiones",
   expect_named(out, c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
     "unidad", "denominador", "estudio", "cobertura", "identidad", "umbrales",
-    "cadena", "global", "dimensiones", "advertencias"
+    "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
   ))
   expect_identical(out$schema, "calc_muestra_referencia_asistencia_v1")
   expect_identical(out$owner, "estudio_historico_externo")

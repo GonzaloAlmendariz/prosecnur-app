@@ -118,8 +118,10 @@ describe("CriteriosRadiografiaConsola", () => {
     );
 
     expect(html.indexOf(">Dato<")).toBeLessThan(html.indexOf(">Distribución<"));
-    expect(html.indexOf(">Distribución<")).toBeLessThan(html.indexOf(">Impacto<"));
-    expect(html.indexOf(">Impacto<")).toBeLessThan(html.indexOf(">Acción<"));
+    expect(html.indexOf(">Distribución<")).toBeLessThan(html.indexOf(">Cascada viva<"));
+    expect(html.indexOf(">Cascada viva<")).toBeLessThan(html.indexOf(">Ancla histórica<"));
+    expect(html.indexOf(">Ancla histórica<")).toBeLessThan(html.indexOf(">Impacto marginal<"));
+    expect(html.indexOf(">Impacto marginal<")).toBeLessThan(html.indexOf(">Acción<"));
     expect(html).toContain("Enfocar criterio");
     expect(html).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-consola"');
     expect(html).toContain("Media");
@@ -161,7 +163,7 @@ describe("CriteriosRadiografiaConsola", () => {
     expect(cardTags[0]).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-pasos"');
     expect(cardTags[0]).toContain('data-qa-geometry-contract="intrinsic"');
     const stepTags = startTags(html, "section", "cmv2-crc-step");
-    expect(stepTags).toHaveLength(4);
+    expect(stepTags).toHaveLength(6);
     expectOwnedGeometryMembers(stepTags);
 
     const segmentGroupTags = startTags(html, "div", "cmv2-crc-segments");

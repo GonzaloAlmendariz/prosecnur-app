@@ -202,6 +202,8 @@ errores_registrados <- function() {
     "E_CALC_MUESTRA_AULAS_FRAME",                            "router_calc_muestra.R",             "400",
     "E_CALC_MUESTRA_AULAS_REPLACEMENTS",                     "router_calc_muestra.R",             "400",
     "E_CALC_MUESTRA_AULAS_SELECTION",                        "router_calc_muestra.R",             "400",
+    "E_CALC_MUESTRA_CRITERIOS_PREVIEW_INPUT",                "router_calc_muestra_criterios.R",   "400",
+    "E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE",                "router_calc_muestra_criterios.R",   "409",
     "E_CALC_MUESTRA_DTI_EXPORT",                             "calc_muestra_solicitud_dti.R",      "500",
     "E_CALC_MUESTRA_DTI_INPUT",                              "calc_muestra_solicitud_dti.R",      "400",
     "E_CALC_MUESTRA_FILE_INSPECT",                           "router_calc_muestra.R",             "400",

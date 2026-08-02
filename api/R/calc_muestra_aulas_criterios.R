@@ -1187,9 +1187,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 .cm_criterios_eval_teacher <- function(teacher_values, crit, faculty_keys) {
   vapply(seq_along(teacher_values), function(i) {
     tv <- teacher_values[[i]]
-    if (!nzchar(tv)) return(identical(crit$mode, "exclude"))
     ecats <- .cm_criterios_eff_cats(crit, faculty_keys[[i]])
     if (!length(ecats)) return(TRUE)
+    if (!nzchar(tv)) return(identical(crit$mode, "exclude"))
     piezas <- strsplit(tv, "\\s*\\|+\\s*")[[1]]
     # La UI jerárquica deja marcar un GRUPO entero ("docente_ordinario") o hijos
     # concretos ("docente_ordinario_principal"). El valor del aula es siempre un
