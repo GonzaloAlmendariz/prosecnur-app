@@ -45,6 +45,7 @@ export function AulasFinalesCard({
   // oculto es un error de diseño»—. Con una facultad a la vez hay alto de sobra.
   const [abierto, setAbierto] = useState(true);
   const [q, setQ] = useState("");
+  const [verTodas, setVerTodas] = useState(false);
   const claves = useMemo(() => aulas.map((a) => a.classroomKey), [aulas]);
   const total = aulas.length;
   const apagadas = contarExcluidas(seleccion, claves);
@@ -57,6 +58,15 @@ export function AulasFinalesCard({
       (a) => normalizarBusqueda(a.label).includes(t) || normalizarBusqueda(a.detalle).includes(t),
     );
   }, [aulas, q]);
+
+  // Medido: la lista renderizaba sus 646 filas, cada una con su conmutador —**646
+  // paradas de tabulación** para pasar de aquí con el teclado—. Es el mismo
+  // defecto que el vuelco de píxeles, en otro eje: el contenido es alcanzable
+  // sólo si nadie usa el teclado. Se muestra una ventana y la profundidad se
+  // declara; el buscador de arriba llega a cualquier fila sin recorrerlas.
+  const TOPE_FILAS = 40;
+  const recortada = !verTodas && filtradas.length > TOPE_FILAS;
+  const visibles = recortada ? filtradas.slice(0, TOPE_FILAS) : filtradas;
 
   if (total === 0) return null;
 
@@ -127,7 +137,7 @@ export function AulasFinalesCard({
             Cifra por fila: <strong>estudiantes únicos elegibles</strong> en ese curso-horario.
           </p>
           <ul className="cmv2-aulas-finales-list">
-            {filtradas.map((a) => {
+            {visibles.map((a) => {
               const off = aulaExcluida(seleccion, a.classroomId);
               return (
                 <li key={a.classroomKey} className="cmv2-aulas-finales-row" data-off={off || undefined}>
@@ -154,6 +164,18 @@ export function AulasFinalesCard({
               <li className="cmv2-aulas-finales-vacio">Ningún curso-horario coincide con «{q}».</li>
             ) : null}
           </ul>
+          {filtradas.length > TOPE_FILAS && (
+            <p className="cmv2-aulas-finales-depth">
+              <span>
+                {recortada
+                  ? `Mostrando ${TOPE_FILAS} de ${fmtInt(filtradas.length)} · usa el buscador para llegar a uno concreto`
+                  : `Mostrando los ${fmtInt(filtradas.length)}`}
+              </span>
+              <button type="button" onClick={() => setVerTodas((v) => !v)}>
+                {recortada ? "Ver todos" : `Volver a ${TOPE_FILAS}`}
+              </button>
+            </p>
+          )}
         </div>
       ) : null}
     </section>
