@@ -1970,6 +1970,61 @@ que ya no corresponde a los criterios activos —exactamente la clase de error q
 este módulo existe para evitar—. Queda como la siguiente iteración, con el
 contrato de encadenamiento definido antes de tocar la UI.
 
+## DIRECCIÓN DE GOBIERNO — rediseño, no ajustes (Gonzalo, 2026-08-02)
+
+Esta sección **reemplaza la cola de parches**. Gonzalo lo dijo sin rodeos: «esto
+amerita un repensamiento completo y no ajustes superficiales». Las iteraciones
+F40–F47 movieron piezas dentro de una estructura que ya estaba mal, y por eso
+cada corrección suya encontró el mismo problema en otro sitio.
+
+### La unidad de diseño es la CATEGORÍA de criterio, no el criterio
+
+Cada categoría con CH disponibles es **un solo contenedor** que trae, junto al
+switch que la incluye o excluye:
+
+| dato | nota |
+|---|---|
+| Cantidad de CH | |
+| Cantidad de alumnos | |
+| Promedio de alumnos elegibles | con su **boxplot** |
+| Información intercuantílica completa | los cuantiles, no una cifra suelta |
+| La cascada —el efecto de esta categoría en el embudo— | **integrada**, sin jerga: «cascada viva» es lenguaje de relleno |
+| Tasa de asistencia | |
+
+Y **todo dinámico a los criterios previamente aplicados**: al cambiar un filtro
+anterior, estas cifras y estos gráficos se recalculan.
+
+Nada de esto sobra —Gonzalo lo subraya: «toda esa información es súper útil»—.
+Lo que falla es que hoy vive repartida en un selector de cinco pasos, una consola
+aparte y bloques vecinos que no se hablan.
+
+### Las seis correcciones, literales
+
+1. **No existen criterios generales.** Todos son por facultad. El **mínimo es el
+   criterio 1**; el **7 y el 8 son los penúltimos**. (F40 los dejó generales en
+   la pestaña de estudiante: interpretación equivocada, se revierte.)
+2. **La matriz es parte del Panorama por facultad**, no un bloque al final.
+3. **Los boxplots no tienen ejes visibles ni comunes.** Sin eje compartido no se
+   pueden comparar, que es lo único para lo que existen.
+4. **Radiografía y criterios son lo mismo.** No hay una superficie de criterios y
+   otra de radiografía: se revisa cada criterio en detalle con toda su
+   información radiográfica delante, y ahí se decide.
+5. **Bug abierto**: la lista de categorías de tipo de docente mezcla las ocho
+   categorías reales con **nombres de personas**. La captura descarta que sea la
+   columna equivocada —si lo fuera no habría categorías—: la columna trae ambas
+   cosas fila a fila y la app convierte cada valor distinto en un switch sin
+   preguntarse si es una categoría o una persona. Falta confirmarlo contra la
+   base; alias de columna en `calc_muestra_aulas.R:209`.
+6. **El selector de cinco pasos no se elimina: se reconstruye** dentro de la
+   unidad de arriba.
+
+### Lo que esta dirección invalida
+
+- El grano general en criterios de estudiante (F40).
+- La matriz al cierre del recorrido (F41).
+- La separación entre tarjeta de criterio y su radiografía (S1, F24).
+- Cualquier iteración futura que ajuste una de estas piezas por separado.
+
 ### Estado del loop
 
 | | |
