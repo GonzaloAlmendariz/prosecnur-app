@@ -3120,6 +3120,35 @@ etiqueta—.
 |---|---:|
 | Vitest | 856 → **859** en 106 archivos |
 
+### F79 — Auditados los 802 `title` que ahora sostienen la pantalla
+
+Al mover información a `title` —lo normal se marca, el detalle se explica al pasar
+el cursor— esos tooltips pasaron a cargar peso real. Auditados los **802** de
+cinco superficies con dos preguntas:
+
+**1 · ¿Alguno contradice lo que hay en pantalla?** Es el error que ya cometí en
+el embudo, donde la etiqueta decía «recorta el marco» sobre «849 → 849 ·
+ninguno». Buscados los `title` que afirman ausencia junto a una cifra mayor que
+cero: **0 contradicciones**.
+
+**2 · ¿Alguno repite el texto que ya se ve?** 73 lo hacían, pero **70 son
+deliberados**: van sobre texto truncado con ellipsis, para poder leerlo completo
+—el código lo documenta—. Sólo **3** estaban sobre cabeceras que no truncan, en
+el Panorama: ahí el tooltip no aportaba nada y además **compite con los que sí
+explican algo**. Retirados.
+
+| | |
+|---|---:|
+| `title` auditados | **802** |
+| Contradicciones | **0** |
+| Redundantes sobre texto que no trunca | 3 → **0** |
+| Vitest | **859** en 106 archivos |
+
+**Tercera vez que rompo la sintaxis igual**: un comentario JSX dentro del retorno
+de una arrow function (`.map(x => ( {/* … */} <th/> ))`). El typecheck lo caza
+siempre en el acto, así que no llega a nada, pero conviene registrarlo: el
+comentario va **antes** del `.map`, no dentro.
+
 ### Estado del loop
 
 | | |
