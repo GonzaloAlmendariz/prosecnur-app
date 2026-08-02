@@ -342,13 +342,13 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **7 de 23** (los tres criterios/alumnos-CH + Población, Cursos-horario, Cobertura y Diseño) | 23 de 23 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **10 de 23** (+ Propuestas, CH requeridos y Objetivo) | 23 de 23 |
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
 | Lotes de la cola cerrados | **0 de 13** + 5 transversales | **6 de 13** (S1–S6) + T1 aplicado, **T6 y T7 cerradas**, T4 desbloqueada en el instrumento | 13 + 7 |
-| Superficies bloqueadas por no poder ejecutar el cálculo | **7** (Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos, Entrega) | **6**; Propuestas ya audita con dato | 0 |
-| Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **2 faltantes** (las de 0 CH elegibles) | 0 |
+| Superficies bloqueadas por no poder ejecutar el cálculo | **7** | **0**; el cálculo publica resultado completo | 0 |
+| Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **0** | 0 |
 | Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
 | Elementos con desborde o ancho 0 a 1024×600 en Criterios | **1.006 / 987** | **0 / 0** | 0 |
 | Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
@@ -1046,9 +1046,47 @@ Estado real del instrumento, para que la próxima visita no lo redescubra:
   desde el fixture— es lo que convierte este loop en repetible y debería ser el
   siguiente lote de instrumento.
 
-Siguiente: **F17 · instrumento reproducible** (guion versionado de siembra) y, en
-el loop v2, decidir si una facultad con 0 CH elegibles forma parte del contrato
-de Alumnos/CH. Con eso, S7 a S13 se auditan de corrido.
+### F17 — El instrumento llega al final, y un defecto real de contrato
+
+**Primero, un defecto del producto, con evidencia.** El `calcular` devolvía
+**200 con un `resultado` de cero campos** y dejaba los componentes con **15
+estratos** frente a un contrato de Alumnos/CH de **17 filas**. A partir de ahí
+toda corrida siguiente devuelve 409 `facultades_incompletas`: **un cálculo
+«exitoso» hace imposible el siguiente**, y el estado muerto se alcanza desde el
+flujo normal. Las dos facultades que sobran son las de **0 CH elegibles** — la
+misma pregunta que F14 resolvió en la superficie, sin resolver en el contrato R.
+**Va al loop v2** con esta medición.
+
+Reparación del instrumento, coherente con lo que el propio motor hace: se
+retiran esas dos facultades del contrato de Alumnos/CH **y** de los estratos,
+para que ambos declaren las mismas 15. `marco_validado` se realinea con la suma.
+
+**Resultado: el cálculo publica de verdad** — `resultado` con 21 campos,
+`distribucion_universitaria` presente, 200 aulas base. Las tres superficies que
+llevaban toda la sesión bloqueadas rinden con dato:
+
+| superficie | alto | prosa | desbordes | scroll anidado |
+|---|---:|---:|---:|---:|
+| **CH requeridos** | 1,4 pantallas | 22 palabras | 0 | **0** |
+| **Objetivo** | 2,4 pantallas | 57 palabras | 0 | 0 |
+| **Distribución** | **5,1 pantallas** | 101 palabras · 6 tablas | 0 | 0 |
+
+- **CH requeridos pasa la vara** — y con ella cae la deuda que I19 dejó escrita
+  («scroll anidado manual en CH»): medido, **0**.
+- **Objetivo pasa la vara**: 2,4 pantallas, el N objetivo (2.500) al frente.
+- **Distribución no pasa**: 5,1 pantallas y seis tablas apiladas. Es el mismo
+  patrón que F2 resolvió en Criterios —un recorrido resuelto como pila— y su
+  arreglo es el mismo: pasos recorribles. Queda como **S7-bis**, con su medición.
+
+Ledger: superficies por la vara **7 → 10 de 23**; superficies bloqueadas por no
+poder ejecutar el cálculo **6 → 0**.
+
+Siguiente, en orden: **S7-bis** (Distribución en pasos), luego **S9–S11**
+(Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
+(Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
+loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
+con una facultad de 0 CH, y el `calcular` no debe devolver 200 con resultado
+vacío.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 
