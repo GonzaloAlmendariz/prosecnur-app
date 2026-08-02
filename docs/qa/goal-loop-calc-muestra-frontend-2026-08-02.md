@@ -1794,6 +1794,42 @@ Pendiente de la dirección: **4** (switch y gráfico como una sola pieza) y **5*
 (embudo activo: cambiar un criterio previo actualiza los gráficos del
 siguiente).
 
+### F42 — El acordeón por criterio se abre, y un plegado sobrevive con razón
+
+Punto 4 de la dirección: **el switch y su gráfico son una sola pieza**. Estaban
+separados por un acordeón —ocho cabeceras de 50 px por facultad, cada una
+abriendo a ~950 px—. Con una facultad a la vez ese acordeón sobra, así que los
+ocho criterios abren de entrada.
+
+| | |
+|---|---:|
+| Criterios plegados por facultad | 8 → **0** |
+| Alto de la pestaña | 5,8 → **10,5 pantallas** |
+| Desbordes | **0** |
+| Contenido técnico visible | **ninguno** |
+
+**Dos hipótesis mías fueron falsas antes de dar con la causa.** Al abrir todo la
+pestaña saltó a **28 pantallas**. Culpé primero a los cuantiles y los compacté:
+bajó a 26,5. Culpé después a los gráficos de señal por segmento y los diferí:
+26,5 → 25,3. Apenas nada. Sólo al medir el interior del criterio más grande
+apareció la causa real: **`cmv2-crc-faculties`, 4.719 px — la radiografía de las
+quince facultades renderizada dentro del bloque de una sola**, repetida por
+criterio.
+
+Eso es lo que «Ver trazabilidad completa» escondía, y explica por qué estaba
+escondido: no era ruido técnico, era **el módulo entero duplicado**. La
+reparación correcta no es mostrarlo ni ocultarlo, sino **acotarlo a la facultad
+en foco**, que es la que el usuario abrió. Hasta que ese recorte exista se
+contiene tras un control que ahora dice lo que hay —«Comparar con las demás
+facultades»— en vez de una etiqueta técnica que no decía nada.
+
+Queda así **un** plegado en la pestaña, y queda escrito por qué, con su medición.
+Es la diferencia entre una excepción justificada y un descuido.
+
+**Pendiente de la dirección**: acotar ese bloque a la facultad en foco, y el
+punto **5** —embudo activo: cambiar un criterio previo actualiza los gráficos del
+siguiente—.
+
 ### Estado del loop
 
 | | |
