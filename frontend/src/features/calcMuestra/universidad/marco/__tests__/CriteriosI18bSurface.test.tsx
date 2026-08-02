@@ -481,7 +481,11 @@ describe("superficie I18b de criterios", () => {
     expect(html).toContain("exacta");
     expect(html).toContain("k=12");
     expect(html).toContain("IC 95% 70.0%–90.0%");
-    expect(html).toContain("bootstrap_percentil");
+    // ADR 0057 · `metodo_ic` es valor de contrato —el motor lo compara por
+    // nombre— así que no se renombra en R; se traduce al mostrarlo. Antes
+    // quedaba «bootstrap_percentil» en la pantalla de un cliente.
+    expect(html).not.toContain("bootstrap_percentil");
+    expect(html).toContain("Bootstrap por percentiles");
     expect(html).toContain("2025-1");
   });
 

@@ -81,12 +81,22 @@ const ACTION_COPY: Record<string, string> = {
   no_aplica: "No aplica",
 };
 
+/**
+ * Ausencia declarada, en la notación del usuario y no en la de R.
+ *
+ * La intención original era la correcta —no fabricar un cero donde el motor no
+ * publicó valor—, pero se escribía «NA», que es la notación de R. En pantalla
+ * quedaba «Media NA» y «NA CH». El guion largo dice lo mismo, es el que usa el
+ * resto del módulo, y no obliga a saber en qué lenguaje está escrito el motor.
+ */
+const AUSENTE = "—";
+
 function fmt(value: number | null): string {
-  return value === null ? "NA" : NUMBER.format(value);
+  return value === null ? AUSENTE : NUMBER.format(value);
 }
 
 function signed(value: number | null, unit: string): string {
-  if (value === null) return `NA ${unit}`;
+  if (value === null) return `${AUSENTE} ${unit}`;
   return `${value > 0 ? "+" : ""}${NUMBER.format(value)} ${unit}`;
 }
 
