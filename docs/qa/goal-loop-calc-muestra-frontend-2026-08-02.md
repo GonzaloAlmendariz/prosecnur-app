@@ -1886,6 +1886,35 @@ evitó convertir una superficie honesta en un defecto inventado.**
    preview», que no es lo que ocurrió —el motor pidió contexto transitorio—. El
    mensaje debe reflejar el código recibido y no una causa supuesta.
 
+### F47 — El embudo en vivo tiene condición, y ahora se entiende (2026-08-02)
+
+Perseguido el 409 hasta su origen en `router_calc_muestra_criterios.R`: el
+preview exige un **contexto transitorio de sesión** cuyo `source_frame_hash` y
+`current_criteria_hash` coincidan con la petición. Ese contexto sólo existe si el
+marco **se construyó en esta sesión**.
+
+Consecuencia real, y es de producto: **quien abre un `.pulso` guardado nunca
+tiene embudo en vivo**. La UI pide el recálculo siete veces por cambio y el motor
+lo rechaza siempre, hasta que se reconstruye el marco.
+
+Antes de culpar al frontend comprobé el payload: manda `source_frame_hash`,
+`criteria_hash` **y `config`** —6,6 KB—. Está completo. Mi captura anterior sólo
+leía 160 caracteres y por eso parecía faltar `config`: **la tercera vez en la
+sesión que un recorte de mi sonda casi produce un defecto inventado.**
+
+| | antes → después |
+|---|---|
+| Aviso | «El preview requiere el contexto transitorio del marco y criterios vigentes» | **«El embudo en vivo necesita que el marco se haya construido en esta sesión. Vuelve a construirlo para que los gráficos se actualicen al cambiar un criterio; mientras tanto se muestra la última cascada ejecutada.»** |
+| ¿Dice qué hacer? | no | **sí** |
+| Jerga interna en pantalla | sí | **no** |
+
+Verificado en la app: 7 avisos, todos accionables, ninguno con jerga. Guard en
+`calcMuestraCriteriosI18b.test.ts`.
+
+**Para el loop v2** queda la pregunta de fondo, ya bien planteada: ¿debe el
+preview depender de un intermedio de sesión, o reconstruirlo bajo demanda? Hoy la
+respuesta la paga el usuario que abre un proyecto guardado.
+
 ### F46 — El aviso dice la causa real (2026-08-02)
 
 Reparada la deuda de frontend que dejó F45: ante un rechazo `stale`, la app

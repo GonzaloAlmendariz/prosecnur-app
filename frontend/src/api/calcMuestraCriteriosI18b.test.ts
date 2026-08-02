@@ -389,7 +389,13 @@ describe("F45 · el aviso del preview no suplanta al motor", () => {
       (estado) => estados.push(estado),
     );
     const stale = estados.find((e) => e.status === "stale");
-    expect(stale?.message).toContain("contexto transitorio");
+    // F47 · «Requiere el contexto transitorio» es exacto y no le dice nada a
+    // quien lo lee. El motor sólo tiene ese contexto si el marco se construyó en
+    // esta sesión, así que al abrir un `.pulso` guardado el embudo pide el
+    // recálculo en cada cambio y es rechazado siempre. Se traduce a la condición
+    // real y a su salida.
+    expect(stale?.message).toContain("construido en esta sesión");
+    expect(stale?.message).toContain("Vuelve a construirlo");
     expect(stale?.message).not.toContain("El marco cambió mientras");
   });
 });
