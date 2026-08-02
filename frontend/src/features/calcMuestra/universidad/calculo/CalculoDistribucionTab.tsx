@@ -20,6 +20,7 @@ import {
   buildCalculoDistribucionModel,
   type CalculoDistribucionScenarioMeta,
 } from "./calculoDistribucionModel";
+import { CalculoComparacionEscenarios } from "./CalculoComparacionEscenarios";
 import "./calculoDistribucion.css";
 
 const DECIMAL = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 2 });
@@ -50,37 +51,6 @@ function fmtSensitivityValue(axis: CalcMuestraDistribucionI19SensitivityAxis, va
   if (axis.parameter === "p" || axis.parameter === "confidence") return fmtPct(value);
   if (axis.parameter === "e") return fmtPp(value);
   return DECIMAL.format(value);
-}
-
-function ScenarioSelector({
-  escenario,
-  onEscenario,
-}: {
-  escenario: UniversityAulasScenario;
-  onEscenario: (escenario: UniversityAulasScenario) => void;
-}) {
-  return (
-    <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta de distribución universitaria">
-      <button
-        type="button"
-        role="radio"
-        aria-checked={escenario !== "e2"}
-        data-active={escenario !== "e2" || undefined}
-        onClick={() => onEscenario("e1")}
-      >
-        P1 · Universidad
-      </button>
-      <button
-        type="button"
-        role="radio"
-        aria-checked={escenario === "e2"}
-        data-active={escenario === "e2" || undefined}
-        onClick={() => onEscenario("e2")}
-      >
-        P2 · Facultades
-      </button>
-    </div>
-  );
 }
 
 function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI19State, { kind: "ready" }> }) {
@@ -144,7 +114,7 @@ function AuditHeader({
         <div>
           <span className="cmv2-dist-eyebrow">Dato acreditado</span>
           <h3>{selection.longLabel}</h3>
-          <p>Cuotas objetivo planificadas; no son respuestas observadas ni avance de campo.</p>
+          <p>Cuotas objetivo planificadas; no son respuestas recolectadas ni avance de campo.</p>
         </div>
         <span className="cmv2-dist-owner"><Database size={14} aria-hidden="true" /> owner · engine_r</span>
       </header>
@@ -346,12 +316,17 @@ export function CalculoDistribucionTab({
       data-surface-group="calc-muestra-calculo"
       data-surface-contract="distribucion-universitaria-r"
     >
+      <CalculoComparacionEscenarios
+        componentes={componentes}
+        currentFrameHash={currentFrameHash}
+        escenario={escenario}
+        onEscenario={onEscenario}
+      />
       <header className="cmv2-dist-toolbar">
         <div>
           <strong>Distribución universitaria</strong>
           <span>{model.selection.shortLabel} · resultado vigente del engine R</span>
         </div>
-        <ScenarioSelector escenario={escenario} onEscenario={onEscenario} />
       </header>
       {model.state.kind !== "ready" ? (
         <DistributionState state={model.state} />

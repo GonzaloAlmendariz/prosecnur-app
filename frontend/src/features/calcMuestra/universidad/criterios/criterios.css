@@ -515,11 +515,15 @@
   hyphens: none;
   white-space: normal;
 }
+/* F8: la cifra base pasó a rotularse «… en la base» para distinguirla del
+   aporte al marco, y con el texto más largo dejó de caber en la columna `auto`
+   del ítem: la etiqueta y el conteo se solapaban. Ambas cifras bajan a su
+   propia fila, alineadas entre sí, que además es como se comparan. */
 .cmv2-crit-item-count {
-  margin-left: 0;
+  grid-column: 1 / -1;
+  margin-left: 44px;
   font-size: 11px;
   color: var(--pulso-text-muted);
-  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .cmv2-crit-item-count em { font-style: normal; opacity: 0.75; }
@@ -1921,4 +1925,24 @@
   font-size: 10px;
   line-height: 1.4;
   text-overflow: ellipsis;
+}
+
+/* S4/S5 · Lo que la categoría aporta al marco ejecutado, junto al conmutador
+   que la decide. El conteo del catálogo es anterior a cualquier criterio; este
+   es el número contra el que se decide de verdad. Lo publica R por segmento. */
+.cmv2-crit-item-aporte {
+  grid-column: 1 / -1;
+  margin-left: 44px;
+  color: var(--cmv2-accent-fg);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crit-item-aporte em {
+  color: var(--pulso-text-muted);
+  font-style: normal;
+}
+
+.cmv2-crit-item-aporte[data-aporta="cero"] {
+  color: var(--pulso-text-muted);
 }

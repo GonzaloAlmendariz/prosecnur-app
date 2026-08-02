@@ -91,10 +91,14 @@
   background: color-mix(in srgb, var(--pulso-surface) 92%, var(--cmv2-accent-soft));
 }
 
+/* F8: con la radiografía embebida en la tarjeta del criterio (F4) la columna es
+   mucho más estrecha que la consola de antes. Un `min-width: 160px` en el SVG
+   empujaba a todos sus ancestros y producía 1.128 desbordes a 1024x600. El
+   gráfico escala: es vectorial y su viewBox ya define la proporción. */
 .cmv2-i18b-boxplot svg {
   display: block;
   width: 100%;
-  min-width: 160px;
+  min-width: 0;
   max-height: 54px;
 }
 

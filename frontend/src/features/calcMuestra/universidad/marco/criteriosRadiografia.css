@@ -353,11 +353,20 @@
   text-transform: uppercase;
 }
 
+/* F8: con la radiografía dentro de la tarjeta del criterio la columna es
+   estrecha, y dos columnas fijas de cifras no caben: 987 desbordes medidos a
+   1024x600. `auto-fit` cae a una columna cuando hace falta, y los rótulos
+   («P50 · mediana», «Alumnos únicos») pueden partir palabra. */
 .cmv2-crc-counts,
 .cmv2-crc-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
   gap: 6px;
+}
+
+.cmv2-crc-counts dt,
+.cmv2-crc-stats dt {
+  overflow-wrap: break-word;
 }
 
 .cmv2-crc-counts > div,

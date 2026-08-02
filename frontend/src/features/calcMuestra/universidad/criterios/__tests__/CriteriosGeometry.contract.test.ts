@@ -232,4 +232,39 @@ describe("oportunidades de corte de las etiquetas planas", () => {
     // Una categoría que sí es una sola cosa no se toca.
     expect(labels).toContain(labelSimple);
   });
+
+  it("S4: el conmutador publica lo que la categoría aporta al marco, no solo el catálogo", () => {
+    const variable: CriterioVariable = {
+      id: "formation",
+      scope: "alumno",
+      label: "Formación",
+      kind: "flat",
+      categories: [
+        { key: "pregrado", label: "PREGRADO", aulas: 25155 },
+        { key: "maestria", label: "MAESTRIA", aulas: 2819 },
+      ],
+    };
+    const sel: CriterioSeleccion = { mode: "include", categories: ["pregrado"] };
+    // R publica el aporte por segmento; React no lo suma ni lo deriva.
+    const aporte = (segmentKey: string) => segmentKey === "pregrado"
+      ? { elegibles: 20879, ch: 2799, chContraste: 4343 }
+      : { elegibles: 0, ch: 0, chContraste: 699 };
+
+    const html = renderToStaticMarkup(
+      createElement(ControlFlat, { variable, sel, onSel: () => undefined, aporte }),
+    );
+    // El conteo del catálogo se rotula como lo que es, y no se queda solo.
+    expect(html).toContain("en la base");
+    expect(html).toContain("20,879");
+    expect(html).toContain("2,799");
+    expect(html).toContain("en el marco");
+    // Una categoría con aporte nulo lo dice en vez de callarlo.
+    expect(html).toContain('data-aporta="cero"');
+
+    // Sin aporte publicado la superficie no inventa nada.
+    const sinAporte = renderToStaticMarkup(
+      createElement(ControlFlat, { variable, sel, onSel: () => undefined }),
+    );
+    expect(sinAporte).not.toContain("en el marco");
+  });
 });

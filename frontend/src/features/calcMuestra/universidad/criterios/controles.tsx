@@ -62,14 +62,34 @@ function AccionesSet({ variable, onSel }: { variable: CriterioVariable; onSel: S
 }
 
 /** flat: lista de categorías con switch + conteo (estudiantes o aulas según scope). */
+/** Lo que una categoría aporta al marco ejecutado, publicado por R. */
+export type AporteCategoria = {
+  /** Alumnos únicos elegibles del marco con esta categoría. */
+  elegibles: number | null;
+  /** Cursos-horario elegibles con esta categoría. */
+  ch: number | null;
+  /** Cursos-horario totales con esta categoría (contraste). */
+  chContraste: number | null;
+};
+
 export function ControlFlat({
   variable,
   sel,
   onSel,
+  aporte,
 }: {
   variable: CriterioVariable;
   sel: CriterioSeleccion;
   onSel: SelChange;
+  /**
+   * S4/S5 · El conmutador mostraba solo el conteo del CATÁLOGO —lo que hay en
+   * la base antes de aplicar criterio alguno—, así que se decidía contra un
+   * número que no dice qué hace el criterio. Medido en el instrumento: PREGRADO
+   * marcaba «25.155 estudiantes» mientras el marco publica 20.879 alumnos
+   * únicos elegibles, y MAESTRIA marcaba «2.819» con aporte real 0.
+   * R publica el aporte por segmento en su fila Total; React no lo suma.
+   */
+  aporte?: (segmentKey: string) => AporteCategoria | null;
 }) {
   const cats = variable.categories ?? [];
   const unidad = unidadCriterio(variable);
@@ -139,8 +159,18 @@ export function ControlFlat({
                 </span>
               ) : null}
               <span className="cmv2-crit-item-count">
-                {fmtInt(cat.aulas)} <em>{unidad}</em>
+                {fmtInt(cat.aulas)} <em>{unidad} en la base</em>
               </span>
+              {(() => {
+                const dato = aporte?.(cat.key) ?? null;
+                if (!dato || (dato.elegibles === null && dato.ch === null)) return null;
+                return (
+                  <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
+                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
+                    {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
+                  </span>
+                );
+              })()}
               {variantes.length ? (
                 <span className="cmv2-crit-item-variants" title={variantes.join(" · ")}>
                   {variantes.join(" · ")}
