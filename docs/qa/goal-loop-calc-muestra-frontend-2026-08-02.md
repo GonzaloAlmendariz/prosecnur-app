@@ -342,7 +342,7 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **23 de 24** (+ Entrega y Selección) | 24 de 24 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **24 de 24**, reauditadas con la vara del grano | 24 de 24 |
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
@@ -1468,6 +1468,30 @@ el cliente: el instrumento se sembró con `?pulso=`, que se consume una vez, as�
 que recargar para comprobarlo arriesga perderlo — se verifica al reabrir con el
 sembrado limpio, no en caliente.
 
+### F32 — La reauditoría cubre las 24 superficies (2026-08-02)
+
+Corrí el comparador **por el camino real del usuario** (el botón, no la API) para
+falsar F31, y mientras avanzaba cerré el barrido pendiente en vez de esperarlo.
+
+Últimas siete superficies, todas con **0 desbordes y 0 contenedores con
+profundidad escondida**:
+
+| superficie | alto |
+|---|---:|
+| Fuentes · Consistencia | 1,4 · 1,2 |
+| Cursos-horario requeridos · Distribución | 1,3 · 2,8 |
+| Cierre · Entregables · Pase a Monitoreo | 0,9 · 1,3 · 1,4 |
+
+Con esto **las 24 superficies del módulo están reauditadas con la vara del
+grano**: ninguna desborda, ninguna esconde profundidad y las de criterio
+declaran a qué grano deciden.
+
+**Corrección de método**: para comprobar si el estado del comparador vivía en el
+servidor consulté `/api/calc-muestra/workspace` y leí un 404. Estuve a un paso de
+concluir «el servidor no tiene la corrida»: ese endpoint **no existe**. Un 404 de
+una ruta inventada no es evidencia de nada, y la conclusión habría sido falsa.
+Verificado contra el router antes de escribirla.
+
 ### Cierre de la sesión
 
 | | |
@@ -1487,7 +1511,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F32 — resembrar limpio y comprobar si la corrida acreditada abre S10–S11**
+Siguiente, en orden: **F33 — leer la corrida lanzada por la UI y ver si acredita Simulación, Titulares, Reemplazos y Sustento**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
