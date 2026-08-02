@@ -99,15 +99,33 @@ describe("ADR 0057 · regla 3 — los boxplots comparten eje y lo muestran", () 
     // proyecta sobre un ancho distinto —el mismo valor cae en un píxel diferente
     // en cada categoría—, así que la escala es una constante compartida y no el
     // espacio que sobre.
-    const css = readFileSync(
-      fileURLToPath(new URL("criterios/categoriaEvidencia.css", raiz)),
-      "utf8",
-    );
+    const css = leer("criterios/categoriaEvidencia.css");
     expect(css).toContain("--cmv2-cat-escala");
     const eje = css.slice(css.indexOf(".cmv2-cat-eje {"));
     const caja = css.slice(css.indexOf(".cmv2-cat-caja {"));
     expect(eje.slice(0, eje.indexOf("}"))).toContain("width: var(--cmv2-cat-escala)");
     expect(caja.slice(0, caja.indexOf("}"))).toContain("width: var(--cmv2-cat-escala)");
+  });
+
+  it("nada que codifique un valor se anima con transform", () => {
+    // Medido: la barra P25–P75 quedó clavada en el primer fotograma de su propia
+    // animación —`matrix(0.02, 0, 0, 1, 0, -6)`— con el ancho computado correcto
+    // (154,7 px) renderizado a 3 px. El ancho de esa barra ES el dato, así que
+    // una animación que lo escala puede mostrar un rango falso: deja de ser un
+    // defecto decorativo y pasa a ser una lectura corrupta.
+    //
+    // El movimiento entra por opacidad, que no puede mentir sobre una magnitud.
+    // Sin comentarios: la explicación del defecto cita el valor culpable, y un
+    // guard que se dispara con su propia documentación empuja a borrarla —el
+    // patrón 6 del ADR, repetido aquí mismo al escribir este caso—.
+    const css = leer("criterios/categoriaEvidencia.css");
+    for (const clase of [".cmv2-cat-rango", ".cmv2-cat-caja "]) {
+      const bloque = css.slice(css.indexOf(clase));
+      const regla = bloque.slice(0, bloque.indexOf("}"));
+      expect(regla, clase).not.toMatch(/animation:[^;]*scale/i);
+      expect(regla, clase).not.toMatch(/transform:\s*scale/i);
+    }
+    expect(css).not.toContain("scaleX(0.02)");
   });
 });
 

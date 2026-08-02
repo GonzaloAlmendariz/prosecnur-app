@@ -170,6 +170,26 @@ geometría en la app —anchos y posiciones—, no sólo el cálculo que las ali
 La escala es una constante compartida (`--cmv2-cat-escala`) vigilada por el
 guard, y las marcas viajan pegadas a la caja, alineadas por construcción.
 
+### 8 · Una animación no puede tocar la geometría que codifica un dato
+
+La barra P25–P75 quedó clavada en el primer fotograma de su propia animación
+—`matrix(0.02, 0, 0, 1, 0, -6)`—: el ancho computado era correcto (154,7 px) y se
+renderizaba a **3 px**. El ancho de esa barra **es el dato**. Una animación que lo
+escala puede mostrar un rango falso, así que deja de ser un defecto decorativo y
+pasa a ser una **lectura corrupta**: el usuario ve un intercuartil que no existe.
+
+Lo agrava que el fallo lo introdujo el propio intento de «animaciones elegantes».
+
+**Mecanismo**: nada que codifique un valor —ancho, alto, posición— se anima con
+`transform`. El movimiento entra por opacidad, que no puede mentir sobre una
+magnitud. Vigilado en el guard de reglas, que además compara el porcentaje
+declarado en el estilo con el ancho realmente renderizado.
+
+*Nota de honestidad*: al escribir el guard de esta regla repetí el patrón 6 —se
+disparó contra el comentario que cita el valor culpable—. Quedó corregido usando
+el lector sin comentarios, pero conviene registrar que el error reaparece incluso
+recién documentado.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
