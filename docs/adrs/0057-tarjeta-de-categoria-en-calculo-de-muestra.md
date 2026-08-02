@@ -151,6 +151,25 @@ explican qué se retiró, empujando a borrar la explicación para pasar en verde
 **Mecanismo**: los guards leen el fuente sin comentarios. Las reglas se vigilan
 sobre lo que se renderiza; las razones se conservan escritas.
 
+### 7 · Lógica correcta con render incorrecto pasa todos los tests
+
+El caso más difícil de detectar, y el que más tiempo estuvo verde sin estarlo.
+`dominioCategorias()` calculaba bien el dominio compartido: los tests unitarios
+pasaban y la regla 3 parecía cumplida. Medido en píxeles sobre la app:
+
+- el eje medía **1.206 px** y las cajas **274, 263, 284 y 315** — ni entre sí;
+- el eje estaba en **x = 159** y las cajas en **637–693**, cada una en su columna.
+
+Es decir: dominio común correcto, proyectado sobre anchos distintos y con las
+marcas fuera de los datos. **El mismo valor caía en un píxel diferente en cada
+categoría**, y unas marcas desalineadas son decoración con aspecto de precisión —
+peor que no tener eje, porque invitan a leer un valor que no corresponde.
+
+**Mecanismo**: las reglas que hablan de *comparabilidad* se verifican midiendo
+geometría en la app —anchos y posiciones—, no sólo el cálculo que las alimenta.
+La escala es una constante compartida (`--cmv2-cat-escala`) vigilada por el
+guard, y las marcas viajan pegadas a la caja, alineadas por construcción.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
