@@ -103,8 +103,11 @@ describe("ADR 0057 · regla 3 — los boxplots comparten eje y lo muestran", () 
     expect(css).toContain("--cmv2-cat-escala");
     const eje = css.slice(css.indexOf(".cmv2-cat-eje {"));
     const caja = css.slice(css.indexOf(".cmv2-cat-caja {"));
-    expect(eje.slice(0, eje.indexOf("}"))).toContain("width: var(--cmv2-cat-escala)");
-    expect(caja.slice(0, caja.indexOf("}"))).toContain("width: var(--cmv2-cat-escala)");
+    // `min(…, 100%)`: la escala es una constante **hasta donde cabe**. A
+    // 1024×600 la caja de 260 px desbordaba 4 px en un contenedor de 256, y una
+    // escala que desborda deja de ser comparable igual que una que varía.
+    expect(eje.slice(0, eje.indexOf("}"))).toContain("min(var(--cmv2-cat-escala), 100%)");
+    expect(caja.slice(0, caja.indexOf("}"))).toContain("min(var(--cmv2-cat-escala), 100%)");
   });
 
   it("nada que codifique un valor se anima con transform", () => {

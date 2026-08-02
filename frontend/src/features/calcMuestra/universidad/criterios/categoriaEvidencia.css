@@ -48,8 +48,7 @@
 /* Eje del criterio: una sola vez, no por categoría. */
 .cmv2-cat-eje {
   position: relative;
-  width: var(--cmv2-cat-escala);
-  max-width: 100%;
+  width: min(var(--cmv2-cat-escala), 100%);
   height: 26px;
   margin: 2px 0 4px;
   border-bottom: 1px solid var(--cmv2-border);
@@ -76,8 +75,10 @@
 /* Caja percentilar sobre la escala común. */
 .cmv2-cat-caja {
   position: relative;
-  width: var(--cmv2-cat-escala);
-  max-width: 100%;
+  /* `min()` en vez de width + max-width: en un contenedor de 256 px la caja de
+     260 desbordaba 4 px a 1024×600. La escala es una constante hasta donde
+     cabe. */
+  width: min(var(--cmv2-cat-escala), 100%);
   height: 18px;
   border-radius: 5px;
   background: color-mix(in srgb, var(--cmv2-accent-soft) 40%, transparent);
@@ -165,8 +166,7 @@
 .cmv2-cat-escala {
   display: flex;
   justify-content: space-between;
-  width: var(--cmv2-cat-escala);
-  max-width: 100%;
+  width: min(var(--cmv2-cat-escala), 100%);
   font-size: 10px;
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;

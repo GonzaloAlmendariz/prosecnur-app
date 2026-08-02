@@ -2560,6 +2560,41 @@ entender ésta.
 | Alto | **21,6 pantallas** |
 | Vitest | **845** en 102 archivos |
 
+### F62 — El viewport estrecho: ocho desbordes que 1440 no mostraba
+
+Auditada la superficie a **1024×600**, donde aparecieron ocho desbordes
+invisibles en el viewport ancho. Dos causas, y **la primera la introduje yo**:
+
+**1 · Mi escala fija.** `--cmv2-cat-escala: 260px` con `max-width: 100%` seguía
+desbordando 4 px dentro de un contenedor de 256. Corregido con
+`min(var(--cmv2-cat-escala), 100%)`: la escala es una constante **hasta donde
+cabe**, porque una escala que desborda deja de ser comparable igual que una que
+varía. El guard quedó actualizado a esa forma.
+
+**2 · Cinco columnas fijas.** La rejilla de estadísticas del segmento pedía
+`repeat(5, minmax(0, 1fr))`: a 1440 cabía y a 1024 dejaba cada celda en 34 px,
+con «Matrículas 19.846» desbordando siete veces. Ahora es
+`repeat(auto-fit, minmax(64px, 1fr))` y las columnas se reacomodan.
+
+| viewport | antes → después |
+|---|---:|
+| 1024×600 | 8 desbordes → **0** |
+| 1440×1000 | 0 → **0** |
+
+Estado final de las dos superficies de criterio:
+
+| | Estudiante | Curso-horario |
+|---|---:|---:|
+| Desbordes | **0** | **0** |
+| Elementos plegados | **0** | **0** |
+| Anchos de caja distintos | — | **1** (260 px) |
+| Alto | **2,3 pantallas** | **21,8 pantallas** |
+| Jerga técnica | **0** | **0** |
+
+**Lección**: mis propias reparaciones necesitan el mismo barrido que el código
+ajeno. La escala fija resolvió la comparabilidad a 1440 y creó un desborde a
+1024; sin auditar el segundo viewport se habría entregado así.
+
 ### Estado del loop
 
 | | |
