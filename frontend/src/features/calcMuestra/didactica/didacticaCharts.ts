@@ -124,6 +124,26 @@ export function didSexSeriesColor(label: string, tokens: DidTokens, fallbackInde
   return accentScale(tokens, 3)[fallbackIndex % 3];
 }
 
+/**
+ * Etiqueta legible de una serie de sexo.
+ *
+ * La leyenda del gráfico mostraba **«F»** y **«M»**: son los códigos con que
+ * viene el dato, no palabras. Un gráfico que obliga a saber la codificación para
+ * leer su leyenda no se puede entregar a un cliente.
+ *
+ * Se traduce sólo lo que se reconoce con seguridad —`sexSeriesKind` ya distingue
+ * masculino, femenino y sin dato— y **cualquier otro valor pasa tal cual**: si el
+ * estudio subdivide por algo que no es sexo, inventarle un nombre sería peor que
+ * mostrar su código.
+ */
+export function didSexSeriesLabel(label: string) {
+  const kind = sexSeriesKind(label);
+  if (kind === "male") return "Hombres";
+  if (kind === "female") return "Mujeres";
+  if (kind === "missing") return "Sin dato";
+  return label;
+}
+
 export function didPlotLayout(tokens: DidTokens, overrides?: Record<string, unknown>) {
   return {
     autosize: true,

@@ -312,6 +312,18 @@ que el usuario está viendo**, no del nombre del estado. Y el guard cubre los do
 casos —cuando pasa y cuando no—, porque la coherencia sólo se demuestra con
 ambos.
 
+### 18 · Verificar sin forzar el remontaje acusa al código sin razón
+
+Seis veces en la sesión una verificación inicial dio por fallido un cambio que
+estaba bien: HMR con módulos viejos, texto transformado a mayúsculas por CSS,
+Plotly memoizado, un backend R vivo con el código anterior. En todos los casos el
+código era correcto y la medición no.
+
+**Mecanismo**: antes de dar por fallido un cambio, forzar el remontaje de la
+superficie —navegar fuera y volver— y comprobar que lo que se mide es lo que se
+acaba de escribir. Y cuando el cambio es de motor con el proceso vivo, se declara
+comprobado por fuente y suite en vez de fingir verificación visual.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
