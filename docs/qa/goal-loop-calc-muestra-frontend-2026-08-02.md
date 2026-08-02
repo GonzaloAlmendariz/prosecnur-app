@@ -342,8 +342,11 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | 2 de 23 (`marco-criterios-alumno`, `marco-ch-radiografia`, parciales) | 23 de 23 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | 0 (S1 activa) | 13 + 5 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **3 de 23** (`marco-criterios-alumno`, `marco-ch-radiografia`, `marco-alumnos-ch`) | 23 de 23 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **2 de 13** (S1, S2) + T1 aplicado en criterios | 13 + 5 |
+| Gráficos comparables fuera de la radiografía de criterios | **0** | **16** tiras en Alumnos por CH sobre escala común con Total de referencia | todos |
+| Columnas que producen la decisión y no caben en el viewport | **1** («Valor elegido», tabla 1.331 px en 1.268 px) | **0** (tabla 1.268 px = contenedor) | 0 |
+| Unidades del loop sin commitear | **5** (F1–F5 en el árbol) | **0** (`73c60e08`, `80cb6391`) | 0 |
 | Estado sembrado con radiografía real, declarado y reproducible | **no existe** | no existe | existe y está documentado aquí |
 | Hallazgos de superficie abiertos | 9 | 9 | = 0 |
 
@@ -402,9 +405,15 @@ indefinición» en la mecánica: las iteraciones son `F1`, `F2`, `F3`… sin nú
 previsto, y al vaciar S13 se reaudita desde S1 con la vara más alta. Solo
 Gonzalo cierra.
 
-**Estado de la cola al 2026-08-02:** `F1`, `F2` y `F3` cerradas dentro de S1.
-Siguiente iteración `F4`: cerrar S1 con la fusión decidir↔ver — que el criterio
-se decida donde se lee su radiografía, no en otra zona de la pantalla.
+**Estado de la cola al 2026-08-02:** `F1`–`F5` cerraron **S1** (commit
+`73c60e08`); `F6` cerró **S2** (commit `80cb6391`). T1 queda aplicado en
+Criterios y sigue abierto para el resto del módulo.
+
+Siguiente iteración **`F7` (S3)**: la matriz embudo cierra el recorrido. Hoy
+vive como un enlace transversal de 36 px al pie de la pestaña de cursos-horario
+—medido en F1— cuando es el resultado que comprueba todas las decisiones
+previas. Entrega: se lee como cierre (qué recortó cada criterio, en qué orden,
+cuánto queda) y hereda la escala compartida de S1/S2.
 
 ## Mecánica de cada iteración
 
