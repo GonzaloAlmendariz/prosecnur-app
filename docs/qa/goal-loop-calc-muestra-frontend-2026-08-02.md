@@ -1545,6 +1545,42 @@ acredita» leyendo la superficie. Era verdad y era inútil —la causa estaba a 
 `curl` de distancia—. Preguntarle al motor antes de teorizar sobre la superficie
 habría ahorrado dos iteraciones.
 
+### F35 — El bloqueo sin salida (2026-08-02) · **hallazgo mayor**
+
+Al intentar lo que F34 recomienda —reconfirmar Alumnos por CH y comparar de
+nuevo— aparece el defecto de fondo. Medido en la misma vuelta, lado a lado:
+
+| | dice |
+|---|---|
+| **Superficie** | «Decisión vigente» · botón **Confirmar decisión deshabilitado** |
+| **Motor** | `409 E_CALC_MUESTRA_ALUMNOS_CH_DECISION` · `reason: decision_stale` · «recalcula y vuelve a generar» |
+
+**El usuario no tiene salida.** La app le dice que no hay nada que confirmar; el
+motor se niega a comparar hasta que confirme. Cada lado es coherente consigo
+mismo y juntos forman un callejón: Simulación, Titulares, Reemplazos y Sustento
+quedan inalcanzables por diseño, no por falta de datos.
+
+Esto explica de golpe todo lo que este loop venía tropezando: F31 leyó «no se
+acredita» y lo atribuyó a la corrida; F34 encontró el 409 y lo trató como un
+mensaje mal elegido. Ninguna de las dos era la causa. **La causa es que dos
+componentes discrepan sobre qué hace vigente a una decisión**, y el frontend
+—que sólo presenta y valida— no puede arbitrar esa discrepancia sin inventar
+criterio.
+
+**Reparto:**
+- **Loop v2 (motor)**: alinear el criterio de vigencia. O la firma que el motor
+  compara es la misma que la superficie evalúa con
+  `alumnosPorChDecisionIsCurrent`, o el 409 debe decir **qué** cambió —hoy dice
+  que cambió, no qué—.
+- **Frontend (F36)**: la salida de emergencia. Cuando el motor reporta
+  `decision_stale`, «Confirmar decisión» debe habilitarse aunque el borrador
+  coincida: refirmar deja de ser un no-op cuando es exactamente lo que
+  desbloquea. Hoy el deshabilitado existe para evitar un gesto inútil y acaba
+  cerrando el único gesto útil.
+
+Notado también: el 409 llega tras esperar **63 simulaciones**. El chequeo de
+vigencia debería correr antes de encolar el job, no después de gastarlo.
+
 ### Cierre de la sesión
 
 | | |
@@ -1564,7 +1600,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F35 — reconfirmar Alumnos por CH y comparar de nuevo, para abrir por fin Simulación, Titulares, Reemplazos y Sustento con dato real**
+Siguiente, en orden: **F36 — la salida de emergencia: habilitar la refirma cuando el motor reporta `decision_stale`**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
