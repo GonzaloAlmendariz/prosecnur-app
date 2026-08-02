@@ -145,6 +145,21 @@ describe("ADR 0057 · lenguaje y transparencia", () => {
     }
   });
 
+  it("la unidad se llama siempre «curso-horario», nunca «aula»", () => {
+    // Medido: 3 «aulas» contra 60 «cursos-horario» en la misma superficie. Un
+    // sinónimo suelto obliga a preguntarse si nombra otra cosa —y en este
+    // módulo «aula» sí fue otra cosa en versiones anteriores—.
+    const vistas = [
+      "marco/AulasFinalesCard.tsx",
+      "marco/FacultadDecisionBloque.tsx",
+      "marco/FacultadRadiografiaCard.tsx",
+    ];
+    for (const archivo of vistas) {
+      const textos = leer(archivo).match(/>[^<>{}]*\baulas?\b[^<>{}]*</gi) ?? [];
+      expect(textos, `${archivo}: ${textos.join(" | ")}`).toHaveLength(0);
+    }
+  });
+
   it("no se muestra el contrato interno del motor al usuario", () => {
     for (const archivo of superficies) {
       const fuente = leer(archivo);

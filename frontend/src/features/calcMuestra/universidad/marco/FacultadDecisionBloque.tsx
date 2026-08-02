@@ -351,7 +351,7 @@ function MinFacultadCard({
           <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
             {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
-          <strong>Mínimo de elegibles por aula</strong>
+          <strong>Mínimo de elegibles por curso-horario</strong>
         </span>
         <span className="cmv2-chfp-crit-state" data-decision={propio != null ? "propia" : "hereda"}>
           {propio != null ? `Propio: ≥ ${fmtInt(propio)}` : `Por defecto: ≥ ${fmtInt(umbralGeneral)}`}
@@ -401,7 +401,7 @@ function MinFacultadCard({
                 <i className="cmv2-chfp-min-escala-corte" style={{ left: `${pos(base)}%` }} />
               </div>
               <p className="cmv2-chfp-min-dist">
-                Elegibles por aula aquí: mediana <strong>{fmtDec(mediana!, 0)}</strong>
+                Elegibles por curso-horario aquí: mediana <strong>{fmtDec(mediana!, 0)}</strong>
                 {media != null ? `, media ${fmtDec(media, 0)}` : ""} · rango {fmtInt(distMin!)}–{fmtInt(distMax!)}.
                 {minimoAlto ? (
                   <span className="cmv2-chfp-min-alerta">
@@ -686,7 +686,7 @@ export function FacultadDecisionBloque({
             {/* Bisagra del embudo: cuántas aulas quedan con los filtros
                 generales, antes de la decisión más particular (el tipo). */}
             <p className="cmv2-chfp-bisagra" role="note">
-              <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} aulas candidatas
+              <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} cursos-horario candidatos
               con estos criterios · ahora decide el <em>tipo de curso</em>
             </p>
             {sessionVar ? (

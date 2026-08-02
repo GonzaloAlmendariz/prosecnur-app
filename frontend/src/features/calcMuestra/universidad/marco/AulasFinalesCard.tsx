@@ -99,13 +99,19 @@ export function AulasFinalesCard({
               <input
                 type="search"
                 value={q}
-                placeholder="Buscar curso o docente…"
+                placeholder="Buscar curso-horario o docente…"
                 aria-label="Buscar curso-horario"
                 onChange={(e) => setQ(e.target.value)}
               />
             </span>
             <span className="cmv2-aulas-finales-meta">
-              {filtradas.length === total ? `${total} aulas` : `${filtradas.length} de ${total}`}
+              {/* La casa dice «cursos-horario»; esta tarjeta decía «aulas» en
+                  la misma pantalla donde el término aparece 60 veces bien
+                  escrito. Un sinónimo suelto obliga a preguntarse si nombra otra
+                  cosa. */}
+              {filtradas.length === total
+                ? `${total} cursos-horario`
+                : `${filtradas.length} de ${total}`}
               {propia ? (
                 <button
                   type="button"

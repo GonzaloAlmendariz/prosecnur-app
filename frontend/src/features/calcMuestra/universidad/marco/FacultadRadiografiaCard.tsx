@@ -121,7 +121,7 @@ export function FacultadRadiografiaCard({
         {verResumen && (
         <p className="cmv2-radiografia-sobreviven">
           <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} cursos-horario
-          quedan como aulas candidatas con los criterios vigentes
+          siguen siendo candidatos con los criterios vigentes
           {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} elegibles/aula` : ""}
         </p>
         )}
@@ -170,7 +170,7 @@ export function FacultadRadiografiaCard({
               <th>Nivel del curso</th>
               <th data-numeric="true">CH</th>
               <th data-numeric="true">Elegibles</th>
-              <th data-numeric="true">Med/aula</th>
+              <th data-numeric="true">Mediana por CH</th>
             </tr>
           </thead>
           <tbody>
