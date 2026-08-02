@@ -184,7 +184,7 @@ export function CriterioFacultadRadiografia({
           <div className="cmv2-crc-inline-empty" role={invalid ? "alert" : "status"}>
             {invalid
               ? facultyCard.issue ?? "La tarjeta no cumple el contrato y sus filas quedan retenidas."
-              : "R publicó el gate, pero no hay un segmento estadístico visible para esta facultad."}
+              : "El motor calculó este criterio, pero no publicó ninguna categoría con datos para esta facultad."}
           </div>
         )}
 
