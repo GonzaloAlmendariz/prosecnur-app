@@ -150,7 +150,9 @@ describe("CalculoDistribucionTab", () => {
     expect(html).toContain("owner · engine_r");
     expect(html).toContain("Población × cuota planificada por facultad y sexo");
     expect(html).toContain("Cuotas objetivo planificadas");
-    expect(html).toContain("Δ frame→diseño -2");
+    // ADR 0057 · «frame» es la palabra del motor; la app dice «marco» en todas
+    // partes. Y una diferencia sin unidad no se puede leer: son estudiantes.
+    expect(html).toContain("Diferencia marco → diseño: -2 estudiantes");
     expect(html).not.toContain("muestra observada");
     expect(html).toContain('data-audit-ready="true"');
   });
@@ -175,7 +177,7 @@ describe("CalculoDistribucionTab", () => {
   it.each([
     ["empty", null, FRAME_HASH, "Aún no hay una distribución calculada"],
     ["legacy", { n_teorico: 10 } as CalcMuestraResultado, FRAME_HASH, "Esta corrida usa el contrato anterior"],
-    ["stale", result("p1_universidad"), "otro-frame", "La distribución pertenece a otro frame"],
+    ["stale", result("p1_universidad"), "otro-frame", "La distribución pertenece a otro marco"],
     ["invalid", {
       distribucion_universitaria: {
         status: "incompatible",

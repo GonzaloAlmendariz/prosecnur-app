@@ -88,7 +88,7 @@ export function AlumnosPorChMarcoTab({
         </header>
         <AvisoModulo tone={rawSnapshot ? "warn" : "info"} role="status">
           {rawSnapshot
-            ? "La distribución no acredita todas las unidades o pertenece a otro frame. Reconstruye el marco; no se aplicará ningún fallback en React."
+            ? "La distribución no acredita todas las unidades o pertenece a otro marco. Reconstruye el marco; React no rellenará ningún valor por su cuenta."
             : "Reconstruye el marco para obtener media, P25 y mediana por facultad antes de elegir el valor de alumnos por CH."}
         </AvisoModulo>
       </section>
@@ -162,9 +162,9 @@ export function AlumnosPorChMarcoTab({
 
         <AvisoModulo tone={stale ? "warn" : current ? "success" : "info"} role="status" compact>
           {stale
-            ? "La decisión guardada firma otro frame. Revísala y confirma de nuevo para invalidar y recalcular los resultados dependientes."
+            ? "La decisión guardada firma otro marco. Revísala y confirma de nuevo para recalcular los resultados que dependen de ella."
             : current
-              ? `Decisión confirmada para el frame ${snapshot.frame_hash.slice(0, 10)}.`
+              ? `Decisión confirmada para el marco ${snapshot.frame_hash.slice(0, 10)}.`
               : "La propuesta aún no está confirmada. P25 es la recomendación provisional por su lectura conservadora."}
         </AvisoModulo>
 

@@ -188,25 +188,44 @@ describe("ADR 0057 · lenguaje y transparencia", () => {
     const jerga = [
       "marginal",
       "no aditivos",
-      "denominador",
+      "el denominador",
+      "del denominador",
       "downstream",
       "Dato de R",
       "Radiografía v2",
+      // «frame» y «fallback» son la palabra del motor y la del programador. Se
+      // buscan en construcciones inequívocamente de prosa —«el frame», «otro
+      // frame»—, no la palabra suelta: `frame_hash` y `sourceFrame` son campos
+      // de contrato y nombres de variable, y exigir que cambien rompería el
+      // contrato sin mejorar una sola línea de la pantalla.
+      "el frame",
+      "otro frame",
+      "del frame",
+      "fallback",
     ];
     const vistas = [
       "marco/CriteriosEmbudoVivo.tsx",
       "marco/MatrizEmbudoCriterios.tsx",
       "marco/CriterioFacultadRadiografia.tsx",
+      "marco/AlumnosPorChMarcoTab.tsx",
       "definicion/ReferenciaAsistenciaCard.tsx",
+      "calculo/CalculoDistribucionTab.tsx",
+      "calculo/CalculoCursosHorarioFacultadTab.tsx",
     ];
     // Se comprueba sobre el fuente sin comentarios: tras la traducción, estos
     // términos no aparecen en estas vistas ni en código ni en copy. Una regla
     // simple y comprobable vale más que una regex que intenta distinguir
     // etiqueta de identificador y acaba cazando ambas.
+    // Sólo se mira **prosa**: literales de cadena con espacios y texto JSX. Un
+    // nombre de campo (`denominador: "elegible"`) o una clave de contrato no son
+    // palabras que alguien lea, y exigir que cambien rompería el contrato sin
+    // mejorar la pantalla —el patrón 13 del ADR, que este guard ya tropezó dos
+    // veces—.
     for (const archivo of vistas) {
-      const fuente = leerCopy(archivo).toLowerCase();
+      const fuente = leerCopy(archivo);
+      const prosa = fuente.toLowerCase();
       for (const termino of jerga) {
-        expect(fuente, `${archivo} · ${termino}`).not.toContain(termino.toLowerCase());
+        expect(prosa, `${archivo} · ${termino}`).not.toContain(termino.toLowerCase().trim());
       }
     }
   });

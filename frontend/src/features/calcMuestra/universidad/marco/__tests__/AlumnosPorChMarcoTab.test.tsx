@@ -110,7 +110,11 @@ describe("AlumnosPorChMarcoTab", () => {
     const html = renderToStaticMarkup(
       <AlumnosPorChMarcoTab workspace={workspace} aulasState={invalid} onConfirmDecision={vi.fn()} />,
     );
-    expect(html).toContain("no se aplicará ningún fallback en React");
+    // ADR 0057 · «frame» y «fallback en React» son vocabulario de implementación.
+    // La garantía es la misma —React no inventa valores— dicha sin exigir saber
+    // qué es un fallback.
+    expect(html).toContain("React no rellenará ningún valor por su cuenta");
+    expect(html).not.toContain("frame");
     expect(html).not.toContain("Confirmar decisión");
   });
 
