@@ -1853,12 +1853,45 @@ Si esa altura resulta excesiva en uso real, la palanca ya no es esconder sino
 decidir cuántos segmentos merecen gráfico propio —y esa es una decisión de
 producto, no una reparación—.
 
-### F44 — El embudo no es activo: medido, no supuesto (2026-08-02)
+### F45 — Corrección de F44: el embudo SÍ es activo; lo que falla es el motor
+
+**F44 está mal y la corrijo entera.** Concluí «el embudo no es activo» porque
+las cifras no cambiaban al conmutar un criterio. Medí el efecto y no el
+mecanismo, que es el error de método que llevo toda la sesión cometiendo.
+
+Al instrumentar `fetch` aparece lo que de verdad pasa:
+
+| | |
+|---|---|
+| ¿La UI pide el recálculo? | **sí**: **7 llamadas** a `/api/calc-muestra/marco/criterios/preview` por cada cambio de criterio |
+| ¿Qué responde el motor? | **409 `E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE`** · «El preview requiere el contexto transitorio del marco y criterios vigentes» |
+| ¿La superficie lo oculta? | **no**: 7 avisos `data-state="stale"` visibles, y conserva la última cascada ejecutada |
+
+Es decir: **el punto 5 ya está implementado en el frontend y se comporta bien**
+—pide, falla, lo dice y no inventa—. Lo que impide que los gráficos se
+actualicen es que el motor rechaza cada preview por falta de contexto
+transitorio. Eso es trabajo de motor, y ahora está localizado con su código de
+error, no descrito como una sensación.
+
+Estuve además a punto de escribir un segundo error: al ver «0 CH · 0 matrículas ·
+0 estudiantes únicos» pensé que la app fabricaba ceros ante un fallo. No: son los
+valores reales de la cascada ejecutada para esa facultad en el instrumento
+sembrado, y el fallo del preview se anuncia aparte. **Verificar antes de acusar
+evitó convertir una superficie honesta en un defecto inventado.**
+
+**Deuda real que queda, ya del tamaño correcto:**
+
+1. **Motor**: el preview necesita el contexto transitorio; hoy 409 siempre.
+2. **Frontend, menor**: el aviso dice «El marco cambió mientras se calculaba el
+   preview», que no es lo que ocurrió —el motor pidió contexto transitorio—. El
+   mensaje debe reflejar el código recibido y no una causa supuesta.
+
+### F44 — El embudo no es activo (2026-08-02) · **CORREGIDA POR F45**
 
 Punto 5 de la dirección: «el embudo es activo y animado, si cambio un criterio
 previo luego los gráficos del siguiente criterio se actualizan».
 
-**No ocurre.** Prueba en la app, con el control y el resultado por separado para
+**Conclusión errónea, ver F45.** Prueba en la app, con el control y el resultado por separado para
 que la evidencia sea falsable:
 
 | | |
