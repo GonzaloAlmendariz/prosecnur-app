@@ -2058,6 +2058,37 @@ tasa ni dibujar caja sin distribución—.
 es la siguiente iteración, y es la que importa según ADR 0057, porque allí es
 donde todos los criterios son por facultad.
 
+### F49 — La evidencia llega a la ruta que importa (ADR 0057)
+
+F48 dejó la tarjeta de categoría viva sólo en la ruta de estudiante. Esta
+iteración la lleva a **curso-horario**, que es donde el ADR dice que todos los
+criterios son por facultad.
+
+La pieza nueva es el puente: `evidenciaPorCategoria()` une la radiografía —una
+fila por (facultad × segmento), con su distribución— con el conmutador, que vive
+en la categoría. Sin él cada uno miraba su mitad.
+
+**El join es por el par, no por el segmento.** Cruzar sólo por segmento
+arrastraría la distribución de otra facultad a la tarjeta abierta; el guard lo
+fija con dos facultades que comparten la categoría «presencial» y medias muy
+distintas (22 y 99), de modo que un cruce mal hecho falla con un número
+reconocible en vez de con un fallo abstracto.
+
+| | antes → después |
+|---|---:|
+| Ejes declarados en curso-horario | 0 → **3** |
+| Cajas sobre escala común | 0 → **13** |
+| Bloques de cuantiles | 0 → **18** |
+| Desbordes | 0 → **0** |
+| Vitest | 820 → **824** en 98 archivos |
+
+«Presentes esperados» sale 0 y es correcto: este instrumento no tiene tasa de
+asistencia configurada, y el guard exige que sin tasa no se estime. Es la regla
+de la casa —React presenta, no calcula— aplicada al caso más tentador.
+
+**Siguiente**: la regla 2 del ADR —la matriz pertenece al Panorama por facultad,
+no a un bloque aparte— y el bug de categorías que mezclan nombres de personas.
+
 ### Estado del loop
 
 | | |
