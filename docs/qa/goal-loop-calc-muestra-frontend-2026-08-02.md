@@ -1706,11 +1706,58 @@ instrumento: **antes de declarar que algo falta, medir el documento, no el
 panel**. Las tres veces el error apuntaba en la misma dirección —creer que falta
 algo que sí está—, que es la dirección que produce trabajo inútil.
 
+### F40 — Corrección de rumbo de Gonzalo (2026-08-02)
+
+Dirección nueva, y varias cosas de F24–F26 iban en contra. Se cita entera porque
+reescribe la vara:
+
+> «La decisión de criterios de estudiantes por facultad no tiene sentido, allí
+> siempre es general. Además no es necesaria la radiografía: la radiografía es la
+> descripción de alumnos elegibles por alguna característica de curso-horario,
+> tomando en cuenta los criterios anteriores. Los criterios con switch de
+> selección tienen que ser uno con los gráficos, son un todo. El embudo es activo
+> y animado: si cambio un criterio previo, los gráficos del siguiente se
+> actualizan. Toda la información debe estar mostrada de forma profesional, no
+> técnica; **si algo está oculto es un error de diseño**.»
+
+**Lo que hice mal**: llevé el grano por facultad a los criterios de estudiante,
+que son generales por naturaleza, y monté la radiografía dentro de sus tarjetas.
+El grano por facultad sí valía —pero para los criterios de curso-horario, no para
+estos—.
+
+**Primera corrección, medida:**
+
+| | antes → después |
+|---|---:|
+| Elementos plegados en la pestaña | **637** → **0** |
+| Alto de la superficie | 5,6 → **2,3 pantallas** |
+| Bloques por facultad en criterios de estudiante | 3 → **0** |
+| Desbordes | 0 → **0** |
+
+Los 637 `<details>` cerrados son la medida exacta de «si algo está oculto es un
+error de diseño»: la mayoría ni siquiera tenía título. El contrato quedó fijado
+al revés de como estaba —el test exige ahora que la ruta de estudiante **no**
+lleve radiografía, ni excepciones, ni un solo `<details>`—.
+
+**Cola de esta dirección, por ejecutar en orden:**
+
+1. **Orden de los criterios de curso-horario**: mínimo de matriculados primero;
+   Elegibles por CH y Composición como penúltimos; el mayor detalle —ver uno por
+   uno— al final.
+2. **«Panorama por facultad» al inicio**, junto a la matriz de criterios.
+3. **Selector de facultad en vez de acordeón**: mostrar una facultad a la vez
+   permite más alto y más detalle, y elimina el plegado.
+4. **Switch y gráfico como una sola pieza**, no dos bloques vecinos.
+5. **Embudo activo**: cambiar un criterio previo actualiza los gráficos del
+   siguiente.
+6. **Quitar lo técnico**: nada de «trazabilidad completa» ni secciones que sólo
+   se entienden por dentro.
+
 ### Estado del loop
 
 | | |
 |---|---|
-| Superficies por la vara | **24 de 24**, reauditadas con la vara del grano |
+| Superficies por la vara | **la vara cambió con F40**: se reaudita con «nada oculto» y el grano correcto por tipo de criterio |
 | Desbordes en el módulo | **0** a 1440×1000 y 1024×600 |
 | Contenedores que esconden su profundidad | **0** |
 | Lotes cerrados | **12 de 13** (S1–S7, S9–S13) + T1, T4, T6, T7, D10 |

@@ -19,7 +19,7 @@ import { resumenVariable, seleccionVariable, unidadCriterio } from "../../domini
 import { fmtInt } from "../../sharedCore";
 import { CondicionCursoAviso } from "./CondicionCursoAviso";
 import { ControlFlat, ControlHierarchical, ControlNumeric, ControlOrdinal } from "./controles";
-import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "./facultades";
+import { ControlRange, type FacultadRef } from "./facultades";
 import { TeacherTypeOrden } from "./TeacherTypeOrden";
 import { SESSION_TYPE_VARIABLE_ID } from "./tipoSesionModel";
 import { TipoSesionPorFacultad } from "./TipoSesionPorFacultad";
@@ -178,17 +178,6 @@ export function CriterioCard({
         ) : null}
         {variable.kind === "numeric" && <ControlNumeric variable={variable} sel={sel} onSel={onSel} />}
         {variable.kind === "ordinal" && <ControlOrdinal variable={variable} sel={sel} onSel={onSel} />}
-        {/* F25 · Grano declarado. Los criterios categóricos y de rango se
-            deciden facultad por facultad; edad y ciclo no, porque `exceptions`
-            transporta solo categorías y no `threshold`/`includeValues`. Callarlo
-            los hacía parecer del mismo grano que los de arriba. Se dice, y se
-            dice por qué, hasta que el motor acepte el grano fino. */}
-        {(variable.kind === "numeric" || variable.kind === "ordinal") && (
-          <p className="cmv2-crit-grano" role="note">
-            Este criterio aplica <strong>igual en las {facultades.length} facultades</strong>:
-            el motor todavía no admite un umbral distinto por facultad.
-          </p>
-        )}
         {variable.kind === "range" && (
           <ControlRange variable={variable} seleccion={seleccion} facultades={facultades} onRango={onRango} />
         )}
@@ -208,21 +197,6 @@ export function CriterioCard({
           sessionTypeDominante={sessionTypeDominante}
           onVerExplorador={onVerExplorador}
         />
-      ) : (
-        (variable.kind === "flat" || variable.kind === "hierarchical") && (
-          <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
-        )
-      )}
-
-      {/* La evidencia vive en la tarjeta que decide, pero abrir las cinco a la
-          vez empujaba los demás criterios fuera de pantalla (39.073 px). Se
-          abre sola mientras la variable está en edición —que es cuando se
-          decide— y se pliega cuando ya está confirmada. */}
-      {radiografia ? (
-        <details className="cmv2-crit-card-radiografia" open={pendiente}>
-          <summary>Radiografía por facultad de {variable.label.toLocaleLowerCase("es")}</summary>
-          {radiografia}
-        </details>
       ) : null}
 
       {pendiente ? (

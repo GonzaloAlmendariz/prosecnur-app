@@ -616,11 +616,17 @@ describe("superficie I18b de criterios", () => {
 
     const studentRoute = renderToStaticMarkup(<CriteriosMarcoTab {...common} scope="alumno" />);
     const classroomRoute = renderToStaticMarkup(<CursosHorarioMarcoTab {...common} />);
-    expect(studentRoute).toContain('role="img"');
-    expect(studentRoute).toContain("Total recalculado por R");
-    expect(studentRoute).toContain("Cascada secuencial");
-    expect(studentRoute).toContain("Ancla histórica");
-    expect(studentRoute).toContain('data-match-level="exacta"');
+    // F40 · Los criterios de estudiante son GENERALES y no llevan radiografía.
+    //
+    // La radiografía describe elegibles según una característica del
+    // curso-horario, tomando en cuenta los criterios previos: pertenece a la
+    // ruta de curso-horario, no a la de estudiante. Montarla aquí metía 637
+    // elementos plegados en la pestaña y sugería una decisión por facultad que
+    // en estos criterios no existe.
+    expect(studentRoute).not.toContain('role="img"');
+    expect(studentRoute).not.toContain("Radiografía por facultad");
+    expect(studentRoute).not.toContain("cmv2-crit-exc");
+    expect(studentRoute).not.toContain("<details");
 
     expect(classroomRoute).not.toContain("Radiografía antes de decidir");
     expect(classroomRoute).toContain('aria-label="Radiografía de session_type en Ingeniería"');

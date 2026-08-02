@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { FileText } from "lucide-react";
+
 import { AulasStageNotice } from "../aulasSurfaceState";
 
 /**
@@ -14,6 +16,7 @@ import { AulasStageNotice } from "../aulasSurfaceState";
  */
 const notice = {
   kind: "missing-selection" as const,
+  icon: FileText,
   eyebrow: "Selección",
   title: "La selección almacenada no es vigente",
   detail: "Regenera titulares sin relajar la validación.",
