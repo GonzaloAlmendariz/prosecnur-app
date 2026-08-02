@@ -908,9 +908,20 @@ que depende de `estudio.componentes` y vuelve a escribir el workspace con
 ve cambio, así que el autosave nunca se dispara: **0 peticiones**, que es
 exactamente lo medido.
 
-F14 tiene por tanto un objetivo concreto, no una búsqueda: que la confirmación
-y la invalidación de componentes no se pisen, con un test que falle si el
-workspace vuelve a perder la decisión al invalidar.
+**Excluido también `reconcileUniversityAulasTarget`**: reconstruye la config
+con `normalizeUniversityAulasConfig`, que conserva la decisión. No es el que la
+borra.
+
+Lo que queda acotado para F14, con lo descartado escrito para no repetirlo:
+
+- ✅ descartado: normalizador TS, handoff, `reconcileUniversityAulasTarget`, y
+  el motor R (se comporta bien: falla cerrado ante una decisión vacía).
+- ❓ pendiente de aislar: por qué `onWorkspace(next.workspace)` no acaba en un
+  `POST /api/calc-muestra/estudio`. Candidatos vivos: el guardián
+  `setWorkspaceSiCambia` comparando contra un estado ya normalizado, o el
+  autosave que no observa el cambio de `aulas_config`.
+- El test que cierra F14: pulsar «Confirmar decisión» debe dejar la decisión
+  con `schema` y `frame_hash` no vacíos en el workspace persistido.
 
 **Es superficie, no motor**: el contrato R se comporta bien. Va como lote
 propio y **es el siguiente**, porque desbloquea siete superficies del plan.
