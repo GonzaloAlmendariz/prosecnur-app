@@ -342,11 +342,11 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **19 de 24** (+ las cuatro de Entrega) | 24 de 24 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **23 de 24** (+ Entrega y Selección) | 24 de 24 |
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **9 de 13** (S1–S7, S12, S13) + T1, **T6, T7**, T4 desbloqueada, **D10 ejecutada** | 13 + 7 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **12 de 13** (S1–S7, S9–S13) + T1, **T6, T7**, T4 desbloqueada, **D10 ejecutada** | 13 + 7 |
 | Superficies bloqueadas por no poder ejecutar el cálculo | **7** | **0**; el cálculo publica resultado completo | 0 |
 | Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **0** | 0 |
 | Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
@@ -1189,12 +1189,41 @@ los absolutos de S5 y el conteo de prosa de F1— y la misma lección otra vez:
 *el instrumento de medida también se audita*. Filtrando nodos no-HTML, los
 desbordes reales son **0**.
 
+### F22 — Selección auditada cerrada (S9–S11, 2026-08-02)
+
+El comparador seguía corriendo, así que las cuatro superficies se auditaron **en
+su estado cerrado**: la tercera prueba de la vara —la del hueco— se juzga
+exactamente ahí. Las cuatro contienen su vacío, lo nombran y dan la salida; 0
+desbordes HTML.
+
+| superficie | alto | palabras | hueco nombrado | salida |
+|---|---:|---:|:--:|---|
+| Simulación | 1,0 | 39 | sí | Comparar métodos (local) |
+| Cursos-horario titulares | 1,0 | 132 | sí | Ir a Método |
+| Reemplazos | 1,0 | 108 | sí | Ir a Método |
+| Sustento técnico | 1,9 → **1,7** | 353 → **334** | sí | Ir a Método |
+
+Dos hallazgos, uno descartado por lectura y otro reparado:
+
+- **Descartado**: «Comparar métodos» en Simulación y «Ir a Método» en las otras
+  parecía vocabulario inconsistente. No lo es: en Método y Simulación la acción
+  corre la comparación ahí mismo y en las demás navega. Dos acciones, dos
+  verbos. *Leer el código antes de repararlo evitó el arreglo equivocado* —la
+  misma lección de F2.
+- **Reparado**: Sustento declaraba el hueco **dos veces** a 96 px de distancia
+  —el aviso de etapa y la caja «Sustento en construcción»—. Manda el aviso, que
+  nombra la condición exacta y lleva a resolverla. La caja sobrevive solo para
+  el caso sin aviso (evidencia parcial), donde las fórmulas quedarían sin
+  explicar por qué están sin valores. Guard: `AulasAuditoriaTab.test.tsx`, que
+  exige el destino en el copy y no el control, porque `missing-frame` da su
+  salida en prosa.
+
 ### Cierre de la sesión
 
 | | |
 |---|---|
 | Superficies por la vara | **19 de 24** |
-| Lotes cerrados | **9 de 13** (S1–S7, S12, S13) + T1, T4, T6, T7 y D10 |
+| Lotes cerrados | **12 de 13** (S1–S7, S9–S13) + T1, T4, T6, T7 y D10 |
 | Pendiente | **S9–S11 (Selección)**: Método ya pasa; Simulación, Selección, Reemplazos y Sustento esperan la corrida del comparador de métodos, lanzada en esta sesión (job `f8df413b`, 21 corridas de simulación) |
 
 Lo que la próxima visita encuentra hecho: el instrumento llega de punta a punta

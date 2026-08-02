@@ -215,4 +215,21 @@ describe("AulasAuditoriaTab — vigencia de la selección", () => {
       'data-respaldo-metodologico="aulas"',
     );
   });
+
+  // F22 · Prueba del hueco: se declara una vez, no dos.
+  // Sin comparación vigente, el aviso de etapa y la caja «Sustento en
+  // construcción» decían lo mismo a 96 px de distancia. El aviso manda porque
+  // nombra la condición y lleva a resolverla; la caja solo se repetía.
+  it("no repite el hueco cuando el aviso de etapa ya lo declara", () => {
+    const html = render("misma-firma", "misma-firma");
+    const tieneAviso = html.includes("cmv2-aulas-stage-notice");
+    expect(tieneAviso).toBe(true);
+    expect(html).not.toContain("Sustento en construcción");
+    // Y la salida sigue estando: quitar el duplicado no puede quitar el camino.
+    // La salida no siempre es un botón —`missing-frame` la da en su copy, que
+    // manda a Marco → Cursos-horario—, así que se exige el destino, no el
+    // control.
+    const copy = html.slice(html.indexOf("cmv2-aulas-stage-copy"));
+    expect(copy.slice(0, 400)).toMatch(/Marco|Método|Compara|Selecci/);
+  });
 });

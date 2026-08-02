@@ -87,7 +87,15 @@ export function AulasAuditoriaTab({
           <div className="cmv2-subhead">
             <strong>Fórmulas del diseño</strong>
           </div>
-          {!hasEvidence && (
+          {/* F22 · Un hueco se declara una sola vez.
+              Medido con el instrumento sin comparación vigente: el aviso de
+              etapa (40 palabras, con su salida a Método) y esta caja decían lo
+              mismo a 96 px de distancia. Cuando el aviso está, él manda: es el
+              que nombra la condición exacta y lleva a resolverla. Esta caja
+              sobrevive para el caso en que no hay aviso —evidencia parcial que
+              no dispara condición de etapa— y las fórmulas quedarían sin
+              explicar por qué están sin valores. */}
+          {!hasEvidence && !stageNotice && (
             <div className="cmv2-classroom-empty is-compact">
               <span><FileText size={16} /></span>
               <div>
