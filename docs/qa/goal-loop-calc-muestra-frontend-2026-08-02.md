@@ -1427,6 +1427,22 @@ acotar no es esconder. Guard: `CursosHorarioSexoProfundidad.test.tsx`, con el
 tercer caso cuidando que una lista que **sí** cabe no se anuncie ni se recorte,
 porque un pie de profundidad sobre 8 filas sería el ruido que este loop combate.
 
+### F30 — El vuelco de F29 era único, no sistémico (2026-08-02)
+
+Barrido de **nueve superficies** buscando el patrón que F29 destapó: todo
+contenedor deslizable cuyo contenido supere 4× su ventana.
+
+**Resultado: cero.** Ningún otro contenedor del módulo esconde su profundidad.
+El de `cmv2-ch-sexo-scroll` era el único, y ya está reparado.
+
+Iteración sin reparación otra vez, y otra vez ese es el resultado: sin el
+barrido, la pregunta «¿cuántos más habrá así?» quedaba abierta y la próxima
+pasada la habría vuelto a abrir. Ahora la medida existe —contenido/ventana > 4—
+y puede repetirse en un comando.
+
+**Cierre del tramo**: la reauditoría con la vara del grano cubre **S1–S4 y las
+superficies de Definición, Cálculo y Entrega**, todas con 0 desbordes.
+
 ### Cierre de la sesión
 
 | | |
@@ -1446,7 +1462,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F30 — barrer el resto de contenedores deslizables con la medida de profundidad de F29**
+Siguiente, en orden: **F31 — reauditar Selección (S9–S11) con dato real cuando el comparador termine**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
