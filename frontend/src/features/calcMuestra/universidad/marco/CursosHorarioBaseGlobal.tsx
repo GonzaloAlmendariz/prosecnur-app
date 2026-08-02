@@ -27,7 +27,7 @@ import {
   ControlNumeric,
   ControlOrdinal,
 } from "../criterios/controles";
-import { ControlRange, type FacultadRef } from "../criterios/facultades";
+import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "../criterios/facultades";
 import { TeacherTypeOrden } from "../criterios/TeacherTypeOrden";
 import { CriterioComposicionCard } from "../criterios/CriterioComposicionCard";
 import { CondicionCursoAviso } from "../criterios/CondicionCursoAviso";
@@ -135,6 +135,19 @@ function GlobalCriterioCard({
         {variable.kind === "ordinal" && <ControlOrdinal variable={variable} sel={sel} onSel={onSel} />}
         {variable.kind === "range" && (
           <ControlRange variable={variable} seleccion={seleccion} facultades={facultades} onRango={onRango} />
+        )}
+        {/* F26 · Los criterios de curso-horario eran una implementación paralela
+            de la tarjeta de estudiante y se habían quedado sin el grano por
+            facultad, aunque el contrato lo admite igual que allá. Mismo control
+            y misma estructura persistida (`exceptions[facKey]`). */}
+        {(variable.kind === "flat" || variable.kind === "hierarchical") && (
+          <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
+        )}
+        {(variable.kind === "numeric" || variable.kind === "ordinal") && (
+          <p className="cmv2-crit-grano" role="note">
+            Este criterio aplica <strong>igual en las {facultades.length} facultades</strong>:
+            el motor todavía no admite un umbral distinto por facultad.
+          </p>
         )}
       </div>
     </article>
