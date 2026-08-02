@@ -869,15 +869,51 @@
 .cmv2-crit-exc-body { display: grid; gap: 8px; }
 
 .cmv2-crit-exc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+/* F24 · La fila pasó a tener dos hijos apilados —la línea de la facultad y sus
+   chips al ajustar—, así que el contenedor deja de ser fila y la fila propia
+   toma ese rol. Mantenerlo en `display:flex` habría puesto los chips al costado
+   y colapsado su ancho: la misma trampa que `.cmv2-crc-signal`. */
 .cmv2-crit-exc-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  gap: 4px;
   font-size: 11px;
   padding: 4px 6px;
   border-radius: 6px;
   background: color-mix(in srgb, var(--cmv2-accent-soft) 50%, transparent);
 }
+.cmv2-crit-exc-item[data-propio="true"] {
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 100%, transparent);
+  box-shadow: inset 2px 0 0 var(--cmv2-accent);
+}
+/* Facultad · lo que aplica · procedencia · control: la procedencia y el control
+   miden lo suyo y el set se queda con el resto, que es lo que varía. */
+.cmv2-crit-exc-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) auto auto auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cmv2-crit-exc-fila > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmv2-crit-exc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cmv2-crit-exc-head small { color: var(--pulso-text-muted); font-size: 11px; }
+.cmv2-crit-exc-ajustar {
+  border: 0;
+  background: transparent;
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 5px;
+}
+.cmv2-crit-exc-ajustar:hover { background: var(--cmv2-accent-soft); }
 .cmv2-crit-exc-fac { font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); }
 .cmv2-crit-exc-op { color: var(--pulso-text-muted); }
 .cmv2-crit-exc-cats { color: var(--pulso-text); flex: 1 1 auto; min-width: 0; }
