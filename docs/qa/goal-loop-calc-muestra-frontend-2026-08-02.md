@@ -893,11 +893,24 @@ aguas abajo.
 Descartado en el camino: el normalizador TS
 (`normalizeUniversityAulasConfig`) conserva la decisión con su rama
 *fail-closed* explícita, y el handoff (`applyAlumnosPorChDecision`) la escribe
-sobre la config. La pérdida está entre `onWorkspace(next.workspace)` y el
-autosave —candidatos: el `onInvalidateAulasArtifacts()` /
-`invalidarCursosHorario()` que corren justo después, o una comparación de
-autosave que no ve el cambio—; localizarlo exige una sesión de diagnóstico
-propia.
+sobre la config. Ambos están bien.
+
+**Sospechoso localizado — una carrera, no una pérdida de datos.**
+`confirmarAlumnosPorCh` hace tres cosas seguidas
+([UniversidadDesk.tsx:333](../../frontend/src/features/calcMuestra/universidad/UniversidadDesk.tsx#L333)):
+escribe el workspace con la decisión, **sustituye los componentes** con
+`resultado: null`, e invalida artefactos. Ese cambio de componentes dispara el
+efecto de
+[CalcMuestraPage.tsx:1123](../../frontend/src/features/calcMuestra/CalcMuestraPage.tsx#L1123),
+que depende de `estudio.componentes` y vuelve a escribir el workspace con
+`reconcileUniversityAulasTarget(workspace, …)` — donde `workspace` es el memo
+**anterior**, sin la decisión. El guardián `setWorkspaceSiCambia` compara y no
+ve cambio, así que el autosave nunca se dispara: **0 peticiones**, que es
+exactamente lo medido.
+
+F14 tiene por tanto un objetivo concreto, no una búsqueda: que la confirmación
+y la invalidación de componentes no se pisen, con un test que falle si el
+workspace vuelve a perder la decisión al invalidar.
 
 **Es superficie, no motor**: el contrato R se comporta bien. Va como lote
 propio y **es el siguiente**, porque desbloquea siete superficies del plan.
