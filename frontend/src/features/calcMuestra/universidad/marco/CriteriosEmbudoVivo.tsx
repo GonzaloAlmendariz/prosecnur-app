@@ -100,15 +100,22 @@ export function CriteriosEmbudoVivo({
               <header>
                 <span>Paso {step.order}</span>
                 <strong>{step.label}</strong>
-                {/* ADR 0057 · «gate · aplicado» es vocabulario del motor. Lo
-                    que el usuario necesita saber es si este criterio está
-                    recortando el marco o no. */}
+                {/* ADR 0057 · «gate · aplicado» era vocabulario del motor y se
+                    tradujo a «recorta el marco». Pero `status === "aplicado"`
+                    significa que el criterio **se aplicó**, no que quitara
+                    nada: el Paso 6 mostraba «recorta el marco» junto a su
+                    propia fila «849 → 849 · quedan fuera: ninguno».
+                    Una etiqueta que contradice la cifra de al lado es peor que
+                    la jerga que vino a reemplazar, porque la jerga al menos no
+                    afirmaba nada falso. Ahora la etiqueta la decide el dato. */}
                 <small>
-                  {step.gate
-                    ? step.status === "aplicado"
-                      ? "recorta el marco"
-                      : "no está recortando"
-                    : "no quita cursos-horario"}
+                  {!step.gate
+                    ? "no quita cursos-horario"
+                    : step.status !== "aplicado"
+                      ? "todavía no se aplicó"
+                      : (step.total?.excluded_ch ?? 0) > 0
+                        ? "recorta el marco"
+                        : "se aplicó y no quitó ninguno"}
                 </small>
               </header>
               <div className="cmv2-i18b-cascade-table-wrap">
