@@ -3291,3 +3291,11 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   border-radius: 5px;
 }
 .cmv2-ch-sexo-depth button:hover { background: var(--cmv2-accent-soft); }
+
+/* La unidad de la lista final se declara una vez, no por fila. */
+.cmv2-aulas-finales-unidad {
+  margin: 0 0 6px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-aulas-finales-unidad strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }

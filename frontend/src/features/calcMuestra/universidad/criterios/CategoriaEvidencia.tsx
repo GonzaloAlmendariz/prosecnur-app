@@ -135,7 +135,13 @@ export function CategoriaEvidencia({
     <div className="cmv2-cat-evidencia">
       <div className="cmv2-cat-cifras">
         <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong> CH</span>
-        <span><strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong> alumnos</span>
+        {/* El número es `n_estudiantes_unicos`, no matrículas. En un módulo cuya
+            cabecera muestra ambas cifras por separado —21.362 estudiantes y
+            92.017 matrículas—, rotularlo «alumnos» a secas esconde de qué grano
+            es, que es justo la confusión que este módulo existe para evitar. */}
+        <span title="Estudiantes únicos elegibles: una persona cuenta una vez aunque esté en varios cursos-horario">
+          <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong> estudiantes
+        </span>
         {d?.media != null ? <span><strong>{fmt(d.media)}</strong> por CH</span> : null}
         {presentes != null ? (
           <span className="cmv2-cat-presentes">
