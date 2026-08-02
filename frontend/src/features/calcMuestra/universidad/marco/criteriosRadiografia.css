@@ -188,7 +188,7 @@
 
 .cmv2-crc-root-meta {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
   gap: 6px;
 }
 
@@ -218,7 +218,7 @@
 
 .cmv2-crc-gates {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
   gap: 8px;
 }
 
@@ -248,7 +248,7 @@
 
 .cmv2-crc-gate dl {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(110px, 100%), 1fr));
   gap: 6px 10px;
 }
 
@@ -267,7 +267,7 @@
 
 .cmv2-crc-faculties {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr));
   gap: 10px;
   min-width: 0;
 }
@@ -334,7 +334,7 @@
 
 .cmv2-crc-snapshot-pair {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
   gap: 7px;
 }
 
@@ -353,14 +353,15 @@
   text-transform: uppercase;
 }
 
-/* F8: con la radiografía dentro de la tarjeta del criterio la columna es
-   estrecha, y dos columnas fijas de cifras no caben: 987 desbordes medidos a
-   1024x600. `auto-fit` cae a una columna cuando hace falta, y los rótulos
-   («P50 · mediana», «Alumnos únicos») pueden partir palabra. */
+/* T6 · La radiografía se movió dentro de la tarjeta del criterio (F4) y sus
+   rejillas seguían dimensionadas para la consola de ancho completo: a 1024x600
+   colapsaban columnas a 0 px y dejaban 1.006 elementos desbordados. El patrón
+   es `minmax(min(N, 100%), 1fr)`: mantiene N como aspiración y permite bajar
+   cuando el contenedor no lo tiene. */
 .cmv2-crc-counts,
 .cmv2-crc-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(84px, 100%), 1fr));
   gap: 6px;
 }
 
@@ -393,9 +394,12 @@
   font-weight: var(--pulso-weight-black);
 }
 
+/* T6 · El bloque de señal pasó de `<div>` a `<details>` en F2 y conservó el
+   `display: flex` de la fila de antes: su rejilla de cuantiles quedaba como
+   ítem flex sin ancho intrínseco y colapsaba a 0 px, arrastrando 987 elementos
+   con ancho cero. Como contenedor de un desplegable va en grid. */
 .cmv2-crc-signal {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 4px 10px;
   padding-top: 7px;
   border-top: 1px solid var(--cmv2-border);
