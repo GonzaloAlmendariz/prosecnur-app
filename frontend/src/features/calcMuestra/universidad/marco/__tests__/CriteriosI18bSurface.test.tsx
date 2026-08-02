@@ -643,9 +643,19 @@ describe("superficie I18b de criterios", () => {
     expect(classroomRoute).not.toContain("<details");
     expect(classroomRoute).not.toContain("Ver trazabilidad completa");
     expect(classroomRoute).not.toContain("Procedencia y contrato");
-    expect(classroomRoute.indexOf('aria-label="Decisión por facultad con su radiografía"')).toBeLessThan(
-      classroomRoute.indexOf("Impacto de cada criterio por facultad"),
-    );
+    // ADR 0057, regla 2 · La matriz es parte del Panorama y va ANTES de las
+    // decisiones que informa. Como cierre del recorrido llegaba después de que
+    // ya se hubiera decidido, que es cuando ya no sirve para elegir facultad.
+    // La aserción se invierte a propósito: si alguien la devuelve al final, esto
+    // falla.
+    // Se compara contra los BLOQUES de facultad, no contra la sección que los
+    // contiene: esa sección envuelve también al panorama, así que su etiqueta
+    // aparece antes por construcción y la comparación sería vacua.
+    const posMatriz = classroomRoute.indexOf("Impacto de cada criterio por facultad");
+    const posBloques = classroomRoute.indexOf('class="cmv2-chfp-bloques"');
+    expect(posMatriz).toBeGreaterThan(-1);
+    expect(posBloques).toBeGreaterThan(-1);
+    expect(posMatriz).toBeLessThan(posBloques);
     expect(classroomRoute).toContain('class="cmv2-crc-compact"');
     expect(classroomRoute).toContain('data-context="faculty"');
     expect(classroomRoute).toContain('role="img"');
