@@ -1,6 +1,7 @@
 import { fmtInt } from "../../sharedCore";
 import { UNIVERSITY_AULAS_SELECTOR_OPTIONS } from "../shared/constants";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
+import { canonicalClassroomOperationalCode } from "./classroomOperationalCode";
 
 export function classroomNumberText(row: Record<string, unknown>, keys: string[]) {
   const n = classroomRowNumber(row, keys);
@@ -79,5 +80,5 @@ export function classroomPlanLabel(row: Record<string, unknown>) {
 
 export function classroomOperationalCode(row: Record<string, unknown>, fallback: string) {
   const raw = classroomRowText(row, ["operational_code", "codigo_operativo", "codigo_aula_operativa"]) || fallback;
-  return raw.replace(/^AULA\b/i, "CH");
+  return canonicalClassroomOperationalCode(raw);
 }

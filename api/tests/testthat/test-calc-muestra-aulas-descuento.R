@@ -127,19 +127,80 @@ test_that("fallback honesto: marco sin unique_student_ids degrada a OFF con warn
 test_that("round-trip whitelist: sequential_discount sobrevive el workspace y la config normalizada", {
   # Workspace (PUT -> GET del estudio): whitelist-only.
   ws_on <- .cm_normalize_workspace_aulas_config(list(sequential_discount = TRUE))
-  ws_off <- .cm_normalize_workspace_aulas_config(list())
+  ws_default <- .cm_normalize_workspace_aulas_config(list())
+  ws_off <- .cm_normalize_workspace_aulas_config(list(sequential_discount = FALSE))
   expect_true(ws_on$sequential_discount)
+  expect_true(ws_default$sequential_discount)
   expect_false(ws_off$sequential_discount)
 
-  # Config del motor: default FALSE, alias en espanol aceptado.
+  # Config del motor: default TRUE, FALSE explícito y alias en español.
   norm_default <- calc_muestra_aulas_normalize_config(list())
-  expect_false(norm_default$selector$sequential_discount)
+  expect_true(norm_default$selector$sequential_discount)
+  norm_off <- calc_muestra_aulas_normalize_config(list(selector = list(sequential_discount = FALSE)))
+  expect_false(norm_off$selector$sequential_discount)
   norm_on <- calc_muestra_aulas_normalize_config(list(selector = list(sequential_discount = TRUE)))
   expect_true(norm_on$selector$sequential_discount)
-  norm_alias <- calc_muestra_aulas_normalize_config(list(selector = list(descuento_secuencial = TRUE)))
-  expect_true(norm_alias$selector$sequential_discount)
+  norm_alias_off <- calc_muestra_aulas_normalize_config(list(selector = list(descuento_secuencial = FALSE)))
+  expect_false(norm_alias_off$selector$sequential_discount)
   # Re-normalizar la config ya normalizada preserva el flag (round-trip).
   expect_true(calc_muestra_aulas_normalize_config(norm_on)$selector$sequential_discount)
+  expect_false(calc_muestra_aulas_normalize_config(norm_off)$selector$sequential_discount)
+})
+
+test_that("engine aplica descuento por omisión y respeta FALSE explícito", {
+  base <- descuento_base_ramiro()
+  cfg_default <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 77L,
+      n_aulas = 2L,
+      replacement_waves = 0L,
+      selector_engine = "sistematico_pps",
+      strata_cols = list("faculty"),
+      monte_carlo_n = 0L,
+      simulation_runs = 0L
+    )
+  ))
+  selector_off <- cfg_default$selector
+  selector_off$sequential_discount <- FALSE
+  cfg_off <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = selector_off
+  ))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg_default)
+
+  by_default <- calc_muestra_aulas_seleccionar(frame, cfg_default)
+  explicitly_off <- calc_muestra_aulas_seleccionar(frame, cfg_off)
+
+  expect_true(by_default$selector$sequential_discount)
+  expect_true(by_default$sequential_discount$requested)
+  expect_true(by_default$sequential_discount$applied)
+  expect_false(explicitly_off$selector$sequential_discount)
+  expect_false(explicitly_off$sequential_discount$requested)
+  expect_identical(explicitly_off$sequential_discount$mode, "off")
+})
+
+test_that("la firma del comparador registra descuento y objetivo completos", {
+  cfg_on <- descuento_cfg("cube_balanceado", on = TRUE)
+  cfg_off <- descuento_cfg("cube_balanceado", on = FALSE)
+  on <- .cm_aulas_method_comparison_selector_snapshot(
+    cfg_on$selector,
+    cfg_on$objective
+  )
+  off <- .cm_aulas_method_comparison_selector_snapshot(
+    cfg_off$selector,
+    cfg_off$objective
+  )
+
+  expect_identical(on$schema, "calc_muestra_aulas_method_comparison_selector_v1")
+  expect_true(on$sequential_discount)
+  expect_false(off$sequential_discount)
+  expect_identical(on$objective, cfg_on$objective)
+  expect_identical(
+    on$objective$variables$label[on$objective$variables$dimension == "size_group"],
+    "Tamaño del curso-horario"
+  )
+  expect_false(identical(on, off))
 })
 
 test_that("discount_mode correcto por engine", {

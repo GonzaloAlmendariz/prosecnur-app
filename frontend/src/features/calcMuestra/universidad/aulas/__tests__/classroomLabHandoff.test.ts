@@ -8,6 +8,7 @@ import type {
 import { defaultComponente } from "../../../sharedCore";
 import { universityDefaultWorkspace } from "../../shared/study";
 import { buildClassroomLabModel } from "../aulasParts";
+import { classroomComparisonSelectorSnapshot } from "../classroomHandoff";
 import { classroomRiskRows } from "../ClassroomRiskList";
 import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -20,6 +21,82 @@ const frameVigente = () => ({
   frame_hash: FRAME_HASH,
   aula_frame: [{ classroom_id: "CH-1", included: true }],
 });
+
+function comparisonSelector(
+  nAulas: number,
+  overrides: Partial<AulasConfigConObjetivo> = {},
+) {
+  const workspace = universityDefaultWorkspace();
+  return classroomComparisonSelectorSnapshot({
+    ...workspace.aulas_config,
+    n_aulas: nAulas,
+    ...overrides,
+  } as AulasConfigConObjetivo);
+}
+
+function rShapedComparisonSelector(nAulas: number) {
+  return {
+    schema: "calc_muestra_aulas_method_comparison_selector_v1",
+    seed: 20260619,
+    n_aulas: nAulas,
+    replacement_waves: 11,
+    strata_cols: ["faculty", "sex_top_1", "size_group"],
+    balance_vars: ["faculty", "sex_top_1", "size_group", "program", "level"],
+    spread_vars: ["program", "level", "schedule", "size_group"],
+    candidate_pool_size: 500,
+    simulation_runs: 500,
+    mos_strategy: "eligible_yield_winsorized",
+    coordination_mode: "permanent_random_number",
+    replacement_depth_strategy: "max_complete_chains_by_cell",
+    min_replacements_per_titular: 1,
+    max_replacements_per_titular: 11,
+    extra_pool_policy: "leftover_after_chains",
+    replacement_equivalence_vars: ["faculty", "program", "level", "size_group", "modality", "sex_top_1", "schedule"],
+    replacement_score_weights: {
+      faculty: 35,
+      program: 22,
+      level: 12,
+      size_group: 8,
+      modality: 7,
+      sex_top_1: 6,
+      schedule: 4,
+      eligible_n: 10,
+      active_overlap: -18,
+    },
+    duplicate_penalty: 1.35,
+    sequential_discount: true,
+    pps_weight: 0.25,
+    coverage_weight: 1,
+    monte_carlo_n: 500,
+    objective: {
+      schema: "calc_muestra_aulas_representativity_objective_v1",
+      primary_unit: "estudiantes_unicos_elegibles",
+      variables: [
+        { dimension: "faculty", label: "Facultad", aula_col: "faculty", student_col: "faculty", weight: 0.18, tolerance: 0.025, source_preference: "student" },
+        { dimension: "program", label: "Programa", aula_col: "program", student_col: "program", weight: 0.14, tolerance: 0.04, source_preference: "student" },
+        { dimension: "level", label: "Nivel/ciclo", aula_col: "level", student_col: "level", weight: 0.1, tolerance: 0.05, source_preference: "student" },
+        { dimension: "schedule", label: "Horario", aula_col: "schedule", student_col: "", weight: 0.1, tolerance: 0.05, source_preference: "aula" },
+        { dimension: "modality", label: "Modalidad", aula_col: "modality", student_col: "", weight: 0.06, tolerance: 0.03, source_preference: "aula" },
+        { dimension: "size_group", label: "Tamaño del curso-horario", aula_col: "size_group", student_col: "", weight: 0.08, tolerance: 0.05, source_preference: "aula" },
+        { dimension: "sex", label: "Sexo", aula_col: "sex_top_1", student_col: "sex", weight: 0.1, tolerance: 0.025, source_preference: "student" },
+      ],
+      component_weights: {
+        balance: 0.76,
+        unique_coverage: 0.1,
+        duplicate_loss: 0.06,
+        dispersion: 0.05,
+        weight_stability: 0.02,
+        reserve_depth: 0.01,
+      },
+      duplicate_loss_tolerance: 0.15,
+      dispersion_tolerance: 0.15,
+      weight_cv_warn: 0.5,
+      weight_cv_critical: 1,
+      reserve_depth_target: 1,
+      missing_policy: "redistribute_active_weights",
+    },
+  };
+}
 
 function componenteConAulas(actorId: string, aulasBaseTotal: number, nObjetivo = 100): CalcMuestraComponente {
   const resultado: CalcMuestraResultado = {
@@ -98,7 +175,7 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
       frame: frameVigente(),
       method_comparison: {
         frame_hash: FRAME_HASH,
-        selector: { n_aulas: nAulas },
+        selector: comparisonSelector(nAulas),
         recommendation: { method_id: "cube_balanceado" },
       },
     }) as unknown as CalcMuestraAulasState;
@@ -139,6 +216,126 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
     expect(partial.hasCalculatedQuota).toBe(false);
   });
 
+  it("invalida la recomendación cuando cambia la política de descuento", () => {
+    const workspaceBase = universityDefaultWorkspace();
+    const workspace = {
+      ...workspaceBase,
+      aulas_config: {
+        ...workspaceBase.aulas_config,
+        n_aulas: 13,
+        sequential_discount: true,
+      } as AulasConfigConObjetivo,
+    };
+    const model = buildClassroomLabModel({
+      workspace,
+      totalComp: componenteConAulas("estudiantes_universidad", 13),
+      facultyComp: componenteConAulas("estudiantes_facultad", 29),
+      aulasState: {
+        config: { selector: { n_aulas: 13, sequential_discount: true } },
+        frame: frameVigente(),
+        method_comparison: {
+          frame_hash: FRAME_HASH,
+          selector: comparisonSelector(13, { sequential_discount: false }),
+          recommendation: { method_id: "cube_balanceado" },
+        },
+      } as unknown as CalcMuestraAulasState,
+    });
+
+    expect(model.comparisonReady).toBe(false);
+    expect(model.comparison).toBeNull();
+  });
+
+  it("acredita la firma objective completa que serializa R", () => {
+    const workspaceBase = universityDefaultWorkspace();
+    const workspace = {
+      ...workspaceBase,
+      aulas_config: { ...workspaceBase.aulas_config, n_aulas: 13 } as AulasConfigConObjetivo,
+    };
+    const selector = rShapedComparisonSelector(13);
+    const model = buildClassroomLabModel({
+      workspace,
+      totalComp: componenteConAulas("estudiantes_universidad", 13),
+      facultyComp: componenteConAulas("estudiantes_facultad", 29),
+      aulasState: {
+        config: { selector: { n_aulas: 13 } },
+        frame: frameVigente(),
+        method_comparison: {
+          frame_hash: FRAME_HASH,
+          selector,
+          recommendation: { method_id: "cube_balanceado" },
+        },
+      } as unknown as CalcMuestraAulasState,
+    });
+
+    expect(selector.objective.variables.slice(3, 6).map(({ dimension, student_col }) => ({
+      dimension,
+      student_col,
+    }))).toEqual([
+      { dimension: "schedule", student_col: "" },
+      { dimension: "modality", student_col: "" },
+      { dimension: "size_group", student_col: "" },
+    ]);
+    expect(model.comparisonReady).toBe(true);
+    expect(model.comparison).not.toBeNull();
+  });
+
+  it("acredita el objective vacío con los defaults canónicos de R", () => {
+    const workspaceBase = universityDefaultWorkspace();
+    const workspace = {
+      ...workspaceBase,
+      aulas_config: {
+        ...workspaceBase.aulas_config,
+        n_aulas: 13,
+        objective: {},
+      } as AulasConfigConObjetivo,
+    };
+    const model = buildClassroomLabModel({
+      workspace,
+      totalComp: componenteConAulas("estudiantes_universidad", 13),
+      facultyComp: componenteConAulas("estudiantes_facultad", 29),
+      aulasState: {
+        config: { selector: { n_aulas: 13 } },
+        frame: frameVigente(),
+        method_comparison: {
+          frame_hash: FRAME_HASH,
+          selector: rShapedComparisonSelector(13),
+          recommendation: { method_id: "cube_balanceado" },
+        },
+      } as unknown as CalcMuestraAulasState,
+    });
+
+    expect(model.comparisonReady).toBe(true);
+    expect(model.comparison).not.toBeNull();
+  });
+
+  it("invalida la recomendación cuando cambia el objetivo de comparación", () => {
+    const workspaceBase = universityDefaultWorkspace();
+    const workspace = {
+      ...workspaceBase,
+      aulas_config: { ...workspaceBase.aulas_config, n_aulas: 13 } as AulasConfigConObjetivo,
+    };
+    const objective = workspaceBase.aulas_config?.objective;
+    const model = buildClassroomLabModel({
+      workspace,
+      totalComp: componenteConAulas("estudiantes_universidad", 13),
+      facultyComp: componenteConAulas("estudiantes_facultad", 29),
+      aulasState: {
+        config: { selector: { n_aulas: 13 } },
+        frame: frameVigente(),
+        method_comparison: {
+          frame_hash: FRAME_HASH,
+          selector: comparisonSelector(13, {
+            objective: objective ? { ...objective, duplicate_loss_tolerance: 0.99 } : undefined,
+          }),
+          recommendation: { method_id: "cube_balanceado" },
+        },
+      } as unknown as CalcMuestraAulasState,
+    });
+
+    expect(model.comparisonReady).toBe(false);
+    expect(model.comparison).toBeNull();
+  });
+
   it("acredita cada artefacto con su propio target, no con el eco global", () => {
     const workspaceBase = universityDefaultWorkspace();
     const workspace = {
@@ -160,7 +357,7 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
         frame: frameVigente(),
         method_comparison: {
           frame_hash: FRAME_HASH,
-          selector: { n_aulas: 13 },
+          selector: comparisonSelector(13),
           recommendation: { method_id: "cube_balanceado" },
         },
         selection,
@@ -303,13 +500,13 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
         frame: frameVigente(),
         method_comparison: {
           frame_hash: "frame-old",
-          selector: { n_aulas: 13 },
+          selector: comparisonSelector(13),
           recommendation: { method_id: "cube_balanceado" },
         },
         selection: {
           frame_hash: "frame-old",
           selection_run_id: "sel-old",
-          selector: { n_aulas: 13 },
+          selector: comparisonSelector(13),
           selection: [{ classroom_id: "CH-1", sample_role: "titular", wave: "M1" }],
         },
       } as unknown as CalcMuestraAulasState,
@@ -367,7 +564,7 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
         frame: frameVigente(),
         method_comparison: {
           frame_hash: FRAME_HASH,
-          selector: { n_aulas: 13 },
+          selector: comparisonSelector(13),
           recommendation: { method_id: "cube_balanceado" },
         },
       } as unknown as CalcMuestraAulasState,
@@ -392,7 +589,7 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
       frame,
       method_comparison: {
         frame_hash: FRAME_HASH,
-        selector: { n_aulas: 13 },
+        selector: comparisonSelector(13),
         recommendation: { method_id: "cube_balanceado" },
       },
       selection: {
@@ -448,7 +645,7 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
         },
         method_comparison: {
           frame_hash: FRAME_HASH,
-          selector: { n_aulas: 13 },
+          selector: comparisonSelector(13),
           recommendation: { method_id: "cube_balanceado" },
         },
       } as unknown as CalcMuestraAulasState,

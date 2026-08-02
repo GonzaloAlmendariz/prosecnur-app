@@ -266,7 +266,7 @@
 .cm_aulas_objective_defaults <- function() {
   variables <- data.frame(
     dimension = c("faculty", "program", "level", "schedule", "modality", "size_group", "sex"),
-    label = c("Facultad", "Programa", "Nivel/ciclo", "Horario", "Modalidad", "Tamaño de aula", "Sexo"),
+    label = c("Facultad", "Programa", "Nivel/ciclo", "Horario", "Modalidad", "Tamaño del curso-horario", "Sexo"),
     aula_col = c("faculty", "program", "level", "schedule", "modality", "size_group", "sex_top_1"),
     student_col = c("faculty", "program", "level", "", "", "", "sex"),
     weight = c(0.18, 0.14, 0.10, 0.10, 0.06, 0.08, 0.10),
@@ -393,9 +393,10 @@ calc_muestra_aulas_default_config <- function() {
       ),
       duplicate_penalty = 1.35,
       # Descuento secuencial de repetidos entre aulas del estrato (asesoría
-      # muestral 2026-07-15 §10). OFF por default (retro-compat/goldens);
-      # la lógica vive en calc_muestra_aulas_descuento.R.
-      sequential_discount = FALSE,
+      # muestral 2026-07-15 §10). ON por default; los escenarios históricos
+      # que congelan la selección anterior declaran FALSE explícitamente.
+      # La lógica vive en calc_muestra_aulas_descuento.R.
+      sequential_discount = TRUE,
       pps_weight = 0.25,
       coverage_weight = 1,
       monte_carlo_n = 500L,
@@ -1987,102 +1988,6 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   rep("titular", nrow(df))
 }
 
-.cm_aulas_selection_slot_ids <- function(n, prefix = "slot") {
-  sprintf("%s_%03d", prefix, seq_len(max(0L, as.integer(n))))
-}
-
-.cm_aulas_slot_number <- function(slot_id, fallback = NA_integer_) {
-  raw <- .cm_aulas_scalar(slot_id, "")
-  hit <- regmatches(raw, regexpr("[0-9]+", raw))
-  if (!length(hit) || !nzchar(hit[[1]])) return(as.integer(fallback))
-  out <- suppressWarnings(as.integer(hit[[1]]))
-  if (!is.finite(out)) as.integer(fallback) else out
-}
-
-.cm_aulas_assign_operational_codes <- function(df) {
-  df <- .cm_aulas_as_df(df, "selection_df")
-  if (!nrow(df)) return(df)
-  if (!"wave" %in% names(df)) df$wave <- ""
-  if (!"classroom_id" %in% names(df)) df$classroom_id <- ""
-  if (!"selection_slot_id" %in% names(df)) df$selection_slot_id <- ""
-  if (!"replacement_order" %in% names(df)) {
-    df$replacement_order <- ifelse(df$wave == "M1", 0L, vapply(df$wave, .cm_aulas_wave_number, integer(1)) - 1L)
-  }
-  if (!"replacement_for" %in% names(df)) df$replacement_for <- ""
-  roles <- .cm_aulas_role_values(df)
-  titular_idx <- which(roles == "titular" | as.character(df$wave) == "M1")
-  if (length(titular_idx)) {
-    missing_slot <- !nzchar(as.character(df$selection_slot_id[titular_idx]))
-    if (any(missing_slot)) {
-      df$selection_slot_id[titular_idx[missing_slot]] <- .cm_aulas_selection_slot_ids(length(titular_idx))[missing_slot]
-    }
-  }
-  slot_lookup <- stats::setNames(integer(0), character(0))
-  titular_lookup <- stats::setNames(character(0), character(0))
-  if (length(titular_idx)) {
-    slot_ids <- as.character(df$selection_slot_id[titular_idx])
-    slot_numbers <- vapply(seq_along(slot_ids), function(i) .cm_aulas_slot_number(slot_ids[[i]], i), integer(1))
-    slot_lookup <- stats::setNames(slot_numbers, slot_ids)
-    titular_lookup <- stats::setNames(slot_ids, as.character(df$classroom_id[titular_idx]))
-  }
-  extra_idx <- which(roles == "extra_reserve_pool")
-  chain_idx <- which(roles == "chain_reserve" & !seq_len(nrow(df)) %in% titular_idx)
-  if (length(chain_idx)) {
-    missing_slot <- !nzchar(as.character(df$selection_slot_id[chain_idx]))
-    replacement_for <- as.character(df$replacement_for[chain_idx])
-    from_titular <- unname(titular_lookup[replacement_for])
-    fillable <- missing_slot & !is.na(from_titular) & nzchar(from_titular)
-    if (any(fillable)) df$selection_slot_id[chain_idx[fillable]] <- from_titular[fillable]
-  }
-  operational_code <- rep("", nrow(df))
-  titular_operational_code <- rep("", nrow(df))
-  replacement_chain_code <- rep("", nrow(df))
-  operational_sequence <- rep(NA_integer_, nrow(df))
-  if (length(titular_idx)) {
-    for (pos in seq_along(titular_idx)) {
-      i <- titular_idx[[pos]]
-      slot <- as.character(df$selection_slot_id[[i]])
-      slot_num <- .cm_aulas_slot_number(slot, pos)
-      code <- paste("AULA", slot_num)
-      operational_sequence[[i]] <- slot_num
-      operational_code[[i]] <- code
-      titular_operational_code[[i]] <- code
-    }
-  }
-  if (length(chain_idx)) {
-    for (i in chain_idx) {
-      slot <- as.character(df$selection_slot_id[[i]])
-      slot_num <- .cm_aulas_slot_number(slot, NA_integer_)
-      if (!is.finite(slot_num)) {
-        replacement_for <- .cm_aulas_scalar(df$replacement_for[[i]], "")
-        mapped_slot <- if (nzchar(replacement_for) && replacement_for %in% names(titular_lookup)) titular_lookup[[replacement_for]] else ""
-        slot_num <- .cm_aulas_slot_number(mapped_slot, NA_integer_)
-      }
-      order <- suppressWarnings(as.integer(df$replacement_order[[i]]))
-      if (!is.finite(order) || order <= 0L) order <- max(1L, .cm_aulas_wave_number(df$wave[[i]]) - 1L)
-      if (is.finite(slot_num)) {
-        code <- sprintf("R%s.%s", slot_num, order)
-        operational_sequence[[i]] <- slot_num
-        titular_operational_code[[i]] <- paste("AULA", slot_num)
-        replacement_chain_code[[i]] <- code
-        operational_code[[i]] <- code
-      }
-    }
-  }
-  if (length(extra_idx)) {
-    for (pos in seq_along(extra_idx)) {
-      i <- extra_idx[[pos]]
-      operational_sequence[[i]] <- pos
-      operational_code[[i]] <- paste("EXTRA", pos)
-    }
-  }
-  df$operational_code <- operational_code
-  df$titular_operational_code <- titular_operational_code
-  df$replacement_chain_code <- replacement_chain_code
-  df$operational_sequence <- operational_sequence
-  df
-}
-
 .cm_aulas_reconstruct_chains_from_order <- function(df) {
   df <- .cm_aulas_as_df(df, "selection_df")
   if (!nrow(df)) return(df)
@@ -3597,7 +3502,7 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
     schema = "calc_muestra_aulas_method_comparison_v1",
     generated_at = .cm_aulas_now_iso(),
     frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
-    selector = list(n_aulas = selector$n_aulas),
+    selector = .cm_aulas_method_comparison_selector_snapshot(selector, objective),
     methods = .cm_aulas_records(metrics),
     recommendation = list(
       method_id = recommended$method_id[[1]],
@@ -4373,7 +4278,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     schema = "calc_muestra_aulas_method_comparison_v1",
     generated_at = .cm_aulas_now_iso(),
     frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
-    selector = list(n_aulas = config$selector$n_aulas),
+    selector = .cm_aulas_method_comparison_selector_snapshot(config$selector, config$objective),
     methods = methods,
     recommendation = list(
       method_id = "cube_balanceado",
@@ -4911,15 +4816,30 @@ calc_muestra_aulas_exportar_workbook <- function(frame_result, selection_result,
     stop("El paquete R 'openxlsx' no esta instalado.", call. = FALSE)
   }
   wb <- openxlsx::createWorkbook()
+  canonicalize_codes <- function(data, name) {
+    df <- .cm_aulas_as_df(data, name)
+    exact <- c(
+      "operational_code", "titular_operational_code",
+      "replacement_chain_code", "first_replacement_code",
+      "reserve_operational_code", "replacement_operational_code"
+    )
+    code_cols <- names(df)[
+      names(df) %in% exact |
+        grepl("^m[0-9]+_operational_code$", names(df))
+    ]
+    for (column in code_cols) {
+      df[[column]] <- .cm_aulas_codigo_operativo(df[[column]])
+    }
+    df
+  }
   write_sheet <- function(name, data) {
     openxlsx::addWorksheet(wb, name)
-    openxlsx::writeData(wb, name, .cm_aulas_as_df(data, name))
+    openxlsx::writeData(wb, name, canonicalize_codes(data, name))
   }
   openxlsx::addWorksheet(wb, "Marco aulas")
   openxlsx::writeData(wb, "Marco aulas", .cm_aulas_as_df(frame_result$aula_frame, "aula_frame"))
-  openxlsx::addWorksheet(wb, "Seleccion")
-  openxlsx::writeData(wb, "Seleccion", .cm_aulas_as_df(selection_result$selection, "selection"))
-  selection_df <- .cm_aulas_as_df(selection_result$selection, "selection")
+  selection_df <- canonicalize_codes(selection_result$selection, "selection")
+  write_sheet("Seleccion", selection_df)
   roles <- .cm_aulas_role_values(selection_df)
   write_sheet("Aulas titulares", selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE])
   write_sheet("Reemplazos por titular", selection_result$diagnostics$replacement_chains %||% .cm_aulas_replacement_chains_table(selection_df))

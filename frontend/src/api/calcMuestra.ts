@@ -676,10 +676,8 @@ export type CalcMuestraWorkspaceAulasConfig = {
   penalizacion_repetidos: number;
   /** Descuento secuencial de repetidos (reunión Ramiro §10): al elegir un
    *  aula, sus alumnos se descuentan de las candidatas restantes (un aula
-   *  grande ya cubierta deja de pesar como grande). El default del ENGINE es
-   *  false; el frontend lo enciende por defecto (DEFAULT_UNIVERSITY_AULAS_CONFIG)
-   *  porque es el flujo metodológico correcto y solo surte efecto al ejecutar
-   *  una selección NUEVA. Retrocompatible: configs viejos no lo traen. */
+   *  grande ya cubierta deja de pesar como grande). Engine y frontend lo
+   *  encienden por defecto; FALSE explícito conserva corridas históricas. */
   sequential_discount?: boolean;
   pps_weight: number;
   coverage_weight: number;
@@ -2045,7 +2043,7 @@ export type CalcMuestraAulasMethodComparison = {
   schema: "calc_muestra_aulas_method_comparison_v1" | string;
   generated_at: string;
   frame_hash: string;
-  /** Objetivo propio con que se produjo la comparación; acredita frescura. */
+  /** Snapshot completo del selector que produjo la comparación; acredita frescura. */
   selector?: Record<string, unknown>;
   methods: CalcMuestraAulasMethodSummary[];
   recommendation?: {

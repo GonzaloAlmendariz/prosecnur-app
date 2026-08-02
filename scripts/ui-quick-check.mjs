@@ -1268,7 +1268,7 @@ async function runCaptures(opts, stack) {
 }
 
 export async function inspectDom(page, { projectMode, geometryGroups, geometryTolerance, requireGeometry, rootSelector = "" }) {
-  return page.evaluate(({
+  return page.evaluate(async ({
     projectMode: wantsProject,
     geometryGroups: requestedGeometryGroups,
     geometryTolerance: geometryTolerancePx,
@@ -1852,7 +1852,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         return best;
       }, null);
     };
-    const auditScrollOwner = (owner) => {
+    const auditScrollOwner = async (owner) => {
       const originalScrollTop = owner.scrollTop;
       const maxScroll = Math.max(0, owner.scrollHeight - owner.clientHeight);
       const textMetrics = Array.from(owner.querySelectorAll("strong"))
@@ -1876,6 +1876,14 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         middle: setScrollTop(Math.floor(maxScroll / 2)),
         end: setScrollTop(maxScroll),
       };
+      // Los virtualizadores actualizan sus filas visibles después del evento
+      // de scroll. Medir en el mismo tick conserva nodos del inicio con
+      // coordenadas negativas y fabrica un `scroll-unreachable`, aunque el
+      // usuario sí haya llegado al final. Dos frames permiten render + medida
+      // sin relajar la comprobación del contenido terminal.
+      await new Promise((resolve) => window.requestAnimationFrame(() => (
+        window.requestAnimationFrame(resolve)
+      )));
       const ownerRect = owner.getBoundingClientRect();
       const reachabilityEnd = resolveReachabilityEnd(owner, ownerRect);
       const lastContent = reachabilityEnd?.node ?? null;
@@ -1923,7 +1931,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       }
 
       const groupRect = group.getBoundingClientRect();
-      const memberMeasures = members.map((member) => {
+      const memberMeasures = await Promise.all(members.map(async (member) => {
         const rect = member.getBoundingClientRect();
         const style = window.getComputedStyle(member);
         const explicitContent = Array.from(member.querySelectorAll("[data-qa-geometry-content]"))
@@ -1939,7 +1947,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         const ownedCapacity = member.getAttribute("data-qa-geometry-capacity") === "owned"
           || Boolean(member.querySelector("[data-qa-geometry-capacity='owned']"));
         const scrollOwner = scrollOwnerInside(member);
-        const scrollEvidence = scrollOwner ? auditScrollOwner(scrollOwner) : null;
+        const scrollEvidence = scrollOwner ? await auditScrollOwner(scrollOwner) : null;
         const lastContent = contentNodes.at(-1) || null;
         if (scrollOwner && scrollEvidence && (
           !scrollEvidence.scrollAudit.atEnd
@@ -1974,7 +1982,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
           } : null,
           lastContent: lastContent ? elementHint(lastContent) : null,
         };
-      });
+      }));
       const heights = memberMeasures.map((member) => member.rect.height);
       const widths = memberMeasures.map((member) => member.rect.width);
       const heightDelta = round2(Math.max(...heights) - Math.min(...heights));

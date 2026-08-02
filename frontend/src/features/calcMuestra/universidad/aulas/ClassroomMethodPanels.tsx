@@ -284,9 +284,9 @@ export function ClassroomRecommendation({
   if (!comparison?.recommendation) {
     return (
       <div className="cmv2-classroom-reco-panel">
-        <small>Recomendación</small>
+        <small>Método configurado</small>
         <strong>{fallbackMethod}</strong>
-        <span>Corre el comparador para que Prosecnur recomiende un método con métricas reales del marco.</span>
+        <span>No es una recomendación del engine. Corre el comparador para acreditarla con métricas del marco vigente.</span>
       </div>
     );
   }

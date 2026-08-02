@@ -499,10 +499,10 @@ test_that("seleccion de aulas arma cadenas de reemplazo por titular y reserva ex
   expect_true(all(nzchar(titulars$selection_slot_id)))
   expect_true("operational_code" %in% names(rows))
   expect_equal(length(unique(rows$operational_code[nzchar(rows$operational_code)])), sum(nzchar(rows$operational_code)))
-  expect_true(all(grepl("^AULA [0-9]+$", titulars$operational_code)))
+  expect_true(all(grepl("^CH [0-9]+$", titulars$operational_code)))
   expect_true(all(reserves$replacement_for %in% titulars$classroom_id))
   expect_true(all(reserves$selection_slot_id %in% titulars$selection_slot_id))
-  expect_true(all(grepl("^R[0-9]+\\.[0-9]+$", reserves$operational_code)))
+  expect_true(all(grepl("^R [0-9]+\\.[0-9]+$", reserves$operational_code)))
   expect_true(all(reserves$titular_operational_code %in% titulars$operational_code))
   expect_equal(length(unique(reserves$classroom_id)), nrow(reserves))
   expect_true(all(table(reserves$replacement_for) <= 2L))
@@ -610,6 +610,12 @@ test_that("laboratorio compara cuatro motores con métricas y riesgos", {
   comparison <- calc_muestra_aulas_comparar_metodos(frame, cfg, simulation_runs = 100L)
 
   expect_identical(comparison$selector$n_aulas, 4L)
+  expect_identical(
+    comparison$selector$schema,
+    "calc_muestra_aulas_method_comparison_selector_v1"
+  )
+  expect_true(comparison$selector$sequential_discount)
+  expect_identical(comparison$selector$objective, comparison$objective_config)
   method_ids <- vapply(comparison$methods, function(row) row$method_id, character(1))
   expect_true(all(c("sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado") %in% method_ids))
   expect_true(all(vapply(comparison$methods, function(row) all(c(
@@ -729,6 +735,14 @@ test_that("demo universitaria 2025 carga marco, seleccion y reemplazos sin PII",
   expect_equal(sum(selection$used_as_replacement %in% TRUE), 49)
   expect_equal(nrow(.cm_aulas_as_df(demo$method_comparison$methods)), 4)
   expect_identical(demo$method_comparison$selector$n_aulas, 170L)
+  expect_identical(
+    demo$method_comparison$selector$schema,
+    "calc_muestra_aulas_method_comparison_selector_v1"
+  )
+  expect_identical(
+    demo$method_comparison$selector$objective,
+    demo$method_comparison$objective_config
+  )
   expect_equal(demo$method_comparison$recommendation$method_id, "cube_balanceado")
   expect_true(nrow(suggestions) >= 170)
   expect_true(all(!nzchar(frame$teacher)))

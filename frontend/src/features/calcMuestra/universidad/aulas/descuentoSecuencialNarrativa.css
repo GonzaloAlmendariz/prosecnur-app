@@ -1,0 +1,104 @@
+.cmv2-discount-narrative {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.cmv2-discount-narrative-intro {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--pulso-success-border);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-discount-narrative-intro span {
+  color: var(--pulso-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.cmv2-discount-narrative details > summary {
+  cursor: pointer;
+  color: var(--pulso-text);
+  font-size: 0.75rem;
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmv2-discount-step-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-discount-step-list > li {
+  display: grid;
+  min-height: 148px;
+  align-content: start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-md);
+  background: var(--pulso-surface);
+}
+
+.cmv2-discount-step-list[data-mode="post_hoc"] > li {
+  border-style: dashed;
+}
+
+.cmv2-discount-step-list > li > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.cmv2-discount-step-list small {
+  color: var(--pulso-text-soft);
+  font-size: 0.64rem;
+}
+
+.cmv2-discount-step-list strong {
+  color: var(--pulso-text);
+  font-size: 0.78rem;
+}
+
+.cmv2-discount-step-list > li > div:first-child > span,
+.cmv2-discount-step-list p {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.cmv2-discount-step-equation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.cmv2-discount-step-equation > span {
+  display: grid;
+  min-width: 44px;
+  gap: 1px;
+  text-align: center;
+}
+
+.cmv2-discount-step-equation b {
+  color: var(--pulso-text);
+  font-size: 0.76rem;
+}
+
+.cmv2-discount-step-equation > svg {
+  flex: 0 0 auto;
+  color: var(--pulso-text-soft);
+}
+
+@media (max-width: 700px) {
+  .cmv2-discount-step-list {
+    grid-template-columns: 1fr;
+  }
+}
