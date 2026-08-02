@@ -2477,6 +2477,47 @@ el anonimizador otra vez —la misma raíz que el bug de categorías—, y refue
 necesidad de la pestaña de mapeo que Gonzalo propuso: hoy un catálogo sucio sólo
 se descubre cuando ya se está decidiendo con él.
 
+### F60 — El Panorama: una cuadrícula de palabras que no informaban
+
+Quinta captura, ahora sobre el Panorama por facultad. Dos defectos, y el segundo
+es de los que más cuestan de ver porque «funciona».
+
+**1 · «global» repetido 56 veces.** Cuatro columnas de criterio × quince
+facultades, casi todas heredando, cada celda diciendo «global». Una palabra que
+se repite en casi todas las celdas no informa **y tapa las pocas que sí** —justo
+las facultades con criterio propio, que son las que hay que revisar—.
+
+Heredar es el caso normal: se marca con un punto y se explica al pasar el cursor.
+Apartarse se nombra.
+
+| | antes → después |
+|---|---:|
+| «global» en pantalla | **56** | **0** |
+| «propio» visible entre el ruido | 2, indistinguibles | **2, destacadas** |
+
+**2 · La cabecera existía y no servía.** El `thead` ya era
+`position: sticky; top: 0` —el código parecía correcto—, pero pegaba al
+contenedor, y el contenedor se iba con el scroll de la página. Resultado: cuatro
+columnas sin decir de qué criterio eran. **Una tabla sin cabecera no es una
+tabla, es una cuadrícula de palabras.**
+
+Reparado dándole al panorama su propio alto (`max-height: 60vh`) y scroll
+interno. Verificado: con 121 px de desplazamiento interno, «Facultad» sigue
+arriba.
+
+Es el patrón 7 del ADR otra vez —lógica correcta, render incorrecto—: `sticky`
+estaba bien escrito y no producía ningún efecto.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Alto de la pestaña | **21,6 pantallas** |
+| Vitest | 843 → **845** en 102 archivos |
+
+Guard: `PanoramaLectura.test.tsx` —prohíbe repetir «global» y exige que lo
+heredado siga siendo legible por título y `aria-label`, para que quitar ruido no
+se convierta en quitar información—.
+
 ### Estado del loop
 
 | | |

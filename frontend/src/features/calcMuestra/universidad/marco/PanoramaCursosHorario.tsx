@@ -113,13 +113,31 @@ export function PanoramaCursosHorario({
                     const detalle = resumen.detalles.find((d) => d.variableId === criterio.id);
                     const propia = Boolean(detalle?.propia);
                     return (
-                      <td key={criterio.id} className="cmv2-panorama-estado" data-propia={propia ? "true" : "false"}>
-                        {propia ? "propio" : "global"}
+                      /* ADR 0057 · Lo informativo es quién se APARTA.
+                         Medido: «global» aparecía 56 veces en una pantalla —una
+                         palabra que se repite en casi todas las celdas no dice
+                         nada y tapa las pocas que sí—. Heredar es el caso normal
+                         y se marca con un punto; apartarse se nombra. */
+                      <td
+                        key={criterio.id}
+                        className="cmv2-panorama-estado"
+                        data-propia={propia ? "true" : "false"}
+                        title={propia
+                          ? `${fac.facultad}: criterio propio en ${criterio.label}`
+                          : `${fac.facultad}: aplica el criterio general en ${criterio.label}`}
+                      >
+                        {propia ? "propio" : <span aria-label="aplica el criterio general">·</span>}
                       </td>
                     );
                   })}
-                  <td className="cmv2-panorama-estado" data-propia={resumen.minPropio ? "true" : "false"}>
-                    {resumen.minPropio ? "propio" : "global"}
+                  <td
+                    className="cmv2-panorama-estado"
+                    data-propia={resumen.minPropio ? "true" : "false"}
+                    title={resumen.minPropio
+                      ? `${fac.facultad}: mínimo propio`
+                      : `${fac.facultad}: aplica el mínimo general`}
+                  >
+                    {resumen.minPropio ? "propio" : <span aria-label="aplica el mínimo general">·</span>}
                   </td>
                 </tr>
               );
