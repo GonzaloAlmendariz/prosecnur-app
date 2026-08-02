@@ -60,6 +60,35 @@ describe("AlumnosPorChMarcoTab", () => {
     expect(html).toContain('data-qa-geometry-contract="intrinsic"');
   });
 
+  it("T7: una decisión guardada con método vacío no bloquea la confirmación", () => {
+    // Trampa medida: `estadistico_default: ""` no es undefined, así que el
+    // `?? "p25"` no caía al recomendado; sin método, ninguna facultad resolvía
+    // valor y el botón que repara el estado quedaba deshabilitado para siempre.
+    const heredado: CalcMuestraWorkspace = {
+      ...workspace,
+      aulas_config: {
+        ...workspace.aulas_config,
+        alumnos_por_ch_decision: {
+          schema: "",
+          frame_hash: "",
+          denominador: "",
+          estadistico_default: "",
+          por_facultad: {},
+          confirmado_at: "",
+        },
+      },
+    } as unknown as CalcMuestraWorkspace;
+
+    const html = renderToStaticMarkup(
+      <AlumnosPorChMarcoTab workspace={heredado} aulasState={state()} onConfirmDecision={vi.fn()} />,
+    );
+    // El botón de confirmar no puede quedar bloqueado por el estado heredado.
+    const confirmar = html.slice(html.indexOf("Confirmar decisión") - 400, html.indexOf("Confirmar decisión"));
+    expect(confirmar).not.toContain("disabled");
+    // Y si algún día vuelve a bloquearse, la causa se nombra.
+    expect(html).not.toContain("cmv2-alumnos-ch-bloqueo");
+  });
+
   it("S2/S4: la distribución se compara sobre una escala común con el Total de referencia", () => {
     const html = renderToStaticMarkup(
       <AlumnosPorChMarcoTab workspace={workspace} aulasState={state()} onConfirmDecision={vi.fn()} />,

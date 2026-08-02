@@ -14,6 +14,7 @@ import {
   ALUMNOS_POR_CH_METHODS,
   alumnosPorChDraftMatchesDecision,
   effectiveAlumnosPorChMethod,
+  metodoAlumnosPorChInicial,
   missingAlumnosPorChFaculties,
   normalizeAlumnosPorChOverrides,
 } from "./alumnosPorChDecisionModel";
@@ -49,14 +50,14 @@ export function AlumnosPorChMarcoTab({
     [workspace.aulas_config?.alumnos_por_ch_decision],
   );
   const [defaultMethod, setDefaultMethod] = useState<CalcMuestraAlumnosPorChMethod>(
-    decision?.estadistico_default ?? "p25",
+    () => metodoAlumnosPorChInicial(decision?.estadistico_default),
   );
   const [overrides, setOverrides] = useState<Record<string, CalcMuestraAlumnosPorChMethod>>(
     decision?.por_facultad ?? {},
   );
 
   useEffect(() => {
-    setDefaultMethod(decision?.estadistico_default ?? "p25");
+    setDefaultMethod(metodoAlumnosPorChInicial(decision?.estadistico_default));
     setOverrides(decision?.por_facultad ?? {});
   }, [decision]);
 
@@ -231,10 +232,24 @@ export function AlumnosPorChMarcoTab({
           <button type="button" className="cmv2-ghost" onClick={() => { setDefaultMethod("p25"); setOverrides({}); }}>
             <RotateCcw size={13} aria-hidden="true" /> Restablecer P25
           </button>
+          {/* C4/C5: un control bloqueado nombra la pieza que falta. Antes el
+              botón se deshabilitaba en silencio y la única pista era «la
+              propuesta aún no está confirmada», que es el estado, no la causa. */}
+          {missing.length > 0 ? (
+            <span className="cmv2-alumnos-ch-bloqueo" role="status">
+              Falta el estadístico en {missing.length} {missing.length === 1 ? "facultad" : "facultades"}:{" "}
+              {missing.slice(0, 3).join(" · ")}{missing.length > 3 ? ` y ${missing.length - 3} más` : ""}
+            </span>
+          ) : null}
           <button
             type="button"
             className="cmv2-primary"
             disabled={missing.length > 0 || current}
+            title={missing.length > 0
+              ? `Sin estadístico resoluble en ${missing.length} facultades`
+              : current
+                ? "La decisión vigente ya está confirmada"
+                : undefined}
             onClick={() => onConfirmDecision({
               schema: "calc_muestra_alumnos_por_ch_decision_v1",
               frame_hash: snapshot.frame_hash,

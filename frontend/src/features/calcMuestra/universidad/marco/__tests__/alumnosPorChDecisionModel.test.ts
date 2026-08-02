@@ -61,9 +61,25 @@ describe("decisión Alumnos por CH", () => {
     expect(effectiveAlumnosPorChMethod("otra", "p25", { derecho: "mediana" })).toBe("p25");
   });
 
-  it("nombra facultades faltantes y no acredita una decisión incompleta", () => {
-    expect(missingAlumnosPorChFaculties(snapshot, "p25", {})).toEqual(["Arte"]);
-    expect(alumnosPorChDecisionIsCurrent(snapshot, decision())).toBe(false);
+  it("T7: una facultad sin CH elegibles no bloquea la decisión", () => {
+    // «Arte» tiene 0 CH elegibles: no aporta unidades a la muestra y no hay
+    // distribución de la que salga un estadístico. Exigirle una decisión dejaba
+    // la confirmación bloqueada para siempre y con ella todo el cálculo.
+    expect(missingAlumnosPorChFaculties(snapshot, "p25", {})).toEqual([]);
+    expect(alumnosPorChDecisionIsCurrent(snapshot, decision())).toBe(true);
+  });
+
+  it("una facultad CON CH pero sin estadístico resoluble sí se nombra", () => {
+    const conHueco = {
+      ...snapshot,
+      filas: snapshot.filas.map((row) => row.faculty_key === "arte"
+        ? {
+            ...row,
+            elegible: { ...row.elegible, n_ch: 3, n_ch_con_dato: 0 },
+          }
+        : row),
+    };
+    expect(missingAlumnosPorChFaculties(conHueco, "p25", {})).toEqual(["Arte"]);
   });
 
   it("falla stale aunque el método exista", () => {
