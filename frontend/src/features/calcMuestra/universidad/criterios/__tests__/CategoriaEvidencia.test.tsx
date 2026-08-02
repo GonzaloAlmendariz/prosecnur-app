@@ -74,3 +74,25 @@ describe("CategoriaEvidencia", () => {
     expect(html).toContain("alumnos elegibles por curso-horario");
   });
 });
+
+describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
+  it("dice que no hay cursos y calla los cuantiles vacíos", () => {
+    // Cinco guiones (P10 — P25 — Mediana — …) no informan nada cuando la
+    // categoría tiene 0 CH: sólo gastan atención. Quitarlos no quita
+    // información; dejarlos sí quita foco de las categorías que sí deciden.
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia aporte={aporte({ ch: 0, elegibles: 0 })} dominio={{ min: 10, max: 60 }} />,
+    );
+    expect(html).toContain("sin cursos-horario en esta facultad");
+    expect(html).not.toContain("Mediana");
+    expect(html).not.toContain("cmv2-cat-caja");
+  });
+
+  it("con cursos, los cuantiles siguen enteros", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia aporte={aporte()} dominio={{ min: 10, max: 60 }} />,
+    );
+    expect(html).toContain("Mediana");
+    expect(html).not.toContain("sin cursos-horario en esta facultad");
+  });
+});

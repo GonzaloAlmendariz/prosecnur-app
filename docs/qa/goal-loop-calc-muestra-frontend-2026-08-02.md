@@ -2207,6 +2207,57 @@ permanente.
 | Desbordes | **0** |
 | Vitest | 835 → **837** |
 
+### F53 — La escala compartida no servía de nada (regla 3, de verdad)
+
+El hallazgo más importante desde el ADR, y demuestra que la regla 3 estaba a
+medio cumplir sin que nadie lo notara.
+
+`dominioCategorias()` calculaba bien el dominio del criterio, así que los tests
+pasaban y la lógica era correcta. **Pero al medirlo en la app**: el eje medía
+1.206 px y las cajas 274, 263, 284 y 315 px. Ni alineaban con el eje **ni entre
+sí**.
+
+Un dominio común no sirve de nada si cada caja lo proyecta sobre un ancho
+distinto: **el mismo valor cae en un píxel diferente en cada categoría**, y
+comparar —lo único para lo que existe el gráfico— vuelve a ser imposible. Era
+exactamente la queja de Gonzalo: «todos tienen ejes que no se ven y no son los
+mismos, por lo que se hace difícil compararlos».
+
+| | antes → después |
+|---|---:|
+| Ancho del eje | 1.206 px | **260 px** |
+| Anchos distintos entre cajas | **4** (274, 263, 284, 315) | **1** (260) |
+| Cajas comparables | no | **13 de 13** |
+
+La escala pasa a ser una **constante compartida** (`--cmv2-cat-escala`), no el
+espacio que sobre. Guard añadido a las reglas del ADR: el eje y la caja deben
+declarar el mismo ancho.
+
+**Lección de método**: la lógica correcta con render incorrecto pasa todos los
+tests unitarios. La regla 3 exige que los boxplots *sean comparables*, no que el
+dominio *se calcule bien* — y sólo medir píxeles en la app distingue una cosa de
+la otra.
+
+### F52b — El destino del embudo y las categorías vacías
+
+- **«Cursos-horario del marco»**, el mayor detalle que cierra el embudo, estaba
+  plegado en 50 px: es el destino del recorrido, no un anexo. Abierto: **445 px**.
+- **«Prevalencia de elegibles» activa** se abre sola: es una regla heredada que
+  **recorta el marco**, y plegada no era difícil de encontrar sino **invisible
+  mientras operaba**. Apagada sigue contenida —una opción inactiva no es
+  contenido oculto—.
+- **Categorías con 0 CH** mostraban cinco cuantiles en guiones. Ahora dicen «sin
+  cursos-horario en esta facultad» y callan el resto: **0 guiones vacíos** en la
+  pestaña. Quitar cinco guiones no quita información; dejarlos sí quita atención.
+- «Ver todas (42 sin cursos en esta facultad)» **no es defecto**: es un filtro
+  declarado con su conteo. Abrir 42 filas vacías sería el ruido que Gonzalo
+  señaló al domar las 52 categorías.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Vitest | 837 → **840** en 101 archivos |
+
 ### Estado del loop
 
 | | |
