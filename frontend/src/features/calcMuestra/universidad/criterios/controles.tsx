@@ -21,9 +21,20 @@ import {
   unidadCriterio,
 } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
+import { analizarEtiquetaCategoria, type EtiquetaCategoria } from "./etiquetaCategoria";
 import { Switch, SwitchTri } from "./Switch";
 
 type SelChange = (next: CriterioSeleccion) => void;
+
+/** Memoiza el análisis por etiqueta: se consulta varias veces por fila. */
+const AGRUPADAS_CACHE = new Map<string, EtiquetaCategoria>();
+function etiquetaAgrupada(label: string): EtiquetaCategoria {
+  const hit = AGRUPADAS_CACHE.get(label);
+  if (hit) return hit;
+  const valor = analizarEtiquetaCategoria(label);
+  AGRUPADAS_CACHE.set(label, valor);
+  return valor;
+}
 
 function etiquetaFlatConCortes(label: string) {
   if (!label.includes(",")) return label;
@@ -99,9 +110,34 @@ export function ControlFlat({
               data-qa-geometry-capacity="owned"
             >
               <div className="cmv2-crit-item-main">
-                <Switch checked={checked} onToggle={() => onSel(toggleCategoria(sel, cat.key))} ariaLabel={cat.label} />
-                <span className="cmv2-crit-item-label">{etiquetaFlatConCortes(cat.label)}</span>
+                <Switch
+                  checked={checked}
+                  onToggle={() => onSel(toggleCategoria(sel, cat.key))}
+                  ariaLabel={etiquetaAgrupada(cat.label).agrupadas.length
+                    ? `${etiquetaAgrupada(cat.label).base}, agrupa ${etiquetaAgrupada(cat.label).agrupadas.length} valores`
+                    : cat.label}
+                />
+                <span className="cmv2-crit-item-label">
+                  {/* T1: la fuente concatena varios valores en una etiqueta. Se
+                      muestra el nombre del grupo y se declara cuántos agrupa; el
+                      detalle queda en el título y en la línea secundaria. */}
+                  {etiquetaFlatConCortes(etiquetaAgrupada(cat.label).base)}
+                  {etiquetaAgrupada(cat.label).agrupadas.length ? (
+                    <span
+                      className="cmv2-crit-item-agrupa"
+                      data-agrupa={etiquetaAgrupada(cat.label).agrupadas.length}
+                      title={etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                    >
+                      agrupa {etiquetaAgrupada(cat.label).agrupadas.length}
+                    </span>
+                  ) : null}
+                </span>
               </div>
+              {etiquetaAgrupada(cat.label).agrupadas.length ? (
+                <span className="cmv2-crit-item-agrupadas">
+                  {etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                </span>
+              ) : null}
               <span className="cmv2-crit-item-count">
                 {fmtInt(cat.aulas)} <em>{unidad}</em>
               </span>

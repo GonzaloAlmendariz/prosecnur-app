@@ -12,6 +12,7 @@ import type {
   CriterioVariable,
   CriteriosSeleccionMarco,
 } from "../../../../api/client";
+import type { ReactNode } from "react";
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import { resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
@@ -88,6 +89,7 @@ export function CriterioCard({
   sessionTypeImpacto,
   sessionTypeDominante,
   onVerExplorador,
+  radiografia,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -114,6 +116,12 @@ export function CriterioCard({
   sessionTypeDominante?: CalcMuestraAulasParticularidadSessionType | null;
   /** session_type: navega a la pestaña Explorador; sin callback no hay link. */
   onVerExplorador?: () => void;
+  /**
+   * S1: la radiografía de ESTE criterio, dentro de la tarjeta que lo decide.
+   * Antes vivía en una consola aparte con su propio selector: se enfocaba un
+   * criterio en una zona de la pantalla y se decidía en otra.
+   */
+  radiografia?: ReactNode;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
@@ -186,6 +194,17 @@ export function CriterioCard({
           <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
         )
       )}
+
+      {/* La evidencia vive en la tarjeta que decide, pero abrir las cinco a la
+          vez empujaba los demás criterios fuera de pantalla (39.073 px). Se
+          abre sola mientras la variable está en edición —que es cuando se
+          decide— y se pliega cuando ya está confirmada. */}
+      {radiografia ? (
+        <details className="cmv2-crit-card-radiografia" open={pendiente}>
+          <summary>Radiografía por facultad de {variable.label.toLocaleLowerCase("es")}</summary>
+          {radiografia}
+        </details>
+      ) : null}
 
       {pendiente ? (
         <div className="cmv2-crit-confirm" role="status" aria-live="polite">

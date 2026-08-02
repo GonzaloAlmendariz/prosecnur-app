@@ -48,6 +48,27 @@
   font-size: 9px;
 }
 
+/* Estado de la evidencia en el propio chip: absorbe la información que
+   llevaba el `<select>` duplicado, sin sumar un segundo control. */
+.cmv2-crc-card-strip em {
+  overflow: hidden;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-crc-card-strip em[data-state="v2"] {
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-crc-card-strip em[data-state="invalido"],
+.cmv2-crc-card-strip em[data-state="sin_dato"] {
+  color: var(--pulso-danger-text, var(--pulso-text-muted));
+}
+
 .cmv2-crc-faculty[data-row-kind="total"] {
   border-color: var(--cmv2-accent-border);
   background: color-mix(in srgb, var(--pulso-surface) 88%, var(--cmv2-accent-soft));
@@ -100,12 +121,161 @@
   stroke-width: 1.5;
 }
 
-.cmv2-i18b-boxplot figcaption {
+/* Riel del dominio compartido: la caja ocupa su fracción real de la escala del
+   bloque, así que dos facultades distintas ya no dibujan el mismo ancho. */
+.cmv2-i18b-boxplot-domain {
+  stroke: var(--cmv2-border);
+  stroke-width: 1;
+}
+
+/* Leyenda del bloque: una sola por bloque de distribución, nunca bajo cada
+   figura. Antes se repetía una vez por gráfico. */
+.cmv2-i18b-boxplot-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px 10px;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+/* Media y mediana en una línea; los cinco cuantiles quedan a un clic. */
+.cmv2-crc-stats-lead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crc-stats-lead em {
+  color: var(--pulso-text-muted);
+  font-style: normal;
+}
+
+.cmv2-crc-stats-full > summary {
+  cursor: pointer;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+.cmv2-crc-stats-full > summary:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Aviso compartido por todas las facultades: se dice una vez. */
+.cmv2-i18b-anchor-aviso-comun {
+  margin: 0 0 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.cmv2-i18b-anchor-facultades {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* `hidden` tiene que ganarle a cualquier `display` del paso: sin esto el
+   atributo no oculta nada y los cinco bloques siguen apilados. */
+.cmv2-crc-step[hidden] {
+  display: none !important;
+}
+
+/* Riel de pasos del criterio: el recorrido metodológico queda visible y se
+   recorre uno a la vez, en vez de apilar cinco bloques de 19 facultades. */
+.cmv2-crc-pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0 4px;
+}
+
+.cmv2-crc-pasos button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cmv2-crc-pasos button > span {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface-2);
   color: var(--pulso-text-muted);
   font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crc-pasos button[aria-pressed="true"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-crc-pasos button[aria-pressed="true"] > span {
+  background: var(--cmv2-accent-fg);
+  color: var(--pulso-surface);
+}
+
+.cmv2-crc-pasos button:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-crc-contraste > summary,
+.cmv2-crc-signal > summary {
+  cursor: pointer;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crc-contraste > summary:focus-visible,
+.cmv2-crc-signal > summary:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-crc-contraste[open] > summary,
+.cmv2-crc-signal[open] > summary {
+  margin-bottom: 6px;
+}
+
+/* Un segmento sin CH se declara en una línea: presente y contable, sin
+   llevarse el mismo ancho que uno con distribución. */
+[data-segment-empty="true"] {
+  align-self: start;
+  opacity: 0.72;
+}
+
+[data-segment-empty="true"] > p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-i18b-boxplot-legend-scale {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .cmv2-i18b-boxplot-empty,

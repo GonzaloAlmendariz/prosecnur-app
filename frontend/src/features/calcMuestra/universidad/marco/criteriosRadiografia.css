@@ -11,23 +11,10 @@
 
 .cmv2-crc-head {
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.cmv2-crc-head > div {
-  display: grid;
-  gap: 3px;
+  align-items: baseline;
+  gap: 10px;
   min-width: 0;
-}
-
-.cmv2-crc-eyebrow {
-  color: var(--cmv2-accent-fg);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  flex-wrap: wrap;
 }
 
 .cmv2-crc-head h3,
@@ -53,34 +40,34 @@
   line-height: 1.45;
 }
 
-.cmv2-crc-focus {
-  display: grid;
-  flex: 0 1 360px;
-  gap: 5px;
-  min-width: 240px;
+/* Procedencia y contrato: trazabilidad plegada al pie de la tarjeta. */
+.cmv2-crc-procedencia {
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  padding: 0 11px;
 }
 
-.cmv2-crc-focus > span {
+.cmv2-crc-procedencia > summary {
+  cursor: pointer;
+  padding: 8px 0;
   color: var(--pulso-text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
 }
 
-.cmv2-crc-focus select {
-  width: 100%;
-  height: 34px;
-  padding: 0 32px 0 10px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  font: inherit;
-  font-size: 12px;
-}
-
-.cmv2-crc-focus select:focus-visible {
+.cmv2-crc-procedencia > summary:focus-visible {
   outline: 2px solid var(--cmv2-accent);
   outline-offset: 2px;
+}
+
+.cmv2-crc-procedencia[open] > summary {
+  border-bottom: 1px solid var(--cmv2-border);
+  margin-bottom: 10px;
+}
+
+.cmv2-crc-procedencia > :last-child {
+  margin-bottom: 11px;
 }
 
 .cmv2-crc-contract-alert {
@@ -472,16 +459,6 @@
 }
 
 @media (max-width: 1180px) {
-  .cmv2-crc-head {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .cmv2-crc-focus {
-    flex-basis: auto;
-    width: 100%;
-  }
-
   .cmv2-crc-faculties {
     grid-template-columns: minmax(0, 1fr);
   }

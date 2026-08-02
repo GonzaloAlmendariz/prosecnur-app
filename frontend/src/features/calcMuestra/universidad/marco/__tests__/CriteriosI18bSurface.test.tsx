@@ -17,7 +17,11 @@ import type {
   CalcMuestraCriteriosTotales,
 } from "../../../../../api/calcMuestraCriteriosI18b";
 import { CriterioAnclaHistorica } from "../CriterioAnclaHistorica";
-import { CriterioBoxplotPercentilar } from "../CriterioBoxplotPercentilar";
+import {
+  boxplotDomain,
+  CriterioBoxplotLeyenda,
+  CriterioBoxplotPercentilar,
+} from "../CriterioBoxplotPercentilar";
 import { CriteriosEmbudoVivo } from "../CriteriosEmbudoVivo";
 import { CriteriosRadiografiaCardDetalle } from "../CriteriosRadiografiaCardDetalle";
 import { CursosHorarioMarcoTab } from "../CursosHorarioMarcoTab";
@@ -407,6 +411,32 @@ describe("superficie I18b de criterios", () => {
     expect(html).not.toContain("máximo");
   });
 
+  it("S4: sobre un dominio compartido dos distribuciones distintas dibujan cajas distintas", () => {
+    const estrecha = { media: 10, p10: 9, p25: 9.5, p50: 10, p75: 10.5, p90: 11 };
+    const ancha = { media: 50, p10: 10, p25: 30, p50: 50, p75: 70, p90: 90 };
+    const domain = boxplotDomain([estrecha, ancha]);
+    expect(domain).toEqual({ low: 9, high: 90 });
+
+    const anchoDe = (html: string) => {
+      const match = html.match(/class="cmv2-i18b-boxplot-box"[^>]*width="([\d.]+)"/);
+      return match ? Number(match[1]) : Number.NaN;
+    };
+    const render = (d: typeof estrecha, dom: typeof domain) =>
+      renderToStaticMarkup(<CriterioBoxplotPercentilar label="x" distribution={d} domain={dom} />);
+
+    // Con escala compartida la caja estrecha ocupa una fracción de la ancha.
+    expect(anchoDe(render(estrecha, domain))).toBeLessThan(anchoDe(render(ancha, domain)) / 10);
+    // Sin dominio cada figura se normalizaba sola y ambas salían idénticas:
+    // ese era el defecto, y queda declarado en el markup.
+    expect(anchoDe(render(estrecha, null))).toBeCloseTo(anchoDe(render(ancha, null)), 5);
+    expect(render(estrecha, domain)).toContain('data-scale="compartida"');
+    expect(render(estrecha, null)).toContain('data-scale="propia"');
+    // La leyenda es del bloque, nunca de la figura.
+    expect(render(estrecha, domain)).not.toContain("<figcaption");
+    expect(renderToStaticMarkup(<CriterioBoxplotLeyenda domain={domain} unidad="alumnos por CH" />))
+      .toContain("Escala compartida");
+  });
+
   it("mantiene un vacío honesto si no hay seis estadísticos", () => {
     const html = renderToStaticMarkup(
       <CriterioBoxplotPercentilar
@@ -444,6 +474,37 @@ describe("superficie I18b de criterios", () => {
     expect(html).toContain("IC 95% 70.0%–90.0%");
     expect(html).toContain("bootstrap_percentil");
     expect(html).toContain("2025-1");
+  });
+
+  it("T3: un aviso que comparten todas las facultades se dice una sola vez", () => {
+    const aviso = "El criterio no comparte una caracteristica compatible con la referencia.";
+    const sinPublicar = (facultad: string) => ({
+      ...anchor,
+      faculty_key: facultad.toLowerCase(),
+      faculty_label: facultad,
+      match_level: "incompatible" as const,
+      k: null,
+      tasa: null,
+      ic_low: null,
+      ic_high: null,
+      warning: aviso,
+    });
+    const html = renderToStaticMarkup(
+      <CriterioAnclaHistorica
+        cardId="session_type"
+        rows={[sinPublicar("Derecho"), sinPublicar("Educación"), sinPublicar("Psicología")]}
+      />,
+    );
+    // El aviso aparece una vez, no una por facultad.
+    expect(html.match(new RegExp(aviso.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))).toHaveLength(1);
+    expect(html).toContain('data-anchor-shared="true"');
+    // Ninguna facultad se pierde: las tres siguen nombradas y contadas.
+    expect(html).toContain("Sin coincidencia publicable en 3 facultades");
+    for (const facultad of ["Derecho", "Educación", "Psicología"]) {
+      expect(html).toContain(facultad);
+    }
+    // La causa real —las dos dimensiones de facultad— sigue publicada.
+    expect(html).toContain("Facultad de referencia");
   });
 
   it("clasifica la ausencia de ancla como estado honesto", () => {

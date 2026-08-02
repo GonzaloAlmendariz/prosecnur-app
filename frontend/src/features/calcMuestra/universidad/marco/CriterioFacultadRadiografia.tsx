@@ -5,7 +5,11 @@ import type {
   CalcMuestraCriteriosPreviewInput,
   CalcMuestraCriteriosTotales,
 } from "../../../../api/calcMuestraCriteriosI18b";
-import { CriterioBoxplotPercentilar } from "./CriterioBoxplotPercentilar";
+import {
+  boxplotDomain,
+  CriterioBoxplotLeyenda,
+  CriterioBoxplotPercentilar,
+} from "./CriterioBoxplotPercentilar";
 import { CriteriosRadiografiaCardDetalle } from "./CriteriosRadiografiaCardDetalle";
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import "./criterioFacultadRadiografia.css";
@@ -90,6 +94,10 @@ export function CriterioFacultadRadiografia({
     : facultyCard.entries.flatMap((entry) => entry.rows.map((row) => ({ entry, row })));
   const visibleRows = compactRows.slice(0, MAX_VISIBLE_SEGMENTS);
   const hiddenRows = Math.max(0, compactRows.length - visibleRows.length);
+  // S4: las categorías de un criterio se comparan entre sí sobre una escala
+  // única. El dominio se calcula sobre TODAS las filas del criterio, no solo
+  // las visibles, para que recortar la lista no cambie el gráfico.
+  const domain = boxplotDomain(compactRows.map(({ row }) => row.actual.distribution));
 
   return (
     <div
@@ -107,13 +115,32 @@ export function CriterioFacultadRadiografia({
           <span className="cmv2-crc-compact-state">{card.state === "v2" ? "vigente" : card.state.replace("_", " ")}</span>
         </header>
 
+        {visibleRows.length ? <CriterioBoxplotLeyenda domain={domain} unidad="alumnos por CH" /> : null}
         {visibleRows.length ? (
           <div
             className="cmv2-crc-compact-segments"
             data-qa-geometry-group="calc-muestra/radiografia-compacta-facultad"
             data-qa-geometry-contract="intrinsic"
           >
-            {visibleRows.map(({ entry, row }) => (
+            {visibleRows.map(({ entry, row }) => row.actual.n_ch === 0 && row.actual.distribution.media === null ? (
+              // Categoría sin CH en esta facultad: se declara, no se oculta,
+              // pero no ocupa el mismo ancho que una con distribución.
+              <article
+                className="cmv2-crc-compact-segment"
+                key={`${entry.id}:${row.segment_key}:${row.segment_kind}`}
+                data-criterion-id={entry.id}
+                data-segment-empty="true"
+                data-qa-geometry-member
+                data-qa-geometry-capacity="owned"
+                role="status"
+              >
+                <header>
+                  <strong>{row.segment_label}</strong>
+                  {facultyCard.entries.length > 1 ? <span>{entry.label}</span> : null}
+                </header>
+                <p>0 CH</p>
+              </article>
+            ) : (
               <article
                 className="cmv2-crc-compact-segment"
                 key={`${entry.id}:${row.segment_key}:${row.segment_kind}`}
@@ -128,6 +155,7 @@ export function CriterioFacultadRadiografia({
                 <CriterioBoxplotPercentilar
                   label={`${facultyLabel} · ${entry.label} · ${row.segment_label} · elegibles`}
                   distribution={row.actual.distribution}
+                  domain={domain}
                 />
                 <dl aria-label={`Cifras elegibles de ${row.segment_label}`}>
                   <div><dt>CH</dt><dd>{fmt(row.actual.n_ch)}</dd></div>
