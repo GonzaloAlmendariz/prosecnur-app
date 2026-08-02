@@ -6,7 +6,7 @@
  * HTML/CSS puro, sin Plotly.
  */
 import { useMemo, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronUp, Route } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, Route } from "../../../vendor/lucide-react";
 import type {
   CalcMuestraAulasReplacementSimulation,
   CalcMuestraAulasReplacementSuggestion,
@@ -14,6 +14,7 @@ import type {
 } from "../../../api/client";
 import { BadgeMotor, TerminoGlosario } from "./PasoDidactico";
 import { rowsFrom, rowText, safeNum } from "./didacticaData";
+import { canonicalClassroomOperationalCode } from "../universidad/aulas/classroomOperationalCode";
 
 const MAX_CADENAS_VISIBLES = 8;
 const MAX_RESERVAS_POR_CADENA = 2;
@@ -51,7 +52,7 @@ function slotNumber(slotId: string, fallback: number): number {
 
 function codigoOperativo(row: Record<string, unknown>, fallback: string): string {
   const raw = rowText(row, ["operational_code", "codigo_operativo", "codigo_aula_operativa"]) || fallback;
-  return raw.replace(/^AULA\b/i, "CH");
+  return canonicalClassroomOperationalCode(raw);
 }
 
 function nivelLabel(nivel: string): string {
@@ -143,7 +144,7 @@ function construirCadenas(
           ordenIndex + 1;
         return {
           id: reservaId,
-          codigo: codigoOperativo(reserva, `R${numero}.${orden}`),
+          codigo: codigoOperativo(reserva, `R ${numero}.${orden}`),
           etiqueta: rowText(reserva, ["course_name", "label", "classroom_id"]),
           nivel,
           scoreDelta: sugerencia?.score_delta ?? safeNum(reserva.replacement_impact_score, Number.NaN),

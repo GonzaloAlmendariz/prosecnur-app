@@ -18,6 +18,7 @@ import {
   normalizeDescuentoResumenBloque,
   resolveDiscountMode,
 } from "./descuentoRepetidosModel";
+import { DescuentoSecuencialNarrativa } from "./DescuentoSecuencialNarrativa";
 import "./aulas.css";
 
 export function DescuentoRepetidosPanel({
@@ -51,6 +52,7 @@ export function DescuentoRepetidosPanel({
           <strong>{discountModeLabel(mode)}.</strong> {discountModeDetalle(mode)}
         </p>
       )}
+      <DescuentoSecuencialNarrativa selection={selection} rows={m1Rows} />
       {resumen && (
         <>
           <div className="cmv2-classroom-table-wrap">

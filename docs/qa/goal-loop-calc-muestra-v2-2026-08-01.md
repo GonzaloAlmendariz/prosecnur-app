@@ -165,8 +165,8 @@ iteración; si la bandeja pasa de tres, se presentan juntas.
 | # | Lote | Mandato | Estado |
 |---|---|---|---|
 | 16 | Consola analítica de criterios (14 gates restantes) | M1 | **cerrada** — 15/15 gates bajo un contrato R→React único |
-| 17 | «Selección legible» (métodos narrados + descuento visible + código `CH n`/`R n.k` + mapa de la muestra) | M2 | **activa** |
-| 18 | «Marco decide» (matriz embudo + «Alumnos por CH» + mudanza Consistencia→Datos) | M3 | pendiente |
+| 17 | «Selección legible» (métodos narrados + descuento visible + código `CH n`/`R n.k` + mapa de la muestra) | M2 | **cerrada** — 4/4 capacidades, contrato R→React fail-closed |
+| 18 | «Marco decide» (matriz embudo + «Alumnos por CH» + mudanza Consistencia→Datos) | M3 | **activa** |
 | 19 | «Cálculo» (renombre + Distribución densa) | M4 | pendiente |
 | 20+ | Libertad creativa gobernada: lo que la evidencia pida (simulador «qué pasa si», comparador de escenarios, export de radiografía), colgado de las cinco dimensiones y gateado por F0 | — | abierto |
 
@@ -179,10 +179,10 @@ anotarlo aquí.
 | Métrica | Apertura (2026-08-01) | Hoy | Dirección |
 |---|---:|---:|---|
 | Gates analíticos de criterios con contrato R probado (M1) | 1 de 15 (`session_type`, I11) | **15 de 15** | = 15 |
-| Capacidades del lote «Selección legible» (M2) | 0 de 4 | 0 de 4 | = 4 en un solo lote |
-| Helper único de código operativo (`CH n` / `R n.k`) | re-etiquetado duplicado en 4 archivos | 4 duplicados | 1 helper compartido, 0 duplicados |
-| Titulares visibles en la vista de cadenas sin truncar | 24 de 175 (slots ≤ 6 de 11) | 24 de 175 | 175 de 175 |
-| Default de `sequential_discount` alineado engine↔UI y documentado | divergente (engine OFF, UI ON) | divergente | alineado con porqué escrito |
+| Capacidades del lote «Selección legible» (M2) | 0 de 4 | **4 de 4** | = 4 en un solo lote |
+| Helper único de código operativo (`CH n` / `R n.k`) | re-etiquetado duplicado en 4 archivos | **1 helper compartido, 0 duplicados** | 1 helper compartido, 0 duplicados |
+| Titulares visibles en la vista de cadenas sin truncar | 24 de 175 (slots ≤ 6 de 11) | **175 de 175** (virtualizado; profundidad 11) | 175 de 175 |
+| Default de `sequential_discount` alineado engine↔UI y documentado | divergente (engine OFF, UI ON) | **alineado ON**; OFF legacy queda explícito en goldens | alineado con porqué escrito |
 | Matriz embudo facultad × criterio (M3) | no existe | no existe | existe sobre el contrato M1 |
 | Pestaña «Alumnos por CH» (M3) | no existe | no existe | existe y Cálculo/Selección la consumen sin recalcular |
 | Mudanza Consistencia → Datos (D7) | pendiente | pendiente | hecha una vez, con alias y regresiones |
@@ -208,9 +208,27 @@ Vacía al abrir. Resueltas que este loop hereda y aplica:
 
 ## Registro de iteraciones
 
+### Scope lock I17 — «Selección legible» (M2)
+
+- **Categoría y fuente:** feature cross-layer F2/F4; mandan M2, D8, D9 y el contrato vigente de selección del engine R.
+- **Módulo:** Cálculo de muestra > Aulas > Método/Selección, con pase compatible a Monitoreo y XLSX.
+- **Carril A:** alinear `sequential_discount=TRUE`; emitir/canonizar `CH n`/`R n.k`; aceptar códigos históricos sin alterar selección, calibración ni goldens explícitamente legacy.
+- **Carril B:** narrar los cuatro métodos, mostrar el descuento paso a paso y montar la matriz completa virtualizada con clic al inspector.
+- **Owners R:** nuevos helpers extraídos + cambios mínimos en `calc_muestra_aulas.R`, `calc_muestra_engine.R`, descuento, Monitoreo y tests focales.
+- **Owners React:** archivos nuevos para historias/mapa + cambios reductivos en Método, Selección, reemplazos, labels, didáctica y tests focales.
+- **A preservar:** todos los cambios sucios ajenos ya inventariados; puertos 5173/8799; stash de seguridad; ningún proceso del usuario se toca.
+- **Fuera:** M3/M4, migraciones `.pulso`, estadísticos nuevos, cambio de algoritmos de sorteo, export histórico Monitoreo→Excel y cualquier inferencia de equivalencia ausente.
+- **Riesgo principal:** presentar una configuración como recomendación del engine, narrar `post_hoc` como descuento causal o romper matches históricos al canonizar solo la vista.
+- **Peaje estructural:** `calc_muestra_aulas.R`, `AulasMetodoTab.tsx`, `AulasSeleccionTab.tsx`, `ClassroomReplacementPanels.tsx`, `aulas.css` y `aulasParts.tsx` no crecen; lo nuevo vive extraído.
+- **Baseline:** auditoría agentic verde; typecheck I16 verde; focales de descuento, identidad, Monitoreo, labels, inspector y handoff antes de integrar.
+- **Gate:** testthat focal R + Vitest focal + typecheck + `/ver-ui`/geometry en Método y Selección a 1440×1000 y 1024×600 + `verificador` serial.
+- **Stopping rule:** 4/4 capacidades M2 visibles y probadas, 1 helper canónico/0 duplicados, 175/175 titulares sin truncar, defaults alineados, ledger/registro actualizados y commit atómico.
+- **Orquestación:** dos writers disjuntos (backend R / frontend React); el lead integra contratos compartidos y un revisor metodológico/visual inspecciona antes del gate final.
+
 | # | Fecha | Lote | Qué se hizo | Evidencia | Ledger movido |
 |---|---|---|---|---|---|
 | 16 | 2026-08-01 | Consola analítica de criterios (M1) | El engine R convirtió el inventario dinámico en 13 tarjetas/15 gates/9 familias con snapshots, seis estadísticos, delta atómico y estados honestos; React solo valida, ordena y presenta dato → distribución → impacto → acción en los dos hogares de Marco. El owner R grande se partió por alumno/aula y el contrato API se extrajo. El gate real detectó y corrigió dos multiplicadores de rendimiento y un hueco de geometría antes del cierre. | R focal 23 bloques/269 expectativas; payload completo con SHA congelado y un índice alumno×CH por radiografía. Medición causal sobre 136.284 filas: >21 min → 347,09 s → **128,03 s**, 15/13/15 intactos. Typecheck y Vitest focales verdes. QA geometry-only sobre frame canónico `hsvg2026` 5.263/2.373: 4/4 capturas, 58 grupos, 0 misses/issues/overflow/scroll jail/errores, `ok=true`; la reconstrucción desde el Excel anonimizado se usa solo para rendimiento, nunca para acreditar cifras. | Gates M1 1/15 → **15/15**; hallazgos vuelve a 0; archivos extraíbles que crecieron = 0. I17 queda activa. |
+| 17 | 2026-08-01 | Selección legible (M2) | Método invierte la jerarquía: recomendación acreditada, cuatro historias visuales y comparador colapsado al final. El descuento secuencial queda ON en R y UI, narrado como secuencial o `post_hoc` según engine. Un helper canónico R y otro espejo de presentación TS publican `CH n`/`R n.k` en selección, reemplazos, inspector, didáctica, XLSX y Monitoreo, aceptando históricos. Selección monta el mapa completo virtualizado por facultad, con todas las cadenas y clic al inspector. La frescura de la recomendación firma toda la configuración causal y falla cerrada; dos vetos de revisión (objetivo normalizado y default vacío) se reprodujeron, repararon y reaprobaron dentro del lote. | Cinco focales R verdes; Aulas 9 archivos/91 Vitest y handoff final 17/17; typecheck, 11/11 del guard visual y diff-check verdes. Método 2/2 y Selección 2/2 en 1440×1000/1024×600: 18 grupos, 0 issues/misses/overflow/scroll jail/errores. Estado C canónico: 163 titulares, 1.406 reemplazos, 15 facultades, profundidad 11; `CH 1` abre su inspector y el scroll alcanza el final. El modelo prueba además 175 × 11 sin truncar. `calc_muestra_aulas.R` 5.043→4.963 y `AulasMetodoTab.tsx` 409→141; ningún owner grande de entrada creció. Guardian y método: `APPROVED` tras sondas R→TS reales. | M2 0/4 → **4/4**; duplicados 4→**0** con 1 helper; titulares 24/175→**175/175**; default divergente→**ON alineado**; hallazgos vuelve a 0; archivos extraíbles que crecieron = 0. I18 «Marco decide» queda activa; sin decisiones nuevas. |
 
 ## Cómo se corre cada visita
 

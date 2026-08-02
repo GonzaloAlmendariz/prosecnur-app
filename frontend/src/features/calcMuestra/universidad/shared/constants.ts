@@ -143,10 +143,9 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   penalizacion_repetidos: 1.35,
   // Descuento secuencial de repetidos (reunión Ramiro §10): ON por defecto en
   // el frontend porque es el flujo metodológico correcto — al elegir un aula,
-  // sus alumnos se descuentan de las candidatas restantes. El default del
-  // ENGINE es false; encenderlo aquí solo surte efecto al ejecutar una
-  // selección NUEVA (acción explícita del usuario), nunca reescribe una
-  // selección ya generada.
+  // sus alumnos se descuentan de las candidatas restantes. El ENGINE también
+  // nace ON; el valor solo surte efecto al ejecutar una selección NUEVA y
+  // nunca reescribe una ya generada. FALSE explícito conserva históricos.
   sequential_discount: true,
   pps_weight: 0.25,
   coverage_weight: 1,

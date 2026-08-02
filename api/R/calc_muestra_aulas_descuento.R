@@ -7,10 +7,10 @@
 # sorteo, para que un aula grande cuyos alumnos ya cayeron cubiertos deje de
 # pesar como grande.
 #
-# Flag de config: selector$sequential_discount (default FALSE en el engine
-# para retro-compat bit a bit: con OFF ninguna rama de este archivo toca el
-# RNG ni agrega columnas, los goldens quedan intactos). calc_muestra_aulas.R
-# está congelado a crecimiento: solo llama a estas funciones.
+# Flag de config: selector$sequential_discount (default TRUE en el engine).
+# Con FALSE explícito ninguna rama de este archivo toca el RNG ni agrega
+# columnas, lo que permite reproducir goldens históricos. calc_muestra_aulas.R
+# solo llama a estas funciones.
 
 # Engines donde el descuento se aplica DENTRO del sorteo (aula por aula).
 .cm_descuento_engines_secuenciales <- function() {
@@ -45,7 +45,7 @@
 # ON sin ids parseables degrada a OFF con warning estructurado (código
 # descuento_sin_ids como prefijo greppeable), nunca error.
 .cm_descuento_estado <- function(aula_frame, selector, engine) {
-  requested <- .cm_aulas_bool(selector$sequential_discount, FALSE)
+  requested <- .cm_aulas_bool(selector$sequential_discount, TRUE)
   if (!requested) {
     return(list(
       requested = FALSE, applied = FALSE, sequential = FALSE,
@@ -81,7 +81,7 @@
 # Marca el selector del pool para que sus sorteos candidatos desciendan al
 # path secuencial (una línea de integración en .cm_aulas_select_once_pool).
 .cm_descuento_marcar_pool <- function(selector) {
-  if (.cm_aulas_bool(selector$sequential_discount, FALSE)) {
+  if (.cm_aulas_bool(selector$sequential_discount, TRUE)) {
     selector$.descuento_forzar_secuencial <- TRUE
   }
   selector

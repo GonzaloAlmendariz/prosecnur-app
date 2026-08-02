@@ -11,6 +11,7 @@ import {
   classroomScore,
   classroomWaveNumber,
 } from "./classroomLabels";
+import { canonicalClassroomOperationalCode } from "./classroomOperationalCode";
 import { ClassroomEmptyState, Metric } from "./ClassroomPrimitives";
 
 type ClassroomReplacementSlot = {
@@ -34,8 +35,6 @@ type ClassroomReplacementChain = {
   eligible: number;
   slots: ClassroomReplacementSlot[];
 };
-
-
 function classroomReplacementRouteLabel(wave: string | undefined, rank?: number) {
   const numericRank = safeNumber(rank, 0);
   if (numericRank > 0) return `Reemplazo ${fmtInt(numericRank)}`;
@@ -49,8 +48,6 @@ function classroomSlotNumber(slotId: string, fallback: number) {
   const parsed = match ? Number(match[1]) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
-
-
 function classroomReplacementMatchLabel(value: string) {
   const normalized = String(value ?? "").trim().toLowerCase();
   const labels: Record<string, string> = {
@@ -130,8 +127,8 @@ export function classroomReplacementChains(
         const match = classroomRowText(reserve, ["equivalence_level"]) || (classroomRowText(reserve, ["stratum"]) === stratum ? "misma_celda" : "misma_facultad");
         return {
           id: reserveId,
-          code: classroomOperationalCode(reserve, `R${slotNumber}.${classroomRowNumber(reserve, ["replacement_order"]) || Math.max(1, classroomWaveNumber(classroomRowText(reserve, ["wave"])) - 1)}`),
-          titularCode: classroomRowText(reserve, ["titular_operational_code"]) || titularCode,
+          code: classroomOperationalCode(reserve, `R ${slotNumber}.${classroomRowNumber(reserve, ["replacement_order"]) || Math.max(1, classroomWaveNumber(classroomRowText(reserve, ["wave"])) - 1)}`),
+          titularCode: canonicalClassroomOperationalCode(classroomRowText(reserve, ["titular_operational_code"]), titularCode),
           label: classroomRowText(reserve, ["course_name", "label", "classroom_id"]),
           wave: classroomRowText(reserve, ["wave"]),
           order: classroomRowNumber(reserve, ["replacement_order"]) || classroomWaveNumber(classroomRowText(reserve, ["wave"])),
@@ -186,8 +183,8 @@ export function ClassroomReplacementChainPanel({
       </div>
       <div className="cmv2-replacement-chain-summary">
         <Metric label="Titulares con ruta" value={fmtInt(chains.length)} />
-        <Metric label="Código operativo" value="CH n / Rn.k" />
-        <Metric label="Reemplazos por ruta" value={`R1-R${maxDepth}`} />
+        <Metric label="Código operativo" value="CH n / R n.k" />
+        <Metric label="Reemplazos por ruta" value={`R n.1–R n.${maxDepth}`} />
         <Metric label="Cursos-horario extra" value={extraPool ? fmtInt(extraPool) : "sin extra"} />
       </div>
       <div className="cmv2-backend-field-strip" aria-label="Datos visibles usados en rutas de reemplazo">
@@ -269,12 +266,12 @@ export function ClassroomReplacementTables({ simulation }: { simulation: CalcMue
             {suggestions.map((item) => (
               <tr key={`${item.titular_classroom_id}-${item.reserve_classroom_id}-${item.rank}`}>
                 <td>
-                  <span className="cmv2-table-code">{String(item.titular_operational_code || "CH").replace(/^AULA\b/i, "CH")}</span>
+                  <span className="cmv2-table-code">{canonicalClassroomOperationalCode(item.titular_operational_code, "CH")}</span>
                   {item.titular_label || item.titular_classroom_id}
                   <small>{item.titular_classroom_id}</small>
                 </td>
                 <td>
-                  <span className="cmv2-table-code">{item.reserve_operational_code || item.replacement_chain_code || `R${item.rank}`}</span>
+                  <span className="cmv2-table-code">{canonicalClassroomOperationalCode(item.reserve_operational_code || item.replacement_chain_code, `R ${item.rank}`)}</span>
                   {item.reserve_label || item.reserve_classroom_id}
                   <small>{item.reserve_classroom_id}</small>
                 </td>
@@ -313,11 +310,11 @@ function ClassroomImpactTable({ rows }: { rows?: Array<Record<string, unknown>> 
           {visible.map((row, index) => (
             <tr key={index}>
               <td>
-                <span className="cmv2-table-code">{(classroomRowText(row, ["titular_operational_code"]) || "CH").replace(/^AULA\b/i, "CH")}</span>
+                <span className="cmv2-table-code">{canonicalClassroomOperationalCode(classroomRowText(row, ["titular_operational_code"]), "CH")}</span>
                 {classroomRowText(row, ["titular_classroom_id"])}
               </td>
               <td>
-                <span className="cmv2-table-code">{classroomRowText(row, ["replacement_operational_code"]) || "R"}</span>
+                <span className="cmv2-table-code">{canonicalClassroomOperationalCode(classroomRowText(row, ["replacement_operational_code"]), "R")}</span>
                 {classroomRowText(row, ["suggested_replacement_id"])}
               </td>
               <td className="is-num">{classroomScore(classroomRowNumber(row, ["after_score"]))}<small>{classroomNumberText(row, ["score_delta"])}</small></td>
@@ -344,7 +341,7 @@ export function ClassroomReplacementBlueprintPanel({
   extraReserveCount: number;
 }) {
   const routeDepth = Math.max(1, Math.min(5, depth || 3));
-  const replacementCodes = Array.from({ length: routeDepth }, (_, index) => `R5.${index + 1}`);
+  const replacementCodes = Array.from({ length: routeDepth }, (_, index) => `R 5.${index + 1}`);
   return (
     <div className="cmv2-classroom-replacement-blueprint">
       <div className="cmv2-classroom-route-preview" aria-label="Ejemplo de cadena de reemplazos">

@@ -46,6 +46,8 @@ golden_fixture_cadenas <- function() {
       selector_engine = "sistematico_pps",
       strata_cols = list("faculty"),
       balance_vars = list("faculty", "program", "level"),
+      # Golden legacy: congela la selección anterior al default ON.
+      sequential_discount = FALSE,
       monte_carlo_n = 10L
     )
   ))
@@ -79,6 +81,8 @@ golden_fixture_simulacion <- function() {
       selector_engine = "cube_balanceado",
       strata_cols = list("faculty"),
       balance_vars = list("faculty", "program", "level"),
+      # Golden legacy: congela la selección anterior al default ON.
+      sequential_discount = FALSE,
       monte_carlo_n = 20L
     )
   ))
@@ -120,6 +124,8 @@ golden_fixture_escala <- function() {
       selector_engine = "sistematico_pps",
       strata_cols = list("faculty"),
       balance_vars = list("faculty", "program", "level"),
+      # Golden legacy: congela la selección anterior al default ON.
+      sequential_discount = FALSE,
       monte_carlo_n = 0L
     )
   ))

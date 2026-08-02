@@ -1,8 +1,7 @@
 /**
  * Pestaña "Aulas titulares" (id seleccion) de la sección Aulas. Arriba la capa
- * didáctica (SeleccionAulasVisual); luego cifras con procedencia del motor,
- * cobertura/solape, razones operativas por aula, el ajuste muestra vs. marco
- * con banda de tolerancia explícita y la tabla filtrable de la selección.
+ * didáctica, mapa completo, cifras del motor, cobertura/solape, razones por
+ * aula, ajuste frente al marco e inspector compartido con la tabla filtrable.
  * El grid de métricas de representatividad NO se repite aquí (vive en
  * Simulación). Command bar: Seleccionar titulares + Probar reemplazos.
  */
@@ -15,7 +14,7 @@ import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor } from "../ui";
-import { AulaInspectorPanel } from "./AulaInspectorPanel";
+import { ClassroomSelectionMapWorkspace } from "./ClassroomSelectionMap";
 import { DescuentoRepetidosPanel } from "./DescuentoRepetidosPanel";
 import {
   ClassroomLabCommandBar,
@@ -76,6 +75,7 @@ export function AulasSeleccionTab({
     visibleProfiles,
     m1Rows,
     reserveRows,
+    replacementSimulation,
     recommendedMethodId,
     engineOption,
     targetForDisplay,
@@ -181,6 +181,15 @@ export function AulasSeleccionTab({
             nObjetivo={targetForDisplay || null}
             totalFacultades={model.facultades.length || null}
           />
+          <ClassroomSelectionMapWorkspace
+            selectionRows={selectionRows}
+            simulation={replacementSimulation}
+            selectedRow={activeRow}
+            methodLabel={methodUsedLabel}
+            onInspect={setInspectedRow}
+            onInspectById={inspectByClassroomId}
+            onCloseInspector={() => setInspectedRow(null)}
+          />
 
           <div className="cmv2-classroom-lab-grid">
             <div className="cmv2-classroom-lab-main">
@@ -195,7 +204,7 @@ export function AulasSeleccionTab({
               </div>
               <ProfileBalanceChart rows={visibleProfiles} />
               <div
-                className={`cmv2-aulas-tabla-inspector-layout${activeRow ? " has-inspector" : ""}`}
+                className="cmv2-aulas-tabla-inspector-layout"
                 data-qa-geometry-group="aulas-seleccion-tabla"
                 data-qa-geometry-contract="intrinsic"
               >
@@ -231,15 +240,6 @@ export function AulasSeleccionTab({
                     </div>
                   )}
                 </div>
-                {activeRow && (
-                  <AulaInspectorPanel
-                    row={activeRow}
-                    selectionRows={selectionRows}
-                    methodLabel={methodUsedLabel}
-                    onClose={() => setInspectedRow(null)}
-                    onInspect={inspectByClassroomId}
-                  />
-                )}
               </div>
             </div>
             <aside className="cmv2-classroom-lab-side">

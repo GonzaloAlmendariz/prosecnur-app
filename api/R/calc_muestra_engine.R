@@ -590,9 +590,12 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     penalizacion_repetidos = calc_num(cfg$penalizacion_repetidos, 1.35, min = 0, max = 100),
     # Descuento secuencial de repetidos entre aulas del estrato (asesoría
     # muestral 2026-07-15 §10). Whitelist-only: sin esta entrada el
-    # round-trip PUT→GET del estudio BORRA el flag. Default FALSE en el
-    # engine (retro-compat); el frontend decide su default de UI.
-    sequential_discount = calc_bool(cfg$sequential_discount, FALSE),
+    # round-trip PUT→GET del estudio BORRA el flag. Ausente adopta el default
+    # del engine; un FALSE explícito se conserva para históricos reproducibles.
+    sequential_discount = calc_bool(
+      cfg$sequential_discount,
+      calc_muestra_aulas_default_config()$selector$sequential_discount
+    ),
     pps_weight = calc_num(cfg$pps_weight, 0.25, min = 0, max = 100),
     coverage_weight = calc_num(cfg$coverage_weight, 1, min = 0, max = 100),
     monte_carlo_n = calc_int(cfg$monte_carlo_n, 500L, min = 0L, max = 100000L),
