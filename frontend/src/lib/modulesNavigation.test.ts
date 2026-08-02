@@ -332,7 +332,9 @@ describe("manifiesto primario de navegación", () => {
     );
     const dashboard = PROSECNUR_MODULES.find((module) => module.slug === "dashboard");
 
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(23);
+    // D10 (2026-08-02): Consistencia dejó de ser subpágina de Fuentes y pasó a
+    // pestaña propia de Datos, inmediatamente después. 23 → 24.
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(24);
     expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas.map((tab) => tab.id)).toEqual([
       "objetivo",
       "metodo",

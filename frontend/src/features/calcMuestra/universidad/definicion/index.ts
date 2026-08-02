@@ -1,5 +1,5 @@
-/** Sección Datos del desk universitario: 3 pestañas (Estudio, Fuentes, Variables). */
+/** Sección Datos del desk universitario: 4 pestañas (Estudio, Fuentes, Consistencia, Variables). */
 export { DefEstudioTab, EjemploTrabajado } from "./DefEstudioTab";
 export { DefBasesTab } from "./DefBasesTab";
-export { DefFuentesConsistenciaTab } from "./DefFuentesConsistenciaTab";
+export { DefConsistenciaTab } from "./DefConsistenciaTab";
 export { DefVariablesTab } from "./DefVariablesTab";

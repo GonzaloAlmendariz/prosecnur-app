@@ -37,7 +37,7 @@ import {
   type UniversityAulasScenario,
 } from "./shared/study";
 import { universitySidebarTabs } from "./universidadTabs";
-import { DefEstudioTab, DefFuentesConsistenciaTab, DefVariablesTab } from "./definicion";
+import { DefBasesTab, DefConsistenciaTab, DefEstudioTab, DefVariablesTab } from "./definicion";
 import { AlumnosPorChMarcoTab, CursosHorarioMarcoTab, MarcoAulasTab, MarcoPoblacionTab } from "./marco";
 import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
@@ -398,9 +398,10 @@ export function UniversidadDesk({
                 onWorkspace={onWorkspace}
               />
             </div>}
+            {/* D10: Fuentes declara y construye; Consistencia califica el
+                insumo en su propia pestaña, inmediatamente después. */}
             {showLocalTab("def-bases") && <div id="cmv2-local-def-bases" className="cmv2-definition-stack">
-              <DefFuentesConsistenciaTab
-                focusConsistency={activeFocus === "def-consistencia"}
+              <DefBasesTab
                 workspace={syncedWorkspace}
                 aulasState={aulasState}
                 referencia={referenciaAsistencia}
@@ -410,6 +411,9 @@ export function UniversidadDesk({
                 onReferenceSheetChange={onReferenceSheetChange}
                 uploadingSourceId={uploadingSourceId}
               />
+            </div>}
+            {showLocalTab("def-consistencia") && <div id="cmv2-local-def-consistencia" className="cmv2-definition-stack">
+              <DefConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
             </div>}
             {showLocalTab("def-variables") && <div id="cmv2-local-def-variables" className="cmv2-definition-stack">
               <DefVariablesTab

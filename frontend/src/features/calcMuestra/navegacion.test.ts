@@ -140,22 +140,24 @@ describe("dirección de Cálculo de muestra", () => {
   describe("normalización histórica de la dirección universitaria", () => {
     const casos = [
       {
-        nombre: "mueve el antiguo hogar de Consistencia desde Datos",
+        // D10 ejecutada: Consistencia es pestaña propia de Datos, así que su
+        // dirección ya no se reescribe a Fuentes con foco.
+        nombre: "conserva la dirección propia de Consistencia en Datos",
         seccion: "definicion",
         pestana: "def-consistencia",
-        esperado: { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" },
+        esperado: { seccion: "definicion", pestana: "def-consistencia", foco: null },
       },
       {
-        nombre: "traduce el id retirado dentro de Marco",
+        nombre: "traduce el id retirado dentro de Marco a su hogar real",
         seccion: "marco",
         pestana: "marco-validacion",
-        esperado: { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" },
+        esperado: { seccion: "definicion", pestana: "def-consistencia", foco: null },
       },
       {
-        nombre: "mueve el alias publicado de Marco al bloque real de Fuentes",
+        nombre: "mueve el alias histórico de Marco a la pestaña de Consistencia",
         seccion: "marco",
         pestana: "def-consistencia",
-        esperado: { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" },
+        esperado: { seccion: "definicion", pestana: "def-consistencia", foco: null },
       },
       {
         nombre: "mueve el antiguo Marco de selección a su hogar canónico",
