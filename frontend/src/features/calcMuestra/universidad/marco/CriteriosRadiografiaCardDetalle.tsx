@@ -16,13 +16,37 @@ import { useId, useState } from "react";
 /** Los cinco pasos del recorrido de un criterio, en su orden metodológico. */
 type CriterioPasoId = "distribucion" | "cascada" | "ancla" | "impacto" | "accion";
 
+/**
+ * ADR 0057 · Los rótulos nombran el dato, no la metáfora de la interfaz.
+ *
+ * «Cascada viva» describe una animación, no lo que la pieza informa —cuánto
+ * recorta este criterio y qué queda—. Gonzalo lo señaló por su nombre: suena a
+ * relleno. «Impacto marginal» y «Acción» son etiquetas de sistema, no de
+ * estudio.
+ */
 const CRITERIO_PASOS: ReadonlyArray<{ id: CriterioPasoId; label: string }> = [
   { id: "distribucion", label: "Distribución" },
-  { id: "cascada", label: "Cascada viva" },
-  { id: "ancla", label: "Ancla histórica" },
-  { id: "impacto", label: "Impacto marginal" },
-  { id: "accion", label: "Acción" },
+  { id: "cascada", label: "Cuánto recorta" },
+  { id: "ancla", label: "Comparación con 2025" },
+  { id: "impacto", label: "Si lo quitara" },
+  { id: "accion", label: "Decidir" },
 ];
+
+/**
+ * Pasos visibles según dónde se monte la tarjeta.
+ *
+ * Dentro del bloque de una facultad, la distribución **ya vive en cada
+ * categoría**, junto a su conmutador. Repetirla aquí no sólo duplicaba: lo hacía
+ * con OTRA escala —17,8–43 arriba y 10–43 abajo en la misma pantalla—, y dos
+ * escalas distintas para el mismo criterio invitan a comparar cosas que no son
+ * comparables. En la consola independiente no hay categorías con evidencia, así
+ * que ahí la distribución sigue siendo su contenido principal.
+ */
+function pasosVisibles(context: string) {
+  return context === "faculty"
+    ? CRITERIO_PASOS.filter((paso) => paso.id !== "distribucion")
+    : CRITERIO_PASOS;
+}
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import { CriterioAnclaHistorica } from "./CriterioAnclaHistorica";
 import {
@@ -498,7 +522,8 @@ export function CriteriosRadiografiaCardDetalle({
   // Acción 3.379, Ancla 2.153): 36 pantallas de scroll para una tarjeta. Se
   // recorren como pasos, uno a la vez; ninguno se pierde y el orden
   // metodológico queda visible en el riel.
-  const [pasoActivo, setPasoActivo] = useState<CriterioPasoId>("distribucion");
+  const pasos = pasosVisibles(context);
+  const [pasoActivo, setPasoActivo] = useState<CriterioPasoId>(pasos[0].id);
   return (
     <article
       className="cmv2-crc-card"
@@ -519,7 +544,7 @@ export function CriteriosRadiografiaCardDetalle({
       </header>
 
       <nav className="cmv2-crc-pasos" aria-label={`Pasos de ${card.label}`}>
-        {CRITERIO_PASOS.map((paso, index) => (
+        {pasos.map((paso, index) => (
           <button
             type="button"
             key={paso.id}
@@ -546,7 +571,7 @@ export function CriteriosRadiografiaCardDetalle({
       </section>
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "cascada"} aria-labelledby={`crc-cascada-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>2</span><h5 id={`crc-cascada-${idSuffix}`}>Cascada viva</h5></header>
+        <header><span>2</span><h5 id={`crc-cascada-${idSuffix}`}>Cuánto recorta este criterio</h5></header>
         <p>Secuencia real del motor. No es la matriz marginal y no suma impactos entre criterios.</p>
         <CriteriosEmbudoVivo cardId={card.cardId} executed={cascade} previewRequest={previewRequest} facultyKey={facultyKey} />
       </section>

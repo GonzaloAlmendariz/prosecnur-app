@@ -459,8 +459,13 @@ describe("superficie I18b de criterios", () => {
     expect(html.indexOf("Paso 1")).toBeLessThan(html.indexOf("Paso 2"));
     expect(html).toContain("100 → 80");
     expect(html).toContain("80 → 70");
-    expect(html).toContain("Orden publicado por el motor R");
-    expect(html).toContain("Cascada secuencial");
+    // ADR 0057 · Los rótulos nombran el dato, no la metáfora ni la maquinaria.
+    // «Cascada secuencial» y «orden publicado por el motor R» describen cómo
+    // funciona el sistema; lo que el usuario necesita saber es qué queda después
+    // de cada criterio.
+    expect(html).toContain("Qué queda después de cada criterio");
+    expect(html).toContain("En el orden en que el motor los aplica");
+    expect(html).not.toContain("Cascada viva");
     expect(html).toContain("paso operativo fuera del denominador");
     expect(html).not.toContain("impacto marginal");
   });
@@ -539,7 +544,7 @@ describe("superficie I18b de criterios", () => {
       );
       expect(html, card.cardId).toContain('role="img"');
       expect(html, card.cardId).toContain("Total recalculado por R");
-      expect(html, card.cardId).toContain("Cascada secuencial");
+      expect(html, card.cardId).toContain("Qué queda después de cada criterio");
       expect(html, card.cardId).toContain('data-match-level="exacta"');
       expect(html, card.cardId).toContain(`data-card-id="${card.cardId}"`);
     }
@@ -659,7 +664,7 @@ describe("superficie I18b de criterios", () => {
     expect(classroomRoute).toContain('class="cmv2-crc-compact"');
     expect(classroomRoute).toContain('data-context="faculty"');
     expect(classroomRoute).toContain('role="img"');
-    expect(classroomRoute).toContain("Cascada secuencial");
+    expect(classroomRoute).toContain("Qué queda después de cada criterio");
     expect(classroomRoute).toContain("Ancla histórica");
     expect(classroomRoute).toContain('data-match-level="exacta"');
     expect(classroomRoute.indexOf('aria-label="Radiografía de session_type en Ingeniería"')).toBeLessThan(

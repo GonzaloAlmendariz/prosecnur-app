@@ -2330,6 +2330,53 @@ buenas intenciones.
 | Vitest | 841 → **842** en 101 archivos |
 | Desbordes | **0** |
 
+### F56 — Mirar la pantalla encontró lo que medir no encontraba
+
+Llevaba varias iteraciones midiendo números. Al **ver** una captura apareció el
+defecto de fondo: **el mismo criterio estaba tres veces en la misma pantalla**.
+
+1. Las categorías con su evidencia (lo que añadí en F48–F49).
+2. «Dato de R para decidir modalidad», con las mismas cuatro categorías y sus
+   boxplots.
+3. «Radiografía de …», con el riel de cinco pasos y **otra vez** las mismas
+   categorías.
+
+Y lo peor: la escala decía **17,8–43 arriba y 10–43 abajo**, en la misma pantalla,
+para el mismo criterio. Dos escalas distintas invitan a comparar cosas que no son
+comparables — es la regla 3 rota por duplicación, no por cálculo.
+
+**Yo añadí una tercera representación en vez de reemplazar las dos que había.**
+Ese es el patrón que Gonzalo viene señalando desde el principio.
+
+| | antes → después |
+|---|---:|
+| Alto de la pestaña | 26,6 → **21,8 pantallas** |
+| Escalas distintas para un criterio | 2 | **1** |
+| Desbordes | 0 → **0** |
+
+La distribución sale del riel **sólo en contexto de facultad**, donde ya vive
+pegada a cada conmutador. En la consola independiente no hay categorías con
+evidencia, así que ahí sigue siendo su contenido principal: quitarla de los dos
+sitios habría sido cambiar una duplicación por un hueco.
+
+**Rótulos, con la regla del ADR aplicada** — nombran el dato, no la metáfora ni
+la maquinaria:
+
+| antes | después |
+|---|---|
+| Cascada viva | **Cuánto recorta este criterio** |
+| Cascada secuencial | **Qué queda después de cada criterio** |
+| Ancla histórica | **Comparación con 2025** |
+| Impacto marginal | **Si lo quitara** |
+| Acción | **Decidir** |
+| «Orden publicado por el motor R · downstream» | **«En el orden en que el motor los aplica, desde este criterio en adelante»** |
+
+Verificado en la app: cero apariciones de la jerga anterior.
+
+**Lección de método, y va al ADR**: medir números no sustituye a mirar la
+pantalla. Ninguna de mis mediciones —altos, desbordes, conteos— podía revelar que
+tres bloques distintos estaban diciendo lo mismo con escalas distintas.
+
 ### Estado del loop
 
 | | |
