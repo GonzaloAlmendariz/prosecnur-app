@@ -273,6 +273,18 @@ CSS**, ninguna movió el número, y todas hubo que revertirlas.
 siguiente paso no es un tercer intento sino dudar del instrumento. Los detectores
 de geometría ignoran lo que vive dentro de un contenedor deslizable.
 
+### 15 · El copy de la superficie no termina en el frontend
+
+Tras dos barridos de vocabulario sobre `frontend/src`, la pantalla seguía diciendo
+«aulas» y «benchmark»: esos textos nacen en el motor
+(`.cm_aulas_method_explanation` y los avisos de empate de catálogo en
+`calc_muestra_aulas.R`). Los guards que sólo miran el frontend dan una falsa
+sensación de barrido completo.
+
+**Mecanismo**: las reglas de lenguaje se aplican a **todo texto que el usuario
+lee**, nazca donde nazca. Al revisar vocabulario se incluye `api/R` en la
+búsqueda, distinguiendo copy de códigos de error y de valores de contrato.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

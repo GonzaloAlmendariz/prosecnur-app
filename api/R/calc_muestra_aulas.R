@@ -861,22 +861,22 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
       code = "empate_bajo_catalogo",
       severity = "alta",
       title = "La coincidencia entre bases es baja",
-      detail = sprintf("Solo %.1f%% de las aulas de la base principal empatan con el catálogo.", 100 * audit$match_rate_classrooms)
+      detail = sprintf("Solo %.1f%% de los cursos-horario de la base principal empatan con el catálogo.", 100 * audit$match_rate_classrooms)
     )
   } else if (length(unmatched_base)) {
     issues[[length(issues) + 1L]] <- list(
       code = "aulas_base_sin_catalogo",
       severity = "media",
-      title = "Hay aulas de la base sin ficha de catálogo",
-      detail = sprintf("%s aulas de la base principal no tienen fila equivalente en el catálogo.", length(unmatched_base))
+      title = "Hay cursos-horario de la base sin ficha de catálogo",
+      detail = sprintf("%s cursos-horario de la base principal no tienen fila equivalente en el catálogo.", length(unmatched_base))
     )
   }
   if (length(catalog_only)) {
     issues[[length(issues) + 1L]] <- list(
       code = "catalogo_fuera_de_base",
       severity = "baja",
-      title = "El catálogo tiene aulas que no aparecen en la base",
-      detail = sprintf("%s aulas del catálogo no están en la población leída; se tratan como contexto, no como marco.", length(catalog_only))
+      title = "El catálogo tiene cursos-horario que no aparecen en la base",
+      detail = sprintf("%s cursos-horario del catálogo no están en la población leída; se tratan como contexto, no como marco.", length(catalog_only))
     )
   }
   if (isTRUE(enrichment_audit$used) &&
@@ -886,7 +886,7 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
       code = "catalogo_sin_docente",
       severity = "media",
       title = "Falta docente/contacto legible",
-      detail = "Las aulas empataron, pero no se encontró nombre de docente o contacto para preparar agenda."
+      detail = "Los cursos-horario empataron, pero no se encontró nombre de docente o contacto para preparar agenda."
     )
   }
 
@@ -1642,7 +1642,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       "La seleccion busca reproducir cuotas y auxiliares del marco, no solo tamano.",
       "La bitacora guarda motor, semilla, fallback y advertencias.",
       "Modo avanzado para reducir concentracion por programa, nivel u horario.",
-      "Las aulas seleccionadas salen con peso de aula y pesos estudiantiles agregados.",
+      "Los cursos-horario seleccionados salen con su peso y con los pesos estudiantiles agregados.",
       "Monitoreo mide caídas y sesgos sin exigir identificador personal en respuestas.",
       "Las reservas se trazan por ola y motivo, sin cambiar el marco base.",
       "El workbook permite auditoria metodologica y operativa."
@@ -2966,8 +2966,11 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
 
 .cm_aulas_method_explanation <- function(engine) {
   engine <- .cm_aulas_engine_key(engine)
-  if (engine == "sistematico_pps") return("Da más probabilidad a aulas con más estudiantes elegibles y funciona como benchmark simple.")
-  if (engine == "cube_balanceado") return("Busca que las aulas seleccionadas reproduzcan el marco en facultad, programa, nivel, horario y tamaño.")
+  # ADR 0057 · La unidad se llama curso-horario en toda la app; «aula» fue otra
+  # cosa en versiones anteriores, así que el sinónimo obliga a preguntarse si
+  # nombra algo distinto. «Benchmark» tampoco: es punto de comparación.
+  if (engine == "sistematico_pps") return("Da más probabilidad a los cursos-horario con más estudiantes elegibles; sirve de punto de comparación para los demás métodos.")
+  if (engine == "cube_balanceado") return("Busca que los cursos-horario seleccionados reproduzcan el marco en facultad, programa, nivel, horario y tamaño.")
   if (engine == "local_pivotal_balanceado") return("Además de balancear, intenta dispersar la muestra para evitar concentración académica u operativa.")
   if (engine == "pool_controlado") return("Compara muestras candidatas y elige la que reduce mejor el solape, registrando probabilidades por simulación.")
   if (engine == "estratificado_aleatorio") return("Selecciona dentro de cada estrato sin optimización adicional.")

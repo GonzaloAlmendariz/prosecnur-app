@@ -2714,6 +2714,38 @@ el efecto y no el mecanismo cuesta tres reparaciones inútiles**. Y hay un
 corolario nuevo: cuando dos intentos seguidos no mueven el número, el siguiente
 paso no es un tercer intento, es dudar de la medición.
 
+### F66 — Selección auditada, y el vocabulario también vive en el motor
+
+Barrido de las seis superficies de Selección: **0 desbordes, 0 comas decimales**
+en todas. Tres hallazgos de lenguaje, y uno cambia dónde hay que buscar.
+
+**«Detalle técnico» como título de un plegado.** Rotular el cajón «técnico» no
+dice qué hay dentro: es la etiqueta que obliga a abrir para saber si importa.
+Lo que contiene es el mensaje literal del motor, y eso sí se puede nombrar → **«Ver
+el mensaje del motor»**. Se mantiene contenido porque es diagnóstico y no cambia
+ninguna decisión del estudio, pero con su nombre puesto.
+
+**Y el hallazgo que amplía el alcance**: «Da más probabilidad a **aulas** con más
+estudiantes elegibles y funciona como **benchmark** simple» no estaba en el
+frontend —**viene del motor R**, `.cm_aulas_method_explanation`—. El barrido de
+vocabulario de F59 y F64 sólo miró el frontend, así que estas fugas eran
+invisibles para todos mis guards.
+
+Corregidas **siete cadenas** de `calc_muestra_aulas.R`: las descripciones de dos
+métodos y cinco avisos de empate de catálogo, todas con «aulas» donde la app dice
+cursos-horario. «Benchmark» pasa a «punto de comparación».
+
+| | antes → después |
+|---|---:|
+| «aulas» en copy del motor | 7 cadenas | **0** |
+| Desbordes en Selección | 0 | **0** |
+| R: `test-calc-muestra-aulas` y `-criterios` | verde | **verde** |
+| Vitest | **849** en 103 archivos |
+
+**Lección**: la superficie no termina en el frontend. Un texto que el usuario lee
+puede nacer en el motor, y un guard que sólo mira `frontend/src` da una falsa
+sensación de barrido completo.
+
 ### Estado del loop
 
 | | |
