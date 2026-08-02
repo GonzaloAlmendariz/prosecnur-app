@@ -92,12 +92,23 @@
   height: 1px;
   background: var(--cmv2-border-strong, var(--cmv2-border));
 }
+/*
+ * La barra NO se anima con transform.
+ *
+ * Medido: con `animation: … scaleX(0.02) → scaleX(1) both`, la barra quedaba
+ * clavada en el primer fotograma —`matrix(0.02, 0, 0, 1, 0, -6)`— con el ancho
+ * computado correcto (154,7 px) renderizado a 3 px. El ancho de esta barra **es
+ * el dato**: va de P25 a P75. Una animación que lo escala puede mostrar un rango
+ * falso, y eso deja de ser un defecto decorativo para ser una lectura corrupta.
+ *
+ * Regla que se deriva: nada que codifique un valor se anima con transform. El
+ * movimiento entra por opacidad, que no puede mentir sobre una magnitud.
+ */
 .cmv2-cat-rango {
   height: 12px;
   border-radius: 4px;
   background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
-  transform-origin: left center;
-  animation: cmv2-cat-crece 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: cmv2-cat-aparece 320ms ease both;
 }
 .cmv2-cat-mediana {
   width: 2px;
@@ -131,14 +142,14 @@
 .cmv2-cat-cuantiles dt { color: var(--pulso-text-muted); }
 .cmv2-cat-cuantiles dd { margin: 0; font-variant-numeric: tabular-nums; }
 
-@keyframes cmv2-cat-crece {
-  from { transform: translateY(-50%) scaleX(0.02); opacity: 0; }
-  to { transform: translateY(-50%) scaleX(1); opacity: 1; }
+@keyframes cmv2-cat-aparece {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* El movimiento explica un cambio; quien lo desactiva no pierde información. */
 @media (prefers-reduced-motion: reduce) {
-  .cmv2-cat-rango { animation: none; }
+  .cmv2-cat-rango { animation: none; opacity: 1; }
   .cmv2-cat-cifras strong { transition: none; }
 }
 
