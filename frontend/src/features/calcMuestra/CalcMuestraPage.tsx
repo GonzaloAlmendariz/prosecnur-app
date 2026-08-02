@@ -1030,6 +1030,10 @@ export default function CalcMuestraPage() {
   } = useCalcMuestraStore();
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // F36 · El motor rechazó comparar por decisión caducada. Vive aquí porque lo
+  // enciende la respuesta del motor y lo consume la pestaña que lo repara, que
+  // están en ramas distintas del árbol.
+  const [refirmaAlumnosCh, setRefirmaAlumnosCh] = useState(false);
   // Job largo en curso (comparar métodos / sorteo de cursos-horario). Cuando es
   // distinto de null el banner de progreso ofrece cancelar. `cancelling` marca
   // el intervalo entre el click y la confirmación del backend; el ref comunica
@@ -2069,6 +2073,7 @@ export default function CalcMuestraPage() {
 
   async function compararMetodosAulas(config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) {
     setMsg(null);
+    setRefirmaAlumnosCh(false);
     setBusy("Comparando métodos");
     try {
       const res = await apiCalcMuestraAulasCompararMetodos({
@@ -2104,8 +2109,10 @@ export default function CalcMuestraPage() {
       // además, seguía pidiendo «vuelve a comparar»: el usuario quedaba en un
       // círculo, repitiendo lo único que no puede funcionar. Cuando el motor
       // nombra la condición, se dice dónde se resuelve.
+      const caducada = esDecisionAlumnosChCaducada(e);
+      setRefirmaAlumnosCh(caducada);
       setMsg(
-        esDecisionAlumnosChCaducada(e)
+        caducada
           ? {
               kind: "error",
               text: "La decisión de «Alumnos por CH» cambió después de la última comparación. Vuelve a confirmarla en Marco › Alumnos por CH y compara de nuevo.",
@@ -2579,6 +2586,7 @@ export default function CalcMuestraPage() {
               estudio={estudio}
               workspace={workspace}
               aulasState={aulasState}
+              motorPideRefirmarAlumnosCh={refirmaAlumnosCh}
               referenciaAsistencia={referenciaAsistencia}
               motor={universityMotor}
               busy={busy}

@@ -1581,6 +1581,28 @@ criterio.
 Notado también: el 409 llega tras esperar **63 simulaciones**. El chequeo de
 vigencia debería correr antes de encolar el job, no después de gastarlo.
 
+### F36 — La salida de emergencia (2026-08-02)
+
+Reparado el callejón de F35 por el único lado que le toca al frontend: cuando el
+motor rechaza la comparación con `decision_stale`, «Confirmar decisión» **se
+reabre** aunque la firma sea idéntica, y la superficie deja de decir «Decisión
+vigente» para decir «El motor pide volver a firmarla».
+
+React no arbitra quién tiene razón sobre la vigencia —eso sigue siendo trabajo de
+motor, anotado en F35—. Sólo deja de bloquear el gesto que desbloquea: refirmar
+no es un no-op cuando es lo único que abre el paso.
+
+| | antes → después |
+|---|---|
+| Confirmar con firma idéntica y motor conforme | deshabilitado → **deshabilitado** (no se regala un gesto inútil) |
+| Confirmar tras un 409 `decision_stale` | deshabilitado, **sin salida** → **habilitado**, con la causa en pantalla |
+
+Guard: dos casos nuevos en `AlumnosPorChMarcoTab.test.tsx` que fijan las dos
+mitades —sin señal sigue bloqueado, con señal se abre—, porque reabrirlo siempre
+volvería a regalar el no-op que el bloqueo existía para evitar.
+
+Gate: typecheck 0 · Vitest **811/811** en 94 archivos.
+
 ### Cierre de la sesión
 
 | | |
@@ -1600,7 +1622,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F36 — la salida de emergencia: habilitar la refirma cuando el motor reporta `decision_stale`**
+Siguiente, en orden: **F37 — recorrer el camino completo (refirmar → comparar → seleccionar) y auditar S10–S11 con dato real**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen

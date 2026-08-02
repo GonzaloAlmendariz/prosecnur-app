@@ -72,6 +72,7 @@ export function UniversidadDesk({
   estudio,
   workspace,
   aulasState,
+  motorPideRefirmarAlumnosCh = false,
   referenciaAsistencia,
   motor,
   busy,
@@ -109,6 +110,8 @@ export function UniversidadDesk({
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  /** F36 · El motor rechazó comparar por `decision_stale`; reabre la refirma. */
+  motorPideRefirmarAlumnosCh?: boolean;
   referenciaAsistencia: CalcMuestraReferenciaAsistencia | null;
   motor: MotorEfectivo;
   busy: string | null;
@@ -445,6 +448,7 @@ export function UniversidadDesk({
                 workspace={syncedWorkspace}
                 aulasState={aulasState}
                 onConfirmDecision={confirmarAlumnosPorCh}
+                motorPideRefirmar={motorPideRefirmarAlumnosCh}
               />
             </div>}
             {showLocalTab("marco-ch-radiografia") && <div id="cmv2-local-marco-ch-radiografia">

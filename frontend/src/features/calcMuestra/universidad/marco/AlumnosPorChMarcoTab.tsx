@@ -33,10 +33,22 @@ export function AlumnosPorChMarcoTab({
   workspace,
   aulasState,
   onConfirmDecision,
+  motorPideRefirmar = false,
 }: {
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
   onConfirmDecision: (decision: CalcMuestraAlumnosPorChDecision) => void;
+  /**
+   * F36 · El motor rechazó una comparación con `decision_stale`.
+   *
+   * Superficie y motor discrepan sobre qué hace vigente a una decisión: aquí se
+   * ve «Decisión vigente» y allá se responde 409 pidiendo reconfirmar. Con el
+   * botón deshabilitado «porque ya está confirmada», el usuario queda sin
+   * salida. Refirmar deja de ser un no-op justo cuando es lo único que
+   * desbloquea, así que esta señal reabre el gesto sin que React arbitre quién
+   * tiene razón sobre la vigencia.
+   */
+  motorPideRefirmar?: boolean;
 }) {
   const frameHash = aulasState?.frame?.frame_hash ?? "";
   const rawSnapshot = aulasState?.frame?.alumnos_por_ch ?? null;
@@ -221,7 +233,13 @@ export function AlumnosPorChMarcoTab({
 
       <div className="cmv2-alumnos-ch-confirm" role="region" aria-label="Confirmar decisión de alumnos por CH">
         <div>
-          <strong>{current ? "Decisión vigente" : "Confirmación pendiente"}</strong>
+          <strong>
+            {motorPideRefirmar
+              ? "El motor pide volver a firmarla"
+              : current
+                ? "Decisión vigente"
+                : "Confirmación pendiente"}
+          </strong>
           <span>
             {missing.length
               ? `Falta ${missing.join(", ")}: el estadístico elegido no tiene dato publicado.`
@@ -244,12 +262,14 @@ export function AlumnosPorChMarcoTab({
           <button
             type="button"
             className="cmv2-primary"
-            disabled={missing.length > 0 || current}
+            disabled={missing.length > 0 || (current && !motorPideRefirmar)}
             title={missing.length > 0
               ? `Sin estadístico resoluble en ${missing.length} facultades`
-              : current
-                ? "La decisión vigente ya está confirmada"
-                : undefined}
+              : motorPideRefirmar
+                ? "La comparación la rechazó por caducada: vuelve a firmarla para desbloquearla"
+                : current
+                  ? "La decisión vigente ya está confirmada"
+                  : undefined}
             onClick={() => onConfirmDecision({
               schema: "calc_muestra_alumnos_por_ch_decision_v1",
               frame_hash: snapshot.frame_hash,

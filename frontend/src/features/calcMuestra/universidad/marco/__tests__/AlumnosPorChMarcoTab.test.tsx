@@ -135,3 +135,44 @@ describe("AlumnosPorChMarcoTab", () => {
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*Confirmar decisión<\/button>/);
   });
 });
+
+describe("AlumnosPorChMarcoTab — F36: salida de emergencia", () => {
+  // Medido lado a lado contra el motor vivo: la superficie decía «Decisión
+  // vigente» con Confirmar deshabilitado mientras comparar-metodos devolvía 409
+  // `decision_stale` pidiendo reconfirmar. El usuario no tenía salida: la app no
+  // le dejaba confirmar justo lo que el motor exigía confirmar.
+  const vigente = {
+    ...workspace,
+    aulas_config: {
+      alumnos_por_ch_decision: {
+        schema: "calc_muestra_alumnos_por_ch_decision_v1",
+        frame_hash: "frame-i18",
+        denominador: "elegible",
+        estadistico_default: "p25",
+        por_facultad: {},
+        confirmado_at: "2026-08-02T05:00:00Z",
+      },
+    },
+  } as CalcMuestraWorkspace;
+
+  it("sin la señal del motor, una firma idéntica sigue sin poder reconfirmarse", () => {
+    const html = renderToStaticMarkup(
+      <AlumnosPorChMarcoTab workspace={vigente} aulasState={state()} onConfirmDecision={vi.fn()} />,
+    );
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>[\s\S]*Confirmar decisión<\/button>/);
+  });
+
+  it("con la señal del motor, refirmar se reabre y la pantalla dice por qué", () => {
+    const html = renderToStaticMarkup(
+      <AlumnosPorChMarcoTab
+        workspace={vigente}
+        aulasState={state()}
+        onConfirmDecision={vi.fn()}
+        motorPideRefirmar
+      />,
+    );
+    expect(html).toContain("El motor pide volver a firmarla");
+    const antes = html.slice(html.indexOf("Confirmar decisión") - 400, html.indexOf("Confirmar decisión"));
+    expect(antes).not.toContain('disabled=""');
+  });
+});
