@@ -241,6 +241,28 @@ enteros que sí agrupaban.
 método que lo encontró: **comparar superficies hermanas**, porque ninguna de las
 dos estaba mal por separado; lo que estaba mal es que no coincidían.
 
+### 13 · Un guard que no distingue copy de identificador empuja a romper cosas
+
+El vigilante de vocabulario falló tres veces contra código que **debía** contener
+el término:
+
+1. **Comentarios** que documentan el defecto —se disparaba contra su propia
+   explicación, empujando a borrarla para pasar en verde—.
+2. **Atributos `data-*`** como `data-surface-contract="matriz-marginal-criterios"`,
+   que las herramientas de QA leen por nombre: cambiarlos habría roto esas
+   herramientas sin mejorar una palabra de la pantalla.
+3. **Códigos del motor** como `"marginales_no_combinables"`, valores que se
+   comparan y no que alguien lee: traducirlos habría roto la comparación.
+
+En los tres casos, la salida fácil —editar el código para que el guard calle—
+era la peor. Y en los tres, el guard también encontró defectos **reales** que
+ninguna captura alcanzó: un `title` con «gate composition», un aviso con
+«downstream».
+
+**Mecanismo**: los guards de lenguaje leen el fuente sin comentarios, sin
+atributos `data-*` y sin literales en `snake_case`. Lo que queda es copy, y sobre
+copy la regla es absoluta.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
