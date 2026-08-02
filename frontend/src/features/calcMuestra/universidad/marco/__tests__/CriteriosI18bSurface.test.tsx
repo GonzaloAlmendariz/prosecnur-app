@@ -466,7 +466,11 @@ describe("superficie I18b de criterios", () => {
     expect(html).toContain("Qué queda después de cada criterio");
     expect(html).toContain("En el orden en que el motor los aplica");
     expect(html).not.toContain("Cascada viva");
-    expect(html).toContain("paso operativo fuera del denominador");
+    // ADR 0057 · «gate», «paso operativo», «denominador» son vocabulario del
+    // motor. Lo que el usuario necesita saber de cada paso es si está recortando
+    // el marco o no.
+    expect(html).not.toContain("gate ·");
+    expect(html).toMatch(/recorta el marco|no está recortando|no afecta al denominador/);
     expect(html).not.toContain("impacto marginal");
   });
 

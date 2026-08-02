@@ -2413,6 +2413,37 @@ pueda usar. Lo que sí necesita saber es sobre qué se calculó.
 Dos capturas seguidas han encontrado más defectos que las últimas seis
 iteraciones de medición. Queda anotado como patrón 9 del ADR.
 
+### F58 — El vocabulario del motor sale de la pantalla
+
+Tercera captura, y esta vez los defectos estaban en las palabras. La tabla del
+embudo hablaba en el idioma del motor:
+
+| antes | después | por qué |
+|---|---|---|
+| `gate · aplicado` | **«recorta el marco»** | «gate» es la pieza del motor; lo que importa es si este criterio está quitando cursos-horario |
+| `gate · inactivo` | **«no está recortando»** | igual, en negativo, sin obligar a saber qué es un gate |
+| «Secuencia CH» | **«Cursos-horario: antes → después»** | dice qué compara la columna |
+| «Excluye −0» | **«ninguno»** | un «menos cero» es la peor forma de decir que no excluye nada |
+| «Dato de R para decidir modalidad» | **«Elegibles por curso-horario según modalidad»** | «Dato de R» nombra de dónde sale el número, no qué es |
+| «Radiografía v2» | **«Del marco ejecutado»** | la versión del contrato interno no es algo que el usuario pueda usar |
+
+Verificado en la app: cero apariciones de `gate ·`, «Secuencia CH», «Dato de R» y
+«−0».
+
+**Por qué esto no es cosmético.** Un rótulo que nombra la maquinaria obliga a
+aprender el sistema para leer el estudio, y ante la duda el usuario asume que el
+número significa otra cosa. «−0» es el caso extremo: es un dato correcto escrito
+de forma que parece un error.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Alto | **21,8 pantallas** |
+| Vitest | **842** en 101 archivos |
+
+Tres capturas seguidas: tres tandas de defectos que ninguna medición numérica
+había encontrado.
+
 ### Estado del loop
 
 | | |
