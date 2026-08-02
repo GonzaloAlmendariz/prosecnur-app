@@ -15,7 +15,6 @@ import { AvisoModulo } from "../shared/AvisoModulo";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import {
-  ClassroomEmptyState,
   ClassroomLabCommandBar,
   ClassroomOperationalHandoffPanel,
   ClassroomReplacementBlueprintPanel,
@@ -24,6 +23,11 @@ import {
   classroomWaveNumber,
   type ClassroomLabModel,
 } from "./aulasParts";
+import {
+  AulasStageNotice,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "./aulasSurfaceState";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
@@ -38,7 +42,12 @@ function ReserveDepthHeader({ model }: { model: ClassroomLabModel }) {
   const reservas = rows.reduce((sum, row) => sum + classroomRowNumber(row, ["reservas"]), 0);
   const peorCelda = rows.find((row) => classroomRowNumber(row, ["depth_ratio"]) === minRatio);
   return (
-    <section className="cmv2-panel cmv2-aulas-panel" aria-label="Profundidad de reservas por celda">
+    <section
+      className="cmv2-panel cmv2-aulas-panel"
+      aria-label="Profundidad de reservas por celda"
+      data-qa-geometry-group="aulas-reemplazos-profundidad"
+      data-qa-geometry-contract="intrinsic"
+    >
       <div className="cmv2-subhead">
         <strong>Profundidad de reemplazos por celda</strong>
       </div>
@@ -97,11 +106,16 @@ function WavesTimeline({ model }: { model: ClassroomLabModel }) {
     estado: index === 0 ? "ready" : "working",
   }));
   return (
-    <div className="cmv2-aulas-olas" aria-label="Olas del plan de reemplazos">
+    <div
+      className="cmv2-aulas-olas"
+      aria-label="Olas del plan de reemplazos"
+      data-qa-geometry-group="aulas-reemplazos-olas"
+      data-qa-geometry-contract="intrinsic"
+    >
       <div className="cmv2-subhead">
         <strong>Olas del plan</strong>
       </div>
-      <FlujoVertical etapas={etapas} orientacion="horizontal" ariaLabel="Olas M1 a Extra con cursos-horario por ola" />
+      <FlujoVertical etapas={etapas} orientacion="adaptive" ariaLabel="Olas M1 a Extra con cursos-horario por ola" />
     </div>
   );
 }
@@ -110,10 +124,12 @@ export function AulasReemplazosTab({
   model,
   busy,
   onSimulateReplacements,
+  onNavigate,
 }: {
   model: ClassroomLabModel;
   busy: string | null;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
+  onNavigate?: AulasNavigate;
 }) {
   const {
     selection,
@@ -126,61 +142,87 @@ export function AulasReemplazosTab({
     reserveRows,
     extraReserveRows,
   } = model;
+  const stageNotice = resolveAulasStageNotice(model, "reemplazos");
   return (
     <div className="cmv2-aulas-stack">
-      <CadenasReemplazoVisual seleccion={selection} simulacion={replacementSimulation} />
+      {stageNotice && (
+        <AulasStageNotice
+          notice={stageNotice}
+          onNavigate={onNavigate}
+          onAction={stageNotice.localAction === "replace"
+            ? () => void onSimulateReplacements(config)
+            : undefined}
+          disabled={Boolean(stageNotice.localAction) && (Boolean(busy) || !selectionReady)}
+        />
+      )}
 
-      <ClassroomLabCommandBar
-        model={model}
-        busy={busy}
-        acciones={["reemplazos"]}
-        onSimulateReplacements={onSimulateReplacements}
-      />
+      {replacementReady && (
+        <ClassroomLabCommandBar
+          model={model}
+          busy={busy}
+          acciones={["reemplazos"]}
+          onSimulateReplacements={onSimulateReplacements}
+        />
+      )}
 
       <ReserveDepthHeader model={model} />
 
-      <div className="cmv2-classroom-lab-grid cmv2-classroom-lab-grid--routes">
-        <div className="cmv2-classroom-lab-main">
+      {!selectionReady ? (
+        <section
+          className="cmv2-panel cmv2-aulas-panel"
+        >
           <div className="cmv2-subhead">
-            <strong>Efecto esperado de los reemplazos</strong>
+            <strong>Ruta ilustrativa, todavía no operativa</strong>
+            <small>la cadena real aparecerá solo con una selección acreditada</small>
           </div>
-          <WavesTimeline model={model} />
-          {selectionReady && (
+          <ClassroomReplacementBlueprintPanel
+            depth={config.bolsas_reemplazo}
+            titularCount={0}
+            reserveCount={0}
+            extraReserveCount={0}
+          />
+        </section>
+      ) : (
+        <>
+          <CadenasReemplazoVisual seleccion={selection} simulacion={replacementSimulation} />
+          <div className="cmv2-classroom-lab-grid cmv2-classroom-lab-grid--routes">
+            <div className="cmv2-classroom-lab-main">
+              <div className="cmv2-subhead">
+                <strong>Efecto esperado de los reemplazos</strong>
+              </div>
+              <WavesTimeline model={model} />
+              <div
+                data-qa-geometry-group="aulas-reemplazos-rutas"
+                data-qa-geometry-contract="intrinsic"
+              >
             <ClassroomReplacementChainPanel
               selectionRows={selectionRows}
               simulation={replacementSimulation}
               depth={Math.min(6, Math.max(1, config.bolsas_reemplazo || 6))}
             />
-          )}
-          {(!selectionReady || !m1Rows.length) && (
-            <ClassroomReplacementBlueprintPanel
-              depth={config.bolsas_reemplazo}
-              titularCount={m1Rows.length}
-              reserveCount={reserveRows.length}
-              extraReserveCount={extraReserveRows.length}
-            />
-          )}
-          {!replacementReady || !replacementSimulation ? (
-            <ClassroomEmptyState
-              icon={Route}
-              title="Simulación pendiente"
-              detail="Después de generar una selección, simula reemplazos sugeridos por celda, balance, repetidos y tamaño efectivo."
-              actionLabel="Simular reemplazos"
-              onAction={() => void onSimulateReplacements(config)}
-              disabled={Boolean(busy) || !selectionReady}
-            />
-          ) : (
-            <ClassroomReplacementTables simulation={replacementSimulation} />
-          )}
-        </div>
-        <aside className="cmv2-classroom-lab-side">
-          <AvisoModulo tone="neutral" icon={Route}>
-            Calc-Muestra propone titulares y reemplazos; Monitoreo solo activa reemplazos, registra motivos
-            y recalcula brechas sin rediseñar silenciosamente el marco base.
-          </AvisoModulo>
-          <ClassroomOperationalHandoffPanel selection={selection} replacementSimulation={replacementSimulation} />
-        </aside>
-      </div>
+              </div>
+              {!m1Rows.length && (
+                <ClassroomReplacementBlueprintPanel
+                  depth={config.bolsas_reemplazo}
+                  titularCount={m1Rows.length}
+                  reserveCount={reserveRows.length}
+                  extraReserveCount={extraReserveRows.length}
+                />
+              )}
+              {replacementReady && replacementSimulation && (
+                <ClassroomReplacementTables simulation={replacementSimulation} />
+              )}
+            </div>
+            <aside className="cmv2-classroom-lab-side">
+              <AvisoModulo tone="neutral" icon={Route}>
+                Calc-Muestra propone titulares y reemplazos; Monitoreo solo activa reemplazos, registra motivos
+                y recalcula brechas sin rediseñar silenciosamente el marco base.
+              </AvisoModulo>
+              <ClassroomOperationalHandoffPanel selection={selection} replacementSimulation={replacementSimulation} />
+            </aside>
+          </div>
+        </>
+      )}
     </div>
   );
 }
