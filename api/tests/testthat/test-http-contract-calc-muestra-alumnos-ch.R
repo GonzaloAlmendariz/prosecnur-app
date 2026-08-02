@@ -15,6 +15,7 @@
         estudiante = paste(faculty, classroom, i, sep = "-"),
         curso_horario = classroom,
         facultad = faculty,
+        sexo = if (i %% 2L) "F" else "M",
         nivel = "3"
       )
     }
@@ -27,6 +28,7 @@
     student_id = "estudiante",
     classroom_id = "curso_horario",
     faculty = "facultad",
+    sex = "sexo",
     level = "nivel"
   ),
   filters = list(
@@ -51,8 +53,10 @@
       estado = "validado",
       estratos = list(
         list(label = "FAC A", N = 100, N_a = 50, N_b = 50,
+             sub_a_label = "F", sub_b_label = "M",
              promedio_conglomerado = 999, aulas_base_fijas = 999L, tau = 1),
         list(label = "FAC B", N = 80, N_a = 40, N_b = 40,
+             sub_a_label = "F", sub_b_label = "M",
              promedio_conglomerado = 999, aulas_base_fijas = 999L, tau = 1)
       )
     ),
@@ -133,6 +137,35 @@ test_that("POST /calcular resuelve la firma vigente y rechaza la stale", {
   expect_length(components, 2L)
   for (component in components) {
     result <- component$resultado
+    distribution <- result$distribucion_universitaria
+    expect_identical(
+      distribution$schema,
+      "calc_muestra_distribucion_universitaria_v1"
+    )
+    expect_identical(distribution$owner, "engine_r")
+    expect_identical(distribution$status, "ready")
+    expect_identical(distribution$source_frame_hash, frame$frame_hash)
+    expect_true(distribution$reconciliation$ok)
+    expect_identical(
+      as.integer(distribution$reconciliation$sample_sum),
+      as.integer(distribution$totals$sample_n)
+    )
+    # Golden de transporte: diseño - frame = 180 - 14.
+    expect_identical(
+      as.integer(distribution$reconciliation$frame_design_delta),
+      166L
+    )
+    expect_length(distribution$faculties, 2L)
+    expect_true(all(vapply(distribution$faculties, function(faculty) {
+      identical(
+        sum(vapply(
+          faculty$cells,
+          function(cell) as.integer(cell$sample_n),
+          integer(1)
+        )),
+        as.integer(faculty$sample_n)
+      )
+    }, logical(1))))
     expect_identical(
       result$alumnos_por_ch_decision$frame_hash,
       frame$frame_hash

@@ -970,14 +970,17 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
                                     source_role,
                                     primary_values,
                                     secondary_values,
-                                    unit_label) {
+                                    unit_label,
+                                    preserve_blank_secondary = FALSE) {
   primary_values <- trimws(as.character(primary_values %||% character(0)))
   secondary_values <- trimws(as.character(secondary_values %||% character(0)))
   n <- min(length(primary_values), length(secondary_values))
   if (!n) return(data.frame(stringsAsFactors = FALSE))
   primary_values <- primary_values[seq_len(n)]
   secondary_values <- secondary_values[seq_len(n)]
-  keep <- nzchar(primary_values) & nzchar(secondary_values)
+  keep <- nzchar(primary_values) & (
+    nzchar(secondary_values) | isTRUE(preserve_blank_secondary)
+  )
   if (!any(keep)) return(data.frame(stringsAsFactors = FALSE))
   tab <- as.data.frame(
     table(primary_values[keep], secondary_values[keep]),
@@ -1336,7 +1339,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (is.null(category_profiles)) category_profiles <- data.frame(stringsAsFactors = FALSE)
   rownames(category_profiles) <- NULL
   population_cross_profiles <- do.call(rbind, Filter(NROW, list(
-    .cm_aulas_cross_profile("faculty", "Facultad", "sex", "Sexo", "base_madre", population$faculty, population$sex, "estudiantes"),
+    .cm_aulas_cross_profile("faculty", "Facultad", "sex", "Sexo", "base_madre", population$faculty, population$sex, "estudiantes", preserve_blank_secondary = TRUE),
     .cm_aulas_cross_profile("faculty", "Facultad", "level", "Ciclo, nivel o año", "base_madre", population$faculty, population$level, "estudiantes"),
     .cm_aulas_cross_profile("faculty", "Facultad", "program", "Programa o carrera", "base_madre", population$faculty, population$program, "estudiantes")
   )))

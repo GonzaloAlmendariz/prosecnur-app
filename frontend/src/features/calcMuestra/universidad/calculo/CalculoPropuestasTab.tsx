@@ -15,7 +15,6 @@ import type {
 } from "../../../../api/client";
 import { Popover } from "../../../../components/Popover";
 import { EmptyState } from "../../../../components/States";
-import { DistribucionFacultadSexo } from "../../didactica/DistribucionFacultadSexo";
 import { calcEPreview } from "../../didactica/motorPreview";
 import { fmtInt, fmtPct, fmtSignedInt, roundUpTo, safeNumber } from "../../sharedCore";
 import { ESCENARIOS_OPINION, UNIVERSITY_FACULTY_COMPONENT_ID } from "../shared/constants";
@@ -248,10 +247,9 @@ export function CalculoPropuestasTab({
   const hasCalculation = componentes.some((comp) => hasUsefulResult(comp));
   const cuotasComp = componentes.find(
     (comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID && (comp.resultado?.distribucion_estratos ?? []).length,
-  ) ?? componentes.find((comp) => (comp.resultado?.distribucion_estratos ?? []).length) ?? null;
+  ) ?? null;
   const cuotasRows = cuotasComp ? universityDistributionRows(cuotasComp) : [];
   const totalCuotas = cuotasRows.reduce((sum, row) => sum + row.n, 0);
-  const distribucionResultado = cuotasComp?.resultado ?? componentes[0].resultado;
 
   // Parámetros elegidos en Diseño (universidad): se muestran para que Propuestas
   // ejecute sobre valores explícitos, nunca cifras escritas a mano.
@@ -323,8 +321,8 @@ export function CalculoPropuestasTab({
       {cuotasRows.length > 0 && (
         <section className="cmv2-panel cmv2-calc-cuotas-panel">
           <div className="cmv2-panel-head">
-            <strong>Cuotas por facultad</strong>
-            <span className="cmv2-pill-soft">{fmtInt(totalCuotas)} entrevistas asignadas</span>
+            <strong>Cuotas por facultad · P2</strong>
+            <span className="cmv2-pill-soft">Propuesta 2 · {fmtInt(totalCuotas)} entrevistas asignadas</span>
           </div>
           {cuotasComp && <CadenaAfijacion comp={cuotasComp} rows={cuotasRows} />}
           <FormulaLatex
@@ -361,9 +359,8 @@ export function CalculoPropuestasTab({
             </table>
           </div>
           <p className="cmv2-calc-cuotas-nota">
-            El plan de cursos-horario por facultad se define en la pestaña «Cursos-horario por facultad».
+            Los cursos-horario requeridos se confirman en su pestaña. La composición P1/P2 completa vive en «Distribución».
           </p>
-          <DistribucionFacultadSexo resultado={distribucionResultado} />
         </section>
       )}
     </div>

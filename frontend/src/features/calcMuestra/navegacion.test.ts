@@ -62,6 +62,16 @@ describe("dirección de Cálculo de muestra", () => {
     expect(serializarDireccion(direccion!)).toBe(href);
   });
 
+  it("conserva el deep-link canónico de Cursos-horario requeridos", () => {
+    const href = "/calc-muestra?modo=opinion-universitaria&seccion=calculo&pestana=calculo-ch-facultad";
+    const direccion = parsearDireccion(
+      "/calc-muestra",
+      "?modo=opinion-universitaria&seccion=calculo&pestana=calculo-ch-facultad",
+    );
+    expect(direccion?.pestana).toBe("calculo-ch-facultad");
+    expect(serializarDireccion(direccion!)).toBe(href);
+  });
+
   describe("traducción entre la mesa del dominio y el modo de la dirección", () => {
     it("publica en kebab lo que el dominio nombra en snake", () => {
       // Regresión: publicar `opinion_universitaria` y leer de vuelta

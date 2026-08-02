@@ -236,7 +236,7 @@ export type DecisionesRecorrido = {
   /** Escenario elegido para la síntesis final. */
   escenario: "e1" | "e2";
   /**
-   * Agregado operacional de la pestaña «Cursos-horario por facultad»: cursos-horario
+   * Agregado operacional de la pestaña «Cursos-horario requeridos»: cursos-horario
    * extra (0, 1 o 2) a añadir a cada facultad, indexado por NOMBRE de facultad.
    * Persistido en el motor_recorrido (passthrough opaco del workspace, sin
    * whitelist backend). Clave = nombre tal como aparece en el marco.

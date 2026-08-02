@@ -49,7 +49,7 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   // parámetros quedó absorbida por el diseño reactivo.
   "calculo-guia": "calculo-diseno",
   // Supuestos se fusionó en Diseño (§5.1.2); su slot lo ocupa la nueva pestaña
-  // Cursos-horario por facultad. Un tab guardado de Supuestos va a Diseño.
+  // Cursos-horario requeridos. Un tab guardado de Supuestos va a Diseño.
   "calculo-ajustes": "calculo-diseno",
   // Split de Marco (2026-07-15): "Criterios de inclusión" (marco-categorias,
   // que renderizaba ambos bloques) se partió en dos pestañas por el orden

@@ -98,8 +98,8 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   calculo: [
     pestana("calculo", "calculo-diseno", "Diseño", "fórmula, parámetros y supuestos", Sigma, { targetId: "cmv2-local-calculo-diseno" }),
     pestana("calculo", "calculo-propuestas", "Propuestas", "N y cuotas por facultad (motor R)", Calculator, { targetId: "cmv2-local-calculo-propuestas" }),
-    pestana("calculo", "calculo-ch-facultad", "Cursos-horario por facultad", "alumnos por CH y CH definitivos", Grid3X3, { targetId: "cmv2-local-calculo-ch-facultad" }),
-    pestana("calculo", "calculo-distribucion", "Distribución", "población y muestra por unidad × sexo", PieChart, { targetId: "cmv2-local-calculo-distribucion" }),
+    pestana("calculo", "calculo-ch-facultad", "Cursos-horario requeridos", "alumnos por CH y CH definitivos", Grid3X3, { targetId: "cmv2-local-calculo-ch-facultad" }),
+    pestana("calculo", "calculo-distribucion", "Distribución", "población y cuota planificada por unidad × sexo", PieChart, { targetId: "cmv2-local-calculo-distribucion" }),
   ],
   aulas: [
     pestanaAula("objetivo", "Objetivo de muestra", "Cuotas y cursos-horario necesarios", Target),

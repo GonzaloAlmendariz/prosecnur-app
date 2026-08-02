@@ -1453,12 +1453,8 @@
   }
 }
 
-/* Tabla de cursos-horario por facultad: altura acotada con scroll interno
-   (el encabezado queda fijo) en vez del chip "Desplaza para ver más". */
-.cmv2-ch-tabla-wrap {
-  max-height: 384px;
-  overflow: auto;
-}
+/* La pestaña conserva un solo dueño vertical (el panel activo). La envolvente
+   de tabla solo hereda el alcance horizontal de la primitiva compartida. */
 /* Dos clases para ganar en especificidad al chip global .cmv2-table-wrap::after. */
 .cmv2-table-wrap.cmv2-ch-tabla-wrap::after { content: none; display: none; }
 .cmv2-ch-tabla-wrap thead th {
@@ -1468,10 +1464,9 @@
   background: var(--pulso-surface);
 }
 
-/* Presentación de la tabla de cursos-horario por facultad: números a la
+/* Presentación de la tabla de cursos-horario requeridos: números a la
    derecha (tabular), facultad a la izquierda, y la tabla centrada en el ancho
-   disponible (deja de verse pegada a la izquierda en paneles anchos). El scroll
-   interno del wrap (max-height 384px) se conserva. */
+   disponible (deja de verse pegada a la izquierda en paneles anchos). */
 .cmv2-ch-tabla {
   /* Con las columnas de referencia (Mediana·Media·mín·LI 95%·En uso) la tabla
      es ancha: se deja crecer a su contenido y el wrap (overflow:auto) resuelve

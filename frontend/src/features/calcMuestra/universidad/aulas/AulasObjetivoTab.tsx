@@ -157,7 +157,7 @@ export function AulasObjetivoTab({
 
         <div
           className="cmv2-aulas-cuota-flujos"
-          aria-label="Cursos-horario por facultad"
+          aria-label="Cursos-horario requeridos"
         >
           <div className="cmv2-aulas-cuota-head">
             <strong>Detalle por facultad</strong>

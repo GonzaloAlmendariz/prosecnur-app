@@ -4,3 +4,4 @@ export { CalculoParametrosTab } from "./CalculoParametrosTab";
 export { CalculoPropuestasTab } from "./CalculoPropuestasTab";
 export { CalculoSupuestosTab } from "./CalculoSupuestosTab";
 export { CalculoCursosHorarioFacultadTab } from "./CalculoCursosHorarioFacultadTab";
+export { CalculoDistribucionTab } from "./CalculoDistribucionTab";

@@ -471,6 +471,8 @@ export type CalcMuestraResultado = {
   aulas_extra_total?: number;
   /** Auditoría I18: la UI la presenta, pero no reinterpreta ni recalcula. */
   alumnos_por_ch_decision?: Omit<CalcMuestraAlumnosPorChDecision, "por_facultad">;
+  /** Payload crítico raw; solo el normalizador I19 acredita la variante ready. */
+  distribucion_universitaria?: unknown;
   cuotas_matriz?: CalcMuestraCuotaMatriz[];
 };
 

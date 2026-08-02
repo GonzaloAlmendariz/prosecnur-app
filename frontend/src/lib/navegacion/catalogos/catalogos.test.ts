@@ -39,9 +39,14 @@ describe("catálogos canónicos de pestañas", () => {
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo)).toEqual([
       "calculo-diseno:Diseño",
       "calculo-propuestas:Propuestas",
-      "calculo-ch-facultad:Cursos-horario por facultad",
+      "calculo-ch-facultad:Cursos-horario requeridos",
       "calculo-distribucion:Distribución",
     ]);
+    expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo[2]).toMatchObject({
+      id: "calculo-ch-facultad",
+      label: "Cursos-horario requeridos",
+      targetId: "cmv2-local-calculo-ch-facultad",
+    });
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas)).toEqual([
       "objetivo:Objetivo de muestra",
       "metodo:Comparar métodos",

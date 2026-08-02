@@ -592,5 +592,9 @@ calc_muestra_alumnos_por_ch_adjuntar_auditoria <- function(estudio, auditoria) {
 calc_muestra_alumnos_por_ch_calcular_estudio <- function(estudio, frame = NULL) {
   decision_resuelta <- calc_muestra_alumnos_por_ch_resolver_estudio(estudio, frame)
   calculado <- calc_muestra_calcular_estudio(decision_resuelta$estudio)
-  calc_muestra_alumnos_por_ch_adjuntar_auditoria(calculado, decision_resuelta$auditoria)
+  auditado <- calc_muestra_alumnos_por_ch_adjuntar_auditoria(
+    calculado,
+    decision_resuelta$auditoria
+  )
+  calc_muestra_distribucion_adjuntar_estudio(auditado, frame)
 }
