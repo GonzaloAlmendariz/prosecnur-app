@@ -30,10 +30,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * El panorama scrollea por dentro, no arrastrando la página.
+ *
+ * Medido: la cabecera es `position: sticky; top: 0`, pero pegaba al contenedor,
+ * y el contenedor se iba con el scroll de la página. Con quince facultades a la
+ * vista quedaban cuatro columnas de «global» sin decir de qué criterio eran —una
+ * tabla sin cabecera no es una tabla, es una cuadrícula de palabras—.
+ *
+ * Con altura máxima propia, el `thead` sticky por fin sirve: el nombre del
+ * criterio acompaña a su columna todo el recorrido.
+ */
 .cmv2-panorama-scroll {
   min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
+  max-height: 60vh;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .cmv2-panorama-scroll:focus-visible {
