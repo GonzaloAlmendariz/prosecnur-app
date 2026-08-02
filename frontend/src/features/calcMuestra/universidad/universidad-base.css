@@ -1168,3 +1168,12 @@
     transform: none;
   }
 }
+
+/* El slot de 34x34 del vacío es para su icono. Cualquier otro hijo directo
+   heredaba ese ancho y desbordaba: medido, un `em` de 86 px dentro de una caja
+   de 34. Ocupa la fila entera y puede envolver. */
+.cmv2-classroom-empty > div {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
