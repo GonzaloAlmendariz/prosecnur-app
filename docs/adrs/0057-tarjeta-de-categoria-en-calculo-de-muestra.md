@@ -190,6 +190,17 @@ disparó contra el comentario que cita el valor culpable—. Quedó corregido us
 el lector sin comentarios, pero conviene registrar que el error reaparece incluso
 recién documentado.
 
+### 9 · Medir números no sustituye a mirar la pantalla
+
+Tras varias iteraciones de mediciones —altos, desbordes, conteos, alineaciones—
+una sola captura mostró que **el mismo criterio aparecía tres veces**, con dos
+escalas distintas para el mismo dato. Ninguna métrica lo revelaba: cada bloque,
+por separado, estaba bien formado.
+
+**Mecanismo**: toda iteración que cambie la composición de una superficie termina
+con una captura mirada, no sólo con números verdes. Las métricas detectan
+defectos dentro de una pieza; la vista detecta que sobran piezas.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

@@ -121,9 +121,12 @@ describe("CriteriosRadiografiaConsola", () => {
     // S1: los cinco pasos se recorren, no se apilan. El riel conserva el orden
     // metodológico completo y la tarjeta abre en Distribución — el dato.
     const riel = html.slice(html.indexOf('class="cmv2-crc-pasos"'));
-    expect(riel.indexOf("Distribución")).toBeLessThan(riel.indexOf("Cascada viva"));
-    expect(riel.indexOf("Cascada viva")).toBeLessThan(riel.indexOf("Ancla histórica"));
-    expect(riel.indexOf("Ancla histórica")).toBeLessThan(riel.indexOf("Impacto marginal"));
+    // ADR 0057 · Rótulos que nombran el dato. El orden del recorrido no cambia;
+    // cambian los nombres: «Cascada viva» describía la animación, no lo que la
+    // pieza informa.
+    expect(riel.indexOf("Distribución")).toBeLessThan(riel.indexOf("Cuánto recorta"));
+    expect(riel.indexOf("Cuánto recorta")).toBeLessThan(riel.indexOf("Comparación con 2025"));
+    expect(riel.indexOf("Comparación con 2025")).toBeLessThan(riel.indexOf("Si lo quitara"));
     expect(riel.indexOf("Impacto marginal")).toBeLessThan(riel.indexOf("Acción"));
     expect(html).toContain('data-paso="distribucion"');
     expect(html).toContain('data-paso="accion"');

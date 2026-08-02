@@ -67,8 +67,8 @@ export function CriteriosEmbudoVivo({
     <div className="cmv2-i18b-cascade" data-momento={cascade.momento}>
       <header className="cmv2-i18b-cascade-head">
         <div>
-          <strong>Cascada secuencial</strong>
-          <span>Orden publicado por el motor R · downstream desde este criterio</span>
+          <strong>Qué queda después de cada criterio</strong>
+          <span>En el orden en que el motor los aplica, desde este criterio en adelante</span>
         </div>
         <span>{cascade.momento === "borrador_no_persistido" ? "Borrador no persistido" : "Marco ejecutado"}</span>
       </header>
