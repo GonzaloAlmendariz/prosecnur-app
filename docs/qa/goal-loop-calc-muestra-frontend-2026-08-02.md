@@ -2518,6 +2518,48 @@ Guard: `PanoramaLectura.test.tsx` —prohíbe repetir «global» y exige que lo
 heredado siga siendo legible por título y `aria-label`, para que quitar ruido no
 se convierta en quitar información—.
 
+### F61 — La matriz: noventa celdas de ceros que sí eran correctos
+
+Sexta captura, sobre la matriz. Toda la tabla mostraba «0 CH / 0 matrículas / 0
+estudiantes únicos» en sus noventa celdas.
+
+**Lo primero fue comprobar que no estaba rota**, porque una tabla en ceros suele
+serlo. Consultado el estado del motor: los ceros son **correctos** —cada celda
+llega con `action: "no_aplica"` y `delta_ch: 0`—. Con los criterios vigentes,
+quitar cualquiera de ellos no cambiaría nada en este instrumento.
+
+**El defecto era la presentación, no el dato.** Decir el mismo cero en tres
+unidades, noventa veces, no informa de nada y **entierra las celdas que sí tienen
+impacto**, que son las únicas por las que esta tabla existe. Ahora una celda sin
+impacto es un punto, con su explicación al pasar el cursor —la misma solución que
+el Panorama, por coherencia—.
+
+| | antes → después |
+|---|---:|
+| Líneas de cero por celda | 3 × 90 | **1 punto** |
+| «0 matrículas» en pantalla | 90 | **6** (las que sí tienen delta) |
+| Repetición de «no recorta aquí» | 128 | **0** (va al `title`) |
+
+**El vocabulario de método, reescrito**:
+
+| antes | después |
+|---|---|
+| «Matriz marginal por facultad» | **«Qué pasaría si quitara cada criterio»** |
+| «Dato → impacto» | **«Comparación»** |
+| «Son impactos marginales, no aditivos» | **«No se suman entre columnas: cada una responde por su cuenta, quitando un criterio a la vez»** |
+| «No es la matriz marginal y no suma impactos» | **«Los criterios se aplican en orden, cada uno sobre lo que dejó el anterior»** |
+
+La advertencia metodológica **se conserva entera** —evita que alguien sume
+columnas—, pero dicha sin obligar a conocer otra tabla por su nombre técnico para
+entender ésta.
+
+| | |
+|---|---:|
+| Jerga técnica en la superficie | **0** |
+| Desbordes | **0** |
+| Alto | **21,6 pantallas** |
+| Vitest | **845** en 102 archivos |
+
 ### Estado del loop
 
 | | |

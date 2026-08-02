@@ -59,7 +59,12 @@ const matriz: CalcMuestraMatrizEmbudo = {
 describe("MatrizEmbudoCriterios", () => {
   it("mantiene Total visible primero y rotula los impactos como marginales/no aditivos", () => {
     const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={matriz} rawPresent />);
-    expect(html).toContain("impactos marginales, no aditivos");
+    // ADR 0057 · La advertencia se mantiene —es metodológica y evita que alguien
+    // sume columnas—, pero dicha sin vocabulario de método: «marginal» y
+    // «aditivo» son ciertos y no se entienden sin saberlos de antes.
+    expect(html).not.toContain("impactos marginales, no aditivos");
+    expect(html).toContain("No se suman entre columnas");
+    expect(html).toContain("quitando un criterio a la vez");
     expect(html.indexOf("Total")).toBeLessThan(html.indexOf("Derecho"));
     expect(html).toContain("-3 CH");
     expect(html).toContain("-72 matrículas");
@@ -68,7 +73,7 @@ describe("MatrizEmbudoCriterios", () => {
 
   it("distingue ausencia de payload y contrato inválido", () => {
     expect(renderToStaticMarkup(<MatrizEmbudoCriterios matriz={null} rawPresent={false} />))
-      .toContain("Reconstruye el marco para publicar");
+      .toContain("Reconstruye el marco para ver qué pasaría");
     expect(renderToStaticMarkup(<MatrizEmbudoCriterios matriz={null} rawPresent />))
       .toContain("llegó incompleta");
   });
