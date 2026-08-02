@@ -942,6 +942,13 @@ function errorMessage(error: unknown): string {
  * Coordina una única secuencia de previews. Abort y generación protegen incluso
  * cuando un mock, proxy o backend ignora AbortSignal y responde tarde.
  */
+/** ¿El rechazo es por falta de contexto transitorio de sesión? (F47) */
+function esContextoTransitorio(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (code === "E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE") return true;
+  return /contexto transitorio/i.test(error instanceof Error ? error.message : "");
+}
+
 export function createCriteriosPreviewCoordinator(
   load: PreviewLoader = (input, options) => apiCalcMuestraCriteriosPreview(input, options),
 ) {
@@ -975,10 +982,20 @@ export function createCriteriosPreviewCoordinator(
         // aquí se sustituía por «el marco cambió mientras se calculaba», que no
         // fue lo que pasó. Quien lee un aviso inventado busca la causa donde no
         // está. Si el motor explica, se muestra su explicación.
+        // F47 · Traducir la precondición del motor a algo accionable.
+        //
+        // El motor exige un contexto transitorio de sesión cuyo hash de marco y
+        // de criterios coincida con la petición, y ese contexto sólo existe si
+        // el marco se construyó EN ESTA sesión. Al abrir un `.pulso` guardado
+        // nunca existe: el embudo pide el recálculo en cada cambio y el motor lo
+        // rechaza siempre. «Requiere el contexto transitorio» es exacto y no le
+        // dice nada a quien lo lee, ni ofrece salida.
         onState(isStale(error)
           ? {
               status: "stale",
-              message: errorMessage(error) || "El marco cambió mientras se calculaba el preview.",
+              message: esContextoTransitorio(error)
+                ? "El embudo en vivo necesita que el marco se haya construido en esta sesión. Vuelve a construirlo para que los gráficos se actualicen al cambiar un criterio; mientras tanto se muestra la última cascada ejecutada."
+                : errorMessage(error) || "El marco cambió mientras se calculaba el preview.",
             }
           : { status: "error", message: errorMessage(error) });
       }
