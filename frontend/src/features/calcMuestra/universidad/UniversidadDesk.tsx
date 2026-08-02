@@ -436,6 +436,13 @@ export function UniversidadDesk({
                 onNavigate={onNavigate}
               />
             </div>}
+            {showLocalTab("marco-alumnos-ch") && <div id="cmv2-local-marco-alumnos-ch">
+              <AlumnosPorChMarcoTab
+                workspace={syncedWorkspace}
+                aulasState={aulasState}
+                onConfirmDecision={confirmarAlumnosPorCh}
+              />
+            </div>}
             {showLocalTab("marco-ch-radiografia") && <div id="cmv2-local-marco-ch-radiografia">
               <CursosHorarioMarcoTab
                 workspace={syncedWorkspace}
@@ -446,13 +453,6 @@ export function UniversidadDesk({
                 puedeReconstruir={puedeReconstruirMarco && !busy}
                 reconstruyendo={Boolean(busy)}
                 onNavigate={onNavigate}
-              />
-            </div>}
-            {showLocalTab("marco-alumnos-ch") && <div id="cmv2-local-marco-alumnos-ch">
-              <AlumnosPorChMarcoTab
-                workspace={syncedWorkspace}
-                aulasState={aulasState}
-                onConfirmDecision={confirmarAlumnosPorCh}
               />
             </div>}
             {showLocalTab("marco-cobertura") && <div id="cmv2-local-marco-cobertura" className="rec-recorrido rec-recorrido--full">

@@ -487,6 +487,14 @@ describe("superficie I18b de criterios", () => {
 
   it("ensambla la superficie I18b en las dos rutas de criterios", () => {
     const contracts = canonicalContracts();
+    const selection = {
+      byVariable: {
+        session_type: {
+          categories: ["segmento"],
+          exceptions: { ingenieria: { categories: ["segmento"], op: "replace" } },
+        },
+      },
+    };
     const state = {
       frame: {
         schema: "calc_muestra_aulas_frame_v1",
@@ -498,7 +506,7 @@ describe("superficie I18b de criterios", () => {
         audit: [{ metric: "classroom_included_n", value: 1 }],
         warnings: [],
         criterios_catalogo: canonicalCatalog,
-        criterios_seleccion: { byVariable: {} },
+        criterios_seleccion: selection,
         criterios_radiografia: contracts.radiography,
         criterios_totales: contracts.totals,
         criterios_cascada: contracts.cascadeContract,
@@ -513,14 +521,28 @@ describe("superficie I18b de criterios", () => {
             n_local_externo: 0,
             n_multi_facultad: 0,
           },
-          por_facultad: [],
+          por_facultad: [{
+            facultad: "Ingeniería",
+            ch_total: 1,
+            ch_elegibles: 1,
+            elegibles_total: 10,
+            est_aula_mediana: 10,
+            est_aula_media: 10,
+            por_tipo_sesion: [],
+            por_nivel: [],
+            por_condicion: [],
+            n_multi_facultad: 0,
+            n_local_externo: 0,
+            n_sin_condicion: 0,
+            top_cursos: [],
+          }],
         },
       },
     } as unknown as CalcMuestraAulasState;
     const workspace = {
       version: 2,
       frame_mode: "opinion_universitaria",
-      aulas_config: { criterios_seleccion: { byVariable: {} } },
+      aulas_config: { criterios_seleccion: selection },
     } as unknown as CalcMuestraWorkspace;
     const common = {
       workspace,
@@ -533,12 +555,29 @@ describe("superficie I18b de criterios", () => {
 
     const studentRoute = renderToStaticMarkup(<CriteriosMarcoTab {...common} scope="alumno" />);
     const classroomRoute = renderToStaticMarkup(<CursosHorarioMarcoTab {...common} />);
-    for (const html of [studentRoute, classroomRoute]) {
-      expect(html).toContain('role="img"');
-      expect(html).toContain("Total recalculado por R");
-      expect(html).toContain("Cascada secuencial");
-      expect(html).toContain("Ancla histórica");
-      expect(html).toContain('data-match-level="exacta"');
-    }
+    expect(studentRoute).toContain('role="img"');
+    expect(studentRoute).toContain("Total recalculado por R");
+    expect(studentRoute).toContain("Cascada secuencial");
+    expect(studentRoute).toContain("Ancla histórica");
+    expect(studentRoute).toContain('data-match-level="exacta"');
+
+    expect(classroomRoute).not.toContain("Radiografía antes de decidir");
+    expect(classroomRoute).toContain('aria-label="Radiografía de session_type en Ingeniería"');
+    expect(classroomRoute.match(/data-decision="transversal"/g)).toHaveLength(2);
+    expect(classroomRoute).toContain("<strong>enrolled_total</strong>");
+    expect(classroomRoute).toContain("<strong>Composición del curso-horario</strong>");
+    expect(classroomRoute).toContain("Vista transversal · matriz marginal de todas las facultades");
+    expect(classroomRoute.indexOf('aria-label="Decisión por facultad con su radiografía"')).toBeLessThan(
+      classroomRoute.indexOf("Vista transversal · matriz marginal de todas las facultades"),
+    );
+    expect(classroomRoute).toContain('class="cmv2-crc-compact"');
+    expect(classroomRoute).toContain('data-context="faculty"');
+    expect(classroomRoute).toContain('role="img"');
+    expect(classroomRoute).toContain("Cascada secuencial");
+    expect(classroomRoute).toContain("Ancla histórica");
+    expect(classroomRoute).toContain('data-match-level="exacta"');
+    expect(classroomRoute.indexOf('aria-label="Radiografía de session_type en Ingeniería"')).toBeLessThan(
+      classroomRoute.indexOf('aria-label="session_type en Ingeniería"'),
+    );
   });
 });

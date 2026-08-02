@@ -16,6 +16,7 @@ import {
   useCriteriosI18bSurface,
   type CriteriosI18bSurfaceSource,
 } from "./useCriteriosI18bSurface";
+import { CriteriosRadiografiaRecovery } from "./CriteriosRadiografiaRecovery";
 import "./criteriosRadiografia.css";
 
 export { CriteriosRadiografiaCardDetalle } from "./CriteriosRadiografiaCardDetalle";
@@ -27,6 +28,9 @@ export function CriteriosRadiografiaConsola({
   scope,
   legacyCardIds,
   i18bSource,
+  onReconstruir,
+  puedeReconstruir,
+  reconstruyendo,
 }: {
   catalogo: CriteriosCatalogo;
   radiografia: CalcMuestraAulasCriteriosRadiografia | null;
@@ -34,6 +38,9 @@ export function CriteriosRadiografiaConsola({
   scope: CriterioScope;
   legacyCardIds?: ReadonlySet<string>;
   i18bSource?: CriteriosI18bSurfaceSource | null;
+  onReconstruir?: () => void;
+  puedeReconstruir?: boolean;
+  reconstruyendo?: boolean;
 }) {
   const i18b = useCriteriosI18bSurface(
     i18bSource,
@@ -57,6 +64,20 @@ export function CriteriosRadiografiaConsola({
     if (!cards.some((card) => card.cardId === focusedId)) setFocusedId(cards[0]?.cardId ?? "");
   }, [cards, focusedId]);
   const focused = cards.find((card) => card.cardId === focusedId) ?? cards[0] ?? null;
+  const framePresent = i18bSource?.frame != null;
+  const rawRadiographyPresent = rawPresent === true || i18b.rawRadiographyPresent;
+  const legacyContract = radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v1";
+  const needsRecovery = framePresent && (!rawRadiographyPresent || legacyContract);
+  if (needsRecovery) {
+    return (
+      <CriteriosRadiografiaRecovery
+        scope={scope}
+        onActualizar={onReconstruir}
+        puedeActualizar={puedeReconstruir}
+        actualizando={reconstruyendo}
+      />
+    );
+  }
   if (!cards.length || !focused) return null;
   return (
     <section className="cmv2-crc" aria-label={`Consola analítica de criterios de ${scope === "alumno" ? "estudiante" : "curso-horario"}`}>

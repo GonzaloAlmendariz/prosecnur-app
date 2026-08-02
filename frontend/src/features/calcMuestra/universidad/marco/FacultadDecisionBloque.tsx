@@ -32,6 +32,11 @@ import { filasPorFacultad, SESSION_TYPE_VARIABLE_ID } from "../criterios/tipoSes
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
 import { AulasFinalesCard } from "./AulasFinalesCard";
 import { FacultadRadiografiaCard } from "./FacultadRadiografiaCard";
+import {
+  CriterioFacultadRadiografia,
+  type CriterioFacultadEvidence,
+} from "./CriterioFacultadRadiografia";
+import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import { resumenDecisionFacultad, type FacultadBloque } from "./facultadDecisionModel";
 
 /** Parseo de un input numérico opcional: vacío → null; inválido → null. */
@@ -67,6 +72,8 @@ function CriterioFacultadCard({
   fac,
   exploracion,
   criteriosRadiografia,
+  radiografiaCard,
+  criterioEvidence,
   onSel,
 }: {
   variable: CriterioVariable;
@@ -77,6 +84,8 @@ function CriterioFacultadCard({
   fac: CalcMuestraAulasExploracionFacultad;
   exploracion: CalcMuestraAulasExploracion | null;
   criteriosRadiografia: CalcMuestraAulasCriteriosRadiografia | null;
+  radiografiaCard: CriterioRadiografiaCard | null;
+  criterioEvidence: CriterioFacultadEvidence | null;
   onSel: (next: CriterioSeleccion) => void;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
@@ -95,7 +104,7 @@ function CriterioFacultadCard({
   // condición): el toggle no repite la mini-barra de proporción —evita el %
   // doble e inconsistente entre la radiografía y el toggle— y un rótulo separa
   // la info (arriba) de la selección (abajo).
-  const tieneRadiografia =
+  const tieneRadiografia = Boolean(radiografiaCard && criterioEvidence) ||
     variable.id === SESSION_TYPE_VARIABLE_ID || variable.id === "condicion_curso";
   if (!fila) return null;
   return (
@@ -128,7 +137,14 @@ function CriterioFacultadCard({
       </button>
       {abierto ? (
         <>
-          {variable.id === SESSION_TYPE_VARIABLE_ID ? (
+          {radiografiaCard && criterioEvidence ? (
+            <CriterioFacultadRadiografia
+              card={radiografiaCard}
+              facultyKey={excKey}
+              facultyLabel={facLabel}
+              evidence={criterioEvidence}
+            />
+          ) : variable.id === SESSION_TYPE_VARIABLE_ID ? (
             <FacultadRadiografiaCard
               fac={fac}
               modo="tipos"
@@ -166,6 +182,8 @@ function NivelFacultadCard({
   facKey,
   facLabel,
   fac,
+  radiografiaCard,
+  criterioEvidence,
   onRango,
 }: {
   variable: CriterioVariable;
@@ -174,6 +192,8 @@ function NivelFacultadCard({
   facLabel: string;
   /** Radiografía de la facultad (distribución por nivel, junto al criterio). */
   fac: CalcMuestraAulasExploracionFacultad;
+  radiografiaCard: CriterioRadiografiaCard | null;
+  criterioEvidence: CriterioFacultadEvidence | null;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
 }) {
   const valores = (variable.values ?? []).slice().sort((a, b) => a - b);
@@ -214,7 +234,16 @@ function NivelFacultadCard({
       </button>
       {abierto ? (
         <div className="cmv2-chfp-min">
-          <FacultadRadiografiaCard fac={fac} modo="niveles" />
+          {radiografiaCard && criterioEvidence ? (
+            <CriterioFacultadRadiografia
+              card={radiografiaCard}
+              facultyKey={facKey}
+              facultyLabel={facLabel}
+              evidence={criterioEvidence}
+            />
+          ) : (
+            <FacultadRadiografiaCard fac={fac} modo="niveles" />
+          )}
           <label className="cmv2-chfp-nivel-toggle">
             <Switch
               checked={activo}
@@ -261,6 +290,8 @@ function MinFacultadCard({
   fac,
   umbralGeneral,
   tasa,
+  radiografiaCard,
+  criterioEvidence,
   onMinimoFacultad,
 }: {
   seleccion: CriteriosSeleccionMarco;
@@ -268,6 +299,8 @@ function MinFacultadCard({
   fac: CalcMuestraAulasExploracionFacultad;
   umbralGeneral: number;
   tasa: number | null;
+  radiografiaCard: CriterioRadiografiaCard | null;
+  criterioEvidence: CriterioFacultadEvidence | null;
   onMinimoFacultad: (minKey: string, valor: number | null) => void;
 }) {
   const propio = minimoFacultad(seleccion, minKey);
@@ -319,6 +352,14 @@ function MinFacultadCard({
       </button>
       {abierto ? (
         <>
+          {radiografiaCard && criterioEvidence ? (
+            <CriterioFacultadRadiografia
+              card={radiografiaCard}
+              facultyKey={minKey}
+              facultyLabel={fac.facultad}
+              evidence={criterioEvidence}
+            />
+          ) : null}
           <div className="cmv2-chfp-min">
             <label className="cmv2-crit-num-field">
               <span>Mínimo propio de la facultad</span>
@@ -346,7 +387,7 @@ function MinFacultadCard({
               </button>
             ) : null}
           </div>
-          {hayDist ? (
+          {hayDist && !criterioEvidence ? (
             <div className="cmv2-chfp-min-radiografia" role="note" data-alerta={minimoAlto || undefined}>
               <div className="cmv2-chfp-min-escala" aria-hidden="true">
                 <i className="cmv2-chfp-min-escala-mediana" style={{ left: `${pos(mediana!)}%` }} />
@@ -387,6 +428,65 @@ function MinFacultadCard({
   );
 }
 
+/** Evidencia local de un criterio cuyo control, por contrato, sigue siendo
+ * transversal. No repite ni simula un override por facultad: nombra dónde se
+ * decide y mantiene la radiografía de ESTA facultad junto al criterio. */
+function CriterioTransversalFacultadCard({
+  card,
+  facKey,
+  facLabel,
+  criterioEvidence,
+}: {
+  card: CriterioRadiografiaCard;
+  facKey: string;
+  facLabel: string;
+  criterioEvidence: CriterioFacultadEvidence;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <section
+      className="cmv2-chfp-crit"
+      data-qa-geometry-member
+      data-decision="transversal"
+      data-open={abierto || undefined}
+      data-collapsible={!abierto || undefined}
+      onClick={abierto ? undefined : () => setAbierto(true)}
+    >
+      <button
+        type="button"
+        className="cmv2-chfp-crit-head"
+        aria-expanded={abierto}
+        onClick={(event) => {
+          event.stopPropagation();
+          setAbierto((value) => !value);
+        }}
+      >
+        <span className="cmv2-chfp-crit-head-label">
+          <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
+            {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+          <strong>{card.label}</strong>
+        </span>
+        <span className="cmv2-chfp-crit-state">Regla común</span>
+      </button>
+      {abierto ? (
+        <>
+          <CriterioFacultadRadiografia
+            card={card}
+            facultyKey={facKey}
+            facultyLabel={facLabel}
+            evidence={criterioEvidence}
+          />
+          <p className="cmv2-chfp-transversal-note">
+            La evidencia es de {facLabel}; esta regla no admite un override por facultad en el contrato vigente.{" "}
+            <a href="#cmv2-chfp-global-adjustments">Ajustar la regla común</a>
+          </p>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 export function FacultadDecisionBloque({
   bloque,
   variablesToggle,
@@ -394,6 +494,8 @@ export function FacultadDecisionBloque({
   seleccion,
   exploracion,
   criteriosRadiografia,
+  criterioCards,
+  criterioEvidence,
   aulaFrame,
   umbralGeneral,
   tasa,
@@ -413,6 +515,8 @@ export function FacultadDecisionBloque({
   seleccion: CriteriosSeleccionMarco;
   exploracion: CalcMuestraAulasExploracion | null;
   criteriosRadiografia: CalcMuestraAulasCriteriosRadiografia | null;
+  criterioCards: ReadonlyMap<string, CriterioRadiografiaCard>;
+  criterioEvidence: CriterioFacultadEvidence | null;
   /** Lista individual de CH del último marco (para la selección manual final). */
   aulaFrame: MonitoreoRow[];
   umbralGeneral: number;
@@ -503,6 +607,8 @@ export function FacultadDecisionBloque({
                   fac={fac}
                   exploracion={exploracion}
                   criteriosRadiografia={criteriosRadiografia}
+                  radiografiaCard={criterioCards.get(variable.id) ?? null}
+                  criterioEvidence={criterioEvidence}
                   onSel={(next) => onToggleVariable(variable.id, next)}
                 />
               );
@@ -516,20 +622,40 @@ export function FacultadDecisionBloque({
                     facKey={excKey}
                     facLabel={facLabel}
                     fac={fac}
+                    radiografiaCard={criterioCards.get(rangeVariable.id) ?? null}
+                    criterioEvidence={criterioEvidence}
                     onRango={onRango}
                   />,
                 ];
               }
               return [card];
             })}
+            {criterioEvidence && criterioCards.get("enrolled_total") ? (
+              <CriterioTransversalFacultadCard
+                card={criterioCards.get("enrolled_total")!}
+                facKey={excKey}
+                facLabel={facLabel}
+                criterioEvidence={criterioEvidence}
+              />
+            ) : null}
             <MinFacultadCard
               seleccion={seleccion}
               minKey={minKey}
               fac={fac}
               umbralGeneral={umbralGeneral}
               tasa={tasa}
+              radiografiaCard={criterioCards.get("minEligible") ?? null}
+              criterioEvidence={criterioEvidence}
               onMinimoFacultad={onMinimoFacultad}
             />
+            {criterioEvidence && criterioCards.get("composition") ? (
+              <CriterioTransversalFacultadCard
+                card={criterioCards.get("composition")!}
+                facKey={excKey}
+                facLabel={facLabel}
+                criterioEvidence={criterioEvidence}
+              />
+            ) : null}
             {/* Bisagra del embudo: cuántas aulas quedan con los filtros
                 generales, antes de la decisión más particular (el tipo). */}
             <p className="cmv2-chfp-bisagra" role="note">
@@ -545,6 +671,8 @@ export function FacultadDecisionBloque({
                 fac={fac}
                 exploracion={exploracion}
                 criteriosRadiografia={criteriosRadiografia}
+                radiografiaCard={criterioCards.get(sessionVar.id) ?? null}
+                criterioEvidence={criterioEvidence}
                 onSel={(next) => onToggleVariable(sessionVar.id, next)}
               />
             ) : null}

@@ -294,8 +294,8 @@ describe("MarcoConsistenciaTab", () => {
     ]);
     expect(marco.map((tab) => tab.id)).toEqual([
       "marco-criterios-alumno",
-      "marco-ch-radiografia",
       "marco-alumnos-ch",
+      "marco-ch-radiografia",
       "marco-poblacion",
       "marco-aulas",
       "marco-cobertura",

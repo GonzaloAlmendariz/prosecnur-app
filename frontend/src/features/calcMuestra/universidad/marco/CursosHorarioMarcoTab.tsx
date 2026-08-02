@@ -59,6 +59,12 @@ import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque } from "./FacultadDecisionBloque";
 import { facultadesBloque, slugFacultad } from "./facultadDecisionModel";
 import { CriteriosRadiografiaConsola } from "./CriteriosRadiografiaConsola";
+import {
+  buildCriteriosRadiografiaModel,
+  criterioCardsForScope,
+} from "./criteriosRadiografiaModel";
+import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
+import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
 import "../criterios/criterios.css";
 import "./marco.css";
@@ -266,6 +272,9 @@ export function CursosHorarioMarcoTab({
 
   const totalPendientes = pendientes.size;
   const marcoConstruido = Boolean(aulasState?.frame);
+  const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
+  const criteriosRadiografiaF1Pendiente = marcoConstruido && !criteriosRadiografiaF1Lista;
+  const criteriosRadiografiaF1Ausente = marcoConstruido && aulasState?.frame?.criterios_radiografia == null;
   const marcoNoVerificable = marcoConstruido && integridadFrame.status === "unverifiable";
   const marcoDesactualizado = marcoCriteriosDesactualizado(
     aulasState?.frame,
@@ -273,7 +282,36 @@ export function CursosHorarioMarcoTab({
     config.teacher_type_orden,
     { config, opcionalesActivos: opcionalesActivosMotor },
   );
-  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable;
+  const radiografiaV2 = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2"
+    ? criteriosRadiografia
+    : null;
+  const i18b = useCriteriosI18bSurface(
+    { frame: marcoPublicable ? aulasState?.frame ?? null : null, config, borrador, previewEnabled: totalPendientes > 0 || marcoDesactualizado },
+    radiografiaV2?.frame_hash ?? null,
+    radiografiaV2,
+  );
+  const criteriosModel = useMemo(
+    () => buildCriteriosRadiografiaModel({
+      catalogo,
+      radiografia: criteriosRadiografia,
+      rawPresent: aulasState?.frame?.criterios_radiografia != null,
+      legacyCardIds,
+    }),
+    [aulasState?.frame?.criterios_radiografia, catalogo, criteriosRadiografia, legacyCardIds],
+  );
+  const criterioCards = useMemo(
+    () => new Map(criterioCardsForScope(criteriosModel, "aula").map((card) => [card.cardId, card])),
+    [criteriosModel],
+  );
+  const criterioEvidence: CriterioFacultadEvidence | null = radiografiaV2 ? {
+    radiografia: radiografiaV2,
+    totals: i18b.totals,
+    cascade: i18b.cascade,
+    anchors: i18b.anchors,
+    previewRequest: i18b.previewRequest,
+    complete: i18b.status === "complete",
+  } : null;
+  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   const beam = necesitaRecalculo && listoParaRecalcular;
   const estadoResumen =
@@ -285,6 +323,10 @@ export function CursosHorarioMarcoTab({
           ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente de confirmar" : "variables pendientes de confirmar"}`
           : !marcoConstruido
             ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
+            : criteriosRadiografiaF1Pendiente
+              ? criteriosRadiografiaF1Ausente
+                ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
+                : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
             : marcoDesactualizado
               ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
               : "El marco está al día con los criterios confirmados.";
@@ -299,7 +341,7 @@ export function CursosHorarioMarcoTab({
           data-attention={necesitaRecalculo ? "true" : "false"}
         >
           <AvisoModulo
-            tone={totalPendientes > 0 || marcoDesactualizado || marcoIncoherente || marcoNoVerificable ? "warn" : !marcoConstruido ? "info" : "success"}
+            tone={totalPendientes > 0 || marcoDesactualizado || marcoIncoherente || marcoNoVerificable || criteriosRadiografiaF1Pendiente ? "warn" : !marcoConstruido ? "info" : "success"}
             role="status"
             compact
             className="cmv2-crit-draft-summary"
@@ -350,15 +392,23 @@ export function CursosHorarioMarcoTab({
         </div>
       ) : (
         <>
-          <CriteriosRadiografiaConsola
-            catalogo={catalogo}
-            radiografia={criteriosRadiografia}
-            i18bSource={{ frame: marcoPublicable ? aulasState?.frame ?? null : null, config, borrador, previewEnabled: totalPendientes > 0 || marcoDesactualizado }}
-            scope="aula"
-            legacyCardIds={legacyCardIds}
-          />
-          <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
-          <section className="cmv2-chfp-global" aria-label="Ajustes globales del marco">
+          {!criteriosRadiografiaF1Lista ? (
+            <CriteriosRadiografiaConsola
+              catalogo={catalogo}
+              radiografia={criteriosRadiografia}
+              i18bSource={{ frame: marcoPublicable ? aulasState?.frame ?? null : null, config, borrador, previewEnabled: totalPendientes > 0 || marcoDesactualizado }}
+              scope="aula"
+              legacyCardIds={legacyCardIds}
+              onReconstruir={onReconstruir}
+              puedeReconstruir={listoParaRecalcular}
+              reconstruyendo={reconstruyendo}
+            />
+          ) : null}
+          <section
+            id="cmv2-chfp-global-adjustments"
+            className="cmv2-chfp-global"
+            aria-label="Ajustes globales del marco"
+          >
             <header className="cmv2-chfp-section-head">
               <span className="cmv2-chfp-section-icon" aria-hidden="true">
                 <Building2 size={18} />
@@ -436,6 +486,8 @@ export function CursosHorarioMarcoTab({
                       seleccion={borrador}
                       exploracion={exploracion}
                       criteriosRadiografia={criteriosRadiografia}
+                      criterioCards={criterioCards}
+                      criterioEvidence={criterioEvidence}
                       aulaFrame={aulaFrame}
                       umbralGeneral={umbralGeneral}
                       tasa={tasa}
@@ -458,6 +510,17 @@ export function CursosHorarioMarcoTab({
                 : "La radiografía por facultad no es verificable con el marco ejecutado. Reconstruye el marco para continuar."}
             </AvisoModulo>
           )}
+
+          {criteriosRadiografiaF1Lista ? (
+            <details className="cmv2-chfp-transversal">
+              <summary>Vista transversal · matriz marginal de todas las facultades</summary>
+              <p>
+                Abre esta comparación solo cuando necesites contrastar facultades. La decisión principal permanece
+                dentro de cada facultad, con el dato de su criterio junto al control.
+              </p>
+              <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
+            </details>
+          ) : null}
         </>
       )}
     </div>

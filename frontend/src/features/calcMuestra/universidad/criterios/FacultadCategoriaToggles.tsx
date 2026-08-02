@@ -54,11 +54,21 @@ export function FacultadCategoriaToggles({
           Sin distribución por facultad en el catálogo — marca las categorías que apliquen.
         </p>
       ) : null}
-      <ul className="cmv2-crit-tsf-tipos">
+      <ul
+        className="cmv2-crit-tsf-tipos"
+        data-qa-geometry-group="calc-muestra/categorias-criterio-facultad"
+        data-qa-geometry-contract="intrinsic"
+      >
         {visibles.map((t) => {
           const pct = fila.chTotal > 0 && t.ch != null ? t.ch / fila.chTotal : null;
           return (
-            <li key={t.key} className="cmv2-crit-tsf-tipo" data-checked={t.activo}>
+            <li
+              key={t.key}
+              className="cmv2-crit-tsf-tipo"
+              data-checked={t.activo}
+              data-qa-geometry-member
+              data-qa-geometry-capacity="owned"
+            >
               <div className="cmv2-crit-item-main">
                 <Switch
                   checked={t.activo}

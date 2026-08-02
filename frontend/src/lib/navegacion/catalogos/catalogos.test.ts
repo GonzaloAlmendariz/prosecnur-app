@@ -30,8 +30,8 @@ describe("catálogos canónicos de pestañas", () => {
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco)).toEqual([
       "marco-criterios-alumno:Criterios del estudiante",
-      "marco-ch-radiografia:Cursos-horario: criterios + radiografía",
       "marco-alumnos-ch:Alumnos por CH",
+      "marco-ch-radiografia:Cursos-horario: criterios + radiografía",
       "marco-poblacion:Población",
       "marco-aulas:Cursos-horario",
       "marco-cobertura:Cobertura",

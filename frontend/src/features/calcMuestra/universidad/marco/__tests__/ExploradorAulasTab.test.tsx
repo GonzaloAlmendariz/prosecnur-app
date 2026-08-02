@@ -187,12 +187,12 @@ describe("marco-ch-radiografia — gating en el rail (igual a marco-aulas)", () 
     expect(tab?.targetId).toBe("cmv2-local-marco-ch-radiografia");
   });
 
-  it("con marco descriptivo pasa a ready, igual que marco-aulas", () => {
+  it("con marco descriptivo sin contrato F1 queda working aunque marco-aulas esté listo", () => {
     const aulasState = stateWith({ aula_frame: [{ classroom_id: "CH-1", eligible_n: 10 }] });
     const tabs = universitySidebarTabs({ activeSection: "marco", estudio, workspace, aulasState }) ?? [];
     const radiografia = tabs.find((t) => t.id === "marco-ch-radiografia");
     const aulas = tabs.find((t) => t.id === "marco-aulas");
-    expect(radiografia?.status).toBe("ready");
-    expect(radiografia?.status).toBe(aulas?.status);
+    expect(radiografia?.status).toBe("working");
+    expect(aulas?.status).toBe("ready");
   });
 });

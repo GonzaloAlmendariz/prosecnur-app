@@ -89,8 +89,8 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   ],
   marco: [
     pestana("marco", "marco-criterios-alumno", "Criterios del estudiante", "quién es elegible: formación, condición, edad, facultades y nivel", GraduationCap, { targetId: "cmv2-local-marco-criterios-alumno" }),
-    pestana("marco", "marco-ch-radiografia", "Cursos-horario: criterios + radiografía", "define los criterios de aula viendo dónde están los elegibles por facultad", Compass, { targetId: "cmv2-local-marco-ch-radiografia" }),
     pestana("marco", "marco-alumnos-ch", "Alumnos por CH", "elige el estadístico por facultad sobre la distribución del marco ejecutado", BarChart3, { targetId: "cmv2-local-marco-alumnos-ch" }),
+    pestana("marco", "marco-ch-radiografia", "Cursos-horario: criterios + radiografía", "define los criterios de aula viendo dónde están los elegibles por facultad", Compass, { targetId: "cmv2-local-marco-ch-radiografia" }),
     pestana("marco", "marco-poblacion", "Población", "elegibles y estructura (base real)", Users, { targetId: "cmv2-local-marco-poblacion" }),
     pestana("marco", "marco-aulas", "Cursos-horario", "unidades del marco (base real)", Grid3X3, { targetId: "cmv2-local-marco-aulas" }),
     pestana("marco", "marco-cobertura", "Cobertura", "elegibles vs. no elegibles por facultad", BarChart3, { targetId: "cmv2-local-marco-cobertura" }),

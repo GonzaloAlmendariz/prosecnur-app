@@ -288,12 +288,15 @@ export function CriteriosMarcoTab({
   // reconstruir cuando (a) es la primera vez (aún no hay marco), o (b) los
   // criterios confirmados difieren de los que construyeron el marco vigente.
   const marcoConstruido = Boolean(aulasState?.frame);
+  const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
+  const criteriosRadiografiaF1Pendiente = marcoConstruido && !criteriosRadiografiaF1Lista;
+  const criteriosRadiografiaF1Ausente = marcoConstruido && aulasState?.frame?.criterios_radiografia == null;
   const marcoNoVerificable = marcoConstruido && integridadFrame.status === "unverifiable";
   const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion, config.teacher_type_orden, {
     config,
     opcionalesActivos: opcionalesActivosMotor,
   });
-  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable;
+  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   // El haz de luz (Anexo A.2) solo cuando hace falta reconstruir y no hay nada
   // pendiente de confirmar (si hay pendientes, la acción primero es confirmar).
@@ -307,6 +310,10 @@ export function CriteriosMarcoTab({
           ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente de confirmar" : "variables pendientes de confirmar"}`
           : !marcoConstruido
             ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
+            : criteriosRadiografiaF1Pendiente
+              ? criteriosRadiografiaF1Ausente
+                ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
+                : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
             : marcoDesactualizado
               ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
               : "El marco está al día con los criterios confirmados.";
@@ -321,7 +328,7 @@ export function CriteriosMarcoTab({
           data-attention={necesitaRecalculo ? "true" : "false"}
         >
           <AvisoModulo
-            tone={totalPendientes > 0 || marcoDesactualizado || marcoIncoherente || marcoNoVerificable ? "warn" : !marcoConstruido ? "info" : "success"}
+            tone={totalPendientes > 0 || marcoDesactualizado || marcoIncoherente || marcoNoVerificable || criteriosRadiografiaF1Pendiente ? "warn" : !marcoConstruido ? "info" : "success"}
             role="status"
             compact
             className="cmv2-crit-draft-summary"
@@ -390,6 +397,9 @@ export function CriteriosMarcoTab({
               radiografia={criteriosRadiografia}
               i18bSource={{ frame: marcoPublicable ? aulasState?.frame ?? null : null, config, borrador, previewEnabled: totalPendientes > 0 || marcoDesactualizado }}
               scope="alumno"
+              onReconstruir={onReconstruir}
+              puedeReconstruir={listoParaRecalcular}
+              reconstruyendo={reconstruyendo}
             />
           ) : null}
           {showAlumno && alumno.length > 0 && (

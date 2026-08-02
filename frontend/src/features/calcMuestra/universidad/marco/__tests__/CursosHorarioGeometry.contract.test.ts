@@ -133,7 +133,7 @@ describe("C1 geométrico de Cursos-horario", () => {
     const decisionVariants = tagsWithClass(decisionSource, "cmv2-chfp-crit");
     const aulasFinalesVariants = tagsWithClass(aulasFinalesSource, "cmv2-chfp-crit");
 
-    expect(decisionVariants, "variantes definidas en FacultadDecisionBloque").toHaveLength(3);
+    expect(decisionVariants, "variantes definidas en FacultadDecisionBloque").toHaveLength(4);
     expect(aulasFinalesVariants, "variante final definida en AulasFinalesCard").toHaveLength(1);
 
     const variants = [

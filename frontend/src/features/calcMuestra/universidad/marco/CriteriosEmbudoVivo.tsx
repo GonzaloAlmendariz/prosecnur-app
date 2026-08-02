@@ -42,10 +42,12 @@ export function CriteriosEmbudoVivo({
   cardId,
   executed,
   previewRequest,
+  facultyKey,
 }: {
   cardId: string;
   executed: CalcMuestraCriteriosCascada | null;
   previewRequest: CalcMuestraCriteriosPreviewInput | null;
+  facultyKey?: string;
 }) {
   const previewState = useCascadePreview(previewRequest);
   const cascade = previewState?.status === "ready" ? previewState.data : executed;
@@ -104,12 +106,16 @@ export function CriteriosEmbudoVivo({
                 <table>
                   <thead><tr><th scope="col">Facultad efectiva</th><th scope="col">Secuencia CH</th><th scope="col">Excluye</th></tr></thead>
                   <tbody>
-                    <tr data-row-kind="total">
-                      <th scope="row">Total recalculado por R</th>
-                      <td>{fmt(step.total.before_ch)} → {fmt(step.total.after_ch)}</td>
-                      <td>−{fmt(step.total.excluded_ch)}</td>
-                    </tr>
-                    {step.faculties.map((faculty) => (
+                    {!facultyKey ? (
+                      <tr data-row-kind="total">
+                        <th scope="row">Total recalculado por R</th>
+                        <td>{fmt(step.total.before_ch)} → {fmt(step.total.after_ch)}</td>
+                        <td>−{fmt(step.total.excluded_ch)}</td>
+                      </tr>
+                    ) : null}
+                    {step.faculties.filter((faculty) => (
+                      !facultyKey || faculty.faculty_key === facultyKey
+                    )).map((faculty) => (
                       <tr key={faculty.faculty_key}>
                         <th scope="row">{faculty.label}</th>
                         <td>{fmt(faculty.before_ch)} → {fmt(faculty.after_ch)}</td>

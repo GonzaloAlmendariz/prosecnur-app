@@ -2461,6 +2461,36 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   white-space: nowrap;
 }
 .cmv2-chfp-crit-state[data-decision="propia"] { color: var(--cmv2-accent-fg); }
+.cmv2-chfp-transversal-note {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+}
+.cmv2-chfp-transversal-note a {
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+.cmv2-chfp-transversal {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+.cmv2-chfp-transversal > summary {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+.cmv2-chfp-transversal[open] > summary {
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-transversal > p {
+  margin: 8px 0;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
 .cmv2-chfp-min { display: grid; gap: 8px; }
 /* Pill del mínimo propio: el número y, al lado, un hint que dice qué pasa si se
    deja vacío (usa el general) o la unidad — sin cortar texto dentro del input. */

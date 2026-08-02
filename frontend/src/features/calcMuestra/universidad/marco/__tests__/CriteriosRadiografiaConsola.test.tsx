@@ -11,6 +11,7 @@ import {
   CriteriosRadiografiaConsola,
 } from "../CriteriosRadiografiaConsola";
 import type { CriterioRadiografiaCard } from "../criteriosRadiografiaModel";
+import { criterioCardForFaculty } from "../CriterioFacultadRadiografia";
 
 const distribution = { media: 10, p10: 1, p25: 2, p50: 3, p75: 4, p90: 5 };
 
@@ -124,6 +125,9 @@ describe("CriteriosRadiografiaConsola", () => {
     expect(html.indexOf(">Impacto marginal<")).toBeLessThan(html.indexOf(">Acción<"));
     expect(html).toContain("Enfocar criterio");
     expect(html).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-consola"');
+    expect(html).toContain('data-qa-geometry-group="calc-muestra/criterios-radiografia-facultades"');
+    expect(html).toContain('aria-label="Radiografía en Ingeniería"');
+    expect(html).toContain("Ingeniería");
     expect(html).toContain("Media");
     expect(html).toContain("P10");
     expect(html).toContain("P25");
@@ -183,6 +187,67 @@ describe("CriteriosRadiografiaConsola", () => {
     const snapshotTags = startTags(html, "div", "cmv2-crc-snapshot");
     expect(snapshotTags).toHaveLength(4);
     expectOwnedGeometryMembers(snapshotTags);
+  });
+
+  it("aísla las filas F1 de la facultad sin alterar owner ni estado del gate", () => {
+    const medicina = { ...row, faculty_key: "medicina", faculty_label: "Medicina" };
+    const entry = { ...numericEntry(), rows: [row, medicina] };
+    const card: CriterioRadiografiaCard = {
+      cardId: entry.card_id,
+      label: entry.label,
+      scope: entry.scope,
+      kind: entry.kind,
+      gateIds: [entry.id],
+      source: "catalogo",
+      expectedFamily: entry.family,
+      state: "v2",
+      entries: [entry],
+      v1Rows: [],
+    };
+
+    const filtered = criterioCardForFaculty(card, "ingenieria", "Ingeniería");
+    expect(filtered.entries[0]?.owner).toBe(entry.owner);
+    expect(filtered.entries[0]?.status).toBe(entry.status);
+    expect(filtered.entries[0]?.rows.map((item) => item.faculty_key)).toEqual(["ingenieria"]);
+  });
+
+  it("usa exclusivamente la clave contractual y falla cerrado ante etiquetas coincidentes", () => {
+    const sameLabelOtherKey = {
+      ...row,
+      faculty_key: "ingenieria-duplicada",
+      faculty_label: "INGENIERIA",
+    };
+    const labelFallback = {
+      ...row,
+      faculty_key: "key-publicada-por-r",
+      faculty_label: "Ingeniería",
+    };
+    const entry = { ...numericEntry(), rows: [row, sameLabelOtherKey] };
+    const card: CriterioRadiografiaCard = {
+      cardId: entry.card_id,
+      label: entry.label,
+      scope: entry.scope,
+      kind: entry.kind,
+      gateIds: [entry.id],
+      source: "catalogo",
+      expectedFamily: entry.family,
+      state: "v2",
+      entries: [entry],
+      v1Rows: [],
+    };
+
+    expect(criterioCardForFaculty(card, "ingenieria", "Ingeniería").entries[0]?.rows)
+      .toEqual([row]);
+    expect(criterioCardForFaculty(
+      { ...card, entries: [{ ...entry, rows: [labelFallback] }] },
+      "clave-ui-distinta",
+      "INGENIERIA",
+    ).entries[0]?.rows).toEqual([]);
+    expect(criterioCardForFaculty(
+      { ...card, entries: [{ ...entry, rows: [labelFallback, sameLabelOtherKey] }] },
+      "clave-ui-distinta",
+      "INGENIERIA",
+    ).entries[0]?.rows).toEqual([]);
   });
 
   it("declara que los segmentos jerárquicos solapados no son aditivos", () => {
