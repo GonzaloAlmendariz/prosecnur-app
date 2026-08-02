@@ -342,11 +342,11 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **12 de 23** (+ Propuestas, CH requeridos, Objetivo, Distribución y Método) | 23 de 23 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **15 de 24** (+ Estudio, Fuentes y Consistencia; el inventario pasa a 24 por D10) | 24 de 24 |
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **7 de 13** (S1–S7) + T1 aplicado, **T6 y T7 cerradas**, T4 desbloqueada en el instrumento | 13 + 7 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **8 de 13** (S1–S7, S12) + T1, **T6, T7 cerradas**, T4 desbloqueada, **D10 ejecutada** | 13 + 7 |
 | Superficies bloqueadas por no poder ejecutar el cálculo | **7** | **0**; el cálculo publica resultado completo | 0 |
 | Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **0** | 0 |
 | Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
@@ -1135,6 +1135,41 @@ Y para el **loop v2**, dos hallazgos de contrato con evidencia en este doc: el
 `calcular` devuelve 200 con `resultado` vacío y deja componentes que él mismo
 rechaza después; y el contrato de Alumnos/CH y los estratos discrepan en qué
 hacer con una facultad de 0 CH elegibles.
+
+### F20 — D10: Consistencia es pestaña propia (S12, 2026-08-02)
+
+Datos medido con el instrumento: **Estudio** 1,2 pantallas y **0 prosa** —pasa
+la vara—; **Variables** 3,5 pantallas; y **Fuentes** **5,3 pantallas con 226
+palabras**, la prosa más densa del módulo. La causa estructural estaba a la
+vista en su propio markup: un solo bloque con Fuentes (2.298 px) **y** un
+sub-bloque rotulado «Subpágina de Fuentes» (824 px) con la auditoría de
+consistencia. Dos actos distintos en una pestaña.
+
+**D10 estaba decidida por Gonzalo y pendiente desde I18.** Ejecutada entera:
+
+- `def-consistencia` es pestaña propia de Datos, **inmediatamente después de
+  Fuentes**, con su dirección publicada.
+- Owner nuevo `DefConsistenciaTab`; el combinado `DefFuentesConsistenciaTab`
+  se retira.
+- La normalización de direcciones deja de reescribir `def-consistencia` a
+  `def-bases?foco=…`; los hogares históricos (`marco/marco-validacion`,
+  `marco/def-consistencia`) apuntan ahora a la pestaña real.
+- Estados separados: Fuentes acredita que las bases están declaradas;
+  Consistencia acredita la relación entre ellas.
+- Guards actualizados al inventario nuevo: **23 → 24 pestañas**, 201 → 202
+  nodos del manifiesto, firma del catálogo, aliases y las tres direcciones
+  históricas.
+
+| | antes | después |
+|---|---:|---:|
+| Fuentes | 5,3 pantallas · 226 palabras | **3,6 · 120** |
+| Consistencia | subpágina sin dirección | **pestaña propia · 1,2 pantallas · 86 palabras** |
+
+Gate: typecheck 0 errores · Vitest **994/994** en 107 archivos (incluye
+`src/lib`, donde viven los contratos de navegación) · `sync-agentic-os --check`
+OK · 0 desbordes en ambas.
+
+Ledger: superficies por la vara **12 → 15 de 23**; lotes cerrados **8 de 13**.
 
 Siguiente, en orden: **S9–S11**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**

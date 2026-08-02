@@ -88,7 +88,7 @@ function consistenciaSidebarStatus(
     estudio: estudioMinimo,
     workspace,
     aulasState,
-  })?.find((tab) => tab.id === "def-bases")?.status;
+  })?.find((tab) => tab.id === "def-consistencia")?.status;
 }
 
 describe("MarcoConsistenciaTab", () => {
@@ -239,8 +239,9 @@ describe("MarcoConsistenciaTab", () => {
     expect(resolveUniversityLocalTab("marco-cruces")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-estructura")).toBe("marco-poblacion");
     expect(resolveUniversityLocalTab("marco-cadena")).toBe("marco-poblacion");
-    expect(resolveUniversityLocalTab("marco-validacion")).toBe("def-bases");
-    expect(resolveUniversityLocalTab("def-consistencia")).toBe("def-bases");
+    // D10: el alias histórico apunta ya a la pestaña real de Consistencia.
+    expect(resolveUniversityLocalTab("marco-validacion")).toBe("def-consistencia");
+    expect(resolveUniversityLocalTab("def-consistencia")).toBe("def-consistencia");
   });
 
   it.each([
@@ -290,6 +291,7 @@ describe("MarcoConsistenciaTab", () => {
     expect(datos.map((tab) => tab.id)).toEqual([
       "def-estudio",
       "def-bases",
+      "def-consistencia",
       "def-variables",
     ]);
     expect(marco.map((tab) => tab.id)).toEqual([

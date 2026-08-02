@@ -111,11 +111,11 @@ export function resolverDireccionHistoricaUniversidad(
   if (seccion === "aulas" && pestana === "marco") {
     return { seccion: "marco", pestana: "marco-aulas", foco };
   }
-  if (
-    (seccion === "definicion" && pestana === "def-consistencia") ||
-    (seccion === "marco" && (pestana === "def-consistencia" || pestana === "marco-validacion"))
-  ) {
-    return { seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" };
+  // D10 ejecutada: Consistencia es pestaña propia de Datos. La dirección deja
+  // de reescribirse a `def-bases` con foco; solo se redirigen los hogares
+  // históricos que ya no existen.
+  if (seccion === "marco" && (pestana === "def-consistencia" || pestana === "marco-validacion")) {
+    return { seccion: "definicion", pestana: "def-consistencia", foco };
   }
   return { seccion, pestana, foco };
 }

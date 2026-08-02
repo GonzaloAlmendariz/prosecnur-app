@@ -61,10 +61,10 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   "marco-criterios": "marco-criterios-alumno",
   "marco-categorias": "marco-criterios-alumno",
   "marco-explorador": "marco-ch-radiografia",
-  // Consistencia vive dentro de Datos → Fuentes (D10). Estos aliases locales
-  // restauran memoria guardada; la URL se resuelve con su pareja explícita.
-  "marco-validacion": "def-bases",
-  "def-consistencia": "def-bases",
+  // D10 ejecutada: Consistencia es pestaña propia de Datos, inmediatamente
+  // después de Fuentes. El alias histórico apunta ahora a su hogar real; la
+  // integración provisional dentro de Fuentes queda retirada.
+  "marco-validacion": "def-consistencia",
   // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
   // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
   // guardado de Elegibilidad/Institución aterriza en el mapeo de Variables.
@@ -228,11 +228,14 @@ export function universitySidebarTabs({
   if (activeSection === "definicion") {
     const baseReady = declaredSourcesReady || hasDescriptiveFrame;
     const baseConfigured = baseReady && requiredMapped;
-    const [estudioTab, basesTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
+    const [estudioTab, basesTab, consistenciaTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
     const consistencyStatus = evaluarConsistenciaMarco(workspace.source_mode, aulasState?.frame);
     return [
       { ...estudioTab, status: guideStatus(Boolean(estudio.titulo)) },
-      { ...basesTab, status: baseReady ? consistencyStatus : guideStatus(baseReady, hasSource) },
+      // D10: Fuentes acredita que las bases están declaradas; la consistencia
+      // entre ellas es su propia pestaña y su propio estado.
+      { ...basesTab, status: guideStatus(baseReady, hasSource) },
+      { ...consistenciaTab, status: baseReady ? consistencyStatus : guideStatus(false, baseReady || hasSource) },
       { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
     ];
   }

@@ -17,6 +17,7 @@ import {
   Target,
   Users,
   type LucideIcon,
+  Link2,
 } from "../../../vendor/lucide-react";
 
 export type CalcMuestraUniversidadSeccionId =
@@ -85,6 +86,7 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   definicion: [
     pestana("definicion", "def-estudio", "Estudio", "nombre, cliente y alcance", ClipboardList, { targetId: "cmv2-local-def-estudio" }),
     pestana("definicion", "def-bases", "Fuentes", "archivos, hojas y lectura", Database, { targetId: "cmv2-local-def-bases" }),
+    pestana("definicion", "def-consistencia", "Consistencia", "llaves entre estudiante y curso-horario", Link2, { targetId: "cmv2-local-def-consistencia" }),
     pestana("definicion", "def-variables", "Variables", "columnas de la base", Table2, { targetId: "cmv2-local-def-variables" }),
   ],
   marco: [
