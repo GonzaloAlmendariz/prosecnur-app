@@ -61,7 +61,7 @@ import "./criteriosRadiografia.css";
 const NUMBER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
 
 export const CRITERIO_RADIOGRAFIA_STATE_COPY = {
-  v2: { label: "Radiografía v2", detail: "Contrato analítico completo del último marco ejecutado." },
+  v2: { label: "Del marco ejecutado", detail: "Calculado sobre el último marco que se construyó." },
   v1: { label: "Radiografía v1", detail: "Contrato I11 compatible para tipo de sesión." },
   legacy: { label: "Resumen legacy", detail: "Hay evidencia histórica parcial; faltan denominadores o contrafactual completo." },
   sin_dato: { label: "Sin dato", detail: "El engine no publicó señal suficiente para este criterio." },
@@ -523,6 +523,12 @@ export function CriteriosRadiografiaCardDetalle({
   // recorren como pasos, uno a la vez; ninguno se pierde y el orden
   // metodológico queda visible en el riel.
   const pasos = pasosVisibles(context);
+  // El número del encabezado sale del riel realmente visible. Escrito a mano se
+  // descuadró en cuanto un paso dejó de mostrarse: el riel decía «1 Cuánto
+  // recorta» y el contenido «2 Cuánto recorta este criterio». Un número que no
+  // coincide con su propio índice hace dudar de todo lo demás de la pantalla.
+  const numeroPaso = (id: CriterioPasoId) =>
+    pasos.findIndex((paso) => paso.id === id) + 1;
   const [pasoActivo, setPasoActivo] = useState<CriterioPasoId>(pasos[0].id);
   return (
     <article
@@ -559,7 +565,7 @@ export function CriteriosRadiografiaCardDetalle({
       </nav>
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "distribucion"} aria-labelledby={`crc-dist-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>1</span><h5 id={`crc-dist-${idSuffix}`}>Distribución</h5></header>
+        <header><span>{numeroPaso("distribucion")}</span><h5 id={`crc-dist-${idSuffix}`}>Distribución</h5></header>
         {rows.length ? (
           <V2Distribution
             card={card}
@@ -571,25 +577,25 @@ export function CriteriosRadiografiaCardDetalle({
       </section>
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "cascada"} aria-labelledby={`crc-cascada-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>2</span><h5 id={`crc-cascada-${idSuffix}`}>Cuánto recorta este criterio</h5></header>
+        <header><span>{numeroPaso("cascada")}</span><h5 id={`crc-cascada-${idSuffix}`}>Cuánto recorta este criterio</h5></header>
         <p>Secuencia real del motor. No es la matriz marginal y no suma impactos entre criterios.</p>
         <CriteriosEmbudoVivo cardId={card.cardId} executed={cascade} previewRequest={previewRequest} facultyKey={facultyKey} />
       </section>
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "ancla"} aria-labelledby={`crc-ancla-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>3</span><h5 id={`crc-ancla-${idSuffix}`}>Ancla histórica</h5></header>
+        <header><span>{numeroPaso("ancla")}</span><h5 id={`crc-ancla-${idSuffix}`}>Comparación con 2025</h5></header>
         <p>Coincidencia o degradación publicada por R; nunca combina marginales ni enlaza CH históricos.</p>
         <CriterioAnclaHistorica cardId={card.cardId} rows={anchors?.rows ?? []} facultyKey={facultyKey} />
       </section>
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "impacto"} aria-labelledby={`crc-impacto-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>4</span><h5 id={`crc-impacto-${idSuffix}`}>Impacto marginal</h5></header>
+        <header><span>{numeroPaso("impacto")}</span><h5 id={`crc-impacto-${idSuffix}`}>Si quitara este criterio</h5></header>
         <p>Foto contrafactual por regla; no forma la cascada y sus deltas no son aditivos.</p>
         <ImpactoMarginal card={card} rows={rows} v1Rows={v1Rows} invalid={invalid} />
       </section>
 
       <section className="cmv2-crc-step" hidden={pasoActivo !== "accion"} aria-labelledby={`crc-accion-${idSuffix}`} data-qa-geometry-member data-qa-geometry-capacity="owned">
-        <header><span>5</span><h5 id={`crc-accion-${idSuffix}`}>Acción</h5></header>
+        <header><span>{numeroPaso("accion")}</span><h5 id={`crc-accion-${idSuffix}`}>Decidir</h5></header>
         {rows.length ? (
           <ul className="cmv2-crc-actions">
             {rows.map(({ entry, row }) => (
