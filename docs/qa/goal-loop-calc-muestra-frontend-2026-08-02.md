@@ -619,8 +619,40 @@ Medido en pantalla: **2 etiquetas agrupadas detectadas** en la pestaña de
 estudiante (`INGRESO` agrupa 8, una facultad agrupa 2). Gate: typecheck 0
 errores · Vitest **797/797** en 92 archivos.
 
-Siguiente: **F6 (S2)** — «Alumnos por CH» decide con la distribución delante, y
-su vacío deja de ocupar ~60 % del viewport.
+### F6 — Alumnos por CH decide viendo la distribución (S2/S4, 2026-08-02) · **S2 cerrada**
+
+**Corrección de una medición propia.** El «~60 % del viewport en blanco»
+registrado en la apertura medía la pestaña **sin instrumento**. Con dato real la
+superficie está llena: 18 filas, 2,2 pantallas. El defecto era otro y solo se
+ve con datos.
+
+Auditoría con el instrumento, una medición por hallazgo:
+
+| hallazgo | medición |
+|---|---|
+| Se elige el estadístico **sin ver de qué distribución sale** | **0 gráficos** en la superficie; 18 facultades × 3 estadísticos en columnas de números |
+| La columna que produce la decisión no cabe en pantalla | tabla 1.331 px en contenedor de 1.268 px a 1440×1000: «Valor elegido» queda fuera |
+| Intro que parafrasea lo que la tabla ya rotula | 2 líneas sobre «cifra principal / contraste», rotulados en las propias columnas |
+
+- Owner nuevo `AlumnosPorChTira.tsx`: tira comparable por facultad con P25,
+  mediana y media sobre **dominio compartido por toda la tabla**, con el P50 del
+  Total como línea de referencia en cada fila. Presenta, no calcula: los tres
+  valores vienen publicados por R.
+- Las tres columnas numéricas se funden en una: la tabla pasa de **8 a 6
+  columnas** y deja de desbordar — «Valor elegido» entra en el viewport. Las
+  cifras siguen literales bajo la tira: comparar no puede costar precisión.
+- La escala se declara **una vez** para el bloque, nunca por fila.
+- La intro se reduce a la frase que sí dice algo: «El estadístico se elige
+  viendo la distribución de la que sale».
+
+Medido tras el cambio: **16 tiras · 1 leyenda · 6 columnas · desborde
+horizontal 0** (tabla 1.268 px = contenedor), panel 1.554 px = 2,4 pantallas.
+Guard nuevo: la escala aparece una sola vez y cada fila publica sus marcas
+`p25`/`p50`/`media` más la referencia del Total. Gate: typecheck 0 errores ·
+Vitest **798/798** · 1440×1000 y 1024×600 sin scroll horizontal ni desbordes.
+
+Siguiente: **F7 (S3)** — la matriz embudo cierra el recorrido en vez de vivir
+como un enlace de 36 px al pie.
 
 ## Lo hecho sin commitear también se afina (añadido 2026-08-02)
 

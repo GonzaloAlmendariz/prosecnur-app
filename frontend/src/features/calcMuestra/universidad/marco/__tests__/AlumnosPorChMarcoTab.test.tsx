@@ -51,11 +51,28 @@ describe("AlumnosPorChMarcoTab", () => {
     const html = renderToStaticMarkup(
       <AlumnosPorChMarcoTab workspace={workspace} aulasState={state()} onConfirmDecision={vi.fn()} />,
     );
-    expect(html).toContain("marco elegible es la cifra principal");
+    // S2/S4 (F6): el contraste y la jerarquía elegible/total ya no se explican
+    // en prosa — se rotulan en la propia tabla y se ven en la tira comparable.
+    expect(html).toContain("Distribución del marco elegible");
     expect(html).toContain("Todos los CH");
     expect(html).toContain("Recomendado");
     expect(html).toContain("Confirmar decisión");
     expect(html).toContain('data-qa-geometry-contract="intrinsic"');
+  });
+
+  it("S2/S4: la distribución se compara sobre una escala común con el Total de referencia", () => {
+    const html = renderToStaticMarkup(
+      <AlumnosPorChMarcoTab workspace={workspace} aulasState={state()} onConfirmDecision={vi.fn()} />,
+    );
+    // La escala se declara una sola vez, no por fila.
+    expect((html.match(/Escala compartida/g) ?? [])).toHaveLength(1);
+    // Cada fila dibuja sus tres marcas y el Total como referencia.
+    expect(html).toContain('data-mark="p25"');
+    expect(html).toContain('data-mark="p50"');
+    expect(html).toContain('data-mark="media"');
+    expect(html).toContain('data-mark="referencia"');
+    // Comparar no cuesta precisión: las cifras siguen literales.
+    expect(html).toContain("P25");
   });
 
   it("no aplica fallback cuando falta o deriva el snapshot", () => {

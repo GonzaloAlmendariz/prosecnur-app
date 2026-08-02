@@ -17,6 +17,11 @@ import {
   missingAlumnosPorChFaculties,
   normalizeAlumnosPorChOverrides,
 } from "./alumnosPorChDecisionModel";
+import {
+  alumnosPorChDominio,
+  AlumnosPorChTira,
+  AlumnosPorChTiraLeyenda,
+} from "./AlumnosPorChTira";
 import "./alumnosPorCh.css";
 
 function metric(value: number | null): string {
@@ -89,6 +94,11 @@ export function AlumnosPorChMarcoTab({
     ...snapshot.filas.filter((row) => row.row_kind === "total"),
     ...snapshot.filas.filter((row) => row.row_kind === "faculty"),
   ];
+  // S4: una sola escala para las 18 filas. Sin dominio común, dos facultades
+  // con distribuciones distintas dibujarían la misma tira.
+  const dominioTira = alumnosPorChDominio(rows.map((row) => row.elegible.distribution));
+  // El Total es la referencia contra la que se lee cada facultad.
+  const referenciaTira = rows.find((row) => row.row_kind === "total")?.elegible.distribution.p50 ?? null;
 
   function setOverride(facultyKey: string, rawMethod: string) {
     setOverrides((previous) => {
@@ -114,10 +124,10 @@ export function AlumnosPorChMarcoTab({
           <div>
             <small>Decisión del marco</small>
             <h3 id="cmv2-alumnos-ch-title">Alumnos por CH</h3>
-            <p>
-              El marco elegible es la cifra principal; todos los CH aparecen como contraste. Aquí se elige el
-              estadístico que Cálculo consumirá desde R, sin volver a derivarlo en la interfaz.
-            </p>
+            {/* S3: la tabla ya rotula «marco elegible» y «contraste», y la
+                procedencia R vive en el aviso de estado. La intro solo
+                parafraseaba lo que la propia superficie muestra. */}
+            <p>El estadístico se elige viendo la distribución de la que sale.</p>
           </div>
         </header>
 
@@ -145,16 +155,16 @@ export function AlumnosPorChMarcoTab({
               : "La propuesta aún no está confirmada. P25 es la recomendación provisional por su lectura conservadora."}
         </AvisoModulo>
 
+        <AlumnosPorChTiraLeyenda dominio={dominioTira} />
+
         <div className="cmv2-alumnos-ch-scroll" tabIndex={0} aria-label="Distribución y decisión por facultad">
           <table className="cmv2-alumnos-ch-table">
             <thead>
               <tr>
                 <th scope="col">Facultad</th>
                 <th scope="col">CH elegibles</th>
-                <th scope="col">P25</th>
-                <th scope="col">Mediana</th>
-                <th scope="col">Media</th>
-                <th scope="col">Todos los CH · P25 / mediana / media</th>
+                <th scope="col">Distribución del marco elegible</th>
+                <th scope="col">Todos los CH · contraste</th>
                 <th scope="col">Método aplicado</th>
                 <th scope="col">Valor elegido</th>
               </tr>
@@ -169,9 +179,16 @@ export function AlumnosPorChMarcoTab({
                   <tr key={row.faculty_key} data-row-kind={row.row_kind}>
                     <th scope="row">{row.faculty_label}</th>
                     <td><strong>{fmtInt(row.elegible.n_ch)}</strong><small>{row.elegible.n_matriculas_elegibles == null ? "Sin dato completo" : `${fmtInt(row.elegible.n_matriculas_elegibles)} matrículas`}</small></td>
-                    <td data-recommended="true">{metric(row.elegible.distribution.p25)}</td>
-                    <td>{metric(row.elegible.distribution.p50)}</td>
-                    <td>{metric(row.elegible.distribution.media)}</td>
+                    <td className="cmv2-alumnos-ch-dist" data-recommended="true">
+                      <AlumnosPorChTira
+                        label={row.faculty_label}
+                        p25={row.elegible.distribution.p25}
+                        p50={row.elegible.distribution.p50}
+                        media={row.elegible.distribution.media}
+                        dominio={dominioTira}
+                        referencia={referenciaTira}
+                      />
+                    </td>
                     <td>
                       <strong>{fmtInt(row.contraste_total.n_ch)} CH</strong>
                       <small>
