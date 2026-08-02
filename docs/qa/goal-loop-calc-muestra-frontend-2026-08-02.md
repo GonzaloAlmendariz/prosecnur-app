@@ -1515,6 +1515,36 @@ correcciones que costaron horas encontrar:
 Sintaxis verificada (44 expresiones). La corrida lanzada por la UI seguía sin
 acreditar al cierre del tramo; su lectura queda para la próxima iteración.
 
+### F34 — El círculo de la comparación (2026-08-02)
+
+Falsar F31 dio el hallazgo más caro de la sesión, y no era lo que yo había
+supuesto. `POST /api/calc-muestra/aulas/comparar-metodos` no falla por falta de
+evidencia: devuelve **409 `E_CALC_MUESTRA_ALUMNOS_CH_DECISION`**, con
+`reason: "decision_stale"` y un mensaje exacto —«la decisión de alumnos por CH
+cambió desde esta corrida»—.
+
+Frente a eso, la app decía dos cosas y ninguna era esa:
+
+| dónde | qué decía | qué pasaba |
+|---|---|---|
+| Aviso de etapa | «la evidencia almacenada no acredita la comparación vigente · **vuelve a comparar**» | comparar es justo lo que falla |
+| Fallback del `catch` | «**construye primero el marco** de cursos-horario» | el marco ya estaba construido |
+
+**El usuario quedaba en un círculo**, repitiendo lo único que no puede
+funcionar, tras esperar 63 simulaciones. El código del motor no estaba
+referenciado **ni una vez** en todo el frontend.
+
+Reparado: cuando el motor nombra esa condición, la app la nombra también y dice
+dónde se resuelve —Marco › Alumnos por CH—, en vez de mandar a repetir la
+comparación. Guard: `decisionAlumnosChCaducada.test.ts`, con el reconocimiento
+por código y por texto (el objeto estructurado no siempre sobrevive al cliente)
+y tres casos negativos para que no se lleve por delante otros fallos.
+
+**Lección de método, la tercera de la sesión**: F31 concluyó «la corrida no se
+acredita» leyendo la superficie. Era verdad y era inútil —la causa estaba a un
+`curl` de distancia—. Preguntarle al motor antes de teorizar sobre la superficie
+habría ahorrado dos iteraciones.
+
 ### Cierre de la sesión
 
 | | |
@@ -1534,7 +1564,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F34 — leer la corrida de la UI; si sigue sin acreditar, resembrar con el script versionado y falsarlo ahí**
+Siguiente, en orden: **F35 — reconfirmar Alumnos por CH y comparar de nuevo, para abrir por fin Simulación, Titulares, Reemplazos y Sustento con dato real**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen

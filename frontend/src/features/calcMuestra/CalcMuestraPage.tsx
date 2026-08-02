@@ -985,6 +985,22 @@ function sidebarTabsForDeskSection({
 
 // Traduce el error de una operación de job en el aviso de la mesa: cancelación
 // deliberada → nota limpia (info); cualquier otro fallo → banner de error.
+/**
+ * ¿El motor rechazó por decisión de alumnos por CH caducada?
+ *
+ * El backend lo dice con `E_CALC_MUESTRA_ALUMNOS_CH_DECISION` y
+ * `reason: "decision_stale"`. El cliente no siempre conserva el objeto de error
+ * estructurado, así que se reconoce por código y, si sólo llega el texto, por lo
+ * que ese texto afirma. Detectar de menos deja al usuario en el círculo; no
+ * detectar de más importa poco, porque el mensaje alternativo también es cierto.
+ */
+export function esDecisionAlumnosChCaducada(e: unknown): boolean {
+  const code = (e as { code?: unknown } | null)?.code;
+  if (typeof code === "string" && code === "E_CALC_MUESTRA_ALUMNOS_CH_DECISION") return true;
+  const texto = e instanceof Error ? e.message : typeof e === "string" ? e : "";
+  return /alumnos por ch/i.test(texto) && /cambi|caduc|stale/i.test(texto);
+}
+
 function msgDeFallo(e: unknown, fallback: string): Msg {
   if (e instanceof JobCancelledError) {
     return { kind: "info", text: "Proceso cancelado. No se aplicaron cambios." };
@@ -2079,7 +2095,23 @@ export default function CalcMuestraPage() {
         setMsg({ kind: "info", text: "Comparación de métodos lista." });
       }
     } catch (e) {
-      setMsg(msgDeFallo(e, "No se pudo comparar métodos. Construye primero el marco de cursos-horario."));
+      // F34 · El fallback nombraba la causa equivocada.
+      //
+      // Medido contra el motor: comparar devuelve 409
+      // `E_CALC_MUESTRA_ALUMNOS_CH_DECISION` («la decisión de alumnos por CH
+      // cambió desde esta corrida»), y aquí se respondía «construye primero el
+      // marco de cursos-horario» —con el marco ya construido—. La superficie,
+      // además, seguía pidiendo «vuelve a comparar»: el usuario quedaba en un
+      // círculo, repitiendo lo único que no puede funcionar. Cuando el motor
+      // nombra la condición, se dice dónde se resuelve.
+      setMsg(
+        esDecisionAlumnosChCaducada(e)
+          ? {
+              kind: "error",
+              text: "La decisión de «Alumnos por CH» cambió después de la última comparación. Vuelve a confirmarla en Marco › Alumnos por CH y compara de nuevo.",
+            }
+          : msgDeFallo(e, "No se pudo comparar métodos. Construye primero el marco de cursos-horario."),
+      );
     } finally {
       setBusy(null);
     }
