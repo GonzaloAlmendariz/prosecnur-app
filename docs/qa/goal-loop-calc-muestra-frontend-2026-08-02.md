@@ -1218,6 +1218,53 @@ Dos hallazgos, uno descartado por lectura y otro reparado:
   exige el destino en el copy y no el control, porque `missing-frame` da su
   salida en prosa.
 
+### F23 — El criterio se elige por facultad (dirección de Gonzalo, 2026-08-02)
+
+> «Absolutamente toda la información de criterios es **por facultad**. Podemos
+> reformular la forma en que ordenamos los criterios y el embudo —no llamarlo
+> así, suena a AI slop—, pero debe verse la información con mucho detalle, de
+> forma que permita escoger cada criterio **no a nivel general sino a nivel de
+> criterio por facultad**.»
+
+**Medido antes de tocar.** En `marco-ch-radiografia`, con el instrumento
+sembrado: 3 criterios a la vista, **la palabra «excepción» aparece 0 veces**. El
+override por facultad que el contrato ya persiste es *inalcanzable* desde la
+superficie que decide — C4 roto.
+
+La causa no es una sola. Al leer el código se parte en dos, y solo una mitad es
+del frontend:
+
+| criterio | grano decidible hoy | tope |
+|---|---|---|
+| Tipo de sesión | **por facultad** (`TipoSesionPorFacultad`, vista de primera clase) | — |
+| Modalidad, tipo de docente y demás categóricos | por facultad, pero tras `ExcepcionesFacultad`, que la superficie no muestra | **frontend** |
+| Nivel del curso (`range`) | por facultad vía `courseLevelRanges` | — |
+| Edad (`numeric`) | **solo global** | **contrato** |
+| Ciclos (`ordinal`) | **solo global** | **contrato** |
+
+El tope de contrato es literal: `exceptions?: Record<string, { categories, op }>`
+transporta **solo categorías**. `threshold`, `includeValues` y `fromValue` no
+tienen forma por facultad. Edad y ciclos no son decidibles por facultad hoy, y
+React no puede fabricar esa estructura sin mentir sobre lo que el motor aplicará.
+
+**Reparto, por eso, en dos carriles:**
+
+- **Frontend (F24, siguiente)**: el override por facultad deja de ser un enlace
+  secundario y pasa a ser el cuerpo de la tarjeta, sobre las filas de la
+  radiografía que ya traen el detalle de esa facultad —el detalle y la decisión
+  en el mismo gesto, que es lo que Gonzalo viene pidiendo desde la observación
+  de la cascada—. Se renombra «embudo vivo»: el nombre describe la animación,
+  no lo que la pieza hace, y por eso suena a relleno.
+- **Loop v2 (motor)**: extender `exceptions` para que acepte `threshold`,
+  `includeValues` y `fromValue` por facultad, con su normalizador en
+  `.cm_criterios_normalize_seleccion` y su test. Sin eso, edad y ciclos siguen
+  siendo globales por diseño del contrato, no por olvido de la UI.
+
+Queda anotado que **este hallazgo reabre la cola**: al vaciarse S13 el loop
+reaudita desde S1 con la vara más alta, y el grano por facultad es ahora parte
+de esa vara —un criterio que solo se puede decidir en general no pasa la prueba
+de la decisión—.
+
 ### Cierre de la sesión
 
 | | |
@@ -1237,7 +1284,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **S9–S11**
+Siguiente, en orden: **F24 (grano por facultad en la tarjeta de criterio)**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
