@@ -2950,6 +2950,41 @@ mostrar su código.
 | Vitest | 854 → **855** en 105 archivos |
 | Desbordes | **0** |
 
+### F74 — Dato crudo mostrado como texto: barrido de las 18 superficies
+
+Convertido el hallazgo de F72–F73 en un barrido sistemático: buscar en toda la
+superficie cualquier hoja de texto que sea **código y no palabra** —snake_case,
+CONSTANT_CASE, `NA`, `null`—.
+
+**Resultado: dos, ambos en la radiografía**, y cada uno pedía una solución
+distinta.
+
+**1 · `bootstrap_percentil` y `delgada`.** Son **valores de contrato**: el motor
+los compara por nombre (`identical(cell$metodo_ic, "bootstrap_percentil")`), así
+que renombrarlos en R rompería la comparación. Se traducen **al mostrarlos**:
+
+| código | en pantalla |
+|---|---|
+| `bootstrap_percentil` | **Bootstrap por percentiles** |
+| `no_aplica` | **No aplica** |
+| `solida` · `delgada` · `insuficiente` · `vacia` | **Sólida · Delgada · Insuficiente · Sin casos** |
+
+**2 · `NA`.** Este lo escribía el propio frontend, y **la intención era correcta**:
+no fabricar un cero donde el motor no publicó valor —había incluso un test
+llamado «NA honesto»—. Lo equivocado era la notación: «NA» es de R, y en pantalla
+quedaba «Media NA» y «NA CH». El guion largo dice exactamente lo mismo, es el que
+ya usa el resto del módulo, y no obliga a saber en qué lenguaje está escrito el
+motor. La honestidad se conserva; el test pasa a exigir «— CH» y **prohibir** «NA
+CH».
+
+| | |
+|---|---:|
+| Códigos crudos en las 18 superficies | 2 → **0** |
+| Vitest | **855** en 105 archivos |
+
+En los dos casos, lo que no se reconoce **pasa tal cual**: un código nuevo del
+motor en pantalla es preferible a una etiqueta inventada que lo oculte.
+
 ### Estado del loop
 
 | | |

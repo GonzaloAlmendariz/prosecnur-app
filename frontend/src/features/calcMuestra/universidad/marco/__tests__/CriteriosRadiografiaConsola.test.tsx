@@ -108,7 +108,7 @@ const radiografia: CalcMuestraAulasCriteriosRadiografiaV2 = {
 };
 
 describe("CriteriosRadiografiaConsola", () => {
-  it("renderiza la jerarquía literal, denominadores, seis estadísticos y NA honesto", () => {
+  it("renderiza la jerarquía literal, denominadores, seis estadísticos y la ausencia declarada", () => {
     const html = renderToStaticMarkup(
       <CriteriosRadiografiaConsola
         catalogo={catalogo}
@@ -153,7 +153,10 @@ describe("CriteriosRadiografiaConsola", () => {
     expect(html).toContain("P50 · mediana");
     expect(html).toContain("P75");
     expect(html).toContain("P90");
-    expect(html).toContain("NA CH");
+    // La ausencia se sigue declarando —no se fabrica un cero—, pero en la
+    // notación del usuario: «NA» es de R y en pantalla quedaba «Media NA».
+    expect(html).toContain("— CH");
+    expect(html).not.toContain("NA CH");
   });
 
   it("declara la geometría intrínseca de pasos, segmentos y snapshots", () => {

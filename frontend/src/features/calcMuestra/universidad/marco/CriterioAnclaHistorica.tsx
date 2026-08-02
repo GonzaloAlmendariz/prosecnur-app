@@ -32,6 +32,31 @@ function facultyDimensionLabel(
   return "Sin referencia histórica";
 }
 
+/**
+ * Traduce los códigos del ancla histórica para mostrarlos.
+ *
+ * `metodo_ic` y `suficiencia` son **valores de contrato**: el motor los compara
+ * por nombre (`identical(cell$metodo_ic, "bootstrap_percentil")`), así que no se
+ * pueden renombrar en R. Pero mostrarlos crudos deja «bootstrap_percentil» y
+ * «delgada» en la pantalla de un cliente.
+ *
+ * Lo que no se reconoce pasa tal cual: un código nuevo del motor es preferible a
+ * una etiqueta inventada que lo oculte.
+ */
+function etiquetaMetodoIC(valor: string | null | undefined): string {
+  if (valor === "bootstrap_percentil") return "Bootstrap por percentiles";
+  if (valor === "no_aplica") return "No aplica";
+  return valor ?? "—";
+}
+
+function etiquetaSuficiencia(valor: string | null | undefined): string {
+  if (valor === "solida") return "Sólida";
+  if (valor === "delgada") return "Delgada";
+  if (valor === "insuficiente") return "Insuficiente";
+  if (valor === "vacia") return "Sin casos";
+  return valor ?? "—";
+}
+
 export function CriterioAnclaHistorica({
   cardId,
   rows,
@@ -129,8 +154,8 @@ export function CriterioAnclaHistorica({
             <div><dt>Cobertura</dt><dd>k={fmtK(anchor.k)}</dd></div>
             <div><dt>Tasa</dt><dd>{fmtRate(anchor.tasa)}</dd></div>
             <div><dt>Intervalo</dt><dd>{fmtInterval(anchor.ic_low, anchor.ic_high)}</dd></div>
-            <div><dt>Método IC</dt><dd>{anchor.metodo_ic}</dd></div>
-            <div><dt>Suficiencia</dt><dd>{anchor.suficiencia}</dd></div>
+            <div><dt>Método IC</dt><dd>{etiquetaMetodoIC(anchor.metodo_ic)}</dd></div>
+            <div><dt>Suficiencia</dt><dd>{etiquetaSuficiencia(anchor.suficiencia)}</dd></div>
             <div><dt>Periodo</dt><dd>{anchor.periodo}</dd></div>
           </dl>
           {avisoComun && anchors.length > 1 ? null : <p role="note">{anchor.warning}</p>}
