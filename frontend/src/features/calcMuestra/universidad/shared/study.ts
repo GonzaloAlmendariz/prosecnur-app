@@ -8,6 +8,7 @@ import {
   type CalcMuestraWorkspaceAulasSizeGroup,
   type CalcMuestraWorkspaceEscenario,
 } from "../../../../api/client";
+import { normalizeCalcMuestraAlumnosPorChDecision } from "../../../../api/calcMuestraAlumnosPorCh";
 import { calcNPreview, zFromConfidence } from "../../didactica/motorPreview";
 import {
   DEFAULT_PARAMS,
@@ -126,8 +127,14 @@ function normalizeSessionExcepciones(
 
 export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["aulas_config"] | null): CalcMuestraWorkspaceAulasConfig {
   const raw: Partial<CalcMuestraWorkspaceAulasConfig> = config ?? {};
-  const { n_aulas: rawTarget, ...rawWithoutTarget } = raw;
+  const {
+    n_aulas: rawTarget,
+    alumnos_por_ch_decision: rawAlumnosPorChDecision,
+    ...rawWithoutTarget
+  } = raw;
   const nAulas = normalizePositiveInteger(rawTarget);
+  const alumnosPorChDecision = normalizeCalcMuestraAlumnosPorChDecision(rawAlumnosPorChDecision);
+  const rawDecisionWasPresent = rawAlumnosPorChDecision != null;
   const selector = raw.selector ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.selector;
   const selectorEngine = normalizeAulasSelectorEngine(raw.selector_engine ?? selector);
   const acceptedConditions = (raw.accepted_conditions ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.accepted_conditions ?? ["regular"])
@@ -137,6 +144,13 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
     ...DEFAULT_UNIVERSITY_AULAS_CONFIG,
     ...rawWithoutTarget,
     ...(nAulas == null ? {} : { n_aulas: nAulas }),
+    ...(alumnosPorChDecision != null
+      ? { alumnos_por_ch_decision: alumnosPorChDecision }
+      : rawDecisionWasPresent
+        // Fail-closed: una decisión presente pero inválida debe llegar a R
+        // para producir 409; borrarla aquí reactivaría el path legacy.
+        ? { alumnos_por_ch_decision: rawAlumnosPorChDecision }
+        : {}),
     modalidad: raw.modalidad ?? DEFAULT_UNIVERSITY_AULAS_CONFIG.modalidad,
     selector,
     selector_engine: selectorEngine,

@@ -9,13 +9,15 @@ tags:
   - Pestaña
 fuentes:
   - "frontend/src/features/calcMuestra/universidad/definicion/DefBasesTab.tsx"
+  - "frontend/src/features/calcMuestra/universidad/definicion/DefFuentesConsistenciaTab.tsx"
+  - "frontend/src/features/calcMuestra/universidad/marco/MarcoConsistenciaTab.tsx"
   - "frontend/src/features/calcMuestra/universidad/definicion/SolicitudDtiButton.tsx"
   - "docs/adrs/0035-calc-muestra-mapeo-manual-exclusivo-por-hoja.md"
 ---
 # Fuentes para la muestra universitaria
-> En la UI: **Fuentes**. Declara archivos u hojas con estudiantes y cursos-horario.
+> En la UI: **Fuentes**. Declara archivos u hojas y acredita el enlace estudiante–curso-horario en el bloque Consistencia entre fuentes.
 ## Objetivo
-Vincular una base única o dos bases y registrar de dónde sale cada tabla.
+Vincular una base única o dos bases, registrar de dónde sale cada tabla y comprobar la consistencia antes de pasar a Variables y Marco.
 ## Antes de empezar
 - Disponer de archivos o una hoja autorizada; si faltan, preparar la solicitud DTI.
 ## Mapa de la pantalla
@@ -23,7 +25,8 @@ Vincular una base única o dos bases y registrar de dónde sale cada tabla.
 flowchart LR
     A[Elegir esquema] --> B[Agregar fuentes]
     B --> C[Inspeccionar hojas]
-    C --> D[Variables]
+    C --> D[Consistencia entre fuentes]
+    D --> E[Variables]
 ```
 ## Elementos de la pantalla
 | Elemento | Para qué sirve | Qué cambia o produce |
@@ -32,16 +35,19 @@ flowchart LR
 | Fuente | Vincula archivo/hoja | Registra procedencia y estado |
 | Inspección | Lee columnas y hojas | Prepara mapeo por fuente |
 | Solicitud DTI | Genera requerimiento de datos | Explicita columnas necesarias |
+| Consistencia entre fuentes | Contrasta llaves, huérfanos y duplicados | Acredita o degrada el enlace entre estudiantes y CH |
 ## Cómo se usa
 1. Elige el esquema de fuentes.
 2. Vincula cada archivo u hoja.
 3. Inspecciona columnas sin inferir mapeos entre hojas.
-4. Continúa en Variables universitarias.
+4. Revisa Consistencia entre fuentes; corrige huérfanos o duplicados en el insumo causal.
+5. Continúa en Variables universitarias sólo con el diagnóstico visible.
 ## Resultado y siguiente paso
-- Fuentes declaradas; sigue Variables universitarias.
+- Fuentes declaradas y conciliación visible; sigue Variables universitarias.
 ## Estados, alertas y límites
 - El mapeo es manual y exclusivo por hoja.
 - Declarar una fuente no prueba que las bases enlacen correctamente.
+- La consistencia califica el insumo: no es una decisión de Marco ni un join histórico CH a CH.
 
 ## Cómo interpretar lo que ves
 

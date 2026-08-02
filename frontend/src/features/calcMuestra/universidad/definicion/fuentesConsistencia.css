@@ -1,0 +1,52 @@
+.cmv2-fuentes-consistencia {
+  display: grid;
+  gap: var(--pulso-space-5);
+  min-width: 0;
+}
+
+.cmv2-fuentes-consistencia-block {
+  display: grid;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+  padding-top: var(--pulso-space-5);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.cmv2-fuentes-consistencia-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-3);
+}
+
+.cmv2-fuentes-consistencia-head > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--pulso-radius);
+  color: var(--cmv2-accent);
+  background: var(--cmv2-accent-soft);
+}
+
+.cmv2-fuentes-consistencia-head h3 {
+  margin: 2px 0 0;
+}
+
+.cmv2-fuentes-consistencia-head small {
+  color: var(--pulso-text-muted);
+  font-size: 0.69rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cmv2-fuentes-consistencia-head p {
+  max-width: 78ch;
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-text-muted);
+  line-height: 1.5;
+}
+
+.cmv2-fuentes-consistencia-block .cmv2-marco-stack {
+  min-width: 0;
+}

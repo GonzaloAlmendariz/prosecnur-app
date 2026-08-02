@@ -5,6 +5,7 @@ import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
+import { normalizeCalcMuestraAlumnosPorChDecision } from "../../../../api/client";
 import { safeNumber } from "../../sharedCore";
 import {
   classroomComparisonForState,
@@ -197,6 +198,29 @@ function stableComparisonValue(value: unknown): unknown {
   return value;
 }
 
+/**
+ * Una corrida de Aulas pertenece a la decisión de alumnos/CH que produjo su
+ * objetivo. R conserva esa firma en `aulas.config`; React solo compara la
+ * firma normalizada y falla cerrado. Ausente↔ausente mantiene proyectos legacy.
+ */
+export function classroomRunMatchesAlumnosPorChDecision(
+  workspaceConfig: CalcMuestraWorkspaceAulasConfig | undefined,
+  runConfig: Record<string, unknown> | undefined,
+): boolean {
+  const currentRaw = workspaceConfig?.alumnos_por_ch_decision;
+  const runRaw = runConfig?.alumnos_por_ch_decision;
+  if (currentRaw == null && runRaw == null) return true;
+  const current = normalizeCalcMuestraAlumnosPorChDecision(
+    currentRaw,
+  );
+  const run = normalizeCalcMuestraAlumnosPorChDecision(
+    runRaw,
+  );
+  if (!current || !run) return false;
+  return JSON.stringify(stableComparisonValue(current)) ===
+    JSON.stringify(stableComparisonValue(run));
+}
+
 export function classroomComparisonMatchesConfig(
   comparison: CalcMuestraAulasMethodComparison | null | undefined,
   config: CalcMuestraWorkspaceAulasConfig,
@@ -227,7 +251,8 @@ export function resolveClassroomHandoff({
     n_aulas: currentAulasTarget || undefined,
   });
   const runMatchesTarget = currentAulasTarget > 0 &&
-    classroomSelectorTarget(runConfig) === currentAulasTarget;
+    classroomSelectorTarget(runConfig) === currentAulasTarget &&
+    classroomRunMatchesAlumnosPorChDecision(workspaceConfig, runConfig);
   return { config, currentAulasTarget, runIsCurrent: runMatchesTarget && !marcoDesactualizado };
 }
 
@@ -279,7 +304,8 @@ export function resolveClassroomArtifactStatus({
   const selectionRunId = String(selection?.selection_run_id ?? "").trim();
   const replacementSelectionRunId = String(replacement?.selection_run_id ?? "").trim();
   const selectionReady = classroomSelectionReady(aulasState) && handoff.currentAulasTarget > 0 &&
-    frameReady && Boolean(selectionRunId) && classroomSelectorTarget(selection) === handoff.currentAulasTarget && matchesFrame(selection);
+    frameReady && handoff.runIsCurrent && Boolean(selectionRunId) &&
+    classroomSelectorTarget(selection) === handoff.currentAulasTarget && matchesFrame(selection);
   const replacementReady = classroomReplacementReady(aulasState) && selectionReady &&
     Boolean(selectionRunId) && replacementSelectionRunId === selectionRunId && matchesFrame(replacement);
   return {

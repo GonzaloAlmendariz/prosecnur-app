@@ -59,9 +59,9 @@ import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque } from "./FacultadDecisionBloque";
 import { facultadesBloque, slugFacultad } from "./facultadDecisionModel";
 import { CriteriosRadiografiaConsola } from "./CriteriosRadiografiaConsola";
+import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
 import "../criterios/criterios.css";
 import "./marco.css";
-
 export function CursosHorarioMarcoTab({
   workspace,
   aulasState,
@@ -78,7 +78,6 @@ export function CursosHorarioMarcoTab({
   onReconstruir?: () => void;
   puedeReconstruir?: boolean;
   reconstruyendo?: boolean;
-  /** Reservado por paridad de firma con el desk (no se usa en esta vista). */
   onNavigate?: (section: string, tab?: string) => void;
 }) {
   const catalogo = useMemo(
@@ -104,6 +103,8 @@ export function CursosHorarioMarcoTab({
     marcoPublicable && criteriosRadiografiaNormalizada?.frame_hash === aulasState?.frame?.frame_hash
       ? criteriosRadiografiaNormalizada
       : null;
+  const matrizEmbudo = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2" ? criteriosRadiografia.matriz_embudo ?? null : null;
+  const matrizRawPresent = Boolean((aulasState?.frame?.criterios_radiografia as { matriz_embudo?: unknown } | null | undefined)?.matriz_embudo);
   const legacyCardIds = useMemo(() => {
     const ids = new Set<string>();
     for (const facultad of exploracion?.por_facultad ?? []) {
@@ -114,8 +115,6 @@ export function CursosHorarioMarcoTab({
     }
     return ids;
   }, [exploracion]);
-  // Lista individual de cursos-horario del último marco (para la selección
-  // manual final por facultad). El motor ya marcó `included` por facultad.
   const aulaFrame = useMemo<MonitoreoRow[]>(
     () => rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame),
     [aulasState?.frame?.aula_frame],
@@ -358,6 +357,7 @@ export function CursosHorarioMarcoTab({
             scope="aula"
             legacyCardIds={legacyCardIds}
           />
+          <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
           <section className="cmv2-chfp-global" aria-label="Ajustes globales del marco">
             <header className="cmv2-chfp-section-head">
               <span className="cmv2-chfp-section-icon" aria-hidden="true">

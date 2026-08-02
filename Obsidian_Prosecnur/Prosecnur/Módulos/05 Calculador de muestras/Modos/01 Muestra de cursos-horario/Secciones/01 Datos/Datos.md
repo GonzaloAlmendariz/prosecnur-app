@@ -11,7 +11,7 @@ fuentes: ["frontend/src/features/calcMuestra/universidad/universidadTabs.ts"]
 ---
 # Datos
 
-> En la UI: **Datos**. Declara el estudio, sus fuentes y el mapeo de variables.
+> En la UI: **Datos**. Declara el estudio, acredita la consistencia de sus fuentes y mapea las variables.
 
 ## Propósito de esta guía
 
@@ -36,13 +36,13 @@ flowchart TD
 | Destino | Cuándo entrar | Qué hacer allí | Qué deja listo |
 |---|---|---|---|
 | [[Estudio]] | cuando la mesa aún no tiene nombre, cliente, alcance y unidad definidos. | Registra nombre, cliente, alcance y unidad del diseño universitario. | identidad del estudio guardada. |
-| [[Fuentes para la muestra universitaria]] | cuando el estudio está identificado y debes declarar las bases de estudiantes y cursos-horario. | En la UI: **Fuentes**. Declara archivos u hojas con estudiantes y cursos-horario. | fuentes con rol, periodo y procedencia definidos. |
+| [[Fuentes para la muestra universitaria]] | cuando el estudio está identificado y debes declarar las bases de estudiantes y cursos-horario. | En la UI: **Fuentes**. Declara los insumos y, en el bloque Consistencia entre fuentes, acredita sus llaves y enlaces. | fuentes con rol, periodo, procedencia y conciliación visibles. |
 | [[Variables universitarias]] | cuando las columnas reales aún no están asignadas a estudiante, curso, facultad, sexo y demás roles. | En la UI: **Variables**. Asigna columnas reales a los roles del diseño. | mapeo de variables universitarias completo. |
 
 ## Recorrido recomendado
 
 1. **Estudio:** Registra nombre, cliente, alcance y unidad del diseño universitario; al terminar, el resultado es identidad del estudio guardada.
-2. **Fuentes para la muestra universitaria:** En la UI: **Fuentes**. Declara archivos u hojas con estudiantes y cursos-horario; al terminar, el resultado es fuentes con rol, periodo y procedencia definidos.
+2. **Fuentes para la muestra universitaria:** declara archivos u hojas y revisa allí mismo Consistencia entre fuentes; al terminar, quedan visibles rol, periodo, procedencia y conciliación.
 3. **Variables universitarias:** En la UI: **Variables**. Asigna columnas reales a los roles del diseño; al terminar, el resultado es mapeo de variables universitarias completo.
 
 La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el método transforma esos insumos en metas o probabilidades; y el cierre conserva la evidencia. En **Datos universitarios**, empieza por **Estudio** y termina en **Variables universitarias**. Para una revisión puntual puedes abrir directamente el destino causal, pero recalcula las tareas posteriores si modificas su entrada.

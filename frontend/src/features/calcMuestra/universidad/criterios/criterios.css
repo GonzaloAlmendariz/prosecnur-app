@@ -74,20 +74,20 @@
 .cmv2-crit-apply-btn[data-beam="true"]::before {
   content: "";
   position: absolute;
-  inset: -60%;
+  inset: 0;
   z-index: -1;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0 74%,
-    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 84%,
-    var(--pulso-on-accent, white) 90%,
-    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 96%,
-    transparent 100%
-  );
+  background: linear-gradient(
+    90deg,
+    transparent 0 32%,
+    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 43%,
+    var(--pulso-on-accent, white) 50%,
+    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 57%,
+    transparent 68% 100%
+  ) 100% 0 / 300% 100%;
   animation: cmv2-crit-beam 3s linear infinite;
 }
 @keyframes cmv2-crit-beam {
-  to { transform: rotate(1turn); }
+  to { background-position: -100% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cmv2-crit-apply-btn[data-beam="true"]::before { animation: none; }

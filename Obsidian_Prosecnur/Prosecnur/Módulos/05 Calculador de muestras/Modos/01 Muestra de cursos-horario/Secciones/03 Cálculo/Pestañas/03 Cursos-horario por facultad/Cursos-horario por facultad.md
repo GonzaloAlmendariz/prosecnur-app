@@ -9,37 +9,37 @@ tags:
   - Pestaña
 fuentes:
   - "frontend/src/features/calcMuestra/universidad/calculo/CalculoCursosHorarioFacultadTab.tsx"
-  - "frontend/src/features/calcMuestra/universidad/calculo/cursosHorarioModel.ts"
+  - "frontend/src/features/calcMuestra/universidad/calculo/cursosHorarioResultadoModel.ts"
 ---
 # Cursos-horario por facultad
-> Convierte cuotas de estudiantes en cantidad estimada y definitiva de cursos-horario.
+> Proyecta las cuotas y los cursos-horario ya calculados por R con la decisión firmada de Marco.
 ## Objetivo
-Traducir metas de entrevistas a unidades operativas por facultad.
+Revisar y confirmar las unidades operativas por facultad sin volver a derivar alumnos por CH ni aulas en React.
 ## Antes de empezar
-- Tener propuesta activa y tamaños de curso-horario observados.
+- Tener Alumnos por CH confirmado para el marco vigente y una propuesta recalculada.
 ## Mapa de la pantalla
 ```mermaid
 flowchart LR
-    A[Cuota por facultad] --> B[Alumnos por CH]
-    B --> C[CH estimados]
-    C --> D[Ajuste definitivo]
+    A[Decisión firmada en Marco] --> B[Resultado R por facultad]
+    B --> C[Titulares y reservas]
+    C --> D[Confirmar plan]
 ```
 ## Elementos de la pantalla
 | Elemento | Para qué sirve | Qué cambia o produce |
 |---|---|---|
 | Cuota | Muestra entrevistas objetivo | Punto de partida por facultad |
-| Rendimiento CH | Estima alumnos alcanzables | Convierte entrevistas en unidades |
-| CH definitivos | Ajusta meta operativa | Fija cantidad para selección |
+| Método R | Expone media, mediana o P25 efectivo | Audita el divisor decidido en Marco |
+| CH publicados | Muestra titulares, reservas y total | Fija el plan que pasa a Selección |
 ## Cómo se usa
-1. Revisa cuota y tamaño observado.
-2. Comprueba el cálculo de cursos-horario.
-3. Ajusta sólo con razón operativa.
-4. Guarda y abre Distribución.
+1. Revisa cuota, método R y alumnos por CH de cada facultad.
+2. Comprueba titulares, reservas y total publicados.
+3. Si el divisor no representa la distribución, vuelve a Marco > Alumnos por CH.
+4. Confirma el plan y abre Distribución.
 ## Resultado y siguiente paso
 - Meta de cursos-horario por facultad; sigue Distribución.
 ## Estados, alertas y límites
-- Un promedio no reemplaza la distribución real de tamaños.
-- Ajustar cursos-horario no cambia silenciosamente la cuota de estudiantes.
+- Esta pestaña no calcula medias, medianas, percentiles ni techos.
+- Una firma stale oculta el plan hasta recalcularlo.
 
 ## Cómo interpretar lo que ves
 

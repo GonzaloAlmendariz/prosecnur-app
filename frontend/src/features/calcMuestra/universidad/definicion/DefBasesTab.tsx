@@ -418,7 +418,7 @@ export function DefBasesTab({
   ];
 
   return (
-    <section className="cmv2-panel cmv2-university-sources">
+    <section className="cmv2-panel cmv2-university-sources" data-qa-geometry-member>
       {/* Dos escenarios reales de datos (§3.1.3): base única o dos bases. La
           lectura de una selección ya trabajada no es un tipo de base para armar
           el marco, sino un camino aparte: vive como opción secundaria abajo. */}

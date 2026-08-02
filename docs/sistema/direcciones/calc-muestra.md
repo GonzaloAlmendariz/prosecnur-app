@@ -10,19 +10,19 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 42 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 871f6a85 | sí | — |
-| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | 6c3d29b5 | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 43c7267d | sí | — |
+| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | dc3a8ae9 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | 328e7bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-bases` | pestana | Fuentes | sí | 63cd982d | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-variables` | pestana | Variables | sí | 620ea7d4 | sí | — |
-| `calc-muestra/opinion-universitaria/marco` | seccion | Marco | sí | e2f8297a | sí | — |
+| `calc-muestra/opinion-universitaria/marco` | seccion | Marco | sí | 701a565f | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-criterios-alumno` | pestana | Criterios del estudiante | sí | 5d26023c | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-ch-radiografia` | pestana | Cursos-horario: criterios + radiografía | sí | f9f40729 | sí | — |
+| `calc-muestra/opinion-universitaria/marco/marco-alumnos-ch` | pestana | Alumnos por CH | sí | 14c56a1c | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-poblacion` | pestana | Población | sí | 58839ca1 | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-aulas` | pestana | Cursos-horario | sí | 7760348d | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-cobertura` | pestana | Cobertura | sí | 93223bf6 | sí | — |
-| `calc-muestra/opinion-universitaria/marco/def-consistencia` | pestana | Consistencia | sí | 9b9e6976 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo` | seccion | Cálculo | sí | 4dbde3b3 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-diseno` | pestana | Diseño | sí | 0a1e98ce | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-propuestas` | pestana | Propuestas | sí | 19f0c7d7 | sí | — |

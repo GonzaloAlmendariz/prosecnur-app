@@ -1,6 +1,7 @@
 /**
- * Pestaña "Consistencia" de Marco (id público def-consistencia; alias histórico
- * marco-validacion). Reconstruye el antiguo UniversityFrameValidationPanel:
+ * Bloque "Consistencia entre fuentes" integrado en Datos > Fuentes. Las
+ * direcciones históricas def-consistencia/marco-validacion aterrizan aquí.
+ * Reconstruye el antiguo UniversityFrameValidationPanel:
  * gauge descriptivo del match base-catálogo, reconciliación cuantitativa (emparejados / solo base /
  * solo catálogo), hallazgos con severidad y acción sugerida, y ejemplos para
  * revisar. Con una sola base se auto-simplifica: no hay catálogo que validar.

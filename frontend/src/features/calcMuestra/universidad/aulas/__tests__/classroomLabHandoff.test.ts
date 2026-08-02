@@ -518,6 +518,58 @@ describe("buildClassroomLabModel — handoff del objetivo de aulas", () => {
     expect(model.selection).toBeNull();
   });
 
+  it("no resucita una selección si cambia Alumnos por CH y el target coincide", () => {
+    const workspaceBase = universityDefaultWorkspace();
+    const decisionAnterior = {
+      schema: "calc_muestra_alumnos_por_ch_decision_v1" as const,
+      frame_hash: FRAME_HASH,
+      denominador: "elegible" as const,
+      estadistico_default: "media" as const,
+      por_facultad: {},
+      confirmado_at: "2026-08-02T05:00:00.000Z",
+    };
+    const decisionVigente = {
+      ...decisionAnterior,
+      estadistico_default: "p25" as const,
+      confirmado_at: "2026-08-02T06:00:00.000Z",
+    };
+    const workspace = {
+      ...workspaceBase,
+      aulas_config: {
+        ...workspaceBase.aulas_config,
+        n_aulas: 13,
+        alumnos_por_ch_decision: decisionVigente,
+      } as AulasConfigConObjetivo,
+    };
+    const model = buildClassroomLabModel({
+      workspace,
+      totalComp: componenteConAulas(UNIVERSITY_TOTAL_COMPONENT_ID, 13),
+      facultyComp: componenteConAulas(UNIVERSITY_FACULTY_COMPONENT_ID, 29),
+      aulasState: {
+        config: {
+          selector: { n_aulas: 13 },
+          alumnos_por_ch_decision: decisionAnterior,
+        },
+        frame: frameVigente(),
+        method_comparison: {
+          frame_hash: FRAME_HASH,
+          selector: comparisonSelector(13),
+          recommendation: { method_id: "cube_balanceado" },
+        },
+        selection: {
+          frame_hash: FRAME_HASH,
+          selection_run_id: "sel-anterior",
+          selector: { n_aulas: 13 },
+          selection: [{ classroom_id: "CH-1", sample_role: "titular", wave: "M1" }],
+        },
+      } as unknown as CalcMuestraAulasState,
+    });
+
+    expect(model.currentAulasTarget).toBe(13);
+    expect(model.comparisonReady).toBe(false);
+    expect(model.selectionReady).toBe(false);
+  });
+
   it("un audit explícito de cero elegibles bloquea cuota y M1", () => {
     const workspaceBase = universityDefaultWorkspace();
     const workspace = {

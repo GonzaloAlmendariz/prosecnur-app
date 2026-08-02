@@ -136,6 +136,7 @@ import {
   universityInspectedColumnOptions,
 } from "./universidad/shared/categorias";
 import { resolveClassroomArtifactStatus } from "./universidad/aulas/classroomHandoff";
+import { invalidateAlumnosPorChAulasArtifacts } from "./universidad/marco/alumnosPorChDecisionHandoff";
 import {
   applyRefreshedDiagnostics,
   sourceBindingsPendingInspection,
@@ -1047,6 +1048,9 @@ export default function CalcMuestraPage() {
   const [deskOverride, setDeskOverride] = useState<ActiveDesk | null>(null);
   const [pendingDeskReset, setPendingDeskReset] = useState<ActiveDesk | null>(null);
   const [aulasState, setAulasState] = useState<CalcMuestraAulasState | null>(null);
+  const invalidateAulasArtifactsForAlumnosPorCh = useCallback(() => {
+    setAulasState((current) => invalidateAlumnosPorChAulasArtifacts(current));
+  }, []);
   const aulasStateRef = useRef<CalcMuestraAulasState | null>(null);
   useEffect(() => {
     aulasStateRef.current = aulasState;
@@ -2548,12 +2552,14 @@ export default function CalcMuestraPage() {
               busy={busy}
               activeSection={activeRailSection}
               activeLocalTab={activeLocalTab}
+              activeFocus={direccion.foco}
               activeLabTab={activeClassroomLabTab}
               onTitulo={setTitulo}
               onContexto={setContexto}
               onWorkspace={setWorkspaceSiCambia}
               onComponente={updateComponente}
               onSetComponentes={setComponentesSiCambian}
+              onInvalidateAulasArtifacts={invalidateAulasArtifactsForAlumnosPorCh}
               onCalcular={calcular}
               onCompararAulas={compararMetodosAulas}
               onSeleccionarAulas={seleccionarAulasDesdeMetodo}

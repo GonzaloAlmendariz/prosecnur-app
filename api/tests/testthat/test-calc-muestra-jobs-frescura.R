@@ -98,6 +98,81 @@ test_that("simular-reemplazos: exige marco vigente Y la misma seleccion (selecti
   expect_equal(publico2$suggestions_n, 2L)
 })
 
+test_that("jobs viejos no repueblan artefactos tras cambiar Alumnos por CH", {
+  decision <- function(method, at) list(
+    schema = "calc_muestra_alumnos_por_ch_decision_v1",
+    frame_hash = "h1",
+    denominador = "elegible",
+    estadistico_default = method,
+    por_facultad = list(),
+    confirmado_at = at
+  )
+  estudio <- function(value) list(
+    workspace = list(aulas_config = list(alumnos_por_ch_decision = value))
+  )
+  old_decision <- decision("media", "2026-08-02T05:00:00Z")
+  new_decision <- decision("p25", "2026-08-02T06:00:00Z")
+  old_config <- calc_muestra_aulas_normalize_config(list(
+    alumnos_por_ch_decision = old_decision
+  ))
+
+  sid_compare <- session_create()
+  session_set(sid_compare, "calc_muestra_aulas_frame", .frescura_frame("h1"))
+  session_set(sid_compare, "calc_muestra_estudio", estudio(new_decision))
+  compare_cb <- prosecnurapp:::.cm_aulas_comparar_on_complete(
+    sid_compare, old_config, "h1"
+  )
+  compare_public <- compare_cb(.frescura_job(
+    "job-d1", "calc_muestra_aulas_comparar", list(schema = "cmp-vieja")
+  ))
+  expect_true(isTRUE(compare_public$stale_frame))
+  expect_null(session_get(sid_compare)$calc_muestra_aulas_method_comparison)
+
+  sid_select <- session_create()
+  session_set(sid_select, "calc_muestra_aulas_frame", .frescura_frame("h1"))
+  session_set(sid_select, "calc_muestra_estudio", estudio(new_decision))
+  select_cb <- prosecnurapp:::.cm_aulas_seleccionar_on_complete(
+    sid_select, old_config, "h1"
+  )
+  select_public <- select_cb(.frescura_job(
+    "job-d2", "calc_muestra_aulas_seleccionar",
+    list(schema = "sel-vieja", selection_run_id = "run-a", frame_hash = "h1")
+  ))
+  expect_true(isTRUE(select_public$stale_frame))
+  expect_null(session_get(sid_select)$calc_muestra_aulas_selection)
+
+  sid_replace <- session_create()
+  session_set(sid_replace, "calc_muestra_aulas_frame", .frescura_frame("h1"))
+  session_set(sid_replace, "calc_muestra_estudio", estudio(new_decision))
+  session_set(sid_replace, "calc_muestra_aulas_selection", list(selection_run_id = "run-a"))
+  replace_cb <- prosecnurapp:::.cm_aulas_simular_on_complete(
+    sid_replace, old_config, "h1", "run-a"
+  )
+  replace_public <- replace_cb(.frescura_job(
+    "job-d3", "calc_muestra_aulas_simular_reemplazos",
+    list(schema = "rep-vieja", suggestions = data.frame(x = 1))
+  ))
+  expect_true(isTRUE(replace_public$stale_frame))
+  expect_null(session_get(sid_replace)$calc_muestra_aulas_replacement_simulation)
+})
+
+test_that("cambiar Alumnos por CH borra todo artefacto de Aulas en sesión", {
+  sid <- session_create()
+  session_set(sid, "calc_muestra_aulas_selection", list(schema = "sel-vieja"))
+  session_set(sid, "calc_muestra_aulas_method_comparison", list(schema = "cmp-vieja"))
+  session_set(sid, "calc_muestra_aulas_replacement_simulation", list(schema = "rep-vieja"))
+  session_set(sid, "calc_muestra_aulas_export", list(file_id = "export-viejo"))
+  session_set(sid, "calc_muestra_aulas_stale_job_result", list(job_id = "job-viejo"))
+
+  prosecnurapp:::.cm_aulas_invalidar_derivados_decision(sid)
+  state <- session_get(sid)
+  expect_null(state$calc_muestra_aulas_selection)
+  expect_null(state$calc_muestra_aulas_method_comparison)
+  expect_null(state$calc_muestra_aulas_replacement_simulation)
+  expect_null(state$calc_muestra_aulas_export)
+  expect_null(state$calc_muestra_aulas_stale_job_result)
+})
+
 test_that("e2e: job real de seleccion termina tras reconstruir el marco y NO pisa la sesion", {
   skip_if_not_installed("callr")
 
