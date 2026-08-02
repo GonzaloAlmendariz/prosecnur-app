@@ -41,7 +41,7 @@ import { DefEstudioTab, DefFuentesConsistenciaTab, DefVariablesTab } from "./def
 import { AlumnosPorChMarcoTab, CursosHorarioMarcoTab, MarcoAulasTab, MarcoPoblacionTab } from "./marco";
 import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
-import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoPropuestasTab } from "./calculo";
+import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab } from "./calculo";
 import {
   AulasAuditoriaTab,
   AulasMetodoTab,
@@ -61,7 +61,6 @@ import {
 import type { MotorEfectivo } from "../motor/usePerfilEfectivo";
 import { useMotorStore } from "../store";
 import { TabCobertura } from "../motor/pestanas/TabCobertura";
-import { TabDistribucion } from "../motor/pestanas/TabDistribucion";
 import { UniversityTabHeader } from "./ui/UniversityTabHeader";
 import { universityFrameSourceBindings } from "./shared/categorias";
 
@@ -532,13 +531,19 @@ export function UniversidadDesk({
             {showLocalTab("calculo-ch-facultad") && <div id="cmv2-local-calculo-ch-facultad">
               <CalculoCursosHorarioFacultadTab
                 componentes={[totalComp, facultyComp]}
+                currentFrameHash={aulasState?.frame?.frame_hash}
                 escenario={escenarioAulas}
                 onEscenario={seleccionarEscenarioAulas}
                 marcoDesactualizado={marcoDesactualizado}
               />
             </div>}
-            {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion" className="rec-recorrido rec-recorrido--full">
-              <TabDistribucion perfil={motor.perfil} e1={motor.e1} marcoDesactualizado={marcoDesactualizado} />
+            {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion">
+              <CalculoDistribucionTab
+                componentes={[totalComp, facultyComp]}
+                currentFrameHash={aulasState?.frame?.frame_hash}
+                escenario={escenarioAulas}
+                onEscenario={seleccionarEscenarioAulas}
+              />
             </div>}
           </div>
         )}

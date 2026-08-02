@@ -1237,7 +1237,9 @@ calc_muestra_calcular_componente <- function(comp) {
     cuotas_fijas
   } else {
     distribuir_proporcional_pesos(
-      n_total = n_objetivo, pesos = pesos, redondeo = "cuadratura"
+      n_total = n_objetivo,
+      pesos = pesos,
+      redondeo = .cm_redondeo_distribucion_universitaria(comp)
     )
   }
   if (sum(cuotas_estrato) != n_objetivo) {
@@ -1257,7 +1259,9 @@ calc_muestra_calcular_componente <- function(comp) {
     cuota <- cuotas_estrato[i]
     pesos_sub <- c(e$N_a, e$N_b)
     asignacion <- distribuir_proporcional_pesos(
-      n_total = cuota, pesos = pesos_sub, redondeo = "cuadratura"
+      n_total = cuota,
+      pesos = pesos_sub,
+      redondeo = .cm_redondeo_distribucion_universitaria(comp)
     )
     distribucion_sub[[length(distribucion_sub) + 1L]] <- list(
       estrato = e$label, sub = e$sub_a_label, N = e$N_a, n = as.integer(asignacion[1])
@@ -1578,7 +1582,7 @@ calc_muestra_calcular_componente <- function(comp) {
     asignacion <- distribuir_proporcional_pesos(
       n_total = cuotas[i],
       pesos = c(e$N_a, e$N_b),
-      redondeo = "cuadratura"
+      redondeo = .cm_redondeo_distribucion_universitaria(comp)
     )
     distribucion_sub[[length(distribucion_sub) + 1L]] <- list(
       estrato = e$label, sub = e$sub_a_label, N = e$N_a, n = as.integer(asignacion[1])

@@ -10,7 +10,12 @@ import {
   type CalcMuestraEstudio,
   type CalcMuestraWorkspace,
 } from "../../../api/client";
-import { CountUp } from "./CountUp";
+import {
+  normalizeCalcMuestraDistribucionI19,
+  type CalcMuestraDistribucionI19State,
+} from "../../../api/calcMuestraDistribucionI19";
+import { fmtInt } from "../sharedCore";
+import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoDistribucionModel";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import { frameIntegrity } from "../universidad/shared/frameIntegrity";
 import {
@@ -44,6 +49,7 @@ export function ResumenDiseno({
 }) {
   const resetCanon = useMotorStore((s) => s.resetCanon);
   const opcionalesActivos = useMotorStore((s) => s.decisiones.opcionalesActivos);
+  const escenario = useMotorStore((s) => s.decisiones.escenario);
   const { perfil } = motor;
   const frame = aulasState?.frame ?? null;
   const frameProfile = frame?.perfil ?? null;
@@ -82,14 +88,44 @@ export function ResumenDiseno({
       ? "frame no verificable · reconstruye"
       : null;
 
-  // Metas operativas: SOLO tras ejecutar el cálculo (resultado persistido del
-  // componente). Sin corrida de cálculo → "—" (no hay diseño calculado aún).
-  const selectedComp = summaryComponentForScenario(estudio.componentes, workspace);
-  const resultado = selectedComp?.resultado ?? null;
-  const calcEjecutado = Boolean(resultado && Number(resultado.n_objetivo) > 0);
-  const muestraObjetivo = calcEjecutado && resultado ? resultado.n_objetivo : null;
-  const sobremuestraOperativa =
-    calcEjecutado && resultado ? (resultado.n_operativo ?? resultado.sobremuestra ?? null) : null;
+  // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
+  // superficie Distribución acreditan actor, escenario, owner R y frame. Un
+  // resultado raw stale/invalid nunca publica cifras en la cabecera.
+  const resultModel = useMemo(() => {
+    const selection = calculoDistribucionScenarioMeta(escenario);
+    const matching = estudio.componentes.filter((component) => component.actor_id === selection.actorId);
+    const component = matching.length === 1 ? matching[0] : undefined;
+    const state: CalcMuestraDistribucionI19State = component
+      ? normalizeCalcMuestraDistribucionI19(component.resultado, {
+          component_id: component.id,
+          actor_id: selection.actorId,
+          scenario: selection.scenario,
+          technique: component.tecnica,
+          current_frame_hash: frame?.frame_hash,
+        })
+      : {
+          kind: "invalid",
+          reasons: [`${selection.shortLabel} requiere exactamente un componente ${selection.actorId}.`],
+        };
+    return { component, selection, state };
+  }, [escenario, estudio.componentes, frame?.frame_hash]);
+  const resultReady = resultModel.state.kind === "ready";
+  const muestraObjetivo = resultModel.state.kind === "ready"
+    ? resultModel.state.data.totals.sample_n
+    : null;
+  const rawOperational = resultModel.component?.resultado?.n_operativo;
+  const sobremuestraOperativa = resultReady && Number.isSafeInteger(rawOperational) && Number(rawOperational) >= 0
+    ? Number(rawOperational)
+    : null;
+  const resultNote = resultReady
+    ? `${resultModel.selection.shortLabel} · R · frame vigente`
+    : resultModel.state.kind === "stale"
+      ? `${resultModel.selection.shortLabel} · R · frame anterior`
+      : resultModel.state.kind === "invalid"
+        ? `${resultModel.selection.shortLabel} · R · resultado inválido`
+        : resultModel.state.kind === "legacy"
+          ? `${resultModel.selection.shortLabel} · contrato anterior`
+          : `${resultModel.selection.shortLabel} · falta calcular`;
 
   const metrics: SummaryMetric[] = [
     {
@@ -123,21 +159,26 @@ export function ResumenDiseno({
     {
       label: "Muestra objetivo",
       value: muestraObjetivo,
-      note: calcEjecutado ? "respuestas válidas" : "falta calcular",
+      note: resultNote,
       icon: <Target size={16} aria-hidden="true" />,
       tone: "operation",
     },
     {
       label: "Sobremuestra operativa",
       value: sobremuestraOperativa,
-      note: calcEjecutado ? "techo con contingencia" : "falta calcular",
+      note: resultNote,
       icon: <ShieldCheck size={16} aria-hidden="true" />,
       tone: "operation",
     },
   ];
 
   return (
-    <section className="rec-resumen-shell" data-audit-ready="calc-muestra-motor" aria-label="Resumen persistente del diseño">
+    <section
+      className="rec-resumen-shell"
+      data-audit-ready="calc-muestra-motor"
+      data-result-state={resultModel.state.kind}
+      aria-label="Resumen persistente del diseño"
+    >
       <header className="rec-resumen-context">
         <span className="rec-resumen-context-title">
           <small>Diseño vigente</small>
@@ -171,7 +212,7 @@ export function ResumenDiseno({
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
             <span className="rec-resumen-item-copy">
               <small>{metric.label}</small>
-              <strong><CountUp value={metric.value} /></strong>
+              <strong>{metric.value == null ? "—" : fmtInt(metric.value)}</strong>
               <span>{metric.note}</span>
             </span>
           </div>

@@ -10,7 +10,7 @@
  * rendimiento y campo) y añade parámetros A NIVEL DE FACULTAD (p por facultad),
  * que la Propuesta 2 necesita. NO trae la barra de KPIs ejecutados, la cifra de
  * diseño, la bolsa operativa ni los escenarios: eso vive en Propuestas y en la
- * pestaña de Cursos-horario por facultad.
+ * pestaña de Cursos-horario requeridos.
  */
 import { useMemo, useState } from "react";
 import { AlertTriangle, Calculator, Check, Loader2, RotateCcw, Sigma } from "lucide-react";
