@@ -211,6 +211,32 @@ describe("ADR 0057 · lenguaje y transparencia", () => {
     }
   });
 
+  it("ningún valor del motor se pinta crudo en la superficie", () => {
+    // Barrido que encontró `bootstrap_percentil` y `NA` en la radiografía.
+    // Renderizar `{campo}` sin traducir deja códigos de contrato en la pantalla
+    // de un cliente; el motor no puede renombrarlos porque los compara por
+    // nombre, así que la traducción vive aquí.
+    //
+    // Se vigilan los campos conocidos por su nombre: es más estable que intentar
+    // adivinar por la forma del valor, y falla cuando alguien añade el campo
+    // crudo a una vista nueva.
+    const crudos = ["metodo_ic", "suficiencia"];
+    const vistas = [
+      "marco/CriterioAnclaHistorica.tsx",
+      "marco/CriteriosRadiografiaCardDetalle.tsx",
+      "marco/CriterioFacultadRadiografia.tsx",
+    ];
+    for (const archivo of vistas) {
+      const fuente = leerCopy(archivo);
+      for (const campo of crudos) {
+        expect(fuente, `${archivo} · ${campo}`).not.toContain(`{anchor.${campo}}`);
+        expect(fuente, `${archivo} · ${campo}`).not.toContain(`{cell.${campo}}`);
+      }
+    }
+    // Y la notación de ausencia es la del usuario, no la de R.
+    expect(leerCopy("marco/CriteriosRadiografiaCardDetalle.tsx")).not.toContain('"NA"');
+  });
+
   it("no se muestra el contrato interno del motor al usuario", () => {
     for (const archivo of superficies) {
       const fuente = leer(archivo);

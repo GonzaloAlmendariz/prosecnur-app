@@ -324,6 +324,24 @@ superficie —navegar fuera y volver— y comprobar que lo que se mide es lo que
 acaba de escribir. Y cuando el cambio es de motor con el proceso vivo, se declara
 comprobado por fuente y suite en vez de fingir verificación visual.
 
+### 19 · Un valor de contrato no se renombra: se traduce al mostrarlo
+
+`metodo_ic = "bootstrap_percentil"` y `suficiencia = "delgada"` llegaban crudos a
+la pantalla. No se pueden renombrar en R —el motor los compara por nombre
+(`identical(cell$metodo_ic, "bootstrap_percentil")`)—, así que la reparación es
+traducirlos en el punto de render y dejar el valor intacto en el contrato.
+
+Caso hermano con la solución opuesta: `"NA"` lo escribía el **frontend**. La
+intención era correcta —declarar la ausencia en vez de fabricar un cero— y lo
+equivocado era la notación, que es la de R. El guion largo conserva la honestidad
+en el idioma del usuario.
+
+**Mecanismo**: el guard vigila los campos conocidos por su nombre
+(`{anchor.metodo_ic}`, `{cell.suficiencia}`) en las vistas que los usan, y
+prohíbe el literal `"NA"` como notación de ausencia. Lo que no se reconoce pasa
+tal cual: un código nuevo del motor en pantalla es preferible a una etiqueta
+inventada que lo oculte.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
