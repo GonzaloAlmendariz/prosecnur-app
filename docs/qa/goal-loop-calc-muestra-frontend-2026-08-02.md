@@ -1853,6 +1853,37 @@ Si esa altura resulta excesiva en uso real, la palanca ya no es esconder sino
 decidir cuántos segmentos merecen gráfico propio —y esa es una decisión de
 producto, no una reparación—.
 
+### F44 — El embudo no es activo: medido, no supuesto (2026-08-02)
+
+Punto 5 de la dirección: «el embudo es activo y animado, si cambio un criterio
+previo luego los gráficos del siguiente criterio se actualizan».
+
+**No ocurre.** Prueba en la app, con el control y el resultado por separado para
+que la evidencia sea falsable:
+
+| | |
+|---|---|
+| Acción | conmutar la primera categoría de **Modalidad** (criterio temprano) |
+| ¿Cambió el control? | **sí**: `aria-checked` pasó de `true` a `false` y la facultad quedó «Decisión propia» |
+| ¿Cambiaron los criterios siguientes? | **no**: `17.8 \| 639 \| 639` y `51.4 \| 58.4 \| 546` idénticos antes y después |
+
+La primera fila importa tanto como la tercera: sin comprobar que el control
+respondió, un «no cambió nada» sólo probaría que mi click falló.
+
+**Por qué no es un arreglo de diez líneas.** El motor ya expone
+`/api/calc-muestra/marco/criterios/preview`, y `CriteriosEmbudoVivo` lo consume
+con `useCascadePreview`. Lo que falta es que **cada criterio** pida su
+radiografía con los criterios previos aplicados —hoy todos leen el mismo
+`criterios_radiografia` del último marco construido—. Eso es una cadena de
+previews encadenados por posición en el embudo, con su invalidación y su estado
+de carga.
+
+**Y hacerlo mal es peor que no hacerlo**: si los gráficos se recalculan por
+delante y alguno queda con el dato viejo, la superficie muestra una distribución
+que ya no corresponde a los criterios activos —exactamente la clase de error que
+este módulo existe para evitar—. Queda como la siguiente iteración, con el
+contrato de encadenamiento definido antes de tocar la UI.
+
 ### Estado del loop
 
 | | |
