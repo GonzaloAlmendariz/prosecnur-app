@@ -1443,6 +1443,31 @@ y puede repetirse en un comando.
 **Cierre del tramo**: la reauditoría con la vara del grano cubre **S1–S4 y las
 superficies de Definición, Cálculo y Entrega**, todas con 0 desbordes.
 
+### F31 — El comparador terminó y su evidencia no se acredita (2026-08-02)
+
+El job `f8df413b` cerró en **100 %**. Estado de las cinco superficies de
+Selección con esa corrida terminada:
+
+| superficie | alto | desbordes | estado |
+|---|---:|---:|---|
+| Comparar métodos | 1,6 | 0 | **abre** (271 palabras) |
+| Simulación · Titulares · Reemplazos | 1,0 c/u | 0 | siguen cerradas |
+| Sustento técnico | 1,7 | 0 | sigue cerrada |
+
+Método publica «Método configurado · **Sin atribución al engine**» y mantiene la
+condición «la evidencia almacenada no acredita la comparación vigente». Es decir:
+**la corrida completa no quedó acreditada como vigente**. Las superficies no
+mienten —declaran su hueco correctamente, que es lo que la vara les exige— y por
+eso el defecto no es de superficie.
+
+**Va al loop v2**, junto a los otros tres hallazgos de contrato de esta sesión:
+una corrida que termina en 100 % debe quedar acreditada o decir por qué no. Hoy
+el usuario espera 63 simulaciones y al final la app le pide volver a comparar sin
+nombrar qué firma cambió. Falta descartar antes que sea sólo estado obsoleto en
+el cliente: el instrumento se sembró con `?pulso=`, que se consume una vez, así
+que recargar para comprobarlo arriesga perderlo — se verifica al reabrir con el
+sembrado limpio, no en caliente.
+
 ### Cierre de la sesión
 
 | | |
@@ -1462,7 +1487,7 @@ rechaza; contrato de Alumnos/CH y estratos discrepan ante una facultad de 0 CH;
 y el anonimizador deja base, config, catálogo y componentes en vocabularios
 distintos.
 
-Siguiente, en orden: **F31 — reauditar Selección (S9–S11) con dato real cuando el comparador termine**
+Siguiente, en orden: **F32 — resembrar limpio y comprobar si la corrida acreditada abre S10–S11**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
