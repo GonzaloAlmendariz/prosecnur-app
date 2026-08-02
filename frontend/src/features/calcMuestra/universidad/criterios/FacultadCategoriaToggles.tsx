@@ -63,8 +63,21 @@ export function FacultadCategoriaToggles({
   return (
     <div className="cmv2-crit-tsf-detalle" role="group" aria-label={ariaLabel}>
       {!hayDistribucion ? (
-        <p className="cmv2-crit-empty-note">
-          Sin distribución por facultad en el catálogo — marca las categorías que apliquen.
+        // F50 · Decir de dónde sale la lista, porque explica lo que se ve.
+        //
+        // Sin distribución por facultad, el catálogo publica **cada valor
+        // distinto de la columna** y aquí se ofrece uno a uno como decisión. Si
+        // la columna mezcla la categoría del docente con su nombre —caso
+        // reportado, con «PRADO LOAYZA, ANDRES» junto a «DOCENTE ORDINARIO -
+        // PRINCIPAL»—, los nombres aparecen como si fueran categorías. La app
+        // no puede adivinar cuál es cuál sin inventarse una heurística que
+        // fallaría con categorías legítimas, pero sí puede decir qué está
+        // mirando el usuario y que el problema está en el dato.
+        <p className="cmv2-crit-empty-note" data-sin-distribucion="true">
+          El catálogo no trae distribución por facultad para este criterio, así que la lista
+          son <strong>todos los valores distintos de la columna</strong>. Si aparecen valores
+          que no son categorías —nombres, códigos sueltos—, la columna de origen los mezcla:
+          revísala en Datos › Variables antes de decidir con ella.
         </p>
       ) : null}
       {dominio ? <EjeCategorias dominio={dominio} /> : null}

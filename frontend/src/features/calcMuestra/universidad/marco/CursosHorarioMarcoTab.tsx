@@ -501,6 +501,25 @@ export function CursosHorarioMarcoTab({
                   facultadAbierta={facultadFoco}
                   onAbrirFacultad={setFacultadFoco}
                 />
+                {/* ADR 0057, regla 2 · La matriz es parte del Panorama por
+                    facultad, no un bloque de cierre. Comparar criterios entre
+                    facultades y elegir en cuál entrar es el mismo gesto: se lee
+                    la matriz y se abre la facultad, arriba, antes de bajar al
+                    detalle. Como cierre del recorrido llegaba después de las
+                    decisiones que debía informar. */}
+                {criteriosRadiografiaF1Lista ? (
+                  <section className="cmv2-chfp-transversal" aria-labelledby="cmv2-chfp-matriz-title">
+                    <header>
+                      <strong id="cmv2-chfp-matriz-title">Impacto de cada criterio por facultad</strong>
+                      {matrizEmbudo ? (
+                        <span>
+                          {matrizEmbudo.columns.length} criterios × {matrizEmbudo.rows.filter((row) => row.row_kind === "faculty").length} facultades sobre el marco ejecutado
+                        </span>
+                      ) : null}
+                    </header>
+                    <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
+                  </section>
+                ) : null}
                 <div
                   className="cmv2-chfp-bloques"
                   data-qa-geometry-group="calc-muestra/facultades-ch"
@@ -560,28 +579,6 @@ export function CursosHorarioMarcoTab({
             </AvisoModulo>
           )}
 
-          {criteriosRadiografiaF1Lista ? (
-            /* S3: la matriz es el RESULTADO de las decisiones de arriba, así que
-               cierra el recorrido. Antes se plegaba tras un renglón que además
-               desaconsejaba abrirla («solo cuando necesites contrastar»). Sigue
-               plegada para no inflar la pestaña, pero el resumen dice lo que
-               cierra y con qué tamaño, no cómo usarla. */
-            <section className="cmv2-chfp-transversal" aria-labelledby="cmv2-chfp-matriz-title">
-              {/* F41 · La matriz deja de estar plegada. «Si algo está oculto es
-                  un error de diseño»: era el último `<details>` de la pestaña y
-                  guardaba justo el resumen que permite comparar criterios entre
-                  facultades. */}
-              <header>
-                <strong id="cmv2-chfp-matriz-title">Impacto de cada criterio por facultad</strong>
-                {matrizEmbudo ? (
-                  <span>
-                    {matrizEmbudo.columns.length} criterios × {matrizEmbudo.rows.filter((row) => row.row_kind === "faculty").length} facultades sobre el marco ejecutado
-                  </span>
-                ) : null}
-              </header>
-              <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
-            </section>
-          ) : null}
         </>
       )}
     </div>

@@ -2089,6 +2089,52 @@ de la casa —React presenta, no calcula— aplicada al caso más tentador.
 **Siguiente**: la regla 2 del ADR —la matriz pertenece al Panorama por facultad,
 no a un bloque aparte— y el bug de categorías que mezclan nombres de personas.
 
+### F50 — Regla 2 del ADR y el bug de categorías (2026-08-02)
+
+**Regla 2 · la matriz sube al Panorama.** Era el cierre del recorrido: llegaba
+**después** de las decisiones que debía informar. Comparar criterios entre
+facultades y elegir en cuál entrar son el mismo gesto, así que la matriz va
+arriba, junto al panorama, antes de bajar al detalle. Verificado en la app.
+
+El contrato de orden se invirtió a propósito —si alguien la devuelve al final,
+el test falla—. Y ahí corregí una aserción mía que medía mal: comparaba contra la
+sección «Decisión por facultad», que **envuelve** al panorama, así que su
+etiqueta aparece antes por construcción y la comparación era vacua. Ahora compara
+contra los bloques de facultad, que es la afirmación real.
+
+**Bug de categorías: diagnosticado, y la reparación de fondo no es del frontend.**
+El catálogo de categorías lo publica R con **los valores distintos de la
+columna**. Cuando la columna mezcla la categoría del docente con su nombre, los
+nombres llegan como categorías y la app los ofrece uno a uno como decisión.
+
+Lo decisivo: en la captura el aviso era «sin distribución por facultad», es decir
+`ch === null` para todas. **Sin distribución no existe ninguna señal que
+distinga una categoría real de un nombre suelto** — no es que la app no la use,
+es que no la tiene.
+
+Por eso **no se filtra por heurística**. Cualquier regla del tipo «esto parece un
+nombre» descartaría categorías legítimas, y descartar en silencio un criterio
+real es peor que mostrar uno de más. Lo que sí se puede hacer, y se hizo, es
+decir de dónde sale la lista y dónde está el problema:
+
+> «El catálogo no trae distribución por facultad para este criterio, así que la
+> lista son **todos los valores distintos de la columna**. Si aparecen valores
+> que no son categorías —nombres, códigos sueltos—, la columna de origen los
+> mezcla: revísala en Datos › Variables antes de decidir con ella.»
+
+Guard: `categoriasSinDistribucion.test.tsx`, tres casos, incluido el que prohíbe
+explícitamente descartar una categoría por parecer un nombre.
+
+**Para el motor**: un catálogo de criterio sin distribución por facultad no
+debería publicarse como lista de categorías decidibles, o debería marcar qué
+valores tienen presencia en el marco.
+
+| | |
+|---|---:|
+| Matriz | cierre del recorrido → **dentro del Panorama** |
+| Vitest | 824 → **827** en 99 archivos |
+| Desbordes | **0** |
+
 ### Estado del loop
 
 | | |
