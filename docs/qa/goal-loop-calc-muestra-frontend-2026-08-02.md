@@ -342,11 +342,11 @@ Baseline histórico (pestaña sin radiografía, 2026-08-02):
 | Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
 | Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
 | Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
-| Superficies del módulo pasadas por la vara | **0 de 23** | **10 de 23** (+ Propuestas, CH requeridos y Objetivo) | 23 de 23 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **11 de 23** (+ Propuestas, CH requeridos, Objetivo y Distribución) | 23 de 23 |
 | Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
 | Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
 | Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
-| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **6 de 13** (S1–S6) + T1 aplicado, **T6 y T7 cerradas**, T4 desbloqueada en el instrumento | 13 + 7 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **7 de 13** (S1–S7) + T1 aplicado, **T6 y T7 cerradas**, T4 desbloqueada en el instrumento | 13 + 7 |
 | Superficies bloqueadas por no poder ejecutar el cálculo | **7** | **0**; el cálculo publica resultado completo | 0 |
 | Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **0** | 0 |
 | Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
@@ -1081,7 +1081,26 @@ llevaban toda la sesión bloqueadas rinden con dato:
 Ledger: superficies por la vara **7 → 10 de 23**; superficies bloqueadas por no
 poder ejecutar el cálculo **6 → 0**.
 
-Siguiente, en orden: **S7-bis** (Distribución en pasos), luego **S9–S11**
+### F18 — Distribución se recorre (S7-bis, 2026-08-02) · **S7 cerrada**
+
+Cuatro secciones apiladas: dato acreditado (270 px) + composición (1.007) +
+precisión (642) + sensibilidad (604). Es el mismo patrón que F2 diagnosticó en
+Criterios —un recorrido metodológico resuelto como pila— y lleva el mismo
+remedio.
+
+- El **dato acreditado encabeza siempre**: es la procedencia del bloque.
+- Composición, precisión y sensibilidad pasan a un **riel numerado**; solo la
+  lectura activa ocupa layout y las tres siguen en el DOM con `hidden`.
+- **Peaje estructural respetado, y el guard lo impuso:** el riel inline dejaba
+  `CalculoDistribucionTab` en 383 líneas contra una base de 372, y el contrato
+  I20 falló. Se extrajo a `DistribucionPasos.tsx`; el owner queda en **361**,
+  por debajo de su línea base.
+
+**Resultado: 5,1 → 2,8 pantallas** (2,2 en Sensibilidad), 0 desbordes.
+
+Ledger: superficies por la vara **10 → 11 de 23**.
+
+Siguiente, en orden: **S9–S11**
 (Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
 (Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
 loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen

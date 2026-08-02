@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Activity,
   Database,
@@ -7,6 +8,7 @@ import {
   TriangleAlert,
 } from "../../../../vendor/lucide-react";
 import type { CalcMuestraComponente } from "../../../../api/calcMuestra";
+import { DistribucionPasos, type DistribucionPasoId } from "./DistribucionPasos";
 import type {
   CalcMuestraDistribucionI19Faculty,
   CalcMuestraDistribucionI19SensitivityAxis,
@@ -307,6 +309,7 @@ export function CalculoDistribucionTab({
   escenario: UniversityAulasScenario;
   onEscenario: (escenario: UniversityAulasScenario) => void;
 }) {
+  const [pasoActivo, setPasoActivo] = useState<DistribucionPasoId>("composicion");
   const model = buildCalculoDistribucionModel({ componentes, currentFrameHash, escenario });
   const ready = model.state.kind === "ready";
   return (
@@ -336,10 +339,21 @@ export function CalculoDistribucionTab({
           data-qa-geometry-group="calc-muestra/calculo-distribucion"
           data-qa-geometry-contract="intrinsic"
         >
+          {/* El dato acreditado encabeza siempre: es la procedencia del bloque.
+              Las tres lecturas —composición, precisión y sensibilidad— son un
+              recorrido, no una pila: apiladas sumaban 2.253 px sobre 645
+              visibles. Se recorren, y las tres siguen en el DOM. */}
           <AuditHeader data={model.state.data} selection={model.selection} />
-          <CompositionTable data={model.state.data} />
-          <PrecisionTable faculties={model.state.data.faculties} scenario={model.state.data.scenario} />
-          <Sensitivity data={model.state.data} />
+          <DistribucionPasos activo={pasoActivo} onPaso={setPasoActivo} />
+          <div hidden={pasoActivo !== "composicion"}>
+            <CompositionTable data={model.state.data} />
+          </div>
+          <div hidden={pasoActivo !== "precision"}>
+            <PrecisionTable faculties={model.state.data.faculties} scenario={model.state.data.scenario} />
+          </div>
+          <div hidden={pasoActivo !== "sensibilidad"}>
+            <Sensitivity data={model.state.data} />
+          </div>
         </div>
       )}
     </div>
