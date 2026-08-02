@@ -226,6 +226,21 @@ dato válido o, peor, «arreglado» un cálculo que funcionaba.
 del motor y sólo después se decide si el defecto es del dato o de su
 presentación.
 
+### 12 · Un símbolo, un significado por pantalla
+
+`fmtDecimal` escribía «1,96» con la convención de España mientras el resto de la
+app formatea en `es-PE`. En la misma pantalla, «21,362» eran millares y «1,96»
+pretendía ser decimal: **la misma coma con dos sentidos**, y el segundo número se
+puede leer como 196. Cada valor, por separado, se veía bien.
+
+De paso: `fmtDecimal` reusaba el formateador de KaTeX —donde el separador de
+miles no debe aparecer—, así que los decimales grandes salían sin agrupar junto a
+enteros que sí agrupaban.
+
+**Mecanismo**: un guard sobre el formateador, no sobre las vistas. Y la regla de
+método que lo encontró: **comparar superficies hermanas**, porque ninguna de las
+dos estaba mal por separado; lo que estaba mal es que no coincidían.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
