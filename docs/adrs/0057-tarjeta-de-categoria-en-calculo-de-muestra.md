@@ -87,6 +87,70 @@ viva», «embudo vivo» y similares describen la animación, no la función: se
 sustituyen por lo que la pieza informa. Nada técnico del contrato interno —hash,
 owner, grano, unidad— aparece en pantalla.
 
+## Errores recurrentes y cómo se previenen
+
+Esta sección existe porque las mismas correcciones se repitieron varias veces
+antes de dar con la causa. No es una lista de anécdotas: cada patrón viene con el
+mecanismo que hoy lo impide, y ese mecanismo es la parte vinculante.
+
+### 1 · Una regla sin guard es una regla que se rompe
+
+La radiografía se montó en la ruta de estudiante **después** de que la regla
+estuviera escrita y dicha dos veces. El gate quedó verde porque los tests de cada
+iteración confirman lo que se acaba de construir, nunca lo que está prohibido.
+
+**Mecanismo**: `frontend/src/features/calcMuestra/universidad/__tests__/adr0057Reglas.contract.test.ts`
+vigila cada regla sobre el fuente, con independencia de qué componente se toque,
+y cita la instrucción que la origina. Una regla nueva de este ADR **no está
+adoptada** hasta tener su caso ahí.
+
+### 2 · Medir el efecto en vez del mecanismo
+
+Se concluyó «el embudo no es activo» porque las cifras no cambiaban. Instrumentar
+`fetch` mostró lo contrario: la UI pedía el recálculo siete veces por cambio y el
+motor lo rechazaba. La conclusión era falsa y costó dos iteraciones.
+
+**Mecanismo**: ante «no pasa nada», se comprueba primero que la acción salió
+—petición, evento, estado— antes de afirmar nada sobre el resultado.
+
+### 3 · Sondas recortadas que fabrican defectos
+
+Tres veces una medición mía apuntó a un defecto inexistente: `config` parecía
+faltar en un payload porque la captura leía 160 caracteres; «excepción» parecía
+no existir porque se midió la pestaña equivocada; los desbordes de Entrega eran
+nodos SVG donde `scrollWidth` no significa lo mismo. Las tres apuntaban en la
+misma dirección —creer que falta algo que sí está—, que es la que produce trabajo
+inútil.
+
+**Mecanismo**: antes de declarar que algo falta, medir el documento y no el
+panel, y revisar el alcance de la sonda antes que el código.
+
+### 4 · Quitar ruido y quitar información se parecen en un diff
+
+Al retirar «Procedencia y contrato» se fueron con él dos avisos metodológicos que
+sí cambian una lectura: que un criterio es informativo y no altera el N, y que
+unos segmentos se solapan y **no se suman**. Lo detectó un test, no la revisión.
+
+**Mecanismo**: lo técnico que sale es el contrato interno —hash, owner, grano,
+unidad—. Todo lo que altera cómo se lee una cifra se queda, y su test lo fija.
+
+### 5 · Mover un control no es borrarlo
+
+Un primer intento de retirar la sección «transversales» dejaba «Composición» sin
+control en ninguna parte. Se revirtió antes de commitear.
+
+**Mecanismo**: cuando un control cambia de sitio, la iteración no cierra sin
+comprobar que su nuevo hogar existe y edita. Regla de la casa (borrados con doble
+confirmación) aplicada también a los traslados.
+
+### 6 · Un guard que se dispara con su propia documentación
+
+La primera versión del vigilante de reglas falló contra los comentarios que
+explican qué se retiró, empujando a borrar la explicación para pasar en verde.
+
+**Mecanismo**: los guards leen el fuente sin comentarios. Las reglas se vigilan
+sobre lo que se renderiza; las razones se conservan escritas.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
