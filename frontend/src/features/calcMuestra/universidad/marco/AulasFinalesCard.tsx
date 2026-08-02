@@ -123,6 +123,9 @@ export function AulasFinalesCard({
               ) : null}
             </span>
           </div>
+          <p className="cmv2-aulas-finales-unidad">
+            Cifra por fila: <strong>estudiantes únicos elegibles</strong> en ese curso-horario.
+          </p>
           <ul className="cmv2-aulas-finales-list">
             {filtradas.map((a) => {
               const off = aulaExcluida(seleccion, a.classroomId);
@@ -137,8 +140,12 @@ export function AulasFinalesCard({
                     <span className="cmv2-aulas-finales-label">{a.label}</span>
                     {a.detalle ? <span className="cmv2-aulas-finales-detalle">{a.detalle}</span> : null}
                   </span>
-                  <span className="cmv2-aulas-finales-elig">
-                    {fmtInt(a.eligibleN)} <em>alumnos elegibles</em>
+                  {/* La unidad se declara una vez en la cabecera de la lista,
+                      no 646 veces —una por fila—: repetirla no informa y aleja
+                      la cifra del nombre del curso-horario. El `title` la
+                      conserva para quien llegue a una fila suelta. */}
+                  <span className="cmv2-aulas-finales-elig" title="Estudiantes únicos elegibles en este curso-horario">
+                    {fmtInt(a.eligibleN)}
                   </span>
                 </li>
               );

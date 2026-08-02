@@ -2985,6 +2985,40 @@ CH».
 En los dos casos, lo que no se reconoce **pasa tal cual**: un código nuevo del
 motor en pantalla es preferible a una etiqueta inventada que lo oculte.
 
+### F75 — Dos palabras para las personas, y una cifra sin grano
+
+Barrido de la familia más peligrosa de este módulo: **cifras sin unidad ni
+denominador declarado**, que es donde se confunden matrículas con estudiantes
+únicos.
+
+**El conteo destapó una incoherencia de fondo**: en la radiografía convivían
+**688 «alumnos» contra 35 «estudiantes»**, mientras la cabecera de la propia app
+dice «UNIVERSO DE ESTUDIANTES» y «ESTUDIANTES ELEGIBLES». Dos palabras para lo
+mismo, en el módulo donde el grano es todo.
+
+**Y lo grave estaba en mi propia tarjeta de categoría**: el número que rotulaba
+«alumnos» es `n_estudiantes_unicos`. En una pantalla que muestra por separado
+21.362 estudiantes y 92.017 matrículas, «alumnos» a secas **no dice de qué grano
+es** — y confundir esos dos granos es el error capital aquí. Ahora dice
+«estudiantes» y su `title` lo declara: «una persona cuenta una vez aunque esté en
+varios cursos-horario».
+
+**La lista final repetía la unidad 646 veces**, una por fila («alumnos
+elegibles»). Se declara una sola vez en cabecera —«Cifra por fila: estudiantes
+únicos elegibles»— y el `title` la conserva para quien llegue a una fila suelta.
+Es el patrón 10 aplicado a una unidad, no a una etiqueta de estado.
+
+| | antes → después |
+|---|---:|
+| «alumnos» en la superficie | **670** | **24** |
+| «estudiantes» | 53 | **54** (ahora mayoritario) |
+| Tarjetas con grano declarado | 0 | **18** |
+| Vitest | **856** en 105 archivos |
+
+Los 24 restantes son nombres propios de pieza —«Alumnos por CH», «Mínimo de
+alumnos elegibles»—, que son los rótulos que Gonzalo usa y están en el contrato
+de navegación: renombrarlos es decisión suya, no barrido de vocabulario.
+
 ### Estado del loop
 
 | | |

@@ -42,7 +42,11 @@ describe("CategoriaEvidencia", () => {
     const dominio = dominioCategorias([aporte()])!;
     const html = renderToStaticMarkup(<CategoriaEvidencia aporte={aporte()} dominio={dominio} />);
     expect(html).toContain("CH");
-    expect(html).toContain("alumnos");
+    // El número es `n_estudiantes_unicos`. En un módulo cuya cabecera separa
+    // 21.362 estudiantes de 92.017 matrículas, «alumnos» a secas no dice de qué
+    // grano es —y confundir esos dos granos es el error capital aquí—.
+    expect(html).toContain("estudiantes");
+    expect(html).toContain("una persona cuenta una vez");
     expect(html).toContain("Mediana");
     expect(html).toContain("P25");
     // Presentes esperados = elegibles × tasa, redondeado. 3400 × 0,7 = 2.380.
