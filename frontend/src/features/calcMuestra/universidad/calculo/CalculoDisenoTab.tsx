@@ -232,7 +232,7 @@ export function CalculoDisenoTab({
               <>
                 <CurvaP p={pT} pFacultades={pF} />
                 <p className="cmv2-calc-svg-nota">
-                  La varianza p·(1−p) es máxima en 0,5; con p = {fmtDecimal(pT, 2)} Universidad
+                  La varianza p·(1−p) es máxima en 0.5; con p = {fmtDecimal(pT, 2)} Universidad
                   trabaja con {fmtDecimal(4 * pT * (1 - pT) * 100, 0)}% de esa exigencia.
                 </p>
               </>

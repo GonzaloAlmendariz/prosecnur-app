@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 import { CircleHelp } from "lucide-react";
 import { Popover } from "../../../../components/Popover";
 import { zFromConfidence } from "../../didactica/motorPreview";
-import { fmtNum } from "./calculoUi";
 
 /** Confianza bilateral desde z, invirtiendo la MISMA réplica qnorm del motor. */
 export function confianzaDesdeZExacta(z: number) {
@@ -24,9 +23,22 @@ export function confianzaDesdeZExacta(z: number) {
   return (lo + hi) / 2;
 }
 
-/** Decimales visibles en español; las expresiones KaTeX conservan punto. */
+/**
+ * Decimales en la convención del proyecto (es-PE): punto decimal, coma de miles.
+ *
+ * Antes forzaba coma decimal «en español», que es la convención de España. En la
+ * misma pantalla convivían «21,362» —millares— y «1,96» —decimales—: **la misma
+ * coma con dos significados**, y «1,96» se puede leer como 196. El error es
+ * silencioso porque ambos números se ven bien por separado.
+ *
+ * `es-PE` da 1.96 y 21,362, que es también lo que usa el resto de la app.
+ */
 export function fmtDecimal(value: number | null | undefined, digits = 3) {
-  return fmtNum(value, digits).replace(".", ",");
+  if (value == null || !Number.isFinite(value)) return "—";
+  // `ltxNum`/`fmtNum` existen para expresiones KaTeX, donde el separador de
+  // miles NO debe aparecer: reusarlos en prosa dejaba «21362.55» sin agrupar
+  // mientras `fmtInt` sí escribía «21,362» dos líneas más arriba.
+  return value.toLocaleString("es-PE", { maximumFractionDigits: digits });
 }
 
 export function AmbitosSupuesto({

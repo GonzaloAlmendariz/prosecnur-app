@@ -2595,6 +2595,49 @@ Estado final de las dos superficies de criterio:
 ajeno. La escala fija resolvió la comparabilidad a 1440 y creó un desborde a
 1024; sin auditar el segundo viewport se habría entregado así.
 
+### F63 — La misma coma con dos significados
+
+Auditadas las cuatro pestañas de Cálculo: 0 desbordes, 0 plegados, 0 jerga. Los
+once y catorce elementos «cerrados» de Diseño y Propuestas **no son defecto**:
+son términos de fórmula que muestran su valor y sólo pliegan la definición.
+
+Pero comparando ambas pestañas apareció algo que ninguna sola habría mostrado:
+**Diseño escribía «z 1,96» y Propuestas «z 1.96»**.
+
+`fmtDecimal` forzaba coma decimal «en español» —la convención de **España**—
+mientras el resto de la app formatea en `es-PE`, que usa **punto decimal y coma
+de miles**. En la misma pantalla convivían:
+
+| número | separador | significa |
+|---|---|---|
+| «21,362» | coma | **millares** |
+| «1,96» | coma | pretendía decimales |
+
+**La misma coma con dos significados**, y «1,96» se puede leer como 196 en un
+documento donde 21,362 son veintiún mil. El error es silencioso porque cada
+número, por separado, se ve bien.
+
+**Y el guard destapó un segundo defecto de paso**: `fmtDecimal(21362.55)` daba
+«21362.55», **sin agrupar**, mientras `fmtInt` escribía «21,362» dos líneas más
+arriba. La causa: `fmtDecimal` reusaba `ltxNum`, que existe para expresiones
+KaTeX —donde el separador de miles **no debe aparecer**—. Correcto en su sitio,
+equivocado en prosa.
+
+| | antes → después |
+|---|---:|
+| Comas decimales en Cálculo | «1,96», «0,3», «0,5» | **0** |
+| Miles agrupados en decimales | no | **sí** («21,362.55») |
+| Desbordes en las cuatro pestañas | 0 | **0** |
+| Vitest | 845 → **848** en 103 archivos |
+
+Guard: `separadorDecimal.test.ts`, tres casos —punto decimal, coma de miles y
+ningún número con coma decimal—. Fue el que encontró el segundo defecto en su
+primera corrida.
+
+**Lección**: comparar dos superficies hermanas encuentra lo que auditar cada una
+por separado no puede. Ni Diseño ni Propuestas estaban «mal» aisladas; lo que
+estaba mal era que no coincidían.
+
 ### Estado del loop
 
 | | |

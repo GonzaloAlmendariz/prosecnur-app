@@ -228,7 +228,7 @@ export function CalculoSupuestosTab({
               <>
                 <CurvaP p={total.p} pFacultades={faculty.p} />
                 <p className="cmv2-calc-svg-nota">
-                  La varianza p·(1−p) es máxima en 0,5; con p = {fmtDecimal(total.p, 2)} Universidad
+                  La varianza p·(1−p) es máxima en 0.5; con p = {fmtDecimal(total.p, 2)} Universidad
                   trabaja con {fmtDecimal(4 * total.p * (1 - total.p) * 100, 0)}% de esa exigencia.
                 </p>
               </>

@@ -61,9 +61,13 @@ describe("presentación de Supuestos", () => {
 
     expect(html).toContain("Universidad");
     expect(html).toContain("Facultades");
-    expect(html).toContain("z = 1,96");
-    expect(html).toContain("z = 2,17");
-    expect(html).toContain("p = 0,3");
-    expect(html).toContain("p = 0,5");
+    // Convención del proyecto: es-PE — punto decimal, coma de miles. La coma
+    // decimal es de España, y aquí convivía con «21,362» en la misma pantalla:
+    // la misma coma significando millares y decimales, con «1,96» legible como
+    // 196. El error es silencioso porque cada número se ve bien por separado.
+    expect(html).toContain("z = 1.96");
+    expect(html).toContain("z = 2.17");
+    expect(html).toContain("p = 0.3");
+    expect(html).toContain("p = 0.5");
   });
 });
