@@ -271,3 +271,88 @@ goal de frontend.
 «regla común» y su control vive en el área global, así que la pregunta previa no
 es cosmética — es si le corresponde tarjeta propia o si su sitio es justamente
 ése. Se decide midiendo, no eligiendo.
+
+### G36 — La tarjeta categórica no declaraba qué era
+
+Barrido sistemático de la superficie: 6 criterios, 0 duplicados, 0 colapsados,
+todos a ancho completo, el mínimo primero y el orden coincidiendo con el del
+motor. La matriz cuadra — 5.263 − 2.320 − 137 − 7 = 2.799, que es el KPI; mi
+lectura anterior de «5.263 ≠ 2.799» era mía, no de la matriz: 5.263 es la
+apertura, no el total.
+
+Lo que sí salió del barrido: de las cuatro variantes de tarjeta, umbral y unidad
+declaraban su `data-variante` y **las tres categóricas no declaraban nada**. Era
+el `return` por defecto del componente, y un caso por defecto no se siente como
+una rama que haya que declarar. Sin declaración no se puede distinguir
+«categórica» de «se rompió y cayó al caso por defecto» (ADR 0057, patrón 46).
+
+Medido tras el arreglo: `{umbral 2, unidad 40}` → `{umbral 2, categoria 15,
+unidad 40}`.
+
+### G37 — Tres cosas que Gonzalo vio de un vistazo
+
+**El deslizador roto.** La manija «desde» salía como un disco partido por una
+banda blanca. La banda es el carril nativo del segundo input pintándose sobre el
+thumb del primero — pero la causa real está un paso antes: `theme.css` estiliza
+`input[type="range"]` con especificidad (0,1,1), que **le gana** a
+`.cmv2-rango-manija` (0,1,0). Todo el estilo de manija de este control llevaba
+perdiendo en silencio desde F121; lo que se veía era el thumb del tema.
+
+Lo que hace duradero al defecto es que un CSS que no se aplica **no deja hueco**:
+pinta otra cosa parecida. Sobrevivió a tres iteraciones de ajuste fino sobre esas
+mismas líneas, cada una midiendo el efecto de una regla que no estaba en juego
+(patrón 47). El mismo defecto vive en el simulador XLSForm; queda como tarea
+aparte.
+
+Diagnosticado ocultando riel y banda por separado y ampliando la manija 5× con un
+`zoom` temporal — a escala real las tres hipótesis se veían iguales.
+
+**Las categorías con más CH primero.** Salían en el orden de la columna de
+origen. La decisión interesante fue **por cuál cifra ordenar**: `chContraste` (los
+que la categoría tiene) y no `ch` (los que siguen dentro), porque con `ch` la
+lista se reordena a cada conmutador y la siguiente que querías tocar ya no está
+donde la dejaste (patrón 48). El caso que lo prueba necesitó fixture propio: el
+compartido daba el mismo orden por ambas cifras y no distinguía nada.
+
+### G38 — Composición habla en su propia unidad
+
+El pedido de Gonzalo obligó a revisar una decisión mía de hace catorce
+iteraciones. G25 midió un defecto real —«mediana 30 %» con eje hasta 200 %— y lo
+reparó **cambiando la etiqueta** en vez del dato. Cambiar la etiqueta siempre
+funciona: el rótulo deja de mentir y el caso se cierra. Lo que quedó detrás fue
+composición decidiéndose con un corte en porcentaje mientras su gráfico contaba
+alumnos (patrón 50).
+
+El dato correcto ya existía en el motor. Le faltaba contrato y unidad:
+
+- `signal_distribution` sube a v2 (bigotes, histograma, escala).
+- La señal viaja **en la unidad del control**: porcentaje 0–100, no razón 0–1.
+- La **escala la fija el dominio**, no los datos: 0–100 para una proporción.
+- **`n_fuera` lo cuenta el motor** — la pregunta literal de Gonzalo.
+- Cada paso de composición monta por fin su tarjeta estándar; era el último
+  criterio del embudo sin ella.
+
+**Un defecto que introduje y cazó la suite**: validé los tres campos opcionales
+con el helper de los obligatorios, para el que faltar ES estar mal. Toda señal sin
+esos campos quedaba rechazada, y con ella la radiografía entera —frente a un
+backend anterior o cualquier fixture previo—. El compilador no podía verlo: los
+campos existían en el tipo (patrón 49).
+
+El oráculo de hash se re-bendijo tras probar el cambio **confinado**: podando los
+doce campos y devolviendo los momentos a la escala 0–1 reaparece exactamente el
+hash de F114. Y la suite de R se corrió **antes** de commitear — la regla que
+salió de F71 y F114 — y atrapó tanto el oráculo como la lista exacta de campos.
+Esta vez el aviso tuvo a alguien mirándolo.
+
+Al revertir, el guard y el comentario de G25 se reescribieron contando el arco
+entero en vez de sustituirse: su diagnóstico sigue siendo válido y borrarlo dejaría
+la decisión actual sin la razón por la que no es la obvia (patrón 51).
+
+**Gate**: R del área 8 archivos / 78 tests / 0 fallos · typecheck 0 · 1.265 tests
+en 134 archivos. **Commits**: `566a5b3d`, `8b434cf8`, `1abe3586`, `3c4787c2`,
+`cd94eb88`, `aff4f50a`.
+
+**Pendiente de ver con datos**: el backend R vivo lleva encendido desde el 1 de
+agosto y **no toma cambios de R**, así que el contrato v2 no está sirviéndose
+todavía. La tarjeta de composición está montada y probada, pero no se ha visto con
+cifras reales en pantalla.
