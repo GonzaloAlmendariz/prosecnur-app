@@ -383,3 +383,19 @@ tarjeta.
 **Mecanismo**: ante contenido que sobra, la pregunta no es «¿lo pliego?» sino
 «¿qué tiene esto que merezca espacio?». Si la respuesta es «sólo su nombre», se
 escribe el nombre.
+
+
+### 19 · Un control alineado «casi» no está alineado
+
+Con el ancho ya resuelto, el deslizador medía 1.127 px y el gráfico 1.091: 18 px
+de desfase a cada lado, que son el relleno y el borde de la tarjeta que envuelve
+al gráfico. La manija señalaba un punto de la escala **desplazado**, y una guía
+desviada es peor que ninguna porque se lee con la misma confianza.
+
+Lo llamativo es que yo había declarado el control «alineado» y **no lo había
+medido** — el mismo error que Gonzalo llevaba tres rondas corrigiéndome.
+
+**Mecanismo**: la tarjeta **publica su sangrado** como variable y el control lo
+compensa con `calc()`. Un `padding-inline: 18px` habría funcionado hoy y se
+habría desalineado el día que alguien toque el relleno. Un caso comprueba que la
+compensación referencia la variable y no un número.

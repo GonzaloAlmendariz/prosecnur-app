@@ -76,7 +76,19 @@
   min-width: 0;
 }
 
+/*
+ * G34 · El sangrado del gráfico se publica como variable.
+ *
+ * El deslizador del criterio vive fuera de esta tarjeta y tiene que arrancar
+ * donde arranca el eje. Medido antes de esto: pista en x=131, gráfico en x=149
+ * — 18 px de desfase a cada lado, que son el relleno y el borde de aquí más el
+ * del contenedor. Con el ancho ya resuelto (G32) el desajuste se nota.
+ *
+ * Declararlo como variable evita el número mágico: quien cambie el relleno de
+ * la tarjeta mueve el deslizador con él.
+ */
 .cmv2-crc-compact-segment {
+  --cmv2-seg-sangrado: 7px;
   display: grid;
   gap: 4px;
   min-width: 0;
