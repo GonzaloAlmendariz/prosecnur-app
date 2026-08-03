@@ -856,16 +856,6 @@
   padding: 9px 0;
   border-top: 1px solid var(--cmv2-border);
 }
-.cmv2-crit-exc-toggle {
-  justify-self: start;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--cmv2-accent-fg);
-  cursor: pointer;
-}
 .cmv2-crit-exc-body { display: grid; gap: 8px; }
 
 .cmv2-crit-exc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
@@ -1487,11 +1477,6 @@
   padding-top: 9px;
   border-top: 1px solid var(--cmv2-border);
 }
-.cmv2-crit-legacy > .cmv2-crit-exc-toggle {
-  color: var(--pulso-text-muted);
-  font-weight: var(--pulso-weight-regular);
-}
-.cmv2-crit-legacy > .cmv2-crit-exc-toggle:hover { color: var(--cmv2-accent-fg, var(--cmv2-accent)); }
 .cmv2-crit-legacy-body { display: grid; gap: 8px; }
 .cmv2-crit-legacy-row {
   display: grid;
@@ -1829,17 +1814,6 @@
   cursor: pointer;
 }
 .cmv2-crit-tsf-heredar:hover { text-decoration: underline; }
-.cmv2-crit-tsf-vertodas {
-  justify-self: start;
-  border: 0;
-  background: transparent;
-  padding: 2px 0;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-muted);
-  cursor: pointer;
-}
-.cmv2-crit-tsf-vertodas:hover { color: var(--cmv2-accent-fg); text-decoration: underline; }
 
 .cmv2-crit-tsf-link {
   justify-self: start;
@@ -1962,3 +1936,32 @@
 /* G24 · Retiradas las reglas de `cmv2-crit-paso-pct`: estilaban el campo
    numerico suelto de la prevalencia, sustituido por el nivelador. Las cazo el
    guard de huerfanas en la misma corrida. */
+
+/* G33 · El rótulo de la sección legacy, que antes era un botón de plegar. */
+.cmv2-crit-legacy-titulo {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-muted);
+}
+
+/*
+ * G33 · Categorías sin cursos-horario en la facultad: nombradas, no plegadas.
+ *
+ * Antes vivían tras un «Ver todas (42 sin cursos aquí)». No tienen distribución
+ * ni decisión que ofrecer —sólo su nombre—, así que darles tarjeta es ruido y
+ * plegarlas es esconder. Nombrarlas cuesta una línea y no hace ninguna de las
+ * dos cosas.
+ */
+.cmv2-crit-tsf-sincursos {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+.cmv2-crit-tsf-sincursos span {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* G33 · Retiradas las reglas de los dos plegadores que salieron de la
+   superficie: «Ver todas» y el toggle de la prevalencia legacy. */

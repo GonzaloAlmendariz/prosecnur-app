@@ -1,5 +1,11 @@
 /**
- * Tarjeta del criterio 8 — composición homogénea del curso-horario, en DOS
+ * Tarjeta de la composición homogénea del curso-horario, en DOS
+ *
+ * G33 · Ya no se llama «criterio 8»: el orden del embudo lo fija el motor y
+ * cambió (G30). Un número de orden escrito a mano en el rótulo sobrevive al
+ * orden que nombra y acaba mintiendo — pasó igual con «criterio 7» en el
+ * mínimo, que hoy es el primero.
+ *
  * pasos ordenados (reunión con el asesor muestral, 2026-07-15):
  *   1. ≥ pct de los matriculados pertenecen a la MISMA FACULTAD del curso
  *      (require_faculty_prevalence + min_faculty_prevalence_pct),
@@ -10,13 +16,12 @@
  * mezcla natural de facultades desaparecen).
  *
  * El toggle legacy require_min_prevalence (elegibles/matrícula) queda como
- * métrica REFERENCIAL, visualmente secundaria: no es el criterio 8.
+ * métrica REFERENCIAL, visualmente secundaria: no es la composición.
  *
  * Persistencia: edita aulas_config directo con autosave inmediato (mismo
  * patrón que teacher_type_orden); no pasa por el borrador confirmable porque
  * no vive en criterios_seleccion.
  */
-import { useState } from "react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { ControlUmbral } from "./ControlUmbral";
 import { Switch } from "./Switch";
@@ -83,11 +88,16 @@ export function CriterioComposicionCard({
   // control cerrado. Pero cuando está encendida **recorta el marco**, y hacerlo
   // desde detrás de un plegado es la peor versión del defecto que este ADR
   // combate: no es que cueste encontrarla, es que el usuario no sabe que está
-  // operando. Apagada sigue contenida —no es contenido oculto, es una opción
-  // inactiva—; encendida se abre sola.
-  const [legacyAbierto, setLegacyAbierto] = useState(
-    config.require_min_prevalence ?? false,
-  );
+  /*
+   * G33 · Ya no se pliega. Gonzalo: «quedamos en que ya ninguno se colapsa».
+   *
+   * El argumento anterior —«apagada sigue contenida, no es contenido oculto,
+   * es una opción inactiva»— es exactamente la racionalización que la regla
+   * prohíbe: quien no la abre no sabe que existe, y una métrica que puede
+   * cambiar un denominador no puede depender de que alguien la descubra.
+   *
+   * Se queda visible y apagada, que es lo que de verdad significa «inactiva».
+   */
   const paso1 = config.require_faculty_prevalence ?? false;
   const paso2 = config.require_cycle_homogeneity ?? false;
   const activos = (paso1 ? 1 : 0) + (paso2 ? 1 : 0);
@@ -99,7 +109,7 @@ export function CriterioComposicionCard({
         <div className="cmv2-crit-card-title">
           <strong>Composición del curso-horario</strong>
           <span className="cmv2-crit-card-meta">
-            <span className="cmv2-crit-col">criterio 8 · dos pasos en orden</span>
+            <span className="cmv2-crit-col">regla común · dos pasos en orden</span>
           </span>
         </div>
         <div className="cmv2-crit-card-state">
@@ -145,7 +155,7 @@ export function CriterioComposicionCard({
             />
             <Switch
               checked={paso1}
-              ariaLabel="Exigir misma facultad del curso (paso 1 del criterio 8)"
+              ariaLabel="Exigir misma facultad del curso (paso 1 de la composición)"
               onToggle={() => onPatch({ require_faculty_prevalence: !paso1 })}
             />
           </li>
@@ -182,22 +192,20 @@ export function CriterioComposicionCard({
         </span>
 
         <div className="cmv2-crit-legacy">
-          <button
-            type="button"
-            className="cmv2-crit-exc-toggle"
-            aria-expanded={legacyAbierto}
-            onClick={() => setLegacyAbierto((v) => !v)}
-          >
+          {/* G33 · Era un botón que plegaba. Sin nada que plegar es un rótulo:
+              un control que no controla nada invita a un click que no hace
+              nada. */}
+          <p className="cmv2-crit-legacy-titulo">
             Prevalencia de elegibles (referencial){legacyOn ? " · activa" : ""}
-          </button>
-          {legacyAbierto ? (
+          </p>
+          {true ? (
             <div className="cmv2-crit-legacy-body">
               <div className="cmv2-crit-legacy-row">
                 <div className="cmv2-crit-paso-copy">
                   <strong>Prevalencia de elegibles (referencial)</strong>
                   <span>
                     Proporción de elegibles sobre la matrícula total del curso-horario. Es una métrica referencial
-                    heredada: <strong>no forma parte del criterio 8</strong> y normalmente queda apagada.
+                    heredada: <strong>no forma parte de la composición</strong> y normalmente queda apagada.
                   </span>
                 </div>
                 <InputPct

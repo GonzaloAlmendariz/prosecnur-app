@@ -17,7 +17,6 @@ import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "./Categori
 import type { AporteCategoria } from "./controles";
 
 /** A partir de tantas categorías se pliega el ruido (0 CH aquí y no activo). */
-const UMBRAL_PLEGADO = 8;
 
 export function FacultadCategoriaToggles({
   fila,
@@ -47,7 +46,6 @@ export function FacultadCategoriaToggles({
    */
   evidencia?: (categoriaKey: string) => AporteCategoria | null;
 }) {
-  const [verTodas, setVerTodas] = useState(false);
   // Domar listas largas (p.ej. condición del curso trae ~52 valores DTI, casi
   // todos ruido): muestra las que tienen CH en la facultad (o están activas) y
   // pliega el resto. Si el catálogo no trae distribución, no pliega nada.
@@ -73,8 +71,8 @@ export function FacultadCategoriaToggles({
     ? fila.tipos.filter((t) => tieneCursosAqui(t) || t.activo)
     : fila.tipos;
   const ocultasN = fila.tipos.length - relevantes.length;
-  const plegable = hayDistribucion && fila.tipos.length >= UMBRAL_PLEGADO && ocultasN > 0;
-  const visibles = plegable && !verTodas ? relevantes : fila.tipos;
+  // Las categorías sin cursos aquí no reciben tarjeta: se nombran abajo.
+  const visibles = hayDistribucion && ocultasN > 0 ? relevantes : fila.tipos;
   // Regla 3 del ADR: la escala es del criterio en esta facultad, no de cada caja.
   const dominio = dominioCategorias(visibles.map((t) => evidencia?.(t.key) ?? null));
   return (
@@ -162,17 +160,26 @@ export function FacultadCategoriaToggles({
           );
         })}
       </ul>
-      {plegable ? (
-        <button
-          type="button"
-          className="cmv2-crit-tsf-vertodas"
-          aria-expanded={verTodas}
-          onClick={() => setVerTodas((v) => !v)}
-        >
-          {verTodas
-            ? "Ver solo las que tienen cursos aquí"
-            : `Ver todas (${fmtInt(ocultasN)} sin cursos en esta facultad)`}
-        </button>
+      {/* G33 · Ya no se pliegan. Gonzalo: «quedamos en que ya ninguno se
+          colapsa».
+
+          Aquí había un «Ver todas (42 sin cursos en esta facultad)» que
+          escondía las categorías sin ningún curso-horario. El argumento era
+          real —42 tarjetas diciendo «sin cursos aquí» son ruido— pero la salida
+          no es plegar: es **no darles tarjeta**. No tienen distribución, ni
+          cifras, ni decisión que ofrecer; sólo su nombre.
+
+          Así nada queda oculto y nada ocupa espacio que no merece. */}
+      {ocultasN > 0 && hayDistribucion ? (
+        <p className="cmv2-crit-tsf-sincursos">
+          <span>
+            Sin cursos-horario en esta facultad ({fmtInt(ocultasN)}):
+          </span>{" "}
+          {fila.tipos
+            .filter((t) => !relevantes.some((r) => r.key === t.key))
+            .map((t) => t.label)
+            .join(" · ")}
+        </p>
       ) : null}
       {fila.decision === "propia" ? (
         <button

@@ -281,9 +281,24 @@ export function CursosHorarioBaseGlobal({
   onTasa: (tasa: number | null) => void;
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
 }) {
-  const comunes = soloAjustes
+  /*
+   * G33 · Un criterio sin columna mapeada no ocupa un turno del embudo.
+   *
+   * «Matriculados / población» se mostraba con el subtítulo «variable sin
+   * columna mapeada»: un criterio que **no puede actuar** pidiendo una decisión.
+   * Gonzalo: «¿por qué hay un Matriculados / población y un Mínimo de alumnos
+   * elegibles, cuando sólo el segundo es el que debería estar?».
+   *
+   * No se borra del motor —sigue en la cascada y en la matriz, donde su fila
+   * dice honestamente que no quitó nada— pero deja de pedir una decisión que no
+   * puede ejecutar.
+   */
+  const comunes = (soloAjustes
     ? aulaVariables.filter((variable) => !variablesPorFacultadIds.includes(variable.id))
-    : aulaVariables;
+    : aulaVariables
+  // El motor publica  cuando no hay columna, no cadena
+  // vacia: comparar con "" no cazaba nada y el criterio seguia en pantalla.
+  ).filter((variable) => Boolean(variable.mappedColumn));
   const variablesVisibles = piezas === "cierre" ? [] : comunes;
   return (
     <div
@@ -311,12 +326,16 @@ export function CursosHorarioBaseGlobal({
         ))}
       {piezas === "apertura" ? null : (
         <>
-          <GlobalMinCard
-            seleccion={seleccion}
-            fallbackUmbral={config.min_elegibles_aula}
-            onUmbral={onUmbral}
-            onTasa={onTasa}
-          />
+          {/* G33 · Fuera el mínimo global duplicado.
+              Gonzalo: «se siguen duplicando, hay dos que piden mínimos de
+              alumnos elegibles». Esta tarjeta pedía el umbral general y la del
+              bloque de facultad pide el propio, con «usa el mínimo general» de
+              respaldo — dos controles para la misma decisión, y el segundo ya
+              enseña la distribución sobre la que se decide.
+
+              Su rótulo decía además «criterio 7» cuando el mínimo pasó a ser el
+              PRIMERO del embudo (G30): un número de orden escrito a mano
+              sobrevive al orden que nombra. */}
           <CriterioComposicionCard config={config} onPatch={onPatchConfig} />
         </>
       )}

@@ -67,22 +67,44 @@ describe("FacultadCategoriaToggles · lo excluido no se pliega como inexistente"
     expect(html).toContain("Dirigido");
   });
 
-  it("el botón cuenta sólo las que de verdad no están en la facultad", () => {
+  /*
+   * G33 · Estos casos fijaban un plegado que Gonzalo retiró: «quedamos en que
+   * ya ninguno se colapsa».
+   *
+   * El motivo original era real —«condición del curso trae ~52 valores DTI,
+   * casi todos ruido»— pero la salida no era plegar: las categorías sin
+   * cursos-horario aquí **no tienen distribución, ni cifras, ni decisión que
+   * ofrecer**. Sólo su nombre. Así que se nombran y no reciben tarjeta: nada
+   * queda oculto y nada ocupa espacio que no merece.
+   */
+  it("las categorías sin cursos aquí se NOMBRAN, no se pliegan", () => {
+    const html = render(true);
+    expect(html).not.toContain("Ver todas");
+    expect(html).toContain("Sin cursos-horario en esta facultad");
+  });
+
+  it("declara cuántas son y las lista por nombre", () => {
     // Siete de ruido, no ocho: «Dirigido» tiene cursos aquí aunque estén fuera.
     const html = render(true);
-    expect(html).toContain("Ver todas (7 sin cursos en esta facultad)");
+    expect(html).toContain("(7)");
+    expect(html).toContain("Ruido DTI 0");
   });
 
-  it("las categorías sin cursos aquí siguen plegadas: el domado no se pierde", () => {
-    // El motivo original del plegado —«condición del curso trae ~52 valores DTI,
-    // casi todos ruido»— se conserva: sin cursos en la facultad, siguen fuera.
+  it("ninguna de ellas recibe tarjeta: no hay nada que mostrar", () => {
+    // El domado se conserva por otra vía — no dándoles gráfico, en vez de
+    // escondiéndolas.
     const html = render(true);
-    expect(html).not.toContain("Ruido DTI 0");
+    const tarjetas = (html.match(/cmv2-cat-evidencia/g) ?? []).length;
+    const nombradas = (html.match(/Ruido DTI/g) ?? []).length;
+    expect(nombradas).toBeGreaterThan(0);
+    expect(tarjetas).toBeLessThan(nombradas + 5);
   });
 
-  it("sin evidencia publicada cae al comportamiento anterior, sin romperse", () => {
+  it("sin evidencia publicada no se inventa el reparto", () => {
+    // Sin distribución no se sabe cuáles tienen cursos aquí, así que entran
+    // todas: callar unas por un dato que no llegó sería esconderlas.
     const html = render(false);
     expect(html).toContain("Regular");
-    expect(html).toContain("Ver todas (8 sin cursos en esta facultad)");
+    expect(html).not.toContain("Ver todas");
   });
 });

@@ -335,3 +335,51 @@ eje» — y las dos barras ni siquiera medían lo mismo.
 escala del gráfico, así que **mover la manija es mover el corte sobre la
 distribución**. El campo numérico baja de fila: quitarle ancho al deslizador es
 quitarle resolución al gesto que sí recorre la escala.
+
+
+### 16 · Auditar la lista entera, no reparar lo que se reporta
+
+Gonzalo, tras varias rondas: «no veo que estés revisando esto a detalle, noto
+muchos errores constantemente». Tenía razón, y el problema era **el método**:
+reparaba cada defecto según llegaba, en vez de enumerar la superficie completa y
+mirarla de una vez.
+
+Al hacerlo bien —un solo barrido midiendo título, plegado, tarjeta, variante y
+subtítulo de **cada** criterio— salieron cinco defectos a la vez que llevaban
+varias rondas apareciendo de uno en uno:
+
+| defecto | por qué no lo veía |
+|---|---|
+| «Matriculados / población» sin columna mapeada | el subtítulo lo decía y yo miraba el título |
+| Mínimo global duplicado | vivía en otro componente que el grep del primero no tocaba |
+| «criterio 7» y «criterio 8» obsoletos | el orden cambió (G30) y el ordinal está escrito a mano |
+| Prevalencia legacy plegada | mi sonda leía el primer `aria-expanded`, que era otro |
+| «Ver todas (42 sin cursos)» plegado | lo justificaba un comentario que yo mismo escribí |
+
+**Mecanismo**: antes de dar por revisada una superficie, se enumera **cada**
+elemento de su clase con **todas** las propiedades que la regla gobierna, en una
+sola medición. Reparar lo reportado deja siempre el resto.
+
+### 17 · Un número de orden escrito a mano sobrevive al orden que nombra
+
+«criterio 7» y «criterio 8» estaban en los rótulos desde que ese era su puesto.
+Al cambiar el embudo (G30) el mínimo pasó a ser el primero y su tarjeta seguía
+diciendo «criterio 7».
+
+**Mecanismo**: los rótulos nombran **qué** decide el criterio, nunca su posición.
+El orden lo publica el motor y se lee de ahí (patrón 3); escribirlo en una cadena
+crea una segunda fuente que nadie actualiza.
+
+### 18 · Plegar no es la única salida al ruido
+
+«Condición del curso» escondía 42 categorías tras «Ver todas (42 sin cursos en
+esta facultad)». El motivo era real —42 tarjetas diciendo «sin cursos aquí» son
+ruido— pero la salida elegida violaba la regla.
+
+La tercera opción: esas categorías **no tienen distribución, ni cifras, ni
+decisión que ofrecer**. Sólo su nombre. Se nombran en una línea y no reciben
+tarjeta.
+
+**Mecanismo**: ante contenido que sobra, la pregunta no es «¿lo pliego?» sino
+«¿qué tiene esto que merezca espacio?». Si la respuesta es «sólo su nombre», se
+escribe el nombre.
