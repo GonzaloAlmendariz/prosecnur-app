@@ -1003,6 +1003,45 @@ ya no los refleja», cierto de todo y por eso inútil— convierte reconstruir e
 decisión en vez de un reflejo.
 
 
+### 60 · Podar prueba que algo cambió; enumerar rutas prueba qué cambió
+
+F111 y G38 probaron sus cambios de payload **podando** los campos nuevos y
+comprobando que reaparecía el hash anterior. Funciona porque un campo nuevo se
+puede quitar y dejar el resto intacto.
+
+G39 cambió además un campo que ya existía —los cortes del histograma de las
+proporciones, ahora alineados con el paso del control—. Podarlo no reproduce el
+oráculo anterior: borra también el valor viejo que ese oráculo sí tenía. El
+método falla en silencio y da un hash que no coincide, sin decir por qué.
+
+**Mecanismo**: se reconstruye el comportamiento previo en la misma sesión
+(sustituyendo la función por una que replique lo de antes), se generan los dos
+payloads y se **enumeran las rutas cuyo valor difiere**. La salida no es un
+booleano sino una lista: 34 rutas, campos `hist_breaks`, `hist_counts` y
+`n_fuera_por_corte`. Y de paso el reconstruido reproduce el hash anterior, que es
+la comprobación de que la réplica era fiel.
+
+Para un campo nuevo bastan las podas. Para uno que cambia de valor, hay que
+enumerar.
+
+### 61 · Una regla escrita no es una regla cumplida
+
+«Si el diff toca `api/`, se corre la suite del área antes de commitear» se
+escribió tras F71, se repitió tras F114 —«esta vez el aviso sí tuvo a alguien
+mirándolo»— y volvió a incumplirse en G39: el commit del motor afirmaba la suite
+en verde cuando sólo se había corrido un fichero.
+
+Tres veces, la misma causa: un cambio de pocas líneas en R **no se siente** como
+tocar lógica, y la decisión de correr la suite se toma justo cuando uno está
+pensando en la superficie. Documentarlo no lo evitó, y hacerlo más enfático
+tampoco lo evitará.
+
+Lo que sí distingue este caso de los dos anteriores: el fallo se detectó **dentro
+de la misma sesión**, al revisar deliberadamente si la obligación se había
+cumplido, en vez de aparecer cuarenta commits después. La revisión explícita
+—«¿qué gate me salté?»— es más barata que confiar en recordarlo en el momento.
+
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
