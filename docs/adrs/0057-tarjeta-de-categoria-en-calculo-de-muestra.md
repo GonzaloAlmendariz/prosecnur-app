@@ -564,6 +564,35 @@ como cifras y no como consecuencia.
 componente **campo por campo**, no de memoria. Un ADR que nadie confronta con su
 implementación documenta una intención, no un contrato.
 
+### 35 · Todos mis fixtures eran plurales
+
+Medido en la app con datos reales: «sus **1 cursos-horario**», «+**1 estudiantes
+únicos**». Seis concordancias rotas que ninguna prueba cazó, porque **todos los
+fixtures del módulo traían valores plurales** —120 CH, 3.400 estudiantes, deltas
+de −3, −72, −60—. La rama del singular no se ejecutaba en ningún sitio.
+
+Los guards de render son fuertes contra la regresión y ciegos a lo que no se les
+da. Un valor límite sin fixture es una rama sin cubrir por mucho que el contador
+diga 900 pruebas.
+
+**Mecanismo**: **1 es un caso límite como lo son 0 y `null`**, y lleva fixture
+propio en toda superficie que cuente algo. Y la verificación en la app con datos
+reales no es un lujo del final: es el único sitio donde aparecen los valores que
+uno no pensó en inventar.
+
+### 36 · Inventar una dirección en vez de preguntarla
+
+Para verificar Definición navegué a
+`calc-muestra/opinion-universitaria/datos/bases`. La sección se llama
+`definicion`. `__pulsoNav.ir()` no falló: **no hizo nada**, y la comprobación
+siguiente devolvió cero listas — que se lee exactamente igual que «la reparación
+no está».
+
+**Mecanismo**: la dirección se saca de `__pulsoNav.recorrido()`, que las publica
+todas, en vez de deducirla del nombre de la carpeta. Y tras cada `ir()` se
+comprueba `describir()` antes de medir nada: una navegación que no ocurrió
+convierte cualquier medición posterior en un falso negativo.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

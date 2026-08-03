@@ -41,6 +41,23 @@ export function dominioCategorias(
   return max > min ? { min, max } : { min, max: min + 1 };
 }
 
+/**
+ * F107 · Singular de «curso-horario».
+ *
+ * Medido en la app con datos reales: dos categorías excluidas mostraban «sus 1
+ * cursos-horario». Ninguna de mis pruebas lo cazó porque **todos los fixtures
+ * usaban valores plurales** —120 CH, 3.400 estudiantes—, así que la rama del
+ * singular no se ejecutó nunca. Un guard prueba lo que se le da a probar.
+ */
+function ch1(n: number | null | undefined): string {
+  return n === 1 ? "curso-horario" : "cursos-horario";
+}
+
+/** Concuerda un sustantivo con su cifra. `n` nulo mantiene el plural genérico. */
+function plural(n: number | null | undefined, singular: string, plural_: string): string {
+  return n === 1 ? singular : plural_;
+}
+
 function pct(valor: number, dominio: DominioCategorias): number {
   return ((valor - dominio.min) / (dominio.max - dominio.min)) * 100;
 }
@@ -165,11 +182,12 @@ export function CategoriaEvidencia({
             92.017 matrículas—, rotularlo «alumnos» a secas esconde de qué grano
             es, que es justo la confusión que este módulo existe para evitar. */}
         <span title="Estudiantes únicos elegibles: una persona cuenta una vez aunque esté en varios cursos-horario">
-          <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong> estudiantes
+          <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>{" "}
+          {plural(aporte.elegibles, "estudiante", "estudiantes")}
         </span>
         {aporte.matriculas != null ? (
           <span title="Matrículas elegibles: una persona cuenta una vez por cada curso-horario en que está">
-            <strong>{fmtInt(aporte.matriculas)}</strong> matrículas
+            <strong>{fmtInt(aporte.matriculas)}</strong> {plural(aporte.matriculas, "matrícula", "matrículas")}
           </span>
         ) : null}
         {d?.media != null ? <span><strong>{fmt(d.media)}</strong> por CH</span> : null}
@@ -182,7 +200,7 @@ export function CategoriaEvidencia({
         ) : null}
         {presentes != null ? (
           <span className="cmv2-cat-presentes">
-            ~<strong>{fmtInt(presentes)}</strong> presentes
+            ~<strong>{fmtInt(presentes)}</strong> {plural(presentes, "presente", "presentes")}
             <em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% asistencia</em>
           </span>
         ) : null}
@@ -204,15 +222,19 @@ export function CategoriaEvidencia({
           recalcula sola con cada criterio anterior (regla 5). */}
       {excluida ? (
         <p className="cmv2-cat-efecto" data-estado="fuera">
-          Fuera del marco: sus <strong>{fmtInt(aporte.chContraste ?? 0)}</strong> cursos-horario
-          no entran con los criterios actuales.
+          Fuera del marco: {(aporte.chContraste ?? 0) === 1 ? "su" : "sus"}{" "}
+          <strong>{fmtInt(aporte.chContraste ?? 0)}</strong>{" "}
+          {ch1(aporte.chContraste)} no {(aporte.chContraste ?? 0) === 1 ? "entra" : "entran"} con
+          los criterios actuales.
         </p>
       ) : sinCursos ? (
         <p className="cmv2-cat-sin-cursos">sin cursos-horario en esta facultad</p>
       ) : (
         <p className="cmv2-cat-efecto" data-estado="dentro">
-          Quitarla deja fuera <strong>{fmtInt(aporte.ch ?? 0)}</strong> cursos-horario
-          {aporte.elegibles != null ? <> y <strong>{fmtInt(aporte.elegibles)}</strong> estudiantes</> : null}.
+          Quitarla deja fuera <strong>{fmtInt(aporte.ch ?? 0)}</strong> {ch1(aporte.ch)}
+          {aporte.elegibles != null ? (
+            <> y <strong>{fmtInt(aporte.elegibles)}</strong> {aporte.elegibles === 1 ? "estudiante" : "estudiantes"}</>
+          ) : null}.
         </p>
       )}
       {d && dominio ? (

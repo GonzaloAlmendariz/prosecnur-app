@@ -3992,9 +3992,41 @@ El valor se extrae y se compara; no se niega dentro del patrón.
 
 Gate: typecheck 0 · 901 pruebas en 111 archivos.
 
-**Siguiente**: reauditar el resto de la superficie con la vara alta — vocabulario
-en el motor R (que no se ve desde `frontend/src`) y el orden de los ocho
-criterios contra la regla 1.
+### F107 — Verificado en la app, y la app encontró lo que mis pruebas no
+
+Reusado el front de otra sesión en 5180 (nada levantado, nada matado). Las siete
+iteraciones anteriores quedan **verificadas con datos reales**, no con fixtures:
+
+| iteración | medido en la app |
+|---|---|
+| F102 comparador | **4 botones «Usar método» visibles sin un click** (antes 0) y el gráfico también |
+| F104 columnas | «18 columnas detectadas» y «19», ambas listas enteras a la vista |
+| F105 dos ceros | **2 categorías** decían no tener cursos teniendo 1 excluido; 13 muestran el efecto |
+| F106 barra | `sticky`, `top: 0` a 1024×600, y `docScrollX = 0` |
+| todas | **0 desbordes** en la superficie; 0 `<details>` fuera del declarado |
+
+El efecto del embudo con datos reales: «Quitarla deja fuera 639 cursos-horario y
+4.617 estudiantes».
+
+**Y la app encontró lo que mis pruebas no podían.** Seis concordancias rotas —
+«sus **1 cursos-horario**», «+**1 estudiantes únicos**»— porque **todos mis
+fixtures traían valores plurales**: 120 CH, 3.400 estudiantes, deltas de −3, −72,
+−60. La rama del singular no se ejecutaba en ningún sitio del módulo. 906 pruebas
+en verde no cubrían un caso que la primera pantalla real enseñó.
+
+Reparadas las seis con fixtures del uno, probadas por mutación. Al ADR como
+patrón 35: **1 es un caso límite como 0 y `null`**.
+
+**Segundo error propio**: para verificar Definición inventé la dirección
+`…/datos/bases`. La sección se llama `definicion`. `ir()` no falló — **no hizo
+nada**, y la medición siguiente devolvió cero listas, que se lee igual que «la
+reparación no está». Patrón 36: la dirección se saca de `recorrido()`, y tras
+cada `ir()` se comprueba `describir()` antes de medir.
+
+Gate: typecheck 0 · 906 pruebas en 111 archivos. ADR 0057 en 36 patrones.
+
+**Siguiente**: vocabulario del motor R —que no se ve barriendo `frontend/src`— y
+el orden de los ocho criterios contra la regla 1.
 
 ### F103 — El agujero estaba en mi propio guard
 

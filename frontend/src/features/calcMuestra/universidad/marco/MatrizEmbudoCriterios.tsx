@@ -12,6 +12,14 @@ function signed(value: number | null): string {
   return `${value > 0 ? "+" : ""}${fmtInt(value)}`;
 }
 
+/**
+ * Concuerda el sustantivo con su delta. Un delta nulo renderiza «—» en la cifra,
+ * y ahí el plural genérico es lo correcto: no hay un uno del que concordar.
+ */
+function concuerda(delta: number | null, singular: string, plural: string): string {
+  return delta !== null && Math.abs(delta) === 1 ? singular : plural;
+}
+
 function ImpactCell({ cell }: { cell: CalcMuestraMatrizEmbudoCell }) {
   const publishable = cell.status === "disponible" && cell.delta.reconstruccion_valida;
   if (!publishable) {
@@ -49,9 +57,17 @@ function ImpactCell({ cell }: { cell: CalcMuestraMatrizEmbudoCell }) {
   }
   return (
     <td className="cmv2-matriz-embudo-impact" data-status={cell.status}>
+      {/* F107 · La concordancia también vale para los deltas: medido en la app,
+          dos celdas mostraban «+1 estudiantes únicos». `CH` es invariable. */}
       <strong>{signed(cell.delta.delta_ch)} CH</strong>
-      <small>{signed(cell.delta.delta_matriculas)} matrículas</small>
-      <small>{signed(cell.delta.delta_estudiantes_unicos)} estudiantes únicos</small>
+      <small>
+        {signed(cell.delta.delta_matriculas)}{" "}
+        {concuerda(cell.delta.delta_matriculas, "matrícula", "matrículas")}
+      </small>
+      <small>
+        {signed(cell.delta.delta_estudiantes_unicos)}{" "}
+        {concuerda(cell.delta.delta_estudiantes_unicos, "estudiante único", "estudiantes únicos")}
+      </small>
     </td>
   );
 }
