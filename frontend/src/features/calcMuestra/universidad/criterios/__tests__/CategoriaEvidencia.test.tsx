@@ -167,3 +167,40 @@ describe("CategoriaEvidencia · los dos granos y la cobertura del dato", () => {
     expect(html).not.toContain("distribución sobre");
   });
 });
+
+describe("CategoriaEvidencia · contraste contra el total", () => {
+  it("dice cómo se ve la categoría en todos los cursos-horario", () => {
+    // Un criterio existe para recortar; sin el contraste no se sabe si el
+    // subconjunto elegible se parece al total o si el recorte lo ha desplazado.
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ chContraste: 849, mediaContraste: 26.9 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).toContain("En todos los cursos-horario");
+    expect(html).toContain("849");
+    expect(html).toContain("26.9");
+  });
+
+  it("no lo inventa cuando el motor no publica el contraste", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ chContraste: null, mediaContraste: null })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).not.toContain("En todos los cursos-horario");
+  });
+
+  it("una categoría sin cursos aquí no muestra contraste", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 0, chContraste: 849, mediaContraste: 26.9 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).toContain("sin cursos-horario en esta facultad");
+    expect(html).not.toContain("En todos los cursos-horario");
+  });
+});

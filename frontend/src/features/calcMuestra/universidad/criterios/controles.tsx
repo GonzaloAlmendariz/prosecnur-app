@@ -91,6 +91,12 @@ export type AporteCategoria = {
   /** Matrículas elegibles: el otro grano, junto a los estudiantes únicos. */
   matriculas?: number | null;
   /**
+   * Media de la categoría sobre **todos** los cursos-horario, no sólo los
+   * elegibles. Junto a `chContraste` dice si el subconjunto elegible se parece
+   * al total o si los criterios lo han desplazado.
+   */
+  mediaContraste?: number | null;
+  /**
    * Distribución de alumnos elegibles por curso-horario en esta categoría.
    * La calcula R; React sólo la dibuja. Da el promedio, su forma y los
    * cuantiles con los que se elige P25 o mediana.
