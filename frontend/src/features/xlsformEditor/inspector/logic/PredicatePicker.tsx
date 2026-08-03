@@ -83,14 +83,18 @@ export function PredicatePicker({
         aria-label="Criterio de la condición"
         aria-haspopup="listbox"
         aria-expanded={open}
+        title={currentMeta.hint}
       >
+        {/* El trigger muestra SOLO la etiqueta del criterio. La explicación
+            vive en el popover: compartir el ancho entre etiqueta y pista
+            dejaba a las dos truncadas —"no incl…" sobre "La opci…"— en los
+            53 px que le tocan a la columna. */}
         <span className="pulso-logic-predicate-current">
           <span className="pulso-logic-predicate-mark" aria-hidden="true">
             {currentMeta.mark}
           </span>
           <span className="pulso-logic-predicate-copy">
             <strong>{current.label}</strong>
-            <small>{currentMeta.hint}</small>
           </span>
         </span>
         <ChevronDown size={12} aria-hidden="true" />
