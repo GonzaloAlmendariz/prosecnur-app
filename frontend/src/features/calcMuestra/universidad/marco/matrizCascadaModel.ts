@@ -18,9 +18,9 @@ import type { EstadoCascada } from "../criterios/usarEmbudoVivo";
 
 export type CeldaMatriz = {
   criterioId: string;
-  /** Cursos-horario que este criterio quitó en esta facultad. */
+  /** Cursos-horario que este paso quitó en esta facultad. */
   quita: number;
-  /** El criterio corrió y no quitó nada, frente a no haber corrido aquí. */
+  /** El paso corrió y no quitó nada, frente a no haber corrido aquí. */
   aplica: boolean;
   estado: EstadoCascada;
 };
@@ -38,7 +38,20 @@ export type FilaMatriz = {
 };
 
 export type MatrizCascada = {
-  criterios: Array<{ id: string; label: string }>;
+  /**
+   * G7 · Los pasos operativos entran, marcados.
+   *
+   * Medido en la app: la matriz sumaba 2.806 cursos-horario y el KPI de la
+   * cabecera decía 2.799. No era un desajuste del motor — era mi filtro. Las
+   * **exclusiones manuales** viajan en la cascada con `gate = false` porque no
+   * son un criterio metodológico, y al descartarlas la matriz **aterrizaba en
+   * un número que no eran los elegibles**: prometía contar de dónde salen y
+   * paraba un paso antes, dejando siete sin explicar.
+   *
+   * Siguen sin ser criterios, así que no se mezclan con ellos: van marcados
+   * como operativos y se pintan aparte. Lo que no pueden es faltar.
+   */
+  criterios: Array<{ id: string; label: string; operativo: boolean }>;
   filas: FilaMatriz[];
   total: FilaMatriz;
 };
@@ -70,10 +83,13 @@ export function construirMatrizCascada(
   cascada: CalcMuestraCriteriosCascada | null | undefined,
   edicion: CeldaEnEdicion = null,
 ): MatrizCascada | null {
-  const pasos: CalcMuestraCriteriosCascadeStep[] = (cascada?.steps ?? []).filter((s) => s.gate);
+  // G7 · TODOS los pasos, no sólo los gates: la matriz tiene que terminar en
+  // los elegibles de verdad. Los operativos van marcados para no confundirlos
+  // con criterios, pero descartarlos rompía la única promesa de la superficie.
+  const pasos: CalcMuestraCriteriosCascadeStep[] = cascada?.steps ?? [];
   if (!pasos.length) return null;
 
-  const criterios = pasos.map((p) => ({ id: p.criterion_id, label: p.label }));
+  const criterios = pasos.map((p) => ({ id: p.criterion_id, label: p.label, operativo: !p.gate }));
   const indiceEditando = edicion
     ? pasos.findIndex((p) => p.criterion_id === edicion.criterioId)
     : -1;
@@ -147,7 +163,7 @@ export function cuadraConElMotor(
   matriz: MatrizCascada,
   cascada: CalcMuestraCriteriosCascada,
 ): boolean {
-  const pasos = (cascada.steps ?? []).filter((s) => s.gate);
+  const pasos = cascada.steps ?? [];
   if (!pasos.length) return true;
   return matriz.total.quedan === pasos[pasos.length - 1].total.after_ch;
 }

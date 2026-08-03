@@ -26,12 +26,18 @@ import "./matrizCascadaCriterios.css";
 const pct = (v: number | null) =>
   v == null ? "—" : `${Math.round(v * 100)}%`;
 
-function Celda({ quita, aplica, estado }: FilaMatriz["celdas"][number]) {
+function Celda({
+  quita,
+  aplica,
+  estado,
+  operativo,
+}: FilaMatriz["celdas"][number] & { operativo: boolean }) {
   const vacia = quita === 0;
   return (
     <td
       className="cmv2-mtz-celda"
       data-estado={estado}
+      data-operativo={operativo || undefined}
       data-vacia={vacia || undefined}
       // El realce del embudo vivo entra sólo por color (ADR 0057, patrón 12).
       data-recalculado={estado === "editando" ? "true" : undefined}
@@ -51,7 +57,16 @@ function Celda({ quita, aplica, estado }: FilaMatriz["celdas"][number]) {
   );
 }
 
-function Fila({ fila, total = false }: { fila: FilaMatriz; total?: boolean }) {
+function Fila({
+  fila,
+  operativos,
+  total = false,
+}: {
+  fila: FilaMatriz;
+  /** Qué columnas son pasos operativos, no criterios. */
+  operativos: boolean[];
+  total?: boolean;
+}) {
   const enEdicion = fila.celdas.some((c) => c.estado === "editando");
   return (
     <tr
@@ -60,8 +75,8 @@ function Fila({ fila, total = false }: { fila: FilaMatriz; total?: boolean }) {
     >
       <th scope="row">{fila.label}</th>
       <td className="cmv2-mtz-universo">{fmtInt(fila.universo)}</td>
-      {fila.celdas.map((c) => (
-        <Celda key={c.criterioId} {...c} />
+      {fila.celdas.map((c, i) => (
+        <Celda key={c.criterioId} {...c} operativo={operativos[i]} />
       ))}
       <td className="cmv2-mtz-quedan" data-recalculado={enEdicion ? "true" : undefined}>
         <b>{fmtInt(fila.quedan)}</b>
@@ -92,6 +107,8 @@ export function MatrizCascadaCriterios({
   }
 
   const cuadra = cascada ? cuadraConElMotor(matriz, cascada) : true;
+  const operativos = matriz.criterios.map((c) => c.operativo);
+  const hayOperativos = operativos.some(Boolean);
 
   return (
     <div className="cmv2-mtz">
@@ -109,18 +126,20 @@ export function MatrizCascadaCriterios({
               <th scope="col">Facultad</th>
               <th scope="col">Universo</th>
               {matriz.criterios.map((c) => (
-                <th scope="col" key={c.id}>{c.label}</th>
+                <th scope="col" key={c.id} data-operativo={c.operativo || undefined}>
+                  {c.label}
+                </th>
               ))}
               <th scope="col">Quedan</th>
             </tr>
           </thead>
           <tbody>
             {matriz.filas.map((f) => (
-              <Fila key={f.facultadKey} fila={f} />
+              <Fila key={f.facultadKey} fila={f} operativos={operativos} />
             ))}
           </tbody>
           <tfoot>
-            <Fila fila={matriz.total} total />
+            <Fila fila={matriz.total} operativos={operativos} total />
           </tfoot>
         </table>
       </div>
@@ -129,6 +148,9 @@ export function MatrizCascadaCriterios({
         <span><i data-m="quita" />lo que el criterio quitó</span>
         <span><i data-m="cero" />se aplicó y no quitó ninguno</span>
         <span><i data-m="noaplica" />no aplica en esa facultad</span>
+        {hayOperativos ? (
+          <span><i data-m="operativo" />paso operativo, no un criterio</span>
+        ) : null}
         {edicion ? <span><i data-m="edit" />en edición · su fila espera confirmación</span> : null}
       </p>
 

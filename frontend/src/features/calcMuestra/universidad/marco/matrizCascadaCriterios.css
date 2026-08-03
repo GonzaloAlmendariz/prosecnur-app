@@ -171,3 +171,27 @@
   .cmv2-mtz-tabla th,
   .cmv2-mtz-tabla td { padding: 6px 9px; }
 }
+
+/*
+ * G7 · Los pasos operativos no son criterios.
+ *
+ * Las exclusiones manuales quitan cursos-horario de verdad, así que la matriz no
+ * puede ignorarlas —sin ellas aterrizaba en 2.806 cuando los elegibles son
+ * 2.799— pero tampoco puede presentarlas como una decisión metodológica. Van
+ * separadas por un filete y con el rótulo en cursiva.
+ */
+.cmv2-mtz-tabla thead th[data-operativo],
+.cmv2-mtz-celda[data-operativo] {
+  border-left: 1px solid var(--cmv2-border);
+}
+.cmv2-mtz-tabla thead th[data-operativo] {
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+}
+.cmv2-mtz-leyenda i[data-m="operativo"] {
+  border-left: 2px solid var(--cmv2-border-strong, var(--cmv2-border));
+  border-radius: 0;
+  width: 8px;
+}
