@@ -94,3 +94,39 @@ matrícula, Edad, Facultad, Ciclo— que filtran alumnos, no cursos-horario. Su
 `excluded_ch` sólo deja de ser cero cuando vacían un curso entero. Doce columnas
 de puntos son ruido, y mezclar dos unidades en un mismo eje es un problema de
 fondo, no de densidad.
+
+### G8 — Dos unidades mezcladas en un mismo eje
+
+De 14 columnas, 12 no recortaban nada, y cinco eran criterios de **estudiante**.
+Todas publican `excluded_ch`, así que la celda mide lo mismo; lo que cambia es
+**qué filtra el criterio**. La solución no fue esconder columnas —eso es lo que
+este módulo lleva un loop evitando— sino **nombrar el grupo**: un criterio de
+estudiante sólo quita un curso-horario cuando lo vacía, y el rótulo lo dice.
+Agrupadas, cinco columnas en cero pasan a decir algo.
+
+Verificado: 5 de estudiante · 9 de curso-horario · 1 operativo.
+
+### G9 — Confirmar y descartar por criterio
+
+Era global —el docblock lo declaraba— y sin confirmación por criterio el embudo
+vivo no puede existir. El gesto global se conserva; deja de ser el único.
+
+`descartarCriterio` restaura **su** rama del borrador, no el borrador entero:
+descartar uno no puede llevarse por delante los cambios de los otros.
+
+### G10 — El confirmador dentro de la tarjeta, y el orden que lo cuenta
+
+Montado en las cuatro tarjetas con una sola prop. Verificado en la app: aparece
+dentro de «Matriculados / población», y al confirmar sólo ése desaparece y la
+barra global pasa a «Los criterios cambiaron».
+
+**Dos defectos míos en el camino.** El primero: pasé la prop al bloque pero
+**no al montaje** —el reemplazo no casó por indentación— y el confirmador no
+salía aunque hubiera un pendiente. El segundo importa más: **reimplementé el
+orden del embudo en una lista** y los criterios de estudiante, que en la cascada
+van primero, me quedaban al final. El confirmador anunciaba «11 criterios quedan
+en espera» sobre un orden que no es el que se aplica.
+
+El motor ya publica el suyo (`order_source: "motor_r"`). Ahora se lee de ahí y
+la lista del ADR queda de respaldo para cuando la cascada no está publicada.
+Medido: de **11** a **5** criterios en espera.
