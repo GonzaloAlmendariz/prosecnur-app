@@ -3454,6 +3454,33 @@ rotos.
 Y el detector va con la corrección de F65: ignora lo que vive dentro de un
 contenedor deslizable, porque ahí el contenido es alcanzable por diseño.
 
+### F90 — El modo oscuro no existe, y el contraste del claro supera AAA
+
+Fui a auditar la superficie en modo oscuro y **la premisa era falsa**: la app no
+tiene modo oscuro. El bloque `:root[data-theme="dark"]` de `tokens.css` define
+**cuatro tokens de repeats** (ADR 0030, fase 5) y nada en la aplicación fija ese
+atributo. Al forzarlo a mano, los tokens no cambian —`--pulso-text` sigue en
+`#17212f`—.
+
+Estuve a un paso de «reparar» el contraste de las cajas para un modo que no
+existe: los valores que medí —caja con fondo claro, punto de media casi
+invisible— eran de la paleta clara vista bajo una suposición equivocada.
+**Octava vez en la sesión que verifico la premisa antes de tocar**, y la que
+habría costado más trabajo inútil.
+
+**Lo que sí quedó medido**, en el único tema que la app tiene:
+
+| pieza introducida en el loop | contraste sobre el fondo |
+|---|---:|
+| Cuantiles | **14,86** |
+| Escala, extremos, «sin cursos-horario», nota de escala, unidad de la lista, grano declarado | **7,58** |
+
+El mínimo de WCAG AA es 4,5 y el de AAA 7. **Todas superan AAA**, porque usan los
+tokens `--pulso-text` y `--pulso-text-muted` en vez de colores propios — que es
+la razón por la que la casa prohíbe el hex hardcodeado.
+
+Si algún día se añade modo oscuro, estas piezas lo heredan sin tocarlas.
+
 ### Estado del loop
 
 | | |
