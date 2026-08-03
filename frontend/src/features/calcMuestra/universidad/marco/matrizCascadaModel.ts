@@ -20,6 +20,17 @@ export type CeldaMatriz = {
   criterioId: string;
   /** Cursos-horario que este paso quitó en esta facultad. */
   quita: number;
+  /**
+   * G39 · Cursos-horario que **llegan** a este paso en esta facultad.
+   *
+   * Gonzalo: «la barra "639 de 849 cursos-horario candidatos con estos
+   * criterios" debería estar en todos los criterios antes de introducir uno,
+   * para poder seguir el embudo en cascada».
+   *
+   * Sale del `before_ch` del motor y no de `universo − Σquita`: si un paso no
+   * publicara su facultad, la resta mentiría en silencio y el `before` no.
+   */
+  llegan: number;
   /** El paso corrió y no quitó nada, frente a no haber corrido aquí. */
   aplica: boolean;
   estado: EstadoCascada;
@@ -142,6 +153,7 @@ export function construirMatrizCascada(
       return {
         criterioId: paso.criterion_id,
         quita: f?.excluded_ch ?? 0,
+        llegan: f?.before_ch ?? 0,
         aplica: paso.applies,
         estado: estadoDe(key, i, idxEdit, facEdit),
       };
@@ -177,6 +189,7 @@ export function construirMatrizCascada(
     celdas: criterios.map((c, i) => ({
       criterioId: c.id,
       quita: filas.reduce((a, f) => a + (f.celdas[i]?.quita ?? 0), 0),
+      llegan: filas.reduce((a, f) => a + (f.celdas[i]?.llegan ?? 0), 0),
       aplica: pasos[i].applies,
       estado: "confirmado",
     })),
