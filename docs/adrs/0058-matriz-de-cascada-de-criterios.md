@@ -156,3 +156,22 @@ reconstruye.
 render no cuenta —si contara, la matriz entera parpadearía al abrir y el realce
 dejaría de significar «esto se movió»— y sólo entra por color y opacidad
 (patrón 12 del ADR 0057).
+
+
+### 6 · Un cambio pequeño en R no se siente como tocar lógica
+
+La suite de R se rompió **dos veces en la misma sesión, por la misma causa**.
+F71 renombró una etiqueta del motor; F114 añadió dos campos a una lista. Ninguno
+de los dos se sintió como «tocar lógica», así que en ambos corrí sólo las
+pruebas del frontend y ambos se subieron en rojo. El oráculo del payload avisó
+puntualmente las dos veces.
+
+Documentar el patrón después de F71 no evitó F114. El aviso existía y el hábito
+no cambió, porque el disparador —«¿esto es lógica?»— depende de un juicio que se
+toma justo cuando uno está pensando en otra cosa.
+
+**Mecanismo**: el disparador deja de ser un juicio y pasa a ser un hecho
+observable. **Si el diff toca `api/`, la suite del área se corre antes de
+commitear**, cueste lo que cueste el ciclo. Seis líneas en R y sesenta cuestan lo
+mismo de verificar, y el coste de no hacerlo ya se midió dos veces: ~40 commits
+en rojo la primera, ~10 la segunda.
