@@ -27,6 +27,7 @@ import { rangosFacultad, seleccionVariable } from "../../dominio";
 import { aulasSupervivientesFacultad } from "../../dominio/criteriosImpacto";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
+import { ControlRango } from "../criterios/ControlRango";
 import { ControlUmbral } from "../criterios/ControlUmbral";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
 import { evidenciaPorCategoria } from "../criterios/evidenciaPorCategoria";
@@ -206,7 +207,7 @@ function NivelFacultadCard({
   radiografiaCard,
   criterioEvidence,
   onRango,
-  confirmador,
+  confirmadorDe,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -217,10 +218,19 @@ function NivelFacultadCard({
   radiografiaCard: CriterioRadiografiaCard | null;
   criterioEvidence: CriterioFacultadEvidence | null;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
-  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
-      edita: confirmar es parte de decidir, no un trámite en otra zona. */
-  confirmador?: ReactNode;
+  /*
+   * G10 · El confirmador de ESTE criterio, dentro de la tarjeta que se edita.
+   *
+   * G35 · Recibe la **función**, no el nodo ya resuelto. Como nodo, el montaje
+   * le pasaba `confirmadorDe(variable.id)` de la tarjeta *vecina*
+   * (`condicion_curso`): mover una manija marcaba pendiente el rango, la
+   * tarjeta preguntaba por otro criterio y no aparecía confirmador alguno —el
+   * cambio se quedaba sin confirmar y la cascada nunca lo veía. Pidiendo su
+   * propio criterio, el error deja de ser expresable.
+   */
+  confirmadorDe?: (criterioId: string) => ReactNode;
 }) {
+  const confirmador = confirmadorDe?.(variable.id);
   const valores = (variable.values ?? []).slice().sort((a, b) => a - b);
   const min = valores.length ? valores[0] : 0;
   const max = valores.length ? valores[valores.length - 1] : 0;
@@ -277,29 +287,29 @@ function NivelFacultadCard({
             />
             <span>Limitar a un tramo de niveles (sin esto, la facultad admite todos)</span>
           </label>
+          {/* G35 · Dos manijas y la banda entre ellas, alineadas con el eje.
+              Decisión de Gonzalo: «el rango con dos manijas».
+
+              Sustituye a dos `<select>` que en este proyecto desplegaban **852
+              opciones cada uno** —el criterio está mapeado al código de curso,
+              no al nivel—, volcando la lista entera en la página. Lo que se
+              elige es un tramo, y la banda lo dice sin explicarlo.
+
+              (Este cambio se hizo una vez en G17 y **se perdió** al restaurar
+              este archivo para salir de un empalme roto. Revertir un fichero
+              para escapar de un error se lleva por delante lo que ya estaba
+              bien en él.) */}
           {activo && valores.length ? (
             <div className="cmv2-crit-range-inputs" data-active="true">
-              <select
-                className="cmv2-crit-range-select"
-                value={desde}
-                aria-label={`Nivel mínimo en ${facLabel}`}
-                onChange={(e) => onRango(facKey, [[Number(e.target.value), hasta]])}
-              >
-                {valores.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-              <span className="cmv2-crit-range-dash">–</span>
-              <select
-                className="cmv2-crit-range-select"
-                value={hasta}
-                aria-label={`Nivel máximo en ${facLabel}`}
-                onChange={(e) => onRango(facKey, [[desde, Number(e.target.value)]])}
-              >
-                {valores.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+              <ControlRango
+                alineadoConEje
+                desde={desde}
+                hasta={hasta}
+                min={valores[0]}
+                max={valores[valores.length - 1]}
+                etiqueta={`Niveles admitidos en ${facLabel}`}
+                onCambio={({ desde: d, hasta: h }) => onRango(facKey, [[d, h]])}
+              />
             </div>
           ) : null}
         </div>
@@ -746,7 +756,7 @@ export function FacultadDecisionBloque({
                 return [
                   card,
                   <NivelFacultadCard
-                    confirmador={confirmadorDe?.(variable.id)}
+                    confirmadorDe={confirmadorDe}
                     key={rangeVariable.id}
                     variable={rangeVariable}
                     seleccion={seleccion}

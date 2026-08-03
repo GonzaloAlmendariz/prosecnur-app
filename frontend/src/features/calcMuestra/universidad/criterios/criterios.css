@@ -819,27 +819,17 @@
 .cmv2-crit-range-row[data-active="true"] .cmv2-crit-range-fac { font-weight: var(--pulso-weight-semibold); }
 
 .cmv2-crit-range-apply { display: inline-flex; align-items: center; justify-content: center; }
-.cmv2-crit-range-inputs { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
-.cmv2-crit-range-dash { color: var(--pulso-text-muted); }
-
-.cmv2-crit-range-select {
-  height: 28px;
-  min-width: 66px;
-  padding: 0 8px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--cmv2-control-bg, var(--pulso-surface));
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
-}
-.cmv2-crit-range-select:hover { border-color: var(--cmv2-accent-border); }
-.cmv2-crit-range-select:focus-visible {
-  outline: 2px solid transparent;
-  border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 32%, transparent);
+/* G35 · El contenedor del rango ocupa la fila entera.
+   Era `inline-flex`: se dimensionó para dos `<select>` chicos y, al alojar el
+   control de dos manijas, dejaba la pista 395 px más corta que el gráfico que
+   debía acompañar. Un contenedor heredado de un control que ya no existe es
+   una restricción sin dueño. */
+.cmv2-crit-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  width: 100%;
 }
 
 .cmv2-crit-range-all {
