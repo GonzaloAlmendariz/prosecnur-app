@@ -2713,7 +2713,21 @@
 }
 
 @media (max-width: 1024px) {
-  .cmv2-chfp-apply { position: static; }
+  /*
+   * F106 · Esta regla era `position: static` y la relación estaba invertida.
+   *
+   * La barra lleva el estado del marco, incluido «Los criterios cambiaron — el
+   * marco vigente ya no los refleja». ADR 0057 acepta explícitamente que un
+   * criterio de veinte categorías ocupa **varias pantallas**; a 1024×600, el
+   * viewport más pequeño de la matriz de QA, ocupa más. Soltarla ahí significa
+   * que justo donde más scroll hay es donde antes desaparece el aviso de que
+   * las cifras están desactualizadas: se decide sin saberlo.
+   *
+   * El motivo original —una barra fija cuesta alto vertical en 600 px— es real,
+   * así que se paga con densidad, no quitándola: se compacta y sigue anclada.
+   */
+  .cmv2-chfp-apply { padding: 6px 10px; gap: 8px; }
+  .cmv2-chfp-apply .cmv2-crit-draft-summary { font-size: 11px; }
   .cmv2-chfp-bloque-head {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:

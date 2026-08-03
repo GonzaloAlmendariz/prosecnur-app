@@ -76,6 +76,36 @@ describe("CSS huérfano por pestaña — la deuda no sube (F101)", () => {
   }
 });
 
+describe("El estado del marco no se despega al hacer scroll (F106)", () => {
+  /**
+   * La barra `cmv2-chfp-apply` lleva «Los criterios cambiaron — el marco vigente
+   * ya no los refleja». ADR 0057 acepta que un criterio de veinte categorías
+   * ocupa **varias pantallas**, así que soltarla convierte ese aviso en algo que
+   * se ve una vez y desaparece: se decide con cifras desactualizadas sin saberlo.
+   *
+   * Estaba soltada exactamente en `max-width: 1024px` — el viewport más pequeño
+   * de la matriz de QA, donde la superficie es más alta y más falta hace.
+   */
+  it("ninguna media query suelta la barra de estado del marco", () => {
+    const css = readFileSync(join(RAIZ, "universidad", "marco", "marco.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    // Cualquier regla cuyo selector mencione la barra y le fije un `position`
+    // distinto de sticky. Se mira el bloque entero, no la línea: `position` y
+    // selector rara vez caen en la misma línea.
+    // El valor se EXTRAE y se compara; no se niega dentro del patrón. Un
+    // `/position\s*:\s*(?!sticky)/` parece decir lo mismo y no lo dice: `\s*`
+    // retrocede a cero espacios y el lookahead acaba comparando contra
+    // « sticky», que no es «sticky», así que marcaba la regla ya reparada.
+    const sueltan = [...css.matchAll(/([^{}]*\.cmv2-chfp-apply[^{}]*)\{([^}]*)\}/g)]
+      .filter(([, , cuerpo]) => {
+        const valor = /position\s*:\s*([a-z-]+)/.exec(cuerpo)?.[1];
+        return valor != null && valor !== "sticky";
+      })
+      .map(([, sel]) => sel.trim());
+    expect(sueltan).toEqual([]);
+  });
+});
+
 describe("Nada oculto en la superficie de criterios (ADR 0057)", () => {
   /**
    * «Si algo está oculto es un error de diseño». Un `<details>` cerrado esconde
