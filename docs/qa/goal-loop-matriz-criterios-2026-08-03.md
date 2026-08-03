@@ -46,3 +46,51 @@ Las dos son legítimas. La que Gonzalo pide es la segunda, y es la que falta.
 
 ## Bitácora
 
+
+### G4 — El componente, con la estética acordada
+
+Facultades en filas, criterios en columnas, cada celda una **resta**. La última
+fila suma y es la respuesta. El nombre de la facultad es `sticky`: al llegar a la
+última columna hay que seguir sabiendo de qué fila es la cifra.
+
+Resuelta la duda que quedaba abierta del mockup: **la celda en cero distingue
+dos cosas** que sin marca se ven igual — un criterio que corrió y no quitó nada
+(punto medio) y uno que esa facultad no aplica (guion).
+
+### G5 — Montada después de los criterios
+
+Va tras los bloques de facultad, como pediste: primero se decide en una facultad,
+luego se mira el acumulado. **No duplica el Panorama de arriba**: aquél es
+marginal —qué recuperaría si quito una regla— y sirve para elegir en qué facultad
+entrar; ésta es la procedencia.
+
+### G6 — La matriz destapó una inconsistencia de 7 cursos-horario
+
+Medido en la app con datos reales: la matriz sumaba **2.806** y el KPI de la
+cabecera decía **2.799**.
+
+No era el motor: era **mi filtro**. Las exclusiones manuales viajan en la cascada
+con `gate = false` porque no son un criterio metodológico, y al descartarlas la
+matriz **aterrizaba en un número que no eran los elegibles** — prometía contar de
+dónde salen y paraba un paso antes, dejando siete sin explicar.
+
+`cuadraConElMotor` tampoco lo cazó, porque comparaba contra el total de la propia
+cascada filtrada. Un guard que se compara consigo mismo siempre cuadra.
+
+### G7 — Los pasos operativos entran, marcados
+
+Siguen sin ser criterios, así que no se mezclan: filete de separación y rótulo en
+cursiva. Lo que no pueden es faltar.
+
+| medida | antes | después |
+|---|---:|---:|
+| Total de la matriz | 2.806 | **2.799** |
+| Coincide con el KPI de elegibles | no | **sí** |
+| Columnas operativas declaradas | 0 | **1** |
+
+**Pendiente detectado**: de 14 columnas, **12 no recortan nada en ninguna
+facultad**, y cinco de ellas son criterios de estudiante —Formación, Condición de
+matrícula, Edad, Facultad, Ciclo— que filtran alumnos, no cursos-horario. Su
+`excluded_ch` sólo deja de ser cero cuando vacían un curso entero. Doce columnas
+de puntos son ruido, y mezclar dos unidades en un mismo eje es un problema de
+fondo, no de densidad.

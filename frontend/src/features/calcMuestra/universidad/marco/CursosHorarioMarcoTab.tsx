@@ -66,6 +66,7 @@ import {
 } from "./criteriosRadiografiaModel";
 import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
 import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
+import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
 import "../criterios/criterios.css";
 import "./marco.css";
@@ -585,6 +586,22 @@ export function CursosHorarioMarcoTab({
                     />
                   ))}
                 </div>
+                {/* ADR 0058 · La matriz de cascada va DESPUÉS de los criterios.
+                    Gonzalo: «criterios por facultad es lo primero, yo escojo la
+                    facultad, ajusto mis criterios, y abajo es como la matriz de
+                    todo lo que se va haciendo y se va confirmando».
+
+                    No duplica el Panorama de arriba: aquél es marginal —qué
+                    recuperaría si quito una regla— y sirve para elegir en qué
+                    facultad entrar. Ésta es la procedencia: de dónde salieron
+                    los cursos-horario elegibles. */}
+                <section className="cmv2-chfp-transversal" aria-labelledby="cmv2-chfp-cascada-title">
+                  <header>
+                    <strong id="cmv2-chfp-cascada-title">De dónde salen los cursos-horario elegibles</strong>
+                    <span>cada criterio, lo que quita en cada facultad</span>
+                  </header>
+                  <MatrizCascadaCriterios cascada={i18b.cascade} />
+                </section>
                 </>
               )}
             </section>

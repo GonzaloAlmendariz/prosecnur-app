@@ -86,12 +86,29 @@ describe("construirMatrizCascada", () => {
     expect(m.filas[0].supervivencia).toBeNull();
   });
 
-  it("los pasos operativos no cuentan como recortes", () => {
-    // Fuera del denominador: sumarlos contaría dos veces lo mismo.
+  it("los pasos operativos ENTRAN, marcados: si no, la matriz no llega a los elegibles", () => {
+    // Medido en la app: la matriz sumaba 2.806 y el KPI decía 2.799. No era el
+    // motor — era el filtro. Las exclusiones manuales viajan con `gate = false`
+    // porque no son un criterio metodológico, y descartarlas hacía que la
+    // superficie aterrizara en un número que no eran los elegibles: prometía
+    // contar de dónde salen y paraba un paso antes.
     const c = cascada();
-    c.steps.push({ ...c.steps[0], criterion_id: "op", gate: false } as never);
+    c.steps.push({
+      ...c.steps[1], criterion_id: "manual_excluded", label: "Exclusiones manuales", gate: false,
+      faculties: [fac("ing", "Ingeniería", 264, 260), fac("gas", "Gastronomía", 8, 5)],
+      total: { before_ch: 272, after_ch: 265, excluded_ch: 7 },
+    } as never);
     const m = construirMatrizCascada(c)!;
-    expect(m.criterios.map((x) => x.id)).not.toContain("op");
+    const op = m.criterios.find((x) => x.id === "manual_excluded");
+    expect(op).toBeDefined();
+    expect(op!.operativo).toBe(true);
+    // Y la matriz aterriza en los elegibles de verdad.
+    expect(m.total.quedan).toBe(260 + 5);
+  });
+
+  it("un criterio metodológico no se marca como operativo", () => {
+    const m = construirMatrizCascada(cascada())!;
+    expect(m.criterios.every((c) => c.operativo === false)).toBe(true);
   });
 
   it("sin pasos no inventa una matriz vacía", () => {
