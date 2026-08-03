@@ -198,7 +198,7 @@
   background: var(--cmv2-accent);
   pointer-events: none;
 }
-.cmv2-rango-manija {
+input[type="range"].cmv2-rango-manija {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -210,9 +210,46 @@
      manija inferior deja de poder agarrarse. */
   pointer-events: none;
 }
-.cmv2-rango-manija::-webkit-slider-thumb {
+/*
+ * G37 · Estas reglas perdían contra `theme.css`, así que nunca se aplicaron.
+ *
+ * Medido en la app con la manija ampliada 5×: la de «desde» salía como un disco
+ * partido por una banda blanca. La banda es el **carril nativo del segundo
+ * input** —los dos se superponen a pantalla completa— pintándose encima del
+ * thumb del primero.
+ *
+ * Pero la causa está un paso antes. `theme.css` estiliza `input[type="range"]`
+ * globalmente, y ese selector tiene especificidad **(0,1,1)**: le gana a
+ * `.cmv2-rango-manija` **(0,1,0)**. Todo el estilo de manija escrito aquí
+ * —carril transparente, disco blanco con anillo— llevaba perdiendo en silencio
+ * desde F121: lo que se veía era el thumb del tema, con su `margin-top: -6px`
+ * calibrado para un carril de 6 px que aquí mide 22.
+ *
+ * Un CSS que no se aplica no da error ni deja hueco: pinta otra cosa parecida.
+ * Por eso el defecto sobrevivió a tres iteraciones de ajuste fino sobre estas
+ * mismas líneas. Se cualifican con el elemento para empatar la especificidad y
+ * ganar por orden.
+ */
+input[type="range"].cmv2-rango-manija::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  height: 100%;
+}
+input[type="range"].cmv2-rango-manija::-moz-range-track {
+  background: transparent;
+  border: 0;
+  height: 100%;
+}
+/* Firefox rellena solo el tramo recorrido; con dos inputs pintaría dos veces. */
+input[type="range"].cmv2-rango-manija::-moz-range-progress { background: transparent; }
+
+input[type="range"].cmv2-rango-manija::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
+  /* El tema lo sube 6 px para centrarlo en un carril de 6; el nuestro ocupa el
+     alto entero y ya viene centrado. */
+  margin-top: 0;
   width: 15px;
   height: 15px;
   border-radius: 50%;
@@ -221,7 +258,7 @@
   box-shadow: 0 1px 3px color-mix(in srgb, #000 26%, transparent);
   cursor: pointer;
 }
-.cmv2-rango-manija::-moz-range-thumb {
+input[type="range"].cmv2-rango-manija::-moz-range-thumb {
   pointer-events: auto;
   width: 15px;
   height: 15px;
@@ -230,8 +267,8 @@
   border: 2px solid var(--cmv2-accent);
   cursor: pointer;
 }
-.cmv2-rango-manija:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
-.cmv2-rango-manija:focus-visible::-moz-range-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
+input[type="range"].cmv2-rango-manija:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
+input[type="range"].cmv2-rango-manija:focus-visible::-moz-range-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
 
 .cmv2-rango-campos { display: flex; align-items: center; gap: 6px; }
 .cmv2-rango-guion { color: var(--pulso-text-muted); }
