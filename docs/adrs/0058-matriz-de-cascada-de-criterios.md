@@ -245,3 +245,25 @@ compartida y devuelve el ancho a las categorías que deciden. Lo que queda fuera
 no se esconde: el motor publica cuántos atípicos hay de cada lado y la caja los
 marca en su extremo. Medido tras el cambio: caja mediana del 8 % al **21 %**,
 eje de 200 a 60, nada fuera del contenedor.
+
+
+### 11 · Un boxplot de una observación no es un boxplot
+
+Cinco tarjetas dibujaban una caja de menos del 5 % del ancho. Tres de ellas
+tenían **uno o dos cursos-horario y los cuatro cuantiles idénticos** —
+30/30/30/30, 24/24/24/24. Con una observación no hay distribución: la caja mide
+cero por definición, la densidad es un pico y las cuatro etiquetas se apilan en
+cuatro filas repitiendo el mismo número.
+
+Lo grave no es que se vea mal. Es que **un punto disfrazado de resumen
+estadístico se lee con la autoridad del segundo**: cuatro cuantiles y una caja
+prometen una dispersión que no existe.
+
+**Mecanismo**: por debajo de cuatro observaciones —el mínimo para que un cuartil
+caiga sobre un punto distinto de la mediana— no se dibuja el gráfico. Se dice el
+valor y se declara por qué no hay resumen. `nSostiene` ausente **no** es
+«pocos», es «no lo sé»: callar el gráfico por un dato que no llegó escondería
+distribuciones válidas.
+
+Medido tras el cambio: 15 cajas dibujadas de 19, cajas por debajo del 5 % de
+cinco a **una**.

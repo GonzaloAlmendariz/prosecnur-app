@@ -413,3 +413,44 @@ describe("DistribucionCategoria · el solape es imposible por construcción (G18
     expect(html).not.toContain('data-fila="1"');
   });
 });
+
+describe("DistribucionCategoria · pocos cursos-horario no tienen distribución (G27)", () => {
+  const pocos = (n: number) =>
+    renderToStaticMarkup(
+      <DistribucionCategoria
+        elegible={{ nCh: n, distribucion: dist({ p25: 30, p50: 30, p75: 30, media: 30 }) }}
+        dominio={dominio}
+        nSostiene={n}
+      />,
+    );
+
+  it("con un solo curso-horario no dibuja caja ni cuantiles", () => {
+    // Medido en la app: tres tarjetas mostraban 30/30/30/30 en cuatro filas.
+    // Un boxplot de una observación es un punto disfrazado de resumen
+    // estadístico, y se lee con la autoridad del segundo.
+    const html = pocos(1);
+    expect(html).not.toContain("cmv2-dist-caja");
+    expect(html).not.toContain("cmv2-dist-cuantiles");
+    expect(html).toContain("Un solo curso-horario");
+    expect(html).toContain("muy pocos para resumir");
+  });
+
+  it("con tres tampoco: los cuartiles caen sobre los mismos puntos", () => {
+    const html = pocos(3);
+    expect(html).not.toContain("cmv2-dist-caja");
+    expect(html).toContain("3 cursos-horario");
+  });
+
+  it("con cuatro ya se dibuja: es el mínimo para que un cuartil signifique algo", () => {
+    const html = pocos(4);
+    expect(html).toContain("cmv2-dist-caja");
+    expect(html).not.toContain("muy pocos para resumir");
+  });
+
+  it("sin el conteo no se calla el gráfico: se dibuja lo que hay", () => {
+    // `nSostiene` ausente no es «pocos»: es «no lo sé». Callar el gráfico por
+    // un dato que no llegó escondería distribuciones perfectamente válidas.
+    const html = render();
+    expect(html).toContain("cmv2-dist-caja");
+  });
+});
