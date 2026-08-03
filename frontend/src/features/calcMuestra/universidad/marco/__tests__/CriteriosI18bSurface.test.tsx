@@ -647,9 +647,15 @@ describe("superficie I18b de criterios", () => {
     // criterio— y todo lo que aportaba vive ya en la tarjeta de categoría
     // (matrículas y CH con dato en F95, la leyenda en F96, el contraste en F97).
     expect(classroomRoute).not.toContain('aria-label="Radiografía de session_type en Ingeniería"');
-    expect(classroomRoute.match(/data-decision="transversal"/g)).toHaveLength(2);
-    expect(classroomRoute).toContain("<strong>enrolled_total</strong>");
-    expect(classroomRoute).toContain("<strong>Composición del curso-horario</strong>");
+    // G29 · Gonzalo: «¿estas dos no deberías [ser] sólo una?». «Matriculados /
+    // población» y «Composición» salían DOS veces cada una —control y evidencia,
+    // con el mismo rótulo— y se contaban dos veces en el embudo. La evidencia
+    // vive ahora dentro de su control.
+    expect(classroomRoute.match(/data-decision="transversal"/g) ?? []).toHaveLength(0);
+    // Y ningún criterio puede aparecer repetido en la lista.
+    const titulos = [...classroomRoute.matchAll(/class="cmv2-chfp-crit-head-label"[\s\S]{0,200}?<strong>([^<]+)<\/strong>/g)]
+      .map((m) => m[1].trim());
+    expect(new Set(titulos).size).toBe(titulos.length);
     // F41 · La matriz dejó de plegarse; G20 la retiró del todo. Lo que aquí se
     // vigilaba —que nada quede oculto— sigue vigente y se comprueba abajo con
     // la ausencia de `<details>`.

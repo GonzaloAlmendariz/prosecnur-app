@@ -267,3 +267,36 @@ distribuciones válidas.
 
 Medido tras el cambio: 15 cajas dibujadas de 19, cajas por debajo del 5 % de
 cinco a **una**.
+
+
+### 12 · El mismo criterio con el mismo rótulo, dos veces
+
+«Matriculados / población» y «Composición del curso-horario» aparecían **dos
+veces cada uno** en el bloque de facultad: una como control y otra como sección
+de evidencia con idéntico título. Leído de arriba abajo, el embudo tenía ocho
+turnos donde hay seis, y dos criterios contaban doble.
+
+Nadie lo detectó antes porque las dos tarjetas son legítimas por separado —una
+edita, la otra informa— y sólo juntas mienten sobre cuántos criterios hay.
+
+**Mecanismo**: un caso comprueba que **ningún rótulo de criterio se repite** en
+la ruta. Es la clase entera, no el par: cualquier control que gane una tarjeta de
+evidencia con su nombre volvería a duplicarlo.
+
+### 13 · Dos cosas con nombre de mínimo, y sólo una decide
+
+Convivían «Matriculados / población» y «Mínimo de elegibles por curso-horario».
+El primero llegaba además **sin columna mapeada** en el proyecto abierto — un
+criterio que no puede actuar ocupando un turno del embudo.
+
+Gonzalo: «el criterio debe ser Mínimo de alumnos elegibles, y como ya
+conversamos, es el primer criterio con su tarjeta estándar».
+
+Y estaba **séptimo**: después de modalidad, condición, nivel y tipo de sesión.
+Es el criterio que más recorta —en Gastronomía se lleva 36 de 45
+cursos-horario— y llegaba cuando ya se habían tomado cuatro decisiones sobre un
+marco que él iba a cambiar.
+
+**Mecanismo**: el orden del embudo se declara en un solo sitio y el mínimo abre
+la lista. Dos criterios que suenan igual se distinguen por lo que filtran, no
+por su nombre.
