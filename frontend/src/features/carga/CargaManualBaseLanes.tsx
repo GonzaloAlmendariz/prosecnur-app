@@ -43,8 +43,16 @@ export function CargaManualBaseLanes({
     base.source_kind !== "kobo_repeat" && !base.parent_base
   ));
   const [drafts, setDrafts] = useState<Record<number, LaneDraft>>({});
+  // Siempre queda un carril libre detrás de las bases ya materializadas. Sin él,
+  // reabrir un proyecto congelaba el estudio en las bases que ya tenía:
+  // `plannedInputCount` es estado efímero del store (default 1) y no se deriva
+  // del .pulso, así que un estudio con N bases mostraba N carriles todos
+  // ocupados y ningún destino nuevo. El tope real lo pone el estudio
+  // (`max_bases`), que llega por `disabled`; el plan sólo previene, no limita.
+  // El carril extra se renderiza aunque `disabled` esté activo para que la lista
+  // no cambie de alto durante una materialización (C2).
   const lanes = Array.from(
-    { length: Math.max(plannedInputCount, materializedBases.length) },
+    { length: Math.max(plannedInputCount, materializedBases.length + 1) },
     (_, index) => ({ index, base: materializedBases[index] ?? null }),
   );
 
