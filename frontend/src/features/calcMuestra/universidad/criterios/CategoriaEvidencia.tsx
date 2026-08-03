@@ -129,12 +129,32 @@ export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
  * Todo lo que ADR 0057 exige de una categoría: cuántos CH, cuántos alumnos, la
  * forma de su distribución con sus cuantiles, y qué se espera que asista.
  */
+/**
+ * F115 · Dos variantes, porque no todo lo que se decide es una categoría.
+ *
+ * Gonzalo: «hay algunos selectores que no son criterios como tal; por ejemplo,
+ * el último es simplemente escoger cada uno de los cursos-horario e
+ * individualmente validar si vamos a considerarlo o no. Para ese caso no
+ * podemos tener información a nivel de densidad ni de cursos-horario totales,
+ * pero sí precisión acerca de cuántos alumnos son elegibles y, en caso se tenga
+ * asistencia histórica previa, cuánto es y cuánto representa».
+ *
+ * - `categoria` — un conjunto de cursos-horario: caben las cuatro cifras y las
+ *   cuatro capas del gráfico.
+ * - `unidad` — **un** curso-horario: «CH totales» valdría 1 y una distribución
+ *   de un solo valor no tiene forma. Queda lo que sí decide: cuántos alumnos
+ *   elegibles tiene y cuántos se esperan presentes.
+ */
+export type VarianteEvidencia = "categoria" | "unidad";
+
 export function CategoriaEvidencia({
   aporte,
   dominio,
+  variante = "categoria",
 }: {
   aporte: AporteCategoria;
   dominio: DominioCategorias | null;
+  variante?: VarianteEvidencia;
 }) {
   // Una categoría sin cursos-horario no tiene nada que distribuir: cinco
   // cuantiles en guiones ocupan espacio y no informan.
@@ -163,6 +183,35 @@ export function CategoriaEvidencia({
     typeof aporte.tasaAsistencia === "number"
       ? Math.round(aporte.elegibles * aporte.tasaAsistencia)
       : null;
+
+  if (variante === "unidad") {
+    return (
+      <div className="cmv2-cat-evidencia" data-variante="unidad">
+        <div className="cmv2-cat-cifras" data-columnas="2">
+          <span title="Estudiantes únicos elegibles de este curso-horario">
+            <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>
+            {plural(aporte.elegibles, "alumno elegible", "alumnos elegibles")}
+          </span>
+          {/* La celda se reserva aunque no haya asistencia histórica: es la
+              regla de alineación de F114, y aquí pesa más porque la lista de
+              cursos-horario es larga y el ojo baja por la columna. */}
+          <span title="Asistencia histórica observada, aplicada a los alumnos elegibles de este curso-horario">
+            {presentes != null ? (
+              <>
+                <strong>~{fmtInt(presentes)}</strong>
+                presentes<em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% de asistencia histórica</em>
+              </>
+            ) : (
+              <>
+                <strong>—</strong>
+                presentes<em>sin asistencia histórica</em>
+              </>
+            )}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cmv2-cat-evidencia">

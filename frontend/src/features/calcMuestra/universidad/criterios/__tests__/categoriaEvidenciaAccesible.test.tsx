@@ -61,8 +61,10 @@ describe("CategoriaEvidencia · accesibilidad", () => {
     // La sonda anterior buscaba `cmv2-dist-ticks`; con `indexOf` en −1 el
     // `slice` devolvía el último carácter y la aserción fallaba sin decir por
     // qué. Se comprueba la EXISTENCIA antes de medir sobre ella.
-    expect(html).toContain("cmv2-dist-ticks");
-    const ticks = html.slice(html.indexOf("cmv2-dist-ticks"));
-    expect(ticks.slice(0, 80)).toContain('aria-hidden="true"');
+    // F116 · Los ticks propios de la fila desaparecieron: las guías
+    // transversales los sustituyen, y son ellas las que no deben dictarse.
+    expect(html).toContain("cmv2-dist-guias");
+    const guias = html.slice(html.indexOf("cmv2-dist-guias"));
+    expect(guias.slice(0, 80)).toContain('aria-hidden="true"');
   });
 });

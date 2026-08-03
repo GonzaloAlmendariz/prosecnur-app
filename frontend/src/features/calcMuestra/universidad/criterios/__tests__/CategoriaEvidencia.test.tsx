@@ -51,8 +51,8 @@ describe("CategoriaEvidencia", () => {
     expect(html).toContain("CH elegibles");
     expect(html).toContain("alumnos elegibles");
     expect(html).toContain("una persona cuenta una vez");
-    expect(html).toContain("P50");
-    expect(html).toContain("P25");
+    expect(html).toContain("Mediana");
+    expect(html).toContain("Q1");
     // Presentes esperados = elegibles × tasa, redondeado. 3400 × 0,7 = 2.380.
     // F112 · La tasa es un parámetro del marco aplicado por igual a todas las
     // categorías, no una medición de ésta. Se dice de qué a qué convierte, con
@@ -150,7 +150,7 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
       />,
     );
     expect(html).toContain("sin cursos-horario en esta facultad");
-    expect(html).not.toContain("P50");
+    expect(html).not.toContain("Mediana");
     expect(html).not.toContain("cmv2-dist-caja");
   });
 
@@ -163,7 +163,7 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
         dominio={{ min: 10, max: 60 }}
       />,
     );
-    expect(html).not.toContain("P50");
+    expect(html).not.toContain("Mediana");
     expect(html).not.toContain("cmv2-cat-caja");
   });
 
@@ -171,7 +171,7 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
     const html = renderToStaticMarkup(
       <CategoriaEvidencia aporte={aporte()} dominio={{ min: 10, max: 60 }} />,
     );
-    expect(html).toContain("P50");
+    expect(html).toContain("Mediana");
     expect(html).not.toContain("sin cursos-horario en esta facultad");
   });
 });
@@ -295,5 +295,56 @@ describe("CategoriaEvidencia · lo que F112 retiró", () => {
     // Pero el total sigue a la vista, que es lo que Gonzalo pidió conservar.
     expect(html).toContain("849");
     expect(html).toContain("CH totales");
+  });
+});
+
+describe("CategoriaEvidencia · variante unidad (F115)", () => {
+  // Gonzalo: «hay algunos selectores que no son criterios como tal; el último es
+  // escoger cada curso-horario e individualmente validar si va a entrar. Para
+  // ese caso no podemos tener densidad ni cursos-horario totales, pero sí
+  // cuántos alumnos son elegibles y, si hay asistencia histórica, cuánto es y
+  // cuánto representa».
+  const unidad = (over: Partial<AporteCategoria> = {}) =>
+    renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 1, chContraste: 1, elegibles: 34, tasaAsistencia: 0.78, ...over })}
+        dominio={{ min: 0, max: 60 }}
+        variante="unidad"
+      />,
+    );
+
+  it("no dibuja gráfico: un solo curso-horario no tiene distribución", () => {
+    const html = unidad();
+    expect(html).not.toContain("cmv2-dist-densidad");
+    expect(html).not.toContain("cmv2-dist-caja");
+    expect(html).not.toContain("cmv2-dist-eje");
+  });
+
+  it("no muestra CH totales ni elegibles: valdrían 1", () => {
+    const html = unidad();
+    expect(html).not.toContain("CH totales");
+    expect(html).not.toContain("CH elegibles");
+  });
+
+  it("da la precisión que sí decide: alumnos y presentes esperados", () => {
+    const html = unidad();
+    expect(html).toContain("34");
+    expect(html).toContain("alumnos elegibles");
+    // 34 × 0,78 = 26,52 → 27.
+    expect(html).toContain("27");
+    expect(html).toContain("78% de asistencia histórica");
+  });
+
+  it("sin asistencia histórica lo declara y conserva la celda", () => {
+    // La lista de cursos-horario es larga: si la celda desapareciera, cada fila
+    // desplazaría a la siguiente y la columna dejaría de leerse en vertical.
+    const html = unidad({ tasaAsistencia: null });
+    expect(html).toContain("sin asistencia histórica");
+    const i = html.indexOf('class="cmv2-cat-cifras"');
+    expect((html.slice(i).match(/<span/g) ?? []).length).toBe(2);
+  });
+
+  it("un solo alumno concuerda en singular", () => {
+    expect(unidad({ elegibles: 1 })).toContain("alumno elegible");
   });
 });
