@@ -288,38 +288,63 @@ export function CriterioComposicionCard({
           Se guarda al instante; recalcula el marco (botón de arriba) para ver su efecto en los cursos-horario.
         </span>
 
-        <div className="cmv2-crit-legacy">
-          {/* G33 · Era un botón que plegaba. Sin nada que plegar es un rótulo:
-              un control que no controla nada invita a un click que no hace
-              nada. */}
-          <p className="cmv2-crit-legacy-titulo">
-            Prevalencia de elegibles (referencial){legacyOn ? " · activa" : ""}
+        {/*
+          * G39 · Qué es esta regla y por qué está aparte.
+          *
+          * Gonzalo: «no entiendo bien el propósito de referencial y gris».
+          *
+          * Tenía razón en las dos mitades. El texto decía lo que la regla **no
+          * es** —«métrica referencial heredada», «no forma parte de la
+          * composición»— y nunca lo que hace; y el gris la presentaba como
+          * secundaria cuando, encendida, **recorta el marco igual que los otros
+          * dos pasos**. Contar su procedencia en vez de su función es útil para
+          * quien mantiene el código y no para quien decide.
+          *
+          * Va aparte porque mide otra cosa: los dos pasos preguntan si el curso
+          * es homogéneo (misma facultad, mismo nivel); ésta pregunta cuánta de
+          * su matrícula es elegible. No es un tercer paso de la composición —
+          * aplicarla en orden con las otras no significa nada—, pero sí es un
+          * criterio con su propio corte, y se presenta como tal.
+          */}
+        <div className="cmv2-crit-otra-regla">
+          <p className="cmv2-crit-otra-regla-eyebrow">
+            Otra regla · mide la matrícula, no la homogeneidad
           </p>
-          {true ? (
-            <div className="cmv2-crit-legacy-body">
-              <div className="cmv2-crit-legacy-row">
-                <div className="cmv2-crit-paso-copy">
-                  <strong>Prevalencia de elegibles (referencial)</strong>
-                  <span>
-                    Proporción de elegibles sobre la matrícula total del curso-horario. Es una métrica referencial
-                    heredada: <strong>no forma parte de la composición</strong> y normalmente queda apagada.
-                  </span>
-                </div>
-                <InputPct
-                  value={config.min_prevalence_pct}
-                  fallback={0.8}
-                  disabled={!legacyOn}
-                  ariaLabel="Porcentaje mínimo de prevalencia de elegibles (referencial)"
-                  onChange={(prop) => onPatch({ min_prevalence_pct: prop })}
-                />
-                <Switch
-                  checked={legacyOn}
-                  ariaLabel="Exigir prevalencia de elegibles (métrica referencial legacy)"
-                  onToggle={() => onPatch({ require_min_prevalence: !legacyOn })}
-                />
-              </div>
+          {/*
+            * Clase propia y no `cmv2-crit-paso`: comparte el layout pero **no es
+            * un paso de la composición**, y decirlo con la clase importa. El
+            * contrato geométrico cuenta los pasos por esa clase, así que
+            * reusarla habría hecho que la superficie declarara tres pasos
+            * mientras su propio rótulo dice que son dos y otra regla aparte.
+            * Una clase es una afirmación sobre qué es la cosa (C1).
+            */}
+          <div className="cmv2-crit-otra-regla-fila" data-active={legacyOn ? "true" : "false"}>
+            <div className="cmv2-crit-paso-copy">
+              <strong>Prevalencia de elegibles</strong>
+              <span>
+                Descarta los cursos-horario donde los alumnos elegibles son menos del{" "}
+                {pctDe(config.min_prevalence_pct, 0.8)}% de la matrícula total. Sirve para no
+                trabajar cursos donde el público del estudio es una minoría; no dice nada sobre
+                si el curso pertenece a una facultad o a un nivel.
+              </span>
             </div>
-          ) : null}
+            <InputPct
+              value={config.min_prevalence_pct}
+              fallback={0.8}
+              disabled={!legacyOn}
+              ariaLabel="Porcentaje mínimo de prevalencia de elegibles"
+              onChange={(prop) => onPatch({ min_prevalence_pct: prop })}
+            />
+            <Switch
+              checked={legacyOn}
+              ariaLabel="Exigir prevalencia mínima de elegibles"
+              onToggle={() => onPatch({ require_min_prevalence: !legacyOn })}
+            />
+            <EvidenciaPaso
+              aporte={evidenciaDe?.("c7") ?? null}
+              umbral={pctDe(config.min_prevalence_pct, 0.8)}
+            />
+          </div>
         </div>
       </div>
       ) : null}
