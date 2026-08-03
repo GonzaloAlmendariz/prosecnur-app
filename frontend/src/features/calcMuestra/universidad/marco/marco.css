@@ -3375,3 +3375,66 @@
 /* G16 · Retiradas las reglas del campo numerico suelto del minimo: lo sustituyo
    el nivelador (deslizador + campo), que trae su propia hoja. Las cazo el guard
    de huerfanas en la misma corrida — para eso existe. */
+
+/*
+ * G39 · La barra de contexto del bloque de decisión, con el control de plegado.
+ *
+ * El texto explica y el botón actúa: van en la misma línea porque el botón es
+ * una herramienta sobre lo que el texto describe, no una acción independiente.
+ * El botón queda a la derecha y en peso secundario — la acción principal de esta
+ * pestaña es decidir criterios, no plegarlos.
+ */
+.cmv2-chfp-decision-barra {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.cmv2-chfp-decision-barra .cmv2-chfp-decision-hint { flex: 1 1 auto; margin: 0; }
+.cmv2-chfp-plegar-todos {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-chfp-plegar-todos:hover {
+  border-color: var(--cmv2-accent-border);
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-plegar-todos:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Cabecera plegable de la tarjeta de composición: mismo gesto que el resto de
+   criterios, así que el mismo chevron que gira. */
+.cmv2-crit-card-head--plegable {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cmv2-crit-card-chevron {
+  display: inline-flex;
+  margin-right: 6px;
+  color: var(--pulso-text-muted);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-crit-card[data-open] .cmv2-crit-card-chevron { transform: rotate(0deg); }
+.cmv2-crit-card:not([data-open]) .cmv2-crit-card-chevron { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-crit-card-chevron { transition: none; }
+}

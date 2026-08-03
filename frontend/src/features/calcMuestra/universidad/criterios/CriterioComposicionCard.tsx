@@ -26,7 +26,10 @@ import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { CategoriaEvidencia, dominioCategorias } from "./CategoriaEvidencia";
 import type { AporteCategoria } from "./controles";
 import { ControlUmbral } from "./ControlUmbral";
+import { ChevronDown } from "../../../../vendor/lucide-react";
+import { fmtInt } from "../../sharedCore";
 import { Switch } from "./Switch";
+import { usarPlegado } from "./usarPlegado";
 
 /**
  * G38 · La evidencia de cada paso, dentro del paso.
@@ -40,6 +43,39 @@ import { Switch } from "./Switch";
  * escala 0–100, así que la caja y la densidad describen la composición misma,
  * no los alumnos elegibles.
  */
+/**
+ * G39 · Qué cuesta la posición en la que está el control, ahora mismo.
+ *
+ * Gonzalo: «el slider está súper bien, pero no hay forma de saber cuántas CH
+ * descartamos (y su porcentaje con que nos quedamos respecto al total) para
+ * poder tomar una decisión más meditada, a ver si aplicamos más o menos
+ * porcentaje mínimo».
+ *
+ * La cifra se **consulta** en la tabla que publica el motor, no se calcula: son
+ * los descartes exactos en cada una de las 21 posiciones que el control puede
+ * tomar. Sumar los cubos del histograma parecía equivalente y falla justo en el
+ * umbral —son cerrados por la derecha, así que un curso-horario que está
+ * exactamente en el corte caería del lado de los descartados aunque el criterio
+ * lo admita— y en el extremo de la escala no hay convención que lo arregle.
+ */
+function CosteDelCorte({ tabla, umbral }: {
+  tabla: { cortes: number[]; fuera: number[]; total: number } | null | undefined;
+  umbral: number;
+}) {
+  if (!tabla || tabla.total <= 0) return null;
+  const i = tabla.cortes.indexOf(umbral);
+  if (i < 0) return null;
+  const fuera = tabla.fuera[i];
+  const quedan = tabla.total - fuera;
+  const pct = Math.round((quedan / tabla.total) * 100);
+  return (
+    <p className="cmv2-crit-coste" role="status">
+      Con <strong>{umbral}%</strong> descartas <strong>{fmtInt(fuera)}</strong> de {fmtInt(tabla.total)} cursos-horario
+      <span className="cmv2-crit-coste-queda">te quedas con el {pct}%</span>
+    </p>
+  );
+}
+
 function EvidenciaPaso({ aporte, umbral }: { aporte: AporteCategoria | null; umbral: number }) {
   if (!aporte) return null;
   const conUmbral: AporteCategoria = { ...aporte, umbral: { valor: umbral } };
@@ -48,7 +84,12 @@ function EvidenciaPaso({ aporte, umbral }: { aporte: AporteCategoria | null; umb
   // la publica y no del rango de esta única distribución.
   const dominio = dominioCategorias([conUmbral], umbral);
   if (!dominio) return null;
-  return <CategoriaEvidencia aporte={conUmbral} dominio={dominio} variante="proporcion" />;
+  return (
+    <>
+      <CosteDelCorte tabla={aporte.descartePorCorte} umbral={umbral} />
+      <CategoriaEvidencia aporte={conUmbral} dominio={dominio} variante="proporcion" />
+    </>
+  );
 }
 
 /** Proporción 0–1 → porcentaje entero para el input. */
@@ -121,24 +162,39 @@ export function CriterioComposicionCard({
   // desde detrás de un plegado es la peor versión del defecto que este ADR
   // combate: no es que cueste encontrarla, es que el usuario no sabe que está
   /*
-   * G33 · Ya no se pliega. Gonzalo: «quedamos en que ya ninguno se colapsa».
+   * G33 → G39 · De «no se pliega» a «se pliega, pero abierta».
    *
-   * El argumento anterior —«apagada sigue contenida, no es contenido oculto,
-   * es una opción inactiva»— es exactamente la racionalización que la regla
-   * prohíbe: quien no la abre no sabe que existe, y una métrica que puede
-   * cambiar un denominador no puede depender de que alguien la descubra.
+   * G33 quitó el plegado porque la métrica heredada vivía escondida tras un
+   * control cerrado: quien no lo abría no sabía que existía, y una regla que
+   * puede recortar el marco no puede depender de que alguien la descubra.
    *
-   * Se queda visible y apagada, que es lo que de verdad significa «inactiva».
+   * Gonzalo ahora: «Composición del curso-horario es el único criterio que no
+   * tiene la habilidad de comprimirse cuando debería; si bien todos están
+   * abiertos por defecto, también deberían poder comprimirse». No es una
+   * marcha atrás — es la distinción que faltaba: **plegado por defecto** esconde;
+   * **plegable** es una herramienta del lector sobre una superficie larga. Lo
+   * que la regla prohíbe es lo primero.
+   *
+   * Así que abre siempre y se puede cerrar, igual que los demás criterios.
    */
+  const [abierto, setAbierto] = usarPlegado(true);
   const paso1 = config.require_faculty_prevalence ?? false;
   const paso2 = config.require_cycle_homogeneity ?? false;
   const activos = (paso1 ? 1 : 0) + (paso2 ? 1 : 0);
   const legacyOn = config.require_min_prevalence ?? false;
 
   return (
-    <article className="cmv2-crit-card" data-scope="aula" data-kind="pasos" data-pending="false">
-      <header className="cmv2-crit-card-head">
+    <article className="cmv2-crit-card" data-scope="aula" data-kind="pasos" data-pending="false" data-open={abierto || undefined}>
+      <button
+        type="button"
+        className="cmv2-crit-card-head cmv2-crit-card-head--plegable"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+      >
         <div className="cmv2-crit-card-title">
+          <span className="cmv2-crit-card-chevron" aria-hidden="true">
+            <ChevronDown size={14} />
+          </span>
           <strong>Composición del curso-horario</strong>
           <span className="cmv2-crit-card-meta">
             <span className="cmv2-crit-col">regla común · dos pasos en orden</span>
@@ -149,8 +205,9 @@ export function CriterioComposicionCard({
             {activos === 0 ? "apagado · no filtra" : `${activos} de 2 pasos activos`}
           </span>
         </div>
-      </header>
+      </button>
 
+      {abierto ? (
       <div className="cmv2-crit-card-body">
         <p className="cmv2-crit-paso-intro">
           Exige que cada curso-horario esté compuesto por estudiantes de la facultad y el nivel del curso. Se aplica
@@ -265,6 +322,7 @@ export function CriterioComposicionCard({
           ) : null}
         </div>
       </div>
+      ) : null}
     </article>
   );
 }

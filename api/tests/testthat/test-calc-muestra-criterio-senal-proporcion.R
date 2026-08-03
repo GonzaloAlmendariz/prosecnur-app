@@ -96,3 +96,40 @@ testthat::test_that("la whitelist deja pasar el contrato v2 entero", {
   # corrigió: la cuenta la hace él, y por eso está donde está.)
   testthat::expect_equal(s$n_fuera, 3L)
 })
+
+testthat::test_that("la tabla de descartes es exacta en cada posición del control", {
+  # G39 · Gonzalo: «no hay forma de saber cuántas CH descartamos (y su porcentaje
+  # con que nos quedamos respecto al total) para poder tomar una decisión más
+  # meditada». Esa cifra tiene que cambiar mientras se arrastra, y el motor no
+  # puede recalcularla por cada píxel.
+  #
+  # Sumar los cubos del histograma en el cliente parecía suficiente y falla justo
+  # en el umbral: los cubos son cerrados por la derecha, así que un curso-horario
+  # que está EXACTAMENTE en el corte cae del lado de los descartados aunque el
+  # criterio lo admita (`>= umbral`). Medido con umbral 80: el cliente sumaba 5 y
+  # el motor contaba 4. En el extremo de la escala no hay convención que lo
+  # arregle. Así que la cuenta la hace quien tiene los datos, en los 21 cortes.
+  v <- c(0.42, 0.55, 0.61, 0.78, 0.80, 0.83, 0.91, 0.95, 1.00)
+  d <- .cm_criterio_radiografia_signal_distribution(v, "proporcion", umbral = 0.80)
+  testthat::expect_equal(length(d$n_fuera_por_corte), 21L)
+  for (u in seq(0, 100, by = 5)) {
+    i <- which(d$hist_breaks == u)
+    testthat::expect_equal(
+      as.integer(d$n_fuera_por_corte[[i]]),
+      as.integer(sum(v * 100 < u)),
+      info = paste("corte", u)
+    )
+  }
+  # El corte aplicado y la tabla dicen lo mismo: una sola verdad, dos accesos.
+  testthat::expect_equal(
+    as.integer(d$n_fuera),
+    as.integer(d$n_fuera_por_corte[[which(d$hist_breaks == 80)]])
+  )
+})
+
+testthat::test_that("una señal que no es proporción no publica tabla de cortes", {
+  # El control de un conteo no se mueve en pasos fijos sobre una escala cerrada,
+  # así que la tabla no tendría dónde indexarse. Vacía es «no aplica».
+  d <- .cm_criterio_radiografia_signal_distribution(c(10, 20, 30), "valor_criterio")
+  testthat::expect_equal(length(d$n_fuera_por_corte), 0L)
+})

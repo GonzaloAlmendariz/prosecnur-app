@@ -13,7 +13,7 @@
  * recalcular (la barra global de la pestaña).
  */
 import { useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Lightbulb } from "lucide-react";
 import type {
   CalcMuestraAulasCriteriosRadiografia,
   CalcMuestraAulasExploracion,
@@ -35,6 +35,13 @@ import { tasaAsistencia } from "../criterios/minElegiblesModel";
 import { Switch } from "../criterios/Switch";
 import { filasPorFacultad, SESSION_TYPE_VARIABLE_ID } from "../criterios/tipoSesionModel";
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
+import {
+  ORDEN_PLEGADO_INICIAL,
+  PlegadoContexto,
+  siguienteOrden,
+  usarPlegado,
+  type OrdenPlegado,
+} from "../criterios/usarPlegado";
 import { AulasFinalesCard } from "./AulasFinalesCard";
 import { FacultadRadiografiaCard } from "./FacultadRadiografiaCard";
 import {
@@ -112,7 +119,7 @@ function CriterioFacultadCard({
   // criterio abre a ~954 px y plegarlos dejaba ocho cabeceras de 50 px que
   // esconden el switch junto a su gráfico —y son una sola pieza, no dos—.
   // Medido: ocho criterios cerrados por facultad.
-  const [abierto, setAbierto] = useState(true);
+  const [abierto, setAbierto] = usarPlegado(true);
   // Criterios con radiografía propia arriba (tabla de tipos o barra apilada de
   // condición): el toggle no repite la mini-barra de proporción —evita el %
   // doble e inconsistente entre la radiografía y el toggle— y un rótulo separa
@@ -267,7 +274,7 @@ function NivelFacultadCard({
   const max = valores.length ? valores[valores.length - 1] : 0;
   const rangos = rangosFacultad(seleccion, facKey);
   const activo = rangos.length > 0;
-  const [abierto, setAbierto] = useState(true);
+  const [abierto, setAbierto] = usarPlegado(true);
   const desde = activo ? rangos[0][0] : min;
   const hasta = activo ? rangos[0][1] : max;
   return (
@@ -375,7 +382,7 @@ function MinFacultadCard({
   confirmador?: ReactNode;
 }) {
   const propio = minimoFacultad(seleccion, minKey);
-  const [abierto, setAbierto] = useState(true);
+  const [abierto, setAbierto] = usarPlegado(true);
   const base = propio ?? umbralGeneral;
   /*
    * G16 · Tope del nivelador, del dato y no de una constante.
@@ -540,7 +547,7 @@ function CriterioTransversalFacultadCard({
       edita: confirmar es parte de decidir, no un trámite en otra zona. */
   confirmador?: ReactNode;
 }) {
-  const [abierto, setAbierto] = useState(true);
+  const [abierto, setAbierto] = usarPlegado(true);
   return (
     <section
       className="cmv2-chfp-crit"
@@ -650,7 +657,16 @@ export function FacultadDecisionBloque({
 }) {
   // F41 · Sin plegado, la facultad mostrada se ve entera. El acordeón sólo
   // sobrevive para usos que aún listan varias facultades a la vez.
-  const [abierto, setAbierto] = useState(Boolean(defaultOpen) || Boolean(sinPlegado));
+  const [abierto, setAbierto] = usarPlegado(Boolean(defaultOpen) || Boolean(sinPlegado));
+  /*
+   * G39 · La orden de plegado que escuchan los criterios de este bloque.
+   *
+   * Arranca en «abierto» con versión 0 para que su rótulo diga qué hará al
+   * pulsarlo —«Plegar todos»— sin haber tocado a nadie: el hook ignora las
+   * versiones negativas, así que la versión 0 tampoco fuerza nada hasta que el
+   * usuario incrementa.
+   */
+  const [ordenPlegado, setOrdenPlegado] = useState<OrdenPlegado>(ORDEN_PLEGADO_INICIAL);
   const { fac, facLabel, excKey, minKey } = bloque;
   // El tipo de curso es la decisión MÁS PARTICULAR del embudo: se separa del
   // resto para renderizarse al final, tras la bisagra de «aulas candidatas».
@@ -722,6 +738,7 @@ export function FacultadDecisionBloque({
               <FacultadRadiografiaCard fac={fac} modo="resumen" />
             </div>
           </div>
+          <PlegadoContexto.Provider value={ordenPlegado}>
           <div
             className="cmv2-chfp-decision"
             aria-label={`Decisión de criterios para ${facLabel}`}
@@ -729,10 +746,26 @@ export function FacultadDecisionBloque({
             data-qa-geometry-contract="intrinsic"
           >
             <span className="cmv2-chfp-section-eyebrow">Decisión para esta facultad</span>
-            <p className="cmv2-chfp-decision-hint">
-              Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
-              esta facultad. Nada cambia el marco hasta recalcular.
-            </p>
+            <div className="cmv2-chfp-decision-barra">
+              <p className="cmv2-chfp-decision-hint">
+                Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
+                esta facultad. Nada cambia el marco hasta recalcular.
+              </p>
+              {/* G39 · Plegar o desplegar todos. Gonzalo: «arriba debe haber un
+                  botón para comprimir todos o descomprimir todos de forma
+                  elegante».
+                  Un solo botón que alterna, y no dos: con dos, uno de los
+                  siempre está de más —el estado ya dice cuál toca— y ocupan el
+                  doble en una barra que es contexto, no acción principal. */}
+              <button
+                type="button"
+                className="cmv2-chfp-plegar-todos"
+                onClick={() => setOrdenPlegado(siguienteOrden)}
+              >
+                {ordenPlegado.abierto ? <ChevronsDownUp size={13} /> : <ChevronsUpDown size={13} />}
+                {ordenPlegado.abierto ? "Plegar todos" : "Desplegar todos"}
+              </button>
+            </div>
             {slotApertura}
             {/* G29 · El mínimo de alumnos elegibles ABRE la lista.
                 Estaba en séptimo lugar, después de modalidad, condición, nivel
@@ -851,6 +884,7 @@ export function FacultadDecisionBloque({
               onReactivarTodas={onReactivarAulas}
             />
           </div>
+          </PlegadoContexto.Provider>
         </div>
       ) : null}
     </article>

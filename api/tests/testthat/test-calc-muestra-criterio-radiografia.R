@@ -974,7 +974,7 @@ test_that("integración es aditiva y conserva intacto exploracion v1", {
       "min", "max", "bigote_inf", "bigote_sup",
       "n_atipicos", "n_atipicos_inf", "n_atipicos_sup",
       "hist_breaks", "hist_counts",
-      "escala", "umbral_aplicado", "n_fuera"
+      "escala", "umbral_aplicado", "n_fuera", "n_fuera_por_corte"
     ), info = gate_id)
     expect_identical(gate$rows[[1]]$signal_distribution$n_total, 2L, info = gate_id)
     expect_identical(gate$rows[[1]]$signal_distribution$n_con_dato, 2L, info = gate_id)

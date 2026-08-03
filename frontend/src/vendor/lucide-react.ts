@@ -63,8 +63,10 @@ export { default as ChevronDown } from "lucide-react/dist/esm/icons/chevron-down
 export { default as ChevronLeft } from "lucide-react/dist/esm/icons/chevron-left.mjs";
 export { default as ChevronRight } from "lucide-react/dist/esm/icons/chevron-right.mjs";
 export { default as ChevronsDown } from "lucide-react/dist/esm/icons/chevrons-down.mjs";
+export { default as ChevronsDownUp } from "lucide-react/dist/esm/icons/chevrons-down-up.mjs";
 export { default as ChevronsLeftRight } from "lucide-react/dist/esm/icons/chevrons-left-right.mjs";
 export { default as ChevronsUp } from "lucide-react/dist/esm/icons/chevrons-up.mjs";
+export { default as ChevronsUpDown } from "lucide-react/dist/esm/icons/chevrons-up-down.mjs";
 export { default as ChevronUp } from "lucide-react/dist/esm/icons/chevron-up.mjs";
 export { default as Circle } from "lucide-react/dist/esm/icons/circle.mjs";
 export { default as CircleAlert } from "lucide-react/dist/esm/icons/circle-alert.mjs";
