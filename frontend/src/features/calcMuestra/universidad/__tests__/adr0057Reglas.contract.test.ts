@@ -124,13 +124,18 @@ describe("ADR 0057 · regla 3 — los boxplots comparten eje y lo muestran", () 
     // en cada una—, así que la escala es una constante compartida y no el
     // espacio que sobre.
     const css = leer("criterios/distribucionCategoria.css");
-    // `min(…, 100%)`: la escala es una constante **hasta donde cabe**. A
-    // 1024×600 una caja de 260 px desbordaba 4 px en un contenedor de 256, y una
-    // escala que desborda deja de ser comparable igual que una que varía.
-    expect(css).toContain("width: min(var(--cmv2-cat-escala, 260px), 100%)");
-    // Un solo contenedor con el ancho: las capas cuelgan de él, así que no
-    // pueden divergir aunque alguien las toque por separado.
-    expect((css.match(/--cmv2-cat-escala/g) ?? []).length).toBe(1);
+    // F115 · El ancho deja de ser una constante y pasa a ser el del contenedor.
+    // La regla no cambia —las capas comparten un solo ancho— y ahora además el
+    // gráfico termina donde termina la rejilla de cifras.
+    expect(css).toContain(".cmv2-dist-grafico");
+    expect(css).toMatch(/\.cmv2-dist-grafico\s*\{[^}]*width:\s*100%/);
+    // Lo que la regla prohíbe es que una capa declare un ancho PROPIO: si lo
+    // hiciera, dejaría de proyectar el dominio sobre el mismo recorrido.
+    const capas = ["cmv2-dist-densidad", "cmv2-dist-box", "cmv2-dist-eje", "cmv2-dist-cuantiles"];
+    for (const capa of capas) {
+      const bloque = new RegExp(`\\.${capa}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? "";
+      expect(bloque, `${capa} declara un ancho propio`).not.toMatch(/width:\s*(?!100%)[^;]*px/);
+    }
   });
 
   it("la densidad sale del histograma del motor, nunca de los cuantiles", () => {

@@ -20,19 +20,77 @@
  * viaja como cifra donde sí importa («CH totales»).
  */
 
-/* Las tres capas apiladas, con el mismo ancho y el mismo origen. */
+/*
+ * Las cuatro capas apiladas, con el mismo ancho y el mismo origen.
+ *
+ * F115 · El ancho era una constante de 260 px. Nació para que las capas no
+ * divergieran entre sí, y para eso servía — pero dejaba media tarjeta vacía a la
+ * derecha. Gonzalo: «tenemos espacio horizontal a nivel de gráfico que no
+ * estamos utilizando y que puede alinearse justo donde termina el último texto
+ * de la derecha».
+ *
+ * El 100 % consigue las dos cosas a la vez: las capas siguen compartiendo
+ * exactamente el mismo ancho —el de su contenedor— y ese contenedor es el mismo
+ * que el de la rejilla de cifras, así que el gráfico **termina donde termina la
+ * cuarta columna**. Y como todas las tarjetas cuelgan del mismo ancho de fila,
+ * siguen alineando entre sí.
+ *
+ * Más ancho no es sólo estética: con 260 px, P25 y P50 caían a 35 px uno del
+ * otro y las etiquetas se empujaban; con el ancho completo se leen donde están.
+ */
 .cmv2-dist-grafico {
+  position: relative;
   display: grid;
   gap: 0;
   margin: 0;
-  width: min(var(--cmv2-cat-escala, 260px), 100%);
+  width: 100%;
+  min-width: 0;
 }
+
+/*
+ * F116 · Guías transversales en Q1, mediana, media y Q3.
+ *
+ * Atraviesan densidad, caja y eje de arriba abajo. Sin ellas, leer dónde cae la
+ * mediana sobre la forma exige seguir una columna imaginaria; con ellas se ve
+ * sin buscarlo. Van DETRÁS de las marcas —`z-index: 0` contra el `1` de las
+ * capas— porque su trabajo es guiar el ojo, no competir con el dato.
+ *
+ * Se detienen sobre la línea del eje: bajar hasta las etiquetas las convertiría
+ * en un subrayado y ensuciaría la fila de cifras.
+ */
+.cmv2-dist-guias {
+  position: absolute;
+  inset: 0 0 var(--cmv2-dist-alto-cuantiles) 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.cmv2-dist-guias i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--cmv2-accent) 34%, transparent);
+}
+/* La mediana es la referencia principal: se le da algo más de presencia. */
+.cmv2-dist-guias i[data-guia="p50"] {
+  border-left-color: color-mix(in srgb, var(--cmv2-accent) 52%, transparent);
+}
+/* La media es un estadístico distinto de los cuartiles y su guía lo declara. */
+.cmv2-dist-guias i[data-guia="media"] {
+  border-left-style: dotted;
+  border-left-color: color-mix(in srgb, var(--pulso-text) 34%, transparent);
+}
+
+.cmv2-dist-densidad,
+.cmv2-dist-box,
+.cmv2-dist-eje,
+.cmv2-dist-cuantiles { position: relative; z-index: 1; }
 
 /* --- Densidad ------------------------------------------------------------ */
 .cmv2-dist-densidad {
   display: block;
   width: 100%;
-  height: 34px;
+  height: 52px;
   overflow: visible;
 }
 .cmv2-dist-densidad polygon {
@@ -47,8 +105,8 @@
 /* --- Boxplot ------------------------------------------------------------- */
 .cmv2-dist-box {
   position: relative;
-  height: 22px;
-  margin-top: 2px;
+  height: 30px;
+  margin-top: 4px;
   border-top: 1px solid var(--cmv2-border);
 }
 .cmv2-dist-box i {
@@ -63,18 +121,18 @@
 /* Topes verticales: sin ellos el bigote no declara dónde termina. */
 .cmv2-dist-tope {
   width: 1px;
-  height: 8px;
+  height: 11px;
   background: var(--cmv2-border-strong, var(--cmv2-border));
 }
 .cmv2-dist-caja {
-  height: 14px;
+  height: 18px;
   border-radius: 3px;
   border: 1px solid color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
   background: color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
 }
 .cmv2-dist-mediana {
   width: 2px;
-  height: 16px;
+  height: 22px;
   border-radius: 1px;
   background: var(--cmv2-accent);
 }
@@ -121,8 +179,8 @@
  */
 .cmv2-dist-eje {
   position: relative;
-  height: 20px;
-  margin-top: 3px;
+  height: 22px;
+  margin-top: 5px;
 }
 .cmv2-dist-eje-linea {
   position: absolute;
@@ -154,18 +212,15 @@
 .cmv2-dist-eje-corte:last-of-type { transform: translateX(-100%); justify-items: end; }
 
 /* --- Cuantiles ----------------------------------------------------------- */
+/* Alto de la fila de cifras: lo usa `cmv2-dist-guias` para saber dónde parar. */
+:root { --cmv2-dist-alto-cuantiles: 34px; }
 .cmv2-dist-cuantiles {
   position: relative;
-  height: 32px;
-  margin-top: 2px;
+  height: var(--cmv2-dist-alto-cuantiles);
+  margin-top: 3px;
 }
-.cmv2-dist-ticks i {
-  position: absolute;
-  top: 0;
-  width: 1px;
-  height: 5px;
-  background: var(--cmv2-border-strong, var(--cmv2-border));
-}
+/* F116 · Los ticks propios de la fila desaparecen: las guías transversales
+   los sustituyen y con ambos la fila se veía rayada dos veces. */
 .cmv2-dist-cuantiles dl {
   position: relative;
   height: 100%;
@@ -184,13 +239,15 @@
 }
 .cmv2-dist-cuantiles dt {
   font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   line-height: 1.25;
   color: var(--pulso-text-muted);
   letter-spacing: 0.02em;
 }
 .cmv2-dist-cuantiles dd {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.25;
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;

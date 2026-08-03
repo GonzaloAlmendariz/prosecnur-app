@@ -74,7 +74,7 @@ describe("DistribucionCategoria · las tres capas", () => {
     const html = render({ hist_breaks: undefined, hist_counts: undefined });
     expect(html).not.toContain("cmv2-dist-densidad");
     expect(html).toContain("cmv2-dist-caja");
-    expect(html).toContain("P50");
+    expect(html).toContain("Mediana");
   });
 
   it("los bigotes son los de Tukey que publica el motor, no P10/P90", () => {
@@ -97,27 +97,53 @@ describe("DistribucionCategoria · las tres capas", () => {
   });
 });
 
-describe("DistribucionCategoria · cuantiles bajo su posición", () => {
-  it("cada etiqueta lleva su valor y su marca", () => {
+describe("DistribucionCategoria · guías y cuartiles (F116)", () => {
+  // Gonzalo: «si el boxplot tiene una caja que muestra Q1, la mediana y Q3, los
+  // cuantiles de abajo tienen que reflejar eso — no el P10 ni el P90, sino los
+  // cuartiles, para que haya una línea punteada que atraviese los tres
+  // gráficos».
+  it("las guías son exactamente las cuatro que la caja dibuja", () => {
     const html = render();
-    for (const [label, valor] of [["P10", "17"], ["P25", "24"], ["P50", "33"], ["P75", "39"], ["P90", "45"]]) {
-      expect(html).toContain(`<dt>${label}</dt><dd>${valor}</dd>`);
+    for (const g of ["p25", "p50", "media", "p75"]) {
+      expect(html, g).toContain(`data-guia="${g}"`);
     }
+    // Una guía en P10 apuntaría a una marca que el boxplot no tiene.
+    expect(html).not.toContain('data-guia="p10"');
+    expect(html).not.toContain('data-guia="p90"');
   });
 
-  it("las marcas NO se desplazan aunque las etiquetas se separen", () => {
-    // Distribución apretada: P25 y P50 caen a 1 punto de distancia. Las
-    // etiquetas se reparten para no solaparse, pero mover la marca cambiaría
-    // dónde el lector cree que está el dato.
-    const html = render({ p10: 30, p25: 31, p50: 32, p75: 33, p90: 34 });
-    const ticks = /<div class="cmv2-dist-ticks"[^>]*>([\s\S]*?)<\/div>/.exec(html)?.[1] ?? "";
-    for (const x of ["30%", "31%", "32%", "33%", "34%"]) expect(ticks).toContain(`left:${x}`);
-  });
-
-  it("un cuantil ausente no deja hueco ni corre a los demás", () => {
-    const html = render({ p10: null });
+  it("la fila de abajo nombra los cuartiles, no los percentiles extremos", () => {
+    const html = render();
+    expect(html).toContain("<dt>Q1</dt><dd>24</dd>");
+    expect(html).toContain("<dt>Mediana</dt><dd>33</dd>");
+    expect(html).toContain("<dt>Q3</dt><dd>39</dd>");
+    expect(html).toContain("<dt>Media</dt>");
     expect(html).not.toContain("<dt>P10</dt>");
-    expect(html).toContain("<dt>P25</dt><dd>24</dd>");
+    expect(html).not.toContain("<dt>P90</dt>");
+  });
+
+  it("la guía cae en la misma x que su marca en la caja", () => {
+    // Es lo único que hace útil una guía: si se desviara, señalaría un punto
+    // que el gráfico no tiene.
+    const html = render({ p50: 50 });
+    const guia = /data-guia="p50" style="left:([\d.]+)%"/.exec(html)?.[1];
+    const marca = /class="cmv2-dist-mediana" style="left:([\d.]+)%"/.exec(html)?.[1];
+    expect(guia).toBeDefined();
+    expect(guia).toBe(marca);
+  });
+
+  it("una guía sin valor publicado no se dibuja", () => {
+    const html = render({ media: null });
+    expect(html).not.toContain('data-guia="media"');
+    expect(html).toContain('data-guia="p50"');
+  });
+
+  it("las etiquetas se separan sin mover la guía", () => {
+    // Distribución apretada: Q1, mediana y Q3 casi encima. Las etiquetas se
+    // reparten, la guía conserva su posición.
+    const html = render({ p25: 31, p50: 32, p75: 33, media: 32.5 });
+    expect(html).toContain('data-guia="p25" style="left:31%"');
+    expect(html).toContain('data-guia="p75" style="left:33%"');
   });
 });
 

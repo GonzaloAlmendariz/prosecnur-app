@@ -176,21 +176,17 @@ function Boxplot({ d, dom }: { d: Dist; dom: DominioEscala }) {
  * las cinco midan lo mismo. Con `P50` el ancho es homogéneo y 11 % basta para
  * la escala de 260 px (≈29 px, cuatro caracteres a 11 px con holgura).
  */
-const MIN_SEPARACION = 11;
+const MIN_SEPARACION = 13;
 
 function Cuantiles({ d, dom }: { d: Dist; dom: DominioEscala }) {
   const marcas = useMemo(() => {
-    const crudas = (
-      [
-        ["P10", d.p10],
-        ["P25", d.p25],
-        ["P50", d.p50],
-        ["P75", d.p75],
-        ["P90", d.p90],
-      ] as Array<[string, number | null | undefined]>
-    )
-      .filter((par): par is [string, number] => tiene(par[1]))
-      .map(([label, valor]) => ({ label, valor, x: pos(valor, dom) }));
+    const crudas: Array<{ etiqueta: string; clave: string; valor: number; x: number }> = [];
+    for (const { clave, etiqueta } of GUIAS) {
+      const valor = d[clave];
+      if (!tiene(valor)) continue;
+      crudas.push({ etiqueta, clave, valor, x: pos(valor, dom) });
+    }
+    crudas.sort((a, b) => a.x - b.x);
 
     // Empuje mínimo hacia la derecha, en cascada. La marca conserva su x.
     let previa = -Infinity;
@@ -204,15 +200,10 @@ function Cuantiles({ d, dom }: { d: Dist; dom: DominioEscala }) {
   if (!marcas.length) return null;
   return (
     <div className="cmv2-dist-cuantiles">
-      <div className="cmv2-dist-ticks" aria-hidden="true">
+      <dl aria-label="Cuartiles, mediana y media de la distribución">
         {marcas.map((m) => (
-          <i key={m.label} style={{ left: `${m.x}%` }} />
-        ))}
-      </div>
-      <dl aria-label="Cuantiles de la distribución">
-        {marcas.map((m) => (
-          <div key={m.label} style={{ left: `${m.etiquetaX}%` }}>
-            <dt>{m.label}</dt>
+          <div key={m.clave} data-marca={m.clave} style={{ left: `${m.etiquetaX}%` }}>
+            <dt>{m.etiqueta}</dt>
             <dd>{fmt(m.valor)}</dd>
           </div>
         ))}
@@ -294,6 +285,39 @@ function cortesLegibles(dom: DominioEscala, objetivo = 6): number[] {
   return cortes;
 }
 
+/**
+ * Guías que atraviesan las capas.
+ *
+ * F116 · Gonzalo: «si el boxplot tiene una caja que muestra el primer cuartil,
+ * la mediana y el tercer cuartil, los cuantiles de abajo tienen que reflejar
+ * eso — no el percentil diez ni el noventa, sino los cuartiles, para que haya
+ * una línea punteada que atraviese los tres gráficos».
+ *
+ * Sin la guía, leer la densidad contra la caja exige seguir una columna
+ * imaginaria. Con ella, dónde cae la mediana en la forma se ve sin buscarlo.
+ *
+ * Sólo estas cuatro: son exactamente las que la caja dibuja. Una guía en P10
+ * apuntaría a una marca que el boxplot no tiene.
+ */
+const GUIAS = [
+  { clave: "p25", etiqueta: "Q1" },
+  { clave: "p50", etiqueta: "Mediana" },
+  { clave: "media", etiqueta: "Media" },
+  { clave: "p75", etiqueta: "Q3" },
+] as const;
+
+function Guias({ d, dom }: { d: Dist; dom: DominioEscala }) {
+  return (
+    <div className="cmv2-dist-guias" aria-hidden="true">
+      {GUIAS.map(({ clave }) => {
+        const v = d[clave];
+        if (!tiene(v)) return null;
+        return <i key={clave} data-guia={clave} style={{ left: `${pos(v, dom)}%` }} />;
+      })}
+    </div>
+  );
+}
+
 function Eje({ dom }: { dom: DominioEscala }) {
   const cortes = useMemo(() => cortesLegibles(dom), [dom]);
   if (!cortes.length) return null;
@@ -347,6 +371,7 @@ export function DistribucionCategoria({
   return (
     <div className="cmv2-dist">
       <figure className="cmv2-dist-grafico" role="img" aria-label={resumenAccesible(d, "los elegibles")}>
+        <Guias d={d} dom={dominio} />
         <Densidad d={d} dom={dominio} />
         <Boxplot d={d} dom={dominio} />
         {/* El eje va ENTRE la caja y los cuantiles: es la referencia que ambos

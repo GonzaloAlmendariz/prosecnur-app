@@ -18,7 +18,10 @@
  * que la regla 3 del ADR 0057 prohíbe. La escala es una constante, no el resto
  * del espacio disponible.
  */
-:root { --cmv2-cat-escala: 260px; }
+/* F115 · La constante de 260 px desaparece: el gráfico ocupa el ancho de su
+   fila, que es el mismo que el de la rejilla de cifras. Las capas siguen
+   compartiendo un solo ancho —el del contenedor— y las tarjetas siguen
+   alineando entre sí porque todas cuelgan del mismo. */
 
 .cmv2-cat-evidencia {
   display: grid;
@@ -65,6 +68,15 @@
 @media (max-width: 620px) {
   .cmv2-cat-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* F115 · Variante `unidad`: dos cifras, no cuatro. Un curso-horario suelto no
+   tiene «CH totales» —valdría 1— ni distribución que graficar. Las columnas se
+   declaran igual de fijas: la lista es larga y el ojo baja por la columna. */
+.cmv2-cat-cifras[data-columnas="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+}
+.cmv2-cat-evidencia[data-variante="unidad"] { gap: 0; padding: 4px 0 2px; }
 .cmv2-cat-cifras strong {
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
