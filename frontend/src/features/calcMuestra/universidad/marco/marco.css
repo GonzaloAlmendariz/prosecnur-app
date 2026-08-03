@@ -2517,15 +2517,6 @@
 .cmv2-chfp-min { display: grid; gap: 8px; }
 /* Pill del mínimo propio: el número y, al lado, un hint que dice qué pasa si se
    deja vacío (usa el general) o la unidad — sin cortar texto dentro del input. */
-.cmv2-chfp-min-input-row { display: flex; align-items: center; gap: 10px; }
-.cmv2-chfp-min-input-hint {
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-regular);
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
-}
 
 /* ── Selección manual de cursos-horario (criterio final, el más granular) ──── */
 .cmv2-aulas-finales { display: grid; gap: 8px; }
@@ -3336,3 +3327,7 @@
   border-radius: 5px;
 }
 .cmv2-aulas-finales-depth button:hover { background: var(--cmv2-accent-soft); }
+
+/* G16 · Retiradas las reglas del campo numerico suelto del minimo: lo sustituyo
+   el nivelador (deslizador + campo), que trae su propia hoja. Las cazo el guard
+   de huerfanas en la misma corrida — para eso existe. */

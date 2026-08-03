@@ -27,6 +27,7 @@ import { rangosFacultad, seleccionVariable } from "../../dominio";
 import { aulasSupervivientesFacultad } from "../../dominio/criteriosImpacto";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
+import { ControlUmbral } from "../criterios/ControlUmbral";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
 import { evidenciaPorCategoria } from "../criterios/evidenciaPorCategoria";
 import { tasaAsistencia } from "../criterios/minElegiblesModel";
@@ -335,6 +336,18 @@ function MinFacultadCard({
   const propio = minimoFacultad(seleccion, minKey);
   const [abierto, setAbierto] = useState(true);
   const base = propio ?? umbralGeneral;
+  /*
+   * G16 · Tope del nivelador, del dato y no de una constante.
+   *
+   * Un rango fijo —0 a 100— deja media barra en una zona donde no hay nada que
+   * decidir en las facultades pequeñas, y se queda corto en las grandes. La
+   * mediana de la facultad da la referencia; se toma el doble, acotado abajo
+   * para que el deslizador siempre tenga recorrido útil.
+   */
+  const topeNivelador = Math.max(
+    20,
+    Math.ceil(((fac.est_aula_mediana ?? fac.est_aula_media ?? umbralGeneral) || 10) * 2),
+  );
   const sugerido = minimoSugerido(base, tasa);
   const presentes = presentesEsperados(base, tasa);
   // Radiografía de elegibles por aula de la facultad (§8.3: el mínimo DEBE
@@ -390,22 +403,27 @@ function MinFacultadCard({
             />
           ) : null}
           <div className="cmv2-chfp-min">
-            <label className="cmv2-crit-num-field">
-              <span>Mínimo propio de la facultad</span>
-              <span className="cmv2-chfp-min-input-row">
-                <input
-                  type="number"
-                  min={1}
-                  value={propio ?? ""}
-                  placeholder={fmtInt(umbralGeneral)}
-                  aria-label="Mínimo de elegibles propio de la facultad"
-                  onChange={(e) => onMinimoFacultad(minKey, parseEntero(e.target.value))}
-                />
-                <span className="cmv2-chfp-min-input-hint">
-                  {propio != null ? "elegibles por aula" : "usa el mínimo general"}
-                </span>
-              </span>
-            </label>
+            {/* G16 · El nivelador, en el hueco que estaba bajo el conmutador.
+                Gonzalo: «en Ingeniería quiero establecer un mínimo y ser capaz
+                de modificarlo: quizás 15, quizás 20».
+
+                El deslizador sirve para BUSCAR —recorrerlo con la distribución
+                al lado enseña qué recorta cada posición— y el campo para FIJAR.
+                Su tope sale del P90 de la facultad, no de una constante: un
+                rango que llega al doble del máximo observado deja la mitad del
+                recorrido en una zona donde no hay nada que decidir. */}
+            <ControlUmbral
+              valor={propio ?? umbralGeneral}
+              min={1}
+              max={topeNivelador}
+              etiqueta="Mínimo propio de la facultad"
+              descripcion={
+                propio == null
+                  ? `Sin mínimo propio usa el general (${fmtInt(umbralGeneral)}).`
+                  : undefined
+              }
+              onCambio={(v) => onMinimoFacultad(minKey, v)}
+            />
             {propio != null ? (
               <button
                 type="button"
