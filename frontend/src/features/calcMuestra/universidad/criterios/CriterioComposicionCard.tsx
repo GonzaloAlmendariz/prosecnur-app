@@ -23,8 +23,33 @@
  * no vive en criterios_seleccion.
  */
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
+import { CategoriaEvidencia, dominioCategorias } from "./CategoriaEvidencia";
+import type { AporteCategoria } from "./controles";
 import { ControlUmbral } from "./ControlUmbral";
 import { Switch } from "./Switch";
+
+/**
+ * G38 · La evidencia de cada paso, dentro del paso.
+ *
+ * Gonzalo: «en Composición del curso-horario no hay forma de saber cuántos
+ * perdemos por el porcentaje que estamos aplicando». Los dos pasos se decidían
+ * con un deslizador y una frase, sin ver sobre qué se está cortando — el único
+ * criterio del embudo sin su tarjeta estándar.
+ *
+ * Su variante es `proporcion`: el motor publica la señal en porcentaje con
+ * escala 0–100, así que la caja y la densidad describen la composición misma,
+ * no los alumnos elegibles.
+ */
+function EvidenciaPaso({ aporte, umbral }: { aporte: AporteCategoria | null; umbral: number }) {
+  if (!aporte) return null;
+  const conUmbral: AporteCategoria = { ...aporte, umbral: { valor: umbral } };
+  // Regla 3 del ADR: la escala es del criterio. Aquí hay una sola caja, pero el
+  // dominio se pide igual para que el eje salga de `escalaEje` cuando el motor
+  // la publica y no del rango de esta única distribución.
+  const dominio = dominioCategorias([conUmbral], umbral);
+  if (!dominio) return null;
+  return <CategoriaEvidencia aporte={conUmbral} dominio={dominio} variante="proporcion" />;
+}
 
 /** Proporción 0–1 → porcentaje entero para el input. */
 function pctDe(prop: number | undefined, fallback: number): number {
@@ -76,11 +101,18 @@ function InputPct({
 export function CriterioComposicionCard({
   config,
   onPatch,
+  evidenciaDe,
 }: {
   /** Config de aulas ya normalizado (la tab lo deriva del workspace). */
   config: CalcMuestraWorkspaceAulasConfig;
   /** Persiste el patch en aulas_config (autosave inmediato del workspace). */
   onPatch: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
+  /**
+   * G38 · Aporte publicado por el motor para cada paso (`c8_facultad`, `c8`,
+   * `c7`). Sin él la tarjeta se dibuja igual, sin evidencia: la superficie no
+   * inventa una distribución que el motor no publicó.
+   */
+  evidenciaDe?: (criterioId: string) => AporteCategoria | null;
 }) {
   // ADR 0057 · Una regla ACTIVA no puede estar plegada.
   //
@@ -158,6 +190,10 @@ export function CriterioComposicionCard({
               ariaLabel="Exigir misma facultad del curso (paso 1 de la composición)"
               onToggle={() => onPatch({ require_faculty_prevalence: !paso1 })}
             />
+            <EvidenciaPaso
+              aporte={evidenciaDe?.("c8_facultad") ?? null}
+              umbral={pctDe(config.min_faculty_prevalence_pct, 0.8)}
+            />
           </li>
           <li
             className="cmv2-crit-paso"
@@ -184,6 +220,10 @@ export function CriterioComposicionCard({
               checked={paso2}
               ariaLabel="Exigir mismo nivel del curso (paso 2 del criterio 8)"
               onToggle={() => onPatch({ require_cycle_homogeneity: !paso2 })}
+            />
+            <EvidenciaPaso
+              aporte={evidenciaDe?.("c8") ?? null}
+              umbral={pctDe(config.min_cycle_homogeneity_pct, 0.8)}
             />
           </li>
         </ol>

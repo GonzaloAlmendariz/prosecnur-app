@@ -29,6 +29,7 @@ import {
 } from "../criterios/controles";
 import { ControlRange, type FacultadRef } from "../criterios/facultades";
 import { TeacherTypeOrden } from "../criterios/TeacherTypeOrden";
+import type { AporteCategoria } from "../criterios/controles";
 import { CriterioComposicionCard } from "../criterios/CriterioComposicionCard";
 import { CondicionCursoAviso } from "../criterios/CondicionCursoAviso";
 import {
@@ -252,6 +253,7 @@ export function CursosHorarioBaseGlobal({
   onUmbral,
   onTasa,
   onPatchConfig,
+  evidenciaComposicion,
 }: {
   /** Variables de scope aula del catálogo (session/condition/teacher/level…). */
   aulaVariables: CriterioVariable[];
@@ -280,6 +282,12 @@ export function CursosHorarioBaseGlobal({
   onUmbral: (value: number) => void;
   onTasa: (tasa: number | null) => void;
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
+  /**
+   * G38 · Aporte del motor para cada paso de composición, para que su tarjeta
+   * enseñe sobre qué corta. Opcional: sin él los pasos se dibujan igual y sin
+   * evidencia — la superficie no fabrica la distribución que falte.
+   */
+  evidenciaComposicion?: (criterioId: string) => AporteCategoria | null;
 }) {
   /*
    * G33 · Un criterio sin columna mapeada no ocupa un turno del embudo.
@@ -336,7 +344,11 @@ export function CursosHorarioBaseGlobal({
               Su rótulo decía además «criterio 7» cuando el mínimo pasó a ser el
               PRIMERO del embudo (G30): un número de orden escrito a mano
               sobrevive al orden que nombra. */}
-          <CriterioComposicionCard config={config} onPatch={onPatchConfig} />
+          <CriterioComposicionCard
+            config={config}
+            onPatch={onPatchConfig}
+            evidenciaDe={evidenciaComposicion}
+          />
         </>
       )}
     </div>

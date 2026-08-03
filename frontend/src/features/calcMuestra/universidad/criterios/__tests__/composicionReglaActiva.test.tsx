@@ -51,3 +51,62 @@ describe("CriterioComposicionCard · prevalencia heredada", () => {
     expect(html).not.toContain("cmv2-crit-exc-toggle");
   });
 });
+
+describe("cada paso de composición enseña sobre qué corta (G38)", () => {
+  /*
+   * Gonzalo: «en Composición del curso-horario no hay forma de saber cuántos
+   * perdemos por el porcentaje que estamos aplicando». Los dos pasos se decidían
+   * con un deslizador y una frase: era el único criterio del embudo sin su
+   * tarjeta estándar.
+   *
+   * La señal llega del motor en porcentaje con escala 0–100 (contrato v2), así
+   * que la caja describe la composición misma y no los alumnos elegibles.
+   */
+  const aporte = (nFuera: number | null) => ({
+    ch: 84,
+    chContraste: 120,
+    elegibles: 2110,
+    nFuera,
+    escalaEje: { min: 0, max: 100 },
+    distribucion: {
+      media: 71, p10: 40, p25: 58, p50: 74, p75: 86, p90: 95,
+      min: 22, max: 100, bigote_inf: 22, bigote_sup: 100,
+      n_atipicos: 0, n_atipicos_inf: 0, n_atipicos_sup: 0,
+      hist_breaks: [0, 25, 50, 75, 100], hist_counts: [3, 17, 44, 56],
+    },
+  }) as never;
+
+  const render = (evidencia?: (id: string) => never) =>
+    renderToStaticMarkup(
+      <CriterioComposicionCard
+        config={{
+          require_faculty_prevalence: true,
+          min_faculty_prevalence_pct: 0.8,
+          require_cycle_homogeneity: true,
+          min_cycle_homogeneity_pct: 0.8,
+        } as unknown as CalcMuestraWorkspaceAulasConfig}
+        onPatch={vi.fn()}
+        evidenciaDe={evidencia}
+      />,
+    );
+
+  it("monta la tarjeta de proporción en los dos pasos", () => {
+    const html = render(() => aporte(37));
+    expect(html.match(/data-variante="proporcion"/g)).toHaveLength(2);
+  });
+
+  it("dice cuántos cursos-horario deja fuera el porcentaje aplicado", () => {
+    // La cifra la cuenta el motor (`n_fuera`), no se deduce restando: la resta
+    // mide todo lo que la cascada descartó, no lo que descarta ESTE corte.
+    expect(render(() => aporte(37))).toContain("<strong>37</strong>quedan fuera");
+  });
+
+  it("sin evidencia publicada la tarjeta se dibuja igual, sin inventar una", () => {
+    // React presenta y valida, nunca calcula. Un paso sin distribución sigue
+    // siendo decidible: pierde la evidencia, no el control.
+    const html = render(undefined);
+    expect(html).not.toContain("data-variante=");
+    expect(html).toContain("Misma facultad del curso");
+    expect(html).toContain("Mismo nivel del curso");
+  });
+});
