@@ -386,7 +386,11 @@ function MinFacultadCard({
           <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
             {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
-          <strong>Mínimo de elegibles por curso-horario</strong>
+          {/* G29 · Gonzalo: «el criterio debe ser Mínimo de alumnos elegibles,
+              y como ya conversamos, es el primer criterio con su tarjeta
+              estándar». Había dos cosas con nombre de mínimo —«Matriculados /
+              población» y ésta— y sólo una decide: la de alumnos elegibles. */}
+          <strong>Mínimo de alumnos elegibles</strong>
         </span>
         <span className="cmv2-chfp-crit-state" data-decision={propio != null ? "propia" : "hereda"}>
           {propio != null ? `Propio: ≥ ${fmtInt(propio)}` : `Por defecto: ≥ ${fmtInt(umbralGeneral)}`}
@@ -685,21 +689,38 @@ export function FacultadDecisionBloque({
               esta facultad. Nada cambia el marco hasta recalcular.
             </p>
             {slotApertura}
+            {/* G29 · El mínimo de alumnos elegibles ABRE la lista.
+                Estaba en séptimo lugar, después de modalidad, condición, nivel
+                y tipo de sesión. Es el criterio que más recorta —en Gastronomía
+                se lleva 36 de 45 cursos-horario— y llegaba cuando ya se habían
+                tomado cuatro decisiones sobre un marco que él iba a cambiar. */}
+            <MinFacultadCard
+              confirmador={confirmadorDe?.(ELEGIBLES_POR_AULA_ID)}
+              seleccion={seleccion}
+              minKey={minKey}
+              fac={fac}
+              umbralGeneral={umbralGeneral}
+              tasa={tasa}
+              radiografiaCard={criterioCards.get("minEligible") ?? null}
+              criterioEvidence={criterioEvidence}
+              onMinimoFacultad={onMinimoFacultad}
+            />
             {/* F41 · Orden pedido por Gonzalo: el mínimo de matriculados abre la
                 lista —es el primer criterio del embudo por facultad—, y
                 Elegibles por CH y Composición bajan a penúltimos, justo antes
                 del mayor detalle. Antes, matriculados quedaba enterrado en
                 medio y el detalle uno-por-uno competía con criterios que
                 todavía no se habían aplicado. */}
-            {criterioEvidence && criterioCards.get("enrolled_total") ? (
-              <CriterioTransversalFacultadCard
-                confirmador={confirmadorDe?.("enrolled_total")}
-                card={criterioCards.get("enrolled_total")!}
-                facKey={excKey}
-                facLabel={facLabel}
-                criterioEvidence={criterioEvidence}
-              />
-            ) : null}
+            {/* G29 · Aquí vivía una segunda tarjeta «Matriculados / población»,
+                con el mismo título que el control de arriba. Gonzalo: «¿estas
+                dos no deberías [ser] sólo una?». El control ya nombra el
+                criterio; repetirlo como sección de evidencia lo contaba dos
+                veces en el embudo.
+
+                Además ese criterio llega **sin columna mapeada** en este
+                proyecto: un criterio que no puede actuar no merece un turno en
+                la lista. El mínimo que sí decide es el de alumnos elegibles, y
+                va primero. */}
             {/* Criterios generales (del más amplio al más fino) + el mínimo,
                 que también recorta grueso: van antes de la bisagra. El nivel
                 del curso (rango) se intercala tras la condición del curso. */}
@@ -762,26 +783,9 @@ export function FacultadDecisionBloque({
             ) : null}
             {/* Criterio final y más granular: la lista de cursos-horario que
                 sobreviven en esta facultad, todos activos por defecto. */}
-            <MinFacultadCard
-              confirmador={confirmadorDe?.(ELEGIBLES_POR_AULA_ID)}
-              seleccion={seleccion}
-              minKey={minKey}
-              fac={fac}
-              umbralGeneral={umbralGeneral}
-              tasa={tasa}
-              radiografiaCard={criterioCards.get("minEligible") ?? null}
-              criterioEvidence={criterioEvidence}
-              onMinimoFacultad={onMinimoFacultad}
-            />
-            {criterioEvidence && criterioCards.get("composition") ? (
-              <CriterioTransversalFacultadCard
-                confirmador={confirmadorDe?.("composition")}
-                card={criterioCards.get("composition")!}
-                facKey={excKey}
-                facLabel={facLabel}
-                criterioEvidence={criterioEvidence}
-              />
-            ) : null}
+            {/* G29 · Igual que arriba: «Composición del curso-horario» salía dos
+                veces, una como control y otra como evidencia con el mismo
+                rótulo. La evidencia vive dentro de su control. */}
             {slotCierre}
             <AulasFinalesCard
               tasaAsistencia={tasaAsistencia(seleccion)}

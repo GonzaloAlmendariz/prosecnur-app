@@ -109,26 +109,52 @@ function Densidad({ d, dom }: { d: Dist; dom: DominioEscala }) {
     const hi = breaks[breaks.length - 1];
     const cubre = (v: unknown) => !tiene(v) || (v >= lo - 1e-9 && v <= hi + 1e-9);
     if (!cubre(d.bigote_inf) || !cubre(d.bigote_sup) || !cubre(d.p25) || !cubre(d.p75)) return null;
-    // Polilínea por el punto medio de cada intervalo, cerrada contra la base.
-    const cuerpo = counts.map((c, i) => {
+    /*
+     * G28 · La densidad se RECORTA al dominio, no se aplasta contra el borde.
+     *
+     * Al ceñir la escala a los bigotes (G26), el histograma pasó a extenderse
+     * más allá y `pos()` acotaba sus puntos al 100 %. Medido: **8 de 15
+     * densidades con siete u ocho puntos clavados en el borde derecho** — un
+     * muro vertical que afirma una meseta de masa donde lo que hay es una cola
+     * que continúa fuera de la escala.
+     *
+     * Aplastar es peor que recortar: el recorte deja un final abrupto que se lee
+     * como «aquí se acaba el dibujo»; el aplastado dibuja una forma que no
+     * ocurrió. Los intervalos que quedan fuera se cuentan y se declaran.
+     */
+    const dentro: string[] = [];
+    const xs: number[] = [];
+    let fuera = 0;
+    counts.forEach((c, i) => {
       const centro = (breaks[i] + breaks[i + 1]) / 2;
-      return `${pos(centro, dom).toFixed(2)},${(100 - (c / maxC) * 100).toFixed(2)}`;
+      if (centro < dom.min || centro > dom.max) {
+        if (c > 0) fuera += c;
+        return;
+      }
+      const x = pos(centro, dom);
+      xs.push(x);
+      dentro.push(`${x.toFixed(2)},${(100 - (c / maxC) * 100).toFixed(2)}`);
     });
-    const x0 = pos(breaks[0], dom).toFixed(2);
-    const x1 = pos(breaks[breaks.length - 1], dom).toFixed(2);
-    return [`${x0},100`, ...cuerpo, `${x1},100`].join(" ");
+    if (dentro.length < 2) return null;
+    const primerX = xs[0];
+    const ultimoX = xs[xs.length - 1];
+    return {
+      puntos: [`${primerX.toFixed(2)},100`, ...dentro, `${ultimoX.toFixed(2)},100`].join(" "),
+      fuera,
+    };
   }, [d, dom]);
 
   if (!puntos) return null;
   return (
     <svg
       className="cmv2-dist-densidad"
+      data-recortada={puntos.fuera > 0 ? "true" : undefined}
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
       aria-hidden="true"
       focusable="false"
     >
-      <polygon points={puntos} />
+      <polygon points={puntos.puntos} />
     </svg>
   );
 }
