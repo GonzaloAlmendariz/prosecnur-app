@@ -45,8 +45,16 @@
   min-width: 0;
 }
 .cmv2-umbral-control[data-alineado] .cmv2-umbral-fila {
-  /* La pista arranca donde arranca el eje y termina donde termina. */
+  /*
+   * G34 · La pista arranca donde arranca el eje y termina donde termina.
+   *
+   * El gráfico vive dentro de una tarjeta con relleno y borde; el deslizador,
+   * fuera. Sin compensar ese sangrado, la manija señalaba un punto de la escala
+   * desplazado 18 px — y una guía desviada es peor que ninguna, porque se lee
+   * con la misma confianza.
+   */
   width: 100%;
+  padding-inline: calc(var(--cmv2-seg-sangrado, 7px) + 11px);
 }
 .cmv2-umbral-control[data-alineado] {
   border: 0;
