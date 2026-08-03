@@ -221,7 +221,7 @@ export function CategoriaEvidencia({
     return (
       <div className="cmv2-cat-evidencia" data-variante={variante}>
         <div className="cmv2-cat-cifras">
-          <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong>{ch1(aporte.ch)} que cumplen</span>
+          <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong>CH que cumplen</span>
           <span data-tono={fuera && fuera > 0 ? "aviso" : undefined}>
             <strong>{fuera == null ? "—" : fmtInt(fuera)}</strong>quedan fuera
           </span>
@@ -233,7 +233,7 @@ export function CategoriaEvidencia({
             {presentes != null ? (
               <>
                 <strong>~{fmtInt(presentes)}</strong>
-                presentes<em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% de asistencia</em>
+                presentes<em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% asistencia</em>
               </>
             ) : (
               <><strong>—</strong>presentes</>
@@ -306,7 +306,7 @@ export function CategoriaEvidencia({
           {presentes != null ? (
             <>
               <strong>~{fmtInt(presentes)}</strong>
-              presentes<em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% de asistencia</em>
+              presentes<em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% asistencia</em>
             </>
           ) : (
             <>
