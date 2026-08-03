@@ -4015,12 +4015,12 @@ fixtures traían valores plurales**: 120 CH, 3.400 estudiantes, deltas de −3, 
 en verde no cubrían un caso que la primera pantalla real enseñó.
 
 Reparadas las seis con fixtures del uno, probadas por mutación. Al ADR como
-patrón 35: **1 es un caso límite como 0 y `null`**.
+patrón 39: **1 es un caso límite como 0 y `null`**.
 
 **Segundo error propio**: para verificar Definición inventé la dirección
 `…/datos/bases`. La sección se llama `definicion`. `ir()` no falló — **no hizo
 nada**, y la medición siguiente devolvió cero listas, que se lee igual que «la
-reparación no está». Patrón 36: la dirección se saca de `recorrido()`, y tras
+reparación no está». Patrón 40: la dirección se saca de `recorrido()`, y tras
 cada `ir()` se comprueba `describir()` antes de medir.
 
 Gate: typecheck 0 · 906 pruebas en 111 archivos. ADR 0057 en 36 patrones.
