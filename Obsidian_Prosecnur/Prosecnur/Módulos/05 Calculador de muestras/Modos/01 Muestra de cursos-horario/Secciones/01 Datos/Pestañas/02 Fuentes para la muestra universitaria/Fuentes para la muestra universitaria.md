@@ -9,7 +9,6 @@ tags:
   - Pestaña
 fuentes:
   - "frontend/src/features/calcMuestra/universidad/definicion/DefBasesTab.tsx"
-  - "frontend/src/features/calcMuestra/universidad/definicion/DefFuentesConsistenciaTab.tsx"
   - "frontend/src/features/calcMuestra/universidad/marco/MarcoConsistenciaTab.tsx"
   - "frontend/src/features/calcMuestra/universidad/definicion/SolicitudDtiButton.tsx"
   - "docs/adrs/0035-calc-muestra-mapeo-manual-exclusivo-por-hoja.md"

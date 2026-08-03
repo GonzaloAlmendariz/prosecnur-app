@@ -6,15 +6,16 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `calc-muestra` · ruta `/calc-muestra` · 42 direcciones.
+Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 3c427e76 | sí | — |
-| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | 3ae1e4b2 | sí | — |
-| `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | 328e7bc6 | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 1d1b1b0f | sí | — |
+| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | 1b97e000 | sí | — |
+| `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | f27f1c99 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-bases` | pestana | Fuentes | sí | 63cd982d | sí | — |
+| `calc-muestra/opinion-universitaria/definicion/def-consistencia` | pestana | Consistencia | sí | 01225810 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-variables` | pestana | Variables | sí | 620ea7d4 | sí | — |
 | `calc-muestra/opinion-universitaria/marco` | seccion | Marco | sí | 982996d4 | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-criterios-alumno` | pestana | Criterios del estudiante | sí | 5d26023c | sí | — |
