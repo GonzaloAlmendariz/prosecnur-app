@@ -123,6 +123,12 @@ arquitectura canónica.
 
 - [GOAL v2 de Cálculo de muestra](qa/goal-loop-calc-muestra-v2-2026-08-01.md):
   loop permanente vigente, ledger y cola de lotes del módulo.
+- [GOAL de la superficie de Cálculo de muestra](qa/goal-loop-calc-muestra-frontend-2026-08-02.md):
+  loop de la superficie del módulo, con su cola de lotes y transversales.
+- [GOAL de la matriz y los criterios de curso-horario](qa/goal-loop-matriz-criterios-2026-08-03.md):
+  serie G; la matriz de cascada, las tarjetas de criterio y el recorrido vivo.
+- [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).
+- [Prompt del loop de Cálculo de muestra](qa/prompt-goal-loop-calc-muestra.md).
 - [Fuentes legibles de Monitoreo](plan-fuentes-legibles-2026-07.md).
 - [Monitoreo de acreditación](plan-monitoreo-acreditacion-2026-07.md).
 - [Monitoreo telefónico](plan-monitoreo-telefonico-2026-07.md).

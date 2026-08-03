@@ -1,5 +1,10 @@
 # GOAL — Cálculo de muestra: la superficie deja de ser prosa y vuelve a ser instrumento
 
+Tipo: Goal operativo QA
+Estado: En curso
+Fecha: 2026-08-02
+Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado de la superficie
+
 Loop permanente abierto por Gonzalo el 2026-08-02. **Solo Gonzalo lo cierra.**
 El estado vive en este documento, no en la conversación.
 
@@ -194,7 +199,7 @@ misma contradicción que Gonzalo señaló en S7, vista desde el motor.**
 ### El instrumento (declarado)
 
 `hsvg2026-seed-radiografia.pulso`, derivado de
-`outputs/reference-runs/hsvg2026-20260801-122927/hsvg2026.pulso` con el guion
+`<corrida de referencia>/hsvg2026-20260801-122927/hsvg2026.pulso` con el guion
 `seed.R` del scratchpad de la sesión. Única reparación: **liberar el criterio
 de facultad**, que la base anonimizada no puede casar. Los otros cuatro
 criterios de alumno quedan intactos.
