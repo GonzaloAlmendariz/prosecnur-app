@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../../api/calcMuestraCriteriosRadiografia";
 import { DistribucionCategoria, dominioComun } from "../DistribucionCategoria";
+import { dominioCategorias } from "../CategoriaEvidencia";
 
 type Dist = CalcMuestraAulasCriterioRadiografiaV2Distribution;
 
@@ -276,5 +277,56 @@ describe("DistribucionCategoria · nada se dibuja fuera de su caja (F113)", () =
     const d = dominioComun([REAL])!;
     expect(d.min).toBeLessThanOrEqual(6);
     expect(d.max).toBeGreaterThanOrEqual(90);
+  });
+});
+
+describe("DistribucionCategoria · el corte de un umbral (F117)", () => {
+  // Gonzalo: «si vamos a definir un mínimo de alumnos por facultad, tenemos que
+  // saber cuál es la cantidad de alumnos elegibles que hay, porque eso nos va a
+  // permitir definir si el mínimo es de veinte o de diez».
+  //
+  // Un criterio de umbral no decide qué categorías entran: decide DÓNDE cortar.
+  // Sin el corte dibujado, la tarjeta muestra una distribución que no responde
+  // la única pregunta que se está haciendo.
+  const conCorte = (valor: number) =>
+    renderToStaticMarkup(
+      <DistribucionCategoria
+        elegible={{ nCh: 120, distribucion: dist() }}
+        dominio={dominio}
+        umbral={{ valor }}
+      />,
+    );
+
+  it("dibuja el corte sobre la misma escala que la distribución", () => {
+    // 20 sobre 0..100 → 20%. Si usara otra escala señalaría otro valor.
+    expect(conCorte(20)).toContain('class="cmv2-dist-umbral" aria-hidden="true" style="left:20%"');
+  });
+
+  it("rotula el corte con su valor", () => {
+    expect(conCorte(20)).toContain("<b>20</b>");
+  });
+
+  it("sin umbral no dibuja corte: los criterios categóricos no lo tienen", () => {
+    expect(render()).not.toContain("cmv2-dist-umbral");
+  });
+
+  it("el corte entra en la escala: el caso grave es el que hay que ver", () => {
+    // Un mínimo mayor que el máximo observado deja fuera TODOS los
+    // cursos-horario. Si el dominio no lo incluyera, el corte se pintaría fuera
+    // del contenedor y ese caso sería el único invisible. Misma regla que F113.
+    const dom = dominioCategorias([{ distribucion: dist() } as never], 500)!;
+    expect(dom.max).toBeGreaterThanOrEqual(500);
+    const html = renderToStaticMarkup(
+      <DistribucionCategoria
+        elegible={{ nCh: 120, distribucion: dist() }}
+        dominio={dom}
+        umbral={{ valor: 500 }}
+      />,
+    );
+    const x = Number(/class="cmv2-dist-umbral"[^>]*left:([\d.]+)%/.exec(html)?.[1]);
+    expect(x).toBeLessThanOrEqual(100);
+    // Y la distribución se apretuja a la izquierda, que es la lectura correcta.
+    const caja = Number(/class="cmv2-dist-caja"[^>]*left:([\d.]+)%/.exec(html)?.[1]);
+    expect(caja).toBeLessThan(20);
   });
 });

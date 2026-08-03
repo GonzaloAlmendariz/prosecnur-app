@@ -171,6 +171,41 @@
 .cmv2-dist-atipico[data-lado="sup"] { margin-left: 5px; }
 .cmv2-dist-atipico[data-lado="sup"]::after { left: 2px; }
 
+/*
+ * F117 · El corte de un criterio de umbral.
+ *
+ * Se dibuja sobre las mismas capas y con más peso que las guías: aquí el número
+ * no describe la distribución, la **parte**. Todo lo que queda a su izquierda
+ * es lo que el criterio deja fuera, y eso se lee sin traducir nada.
+ */
+.cmv2-dist-umbral {
+  position: absolute;
+  top: 0;
+  bottom: var(--cmv2-dist-alto-cuantiles);
+  z-index: 2;
+  pointer-events: none;
+}
+.cmv2-dist-umbral i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--pulso-warn-fg, var(--pulso-text));
+  opacity: 0.85;
+}
+.cmv2-dist-umbral b {
+  position: absolute;
+  top: -2px;
+  left: 4px;
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-warn-fg, var(--pulso-text));
+  white-space: nowrap;
+}
+
 /* --- Eje ----------------------------------------------------------------- */
 /*
  * F112 · Antes la escala sólo se declaraba en palabras al pie, y las únicas
