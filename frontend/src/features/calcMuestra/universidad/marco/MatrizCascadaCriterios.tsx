@@ -180,8 +180,23 @@ export function MatrizCascadaCriterios({
     <div className="cmv2-mtz">
       {/* El scroll vive en la tabla, no en la página (No Scroll Jail): con
           quince facultades y ocho criterios la tabla es ancha, y la
-          alternativa —recortar columnas— escondería criterios. */}
-      <div className="cmv2-mtz-scroll">
+          alternativa —recortar columnas— escondería criterios.
+
+          G39 · Y alcanzable por teclado. Medido en la app: 1.501 px de tabla
+          fuera de vista, `tabindex` nulo y sin un solo elemento focalizable
+          dentro —las celdas son texto—, así que con teclado no había forma de
+          llegar a los criterios de la derecha. De los tres scrollers de esta
+          pestaña era el único así: el de Panorama ya declaraba `tabindex` y el
+          de cursos-horario contiene conmutadores.
+
+          Contener el desbordamiento sin poder recorrerlo es esconder contenido
+          con otro nombre (C4). */}
+      <div
+        className="cmv2-mtz-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="Tabla de criterios por facultad · desplazable en horizontal"
+      >
         <table className="cmv2-mtz-tabla">
           <caption className="cmv2-mtz-caption">
             Cada celda es lo que ese criterio <strong>quita</strong> en esa facultad. La última
