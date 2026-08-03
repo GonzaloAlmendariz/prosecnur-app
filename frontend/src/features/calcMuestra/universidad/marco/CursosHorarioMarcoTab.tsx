@@ -73,6 +73,7 @@ import { ordenEmbudoDelMotor } from "./ordenEmbudo";
 import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
 import { aporteGlobalDeCard } from "./CriterioFacultadRadiografia";
 import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
+import { construirMatrizCascada } from "./matrizCascadaModel";
 import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
 import "../criterios/criterios.css";
@@ -457,6 +458,27 @@ export function CursosHorarioMarcoTab({
       aporteGlobalDeCard(criterioCards.get(criterioId) ?? null);
   }, [criterioCards]);
 
+  /*
+   * G39 · Cuántos cursos-horario llegan a cada criterio en la facultad abierta.
+   *
+   * Gonzalo: «la barra debería estar en todos los criterios antes de introducir
+   * uno, para poder seguir el embudo en cascada». El dato es el `before_ch` que
+   * el motor ya publica por paso y facultad; la matriz de cascada lo transpone y
+   * aquí sólo se consulta por criterio. Nada se resta ni se acumula en el
+   * cliente: si un paso no publicara su facultad, una resta mentiría en silencio.
+   */
+  const lleganDe = useMemo(() => {
+    const matriz = construirMatrizCascada(i18b.cascade);
+    const clave = bloqueFoco?.excKey || bloqueFoco?.facLabel || "";
+    const fila = matriz?.filas.find((f) => f.facultadKey === clave) ?? null;
+    if (!fila) return () => null;
+    const porCriterio = new Map(fila.celdas.map((c) => [c.criterioId, c.llegan]));
+    return (criterioId: string) => {
+      const llegan = porCriterio.get(criterioId);
+      return llegan == null ? null : { llegan, universo: fila.universo };
+    };
+  }, [i18b.cascade, bloqueFoco]);
+
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   const beam = necesitaRecalculo && listoParaRecalcular;
@@ -613,6 +635,7 @@ export function CursosHorarioMarcoTab({
                   {(bloqueFoco ? [bloqueFoco] : []).map((bloque) => (
                     <FacultadDecisionBloque
                       confirmadorDe={confirmadorDe}
+                      lleganDe={lleganDe}
                       key={bloque.excKey || bloque.facLabel}
                       sinPlegado
                       bloque={bloque}
@@ -709,6 +732,24 @@ export function CursosHorarioMarcoTab({
                     decisión — y la regla 2 del ADR 0057, que ponía la matriz
                     en el Panorama, queda superada por el ADR 0058: la matriz
                     que sobrevive cuenta la procedencia, y eso va al final. */}
+                {/* G39 · El corte entre las dos mitades de la pestaña.
+                    Gonzalo: «a partir de Panorama por facultad debe tener una
+                    división diferente que corte bien esas dos partes de las
+                    pestañas, porque ahora puede confundirse con un criterio
+                    más».
+
+                    Arriba se DECIDE, criterio a criterio, en UNA facultad.
+                    Abajo se MIRA el resultado en TODAS. Con la misma
+                    separación entre bloques, Panorama entraba como si fuera el
+                    criterio siguiente, y su tabla —que compara facultades— se
+                    leía como una decisión más de la facultad abierta.
+
+                    Un borde no bastaba: la superficie ya está llena de bordes.
+                    El corte dice en voz alta qué empieza, que es lo que lo
+                    hace legible como cambio de sección y no como separador. */}
+                <div className="cmv2-chfp-corte" role="separator" aria-label="Resultado en todas las facultades">
+                  <span>Resultado en todas las facultades</span>
+                </div>
                 <PanoramaCursosHorario
                   filas={panoramaFilas}
                   criterios={aulaToggle.map((v) => ({ id: v.id, label: v.label }))}

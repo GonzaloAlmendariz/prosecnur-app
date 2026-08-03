@@ -2383,30 +2383,74 @@
   color: var(--pulso-text-muted);
 }
 /* Bisagra del embudo: separa los filtros generales de la decisión de tipo. */
-.cmv2-chfp-bisagra {
+/*
+ * G39 · La barra del embudo, antes de cada criterio.
+ *
+ * Sustituye a `.cmv2-chfp-bisagra`, que aparecía UNA vez a media lista y decía
+ * el estado final del embudo en mitad del recorrido. Gonzalo: «debería estar en
+ * todos los criterios antes de introducir uno, para poder seguir el embudo en
+ * cascada».
+ *
+ * Repetida seis o siete veces, no puede pesar lo que pesaba una sola: era una
+ * caja con relleno, borde y fondo de acento —una parada—, y siete paradas dejan
+ * de ser un hito para convertirse en ruido. Ahora es una línea con un filete a
+ * la izquierda: se lee al pasar y no compite con la tarjeta que introduce.
+ */
+.cmv2-chfp-llegan {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 6px;
-  margin: 4px 0;
-  padding: 9px 12px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius);
-  background: var(--cmv2-accent-soft);
-  font-size: 12px;
+  gap: 6px;
+  margin: 10px 0 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--cmv2-accent-border);
+  font-size: 11.5px;
   line-height: 1.4;
-  color: var(--pulso-text);
+  color: var(--pulso-text-muted);
 }
-.cmv2-chfp-bisagra strong {
-  font-size: 15px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--cmv2-accent-fg);
-}
-.cmv2-chfp-bisagra em {
-  font-style: normal;
+.cmv2-chfp-llegan strong {
+  font-size: 13px;
   font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
   color: var(--cmv2-accent-fg);
 }
+.cmv2-chfp-llegan-pct {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+  opacity: 0.75;
+}
+
+/*
+ * G39 · Corte entre las dos mitades de la pestaña.
+ *
+ * Gonzalo: «a partir de Panorama por facultad debe tener una división diferente
+ * que corte bien esas dos partes de las pestañas, porque ahora puede confundirse
+ * con un criterio más».
+ *
+ * Arriba se DECIDE, criterio a criterio, en una facultad; abajo se MIRA el
+ * resultado en todas. Con la misma separación entre bloques, Panorama entraba
+ * como si fuera el criterio siguiente — y su tabla, que compara facultades, se
+ * leía como una decisión más de la facultad abierta.
+ */
+.cmv2-chfp-corte {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 30px 0 14px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-corte::before,
+.cmv2-chfp-corte::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--cmv2-border);
+}
+.cmv2-chfp-corte::before { flex-grow: 0; width: 14px; }
 
 /* Tarjeta de un criterio decidido por facultad (session/condition/teacher/min) */
 .cmv2-chfp-crit {

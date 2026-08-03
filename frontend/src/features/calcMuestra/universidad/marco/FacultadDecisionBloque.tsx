@@ -197,6 +197,32 @@ function CriterioFacultadCard({
   );
 }
 
+/**
+ * G39 · Cuántos cursos-horario llegan a este criterio.
+ *
+ * Gonzalo: «la barra "639 de 849 cursos-horario candidatos con estos criterios"
+ * debería estar en todos los criterios antes de introducir uno, para poder
+ * seguir el embudo en cascada (ese nombre es solo interno)».
+ *
+ * Había **una sola** barra, entre los criterios generales y el tipo de curso, y
+ * decía el estado final del embudo en mitad del recorrido. Puesta antes de cada
+ * criterio, la secuencia se lee como lo que es: cuántos candidatos hay cuando
+ * te toca decidir, y cuántos había al empezar.
+ *
+ * El vocabulario interno se queda dentro: aquí no aparecen «embudo», «cascada»
+ * ni «bisagra». Lo que el usuario lee es cuántos cursos-horario tiene delante.
+ */
+function LleganAlCriterio({ llegan, universo }: { llegan: number | null; universo: number | null }) {
+  if (llegan == null || universo == null || universo <= 0) return null;
+  const pct = Math.round((llegan / universo) * 100);
+  return (
+    <p className="cmv2-chfp-llegan" role="note">
+      <strong>{fmtInt(llegan)}</strong> de {fmtInt(universo)} cursos-horario llegan a este criterio
+      <span className="cmv2-chfp-llegan-pct">{pct}%</span>
+    </p>
+  );
+}
+
 /** Control por-facultad del nivel/ciclo del curso (rango). */
 function NivelFacultadCard({
   variable,
@@ -229,6 +255,11 @@ function NivelFacultadCard({
    * propio criterio, el error deja de ser expresable.
    */
   confirmadorDe?: (criterioId: string) => ReactNode;
+  /**
+   * G39 · Cuántos cursos-horario llegan a cada criterio en ESTA facultad.
+   * Sale del `before_ch` de la cascada del motor, no de una resta local.
+   */
+  lleganDe?: (criterioId: string) => { llegan: number; universo: number } | null;
 }) {
   const confirmador = confirmadorDe?.(variable.id);
   const valores = (variable.values ?? []).slice().sort((a, b) => a - b);
@@ -577,6 +608,7 @@ export function FacultadDecisionBloque({
   slotApertura,
   slotCierre,
   confirmadorDe,
+  lleganDe,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
@@ -610,6 +642,8 @@ export function FacultadDecisionBloque({
    * lógica de confirmación se queda en un sitio.
    */
   confirmadorDe?: (criterioId: string) => ReactNode;
+  /** G39 · Cuántos cursos-horario llegan a cada criterio en esta facultad. */
+  lleganDe?: (criterioId: string) => { llegan: number; universo: number } | null;
   slotApertura?: ReactNode;
   /** ADR 0057 · Criterios 7 y 8, penúltimos antes del mayor detalle. */
   slotCierre?: ReactNode;
@@ -705,6 +739,7 @@ export function FacultadDecisionBloque({
                 y tipo de sesión. Es el criterio que más recorta —en Gastronomía
                 se lleva 36 de 45 cursos-horario— y llegaba cuando ya se habían
                 tomado cuatro decisiones sobre un marco que él iba a cambiar. */}
+            <LleganAlCriterio {...(lleganDe?.("minEligible") ?? { llegan: null, universo: null })} />
             <MinFacultadCard
               confirmador={confirmadorDe?.(ELEGIBLES_POR_AULA_ID)}
               seleccion={seleccion}
@@ -736,6 +771,12 @@ export function FacultadDecisionBloque({
                 que también recorta grueso: van antes de la bisagra. El nivel
                 del curso (rango) se intercala tras la condición del curso. */}
             {generales.flatMap((variable) => {
+              const barra = (
+                <LleganAlCriterio
+                  key={`llegan-${variable.id}`}
+                  {...(lleganDe?.(variable.id) ?? { llegan: null, universo: null })}
+                />
+              );
               const card = (
                 <CriterioFacultadCard
                   key={variable.id}
@@ -754,7 +795,12 @@ export function FacultadDecisionBloque({
               );
               if (variable.id === "condicion_curso" && rangeVariable) {
                 return [
+                  barra,
                   card,
+                  <LleganAlCriterio
+                    key={`llegan-${rangeVariable.id}`}
+                    {...(lleganDe?.(rangeVariable.id) ?? { llegan: null, universo: null })}
+                  />,
                   <NivelFacultadCard
                     confirmadorDe={confirmadorDe}
                     key={rangeVariable.id}
@@ -769,15 +815,11 @@ export function FacultadDecisionBloque({
                   />,
                 ];
               }
-              return [card];
+              return [barra, card];
             })}
-            {/* Bisagra del embudo: cuántas aulas quedan con los filtros
-                generales, antes de la decisión más particular (el tipo). */}
-            <p className="cmv2-chfp-bisagra" role="note">
-              <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} cursos-horario candidatos
-              con estos criterios · ahora decide el <em>tipo de curso</em>
-            </p>
             {sessionVar ? (
+              <>
+              <LleganAlCriterio {...(lleganDe?.(sessionVar.id) ?? { llegan: null, universo: null })} />
               <CriterioFacultadCard
                 confirmador={confirmadorDe?.(sessionVar.id)}
                 variable={sessionVar}
@@ -791,6 +833,7 @@ export function FacultadDecisionBloque({
                 criterioEvidence={criterioEvidence}
                 onSel={(next) => onToggleVariable(sessionVar.id, next)}
               />
+              </>
             ) : null}
             {/* Criterio final y más granular: la lista de cursos-horario que
                 sobreviven en esta facultad, todos activos por defecto. */}
@@ -798,6 +841,7 @@ export function FacultadDecisionBloque({
                 veces, una como control y otra como evidencia con el mismo
                 rótulo. La evidencia vive dentro de su control. */}
             {slotCierre}
+            <LleganAlCriterio {...(lleganDe?.("manual_excluded") ?? { llegan: null, universo: null })} />
             <AulasFinalesCard
               tasaAsistencia={tasaAsistencia(seleccion)}
               aulas={aulasFinales}
