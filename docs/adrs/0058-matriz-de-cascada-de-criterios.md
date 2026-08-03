@@ -300,3 +300,38 @@ marco que él iba a cambiar.
 **Mecanismo**: el orden del embudo se declara en un solo sitio y el mínimo abre
 la lista. Dos criterios que suenan igual se distinguen por lo que filtran, no
 por su nombre.
+
+
+### 14 · Dos órdenes que no coinciden, y sólo uno se aplica
+
+Medido en la app: la superficie presentaba el mínimo **primero** y el motor lo
+aplicaba **undécimo**. Importa porque la cifra de cada tarjeta —«quitarla deja
+fuera N cursos-horario»— se calcula en el orden del motor, y dos criterios que
+se solapan quitan distinto según cuál va antes. Leer la lista de arriba abajo
+describía un embudo que no era el que corrió.
+
+No se resolvía en el frontend: alinear la superficie al motor contradecía la
+instrucción de Gonzalo, y alinear el motor a la superficie **cambia las cifras
+del marco**. Era una decisión de producto, y la tomó él: «debe ser el orden de
+la superficie el que tiene el orden correcto».
+
+El mínimo abre ahora el embudo también en R. Los criterios de **estudiante**
+siguen delante a propósito: filtran alumnos, y el mínimo cuenta los alumnos que
+sobreviven a ellos — invertir eso cambiaría el significado del mínimo, no sólo
+su cifra.
+
+**Mecanismo**: `.cm_criterios_orden_motor` es el único sitio donde vive el
+orden, y la superficie lo lee de la cascada publicada en vez de replicarlo
+(patrón 3). Verificado ejecutando el motor: los cinco criterios de curso-horario
+salen en el orden de la pantalla.
+
+### 15 · El deslizador alineado con el eje que recorta
+
+El nivelador vivía en su propia caja y el gráfico en otra, con anchos distintos.
+Arrastrar la manija obligaba a traducir «un tercio de la barra» a «un tercio del
+eje» — y las dos barras ni siquiera medían lo mismo.
+
+**Mecanismo**: en modo `alineadoConEje` la pista comparte recorrido con la
+escala del gráfico, así que **mover la manija es mover el corte sobre la
+distribución**. El campo numérico baja de fila: quitarle ancho al deslizador es
+quitarle resolución al gesto que sí recorre la escala.

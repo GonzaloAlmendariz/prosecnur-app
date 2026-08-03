@@ -46,6 +46,7 @@ export function ControlRango({
   descripcion,
   deshabilitado = false,
   umbralSospecha = 40,
+  alineadoConEje = false,
   onCambio,
 }: {
   desde: number;
@@ -62,6 +63,8 @@ export function ControlRango({
    * `null` desactiva el aviso — no todo rango es ordinal.
    */
   umbralSospecha?: number | null;
+  /** G31 · La pista comparte recorrido con el eje del grafico que recorta. */
+  alineadoConEje?: boolean;
   onCambio: (rango: { desde: number; hasta: number }) => void;
 }) {
   const id = useId();
@@ -83,7 +86,11 @@ export function ControlRango({
   const pct = (v: number) => (span > 0 ? ((v - min) / span) * 100 : 0);
 
   return (
-    <div className="cmv2-umbral-control" data-deshabilitado={deshabilitado || undefined}>
+    <div
+      className="cmv2-umbral-control"
+      data-deshabilitado={deshabilitado || undefined}
+      data-alineado={alineadoConEje || undefined}
+    >
       <span className="cmv2-umbral-etiqueta">{etiqueta}</span>
 
       <div className="cmv2-rango-pistas">

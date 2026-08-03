@@ -42,6 +42,7 @@ export function ControlUmbral({
   etiqueta,
   descripcion,
   deshabilitado = false,
+  alineadoConEje = false,
   onCambio,
 }: {
   valor: number;
@@ -55,6 +56,15 @@ export function ControlUmbral({
   /** Consecuencia del valor actual, publicada por el motor. Opcional. */
   descripcion?: string;
   deshabilitado?: boolean;
+  /**
+   * G31 · La pista comparte recorrido con el eje del gráfico.
+   *
+   * Cuando el control vive junto a la distribución que recorta, alinear su pista
+   * con la escala convierte arrastrar la manija en **mover el corte sobre el
+   * gráfico**. Sin alinear, el usuario traduce «un tercio de la barra» a «un
+   * tercio del eje», y las dos barras ni siquiera medían lo mismo.
+   */
+  alineadoConEje?: boolean;
   onCambio: (valor: number) => void;
 }) {
   const id = useId();
@@ -64,7 +74,11 @@ export function ControlUmbral({
   const acotar = (v: number) => acotarUmbral(v, min, max);
 
   return (
-    <div className="cmv2-umbral-control" data-deshabilitado={deshabilitado || undefined}>
+    <div
+      className="cmv2-umbral-control"
+      data-deshabilitado={deshabilitado || undefined}
+      data-alineado={alineadoConEje || undefined}
+    >
       <label className="cmv2-umbral-etiqueta" htmlFor={`${id}-n`}>
         {etiqueta}
       </label>
