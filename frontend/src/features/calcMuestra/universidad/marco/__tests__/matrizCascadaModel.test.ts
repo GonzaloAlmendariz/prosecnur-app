@@ -161,3 +161,47 @@ describe("cuadraConElMotor", () => {
     expect(cuadraConElMotor(m, c)).toBe(false);
   });
 });
+
+describe("construirMatrizCascada · grupos por lo que filtra el criterio (G8)", () => {
+  it("agrupa contiguo por scope y separa lo operativo", () => {
+    // Medido en la app: 5 de 14 columnas eran criterios de ESTUDIANTE, que
+    // filtran alumnos y sólo quitan un curso-horario si lo vacían. Sin declarar
+    // el grupo, el eje mezcla dos cosas aunque la celda mida lo mismo.
+    const c = cascada();
+    c.steps.unshift({ ...c.steps[0], criterion_id: "age", label: "Edad", scope: "alumno" } as never);
+    c.steps.unshift({ ...c.steps[0], criterion_id: "formation", label: "Formación", scope: "alumno" } as never);
+    c.steps.push({ ...c.steps[0], criterion_id: "manual_excluded", label: "Exclusiones manuales",
+      scope: "aula", gate: false } as never);
+    const m = construirMatrizCascada(c)!;
+    expect(m.grupos.map((g) => [g.scope, g.desde, g.ancho])).toEqual([
+      ["alumno", 0, 2], ["aula", 2, 2], ["operativo", 4, 1],
+    ]);
+  });
+
+  it("el grupo de estudiante dice por qué puede estar en cero", () => {
+    const c = cascada();
+    c.steps.unshift({ ...c.steps[0], criterion_id: "age", label: "Edad", scope: "alumno" } as never);
+    const m = construirMatrizCascada(c)!;
+    expect(m.grupos[0].label).toContain("sólo si lo vacían");
+  });
+
+  it("sin criterios de estudiante no inventa su grupo", () => {
+    const m = construirMatrizCascada(cascada())!;
+    expect(m.grupos.map((g) => g.scope)).toEqual(["aula"]);
+  });
+
+  it("los grupos cubren todas las columnas, sin huecos ni solapes", () => {
+    // Un grupo que no cubriera su tramo dejaría columnas sin declarar bajo qué
+    // unidad se leen — que es justo el defecto que los grupos vienen a cerrar.
+    const c = cascada();
+    c.steps.unshift({ ...c.steps[0], criterion_id: "age", scope: "alumno" } as never);
+    const m = construirMatrizCascada(c)!;
+    const cubierto = m.grupos.reduce((a, g) => a + g.ancho, 0);
+    expect(cubierto).toBe(m.criterios.length);
+    let esperado = 0;
+    for (const g of m.grupos) {
+      expect(g.desde).toBe(esperado);
+      esperado += g.ancho;
+    }
+  });
+});

@@ -51,7 +51,21 @@ export type MatrizCascada = {
    * Siguen sin ser criterios, así que no se mezclan con ellos: van marcados
    * como operativos y se pintan aparte. Lo que no pueden es faltar.
    */
-  criterios: Array<{ id: string; label: string; operativo: boolean }>;
+  criterios: Array<{ id: string; label: string; operativo: boolean; scope: "alumno" | "aula" }>;
+  /**
+   * G8 · Grupos de columnas por lo que filtra cada criterio.
+   *
+   * Medido en la app: de 14 columnas, 12 no recortaban nada en ninguna facultad,
+   * y cinco eran criterios de **estudiante** —Formación, Edad, Ciclo, Facultad,
+   * Condición de matrícula—. Todas publican `excluded_ch`, así que la unidad de
+   * la celda es la misma; lo que cambia es **qué filtra el criterio**, y sin
+   * declararlo el eje mezcla dos cosas.
+   *
+   * Un criterio de estudiante sólo quita un curso-horario cuando lo deja sin
+   * ningún alumno elegible. Agrupadas, cinco columnas en cero dejan de ser ruido
+   * y pasan a decir algo: ninguno vació un curso.
+   */
+  grupos: Array<{ scope: "alumno" | "aula" | "operativo"; label: string; desde: number; ancho: number }>;
   filas: FilaMatriz[];
   total: FilaMatriz;
 };
@@ -89,7 +103,29 @@ export function construirMatrizCascada(
   const pasos: CalcMuestraCriteriosCascadeStep[] = cascada?.steps ?? [];
   if (!pasos.length) return null;
 
-  const criterios = pasos.map((p) => ({ id: p.criterion_id, label: p.label, operativo: !p.gate }));
+  const criterios = pasos.map((p) => ({
+    id: p.criterion_id,
+    label: p.label,
+    operativo: !p.gate,
+    scope: p.scope,
+  }));
+
+  // Grupos contiguos: el orden del embudo lo fija el ADR y no se reordena, así
+  // que basta recorrer y cortar donde cambia el tipo.
+  const tipoDe = (i: number): "alumno" | "aula" | "operativo" =>
+    criterios[i].operativo ? "operativo" : criterios[i].scope;
+  const ETIQUETA = {
+    alumno: "Criterios de estudiante · quitan un curso-horario sólo si lo vacían",
+    aula: "Criterios de curso-horario",
+    operativo: "Operativo",
+  } as const;
+  const grupos: MatrizCascada["grupos"] = [];
+  for (let i = 0; i < criterios.length; i++) {
+    const t = tipoDe(i);
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.scope === t) ultimo.ancho += 1;
+    else grupos.push({ scope: t, label: ETIQUETA[t], desde: i, ancho: 1 });
+  }
   const indiceEditando = edicion
     ? pasos.findIndex((p) => p.criterion_id === edicion.criterioId)
     : -1;
@@ -148,7 +184,7 @@ export function construirMatrizCascada(
     supervivencia: universoTotal > 0 ? quedanTotal / universoTotal : null,
   };
 
-  return { criterios, filas, total };
+  return { criterios, grupos, filas, total };
 }
 
 /**
