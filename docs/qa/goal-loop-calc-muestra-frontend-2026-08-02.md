@@ -3481,6 +3481,42 @@ la razón por la que la casa prohíbe el hex hardcodeado.
 
 Si algún día se añade modo oscuro, estas piezas lo heredan sin tocarlas.
 
+### F91 — Todo lo que se mueve puede no moverse, y ahora se vigila solo
+
+Verificado `prefers-reduced-motion` en las animaciones del loop. En la superficie
+hay **una animación** —la barra que aparece— y **tres transiciones** —las cifras
+que funden al recalcularse—, y todas están cubiertas por el bloque de movimiento
+reducido.
+
+Pero eso lo comprobé **leyendo**, que es exactamente lo que este loop ha
+demostrado insuficiente. Convertido en guard estático:
+`movimientoReducido.test.ts` extrae **cada selector que declara `animation:` o
+`transition:`** y exige su contrapartida en el bloque `prefers-reduced-motion`.
+
+**Verificado por mutación**: añadí una animación a `.cmv2-cat-mediana` sin
+contrapartida y el guard falló nombrándola —«sin contrapartida:
+`.cmv2-cat-mediana`»—. Señala qué falta, no sólo que algo falla.
+
+Tres reglas en el guard, y la tercera es la que más importa: **apagar el
+movimiento no puede esconder la barra**. La barra aparece con `opacity` y
+`animation-fill-mode: both`; sin un `opacity: 1` explícito en el bloque reducido,
+apagar la animación la dejaría en su fotograma inicial —invisible—. Es la misma
+familia del defecto que corrompió el dato en F55, ahora prevenida por escrito.
+
+**Por qué estático y no en ejecución**: una comprobación en runtime exigiría
+emular la preferencia del sistema y, aun así, no vería la animación que alguien
+añada mañana. El guard sí.
+
+De paso, el extractor tropezó una vez más con el patrón 13 —tomó los comentarios
+que explican las animaciones por selectores—, resuelto leyendo el CSS sin
+comentarios.
+
+| | |
+|---|---:|
+| Animaciones cubiertas | **1 de 1** |
+| Transiciones cubiertas | **3 de 3** |
+| Vitest | 865 → **868** en 109 archivos |
+
 ### Estado del loop
 
 | | |
