@@ -194,3 +194,19 @@ caso que exige que **las cuatro estén cubiertas** — un mapa que nunca devuelv
 una variante la deja sin montar. Y la comprobación de que están vivas se hace
 **contando en el DOM de la app cargada**, no leyendo el fuente: medido tras
 cablearlas, 18 categoría · 3 umbral · 3 proporción · 40 unidad.
+
+
+### 8 · Un enlace roto no falla: no hace nada
+
+La tarjeta de composición ofrecía «Ajustar la regla común» con un enlace a
+`#cmv2-chfp-global-adjustments`, y **ese id no existía en ningún sitio del
+módulo**. Era el único camino desde una regla que no se puede editar por
+facultad hasta donde sí se edita.
+
+Nada lo delataba: un `href` a un ancla inexistente no lanza error, no aparece en
+consola y no rompe ninguna prueba. Simplemente el click no hace nada, y el
+usuario concluye que la regla no se puede tocar.
+
+**Mecanismo**: un guard recorre el módulo, junta todos los `href="#…"` y exige
+que cada uno tenga su `id` en algún componente. Es barato y cubre la clase
+entera, no este caso.

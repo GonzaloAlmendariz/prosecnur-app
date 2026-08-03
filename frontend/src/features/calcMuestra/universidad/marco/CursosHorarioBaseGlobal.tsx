@@ -287,6 +287,12 @@ export function CursosHorarioBaseGlobal({
   const variablesVisibles = piezas === "cierre" ? [] : comunes;
   return (
     <div
+      /* G23 · El ancla que «Ajustar la regla común» buscaba y no existía.
+         El enlace de la tarjeta de composición apuntaba a
+         `#cmv2-chfp-global-adjustments` y ese id no estaba en ninguna parte del
+         módulo: el único camino a editar una regla común no llevaba a ningún
+         sitio. C4 del Contrato de Superficie — todo alcanzable. */
+      id="cmv2-chfp-global-adjustments"
       className="cmv2-crit-grid cmv2-chfp-global-grid"
       data-qa-geometry-group="calc-muestra/criterios-ch-globales"
       data-qa-geometry-contract="intrinsic"
