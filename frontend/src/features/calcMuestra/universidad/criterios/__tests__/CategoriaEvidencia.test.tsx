@@ -396,3 +396,42 @@ describe("CategoriaEvidencia · variantes de umbral y proporción (F118)", () =>
     expect(html).not.toContain("<b>40%</b>");
   });
 });
+
+describe("cada variante declara qué es (G36)", () => {
+  /*
+   * Contrato de Superficie, C1 · Medido en la app: los tres criterios
+   * categóricos —Modalidad, Condición del curso, Tipo de sesión— salían **sin
+   * `data-variante`** mientras umbral y unidad sí lo declaraban. Era la rama
+   * por defecto del componente, y una rama por defecto omite en silencio.
+   *
+   * El coste no es cosmético: sin declaración no hay forma de distinguir «esta
+   * tarjeta es categórica» de «esta tarjeta se rompió y cayó al caso por
+   * defecto», ni de auditar la superficie sin abrirla criterio a criterio.
+   */
+  const render = (variante: "categoria" | "umbral" | "proporcion" | "unidad") =>
+    renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ umbral: { valor: 20 } })}
+        dominio={{ min: 0, max: 100 }}
+        variante={variante}
+      />,
+    );
+
+  it.each(["categoria", "umbral", "proporcion", "unidad"] as const)(
+    "«%s» sale declarada en el marcado",
+    (variante) => {
+      expect(render(variante)).toContain(`data-variante="${variante}"`);
+    },
+  );
+
+  it("una rama nueva no puede salir sin declarar", () => {
+    // Cubre lo que el caso anterior no ve: una quinta rama añadida más adelante
+    // que vuelva a omitir el atributo. Busca la clase **sin** `data-variante`
+    // detrás — mi primera versión buscaba la clase a secas y casaba también con
+    // las tarjetas correctas: un detector que no distingue no detecta nada.
+    for (const v of ["categoria", "umbral", "proporcion", "unidad"] as const) {
+      const sinDeclarar = render(v).match(/class="cmv2-cat-evidencia"(?! data-variante)/g) ?? [];
+      expect(sinDeclarar).toHaveLength(0);
+    }
+  });
+});

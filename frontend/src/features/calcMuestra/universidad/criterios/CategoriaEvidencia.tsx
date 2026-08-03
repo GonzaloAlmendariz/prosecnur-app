@@ -303,7 +303,16 @@ export function CategoriaEvidencia({
   }
 
   return (
-    <div className="cmv2-cat-evidencia">
+    /*
+     * G36 · La tarjeta categórica también declara qué es.
+     *
+     * Era la rama por defecto y salía **sin `data-variante`**: en la app las
+     * tres categóricas no declaraban nada mientras umbral y unidad sí. Una
+     * superficie que no dice qué es no se puede auditar —no hay forma de
+     * distinguir «categórica» de «rota»— y el gate de la casa es verde por
+     * conformidad, no por ausencia (C1).
+     */
+    <div className="cmv2-cat-evidencia" data-variante="categoria">
       {/* F111 · Cuatro cifras, decididas con Gonzalo: CH totales, CH elegibles,
           alumnos elegibles y —si el marco la trae— la tasa de asistencia previa.
           Sale **matrículas**: F105 la había puesto para separar los dos granos,
