@@ -1042,6 +1042,48 @@ cumplido, en vez de aparecer cuarenta commits después. La revisión explícita
 —«¿qué gate me salté?»— es más barata que confiar en recordarlo en el momento.
 
 
+### 62 · Un módulo compartido no basta: importarlo sigue siendo un olvido posible
+
+«Las categorías con más cursos-horario van primero» se pidió **tres veces**, cada
+una viendo una superficie distinta que se había quedado fuera: la lista de
+conmutadores, la radiografía y la tarjeta genérica, y por último la rejilla de
+tarjetas de esa misma radiografía — en el mismo archivo que una de las anteriores.
+
+La segunda vez la reparación fue mover la regla a un módulo propio, con la idea
+de que tener una sola casa evitaría la divergencia. No la evitó: **importarla
+sigue siendo una decisión que hay que acordarse de tomar**, y quien escribe una
+superficie nueva no sabe que existe.
+
+**Mecanismo**: un contrato que **enumera las superficies** y falla si alguna deja
+de usar la regla, más un caso que caza un `sort` propio sobre listas de
+categorías. La lista de la clase deja de vivir en la cabeza de quien repara y
+pasa a vivir donde falla sola.
+
+La generalización: cuando una regla se ha olvidado dos veces, extraerla es la
+mitad del arreglo. La otra mitad es hacer falsable *quién debe usarla*.
+
+### 63 · Una tarjeta con todo a cero no es honestidad, es el mismo hueco repetido
+
+En la radiografía de tipo de sesión había 11 tarjetas y **sólo 4 con
+cursos-horario**. Las otras 7 mostraban seis cifras en cero y un boxplot vacío,
+ocupando 1.789 px verticales.
+
+Cada una, por separado, era correcta: la categoría existe, no tiene datos aquí, y
+la tarjeta lo dice sin inventar nada. El defecto sólo aparece al contarlas — siete
+huecos idénticos hunden a las cuatro que sí deciden, y la superficie dedica el 90 %
+de su alto a decir «nada» siete veces.
+
+**Mecanismo**: se listan por su nombre en una línea. No se ocultan —esta misma
+superficie ya corrigió una vez el defecto contrario (G33)— y el criterio es
+`n_ch_total`, no `n_ch_elegibles`: lo segundo cuenta los que siguen incluidos, así
+que una categoría que el criterio excluye se listaría como inexistente teniendo
+cursos (la confusión de F109).
+
+**Regla**: un vacío bien declarado es correcto una vez y ruido siete veces. Al
+revisar un estado vacío hay que preguntar cuántas veces aparece junto, no si está
+bien redactado.
+
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
