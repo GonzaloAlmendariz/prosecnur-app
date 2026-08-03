@@ -41,17 +41,37 @@ export function useCascadePreview(request: CalcMuestraCriteriosPreviewInput | nu
   const coordinatorRef = useRef<ReturnType<typeof createCriteriosPreviewCoordinator> | null>(null);
   if (!coordinatorRef.current) coordinatorRef.current = createCriteriosPreviewCoordinator();
   const [state, setState] = useState<CalcMuestraCriteriosPreviewState | null>(null);
+  /*
+   * G39 · El último estado resuelto se conserva mientras llega el siguiente.
+   *
+   * `previewRequest` cambia de identidad en cada render que toca el borrador, y
+   * cada cambio reinicia el debounce y vuelve el estado a `loading`. Con el
+   * embudo leyendo de aquí eso tiene dos efectos, los dos malos: la cascada
+   * viva parpadea de vuelta a la ejecutada entre pulsación y pulsación, y un
+   * `stale` —la razón por la que el preview no está disponible— desaparece antes
+   * de que nadie lo lea.
+   *
+   * Se recuerda el último `ready`/`stale` y se sigue mostrando mientras se
+   * recalcula. `loading` deja de ser un estado que borra lo anterior y pasa a ser
+   * lo que es: que hay algo en camino.
+   */
+  const resueltoRef = useRef<CalcMuestraCriteriosPreviewState | null>(null);
+  const publicar = (siguiente: CalcMuestraCriteriosPreviewState) => {
+    if (siguiente.status !== "loading") resueltoRef.current = siguiente;
+    setState(siguiente);
+  };
 
   useEffect(() => {
     const coordinator = coordinatorRef.current!;
     if (!request) {
       coordinator.cancel();
+      resueltoRef.current = null;
       setState(null);
       return;
     }
     setState({ status: "loading" });
     const timer = globalThis.setTimeout(() => {
-      void coordinator.run(request, setState);
+      void coordinator.run(request, publicar);
     }, 220);
     return () => {
       globalThis.clearTimeout(timer);
@@ -59,7 +79,8 @@ export function useCascadePreview(request: CalcMuestraCriteriosPreviewInput | nu
     };
   }, [request]);
 
-  return state;
+  // Mientras se recalcula se sigue enseñando lo último resuelto.
+  return state?.status === "loading" ? resueltoRef.current ?? state : state;
 }
 
 export function CriteriosEmbudoVivo({
