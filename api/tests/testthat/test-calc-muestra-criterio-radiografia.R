@@ -966,8 +966,15 @@ test_that("integración es aditiva y conserva intacto exploracion v1", {
     gate <- .cr_entry(frame$criterios_radiografia, gate_id)
     expect_identical(gate$status, "disponible", info = gate_id)
     expect_true(length(gate$rows) > 0L, info = gate_id)
+    # G38 · Contrato v2 de la señal. La lista sigue siendo exacta a propósito:
+    # es la que el cliente consume, y un campo que aparece o desaparece sin que
+    # nadie lo declare es la forma en que estos payloads se desalinean.
     expect_named(gate$rows[[1]]$signal_distribution, c(
-      "unit", "n_total", "n_con_dato", "media", "p10", "p25", "p50", "p75", "p90"
+      "unit", "n_total", "n_con_dato", "media", "p10", "p25", "p50", "p75", "p90",
+      "min", "max", "bigote_inf", "bigote_sup",
+      "n_atipicos", "n_atipicos_inf", "n_atipicos_sup",
+      "hist_breaks", "hist_counts",
+      "escala", "umbral_aplicado", "n_fuera"
     ), info = gate_id)
     expect_identical(gate$rows[[1]]$signal_distribution$n_total, 2L, info = gate_id)
     expect_identical(gate$rows[[1]]$signal_distribution$n_con_dato, 2L, info = gate_id)
@@ -1126,7 +1133,19 @@ test_that("índice alumno×CH se construye una vez por radiografía", {
     #      corri solo las pruebas del frontend, el mismo fallo de F71 que ya
     #      estaba documentado. El oraculo volvio a hacer su trabajo y volvio a
     #      no haber nadie mirandolo.
-    "eec9d3f97324bf596afa0259d4d93b91d204f1c7684cf7de470d7c5eef48992d"
+    #   4. G38 subio `signal_distribution` al contrato v2 y publico la senal de
+    #      composicion en porcentaje (0-100) en vez de razon (0-1), con su
+    #      `escala`, su `umbral_aplicado` y su `n_fuera`.
+    #
+    #      Este si se probo CONFINADO antes de tocar el hash, y con dos podas:
+    #      quitando los doce campos nuevos **y** devolviendo los momentos de la
+    #      senal de proporcion a la escala 0-1, reaparece exactamente el hash de
+    #      F114 (eec9d3f9...). Nada mas se movio.
+    #
+    #      La suite del area se corrio antes de commitear —la regla que salio de
+    #      los puntos 1 y 3— y atrapo este oraculo y la lista de campos de
+    #      arriba. Esta vez el aviso si tuvo a alguien mirandolo.
+    "6871d041d5ab711fe76b478a45ff254c96e24ce646ef72ad16abd298a6ad5f5a"
   )
 })
 

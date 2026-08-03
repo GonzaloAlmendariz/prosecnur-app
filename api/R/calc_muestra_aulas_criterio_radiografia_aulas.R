@@ -151,31 +151,65 @@
   list(rows = rows, status = status, reconstruccion_valida = reconstruccion_valida)
 }
 
-.cm_criterio_radiografia_signal_distribution <- function(v, unit) {
+# -----------------------------------------------------------------------------
+# Señal del criterio — contrato v2 (G38)
+# -----------------------------------------------------------------------------
+#
+# Gonzalo: «la distribución y el boxplot no estaban mal pero debían hacer
+# referencia al porcentaje de su composición, no a la cantidad de alumnos
+# elegibles […] podemos hacer que la distribución tenga ejes del 0 al 100 porque
+# es un porcentaje».
+#
+# G25 corrigió un error real —la tarjeta rotulaba conteos como porcentajes— pero
+# por el lado equivocado: cambió la etiqueta en vez del dato. Los tres criterios
+# de composición se deciden con un umbral en % mientras su gráfico describía otra
+# variable. El dato correcto ya existía aquí; le faltaba contrato y unidad.
+#
+# Tres reglas:
+#
+# 1. **La señal viaja en la unidad del control.** `proporcion` sale en porcentaje
+#    0–100, no en razón 0–1, porque el umbral se fija en %. Así la distribución,
+#    los cuantiles, los cortes del histograma y el corte se leen en la misma
+#    escala. Escalar en el cliente reintroduce la ambigüedad que causó G25.
+# 2. **La escala la fija el dominio, no los datos.** Para una proporción es
+#    0–100: un eje ajustado al rango observado hace que «85 %» parezca el extremo
+#    de la escala cuando es el 85 % de un máximo posible de 100.
+# 3. **`n_fuera` lo cuenta el motor.** Es la pregunta literal de Gonzalo —«no hay
+#    forma de saber cuántos perdemos por el porcentaje que estamos aplicando»— y
+#    es una cuenta sobre los datos, no una resta de dos cifras ya publicadas.
+.cm_criterio_radiografia_signal_distribution <- function(v, unit, umbral = NULL) {
   v <- suppressWarnings(as.numeric(v))
+  es_proporcion <- identical(unit, "proporcion")
+  if (es_proporcion) v <- v * 100
   n_total <- as.integer(length(v))
   n_dato <- as.integer(sum(is.finite(v)))
-  completo <- n_total > 0L && n_dato == n_total
-  q <- if (completo) {
-    as.numeric(stats::quantile(
-      v, probs = c(0.10, 0.25, 0.50, 0.75, 0.90),
-      type = 7, names = FALSE
-    ))
-  } else {
-    rep(NA_real_, 5L)
+
+  # El umbral llega en la misma unidad en que se fija el control: fracción para
+  # composición (0,80). Se lleva a la escala publicada para que comparar sea
+  # comparar, no convertir.
+  umbral_pub <- if (is.null(umbral)) NA_real_ else {
+    u <- suppressWarnings(as.numeric(umbral))[[1]]
+    if (is.finite(u) && es_proporcion && u <= 1) u * 100 else u
   }
-  list(
-    unit = unit,
-    n_total = n_total,
-    n_con_dato = n_dato,
-    media = if (completo) as.numeric(mean(v)) else NA_real_,
-    p10 = q[[1]],
-    p25 = q[[2]],
-    p50 = q[[3]],
-    p75 = q[[4]],
-    p90 = q[[5]]
+  n_fuera <- if (is.finite(umbral_pub)) {
+    as.integer(sum(is.finite(v) & v < umbral_pub))
+  } else {
+    NA_integer_
+  }
+
+  breaks <- .cm_criterio_radiografia_breaks(v)
+  dist <- .cm_criterio_radiografia_distribucion(v, breaks = breaks)
+  c(
+    list(unit = unit, n_total = n_total, n_con_dato = n_dato),
+    dist,
+    list(
+      escala = if (es_proporcion) list(min = 0, max = 100) else NULL,
+      umbral_aplicado = umbral_pub,
+      n_fuera = n_fuera
+    )
   )
 }
+
 .cm_criterio_radiografia_facultades <- function(facultades) {
   catalogos <- .cm_criterio_radiografia_catalogos_flat(
     "global", rep("global", length(facultades)), facultades
