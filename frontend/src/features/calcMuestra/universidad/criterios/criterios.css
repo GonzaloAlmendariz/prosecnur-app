@@ -1961,3 +1961,28 @@
  * plegada dentro del criterio de estudiante, fuera en F40) y `cmv2-crit-exc-add`
  * (el botón del alta genérica, sustituido en F24 por el listado por facultad).
  * CSS sin selector en el TSX no lo caza el typecheck: sólo un barrido. */
+
+/*
+ * G21 · Las filas con tarjeta estándar reparten el ancho, no lo desperdician.
+ *
+ * Medido en la app: la fila era el flex `space-between` de arriba, que empuja
+ * la etiqueta a la izquierda y la tarjeta a la derecha dejando ~680 px vacíos en
+ * medio. Gonzalo: «tienen bastante espacio horizontal y no lo están utilizando».
+ *
+ * Con la rejilla, la etiqueta ocupa una columna acotada y **la tarjeta se queda
+ * todo lo demás**. No es sólo estética: el gráfico proyecta su dominio sobre el
+ * ancho disponible, así que cada píxel que no usa es resolución que pierde para
+ * distinguir Q1 de la mediana.
+ */
+.cmv2-crit-tsf-tipo:has(.cmv2-cat-evidencia) {
+  display: grid;
+  grid-template-columns: minmax(140px, 240px) minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: start;
+  padding: 8px;
+  min-height: 0;
+}
+.cmv2-crit-tsf-tipo:has(.cmv2-cat-evidencia) > :first-child {
+  align-self: center;
+  min-width: 0;
+}

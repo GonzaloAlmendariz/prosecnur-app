@@ -650,10 +650,9 @@ describe("superficie I18b de criterios", () => {
     expect(classroomRoute.match(/data-decision="transversal"/g)).toHaveLength(2);
     expect(classroomRoute).toContain("<strong>enrolled_total</strong>");
     expect(classroomRoute).toContain("<strong>Composición del curso-horario</strong>");
-    // F41 · La matriz deja de plegarse. Era el último `<details>` de la ruta y
-    // guardaba justo el resumen que permite comparar criterios entre
-    // facultades: «si algo está oculto es un error de diseño».
-    expect(classroomRoute).toContain("Impacto de cada criterio por facultad");
+    // F41 · La matriz dejó de plegarse; G20 la retiró del todo. Lo que aquí se
+    // vigilaba —que nada quede oculto— sigue vigente y se comprueba abajo con
+    // la ausencia de `<details>`.
     expect(classroomRoute).not.toContain("solo cuando necesites contrastar");
     // F43 · Acotado a la facultad en foco, el bloque deja de duplicar el módulo
     // y ya no hay motivo para plegarlo: la ruta no esconde nada.
@@ -668,17 +667,30 @@ describe("superficie I18b de criterios", () => {
     // Se compara contra los BLOQUES de facultad, no contra la sección que los
     // contiene: esa sección envuelve también al panorama, así que su etiqueta
     // aparece antes por construcción y la comparación sería vacua.
-    const posMatriz = classroomRoute.indexOf("Impacto de cada criterio por facultad");
+    // G20 · Gonzalo: «Panorama se va abajo para que criterios vaya arriba, y
+    // sólo una matriz sobrevive, la de abajo». La marginal se retiró: dos
+    // tablas antes de la primera decisión abrían la pestaña con comparaciones
+    // en vez de con lo que se decide.
+    expect(classroomRoute).not.toContain("Impacto de cada criterio por facultad");
     const posBloques = classroomRoute.indexOf('class="cmv2-chfp-bloques"');
-    expect(posMatriz).toBeGreaterThan(-1);
+    const posPanorama = classroomRoute.indexOf("cmv2-panorama");
+    const posCascada = classroomRoute.indexOf("De dónde salen los cursos-horario elegibles");
     expect(posBloques).toBeGreaterThan(-1);
-    expect(posMatriz).toBeLessThan(posBloques);
-    expect(classroomRoute).toContain('class="cmv2-crc-compact"');
-    expect(classroomRoute).toContain('data-context="faculty"');
+    // La cascada y el panorama sólo renderizan con su dato publicado; cuando
+    // están, van DESPUÉS de los bloques. Afirmar su presencia aquí probaría el
+    // fixture, no el orden.
+    if (posCascada > -1) expect(posCascada).toBeGreaterThan(posBloques);
+    if (posPanorama > -1) expect(posPanorama).toBeGreaterThan(posBloques);
+    // G19 · La consola de «Efecto de este criterio» se retiró; las tarjetas
+    // estándar la sustituyen. Retirar el componente entero se habría llevado
+    // las dos —las tarjetas viven dentro de él—, así que lo que desaparece es
+    // sólo el detalle de cuatro pestañas.
+    expect(classroomRoute).not.toContain("Efecto de este criterio");
+    expect(classroomRoute).not.toContain("Comparación con 2025");
+    expect(classroomRoute).not.toContain("Si lo quitara");
+    // Y las tarjetas estándar siguen ahí, con su gráfico.
     expect(classroomRoute).toContain('role="img"');
-    expect(classroomRoute).toContain("Qué queda después de cada criterio");
-    expect(classroomRoute).toContain("Comparación con 2025");
-    expect(classroomRoute).toContain('data-match-level="exacta"');
+    expect(classroomRoute).toContain("cmv2-cat-evidencia");
     // Los conmutadores con su evidencia siguen presentes: retirar el duplicado
     // no puede llevarse el original.
     expect(classroomRoute).toContain('aria-label="session_type en Ingeniería"');

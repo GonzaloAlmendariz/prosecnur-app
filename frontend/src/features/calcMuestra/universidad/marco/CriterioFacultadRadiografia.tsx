@@ -193,23 +193,16 @@ export function CriterioFacultadRadiografia({
             Ya no hay motivo para plegarlo, y por eso desaparece el último
             `<details>` de la pestaña. La comparación entre facultades vive
             arriba, en el panorama y la matriz, que es su sitio. */}
-        <section className="cmv2-crc-compact-detail">
-          {/* F112 · Aquí iba «N segmentos más de esta facultad»: un contador de
-              lo que la lista no mostraba. Ya no hay recorte, así que no hay nada
-              que contar — y un contador es la forma más barata de esconder. */}
-          <CriteriosRadiografiaCardDetalle
-            card={facultyCard}
-            radiografia={evidence.radiografia}
-            totals={null}
-            cascade={evidence.cascade}
-            anchors={evidence.anchors}
-            previewRequest={evidence.previewRequest}
-            i18bComplete={evidence.complete}
-            context="faculty"
-            facultyKey={facultyKey}
-            facultyLabel={facultyLabel}
-          />
-        </section>
+        {/* G19 · Fuera la consola de «Efecto de este criterio».
+
+            Gonzalo: «sigue en la pestaña de criterios cuando ya quedamos que no
+            va eso, y en su reemplazo van las tarjetas estandarizadas». Sus
+            cuatro pestañas —cuánto recorta, comparación con 2025, si lo
+            quitara, decidir— repartían en cuatro clicks lo que las tarjetas de
+            arriba enseñan de una vez y sobre una escala compartida.
+
+            Las tarjetas estándar SE QUEDAN: viven en este mismo componente,
+            encima. Retirar el componente entero se habría llevado las dos. */}
       </section>
     </div>
   );

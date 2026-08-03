@@ -106,13 +106,23 @@ describe("ADR 0057 · regla 1 — no hay sección de criterios transversales", (
 });
 
 describe("ADR 0057 · regla 2 — la matriz pertenece al Panorama", () => {
-  it("la matriz se declara antes que los bloques de facultad", () => {
-    const tab = leer("marco/CursosHorarioMarcoTab.tsx");
-    const matriz = tab.indexOf("cmv2-chfp-matriz-title");
-    const bloques = tab.indexOf("cmv2-chfp-bloques");
-    expect(matriz).toBeGreaterThan(-1);
+  it("la matriz de procedencia va DESPUÉS de los bloques (ADR 0058)", () => {
+    // La regla 2 del ADR 0057 ponía la matriz en el Panorama, arriba. El ADR
+    // 0058 la supera por decisión de Gonzalo: «Panorama se va abajo para que
+    // criterios vaya arriba, y sólo una matriz sobrevive, la de abajo».
+    //
+    // La matriz que queda cuenta la PROCEDENCIA —de dónde salieron los
+    // elegibles— y eso es lectura de cierre. Con dos tablas arriba, la pestaña
+    // abría con comparaciones antes de la primera decisión.
+    const fuente = leer("marco/CursosHorarioMarcoTab.tsx");
+    const bloques = fuente.indexOf('className="cmv2-chfp-bloques"');
+    const cascada = fuente.indexOf("cmv2-chfp-cascada-title");
+    const panorama = fuente.indexOf("<PanoramaCursosHorario");
     expect(bloques).toBeGreaterThan(-1);
-    expect(matriz).toBeLessThan(bloques);
+    expect(cascada).toBeGreaterThan(bloques);
+    expect(panorama).toBeGreaterThan(bloques);
+    // Y la marginal ya no se monta: sólo sobrevive una matriz.
+    expect(fuente).not.toContain("<MatrizEmbudoCriterios");
   });
 });
 
