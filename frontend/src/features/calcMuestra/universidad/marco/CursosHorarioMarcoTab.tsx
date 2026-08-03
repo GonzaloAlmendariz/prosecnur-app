@@ -283,7 +283,16 @@ export function CursosHorarioMarcoTab({
     marcarPendiente(MANUAL_EXCLUDED_ID);
   }
 
-  // ---- confirmar / descartar GLOBAL (un solo gesto, no por tarjeta) --------
+  // ---- confirmar / descartar --------------------------------------------
+  //
+  // G9 · Gonzalo: «la confirmación tiene que ser por criterio. Yo hago un
+  // cambio en el criterio, lo tengo que confirmar, y esa confirmación es lo que
+  // permite que el criterio siguiente y los que vienen se actualicen».
+  //
+  // El gesto global se conserva —con ocho criterios abiertos, confirmarlos uno
+  // a uno es peor— pero deja de ser el único: los criterios se aplican en
+  // cascada y confirmar el que estás tocando es lo que desbloquea a los
+  // siguientes. Sin eso, el embudo vivo no puede existir.
   function confirmarTodo() {
     patchSeleccion(reconciliarBorradorCriterios(seleccion, borrador, pendientes, tiposBorrador));
     setPendientes(new Set());
@@ -291,6 +300,40 @@ export function CursosHorarioMarcoTab({
   function descartarTodo() {
     setBorrador(seleccion);
     setPendientes(new Set());
+  }
+
+  /** Confirma un solo criterio y deja los demás pendientes tal como estaban. */
+  function confirmarCriterio(id: string) {
+    if (!pendientes.has(id)) return;
+    patchSeleccion(reconciliarBorradorCriterios(seleccion, borrador, new Set([id]), tiposBorrador));
+    setPendientes((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  /**
+   * Descarta el borrador de un criterio.
+   *
+   * Se restaura **su** rama del borrador desde la selección confirmada, no el
+   * borrador entero: descartar un criterio no puede llevarse por delante los
+   * cambios que hay en los otros.
+   */
+  function descartarCriterio(id: string) {
+    if (!pendientes.has(id)) return;
+    setBorrador((prev) => ({
+      ...prev,
+      byVariable: {
+        ...prev.byVariable,
+        [id]: seleccion.byVariable?.[id],
+      },
+    }));
+    setPendientes((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   }
 
   const totalPendientes = pendientes.size;
