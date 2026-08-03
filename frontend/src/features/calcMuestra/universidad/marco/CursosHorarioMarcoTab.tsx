@@ -492,7 +492,14 @@ export function CursosHorarioMarcoTab({
                       de sobra para el mayor detalle y no queda nada plegado. */}
                   <label className="cmv2-chfp-selector">
                     <span>Facultad</span>
+                    {/* F109 · El `<label>` que lo envuelve ya lo nombra, pero
+                        arrastra consigo el `<small>` de ayuda: quien navega con
+                        lector oye «Facultad … 17 facultades · se muestra una a
+                        la vez con todo su detalle» en cada foco. El nombre
+                        explícito lo deja en una palabra; la ayuda sigue leyéndose
+                        al recorrer el grupo. */}
                     <select
+                      aria-label="Facultad"
                       value={bloqueFoco?.excKey || bloqueFoco?.facLabel || ""}
                       onChange={(e) => setFacultadFoco(e.currentTarget.value)}
                     >
