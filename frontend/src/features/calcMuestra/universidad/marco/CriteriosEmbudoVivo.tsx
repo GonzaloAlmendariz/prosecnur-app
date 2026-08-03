@@ -13,7 +13,31 @@ function fmt(value: number): string {
   return INTEGER.format(value);
 }
 
-function useCascadePreview(request: CalcMuestraCriteriosPreviewInput | null) {
+/**
+ * G39 · El recorrido se recalcula solo al confirmar un criterio.
+ *
+ * Gonzalo: «el botón de calcular población y cursos-horario elegibles es un poco
+ * overkill, ¿no? ¿Qué pasa si solo hago un ajuste a un criterio? La
+ * actualización no debería también poder ser solo por criterio cuando lo
+ * confirmamos, y este botón solo si quiero un cambio que involucre a ambas
+ * dimensiones».
+ *
+ * Tenía razón, y el mecanismo ya existía entero —motor, endpoint, cliente,
+ * coordinador y este hook— con un solo montaje: la consola de detalle que G20
+ * retiró de la pestaña. Se quedó huérfano, así que la única forma de ver el
+ * efecto de un criterio volvió a ser reconstruir las dos dimensiones.
+ *
+ * Se exporta para que la pestaña entera lo use, no sólo una tarjeta.
+ *
+ * **Qué puede y qué no.** El preview recalcula la cascada de criterios sobre el
+ * marco YA construido: actualiza cuántos cursos-horario sobreviven a cada paso.
+ * No reconstruye la población de estudiantes, que exige releer la base. Por eso
+ * el botón grande sigue existiendo — para lo que de verdad toca las dos
+ * dimensiones— y por eso el preview necesita el contexto transitorio de la
+ * sesión: al abrir un `.pulso` guardado responde 409 hasta que el marco se
+ * construye una vez.
+ */
+export function useCascadePreview(request: CalcMuestraCriteriosPreviewInput | null) {
   const coordinatorRef = useRef<ReturnType<typeof createCriteriosPreviewCoordinator> | null>(null);
   if (!coordinatorRef.current) coordinatorRef.current = createCriteriosPreviewCoordinator();
   const [state, setState] = useState<CalcMuestraCriteriosPreviewState | null>(null);

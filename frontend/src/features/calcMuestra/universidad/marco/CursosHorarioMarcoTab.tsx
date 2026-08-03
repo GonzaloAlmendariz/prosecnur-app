@@ -73,6 +73,7 @@ import { ordenEmbudoDelMotor } from "./ordenEmbudo";
 import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
 import { aporteGlobalDeCard } from "./CriterioFacultadRadiografia";
 import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
+import { useCascadePreview } from "./CriteriosEmbudoVivo";
 import { construirMatrizCascada } from "./matrizCascadaModel";
 import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
@@ -411,10 +412,28 @@ export function CursosHorarioMarcoTab({
     if (!pendientes.size) return null;
     const facultadKey = bloqueFoco?.excKey || bloqueFoco?.facLabel || null;
     if (!facultadKey) return null;
-    const orden = ordenEmbudoDelMotor(i18b.cascade, catalogo.variables);
+    const orden = ordenEmbudoDelMotor(cascadaViva, catalogo.variables);
     const criterioId = orden.find((id) => pendientes.has(id)) ?? [...pendientes][0];
     return criterioId ? { facultadKey, criterioId } : null;
   }, [pendientes, bloqueFoco, i18b.cascade, catalogo.variables]);
+
+  /*
+   * G39 · La cascada que la superficie enseña es la viva, no sólo la ejecutada.
+   *
+   * Gonzalo: «¿la actualización no debería también poder ser solo por criterio
+   * cuando lo confirmamos, y este botón solo si quiero un cambio que involucre a
+   * ambas dimensiones?».
+   *
+   * El preview recalcula la cascada sobre el marco ya construido, así que
+   * confirmar un criterio actualiza el recorrido —las barras, la matriz y el
+   * cierre— sin reconstruir la población. Cuando no está disponible (contexto
+   * transitorio ausente al abrir un `.pulso` guardado, o preview deshabilitado)
+   * se cae a la cascada ejecutada, que es lo que había antes.
+   */
+  const previewCascada = useCascadePreview(i18b.previewRequest);
+  const cascadaViva = previewCascada?.status === "ready" ? previewCascada.data : i18b.cascade;
+  /** El recorrido está vivo: lo que se ve ya incluye los criterios confirmados. */
+  const previewVivo = previewCascada?.status === "ready";
 
   /**
    * G10 · El confirmador de cada criterio, dentro de la tarjeta que se edita.
@@ -428,7 +447,7 @@ export function CursosHorarioMarcoTab({
    * los que ordena `ordenEmbudo`, no los que estén pendientes por casualidad.
    */
   const confirmadorDe = useMemo(() => {
-    const orden = ordenEmbudoDelMotor(i18b.cascade, catalogo.variables);
+    const orden = ordenEmbudoDelMotor(cascadaViva, catalogo.variables);
     return (criterioId: string) => {
       if (!pendientes.has(criterioId)) return null;
       const i = orden.indexOf(criterioId);
@@ -445,7 +464,7 @@ export function CursosHorarioMarcoTab({
     };
     // `confirmarCriterio` y `descartarCriterio` leen del render actual; se
     // recalcula con el borrador para no confirmar una versión vieja.
-  }, [pendientes, catalogo.variables, i18b.cascade, borrador, seleccion, tiposBorrador]);
+  }, [pendientes, catalogo.variables, cascadaViva, borrador, seleccion, tiposBorrador]);
   /*
    * G38 · La evidencia de los pasos de composición.
    *
@@ -458,6 +477,7 @@ export function CursosHorarioMarcoTab({
       aporteGlobalDeCard(criterioCards.get(criterioId) ?? null);
   }, [criterioCards]);
 
+
   /*
    * G39 · Cuántos cursos-horario llegan a cada criterio en la facultad abierta.
    *
@@ -468,7 +488,7 @@ export function CursosHorarioMarcoTab({
    * cliente: si un paso no publicara su facultad, una resta mentiría en silencio.
    */
   const lleganDe = useMemo(() => {
-    const matriz = construirMatrizCascada(i18b.cascade);
+    const matriz = construirMatrizCascada(cascadaViva);
     const clave = bloqueFoco?.excKey || bloqueFoco?.facLabel || "";
     const fila = matriz?.filas.find((f) => f.facultadKey === clave) ?? null;
     if (!fila) return () => null;
@@ -498,7 +518,7 @@ export function CursosHorarioMarcoTab({
       const llegan = porCriterio.get(criterioId);
       return llegan == null ? null : { llegan, universo: fila.universo };
     };
-  }, [i18b.cascade, bloqueFoco, aula]);
+  }, [cascadaViva, bloqueFoco, aula]);
 
   /**
    * G39 · Con cuántos cursos-horario se termina.
@@ -508,11 +528,11 @@ export function CursosHorarioMarcoTab({
    * la que el modelo de la matriz ya lo toma de ahí.
    */
   const cierreDelRecorrido = useMemo(() => {
-    const matriz = construirMatrizCascada(i18b.cascade);
+    const matriz = construirMatrizCascada(cascadaViva);
     const clave = bloqueFoco?.excKey || bloqueFoco?.facLabel || "";
     const fila = matriz?.filas.find((f) => f.facultadKey === clave) ?? null;
     return fila ? { quedan: fila.quedan, universo: fila.universo } : null;
-  }, [i18b.cascade, bloqueFoco]);
+  }, [cascadaViva, bloqueFoco]);
 
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
@@ -531,7 +551,23 @@ export function CursosHorarioMarcoTab({
                 ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
                 : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
             : marcoDesactualizado
-              ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
+              /*
+               * G39 · Qué falta de verdad cuando cambian los criterios.
+               *
+               * Gonzalo: «el botón de calcular población y cursos-horario
+               * elegibles es un poco overkill, ¿no? […] este botón solo si
+               * quiero un cambio que involucre a ambas dimensiones».
+               *
+               * Decía «el marco vigente ya no los refleja», que era cierto de
+               * todo y por eso no ayudaba: con el recorrido vivo, los
+               * cursos-horario YA reflejan el criterio confirmado. Lo que se
+               * queda atrás es la población de estudiantes, que exige releer la
+               * base. El aviso nombra esa diferencia para que reconstruir sea
+               * una decisión y no un reflejo.
+               */
+              ? previewVivo
+                ? "El recorrido ya refleja tus criterios. La población de estudiantes se recalcula al reconstruir."
+                : "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
               : "El marco está al día con los criterios confirmados.";
 
   return (
