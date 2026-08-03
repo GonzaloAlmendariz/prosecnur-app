@@ -178,7 +178,7 @@ function Boxplot({ d, dom }: { d: Dist; dom: DominioEscala }) {
  */
 const MIN_SEPARACION = 13;
 
-function Cuantiles({ d, dom }: { d: Dist; dom: DominioEscala }) {
+function Cuantiles({ d, dom, formato }: { d: Dist; dom: DominioEscala; formato: "conteo" | "porcentaje" }) {
   const marcas = useMemo(() => {
     const crudas: Array<{ etiqueta: string; clave: string; valor: number; x: number }> = [];
     for (const { clave, etiqueta } of GUIAS) {
@@ -204,7 +204,7 @@ function Cuantiles({ d, dom }: { d: Dist; dom: DominioEscala }) {
         {marcas.map((m) => (
           <div key={m.clave} data-marca={m.clave} style={{ left: `${m.etiquetaX}%` }}>
             <dt>{m.etiqueta}</dt>
-            <dd>{fmt(m.valor)}</dd>
+            <dd>{formato === "porcentaje" ? `${fmt(m.valor)}%` : fmt(m.valor)}</dd>
           </div>
         ))}
       </dl>
@@ -263,6 +263,9 @@ function pasoLegible(span: number, objetivo: number): number {
  *     marcas**, así que las tarjetas alinean entre sí por construcción y no por
  *     casualidad de sus datos.
  */
+/** Escala de un criterio de proporción: siempre 0–100 %, la fije o no el dato. */
+export const DOMINIO_PORCENTAJE: DominioEscala = { min: 0, max: 100 };
+
 export function dominioRedondeado(dom: DominioEscala | null, objetivo = 6): DominioEscala | null {
   if (!dom) return null;
   const alto = Math.max(dom.max, 0);
@@ -318,7 +321,7 @@ function Guias({ d, dom }: { d: Dist; dom: DominioEscala }) {
   );
 }
 
-function Eje({ dom }: { dom: DominioEscala }) {
+function Eje({ dom, formato }: { dom: DominioEscala; formato: "conteo" | "porcentaje" }) {
   const cortes = useMemo(() => cortesLegibles(dom), [dom]);
   if (!cortes.length) return null;
   return (
@@ -327,7 +330,7 @@ function Eje({ dom }: { dom: DominioEscala }) {
       {cortes.map((v) => (
         <span key={v} className="cmv2-dist-eje-corte" style={{ left: `${pos(v, dom)}%` }}>
           <i />
-          <b>{fmt(v, 0)}</b>
+          <b>{formato === "porcentaje" ? `${fmt(v, 0)}%` : fmt(v, 0)}</b>
         </span>
       ))}
     </div>
@@ -339,6 +342,7 @@ export function DistribucionCategoria({
   dominio,
   unidad = "estudiantes elegibles por curso-horario",
   umbral,
+  formato = "conteo",
 }: {
   elegible: VistaDistribucion;
   /** Escala común a TODAS las categorías del criterio. */
@@ -358,6 +362,16 @@ export function DistribucionCategoria({
    * este número. Con el corte encima de la densidad, la respuesta se ve.
    */
   umbral?: { valor: number; etiqueta?: string } | null;
+  /**
+   * F118 · Cómo se leen los números del eje.
+   *
+   * En un criterio de proporción la escala **es** 0–100 %: no la fija el dato,
+   * la fija la unidad. Redondear su dominio a partir de los valores observados
+   * sería contarle al usuario una historia sobre el rango cuando el rango ya lo
+   * conoce — y le quitaría la referencia que hace legible un porcentaje, que es
+   * dónde está el 50.
+   */
+  formato?: "conteo" | "porcentaje";
 }) {
   // F112 · Sin conmutador elegibles/todos. Gonzalo: «no entiendo mucho lo de
   // dividir un visor entre elegibles y todos, debería ser solo elegibles — a
@@ -390,15 +404,15 @@ export function DistribucionCategoria({
         {umbral && tiene(umbral.valor) ? (
           <div className="cmv2-dist-umbral" aria-hidden="true" style={{ left: `${pos(umbral.valor, dominio)}%` }}>
             <i />
-            <b>{umbral.etiqueta ?? fmt(umbral.valor, 0)}</b>
+            <b>{umbral.etiqueta ?? (formato === "porcentaje" ? `${fmt(umbral.valor, 0)}%` : fmt(umbral.valor, 0))}</b>
           </div>
         ) : null}
         <Densidad d={d} dom={dominio} />
         <Boxplot d={d} dom={dominio} />
         {/* El eje va ENTRE la caja y los cuantiles: es la referencia que ambos
             usan, y ponerlo al final lo dejaba lejos de la mitad del gráfico. */}
-        <Eje dom={dominio} />
-        <Cuantiles d={d} dom={dominio} />
+        <Eje dom={dominio} formato={formato} />
+        <Cuantiles d={d} dom={dominio} formato={formato} />
       </figure>
 
       {/* F114 · El pie sólo aparece cuando tiene algo que advertir. La unidad ya

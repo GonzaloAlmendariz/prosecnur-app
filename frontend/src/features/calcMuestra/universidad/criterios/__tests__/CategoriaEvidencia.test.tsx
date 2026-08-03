@@ -348,3 +348,51 @@ describe("CategoriaEvidencia · variante unidad (F115)", () => {
     expect(unidad({ elegibles: 1 })).toContain("alumno elegible");
   });
 });
+
+describe("CategoriaEvidencia · variantes de umbral y proporción (F118)", () => {
+  // Gonzalo: «así como hemos definido este estándar para el categórico, poder
+  // definir un estándar para cada uno; nos falta el de umbral rango y el de
+  // proporción». No es cosmética: cada tipo hace una pregunta distinta.
+  const conUmbral = (variante: "umbral" | "proporcion", over: Partial<AporteCategoria> = {}) =>
+    renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 84, chContraste: 120, elegibles: 2110, umbral: { valor: 20 }, ...over })}
+        dominio={{ min: 0, max: 100 }}
+        variante={variante}
+      />,
+    );
+
+  it("las cifras responden «qué deja fuera», no «cuántos hay»", () => {
+    const html = conUmbral("umbral");
+    expect(html).toContain("que cumplen");
+    expect(html).toContain("quedan fuera");
+    // 120 − 84 = 36. Es resta de dos cifras publicadas, no un estadístico nuevo.
+    expect(html).toContain("<strong>36</strong>quedan fuera");
+  });
+
+  it("no inventa el descarte cuando falta una de las dos cifras", () => {
+    const html = conUmbral("umbral", { chContraste: null });
+    expect(html).toContain("<strong>—</strong>quedan fuera");
+  });
+
+  it("dibuja el corte sobre la distribución", () => {
+    expect(conUmbral("umbral")).toContain("cmv2-dist-umbral");
+  });
+
+  it("una proporción rotula su eje en porcentaje", () => {
+    // La escala de una proporción ES 0–100 %: no la fija el dato, la fija la
+    // unidad — y sin el «%» el eje se lee como un conteo.
+    // Se comprueba en una marca del EJE (40, 60) y no en 20, que es también la
+    // etiqueta del corte: una aserción sobre «20%» pasaría por el corte aunque
+    // el eje siguiera en conteo.
+    const html = conUmbral("proporcion");
+    expect(html).toContain("<b>40%</b>");
+    expect(html).toContain("<b>60%</b>");
+  });
+
+  it("un umbral NO rotula en porcentaje", () => {
+    const html = conUmbral("umbral");
+    expect(html).toContain("<b>40</b>");
+    expect(html).not.toContain("<b>40%</b>");
+  });
+});

@@ -156,7 +156,24 @@ export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
  *   de un solo valor no tiene forma. Queda lo que sí decide: cuántos alumnos
  *   elegibles tiene y cuántos se esperan presentes.
  */
-export type VarianteEvidencia = "categoria" | "unidad";
+/**
+ * F118 · Cuatro estándares, uno por tipo de criterio.
+ *
+ * Gonzalo: «así como hemos definido este estándar que está muy bien para el
+ * categórico, poder definir un estándar para cada uno». No es cosmética: cada
+ * tipo hace una pregunta distinta y las cifras que la responden cambian.
+ *
+ * | variante     | la pregunta                        | las cifras                        |
+ * |--------------|------------------------------------|-----------------------------------|
+ * | `categoria`  | ¿esta categoría entra?             | CH totales · elegibles · alumnos  |
+ * | `umbral`     | ¿dónde corto?                      | **qué deja dentro y qué fuera**   |
+ * | `proporcion` | ¿qué prevalencia exijo?            | igual, sobre una escala 0–100 %   |
+ * | `unidad`     | ¿este curso-horario entra?         | alumnos y presentes esperados     |
+ *
+ * `umbral` y `proporcion` comparten cifras porque comparten pregunta; se
+ * separan en el eje, que en una proporción **es** 0–100 % y no lo fija el dato.
+ */
+export type VarianteEvidencia = "categoria" | "umbral" | "proporcion" | "unidad";
 
 export function CategoriaEvidencia({
   aporte,
@@ -194,6 +211,49 @@ export function CategoriaEvidencia({
     typeof aporte.tasaAsistencia === "number"
       ? Math.round(aporte.elegibles * aporte.tasaAsistencia)
       : null;
+
+  if (variante === "umbral" || variante === "proporcion") {
+    // Lo que el corte deja fuera. Es resta de dos cifras que el motor ya
+    // publicó —presentación, no un estadístico nuevo—: si alguna falta, no se
+    // fabrica.
+    const fuera =
+      aporte.chContraste != null && aporte.ch != null ? aporte.chContraste - aporte.ch : null;
+    return (
+      <div className="cmv2-cat-evidencia" data-variante={variante}>
+        <div className="cmv2-cat-cifras">
+          <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong>{ch1(aporte.ch)} que cumplen</span>
+          <span data-tono={fuera && fuera > 0 ? "aviso" : undefined}>
+            <strong>{fuera == null ? "—" : fmtInt(fuera)}</strong>quedan fuera
+          </span>
+          <span title="Estudiantes únicos elegibles que sobreviven al corte">
+            <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>
+            {plural(aporte.elegibles, "alumno elegible", "alumnos elegibles")}
+          </span>
+          <span title="Supuesto de asistencia del marco, aplicado a los alumnos que sobreviven al corte">
+            {presentes != null ? (
+              <>
+                <strong>~{fmtInt(presentes)}</strong>
+                presentes<em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% de asistencia</em>
+              </>
+            ) : (
+              <><strong>—</strong>presentes</>
+            )}
+          </span>
+        </div>
+        {d && dominio ? (
+          <DistribucionCategoria
+            elegible={{ nCh: aporte.ch, distribucion: d }}
+            dominio={dominio}
+            umbral={aporte.umbral ?? null}
+            formato={variante === "proporcion" ? "porcentaje" : "conteo"}
+            unidad={aporte.unidadEje ?? "estudiantes elegibles por curso-horario"}
+          />
+        ) : (
+          <p className="cmv2-cat-sin-cursos">sin distribución publicada</p>
+        )}
+      </div>
+    );
+  }
 
   if (variante === "unidad") {
     return (

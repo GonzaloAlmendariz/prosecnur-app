@@ -77,6 +77,10 @@
   min-height: 0;
 }
 .cmv2-cat-evidencia[data-variante="unidad"] { gap: 0; padding: 4px 0 2px; }
+
+/* F118 · Umbral y proporción: la cifra que el corte deja fuera se tiñe cuando
+   hay algo fuera. Es la única de las cuatro que puede sorprender. */
+.cmv2-cat-cifras > span[data-tono="aviso"] > strong { color: var(--pulso-warn-fg, var(--pulso-text)); }
 .cmv2-cat-cifras strong {
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;

@@ -88,6 +88,13 @@ export type AporteCategoria = {
    * realmente la caja.
    */
   chConDato?: number | null;
+  /**
+   * F118 · Corte del criterio, cuando es de umbral o de proporción. Lo decide
+   * el usuario, no el motor: es el número que está eligiendo.
+   */
+  umbral?: { valor: number; etiqueta?: string } | null;
+  /** Qué mide el eje. Cambia entre umbral («alumnos») y proporción («%»). */
+  unidadEje?: string;
   /** Matrículas elegibles: el otro grano, junto a los estudiantes únicos. */
   matriculas?: number | null;
   /**
