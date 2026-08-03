@@ -3517,6 +3517,49 @@ comentarios.
 | Transiciones cubiertas | **3 de 3** |
 | Vitest | 865 → **868** en 109 archivos |
 
+### F92 — El módulo entero ya respeta el movimiento reducido
+
+Extendida la medición de movimiento a **todo el CSS del módulo**, no sólo al que
+escribí.
+
+**Primer conteo: 13 selectores sin contrapartida.** Descartados por criterio:
+son `transition` de hover y foco —cambios de color al pasar el cursor—, que no
+son el movimiento vestibular que `prefers-reduced-motion` viene a evitar.
+Exigir apagarlas todas habría llenado el CSS de reglas sin beneficio.
+
+**Segundo conteo, ya sobre `animation` de keyframes: 7 en el módulo**, de las
+cuales 5 aparecían sin contrapartida —las ilustraciones animadas de los métodos
+de muestreo, en Selección—. Movimiento continuo e infinito: exactamente el caso
+que la preferencia existe para atender.
+
+**Y ya estaban cubiertas.** El bloque usa un comodín:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-method-story-visual * { animation: none !important; }
+}
+```
+
+Los cinco selectores son descendientes de `.cmv2-method-story-visual`, así que el
+`*` los alcanza. Mi comprobación —«el selector debe aparecer literalmente en el
+bloque»— no entiende comodines.
+
+**Noveno falso positivo de la sesión**, y estuve a punto de añadir cinco reglas
+redundantes a código ajeno que ya era correcto. Lo que lo evitó fue abrir el
+archivo antes de escribir la reparación.
+
+| | |
+|---|---:|
+| Animaciones de keyframes en el módulo | **7** |
+| Sin contrapartida real | **0** |
+| Vitest | **868** en 109 archivos |
+
+**Decisión sobre el guard**: se queda acotado a `categoriaEvidencia.css`, donde
+los selectores son simples y la comprobación literal es exacta. Generalizarlo
+exigiría resolver comodines y herencia —un analizador de CSS, no un `includes`—,
+y un guard que no entiende lo que vigila produce exactamente el falso positivo
+que acabo de tener.
+
 ### Estado del loop
 
 | | |
