@@ -19,30 +19,37 @@ import type { VarianteEvidencia } from "../criterios/CategoriaEvidencia";
  * | `proporcion` | ¿qué prevalencia exijo?    | composición (las tres)          |
  * | `unidad`     | ¿este curso-horario entra? | selección uno a uno             |
  */
+/*
+ * G25 → G38 · Composición pasó por `umbral` y volvió a `proporcion`. El rodeo
+ * vale la pena contarlo entero, porque el error intermedio parecía la solución.
+ *
+ * G25 midió en la app un defecto real: las tarjetas de composición mostraban
+ * «Q1 23 %, mediana 30 %, media 31,1 %» y un eje que llegaba a **200 %**. Eso
+ * no eran porcentajes: eran alumnos elegibles por curso-horario. Un porcentaje
+ * no pasa de 100, y «mediana 30 %» se lee como «la mitad de los cursos tiene
+ * 30 % de prevalencia» cuando significaba «la mitad tiene 30 alumnos».
+ *
+ * El diagnóstico era correcto —se estaba rotulando el gráfico con la unidad del
+ * **umbral** en vez de con la del **dato**— pero la reparación fue por el lado
+ * equivocado: cambió la etiqueta para que dijera la verdad sobre un dato que no
+ * describía el criterio, en vez de traer el dato que sí lo describe. Composición
+ * se quedó decidiéndose con un corte en % mientras su gráfico contaba alumnos.
+ *
+ * G38 lo repara por el otro lado, con Gonzalo señalándolo: «la distribución y el
+ * boxplot debían hacer referencia al porcentaje de su composición». El motor ya
+ * calculaba esa señal; le faltaba contrato v2 y viajar en la unidad del control.
+ * Ahora llega en porcentaje con su escala 0–100, y `proporcion` deja de ser una
+ * variante sin usuarios.
+ *
+ * La lección: cuando la etiqueta y el dato no coinciden, hay dos reparaciones y
+ * sólo una es la buena. Cambiar la etiqueta siempre funciona —el rótulo deja de
+ * mentir— y por eso es la tentadora; pero deja la superficie describiendo algo
+ * que nadie preguntó.
+ */
 const UMBRAL = new Set([
   "minEligible", "elegibles_por_aula", "enrolled_total", "course_level",
-  /*
-   * G25 · Composición vuelve a `umbral`, y la razón es un error mío que llegó a
-   * pantalla.
-   *
-   * Medido en la app: sus tarjetas mostraban «Q1 23 %, mediana 30 %, media
-   * 31,1 %» y un eje que llegaba a **200 %**. Pero eso no son porcentajes: son
-   * **alumnos elegibles por curso-horario**, la misma distribución que publica
-   * el motor para todos los criterios. Un porcentaje no puede pasar de 100, y
-   * «mediana 30 %» se lee como «la mitad de los cursos tiene 30 % de
-   * prevalencia» cuando significa «la mitad tiene 30 alumnos».
-   *
-   * El error fue etiquetar el eje con la unidad del **umbral** —que sí es un
-   * porcentaje— en vez de con la del **dato**. Son cosas distintas: el control
-   * fija una proporción, el gráfico describe un conteo.
-   *
-   * La variante `proporcion` se conserva en el componente para cuando el motor
-   * publique una distribución que de verdad sea una proporción. Hasta entonces
-   * no la usa nadie, y eso es mejor que usarla sobre un dato que no lo es.
-   */
-  "composition", "c7", "c8", "c8_facultad",
 ]);
-const PROPORCION = new Set<string>([]);
+const PROPORCION = new Set<string>(["composition", "c7", "c8", "c8_facultad"]);
 const UNIDAD = new Set(["manual_excluded"]);
 
 export function varianteDeCriterio(criterioId: string | null | undefined): VarianteEvidencia {
@@ -51,7 +58,7 @@ export function varianteDeCriterio(criterioId: string | null | undefined): Varia
   if (UMBRAL.has(id)) return "umbral";
   if (PROPORCION.has(id)) return "proporcion";
   // `composition` llega con sufijos por sub-regla (`composition_facultad`…).
-  if (id.startsWith("composition")) return "umbral";
+  if (id.startsWith("composition")) return "proporcion";
   return "categoria";
 }
 

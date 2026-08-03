@@ -20,21 +20,31 @@ describe("varianteDeCriterio", () => {
     }
   });
 
-  it("composición usa la de umbral: su DISTRIBUCIÓN es un conteo, no una proporción", () => {
-    // G25 · Medido en la app: mostraban «Q1 23 %, mediana 30 %» y un eje hasta
-    // 200 %. Un porcentaje no puede pasar de 100 — eso son alumnos por
-    // curso-horario. El error fue etiquetar el eje con la unidad del UMBRAL (que
-    // sí es un porcentaje) en vez de con la del DATO.
+  it("composición usa la de proporción: su distribución YA es un porcentaje", () => {
+    /*
+     * G25 → G38 · Este caso fijaba la decisión contraria, y contarlo entero vale
+     * más que sustituirlo en silencio.
+     *
+     * G25 midió un defecto real —«Q1 23 %, mediana 30 %» y un eje hasta 200 %—
+     * y lo diagnosticó bien: se rotulaba el gráfico con la unidad del UMBRAL
+     * teniendo el dato del conteo. Pero reparó cambiando la etiqueta en vez del
+     * dato, y composición se quedó decidiéndose con un corte en % mientras su
+     * gráfico contaba alumnos.
+     *
+     * G38 trae el dato correcto: el motor publica `signal_distribution` en
+     * porcentaje con escala 0–100. La variante vuelve a `proporcion` porque
+     * ahora sí la sostiene un dato que lo es.
+     */
     for (const id of ["composition", "composition_facultad", "composition_nivel", "c7", "c8"]) {
-      expect(varianteDeCriterio(id), id).toBe("umbral");
+      expect(varianteDeCriterio(id), id).toBe("proporcion");
     }
   });
 
   it("ninguna variante se aplica sobre un dato que no la sostiene", () => {
-    // `proporcion` existe en el componente y hoy NO la usa nadie: se conserva
-    // para cuando el motor publique una distribución que de verdad lo sea.
-    // Usarla sobre un conteo sería peor que no usarla.
-    const ids = ["modality", "minEligible", "composition", "c7", "manual_excluded", "course_level"];
+    // La regla que sobrevive al cambio de decisión, que era lo que G25 protegía
+    // de verdad: `proporcion` sólo va donde el dato es una proporción. Un
+    // criterio de conteo no la usa por mucho que su control se fije en %.
+    const ids = ["modality", "minEligible", "manual_excluded", "course_level", "enrolled_total"];
     expect(ids.map(varianteDeCriterio)).not.toContain("proporcion");
   });
 

@@ -185,6 +185,17 @@ export type CalcMuestraAulasCriterioSignalDistribution =
     unit: "valor_criterio" | "proporcion";
     n_total: number;
     n_con_dato: number;
+    /*
+     * G38 · El eje de una proporción es 0–100 por definición del dominio, no por
+     * el rango observado. Lo publica el motor porque es la misma decisión que
+     * toma al escalar la señal; deducirlo aquí sería volver a decidir la unidad
+     * en el cliente, que es lo que produjo el defecto de G25.
+     */
+    escala: { min: number; max: number } | null;
+    /** El corte con el que se está decidiendo, en la unidad publicada. */
+    umbral_aplicado: number | null;
+    /** Cursos-horario que ese corte deja fuera. Lo cuenta el motor. */
+    n_fuera: number | null;
   };
 
 export type CalcMuestraAulasCriterioRadiografiaV2Delta = {
@@ -353,6 +364,23 @@ function asFiniteOrNull(value: unknown): ParsedNullableNumber {
     return Number.isFinite(parsed) ? parsed : INVALID_NUMBER;
   }
   return INVALID_NUMBER;
+}
+
+/*
+ * G38 · Ausente no es malformado.
+ *
+ * `asFiniteOrNull(undefined)` devuelve INVALID —es su contrato: para los campos
+ * obligatorios, faltar ES estar mal—. Al añadir los tres campos opcionales del
+ * contrato v2 los validé con él, y toda señal que no los trajera quedaba
+ * rechazada: la radiografía entera se caía frente a un backend anterior o a
+ * cualquier fixture previo. Lo cazó la suite; el compilador no puede.
+ *
+ * Un campo opcional distingue tres estados y hay que conservarlos: ausente («no
+ * aplica»), nulo («el motor dice que no hay») y presente-pero-ilegible («el
+ * payload está roto»). Sólo el tercero invalida.
+ */
+function asFiniteOpcional(value: unknown): ParsedNullableNumber {
+  return value === undefined ? null : asFiniteOrNull(value);
 }
 
 function asNonNegativeInteger(value: unknown): number | InvalidNumber {
@@ -633,7 +661,32 @@ function parseSignalDistribution(raw: unknown): CalcMuestraAulasCriterioSignalDi
     !distribution ||
     !distributionMatchesDenominator(distribution, n_con_dato, n_total)
   ) return null;
-  return { unit, n_total, n_con_dato, ...distribution };
+  const escalaRaw = asRecord(value.escala);
+  const escalaMin = asFiniteOpcional(escalaRaw.min);
+  const escalaMax = asFiniteOpcional(escalaRaw.max);
+  const umbral = asFiniteOpcional(value.umbral_aplicado);
+  // `n_fuera` ausente o NA es «no aplica» —el criterio está apagado—, no cero.
+  const fuera = asFiniteOpcional(value.n_fuera);
+  // Malformado no es lo mismo que ausente: un campo presente que no parsea
+  // invalida la señal entera, como el resto del contrato. Colarlo como «no
+  // aplica» convertiría un payload roto en una lectura tranquilizadora.
+  if (
+    escalaMin === INVALID_NUMBER || escalaMax === INVALID_NUMBER ||
+    umbral === INVALID_NUMBER || fuera === INVALID_NUMBER
+  ) return null;
+  const escala =
+    escalaMin !== null && escalaMax !== null && escalaMax > escalaMin
+      ? { min: escalaMin, max: escalaMax }
+      : null;
+  return {
+    unit,
+    n_total,
+    n_con_dato,
+    ...distribution,
+    escala,
+    umbral_aplicado: umbral,
+    n_fuera: fuera,
+  };
 }
 
 const CATEGORICAL_ACTIONS: CalcMuestraAulasCriterioRadiografiaV2Action[] = [
