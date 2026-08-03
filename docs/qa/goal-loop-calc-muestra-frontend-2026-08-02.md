@@ -4223,6 +4223,55 @@ Gate: typecheck 0 · 934 pruebas en 114 archivos · área de R en verde.
 categorías de todos los criterios, y la pestaña de mapeo cuando decida si sólo
 diagnostica o además corrige.
 
+### F112 — La revisión de Gonzalo: una sola tarjeta, y el eje que faltaba
+
+Cinco correcciones sobre F111, todas suyas:
+
+| pedido | qué era antes |
+|---|---|
+| Universalidad | los numéricos y de rango tenían **bloque propio** y mostraban 4 de N categorías |
+| Fuera el conmutador | «debería ser solo elegibles»; el total ya viaja como cifra |
+| El eje en general | sólo se declaraba en palabras; las únicas marcas eran las de los cuantiles |
+| La asistencia | rotulada como si fuera propia de la categoría |
+| Más pulido | — |
+
+**Lo que apareció al aplicarlo.** Los criterios numéricos y de rango no eran «lo
+mismo con otro estilo»: eran **otro gráfico** —otro boxplot, otra escala, diez
+cifras en lista— para exactamente el mismo hecho. Dos tratamientos del mismo dato
+enseñan a desconfiar de los dos. Y el bloque recortaba a cuatro categorías, con
+el resto en un contador: la forma más barata de esconder, porque parece que
+informa.
+
+**El defecto de fondo, en la superficie donde nadie había mirado.**
+`BoxplotElegibles` normalizaba **cada caja contra su propio `[min…max]`**, y su
+docblock lo presentaba como virtud: «así una distribución estrecha se lee con el
+mismo detalle que una ancha». Es literalmente la regla 3 del ADR — la que se
+escribió por este mismo defecto en la tarjeta y se reparó **sólo ahí**. Medido:
+SEMINARIO (18–23) y TEÓRICO (15–156) del mismo ancho, en una tabla que los apila
+uno debajo de otro para compararlos.
+
+Una intención legítima sobrevive mientras la frase que la justifica siga en el
+archivo. Por eso el guard nombra ahora **las dos** superficies.
+
+**Un guard exigía que el defecto existiera.** `movimientoReducido` abría con
+`expect(animados.length).toBeGreaterThan(0)`: pedía que la hoja *tuviera*
+animaciones. Al retirar el conmutador el gráfico se quedó sin ninguna —lo
+correcto, cada marca codifica un valor— y el guard se puso rojo por hacer bien
+las cosas. Cero elementos es cobertura total, no un fallo.
+
+Y un detalle que el test destapó: la categoría excluida mostraba
+**«~0 presentes de 0»**. Aplicar un supuesto de asistencia a cero alumnos ocupa
+una casilla para no decir nada.
+
+Guards de universalidad probados por mutación: volver a un tratamiento propio
+falla, recortar la lista falla.
+
+Gate: typecheck 0 · 939 pruebas en 114 archivos. ADR 0057 sube a 37 patrones.
+
+**Pendiente declarado**: la densidad con datos del motor sigue sin verse en la
+app — el backend vivo corre R anterior a F111. El `.pulso` sembrado con el motor
+nuevo ya existe y carga; falta construir su marco en sesión.
+
 ### Estado del loop
 
 | | |

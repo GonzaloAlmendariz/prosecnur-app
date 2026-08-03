@@ -564,6 +564,56 @@ como cifras y no como consecuencia.
 componente **campo por campo**, no de memoria. Un ADR que nadie confronta con su
 implementación documenta una intención, no un contrato.
 
+### 35 · Dos tratamientos del mismo dato enseñan a desconfiar de los dos
+
+Los criterios categóricos dibujaban sus categorías con la tarjeta; los numéricos
+y de rango, con un bloque propio —otro boxplot, otra escala, diez cifras en
+lista—. **Ambos describen exactamente lo mismo**: cuántos cursos-horario, cuántos
+alumnos y cómo se distribuyen. Quien recorre la pestaña ve dos gráficos que no se
+parecen para el mismo hecho, y la conclusión razonable es que miden cosas
+distintas — o que ninguno es de fiar.
+
+El bloque además sólo mostraba **cuatro** categorías y ponía el resto en un
+contador. Un contador es la forma más barata de esconder: parece que informa.
+
+**Mecanismo**: `adr0057Reglas.contract.test.ts` enumera las superficies que
+dibujan categorías y exige que **todas** monten `CategoriaEvidencia`, que ninguna
+conserve un gráfico propio en paralelo y que ninguna recorte su lista. Probado
+por mutación: volver a un tratamiento propio falla; recortar falla.
+
+### 36 · Una regla se cumple donde se escribió y sigue rota donde nadie miró
+
+La regla 3 —escala compartida— nació de un defecto en la tarjeta de categoría y
+se reparó ahí. Mientras tanto `BoxplotElegibles`, en la misma pestaña, seguía
+normalizando **cada caja contra su propio `[min…max]`**, y su docblock lo
+presentaba como virtud: «así una distribución estrecha se lee con el mismo
+detalle que una ancha». Medido: SEMINARIO (18–23) y TEÓRICO (15–156) salían del
+mismo ancho, en una tabla que los apila uno debajo de otro para compararlos.
+
+La intención era legítima —detalle de forma— y por eso sobrevivió: nadie la lee
+como un defecto mientras la frase que la justifica siga en el archivo.
+
+**Mecanismo**: cuando una regla se escribe a partir de un defecto, se busca ese
+mismo defecto **por su forma, no por su archivo** — aquí, cualquier proyección
+cuyo denominador sea el rango de la propia serie. El guard nombra las dos
+superficies, no una.
+
+### 37 · Un guard que exige que el defecto exista
+
+`movimientoReducido` comprobaba que cada selector animado tuviera contrapartida
+en `prefers-reduced-motion`, y abría con `expect(animados.length).toBeGreaterThan(0)`
+— es decir, exigía que la hoja **tuviera** animaciones. Al retirar el conmutador,
+el gráfico se quedó sin una sola: lo correcto, porque cada marca codifica un
+valor y nada que codifique un valor se anima. El guard se puso rojo por hacer
+bien las cosas.
+
+Un guard que confunde «cubre todo lo que hay» con «tiene que haber algo» empuja a
+añadir movimiento decorativo para pasar en verde. La corrección es de una línea y
+el diagnóstico, de varios minutos.
+
+**Mecanismo**: los guards de cobertura se escriben sobre el conjunto, no sobre su
+tamaño. Cero elementos es cobertura total, no un fallo.
+
 ### 35 · Todos mis fixtures eran plurales
 
 Medido en la app con datos reales: «sus **1 cursos-horario**», «+**1 estudiantes
