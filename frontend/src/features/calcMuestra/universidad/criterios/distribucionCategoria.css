@@ -344,3 +344,26 @@
 @media (prefers-reduced-motion: reduce) {
   .cmv2-dist-grafico * { animation: none; transition: none; }
 }
+
+/*
+ * G27 · Categoría con demasiado pocos cursos-horario para tener distribución.
+ *
+ * Antes dibujaba una caja de 0,6 % de ancho con los cuatro cuantiles idénticos
+ * apilados en cuatro filas. Un punto disfrazado de resumen estadístico se lee
+ * con la autoridad del segundo.
+ */
+.cmv2-dist-pocos {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-dist-pocos strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-dist-pocos em {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  opacity: 0.85;
+}

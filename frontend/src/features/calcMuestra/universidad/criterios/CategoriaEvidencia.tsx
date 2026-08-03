@@ -261,6 +261,7 @@ export function CategoriaEvidencia({
           <DistribucionCategoria
             elegible={{ nCh: aporte.ch, distribucion: d }}
             dominio={dominio}
+            nSostiene={aporte.chConDato ?? aporte.ch ?? null}
             umbral={aporte.umbral ?? null}
             formato={variante === "proporcion" ? "porcentaje" : "conteo"}
             unidad={aporte.unidadEje ?? "estudiantes elegibles por curso-horario"}
@@ -373,6 +374,7 @@ export function CategoriaEvidencia({
         <DistribucionCategoria
           elegible={{ nCh: aporte.ch, distribucion: d }}
           dominio={dominio}
+          nSostiene={aporte.chConDato ?? aporte.ch ?? null}
         />
       ) : null}
     </div>

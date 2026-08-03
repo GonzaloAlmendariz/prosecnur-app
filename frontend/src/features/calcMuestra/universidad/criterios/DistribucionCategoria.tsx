@@ -392,6 +392,7 @@ export function DistribucionCategoria({
   dominio,
   unidad = "estudiantes elegibles por curso-horario",
   umbral,
+  nSostiene = null,
   formato = "conteo",
 }: {
   elegible: VistaDistribucion;
@@ -412,6 +413,19 @@ export function DistribucionCategoria({
    * este número. Con el corte encima de la densidad, la respuesta se ve.
    */
   umbral?: { valor: number; etiqueta?: string } | null;
+  /**
+   * G27 · Cuántos cursos-horario sostienen la distribución.
+   *
+   * Medido en la app: cinco tarjetas dibujaban una caja de menos del 5 % del
+   * ancho, y tres de ellas tenían **uno o dos cursos-horario con los cuatro
+   * cuantiles idénticos** — 30/30/30/30, 24/24/24/24. Con una observación no hay
+   * distribución: la caja mide cero por definición, la densidad es un pico y las
+   * cuatro etiquetas se apilan en cuatro filas repitiendo el mismo número.
+   *
+   * Un boxplot de una observación no es un boxplot: es un punto disfrazado de
+   * resumen estadístico, y se lee con la autoridad del segundo.
+   */
+  nSostiene?: number | null;
   /**
    * F118 · Cómo se leen los números del eje.
    *
@@ -443,6 +457,28 @@ export function DistribucionCategoria({
 
   if (!d || !dominio || !dibujable) {
     return <p className="cmv2-dist-vacia">sin distribución publicada</p>;
+  }
+
+  /*
+   * G27 · Por debajo de cuatro observaciones, los cuartiles no dicen nada: el
+   * primero y el tercero caen sobre los mismos puntos que la mediana. Se dice el
+   * valor y se calla el resumen — que es lo único cierto que se puede decir.
+   */
+  const MINIMO_PARA_CUARTILES = 4;
+  if (typeof nSostiene === "number" && nSostiene > 0 && nSostiene < MINIMO_PARA_CUARTILES) {
+    const valores = [d.p50, d.media].filter(tiene);
+    const unico = valores.length ? valores[0] : null;
+    return (
+      <p className="cmv2-dist-pocos">
+        {nSostiene === 1 ? "Un solo curso-horario" : `${nSostiene} cursos-horario`}
+        {unico != null ? (
+          <>
+            : <strong>{fmt(unico, 0)}</strong> {nSostiene === 1 ? "alumnos elegibles" : "de mediana"}
+          </>
+        ) : null}
+        <em>muy pocos para resumir una distribución</em>
+      </p>
+    );
   }
 
   const convencionCaida = !tiene(d.bigote_inf) && tiene(d.p10);
