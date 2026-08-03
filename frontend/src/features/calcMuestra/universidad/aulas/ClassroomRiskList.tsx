@@ -50,11 +50,19 @@ export function ClassroomRiskList({
                 {/* ADR 0057 · Rotular el cajón «Detalle técnico» no dice qué
                     hay dentro: es la etiqueta que obliga a abrir para saber si
                     importa. Lo que contiene es el mensaje literal del motor, y
-                    eso sí se puede nombrar. Se mantiene contenido porque es
-                    diagnóstico —no cambia ninguna decisión del estudio— pero
-                    con su nombre puesto. */}
+                    eso sí se puede nombrar.
+
+                    F102 · **El único `<details>` que sobrevive al barrido**, y
+                    a propósito. La regla es que no se esconde el trabajo ni la
+                    evidencia con la que se decide; esto no es ninguna de las
+                    dos: es una traza del motor que no cambia ninguna decisión
+                    del estudio. El guard de `aulas` lo declara por nombre, para
+                    que este permiso sea explícito y no un olvido.
+
+                    La etiqueta sí sobraba: «Ver el mensaje…» escribe la
+                    afordancia en el hueco donde cabía el nombre de la cosa. */}
                 <details className="cmv2-aviso-tecnico">
-                  <summary>Ver el mensaje del motor</summary>
+                  <summary>Mensaje del motor</summary>
                   <code>{detail}</code>
                 </details>
               </>

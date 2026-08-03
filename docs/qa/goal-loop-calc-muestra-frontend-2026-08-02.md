@@ -3841,7 +3841,14 @@ módulo entero y no lo hace es un falso verde con forma de contrato.
 |---|---:|---:|
 | `<details>` en criterios y marco | 3 | **0** |
 | Filas decidibles alcanzables sin click | 0 | **4 de 4** |
-| Clases `cmv2-*` huérfanas en el módulo | 95 | **83**, con línea base por pestaña |
+| Clases huérfanas en las tres hojas tocadas | 5 | **0** |
+| Total del módulo, medido | — | **95**, con línea base por pestaña |
+
+**Corrección**: la primera versión de esta fila decía «95 → 83». Los 95 son la
+medición **posterior** a las retiradas; el número de después no lo medí nunca.
+Lo que sí está medido es por hoja: `criterios.css` 7→5, `criteriosRadiografia`
+2→0, `criteriosI18b` 1→0. Escribir un antes-y-después cuando sólo se tomó una de
+las dos medidas es fabricar la mejora, que es peor que no reportarla.
 
 Guards, ambos probados por mutación: línea base de huérfanas por pestaña que
 sólo puede bajar, y C4 sobre el marcado renderizado **sin interacción**. La
@@ -3851,9 +3858,43 @@ quirúrgica, falla.
 
 Gate: typecheck 0 · 890 pruebas en 111 archivos. Commit `f6970c8b`.
 
-**Siguiente**: los siete `<details>` restantes con su lote (Aulas primero, que
-es el que más esconde: comparador de métodos, lista de riesgo y narrativa del
-descuento secuencial).
+### F102 — Aulas escondía la decisión, no el detalle
+
+Cuatro `<details>` en Aulas. Juzgados uno a uno, porque aplicar la regla a ciegas
+habría retirado el único que está bien puesto.
+
+**Comparador de métodos** — rotulado «Abrir comparador vigente». Detrás del click
+no había información de apoyo: estaban los botones **«Usar método»**, que cambian
+el método de muestreo de la corrida. Y anidado dentro, a un segundo click, el
+gráfico con el que se elige. Medido antes de abrirlo, porque el coste es la única
+razón legítima para plegar: 187 líneas de DOM, sin Plotly.
+
+**Narrativa del descuento secuencial** — `open={steps.length <= 8}`. La regla
+estaba **invertida**: cuanta más evidencia hay, más escondía. Y lo que esconde es
+el registro de cómo se sorteó la muestra. «Es largo» no se resuelve ocultando: la
+lista declara su total y se desplaza en su propio contenedor.
+
+**Mensaje del motor** (`ClassroomRiskList`) — **se queda plegado, a propósito**.
+La regla prohíbe esconder el trabajo o la evidencia con la que se decide; una
+traza `pkg::fn` no es ninguna de las dos. Lo que sí sobraba era la etiqueta: «Ver
+el mensaje del motor» escribe la afordancia en el hueco donde cabía el nombre.
+
+| medida | antes | después |
+|---|---:|---:|
+| Clicks hasta el gráfico de comparación | 2 | **0** |
+| Botones «Usar método» alcanzables sin click | 0 | **todos** |
+| `<details>` en aulas | 4 | **1, declarado por nombre** |
+
+El guard pasa a listar el permiso por archivo, y comprueba además que **el
+permiso siga usándose**: un allowlist que ya no protege nada es la puerta por la
+que vuelve a entrar lo que excluía.
+
+**Descuido propio**: para medir el estado anterior hice `git stash` con trabajo
+sin commitear. El árbol sobrevivió —el `apply` restauró y el `pop` sólo se negó a
+duplicar—, pero arriesgar la unidad de trabajo para tomar una medida es
+innecesario: `git show <commit>:<ruta>` da lo mismo sin tocar el árbol.
+
+**Siguiente**: los tres `<details>` de Definición y Salidas, con su lote.
 
 ### Estado del loop
 

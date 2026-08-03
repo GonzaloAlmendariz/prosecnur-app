@@ -18,11 +18,23 @@
   line-height: 1.4;
 }
 
-.cmv2-discount-narrative details > summary {
-  cursor: pointer;
-  color: var(--pulso-text);
+/*
+ * F102 · La lista ya no se pliega: declara su total y se desplaza en su propio
+ * contenedor. El `<details open={steps.length <= 8}>` que había aquí tenía la
+ * regla invertida —a más pasos, más escondía— sobre el registro que hace
+ * defendible el sorteo.
+ *
+ * El tope es de contenedor, no de página: No Scroll Jail exige que el scroll
+ * viva en la pieza que lo necesita y no empuje la vista entera.
+ */
+.cmv2-discount-step-count {
+  margin: 10px 0 0;
   font-size: 0.75rem;
-  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-muted);
+}
+.cmv2-discount-step-count strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .cmv2-discount-step-list {
@@ -30,9 +42,13 @@
   grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   grid-auto-rows: 1fr;
   gap: 8px;
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
+  /* ~3 filas de 148px visibles; el resto se alcanza desplazando aquí dentro. */
+  max-height: 486px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .cmv2-discount-step-list > li {

@@ -82,14 +82,24 @@ describe("Nada oculto en la superficie de criterios (ADR 0057)", () => {
    * lo que la pestaña existe para mostrar; en Particularidades escondía además
    * las filas donde se decide, bajo una cabecera que contaba «K sin decidir».
    *
-   * El guard cubre criterios y marco. Aulas, Definición y Salidas conservan los
+   * El guard cubre criterios, marco y aulas. Definición y Salidas conservan los
    * suyos y se atienden en su propio lote: declararlo aquí evita el falso verde
    * de un guard que parece cubrir el módulo entero.
+   *
+   * `aulas` tiene **una** excepción declarada por nombre. La regla prohíbe
+   * esconder el trabajo o la evidencia con la que se decide; el mensaje literal
+   * del motor en `ClassroomRiskList` no es ninguna de las dos —es una traza que
+   * no cambia ninguna decisión del estudio—. Nombrarla es lo que separa un
+   * permiso de un olvido: cualquier `<details>` nuevo en aulas falla.
    */
-  const CUBIERTO = ["criterios", "marco"];
+  const CUBIERTO: Record<string, string[]> = {
+    criterios: [],
+    marco: [],
+    aulas: ["ClassroomRiskList.tsx"],
+  };
 
-  for (const area of CUBIERTO) {
-    it(`${area} no usa <details> para plegar contenido`, () => {
+  for (const [area, permitidos] of Object.entries(CUBIERTO)) {
+    it(`${area} no pliega nada fuera de lo declarado`, () => {
       const dir = join(RAIZ, "universidad", area);
       const conDetails = archivos(dir, ".tsx")
         .filter((f) => !f.includes("__tests__"))
@@ -98,8 +108,17 @@ describe("Nada oculto en la superficie de criterios (ADR 0057)", () => {
         // no hay ninguno. Un guard que no distingue marcado de prosa acusa
         // justamente al archivo que documenta la reparación.
         .filter((f) => /<details[\s>]/.test(sinComentarios(readFileSync(f, "utf8"))))
-        .map((f) => f.slice(RAIZ.length + 1));
+        .map((f) => f.slice(RAIZ.length + 1))
+        .filter((f) => !permitidos.some((p) => f.endsWith(p)));
       expect(conDetails).toEqual([]);
     });
   }
+
+  it("la excepción de aulas sigue existiendo: el permiso no es letra muerta", () => {
+    // Si `ClassroomRiskList` deja de tener su `<details>`, este permiso sobra y
+    // hay que retirarlo. Un allowlist que ya no protege nada es la puerta por
+    // la que vuelve a entrar lo que excluía.
+    const f = join(RAIZ, "universidad", "aulas", "ClassroomRiskList.tsx");
+    expect(/<details[\s>]/.test(sinComentarios(readFileSync(f, "utf8")))).toBe(true);
+  });
 });

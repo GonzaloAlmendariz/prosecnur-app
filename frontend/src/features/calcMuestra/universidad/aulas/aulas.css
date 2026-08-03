@@ -205,34 +205,38 @@
   margin: 0;
 }
 
-/* Referencia histórica (QA H1): la réplica didáctica de la corrida guardada
-   queda plegada y rotulada; nunca compite con la grilla canónica. */
-.cmv2-aulas-referencia {
+/*
+ * F102 · Aquí vivía `.cmv2-aulas-referencia`: el marco punteado de la réplica
+ * didáctica, plegada «para que nunca compita con la grilla canónica».
+ *
+ * Lo que plegaba no era una réplica de apoyo: eran los botones «Usar método»
+ * —que cambian el método de muestreo— y, un nivel más adentro, la lectura
+ * visual con la que se elige. Abierto el comparador, la clase se quedó sin un
+ * solo uso en el marcado y sus cinco reglas con ella.
+ */
+.cmv2-method-comparator {
   min-width: 0;
-  border: 1px dashed var(--cmv2-border-strong);
+  border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface-2);
 }
 
-.cmv2-aulas-referencia > summary {
+.cmv2-method-comparator-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   padding: 9px 12px;
-  color: var(--pulso-text-muted);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-}
-
-.cmv2-aulas-referencia > summary:hover {
+  border-bottom: 1px solid var(--cmv2-border);
+  font-size: 13px;
   color: var(--pulso-text);
 }
-
-.cmv2-aulas-referencia[open] > summary {
-  border-bottom: 1px dashed var(--cmv2-border);
+.cmv2-method-comparator-head span {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
 }
-
-.cmv2-aulas-referencia > .cmv2-did-result {
-  margin: 10px;
-}
+.cmv2-method-comparator-body { padding: 10px 12px 12px; display: grid; gap: 12px; }
 
 .cmv2-aulas-method-formula {
   display: inline-flex;
