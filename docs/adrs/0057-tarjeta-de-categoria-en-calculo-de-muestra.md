@@ -409,6 +409,21 @@ por guard nuevo, se comprueba con una **mutación**: romper a propósito el
 comportamiento y confirmar que el test falla con el mensaje correcto. Un guard
 que nunca se ha visto fallar es una hipótesis, no una garantía.
 
+### 25 · Verificar que la premisa existe antes de auditarla
+
+Una auditoría de contraste en «modo oscuro» midió una paleta clara bajo una
+suposición falsa: la app **no tiene modo oscuro** —el bloque
+`:root[data-theme="dark"]` define cuatro tokens de repeats y nadie fija el
+atributo—. Los valores parecían defectos graves (punto de media con contraste
+1,29) y eran artefactos de la premisa.
+
+Es el mismo error que dio «excepción: 0 veces» midiendo la pestaña equivocada y
+«el servidor no tiene la corrida» leyendo el 404 de una ruta inexistente.
+
+**Mecanismo**: antes de auditar un modo, un estado o una ruta, comprobar que
+existe y está activo. Una medición sobre una premisa falsa no da un resultado
+neutro: da un defecto inventado, que cuesta más que no medir.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
