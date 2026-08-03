@@ -96,6 +96,11 @@ describe("Nada oculto en la superficie de criterios (ADR 0057)", () => {
     criterios: [],
     marco: [],
     aulas: ["ClassroomRiskList.tsx"],
+    // F104 · `EjemploTrabajado` es contenido didáctico que se lee una vez: no es
+    // el trabajo ni la evidencia con la que se decide. `SalidasEntregablesTab`
+    // pliega el renombrado de hojas de salida, configuración secundaria real.
+    definicion: ["DefEstudioTab.tsx"],
+    salidas: ["SalidasEntregablesTab.tsx"],
   };
 
   for (const [area, permitidos] of Object.entries(CUBIERTO)) {
@@ -135,9 +140,12 @@ describe("Nada oculto en la superficie de criterios (ADR 0057)", () => {
       .filter((n) => n !== "ClassroomRiskList");
 
     const cerrados: string[] = [];
-    for (const area of Object.keys(CUBIERTO)) {
+    for (const [area, permitidos] of Object.entries(CUBIERTO)) {
       for (const f of archivos(join(RAIZ, "universidad", area), ".tsx")) {
         if (f.includes("__tests__")) continue;
+        // El mismo permiso vale para las dos comprobaciones: un archivo al que
+        // se le concedió plegar no puede quedar prohibido por la vía indirecta.
+        if (permitidos.some((p) => f.endsWith(p))) continue;
         const src = sinComentarios(readFileSync(f, "utf8"));
         for (const comp of plegadores) {
           // Cada apertura del componente, con sus props hasta el `>` de cierre.
@@ -150,11 +158,27 @@ describe("Nada oculto en la superficie de criterios (ADR 0057)", () => {
     expect(cerrados).toEqual([]);
   });
 
-  it("la excepción de aulas sigue existiendo: el permiso no es letra muerta", () => {
-    // Si `ClassroomRiskList` deja de tener su `<details>`, este permiso sobra y
-    // hay que retirarlo. Un allowlist que ya no protege nada es la puerta por
-    // la que vuelve a entrar lo que excluía.
-    const f = join(RAIZ, "universidad", "aulas", "ClassroomRiskList.tsx");
-    expect(/<details[\s>]/.test(sinComentarios(readFileSync(f, "utf8")))).toBe(true);
+  it("cada permiso sigue protegiendo algo: ninguno es letra muerta", () => {
+    // Si un archivo permitido deja de plegar, su permiso sobra y hay que
+    // retirarlo. Un allowlist que ya no protege nada es la puerta por la que
+    // vuelve a entrar lo que excluía — y nadie la ve abierta, porque el guard
+    // sigue en verde.
+    const plegadores = archivos(join(RAIZ, "universidad"), ".tsx")
+      .filter((f) => !f.includes("__tests__"))
+      .filter((f) => /<details[\s>]/.test(sinComentarios(readFileSync(f, "utf8"))))
+      .map((f) => f.split("/").pop()!.replace(/\.tsx$/, ""));
+
+    const sobrantes: string[] = [];
+    for (const [area, permitidos] of Object.entries(CUBIERTO)) {
+      for (const p of permitidos) {
+        const src = sinComentarios(readFileSync(join(RAIZ, "universidad", area, p), "utf8"));
+        const pliegaDirecto = /<details[\s>]/.test(src);
+        const pliegaPorMontaje = plegadores.some((c) =>
+          new RegExp(`<${c}\\b[^>]*>`).test(src) && !new RegExp(`<${c}\\b[^>]*defaultOpen`).test(src),
+        );
+        if (!pliegaDirecto && !pliegaPorMontaje) sobrantes.push(`${area}/${p}`);
+      }
+    }
+    expect(sobrantes).toEqual([]);
   });
 });

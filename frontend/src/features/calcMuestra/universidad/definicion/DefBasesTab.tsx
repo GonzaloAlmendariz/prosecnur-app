@@ -273,15 +273,27 @@ function BaseUploadCard({
               <strong>{filasReales > 0 ? fmtInt(filasReales) : filasPreview > 0 ? fmtInt(filasPreview) : "—"}</strong>
             </div>
           </div>
+          {/* F104 · Era un `<details>` rotulado «Ver columnas detectadas (N)».
+              Lo primero que se comprueba tras cargar una base es si el motor
+              leyó las columnas que debía: esto no es detalle de apoyo, es la
+              verificación de la carga, y estaba a un click de distancia junto a
+              «Filas leídas», que sí se muestra.
+
+              La etiqueta además escribía la afordancia —«Ver…»— donde cabía
+              nombrar la cosa. Con muchas columnas la lista se desplaza en su
+              propio contenedor; el ancho de la tarjeta no cambia. */}
           {columnas.length > 0 && (
-            <details className="cmv2-defi-upload-cols">
-              <summary>Ver columnas detectadas ({columnas.length})</summary>
+            <div className="cmv2-defi-upload-cols">
+              <p className="cmv2-defi-upload-cols-head">
+                <strong>{columnas.length}</strong>{" "}
+                {columnas.length === 1 ? "columna detectada" : "columnas detectadas"}
+              </p>
               <div className="cmv2-defi-upload-cols-list">
                 {columnas.map((columna, index) => (
                   <span key={`${index}:${columna}`}>{columna}</span>
                 ))}
               </div>
-            </details>
+            </div>
           )}
           {!isCompatible && (
             <p className="cmv2-source-warning">{sourceBindingBuildMessage(binding)}</p>

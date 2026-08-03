@@ -3896,6 +3896,39 @@ innecesario: `git show <commit>:<ruta>` da lo mismo sin tocar el árbol.
 
 **Siguiente**: los dos `<details>` de Definición, con su lote.
 
+### F104 — La verificación de la carga estaba a un click
+
+Dos en Definición, uno de cada tipo:
+
+**«Ver columnas detectadas (N)»** — es lo primero que se comprueba tras subir una
+base: si el motor leyó las columnas que debía. Estaba plegado **al lado de
+«Filas leídas», que sí se muestra**: dos verificaciones de la misma carga, una
+visible y otra no. Y la etiqueta escribía la afordancia donde cabía el nombre.
+Ahora se muestra con su total y se desplaza en su contenedor.
+
+**`EjemploTrabajado`** — didáctico, se lee una vez. Se queda plegado, y su
+etiqueta ya nombraba la cosa en vez de la acción.
+
+El guard cubre ahora **las cinco pestañas** con cuatro permisos declarados por
+nombre, y el permiso vale para las dos comprobaciones: un archivo al que se le
+concedió plegar no puede quedar prohibido por la vía indirecta.
+
+La comprobación de «permiso no es letra muerta» se generalizó: antes vigilaba
+una excepción y ahora las cuatro, incluidas las que pliegan **por montaje**.
+Probado por mutación — al convertir el `<details>` permitido en `<div>`, el guard
+declara el permiso sobrante.
+
+| medida | antes | después |
+|---|---:|---:|
+| `<details>` en el módulo, sin declarar | 10 | **0** |
+| Pestañas cubiertas por el guard | 2 | **5** |
+| Permisos, todos por nombre y verificados | 0 | **4** |
+
+Gate: typecheck 0 · 895 pruebas en 111 archivos.
+
+**Siguiente**: reauditar la superficie de criterios de curso-horario con la vara
+alta, que es lo que el goal pide y donde quedan pendientes de fondo.
+
 ### F103 — El agujero estaba en mi propio guard
 
 El guard de F101/F102 buscaba `<details>` **literal** por archivo y daba verde
