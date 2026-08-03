@@ -54,9 +54,24 @@
   background: var(--pulso-surface);
 }
 
+/*
+ * G32 · La rejilla se adapta al número de segmentos.
+ *
+ * Era `repeat(4, 1fr)` fijo: un criterio con **un solo segmento** —el mínimo, el
+ * nivel del curso— recibía una celda de 272 px y dejaba tres cuartas partes de
+ * la fila en blanco. Gonzalo: «el correcto sigue sin usar todo el ancho
+ * disponible que tiene».
+ *
+ * No es sólo hueco desperdiciado: el gráfico proyecta su escala sobre el ancho
+ * que le den, así que 272 px en vez de 1.100 es **cuatro veces menos resolución**
+ * para distinguir Q1 de la mediana — justo la lectura para la que existe.
+ *
+ * Con `auto-fit` y un mínimo generoso, un segmento ocupa la fila entera, dos la
+ * parten por la mitad, y a partir de cuatro se comporta como antes.
+ */
 .cmv2-crc-compact-segments {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 6px;
   min-width: 0;
 }
@@ -188,7 +203,7 @@
 
 @media (max-width: 760px) {
   .cmv2-crc-compact-segments {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
 
