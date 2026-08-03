@@ -3963,9 +3963,38 @@ puede fijar un defecto con la misma firmeza con que fija una reparación.
 
 Gate: typecheck 0 · 900 pruebas en 111 archivos. ADR 0057 sube a 34 patrones.
 
-**Siguiente**: seguir la reauditoría de criterios de curso-horario con la vara
-alta — el resto de las cinco reglas del ADR contrastadas contra la superficie
-real, no de memoria.
+### F106 — El aviso de cifras viejas se soltaba donde más scroll hay
+
+Reauditada la regla 5 del ADR («todo es dinámico a los criterios previos»). El
+dinamismo depende del preview del motor, hoy bloqueado, así que lo que importa
+es si la superficie **avisa** cuando las cifras no se recalcularon. Avisa: la
+barra `cmv2-chfp-apply` dice «Los criterios cambiaron — el marco vigente ya no
+los refleja», y está anclada.
+
+Salvo en `@media (max-width: 1024px)`, donde una regla la soltaba. **La relación
+está invertida**: 1024×600 es el viewport más pequeño de la matriz de QA, donde
+la superficie —que el propio ADR acepta que ocupa varias pantallas— ocupa más, y
+por tanto donde más falta hace el ancla. Soltarla ahí convierte el aviso en algo
+que se ve una vez al entrar y desaparece: se decide con cifras viejas sin saberlo.
+
+El motivo original es real —una barra fija cuesta alto vertical en 600 px—, así
+que se paga con densidad: se compacta y sigue anclada.
+
+Comprobadas las otras dos reglas `position: static` del módulo antes de darlo por
+cerrado. **Ambas legítimas**: una es una variante en flujo con razón de QA
+documentada (la barra flotante tapaba el encabezado siguiente), la otra es un
+badge de clave de join. Un patrón que aparece tres veces no son tres defectos.
+
+**Mi guard falló sobre el código ya reparado.** `/position\s*:\s*(?!sticky)/`
+parece decir «position distinto de sticky» y no lo dice: `\s*` retrocede a cero
+espacios y el lookahead acaba comparando contra « sticky», que no es «sticky».
+El valor se extrae y se compara; no se niega dentro del patrón.
+
+Gate: typecheck 0 · 901 pruebas en 111 archivos.
+
+**Siguiente**: reauditar el resto de la superficie con la vara alta — vocabulario
+en el motor R (que no se ve desde `frontend/src`) y el orden de los ocho
+criterios contra la regla 1.
 
 ### F103 — El agujero estaba en mi propio guard
 
