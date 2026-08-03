@@ -674,13 +674,20 @@ export function CursosHorarioMarcoTab({
                   </p>
                 </div>
               </header>
-              {(totalPendientes > 0 || necesitaRecalculo) && bloques.length > 0 ? (
-                <AvisoModulo tone="warn" compact role="status" className="cmv2-chfp-aviso-recalcular">
-                  Cambiaste criterios: las «aulas candidatas» y las distribuciones de abajo son del último marco
-                  construido. Recalcula («Calcular población y cursos-horario elegibles») para que se ajusten en cascada
-                  —cada criterio recorta y actualiza la información de los siguientes.
-                </AvisoModulo>
-              ) : null}
+              {/* G39 · Una condición, un mensaje.
+                  Aquí vivía un segundo aviso —«cambiaste criterios: las aulas
+                  candidatas y las distribuciones de abajo son del último marco
+                  construido»— que disparaba con `totalPendientes > 0 ||
+                  necesitaRecalculo`, exactamente el mismo estado que el aviso de
+                  la barra de acción de arriba. Medido en pantalla: los dos
+                  visibles a la vez, diciendo lo mismo con otras palabras, y el
+                  lector obligado a decidir si eran el mismo problema.
+                  Peor aún desde que el recorrido es vivo: con el preview
+                  disponible este texto era falso —las distribuciones de
+                  cursos-horario SÍ reflejan el criterio— y seguía apareciendo.
+                  El aviso de arriba distingue los cuatro casos (pendientes,
+                  preview bloqueado, población atrasada, al día), vive junto al
+                  botón que resuelve, y basta. */}
               {bloques.length === 0 ? (
                 <AvisoModulo tone="info" role="status">
                   La radiografía por facultad se calcula junto con el marco. Ejecuta «Calcular población y

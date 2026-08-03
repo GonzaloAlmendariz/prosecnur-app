@@ -699,7 +699,7 @@ export function FacultadDecisionBloque({
   const [ordenPlegado, setOrdenPlegado] = useState<OrdenPlegado>(ORDEN_PLEGADO_INICIAL);
   const { fac, facLabel, excKey, minKey } = bloque;
   // El tipo de curso es la decisión MÁS PARTICULAR del embudo: se separa del
-  // resto para renderizarse al final, tras la bisagra de «aulas candidatas».
+  // resto para renderizarse al final, tras la barra del recorrido.
   const sessionVar = variablesToggle.find((v) => v.id === SESSION_TYPE_VARIABLE_ID);
   // Lista final de cursos-horario supervivientes de la facultad (el criterio más
   // granular): sale del aula_frame del build, ya filtrado por facultad.
