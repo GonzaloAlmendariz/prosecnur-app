@@ -593,6 +593,28 @@ todas, en vez de deducirla del nombre de la carpeta. Y tras cada `ir()` se
 comprueba `describir()` antes de medir nada: una navegación que no ocurrió
 convierte cualquier medición posterior en un falso negativo.
 
+### 37 · Copy dentro de un artefacto persistido
+
+La superficie mostraba **«Regla efectiva» 48 veces**. Ese texto no estaba en
+`frontend/src` ni en `api/R` —F71 lo había renombrado— y el proceso R vivo había
+arrancado *después* de la reparación. Las tres comprobaciones obvias daban
+limpio y el defecto seguía en pantalla.
+
+Venía en el dato: `segment_label` se calcula al construir el marco y **se
+persiste dentro de él**. La consecuencia es mayor que un rótulo: **cada `.pulso`
+guardado lleva el vocabulario del día en que se construyó su marco**. Renombrar
+en una versión no toca los proyectos existentes, y el usuario no tiene cómo
+enterarse de que su pantalla muestra palabras retiradas.
+
+Un barrido de vocabulario sobre el fuente —frontend y motor— da verde con el
+defecto delante. Sólo aparece midiendo **la pantalla**.
+
+**Mecanismo**: lo que el motor persiste son **llaves estables** (`segment_key`);
+el rótulo se resuelve en la capa de presentación (`segmentoRotulo.ts`), con el
+`segment_label` del payload como respaldo para llaves que el mapa aún no conoce.
+Y la auditoría de vocabulario se hace sobre el texto renderizado, no sobre
+`grep`: el fuente no es la única fuente de copy.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

@@ -4025,8 +4025,40 @@ cada `ir()` se comprueba `describir()` antes de medir.
 
 Gate: typecheck 0 · 906 pruebas en 111 archivos. ADR 0057 en 36 patrones.
 
-**Siguiente**: vocabulario del motor R —que no se ve barriendo `frontend/src`— y
-el orden de los ocho criterios contra la regla 1.
+### F108 — El vocabulario viejo vivía dentro del proyecto guardado
+
+Auditado el vocabulario **sobre la pantalla**, no sobre el fuente. La superficie
+decía **«Regla efectiva» 48 veces**, y las tres comprobaciones obvias daban
+limpio: no está en `frontend/src`, no está en `api/R` —F71 lo renombró— y el
+proceso R vivo arrancó *después* de la reparación.
+
+Viene en el dato. `segment_label` se calcula al construir el marco y **se
+persiste dentro de él**, así que **cada `.pulso` guardado lleva el vocabulario
+del día en que se construyó su marco**. Renombrar en una versión no toca los
+proyectos existentes y nadie puede enterarse.
+
+`segment_key` sí es contrato, así que el rótulo pasa a resolverse por llave en la
+capa de presentación, con el del payload como respaldo para llaves que el mapa
+aún no conozca —preferimos una palabra vieja a un hueco—.
+
+| medida | antes | después |
+|---|---:|---:|
+| «Regla efectiva» en pantalla | **48** | **0** |
+| Rótulo vigente, sobre el mismo marco viejo | 0 | **48** |
+
+Sin reconstruir el marco: el proyecto guardado se re-rotula solo.
+
+**Falso positivo decimocuarto**: mi sonda de vocabulario encontró «aula» suelta.
+Salía de **comentarios CSS** — Vite inyecta las hojas como `<style>` e
+`innerText` las lee. El texto renderizado se mide sobre un clon sin
+`style`/`script`.
+
+Gate: typecheck 0 · 911 pruebas en 112 archivos. ADR 0057 en 37 patrones.
+
+**Pendiente encontrado, para la siguiente**: dos botones «Ver todas» esconden
+**49 categorías** en la superficie de criterios. Es el mismo defecto que los
+`<details>` con otra implementación, y mi guard no lo ve porque busca el
+elemento, no la conducta.
 
 ### F103 — El agujero estaba en mi propio guard
 
