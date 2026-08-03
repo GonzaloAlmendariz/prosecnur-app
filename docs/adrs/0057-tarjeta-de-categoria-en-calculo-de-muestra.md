@@ -368,6 +368,17 @@ profundidad y ofrece una salida (búsqueda o «ver todos»). Se verifica en los 
 ejes: alto del contenido frente a su ventana, y número de elementos enfocables de
 la superficie.
 
+### 22 · Ningún barrido cosmético prueba que la pantalla siga funcionando
+
+Tras una serie larga de reparaciones de lenguaje, geometría y accesibilidad,
+ningún instrumento usado —desbordes, vocabulario, contraste, paradas de teclado—
+demuestra que un click siga haciendo algo. Todos miden el DOM en reposo.
+
+**Mecanismo**: una serie de iteraciones sobre la misma superficie cierra con una
+prueba funcional mínima en la app: accionar un control y comprobar que su estado
+cambia, cambiar el foco de una vista y comprobar que rerenderiza, y contrastar
+las cifras de cabecera con las pestañas que las reusan.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
