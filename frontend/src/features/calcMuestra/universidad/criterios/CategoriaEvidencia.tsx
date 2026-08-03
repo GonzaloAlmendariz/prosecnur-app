@@ -24,6 +24,17 @@ export type DominioCategorias = { min: number; max: number };
  * Cada caja normalizada contra su propio rango sale del mismo ancho y sugiere
  * que todas las categorías se parecen. Comparar es lo único para lo que existe
  * este gráfico, así que la escala es del conjunto o no hay gráfico.
+ *
+ * F113 · **El dominio abarca todo lo que se dibuja, no sólo los cuantiles.**
+ *
+ * Medido en la app con datos del motor: la escala salía de P10..P90 y la media
+ * —[17,8 · 43]— mientras el gráfico pintaba bigotes de Tukey (15→60) y un
+ * histograma (6→90). Resultado: `left: -11%`, `width: 178%`, topes en `167%` y
+ * un polígono de densidad de −66 a 592. Todo fuera del contenedor.
+ *
+ * Ninguna prueba lo vio porque **todos mis fixtures usaban un dominio 0..100
+ * que cubría cualquier valor**. Un dominio holgado en el fixture esconde
+ * exactamente el defecto que el dominio ajustado produce.
  */
 export function dominioCategorias(
   aportes: Array<AporteCategoria | null | undefined>,
@@ -32,8 +43,14 @@ export function dominioCategorias(
   for (const aporte of aportes) {
     const d = aporte?.distribucion;
     if (!d) continue;
-    for (const v of [d.p10, d.p25, d.p50, d.p75, d.p90, d.media]) {
+    // Cada marca que el gráfico dibuja entra en la escala que la posiciona.
+    for (const v of [d.p10, d.p25, d.p50, d.p75, d.p90, d.media, d.min, d.max, d.bigote_inf, d.bigote_sup]) {
       if (typeof v === "number" && Number.isFinite(v)) valores.push(v);
+    }
+    // El histograma se dibuja de su primer borde al último.
+    const bordes = d.hist_breaks;
+    if (bordes?.length) {
+      valores.push(bordes[0], bordes[bordes.length - 1]);
     }
   }
   if (!valores.length) return null;
