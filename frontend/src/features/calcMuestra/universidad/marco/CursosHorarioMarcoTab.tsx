@@ -342,6 +342,7 @@ export function CursosHorarioMarcoTab({
   }
 
 
+
   const totalPendientes = pendientes.size;
   const marcoConstruido = Boolean(aulasState?.frame);
   const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
@@ -383,6 +384,25 @@ export function CursosHorarioMarcoTab({
     previewRequest: i18b.previewRequest,
     complete: i18b.status === "complete",
   } : null;
+
+  /**
+   * G11 · La celda que la matriz resalta.
+   *
+   * ADR 0057, regla 1: no existe el criterio general. La celda es el cruce de
+   * **la facultad abierta** con **el criterio pendiente**, y sólo esa se tiñe —
+   * pintar la columna pondría en duda las quince filas que nadie tocó.
+   *
+   * Con varios pendientes se toma el primero en orden de embudo: es el que
+   * bloquea a los demás, así que es el que hay que confirmar antes.
+   */
+  const celdaEnEdicion = useMemo(() => {
+    if (!pendientes.size) return null;
+    const facultadKey = bloqueFoco?.excKey || bloqueFoco?.facLabel || null;
+    if (!facultadKey) return null;
+    const orden = ordenEmbudoDelMotor(i18b.cascade, catalogo.variables);
+    const criterioId = orden.find((id) => pendientes.has(id)) ?? [...pendientes][0];
+    return criterioId ? { facultadKey, criterioId } : null;
+  }, [pendientes, bloqueFoco, i18b.cascade, catalogo.variables]);
 
   /**
    * G10 · El confirmador de cada criterio, dentro de la tarjeta que se edita.
@@ -681,7 +701,7 @@ export function CursosHorarioMarcoTab({
                     <strong id="cmv2-chfp-cascada-title">De dónde salen los cursos-horario elegibles</strong>
                     <span>cada criterio, lo que quita en cada facultad</span>
                   </header>
-                  <MatrizCascadaCriterios cascada={i18b.cascade} />
+                  <MatrizCascadaCriterios cascada={i18b.cascade} edicion={celdaEnEdicion} />
                 </section>
                 </>
               )}

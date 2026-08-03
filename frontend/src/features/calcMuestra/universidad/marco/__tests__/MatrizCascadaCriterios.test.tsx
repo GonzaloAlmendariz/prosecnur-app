@@ -105,3 +105,19 @@ describe("MatrizCascadaCriterios", () => {
     expect(render()).toContain("cmv2-mtz-scroll");
   });
 });
+
+describe("MatrizCascadaCriterios · el realce del embudo vivo (G12)", () => {
+  it("el primer render no marca nada como recalculado", () => {
+    // Si lo hiciera, la matriz entera parpadearía al abrir y el realce dejaría
+    // de significar «esto se movió».
+    expect(render()).not.toContain('data-recalculado="true"');
+  });
+
+  it("estar en edición no marca recalculado", () => {
+    // Confirmar un criterio no mueve ninguna cifra hasta que el marco se
+    // reconstruye: marcar antes anunciaría un cambio que todavía no ocurrió.
+    const html = render(cascada(), { facultadKey: "ing", criterioId: "minEligible" } as never);
+    expect(html).toContain('data-estado="editando"');
+    expect(html).not.toContain('data-recalculado="true"');
+  });
+});

@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+
 import type { CalcMuestraCriteriosCascada } from "../../../../api/calcMuestraCriteriosI18b";
 import { fmtInt } from "../../sharedCore";
 import {
@@ -23,6 +25,48 @@ import "./matrizCascadaCriterios.css";
  * criterio y lo que pesa es la suma.
  */
 
+/**
+ * G12 · Qué celdas se movieron en el último recálculo.
+ *
+ * Gonzalo: «estos criterios, estos gráficos, de forma animada y fluida tienen
+ * que actualizarse conforme vayamos confirmando cada uno de los criterios
+ * previos». El realce es lo que convierte ese recálculo en algo legible: sin
+ * marca, hay que recordar los números de antes para saber qué pasó.
+ *
+ * El primer render **no cuenta como cambio**: si lo hiciera, la matriz entera
+ * parpadearía al abrir y el realce dejaría de significar «esto se movió».
+ */
+function useCeldasCambiadas(matriz: ReturnType<typeof construirMatrizCascada>): ReadonlySet<string> {
+  const previo = useRef<Map<string, number> | null>(null);
+  const [cambiadas, setCambiadas] = useState<ReadonlySet<string>>(() => new Set());
+
+  useEffect(() => {
+    if (!matriz) return;
+    const actual = new Map<string, number>();
+    for (const fila of [...matriz.filas, matriz.total]) {
+      for (const c of fila.celdas) actual.set(`${fila.facultadKey}:${c.criterioId}`, c.quita);
+      actual.set(`${fila.facultadKey}:__quedan__`, fila.quedan);
+    }
+    const antes = previo.current;
+    previo.current = actual;
+    if (!antes) return;
+
+    const movidas = new Set<string>();
+    for (const [k, v] of actual) {
+      const anterior = antes.get(k);
+      if (anterior !== undefined && anterior !== v) movidas.add(k);
+    }
+    if (!movidas.size) return;
+    setCambiadas(movidas);
+    // El realce dura lo que la animación; después la cifra vuelve a ser una
+    // cifra más. Dejarlo fijo lo convertiría en un estado, que es otra cosa.
+    const t = setTimeout(() => setCambiadas(new Set()), 950);
+    return () => clearTimeout(t);
+  }, [matriz]);
+
+  return cambiadas;
+}
+
 const pct = (v: number | null) =>
   v == null ? "—" : `${Math.round(v * 100)}%`;
 
@@ -31,7 +75,8 @@ function Celda({
   aplica,
   estado,
   operativo,
-}: FilaMatriz["celdas"][number] & { operativo: boolean }) {
+  recalculado,
+}: FilaMatriz["celdas"][number] & { operativo: boolean; recalculado: boolean }) {
   const vacia = quita === 0;
   return (
     <td
@@ -39,8 +84,19 @@ function Celda({
       data-estado={estado}
       data-operativo={operativo || undefined}
       data-vacia={vacia || undefined}
-      // El realce del embudo vivo entra sólo por color (ADR 0057, patrón 12).
-      data-recalculado={estado === "editando" ? "true" : undefined}
+      /*
+       * G12 · El realce del embudo vivo.
+       *
+       * Se enciende cuando la cifra **cambió respecto del render anterior**, no
+       * cuando la celda está en edición: confirmar un criterio no mueve nada
+       * hasta que el marco se reconstruye, y marcar antes anunciaría un cambio
+       * que todavía no ocurrió.
+       *
+       * Sólo color y opacidad. Nada que codifique un valor se anima con
+       * `transform` (ADR 0057, patrón 12): en F55 un `scaleX` dejó una barra
+       * clavada en su primer fotograma con el ancho computado correcto.
+       */
+      data-recalculado={recalculado ? "true" : undefined}
       title={
         vacia
           ? aplica
@@ -60,14 +116,18 @@ function Celda({
 function Fila({
   fila,
   operativos,
+  cambiadas,
   total = false,
 }: {
   fila: FilaMatriz;
   /** Qué columnas son pasos operativos, no criterios. */
   operativos: boolean[];
+  /** Celdas cuya cifra se movió en el último recálculo. */
+  cambiadas: ReadonlySet<string>;
   total?: boolean;
 }) {
   const enEdicion = fila.celdas.some((c) => c.estado === "editando");
+  const quedanCambio = cambiadas.has(`${fila.facultadKey}:__quedan__`);
   return (
     <tr
       className={total ? "cmv2-mtz-total" : undefined}
@@ -76,9 +136,14 @@ function Fila({
       <th scope="row">{fila.label}</th>
       <td className="cmv2-mtz-universo">{fmtInt(fila.universo)}</td>
       {fila.celdas.map((c, i) => (
-        <Celda key={c.criterioId} {...c} operativo={operativos[i]} />
+        <Celda
+          key={c.criterioId}
+          {...c}
+          operativo={operativos[i]}
+          recalculado={cambiadas.has(`${fila.facultadKey}:${c.criterioId}`)}
+        />
       ))}
-      <td className="cmv2-mtz-quedan" data-recalculado={enEdicion ? "true" : undefined}>
+      <td className="cmv2-mtz-quedan" data-recalculado={quedanCambio ? "true" : undefined}>
         <b>{fmtInt(fila.quedan)}</b>
         <span>{pct(fila.supervivencia)}</span>
       </td>
@@ -106,6 +171,7 @@ export function MatrizCascadaCriterios({
     );
   }
 
+  const cambiadas = useCeldasCambiadas(matriz);
   const cuadra = cascada ? cuadraConElMotor(matriz, cascada) : true;
   const operativos = matriz.criterios.map((c) => c.operativo);
   const hayOperativos = operativos.some(Boolean);
@@ -148,11 +214,11 @@ export function MatrizCascadaCriterios({
           </thead>
           <tbody>
             {matriz.filas.map((f) => (
-              <Fila key={f.facultadKey} fila={f} operativos={operativos} />
+              <Fila key={f.facultadKey} fila={f} operativos={operativos} cambiadas={cambiadas} />
             ))}
           </tbody>
           <tfoot>
-            <Fila fila={matriz.total} operativos={operativos} total />
+            <Fila fila={matriz.total} operativos={operativos} cambiadas={cambiadas} total />
           </tfoot>
         </table>
       </div>
