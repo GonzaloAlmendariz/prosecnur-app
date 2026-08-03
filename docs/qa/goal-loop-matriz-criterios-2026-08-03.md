@@ -356,3 +356,60 @@ en 134 archivos. **Commits**: `566a5b3d`, `8b434cf8`, `1abe3586`, `3c4787c2`,
 agosto y **no toma cambios de R**, así que el contrato v2 no está sirviéndose
 todavía. La tarjeta de composición está montada y probada, pero no se ha visto con
 cifras reales en pantalla.
+
+### G39 — Seis peticiones de Gonzalo en una sola pasada
+
+Todas salieron de mirar la superficie con el proyecto cargado, y cinco de las
+seis eran defectos que el fuente no delataba.
+
+**1 · El orden por CH totales faltaba en dos superficies más.** G37 lo aplicó en
+la lista de conmutadores y ahí se quedó. La radiografía de tipo de sesión
+ordenaba por **alumnos elegibles** —otra cifra: contesta «dónde hay más gente»,
+no «qué pesa en el marco», y como `maxRows` recorta por arriba decidía además qué
+filas sobrevivían— y la tarjeta genérica no ordenaba. Tercer aviso del mismo
+error de método, así que la regla se mudó a un módulo propio (patrón 52).
+
+**2 · «Descartar» no descartaba.** Restauraba a mano `byVariable[id]`, y el
+rango, el mínimo, la tasa y las exclusiones no viven ahí: apagaba el aviso y
+dejaba el cambio puesto. El bloque de pruebas del descarte estaba verde porque
+**replicaba la implementación** — definía su propio `descartarUno` con las mismas
+cuatro líneas (patrón 53).
+
+**3 · La barra del recorrido, antes de cada criterio.** Había una sola, a media
+lista, diciendo el estado final del recorrido en mitad del camino. Ahora precede
+a los seis, con el `before_ch` del motor. Y sin vocabulario interno: «ese nombre
+es solo interno».
+
+**4 · El corte entre las dos mitades.** Panorama entraba como si fuera el
+criterio siguiente. Un borde no bastaba —la regla base de Panorama declara los
+suyos en atajo, así que un `border-top` propio ni siquiera ganaba—: el corte dice
+en voz alta qué empieza.
+
+**5 · Qué cuesta cada posición del deslizador.** Sumar los cubos del histograma
+falla justo en el umbral: son cerrados por la derecha y el curso-horario que está
+exactamente en el corte cae del lado equivocado. Medido: 5 contra 4. Invertir la
+convención arregló catorce cortes de quince y dejó el extremo. El motor publica
+los 21 descartes exactos y la superficie consulta (patrón 54).
+
+**6 · Todo se pliega, y hay un control para todos.** Composición era el único sin
+plegado, retirado en G33 por buenas razones que no eran ésta: **plegado por
+defecto** esconde, **plegable** es una herramienta del lector (patrón 55). La
+orden viaja por contexto y sellada con versión; sin sello, plegar → abrir una →
+plegar no haría nada (patrón 56).
+
+**Lo que más enseña de esta iteración**: migré cinco tarjetas de seis. La sexta
+vivía en otro archivo y mi `grep` estaba acotado al directorio de las otras.
+**Medirlo en la app —5 de 6— fue lo que lo encontró.** Y cuando escribí el guard
+para que no volviera a pasar, su primera versión señaló dos falsos positivos: un
+botón de preset y un detalle, que arrancan cerrados porque no son parte de la
+superficie sino cosas que el usuario abre. El guard bueno distingue por el valor
+inicial, no por el nombre.
+
+**Gate**: R del área con la tabla exacta en los 21 cortes · typecheck 0 · 3.465
+tests en 420 archivos. **Commits**: `ac563d96`, `28f53031`, `d22913b9`,
+`d13f6b83`.
+
+**Sigue sin poder verse con datos**: el backend R lleva encendido desde el 1 de
+agosto y no toma cambios de R. El contrato v2 de composición —eje 0–100,
+«quedan fuera» y la tabla por corte— está en el motor y en la superficie, pero
+no se está sirviendo hasta reiniciarlo.

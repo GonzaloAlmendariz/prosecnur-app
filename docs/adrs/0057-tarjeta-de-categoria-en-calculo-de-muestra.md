@@ -853,6 +853,98 @@ sustituirse. El coste es unas líneas; el beneficio es que la próxima persona q
 mire ese `Set` sepa que ya se probó de la otra forma.
 
 
+### 52 · La misma regla en un solo sitio, o vuelve a faltar en el segundo
+
+«Las categorías con más cursos-horario van primero» se aplicó en la lista de
+conmutadores y ahí se quedó. Gonzalo lo vio: «recuerda que quienes tienen más CH
+totales siempre van primero, **en todos los criterios que lo tengan**». Faltaban
+la radiografía de tipo de sesión —que ordenaba por alumnos elegibles— y la
+tarjeta genérica de criterio, que no ordenaba.
+
+Es el tercer aviso del mismo error de método: reparar la superficie donde se
+reportó en vez de enumerar la clase entera. La diferencia esta vez es la salida:
+la regla se movió a un módulo propio y las tres superficies la importan. Una
+regla repetida en tres sitios no tiene tres implementaciones, tiene **tres
+oportunidades de divergir**, y la primera ya había ocurrido sin que nadie lo
+notara —la tabla de tipo de sesión llevaba ordenando por otra cifra desde
+siempre—.
+
+**Sub-regla, sobre qué cifra ordenar**: los cursos-horario que la categoría
+**tiene** (no cambian al decidir), nunca los que **siguen dentro** (cambian con
+cada conmutador). Con los segundos, apagar una categoría la manda al fondo y la
+siguiente que ibas a tocar ya no está donde la dejaste. Un orden que responde al
+gesto que estás haciendo es peor que no ordenar.
+
+### 53 · Un test que reimplementa lo que prueba hereda su defecto
+
+«Descartar» no devolvía el criterio a su valor confirmado: restauraba a mano
+`byVariable[id]` y varios criterios no viven ahí —el rango en
+`courseLevelRanges`, el mínimo en `minEligible`, las exclusiones en
+`manualExcludedClassrooms`—. Para ésos, apagaba el aviso y dejaba el cambio
+puesto: el usuario cree que revirtió y lo descubre al recalcular.
+
+Había un bloque de pruebas dedicado al descarte y estaba verde. Lo estaba porque
+definía **su propio `descartarUno`**, copiando las mismas cuatro líneas de la
+página. Probaba una réplica del defecto contra sí misma.
+
+**Mecanismo**: el descarte usa el mismo helper que confirmar
+(`copiarVariableCriterio`), en sentido contrario, y el test llama a ese helper.
+La señal a vigilar en una revisión: un test que define una función con el mismo
+cuerpo que la de producción no está probando producción — y suele delatarse
+porque su nombre es el de la función real con un sufijo.
+
+### 54 · Publicar la tabla es más barato que acertar la convención
+
+Para que el deslizador dijera cuántos cursos-horario descarta cada posición,
+sumar los cubos del histograma parecía suficiente. Falla justo en el umbral: los
+cubos son cerrados por la derecha, así que un curso-horario que está
+**exactamente** en el corte cae del lado de los descartados aunque el criterio lo
+admita (`>= umbral`). Medido: el cliente sumaba 5 donde el motor contaba 4.
+
+El intento siguiente —invertir la convención de los cubos para las
+proporciones— arregló catorce de los quince cortes y dejó el extremo: el último
+corte no puede ser a la vez borde de cubo y frontera exclusiva.
+
+**Mecanismo**: el motor publica los descartes exactos en las 21 posiciones. Son
+21 enteros y le quitan al cliente toda ocasión de equivocarse de convención: no
+suma, consulta. La lección general es que cuando dos capas tienen que coincidir
+en una convención de bordes, publicar el resultado sale más barato que
+sincronizar la regla — y no vuelve a romperse cuando alguien cambia los cubos.
+
+### 55 · Plegable no es lo mismo que plegado
+
+G33 quitó el plegado de la tarjeta de composición porque la métrica heredada
+vivía escondida tras un control cerrado, y una regla que puede recortar el marco
+no puede depender de que alguien la descubra. Gonzalo pidió después que se
+pudiera comprimir «como todos los demás».
+
+No es una contradicción: son dos cosas distintas que la primera vez se
+confundieron. **Plegado por defecto** esconde — el usuario no sabe que existe.
+**Plegable** es una herramienta del lector sobre una superficie que ya es larga.
+La regla prohíbe lo primero y no dice nada sobre lo segundo.
+
+**Mecanismo**: abre siempre, se puede cerrar, y el estado no persiste entre
+sesiones. Un plegado que sobrevive a la recarga vuelve a ser plegado por defecto
+para quien abra el proyecto mañana.
+
+### 56 · El control global habla por contexto, no por registro
+
+Un botón de «plegar todos» tiene dos formas de alcanzar a las tarjetas. Subir el
+estado al padre obliga a la página a conocer cada criterio, inventarle una clave
+y enrutar su `onToggle`: cada criterio nuevo tiene que **acordarse de
+registrarse**, y el que lo olvide deja de obedecer sin que nada avise. La orden
+como contexto deja el estado donde está y hace visible al que no escucha.
+
+La orden viaja **sellada** —un booleano con una versión que siempre avanza—
+porque sin sello la secuencia más natural se rompe: plegar todos → abrir una a
+mano → plegar todos otra vez no haría nada, ya que el booleano no cambió.
+
+Y aun con el mecanismo bien, migré cinco tarjetas de seis: la sexta vivía en otro
+archivo y el `grep` estaba acotado al directorio de las otras. **Medir en la app
+—5 de 6— fue lo que lo encontró**, y el guard que enumera la clase es lo que
+evita la séptima vez.
+
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
