@@ -2023,34 +2023,35 @@
   border-color: var(--pulso-warn-border);
   background: color-mix(in srgb, var(--pulso-warn-bg) 40%, var(--pulso-surface));
 }
-.cmv2-partic-section > *:not(summary) {
+.cmv2-partic-section > *:not(header) {
   margin-left: 12px;
   margin-right: 12px;
 }
-.cmv2-partic-section > :last-child:not(summary) {
+.cmv2-partic-section > :last-child:not(header) {
   margin-bottom: 12px;
 }
 
+/*
+ * F101 · Estas secciones eran `<details>` cerrados y su cabecera decía «N
+ * detectados · M a excluir · K sin decidir».
+ *
+ * Un contador de pendientes es una llamada a la acción, y la acción —decidir
+ * fila por fila— estaba detrás de un click. El panel se titula «Casos
+ * detectados para tu revisión manual»: plegada, la revisión manual no existe.
+ * Ahora son secciones abiertas; la cabecera informa y ya no esconde. Con esto
+ * desaparece el triángulo y el `cursor: pointer`, que prometían una interacción
+ * que ya no hay.
+ */
 .cmv2-partic-summary {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 36px;
   padding: 6px 12px;
-  cursor: pointer;
-  list-style: none;
   font-size: 13px;
   color: var(--pulso-text);
+  border-bottom: 1px solid var(--cmv2-border);
 }
-.cmv2-partic-summary::-webkit-details-marker { display: none; }
-.cmv2-partic-summary::before {
-  content: "▸";
-  flex: none;
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-  transition: transform 0.15s ease;
-}
-details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-partic-summary-icon {
   display: inline-flex;
   color: var(--cmv2-accent-fg);

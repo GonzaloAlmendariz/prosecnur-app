@@ -41,34 +41,10 @@
 }
 
 /* Procedencia y contrato: trazabilidad plegada al pie de la tarjeta. */
-.cmv2-crc-procedencia {
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface-2);
-  padding: 0 11px;
-}
 
-.cmv2-crc-procedencia > summary {
-  cursor: pointer;
-  padding: 8px 0;
-  color: var(--pulso-text-muted);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-}
 
-.cmv2-crc-procedencia > summary:focus-visible {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 2px;
-}
 
-.cmv2-crc-procedencia[open] > summary {
-  border-bottom: 1px solid var(--cmv2-border);
-  margin-bottom: 10px;
-}
 
-.cmv2-crc-procedencia > :last-child {
-  margin-bottom: 11px;
-}
 
 .cmv2-crc-contract-alert {
   padding: 9px 11px;
@@ -186,11 +162,6 @@
   margin: 0;
 }
 
-.cmv2-crc-root-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
-  gap: 6px;
-}
 
 .cmv2-crc-root-meta > div,
 .cmv2-crc-gate dl > div {
@@ -546,3 +517,6 @@
 /* F42 · La señal declara su cifra; su gráfico vive en el bloque de detalle. */
 .cmv2-crc-signal[data-solo-cifra="true"] > :not(.cmv2-crc-signal-head) { display: none; }
 .cmv2-crc-signal[data-solo-cifra="true"] .cmv2-crc-signal-head { margin: 4px 0 0; font-size: 11px; color: var(--pulso-text-muted); }
+
+/* F100 · Retiradas las reglas de «Procedencia y contrato», que salió de la
+ * superficie en F41 por ser contrato interno del motor. */
