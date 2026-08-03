@@ -3734,6 +3734,40 @@ dos veces lo que salvó el trabajo fue mirar antes de borrar.
 El inventario queda hecho y la tarjeta ya no depende del compacto: **la decisión
 está preparada, no tomada**.
 
+### F98 — Retirado el bloque duplicado: el criterio y su gráfico son una pieza
+
+Ejecutada la retirada que F97 dejó preparada. Gonzalo lo pidió tres veces —«los
+criterios con switcher de selección tienen que ser uno con los gráficos, son un
+todo»— y el ADR 0057 lo fija: la categoría es la unidad y todo lo necesario para
+decidirla vive en su contenedor.
+
+**No se retiró hasta que la tarjeta trajo todo lo que el bloque aportaba**:
+matrículas y CH con dato (F95), la leyenda de las marcas (F96) y el contraste
+contra el total (F97). Ese orden es la reparación, no el borrado.
+
+| | antes → después |
+|---|---:|
+| Nodos DOM | 7.381 → **4.656** (−37 %) |
+| Alto | 22 → **18,2 pantallas** |
+| Etiquetas duplicadas por criterio | 2 cada una → **0** |
+| Cajas · leyendas · contrastes | 13 · 3 · 13 → **iguales** |
+| Desbordes | **0** |
+
+**Y la captura destapó el último resto**: al borde derecho quedaba un «849 CH»
+suelto mientras la evidencia decía «639 CH» dos dedos a la izquierda —dos cifras
+distintas de cursos-horario para la misma categoría, y la de la derecha sin decir
+de qué era—. Era el contraste contra el total, que la evidencia ya nombra. Esa
+columna sólo se dibuja ahora cuando la categoría **no** trae su evidencia.
+
+La fila queda legible de corrido:
+
+> **PRESENCIAL** · 639 CH · 4.617 estudiantes · 19.846 matrículas · 31,1 por CH
+> · En todos los cursos-horario: 849 CH, media 26,9
+
+| | |
+|---|---:|
+| Vitest | **875** en 109 archivos |
+
 ### Estado del loop
 
 | | |

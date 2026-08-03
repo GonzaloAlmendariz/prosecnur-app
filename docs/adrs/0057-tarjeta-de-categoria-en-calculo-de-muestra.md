@@ -435,6 +435,22 @@ llevaba a diagnosticar el sitio equivocado.
 el entorno donde se está midiendo. Para superficies en un panel que puede estar
 oculto: `MutationObserver` y marcas de `performance`, no rAF.
 
+### 27 · Retirar un duplicado es el último paso, no el primero
+
+El bloque compacto de radiografía duplicaba las categorías de los conmutadores
+—482 nodos frente a 86, cada etiqueta dos veces en el mismo criterio—. Retirarlo
+era obvio desde el principio y **habría costado tres datos**: matrículas y
+cobertura del dato, la leyenda de las marcas de la caja, y el contraste contra
+todos los cursos-horario.
+
+La secuencia correcta fue inventariar qué vivía sólo ahí, moverlo pieza a pieza a
+la tarjeta —tres iteraciones— y retirar el bloque cuando ya no aportaba nada.
+Resultado: **−37 % de nodos y cero duplicación, sin perder un solo dato**.
+
+**Mecanismo**: antes de retirar un bloque que parece redundante, se hace el
+inventario de lo que contiene **en exclusiva** y se traslada primero. Un diff que
+borra 482 nodos se ve igual haya o no información dentro.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
