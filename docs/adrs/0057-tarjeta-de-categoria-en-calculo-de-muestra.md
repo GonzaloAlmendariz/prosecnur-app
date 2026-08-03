@@ -635,7 +635,7 @@ regla 1 vigila sobre el fuente que no reaparezca un `estadosColumna`. La cascada
 por facultad sigue existiendo — es la unidad interna—, pero la matriz no puede
 exponer un estado por criterio suelto.
 
-### 35 · Todos mis fixtures eran plurales
+### 39 · Todos mis fixtures eran plurales
 
 Medido en la app con datos reales: «sus **1 cursos-horario**», «+**1 estudiantes
 únicos**». Seis concordancias rotas que ninguna prueba cazó, porque **todos los
@@ -651,7 +651,7 @@ propio en toda superficie que cuente algo. Y la verificación en la app con dato
 reales no es un lujo del final: es el único sitio donde aparecen los valores que
 uno no pensó en inventar.
 
-### 36 · Inventar una dirección en vez de preguntarla
+### 40 · Inventar una dirección en vez de preguntarla
 
 Para verificar Definición navegué a
 `calc-muestra/opinion-universitaria/datos/bases`. La sección se llama
@@ -664,7 +664,7 @@ todas, en vez de deducirla del nombre de la carpeta. Y tras cada `ir()` se
 comprueba `describir()` antes de medir nada: una navegación que no ocurrió
 convierte cualquier medición posterior en un falso negativo.
 
-### 37 · Copy dentro de un artefacto persistido
+### 41 · Copy dentro de un artefacto persistido
 
 La superficie mostraba **«Regla efectiva» 48 veces**. Ese texto no estaba en
 `frontend/src` ni en `api/R` —F71 lo había renombrado— y el proceso R vivo había
@@ -685,6 +685,61 @@ el rótulo se resuelve en la capa de presentación (`segmentoRotulo.ts`), con el
 `segment_label` del payload como respaldo para llaves que el mapa aún no conoce.
 Y la auditoría de vocabulario se hace sobre el texto renderizado, no sobre
 `grep`: el fuente no es la única fuente de copy.
+
+### 42 · Alinearse con el eje empieza por medir lo mismo que él
+
+`alineadoConEje` compensaba con precisión el sangrado de la tarjeta —borde y
+relleno, 18 px por lado— y la pista seguía sin coincidir con el gráfico. La
+razón: dentro de un contenedor flex la raíz del control se dimensionaba **por su
+contenido**, 696 px contra los 1.091 del eje. Se estaba corrigiendo un desfase
+sobre una escala que ya no era la correcta.
+
+Un desfase se corrige en dos pasos y el orden no es intercambiable: **primero el
+ancho, después el sangrado**. Compensar sangrados sobre un ancho equivocado da
+un número que parece afinado y no lo es.
+
+**Mecanismo**: `[data-alineado]` declara `width: 100%` además de anular borde y
+relleno; el guard exige ambas cosas en el mismo bloque. Y se verifica midiendo
+los dos rectángulos en la app —delta por ambos lados—, nunca leyendo el CSS.
+
+### 43 · Un contenedor heredado de un control que ya no existe
+
+El rango vivía en un `.cmv2-crit-range-inputs` con `display: inline-flex`,
+dimensionado en su día para dos `<select>` chicos. Al sustituir los selects por
+el control de dos manijas, el contenedor siguió encogiendo a su contenido: la
+restricción sobrevivió al control que la justificaba y nadie la poseía.
+
+Cuando se retira un control, su contenedor no queda neutro — queda **con las
+medidas del control muerto**. Sustituir un widget es también revisar la caja que
+lo alojaba y el CSS que ya no tiene usuarios (aquí, dos reglas completas).
+
+### 44 · Cada tarjeta pide el confirmador de su propio criterio
+
+La tarjeta de rango recibía `confirmador={confirmadorDe?.(variable.id)}`, con el
+id de la tarjeta **vecina** (`condicion_curso`). Mover una manija marcaba
+pendiente el criterio de rango, la tarjeta preguntaba por otro, y no aparecía
+confirmador alguno: el cambio quedaba fuera de la cascada sin ningún síntoma
+visible. Tres de los cuatro montajes eran correctos, lo que hace al defecto
+invisible por lectura — el patrón alrededor es el bueno.
+
+**Mecanismo**: la tarjeta recibe la **función**, no el nodo ya resuelto, y
+pregunta por `variable.id` desde dentro. Pasar un nodo permite equivocarse de
+criterio; pasar la función no. Un cableado que sólo un montaje puede equivocar
+se repara moviendo la decisión adentro, no revisando el montaje con más cuidado.
+
+### 45 · Revertir un fichero para escapar de un error se lleva lo bueno
+
+Este cambio ya se había hecho una vez (G17) y desapareció: para salir de un
+empalme roto restauré el archivo entero con `git checkout --`, y con el empalme
+se fue el trabajo terminado que vivía en las mismas líneas. Semanas después el
+defecto reapareció idéntico y se diagnosticó de cero.
+
+Un `checkout --` sobre un archivo con trabajo sin commitear es un borrado sin
+confirmación. Las dos salidas son commitear la parte buena antes de experimentar,
+o deshacer sólo el empalme. **Y el síntoma tiene firma**: un defecto que ya se
+reparó y vuelve exacto no es una regresión del producto, es trabajo perdido —
+conviene buscarlo en el historial antes de rediagnosticarlo.
+
 
 ## Pendiente
 

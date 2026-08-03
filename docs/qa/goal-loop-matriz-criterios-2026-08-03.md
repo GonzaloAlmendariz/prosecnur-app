@@ -216,3 +216,58 @@ Mi guard de CSS huérfano cazó en la misma corrida las dos clases que el nivela
 dejó sin uso. Para eso existe.
 
 **Cierre**: suite de R relanzada entera — **50 archivos, sin fallos**.
+
+### G35 — El rango de niveles vuelve a ser un rango, y lo que se llevó un checkout
+
+Cuatro defectos en un solo criterio. Los cuatro salieron **midiendo la pantalla
+cargada**; ninguno era legible en el fuente.
+
+1. **El control era una lista de 852 opciones.** El criterio de nivel del curso
+   se editaba con dos `<select>` que en este proyecto desplegaban 852 entradas
+   cada uno —está mapeado al código de curso, no al nivel— y volcaban la lista
+   completa en la página. Sustituidos por el control de dos manijas ya acordado.
+2. **La pista quedaba 395 px más corta que su gráfico.** `alineadoConEje`
+   compensaba con precisión el sangrado de la tarjeta pero nunca reclamaba el
+   ancho, así que corregía un desfase sobre una escala que no era la del eje
+   (ADR 0057, patrón 42).
+3. **Su contenedor seguía dimensionado para los selects retirados** (patrón 43).
+4. **La tarjeta pedía el confirmador de su vecina.** Mover una manija marcaba
+   pendiente el rango, la tarjeta preguntaba por `condicion_curso`, y no
+   aparecía confirmador: el cambio se quedaba fuera de la cascada **sin ningún
+   síntoma visible**. Tres de los cuatro montajes eran correctos, lo que vuelve
+   al defecto invisible por lectura. Reparado por construcción — la tarjeta
+   recibe la función y pregunta por su propio criterio (patrón 44).
+
+**Lo que más pesa de esta iteración no es ninguno de los cuatro.** El punto 1 ya
+se había reparado en G17 y había desaparecido: para salir de un empalme roto
+restauré el archivo entero con `git checkout --`, y con el empalme se fue el
+trabajo bueno de las mismas líneas. Lo rediagnostiqué de cero, midiendo otra vez
+lo mismo. Un defecto que ya se reparó y vuelve **exacto** no es una regresión del
+producto: es trabajo perdido, y conviene buscarlo en el historial antes de
+volver a diagnosticarlo (patrón 45).
+
+**Método.** Al empezar busqué «el control de rango» y reparé el primero que
+apareció — el mismo error que Gonzalo ya había corregido («noto muchos errores
+constantemente, revísalo bien todo»). La reparación buena vino de **enumerar la
+clase entera**: `grep` de las tres clases sobre todo `*.tsx` dio exactamente dos
+usuarios, y con los dos a la vista el CSS muerto (dos reglas completas) se retiró
+en la misma pasada.
+
+**Verificado en la app**: 0 selects (de 854 opciones) → 2 manijas · pista y
+gráfico 1.091 px con delta 0 por ambos lados · mover una manija despierta «7
+criterios quedan en espera» dentro de la tarjeta · confirmar lleva la barra
+global a «Los criterios cambiaron».
+
+**Guards**: tres casos nuevos, cada uno probado en rojo reintroduciendo su
+defecto exacto y verde al restaurar. **Gate**: typecheck 0 · 3.444 tests en 419
+archivos. **Commit**: `0bb4b705`.
+
+**Higiene del ADR**: los patrones 35, 36 y 37 estaban **duplicados** —dos series
+con los mismos números en la misma sección—. Como los patrones se citan por
+número, la cola se renumeró a 39–41 y se corrigieron las dos citas del doc del
+goal de frontend.
+
+**Siguiente (G36)**: Composición es el último criterio sin tarjeta estándar. Es
+«regla común» y su control vive en el área global, así que la pregunta previa no
+es cosmética — es si le corresponde tarjeta propia o si su sitio es justamente
+ése. Se decide midiendo, no eligiendo.
