@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { ConfirmadorCriterio } from "../ConfirmadorCriterio";
 import { ControlRango, ordenarRango } from "../ControlRango";
-import { estadosCascada } from "../usarEmbudoVivo";
+import { estadosCascada, estadosMatriz } from "../usarEmbudoVivo";
 
 /**
  * F121 · Las tres piezas del embudo vivo, con las decisiones de Gonzalo:
@@ -108,5 +108,40 @@ describe("estadosCascada · el orden es el del ADR", () => {
 
   it("editar el primero deja a todos los demás en espera", () => {
     expect(estadosCascada(3, 0)).toEqual(["editando", "espera", "espera"]);
+  });
+});
+
+describe("estadosMatriz · el criterio es siempre de una facultad (F122)", () => {
+  // Gonzalo: «no hablamos de ningún criterio a nivel general, hablamos de un
+  // criterio siempre específicamente a una facultad; lo que debería colorearse
+  // es aquel criterio de determinada facultad que esté en edición, mas no la
+  // columna en general». Es la regla 1 del ADR 0057.
+  const FACS = ["Ingeniería", "Ciencias", "Gastronomía"];
+
+  it("editar en una facultad no toca a las demás", () => {
+    const m = estadosMatriz(FACS, 5, { facultad: "Ingeniería", criterio: 3 });
+    expect(m["Ingeniería"]).toEqual(["confirmado", "confirmado", "confirmado", "editando", "espera"]);
+    // La consecuencia que la columna escondía: la espera es POR FILA. El embudo
+    // de Ciencias no se ha movido, así que su composición no espera nada.
+    expect(m["Ciencias"].every((e) => e === "confirmado")).toBe(true);
+    expect(m["Gastronomía"].every((e) => e === "confirmado")).toBe(true);
+  });
+
+  it("ninguna celda en edición deja la matriz entera confirmada", () => {
+    const m = estadosMatriz(FACS, 4, null);
+    for (const fac of FACS) expect(m[fac].every((e) => e === "confirmado")).toBe(true);
+  });
+
+  it("sólo hay una celda en edición en toda la matriz", () => {
+    const m = estadosMatriz(FACS, 5, { facultad: "Gastronomía", criterio: 0 });
+    const editando = FACS.flatMap((f) => m[f]).filter((e) => e === "editando");
+    expect(editando).toHaveLength(1);
+  });
+
+  it("una facultad que no está en la lista no aparece", () => {
+    const m = estadosMatriz(FACS, 3, { facultad: "Derecho", criterio: 1 });
+    expect(Object.keys(m)).toEqual(FACS);
+    // Y nadie queda en edición: la celda apuntaba fuera de la matriz.
+    expect(FACS.flatMap((f) => m[f]).some((e) => e === "editando")).toBe(false);
   });
 });

@@ -614,6 +614,27 @@ el diagnóstico, de varios minutos.
 **Mecanismo**: los guards de cobertura se escriben sobre el conjunto, no sobre su
 tamaño. Cero elementos es cobertura total, no un fallo.
 
+### 38 · La regla 1 se rompe también en las superficies que la citan
+
+La matriz de criterios pintaba **la columna entera** del criterio en edición.
+Leída, decía que «Mínimo de elegibles» está a medio ajustar en las seis
+facultades — cuando sólo lo estaba en Ingeniería. Y arrastraba una consecuencia
+peor: dejaba las composiciones de las otras cinco en «espera», sugiriendo que
+sus cifras eran de antes de un cambio que nunca las tocó. **Seis filas puestas
+en duda para justificar una.**
+
+Lo llamativo es dónde ocurrió: en un mockup que yo mismo había construido
+citando la regla 1 —«todos los criterios son por facultad, no existe el criterio
+general»— tres párrafos más arriba. Citar una regla no es aplicarla; el eje de
+una tabla es una afirmación sobre qué cosa existe, y una columna afirma que hay
+un objeto «criterio» por encima de las facultades.
+
+**Mecanismo**: el estado del embudo se reparte por **celda**
+(`estadosMatriz(facultades, criterios, {facultad, criterio})`), y el guard de la
+regla 1 vigila sobre el fuente que no reaparezca un `estadosColumna`. La cascada
+por facultad sigue existiendo — es la unidad interna—, pero la matriz no puede
+exponer un estado por criterio suelto.
+
 ### 35 · Todos mis fixtures eran plurales
 
 Medido en la app con datos reales: «sus **1 cursos-horario**», «+**1 estudiantes
