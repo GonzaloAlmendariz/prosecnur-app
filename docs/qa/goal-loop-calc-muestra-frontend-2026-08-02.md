@@ -3560,6 +3560,31 @@ exigiría resolver comodines y herencia —un analizador de CSS, no un `includes
 y un guard que no entiende lo que vigila produce exactamente el falso positivo
 que acabo de tener.
 
+### F93 — La consola, en navegación y en uso
+
+Auditada la consola durante una sesión de uso real, que es lo único que ve los
+avisos de React —claves duplicadas, componentes que pasan de no controlados a
+controlados, actualizaciones fuera de ciclo—. Ninguna medición estática los
+detecta.
+
+**Dos pasadas, con `console.warn` y `console.error` interceptados:**
+
+| pasada | qué se hizo | avisos |
+|---|---|---:|
+| Navegación | recorrer 9 superficies | **0** |
+| Interacción | conmutar una categoría, cambiar de facultad, buscar en la lista, «Ver todos» | **0** |
+
+Y la suite completa del módulo corre **sin una sola línea en `stderr`**: 868
+pruebas en 109 archivos, limpias.
+
+Importa por el tipo de cambio que hizo este loop. Acotar listas, condicionar
+render por contexto y mover estado entre componentes son exactamente las
+operaciones que producen avisos de clave y de estado — y ninguno apareció, ni en
+la app ni en los tests.
+
+Es la contrapartida de F82: allí comprobé que los controles **responden**; aquí,
+que responden **sin quejarse por dentro**.
+
 ### Estado del loop
 
 | | |
