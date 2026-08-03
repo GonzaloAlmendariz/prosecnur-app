@@ -9,8 +9,11 @@
  * Estructura:
  *   1. Barra global: estado del recálculo + preset HST + único botón que
  *      reconstruye el marco («Calcular población y cursos-horario elegibles»).
- *      Confirmar/descartar es GLOBAL (un solo «confirmar cambios pendientes»),
- *      no por tarjeta: nada cambia el marco hasta recalcular.
+ *      Confirmar/descartar global sigue existiendo —con ocho criterios abiertos,
+ *      confirmarlos uno a uno es peor— pero G10 lo acompaña con confirmacion
+ *      POR CRITERIO, dentro de la tarjeta que se edita: los criterios se aplican
+ *      en cascada y confirmar el que tocas es lo que desbloquea a los
+ *      siguientes. Nada cambia el marco hasta recalcular.
  *   2. Base global · todas las facultades: el set por defecto de los criterios
  *      (lo que cada facultad hereda si no decide propio).
  *   3. Un bloque por facultad (elegibles desc): radiografía + decisión propia.
@@ -64,6 +67,8 @@ import {
   buildCriteriosRadiografiaModel,
   criterioCardsForScope,
 } from "./criteriosRadiografiaModel";
+import { ConfirmadorCriterio } from "../criterios/ConfirmadorCriterio";
+import { ordenEmbudoDelMotor } from "./ordenEmbudo";
 import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
 import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
 import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
@@ -336,6 +341,7 @@ export function CursosHorarioMarcoTab({
     });
   }
 
+
   const totalPendientes = pendientes.size;
   const marcoConstruido = Boolean(aulasState?.frame);
   const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
@@ -377,6 +383,37 @@ export function CursosHorarioMarcoTab({
     previewRequest: i18b.previewRequest,
     complete: i18b.status === "complete",
   } : null;
+
+  /**
+   * G10 · El confirmador de cada criterio, dentro de la tarjeta que se edita.
+   *
+   * Confirmar es parte de decidir, no un trámite en otra zona de la pantalla.
+   * Y el «en espera» que publica dice lo que está en juego: cuántos criterios
+   * no pueden recalcularse hasta que éste se confirme — sin eso, «confirmar»
+   * parece un botón de guardar.
+   *
+   * El orden del embudo lo fija el ADR, así que «los que vienen detrás» son
+   * los que ordena `ordenEmbudo`, no los que estén pendientes por casualidad.
+   */
+  const confirmadorDe = useMemo(() => {
+    const orden = ordenEmbudoDelMotor(i18b.cascade, catalogo.variables);
+    return (criterioId: string) => {
+      if (!pendientes.has(criterioId)) return null;
+      const i = orden.indexOf(criterioId);
+      const enEspera = i >= 0 ? orden.length - 1 - i : 0;
+      return (
+        <ConfirmadorCriterio
+          estado="pendiente"
+          cambios={1}
+          enEspera={enEspera}
+          onConfirmar={() => confirmarCriterio(criterioId)}
+          onDescartar={() => descartarCriterio(criterioId)}
+        />
+      );
+    };
+    // `confirmarCriterio` y `descartarCriterio` leen del render actual; se
+    // recalcula con el borrador para no confirmar una versión vieja.
+  }, [pendientes, catalogo.variables, i18b.cascade, borrador, seleccion, tiposBorrador]);
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   const beam = necesitaRecalculo && listoParaRecalcular;
@@ -557,6 +594,7 @@ export function CursosHorarioMarcoTab({
                   </label>
                   {(bloqueFoco ? [bloqueFoco] : []).map((bloque) => (
                     <FacultadDecisionBloque
+                      confirmadorDe={confirmadorDe}
                       key={bloque.excKey || bloque.facLabel}
                       sinPlegado
                       bloque={bloque}

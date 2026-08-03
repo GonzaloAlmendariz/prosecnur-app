@@ -26,6 +26,7 @@ import type {
 import { rangosFacultad, seleccionVariable } from "../../dominio";
 import { aulasSupervivientesFacultad } from "../../dominio/criteriosImpacto";
 import { fmtDec, fmtInt } from "../../sharedCore";
+import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
 import { evidenciaPorCategoria } from "../criterios/evidenciaPorCategoria";
 import { tasaAsistencia } from "../criterios/minElegiblesModel";
@@ -77,6 +78,7 @@ function CriterioFacultadCard({
   radiografiaCard,
   criterioEvidence,
   onSel,
+  confirmador,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -89,6 +91,9 @@ function CriterioFacultadCard({
   radiografiaCard: CriterioRadiografiaCard | null;
   criterioEvidence: CriterioFacultadEvidence | null;
   onSel: (next: CriterioSeleccion) => void;
+  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
+      edita: confirmar es parte de decidir, no un trámite en otra zona. */
+  confirmador?: ReactNode;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const fila = filasPorFacultad({
@@ -185,6 +190,7 @@ function CriterioFacultadCard({
           />
         </>
       ) : null}
+      {confirmador}
     </section>
   );
 }
@@ -199,6 +205,7 @@ function NivelFacultadCard({
   radiografiaCard,
   criterioEvidence,
   onRango,
+  confirmador,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -209,6 +216,9 @@ function NivelFacultadCard({
   radiografiaCard: CriterioRadiografiaCard | null;
   criterioEvidence: CriterioFacultadEvidence | null;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
+  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
+      edita: confirmar es parte de decidir, no un trámite en otra zona. */
+  confirmador?: ReactNode;
 }) {
   const valores = (variable.values ?? []).slice().sort((a, b) => a - b);
   const min = valores.length ? valores[0] : 0;
@@ -293,6 +303,7 @@ function NivelFacultadCard({
           ) : null}
         </div>
       ) : null}
+      {confirmador}
     </section>
   );
 }
@@ -307,6 +318,7 @@ function MinFacultadCard({
   radiografiaCard,
   criterioEvidence,
   onMinimoFacultad,
+  confirmador,
 }: {
   seleccion: CriteriosSeleccionMarco;
   minKey: string;
@@ -316,6 +328,9 @@ function MinFacultadCard({
   radiografiaCard: CriterioRadiografiaCard | null;
   criterioEvidence: CriterioFacultadEvidence | null;
   onMinimoFacultad: (minKey: string, valor: number | null) => void;
+  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
+      edita: confirmar es parte de decidir, no un trámite en otra zona. */
+  confirmador?: ReactNode;
 }) {
   const propio = minimoFacultad(seleccion, minKey);
   const [abierto, setAbierto] = useState(true);
@@ -438,6 +453,7 @@ function MinFacultadCard({
           ) : null}
         </>
       ) : null}
+      {confirmador}
     </section>
   );
 }
@@ -450,11 +466,15 @@ function CriterioTransversalFacultadCard({
   facKey,
   facLabel,
   criterioEvidence,
+  confirmador,
 }: {
   card: CriterioRadiografiaCard;
   facKey: string;
   facLabel: string;
   criterioEvidence: CriterioFacultadEvidence;
+  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
+      edita: confirmar es parte de decidir, no un trámite en otra zona. */
+  confirmador?: ReactNode;
 }) {
   const [abierto, setAbierto] = useState(true);
   return (
@@ -497,6 +517,7 @@ function CriterioTransversalFacultadCard({
           </p>
         </>
       ) : null}
+      {confirmador}
     </section>
   );
 }
@@ -522,6 +543,7 @@ export function FacultadDecisionBloque({
   sinPlegado,
   slotApertura,
   slotCierre,
+  confirmadorDe,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
@@ -549,6 +571,12 @@ export function FacultadDecisionBloque({
   /** F41 · Se muestra una sola facultad: nada que plegar. */
   sinPlegado?: boolean;
   /** ADR 0057 · Criterio que abre el embudo (matriculados / población). */
+  /**
+   * G10 · Devuelve el confirmador de un criterio. Una sola prop en vez de
+   * repartir `pendientes`, `confirmar` y `descartar` por seis tarjetas: la
+   * lógica de confirmación se queda en un sitio.
+   */
+  confirmadorDe?: (criterioId: string) => ReactNode;
   slotApertura?: ReactNode;
   /** ADR 0057 · Criterios 7 y 8, penúltimos antes del mayor detalle. */
   slotCierre?: ReactNode;
@@ -647,6 +675,7 @@ export function FacultadDecisionBloque({
                 todavía no se habían aplicado. */}
             {criterioEvidence && criterioCards.get("enrolled_total") ? (
               <CriterioTransversalFacultadCard
+                confirmador={confirmadorDe?.("enrolled_total")}
                 card={criterioCards.get("enrolled_total")!}
                 facKey={excKey}
                 facLabel={facLabel}
@@ -660,6 +689,7 @@ export function FacultadDecisionBloque({
               const card = (
                 <CriterioFacultadCard
                   key={variable.id}
+                  confirmador={confirmadorDe?.(variable.id)}
                   variable={variable}
                   seleccion={seleccion}
                   excKey={excKey}
@@ -676,6 +706,7 @@ export function FacultadDecisionBloque({
                 return [
                   card,
                   <NivelFacultadCard
+                    confirmador={confirmadorDe?.(variable.id)}
                     key={rangeVariable.id}
                     variable={rangeVariable}
                     seleccion={seleccion}
@@ -698,6 +729,7 @@ export function FacultadDecisionBloque({
             </p>
             {sessionVar ? (
               <CriterioFacultadCard
+                confirmador={confirmadorDe?.(sessionVar.id)}
                 variable={sessionVar}
                 seleccion={seleccion}
                 excKey={excKey}
@@ -713,6 +745,7 @@ export function FacultadDecisionBloque({
             {/* Criterio final y más granular: la lista de cursos-horario que
                 sobreviven en esta facultad, todos activos por defecto. */}
             <MinFacultadCard
+              confirmador={confirmadorDe?.(ELEGIBLES_POR_AULA_ID)}
               seleccion={seleccion}
               minKey={minKey}
               fac={fac}
@@ -724,6 +757,7 @@ export function FacultadDecisionBloque({
             />
             {criterioEvidence && criterioCards.get("composition") ? (
               <CriterioTransversalFacultadCard
+                confirmador={confirmadorDe?.("composition")}
                 card={criterioCards.get("composition")!}
                 facKey={excKey}
                 facLabel={facLabel}
