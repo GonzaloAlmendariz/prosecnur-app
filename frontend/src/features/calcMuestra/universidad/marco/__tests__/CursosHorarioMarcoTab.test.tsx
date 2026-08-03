@@ -123,7 +123,18 @@ describe("CursosHorarioMarcoTab — vista integrada facultad-primaria", () => {
     expect(html).toContain("Matrículas inscritas por curso-horario");
     // Bloque de la facultad con su radiografía visible (primer bloque abierto).
     expect(html).toContain("PSICOLOGÍA");
-    expect(html).toContain("aulas candidatas");
+    /*
+     * G39 · Aquí había un `toContain("aulas candidatas")`, la frase de la barra
+     * única del recorrido, usada como marca de que el bloque de la facultad se
+     * había montado. La barra se sustituyó por una por criterio y la frase
+     * desapareció.
+     *
+     * No se sustituye por el texto nuevo: las barras sólo se dibujan cuando el
+     * motor publica ese paso en la cascada, y el fixture de este caso no lo hace
+     * —correctamente—. Afirmarlo aquí ataría el caso a una condición que no está
+     * probando. Lo que sí quería comprobar —que el bloque de la facultad y su
+     * radiografía se montaron— ya lo dicen las dos líneas de al lado.
+     */
     // Decisión por facultad presente (mismo criterio que la base global).
     expect(html).toContain("Decisión para esta facultad");
   });

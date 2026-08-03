@@ -394,7 +394,18 @@ describe("publicación de la radiografía según integridad", () => {
     );
 
     expect(frameIntegrity(state.frame).status).toBe("consistent");
-    expect(integrada).toContain("aulas candidatas");
+    /*
+     * G39 · La marca de «la radiografía integrada se montó» era la frase «aulas
+     * candidatas», que vivía en la barra única del recorrido. Esa barra se
+     * sustituyó por una por criterio con otro texto, así que la marca desapareció
+     * y este caso empezó a fallar sin que nada del producto estuviera roto.
+     *
+     * Se cambia por el rótulo del bloque de decisión, que es lo que el caso
+     * quiere comprobar de verdad. Marcar una presencia por una frase de copy la
+     * ata a decisiones de redacción; el rótulo de la sección es más estable, y
+     * cuando cambie será porque cambió la sección.
+     */
+    expect(integrada).toContain("Decisión para esta facultad");
     expect(integrada).toContain("PSICOLOGÍA");
     expect(explorador).toContain('data-audit-ready="true"');
     expect(explorador).toContain("Psicología General");
@@ -410,7 +421,7 @@ describe("publicación de la radiografía según integridad", () => {
     const html = renderCursosHorario(state);
 
     expect(html).toContain("Calcular población y cursos-horario elegibles");
-    expect(html).not.toContain("aulas candidatas");
+    expect(html).not.toContain("Decisión para esta facultad");
   });
 
   it("la vista integrada explica el mismatch y pide reconstruir", () => {
