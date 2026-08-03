@@ -78,3 +78,45 @@ describe("MatrizEmbudoCriterios", () => {
       .toContain("llegó incompleta");
   });
 });
+
+describe("MatrizEmbudoCriterios · concordancia en los deltas (F107)", () => {
+  /**
+   * Medido en la app con datos reales: dos celdas mostraban «+1 estudiantes
+   * únicos». Ninguna prueba lo cazó porque **todos los fixtures del módulo
+   * traían valores plurales** —-3, -72, -60—, así que la rama del uno no se
+   * ejecutaba en ningún sitio.
+   *
+   * El valor 1 es un caso límite como lo son 0 y null, y merece fixture propio.
+   */
+  function conDelta(n: number): CalcMuestraMatrizEmbudo {
+    return {
+      ...matriz,
+      rows: [{
+        ...matriz.rows[0],
+        cells: [{
+          ...matriz.rows[0].cells[0],
+          delta: { ...matriz.rows[0].cells[0].delta, delta_ch: n, delta_matriculas: n, delta_estudiantes_unicos: n },
+        }],
+      }],
+    };
+  }
+
+  it("un delta de uno concuerda en singular", () => {
+    const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={conDelta(1)} rawPresent />);
+    expect(html).toContain("+1 matrícula<");
+    expect(html).toContain("+1 estudiante único<");
+    expect(html).not.toContain("estudiantes únicos");
+  });
+
+  it("un delta de menos uno también: el signo no cambia la concordancia", () => {
+    const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={conDelta(-1)} rawPresent />);
+    expect(html).toContain("-1 matrícula<");
+    expect(html).toContain("-1 estudiante único<");
+  });
+
+  it("con más de uno vuelve al plural", () => {
+    const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={conDelta(-60)} rawPresent />);
+    expect(html).toContain("estudiantes únicos");
+    expect(html).not.toContain("estudiante único<");
+  });
+});

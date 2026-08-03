@@ -217,6 +217,34 @@ describe("CategoriaEvidencia · los dos ceros no significan lo mismo (F105)", ()
   });
 });
 
+describe("CategoriaEvidencia · el singular existe (F107)", () => {
+  // Medido en la app con datos reales: «sus 1 cursos-horario». Ninguna prueba
+  // lo cazó porque todos los fixtures traían valores plurales, así que la rama
+  // del singular no se ejecutaba. Un guard prueba lo que se le da a probar.
+  it("una categoría excluida con un solo CH concuerda", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 0, elegibles: 0, chContraste: 1, mediaContraste: 12 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    const efecto = /<p class="cmv2-cat-efecto" data-estado="fuera">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
+    expect(efecto).toContain("su <strong>1</strong> curso-horario");
+    expect(efecto).toContain("no entra con");
+    expect(efecto).not.toContain("cursos-horario");
+  });
+
+  it("una categoría dentro con un CH y un estudiante concuerda", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia aporte={aporte({ ch: 1, elegibles: 1 })} dominio={{ min: 10, max: 60 }} />,
+    );
+    const efecto = /<p class="cmv2-cat-efecto" data-estado="dentro">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
+    expect(efecto).toContain("<strong>1</strong> curso-horario");
+    expect(efecto).toContain("<strong>1</strong> estudiante");
+    expect(efecto).not.toContain("estudiantes");
+  });
+});
+
 describe("CategoriaEvidencia · efecto en el embudo (ADR 0057, contenido 5)", () => {
   it("una categoría dentro dice qué se pierde al quitarla", () => {
     const html = renderToStaticMarkup(
