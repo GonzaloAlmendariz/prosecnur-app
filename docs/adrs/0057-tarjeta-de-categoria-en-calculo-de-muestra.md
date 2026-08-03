@@ -396,6 +396,19 @@ montaje se marca en el propio componente y en su test; **retirarlo es decisión 
 producto**, no de un barrido, porque la casa exige doble confirmación para borrar
 código.
 
+### 24 · Un guard sólo vale si se comprueba que falla
+
+Cuatro aserciones de este loop comprobaban lo correcto de una forma que **también
+habría pasado con el código roto**: `toContain("10")` para verificar que un eje
+muestra sus extremos, `toContain("CH")` en una superficie donde «CH» aparece
+decenas de veces.
+
+**Mecanismo**: las aserciones se anclan a su contenedor —`>10<` dentro de la
+frase, `</strong> CH` en la cifra, el total dentro del pie— y, al menos una vez
+por guard nuevo, se comprueba con una **mutación**: romper a propósito el
+comportamiento y confirmar que el test falla con el mensaje correcto. Un guard
+que nunca se ha visto fallar es una hipótesis, no una garantía.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
