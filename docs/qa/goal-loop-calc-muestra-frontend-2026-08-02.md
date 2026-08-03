@@ -3405,6 +3405,32 @@ Con esto, las reglas del ADR dejan de ser afirmaciones y pasan a ser
 | Aserciones verificadas en F86 | **1** |
 | Vitest | **865** en 108 archivos |
 
+### F88 — Los ocho guards del loop, todos vistos fallar
+
+Completada la verificación por mutación de **todos** los guards que este loop
+escribió. Cada uno se rompió por su regla y falló con el mensaje que corresponde:
+
+| guard | mutación | mensaje del fallo |
+|---|---|---|
+| Regla 4 · radiografía | reimportarla en criterios de estudiante | «not to contain 'CategoriaEvidencia'» |
+| Regla 2 · orden de la matriz | moverla al final | «expected 23840 to be less than 19515» |
+| Regla 3 · escala compartida | `width: 100%` en la caja | «to contain 'min(var(--cmv2-cat-escala), 100%)'» |
+| Transparencia · nada plegado | cuantiles a `<details>` | «not to contain '<details'» |
+| Escala del eje | quitar sus extremos | «to contain '>10<'» |
+| Coste de teclado | quitar el tope de filas | **«expected 646 to be less than or equal to 40»** |
+| Grano declarado | volver a «alumnos» sin `title` | «to contain '</strong> estudiantes'» |
+| Coherencia etiqueta–dato | decidir por estado y no por dato | «to contain 'se aplicó y no quitó ninguno'» |
+| Ruido del Panorama | repetir «global» por celda | «not to contain '>global<'» |
+
+Nueve mutaciones, nueve fallos correctos, nueve restauraciones con typecheck en 0
+y **865 pruebas verdes** al final.
+
+**Lo que cambia esto.** Hasta ahora podía decir «hay un guard para esa regla».
+Ahora puedo decir **«se ha visto fallar cuando la regla se rompe, y señala el
+sitio correcto»**, que es una afirmación distinta y comprobable. Un guard sin
+mutación es una hipótesis: pasa, pero nadie sabe si pasaría igual con el código
+roto —que es exactamente lo que descubrí de mis propias aserciones en F86—.
+
 ### Estado del loop
 
 | | |
