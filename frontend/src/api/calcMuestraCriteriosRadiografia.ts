@@ -196,6 +196,19 @@ export type CalcMuestraAulasCriterioSignalDistribution =
     umbral_aplicado: number | null;
     /** Cursos-horario que ese corte deja fuera. Lo cuenta el motor. */
     n_fuera: number | null;
+    /*
+     * G39 · Cuántos quedan fuera en CADA posición que el control puede tomar,
+     * alineado con `hist_breaks`.
+     *
+     * Gonzalo: «no hay forma de saber cuántas CH descartamos (y su porcentaje
+     * con que nos quedamos respecto al total) para poder tomar una decisión más
+     * meditada». La cifra tiene que cambiar mientras se arrastra, y el motor no
+     * puede recalcularla por cada píxel — pero tampoco puede sumarla el cliente:
+     * los cubos del histograma son cerrados por la derecha y un curso-horario
+     * que está exactamente en el umbral caería del lado equivocado. Aquí se
+     * consulta, no se suma.
+     */
+    n_fuera_por_corte: number[];
   };
 
 export type CalcMuestraAulasCriterioRadiografiaV2Delta = {
@@ -381,6 +394,19 @@ function asFiniteOrNull(value: unknown): ParsedNullableNumber {
  */
 function asFiniteOpcional(value: unknown): ParsedNullableNumber {
   return value === undefined ? null : asFiniteOrNull(value);
+}
+
+/** Lista de números finitos; cualquier elemento ilegible descarta la lista. */
+function asNumberList(value: unknown): number[] {
+  if (value == null) return [];
+  const bruto = Array.isArray(value) ? value : [value];
+  const out: number[] = [];
+  for (const v of bruto) {
+    const n = asFiniteOrNull(v);
+    if (n === INVALID_NUMBER || n === null) return [];
+    out.push(n);
+  }
+  return out;
 }
 
 function asNonNegativeInteger(value: unknown): number | InvalidNumber {
@@ -686,6 +712,7 @@ function parseSignalDistribution(raw: unknown): CalcMuestraAulasCriterioSignalDi
     escala,
     umbral_aplicado: umbral,
     n_fuera: fuera,
+    n_fuera_por_corte: asNumberList(value.n_fuera_por_corte),
   };
 }
 

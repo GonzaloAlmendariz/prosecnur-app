@@ -49,6 +49,7 @@ import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { frameIntegrity } from "../shared/frameIntegrity";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import {
+  copiarVariableCriterio,
   reconciliarBorradorCriterios,
   type TipoBorradorCriterio,
 } from "../criterios/borradorCriterios";
@@ -320,21 +321,30 @@ export function CursosHorarioMarcoTab({
   }
 
   /**
-   * Descarta el borrador de un criterio.
+   * Descarta el borrador de un criterio y devuelve su valor confirmado.
    *
-   * Se restaura **su** rama del borrador desde la selección confirmada, no el
-   * borrador entero: descartar un criterio no puede llevarse por delante los
-   * cambios que hay en los otros.
+   * Se restaura **su** rama, no el borrador entero: descartar un criterio no
+   * puede llevarse por delante los cambios que hay en los otros.
+   *
+   * G39 · Gonzalo: «si aprieto descartar, ¿no debería volver al valor original
+   * ya confirmado o por defecto?». No volvía. Esta función restauraba a mano
+   * `byVariable[id]` y **varios criterios no viven ahí**: el rango de niveles
+   * escribe en `courseLevelRanges`, el mínimo por facultad y la tasa en
+   * `minEligible`, las exclusiones en `manualExcludedClassrooms`. Para todos
+   * ésos, «Descartar» apagaba el aviso y dejaba el cambio puesto — la peor
+   * versión posible: el usuario cree que revirtió y el borrador sigue sucio.
+   *
+   * La causa es que había dos caminos para la misma pregunta —qué le pertenece
+   * a este criterio—: el de confirmar usaba `copiarVariableCriterio`, que
+   * conoce las cuatro ramas, y el de descartar reimplementaba una sola. Ahora
+   * los dos usan el mismo helper, en sentidos opuestos: confirmar copia del
+   * borrador a lo confirmado, descartar copia de lo confirmado al borrador.
    */
   function descartarCriterio(id: string) {
     if (!pendientes.has(id)) return;
-    setBorrador((prev) => ({
-      ...prev,
-      byVariable: {
-        ...prev.byVariable,
-        [id]: seleccion.byVariable?.[id],
-      },
-    }));
+    setBorrador((prev) =>
+      copiarVariableCriterio(prev, seleccion, id, tiposBorrador.get(id) ?? "flat"),
+    );
     setPendientes((prev) => {
       const next = new Set(prev);
       next.delete(id);

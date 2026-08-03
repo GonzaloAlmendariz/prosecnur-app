@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { CriteriosSeleccionMarco } from "../../../../../api/client";
-import { reconciliarBorradorCriterios } from "../../criterios/borradorCriterios";
+import {
+  copiarVariableCriterio,
+  reconciliarBorradorCriterios,
+  type TipoBorradorCriterio,
+} from "../../criterios/borradorCriterios";
 
 /**
  * G9 · La confirmación es por criterio.
@@ -57,28 +61,62 @@ describe("confirmar un solo criterio", () => {
 });
 
 describe("descartar un solo criterio", () => {
-  /**
-   * Réplica de `descartarCriterio`: restaura SU rama del borrador desde la
-   * selección confirmada. Descartar un criterio no puede llevarse por delante
-   * los cambios que hay en los otros — que es lo que hacía el descarte global.
+  /*
+   * G39 · Gonzalo: «si aprieto descartar, ¿no debería volver al valor original
+   * ya confirmado o por defecto?». No volvía.
+   *
+   * Descartar restauraba a mano `byVariable[id]`, y **varios criterios no viven
+   * ahí**: el rango de niveles escribe en `courseLevelRanges`, el mínimo por
+   * facultad en `minEligible`, las exclusiones en `manualExcludedClassrooms`.
+   * Para todos ésos, «Descartar» apagaba el aviso y dejaba el cambio puesto: el
+   * usuario cree que revirtió y el borrador sigue sucio.
+   *
+   * Y este bloque de pruebas no lo cazó porque **replicaba la implementación**:
+   * definía su propio `descartarUno` copiando las mismas cuatro líneas de la
+   * página. Un test que reimplementa lo que prueba sólo comprueba que sé
+   * copiar — y hereda el defecto sin enterarse. Ahora llama al helper real, el
+   * mismo que usa confirmar en el sentido contrario.
    */
-  function descartarUno(
+  const descartarUno = (
     borradorActual: CriteriosSeleccionMarco,
     confirmadaActual: CriteriosSeleccionMarco,
     id: string,
-  ): CriteriosSeleccionMarco {
-    return {
-      ...borradorActual,
-      byVariable: {
-        ...borradorActual.byVariable,
-        [id]: confirmadaActual.byVariable?.[id],
-      },
-    };
-  }
+    tipo: TipoBorradorCriterio = "flat",
+  ) => copiarVariableCriterio(borradorActual, confirmadaActual, id, tipo);
 
   it("devuelve ese criterio a lo confirmado y conserva el resto del borrador", () => {
     const next = descartarUno(borrador, confirmada, "modality");
     expect(next.byVariable?.modality?.categories).toEqual(["presencial"]);
     expect(next.byVariable?.session_type?.categories).toEqual(["teorico", "laboratorio"]);
+  });
+
+  it("devuelve también un rango de niveles, que no vive en byVariable", () => {
+    const conf = { byVariable: {}, courseLevelRanges: { ingenieria: [[1, 5]] } } as CriteriosSeleccionMarco;
+    const bor = { byVariable: {}, courseLevelRanges: { ingenieria: [[3, 4]] } } as CriteriosSeleccionMarco;
+    const next = descartarUno(bor, conf, "course_level", "range");
+    expect(next.courseLevelRanges?.ingenieria).toEqual([[1, 5]]);
+  });
+
+  it("devuelve también el mínimo por facultad", () => {
+    const conf = { byVariable: {}, minEligible: { value: 15, byFaculty: { ingenieria: 20 } } } as unknown as CriteriosSeleccionMarco;
+    const bor = { byVariable: {}, minEligible: { value: 15, byFaculty: { ingenieria: 8 } } } as unknown as CriteriosSeleccionMarco;
+    const next = descartarUno(bor, conf, "elegibles_por_aula", "minEligible");
+    expect(next.minEligible?.byFaculty?.ingenieria).toBe(20);
+  });
+
+  it("devuelve también las exclusiones manuales", () => {
+    const conf = { byVariable: {}, manualExcludedClassrooms: ["CH-1"] } as CriteriosSeleccionMarco;
+    const bor = { byVariable: {}, manualExcludedClassrooms: ["CH-1", "CH-2", "CH-3"] } as CriteriosSeleccionMarco;
+    const next = descartarUno(bor, conf, "manual_excluded", "manualExcluded");
+    expect(next.manualExcludedClassrooms).toEqual(["CH-1"]);
+  });
+
+  it("sin valor confirmado, descartar deja el criterio sin restricción", () => {
+    // «Volver al valor por defecto» cuando nunca hubo uno confirmado: la rama
+    // desaparece del borrador en vez de quedarse con el último editado.
+    const conf = { byVariable: {} } as CriteriosSeleccionMarco;
+    const bor = { byVariable: { modality: { mode: "include", categories: ["virtual"] } } } as CriteriosSeleccionMarco;
+    const next = descartarUno(bor, conf, "modality");
+    expect(next.byVariable?.modality).toBeUndefined();
   });
 });
