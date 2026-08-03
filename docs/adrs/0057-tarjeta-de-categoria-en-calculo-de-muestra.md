@@ -945,6 +945,64 @@ archivo y el `grep` estaba acotado al directorio de las otras. **Medir en la app
 evita la séptima vez.
 
 
+### 57 · Un mecanismo sin montaje es un mecanismo que no existe
+
+«El botón de recalcular es un poco overkill, ¿no?» Lo era, y lo llamativo es que
+la alternativa **ya estaba construida entera**: motor de preview, endpoint,
+cliente, normalizador, coordinador con debounce y cancelación, y un hook. Con un
+único montaje — la consola de detalle que G20 retiró de la pestaña.
+
+Al retirar el host, el mecanismo no dio error ni dejó hueco: simplemente la única
+forma de ver el efecto de un criterio volvió a ser reconstruir las dos
+dimensiones, y nadie lo notó porque esa forma seguía funcionando. Es la misma
+firma que el CSS que pierde por especificidad (patrón 47): **no falla, se
+degrada a lo anterior**.
+
+**Regla**: retirar una superficie es también revisar qué se queda sin montaje.
+Un `grep` de los imports del componente eliminado lo habría dicho en un minuto.
+
+### 58 · Lo que se degrada silenciosamente hay que declararlo en pantalla
+
+El mismo borrado se llevó por delante un mensaje que F47 había escrito
+deliberadamente: la traducción accionable de una precondición del motor («el
+embudo en vivo necesita que el marco se haya construido en esta sesión»). Se
+escribió, se probó y dejó de verse.
+
+Y encima, un defecto de estado lo hacía invisible aunque estuviera montado: la
+petición de preview cambia de identidad en cada render, cada cambio devolvía el
+estado a `loading`, y el `stale` —que es la explicación— desaparecía antes de
+poder leerse. El arreglo es conservar el último estado resuelto mientras llega el
+siguiente: `loading` no borra lo anterior, sólo dice que hay algo en camino.
+
+Sin eso, además, la cascada viva parpadeaba de vuelta a la ejecutada entre
+pulsaciones — un dato que cambia solo cuando nadie lo tocó.
+
+### 59 · Rehidratar un cache derivado exige probar que sale idéntico
+
+El preview por criterio no funciona al abrir un `.pulso` guardado porque el
+contexto transitorio se borra al guardar. La salida evidente era rehidratarlo
+desde el marco persistido, y a primera vista todo encajaba: `aula_frame`,
+catálogo, radiografía y config viajan en el marco.
+
+No encajaba. Los **valores por curso-horario de cada criterio** se derivan del
+catálogo de curso-horario, que es una tabla de origen y no viaja. Sin ellos, el
+evaluador recibe `values[[id]] %||% rep("", n)` —cadenas vacías— y devuelve un
+recorrido **plausible y falso**: no lanza, no avisa, simplemente admite lo que no
+debía. Peor que el rechazo honesto que ya existía.
+
+**Regla**: un cache derivado sólo se rehidrata si se puede demostrar que el
+resultado es idéntico al original —idealmente con un test que construya, pode,
+rehidrate y compare—. Cuando la demostración no está al alcance, el rechazo
+explícito es la reparación, y el intento descartado se escribe para que el
+siguiente no lo repita a ciegas.
+
+**Corolario sobre el reparto de trabajo**: el preview recalcula la dimensión de
+cursos-horario sobre el marco ya construido; la población de estudiantes exige
+releer la base. Nombrar esa diferencia en el aviso —en vez de «el marco vigente
+ya no los refleja», cierto de todo y por eso inútil— convierte reconstruir en una
+decisión en vez de un reflejo.
+
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

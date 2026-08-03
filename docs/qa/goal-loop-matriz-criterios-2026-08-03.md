@@ -413,3 +413,42 @@ tests en 420 archivos. **Commits**: `ac563d96`, `28f53031`, `d22913b9`,
 agosto y no toma cambios de R. El contrato v2 de composición —eje 0–100,
 «quedan fuera» y la tabla por corte— está en el motor y en la superficie, pero
 no se está sirviendo hasta reiniciarlo.
+
+### G39 (cont.) — El botón grande era overkill, y la alternativa ya estaba escrita
+
+Gonzalo: «¿la actualización no debería también poder ser solo por criterio cuando
+lo confirmamos, y este botón solo si quiero un cambio que involucre a ambas
+dimensiones?».
+
+Tenía razón, y el hallazgo fue que **el mecanismo existía entero** —motor de
+preview, endpoint, cliente, normalizador, coordinador con debounce y cancelación,
+y un hook— con un solo montaje: la consola de detalle que G20 retiró. Al quitar
+el host, el mecanismo no dio error ni dejó hueco; simplemente la única forma de
+ver el efecto de un criterio volvió a ser reconstruir las dos dimensiones
+(patrón 57).
+
+Subido al nivel de la pestaña, la cascada que alimenta las barras, la matriz y el
+cierre es la viva. Y salieron dos defectos que dentro de una sola tarjeta no se
+notaban: el recorrido **parpadeaba** de vuelta a la ejecutada entre pulsaciones, y
+el aviso que explica por qué el preview no está disponible desaparecía antes de
+poder leerse. Ese aviso lo había escrito F47 con cuidado y llevaba invisible desde
+G20 (patrón 58).
+
+**Un intento descartado, escrito para que no se repita.** Quise rehidratar el
+contexto transitorio desde el marco guardado para que el recálculo por criterio
+funcionara también al abrir un `.pulso`. Todo parecía encajar hasta que apareció
+lo que no viaja: los valores por curso-horario de cada criterio se derivan del
+catálogo de curso-horario, una tabla de origen. Sin ellos el evaluador recibe
+cadenas vacías y devuelve un recorrido **plausible y falso** — no lanza, no
+avisa, admite lo que no debía. Retiré el código a medias entero (patrón 59).
+
+**El reparto que queda**, medido y nombrado en el aviso: el preview recalcula los
+cursos-horario de cada paso sobre el marco ya construido; la población de
+estudiantes exige releer la base, y para eso está el botón.
+
+**Precondición viva**: el motor exige que el marco se haya construido en esta
+sesión. Al abrir un `.pulso` guardado el preview responde `STALE` hasta la
+primera reconstrucción; después, los criterios ya se actualizan uno a uno.
+
+**Commits**: `b8eba383`, `dba0fef4`. **Gate**: typecheck 0 · 3.465 tests en 420
+archivos.
