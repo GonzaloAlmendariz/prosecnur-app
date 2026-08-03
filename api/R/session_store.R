@@ -160,6 +160,19 @@ session_header <- function(req) {
 .ESTUDIO_MAX_BASES <- 16L
 .ESTUDIO_INDEPENDENT_SIBLINGS_MAX_BASES <- 10L
 .ESTUDIO_PROCESSING_MODES <- c("multibase", "independent_siblings")
+# Cómo declaró el usuario que se organiza el estudio. NO es lo mismo que
+# `processing_mode`: éste describe cómo el motor trata las bases y arranca en
+# "multibase" para todo estudio, incluida la carga simple; aquél guarda la
+# decisión explícita que el usuario tomó en Plan.
+#
+# Existe porque el estado no distinguía "carga simple" de "estudio multibase con
+# una sola base todavía": ambos son processing_mode="multibase", n_bases=1, base
+# llamada "default". El frontend desempataba por el nombre de la base, así que un
+# estudio que empezó simple y creció a varias bases se seguía leyendo como simple
+# al reabrirlo — la superficie de Fuentes ofrecía la carga de una base y ningún
+# camino a las demás. Con la declaración persistida el desempate deja de depender
+# de un nombre que el usuario puede cambiar.
+.ESTUDIO_TOPOLOGIES <- c("single", "separate", "integrated", "independent")
 .ESTUDIO_ANALITICA_STATUS_KEYS <- c(
   "analitica_prep_ok", "analitica_codebook_ok", "analitica_frecuencias_ok",
   "analitica_cruces_ok", "analitica_spss_ok", "analitica_enumeradores_ok",
@@ -291,6 +304,40 @@ estudio_set_processing_mode <- function(sid, mode = "multibase") {
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(mode)
+}
+
+# Topología declarada por el usuario, o NULL si todavía no declaró nada. Un
+# valor guardado que no esté en el vocabulario se lee como "sin declarar" en vez
+# de romper: un .pulso viejo nunca queda inabrible por este campo.
+estudio_topology <- function(sid) {
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s) || is.null(s$estudio)) return(NULL)
+  declared <- s$estudio$topology_declared %||% NULL
+  if (is.null(declared) || !nzchar(as.character(declared)[1])) return(NULL)
+  declared <- as.character(declared)[1]
+  if (!(declared %in% .ESTUDIO_TOPOLOGIES)) return(NULL)
+  declared
+}
+
+# Guarda la declaración de Plan. `NULL` la borra (el usuario vuelve a no haber
+# decidido); cualquier otro valor fuera del vocabulario es un error del cliente.
+estudio_set_topology <- function(sid, topology) {
+  estudio_ensure(sid)
+  s <- session_get(sid)
+  if (is.null(topology) || !length(topology) || !nzchar(as.character(topology)[1])) {
+    s$estudio["topology_declared"] <- list(NULL)
+  } else {
+    topology <- as.character(topology)[1]
+    if (!(topology %in% .ESTUDIO_TOPOLOGIES)) {
+      stop_api(400, "E_ESTUDIO_TOPOLOGIA",
+               sprintf("Topología de estudio no soportada: '%s'. Válidas: %s.",
+                       topology, paste(.ESTUDIO_TOPOLOGIES, collapse = ", ")))
+    }
+    s$estudio$topology_declared <- topology
+  }
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(s$estudio$topology_declared %||% NULL)
 }
 
 estudio_promote_independent_siblings <- function(sid,

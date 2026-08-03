@@ -1,9 +1,37 @@
+import type { CargaTopologyDeclared } from "../../api/client";
 import type { CargaTopologyIntent, MultiBaseStrategy } from "./store";
 
 export type { CargaTopologyIntent } from "./store";
 
 export type CargaTopologyMode = "undecided" | "single" | "multi";
 export type CargaTopologyStatus = "undefined" | "planned" | "materialized" | "conflict";
+
+/** El usuario declaró varias bases, en cualquiera de sus tres formas. */
+export function declaresMultiBase(declared: CargaTopologyDeclared | null | undefined): boolean {
+  return declared != null && declared !== "single";
+}
+
+/**
+ * Un estudio con una sola base llamada `default` es lo que deja la carga simple:
+ * el flujo de una base inicializa el estudio y nombra `default` a su única base,
+ * así que en el estado es idéntico a un estudio multibase que todavía no creció.
+ *
+ * El desempate por nombre es lo único disponible en proyectos anteriores a
+ * `topology_declared`, y por sí solo es una trampa: un estudio que empezó simple
+ * y creció volvía a leerse como simple en cada apertura, dejando Fuentes en la
+ * carga de una base sin camino a las demás. Cuando hay declaración explícita,
+ * ella manda y este heurístico no opina.
+ */
+export function isLegacySingleBaseStudy(input: {
+  hasStudy: boolean;
+  baseCount: number;
+  baseNames: readonly string[];
+  declaredTopology: CargaTopologyDeclared | null | undefined;
+}): boolean {
+  if (!input.hasStudy) return false;
+  if (declaresMultiBase(input.declaredTopology)) return false;
+  return input.baseCount === 1 && input.baseNames[0] === "default";
+}
 
 export type CargaTopologyInput = {
   hasStudy: boolean;

@@ -4,6 +4,7 @@
 
 import type { RepeatGrain } from "../lib/repeatIdentity";
 import { apiFetch, handle, headers } from "./core";
+import type { CargaTopologyDeclared } from "./core";
 import type { SurveyMonkeyDecisionAudit, SurveyMonkeyDecisionPolicy, SurveyMonkeyMultibaseSurveyInput, SurveyMonkeySavBundleChangePlan } from "./surveymonkey";
 import type { KoboIndependentAssetInput, KoboSourceSpec } from "./xlsformEditor";
 
@@ -195,6 +196,8 @@ export type EstudioMultiIntegrated = {
 export type EstudioPayload = {
   nombre: string | null;
   processing_mode?: "multibase" | "independent_siblings" | string | null;
+  /** Organización declarada por el usuario en Plan; null si aún no decide. */
+  topology_declared?: CargaTopologyDeclared | null;
   active_base?: string | null;
   independent_siblings?: {
     version?: number;
@@ -314,6 +317,18 @@ export async function apiEstudioSetNombre(nombre: string) {
       method: "PATCH",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ nombre }),
+    }),
+  );
+}
+
+// Persiste la organización elegida en Plan para que el proyecto la recuerde al
+// reabrirse. El PATCH es parcial: mandar sólo `topology` no toca el nombre.
+export async function apiEstudioSetTopology(topology: CargaTopologyDeclared | null) {
+  return handle<EstudioPayload>(
+    await apiFetch("/api/estudio", {
+      method: "PATCH",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ topology }),
     }),
   );
 }

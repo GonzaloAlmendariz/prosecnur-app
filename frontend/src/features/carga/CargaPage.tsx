@@ -20,6 +20,7 @@ import {
   apiConnectionsList,
   apiEstudioGet,
   apiEstudioInit,
+  apiEstudioSetTopology,
   apiInstrumentoEstructura,
   apiQuitarData,
   apiQuitarInstrumento,
@@ -67,7 +68,7 @@ import { AcreditacionBatchPanel } from "./AcreditacionBatchPanel";
 import { CargaPlanOverview } from "./CargaPlanOverview";
 import { CargaTopologyDecision } from "./CargaTopologyDecision";
 import { CargaTopologyPlanBanner } from "./CargaTopologyPlanBanner";
-import { resolveCargaTopology } from "./CargaTopologyModel";
+import { declaresMultiBase, isLegacySingleBaseStudy, resolveCargaTopology } from "./CargaTopologyModel";
 import { CargaReviewSummary } from "./CargaReviewSummary";
 import { CargaStructureWorkbench } from "./CargaStructureWorkbench";
 import { useCargaStore, type CargaTopologyIntent, type MultiBaseStrategy } from "./store";
@@ -655,16 +656,25 @@ export default function CargaPage() {
   // El caso "single-base legacy virtual" (n_bases=1 + nombre=default)
   // se sigue tratando como single-base — aún no hubo intención de
   // multi-base, es solo un mirror del legacy.
-  const hasDefaultStudyBase = !!state
-    && state.has_estudio
-    && state.n_bases === 1
-    && state.bases_nombres[0] === "default";
+  //
+  // Salvo que el usuario YA haya declarado lo contrario en Plan: la declaración
+  // persistida (`estudio_topology_declared`) es la intención real y le gana al
+  // desempate por nombre. Ambas reglas viven en CargaTopologyModel.
+  const declaredTopology = state?.estudio_topology_declared ?? null;
+  const declaredMultiBase = declaresMultiBase(declaredTopology);
+  const hasDefaultStudyBase = isLegacySingleBaseStudy({
+    hasStudy: Boolean(state?.has_estudio),
+    baseCount: state?.n_bases ?? 0,
+    baseNames: state?.bases_nombres ?? [],
+    declaredTopology,
+  });
   const isIndependentStudy = state?.estudio_processing_mode === "independent_siblings";
   const isMultiBase = !!state
     && state.has_estudio
     && (
       forceMultiBase ||
       isIndependentStudy ||
+      declaredMultiBase ||
       !(hasDefaultStudyBase)
     );
   // Payload del estudio — cargamos on-demand cuando entramos a modo
@@ -703,10 +713,14 @@ export default function CargaPage() {
       && !pendingChoiceMapping
     : allReady;
   const topologyHasStudy = Boolean(state?.has_estudio && !hasDefaultStudyBase);
+  // Lo que el usuario declaró en Plan manda sobre lo que Monitoreo sugirió: la
+  // sugerencia del intake es un default, la declaración es una decisión.
   const declaredTopologyStrategy: MultiBaseStrategy | null =
-    state?.processing_intake_mode === "independent_siblings"
-      ? "independent"
-      : null;
+    declaredTopology === "separate" || declaredTopology === "integrated" || declaredTopology === "independent"
+      ? declaredTopology
+      : state?.processing_intake_mode === "independent_siblings"
+        ? "independent"
+        : null;
   const topologyResolution = resolveCargaTopology({
     hasStudy: topologyHasStudy,
     baseCount: topologyHasStudy
@@ -721,7 +735,11 @@ export default function CargaPage() {
     declaredStrategy: declaredTopologyStrategy,
     intent: topologyIntent,
   });
-  const resolvedTopologyIntent: CargaTopologyIntent = topologyIntent ?? declaredTopologyStrategy;
+  // Un "single" declarado también es una decisión que la vista debe reflejar al
+  // reabrir; `declaredTopologyStrategy` sólo cubre las variantes multi.
+  const resolvedTopologyIntent: CargaTopologyIntent = topologyIntent
+    ?? declaredTopologyStrategy
+    ?? (declaredTopology === "single" ? "single" : null);
   const topologyIntentStrategy: MultiBaseStrategy | null =
     resolvedTopologyIntent === "separate" || resolvedTopologyIntent === "integrated" || resolvedTopologyIntent === "independent"
       ? resolvedTopologyIntent
@@ -1009,6 +1027,9 @@ export default function CargaPage() {
         setForceMultiBase(true);
         setAutoOpenAddBase(false);
       }
+      // `forceMultiBase` sólo vive en este montaje. Sin persistir la decisión,
+      // cerrar el proyecto y volver a abrirlo lo devolvía a la carga simple.
+      await apiEstudioSetTopology(strategy);
       await refresh();
       goCargaWorkspaceTab("fuentes");
     } catch (reason) {
@@ -1024,6 +1045,17 @@ export default function CargaPage() {
       setMultiBaseStrategy(next);
       setPlannedInputCount(plannedInputCount);
     }
+    // Sólo se persiste sobre un estudio que ya existe. Escribir aquí cuando aún
+    // no hay estudio lo inicializaría al primer click en Plan y volvería
+    // `has_estudio` verdadero antes de tiempo, que es la señal de la que cuelga
+    // el flujo de carga simple. Mientras no exista, la elección sigue viviendo
+    // en el store y se persiste al activar el plan o al crear la primera base.
+    // "multi" queda fuera: es "varias, todavía no sé cómo", no una decisión.
+    if (!state?.has_estudio) return;
+    if (next !== "single" && next !== "separate" && next !== "integrated" && next !== "independent") return;
+    void apiEstudioSetTopology(next)
+      .then(() => refresh())
+      .catch((reason) => setError((reason as Error).message));
   }
 
   function onMonitoringDiscovered(result: CargaMonitoringDiscoveryResult) {

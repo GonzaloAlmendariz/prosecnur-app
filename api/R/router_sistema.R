@@ -672,11 +672,14 @@ mount_sistema <- function(pr) {
         processing_intake_entries_count = as.integer(length(s$processing_intake$entries %||% list())),
         # --- Estudio (multi-base, v0.2+) ---
         estudio_nombre = if (is.null(s$estudio)) NA_character_ else (s$estudio$nombre %||% NA_character_),
-        # Flag de intención: TRUE si el usuario activó explícitamente el
-        # modo "varias bases" (aunque aún no haya subido ninguna). El
-        # frontend usa esto para renderizar el BasesPanel desde vacío.
+        # Existe un estudio inicializado. NO es un flag de intención: la carga
+        # simple también llama a estudio_ensure(), así que esto es TRUE con una
+        # sola base subida por el flujo de una base. Quien quiera saber qué
+        # declaró el usuario debe leer `estudio_topology_declared`.
         has_estudio = !is.null(s$estudio),
         estudio_processing_mode = if (is.null(s$estudio)) "multibase" else estudio_processing_mode(sid),
+        # Decisión explícita del usuario en Plan; NA mientras no declare nada.
+        estudio_topology_declared = if (is.null(s$estudio)) NA_character_ else as.character(estudio_topology(sid) %||% NA_character_),
         active_base = if (is.null(s$estudio)) NA_character_ else as.character(estudio_active_base(sid) %||% NA_character_),
         n_bases = length(bases),
         bases_nombres = as.list(names(bases))

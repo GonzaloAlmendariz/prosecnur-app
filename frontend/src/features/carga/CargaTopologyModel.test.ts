@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  declaresMultiBase,
+  isLegacySingleBaseStudy,
   resolveCargaTopology,
   type CargaTopologyInput,
   type CargaTopologyIntent,
@@ -216,5 +218,54 @@ describe("resolveCargaTopology", () => {
       strategyLocked: true,
     });
     expect(resolution.lockReason).toBeTruthy();
+  });
+});
+
+describe("desempate entre carga simple y multibase de una sola base", () => {
+  const legacySingle = {
+    hasStudy: true,
+    baseCount: 1,
+    baseNames: ["default"],
+    declaredTopology: null,
+  };
+
+  it("lee un estudio de una base llamada default como carga simple", () => {
+    expect(isLegacySingleBaseStudy(legacySingle)).toBe(true);
+  });
+
+  // Regresión: el bug. Un estudio que empezó simple y declaró varias bases se
+  // seguía leyendo como simple al reabrirlo, porque su única base todavía se
+  // llamaba `default`. Fuentes ofrecía la carga de una base y ningún camino a
+  // las demás.
+  it("una declaración de varias bases gana sobre el nombre default", () => {
+    for (const declaredTopology of ["separate", "integrated", "independent"] as const) {
+      expect(isLegacySingleBaseStudy({ ...legacySingle, declaredTopology })).toBe(false);
+    }
+  });
+
+  it("un single declarado no contradice el heurístico", () => {
+    expect(isLegacySingleBaseStudy({ ...legacySingle, declaredTopology: "single" })).toBe(true);
+  });
+
+  it("no opina sobre bases con nombre propio ni sobre estudios con varias", () => {
+    expect(isLegacySingleBaseStudy({ ...legacySingle, baseNames: ["docentes"] })).toBe(false);
+    expect(isLegacySingleBaseStudy({
+      ...legacySingle,
+      baseCount: 2,
+      baseNames: ["default", "estudiantes"],
+    })).toBe(false);
+  });
+
+  it("sin estudio no hay nada que desempatar", () => {
+    expect(isLegacySingleBaseStudy({ ...legacySingle, hasStudy: false })).toBe(false);
+  });
+
+  it("declaresMultiBase separa la decisión de varias bases del resto", () => {
+    expect(declaresMultiBase("separate")).toBe(true);
+    expect(declaresMultiBase("integrated")).toBe(true);
+    expect(declaresMultiBase("independent")).toBe(true);
+    expect(declaresMultiBase("single")).toBe(false);
+    expect(declaresMultiBase(null)).toBe(false);
+    expect(declaresMultiBase(undefined)).toBe(false);
   });
 });
