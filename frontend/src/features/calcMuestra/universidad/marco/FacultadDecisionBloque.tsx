@@ -784,6 +784,7 @@ export function FacultadDecisionBloque({
             ) : null}
             {slotCierre}
             <AulasFinalesCard
+              tasaAsistencia={tasaAsistencia(seleccion)}
               aulas={aulasFinales}
               seleccion={seleccion}
               facLabel={facLabel}
