@@ -3248,6 +3248,33 @@ puede romper el funcionamiento sin que ningún barrido de vocabulario, desborde 
 accesibilidad lo note. Ninguno de mis instrumentos anteriores prueba que un click
 haga algo.
 
+### F83 — Los controles nuevos, accionados uno por uno
+
+Completada la prueba funcional con los controles que faltaban. **Todo lo que
+este loop construyó responde**:
+
+| control | prueba | resultado |
+|---|---|---|
+| Conmutador de categoría | click | `aria-checked` false → true |
+| Selector de facultad | cambio de opción | `karina_e_karina` → `andres`, bloque rerenderiza |
+| Buscador de la lista final | escribir «Oscar» | 40 → **23 filas** |
+| «Ver todos» | click | 40 → **464 filas**, botón pasa a «Volver a 40» |
+| «Volver a 40» | click | vuelve a **40** |
+
+El pie de profundidad se oculta solo cuando la búsqueda deja menos filas que el
+tope —23 de 40—, que es el comportamiento correcto: no anuncia un recorte que no
+está haciendo.
+
+**Lo que no pude ejercitar, y lo digo en vez de darlo por bueno**:
+`ExcepcionesFacultad` —el editor del conjunto global para criterios categóricos
+de curso-horario— **no monta en este instrumento**, porque sus criterios de CH no
+son categóricos (medido en F26). Comprobé que **no es código muerto**: sigue
+montado en `CursosHorarioBaseGlobal`. Queda cubierto por su test directo, no por
+la app.
+
+Es la diferencia entre «no lo probé» y «no se puede probar aquí», y sólo la
+segunda es aceptable dejarla escrita.
+
 ### Estado del loop
 
 | | |
