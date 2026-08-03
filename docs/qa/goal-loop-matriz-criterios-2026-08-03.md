@@ -183,7 +183,7 @@ de vocabulario de F66–F71.
 | Iteraciones | **G1–G15** |
 | Inconsistencias de motor encontradas | **1** (descuadre de 7 CH) — reparada |
 | Defectos propios encontrados por mutación o medición | **6** |
-| Gate | typecheck 0 · 1.032 pruebas en 120 archivos · área R en verde |
+| Gate | typecheck 0 · 1.032 pruebas en 120 archivos · **50 archivos de R sin fallos** |
 
 **Abierto**, para decidir contigo:
 
@@ -193,3 +193,26 @@ de vocabulario de F66–F71.
 - Los niveladores de umbral y rango están construidos y probados, pero **todavía
   no montados** en los criterios reales: hoy el mínimo se edita con el control
   anterior.
+
+### G16 — El nivelador en el mínimo, y la suite de R rota otra vez
+
+Montado el nivelador en el mínimo por facultad — el caso que Gonzalo describió.
+Su tope sale de la mediana de la facultad, no de una constante: un rango fijo
+deja media barra en una zona donde no hay nada que decidir en las facultades
+pequeñas y se queda corto en las grandes.
+
+**Y al correr R apareció el mismo fallo que en F71.** F114 —el commit del eje—
+tocó `calc_muestra_aulas_criterio_radiografia.R` para añadir `n_atipicos_inf` y
+`n_atipicos_sup`, y volví a correr sólo el frontend. Ese commit dejó la suite en
+rojo y se subió así.
+
+Es el patrón que documenté hace ochenta commits, repetido con la misma causa: un
+cambio de seis líneas en R **no se siente como tocar lógica**. Documentarlo una
+vez no lo evitó, porque el disparador dependía de un juicio que se toma justo
+cuando uno está pensando en otra cosa. Ahora el disparador es un hecho: **si el
+diff toca `api/`, se corre la suite del área antes de commitear**.
+
+Mi guard de CSS huérfano cazó en la misma corrida las dos clases que el nivelador
+dejó sin uso. Para eso existe.
+
+**Cierre**: suite de R relanzada entera — **50 archivos, sin fallos**.
