@@ -473,11 +473,32 @@ export function CursosHorarioMarcoTab({
     const fila = matriz?.filas.find((f) => f.facultadKey === clave) ?? null;
     if (!fila) return () => null;
     const porCriterio = new Map(fila.celdas.map((c) => [c.criterioId, c.llegan]));
+    /*
+     * Una barra que no introduce nada es ruido.
+     *
+     * Medido en la app: salían **dos barras seguidas** al abrir el bloque. La
+     * primera introducía «Matriculados / población», que la cascada sí ejecuta
+     * pero la superficie no monta —su variable no tiene columna mapeada (G33)—.
+     * El motor y la pantalla no tienen por qué coincidir en qué pasos existen: el
+     * primero los ejecuta todos, la segunda sólo enseña los que se pueden
+     * decidir. La barra pertenece a la segunda.
+     */
+    const montados = new Set<string>([
+      ELEGIBLES_POR_AULA_ID,
+      "minEligible",
+      MANUAL_EXCLUDED_ID,
+      "manual_excluded",
+      "c7",
+      "c8_facultad",
+      "c8",
+      ...aula.filter((v) => Boolean(v.mappedColumn)).map((v) => v.id),
+    ]);
     return (criterioId: string) => {
+      if (!montados.has(criterioId)) return null;
       const llegan = porCriterio.get(criterioId);
       return llegan == null ? null : { llegan, universo: fila.universo };
     };
-  }, [i18b.cascade, bloqueFoco]);
+  }, [i18b.cascade, bloqueFoco, aula]);
 
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;

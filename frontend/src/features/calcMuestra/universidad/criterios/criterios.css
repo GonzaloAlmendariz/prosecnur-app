@@ -1460,26 +1460,46 @@
 .cmv2-crit-paso-copy span strong { font-size: 11px; }
 
 /* Métrica referencial legacy: colapsada y visualmente secundaria. */
-.cmv2-crit-legacy {
+/*
+ * G39 · «Otra regla», no un anexo gris.
+ *
+ * Gonzalo: «no entiendo bien el propósito de referencial y gris». El bloque se
+ * pintaba con borde discontinuo y texto apagado —el vocabulario visual de «esto
+ * es secundario»— para una regla que, encendida, recorta el marco igual que los
+ * dos pasos de arriba. Apagar visualmente algo que puede cambiar el resultado es
+ * la misma familia de defecto que plegarlo.
+ *
+ * Lo que sí necesita es **estar aparte**, porque mide otra cosa: los pasos
+ * preguntan si el curso es homogéneo, ésta cuánta de su matrícula es elegible.
+ * Eso lo dice el rótulo, no el color.
+ */
+.cmv2-crit-otra-regla {
   display: grid;
   gap: 8px;
-  margin-top: 10px;
-  padding-top: 9px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--cmv2-border);
 }
-.cmv2-crit-legacy-body { display: grid; gap: 8px; }
-.cmv2-crit-legacy-row {
+/* Mismo reparto que un paso —copia, control, conmutador— sin ser uno. */
+.cmv2-crit-otra-regla-fila {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-  border: 1px dashed var(--cmv2-border);
+  border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, var(--pulso-surface-2) 45%, transparent);
+  background: var(--pulso-surface);
 }
-.cmv2-crit-legacy-row .cmv2-crit-paso-copy strong {
-  font-size: 12px;
+.cmv2-crit-otra-regla-fila > .cmv2-cat-evidencia,
+.cmv2-crit-otra-regla-fila > .cmv2-crit-coste { grid-column: 1 / -1; }
+
+.cmv2-crit-otra-regla-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
 
@@ -1928,12 +1948,6 @@
    guard de huerfanas en la misma corrida. */
 
 /* G33 · El rótulo de la sección legacy, que antes era un botón de plegar. */
-.cmv2-crit-legacy-titulo {
-  margin: 0 0 6px;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text-muted);
-}
 
 /*
  * G33 · Categorías sin cursos-horario en la facultad: nombradas, no plegadas.

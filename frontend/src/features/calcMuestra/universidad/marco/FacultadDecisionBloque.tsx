@@ -766,6 +766,13 @@ export function FacultadDecisionBloque({
                 {ordenPlegado.abierto ? "Plegar todos" : "Desplegar todos"}
               </button>
             </div>
+            {/* G39 · Los bloques comunes también llevan su barra: se montan por
+                otra vía (slots) y por eso se quedaron sin ella en la primera
+                pasada. Gonzalo: «entre tipo de sesión y composición del curso
+                también falta su barra de cuántos CH nos quedan y el porcentaje».
+                Se toma el primer paso que cada bloque cubre en el orden del
+                embudo — `enrolled_total` abre, `c7` abre la composición. */}
+            <LleganAlCriterio {...(lleganDe?.("enrolled_total") ?? { llegan: null, universo: null })} />
             {slotApertura}
             {/* G29 · El mínimo de alumnos elegibles ABRE la lista.
                 Estaba en séptimo lugar, después de modalidad, condición, nivel
@@ -873,6 +880,9 @@ export function FacultadDecisionBloque({
             {/* G29 · Igual que arriba: «Composición del curso-horario» salía dos
                 veces, una como control y otra como evidencia con el mismo
                 rótulo. La evidencia vive dentro de su control. */}
+            <LleganAlCriterio
+              {...(lleganDe?.("c7") ?? lleganDe?.("c8_facultad") ?? { llegan: null, universo: null })}
+            />
             {slotCierre}
             <LleganAlCriterio {...(lleganDe?.("manual_excluded") ?? { llegan: null, universo: null })} />
             <AulasFinalesCard

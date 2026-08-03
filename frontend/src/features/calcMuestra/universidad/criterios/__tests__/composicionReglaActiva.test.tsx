@@ -35,14 +35,24 @@ describe("CriterioComposicionCard · prevalencia heredada", () => {
       const html = renderToStaticMarkup(
         <CriterioComposicionCard config={config(activa)} onPatch={vi.fn()} />,
       );
-      expect(html, String(activa)).toContain("cmv2-crit-legacy-body");
+      expect(html, String(activa)).toContain("cmv2-crit-otra-regla");
     }
   });
 
-  it("apagada se declara apagada, no se esconde", () => {
+  it("dice lo que la regla HACE, no de dónde viene (G39)", () => {
+    /*
+     * Gonzalo: «no entiendo bien el propósito de referencial y gris».
+     *
+     * El texto contaba su procedencia —«métrica referencial heredada», «no forma
+     * parte de la composición»— y nunca su función. Eso es útil para quien
+     * mantiene el código; quien decide necesita saber qué descarta. Y la palabra
+     * «referencial» sugería que no filtra, cuando encendida recorta el marco
+     * como cualquier otro criterio.
+     */
     const html = renderToStaticMarkup(<CriterioComposicionCard config={config(false)} onPatch={vi.fn()} />);
-    expect(html).toContain("Prevalencia de elegibles (referencial)");
-    expect(html).not.toContain("· activa");
+    expect(html).toContain("Descarta los cursos-horario donde");
+    expect(html).not.toContain("referencial");
+    expect(html).not.toContain("heredada");
   });
 
   it("no queda un botón que no controle nada", () => {
@@ -90,9 +100,16 @@ describe("cada paso de composición enseña sobre qué corta (G38)", () => {
       />,
     );
 
-  it("monta la tarjeta de proporción en los dos pasos", () => {
+  it("monta la tarjeta de proporción en las tres reglas", () => {
+    /*
+     * G39 · Eran dos y ahora son tres: la prevalencia de elegibles también la
+     * lleva. Vivía como anexo gris rotulado «referencial», sin evidencia, aunque
+     * encendida recorta el marco igual que los dos pasos. Presentar como
+     * secundario algo que cambia el resultado es la misma familia de defecto que
+     * plegarlo.
+     */
     const html = render(() => aporte(37));
-    expect(html.match(/data-variante="proporcion"/g)).toHaveLength(2);
+    expect(html.match(/data-variante="proporcion"/g)).toHaveLength(3);
   });
 
   it("dice cuántos cursos-horario deja fuera el porcentaje aplicado", () => {
