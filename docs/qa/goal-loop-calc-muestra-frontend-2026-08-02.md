@@ -3214,6 +3214,40 @@ que **sí** cabe para que el recorte no se vuelva permanente.
 |---|---:|
 | Vitest | 862 → **865** en 108 archivos |
 
+### F82 — Prueba funcional tras 32 commits, y coherencia entre superficies
+
+Cambio de eje: llevaba treinta y dos commits tocando esta superficie y no había
+comprobado que **siga funcionando**. Tres verificaciones:
+
+**1 · Paradas de tabulación en las 18 superficies.** Sólo una supera 80
+—`marco-ch-radiografia`, 134—, y es coherente con tener ocho criterios abiertos
+por diseño. **Ninguna otra trampa** como la de F81.
+
+**2 · Coherencia de cifras entre superficies.** Los números de cabecera se
+sostienen en las pestañas que los reusan:
+
+| dónde | estudiantes elegibles | cursos-horario |
+|---|---:|---:|
+| Cabecera | **21.362** | 2.799 |
+| Cobertura | 21.362 / 29.083 | — |
+| Distribución (marco y diseño) | 21.362 · 21.362 | — |
+
+**3 · Prueba funcional real**, no sólo render:
+
+- Conmutar una categoría: `aria-checked` pasa de `false` a `true`. **Responde.**
+- Cambiar de facultad en el selector: `karina_e_karina` → `andres`, y el bloque
+  se rerenderiza. **Responde.**
+- Panorama: 17 filas y sus cabeceras de criterio. **Renderiza.**
+
+Los dos errores de consola son de **HMR**, no del código: quedaron del momento en
+que rompí la sintaxis del Panorama y la arreglé —el typecheck lo cazó en el
+acto—. Comprobado que la vista renderiza ahora.
+
+**Por qué esta iteración importa**: un loop largo de reparaciones cosméticas
+puede romper el funcionamiento sin que ningún barrido de vocabulario, desborde o
+accesibilidad lo note. Ninguno de mis instrumentos anteriores prueba que un click
+haga algo.
+
 ### Estado del loop
 
 | | |
