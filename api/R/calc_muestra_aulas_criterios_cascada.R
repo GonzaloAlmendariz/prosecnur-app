@@ -99,6 +99,34 @@
   )
 }
 
+# G38 · El umbral con el que se está decidiendo, para que la señal lo publique.
+#
+# Sale de la misma configuración que evalúa el criterio (`.cm_criterios_flag`),
+# no de una constante paralela: dos sitios donde vive el mismo umbral es la forma
+# más barata de que la tarjeta enseñe un corte y el motor aplique otro.
+.cm_criterios_umbral_composicion <- function(id, cfg) {
+  campos <- c(
+    c7 = "min_prevalence_pct",
+    c8_facultad = "min_faculty_prevalence_pct",
+    c8 = "min_cycle_homogeneity_pct"
+  )
+  aplica <- c(
+    c7 = "require_min_prevalence",
+    c8_facultad = "require_faculty_prevalence",
+    c8 = "require_cycle_homogeneity"
+  )
+  if (!id %in% names(campos)) return(NULL)
+  # Normaliza aunque el contexto ya traiga la config del build: un `filters` sin
+  # normalizar devolvería el default en silencio, y un umbral por defecto que se
+  # anuncia como el aplicado es peor que no anunciar ninguno.
+  cfg <- calc_muestra_aulas_normalize_config(cfg %||% list())
+  filtros <- cfg$filters %||% list()
+  # Si el criterio no está activo no hay corte que anunciar: `n_fuera` sale NA,
+  # que es «no aplica», no «cero se quedan fuera».
+  if (!isTRUE(filtros[[aplica[[id]]]])) return(NULL)
+  .cm_criterios_pct(filtros[[campos[[id]]]], 0.80)
+}
+
 .cm_criterios_total_aula_mask <- function(entry, segment, context) {
   n <- nrow(context$aula_frame)
   id <- .cm_aulas_scalar(entry$id, "")
@@ -215,11 +243,14 @@
       )
     )
     if (!is.null(signal)) {
+      es_composicion <- entry$id %in% c("c7", "c8_facultad", "c8")
       row$signal_distribution <- .cm_criterio_radiografia_signal_distribution(
-        signal[mask], if (entry$id %in% c("c7", "c8_facultad", "c8")) {
-          "proporcion"
+        signal[mask],
+        if (es_composicion) "proporcion" else "valor_criterio",
+        umbral = if (es_composicion) {
+          .cm_criterios_umbral_composicion(entry$id, context$config)
         } else {
-          "valor_criterio"
+          NULL
         }
       )
     }
@@ -699,10 +730,29 @@ calc_muestra_aulas_criterios_preview <- function(
 
 .pulso_sanitize_calc_muestra_criteria_signal <- function(value) {
   if (!is.list(value)) return(NULL)
-  out <- .pulso_whitelist_scalar_fields(value, c("unit", "n_total", "n_con_dato"))
+  # G38 · La whitelist es la que decide qué llega al cliente. Los campos nuevos
+  # del contrato v2 se declaran aquí o se caen sin dejar rastro: el payload sale
+  # bien formado, el front encuentra `undefined` y el defecto se lee como «el
+  # motor no lo publica».
+  out <- .pulso_whitelist_scalar_fields(value, c(
+    "unit", "n_total", "n_con_dato",
+    "min", "max", "bigote_inf", "bigote_sup",
+    "n_atipicos", "n_atipicos_inf", "n_atipicos_sup",
+    "umbral_aplicado", "n_fuera"
+  ))
   distribution <- .pulso_sanitize_calc_muestra_criteria_distribution(value)
   for (field in c("media", "p10", "p25", "p50", "p75", "p90")) {
     out[field] <- list(distribution[[field]])
+  }
+  # Vectores: no son escalares y la whitelist de arriba los descartaría.
+  for (field in c("hist_breaks", "hist_counts")) {
+    v <- value[[field]]
+    if (is.numeric(v)) out[field] <- list(v)
+  }
+  # La escala es del dominio, no del dato: viaja como par para que el eje no
+  # tenga que decidirlo el cliente.
+  if (is.list(value$escala)) {
+    out["escala"] <- list(.pulso_whitelist_scalar_fields(value$escala, c("min", "max")))
   }
   out
 }
