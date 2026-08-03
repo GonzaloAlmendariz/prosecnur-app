@@ -1,0 +1,190 @@
+/*
+ * F111 · Densidad, boxplot y cuantiles sobre un solo eje.
+ *
+ * Las tres capas comparten un ancho constante — no el espacio sobrante — porque
+ * un dominio común no sirve de nada si cada capa lo proyecta sobre un ancho
+ * distinto: el mismo valor caería en un píxel diferente en cada una y dejarían
+ * de alinearse. Es la misma lección que costó una reparación en la tarjeta de
+ * categoría (ADR 0057, regla 3).
+ */
+.cmv2-dist {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Conmutador dentro de la tarjeta: elegibles contra el total, misma escala. */
+.cmv2-dist-switch {
+  display: inline-flex;
+  align-self: start;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+.cmv2-dist-switch button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: calc(var(--pulso-radius) - 2px);
+  background: transparent;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+.cmv2-dist-switch button small {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+.cmv2-dist-switch button[aria-pressed="true"] {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
+}
+.cmv2-dist-switch button:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 1px;
+}
+
+/* Las tres capas apiladas, con el mismo ancho y el mismo origen. */
+.cmv2-dist-grafico {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  width: min(var(--cmv2-cat-escala, 260px), 100%);
+}
+
+/* --- Densidad ------------------------------------------------------------ */
+.cmv2-dist-densidad {
+  display: block;
+  width: 100%;
+  height: 34px;
+  overflow: visible;
+}
+.cmv2-dist-densidad polygon {
+  fill: color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+  stroke: color-mix(in srgb, var(--cmv2-accent) 62%, transparent);
+  stroke-width: 1;
+  /* `non-scaling-stroke` para que el trazo no se deforme con el viewBox
+     estirado: sin esto la línea engorda al ensancharse la tarjeta. */
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- Boxplot ------------------------------------------------------------- */
+.cmv2-dist-box {
+  position: relative;
+  height: 22px;
+  margin-top: 2px;
+  border-top: 1px solid var(--cmv2-border);
+}
+.cmv2-dist-box i {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.cmv2-dist-bigote {
+  height: 1px;
+  background: var(--cmv2-border-strong, var(--cmv2-border));
+}
+/* Topes verticales: sin ellos el bigote no declara dónde termina. */
+.cmv2-dist-tope {
+  width: 1px;
+  height: 8px;
+  background: var(--cmv2-border-strong, var(--cmv2-border));
+}
+.cmv2-dist-caja {
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
+}
+.cmv2-dist-mediana {
+  width: 2px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--cmv2-accent);
+}
+.cmv2-dist-media {
+  width: 7px;
+  height: 7px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--pulso-text);
+  box-shadow: 0 0 0 2px var(--cmv2-surface, var(--pulso-surface));
+}
+
+/* --- Cuantiles ----------------------------------------------------------- */
+.cmv2-dist-cuantiles {
+  position: relative;
+  height: 34px;
+}
+.cmv2-dist-ticks i {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--cmv2-border-strong, var(--cmv2-border));
+}
+.cmv2-dist-cuantiles dl {
+  position: relative;
+  height: 100%;
+  margin: 0;
+}
+/* Cada etiqueta bajo su propia posición. `translateX(-50%)` la centra sobre su
+   marca; el reparto anticolisión ya llegó resuelto desde el componente. */
+.cmv2-dist-cuantiles dl > div {
+  position: absolute;
+  top: 7px;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  white-space: nowrap;
+}
+.cmv2-dist-cuantiles dt {
+  font-size: 9.5px;
+  line-height: 1.25;
+  color: var(--pulso-text-muted);
+  letter-spacing: 0.02em;
+}
+.cmv2-dist-cuantiles dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* --- Pie ----------------------------------------------------------------- */
+.cmv2-dist-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  line-height: 1.4;
+}
+.cmv2-dist-atipicos { color: var(--pulso-warn-fg, var(--pulso-text-muted)); }
+.cmv2-dist-convencion { font-style: italic; }
+
+.cmv2-dist-vacia {
+  margin: 0;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--pulso-text-muted);
+}
+
+/* El movimiento del conmutador explica un cambio de vista; quien lo desactiva
+   no pierde ninguna cifra. */
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-dist-switch button { transition: none; }
+}

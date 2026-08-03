@@ -97,6 +97,12 @@ export type AporteCategoria = {
    */
   mediaContraste?: number | null;
   /**
+   * F111 · La misma distribución sobre TODOS los cursos-horario de la categoría,
+   * incluidos o no. El conmutador de la tarjeta grafica una contra otra sobre la
+   * escala común, así que necesita la forma entera y no sólo la media.
+   */
+  distribucionContraste?: CalcMuestraAulasCriterioRadiografiaV2Distribution | null;
+  /**
    * Distribución de alumnos elegibles por curso-horario en esta categoría.
    * La calcula R; React sólo la dibuja. Da el promedio, su forma y los
    * cuantiles con los que se elige P25 o mediana.

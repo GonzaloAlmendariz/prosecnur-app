@@ -41,20 +41,22 @@ describe("CategoriaEvidencia", () => {
   it("publica CH, alumnos, cuantiles y presentes esperados en el mismo bloque", () => {
     const dominio = dominioCategorias([aporte()])!;
     const html = renderToStaticMarkup(<CategoriaEvidencia aporte={aporte()} dominio={dominio} />);
-    expect(html).toContain("CH");
-    // El número es `n_estudiantes_unicos`. En un módulo cuya cabecera separa
-    // 21.362 estudiantes de 92.017 matrículas, «alumnos» a secas no dice de qué
-    // grano es —y confundir esos dos granos es el error capital aquí—.
-    expect(html).toContain("</strong> estudiantes");
+    // F111 · Las cuatro cifras que Gonzalo fijó: CH totales, CH elegibles,
+    // alumnos elegibles y la tasa de asistencia previa. Sale «matrículas».
+    expect(html).toContain("CH totales");
+    expect(html).toContain("CH elegibles");
+    expect(html).toContain("alumnos elegibles");
     expect(html).toContain("una persona cuenta una vez");
-    expect(html).toContain("Mediana");
+    expect(html).toContain("P50");
     expect(html).toContain("P25");
     // Presentes esperados = elegibles × tasa, redondeado. 3400 × 0,7 = 2.380.
     expect(html).toContain("2,380");
-    expect(html).toContain("70% asistencia");
+    expect(html).toContain("70%");
+    expect(html).toContain("asistencia previa");
+    expect(html).not.toContain("matrículas");
   });
 
-  it("sin tasa de asistencia no estima presentes", () => {
+  it("sin tasa de asistencia no la muestra ni estima presentes", () => {
     const dominio = dominioCategorias([aporte()])!;
     const html = renderToStaticMarkup(
       <CategoriaEvidencia aporte={aporte({ tasaAsistencia: null })} dominio={dominio} />,
@@ -88,21 +90,27 @@ describe("CategoriaEvidencia", () => {
     expect(nota).toContain(">120<");
   });
 
-  it("declara qué significa cada marca de la caja", () => {
+  it("declara qué significa cada marca del gráfico", () => {
     // La tarjeta dibuja cuatro marcas y no decía qué era ninguna: sólo el
     // `aria-label` lo explicaba, así que quien VE el gráfico tenía menos
     // información que quien no lo ve. La leyenda va una vez por criterio.
     const html = renderToStaticMarkup(<EjeCategorias dominio={{ min: 10, max: 120 }} />);
+    // F111 · La leyenda describe el gráfico ACTUAL. Decía «de P10 a P90» para
+    // los bigotes; con el boxplot estándar son los de Tukey. Una leyenda que
+    // sobrevive al gráfico que describía se lee con la misma confianza que una
+    // cifra, y es igual de falsa.
+    expect(html).toContain("densidad");
     expect(html).toContain("mitad central (P25–P75)");
     expect(html).toContain("mediana");
     expect(html).toContain("media");
-    expect(html).toContain("de P10 a P90");
+    expect(html).toContain("bigotes de Tukey");
+    expect(html).not.toContain("de P10 a P90");
   });
 
-  it("cada caja lleva los extremos de la escala pegados a ella", () => {
+  it("el gráfico declara la escala común bajo el que la usa", () => {
     const dominio = dominioCategorias([aporte()])!;
     const html = renderToStaticMarkup(<CategoriaEvidencia aporte={aporte()} dominio={dominio} />);
-    expect(html).toContain("cmv2-cat-escala");
+    expect(html).toContain("escala común del criterio");
   });
 });
 
@@ -121,8 +129,8 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
       />,
     );
     expect(html).toContain("sin cursos-horario en esta facultad");
-    expect(html).not.toContain("Mediana");
-    expect(html).not.toContain("cmv2-cat-caja");
+    expect(html).not.toContain("P50");
+    expect(html).not.toContain("cmv2-dist-caja");
   });
 
   it("una categoría excluida tampoco dibuja caja ni cuantiles", () => {
@@ -134,7 +142,7 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
         dominio={{ min: 10, max: 60 }}
       />,
     );
-    expect(html).not.toContain("Mediana");
+    expect(html).not.toContain("P50");
     expect(html).not.toContain("cmv2-cat-caja");
   });
 
@@ -142,48 +150,28 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
     const html = renderToStaticMarkup(
       <CategoriaEvidencia aporte={aporte()} dominio={{ min: 10, max: 60 }} />,
     );
-    expect(html).toContain("Mediana");
+    expect(html).toContain("P50");
     expect(html).not.toContain("sin cursos-horario en esta facultad");
   });
 });
 
-describe("CategoriaEvidencia · los dos granos y la cobertura del dato", () => {
-  it("muestra matrículas junto a estudiantes, sin confundirlos", () => {
-    // Los dos granos conviven en la cabecera de la app (21.362 estudiantes,
-    // 92.017 matrículas). La tarjeta que decide tiene que traer ambos, cada uno
-    // con su nombre, o se decide sin saber sobre qué.
+describe("CategoriaEvidencia · lo que F111 retiró", () => {
+  // Gonzalo: «sin matrículas elegibles, debe ser solo CH totales, CH elegibles,
+  // alumnos elegibles y (si se tiene información) la tasa de asistencia previa».
+  // F105 había puesto matrículas para separar los dos granos; con «alumnos
+  // elegibles» rotulado y los CH al lado, era una casilla que no decidía nada.
+  it("no muestra matrículas ni la cobertura parcial del dato", () => {
     const html = renderToStaticMarkup(
       <CategoriaEvidencia
-        aporte={aporte({ matriculas: 19846 })}
+        aporte={aporte({ matriculas: 19846, chConDato: 90, ch: 120 })}
         dominio={{ min: 10, max: 60 }}
       />,
     );
-    expect(html).toContain("</strong> matrículas");
-    expect(html).toContain("</strong> estudiantes");
-    expect(html).toContain("una persona cuenta una vez por cada curso-horario");
-  });
-
-  it("declara cuando la distribución se calculó sobre menos CH de los que hay", () => {
-    // Sin este número, la caja parece describir toda la categoría cuando puede
-    // estar describiendo una parte.
-    const html = renderToStaticMarkup(
-      <CategoriaEvidencia
-        aporte={aporte({ ch: 120, chConDato: 90 })}
-        dominio={{ min: 10, max: 60 }}
-      />,
-    );
-    expect(html).toContain("distribución sobre");
-    expect(html).toContain("90");
-  });
-
-  it("no lo declara cuando todos los CH traen el dato", () => {
-    const html = renderToStaticMarkup(
-      <CategoriaEvidencia
-        aporte={aporte({ ch: 120, chConDato: 120 })}
-        dominio={{ min: 10, max: 60 }}
-      />,
-    );
+    expect(html).not.toContain("matrícula");
     expect(html).not.toContain("distribución sobre");
+    // Lo que sí queda, con su grano dicho.
+    expect(html).toContain("alumnos elegibles");
+    expect(html).toContain("una persona cuenta una vez");
   });
 });
 

@@ -16,12 +16,20 @@ import { describe, expect, it } from "vitest";
  */
 // Sin comentarios: explican las animaciones y citan sus nombres, así que un
 // extractor ingenuo los toma por selectores —el patrón 13 del ADR otra vez—.
-const css = readFileSync(
-  fileURLToPath(new URL("../categoriaEvidencia.css", import.meta.url)),
-  "utf8",
-).replace(/\/\*[\s\S]*?\*\//g, "");
+function leer(rel: string): string {
+  return readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+}
 
-const bloqueReducido = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+/**
+ * F111 · La hoja del gráfico entra a este guard el mismo día que nace.
+ *
+ * Cuando el gráfico se mudó a `distribucionCategoria.css`, este guard seguía
+ * mirando sólo la hoja de la tarjeta: una animación nueva en el archivo nuevo
+ * habría quedado sin vigilar y el test verde. Un guard que no crece con su
+ * superficie es un falso verde con retardo.
+ */
+const HOJAS = ["../categoriaEvidencia.css", "../distribucionCategoria.css"] as const;
 
 /** Selectores que declaran `animation:` o `transition:` fuera del bloque reducido. */
 function selectoresConMovimiento(fuente: string): string[] {
@@ -37,7 +45,10 @@ function selectoresConMovimiento(fuente: string): string[] {
   return encontrados;
 }
 
-describe("categoriaEvidencia · movimiento reducido", () => {
+describe.each(HOJAS)("movimiento reducido · %s", (hoja) => {
+  const css = leer(hoja);
+  const bloqueReducido = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+
   it("declara un bloque de movimiento reducido", () => {
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
   });
@@ -49,12 +60,20 @@ describe("categoriaEvidencia · movimiento reducido", () => {
       expect(bloqueReducido, `sin contrapartida: ${selector}`).toContain(selector);
     }
   });
+});
 
-  it("apagar el movimiento no esconde la barra", () => {
-    // La barra aparece con `opacity`; sin `opacity: 1` explícito, apagar la
-    // animación con `both` la dejaría en su fotograma inicial —invisible—, que
-    // es la misma familia del defecto que corrompió el dato en F55.
-    const regla = bloqueReducido.slice(bloqueReducido.indexOf(".cmv2-cat-rango"));
-    expect(regla.slice(0, regla.indexOf("}"))).toContain("opacity: 1");
+describe("movimiento reducido · nada que codifique un valor se anima", () => {
+  it("ninguna capa del gráfico se anima con transform", () => {
+    // F55 · Una animación `scaleX` dejó la barra intercuartílica clavada en su
+    // primer fotograma: 3 px renderizados con 154,7 px computados. El ancho de
+    // esa barra ES el dato. La regla que se derivó vale para las tres capas.
+    const css = leer("../distribucionCategoria.css");
+    const conMovimiento = selectoresConMovimiento(css);
+    for (const sel of conMovimiento) {
+      const regla = css.slice(css.indexOf(sel));
+      const cuerpo = regla.slice(0, regla.indexOf("}"));
+      expect(cuerpo, `${sel} anima transform`).not.toMatch(/transition:[^;]*transform/);
+      expect(cuerpo, `${sel} anima transform`).not.toMatch(/animation:[^;]*scale/);
+    }
   });
 });

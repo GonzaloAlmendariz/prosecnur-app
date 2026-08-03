@@ -93,9 +93,16 @@ test_that("totales R-owned recomputan uniones atomicas y cuantiles", {
   expect_identical(taller$actual$n_estudiantes_unicos, 3L)
   expect_identical(taller$contraste_total$n_ch, 6L)
   expect_identical(taller$contraste_total$n_estudiantes_unicos, 5L)
-  expect_identical(taller$actual$distribution, list(
-    media = 1, p10 = 1, p25 = 1, p50 = 1, p75 = 1, p90 = 1
-  ))
+  # F111 · El contrato v2 añadió siete campos. Se comprueban uno a uno en vez
+  # de fijar la lista entera: asi la prueba dice QUE espera de cada cifra y no
+  # se rompe entera cada vez que el contrato crece.
+  dist_taller <- taller$actual$distribution
+  for (k in c("media", "p10", "p25", "p50", "p75", "p90", "min", "max",
+              "bigote_inf", "bigote_sup")) {
+    expect_identical(dist_taller[[k]], 1, info = k)
+  }
+  # Todos los CH tienen 1 alumno: no hay dispersion, luego no hay atipicos.
+  expect_identical(dist_taller$n_atipicos, 0L)
 
   entry <- Filter(
     function(x) identical(x$id, "session_type"),

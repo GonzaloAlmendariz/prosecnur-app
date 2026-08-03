@@ -1,21 +1,22 @@
 /*
  * ADR 0057 · La evidencia de una categoría vive pegada a su conmutador.
  *
- * Las transiciones son de entrada y de cambio de valor: la caja se dibuja
- * creciendo desde su P25 y las cifras funden cuando el embudo las recalcula, de
- * modo que se vea CUÁL cambió. Nada se mueve por decoración; el movimiento
- * señala qué dato es nuevo.
+ * F111 · El gráfico se mudó a `DistribucionCategoria` —densidad, boxplot y
+ * cuantiles sobre un solo eje—; aquí quedan las cifras, el contraste y el
+ * efecto en el embudo. Con él se fueron 19 bloques que estilaban la caja
+ * anterior: CSS que sobrevive a su marcado es la deuda que ningún compilador
+ * cobra (patrón 28 del ADR).
  */
 
 /*
- * Ancho de la escala, compartido por el eje y por TODAS las cajas.
+ * Ancho de la escala, compartido por TODAS las capas del gráfico.
  *
- * Medido: con anchos libres el eje medía 1.206 px y las cajas 274, 263, 284 y
- * 315 —ni alineaban con el eje ni entre sí—. Un dominio común no sirve de nada
- * si cada caja lo proyecta sobre un ancho distinto: el mismo valor cae en un
- * píxel diferente en cada categoría y comparar vuelve a ser imposible, que es
- * justo lo que la regla 3 del ADR 0057 prohíbe. La escala es una constante, no
- * el resto del espacio disponible.
+ * Medido en su día: con anchos libres el eje medía 1.206 px y las cajas 274,
+ * 263, 284 y 315 —ni alineaban con el eje ni entre sí—. Un dominio común no
+ * sirve de nada si cada capa lo proyecta sobre un ancho distinto: el mismo valor
+ * cae en un píxel diferente y comparar vuelve a ser imposible, que es justo lo
+ * que la regla 3 del ADR 0057 prohíbe. La escala es una constante, no el resto
+ * del espacio disponible.
  */
 :root { --cmv2-cat-escala: 260px; }
 
@@ -45,104 +46,6 @@
   opacity: 0.75;
 }
 
-/* Eje del criterio: una sola vez, no por categoría. */
-.cmv2-cat-eje {
-  position: relative;
-  width: min(var(--cmv2-cat-escala), 100%);
-  height: 26px;
-  margin: 2px 0 4px;
-  border-bottom: 1px solid var(--cmv2-border);
-}
-.cmv2-cat-eje span {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  font-size: 10px;
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-.cmv2-cat-eje span:first-child { transform: none; }
-.cmv2-cat-eje span:last-of-type { transform: translateX(-100%); }
-.cmv2-cat-eje small {
-  position: absolute;
-  bottom: 1px;
-  left: 0;
-  font-size: 10px;
-  color: var(--pulso-text-muted);
-  opacity: 0.8;
-}
-
-/* Caja percentilar sobre la escala común. */
-.cmv2-cat-caja {
-  position: relative;
-  /* `min()` en vez de width + max-width: en un contenedor de 256 px la caja de
-     260 desbordaba 4 px a 1024×600. La escala es una constante hasta donde
-     cabe. */
-  width: min(var(--cmv2-cat-escala), 100%);
-  height: 18px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--cmv2-accent-soft) 40%, transparent);
-  overflow: hidden;
-}
-.cmv2-cat-caja i {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.cmv2-cat-bigote {
-  height: 1px;
-  background: var(--cmv2-border-strong, var(--cmv2-border));
-}
-/*
- * La barra NO se anima con transform.
- *
- * Medido: con `animation: … scaleX(0.02) → scaleX(1) both`, la barra quedaba
- * clavada en el primer fotograma —`matrix(0.02, 0, 0, 1, 0, -6)`— con el ancho
- * computado correcto (154,7 px) renderizado a 3 px. El ancho de esta barra **es
- * el dato**: va de P25 a P75. Una animación que lo escala puede mostrar un rango
- * falso, y eso deja de ser un defecto decorativo para ser una lectura corrupta.
- *
- * Regla que se deriva: nada que codifique un valor se anima con transform. El
- * movimiento entra por opacidad, que no puede mentir sobre una magnitud.
- */
-.cmv2-cat-rango {
-  height: 12px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
-  animation: cmv2-cat-aparece 320ms ease both;
-}
-.cmv2-cat-mediana {
-  width: 2px;
-  height: 16px;
-  border-radius: 1px;
-  background: var(--cmv2-accent);
-}
-.cmv2-cat-media {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin-left: -3px;
-  background: var(--pulso-text);
-  box-shadow: 0 0 0 2px var(--cmv2-surface);
-}
-.cmv2-cat-caja-vacia {
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-  font-style: italic;
-}
-
-/* Cuantiles a la vista, en línea: son el dato con el que se elige P25 o mediana. */
-.cmv2-cat-cuantiles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 12px;
-  margin: 0;
-  font-size: 11px;
-}
-.cmv2-cat-cuantiles > div { display: flex; gap: 4px; align-items: baseline; }
-.cmv2-cat-cuantiles dt { color: var(--pulso-text-muted); }
-.cmv2-cat-cuantiles dd { margin: 0; font-variant-numeric: tabular-nums; }
-
 @keyframes cmv2-cat-aparece {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -150,7 +53,6 @@
 
 /* El movimiento explica un cambio; quien lo desactiva no pierde información. */
 @media (prefers-reduced-motion: reduce) {
-  .cmv2-cat-rango { animation: none; opacity: 1; }
   .cmv2-cat-cifras strong { transition: none; }
 }
 
@@ -161,17 +63,6 @@
   color: var(--pulso-text-muted);
   font-style: italic;
 }
-
-/* Extremos de la escala pegados a la caja: alineados por construcción. */
-.cmv2-cat-escala {
-  display: flex;
-  justify-content: space-between;
-  width: min(var(--cmv2-cat-escala), 100%);
-  font-size: 10px;
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
-  margin-top: -2px;
-}
 .cmv2-cat-escala-nota {
   margin: 2px 0 6px;
   font-size: 11px;
@@ -179,9 +70,6 @@
   line-height: 1.45;
 }
 .cmv2-cat-escala-nota strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
-
-/* Cobertura parcial del dato: aviso discreto, no alarma. */
-.cmv2-cat-parcial { color: var(--pulso-text-muted); }
 
 /* Leyenda de la caja: una vez por criterio, con las mismas marcas del gráfico. */
 .cmv2-cat-escala-cabecera { display: grid; gap: 3px; }
@@ -207,6 +95,12 @@
   background: var(--pulso-text); box-shadow: 0 0 0 2px var(--cmv2-surface);
 }
 .cmv2-cat-leyenda-bigote { width: 16px; height: 1px; background: var(--cmv2-border-strong, var(--cmv2-border)); }
+/* F111 · La densidad entra a la leyenda porque entró al gráfico. */
+.cmv2-cat-leyenda-densidad {
+  width: 16px; height: 8px; border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-accent) 62%, transparent);
+}
 
 /*
  * F105 · Efecto en el embudo: qué pone o quita esta categoría. Sexto contenido
