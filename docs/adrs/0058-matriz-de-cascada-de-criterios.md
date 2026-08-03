@@ -210,3 +210,38 @@ usuario concluye que la regla no se puede tocar.
 **Mecanismo**: un guard recorre el módulo, junta todos los `href="#…"` y exige
 que cada uno tenga su `id` en algún componente. Es barato y cubre la clase
 entera, no este caso.
+
+
+### 9 · Etiquetar el eje con la unidad del control, no con la del dato
+
+Las tarjetas de composición mostraban «Q1 23 %, mediana 30 %, media 31,1 %» y un
+eje que llegaba a **200 %**. Un porcentaje no puede pasar de 100 — eso eran
+**alumnos elegibles por curso-horario**, la misma distribución que el motor
+publica para todos los criterios.
+
+El error fue mío y de una pieza: asumí que si el **umbral** de composición es un
+porcentaje, su **distribución** también lo sería. Son cosas distintas. El control
+fija una proporción; el gráfico describe un conteo.
+
+Y no es cosmético: «mediana 30 %» se lee como «la mitad de los cursos tiene un
+30 % de prevalencia» cuando significa «la mitad tiene 30 alumnos».
+
+**Mecanismo**: la unidad del eje sale de **lo que el motor publica en la
+distribución**, nunca de lo que el control edita. La variante `proporcion` se
+conserva sin usar hasta que exista una distribución que de verdad lo sea —
+usarla sobre un conteo es peor que no usarla— y un caso lo vigila.
+
+### 10 · Una cola larga aplasta la escala compartida
+
+La regla 3 del ADR 0057 exige escala común para poder comparar. Tomada de
+`min`/`max`, una sola categoría con cola larga estiraba el dominio hasta 200:
+medido en la app, **8 de 19 cajas quedaban por debajo del 5 % del ancho** y la
+mediana de anchos era 8 %. Comparar dos rayitas de tres píxeles no es comparar,
+así que la regla se cumplía en la letra y se incumplía en su propósito.
+
+**Mecanismo**: el dominio se acota a los **bigotes de Tukey** — la convención
+para «hasta dónde llega el grueso»—, no a los extremos. Conserva la escala
+compartida y devuelve el ancho a las categorías que deciden. Lo que queda fuera
+no se esconde: el motor publica cuántos atípicos hay de cada lado y la caja los
+marca en su extremo. Medido tras el cambio: caja mediana del 8 % al **21 %**,
+eje de 200 a 60, nada fuera del contenedor.

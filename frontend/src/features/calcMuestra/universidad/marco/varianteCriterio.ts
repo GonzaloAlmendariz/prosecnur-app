@@ -19,17 +19,39 @@ import type { VarianteEvidencia } from "../criterios/CategoriaEvidencia";
  * | `proporcion` | ¿qué prevalencia exijo?    | composición (las tres)          |
  * | `unidad`     | ¿este curso-horario entra? | selección uno a uno             |
  */
-const UMBRAL = new Set(["minEligible", "elegibles_por_aula", "enrolled_total", "course_level"]);
-const PROPORCION = new Set(["composition", "c7", "c8", "c8_facultad"]);
+const UMBRAL = new Set([
+  "minEligible", "elegibles_por_aula", "enrolled_total", "course_level",
+  /*
+   * G25 · Composición vuelve a `umbral`, y la razón es un error mío que llegó a
+   * pantalla.
+   *
+   * Medido en la app: sus tarjetas mostraban «Q1 23 %, mediana 30 %, media
+   * 31,1 %» y un eje que llegaba a **200 %**. Pero eso no son porcentajes: son
+   * **alumnos elegibles por curso-horario**, la misma distribución que publica
+   * el motor para todos los criterios. Un porcentaje no puede pasar de 100, y
+   * «mediana 30 %» se lee como «la mitad de los cursos tiene 30 % de
+   * prevalencia» cuando significa «la mitad tiene 30 alumnos».
+   *
+   * El error fue etiquetar el eje con la unidad del **umbral** —que sí es un
+   * porcentaje— en vez de con la del **dato**. Son cosas distintas: el control
+   * fija una proporción, el gráfico describe un conteo.
+   *
+   * La variante `proporcion` se conserva en el componente para cuando el motor
+   * publique una distribución que de verdad sea una proporción. Hasta entonces
+   * no la usa nadie, y eso es mejor que usarla sobre un dato que no lo es.
+   */
+  "composition", "c7", "c8", "c8_facultad",
+]);
+const PROPORCION = new Set<string>([]);
 const UNIDAD = new Set(["manual_excluded"]);
 
 export function varianteDeCriterio(criterioId: string | null | undefined): VarianteEvidencia {
   const id = (criterioId ?? "").trim();
   if (UNIDAD.has(id)) return "unidad";
   if (UMBRAL.has(id)) return "umbral";
-  // `composition` llega con sufijos por sub-regla (`composition_facultad`…), así
-  // que el prefijo decide: son la misma pregunta sobre la misma escala.
-  if (PROPORCION.has(id) || id.startsWith("composition")) return "proporcion";
+  if (PROPORCION.has(id)) return "proporcion";
+  // `composition` llega con sufijos por sub-regla (`composition_facultad`…).
+  if (id.startsWith("composition")) return "umbral";
   return "categoria";
 }
 
