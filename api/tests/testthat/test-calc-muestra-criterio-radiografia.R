@@ -945,6 +945,9 @@ test_that("integración es aditiva y conserva intacto exploracion v1", {
   expect_named(fila_v2$actual$distribution, c(
     "media", "p10", "p25", "p50", "p75", "p90",
     "min", "max", "bigote_inf", "bigote_sup", "n_atipicos",
+    # F114 · De que lado quedan los atipicos. Sin esto la tarjeta solo podia
+    # decirlo en prosa, y una cifra en prosa junto a un grafico es metatexto.
+    "n_atipicos_inf", "n_atipicos_sup",
     "hist_breaks", "hist_counts"
   ))
   expect_named(fila_v2$delta, c(
@@ -1118,7 +1121,12 @@ test_that("índice alumno×CH se construye una vez por radiografía", {
   # nada más se movió.
   expect_identical(
     digest::digest(payload_json, algo = "sha256", serialize = FALSE),
-    "857095e3116916800792d8a689a46564244419b30e9f5a04b1c7d5dc93644e2f"
+    #   3. F114 anadio `n_atipicos_inf` y `n_atipicos_sup`. **Ese commit dejo
+    #      esta suite en rojo y se subio asi — otra vez**: cambie el motor R y
+    #      corri solo las pruebas del frontend, el mismo fallo de F71 que ya
+    #      estaba documentado. El oraculo volvio a hacer su trabajo y volvio a
+    #      no haber nadie mirandolo.
+    "eec9d3f97324bf596afa0259d4d93b91d204f1c7684cf7de470d7c5eef48992d"
   )
 })
 
