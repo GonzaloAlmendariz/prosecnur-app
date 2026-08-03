@@ -434,6 +434,20 @@ export function CursosHorarioMarcoTab({
   const cascadaViva = previewCascada?.status === "ready" ? previewCascada.data : i18b.cascade;
   /** El recorrido está vivo: lo que se ve ya incluye los criterios confirmados. */
   const previewVivo = previewCascada?.status === "ready";
+  /*
+   * G39 · Por qué el recorrido NO está vivo, cuando no lo está.
+   *
+   * El motor exige que el marco se haya construido en esta sesión, y al abrir un
+   * `.pulso` guardado eso nunca se cumple: el contexto transitorio se borra al
+   * guardar y no se puede rehidratar —depende del catálogo de curso-horario, que
+   * es una tabla de origen y no viaja en el marco—.
+   *
+   * F47 ya había traducido esa precondición a algo accionable, y el mensaje
+   * vivía en la consola de detalle que G20 retiró: se escribió, se probó y dejó
+   * de verse. Aquí se muestra donde el usuario está mirando.
+   */
+  const previewBloqueado =
+    previewCascada?.status === "stale" ? previewCascada.message : null;
 
   /**
    * G10 · El confirmador de cada criterio, dentro de la tarjeta que se edita.
@@ -550,6 +564,8 @@ export function CursosHorarioMarcoTab({
               ? criteriosRadiografiaF1Ausente
                 ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
                 : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
+            : previewBloqueado
+              ? previewBloqueado
             : marcoDesactualizado
               /*
                * G39 · Qué falta de verdad cuando cambian los criterios.
