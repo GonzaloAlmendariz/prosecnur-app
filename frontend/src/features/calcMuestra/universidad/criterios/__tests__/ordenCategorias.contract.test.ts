@@ -22,6 +22,16 @@ import { ordenarPorCursosHorario } from "../ordenCategorias";
  * vez de en la pantalla de Gonzalo.
  */
 const RAIZ = join(__dirname, "..", "..");
+/*
+ * Las superficies VIVAS que listan categorías. Enumeradas a mano y no
+ * descubiertas por `grep`: un descubridor automático las encontraría también en
+ * modelos y en código sin montaje, y un contrato que falla por código muerto se
+ * desactiva a la primera.
+ *
+ * Fuera a propósito: `criterios/facultades.tsx` tiene un selector de categorías
+ * (`ExcepcionesFacultad`) que **no se monta en ninguna pantalla** desde F84 — su
+ * único uso es su propio test. Si alguien lo revive, entra aquí.
+ */
 const SUPERFICIES = [
   "criterios/FacultadCategoriaToggles.tsx",
   "criterios/controles.tsx",
