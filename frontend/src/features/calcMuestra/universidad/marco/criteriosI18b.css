@@ -244,24 +244,14 @@
   outline-offset: 2px;
 }
 
-.cmv2-crc-contraste > summary,
-.cmv2-crc-signal > summary {
-  cursor: pointer;
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.cmv2-crc-contraste > summary:focus-visible,
-.cmv2-crc-signal > summary:focus-visible {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 2px;
-}
-
-.cmv2-crc-contraste[open] > summary,
-.cmv2-crc-signal[open] > summary {
-  margin-bottom: 6px;
-}
+/*
+ * F101 · Aquí vivían tres reglas de `> summary` para `cmv2-crc-contraste` y
+ * `cmv2-crc-signal`. Ninguna aplicaba: al abrir la superficie ambos dejaron de
+ * ser `<details>` —`crc-signal` es hoy un `<div>` y `crc-contraste` ya no se
+ * usa—, pero el CSS sobrevive a ese cambio porque nada lo typechequea.
+ * Es la deuda que ningún compilador cobra: sólo un barrido de clases contra el
+ * marcado la encuentra.
+ */
 
 /* Un segmento sin CH se declara en una línea: presente y contable, sin
    llevarse el mismo ancho que uno con distribución. */
@@ -486,3 +476,6 @@
     flex-direction: column;
   }
 }
+
+/* F100 · `cmv2-crc-contraste` quedó sin uso: el contraste vive ahora en la
+ * tarjeta de categoría con su propia clase (F97). */

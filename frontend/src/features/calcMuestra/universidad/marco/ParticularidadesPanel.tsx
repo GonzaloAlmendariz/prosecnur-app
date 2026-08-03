@@ -1,7 +1,7 @@
 /**
  * Panel de particularidades del marco (pestaña Cursos-horario de Marco).
  * Muestra las señales DETECTADAS por el motor (contrato congelado
- * calc_muestra_aulas_particularidades_v1) en tres secciones colapsables y deja
+ * calc_muestra_aulas_particularidades_v1) en tres secciones abiertas y deja
  * la decisión al usuario: incluir / excluir / revisado + nota opcional, todo
  * documentado en `aulas_config.particularidades_decisiones`. Nada se
  * auto-decide; las exclusiones recién operan al RECONSTRUIR el marco. La
@@ -95,7 +95,7 @@ function SeccionHead({
 }) {
   const resumen = resumenDecisiones(ids, decisiones);
   return (
-    <summary className="cmv2-partic-summary">
+    <header className="cmv2-partic-summary">
       <span className="cmv2-partic-summary-icon" aria-hidden="true">{icon}</span>
       <strong>{titulo}</strong>
       <span className="cmv2-partic-summary-counts">
@@ -105,7 +105,7 @@ function SeccionHead({
           ? ` · ${fmtInt(resumen.pendientes)} sin decidir`
           : ""}
       </span>
-    </summary>
+    </header>
   );
 }
 
@@ -166,14 +166,14 @@ export function ParticularidadesPanel({
       ) : (
         <div className="cmv2-partic-sections">
           {dominante ? (
-            <details className="cmv2-partic-section" data-tone="warn">
-              <summary className="cmv2-partic-summary">
+            <section className="cmv2-partic-section" data-tone="warn">
+              <header className="cmv2-partic-summary">
                 <span className="cmv2-partic-summary-icon" aria-hidden="true"><Layers size={15} /></span>
                 <strong>Posible agrupamiento del tipo de curso</strong>
                 <span className="cmv2-partic-summary-counts">
                   {Math.round(dominante.share * 100)}% en una sola categoría
                 </span>
-              </summary>
+              </header>
               <p className="cmv2-partic-note">
                 El {Math.round(dominante.share * 100)}% de los cursos-horario cae en una sola categoría
                 {" "}<strong>“{dominante.categoria}”</strong>
@@ -181,11 +181,11 @@ export function ParticularidadesPanel({
                 señal de que DTI entregó el tipo de curso agrupado. Pide el dato desagregado (teórico,
                 laboratorio, taller, seminario…) antes de usar este criterio como corte.
               </p>
-            </details>
+            </section>
           ) : null}
 
           {counts.multi_facultad > 0 ? (
-            <details className="cmv2-partic-section">
+            <section className="cmv2-partic-section">
               <SeccionHead
                 icon={<Split size={15} />}
                 titulo="Cursos que sirven a ≥2 facultades"
@@ -218,11 +218,11 @@ export function ParticularidadesPanel({
                   />
                 ))}
               </ul>
-            </details>
+            </section>
           ) : null}
 
           {counts.codigo_z > 0 || counts.nombre_tesis > 0 ? (
-            <details className="cmv2-partic-section">
+            <section className="cmv2-partic-section">
               <SeccionHead
                 icon={<MapPin size={15} />}
                 titulo="Local externo y nombres de tesis"
@@ -275,7 +275,7 @@ export function ParticularidadesPanel({
                   </ul>
                 </div>
               ) : null}
-            </details>
+            </section>
           ) : null}
         </div>
       )}

@@ -929,21 +929,6 @@
 
 .cmv2-crit-exc-form { display: grid; gap: 8px; }
 .cmv2-crit-exc-cats-pick { display: flex; flex-wrap: wrap; gap: 6px; }
-.cmv2-crit-exc-add {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--cmv2-accent-fg);
-  font-size: 12px;
-  cursor: pointer;
-}
-.cmv2-crit-exc-add:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .cmv2-crit-empty-note { margin: 0; font-size: 11px; color: var(--pulso-text-muted); }
 
@@ -1915,29 +1900,9 @@
 /* S1 · la radiografía del criterio vive dentro de la tarjeta que lo decide.
    Abierta mientras la variable está en edición, plegada cuando ya se confirmó:
    abrir las cinco a la vez empujaba los demás criterios fuera de pantalla. */
-.cmv2-crit-card-radiografia {
-  grid-column: 1 / -1;
-  min-width: 0;
-  margin-top: 10px;
-  border-top: 1px solid var(--cmv2-border);
-  padding-top: 10px;
-}
 
-.cmv2-crit-card-radiografia > summary {
-  cursor: pointer;
-  color: var(--pulso-text-muted);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-}
 
-.cmv2-crit-card-radiografia > summary:focus-visible {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 2px;
-}
 
-.cmv2-crit-card-radiografia[open] > summary {
-  margin-bottom: 10px;
-}
 
 /* T1 · la fuente concatena varios valores en una etiqueta: la pantalla lo dice
    en vez de esconderlo. El nombre del grupo manda; los valores agrupados van
@@ -1991,3 +1956,8 @@
   line-height: 1.45;
 }
 .cmv2-crit-grano strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+
+/* F100 · Retiradas las reglas de `cmv2-crit-card-radiografia` (la radiografía
+ * plegada dentro del criterio de estudiante, fuera en F40) y `cmv2-crit-exc-add`
+ * (el botón del alta genérica, sustituido en F24 por el listado por facultad).
+ * CSS sin selector en el TSX no lo caza el typecheck: sólo un barrido. */
