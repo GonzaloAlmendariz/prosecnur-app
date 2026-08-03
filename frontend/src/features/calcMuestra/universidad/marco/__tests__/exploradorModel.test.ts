@@ -224,6 +224,10 @@ describe("tipoSesionShares — dónde están los alumnos de la facultad", () => 
       por_tipo_sesion: [
         tipoSesion({
           tipo: "Teórico",
+          // G39 · El orden lo fijan los cursos-horario totales, así que el
+          // fixture los declara: antes ambos heredaban el `ch: 10` por defecto
+          // y el orden lo decidía sin querer el desempate alfabético.
+          ch: 40,
           elegibles: 2300,
           elegibles_min: 15,
           elegibles_q1: 20,
@@ -233,14 +237,43 @@ describe("tipoSesionShares — dónde están los alumnos de la facultad", () => 
           media_elegibles: 34.5,
         }),
         // Sin resumen (solo mediana): el motor no trae los cuartiles ⇒ caja null.
-        tipoSesion({ tipo: "Laboratorio", elegibles: 100, mediana_elegibles: 12 }),
+        tipoSesion({ tipo: "Laboratorio", ch: 6, elegibles: 100, mediana_elegibles: 12 }),
       ],
     });
     const shares = tipoSesionShares(fac);
-    expect(shares[0].caja).toEqual({ min: 15, q1: 20, mediana: 28, q3: 40, max: 100, media: 34.5 });
+    // Por nombre y no por índice: lo que este caso fija es la caja, no el orden
+    // —que tiene su propio caso abajo—. Un test que indexa acaba fallando cuando
+    // cambia una regla que no estaba probando.
+    const teorico = shares.find((s) => s.tipo === "Teórico")!;
+    const laboratorio = shares.find((s) => s.tipo === "Laboratorio")!;
+    expect(teorico.caja).toEqual({ min: 15, q1: 20, mediana: 28, q3: 40, max: 100, media: 34.5 });
     // Media > mediana: caso Ramiro (aulas gigantes jalan el promedio).
-    expect(shares[0].caja!.media!).toBeGreaterThan(shares[0].caja!.mediana);
-    expect(shares[1].caja).toBeNull();
+    expect(teorico.caja!.media!).toBeGreaterThan(teorico.caja!.mediana);
+    expect(laboratorio.caja).toBeNull();
+  });
+
+  it("ordena por cursos-horario totales, no por alumnos elegibles (G39)", () => {
+    /*
+     * Gonzalo: «en "Tipo de sesión · radiografía por categoría" recuerda que
+     * quienes tienen más CH totales siempre van primero, en todos los criterios
+     * que lo tengan».
+     *
+     * El fixture separa a propósito las dos cifras: «Seminario» tiene MÁS
+     * alumnos elegibles y MENOS cursos-horario que «Práctica». Ordenando por
+     * elegibles —lo que hacía— la lista contesta «dónde hay más gente»; la
+     * pregunta de esta tabla es «qué pesa en el marco».
+     *
+     * No es sólo orden: `maxRows` recorta por arriba, así que la cifra elegida
+     * decide **qué filas sobreviven**.
+     */
+    const fac = facultad({
+      por_tipo_sesion: [
+        tipoSesion({ tipo: "Seminario", ch: 4, elegibles: 900 }),
+        tipoSesion({ tipo: "Práctica", ch: 55, elegibles: 300 }),
+      ],
+    });
+    expect(tipoSesionShares(fac).map((s) => s.tipo)).toEqual(["Práctica", "Seminario"]);
+    expect(tipoSesionShares(fac, 1).map((s) => s.tipo)).toEqual(["Práctica"]);
   });
 });
 
