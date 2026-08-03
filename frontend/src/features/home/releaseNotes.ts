@@ -12,6 +12,23 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.6.3",
+    date: "2026-08-03",
+    highlights: [
+      "Carga: un estudio que organiza varias bases lo sigue haciendo al reabrirlo. La declaración vivía mientras la pantalla estaba montada y se perdía al cerrar el proyecto, así que Fuentes volvía a mostrar «Plan pendiente de activar» y desaparecía el camino a las bases siguientes. Los proyectos anteriores abren como hasta ahora.",
+      "Carga: la mesa de bases separadas deja siempre un carril libre para la siguiente base. Al reabrir un proyecto la única base ocupaba el único carril y no quedaba dónde subir otra; la salida era subir «Entradas previstas», y no estaba a la vista. El tope lo sigue poniendo el estudio.",
+      "Formularios: el panel que arma la fórmula de una variable calculada cabe en el ancho que tiene. Las filas de condición pedían más espacio del disponible, el control del valor quedaba cortado contra el borde y el nombre técnico de la pregunta se leía «$_».",
+      "Formularios: una variable que resume muchas preguntas se lee sin repetirlas. Los grupos que comparan la misma pregunta la enuncian una vez y listan sus criterios debajo, la fórmula «si… entonces… si no» aparece como tres pasos, y una franja arriba dice cuántas condiciones hay y qué valores devuelve. Un índice de 21 preguntas baja un 22 % de alto.",
+      "Cálculo de muestra: cada criterio de curso-horario enseña sobre qué decide. Densidad, caja y cuantiles sobre una escala común a todas las categorías del criterio, con sus cursos-horario totales, los elegibles, los alumnos únicos y la asistencia previa cuando el marco la trae. Antes se elegía contra una cifra suelta.",
+      "Cálculo de muestra: el recorrido se sigue criterio a criterio. Antes de cada uno dice cuántos cursos-horario llegan y qué porcentaje del universo son; al final, con cuántos te quedas. Había una sola línea a media lista que anunciaba el resultado final en mitad del camino.",
+      "Cálculo de muestra: confirmar un criterio actualiza el recorrido sin reconstruir la población. El botón de calcular queda para lo que de verdad toca las dos dimensiones, y el aviso dice cuál de las dos se quedó atrás en vez de pedir un recálculo entero. Al abrir un proyecto guardado hace falta reconstruir una vez: el recálculo por criterio necesita el marco de esta sesión.",
+      "Cálculo de muestra: «Descartar» devuelve el criterio a su valor confirmado. Solo lo hacía con las categorías; el rango de niveles, el mínimo por facultad, la tasa y las exclusiones apagaban el aviso y dejaban el cambio puesto, así que el borrador seguía sucio y se descubría al recalcular.",
+      "Cálculo de muestra: la composición del curso-horario dice qué cuesta cada porcentaje. El deslizador anuncia cuántos cursos-horario descarta en esa posición y con qué porcentaje del total te quedas, y su distribución se lee sobre 0–100 % porque describe la composición, no el número de alumnos. Sus tres reglas comparten la tarjeta estándar del resto de criterios.",
+      "Cálculo de muestra: las categorías con más cursos-horario van primero, en todas las superficies que las listan. Salían en el orden de la columna de origen, así que la categoría que se lleva la mitad del marco podía quedar quinta. El orden lo fijan los cursos-horario que la categoría tiene, no los que siguen incluidos, para que la lista no se reordene bajo el cursor al conmutar.",
+      "Cálculo de muestra: el nivel del curso se acota con un rango de dos manijas. Eran dos listas desplegables que en un marco real ofrecían 852 opciones cada una. Además, los criterios se pliegan uno a uno o todos a la vez, y la tabla de criterios por facultad se recorre con teclado.",
+    ],
+  },
+  {
     version: "0.6.2",
     date: "2026-08-01",
     highlights: [
