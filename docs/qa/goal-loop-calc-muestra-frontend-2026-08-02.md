@@ -4055,10 +4055,49 @@ Salía de **comentarios CSS** — Vite inyecta las hojas como `<style>` e
 
 Gate: typecheck 0 · 911 pruebas en 112 archivos. ADR 0057 en 37 patrones.
 
-**Pendiente encontrado, para la siguiente**: dos botones «Ver todas» esconden
-**49 categorías** en la superficie de criterios. Es el mismo defecto que los
-`<details>` con otra implementación, y mi guard no lo ve porque busca el
-elemento, no la conducta.
+### F109 — La dimensión facultad son docentes
+
+Dos hallazgos, y el segundo cambia las prioridades del loop.
+
+**El plegado escondía lo excluido.** «Ver todas (42 sin cursos en esta facultad)»
+filtraba por `ch > 0 || activo`, y `ch` cuenta sólo los CH que **siguen
+incluidos**: una categoría que el criterio excluye se plegaba rotulada como
+inexistente. Misma confusión que F105, gobernando aquí **qué tarjetas llegas a
+ver**. Reparado con `contraste_total`, que viene filtrado por facultad.
+
+Medido en la app: **en este proyecto no cambia nada** — ninguna de las 49 ocultas
+tenía cursos excluidos, así que la etiqueta era cierta aquí. Se dice tal cual en
+vez de reportar una mejora que no ocurrió. Comprobado además que la evidencia sí
+llega a ambos montajes, porque «no hay casos» y «mi reparación no está activa» se
+leen igual.
+
+**Y entonces el `aria-label` destapó lo otro**: «Condición del curso en ‹nombre
+de persona›».
+
+| medida | valor |
+|---|---:|
+| Opciones del selector rotulado «Facultad» | **17** |
+| De ellas, nombres de personas | **16** |
+| Institucionales | **1** |
+
+El valor activo al medir era la clave de un docente. **La dimensión facultad está
+poblada con docentes**, y la regla 1 de este ADR dice que *todos los criterios
+son por facultad*: cada decisión por facultad de esta superficie se está tomando
+contra un docente.
+
+Ninguna reparación de presentación lo arregla — la superficie dibuja fielmente lo
+que el marco le publica. Es el bug que Gonzalo reportó («nombres de docentes
+entre las categorías de tipo de docente») con un alcance mucho mayor: no está en
+una variable, está en el eje.
+
+Esto **sube la pestaña de mapeo por encima de cualquier pulido restante**, y le
+añade una pregunta que no tenía: cuál es la columna de facultad, no sólo qué
+categorías tiene cada variable.
+
+Gate: typecheck 0 · 915 pruebas en 113 archivos.
+
+**Siguiente**: la pestaña de mapeo, en cuanto Gonzalo decida si sólo diagnostica
+o además corrige.
 
 ### F103 — El agujero estaba en mi propio guard
 
