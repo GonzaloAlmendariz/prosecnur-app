@@ -87,6 +87,32 @@
   box-shadow: 0 0 0 2px var(--cmv2-surface, var(--pulso-surface));
 }
 
+/*
+ * F114 · Atípicos como marca, no como frase. El contador vive en `data-n` y
+ * sale por `::after`: es una cifra pequeña pegada al bigote que los excluye,
+ * legible sin traducir una oración a una posición.
+ */
+.cmv2-dist-atipico {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--pulso-warn-fg, var(--pulso-text-muted));
+  opacity: 0.85;
+}
+.cmv2-dist-atipico::after {
+  content: attr(data-n);
+  position: absolute;
+  top: -12px;
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+  line-height: 1;
+}
+.cmv2-dist-atipico[data-lado="inf"] { margin-left: -5px; }
+.cmv2-dist-atipico[data-lado="inf"]::after { right: 2px; }
+.cmv2-dist-atipico[data-lado="sup"] { margin-left: 5px; }
+.cmv2-dist-atipico[data-lado="sup"]::after { left: 2px; }
+
 /* --- Eje ----------------------------------------------------------------- */
 /*
  * F112 · Antes la escala sólo se declaraba en palabras al pie, y las únicas
@@ -181,8 +207,7 @@
   color: var(--pulso-text-muted);
   line-height: 1.4;
 }
-.cmv2-dist-atipicos { color: var(--pulso-warn-fg, var(--pulso-text-muted)); }
-.cmv2-dist-convencion { font-style: italic; }
+.cmv2-dist-convencion { font-style: italic; color: var(--pulso-warn-fg, var(--pulso-text-muted)); }
 
 .cmv2-dist-vacia {
   margin: 0;

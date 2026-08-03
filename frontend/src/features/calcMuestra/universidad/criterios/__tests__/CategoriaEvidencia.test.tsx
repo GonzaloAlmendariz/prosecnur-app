@@ -31,7 +31,11 @@ describe("CategoriaEvidencia", () => {
       aporte(),
       aporte({ distribucion: { media: 90, p10: 70, p25: 80, p50: 88, p75: 96, p90: 120 } as never }),
     ]);
-    expect(dominio).toEqual({ min: 10, max: 120 });
+    // F114 · El dominio se redondea a marcas completas: empieza en 0 y termina
+    // en un múltiplo del paso. Así el eje tiene tics desde el origen y todas
+    // las categorías del criterio comparten exactamente las mismas marcas —que
+    // es lo que hace que las tarjetas alineen entre sí por construcción.
+    expect(dominio).toEqual({ min: 0, max: 140 });
   });
 
   it("sin ninguna distribución publicada no inventa una escala", () => {
@@ -54,18 +58,30 @@ describe("CategoriaEvidencia", () => {
     // categorías, no una medición de ésta. Se dice de qué a qué convierte, con
     // las dos cifras a la vista: 3.400 × 0,7 = 2.380.
     expect(html).toContain("2,380");
-    expect(html).toContain("presentes de");
-    expect(html).toContain("3,400");
-    expect(html).toContain("70% de asistencia supuesta");
+    expect(html).toContain("presentes");
+    expect(html).toContain("70% de asistencia");
     expect(html).not.toContain("matrículas");
   });
 
-  it("sin tasa de asistencia no la muestra ni estima presentes", () => {
+  it("sin tasa de asistencia la celda se reserva vacía, no desaparece", () => {
+    // F114 · Gonzalo: «todas las tarjetas tienen que coincidir exactamente en la
+    // alineación». Una celda que desaparece recoloca las tres de al lado y el
+    // gráfico arranca a otra altura. El hueco vacío alinea; el hueco ausente no.
     const dominio = dominioCategorias([aporte()])!;
     const html = renderToStaticMarkup(
       <CategoriaEvidencia aporte={aporte({ tasaAsistencia: null })} dominio={dominio} />,
     );
-    expect(html).not.toContain("presentes");
+    // Se mide el TEXTO visible, no el HTML entero: «de asistencia» vive también
+    // en el `title` de la celda, y una aserción sobre el marcado completo la
+    // encuentra ahí y falla sin que haya defecto. Es el mismo error de sonda
+    // que el ADR recoge en el patrón 3.
+    const visible = html.replace(/<[^>]+>/g, "");
+    expect(visible).toContain("presentes");
+    expect(visible).not.toContain("de asistencia");
+    // Las cuatro celdas están siempre.
+    const i = html.indexOf('class="cmv2-cat-cifras"');
+    const j = html.indexOf('cmv2-cat-efecto', i);
+    expect(((j > i ? html.slice(i, j) : html).match(/<span/g) ?? []).length).toBe(4);
   });
 
   it("declara la ausencia en vez de dibujar una caja vacía", () => {
@@ -88,8 +104,10 @@ describe("CategoriaEvidencia", () => {
     // un «10» o un «120» pueden venir de cualquier parte del HTML —una clase,
     // otra cifra— y la aserción pasaría sin probar nada.
     const nota = /<p class="cmv2-cat-escala-nota">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
-    expect(nota).toContain("Escala común del criterio");
-    expect(nota).toContain("estudiantes elegibles por curso-horario");
+    // F114 · La nota dice lo que el eje rotulado no puede decir por sí solo:
+    // qué se mide. Los extremos siguen dentro de la frase, no sueltos.
+    expect(nota).toContain("Estudiantes elegibles por curso-horario");
+    expect(nota).toContain("escala común");
     expect(nota).toContain(">10<");
     expect(nota).toContain(">120<");
   });
@@ -113,8 +131,7 @@ describe("CategoriaEvidencia", () => {
 
   it("el criterio declara su escala una vez, no cada categoría", () => {
     const html = renderToStaticMarkup(<EjeCategorias dominio={{ min: 10, max: 120 }} />);
-    expect(html).toContain("Escala común del criterio");
-    expect(html).toContain("Las tres capas");
+    expect(html).toContain("escala común a las categorías");
   });
 });
 

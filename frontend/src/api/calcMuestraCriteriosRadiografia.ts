@@ -163,6 +163,9 @@ export type CalcMuestraAulasCriterioRadiografiaV2Distribution = {
   bigote_inf?: number | null;
   bigote_sup?: number | null;
   n_atipicos?: number | null;
+  /** De qué lado quedan (F114): sin esto sólo se pueden decir en prosa. */
+  n_atipicos_inf?: number | null;
+  n_atipicos_sup?: number | null;
   /** k+1 bordes, comunes al criterio. */
   hist_breaks?: number[];
   /** k conteos, uno por intervalo. */
@@ -552,6 +555,8 @@ function parseDistribution(raw: unknown): CalcMuestraAulasCriterioRadiografiaV2D
     bigote_inf: asFiniteOrNull(value.bigote_inf) as number | null,
     bigote_sup: asFiniteOrNull(value.bigote_sup) as number | null,
     n_atipicos: asFiniteOrNull(value.n_atipicos) as number | null,
+    n_atipicos_inf: asFiniteOrNull(value.n_atipicos_inf) as number | null,
+    n_atipicos_sup: asFiniteOrNull(value.n_atipicos_sup) as number | null,
     hist_breaks: histOk ? breaks : undefined,
     hist_counts: histOk ? counts : undefined,
   };

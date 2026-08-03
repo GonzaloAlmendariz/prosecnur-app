@@ -27,23 +27,49 @@
   min-width: 0;
 }
 
+/*
+ * F114 · Rejilla de columnas fijas, no un flex que envuelve.
+ *
+ * Gonzalo: «recuerda que siempre todas las tarjetas tienen que coincidir
+ * exactamente en la alineación, eso es sumamente importante». Con flex, una
+ * tarjeta sin asistencia ocupaba una línea y otra con ella dos, así que el
+ * gráfico arrancaba a alturas distintas y las cifras homólogas no caían una
+ * bajo otra. Con columnas fijas, «CH elegibles» está siempre en el mismo sitio
+ * aunque su vecina no tenga dato — y el hueco vacío también alinea.
+ */
 .cmv2-cat-cifras {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px 10px;
   font-size: 11px;
   color: var(--pulso-text-muted);
+  min-height: 30px;
+  align-content: start;
+}
+.cmv2-cat-cifras > span {
+  display: grid;
+  gap: 0;
+  align-content: start;
+  min-width: 0;
+}
+/* La cifra arriba y su nombre debajo: dos filas iguales en todas las tarjetas. */
+.cmv2-cat-cifras > span > strong {
+  font-size: 14px;
+  line-height: 1.15;
+}
+.cmv2-cat-cifras > span > em {
+  font-style: normal;
+  font-size: 10px;
+  opacity: 0.85;
+}
+@media (max-width: 620px) {
+  .cmv2-cat-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .cmv2-cat-cifras strong {
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
   font-weight: var(--pulso-weight-semibold);
   transition: color 180ms ease;
-}
-.cmv2-cat-presentes em {
-  font-style: normal;
-  margin-left: 4px;
-  opacity: 0.75;
 }
 
 @keyframes cmv2-cat-aparece {

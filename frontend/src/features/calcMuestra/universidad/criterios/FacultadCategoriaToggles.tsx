@@ -184,7 +184,7 @@ export function FacultadCategoriaToggles({
         </button>
       ) : (
         <p className="cmv2-crit-empty-note">
-          Sin restricción propia: entran todas. Ajusta una categoría para decidir solo en esta facultad.
+          Entran todas las categorías. Ajusta una para decidir sólo en esta facultad.
         </p>
       )}
     </div>
