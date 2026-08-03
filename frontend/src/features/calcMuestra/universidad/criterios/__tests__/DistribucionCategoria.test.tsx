@@ -190,3 +190,51 @@ describe("DistribucionCategoria · lo que no se ve", () => {
     expect(html).toContain("sin distribución publicada");
   });
 });
+
+describe("DistribucionCategoria · nada se dibuja fuera de su caja (F113)", () => {
+  /**
+   * Medido en la app con datos del motor: el gráfico pintaba `left: -11%`,
+   * `width: 178%`, topes en `167%` y un polígono de densidad de −66 a 592. La
+   * escala salía sólo de P10..P90 y la media, mientras el dibujo incluye los
+   * bigotes de Tukey y el histograma — que van mucho más lejos.
+   *
+   * **Ninguna prueba lo vio porque todos los fixtures usaban un dominio 0..100
+   * que cubría cualquier valor.** Un dominio holgado en el fixture esconde
+   * exactamente el defecto que produce un dominio ajustado.
+   */
+  const REAL = {
+    media: 31.1, p10: 17.8, p25: 23, p50: 30, p75: 38, p90: 43,
+    min: 6, max: 90, bigote_inf: 15, bigote_sup: 60, n_atipicos: 12,
+    hist_breaks: [6, 20, 34, 48, 62, 76, 90],
+    hist_counts: [30, 210, 190, 80, 20, 4],
+  } as Dist;
+
+  function porcentajes(html: string): number[] {
+    const out: number[] = [];
+    for (const m of html.matchAll(/(?:left|width):\s*(-?[\d.]+)%/g)) out.push(Number(m[1]));
+    // El polígono de la densidad también va en coordenadas del viewBox 0..100.
+    const poly = /points="([^"]+)"/.exec(html)?.[1];
+    if (poly) for (const par of poly.split(" ")) out.push(Number(par.split(",")[0]));
+    return out.filter((n) => Number.isFinite(n));
+  }
+
+  it("con la escala ajustada al dato, todo cae dentro de 0–100", () => {
+    // El dominio se toma de la MISMA función que usa la tarjeta, no a mano.
+    const html = renderToStaticMarkup(
+      <DistribucionCategoria
+        elegible={{ nCh: 639, distribucion: REAL }}
+        dominio={dominioComun([REAL])}
+      />,
+    );
+    const fuera = porcentajes(html).filter((v) => v < -0.01 || v > 100.01);
+    expect(fuera, `posiciones fuera de rango: ${fuera.join(", ")}`).toEqual([]);
+  });
+
+  it("el dominio abarca bigotes e histograma, no sólo los cuantiles", () => {
+    // Si volviera a calcularse con P10..P90 daría [17,8 · 43] y el bigote
+    // inferior (15) quedaría a la izquierda del origen.
+    const d = dominioComun([REAL])!;
+    expect(d.min).toBeLessThanOrEqual(6);
+    expect(d.max).toBeGreaterThanOrEqual(90);
+  });
+});
