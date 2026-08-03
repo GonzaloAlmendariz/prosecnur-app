@@ -179,3 +179,6 @@
   line-height: 1.45;
 }
 .cmv2-cat-escala-nota strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+
+/* Cobertura parcial del dato: aviso discreto, no alarma. */
+.cmv2-cat-parcial { color: var(--pulso-text-muted); }

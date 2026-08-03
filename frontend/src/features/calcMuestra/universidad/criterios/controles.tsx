@@ -81,6 +81,16 @@ export type AporteCategoria = {
   /** Cursos-horario totales con esta categoría (contraste). */
   chContraste: number | null;
   /**
+   * Cursos-horario de la categoría que **traen el dato** del criterio.
+   *
+   * Si es menor que `ch`, la distribución se calculó sobre menos unidades de las
+   * que hay: sin este número no se sabe cuánta de la categoría está describiendo
+   * realmente la caja.
+   */
+  chConDato?: number | null;
+  /** Matrículas elegibles: el otro grano, junto a los estudiantes únicos. */
+  matriculas?: number | null;
+  /**
    * Distribución de alumnos elegibles por curso-horario en esta categoría.
    * La calcula R; React sólo la dibuja. Da el promedio, su forma y los
    * cuantiles con los que se elige P25 o mediana.

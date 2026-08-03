@@ -142,7 +142,19 @@ export function CategoriaEvidencia({
         <span title="Estudiantes únicos elegibles: una persona cuenta una vez aunque esté en varios cursos-horario">
           <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong> estudiantes
         </span>
+        {aporte.matriculas != null ? (
+          <span title="Matrículas elegibles: una persona cuenta una vez por cada curso-horario en que está">
+            <strong>{fmtInt(aporte.matriculas)}</strong> matrículas
+          </span>
+        ) : null}
         {d?.media != null ? <span><strong>{fmt(d.media)}</strong> por CH</span> : null}
+        {/* Si la distribución se calculó sobre menos CH de los que hay, decirlo:
+            sin este número no se sabe cuánta de la categoría describe la caja. */}
+        {aporte.chConDato != null && aporte.ch != null && aporte.chConDato < aporte.ch ? (
+          <span className="cmv2-cat-parcial" title="Cursos-horario que traen el dato de este criterio">
+            distribución sobre <strong>{fmtInt(aporte.chConDato)}</strong> de {fmtInt(aporte.ch)} CH
+          </span>
+        ) : null}
         {presentes != null ? (
           <span className="cmv2-cat-presentes">
             ~<strong>{fmtInt(presentes)}</strong> presentes
