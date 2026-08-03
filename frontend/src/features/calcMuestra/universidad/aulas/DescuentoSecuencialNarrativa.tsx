@@ -28,9 +28,21 @@ export function DescuentoSecuencialNarrativa({
             : "Estos valores se calcularon después de cerrar la selección: describen aporte, pero no causaron el sorteo."}
         </span>
       </div>
-      <details open={narrative.steps.length <= 8}>
-        <summary>{sequential ? "Recorrer" : "Revisar"} {fmtInt(narrative.steps.length)} {narrative.steps.length === 1 ? "paso" : "pasos"}</summary>
-        <ol
+      {/* F102 · Era `<details open={steps.length <= 8}>`: se abría con pocos
+          pasos y se cerraba con muchos. La regla estaba invertida — cuanta más
+          evidencia hay, más escondía—, y lo que esconde es el registro de cómo
+          se sorteó la muestra, que es lo que hace defendible la selección.
+
+          «Es largo» no se resuelve ocultando: se resuelve acotando y diciendo
+          cuánto hay. La lista se declara con su total y scrollea en su propio
+          contenedor, que es lo que la gramática de layout pide (No Scroll
+          Jail): la página no crece, la lista sí es alcanzable. */}
+      <p className="cmv2-discount-step-count">
+        <strong>{fmtInt(narrative.steps.length)}</strong>{" "}
+        {narrative.steps.length === 1 ? "paso registrado" : "pasos registrados"}
+        {narrative.steps.length > 8 ? <span> · la lista se desplaza</span> : null}
+      </p>
+      <ol
           className="cmv2-discount-step-list"
           data-mode={narrative.mode}
           data-qa-geometry-group="aulas-descuento-pasos"
@@ -60,7 +72,6 @@ export function DescuentoSecuencialNarrativa({
             </li>
           ))}
         </ol>
-      </details>
     </div>
   );
 }

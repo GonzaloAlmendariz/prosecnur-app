@@ -26,10 +26,21 @@ export function ClassroomMethodComparator({
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
 }) {
   return (
-    <details className="cmv2-aulas-referencia cmv2-method-comparator">
-      <summary>
-        {ready ? `Abrir comparador vigente (${methods.length} métodos)` : "Comparador de métodos pendiente"}
-      </summary>
+    <section className="cmv2-method-comparator" aria-label="Comparación de métodos de selección">
+      {/* F102 · Esto era un `<details>` cerrado rotulado «Abrir comparador
+          vigente». Detrás del click no había información de apoyo: estaban los
+          botones «Usar método», que cambian el método de muestreo de la corrida.
+          Y dentro, a un segundo click, la evidencia visual para elegirlo.
+
+          La etiqueta además escribía la afordancia —«Abrir…»— en el único hueco
+          donde cabía decir de qué trata. Ahora el encabezado nombra la pieza y
+          publica cuántos métodos se compararon. */}
+      <header className="cmv2-method-comparator-head">
+        <strong>Comparación de métodos</strong>
+        {ready ? (
+          <span>{methods.length} {methods.length === 1 ? "método evaluado" : "métodos evaluados"}</span>
+        ) : null}
+      </header>
       {!ready || !comparison ? (
         <div className="cmv2-classroom-empty is-compact">
           <div>
@@ -64,12 +75,14 @@ export function ClassroomMethodComparator({
             })}
           </div>
           <ClassroomBalanceTable rows={comparison.balance ?? []} methodId={recommendedMethodId} />
-          <details className="cmv2-aulas-referencia">
-            <summary>Referencia visual de la corrida</summary>
-            <ComparadorMetodosVisual comparison={comparison} />
-          </details>
+          {/* Anidado dentro del anterior, esto quedaba a DOS clicks. Es la
+              lectura visual de la misma comparación que la tabla da en cifras:
+              la evidencia con la que se elige método. Medido antes de abrirlo,
+              porque el coste es la única razón legítima para plegar algo: 187
+              líneas de DOM, sin Plotly. */}
+          <ComparadorMetodosVisual comparison={comparison} />
         </div>
       )}
-    </details>
+    </section>
   );
 }
