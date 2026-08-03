@@ -500,6 +500,20 @@ export function CursosHorarioMarcoTab({
     };
   }, [i18b.cascade, bloqueFoco, aula]);
 
+  /**
+   * G39 · Con cuántos cursos-horario se termina.
+   *
+   * Es el `after_ch` del último paso, no `universo − Σquita`: si un paso no
+   * publicara su facultad, la resta mentiría y el `after` no. La misma razón por
+   * la que el modelo de la matriz ya lo toma de ahí.
+   */
+  const cierreDelRecorrido = useMemo(() => {
+    const matriz = construirMatrizCascada(i18b.cascade);
+    const clave = bloqueFoco?.excKey || bloqueFoco?.facLabel || "";
+    const fila = matriz?.filas.find((f) => f.facultadKey === clave) ?? null;
+    return fila ? { quedan: fila.quedan, universo: fila.universo } : null;
+  }, [i18b.cascade, bloqueFoco]);
+
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   const beam = necesitaRecalculo && listoParaRecalcular;
@@ -657,6 +671,7 @@ export function CursosHorarioMarcoTab({
                     <FacultadDecisionBloque
                       confirmadorDe={confirmadorDe}
                       lleganDe={lleganDe}
+                      cierreDelRecorrido={cierreDelRecorrido}
                       key={bloque.excKey || bloque.facLabel}
                       sinPlegado
                       bloque={bloque}

@@ -230,6 +230,33 @@ function LleganAlCriterio({ llegan, universo }: { llegan: number | null; univers
   );
 }
 
+/**
+ * G39 · El cierre del recorrido, después del último criterio.
+ *
+ * Gonzalo: «"646 de 849 cursos-horario llegan a este criterio" también debería
+ * estar al final del último criterio, centrado, como un resumen de con cuántas
+ * CH nos quedamos al final».
+ *
+ * Las barras de arriba dicen qué **llega** a cada decisión; ésta dice qué
+ * **queda** cuando ya no hay más. Es la misma cifra que la superficie promete en
+ * su KPI, aquí al final del camino que la produjo — que es donde se puede
+ * comprobar.
+ *
+ * Centrada y sin filete lateral a propósito: las barras marcan el margen del
+ * recorrido, y ésta lo cierra. Repetir su forma la haría parecer un séptimo
+ * criterio sin tarjeta.
+ */
+function CierreDelRecorrido({ quedan, universo }: { quedan: number | null; universo: number | null }) {
+  if (quedan == null || universo == null || universo <= 0) return null;
+  const pct = Math.round((quedan / universo) * 100);
+  return (
+    <p className="cmv2-chfp-cierre" role="note">
+      Con todos los criterios quedan <strong>{fmtInt(quedan)}</strong> de {fmtInt(universo)} cursos-horario
+      <span className="cmv2-chfp-cierre-pct">{pct}%</span>
+    </p>
+  );
+}
+
 /** Control por-facultad del nivel/ciclo del curso (rango). */
 function NivelFacultadCard({
   variable,
@@ -616,6 +643,7 @@ export function FacultadDecisionBloque({
   slotCierre,
   confirmadorDe,
   lleganDe,
+  cierreDelRecorrido,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
@@ -651,6 +679,8 @@ export function FacultadDecisionBloque({
   confirmadorDe?: (criterioId: string) => ReactNode;
   /** G39 · Cuántos cursos-horario llegan a cada criterio en esta facultad. */
   lleganDe?: (criterioId: string) => { llegan: number; universo: number } | null;
+  /** G39 · Con cuántos se termina, tras el último criterio. */
+  cierreDelRecorrido?: { quedan: number; universo: number } | null;
   slotApertura?: ReactNode;
   /** ADR 0057 · Criterios 7 y 8, penúltimos antes del mayor detalle. */
   slotCierre?: ReactNode;
@@ -892,6 +922,9 @@ export function FacultadDecisionBloque({
               facLabel={facLabel}
               onToggle={onToggleAula}
               onReactivarTodas={onReactivarAulas}
+            />
+            <CierreDelRecorrido
+              {...(cierreDelRecorrido ?? { quedan: null, universo: null })}
             />
           </div>
           </PlegadoContexto.Provider>
