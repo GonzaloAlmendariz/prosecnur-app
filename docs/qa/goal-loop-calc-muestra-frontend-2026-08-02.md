@@ -3311,6 +3311,37 @@ encuentra lo que **no está ahí**. Ningún barrido de vocabulario, geometría o
 accesibilidad puede detectar una rama que nunca se ejecuta, porque todos miran lo
 que la pantalla muestra.
 
+### F85 — Barrido de ramas inalcanzables en todo lo que construí
+
+Aplicado el hallazgo de F84 como método: comprobar cuáles de las quince piezas
+nuevas del loop **llegan a renderizar de verdad** en las diez superficies con
+datos.
+
+**Doce renderizan** y quedan verificadas en la app: la evidencia por categoría
+(18), las cajas y sus escalas (13 cada una), los cuantiles (13), la declaración
+de escala (3), «sin cursos-horario» (5), el grano declarado, el selector de
+facultad, la unidad de la lista, las dos declaraciones de profundidad y los 68
+estados del Panorama.
+
+**Tres no**, y la distinción entre ellas es todo el valor de este barrido:
+
+| pieza | por qué no aparece | veredicto |
+|---|---|---|
+| `cmv2-cat-presentes` | necesita tasa de asistencia configurada, que este instrumento no trae | **condicional al dato** — cubierta por su test |
+| `cmv2-aulas-stage-blocked` | necesita un bloqueo activo; hoy la comparación está acreditada | **condicional al estado** — la vi renderizar en F38 con el job corriendo |
+| `cmv2-crit-exc` | sin punto de montaje | **el caso de F84**, ya declarado |
+
+**Ninguna rama inalcanzable nueva.** Una pieza que no aparece porque falta un
+dato o no se da un estado **no es código muerto**: es código condicional, y
+confundirlos llevaría a borrar funciones que sí sirven. La diferencia se
+establece buscando **por qué** falta, no contando ausencias.
+
+| | |
+|---|---:|
+| Piezas nuevas verificadas en la app | **12 de 15** |
+| Condicionales con test que las cubre | **2** |
+| Sin montaje, declarada | **1** |
+
 ### Estado del loop
 
 | | |
