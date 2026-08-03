@@ -3431,6 +3431,29 @@ sitio correcto»**, que es una afirmación distinta y comprobable. Un guard sin
 mutación es una hipótesis: pasa, pero nadie sabe si pasaría igual con el código
 roto —que es exactamente lo que descubrí de mis propias aserciones en F86—.
 
+### F89 — La matriz de viewports completa
+
+Auditadas las superficies en **los cinco viewports** de la matriz de QA de la
+casa, no sólo en los dos que venía usando:
+
+| viewport | superficies | desbordes reales |
+|---|---:|---:|
+| 1710×1107 | 18 | **0** |
+| 1440×1000 | 18 | **0** |
+| 1366×768 | 14 | **0** |
+| 1280×720 | 14 | **0** |
+| 1024×600 | 18 | **0** |
+
+Los dos viewports intermedios —1366 y 1280— no habían sido probados en todo el
+loop. Que salgan limpios no es casualidad: las dos reparaciones de F62
+—`min(var(--cmv2-cat-escala), 100%)` para la escala y `auto-fit` para la rejilla
+de estadísticas— resolvieron el problema **en función del ancho disponible**, no
+para un tamaño concreto. Una solución fijada a 1024 habría dejado 1280 y 1366
+rotos.
+
+Y el detector va con la corrección de F65: ignora lo que vive dentro de un
+contenedor deslizable, porque ahí el contenido es alcanzable por diseño.
+
 ### Estado del loop
 
 | | |
