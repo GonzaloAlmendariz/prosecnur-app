@@ -1,0 +1,577 @@
+/* =============================================================================
+ * xf-logic.css — geometría del builder de lógica y de cálculo
+ * =============================================================================
+ * Gobierna el panel "Cómo se calcula" (pestaña Respuesta de un `calculate`) y
+ * "Cuándo aparece" (pestaña Reglas). Las dos superficies comparten el mismo
+ * árbol de condiciones, así que comparten hoja.
+ *
+ * Por qué existe esta hoja y no crece theme.css:
+ *
+ *   1. theme.css está congelado a crecimiento (agentic/manifest.json).
+ *   2. La geometría de estas filas depende del ANCHO DE SU COLUMNA, no del
+ *      viewport. Medido en HST_UNSA a 1710×1107: el inspector mide 603 px y
+ *      una fila de condición 337 px. La regla anterior vivía en un
+ *      `@media (min-width: 1120px)` y pedía `250px 150px 28px` —440 px con
+ *      gutters— dentro de esos 337 px: cada fila desbordaba ~103 px y el
+ *      control de valor quedaba cortado contra el borde del panel.
+ *
+ * Los selectores van prefijados con `.pulso-xlsform-frame` para ganarle a
+ * theme.css por especificidad (0-2-0 contra 0-1-0) sin depender del orden de
+ * carga: `@container` no aporta especificidad por sí solo y theme.css se
+ * resuelve después que las hojas de feature en el bundle.
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * Contenedores de medida
+ *
+ * El contenedor se declara donde de verdad se decide el ancho de una fila: la
+ * lista de hijos de un grupo, las filas de un grupo de una sola variable y el
+ * builder de condición única. Así cada nivel de anidamiento se mide a sí mismo
+ * en lugar de heredar la medida del panel entero.
+ * ------------------------------------------------------------------------- */
+
+.pulso-xlsform-frame .pulso-logic-tree-children,
+.pulso-xlsform-frame .pulso-logic-samevar-rows,
+.pulso-xlsform-frame .pulso-logic-builder-single,
+/* `.pulso-logic-group-body` aloja las filas de `LogicGroupBlock` (AND/OR
+   plano) y las de `ConstraintBuilder` (pestaña Validación). Sin declararlo,
+   esas filas se quedaban fijas en el régimen angosto aunque tuvieran el
+   mismo ancho que las del árbol. */
+.pulso-xlsform-frame .pulso-logic-group-body {
+  container-type: inline-size;
+  container-name: pulso-logic-rows;
+}
+
+/* ---------------------------------------------------------------------------
+ * Fila de condición — pregunta · criterio · valor
+ *
+ * Régimen angosto (por defecto): la pregunta ocupa la fila entera y criterio y
+ * valor se reparten la siguiente. Régimen ancho: todo en una línea. Los tracks
+ * son `minmax(0, …fr)` en los dos casos, de modo que la fila NUNCA puede pedir
+ * más ancho del que tiene.
+ * ------------------------------------------------------------------------- */
+
+.pulso-xlsform-frame .pulso-logic-condition-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px 8px;
+  padding: 8px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip, 8px);
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-piece {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  flex: none;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-label {
+  display: inline-flex;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-var {
+  grid-column: 1 / -1;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-value {
+  grid-column: 2;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-remove {
+  grid-column: 3;
+  grid-row: 2;
+  align-self: end;
+  margin-bottom: 1px;
+}
+
+/* Sin valor (criterios de presencia): criterio a fila completa. */
+.pulso-xlsform-frame .pulso-logic-condition-row.has-presence
+  .pulso-logic-condition-piece:not(.pulso-logic-condition-var) {
+  grid-column: 1 / -1;
+}
+
+/* Estado inicial sin preguntas previas: solo hay el picker de pregunta y una
+   nota. La nota no es un `condition-piece`, así que bajo la rejilla se
+   autoubicaría a media anchura en la fila 2; se le da la fila entera. La
+   variante también repone aquí su `align-items`, que en theme.css quedaba
+   por debajo en especificidad. */
+.pulso-xlsform-frame .pulso-logic-condition-row--starter {
+  align-items: start;
+  padding: 8px;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-row--starter
+  .pulso-logic-starter-note {
+  grid-column: 1 / -1;
+}
+
+/* Fila sin pregunta: el encabezado del grupo ya la nombró, así que solo
+   lleva criterio y valor. Es una rejilla de DOS columnas y por eso queda
+   fuera del régimen ancho de abajo —que coloca el valor en la columna 3—:
+   mandarlo a una columna que no existe abre una implícita y deja las dos
+   declaradas en 0 px, con la etiqueta "CRITERIO" cayendo en vertical. */
+.pulso-xlsform-frame .pulso-logic-condition-row.is-headless {
+  grid-template-columns: var(--pulso-logic-samevar-cols);
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-row.is-headless
+  .pulso-logic-condition-piece {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-row.is-headless
+  .pulso-logic-condition-value {
+  grid-column: 2;
+}
+
+/* Un criterio de presencia no lleva valor: la celda queda vacía y las filas
+   del bloque siguen alineadas en columna. */
+.pulso-xlsform-frame .pulso-logic-condition-row.is-headless.has-presence
+  .pulso-logic-condition-piece {
+  grid-column: 1;
+}
+
+/* La rejilla ya rotula sus columnas en la cabecera del bloque. */
+.pulso-xlsform-frame .pulso-logic-condition-row.is-headless
+  .pulso-logic-condition-label {
+  display: none;
+}
+
+.pulso-xlsform-frame .pulso-logic-condition-row.is-headless
+  .pulso-logic-condition-hint {
+  grid-column: 2;
+  margin-top: 0;
+}
+
+@container pulso-logic-rows (min-width: 430px) {
+  .pulso-xlsform-frame .pulso-logic-condition-row:not(.is-headless) {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.85fr) minmax(0, 1fr) auto;
+  }
+
+  .pulso-xlsform-frame .pulso-logic-condition-row:not(.is-headless)
+    .pulso-logic-condition-var {
+    grid-column: 1;
+  }
+
+  .pulso-xlsform-frame .pulso-logic-condition-row:not(.is-headless)
+    .pulso-logic-condition-value {
+    grid-column: 3;
+  }
+
+  .pulso-xlsform-frame .pulso-logic-condition-row:not(.is-headless)
+    .pulso-logic-condition-remove {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  .pulso-xlsform-frame .pulso-logic-condition-row.has-presence:not(.is-headless) {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  }
+
+  .pulso-xlsform-frame .pulso-logic-condition-row.has-presence:not(.is-headless)
+    .pulso-logic-condition-piece:not(.pulso-logic-condition-var) {
+    grid-column: 2;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Grupo del árbol — conector arriba, guía vertical fina
+ *
+ * El conector "Todas / Alguna" era un carril vertical de 62 px a la izquierda
+ * y las acciones colgaban de `padding-left: 70px`. Con un árbol de 21 bloques
+ * eso son 132 px de cromo por nivel, exactamente el ancho que a los enunciados
+ * les faltaba. Ahora el conector es una cabecera horizontal y la pertenencia
+ * la marca una guía de 2 px.
+ * ------------------------------------------------------------------------- */
+
+.pulso-xlsform-frame .pulso-logic-tree-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-group.is-root {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-head,
+.pulso-xlsform-frame .pulso-logic-samevar-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-count {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-connector {
+  display: inline-flex;
+  flex-direction: row;
+  align-self: center;
+  position: static;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-connector button {
+  min-width: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-main {
+  display: block;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* La guía solo aparece cuando el grupo agrupa de verdad (más de un hijo). */
+.pulso-xlsform-frame .pulso-logic-tree-head + .pulso-logic-tree-main
+  > .pulso-logic-tree-children {
+  border-left: 2px solid color-mix(in srgb, var(--pulso-primary) 22%, var(--pulso-border));
+  padding-left: 12px;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-tree-actions {
+  padding-left: 12px;
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Grupo de una sola variable
+ *
+ * `indice_hs` es 21 bloques de la forma
+ * `${pN} != '' and not(selected(${pN},'98')) and not(selected(${pN},'99'))`.
+ * Repetir la pregunta en las tres comparaciones costaba 389 px por bloque
+ * —8 364 px de árbol— y dejaba el enunciado recortado al 27 % de su largo.
+ * Aquí la pregunta se enuncia una vez, en la cabecera, y cada comparación
+ * queda en una línea.
+ * ------------------------------------------------------------------------- */
+
+.pulso-xlsform-frame .pulso-logic-samevar {
+  /* Las columnas del bloque se declaran una vez: la cabecera de columnas y
+     todas sus filas comparten esta rejilla, que es lo que las alinea. */
+  /* El valor pesa más que el criterio: la etiqueta de un criterio ronda los
+     70 px y una opción de catálogo ("Prefiero no responder") pide 131 px. */
+  --pulso-logic-samevar-cols: minmax(0, 0.68fr) minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card, 12px);
+  background: var(--pulso-surface);
+  overflow: hidden;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-cols {
+  display: grid;
+  grid-template-columns: var(--pulso-logic-samevar-cols);
+  gap: 8px;
+  padding: 7px 10px 0;
+  /* El botón de quitar de cada fila vive fuera de la rejilla; se descuenta
+     aquí para que los rótulos caigan sobre sus columnas. */
+  padding-right: calc(10px + 22px + 6px);
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-cols span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+  line-height: 1;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 26%, var(--pulso-surface));
+  border-bottom: 1px solid var(--pulso-border);
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-head .pulso-logic-varpicker {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-head .pulso-logic-varpicker-trigger {
+  background: var(--pulso-surface);
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-meta {
+  flex: 0 0 auto;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-rows {
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 4px;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border-top: 1px solid color-mix(in srgb, var(--pulso-border) 55%, transparent);
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-row:first-child {
+  border-top: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar-row > .pulso-logic-condition-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Dentro de un bloque, el conmutador Valor/Pregunta se repite en cada fila:
+   se compacta para que el control del valor no tenga que envolver a una
+   segunda línea, que era lo que mantenía el bloque en 383 px. */
+.pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-valueinput {
+  flex-wrap: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-valuemode-opt {
+  padding: 3px 6px;
+  font-size: 10.5px;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-valueinput-control {
+  flex: 1 1 80px;
+}
+
+.pulso-xlsform-frame .pulso-logic-samevar .pulso-logic-tree-actions {
+  padding: 0 10px 8px;
+}
+
+/* ---------------------------------------------------------------------------
+ * IfBlock — los tres pasos del `if`
+ * ------------------------------------------------------------------------- */
+
+.pulso-xlsform-frame .pulso-logic-ifblock {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card, 12px);
+  background: var(--pulso-surface);
+}
+
+.pulso-xlsform-frame .pulso-logic-ifstep {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-ifstep-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-ifstep-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pulso-primary);
+  color: var(--pulso-surface);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  line-height: 1;
+}
+
+.pulso-xlsform-frame .pulso-logic-ifstep-label {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xlsform-frame .pulso-logic-ifstep-body {
+  min-width: 0;
+}
+
+/* Los pasos 2 y 3 son un control suelto: no necesitan el ancho completo. */
+.pulso-xlsform-frame .pulso-logic-ifstep:not(:first-child) .pulso-logic-ifstep-body {
+  max-width: 340px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Franja de lectura de la fórmula
+ * ------------------------------------------------------------------------- */
+
+.pulso-xlsform-frame .pulso-logic-calc-readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip, 8px);
+  background: var(--pulso-border);
+  overflow: hidden;
+}
+
+.pulso-xlsform-frame .pulso-logic-calc-readout-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 10px;
+  background: var(--pulso-surface-2);
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-calc-readout dt {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-xlsform-frame .pulso-logic-calc-readout dd {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-text);
+}
+
+.pulso-xlsform-frame .pulso-logic-calc-readout dd small {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+}
+
+.pulso-xlsform-frame .pulso-logic-calc-readout dd code {
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--pulso-primary) 8%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-primary) 16%, var(--pulso-border));
+  color: var(--pulso-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+ * Legibilidad de los controles
+ *
+ * C4 del Contrato de Superficie: el enunciado puede elidirse, pero el
+ * identificador (`$p9`) es dato operativo y no. Estaba recortado a 18 px de
+ * los 27 px que necesita —se leía "$_"— en las 63 filas del panel.
+ * ------------------------------------------------------------------------- */
+
+.pulso-xlsform-frame .pulso-logic-varpicker-trigger {
+  align-items: flex-start;
+  padding: 6px 8px;
+}
+
+.pulso-xlsform-frame .pulso-logic-varpicker-text {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.pulso-xlsform-frame .pulso-logic-varpicker-text strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow: hidden;
+  line-height: 1.28;
+  text-overflow: unset;
+}
+
+.pulso-xlsform-frame .pulso-logic-varpicker-text code {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.pulso-xlsform-frame .pulso-logic-varpicker-icon,
+.pulso-xlsform-frame .pulso-logic-varpicker-trigger > svg {
+  margin-top: 1px;
+}
+
+/* El trigger del criterio ya no reparte su ancho con la pista. */
+.pulso-xlsform-frame .pulso-logic-predicate-copy {
+  min-width: 0;
+}
+
+.pulso-xlsform-frame .pulso-logic-predicate-copy strong {
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.pulso-xlsform-frame .pulso-logic-valueinput {
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.pulso-xlsform-frame .pulso-logic-valueinput-control {
+  flex: 1 1 120px;
+}

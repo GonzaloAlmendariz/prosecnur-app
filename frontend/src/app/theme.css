@@ -19215,134 +19215,21 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-color: var(--pulso-danger-fg, #b91c1c);
 }
 
-.pulso-xlsform-frame .pulso-logic-tree-child .pulso-logic-condition-row,
-.pulso-xlsform-frame .pulso-logic-group .pulso-logic-condition-row {
-  display: grid;
-  grid-template-columns: minmax(92px, 0.42fr) minmax(0, 0.58fr) auto;
-  gap: 6px;
-}
-
-.pulso-xlsform-frame .pulso-logic-tree-child .pulso-logic-condition-piece,
-.pulso-xlsform-frame .pulso-logic-group .pulso-logic-condition-piece {
-  width: 100%;
-  flex: none;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 5px;
-}
-
-.pulso-xlsform-frame .pulso-logic-builder-single .pulso-logic-condition-piece {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 5px;
-}
-
-.pulso-xlsform-frame .pulso-logic-builder-single .pulso-logic-condition-label,
-.pulso-xlsform-frame .pulso-logic-group .pulso-logic-condition-label {
-  display: inline-flex;
-}
-
-.pulso-xlsform-frame .pulso-logic-tree-child .pulso-logic-condition-var,
-.pulso-xlsform-frame .pulso-logic-group .pulso-logic-condition-var {
-  grid-column: 1 / -1;
-}
-
-.pulso-xlsform-frame .pulso-logic-tree-child .pulso-logic-condition-value,
-.pulso-xlsform-frame .pulso-logic-group .pulso-logic-condition-value {
-  grid-column: 2;
-}
-
-.pulso-xlsform-frame .pulso-logic-condition-row.has-presence
-  .pulso-logic-condition-piece:not(.pulso-logic-condition-var) {
-  grid-column: 1 / -1;
-}
-
-.pulso-xlsform-frame .pulso-logic-group .pulso-logic-condition-remove {
-  grid-column: 3;
-  grid-row: 2;
-  align-self: center;
-}
-
-@media (min-width: 1120px) {
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-group
-    .pulso-logic-condition-row,
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-builder-single
-    .pulso-logic-condition-row {
-    grid-template-columns: minmax(210px, 1.15fr) minmax(120px, 0.5fr) minmax(145px, 0.65fr) 28px;
-    align-items: end;
-    padding: 10px;
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-group
-    .pulso-logic-condition-var,
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-builder-single
-    .pulso-logic-condition-var {
-    grid-column: 1;
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-group
-    .pulso-logic-condition-value,
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-builder-single
-    .pulso-logic-condition-value {
-    grid-column: 3;
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-condition-row.has-presence {
-    grid-template-columns: minmax(250px, 1fr) minmax(150px, 0.58fr) 28px;
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-condition-row.has-presence
-    .pulso-logic-condition-piece:not(.pulso-logic-condition-var) {
-    grid-column: 2;
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-group
-    .pulso-logic-condition-remove {
-    grid-column: 4;
-    grid-row: 1;
-    align-self: end;
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-builder-single
-    .pulso-logic-condition-row {
-    display: grid;
-    grid-template-columns: minmax(150px, 0.48fr) minmax(220px, 1fr);
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-builder-single
-    .pulso-logic-condition-var {
-    grid-column: 1 / -1;
-  }
-
-  .pulso-xlsform-frame
-    .pulso-focused-node-layout:has(.pulso-focus-tabs button.is-active:nth-child(3))
-    .pulso-logic-builder-single
-    .pulso-logic-condition-value {
-    grid-column: 2;
-  }
-}
+/* La geometría de la fila de condición vive en
+ * `features/xlsformEditor/styles/xf-logic.css` como @container.
+ *
+ * Estaba aquí colgando de `@media (min-width: 1120px)` combinado con
+ * `:has(.pulso-focus-tabs button.is-active:nth-child(3))`, y fallaba por los
+ * dos lados a la vez. El media query medía el VIEWPORT: con 1710 px de
+ * pantalla la columna del inspector mide 603 px y la fila 337 px, así que
+ * pedía tres columnas de 250+150+28 px —440 px con los gutters— dentro de
+ * 337 px y desbordaba ~103 px por fila, cortando el valor contra el borde
+ * del panel. Y el `:nth-child(3)` contaba HIJOS, no botones: el primer hijo
+ * de `.pulso-focus-tabs` es el indicador deslizante, de modo que la regla
+ * pensada para Reglas se disparaba en Respuesta.
+ *
+ * El mismo error de "media query de viewport gobernando una columna" ya
+ * estaba documentado para el header del workspace en xlsform-v2.css. */
 
 /* VariablePicker */
 .pulso-logic-varpicker {

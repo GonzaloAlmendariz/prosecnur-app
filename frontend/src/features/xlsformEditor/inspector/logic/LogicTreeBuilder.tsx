@@ -25,7 +25,8 @@ import type {
   LogicTree,
 } from "../../logic";
 import type { LogicalOp } from "../../logic/ast";
-import { ConditionRow } from "./ConditionRow";
+import { ConditionRow, retargetConditionVariable } from "./ConditionRow";
+import { VariablePicker } from "./VariablePicker";
 
 export type LogicTreeBuilderProps = {
   tree: LogicTree;
@@ -129,6 +130,23 @@ function GroupBlock({
     );
   }
 
+  // Grupo cuyas condiciones hablan TODAS de la misma pregunta: la variable
+  // sube al encabezado y cada fila queda con criterio + valor. Es la forma
+  // dominante de los índices —`${p9} != '' and not(selected(${p9},'98'))
+  // and not(selected(${p9},'99'))`— donde repetir la pregunta una vez por
+  // comparación triplicaba el alto y dejaba el enunciado recortado al 27 %.
+  const sharedVariable = detectSharedVariable(tree);
+  if (sharedVariable && !isRoot) {
+    return (
+      <SharedVariableGroup
+        tree={tree}
+        variableName={sharedVariable}
+        scope={scope}
+        onChange={onChange}
+      />
+    );
+  }
+
   const updateChild = (index: number, next: LogicTree) => {
     const copy = [...tree.children];
     copy[index] = next;
@@ -178,37 +196,23 @@ function GroupBlock({
 
   return (
     <div className={`pulso-logic-tree-group${isRoot ? " is-root" : ""}`}>
-      <div className="pulso-logic-tree-main">
-        {tree.children.length > 1 && (
-          <span
-            className="pulso-logic-tree-connector"
-            role="radiogroup"
-            aria-label="Conector entre condiciones"
-          >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={tree.op === "and"}
-              className={tree.op === "and" ? "is-on" : ""}
-              onClick={() => setOp("and")}
-              title="Todas las condiciones deben cumplirse"
-            >
-              Todas
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={tree.op === "or"}
-              className={tree.op === "or" ? "is-on" : ""}
-              onClick={() => setOp("or")}
-              title="Cualquiera de las condiciones basta"
-            >
-              Alguna
-            </button>
-          </span>
-        )}
+      {/* El conector va en una cabecera horizontal, no en un carril vertical
+          a la izquierda: los 62 px del carril más los 70 px de sangría de las
+          acciones se cobraban en cada nivel de anidamiento, justo el ancho
+          que a los enunciados les faltaba para leerse. */}
+      {tree.children.length > 1 && (
+        <header className="pulso-logic-tree-head">
+          <ConnectorToggle op={tree.op} onChange={setOp} />
+          <span className="pulso-logic-tree-count">de {tree.children.length}</span>
+        </header>
+      )}
 
-        <div className="pulso-logic-tree-children">
+      <div className="pulso-logic-tree-main">
+        <div
+          className="pulso-logic-tree-children"
+          data-qa-geometry-group="xlsform/logic-tree-children"
+          data-qa-geometry-contract="intrinsic"
+        >
           {tree.children.map((child, i) => (
             <div key={`child-${i}`} className="pulso-logic-tree-child">
               <NodeRenderer
@@ -247,6 +251,194 @@ function GroupBlock({
           title="Crear un grupo anidado con conector contrario"
         >
           <FolderPlus size={12} /> Grupo
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// ConnectorToggle — "Todas" / "Alguna" compartido por los dos tipos de grupo
+// -----------------------------------------------------------------------------
+
+function ConnectorToggle({
+  op,
+  onChange,
+}: {
+  op: LogicalOp;
+  onChange: (next: LogicalOp) => void;
+}) {
+  return (
+    <span
+      className="pulso-logic-tree-connector"
+      role="radiogroup"
+      aria-label="Conector entre condiciones"
+    >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={op === "and"}
+        className={op === "and" ? "is-on" : ""}
+        onClick={() => onChange("and")}
+        title="Todas las condiciones deben cumplirse"
+      >
+        Todas
+      </button>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={op === "or"}
+        className={op === "or" ? "is-on" : ""}
+        onClick={() => onChange("or")}
+        title="Cualquiera de las condiciones basta"
+      >
+        Alguna
+      </button>
+    </span>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// SharedVariableGroup — todas las condiciones del grupo hablan de una pregunta
+// -----------------------------------------------------------------------------
+
+/** Nombre de la variable si TODOS los hijos son hojas sobre la misma
+ *  pregunta; si no, `null`. No toca el AST: es solo presentación. */
+function detectSharedVariable(
+  tree: Extract<LogicTree, { kind: "group" }>,
+): string | null {
+  if (tree.children.length < 2) return null;
+  let shared: string | null = null;
+  for (const child of tree.children) {
+    if (child.kind !== "leaf") return null;
+    const name = child.condition.variableName;
+    if (!name) return null;
+    if (shared === null) shared = name;
+    else if (shared !== name) return null;
+  }
+  return shared;
+}
+
+function SharedVariableGroup({
+  tree,
+  variableName,
+  scope,
+  onChange,
+}: {
+  tree: Extract<LogicTree, { kind: "group" }>;
+  variableName: string;
+  scope: LogicScope;
+  onChange: (next: LogicTree) => void;
+}) {
+  const conditions = tree.children.flatMap((child) =>
+    child.kind === "leaf" ? [child.condition] : [],
+  );
+
+  const writeConditions = (next: FlatCondition[]) => {
+    if (next.length === 0) {
+      onChange({ kind: "group", op: tree.op, children: [] });
+      return;
+    }
+    if (next.length === 1) {
+      onChange({ kind: "leaf", condition: next[0]! });
+      return;
+    }
+    onChange({
+      ...tree,
+      children: next.map((condition) => ({ kind: "leaf" as const, condition })),
+    });
+  };
+
+  // Reapuntar la pregunta reescribe TODAS las condiciones del grupo: es lo
+  // que el encabezado promete al mostrarla una sola vez.
+  const retargetAll = (nextName: string) => {
+    writeConditions(
+      conditions.map((condition) =>
+        retargetConditionVariable(condition, nextName, scope),
+      ),
+    );
+  };
+
+  const addCondition = () => {
+    const base = buildEmptyCondition(scope);
+    onChange({
+      ...tree,
+      children: [
+        ...tree.children,
+        {
+          kind: "leaf",
+          condition: retargetConditionVariable(base, variableName, scope),
+        },
+      ],
+    });
+  };
+
+  return (
+    <div className="pulso-logic-samevar">
+      <header className="pulso-logic-samevar-head">
+        <VariablePicker
+          variables={scope.variables}
+          selected={variableName}
+          onChange={retargetAll}
+        />
+        <div className="pulso-logic-samevar-meta">
+          <ConnectorToggle
+            op={tree.op}
+            onChange={(next) => {
+              if (next !== tree.op) onChange({ ...tree, op: next });
+            }}
+          />
+          <span className="pulso-logic-tree-count">de {conditions.length}</span>
+        </div>
+      </header>
+
+      {/* Las columnas se rotulan una vez para todo el bloque: repetir
+          "CRITERIO" y "VALOR" en cada fila era el mismo derroche que repetir
+          la pregunta. */}
+      <div className="pulso-logic-samevar-cols" aria-hidden="true">
+        <span>Criterio</span>
+        <span>Valor</span>
+      </div>
+
+      <div
+        className="pulso-logic-samevar-rows"
+        data-qa-geometry-group="xlsform/logic-samevar-rows"
+        data-qa-geometry-contract="equal"
+      >
+        {conditions.map((condition, i) => (
+          <div key={`cond-${i}`} className="pulso-logic-samevar-row">
+            <ConditionRow
+              scope={scope}
+              condition={condition}
+              hideVariable
+              onChange={(next) => {
+                const copy = [...conditions];
+                copy[i] = next;
+                writeConditions(copy);
+              }}
+            />
+            <button
+              type="button"
+              className="pulso-logic-tree-remove"
+              onClick={() => writeConditions(conditions.filter((_, j) => j !== i))}
+              title="Quitar"
+              aria-label="Quitar"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="pulso-logic-tree-actions">
+        <button
+          type="button"
+          className="pulso-logic-tree-add"
+          onClick={addCondition}
+          disabled={!scope.variables.length}
+          title="Sumar otra comparación sobre la misma pregunta"
+        >
+          <Plus size={12} /> Condición
         </button>
       </div>
     </div>

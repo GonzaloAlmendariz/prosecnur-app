@@ -54,6 +54,11 @@ export type LogicBuilderProps = {
   /** Columna XLSForm que edita este builder (ej. "relevant") — se muestra
    *  junto al readout "Código Kobo". Solo estética. */
   techTerm?: string;
+  /** `card` (por defecto) pone cabecera propia —eyebrow + "Quitar"— y pista.
+   *  `bare` la suprime porque el contenedor ya declaró el campo: dentro de un
+   *  `IfBlock` la cabecera propia duplicaba el eyebrow y dejaba dos botones
+   *  "Quitar" idénticos con alcances distintos a 40 px uno del otro. */
+  chrome?: "card" | "bare";
   /** Callback con la expresión ODK serializada. */
   onChange: (next: string) => void;
 };
@@ -65,8 +70,28 @@ export function LogicBuilder({
   hint,
   targetNoun = "esta pregunta",
   techTerm,
+  chrome = "card",
   onChange,
 }: LogicBuilderProps) {
+  const bare = chrome === "bare";
+  const renderHeader = (clear?: { title: string; onClear: () => void }) =>
+    bare ? null : (
+      <header className="pulso-logic-builder-header">
+        <span className="pulso-section-eyebrow">{fieldLabel}</span>
+        {clear && (
+          <button
+            type="button"
+            className="pulso-logic-builder-clear"
+            onClick={clear.onClear}
+            title={clear.title}
+          >
+            <X size={12} /> Quitar
+          </button>
+        )}
+      </header>
+    );
+  const renderHint = () =>
+    !bare && hint ? <p className="pulso-logic-builder-hint">{hint}</p> : null;
   const rawExpression = expression.trim();
   const [manualOpen, setManualOpen] = useState(false);
   const [guidedEmptyOpen, setGuidedEmptyOpen] = useState(false);
@@ -82,9 +107,7 @@ export function LogicBuilder({
   if (manualOpen) {
     return (
       <div className="pulso-logic-builder">
-        <header className="pulso-logic-builder-header">
-          <span className="pulso-section-eyebrow">{fieldLabel}</span>
-        </header>
+        {renderHeader()}
         <ManualFormulaEditor
           value={manualValue}
           targetNoun={targetNoun}
@@ -95,7 +118,7 @@ export function LogicBuilder({
           }}
           onCancel={() => setManualOpen(false)}
         />
-        {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+        {renderHint()}
       </div>
     );
   }
@@ -105,9 +128,7 @@ export function LogicBuilder({
     if (guidedEmptyOpen && !hasVariables) {
       return (
         <div className="pulso-logic-builder">
-          <header className="pulso-logic-builder-header">
-            <span className="pulso-section-eyebrow">{fieldLabel}</span>
-          </header>
+          {renderHeader()}
           <div className="pulso-logic-builder-guided-empty">
             <NoVariablesGuidedCondition />
             <p>Necesita una pregunta ubicada antes de {targetNoun}.</p>
@@ -128,7 +149,7 @@ export function LogicBuilder({
               </button>
             </div>
           </div>
-          {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+          {renderHint()}
         </div>
       );
     }
@@ -138,9 +159,7 @@ export function LogicBuilder({
       : `Sin preguntas previas para armar una regla guiada. ${capitalizeFirst(targetNoun)} puede condicionarse con una fórmula XLSForm.`;
     return (
       <div className="pulso-logic-builder">
-        <header className="pulso-logic-builder-header">
-          <span className="pulso-section-eyebrow">{fieldLabel}</span>
-        </header>
+        {renderHeader()}
         <div className="pulso-logic-builder-empty">
           <IconHint size={14} />
           <span>{emptyText}</span>
@@ -172,7 +191,7 @@ export function LogicBuilder({
             </button>
           )}
         </div>
-        {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+        {renderHint()}
       </div>
     );
   }
@@ -180,17 +199,10 @@ export function LogicBuilder({
   if (ast.kind === "raw") {
     return (
       <div className="pulso-logic-builder">
-        <header className="pulso-logic-builder-header">
-          <span className="pulso-section-eyebrow">{fieldLabel}</span>
-          <button
-            type="button"
-            className="pulso-logic-builder-clear"
-            onClick={() => onChange("")}
-            title={`Quitar la condición — ${targetNoun} se mostrará siempre.`}
-          >
-            <X size={12} /> Quitar
-          </button>
-        </header>
+        {renderHeader({
+          title: `Quitar la condición — ${targetNoun} se mostrará siempre.`,
+          onClear: () => onChange(""),
+        })}
         <div className="pulso-logic-builder-raw">
           <span className="pulso-xfi-code-head" aria-hidden="true">
             Código Kobo{techTerm ? <> <TechTerm t={techTerm} /></> : null}
@@ -222,7 +234,7 @@ export function LogicBuilder({
             )}
           </div>
         </div>
-        {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+        {renderHint()}
       </div>
     );
   }
@@ -234,17 +246,10 @@ export function LogicBuilder({
   // muestra la caja honesta sin badge "Avanzada" agresivo.
   const renderTree = (treeRoot: LogicTree) => (
     <div className="pulso-logic-builder">
-      <header className="pulso-logic-builder-header">
-        <span className="pulso-section-eyebrow">{fieldLabel}</span>
-        <button
-          type="button"
-          className="pulso-logic-builder-clear"
-          onClick={() => onChange("")}
-          title={`Quitar la condición — ${targetNoun} se mostrará siempre.`}
-        >
-          <X size={12} /> Quitar
-        </button>
-      </header>
+      {renderHeader({
+        title: `Quitar la condición — ${targetNoun} se mostrará siempre.`,
+        onClear: () => onChange(""),
+      })}
       <LogicTreeBuilder
         tree={treeRoot}
         scope={scope}
@@ -257,7 +262,7 @@ export function LogicBuilder({
         }}
         isRoot
       />
-      {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+      {renderHint()}
     </div>
   );
 
@@ -280,17 +285,10 @@ export function LogicBuilder({
     };
     return (
       <div className="pulso-logic-builder">
-        <header className="pulso-logic-builder-header">
-          <span className="pulso-section-eyebrow">{fieldLabel}</span>
-          <button
-            type="button"
-            className="pulso-logic-builder-clear"
-            onClick={() => onChange("")}
-            title={`Quitar la condición — ${targetNoun} se mostrará siempre.`}
-          >
-            <X size={12} /> Quitar
-          </button>
-        </header>
+        {renderHeader({
+          title: `Quitar la condición — ${targetNoun} se mostrará siempre.`,
+          onClear: () => onChange(""),
+        })}
         <div className="pulso-logic-builder-single">
           <ConditionRow
             scope={scope}
@@ -313,7 +311,7 @@ export function LogicBuilder({
             </button>
           </footer>
         )}
-        {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+        {renderHint()}
       </div>
     );
   }
@@ -358,17 +356,10 @@ export function LogicBuilder({
       };
       return (
         <div className="pulso-logic-builder">
-          <header className="pulso-logic-builder-header">
-            <span className="pulso-section-eyebrow">{fieldLabel}</span>
-            <button
-              type="button"
-              className="pulso-logic-builder-clear"
-              onClick={() => onChange("")}
-              title="Quitar todas las condiciones."
-            >
-              <X size={12} /> Quitar
-            </button>
-          </header>
+          {renderHeader({
+            title: "Quitar todas las condiciones.",
+            onClear: () => onChange(""),
+          })}
           <LogicGroupBlock
             scope={scope}
             connector={ast.op}
@@ -378,7 +369,7 @@ export function LogicBuilder({
             fieldLabel="Condiciones"
             buildEmptyCondition={buildEmpty}
           />
-          {hint && <p className="pulso-logic-builder-hint">{hint}</p>}
+          {renderHint()}
         </div>
       );
     }

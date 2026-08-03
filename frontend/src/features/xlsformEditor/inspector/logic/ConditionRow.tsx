@@ -25,7 +25,40 @@ export type ConditionRowProps = {
   /** Si se provee, se muestra un botón de eliminar a la derecha. */
   onRemove?: () => void;
   disabled?: boolean;
+  /** El contenedor ya declaró la variable (grupo de una sola variable) y la
+   *  fila solo edita criterio y valor. Evita repetir la misma pregunta —a
+   *  veces de 800 px de texto— una vez por comparación. */
+  hideVariable?: boolean;
 };
+
+/**
+ * Reapunta una condición a otra variable conservando el criterio si sigue
+ * siendo válido para el nuevo tipo, y adaptando el valor. Vive fuera del
+ * componente porque el encabezado de un grupo de una sola variable reapunta
+ * TODAS sus condiciones de golpe con la misma semántica.
+ */
+export function retargetConditionVariable(
+  condition: FlatCondition,
+  nextName: string,
+  scope: LogicScope,
+): FlatCondition {
+  const nextVar = scope.variables.find((v) => v.name === nextName);
+  const nextType = nextVar?.baseType ?? "text";
+  const nextCatalog = nextVar?.listName
+    ? scope.catalogsByListName.get(nextVar.listName)
+    : undefined;
+  const nextPreds = predicatesForType(nextType, { includePresence: true });
+  const stillValid = nextPreds.some(
+    (p) => predicateKey(p) === predicateKey(condition.predicate),
+  );
+  const nextPredicate = stillValid ? condition.predicate : defaultPredicate(nextType);
+  return {
+    ...condition,
+    variableName: nextName,
+    predicate: nextPredicate,
+    value: valueForPredicateTransition(nextPredicate, condition.value, nextType, nextCatalog),
+  };
+}
 
 function valueHintForType(baseType: string, catalog?: LogicCatalog): string {
   if (baseType === "select_one" || baseType === "select_multiple") {
@@ -42,6 +75,7 @@ export function ConditionRow({
   onChange,
   onRemove,
   disabled,
+  hideVariable,
 }: ConditionRowProps) {
   const selectedVar = scope.variables.find(
     (v) => v.name === condition.variableName,
@@ -57,41 +91,44 @@ export function ConditionRow({
   const predicate = currentValid ? condition.predicate : defaultPredicate(baseType);
 
   const handleVarChange = (next: string) => {
-    const nextVar = scope.variables.find((v) => v.name === next);
-    const nextType = nextVar?.baseType ?? baseType;
-    const nextCatalog = nextVar?.listName
-      ? scope.catalogsByListName.get(nextVar.listName)
-      : undefined;
-    const nextPreds = predicatesForType(nextType, { includePresence: true });
-    const stillValid = nextPreds.some(
-      (p) => predicateKey(p) === predicateKey(predicate),
-    );
-    const nextPredicate = stillValid ? predicate : defaultPredicate(nextType);
-    onChange({
-      ...condition,
-      variableName: next,
-      predicate: nextPredicate,
-      value: valueForPredicateTransition(nextPredicate, condition.value, nextType, nextCatalog),
-    });
+    onChange(retargetConditionVariable({ ...condition, predicate }, next, scope));
   };
 
   const catalog = selectedVar?.listName
     ? scope.catalogsByListName.get(selectedVar.listName)
     : undefined;
   const showsValue = predicate.kind !== "presence";
+  // La pista del valor explica cómo llenar un campo vacío. Repetida bajo un
+  // valor ya elegido es ruido: en `indice_hs` salían 42 copias del mismo
+  // texto en un panel que ya medía 8 364 px.
+  const needsValueHint =
+    showsValue &&
+    (condition.value.kind === "ref"
+      ? !condition.value.variableName
+      : condition.value.raw.trim() === "");
   const valueHint = valueHintForType(baseType, catalog);
 
   return (
-    <div className={`pulso-logic-condition-row${showsValue ? "" : " has-presence"}`}>
-      <div className="pulso-logic-condition-piece pulso-logic-condition-var">
-        <span className="pulso-logic-condition-label">Pregunta</span>
-        <VariablePicker
-          variables={scope.variables}
-          selected={condition.variableName}
-          onChange={handleVarChange}
-          disabled={disabled}
-        />
-      </div>
+    <div
+      className={[
+        "pulso-logic-condition-row",
+        showsValue ? "" : "has-presence",
+        hideVariable ? "is-headless" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {!hideVariable && (
+        <div className="pulso-logic-condition-piece pulso-logic-condition-var">
+          <span className="pulso-logic-condition-label">Pregunta</span>
+          <VariablePicker
+            variables={scope.variables}
+            selected={condition.variableName}
+            onChange={handleVarChange}
+            disabled={disabled}
+          />
+        </div>
+      )}
       <div className="pulso-logic-condition-piece">
         <span className="pulso-logic-condition-label">Criterio</span>
         <PredicatePicker
@@ -120,7 +157,9 @@ export function ConditionRow({
             onChange={(next) => onChange({ ...condition, value: next })}
             disabled={disabled || !condition.variableName}
           />
-          <span className="pulso-logic-condition-hint">{valueHint}</span>
+          {needsValueHint && (
+            <span className="pulso-logic-condition-hint">{valueHint}</span>
+          )}
         </div>
       )}
       {onRemove && (
