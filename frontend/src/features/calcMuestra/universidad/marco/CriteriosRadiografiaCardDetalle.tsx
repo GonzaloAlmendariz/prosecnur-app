@@ -57,6 +57,15 @@ import {
 } from "./CriterioBoxplotPercentilar";
 import { CriteriosEmbudoVivo } from "./CriteriosEmbudoVivo";
 import "./criteriosRadiografia.css";
+import { rotuloSegmento } from "./segmentoRotulo";
+
+/**
+ * F108 · Rótulo vigente por `segment_key`; el `segment_label` del payload sólo
+ * como respaldo. Este componente sólo se monta desde la radiografía de
+ * curso-horario (unidad «alumnos por CH»), así que el grano es fijo.
+ */
+const rotulo = (row: { segment_key?: string | null; segment_label?: string | null }) =>
+  rotuloSegmento(row.segment_key, row.segment_label, "ch");
 
 const NUMBER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
 
@@ -185,7 +194,7 @@ function v2Rows(card: CriterioRadiografiaCard): V2DisplayRow[] {
     facultyKey: row.faculty_key,
     facultyLabel: row.faculty_label,
     segmentKey: row.segment_key,
-    segmentLabel: row.segment_label,
+    segmentLabel: rotulo(row),
     segmentKind: row.segment_kind,
     actual: row.actual,
     contrasteTotal: row.contraste_total,
@@ -202,7 +211,7 @@ function totalRows(card: CriterioRadiografiaCard, totals: CalcMuestraCriteriosTo
       facultyKey: "__total_r__",
       facultyLabel: "Total recalculado por R",
       segmentKey: row.segment_key,
-      segmentLabel: row.segment_label,
+      segmentLabel: rotulo(row),
       segmentKind: row.segment_kind,
       actual: row.actual,
       contrasteTotal: row.contraste_total,
@@ -483,7 +492,7 @@ function ImpactoMarginal({
       <ul className="cmv2-crc-impact-list">
         {rows.map(({ entry, row }) => (
           <li key={`${entry.id}:${row.faculty_key}:${row.segment_key}`}>
-            <span><strong>{row.faculty_label}</strong> · {entry.label} · {row.segment_label}</span>
+            <span><strong>{row.faculty_label}</strong> · {entry.label} · {rotulo(row)}</span>
             <span>{signed(row.delta.delta_ch, "CH")} · {signed(row.delta.delta_matriculas, "matrículas")} · {signed(row.delta.delta_estudiantes_unicos, "alumnos únicos")}</span>
             <small>{row.delta.reconstruccion_valida ? "Contrafactual reconstruido" : "Reconstrucción no válida · deltas NA"}</small>
           </li>
@@ -627,7 +636,7 @@ export function CriteriosRadiografiaCardDetalle({
             {rows.map(({ entry, row }) => (
               <li key={`${entry.id}:${row.faculty_key}:${row.segment_key}`}>
                 <strong>{ACTION_COPY[row.delta.action] ?? row.delta.action}</strong>
-                <span>{row.faculty_label} · {row.segment_label}</span>
+                <span>{row.faculty_label} · {rotulo(row)}</span>
                 {entry.gate === "informativo" ? <small>No altera el N del marco.</small> : null}
               </li>
             ))}

@@ -11,8 +11,13 @@ import {
   CriterioBoxplotPercentilar,
 } from "./CriterioBoxplotPercentilar";
 import { CriteriosRadiografiaCardDetalle } from "./CriteriosRadiografiaCardDetalle";
+import { rotuloSegmento } from "./segmentoRotulo";
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import "./criterioFacultadRadiografia.css";
+
+/** F108 · El rótulo vigente por llave; el del payload sólo como respaldo. */
+const rotulo = (row: { segment_key?: string | null; segment_label?: string | null }) =>
+  rotuloSegmento(row.segment_key, row.segment_label, "ch");
 
 const NUMBER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
 const MAX_VISIBLE_SEGMENTS = 4;
@@ -140,7 +145,7 @@ export function CriterioFacultadRadiografia({
                 role="status"
               >
                 <header>
-                  <strong>{row.segment_label}</strong>
+                  <strong>{rotulo(row)}</strong>
                   {facultyCard.entries.length > 1 ? <span>{entry.label}</span> : null}
                 </header>
                 <p>0 CH</p>
@@ -154,15 +159,15 @@ export function CriterioFacultadRadiografia({
                 data-qa-geometry-capacity="owned"
               >
                 <header>
-                  <strong>{row.segment_label}</strong>
+                  <strong>{rotulo(row)}</strong>
                   {facultyCard.entries.length > 1 ? <span>{entry.label}</span> : null}
                 </header>
                 <CriterioBoxplotPercentilar
-                  label={`${facultyLabel} · ${entry.label} · ${row.segment_label} · elegibles`}
+                  label={`${facultyLabel} · ${entry.label} · ${rotulo(row)} · elegibles`}
                   distribution={row.actual.distribution}
                   domain={domain}
                 />
-                <dl aria-label={`Cifras elegibles de ${row.segment_label}`}>
+                <dl aria-label={`Cifras elegibles de ${rotulo(row)}`}>
                   <div><dt>CH</dt><dd>{fmt(row.actual.n_ch)}</dd></div>
                   <div><dt>CH con dato</dt><dd>{fmt(row.actual.n_ch_con_dato)}</dd></div>
                   <div><dt>Alumnos</dt><dd>{fmt(row.actual.n_estudiantes_unicos)}</dd></div>
