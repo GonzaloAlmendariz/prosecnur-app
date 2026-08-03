@@ -72,6 +72,21 @@ describe("ADR 0057 · regla 4 — la radiografía es de curso-horario, no de est
   });
 });
 
+describe("ADR 0057 · regla 1 — el estado del embudo es de la celda, no de la columna", () => {
+  it("la matriz reparte estados por facultad, no por criterio suelto", () => {
+    // Gonzalo: «no hablamos de ningún criterio a nivel general, hablamos de un
+    // criterio siempre específicamente a una facultad; lo que debería colorearse
+    // es aquel criterio de determinada facultad que esté en edición, mas no la
+    // columna en general».
+    const fuente = leer("criterios/usarEmbudoVivo.ts");
+    expect(fuente).toContain("export function estadosMatriz");
+    expect(fuente).toContain("facultad: string; criterio: number");
+    // La cascada de una facultad sigue existiendo —es la unidad interna— pero
+    // la matriz NO puede exponer un estado por columna.
+    expect(fuente).not.toMatch(/export function estadosColumna|estadoPorCriterio/);
+  });
+});
+
 describe("ADR 0057 · regla 1 — no hay sección de criterios transversales", () => {
   // «Sigues poniendo criterios generales cuando ya quedamos en que todos los
   // criterios son por facultad.» Su VALOR puede seguir siendo común —el
