@@ -38,8 +38,19 @@ export type DominioCategorias = { min: number; max: number };
  */
 export function dominioCategorias(
   aportes: Array<AporteCategoria | null | undefined>,
+  /**
+   * F117 · El corte de un criterio de umbral entra en la escala.
+   *
+   * Es la misma regla que F113 —el dominio abarca todo lo que se dibuja— con la
+   * consecuencia que más importa aquí: un mínimo mayor que el máximo observado
+   * **deja fuera todos los cursos-horario**, y eso hay que verlo. Sin incluirlo,
+   * el corte se pinta fuera del contenedor y el caso más grave es el único que
+   * no se ve.
+   */
+  umbral?: number | null,
 ): DominioCategorias | null {
   const valores: number[] = [];
+  if (typeof umbral === "number" && Number.isFinite(umbral)) valores.push(umbral);
   for (const aporte of aportes) {
     const d = aporte?.distribucion;
     if (!d) continue;

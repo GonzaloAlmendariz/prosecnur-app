@@ -338,11 +338,26 @@ export function DistribucionCategoria({
   elegible,
   dominio,
   unidad = "estudiantes elegibles por curso-horario",
+  umbral,
 }: {
   elegible: VistaDistribucion;
   /** Escala común a TODAS las categorías del criterio. */
   dominio: DominioEscala | null;
   unidad?: string;
+  /**
+   * F117 · Corte de un criterio de umbral, dibujado sobre la misma escala.
+   *
+   * Gonzalo: «si vamos a definir un mínimo de alumnos por facultad, tenemos que
+   * saber cuál es la cantidad de alumnos elegibles por facultad que hay a nivel
+   * general, porque eso nos va a permitir definir si el mínimo es de veinte o
+   * de diez».
+   *
+   * Un criterio de umbral no decide qué categorías entran: decide **dónde
+   * cortar**. La tarjeta de categoría muestra una distribución sin corte, así
+   * que no responde la única pregunta que se está haciendo — qué deja fuera
+   * este número. Con el corte encima de la densidad, la respuesta se ve.
+   */
+  umbral?: { valor: number; etiqueta?: string } | null;
 }) {
   // F112 · Sin conmutador elegibles/todos. Gonzalo: «no entiendo mucho lo de
   // dividir un visor entre elegibles y todos, debería ser solo elegibles — a
@@ -372,6 +387,12 @@ export function DistribucionCategoria({
     <div className="cmv2-dist">
       <figure className="cmv2-dist-grafico" role="img" aria-label={resumenAccesible(d, "los elegibles")}>
         <Guias d={d} dom={dominio} />
+        {umbral && tiene(umbral.valor) ? (
+          <div className="cmv2-dist-umbral" aria-hidden="true" style={{ left: `${pos(umbral.valor, dominio)}%` }}>
+            <i />
+            <b>{umbral.etiqueta ?? fmt(umbral.valor, 0)}</b>
+          </div>
+        ) : null}
         <Densidad d={d} dom={dominio} />
         <Boxplot d={d} dom={dominio} />
         {/* El eje va ENTRE la caja y los cuantiles: es la referencia que ambos
