@@ -19,6 +19,7 @@ export * from "./dashboard";
 export * from "./validacion";
 export * from "./workspace";
 export * from "./calcMuestra";
+export * from "./calcMuestraCriteriosI18b";
 export * from "./planTrabajo";
 export * from "./disenoEstudio";
 export * from "./overview";

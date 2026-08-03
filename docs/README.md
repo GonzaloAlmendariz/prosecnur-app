@@ -121,6 +121,8 @@ arquitectura canónica.
 
 ### Planes de dominio y mejora
 
+- [GOAL v2 de Cálculo de muestra](qa/goal-loop-calc-muestra-v2-2026-08-01.md):
+  loop permanente vigente, ledger y cola de lotes del módulo.
 - [Fuentes legibles de Monitoreo](plan-fuentes-legibles-2026-07.md).
 - [Monitoreo de acreditación](plan-monitoreo-acreditacion-2026-07.md).
 - [Monitoreo telefónico](plan-monitoreo-telefonico-2026-07.md).

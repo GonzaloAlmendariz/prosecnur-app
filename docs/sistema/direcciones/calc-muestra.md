@@ -6,40 +6,39 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
+Módulo `calc-muestra` · ruta `/calc-muestra` · 42 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 573db313 | sí | — |
-| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | a38be3cf | sí | — |
-| `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | f27f1c99 | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 3c427e76 | sí | — |
+| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | 3ae1e4b2 | sí | — |
+| `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | 328e7bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-bases` | pestana | Fuentes | sí | 63cd982d | sí | — |
-| `calc-muestra/opinion-universitaria/definicion/def-consistencia` | pestana | Consistencia | sí | 01225810 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-variables` | pestana | Variables | sí | 620ea7d4 | sí | — |
-| `calc-muestra/opinion-universitaria/marco` | seccion | Marco | sí | 513d671f | sí | — |
+| `calc-muestra/opinion-universitaria/marco` | seccion | Marco | sí | 982996d4 | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-criterios-alumno` | pestana | Criterios del estudiante | sí | 5d26023c | sí | — |
+| `calc-muestra/opinion-universitaria/marco/marco-alumnos-ch` | pestana | Alumnos por CH | sí | 14c56a1c | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-ch-radiografia` | pestana | Cursos-horario: criterios + radiografía | sí | f9f40729 | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-poblacion` | pestana | Población | sí | 58839ca1 | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-aulas` | pestana | Cursos-horario | sí | 7760348d | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-cobertura` | pestana | Cobertura | sí | 93223bf6 | sí | — |
-| `calc-muestra/opinion-universitaria/calculo` | seccion | Cálculo | sí | 4dbde3b3 | sí | — |
+| `calc-muestra/opinion-universitaria/calculo` | seccion | Cálculo | sí | 216aad59 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-diseno` | pestana | Diseño | sí | 0a1e98ce | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-propuestas` | pestana | Propuestas | sí | 19f0c7d7 | sí | — |
-| `calc-muestra/opinion-universitaria/calculo/calculo-ch-facultad` | pestana | Cursos-horario por facultad | sí | 0eea158a | sí | — |
+| `calc-muestra/opinion-universitaria/calculo/calculo-ch-facultad` | pestana | Cursos-horario requeridos | sí | d2750258 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-distribucion` | pestana | Distribución | sí | 70d96f11 | sí | — |
-| `calc-muestra/opinion-universitaria/aulas` | seccion | Selección | sí | ec395067 | sí | — |
-| `calc-muestra/opinion-universitaria/aulas/marco` | pestana | Marco de cursos-horario | sí | 56315d8a | sí | — |
+| `calc-muestra/opinion-universitaria/aulas` | seccion | Selección | sí | 458ffc24 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/objetivo` | pestana | Objetivo de muestra | sí | f9575405 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/metodo` | pestana | Comparar métodos | sí | 18b9eef5 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/laboratorio` | pestana | Simulación | sí | 3da06c70 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/seleccion` | pestana | Cursos-horario titulares | sí | 9a9670e8 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/reemplazos` | pestana | Reemplazos por curso-horario | sí | fe9330a1 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/auditoria` | pestana | Sustento técnico | sí | 60e11b53 | sí | — |
-| `calc-muestra/opinion-universitaria/salidas` | seccion | Entrega | sí | 058bf519 | sí | — |
+| `calc-muestra/opinion-universitaria/salidas` | seccion | Entrega | sí | 870e8de5 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-guia` | pestana | Cierre | sí | a3a21ce5 | sí | — |
-| `calc-muestra/opinion-universitaria/salidas/salidas-entregables` | pestana | Entregables | sí | c1249bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-resultados` | pestana | Tablas | sí | c7a193de | sí | — |
+| `calc-muestra/opinion-universitaria/salidas/salidas-entregables` | pestana | Entregables | sí | c1249bc6 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas/salidas-monitoreo` | pestana | Pase a Monitoreo | sí | a28cb348 | sí | — |
 | `calc-muestra/marco-disponible` | modo | Muestra general | sí | 25f366e7 | sí | — |
 | `calc-muestra/marco-disponible/marco` | seccion | Marco | sí | 404a402f | sí | — |

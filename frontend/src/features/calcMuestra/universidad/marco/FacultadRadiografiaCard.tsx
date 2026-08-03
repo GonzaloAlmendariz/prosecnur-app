@@ -13,16 +13,20 @@
  *    de la vista integrada— ya muestra nombre/elegibles). Solo badges + cuerpo.
  */
 import { Layers3, MapPin } from "lucide-react";
-import type { CalcMuestraAulasExploracionFacultad } from "../../../../api/client";
+import type {
+  CalcMuestraAulasCriteriosRadiografia,
+  CalcMuestraAulasExploracionFacultad,
+} from "../../../../api/client";
 import { fmtDec, fmtInt, fmtPct } from "../../sharedCore";
 import {
   condicionResumen,
-  hayBoxplotElegibles,
   nivelDistribucion,
   shareSinCondicion,
-  tipoSesionShares,
 } from "./exploradorModel";
-import { BoxplotElegibles } from "./BoxplotElegibles";
+import {
+  TipoSesionRadiografia,
+  type TipoSesionRadiografiaContexto,
+} from "./TipoSesionRadiografia";
 
 /** Color del segmento de condición por bucket (tokens del módulo). */
 function condicionKind(condicion: string): "obligatorio" | "electivo" | "sindato" | "otro" {
@@ -32,18 +36,14 @@ function condicionKind(condicion: string): "obligatorio" | "electivo" | "sindato
   return "otro";
 }
 
-/** Tooltip honesto de la mediana por aula: `null` = NA del motor, no un 0. */
-export function medianaTitle(mediana: number | null): string {
-  return mediana != null
-    ? `Mediana de elegibles del aula típica incluida de este grupo: ${fmtDec(mediana, 0)}. Es la cifra que dice si estas aulas cubren la cuota.`
-    : "Sin CH incluidos con dato: un 0 mentiría que el aula típica está vacía.";
-}
-
 export function FacultadRadiografiaCard({
   fac,
   active,
   onSelect,
   modo = "completo",
+  criteriosRadiografia = null,
+  facultadKey,
+  contextoRadiografia = "ejecutado",
 }: {
   fac: CalcMuestraAulasExploracionFacultad;
   /** Standalone (Explorador): resalta la tarjeta seleccionada. */
@@ -56,18 +56,19 @@ export function FacultadRadiografiaCard({
    *  boxplot), «condicion» (barra obligatorio/electivo), «niveles» (tabla por
    *  nivel) o «completo» (todo, Explorador). */
   modo?: "completo" | "resumen" | "tipos" | "condicion" | "niveles";
+  /** Contrato F1 opcional. `null` conserva el resumen/boxplot legacy. */
+  criteriosRadiografia?: CalcMuestraAulasCriteriosRadiografia | null;
+  /** Clave autoritativa para unir la colección F1 en contextos editables. */
+  facultadKey?: string;
+  contextoRadiografia?: TipoSesionRadiografiaContexto;
 }) {
   // Guard defensivo: en dev, un render concurrente/StrictMode transitorio puede
   // montar la tarjeta con `fac` aún sin resolver. El componente no usa hooks, así
-  // que el early-return es seguro y evita que `tipoSesionShares(undefined)` tumbe
-  // el árbol al error boundary (el retry ya renderiza con el `fac` real).
+  // que el early-return es seguro y evita que sus modelos puros reciban
+  // `undefined` (el retry ya renderiza con el `fac` real).
   if (!fac) return null;
-  const tipos = tipoSesionShares(fac);
   const niveles = nivelDistribucion(fac);
   const sinCondicion = shareSinCondicion(fac);
-  // Cada boxplot usa su ESCALA PROPIA (por gráfica): la comparación entre tipos
-  // se lee en las cifras de la tabla, no en el ancho de la caja.
-  const hayBoxplot = hayBoxplotElegibles(tipos);
   const hayBadges = fac.n_multi_facultad > 0 || fac.n_local_externo > 0 || (sinCondicion != null && sinCondicion > 0);
   // Condición del curso (obligatorio/electivo) por facultad: junto al tipo,
   // define cuántas aulas sobreviven a todos los criterios (Ramiro §8.2).
@@ -90,7 +91,7 @@ export function FacultadRadiografiaCard({
           </span>
           <span className="cmv2-explorador-card-hero">
             {fmtInt(fac.elegibles_total)}
-            <em>elegibles</em>
+            <em>matrículas elegibles</em>
           </span>
         </button>
       ) : null}
@@ -120,7 +121,7 @@ export function FacultadRadiografiaCard({
         {verResumen && (
         <p className="cmv2-radiografia-sobreviven">
           <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} cursos-horario
-          quedan como aulas candidatas con los criterios vigentes
+          siguen siendo candidatos con los criterios vigentes
           {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} elegibles/aula` : ""}
         </p>
         )}
@@ -154,96 +155,13 @@ export function FacultadRadiografiaCard({
         )}
       </div>
       )}
-      {verTipos && tipos.length > 0 ? (
-        <div className="cmv2-explorador-card-body">
-          <table
-            className="cmv2-table cmv2-table--university cmv2-explorador-dist"
-            aria-label={`Distribución de ${fac.facultad} por tipo de sesión`}
-          >
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th data-numeric="true">CH · eleg.</th>
-                <th data-numeric="true">Elegibles</th>
-                <th data-numeric="true">Elegibles/aula</th>
-                {hayBoxplot && <th className="cmv2-boxplot-col">Distribución</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {tipos.map((tipo) => (
-                <tr key={tipo.tipo}>
-                  <td>
-                    <div className="cmv2-explorador-dist-cell">
-                      <span className="cmv2-explorador-dist-label" title={tipo.tipo}>{tipo.tipo}</span>
-                      <span className="cmv2-explorador-dist-track" aria-hidden="true">
-                        <i style={{ width: `${Math.max(2, Math.round(tipo.share * 100))}%` }} />
-                      </span>
-                      <span className="cmv2-explorador-dist-pct">{fmtPct(tipo.share)}</span>
-                    </div>
-                  </td>
-                  <td
-                    data-numeric="true"
-                    title={`${fmtInt(tipo.chElegibles)} de ${fmtInt(tipo.ch)} cursos-horario con ≥1 elegible`}
-                  >
-                    {fmtInt(tipo.ch)}
-                    <span className="cmv2-dist-sub"> · {fmtInt(tipo.chElegibles)}</span>
-                  </td>
-                  <td data-numeric="true">{fmtInt(tipo.elegibles)}</td>
-                  <td data-numeric="true" title={medianaTitle(tipo.medianaElegibles)}>
-                    {tipo.medianaElegibles != null ? (
-                      <>
-                        <strong>{fmtDec(tipo.medianaElegibles, 0)}</strong>
-                        {tipo.caja?.media != null ? (
-                          <span className="cmv2-dist-sub"> · μ{fmtDec(tipo.caja.media, 0)}</span>
-                        ) : null}
-                        {tipo.caja ? (
-                          <span className="cmv2-dist-rango">
-                            {fmtInt(tipo.caja.min)}–{fmtInt(tipo.caja.max)}
-                          </span>
-                        ) : null}
-                      </>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  {hayBoxplot && (
-                    <td className="cmv2-boxplot-col">
-                      {tipo.caja ? (
-                        <BoxplotElegibles caja={tipo.caja} tipo={tipo.tipo} />
-                      ) : (
-                        <span className="cmv2-boxplot-vacio" title={medianaTitle(tipo.medianaElegibles)}>
-                          —
-                        </span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {hayBoxplot && (
-            <p className="cmv2-boxplot-leyenda">
-              <span className="cmv2-boxplot-leyenda-item">
-                <span className="cmv2-boxplot-leyenda-caja" aria-hidden="true" />caja Q1–Q3
-              </span>
-              <span className="cmv2-boxplot-leyenda-item">
-                <span className="cmv2-boxplot-leyenda-mediana" aria-hidden="true" />mediana
-              </span>
-              <span className="cmv2-boxplot-leyenda-item">
-                <span className="cmv2-boxplot-leyenda-media" aria-hidden="true" />media
-              </span>
-              <span className="cmv2-boxplot-leyenda-nota">
-                Escala propia por tipo (elegibles por aula): los números rotulan los cuartiles
-                (Q1 · mediana · Q3) y la media, cada uno sobre su marca. La media a la derecha de la
-                mediana señala aulas grandes que jalan el promedio.
-              </span>
-            </p>
-          )}
-        </div>
-      ) : verTipos ? (
-        <p className="cmv2-explorador-card-vacio">
-          El contrato no trae distribución por tipo de sesión para esta facultad.
-        </p>
+      {verTipos ? (
+        <TipoSesionRadiografia
+          facultad={fac}
+          facultadKey={facultadKey}
+          radiografia={criteriosRadiografia}
+          contexto={contextoRadiografia}
+        />
       ) : null}
       {verNiveles && niveles.length > 0 && (
         <table className="cmv2-table cmv2-table--university cmv2-explorador-dist cmv2-radiografia-niveles">
@@ -252,7 +170,7 @@ export function FacultadRadiografiaCard({
               <th>Nivel del curso</th>
               <th data-numeric="true">CH</th>
               <th data-numeric="true">Elegibles</th>
-              <th data-numeric="true">Med/aula</th>
+              <th data-numeric="true">Mediana por CH</th>
             </tr>
           </thead>
           <tbody>
@@ -269,7 +187,12 @@ export function FacultadRadiografiaCard({
                 </td>
                 <td data-numeric="true">{fmtInt(nivel.ch)}</td>
                 <td data-numeric="true">{fmtInt(nivel.elegibles)}</td>
-                <td data-numeric="true" title={medianaTitle(nivel.medianaElegibles)}>
+                <td
+                  data-numeric="true"
+                  title={nivel.medianaElegibles != null
+                    ? `Mediana de elegibles por aula: ${fmtDec(nivel.medianaElegibles, 0)}.`
+                    : "Sin CH incluidos con dato."}
+                >
                   {nivel.medianaElegibles != null ? fmtDec(nivel.medianaElegibles, 0) : "—"}
                 </td>
               </tr>

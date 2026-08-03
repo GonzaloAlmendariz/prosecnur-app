@@ -11,11 +11,11 @@ fuentes: ["frontend/src/features/calcMuestra/universidad/universidadTabs.ts"]
 ---
 # Marco
 
-> En la UI: **Marco**. Define elegibilidad y construye el universo de estudiantes y cursos-horario.
+> En la UI: **Marco**. Define elegibilidad, construye el universo de estudiantes y cursos-horario y decide cuántos alumnos representa cada CH.
 
 ## Propósito de esta guía
 
-**Marco universitario** organiza decisiones que cambian el diseño muestral y sus salidas. En la UI: **Marco**. Define elegibilidad y construye el universo de estudiantes y cursos-horario. Cada vínculo de esta página conduce exclusivamente a un hijo directo y explica qué pregunta resuelve, qué debe comprobarse allí y qué evidencia queda preparada.
+**Marco universitario** organiza decisiones que cambian el diseño muestral y sus salidas. Define elegibilidad, construye el universo de estudiantes y cursos-horario y decide el estadístico de alumnos por CH que consumirá Cálculo. La consistencia del enlace se acredita antes, dentro de Datos > Fuentes.
 
 ## Antes de recorrer este nivel
 
@@ -28,9 +28,10 @@ flowchart TD
     N["Marco universitario"]
     N --> C1["Criterios del estudiante"]
     N --> C2["Cursos-horario criterios y radiografía"]
-    N --> C3["Población universitaria"]
-    N --> C4["Cursos-horario del marco"]
-    N --> C5["Cobertura universitaria"]
+    N --> C3["Alumnos por CH"]
+    N --> C4["Población universitaria"]
+    N --> C5["Cursos-horario del marco"]
+    N --> C6["Cobertura universitaria"]
 ```
 
 ## Guía de destinos
@@ -39,6 +40,7 @@ flowchart TD
 |---|---|---|---|
 | [[Criterios del estudiante]] | cuando las variables están mapeadas y debes decidir qué estudiantes integran la población elegible. | Define quién es elegible por formación, condición, edad, facultad y nivel. | reglas de elegibilidad del estudiante. |
 | [[Cursos-horario criterios y radiografía]] | cuando debes ajustar reglas de curso viendo su efecto sobre elegibles por facultad y nivel. | En la UI: **Cursos-horario: criterios + radiografía**. Ajusta reglas de aula viendo dónde están los elegibles. | criterios de curso-horario con radiografía de cobertura. |
+| [[Alumnos por CH]] | cuando el marco ejecutado ya publica la distribución completa por facultad. | Compara P25, mediana y media del marco elegible contra todos los CH y confirma un método global o por facultad. | decisión firmada que Cálculo y Selección consumen sin recalcular. |
 | [[Población universitaria]] | cuando los criterios ya pueden aplicarse y necesitas inspeccionar la base elegible real. | En la UI: **Población**. Presenta elegibles y estructura de la base real. | población elegible cuantificada y descrita. |
 | [[Cursos-horario del marco]] | cuando la población elegible debe agregarse en las unidades que realmente pueden sortearse. | En la UI: **Cursos-horario**. Inspecciona las unidades seleccionables del marco real. | lista de cursos-horario seleccionables. |
 | [[Cobertura universitaria]] | cuando necesitas comprobar qué elegibles quedan incluidos o excluidos por facultad. | En la UI: **Cobertura**. Compara elegibles incluidos y excluidos por facultad. | diagnóstico de cobertura y exclusiones. |
@@ -47,11 +49,12 @@ flowchart TD
 
 1. **Criterios del estudiante:** Define quién es elegible por formación, condición, edad, facultad y nivel; al terminar, el resultado es reglas de elegibilidad del estudiante.
 2. **Cursos-horario criterios y radiografía:** En la UI: **Cursos-horario: criterios + radiografía**. Ajusta reglas de aula viendo dónde están los elegibles; al terminar, el resultado es criterios de curso-horario con radiografía de cobertura.
-3. **Población universitaria:** En la UI: **Población**. Presenta elegibles y estructura de la base real; al terminar, el resultado es población elegible cuantificada y descrita.
-4. **Cursos-horario del marco:** En la UI: **Cursos-horario**. Inspecciona las unidades seleccionables del marco real; al terminar, el resultado es lista de cursos-horario seleccionables.
-5. **Cobertura universitaria:** En la UI: **Cobertura**. Compara elegibles incluidos y excluidos por facultad; al terminar, el resultado es diagnóstico de cobertura y exclusiones.
+3. **Alumnos por CH:** compara P25, mediana y media por facultad y confirma la decisión firmada.
+4. **Población universitaria:** presenta elegibles y estructura de la base real.
+5. **Cursos-horario del marco:** inspecciona las unidades seleccionables del marco real.
+6. **Cobertura universitaria:** compara elegibles incluidos y excluidos por facultad.
 
-La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el método transforma esos insumos en metas o probabilidades; y el cierre conserva la evidencia. En **Marco universitario**, empieza por **Criterios del estudiante** y termina en **Cobertura universitaria**. Para una revisión puntual puedes abrir directamente el destino causal, pero recalcula las tareas posteriores si modificas su entrada.
+La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el marco ejecutado publica las distribuciones; Alumnos por CH fija el divisor firmado; y Cálculo lo consume. Empieza por **Criterios del estudiante** y termina en **Cobertura universitaria**.
 
 ## Cómo interpretar avance y estados
 

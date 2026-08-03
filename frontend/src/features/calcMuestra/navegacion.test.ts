@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { PROSECNUR_MODULES } from "../../lib/modules";
 import { parsearDireccion, serializarDireccion } from "../../lib/navegacion/direccion";
 import { resolverSeccion, seccionesDelModo } from "../../lib/navegacion/useDireccion";
-import { deskDeModo, modoCrudoDeLaDireccion, modoDeDesk, sinAliasDeModo } from "./navegacion";
+import {
+  deskDeModo,
+  modoCrudoDeLaDireccion,
+  modoDeDesk,
+  resolverDireccionHistoricaUniversidad,
+  sinAliasDeModo,
+} from "./navegacion";
 
 const CALC = PROSECNUR_MODULES.find((m) => m.slug === "calc-muestra")!;
 
@@ -53,6 +59,16 @@ describe("dirección de Cálculo de muestra", () => {
     expect(direccion?.modo).toBe("opinion-universitaria");
     expect(direccion?.seccion).toBe("aulas");
     expect(direccion?.pestana).toBe("seleccion");
+    expect(serializarDireccion(direccion!)).toBe(href);
+  });
+
+  it("conserva el deep-link canónico de Cursos-horario requeridos", () => {
+    const href = "/calc-muestra?modo=opinion-universitaria&seccion=calculo&pestana=calculo-ch-facultad";
+    const direccion = parsearDireccion(
+      "/calc-muestra",
+      "?modo=opinion-universitaria&seccion=calculo&pestana=calculo-ch-facultad",
+    );
+    expect(direccion?.pestana).toBe("calculo-ch-facultad");
     expect(serializarDireccion(direccion!)).toBe(href);
   });
 
@@ -118,6 +134,94 @@ describe("dirección de Cálculo de muestra", () => {
 
     it("no deja una interrogación suelta cuando el alias era todo lo que había", () => {
       expect(sinAliasDeModo("?mesa=aulas")).toBe("");
+    });
+  });
+
+  describe("normalización histórica de la dirección universitaria", () => {
+    const casos = [
+      {
+        // D10 ejecutada: Consistencia es pestaña propia de Datos, así que su
+        // dirección ya no se reescribe a Fuentes con foco.
+        nombre: "conserva la dirección propia de Consistencia en Datos",
+        seccion: "definicion",
+        pestana: "def-consistencia",
+        esperado: { seccion: "definicion", pestana: "def-consistencia", foco: null },
+      },
+      {
+        nombre: "traduce el id retirado dentro de Marco a su hogar real",
+        seccion: "marco",
+        pestana: "marco-validacion",
+        esperado: { seccion: "definicion", pestana: "def-consistencia", foco: null },
+      },
+      {
+        nombre: "mueve el alias histórico de Marco a la pestaña de Consistencia",
+        seccion: "marco",
+        pestana: "def-consistencia",
+        esperado: { seccion: "definicion", pestana: "def-consistencia", foco: null },
+      },
+      {
+        nombre: "mueve el antiguo Marco de selección a su hogar canónico",
+        seccion: "aulas",
+        pestana: "marco",
+        esperado: { seccion: "marco", pestana: "marco-aulas", foco: null },
+      },
+      {
+        nombre: "deja estable el hogar canónico de cursos-horario",
+        seccion: "marco",
+        pestana: "marco-aulas",
+        esperado: { seccion: "marco", pestana: "marco-aulas", foco: null },
+      },
+      {
+        nombre: "no interpreta una pestaña marco fuera de Selección",
+        seccion: "otra-seccion",
+        pestana: "marco",
+        esperado: { seccion: "otra-seccion", pestana: "marco", foco: null },
+      },
+      {
+        nombre: "no infiere el hogar desde una pestaña marco suelta",
+        seccion: null,
+        pestana: "marco",
+        esperado: { seccion: null, pestana: "marco", foco: null },
+      },
+      {
+        nombre: "no mueve otra pestaña de Selección",
+        seccion: "aulas",
+        pestana: "objetivo",
+        esperado: { seccion: "aulas", pestana: "objetivo", foco: null },
+      },
+      {
+        nombre: "no interpreta marco-validacion fuera de Marco",
+        seccion: "definicion",
+        pestana: "marco-validacion",
+        esperado: { seccion: "definicion", pestana: "marco-validacion", foco: null },
+      },
+      {
+        nombre: "no infiere una sección desde def-consistencia",
+        seccion: null,
+        pestana: "def-consistencia",
+        esperado: { seccion: null, pestana: "def-consistencia", foco: null },
+      },
+      {
+        nombre: "no infiere una sección desde marco-validacion",
+        seccion: null,
+        pestana: "marco-validacion",
+        esperado: { seccion: null, pestana: "marco-validacion", foco: null },
+      },
+      {
+        nombre: "conserva una pareja desconocida",
+        seccion: "otra-seccion",
+        pestana: "otra-pestana",
+        esperado: { seccion: "otra-seccion", pestana: "otra-pestana", foco: null },
+      },
+    ] as const;
+
+    it.each(casos)("$nombre", ({ seccion, pestana, esperado }) => {
+      expect(resolverDireccionHistoricaUniversidad(seccion, pestana)).toEqual(esperado);
+    });
+
+    it("conserva el foco canónico una vez aterrizado en Fuentes", () => {
+      expect(resolverDireccionHistoricaUniversidad("definicion", "def-bases", "def-consistencia"))
+        .toEqual({ seccion: "definicion", pestana: "def-bases", foco: "def-consistencia" });
     });
   });
 });

@@ -21,16 +21,18 @@ function firma(pestanas: readonly { id: string; label: string }[]) {
 }
 
 describe("catálogos canónicos de pestañas", () => {
-  it("fija las 24 pestañas de Muestra universitaria con su orden y copy", () => {
+  it("fija las 24 pestañas vivas de Muestra universitaria con su orden y copy", () => {
     expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(24);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
+      // D10: Consistencia inmediatamente después de Fuentes.
       "def-consistencia:Consistencia",
       "def-variables:Variables",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco)).toEqual([
       "marco-criterios-alumno:Criterios del estudiante",
+      "marco-alumnos-ch:Alumnos por CH",
       "marco-ch-radiografia:Cursos-horario: criterios + radiografía",
       "marco-poblacion:Población",
       "marco-aulas:Cursos-horario",
@@ -39,11 +41,15 @@ describe("catálogos canónicos de pestañas", () => {
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo)).toEqual([
       "calculo-diseno:Diseño",
       "calculo-propuestas:Propuestas",
-      "calculo-ch-facultad:Cursos-horario por facultad",
+      "calculo-ch-facultad:Cursos-horario requeridos",
       "calculo-distribucion:Distribución",
     ]);
+    expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo[2]).toMatchObject({
+      id: "calculo-ch-facultad",
+      label: "Cursos-horario requeridos",
+      targetId: "cmv2-local-calculo-ch-facultad",
+    });
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas)).toEqual([
-      "marco:Marco de cursos-horario",
       "objetivo:Objetivo de muestra",
       "metodo:Comparar métodos",
       "laboratorio:Simulación",
@@ -53,8 +59,8 @@ describe("catálogos canónicos de pestañas", () => {
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas)).toEqual([
       "salidas-guia:Cierre",
-      "salidas-entregables:Entregables",
       "salidas-resultados:Tablas",
+      "salidas-entregables:Entregables",
       "salidas-monitoreo:Pase a Monitoreo",
     ]);
   });
@@ -127,6 +133,19 @@ describe("catálogos canónicos de pestañas", () => {
         expect(tab.direccionPublicada).toBe(true);
       }
     }
+    // D10 ejecutada: Consistencia dejó de ser una subpágina sin dirección y es
+    // una pestaña con la suya, inmediatamente después de Fuentes.
+    const consistencia = Object.values(CALC_MUESTRA_UNIVERSIDAD_PESTANAS)
+      .flat()
+      .find((tab) => String(tab.id) === "def-consistencia");
+    expect(consistencia).toBeDefined();
+    expect(consistencia?.to).toBe(
+      "/calc-muestra?modo=opinion-universitaria&seccion=definicion&pestana=def-consistencia",
+    );
+    expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion[1].to).toBe(
+      "/calc-muestra?modo=opinion-universitaria&seccion=definicion&pestana=def-bases",
+    );
+    expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion[2].id).toBe("def-consistencia");
 
     for (const [seccion, pestanas] of Object.entries(PROCESAMIENTO_PESTANAS)) {
       for (const tab of pestanas) {

@@ -18,6 +18,7 @@
 #   POST /api/calc-muestra/iniciar-estudio     — inicia estudio por tipo
 #   POST /api/calc-muestra/modo-trabajo        — transición de modo
 #   POST /api/calc-muestra/marco/config        — configura marco de aulas
+#   POST /api/calc-muestra/asistencia/referencia — calcula referencia histórica
 #   POST /api/calc-muestra/marco/construir     — construye marco de aulas
 #   POST /api/calc-muestra/aulas/comparar-metodos — compara motores
 #   POST /api/calc-muestra/aulas/seleccionar   — selecciona aulas M1..Mk
@@ -93,16 +94,6 @@
     estimated_cost > .cm_aulas_job_cost_threshold()
 }
 
-# F4: hash del marco vigente en la sesion ("" si no hay marco). Un job de
-# comparar/seleccionar/simular puede terminar DESPUES de que el usuario
-# reconstruyo el marco; su on_complete solo persiste el resultado si este
-# hash coincide con el capturado al submit.
-.cm_aulas_frame_vigente_hash <- function(s) {
-  frame <- s$calc_muestra_aulas_frame %||% NULL
-  if (is.null(frame)) return("")
-  .cm_aulas_scalar(frame$frame_hash %||% "", "")
-}
-
 # F4: nota de resultado obsoleto para la UI. El resultado completo sigue
 # disponible en el job store (GET /api/jobs/<id>); la sesion solo registra
 # que NO se aplico por marco desactualizado.
@@ -124,7 +115,7 @@
     s_now <- session_get(sid, required = FALSE)
     fresh <- FALSE
     if (!is.null(s_now) && is.list(comparison)) {
-      fresh <- identical(.cm_aulas_frame_vigente_hash(s_now), frame_hash)
+      fresh <- .cm_aulas_run_vigente(s_now, frame_hash, config)
       if (fresh) {
         session_set(sid, "calc_muestra_aulas_config", config)
         session_set(sid, "calc_muestra_aulas_method_comparison", comparison)
@@ -153,7 +144,7 @@
     s_now <- session_get(sid, required = FALSE)
     fresh <- FALSE
     if (!is.null(s_now) && is.list(selection)) {
-      fresh <- identical(.cm_aulas_frame_vigente_hash(s_now), frame_hash)
+      fresh <- .cm_aulas_run_vigente(s_now, frame_hash, config)
       if (fresh) {
         comparison <- s_now$calc_muestra_aulas_method_comparison %||% NULL
         if (!is.null(comparison)) selection$method_comparison <- comparison
@@ -185,7 +176,7 @@
     if (!is.null(s_now) && is.list(replacement)) {
       selection_now <- s_now$calc_muestra_aulas_selection %||% NULL
       run_id_now <- .cm_aulas_scalar(selection_now$selection_run_id %||% "", "")
-      fresh <- identical(.cm_aulas_frame_vigente_hash(s_now), frame_hash) &&
+      fresh <- .cm_aulas_run_vigente(s_now, frame_hash, config) &&
         identical(run_id_now, selection_run_id)
       if (fresh) {
         if (!is.null(selection_now)) {
@@ -217,6 +208,7 @@
   reporte_meta <- s$calc_muestra_reporte %||% list(disponible = FALSE)
   list(
     estudio = estudio,
+    referencia_asistencia = s$calc_muestra_referencia_asistencia %||% NULL,
     aulas = list(
       config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
       frame = s$calc_muestra_aulas_frame %||% NULL,
@@ -264,7 +256,12 @@ mount_calc_muestra <- function(pr) {
       s <- session_get(sid)
       prev <- s$calc_muestra_estudio %||% NULL
       estudio <- calc_muestra_normalize_estudio(input)
+      decision_update <- .cm_alumnos_por_ch_preparar_estudio_guardado(prev, estudio)
+      estudio <- decision_update$estudio
       session_set(sid, "calc_muestra_estudio", estudio)
+      if (decision_update$changed) {
+        .cm_aulas_invalidar_derivados_decision(sid)
+      }
       # F5: el autosave (~2 s) pega a este endpoint con CUALQUIER edicion de
       # UI; borrar la meta aqui dejaba la descarga en 404 (perdia job_id/
       # path). La meta se preserva y solo se marca stale ante cambio
@@ -347,7 +344,10 @@ mount_calc_muestra <- function(pr) {
         stop_api(409, "E_SIN_ESTUDIO",
                  "No hay estudio cargado. Crea uno antes de calcular.")
       }
-      estudio_calc <- calc_muestra_calcular_estudio(estudio)
+      estudio_calc <- calc_muestra_alumnos_por_ch_calcular_estudio(
+        estudio,
+        frame = s$calc_muestra_aulas_frame %||% NULL
+      )
       session_set(sid, "calc_muestra_estudio", estudio_calc)
       # F5: cambia contenido del reporte -> stale, preservando job_id/path.
       session_set(sid, "calc_muestra_reporte",
@@ -492,6 +492,77 @@ mount_calc_muestra <- function(pr) {
     })) |>
 
     # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/asistencia/referencia — calcula y guarda el
+    # agregado metodológico de un estudio histórico externo.
+    # Body: { referencia_asistencia|referencia_asistencia_file_id,
+    #         referencia_asistencia_sheet?, estudio?: {...}, workspace?: {...} }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/asistencia/referencia",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      has_workspace <- "workspace" %in% names(body)
+      if (has_workspace && !is.list(body$workspace)) {
+        stop_api(
+          400,
+          "E_CALC_MUESTRA_ASISTENCIA_REFERENCE",
+          "workspace debe ser una lista."
+        )
+      }
+
+      estudio_vigente <- s$calc_muestra_estudio %||%
+        calc_muestra_normalize_estudio(list())
+      estudio_actualizado <- NULL
+      reporte_actualizado <- NULL
+      if (has_workspace) {
+        propuesta <- estudio_vigente
+        propuesta$workspace <- body$workspace
+        estudio_actualizado <- calc_muestra_normalize_estudio(propuesta)
+        reporte_actualizado <- calc_muestra_reporte_meta_tras_estudio(
+          s$calc_muestra_reporte,
+          estudio_vigente,
+          estudio_actualizado
+        )
+      }
+
+      estudio_input <- body$estudio %||% s$calc_muestra_estudio %||% list()
+      estudio_referencia <- if (is.list(estudio_input)) {
+        list(
+          id = calc_str(estudio_input$id, ""),
+          label = calc_str(estudio_input$label %||% estudio_input$titulo, ""),
+          periodo = calc_str(estudio_input$periodo, ""),
+          fuente = calc_str(estudio_input$fuente, "")
+        )
+      } else {
+        estudio_input
+      }
+      referencia <- tryCatch({
+        tabla <- .cm_table_from_payload(sid, body, "referencia_asistencia")
+        calc_muestra_asistencia_referencia(tabla, estudio = estudio_referencia)
+      }, error = function(e) {
+        if (inherits(e, "api_error")) stop(e)
+        stop_api(
+          400,
+          "E_CALC_MUESTRA_ASISTENCIA_REFERENCE",
+          conditionMessage(e)
+        )
+      })
+
+      .cm_criterios_referencia_guardar(
+        sid, s, referencia, has_workspace, estudio_actualizado, reporte_actualizado
+      )
+
+      state <- .cm_state_payload(sid)
+      list(
+        ok = TRUE,
+        estudio = state$estudio,
+        referencia_asistencia = referencia,
+        state = state
+      )
+    })) |>
+
+    # -----------------------------------------------------------------------
     # POST /api/calc-muestra/marco/construir — construye marco de aulas
     # Body: { base_madre|base_madre_file_id, estudiantes|estudiantes_file_id,
     #         inscripciones|inscripciones_file_id, catalogo_curso_horario,
@@ -520,8 +591,9 @@ mount_calc_muestra <- function(pr) {
         ),
         error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
       )
-      session_set(sid, "calc_muestra_aulas_config", frame$config)
-      session_set(sid, "calc_muestra_aulas_frame", frame)
+      frame <- .cm_criterios_frame_guardar(
+        sid, frame, s$calc_muestra_referencia_asistencia
+      )
       session_set(sid, "calc_muestra_aulas_selection", NULL)
       session_set(sid, "calc_muestra_aulas_method_comparison", NULL)
       session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
@@ -555,6 +627,7 @@ mount_calc_muestra <- function(pr) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
       }
       config <- calc_muestra_aulas_normalize_config(config_input)
+      .cm_aulas_assert_decision_vigente(s, config)
       methods <- body$methods %||% body$metodos %||% NULL
       simulation_runs <- body$simulation_runs %||% body$simulaciones %||% NULL
 
@@ -620,6 +693,7 @@ mount_calc_muestra <- function(pr) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
       }
       config <- calc_muestra_aulas_normalize_config(config_input)
+      .cm_aulas_assert_decision_vigente(s, config)
       method_id <- calc_str(body$method_id %||% body$selector_engine %||% body$comparison_method %||% "", "")
       if (nzchar(method_id)) {
         config$selector$selector_engine <- .cm_aulas_engine_key(method_id)
@@ -689,6 +763,7 @@ mount_calc_muestra <- function(pr) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
       }
       config <- calc_muestra_aulas_normalize_config(config_input)
+      .cm_aulas_assert_decision_vigente(s, config)
 
       if (.cm_aulas_frame_n(frame) < .cm_aulas_job_threshold()) {
         replacement <- tryCatch(
@@ -732,6 +807,10 @@ mount_calc_muestra <- function(pr) {
       if (is.null(frame) || is.null(selection)) {
         stop_api(409, "E_SIN_SELECCION_AULAS", "Construye el marco y selecciona aulas antes de exportar.")
       }
+      .cm_aulas_assert_decision_vigente(
+        s,
+        s$calc_muestra_aulas_config %||% frame$config %||% list()
+      )
       out_path <- tempfile("calc_muestra_aulas_", fileext = ".xlsx")
       tryCatch(
         calc_muestra_aulas_exportar_workbook(
@@ -788,9 +867,7 @@ mount_calc_muestra <- function(pr) {
         stop_api(409, "E_SIN_ESTUDIO",
                  "El estudio está vacío. Agrega componentes y calcula antes de generar el reporte.")
       }
-      tiene_resultados <- any(vapply(estudio$componentes,
-                                     function(c) !is.null(c$resultado),
-                                     logical(1)))
+      tiene_resultados <- .cm_alumnos_por_ch_tiene_resultados_publicables(estudio)
       if (!tiene_resultados) {
         stop_api(409, "E_SIN_RESULTADOS",
                  "Ejecuta el cálculo antes de generar el reporte.")
@@ -878,5 +955,6 @@ mount_calc_muestra <- function(pr) {
                     sprintf('%s; filename="%s"', modo, basename(meta$path)))
       res$body <- bytes
       res
-    }))
+    })) |>
+    mount_calc_muestra_criterios()
 }

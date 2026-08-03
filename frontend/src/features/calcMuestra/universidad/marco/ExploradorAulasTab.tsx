@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Compass, Layers3, MapPin } from "lucide-react";
 import { EmptyState } from "../../../../components/States";
 import {
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
   type CalcMuestraAulasExploracionFacultad,
@@ -19,6 +20,7 @@ import {
 } from "../../../../api/client";
 import { fmtInt, fmtPct, rowsFrom } from "../../sharedCore";
 import { classroomSelectionRowsForState } from "../shared/frame";
+import { frameIntegrity } from "../shared/frameIntegrity";
 import { normalizeUniversityLabel } from "../shared/format";
 import { workspaceCategoryLabel } from "../shared/categorias";
 import { CifraFila, CifraMotor } from "../ui";
@@ -54,10 +56,15 @@ export function ExploradorAulasTab({
   aulasState: CalcMuestraAulasState | null;
 }) {
   const frame = aulasState?.frame ?? null;
+  const integridadFrame = useMemo(() => frameIntegrity(frame), [frame]);
   const exploracion = useMemo(
     () => normalizeCalcMuestraAulasExploracion(frame?.exploracion ?? null),
     [frame?.exploracion],
   );
+  const criteriosRadiografia = useMemo(() => {
+    const normalizada = normalizeCalcMuestraAulasCriteriosRadiografia(frame?.criterios_radiografia ?? null);
+    return normalizada?.frame_hash === frame?.frame_hash ? normalizada : null;
+  }, [frame?.criterios_radiografia, frame?.frame_hash]);
   const particularidades = useMemo(
     () => normalizeCalcMuestraAulasParticularidades(frame?.particularidades ?? null),
     [frame?.particularidades],
@@ -105,13 +112,20 @@ export function ExploradorAulasTab({
     [aulasState, exploracion],
   );
 
-  if (!exploracion) {
+  if (integridadFrame.status !== "consistent" || !exploracion) {
+    const inconsistente = integridadFrame.status === "inconsistent";
     return (
       <div className="cmv2-marco-stack cmv2-explorador" data-audit-ready="false">
         <EmptyState
           icon={<Compass size={20} />}
-          title="Reconstruye el marco para generar la radiografía"
-          hint="La exploración por facultad (tipos de curso, locales externos y rendimiento por aula) se calcula junto con el marco. Ve a Criterios de inclusión y usa «Reconstruir» con tu base cargada."
+          title={inconsistente
+            ? "La radiografía no corresponde al marco ejecutado"
+            : exploracion
+              ? "El marco ejecutado no es verificable"
+              : "Reconstruye el marco para generar la radiografía"}
+          hint={inconsistente
+            ? "Reconstruye el marco para recuperar una radiografía coherente antes de publicar sus cifras."
+            : "La radiografía no puede verificarse contra el marco ejecutado. Reconstruye el marco con tu base cargada."}
         />
       </div>
     );
@@ -124,7 +138,7 @@ export function ExploradorAulasTab({
           <span className="cmv2-eyebrow">Explorador de aulas</span>
           <strong>Radiografía del marco para elegir con conocimiento del terreno</strong>
           <p className="cmv2-explorador-mision">
-            Qué tipo de curso concentra a los alumnos en cada facultad, qué cursos se dictan fuera del
+            Qué tipo de curso concentra las matrículas elegibles en cada facultad, qué cursos se dictan fuera del
             campus y dónde rinde más cada aula.
           </p>
         </div>
@@ -143,9 +157,9 @@ export function ExploradorAulasTab({
             origen="motor"
           />
           <CifraMotor
-            label="Elegibles"
+            label="Suma de matrículas elegibles"
             value={fmtInt(exploracion.totales.elegibles_total)}
-            detalle="alumnos elegibles en el marco"
+            detalle="en cursos-horario incluidos; una persona puede contar varias veces"
             origen="motor"
           />
           <CifraMotor
@@ -176,7 +190,7 @@ export function ExploradorAulasTab({
         <div className="cmv2-explorador-toolbar">
           <div className="cmv2-marco-aulas-lead">
             <span className="cmv2-eyebrow">Perfil por facultad</span>
-            <strong>Dónde están los alumnos de cada facultad</strong>
+            <strong>Dónde se concentran las matrículas elegibles de cada facultad</strong>
           </div>
           <label className="cmv2-compact-field cmv2-explorador-buscador">
             <span>Buscar facultad</span>
@@ -205,6 +219,7 @@ export function ExploradorAulasTab({
                     setVerTodos(false);
                     setSort(EXPLORADOR_SORT_DEFAULT);
                   }}
+                  criteriosRadiografia={criteriosRadiografia}
                 />
               ))}
             </div>

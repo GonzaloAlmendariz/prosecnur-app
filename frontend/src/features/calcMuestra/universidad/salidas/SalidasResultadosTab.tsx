@@ -13,9 +13,22 @@ import { DistribucionFacultadSexo } from "../../didactica/DistribucionFacultadSe
 import { BadgeMotor } from "../../didactica/PasoDidactico";
 import { fmtInt, fmtPct } from "../../sharedCore";
 import { ESCENARIOS_OPINION } from "../shared/constants";
-import { hasUsefulResult, proposalShortLabel, universityDistributionRows } from "../shared/study";
+import {
+  hasUsefulResult,
+  proposalShortLabel,
+  universityComponentForScenario,
+  universityDistributionRows,
+} from "../shared/study";
 import "../../didactica/didactica.css";
 import "./salidas.css";
+
+export function salidasChartComponent(
+  componentes: readonly CalcMuestraComponente[],
+  workspace: CalcMuestraWorkspace,
+): CalcMuestraComponente | null {
+  const selected = universityComponentForScenario(componentes, workspace);
+  return selected && hasUsefulResult(selected) ? selected : null;
+}
 
 export function SalidasResultadosTab({
   componentes,
@@ -27,11 +40,7 @@ export function SalidasResultadosTab({
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
 }) {
   const scenarios = workspace.escenarios.length ? workspace.escenarios : ESCENARIOS_OPINION;
-  const activeScenario = scenarios.find((e) => e.activo);
-  const chartComp =
-    componentes.find((comp) => comp.id === activeScenario?.component_id && hasUsefulResult(comp)) ??
-    componentes.find(hasUsefulResult) ??
-    null;
+  const chartComp = salidasChartComponent(componentes, workspace);
 
   function toggleReporte(componentId: string, incluir: boolean) {
     onWorkspace({

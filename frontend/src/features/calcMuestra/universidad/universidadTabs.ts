@@ -1,5 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  normalizeCalcMuestraAlumnosPorCh,
+  normalizeCalcMuestraAlumnosPorChDecision,
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraEstudio,
@@ -15,13 +18,14 @@ import {
   type ClassroomLabTab,
 } from "./shared/constants";
 import {
-  classroomComparisonReady,
   classroomFrameReady,
-  classroomReplacementReady,
-  classroomSelectionReady,
+  evaluarConsistenciaMarco,
   frameAuditNumber,
 } from "./shared/frame";
 import { hasUsefulResult } from "./shared/study";
+import { universityFrameSourceBindings } from "./shared/categorias";
+import { resolveClassroomArtifactStatus } from "./aulas/classroomHandoff";
+import { alumnosPorChDecisionIsCurrent } from "./marco/alumnosPorChDecisionModel";
 
 export type CalcMuestraSidebarTab = {
   id: string;
@@ -46,18 +50,20 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   // parámetros quedó absorbida por el diseño reactivo.
   "calculo-guia": "calculo-diseno",
   // Supuestos se fusionó en Diseño (§5.1.2); su slot lo ocupa la nueva pestaña
-  // Cursos-horario por facultad. Un tab guardado de Supuestos va a Diseño.
+  // Cursos-horario requeridos. Un tab guardado de Supuestos va a Diseño.
   "calculo-ajustes": "calculo-diseno",
   // Split de Marco (2026-07-15): "Criterios de inclusión" (marco-categorias,
   // que renderizaba ambos bloques) se partió en dos pestañas por el orden
-  // metodológico — primero el estudiante (elegibilidad), luego el aula con la
-  // radiografía integrada. El Explorador se absorbió en la segunda. Tabs
-  // guardados de los ids viejos aterrizan en su reemplazo.
+  // metodológico — primero el estudiante (elegibilidad), después la evidencia
+  // de alumnos por CH y finalmente el aula con la radiografía integrada. El
+  // Explorador se absorbió en la tercera. Tabs guardados de los ids viejos
+  // aterrizan en su reemplazo.
   "marco-criterios": "marco-criterios-alumno",
   "marco-categorias": "marco-criterios-alumno",
   "marco-explorador": "marco-ch-radiografia",
-  // Consistencia se reubicó de Marco a Datos (§3.2): un tab guardado aterriza
-  // en su nuevo hogar dentro de Datos.
+  // D10 ejecutada: Consistencia es pestaña propia de Datos, inmediatamente
+  // después de Fuentes. El alias histórico apunta ahora a su hogar real; la
+  // integración provisional dentro de Fuentes queda retirada.
   "marco-validacion": "def-consistencia",
   // Un solo hogar de criterios (2026-07): Datos deja de decidir elegibilidad
   // (vive en Marco → Criterios) y de adelantar resultados del marco. Un tab
@@ -69,6 +75,12 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
 export function resolveUniversityLocalTab(id: string | null | undefined) {
   if (!id) return "";
   return UNIVERSITY_LOCAL_TAB_ALIASES[id] ?? id;
+}
+
+/** Resuelve únicamente pestañas vivas de Selección; todo legado cae en Objetivo. */
+export function resolveUniversityClassroomTab(id: string | null | undefined): ClassroomLabTab {
+  const resolved = resolveUniversityLocalTab(id);
+  return CLASSROOM_LAB_TABS.find((tab) => tab.id === resolved)?.id ?? "objetivo";
 }
 
 /**
@@ -92,23 +104,28 @@ export function universitySectionStates({
     safeNumber(comp.marco.marco_validado, 0) > 0 ||
     (comp.marco.estratos ?? []).some((row) => safeNumber(row.N, 0) > 0),
   );
-  const hasResult = componentes.some(hasUsefulResult);
-  const declaredSourcesReady = (workspace.source_bindings ?? []).some((source) =>
+  const totalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const facultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const artifactStatus = totalComp && facultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp, facultyComp, aulasState })
+    : null;
+  const selectedResultReady = artifactStatus?.selectedResultReady ?? false;
+  const declaredSourcesReady = universityFrameSourceBindings(workspace.source_bindings).some((source) =>
     Boolean(source.file_name || source.file_id || source.spreadsheet_id || source.status === "cargada" || source.status === "validada"),
   );
   const requiredMapped = UNIVERSITY_REQUIRED_VARIABLES
     .filter((row) => row.required)
     .every((required) => (workspace.variable_mappings ?? []).some((row) => row.role === required.role && row.column));
   const frameReady = classroomFrameReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
+  const selectionReady = artifactStatus?.selectionReady ?? false;
+  const replacementReady = artifactStatus?.replacementReady ?? false;
 
   const sections: Array<[string, boolean]> = [
     ["definicion", Boolean(estudio.titulo) && (declaredSourcesReady || frameReady) && requiredMapped],
     ["marco", marcoReady || frameReady],
-    ["calculo", hasResult],
+    ["calculo", selectedResultReady],
     ["aulas", selectionReady],
-    ["salidas", hasResult && selectionReady && replacementReady],
+    ["salidas", selectedResultReady && selectionReady && replacementReady],
   ];
 
   const states: Record<string, GuideStatus> = {};
@@ -124,14 +141,22 @@ export function universitySectionStates({
   return states;
 }
 
-function classroomLabStatusesForSidebar(estudio: CalcMuestraEstudio, aulasState: CalcMuestraAulasState | null): Record<ClassroomLabTab, GuideStatus> {
-  const hasCalculatedQuota = estudio.componentes.some(hasUsefulResult);
+function classroomLabStatusesForSidebar(
+  estudio: CalcMuestraEstudio,
+  workspace: CalcMuestraWorkspace,
+  aulasState: CalcMuestraAulasState | null,
+): Record<ClassroomLabTab, GuideStatus> {
+  const totalComp = estudio.componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const facultyComp = estudio.componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const status = totalComp && facultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp, facultyComp, aulasState })
+    : null;
+  const hasCalculatedQuota = status?.selectedResultReady ?? false;
   const frameReady = classroomFrameReady(aulasState);
-  const comparisonReady = classroomComparisonReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
+  const comparisonReady = status?.comparisonReady ?? false;
+  const selectionReady = status?.selectionReady ?? false;
+  const replacementReady = status?.replacementReady ?? false;
   return {
-    marco: guideStatus(frameReady),
     objetivo: guideStatus(hasCalculatedQuota, frameReady),
     metodo: guideStatus(comparisonReady, hasCalculatedQuota),
     laboratorio: guideStatus(comparisonReady, hasCalculatedQuota),
@@ -153,15 +178,16 @@ export function universitySidebarTabs({
   aulasState: CalcMuestraAulasState | null;
 }): CalcMuestraSidebarTab[] | null {
   const componentes = estudio.componentes;
-  const totalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ?? componentes[0];
-  const facultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ?? componentes[1] ?? componentes[0];
+  const exactTotalComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID);
+  const exactFacultyComp = componentes.find((comp) => comp.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID);
+  const totalComp = exactTotalComp ?? componentes[0];
   const marcoReady = componentes.some((comp) =>
     safeNumber(comp.marco.marco_validado, 0) > 0 ||
     (comp.marco.estratos ?? []).some((row) => safeNumber(row.N, 0) > 0),
   );
   const hasResult = componentes.some(hasUsefulResult);
   const hasSource = Boolean(workspace.fuente_marco || workspace.marco_disponible);
-  const declaredSources = workspace.source_bindings ?? [];
+  const declaredSources = universityFrameSourceBindings(workspace.source_bindings);
   const declaredSourcesReady = declaredSources.some((source) =>
     Boolean(source.file_name || source.file_id || source.spreadsheet_id || source.status === "cargada" || source.status === "validada"),
   );
@@ -190,40 +216,53 @@ export function universitySidebarTabs({
     workspace.publication_config?.google_sheets_enabled ||
     workspace.publication_config?.spreadsheet_id,
   );
-  const comparisonReady = classroomComparisonReady(aulasState);
-  const selectionReady = classroomSelectionReady(aulasState);
-  const replacementReady = classroomReplacementReady(aulasState);
+  const artifactStatus = exactTotalComp && exactFacultyComp
+    ? resolveClassroomArtifactStatus({ workspace, totalComp: exactTotalComp, facultyComp: exactFacultyComp, aulasState })
+    : null;
+  const comparisonReady = artifactStatus?.comparisonReady ?? false;
+  const selectionReady = artifactStatus?.selectionReady ?? false;
+  const replacementReady = artifactStatus?.replacementReady ?? false;
+  const selectedResultReady = artifactStatus?.selectedResultReady ?? false;
   const effectiveMarcoReady = marcoReady || builtAulasFrameReady;
 
   if (activeSection === "definicion") {
     const baseReady = declaredSourcesReady || hasDescriptiveFrame;
     const baseConfigured = baseReady && requiredMapped;
-    // Datos solo declara el insumo: identidad, fuentes y mapeo. Los criterios de
-    // inclusión viven en Marco → Criterios (un solo hogar); Datos no muestra
-    // resultados del marco (la antigua pestaña Institución los adelantaba).
     const [estudioTab, basesTab, consistenciaTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
+    const consistencyStatus = evaluarConsistenciaMarco(workspace.source_mode, aulasState?.frame);
     return [
       { ...estudioTab, status: guideStatus(Boolean(estudio.titulo)) },
+      // D10: Fuentes acredita que las bases están declaradas; la consistencia
+      // entre ellas es su propia pestaña y su propio estado.
       { ...basesTab, status: guideStatus(baseReady, hasSource) },
-      // Consistencia vive en Datos (§3.2): la calidad del enlace entre bases se
-      // evalúa AL CARGAR los datos, no al armar el marco.
-      { ...consistenciaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...consistenciaTab, status: baseReady ? consistencyStatus : guideStatus(false, baseReady || hasSource) },
       { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
     ];
   }
   if (activeSection === "marco") {
     const criteriosCatalogoReady = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null).variables.length > 0;
-    // Orden metodológico (reunión del diseño muestral 2026-07-15): primero
-    // definimos quién es elegible (criterios del estudiante → N elegibles),
-    // luego perfilamos dónde están esos elegibles por curso-horario decidiendo
-    // los criterios de aula CON la radiografía del marco a la vista.
-    const [criteriosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
+    const criteriosRadiografia = normalizeCalcMuestraAulasCriteriosRadiografia(
+      aulasState?.frame?.criterios_radiografia ?? null,
+    );
+    const criteriosRadiografiaReady = Boolean(
+      criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2" &&
+      criteriosRadiografia.frame_hash === aulasState?.frame?.frame_hash,
+    );
+    const alumnosPorChRaw = aulasState?.frame?.alumnos_por_ch ?? null;
+    const alumnosPorChNormalizado = normalizeCalcMuestraAlumnosPorCh(alumnosPorChRaw);
+    const alumnosPorCh = alumnosPorChNormalizado?.frame_hash === aulasState?.frame?.frame_hash
+      ? alumnosPorChNormalizado
+      : null;
+    const alumnosDecision = normalizeCalcMuestraAlumnosPorChDecision(workspace.aulas_config?.alumnos_por_ch_decision);
+    const alumnosDecisionReady = alumnosPorChDecisionIsCurrent(alumnosPorCh, alumnosDecision);
+    const [criteriosTab, alumnosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
     return [
-      { ...criteriosTab, status: guideStatus(criteriosCatalogoReady, hasDescriptiveFrame) },
+      { ...criteriosTab, status: guideStatus(criteriosCatalogoReady && criteriosRadiografiaReady, hasDescriptiveFrame) },
+      { ...alumnosTab, status: guideStatus(alumnosDecisionReady, Boolean(alumnosPorCh || alumnosPorChRaw)) },
       // La radiografía es el contenido dominante de esta pestaña integrada, así
-      // que gatea con el marco descriptivo (igual que marco-aulas): sin frame no
-      // hay dónde perfilar los criterios de aula.
-      { ...radiografiaTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      // que solo queda lista cuando el contrato F1 v2 corresponde al frame. Un
+      // frame descriptivo legacy habilita su recuperación, pero no la acredita.
+      { ...radiografiaTab, status: guideStatus(criteriosRadiografiaReady, hasDescriptiveFrame || declaredSourcesReady || hasSource) },
       { ...poblacionTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...aulasTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
       { ...coberturaTab, status: guideStatus(effectiveMarcoReady) },
@@ -243,19 +282,19 @@ export function universitySidebarTabs({
     ];
   }
   if (activeSection === "aulas") {
-    const statuses = classroomLabStatusesForSidebar(estudio, aulasState);
+    const statuses = classroomLabStatusesForSidebar(estudio, workspace, aulasState);
     return CLASSROOM_LAB_TABS.map((tab) => ({
       ...tab,
       status: statuses[tab.id],
     }));
   }
   if (activeSection === "salidas") {
-    const deliverablesReady = hasResult && selectionReady && publicationConfigured;
-    const [guiaTab, entregablesTab, resultadosTab, monitoreoTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
+    const deliverablesReady = selectedResultReady && selectionReady && publicationConfigured;
+    const [guiaTab, resultadosTab, entregablesTab, monitoreoTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
     return [
-      { ...guiaTab, status: guideStatus(hasResult && selectionReady && replacementReady, effectiveMarcoReady) },
-      { ...entregablesTab, status: guideStatus(deliverablesReady, hasResult && selectionReady) },
-      { ...resultadosTab, status: guideStatus(hasResult) },
+      { ...guiaTab, status: guideStatus(selectedResultReady && selectionReady && replacementReady, effectiveMarcoReady) },
+      { ...resultadosTab, status: guideStatus(selectedResultReady) },
+      { ...entregablesTab, status: guideStatus(deliverablesReady, selectedResultReady && selectionReady) },
       { ...monitoreoTab, status: guideStatus(selectionReady && replacementReady, comparisonReady) },
     ];
   }

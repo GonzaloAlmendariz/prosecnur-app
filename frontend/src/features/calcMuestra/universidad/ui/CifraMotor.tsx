@@ -14,6 +14,7 @@ export function CifraMotor({
   origen,
   hero,
   tono,
+  monospace,
 }: {
   label: string;
   value: string;
@@ -22,10 +23,16 @@ export function CifraMotor({
   origen?: "motor" | "preview";
   hero?: boolean;
   tono?: "ok" | "alerta";
+  monospace?: boolean;
 }) {
   const cambiando = useValorSwap(value);
   return (
-    <div className="cmv2-uni-cifra" data-hero={hero || undefined} data-tono={tono}>
+    <div
+      className="cmv2-uni-cifra"
+      data-hero={hero || undefined}
+      data-tono={tono}
+      data-monospace={monospace || undefined}
+    >
       <span className="cmv2-uni-cifra-label">{label}</span>
       <span className="cmv2-uni-cifra-valor cmv2-uni-swap" data-cambiando={cambiando || undefined}>
         {value}
@@ -43,5 +50,13 @@ export function CifraMotor({
 
 /** Fila responsiva de CifraMotor. */
 export function CifraFila({ children }: { children: React.ReactNode }) {
-  return <div className="cmv2-uni-cifra-fila">{children}</div>;
+  return (
+    <div
+      className="cmv2-uni-cifra-fila"
+      data-qa-geometry-group="calc-muestra/cifra-fila"
+      data-qa-geometry-contract="equal"
+    >
+      {children}
+    </div>
+  );
 }

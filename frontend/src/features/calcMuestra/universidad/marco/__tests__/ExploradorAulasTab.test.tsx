@@ -81,6 +81,39 @@ function stateWith(frameExtra: Record<string, unknown>, extra: Record<string, un
   } as unknown as CalcMuestraAulasState;
 }
 
+const aulaFrameCoherente = [
+  {
+    classroom_id: "CH-1",
+    course_name: "Psicología General",
+    faculty: "PSICOLOGÍA",
+    level: "3",
+    session_type: "Teórico",
+    eligible_n: 80,
+    faculty_match_share: 0.9,
+    included: true,
+  },
+  ...Array.from({ length: 249 }, (_, index) => ({
+    classroom_id: `CH-${index + 2}`,
+    course_name: `Curso ${index + 2}`,
+    faculty: "PSICOLOGÍA",
+    level: "3",
+    session_type: "Teórico",
+    eligible_n: 20,
+    included: true,
+  })),
+];
+
+function stateWithPublishedExploration(extra: Record<string, unknown> = {}): CalcMuestraAulasState {
+  return stateWith(
+    {
+      aula_frame: aulaFrameCoherente,
+      audit: [{ metric: "classroom_included_n", value: 250 }],
+      exploracion,
+    },
+    extra,
+  );
+}
+
 describe("ExploradorAulasTab — estados", () => {
   it("sin exploracion muestra el estado vacío honesto (marcos viejos)", () => {
     const html = renderToStaticMarkup(
@@ -92,7 +125,7 @@ describe("ExploradorAulasTab — estados", () => {
 
   it("con exploracion renderiza franja, cards y drill-down de la facultad top", () => {
     const html = renderToStaticMarkup(
-      <ExploradorAulasTab workspace={workspace} aulasState={stateWith({ exploracion })} />,
+      <ExploradorAulasTab workspace={workspace} aulasState={stateWithPublishedExploration()} />,
     );
     expect(html).toContain('data-audit-ready="true"');
     // Franja de contexto con la misión
@@ -118,26 +151,23 @@ describe("ExploradorAulasTab — estados", () => {
   });
 
   it("con titulares en la selección muestra el contraste por facultad", () => {
-    const aulasState = stateWith(
-      { exploracion },
-      {
-        selection: {
-          schema: "calc_muestra_aulas_selection_v1",
-          selection_run_id: "run",
-          generated_at: "2026-07-16T00:00:00Z",
-          frame_hash: "hash",
-          seed: 1,
-          selector: {},
-          selection: [
-            { faculty: "PSICOLOGÍA", sample_role: "titular" },
-            { faculty: "PSICOLOGÍA", wave: "M1" },
-            { faculty: "ARTE Y DISEÑO", wave: "M2", sample_role: "chain_reserve" },
-          ],
-          quotas: [],
-          summary: [],
-        },
+    const aulasState = stateWithPublishedExploration({
+      selection: {
+        schema: "calc_muestra_aulas_selection_v1",
+        selection_run_id: "run",
+        generated_at: "2026-07-16T00:00:00Z",
+        frame_hash: "hash",
+        seed: 1,
+        selector: {},
+        selection: [
+          { faculty: "PSICOLOGÍA", sample_role: "titular" },
+          { faculty: "PSICOLOGÍA", wave: "M1" },
+          { faculty: "ARTE Y DISEÑO", wave: "M2", sample_role: "chain_reserve" },
+        ],
+        quotas: [],
+        summary: [],
       },
-    );
+    });
     const html = renderToStaticMarkup(
       <ExploradorAulasTab workspace={workspace} aulasState={aulasState} />,
     );
@@ -157,12 +187,12 @@ describe("marco-ch-radiografia — gating en el rail (igual a marco-aulas)", () 
     expect(tab?.targetId).toBe("cmv2-local-marco-ch-radiografia");
   });
 
-  it("con marco descriptivo pasa a ready, igual que marco-aulas", () => {
+  it("con marco descriptivo sin contrato F1 queda working aunque marco-aulas esté listo", () => {
     const aulasState = stateWith({ aula_frame: [{ classroom_id: "CH-1", eligible_n: 10 }] });
     const tabs = universitySidebarTabs({ activeSection: "marco", estudio, workspace, aulasState }) ?? [];
     const radiografia = tabs.find((t) => t.id === "marco-ch-radiografia");
     const aulas = tabs.find((t) => t.id === "marco-aulas");
-    expect(radiografia?.status).toBe("ready");
-    expect(radiografia?.status).toBe(aulas?.status);
+    expect(radiografia?.status).toBe("working");
+    expect(aulas?.status).toBe("ready");
   });
 });

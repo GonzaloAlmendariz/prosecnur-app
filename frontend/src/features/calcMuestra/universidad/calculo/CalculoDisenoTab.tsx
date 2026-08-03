@@ -10,15 +10,20 @@
  * rendimiento y campo) y añade parámetros A NIVEL DE FACULTAD (p por facultad),
  * que la Propuesta 2 necesita. NO trae la barra de KPIs ejecutados, la cifra de
  * diseño, la bolsa operativa ni los escenarios: eso vive en Propuestas y en la
- * pestaña de Cursos-horario por facultad.
+ * pestaña de Cursos-horario requeridos.
  */
 import { useMemo, useState } from "react";
 import { AlertTriangle, Calculator, Check, Loader2, RotateCcw, Sigma } from "lucide-react";
-import type { CalcMuestraComponente, CalcMuestraParametros } from "../../../../api/client";
+import type {
+  CalcMuestraComponente,
+  CalcMuestraParametros,
+  CalcMuestraReferenciaAsistencia,
+} from "../../../../api/client";
 import { fmtInt, fmtPct, safeNumber } from "../../sharedCore";
 import { hasUsefulResult } from "../shared/study";
 import { FormulaLatex } from "../ui";
 import { CampoNumero, SwapValor, ltxInt, ltxNum } from "./calculoUi";
+import { ReferenciaAsistenciaTau } from "./ReferenciaAsistenciaTau";
 import {
   CampanaZ,
   CurvaP,
@@ -45,6 +50,7 @@ export function CalculoDisenoTab({
   onSetComponentes,
   onCalcular,
   calculando,
+  referenciaAsistencia = null,
 }: {
   totalComp: CalcMuestraComponente;
   facultyComp: CalcMuestraComponente;
@@ -53,6 +59,7 @@ export function CalculoDisenoTab({
   onSetComponentes: (componentes: CalcMuestraComponente[]) => void;
   onCalcular: () => void;
   calculando: boolean;
+  referenciaAsistencia?: CalcMuestraReferenciaAsistencia | null;
 }) {
   const [draftTotal, setDraftTotal] = useState<ParamPatch>({});
   const [draftFaculty, setDraftFaculty] = useState<ParamPatch>({});
@@ -160,10 +167,13 @@ export function CalculoDisenoTab({
             ]}
           />
         </SwapValor>
+        {/* S3: el riel de pestañas ya dice dónde vive cada paso y el botón de
+            confirmar ya declara que el cambio es explícito. De las tres frases
+            solo la primera aportaba algo que la pantalla no muestra: que aquí
+            se regula, no se ejecuta. */}
         <p className="cmv2-calc-diseno-nota">
           <Sigma size={13} aria-hidden="true" />
-          Diseño solo regula los parámetros. La cifra se ejecuta en <strong>Propuestas</strong>; el plan de
-          cursos-horario, en su pestaña. Cada cambio se aplica con confirmación explícita.
+          Aquí se regulan los parámetros; la cifra se ejecuta en <strong>Propuestas</strong>.
         </p>
       </section>
 
@@ -222,7 +232,7 @@ export function CalculoDisenoTab({
               <>
                 <CurvaP p={pT} pFacultades={pF} />
                 <p className="cmv2-calc-svg-nota">
-                  La varianza p·(1−p) es máxima en 0,5; con p = {fmtDecimal(pT, 2)} Universidad
+                  La varianza p·(1−p) es máxima en 0.5; con p = {fmtDecimal(pT, 2)} Universidad
                   trabaja con {fmtDecimal(4 * pT * (1 - pT) * 100, 0)}% de esa exigencia.
                 </p>
               </>
@@ -289,11 +299,14 @@ export function CalculoDisenoTab({
               </>
             }
             visual={
-              <p className="cmv2-calc-svg-nota">
-                Con τ = {Math.round(tau * 100)}%, lograr 100 encuestas completas exige intentar
-                ≈{fmtInt(Math.ceil(100 / Math.max(tau, 0.01)))} por curso-horario. La sobremuestra
-                (universidad {fmtPct(oversampleT)}) es colchón adicional, no reemplazo.
-              </p>
+              <>
+                <p className="cmv2-calc-svg-nota">
+                  Con τ = {Math.round(tau * 100)}%, lograr 100 encuestas completas exige intentar
+                  ≈{fmtInt(Math.ceil(100 / Math.max(tau, 0.01)))} por curso-horario. La sobremuestra
+                  (universidad {fmtPct(oversampleT)}) es colchón adicional, no reemplazo.
+                </p>
+                <ReferenciaAsistenciaTau tauActual={tau} referencia={referenciaAsistencia} />
+              </>
             }
           />
         </div>

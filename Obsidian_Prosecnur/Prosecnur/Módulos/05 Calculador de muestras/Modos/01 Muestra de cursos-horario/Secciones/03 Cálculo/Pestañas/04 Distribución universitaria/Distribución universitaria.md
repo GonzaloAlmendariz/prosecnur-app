@@ -34,7 +34,7 @@ flowchart LR
 1. Compara población y muestra.
 2. Revisa cada facultad y sexo.
 3. Vuelve al diseño si el desbalance es injustificado.
-4. Continúa con Marco de cursos-horario.
+4. Continúa con Objetivo de muestra en la sección Selección.
 ## Resultado y siguiente paso
 - Distribución revisada; sigue la sección Selección.
 ## Estados, alertas y límites

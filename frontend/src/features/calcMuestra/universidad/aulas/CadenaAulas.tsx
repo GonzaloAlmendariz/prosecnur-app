@@ -79,7 +79,7 @@ export function CadenaAulas({
     <div className="cmv2-cadena-b">
       <FlujoVertical
         etapas={etapas}
-        orientacion="horizontal"
+        orientacion="adaptive"
         ariaLabel="De la cuota de entrevistas a los cursos-horario: estudiantes por curso-horario, titulares y reservas"
       />
       <p className="cmv2-cadena-b-nota">

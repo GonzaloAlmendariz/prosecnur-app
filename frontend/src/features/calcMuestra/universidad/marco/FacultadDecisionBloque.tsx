@@ -12,9 +12,10 @@
  * "replace") y `minEligible.byFaculty[minKey]`; nada cambia el marco hasta
  * recalcular (la barra global de la pestaña).
  */
-import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Lightbulb } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Lightbulb } from "lucide-react";
 import type {
+  CalcMuestraAulasCriteriosRadiografia,
   CalcMuestraAulasExploracion,
   CalcMuestraAulasExploracionFacultad,
   CriterioSeleccion,
@@ -25,12 +26,29 @@ import type {
 import { rangosFacultad, seleccionVariable } from "../../dominio";
 import { aulasSupervivientesFacultad } from "../../dominio/criteriosImpacto";
 import { fmtDec, fmtInt } from "../../sharedCore";
+import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
+import { ControlRango } from "../criterios/ControlRango";
+import { ControlUmbral } from "../criterios/ControlUmbral";
 import { FacultadCategoriaToggles } from "../criterios/FacultadCategoriaToggles";
+import { evidenciaPorCategoria } from "../criterios/evidenciaPorCategoria";
+import { tasaAsistencia } from "../criterios/minElegiblesModel";
 import { Switch } from "../criterios/Switch";
 import { filasPorFacultad, SESSION_TYPE_VARIABLE_ID } from "../criterios/tipoSesionModel";
 import { minimoFacultad, minimoSugerido, presentesEsperados } from "../criterios/minElegiblesModel";
+import {
+  ORDEN_PLEGADO_INICIAL,
+  PlegadoContexto,
+  siguienteOrden,
+  usarPlegado,
+  type OrdenPlegado,
+} from "../criterios/usarPlegado";
 import { AulasFinalesCard } from "./AulasFinalesCard";
 import { FacultadRadiografiaCard } from "./FacultadRadiografiaCard";
+import {
+  CriterioFacultadRadiografia,
+  type CriterioFacultadEvidence,
+} from "./CriterioFacultadRadiografia";
+import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import { resumenDecisionFacultad, type FacultadBloque } from "./facultadDecisionModel";
 
 /** Parseo de un input numérico opcional: vacío → null; inválido → null. */
@@ -65,7 +83,11 @@ function CriterioFacultadCard({
   facLabel,
   fac,
   exploracion,
+  criteriosRadiografia,
+  radiografiaCard,
+  criterioEvidence,
   onSel,
+  confirmador,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -74,7 +96,13 @@ function CriterioFacultadCard({
   /** Radiografía de la facultad (para el detalle por tipo junto al criterio). */
   fac: CalcMuestraAulasExploracionFacultad;
   exploracion: CalcMuestraAulasExploracion | null;
+  criteriosRadiografia: CalcMuestraAulasCriteriosRadiografia | null;
+  radiografiaCard: CriterioRadiografiaCard | null;
+  criterioEvidence: CriterioFacultadEvidence | null;
   onSel: (next: CriterioSeleccion) => void;
+  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
+      edita: confirmar es parte de decidir, no un trámite en otra zona. */
+  confirmador?: ReactNode;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const fila = filasPorFacultad({
@@ -87,17 +115,22 @@ function CriterioFacultadCard({
   // Colapsado por defecto cuando no hay decisión propia (el caso común): la
   // columna queda escaneable y solo se abre lo que se está decidiendo. Una
   // decisión propia arranca abierta para que el override quede a la vista.
-  const [abierto, setAbierto] = useState(propia);
+  // F42 · Con una facultad a la vez el acordeón por criterio sobra: cada
+  // criterio abre a ~954 px y plegarlos dejaba ocho cabeceras de 50 px que
+  // esconden el switch junto a su gráfico —y son una sola pieza, no dos—.
+  // Medido: ocho criterios cerrados por facultad.
+  const [abierto, setAbierto] = usarPlegado(true);
   // Criterios con radiografía propia arriba (tabla de tipos o barra apilada de
   // condición): el toggle no repite la mini-barra de proporción —evita el %
   // doble e inconsistente entre la radiografía y el toggle— y un rótulo separa
   // la info (arriba) de la selección (abajo).
-  const tieneRadiografia =
+  const tieneRadiografia = Boolean(radiografiaCard && criterioEvidence) ||
     variable.id === SESSION_TYPE_VARIABLE_ID || variable.id === "condicion_curso";
   if (!fila) return null;
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={fila.decision}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}
@@ -118,14 +151,34 @@ function CriterioFacultadCard({
           </span>
           <strong>{variable.label}</strong>
         </span>
+        {/* F114 · Decía «Sin restricción». Gonzalo: «no sé a qué te refieres con
+            sin restricción». Nombraba la ausencia de algo en vez de lo que pasa
+            con el marco — y lo que pasa es que entran todas las categorías. */}
         <span className="cmv2-chfp-crit-state" data-decision={fila.decision}>
-          {propia ? "Decisión propia" : "Sin restricción"}
+          {propia ? "Criterio propio" : "Entran todas"}
         </span>
       </button>
       {abierto ? (
         <>
+          {/* F98 · El bloque compacto de radiografía sale de aquí.
+              Mostraba las mismas categorías que los conmutadores de abajo —cada
+              etiqueta aparecía dos veces en el mismo criterio— con 482 nodos
+              frente a 86. Gonzalo lo señaló tres veces: «los criterios con
+              switcher de selección tienen que ser uno con los gráficos, son un
+              todo», y el ADR 0057 lo fija: la categoría es la unidad y todo lo
+              necesario para decidirla vive en su contenedor.
+              No se retiró hasta que la tarjeta trajo **todo** lo que este bloque
+              aportaba: matrículas y CH con dato (F95), la leyenda de las marcas
+              (F96) y el contraste contra el total (F97). El inventario está en
+              el doc del loop. */}
           {variable.id === SESSION_TYPE_VARIABLE_ID ? (
-            <FacultadRadiografiaCard fac={fac} modo="tipos" />
+            <FacultadRadiografiaCard
+              fac={fac}
+              modo="tipos"
+              criteriosRadiografia={criteriosRadiografia}
+              facultadKey={excKey}
+              contextoRadiografia="editable"
+            />
           ) : variable.id === "condicion_curso" ? (
             <FacultadRadiografiaCard fac={fac} modo="condicion" />
           ) : null}
@@ -142,10 +195,65 @@ function CriterioFacultadCard({
             onSel={onSel}
             ariaLabel={`${variable.label} en ${facLabel}`}
             sinBarra={tieneRadiografia}
+            evidencia={evidenciaPorCategoria(radiografiaCard, excKey, tasaAsistencia(seleccion))}
           />
         </>
       ) : null}
+      {confirmador}
     </section>
+  );
+}
+
+/**
+ * G39 · Cuántos cursos-horario llegan a este criterio.
+ *
+ * Gonzalo: «la barra "639 de 849 cursos-horario candidatos con estos criterios"
+ * debería estar en todos los criterios antes de introducir uno, para poder
+ * seguir el embudo en cascada (ese nombre es solo interno)».
+ *
+ * Había **una sola** barra, entre los criterios generales y el tipo de curso, y
+ * decía el estado final del embudo en mitad del recorrido. Puesta antes de cada
+ * criterio, la secuencia se lee como lo que es: cuántos candidatos hay cuando
+ * te toca decidir, y cuántos había al empezar.
+ *
+ * El vocabulario interno se queda dentro: aquí no aparecen «embudo», «cascada»
+ * ni «bisagra». Lo que el usuario lee es cuántos cursos-horario tiene delante.
+ */
+function LleganAlCriterio({ llegan, universo }: { llegan: number | null; universo: number | null }) {
+  if (llegan == null || universo == null || universo <= 0) return null;
+  const pct = Math.round((llegan / universo) * 100);
+  return (
+    <p className="cmv2-chfp-llegan" role="note">
+      <strong>{fmtInt(llegan)}</strong> de {fmtInt(universo)} cursos-horario llegan a este criterio
+      <span className="cmv2-chfp-llegan-pct">{pct}%</span>
+    </p>
+  );
+}
+
+/**
+ * G39 · El cierre del recorrido, después del último criterio.
+ *
+ * Gonzalo: «"646 de 849 cursos-horario llegan a este criterio" también debería
+ * estar al final del último criterio, centrado, como un resumen de con cuántas
+ * CH nos quedamos al final».
+ *
+ * Las barras de arriba dicen qué **llega** a cada decisión; ésta dice qué
+ * **queda** cuando ya no hay más. Es la misma cifra que la superficie promete en
+ * su KPI, aquí al final del camino que la produjo — que es donde se puede
+ * comprobar.
+ *
+ * Centrada y sin filete lateral a propósito: las barras marcan el margen del
+ * recorrido, y ésta lo cierra. Repetir su forma la haría parecer un séptimo
+ * criterio sin tarjeta.
+ */
+function CierreDelRecorrido({ quedan, universo }: { quedan: number | null; universo: number | null }) {
+  if (quedan == null || universo == null || universo <= 0) return null;
+  const pct = Math.round((quedan / universo) * 100);
+  return (
+    <p className="cmv2-chfp-cierre" role="note">
+      Con todos los criterios quedan <strong>{fmtInt(quedan)}</strong> de {fmtInt(universo)} cursos-horario
+      <span className="cmv2-chfp-cierre-pct">{pct}%</span>
+    </p>
   );
 }
 
@@ -156,7 +264,10 @@ function NivelFacultadCard({
   facKey,
   facLabel,
   fac,
+  radiografiaCard,
+  criterioEvidence,
   onRango,
+  confirmadorDe,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -164,19 +275,39 @@ function NivelFacultadCard({
   facLabel: string;
   /** Radiografía de la facultad (distribución por nivel, junto al criterio). */
   fac: CalcMuestraAulasExploracionFacultad;
+  radiografiaCard: CriterioRadiografiaCard | null;
+  criterioEvidence: CriterioFacultadEvidence | null;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
+  /*
+   * G10 · El confirmador de ESTE criterio, dentro de la tarjeta que se edita.
+   *
+   * G35 · Recibe la **función**, no el nodo ya resuelto. Como nodo, el montaje
+   * le pasaba `confirmadorDe(variable.id)` de la tarjeta *vecina*
+   * (`condicion_curso`): mover una manija marcaba pendiente el rango, la
+   * tarjeta preguntaba por otro criterio y no aparecía confirmador alguno —el
+   * cambio se quedaba sin confirmar y la cascada nunca lo veía. Pidiendo su
+   * propio criterio, el error deja de ser expresable.
+   */
+  confirmadorDe?: (criterioId: string) => ReactNode;
+  /**
+   * G39 · Cuántos cursos-horario llegan a cada criterio en ESTA facultad.
+   * Sale del `before_ch` de la cascada del motor, no de una resta local.
+   */
+  lleganDe?: (criterioId: string) => { llegan: number; universo: number } | null;
 }) {
+  const confirmador = confirmadorDe?.(variable.id);
   const valores = (variable.values ?? []).slice().sort((a, b) => a - b);
   const min = valores.length ? valores[0] : 0;
   const max = valores.length ? valores[valores.length - 1] : 0;
   const rangos = rangosFacultad(seleccion, facKey);
   const activo = rangos.length > 0;
-  const [abierto, setAbierto] = useState(activo);
+  const [abierto, setAbierto] = usarPlegado(true);
   const desde = activo ? rangos[0][0] : min;
   const hasta = activo ? rangos[0][1] : max;
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={activo ? "propia" : "hereda"}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}
@@ -203,7 +334,16 @@ function NivelFacultadCard({
       </button>
       {abierto ? (
         <div className="cmv2-chfp-min">
-          <FacultadRadiografiaCard fac={fac} modo="niveles" />
+          {radiografiaCard && criterioEvidence ? (
+            <CriterioFacultadRadiografia
+              card={radiografiaCard}
+              facultyKey={facKey}
+              facultyLabel={facLabel}
+              evidence={criterioEvidence}
+            />
+          ) : (
+            <FacultadRadiografiaCard fac={fac} modo="niveles" />
+          )}
           <label className="cmv2-chfp-nivel-toggle">
             <Switch
               checked={activo}
@@ -212,33 +352,34 @@ function NivelFacultadCard({
             />
             <span>Limitar a un tramo de niveles (sin esto, la facultad admite todos)</span>
           </label>
+          {/* G35 · Dos manijas y la banda entre ellas, alineadas con el eje.
+              Decisión de Gonzalo: «el rango con dos manijas».
+
+              Sustituye a dos `<select>` que en este proyecto desplegaban **852
+              opciones cada uno** —el criterio está mapeado al código de curso,
+              no al nivel—, volcando la lista entera en la página. Lo que se
+              elige es un tramo, y la banda lo dice sin explicarlo.
+
+              (Este cambio se hizo una vez en G17 y **se perdió** al restaurar
+              este archivo para salir de un empalme roto. Revertir un fichero
+              para escapar de un error se lleva por delante lo que ya estaba
+              bien en él.) */}
           {activo && valores.length ? (
             <div className="cmv2-crit-range-inputs" data-active="true">
-              <select
-                className="cmv2-crit-range-select"
-                value={desde}
-                aria-label={`Nivel mínimo en ${facLabel}`}
-                onChange={(e) => onRango(facKey, [[Number(e.target.value), hasta]])}
-              >
-                {valores.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
-              <span className="cmv2-crit-range-dash">–</span>
-              <select
-                className="cmv2-crit-range-select"
-                value={hasta}
-                aria-label={`Nivel máximo en ${facLabel}`}
-                onChange={(e) => onRango(facKey, [[desde, Number(e.target.value)]])}
-              >
-                {valores.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+              <ControlRango
+                alineadoConEje
+                desde={desde}
+                hasta={hasta}
+                min={valores[0]}
+                max={valores[valores.length - 1]}
+                etiqueta={`Niveles admitidos en ${facLabel}`}
+                onCambio={({ desde: d, hasta: h }) => onRango(facKey, [[d, h]])}
+              />
             </div>
           ) : null}
         </div>
       ) : null}
+      {confirmador}
     </section>
   );
 }
@@ -250,18 +391,38 @@ function MinFacultadCard({
   fac,
   umbralGeneral,
   tasa,
+  radiografiaCard,
+  criterioEvidence,
   onMinimoFacultad,
+  confirmador,
 }: {
   seleccion: CriteriosSeleccionMarco;
   minKey: string;
   fac: CalcMuestraAulasExploracionFacultad;
   umbralGeneral: number;
   tasa: number | null;
+  radiografiaCard: CriterioRadiografiaCard | null;
+  criterioEvidence: CriterioFacultadEvidence | null;
   onMinimoFacultad: (minKey: string, valor: number | null) => void;
+  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
+      edita: confirmar es parte de decidir, no un trámite en otra zona. */
+  confirmador?: ReactNode;
 }) {
   const propio = minimoFacultad(seleccion, minKey);
-  const [abierto, setAbierto] = useState(propio != null);
+  const [abierto, setAbierto] = usarPlegado(true);
   const base = propio ?? umbralGeneral;
+  /*
+   * G16 · Tope del nivelador, del dato y no de una constante.
+   *
+   * Un rango fijo —0 a 100— deja media barra en una zona donde no hay nada que
+   * decidir en las facultades pequeñas, y se queda corto en las grandes. La
+   * mediana de la facultad da la referencia; se toma el doble, acotado abajo
+   * para que el deslizador siempre tenga recorrido útil.
+   */
+  const topeNivelador = Math.max(
+    20,
+    Math.ceil(((fac.est_aula_mediana ?? fac.est_aula_media ?? umbralGeneral) || 10) * 2),
+  );
   const sugerido = minimoSugerido(base, tasa);
   const presentes = presentesEsperados(base, tasa);
   // Radiografía de elegibles por aula de la facultad (§8.3: el mínimo DEBE
@@ -281,6 +442,7 @@ function MinFacultadCard({
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={propio != null ? "propia" : "hereda"}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}
@@ -299,7 +461,11 @@ function MinFacultadCard({
           <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
             {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
-          <strong>Mínimo de elegibles por aula</strong>
+          {/* G29 · Gonzalo: «el criterio debe ser Mínimo de alumnos elegibles,
+              y como ya conversamos, es el primer criterio con su tarjeta
+              estándar». Había dos cosas con nombre de mínimo —«Matriculados /
+              población» y ésta— y sólo una decide: la de alumnos elegibles. */}
+          <strong>Mínimo de alumnos elegibles</strong>
         </span>
         <span className="cmv2-chfp-crit-state" data-decision={propio != null ? "propia" : "hereda"}>
           {propio != null ? `Propio: ≥ ${fmtInt(propio)}` : `Por defecto: ≥ ${fmtInt(umbralGeneral)}`}
@@ -307,23 +473,37 @@ function MinFacultadCard({
       </button>
       {abierto ? (
         <>
+          {radiografiaCard && criterioEvidence ? (
+            <CriterioFacultadRadiografia
+              card={radiografiaCard}
+              facultyKey={minKey}
+              facultyLabel={fac.facultad}
+              evidence={criterioEvidence}
+            />
+          ) : null}
           <div className="cmv2-chfp-min">
-            <label className="cmv2-crit-num-field">
-              <span>Mínimo propio de la facultad</span>
-              <span className="cmv2-chfp-min-input-row">
-                <input
-                  type="number"
-                  min={1}
-                  value={propio ?? ""}
-                  placeholder={fmtInt(umbralGeneral)}
-                  aria-label="Mínimo de elegibles propio de la facultad"
-                  onChange={(e) => onMinimoFacultad(minKey, parseEntero(e.target.value))}
-                />
-                <span className="cmv2-chfp-min-input-hint">
-                  {propio != null ? "elegibles por aula" : "usa el mínimo general"}
-                </span>
-              </span>
-            </label>
+            {/* G16 · El nivelador, en el hueco que estaba bajo el conmutador.
+                Gonzalo: «en Ingeniería quiero establecer un mínimo y ser capaz
+                de modificarlo: quizás 15, quizás 20».
+
+                El deslizador sirve para BUSCAR —recorrerlo con la distribución
+                al lado enseña qué recorta cada posición— y el campo para FIJAR.
+                Su tope sale del P90 de la facultad, no de una constante: un
+                rango que llega al doble del máximo observado deja la mitad del
+                recorrido en una zona donde no hay nada que decidir. */}
+            <ControlUmbral
+              alineadoConEje
+              valor={propio ?? umbralGeneral}
+              min={1}
+              max={topeNivelador}
+              etiqueta="Mínimo propio de la facultad"
+              descripcion={
+                propio == null
+                  ? `Sin mínimo propio usa el general (${fmtInt(umbralGeneral)}).`
+                  : undefined
+              }
+              onCambio={(v) => onMinimoFacultad(minKey, v)}
+            />
             {propio != null ? (
               <button
                 type="button"
@@ -334,14 +514,14 @@ function MinFacultadCard({
               </button>
             ) : null}
           </div>
-          {hayDist ? (
+          {hayDist && !criterioEvidence ? (
             <div className="cmv2-chfp-min-radiografia" role="note" data-alerta={minimoAlto || undefined}>
               <div className="cmv2-chfp-min-escala" aria-hidden="true">
                 <i className="cmv2-chfp-min-escala-mediana" style={{ left: `${pos(mediana!)}%` }} />
                 <i className="cmv2-chfp-min-escala-corte" style={{ left: `${pos(base)}%` }} />
               </div>
               <p className="cmv2-chfp-min-dist">
-                Elegibles por aula aquí: mediana <strong>{fmtDec(mediana!, 0)}</strong>
+                Elegibles por curso-horario aquí: mediana <strong>{fmtDec(mediana!, 0)}</strong>
                 {media != null ? `, media ${fmtDec(media, 0)}` : ""} · rango {fmtInt(distMin!)}–{fmtInt(distMax!)}.
                 {minimoAlto ? (
                   <span className="cmv2-chfp-min-alerta">
@@ -371,6 +551,71 @@ function MinFacultadCard({
           ) : null}
         </>
       ) : null}
+      {confirmador}
+    </section>
+  );
+}
+
+/** Evidencia local de un criterio cuyo control, por contrato, sigue siendo
+ * transversal. No repite ni simula un override por facultad: nombra dónde se
+ * decide y mantiene la radiografía de ESTA facultad junto al criterio. */
+function CriterioTransversalFacultadCard({
+  card,
+  facKey,
+  facLabel,
+  criterioEvidence,
+  confirmador,
+}: {
+  card: CriterioRadiografiaCard;
+  facKey: string;
+  facLabel: string;
+  criterioEvidence: CriterioFacultadEvidence;
+  /** G10 · El confirmador de ESTE criterio. Va dentro de la tarjeta que se
+      edita: confirmar es parte de decidir, no un trámite en otra zona. */
+  confirmador?: ReactNode;
+}) {
+  const [abierto, setAbierto] = usarPlegado(true);
+  return (
+    <section
+      className="cmv2-chfp-crit"
+      data-qa-geometry-member
+      data-decision="transversal"
+      data-open={abierto || undefined}
+      data-collapsible={!abierto || undefined}
+      onClick={abierto ? undefined : () => setAbierto(true)}
+    >
+      <button
+        type="button"
+        className="cmv2-chfp-crit-head"
+        aria-expanded={abierto}
+        onClick={(event) => {
+          event.stopPropagation();
+          setAbierto((value) => !value);
+        }}
+      >
+        <span className="cmv2-chfp-crit-head-label">
+          <span className="cmv2-chfp-crit-chevron" aria-hidden="true">
+            {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+          <strong>{card.label}</strong>
+        </span>
+        <span className="cmv2-chfp-crit-state">Regla común</span>
+      </button>
+      {abierto ? (
+        <>
+          <CriterioFacultadRadiografia
+            card={card}
+            facultyKey={facKey}
+            facultyLabel={facLabel}
+            evidence={criterioEvidence}
+          />
+          <p className="cmv2-chfp-transversal-note">
+            La evidencia es de {facLabel}; esta regla no admite un override por facultad en el contrato vigente.{" "}
+            <a href="#cmv2-chfp-global-adjustments">Ajustar la regla común</a>
+          </p>
+        </>
+      ) : null}
+      {confirmador}
     </section>
   );
 }
@@ -381,6 +626,9 @@ export function FacultadDecisionBloque({
   rangeVariable,
   seleccion,
   exploracion,
+  criteriosRadiografia,
+  criterioCards,
+  criterioEvidence,
   aulaFrame,
   umbralGeneral,
   tasa,
@@ -390,6 +638,12 @@ export function FacultadDecisionBloque({
   onMinimoFacultad,
   onToggleAula,
   onReactivarAulas,
+  sinPlegado,
+  slotApertura,
+  slotCierre,
+  confirmadorDe,
+  lleganDe,
+  cierreDelRecorrido,
 }: {
   bloque: FacultadBloque;
   /** Criterios de set decidibles por facultad (session/condition/teacher). */
@@ -399,6 +653,9 @@ export function FacultadDecisionBloque({
   /** Borrador de la selección de criterios. */
   seleccion: CriteriosSeleccionMarco;
   exploracion: CalcMuestraAulasExploracion | null;
+  criteriosRadiografia: CalcMuestraAulasCriteriosRadiografia | null;
+  criterioCards: ReadonlyMap<string, CriterioRadiografiaCard>;
+  criterioEvidence: CriterioFacultadEvidence | null;
   /** Lista individual de CH del último marco (para la selección manual final). */
   aulaFrame: MonitoreoRow[];
   umbralGeneral: number;
@@ -411,11 +668,38 @@ export function FacultadDecisionBloque({
   onToggleAula: (classroomId: string, excluida: boolean) => void;
   /** Reactiva todos los CH apagados de esta facultad (claves en text_key). */
   onReactivarAulas: (clavesTextKey: string[]) => void;
+  /** F41 · Se muestra una sola facultad: nada que plegar. */
+  sinPlegado?: boolean;
+  /** ADR 0057 · Criterio que abre el embudo (matriculados / población). */
+  /**
+   * G10 · Devuelve el confirmador de un criterio. Una sola prop en vez de
+   * repartir `pendientes`, `confirmar` y `descartar` por seis tarjetas: la
+   * lógica de confirmación se queda en un sitio.
+   */
+  confirmadorDe?: (criterioId: string) => ReactNode;
+  /** G39 · Cuántos cursos-horario llegan a cada criterio en esta facultad. */
+  lleganDe?: (criterioId: string) => { llegan: number; universo: number } | null;
+  /** G39 · Con cuántos se termina, tras el último criterio. */
+  cierreDelRecorrido?: { quedan: number; universo: number } | null;
+  slotApertura?: ReactNode;
+  /** ADR 0057 · Criterios 7 y 8, penúltimos antes del mayor detalle. */
+  slotCierre?: ReactNode;
 }) {
-  const [abierto, setAbierto] = useState(Boolean(defaultOpen));
+  // F41 · Sin plegado, la facultad mostrada se ve entera. El acordeón sólo
+  // sobrevive para usos que aún listan varias facultades a la vez.
+  const [abierto, setAbierto] = usarPlegado(Boolean(defaultOpen) || Boolean(sinPlegado));
+  /*
+   * G39 · La orden de plegado que escuchan los criterios de este bloque.
+   *
+   * Arranca en «abierto» con versión 0 para que su rótulo diga qué hará al
+   * pulsarlo —«Plegar todos»— sin haber tocado a nadie: el hook ignora las
+   * versiones negativas, así que la versión 0 tampoco fuerza nada hasta que el
+   * usuario incrementa.
+   */
+  const [ordenPlegado, setOrdenPlegado] = useState<OrdenPlegado>(ORDEN_PLEGADO_INICIAL);
   const { fac, facLabel, excKey, minKey } = bloque;
   // El tipo de curso es la decisión MÁS PARTICULAR del embudo: se separa del
-  // resto para renderizarse al final, tras la bisagra de «aulas candidatas».
+  // resto para renderizarse al final, tras la barra del recorrido.
   const sessionVar = variablesToggle.find((v) => v.id === SESSION_TYPE_VARIABLE_ID);
   // Lista final de cursos-horario supervivientes de la facultad (el criterio más
   // granular): sale del aula_frame del build, ya filtrado por facultad.
@@ -431,15 +715,10 @@ export function FacultadDecisionBloque({
 
   return (
     <article className="cmv2-chfp-bloque" data-open={abierto} data-decidido={resumen.propias > 0 || undefined}>
-      <button
-        type="button"
-        className="cmv2-chfp-bloque-head"
-        aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
-      >
-        <span className="cmv2-chfp-bloque-chevron" aria-hidden="true">
-          {abierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </span>
+      {/* F41 · Sin plegado la cabecera es un rótulo, no un control: ofrecer un
+          botón que no hace nada es peor que no ofrecerlo. */}
+      {sinPlegado ? (
+      <div className="cmv2-chfp-bloque-head" data-fijo="true">
         <span className="cmv2-chfp-bloque-title">
           <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
           <span className="cmv2-chfp-bloque-meta">
@@ -452,9 +731,34 @@ export function FacultadDecisionBloque({
         </span>
         <span className="cmv2-chfp-bloque-hero">
           {fmtInt(fac.elegibles_total)}
-          <em>elegibles</em>
+          <em>matrículas elegibles</em>
+        </span>
+      </div>
+      ) : (
+      <button
+        type="button"
+        className="cmv2-chfp-bloque-head"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+      >
+        <span className="cmv2-chfp-bloque-chevron" aria-hidden="true">
+          {abierto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </span>        <span className="cmv2-chfp-bloque-title">
+          <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
+          <span className="cmv2-chfp-bloque-meta">
+            {fmtInt(fac.ch_elegibles)} de {fmtInt(fac.ch_total)} CH elegibles
+            {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
+          </span>
+        </span>
+        <span className="cmv2-chfp-bloque-estado" data-decidido={resumen.propias > 0 || undefined}>
+          {estadoTexto}
+        </span>
+        <span className="cmv2-chfp-bloque-hero">
+          {fmtInt(fac.elegibles_total)}
+          <em>matrículas elegibles</em>
         </span>
       </button>
+      )}
 
       {abierto ? (
         <div className="cmv2-chfp-bloque-body">
@@ -464,79 +768,166 @@ export function FacultadDecisionBloque({
               <FacultadRadiografiaCard fac={fac} modo="resumen" />
             </div>
           </div>
-          <div className="cmv2-chfp-decision" aria-label={`Decisión de criterios para ${facLabel}`}>
+          <PlegadoContexto.Provider value={ordenPlegado}>
+          <div
+            className="cmv2-chfp-decision"
+            aria-label={`Decisión de criterios para ${facLabel}`}
+            data-qa-geometry-group="calc-muestra/decision-ch-facultad"
+            data-qa-geometry-contract="intrinsic"
+          >
             <span className="cmv2-chfp-section-eyebrow">Decisión para esta facultad</span>
-            <p className="cmv2-chfp-decision-hint">
-              Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
-              esta facultad. Nada cambia el marco hasta recalcular.
-            </p>
+            <div className="cmv2-chfp-decision-barra">
+              <p className="cmv2-chfp-decision-hint">
+                Del filtro más general al más particular: cada criterio admite todo hasta que lo restrinjas aquí para
+                esta facultad. Nada cambia el marco hasta recalcular.
+              </p>
+              {/* G39 · Plegar o desplegar todos. Gonzalo: «arriba debe haber un
+                  botón para comprimir todos o descomprimir todos de forma
+                  elegante».
+                  Un solo botón que alterna, y no dos: con dos, uno de los
+                  siempre está de más —el estado ya dice cuál toca— y ocupan el
+                  doble en una barra que es contexto, no acción principal. */}
+              <button
+                type="button"
+                className="cmv2-chfp-plegar-todos"
+                onClick={() => setOrdenPlegado(siguienteOrden)}
+              >
+                {ordenPlegado.abierto ? <ChevronsDownUp size={13} /> : <ChevronsUpDown size={13} />}
+                {ordenPlegado.abierto ? "Plegar todos" : "Desplegar todos"}
+              </button>
+            </div>
+            {/* G39 · Los bloques comunes también llevan su barra: se montan por
+                otra vía (slots) y por eso se quedaron sin ella en la primera
+                pasada. Gonzalo: «entre tipo de sesión y composición del curso
+                también falta su barra de cuántos CH nos quedan y el porcentaje».
+                Se toma el primer paso que cada bloque cubre en el orden del
+                embudo — `enrolled_total` abre, `c7` abre la composición. */}
+            <LleganAlCriterio {...(lleganDe?.("enrolled_total") ?? { llegan: null, universo: null })} />
+            {slotApertura}
+            {/* G29 · El mínimo de alumnos elegibles ABRE la lista.
+                Estaba en séptimo lugar, después de modalidad, condición, nivel
+                y tipo de sesión. Es el criterio que más recorta —en Gastronomía
+                se lleva 36 de 45 cursos-horario— y llegaba cuando ya se habían
+                tomado cuatro decisiones sobre un marco que él iba a cambiar. */}
+            <LleganAlCriterio {...(lleganDe?.("minEligible") ?? { llegan: null, universo: null })} />
+            <MinFacultadCard
+              confirmador={confirmadorDe?.(ELEGIBLES_POR_AULA_ID)}
+              seleccion={seleccion}
+              minKey={minKey}
+              fac={fac}
+              umbralGeneral={umbralGeneral}
+              tasa={tasa}
+              radiografiaCard={criterioCards.get("minEligible") ?? null}
+              criterioEvidence={criterioEvidence}
+              onMinimoFacultad={onMinimoFacultad}
+            />
+            {/* F41 · Orden pedido por Gonzalo: el mínimo de matriculados abre la
+                lista —es el primer criterio del embudo por facultad—, y
+                Elegibles por CH y Composición bajan a penúltimos, justo antes
+                del mayor detalle. Antes, matriculados quedaba enterrado en
+                medio y el detalle uno-por-uno competía con criterios que
+                todavía no se habían aplicado. */}
+            {/* G29 · Aquí vivía una segunda tarjeta «Matriculados / población»,
+                con el mismo título que el control de arriba. Gonzalo: «¿estas
+                dos no deberías [ser] sólo una?». El control ya nombra el
+                criterio; repetirlo como sección de evidencia lo contaba dos
+                veces en el embudo.
+
+                Además ese criterio llega **sin columna mapeada** en este
+                proyecto: un criterio que no puede actuar no merece un turno en
+                la lista. El mínimo que sí decide es el de alumnos elegibles, y
+                va primero. */}
             {/* Criterios generales (del más amplio al más fino) + el mínimo,
                 que también recorta grueso: van antes de la bisagra. El nivel
                 del curso (rango) se intercala tras la condición del curso. */}
             {generales.flatMap((variable) => {
+              const barra = (
+                <LleganAlCriterio
+                  key={`llegan-${variable.id}`}
+                  {...(lleganDe?.(variable.id) ?? { llegan: null, universo: null })}
+                />
+              );
               const card = (
                 <CriterioFacultadCard
                   key={variable.id}
+                  confirmador={confirmadorDe?.(variable.id)}
                   variable={variable}
                   seleccion={seleccion}
                   excKey={excKey}
                   facLabel={facLabel}
                   fac={fac}
                   exploracion={exploracion}
+                  criteriosRadiografia={criteriosRadiografia}
+                  radiografiaCard={criterioCards.get(variable.id) ?? null}
+                  criterioEvidence={criterioEvidence}
                   onSel={(next) => onToggleVariable(variable.id, next)}
                 />
               );
               if (variable.id === "condicion_curso" && rangeVariable) {
                 return [
+                  barra,
                   card,
+                  <LleganAlCriterio
+                    key={`llegan-${rangeVariable.id}`}
+                    {...(lleganDe?.(rangeVariable.id) ?? { llegan: null, universo: null })}
+                  />,
                   <NivelFacultadCard
+                    confirmadorDe={confirmadorDe}
                     key={rangeVariable.id}
                     variable={rangeVariable}
                     seleccion={seleccion}
                     facKey={excKey}
                     facLabel={facLabel}
                     fac={fac}
+                    radiografiaCard={criterioCards.get(rangeVariable.id) ?? null}
+                    criterioEvidence={criterioEvidence}
                     onRango={onRango}
                   />,
                 ];
               }
-              return [card];
+              return [barra, card];
             })}
-            <MinFacultadCard
-              seleccion={seleccion}
-              minKey={minKey}
-              fac={fac}
-              umbralGeneral={umbralGeneral}
-              tasa={tasa}
-              onMinimoFacultad={onMinimoFacultad}
-            />
-            {/* Bisagra del embudo: cuántas aulas quedan con los filtros
-                generales, antes de la decisión más particular (el tipo). */}
-            <p className="cmv2-chfp-bisagra" role="note">
-              <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} aulas candidatas
-              con estos criterios · ahora decide el <em>tipo de curso</em>
-            </p>
             {sessionVar ? (
+              <>
+              <LleganAlCriterio {...(lleganDe?.(sessionVar.id) ?? { llegan: null, universo: null })} />
               <CriterioFacultadCard
+                confirmador={confirmadorDe?.(sessionVar.id)}
                 variable={sessionVar}
                 seleccion={seleccion}
                 excKey={excKey}
                 facLabel={facLabel}
                 fac={fac}
                 exploracion={exploracion}
+                criteriosRadiografia={criteriosRadiografia}
+                radiografiaCard={criterioCards.get(sessionVar.id) ?? null}
+                criterioEvidence={criterioEvidence}
                 onSel={(next) => onToggleVariable(sessionVar.id, next)}
               />
+              </>
             ) : null}
             {/* Criterio final y más granular: la lista de cursos-horario que
                 sobreviven en esta facultad, todos activos por defecto. */}
+            {/* G29 · Igual que arriba: «Composición del curso-horario» salía dos
+                veces, una como control y otra como evidencia con el mismo
+                rótulo. La evidencia vive dentro de su control. */}
+            <LleganAlCriterio
+              {...(lleganDe?.("c7") ?? lleganDe?.("c8_facultad") ?? { llegan: null, universo: null })}
+            />
+            {slotCierre}
+            <LleganAlCriterio {...(lleganDe?.("manual_excluded") ?? { llegan: null, universo: null })} />
             <AulasFinalesCard
+              tasaAsistencia={tasaAsistencia(seleccion)}
               aulas={aulasFinales}
               seleccion={seleccion}
               facLabel={facLabel}
               onToggle={onToggleAula}
               onReactivarTodas={onReactivarAulas}
             />
+            <CierreDelRecorrido
+              {...(cierreDelRecorrido ?? { quedan: null, universo: null })}
+            />
           </div>
+          </PlegadoContexto.Provider>
         </div>
       ) : null}
     </article>

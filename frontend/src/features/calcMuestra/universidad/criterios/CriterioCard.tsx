@@ -12,12 +12,14 @@ import type {
   CriterioVariable,
   CriteriosSeleccionMarco,
 } from "../../../../api/client";
+import type { ReactNode } from "react";
+import type { AporteCategoria } from "./controles";
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import { resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { CondicionCursoAviso } from "./CondicionCursoAviso";
 import { ControlFlat, ControlHierarchical, ControlNumeric, ControlOrdinal } from "./controles";
-import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "./facultades";
+import { ControlRange, type FacultadRef } from "./facultades";
 import { TeacherTypeOrden } from "./TeacherTypeOrden";
 import { SESSION_TYPE_VARIABLE_ID } from "./tipoSesionModel";
 import { TipoSesionPorFacultad } from "./TipoSesionPorFacultad";
@@ -88,6 +90,8 @@ export function CriterioCard({
   sessionTypeImpacto,
   sessionTypeDominante,
   onVerExplorador,
+  radiografia,
+  aporte,
 }: {
   variable: CriterioVariable;
   seleccion: CriteriosSeleccionMarco;
@@ -114,6 +118,18 @@ export function CriterioCard({
   sessionTypeDominante?: CalcMuestraAulasParticularidadSessionType | null;
   /** session_type: navega a la pestaña Explorador; sin callback no hay link. */
   onVerExplorador?: () => void;
+  /**
+   * S1: la radiografía de ESTE criterio, dentro de la tarjeta que lo decide.
+   * Antes vivía en una consola aparte con su propio selector: se enfocaba un
+   * criterio en una zona de la pantalla y se decidía en otra.
+   */
+  radiografia?: ReactNode;
+  /**
+   * S4/S5: lo que cada categoría aporta al marco ejecutado, según R. Sin esto
+   * el conmutador decide contra el conteo del catálogo, que es anterior a
+   * cualquier criterio.
+   */
+  aporte?: (segmentKey: string) => AporteCategoria | null;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
@@ -153,7 +169,7 @@ export function CriterioCard({
 
       <div className="cmv2-crit-card-body">
         {variable.id === "condicion_curso" ? <CondicionCursoAviso variable={variable} /> : null}
-        {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} />}
+        {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} aporte={aporte} />}
         {variable.kind === "hierarchical" && (
           <ControlHierarchical variable={variable} sel={sel} onSel={onSel} />
         )}
@@ -181,11 +197,7 @@ export function CriterioCard({
           sessionTypeDominante={sessionTypeDominante}
           onVerExplorador={onVerExplorador}
         />
-      ) : (
-        (variable.kind === "flat" || variable.kind === "hierarchical") && (
-          <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
-        )
-      )}
+      ) : null}
 
       {pendiente ? (
         <div className="cmv2-crit-confirm" role="status" aria-live="polite">

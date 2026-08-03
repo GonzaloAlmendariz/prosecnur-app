@@ -1,5 +1,4 @@
-/** Sección Aulas (laboratorio de selección) del desk universitario: 7 pestañas. */
-export { AulasMarcoTab } from "./AulasMarcoTab";
+/** Sección Aulas (laboratorio de selección) del desk universitario: 6 pestañas. */
 export { AulasObjetivoTab } from "./AulasObjetivoTab";
 export { AulasMetodoTab } from "./AulasMetodoTab";
 export { AulasSimulacionTab } from "./AulasSimulacionTab";

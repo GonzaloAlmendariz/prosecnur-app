@@ -52,6 +52,17 @@ export function CursosHorarioSexo({
     () => orderCursoHorarioSexRows(rows, activeFaculty, order),
     [rows, activeFaculty, order],
   );
+
+  // F29 · Medido: el contenedor tenía 39.899 px de filas dentro de una ventana
+  // de 360 px —110 pantallas, 10.278 palabras—. Una lista que hay que recorrer
+  // 110 veces no sostiene ninguna decisión, y el orden ya pone delante lo que
+  // importa (mayor o menor tamaño). Se muestra una ventana legible y la
+  // profundidad se declara, en vez de esconderla en la barra de scroll. No se
+  // agrega ni se resume nada: son las mismas filas del motor, acotadas.
+  const [verTodos, setVerTodos] = useState(false);
+  const TOPE = 40;
+  const recortada = !verTodos && visible.length > TOPE;
+  const filas = recortada ? visible.slice(0, TOPE) : visible;
   const maxSex = visible.reduce((peak, row) => Math.max(peak, row.hombres, row.mujeres), 0) || 1;
 
   if (!rows.length) {
@@ -112,7 +123,7 @@ export function CursosHorarioSexo({
         role="img"
         aria-label={`Hombres y mujeres por curso-horario en ${activeFaculty || "todas las facultades"}, ${visible.length} cursos-horario`}
       >
-        {visible.map((row) => (
+        {filas.map((row) => (
           <div key={row.id} className="cmv2-ch-sexo-row">
             <div className="cmv2-ch-sexo-label">
               <strong title={row.label}>{row.label}</strong>
@@ -137,6 +148,18 @@ export function CursosHorarioSexo({
           </div>
         ))}
       </div>
+      {visible.length > TOPE && (
+        <p className="cmv2-ch-sexo-depth">
+          <span>
+            {recortada
+              ? `Mostrando los ${TOPE} de mayor tamaño · ${fmtInt(visible.length)} cursos-horario en ${activeFaculty || "el marco"}`
+              : `Mostrando los ${fmtInt(visible.length)} cursos-horario de ${activeFaculty || "el marco"}`}
+          </span>
+          <button type="button" onClick={() => setVerTodos((v) => !v)}>
+            {recortada ? "Ver todos" : `Volver a ${TOPE}`}
+          </button>
+        </p>
+      )}
     </section>
   );
 }

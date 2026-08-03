@@ -1453,12 +1453,8 @@
   }
 }
 
-/* Tabla de cursos-horario por facultad: altura acotada con scroll interno
-   (el encabezado queda fijo) en vez del chip "Desplaza para ver más". */
-.cmv2-ch-tabla-wrap {
-  max-height: 384px;
-  overflow: auto;
-}
+/* La pestaña conserva un solo dueño vertical (el panel activo). La envolvente
+   de tabla solo hereda el alcance horizontal de la primitiva compartida. */
 /* Dos clases para ganar en especificidad al chip global .cmv2-table-wrap::after. */
 .cmv2-table-wrap.cmv2-ch-tabla-wrap::after { content: none; display: none; }
 .cmv2-ch-tabla-wrap thead th {
@@ -1468,10 +1464,9 @@
   background: var(--pulso-surface);
 }
 
-/* Presentación de la tabla de cursos-horario por facultad: números a la
+/* Presentación de la tabla de cursos-horario requeridos: números a la
    derecha (tabular), facultad a la izquierda, y la tabla centrada en el ancho
-   disponible (deja de verse pegada a la izquierda en paneles anchos). El scroll
-   interno del wrap (max-height 384px) se conserva. */
+   disponible (deja de verse pegada a la izquierda en paneles anchos). */
 .cmv2-ch-tabla {
   /* Con las columnas de referencia (Mediana·Media·mín·LI 95%·En uso) la tabla
      es ancha: se deja crecer a su contenido y el wrap (overflow:auto) resuelve
@@ -1619,4 +1614,60 @@
 }
 .cmv2-ch-stale-banner strong {
   font-weight: var(--pulso-weight-semibold);
+}
+
+/* S7-bis · Las tres lecturas de la distribución se recorren, no se apilan:
+   apiladas sumaban 2.253 px sobre 645 visibles. Mismo remedio que el riel de
+   pasos de Criterios; las tres siguen en el DOM. */
+.cmv2-dist-sections > div[hidden] {
+  display: none !important;
+}
+
+.cmv2-dist-pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0 4px;
+}
+
+.cmv2-dist-pasos button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cmv2-dist-pasos button > span {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-dist-pasos button[aria-pressed="true"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-dist-pasos button[aria-pressed="true"] > span {
+  background: var(--cmv2-accent-fg);
+  color: var(--pulso-surface);
+}
+
+.cmv2-dist-pasos button:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
 }

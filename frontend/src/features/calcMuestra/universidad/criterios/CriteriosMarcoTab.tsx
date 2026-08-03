@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GraduationCap, Loader2, RefreshCw, School, SlidersHorizontal } from "lucide-react";
 import {
+  normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
   normalizeCalcMuestraSessionTypeImpacto,
@@ -37,6 +38,7 @@ import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
+import { frameIntegrity } from "../shared/frameIntegrity";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CifraFila, CifraMotor } from "../ui";
 import { useMotorStore } from "../../store";
@@ -52,6 +54,10 @@ import type { PresetCanonicoPlan } from "./presetCanonicoModel";
 import { MinElegiblesCard, type FacultadMinRef } from "./MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia } from "./minElegiblesModel";
 import type { FacultadRef } from "./facultades";
+import {
+  CriteriosRadiografiaConsola,
+  useCriteriosRadiografiaInline,
+} from "../marco/CriteriosRadiografiaConsola";
 import "./criterios.css";
 
 /** Slug estable para claves de facultad (sin tildes, minúsculas, guiones). */
@@ -98,20 +104,37 @@ export function CriteriosMarcoTab({
   // Payloads críticos para la vista por facultad del tipo de sesión (reunión
   // §4). Todos retrocompatibles: sin los campos, la tarjeta se comporta como
   // hoy (sin barras de elegibles, sin aviso de impacto, sin señal DTI).
-  const exploracion = useMemo(
+  const integridadFrame = useMemo(
+    () => frameIntegrity(aulasState?.frame),
+    [aulasState?.frame],
+  );
+  const exploracionNormalizada = useMemo(
     () => normalizeCalcMuestraAulasExploracion(aulasState?.frame?.exploracion ?? null),
     [aulasState?.frame?.exploracion],
   );
-  const sessionTypeImpacto = useMemo(
+  const marcoPublicable = integridadFrame.status === "consistent";
+  const marcoIncoherente = integridadFrame.status === "inconsistent";
+  const exploracion = marcoPublicable ? exploracionNormalizada : null;
+  const criteriosRadiografiaNormalizada = useMemo(
+    () => normalizeCalcMuestraAulasCriteriosRadiografia(aulasState?.frame?.criterios_radiografia ?? null),
+    [aulasState?.frame?.criterios_radiografia],
+  );
+  const criteriosRadiografia =
+    marcoPublicable && criteriosRadiografiaNormalizada?.frame_hash === aulasState?.frame?.frame_hash
+      ? criteriosRadiografiaNormalizada
+      : null;
+  const sessionTypeImpactoNormalizado = useMemo(
     () => normalizeCalcMuestraSessionTypeImpacto(aulasState?.frame?.session_type_impacto ?? null),
     [aulasState?.frame?.session_type_impacto],
   );
-  const sessionTypeDominante = useMemo(
+  const sessionTypeImpacto = marcoPublicable ? sessionTypeImpactoNormalizado : null;
+  const sessionTypeDominanteNormalizado = useMemo(
     () =>
       normalizeCalcMuestraAulasParticularidades(aulasState?.frame?.particularidades ?? null)
         ?.session_type_dominante ?? null,
     [aulasState?.frame?.particularidades],
   );
+  const sessionTypeDominante = marcoPublicable ? sessionTypeDominanteNormalizado : null;
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
   const opcionalesActivosMotor = useMotorStore((s) => s.decisiones.opcionalesActivos);
   // Selección 100% MANUAL (ADR 0035): se muestra EXACTAMENTE lo confirmado en el
@@ -172,24 +195,16 @@ export function CriteriosMarcoTab({
   const showAlumno = scope !== "aula";
   const showAula = scope !== "alumno";
 
-  // Salida visible del bloque de estudiante: N elegibles del marco (insumo que
-  // alimenta el resto del recorrido). null cuando aún no hay exploración.
+  // Salida visible del bloque de estudiante: suma de matrículas elegibles del
+  // marco. null cuando la radiografía no es publicable.
   const elegiblesTotal = exploracion?.totales.elegibles_total ?? null;
-  // El total y el promedio son dos cosas distintas y relacionadas, y mostrar
-  // solo una invita a leerla como la otra: «Elegibles por curso-horario» suena
-  // a promedio cuando es la suma. El denominador son los cursos-horario
-  // ELEGIBLES —no todos—, porque el numerador solo suma sobre esos.
-  const chElegibles = exploracion?.totales.ch_elegibles ?? null;
-  const elegiblesPromedio =
-    elegiblesTotal != null && chElegibles != null && chElegibles > 0
-      ? elegiblesTotal / chElegibles
-      : null;
-
   // Puente al Explorador desde la tarjeta de tipo de sesión. Depende de que el
   // desk pase `onNavigate`; sin él, el link no se muestra. En la vista integrada
   // (scope "aula") la radiografía ya está a la vista, así que se omite el link.
   const onVerExplorador =
-    onNavigate && scope !== "aula" ? () => onNavigate("marco", "marco-ch-radiografia") : undefined;
+    onNavigate && scope !== "aula" && marcoPublicable
+      ? () => onNavigate("marco", "marco-ch-radiografia")
+      : undefined;
 
   function patchSeleccion(next: CriteriosSeleccionMarco) {
     onWorkspace({ ...workspace, aulas_config: { ...config, criterios_seleccion: next } });
@@ -276,26 +291,51 @@ export function CriteriosMarcoTab({
   // reconstruir cuando (a) es la primera vez (aún no hay marco), o (b) los
   // criterios confirmados difieren de los que construyeron el marco vigente.
   const marcoConstruido = Boolean(aulasState?.frame);
+  const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
+  const criteriosRadiografiaF1Pendiente = marcoConstruido && !criteriosRadiografiaF1Lista;
+  const criteriosRadiografiaF1Ausente = marcoConstruido && aulasState?.frame?.criterios_radiografia == null;
+  const marcoNoVerificable = marcoConstruido && integridadFrame.status === "unverifiable";
   const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion, config.teacher_type_orden, {
     config,
     opcionalesActivos: opcionalesActivosMotor,
   });
-  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado;
+  const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
+  // S1: el detalle de cada criterio se resuelve aquí una vez y se entrega a la
+  // tarjeta que decide ese criterio, en vez de vivir en una consola aparte.
+  const radiografiaInline = useCriteriosRadiografiaInline({
+    catalogo,
+    radiografia: criteriosRadiografia,
+    scope: "alumno",
+    i18bSource: {
+      frame: marcoPublicable ? aulasState?.frame ?? null : null,
+      config,
+      borrador,
+      previewEnabled: totalPendientes > 0 || marcoDesactualizado,
+    },
+  });
   // El haz de luz (Anexo A.2) solo cuando hace falta reconstruir y no hay nada
   // pendiente de confirmar (si hay pendientes, la acción primero es confirmar).
   const beam = necesitaRecalculo && listoParaRecalcular;
   const estadoResumen =
-    totalPendientes > 0
-      ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente de confirmar" : "variables pendientes de confirmar"}`
-      : !marcoConstruido
-        ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
-        : marcoDesactualizado
-          ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
-          : "El marco está al día con los criterios confirmados.";
+    marcoIncoherente
+      ? "La radiografía no corresponde al marco ejecutado. Reconstruye el marco para recuperar cifras coherentes."
+      : marcoNoVerificable
+        ? "El marco ejecutado no es verificable contra su radiografía. Reconstruye el marco para recuperar cifras acreditables."
+        : totalPendientes > 0
+          ? `${totalPendientes} ${totalPendientes === 1 ? "variable pendiente de confirmar" : "variables pendientes de confirmar"}`
+          : !marcoConstruido
+            ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
+            : criteriosRadiografiaF1Pendiente
+              ? criteriosRadiografiaF1Ausente
+                ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
+                : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
+            : marcoDesactualizado
+              ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
+              : "El marco está al día con los criterios confirmados.";
 
   return (
-    <div className="cmv2-crit" data-audit-ready={ready ? "true" : "false"}>
+    <div className="cmv2-crit" data-audit-ready={ready && marcoPublicable ? "true" : "false"}>
       {onReconstruir && (
         <div
           className="cmv2-crit-apply"
@@ -304,7 +344,7 @@ export function CriteriosMarcoTab({
           data-attention={necesitaRecalculo ? "true" : "false"}
         >
           <AvisoModulo
-            tone={totalPendientes > 0 || marcoDesactualizado ? "warn" : !marcoConstruido ? "info" : "success"}
+            tone={totalPendientes > 0 || marcoDesactualizado || marcoIncoherente || marcoNoVerificable || criteriosRadiografiaF1Pendiente ? "warn" : !marcoConstruido ? "info" : "success"}
             role="status"
             compact
             className="cmv2-crit-draft-summary"
@@ -342,38 +382,14 @@ export function CriteriosMarcoTab({
       )}
 
       {showAlumno && elegiblesTotal != null && (
-        /* El motor suma `eligible_n` de cada curso-horario incluido, y
-            `eligible_n` es la cantidad de estudiantes elegibles DE ESE curso.
-            Un estudiante matriculado en varios cuenta en cada uno —por eso el
-            sorteo lleva descuento secuencial con `covered`—, así que esta cifra
-            NO es un conteo de personas: con hsvg2026 da 79.771 sobre un
-            universo de 27.765. Su descripción decía «quiénes cumplen los
-            criterios de estudiante», que se lee como headcount y contradice a
-            «Estudiantes elegibles: 20.392» de la franja de arriba, en la misma
-            pantalla. Aquí se corrige la descripción, que afirmaba algo que el
-            motor no calcula; el titular y su condición de cifra hero son
-           vocabulario metodológico y están en la bandeja del goal visual. */
         <div className="cmv2-crit-elegibles" data-audit-ready="true">
           <CifraFila>
             <CifraMotor
-              label="Elegibles por curso-horario"
+              label="Suma de matrículas elegibles"
               value={fmtInt(elegiblesTotal)}
-              detalle="suma de los elegibles de cada curso-horario incluido — un estudiante matriculado en varios cuenta en cada uno"
+              detalle="en cursos-horario incluidos del último marco — una persona puede contar varias veces si está matriculada en más de uno"
               origen="motor"
               hero
-            />
-            <CifraMotor
-              label="Promedio por curso-horario"
-              value={elegiblesPromedio == null ? "S/D" : elegiblesPromedio.toLocaleString("es-PE", { maximumFractionDigits: 1 })}
-              // Sin nombrar el denominador a propósito. Este bloque lee de la
-              // EXPLORACIÓN y la franja de arriba del MARCO EJECUTADO, y las dos
-              // instantáneas pueden diferir —con hsvg2026 son 2.373 contra
-              // 2.265—. Imprimir aquí el conteo ponía dos cifras de cursos-
-              // horario elegibles en la misma pantalla contradiciéndose, que es
-              // justo el defecto que este bloque venía a corregir. El promedio
-              // sí es válido: numerador y denominador salen de la misma fuente.
-              detalle="elegibles que aporta en promedio cada curso-horario incluido"
-              origen="motor"
             />
           </CifraFila>
         </div>
@@ -391,6 +407,25 @@ export function CriteriosMarcoTab({
         </div>
       ) : (
         <>
+          {/* S1: cuando el frame no publica radiografía, la recuperación sigue
+              siendo un bloque propio; con radiografía viva, el detalle de cada
+              criterio baja a su tarjeta y aquí no queda consola separada. */}
+          {showAlumno && alumno.length > 0 && radiografiaInline.needsRecovery ? (
+            <CriteriosRadiografiaConsola
+              catalogo={catalogo}
+              radiografia={criteriosRadiografia}
+              i18bSource={{ frame: marcoPublicable ? aulasState?.frame ?? null : null, config, borrador, previewEnabled: totalPendientes > 0 || marcoDesactualizado }}
+              scope="alumno"
+              onReconstruir={onReconstruir}
+              puedeReconstruir={listoParaRecalcular}
+              reconstruyendo={reconstruyendo}
+            />
+          ) : null}
+          {showAlumno && alumno.length > 0 && radiografiaInline.invalid.length ? (
+            <div className="cmv2-crc-contract-alert" role="alert">
+              Evidencia I18b inválida u obsoleta: {radiografiaInline.invalid.join(", ")}. React no sustituye esos datos con cálculos locales.
+            </div>
+          ) : null}
           {showAlumno && alumno.length > 0 && (
             <section className="cmv2-crit-section" data-scope="alumno">
               <header className="cmv2-crit-scope-head" data-scope="alumno">
@@ -422,6 +457,8 @@ export function CriteriosMarcoTab({
                     pendiente={pendientes.has(variable.id)}
                     onConfirmar={() => confirmarVariable(variable.id, variable.kind)}
                     onDescartar={() => descartarVariable(variable.id, variable.kind)}
+                    radiografia={radiografiaInline.detalle(variable.id)}
+                    aporte={(segmentKey) => radiografiaInline.aporte(variable.id, segmentKey)}
                   />
                 ))}
               </div>

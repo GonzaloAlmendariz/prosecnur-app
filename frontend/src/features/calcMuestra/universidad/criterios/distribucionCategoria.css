@@ -1,0 +1,369 @@
+/*
+ * F111 · Densidad, boxplot y cuantiles sobre un solo eje.
+ *
+ * Las tres capas comparten un ancho constante — no el espacio sobrante — porque
+ * un dominio común no sirve de nada si cada capa lo proyecta sobre un ancho
+ * distinto: el mismo valor caería en un píxel diferente en cada una y dejarían
+ * de alinearse. Es la misma lección que costó una reparación en la tarjeta de
+ * categoría (ADR 0057, regla 3).
+ */
+.cmv2-dist {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+/*
+ * F112 · Aquí vivía el conmutador elegibles/todos. Gonzalo: «no entiendo mucho
+ * lo de dividir un visor entre elegibles y todos, debería ser solo elegibles».
+ * Tenía razón: la distribución que decide es la de los elegibles, y el total ya
+ * viaja como cifra donde sí importa («CH totales»).
+ */
+
+/*
+ * Las cuatro capas apiladas, con el mismo ancho y el mismo origen.
+ *
+ * F115 · El ancho era una constante de 260 px. Nació para que las capas no
+ * divergieran entre sí, y para eso servía — pero dejaba media tarjeta vacía a la
+ * derecha. Gonzalo: «tenemos espacio horizontal a nivel de gráfico que no
+ * estamos utilizando y que puede alinearse justo donde termina el último texto
+ * de la derecha».
+ *
+ * El 100 % consigue las dos cosas a la vez: las capas siguen compartiendo
+ * exactamente el mismo ancho —el de su contenedor— y ese contenedor es el mismo
+ * que el de la rejilla de cifras, así que el gráfico **termina donde termina la
+ * cuarta columna**. Y como todas las tarjetas cuelgan del mismo ancho de fila,
+ * siguen alineando entre sí.
+ *
+ * Más ancho no es sólo estética: con 260 px, P25 y P50 caían a 35 px uno del
+ * otro y las etiquetas se empujaban; con el ancho completo se leen donde están.
+ */
+.cmv2-dist-grafico {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+/*
+ * F116 · Guías transversales en Q1, mediana, media y Q3.
+ *
+ * Atraviesan densidad, caja y eje de arriba abajo. Sin ellas, leer dónde cae la
+ * mediana sobre la forma exige seguir una columna imaginaria; con ellas se ve
+ * sin buscarlo. Van DETRÁS de las marcas —`z-index: 0` contra el `1` de las
+ * capas— porque su trabajo es guiar el ojo, no competir con el dato.
+ *
+ * Se detienen sobre la línea del eje: bajar hasta las etiquetas las convertiría
+ * en un subrayado y ensuciaría la fila de cifras.
+ */
+.cmv2-dist-guias {
+  position: absolute;
+  inset: 0 0 var(--cmv2-dist-alto-cuantiles) 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.cmv2-dist-guias i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--cmv2-accent) 34%, transparent);
+}
+/* La mediana es la referencia principal: se le da algo más de presencia. */
+.cmv2-dist-guias i[data-guia="p50"] {
+  border-left-color: color-mix(in srgb, var(--cmv2-accent) 52%, transparent);
+}
+/* La media es un estadístico distinto de los cuartiles y su guía lo declara. */
+.cmv2-dist-guias i[data-guia="media"] {
+  border-left-style: dotted;
+  border-left-color: color-mix(in srgb, var(--pulso-text) 34%, transparent);
+}
+
+.cmv2-dist-densidad,
+.cmv2-dist-box,
+.cmv2-dist-eje,
+.cmv2-dist-cuantiles { position: relative; z-index: 1; }
+
+/* --- Densidad ------------------------------------------------------------ */
+.cmv2-dist-densidad {
+  display: block;
+  width: 100%;
+  height: 62px;
+  overflow: visible;
+}
+.cmv2-dist-densidad polygon {
+  fill: color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+  stroke: color-mix(in srgb, var(--cmv2-accent) 62%, transparent);
+  stroke-width: 1;
+  /* `non-scaling-stroke` para que el trazo no se deforme con el viewBox
+     estirado: sin esto la línea engorda al ensancharse la tarjeta. */
+  vector-effect: non-scaling-stroke;
+}
+
+/* --- Boxplot ------------------------------------------------------------- */
+.cmv2-dist-box {
+  position: relative;
+  height: 34px;
+  margin-top: 8px;
+  border-top: 1px solid var(--cmv2-border);
+}
+.cmv2-dist-box i {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.cmv2-dist-bigote {
+  height: 1px;
+  background: var(--cmv2-border-strong, var(--cmv2-border));
+}
+/* Topes verticales: sin ellos el bigote no declara dónde termina. */
+.cmv2-dist-tope {
+  width: 1px;
+  height: 11px;
+  background: var(--cmv2-border-strong, var(--cmv2-border));
+}
+.cmv2-dist-caja {
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--cmv2-accent) 26%, transparent);
+}
+.cmv2-dist-mediana {
+  width: 2px;
+  height: 22px;
+  border-radius: 1px;
+  background: var(--cmv2-accent);
+}
+.cmv2-dist-media {
+  width: 7px;
+  height: 7px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--pulso-text);
+  box-shadow: 0 0 0 2px var(--cmv2-surface, var(--pulso-surface));
+}
+
+/*
+ * F114 · Atípicos como marca, no como frase. El contador vive en `data-n` y
+ * sale por `::after`: es una cifra pequeña pegada al bigote que los excluye,
+ * legible sin traducir una oración a una posición.
+ */
+.cmv2-dist-atipico {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--pulso-warn-fg, var(--pulso-text-muted));
+  opacity: 0.85;
+}
+.cmv2-dist-atipico::after {
+  content: attr(data-n);
+  position: absolute;
+  top: -12px;
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+  line-height: 1;
+}
+.cmv2-dist-atipico[data-lado="inf"] { margin-left: -5px; }
+.cmv2-dist-atipico[data-lado="inf"]::after { right: 2px; }
+.cmv2-dist-atipico[data-lado="sup"] { margin-left: 5px; }
+.cmv2-dist-atipico[data-lado="sup"]::after { left: 2px; }
+
+/*
+ * F117 · El corte de un criterio de umbral.
+ *
+ * Se dibuja sobre las mismas capas y con más peso que las guías: aquí el número
+ * no describe la distribución, la **parte**. Todo lo que queda a su izquierda
+ * es lo que el criterio deja fuera, y eso se lee sin traducir nada.
+ */
+.cmv2-dist-umbral {
+  position: absolute;
+  top: 0;
+  bottom: var(--cmv2-dist-alto-cuantiles);
+  z-index: 2;
+  pointer-events: none;
+}
+.cmv2-dist-umbral i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--pulso-warn-fg, var(--pulso-text));
+  opacity: 0.85;
+}
+.cmv2-dist-umbral b {
+  position: absolute;
+  top: -2px;
+  left: 4px;
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-warn-fg, var(--pulso-text));
+  white-space: nowrap;
+}
+
+/* --- Eje ----------------------------------------------------------------- */
+/*
+ * F112 · Antes la escala sólo se declaraba en palabras al pie, y las únicas
+ * marcas eran las de los cuantiles. Un gráfico cuyo eje no está rotulado obliga
+ * a leer cada valor de su etiqueta: la forma no se puede situar.
+ */
+.cmv2-dist-eje {
+  position: relative;
+  height: 24px;
+  margin-top: 8px;
+}
+.cmv2-dist-eje-linea {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: var(--cmv2-border);
+}
+.cmv2-dist-eje-corte {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+}
+.cmv2-dist-eje-corte i {
+  width: 1px;
+  height: 4px;
+  background: var(--cmv2-border-strong, var(--cmv2-border));
+}
+/* G21 · El último rótulo del eje se apilaba en vertical —«200» medía 6 px—
+   porque `translateX(-100%)` lo sacaba del contenedor y el texto se rompía.
+   Con `nowrap` se mantiene en una línea; el desbordamiento de 1–2 px por la
+   derecha es preferible a una cifra ilegible. */
+.cmv2-dist-eje-corte b {
+  white-space: nowrap;
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+/* Los extremos se pegan al borde en vez de sobresalir de la escala. */
+.cmv2-dist-eje-corte:first-of-type { transform: none; justify-items: start; }
+.cmv2-dist-eje-corte:last-of-type { transform: translateX(-100%); justify-items: end; }
+
+/* --- Cuantiles ----------------------------------------------------------- */
+/* Alto de la fila de cifras: lo usa `cmv2-dist-guias` para saber dónde parar. */
+:root { --cmv2-dist-alto-cuantiles: 58px; }
+/* Con tres o cuatro filas la zona necesita más alto, o la última etiqueta cae
+   fuera del contenedor y el filete que la une a su marca queda colgando. */
+.cmv2-dist-cuantiles:has(> dl > div[data-fila="2"]) { --cmv2-dist-alto-cuantiles: 84px; }
+.cmv2-dist-cuantiles:has(> dl > div[data-fila="3"]) { --cmv2-dist-alto-cuantiles: 110px; }
+.cmv2-dist-cuantiles {
+  position: relative;
+  height: var(--cmv2-dist-alto-cuantiles);
+  margin-top: 3px;
+}
+/* F116 · Los ticks propios de la fila desaparecen: las guías transversales
+   los sustituyen y con ambos la fila se veía rayada dos veces. */
+.cmv2-dist-cuantiles dl {
+  position: relative;
+  height: 100%;
+  margin: 0;
+}
+/* Cada etiqueta bajo su propia posición. `translateX(-50%)` la centra sobre su
+   marca; el reparto anticolisión ya llegó resuelto desde el componente. */
+/* F119 · Dos filas. La etiqueta que chocaría baja en vez de desplazarse, así
+   conserva su x y sigue nombrando la marca que tiene encima. */
+.cmv2-dist-cuantiles dl > div {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  white-space: nowrap;
+}
+/* G18 · Una fila por etiqueta cuando hace falta. El alto de la zona crece con
+   ellas para que la última no se salga del contenedor. */
+.cmv2-dist-cuantiles dl > div[data-fila="1"] { top: 32px; }
+.cmv2-dist-cuantiles dl > div[data-fila="2"] { top: 58px; }
+.cmv2-dist-cuantiles dl > div[data-fila="3"] { top: 84px; }
+/* Un filete que une la etiqueta de la segunda fila con su marca: sin él,
+   bajarla la desconecta de lo que nombra. */
+.cmv2-dist-cuantiles dl > div[data-fila="2"]::before,
+.cmv2-dist-cuantiles dl > div[data-fila="3"]::before,
+.cmv2-dist-cuantiles dl > div[data-fila="1"]::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  background: var(--cmv2-border);
+}
+.cmv2-dist-cuantiles dt {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  color: var(--pulso-text-muted);
+  letter-spacing: 0.02em;
+}
+.cmv2-dist-cuantiles dd {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* --- Pie ----------------------------------------------------------------- */
+.cmv2-dist-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  line-height: 1.4;
+}
+.cmv2-dist-convencion { font-style: italic; color: var(--pulso-warn-fg, var(--pulso-text-muted)); }
+
+.cmv2-dist-vacia {
+  margin: 0;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--pulso-text-muted);
+}
+
+/* Nada del gráfico se anima: cada marca codifica un valor, y una animación que
+   escale una magnitud puede mostrar un rango falso (patrón 12 del ADR 0057). El
+   bloque se declara igualmente para que el guard de movimiento reducido tenga
+   contrapartida si alguien añade una transición mañana. */
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-dist-grafico * { animation: none; transition: none; }
+}
+
+/*
+ * G27 · Categoría con demasiado pocos cursos-horario para tener distribución.
+ *
+ * Antes dibujaba una caja de 0,6 % de ancho con los cuatro cuantiles idénticos
+ * apilados en cuatro filas. Un punto disfrazado de resumen estadístico se lee
+ * con la autoridad del segundo.
+ */
+.cmv2-dist-pocos {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-dist-pocos strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-dist-pocos em {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  opacity: 0.85;
+}

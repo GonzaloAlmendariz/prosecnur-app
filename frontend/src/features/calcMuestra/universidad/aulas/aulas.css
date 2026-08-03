@@ -34,84 +34,7 @@
   min-height: 0;
 }
 
-/* --- Marco: flujo + lateral con chips y auditoría ----------------------------
-   Con tope de ancho: a 1710 la cadena se estiraba a ~950px con texto corto y
-   la columna lateral quedaba flotando sobre un vacío (QA H10). */
-.cmv2-aulas-marco-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
-  gap: 16px;
-  align-items: start;
-  max-width: 1320px;
-}
-
-@media (max-width: 1040px) {
-  .cmv2-aulas-marco-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.cmv2-aulas-marco-lateral {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-/* --- Chips de reglas del método (Popover) ------------------------------------ */
-.cmv2-aulas-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  background: var(--cmv2-surface-tint);
-}
-
-.cmv2-aulas-chips-titulo {
-  width: 100%;
-  color: var(--pulso-text-soft);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-black);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.cmv2-aulas-chip {
-  min-height: 0;
-  padding: 4px 10px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: 999px;
-  background: var(--cmv2-surface);
-  color: var(--cmv2-accent-fg);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.3;
-  cursor: help;
-  transition:
-    background var(--motion-dur-fast) var(--motion-ease-out),
-    border-color var(--motion-dur-fast) var(--motion-ease-out),
-    transform var(--motion-dur-press, 120ms) var(--motion-ease-out);
-}
-
-/* Hover solo en punteros reales; el estado abierto (popover) usa el mismo look. */
-@media (hover: hover) {
-  .cmv2-aulas-chip:hover {
-    border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-    background: var(--cmv2-accent-soft);
-  }
-}
-
-.cmv2-aulas-chip[aria-expanded="true"] {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 38%, var(--pulso-border));
-  background: var(--cmv2-accent-soft);
-}
-
-.cmv2-aulas-chip:active {
-  transform: scale(0.96);
-}
-
+/* --- Contenido de los popovers metodológicos -------------------------------- */
 .cmv2-aulas-chip-pop {
   display: grid;
   gap: 6px;
@@ -140,7 +63,7 @@
   min-height: 0;
 }
 
-/* --- Reproducibilidad y alertas ----------------------------------------------- */
+/* --- Reproducibilidad --------------------------------------------------------- */
 .cmv2-aulas-repro {
   display: grid;
   gap: 8px;
@@ -148,38 +71,6 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 10px;
   background: var(--cmv2-surface);
-}
-
-.cmv2-aulas-alerta {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
-  padding: 10px 11px;
-  border: 1px solid var(--pulso-warn-border);
-  border-radius: 10px;
-  background: var(--pulso-warn-bg);
-}
-
-.cmv2-aulas-alerta svg {
-  margin-top: 1px;
-  color: var(--pulso-warn-fg);
-}
-
-.cmv2-aulas-alerta strong {
-  display: block;
-  color: var(--pulso-warn-fg);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-black);
-  line-height: 1.3;
-}
-
-.cmv2-aulas-alerta span {
-  display: block;
-  margin-top: 2px;
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-  line-height: 1.5;
 }
 
 /* --- Objetivo: traducción de cuotas por facultad ------------------------------ */
@@ -249,6 +140,11 @@
   padding: 0;
 }
 
+.cmv2-aulas-stack .cmv2-classroom-method-grid,
+.cmv2-aulas-neff-layout > .cmv2-uni-cifra-fila {
+  grid-auto-rows: 1fr;
+}
+
 .cmv2-aulas-method-pick {
   display: block;
   width: 100%;
@@ -309,34 +205,38 @@
   margin: 0;
 }
 
-/* Referencia histórica (QA H1): la réplica didáctica de la corrida guardada
-   queda plegada y rotulada; nunca compite con la grilla canónica. */
-.cmv2-aulas-referencia {
+/*
+ * F102 · Aquí vivía `.cmv2-aulas-referencia`: el marco punteado de la réplica
+ * didáctica, plegada «para que nunca compita con la grilla canónica».
+ *
+ * Lo que plegaba no era una réplica de apoyo: eran los botones «Usar método»
+ * —que cambian el método de muestreo— y, un nivel más adentro, la lectura
+ * visual con la que se elige. Abierto el comparador, la clase se quedó sin un
+ * solo uso en el marcado y sus cinco reglas con ella.
+ */
+.cmv2-method-comparator {
   min-width: 0;
-  border: 1px dashed var(--cmv2-border-strong);
+  border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius-card);
   background: var(--pulso-surface-2);
 }
 
-.cmv2-aulas-referencia > summary {
+.cmv2-method-comparator-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   padding: 9px 12px;
-  color: var(--pulso-text-muted);
-  font-size: 12px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-}
-
-.cmv2-aulas-referencia > summary:hover {
+  border-bottom: 1px solid var(--cmv2-border);
+  font-size: 13px;
   color: var(--pulso-text);
 }
-
-.cmv2-aulas-referencia[open] > summary {
-  border-bottom: 1px dashed var(--cmv2-border);
+.cmv2-method-comparator-head span {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
 }
-
-.cmv2-aulas-referencia > .cmv2-did-result {
-  margin: 10px;
-}
+.cmv2-method-comparator-body { padding: 10px 12px 12px; display: grid; gap: 12px; }
 
 .cmv2-aulas-method-formula {
   display: inline-flex;
@@ -735,9 +635,7 @@
   }
 }
 
-/* "Sello" de reproducibilidad: tinte de gradiente de acento compartido entre
-   Marco de aulas y Sustento técnico, para que ambas tarjetas se lean como el
-   mismo sello metodológico. */
+/* "Sello" de reproducibilidad de Sustento técnico. */
 .cmv2-aulas-stack .cmv2-aulas-sello {
   border-color: color-mix(in srgb, var(--cmv2-accent) 24%, var(--pulso-border));
   background:
@@ -799,30 +697,6 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* --- Marco: cascada de la cadena metodológica (etapas + aristas) ----------- */
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > * {
-    animation: cmv2-aulas-enter 200ms var(--cmv2-ease-out, ease-out) both;
-  }
-
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(2) { animation-delay: 20ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(3) { animation-delay: 40ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(4) { animation-delay: 60ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(5) { animation-delay: 80ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(6) { animation-delay: 100ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(7) { animation-delay: 120ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(8) { animation-delay: 140ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(9) { animation-delay: 160ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(10) { animation-delay: 180ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(11) { animation-delay: 200ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(12) { animation-delay: 220ms; }
-  .cmv2-aulas-marco-layout > .cmv2-uni-flujo > *:nth-child(n + 13) { animation-delay: 240ms; }
-
-  /* Alertas condicionales (ej. marco cambiado tras la selección): entrada
-     propia para que el aviso se perciba como evento, no como layout. */
-  .cmv2-aulas-alerta {
-    animation: cmv2-aulas-enter 220ms var(--cmv2-ease-out, ease-out) both;
-  }
-
   /* --- Objetivo: cascada de la traducción por facultad ----------------------- */
   .cmv2-aulas-cuota-flujos > .cmv2-aulas-cuota-fila {
     animation: cmv2-aulas-enter 200ms var(--cmv2-ease-out, ease-out) both;
@@ -1746,10 +1620,9 @@
   white-space: normal;
 }
 
-/* Fila 1: semilla y firma · Fila 2: corrida de selección (posiciones fijas de
-   la ficha; los divs 2 y 3 del sello son las dos CifraFila). */
-.cmv2-aulas-repro .cmv2-uni-cifra-fila:nth-of-type(2) .cmv2-uni-cifra:nth-child(-n + 2) .cmv2-uni-cifra-valor,
-.cmv2-aulas-repro .cmv2-uni-cifra-fila:nth-of-type(3) .cmv2-uni-cifra:nth-child(2) .cmv2-uni-cifra-valor {
+/* Evidencia reproducible declarada por significado: semilla, firmas del marco
+   y corrida de selección se leen carácter por carácter. */
+.cmv2-aulas-repro .cmv2-uni-cifra[data-monospace="true"] .cmv2-uni-cifra-valor {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 15px;
   font-weight: var(--pulso-weight-bold);
@@ -1812,4 +1685,161 @@
   border-top: 1px solid var(--cmv2-border);
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-heavy);
+}
+
+/* --- I15: causa única, dato primero y densidad útil -------------------------- */
+.cmv2-aulas-hero-panel {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 24%, var(--cmv2-border));
+  background:
+    linear-gradient(135deg, var(--cmv2-accent-soft), transparent 48%),
+    var(--cmv2-surface);
+}
+
+.cmv2-aulas-stage-notice {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
+  box-shadow: var(--cmv2-shadow-card);
+}
+
+.cmv2-aulas-stage-notice.is-stored-unaccredited,
+.cmv2-aulas-stage-notice.is-missing-frame,
+.cmv2-aulas-stage-notice.is-missing-objective {
+  border-color: var(--pulso-warn-border);
+  background:
+    linear-gradient(135deg, var(--pulso-warn-bg), transparent 56%),
+    var(--cmv2-surface);
+}
+
+.cmv2-aulas-stage-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-aulas-stage-notice.is-stored-unaccredited .cmv2-aulas-stage-icon,
+.cmv2-aulas-stage-notice.is-missing-frame .cmv2-aulas-stage-icon,
+.cmv2-aulas-stage-notice.is-missing-objective .cmv2-aulas-stage-icon {
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-aulas-stage-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cmv2-aulas-stage-copy small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.cmv2-aulas-stage-copy strong {
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-black);
+  line-height: 1.25;
+}
+
+.cmv2-aulas-stage-copy p {
+  max-width: 86ch;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.cmv2-aulas-stage-notice > button {
+  min-width: 132px;
+  white-space: nowrap;
+}
+
+.cmv2-aulas-evidence-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-aulas-method-explainer {
+  margin-top: 10px;
+}
+
+.cmv2-aulas-method-explainer > .cmv2-aulas-recta {
+  margin: 10px;
+}
+
+/* El DOM mantiene la agrupación histórica para las regresiones, pero la ficha
+   de evidencia (Motor/Preview, semilla y hashes) se presenta antes de fórmulas. */
+.cmv2-aulas-audit-main {
+  display: grid;
+  gap: 10px;
+}
+
+.cmv2-aulas-audit-main .cmv2-aulas-sello {
+  order: -2;
+}
+
+.cmv2-aulas-audit-main > .cmv2-subhead:first-child,
+.cmv2-aulas-audit-main > .cmv2-classroom-empty:first-of-type {
+  order: -1;
+}
+
+@media (max-width: 900px) {
+  .cmv2-aulas-stage-notice {
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .cmv2-aulas-stage-notice > button {
+    grid-column: 2;
+    justify-self: start;
+    min-width: 0;
+  }
+
+  .cmv2-aulas-method-pick {
+    min-height: 96px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cmv2-aulas-stage-notice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmv2-aulas-stage-notice > button {
+    grid-column: 1;
+    width: 100%;
+  }
+
+  .cmv2-aulas-histo-bins {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    row-gap: 10px;
+  }
+
+  .cmv2-aulas-neff-marcas {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+/* F38 · La causa de un remedio apagado se lee, no se adivina. */
+.cmv2-aulas-stage-blocked {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
 }

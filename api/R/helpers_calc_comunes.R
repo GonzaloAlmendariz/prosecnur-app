@@ -101,7 +101,10 @@ calc_e_desde_n_muestra <- function(n, N, p = 0.5, z = 1.96, deff = 1) {
 #'
 #' @param n_total Tamaño total a distribuir.
 #' @param pesos Vector numérico con pesos relativos (típicamente N por categoría).
-#' @param redondeo `"arriba"` o `"cuadratura"`.
+#' @param redondeo `"arriba"`, `"cuadratura"` o
+#'   `"round_residuo_controlado"`. El último modo conserva el `round()`
+#'   metodológico y aplica el residuo a la categoría de mayor peso; se usa
+#'   únicamente en la distribución universitaria P1/P2.
 #' @return Vector entero con asignación por categoría.
 distribuir_proporcional_pesos <- function(n_total, pesos, redondeo = "cuadratura") {
   if (length(pesos) == 0L) return(integer())
@@ -109,13 +112,47 @@ distribuir_proporcional_pesos <- function(n_total, pesos, redondeo = "cuadratura
   if (total_peso <= 0) return(rep(0L, length(pesos)))
   prop <- pesos / total_peso
   crudo <- n_total * prop
-  asignado <- ceiling(crudo)
+  asignado <- if (identical(redondeo, "round_residuo_controlado")) {
+    round(crudo)
+  } else {
+    ceiling(crudo)
+  }
   asignado[is.na(asignado)] <- 0L
 
   if (identical(redondeo, "cuadratura")) {
     asignado <- ajustar_cuadratura_residuo(asignado, n_total, pesos)
+  } else if (identical(redondeo, "round_residuo_controlado")) {
+    asignado <- ajustar_round_residuo_controlado(asignado, n_total, pesos)
   }
   as.integer(asignado)
+}
+
+#' Ajusta el residuo posterior a round() sin alterar la cuadratura legacy.
+#'
+#' Los empates se resuelven por el orden de entrada. Un residuo positivo se
+#' suma a la categoría de mayor peso; uno negativo se descuenta de esa misma
+#' categoría y, solo si no alcanza, continúa por peso descendente.
+ajustar_round_residuo_controlado <- function(asignado, n_objetivo, pesos) {
+  asignado <- as.integer(asignado)
+  diff <- as.integer(n_objetivo - sum(asignado))
+  if (diff == 0L || !length(asignado)) return(asignado)
+
+  pesos <- suppressWarnings(as.numeric(pesos))
+  pesos[!is.finite(pesos)] <- -Inf
+  orden <- order(-pesos, seq_along(pesos))
+  if (diff > 0L) {
+    asignado[orden[[1L]]] <- asignado[orden[[1L]]] + diff
+    return(asignado)
+  }
+
+  pendiente <- -diff
+  for (idx in orden) {
+    descuento <- min(asignado[[idx]], pendiente)
+    asignado[[idx]] <- asignado[[idx]] - descuento
+    pendiente <- pendiente - descuento
+    if (pendiente == 0L) break
+  }
+  asignado
 }
 
 #' Ajusta una asignación entera para que su suma == n_objetivo.

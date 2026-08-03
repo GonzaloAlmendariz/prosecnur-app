@@ -124,6 +124,9 @@ export function didSexSeriesColor(label: string, tokens: DidTokens, fallbackInde
   return accentScale(tokens, 3)[fallbackIndex % 3];
 }
 
+/** Reexporta la etiqueta canónica: color y nombre se deciden en el mismo sitio. */
+export { sexSeriesLabel as didSexSeriesLabel } from "../sexoPalette";
+
 export function didPlotLayout(tokens: DidTokens, overrides?: Record<string, unknown>) {
   return {
     autosize: true,

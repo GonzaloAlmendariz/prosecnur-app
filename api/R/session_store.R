@@ -89,6 +89,40 @@ session_set <- function(sid, key, value) {
   invisible(value)
 }
 
+# Publica varias claves top-level como una sola transaccion de sesion.
+#
+# El contrato de entrada es deliberadamente estricto porque una lista sin
+# nombres (o con nombres ambiguos) volveria la mutacion dependiente de la
+# posicion. Igual que session_set(), la asignacion con `[` conserva las claves
+# cuyo valor es NULL y evita el partial matching documentado arriba.
+session_set_many <- function(sid, named_values) {
+  if (!is.list(named_values)) {
+    stop("session_set_many() requiere una lista nombrada.", call. = FALSE)
+  }
+
+  keys <- names(named_values)
+  if (is.null(keys) || length(keys) != length(named_values)) {
+    stop("session_set_many() requiere una lista nombrada.", call. = FALSE)
+  }
+  if (anyNA(keys) || any(!nzchar(trimws(keys)))) {
+    stop("session_set_many() no acepta nombres vacios.", call. = FALSE)
+  }
+  if (anyDuplicated(keys)) {
+    stop("session_set_many() no acepta nombres duplicados.", call. = FALSE)
+  }
+
+  s <- session_get(sid)
+  s[keys] <- unname(named_values)
+
+  internal_keys <- c("project_path", "project_dirty", "project_last_saved_at")
+  if (any(!keys %in% internal_keys)) {
+    s <- .mark_project_dirty(s)
+  }
+
+  .session_env[[sid]] <- s
+  invisible(named_values)
+}
+
 session_delete <- function(sid) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(FALSE)

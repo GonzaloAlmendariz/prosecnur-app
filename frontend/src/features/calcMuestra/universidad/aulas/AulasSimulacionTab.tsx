@@ -7,38 +7,32 @@
  * cifras del motor) y el histograma de frecuencia de selección por aula entre
  * corridas (π Monte Carlo) cuando el motor lo trae.
  */
-import { BarChart3 } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { saludComoRiesgos, saludDesdeModel } from "../shared/salud";
 import { CifraFila, CifraMotor, FormulaLatex, TerminoChip } from "../ui";
 import {
-  ClassroomEmptyState,
   ClassroomLabCommandBar,
   ClassroomRecommendation,
-  ClassroomRiskList,
   RepresentativityMetricGrid,
   SimulationSummaryPanel,
   type ClassroomLabModel,
 } from "./aulasParts";
+import {
+  AulasStageNotice,
+  hasAulasSimulationEvidence,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "./aulasSurfaceState";
+import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
 /** Estabilidad de pesos: micro-barra n_eff vs n nominal + fórmula + cifras. */
 function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
   const row = model.weightStability;
-  if (!row) {
-    return (
-      <div className="cmv2-classroom-empty is-compact">
-        <span><BarChart3 size={16} /></span>
-        <div>
-          <strong>Estabilidad de pesos pendiente</strong>
-          <em>Cuando exista una selección, la calculadora calcula el CV de los pesos y el n efectivo de los cursos-horario titulares.</em>
-        </div>
-      </div>
-    );
-  }
+  if (!row) return null;
   const cv = classroomRowNumber(row, ["cv"]);
   const nEff = classroomRowNumber(row, ["n_eff"]);
   const ratio = classroomRowNumber(row, ["n_eff_ratio"]);
@@ -50,7 +44,12 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
     .map((prob) => classroomRowNumber(prob, ["weight_classroom"]))
     .find((value) => Number.isFinite(value) && value > 0);
   return (
-    <div className="cmv2-aulas-neff" aria-label="Estabilidad de pesos de la selección">
+    <div
+      className="cmv2-aulas-neff"
+      aria-label="Estabilidad de pesos de la selección"
+      data-qa-geometry-group="aulas-simulacion-pesos"
+      data-qa-geometry-contract="intrinsic"
+    >
       <div className="cmv2-subhead">
         <strong>Estabilidad de pesos</strong>
       </div>
@@ -110,29 +109,14 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
 }
 
 /** Histograma de π Monte Carlo: qué tan seguido salió cada aula entre corridas. */
-function PiMonteCarloHistogram({ model, onCompare, busy }: {
-  model: ClassroomLabModel;
-  busy: string | null;
-  onCompare: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
-}) {
+function PiMonteCarloHistogram({ model }: { model: ClassroomLabModel }) {
   const piRows = model.probabilityRows
     .map((row) => classroomRowNumber(row, ["pi_mc"]))
     .filter((value) => Number.isFinite(value) && value > 0);
   const mcRuns = model.probabilityRows
     .map((row) => classroomRowNumber(row, ["mc_runs"]))
     .find((value) => Number.isFinite(value) && value > 0) ?? safeNumber(model.config.simulation_runs, 0);
-  if (!piRows.length) {
-    return (
-      <ClassroomEmptyState
-        icon={BarChart3}
-        title="Sin frecuencias de selección por curso-horario"
-        detail="La calculadora aún no trae π Monte Carlo por curso-horario. Corre el comparador con corridas de auditoría para estimar qué tan seguido saldría cada curso-horario."
-        actionLabel="Comparar métodos"
-        onAction={() => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)}
-        disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
-      />
-    );
-  }
+  if (!piRows.length) return null;
   const bins = Array.from({ length: 10 }, (_, i) => ({
     label: `${i * 10}–${(i + 1) * 10}%`,
     count: 0,
@@ -143,7 +127,12 @@ function PiMonteCarloHistogram({ model, onCompare, busy }: {
   });
   const max = Math.max(1, ...bins.map((bin) => bin.count));
   return (
-    <div className="cmv2-aulas-histo" aria-label="Frecuencia de selección por curso-horario entre corridas">
+    <div
+      className="cmv2-aulas-histo"
+      aria-label="Frecuencia de selección por curso-horario entre corridas"
+      data-qa-geometry-group="aulas-simulacion-probabilidades"
+      data-qa-geometry-contract="intrinsic"
+    >
       <div className="cmv2-subhead">
         <strong>Frecuencia entre corridas</strong>
         <small>{fmtInt(piRows.length)} cursos-horario con probabilidad simulada{mcRuns ? ` en ${fmtInt(mcRuns)} corridas` : ""}</small>
@@ -169,10 +158,12 @@ export function AulasSimulacionTab({
   model,
   busy,
   onCompare,
+  onNavigate,
 }: {
   model: ClassroomLabModel;
   busy: string | null;
   onCompare: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
+  onNavigate?: AulasNavigate;
 }) {
   const { comparison, comparisonMethods, comparisonMetrics, simulationRows, recommendedMethodId, engineOption } = model;
 
@@ -180,8 +171,7 @@ export function AulasSimulacionTab({
   // π Monte Carlo o estabilidad de pesos, la simulación existe aunque el
   // comparador no haya dejado resumen por método.
   const metodosListos = Boolean(comparison && comparisonMethods.length);
-  const piMcListo = model.probabilityRows.some((row) => classroomRowNumber(row, ["pi_mc"]) > 0);
-  const evidenciaSimulacion = piMcListo || Boolean(model.weightStability);
+  const evidenciaSimulacion = hasAulasSimulationEvidence(model);
 
   // El rail de riesgos agrega los flags del motor Y la salud derivada de las
   // cifras validadas (CV sobre umbral, balance fuera de banda, score bajo...):
@@ -191,55 +181,61 @@ export function AulasSimulacionTab({
     ...saludComoRiesgos(saludDesdeModel(model)),
   ];
 
-  const notaSinResumen = (
-    <ClassroomEmptyState
-      icon={BarChart3}
-      title="Resumen por método sin registrar"
-      detail="La simulación de la selección sí llegó: abajo tienes la estabilidad de pesos y la frecuencia π Monte Carlo por curso-horario. Corre el comparador para regenerar el resumen de corridas por método."
-      actionLabel="Comparar métodos"
-      onAction={() => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)}
-      disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
-    />
-  );
+  const stageNotice = resolveAulasStageNotice(model, "laboratorio");
 
   return (
     <div className="cmv2-aulas-stack">
-      <ClassroomLabCommandBar model={model} busy={busy} acciones={["comparar"]} onCompare={onCompare} />
+      {stageNotice && (
+        <AulasStageNotice
+          notice={stageNotice}
+          onNavigate={onNavigate}
+          onAction={stageNotice.localAction === "compare"
+            ? () => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)
+            : undefined}
+          disabled={Boolean(stageNotice.localAction) && (Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota)}
+        />
+      )}
 
-      <div className="cmv2-classroom-lab-grid">
-        <div className="cmv2-classroom-lab-main">
-          <div className="cmv2-subhead">
-            <strong>Resultados de la simulación</strong>
+      {!stageNotice && (
+        <ClassroomLabCommandBar
+          model={model}
+          busy={busy}
+          acciones={["comparar"]}
+          onCompare={onCompare}
+        />
+      )}
+
+      {(metodosListos || evidenciaSimulacion) && (
+        <div className="cmv2-classroom-lab-grid">
+          <div className="cmv2-classroom-lab-main">
+            <div className="cmv2-subhead">
+              <strong>Resultados de la simulación</strong>
+            </div>
+            {metodosListos && (
+              <>
+                {simulationRows.length > 0 && (
+                  <SimulationSummaryPanel rows={simulationRows} />
+                )}
+                <RepresentativityMetricGrid metrics={comparisonMetrics.filter((metric) => metric.method_id === recommendedMethodId)} />
+              </>
+            )}
+            {evidenciaSimulacion && (
+              <div
+                className="cmv2-aulas-evidence-stack"
+                data-qa-geometry-group="aulas-simulacion-evidencia"
+                data-qa-geometry-contract="intrinsic"
+              >
+                <WeightStabilityBlock model={model} />
+                <PiMonteCarloHistogram model={model} />
+              </div>
+            )}
           </div>
-          {metodosListos ? (
-            <>
-              {simulationRows.length || !evidenciaSimulacion ? (
-                <SimulationSummaryPanel rows={simulationRows} />
-              ) : (
-                notaSinResumen
-              )}
-              <RepresentativityMetricGrid metrics={comparisonMetrics.filter((metric) => metric.method_id === recommendedMethodId)} />
-            </>
-          ) : evidenciaSimulacion ? (
-            notaSinResumen
-          ) : (
-            <ClassroomEmptyState
-              icon={BarChart3}
-              title="Simulación pendiente"
-              detail="Corre el comparador para generar corridas presupuestadas y observar variabilidad del diseño antes de seleccionar."
-              actionLabel="Comparar métodos"
-              onAction={() => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)}
-              disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
-            />
-          )}
-          <WeightStabilityBlock model={model} />
-          <PiMonteCarloHistogram model={model} busy={busy} onCompare={onCompare} />
+          <aside className="cmv2-classroom-lab-side">
+            <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
+            <ClassroomRiskList risks={riesgosAgregados} audited={model.comparisonReady || model.selectionReady} />
+          </aside>
         </div>
-        <aside className="cmv2-classroom-lab-side">
-          <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
-          <ClassroomRiskList risks={riesgosAgregados} />
-        </aside>
-      </div>
+      )}
     </div>
   );
 }

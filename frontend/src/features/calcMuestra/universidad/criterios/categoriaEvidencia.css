@@ -1,0 +1,171 @@
+/*
+ * ADR 0057 · La evidencia de una categoría vive pegada a su conmutador.
+ *
+ * F111 · El gráfico se mudó a `DistribucionCategoria` —densidad, boxplot y
+ * cuantiles sobre un solo eje—; aquí quedan las cifras, el contraste y el
+ * efecto en el embudo. Con él se fueron 19 bloques que estilaban la caja
+ * anterior: CSS que sobrevive a su marcado es la deuda que ningún compilador
+ * cobra (patrón 28 del ADR).
+ */
+
+/*
+ * Ancho de la escala, compartido por TODAS las capas del gráfico.
+ *
+ * Medido en su día: con anchos libres el eje medía 1.206 px y las cajas 274,
+ * 263, 284 y 315 —ni alineaban con el eje ni entre sí—. Un dominio común no
+ * sirve de nada si cada capa lo proyecta sobre un ancho distinto: el mismo valor
+ * cae en un píxel diferente y comparar vuelve a ser imposible, que es justo lo
+ * que la regla 3 del ADR 0057 prohíbe. La escala es una constante, no el resto
+ * del espacio disponible.
+ */
+/* F115 · La constante de 260 px desaparece: el gráfico ocupa el ancho de su
+   fila, que es el mismo que el de la rejilla de cifras. Las capas siguen
+   compartiendo un solo ancho —el del contenedor— y las tarjetas siguen
+   alineando entre sí porque todas cuelgan del mismo. */
+
+.cmv2-cat-evidencia {
+  display: grid;
+  gap: 5px;
+  padding: 6px 0 2px;
+  min-width: 0;
+}
+
+/*
+ * F114 · Rejilla de columnas fijas, no un flex que envuelve.
+ *
+ * Gonzalo: «recuerda que siempre todas las tarjetas tienen que coincidir
+ * exactamente en la alineación, eso es sumamente importante». Con flex, una
+ * tarjeta sin asistencia ocupaba una línea y otra con ella dos, así que el
+ * gráfico arrancaba a alturas distintas y las cifras homólogas no caían una
+ * bajo otra. Con columnas fijas, «CH elegibles» está siempre en el mismo sitio
+ * aunque su vecina no tenga dato — y el hueco vacío también alinea.
+ */
+.cmv2-cat-cifras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px 10px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  min-height: 30px;
+  align-content: start;
+}
+.cmv2-cat-cifras > span {
+  display: grid;
+  gap: 0;
+  align-content: start;
+  min-width: 0;
+}
+/* La cifra arriba y su nombre debajo: dos filas iguales en todas las tarjetas. */
+.cmv2-cat-cifras > span > strong {
+  font-size: 14px;
+  line-height: 1.15;
+}
+.cmv2-cat-cifras > span > em {
+  font-style: normal;
+  font-size: 10px;
+  opacity: 0.85;
+}
+@media (max-width: 620px) {
+  .cmv2-cat-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* F115 · Variante `unidad`: dos cifras, no cuatro. Un curso-horario suelto no
+   tiene «CH totales» —valdría 1— ni distribución que graficar. Las columnas se
+   declaran igual de fijas: la lista es larga y el ojo baja por la columna. */
+.cmv2-cat-cifras[data-columnas="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+}
+.cmv2-cat-evidencia[data-variante="unidad"] { gap: 0; padding: 4px 0 2px; }
+
+/* F118 · Umbral y proporción: la cifra que el corte deja fuera se tiñe cuando
+   hay algo fuera. Es la única de las cuatro que puede sorprender. */
+.cmv2-cat-cifras > span[data-tono="aviso"] > strong { color: var(--pulso-warn-fg, var(--pulso-text)); }
+.cmv2-cat-cifras strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-semibold);
+  transition: color 180ms ease;
+}
+
+@keyframes cmv2-cat-aparece {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* El movimiento explica un cambio; quien lo desactiva no pierde información. */
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-cat-cifras strong { transition: none; }
+}
+
+/* Categoría sin cursos-horario aquí: una línea, no cinco guiones. */
+.cmv2-cat-sin-cursos {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  font-style: italic;
+}
+.cmv2-cat-escala-nota {
+  margin: 2px 0 6px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  line-height: 1.45;
+}
+.cmv2-cat-escala-nota strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+
+/* Leyenda de la caja: una vez por criterio, con las mismas marcas del gráfico. */
+.cmv2-cat-escala-cabecera { display: grid; gap: 3px; }
+.cmv2-cat-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-cat-leyenda li { display: flex; align-items: center; gap: 5px; }
+.cmv2-cat-leyenda i { display: inline-block; }
+.cmv2-cat-leyenda-rango {
+  width: 16px; height: 9px; border-radius: 3px;
+  background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
+}
+.cmv2-cat-leyenda-mediana { width: 2px; height: 11px; border-radius: 1px; background: var(--cmv2-accent); }
+.cmv2-cat-leyenda-media {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--pulso-text); box-shadow: 0 0 0 2px var(--cmv2-surface);
+}
+.cmv2-cat-leyenda-bigote { width: 16px; height: 1px; background: var(--cmv2-border-strong, var(--cmv2-border)); }
+/* F111 · La densidad entra a la leyenda porque entró al gráfico. */
+.cmv2-cat-leyenda-densidad {
+  width: 16px; height: 8px; border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--cmv2-accent) 22%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-accent) 62%, transparent);
+}
+
+/*
+ * F105 · Efecto en el embudo: qué pone o quita esta categoría. Sexto contenido
+ * exigido por ADR 0057 y el único que faltaba en la tarjeta.
+ *
+ * Dos estados con peso distinto: la que está dentro dice qué se perdería al
+ * quitarla; la que está fuera dice cuánto queda fuera. La segunda se tiñe con
+ * el tono de aviso porque es una ausencia que puede no ser intencional.
+ */
+.cmv2-cat-efecto {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-cat-efecto strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-cat-efecto[data-estado="fuera"] {
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+}
+.cmv2-cat-efecto[data-estado="fuera"] strong { color: inherit; }
+
+/* F112 · Retiradas las reglas de `cmv2-cat-contraste`: la línea «En todos los
+   cursos-horario» duplicaba «CH totales» y describía la distribución general,
+   que no decide. */

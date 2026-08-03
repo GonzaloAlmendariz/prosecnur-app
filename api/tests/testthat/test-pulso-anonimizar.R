@@ -291,3 +291,75 @@ test_that("anonimizar un .pulso completo deja el archivo sin PII detectable", {
   expect_true(isTRUE(manifest$anonimizacion$aplicada))
   expect_equal(manifest$anonimizacion$slug, "prueba")
 })
+
+# ---------------------------------------------------------------------------
+# F110 · "Nombre de X" cuando X no es una persona
+#
+# El patrón `nombre` casa por subcadena, así que "Nombre del curso" caía en el
+# cajón de las personas y sus valores se sustituían por nombres inventados.
+# Medido en la app sobre un proyecto de referencia: la superficie de Cálculo de
+# muestra mostraba nombres de personas donde van cursos y facultades. Un fixture
+# así fabrica bugs fantasma — se diagnostica el motor por un defecto que puso la
+# anonimización.
+#
+# Aquí no hay red debajo: `pulso_detectar_pii` busca correos, celulares y DNIs
+# por valor, NO nombres, y además salta las columnas que este clasificador
+# marca. Por eso los verdaderos positivos se fijan uno a uno.
+# ---------------------------------------------------------------------------
+
+test_that("nombre de una COSA no se clasifica como persona", {
+  for (col in c(
+    "Nombre del curso", "nombre de curso", "Nombres del curso",
+    "Nombre de la asignatura", "Nombre de la materia",
+    "Nombre del programa", "Nombre del proyecto",
+    "Nombre de archivo", "Nombre de la hoja", "Nombre de columna",
+    "Nombre del campo", "Nombre de la variable", "Nombre de la base",
+    "Nombre del formulario", "Nombre del módulo"
+  )) {
+    expect_true(
+      is.na(.pulso_pii_clasificar_columna(col)),
+      info = sprintf("'%s' no designa a una persona", col)
+    )
+  }
+})
+
+test_that("nombre de una PERSONA sigue siendo PII", {
+  # Los verdaderos positivos se fijan uno a uno porque un falso negativo aquí
+  # no lo caza ningún gate posterior: es una fuga.
+  for (col in c(
+    "Nombre Completo", "Nombre de docente", "Nombre del docente",
+    "Nombre del responsable", "Nombre del entrevistado", "Nombre del encuestado",
+    "Nombres", "Nombre", "Apellidos", "Apellido paterno",
+    "nombre del estudiante", "Nombre del alumno", "Nombre del contacto",
+    "Nombre del titular", "Docente", "Responsable"
+  )) {
+    expect_identical(
+      .pulso_pii_clasificar_columna(col), "nombre",
+      info = sprintf("'%s' designa a una persona", col)
+    )
+  }
+})
+
+test_that("la excepcion solo desactiva el cajon nombre, no los demas", {
+  # Un rótulo puede nombrar una cosa Y traer contacto. Gana el contacto.
+  expect_identical(.pulso_pii_clasificar_columna("Nombre del curso y correo"), "correo")
+  expect_identical(.pulso_pii_clasificar_columna("Nombre de archivo / celular"), "telefono")
+})
+
+test_that("las columnas reales del catalogo de curso-horario se clasifican bien", {
+  # Las 19 columnas medidas en la hoja de curso-horario de un proyecto real.
+  cols <- c(
+    "Curso-Horario", "Curso", "Nombre del curso", "Nivel del curso", "Horario",
+    "Sesiones y aula", "Facultad", "Carrera", "Modalidad", "Tipo de curso",
+    "Condición", "Matriculados", "Docente", "Nombre de docente", "Correo PUCP",
+    "Correo alternativo", "Celular", "Correo Agora", "Tipo de docente"
+  )
+  tipos <- vapply(cols, .pulso_pii_clasificar_columna, character(1))
+  esperado_pii <- c("Docente", "Nombre de docente", "Correo PUCP",
+                    "Correo alternativo", "Celular", "Correo Agora")
+  expect_setequal(names(tipos)[!is.na(tipos)], esperado_pii)
+  # La del curso deja de ser PII; las de personas y contacto siguen siéndolo.
+  expect_true(is.na(tipos[["Nombre del curso"]]))
+  expect_identical(unname(tipos[["Nombre de docente"]]), "nombre")
+  expect_identical(unname(tipos[["Celular"]]), "telefono")
+})

@@ -1,0 +1,166 @@
+/* Panorama de criterios de curso-horario. Owner local: no toca marco.css. */
+.cmv2-panorama {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.cmv2-panorama-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.cmv2-panorama-head h3 {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 15px;
+}
+
+.cmv2-panorama-escala {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * El panorama scrollea por dentro, no arrastrando la página.
+ *
+ * Medido: la cabecera es `position: sticky; top: 0`, pero pegaba al contenedor,
+ * y el contenedor se iba con el scroll de la página. Con quince facultades a la
+ * vista quedaban cuatro columnas de «global» sin decir de qué criterio eran —una
+ * tabla sin cabecera no es una tabla, es una cuadrícula de palabras—.
+ *
+ * Con altura máxima propia, el `thead` sticky por fin sirve: el nombre del
+ * criterio acompaña a su columna todo el recorrido.
+ */
+.cmv2-panorama-scroll {
+  min-width: 0;
+  max-height: 60vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.cmv2-panorama-scroll:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-panorama-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.cmv2-panorama-table th,
+.cmv2-panorama-table td {
+  padding: 6px 9px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 62%, transparent);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.cmv2-panorama-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* La facultad ancla la lectura de su fila cuando la tabla se desplaza. */
+.cmv2-panorama-table tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-panorama-table tbody th button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmv2-panorama-table tbody th button:hover {
+  color: var(--cmv2-accent-fg);
+  text-decoration: underline;
+}
+
+.cmv2-panorama-table tbody th button:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-panorama-table tr[data-abierta="true"] > * {
+  background: var(--cmv2-accent-soft);
+}
+
+/* Barra sobre escala común: la capa de fondo es el total de CH de la facultad
+   y la de acento, los elegibles. Comparar entre facultades es el único motivo
+   por el que esta vista existe, así que la escala nunca es local. */
+.cmv2-panorama-barra-celda {
+  min-width: 190px;
+}
+
+.cmv2-panorama-barra {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 9px;
+  margin-bottom: 3px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-panorama-barra > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+}
+
+.cmv2-panorama-barra > i[data-capa="total"] {
+  background: color-mix(in srgb, var(--cmv2-border) 80%, transparent);
+}
+
+.cmv2-panorama-barra > i[data-capa="elegibles"] {
+  background: var(--cmv2-accent-fg);
+}
+
+.cmv2-panorama-cifra {
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-panorama-cifra strong {
+  color: var(--pulso-text);
+}
+
+.cmv2-panorama-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-panorama-estado {
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+.cmv2-panorama-estado[data-propia="true"] {
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+}

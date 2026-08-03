@@ -1,0 +1,481 @@
+/* I18b · visuales contractuales locales. No añadir estas reglas a marco.css. */
+.cmv2-crc-card-strip {
+  display: grid;
+  grid-auto-columns: minmax(150px, 1fr);
+  grid-auto-flow: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 2px 1px 7px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.cmv2-crc-card-strip button {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 50px;
+  align-content: center;
+  padding: 7px 9px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmv2-crc-card-strip button[aria-pressed="true"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  box-shadow: inset 0 -3px 0 var(--cmv2-accent-fg);
+}
+
+.cmv2-crc-card-strip button:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+.cmv2-crc-card-strip strong {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-card-strip span {
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+}
+
+/* Estado de la evidencia en el propio chip: absorbe la información que
+   llevaba el `<select>` duplicado, sin sumar un segundo control. */
+.cmv2-crc-card-strip em {
+  overflow: hidden;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-crc-card-strip em[data-state="v2"] {
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-crc-card-strip em[data-state="invalido"],
+.cmv2-crc-card-strip em[data-state="sin_dato"] {
+  color: var(--pulso-danger-text, var(--pulso-text-muted));
+}
+
+.cmv2-crc-faculty[data-row-kind="total"] {
+  border-color: var(--cmv2-accent-border);
+  background: color-mix(in srgb, var(--pulso-surface) 88%, var(--cmv2-accent-soft));
+}
+
+.cmv2-crc-total-empty p {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.cmv2-i18b-boxplot {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface) 92%, var(--cmv2-accent-soft));
+}
+
+/* F8: con la radiografía embebida en la tarjeta del criterio (F4) la columna es
+   mucho más estrecha que la consola de antes. Un `min-width: 160px` en el SVG
+   empujaba a todos sus ancestros y producía 1.128 desbordes a 1024x600. El
+   gráfico escala: es vectorial y su viewBox ya define la proporción. */
+.cmv2-i18b-boxplot svg {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-height: 54px;
+}
+
+.cmv2-i18b-boxplot-axis,
+.cmv2-i18b-boxplot-cap {
+  stroke: var(--pulso-text-muted);
+  stroke-width: 1.5;
+}
+
+.cmv2-i18b-boxplot-box {
+  fill: var(--cmv2-accent-soft);
+  stroke: var(--cmv2-accent-fg);
+  stroke-width: 1.5;
+}
+
+.cmv2-i18b-boxplot-median {
+  stroke: var(--pulso-text);
+  stroke-width: 2;
+}
+
+.cmv2-i18b-boxplot-mean {
+  fill: var(--cmv2-accent-fg);
+  stroke: var(--pulso-surface);
+  stroke-width: 1.5;
+}
+
+/* Riel del dominio compartido: la caja ocupa su fracción real de la escala del
+   bloque, así que dos facultades distintas ya no dibujan el mismo ancho. */
+.cmv2-i18b-boxplot-domain {
+  stroke: var(--cmv2-border);
+  stroke-width: 1;
+}
+
+/* Leyenda del bloque: una sola por bloque de distribución, nunca bajo cada
+   figura. Antes se repetía una vez por gráfico. */
+.cmv2-i18b-boxplot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+/* Media y mediana en una línea; los cinco cuantiles quedan a un clic. */
+.cmv2-crc-stats-lead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crc-stats-lead em {
+  color: var(--pulso-text-muted);
+  font-style: normal;
+}
+
+.cmv2-crc-stats-full > summary {
+  cursor: pointer;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+.cmv2-crc-stats-full > summary:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Aviso compartido por todas las facultades: se dice una vez. */
+.cmv2-i18b-anchor-aviso-comun {
+  margin: 0 0 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.cmv2-i18b-anchor-facultades {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* `hidden` tiene que ganarle a cualquier `display` del paso: sin esto el
+   atributo no oculta nada y los cinco bloques siguen apilados. */
+.cmv2-crc-step[hidden] {
+  display: none !important;
+}
+
+/* Riel de pasos del criterio: el recorrido metodológico queda visible y se
+   recorre uno a la vez, en vez de apilar cinco bloques de 19 facultades. */
+.cmv2-crc-pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0 4px;
+}
+
+.cmv2-crc-pasos button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cmv2-crc-pasos button > span {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crc-pasos button[aria-pressed="true"] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-crc-pasos button[aria-pressed="true"] > span {
+  background: var(--cmv2-accent-fg);
+  color: var(--pulso-surface);
+}
+
+.cmv2-crc-pasos button:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/*
+ * F101 · Aquí vivían tres reglas de `> summary` para `cmv2-crc-contraste` y
+ * `cmv2-crc-signal`. Ninguna aplicaba: al abrir la superficie ambos dejaron de
+ * ser `<details>` —`crc-signal` es hoy un `<div>` y `crc-contraste` ya no se
+ * usa—, pero el CSS sobrevive a ese cambio porque nada lo typechequea.
+ * Es la deuda que ningún compilador cobra: sólo un barrido de clases contra el
+ * marcado la encuentra.
+ */
+
+/* Un segmento sin CH se declara en una línea: presente y contable, sin
+   llevarse el mismo ancho que uno con distribución. */
+[data-segment-empty="true"] {
+  align-self: start;
+  opacity: 0.72;
+}
+
+[data-segment-empty="true"] > p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-i18b-boxplot-legend-scale {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-i18b-boxplot-empty,
+.cmv2-i18b-anchor-empty,
+.cmv2-i18b-cascade-empty {
+  display: grid;
+  gap: 3px;
+  min-height: 54px;
+  align-content: center;
+  padding: 9px 10px;
+  border: 1px dashed var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.cmv2-i18b-anchors,
+.cmv2-i18b-cascade-steps {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cmv2-i18b-anchor {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-i18b-anchor > header,
+.cmv2-i18b-cascade-head,
+.cmv2-i18b-cascade-steps > li > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cmv2-i18b-anchor > header > div,
+.cmv2-i18b-cascade-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmv2-i18b-anchor > header span,
+.cmv2-i18b-cascade-head span,
+.cmv2-i18b-cascade-steps small {
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+.cmv2-i18b-anchor-level {
+  flex: none;
+  padding: 3px 7px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: 999px;
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg) !important;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-i18b-anchor[data-match-level="incompatible"] .cmv2-i18b-anchor-level,
+.cmv2-i18b-anchor[data-match-level="sin_publicacion"] .cmv2-i18b-anchor-level {
+  border-color: var(--pulso-danger-border, var(--cmv2-border));
+  background: var(--pulso-danger-soft, var(--pulso-surface));
+  color: var(--pulso-danger-text, var(--pulso-text)) !important;
+}
+
+.cmv2-i18b-anchor dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.cmv2-i18b-anchor dl > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmv2-i18b-anchor dt {
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+}
+
+.cmv2-i18b-anchor dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-i18b-anchor p {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+.cmv2-i18b-cascade {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cmv2-i18b-cascade-head {
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+}
+
+.cmv2-i18b-cascade-head > span {
+  flex: none;
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-i18b-cascade-state {
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.cmv2-i18b-cascade-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-i18b-cascade-steps > li {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-i18b-cascade-steps > li[data-current-card="true"] {
+  border-color: var(--cmv2-accent-border);
+  box-shadow: inset 3px 0 0 var(--cmv2-accent-fg);
+}
+
+.cmv2-i18b-cascade-steps > li > header > span {
+  color: var(--cmv2-accent-fg);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+}
+
+.cmv2-i18b-cascade-steps > li > header > strong {
+  flex: 1;
+  color: var(--pulso-text);
+  font-size: 11px;
+}
+
+.cmv2-i18b-cascade-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.cmv2-i18b-cascade table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--pulso-text);
+  font-size: 10px;
+}
+
+.cmv2-i18b-cascade th,
+.cmv2-i18b-cascade td {
+  padding: 5px 7px;
+  border-bottom: 1px solid var(--cmv2-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cmv2-i18b-cascade tr[data-row-kind="total"] {
+  background: color-mix(in srgb, var(--pulso-surface) 80%, var(--cmv2-accent-soft));
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-i18b-cascade > footer {
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+}
+
+@media (max-width: 760px) {
+  .cmv2-i18b-anchor > header,
+  .cmv2-i18b-cascade-head,
+  .cmv2-i18b-cascade-steps > li > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* F100 · `cmv2-crc-contraste` quedó sin uso: el contraste vive ahora en la
+ * tarjeta de categoría con su propia clase (F97). */

@@ -1,8 +1,13 @@
 /**
  * Mini-boxplot de la distribución de elegibles por aula de un tipo de sesión
- * (reunión Ramiro §9). ESCALA POR GRÁFICA: cada boxplot mapea su propio
- * [min…max] a todo el ancho, así una distribución estrecha (SEMINARIO 18–23) se
- * lee con el mismo detalle que una ancha (TEÓRICO 15–156). Los valores rotulados
+ * (reunión Ramiro §9).
+ *
+ * F112 · **La escala es del criterio, no de cada gráfica.** Antes cada boxplot
+ * mapeaba su propio [min…max] a todo el ancho; la intención era legítima —una
+ * distribución estrecha se leía con el mismo detalle que una ancha— pero el
+ * precio es que deja de comparar: SEMINARIO (18–23) y TEÓRICO (15–156) salían
+ * del mismo ancho, y la tabla los apila uno debajo de otro justamente para
+ * compararlos. Es la regla 3 del ADR 0057. Los valores rotulados
  * son los CUARTILES (Q1 · mediana · Q3, la caja) y la MEDIA (el punto), cada uno
  * sobre su marca; el bigote sigue mostrando min–max sin número. Etiquetas muy
  * juntas se separan (anti-solape) conservando su fila y color para no perder la
@@ -55,11 +60,14 @@ function resumenTexto(caja: BoxplotResumen): string {
 export function BoxplotElegibles({
   caja,
   tipo,
+  dominio,
 }: {
   caja: BoxplotResumen;
   tipo: string;
+  /** Escala común a los tipos de la facultad (ADR 0057, regla 3). */
+  dominio?: { min: number; max: number } | null;
 }) {
-  const pos = boxplotPosicionesPropias(caja);
+  const pos = boxplotPosicionesPropias(caja, dominio);
   const x = (frac: number) => PAD_X + frac * INNER;
   const texto = `${tipo}: ${resumenTexto(caja)}`;
   // Rango degenerado (un único valor de elegibles): sin dispersión que dibujar,

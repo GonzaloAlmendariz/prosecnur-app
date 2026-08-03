@@ -51,7 +51,7 @@ export function fmtInt(value: number | null | undefined) {
 }
 
 export function fmtPct(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return "—";
+  if (value == null || !Number.isFinite(value)) return "—";
   const pct = value * 100;
   // Bordes honestos: un valor mayor que 0% nunca se muestra como "0.0%" y uno
   // menor que 100% nunca se redondea hasta "100.0%" (p. ej. 5,262 de 5,263).

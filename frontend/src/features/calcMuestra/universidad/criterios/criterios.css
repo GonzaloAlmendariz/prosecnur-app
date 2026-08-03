@@ -74,20 +74,20 @@
 .cmv2-crit-apply-btn[data-beam="true"]::before {
   content: "";
   position: absolute;
-  inset: -60%;
+  inset: 0;
   z-index: -1;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0 74%,
-    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 84%,
-    var(--pulso-on-accent, white) 90%,
-    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 96%,
-    transparent 100%
-  );
+  background: linear-gradient(
+    90deg,
+    transparent 0 32%,
+    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 43%,
+    var(--pulso-on-accent, white) 50%,
+    color-mix(in srgb, var(--cmv2-accent) 60%, transparent) 57%,
+    transparent 68% 100%
+  ) 100% 0 / 300% 100%;
   animation: cmv2-crit-beam 3s linear infinite;
 }
 @keyframes cmv2-crit-beam {
-  to { transform: rotate(1turn); }
+  to { background-position: -100% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cmv2-crit-apply-btn[data-beam="true"]::before { animation: none; }
@@ -434,7 +434,7 @@
 }
 .cmv2-crit-cats > .cmv2-crit-list {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 6px;
 }
 .cmv2-crit-list-nested { margin-left: 22px; }
@@ -509,11 +509,21 @@
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
+.cmv2-crit-cats > .cmv2-crit-list > .cmv2-crit-item .cmv2-crit-item-label {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  white-space: normal;
+}
+/* F8: la cifra base pasó a rotularse «… en la base» para distinguirla del
+   aporte al marco, y con el texto más largo dejó de caber en la columna `auto`
+   del ítem: la etiqueta y el conteo se solapaban. Ambas cifras bajan a su
+   propia fila, alineadas entre sí, que además es como se comparan. */
 .cmv2-crit-item-count {
-  margin-left: 0;
+  grid-column: 1 / -1;
+  margin-left: 44px;
   font-size: 11px;
   color: var(--pulso-text-muted);
-  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .cmv2-crit-item-count em { font-style: normal; opacity: 0.75; }
@@ -809,27 +819,17 @@
 .cmv2-crit-range-row[data-active="true"] .cmv2-crit-range-fac { font-weight: var(--pulso-weight-semibold); }
 
 .cmv2-crit-range-apply { display: inline-flex; align-items: center; justify-content: center; }
-.cmv2-crit-range-inputs { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
-.cmv2-crit-range-dash { color: var(--pulso-text-muted); }
-
-.cmv2-crit-range-select {
-  height: 28px;
-  min-width: 66px;
-  padding: 0 8px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--cmv2-control-bg, var(--pulso-surface));
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
-}
-.cmv2-crit-range-select:hover { border-color: var(--cmv2-accent-border); }
-.cmv2-crit-range-select:focus-visible {
-  outline: 2px solid transparent;
-  border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 32%, transparent);
+/* G35 · El contenedor del rango ocupa la fila entera.
+   Era `inline-flex`: se dimensionó para dos `<select>` chicos y, al alojar el
+   control de dos manijas, dejaba la pista 395 px más corta que el gráfico que
+   debía acompañar. Un contenedor heredado de un control que ya no existe es
+   una restricción sin dueño. */
+.cmv2-crit-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  width: 100%;
 }
 
 .cmv2-crit-range-all {
@@ -846,28 +846,54 @@
   padding: 9px 0;
   border-top: 1px solid var(--cmv2-border);
 }
-.cmv2-crit-exc-toggle {
-  justify-self: start;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font-size: 12px;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--cmv2-accent-fg);
-  cursor: pointer;
-}
 .cmv2-crit-exc-body { display: grid; gap: 8px; }
 
 .cmv2-crit-exc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+/* F24 · La fila pasó a tener dos hijos apilados —la línea de la facultad y sus
+   chips al ajustar—, así que el contenedor deja de ser fila y la fila propia
+   toma ese rol. Mantenerlo en `display:flex` habría puesto los chips al costado
+   y colapsado su ancho: la misma trampa que `.cmv2-crc-signal`. */
 .cmv2-crit-exc-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  gap: 4px;
   font-size: 11px;
   padding: 4px 6px;
   border-radius: 6px;
   background: color-mix(in srgb, var(--cmv2-accent-soft) 50%, transparent);
 }
+.cmv2-crit-exc-item[data-propio="true"] {
+  background: color-mix(in srgb, var(--cmv2-accent-soft) 100%, transparent);
+  box-shadow: inset 2px 0 0 var(--cmv2-accent);
+}
+/* Facultad · lo que aplica · procedencia · control: la procedencia y el control
+   miden lo suyo y el set se queda con el resto, que es lo que varía. */
+.cmv2-crit-exc-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) auto auto auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cmv2-crit-exc-fila > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmv2-crit-exc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cmv2-crit-exc-head small { color: var(--pulso-text-muted); font-size: 11px; }
+.cmv2-crit-exc-ajustar {
+  border: 0;
+  background: transparent;
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 5px;
+}
+.cmv2-crit-exc-ajustar:hover { background: var(--cmv2-accent-soft); }
 .cmv2-crit-exc-fac { font-weight: var(--pulso-weight-semibold); color: var(--pulso-text); }
 .cmv2-crit-exc-op { color: var(--pulso-text-muted); }
 .cmv2-crit-exc-cats { color: var(--pulso-text); flex: 1 1 auto; min-width: 0; }
@@ -883,21 +909,6 @@
 
 .cmv2-crit-exc-form { display: grid; gap: 8px; }
 .cmv2-crit-exc-cats-pick { display: flex; flex-wrap: wrap; gap: 6px; }
-.cmv2-crit-exc-add {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--pulso-surface);
-  color: var(--cmv2-accent-fg);
-  font-size: 12px;
-  cursor: pointer;
-}
-.cmv2-crit-exc-add:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .cmv2-crit-empty-note { margin: 0; font-size: 11px; color: var(--pulso-text-muted); }
 
@@ -986,6 +997,11 @@
 @media (max-width: 1350px) {
   .cmv2-crit-cats > .cmv2-crit-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .cmv2-crit-list[data-long="true"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1100px) {
+  .cmv2-crit-cats > .cmv2-crit-list,
+  .cmv2-crit-list[data-long="true"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -1443,59 +1459,47 @@
 .cmv2-crit-paso-copy span { font-size: 11px; line-height: 1.45; color: var(--pulso-text-muted); }
 .cmv2-crit-paso-copy span strong { font-size: 11px; }
 
-.cmv2-crit-paso-pct {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--pulso-text-muted);
-}
-.cmv2-crit-paso-pct input {
-  height: 28px;
-  width: 62px;
-  padding: 0 8px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--cmv2-control-bg, var(--pulso-surface));
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
-}
-.cmv2-crit-paso-pct input:disabled { opacity: 0.5; }
-.cmv2-crit-paso-pct input:hover:not(:disabled) { border-color: var(--cmv2-accent-border); }
-.cmv2-crit-paso-pct input:focus-visible {
-  outline: 2px solid transparent;
-  border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 32%, transparent);
-}
-
 /* Métrica referencial legacy: colapsada y visualmente secundaria. */
-.cmv2-crit-legacy {
+/*
+ * G39 · «Otra regla», no un anexo gris.
+ *
+ * Gonzalo: «no entiendo bien el propósito de referencial y gris». El bloque se
+ * pintaba con borde discontinuo y texto apagado —el vocabulario visual de «esto
+ * es secundario»— para una regla que, encendida, recorta el marco igual que los
+ * dos pasos de arriba. Apagar visualmente algo que puede cambiar el resultado es
+ * la misma familia de defecto que plegarlo.
+ *
+ * Lo que sí necesita es **estar aparte**, porque mide otra cosa: los pasos
+ * preguntan si el curso es homogéneo, ésta cuánta de su matrícula es elegible.
+ * Eso lo dice el rótulo, no el color.
+ */
+.cmv2-crit-otra-regla {
   display: grid;
   gap: 8px;
-  margin-top: 10px;
-  padding-top: 9px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--cmv2-border);
 }
-.cmv2-crit-legacy > .cmv2-crit-exc-toggle {
-  color: var(--pulso-text-muted);
-  font-weight: var(--pulso-weight-regular);
-}
-.cmv2-crit-legacy > .cmv2-crit-exc-toggle:hover { color: var(--cmv2-accent-fg, var(--cmv2-accent)); }
-.cmv2-crit-legacy-body { display: grid; gap: 8px; }
-.cmv2-crit-legacy-row {
+/* Mismo reparto que un paso —copia, control, conmutador— sin ser uno. */
+.cmv2-crit-otra-regla-fila {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-  border: 1px dashed var(--cmv2-border);
+  border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, var(--pulso-surface-2) 45%, transparent);
+  background: var(--pulso-surface);
 }
-.cmv2-crit-legacy-row .cmv2-crit-paso-copy strong {
-  font-size: 12px;
+.cmv2-crit-otra-regla-fila > .cmv2-cat-evidencia,
+.cmv2-crit-otra-regla-fila > .cmv2-crit-coste { grid-column: 1 / -1; }
+
+.cmv2-crit-otra-regla-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: var(--pulso-weight-semibold);
   color: var(--pulso-text-muted);
 }
 
@@ -1512,7 +1516,6 @@
   }
   .cmv2-crit-sug { flex-wrap: wrap; }
   .cmv2-crit-paso { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .cmv2-crit-paso > .cmv2-crit-paso-pct { grid-column: 2; justify-self: start; }
 }
 
 /* --- Aviso de calidad de condicion_curso (reunión 2026-07-15) ---------------
@@ -1821,17 +1824,6 @@
   cursor: pointer;
 }
 .cmv2-crit-tsf-heredar:hover { text-decoration: underline; }
-.cmv2-crit-tsf-vertodas {
-  justify-self: start;
-  border: 0;
-  background: transparent;
-  padding: 2px 0;
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-muted);
-  cursor: pointer;
-}
-.cmv2-crit-tsf-vertodas:hover { color: var(--cmv2-accent-fg); text-decoration: underline; }
 
 .cmv2-crit-tsf-link {
   justify-self: start;
@@ -1859,4 +1851,154 @@
   .cmv2-crit-tsf-bar,
   .cmv2-crit-tsf-bar-empty { grid-column: 1 / -1; }
   .cmv2-crit-tsf-estado { grid-column: 1 / -1; }
+}
+
+/* S1 · la radiografía del criterio vive dentro de la tarjeta que lo decide.
+   Abierta mientras la variable está en edición, plegada cuando ya se confirmó:
+   abrir las cinco a la vez empujaba los demás criterios fuera de pantalla. */
+
+
+
+
+/* T1 · la fuente concatena varios valores en una etiqueta: la pantalla lo dice
+   en vez de esconderlo. El nombre del grupo manda; los valores agrupados van
+   en una línea secundaria y en el `title`. */
+.cmv2-crit-item-agrupa {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+
+.cmv2-crit-item-agrupadas {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+}
+
+/* S4/S5 · Lo que la categoría aporta al marco ejecutado, junto al conmutador
+   que la decide. El conteo del catálogo es anterior a cualquier criterio; este
+   es el número contra el que se decide de verdad. Lo publica R por segmento. */
+.cmv2-crit-item-aporte {
+  grid-column: 1 / -1;
+  margin-left: 44px;
+  color: var(--cmv2-accent-fg);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crit-item-aporte em {
+  color: var(--pulso-text-muted);
+  font-style: normal;
+}
+
+.cmv2-crit-item-aporte[data-aporta="cero"] {
+  color: var(--pulso-text-muted);
+}
+
+/* F25 · El grano del criterio se declara cuando no es por facultad. */
+.cmv2-crit-grano {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  line-height: 1.45;
+}
+.cmv2-crit-grano strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+
+/* F100 · Retiradas las reglas de `cmv2-crit-card-radiografia` (la radiografía
+ * plegada dentro del criterio de estudiante, fuera en F40) y `cmv2-crit-exc-add`
+ * (el botón del alta genérica, sustituido en F24 por el listado por facultad).
+ * CSS sin selector en el TSX no lo caza el typecheck: sólo un barrido. */
+
+/*
+ * G21 · Las filas con tarjeta estándar reparten el ancho, no lo desperdician.
+ *
+ * Medido en la app: la fila era el flex `space-between` de arriba, que empuja
+ * la etiqueta a la izquierda y la tarjeta a la derecha dejando ~680 px vacíos en
+ * medio. Gonzalo: «tienen bastante espacio horizontal y no lo están utilizando».
+ *
+ * Con la rejilla, la etiqueta ocupa una columna acotada y **la tarjeta se queda
+ * todo lo demás**. No es sólo estética: el gráfico proyecta su dominio sobre el
+ * ancho disponible, así que cada píxel que no usa es resolución que pierde para
+ * distinguir Q1 de la mediana.
+ */
+.cmv2-crit-tsf-tipo:has(.cmv2-cat-evidencia) {
+  display: grid;
+  grid-template-columns: minmax(140px, 240px) minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: start;
+  padding: 8px;
+  min-height: 0;
+}
+.cmv2-crit-tsf-tipo:has(.cmv2-cat-evidencia) > :first-child {
+  align-self: center;
+  min-width: 0;
+}
+
+/* G24 · Retiradas las reglas de `cmv2-crit-paso-pct`: estilaban el campo
+   numerico suelto de la prevalencia, sustituido por el nivelador. Las cazo el
+   guard de huerfanas en la misma corrida. */
+
+/* G33 · El rótulo de la sección legacy, que antes era un botón de plegar. */
+
+/*
+ * G33 · Categorías sin cursos-horario en la facultad: nombradas, no plegadas.
+ *
+ * Antes vivían tras un «Ver todas (42 sin cursos aquí)». No tienen distribución
+ * ni decisión que ofrecer —sólo su nombre—, así que darles tarjeta es ruido y
+ * plegarlas es esconder. Nombrarlas cuesta una línea y no hace ninguna de las
+ * dos cosas.
+ */
+.cmv2-crit-tsf-sincursos {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+.cmv2-crit-tsf-sincursos span {
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* G33 · Retiradas las reglas de los dos plegadores que salieron de la
+   superficie: «Ver todas» y el toggle de la prevalencia legacy. */
+
+/*
+ * G39 · Lo que cuesta la posición del control, junto al control.
+ *
+ * La cifra decide: mover el deslizador sin ella es elegir un porcentaje a
+ * ciegas. Va antes del gráfico y no dentro de él porque responde a «cuánto
+ * pierdo aquí», no a «cómo se reparten» — y porque tiene que poder leerse sin
+ * apartar la vista de la manija.
+ */
+.cmv2-crit-coste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 6px 0 2px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+}
+.cmv2-crit-coste strong {
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.cmv2-crit-coste-queda {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
