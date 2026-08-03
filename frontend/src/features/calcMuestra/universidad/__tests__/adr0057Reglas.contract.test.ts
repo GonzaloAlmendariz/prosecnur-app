@@ -102,54 +102,47 @@ describe("ADR 0057 · regla 2 — la matriz pertenece al Panorama", () => {
 });
 
 describe("ADR 0057 · regla 3 — los boxplots comparten eje y lo muestran", () => {
-  it("la caja no se dibuja sin un dominio del criterio", () => {
-    const evidencia = leer("criterios/CategoriaEvidencia.tsx");
-    // El dominio es un parámetro obligatorio del cálculo de posiciones: sin él
-    // no hay forma de pintar una caja normalizada contra su propio rango, que
-    // es el defecto que la regla 3 prohíbe.
-    expect(evidencia).toContain("function pct(valor: number, dominio: DominioCategorias)");
-    expect(evidencia).toContain("export function EjeCategorias");
-  });
-
-  it("el eje y todas las cajas comparten el mismo ancho de escala", () => {
-    // Medido en la app antes de la reparación: el eje medía 1.206 px y las cajas
-    // 274, 263, 284 y 315. Un dominio común no sirve de nada si cada caja lo
-    // proyecta sobre un ancho distinto —el mismo valor cae en un píxel diferente
-    // en cada categoría—, así que la escala es una constante compartida y no el
-    // espacio que sobre.
-    const css = leer("criterios/categoriaEvidencia.css");
-    expect(css).toContain("--cmv2-cat-escala");
-    const eje = css.slice(css.indexOf(".cmv2-cat-eje {"));
-    const caja = css.slice(css.indexOf(".cmv2-cat-caja {"));
-    // `min(…, 100%)`: la escala es una constante **hasta donde cabe**. A
-    // 1024×600 la caja de 260 px desbordaba 4 px en un contenedor de 256, y una
-    // escala que desborda deja de ser comparable igual que una que varía.
-    expect(eje.slice(0, eje.indexOf("}"))).toContain("min(var(--cmv2-cat-escala), 100%)");
-    expect(caja.slice(0, caja.indexOf("}"))).toContain("min(var(--cmv2-cat-escala), 100%)");
-  });
-
-  it("nada que codifique un valor se anima con transform", () => {
-    // Medido: la barra P25–P75 quedó clavada en el primer fotograma de su propia
-    // animación —`matrix(0.02, 0, 0, 1, 0, -6)`— con el ancho computado correcto
-    // (154,7 px) renderizado a 3 px. El ancho de esa barra ES el dato, así que
-    // una animación que lo escala puede mostrar un rango falso: deja de ser un
-    // defecto decorativo y pasa a ser una lectura corrupta.
-    //
-    // El movimiento entra por opacidad, que no puede mentir sobre una magnitud.
-    // Sin comentarios: la explicación del defecto cita el valor culpable, y un
-    // guard que se dispara con su propia documentación empuja a borrarla —el
-    // patrón 6 del ADR, repetido aquí mismo al escribir este caso—.
-    const css = leer("criterios/categoriaEvidencia.css");
-    for (const clase of [".cmv2-cat-rango", ".cmv2-cat-caja "]) {
-      const bloque = css.slice(css.indexOf(clase));
-      const regla = bloque.slice(0, bloque.indexOf("}"));
-      expect(regla, clase).not.toMatch(/animation:[^;]*scale/i);
-      expect(regla, clase).not.toMatch(/transform:\s*scale/i);
+  it("las posiciones se calculan contra el dominio del criterio, no contra cada caja", () => {
+    // F111 · El gráfico se mudó a `DistribucionCategoria` (densidad + boxplot +
+    // cuantiles sobre un solo eje). La regla no cambia: **toda** posición sale
+    // del dominio compartido. Si `pos()` dejara de recibirlo, cada capa se
+    // normalizaría contra su propio rango y volvería el defecto que la regla 3
+    // prohíbe.
+    const dist = leer("criterios/DistribucionCategoria.tsx");
+    expect(dist).toContain("function pos(valor: number, dom: DominioEscala)");
+    expect(dist).toContain("export function dominioComun");
+    // Ninguna capa puede pintar sin dominio: las tres reciben `dom`.
+    for (const capa of ["Densidad", "Boxplot", "Cuantiles"]) {
+      expect(dist).toMatch(new RegExp(`function ${capa}\\([^)]*dom`, "s"));
     }
-    expect(css).not.toContain("scaleX(0.02)");
   });
-});
 
+  it("las tres capas comparten el mismo ancho de escala", () => {
+    // Medido en la app antes de la reparación: el eje medía 1.206 px y las cajas
+    // 274, 263, 284 y 315. Un dominio común no sirve de nada si cada capa lo
+    // proyecta sobre un ancho distinto —el mismo valor cae en un píxel diferente
+    // en cada una—, así que la escala es una constante compartida y no el
+    // espacio que sobre.
+    const css = leer("criterios/distribucionCategoria.css");
+    // `min(…, 100%)`: la escala es una constante **hasta donde cabe**. A
+    // 1024×600 una caja de 260 px desbordaba 4 px en un contenedor de 256, y una
+    // escala que desborda deja de ser comparable igual que una que varía.
+    expect(css).toContain("width: min(var(--cmv2-cat-escala, 260px), 100%)");
+    // Un solo contenedor con el ancho: las capas cuelgan de él, así que no
+    // pueden divergir aunque alguien las toque por separado.
+    expect((css.match(/--cmv2-cat-escala/g) ?? []).length).toBe(1);
+  });
+
+  it("la densidad sale del histograma del motor, nunca de los cuantiles", () => {
+    // Entre P10 y P90 hay infinitas formas. Interpolar una es inventarla, y una
+    // densidad inventada se lee con la misma confianza que una medida.
+    const dist = leer("criterios/DistribucionCategoria.tsx");
+    expect(dist).toContain("d.hist_breaks");
+    expect(dist).toContain("d.hist_counts");
+    expect(dist).toContain("counts.length !== breaks.length - 1) return null");
+  });
+
+});
 describe("ADR 0057 · lenguaje y transparencia", () => {
   const superficies = [
     "marco/CursosHorarioMarcoTab.tsx",

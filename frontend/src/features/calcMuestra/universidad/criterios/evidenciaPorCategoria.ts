@@ -33,6 +33,10 @@ export function evidenciaPorCategoria(
         ch: row.actual?.n_ch ?? null,
         chContraste: row.contraste_total?.n_ch ?? null,
         mediaContraste: row.contraste_total?.distribution?.media ?? null,
+        // F111 · La distribución COMPLETA del total, no sólo su media: el
+        // conmutador de la tarjeta grafica elegibles contra todos sobre la
+        // misma escala, y para eso hace falta la forma entera.
+        distribucionContraste: row.contraste_total?.distribution ?? null,
         chConDato: row.actual?.n_ch_con_dato ?? null,
         matriculas: row.actual?.n_matriculas ?? null,
         distribucion: row.actual?.distribution ?? null,

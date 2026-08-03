@@ -101,6 +101,11 @@
   rows <- list()
   for (fac in catalogos$facultades) {
     fac_idx <- which(catalogos$fac_eval == fac$eval_key)
+    # F111 · Cortes comunes a TODOS los segmentos de esta facultad. Se calculan
+    # sobre su universo —no por segmento— porque la tarjeta existe para comparar
+    # categorías entre sí, y dos histogramas con cortes distintos no comparan
+    # nada (ADR 0057, regla 3).
+    breaks_fac <- .cm_criterio_radiografia_breaks(eligible_n[fac_idx])
     cats_efectivas <- .cm_criterios_eff_cats(criterio, fac$eval_key)
     for (segmento in catalogos$categorias) {
       segment_idx <- fac_idx[catalogos$keys[fac_idx] == segmento$key]
@@ -123,8 +128,8 @@
         segment_key = segmento$key,
         segment_label = segmento$label,
         segment_kind = if (isTRUE(segmento$empty)) "sin_dato" else "categoria",
-        actual = .cm_criterio_radiografia_snapshot(actual_idx, eligible_n, ids_por_ch),
-        contraste_total = .cm_criterio_radiografia_snapshot(segment_idx, eligible_n, ids_por_ch),
+        actual = .cm_criterio_radiografia_snapshot(actual_idx, eligible_n, ids_por_ch, breaks_fac),
+        contraste_total = .cm_criterio_radiografia_snapshot(segment_idx, eligible_n, ids_por_ch, breaks_fac),
         delta = .cm_criterio_radiografia_delta_atomico(
           accion = accion$accion,
           reconstruccion_valida = reconstruccion_valida,
@@ -248,6 +253,8 @@
   rows <- list()
   for (fac in facs$values) {
     fac_idx <- which(facs$keys == fac$eval_key)
+    # F111 · Cortes comunes a los segmentos de esta facultad (ADR 0057, regla 3).
+    breaks_fac <- .cm_criterio_radiografia_breaks(eligible_n[fac_idx])
     actual_idx <- fac_idx[preparado$included_actual[fac_idx]]
     target_nuevo <- actual_flag
     target_nuevo[fac_idx] <- counter_flag[fac_idx]
@@ -262,8 +269,8 @@
       segment_key = segment_key,
       segment_label = segment_label,
       segment_kind = "global",
-      actual = .cm_criterio_radiografia_snapshot(actual_idx, eligible_n, ids_por_ch),
-      contraste_total = .cm_criterio_radiografia_snapshot(fac_idx, eligible_n, ids_por_ch),
+      actual = .cm_criterio_radiografia_snapshot(actual_idx, eligible_n, ids_por_ch, breaks_fac),
+      contraste_total = .cm_criterio_radiografia_snapshot(fac_idx, eligible_n, ids_por_ch, breaks_fac),
       delta = .cm_criterio_radiografia_delta_atomico(
         accion = action,
         reconstruccion_valida = preparado$reconstruccion_valida,
@@ -349,6 +356,8 @@
   rows <- list()
   for (fac in facs$values) {
     fac_idx <- which(facs$keys == fac$eval_key)
+    # F111 · Cortes comunes a los segmentos de esta facultad (ADR 0057, regla 3).
+    breaks_fac <- .cm_criterio_radiografia_breaks(eligible_n[fac_idx])
     cats_efectivas <- .cm_criterios_eff_cats(criterio, fac$eval_key)
     for (segmento in segmentos) {
       segment_idx <- fac_idx[segmento$mask[fac_idx]]
@@ -373,8 +382,8 @@
         segment_key = segmento$key,
         segment_label = segmento$label,
         segment_kind = segmento$kind,
-        actual = .cm_criterio_radiografia_snapshot(actual_idx, eligible_n, ids_por_ch),
-        contraste_total = .cm_criterio_radiografia_snapshot(segment_idx, eligible_n, ids_por_ch),
+        actual = .cm_criterio_radiografia_snapshot(actual_idx, eligible_n, ids_por_ch, breaks_fac),
+        contraste_total = .cm_criterio_radiografia_snapshot(segment_idx, eligible_n, ids_por_ch, breaks_fac),
         delta = .cm_criterio_radiografia_delta_atomico(
           accion$accion,
           preparado$reconstruccion_valida,

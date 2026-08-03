@@ -1,6 +1,7 @@
 import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import { fmtInt } from "../../sharedCore";
 import type { AporteCategoria } from "./controles";
+import { DistribucionCategoria } from "./DistribucionCategoria";
 import "./categoriaEvidencia.css";
 
 /**
@@ -58,9 +59,6 @@ function plural(n: number | null | undefined, singular: string, plural_: string)
   return n === 1 ? singular : plural_;
 }
 
-function pct(valor: number, dominio: DominioCategorias): number {
-  return ((valor - dominio.min) / (dominio.max - dominio.min)) * 100;
-}
 
 const fmt = (v: number | null | undefined) =>
   typeof v === "number" && Number.isFinite(v)
@@ -86,58 +84,23 @@ export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
         <strong>{fmt(dominio.max)}</strong> estudiantes elegibles por curso-horario.
         Todas las cajas se dibujan sobre ella, así que se pueden comparar entre sí.
       </p>
-      {/* Qué significa cada marca de la caja.
-          La tarjeta dibuja cuatro marcas —rango, mediana, media, bigotes— y no
-          decía qué era ninguna: sólo el `aria-label` lo explicaba, así que quien
-          ve el gráfico tenía menos información que quien no lo ve. La leyenda va
-          una vez por criterio, no por categoría. */}
+      {/* Qué significa cada marca. Va una vez por criterio, no por categoría.
+          F111 · Antes decía «de P10 a P90» para los bigotes; con el boxplot
+          estándar son los de Tukey —el dato más extremo dentro de 1,5 × RIC—.
+          Una leyenda que sobrevive al gráfico que describía es tan falsa como
+          una cifra mal calculada, y se lee con la misma confianza. */}
       <ul className="cmv2-cat-leyenda" aria-hidden="true">
+        <li><i className="cmv2-cat-leyenda-densidad" /> densidad</li>
         <li><i className="cmv2-cat-leyenda-rango" /> mitad central (P25–P75)</li>
         <li><i className="cmv2-cat-leyenda-mediana" /> mediana</li>
         <li><i className="cmv2-cat-leyenda-media" /> media</li>
-        <li><i className="cmv2-cat-leyenda-bigote" /> de P10 a P90</li>
+        <li><i className="cmv2-cat-leyenda-bigote" /> bigotes de Tukey (1,5 × RIC)</li>
       </ul>
     </div>
   );
 }
 
-/** Extremos de la escala, bajo la caja y alineados con ella. */
-function EscalaCaja({ dominio }: { dominio: DominioCategorias }) {
-  return (
-    <div className="cmv2-cat-escala" aria-hidden="true">
-      <span>{fmt(dominio.min)}</span>
-      <span>{fmt(dominio.max)}</span>
-    </div>
-  );
-}
 
-/** Caja percentilar de una categoría sobre la escala del criterio. */
-function Caja({
-  d,
-  dominio,
-}: {
-  d: CalcMuestraAulasCriterioRadiografiaV2Distribution;
-  dominio: DominioCategorias;
-}) {
-  const tiene = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
-  if (!tiene(d.p25) || !tiene(d.p75)) {
-    return <span className="cmv2-cat-caja-vacia">sin distribución publicada</span>;
-  }
-  const izq = pct(d.p25, dominio);
-  const ancho = Math.max(0.8, pct(d.p75, dominio) - izq);
-  return (
-    <div className="cmv2-cat-caja" role="img"
-      aria-label={`De P25 ${fmt(d.p25)} a P75 ${fmt(d.p75)}, mediana ${fmt(d.p50)}, media ${fmt(d.media)}`}>
-      {tiene(d.p10) && tiene(d.p90) ? (
-        <i className="cmv2-cat-bigote"
-          style={{ left: `${pct(d.p10, dominio)}%`, width: `${Math.max(0.5, pct(d.p90, dominio) - pct(d.p10, dominio))}%` }} />
-      ) : null}
-      <i className="cmv2-cat-rango" style={{ left: `${izq}%`, width: `${ancho}%` }} />
-      {tiene(d.p50) ? <i className="cmv2-cat-mediana" style={{ left: `${pct(d.p50, dominio)}%` }} /> : null}
-      {tiene(d.media) ? <i className="cmv2-cat-media" style={{ left: `${pct(d.media, dominio)}%` }} /> : null}
-    </div>
-  );
-}
 
 /**
  * Todo lo que ADR 0057 exige de una categoría: cuántos CH, cuántos alumnos, la
@@ -175,33 +138,27 @@ export function CategoriaEvidencia({
 
   return (
     <div className="cmv2-cat-evidencia">
+      {/* F111 · Cuatro cifras, decididas con Gonzalo: CH totales, CH elegibles,
+          alumnos elegibles y —si el marco la trae— la tasa de asistencia previa.
+          Sale **matrículas**: F105 la había puesto para separar los dos granos,
+          pero con «alumnos elegibles» rotulado y el conteo de CH al lado, la
+          suma de matrículas ocupaba una casilla sin decidir nada. */}
       <div className="cmv2-cat-cifras">
-        <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong> CH</span>
-        {/* El número es `n_estudiantes_unicos`, no matrículas. En un módulo cuya
-            cabecera muestra ambas cifras por separado —21.362 estudiantes y
-            92.017 matrículas—, rotularlo «alumnos» a secas esconde de qué grano
-            es, que es justo la confusión que este módulo existe para evitar. */}
+        <span><strong>{aporte.chContraste == null ? "—" : fmtInt(aporte.chContraste)}</strong> CH totales</span>
+        <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong> CH elegibles</span>
+        {/* `n_estudiantes_unicos`: una persona cuenta una vez aunque esté en
+            varios cursos-horario. Rotularlo «alumnos» a secas escondía de qué
+            grano es, que es la confusión que este módulo existe para evitar. */}
         <span title="Estudiantes únicos elegibles: una persona cuenta una vez aunque esté en varios cursos-horario">
           <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>{" "}
-          {plural(aporte.elegibles, "estudiante", "estudiantes")}
+          {plural(aporte.elegibles, "alumno elegible", "alumnos elegibles")}
         </span>
-        {aporte.matriculas != null ? (
-          <span title="Matrículas elegibles: una persona cuenta una vez por cada curso-horario en que está">
-            <strong>{fmtInt(aporte.matriculas)}</strong> {plural(aporte.matriculas, "matrícula", "matrículas")}
-          </span>
-        ) : null}
-        {d?.media != null ? <span><strong>{fmt(d.media)}</strong> por CH</span> : null}
-        {/* Si la distribución se calculó sobre menos CH de los que hay, decirlo:
-            sin este número no se sabe cuánta de la categoría describe la caja. */}
-        {aporte.chConDato != null && aporte.ch != null && aporte.chConDato < aporte.ch ? (
-          <span className="cmv2-cat-parcial" title="Cursos-horario que traen el dato de este criterio">
-            distribución sobre <strong>{fmtInt(aporte.chConDato)}</strong> de {fmtInt(aporte.ch)} CH
-          </span>
-        ) : null}
-        {presentes != null ? (
-          <span className="cmv2-cat-presentes">
-            ~<strong>{fmtInt(presentes)}</strong> {plural(presentes, "presente", "presentes")}
-            <em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% asistencia</em>
+        {/* La tasa es del marco, no de esta categoría: sólo se muestra cuando el
+            proyecto la trae, y se dice sobre qué se aplica. */}
+        {aporte.tasaAsistencia != null ? (
+          <span className="cmv2-cat-presentes" title="Asistencia previa observada, aplicada a los alumnos elegibles">
+            <strong>{Math.round(aporte.tasaAsistencia * 100)}%</strong> asistencia previa
+            {presentes != null ? <em>~{fmtInt(presentes)} presentes</em> : null}
           </span>
         ) : null}
       </div>
@@ -237,18 +194,17 @@ export function CategoriaEvidencia({
           ) : null}.
         </p>
       )}
-      {d && dominio ? (
-        <>
-          <Caja d={d} dominio={dominio} />
-          <EscalaCaja dominio={dominio} />
-          <dl className="cmv2-cat-cuantiles">
-            <div><dt>P10</dt><dd>{fmt(d.p10)}</dd></div>
-            <div><dt>P25</dt><dd>{fmt(d.p25)}</dd></div>
-            <div><dt>Mediana</dt><dd>{fmt(d.p50)}</dd></div>
-            <div><dt>P75</dt><dd>{fmt(d.p75)}</dd></div>
-            <div><dt>P90</dt><dd>{fmt(d.p90)}</dd></div>
-          </dl>
-        </>
+      {/* F111 · Densidad, boxplot y cuantiles sobre un SOLO eje. Antes la caja
+          y una fila equiespaciada de P10–P90 vivían separadas: los cinco
+          cuantiles ocupaban el mismo ancho aunque P10→P25 recorra cinco veces
+          más que P25→P50, y no había forma de leer un número contra el gráfico.
+          Ahora cada cifra cae bajo su posición real. */}
+      {!sinCursos ? (
+        <DistribucionCategoria
+          elegible={{ nCh: aporte.ch, distribucion: d }}
+          total={{ nCh: aporte.chContraste ?? null, distribucion: aporte.distribucionContraste ?? null }}
+          dominio={dominio}
+        />
       ) : null}
     </div>
   );

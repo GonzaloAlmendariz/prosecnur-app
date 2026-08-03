@@ -181,9 +181,91 @@
   as.numeric(sum(v))
 }
 
-.cm_criterio_radiografia_distribucion <- function(v) {
+# -----------------------------------------------------------------------------
+# Distribución publicada por segmento — contrato v2 (F111)
+# -----------------------------------------------------------------------------
+#
+# La tarjeta de categoría apila tres lecturas de la MISMA variable sobre un solo
+# eje: densidad arriba, boxplot en medio y cuantiles abajo. Las tres exigen datos
+# que este motor no publicaba, y ninguna se puede derivar en el cliente:
+#
+#   - **Densidad**: entre P10 y P90 hay infinitas formas. Interpolar una es
+#     inventarla, así que el histograma lo calcula R.
+#   - **Boxplot estándar**: los bigotes de Tukey son el dato más extremo dentro
+#     de 1,5 × RIC, no P10/P90. Sin ellos la caja no es la que el lector espera.
+#   - **Mismos límites**: dos histogramas con cortes distintos no son
+#     comparables, que es justo lo que la regla 3 del ADR 0057 prohíbe. Por eso
+#     `breaks` entra por parámetro: el llamador los calcula UNA vez sobre el
+#     universo del criterio y los pasa a todos sus segmentos.
+#
+# Campos (todos NA/vacío cuando la cobertura no es completa):
+#   media, p10, p25, p50, p75, p90   — como antes
+#   min, max                          — límites reales del segmento
+#   bigote_inf, bigote_sup            — extremos de Tukey dentro de 1,5 × RIC
+#   n_atipicos                        — cuántos quedan fuera de esos bigotes
+#   hist_breaks (k+1), hist_counts (k) — densidad empírica sobre cortes comunes
+.cm_criterio_radiografia_distribucion <- function(v, breaks = NULL) {
   resumen <- .cm_criterio_radiografia_resumen(v, cuantiles = TRUE)
-  resumen[c("media", "p10", "p25", "p50", "p75", "p90")]
+  out <- resumen[c("media", "p10", "p25", "p50", "p75", "p90")]
+
+  vals <- suppressWarnings(as.numeric(v))
+  vals <- vals[is.finite(vals)]
+  if (!length(vals)) {
+    return(c(out, list(
+      min = NA_real_, max = NA_real_,
+      bigote_inf = NA_real_, bigote_sup = NA_real_, n_atipicos = NA_integer_,
+      hist_breaks = numeric(0), hist_counts = integer(0)
+    )))
+  }
+
+  q1 <- as.numeric(stats::quantile(vals, 0.25, type = 7, names = FALSE))
+  q3 <- as.numeric(stats::quantile(vals, 0.75, type = 7, names = FALSE))
+  ric <- q3 - q1
+  # Bigote = dato más extremo DENTRO de la valla, no la valla: un bigote que
+  # llega a donde no hay observaciones dibuja un rango que no existe.
+  dentro_inf <- vals[vals >= q1 - 1.5 * ric]
+  dentro_sup <- vals[vals <= q3 + 1.5 * ric]
+  bigote_inf <- if (length(dentro_inf)) min(dentro_inf) else min(vals)
+  bigote_sup <- if (length(dentro_sup)) max(dentro_sup) else max(vals)
+
+  hist_breaks <- numeric(0)
+  hist_counts <- integer(0)
+  if (is.numeric(breaks) && length(breaks) >= 2L) {
+    b <- sort(unique(as.numeric(breaks[is.finite(breaks)])))
+    if (length(b) >= 2L) {
+      # `include.lowest` para que el mínimo no se pierda del primer intervalo.
+      cortes <- cut(vals, breaks = b, include.lowest = TRUE, right = TRUE)
+      hist_breaks <- b
+      hist_counts <- as.integer(table(cortes))
+    }
+  }
+
+  c(out, list(
+    min = as.numeric(min(vals)),
+    max = as.numeric(max(vals)),
+    bigote_inf = as.numeric(bigote_inf),
+    bigote_sup = as.numeric(bigote_sup),
+    n_atipicos = as.integer(sum(vals < bigote_inf | vals > bigote_sup)),
+    hist_breaks = hist_breaks,
+    hist_counts = hist_counts
+  ))
+}
+
+# Cortes comunes a todos los segmentos de un criterio.
+#
+# Se calculan sobre el universo del criterio —no por segmento— porque la tarjeta
+# existe para comparar categorías entre sí. Regla de Sturges acotada a [8, 28]:
+# con pocos CH un histograma de 30 barras es ruido, y con muchos más de 28 no
+# añade forma legible al ancho que la tarjeta puede darle.
+.cm_criterio_radiografia_breaks <- function(v, min_bins = 8L, max_bins = 28L) {
+  vals <- suppressWarnings(as.numeric(v))
+  vals <- vals[is.finite(vals)]
+  if (length(vals) < 2L) return(numeric(0))
+  lo <- min(vals); hi <- max(vals)
+  if (!(hi > lo)) return(numeric(0))
+  k <- ceiling(log2(length(vals)) + 1)
+  k <- max(min_bins, min(max_bins, as.integer(k)))
+  seq(lo, hi, length.out = k + 1L)
 }
 
 .cm_criterio_radiografia_ids_por_ch <- function(aula_frame, eligible_n) {
@@ -202,7 +284,8 @@
   list(sets = sets, valido = valido)
 }
 
-.cm_criterio_radiografia_snapshot <- function(idx, eligible_n, ids_por_ch) {
+.cm_criterio_radiografia_snapshot <- function(idx, eligible_n, ids_por_ch,
+                                              breaks = NULL) {
   idx <- as.integer(idx)
   idx <- idx[is.finite(idx)]
   n_ch <- as.integer(length(idx))
@@ -229,9 +312,14 @@
   } else {
     NA_integer_
   }
-  distribucion <- .cm_criterio_radiografia_distribucion(valores)
+  distribucion <- .cm_criterio_radiografia_distribucion(valores, breaks)
   if (!cobertura_completa) {
-    distribucion[] <- rep(NA_real_, length(distribucion))
+    # F111 · Antes esto era `distribucion[] <- rep(NA_real_, length(...))`, que
+    # con el contrato v2 machacaría `hist_breaks`/`hist_counts` convirtiendo dos
+    # vectores en escalares NA. Sin cobertura completa no se publica NADA de la
+    # distribución, y el vacío se construye con el mismo constructor que el
+    # resto: así el contrato tiene una sola forma, con dato o sin él.
+    distribucion <- .cm_criterio_radiografia_distribucion(numeric(0))
   }
   list(
     n_ch = n_ch,

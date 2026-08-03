@@ -145,6 +145,28 @@ export type CalcMuestraAulasCriterioRadiografiaV2Distribution = {
   p50: number | null;
   p75: number | null;
   p90: number | null;
+  /**
+   * F111 · Contrato v2. La tarjeta apila densidad, boxplot y cuantiles sobre un
+   * solo eje, y ninguna de las tres se puede derivar de los cuantiles:
+   *
+   * - entre P10 y P90 hay infinitas formas, así que **el histograma lo calcula
+   *   R** sobre cortes comunes a todos los segmentos del criterio (regla 3 del
+   *   ADR 0057: sin la misma rejilla, dos densidades no comparan nada);
+   * - los bigotes de un boxplot estándar son el dato más extremo dentro de
+   *   1,5 × RIC, no P10/P90.
+   *
+   * Todos opcionales: un marco construido antes de F111 no los trae, y la
+   * tarjeta degrada a lo que sí tenga en vez de fabricarlos.
+   */
+  min?: number | null;
+  max?: number | null;
+  bigote_inf?: number | null;
+  bigote_sup?: number | null;
+  n_atipicos?: number | null;
+  /** k+1 bordes, comunes al criterio. */
+  hist_breaks?: number[];
+  /** k conteos, uno por intervalo. */
+  hist_counts?: number[];
 };
 
 export type CalcMuestraAulasCriterioRadiografiaV2Snapshot = {
@@ -490,6 +512,18 @@ function parseV1Rows(raw: unknown, allowEmpty: boolean): CalcMuestraAulasCriteri
   return rows;
 }
 
+/** Vector numérico defensivo: descarta lo que no sea finito. */
+function asFiniteArray(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return [];
+  const out: number[] = [];
+  for (const item of raw) {
+    const n = typeof item === "number" ? item : Number(item);
+    if (Number.isFinite(n)) out.push(n);
+    else return [];
+  }
+  return out;
+}
+
 function parseDistribution(raw: unknown): CalcMuestraAulasCriterioRadiografiaV2Distribution | null {
   const value = asRecord(raw);
   const media = asFiniteOrNull(value.media);
@@ -499,6 +533,13 @@ function parseDistribution(raw: unknown): CalcMuestraAulasCriterioRadiografiaV2D
   const p75 = asFiniteOrNull(value.p75);
   const p90 = asFiniteOrNull(value.p90);
   if ([media, p10, p25, p50, p75, p90].some((item) => item === INVALID_NUMBER)) return null;
+  // F111 · Los campos v2 son tolerantes por diseño: un marco anterior no los
+  // trae y eso no invalida la fila. Un histograma cuyos conteos no cuadren con
+  // sus bordes se descarta ENTERO —dibujar la mitad de una densidad es peor que
+  // no dibujarla—.
+  const breaks = asFiniteArray(value.hist_breaks);
+  const counts = asFiniteArray(value.hist_counts);
+  const histOk = breaks.length >= 2 && counts.length === breaks.length - 1;
   return {
     media: media as number | null,
     p10: p10 as number | null,
@@ -506,6 +547,13 @@ function parseDistribution(raw: unknown): CalcMuestraAulasCriterioRadiografiaV2D
     p50: p50 as number | null,
     p75: p75 as number | null,
     p90: p90 as number | null,
+    min: asFiniteOrNull(value.min) as number | null,
+    max: asFiniteOrNull(value.max) as number | null,
+    bigote_inf: asFiniteOrNull(value.bigote_inf) as number | null,
+    bigote_sup: asFiniteOrNull(value.bigote_sup) as number | null,
+    n_atipicos: asFiniteOrNull(value.n_atipicos) as number | null,
+    hist_breaks: histOk ? breaks : undefined,
+    hist_counts: histOk ? counts : undefined,
   };
 }
 

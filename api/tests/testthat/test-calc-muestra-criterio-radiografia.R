@@ -939,7 +939,14 @@ test_that("integración es aditiva y conserva intacto exploracion v1", {
     "n_ch", "n_ch_con_dato", "n_estudiantes_unicos", "n_matriculas",
     "distribution"
   ))
-  expect_named(fila_v2$actual$distribution, c("media", "p10", "p25", "p50", "p75", "p90"))
+  # F111 · Contrato v2: la tarjeta apila densidad, boxplot y cuantiles sobre un
+  # solo eje, y las tres lecturas exigen datos que el cliente no puede derivar.
+  # El orden importa: es el que serializa el payload y el que fija el oráculo.
+  expect_named(fila_v2$actual$distribution, c(
+    "media", "p10", "p25", "p50", "p75", "p90",
+    "min", "max", "bigote_inf", "bigote_sup", "n_atipicos",
+    "hist_breaks", "hist_counts"
+  ))
   expect_named(fila_v2$delta, c(
     "reference", "action", "reconstruccion_valida", "delta_ch",
     "delta_matriculas", "delta_estudiantes_unicos"
@@ -1096,9 +1103,22 @@ test_that("índice alumno×CH se construye una vez por radiografía", {
     amplio$criterios_radiografia,
     auto_unbox = TRUE, null = "null", na = "null", digits = NA
   )
+  # Rebendecido dos veces, y las dos razones quedan escritas porque un oráculo
+  # que se actualiza sin justificar deja de ser un oráculo:
+  #
+  #   1. F71 renombró `segment_label` de «Regla efectiva» a «Cursos-horario que
+  #      cumplen». **Ese commit dejó este test en rojo y se subió así**: se
+  #      cambió el motor corriendo sólo las pruebas del frontend. El oráculo
+  #      hizo justo su trabajo —avisar— y nadie lo estaba mirando.
+  #   2. F111 añadió los siete campos del contrato v2 de la distribución.
+  #
+  # El segundo cambio se probó CONFINADO antes de tocar el hash: podando esos
+  # siete campos del payload reaparece exactamente el hash previo a F111
+  # (fb817066ce0c805ff6f8196a7342bd7c8361af1812a3b555a66105b47b4304f4), así que
+  # nada más se movió.
   expect_identical(
     digest::digest(payload_json, algo = "sha256", serialize = FALSE),
-    "5f80ab3d00c80b26d77d4b3ed5835b55b5aae0d710ce9fdba2669871b57ab70f"
+    "857095e3116916800792d8a689a46564244419b30e9f5a04b1c7d5dc93644e2f"
   )
 })
 
@@ -1170,4 +1190,81 @@ test_that("flat alumno no reevalúa N filas dentro de cada segmento", {
     ),
     rep(TRUE, length(keys))
   )
+})
+
+# ---------------------------------------------------------------------------
+# F111 · Contrato v2 de la distribución: densidad, boxplot estándar y cuantiles
+# sobre un solo eje.
+#
+# Las tres lecturas que la tarjeta apila exigen datos que el cliente NO puede
+# derivar. Entre P10 y P90 hay infinitas formas: interpolar una densidad es
+# inventarla. Y los bigotes de un boxplot estándar son el dato más extremo
+# dentro de 1,5 × RIC, no P10/P90.
+# ---------------------------------------------------------------------------
+
+test_that("el histograma conserva todas las observaciones", {
+  v <- c(1, 2, 2, 3, 5, 8, 8, 8, 13, 21)
+  b <- .cm_criterio_radiografia_breaks(v)
+  d <- .cm_criterio_radiografia_distribucion(v, b)
+  # Un bin de más o de menos y la densidad dibuja una forma que no ocurrió.
+  expect_identical(sum(d$hist_counts), length(v))
+  expect_identical(length(d$hist_counts), length(d$hist_breaks) - 1L)
+  # `include.lowest`: sin él el mínimo se cae del primer intervalo.
+  expect_gte(d$hist_counts[[1]], 1L)
+})
+
+test_that("los cortes cubren el rango real y no lo recortan", {
+  v <- c(3, 50)
+  b <- .cm_criterio_radiografia_breaks(v)
+  expect_identical(b[[1]], 3)
+  expect_identical(b[[length(b)]], 50)
+})
+
+test_that("los bigotes son de Tukey, no los extremos", {
+  # 100 es atípico: queda fuera de 1,5 x RIC y el bigote se queda en el dato
+  # más extremo que sí entra. Un bigote que llega hasta 100 dibujaria un rango
+  # continuo donde hay un salto.
+  v <- c(10, 11, 12, 13, 14, 15, 16, 100)
+  d <- .cm_criterio_radiografia_distribucion(v)
+  expect_identical(d$max, 100)
+  expect_lt(d$bigote_sup, 100)
+  expect_identical(d$n_atipicos, 1L)
+})
+
+test_that("sin atipicos el bigote coincide con el extremo", {
+  v <- c(10, 11, 12, 13, 14)
+  d <- .cm_criterio_radiografia_distribucion(v)
+  expect_identical(d$bigote_inf, 10)
+  expect_identical(d$bigote_sup, 14)
+  expect_identical(d$n_atipicos, 0L)
+})
+
+test_that("sin cortes publica los cuantiles pero no la densidad", {
+  # El histograma es opcional: quien no pasa cortes comunes no obtiene una
+  # densidad por segmento, que seria incomparable con la de sus hermanas.
+  d <- .cm_criterio_radiografia_distribucion(c(1, 2, 3))
+  expect_length(d$hist_counts, 0L)
+  expect_false(is.na(d$p50))
+})
+
+test_that("una distribucion vacia tiene la MISMA forma que una con dato", {
+  # F111 · El snapshot sin cobertura completa ya no machaca la lista con NA:
+  # reconstruye el vacio con este mismo constructor. Si las formas divergen, el
+  # cliente tiene que ramificar por tipo y ahi es donde entran los bugs.
+  vacio <- .cm_criterio_radiografia_distribucion(numeric(0))
+  lleno <- .cm_criterio_radiografia_distribucion(c(1, 2, 3), c(1, 2, 3))
+  expect_setequal(names(vacio), names(lleno))
+  expect_true(is.na(vacio$bigote_sup))
+  expect_length(vacio$hist_breaks, 0L)
+})
+
+test_that("los segmentos de una facultad comparten cortes", {
+  # Dos categorias con rangos distintos deben caer sobre la MISMA rejilla: es
+  # lo unico que hace comparables sus densidades (ADR 0057, regla 3).
+  universo <- c(5, 10, 15, 20, 40, 60)
+  b <- .cm_criterio_radiografia_breaks(universo)
+  a <- .cm_criterio_radiografia_distribucion(c(5, 10, 15), b)
+  z <- .cm_criterio_radiografia_distribucion(c(40, 60), b)
+  expect_identical(a$hist_breaks, z$hist_breaks)
+  expect_identical(length(a$hist_counts), length(z$hist_counts))
 })
