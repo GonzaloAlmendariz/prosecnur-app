@@ -95,3 +95,64 @@ codifique un valor se anima con `transform` (ADR 0057, patrón 12).
 
 - **La celda en cero no distingue dos cosas**: un criterio que corrió y no quitó
   nada, y un criterio que esa facultad no aplica. Hoy se ven igual.
+
+
+## Errores del goal, y cómo se previenen
+
+Igual que en el ADR 0057, cada patrón trae el mecanismo que hoy lo impide, y ese
+mecanismo es la parte vinculante.
+
+### 1 · Un guard que se compara consigo mismo siempre cuadra
+
+La matriz sumaba 2.806 cursos-horario cuando el KPI de la cabecera decía 2.799.
+`cuadraConElMotor` existía justo para cazar eso y no lo cazó: comparaba el total
+de la matriz contra el total de la **cascada ya filtrada por el mismo criterio**
+que producía el error. Un guard que aplica la misma transformación que juzga no
+juzga nada.
+
+**Mecanismo**: la referencia de un guard viene de fuera de lo que valida. Aquí,
+del último paso publicado sin filtrar; en la superficie, del KPI que el usuario
+ya está viendo.
+
+### 2 · Un filtro puede cortar la historia un paso antes del final
+
+Descartar los pasos `gate = false` era defendible en abstracto —están fuera del
+denominador— y rompía la única promesa de la superficie: contar **de dónde salen
+los cursos-horario elegibles**. Las exclusiones manuales quitan cursos de verdad;
+sin ellas la matriz aterrizaba en un número que no era el resultado.
+
+**Mecanismo**: una superficie que promete explicar un total termina **en ese
+total**. Lo que no encaje en su vocabulario se marca —aquí, columna operativa
+con filete y rótulo en cursiva—, pero no se descarta.
+
+### 3 · Replicar un orden que el motor ya decide fabrica un segundo orden
+
+`ordenCriteriosEmbudo` era una lista escrita a mano con el orden del ADR. Los
+criterios de estudiante, que en la cascada van **primero**, quedaban al final, y
+el confirmador anunciaba «11 criterios quedan en espera» sobre un orden que no es
+el que se aplica. Medido tras leerlo del motor: **5**.
+
+**Mecanismo**: cuando el motor publica un orden (`order_source: "motor_r"`), se
+lee. La lista del ADR queda de respaldo para cuando ese dato no está, no como
+fuente paralela.
+
+### 4 · Dos unidades en un mismo eje se ven iguales
+
+Cinco de catorce columnas eran criterios de **estudiante**: filtran alumnos y
+sólo quitan un curso-horario cuando lo vacían. Todas publican `excluded_ch`, así
+que la celda medía lo mismo y nada delataba la mezcla.
+
+**Mecanismo**: el eje declara **qué filtra** cada tramo con una fila de grupos.
+No se resuelve escondiendo columnas — cinco ceros agrupados dicen algo («ninguno
+vació un curso»); cinco ceros sueltos son ruido.
+
+### 5 · El realce del embudo marca lo que cambió, no lo que se está tocando
+
+Encender el realce en la celda en edición anunciaría un cambio que todavía no
+ocurrió: confirmar un criterio no mueve ninguna cifra hasta que el marco se
+reconstruye.
+
+**Mecanismo**: el realce compara el valor con el del render anterior. El primer
+render no cuenta —si contara, la matriz entera parpadearía al abrir y el realce
+dejaría de significar «esto se movió»— y sólo entra por color y opacidad
+(patrón 12 del ADR 0057).
