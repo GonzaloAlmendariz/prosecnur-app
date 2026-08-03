@@ -271,9 +271,15 @@ export function AulasObjetivoTab({
           pesos del diseño.
         </AvisoModulo>
 
+        {/* F103 · Abierto por defecto. Aquí viven la semilla y los pesos: la
+            semilla DETERMINA la muestra, y este módulo existe para que la
+            selección sea defendible. Plegar la reproducibilidad esconde
+            exactamente aquello por lo que se responde. Sigue siendo plegable
+            —quien no la use la cierra—, pero el estado inicial no la oculta. */}
         <PanelAvanzado
           titulo="Auditoría y reproducibilidad"
           descripcion="semilla, corridas, candidatas y pesos del objetivo"
+          defaultOpen
         >
           <div className="cmv2-classroom-control-grid">
             <div className="cmv2-compact-field">

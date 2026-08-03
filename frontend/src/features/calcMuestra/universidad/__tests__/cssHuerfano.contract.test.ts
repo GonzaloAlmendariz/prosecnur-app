@@ -114,6 +114,42 @@ describe("Nada oculto en la superficie de criterios (ADR 0057)", () => {
     });
   }
 
+  /**
+   * F103 · El agujero del guard anterior.
+   *
+   * Buscaba `<details>` **literal** en cada archivo, así que un componente que
+   * pliega por dentro pasaba invisible: `PanelAvanzado` renderiza un `<details>`
+   * cerrado y estaba montado en Aulas —área supuestamente cubierta— escondiendo
+   * la semilla y los pesos del objetivo. El guard daba verde.
+   *
+   * Ahora se resuelve la transitividad: se localizan los componentes locales que
+   * renderizan un `<details>` y se exige que cada montaje suyo en área cubierta
+   * declare `defaultOpen`.
+   */
+  it("un componente que pliega por dentro no se cuela por montaje", () => {
+    const plegadores = archivos(join(RAIZ, "universidad"), ".tsx")
+      .filter((f) => !f.includes("__tests__"))
+      .filter((f) => /<details[\s>]/.test(sinComentarios(readFileSync(f, "utf8"))))
+      .map((f) => f.split("/").pop()!.replace(/\.tsx$/, ""))
+      // El del mensaje del motor no exporta un componente reutilizable.
+      .filter((n) => n !== "ClassroomRiskList");
+
+    const cerrados: string[] = [];
+    for (const area of Object.keys(CUBIERTO)) {
+      for (const f of archivos(join(RAIZ, "universidad", area), ".tsx")) {
+        if (f.includes("__tests__")) continue;
+        const src = sinComentarios(readFileSync(f, "utf8"));
+        for (const comp of plegadores) {
+          // Cada apertura del componente, con sus props hasta el `>` de cierre.
+          for (const m of src.matchAll(new RegExp(`<${comp}\\b[^>]*>`, "g"))) {
+            if (!/defaultOpen/.test(m[0])) cerrados.push(`${f.slice(RAIZ.length + 1)} → ${comp}`);
+          }
+        }
+      }
+    }
+    expect(cerrados).toEqual([]);
+  });
+
   it("la excepción de aulas sigue existiendo: el permiso no es letra muerta", () => {
     // Si `ClassroomRiskList` deja de tener su `<details>`, este permiso sobra y
     // hay que retirarlo. Un allowlist que ya no protege nada es la puerta por
