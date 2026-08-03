@@ -137,8 +137,11 @@ function CriterioFacultadCard({
           </span>
           <strong>{variable.label}</strong>
         </span>
+        {/* F114 · Decía «Sin restricción». Gonzalo: «no sé a qué te refieres con
+            sin restricción». Nombraba la ausencia de algo en vez de lo que pasa
+            con el marco — y lo que pasa es que entran todas las categorías. */}
         <span className="cmv2-chfp-crit-state" data-decision={fila.decision}>
-          {propia ? "Decisión propia" : "Sin restricción"}
+          {propia ? "Criterio propio" : "Entran todas"}
         </span>
       </button>
       {abierto ? (

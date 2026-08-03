@@ -1,7 +1,7 @@
 import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import { fmtInt } from "../../sharedCore";
 import type { AporteCategoria } from "./controles";
-import { DistribucionCategoria } from "./DistribucionCategoria";
+import { DistribucionCategoria, dominioRedondeado } from "./DistribucionCategoria";
 import "./categoriaEvidencia.css";
 
 /**
@@ -56,7 +56,9 @@ export function dominioCategorias(
   if (!valores.length) return null;
   const min = Math.min(...valores);
   const max = Math.max(...valores);
-  return max > min ? { min, max } : { min, max: min + 1 };
+  // F114 · Se redondea aquí, una sola vez: así todas las categorías del criterio
+  // comparten las MISMAS marcas de eje y las tarjetas alinean por construcción.
+  return dominioRedondeado(max > min ? { min, max } : { min, max: min + 1 });
 }
 
 /**
@@ -97,10 +99,13 @@ export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
   return (
     <div className="cmv2-cat-escala-cabecera">
       <p className="cmv2-cat-escala-nota">
-        Escala común del criterio: <strong>{fmt(dominio.min)}</strong> a{" "}
-        <strong>{fmt(dominio.max)}</strong> estudiantes elegibles por curso-horario.
-        Las tres capas de cada categoría se dibujan sobre ella, así que se pueden
-        comparar entre sí.
+        {/* F114 · Antes esta nota explicaba en dos frases lo que el eje
+            rotulado ya enseña. Gonzalo: «siento todavía que hay como mucho
+            metatexto». Queda lo que el eje no puede decir por sí solo: qué se
+            está midiendo. */}
+        Estudiantes elegibles por curso-horario · escala común a las categorías
+        de este criterio, de <strong>{fmt(dominio.min)}</strong> a{" "}
+        <strong>{fmt(dominio.max)}</strong>.
       </p>
       {/* Qué significa cada marca. Va una vez por criterio, no por categoría.
           F111 · Antes decía «de P10 a P90» para los bigotes; con el boxplot
@@ -167,29 +172,29 @@ export function CategoriaEvidencia({
           pero con «alumnos elegibles» rotulado y el conteo de CH al lado, la
           suma de matrículas ocupaba una casilla sin decidir nada. */}
       <div className="cmv2-cat-cifras">
-        <span><strong>{aporte.chContraste == null ? "—" : fmtInt(aporte.chContraste)}</strong> CH totales</span>
-        <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong> CH elegibles</span>
+        <span><strong>{aporte.chContraste == null ? "—" : fmtInt(aporte.chContraste)}</strong>CH totales</span>
+        <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong>CH elegibles</span>
         {/* `n_estudiantes_unicos`: una persona cuenta una vez aunque esté en
-            varios cursos-horario. Rotularlo «alumnos» a secas escondía de qué
-            grano es, que es la confusión que este módulo existe para evitar. */}
+            varios cursos-horario. */}
         <span title="Estudiantes únicos elegibles: una persona cuenta una vez aunque esté en varios cursos-horario">
-          <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>{" "}
+          <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>
           {plural(aporte.elegibles, "alumno elegible", "alumnos elegibles")}
         </span>
-        {/* F112 · La tasa es **un solo parámetro del marco**, no una medición de
-            esta categoría: el motor publica un número y se aplica igual a todas.
-            Gonzalo lo señaló —«el porcentaje de asistencia previa no debe hacer
-            referencia al total de alumnos»— y tiene razón: rotulada a secas se
-            lee como si fuera propia de la categoría.
-
-            Se dice de qué a qué convierte, con las dos cifras a la vista, y el
-            criterio declara una vez que el supuesto es común. */}
-        {aporte.tasaAsistencia != null && presentes != null ? (
-          <span className="cmv2-cat-presentes" title="Supuesto de asistencia del marco, aplicado a los alumnos elegibles de esta categoría">
-            ~<strong>{fmtInt(presentes)}</strong> presentes de {fmtInt(aporte.elegibles)}
-            <em>{Math.round(aporte.tasaAsistencia * 100)}% de asistencia supuesta</em>
-          </span>
-        ) : null}
+        {/* La cuarta celda se reserva aunque no haya tasa: un hueco que alinea
+            vale más que una rejilla que se recoloca de tarjeta en tarjeta. */}
+        <span title="Supuesto de asistencia del marco, aplicado a los alumnos elegibles de esta categoría">
+          {presentes != null ? (
+            <>
+              <strong>~{fmtInt(presentes)}</strong>
+              presentes<em>{Math.round((aporte.tasaAsistencia ?? 0) * 100)}% de asistencia</em>
+            </>
+          ) : (
+            <>
+              <strong>—</strong>
+              presentes
+            </>
+          )}
+        </span>
       </div>
       {/* Contraste: la misma categoría sobre TODOS los cursos-horario. Sin él no
           se sabe si el subconjunto elegible se parece al total o si los

@@ -138,6 +138,19 @@ function Boxplot({ d, dom }: { d: Dist; dom: DominioEscala }) {
       ) : null}
       {tiene(inf) ? <i className="cmv2-dist-tope" style={{ left: `${pos(inf, dom)}%` }} /> : null}
       {tiene(sup) ? <i className="cmv2-dist-tope" style={{ left: `${pos(sup, dom)}%` }} /> : null}
+      {/* F114 · Los atípicos, en el gráfico y no en prosa. «19 atípicos fuera de
+          los bigotes» al pie es metatexto: obliga a traducir una frase a una
+          posición. Una marca junto al bigote que los deja fuera se lee sin
+          traducir. El motor publica de qué lado están (`n_atipicos_inf/sup`)
+          porque sin eso sólo cabía la frase. */}
+      {tiene(inf) && tiene(d.n_atipicos_inf) && d.n_atipicos_inf > 0 ? (
+        <i className="cmv2-dist-atipico" data-lado="inf" style={{ left: `${pos(inf, dom)}%` }}
+           aria-hidden="true" data-n={d.n_atipicos_inf} />
+      ) : null}
+      {tiene(sup) && tiene(d.n_atipicos_sup) && d.n_atipicos_sup > 0 ? (
+        <i className="cmv2-dist-atipico" data-lado="sup" style={{ left: `${pos(sup, dom)}%` }}
+           aria-hidden="true" data-n={d.n_atipicos_sup} />
+      ) : null}
       <i className="cmv2-dist-caja" style={{ left: `${izq}%`, width: `${ancho}%` }} />
       {tiene(d.p50) ? <i className="cmv2-dist-mediana" style={{ left: `${pos(d.p50, dom)}%` }} /> : null}
       {tiene(d.media) ? <i className="cmv2-dist-media" style={{ left: `${pos(d.media, dom)}%` }} /> : null}
@@ -237,17 +250,47 @@ function resumenAccesible(d: Dist, vista: string): string {
  * 6,4 · 21,7 · 37,0 se lee peor que 10 · 20 · 30 aunque describa lo mismo.
  * Elegirlos es presentación, no estadística — el dominio no se toca.
  */
-function cortesLegibles(dom: DominioEscala, objetivo = 5): number[] {
-  const span = dom.max - dom.min;
-  if (!(span > 0)) return [];
+function pasoLegible(span: number, objetivo: number): number {
   const crudo = span / objetivo;
   const magnitud = Math.pow(10, Math.floor(Math.log10(crudo)));
   const norm = crudo / magnitud;
-  const paso = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * magnitud;
+  return (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * magnitud;
+}
+
+/**
+ * Redondea el dominio a marcas completas.
+ *
+ * F114 · Gonzalo: «los ejes x no tienen tics desde el inicio; deberían tener
+ * tics de diez en diez hasta el límite, para que se entienda bien dónde están
+ * estos cuartiles, esta media, esta mediana».
+ *
+ * Dos consecuencias, y la segunda importa tanto como la primera:
+ *
+ *  1. El eje empieza en **0** —la unidad es un conteo de estudiantes, y cero
+ *     significa algo— y termina en una marca completa, no en el máximo crudo.
+ *  2. Todas las categorías de un criterio quedan con **exactamente las mismas
+ *     marcas**, así que las tarjetas alinean entre sí por construcción y no por
+ *     casualidad de sus datos.
+ */
+export function dominioRedondeado(dom: DominioEscala | null, objetivo = 6): DominioEscala | null {
+  if (!dom) return null;
+  const alto = Math.max(dom.max, 0);
+  const paso = pasoLegible(alto > 0 ? alto : 1, objetivo);
+  const max = Math.ceil((alto + 1e-9) / paso) * paso;
+  return { min: 0, max: max > 0 ? max : paso };
+}
+
+function cortesLegibles(dom: DominioEscala, objetivo = 6): number[] {
+  const span = dom.max - dom.min;
+  if (!(span > 0)) return [];
+  const paso = pasoLegible(span, objetivo);
   const cortes: number[] = [];
   for (let v = Math.ceil(dom.min / paso) * paso; v <= dom.max + 1e-9; v += paso) {
     cortes.push(Number(v.toFixed(6)));
   }
+  // Con el dominio redondeado el primer corte cae en el origen; si no, se añade
+  // para que el eje declare dónde empieza y no sólo dónde va.
+  if (!cortes.length || cortes[0] > dom.min + 1e-9) cortes.unshift(Number(dom.min.toFixed(6)));
   return cortes;
 }
 
@@ -312,17 +355,14 @@ export function DistribucionCategoria({
         <Cuantiles d={d} dom={dominio} />
       </figure>
 
-      <p className="cmv2-dist-pie">
-        <span>{unidad}</span>
-        {tiene(d.n_atipicos) && d.n_atipicos > 0 ? (
-          <span className="cmv2-dist-atipicos">
-            {fmtInt(d.n_atipicos)} {d.n_atipicos === 1 ? "atípico" : "atípicos"} fuera de los bigotes
-          </span>
-        ) : null}
-        {convencionCaida ? (
-          <span className="cmv2-dist-convencion">bigotes en P10–P90: reconstruye el marco para los de Tukey</span>
-        ) : null}
-      </p>
+      {/* F114 · El pie sólo aparece cuando tiene algo que advertir. La unidad ya
+          la declara el criterio una vez, arriba: repetirla bajo cada tarjeta era
+          metatexto multiplicado por el número de categorías. */}
+      {convencionCaida ? (
+        <p className="cmv2-dist-pie">
+          <span className="cmv2-dist-convencion">bigotes en P10–P90 · reconstruye el marco para los de Tukey</span>
+        </p>
+      ) : null}
     </div>
   );
 }

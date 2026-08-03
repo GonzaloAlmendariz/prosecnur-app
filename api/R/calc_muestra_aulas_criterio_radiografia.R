@@ -203,6 +203,9 @@
 #   min, max                          — límites reales del segmento
 #   bigote_inf, bigote_sup            — extremos de Tukey dentro de 1,5 × RIC
 #   n_atipicos                        — cuántos quedan fuera de esos bigotes
+#   n_atipicos_inf, n_atipicos_sup    — de qué lado (F114): sin esto la tarjeta
+#                                       sólo puede decirlo en prosa, y una cifra
+#                                       en prosa junto a un gráfico es metatexto
 #   hist_breaks (k+1), hist_counts (k) — densidad empírica sobre cortes comunes
 .cm_criterio_radiografia_distribucion <- function(v, breaks = NULL) {
   resumen <- .cm_criterio_radiografia_resumen(v, cuantiles = TRUE)
@@ -214,6 +217,7 @@
     return(c(out, list(
       min = NA_real_, max = NA_real_,
       bigote_inf = NA_real_, bigote_sup = NA_real_, n_atipicos = NA_integer_,
+      n_atipicos_inf = NA_integer_, n_atipicos_sup = NA_integer_,
       hist_breaks = numeric(0), hist_counts = integer(0)
     )))
   }
@@ -246,6 +250,8 @@
     bigote_inf = as.numeric(bigote_inf),
     bigote_sup = as.numeric(bigote_sup),
     n_atipicos = as.integer(sum(vals < bigote_inf | vals > bigote_sup)),
+    n_atipicos_inf = as.integer(sum(vals < bigote_inf)),
+    n_atipicos_sup = as.integer(sum(vals > bigote_sup)),
     hist_breaks = hist_breaks,
     hist_counts = hist_counts
   ))

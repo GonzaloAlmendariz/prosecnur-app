@@ -166,21 +166,35 @@ describe("DistribucionCategoria · lo que no se ve", () => {
     expect(label).toContain("mediana");
     expect(label).toContain("mitad central");
     expect(label).toContain("bigotes");
-    expect(label).toContain("7 atípicos");
+    expect(label).toContain("7 atípicos");  // el equivalente en texto sí los enumera
   });
 
-  it("declara cuántos quedan fuera de los bigotes", () => {
-    expect(render()).toContain("7 atípicos fuera de los bigotes");
+  it("los atípicos son marcas en el gráfico, no una frase al pie", () => {
+    // F114 · «19 atípicos fuera de los bigotes» obliga a traducir una oración a
+    // una posición. La marca se lee donde ocurre.
+    const html = render({ n_atipicos: 7, n_atipicos_inf: 2, n_atipicos_sup: 5 });
+    expect(html).not.toContain("fuera de los bigotes");
+    expect(html).toContain('data-lado="inf"');
+    expect(html).toContain('data-n="2"');
+    expect(html).toContain('data-lado="sup"');
+    expect(html).toContain('data-n="5"');
   });
 
-  it("un solo atípico concuerda en singular", () => {
-    const html = render({ n_atipicos: 1 });
-    expect(html).toContain("1 atípico fuera");
-    expect(html).not.toContain("atípicos fuera");
+  it("sólo marca el lado que tiene atípicos", () => {
+    const html = render({ n_atipicos: 5, n_atipicos_inf: 0, n_atipicos_sup: 5 });
+    expect(html).not.toContain('data-lado="inf"');
+    expect(html).toContain('data-lado="sup"');
   });
 
-  it("sin atípicos no menciona el asunto", () => {
-    expect(render({ n_atipicos: 0 })).not.toContain("fuera de los bigotes");
+  it("sin atípicos no dibuja ninguna marca", () => {
+    const html = render({ n_atipicos: 0, n_atipicos_inf: 0, n_atipicos_sup: 0 });
+    expect(html).not.toContain("cmv2-dist-atipico");
+  });
+
+  it("sin el desglose por lado no inventa marcas", () => {
+    // Un marco anterior a F114 publica el total pero no los lados.
+    const html = render({ n_atipicos: 7, n_atipicos_inf: null, n_atipicos_sup: null });
+    expect(html).not.toContain("cmv2-dist-atipico");
   });
 
   it("sin distribución ni escala declara la ausencia", () => {
