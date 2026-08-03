@@ -1479,33 +1479,6 @@
 .cmv2-crit-paso-copy span { font-size: 11px; line-height: 1.45; color: var(--pulso-text-muted); }
 .cmv2-crit-paso-copy span strong { font-size: 11px; }
 
-.cmv2-crit-paso-pct {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--pulso-text-muted);
-}
-.cmv2-crit-paso-pct input {
-  height: 28px;
-  width: 62px;
-  padding: 0 8px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-chip);
-  background: var(--cmv2-control-bg, var(--pulso-surface));
-  color: var(--pulso-text);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
-}
-.cmv2-crit-paso-pct input:disabled { opacity: 0.5; }
-.cmv2-crit-paso-pct input:hover:not(:disabled) { border-color: var(--cmv2-accent-border); }
-.cmv2-crit-paso-pct input:focus-visible {
-  outline: 2px solid transparent;
-  border-color: var(--cmv2-accent-border);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 32%, transparent);
-}
-
 /* Métrica referencial legacy: colapsada y visualmente secundaria. */
 .cmv2-crit-legacy {
   display: grid;
@@ -1548,7 +1521,6 @@
   }
   .cmv2-crit-sug { flex-wrap: wrap; }
   .cmv2-crit-paso { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .cmv2-crit-paso > .cmv2-crit-paso-pct { grid-column: 2; justify-self: start; }
 }
 
 /* --- Aviso de calidad de condicion_curso (reunión 2026-07-15) ---------------
@@ -1986,3 +1958,7 @@
   align-self: center;
   min-width: 0;
 }
+
+/* G24 · Retiradas las reglas de `cmv2-crit-paso-pct`: estilaban el campo
+   numerico suelto de la prevalencia, sustituido por el nivelador. Las cazo el
+   guard de huerfanas en la misma corrida. */

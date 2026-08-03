@@ -18,6 +18,7 @@
  */
 import { useState } from "react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
+import { ControlUmbral } from "./ControlUmbral";
 import { Switch } from "./Switch";
 
 /** Proporción 0–1 → porcentaje entero para el input. */
@@ -27,6 +28,19 @@ function pctDe(prop: number | undefined, fallback: number): number {
 }
 
 /** Input de porcentaje (50–100) que persiste proporción 0–1. */
+/**
+ * G24 · El nivelador, también en las proporciones.
+ *
+ * Era un campo numérico suelto con flechas de 5 en 5. Fijar un 80 % se escribe
+ * bien, pero **buscar** el umbral no: hay que teclear, mirar qué recorta,
+ * teclear otra vez. El deslizador recorre la escala; el campo la clava. Es el
+ * mismo par que en umbral y por la misma razón — quitar cualquiera de los dos
+ * deja media tarea sin herramienta.
+ *
+ * El rango arranca en 50: por debajo, exigir «al menos la mitad» deja de ser una
+ * regla de composición y pasa a ser otra cosa. Ese tope inferior ya estaba en el
+ * campo anterior y se conserva.
+ */
 function InputPct({
   value,
   fallback,
@@ -41,23 +55,16 @@ function InputPct({
   onChange: (prop: number) => void;
 }) {
   return (
-    <label className="cmv2-crit-paso-pct">
-      <input
-        type="number"
-        min={50}
-        max={100}
-        step={5}
-        disabled={disabled}
-        value={pctDe(value, fallback)}
-        aria-label={ariaLabel}
-        onChange={(e) => {
-          const n = Number(e.target.value);
-          if (!Number.isFinite(n)) return;
-          onChange(Math.min(100, Math.max(1, Math.round(n))) / 100);
-        }}
-      />
-      <span aria-hidden="true">%</span>
-    </label>
+    <ControlUmbral
+      valor={pctDe(value, fallback)}
+      min={50}
+      max={100}
+      paso={5}
+      sufijo="%"
+      etiqueta={ariaLabel}
+      deshabilitado={disabled}
+      onCambio={(v) => onChange(Math.min(100, Math.max(1, Math.round(v))) / 100)}
+    />
   );
 }
 
