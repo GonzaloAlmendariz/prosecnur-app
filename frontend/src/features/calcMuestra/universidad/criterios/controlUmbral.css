@@ -61,6 +61,16 @@
   background: transparent;
   padding: 0;
   margin-top: 4px;
+  /*
+   * G35 · Alinearse con el eje empieza por medir lo mismo que él.
+   *
+   * Sin esto la raíz se dimensionaba por su contenido: dentro de un contenedor
+   * flex quedaba 395 px más corta que el gráfico, y los sangrados de arriba
+   * compensaban un desfase sobre un ancho que ya no era el del eje. El prop
+   * promete «alineado»; el ancho es la primera mitad de esa promesa.
+   */
+  width: 100%;
+  min-width: 0;
 }
 
 /* Deslizador: busca. Se le da todo el ancho sobrante porque recorrerlo ES la
@@ -151,6 +161,20 @@
   position: relative;
   height: 22px;
   margin-top: 2px;
+}
+/*
+ * G35 · Las dos manijas también arrancan donde arranca el eje.
+ *
+ * Mismo desfase que el deslizador de un corte (G34): el gráfico vive dentro de
+ * una tarjeta con relleno y borde, el control fuera. Con un rango la desviación
+ * pesa el doble — son dos manijas señalando dos puntos desplazados, y la banda
+ * entre ellas dibuja un tramo que no coincide con el que el eje muestra.
+ */
+.cmv2-umbral-control[data-alineado] .cmv2-rango-pistas {
+  margin-inline: calc(var(--cmv2-seg-sangrado, 7px) + 11px);
+}
+.cmv2-umbral-control[data-alineado] .cmv2-rango-campos {
+  margin-inline: calc(var(--cmv2-seg-sangrado, 7px) + 11px);
 }
 .cmv2-rango-pistas::before {
   content: "";

@@ -16,6 +16,7 @@ import {
   removeExcepcion,
   upsertExcepcion,
 } from "../../dominio";
+import { ControlRango } from "./ControlRango";
 import { Switch } from "./Switch";
 
 export type FacultadRef = { key: string; label: string };
@@ -74,31 +75,25 @@ export function ControlRange({
                 onToggle={() => onRango(fac.key, activo ? [] : [[desde, hasta]])}
               />
             </span>
+            {/* G35 · El SEGUNDO control de rango, que se me había pasado.
+                G17 sustituyó los `<select>` por las dos manijas en la tarjeta de
+                facultad, pero este control genérico —el que la superficie usa de
+                verdad— seguía con ellos. Medido en la app: dos listas de **852
+                opciones** cada una, volcando los códigos de curso en la página.
+
+                Buscar «el control de rango» y reparar el primero que aparece es
+                el mismo método que Gonzalo corrigió: se enumera la clase entera
+                antes de darla por hecha. */}
             <span className="cmv2-crit-range-inputs" data-active={activo}>
               {activo ? (
-                <>
-                  <select
-                    className="cmv2-crit-range-select"
-                    value={desde}
-                    aria-label={`Nivel mínimo en ${fac.label}`}
-                    onChange={(e) => onRango(fac.key, [[Number(e.target.value), hasta]])}
-                  >
-                    {valores.map((v) => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-                  <span className="cmv2-crit-range-dash">–</span>
-                  <select
-                    className="cmv2-crit-range-select"
-                    value={hasta}
-                    aria-label={`Nivel máximo en ${fac.label}`}
-                    onChange={(e) => onRango(fac.key, [[desde, Number(e.target.value)]])}
-                  >
-                    {valores.map((v) => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-                </>
+                <ControlRango
+                  desde={desde}
+                  hasta={hasta}
+                  min={min}
+                  max={max}
+                  etiqueta={`Niveles admitidos en ${fac.label}`}
+                  onCambio={({ desde: d, hasta: h }) => onRango(fac.key, [[d, h]])}
+                />
               ) : (
                 <span className="cmv2-crit-range-all">Todos los niveles</span>
               )}
