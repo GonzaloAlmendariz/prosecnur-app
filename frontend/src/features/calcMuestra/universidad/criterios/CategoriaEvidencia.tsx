@@ -133,11 +133,23 @@ export function CategoriaEvidencia({
   aporte: AporteCategoria;
   dominio: DominioCategorias | null;
 }) {
-  // Una categoría sin cursos-horario en esta facultad no tiene nada que
-  // distribuir: cinco cuantiles en guiones ocupan espacio y no informan. Se dice
-  // lo único cierto —que aquí no hay cursos— y se calla el resto. Quitar cinco
-  // guiones no quita información; dejarlos sí quita atención.
+  // Una categoría sin cursos-horario no tiene nada que distribuir: cinco
+  // cuantiles en guiones ocupan espacio y no informan.
+  //
+  // F105 · Pero `ch` es el segmento **∩ lo que sigue incluido** (verificado en
+  // `calc_muestra_aulas_criterio_radiografia_aulas.R`: `actual_idx <-
+  // segment_idx[included_actual[segment_idx]]`), así que llega a 0 por dos
+  // caminos que no significan lo mismo:
+  //
+  //   - la facultad no tiene cursos de esa categoría, o
+  //   - los tiene y **un criterio los dejó fuera**.
+  //
+  // Tratar ambos como «sin cursos-horario en esta facultad» era mentir en el
+  // segundo caso, y encima ocultaba el contraste: una categoría con 200 CH en
+  // el marco, excluida, declaraba no tener ninguno. `chContraste` —los CH
+  // totales, incluidos o no— es lo que separa un caso del otro.
   const sinCursos = aporte.ch === 0;
+  const excluida = sinCursos && (aporte.chContraste ?? 0) > 0;
   const d = sinCursos ? null : aporte.distribucion ?? null;
   const presentes =
     typeof aporte.elegibles === "number" && typeof aporte.tasaAsistencia === "number"
@@ -178,15 +190,31 @@ export function CategoriaEvidencia({
       {/* Contraste: la misma categoría sobre TODOS los cursos-horario. Sin él no
           se sabe si el subconjunto elegible se parece al total o si los
           criterios lo han desplazado —que es justo lo que un criterio hace—. */}
-      {!sinCursos && aporte.chContraste != null && aporte.mediaContraste != null ? (
+      {(!sinCursos || excluida) && aporte.chContraste != null && aporte.mediaContraste != null ? (
         <p className="cmv2-cat-contraste">
           En todos los cursos-horario: <strong>{fmtInt(aporte.chContraste)}</strong> CH,
           media <strong>{fmt(aporte.mediaContraste)}</strong>
         </p>
       ) : null}
-      {sinCursos ? (
+      {/* F105 · El efecto de la categoría en el embudo, que es el sexto
+          contenido que ADR 0057 exige de esta tarjeta y era el único que
+          faltaba. No hay cálculo nuevo: es `ch` y `elegibles` dichos como lo
+          que son —lo que esta decisión pone o quita—, sin la metáfora de la
+          cascada. Y como `ch` se mide contra lo que sigue incluido, la frase se
+          recalcula sola con cada criterio anterior (regla 5). */}
+      {excluida ? (
+        <p className="cmv2-cat-efecto" data-estado="fuera">
+          Fuera del marco: sus <strong>{fmtInt(aporte.chContraste ?? 0)}</strong> cursos-horario
+          no entran con los criterios actuales.
+        </p>
+      ) : sinCursos ? (
         <p className="cmv2-cat-sin-cursos">sin cursos-horario en esta facultad</p>
-      ) : null}
+      ) : (
+        <p className="cmv2-cat-efecto" data-estado="dentro">
+          Quitarla deja fuera <strong>{fmtInt(aporte.ch ?? 0)}</strong> cursos-horario
+          {aporte.elegibles != null ? <> y <strong>{fmtInt(aporte.elegibles)}</strong> estudiantes</> : null}.
+        </p>
+      )}
       {d && dominio ? (
         <>
           <Caja d={d} dominio={dominio} />

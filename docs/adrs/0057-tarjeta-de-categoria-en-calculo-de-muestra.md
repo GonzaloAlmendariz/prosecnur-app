@@ -533,6 +533,37 @@ ciclo: escribir, fallar, releer, mover.
 `return`**, como comentario de línea. Dentro del JSX sólo cuando ya hay un
 elemento padre que lo contenga.
 
+### 33 · Un cero puede llegar por dos caminos que no significan lo mismo
+
+`ch` es el segmento **∩ lo que sigue incluido**
+(`actual_idx <- segment_idx[included_actual[segment_idx]]`). Llega a 0 de dos
+maneras: la facultad no tiene cursos de esa categoría, o **un criterio los dejó
+fuera**. La tarjeta trataba ambos como «sin cursos-horario en esta facultad» y
+además ocultaba el contraste en ese estado, así que una categoría con 200 CH en
+el marco, excluida, **declaraba no tener ninguno** — y escondía justamente la
+cifra que dice cuánto se está dejando fuera.
+
+El defecto no se ve en la pantalla: los dos estados renderizan la misma frase, y
+la frase es cierta en uno de los dos. Sólo aparece leyendo qué mide el número.
+
+**Mecanismo**: cuando un valor puede ser 0 por más de una causa, la superficie
+necesita el **segundo dato que las separa** — aquí `chContraste`, los CH totales
+estén incluidos o no. Y cada camino se prueba por separado: el fixture heredaba
+`chContraste: 200`, así que dos pruebas que creían cubrir «no existe» llevaban
+tiempo cubriendo «excluida» sin que nadie lo notara.
+
+### 34 · El contenido que faltaba estaba en la tabla del propio ADR
+
+De los seis contenidos que este ADR exige de la tarjeta, cinco estaban. Faltaba
+el **efecto de la categoría en el embudo**, que es además lo que Gonzalo pidió
+integrar con otras palabras («la cascada viva, mejor integrada y menos lenguaje
+AI slop»). No hacía falta dato nuevo: `ch` y `elegibles` ya viajaban, dichos
+como cifras y no como consecuencia.
+
+**Mecanismo**: la tabla de contenidos obligatorios se contrasta contra el
+componente **campo por campo**, no de memoria. Un ADR que nadie confronta con su
+implementación documenta una intención, no un contrato.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
