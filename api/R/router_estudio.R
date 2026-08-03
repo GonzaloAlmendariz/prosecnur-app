@@ -1013,6 +1013,7 @@
   list(
     nombre   = if (is.null(nombre_raw) || !nzchar(nombre_raw)) NA_character_ else nombre_raw,
     processing_mode = mode,
+    topology_declared = if (is.null(s)) NA_character_ else as.character(estudio_topology(sid) %||% NA_character_),
     active_base = if (is.null(s)) NA_character_ else as.character(estudio_active_base(sid) %||% NA_character_),
     independent_siblings = if (is.null(s) || is.null(s$estudio)) NA else (s$estudio$independent_siblings %||% NA),
     n_bases  = length(bases),
@@ -1660,8 +1661,12 @@ mount_estudio <- function(pr) {
         jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
-      nombre <- parsed$nombre
-      estudio_set_nombre(sid, nombre)
+      # `nombre` y `topology` se parchean por separado: un PATCH que solo trae
+      # la topología no debe borrar el nombre del estudio, y viceversa. Sin el
+      # `%in% names(parsed)` un body parcial llegaba como NULL y limpiaba el
+      # otro campo.
+      if ("nombre" %in% names(parsed)) estudio_set_nombre(sid, parsed$nombre)
+      if ("topology" %in% names(parsed)) estudio_set_topology(sid, parsed$topology)
       .estudio_payload(sid)
     })) |>
     plumber::pr_post("/api/estudio/base", wrap_endpoint(function(req, res, ...) {

@@ -156,6 +156,11 @@ export async function apiSystemBootstrap() {
   );
 }
 
+/** Vocabulario de `s$estudio$topology_declared` (api/R/session_store.R). Es la
+    decisión que el usuario tomó en Plan, no cómo el motor trata las bases: eso
+    último es `processing_mode` y arranca en "multibase" para todo estudio. */
+export type CargaTopologyDeclared = "single" | "separate" | "integrated" | "independent";
+
 export type DiagnosticInfo = {
   ok: boolean;
   quarto: {
@@ -214,11 +219,15 @@ export type SessionState = {
   graficos_word_ok: boolean;
   // --- Estudio (multi-base, v0.2+) ---
   estudio_nombre: string | null;
-  /** TRUE si la sesión tiene un estudio inicializado (aunque esté
-      vacío). Distingue "usuario activó multi-base upfront" de
-      "todavía no decide". */
+  /** TRUE si la sesión tiene un estudio inicializado. NO es una señal de
+      intención: la carga simple también inicializa el estudio. Para saber qué
+      declaró el usuario, leer `estudio_topology_declared`. */
   has_estudio: boolean;
   estudio_processing_mode?: "multibase" | "independent_siblings" | string | null;
+  /** Organización que el usuario declaró en Plan; null mientras no decida.
+      Desempata "carga simple" de "multibase con una sola base todavía", que en
+      el resto del estado son indistinguibles. */
+  estudio_topology_declared?: CargaTopologyDeclared | null;
   /** Plan de ingreso declarado en Monitoreo; no implica haber escaneado fuentes. */
   processing_intake_mode?: "multibase" | "independent_siblings" | string | null;
   processing_intake_entries_count?: number;

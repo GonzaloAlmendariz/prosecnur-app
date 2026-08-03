@@ -278,6 +278,7 @@ errores_registrados <- function() {
     "E_ENUMERATOR_TEMPLATE",                                 "router_monitoreo.R",                "400",
     "E_ESTUDIO_MODE_CONFLICT",                               "router_carga.R",                    "409",
     "E_ESTUDIO_PROCESSING_MODE",                             "session_store.R",                   "400",
+    "E_ESTUDIO_TOPOLOGIA",                                   "session_store.R",                   "400",
     "E_EXPORT_COPY_FAILED",                                  "router_analitica.R",                "500",
     "E_FILE_EXISTS",                                         "router_proyecto.R",                 "409",
     "E_FILE_NOT_FOUND",                                      "router_proyecto.R",                 "404",
