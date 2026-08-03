@@ -330,3 +330,56 @@ describe("DistribucionCategoria · el corte de un umbral (F117)", () => {
     expect(caja).toBeLessThan(20);
   });
 });
+
+describe("DistribucionCategoria · coherencia y etiquetas (F119)", () => {
+  it("no dibuja una densidad que no cubre la caja", () => {
+    // Medido en la hoja de revisión: un histograma que acababa en 36 sobre una
+    // caja que llegaba a 81 se veía como una rampa cortada a la mitad. Con datos
+    // del motor ambos salen del mismo vector; un desajuste significa cifras de
+    // dos sitios distintos. Media densidad sugiere que la masa se acaba donde
+    // termina el trazo.
+    const html = render({
+      p25: 31, p75: 51, bigote_inf: 11, bigote_sup: 81,
+      hist_breaks: [4, 12, 20, 28, 36], hist_counts: [1, 5, 14, 31],
+    });
+    expect(html).not.toContain("cmv2-dist-densidad");
+    // El resto de las capas sigue: lo que falla es la densidad, no la tarjeta.
+    expect(html).toContain("cmv2-dist-caja");
+  });
+
+  it("con el histograma cubriendo la caja sí la dibuja", () => {
+    const html = render({
+      p25: 31, p75: 51, bigote_inf: 11, bigote_sup: 81,
+      hist_breaks: [4, 24, 44, 64, 84], hist_counts: [1, 5, 14, 31],
+    });
+    expect(html).toContain("cmv2-dist-densidad");
+  });
+
+  it("las etiquetas que chocan bajan de fila, no se desplazan", () => {
+    // Mediana 40 y media 41,6: el empuje en cascada mandaba «MEDIA» lejos de su
+    // guía y arrastraba «Q3» detrás. Una etiqueta que no está bajo su marca
+    // deja de nombrarla.
+    const html = render({ p25: 31, p50: 40, media: 41.6, p75: 51 });
+    expect(html).toContain('data-fila="1"');
+    // Lo que importa no es en qué fila cae cada una, sino que TODAS conserven
+    // su x: una etiqueta desplazada deja de nombrar la marca que tiene encima.
+    for (const [marca, x] of [["p25", "31%"], ["p50", "40%"], ["media", "41.6%"], ["p75", "51%"]]) {
+      expect(html, marca).toContain(`data-marca="${marca}" data-fila=`);
+      expect(html, marca).toMatch(new RegExp(`data-marca="${marca}" data-fila="[01]" style="left:${x.replace(".", "\\.")}"`));
+    }
+    // Y que dos etiquetas contiguas no acaben en la misma fila.
+    const filas = [...html.matchAll(/data-marca="(\w+)" data-fila="([01])"/g)].map((m) => m[2]);
+    for (let i = 1; i < filas.length; i++) {
+      if (filas[i] === filas[i - 1]) {
+        // Permitido sólo si están lo bastante separadas para no chocar.
+        const xs = [...html.matchAll(/data-fila="[01]" style="left:([\d.]+)%"/g)].map((m) => Number(m[1]));
+        expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(13);
+      }
+    }
+  });
+
+  it("sin choques todas se quedan en la primera fila", () => {
+    const html = render({ p25: 10, p50: 40, media: 55, p75: 80 });
+    expect(html).not.toContain('data-fila="1"');
+  });
+});

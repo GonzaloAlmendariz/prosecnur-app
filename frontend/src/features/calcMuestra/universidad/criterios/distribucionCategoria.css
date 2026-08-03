@@ -90,7 +90,7 @@
 .cmv2-dist-densidad {
   display: block;
   width: 100%;
-  height: 52px;
+  height: 62px;
   overflow: visible;
 }
 .cmv2-dist-densidad polygon {
@@ -105,8 +105,8 @@
 /* --- Boxplot ------------------------------------------------------------- */
 .cmv2-dist-box {
   position: relative;
-  height: 30px;
-  margin-top: 4px;
+  height: 34px;
+  margin-top: 8px;
   border-top: 1px solid var(--cmv2-border);
 }
 .cmv2-dist-box i {
@@ -214,8 +214,8 @@
  */
 .cmv2-dist-eje {
   position: relative;
-  height: 22px;
-  margin-top: 5px;
+  height: 24px;
+  margin-top: 8px;
 }
 .cmv2-dist-eje-linea {
   position: absolute;
@@ -248,7 +248,7 @@
 
 /* --- Cuantiles ----------------------------------------------------------- */
 /* Alto de la fila de cifras: lo usa `cmv2-dist-guias` para saber dónde parar. */
-:root { --cmv2-dist-alto-cuantiles: 34px; }
+:root { --cmv2-dist-alto-cuantiles: 58px; }
 .cmv2-dist-cuantiles {
   position: relative;
   height: var(--cmv2-dist-alto-cuantiles);
@@ -263,14 +263,28 @@
 }
 /* Cada etiqueta bajo su propia posición. `translateX(-50%)` la centra sobre su
    marca; el reparto anticolisión ya llegó resuelto desde el componente. */
+/* F119 · Dos filas. La etiqueta que chocaría baja en vez de desplazarse, así
+   conserva su x y sigue nombrando la marca que tiene encima. */
 .cmv2-dist-cuantiles dl > div {
   position: absolute;
-  top: 7px;
+  top: 6px;
   transform: translateX(-50%);
   display: grid;
   justify-items: center;
   gap: 0;
   white-space: nowrap;
+}
+.cmv2-dist-cuantiles dl > div[data-fila="1"] { top: 32px; }
+/* Un filete que une la etiqueta de la segunda fila con su marca: sin él,
+   bajarla la desconecta de lo que nombra. */
+.cmv2-dist-cuantiles dl > div[data-fila="1"]::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 1px;
+  height: 8px;
+  background: var(--cmv2-border);
 }
 .cmv2-dist-cuantiles dt {
   font-size: 9.5px;

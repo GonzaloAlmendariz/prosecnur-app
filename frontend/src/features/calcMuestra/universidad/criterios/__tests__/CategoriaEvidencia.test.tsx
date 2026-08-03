@@ -59,7 +59,7 @@ describe("CategoriaEvidencia", () => {
     // las dos cifras a la vista: 3.400 × 0,7 = 2.380.
     expect(html).toContain("2,380");
     expect(html).toContain("presentes");
-    expect(html).toContain("70% de asistencia");
+    expect(html).toContain("70% asistencia");
     expect(html).not.toContain("matrículas");
   });
 
@@ -77,7 +77,7 @@ describe("CategoriaEvidencia", () => {
     // que el ADR recoge en el patrón 3.
     const visible = html.replace(/<[^>]+>/g, "");
     expect(visible).toContain("presentes");
-    expect(visible).not.toContain("de asistencia");
+    expect(visible).not.toContain("% asistencia");
     // Las cuatro celdas están siempre.
     const i = html.indexOf('class="cmv2-cat-cifras"');
     const j = html.indexOf('cmv2-cat-efecto', i);

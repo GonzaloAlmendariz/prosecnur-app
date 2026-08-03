@@ -86,6 +86,22 @@ function Densidad({ d, dom }: { d: Dist; dom: DominioEscala }) {
     if (breaks.length < 2 || counts.length !== breaks.length - 1) return null;
     const maxC = Math.max(...counts);
     if (!(maxC > 0)) return null;
+    /*
+     * F119 · El histograma tiene que cubrir lo que la caja abarca.
+     *
+     * Medido en la hoja de revisión: una densidad que acababa en 36 sobre una
+     * caja que llegaba a 81 se veía como una rampa cortada a la mitad — y el
+     * componente la dibujaba sin protestar. Con datos del motor ambos salen del
+     * mismo vector y siempre coinciden, así que un desajuste significa que
+     * alguien pasó cifras de dos sitios distintos.
+     *
+     * Dibujar media densidad es peor que no dibujarla: sugiere que la masa se
+     * acaba donde termina el trazo.
+     */
+    const lo = breaks[0];
+    const hi = breaks[breaks.length - 1];
+    const cubre = (v: unknown) => !tiene(v) || (v >= lo - 1e-9 && v <= hi + 1e-9);
+    if (!cubre(d.bigote_inf) || !cubre(d.bigote_sup) || !cubre(d.p25) || !cubre(d.p75)) return null;
     // Polilínea por el punto medio de cada intervalo, cerrada contra la base.
     const cuerpo = counts.map((c, i) => {
       const centro = (breaks[i] + breaks[i + 1]) / 2;
@@ -188,12 +204,24 @@ function Cuantiles({ d, dom, formato }: { d: Dist; dom: DominioEscala; formato: 
     }
     crudas.sort((a, b) => a.x - b.x);
 
-    // Empuje mínimo hacia la derecha, en cascada. La marca conserva su x.
-    let previa = -Infinity;
+    /*
+     * F119 · Cuando dos etiquetas chocan, la segunda baja de fila — no se
+     * desplaza.
+     *
+     * Medido en la hoja: con la mediana en 40 y la media en 41,6, el empuje en
+     * cascada mandaba «MEDIA» a 168 px de su propia guía y arrastraba «Q3»
+     * detrás. Una etiqueta que no está bajo su marca deja de nombrarla, que es
+     * justo lo único que tenía que hacer.
+     */
+    const ocupado = [-Infinity, -Infinity];
     return crudas.map((m) => {
-      const etiquetaX = Math.max(m.x, previa + MIN_SEPARACION);
-      previa = etiquetaX;
-      return { ...m, etiquetaX: Math.min(etiquetaX, 100) };
+      // Primera fila con hueco. Si ninguna lo tiene —cuatro marcas apiñadas—,
+      // gana la que lleva más tiempo libre: solaparse un poco es menos malo que
+      // colocar la etiqueta lejos de lo que nombra.
+      let fila = ocupado.findIndex((ultimo) => m.x >= ultimo + MIN_SEPARACION);
+      if (fila < 0) fila = ocupado[0] <= ocupado[1] ? 0 : 1;
+      ocupado[fila] = m.x;
+      return { ...m, fila };
     });
   }, [d, dom]);
 
@@ -202,7 +230,7 @@ function Cuantiles({ d, dom, formato }: { d: Dist; dom: DominioEscala; formato: 
     <div className="cmv2-dist-cuantiles">
       <dl aria-label="Cuartiles, mediana y media de la distribución">
         {marcas.map((m) => (
-          <div key={m.clave} data-marca={m.clave} style={{ left: `${m.etiquetaX}%` }}>
+          <div key={m.clave} data-marca={m.clave} data-fila={m.fila} style={{ left: `${m.x}%` }}>
             <dt>{m.etiqueta}</dt>
             <dd>{formato === "porcentaje" ? `${fmt(m.valor)}%` : fmt(m.valor)}</dd>
           </div>
