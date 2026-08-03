@@ -227,7 +227,7 @@
     },
     "class": {
       "Package": "class",
-      "Version": "7.3-23",
+      "Version": "7.3-24",
       "Priority": "recommended",
       "Depends": "R (>= 3.0.0), stats, utils",
       "Imports": "MASS",
