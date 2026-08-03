@@ -27,7 +27,7 @@ import {
   ControlNumeric,
   ControlOrdinal,
 } from "../criterios/controles";
-import { ControlRange, ExcepcionesFacultad, type FacultadRef } from "../criterios/facultades";
+import { ControlRange, type FacultadRef } from "../criterios/facultades";
 import { TeacherTypeOrden } from "../criterios/TeacherTypeOrden";
 import { CriterioComposicionCard } from "../criterios/CriterioComposicionCard";
 import { CondicionCursoAviso } from "../criterios/CondicionCursoAviso";
@@ -136,13 +136,14 @@ function GlobalCriterioCard({
         {variable.kind === "range" && (
           <ControlRange variable={variable} seleccion={seleccion} facultades={facultades} onRango={onRango} />
         )}
-        {/* F26 · Los criterios de curso-horario eran una implementación paralela
-            de la tarjeta de estudiante y se habían quedado sin el grano por
-            facultad, aunque el contrato lo admite igual que allá. Mismo control
-            y misma estructura persistida (`exceptions[facKey]`). */}
-        {(variable.kind === "flat" || variable.kind === "hierarchical") && (
-          <ExcepcionesFacultad variable={variable} sel={sel} facultades={facultades} onSel={onSel} />
-        )}
+        {/* F84 · Aquí NO va el editor por facultad, y no es un olvido.
+            `variablesPorFacultadIds` incluye **todos** los criterios
+            categóricos de curso-horario (`aulaToggle` = flat + hierarchical), y
+            este bloque los filtra fuera con `soloAjustes`. Una rama para
+            `flat`/`hierarchical` es inalcanzable por construcción: la añadí en
+            F26 y estuvo muerta hasta que la prueba funcional la buscó y no la
+            encontró en pantalla. Lo categórico se decide en el bloque de cada
+            facultad, que es donde el ADR 0057 dice que debe estar. */}
         {(variable.kind === "numeric" || variable.kind === "ordinal") && (
           <p className="cmv2-crit-grano" role="note">
             Este criterio aplica <strong>igual en las {facultades.length} facultades</strong>:

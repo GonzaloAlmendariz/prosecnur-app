@@ -379,6 +379,23 @@ prueba funcional mínima en la app: accionar un control y comprobar que su estad
 cambia, cambiar el foco de una vista y comprobar que rerenderiza, y contrastar
 las cifras de cabecera con las pestañas que las reusan.
 
+### 23 · Buscar un control y no encontrarlo delata código inalcanzable
+
+Al accionar los controles uno por uno, «Ajustar» no aparecía. La causa no era un
+fallo de render: la rama que lo monta es **inalcanzable por construcción** —el
+bloque común filtra fuera exactamente los criterios para los que esa rama
+existía—. Estuvo muerta desde que se escribió, con typecheck y suite en verde.
+
+Efecto dominó: retirarla dejó `ExcepcionesFacultad` sin ningún punto de montaje,
+y su test sigue pasando porque el componente funciona, no porque alguien lo use
+—un **falso verde** exacto.
+
+**Mecanismo**: la prueba funcional busca los controles **por su presencia en
+pantalla**, no sólo comprueba los que encuentra. Un componente sin punto de
+montaje se marca en el propio componente y en su test; **retirarlo es decisión de
+producto**, no de un barrido, porque la casa exige doble confirmación para borrar
+código.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

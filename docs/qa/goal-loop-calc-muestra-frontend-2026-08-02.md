@@ -3275,6 +3275,42 @@ la app.
 Es la diferencia entre «no lo probé» y «no se puede probar aquí», y sólo la
 segunda es aceptable dejarla escrita.
 
+### F84 — La prueba funcional encontró código muerto que yo había escrito
+
+Buscar «Ajustar» en pantalla y no encontrarlo abrió el hilo más incómodo del
+tramo: **una rama que añadí en F26 es inalcanzable por construcción**.
+
+`aulaToggle` recoge **todos** los criterios categóricos de curso-horario
+(`kind === "flat" || "hierarchical"`), `variablesPorFacultadIds` los incluye
+enteros, y el bloque común los filtra fuera con `soloAjustes`. Así que la
+condición que escribí —«si es categórico, monta `ExcepcionesFacultad`»— **nunca
+puede cumplirse ahí**. Estuvo muerta desde que la escribí, con typecheck y suite
+en verde.
+
+Retirada, con el porqué escrito en su lugar para que nadie la reponga.
+
+**Y el efecto dominó**: quitarla dejó `ExcepcionesFacultad` **sin ningún punto de
+montaje en producción**, porque F40 ya lo había retirado de los criterios de
+estudiante por indicación de Gonzalo. Su test sigue verde —el componente
+funciona—, lo que lo convierte en un **falso verde**: pasa porque el código está
+bien, no porque alguien lo use.
+
+**No lo borro.** La casa exige doble confirmación para retirar código, y aquí hay
+una decisión de producto detrás: la pieza serviría el día que un criterio
+categórico deje de decidirse por facultad. Queda marcado en el componente y en su
+test con la historia completa, y **la decisión de borrarlo es de Gonzalo**.
+
+| | |
+|---|---:|
+| Ramas inalcanzables | 1 → **0** |
+| Componentes sin montaje, declarados | **1** (`ExcepcionesFacultad`) |
+| Vitest | **865** en 108 archivos |
+
+**Lo que enseña**: la prueba funcional no sólo verifica que algo responde —
+encuentra lo que **no está ahí**. Ningún barrido de vocabulario, geometría o
+accesibilidad puede detectar una rama que nunca se ejecuta, porque todos miran lo
+que la pantalla muestra.
+
 ### Estado del loop
 
 | | |

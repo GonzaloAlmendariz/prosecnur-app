@@ -110,7 +110,23 @@ export function ControlRange({
   );
 }
 
-/** Excepciones por facultad de un set de categorías (op add/replace). */
+/**
+ * Excepciones por facultad de un set de categorías (op add/replace).
+ *
+ * ⚠️ **Sin punto de montaje en producción desde F84.** Su historia explica por
+ * qué sigue aquí y no se ha borrado:
+ *
+ * - F24 lo puso en los criterios de **estudiante**. Gonzalo lo retiró: «la
+ *   decisión de criterios de estudiantes por facultad no tiene sentido, allí
+ *   siempre es general» (ADR 0057, regla 4).
+ * - F26 lo puso en los criterios de **curso-horario**, pero ahí es inalcanzable:
+ *   todos los criterios categóricos de CH van al bloque de cada facultad, que
+ *   usa `FacultadCategoriaToggles`.
+ *
+ * Queda como pieza probada por si un criterio categórico deja de decidirse por
+ * facultad. **Borrarlo es decisión de Gonzalo**, no de un barrido: la casa exige
+ * doble confirmación para retirar código, y su test sigue verde, lo que lo hace
+ * un falso verde si nadie lo sabe. */
 export function ExcepcionesFacultad({
   variable,
   sel,
