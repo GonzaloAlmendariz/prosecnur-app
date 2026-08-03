@@ -107,3 +107,7 @@ output/*
 # descomprimirlo (compressed_size/uncompressed_size). Es derivable del propio
 # archivo y cambia por máquina; los .gz sí se versionan.
 api/inst/hojas_ruta/cartografia/**/*.properties
+
+# Catálogo visual generado: herramienta interna, se regenera con
+# `node scripts/build-visual-catalog.mjs`. ~70 MB que no viajan al repo.
+branding/catalogo-visual/data/

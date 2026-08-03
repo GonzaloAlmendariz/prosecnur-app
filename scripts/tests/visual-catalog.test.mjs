@@ -28,6 +28,27 @@ const contextualInventoryPath = path.join(
   "docs",
   "inventario-contextual.md",
 );
+/*
+ * El catálogo generado es un requerimiento INTERNO, no un artefacto de release.
+ *
+ * `catalogo.json` pesa ~66 MB y `catalogo-data.js` ~5 MB: son la salida de
+ * `scripts/build-visual-catalog.mjs` sobre el árbol actual, se regeneran en un
+ * comando y no se versionan. Exigirlos en CI convertía una herramienta de
+ * inspección local en un artefacto de 70 MB que viaja a GitHub en cada corte.
+ *
+ * Así que este contrato **se salta cuando el catálogo no está generado**. Sigue
+ * siendo el mismo contrato —quien lo genera obtiene las mismas comprobaciones,
+ * y el guion de build lo regenera antes de correrlo— pero deja de bloquear un
+ * release por un fichero que nadie debería estar subiendo.
+ */
+const catalogoGenerado = fs.existsSync(catalogPath) && fs.existsSync(dataScriptPath);
+if (!catalogoGenerado) {
+  console.log(
+    "# catálogo visual no generado: se omite su contrato. " +
+      "Regenéralo con `node scripts/build-visual-catalog.mjs` para verificarlo.",
+  );
+  process.exit(0);
+}
 const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8"));
 
 function walk(root, predicate) {
