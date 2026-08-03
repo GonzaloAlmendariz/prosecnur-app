@@ -70,6 +70,7 @@ import {
 import { ConfirmadorCriterio } from "../criterios/ConfirmadorCriterio";
 import { ordenEmbudoDelMotor } from "./ordenEmbudo";
 import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
+import { aporteGlobalDeCard } from "./CriterioFacultadRadiografia";
 import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
 import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
@@ -434,6 +435,18 @@ export function CursosHorarioMarcoTab({
     // `confirmarCriterio` y `descartarCriterio` leen del render actual; se
     // recalcula con el borrador para no confirmar una versión vieja.
   }, [pendientes, catalogo.variables, i18b.cascade, borrador, seleccion, tiposBorrador]);
+  /*
+   * G38 · La evidencia de los pasos de composición.
+   *
+   * Sale de las mismas tarjetas de radiografía que el resto del embudo, por
+   * `cardId` — no de un cálculo propio. Composición no admite umbral por
+   * facultad en el contrato vigente, así que su aporte es el del marco entero.
+   */
+  const evidenciaComposicion = useMemo(() => {
+    return (criterioId: string) =>
+      aporteGlobalDeCard(criterioCards.get(criterioId) ?? null);
+  }, [criterioCards]);
+
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   const beam = necesitaRecalculo && listoParaRecalcular;
@@ -634,6 +647,7 @@ export function CursosHorarioMarcoTab({
                         onUmbral={editarUmbral}
                         onTasa={editarTasa}
                         onPatchConfig={patchAulasConfig}
+                        evidenciaComposicion={evidenciaComposicion}
             />
                       }
                       slotCierre={
@@ -657,6 +671,7 @@ export function CursosHorarioMarcoTab({
                         onUmbral={editarUmbral}
                         onTasa={editarTasa}
                         onPatchConfig={patchAulasConfig}
+                        evidenciaComposicion={evidenciaComposicion}
             />
                       }
                     />

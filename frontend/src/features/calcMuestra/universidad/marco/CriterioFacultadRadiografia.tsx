@@ -82,6 +82,21 @@ function aporteDeFila(row: {
   };
 }
 
+/**
+ * G38 · El aporte de una regla común, para su tarjeta.
+ *
+ * Composición no admite umbral por facultad —el contrato del motor no lo tiene—
+ * así que su tarjeta describe el marco entero. Se prefiere la fila `global`
+ * cuando el motor la publica; si no, no se agrega nada a mano: una media de
+ * medias no es la media, y React presenta pero no calcula.
+ */
+export function aporteGlobalDeCard(card: CriterioRadiografiaCard | null): AporteCategoria | null {
+  const filas = card?.entries.flatMap((entry) => entry.rows) ?? [];
+  if (!filas.length) return null;
+  const fila = filas.find((row) => row.segment_kind === "global") ?? filas[0];
+  return aporteDeFila(fila);
+}
+
 function rowsForFaculty<Row extends { key: string }>(
   rows: Row[],
   facultyKey: string,
