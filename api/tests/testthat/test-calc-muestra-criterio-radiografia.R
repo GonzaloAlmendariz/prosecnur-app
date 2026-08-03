@@ -1145,7 +1145,23 @@ test_that("índice alumno×CH se construye una vez por radiografía", {
     #      La suite del area se corrio antes de commitear —la regla que salio de
     #      los puntos 1 y 3— y atrapo este oraculo y la lista de campos de
     #      arriba. Esta vez el aviso si tuvo a alguien mirandolo.
-    "6871d041d5ab711fe76b478a45ff254c96e24ce646ef72ad16abd298a6ad5f5a"
+    #   5. G39 alineo los cortes del histograma de las proporciones con el paso
+    #      del control (0-100 de 5 en 5) y anadio `n_fuera_por_corte`.
+    #
+    #      **Y este si volvio a pillarme**: el commit del motor decia que la
+    #      suite del area estaba en verde y yo solo habia corrido el fichero de
+    #      la senal. Tercera vez con la misma causa (F71, F114): un cambio de
+    #      pocas lineas en R no se siente como tocar logica. La regla ya estaba
+    #      escrita; lo que fallo fue cumplirla.
+    #
+    #      La prueba de confinamiento tambien mejoro. Podar campos y comparar
+    #      hashes no servia aqui —los cortes no son un campo nuevo, son uno que
+    #      CAMBIO—, asi que se reconstruyo el comportamiento previo en la misma
+    #      sesion y se enumeraron las rutas distintas del payload: 34 rutas, y
+    #      los unicos campos implicados `hist_breaks`, `hist_counts` y
+    #      `n_fuera_por_corte`. El reconstruido reprodujo exactamente el hash de
+    #      G38. Enumerar rutas dice QUE cambio; podar solo dice si algo cambio.
+    "1463aa1a15462192fe5e6b33d1daed83ccacdba8754e9ec291ad51a4589a24fc"
   )
 })
 
