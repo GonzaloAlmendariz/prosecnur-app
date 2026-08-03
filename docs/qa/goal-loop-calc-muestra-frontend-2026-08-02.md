@@ -3768,6 +3768,39 @@ La fila queda legible de corrido:
 |---|---:|
 | Vitest | **875** en 109 archivos |
 
+### F99 — Limpieza tras el retiro: dos falsos positivos y ningún huérfano
+
+Verificado que F98 no dejó deuda. Dos sustos, ninguno real.
+
+**1 · «El import quedó sin usar».** Falso: `CriterioFacultadRadiografia` tiene
+**cuatro montajes** y en F98 retiré uno. Los otros tres —Nivel del curso, Mínimo
+de elegibles y los criterios comunes— son **numéricos y de rango, sin
+conmutadores de categoría**, así que ahí no había duplicación que retirar. El
+typecheck cazó el borrado en el acto, con tres errores señalando las líneas
+exactas.
+
+**2 · «Composición duplica tres etiquetas».** También falso. Los tres bloques
+**sí se distinguen en pantalla**: «Composición · prevalencia elegible»,
+«Composición · facultad del curso», «Composición · nivel del curso». Mi
+comprobación recogía sólo el `strong` —«Regla efectiva»— y se perdía el `span`
+con el nombre de la subregla.
+
+**Duodécimo falso positivo de la sesión**, y el patrón que los une es siempre el
+mismo: **una medición más estrecha que la realidad**. Panel en vez de documento,
+`strong` en vez de la fila entera, `aria-label` en vez del `<label>` envolvente.
+
+Duplicación real tras el retiro, medida criterio por criterio:
+
+| criterio | etiquetas | duplicadas |
+|---|---:|---:|
+| Matriculados · Modalidad · Nivel · Tipo de sesión · Mínimo | 4 c/u | **0** |
+| Condición del curso | 10 | **0** |
+| Composición | 10 | **0** (tres subreglas distintas) |
+
+**Nota pendiente**: la pantalla sigue diciendo «Regla efectiva» donde F71 lo
+renombró a «Cursos-horario que cumplen». El cambio está en el motor y el proceso
+R vivo conserva el código anterior: se verá al próximo arranque.
+
 ### Estado del loop
 
 | | |
