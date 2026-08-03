@@ -13,45 +13,12 @@
   min-width: 0;
 }
 
-/* Conmutador dentro de la tarjeta: elegibles contra el total, misma escala. */
-.cmv2-dist-switch {
-  display: inline-flex;
-  align-self: start;
-  padding: 2px;
-  gap: 2px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-2);
-}
-.cmv2-dist-switch button {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: calc(var(--pulso-radius) - 2px);
-  background: transparent;
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-  transition: background 160ms ease, color 160ms ease;
-}
-.cmv2-dist-switch button small {
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-regular);
-  font-variant-numeric: tabular-nums;
-  opacity: 0.8;
-}
-.cmv2-dist-switch button[aria-pressed="true"] {
-  background: var(--pulso-surface);
-  color: var(--pulso-text);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--pulso-text) 10%, transparent);
-}
-.cmv2-dist-switch button:focus-visible {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 1px;
-}
+/*
+ * F112 · Aquí vivía el conmutador elegibles/todos. Gonzalo: «no entiendo mucho
+ * lo de dividir un visor entre elegibles y todos, debería ser solo elegibles».
+ * Tenía razón: la distribución que decide es la de los elegibles, y el total ya
+ * viaja como cifra donde sí importa («CH totales»).
+ */
 
 /* Las tres capas apiladas, con el mismo ancho y el mismo origen. */
 .cmv2-dist-grafico {
@@ -120,10 +87,51 @@
   box-shadow: 0 0 0 2px var(--cmv2-surface, var(--pulso-surface));
 }
 
+/* --- Eje ----------------------------------------------------------------- */
+/*
+ * F112 · Antes la escala sólo se declaraba en palabras al pie, y las únicas
+ * marcas eran las de los cuantiles. Un gráfico cuyo eje no está rotulado obliga
+ * a leer cada valor de su etiqueta: la forma no se puede situar.
+ */
+.cmv2-dist-eje {
+  position: relative;
+  height: 20px;
+  margin-top: 3px;
+}
+.cmv2-dist-eje-linea {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: var(--cmv2-border);
+}
+.cmv2-dist-eje-corte {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+}
+.cmv2-dist-eje-corte i {
+  width: 1px;
+  height: 4px;
+  background: var(--cmv2-border-strong, var(--cmv2-border));
+}
+.cmv2-dist-eje-corte b {
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-regular);
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+/* Los extremos se pegan al borde en vez de sobresalir de la escala. */
+.cmv2-dist-eje-corte:first-of-type { transform: none; justify-items: start; }
+.cmv2-dist-eje-corte:last-of-type { transform: translateX(-100%); justify-items: end; }
+
 /* --- Cuantiles ----------------------------------------------------------- */
 .cmv2-dist-cuantiles {
   position: relative;
-  height: 34px;
+  height: 32px;
+  margin-top: 2px;
 }
 .cmv2-dist-ticks i {
   position: absolute;
@@ -183,8 +191,10 @@
   color: var(--pulso-text-muted);
 }
 
-/* El movimiento del conmutador explica un cambio de vista; quien lo desactiva
-   no pierde ninguna cifra. */
+/* Nada del gráfico se anima: cada marca codifica un valor, y una animación que
+   escale una magnitud puede mostrar un rango falso (patrón 12 del ADR 0057). El
+   bloque se declara igualmente para que el guard de movimiento reducido tenga
+   contrapartida si alguien añade una transición mañana. */
 @media (prefers-reduced-motion: reduce) {
-  .cmv2-dist-switch button { transition: none; }
+  .cmv2-dist-grafico * { animation: none; transition: none; }
 }

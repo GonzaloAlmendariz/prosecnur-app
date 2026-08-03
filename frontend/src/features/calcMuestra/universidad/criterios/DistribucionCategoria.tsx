@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import "./distribucionCategoria.css";
@@ -225,25 +225,64 @@ function resumenAccesible(d: Dist, vista: string): string {
   return partes.filter(Boolean).join(", ");
 }
 
+/**
+ * Eje del gráfico.
+ *
+ * F112 · Antes la escala sólo se declaraba en palabras al pie y las únicas
+ * marcas eran las de los cuantiles. Gonzalo: «no sólo debe estar claro cuáles
+ * son los puntos del eje x que forman parte de los cuartiles, sino el eje en
+ * general — cuáles son los límites, cuáles son los puntos más importantes».
+ *
+ * Los cortes son números redondos, no los extremos del dominio: un eje rotulado
+ * 6,4 · 21,7 · 37,0 se lee peor que 10 · 20 · 30 aunque describa lo mismo.
+ * Elegirlos es presentación, no estadística — el dominio no se toca.
+ */
+function cortesLegibles(dom: DominioEscala, objetivo = 5): number[] {
+  const span = dom.max - dom.min;
+  if (!(span > 0)) return [];
+  const crudo = span / objetivo;
+  const magnitud = Math.pow(10, Math.floor(Math.log10(crudo)));
+  const norm = crudo / magnitud;
+  const paso = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * magnitud;
+  const cortes: number[] = [];
+  for (let v = Math.ceil(dom.min / paso) * paso; v <= dom.max + 1e-9; v += paso) {
+    cortes.push(Number(v.toFixed(6)));
+  }
+  return cortes;
+}
+
+function Eje({ dom }: { dom: DominioEscala }) {
+  const cortes = useMemo(() => cortesLegibles(dom), [dom]);
+  if (!cortes.length) return null;
+  return (
+    <div className="cmv2-dist-eje" aria-hidden="true">
+      <span className="cmv2-dist-eje-linea" />
+      {cortes.map((v) => (
+        <span key={v} className="cmv2-dist-eje-corte" style={{ left: `${pos(v, dom)}%` }}>
+          <i />
+          <b>{fmt(v, 0)}</b>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function DistribucionCategoria({
   elegible,
-  total,
   dominio,
   unidad = "estudiantes elegibles por curso-horario",
 }: {
   elegible: VistaDistribucion;
-  /** La misma categoría sobre todos los cursos-horario, incluidos o no. */
-  total: VistaDistribucion;
   /** Escala común a TODAS las categorías del criterio. */
   dominio: DominioEscala | null;
   unidad?: string;
 }) {
-  const [verTodos, setVerTodos] = useState(false);
-  const grupoId = useId();
-
-  const hayTotal = Boolean(total.distribucion);
-  const vista = verTodos && hayTotal ? total : elegible;
-  const d = vista.distribucion;
+  // F112 · Sin conmutador elegibles/todos. Gonzalo: «no entiendo mucho lo de
+  // dividir un visor entre elegibles y todos, debería ser solo elegibles — a
+  // nosotros nos importa la distribución de los elegibles, no tanto la
+  // distribución general de todo». El total sigue publicándose como cifra,
+  // «CH totales», que es donde sí decide.
+  const d = elegible.distribucion;
 
   // C3 · La superficie contiene su propio vacío. No basta con que llegue el
   // objeto: una distribución con todos sus valores en null dibujaba un marco
@@ -260,48 +299,21 @@ export function DistribucionCategoria({
     return <p className="cmv2-dist-vacia">sin distribución publicada</p>;
   }
 
-  const nombreVista = verTodos ? "todos los cursos-horario" : "los elegibles";
   const convencionCaida = !tiene(d.bigote_inf) && tiene(d.p10);
 
   return (
     <div className="cmv2-dist">
-      {/* El conmutador vive DENTRO de la tarjeta: se compara elegibles contra el
-          total sin salir del contenedor que decide. La escala no cambia al
-          conmutar —es la del criterio—, así que las dos vistas se leen una
-          contra otra y no una después de otra. */}
-      {hayTotal ? (
-        <div className="cmv2-dist-switch" role="group" aria-label="Qué cursos-horario se grafican">
-          <button
-            type="button"
-            id={`${grupoId}-eleg`}
-            aria-pressed={!verTodos}
-            onClick={() => setVerTodos(false)}
-          >
-            Elegibles
-            <small>{fmtInt(elegible.nCh)} CH</small>
-          </button>
-          <button
-            type="button"
-            id={`${grupoId}-tod`}
-            aria-pressed={verTodos}
-            onClick={() => setVerTodos(true)}
-          >
-            Todos
-            <small>{fmtInt(total.nCh)} CH</small>
-          </button>
-        </div>
-      ) : null}
-
-      <figure className="cmv2-dist-grafico" role="img" aria-label={resumenAccesible(d, nombreVista)}>
+      <figure className="cmv2-dist-grafico" role="img" aria-label={resumenAccesible(d, "los elegibles")}>
         <Densidad d={d} dom={dominio} />
         <Boxplot d={d} dom={dominio} />
+        {/* El eje va ENTRE la caja y los cuantiles: es la referencia que ambos
+            usan, y ponerlo al final lo dejaba lejos de la mitad del gráfico. */}
+        <Eje dom={dominio} />
         <Cuantiles d={d} dom={dominio} />
       </figure>
 
       <p className="cmv2-dist-pie">
-        <span>
-          {fmt(dominio.min)} a {fmt(dominio.max)} {unidad} · escala común del criterio
-        </span>
+        <span>{unidad}</span>
         {tiene(d.n_atipicos) && d.n_atipicos > 0 ? (
           <span className="cmv2-dist-atipicos">
             {fmtInt(d.n_atipicos)} {d.n_atipicos === 1 ? "atípico" : "atípicos"} fuera de los bigotes

@@ -12,6 +12,8 @@ import {
 } from "./CriterioBoxplotPercentilar";
 import { CriteriosRadiografiaCardDetalle } from "./CriteriosRadiografiaCardDetalle";
 import { rotuloSegmento } from "./segmentoRotulo";
+import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "../criterios/CategoriaEvidencia";
+import type { AporteCategoria } from "../criterios/controles";
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import "./criterioFacultadRadiografia.css";
 
@@ -20,7 +22,6 @@ const rotulo = (row: { segment_key?: string | null; segment_label?: string | nul
   rotuloSegmento(row.segment_key, row.segment_label, "ch");
 
 const NUMBER = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 });
-const MAX_VISIBLE_SEGMENTS = 4;
 
 function fmt(value: number | null): string {
   return value === null ? "NA" : NUMBER.format(value);
@@ -34,6 +35,28 @@ export type CriterioFacultadEvidence = {
   previewRequest: CalcMuestraCriteriosPreviewInput | null;
   complete: boolean;
 };
+
+/**
+ * Fila del contrato v2 → aporte de categoría.
+ *
+ * F112 · El puente que permite que criterios numéricos y de rango usen la misma
+ * tarjeta que los categóricos. Los campos ya existían: lo que faltaba era
+ * llamarlos por el mismo nombre.
+ */
+function aporteDeFila(row: {
+  actual: { n_ch: number; n_ch_con_dato: number; n_estudiantes_unicos: number | null; distribution: unknown };
+  contraste_total: { n_ch: number; distribution: { media: number | null } };
+}): AporteCategoria {
+  return {
+    ch: row.actual.n_ch,
+    chContraste: row.contraste_total.n_ch,
+    chConDato: row.actual.n_ch_con_dato,
+    elegibles: row.actual.n_estudiantes_unicos,
+    mediaContraste: row.contraste_total.distribution.media,
+    tasaAsistencia: null,
+    distribucion: row.actual.distribution as AporteCategoria["distribucion"],
+  };
+}
 
 function rowsForFaculty<Row extends { key: string }>(
   rows: Row[],
@@ -97,12 +120,13 @@ export function CriterioFacultadRadiografia({
   const compactRows = invalid
     ? []
     : facultyCard.entries.flatMap((entry) => entry.rows.map((row) => ({ entry, row })));
-  const visibleRows = compactRows.slice(0, MAX_VISIBLE_SEGMENTS);
-  const hiddenRows = Math.max(0, compactRows.length - visibleRows.length);
+  // F112 · Sin recorte. Antes se mostraban cuatro segmentos y el resto quedaba
+  // en un contador: esconder categorías de un criterio es esconder la decisión,
+  // y ninguna de las que no se veían dejaba de contar en el marco.
+  const visibleRows = compactRows;
   // S4: las categorías de un criterio se comparan entre sí sobre una escala
-  // única. El dominio se calcula sobre TODAS las filas del criterio, no solo
-  // las visibles, para que recortar la lista no cambie el gráfico.
-  const domain = boxplotDomain(compactRows.map(({ row }) => row.actual.distribution));
+  // única, calculada sobre TODAS sus filas.
+  const domain = dominioCategorias(compactRows.map(({ row }) => aporteDeFila(row)));
 
   return (
     <div
@@ -125,32 +149,14 @@ export function CriterioFacultadRadiografia({
           <span className="cmv2-crc-compact-state">{card.state === "v2" ? "vigente" : card.state.replace("_", " ")}</span>
         </header>
 
-        {visibleRows.length ? <CriterioBoxplotLeyenda domain={domain} unidad="alumnos por CH" /> : null}
+        {visibleRows.length && domain ? <EjeCategorias dominio={domain} /> : null}
         {visibleRows.length ? (
           <div
             className="cmv2-crc-compact-segments"
             data-qa-geometry-group="calc-muestra/radiografia-compacta-facultad"
             data-qa-geometry-contract="intrinsic"
           >
-            {visibleRows.map(({ entry, row }) => row.actual.n_ch === 0 && row.actual.distribution.media === null ? (
-              // Categoría sin CH en esta facultad: se declara, no se oculta,
-              // pero no ocupa el mismo ancho que una con distribución.
-              <article
-                className="cmv2-crc-compact-segment"
-                key={`${entry.id}:${row.segment_key}:${row.segment_kind}`}
-                data-criterion-id={entry.id}
-                data-segment-empty="true"
-                data-qa-geometry-member
-                data-qa-geometry-capacity="owned"
-                role="status"
-              >
-                <header>
-                  <strong>{rotulo(row)}</strong>
-                  {facultyCard.entries.length > 1 ? <span>{entry.label}</span> : null}
-                </header>
-                <p>0 CH</p>
-              </article>
-            ) : (
+            {visibleRows.map(({ entry, row }) => (
               <article
                 className="cmv2-crc-compact-segment"
                 key={`${entry.id}:${row.segment_key}:${row.segment_kind}`}
@@ -162,26 +168,14 @@ export function CriterioFacultadRadiografia({
                   <strong>{rotulo(row)}</strong>
                   {facultyCard.entries.length > 1 ? <span>{entry.label}</span> : null}
                 </header>
-                <CriterioBoxplotPercentilar
-                  label={`${facultyLabel} · ${entry.label} · ${rotulo(row)} · elegibles`}
-                  distribution={row.actual.distribution}
-                  domain={domain}
-                />
-                <dl aria-label={`Cifras elegibles de ${rotulo(row)}`}>
-                  <div><dt>CH</dt><dd>{fmt(row.actual.n_ch)}</dd></div>
-                  <div><dt>CH con dato</dt><dd>{fmt(row.actual.n_ch_con_dato)}</dd></div>
-                  <div><dt>Alumnos</dt><dd>{fmt(row.actual.n_estudiantes_unicos)}</dd></div>
-                  <div><dt>Matrículas</dt><dd>{fmt(row.actual.n_matriculas)}</dd></div>
-                  <div><dt>Media</dt><dd>{fmt(row.actual.distribution.media)}</dd></div>
-                  <div><dt>P10</dt><dd>{fmt(row.actual.distribution.p10)}</dd></div>
-                  <div><dt>P25</dt><dd>{fmt(row.actual.distribution.p25)}</dd></div>
-                  <div><dt>Mediana</dt><dd>{fmt(row.actual.distribution.p50)}</dd></div>
-                  <div><dt>P75</dt><dd>{fmt(row.actual.distribution.p75)}</dd></div>
-                  <div><dt>P90</dt><dd>{fmt(row.actual.distribution.p90)}</dd></div>
-                </dl>
-                <p>
-                  Contraste total: {fmt(row.contraste_total.n_ch)} CH · media {fmt(row.contraste_total.distribution.media)}
-                </p>
+                {/* F112 · La MISMA tarjeta que los criterios categóricos.
+                    Gonzalo: «si este va a ser el criterio de tarjeta que vamos a
+                    utilizar, tiene que estar en absolutamente todos los
+                    criterios, en cada una de las categorías donde haya
+                    cursos-horario». Antes esto era un bloque propio con su
+                    boxplot, su escala y una lista de diez cifras — dos
+                    tratamientos distintos para el mismo dato. */}
+                <CategoriaEvidencia aporte={aporteDeFila(row)} dominio={domain} />
               </article>
             ))}
           </div>
@@ -200,9 +194,9 @@ export function CriterioFacultadRadiografia({
             `<details>` de la pestaña. La comparación entre facultades vive
             arriba, en el panorama y la matriz, que es su sitio. */}
         <section className="cmv2-crc-compact-detail">
-          {hiddenRows ? (
-            <p className="cmv2-crc-compact-count">{hiddenRows} segmentos más de esta facultad</p>
-          ) : null}
+          {/* F112 · Aquí iba «N segmentos más de esta facultad»: un contador de
+              lo que la lista no mostraba. Ya no hay recorte, así que no hay nada
+              que contar — y un contador es la forma más barata de esconder. */}
           <CriteriosRadiografiaCardDetalle
             card={facultyCard}
             radiografia={evidence.radiografia}

@@ -50,9 +50,13 @@ describe("CategoriaEvidencia", () => {
     expect(html).toContain("P50");
     expect(html).toContain("P25");
     // Presentes esperados = elegibles × tasa, redondeado. 3400 × 0,7 = 2.380.
+    // F112 · La tasa es un parámetro del marco aplicado por igual a todas las
+    // categorías, no una medición de ésta. Se dice de qué a qué convierte, con
+    // las dos cifras a la vista: 3.400 × 0,7 = 2.380.
     expect(html).toContain("2,380");
-    expect(html).toContain("70%");
-    expect(html).toContain("asistencia previa");
+    expect(html).toContain("presentes de");
+    expect(html).toContain("3,400");
+    expect(html).toContain("70% de asistencia supuesta");
     expect(html).not.toContain("matrículas");
   });
 
@@ -107,10 +111,10 @@ describe("CategoriaEvidencia", () => {
     expect(html).not.toContain("de P10 a P90");
   });
 
-  it("el gráfico declara la escala común bajo el que la usa", () => {
-    const dominio = dominioCategorias([aporte()])!;
-    const html = renderToStaticMarkup(<CategoriaEvidencia aporte={aporte()} dominio={dominio} />);
-    expect(html).toContain("escala común del criterio");
+  it("el criterio declara su escala una vez, no cada categoría", () => {
+    const html = renderToStaticMarkup(<EjeCategorias dominio={{ min: 10, max: 120 }} />);
+    expect(html).toContain("Escala común del criterio");
+    expect(html).toContain("Las tres capas");
   });
 });
 
@@ -189,8 +193,11 @@ describe("CategoriaEvidencia · los dos ceros no significan lo mismo (F105)", ()
     expect(html).toContain("Fuera del marco");
     expect(html).toContain("200");
     expect(html).not.toContain("sin cursos-horario en esta facultad");
-    // El contraste vuelve: es lo único que dice cuánto se está dejando fuera.
-    expect(html).toContain("En todos los cursos-horario");
+    // F112 · La línea de contraste se retiró; lo que dice cuánto se deja fuera
+    // es ahora la propia línea de efecto, con la misma cifra. Y sin alumnos
+    // elegibles no se estima asistencia sobre cero.
+    expect(html).not.toContain("En todos los cursos-horario");
+    expect(html).not.toContain("presentes de");
   });
 
   it("una categoría que de verdad no existe aquí lo dice tal cual", () => {
@@ -256,44 +263,20 @@ describe("CategoriaEvidencia · efecto en el embudo (ADR 0057, contenido 5)", ()
   });
 });
 
-describe("CategoriaEvidencia · contraste contra el total", () => {
-  it("dice cómo se ve la categoría en todos los cursos-horario", () => {
-    // Un criterio existe para recortar; sin el contraste no se sabe si el
-    // subconjunto elegible se parece al total o si el recorte lo ha desplazado.
+describe("CategoriaEvidencia · lo que F112 retiró", () => {
+  // Gonzalo: «nos importa la distribución de los elegibles, no tanto la
+  // distribución general de todo». La línea «En todos los cursos-horario: N CH,
+  // media M» duplicaba «CH totales» y su otra mitad describía esa general.
+  it("no repite el total como frase: ya está como cifra", () => {
     const html = renderToStaticMarkup(
       <CategoriaEvidencia
         aporte={aporte({ chContraste: 849, mediaContraste: 26.9 })}
         dominio={{ min: 10, max: 60 }}
       />,
     );
-    expect(html).toContain("En todos los cursos-horario");
+    expect(html).not.toContain("En todos los cursos-horario");
+    // Pero el total sigue a la vista, que es lo que Gonzalo pidió conservar.
     expect(html).toContain("849");
-    expect(html).toContain("26.9");
-  });
-
-  it("no lo inventa cuando el motor no publica el contraste", () => {
-    const html = renderToStaticMarkup(
-      <CategoriaEvidencia
-        aporte={aporte({ chContraste: null, mediaContraste: null })}
-        dominio={{ min: 10, max: 60 }}
-      />,
-    );
-    expect(html).not.toContain("En todos los cursos-horario");
-  });
-
-  it("una categoría que no existe en la facultad no muestra contraste", () => {
-    // F105 · Esta prueba afirmaba lo contrario de lo correcto: usaba
-    // `chContraste: 849` —una categoría con 849 CH en el marco, excluida— y
-    // exigía que NO se mostrara el contraste. Justo entonces el contraste es lo
-    // único que dice cuánto se está dejando fuera. El caso sin contraste es el
-    // de la categoría que de verdad no está aquí.
-    const html = renderToStaticMarkup(
-      <CategoriaEvidencia
-        aporte={aporte({ ch: 0, chContraste: 0, mediaContraste: null })}
-        dominio={{ min: 10, max: 60 }}
-      />,
-    );
-    expect(html).toContain("sin cursos-horario en esta facultad");
-    expect(html).not.toContain("En todos los cursos-horario");
+    expect(html).toContain("CH totales");
   });
 });

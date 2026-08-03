@@ -54,9 +54,13 @@ describe.each(HOJAS)("movimiento reducido · %s", (hoja) => {
   });
 
   it("cada selector animado se apaga cuando se pide menos movimiento", () => {
-    const animados = selectoresConMovimiento(css);
-    expect(animados.length).toBeGreaterThan(0);
-    for (const selector of animados) {
+    // F112 · Antes esto exigía `animados.length > 0`, es decir, que la hoja
+    // TUVIERA movimiento. Al retirar el conmutador el gráfico se quedó sin una
+    // sola animación —que es lo correcto: cada marca codifica un valor— y el
+    // guard se puso rojo por hacer bien las cosas. Lo que hay que garantizar es
+    // COBERTURA: todo lo que se anime tiene su contrapartida. Cero animaciones
+    // es cobertura total, no un fallo.
+    for (const selector of selectoresConMovimiento(css)) {
       expect(bloqueReducido, `sin contrapartida: ${selector}`).toContain(selector);
     }
   });
