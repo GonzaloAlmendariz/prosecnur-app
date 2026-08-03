@@ -1084,6 +1084,43 @@ revisar un estado vacío hay que preguntar cuántas veces aparece junto, no si e
 bien redactado.
 
 
+### 64 · La regla 1 tiene una excepción que su guard no contempla, y hay que decidirla
+
+«Matriculados / población» vive dentro del bloque «Decisión para esta facultad» y
+su propio texto dice que «aplica igual en las 15 facultades: el motor todavía no
+admite un umbral distinto por facultad». Le pide a cada facultad una decisión que
+no existe. Gonzalo lo ha señalado **dos veces**.
+
+Intenté las dos reparaciones y **las dos chocan con algo que se decidió antes**:
+
+- **Retirarlo de la superficie**: un test protege esa capacidad a propósito —«una
+  variable numérica no representable en el bloque por facultad no se pierde por
+  `soloAjustes`»— y hoy ésta es su única superficie editable. Lo dejaría sin
+  ningún sitio donde ajustarse.
+- **Subirlo a una sección propia antes del selector**: lo bloquea el guard de la
+  **regla 1** («los criterios comunes se montan como piezas del flujo de la
+  facultad»), escrito porque presentarlos en una sección «transversales» los hacía
+  leer como criterios generales y los sacaba del embudo.
+
+Las dos reparaciones son razonables y las dos están prohibidas por decisiones
+razonables. Eso no es un empate: es la señal de que **la regla 1 se escribió sin
+contemplar el caso en que el criterio general existe de verdad**. Su premisa —«no
+existe el criterio general, todo es por facultad»— es cierta del dominio y falsa
+del motor para `enrolled_total`, `c7`, `c8` y `c8_facultad`, que el contrato no
+admite por facultad.
+
+**Por qué no lo resolví yo**: cambiar el alcance de la regla 1 es un acto de
+gobierno, no una reparación de superficie. El guard hizo exactamente su trabajo
+—frenar un cambio que la contradecía— y saltármelo habría convertido una decisión
+de arquitectura en un efecto secundario de arreglar una queja de UI.
+
+**Lo que falta decidir**: si la regla 1 admite «criterios que el motor declara
+comunes» como una tercera categoría con su propio sitio —rotulada por esa razón,
+no por «transversales»— o si la reparación real es que el motor acepte umbral por
+facultad y el problema desaparezca. Hasta entonces la superficie pide una decisión
+que no existe, y eso queda escrito en vez de tapado.
+
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
