@@ -424,6 +424,17 @@ Es el mismo error que dio «excepción: 0 veces» midiendo la pestaña equivocad
 existe y está activo. Una medición sobre una premisa falsa no da un resultado
 neutro: da un defecto inventado, que cuesta más que no medir.
 
+### 26 · El instrumento tiene que funcionar en el entorno donde se mide
+
+Una medición de rendimiento con `requestAnimationFrame` se colgó treinta
+segundos. La app estaba bien: **rAF no dispara con el panel del navegador
+oculto**. El síntoma —un timeout— se parece mucho a «la aplicación se colgó», y
+llevaba a diagnosticar el sitio equivocado.
+
+**Mecanismo**: antes de creer una medición, comprobar que el método funciona en
+el entorno donde se está midiendo. Para superficies en un panel que puede estar
+oculto: `MutationObserver` y marcas de `performance`, no rAF.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así

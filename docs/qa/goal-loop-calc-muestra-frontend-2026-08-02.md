@@ -3585,6 +3585,35 @@ la app ni en los tests.
 Es la contrapartida de F82: allí comprobé que los controles **responden**; aquí,
 que responden **sin quejarse por dentro**.
 
+### F94 — El coste de una superficie que ya no esconde nada
+
+Medido lo que ninguna comprobación anterior miraba: **cuánto cuesta** la
+superficie después de abrirlo todo.
+
+| superficie | nodos DOM | profundidad |
+|---|---:|---:|
+| Cursos-horario: criterios + radiografía | **6.359** | 24 |
+| Criterios del estudiante | 452 | 12 |
+| Distribución | 749 | 12 |
+| Tablas (Entrega) | 610 | 17 |
+
+La radiografía es un orden de magnitud mayor que las demás, y es **el precio
+declarado de la decisión de producto**: ocho criterios abiertos, cada uno con sus
+categorías, cajas y cuantiles, sin nada plegado.
+
+**Lo que importa es si se nota.** Medido el tiempo hasta el primer cambio de DOM
+tras conmutar una categoría, dos veces:
+
+**58 ms y 51 ms** — por debajo del umbral de «instantáneo» (100 ms), con 7.362
+nodos en pantalla. La superficie es grande, pero responde.
+
+**Décimo problema de instrumento, y el más limpio de diagnosticar**: mi primera
+medición usaba `requestAnimationFrame` y **se colgó a los 30 s**. La causa no era
+la app: *rAF no dispara con el panel del navegador oculto*. Reemplazado por un
+`MutationObserver`, que sí funciona sin pintado. Ninguna conclusión sobre
+rendimiento habría sido válida con el método anterior — y el síntoma, un timeout,
+se parece mucho a «la app se colgó».
+
 ### Estado del loop
 
 | | |
