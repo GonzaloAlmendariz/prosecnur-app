@@ -175,6 +175,15 @@ export function CategoriaEvidencia({
           </span>
         ) : null}
       </div>
+      {/* Contraste: la misma categoría sobre TODOS los cursos-horario. Sin él no
+          se sabe si el subconjunto elegible se parece al total o si los
+          criterios lo han desplazado —que es justo lo que un criterio hace—. */}
+      {!sinCursos && aporte.chContraste != null && aporte.mediaContraste != null ? (
+        <p className="cmv2-cat-contraste">
+          En todos los cursos-horario: <strong>{fmtInt(aporte.chContraste)}</strong> CH,
+          media <strong>{fmt(aporte.mediaContraste)}</strong>
+        </p>
+      ) : null}
       {sinCursos ? (
         <p className="cmv2-cat-sin-cursos">sin cursos-horario en esta facultad</p>
       ) : null}

@@ -32,6 +32,7 @@ export function evidenciaPorCategoria(
         elegibles: row.actual?.n_estudiantes_unicos ?? null,
         ch: row.actual?.n_ch ?? null,
         chContraste: row.contraste_total?.n_ch ?? null,
+        mediaContraste: row.contraste_total?.distribution?.media ?? null,
         chConDato: row.actual?.n_ch_con_dato ?? null,
         matriculas: row.actual?.n_matriculas ?? null,
         distribucion: row.actual?.distribution ?? null,

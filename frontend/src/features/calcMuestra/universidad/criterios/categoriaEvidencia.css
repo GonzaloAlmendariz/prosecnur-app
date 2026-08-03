@@ -207,3 +207,7 @@
   background: var(--pulso-text); box-shadow: 0 0 0 2px var(--cmv2-surface);
 }
 .cmv2-cat-leyenda-bigote { width: 16px; height: 1px; background: var(--cmv2-border-strong, var(--cmv2-border)); }
+
+/* Contraste contra el total: contexto, no la cifra principal. */
+.cmv2-cat-contraste { margin: 0; font-size: 11px; color: var(--pulso-text-muted); }
+.cmv2-cat-contraste strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }

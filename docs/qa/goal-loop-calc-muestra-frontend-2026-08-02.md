@@ -3690,6 +3690,50 @@ con el inventario hecho: la razón por la que no lo hice antes —y por la que n
 haré sin verificar una vez más— es que en este loop ya retiré dos veces algo que
 parecía redundante y no lo era.
 
+### F97 — El contraste contra el total, y por qué paro antes de retirar el bloque
+
+Última pieza que vivía sólo en el bloque compacto: **«Contraste total: 849 CH ·
+media 26,9»** — cómo se ve la categoría en **todos** los cursos-horario, no sólo
+en los elegibles.
+
+No es un adorno: **un criterio existe para recortar**, y sin el contraste no se
+sabe si el subconjunto elegible se parece al total o si el recorte lo ha
+desplazado. Incorporado a la tarjeta, con su guard de tres casos —lo muestra, no
+lo inventa si el motor no lo publica, y lo calla en categorías sin cursos aquí—.
+
+Con esto la tarjeta de categoría reúne **todo** lo que ADR 0057 le pide:
+
+| dato | estado |
+|---|---|
+| Cursos-horario · estudiantes · matrículas | ✓ |
+| Media por CH · cuantiles P10–P90 | ✓ |
+| Caja sobre escala común, con leyenda | ✓ |
+| Cobertura del dato (CH con dato) | ✓ |
+| Contraste contra todos los CH | ✓ |
+| Presentes esperados con su tasa | ✓ (condicional al dato) |
+
+| | |
+|---|---:|
+| Contrastes renderizando | **13** |
+| Desbordes | **0** |
+| Vitest | 872 → **875** en 109 archivos |
+
+**Y aquí paro antes de retirar el bloque compacto, por dos razones.**
+
+La primera es de método: intenté verificar cifra a cifra que nada falta y **la
+comparación no es fiable** —tokeniza distinto según el marcado adyacente, y daba
+por «faltantes» números que están a la vista—. No voy a apoyar un borrado en una
+medición que sé defectuosa.
+
+La segunda es de gobierno: retirar un bloque visible de la superficie es un
+cambio que **Gonzalo debe ver antes**, no el resultado de un barrido. En este
+loop ya retiré dos veces algo que parecía redundante y no lo era —«Composición»
+se quedó sin control, la leyenda de la caja estuvo a punto de perderse—, y las
+dos veces lo que salvó el trabajo fue mirar antes de borrar.
+
+El inventario queda hecho y la tarjeta ya no depende del compacto: **la decisión
+está preparada, no tomada**.
+
 ### Estado del loop
 
 | | |
