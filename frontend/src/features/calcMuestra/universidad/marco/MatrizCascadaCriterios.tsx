@@ -122,6 +122,19 @@ export function MatrizCascadaCriterios({
             columna dice con cuántos cursos-horario nos quedamos y la última fila los suma.
           </caption>
           <thead>
+            {/* G8 · La fila de grupos declara QUÉ FILTRA cada tramo. Sin ella el
+                eje mezcla criterios de estudiante con criterios de curso-horario
+                aunque la celda mida lo mismo, y cinco columnas en cero se leen
+                como ruido en vez de como «ninguno vació un curso». */}
+            <tr className="cmv2-mtz-grupos">
+              <td colSpan={2} />
+              {matriz.grupos.map((g) => (
+                <th key={`${g.scope}-${g.desde}`} scope="colgroup" colSpan={g.ancho} data-scope={g.scope}>
+                  {g.label}
+                </th>
+              ))}
+              <td />
+            </tr>
             <tr>
               <th scope="col">Facultad</th>
               <th scope="col">Universo</th>

@@ -195,3 +195,28 @@
   border-radius: 0;
   width: 8px;
 }
+
+/*
+ * G8 · Los grupos declaran qué filtra cada tramo de columnas.
+ *
+ * Un criterio de estudiante y uno de curso-horario publican la misma cifra
+ * —cursos-horario que quita— pero no filtran lo mismo, y sin decirlo el eje
+ * mezcla dos cosas. Con el grupo, cinco columnas en cero dejan de ser ruido:
+ * significan que ningún criterio de estudiante vació un curso.
+ */
+.cmv2-mtz-grupos th {
+  padding: 8px 12px 4px;
+  text-align: left;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-muted);
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-text) 8%, transparent);
+  white-space: normal;
+  line-height: 1.3;
+}
+.cmv2-mtz-grupos th[data-scope="aula"] { color: var(--cmv2-accent-fg); }
+.cmv2-mtz-grupos th[data-scope="operativo"] { font-style: italic; text-transform: none; letter-spacing: 0; }
+.cmv2-mtz-grupos th + th { border-left: 1px solid var(--cmv2-border); }
+.cmv2-mtz-grupos td { border: 0; padding: 0; }
