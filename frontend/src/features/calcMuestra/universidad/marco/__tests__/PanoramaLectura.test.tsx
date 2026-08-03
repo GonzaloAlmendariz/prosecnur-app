@@ -38,7 +38,12 @@ describe("PanoramaCursosHorario", () => {
     const html = renderToStaticMarkup(
       <PanoramaCursosHorario filas={filas()} criterios={criterios} facultadAbierta={null} onAbrirFacultad={vi.fn()} />,
     );
-    expect(html).toContain("propio");
+    // Dentro de la celda, no en cualquier parte: «propio» aparece también en los
+    // títulos de las celdas heredadas («aplica el criterio general»… no, pero sí
+    // en «criterio propio» del `title`), así que la aserción suelta no probaría
+    // que la CELDA lo dice.
+    expect(html).toContain('data-propia="true"');
+    expect(/data-propia="true"[^>]*>\s*propio/.test(html)).toBe(true);
     // Lo heredado sigue siendo legible para quien lo necesite: título y aria.
     expect(html).toContain("aplica el criterio general");
   });

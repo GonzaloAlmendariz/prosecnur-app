@@ -3342,6 +3342,38 @@ establece buscando **por qué** falta, no contando ausencias.
 | Condicionales con test que las cubre | **2** |
 | Sin montaje, declarada | **1** |
 
+### F86 — Aserciones que podían pasar por casualidad
+
+Aplicado a mis propios tests el criterio que vengo usando con el código: **¿esto
+prueba lo que dice probar?** Cuatro aserciones no lo hacían.
+
+| aserción | por qué era débil |
+|---|---|
+| `toContain("10")` · `toContain("120")` | comprobaban que el eje muestra sus extremos, pero un «10» puede venir de cualquier parte del HTML —una clase, otra cifra— |
+| `toContain("CH")` | «CH» aparece decenas de veces en la superficie |
+| `toContain("646")` | podía casar con una clave o con otra cifra |
+| `toContain("propio")` | no distinguía la celda del `title` |
+
+Todas reescritas para comprobar **dentro de su contenedor**: `>10<` en la frase
+de la escala, `</strong> CH` en la cifra, el total dentro del pie de profundidad,
+y `data-propia="true"` seguido del texto en la celda.
+
+**Y verificado con una mutación**, que es la única forma de probar que un guard
+sirve: quité los extremos de la escala del componente y la aserción **falló** con
+el mensaje correcto —«expected 'Escala común del criterio en alumnos…' to contain
+'>10<'»—. Restaurado, todo verde.
+
+Las cuatro seguían pasando antes y después de reforzarlas: **estaban probando lo
+correcto, sólo que de forma que también habría pasado si el código se rompía**.
+Ese es exactamente el falso verde que este loop lleva toda la sesión persiguiendo
+en el producto, aplicado a las herramientas con que lo mido.
+
+| | |
+|---|---:|
+| Aserciones reforzadas | **4** |
+| Mutación verificada | **1** (la escala) |
+| Vitest | **865** en 108 archivos |
+
 ### Estado del loop
 
 | | |

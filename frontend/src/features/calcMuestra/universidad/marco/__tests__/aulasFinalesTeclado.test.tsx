@@ -43,8 +43,11 @@ describe("AulasFinalesCard · coste de teclado", () => {
 
   it("declara cuántos hay y cómo llegar a uno concreto", () => {
     const html = render(646);
-    expect(html).toContain("646");
-    expect(html).toContain("usa el buscador para llegar a uno concreto");
+    // El total se comprueba dentro del pie de profundidad: un «646» suelto podría
+    // venir de una clave o de otra cifra y la aserción pasaría por casualidad.
+    const pie = html.slice(html.indexOf("cmv2-aulas-finales-depth"));
+    expect(pie).toContain("646");
+    expect(pie).toContain("usa el buscador para llegar a uno concreto");
     expect(html).toContain("Ver todos");
   });
 

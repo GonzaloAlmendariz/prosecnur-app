@@ -45,7 +45,7 @@ describe("CategoriaEvidencia", () => {
     // El número es `n_estudiantes_unicos`. En un módulo cuya cabecera separa
     // 21.362 estudiantes de 92.017 matrículas, «alumnos» a secas no dice de qué
     // grano es —y confundir esos dos granos es el error capital aquí—.
-    expect(html).toContain("estudiantes");
+    expect(html).toContain("</strong> estudiantes");
     expect(html).toContain("una persona cuenta una vez");
     expect(html).toContain("Mediana");
     expect(html).toContain("P25");
@@ -78,10 +78,14 @@ describe("CategoriaEvidencia", () => {
     // decoración con aspecto de precisión: peor que no tener eje. Los extremos
     // viajan ahora pegados a cada caja, donde sí alinean.
     const html = renderToStaticMarkup(<EjeCategorias dominio={{ min: 10, max: 120 }} />);
-    expect(html).toContain("Escala común del criterio");
-    expect(html).toContain("alumnos elegibles por curso-horario");
-    expect(html).toContain("10");
-    expect(html).toContain("120");
+    // Los extremos se comprueban DENTRO de la frase de la escala, no sueltos:
+    // un «10» o un «120» pueden venir de cualquier parte del HTML —una clase,
+    // otra cifra— y la aserción pasaría sin probar nada.
+    const nota = /<p class="cmv2-cat-escala-nota">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
+    expect(nota).toContain("Escala común del criterio");
+    expect(nota).toContain("alumnos elegibles por curso-horario");
+    expect(nota).toContain(">10<");
+    expect(nota).toContain(">120<");
   });
 
   it("cada caja lleva los extremos de la escala pegados a ella", () => {
