@@ -3801,6 +3801,60 @@ Duplicación real tras el retiro, medida criterio por criterio:
 renombró a «Cursos-horario que cumplen». El cambio está en el motor y el proceso
 R vivo conserva el código anterior: se verá al próximo arranque.
 
+### F100 — El CSS que sobrevive al marcado
+
+Barrido de clases `cmv2-*` declaradas contra su uso en el marcado. El typecheck
+no mira el CSS, así que cuando un componente cambia de elemento o una pieza se
+retira, sus reglas quedan **válidas y muertas**.
+
+Retiradas las que dejé yo: «Procedencia y contrato» (fuera en F41), la
+radiografía plegada del criterio de estudiante (F40) y el alta genérica de
+excepciones (F24). Doce reglas.
+
+**El barrido falló y ese fallo vale más que el hallazgo.** Mi expresión exigía la
+llave en la misma línea que la clase, y los selectores de `criteriosI18b.css`
+son listas multilínea: informó «0 retiradas» sobre un archivo que sí tenía tres
+bloques muertos. Un falso **negativo** — el reverso de los doce falsos positivos
+de la sesión, y peor, porque cierra la iteración en verde.
+
+### F101 — La revisión manual estaba plegada
+
+Con el instrumento corregido apareció lo de fondo. Un `grep --include=*.tsx` sin
+comillas —zsh se come el glob— había devuelto **0 `<details>`** en el módulo.
+Con comillas: **quince**.
+
+Diez son reales (los otros cinco son cadenas en tests). Dentro del flujo abierto
+cae **Particularidades del marco**, con tres secciones plegadas cuya cabecera
+dice «N detectados · M a excluir · **K sin decidir**», en un panel titulado
+«Casos detectados para tu revisión manual».
+
+La cabecera pide una acción y esconde el único control que la ejecuta. No es un
+detalle de apoyo escondido: es **el trabajo** escondido. Ahora son secciones
+abiertas; con ellas se van tres bloques de `> summary` que estilaban elementos
+que llevaban iteraciones sin ser `<details>`.
+
+Los otros siete viven en Aulas, Definición y Salidas — lotes posteriores. El
+guard **declara** que sólo cubre criterios y marco: un guard que parece cubrir el
+módulo entero y no lo hace es un falso verde con forma de contrato.
+
+| medida | antes | después |
+|---|---:|---:|
+| `<details>` en criterios y marco | 3 | **0** |
+| Filas decidibles alcanzables sin click | 0 | **4 de 4** |
+| Clases `cmv2-*` huérfanas en el módulo | 95 | **83**, con línea base por pestaña |
+
+Guards, ambos probados por mutación: línea base de huérfanas por pestaña que
+sólo puede bajar, y C4 sobre el marcado renderizado **sin interacción**. La
+primera mutación de `<details>` no falló porque rompía el JSX y el run moría
+antes de evaluar — **una mutación que no compila no prueba nada**. Rehecha
+quirúrgica, falla.
+
+Gate: typecheck 0 · 890 pruebas en 111 archivos. Commit `f6970c8b`.
+
+**Siguiente**: los siete `<details>` restantes con su lote (Aulas primero, que
+es el que más esconde: comparador de métodos, lista de riesgo y narrativa del
+descuento secuencial).
+
 ### Estado del loop
 
 | | |
