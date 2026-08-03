@@ -72,7 +72,32 @@ export function FacultadCategoriaToggles({
     : fila.tipos;
   const ocultasN = fila.tipos.length - relevantes.length;
   // Las categorías sin cursos aquí no reciben tarjeta: se nombran abajo.
-  const visibles = hayDistribucion && ocultasN > 0 ? relevantes : fila.tipos;
+  const sinOrdenar = hayDistribucion && ocultasN > 0 ? relevantes : fila.tipos;
+  /*
+   * G37 · Las categorías con más cursos-horario, primero.
+   *
+   * Gonzalo: «las categorías con mayor cantidad de CH siempre van primero en su
+   * criterio». El orden del catálogo es el de la columna de origen —alfabético o
+   * de aparición—, que no dice nada sobre qué decisión pesa: la categoría que se
+   * lleva la mitad del marco podía quedar quinta, debajo de cuatro residuales.
+   *
+   * Ordena por **`chContraste`** —los cursos-horario que la categoría tiene en
+   * esta facultad, estén incluidos o no—, no por `ch` —los que siguen dentro—.
+   * Con `ch` la lista se reordenaría sola a cada conmutador: apagas una y salta
+   * al fondo, y la siguiente que querías tocar ya no está donde la dejaste.
+   * `chContraste` no cambia al decidir, así que el orden es el mismo durante
+   * toda la sesión de ajuste.
+   *
+   * Desempate por etiqueta para que dos categorías del mismo tamaño no bailen
+   * entre renders.
+   */
+  const pesoDe = (t: { key: string; ch?: number | null }) => {
+    const contraste = evidencia?.(t.key)?.chContraste;
+    return contraste ?? t.ch ?? 0;
+  };
+  const visibles = [...sinOrdenar].sort(
+    (a, b) => pesoDe(b) - pesoDe(a) || a.label.localeCompare(b.label, "es"),
+  );
   // Regla 3 del ADR: la escala es del criterio en esta facultad, no de cada caja.
   const dominio = dominioCategorias(visibles.map((t) => evidencia?.(t.key) ?? null));
   return (
