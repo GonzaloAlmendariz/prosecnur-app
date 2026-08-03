@@ -220,3 +220,25 @@
 .cmv2-mtz-grupos th[data-scope="operativo"] { font-style: italic; text-transform: none; letter-spacing: 0; }
 .cmv2-mtz-grupos th + th { border-left: 1px solid var(--cmv2-border); }
 .cmv2-mtz-grupos td { border: 0; padding: 0; }
+
+/*
+ * G12 · El realce del embudo vivo, en la matriz.
+ *
+ * Marca las celdas cuya cifra se movió en el último recálculo. Sólo color: nada
+ * que codifique un valor se anima con `transform` (ADR 0057, patrón 12).
+ */
+.cmv2-mtz-tabla td[data-recalculado="true"] {
+  animation: cmv2-mtz-recalculado 950ms ease-out both;
+}
+@keyframes cmv2-mtz-recalculado {
+  0%   { background-color: color-mix(in srgb, var(--cmv2-accent) 30%, transparent); }
+  100% { background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Quien apaga el movimiento sigue necesitando saber QUÉ cambió: el realce se
+     queda como estado fijo en vez de desaparecer. */
+  .cmv2-mtz-tabla td[data-recalculado="true"] {
+    animation: none;
+    background-color: color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
+  }
+}
