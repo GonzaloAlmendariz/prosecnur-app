@@ -3374,6 +3374,37 @@ en el producto, aplicado a las herramientas con que lo mido.
 | Mutación verificada | **1** (la escala) |
 | Vitest | **865** en 108 archivos |
 
+### F87 — Las reglas del ADR, verificadas rompiéndolas
+
+Aplicada la mutación a los guards que más peso cargan: los que vigilan las reglas
+del ADR 0057. Cada regla se rompió a propósito y se comprobó **que el guard falla
+y con qué mensaje**.
+
+| regla | mutación | el guard falló con |
+|---|---|---|
+| **4** · la radiografía es de curso-horario | reimportar `CategoriaEvidencia` en los criterios de estudiante | «expected … not to contain 'CategoriaEvidencia'» |
+| **2** · la matriz pertenece al Panorama | mover la matriz al final del recorrido | «expected 23840 to be less than 19515» |
+| **3** · escala compartida | devolver la caja a `width: 100%` | «expected … to contain 'min(var(--cmv2-cat-escala), 100%)'» |
+| **transparencia** · nada plegado | convertir los cuantiles en `<details>` | «expected … not to contain '<details'» |
+
+Las cuatro fallaron **por su propia razón**, no por un error colateral, y todas
+restauradas con typecheck en 0.
+
+**Por qué importa que fallen con el mensaje correcto**: un guard que falla por el
+motivo equivocado envía a quien lo rompa a buscar en el sitio equivocado. La
+regla 2, por ejemplo, falla comparando **posiciones en el fuente** —23840 contra
+19515—, que es exactamente lo que la regla afirma: la matriz se declara antes que
+los bloques de facultad.
+
+Con esto, las reglas del ADR dejan de ser afirmaciones y pasan a ser
+**comprobaciones verificadas**: se sabe que sirven porque se las ha visto fallar.
+
+| | |
+|---|---:|
+| Reglas verificadas por mutación | **4** |
+| Aserciones verificadas en F86 | **1** |
+| Vitest | **865** en 108 archivos |
+
 ### Estado del loop
 
 | | |
