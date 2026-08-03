@@ -1,0 +1,122 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+
+import type { CalcMuestraMatrizEmbudo } from "../../../../../api/calcMuestraMatrizEmbudo";
+import { MatrizEmbudoCriterios } from "../MatrizEmbudoCriterios";
+
+const matriz: CalcMuestraMatrizEmbudo = {
+  schema: "calc_muestra_aulas_criterios_matriz_embudo_v1",
+  owner: "calc_muestra_aulas_frame_v1.criterios_radiografia.matriz_embudo",
+  source_schema: "calc_muestra_aulas_criterios_radiografia_v2",
+  frame_hash: "frame-i18",
+  momento: "marco_ejecutado",
+  grain: "facultad_efectiva_x_criterio",
+  unit: "curso_horario_unico",
+  faculty_dimension: "curso_horario_efectiva",
+  columns: [{ criterion_id: "c1", card_id: "sesion", label: "Tipo de sesión", status: "disponible", order: 0 }],
+  rows: [
+    {
+      faculty_key: "derecho",
+      faculty_label: "Derecho",
+      row_kind: "faculty",
+      n_ch_bruto: 20,
+      n_ch_elegibles: 12,
+      cells: [{
+        criterion_id: "c1",
+        status: "disponible",
+        delta: {
+          reference: "marco_ejecutado",
+          action: "reemplazar_regla",
+          reconstruccion_valida: true,
+          delta_ch: -3,
+          delta_matriculas: -72,
+          delta_estudiantes_unicos: -60,
+        },
+      }],
+    },
+    {
+      faculty_key: "__total__",
+      faculty_label: "Total",
+      row_kind: "total",
+      n_ch_bruto: 40,
+      n_ch_elegibles: 25,
+      cells: [{
+        criterion_id: "c1",
+        status: "sin_senal",
+        delta: {
+          reference: "marco_ejecutado",
+          action: "no_aplica",
+          reconstruccion_valida: false,
+          delta_ch: null,
+          delta_matriculas: null,
+          delta_estudiantes_unicos: null,
+        },
+      }],
+    },
+  ],
+};
+
+describe("MatrizEmbudoCriterios", () => {
+  it("mantiene Total visible primero y rotula los impactos como marginales/no aditivos", () => {
+    const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={matriz} rawPresent />);
+    // ADR 0057 · La advertencia se mantiene —es metodológica y evita que alguien
+    // sume columnas—, pero dicha sin vocabulario de método: «marginal» y
+    // «aditivo» son ciertos y no se entienden sin saberlos de antes.
+    expect(html).not.toContain("impactos marginales, no aditivos");
+    expect(html).toContain("No se suman entre columnas");
+    expect(html).toContain("quitando un criterio a la vez");
+    expect(html.indexOf("Total")).toBeLessThan(html.indexOf("Derecho"));
+    expect(html).toContain("-3 CH");
+    expect(html).toContain("-72 matrículas");
+    expect(html).toContain('data-qa-geometry-contract="intrinsic"');
+  });
+
+  it("distingue ausencia de payload y contrato inválido", () => {
+    expect(renderToStaticMarkup(<MatrizEmbudoCriterios matriz={null} rawPresent={false} />))
+      .toContain("Reconstruye el marco para ver qué pasaría");
+    expect(renderToStaticMarkup(<MatrizEmbudoCriterios matriz={null} rawPresent />))
+      .toContain("llegó incompleta");
+  });
+});
+
+describe("MatrizEmbudoCriterios · concordancia en los deltas (F107)", () => {
+  /**
+   * Medido en la app con datos reales: dos celdas mostraban «+1 estudiantes
+   * únicos». Ninguna prueba lo cazó porque **todos los fixtures del módulo
+   * traían valores plurales** —-3, -72, -60—, así que la rama del uno no se
+   * ejecutaba en ningún sitio.
+   *
+   * El valor 1 es un caso límite como lo son 0 y null, y merece fixture propio.
+   */
+  function conDelta(n: number): CalcMuestraMatrizEmbudo {
+    return {
+      ...matriz,
+      rows: [{
+        ...matriz.rows[0],
+        cells: [{
+          ...matriz.rows[0].cells[0],
+          delta: { ...matriz.rows[0].cells[0].delta, delta_ch: n, delta_matriculas: n, delta_estudiantes_unicos: n },
+        }],
+      }],
+    };
+  }
+
+  it("un delta de uno concuerda en singular", () => {
+    const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={conDelta(1)} rawPresent />);
+    expect(html).toContain("+1 matrícula<");
+    expect(html).toContain("+1 estudiante único<");
+    expect(html).not.toContain("estudiantes únicos");
+  });
+
+  it("un delta de menos uno también: el signo no cambia la concordancia", () => {
+    const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={conDelta(-1)} rawPresent />);
+    expect(html).toContain("-1 matrícula<");
+    expect(html).toContain("-1 estudiante único<");
+  });
+
+  it("con más de uno vuelve al plural", () => {
+    const html = renderToStaticMarkup(<MatrizEmbudoCriterios matriz={conDelta(-60)} rawPresent />);
+    expect(html).toContain("estudiantes únicos");
+    expect(html).not.toContain("estudiante único<");
+  });
+});

@@ -6,7 +6,10 @@
  * por tipo de sesión y contraste con la selección de titulares — patrón
  * territorialSummaryModel: el `.tsx` solo presenta.
  */
+import { ordenarPorCursosHorario } from "../criterios/ordenCategorias";
 import type {
+  CalcMuestraAulasCriterioRadiografiaFila,
+  CalcMuestraAulasCriteriosRadiografia,
   CalcMuestraAulasExploracion,
   CalcMuestraAulasExploracionCurso,
   CalcMuestraAulasExploracionFacultad,
@@ -19,6 +22,36 @@ import {
   classroomRowText,
   normalizeUniversityLabel,
 } from "../shared/format";
+
+/* ============================================================================
+   Contrato F1: unión por claves y orden de presentación, sin estadística TS.
+   ============================================================================ */
+
+/**
+ * Filas `session_type` de una facultad. La clave es autoritativa; el label solo
+ * resuelve la clave al consumir la colección desde el Explorador legacy, cuyo
+ * modelo histórico no expone `facultad_key`. No calcula ni agrega cifras.
+ */
+export function filasTipoSesionRadiografia(
+  radiografia: CalcMuestraAulasCriteriosRadiografia | null,
+  facultadKey: string,
+  facultadLabel = "",
+): CalcMuestraAulasCriterioRadiografiaFila[] {
+  if (!radiografia) return [];
+  const keySolicitada = facultadKey.trim();
+  const keyResuelta = keySolicitada || radiografia.filas.find(
+    (fila) =>
+      fila.criterio === "session_type" &&
+      normalizeUniversityLabel(fila.facultad_label) === normalizeUniversityLabel(facultadLabel),
+  )?.facultad_key || "";
+  if (!keyResuelta) return [];
+  return radiografia.filas
+    .filter((fila) => fila.criterio === "session_type" && fila.facultad_key === keyResuelta)
+    .sort((a, b) =>
+      a.categoria_label.localeCompare(b.categoria_label, "es") ||
+      a.categoria_key.localeCompare(b.categoria_key, "es"),
+    );
+}
 
 /* ============================================================================
    Elegibles efectivos: la ÚNICA derivación de la pestaña, con fórmula visible.
@@ -288,8 +321,23 @@ export function tipoSesionShares(
 ): TipoSesionShare[] {
   const total = facultad.por_tipo_sesion.reduce((acc, row) => acc + Math.max(0, row.elegibles), 0);
   if (total <= 0) return [];
-  const ordenadas = [...facultad.por_tipo_sesion].sort(
-    (a, b) => b.elegibles - a.elegibles || a.tipo.localeCompare(b.tipo, "es"),
+  /*
+   * G39 · Ordena por cursos-horario totales, no por alumnos elegibles.
+   *
+   * Gonzalo: «en "Tipo de sesión · radiografía por categoría" recuerda que
+   * quienes tienen más CH totales siempre van primero, en todos los criterios
+   * que lo tengan». Esta tabla ordenaba por `elegibles`, que es otra cosa: un
+   * tipo con pocos cursos-horario muy poblados subía por encima de otro con
+   * muchos cursos pequeños, y la lista dejaba de contestar «qué pesa en el
+   * marco» para contestar «dónde hay más gente».
+   *
+   * Importa además porque `maxRows` recorta por arriba: ordenar por otra cifra
+   * cambia **qué filas sobreviven**, no sólo en qué orden salen.
+   */
+  const ordenadas = ordenarPorCursosHorario(
+    facultad.por_tipo_sesion,
+    (row) => row.ch,
+    (row) => row.tipo,
   );
   const limitadas = maxRows == null ? ordenadas : ordenadas.slice(0, Math.max(1, maxRows));
   return limitadas.map((row) => ({
@@ -374,9 +422,46 @@ export type BoxplotPosiciones = {
  * numéricas de los extremos dan la escala real de cada una. Rango degenerado
  * (min==max, un único valor) ⇒ todo al centro (0.5).
  */
-export function boxplotPosicionesPropias(caja: BoxplotResumen): BoxplotPosiciones {
-  const span = caja.max - caja.min;
-  const frac = (v: number) => (span > 0 ? Math.min(1, Math.max(0, (v - caja.min) / span)) : 0.5);
+/**
+ * Dominio común a un conjunto de cajas.
+ *
+ * F112 · Sin esto cada boxplot mapeaba su propio [min…max] a todo el ancho. La
+ * intención era legítima —una distribución estrecha se lee con el mismo detalle
+ * que una ancha—, pero el precio es que **deja de comparar**: medido en el
+ * marco real, SEMINARIO (18–23) y TEÓRICO (15–156) salían del MISMO ancho, y la
+ * tarjeta las presenta una debajo de otra precisamente para compararlas.
+ *
+ * Es la regla 3 del ADR 0057, que se escribió por este defecto en otra
+ * superficie y aquí seguía vivo.
+ */
+export function boxplotDominioComun(cajas: BoxplotResumen[]): { min: number; max: number } | null {
+  const vals: number[] = [];
+  for (const c of cajas) {
+    for (const v of [c.min, c.max, c.q1, c.q3, c.mediana, c.media]) {
+      if (typeof v === "number" && Number.isFinite(v)) vals.push(v);
+    }
+  }
+  if (!vals.length) return null;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  return max > min ? { min, max } : { min, max: min + 1 };
+}
+
+/**
+ * Posiciones 0..1 de una caja sobre un dominio.
+ *
+ * Con `dominio` la caja se proyecta sobre la escala del criterio y es comparable
+ * con sus hermanas. Sin él cae a su propio rango — se conserva sólo para la
+ * caja que se dibuja sola, donde no hay nada con lo que comparar.
+ */
+export function boxplotPosicionesPropias(
+  caja: BoxplotResumen,
+  dominio?: { min: number; max: number } | null,
+): BoxplotPosiciones {
+  const lo = dominio ? dominio.min : caja.min;
+  const hi = dominio ? dominio.max : caja.max;
+  const span = hi - lo;
+  const frac = (v: number) => (span > 0 ? Math.min(1, Math.max(0, (v - lo) / span)) : 0.5);
   return {
     min: frac(caja.min),
     q1: frac(caja.q1),

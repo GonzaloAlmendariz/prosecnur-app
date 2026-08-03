@@ -27,6 +27,13 @@ const criterios_catalogo = {
       ],
     },
     {
+      id: "enrolled_total",
+      scope: "aula",
+      label: "Matrículas inscritas por curso-horario",
+      kind: "numeric",
+      mappedColumn: "Matriculados",
+    },
+    {
       id: "faculty",
       scope: "alumno",
       label: "Facultad",
@@ -65,8 +72,22 @@ const aulasState = {
     input_mode: "base_madre",
     config: {},
     frame_hash: "hash",
-    aula_frame: [{ classroom_id: "CH-1", faculty: "PSICOLOGÍA", eligible_n: 80 }],
-    audit: [],
+    aula_frame: [
+      {
+        classroom_id: "CH-1",
+        course_name: "Psicología General",
+        faculty: "PSICOLOGÍA",
+        eligible_n: 80,
+        included: true,
+      },
+      ...Array.from({ length: 95 }, (_, index) => ({
+        classroom_id: `CH-${index + 2}`,
+        faculty: "PSICOLOGÍA",
+        eligible_n: 30,
+        included: true,
+      })),
+    ],
+    audit: [{ metric: "classroom_included_n", value: 96 }],
     warnings: [],
     criterios_catalogo,
     exploracion,
@@ -90,12 +111,30 @@ describe("CursosHorarioMarcoTab — vista integrada facultad-primaria", () => {
     expect(html).toContain('data-audit-ready="true"');
     // Barra global de recálculo (único punto que reconstruye el marco).
     expect(html).toContain("Calcular población y cursos-horario elegibles");
-    // Ajustes del marco (lo transversal: mínimo general, tasa, composición c8);
-    // los criterios de set/rango se decidieron por facultad, no aquí.
-    expect(html).toContain("Ajustes del marco");
+    // ADR 0057, regla 1 · Ya no hay sección «Ajustes del marco · transversales».
+    // Esos criterios no admiten override por facultad en el contrato vigente,
+    // pero presentarlos aparte los leía como criterios generales y los sacaba
+    // del embudo. Ahora se montan DENTRO del flujo de la facultad, en su
+    // posición: matriculados abre, mínimo y composición cierran.
+    expect(html).not.toContain("Ajustes del marco");
+    expect(html).not.toContain("Transversales a todas las facultades");
+    // Una variable numérica no representable en el bloque por facultad no se
+    // pierde por `soloAjustes`: conserva aquí su control global editable.
+    expect(html).toContain("Matrículas inscritas por curso-horario");
     // Bloque de la facultad con su radiografía visible (primer bloque abierto).
     expect(html).toContain("PSICOLOGÍA");
-    expect(html).toContain("aulas candidatas");
+    /*
+     * G39 · Aquí había un `toContain("aulas candidatas")`, la frase de la barra
+     * única del recorrido, usada como marca de que el bloque de la facultad se
+     * había montado. La barra se sustituyó por una por criterio y la frase
+     * desapareció.
+     *
+     * No se sustituye por el texto nuevo: las barras sólo se dibujan cuando el
+     * motor publica ese paso en la cascada, y el fixture de este caso no lo hace
+     * —correctamente—. Afirmarlo aquí ataría el caso a una condición que no está
+     * probando. Lo que sí quería comprobar —que el bloque de la facultad y su
+     * radiografía se montaron— ya lo dicen las dos líneas de al lado.
+     */
     // Decisión por facultad presente (mismo criterio que la base global).
     expect(html).toContain("Decisión para esta facultad");
   });

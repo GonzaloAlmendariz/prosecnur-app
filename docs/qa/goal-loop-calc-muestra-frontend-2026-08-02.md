@@ -1,0 +1,4350 @@
+# GOAL — Cálculo de muestra: la superficie deja de ser prosa y vuelve a ser instrumento
+
+Loop permanente abierto por Gonzalo el 2026-08-02. **Solo Gonzalo lo cierra.**
+El estado vive en este documento, no en la conversación.
+
+## Por qué existe este loop
+
+El loop v2 (`goal-loop-calc-muestra-v2-2026-08-01.md`) movió el backend: hoy hay
+contratos R con dueño, tests y fail-closed para criterios, cascada, anclas,
+alumnos por CH y distribución. La superficie no acompañó. En palabras de
+Gonzalo: *«el front end está francamente muy mal hecho y poco elaborado, lleno
+de AI slop, integración pobre y poco dinámica»*.
+
+Los dos loops conviven y no compiten: **el v2 sigue siendo dueño del dato y del
+motor; este es dueño de la superficie.** Cuando un hallazgo de superficie exija
+un cambio de contrato, se anota aquí y se ejecuta allá.
+
+**Referencia de producto (añadida 2026-08-02, indicación de Gonzalo):** la
+dirección visual y conceptual contra la que se afina vive en
+`Obsidian_Prosecnur/Boceto_Calculo_de_Aulas_v2.canvas` — en particular el grupo
+«Marco/Criterios — la vara del v1, explícita» (todos los criterios por
+facultad, boxplot+media como núcleo, ancla histórica por criterio, embudo vivo)
+y el grupo «la Selección se entiende sola». Este loop no reinterpreta esa
+dirección: la ejecuta en la superficie. Prompt de arranque:
+`docs/qa/prompt-goal-loop-calc-muestra-frontend.md`.
+
+## La vara
+
+La superficie de Cálculo de muestra tiene que servir para **decidir con la
+evidencia en la mano, en el mismo sitio y en el momento**. Tres pruebas:
+
+1. **Prueba de la decisión.** Quien decide un criterio ve, sin moverse ni
+   recordar, el detalle que justifica esa decisión. Si hay que cambiar de zona
+   de la pantalla para saber qué recorta un criterio, la superficie falló.
+2. **Prueba del orden.** Lo que es **resultado** de decisiones aparece
+   **después** de las decisiones. Nada que resuma una cascada abre la pantalla.
+3. **Prueba del hueco.** Cada hueco de la pantalla contiene un dato o una
+   afordancia, nunca una frase que parafrasea el título o explica el control
+   que está al lado. *(`feedback_no_sobreexplicar_en_la_ui`.)*
+4. **Prueba del vocabulario (añadida 2026-08-02).** El mismo concepto se llama
+   igual en todas las superficies del módulo, y dos conceptos distintos nunca
+   comparten rótulo sin distinguirse (S7: las dos «Facultad»). Si un término
+   cambia entre pestañas hermanas —o entre la pantalla, el export y el pase a
+   Monitoreo—, la superficie falló aunque cada pantalla suelta se entienda.
+
+Y la regla madre heredada, intacta: **primero el dato, después el gráfico,
+después el brillo.** Este loop no la afloja — la exige en la dirección
+contraria: un dato correcto que no se puede leer tampoco está entregado.
+
+## Mandatos (Gonzalo, 2026-08-02)
+
+**S1 — Decidir y ver son un solo acto.**
+Hoy Criterios tiene tres zonas separadas: los editores de criterio, la consola
+de radiografía con su propio selector de criterio, y los bloques por facultad.
+El selector de criterio y la radiografía **no son dos cosas**: enfocar un
+criterio *es* verlo. La radiografía vive dentro del criterio que se está
+decidiendo, por facultad, no en una consola aparte a la que hay que bajar.
+
+**S2 — El resultado va al final.**
+La matriz de decisión por criterios (matriz marginal / embudo facultad ×
+criterio) es el **resultado** de las decisiones previas y hoy abre la pantalla.
+Se muda al final del recorrido, como cierre y comprobación, no como portada.
+La misma regla se aplica a cualquier resumen que hoy preceda a lo que resume.
+
+**S3 — Cero prosa que no sea dato.**
+Ningún bloque repite su título, explica el control que tiene al lado ni narra
+la afordancia. Un aviso se escribe **una vez**, en un solo lugar. La prosa
+metodológica que sí aporta (por qué el orden de la composición importa, qué
+significa un denominador) se conserva, pero cabe en una línea o vive en un
+detalle abrible — no ocupa el hueco del dato.
+
+**S4 — Los gráficos comparan o no existen.**
+El boxplot percentilar actual se normaliza contra su propio P10–P90, así que
+todas las cajas salen del mismo ancho y **ninguna se puede comparar con otra**;
+no tiene eje, ni escala, ni referencia, y arrastra una leyenda idéntica debajo
+de cada gráfico. Un boxplot que no permite comparar facultades no es un
+boxplot: es un adorno. Se rehace sobre escala compartida, con eje legible,
+referencia visible (mediana o media del total) y leyenda una sola vez por
+bloque.
+
+**S5 — Dinámico de verdad, no animado.**
+Dinámico significa que la pantalla **responde a lo que estoy decidiendo**:
+enfocar un criterio actualiza aguas abajo a la vista, el hover adelanta el
+delta contrafactual, el orden de recorte se ve y se puede interrogar. El
+contrato R para eso ya existe (cascada viva, preview no persistente, delta
+contrafactual). Está en el payload y no en la pantalla. Animación sin respuesta
+es brillo antes del dato y no cuenta.
+
+**S6 — El barrido es de la sección entera, no de una pestaña.**
+Criterios es el ejemplo que Gonzalo dio, no el alcance. Marco, Cálculo,
+Selección, Datos y Entrega pasan por la misma vara. Cada lote toma una sección
+completa.
+
+**S7 — Una categoría es una sola cosa (Gonzalo, 2026-08-02: «noto
+contradicciones, categorías que mezclan nombres o mezclan cursos con
+facultades»).**
+Medido sobre `criterios_catalogo` del proyecto de referencia, la observación es
+literal y tiene cuatro formas distintas:
+
+- **Dos «Facultad» bajo la misma palabra.** El catálogo publica `faculty` con
+  `dim=alumno` (ESTUDIOS GENERALES LETRAS, DERECHO, ARQUITECTURA Y
+  URBANISMO…), mientras las tarjetas de radiografía agrupan por
+  `faculty_dimension = curso_horario_efectiva`. Son **la facultad del alumno**
+  y **la facultad que dicta el curso** — conceptos distintos, ambos rotulados
+  «Facultad» en pantalla. Quien lee no puede saber cuál está mirando.
+- **La misma dimensión anonimizada en una superficie y en claro en otra.** En
+  el mismo proyecto, `criterios_catalogo.faculty` trae los nombres reales
+  mientras Cobertura y la radiografía muestran «Andres», «Elena Diego»,
+  «Nestor DE POSGRADO», «Karina Y Elena DE LA Jimenez.» — el anonimizador
+  sustituyó palabra a palabra en un camino y no tocó el otro. Es a la vez un
+  defecto de consistencia y un riesgo de fixture.
+- **Categorías que son varias categorías dentro de una etiqueta.**
+  `session_type` publica `TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)` y
+  `condition` publica `INGRESO(EV.TAL,1OP,CEPR,ITS,PAEE,BACH,EX.ING)`: tres y
+  siete valores concatenados que la UI muestra crudos como si fueran uno.
+- **Una variable con dos taxonomías dentro.** `condicion_curso` mezcla la
+  condición del curso (OBLIGATORIO, ELECTIVO, ELECTIVO-OBLIGATORIO) con su
+  área o tipo (ARTES, SEMINARIO DE INTEGRACIÓN, TEMAS DE PROFUNDIZACIÓN,
+  REQUISITO PARA EGRESO DE EEGG). Y `modality` mezcla vocabularios —
+  «Presencial», «Semipresencial», «A distancia» en capitalización de frase y
+  «VIRTUAL» en mayúsculas, con «VIRTUAL» y «A distancia» probablemente el
+  mismo concepto desde dos fuentes.
+
+La regla: **cada dimensión se nombra por lo que es y se muestra una sola vez
+con un solo vocabulario.** Si dos conceptos distintos comparten palabra, la
+pantalla los distingue; si una etiqueta esconde varias categorías, la pantalla
+lo dice; si la fuente trae vocabularios mezclados, se canoniza con dueño y se
+rotula la agrupación. Nada de esto se resuelve inventando en React: lo que sea
+del dato se pide al loop v2.
+
+## Invariante
+
+**Ninguna iteración cierra sin haberse visto en el proyecto de referencia
+abierto tal cual está, y ninguna deja la pantalla con más palabras que datos.**
+Cada iteración mueve al menos una fila del ledger estrictamente a mejor;
+igualar no cierra la iteración.
+
+Corolario heredado del v2 y aprendido a la mala: **un artefacto reconstruido
+mide rendimiento y prueba contratos; no acredita una capacidad.** Si la
+capacidad exige un estado que el proyecto de referencia no tiene, llevarlo a
+ese estado es parte del trabajo.
+
+## Regla de no detención (explícita, pedida por Gonzalo)
+
+El loop **no se detiene por nada**. En concreto:
+
+1. **No se detiene por una decisión.** Lo que exija criterio de Gonzalo va a la
+   bandeja con opciones y recomendación, y el loop sigue con lo desbloqueado.
+   Máximo una decisión nueva por iteración.
+2. **No se detiene por el motor.** Si el dato no llega porque el backend está
+   roto (hoy: reconstruir el marco deja 0 elegibles, ver el v2), el loop
+   **no espera**: anota el bloqueo en el v2, se procura un estado sembrado
+   —fixture propio, seed script o recuperación— y sigue trabajando la
+   superficie contra ese estado. Auditar sobre pantallas vacías no es auditar.
+3. **No se detiene por un veto.** Un veto de revisión se repara dentro del
+   mismo lote y se vuelve a presentar; no abre una iteración nueva ni congela
+   la cola.
+4. **No se detiene por alcance.** Si un lote descubre más defectos de los que
+   cabe cerrar, cierra los afines y **encola el resto con su medición**; nunca
+   deja el lote a medias sin escribir qué quedó fuera.
+5. **Sí se detiene por evidencia.** La única razón legítima para no cerrar una
+   iteración es que el gate esté rojo. Eso no detiene el loop: detiene el
+   cierre.
+
+## Estado de observación (el instrumento)
+
+Ningún `.pulso` del repo contenía la radiografía por facultad: los seis estados
+probados el 2026-08-02 traen `eligible_student_rows=106013`,
+`classroom_included_n=2373` y **cero** `criterios_radiografia`. Reconstruirlos
+daba 0 elegibles. **Sin instrumento no hay loop visual**, así que el paso 0 fue
+conseguirlo.
+
+### Por qué no se podía reconstruir (causa medida, 2026-08-02)
+
+No era el motor. Reproducción headless con la config guardada y la base del
+propio `.pulso`, criterio a criterio sobre las 136.284 filas:
+
+| criterio de alumno | filas que pasan |
+|---|---:|
+| `condition` | 124.167 |
+| `formation` | 125.003 |
+| `age` | 123.360 |
+| `level` | 136.284 |
+| **`faculty`** | **0** |
+
+El anonimizador reemplazó la facultad del alumno en la base por nombres de
+persona («Andres», «Nestor DE Ricardo Diana», «Karina, Karina Y Karina») y dejó
+intactos en `criterios_seleccion` los quince slugs de las facultades reales
+(`estudios_generales_letras`, `derecho`, …). Ningún valor puede casar nunca. El
+manifiesto declara `anonimizacion.aplicada: true` con 13 tablas tocadas; la
+config de criterios y `criterios_catalogo` no estaban entre ellas. **Es la
+misma contradicción que Gonzalo señaló en S7, vista desde el motor.**
+
+### El instrumento (declarado)
+
+`hsvg2026-seed-radiografia.pulso`, derivado de
+`outputs/reference-runs/hsvg2026-20260801-122927/hsvg2026.pulso` con el guion
+`seed.R` del scratchpad de la sesión. Única reparación: **liberar el criterio
+de facultad**, que la base anonimizada no puede casar. Los otros cuatro
+criterios de alumno quedan intactos.
+
+- Marco construido en **148,7 s**; `eligible_student_rows = 106.013` — **la
+  cifra exacta del frame guardado**, que es la prueba de que la reparación es
+  la correcta y no un atajo.
+- `population_n = 21.362`, `classroom_n = 5.263`,
+  `classroom_included_n = 2.799`, `excluded_rows = 30.271`.
+- Publica `criterios_radiografia` (con `matriz_embudo`), `criterios_totales`,
+  `criterios_cascada`, `alumnos_por_ch` y `criterios_anclas_historicas`.
+
+**Ancla histórica cargada (pedido de Gonzalo, 2026-08-02).** El instrumento
+incorpora además el Excel de control 2025 —`Historico 2025/Hostigamiento PUCP
+2025_BD Aulas Agendadas-6.xlsx`, hoja **«Base de control»** (cabecera agrupada
+en la fila 1, cabecera real en la 2)— para verificar que los elementos de
+asistencia histórica cargan bien. **Cargan, y reproducen las cifras canónicas:**
+
+| eslabón | numerador / denominador | tasa | IC 95 % | k |
+|---|---:|---:|---|---:|
+| Asistencia | 4.792 / 6.861 | **0,698** | 0,668–0,729 | 190 |
+| Completitud | 3.610 / 4.792 | **0,753** | 0,709–0,794 | 190 |
+| Validez | 3.223 / 3.610 | **0,893** | 0,878–0,907 | 190 |
+| Producto (τ) | 3.223 / 6.861 | **0,470** | 0,439–0,503 | 190 |
+
+Los tres eslabones coinciden con los del boceto v2; el producto se calcula
+directo (3.223/6.861), no multiplicando factores redondeados, de ahí 0,470
+frente al 0,469 del canvas. Cobertura 194 agendados → 192 aplicados → 190
+observados. La identidad `A = E + no_respondieron` se verifica en 142 filas con
+**0 inconsistencias**. Publica cuatro dimensiones —tamaño, rango horario,
+facultad (15 celdas) y tipo de sesión— con IC por bootstrap percentil
+(n=2.000). Solo viaja el agregado: el Excel crudo tiene nombres, teléfonos y
+correos de docentes y **no entra al `.pulso`**.
+
+**Lo que el ancla no puede hacer, y por la misma causa de siempre:** las 243
+filas de `criterios_anclas_historicas` salen `match_level = "incompatible"`
+porque la facultad de 2026 viene anonimizada («andres», «karina_e_karina») y la
+referencia de 2025 trae las quince facultades reales. La degradación se rotula
+honestamente —«El criterio no comparte una característica compatible con la
+referencia»— así que el contrato se comporta bien; lo que no se puede es
+acreditar el emparejamiento sobre este fixture. Es la tercera superficie donde
+muerde la misma contradicción del anonimizador.
+
+**Qué NO certifica:** las cifras canónicas del estudio (el criterio de facultad
+está liberado, así que `classroom_included_n` difiere de los 2.373 del frame
+guardado) ni las etiquetas de facultad, que son seudónimos. **Qué sí
+certifica:** que la superficie recibe distribuciones, denominadores, cascada y
+anclas reales, y por lo tanto que se puede juzgar como instrumento.
+
+La reparación de fondo —que `pulso_anonimizar.R` reescriba a la vez base,
+config de criterios y catálogo, o se niegue a anonimizar una dimensión que otra
+tabla referencia por slug— **es del loop v2** y ya está anotada allí.
+
+### Hallazgo caído del paso 0: los criterios viven en dos sitios
+
+Sembrar el instrumento destapó un defecto que no se buscaba. Los criterios de
+selección están persistidos **por duplicado**:
+
+- `calc_muestra_aulas_config.criterios_seleccion` (config de sesión, la que
+  consume el motor R), y
+- `calc_muestra_estudio.workspace.aulas_config.criterios_seleccion` (copia del
+  workspace, la que consume la UI para juzgar frescura).
+
+Al corregir solo la primera, la superficie quedó **permanentemente** en «Los
+criterios cambiaron — el marco vigente ya no los refleja» contra un marco
+construido por el motor con esa misma config. Y en el proyecto original ese
+mismo aviso estaba **enmascarado**: el ternario de estado
+([CursosHorarioMarcoTab.tsx:322](../../frontend/src/features/calcMuestra/universidad/marco/CursosHorarioMarcoTab.tsx#L322))
+evalúa `criteriosRadiografiaF1Pendiente` antes que `marcoDesactualizado`, así
+que la falta de radiografía tapaba la discrepancia de criterios.
+
+Dos consecuencias, ninguna cosmética: **una decisión con dos dueños puede
+divergir en silencio**, y **un mensaje de estado que enmascara a otro esconde
+exactamente el que importa**. Va a la cola como S1c y se coordina con el v2 si
+el dueño único tiene que definirse en el backend.
+
+Observación menor del mismo camino: el slug de «ARTE Y DISEÑO» es
+`arte_y_dise_no` — la ñ introduce un separador espurio en `.cm_aulas_text_key`.
+Hoy es inocuo porque ambos lados slugifican igual, pero cualquier comparación
+contra un slug escrito a mano fallará.
+
+Direcciones canónicas de este loop:
+
+```
+calc-muestra/opinion-universitaria/marco/marco-criterios-alumno
+calc-muestra/opinion-universitaria/marco/marco-ch-radiografia
+calc-muestra/opinion-universitaria/marco/marco-alumnos-ch
+calc-muestra/opinion-universitaria/calculo/calculo-distribucion
+calc-muestra/opinion-universitaria/aulas/*
+```
+
+Viewports de juicio: **1440×1000** y **1024×600**.
+
+## Ledger
+
+**Baseline definitivo: medido sobre el instrumento**, no sobre pantallas
+vacías. `hsvg2026-seed-radiografia.pulso`, Marco → «Criterios del estudiante» y
+«Cursos-horario: criterios + radiografía», 1440×1000, panel `cmv2-tab-panel`.
+Las cifras de la primera pasada (26 % de prosa, 4,6 pantallas) medían la
+pestaña **sin radiografía**; con dato real el tamaño del problema es otro y
+esas quedan como histórico, no como línea base.
+
+| Métrica sobre el instrumento | Apertura | Hoy | Dirección |
+|---|---:|---:|---|
+| Alto del panel de Criterios del estudiante en 1440×1000 (645 px visibles) | **30.406 px = 47 pantallas** | **7.434 px = 11,5 pantallas** | ≤ 2 pantallas con la decisión a la vista |
+| Segmentos sin CH que ocupan el mismo espacio que uno con distribución | **68** | **0** (se declaran en una línea) | 0 |
+| Párrafos de prosa ≥ 60 car. · palabras · repetidos | **22 · 234 · 18 copias del mismo aviso** | **5 · ~70 · 0 repetidos** | 0 repetidos |
+| Leyendas de gráfico repetidas | **1 por figura (43)** | **0 por figura · 1 por bloque** | 1 por bloque |
+| Boxplots comparables entre sí (escala compartida) | **0 de 43**; todas las cajas del mismo ancho | **43 de 43**; 32 anchos distintos medidos en pantalla | todos |
+| Controles distintos para enfocar el mismo criterio | **2** (`<select>` + fila de chips, contiguos) | **1** (la tira, con el estado en el chip) | 1 |
+| Pasos de la tarjeta que abren con procedencia en vez de dato | **1 de 6** (`Dato`: hash, owner, grano, unidad, capa) | **0 de 5**; la tarjeta abre en Distribución | 0 |
+
+Hallazgos nuevos que solo aparecen con dato:
+
+- **El paso «Dato» muestra la procedencia, no el dato.** Lo primero que se lee
+  de cada criterio es `Marco aa0ff9e1…`, `Momento marco_ejecutado`, `Gate
+  formation`, `Owner calc_muestra_aulas_construir_v1.filas_alumno`, `Grano
+  alumno_x_curso_horario_x_facultad`, `Unidad alumno_unico_por_curso_horario`,
+  `Capa marco`. Son los internos del contrato R renderizados como contenido
+  principal.
+- **Las tarjetas vacías ocupan el mismo espacio que las llenas.** En Modalidad
+  de una facultad, 3 de 4 categorías dicen «Sin distribución percentilar
+  publicable» con NA en los seis estadísticos y se llevan el 75 % del ancho; la
+  única con datos (639 CH) recibe el 25 %.
+- **Dos cifras para la misma categoría en la misma pantalla:** la tarjeta dice
+  `CH 639 · Contraste total: 849 CH` y el conmutador de abajo dice
+  `PRESENCIAL — 849 CH`. Sin rótulo que distinga elegibles de total.
+- **Vocabulario normalizado a mayúsculas en la UI**, lo que esconde que la
+  fuente mezcla («Presencial»/«VIRTUAL» en el catálogo) y que `VIRTUAL` y
+  `A DISTANCIA` son probablemente el mismo concepto — ambos con 0 CH.
+
+Baseline histórico (pestaña sin radiografía, 2026-08-02):
+
+| Métrica | Apertura (2026-08-02) | Hoy | Dirección |
+|---|---:|---:|---|
+| Avisos consecutivos que dicen lo mismo antes del primer dato | **3** (banner amarillo + tarjeta de recuperación + vacío de la matriz) | 3 | 1 |
+| Proporción de palabras que son prosa explicativa en la pestaña | **26 %** (253 de 965 palabras, en 8 párrafos ≥ 80 caracteres) | 26 % | ≤ 10 % |
+| Posición del resultado (matriz marginal) en el recorrido | **3.º de 7 bloques**, antes de toda decisión | 3.º | último |
+| Zonas distintas donde se enfoca y se decide un criterio | **3** (editores globales · consola con selector propio · bloques por facultad) | 3 | 1 |
+| Alto del panel de Criterios en 1440×1000 | **2.969 px sobre 645 px visibles = 4,6 pantallas** | 4,6 | ≤ 2 con la decisión completa a la vista |
+| Boxplots comparables entre sí (escala compartida + eje) | **0**; cada caja se normaliza contra su propio P10–P90, sin eje ni escala | 0 | todos |
+| Leyendas de gráfico repetidas | **1 por gráfico** (≈ 260 repeticiones con payload completo) | 1 por gráfico | 1 por bloque |
+| Capacidades dinámicas publicadas por R y ausentes en pantalla | **3** (delta contrafactual en hover, orden de recorte interrogable, cascada al enfocar) | 3 | 0 |
+| Conceptos distintos que comparten rótulo en pantalla | **1** («Facultad» = facultad del alumno y facultad efectiva del curso) | 1 | 0 |
+| Dimensiones publicadas con dos representaciones en el mismo proyecto | **1** (facultad: en claro en `criterios_catalogo`, anonimizada en Cobertura y radiografía) | 1 | 0 |
+| Etiquetas de categoría que esconden varias categorías | **2** (`session_type` TEORICO(…) con 3; `condition` INGRESO(…) con 7) | 2 | 0 declaradas sin rotular |
+| Variables con dos taxonomías o dos vocabularios mezclados | **2** (`condicion_curso` condición + área; `modality` con «VIRTUAL» fuera de vocabulario) | 2 | 0 |
+| Superficies del módulo pasadas por la vara | **0 de 23** | **24 de 24**, reauditadas con la vara del grano | 24 de 24 |
+| Facultades cuyos criterios de CH se ven a la vez | **1 de 17** (acordeón, 1.962 px cada una) | **17 de 17** en 775 px, escala común | todas |
+| Resultados que abren o esconden el recorrido en vez de cerrarlo | **1** (matriz plegada a 36 px y desaconsejada) | **0** (cierre nombrado con su tamaño) | 0 |
+| Encabezados que publican la clave técnica del gate | **9** (`MODALITY …`, tres empezando por `COMPOSITION`) | **0** (la clave vive en el `title`) | 0 |
+| Lotes de la cola cerrados | **0 de 13** + 5 transversales | **12 de 13** (S1–S7, S9–S13) + T1, **T6, T7**, T4 desbloqueada, **D10 ejecutada** | 13 + 7 |
+| Superficies bloqueadas por no poder ejecutar el cálculo | **7** | **0**; el cálculo publica resultado completo | 0 |
+| Facultades que impiden cuadrar componentes y contrato | **15 sobrantes + 17 faltantes** | **0** | 0 |
+| Controles bloqueados que no nombran la pieza que falta | **1** (Confirmar decisión, en silencio) | **0** | 0 |
+| Elementos con desborde o ancho 0 a 1024×600 en Criterios | **1.006 / 987** | **0 / 0** | 0 |
+| Controles que deciden contra el conteo del catálogo en vez del aporte al marco | **31** (todas las categorías planas) | **0**; cada una publica elegibles y CH del marco | 0 |
+| Gráficos comparables fuera de la radiografía de criterios | **0** | **16** tiras en Alumnos por CH sobre escala común con Total de referencia | todos |
+| Columnas que producen la decisión y no caben en el viewport | **1** («Valor elegido», tabla 1.331 px en 1.268 px) | **0** (tabla 1.268 px = contenedor) | 0 |
+| Unidades del loop sin commitear | **5** (F1–F5 en el árbol) | **0** (`73c60e08`, `80cb6391`) | 0 |
+| Estado sembrado con radiografía real, declarado y reproducible | **no existe** | no existe | existe y está documentado aquí |
+| Hallazgos de superficie abiertos | 9 | 9 | = 0 |
+
+## Cola de lotes — las 23 superficies del módulo
+
+El loop v2 construyó dato y contrato para las cinco secciones del escritorio
+universitario. Este loop las pasa **todas** por la vara, sin dejar ninguna
+fuera. Una iteración = una fila. El orden es por dependencia, no por gusto: se
+empieza por donde se decide y se termina por donde se entrega.
+
+### Bloque A — Marco (donde se decide)
+
+| # | Lote | Superficies | Qué entrega | Estado |
+|---|---|---|---|---|
+| **S1** | Criterios es una sola superficie de decisión | `marco-criterios-alumno` · `marco-ch-radiografia` | Instrumento sembrado · el dato abre la tarjeta · un solo control de enfoque · pasos recorribles · gráficos comparables · vacíos que no ocupan espacio | **activa** — lotes 1 y 2 cerrados (47 → 11,5 pantallas); falta la fusión decidir↔ver y la poda de prosa |
+| **S2** | Alumnos por CH decide con la distribución delante | `marco-alumnos-ch` | El estadístico (media/mediana/P25) se elige **viendo** la distribución de la que sale, por facultad, sobre la escala compartida de S1; el vacío contiene su propio hueco (hoy ~60 % del viewport en blanco) | en cola |
+| **S3** | La matriz embudo cierra el recorrido | matriz marginal + `CriteriosEmbudoVivo` | El resultado va al final (S2 del mandato) y se lee como cierre: qué recortó cada criterio, en qué orden, cuánto queda. Hoy el enlace transversal mide 36 px al pie y nadie lo abre | en cola |
+| **S4** | Marco responde a lo que decido | los tres hogares de Marco | Cascada al enfocar, hover-delta contrafactual y orden de recorte interrogable — **el contrato R ya publica los tres** y ninguno llega a la pantalla | en cola |
+| **S5** | Población, Cursos-horario y Cobertura por la vara | `marco-poblacion` · `marco-aulas` · `marco-cobertura` | Barrido de prosa y de denominadores: Cobertura publica hoy «13.498 / 38.749» bajo «Alumnos por facultad» con la cabecera en 21.365/29.090 — tres denominadores para «alumnos» en una pantalla | en cola |
+
+### Bloque B — Cálculo (donde se dimensiona)
+
+| # | Lote | Superficies | Qué entrega | Estado |
+|---|---|---|---|---|
+| **S6** | Diseño y Propuestas se entienden solos | `calculo-diseno` · `calculo-propuestas` | La fórmula y sus parámetros como decisión legible, no como ficha; cuotas por facultad comparables entre sí | en cola |
+| **S7** | CH requeridos y Distribución densifican sin ruido | `calculo-ch-facultad` · `calculo-distribucion` | I19 dejó el dato R-owned (precisión, sensibilidad OFAT); la superficie debe leerse sin memorizar. Pendiente medido de I19: scroll anidado manual en CH y geometría no declarada en Distribución | en cola |
+| **S8** | El comparador P1↔P2 se retoma o se retira | `CalculoComparacionEscenarios` | I20 quedó **vetado y sin commitear** en el árbol. Se rehace sobre el contrato R sin aritmética recreada en React, o se retira con su porqué escrito. No se deja a medias | en cola |
+
+### Bloque C — Selección (donde se sortea)
+
+| # | Lote | Superficies | Qué entrega | Estado |
+|---|---|---|---|---|
+| **S9** | Objetivo y Método cuentan una historia | `objetivo` · `metodo` | I17 invirtió la jerarquía y narró los métodos; falta pasarlos por S3 (prosa) y S4 (los gráficos comparan) | en cola |
+| **S10** | Simulación y Selección se leen a escala | `laboratorio` · `seleccion` | El mapa de la muestra existe (175 titulares virtualizados); falta que la simulación y el mapa compartan escala y lectura | en cola |
+| **S11** | Reemplazos y Sustento defienden | `reemplazos` · `auditoria` | Profundidad de reserva de un vistazo; el sustento como defensa legible, no como volcado de campos | en cola |
+
+### Bloque D — Datos y Entrega (donde entra y sale)
+
+| # | Lote | Superficies | Qué entrega | Estado |
+|---|---|---|---|---|
+| **S12** | Datos por la vara | `def-estudio` · `def-bases` (Fuentes + Consistencia) · `def-variables` | Incluye ejecutar **D10**: Consistencia como pestaña propia inmediatamente después de Fuentes, con aliases y regresiones | en cola |
+| **S13** | Entrega por la vara | `salidas-guia` · `salidas-resultados` · `salidas-entregables` · `salidas-monitoreo` | La ficha de cierre como resumen defendible; el pase a Monitoreo sin prosa que narre el botón | en cola |
+
+### Transversales (se intercalan en el lote que abra la superficie)
+
+| # | Lote | Mandato | Estado |
+|---|---|---|---|
+| **T1** | Una categoría es una sola cosa | S7 | **inmediata** — dos «Facultad» bajo la misma palabra, etiquetas que esconden varias categorías, vocabularios mezclados y la doble representación anonimizada/en claro |
+| **T2** | Los gráficos comparan, en todo el módulo | S4 | parcial — hecho en la radiografía de criterios; falta el barrido de `marcoCharts`, Distribución, Simulación y el mapa |
+| **T3** | Cero prosa que no sea dato, en todo el módulo | S3 | **abierta** — 31 % en Criterios del estudiante; las reglas metodológicas compartidas se dicen una vez, no una por tarjeta |
+| **T4** | Instrumento y fixture honestos | invariante | **desbloqueado en el instrumento (F15)**: los estratos se reconstruyen desde el marco sembrado y suman 21.362, la cifra de la cabecera. La reparación de fondo del anonimizador sigue siendo del loop v2 |
+| **T6** | La radiografía embebida es responsiva | S1/C4 | **cerrada en F9** — causa real: el bloque de señal conservó `display: flex` al pasar a `<details>` y colapsaba su rejilla a 0 px. 1.006 → 0 desbordes |
+| **T7** | «Confirmar decisión» de Alumnos por CH persiste | invariante | **cerrada en F14** — un método guardado vacío deshabilitaba en silencio el botón que reparaba el estado; y dos facultades con 0 CH bloqueaban el gate. La decisión ya persiste con su schema |
+| **T5** | Lo que la evidencia pida | — | abierto |
+
+**La cola es el orden de trabajo, no el final del loop.** Ver «Numeración e
+indefinición» en la mecánica: las iteraciones son `F1`, `F2`, `F3`… sin número
+previsto, y al vaciar S13 se reaudita desde S1 con la vara más alta. Solo
+Gonzalo cierra.
+
+**Estado de la cola al 2026-08-02:** `F1`–`F5` cerraron **S1** (commit
+`73c60e08`); `F6` cerró **S2** (commit `80cb6391`). T1 queda aplicado en
+Criterios y sigue abierto para el resto del módulo.
+
+**Bloque A (Marco) completo**: S1–S5 cerradas, seis superficies por la vara.
+**S6 quedó parcial**: Diseño afinado; Propuestas bloqueada por un defecto de
+contrato que va al loop v2 (la decisión de Alumnos por CH se persiste con
+`schema` y `frame_hash` vacíos y el cálculo la rechaza siempre).
+
+Siguiente iteración **`F14`**: **T7 — «Confirmar decisión» persiste**. Es el
+eslabón que gatea siete superficies del plan (Propuestas, Objetivo, CH
+requeridos, Distribución, Selección, Reemplazos y Entrega); mientras no
+persista, esas superficies no se pueden auditar con dato y encolarlas una por
+una solo repetiría el mismo muro.
+
+## Mecánica de cada iteración
+
+Una iteración = **un lote entregable**: una superficie completa o un barrido de
+defectos afines en todo el módulo. Nunca un defecto suelto.
+
+**Numeración e indefinición (Gonzalo, 2026-08-02).** Las iteraciones se numeran
+`F1`, `F2`, `F3`… de forma **indefinida**: no hay un número previsto de
+iteraciones ni una fecha de cierre. La cola de 13 lotes + 5 transversales es el
+orden de trabajo, **no el final del loop**. Cada iteración:
+
+1. toma la primera fila desbloqueada de la cola (o intercala un transversal si
+   abre esa superficie);
+2. audita, contrata, implementa, deja guard y pasa su gate;
+3. escribe su fila en el registro de abajo y mueve al menos una fila del ledger
+   estrictamente a mejor;
+4. **decide en su última acción si el loop continúa**, y lo dice.
+
+**Cómo termina este loop: solo cuando Gonzalo lo dice.** Ni el gate verde, ni la
+cola vacía, ni una iteración sin hallazgos lo cierran. Al vaciar S13 se vuelve a
+auditar desde S1 con la vara más alta — porque la vara sube a medida que la
+superficie mejora, y lo que hoy pasa por aceptable dejará de pasarlo. Las tres
+únicas cosas que interrumpen una iteración son: un gate rojo (detiene el
+**cierre**, no el loop), una decisión que solo Gonzalo puede tomar (va a la
+bandeja y el loop sigue con lo desbloqueado), y que Gonzalo diga «para».
+
+1. **Auditar es el paso 1, no una iteración.** `/ver-ui` sobre la dirección
+   canónica con el estado sembrado, hallazgos con `archivo:línea` y **una
+   medición por hallazgo**. «Se ve mal» no es un hallazgo; «cada boxplot se
+   normaliza contra su propio rango, 0 comparables» sí lo es.
+2. **Contrato proporcional.** Superficie: 10–15 líneas. Si toca contrato R,
+   contrato largo y se coordina con el loop v2.
+3. **Peaje estructural de entrada.** Lo tocado de un archivo grande se extrae
+   antes; componente nuevo en archivo nuevo.
+4. **Dejar guard.** Un test que falle solo cuando vuelva el defecto:
+   `data-qa-geometry-group`, contrato de payload, o una aserción de superficie.
+   Un barrido de prosa deja su propia medición automatizable.
+5. **Gate proporcional.** Typecheck + Vitest del feature + `/ver-ui` en los dos
+   viewports. Si tocó dato, los `test-calc_muestra*` afectados. Verificar de
+   más también es deuda.
+6. **Registrar aquí.** Ledger y registro de iteraciones. El estado vive en este
+   doc.
+
+## Bandeja de decisiones (solo Gonzalo)
+
+Vacía al abrir.
+
+## Registro de iteraciones
+
+### Scope lock S1 — «Criterios es una sola superficie de decisión»
+
+- **Categoría:** superficie F1/F3 con dependencia de instrumento. Mandan S1, S2
+  y S3.
+- **Módulo y direcciones:** Cálculo de muestra > Universidad > Marco, en los dos
+  hogares de criterios (`marco-criterios-alumno` y `marco-ch-radiografia`).
+- **Divergencias medidas (2026-08-02):**
+  - Tres avisos consecutivos con el mismo mensaje abren la pantalla: banner
+    amarillo, tarjeta «RADIOGRAFÍA POR FACULTAD PENDIENTE» con tres líneas de
+    prosa, y el vacío de la matriz que lo repite por tercera vez.
+  - «Matriz marginal por facultad» ocupa el bloque 3 de 7, antes de que se haya
+    decidido un solo criterio.
+  - El criterio se enfoca en la consola (`CriteriosRadiografiaConsola.tsx`, su
+    propio `<select>`), se decide en los editores globales y se ajusta otra vez
+    en el bloque por facultad: tres zonas para un acto.
+  - 253 de 965 palabras (26 %) son prosa explicativa; el panel mide 2.969 px
+    con 645 px visibles.
+- **Capacidad de salida:** enfocar un criterio *es* verlo. Cada criterio se
+  decide con su radiografía por facultad en la misma superficie y en el mismo
+  momento; la matriz cierra el recorrido; los avisos se dicen una vez.
+- **Instrumento (paso 0, no negociable):** conseguir y **declarar aquí** un
+  `.pulso` sembrado con `criterios_radiografia` real, con su procedencia y sus
+  límites. Si el motor lo impide, se anota el bloqueo en el loop v2 y se siembra
+  igual: el loop no se detiene.
+- **Owners previstos:** `CriteriosRadiografiaConsola.tsx`,
+  `CriteriosRadiografiaCardDetalle.tsx`, `CriteriosMarcoTab.tsx`,
+  `CursosHorarioMarcoTab.tsx`, `MatrizEmbudoCriterios.tsx` y sus CSS. Todo
+  bloque extraíble nace en archivo nuevo.
+- **A preservar:** los contratos R de I16/I18b (React valida y presenta, no
+  calcula), la navegación canónica, el trabajo sin commitear de la otra sesión,
+  el `.pulso` original y los puertos del usuario.
+- **Fuera:** rehacer los gráficos (va en S2), tocar el motor, el comparador I20
+  y la mudanza D10.
+- **Riesgo principal:** confundir «menos texto» con «menos información», o
+  fusionar zonas perdiendo la decisión por facultad que sí funciona.
+- **Gate:** typecheck, Vitest del feature, `/ver-ui` en 1440×1000 y 1024×600
+  sobre el estado sembrado, y las cinco filas del ledger de esta iteración
+  medidas antes y después.
+- **Stopping rule:** una sola zona de decisión por criterio con su radiografía
+  por facultad dentro; matriz al final; un aviso por mensaje; prosa ≤ 10 %;
+  panel ≤ 2 pantallas con la decisión completa a la vista; gate verde; ledger y
+  registro actualizados; commit atómico.
+
+### F1 — Instrumento y el dato al frente (S1, 2026-08-02)
+
+| Qué se hizo | Evidencia | Ledger movido |
+|---|---|---|
+| **Instrumento.** Diagnóstico headless criterio a criterio localizó la causa del marco en cero (`faculty` 0/136.284 por la contradicción del anonimizador) y se sembró `hsvg2026-seed-radiografia.pulso` con radiografía, totales, cascada, alumnos/CH y anclas. Se le incorporó el Excel de control 2025 («Base de control») para verificar la asistencia histórica. | `eligible_student_rows = 106.013` reproduce el frame guardado. Cadena τ: 0,698 · 0,753 · 0,893 → producto 0,470 con IC bootstrap y k=190; identidad `A = E + no_respondieron` verificada en 142 filas, 0 inconsistencias. | instrumento: no existe → **existe y declarado** |
+| **El paso «Dato» deja de abrir cada criterio.** No traía dato sino procedencia (hash, owner, grano, unidad, capa): baja entera y plegada a «Procedencia y contrato» al pie. Cinco pasos en vez de seis. | Guard: el test exige `Acción < Procedencia y contrato` y 5 `cmv2-crc-step`. | pasos que abren con procedencia 1/6 → **0/5** |
+| **Un solo control para enfocar un criterio.** Retirado el `<select>` que duplicaba la tira; el estado de la evidencia pasa al chip. Cabecera sin la narración del layout. | Guard: `not.toContain("<select")` + `aria-label="Enfocar criterio"`. Medido en pantalla: `selects: 0`. | controles 2 → **1** |
+| **Los boxplots comparan.** Dominio compartido por bloque (`boxplotDomain`), riel del dominio visible y leyenda emitida una vez por bloque en vez de una por figura. La señal usa su propio dominio por ser otra unidad. | Guard nuevo: con dominio compartido la caja estrecha mide < 1/10 de la ancha; sin dominio ambas salían idénticas. Medido en pantalla: 43 figuras, **0 figcaption**, 1 leyenda, **32 anchos distintos**. | leyendas 43 → **1**; comparables 0/43 → **43/43** |
+
+### F2 — Las 47 pantallas (S1, 2026-08-02)
+
+**Medir antes de tocar evitó el arreglo equivocado.** La hipótesis era que el
+bulto estaba en la grilla de distribución. Medido por bloque, era falso:
+
+| paso | alto apilado |
+|---|---:|
+| Cascada viva | 7.284 px |
+| Distribución | 5.672 px |
+| Impacto marginal | 4.756 px |
+| Acción | 3.379 px |
+| Ancla histórica | 2.153 px |
+
+Ningún bloque dominaba: **los cinco publican cada uno las mismas 19 facultades
+del criterio**, y apilados suman 23.244 px. El defecto no era la densidad de un
+bloque sino que el recorrido metodológico se hubiera resuelto como pila.
+
+- **Los cinco pasos se recorren, no se apilan.** Riel numerado
+  (`1 Distribución … 5 Acción`) que conserva el orden metodológico a la vista;
+  solo el paso activo ocupa layout. Los cinco siguen en el DOM con `hidden`, de
+  modo que el contrato completo se mantiene verificable. La tarjeta abre en
+  Distribución — el dato.
+- **Los segmentos sin CH se declaran en una línea.** 68 categorías con 0 CH
+  ocupaban el mismo ancho que las que tienen distribución; ahora dicen «0 CH en
+  esta facultad» y ceden el espacio, sin desaparecer del inventario.
+- **Media, P50 y el rango P10–P90 se leen de un vistazo**; los cinco cuantiles
+  quedan completos tras «Cuantiles completos».
+- **Se revirtió** el plegado del contraste total: no bajaba la altura (van en
+  columnas) y escondía la comparación elegibles/total que D2 pide visible.
+  Queda escrito para no repetirlo.
+
+**Resultado: 30.406 px → 7.434 px. De 47 pantallas a 11,5.**
+
+Gate de los dos lotes: typecheck 0 errores · Vitest `calcMuestra` **792/792**
+(incluye el guard nuevo de escala compartida y el del riel de pasos) · dos
+viewports (1440×1000 y 1024×600) sin scroll horizontal ni desbordes.
+
+### F3 — El aviso que se decía dieciocho veces (S1/T3, 2026-08-02)
+
+**Corrección de una cifra propia.** El «31 % de prosa» registrado en F1 estaba
+mal medido: el selector contaba como prosa las tablas de la cascada (cada `<li>`
+con su tabla supera los 80 caracteres). Medido solo sobre `<p>` sin tablas
+dentro, la pestaña tenía **22 párrafos largos y 234 palabras** — mucho menos de
+lo registrado. Pero escondía un defecto peor que el volumen.
+
+**El defecto real: 18 de esos 22 párrafos eran el mismo.** «El criterio no
+comparte una caracteristica compatible con la referencia», una vez por facultad,
+más nueve filas de metadatos por facultad con `NA` en todas las que importan. El
+hecho es **uno solo del criterio** —la referencia histórica agrega por facultad
+histórica y el criterio evalúa por facultad del alumno— y estaba repetido
+dieciocho veces sin que la causa se leyera ni una.
+
+- Cuando todas las facultades comparten el aviso y ninguna publica `k` ni tasa,
+  el bloque lo dice **una vez**, nombra la causa (las dos dimensiones de
+  facultad enfrentadas), el periodo, y lista las 18 facultades cubiertas.
+  Nada se pierde: la cuenta y los nombres siguen ahí.
+- Cuando el aviso es común pero alguna facultad sí publica, el aviso se hoista
+  al bloque y las filas conservan solo lo que difiere.
+- Guard nuevo: con tres facultades sin publicar, el aviso aparece **una** vez,
+  las tres siguen nombradas y «Facultad de referencia» sigue publicada.
+
+**Resultado: el paso Ancla pasa de 2.153 px a 228 px** y por primera vez se lee
+*por qué* no hay coincidencia. Gate: typecheck 0 errores · Vitest **793/793**.
+
+### F4 — Decidir y ver son un solo acto (S1, 2026-08-02) · **S1 cerrada**
+
+La consola de radiografía vivía **encima** de la rejilla de tarjetas: se
+enfocaba un criterio en una zona y se decidía en otra, con dos selectores
+distintos para la misma cosa.
+
+- `useCriteriosRadiografiaInline` resuelve el modelo una vez y entrega, por
+  `cardId`, el detalle listo para incrustarse. Cada `CriterioCard` recibe **su**
+  radiografía; la consola con selector propio desaparece de la pestaña de
+  estudiante y queda solo para el caso de recuperación (frame sin contrato F1).
+- Las alertas de contrato, que son del bloque y no de una tarjeta, se conservan
+  al nivel del bloque.
+- **Corrección medida dentro del lote:** con las cinco radiografías abiertas a
+  la vez el panel saltó a **39.073 px**. La evidencia se pliega dentro de su
+  tarjeta y se abre sola mientras la variable está en edición — que es
+  exactamente cuando se decide.
+
+**Resultado: 1.655 px = 2,6 pantallas**, con los cinco criterios, sus categorías
+con conteo y su radiografía al alcance sin cambiar de zona. Gate: typecheck 0
+errores · Vitest **793/793**.
+
+**Cierre de S1.** Desde la apertura del loop: **30.406 px → 1.655 px**
+(47 → 2,6 pantallas), controles de enfoque 2 → 1, zonas de decisión 3 → 1,
+boxplots comparables 0/43 → 43/43, leyendas 43 → 1 por bloque, avisos repetidos
+18 → 0, pasos que abren con procedencia 1/6 → 0/5.
+
+### F5 — Una categoría es una sola cosa (T1/S7, 2026-08-02)
+
+La fuente concatena varios valores en una etiqueta y la UI los mostraba crudos,
+como si fueran una categoría: quien marcaba `INGRESO(EV.TAL,1OP,CEPR,ITS,PAEE,
+BACH,EX.ING)` marcaba ocho sin saberlo. El tratamiento anterior era un `<wbr>`
+tras cada coma — una ayuda de salto de línea, no una declaración.
+
+- Owner nuevo `etiquetaCategoria.ts`: lee la etiqueta y declara lo que ya dice.
+  **No toca el dato** — clave, conteo y valor siguen siendo los del motor.
+- Distingue la agrupación real (`BASE(a,b,c)` y listas `a,b,c`) del paréntesis
+  que es parte del nombre (`POR INCORPORACION (ESC.GRADUADOS Y DIPLOMAS)`), que
+  se deja intacto.
+- La tarjeta muestra el nombre del grupo, una insignia «agrupa N», la lista
+  completa en línea secundaria y en el `title`, y un nombre accesible que dice
+  «agrupa N valores» en vez de fingir una categoría.
+- El contrato geométrico que exigía los `<wbr>` se sustituyó por el de T1: mismo
+  fondo —no perder información— más la exigencia de que la agrupación sea
+  legible. Los siete valores siguen verificados en el DOM.
+
+Medido en pantalla: **2 etiquetas agrupadas detectadas** en la pestaña de
+estudiante (`INGRESO` agrupa 8, una facultad agrupa 2). Gate: typecheck 0
+errores · Vitest **797/797** en 92 archivos.
+
+### F6 — Alumnos por CH decide viendo la distribución (S2/S4, 2026-08-02) · **S2 cerrada**
+
+**Corrección de una medición propia.** El «~60 % del viewport en blanco»
+registrado en la apertura medía la pestaña **sin instrumento**. Con dato real la
+superficie está llena: 18 filas, 2,2 pantallas. El defecto era otro y solo se
+ve con datos.
+
+Auditoría con el instrumento, una medición por hallazgo:
+
+| hallazgo | medición |
+|---|---|
+| Se elige el estadístico **sin ver de qué distribución sale** | **0 gráficos** en la superficie; 18 facultades × 3 estadísticos en columnas de números |
+| La columna que produce la decisión no cabe en pantalla | tabla 1.331 px en contenedor de 1.268 px a 1440×1000: «Valor elegido» queda fuera |
+| Intro que parafrasea lo que la tabla ya rotula | 2 líneas sobre «cifra principal / contraste», rotulados en las propias columnas |
+
+- Owner nuevo `AlumnosPorChTira.tsx`: tira comparable por facultad con P25,
+  mediana y media sobre **dominio compartido por toda la tabla**, con el P50 del
+  Total como línea de referencia en cada fila. Presenta, no calcula: los tres
+  valores vienen publicados por R.
+- Las tres columnas numéricas se funden en una: la tabla pasa de **8 a 6
+  columnas** y deja de desbordar — «Valor elegido» entra en el viewport. Las
+  cifras siguen literales bajo la tira: comparar no puede costar precisión.
+- La escala se declara **una vez** para el bloque, nunca por fila.
+- La intro se reduce a la frase que sí dice algo: «El estadístico se elige
+  viendo la distribución de la que sale».
+
+Medido tras el cambio: **16 tiras · 1 leyenda · 6 columnas · desborde
+horizontal 0** (tabla 1.268 px = contenedor), panel 1.554 px = 2,4 pantallas.
+Guard nuevo: la escala aparece una sola vez y cada fila publica sus marcas
+`p25`/`p50`/`media` más la referencia del Total. Gate: typecheck 0 errores ·
+Vitest **798/798** · 1440×1000 y 1024×600 sin scroll horizontal ni desbordes.
+
+### F7 — La matriz cierra el recorrido (S3, 2026-08-02) · **S3 cerrada**
+
+Auditoría con el instrumento, una medición por hallazgo:
+
+| hallazgo | medición |
+|---|---|
+| El resultado está plegado **y desaconsejado** | `<details>` de 36 px al pie cuyo cuerpo decía «Abre esta comparación **solo cuando** necesites contrastar facultades» |
+| El resumen no dice qué cierra | el renglón visible explicaba cuándo abrirla, no qué contiene |
+| Los encabezados publican la clave del gate | `MODALITY Modalidad`, `SESSION_TYPE Tipo de sesión`; **tres columnas empiezan igual** (`COMPOSITION …`) y lo que las distingue quedaba cortado |
+
+- El bloque pasa a ser el **cierre nombrado** del recorrido: «Cierre del
+  recorrido · impacto de cada criterio por facultad», con su tamaño real
+  (**9 criterios × 17 facultades sobre el marco ejecutado**) en el propio
+  resumen. Sigue plegado —abrirlo suma 1.664 px— pero ya no hay que abrirlo
+  para saber qué es.
+- Se retira la frase que desaconsejaba abrirlo: era prosa sobre la afordancia,
+  y encima empujaba a no leer el resultado que comprueba todas las decisiones.
+- Los encabezados nombran el criterio; la clave del gate baja al `title`, donde
+  sigue disponible para trazar. Las tres columnas de composición ahora se
+  distinguen por lo que difiere: *prevalencia elegible*, *facultad del curso*,
+  *nivel del curso*.
+- Guard: el test de la superficie exige el rótulo de cierre, prohíbe la frase
+  desaconsejante y sigue exigiendo que la matriz vaya **después** de la decisión
+  por facultad.
+
+Gate: typecheck 0 errores · Vitest **798/798** · 1440×1000 y 1024×600 sin
+scroll horizontal ni desbordes.
+
+### F8 — El control decide contra el número correcto (S4/S5, 2026-08-02) · **S4 cerrada**
+
+**La auditoría cambió el lote.** S4 pedía «hover-delta contrafactual». Medido, la
+cascada al enfocar y el orden de recorte **ya llegaban** a la pantalla
+(`CriteriosEmbudoVivo` con su coordinador de preview). Lo que faltaba era peor
+que una animación:
+
+| hallazgo | medición |
+|---|---|
+| El conmutador que decide muestra el conteo del **catálogo**, anterior a todo criterio | PREGRADO marca «25.155 estudiantes»; R publica **20.879 alumnos únicos elegibles** y 2.799 CH para ese mismo segmento |
+| Una categoría con aporte nulo se ve igual que una que aporta todo | MAESTRIA marca «2.819 estudiantes» con aporte real **0 elegibles · 0 CH** |
+
+- Cada conmutador publica ahora, junto al conteo del catálogo —rotulado **«en la
+  base»**—, lo que esa categoría **aporta al marco ejecutado**: alumnos únicos
+  elegibles y CH, en color de acento, y atenuado cuando el aporte es cero.
+- El dato sale de la fila **Total que R recalcula por segmento**
+  (`criterios_totales`): React no suma facultades, que es justo lo que el
+  contrato prohíbe.
+- Guard: con aporte publicado la superficie muestra ambas cifras y marca
+  `data-aporta="cero"`; **sin** aporte no inventa nada.
+- **Regresión reparada dentro del lote:** el rótulo más largo («… en la base»)
+  dejó de caber en la columna `auto` del ítem y la etiqueta se solapaba con la
+  cifra. Ambas cifras bajan a su propia fila, alineadas entre sí — que además es
+  como se comparan. Solapes medidos después: **0**.
+
+Gate: typecheck 0 errores · Vitest **799/799** · 1440×1000 limpio.
+
+**Encolado con su medición (regla 4, no se detiene por alcance):** a **1024×600**
+la radiografía embebida en la tarjeta (efecto de F4) deja **1.006 elementos con
+desborde** — sus rejillas internas (`cmv2-crc-faculties` con `minmax(310px, 1fr)`,
+`snapshot-pair` a dos columnas) asumen el ancho de la consola vieja y colapsan
+columnas a 0 px dentro de la tarjeta. El `min-width: 160px` del boxplot ya se
+retiró (122 desbordes menos) y las rejillas de cuantiles pasaron a `auto-fit`.
+Lo que queda es un lote propio: **T6 · la radiografía embebida es responsiva**.
+
+### F9 — La radiografía embebida es responsiva (T6, 2026-08-02) · **T6 cerrada**
+
+**El diagnóstico correcto era uno solo, no siete rejillas.** La hipótesis de F8
+era que las rejillas internas —`faculties` con `minmax(310px, 1fr)`,
+`snapshot-pair` a dos columnas fijas— no cabían en la tarjeta. Se pasaron todas
+al patrón `minmax(min(N, 100%), 1fr)` y **los 1.006 desbordes no se movieron**.
+
+Rastreando la cadena de un elemento con ancho 0 apareció la causa real: el
+bloque de **señal** pasó de `<div>` a `<details>` en F2 y conservó el
+`display: flex` de la fila que era antes. Su rejilla de cuantiles quedaba como
+ítem flex sin ancho intrínseco y **colapsaba a 0 px**, arrastrando a sus 987
+descendientes. Una línea de CSS.
+
+| medición | antes | después |
+|---|---:|---:|
+| Elementos con desborde a 1024×600 | **1.006** | **0** |
+| Elementos visibles con ancho 0 | **987** | **0** |
+| Desbordes a 1440×1000 | 0 | 0 |
+
+El paso al patrón `min()` se conserva: no era la causa, pero sí la protección
+para que la tarjeta pueda estrecharse sin volver a romperse.
+
+Gate: typecheck 0 errores · Vitest **799/799** · los dos viewports limpios.
+
+### F10 — Población, Cursos-horario y Cobertura (S5, 2026-08-02) · **S5 cerrada**
+
+**Dos correcciones de mediciones propias, ambas de la apertura.**
+
+1. **El hallazgo estrella de S5 no reproduce.** La apertura registró «tres
+   denominadores para *alumnos* en una pantalla»: Cobertura con
+   «13.498 / 38.749» contra una cabecera de 21.365/29.090. Sobre el
+   **instrumento**, Cobertura publica **73,5 % · 21.362 / 29.083** — exactamente
+   la cabecera. Aquella medición se tomó sobre el frame viejo, sin radiografía;
+   no era un defecto de la superficie sino del estado.
+2. **Dos de los «desbordes» eran del detector, no de la pantalla.** Los 8
+   contados a 1440×1000 son elementos **posicionados en absoluto** por diseño:
+   el conector entre etapas del flujo y la etiqueta del marcador de mínimo del
+   histograma. Contando solo elementos `position: static`, los desbordes reales
+   son **0**. El detector queda corregido para las siguientes iteraciones.
+
+Medido sobre el instrumento, las tres superficies ya pasan la vara:
+
+| superficie | alto | prosa | desbordes reales |
+|---|---:|---:|---:|
+| Población | 2,7 pantallas | 0 párrafos | 0 |
+| Cursos-horario | 2,6 pantallas | 39 palabras (era 73) | 0 |
+| Cobertura | 1,7 pantallas | 28 palabras | 0 |
+
+Lo único que sí era prosa en un hueco vacío: el panel de particularidades
+explicaba **qué hace cada acción** —«las exclusiones se aplican al reconstruir
+el marco; incluir o marcar como revisado solo documenta»— incluso cuando el
+marco no trae ninguna señal que decidir. Esa regla ahora solo aparece cuando hay
+casos; el vacío se explica solo. Prosa de la pestaña: **73 → 39 palabras**.
+
+Gate: typecheck 0 errores · Vitest **799/799** · desbordes reales 0 en las tres.
+
+### F11 — Diseño y Propuestas (S6, 2026-08-02) · **parcial, con bloqueo medido**
+
+**Diseño.** 3,4 pantallas y 9 párrafos / 180 palabras: la prosa más densa del
+módulo. Juzgada una a una, **ocho de las nueve se ganan el sitio**: definen z, p,
+deff y τ con las cifras del propio estudio («con p = 0,3 Universidad trabaja con
+84 % de esa exigencia», «con τ = 53 %, lograr 100 encuestas completas exige
+intentar ≈189»). Eso es exactamente la prosa metodológica que S3 protege, no
+slop. La única que narraba la afordancia —«el plan de cursos-horario, en su
+pestaña; cada cambio se aplica con confirmación explícita», que el riel y el
+botón ya dicen— se reduce a lo que la pantalla no muestra. Prosa: **180 → 167
+palabras**, 26 → 13 en el bloque tocado.
+
+**Propuestas no se pudo auditar, y la razón es un bloqueo del flujo real.**
+La pestaña está vacía; ejecutar «Calcular muestra» devuelve **409
+`E_CALC_MUESTRA_ALUMNOS_CH_DECISION`** con `reason: "schema_invalido"`. Se
+confirmó la decisión desde Marco → Alumnos por CH y **el error se repite**. La
+decisión persistida tiene la forma correcta —los seis campos— pero con
+`schema: ""` y `frame_hash: ""`:
+
+```
+{schema: "", frame_hash: "", denominador, estadistico_default, por_facultad, confirmado_at}
+```
+
+Es decir: **«Confirmar decisión» guarda una decisión que el motor rechaza
+siempre**, y desde ese estado no hay forma de llegar a Propuestas ni a nada
+aguas abajo. Es dato/contrato, no superficie: **va al loop v2**. La superficie
+sí se comporta —muestra el error, visible y con su código— pero lo hace con el
+mensaje del motor («incompleta o usa un schema desconocido») y sin ofrecer el
+camino; eso queda como su parte de S6.
+
+Encolado con su medición:
+- **v2**: `alumnos_por_ch_decision` se persiste con `schema` y `frame_hash`
+  vacíos al confirmar; el cálculo falla cerrado para siempre.
+- **S6 (superficie)**: el error de decisión no ofrece la dirección
+  `marco/marco-alumnos-ch` ni traduce `schema_invalido` a lo que hay que hacer.
+- **S6 (Propuestas)**: sin auditar; auditar sobre pantalla vacía no es auditar.
+
+Gate: typecheck 0 errores · Vitest **799/799**.
+
+### F12 — Panorama de criterios de curso-horario (S6-bis, 2026-08-02)
+
+**Encargo directo de Gonzalo:** «evalúa una mejor forma de poder mostrar
+visualmente toda la información de los criterios de curso-horario».
+
+Auditoría de la superficie: el acordeón por facultad resuelve **bien la
+decisión** —cada criterio con su dato al lado, que es lo que S1 pedía— pero solo
+deja ver **una facultad a la vez**, y abrir una cuesta **1.962 px**. Con
+**17 facultades**, comparar exigía abrir, recordar y cerrar: la información
+completa de los criterios de CH **no se podía ver junta nunca**.
+
+| medición | antes | después |
+|---|---:|---:|
+| Facultades visibles a la vez | **1 de 17** | **17 de 17** |
+| Alto para ver el estado de todas | 17 × 1.962 px | **775 px** |
+| Escala para comparar CH entre facultades | ninguna | **común, 0 – 852 CH** |
+
+Owner nuevo `PanoramaCursosHorario.tsx` — la **foto**; el acordeón sigue siendo
+el **taller**:
+
+- una fila por facultad, ordenadas por elegibles como el acordeón;
+- barra de dos capas sobre **escala común**: CH totales al fondo, CH elegibles
+  en acento — de un vistazo se ve que «Elena Diego» conserva 45 de 454 mientras
+  «Karina E Karina» conserva 639 de 849;
+- mediana de elegibles por aula;
+- una columna por criterio de CH y otra para el mínimo, cada celda declarando
+  si la facultad **hereda el global** o **decide propio**;
+- la facultad ancla su fila (columna pegajosa) y su nombre abre su bloque.
+
+**Presenta, no calcula:** los CH, el total y la mediana los publica el marco por
+facultad; el estado propio/global sale de la selección. La escala se declara una
+vez en la cabecera.
+
+Gate: typecheck 0 errores · Vitest **799/799** · 1440×1000 y 1024×600 sin
+desbordes; la tabla cabe en su contenedor (870 px) a 1024.
+
+### F13 — El bloqueo que gatea la mitad del plan (2026-08-02) · **hallazgo mayor**
+
+Al intentar S9 (Objetivo) apareció el mismo muro que en F11: la pestaña publica
+`N OBJETIVO pendiente`. **Siete superficies dependen del mismo eslabón**
+—Propuestas, Objetivo, CH requeridos, Distribución, Selección, Reemplazos y
+Entrega— así que se persiguió la causa en vez de encolarlas una por una.
+
+**Medido, en tres pasos:**
+
+1. `POST /api/calc-muestra/calcular` → **409
+   `E_CALC_MUESTRA_ALUMNOS_CH_DECISION`**, `reason: "schema_invalido"`.
+2. Se confirma la decisión desde Marco → Alumnos por CH y **se espera 25 s**
+   (no es debounce). La decisión persistida tiene sus seis campos **todos
+   vacíos**: `schema: ""`, `frame_hash: ""`, `denominador: ""`,
+   `estadistico_default: ""`, `confirmado_at` ausente.
+3. Se instrumenta `fetch` y se pulsa «Confirmar decisión» sobre recarga limpia:
+   **0 peticiones**. El `POST /api/calc-muestra/estudio` que se veía antes lo
+   dispara el flujo de cálculo, no la confirmación.
+
+**Conclusión: «Confirmar decisión» no persiste nada.** La decisión nunca sale
+del navegador, así que el motor recibe siempre una decisión vacía y falla
+cerrado — correctamente. Desde ese estado **no hay forma de avanzar** a nada
+aguas abajo.
+
+Descartado en el camino: el normalizador TS
+(`normalizeUniversityAulasConfig`) conserva la decisión con su rama
+*fail-closed* explícita, y el handoff (`applyAlumnosPorChDecision`) la escribe
+sobre la config. Ambos están bien.
+
+**Sospechoso localizado — una carrera, no una pérdida de datos.**
+`confirmarAlumnosPorCh` hace tres cosas seguidas
+([UniversidadDesk.tsx:333](../../frontend/src/features/calcMuestra/universidad/UniversidadDesk.tsx#L333)):
+escribe el workspace con la decisión, **sustituye los componentes** con
+`resultado: null`, e invalida artefactos. Ese cambio de componentes dispara el
+efecto de
+[CalcMuestraPage.tsx:1123](../../frontend/src/features/calcMuestra/CalcMuestraPage.tsx#L1123),
+que depende de `estudio.componentes` y vuelve a escribir el workspace con
+`reconcileUniversityAulasTarget(workspace, …)` — donde `workspace` es el memo
+**anterior**, sin la decisión. El guardián `setWorkspaceSiCambia` compara y no
+ve cambio, así que el autosave nunca se dispara: **0 peticiones**, que es
+exactamente lo medido.
+
+**Excluido también `reconcileUniversityAulasTarget`**: reconstruye la config
+con `normalizeUniversityAulasConfig`, que conserva la decisión. No es el que la
+borra.
+
+Lo que queda acotado para F14, con lo descartado escrito para no repetirlo:
+
+- ✅ descartado: normalizador TS, handoff, `reconcileUniversityAulasTarget`, y
+  el motor R (se comporta bien: falla cerrado ante una decisión vacía).
+- ❓ pendiente de aislar: por qué `onWorkspace(next.workspace)` no acaba en un
+  `POST /api/calc-muestra/estudio`. Candidatos vivos: el guardián
+  `setWorkspaceSiCambia` comparando contra un estado ya normalizado, o el
+  autosave que no observa el cambio de `aulas_config`.
+- El test que cierra F14: pulsar «Confirmar decisión» debe dejar la decisión
+  con `schema` y `frame_hash` no vacíos en el workspace persistido.
+
+**Es superficie, no motor**: el contrato R se comporta bien. Va como lote
+propio y **es el siguiente**, porque desbloquea siete superficies del plan.
+
+### F14 — La trampa que se perpetuaba sola (T7, 2026-08-02) · **T7 cerrada**
+
+**Corrección del diagnóstico de F13.** Escribí que «Confirmar decisión no
+persiste». Era el encuadre equivocado: el clic no emitía peticiones porque el
+**botón estaba deshabilitado**, y la pantalla no lo decía. Instrumentar el
+control —en vez de seguir leyendo el camino de guardado— lo mostró en una
+medición.
+
+**Causa raíz, y es un bucle cerrado sobre sí mismo:**
+
+1. Una decisión heredada llega con `estadistico_default: ""`.
+2. `decision?.estadistico_default ?? "p25"` recibe cadena vacía, **no
+   `undefined`**, así que el `??` no cae al recomendado.
+3. Sin método válido, `alumnosPorChValue` devuelve `null` en las 17 facultades.
+4. `missing = 17` deshabilita **el botón que habría reparado el estado**.
+
+Un estado inválido que bloquea la única acción capaz de repararlo, en silencio.
+
+Lo entregado:
+
+- `metodoAlumnosPorChInicial` acepta el método guardado **solo si sirve**; si no,
+  cae al recomendado. Owner del modelo, con `esMetodoAlumnosPorChValido` al lado.
+- **Un control bloqueado nombra la pieza que falta** (C4/C5): «Falta el
+  estadístico en N facultades: …», con las tres primeras y el resto contado, más
+  `title` en el botón. Antes la única pista era «la propuesta aún no está
+  confirmada», que es el estado, no la causa.
+- Ese aviso destapó el segundo defecto: las dos facultades que bloqueaban tenían
+  **0 CH elegibles** (0 de 852 y 0 de 10). Una facultad sin CH no aporta unidades
+  ni tiene distribución de la que salga un estadístico: **exigirle una decisión
+  bloqueaba todo el cálculo por facultades que no participan**. El gate ahora las
+  excluye, y sigue nombrando a las que sí tienen CH y no resuelven.
+- Guards: una decisión heredada con método vacío no deshabilita el botón; una
+  facultad con 0 CH no bloquea; una facultad **con** CH y sin estadístico sí se
+  nombra.
+
+**Verificado de punta a punta en la app:** la decisión se confirma y persiste
+con `schema: calc_muestra_alumnos_por_ch_decision_v1`,
+`frame_hash: aa0ff9e104…`, `denominador: elegible`, `estadistico: p25`,
+`confirmado_at` presente. El 409 por `schema_invalido` desapareció.
+
+**Lo que queda, y es de otro dueño.** El cálculo ahora falla con un error
+**distinto**: `facultades_incompletas` — los componentes P1/P2 declaran las
+facultades reales (`derecho`, `arquitectura_y_urbanismo`…) y el marco sembrado
+trae los seudónimos (`andres`, `elena_diego`…). Es **T4, la contradicción del
+anonimizador**, ya registrada: el motor falla cerrado con razón. No es superficie
+y no se resuelve aquí.
+
+Gate: typecheck 0 errores · Vitest **801/801**.
+
+Consecuencia para el plan: quedaba T4 (la contradicción del anonimizador) como
+único bloqueo — resuelto para el instrumento en F15.
+
+### F15 — El instrumento llega hasta el cálculo (T4 en el instrumento, 2026-08-02)
+
+El cálculo fallaba con `facultades_incompletas`: los componentes P1/P2 declaran
+las **15 facultades reales** (`derecho`, `arquitectura_y_urbanismo`…) mientras el
+marco sembrado trae los **17 seudónimos** (`andres`, `elena_diego`…). El motor
+falla cerrado con razón; el fixture es el que se contradice.
+
+Reparación del instrumento (regla 2 del loop: no se detiene por el motor, se
+siembra un estado y se sigue): los estratos de ambos componentes se reconstruyen
+**desde el propio marco sembrado**.
+
+- Etiquetas y número de facultades: las 17 de `exploracion$por_facultad`.
+- `N` por facultad: alumnos **únicos** elegibles, del cruce
+  `facultad × sexo` de `population_cross_profiles`. Primer intento usó
+  `elegibles_total`, que son **matrículas** —sumaba 92.017, la cifra de
+  matrículas de la cabecera— e inflaba el N del diseño; corregido.
+- `N_a`/`N_b`: el reparto por sexo real del marco, no mitad y mitad.
+
+**Suma de los estratos: 21.362 — exactamente los estudiantes elegibles de la
+cabecera.** El instrumento queda internamente consistente.
+
+**Verificado: el cálculo corre.** Propuestas publica los dos escenarios
+completos — P1 `n=2.304 → 2.500 → 3.750`, 269 CH; P2 `n=4.934 → 4.934 → 5.921`,
+473 CH — con su fórmula y sus parámetros. **S6 a S13 vuelven a ser auditables.**
+
+**S6 · Propuestas, auditada con dato:** 2,5 pantallas, 2 párrafos / 48 palabras,
+**0 desbordes**, los dos escenarios lado a lado y comparables. **Pasa la vara.**
+
+**Un falso hallazgo, cazado a tiempo.** La cabecera publicaba 21.362 y las fichas
+de la fórmula 21.365: parecía una divergencia F0 del producto. No lo era — la N
+de la fórmula sale de `comp.marco.marco_validado`, que **yo no actualicé** al
+reconstruir los estratos. Artefacto de la reparación del instrumento, no defecto
+de la superficie; corregido alineando `marco_validado` con la suma de estratos
+(21.365 → 21.362) en ambos componentes.
+
+Queda anotado porque la lección es del loop: **una cifra que diverge después de
+tocar el instrumento se investiga contra el instrumento antes de acusar a la
+pantalla.** Es el mismo error que ya costó dos correcciones (el «31 % de prosa»
+de F1 y el «13.498 / 38.749» de S5).
+
+### F16 — Hasta dónde llega el instrumento (2026-08-02)
+
+Rehecha la secuencia completa sobre el backend de la semilla alineada —confirmar
+decisión → calcular— el cálculo **corre y publica** (Propuestas mostró P1
+`2.304 → 2.500 → 3.750`, 269 CH y P2 `4.934 → 4.934 → 5.921`, 473 CH). El
+`facultades_incompletas` bajó de **15 facultades sobrantes a 2 faltantes**:
+`nestor_de_posgrado` y `nestor_de_ricardo_diana` — precisamente **las dos con 0
+CH elegibles**, las mismas que en F14 bloqueaban la confirmación.
+
+Es coherente: una facultad sin CH elegibles no tiene fila en el contrato de
+Alumnos/CH, pero sí estrato en el componente. El motor exige coincidencia
+exacta. **Es la misma pregunta de fondo que resolvió F14 en la superficie —
+¿participa del diseño una facultad que no aporta unidades?— pero en el contrato
+R, así que su respuesta es del loop v2.**
+
+Estado real del instrumento, para que la próxima visita no lo redescubra:
+
+- ✅ llega hasta **Propuestas** con los dos escenarios completos y auditables.
+- ❌ **CH requeridos** y **Distribución** siguen vacías: dependen de que el
+  cálculo persista sin el 409 de las dos facultades sin CH.
+- El `.pulso` sembrado vive en el scratchpad de la sesión; **no es reproducible
+  entre sesiones**. Hacerlo reproducible —guion versionado que derive la semilla
+  desde el fixture— es lo que convierte este loop en repetible y debería ser el
+  siguiente lote de instrumento.
+
+### F17 — El instrumento llega al final, y un defecto real de contrato
+
+**Primero, un defecto del producto, con evidencia.** El `calcular` devolvía
+**200 con un `resultado` de cero campos** y dejaba los componentes con **15
+estratos** frente a un contrato de Alumnos/CH de **17 filas**. A partir de ahí
+toda corrida siguiente devuelve 409 `facultades_incompletas`: **un cálculo
+«exitoso» hace imposible el siguiente**, y el estado muerto se alcanza desde el
+flujo normal. Las dos facultades que sobran son las de **0 CH elegibles** — la
+misma pregunta que F14 resolvió en la superficie, sin resolver en el contrato R.
+**Va al loop v2** con esta medición.
+
+Reparación del instrumento, coherente con lo que el propio motor hace: se
+retiran esas dos facultades del contrato de Alumnos/CH **y** de los estratos,
+para que ambos declaren las mismas 15. `marco_validado` se realinea con la suma.
+
+**Resultado: el cálculo publica de verdad** — `resultado` con 21 campos,
+`distribucion_universitaria` presente, 200 aulas base. Las tres superficies que
+llevaban toda la sesión bloqueadas rinden con dato:
+
+| superficie | alto | prosa | desbordes | scroll anidado |
+|---|---:|---:|---:|---:|
+| **CH requeridos** | 1,4 pantallas | 22 palabras | 0 | **0** |
+| **Objetivo** | 2,4 pantallas | 57 palabras | 0 | 0 |
+| **Distribución** | **5,1 pantallas** | 101 palabras · 6 tablas | 0 | 0 |
+
+- **CH requeridos pasa la vara** — y con ella cae la deuda que I19 dejó escrita
+  («scroll anidado manual en CH»): medido, **0**.
+- **Objetivo pasa la vara**: 2,4 pantallas, el N objetivo (2.500) al frente.
+- **Distribución no pasa**: 5,1 pantallas y seis tablas apiladas. Es el mismo
+  patrón que F2 resolvió en Criterios —un recorrido resuelto como pila— y su
+  arreglo es el mismo: pasos recorribles. Queda como **S7-bis**, con su medición.
+
+Ledger: superficies por la vara **7 → 10 de 23**; superficies bloqueadas por no
+poder ejecutar el cálculo **6 → 0**.
+
+### F18 — Distribución se recorre (S7-bis, 2026-08-02) · **S7 cerrada**
+
+Cuatro secciones apiladas: dato acreditado (270 px) + composición (1.007) +
+precisión (642) + sensibilidad (604). Es el mismo patrón que F2 diagnosticó en
+Criterios —un recorrido metodológico resuelto como pila— y lleva el mismo
+remedio.
+
+- El **dato acreditado encabeza siempre**: es la procedencia del bloque.
+- Composición, precisión y sensibilidad pasan a un **riel numerado**; solo la
+  lectura activa ocupa layout y las tres siguen en el DOM con `hidden`.
+- **Peaje estructural respetado, y el guard lo impuso:** el riel inline dejaba
+  `CalculoDistribucionTab` en 383 líneas contra una base de 372, y el contrato
+  I20 falló. Se extrajo a `DistribucionPasos.tsx`; el owner queda en **361**,
+  por debajo de su línea base.
+
+**Resultado: 5,1 → 2,8 pantallas** (2,2 en Sensibilidad), 0 desbordes.
+
+Ledger: superficies por la vara **10 → 11 de 23**.
+
+### F19 — Método, y el límite honesto de esta sesión (S9, 2026-08-02)
+
+**Método** (1,6 pantallas, 95 palabras) tenía **2 desbordes reales**: dentro del
+estado vacío compacto, el slot de 34×34 px reservado al icono lo heredaba
+cualquier hijo directo, y un `em` de 86 px desbordaba su caja. Corregido: los
+demás hijos ocupan la fila y pueden envolver. **Desbordes 2 → 0.** La narración
+de los cuatro métodos que I17 introdujo se conserva íntegra: es contenido, no
+paráfrasis.
+
+**Simulación y Selección no se pueden auditar todavía**, y la razón está
+medida: ambas publican «La evidencia almacenada no acredita la comparación
+vigente» — dependen de una corrida del comparador de métodos sobre el marco
+vigente, que no se ha ejecutado en este instrumento. No es un defecto de
+superficie: es el mismo principio de este loop, *auditar sobre pantallas vacías
+no es auditar*.
+
+**Estado del plan al cierre de la sesión:**
+
+| | |
+|---|---|
+| Superficies por la vara | **12 de 23** |
+| Lotes cerrados | **7 de 13** (S1–S7) + T1, T4 (instrumento), T6, T7 |
+| Pendientes con dato disponible | ninguno |
+| Pendientes que exigen una corrida previa | Simulación, Selección, Reemplazos, Sustento (comparador de métodos) |
+| Pendientes sin tocar | S12 Datos · S13 Entrega |
+
+Lo que la próxima visita debe hacer, en orden: correr el comparador de métodos
+sobre el instrumento para desbloquear **S10–S11**, auditar **S12–S13**, y
+versionar el guion de siembra para que el instrumento deje de vivir en el
+scratchpad.
+
+Y para el **loop v2**, dos hallazgos de contrato con evidencia en este doc: el
+`calcular` devuelve 200 con `resultado` vacío y deja componentes que él mismo
+rechaza después; y el contrato de Alumnos/CH y los estratos discrepan en qué
+hacer con una facultad de 0 CH elegibles.
+
+### F20 — D10: Consistencia es pestaña propia (S12, 2026-08-02)
+
+Datos medido con el instrumento: **Estudio** 1,2 pantallas y **0 prosa** —pasa
+la vara—; **Variables** 3,5 pantallas; y **Fuentes** **5,3 pantallas con 226
+palabras**, la prosa más densa del módulo. La causa estructural estaba a la
+vista en su propio markup: un solo bloque con Fuentes (2.298 px) **y** un
+sub-bloque rotulado «Subpágina de Fuentes» (824 px) con la auditoría de
+consistencia. Dos actos distintos en una pestaña.
+
+**D10 estaba decidida por Gonzalo y pendiente desde I18.** Ejecutada entera:
+
+- `def-consistencia` es pestaña propia de Datos, **inmediatamente después de
+  Fuentes**, con su dirección publicada.
+- Owner nuevo `DefConsistenciaTab`; el combinado `DefFuentesConsistenciaTab`
+  se retira.
+- La normalización de direcciones deja de reescribir `def-consistencia` a
+  `def-bases?foco=…`; los hogares históricos (`marco/marco-validacion`,
+  `marco/def-consistencia`) apuntan ahora a la pestaña real.
+- Estados separados: Fuentes acredita que las bases están declaradas;
+  Consistencia acredita la relación entre ellas.
+- Guards actualizados al inventario nuevo: **23 → 24 pestañas**, 201 → 202
+  nodos del manifiesto, firma del catálogo, aliases y las tres direcciones
+  históricas.
+
+| | antes | después |
+|---|---:|---:|
+| Fuentes | 5,3 pantallas · 226 palabras | **3,6 · 120** |
+| Consistencia | subpágina sin dirección | **pestaña propia · 1,2 pantallas · 86 palabras** |
+
+Gate: typecheck 0 errores · Vitest **994/994** en 107 archivos (incluye
+`src/lib`, donde viven los contratos de navegación) · `sync-agentic-os --check`
+OK · 0 desbordes en ambas.
+
+Ledger: superficies por la vara **12 → 15 de 23**; lotes cerrados **8 de 13**.
+
+### F21 — Entrega por la vara (S13, 2026-08-02) · **S13 cerrada**
+
+Las cuatro superficies medidas con el instrumento:
+
+| superficie | alto | prosa | desbordes HTML |
+|---|---:|---:|---:|
+| Cierre | 1 pantalla | **0 párrafos** | 0 |
+| Tablas | 3,1 pantallas | 48 palabras | 0 |
+| Entregables | 1,3 pantallas | 75 palabras | 0 |
+| Pase a Monitoreo | 1,4 pantallas | 66 palabras | 0 |
+
+**Las cuatro pasan.** Tablas marcaba 13 desbordes: los trece son nodos SVG
+`<text>` de los ejes del gráfico, donde `scrollWidth` no significa lo mismo que
+en HTML. **Tercer falso positivo de mi propio detector en esta sesión** —tras
+los absolutos de S5 y el conteo de prosa de F1— y la misma lección otra vez:
+*el instrumento de medida también se audita*. Filtrando nodos no-HTML, los
+desbordes reales son **0**.
+
+### F22 — Selección auditada cerrada (S9–S11, 2026-08-02)
+
+El comparador seguía corriendo, así que las cuatro superficies se auditaron **en
+su estado cerrado**: la tercera prueba de la vara —la del hueco— se juzga
+exactamente ahí. Las cuatro contienen su vacío, lo nombran y dan la salida; 0
+desbordes HTML.
+
+| superficie | alto | palabras | hueco nombrado | salida |
+|---|---:|---:|:--:|---|
+| Simulación | 1,0 | 39 | sí | Comparar métodos (local) |
+| Cursos-horario titulares | 1,0 | 132 | sí | Ir a Método |
+| Reemplazos | 1,0 | 108 | sí | Ir a Método |
+| Sustento técnico | 1,9 → **1,7** | 353 → **334** | sí | Ir a Método |
+
+Dos hallazgos, uno descartado por lectura y otro reparado:
+
+- **Descartado**: «Comparar métodos» en Simulación y «Ir a Método» en las otras
+  parecía vocabulario inconsistente. No lo es: en Método y Simulación la acción
+  corre la comparación ahí mismo y en las demás navega. Dos acciones, dos
+  verbos. *Leer el código antes de repararlo evitó el arreglo equivocado* —la
+  misma lección de F2.
+- **Reparado**: Sustento declaraba el hueco **dos veces** a 96 px de distancia
+  —el aviso de etapa y la caja «Sustento en construcción»—. Manda el aviso, que
+  nombra la condición exacta y lleva a resolverla. La caja sobrevive solo para
+  el caso sin aviso (evidencia parcial), donde las fórmulas quedarían sin
+  explicar por qué están sin valores. Guard: `AulasAuditoriaTab.test.tsx`, que
+  exige el destino en el copy y no el control, porque `missing-frame` da su
+  salida en prosa.
+
+### F23 — El criterio se elige por facultad (dirección de Gonzalo, 2026-08-02)
+
+> «Absolutamente toda la información de criterios es **por facultad**. Podemos
+> reformular la forma en que ordenamos los criterios y el embudo —no llamarlo
+> así, suena a AI slop—, pero debe verse la información con mucho detalle, de
+> forma que permita escoger cada criterio **no a nivel general sino a nivel de
+> criterio por facultad**.»
+
+**Medido antes de tocar.** En `marco-ch-radiografia`, con el instrumento
+sembrado: 3 criterios a la vista, **la palabra «excepción» aparece 0 veces**. El
+override por facultad que el contrato ya persiste es *inalcanzable* desde la
+superficie que decide — C4 roto.
+
+La causa no es una sola. Al leer el código se parte en dos, y solo una mitad es
+del frontend:
+
+| criterio | grano decidible hoy | tope |
+|---|---|---|
+| Tipo de sesión | **por facultad** (`TipoSesionPorFacultad`, vista de primera clase) | — |
+| Modalidad, tipo de docente y demás categóricos | por facultad, pero tras `ExcepcionesFacultad`, que la superficie no muestra | **frontend** |
+| Nivel del curso (`range`) | por facultad vía `courseLevelRanges` | — |
+| Edad (`numeric`) | **solo global** | **contrato** |
+| Ciclos (`ordinal`) | **solo global** | **contrato** |
+
+El tope de contrato es literal: `exceptions?: Record<string, { categories, op }>`
+transporta **solo categorías**. `threshold`, `includeValues` y `fromValue` no
+tienen forma por facultad. Edad y ciclos no son decidibles por facultad hoy, y
+React no puede fabricar esa estructura sin mentir sobre lo que el motor aplicará.
+
+**Reparto, por eso, en dos carriles:**
+
+- **Frontend (F24, siguiente)**: el override por facultad deja de ser un enlace
+  secundario y pasa a ser el cuerpo de la tarjeta, sobre las filas de la
+  radiografía que ya traen el detalle de esa facultad —el detalle y la decisión
+  en el mismo gesto, que es lo que Gonzalo viene pidiendo desde la observación
+  de la cascada—. Se renombra «embudo vivo»: el nombre describe la animación,
+  no lo que la pieza hace, y por eso suena a relleno.
+- **Loop v2 (motor)**: extender `exceptions` para que acepte `threshold`,
+  `includeValues` y `fromValue` por facultad, con su normalizador en
+  `.cm_criterios_normalize_seleccion` y su test. Sin eso, edad y ciclos siguen
+  siendo globales por diseño del contrato, no por olvido de la UI.
+
+Queda anotado que **este hallazgo reabre la cola**: al vaciarse S13 el loop
+reaudita desde S1 con la vara más alta, y el grano por facultad es ahora parte
+de esa vara —un criterio que solo se puede decidir en general no pasa la prueba
+de la decisión—.
+
+### F24 — La decisión por facultad deja de ser un formulario (2026-08-02)
+
+**Corrección de una medición mía.** En F23 escribí que «excepción» aparecía 0
+veces en la superficie de criterios. Estaba midiendo `marco-ch-radiografia`,
+donde los criterios son numéricos y de compuerta; los categóricos viven en
+`marco-criterios-alumno`, y ahí el bloque sí renderizaba. El defecto era otro y
+peor, así que la conclusión de F23 se sostiene por una razón distinta a la que
+di.
+
+**El defecto real, leído en el código**: `ExcepcionesFacultad` era un *alta
+genérica* detrás de un toggle cerrado —elige facultad de un desplegable, elige
+operación, elige categorías, «Agregar excepción»—. Ese orden exige **saber de
+antemano qué facultad se desvía**, que es exactamente lo que el usuario viene a
+averiguar. La decisión no vivía junto a la facultad: vivía en un formulario.
+
+**Reparado**: se listan las **quince facultades**, cada una con lo que aplica, de
+dónde viene (general o criterio propio) y su control. Ajustar es tocar la fila y
+los chips se abren dentro de ella. Quedarse sin categorías devuelve la facultad
+al general en vez de dejarla vacía. La estructura persistida no cambia: sigue
+compilando a `exceptions[facKey]`, así que el motor no se entera.
+
+| | antes → después |
+|---|---:|
+| Facultades visibles por criterio | 0 (tras un toggle cerrado) → **15** |
+| Pasos para apartar una facultad | 4 (abrir · elegir facultad · elegir op · agregar) → **2** (Ajustar · tocar categoría) |
+| Alto de la pestaña | 5,6 → **5,7 pantallas** |
+| Desbordes | 0 → **0** |
+
+Trampa evitada de entrada: `.cmv2-crit-exc-item` seguía en `display:flex` y la
+fila pasó a tener dos hijos apilados. Dejarlo habría puesto los chips al costado
+con ancho colapsado —el mismo bug de `.cmv2-crc-signal` que costó 1.006
+desbordes—. Guard: `ExcepcionesFacultad.test.tsx`, tres casos.
+
+**Sigue abierto para el loop v2** lo que el frontend no puede resolver: `exceptions`
+transporta solo `categories`, así que **edad y ciclos siguen sin grano por
+facultad**. Extenderlo a `threshold` / `includeValues` / `fromValue` es trabajo
+de motor y normalizador, no de React.
+
+### F25 — Reauditoría desde S1 con el grano en la vara (2026-08-02)
+
+La vara sube: **un criterio que solo se puede decidir en general no pasa la
+prueba de la decisión**. Primera pasada sobre S1 con esa regla:
+
+| criterio | grano |
+|---|---|
+| Formación · Condición de matrícula · Facultad | **por facultad** (15 filas cada uno) |
+| Edad · Ciclo o nivel curricular | **global**, por el tope de `exceptions` |
+
+Los dos globales no se pueden reparar desde React —el contrato no transporta
+`threshold` ni `includeValues` por facultad—, pero sí se puede dejar de
+aparentar. Ahora **lo declaran**: «aplica igual en las 15 facultades: el motor
+todavía no admite un umbral distinto por facultad». Callarlo los hacía parecer
+del mismo grano que los de arriba, y esa es la peor versión: no es que falte la
+capacidad, es que el usuario no sabía que faltaba.
+
+Alto 5,7 pantallas y 0 desbordes, sin cambio. Los cinco criterios de S1 declaran
+ahora su grano, así que S1 pasa la vara nueva **con la deuda de motor nombrada
+en la propia superficie**.
+
+### F26 — Reauditoría de S2 y S3 con la vara del grano (2026-08-02)
+
+| superficie | alto | desbordes | filas por facultad | veredicto |
+|---|---:|---:|---:|---|
+| Alumnos por CH (S2) | 2,2 | 0 | 16 | **pasa** |
+| Cursos-horario: criterios + radiografía (S3) | 5,8 | 0 | 35 | pasa con reserva de alto |
+| Cobertura | 1,8 | 0 | 0 | pasa (no es superficie de criterio) |
+
+**El renombre pedido no tiene dónde aplicarse.** «Embudo» no aparece en pantalla
+en ninguna de las tres superficies: vive solo en el código —el componente
+`CriteriosEmbudoVivo` y el campo de contrato `matriz_embudo`—. El AI slop era
+interno, no visible; renombrar el campo es cambio de contrato y no se hace desde
+aquí.
+
+**Hallazgo**: los criterios de curso-horario son una implementación paralela
+(`CursosHorarioBaseGlobal`) que se quedó sin el grano por facultad aunque el
+contrato lo admite igual que en la tarjeta de estudiante. Se le dio el mismo
+trato que en F24/F25: `ExcepcionesFacultad` para los categóricos y declaración de
+grano para umbral y ordinal.
+
+**Rendimiento real, medido y no inflado**: en este instrumento las variables de
+CH no son categóricas, así que `ExcepcionesFacultad` no monta (0 bloques) y el
+efecto visible hoy es **una** declaración de grano. El control queda correcto
+para el estudio que sí traiga variables categóricas de CH; decirlo de otro modo
+sería vender cobertura que la medición no respalda.
+
+Reserva anotada para la próxima pasada: S3 mide **5,8 pantallas y 1.008
+palabras**, la superficie más pesada del módulo. No la toco en esta iteración
+porque reducirla sin perder el detalle por facultad —que es justo lo que Gonzalo
+exige— es un rediseño, no un recorte.
+
+### F27 — El alto de S3 está ganado (2026-08-02)
+
+Antes de recortar, medir de qué está hecha. Los 3.765 px de S3:
+
+| bloque | alto | palabras |
+|---|---:|---:|
+| Aviso de aplicar | 58 px | 14 |
+| Ajustes del marco (transversales) | 782 px | 318 |
+| **Por facultad · información y decisión** | **2.830 px** | 675 |
+| Cierre del recorrido | 36 px | 19 |
+
+**El 75 % del alto es la sección por facultad**: 15 facultades a ~189 px cada
+una, con su información y su decisión juntas. Eso no es bulto, es el entregable
+—recortarlo sería deshacer F24 y volver a la decisión general que Gonzalo
+rechazó—. *La medición evitó el arreglo equivocado por segunda vez en la
+sesión*: la conclusión intuitiva («5,8 pantallas, hay que comprimir») habría
+atacado justo lo que hay que proteger.
+
+El candidato real, si en la próxima pasada hace falta bajar el alto, es
+**«Ajustes del marco»: 782 px y 318 palabras** de controles transversales por
+encima del trabajo por facultad. Queda anotado con su medición, no ejecutado:
+tocarlo sin entender qué controles de ahí son imprescindibles repetiría el error
+que esta iteración acaba de evitar.
+
+### F28 — «Ajustes del marco» tampoco tiene grasa (2026-08-02)
+
+Medido el único candidato que quedaba de S3:
+
+| pieza | alto | palabras |
+|---|---:|---:|
+| Cabecera de sección | 73 px | 40 |
+| Aviso | 41 px | 32 |
+| **Rejilla de criterios (controles reales)** | **645 px** | 246 |
+
+De los 782 px, **645 son controles**; solo 114 px son cabecera y aviso. La prosa
+de toda la superficie son **122 palabras en 4 párrafos** sobre 5,8 pantallas.
+
+**Iteración sin reparación, y ese es su resultado.** S3 no tiene qué recortar:
+su alto es función del grano por facultad y de los controles que ese grano
+exige. Registrarlo importa tanto como una reparación, porque la próxima pasada
+llegará con la misma intuición —«5,8 pantallas es mucho»— y aquí está la
+evidencia de que atacarla rompería el entregable.
+
+Con esto **S1, S2 y S3 pasan la vara del grano** y la reauditoría queda al día
+hasta S4.
+
+### F29 — Una lista deslizable declara su profundidad (S4, 2026-08-02)
+
+Barrido de S4 y del resto con la vara del grano: `marco-poblacion` (2,7),
+`def-estudio` (1,1), `def-variables` (3,2), `calculo-diseno` (3,4, 15 filas por
+facultad) y `calculo-propuestas` (2,3, 15 filas) pasan con **0 desbordes**. Una
+anomalía saltó: `marco-aulas` declaraba 2,6 pantallas pero **10.632 palabras**.
+
+La causa, medida: un único contenedor, `cmv2-ch-sexo-scroll`, con **39.899 px de
+filas dentro de una ventana de 360 px** —110 pantallas— porque volcaba los ~850
+cursos-horario de golpe. La barra de scroll no dice cuánto falta, así que la
+profundidad estaba escondida en un gesto.
+
+| | antes → después |
+|---|---:|
+| Contenido del contenedor | 39.899 px → **1.876 px** |
+| Filas renderizadas | ~850 → **40** |
+| Palabras de la pestaña | 10.632 → **849** |
+| Profundidad declarada | no → **«Mostrando los 40 de mayor tamaño · 849 cursos-horario»** |
+| Desbordes | 0 → **0** |
+
+No se agrega ni se resume nada —son las mismas filas del motor, acotadas—, y el
+orden ya pone delante lo que importa. «Ver todos» conserva el acceso completo:
+acotar no es esconder. Guard: `CursosHorarioSexoProfundidad.test.tsx`, con el
+tercer caso cuidando que una lista que **sí** cabe no se anuncie ni se recorte,
+porque un pie de profundidad sobre 8 filas sería el ruido que este loop combate.
+
+### F30 — El vuelco de F29 era único, no sistémico (2026-08-02)
+
+Barrido de **nueve superficies** buscando el patrón que F29 destapó: todo
+contenedor deslizable cuyo contenido supere 4× su ventana.
+
+**Resultado: cero.** Ningún otro contenedor del módulo esconde su profundidad.
+El de `cmv2-ch-sexo-scroll` era el único, y ya está reparado.
+
+Iteración sin reparación otra vez, y otra vez ese es el resultado: sin el
+barrido, la pregunta «¿cuántos más habrá así?» quedaba abierta y la próxima
+pasada la habría vuelto a abrir. Ahora la medida existe —contenido/ventana > 4—
+y puede repetirse en un comando.
+
+**Cierre del tramo**: la reauditoría con la vara del grano cubre **S1–S4 y las
+superficies de Definición, Cálculo y Entrega**, todas con 0 desbordes.
+
+### F31 — El comparador terminó y su evidencia no se acredita (2026-08-02)
+
+El job `f8df413b` cerró en **100 %**. Estado de las cinco superficies de
+Selección con esa corrida terminada:
+
+| superficie | alto | desbordes | estado |
+|---|---:|---:|---|
+| Comparar métodos | 1,6 | 0 | **abre** (271 palabras) |
+| Simulación · Titulares · Reemplazos | 1,0 c/u | 0 | siguen cerradas |
+| Sustento técnico | 1,7 | 0 | sigue cerrada |
+
+Método publica «Método configurado · **Sin atribución al engine**» y mantiene la
+condición «la evidencia almacenada no acredita la comparación vigente». Es decir:
+**la corrida completa no quedó acreditada como vigente**. Las superficies no
+mienten —declaran su hueco correctamente, que es lo que la vara les exige— y por
+eso el defecto no es de superficie.
+
+**Va al loop v2**, junto a los otros tres hallazgos de contrato de esta sesión:
+una corrida que termina en 100 % debe quedar acreditada o decir por qué no. Hoy
+el usuario espera 63 simulaciones y al final la app le pide volver a comparar sin
+nombrar qué firma cambió. Falta descartar antes que sea sólo estado obsoleto en
+el cliente: el instrumento se sembró con `?pulso=`, que se consume una vez, así
+que recargar para comprobarlo arriesga perderlo — se verifica al reabrir con el
+sembrado limpio, no en caliente.
+
+### F32 — La reauditoría cubre las 24 superficies (2026-08-02)
+
+Corrí el comparador **por el camino real del usuario** (el botón, no la API) para
+falsar F31, y mientras avanzaba cerré el barrido pendiente en vez de esperarlo.
+
+Últimas siete superficies, todas con **0 desbordes y 0 contenedores con
+profundidad escondida**:
+
+| superficie | alto |
+|---|---:|
+| Fuentes · Consistencia | 1,4 · 1,2 |
+| Cursos-horario requeridos · Distribución | 1,3 · 2,8 |
+| Cierre · Entregables · Pase a Monitoreo | 0,9 · 1,3 · 1,4 |
+
+Con esto **las 24 superficies del módulo están reauditadas con la vara del
+grano**: ninguna desborda, ninguna esconde profundidad y las de criterio
+declaran a qué grano deciden.
+
+**Corrección de método**: para comprobar si el estado del comparador vivía en el
+servidor consulté `/api/calc-muestra/workspace` y leí un 404. Estuve a un paso de
+concluir «el servidor no tiene la corrida»: ese endpoint **no existe**. Un 404 de
+una ruta inventada no es evidencia de nada, y la conclusión habría sido falsa.
+Verificado contra el router antes de escribirla.
+
+### F33 — El instrumento deja de vivir en un scratchpad (2026-08-02)
+
+Mientras la corrida del comparador avanzaba —no se espera de brazos cruzados— se
+cerró la deuda que sostenía todo el loop: **el script que siembra el instrumento
+existía sólo en el scratchpad de la sesión**, repartido en seis archivos sueltos
+(`seed.R`, `estratos.R`, `patch.R`, `patch2.R`, `cfg.R`, `ancla.R`). Al cerrar la
+sesión se perdía, y con él la reproducibilidad de cada medición de este doc.
+
+Ahora es uno versionado: **`api/scripts/qa_seed_calc_muestra_radiografia.R`**,
+parametrizado por origen y destino, que declara en su cabecera qué produce, qué
+**no** certifica —ni cifras canónicas ni etiquetas de facultad, que son
+seudónimos— y el límite heredado del anonimizador. Incorpora además las dos
+correcciones que costaron horas encontrar:
+
+- el N del diseño son alumnos **únicos**, no matrículas: `elegibles_total` infla
+  el N y descuadra la cabecera, y esa confusión de grano es justo la que el
+  módulo existe para evitar;
+- una facultad sin CH elegibles se excluye del diseño en vez de arrastrarse con
+  N = 0, que era lo que dejaba la decisión de Alumnos por CH inconfirmable.
+
+Sintaxis verificada (44 expresiones). La corrida lanzada por la UI seguía sin
+acreditar al cierre del tramo; su lectura queda para la próxima iteración.
+
+### F34 — El círculo de la comparación (2026-08-02)
+
+Falsar F31 dio el hallazgo más caro de la sesión, y no era lo que yo había
+supuesto. `POST /api/calc-muestra/aulas/comparar-metodos` no falla por falta de
+evidencia: devuelve **409 `E_CALC_MUESTRA_ALUMNOS_CH_DECISION`**, con
+`reason: "decision_stale"` y un mensaje exacto —«la decisión de alumnos por CH
+cambió desde esta corrida»—.
+
+Frente a eso, la app decía dos cosas y ninguna era esa:
+
+| dónde | qué decía | qué pasaba |
+|---|---|---|
+| Aviso de etapa | «la evidencia almacenada no acredita la comparación vigente · **vuelve a comparar**» | comparar es justo lo que falla |
+| Fallback del `catch` | «**construye primero el marco** de cursos-horario» | el marco ya estaba construido |
+
+**El usuario quedaba en un círculo**, repitiendo lo único que no puede
+funcionar, tras esperar 63 simulaciones. El código del motor no estaba
+referenciado **ni una vez** en todo el frontend.
+
+Reparado: cuando el motor nombra esa condición, la app la nombra también y dice
+dónde se resuelve —Marco › Alumnos por CH—, en vez de mandar a repetir la
+comparación. Guard: `decisionAlumnosChCaducada.test.ts`, con el reconocimiento
+por código y por texto (el objeto estructurado no siempre sobrevive al cliente)
+y tres casos negativos para que no se lleve por delante otros fallos.
+
+**Lección de método, la tercera de la sesión**: F31 concluyó «la corrida no se
+acredita» leyendo la superficie. Era verdad y era inútil —la causa estaba a un
+`curl` de distancia—. Preguntarle al motor antes de teorizar sobre la superficie
+habría ahorrado dos iteraciones.
+
+### F35 — El bloqueo sin salida (2026-08-02) · **hallazgo mayor**
+
+Al intentar lo que F34 recomienda —reconfirmar Alumnos por CH y comparar de
+nuevo— aparece el defecto de fondo. Medido en la misma vuelta, lado a lado:
+
+| | dice |
+|---|---|
+| **Superficie** | «Decisión vigente» · botón **Confirmar decisión deshabilitado** |
+| **Motor** | `409 E_CALC_MUESTRA_ALUMNOS_CH_DECISION` · `reason: decision_stale` · «recalcula y vuelve a generar» |
+
+**El usuario no tiene salida.** La app le dice que no hay nada que confirmar; el
+motor se niega a comparar hasta que confirme. Cada lado es coherente consigo
+mismo y juntos forman un callejón: Simulación, Titulares, Reemplazos y Sustento
+quedan inalcanzables por diseño, no por falta de datos.
+
+Esto explica de golpe todo lo que este loop venía tropezando: F31 leyó «no se
+acredita» y lo atribuyó a la corrida; F34 encontró el 409 y lo trató como un
+mensaje mal elegido. Ninguna de las dos era la causa. **La causa es que dos
+componentes discrepan sobre qué hace vigente a una decisión**, y el frontend
+—que sólo presenta y valida— no puede arbitrar esa discrepancia sin inventar
+criterio.
+
+**Reparto:**
+- **Loop v2 (motor)**: alinear el criterio de vigencia. O la firma que el motor
+  compara es la misma que la superficie evalúa con
+  `alumnosPorChDecisionIsCurrent`, o el 409 debe decir **qué** cambió —hoy dice
+  que cambió, no qué—.
+- **Frontend (F36)**: la salida de emergencia. Cuando el motor reporta
+  `decision_stale`, «Confirmar decisión» debe habilitarse aunque el borrador
+  coincida: refirmar deja de ser un no-op cuando es exactamente lo que
+  desbloquea. Hoy el deshabilitado existe para evitar un gesto inútil y acaba
+  cerrando el único gesto útil.
+
+Notado también: el 409 llega tras esperar **63 simulaciones**. El chequeo de
+vigencia debería correr antes de encolar el job, no después de gastarlo.
+
+### F37 — Salvedad sobre F34 y F35: la sonda iba incompleta
+
+Al recorrer el camino completo apareció un dato que obliga a matizar las dos
+iteraciones anteriores: **la comparación lanzada desde la UI sí se encola** y
+corre. El 409 que sostiene F34 y F35 lo obtuve con `POST … {}` —cuerpo vacío,
+sin `config` ni `objective_config`—, mientras la UI manda la configuración
+completa.
+
+Qué se sostiene y qué no, sin adornar:
+
+- **Se sostiene**: el frontend no referenciaba `E_CALC_MUESTRA_ALUMNOS_CH_DECISION`
+  ni una vez, y su fallback nombraba una causa falsa («construye primero el
+  marco»). Eso es un defecto con o sin sonda, y F34 lo repara.
+- **Se sostiene**: la salida de emergencia de F36 no daña nada. Sin señal del
+  motor el botón sigue bloqueado; sólo se reabre cuando el motor rechaza.
+- **Queda en duda**: si el usuario real llega alguna vez al callejón de F35. Con
+  el `config` correcto el motor puede no rechazar nunca, y entonces F35 describe
+  un estado que sólo alcanza una sonda mal formada.
+
+**No se cierra F35 hasta verlo por el camino real.** Registrar la duda vale más
+que el hallazgo: es la cuarta vez en la sesión que una medición apresurada
+apunta al lugar equivocado —los absolutos de S5, la prosa de F1, los SVG de
+S13—, y las tres anteriores las descubrí yo revisando, no el gate.
+
+### F37b — La comparación acredita; F35 era mi sonda · **S10 cerrada**
+
+La corrida lanzada desde la UI **acreditó**: Método pasa a «Recomendado por el
+comparador vigente» y el aviso de condición desaparece. Queda confirmado lo que
+F37 sospechaba: **el callejón de F35 no existe por el camino real**, lo fabricó
+mi `POST` sin `config`. F34 se sostiene igual —el fallback nombraba una causa
+falsa y el código del motor no estaba referenciado— y F36 tampoco daña nada,
+porque sin señal del motor el botón sigue bloqueado.
+
+Con la comparación acreditada, **Simulación abre y pasa la vara**: 1,1 pantalla,
+170 palabras, 0 desbordes. Selección, Reemplazos y Sustento siguen esperando su
+propio paso, la corrida de selección.
+
+**Y el dato nuevo destapó un defecto que ninguna pasada anterior podía ver.**
+Sustento saltó de 0 a 4 desbordes al dibujarse el gráfico de balance, que sin
+datos no existía. Los cuatro eran uno solo, en cascada: `.cmv2-profile-bars > div`
+declaraba pisos de 180 + 180 px que, con gap, padding y borde, exigen **392 px
+mínimos dentro de una columna de 387**. Cinco píxeles exactos, arrastrando a tres
+ancestros.
+
+| | antes → después |
+|---|---:|
+| Desbordes en Sustento (1440×1000) | 4 → **0** |
+| Mínimo exigido por la fila | 392 px → **adaptable** (pisos a 0) |
+| Desbordes a 1024×600 (Método · Simulación · Sustento) | — → **0, 0, 0** |
+
+Guard: `profileBarsGeometry.contract.test.ts`, que mide la **regla** y no la
+pantalla —la regla estaba rota aunque nadie la mirara— y es falsable: con los
+pisos viejos da 392 > 387 y falla.
+
+**Lección**: auditar sobre pantallas vacías no sólo mide de menos, mide en falso.
+Esta superficie llevaba toda la sesión declarándose limpia porque su gráfico no
+tenía datos que dibujar.
+
+### F38 — Un remedio apagado dice por qué (2026-08-02)
+
+Al ir a correr la selección apareció el defecto, esta vez **por el camino real**
+y no por una sonda: Titulares mostraba «La selección almacenada no es vigente ·
+Regenera titulares sin relajar la validación» **con su botón «Generar selección»
+deshabilitado, sin `title`, sin `aria-describedby` y sin una línea de texto**. La
+superficie nombraba el problema y apagaba su solución en silencio.
+
+La causa real, que ninguna parte de la pantalla decía: **la comparación seguía
+corriendo** —«Método 4 de 4 (Optimizada para evitar repetidos) · 06:54»—.
+
+| | antes → después |
+|---|---|
+| Motivo del bloqueo | invisible | **en pantalla y en el `title`**, con método y tiempo |
+| Qué podía deducir el usuario | si esperar, volver o si la app se rompió: nada | que hay una corrida en curso |
+| Desbordes | 0 | **0** |
+
+Guard: `stageNoticeMotivo.test.tsx`, con el caso negativo —sin bloqueo no se
+inventa un motivo— para que la explicación no se vuelva ruido permanente.
+
+Esto es la prueba del hueco en su forma más cara: la superficie no mentía, pero
+callaba justo el dato que convierte la espera en algo entendible.
+
+### F36 — La salida de emergencia (2026-08-02)
+
+Reparado el callejón de F35 por el único lado que le toca al frontend: cuando el
+motor rechaza la comparación con `decision_stale`, «Confirmar decisión» **se
+reabre** aunque la firma sea idéntica, y la superficie deja de decir «Decisión
+vigente» para decir «El motor pide volver a firmarla».
+
+React no arbitra quién tiene razón sobre la vigencia —eso sigue siendo trabajo de
+motor, anotado en F35—. Sólo deja de bloquear el gesto que desbloquea: refirmar
+no es un no-op cuando es lo único que abre el paso.
+
+| | antes → después |
+|---|---|
+| Confirmar con firma idéntica y motor conforme | deshabilitado → **deshabilitado** (no se regala un gesto inútil) |
+| Confirmar tras un 409 `decision_stale` | deshabilitado, **sin salida** → **habilitado**, con la causa en pantalla |
+
+Guard: dos casos nuevos en `AlumnosPorChMarcoTab.test.tsx` que fijan las dos
+mitades —sin señal sigue bloqueado, con señal se abre—, porque reabrirlo siempre
+volvería a regalar el no-op que el bloqueo existía para evitar.
+
+Gate: typecheck 0 · Vitest **811/811** en 94 archivos.
+
+### F39 — El estado ocupado pasa la vara, y mi instrumento no
+
+Con el comparador corriendo se pudo auditar algo que el loop nunca había mirado:
+la superficie **ocupada**. Todas las pasadas anteriores midieron pantallas
+inertes o cerradas.
+
+Primera lectura, acotada a `.cmv2-tab-panel`: Método y Simulación no decían nada
+del job y sólo Titulares informaba el avance. Iba a escribir que el estado
+ocupado estaba **invertido** —la pestaña que lanza no informa, la de al lado sí—.
+
+**Era falso.** Al medir el documento completo aparece la barra global: «Comparando
+métodos», «corrida 10 de 21», tiempo transcurrido y **botón de cancelar**
+(`cmv2-busy-cancel`). Un job global informado en una barra global es exactamente
+donde corresponde. El estado ocupado pasa la vara sin tocar nada.
+
+**Tercer error de alcance del mismo tipo en la sesión** —tras «excepción: 0
+veces» medido en la pestaña equivocada y los desbordes SVG de S13—: acoto la
+sonda al panel y concluyo sobre la aplicación. Queda escrito como regla del
+instrumento: **antes de declarar que algo falta, medir el documento, no el
+panel**. Las tres veces el error apuntaba en la misma dirección —creer que falta
+algo que sí está—, que es la dirección que produce trabajo inútil.
+
+### F40 — Corrección de rumbo de Gonzalo (2026-08-02)
+
+Dirección nueva, y varias cosas de F24–F26 iban en contra. Se cita entera porque
+reescribe la vara:
+
+> «La decisión de criterios de estudiantes por facultad no tiene sentido, allí
+> siempre es general. Además no es necesaria la radiografía: la radiografía es la
+> descripción de alumnos elegibles por alguna característica de curso-horario,
+> tomando en cuenta los criterios anteriores. Los criterios con switch de
+> selección tienen que ser uno con los gráficos, son un todo. El embudo es activo
+> y animado: si cambio un criterio previo, los gráficos del siguiente se
+> actualizan. Toda la información debe estar mostrada de forma profesional, no
+> técnica; **si algo está oculto es un error de diseño**.»
+
+**Lo que hice mal**: llevé el grano por facultad a los criterios de estudiante,
+que son generales por naturaleza, y monté la radiografía dentro de sus tarjetas.
+El grano por facultad sí valía —pero para los criterios de curso-horario, no para
+estos—.
+
+**Primera corrección, medida:**
+
+| | antes → después |
+|---|---:|
+| Elementos plegados en la pestaña | **637** → **0** |
+| Alto de la superficie | 5,6 → **2,3 pantallas** |
+| Bloques por facultad en criterios de estudiante | 3 → **0** |
+| Desbordes | 0 → **0** |
+
+Los 637 `<details>` cerrados son la medida exacta de «si algo está oculto es un
+error de diseño»: la mayoría ni siquiera tenía título. El contrato quedó fijado
+al revés de como estaba —el test exige ahora que la ruta de estudiante **no**
+lleve radiografía, ni excepciones, ni un solo `<details>`—.
+
+**Cola de esta dirección, por ejecutar en orden:**
+
+1. **Orden de los criterios de curso-horario**: mínimo de matriculados primero;
+   Elegibles por CH y Composición como penúltimos; el mayor detalle —ver uno por
+   uno— al final.
+2. **«Panorama por facultad» al inicio**, junto a la matriz de criterios.
+3. **Selector de facultad en vez de acordeón**: mostrar una facultad a la vez
+   permite más alto y más detalle, y elimina el plegado.
+4. **Switch y gráfico como una sola pieza**, no dos bloques vecinos.
+5. **Embudo activo**: cambiar un criterio previo actualiza los gráficos del
+   siguiente.
+6. **Quitar lo técnico**: nada de «trazabilidad completa» ni secciones que sólo
+   se entienden por dentro.
+
+### F41 — Nada oculto, y el orden que pediste (2026-08-02)
+
+Puntos 1, 2, 3 y 6 de la dirección de F40, ejecutados y medidos.
+
+**Orden del embudo por facultad**, ahora exactamente el pedido:
+
+1. Matriculados / población · 2. Modalidad · 3. Condición del curso ·
+4. Nivel del curso · *(bisagra: aulas candidatas)* · 5. Tipo de sesión ·
+6. **Mínimo de elegibles por aula** · 7. **Composición del curso-horario** ·
+8. **Cursos-horario del marco** (el mayor detalle, uno por uno)
+
+**Una facultad a la vez, con selector.** Quince bloques plegados obligaban a
+abrir y cerrar para comparar. Ahora el selector muestra la facultad elegida
+entera —la cabecera deja de ser un botón que no hace nada— y hay alto de sobra
+para el detalle.
+
+**Nada plegado.** Cayeron los cinco `<details>` que quedaban: la matriz de
+impacto, «Ver trazabilidad completa», los cuantiles, la señal y «Procedencia y
+contrato».
+
+| | antes → después |
+|---|---:|
+| Elementos ocultos · criterios de estudiante | 637 → **0** |
+| Elementos ocultos · curso-horario | 5 → **0** |
+| Alto · criterios de estudiante | 5,6 → **2,3 pantallas** |
+| Alto · curso-horario | 5,8 → **6,7 pantallas** (sube porque ya no esconde) |
+| Desbordes | 0 → **0** |
+| Contenido técnico visible | «Procedencia y contrato», «trazabilidad completa» → **ninguno** |
+
+**Lo técnico sale, lo metodológico se queda.** «Procedencia y contrato» —hash,
+owner, grano, unidad— es el contrato interno del motor y no dice nada del
+estudio. Pero dentro de ese mismo bloque vivían dos avisos que **sí** cambian una
+lectura: que un criterio es informativo y no altera el N, y que unos segmentos
+se solapan y por tanto **no se suman**. Al retirar el bloque se fueron los
+cuatro; el test lo detectó y los avisos volvieron a la superficie, ya sin
+plegado. *Quitar ruido y quitar información se parecen mucho en un diff.*
+
+Pendiente de la dirección: **4** (switch y gráfico como una sola pieza) y **5**
+(embudo activo: cambiar un criterio previo actualiza los gráficos del
+siguiente).
+
+### F42 — El acordeón por criterio se abre, y un plegado sobrevive con razón
+
+Punto 4 de la dirección: **el switch y su gráfico son una sola pieza**. Estaban
+separados por un acordeón —ocho cabeceras de 50 px por facultad, cada una
+abriendo a ~950 px—. Con una facultad a la vez ese acordeón sobra, así que los
+ocho criterios abren de entrada.
+
+| | |
+|---|---:|
+| Criterios plegados por facultad | 8 → **0** |
+| Alto de la pestaña | 5,8 → **10,5 pantallas** |
+| Desbordes | **0** |
+| Contenido técnico visible | **ninguno** |
+
+**Dos hipótesis mías fueron falsas antes de dar con la causa.** Al abrir todo la
+pestaña saltó a **28 pantallas**. Culpé primero a los cuantiles y los compacté:
+bajó a 26,5. Culpé después a los gráficos de señal por segmento y los diferí:
+26,5 → 25,3. Apenas nada. Sólo al medir el interior del criterio más grande
+apareció la causa real: **`cmv2-crc-faculties`, 4.719 px — la radiografía de las
+quince facultades renderizada dentro del bloque de una sola**, repetida por
+criterio.
+
+Eso es lo que «Ver trazabilidad completa» escondía, y explica por qué estaba
+escondido: no era ruido técnico, era **el módulo entero duplicado**. La
+reparación correcta no es mostrarlo ni ocultarlo, sino **acotarlo a la facultad
+en foco**, que es la que el usuario abrió. Hasta que ese recorte exista se
+contiene tras un control que ahora dice lo que hay —«Comparar con las demás
+facultades»— en vez de una etiqueta técnica que no decía nada.
+
+Queda así **un** plegado en la pestaña, y queda escrito por qué, con su medición.
+Es la diferencia entre una excepción justificada y un descuido.
+
+**Pendiente de la dirección**: acotar ese bloque a la facultad en foco, y el
+punto **5** —embudo activo: cambiar un criterio previo actualiza los gráficos del
+siguiente—.
+
+### F43 — El detalle es de la facultad abierta (2026-08-02)
+
+Reparado lo que F42 dejó contenido: `V2Distribution` recibía `facultyKey` y **no
+lo usaba**, así que dentro del bloque de una facultad pintaba las quince. Ahora
+filtra por la facultad en foco.
+
+| | antes → después |
+|---|---:|
+| Facultades dentro de un criterio | 15 → **1**, la del selector |
+| Plegados en la pestaña | 1 → **0** |
+| Desbordes | 0 → **0** |
+
+Con el bloque acotado desaparece el motivo para plegarlo, así que cae el último
+`<details>`: **la pestaña ya no esconde nada**. La comparación entre facultades
+no se pierde —vive arriba, en el panorama y la matriz, que es su sitio—.
+
+**Lo que queda alto es honesto**: 25,3 pantallas para una facultad con todo
+visible, y el grueso es un criterio con ~20 categorías, cada una con su gráfico.
+No es duplicación ni relleno: es el detalle por segmento que Gonzalo pidió ver.
+Si esa altura resulta excesiva en uso real, la palanca ya no es esconder sino
+decidir cuántos segmentos merecen gráfico propio —y esa es una decisión de
+producto, no una reparación—.
+
+### F45 — Corrección de F44: el embudo SÍ es activo; lo que falla es el motor
+
+**F44 está mal y la corrijo entera.** Concluí «el embudo no es activo» porque
+las cifras no cambiaban al conmutar un criterio. Medí el efecto y no el
+mecanismo, que es el error de método que llevo toda la sesión cometiendo.
+
+Al instrumentar `fetch` aparece lo que de verdad pasa:
+
+| | |
+|---|---|
+| ¿La UI pide el recálculo? | **sí**: **7 llamadas** a `/api/calc-muestra/marco/criterios/preview` por cada cambio de criterio |
+| ¿Qué responde el motor? | **409 `E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE`** · «El preview requiere el contexto transitorio del marco y criterios vigentes» |
+| ¿La superficie lo oculta? | **no**: 7 avisos `data-state="stale"` visibles, y conserva la última cascada ejecutada |
+
+Es decir: **el punto 5 ya está implementado en el frontend y se comporta bien**
+—pide, falla, lo dice y no inventa—. Lo que impide que los gráficos se
+actualicen es que el motor rechaza cada preview por falta de contexto
+transitorio. Eso es trabajo de motor, y ahora está localizado con su código de
+error, no descrito como una sensación.
+
+Estuve además a punto de escribir un segundo error: al ver «0 CH · 0 matrículas ·
+0 estudiantes únicos» pensé que la app fabricaba ceros ante un fallo. No: son los
+valores reales de la cascada ejecutada para esa facultad en el instrumento
+sembrado, y el fallo del preview se anuncia aparte. **Verificar antes de acusar
+evitó convertir una superficie honesta en un defecto inventado.**
+
+**Deuda real que queda, ya del tamaño correcto:**
+
+1. **Motor**: el preview necesita el contexto transitorio; hoy 409 siempre.
+2. **Frontend, menor**: el aviso dice «El marco cambió mientras se calculaba el
+   preview», que no es lo que ocurrió —el motor pidió contexto transitorio—. El
+   mensaje debe reflejar el código recibido y no una causa supuesta.
+
+### F47 — El embudo en vivo tiene condición, y ahora se entiende (2026-08-02)
+
+Perseguido el 409 hasta su origen en `router_calc_muestra_criterios.R`: el
+preview exige un **contexto transitorio de sesión** cuyo `source_frame_hash` y
+`current_criteria_hash` coincidan con la petición. Ese contexto sólo existe si el
+marco **se construyó en esta sesión**.
+
+Consecuencia real, y es de producto: **quien abre un `.pulso` guardado nunca
+tiene embudo en vivo**. La UI pide el recálculo siete veces por cambio y el motor
+lo rechaza siempre, hasta que se reconstruye el marco.
+
+Antes de culpar al frontend comprobé el payload: manda `source_frame_hash`,
+`criteria_hash` **y `config`** —6,6 KB—. Está completo. Mi captura anterior sólo
+leía 160 caracteres y por eso parecía faltar `config`: **la tercera vez en la
+sesión que un recorte de mi sonda casi produce un defecto inventado.**
+
+| | antes → después |
+|---|---|
+| Aviso | «El preview requiere el contexto transitorio del marco y criterios vigentes» | **«El embudo en vivo necesita que el marco se haya construido en esta sesión. Vuelve a construirlo para que los gráficos se actualicen al cambiar un criterio; mientras tanto se muestra la última cascada ejecutada.»** |
+| ¿Dice qué hacer? | no | **sí** |
+| Jerga interna en pantalla | sí | **no** |
+
+Verificado en la app: 7 avisos, todos accionables, ninguno con jerga. Guard en
+`calcMuestraCriteriosI18b.test.ts`.
+
+**Para el loop v2** queda la pregunta de fondo, ya bien planteada: ¿debe el
+preview depender de un intermedio de sesión, o reconstruirlo bajo demanda? Hoy la
+respuesta la paga el usuario que abre un proyecto guardado.
+
+### F46 — El aviso dice la causa real (2026-08-02)
+
+Reparada la deuda de frontend que dejó F45: ante un rechazo `stale`, la app
+sustituía el mensaje del motor por uno propio —«El marco cambió mientras se
+calculaba el preview»— que **no era lo que había pasado**.
+
+| | antes → después |
+|---|---|
+| Aviso en pantalla | «El marco cambió mientras se calculaba el preview» | **«El preview requiere el contexto transitorio del marco y criterios vigentes · E_CALC_MUESTRA_CRITERIOS_PREVIEW_STALE»** |
+| ¿Coincide con lo que respondió el motor? | no | **sí** |
+
+Verificado en la app con el instrumento sembrado: 7 avisos, todos con la causa
+real y ninguno con la inventada. Guard en `calcMuestraCriteriosI18b.test.ts`, que
+exige el texto del motor y prohíbe expresamente el sustituto.
+
+Quien lee un aviso inventado busca la causa donde no está: aquí habría ido a
+revisar por qué «cambió el marco» —que no cambió— en vez de ver que faltaba
+contexto transitorio en el motor. Es el mismo defecto que F34 encontró en la
+comparación, en otra superficie.
+
+**Queda, ya sólo del lado del motor**: el preview necesita el contexto
+transitorio del marco y los criterios vigentes; hoy responde 409 siempre, y por
+eso los gráficos no se actualizan aunque la UI los pida siete veces por cambio.
+
+### F44 — El embudo no es activo (2026-08-02) · **CORREGIDA POR F45**
+
+Punto 5 de la dirección: «el embudo es activo y animado, si cambio un criterio
+previo luego los gráficos del siguiente criterio se actualizan».
+
+**Conclusión errónea, ver F45.** Prueba en la app, con el control y el resultado por separado para
+que la evidencia sea falsable:
+
+| | |
+|---|---|
+| Acción | conmutar la primera categoría de **Modalidad** (criterio temprano) |
+| ¿Cambió el control? | **sí**: `aria-checked` pasó de `true` a `false` y la facultad quedó «Decisión propia» |
+| ¿Cambiaron los criterios siguientes? | **no**: `17.8 \| 639 \| 639` y `51.4 \| 58.4 \| 546` idénticos antes y después |
+
+La primera fila importa tanto como la tercera: sin comprobar que el control
+respondió, un «no cambió nada» sólo probaría que mi click falló.
+
+**Por qué no es un arreglo de diez líneas.** El motor ya expone
+`/api/calc-muestra/marco/criterios/preview`, y `CriteriosEmbudoVivo` lo consume
+con `useCascadePreview`. Lo que falta es que **cada criterio** pida su
+radiografía con los criterios previos aplicados —hoy todos leen el mismo
+`criterios_radiografia` del último marco construido—. Eso es una cadena de
+previews encadenados por posición en el embudo, con su invalidación y su estado
+de carga.
+
+**Y hacerlo mal es peor que no hacerlo**: si los gráficos se recalculan por
+delante y alguno queda con el dato viejo, la superficie muestra una distribución
+que ya no corresponde a los criterios activos —exactamente la clase de error que
+este módulo existe para evitar—. Queda como la siguiente iteración, con el
+contrato de encadenamiento definido antes de tocar la UI.
+
+## DIRECCIÓN DE GOBIERNO — rediseño, no ajustes (Gonzalo, 2026-08-02)
+
+Esta sección **reemplaza la cola de parches**. Gonzalo lo dijo sin rodeos: «esto
+amerita un repensamiento completo y no ajustes superficiales». Las iteraciones
+F40–F47 movieron piezas dentro de una estructura que ya estaba mal, y por eso
+cada corrección suya encontró el mismo problema en otro sitio.
+
+### La unidad de diseño es la CATEGORÍA de criterio, no el criterio
+
+Cada categoría con CH disponibles es **un solo contenedor** que trae, junto al
+switch que la incluye o excluye:
+
+| dato | nota |
+|---|---|
+| Cantidad de CH | |
+| Cantidad de alumnos | |
+| Promedio de alumnos elegibles | con su **boxplot** |
+| Información intercuantílica completa | los cuantiles, no una cifra suelta |
+| La cascada —el efecto de esta categoría en el embudo— | **integrada**, sin jerga: «cascada viva» es lenguaje de relleno |
+| Tasa de asistencia | |
+
+Y **todo dinámico a los criterios previamente aplicados**: al cambiar un filtro
+anterior, estas cifras y estos gráficos se recalculan.
+
+Nada de esto sobra —Gonzalo lo subraya: «toda esa información es súper útil»—.
+Lo que falla es que hoy vive repartida en un selector de cinco pasos, una consola
+aparte y bloques vecinos que no se hablan.
+
+### Las seis correcciones, literales
+
+1. **No existen criterios generales.** Todos son por facultad. El **mínimo es el
+   criterio 1**; el **7 y el 8 son los penúltimos**. (F40 los dejó generales en
+   la pestaña de estudiante: interpretación equivocada, se revierte.)
+2. **La matriz es parte del Panorama por facultad**, no un bloque al final.
+3. **Los boxplots no tienen ejes visibles ni comunes.** Sin eje compartido no se
+   pueden comparar, que es lo único para lo que existen.
+4. **Radiografía y criterios son lo mismo.** No hay una superficie de criterios y
+   otra de radiografía: se revisa cada criterio en detalle con toda su
+   información radiográfica delante, y ahí se decide.
+5. **Bug abierto**: la lista de categorías de tipo de docente mezcla las ocho
+   categorías reales con **nombres de personas**. La captura descarta que sea la
+   columna equivocada —si lo fuera no habría categorías—: la columna trae ambas
+   cosas fila a fila y la app convierte cada valor distinto en un switch sin
+   preguntarse si es una categoría o una persona. Falta confirmarlo contra la
+   base; alias de columna en `calc_muestra_aulas.R:209`.
+6. **El selector de cinco pasos no se elimina: se reconstruye** dentro de la
+   unidad de arriba.
+
+### Lo que esta dirección invalida
+
+- El grano general en criterios de estudiante (F40).
+- La matriz al cierre del recorrido (F41).
+- La separación entre tarjeta de criterio y su radiografía (S1, F24).
+- Cualquier iteración futura que ajuste una de estas piezas por separado.
+
+### F48 — Primera pieza del rediseño: la tarjeta de categoría (ADR 0057)
+
+Escrito el **ADR 0057** y arrancado el rediseño por su pieza portante:
+`CategoriaEvidencia`, que reúne en un solo contenedor lo que ADR 0057 exige de
+cada categoría —CH, alumnos, media por CH, boxplot, cuantiles y presentes
+esperados con su tasa—.
+
+**Escala compartida por construcción.** `dominioCategorias()` calcula el dominio
+sobre **todas** las categorías del criterio y `EjeCategorias` lo declara una vez,
+con marcas visibles y la unidad escrita. Es la regla 3 del ADR resuelta en el
+tipo, no en el CSS: sin dominio no hay caja.
+
+**Animación con función.** La caja crece desde su P25 al aparecer y las cifras
+funden al recalcularse, para que se vea **cuál** cambió; nada se mueve por
+decorar, y `prefers-reduced-motion` lo apaga sin perder información.
+
+Guard: `CategoriaEvidencia.test.tsx`, seis casos, incluidos los dos que más veces
+se rompieron —una escala por criterio y no por caja; y no estimar presentes sin
+tasa ni dibujar caja sin distribución—.
+
+| | |
+|---|---:|
+| Ejes declarados en la superficie | **3** |
+| Cajas sobre escala común | **17** |
+| Desbordes | **0** |
+| Vitest | **820** en 97 archivos |
+
+**Dónde llegó y dónde falta.** La pieza está viva en la ruta que usa
+`ControlFlat` (criterios de estudiante). La ruta de curso-horario pasa por
+`CriterioFacultadCard`, que tiene su propio camino y **todavía no la consume**:
+es la siguiente iteración, y es la que importa según ADR 0057, porque allí es
+donde todos los criterios son por facultad.
+
+### F49 — La evidencia llega a la ruta que importa (ADR 0057)
+
+F48 dejó la tarjeta de categoría viva sólo en la ruta de estudiante. Esta
+iteración la lleva a **curso-horario**, que es donde el ADR dice que todos los
+criterios son por facultad.
+
+La pieza nueva es el puente: `evidenciaPorCategoria()` une la radiografía —una
+fila por (facultad × segmento), con su distribución— con el conmutador, que vive
+en la categoría. Sin él cada uno miraba su mitad.
+
+**El join es por el par, no por el segmento.** Cruzar sólo por segmento
+arrastraría la distribución de otra facultad a la tarjeta abierta; el guard lo
+fija con dos facultades que comparten la categoría «presencial» y medias muy
+distintas (22 y 99), de modo que un cruce mal hecho falla con un número
+reconocible en vez de con un fallo abstracto.
+
+| | antes → después |
+|---|---:|
+| Ejes declarados en curso-horario | 0 → **3** |
+| Cajas sobre escala común | 0 → **13** |
+| Bloques de cuantiles | 0 → **18** |
+| Desbordes | 0 → **0** |
+| Vitest | 820 → **824** en 98 archivos |
+
+«Presentes esperados» sale 0 y es correcto: este instrumento no tiene tasa de
+asistencia configurada, y el guard exige que sin tasa no se estime. Es la regla
+de la casa —React presenta, no calcula— aplicada al caso más tentador.
+
+**Siguiente**: la regla 2 del ADR —la matriz pertenece al Panorama por facultad,
+no a un bloque aparte— y el bug de categorías que mezclan nombres de personas.
+
+### F50 — Regla 2 del ADR y el bug de categorías (2026-08-02)
+
+**Regla 2 · la matriz sube al Panorama.** Era el cierre del recorrido: llegaba
+**después** de las decisiones que debía informar. Comparar criterios entre
+facultades y elegir en cuál entrar son el mismo gesto, así que la matriz va
+arriba, junto al panorama, antes de bajar al detalle. Verificado en la app.
+
+El contrato de orden se invirtió a propósito —si alguien la devuelve al final,
+el test falla—. Y ahí corregí una aserción mía que medía mal: comparaba contra la
+sección «Decisión por facultad», que **envuelve** al panorama, así que su
+etiqueta aparece antes por construcción y la comparación era vacua. Ahora compara
+contra los bloques de facultad, que es la afirmación real.
+
+**Bug de categorías: diagnosticado, y la reparación de fondo no es del frontend.**
+El catálogo de categorías lo publica R con **los valores distintos de la
+columna**. Cuando la columna mezcla la categoría del docente con su nombre, los
+nombres llegan como categorías y la app los ofrece uno a uno como decisión.
+
+Lo decisivo: en la captura el aviso era «sin distribución por facultad», es decir
+`ch === null` para todas. **Sin distribución no existe ninguna señal que
+distinga una categoría real de un nombre suelto** — no es que la app no la use,
+es que no la tiene.
+
+Por eso **no se filtra por heurística**. Cualquier regla del tipo «esto parece un
+nombre» descartaría categorías legítimas, y descartar en silencio un criterio
+real es peor que mostrar uno de más. Lo que sí se puede hacer, y se hizo, es
+decir de dónde sale la lista y dónde está el problema:
+
+> «El catálogo no trae distribución por facultad para este criterio, así que la
+> lista son **todos los valores distintos de la columna**. Si aparecen valores
+> que no son categorías —nombres, códigos sueltos—, la columna de origen los
+> mezcla: revísala en Datos › Variables antes de decidir con ella.»
+
+Guard: `categoriasSinDistribucion.test.tsx`, tres casos, incluido el que prohíbe
+explícitamente descartar una categoría por parecer un nombre.
+
+**Para el motor**: un catálogo de criterio sin distribución por facultad no
+debería publicarse como lista de categorías decidibles, o debería marcar qué
+valores tienen presencia en el marco.
+
+| | |
+|---|---:|
+| Matriz | cierre del recorrido → **dentro del Panorama** |
+| Vitest | 824 → **827** en 99 archivos |
+| Desbordes | **0** |
+
+### F51 — Las reglas dejan de vivir sólo en la prosa
+
+Gonzalo, en su mensaje: *«si todas esas indicaciones ya las tenías antes, ¿por
+qué sigues cometiendo los mismos errores y cómo los evitamos moving forward?»*.
+
+**La causa, sin adornos.** Las reglas estaban escritas —en el ADR y en este
+doc—, pero **nada las hacía cumplir**. Los tests de cada iteración confirman lo
+que se acaba de construir, no lo que está prohibido. Por eso montar la
+radiografía en la ruta de estudiante —contra una regla explícita, dicha dos
+veces— dejó **el gate entero en verde**. Y hay un segundo patrón: cada iteración
+se derivaba del último mensaje en vez del contrato acumulado, así que una regla
+de hace tres mensajes se caía sola.
+
+**El mecanismo**: `adr0057Reglas.contract.test.ts` vigila las reglas **por sí
+mismas**, sobre el fuente, con independencia de qué componente se toque:
+
+| Regla | Qué falla si se rompe |
+|---|---|
+| 4 · la radiografía es de curso-horario | `controles.tsx` no puede importar `CategoriaEvidencia`; y la contraparte: `FacultadCategoriaToggles.tsx` **debe** hacerlo |
+| 1 · no hay sección transversal | la pestaña no puede rotular «Ajustes del marco» ni «Transversales a todas las facultades»; y **debe** montar `slotApertura`/`slotCierre` |
+| 2 · la matriz pertenece al Panorama | su declaración debe preceder a los bloques de facultad |
+| 3 · eje común y visible | el dominio es parámetro obligatorio y `EjeCategorias` debe existir |
+| lenguaje y transparencia | ninguna superficie con `<details>`, «Procedencia y contrato» ni «trazabilidad completa» |
+
+Cada regla lleva la cita de Gonzalo que la origina, para que quien la lea sepa a
+qué se está comprometiendo.
+
+**El guard se autocorrigió en su primera corrida.** Falló contra los comentarios
+que documentan por qué se retiró «Procedencia y contrato». Un guard que se
+dispara con su propia documentación empuja a borrar la explicación para pasar en
+verde —peor que el defecto—, así que ahora lee el fuente sin comentarios: las
+reglas se vigilan sobre lo que se renderiza, y las razones se conservan escritas.
+
+**Las dos correcciones de esta iteración:**
+
+| | antes → después |
+|---|---:|
+| Boxplots en criterios de estudiante | 17 → **0** (regla 4) |
+| Boxplots en curso-horario | 13 → **13** |
+| Sección «Ajustes del marco · transversales» | presente → **retirada**; sus criterios se montan en el embudo de la facultad (matriculados abre, mínimo y composición cierran) |
+| Desbordes | **0** en ambas |
+| Vitest | 827 → **835** en 100 archivos |
+
+Al mover los transversales revertí un primer intento que dejaba «Composición»
+**sin control en ningún sitio**: preferí revertir a commitear una regresión, y
+la segunda versión conserva el control moviéndolo, no borrándolo.
+
+### F52 — El destino del embudo deja de estar plegado
+
+Barrido de lo que queda plegado en curso-horario, ahora que el orden y el grano
+están bien. Tres hallazgos, y **sólo dos son defecto** —la distinción importa
+tanto como la reparación—:
+
+| plegado | veredicto |
+|---|---|
+| **«Cursos-horario del marco»** (50 px) | **defecto**: es el «mayor detalle, uno por uno» que cierra el embudo, su destino, y exigía un click. Abierto: 50 → **445 px** |
+| **«Prevalencia de elegibles»** activa | **defecto**: es una regla heredada que **recorta el marco**; plegada no es difícil de encontrar, es **invisible mientras opera**. Ahora se abre sola cuando está encendida |
+| «Ver todas (42 sin cursos en esta facultad)» | **no es defecto**: es un filtro declarado que dice qué contiene y cuántos. Abrir 42 filas vacías sería el ruido que el propio Gonzalo señaló al domar las 52 categorías |
+
+La regla que se deriva y queda en el ADR: **una opción inactiva no es contenido
+oculto; una regla activa sí lo es si está plegada.** El criterio no es si algo
+está cerrado, sino si algo que opera puede pasar desapercibido.
+
+Guard: `composicionReglaActiva.test.tsx`, con las dos mitades —activa abre,
+apagada queda contenida—, para que abrir siempre no se convierta en ruido
+permanente.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Vitest | 835 → **837** |
+
+### F53 — La escala compartida no servía de nada (regla 3, de verdad)
+
+El hallazgo más importante desde el ADR, y demuestra que la regla 3 estaba a
+medio cumplir sin que nadie lo notara.
+
+`dominioCategorias()` calculaba bien el dominio del criterio, así que los tests
+pasaban y la lógica era correcta. **Pero al medirlo en la app**: el eje medía
+1.206 px y las cajas 274, 263, 284 y 315 px. Ni alineaban con el eje **ni entre
+sí**.
+
+Un dominio común no sirve de nada si cada caja lo proyecta sobre un ancho
+distinto: **el mismo valor cae en un píxel diferente en cada categoría**, y
+comparar —lo único para lo que existe el gráfico— vuelve a ser imposible. Era
+exactamente la queja de Gonzalo: «todos tienen ejes que no se ven y no son los
+mismos, por lo que se hace difícil compararlos».
+
+| | antes → después |
+|---|---:|
+| Ancho del eje | 1.206 px | **260 px** |
+| Anchos distintos entre cajas | **4** (274, 263, 284, 315) | **1** (260) |
+| Cajas comparables | no | **13 de 13** |
+
+La escala pasa a ser una **constante compartida** (`--cmv2-cat-escala`), no el
+espacio que sobre. Guard añadido a las reglas del ADR: el eje y la caja deben
+declarar el mismo ancho.
+
+**Lección de método**: la lógica correcta con render incorrecto pasa todos los
+tests unitarios. La regla 3 exige que los boxplots *sean comparables*, no que el
+dominio *se calcule bien* — y sólo medir píxeles en la app distingue una cosa de
+la otra.
+
+### F52b — El destino del embudo y las categorías vacías
+
+- **«Cursos-horario del marco»**, el mayor detalle que cierra el embudo, estaba
+  plegado en 50 px: es el destino del recorrido, no un anexo. Abierto: **445 px**.
+- **«Prevalencia de elegibles» activa** se abre sola: es una regla heredada que
+  **recorta el marco**, y plegada no era difícil de encontrar sino **invisible
+  mientras operaba**. Apagada sigue contenida —una opción inactiva no es
+  contenido oculto—.
+- **Categorías con 0 CH** mostraban cinco cuantiles en guiones. Ahora dicen «sin
+  cursos-horario en esta facultad» y callan el resto: **0 guiones vacíos** en la
+  pestaña. Quitar cinco guiones no quita información; dejarlos sí quita atención.
+- «Ver todas (42 sin cursos en esta facultad)» **no es defecto**: es un filtro
+  declarado con su conteo. Abrir 42 filas vacías sería el ruido que Gonzalo
+  señaló al domar las 52 categorías.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Vitest | 837 → **840** en 101 archivos |
+
+### F54 — El eje mentía: marcas que no estaban sobre los datos
+
+Segunda mitad de la regla 3, y sale del mismo tipo de medición que F53. Con las
+cajas ya igualadas a 260 px, quedaba comprobar si el eje **estaba encima de
+ellas**:
+
+| | medido |
+|---|---|
+| Eje | x = **159** |
+| Cajas | x = **644, 653, 693, 637, 642** — cada una en su columna del grid |
+| Desalineadas | **5 de 5** |
+
+Un eje único no puede alinear con cajas repartidas en columnas. Y unas marcas que
+no están sobre los datos **son decoración con aspecto de precisión** —peor que no
+tener eje—, porque invitan a leer un valor que no corresponde.
+
+**Reparado en dos piezas, cada una donde sirve:**
+
+- La **escala se declara en palabras**, una vez por criterio, con sus extremos y
+  su unidad: «Escala común del criterio: 17,8 a 43 alumnos elegibles por
+  curso-horario. Todas las cajas se dibujan sobre ella, así que se pueden
+  comparar entre sí».
+- Los **extremos viajan pegados a cada caja**, con su mismo ancho, alineados por
+  construcción.
+
+| | antes → después |
+|---|---:|
+| Cajas con su escala alineada | 0 de 13 | **13 de 13** |
+| Desalineadas | 5 de 5 medidas | **0** |
+| Desbordes | 0 | **0** |
+| Vitest | 840 → **841** |
+
+**Las dos iteraciones juntas (F53 y F54) son la regla 3 completa**: primero que
+todas las cajas compartan ancho —si no, el dominio común no significa nada—, y
+después que su escala esté donde se lee. Ninguna de las dos se detecta con tests
+unitarios: la lógica del dominio estaba bien desde el principio.
+
+### F55 — Mi propia animación corrompía el dato
+
+El defecto más grave encontrado desde el ADR, y lo introduje yo al buscar
+«animaciones elegantes».
+
+Medido en la app: la barra del intercuartil renderizaba **3 px** con un ancho
+computado de **154,7 px**. La causa, leída en el estilo computado:
+`transform: matrix(0.02, 0, 0, 1, 0, -6)` — clavada en el primer fotograma de su
+propia animación, `scaleX(0.02)`.
+
+**El ancho de esa barra es el dato**: va de P25 a P75. Una animación que lo escala
+no produce un defecto decorativo, produce una **lectura corrupta** — el usuario ve
+un intercuartil que no existe. Con trece categorías midiendo entre 0 y 3 px, el
+gráfico entero decía que todas las distribuciones eran idénticas y planas.
+
+| | antes → después |
+|---|---:|
+| Ancho de las barras | 0–3 px (todas) | **155, 118, 73, 29, 51, 15, 7, 110, 2, 2, 139, 2, 72** |
+| Discrepancia entre el % declarado y el renderizado | 13 de 13 | **0** |
+
+**Regla que se deriva y queda vigilada**: nada que codifique un valor —ancho,
+alto, posición— se anima con `transform`. El movimiento entra por opacidad, que
+no puede mentir sobre una magnitud.
+
+Al escribir el guard repetí el patrón 6 del ADR —se disparó contra el comentario
+que cita el valor culpable, empujando a borrar la explicación—. Corregido con el
+lector sin comentarios, y anotado: el error reaparece **incluso recién
+documentado**, que es la mejor prueba de que los mecanismos valen más que las
+buenas intenciones.
+
+| | |
+|---|---:|
+| Vitest | 841 → **842** en 101 archivos |
+| Desbordes | **0** |
+
+### F56 — Mirar la pantalla encontró lo que medir no encontraba
+
+Llevaba varias iteraciones midiendo números. Al **ver** una captura apareció el
+defecto de fondo: **el mismo criterio estaba tres veces en la misma pantalla**.
+
+1. Las categorías con su evidencia (lo que añadí en F48–F49).
+2. «Dato de R para decidir modalidad», con las mismas cuatro categorías y sus
+   boxplots.
+3. «Radiografía de …», con el riel de cinco pasos y **otra vez** las mismas
+   categorías.
+
+Y lo peor: la escala decía **17,8–43 arriba y 10–43 abajo**, en la misma pantalla,
+para el mismo criterio. Dos escalas distintas invitan a comparar cosas que no son
+comparables — es la regla 3 rota por duplicación, no por cálculo.
+
+**Yo añadí una tercera representación en vez de reemplazar las dos que había.**
+Ese es el patrón que Gonzalo viene señalando desde el principio.
+
+| | antes → después |
+|---|---:|
+| Alto de la pestaña | 26,6 → **21,8 pantallas** |
+| Escalas distintas para un criterio | 2 | **1** |
+| Desbordes | 0 → **0** |
+
+La distribución sale del riel **sólo en contexto de facultad**, donde ya vive
+pegada a cada conmutador. En la consola independiente no hay categorías con
+evidencia, así que ahí sigue siendo su contenido principal: quitarla de los dos
+sitios habría sido cambiar una duplicación por un hueco.
+
+**Rótulos, con la regla del ADR aplicada** — nombran el dato, no la metáfora ni
+la maquinaria:
+
+| antes | después |
+|---|---|
+| Cascada viva | **Cuánto recorta este criterio** |
+| Cascada secuencial | **Qué queda después de cada criterio** |
+| Ancla histórica | **Comparación con 2025** |
+| Impacto marginal | **Si lo quitara** |
+| Acción | **Decidir** |
+| «Orden publicado por el motor R · downstream» | **«En el orden en que el motor los aplica, desde este criterio en adelante»** |
+
+Verificado en la app: cero apariciones de la jerga anterior.
+
+**Lección de método, y va al ADR**: medir números no sustituye a mirar la
+pantalla. Ninguna de mis mediciones —altos, desbordes, conteos— podía revelar que
+tres bloques distintos estaban diciendo lo mismo con escalas distintas.
+
+### F57 — Numeración que se contradecía y las últimas etiquetas de sistema
+
+Segunda captura mirada, tres defectos más —y el primero lo introduje yo en F56—.
+
+**El riel decía «1 Cuánto recorta» y el contenido «2 Cuánto recorta este
+criterio».** Al retirar el paso «Distribución» del contexto de facultad, los
+números del encabezado seguían escritos a mano. Un número que no coincide con su
+propio índice hace dudar del resto de la pantalla: si esto está mal, ¿qué más?
+
+Reparado en la raíz: el número **sale del riel realmente visible**
+(`numeroPaso()`), no de una constante. Escrito a mano volvería a descuadrarse en
+cuanto un paso deje de mostrarse.
+
+**Etiquetas de sistema que quedaban**, con la regla del ADR aplicada:
+
+| antes | después |
+|---|---|
+| Radiografía v2 | **Del marco ejecutado** |
+| Ancla histórica | **Comparación con 2025** |
+| Impacto marginal | **Si quitara este criterio** |
+| Acción | **Decidir** |
+
+«Radiografía v2» es la versión del contrato interno: no es algo que el usuario
+pueda usar. Lo que sí necesita saber es sobre qué se calculó.
+
+| | |
+|---|---:|
+| Riel vs contenido | «1» vs «2» → **1 · 1** |
+| Jerga restante en pantalla | **0** |
+| Alto | **21,8 pantallas** |
+| Desbordes | **0** |
+| Vitest | **842** en 101 archivos |
+
+Dos capturas seguidas han encontrado más defectos que las últimas seis
+iteraciones de medición. Queda anotado como patrón 9 del ADR.
+
+### F58 — El vocabulario del motor sale de la pantalla
+
+Tercera captura, y esta vez los defectos estaban en las palabras. La tabla del
+embudo hablaba en el idioma del motor:
+
+| antes | después | por qué |
+|---|---|---|
+| `gate · aplicado` | **«recorta el marco»** | «gate» es la pieza del motor; lo que importa es si este criterio está quitando cursos-horario |
+| `gate · inactivo` | **«no está recortando»** | igual, en negativo, sin obligar a saber qué es un gate |
+| «Secuencia CH» | **«Cursos-horario: antes → después»** | dice qué compara la columna |
+| «Excluye −0» | **«ninguno»** | un «menos cero» es la peor forma de decir que no excluye nada |
+| «Dato de R para decidir modalidad» | **«Elegibles por curso-horario según modalidad»** | «Dato de R» nombra de dónde sale el número, no qué es |
+| «Radiografía v2» | **«Del marco ejecutado»** | la versión del contrato interno no es algo que el usuario pueda usar |
+
+Verificado en la app: cero apariciones de `gate ·`, «Secuencia CH», «Dato de R» y
+«−0».
+
+**Por qué esto no es cosmético.** Un rótulo que nombra la maquinaria obliga a
+aprender el sistema para leer el estudio, y ante la duda el usuario asume que el
+número significa otra cosa. «−0» es el caso extremo: es un dato correcto escrito
+de forma que parece un error.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Alto | **21,8 pantallas** |
+| Vitest | **842** en 101 archivos |
+
+Tres capturas seguidas: tres tandas de defectos que ninguna medición numérica
+había encontrado.
+
+### F59 — Una unidad, un nombre (y el guard encontró lo que la vista no)
+
+Cuarta captura. La tarjeta final decía «646 aulas» y «aulas candidatas» en una
+superficie donde «cursos-horario» aparece **60 veces** bien escrito. Un sinónimo
+suelto obliga a preguntarse si nombra otra cosa —y en este módulo «aula» **sí fue
+otra cosa** en versiones anteriores, así que la duda es razonable—.
+
+Al convertir la regla en guard apareció lo interesante: **encontró dos casos que
+las capturas no mostraban** —«Mínimo de elegibles por aula» y «Elegibles por aula
+aquí»— y, tras corregirlos, un tercero: «Med/aula». Estaban fuera del scroll que
+yo había mirado.
+
+| | antes → después |
+|---|---:|
+| «aulas» en la superficie | 3 visibles + 3 ocultos al scroll | **0** |
+| «cursos-horario» | 60 | **61** |
+| Desbordes | **0** |
+| Vitest | 842 → **843** en 101 archivos |
+
+**Mirar y medir se complementan; ninguno basta.** Las capturas encontraron la
+duplicación de bloques y la jerga que las métricas no veían (F56–F58); el guard
+encontró las fugas de vocabulario que las capturas no alcanzaban. La conclusión
+para el ADR no es «mirar más», es **convertir cada regla en guard en cuanto se
+enuncia**, porque el guard recorre lo que el ojo no.
+
+### Nota sobre las etiquetas «Oscar 0831», «Elena 0931»
+
+La lista de cursos-horario los identifica con nombres de persona. **No es defecto
+del frontend**: la etiqueta sale de `course_name` y la app la muestra tal cual. Es
+el anonimizador otra vez —la misma raíz que el bug de categorías—, y refuerza la
+necesidad de la pestaña de mapeo que Gonzalo propuso: hoy un catálogo sucio sólo
+se descubre cuando ya se está decidiendo con él.
+
+### F60 — El Panorama: una cuadrícula de palabras que no informaban
+
+Quinta captura, ahora sobre el Panorama por facultad. Dos defectos, y el segundo
+es de los que más cuestan de ver porque «funciona».
+
+**1 · «global» repetido 56 veces.** Cuatro columnas de criterio × quince
+facultades, casi todas heredando, cada celda diciendo «global». Una palabra que
+se repite en casi todas las celdas no informa **y tapa las pocas que sí** —justo
+las facultades con criterio propio, que son las que hay que revisar—.
+
+Heredar es el caso normal: se marca con un punto y se explica al pasar el cursor.
+Apartarse se nombra.
+
+| | antes → después |
+|---|---:|
+| «global» en pantalla | **56** | **0** |
+| «propio» visible entre el ruido | 2, indistinguibles | **2, destacadas** |
+
+**2 · La cabecera existía y no servía.** El `thead` ya era
+`position: sticky; top: 0` —el código parecía correcto—, pero pegaba al
+contenedor, y el contenedor se iba con el scroll de la página. Resultado: cuatro
+columnas sin decir de qué criterio eran. **Una tabla sin cabecera no es una
+tabla, es una cuadrícula de palabras.**
+
+Reparado dándole al panorama su propio alto (`max-height: 60vh`) y scroll
+interno. Verificado: con 121 px de desplazamiento interno, «Facultad» sigue
+arriba.
+
+Es el patrón 7 del ADR otra vez —lógica correcta, render incorrecto—: `sticky`
+estaba bien escrito y no producía ningún efecto.
+
+| | |
+|---|---:|
+| Desbordes | **0** |
+| Alto de la pestaña | **21,6 pantallas** |
+| Vitest | 843 → **845** en 102 archivos |
+
+Guard: `PanoramaLectura.test.tsx` —prohíbe repetir «global» y exige que lo
+heredado siga siendo legible por título y `aria-label`, para que quitar ruido no
+se convierta en quitar información—.
+
+### F61 — La matriz: noventa celdas de ceros que sí eran correctos
+
+Sexta captura, sobre la matriz. Toda la tabla mostraba «0 CH / 0 matrículas / 0
+estudiantes únicos» en sus noventa celdas.
+
+**Lo primero fue comprobar que no estaba rota**, porque una tabla en ceros suele
+serlo. Consultado el estado del motor: los ceros son **correctos** —cada celda
+llega con `action: "no_aplica"` y `delta_ch: 0`—. Con los criterios vigentes,
+quitar cualquiera de ellos no cambiaría nada en este instrumento.
+
+**El defecto era la presentación, no el dato.** Decir el mismo cero en tres
+unidades, noventa veces, no informa de nada y **entierra las celdas que sí tienen
+impacto**, que son las únicas por las que esta tabla existe. Ahora una celda sin
+impacto es un punto, con su explicación al pasar el cursor —la misma solución que
+el Panorama, por coherencia—.
+
+| | antes → después |
+|---|---:|
+| Líneas de cero por celda | 3 × 90 | **1 punto** |
+| «0 matrículas» en pantalla | 90 | **6** (las que sí tienen delta) |
+| Repetición de «no recorta aquí» | 128 | **0** (va al `title`) |
+
+**El vocabulario de método, reescrito**:
+
+| antes | después |
+|---|---|
+| «Matriz marginal por facultad» | **«Qué pasaría si quitara cada criterio»** |
+| «Dato → impacto» | **«Comparación»** |
+| «Son impactos marginales, no aditivos» | **«No se suman entre columnas: cada una responde por su cuenta, quitando un criterio a la vez»** |
+| «No es la matriz marginal y no suma impactos» | **«Los criterios se aplican en orden, cada uno sobre lo que dejó el anterior»** |
+
+La advertencia metodológica **se conserva entera** —evita que alguien sume
+columnas—, pero dicha sin obligar a conocer otra tabla por su nombre técnico para
+entender ésta.
+
+| | |
+|---|---:|
+| Jerga técnica en la superficie | **0** |
+| Desbordes | **0** |
+| Alto | **21,6 pantallas** |
+| Vitest | **845** en 102 archivos |
+
+### F62 — El viewport estrecho: ocho desbordes que 1440 no mostraba
+
+Auditada la superficie a **1024×600**, donde aparecieron ocho desbordes
+invisibles en el viewport ancho. Dos causas, y **la primera la introduje yo**:
+
+**1 · Mi escala fija.** `--cmv2-cat-escala: 260px` con `max-width: 100%` seguía
+desbordando 4 px dentro de un contenedor de 256. Corregido con
+`min(var(--cmv2-cat-escala), 100%)`: la escala es una constante **hasta donde
+cabe**, porque una escala que desborda deja de ser comparable igual que una que
+varía. El guard quedó actualizado a esa forma.
+
+**2 · Cinco columnas fijas.** La rejilla de estadísticas del segmento pedía
+`repeat(5, minmax(0, 1fr))`: a 1440 cabía y a 1024 dejaba cada celda en 34 px,
+con «Matrículas 19.846» desbordando siete veces. Ahora es
+`repeat(auto-fit, minmax(64px, 1fr))` y las columnas se reacomodan.
+
+| viewport | antes → después |
+|---|---:|
+| 1024×600 | 8 desbordes → **0** |
+| 1440×1000 | 0 → **0** |
+
+Estado final de las dos superficies de criterio:
+
+| | Estudiante | Curso-horario |
+|---|---:|---:|
+| Desbordes | **0** | **0** |
+| Elementos plegados | **0** | **0** |
+| Anchos de caja distintos | — | **1** (260 px) |
+| Alto | **2,3 pantallas** | **21,8 pantallas** |
+| Jerga técnica | **0** | **0** |
+
+**Lección**: mis propias reparaciones necesitan el mismo barrido que el código
+ajeno. La escala fija resolvió la comparabilidad a 1440 y creó un desborde a
+1024; sin auditar el segundo viewport se habría entregado así.
+
+### F63 — La misma coma con dos significados
+
+Auditadas las cuatro pestañas de Cálculo: 0 desbordes, 0 plegados, 0 jerga. Los
+once y catorce elementos «cerrados» de Diseño y Propuestas **no son defecto**:
+son términos de fórmula que muestran su valor y sólo pliegan la definición.
+
+Pero comparando ambas pestañas apareció algo que ninguna sola habría mostrado:
+**Diseño escribía «z 1,96» y Propuestas «z 1.96»**.
+
+`fmtDecimal` forzaba coma decimal «en español» —la convención de **España**—
+mientras el resto de la app formatea en `es-PE`, que usa **punto decimal y coma
+de miles**. En la misma pantalla convivían:
+
+| número | separador | significa |
+|---|---|---|
+| «21,362» | coma | **millares** |
+| «1,96» | coma | pretendía decimales |
+
+**La misma coma con dos significados**, y «1,96» se puede leer como 196 en un
+documento donde 21,362 son veintiún mil. El error es silencioso porque cada
+número, por separado, se ve bien.
+
+**Y el guard destapó un segundo defecto de paso**: `fmtDecimal(21362.55)` daba
+«21362.55», **sin agrupar**, mientras `fmtInt` escribía «21,362» dos líneas más
+arriba. La causa: `fmtDecimal` reusaba `ltxNum`, que existe para expresiones
+KaTeX —donde el separador de miles **no debe aparecer**—. Correcto en su sitio,
+equivocado en prosa.
+
+| | antes → después |
+|---|---:|
+| Comas decimales en Cálculo | «1,96», «0,3», «0,5» | **0** |
+| Miles agrupados en decimales | no | **sí** («21,362.55») |
+| Desbordes en las cuatro pestañas | 0 | **0** |
+| Vitest | 845 → **848** en 103 archivos |
+
+Guard: `separadorDecimal.test.ts`, tres casos —punto decimal, coma de miles y
+ningún número con coma decimal—. Fue el que encontró el segundo defecto en su
+primera corrida.
+
+**Lección**: comparar dos superficies hermanas encuentra lo que auditar cada una
+por separado no puede. Ni Diseño ni Propuestas estaban «mal» aisladas; lo que
+estaba mal era que no coincidían.
+
+### F64 — Barrido de vocabulario en las 14 superficies, y un guard que aprendió a distinguir
+
+Aplicado a todo el módulo el método que F63 demostró: comparar superficies
+hermanas y barrer el vocabulario.
+
+**Resultado del barrido**: 0 comas decimales en las catorce pestañas, y dos
+últimos focos de jerga:
+
+| dónde | antes | después |
+|---|---|---|
+| Embudo | «no afecta al denominador» | **«no quita cursos-horario»** |
+| Embudo | «Actualizando el downstream con el borrador…» | **«Recalculando lo que queda después de este criterio…»** |
+| Matriz | tooltip «Modalidad · gate composition» | **«Criterio Modalidad»** |
+| Fuentes | «Las dimensiones son marginales independientes» | **«Cada dimensión se leyó por separado: no se pueden cruzar entre sí»** |
+| Fuentes | chip «Marginales independientes · no combinables» | **«Cada dimensión por separado · no se cruzan»** |
+
+La advertencia metodológica se conserva entera en todos los casos: lo que cambia
+es que se dice en palabras del estudio en vez de obligar a conocer el término.
+
+**El guard tuvo que aprender a distinguir tres cosas**, y cada corrección es una
+regla en sí misma:
+
+1. **Comentarios** — se disparaba contra la documentación del propio defecto.
+2. **Atributos `data-*`** — `data-surface-contract="matriz-marginal-criterios"`
+   es un contrato que las herramientas de QA leen por nombre. Cambiarlo para
+   pasar en verde rompería esas herramientas sin mejorar una palabra.
+3. **Códigos del motor** — `"marginales_no_combinables"` es un valor que se
+   compara, no que alguien lee. Traducirlo rompería la comparación.
+
+Los tres son la misma lección: **un guard que no distingue copy de identificador
+empuja a romper cosas para ponerse verde.**
+
+**Y lo que sí encontró siendo real**: el `title` de la matriz decía «gate
+composition» y el aviso decía «downstream» — dos textos visibles que ninguna de
+mis capturas alcanzó.
+
+| | |
+|---|---:|
+| Jerga de origen frontend | **0** en las 14 superficies |
+| «aulas agendadas» en Fuentes | **viene en el dato**, no en la app |
+| Desbordes | **0** |
+| Vitest | 848 → **849** en 103 archivos |
+
+### F65 — El módulo entero, y el cuarto falso positivo de mi detector
+
+Barrido final de las **18 superficies** en los dos viewports.
+
+| | 1440×1000 | 1024×600 |
+|---|---:|---:|
+| Desbordes reales | **0** | **0** |
+| Comas decimales | **0** | — |
+| Jerga de origen frontend | **0** | — |
+
+**Y el episodio que más enseña del tramo.** A 1024 aparecieron «10 desbordes» en
+Propuestas. Hice **tres intentos de reparación seguidos** —dar `min-width: 0` a
+la etapa, permitir `overflow-wrap`, levantar el `white-space: nowrap`— y ninguno
+movió el número.
+
+Sólo entonces medí el **mecanismo** en vez del efecto: el flujo es
+`data-orientacion="horizontal"` con `overflow-x: auto`. **Es una cinta que
+scrollea**, y su contenido es alcanzable por diseño. Mi detector marcaba como
+desborde algo que el usuario puede ver desplazándose.
+
+Los tres intentos quedaron revertidos: eran CSS especulativo que no arreglaba
+nada y habría quedado como deuda.
+
+**Cuarto falso positivo de mi propio instrumento** en la sesión —tras los SVG de
+Entrega, el alcance del panel y la sonda recortada—. El detector quedó corregido
+para ignorar lo que vive dentro de un contenedor deslizable, y con esa corrección
+el módulo da **0 desbordes reales**.
+
+La lección, que ya es patrón 2 del ADR, se confirma con un coste medible: **medir
+el efecto y no el mecanismo cuesta tres reparaciones inútiles**. Y hay un
+corolario nuevo: cuando dos intentos seguidos no mueven el número, el siguiente
+paso no es un tercer intento, es dudar de la medición.
+
+### F66 — Selección auditada, y el vocabulario también vive en el motor
+
+Barrido de las seis superficies de Selección: **0 desbordes, 0 comas decimales**
+en todas. Tres hallazgos de lenguaje, y uno cambia dónde hay que buscar.
+
+**«Detalle técnico» como título de un plegado.** Rotular el cajón «técnico» no
+dice qué hay dentro: es la etiqueta que obliga a abrir para saber si importa.
+Lo que contiene es el mensaje literal del motor, y eso sí se puede nombrar → **«Ver
+el mensaje del motor»**. Se mantiene contenido porque es diagnóstico y no cambia
+ninguna decisión del estudio, pero con su nombre puesto.
+
+**Y el hallazgo que amplía el alcance**: «Da más probabilidad a **aulas** con más
+estudiantes elegibles y funciona como **benchmark** simple» no estaba en el
+frontend —**viene del motor R**, `.cm_aulas_method_explanation`—. El barrido de
+vocabulario de F59 y F64 sólo miró el frontend, así que estas fugas eran
+invisibles para todos mis guards.
+
+Corregidas **siete cadenas** de `calc_muestra_aulas.R`: las descripciones de dos
+métodos y cinco avisos de empate de catálogo, todas con «aulas» donde la app dice
+cursos-horario. «Benchmark» pasa a «punto de comparación».
+
+| | antes → después |
+|---|---:|
+| «aulas» en copy del motor | 7 cadenas | **0** |
+| Desbordes en Selección | 0 | **0** |
+| R: `test-calc-muestra-aulas` y `-criterios` | verde | **verde** |
+| Vitest | **849** en 103 archivos |
+
+**Lección**: la superficie no termina en el frontend. Un texto que el usuario lee
+puede nacer en el motor, y un guard que sólo mira `frontend/src` da una falsa
+sensación de barrido completo.
+
+### F67 — El vocabulario del motor, con criterio y no con reemplazo masivo
+
+Ampliado el barrido a `api/R`, donde F66 descubrió que también nace copy de
+pantalla. Aquí la reparación **no podía ser un find-replace**, y esa es la parte
+que importa:
+
+| dónde dice «aulas» | qué significa | qué se hizo |
+|---|---|---|
+| «conglomerado (**aulas**, manzanas, EESS)» | **ejemplo** entre tipos de estudio | **se conserva** — cambiarlo sería incorrecto |
+| «Encuestar por **aulas** agrupa a estudiantes…» | la unidad de este módulo | → cursos-horario |
+| «conglomerados (**aulas**) sobre un marco conocido» | ídem, en el diseño universitario | → «(aquí, cursos-horario)» |
+| «**aulas** que rinden menos de lo previsto» | ídem | → cursos-horario |
+| «72 **aulas** × 25 estudiantes ≈ 1800 encuestas» | referencia operativa PUCP | → cursos-horario |
+
+Un reemplazo masivo habría convertido «conglomerado (aulas, manzanas, EESS)» en
+algo falso: ahí «aula» es un ejemplo de conglomerado junto a manzanas y
+establecimientos de salud, no la unidad de este módulo.
+
+**Verificación honesta**: el cambio está comprobado por fuente y por la suite —50
+archivos de test R, **0 fallos**—, pero **no es visible en la app**: el proceso R
+vivo conserva el código anterior (trampa conocida de la casa) y reiniciarlo
+costaría el instrumento sembrado. Se verá al próximo arranque.
+
+### Corrección: mi commit se llevó trabajo ajeno
+
+El commit de F66 incluyó `calc_muestra_comparacion_escenarios.R` (779 líneas) y
+un cambio en `calc_muestra_distribucion.R` que **estaban en el árbol antes de esta
+sesión y no son míos**: `git add -A api/R` los arrastró.
+
+Deshecho con `reset --soft` y recommit sólo de mis archivos; ambos vuelven a estar
+sin commitear, como estaban. Es exactamente el riesgo que la casa documenta
+—«otra sesión commiteó todo el working tree»— y esta vez el causante habría sido
+yo.
+
+**Regla para el resto del loop**: `git add` con rutas explícitas de los archivos
+que toqué, nunca `-A` sobre un directorio compartido.
+
+### F68 — Lo que NO se toca, y por qué
+
+Cerrado el barrido del motor. De los seis «aulas» que quedaban, **sólo uno se
+cambió**, y las cinco decisiones de no tocar valen más que la reparación:
+
+| dónde | decisión | motivo |
+|---|---|---|
+| `router_calc_muestra_criterios.R` · «config debe ser un objeto de configuracion de aulas» | **cambiado** | mensaje de error que el usuario lee; de paso recupera la tilde |
+| `calc_muestra_engine.R` · «conglomerado (aulas, manzanas, EESS)» | **se queda** | «aula» es un ejemplo entre tipos de estudio, no la unidad de este módulo |
+| `calc_muestra_engine.R` · `agenda_sheet_name = "Agenda de aulas"` | **se queda** | es el **nombre de hoja usado como clave** entre Cálculo de muestra y Monitoreo (`monitoreo_engine.R`, `router_diseno_estudio.R`): renombrarlo rompe el enlace entre módulos |
+| `calc_muestra_distribucion.R` ×3 | **no se toca** | el archivo tiene **trabajo ajeno sin commitear**; la casa exige verificarlo antes de tocarlo, no arrastrarlo |
+
+Tres razones distintas para no cambiar tres cosas que un `sed` habría cambiado
+todas. La única regla común: **antes de sustituir una palabra hay que saber si es
+copy, ejemplo, clave de contrato o territorio de otro**.
+
+R verde: `test-calc-muestra-aulas-criterios` sin fallos.
+
+### F69 — Una etiqueta que contradecía la cifra de al lado (defecto que yo introduje)
+
+Reauditada la superficie de criterios con la vara nueva. El hallazgo es **mío, de
+F58**, y es de los peores que he cometido en el loop.
+
+Al traducir `gate · aplicado` escribí «recorta el marco». Pero `status ===
+"aplicado"` significa que el criterio **se ejecutó**, no que quitara nada. En
+pantalla quedaba así:
+
+> **Paso 6 · Modalidad** — *recorta el marco*
+> Karina E Karina · Cursos-horario: **849 → 849** · Quedan fuera: **ninguno**
+
+**La etiqueta afirmaba lo contrario de la fila que tenía debajo.** Y es peor que
+la jerga que vino a reemplazar: «gate · aplicado» era opaco, pero no afirmaba
+nada falso. Traducir mal es más caro que no traducir.
+
+Ahora la etiqueta **la decide el dato**, no el estado:
+
+| situación | dice |
+|---|---|
+| no es criterio de recorte | «no quita cursos-horario» |
+| aún no se aplicó | «todavía no se aplicó» |
+| se aplicó y excluyó | **«recorta el marco»** |
+| se aplicó y no excluyó nada | **«se aplicó y no quitó ninguno»** |
+
+Verificado en la app: los cuatro pasos visibles dicen «se aplicó y no quitó
+ninguno» junto a «849 → 849 · ninguno». Coinciden.
+
+Guard: `embudoEtiquetaCoherente.test.tsx`, con las dos mitades —quitó y no
+quitó—, porque la coherencia sólo se prueba con los dos casos.
+
+| | |
+|---|---:|
+| Vitest | 849 → **851** en 104 archivos |
+| Desbordes | **0** |
+
+### F70 — Dos cabeceras separadas por una preposición
+
+Siguiendo la reauditoría: el criterio mostraba dos secciones tituladas
+**«RADIOGRAFÍA EN Karina E Karina»** y **«RADIOGRAFÍA DE Karina E Karina»**.
+Leídas seguidas parecen la misma sección repetida; la única diferencia era una
+preposición.
+
+Cada bloque pasa a nombrarse por lo que muestra:
+
+| antes | después | qué contiene |
+|---|---|---|
+| «Radiografía **en** {facultad}» | **«Distribución por categoría»** | las categorías con sus cajas y cuantiles |
+| «Radiografía **de** {facultad}» | **«Efecto de este criterio»** | cuánto recorta, comparación con 2025, si lo quitara, decidir |
+
+Verificado: 7 y 7 en la pestaña, 0 apariciones de las anteriores.
+
+**Otro error de medición mío, el quinto de la sesión.** Mi primera comprobación
+dio 0 para ambas etiquetas nuevas y concluí que había roto el render. No era eso:
+el CSS aplica `text-transform: uppercase` y `innerText` devuelve el texto ya
+transformado, así que «Distribución por categoría» no casaba con
+«DISTRIBUCIÓN POR CATEGORÍA». Antes de tocar nada revisé la consola y el conteo
+de nodos —8 criterios, 13 cajas, intactos—, que es lo que evitó una reparación
+sobre un problema inexistente.
+
+Regla añadida a mi instrumento: **las búsquedas de copy van sin distinguir
+mayúsculas**, porque la superficie transforma el texto.
+
+### F71 — «Regla efectiva» no dice cuál es la regla
+
+En los criterios numéricos —Matriculados/población, Mínimo de elegibles— la
+única fila de la distribución se titulaba **«Regla efectiva»**: nombra que hay
+una regla, no qué contiene la fila ni de qué está hablando.
+
+Esa fila **es el conjunto que cumple el criterio**, y eso sí se puede decir:
+
+| dónde | antes | después |
+|---|---|---|
+| criterios de curso-horario | «Regla efectiva» | **«Cursos-horario que cumplen»** |
+| criterios de estudiante | «Regla efectiva» | **«Estudiantes que cumplen»** |
+
+Nace en el motor —`calc_muestra_aulas_criterio_radiografia_aulas.R` y su gemelo
+de alumnos—, así que es otro caso del patrón 15: copy de pantalla escrito en R.
+`segment_key = "global"` no se toca: ese sí es la clave de contrato.
+
+R verde: **10 archivos** de test de radiografía y criterios, 0 fallos.
+
+Como el proceso R vivo conserva el código anterior, el cambio se verá al próximo
+arranque; queda comprobado por fuente y por suite.
+
+### F72 — Un gráfico cuya leyenda hay que descifrar
+
+Reauditadas las ocho superficies de Datos y Entrega: **0 desbordes, 0 comas
+decimales, 0 jerga** en todas (el único término, «aulas agendadas», viene en el
+dato). La captura de Tablas encontró lo que la métrica no podía:
+
+**La leyenda del gráfico «Distribución por facultad y sexo» decía «F» y «M».**
+Son los códigos con que viene la base, no palabras. Un gráfico que obliga a saber
+la codificación para leer su leyenda no se entrega a un cliente —y esta es
+exactamente una tabla de salida—.
+
+Traducido con `didSexSeriesLabel`, junto al helper de color que ya distinguía
+masculino, femenino y sin dato:
+
+| valor | leyenda |
+|---|---|
+| `M` | **Hombres** |
+| `F` | **Mujeres** |
+| vacío | **Sin dato** |
+| cualquier otro | **tal cual** |
+
+Lo último importa: si un estudio subdivide por algo que no es sexo —turno,
+cohorte—, inventarle un nombre sería peor que mostrar su código. El guard fija
+las cuatro reglas, incluida la de no inventar.
+
+**Y una nota de método**: la primera verificación siguió mostrando «F» y «M», y
+estuve a punto de dar el cambio por fallido. Era Plotly memoizado: al navegar
+fuera y volver, la leyenda dice «Mujeres» y «Hombres». **Sexto caso de la sesión
+en que mi medición inicial acusa al código sin razón** —y el que más veces se
+repite, siempre igual: verificar sin forzar el remontaje de lo que se acaba de
+cambiar.
+
+| | |
+|---|---:|
+| Vitest | 851 → **854** en 105 archivos |
+| Desbordes | **0** |
+
+### F73 — El mismo defecto en dos gráficos, y una etiqueta que debía vivir junto al color
+
+Buscado el patrón de F72 en el resto del módulo: **«M» y «F» también en el marco
+de población**, en la leyenda de la barra apilada.
+
+**La reparación correcta no era repetir el traductor.** `sexSeriesKind` —el que
+decide el **color** de cada serie— vive en `sexoPalette.ts`. Si la etiqueta se
+decidiera con otro criterio, una serie podría salir **rosa y llamarse «M»**. Así
+que `sexSeriesLabel` se mudó junto a él y `didacticaCharts` sólo lo reexporta;
+un test fija que son **la misma función**, no dos copias.
+
+| superficie | antes → después |
+|---|---|
+| Entrega · Tablas | «F», «M» | **«Mujeres», «Hombres»** |
+| Marco · Población | «M», «F» | **«Hombres», «Mujeres»** |
+| Códigos crudos en el módulo | 2 gráficos | **0** |
+
+Se traduce sólo donde el propio componente ya sabe que la serie es de sexo
+—`colorBySex`, `sortByMaleSurplus`—: fuera de ahí el valor pasa tal cual, porque
+si un estudio subdivide por turno o cohorte, inventarle un nombre sería peor que
+mostrar su código.
+
+| | |
+|---|---:|
+| Vitest | 854 → **855** en 105 archivos |
+| Desbordes | **0** |
+
+### F74 — Dato crudo mostrado como texto: barrido de las 18 superficies
+
+Convertido el hallazgo de F72–F73 en un barrido sistemático: buscar en toda la
+superficie cualquier hoja de texto que sea **código y no palabra** —snake_case,
+CONSTANT_CASE, `NA`, `null`—.
+
+**Resultado: dos, ambos en la radiografía**, y cada uno pedía una solución
+distinta.
+
+**1 · `bootstrap_percentil` y `delgada`.** Son **valores de contrato**: el motor
+los compara por nombre (`identical(cell$metodo_ic, "bootstrap_percentil")`), así
+que renombrarlos en R rompería la comparación. Se traducen **al mostrarlos**:
+
+| código | en pantalla |
+|---|---|
+| `bootstrap_percentil` | **Bootstrap por percentiles** |
+| `no_aplica` | **No aplica** |
+| `solida` · `delgada` · `insuficiente` · `vacia` | **Sólida · Delgada · Insuficiente · Sin casos** |
+
+**2 · `NA`.** Este lo escribía el propio frontend, y **la intención era correcta**:
+no fabricar un cero donde el motor no publicó valor —había incluso un test
+llamado «NA honesto»—. Lo equivocado era la notación: «NA» es de R, y en pantalla
+quedaba «Media NA» y «NA CH». El guion largo dice exactamente lo mismo, es el que
+ya usa el resto del módulo, y no obliga a saber en qué lenguaje está escrito el
+motor. La honestidad se conserva; el test pasa a exigir «— CH» y **prohibir** «NA
+CH».
+
+| | |
+|---|---:|
+| Códigos crudos en las 18 superficies | 2 → **0** |
+| Vitest | **855** en 105 archivos |
+
+En los dos casos, lo que no se reconoce **pasa tal cual**: un código nuevo del
+motor en pantalla es preferible a una etiqueta inventada que lo oculte.
+
+### F75 — Dos palabras para las personas, y una cifra sin grano
+
+Barrido de la familia más peligrosa de este módulo: **cifras sin unidad ni
+denominador declarado**, que es donde se confunden matrículas con estudiantes
+únicos.
+
+**El conteo destapó una incoherencia de fondo**: en la radiografía convivían
+**688 «alumnos» contra 35 «estudiantes»**, mientras la cabecera de la propia app
+dice «UNIVERSO DE ESTUDIANTES» y «ESTUDIANTES ELEGIBLES». Dos palabras para lo
+mismo, en el módulo donde el grano es todo.
+
+**Y lo grave estaba en mi propia tarjeta de categoría**: el número que rotulaba
+«alumnos» es `n_estudiantes_unicos`. En una pantalla que muestra por separado
+21.362 estudiantes y 92.017 matrículas, «alumnos» a secas **no dice de qué grano
+es** — y confundir esos dos granos es el error capital aquí. Ahora dice
+«estudiantes» y su `title` lo declara: «una persona cuenta una vez aunque esté en
+varios cursos-horario».
+
+**La lista final repetía la unidad 646 veces**, una por fila («alumnos
+elegibles»). Se declara una sola vez en cabecera —«Cifra por fila: estudiantes
+únicos elegibles»— y el `title` la conserva para quien llegue a una fila suelta.
+Es el patrón 10 aplicado a una unidad, no a una etiqueta de estado.
+
+| | antes → después |
+|---|---:|
+| «alumnos» en la superficie | **670** | **24** |
+| «estudiantes» | 53 | **54** (ahora mayoritario) |
+| Tarjetas con grano declarado | 0 | **18** |
+| Vitest | **856** en 105 archivos |
+
+Los 24 restantes son nombres propios de pieza —«Alumnos por CH», «Mínimo de
+alumnos elegibles»—, que son los rótulos que Gonzalo usa y están en el contrato
+de navegación: renombrarlos es decisión suya, no barrido de vocabulario.
+
+### F76 — «frame» y «fallback»: la palabra del motor y la del programador
+
+Siguiendo el barrido de cifras sin unidad apareció otra familia: en Cálculo se
+leía **«Población del frame»**, **«Δ frame→diseño −2»** y **«no se aplicará
+ningún fallback en React»**.
+
+- **«frame»** es como el motor llama al marco. La app dice «marco» en todas
+  partes; convivían las dos en pestañas contiguas.
+- **«fallback en React»** describe una decisión de implementación. La garantía
+  —que la app no inventa un valor cuando el motor no lo publicó— es exactamente
+  la misma dicha sin exigir saber qué es un fallback.
+- **«Δ frame→diseño −2»** además no declaraba unidad: −2 ¿qué?
+
+| antes | después |
+|---|---|
+| Población del frame | **Estudiantes del marco** |
+| Población del diseño | **Estudiantes usados por el diseño** |
+| Δ frame→diseño −2 | **Diferencia marco → diseño: −2 estudiantes** |
+| Frame fuente · Frame firmado | **Marco de origen · Marco firmado** |
+| «no se aplicará ningún fallback en React» | **«React no rellenará ningún valor por su cuenta»** |
+| «pertenece a otro frame» ×3 | **«pertenece a otro marco»** |
+
+Verificado en las 18 superficies: **0 «frame», 0 «fallback»**.
+
+**El guard tropezó dos veces más con el patrón 13** —`denominador: "elegible"` y
+`frame_hash` son campos de contrato, no palabras que alguien lea— y exigir que
+cambien rompería el contrato sin mejorar la pantalla. Resuelto buscando
+construcciones inequívocamente de prosa: «el denominador», «otro frame», «del
+frame». **Tercera vez que este guard confunde identificador con copy**, y la
+solución que funciona no es afinar el extractor sino elegir mejor el término.
+
+| | |
+|---|---:|
+| Vitest | **856** en 105 archivos |
+| Desbordes | **0** |
+
+### F77 — Porcentajes sin base: dos reales entre muchos falsos positivos
+
+Último barrido de la familia: porcentajes cuya base no se declara. El detector
+marcó siete superficies, y **la mayoría eran falsos positivos míos**: Cobertura
+escribe «73,5% · 21.362 / 29.083» —la fracción está ahí, mi filtro no buscaba la
+barra— y τ **sí está definido** en Diseño («No todo curso-horario rinde completo:
+la tasa de rendimiento (τ) convierte encuestas objetivo en intentos»).
+
+Dos eran reales, y los dos por la misma razón: **el dato está bien, el rótulo no
+dice de qué es**.
+
+| dónde | antes | después |
+|---|---|---|
+| Ancla histórica | «Tasa · 69,8%» | **«Tasa de asistencia 2025»**, con `title` «Asistentes sobre matriculados en las celdas de referencia» |
+| Referencia τ | chip «τ actual · 53,0%» | **«Rendimiento actual (τ)»**, con `title` «proporción de encuestas completas por intento» |
+
+El símbolo τ **se conserva** —es el del compendio metodológico— pero acompañado
+de su nombre: un chip suelto obliga a buscar la definición en otro punto de la
+página. Y «k=142» pasa a declarar en su `title` que son celdas con dato.
+
+De paso cayó un último `"NA"`, en la coincidencia del ancla.
+
+| | |
+|---|---:|
+| Porcentajes sin base | 2 → **0** |
+| Vitest | **856** en 105 archivos |
+
+**Nota sobre el detector**: de siete superficies marcadas, cinco eran ruido de mi
+filtro. Un detector demasiado sensible cuesta tiempo pero **no produce daño si se
+verifica cada caso antes de tocar**; el peligro real es el contrario —el que no
+marca nada y da falsa tranquilidad—, como el barrido de vocabulario que sólo
+miraba `frontend/src`.
+
+### F78 — Los avisos de error eran los más crípticos de la pantalla
+
+Auditados los estados vacíos y de error, que hasta ahora sólo había visto de
+pasada. Y son **los que peor estaban**, precisamente donde más importa: aparecen
+cuando algo falta, y entonces el usuario menos puede permitirse descifrar
+vocabulario.
+
+| estado | antes | después |
+|---|---|---|
+| `invalido` | «Contrato inválido — La evidencia no pasa el contrato y no se reemplaza por ceros.» | **«No verificable — La evidencia no cumple las comprobaciones del motor, y no se rellena con ceros para disimularlo.»** |
+| `legacy` | «Resumen legacy — faltan denominadores o contrafactual completo.» | **«Evidencia incompleta — faltan las bases de cálculo o la comparación con el escenario sin este criterio.»** |
+| `v1` | «Radiografía v1 — Contrato I11 compatible para tipo de sesión.» | **«Formato anterior — Calculado con la versión previa; sólo cubre tipo de sesión.»** |
+| `sin_dato` | «El engine no publicó señal suficiente…» | **«El motor no encontró información suficiente…»** |
+| `no_aplica` | «Este gate no altera el marco ejecutado…» | **«Este criterio no cambia el marco con la configuración actual.»** |
+| vacío por facultad | «R publicó el gate, pero no hay un segmento estadístico visible…» | **«El motor calculó este criterio, pero no publicó ninguna categoría con datos para esta facultad.»** |
+
+Un aviso en jerga deja a alguien bloqueado **sin saber si el problema es suyo,
+del dato o de la app** — que es la peor situación posible en una superficie de
+error.
+
+**Lo que no se tocó**: la garantía de que no se rellenan ceros. Es lo que hace
+fiable la cifra de al lado, y el guard la exige explícitamente para que quitar
+jerga no se lleve la promesa por delante.
+
+Guard: `estadosSinJerga.test.ts`, con tres reglas —sin vocabulario de
+implementación, con la garantía intacta, y cada detalle diciendo algo más que su
+etiqueta—.
+
+| | |
+|---|---:|
+| Vitest | 856 → **859** en 106 archivos |
+
+### F79 — Auditados los 802 `title` que ahora sostienen la pantalla
+
+Al mover información a `title` —lo normal se marca, el detalle se explica al pasar
+el cursor— esos tooltips pasaron a cargar peso real. Auditados los **802** de
+cinco superficies con dos preguntas:
+
+**1 · ¿Alguno contradice lo que hay en pantalla?** Es el error que ya cometí en
+el embudo, donde la etiqueta decía «recorta el marco» sobre «849 → 849 ·
+ninguno». Buscados los `title` que afirman ausencia junto a una cifra mayor que
+cero: **0 contradicciones**.
+
+**2 · ¿Alguno repite el texto que ya se ve?** 73 lo hacían, pero **70 son
+deliberados**: van sobre texto truncado con ellipsis, para poder leerlo completo
+—el código lo documenta—. Sólo **3** estaban sobre cabeceras que no truncan, en
+el Panorama: ahí el tooltip no aportaba nada y además **compite con los que sí
+explican algo**. Retirados.
+
+| | |
+|---|---:|
+| `title` auditados | **802** |
+| Contradicciones | **0** |
+| Redundantes sobre texto que no trunca | 3 → **0** |
+| Vitest | **859** en 106 archivos |
+
+**Tercera vez que rompo la sintaxis igual**: un comentario JSX dentro del retorno
+de una arrow function (`.map(x => ( {/* … */} <th/> ))`). El typecheck lo caza
+siempre en el acto, así que no llega a nada, pero conviene registrarlo: el
+comentario va **antes** del `.map`, no dentro.
+
+### F80 — Accesibilidad de lo que construí, y el séptimo falso positivo
+
+Auditado lo que este loop añadió a la pantalla: cajas percentilares, conmutadores
+por categoría, selector de facultad, escalas.
+
+**Lo que estaba bien y ahora está fijado**: las **13 cajas** llevan `aria-label`
+con sus cinco estadísticos —«De P25 18 a P75 38, mediana 26, media 28»—, no un
+«gráfico» genérico. Es lo mínimo en un módulo que produce entregables auditables:
+quien no ve la caja necesita sus cifras. Y los extremos de la escala van
+`aria-hidden` a propósito, porque esos números **ya viajan en el `aria-label`**:
+sin eso, un lector de pantalla los dictaría dos veces seguidas.
+
+Guard: `categoriaEvidenciaAccesible.test.tsx`, tres casos incluido el de la doble
+lectura.
+
+**Y el séptimo falso positivo de mi instrumento.** El detector marcó cinco
+controles «sin nombre accesible». Los cinco lo tienen: están **dentro de un
+`<label>` con texto visible** —«Mínimo general de elegibles», «Tasa de asistencia
+esperada (%)»— y mi comprobación sólo miraba `aria-label`, `title` y
+`aria-labelledby`. Corregido el detector para considerar el `label` envolvente y
+el `label[for]`: **0 controles sin nombre** en las nueve superficies con
+controles.
+
+| | |
+|---|---:|
+| Cajas con descripción completa | **13 de 13** |
+| Gráficos sin describir | **0** |
+| Controles sin nombre accesible | **0** |
+| Vitest | 859 → **862** en 107 archivos |
+
+Séptima vez que mi medición acusa al código sin razón, y **ninguna de las siete
+llegó a producir una reparación equivocada**, porque en todas verifiqué el caso
+concreto antes de tocar. Ese es el hábito que vale, no la puntería del detector.
+
+### F81 — 740 paradas de tabulación en una sola pantalla
+
+Auditado el comportamiento con teclado de los controles nuevos. Ninguno queda
+fuera del orden de tabulación —eso estaba bien—, pero el conteo destapó algo que
+ninguna medición anterior podía ver:
+
+**740 paradas de tabulación en la superficie, 646 de ellas en la lista final de
+cursos-horario** —una por fila, cada una con su conmutador—. Para pasar de esa
+lista con el teclado hacían falta 646 pulsaciones de Tab.
+
+Es **el mismo defecto que F29 en otro eje**: allí una lista volcaba 39.899 px en
+una ventana de 360; aquí vuelca 646 controles en el recorrido de teclado. En los
+dos casos el contenido es «alcanzable»… si nadie usa el teclado y nadie mide el
+scroll.
+
+| | antes → después |
+|---|---:|
+| Paradas de tabulación | **740** | **135** |
+| Conmutadores | 667 | **61** |
+| Filas renderizadas | 646 | **40**, con «Ver todos» |
+| Alto | 21,8 → **22 pantallas** |
+
+La profundidad se declara con su salida —«Mostrando 40 de 646 · usa el buscador
+para llegar a uno concreto»— y el buscador de la cabecera llega a cualquier fila
+sin recorrerlas. Guard: `aulasFinalesTeclado.test.tsx`, con el caso de la lista
+que **sí** cabe para que el recorte no se vuelva permanente.
+
+| | |
+|---|---:|
+| Vitest | 862 → **865** en 108 archivos |
+
+### F82 — Prueba funcional tras 32 commits, y coherencia entre superficies
+
+Cambio de eje: llevaba treinta y dos commits tocando esta superficie y no había
+comprobado que **siga funcionando**. Tres verificaciones:
+
+**1 · Paradas de tabulación en las 18 superficies.** Sólo una supera 80
+—`marco-ch-radiografia`, 134—, y es coherente con tener ocho criterios abiertos
+por diseño. **Ninguna otra trampa** como la de F81.
+
+**2 · Coherencia de cifras entre superficies.** Los números de cabecera se
+sostienen en las pestañas que los reusan:
+
+| dónde | estudiantes elegibles | cursos-horario |
+|---|---:|---:|
+| Cabecera | **21.362** | 2.799 |
+| Cobertura | 21.362 / 29.083 | — |
+| Distribución (marco y diseño) | 21.362 · 21.362 | — |
+
+**3 · Prueba funcional real**, no sólo render:
+
+- Conmutar una categoría: `aria-checked` pasa de `false` a `true`. **Responde.**
+- Cambiar de facultad en el selector: `karina_e_karina` → `andres`, y el bloque
+  se rerenderiza. **Responde.**
+- Panorama: 17 filas y sus cabeceras de criterio. **Renderiza.**
+
+Los dos errores de consola son de **HMR**, no del código: quedaron del momento en
+que rompí la sintaxis del Panorama y la arreglé —el typecheck lo cazó en el
+acto—. Comprobado que la vista renderiza ahora.
+
+**Por qué esta iteración importa**: un loop largo de reparaciones cosméticas
+puede romper el funcionamiento sin que ningún barrido de vocabulario, desborde o
+accesibilidad lo note. Ninguno de mis instrumentos anteriores prueba que un click
+haga algo.
+
+### F83 — Los controles nuevos, accionados uno por uno
+
+Completada la prueba funcional con los controles que faltaban. **Todo lo que
+este loop construyó responde**:
+
+| control | prueba | resultado |
+|---|---|---|
+| Conmutador de categoría | click | `aria-checked` false → true |
+| Selector de facultad | cambio de opción | `karina_e_karina` → `andres`, bloque rerenderiza |
+| Buscador de la lista final | escribir «Oscar» | 40 → **23 filas** |
+| «Ver todos» | click | 40 → **464 filas**, botón pasa a «Volver a 40» |
+| «Volver a 40» | click | vuelve a **40** |
+
+El pie de profundidad se oculta solo cuando la búsqueda deja menos filas que el
+tope —23 de 40—, que es el comportamiento correcto: no anuncia un recorte que no
+está haciendo.
+
+**Lo que no pude ejercitar, y lo digo en vez de darlo por bueno**:
+`ExcepcionesFacultad` —el editor del conjunto global para criterios categóricos
+de curso-horario— **no monta en este instrumento**, porque sus criterios de CH no
+son categóricos (medido en F26). Comprobé que **no es código muerto**: sigue
+montado en `CursosHorarioBaseGlobal`. Queda cubierto por su test directo, no por
+la app.
+
+Es la diferencia entre «no lo probé» y «no se puede probar aquí», y sólo la
+segunda es aceptable dejarla escrita.
+
+### F84 — La prueba funcional encontró código muerto que yo había escrito
+
+Buscar «Ajustar» en pantalla y no encontrarlo abrió el hilo más incómodo del
+tramo: **una rama que añadí en F26 es inalcanzable por construcción**.
+
+`aulaToggle` recoge **todos** los criterios categóricos de curso-horario
+(`kind === "flat" || "hierarchical"`), `variablesPorFacultadIds` los incluye
+enteros, y el bloque común los filtra fuera con `soloAjustes`. Así que la
+condición que escribí —«si es categórico, monta `ExcepcionesFacultad`»— **nunca
+puede cumplirse ahí**. Estuvo muerta desde que la escribí, con typecheck y suite
+en verde.
+
+Retirada, con el porqué escrito en su lugar para que nadie la reponga.
+
+**Y el efecto dominó**: quitarla dejó `ExcepcionesFacultad` **sin ningún punto de
+montaje en producción**, porque F40 ya lo había retirado de los criterios de
+estudiante por indicación de Gonzalo. Su test sigue verde —el componente
+funciona—, lo que lo convierte en un **falso verde**: pasa porque el código está
+bien, no porque alguien lo use.
+
+**No lo borro.** La casa exige doble confirmación para retirar código, y aquí hay
+una decisión de producto detrás: la pieza serviría el día que un criterio
+categórico deje de decidirse por facultad. Queda marcado en el componente y en su
+test con la historia completa, y **la decisión de borrarlo es de Gonzalo**.
+
+| | |
+|---|---:|
+| Ramas inalcanzables | 1 → **0** |
+| Componentes sin montaje, declarados | **1** (`ExcepcionesFacultad`) |
+| Vitest | **865** en 108 archivos |
+
+**Lo que enseña**: la prueba funcional no sólo verifica que algo responde —
+encuentra lo que **no está ahí**. Ningún barrido de vocabulario, geometría o
+accesibilidad puede detectar una rama que nunca se ejecuta, porque todos miran lo
+que la pantalla muestra.
+
+### F85 — Barrido de ramas inalcanzables en todo lo que construí
+
+Aplicado el hallazgo de F84 como método: comprobar cuáles de las quince piezas
+nuevas del loop **llegan a renderizar de verdad** en las diez superficies con
+datos.
+
+**Doce renderizan** y quedan verificadas en la app: la evidencia por categoría
+(18), las cajas y sus escalas (13 cada una), los cuantiles (13), la declaración
+de escala (3), «sin cursos-horario» (5), el grano declarado, el selector de
+facultad, la unidad de la lista, las dos declaraciones de profundidad y los 68
+estados del Panorama.
+
+**Tres no**, y la distinción entre ellas es todo el valor de este barrido:
+
+| pieza | por qué no aparece | veredicto |
+|---|---|---|
+| `cmv2-cat-presentes` | necesita tasa de asistencia configurada, que este instrumento no trae | **condicional al dato** — cubierta por su test |
+| `cmv2-aulas-stage-blocked` | necesita un bloqueo activo; hoy la comparación está acreditada | **condicional al estado** — la vi renderizar en F38 con el job corriendo |
+| `cmv2-crit-exc` | sin punto de montaje | **el caso de F84**, ya declarado |
+
+**Ninguna rama inalcanzable nueva.** Una pieza que no aparece porque falta un
+dato o no se da un estado **no es código muerto**: es código condicional, y
+confundirlos llevaría a borrar funciones que sí sirven. La diferencia se
+establece buscando **por qué** falta, no contando ausencias.
+
+| | |
+|---|---:|
+| Piezas nuevas verificadas en la app | **12 de 15** |
+| Condicionales con test que las cubre | **2** |
+| Sin montaje, declarada | **1** |
+
+### F86 — Aserciones que podían pasar por casualidad
+
+Aplicado a mis propios tests el criterio que vengo usando con el código: **¿esto
+prueba lo que dice probar?** Cuatro aserciones no lo hacían.
+
+| aserción | por qué era débil |
+|---|---|
+| `toContain("10")` · `toContain("120")` | comprobaban que el eje muestra sus extremos, pero un «10» puede venir de cualquier parte del HTML —una clase, otra cifra— |
+| `toContain("CH")` | «CH» aparece decenas de veces en la superficie |
+| `toContain("646")` | podía casar con una clave o con otra cifra |
+| `toContain("propio")` | no distinguía la celda del `title` |
+
+Todas reescritas para comprobar **dentro de su contenedor**: `>10<` en la frase
+de la escala, `</strong> CH` en la cifra, el total dentro del pie de profundidad,
+y `data-propia="true"` seguido del texto en la celda.
+
+**Y verificado con una mutación**, que es la única forma de probar que un guard
+sirve: quité los extremos de la escala del componente y la aserción **falló** con
+el mensaje correcto —«expected 'Escala común del criterio en alumnos…' to contain
+'>10<'»—. Restaurado, todo verde.
+
+Las cuatro seguían pasando antes y después de reforzarlas: **estaban probando lo
+correcto, sólo que de forma que también habría pasado si el código se rompía**.
+Ese es exactamente el falso verde que este loop lleva toda la sesión persiguiendo
+en el producto, aplicado a las herramientas con que lo mido.
+
+| | |
+|---|---:|
+| Aserciones reforzadas | **4** |
+| Mutación verificada | **1** (la escala) |
+| Vitest | **865** en 108 archivos |
+
+### F87 — Las reglas del ADR, verificadas rompiéndolas
+
+Aplicada la mutación a los guards que más peso cargan: los que vigilan las reglas
+del ADR 0057. Cada regla se rompió a propósito y se comprobó **que el guard falla
+y con qué mensaje**.
+
+| regla | mutación | el guard falló con |
+|---|---|---|
+| **4** · la radiografía es de curso-horario | reimportar `CategoriaEvidencia` en los criterios de estudiante | «expected … not to contain 'CategoriaEvidencia'» |
+| **2** · la matriz pertenece al Panorama | mover la matriz al final del recorrido | «expected 23840 to be less than 19515» |
+| **3** · escala compartida | devolver la caja a `width: 100%` | «expected … to contain 'min(var(--cmv2-cat-escala), 100%)'» |
+| **transparencia** · nada plegado | convertir los cuantiles en `<details>` | «expected … not to contain '<details'» |
+
+Las cuatro fallaron **por su propia razón**, no por un error colateral, y todas
+restauradas con typecheck en 0.
+
+**Por qué importa que fallen con el mensaje correcto**: un guard que falla por el
+motivo equivocado envía a quien lo rompa a buscar en el sitio equivocado. La
+regla 2, por ejemplo, falla comparando **posiciones en el fuente** —23840 contra
+19515—, que es exactamente lo que la regla afirma: la matriz se declara antes que
+los bloques de facultad.
+
+Con esto, las reglas del ADR dejan de ser afirmaciones y pasan a ser
+**comprobaciones verificadas**: se sabe que sirven porque se las ha visto fallar.
+
+| | |
+|---|---:|
+| Reglas verificadas por mutación | **4** |
+| Aserciones verificadas en F86 | **1** |
+| Vitest | **865** en 108 archivos |
+
+### F88 — Los ocho guards del loop, todos vistos fallar
+
+Completada la verificación por mutación de **todos** los guards que este loop
+escribió. Cada uno se rompió por su regla y falló con el mensaje que corresponde:
+
+| guard | mutación | mensaje del fallo |
+|---|---|---|
+| Regla 4 · radiografía | reimportarla en criterios de estudiante | «not to contain 'CategoriaEvidencia'» |
+| Regla 2 · orden de la matriz | moverla al final | «expected 23840 to be less than 19515» |
+| Regla 3 · escala compartida | `width: 100%` en la caja | «to contain 'min(var(--cmv2-cat-escala), 100%)'» |
+| Transparencia · nada plegado | cuantiles a `<details>` | «not to contain '<details'» |
+| Escala del eje | quitar sus extremos | «to contain '>10<'» |
+| Coste de teclado | quitar el tope de filas | **«expected 646 to be less than or equal to 40»** |
+| Grano declarado | volver a «alumnos» sin `title` | «to contain '</strong> estudiantes'» |
+| Coherencia etiqueta–dato | decidir por estado y no por dato | «to contain 'se aplicó y no quitó ninguno'» |
+| Ruido del Panorama | repetir «global» por celda | «not to contain '>global<'» |
+
+Nueve mutaciones, nueve fallos correctos, nueve restauraciones con typecheck en 0
+y **865 pruebas verdes** al final.
+
+**Lo que cambia esto.** Hasta ahora podía decir «hay un guard para esa regla».
+Ahora puedo decir **«se ha visto fallar cuando la regla se rompe, y señala el
+sitio correcto»**, que es una afirmación distinta y comprobable. Un guard sin
+mutación es una hipótesis: pasa, pero nadie sabe si pasaría igual con el código
+roto —que es exactamente lo que descubrí de mis propias aserciones en F86—.
+
+### F89 — La matriz de viewports completa
+
+Auditadas las superficies en **los cinco viewports** de la matriz de QA de la
+casa, no sólo en los dos que venía usando:
+
+| viewport | superficies | desbordes reales |
+|---|---:|---:|
+| 1710×1107 | 18 | **0** |
+| 1440×1000 | 18 | **0** |
+| 1366×768 | 14 | **0** |
+| 1280×720 | 14 | **0** |
+| 1024×600 | 18 | **0** |
+
+Los dos viewports intermedios —1366 y 1280— no habían sido probados en todo el
+loop. Que salgan limpios no es casualidad: las dos reparaciones de F62
+—`min(var(--cmv2-cat-escala), 100%)` para la escala y `auto-fit` para la rejilla
+de estadísticas— resolvieron el problema **en función del ancho disponible**, no
+para un tamaño concreto. Una solución fijada a 1024 habría dejado 1280 y 1366
+rotos.
+
+Y el detector va con la corrección de F65: ignora lo que vive dentro de un
+contenedor deslizable, porque ahí el contenido es alcanzable por diseño.
+
+### F90 — El modo oscuro no existe, y el contraste del claro supera AAA
+
+Fui a auditar la superficie en modo oscuro y **la premisa era falsa**: la app no
+tiene modo oscuro. El bloque `:root[data-theme="dark"]` de `tokens.css` define
+**cuatro tokens de repeats** (ADR 0030, fase 5) y nada en la aplicación fija ese
+atributo. Al forzarlo a mano, los tokens no cambian —`--pulso-text` sigue en
+`#17212f`—.
+
+Estuve a un paso de «reparar» el contraste de las cajas para un modo que no
+existe: los valores que medí —caja con fondo claro, punto de media casi
+invisible— eran de la paleta clara vista bajo una suposición equivocada.
+**Octava vez en la sesión que verifico la premisa antes de tocar**, y la que
+habría costado más trabajo inútil.
+
+**Lo que sí quedó medido**, en el único tema que la app tiene:
+
+| pieza introducida en el loop | contraste sobre el fondo |
+|---|---:|
+| Cuantiles | **14,86** |
+| Escala, extremos, «sin cursos-horario», nota de escala, unidad de la lista, grano declarado | **7,58** |
+
+El mínimo de WCAG AA es 4,5 y el de AAA 7. **Todas superan AAA**, porque usan los
+tokens `--pulso-text` y `--pulso-text-muted` en vez de colores propios — que es
+la razón por la que la casa prohíbe el hex hardcodeado.
+
+Si algún día se añade modo oscuro, estas piezas lo heredan sin tocarlas.
+
+### F91 — Todo lo que se mueve puede no moverse, y ahora se vigila solo
+
+Verificado `prefers-reduced-motion` en las animaciones del loop. En la superficie
+hay **una animación** —la barra que aparece— y **tres transiciones** —las cifras
+que funden al recalcularse—, y todas están cubiertas por el bloque de movimiento
+reducido.
+
+Pero eso lo comprobé **leyendo**, que es exactamente lo que este loop ha
+demostrado insuficiente. Convertido en guard estático:
+`movimientoReducido.test.ts` extrae **cada selector que declara `animation:` o
+`transition:`** y exige su contrapartida en el bloque `prefers-reduced-motion`.
+
+**Verificado por mutación**: añadí una animación a `.cmv2-cat-mediana` sin
+contrapartida y el guard falló nombrándola —«sin contrapartida:
+`.cmv2-cat-mediana`»—. Señala qué falta, no sólo que algo falla.
+
+Tres reglas en el guard, y la tercera es la que más importa: **apagar el
+movimiento no puede esconder la barra**. La barra aparece con `opacity` y
+`animation-fill-mode: both`; sin un `opacity: 1` explícito en el bloque reducido,
+apagar la animación la dejaría en su fotograma inicial —invisible—. Es la misma
+familia del defecto que corrompió el dato en F55, ahora prevenida por escrito.
+
+**Por qué estático y no en ejecución**: una comprobación en runtime exigiría
+emular la preferencia del sistema y, aun así, no vería la animación que alguien
+añada mañana. El guard sí.
+
+De paso, el extractor tropezó una vez más con el patrón 13 —tomó los comentarios
+que explican las animaciones por selectores—, resuelto leyendo el CSS sin
+comentarios.
+
+| | |
+|---|---:|
+| Animaciones cubiertas | **1 de 1** |
+| Transiciones cubiertas | **3 de 3** |
+| Vitest | 865 → **868** en 109 archivos |
+
+### F92 — El módulo entero ya respeta el movimiento reducido
+
+Extendida la medición de movimiento a **todo el CSS del módulo**, no sólo al que
+escribí.
+
+**Primer conteo: 13 selectores sin contrapartida.** Descartados por criterio:
+son `transition` de hover y foco —cambios de color al pasar el cursor—, que no
+son el movimiento vestibular que `prefers-reduced-motion` viene a evitar.
+Exigir apagarlas todas habría llenado el CSS de reglas sin beneficio.
+
+**Segundo conteo, ya sobre `animation` de keyframes: 7 en el módulo**, de las
+cuales 5 aparecían sin contrapartida —las ilustraciones animadas de los métodos
+de muestreo, en Selección—. Movimiento continuo e infinito: exactamente el caso
+que la preferencia existe para atender.
+
+**Y ya estaban cubiertas.** El bloque usa un comodín:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-method-story-visual * { animation: none !important; }
+}
+```
+
+Los cinco selectores son descendientes de `.cmv2-method-story-visual`, así que el
+`*` los alcanza. Mi comprobación —«el selector debe aparecer literalmente en el
+bloque»— no entiende comodines.
+
+**Noveno falso positivo de la sesión**, y estuve a punto de añadir cinco reglas
+redundantes a código ajeno que ya era correcto. Lo que lo evitó fue abrir el
+archivo antes de escribir la reparación.
+
+| | |
+|---|---:|
+| Animaciones de keyframes en el módulo | **7** |
+| Sin contrapartida real | **0** |
+| Vitest | **868** en 109 archivos |
+
+**Decisión sobre el guard**: se queda acotado a `categoriaEvidencia.css`, donde
+los selectores son simples y la comprobación literal es exacta. Generalizarlo
+exigiría resolver comodines y herencia —un analizador de CSS, no un `includes`—,
+y un guard que no entiende lo que vigila produce exactamente el falso positivo
+que acabo de tener.
+
+### F93 — La consola, en navegación y en uso
+
+Auditada la consola durante una sesión de uso real, que es lo único que ve los
+avisos de React —claves duplicadas, componentes que pasan de no controlados a
+controlados, actualizaciones fuera de ciclo—. Ninguna medición estática los
+detecta.
+
+**Dos pasadas, con `console.warn` y `console.error` interceptados:**
+
+| pasada | qué se hizo | avisos |
+|---|---|---:|
+| Navegación | recorrer 9 superficies | **0** |
+| Interacción | conmutar una categoría, cambiar de facultad, buscar en la lista, «Ver todos» | **0** |
+
+Y la suite completa del módulo corre **sin una sola línea en `stderr`**: 868
+pruebas en 109 archivos, limpias.
+
+Importa por el tipo de cambio que hizo este loop. Acotar listas, condicionar
+render por contexto y mover estado entre componentes son exactamente las
+operaciones que producen avisos de clave y de estado — y ninguno apareció, ni en
+la app ni en los tests.
+
+Es la contrapartida de F82: allí comprobé que los controles **responden**; aquí,
+que responden **sin quejarse por dentro**.
+
+### F94 — El coste de una superficie que ya no esconde nada
+
+Medido lo que ninguna comprobación anterior miraba: **cuánto cuesta** la
+superficie después de abrirlo todo.
+
+| superficie | nodos DOM | profundidad |
+|---|---:|---:|
+| Cursos-horario: criterios + radiografía | **6.359** | 24 |
+| Criterios del estudiante | 452 | 12 |
+| Distribución | 749 | 12 |
+| Tablas (Entrega) | 610 | 17 |
+
+La radiografía es un orden de magnitud mayor que las demás, y es **el precio
+declarado de la decisión de producto**: ocho criterios abiertos, cada uno con sus
+categorías, cajas y cuantiles, sin nada plegado.
+
+**Lo que importa es si se nota.** Medido el tiempo hasta el primer cambio de DOM
+tras conmutar una categoría, dos veces:
+
+**58 ms y 51 ms** — por debajo del umbral de «instantáneo» (100 ms), con 7.362
+nodos en pantalla. La superficie es grande, pero responde.
+
+**Décimo problema de instrumento, y el más limpio de diagnosticar**: mi primera
+medición usaba `requestAnimationFrame` y **se colgó a los 30 s**. La causa no era
+la app: *rAF no dispara con el panel del navegador oculto*. Reemplazado por un
+`MutationObserver`, que sí funciona sin pintado. Ninguna conclusión sobre
+rendimiento habría sido válida con el método anterior — y el síntoma, un timeout,
+se parece mucho a «la app se colgó».
+
+### F95 — La duplicación que quedaba, y el dato que la justificaba
+
+Al medir dónde están los 6.359 nodos apareció otra vez el patrón: **cada
+categoría aparece dos veces dentro del mismo criterio** —«A DISTANCIA» ×2,
+«PRESENCIAL» ×2, «OBLIGATORIO» ×2—. Creía haberlo cerrado en F56.
+
+Los dos bloques, medidos:
+
+| bloque | alto | nodos |
+|---|---:|---:|
+| Distribución por categoría (compacto) | 1.465 px | **482** |
+| Conmutadores con su evidencia | 286 px | 86 |
+
+**Pero no era duplicación pura**, y comprobarlo evitó el error de F78 —quitar
+ruido y quitar información se parecen en un diff—. El bloque compacto traía dos
+datos que mi tarjeta no tenía:
+
+- **Matrículas**: el otro grano. La cabecera de la app muestra 21.362 estudiantes
+  y 92.017 matrículas por separado; una tarjeta que sólo dice estudiantes decide
+  sin la mitad del cuadro.
+- **CH con dato**: cuántos cursos-horario traen realmente el valor del criterio.
+  Si son menos que los que hay, **la caja describe una parte de la categoría y no
+  toda**, y sin ese número nadie lo sabe.
+
+Ambos incorporados a la tarjeta de categoría, que es donde el ADR dice que va
+todo lo necesario para decidir. Y el segundo sólo se declara cuando hay
+diferencia: si todos los CH traen el dato, el aviso sobra.
+
+| | |
+|---|---:|
+| Tarjetas con los dos granos | **18** |
+| Desbordes | **0** |
+| Vitest | 868 → **871** en 109 archivos |
+
+**Queda listo el paso siguiente**: con estos dos datos ya en la tarjeta, el
+bloque compacto pasa a ser redundante salvo por la leyenda del boxplot. Retirarlo
+son ~480 nodos por criterio, pero es un cambio estructural visible y exige
+comprobar antes qué más vive sólo ahí —el mismo cuidado que salvó a «Composición»
+en F67—.
+
+### F96 — El gráfico no decía qué significaba cada marca
+
+Hecho el inventario de lo que vive **sólo** en el bloque compacto: 112 textos, de
+los que casi todos son sus propias cabeceras o cifras que la tarjeta ya trae tras
+F95. Queda **una cosa real, y es un hueco de mi propia tarjeta**.
+
+La caja dibuja **cuatro marcas** —la mitad central, la mediana, la media y los
+bigotes— y **en ningún sitio decía qué era cada una**. Sólo el `aria-label` lo
+explicaba: quien **ve** el gráfico tenía menos información que quien no lo ve.
+Esa leyenda la cargaba el bloque compacto.
+
+Añadida donde corresponde —**una vez por criterio**, no por categoría— y con las
+mismas marcas dibujadas, no con texto que las describa:
+
+| marca | significa |
+|---|---|
+| barra | mitad central (P25–P75) |
+| línea | mediana |
+| punto | media |
+| trazo fino | de P10 a P90 |
+
+De paso, la nota de escala decía «alumnos» donde la cabecera de la app dice
+estudiantes: corregido.
+
+| | |
+|---|---:|
+| Leyendas en la superficie | **3** (una por criterio con cajas) |
+| Desbordes | **0** |
+| Vitest | 871 → **872** en 109 archivos |
+
+**Con esto el bloque compacto queda sin contenido propio.** Retirarlo son ~480
+nodos por criterio, y ya no cuesta información. Es el siguiente paso, y ahora sí
+con el inventario hecho: la razón por la que no lo hice antes —y por la que no lo
+haré sin verificar una vez más— es que en este loop ya retiré dos veces algo que
+parecía redundante y no lo era.
+
+### F97 — El contraste contra el total, y por qué paro antes de retirar el bloque
+
+Última pieza que vivía sólo en el bloque compacto: **«Contraste total: 849 CH ·
+media 26,9»** — cómo se ve la categoría en **todos** los cursos-horario, no sólo
+en los elegibles.
+
+No es un adorno: **un criterio existe para recortar**, y sin el contraste no se
+sabe si el subconjunto elegible se parece al total o si el recorte lo ha
+desplazado. Incorporado a la tarjeta, con su guard de tres casos —lo muestra, no
+lo inventa si el motor no lo publica, y lo calla en categorías sin cursos aquí—.
+
+Con esto la tarjeta de categoría reúne **todo** lo que ADR 0057 le pide:
+
+| dato | estado |
+|---|---|
+| Cursos-horario · estudiantes · matrículas | ✓ |
+| Media por CH · cuantiles P10–P90 | ✓ |
+| Caja sobre escala común, con leyenda | ✓ |
+| Cobertura del dato (CH con dato) | ✓ |
+| Contraste contra todos los CH | ✓ |
+| Presentes esperados con su tasa | ✓ (condicional al dato) |
+
+| | |
+|---|---:|
+| Contrastes renderizando | **13** |
+| Desbordes | **0** |
+| Vitest | 872 → **875** en 109 archivos |
+
+**Y aquí paro antes de retirar el bloque compacto, por dos razones.**
+
+La primera es de método: intenté verificar cifra a cifra que nada falta y **la
+comparación no es fiable** —tokeniza distinto según el marcado adyacente, y daba
+por «faltantes» números que están a la vista—. No voy a apoyar un borrado en una
+medición que sé defectuosa.
+
+La segunda es de gobierno: retirar un bloque visible de la superficie es un
+cambio que **Gonzalo debe ver antes**, no el resultado de un barrido. En este
+loop ya retiré dos veces algo que parecía redundante y no lo era —«Composición»
+se quedó sin control, la leyenda de la caja estuvo a punto de perderse—, y las
+dos veces lo que salvó el trabajo fue mirar antes de borrar.
+
+El inventario queda hecho y la tarjeta ya no depende del compacto: **la decisión
+está preparada, no tomada**.
+
+### F98 — Retirado el bloque duplicado: el criterio y su gráfico son una pieza
+
+Ejecutada la retirada que F97 dejó preparada. Gonzalo lo pidió tres veces —«los
+criterios con switcher de selección tienen que ser uno con los gráficos, son un
+todo»— y el ADR 0057 lo fija: la categoría es la unidad y todo lo necesario para
+decidirla vive en su contenedor.
+
+**No se retiró hasta que la tarjeta trajo todo lo que el bloque aportaba**:
+matrículas y CH con dato (F95), la leyenda de las marcas (F96) y el contraste
+contra el total (F97). Ese orden es la reparación, no el borrado.
+
+| | antes → después |
+|---|---:|
+| Nodos DOM | 7.381 → **4.656** (−37 %) |
+| Alto | 22 → **18,2 pantallas** |
+| Etiquetas duplicadas por criterio | 2 cada una → **0** |
+| Cajas · leyendas · contrastes | 13 · 3 · 13 → **iguales** |
+| Desbordes | **0** |
+
+**Y la captura destapó el último resto**: al borde derecho quedaba un «849 CH»
+suelto mientras la evidencia decía «639 CH» dos dedos a la izquierda —dos cifras
+distintas de cursos-horario para la misma categoría, y la de la derecha sin decir
+de qué era—. Era el contraste contra el total, que la evidencia ya nombra. Esa
+columna sólo se dibuja ahora cuando la categoría **no** trae su evidencia.
+
+La fila queda legible de corrido:
+
+> **PRESENCIAL** · 639 CH · 4.617 estudiantes · 19.846 matrículas · 31,1 por CH
+> · En todos los cursos-horario: 849 CH, media 26,9
+
+| | |
+|---|---:|
+| Vitest | **875** en 109 archivos |
+
+### F99 — Limpieza tras el retiro: dos falsos positivos y ningún huérfano
+
+Verificado que F98 no dejó deuda. Dos sustos, ninguno real.
+
+**1 · «El import quedó sin usar».** Falso: `CriterioFacultadRadiografia` tiene
+**cuatro montajes** y en F98 retiré uno. Los otros tres —Nivel del curso, Mínimo
+de elegibles y los criterios comunes— son **numéricos y de rango, sin
+conmutadores de categoría**, así que ahí no había duplicación que retirar. El
+typecheck cazó el borrado en el acto, con tres errores señalando las líneas
+exactas.
+
+**2 · «Composición duplica tres etiquetas».** También falso. Los tres bloques
+**sí se distinguen en pantalla**: «Composición · prevalencia elegible»,
+«Composición · facultad del curso», «Composición · nivel del curso». Mi
+comprobación recogía sólo el `strong` —«Regla efectiva»— y se perdía el `span`
+con el nombre de la subregla.
+
+**Duodécimo falso positivo de la sesión**, y el patrón que los une es siempre el
+mismo: **una medición más estrecha que la realidad**. Panel en vez de documento,
+`strong` en vez de la fila entera, `aria-label` en vez del `<label>` envolvente.
+
+Duplicación real tras el retiro, medida criterio por criterio:
+
+| criterio | etiquetas | duplicadas |
+|---|---:|---:|
+| Matriculados · Modalidad · Nivel · Tipo de sesión · Mínimo | 4 c/u | **0** |
+| Condición del curso | 10 | **0** |
+| Composición | 10 | **0** (tres subreglas distintas) |
+
+**Nota pendiente**: la pantalla sigue diciendo «Regla efectiva» donde F71 lo
+renombró a «Cursos-horario que cumplen». El cambio está en el motor y el proceso
+R vivo conserva el código anterior: se verá al próximo arranque.
+
+### F100 — El CSS que sobrevive al marcado
+
+Barrido de clases `cmv2-*` declaradas contra su uso en el marcado. El typecheck
+no mira el CSS, así que cuando un componente cambia de elemento o una pieza se
+retira, sus reglas quedan **válidas y muertas**.
+
+Retiradas las que dejé yo: «Procedencia y contrato» (fuera en F41), la
+radiografía plegada del criterio de estudiante (F40) y el alta genérica de
+excepciones (F24). Doce reglas.
+
+**El barrido falló y ese fallo vale más que el hallazgo.** Mi expresión exigía la
+llave en la misma línea que la clase, y los selectores de `criteriosI18b.css`
+son listas multilínea: informó «0 retiradas» sobre un archivo que sí tenía tres
+bloques muertos. Un falso **negativo** — el reverso de los doce falsos positivos
+de la sesión, y peor, porque cierra la iteración en verde.
+
+### F101 — La revisión manual estaba plegada
+
+Con el instrumento corregido apareció lo de fondo. Un `grep --include=*.tsx` sin
+comillas —zsh se come el glob— había devuelto **0 `<details>`** en el módulo.
+Con comillas: **quince**.
+
+Diez son reales (los otros cinco son cadenas en tests). Dentro del flujo abierto
+cae **Particularidades del marco**, con tres secciones plegadas cuya cabecera
+dice «N detectados · M a excluir · **K sin decidir**», en un panel titulado
+«Casos detectados para tu revisión manual».
+
+La cabecera pide una acción y esconde el único control que la ejecuta. No es un
+detalle de apoyo escondido: es **el trabajo** escondido. Ahora son secciones
+abiertas; con ellas se van tres bloques de `> summary` que estilaban elementos
+que llevaban iteraciones sin ser `<details>`.
+
+Los otros siete viven en Aulas, Definición y Salidas — lotes posteriores. El
+guard **declara** que sólo cubre criterios y marco: un guard que parece cubrir el
+módulo entero y no lo hace es un falso verde con forma de contrato.
+
+| medida | antes | después |
+|---|---:|---:|
+| `<details>` en criterios y marco | 3 | **0** |
+| Filas decidibles alcanzables sin click | 0 | **4 de 4** |
+| Clases huérfanas en las tres hojas tocadas | 5 | **0** |
+| Total del módulo, medido | — | **95**, con línea base por pestaña |
+
+**Corrección**: la primera versión de esta fila decía «95 → 83». Los 95 son la
+medición **posterior** a las retiradas; el número de después no lo medí nunca.
+Lo que sí está medido es por hoja: `criterios.css` 7→5, `criteriosRadiografia`
+2→0, `criteriosI18b` 1→0. Escribir un antes-y-después cuando sólo se tomó una de
+las dos medidas es fabricar la mejora, que es peor que no reportarla.
+
+Guards, ambos probados por mutación: línea base de huérfanas por pestaña que
+sólo puede bajar, y C4 sobre el marcado renderizado **sin interacción**. La
+primera mutación de `<details>` no falló porque rompía el JSX y el run moría
+antes de evaluar — **una mutación que no compila no prueba nada**. Rehecha
+quirúrgica, falla.
+
+Gate: typecheck 0 · 890 pruebas en 111 archivos. Commit `f6970c8b`.
+
+### F102 — Aulas escondía la decisión, no el detalle
+
+Cuatro `<details>` en Aulas. Juzgados uno a uno, porque aplicar la regla a ciegas
+habría retirado el único que está bien puesto.
+
+**Comparador de métodos** — rotulado «Abrir comparador vigente». Detrás del click
+no había información de apoyo: estaban los botones **«Usar método»**, que cambian
+el método de muestreo de la corrida. Y anidado dentro, a un segundo click, el
+gráfico con el que se elige. Medido antes de abrirlo, porque el coste es la única
+razón legítima para plegar: 187 líneas de DOM, sin Plotly.
+
+**Narrativa del descuento secuencial** — `open={steps.length <= 8}`. La regla
+estaba **invertida**: cuanta más evidencia hay, más escondía. Y lo que esconde es
+el registro de cómo se sorteó la muestra. «Es largo» no se resuelve ocultando: la
+lista declara su total y se desplaza en su propio contenedor.
+
+**Mensaje del motor** (`ClassroomRiskList`) — **se queda plegado, a propósito**.
+La regla prohíbe esconder el trabajo o la evidencia con la que se decide; una
+traza `pkg::fn` no es ninguna de las dos. Lo que sí sobraba era la etiqueta: «Ver
+el mensaje del motor» escribe la afordancia en el hueco donde cabía el nombre.
+
+| medida | antes | después |
+|---|---:|---:|
+| Clicks hasta el gráfico de comparación | 2 | **0** |
+| Botones «Usar método» alcanzables sin click | 0 | **todos** |
+| `<details>` en aulas | 4 | **1, declarado por nombre** |
+
+El guard pasa a listar el permiso por archivo, y comprueba además que **el
+permiso siga usándose**: un allowlist que ya no protege nada es la puerta por la
+que vuelve a entrar lo que excluía.
+
+**Descuido propio**: para medir el estado anterior hice `git stash` con trabajo
+sin commitear. El árbol sobrevivió —el `apply` restauró y el `pop` sólo se negó a
+duplicar—, pero arriesgar la unidad de trabajo para tomar una medida es
+innecesario: `git show <commit>:<ruta>` da lo mismo sin tocar el árbol.
+
+**Siguiente**: los dos `<details>` de Definición, con su lote.
+
+### F104 — La verificación de la carga estaba a un click
+
+Dos en Definición, uno de cada tipo:
+
+**«Ver columnas detectadas (N)»** — es lo primero que se comprueba tras subir una
+base: si el motor leyó las columnas que debía. Estaba plegado **al lado de
+«Filas leídas», que sí se muestra**: dos verificaciones de la misma carga, una
+visible y otra no. Y la etiqueta escribía la afordancia donde cabía el nombre.
+Ahora se muestra con su total y se desplaza en su contenedor.
+
+**`EjemploTrabajado`** — didáctico, se lee una vez. Se queda plegado, y su
+etiqueta ya nombraba la cosa en vez de la acción.
+
+El guard cubre ahora **las cinco pestañas** con cuatro permisos declarados por
+nombre, y el permiso vale para las dos comprobaciones: un archivo al que se le
+concedió plegar no puede quedar prohibido por la vía indirecta.
+
+La comprobación de «permiso no es letra muerta» se generalizó: antes vigilaba
+una excepción y ahora las cuatro, incluidas las que pliegan **por montaje**.
+Probado por mutación — al convertir el `<details>` permitido en `<div>`, el guard
+declara el permiso sobrante.
+
+| medida | antes | después |
+|---|---:|---:|
+| `<details>` en el módulo, sin declarar | 10 | **0** |
+| Pestañas cubiertas por el guard | 2 | **5** |
+| Permisos, todos por nombre y verificados | 0 | **4** |
+
+Gate: typecheck 0 · 895 pruebas en 111 archivos.
+
+### F105 — La tarjeta declaraba no tener cursos cuando los tenía fuera
+
+Reauditada la tarjeta de categoría contra la **tabla del propio ADR 0057**, campo
+por campo. Cinco de los seis contenidos estaban. Faltaba el **efecto en el
+embudo** — que es además lo que Gonzalo pidió integrar con otras palabras.
+
+Buscando dónde ponerlo apareció algo peor. `ch` es el segmento **∩ lo que sigue
+incluido** (verificado en el motor: `actual_idx <-
+segment_idx[included_actual[segment_idx]]`), así que llega a 0 por dos caminos
+que no significan lo mismo:
+
+- la facultad no tiene cursos de esa categoría, o
+- los tiene y **un criterio los dejó fuera**.
+
+La tarjeta trataba ambos como «sin cursos-horario en esta facultad» **y ocultaba
+el contraste en ese estado**. Una categoría con 200 CH en el marco, excluida,
+declaraba no tener ninguno — y escondía justo la cifra que dice cuánto se está
+dejando fuera.
+
+El defecto no se ve mirando la pantalla: los dos estados renderizan la misma
+frase y la frase es cierta en uno de los dos. Sólo aparece leyendo qué mide el
+número.
+
+| medida | antes | después |
+|---|---:|---:|
+| Contenidos de ADR 0057 en la tarjeta | 5 de 6 | **6 de 6** |
+| Estados distinguidos para `ch === 0` | 1 | **2** |
+| Contraste visible en categoría excluida | no | **sí** |
+
+**Dos pruebas mías cubrían lo contrario de lo que creían.** El fixture heredaba
+`chContraste: 200`, así que «una categoría sin cursos aquí» llevaba tiempo
+probando la categoría *excluida*; y una de ellas **exigía que no se mostrara el
+contraste**, que es exactamente lo que hay que mostrar en ese estado. Un test
+puede fijar un defecto con la misma firmeza con que fija una reparación.
+
+Gate: typecheck 0 · 900 pruebas en 111 archivos. ADR 0057 sube a 34 patrones.
+
+### F106 — El aviso de cifras viejas se soltaba donde más scroll hay
+
+Reauditada la regla 5 del ADR («todo es dinámico a los criterios previos»). El
+dinamismo depende del preview del motor, hoy bloqueado, así que lo que importa
+es si la superficie **avisa** cuando las cifras no se recalcularon. Avisa: la
+barra `cmv2-chfp-apply` dice «Los criterios cambiaron — el marco vigente ya no
+los refleja», y está anclada.
+
+Salvo en `@media (max-width: 1024px)`, donde una regla la soltaba. **La relación
+está invertida**: 1024×600 es el viewport más pequeño de la matriz de QA, donde
+la superficie —que el propio ADR acepta que ocupa varias pantallas— ocupa más, y
+por tanto donde más falta hace el ancla. Soltarla ahí convierte el aviso en algo
+que se ve una vez al entrar y desaparece: se decide con cifras viejas sin saberlo.
+
+El motivo original es real —una barra fija cuesta alto vertical en 600 px—, así
+que se paga con densidad: se compacta y sigue anclada.
+
+Comprobadas las otras dos reglas `position: static` del módulo antes de darlo por
+cerrado. **Ambas legítimas**: una es una variante en flujo con razón de QA
+documentada (la barra flotante tapaba el encabezado siguiente), la otra es un
+badge de clave de join. Un patrón que aparece tres veces no son tres defectos.
+
+**Mi guard falló sobre el código ya reparado.** `/position\s*:\s*(?!sticky)/`
+parece decir «position distinto de sticky» y no lo dice: `\s*` retrocede a cero
+espacios y el lookahead acaba comparando contra « sticky», que no es «sticky».
+El valor se extrae y se compara; no se niega dentro del patrón.
+
+Gate: typecheck 0 · 901 pruebas en 111 archivos.
+
+### F107 — Verificado en la app, y la app encontró lo que mis pruebas no
+
+Reusado el front de otra sesión en 5180 (nada levantado, nada matado). Las siete
+iteraciones anteriores quedan **verificadas con datos reales**, no con fixtures:
+
+| iteración | medido en la app |
+|---|---|
+| F102 comparador | **4 botones «Usar método» visibles sin un click** (antes 0) y el gráfico también |
+| F104 columnas | «18 columnas detectadas» y «19», ambas listas enteras a la vista |
+| F105 dos ceros | **2 categorías** decían no tener cursos teniendo 1 excluido; 13 muestran el efecto |
+| F106 barra | `sticky`, `top: 0` a 1024×600, y `docScrollX = 0` |
+| todas | **0 desbordes** en la superficie; 0 `<details>` fuera del declarado |
+
+El efecto del embudo con datos reales: «Quitarla deja fuera 639 cursos-horario y
+4.617 estudiantes».
+
+**Y la app encontró lo que mis pruebas no podían.** Seis concordancias rotas —
+«sus **1 cursos-horario**», «+**1 estudiantes únicos**»— porque **todos mis
+fixtures traían valores plurales**: 120 CH, 3.400 estudiantes, deltas de −3, −72,
+−60. La rama del singular no se ejecutaba en ningún sitio del módulo. 906 pruebas
+en verde no cubrían un caso que la primera pantalla real enseñó.
+
+Reparadas las seis con fixtures del uno, probadas por mutación. Al ADR como
+patrón 39: **1 es un caso límite como 0 y `null`**.
+
+**Segundo error propio**: para verificar Definición inventé la dirección
+`…/datos/bases`. La sección se llama `definicion`. `ir()` no falló — **no hizo
+nada**, y la medición siguiente devolvió cero listas, que se lee igual que «la
+reparación no está». Patrón 40: la dirección se saca de `recorrido()`, y tras
+cada `ir()` se comprueba `describir()` antes de medir.
+
+Gate: typecheck 0 · 906 pruebas en 111 archivos. ADR 0057 en 36 patrones.
+
+### F108 — El vocabulario viejo vivía dentro del proyecto guardado
+
+Auditado el vocabulario **sobre la pantalla**, no sobre el fuente. La superficie
+decía **«Regla efectiva» 48 veces**, y las tres comprobaciones obvias daban
+limpio: no está en `frontend/src`, no está en `api/R` —F71 lo renombró— y el
+proceso R vivo arrancó *después* de la reparación.
+
+Viene en el dato. `segment_label` se calcula al construir el marco y **se
+persiste dentro de él**, así que **cada `.pulso` guardado lleva el vocabulario
+del día en que se construyó su marco**. Renombrar en una versión no toca los
+proyectos existentes y nadie puede enterarse.
+
+`segment_key` sí es contrato, así que el rótulo pasa a resolverse por llave en la
+capa de presentación, con el del payload como respaldo para llaves que el mapa
+aún no conozca —preferimos una palabra vieja a un hueco—.
+
+| medida | antes | después |
+|---|---:|---:|
+| «Regla efectiva» en pantalla | **48** | **0** |
+| Rótulo vigente, sobre el mismo marco viejo | 0 | **48** |
+
+Sin reconstruir el marco: el proyecto guardado se re-rotula solo.
+
+**Falso positivo decimocuarto**: mi sonda de vocabulario encontró «aula» suelta.
+Salía de **comentarios CSS** — Vite inyecta las hojas como `<style>` e
+`innerText` las lee. El texto renderizado se mide sobre un clon sin
+`style`/`script`.
+
+Gate: typecheck 0 · 911 pruebas en 112 archivos. ADR 0057 en 37 patrones.
+
+### F109 — La dimensión facultad son docentes
+
+Dos hallazgos, y el segundo cambia las prioridades del loop.
+
+**El plegado escondía lo excluido.** «Ver todas (42 sin cursos en esta facultad)»
+filtraba por `ch > 0 || activo`, y `ch` cuenta sólo los CH que **siguen
+incluidos**: una categoría que el criterio excluye se plegaba rotulada como
+inexistente. Misma confusión que F105, gobernando aquí **qué tarjetas llegas a
+ver**. Reparado con `contraste_total`, que viene filtrado por facultad.
+
+Medido en la app: **en este proyecto no cambia nada** — ninguna de las 49 ocultas
+tenía cursos excluidos, así que la etiqueta era cierta aquí. Se dice tal cual en
+vez de reportar una mejora que no ocurrió. Comprobado además que la evidencia sí
+llega a ambos montajes, porque «no hay casos» y «mi reparación no está activa» se
+leen igual.
+
+**Y entonces el `aria-label` destapó lo otro**: «Condición del curso en ‹nombre
+de persona›».
+
+| medida | valor |
+|---|---:|
+| Opciones del selector rotulado «Facultad» | **17** |
+| De ellas, nombres de personas | **16** |
+| Institucionales | **1** |
+
+El valor activo al medir era la clave de un docente. **La dimensión facultad está
+poblada con docentes**, y la regla 1 de este ADR dice que *todos los criterios
+son por facultad*: cada decisión por facultad de esta superficie se está tomando
+contra un docente.
+
+Ninguna reparación de presentación lo arregla — la superficie dibuja fielmente lo
+que el marco le publica. Es el bug que Gonzalo reportó («nombres de docentes
+entre las categorías de tipo de docente») con un alcance mucho mayor: no está en
+una variable, está en el eje.
+
+Esto **sube la pestaña de mapeo por encima de cualquier pulido restante**, y le
+añade una pregunta que no tenía: cuál es la columna de facultad, no sólo qué
+categorías tiene cada variable.
+
+Gate: typecheck 0 · 915 pruebas en 113 archivos.
+
+### F110 — Los nombres los puso el anonimizador
+
+Antes de construir la pestaña de mapeo, auditar lo que ya existe: **la pestaña
+Variables ya hace el mapeo columna→rol**, y sus tres mapeos relevantes están
+bien y confirmados (Facultad→«Facultad», Docente→«Docente», Tipo de
+docente→«Tipo de docente»). Ambas hojas traen su columna de facultad. El defecto
+no estaba en el mapeo.
+
+Estaba antes. `.pulso_pii_clasificar_columna` casa el patrón `nombre` **por
+subcadena**, así que **«Nombre del curso» se clasificaba como nombre de
+persona** y sus valores se sustituían por nombres inventados. Verificado
+ejecutando el clasificador contra las 19 columnas reales de la hoja de
+curso-horario.
+
+Los nombres de la pantalla son **sintéticos** — «Karina Y Elena DE LA Jimenez»
+es firma del anonimizador, no un dato de cliente. Eso corrige el marco de F109:
+no es que la dimensión facultad *sea* docentes en los datos reales; es que la
+fixture con la que miro está sucia.
+
+**La consecuencia excede a este módulo.** Los proyectos de referencia son las
+fixtures con las que se reproducen bugs (ADR 0043). Una anonimización que
+ensucia columnas legítimas **fabrica bugs fantasma**: se diagnostica el motor
+por un defecto que puso la herramienta de anonimizar. Yo mismo llevaba dos
+iteraciones persiguiéndolo.
+
+| medida | antes | después |
+|---|---|---|
+| «Nombre del curso» | `nombre` (persona) | **no PII** |
+| «Nombre de docente» · «Docente» · «Nombre Completo» | `nombre` | **`nombre`** |
+| «Celular» · «Correo PUCP» | contacto | **contacto** |
+
+Reparación conservadora, porque **aquí no hay red debajo**: `pulso_detectar_pii`
+busca correos, celulares y DNIs por valor, **no nombres**, y además salta las
+columnas que este clasificador marca. Un falso negativo es una fuga y no la caza
+nadie. Por eso la lista es de complementos inequívocos y cada verdadero positivo
+queda fijado uno a uno en el test.
+
+**Mi prueba cazó el mismo defecto dentro de mi reparación**: sin anclar el final
+del complemento, `encuesta` casaba en «nombre del **encuesta**do» — y un
+encuestado es una persona. La coincidencia por subcadena es la causa raíz;
+repetirla en el parche costaba una fuga, no una fixture sucia.
+
+**Queda abierto**: los fixtures ya publicados siguen sucios (se anonimizaron con
+el clasificador viejo y regenerarlos exige la sal, que no se persiste), y falta
+comprobar si esto explica la dimensión facultad entera o sólo una parte.
+
+Gate: suites de anonimización y proyectos de referencia en verde.
+
+**Siguiente**: comprobar cuánto de la dimensión facultad explica F110 —
+regenerando o derivando un marco sobre una base sin columnas «nombre de X»— y,
+en paralelo, la pestaña de mapeo en cuanto Gonzalo decida si sólo diagnostica o
+además corrige.
+
+### F103 — El agujero estaba en mi propio guard
+
+El guard de F101/F102 buscaba `<details>` **literal** por archivo y daba verde
+sobre Aulas. `PanelAvanzado` renderiza uno cerrado por dentro y estaba montado
+ahí escondiendo **la semilla y los pesos del objetivo**. Un guard con un agujero
+no es media protección: es un falso verde con forma de contrato.
+
+El componente justificaba el defecto en su docblock: «sin esconder nada — un
+clic y está todo». Un clic **es** esconder; la frase describe el coste y lo
+presenta como su ausencia.
+
+Tres montajes, tres juicios:
+
+| montaje | contenido | veredicto |
+|---|---|---|
+| Auditoría y reproducibilidad | semilla, corridas, pesos | **abre** — determina la muestra |
+| Historial de corridas | «elige dos para compararlas» | **abre** — la etiqueta da una instrucción |
+| Nombres de hojas y detalles | renombrar hojas de salida | **se queda** — configuración secundaria real |
+
+El guard resuelve ahora la transitividad: localiza los componentes locales que
+renderizan un `<details>` y exige `defaultOpen` en cada montaje suyo dentro de
+área cubierta. Probado por mutación — al quitar el `defaultOpen` falla **y nombra
+archivo y componente**, que es la diferencia entre un guard que avisa y uno que
+obliga a repetir el barrido a mano.
+
+**Error propio, cuarta vez**: `return ( {/* … */} <Componente>` — un comentario
+JSX como primer hijo de un `return` se parsea como objeto literal y rompe el
+archivo. Cinco errores de sintaxis que no señalan la causa. El typecheck lo caza
+siempre; lo que cuesta es el ciclo. Al ADR como patrón 32, con su mecanismo: el
+comentario de un elemento raíz va **encima del `return`**.
+
+Gate: typecheck 0 · 893 pruebas en 111 archivos.
+
+### F111 — Densidad, boxplot y cuantiles sobre un solo eje
+
+Rediseño pedido por Gonzalo. Cross-layer, contrato congelado primero, porque
+**ninguna de las tres lecturas se deriva en el cliente**: entre P10 y P90 hay
+infinitas formas, y los bigotes estándar son los de Tukey. R publica ahora
+`min`, `max`, `bigote_inf`, `bigote_sup`, `n_atipicos`, `hist_breaks` y
+`hist_counts`, con **cortes comunes** a todos los segmentos de la facultad.
+
+| medida | antes | después |
+|---|---|---|
+| Capas del gráfico | caja suelta + fila equiespaciada | **3 sobre un solo eje** |
+| Cuantiles | repartidos por igual | **bajo su posición real** |
+| Elegibles vs total | dos cifras de media | **conmutador, misma escala** |
+| Cifras | 4, con matrículas | **CH totales · CH elegibles · alumnos elegibles · asistencia** |
+
+**La suite de R llevaba ~40 commits en rojo.** Bisecado hasta `27f45750` (F71):
+renombré una etiqueta del motor y corrí sólo las pruebas del frontend. El
+oráculo del payload avisó y nadie lo miraba — el gate de la casa dice
+literalmente «tests afectados si tocaste lógica». Rebendecido con las dos
+razones escritas, y el cambio de F111 **probado confinado**: podando los siete
+campos nuevos reaparece exactamente el hash previo (`fb817066…`).
+
+Otros tres defectos que sólo aparecieron mirando:
+
+- La leyenda seguía diciendo «de P10 a P90» tras cambiar a Tukey. Una leyenda
+  que sobrevive a su gráfico se lee con la misma confianza que una cifra.
+- **«MedianaP75»** pegadas en la app: la separación es un % fijo y «Mediana»
+  mide el doble que «P25». La respuesta no es empujar más, es que las cinco
+  midan lo mismo — P50.
+- Una distribución con todo en null dibujaba un marco vacío sin decirlo (C3).
+
+**Pendiente visible**: la densidad no se dibuja en el proyecto abierto porque el
+histograma se calcula al construir el marco y el suyo es anterior a F111.
+Aparece al reconstruir; el componente degrada bien sin ella.
+
+Gate: typecheck 0 · 934 pruebas en 114 archivos · área de R en verde.
+
+**Siguiente**: aprobación de Gonzalo para extender la tarjeta a todas las
+categorías de todos los criterios, y la pestaña de mapeo cuando decida si sólo
+diagnostica o además corrige.
+
+### F112 — La revisión de Gonzalo: una sola tarjeta, y el eje que faltaba
+
+Cinco correcciones sobre F111, todas suyas:
+
+| pedido | qué era antes |
+|---|---|
+| Universalidad | los numéricos y de rango tenían **bloque propio** y mostraban 4 de N categorías |
+| Fuera el conmutador | «debería ser solo elegibles»; el total ya viaja como cifra |
+| El eje en general | sólo se declaraba en palabras; las únicas marcas eran las de los cuantiles |
+| La asistencia | rotulada como si fuera propia de la categoría |
+| Más pulido | — |
+
+**Lo que apareció al aplicarlo.** Los criterios numéricos y de rango no eran «lo
+mismo con otro estilo»: eran **otro gráfico** —otro boxplot, otra escala, diez
+cifras en lista— para exactamente el mismo hecho. Dos tratamientos del mismo dato
+enseñan a desconfiar de los dos. Y el bloque recortaba a cuatro categorías, con
+el resto en un contador: la forma más barata de esconder, porque parece que
+informa.
+
+**El defecto de fondo, en la superficie donde nadie había mirado.**
+`BoxplotElegibles` normalizaba **cada caja contra su propio `[min…max]`**, y su
+docblock lo presentaba como virtud: «así una distribución estrecha se lee con el
+mismo detalle que una ancha». Es literalmente la regla 3 del ADR — la que se
+escribió por este mismo defecto en la tarjeta y se reparó **sólo ahí**. Medido:
+SEMINARIO (18–23) y TEÓRICO (15–156) del mismo ancho, en una tabla que los apila
+uno debajo de otro para compararlos.
+
+Una intención legítima sobrevive mientras la frase que la justifica siga en el
+archivo. Por eso el guard nombra ahora **las dos** superficies.
+
+**Un guard exigía que el defecto existiera.** `movimientoReducido` abría con
+`expect(animados.length).toBeGreaterThan(0)`: pedía que la hoja *tuviera*
+animaciones. Al retirar el conmutador el gráfico se quedó sin ninguna —lo
+correcto, cada marca codifica un valor— y el guard se puso rojo por hacer bien
+las cosas. Cero elementos es cobertura total, no un fallo.
+
+Y un detalle que el test destapó: la categoría excluida mostraba
+**«~0 presentes de 0»**. Aplicar un supuesto de asistencia a cero alumnos ocupa
+una casilla para no decir nada.
+
+Guards de universalidad probados por mutación: volver a un tratamiento propio
+falla, recortar la lista falla.
+
+Gate: typecheck 0 · 939 pruebas en 114 archivos. ADR 0057 sube a 37 patrones.
+
+**Pendiente declarado**: la densidad con datos del motor sigue sin verse en la
+app — el backend vivo corre R anterior a F111. El `.pulso` sembrado con el motor
+nuevo ya existe y carga; falta construir su marco en sesión.
+
+### Estado del loop
+
+| | |
+|---|---|
+| Superficies por la vara | **la vara cambió con F40**: se reaudita con «nada oculto» y el grano correcto por tipo de criterio |
+| Desbordes en el módulo | **0** a 1440×1000 y 1024×600 |
+| Contenedores que esconden su profundidad | **0** |
+| Lotes cerrados | **12 de 13** (S1–S7, S9–S13) + T1, T4, T6, T7, D10 |
+| Gate más amplio corrido | **suite completa del frontend: 3.198 pruebas en 391 archivos**, typecheck 0, `sync-agentic-os --check` y `--audit` OK |
+| Estado ocupado | **pasa**: barra global con paso, tiempo y cancelar |
+| Pendiente | **Titulares, Reemplazos y Sustento con selección real**: la comparación corre al cerrar el tramo (método 4 de 4) |
+
+Lo que la próxima visita encuentra hecho: el instrumento llega de punta a punta y
+**es reproducible** (`api/scripts/qa_seed_calc_muestra_radiografia.R`); las 24
+superficies pasan la vara, con el grano por facultad dentro de ella; y cada
+reparación tiene un guard que falla sola.
+
+Lo que tiene que hacer: esperar la comparación, generar la selección y auditar
+las tres superficies que sólo con selección real muestran su contenido. **Esa
+espera vale la pena**: F37 probó que una superficie sin datos se declara limpia
+en falso —Sustento llevaba toda la sesión con 0 desbordes porque su gráfico no
+tenía nada que dibujar, y al llegar el dato aparecieron cuatro—.
+
+Para el **loop v2**, los hallazgos de contrato acumulados con evidencia en este
+doc:
+
+1. `calcular` devuelve 200 con resultado vacío y deja componentes que él mismo
+   rechaza.
+2. El contrato de Alumnos/CH y los estratos discrepan ante una facultad de 0 CH.
+3. El anonimizador deja base, config, catálogo y componentes en vocabularios
+   distintos — la causa raíz de que ningún `.pulso` del repo abriera la
+   radiografía.
+4. `exceptions` transporta sólo `categories`: **edad y ciclos no son decidibles
+   por facultad**, contra la regla de producto de que todo criterio lo es.
+5. El chequeo de vigencia de la decisión corre **después** de encolar el job: el
+   409 llega tras gastar 63 simulaciones.
+
+Siguiente, en orden: **F39 — con la comparación terminada, generar la selección y auditar Titulares, Reemplazos y Sustento con dato real**
+(Selección: Método, Simulación, mapa, Reemplazos, Sustento) y **S12–S13**
+(Datos y Entrega), que ya no dependen de ningún bloqueo. En paralelo, para el
+loop v2: el contrato de Alumnos/CH y los estratos deben coincidir en qué hacen
+con una facultad de 0 CH, y el `calcular` no debe devolver 200 con resultado
+vacío.
+
+## Lo hecho sin commitear también se afina (añadido 2026-08-02)
+
+El alcance de este loop es **todo lo entregado hasta hoy, esté o no
+commiteado**. Reglas:
+
+1. **Inventario vivo**: antes de cada visita, `git status` + `git log -3`
+   dicen qué unidades viven sin commitear y de qué sesión vienen. Hoy: el
+   trabajo de superficie F1–F3 (criterios/radiografía y sus CSS), el comparador
+   I20 vetado (S8: se rehace sobre el contrato R o se retira con su porqué) y
+   los ajustes del catálogo visual.
+2. **El árbol no acumula más de una unidad** (gate 2 de la casa): al cerrar
+   cada iteración F, su unidad se commitea con `/cerrar-trabajo`. Afinar sobre
+   trabajo ajeno sin commitear exige verificar primero que ninguna otra sesión
+   lo esté tocando (trampa medida de sesiones concurrentes).
+3. **Un veto no deja huérfanos**: código vetado (como I20) no se queda
+   indefinidamente en el árbol — o entra a la cola con lote propio y se rehace,
+   o se retira con su justificación escrita. Nunca «a medias sin dueño».
+
+## Cómo se corre cada visita
+
+```bash
+make dev-status
+```
+
+- Abrir por deep link: `?pulso=<ruta absoluta>` + dirección canónica; esperar
+  `window.__pulsoNav.listo()`. El `?pulso=` se consume una sola vez.
+- Navegar por dirección: `window.__pulsoNav.ir("calc-muestra/opinion-universitaria/marco/marco-ch-radiografia")`.
+- Reusar servers antes de levantar; cerrar solo lo propio; el 8787/8799 del
+  usuario no se mata.
+- Trampa medida: un backend R vivo **no toma cambios de R**; comparar el
+  arranque del proceso con el `mtime` de `api/R/*.R` antes de juzgar un motor.
+- Trampa medida: Vitest da falsos rojos con el dev server encendido.

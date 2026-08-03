@@ -741,18 +741,22 @@
   overflow-wrap: anywhere;
 }
 
-.cmv2-defi-upload-cols summary {
-  cursor: pointer;
+/*
+ * F104 · Las columnas detectadas ya no se pliegan: son la verificación de la
+ * carga —lo primero que se comprueba tras subir una base—, y vivían a un click
+ * de «Filas leídas», que sí se muestra.
+ *
+ * Con muchas columnas la lista se desplaza dentro de su propio contenedor: el
+ * ancho de la tarjeta no cambia y la página no crece (No Scroll Jail).
+ */
+.cmv2-defi-upload-cols-head {
+  margin: 0;
   font-size: 11.5px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--cmv2-accent-fg);
-  user-select: none;
+  color: var(--pulso-text-muted);
 }
-
-.cmv2-defi-upload-cols summary:focus-visible {
-  outline: 2px solid var(--cmv2-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
+.cmv2-defi-upload-cols-head strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .cmv2-defi-upload-cols-list {
@@ -760,6 +764,9 @@
   flex-wrap: wrap;
   gap: 4px;
   padding-top: 7px;
+  max-height: 132px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .cmv2-defi-upload-cols-list span {

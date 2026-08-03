@@ -59,7 +59,12 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
   expect_true(cfg$enabled)
   expect_equal(cfg$selection_run_id, "sel_test")
   expect_length(cfg$plan, 3)
-  expect_equal(cfg$plan[[1]]$operational_code, "AULA 1")
+  expect_identical(
+    vapply(cfg$plan, `[[`, character(1), "operational_code"),
+    c("CH 1", "CH 2", "R 1.1")
+  )
+  expect_identical(cfg$plan[[3]]$titular_operational_code, "CH 1")
+  expect_identical(cfg$plan[[3]]$replacement_chain_code, "R 1.1")
   expect_true(is.list(cfg$quotas$sex_by_faculty))
 
   responses <- data.frame(
@@ -112,6 +117,7 @@ test_that("Agenda de aulas cambia estados y aplica reemplazos", {
   ))
   updated_df <- .monitoreo_aulas_df(updated)
   expect_equal(updated_df$operational_status[updated_df$classroom_id == "A1"], "agendada")
+  expect_identical(updated_df$operational_code, c("CH 1", "R 1.1"))
   expect_equal(updated_df$responsible[updated_df$classroom_id == "A1"], "Campo 1")
   expect_equal(updated_df$word_link[updated_df$classroom_id == "A1"], "https://drive.test/ficha-a1.docx")
   expect_equal(updated_df$pdf_link[updated_df$classroom_id == "A1"], "https://drive.test/ficha-a1.pdf")
@@ -122,4 +128,38 @@ test_that("Agenda de aulas cambia estados y aplica reemplazos", {
   expect_equal(replaced_df$operational_status[replaced_df$classroom_id == "A1"], "reemplazada")
   expect_equal(replaced_df$replacement_for[replaced_df$classroom_id == "A2"], "A1")
   expect_equal(replaced_df$replacement_reason[replaced_df$classroom_id == "A2"], "baja_asistencia")
+})
+
+test_that("carga de Monitoreo canoniza históricos de forma idempotente", {
+  historical <- data.frame(
+    selection_run_id = "sel_legacy",
+    operational_code = c("AULA 5", "R5.1", "R 5.2"),
+    titular_operational_code = c("AULA 5", "AULA 5", "CH 5"),
+    replacement_chain_code = c("", "R5.1", "R 5.2"),
+    selection_slot_id = "slot_005",
+    sample_role = c("titular", "chain_reserve", "chain_reserve"),
+    wave = c("M1", "M2", "M3"),
+    replacement_order = c(0, 1, 2),
+    orden = c(5, 1, 2),
+    classroom_id = c("A5", "A6", "A7"),
+    stringsAsFactors = FALSE
+  )
+
+  loaded <- monitoreo_aulas_normalize_config(list(plan = historical))$plan
+  loaded_df <- .monitoreo_aulas_df(loaded)
+  loaded_twice_df <- .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(loaded))
+
+  expect_identical(loaded_df$operational_code, c("CH 5", "R 5.1", "R 5.2"))
+  expect_identical(loaded_df$titular_operational_code, rep("CH 5", 3))
+  expect_identical(loaded_df$replacement_chain_code, c("", "R 5.1", "R 5.2"))
+  expect_identical(
+    loaded_twice_df[, c(
+      "operational_code", "titular_operational_code",
+      "replacement_chain_code"
+    )],
+    loaded_df[, c(
+      "operational_code", "titular_operational_code",
+      "replacement_chain_code"
+    )]
+  )
 })

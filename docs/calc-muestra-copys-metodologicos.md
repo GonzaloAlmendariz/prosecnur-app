@@ -421,19 +421,31 @@ Las fórmulas y notas cuantitativas de estas tres pestañas ya están íntegrame
 
 ### D.4 Aulas y selección
 
-**Pestañas (orden real, `CLASSROOM_LAB_TABS`):** Marco de aulas → Objetivo de muestra → Comparar métodos → Simulación → Aulas titulares → Reemplazos por aula → Sustento técnico.
+**Pestañas (orden real, `CLASSROOM_LAB_TABS`):** Objetivo de muestra → Comparar métodos → Simulación → Cursos-horario titulares → Reemplazos por curso-horario → Sustento técnico.
 
 Las fórmulas de Método, Sustento técnico y Simulación ya están citadas en la sección B (C-B22 a C-B32); las fuentes metodológicas del backend están en C.7. Copys adicionales:
 
-#### `AulasMarcoTab.tsx` (pestaña "Marco de aulas")
-- **C-D40** (`:20-57`, "Reglas del método", 4 chips con popover — **es la única explicación completa en el frontend de estas 4 reglas de diseño**):
-  1. "Unidad seleccionable" → "Se sortea el curso-horario, no la fila alumno-curso" — "La base institucional trae una fila por estudiante en cada curso y horario; antes de sortear, el marco se colapsa a una fila por aula (curso, horario y salón)." + "La idea es mirar la cadena real: base institucional, cursos y horarios, estudiantes únicos y exclusiones auditadas."
-  2. "Estudiantes repetidos" → "Un estudiante puede aparecer en varios cursos" — "Si un estudiante está matriculado en varios cursos del marco, podría ser 'alcanzado' por más de un aula. El selector lo controla desde el marco institucional: mide la pérdida por repetidos y la penaliza al comparar métodos." + "Por eso la calidad se mide sobre estudiantes únicos elegibles, no sobre filas repetidas."
-  3. "Reemplazos ≠ extra" → "Los reemplazos no son encuestas extra" — "Cada aula titular lleva reemplazos equivalentes (mismo perfil de facultad y tamaño) que solo se activan si la titular cae. No suman al N estadístico." + "El extra operativo es otra cosa: refuerzo de agenda presupuestado por separado, que tampoco cambia el diseño."
-  4. "Campo anónimo" → "No exige identificación personal en campo" — "La aplicación no requiere identificar al estudiante: la trazabilidad de campo cruza collector, link, aula, fecha y estado operativo." + "Los identificadores internos del marco sirven para controlar duplicados y cobertura, y no se publican en salidas para cliente."
-- **C-D41** (`:229-231`, nota de reproducibilidad): "La selección conserva semilla, firma del marco y reglas usadas para poder replicarse; el sustento completo vive en la pestaña Sustento técnico."
-- **C-D42** (`:236-239`, alerta cuando el marco cambió después de la selección): "El marco cambió después de la selección." + `"La selección vigente ({método}) se sorteó sobre la firma {hash}, pero el marco actual tiene la firma {hash}. Vuelve a comparar métodos y seleccionar para que titulares y reemplazos correspondan al marco vigente."` — advertencia de integridad metodológica (invalidación de la selección ante cambios del marco).
-- **C-D43**: `<ContextoLlano paso="aulas" />` (`:139`) y `<RespaldoMetodologico paso="aulas" />` (`:247`) — despliegan `PASOS.aulas.llano` y `RESPALDOS.aulas` (sección E).
+#### Retiro de `AulasMarcoTab.tsx` y rehome en Sustento
+- **C-D40 (retirado como bloque conjunto):** los cuatro popovers del antiguo
+  overview no eran decisiones exclusivas. «Unidad seleccionable» vive en
+  Marco/Cursos-horario; repetidos, en Método y Titulares; reemplazos frente a
+  extra, en Objetivo y Reemplazos; privacidad, en Entregables. Se retiró la
+  repetición conjunta al eliminar el tab que la spec marcaba como duplicado.
+- **C-D41 (absorbido):** semilla, firma usada por la selección, firma del marco
+  actual, fecha del marco actual, método y corrida ya forman el sello
+  reproducible de `AulasAuditoriaTab.tsx`. Las dos firmas y la fecha se
+  presentan como evidencias separadas para no atribuir la fecha vigente a una
+  selección histórica; la nota separada dejó de aportar una decisión adicional.
+- **C-D42** (`AulasAuditoriaTab.tsx`, alerta cuando el marco cambia después de
+  la selección): "El marco cambió después de la selección." + `"La selección
+  vigente ({método}) se sorteó sobre la firma {hash}, pero el marco actual tiene
+  la firma {hash}. Vuelve a comparar métodos y seleccionar para que titulares y
+  reemplazos correspondan al marco vigente."` — guard de integridad, no copy
+  decorativo.
+- **C-D43:** `<RespaldoMetodologico paso="aulas" />` se reubicó en
+  `AulasAuditoriaTab.tsx`, el hogar de fuentes y defensa. El inventario anterior
+  atribuía también un `<ContextoLlano paso="aulas" />`, pero ese montaje no
+  existía en la fuente vigente.
 
 #### `AulasObjetivoTab.tsx`
 - **C-D44** (`:89-95`, párrafo introductorio, primera explicación de dos términos): "La cuota de aulas por facultad convierte el N calculado en salones a visitar: cada facultad usa su propio tamaño de aula y su tasa de rendimiento. Cada titular lleva sus reemplazos (M1, M2, M3…) equivalentes ya sorteados, y el extra operativo se presupuesta aparte." (con `TerminoChip termino="cuota de aulas por facultad"` y `termino="reemplazo (M1"`)
@@ -466,11 +478,11 @@ Las fórmulas de Método, Sustento técnico y Simulación ya están citadas en l
 | `estratificado_aleatorio` | "Aleatorio estratificado simple" | "Fácil de explicar: sorteo puro dentro de cada facultad, sin supuestos adicionales." | "No controla repetidos ni balancea otras variables; puede quedar menos parejo que los métodos balanceados." |
 | `manual_auditable` | "Selección manual auditable" | "Permite una decisión operativa documentada con responsable y motivo registrados." | "Al no ser un sorteo, pierde la defensa probabilística: úsalo solo como excepción justificada." |
 
-**Total D.4: 16 copys principales de texto libre** (C-D40 a C-D55, algunos con varios sub-ítems) **+ las 11 fórmulas/notas de la sección B que pertenecen a Aulas** (C-B22 a C-B32) **+ las fuentes del motor R (C.7, 50 copys)**.
+**Total D.4: 14 copys principales de texto libre vigentes** (C-D42 a C-D55; C-D40 y C-D41 quedan trazados como retirado/absorbido) **+ las 11 fórmulas/notas de la sección B que pertenecen a Aulas** (C-B22 a C-B32) **+ las fuentes del motor R (C.7, 50 copys)**.
 
 ### D.5 Salida
 
-**Pestañas:** Cierre (`SalidasCierreTab.tsx`) → Entregables (`SalidasEntregablesTab.tsx`) → Tablas/Resultados (`SalidasResultadosTab.tsx`) → Pase a Monitoreo (`SalidasMonitoreoTab.tsx`).
+**Pestañas:** Cierre (`SalidasCierreTab.tsx`) → Tablas/Resultados (`SalidasResultadosTab.tsx`) → Entregables (`SalidasEntregablesTab.tsx`) → Pase a Monitoreo (`SalidasMonitoreoTab.tsx`).
 
 #### `SalidasCierreTab.tsx`
 - **C-D56** (`:138-139`, encabezado): "El diseño completo, con las cifras que se defienden ante el cliente" — "El camino del diseño y lo que falta para cerrarlo".
@@ -494,7 +506,7 @@ Las fórmulas de Método, Sustento técnico y Simulación ya están citadas en l
 
 **Total D.5: 11 copys principales.**
 
-**Total sección D: ~78 copys de texto libre** en las pestañas del desk `universidad/` (no cuenta las fórmulas ya contabilizadas en B ni las fuentes del motor R ya contabilizadas en C).
+**Total sección D: ~76 copys de texto libre** en las pestañas del desk `universidad/` (no cuenta las fórmulas ya contabilizadas en B ni las fuentes del motor R ya contabilizadas en C).
 
 ---
 
@@ -516,7 +528,7 @@ Se muestran vía `<RespaldoMetodologico paso="..." />`, un plegable presente en 
 
 ### E.2 `PASOS` — copys cortos de orientación (`didacticaCopy.ts:20-61`)
 
-Mostrados vía `<ContextoLlano paso="..." />` en Definición, Marco, Cálculo y Salidas (no hay uso de `ContextoLlano paso="aulas"` fuera de `AulasMarcoTab.tsx`, ya citado en C-D43).
+Mostrados vía `<ContextoLlano paso="..." />` en Definición, Marco, Cálculo y Salidas. El paso `aulas` conserva su copy en el corpus, pero no tiene un montaje de `ContextoLlano`; su respaldo largo sí se muestra en Sustento mediante `RespaldoMetodologico` (C-D43).
 
 - **C-E06** `definicion`: "Aquí acordamos qué información necesitamos de la universidad y por qué: la base de matriculados dice quiénes son los estudiantes, y la de curso-horario dice en qué salones podemos encontrarlos."
 - **C-E07** `marco`: "La base cruda trae de todo: posgrado, cursos virtuales, alumnos retirados. En este paso la depuramos con filtros claros hasta quedarnos solo con la población que el estudio realmente quiere representar."
@@ -593,10 +605,10 @@ Prosecnur genera el reporte con una de dos plantillas Quarto según la fase del 
 | A — Glosario (`TerminoChip` / `GLOSARIO`) | 17 |
 | B — Fórmulas y notas asociadas (`FormulaLatex`) | 32 |
 | C — Decision log y sustento del motor R (`calc_muestra_engine.R` + `calc_muestra_aulas.R`) | 105 (55 en C.1-C.6 + 50 en C.7) |
-| D — Respaldos didácticos por pestaña (desk `universidad/`, texto libre no cubierto en B/C) | ~78 (D.1: 28, D.2: 8, D.3: 4, D.4: 16, D.5: 11, más estados vacíos/etiquetas secundarias) |
+| D — Respaldos didácticos por pestaña (desk `universidad/`, texto libre no cubierto en B/C) | ~76 (D.1: 28, D.2: 8, D.3: 4, D.4: 14 vigentes, D.5: 11, más estados vacíos/etiquetas secundarias) |
 | E — Capa didáctica compartida y corpus narrativo | 23 |
 | F — Reporte metodológico (tarjeta + plantillas Quarto) | 9 |
-| **Total aproximado** | **~264 copys con contenido estadístico/metodológico afirmativo** |
+| **Total aproximado** | **~262 copys con contenido estadístico/metodológico afirmativo** |
 
 Nota sobre cobertura: esta cifra no incluye el detalle exhaustivo del bloque de réplica histórica/demo de `calc_muestra_aulas.R` (`calc_muestra_aulas_demo_hsvg_2025`, ~130 copys adicionales catalogados de forma preliminar durante la extracción, ver nota al cierre) ni las ~20-30 etiquetas cortas de estado/auditoría de menor densidad estadística en `marcoCharts.tsx`/`marcoCards.tsx` (nombres de ejes, leyendas de gráfico, aria-labels descriptivos) — se mencionan en el cuerpo del documento pero no se numeraron individualmente por ser de bajo riesgo interpretativo.
 

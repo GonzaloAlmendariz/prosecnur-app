@@ -8,6 +8,8 @@ import type {
   CriterioSeleccion,
   CriterioVariable,
 } from "../../../../api/client";
+import { ordenarPorCursosHorario } from "./ordenCategorias";
+import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import {
   categoriaMarcada,
   clavesDeVariable,
@@ -21,9 +23,30 @@ import {
   unidadCriterio,
 } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
+import { analizarEtiquetaCategoria, type EtiquetaCategoria } from "./etiquetaCategoria";
 import { Switch, SwitchTri } from "./Switch";
 
 type SelChange = (next: CriterioSeleccion) => void;
+
+/** Memoiza el análisis por etiqueta: se consulta varias veces por fila. */
+const AGRUPADAS_CACHE = new Map<string, EtiquetaCategoria>();
+function etiquetaAgrupada(label: string): EtiquetaCategoria {
+  const hit = AGRUPADAS_CACHE.get(label);
+  if (hit) return hit;
+  const valor = analizarEtiquetaCategoria(label);
+  AGRUPADAS_CACHE.set(label, valor);
+  return valor;
+}
+
+function etiquetaFlatConCortes(label: string) {
+  if (!label.includes(",")) return label;
+  const segmentos = label.split(",");
+  return segmentos.flatMap((segmento, index) => (
+    index < segmentos.length - 1
+      ? [segmento, ",", <wbr key={index} />]
+      : [segmento]
+  ));
+}
 
 /** Barra "Todas / Ninguna" para sets flat (fuerza modo include). */
 function AccionesSet({ variable, onSel }: { variable: CriterioVariable; onSel: SelChange }) {
@@ -41,16 +64,118 @@ function AccionesSet({ variable, onSel }: { variable: CriterioVariable; onSel: S
 }
 
 /** flat: lista de categorías con switch + conteo (estudiantes o aulas según scope). */
+/** Lo que una categoría aporta al marco ejecutado, publicado por R. */
+/**
+ * ADR 0057 · Lo que una categoría necesita para poder decidirse.
+ *
+ * La unidad de decisión es la categoría, no el criterio: todo lo que hace falta
+ * para incluirla o excluirla viaja con ella y se muestra en su mismo
+ * contenedor. Antes esta información vivía repartida entre el conmutador, una
+ * consola de radiografía aparte y un embudo con su propio lenguaje, así que se
+ * elegía en una zona de la pantalla mirando otra.
+ */
+export type AporteCategoria = {
+  /** Alumnos únicos elegibles del marco con esta categoría. */
+  elegibles: number | null;
+  /** Cursos-horario elegibles con esta categoría. */
+  ch: number | null;
+  /** Cursos-horario totales con esta categoría (contraste). */
+  chContraste: number | null;
+  /**
+   * Cursos-horario de la categoría que **traen el dato** del criterio.
+   *
+   * Si es menor que `ch`, la distribución se calculó sobre menos unidades de las
+   * que hay: sin este número no se sabe cuánta de la categoría está describiendo
+   * realmente la caja.
+   */
+  chConDato?: number | null;
+  /**
+   * F118 · Corte del criterio, cuando es de umbral o de proporción. Lo decide
+   * el usuario, no el motor: es el número que está eligiendo.
+   */
+  umbral?: { valor: number; etiqueta?: string } | null;
+  /** Qué mide el eje. Cambia entre umbral («alumnos») y proporción («%»). */
+  unidadEje?: string;
+  /** Matrículas elegibles: el otro grano, junto a los estudiantes únicos. */
+  matriculas?: number | null;
+  /**
+   * Media de la categoría sobre **todos** los cursos-horario, no sólo los
+   * elegibles. Junto a `chContraste` dice si el subconjunto elegible se parece
+   * al total o si los criterios lo han desplazado.
+   */
+  mediaContraste?: number | null;
+  /**
+   * F111 · La misma distribución sobre TODOS los cursos-horario de la categoría,
+   * incluidos o no. El conmutador de la tarjeta grafica una contra otra sobre la
+   * escala común, así que necesita la forma entera y no sólo la media.
+   */
+  distribucionContraste?: CalcMuestraAulasCriterioRadiografiaV2Distribution | null;
+  /**
+   * Distribución de alumnos elegibles por curso-horario en esta categoría.
+   * La calcula R; React sólo la dibuja. Da el promedio, su forma y los
+   * cuantiles con los que se elige P25 o mediana.
+   */
+  distribucion?: CalcMuestraAulasCriterioRadiografiaV2Distribution | null;
+  /** Proporción 0–1 esperada de asistencia: convierte elegibles en presentes. */
+  tasaAsistencia?: number | null;
+  /**
+   * G38 · Dominio del eje cuando el motor lo fija en vez de deducirlo del dato.
+   *
+   * Una proporción se lee sobre 0–100 porque ése es su máximo posible, no el
+   * que se haya observado: con el eje ajustado al rango, «85 %» parece el
+   * extremo de la escala. Sólo viaja cuando el motor lo publica; si falta, el
+   * eje sigue saliendo de los datos.
+   */
+  escalaEje?: { min: number; max: number } | null;
+  /**
+   * G39 · Cuántos cursos-horario deja fuera CADA posición del control.
+   *
+   * Gonzalo: «no hay forma de saber cuántas CH descartamos (y su porcentaje con
+   * que nos quedamos respecto al total) para poder tomar una decisión más
+   * meditada, a ver si aplicamos más o menos porcentaje mínimo». La cifra tiene
+   * que cambiar mientras se arrastra, y el motor no puede recalcularla por cada
+   * píxel: publica la tabla y aquí se **consulta**, no se suma. Sumar los cubos
+   * del histograma falla justo en el umbral —son cerrados por la derecha— y en
+   * el extremo de la escala.
+   */
+  descartePorCorte?: { cortes: number[]; fuera: number[]; total: number } | null;
+  /**
+   * G38 · Cursos-horario que el corte aplicado deja fuera. Lo cuenta R.
+   *
+   * Gonzalo: «no hay forma de saber cuántos perdemos por el porcentaje que
+   * estamos aplicando». `null` es «no aplica» —el criterio está apagado—, no
+   * cero.
+   */
+  nFuera?: number | null;
+};
+
 export function ControlFlat({
   variable,
   sel,
   onSel,
+  aporte,
 }: {
   variable: CriterioVariable;
   sel: CriterioSeleccion;
   onSel: SelChange;
+  /**
+   * S4/S5 · El conmutador mostraba solo el conteo del CATÁLOGO —lo que hay en
+   * la base antes de aplicar criterio alguno—, así que se decidía contra un
+   * número que no dice qué hace el criterio. Medido en el instrumento: PREGRADO
+   * marcaba «25.155 estudiantes» mientras el marco publica 20.879 alumnos
+   * únicos elegibles, y MAESTRIA marcaba «2.819» con aporte real 0.
+   * R publica el aporte por segmento en su fila Total; React no lo suma.
+   */
+  aporte?: (segmentKey: string) => AporteCategoria | null;
 }) {
-  const cats = variable.categories ?? [];
+  /*
+   * G39 · También aquí las categorías con más cursos-horario van primero.
+   *
+   * `aulas` es el conteo de cursos-horario únicos de la categoría en el catálogo
+   * — la cifra que no cambia al decidir. Esta tarjeta salía en el orden del
+   * payload, que es el de la columna de origen.
+   */
+  const cats = ordenarPorCursosHorario(variable.categories ?? [], (c) => c.aulas, (c) => c.label);
   const unidad = unidadCriterio(variable);
   // Lista larga → fluye en varias columnas dentro de la tarjeta ancha.
   const long = cats.length >= 8;
@@ -69,6 +194,8 @@ export function ControlFlat({
       <ul
         className="cmv2-crit-list"
         data-long={long ? "true" : undefined}
+        data-qa-geometry-group="calc-muestra/criterios-categorias"
+        data-qa-geometry-contract="intrinsic"
         aria-label={`Categorías de ${variable.label}`}
       >
         {cats.map((cat) => {
@@ -79,14 +206,60 @@ export function ControlFlat({
             (variante) => variante.trim().toLocaleLowerCase("es") !== cat.label.trim().toLocaleLowerCase("es"),
           );
           return (
-            <li key={cat.key} className="cmv2-crit-item" data-checked={checked}>
+            <li
+              key={cat.key}
+              className="cmv2-crit-item"
+              data-checked={checked}
+              data-qa-geometry-member
+              data-qa-geometry-capacity="owned"
+            >
               <div className="cmv2-crit-item-main">
-                <Switch checked={checked} onToggle={() => onSel(toggleCategoria(sel, cat.key))} ariaLabel={cat.label} />
-                <span className="cmv2-crit-item-label">{cat.label}</span>
+                <Switch
+                  checked={checked}
+                  onToggle={() => onSel(toggleCategoria(sel, cat.key))}
+                  ariaLabel={etiquetaAgrupada(cat.label).agrupadas.length
+                    ? `${etiquetaAgrupada(cat.label).base}, agrupa ${etiquetaAgrupada(cat.label).agrupadas.length} valores`
+                    : cat.label}
+                />
+                <span className="cmv2-crit-item-label">
+                  {/* T1: la fuente concatena varios valores en una etiqueta. Se
+                      muestra el nombre del grupo y se declara cuántos agrupa; el
+                      detalle queda en el título y en la línea secundaria. */}
+                  {etiquetaFlatConCortes(etiquetaAgrupada(cat.label).base)}
+                  {etiquetaAgrupada(cat.label).agrupadas.length ? (
+                    <span
+                      className="cmv2-crit-item-agrupa"
+                      data-agrupa={etiquetaAgrupada(cat.label).agrupadas.length}
+                      title={etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                    >
+                      agrupa {etiquetaAgrupada(cat.label).agrupadas.length}
+                    </span>
+                  ) : null}
+                </span>
               </div>
+              {etiquetaAgrupada(cat.label).agrupadas.length ? (
+                <span className="cmv2-crit-item-agrupadas">
+                  {etiquetaAgrupada(cat.label).agrupadas.join(" · ")}
+                </span>
+              ) : null}
               <span className="cmv2-crit-item-count">
-                {fmtInt(cat.aulas)} <em>{unidad}</em>
+                {fmtInt(cat.aulas)} <em>{unidad} en la base</em>
               </span>
+              {(() => {
+                const dato = aporte?.(cat.key) ?? null;
+                if (!dato || (dato.elegibles === null && dato.ch === null)) return null;
+                // La radiografía —distribución, cuantiles, boxplot— describe
+                // elegibles según una característica del CURSO-HORARIO y vive
+                // en esa ruta. Aquí, en criterios de estudiante, sólo van las
+                // cifras: montar la evidencia completa fue un error mío en F48,
+                // corregido en F51 tras la observación de Gonzalo.
+                return (
+                  <span className="cmv2-crit-item-aporte" data-aporta={dato.ch === 0 ? "cero" : "si"}>
+                    {dato.elegibles === null ? "—" : fmtInt(dato.elegibles)} elegibles ·{" "}
+                    {dato.ch === null ? "—" : fmtInt(dato.ch)} CH <em>en el marco</em>
+                  </span>
+                );
+              })()}
               {variantes.length ? (
                 <span className="cmv2-crit-item-variants" title={variantes.join(" · ")}>
                   {variantes.join(" · ")}
@@ -133,11 +306,21 @@ export function ControlHierarchical({
                 {fmtInt(group.aulas)} <em>cursos-horario</em>
               </span>
             </div>
-            <ul className="cmv2-crit-list cmv2-crit-list-nested">
+            <ul
+              className="cmv2-crit-list cmv2-crit-list-nested"
+              data-qa-geometry-group="calc-muestra/criterios-subcategorias"
+              data-qa-geometry-contract="intrinsic"
+            >
               {group.children.map((child) => {
                 const checked = categoriaMarcada(sel, child.key);
                 return (
-                  <li key={child.key} className="cmv2-crit-item" data-checked={checked}>
+                  <li
+                    key={child.key}
+                    className="cmv2-crit-item"
+                    data-checked={checked}
+                    data-qa-geometry-member
+                    data-qa-geometry-capacity="owned"
+                  >
                     <div className="cmv2-crit-item-main">
                       <Switch checked={checked} onToggle={() => onSel(toggleCategoria(sel, child.key))} ariaLabel={child.label} />
                       <span className="cmv2-crit-item-label">{child.label}</span>

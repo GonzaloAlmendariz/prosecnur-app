@@ -19,6 +19,7 @@ import {
   classroomReserveRowsForState,
   classroomSelectionForState,
 } from "./universidad/shared/frame";
+import { classroomSelectorTarget } from "./universidad/aulas/classroomHandoff";
 import { safeNumber, uid } from "./sharedCore";
 
 /** Cap del historial: se conservan las últimas 12 corridas (FIFO). */
@@ -55,29 +56,29 @@ function numeroOpcional(value: unknown): number | undefined {
 /** Construye el registro de una corrida de cálculo (recalcular muestra).
  *  Devuelve null si el componente aún no tiene resultado útil. */
 export function corridaDeCalculo({
-  totalComp,
+  componente,
   workspace,
 }: {
-  totalComp: CalcMuestraComponente | undefined;
+  componente: CalcMuestraComponente | undefined;
   workspace: CalcMuestraWorkspace;
 }): CalcMuestraCorrida | null {
-  const resultado = totalComp?.resultado;
-  if (!totalComp || !resultado) return null;
+  const resultado = componente?.resultado;
+  if (!componente || !resultado) return null;
   const nObjetivo = numeroOpcional(resultado.n_objetivo);
   if (!nObjetivo || nObjetivo <= 0) return null;
   return {
     id: uid("run"),
     timestamp: new Date().toISOString(),
     tipo: "calculo",
-    metodo: totalComp.tecnica,
+    metodo: componente.tecnica,
     semilla: numeroOpcional(workspace.aulas_config?.semilla),
     n_objetivo: nObjetivo,
     parametros: {
-      z: numeroOpcional(totalComp.parametros.z),
-      e: numeroOpcional(totalComp.parametros.e),
-      p: numeroOpcional(totalComp.parametros.p),
-      deff: numeroOpcional(totalComp.parametros.deff),
-      sobremuestra: numeroOpcional(totalComp.parametros.oversample_pct),
+      z: numeroOpcional(componente.parametros.z),
+      e: numeroOpcional(componente.parametros.e),
+      p: numeroOpcional(componente.parametros.p),
+      deff: numeroOpcional(componente.parametros.deff),
+      sobremuestra: numeroOpcional(componente.parametros.oversample_pct),
     },
     resumen: {
       n: nObjetivo,
@@ -109,6 +110,16 @@ export function corridaDeSeleccion({
   const selection = classroomSelectionForState(aulasState);
   const m1Rows = classroomM1RowsForState(aulasState);
   if (!selection || m1Rows.length === 0) return null;
+  const expectedTarget = safeNumber(workspace.aulas_config?.n_aulas, 0);
+  const frameHash = String(aulasState?.frame?.frame_hash ?? "").trim();
+  const selectionRunId = String(selection.selection_run_id ?? "").trim();
+  if (
+    expectedTarget <= 0 ||
+    classroomSelectorTarget(selection) !== expectedTarget ||
+    !frameHash ||
+    !selectionRunId ||
+    selection.frame_hash !== frameHash
+  ) return null;
   const reservas =
     classroomReserveRowsForState(aulasState).length +
     classroomExtraReserveRowsForState(aulasState).length;

@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   derivarSaludDiseno,
   esCenso,
+  piezasDesdeModel,
   scoreEscala100,
   saludComoRiesgos,
   type SaludPiezas,
@@ -188,5 +189,32 @@ describe("saludComoRiesgos", () => {
     expect(riesgos[1].severity).toBe("media");
     expect(riesgos[0].code).toBe("salud_representatividad-baja");
     expect(riesgos[1].detail).toContain("Simulación");
+  });
+});
+
+describe("piezasDesdeModel — escenario elegido", () => {
+  it("evalúa la cobertura E2 contra su n objetivo, no contra P1", () => {
+    const baseComp = (nObjetivo: number, actor: string) => ({
+      actor,
+      actor_id: actor,
+      marco: { marco_validado: 1000 },
+      resultado: { n_objetivo: nObjetivo },
+    });
+    const piezas = piezasDesdeModel({
+      selectedComp: baseComp(268, "estudiantes_facultad"),
+      selectionReady: true,
+      m1Rows: [{ expected_n: 220, faculty: "Derecho" }],
+      targetForDisplay: 268,
+      facultades: [{ label: "Derecho" }],
+      currentRepresentativityScore: 88,
+      visibleProfiles: [],
+      weightStability: null,
+      objective: { weight_cv_warn: 0.5, weight_cv_critical: 1 },
+    } as unknown as Parameters<typeof piezasDesdeModel>[0]);
+
+    expect(piezas.objetivoEntrevistas).toBe(268);
+    expect(derivarSaludDiseno(piezas).find((obs) => obs.id === "brecha-cobertura")?.detalle)
+      .toContain("268");
+    expect(piezas.componentes).toEqual([{ etiqueta: "Nivel facultad", nObjetivo: 268, marcoN: 1000 }]);
   });
 });

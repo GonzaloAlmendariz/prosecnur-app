@@ -29,6 +29,7 @@ import {
 } from "../criterios/controles";
 import { ControlRange, type FacultadRef } from "../criterios/facultades";
 import { TeacherTypeOrden } from "../criterios/TeacherTypeOrden";
+import type { AporteCategoria } from "../criterios/controles";
 import { CriterioComposicionCard } from "../criterios/CriterioComposicionCard";
 import { CondicionCursoAviso } from "../criterios/CondicionCursoAviso";
 import {
@@ -136,6 +137,20 @@ function GlobalCriterioCard({
         {variable.kind === "range" && (
           <ControlRange variable={variable} seleccion={seleccion} facultades={facultades} onRango={onRango} />
         )}
+        {/* F84 · Aquí NO va el editor por facultad, y no es un olvido.
+            `variablesPorFacultadIds` incluye **todos** los criterios
+            categóricos de curso-horario (`aulaToggle` = flat + hierarchical), y
+            este bloque los filtra fuera con `soloAjustes`. Una rama para
+            `flat`/`hierarchical` es inalcanzable por construcción: la añadí en
+            F26 y estuvo muerta hasta que la prueba funcional la buscó y no la
+            encontró en pantalla. Lo categórico se decide en el bloque de cada
+            facultad, que es donde el ADR 0057 dice que debe estar. */}
+        {(variable.kind === "numeric" || variable.kind === "ordinal") && (
+          <p className="cmv2-crit-grano" role="note">
+            Este criterio aplica <strong>igual en las {facultades.length} facultades</strong>:
+            el motor todavía no admite un umbral distinto por facultad.
+          </p>
+        )}
       </div>
     </article>
   );
@@ -230,12 +245,15 @@ export function CursosHorarioBaseGlobal({
   teacherTypeOrden,
   config,
   soloAjustes = false,
+  piezas = "todas",
+  variablesPorFacultadIds = [],
   onSelVariable,
   onRango,
   onTeacherTypeOrden,
   onUmbral,
   onTasa,
   onPatchConfig,
+  evidenciaComposicion,
 }: {
   /** Variables de scope aula del catálogo (session/condition/teacher/level…). */
   aulaVariables: CriterioVariable[];
@@ -244,19 +262,65 @@ export function CursosHorarioBaseGlobal({
   teacherTypeOrden: string[] | undefined;
   config: CalcMuestraWorkspaceAulasConfig;
   /** Solo los ajustes transversales del marco (mínimo general, tasa, composición
-   *  c8); oculta los criterios de set/rango que ya se deciden por facultad. */
+   *  c8) y las variables que no tienen un control equivalente por facultad. */
   soloAjustes?: boolean;
+  /**
+   * ADR 0057, regla 1 · Qué parte del bloque común se monta.
+   *
+   * Estos criterios no admiten override por facultad en el contrato vigente,
+   * pero presentarlos en una sección aparte rotulada «transversales» los hacía
+   * leer como criterios generales —que es lo que la regla 1 niega— y los sacaba
+   * del embudo. Se montan dentro del flujo de la facultad, en su posición:
+   * matriculados abre, mínimo y composición cierran antes del mayor detalle.
+   */
+  piezas?: "todas" | "apertura" | "cierre";
+  /** Variables representadas por los controles de cada bloque de facultad. */
+  variablesPorFacultadIds?: readonly string[];
   onSelVariable: (variableId: string, next: CriterioSeleccion) => void;
   onRango: (facultad: string, rangos: Array<[number, number]>) => void;
   onTeacherTypeOrden: (keys: string[]) => void;
   onUmbral: (value: number) => void;
   onTasa: (tasa: number | null) => void;
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
+  /**
+   * G38 · Aporte del motor para cada paso de composición, para que su tarjeta
+   * enseñe sobre qué corta. Opcional: sin él los pasos se dibujan igual y sin
+   * evidencia — la superficie no fabrica la distribución que falte.
+   */
+  evidenciaComposicion?: (criterioId: string) => AporteCategoria | null;
 }) {
+  /*
+   * G33 · Un criterio sin columna mapeada no ocupa un turno del embudo.
+   *
+   * «Matriculados / población» se mostraba con el subtítulo «variable sin
+   * columna mapeada»: un criterio que **no puede actuar** pidiendo una decisión.
+   * Gonzalo: «¿por qué hay un Matriculados / población y un Mínimo de alumnos
+   * elegibles, cuando sólo el segundo es el que debería estar?».
+   *
+   * No se borra del motor —sigue en la cascada y en la matriz, donde su fila
+   * dice honestamente que no quitó nada— pero deja de pedir una decisión que no
+   * puede ejecutar.
+   */
+  const comunes = (soloAjustes
+    ? aulaVariables.filter((variable) => !variablesPorFacultadIds.includes(variable.id))
+    : aulaVariables
+  // El motor publica  cuando no hay columna, no cadena
+  // vacia: comparar con "" no cazaba nada y el criterio seguia en pantalla.
+  ).filter((variable) => Boolean(variable.mappedColumn));
+  const variablesVisibles = piezas === "cierre" ? [] : comunes;
   return (
-    <div className="cmv2-crit-grid cmv2-chfp-global-grid">
-      {!soloAjustes &&
-        aulaVariables.map((variable) => (
+    <div
+      /* G23 · El ancla que «Ajustar la regla común» buscaba y no existía.
+         El enlace de la tarjeta de composición apuntaba a
+         `#cmv2-chfp-global-adjustments` y ese id no estaba en ninguna parte del
+         módulo: el único camino a editar una regla común no llevaba a ningún
+         sitio. C4 del Contrato de Superficie — todo alcanzable. */
+      id="cmv2-chfp-global-adjustments"
+      className="cmv2-crit-grid cmv2-chfp-global-grid"
+      data-qa-geometry-group="calc-muestra/criterios-ch-globales"
+      data-qa-geometry-contract="intrinsic"
+    >
+      {variablesVisibles.map((variable) => (
           <GlobalCriterioCard
             key={variable.id}
             variable={variable}
@@ -268,13 +332,25 @@ export function CursosHorarioBaseGlobal({
             onTeacherTypeOrden={onTeacherTypeOrden}
           />
         ))}
-      <GlobalMinCard
-        seleccion={seleccion}
-        fallbackUmbral={config.min_elegibles_aula}
-        onUmbral={onUmbral}
-        onTasa={onTasa}
-      />
-      <CriterioComposicionCard config={config} onPatch={onPatchConfig} />
+      {piezas === "apertura" ? null : (
+        <>
+          {/* G33 · Fuera el mínimo global duplicado.
+              Gonzalo: «se siguen duplicando, hay dos que piden mínimos de
+              alumnos elegibles». Esta tarjeta pedía el umbral general y la del
+              bloque de facultad pide el propio, con «usa el mínimo general» de
+              respaldo — dos controles para la misma decisión, y el segundo ya
+              enseña la distribución sobre la que se decide.
+
+              Su rótulo decía además «criterio 7» cuando el mínimo pasó a ser el
+              PRIMERO del embudo (G30): un número de orden escrito a mano
+              sobrevive al orden que nombra. */}
+          <CriterioComposicionCard
+            config={config}
+            onPatch={onPatchConfig}
+            evidenciaDe={evidenciaComposicion}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -28,20 +28,18 @@ Trabaja con las bases de estudiantes y cursos-horario del mismo periodo académi
 ```mermaid
 flowchart TD
     N["Selección universitaria"]
-    N --> C1["Marco de cursos-horario"]
-    N --> C2["Objetivo de muestra"]
-    N --> C3["Comparar métodos"]
-    N --> C4["Simulación"]
-    N --> C5["Cursos-horario titulares"]
-    N --> C6["Reemplazos por curso-horario"]
-    N --> C7["Sustento técnico"]
+    N --> C1["Objetivo de muestra"]
+    N --> C2["Comparar métodos"]
+    N --> C3["Simulación"]
+    N --> C4["Cursos-horario titulares"]
+    N --> C5["Reemplazos por curso-horario"]
+    N --> C6["Sustento técnico"]
 ```
 
 ## Guía de destinos
 
 | Destino | Cuándo entrar | Qué hacer allí | Qué deja listo |
 |---|---|---|---|
-| [[Marco de cursos-horario]] | cuando el marco definitivo debe congelarse antes de ejecutar cualquier selector. | En la UI: **Marco de aulas**. Congela las unidades seleccionables y deja una firma reproducible antes del sorteo. | firma reproducible del marco de cursos-horario. |
 | [[Objetivo de muestra]] | cuando cuotas y marco están aprobados y debes fijar titulares, reservas y parámetros del selector. | Traduce las cuotas de estudiantes en titulares, reservas y parámetros técnicos para seleccionar cursos-horario. | objetivo operativo de selección. |
 | [[Comparar métodos]] | cuando debes elegir entre PPS, cubo balanceado, pivotal local y pool controlado con métricas comunes. | Evalúa cuatro selectores probabilísticos o auditables y recomienda uno con métricas del marco vigente. | método de selección elegido y justificado. |
 | [[Simulación]] | cuando el método necesita una prueba de estabilidad, probabilidades de inclusión y dispersión de pesos. | Repite el selector para estimar estabilidad, probabilidades de inclusión y dispersión de pesos. | diagnóstico Monte Carlo del selector. |
@@ -51,15 +49,14 @@ flowchart TD
 
 ## Recorrido recomendado
 
-1. **Marco de cursos-horario:** En la UI: **Marco de aulas**. Congela las unidades seleccionables y deja una firma reproducible antes del sorteo; al terminar, el resultado es firma reproducible del marco de cursos-horario.
-2. **Objetivo de muestra:** Traduce las cuotas de estudiantes en titulares, reservas y parámetros técnicos para seleccionar cursos-horario; al terminar, el resultado es objetivo operativo de selección.
-3. **Comparar métodos:** Evalúa cuatro selectores probabilísticos o auditables y recomienda uno con métricas del marco vigente; al terminar, el resultado es método de selección elegido y justificado.
-4. **Simulación:** Repite el selector para estimar estabilidad, probabilidades de inclusión y dispersión de pesos; al terminar, el resultado es diagnóstico Monte Carlo del selector.
-5. **Cursos-horario titulares:** Genera y revisa la propuesta de unidades titulares con ajuste, probabilidades y razones operativas; al terminar, el resultado es lista de cursos-horario titulares con probabilidades y razones.
-6. **Reemplazos por curso-horario:** Construye cadenas ordenadas de reserva y simula su efecto antes del trabajo de campo; al terminar, el resultado es cadenas de reserva y su impacto simulado.
-7. **Sustento técnico:** Reúne fórmulas, métricas y sellos necesarios para reproducir y defender la selección; al terminar, el resultado es sustento técnico con fórmulas, firma, semilla y métricas.
+1. **Objetivo de muestra:** Traduce las cuotas de estudiantes en titulares, reservas y parámetros técnicos para seleccionar cursos-horario; al terminar, el resultado es objetivo operativo de selección.
+2. **Comparar métodos:** Evalúa cuatro selectores probabilísticos o auditables y recomienda uno con métricas del marco vigente; al terminar, el resultado es método de selección elegido y justificado.
+3. **Simulación:** Repite el selector para estimar estabilidad, probabilidades de inclusión y dispersión de pesos; al terminar, el resultado es diagnóstico Monte Carlo del selector.
+4. **Cursos-horario titulares:** Genera y revisa la propuesta de unidades titulares con ajuste, probabilidades y razones operativas; al terminar, el resultado es lista de cursos-horario titulares con probabilidades y razones.
+5. **Reemplazos por curso-horario:** Construye cadenas ordenadas de reserva y simula su efecto antes del trabajo de campo; al terminar, el resultado es cadenas de reserva y su impacto simulado.
+6. **Sustento técnico:** Reúne fórmulas, métricas y sellos necesarios para reproducir y defender la selección; al terminar, el resultado es sustento técnico con fórmulas, firma, semilla y métricas.
 
-La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el método transforma esos insumos en metas o probabilidades; y el cierre conserva la evidencia. En **Selección universitaria**, empieza por **Marco de cursos-horario** y termina en **Sustento técnico**. Para una revisión puntual puedes abrir directamente el destino causal, pero recalcula las tareas posteriores si modificas su entrada.
+La primera configuración debe seguir ese orden: los insumos delimitan lo seleccionable; el método transforma esos insumos en metas o probabilidades; y el cierre conserva la evidencia. En **Selección universitaria**, empieza por **Objetivo de muestra** y termina en **Sustento técnico**. El marco de cursos-horario se inspecciona en la sección **Marco**; su antigua dirección dentro de Selección solo se conserva como enlace histórico hacia ese hogar. Para una revisión puntual puedes abrir directamente el destino causal, pero recalcula las tareas posteriores si modificas su entrada.
 
 ## Cómo interpretar avance y estados
 

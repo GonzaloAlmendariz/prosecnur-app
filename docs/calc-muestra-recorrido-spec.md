@@ -27,10 +27,10 @@
 | A2 | Redondeo de diseño | 2,353 → **2,500** (fijado) | error implícito 2.39% |
 | A3 | Afijación por facultad | `n_fac = round(2500 · N_fac/21365)` | Arquitectura `2500·1080/21365=126.4→126` |
 | A4 | Afijación por sexo | `n_sexo = round(n_fac · sexo_fac/N_fac)` | Arq. M `126·744/1080=87` · H `39` |
-| A5 | Cuadratura (determinística) | Σ celdas = 2,499 → +1 a facultad de mayor N (Cs e Ing) → sexo mayoritario (H) | cierra **2,500** exacto |
-| A6 | **LA META** | tabla cuotas facultad×sexo | **M 1,232 / H 1,267** (49.3% M) |
+| A5 | Cuadratura (determinística) | Σ celdas redondeadas = 2,499 → residuo +1 a la facultad de mayor N (Cs e Ing) → su sexo mayoritario (H) | H pasa de 1,267 a **1,268** y cierra **2,500** exacto |
+| A6 | **LA META** | tabla cuotas facultad×sexo | **M 1,232 / H 1,268 = 2,500** (49.3% M) |
 
-**Guardas canónicas:** el Excel oficial imprime mal el Total (1,431/1,069); lo correcto es la suma de cuotas (1,232/1,267). Una pestaña que reconstruye A5–A6 detecta ese descuadre.
+**Guardas canónicas:** el Excel oficial imprime mal el Total (1,431/1,069); lo correcto es la suma de cuotas después del residuo A5 (1,232/1,268). El valor H=1,267 es la suma previa a cuadratura, no la meta final. Una pestaña que reconstruye A5–A6 detecta ambos descuadres.
 
 ---
 
@@ -75,7 +75,7 @@
 | Pestaña | Rol · cadena | Número vivo | Ejemplo canónico |
 |---|---|---|---|
 | **Diseño** | **selector E1/E2** + parámetros + **Cadena A1–A2** | n de fórmula → redondeo | E1: 95%·2.47%·p.30·deff2 → 2,353→**2,500** |
-| **Propuestas** | **Cadena A3–A6**: afijación fac → sexo → cuadratura → **META** | tabla de cuotas | **M 1,232 / H 1,267**; guarda del Total mal impreso |
+| **Propuestas** | **Cadena A3–A6**: afijación fac → sexo → cuadratura → **META** | tabla de cuotas | **M 1,232 / H 1,268 = 2,500**; guarda del Total mal impreso |
 | **Aulas/Objetivo** | **Cadena B completa** + **bolsa** | est/aula y aulas por facultad | tabla 15 fac → **162**; bolsa 162/177/192 |
 | **Supuestos** | deff, tasa de rendimiento, sobremuestra≠reemplazos | n de campo | deff=1+(m̄−1)ρ; τ≈0.53 |
 | **Distribución** | visual de la META (fac×sexo) | barras M/H por facultad | de la tabla de cuotas |

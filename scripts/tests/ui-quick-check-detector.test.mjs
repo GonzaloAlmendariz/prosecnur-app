@@ -74,3 +74,55 @@ test("el texto que se sale de su caja sigue siendo hallazgo", async () => {
   const issues = await medirFixture();
   assert.equal(reportado(issues, "marca-desborda"), true);
 });
+
+test("el gate espera el render terminal de una lista virtualizada", async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 800, height: 400 } });
+    const virtualFixture = `
+      <style>
+        .virtual-owner { height: 100px; overflow-y: auto; }
+        .virtual-canvas { position: relative; height: 1000px; }
+        .virtual-row { position: absolute; height: 40px; }
+      </style>
+      <main data-audit-ready="virtualized">
+        <section data-qa-geometry-group="virtualized" data-qa-geometry-contract="intrinsic">
+          <article data-qa-geometry-member>
+            <div class="virtual-owner">
+              <div class="virtual-canvas"><strong class="virtual-row initial" style="top:0">Inicio</strong></div>
+            </div>
+          </article>
+        </section>
+      </main>
+      <script>
+        const owner = document.querySelector('.virtual-owner');
+        const canvas = document.querySelector('.virtual-canvas');
+        owner.addEventListener('scroll', () => {
+          const atEnd = owner.scrollTop >= owner.scrollHeight - owner.clientHeight - 1;
+          requestAnimationFrame(() => {
+            if (atEnd) canvas.innerHTML = '<strong class="virtual-row terminal" style="top:960px">Final</strong>';
+          });
+        });
+      </script>
+    `;
+    await page.route("http://virtual.test/", (route) => route.fulfill({
+      contentType: "text/html",
+      body: virtualFixture,
+    }));
+    await page.goto("http://virtual.test/");
+
+    const result = await inspectDom(page, {
+      projectMode: false,
+      geometryGroups: [],
+      geometryTolerance: 2,
+      requireGeometry: true,
+    });
+    assert.deepEqual(result.geometryIssues, []);
+    const scrollAudit = result.geometryAudits[0].members[0].overflowOwner.scrollAudit;
+    assert.equal(scrollAudit.positions.end, scrollAudit.maxScroll);
+    assert.equal(scrollAudit.lastContent.className, "virtual-row terminal");
+    assert.equal(scrollAudit.lastContentReachable, true);
+  } finally {
+    await browser.close();
+  }
+});

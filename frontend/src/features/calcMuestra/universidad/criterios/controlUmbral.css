@@ -1,0 +1,282 @@
+/*
+ * F120 · Nivelador de umbral y proporción.
+ *
+ * Vive bajo el conmutador, en el hueco que hasta ahora quedaba vacío. Su ancho
+ * es el de la columna del control, no el del gráfico: son dos cosas distintas
+ * —lo que fijo y lo que veo— y mezclarlas de ancho las mezcla de rol.
+ */
+.cmv2-umbral-control {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+.cmv2-umbral-control[data-deshabilitado] { opacity: 0.55; }
+
+.cmv2-umbral-etiqueta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/*
+ * G31 · El deslizador se alinea con el eje del gráfico.
+ *
+ * Gonzalo: «si son los únicos deberían poder ocupar todo el ancho y que el
+ * slider esté alineado con el eje de forma elegante».
+ *
+ * No es sólo estético: cuando la pista del deslizador ocupa exactamente el
+ * mismo recorrido que la escala del gráfico, **arrastrar la manija es mover el
+ * corte sobre la distribución**. Con el control en su propia caja y el gráfico
+ * en otra, el usuario tenía que traducir «un tercio de la barra» a «un tercio
+ * del eje» — y las dos barras ni siquiera medían lo mismo.
+ *
+ * El campo numérico sale de la fila y baja: quitarle el ancho al deslizador es
+ * quitarle resolución al gesto que sí recorre la escala.
+ */
+.cmv2-umbral-fila {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.cmv2-umbral-control[data-alineado] .cmv2-umbral-fila {
+  /*
+   * G34 · La pista arranca donde arranca el eje y termina donde termina.
+   *
+   * El gráfico vive dentro de una tarjeta con relleno y borde; el deslizador,
+   * fuera. Sin compensar ese sangrado, la manija señalaba un punto de la escala
+   * desplazado 18 px — y una guía desviada es peor que ninguna, porque se lee
+   * con la misma confianza.
+   */
+  width: 100%;
+  padding-inline: calc(var(--cmv2-seg-sangrado, 7px) + 11px);
+}
+.cmv2-umbral-control[data-alineado] {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin-top: 4px;
+  /*
+   * G35 · Alinearse con el eje empieza por medir lo mismo que él.
+   *
+   * Sin esto la raíz se dimensionaba por su contenido: dentro de un contenedor
+   * flex quedaba 395 px más corta que el gráfico, y los sangrados de arriba
+   * compensaban un desfase sobre un ancho que ya no era el del eje. El prop
+   * promete «alineado»; el ancho es la primera mitad de esa promesa.
+   */
+  width: 100%;
+  min-width: 0;
+}
+
+/* Deslizador: busca. Se le da todo el ancho sobrante porque recorrerlo ES la
+   decisión — con el gráfico al lado, cada posición enseña qué recorta. */
+.cmv2-umbral-rango {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--cmv2-accent);
+  cursor: pointer;
+}
+.cmv2-umbral-rango:focus-visible { outline: 2px solid var(--cmv2-accent); outline-offset: 3px; }
+
+/* Campo numérico: fija. Un mínimo de 20 se escribe; con el deslizador cuesta
+   clavarlo, y peor cuanto más ancho es el rango. */
+.cmv2-umbral-control[data-alineado] .cmv2-umbral-campo { justify-self: start; }
+.cmv2-umbral-campo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  flex: none;
+  padding: 2px 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+}
+.cmv2-umbral-campo input {
+  width: 3.4ch;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  /* Las flechas nativas roban ancho y su paso ignora `step` en algunos
+     navegadores; el deslizador ya cubre el ajuste fino. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.cmv2-umbral-campo input::-webkit-outer-spin-button,
+.cmv2-umbral-campo input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cmv2-umbral-campo input:focus-visible { outline: none; }
+.cmv2-umbral-campo:focus-within { border-color: var(--cmv2-accent); }
+.cmv2-umbral-campo em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* Qué pasa si el valor se queda aquí. Es lo único que justifica una línea más. */
+.cmv2-umbral-efecto {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+}
+
+.cmv2-umbral-rango-nota {
+  display: flex;
+  justify-content: space-between;
+  margin: -2px 0 0;
+  font-size: 9.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-umbral-rango { transition: none; }
+}
+
+
+/*
+ * F121 · Rango de dos manijas.
+ *
+ * Dos `<input type="range">` superpuestos, no un widget propio: cada manija es
+ * un control nativo que se opera con teclado y anuncia un lector de pantalla.
+ * Uno dibujado a mano se ve igual y no hace nada de eso.
+ *
+ * Las pistas nativas se ocultan y se dibuja una sola detrás, con la banda del
+ * tramo: dos pistas superpuestas se ven como un borrón.
+ */
+.cmv2-rango-pistas {
+  position: relative;
+  height: 22px;
+  margin-top: 2px;
+}
+/*
+ * G35 · Las dos manijas también arrancan donde arranca el eje.
+ *
+ * Mismo desfase que el deslizador de un corte (G34): el gráfico vive dentro de
+ * una tarjeta con relleno y borde, el control fuera. Con un rango la desviación
+ * pesa el doble — son dos manijas señalando dos puntos desplazados, y la banda
+ * entre ellas dibuja un tramo que no coincide con el que el eje muestra.
+ */
+.cmv2-umbral-control[data-alineado] .cmv2-rango-pistas {
+  margin-inline: calc(var(--cmv2-seg-sangrado, 7px) + 11px);
+}
+.cmv2-umbral-control[data-alineado] .cmv2-rango-campos {
+  margin-inline: calc(var(--cmv2-seg-sangrado, 7px) + 11px);
+}
+.cmv2-rango-pistas::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text) 14%, transparent);
+}
+/* La banda ES la lectura: el tramo que entra. Detrás de las manijas y sin
+   puntero — mover el rango es mover una manija. */
+.cmv2-rango-banda {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: var(--cmv2-accent);
+  pointer-events: none;
+}
+input[type="range"].cmv2-rango-manija {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: none;
+  appearance: none;
+  -webkit-appearance: none;
+  /* Sin esto, el input de arriba tapa al de abajo en toda su superficie y la
+     manija inferior deja de poder agarrarse. */
+  pointer-events: none;
+}
+/*
+ * G37 · Estas reglas perdían contra `theme.css`, así que nunca se aplicaron.
+ *
+ * Medido en la app con la manija ampliada 5×: la de «desde» salía como un disco
+ * partido por una banda blanca. La banda es el **carril nativo del segundo
+ * input** —los dos se superponen a pantalla completa— pintándose encima del
+ * thumb del primero.
+ *
+ * Pero la causa está un paso antes. `theme.css` estiliza `input[type="range"]`
+ * globalmente, y ese selector tiene especificidad **(0,1,1)**: le gana a
+ * `.cmv2-rango-manija` **(0,1,0)**. Todo el estilo de manija escrito aquí
+ * —carril transparente, disco blanco con anillo— llevaba perdiendo en silencio
+ * desde F121: lo que se veía era el thumb del tema, con su `margin-top: -6px`
+ * calibrado para un carril de 6 px que aquí mide 22.
+ *
+ * Un CSS que no se aplica no da error ni deja hueco: pinta otra cosa parecida.
+ * Por eso el defecto sobrevivió a tres iteraciones de ajuste fino sobre estas
+ * mismas líneas. Se cualifican con el elemento para empatar la especificidad y
+ * ganar por orden.
+ */
+input[type="range"].cmv2-rango-manija::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  height: 100%;
+}
+input[type="range"].cmv2-rango-manija::-moz-range-track {
+  background: transparent;
+  border: 0;
+  height: 100%;
+}
+/* Firefox rellena solo el tramo recorrido; con dos inputs pintaría dos veces. */
+input[type="range"].cmv2-rango-manija::-moz-range-progress { background: transparent; }
+
+input[type="range"].cmv2-rango-manija::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  /* El tema lo sube 6 px para centrarlo en un carril de 6; el nuestro ocupa el
+     alto entero y ya viene centrado. */
+  margin-top: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--cmv2-accent);
+  box-shadow: 0 1px 3px color-mix(in srgb, #000 26%, transparent);
+  cursor: pointer;
+}
+input[type="range"].cmv2-rango-manija::-moz-range-thumb {
+  pointer-events: auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--cmv2-accent);
+  cursor: pointer;
+}
+input[type="range"].cmv2-rango-manija:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
+input[type="range"].cmv2-rango-manija:focus-visible::-moz-range-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
+
+.cmv2-rango-campos { display: flex; align-items: center; gap: 6px; }
+.cmv2-rango-guion { color: var(--pulso-text-muted); }
+
+/* G17 · Sospecha de mapeo, no validación: se declara y se deja decidir. */
+.cmv2-umbral-sospecha {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+}

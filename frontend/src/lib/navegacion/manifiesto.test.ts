@@ -15,7 +15,8 @@ import {
 } from "./runtime";
 
 describe("manifiesto de navegación", () => {
-  it("mantiene el inventario completo de 202 nodos", () => {
+  it("mantiene el inventario completo de 202 nodos vivos", () => {
+    // +1 por D10: Consistencia es pestaña propia de Datos.
     expect(MANIFIESTO_NAVEGACION).toHaveLength(202);
   });
 
@@ -128,6 +129,7 @@ describe("manifiesto de navegación", () => {
     );
 
     expect(muestra).toHaveLength(24);
+    expect(nodoPorClave("calc-muestra/opinion-universitaria/aulas/marco")).toBeNull();
     expect(procesamiento).toHaveLength(25);
     expect(dashboard).toHaveLength(4);
   });

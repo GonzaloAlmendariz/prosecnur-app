@@ -123,10 +123,15 @@ export function HistorialCorridas({ workspace }: { workspace: CalcMuestraWorkspa
     ? FILAS_COMPARACION.filter((fila) => fila.valor(corridaA) != null || fila.valor(corridaB) != null)
     : [];
 
+  // F103 · Abierto por defecto: la descripción DA UNA INSTRUCCIÓN —«elige dos
+  // para compararlas»— sobre controles que estaban plegados. Es el mismo defecto
+  // que «K sin decidir» en Particularidades (F101): la etiqueta pide una acción
+  // y esconde el control que la ejecuta.
   return (
     <PanelAvanzado
       titulo="Historial de corridas"
       descripcion={`últimas ${fmtInt(corridas.length)} · elige dos para compararlas`}
+      defaultOpen
     >
       <div className="cmv2-sal-historial">
         <ul className="cmv2-sal-historial-lista" aria-label="Corridas registradas">

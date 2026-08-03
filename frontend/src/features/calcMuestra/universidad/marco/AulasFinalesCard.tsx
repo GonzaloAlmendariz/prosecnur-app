@@ -6,6 +6,8 @@
  * arma `aulasSupervivientesFacultad` y las mutaciones `setAulaExcluida`; aquí
  * solo se pinta, con buscador y scroll para las facultades de cientos de CH.
  */
+import { CategoriaEvidencia } from "../criterios/CategoriaEvidencia";
+import { usarPlegado } from "../criterios/usarPlegado";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import type { CriteriosSeleccionMarco } from "../../../../api/client";
@@ -24,12 +26,19 @@ function normalizarBusqueda(s: string): string {
 }
 
 export function AulasFinalesCard({
+  tasaAsistencia = null,
   aulas,
   seleccion,
   facLabel,
   onToggle,
   onReactivarTodas,
 }: {
+  /**
+   * Asistencia histórica del marco, para estimar presentes por curso-horario.
+   * `null` cuando el proyecto no la trae: la tarjeta lo declara en vez de
+   * fabricar una estimación.
+   */
+  tasaAsistencia?: number | null;
   /** Cursos-horario supervivientes de la facultad (orden elegibles desc). */
   aulas: AulaFinal[];
   seleccion: CriteriosSeleccionMarco;
@@ -39,8 +48,21 @@ export function AulasFinalesCard({
   /** Reactiva todos los apagados de esta facultad (claves en text_key). */
   onReactivarTodas: (clavesTextKey: string[]) => void;
 }) {
-  const [abierto, setAbierto] = useState(false);
+  // ADR 0057 · Este es el «mayor detalle, ver uno por uno» que cierra el embudo
+  // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
+  // click para ver la lista que la facultad acaba de producir —«si algo está
+  // oculto es un error de diseño»—. Con una facultad a la vez hay alto de sobra.
+  /*
+   * G39 · También obedece a «plegar todos».
+   *
+   * Se quedó fuera de la primera pasada por vivir en otro archivo: los cinco
+   * criterios del bloque migraron y éste no, así que plegar todos dejaba uno
+   * abierto. Medido en la app —5 de 6— y no leído: un `grep` de `useState(true)`
+   * acotado al directorio del bloque no lo veía porque su tarjeta está aquí.
+   */
+  const [abierto, setAbierto] = usarPlegado(true);
   const [q, setQ] = useState("");
+  const [verTodas, setVerTodas] = useState(false);
   const claves = useMemo(() => aulas.map((a) => a.classroomKey), [aulas]);
   const total = aulas.length;
   const apagadas = contarExcluidas(seleccion, claves);
@@ -54,11 +76,21 @@ export function AulasFinalesCard({
     );
   }, [aulas, q]);
 
+  // Medido: la lista renderizaba sus 646 filas, cada una con su conmutador —**646
+  // paradas de tabulación** para pasar de aquí con el teclado—. Es el mismo
+  // defecto que el vuelco de píxeles, en otro eje: el contenido es alcanzable
+  // sólo si nadie usa el teclado. Se muestra una ventana y la profundidad se
+  // declara; el buscador de arriba llega a cualquier fila sin recorrerlas.
+  const TOPE_FILAS = 40;
+  const recortada = !verTodas && filtradas.length > TOPE_FILAS;
+  const visibles = recortada ? filtradas.slice(0, TOPE_FILAS) : filtradas;
+
   if (total === 0) return null;
 
   return (
     <section
       className="cmv2-chfp-crit"
+      data-qa-geometry-member
       data-decision={propia ? "propia" : "hereda"}
       data-open={abierto || undefined}
       data-collapsible={!abierto || undefined}
@@ -94,13 +126,19 @@ export function AulasFinalesCard({
               <input
                 type="search"
                 value={q}
-                placeholder="Buscar curso o docente…"
+                placeholder="Buscar curso-horario o docente…"
                 aria-label="Buscar curso-horario"
                 onChange={(e) => setQ(e.target.value)}
               />
             </span>
             <span className="cmv2-aulas-finales-meta">
-              {filtradas.length === total ? `${total} aulas` : `${filtradas.length} de ${total}`}
+              {/* La casa dice «cursos-horario»; esta tarjeta decía «aulas» en
+                  la misma pantalla donde el término aparece 60 veces bien
+                  escrito. Un sinónimo suelto obliga a preguntarse si nombra otra
+                  cosa. */}
+              {filtradas.length === total
+                ? `${total} cursos-horario`
+                : `${filtradas.length} de ${total}`}
               {propia ? (
                 <button
                   type="button"
@@ -112,8 +150,11 @@ export function AulasFinalesCard({
               ) : null}
             </span>
           </div>
+          <p className="cmv2-aulas-finales-unidad">
+            Cifra por fila: <strong>estudiantes únicos elegibles</strong> en ese curso-horario.
+          </p>
           <ul className="cmv2-aulas-finales-list">
-            {filtradas.map((a) => {
+            {visibles.map((a) => {
               const off = aulaExcluida(seleccion, a.classroomId);
               return (
                 <li key={a.classroomKey} className="cmv2-aulas-finales-row" data-off={off || undefined}>
@@ -126,8 +167,28 @@ export function AulasFinalesCard({
                     <span className="cmv2-aulas-finales-label">{a.label}</span>
                     {a.detalle ? <span className="cmv2-aulas-finales-detalle">{a.detalle}</span> : null}
                   </span>
+                  {/* G22 · La variante `unidad` de la tarjeta estándar.
+                      Gonzalo: «para ese caso no podemos tener densidad ni
+                      cursos-horario totales, pero sí cuántos alumnos son
+                      elegibles y, si hay asistencia histórica, cuánto es y
+                      cuánto representa». Con cientos de filas la tarjeta es
+                      justo eso: dos cifras, sin gráfico.
+
+                      La unidad se declara una vez en la cabecera de la lista,
+                      no una por fila: repetirla no informa. El `title` la
+                      conserva para quien llegue a una fila suelta. */}
                   <span className="cmv2-aulas-finales-elig">
-                    {fmtInt(a.eligibleN)} <em>alumnos elegibles</em>
+                    <CategoriaEvidencia
+                      aporte={{
+                        ch: 1,
+                        chContraste: 1,
+                        elegibles: a.eligibleN,
+                        tasaAsistencia,
+                        distribucion: null,
+                      }}
+                      dominio={null}
+                      variante="unidad"
+                    />
                   </span>
                 </li>
               );
@@ -136,6 +197,18 @@ export function AulasFinalesCard({
               <li className="cmv2-aulas-finales-vacio">Ningún curso-horario coincide con «{q}».</li>
             ) : null}
           </ul>
+          {filtradas.length > TOPE_FILAS && (
+            <p className="cmv2-aulas-finales-depth">
+              <span>
+                {recortada
+                  ? `Mostrando ${TOPE_FILAS} de ${fmtInt(filtradas.length)} · usa el buscador para llegar a uno concreto`
+                  : `Mostrando los ${fmtInt(filtradas.length)}`}
+              </span>
+              <button type="button" onClick={() => setVerTodas((v) => !v)}>
+                {recortada ? "Ver todos" : `Volver a ${TOPE_FILAS}`}
+              </button>
+            </p>
+          )}
         </div>
       ) : null}
     </section>

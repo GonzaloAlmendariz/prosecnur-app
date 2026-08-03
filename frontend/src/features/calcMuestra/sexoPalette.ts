@@ -24,6 +24,28 @@ export function sexSeriesKind(label: string): SexSeriesKind {
   return "other";
 }
 
+/**
+ * Etiqueta legible de una serie de sexo.
+ *
+ * Las leyendas mostraban **«F»** y **«M»** —los códigos con que viene la base—
+ * en «Distribución por facultad y sexo» (Entrega) y en el marco de población. Un
+ * gráfico que obliga a saber la codificación para leer su leyenda no se entrega
+ * a un cliente.
+ *
+ * Vive junto a `sexSeriesKind` a propósito: color y etiqueta deben decidirse con
+ * el mismo criterio, o una serie puede salir rosa y llamarse «M».
+ *
+ * Lo que no se reconoce **pasa tal cual**: si el estudio subdivide por turno o
+ * cohorte, inventarle un nombre sería peor que mostrar su código.
+ */
+export function sexSeriesLabel(label: string): string {
+  const kind = sexSeriesKind(label);
+  if (kind === "male") return "Hombres";
+  if (kind === "female") return "Mujeres";
+  if (kind === "missing") return "Sin dato";
+  return label;
+}
+
 const OTHER_SERIES = [
   "var(--cmv2-accent)",
   "var(--pulso-accent-cyan)",

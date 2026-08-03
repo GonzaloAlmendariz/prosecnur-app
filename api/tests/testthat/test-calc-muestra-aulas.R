@@ -33,6 +33,45 @@ test_that("calc-muestra aulas construye el mismo marco desde base madre o dos ba
   rownames(b) <- NULL
   expect_equal(a, b)
   expect_equal(frame_madre$audit$value[frame_madre$audit$metric == "population_n"], "6")
+  expect_false(frame_madre$relation_audit$used)
+  expect_equal(frame_madre$relation_audit$status, "sin_catalogo")
+})
+
+test_that("M1 usa min(n_aulas, marco elegible) sin truncar el target configurado", {
+  base <- data.frame(
+    student_id = paste0("s", 1:6),
+    aula_id = rep(paste0("A", 1:3), each = 2),
+    curso_id = rep(paste0("C", 1:3), each = 2),
+    curso = rep(paste("Curso", 1:3), each = 2),
+    horario = rep(c("L 8", "M 10", "J 12"), each = 2),
+    facultad = "FAC1",
+    programa = "P1",
+    sexo = rep(c("F", "M"), 3),
+    edad = 20,
+    condicion = "regular",
+    nivel = "pregrado",
+    modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    filters = list(min_eligible_per_class = 1L),
+    selector = list(
+      seed = 42L,
+      n_aulas = 5L,
+      replacement_waves = 0L,
+      selector_engine = "sistematico_pps",
+      simulation_runs = 0L,
+      monte_carlo_n = 0L,
+      strata_cols = list("facultad")
+    )
+  ))
+
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+
+  expect_identical(selection$selector$n_aulas, 5L)
+  expect_equal(sum(selection$selection$wave == "M1"), nrow(frame$aula_frame))
+  expect_equal(nrow(frame$aula_frame), 3L)
 })
 
 test_that("marco resume aulas con pares coherentes de facultad y carrera", {
@@ -262,6 +301,42 @@ test_that("marco advierte cuando base y catalogo no empatan completamente", {
   expect_true(any(grepl("problemas criticos", unlist(frame$warnings), fixed = TRUE)))
 })
 
+test_that("marco marca revisar cuando el catalogo deja una brecha no critica", {
+  base <- data.frame(
+    `Código PUCP` = paste0("20", 1:10),
+    Facultad = "CIENCIAS",
+    Carrera = "ESTADISTICA",
+    `Nivel curricular` = "pregrado",
+    Condición = "regular",
+    Sexo = rep(c("F", "M"), 5),
+    Edad = 20,
+    Curso = rep(paste0("EST", 1:5), each = 2),
+    Horario = rep(paste0("H", 1:5), each = 2),
+    Modalidad = "PRESENCIAL",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  catalogo <- data.frame(
+    Curso = paste0("EST", 1:4),
+    Horario = paste0("H", 1:4),
+    `Nombre de docente` = paste("Docente", 1:4),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+
+  frame <- calc_muestra_aulas_construir(
+    base_madre = base,
+    catalogo_curso_horario = catalogo,
+    config = cfg
+  )
+
+  expect_true(frame$relation_audit$used)
+  expect_equal(frame$relation_audit$status, "revisar")
+  expect_equal(frame$relation_audit$match_rate_classrooms, 0.8)
+  expect_true("aulas_base_sin_catalogo" %in% frame$relation_audit$issues$code)
+})
+
 test_that("lector de Excel permite elegir hoja especifica", {
   skip_if_not_installed("openxlsx")
   path <- tempfile(fileext = ".xlsx")
@@ -424,10 +499,10 @@ test_that("seleccion de aulas arma cadenas de reemplazo por titular y reserva ex
   expect_true(all(nzchar(titulars$selection_slot_id)))
   expect_true("operational_code" %in% names(rows))
   expect_equal(length(unique(rows$operational_code[nzchar(rows$operational_code)])), sum(nzchar(rows$operational_code)))
-  expect_true(all(grepl("^AULA [0-9]+$", titulars$operational_code)))
+  expect_true(all(grepl("^CH [0-9]+$", titulars$operational_code)))
   expect_true(all(reserves$replacement_for %in% titulars$classroom_id))
   expect_true(all(reserves$selection_slot_id %in% titulars$selection_slot_id))
-  expect_true(all(grepl("^R[0-9]+\\.[0-9]+$", reserves$operational_code)))
+  expect_true(all(grepl("^R [0-9]+\\.[0-9]+$", reserves$operational_code)))
   expect_true(all(reserves$titular_operational_code %in% titulars$operational_code))
   expect_equal(length(unique(reserves$classroom_id)), nrow(reserves))
   expect_true(all(table(reserves$replacement_for) <= 2L))
@@ -534,6 +609,13 @@ test_that("laboratorio compara cuatro motores con métricas y riesgos", {
   frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
   comparison <- calc_muestra_aulas_comparar_metodos(frame, cfg, simulation_runs = 100L)
 
+  expect_identical(comparison$selector$n_aulas, 4L)
+  expect_identical(
+    comparison$selector$schema,
+    "calc_muestra_aulas_method_comparison_selector_v1"
+  )
+  expect_true(comparison$selector$sequential_discount)
+  expect_identical(comparison$selector$objective, comparison$objective_config)
   method_ids <- vapply(comparison$methods, function(row) row$method_id, character(1))
   expect_true(all(c("sistematico_pps", "cube_balanceado", "local_pivotal_balanceado", "pool_controlado") %in% method_ids))
   expect_true(all(vapply(comparison$methods, function(row) all(c(
@@ -652,6 +734,15 @@ test_that("demo universitaria 2025 carga marco, seleccion y reemplazos sin PII",
   expect_equal(sum(selection$operation_status == "aplicada"), 192)
   expect_equal(sum(selection$used_as_replacement %in% TRUE), 49)
   expect_equal(nrow(.cm_aulas_as_df(demo$method_comparison$methods)), 4)
+  expect_identical(demo$method_comparison$selector$n_aulas, 170L)
+  expect_identical(
+    demo$method_comparison$selector$schema,
+    "calc_muestra_aulas_method_comparison_selector_v1"
+  )
+  expect_identical(
+    demo$method_comparison$selector$objective,
+    demo$method_comparison$objective_config
+  )
   expect_equal(demo$method_comparison$recommendation$method_id, "cube_balanceado")
   expect_true(nrow(suggestions) >= 170)
   expect_true(all(!nzchar(frame$teacher)))

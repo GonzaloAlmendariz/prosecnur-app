@@ -32,6 +32,17 @@ export function ensureUniversitySourceBindings(
   return defaults.map((item) => ({ ...item, ...(byRole.get(item.role) ?? {}) }));
 }
 
+/** La referencia histórica es una fuente analítica opcional, no un insumo del marco. */
+export function isUniversityFrameSourceBinding(binding: CalcMuestraWorkspaceSourceBinding) {
+  return binding.role !== "referencia_asistencia";
+}
+
+export function universityFrameSourceBindings(
+  bindings: CalcMuestraWorkspaceSourceBinding[] | undefined,
+) {
+  return (bindings ?? []).filter(isUniversityFrameSourceBinding);
+}
+
 export function expectedSheetRolesForSource(role: string) {
   if (role === "base_madre") return ["base_madre"];
   if (role === "estudiantes") return ["estudiantes", "base_madre"];
@@ -39,6 +50,7 @@ export function expectedSheetRolesForSource(role: string) {
   if (role === "inscripciones") return ["inscripciones", "base_madre"];
   if (role === "muestra_previa") return ["muestra_previa"];
   if (role === "agenda") return ["agenda"];
+  if (role === "referencia_asistencia") return ["referencia_asistencia"];
   return [];
 }
 
@@ -76,6 +88,7 @@ export function sourceRoleLabel(role: string) {
     inscripciones: "Inscripciones",
     muestra_previa: "Muestra previa",
     agenda: "Agenda",
+    referencia_asistencia: "Referencia histórica de asistencia",
   };
   return labels[role] ?? role.replace(/_/g, " ");
 }
@@ -85,7 +98,8 @@ export function sourceBindingRole(binding: CalcMuestraWorkspaceSourceBinding) {
 }
 
 export function canBuildUniversityDeskFrameFromBindings(bindings: CalcMuestraWorkspaceSourceBinding[]) {
-  const byRole = (role: string) => bindings.find((item) => item.role === role);
+  const frameBindings = universityFrameSourceBindings(bindings);
+  const byRole = (role: string) => frameBindings.find((item) => item.role === role);
   const primary = byRole("estudiantes");
   if (!primary?.file_id || !sourceBindingCompatibleForBuild(primary)) return false;
   if (sourceBindingRole(primary) === "base_madre") return true;
@@ -140,7 +154,7 @@ export function categoryCountSummaryLabel(unitLabel: string) {
 }
 
 export function universityInspectedColumnOptions(workspace: CalcMuestraWorkspace) {
-  const inspectedColumns = (workspace.source_bindings ?? []).flatMap((binding) => {
+  const inspectedColumns = universityFrameSourceBindings(workspace.source_bindings).flatMap((binding) => {
     const selected = sourceBindingSelectedSheet(binding);
     const diagnostics = sourceBindingDiagnostics(binding);
     const selectedDiagnostic = diagnostics.find((sheet) => sheet.name === selected) ?? diagnostics[0];

@@ -262,23 +262,49 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   out$expected_valid[!is.finite(out$expected_valid)] <- out$eligible_n[!is.finite(out$expected_valid)]
   out$eligible_n[!is.finite(out$eligible_n)] <- 0
   out$expected_valid[!is.finite(out$expected_valid)] <- 0
-  missing_code <- !nzchar(out$operational_code)
   slot_number <- suppressWarnings(as.integer(gsub("[^0-9]", "", out$selection_slot_id)))
   slot_number[!is.finite(slot_number)] <- out$orden[!is.finite(slot_number)]
-  out$operational_code[missing_code & out$sample_role == "titular"] <- paste("AULA", slot_number[missing_code & out$sample_role == "titular"])
-  reserve_missing <- missing_code & out$sample_role == "chain_reserve"
-  if (any(reserve_missing)) {
-    rep_order <- out$replacement_order
-    rep_order[!is.finite(rep_order) | rep_order <= 0] <- suppressWarnings(as.numeric(gsub("[^0-9]", "", out$wave[!is.finite(rep_order) | rep_order <= 0]))) - 1
-    rep_order[!is.finite(rep_order) | rep_order <= 0] <- 1
-    out$operational_code[reserve_missing] <- sprintf("R%s.%s", slot_number[reserve_missing], rep_order[reserve_missing])
-  }
-  extra_missing <- missing_code & out$sample_role == "extra_reserve_pool"
-  if (any(extra_missing)) out$operational_code[extra_missing] <- paste("EXTRA", seq_len(sum(extra_missing)))
-  missing_titular_code <- !nzchar(out$titular_operational_code) & out$sample_role %in% c("titular", "chain_reserve")
-  out$titular_operational_code[missing_titular_code] <- paste("AULA", slot_number[missing_titular_code])
-  missing_replacement_code <- !nzchar(out$replacement_chain_code) & out$sample_role == "chain_reserve"
-  out$replacement_chain_code[missing_replacement_code] <- out$operational_code[missing_replacement_code]
+  rep_order <- out$replacement_order
+  invalid_order <- !is.finite(rep_order) | rep_order <= 0
+  rep_order[invalid_order] <- suppressWarnings(
+    as.numeric(gsub("[^0-9]", "", out$wave[invalid_order]))
+  ) - 1
+  rep_order[!is.finite(rep_order) | rep_order <= 0] <- 1
+  extra_index <- rep(NA_integer_, nrow(out))
+  extra_rows <- which(out$sample_role == "extra_reserve_pool")
+  if (length(extra_rows)) extra_index[extra_rows] <- seq_along(extra_rows)
+
+  # La carga es la frontera de compatibilidad: códigos históricos se guardan
+  # ya canónicos para que todas las comparaciones exactas posteriores operen
+  # sobre `CH n` / `R n.k`, no solo la vista que los renderiza.
+  out$operational_code <- .cm_aulas_codigo_operativo(
+    code = out$operational_code,
+    role = out$sample_role,
+    slot_number = slot_number,
+    replacement_order = rep_order,
+    extra_index = extra_index
+  )
+  titular_role <- ifelse(
+    out$sample_role %in% c("titular", "chain_reserve"),
+    "titular",
+    ""
+  )
+  out$titular_operational_code <- .cm_aulas_codigo_operativo(
+    code = out$titular_operational_code,
+    role = titular_role,
+    slot_number = slot_number
+  )
+  replacement_role <- ifelse(
+    out$sample_role == "chain_reserve",
+    "chain_reserve",
+    ""
+  )
+  out$replacement_chain_code <- .cm_aulas_codigo_operativo(
+    code = out$replacement_chain_code,
+    role = replacement_role,
+    slot_number = slot_number,
+    replacement_order = rep_order
+  )
   out <- out[nzchar(out$classroom_id), , drop = FALSE]
   rownames(out) <- NULL
   .monitoreo_aulas_records(out)
@@ -286,10 +312,14 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
 
 .monitoreo_aulas_plan_index <- function(plan_df, classroom_id = "", operational_code = "") {
   classroom_id <- .monitoreo_scalar(classroom_id, "")
-  operational_code <- .monitoreo_scalar(operational_code, "")
+  operational_code <- .cm_aulas_codigo_operativo(
+    .monitoreo_scalar(operational_code, "")
+  )
   idx <- if (nzchar(classroom_id)) which(plan_df$classroom_id == classroom_id) else integer(0)
   if (!length(idx) && nzchar(operational_code) && "operational_code" %in% names(plan_df)) {
-    idx <- which(plan_df$operational_code == operational_code)
+    idx <- which(
+      .cm_aulas_codigo_operativo(plan_df$operational_code) == operational_code
+    )
   }
   idx
 }

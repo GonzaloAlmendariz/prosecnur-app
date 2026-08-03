@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CalcMuestraCorrida, CalcMuestraWorkspace } from "../../../api/client";
+import type { CalcMuestraAulasState, CalcMuestraCorrida, CalcMuestraWorkspace } from "../../../api/client";
 import {
   CORRIDAS_MAX,
   corridaDeCalculo,
@@ -9,6 +9,11 @@ import {
   registrarCorrida,
 } from "../corridas";
 import { defaultComponente } from "../sharedCore";
+import {
+  UNIVERSITY_FACULTY_COMPONENT_ID,
+  UNIVERSITY_TOTAL_COMPONENT_ID,
+} from "../universidad/shared/constants";
+import { universityComponentForScenario } from "../universidad/shared/study";
 
 function workspaceBase(overrides: Partial<CalcMuestraWorkspace> = {}): CalcMuestraWorkspace {
   return {
@@ -94,7 +99,7 @@ describe("corridaDeCalculo", () => {
     const ws = workspaceBase({
       aulas_config: { semilla: 20260619 } as CalcMuestraWorkspace["aulas_config"],
     });
-    const record = corridaDeCalculo({ totalComp: comp, workspace: ws });
+    const record = corridaDeCalculo({ componente: comp, workspace: ws });
     expect(record).not.toBeNull();
     expect(record?.tipo).toBe("calculo");
     expect(record?.metodo).toBe("prob_estratificado");
@@ -104,20 +109,55 @@ describe("corridaDeCalculo", () => {
   });
 
   it("devuelve null sin resultado útil", () => {
-    expect(corridaDeCalculo({ totalComp: undefined, workspace: workspaceBase() })).toBeNull();
-    expect(corridaDeCalculo({ totalComp: defaultComponente(), workspace: workspaceBase() })).toBeNull();
+    expect(corridaDeCalculo({ componente: undefined, workspace: workspaceBase() })).toBeNull();
+    expect(corridaDeCalculo({ componente: defaultComponente(), workspace: workspaceBase() })).toBeNull();
+  });
+
+  it("registra P2 en E2 y nunca P1 por posición", () => {
+    const conResultado = (actorId: string, n: number) => {
+      const comp = defaultComponente({ actor_id: actorId });
+      comp.resultado = {
+        n_teorico: n,
+        n_objetivo: n,
+        n_operativo: n,
+        origen_tamano: "formula",
+        tecnica: comp.tecnica,
+        computado_at: "2026-08-01T00:00:00Z",
+        inferencia: { permitido: true, motivos: null },
+        aulas_base_total: n,
+      };
+      return comp;
+    };
+    const p1 = conResultado(UNIVERSITY_TOTAL_COMPONENT_ID, 175);
+    const p2 = conResultado(UNIVERSITY_FACULTY_COMPONENT_ID, 268);
+    const workspace = workspaceBase({
+      motor_recorrido: {
+        schema: "calc_muestra_workspace_motor_v1",
+        fuente: "proyecto",
+        perfil: null,
+        decisiones: { escenario: "e2" },
+        tocado: true,
+      },
+    });
+
+    const selected = universityComponentForScenario([p1, p2], workspace);
+    expect(corridaDeCalculo({ componente: selected, workspace })?.n_objetivo).toBe(268);
   });
 });
 
 describe("corridaDeSeleccion", () => {
   const aulasState = {
+    frame: {
+      frame_hash: "abc123",
+      aula_frame: [{ classroom_id: "CH-1" }, { classroom_id: "CH-2" }],
+    },
     selection: {
       schema: "calc_muestra_aulas_selection_v1",
       selection_run_id: "sel-1",
       generated_at: "2026-07-08T10:00:00Z",
       frame_hash: "abc123",
       seed: 777,
-      selector: {},
+      selector: { n_aulas: 2 },
       selector_engine_used: "cube_balanceado",
       representativity_score: 0.91,
       selection: [
@@ -129,11 +169,11 @@ describe("corridaDeSeleccion", () => {
       quotas: [],
       summary: [],
     },
-  } as never;
+  } as unknown as CalcMuestraAulasState;
 
   it("resume titulares, reservas, esperados y representatividad", () => {
     const ws = workspaceBase({
-      aulas_config: { semilla: 20260619, bolsas_reemplazo: 11 } as CalcMuestraWorkspace["aulas_config"],
+      aulas_config: { n_aulas: 2, semilla: 20260619, bolsas_reemplazo: 11 } as CalcMuestraWorkspace["aulas_config"],
     });
     const record = corridaDeSeleccion({ aulasState, workspace: ws });
     expect(record).not.toBeNull();
@@ -151,6 +191,26 @@ describe("corridaDeSeleccion", () => {
 
   it("devuelve null sin selección con titulares", () => {
     expect(corridaDeSeleccion({ aulasState: null, workspace: workspaceBase() })).toBeNull();
+  });
+
+  it("no registra una selección producida para otro target", () => {
+    const workspace = workspaceBase({
+      aulas_config: { n_aulas: 29 } as CalcMuestraWorkspace["aulas_config"],
+    });
+
+    expect(corridaDeSeleccion({ aulasState, workspace })).toBeNull();
+  });
+
+  it("no registra una selección sin id propio de corrida", () => {
+    const workspace = workspaceBase({
+      aulas_config: { n_aulas: 2 } as CalcMuestraWorkspace["aulas_config"],
+    });
+    const sinRunId: CalcMuestraAulasState = {
+      ...aulasState,
+      selection: { ...aulasState.selection!, selection_run_id: "" },
+    };
+
+    expect(corridaDeSeleccion({ aulasState: sinRunId, workspace })).toBeNull();
   });
 });
 

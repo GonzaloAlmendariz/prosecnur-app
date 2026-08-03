@@ -4,27 +4,40 @@
  * motor sustituidos (peor brecha de perfil, peso de un aula concreta, π del
  * estudiante y n efectivo), con chips que referencian términos ya explicados
  * en Método y Simulación. La tarjeta de reproducibilidad defendible reúne
- * semilla, firma del marco, método, fuente de probabilidad, corrida y
- * corridas MC. Se conservan fuentes metodológicas, riesgos, brechas top y el
- * handoff operativo.
+ * semilla, firmas histórica y vigente del marco, método, fuente de
+ * probabilidad, corrida y corridas MC. Se conservan fuentes metodológicas,
+ * riesgos, brechas top y el handoff operativo.
  */
 import { FileText } from "lucide-react";
+import { RespaldoMetodologico } from "../../didactica/PasoDidactico";
 import { fmtDec, fmtInt, fmtPct, safeNumber } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FormulaLatex } from "../ui";
 import {
   ClassroomMethodSources,
   ClassroomOperationalHandoffPanel,
-  ClassroomRiskList,
   ProfileBalanceChart,
   classroomMethodLabel,
   classroomProbabilitySourceLabel,
   type ClassroomLabModel,
 } from "./aulasParts";
+import {
+  AulasStageNotice,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "./aulasSurfaceState";
+import { ClassroomRiskList } from "./ClassroomRiskList";
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
-export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
+export function AulasAuditoriaTab({
+  model,
+  onNavigate,
+}: {
+  model: ClassroomLabModel;
+  onNavigate?: AulasNavigate;
+}) {
   const {
     frame,
     selection,
@@ -58,15 +71,31 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
   // replay-a su cascada: la evidencia nueva se ve llegar. Las cifras del sello
   // no se remontan: CifraMotor ya funde sus valores con blur-swap.
   const corridaKey = selection?.selection_run_id ? String(selection.selection_run_id) : "sin-corrida";
+  const frameHash = frame?.frame_hash ? String(frame.frame_hash) : "";
+  const selectionHash = selection?.frame_hash ? String(selection.frame_hash) : "";
+  const frameChangedAfterSelection = Boolean(frameHash && selectionHash && frameHash !== selectionHash);
+  const generatedAt = frame?.generated_at ? String(frame.generated_at).slice(0, 16).replace("T", " ") : "";
+  const stageNotice = resolveAulasStageNotice(model, "auditoria");
 
   return (
     <div className="cmv2-aulas-stack">
+      {stageNotice && (
+        <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
+      )}
       <div className="cmv2-classroom-lab-grid">
-        <div className="cmv2-classroom-lab-main">
+        <div className="cmv2-classroom-lab-main cmv2-aulas-audit-main">
           <div className="cmv2-subhead">
             <strong>Fórmulas del diseño</strong>
           </div>
-          {!hasEvidence && (
+          {/* F22 · Un hueco se declara una sola vez.
+              Medido con el instrumento sin comparación vigente: el aviso de
+              etapa (40 palabras, con su salida a Método) y esta caja decían lo
+              mismo a 96 px de distancia. Cuando el aviso está, él manda: es el
+              que nombra la condición exacta y lleva a resolverla. Esta caja
+              sobrevive para el caso en que no hay aviso —evidencia parcial que
+              no dispara condición de etapa— y las fórmulas quedarían sin
+              explicar por qué están sin valores. */}
+          {!hasEvidence && !stageNotice && (
             <div className="cmv2-classroom-empty is-compact">
               <span><FileText size={16} /></span>
               <div>
@@ -75,7 +104,12 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
               </div>
             </div>
           )}
-          <div key={corridaKey} className="cmv2-aulas-formulas cmv2-uni-stagger">
+          <div
+            key={corridaKey}
+            className="cmv2-aulas-formulas cmv2-uni-stagger"
+            data-qa-geometry-group="aulas-auditoria-formulas"
+            data-qa-geometry-contract="intrinsic"
+          >
             <FormulaLatex
               caption="Brecha de balance por categoría"
               expression={"b(c) = \\%_{\\mathit{muestra}}(c) - \\%_{\\mathit{marco}}(c)"}
@@ -143,7 +177,12 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
             />
           </div>
 
-          <section className="cmv2-aulas-repro cmv2-aulas-sello" aria-label="Reproducibilidad defendible">
+          <section
+            className="cmv2-aulas-repro cmv2-aulas-sello"
+            aria-label="Reproducibilidad defendible"
+            data-qa-geometry-group="aulas-auditoria-reproducibilidad"
+            data-qa-geometry-contract="intrinsic"
+          >
             <div className="cmv2-subhead">
               <strong>Reproducibilidad</strong>
             </div>
@@ -153,18 +192,35 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
                 value={String(safeNumber(selection?.seed, config.semilla))}
                 detalle="fija el sorteo completo"
                 origen={selection ? "motor" : "preview"}
-              />
-              <CifraMotor
-                label="Firma del marco"
-                value={selection?.frame_hash ? String(selection.frame_hash).slice(0, 10) : frame?.frame_hash ? String(frame.frame_hash).slice(0, 10) : "pendiente"}
-                detalle="marco congelado usado"
-                origen={selection?.frame_hash || frame?.frame_hash ? "motor" : undefined}
+                monospace
               />
               <CifraMotor
                 label="Método usado"
                 value={selection ? classroomMethodLabel(String(selection.selector_engine_used ?? selection.selector_engine ?? "")) : classroomMethodLabel(model.recommendedMethodId)}
                 detalle={selection ? "cálculo ejecutado" : "recomendado vigente"}
                 origen={selection ? "motor" : undefined}
+              />
+            </CifraFila>
+            <CifraFila>
+              <CifraMotor
+                label="Firma usada por la selección"
+                value={selectionHash ? selectionHash.slice(0, 10) : "pendiente"}
+                detalle="marco usado al ejecutar la selección"
+                origen={selectionHash ? "motor" : undefined}
+                monospace
+              />
+              <CifraMotor
+                label="Firma del marco actual"
+                value={frameHash ? frameHash.slice(0, 10) : "pendiente"}
+                detalle="firma del marco vigente"
+                origen={frameHash ? "motor" : undefined}
+                monospace
+              />
+              <CifraMotor
+                label="Marco actual generado"
+                value={generatedAt || "pendiente"}
+                detalle="fecha de construcción del marco vigente"
+                origen={generatedAt ? "motor" : undefined}
               />
             </CifraFila>
             <CifraFila>
@@ -179,6 +235,7 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
                 value={selection?.selection_run_id ? String(selection.selection_run_id) : "pendiente"}
                 detalle="identificador auditable"
                 origen={selection?.selection_run_id ? "motor" : undefined}
+                monospace
               />
               <CifraMotor
                 label="Corridas MC"
@@ -189,14 +246,21 @@ export function AulasAuditoriaTab({ model }: { model: ClassroomLabModel }) {
             </CifraFila>
           </section>
 
+          {frameChangedAfterSelection && (
+            <AvisoModulo tone="warn" title="El marco cambió después de la selección.">
+              La selección vigente ({classroomMethodLabel(String(selection?.selector_engine_used ?? selection?.selector_engine ?? ""))}) se sorteó sobre la firma {selectionHash.slice(0, 10)}, pero el marco actual tiene la firma {frameHash.slice(0, 10)}. Vuelve a comparar métodos y seleccionar para que titulares y reemplazos correspondan al marco vigente.
+            </AvisoModulo>
+          )}
+
           <ClassroomMethodSources selection={selection} comparison={comparison} />
         </div>
         <aside className="cmv2-classroom-lab-side">
-          <ClassroomRiskList risks={comparison?.risk_flags ?? []} />
+          <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady} />
           <ProfileBalanceChart rows={topGaps} />
           <ClassroomOperationalHandoffPanel selection={selection} replacementSimulation={replacementSimulation} />
         </aside>
       </div>
+      <RespaldoMetodologico paso="aulas" />
     </div>
   );
 }

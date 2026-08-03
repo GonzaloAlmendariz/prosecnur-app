@@ -1,0 +1,255 @@
+.cmv2-alumnos-ch-stack,
+.cmv2-alumnos-ch {
+  display: grid;
+  gap: var(--pulso-space-4);
+  min-width: 0;
+}
+
+.cmv2-alumnos-ch-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-3);
+}
+
+.cmv2-alumnos-ch-head > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--pulso-radius);
+  color: var(--cmv2-accent);
+  background: var(--cmv2-accent-soft);
+}
+
+.cmv2-alumnos-ch-head h3 {
+  margin: 2px 0 0;
+}
+
+.cmv2-alumnos-ch-head small,
+.cmv2-alumnos-ch-table small {
+  display: block;
+  color: var(--pulso-text-muted);
+  font-size: 0.69rem;
+}
+
+.cmv2-alumnos-ch-head > div > small {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cmv2-alumnos-ch-head p {
+  max-width: 78ch;
+  margin: var(--pulso-space-2) 0 0;
+  color: var(--pulso-text-muted);
+  line-height: 1.5;
+}
+
+.cmv2-alumnos-ch-method {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--pulso-space-3);
+}
+
+.cmv2-alumnos-ch-method button {
+  display: grid;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  text-align: left;
+  white-space: normal;
+}
+
+.cmv2-alumnos-ch-method button[data-active="true"] {
+  border-color: var(--cmv2-accent);
+  background: var(--cmv2-accent-soft);
+  box-shadow: 0 0 0 2px var(--pulso-primary-focus);
+}
+
+.cmv2-alumnos-ch-method button span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-2);
+  font-weight: var(--pulso-weight-bold);
+}
+
+.cmv2-alumnos-ch-method button em {
+  padding: 2px 7px;
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-success-fg);
+  background: var(--pulso-success-bg);
+  font-size: 0.65rem;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+.cmv2-alumnos-ch-method button small {
+  color: var(--pulso-text-muted);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.cmv2-alumnos-ch-scroll {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  outline: none;
+}
+
+.cmv2-alumnos-ch-scroll:focus-visible {
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+}
+
+.cmv2-alumnos-ch-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-alumnos-ch-table th,
+.cmv2-alumnos-ch-table td {
+  min-width: 112px;
+  padding: var(--pulso-space-3);
+  border-right: 1px solid var(--pulso-border);
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.cmv2-alumnos-ch-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 220px;
+  background: var(--pulso-surface-raised);
+}
+
+.cmv2-alumnos-ch-table thead th {
+  color: var(--pulso-text);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-alumnos-ch-table tr[data-row-kind="total"] th,
+.cmv2-alumnos-ch-table tr[data-row-kind="total"] td {
+  background: var(--cmv2-accent-soft);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-alumnos-ch-table td[data-recommended="true"] {
+  color: var(--pulso-success-fg);
+  background: var(--pulso-success-bg);
+}
+
+.cmv2-alumnos-ch-table select {
+  min-width: 150px;
+}
+
+.cmv2-alumnos-ch-selected strong {
+  color: var(--cmv2-accent);
+  font-size: 1.05rem;
+}
+
+.cmv2-alumnos-ch-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-4);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-raised);
+  box-shadow: var(--pulso-shadow-low);
+}
+
+.cmv2-alumnos-ch-confirm > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.cmv2-alumnos-ch-confirm span {
+  color: var(--pulso-text-muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 900px) {
+  .cmv2-alumnos-ch-method {
+    grid-template-columns: 1fr;
+  }
+
+  .cmv2-alumnos-ch-confirm {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* S2/S4 · Tira comparable de la distribución por facultad.
+   Sustituye tres columnas de números por una lectura sobre escala compartida:
+   sin dominio común dos facultades distintas dibujaban lo mismo. Las cifras
+   siguen literales debajo — comparar no puede costar precisión. */
+.cmv2-alumnos-ch-dist { min-width: 168px; }
+
+.cmv2-alumnos-ch-tira {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmv2-alumnos-ch-tira svg {
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  max-height: 26px;
+}
+
+.cmv2-alumnos-ch-tira-riel { stroke: var(--cmv2-border); stroke-width: 1; }
+.cmv2-alumnos-ch-tira-rango { stroke: var(--cmv2-accent-border); stroke-width: 3; }
+.cmv2-alumnos-ch-tira-p25 { fill: var(--cmv2-accent-fg); }
+.cmv2-alumnos-ch-tira-p50 { stroke: var(--pulso-text); stroke-width: 2; }
+.cmv2-alumnos-ch-tira-media { fill: var(--pulso-surface); stroke: var(--pulso-text); stroke-width: 1.5; }
+.cmv2-alumnos-ch-tira-ref { stroke: var(--pulso-text-muted); stroke-width: 1; stroke-dasharray: 2 2; }
+
+.cmv2-alumnos-ch-tira-cifras {
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmv2-alumnos-ch-tira-cifras em { font-style: normal; opacity: 0.75; }
+
+.cmv2-alumnos-ch-tira-vacia {
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+/* Leyenda del bloque: una sola vez, nunca por fila. */
+.cmv2-alumnos-ch-tira-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+.cmv2-alumnos-ch-tira-leyenda-escala {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Causa del bloqueo junto al control bloqueado: sin esto, un botón deshabilitado
+   dejaba al usuario sin saber qué pieza falta. */
+.cmv2-alumnos-ch-bloqueo {
+  color: var(--pulso-danger-text, var(--pulso-text-muted));
+  font-size: 11px;
+}

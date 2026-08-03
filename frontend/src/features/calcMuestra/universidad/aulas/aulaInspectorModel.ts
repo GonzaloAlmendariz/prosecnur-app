@@ -8,6 +8,7 @@
  */
 import { fmtDec, fmtInt, fmtPct, safeNumber } from "../../sharedCore";
 import { classroomRowText, rowValueForCandidates } from "../shared/format";
+import { canonicalClassroomOperationalCode } from "./classroomOperationalCode";
 
 export const DASH = "—";
 
@@ -120,9 +121,9 @@ export function aulaInspectorRol(row: Record<string, unknown>): AulaInspectorRol
 }
 
 function replacementCode(row: Record<string, unknown>, fallbackOrder: number) {
-  return (
+  return canonicalClassroomOperationalCode(
     classroomRowText(row, ["operational_code", "replacement_chain_code"]) ||
-    (fallbackOrder > 0 ? `R.${fmtInt(fallbackOrder)}` : DASH)
+    (fallbackOrder > 0 ? `R .${fmtInt(fallbackOrder)}` : DASH),
   );
 }
 
@@ -219,7 +220,7 @@ export function buildAulaInspectorModel({
   } else if (rol === "extra") {
     rolLabel = "Bolsa extra";
   } else {
-    const code = classroomRowText(row, ["replacement_chain_code", "operational_code"]);
+    const code = canonicalClassroomOperationalCode(classroomRowText(row, ["replacement_chain_code", "operational_code"]));
     const orden = replacementOrder(row);
     rolLabel = `Reemplazo ${code || (orden !== 99 ? `R.${fmtInt(orden)}` : "")}`.trim();
     equivalenciaLabel = aulaEquivalenceLabel(classroomRowText(row, ["equivalence_level"]));
@@ -228,11 +229,11 @@ export function buildAulaInspectorModel({
       const titularId = classroomRowText(titularRow, ["classroom_id"]);
       titular = {
         id: titularId,
-        code: (
+        code: canonicalClassroomOperationalCode(
           classroomRowText(titularRow, ["operational_code"]) ||
           classroomRowText(row, ["titular_operational_code"]) ||
-          DASH
-        ).replace(/^AULA\b/i, "CH"),
+          DASH,
+        ),
         label: textOrDash(titularRow, ["course_name", "label", "classroom_id"]),
       };
       cadena = reservesForTitular(
@@ -242,7 +243,7 @@ export function buildAulaInspectorModel({
       ).map((reserve) => eslabonFrom(reserve, id));
     } else {
       const titularCode = classroomRowText(row, ["titular_operational_code"]);
-      titular = titularCode ? { id: "", code: titularCode.replace(/^AULA\b/i, "CH"), label: DASH } : null;
+      titular = titularCode ? { id: "", code: canonicalClassroomOperationalCode(titularCode), label: DASH } : null;
     }
   }
 
@@ -251,10 +252,10 @@ export function buildAulaInspectorModel({
 
   return {
     id: id || DASH,
-    code: (
+    code: canonicalClassroomOperationalCode(
       classroomRowText(row, ["operational_code", "replacement_chain_code"]) ||
-      (rol === "titular" ? "CH" : DASH)
-    ).replace(/^AULA\b/i, "CH"),
+      (rol === "titular" ? "CH" : DASH),
+    ),
     courseName: textOrDash(row, ["course_name", "label", "classroom_id"]),
     faculty: textOrDash(row, ["faculty", "stratum"]),
     program: textOrDash(row, ["program"]),

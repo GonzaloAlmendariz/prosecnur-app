@@ -1,0 +1,224 @@
+/* F1 integrado: la evidencia R vive dentro del criterio de una facultad. */
+.cmv2-crc-faculty-inline {
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.cmv2-crc-compact {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-surface) 94%, var(--cmv2-accent-soft));
+}
+
+.cmv2-crc-compact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-head > div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-head span,
+.cmv2-crc-compact-state {
+  color: var(--pulso-text-muted);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.cmv2-crc-compact-head strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-state {
+  flex: none;
+  padding: 3px 7px;
+  border: 1px solid var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--cmv2-accent-fg);
+  background: var(--pulso-surface);
+}
+
+/*
+ * G32 · La rejilla se adapta al número de segmentos.
+ *
+ * Era `repeat(4, 1fr)` fijo: un criterio con **un solo segmento** —el mínimo, el
+ * nivel del curso— recibía una celda de 272 px y dejaba tres cuartas partes de
+ * la fila en blanco. Gonzalo: «el correcto sigue sin usar todo el ancho
+ * disponible que tiene».
+ *
+ * No es sólo hueco desperdiciado: el gráfico proyecta su escala sobre el ancho
+ * que le den, así que 272 px en vez de 1.100 es **cuatro veces menos resolución**
+ * para distinguir Q1 de la mediana — justo la lectura para la que existe.
+ *
+ * Con `auto-fit` y un mínimo generoso, un segmento ocupa la fila entera, dos la
+ * parten por la mitad, y a partir de cuatro se comporta como antes.
+ */
+.cmv2-crc-compact-segments {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
+/*
+ * G34 · El sangrado del gráfico se publica como variable.
+ *
+ * El deslizador del criterio vive fuera de esta tarjeta y tiene que arrancar
+ * donde arranca el eje. Medido antes de esto: pista en x=131, gráfico en x=149
+ * — 18 px de desfase a cada lado, que son el relleno y el borde de aquí más el
+ * del contenedor. Con el ancho ya resuelto (G32) el desajuste se nota.
+ *
+ * Declararlo como variable evita el número mágico: quien cambie el relleno de
+ * la tarjeta mueve el deslizador con él.
+ */
+.cmv2-crc-compact-segment {
+  --cmv2-seg-sangrado: 7px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.cmv2-crc-compact-segment > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-segment > header strong {
+  overflow: hidden;
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-segment > header span {
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 8.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot {
+  gap: 0;
+  padding: 2px 4px;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot svg {
+  min-width: 0;
+  max-height: 30px;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot figcaption {
+  display: none;
+}
+
+.cmv2-crc-compact-segment .cmv2-i18b-boxplot-empty {
+  min-height: 30px;
+  padding: 4px 6px;
+  font-size: 9px;
+}
+
+/*
+ * Cinco columnas fijas cabían a 1440 y no a 1024: cada celda quedaba en 34 px y
+ * «Matrículas 19.846» desbordaba 3 px, siete veces. `auto-fit` deja que las
+ * columnas se reacomoden por ancho disponible en vez de exigir cinco siempre.
+ */
+.cmv2-crc-compact-segment dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 4px 8px;
+  margin: 0;
+}
+
+.cmv2-crc-compact-segment dl > div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-crc-compact-segment dt {
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-compact-segment dd {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-crc-compact-segment > p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 8.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-crc-card[data-context="faculty"] {
+  overflow: hidden;
+  border-color: var(--cmv2-accent-border);
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-surface) 96%, var(--cmv2-accent-soft));
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-card-head {
+  background: color-mix(in srgb, var(--pulso-surface) 82%, var(--cmv2-accent-soft));
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-faculties {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-faculty {
+  padding: 9px;
+}
+
+.cmv2-crc-card[data-context="faculty"] .cmv2-crc-step {
+  padding: 11px 12px;
+}
+
+@media (max-width: 1180px) {
+  .cmv2-crc-card[data-context="faculty"] .cmv2-crc-snapshot-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .cmv2-crc-compact-segments {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+/* G19 · Retiradas las reglas de `cmv2-crc-compact-detail`: estilaban la consola
+   de «Efecto de este criterio», que salió de la superficie. Las cazó el guard de
+   huérfanas en la misma corrida. */

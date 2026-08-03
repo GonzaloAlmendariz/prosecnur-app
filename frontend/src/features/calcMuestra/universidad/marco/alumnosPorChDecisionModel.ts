@@ -1,0 +1,104 @@
+import {
+  alumnosPorChValue,
+  type CalcMuestraAlumnosPorCh,
+  type CalcMuestraAlumnosPorChDecision,
+  type CalcMuestraAlumnosPorChMethod,
+} from "../../../../api/calcMuestraAlumnosPorCh";
+
+export const ALUMNOS_POR_CH_METHODS: ReadonlyArray<{
+  id: CalcMuestraAlumnosPorChMethod;
+  label: string;
+  detail: string;
+}> = [
+  { id: "p25", label: "P25", detail: "Conservador: una cuarta parte de los CH tiene este valor o menos." },
+  { id: "mediana", label: "Mediana", detail: "Centro robusto: divide los CH elegibles en dos mitades." },
+  { id: "media", label: "Media", detail: "Promedio: sensible a CH excepcionalmente grandes." },
+];
+
+export function effectiveAlumnosPorChMethod(
+  facultyKey: string,
+  defaultMethod: CalcMuestraAlumnosPorChMethod,
+  overrides: Readonly<Record<string, CalcMuestraAlumnosPorChMethod>>,
+): CalcMuestraAlumnosPorChMethod {
+  return overrides[facultyKey] ?? defaultMethod;
+}
+
+export function normalizeAlumnosPorChOverrides(
+  defaultMethod: CalcMuestraAlumnosPorChMethod,
+  overrides: Readonly<Record<string, CalcMuestraAlumnosPorChMethod>>,
+): Record<string, CalcMuestraAlumnosPorChMethod> {
+  return Object.fromEntries(
+    Object.entries(overrides)
+      .filter(([, method]) => method !== defaultMethod)
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+/**
+ * Método utilizable de verdad.
+ *
+ * Una decisión heredada o a medio guardar llega con `estadistico_default: ""`.
+ * Como es cadena vacía y no `undefined`, el `?? "p25"` de la superficie no caía
+ * al recomendado: el método quedaba vacío, ninguna facultad resolvía valor y el
+ * botón «Confirmar decisión» se deshabilitaba **para siempre** — justo el botón
+ * que habría reparado el estado. Trampa que se perpetúa sola.
+ */
+export function esMetodoAlumnosPorChValido(
+  value: unknown,
+): value is CalcMuestraAlumnosPorChMethod {
+  return ALUMNOS_POR_CH_METHODS.some((method) => method.id === value);
+}
+
+/** Método de arranque: el guardado solo si sirve; si no, el recomendado. */
+export function metodoAlumnosPorChInicial(
+  guardado: unknown,
+): CalcMuestraAlumnosPorChMethod {
+  return esMetodoAlumnosPorChValido(guardado) ? guardado : "p25";
+}
+
+export function missingAlumnosPorChFaculties(
+  snapshot: CalcMuestraAlumnosPorCh,
+  defaultMethod: CalcMuestraAlumnosPorChMethod,
+  overrides: Readonly<Record<string, CalcMuestraAlumnosPorChMethod>>,
+): string[] {
+  return snapshot.filas
+    .filter((row) => row.row_kind === "faculty")
+    // Una facultad sin CH elegibles no tiene distribución de la que salga un
+    // estadístico, y tampoco aporta unidades a la muestra: exigirle una decisión
+    // bloqueaba la confirmación —y con ella todo el cálculo aguas abajo— por
+    // facultades que no participan. Medido en el instrumento: dos facultades con
+    // 0 de 852 y 0 de 10 CH dejaban la decisión inconfirmable para siempre.
+    .filter((row) => (row.elegible?.n_ch ?? 0) > 0)
+    .filter((row) => alumnosPorChValue(
+      row.elegible,
+      effectiveAlumnosPorChMethod(row.faculty_key, defaultMethod, overrides),
+    ) === null)
+    .map((row) => row.faculty_label);
+}
+
+export function alumnosPorChDecisionIsCurrent(
+  snapshot: CalcMuestraAlumnosPorCh | null,
+  decision: CalcMuestraAlumnosPorChDecision | null,
+): boolean {
+  if (!snapshot || !decision || snapshot.frame_hash !== decision.frame_hash) return false;
+  return missingAlumnosPorChFaculties(
+    snapshot,
+    decision.estadistico_default,
+    decision.por_facultad,
+  ).length === 0;
+}
+
+export function alumnosPorChDraftMatchesDecision(
+  snapshot: CalcMuestraAlumnosPorCh | null,
+  decision: CalcMuestraAlumnosPorChDecision | null,
+  defaultMethod: CalcMuestraAlumnosPorChMethod,
+  overrides: Readonly<Record<string, CalcMuestraAlumnosPorChMethod>>,
+): boolean {
+  if (!alumnosPorChDecisionIsCurrent(snapshot, decision) ||
+      decision?.estadistico_default !== defaultMethod) return false;
+  const draft = normalizeAlumnosPorChOverrides(defaultMethod, overrides);
+  const saved = normalizeAlumnosPorChOverrides(defaultMethod, decision.por_facultad);
+  const keys = Object.keys(draft);
+  return keys.length === Object.keys(saved).length &&
+    keys.every((key) => draft[key] === saved[key]);
+}

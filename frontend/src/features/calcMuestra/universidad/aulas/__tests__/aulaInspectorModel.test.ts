@@ -106,7 +106,7 @@ describe("buildAulaInspectorModel", () => {
     expect(model.metodoLabel).toBe("Muestreo balanceado (cube)");
     expect(model.titular).toBeNull();
     // Cadena leída de replacement_for === classroom_id del titular, ordenada.
-    expect(model.cadena.map((slot) => slot.code)).toEqual(["R1.1", "R1.2"]);
+    expect(model.cadena.map((slot) => slot.code)).toEqual(["R 1.1", "R 1.2"]);
     expect(model.cadena.map((slot) => slot.id)).toEqual(["del204_0409", "der310_0102"]);
     expect(model.cadena[0].equivalencia).toBe("Misma celda");
     expect(model.cadena[1].equivalencia).toBe("Misma facultad");
@@ -120,7 +120,7 @@ describe("buildAulaInspectorModel", () => {
   it("arma el reemplazo con su titular, equivalencia y posición activa en la cadena", () => {
     const model = buildAulaInspectorModel({ row: R1, selectionRows: ROWS });
     expect(model.rol).toBe("reemplazo");
-    expect(model.rolLabel).toBe("Reemplazo R1.1");
+    expect(model.rolLabel).toBe("Reemplazo R 1.1");
     expect(model.equivalenciaLabel).toBe("Misma celda");
     expect(model.titular).toEqual({
       id: "dec285_0409",
@@ -128,7 +128,7 @@ describe("buildAulaInspectorModel", () => {
       label: "OBLIGACIONES",
     });
     // La cadena mostrada es la del titular, marcando este eslabón como activo.
-    expect(model.cadena.map((slot) => slot.code)).toEqual(["R1.1", "R1.2"]);
+    expect(model.cadena.map((slot) => slot.code)).toEqual(["R 1.1", "R 1.2"]);
     expect(model.cadena[0].activo).toBe(true);
     expect(model.cadena[1].activo).toBe(false);
     // Método no provisto → "—" (nunca texto inventado).
@@ -172,7 +172,7 @@ describe("buildAulaInspectorModel", () => {
     };
     const rows = [titular, reserva];
     const modelTitular = buildAulaInspectorModel({ row: titular, selectionRows: rows });
-    expect(modelTitular.cadena.map((slot) => slot.code)).toEqual(["R9.1"]);
+    expect(modelTitular.cadena.map((slot) => slot.code)).toEqual(["R 9.1"]);
     const modelReserva = buildAulaInspectorModel({ row: reserva, selectionRows: rows });
     expect(modelReserva.titular?.id).toBe("t1");
     expect(modelReserva.cadena[0].activo).toBe(true);

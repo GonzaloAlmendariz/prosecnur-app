@@ -266,7 +266,7 @@
 .cm_aulas_objective_defaults <- function() {
   variables <- data.frame(
     dimension = c("faculty", "program", "level", "schedule", "modality", "size_group", "sex"),
-    label = c("Facultad", "Programa", "Nivel/ciclo", "Horario", "Modalidad", "Tamaño de aula", "Sexo"),
+    label = c("Facultad", "Programa", "Nivel/ciclo", "Horario", "Modalidad", "Tamaño del curso-horario", "Sexo"),
     aula_col = c("faculty", "program", "level", "schedule", "modality", "size_group", "sex_top_1"),
     student_col = c("faculty", "program", "level", "", "", "", "sex"),
     weight = c(0.18, 0.14, 0.10, 0.10, 0.06, 0.08, 0.10),
@@ -393,9 +393,10 @@ calc_muestra_aulas_default_config <- function() {
       ),
       duplicate_penalty = 1.35,
       # Descuento secuencial de repetidos entre aulas del estrato (asesoría
-      # muestral 2026-07-15 §10). OFF por default (retro-compat/goldens);
-      # la lógica vive en calc_muestra_aulas_descuento.R.
-      sequential_discount = FALSE,
+      # muestral 2026-07-15 §10). ON por default; los escenarios históricos
+      # que congelan la selección anterior declaran FALSE explícitamente.
+      # La lógica vive en calc_muestra_aulas_descuento.R.
+      sequential_discount = TRUE,
       pps_weight = 0.25,
       coverage_weight = 1,
       monte_carlo_n = 500L,
@@ -409,7 +410,11 @@ calc_muestra_aulas_default_config <- function() {
     # Selección por categorías (scope alumno/aula). Nace vacía: sin ella el
     # marco sale por el path legacy de patrones (retro-compat bit a bit). La
     # lógica vive en calc_muestra_aulas_criterios.R.
-    criterios_seleccion = list()
+    criterios_seleccion = list(),
+    # Firma de la decisión que produjo el objetivo de esta corrida. No cambia
+    # el frame; impide que una comparación/selección vieja reviva si el nuevo
+    # cálculo coincide accidentalmente en `n_aulas`.
+    alumnos_por_ch_decision = NULL
   )
 }
 
@@ -509,6 +514,9 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     criterios_seleccion = .cm_criterios_normalize_seleccion(
       config$criterios_seleccion %||% config$criterios_marco %||% config$seleccion_criterios
     ),
+    alumnos_por_ch_decision = .cm_alumnos_por_ch_decision_signature(
+      config$alumnos_por_ch_decision
+    ),
     # ADR 0035: orden de jerarquía docente (ALTO→BAJO) para la etiqueta
     # teacher_type_top del aula_frame. Solo etiqueta/catálogo, no filtra.
     # NULL/vacío → orden por defecto académico. Lógica en
@@ -543,6 +551,8 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
   if (grepl("agenda|aplicacion|campo|correo|envio", sheet_key)) {
     return(list(role = "agenda", label = "Agenda operativa", confidence = 0.82))
   }
+  asistencia_hint <- .cm_asist_sheet_role_hint(df)
+  if (!is.null(asistencia_hint)) return(asistencia_hint)
   if (grepl("muestra|muestral|reserva", sheet_key)) {
     return(list(role = "muestra_previa", label = "Muestra previa", confidence = 0.84))
   }
@@ -585,7 +595,7 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
         confidence = role$confidence
       )
     })
-    role_rank <- c(base_madre = 1L, estudiantes = 2L, inscripciones = 3L, catalogo_curso_horario = 4L, muestra_previa = 5L, agenda = 6L, desconocida = 9L)
+    role_rank <- c(base_madre = 1L, estudiantes = 2L, inscripciones = 3L, catalogo_curso_horario = 4L, referencia_asistencia = 5L, muestra_previa = 6L, agenda = 7L, desconocida = 9L)
     scores <- vapply(sheets, function(item) {
       rank <- role_rank[[item$role]] %||% 9L
       (10 - rank) + (.cm_aulas_num(item$confidence, 0) * 2)
@@ -851,22 +861,22 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
       code = "empate_bajo_catalogo",
       severity = "alta",
       title = "La coincidencia entre bases es baja",
-      detail = sprintf("Solo %.1f%% de las aulas de la base principal empatan con el catálogo.", 100 * audit$match_rate_classrooms)
+      detail = sprintf("Solo %.1f%% de los cursos-horario de la base principal empatan con el catálogo.", 100 * audit$match_rate_classrooms)
     )
   } else if (length(unmatched_base)) {
     issues[[length(issues) + 1L]] <- list(
       code = "aulas_base_sin_catalogo",
       severity = "media",
-      title = "Hay aulas de la base sin ficha de catálogo",
-      detail = sprintf("%s aulas de la base principal no tienen fila equivalente en el catálogo.", length(unmatched_base))
+      title = "Hay cursos-horario de la base sin ficha de catálogo",
+      detail = sprintf("%s cursos-horario de la base principal no tienen fila equivalente en el catálogo.", length(unmatched_base))
     )
   }
   if (length(catalog_only)) {
     issues[[length(issues) + 1L]] <- list(
       code = "catalogo_fuera_de_base",
       severity = "baja",
-      title = "El catálogo tiene aulas que no aparecen en la base",
-      detail = sprintf("%s aulas del catálogo no están en la población leída; se tratan como contexto, no como marco.", length(catalog_only))
+      title = "El catálogo tiene cursos-horario que no aparecen en la base",
+      detail = sprintf("%s cursos-horario del catálogo no están en la población leída; se tratan como contexto, no como marco.", length(catalog_only))
     )
   }
   if (isTRUE(enrichment_audit$used) &&
@@ -876,7 +886,7 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
       code = "catalogo_sin_docente",
       severity = "media",
       title = "Falta docente/contacto legible",
-      detail = "Las aulas empataron, pero no se encontró nombre de docente o contacto para preparar agenda."
+      detail = "Los cursos-horario empataron, pero no se encontró nombre de docente o contacto para preparar agenda."
     )
   }
 
@@ -960,14 +970,17 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
                                     source_role,
                                     primary_values,
                                     secondary_values,
-                                    unit_label) {
+                                    unit_label,
+                                    preserve_blank_secondary = FALSE) {
   primary_values <- trimws(as.character(primary_values %||% character(0)))
   secondary_values <- trimws(as.character(secondary_values %||% character(0)))
   n <- min(length(primary_values), length(secondary_values))
   if (!n) return(data.frame(stringsAsFactors = FALSE))
   primary_values <- primary_values[seq_len(n)]
   secondary_values <- secondary_values[seq_len(n)]
-  keep <- nzchar(primary_values) & nzchar(secondary_values)
+  keep <- nzchar(primary_values) & (
+    nzchar(secondary_values) | isTRUE(preserve_blank_secondary)
+  )
   if (!any(keep)) return(data.frame(stringsAsFactors = FALSE))
   tab <- as.data.frame(
     table(primary_values[keep], secondary_values[keep]),
@@ -1278,6 +1291,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       classroom_id = classroom_id,
       student_id = student_id,
       level = level,
+      formation = formation,
+      condition = condition,
+      age = age,
       # Facultad del ESTUDIANTE por fila: insumo de faculty_match_share
       # (criterio 8, parte 1 — acuerdo 2026-07-15).
       faculty = faculty,
@@ -1285,7 +1301,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       course_level = course_level,
       condicion_curso = condicion_curso,
       campus = campus,
-      eligible_row = eligible_row
+      eligible_row = eligible_row,
+      row_base_ok = sid_ok & age_ok & condition_ok & level_ok & modality_ok &
+        session_ok & classroom_ok,
+      alumno_marco_ok = alumno_sel$marco_ok
     ),
     population = population,
     cfg = cfg,
@@ -1320,7 +1339,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (is.null(category_profiles)) category_profiles <- data.frame(stringsAsFactors = FALSE)
   rownames(category_profiles) <- NULL
   population_cross_profiles <- do.call(rbind, Filter(NROW, list(
-    .cm_aulas_cross_profile("faculty", "Facultad", "sex", "Sexo", "base_madre", population$faculty, population$sex, "estudiantes"),
+    .cm_aulas_cross_profile("faculty", "Facultad", "sex", "Sexo", "base_madre", population$faculty, population$sex, "estudiantes", preserve_blank_secondary = TRUE),
     .cm_aulas_cross_profile("faculty", "Facultad", "level", "Ciclo, nivel o año", "base_madre", population$faculty, population$level, "estudiantes"),
     .cm_aulas_cross_profile("faculty", "Facultad", "program", "Programa o carrera", "base_madre", population$faculty, population$program, "estudiantes")
   )))
@@ -1462,7 +1481,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # las señales ya adjuntadas en out$particularidades. Un solo call-site; la
   # lógica vive en calc_muestra_aulas_exploracion.R (este archivo no debe
   # crecer).
-  out <- .cm_exploracion_adjuntar(out)
+  out <- .cm_criterios_i18b_adjuntar(.cm_exploracion_adjuntar(out, criterios), criterios)
   # Impacto del tipo de sesión por facultad (guard §12 «doble selección del
   # taller», schema cm_session_type_impacto_v1): un solo call-site; la lógica
   # vive en calc_muestra_aulas_criterios.R (este archivo no debe crecer).
@@ -1623,7 +1642,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       "La seleccion busca reproducir cuotas y auxiliares del marco, no solo tamano.",
       "La bitacora guarda motor, semilla, fallback y advertencias.",
       "Modo avanzado para reducir concentracion por programa, nivel u horario.",
-      "Las aulas seleccionadas salen con peso de aula y pesos estudiantiles agregados.",
+      "Los cursos-horario seleccionados salen con su peso y con los pesos estudiantiles agregados.",
       "Monitoreo mide caídas y sesgos sin exigir identificador personal en respuestas.",
       "Las reservas se trazan por ola y motivo, sin cambiar el marco base.",
       "El workbook permite auditoria metodologica y operativa."
@@ -1977,102 +1996,6 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     return(ifelse(wave == "M1", "titular", "chain_reserve"))
   }
   rep("titular", nrow(df))
-}
-
-.cm_aulas_selection_slot_ids <- function(n, prefix = "slot") {
-  sprintf("%s_%03d", prefix, seq_len(max(0L, as.integer(n))))
-}
-
-.cm_aulas_slot_number <- function(slot_id, fallback = NA_integer_) {
-  raw <- .cm_aulas_scalar(slot_id, "")
-  hit <- regmatches(raw, regexpr("[0-9]+", raw))
-  if (!length(hit) || !nzchar(hit[[1]])) return(as.integer(fallback))
-  out <- suppressWarnings(as.integer(hit[[1]]))
-  if (!is.finite(out)) as.integer(fallback) else out
-}
-
-.cm_aulas_assign_operational_codes <- function(df) {
-  df <- .cm_aulas_as_df(df, "selection_df")
-  if (!nrow(df)) return(df)
-  if (!"wave" %in% names(df)) df$wave <- ""
-  if (!"classroom_id" %in% names(df)) df$classroom_id <- ""
-  if (!"selection_slot_id" %in% names(df)) df$selection_slot_id <- ""
-  if (!"replacement_order" %in% names(df)) {
-    df$replacement_order <- ifelse(df$wave == "M1", 0L, vapply(df$wave, .cm_aulas_wave_number, integer(1)) - 1L)
-  }
-  if (!"replacement_for" %in% names(df)) df$replacement_for <- ""
-  roles <- .cm_aulas_role_values(df)
-  titular_idx <- which(roles == "titular" | as.character(df$wave) == "M1")
-  if (length(titular_idx)) {
-    missing_slot <- !nzchar(as.character(df$selection_slot_id[titular_idx]))
-    if (any(missing_slot)) {
-      df$selection_slot_id[titular_idx[missing_slot]] <- .cm_aulas_selection_slot_ids(length(titular_idx))[missing_slot]
-    }
-  }
-  slot_lookup <- stats::setNames(integer(0), character(0))
-  titular_lookup <- stats::setNames(character(0), character(0))
-  if (length(titular_idx)) {
-    slot_ids <- as.character(df$selection_slot_id[titular_idx])
-    slot_numbers <- vapply(seq_along(slot_ids), function(i) .cm_aulas_slot_number(slot_ids[[i]], i), integer(1))
-    slot_lookup <- stats::setNames(slot_numbers, slot_ids)
-    titular_lookup <- stats::setNames(slot_ids, as.character(df$classroom_id[titular_idx]))
-  }
-  extra_idx <- which(roles == "extra_reserve_pool")
-  chain_idx <- which(roles == "chain_reserve" & !seq_len(nrow(df)) %in% titular_idx)
-  if (length(chain_idx)) {
-    missing_slot <- !nzchar(as.character(df$selection_slot_id[chain_idx]))
-    replacement_for <- as.character(df$replacement_for[chain_idx])
-    from_titular <- unname(titular_lookup[replacement_for])
-    fillable <- missing_slot & !is.na(from_titular) & nzchar(from_titular)
-    if (any(fillable)) df$selection_slot_id[chain_idx[fillable]] <- from_titular[fillable]
-  }
-  operational_code <- rep("", nrow(df))
-  titular_operational_code <- rep("", nrow(df))
-  replacement_chain_code <- rep("", nrow(df))
-  operational_sequence <- rep(NA_integer_, nrow(df))
-  if (length(titular_idx)) {
-    for (pos in seq_along(titular_idx)) {
-      i <- titular_idx[[pos]]
-      slot <- as.character(df$selection_slot_id[[i]])
-      slot_num <- .cm_aulas_slot_number(slot, pos)
-      code <- paste("AULA", slot_num)
-      operational_sequence[[i]] <- slot_num
-      operational_code[[i]] <- code
-      titular_operational_code[[i]] <- code
-    }
-  }
-  if (length(chain_idx)) {
-    for (i in chain_idx) {
-      slot <- as.character(df$selection_slot_id[[i]])
-      slot_num <- .cm_aulas_slot_number(slot, NA_integer_)
-      if (!is.finite(slot_num)) {
-        replacement_for <- .cm_aulas_scalar(df$replacement_for[[i]], "")
-        mapped_slot <- if (nzchar(replacement_for) && replacement_for %in% names(titular_lookup)) titular_lookup[[replacement_for]] else ""
-        slot_num <- .cm_aulas_slot_number(mapped_slot, NA_integer_)
-      }
-      order <- suppressWarnings(as.integer(df$replacement_order[[i]]))
-      if (!is.finite(order) || order <= 0L) order <- max(1L, .cm_aulas_wave_number(df$wave[[i]]) - 1L)
-      if (is.finite(slot_num)) {
-        code <- sprintf("R%s.%s", slot_num, order)
-        operational_sequence[[i]] <- slot_num
-        titular_operational_code[[i]] <- paste("AULA", slot_num)
-        replacement_chain_code[[i]] <- code
-        operational_code[[i]] <- code
-      }
-    }
-  }
-  if (length(extra_idx)) {
-    for (pos in seq_along(extra_idx)) {
-      i <- extra_idx[[pos]]
-      operational_sequence[[i]] <- pos
-      operational_code[[i]] <- paste("EXTRA", pos)
-    }
-  }
-  df$operational_code <- operational_code
-  df$titular_operational_code <- titular_operational_code
-  df$replacement_chain_code <- replacement_chain_code
-  df$operational_sequence <- operational_sequence
-  df
 }
 
 .cm_aulas_reconstruct_chains_from_order <- function(df) {
@@ -3043,8 +2966,11 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
 
 .cm_aulas_method_explanation <- function(engine) {
   engine <- .cm_aulas_engine_key(engine)
-  if (engine == "sistematico_pps") return("Da más probabilidad a aulas con más estudiantes elegibles y funciona como benchmark simple.")
-  if (engine == "cube_balanceado") return("Busca que las aulas seleccionadas reproduzcan el marco en facultad, programa, nivel, horario y tamaño.")
+  # ADR 0057 · La unidad se llama curso-horario en toda la app; «aula» fue otra
+  # cosa en versiones anteriores, así que el sinónimo obliga a preguntarse si
+  # nombra algo distinto. «Benchmark» tampoco: es punto de comparación.
+  if (engine == "sistematico_pps") return("Da más probabilidad a los cursos-horario con más estudiantes elegibles; sirve de punto de comparación para los demás métodos.")
+  if (engine == "cube_balanceado") return("Busca que los cursos-horario seleccionados reproduzcan el marco en facultad, programa, nivel, horario y tamaño.")
   if (engine == "local_pivotal_balanceado") return("Además de balancear, intenta dispersar la muestra para evitar concentración académica u operativa.")
   if (engine == "pool_controlado") return("Compara muestras candidatas y elige la que reduce mejor el solape, registrando probabilidades por simulación.")
   if (engine == "estratificado_aleatorio") return("Selecciona dentro de cada estrato sin optimización adicional.")
@@ -3589,6 +3515,7 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
     schema = "calc_muestra_aulas_method_comparison_v1",
     generated_at = .cm_aulas_now_iso(),
     frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
+    selector = .cm_aulas_method_comparison_selector_snapshot(selector, objective),
     methods = .cm_aulas_records(metrics),
     recommendation = list(
       method_id = recommended$method_id[[1]],
@@ -4364,6 +4291,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     schema = "calc_muestra_aulas_method_comparison_v1",
     generated_at = .cm_aulas_now_iso(),
     frame_hash = .cm_aulas_scalar(frame_result$frame_hash, ""),
+    selector = .cm_aulas_method_comparison_selector_snapshot(config$selector, config$objective),
     methods = methods,
     recommendation = list(
       method_id = "cube_balanceado",
@@ -4901,15 +4829,30 @@ calc_muestra_aulas_exportar_workbook <- function(frame_result, selection_result,
     stop("El paquete R 'openxlsx' no esta instalado.", call. = FALSE)
   }
   wb <- openxlsx::createWorkbook()
+  canonicalize_codes <- function(data, name) {
+    df <- .cm_aulas_as_df(data, name)
+    exact <- c(
+      "operational_code", "titular_operational_code",
+      "replacement_chain_code", "first_replacement_code",
+      "reserve_operational_code", "replacement_operational_code"
+    )
+    code_cols <- names(df)[
+      names(df) %in% exact |
+        grepl("^m[0-9]+_operational_code$", names(df))
+    ]
+    for (column in code_cols) {
+      df[[column]] <- .cm_aulas_codigo_operativo(df[[column]])
+    }
+    df
+  }
   write_sheet <- function(name, data) {
     openxlsx::addWorksheet(wb, name)
-    openxlsx::writeData(wb, name, .cm_aulas_as_df(data, name))
+    openxlsx::writeData(wb, name, canonicalize_codes(data, name))
   }
   openxlsx::addWorksheet(wb, "Marco aulas")
   openxlsx::writeData(wb, "Marco aulas", .cm_aulas_as_df(frame_result$aula_frame, "aula_frame"))
-  openxlsx::addWorksheet(wb, "Seleccion")
-  openxlsx::writeData(wb, "Seleccion", .cm_aulas_as_df(selection_result$selection, "selection"))
-  selection_df <- .cm_aulas_as_df(selection_result$selection, "selection")
+  selection_df <- canonicalize_codes(selection_result$selection, "selection")
+  write_sheet("Seleccion", selection_df)
   roles <- .cm_aulas_role_values(selection_df)
   write_sheet("Aulas titulares", selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE])
   write_sheet("Reemplazos por titular", selection_result$diagnostics$replacement_chains %||% .cm_aulas_replacement_chains_table(selection_df))

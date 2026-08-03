@@ -10,13 +10,18 @@ import {
   type CalcMuestraEstudio,
   type CalcMuestraWorkspace,
 } from "../../../api/client";
-import { CountUp } from "./CountUp";
-import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import {
-  UNIVERSITY_FACULTY_COMPONENT_ID,
-  UNIVERSITY_TOTAL_COMPONENT_ID,
-} from "../universidad/shared/constants";
-import { normalizeUniversityAulasConfig } from "../universidad/shared/study";
+  normalizeCalcMuestraDistribucionI19,
+  type CalcMuestraDistribucionI19State,
+} from "../../../api/calcMuestraDistribucionI19";
+import { fmtInt } from "../sharedCore";
+import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoDistribucionModel";
+import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
+import { frameIntegrity } from "../universidad/shared/frameIntegrity";
+import {
+  normalizeUniversityAulasConfig,
+  universityComponentForScenario,
+} from "../universidad/shared/study";
 import { useMotorStore } from "../store";
 import type { MotorEfectivo } from "./usePerfilEfectivo";
 import "./motor.css";
@@ -28,6 +33,8 @@ type SummaryMetric = {
   icon: ReactNode;
   tone: "universe" | "estimated" | "confirmed" | "operation";
 };
+
+export const summaryComponentForScenario = universityComponentForScenario;
 
 export function ResumenDiseno({
   motor,
@@ -42,9 +49,13 @@ export function ResumenDiseno({
 }) {
   const resetCanon = useMotorStore((s) => s.resetCanon);
   const opcionalesActivos = useMotorStore((s) => s.decisiones.opcionalesActivos);
+  const escenario = useMotorStore((s) => s.decisiones.escenario);
   const { perfil } = motor;
   const frame = aulasState?.frame ?? null;
   const frameProfile = frame?.perfil ?? null;
+  const integridadFrame = frameIntegrity(frame);
+  const marcoPublicable = integridadFrame.status === "consistent";
+  const marcoIncoherente = integridadFrame.status === "inconsistent";
 
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
 
@@ -54,9 +65,8 @@ export function ResumenDiseno({
   const universoEstudiantes = frameProfile?.universo ?? null;
   const universoCursosHorario =
     frameProfile?.aulas_totales ?? (frameAuditNumber(frame, "classroom_n") || null);
-  const estudiantesElegibles = frameProfile?.poblacion_n ?? null;
-  const cursosHorarioElegibles =
-    frameProfile?.marco_aulas ?? (frameAuditNumber(frame, "classroom_included_n") || null);
+  const estudiantesElegibles = marcoPublicable ? frameProfile?.poblacion_n ?? null : null;
+  const cursosHorarioElegibles = integridadFrame.marcoAulas;
 
   // ¿El marco quedó desactualizado? Señal EXACTA (no una estimación viva): los
   // criterios confirmados en el workspace difieren de los que produjeron el
@@ -72,18 +82,50 @@ export function ResumenDiseno({
   );
   const estudiantesDesactualizados = estudiantesElegibles != null && marcoDesactualizado;
   const cursosDesactualizados = cursosHorarioElegibles != null && marcoDesactualizado;
+  const notaIntegridad = marcoIncoherente
+    ? "frame incoherente · reconstruye"
+    : !marcoPublicable
+      ? "frame no verificable · reconstruye"
+      : null;
 
-  // Metas operativas: SOLO tras ejecutar el cálculo (resultado persistido del
-  // componente). Sin corrida de cálculo → "—" (no hay diseño calculado aún).
-  const totalComp =
-    estudio.componentes.find((c) => c.actor_id === UNIVERSITY_TOTAL_COMPONENT_ID) ??
-    estudio.componentes.find((c) => c.actor_id === UNIVERSITY_FACULTY_COMPONENT_ID) ??
-    estudio.componentes[0];
-  const resultado = totalComp?.resultado ?? null;
-  const calcEjecutado = Boolean(resultado && Number(resultado.n_objetivo) > 0);
-  const muestraObjetivo = calcEjecutado && resultado ? resultado.n_objetivo : null;
-  const sobremuestraOperativa =
-    calcEjecutado && resultado ? (resultado.n_operativo ?? resultado.sobremuestra ?? null) : null;
+  // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
+  // superficie Distribución acreditan actor, escenario, owner R y frame. Un
+  // resultado raw stale/invalid nunca publica cifras en la cabecera.
+  const resultModel = useMemo(() => {
+    const selection = calculoDistribucionScenarioMeta(escenario);
+    const matching = estudio.componentes.filter((component) => component.actor_id === selection.actorId);
+    const component = matching.length === 1 ? matching[0] : undefined;
+    const state: CalcMuestraDistribucionI19State = component
+      ? normalizeCalcMuestraDistribucionI19(component.resultado, {
+          component_id: component.id,
+          actor_id: selection.actorId,
+          scenario: selection.scenario,
+          technique: component.tecnica,
+          current_frame_hash: frame?.frame_hash,
+        })
+      : {
+          kind: "invalid",
+          reasons: [`${selection.shortLabel} requiere exactamente un componente ${selection.actorId}.`],
+        };
+    return { component, selection, state };
+  }, [escenario, estudio.componentes, frame?.frame_hash]);
+  const resultReady = resultModel.state.kind === "ready";
+  const muestraObjetivo = resultModel.state.kind === "ready"
+    ? resultModel.state.data.totals.sample_n
+    : null;
+  const rawOperational = resultModel.component?.resultado?.n_operativo;
+  const sobremuestraOperativa = resultReady && Number.isSafeInteger(rawOperational) && Number(rawOperational) >= 0
+    ? Number(rawOperational)
+    : null;
+  const resultNote = resultReady
+    ? `${resultModel.selection.shortLabel} · R · frame vigente`
+    : resultModel.state.kind === "stale"
+      ? `${resultModel.selection.shortLabel} · R · frame anterior`
+      : resultModel.state.kind === "invalid"
+        ? `${resultModel.selection.shortLabel} · R · resultado inválido`
+        : resultModel.state.kind === "legacy"
+          ? `${resultModel.selection.shortLabel} · contrato anterior`
+          : `${resultModel.selection.shortLabel} · falta calcular`;
 
   const metrics: SummaryMetric[] = [
     {
@@ -103,35 +145,40 @@ export function ResumenDiseno({
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente",
+      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
-      tone: estudiantesDesactualizados ? "estimated" : "confirmed",
+      tone: estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente",
+      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: cursosDesactualizados ? "estimated" : "confirmed",
+      tone: cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Muestra objetivo",
       value: muestraObjetivo,
-      note: calcEjecutado ? "respuestas válidas" : "falta calcular",
+      note: resultNote,
       icon: <Target size={16} aria-hidden="true" />,
       tone: "operation",
     },
     {
       label: "Sobremuestra operativa",
       value: sobremuestraOperativa,
-      note: calcEjecutado ? "techo con contingencia" : "falta calcular",
+      note: resultNote,
       icon: <ShieldCheck size={16} aria-hidden="true" />,
       tone: "operation",
     },
   ];
 
   return (
-    <section className="rec-resumen-shell" data-audit-ready="calc-muestra-motor" aria-label="Resumen persistente del diseño">
+    <section
+      className="rec-resumen-shell"
+      data-audit-ready="calc-muestra-motor"
+      data-result-state={resultModel.state.kind}
+      aria-label="Resumen persistente del diseño"
+    >
       <header className="rec-resumen-context">
         <span className="rec-resumen-context-title">
           <small>Diseño vigente</small>
@@ -165,7 +212,7 @@ export function ResumenDiseno({
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
             <span className="rec-resumen-item-copy">
               <small>{metric.label}</small>
-              <strong><CountUp value={metric.value} /></strong>
+              <strong>{metric.value == null ? "—" : fmtInt(metric.value)}</strong>
               <span>{metric.note}</span>
             </span>
           </div>

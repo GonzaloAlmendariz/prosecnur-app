@@ -2023,34 +2023,35 @@
   border-color: var(--pulso-warn-border);
   background: color-mix(in srgb, var(--pulso-warn-bg) 40%, var(--pulso-surface));
 }
-.cmv2-partic-section > *:not(summary) {
+.cmv2-partic-section > *:not(header) {
   margin-left: 12px;
   margin-right: 12px;
 }
-.cmv2-partic-section > :last-child:not(summary) {
+.cmv2-partic-section > :last-child:not(header) {
   margin-bottom: 12px;
 }
 
+/*
+ * F101 · Estas secciones eran `<details>` cerrados y su cabecera decía «N
+ * detectados · M a excluir · K sin decidir».
+ *
+ * Un contador de pendientes es una llamada a la acción, y la acción —decidir
+ * fila por fila— estaba detrás de un click. El panel se titula «Casos
+ * detectados para tu revisión manual»: plegada, la revisión manual no existe.
+ * Ahora son secciones abiertas; la cabecera informa y ya no esconde. Con esto
+ * desaparece el triángulo y el `cursor: pointer`, que prometían una interacción
+ * que ya no hay.
+ */
 .cmv2-partic-summary {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 36px;
   padding: 6px 12px;
-  cursor: pointer;
-  list-style: none;
   font-size: 13px;
   color: var(--pulso-text);
+  border-bottom: 1px solid var(--cmv2-border);
 }
-.cmv2-partic-summary::-webkit-details-marker { display: none; }
-.cmv2-partic-summary::before {
-  content: "▸";
-  flex: none;
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-  transition: transform 0.15s ease;
-}
-details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-partic-summary-icon {
   display: inline-flex;
   color: var(--cmv2-accent-fg);
@@ -2382,30 +2383,74 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   color: var(--pulso-text-muted);
 }
 /* Bisagra del embudo: separa los filtros generales de la decisión de tipo. */
-.cmv2-chfp-bisagra {
+/*
+ * G39 · La barra del embudo, antes de cada criterio.
+ *
+ * Sustituye a `.cmv2-chfp-bisagra`, que aparecía UNA vez a media lista y decía
+ * el estado final del embudo en mitad del recorrido. Gonzalo: «debería estar en
+ * todos los criterios antes de introducir uno, para poder seguir el embudo en
+ * cascada».
+ *
+ * Repetida seis o siete veces, no puede pesar lo que pesaba una sola: era una
+ * caja con relleno, borde y fondo de acento —una parada—, y siete paradas dejan
+ * de ser un hito para convertirse en ruido. Ahora es una línea con un filete a
+ * la izquierda: se lee al pasar y no compite con la tarjeta que introduce.
+ */
+.cmv2-chfp-llegan {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 6px;
-  margin: 4px 0;
-  padding: 9px 12px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius);
-  background: var(--cmv2-accent-soft);
-  font-size: 12px;
+  gap: 6px;
+  margin: 10px 0 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--cmv2-accent-border);
+  font-size: 11.5px;
   line-height: 1.4;
-  color: var(--pulso-text);
+  color: var(--pulso-text-muted);
 }
-.cmv2-chfp-bisagra strong {
-  font-size: 15px;
-  font-weight: var(--pulso-weight-bold);
-  color: var(--cmv2-accent-fg);
-}
-.cmv2-chfp-bisagra em {
-  font-style: normal;
+.cmv2-chfp-llegan strong {
+  font-size: 13px;
   font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
   color: var(--cmv2-accent-fg);
 }
+.cmv2-chfp-llegan-pct {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+  opacity: 0.75;
+}
+
+/*
+ * G39 · Corte entre las dos mitades de la pestaña.
+ *
+ * Gonzalo: «a partir de Panorama por facultad debe tener una división diferente
+ * que corte bien esas dos partes de las pestañas, porque ahora puede confundirse
+ * con un criterio más».
+ *
+ * Arriba se DECIDE, criterio a criterio, en una facultad; abajo se MIRA el
+ * resultado en todas. Con la misma separación entre bloques, Panorama entraba
+ * como si fuera el criterio siguiente — y su tabla, que compara facultades, se
+ * leía como una decisión más de la facultad abierta.
+ */
+.cmv2-chfp-corte {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 30px 0 14px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-muted);
+}
+.cmv2-chfp-corte::before,
+.cmv2-chfp-corte::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--cmv2-border);
+}
+.cmv2-chfp-corte::before { flex-grow: 0; width: 14px; }
 
 /* Tarjeta de un criterio decidido por facultad (session/condition/teacher/min) */
 .cmv2-chfp-crit {
@@ -2461,18 +2506,61 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
   white-space: nowrap;
 }
 .cmv2-chfp-crit-state[data-decision="propia"] { color: var(--cmv2-accent-fg); }
+.cmv2-chfp-transversal-note {
+  margin: 0;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+}
+.cmv2-chfp-transversal-note a {
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+.cmv2-chfp-transversal {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+/* S3 · La matriz cierra el recorrido: su resumen nombra lo que cierra y con
+   qué tamaño, en dos líneas legibles, en vez de un renglón que explicaba
+   cuándo abrirla. */
+.cmv2-chfp-transversal > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+}
+
+.cmv2-chfp-transversal > summary > strong {
+  color: var(--pulso-text);
+}
+
+.cmv2-chfp-transversal > summary > span {
+  font-weight: var(--pulso-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-chfp-transversal[open] > summary {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--cmv2-border);
+}
+.cmv2-chfp-transversal[open] > summary {
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-transversal > p {
+  margin: 8px 0;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
 .cmv2-chfp-min { display: grid; gap: 8px; }
 /* Pill del mínimo propio: el número y, al lado, un hint que dice qué pasa si se
    deja vacío (usa el general) o la unidad — sin cortar texto dentro del input. */
-.cmv2-chfp-min-input-row { display: flex; align-items: center; gap: 10px; }
-.cmv2-chfp-min-input-hint {
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-regular);
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
-}
 
 /* ── Selección manual de cursos-horario (criterio final, el más granular) ──── */
 .cmv2-aulas-finales { display: grid; gap: 8px; }
@@ -2660,7 +2748,21 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 }
 
 @media (max-width: 1024px) {
-  .cmv2-chfp-apply { position: static; }
+  /*
+   * F106 · Esta regla era `position: static` y la relación estaba invertida.
+   *
+   * La barra lleva el estado del marco, incluido «Los criterios cambiaron — el
+   * marco vigente ya no los refleja». ADR 0057 acepta explícitamente que un
+   * criterio de veinte categorías ocupa **varias pantallas**; a 1024×600, el
+   * viewport más pequeño de la matriz de QA, ocupa más. Soltarla ahí significa
+   * que justo donde más scroll hay es donde antes desaparece el aviso de que
+   * las cifras están desactualizadas: se decide sin saberlo.
+   *
+   * El motivo original —una barra fija cuesta alto vertical en 600 px— es real,
+   * así que se paga con densidad, no quitándola: se compacta y sigue anclada.
+   */
+  .cmv2-chfp-apply { padding: 6px 10px; gap: 8px; }
+  .cmv2-chfp-apply .cmv2-crit-draft-summary { font-size: 11px; }
   .cmv2-chfp-bloque-head {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
@@ -3216,4 +3318,157 @@ details[open] > .cmv2-partic-summary::before { transform: rotate(90deg); }
 .cmv2-radiografia-condicion-bar i[data-kind="otro"],
 .cmv2-radiografia-condicion-item i[data-kind="otro"] {
   background: color-mix(in srgb, var(--pulso-text) 24%, transparent);
+}
+
+/* F29 · La profundidad de la lista de cursos-horario se declara en pantalla. */
+.cmv2-ch-sexo-depth {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-ch-sexo-depth button {
+  border: 0;
+  background: transparent;
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 5px;
+}
+.cmv2-ch-sexo-depth button:hover { background: var(--cmv2-accent-soft); }
+
+/* La unidad de la lista final se declara una vez, no por fila. */
+.cmv2-aulas-finales-unidad {
+  margin: 0 0 6px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-aulas-finales-unidad strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+
+/* Profundidad de la lista final: se declara, con su salida. */
+.cmv2-aulas-finales-depth {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-aulas-finales-depth button {
+  border: 0;
+  background: transparent;
+  color: var(--cmv2-accent-fg, var(--cmv2-accent));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 5px;
+}
+.cmv2-aulas-finales-depth button:hover { background: var(--cmv2-accent-soft); }
+
+/* G16 · Retiradas las reglas del campo numerico suelto del minimo: lo sustituyo
+   el nivelador (deslizador + campo), que trae su propia hoja. Las cazo el guard
+   de huerfanas en la misma corrida — para eso existe. */
+
+/*
+ * G39 · La barra de contexto del bloque de decisión, con el control de plegado.
+ *
+ * El texto explica y el botón actúa: van en la misma línea porque el botón es
+ * una herramienta sobre lo que el texto describe, no una acción independiente.
+ * El botón queda a la derecha y en peso secundario — la acción principal de esta
+ * pestaña es decidir criterios, no plegarlos.
+ */
+.cmv2-chfp-decision-barra {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.cmv2-chfp-decision-barra .cmv2-chfp-decision-hint { flex: 1 1 auto; margin: 0; }
+.cmv2-chfp-plegar-todos {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-chfp-plegar-todos:hover {
+  border-color: var(--cmv2-accent-border);
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-plegar-todos:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 2px;
+}
+
+/* Cabecera plegable de la tarjeta de composición: mismo gesto que el resto de
+   criterios, así que el mismo chevron que gira. */
+.cmv2-crit-card-head--plegable {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cmv2-crit-card-chevron {
+  display: inline-flex;
+  margin-right: 6px;
+  color: var(--pulso-text-muted);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-crit-card[data-open] .cmv2-crit-card-chevron { transform: rotate(0deg); }
+.cmv2-crit-card:not([data-open]) .cmv2-crit-card-chevron { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-crit-card-chevron { transition: none; }
+}
+
+/*
+ * G39 · El cierre del recorrido.
+ *
+ * Las barras marcan el margen izquierdo con un filete; ésta va centrada y sin
+ * él, porque no introduce nada: cierra. Con la misma forma parecería un séptimo
+ * criterio al que le falta la tarjeta.
+ */
+.cmv2-chfp-cierre {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  margin: 18px 0 4px;
+  padding: 9px 14px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+.cmv2-chfp-cierre strong {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-cierre-pct {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }

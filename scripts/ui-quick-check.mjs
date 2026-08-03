@@ -1005,6 +1005,18 @@ async function cederRenderDeTransicion(page) {
   }));
 }
 
+async function capturarVistaAsentada(page, { screenshot, fullScreenshot }) {
+  // Playwright lleva las animaciones finitas a su estado final antes de cada
+  // captura. Ese estado no se revierte, de modo que inspectDom observa después
+  // la misma geometría que quedó en el PNG. Las animaciones infinitas se
+  // cancelan temporalmente al estado inicial y luego se reanudan: no intentamos
+  // esperarlas ni inventar un timeout.
+  await page.screenshot({ path: screenshot, animations: "disabled" });
+  if (fullScreenshot) {
+    await page.screenshot({ path: fullScreenshot, fullPage: true, animations: "disabled" });
+  }
+}
+
 async function irADireccion(page, destino, timeoutMs) {
   const resultado = await page.evaluate((clave) => {
     const nav = window.__pulsoNav;
@@ -1216,8 +1228,7 @@ async function runCaptures(opts, stack) {
         const shotBase = `${opts.name}-${safeSlug(route)}-${viewportName(viewport)}-${opts.layoutPreset}`;
         const screenshot = path.join(opts.out, `${shotBase}.png`);
         const fullScreenshot = opts.fullPage ? path.join(opts.out, `${shotBase}-full.png`) : null;
-        await page.screenshot({ path: screenshot });
-        if (fullScreenshot) await page.screenshot({ path: fullScreenshot, fullPage: true });
+        await capturarVistaAsentada(page, { screenshot, fullScreenshot });
 
         const dom = await inspectDom(page, {
           projectMode: Boolean(opts.project),
@@ -1257,7 +1268,7 @@ async function runCaptures(opts, stack) {
 }
 
 export async function inspectDom(page, { projectMode, geometryGroups, geometryTolerance, requireGeometry, rootSelector = "" }) {
-  return page.evaluate(({
+  return page.evaluate(async ({
     projectMode: wantsProject,
     geometryGroups: requestedGeometryGroups,
     geometryTolerance: geometryTolerancePx,
@@ -1267,6 +1278,16 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     const root = document.documentElement;
     const body = document.body;
     const text = body?.innerText || "";
+    const hasEffectiveOpacity = (el) => {
+      let current = el;
+      while (current instanceof Element) {
+        const opacity = Number.parseFloat(window.getComputedStyle(current).opacity);
+        if (Number.isFinite(opacity) && opacity === 0) return false;
+        const rootNode = current.getRootNode();
+        current = current.parentElement || (rootNode instanceof ShadowRoot ? rootNode.host : null);
+      }
+      return true;
+    };
     const selector = [
       "button",
       "input",
@@ -1323,7 +1344,11 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     for (const el of Array.from(ambito.querySelectorAll(selector))) {
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
-      const visible = rect.width > 1 && rect.height > 1 && style.display !== "none" && style.visibility !== "hidden";
+      const visible = rect.width > 1
+        && rect.height > 1
+        && style.display !== "none"
+        && style.visibility !== "hidden"
+        && hasEffectiveOpacity(el);
       if (!visible) continue;
       const overflowXAllowed = ["auto", "scroll"].includes(style.overflowX);
       const overflowYAllowed = ["auto", "scroll"].includes(style.overflowY);
@@ -1462,7 +1487,8 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         && rect.width > 1
         && rect.height > 1
         && style.display !== "none"
-        && style.visibility !== "hidden";
+        && style.visibility !== "hidden"
+        && hasEffectiveOpacity(el);
     };
     const measurementCanvas = document.createElement("canvas");
     const measurementContext = measurementCanvas.getContext("2d");
@@ -1686,6 +1712,25 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         "[contenteditable='true']",
         "[role='button']", "[role='tab']", "[role='menuitem']", "[role='option']",
       ].join(",");
+      const structuralGeometryDescendant = [
+        "article", "section", "div", "main", "header", "footer", "aside", "nav",
+        "ul", "ol", "li", "table", "form", "fieldset",
+      ].join(",");
+      const inlineGeometryDisplays = new Set(["inline", "inline-block", "inline-flex"]);
+      const isInlineSpanAtom = (member) => {
+        if (
+          member.tagName !== "SPAN"
+          || member.querySelector(structuralGeometryDescendant)
+          || member.querySelector(interactiveGeometryMember)
+        ) return false;
+        const display = window.getComputedStyle(member).display;
+        if (inlineGeometryDisplays.has(display)) return true;
+        const parent = member.parentElement;
+        const parentDisplay = parent && isVisibleElement(parent)
+          ? window.getComputedStyle(parent).display
+          : null;
+        return display === "flex" && (parentDisplay === "flex" || parentDisplay === "inline-flex");
+      };
       const variantSignature = (member) => {
         const structuralClasses = Array.from(member.classList)
           .filter((className) => !geometryStateClasses.has(className))
@@ -1711,6 +1756,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
               declaredGeometryGroups.has(member)
               || member instanceof SVGElement
               || member.matches(interactiveGeometryMember)
+              || (member.tagName === "LABEL" && member.querySelector(interactiveGeometryMember))
             ) continue;
             const signature = variantSignature(member);
             if (!signature) continue;
@@ -1721,6 +1767,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
 
           for (const [variant, members] of variants) {
             if (members.length < 2) continue;
+            if (members.every(isInlineSpanAtom)) continue;
             geometryCoverageMisses.push({
               type: "geometry-undeclared",
               selector: null,
@@ -1805,7 +1852,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         return best;
       }, null);
     };
-    const auditScrollOwner = (owner) => {
+    const auditScrollOwner = async (owner) => {
       const originalScrollTop = owner.scrollTop;
       const maxScroll = Math.max(0, owner.scrollHeight - owner.clientHeight);
       const textMetrics = Array.from(owner.querySelectorAll("strong"))
@@ -1829,6 +1876,14 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         middle: setScrollTop(Math.floor(maxScroll / 2)),
         end: setScrollTop(maxScroll),
       };
+      // Los virtualizadores actualizan sus filas visibles después del evento
+      // de scroll. Medir en el mismo tick conserva nodos del inicio con
+      // coordenadas negativas y fabrica un `scroll-unreachable`, aunque el
+      // usuario sí haya llegado al final. Dos frames permiten render + medida
+      // sin relajar la comprobación del contenido terminal.
+      await new Promise((resolve) => window.requestAnimationFrame(() => (
+        window.requestAnimationFrame(resolve)
+      )));
       const ownerRect = owner.getBoundingClientRect();
       const reachabilityEnd = resolveReachabilityEnd(owner, ownerRect);
       const lastContent = reachabilityEnd?.node ?? null;
@@ -1876,7 +1931,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       }
 
       const groupRect = group.getBoundingClientRect();
-      const memberMeasures = members.map((member) => {
+      const memberMeasures = await Promise.all(members.map(async (member) => {
         const rect = member.getBoundingClientRect();
         const style = window.getComputedStyle(member);
         const explicitContent = Array.from(member.querySelectorAll("[data-qa-geometry-content]"))
@@ -1892,7 +1947,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         const ownedCapacity = member.getAttribute("data-qa-geometry-capacity") === "owned"
           || Boolean(member.querySelector("[data-qa-geometry-capacity='owned']"));
         const scrollOwner = scrollOwnerInside(member);
-        const scrollEvidence = scrollOwner ? auditScrollOwner(scrollOwner) : null;
+        const scrollEvidence = scrollOwner ? await auditScrollOwner(scrollOwner) : null;
         const lastContent = contentNodes.at(-1) || null;
         if (scrollOwner && scrollEvidence && (
           !scrollEvidence.scrollAudit.atEnd
@@ -1927,7 +1982,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
           } : null,
           lastContent: lastContent ? elementHint(lastContent) : null,
         };
-      });
+      }));
       const heights = memberMeasures.map((member) => member.rect.height);
       const widths = memberMeasures.map((member) => member.rect.width);
       const heightDelta = round2(Math.max(...heights) - Math.min(...heights));

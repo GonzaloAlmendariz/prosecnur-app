@@ -12,14 +12,28 @@ import { BarrasDistribucion } from "../componentes/BarrasDistribucion";
 import { BarrasFacultad } from "../componentes/BarrasFacultad";
 import { useMotorStore } from "../../store";
 
+export function planCursosHorarioPublicable({
+  confirmado,
+  marcoDesactualizado,
+  final,
+}: {
+  confirmado: boolean;
+  marcoDesactualizado: boolean;
+  final: Record<string, number>;
+}) {
+  return confirmado && !marcoDesactualizado ? final : null;
+}
+
 export function TabDistribucion({
   perfil,
   e1,
+  marcoDesactualizado = false,
 }: {
   perfil: PerfilInstitucional;
   e1: ResultadoEscenario1;
+  marcoDesactualizado?: boolean;
 }) {
-  // Plan definitivo de cursos-horario por facultad (§5.3): cuando el usuario lo
+  // Plan definitivo de cursos-horario requeridos (§5.3): cuando el usuario lo
   // confirma, este gráfico deja de estimar y muestra las cifras acordadas.
   const cursosHorarioConfirmado = useMotorStore((s) => s.decisiones.cursosHorarioConfirmado);
   const cursosHorarioFinal = useMotorStore((s) => s.decisiones.cursosHorarioFinal);
@@ -34,7 +48,11 @@ export function TabDistribucion({
     );
   }
 
-  const definitivos = cursosHorarioConfirmado ? cursosHorarioFinal : null;
+  const definitivos = planCursosHorarioPublicable({
+    confirmado: cursosHorarioConfirmado,
+    marcoDesactualizado,
+    final: cursosHorarioFinal,
+  });
   const finalPorFacultad = (nombre: string): number | null => {
     if (!definitivos) return null;
     if (definitivos[nombre] != null) return definitivos[nombre];
@@ -111,7 +129,7 @@ export function TabDistribucion({
             leyenda={
               <span>
                 Plan confirmado: <strong>{fmtInt(totalAulasDefinitivos)}</strong> cursos-horario definitivos ·
-                cifras acordadas en «Cursos-horario por facultad»
+                cifras acordadas en «Cursos-horario requeridos»
               </span>
             }
             filas={[...e1.cuotas]
@@ -136,7 +154,7 @@ export function TabDistribucion({
             leyenda={
               <span>
                 Estimación: <strong>{fmtInt(e1.aulasConBolsa)}</strong> cursos-horario · CEIL(sobremuestra ÷
-                elegibles por curso-horario) + reserva. Confirma el plan en «Cursos-horario por facultad» para cifras definitivas.
+                elegibles por curso-horario) + reserva. Confirma el plan en «Cursos-horario requeridos» para cifras definitivas.
               </span>
             }
             filas={[...e1.cuotas]

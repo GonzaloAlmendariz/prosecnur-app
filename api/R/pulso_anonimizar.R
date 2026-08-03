@@ -48,11 +48,48 @@ PULSO_ANONIMIZACION_SCHEMA <- "prosecnur.pulso_anonimizacion.v1"
 # `max_nchar` caracteres es un enunciado, no un campo de contacto.
 .PULSO_PII_MAX_NCHAR_COLNAME <- 60L
 
+# "Nombre de X" donde X NO es una persona.
+#
+# El patrón `nombre` casa por SUBCADENA, así que "Nombre del curso" caía en el
+# cajón de las personas y sus valores se sustituían por nombres inventados.
+# Medido en el catálogo de curso-horario de un proyecto de referencia: la
+# columna de nombres de curso quedó llena de nombres de personas, y la
+# superficie de Cálculo de muestra los muestra donde deberían ir cursos y
+# facultades. Un fixture así **fabrica bugs fantasma**: se diagnostica el motor
+# por un defecto que puso la anonimización.
+#
+# La lista es de complementos INEQUÍVOCOS. No se añade nada que pueda designar
+# a una persona —"nombre del responsable", "del docente", "del entrevistado"
+# siguen siendo PII— porque aquí no hay red debajo: `pulso_detectar_pii` busca
+# correos, celulares y DNIs por valor, **no nombres**, y además salta las
+# columnas que este clasificador marca. Un falso negativo no lo caza nadie.
+#
+# El complemento va ANCLADO por su final. Sin anclar, este mismo parche repetía
+# el defecto que viene a corregir: `encuesta` casaba dentro de «nombre del
+# **encuesta**do», y un encuestado es una persona. La coincidencia por subcadena
+# es exactamente la causa raíz — escribirla otra vez en la reparación cuesta una
+# fuga, no un fixture sucio.
+.PULSO_PII_NOMBRE_NO_PERSONA <- paste0(
+  "nombres?\\s+(de\\s+la|de\\s+el|del|de)\\s+",
+  "(curso|asignatura|materia|programa|proyecto|archivo|fichero|hoja|columna|",
+  "campo|variable|base|tabla|formulario|encuesta|reporte|plantilla|m[oó]dulo)",
+  "(s)?(?![a-zá-éíóúñ])"
+)
+
 .pulso_pii_clasificar_columna <- function(nombre, valores = NULL) {
   nm <- tolower(as.character(nombre %||% ""))
   if (!nzchar(nm)) return(NA_character_)
   # Enunciados de pregunta: nombre largo y prefijo de ítem (q0001__, p12_).
   if (nchar(nm) > .PULSO_PII_MAX_NCHAR_COLNAME && grepl("^[qp][0-9]+", nm)) {
+    return(NA_character_)
+  }
+  # "Nombre del curso" y familia: el complemento dice que no es una persona.
+  # Se comprueba ANTES de los patrones y sólo desactiva el cajón `nombre`: si la
+  # columna trae además correo o teléfono en su rótulo, sigue siendo PII.
+  if (grepl(.PULSO_PII_NOMBRE_NO_PERSONA, nm, perl = TRUE)) {
+    for (tipo in setdiff(names(.PULSO_PII_PATRONES), "nombre")) {
+      if (grepl(.PULSO_PII_PATRONES[[tipo]], nm)) return(tipo)
+    }
     return(NA_character_)
   }
   for (tipo in names(.PULSO_PII_PATRONES)) {
