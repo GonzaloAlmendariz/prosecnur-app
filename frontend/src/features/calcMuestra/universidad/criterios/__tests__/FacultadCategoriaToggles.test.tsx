@@ -108,3 +108,72 @@ describe("FacultadCategoriaToggles · lo excluido no se pliega como inexistente"
     expect(html).not.toContain("Ver todas");
   });
 });
+
+describe("las categorías con más cursos-horario van primero (G37)", () => {
+  /*
+   * Gonzalo: «las categorías con mayor cantidad de CH siempre van primero en su
+   * criterio». El catálogo las publica en el orden de la columna de origen, que
+   * no dice nada sobre qué decisión pesa.
+   *
+   * El fixture está deliberadamente desordenado respecto al peso: llega
+   * Regular (130) · Repitencia (44) · Dirigido (18), pero la prueba que importa
+   * es la de abajo — que ordena por `chContraste` y no por `ch`.
+   */
+  const posiciones = (html: string, ...etiquetas: string[]) =>
+    etiquetas.map((e) => html.indexOf(`>${e}<`));
+
+  it("ordena por cursos-horario de la facultad, de mayor a menor", () => {
+    const html = render(true);
+    const [reg, rep, dir] = posiciones(html, "Regular", "Repitencia", "Dirigido");
+    expect(reg).toBeGreaterThan(-1);
+    expect(reg).toBeLessThan(rep);
+    expect(rep).toBeLessThan(dir);
+  });
+
+  it("ordena por los CH que la categoría TIENE, no por los que siguen dentro", () => {
+    /*
+     * La diferencia entre `chContraste` y `ch` es la que hace estable la lista.
+     * Aquí discrepan a propósito: «Dirigido» tiene **200 cursos-horario** en la
+     * facultad y **0 incluidos** porque el criterio la excluye. Por `ch` iría
+     * última; por `chContraste`, primera. Ordenando por `ch`, reactivarla la
+     * haría saltar al principio: la lista se reordenaría bajo el cursor a cada
+     * conmutador.
+     *
+     * (Mi primera versión de este caso reusaba el fixture de arriba, donde los
+     * dos criterios dan el mismo orden — no distinguía nada y pasaba igual.)
+     */
+    const tipos = [
+      { key: "regular", label: "Regular", ch: 120, elegibles: 3000, activo: true },
+      { key: "dirigido", label: "Dirigido", ch: 0, elegibles: 0, activo: false },
+    ];
+    const filaLocal = {
+      facKey: "derecho", facLabel: "Derecho", decision: "heredada", tipos,
+    } as unknown as FilaFacultad;
+    const evidenciaLocal = (key: string): AporteCategoria | null =>
+      key === "dirigido"
+        ? ({ ch: 0, chContraste: 200, elegibles: 0 } as AporteCategoria)
+        : ({ ch: 120, chContraste: 130, elegibles: 3000 } as AporteCategoria);
+
+    const html = renderToStaticMarkup(
+      <FacultadCategoriaToggles
+        fila={filaLocal}
+        variable={variable}
+        sel={{ mode: "include", categories: ["regular"] } as CriterioSeleccion}
+        onSel={() => {}}
+        ariaLabel="Condición del curso en Derecho"
+        evidencia={evidenciaLocal}
+      />,
+    );
+    const [dir, reg] = posiciones(html, "Dirigido", "Regular");
+    expect(dir).toBeGreaterThan(-1);
+    expect(dir).toBeLessThan(reg);
+  });
+
+  it("sin evidencia publicada no inventa un orden: cae a los CH del catálogo", () => {
+    // React presenta y valida, nunca calcula. Si el motor no publicó contraste,
+    // el peso es el `ch` que sí trae la fila — no un estimado.
+    const html = render(false);
+    const [reg, rep] = posiciones(html, "Regular", "Repitencia");
+    expect(reg).toBeLessThan(rep);
+  });
+});
