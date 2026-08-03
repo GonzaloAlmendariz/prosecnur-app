@@ -451,6 +451,56 @@ Resultado: **−37 % de nodos y cero duplicación, sin perder un solo dato**.
 inventario de lo que contiene **en exclusiva** y se traslada primero. Un diff que
 borra 482 nodos se ve igual haya o no información dentro.
 
+### 28 · La deuda que ningún compilador cobra
+
+El typecheck protege el TSX y **no mira el CSS**. Cuando un componente cambia de
+elemento —`<details>` a `<section>`— o una pieza se retira, sus reglas siguen
+ahí: válidas, muertas y sin que nada las señale. Medido en el módulo: **95
+clases `cmv2-*` declaradas sin un solo uso en el marcado**, entre ellas tres
+bloques de `> summary` para piezas que llevaban iteraciones sin ser `<details>`.
+
+Un verde de typecheck sobre un cambio de marcado no dice nada sobre la hoja que
+lo estilaba. Es el mismo falso verde de siempre con otra cara: el instrumento
+mide un lenguaje y el defecto vive en el otro.
+
+**Mecanismo**: línea base de clases huérfanas **por pestaña**, que sólo puede
+bajar (`cssHuerfano.contract.test.ts`). No exige cero —la deuda vieja se paga en
+el lote de su pestaña— sino que no entre deuda nueva. El mensaje de fallo trae
+los nombres, porque un número a secas obliga a repetir el barrido a mano.
+
+### 29 · El falso negativo es el mismo defecto que el falso positivo
+
+Doce veces en esta sesión una medición más **estrecha** que la realidad inventó
+un defecto: panel en vez de documento, `strong` en vez de la fila entera,
+`aria-label` en vez del `<label>` envolvente. La decimotercera fue el reverso y
+más peligrosa: una expresión que exigía la llave en la misma línea que la clase
+**no vio** los selectores multilínea, y un `grep --include=*.tsx` sin comillas se
+lo comió zsh y devolvió `0 <details>` cuando había quince.
+
+Un falso positivo cuesta tiempo y se descubre al ir a repararlo. Un falso
+negativo **cierra la iteración en verde** y no se descubre nunca.
+
+**Mecanismo**: todo instrumento nuevo se prueba contra un caso que **debe**
+encontrar antes de creer su cero. Y los guards se prueban por mutación — con la
+condición de que la mutación **compile**: la primera mutación de `<details>` en
+F101 rompió el JSX, el run murió antes de evaluar y el «no falló» resultante no
+probaba nada sobre el guard.
+
+### 30 · Un contador de pendientes detrás de un click
+
+Particularidades del marco plegaba tres secciones cuya cabecera decía «N
+detectados · M a excluir · **K sin decidir**», en un panel titulado «Casos
+detectados para tu revisión manual». La cabecera pedía una acción y escondía el
+único control que la ejecuta: plegada, la revisión manual no existe.
+
+Es la regla de Gonzalo —«si algo está oculto es un error de diseño»— en su forma
+más cara: no se esconde un detalle de apoyo, se esconde **el trabajo**.
+
+**Mecanismo**: C4 comprobado sobre el marcado renderizado **sin interacción**,
+que es justo la diferencia entre estar y estar alcanzable
+(`ParticularidadesPanel.test.tsx`). Una captura lo probaría una vez; el guard lo
+prueba en cada corrida.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
