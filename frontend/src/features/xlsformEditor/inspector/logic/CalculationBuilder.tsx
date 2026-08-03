@@ -35,6 +35,8 @@ import {
 import type { Expr, LogicScope } from "../../logic";
 import { FORMULA_TEMPLATES } from "./formulaTemplates";
 import { IfBlock } from "./IfBlock";
+import { readCalculation } from "./calculationReadout";
+import type { CalculationReadout } from "./calculationReadout";
 
 export type CalculationBuilderProps = {
   expression: string;
@@ -94,6 +96,7 @@ export function CalculationBuilder({
 
   // Caso 2: if(cond, then, else)
   if (ast.kind === "call" && ast.name === "if" && ast.args.length === 3) {
+    const readout = readCalculation(ast);
     return (
       <div className="pulso-logic-builder">
         <header className="pulso-logic-builder-header">
@@ -107,6 +110,7 @@ export function CalculationBuilder({
             <X size={12} /> Quitar
           </button>
         </header>
+        {readout && <CalculationReadoutStrip readout={readout} />}
         <IfBlock
           scope={scope}
           expr={ast as Expr & { kind: "call"; name: "if" }}
@@ -126,6 +130,44 @@ export function CalculationBuilder({
       hint={hint}
       onChange={onChange}
     />
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Franja de lectura — qué produce la fórmula, antes de entrar a editarla
+// ----------------------------------------------------------------------------
+
+function CalculationReadoutStrip({ readout }: { readout: CalculationReadout }) {
+  const conector =
+    readout.conector === "or" ? "Alguna" : readout.conector === "and" ? "Todas" : "Única";
+  return (
+    <dl
+      className="pulso-logic-calc-readout"
+      data-qa-geometry-group="xlsform/calculation-readout"
+      data-qa-geometry-contract="equal"
+    >
+      <div className="pulso-logic-calc-readout-fact">
+        <dt>Condición</dt>
+        <dd>
+          {conector} · {readout.bloques}
+          {readout.comparaciones !== readout.bloques && (
+            <small>{readout.comparaciones} comparaciones</small>
+          )}
+        </dd>
+      </div>
+      <div className="pulso-logic-calc-readout-fact">
+        <dt>Si se cumple</dt>
+        <dd>
+          <code>{readout.entonces || "—"}</code>
+        </dd>
+      </div>
+      <div className="pulso-logic-calc-readout-fact">
+        <dt>Si no</dt>
+        <dd>
+          <code>{readout.siNo || "—"}</code>
+        </dd>
+      </div>
+    </dl>
   );
 }
 

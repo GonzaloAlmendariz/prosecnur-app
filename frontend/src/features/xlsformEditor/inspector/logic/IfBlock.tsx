@@ -2,13 +2,14 @@
 // inspector/logic/IfBlock.tsx — bloque visual para `if(cond, then, else)`
 // =============================================================================
 // El patrón más común de fórmula en el corpus es `if(<cond>, <a>, <b>)`.
-// En lugar de escribirlo a mano, lo desarmamos visualmente:
+// En lugar de escribirlo a mano, lo desarmamos en tres pasos declarados:
 //
-//   ┌─ Cuando se cumple ──────────┐
-//   │  <LogicBuilder reutilizado> │
-//   └─────────────────────────────┘
-//   Entonces:  [ valor o ${var} ]
-//   Si no:     [ valor o ${var} ]
+//   ① SI SE CUMPLE    <LogicBuilder reutilizado, sin cabecera propia>
+//   ② ENTONCES VALE   [ valor o ${var} ]
+//   ③ SI NO VALE      [ valor o ${var} ]
+//
+// Los tres comparten tratamiento de etiqueta. El builder de la condición va
+// en modo `bare`: la cabecera la pone este bloque, no él.
 //
 // La condición usa el mismo LogicBuilder de F2-2 — reaprovechamos toda
 // la maquinaria de aplanado AND/OR. Los campos "entonces" y "si no" son
@@ -16,6 +17,7 @@
 // anidadas en F2-4; eso entra en una iteración posterior si hace falta).
 // =============================================================================
 
+import type React from "react";
 import {
   parseExpression,
   serializeExpression,
@@ -66,36 +68,65 @@ export function IfBlock({ scope, expr, onChange }: IfBlockProps) {
   const elseValue = exprToValueInput(elseExpr);
 
   return (
-    <div className="pulso-logic-ifblock">
-      <div className="pulso-logic-ifblock-cond">
+    <div
+      className="pulso-logic-ifblock"
+      data-qa-geometry-group="xlsform/calculation-if-steps"
+      data-qa-geometry-contract="intrinsic"
+    >
+      <IfStep n={1} label="Si se cumple">
         <LogicBuilder
           expression={condExpr ? serializeExpression(condExpr) : ""}
           scope={scope}
           fieldLabel="Si se cumple"
+          chrome="bare"
           onChange={setCond}
         />
-      </div>
+      </IfStep>
 
-      <div className="pulso-logic-ifblock-branch">
-        <span className="pulso-logic-ifblock-branchlabel">entonces vale</span>
+      <IfStep n={2} label="Entonces vale">
         <ValueInput
           baseType="text"
           variables={scope.variables}
           value={thenValue}
           onChange={(next) => setBranch(1, next)}
         />
-      </div>
+      </IfStep>
 
-      <div className="pulso-logic-ifblock-branch">
-        <span className="pulso-logic-ifblock-branchlabel">si no vale</span>
+      <IfStep n={3} label="Si no vale">
         <ValueInput
           baseType="text"
           variables={scope.variables}
           value={elseValue}
           onChange={(next) => setBranch(2, next)}
         />
-      </div>
+      </IfStep>
     </div>
+  );
+}
+
+/** Un paso del `if`. Los tres comparten tratamiento de etiqueta para que la
+ *  condición, el "entonces" y el "si no" se lean como el mismo nivel: antes
+ *  la condición traía la cabecera del LogicBuilder y las ramas una etiqueta
+ *  alineada a la derecha en una columna de 110 px. */
+function IfStep({
+  n,
+  label,
+  children,
+}: {
+  n: number;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="pulso-logic-ifstep">
+      <header className="pulso-logic-ifstep-head">
+        <span className="pulso-logic-ifstep-mark" aria-hidden="true">
+          {n}
+        </span>
+        <span className="pulso-logic-ifstep-label">{label}</span>
+      </header>
+      <div className="pulso-logic-ifstep-body">{children}</div>
+    </section>
   );
 }
 

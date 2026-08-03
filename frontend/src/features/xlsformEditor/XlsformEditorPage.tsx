@@ -193,6 +193,7 @@ import { ChoiceFiltersView } from "./choiceFilters/ChoiceFiltersView";
 import { FormSimulator } from "./shell/FormSimulator";
 import { FormSummaryView } from "./shell/FormSummaryView";
 import "./styles/xlsform-v2.css";
+import "./styles/xf-logic.css";
 
 /**
  * Posición 1-indexed de una fila dentro del outline, contando solo

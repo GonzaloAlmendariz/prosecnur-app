@@ -2888,7 +2888,11 @@ button.pulso-focus-calculation-recipe {
   grid-column: 1 / -1;
 }
 
-/* IfBlock — bloque visual `if(cond, then, else)` */
+/* IfBlock — bloque visual `if(cond, then, else)`.
+   Su geometría interna (los tres pasos) vive en xf-logic.css. Aquí quedan
+   `-cond`, `-branch` y `-branchlabel` retiradas: el bloque dejó de emitirlas
+   al pasar de "condición + dos ramas etiquetadas a la derecha" a tres pasos
+   con el mismo tratamiento. */
 .pulso-logic-ifblock {
   display: flex;
   flex-direction: column;
@@ -2897,26 +2901,6 @@ button.pulso-focus-calculation-recipe {
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface);
-}
-
-.pulso-logic-ifblock-cond {
-  padding: 4px 0;
-}
-
-.pulso-logic-ifblock-branch {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 8px;
-  align-items: center;
-}
-
-.pulso-logic-ifblock-branchlabel {
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--pulso-text-soft);
-  text-align: right;
 }
 
 .pulso-logic-calc-textarea {
