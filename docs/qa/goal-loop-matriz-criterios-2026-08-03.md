@@ -1,5 +1,10 @@
 # GOAL · La matriz de criterios cuenta cómo llegamos al marco
 
+Tipo: Goal operativo QA
+Estado: En curso
+Fecha: 2026-08-03
+Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado de la superficie
+
 - **Abierto**: 2026-08-03 · **Cierra**: sólo Gonzalo
 - **Alcance**: 12–15 iteraciones (G1…), no una lista lineal
 - **Contexto**: ADR 0057 (la tarjeta de categoría), hojas de revisión F111–F122

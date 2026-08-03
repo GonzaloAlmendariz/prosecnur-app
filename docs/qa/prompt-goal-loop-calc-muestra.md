@@ -1,7 +1,8 @@
 # Prompt operativo — GOAL loop v2 Cálculo de muestra
 
 Tipo: Prompt de arranque de sesión / entrada de `/loop`
-Estado: Vigente (sucede al prompt del loop 2026-07-31)
+Estado: Vigente
+Sucede a: prompt del loop 2026-07-31
 Fecha: 2026-08-01
 Autoridad: Lanza el loop de `goal-loop-calc-muestra-v2-2026-08-01.md`; no lo redefine
 
