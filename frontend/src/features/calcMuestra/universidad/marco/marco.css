@@ -3438,3 +3438,37 @@
 @media (prefers-reduced-motion: reduce) {
   .cmv2-crit-card-chevron { transition: none; }
 }
+
+/*
+ * G39 · El cierre del recorrido.
+ *
+ * Las barras marcan el margen izquierdo con un filete; ésta va centrada y sin
+ * él, porque no introduce nada: cierra. Con la misma forma parecería un séptimo
+ * criterio al que le falta la tarjeta.
+ */
+.cmv2-chfp-cierre {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  margin: 18px 0 4px;
+  padding: 9px 14px;
+  border-radius: var(--pulso-radius);
+  background: var(--cmv2-accent-soft);
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+.cmv2-chfp-cierre strong {
+  font-size: 15px;
+  font-weight: var(--pulso-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-chfp-cierre-pct {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
