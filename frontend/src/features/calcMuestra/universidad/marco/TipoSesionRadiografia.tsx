@@ -10,6 +10,7 @@ import type {
   CalcMuestraAulasExploracionFacultad,
 } from "../../../../api/client";
 import { fmtDec, fmtInt, fmtSignedInt } from "../../sharedCore";
+import { ordenarPorCursosHorario } from "../criterios/ordenCategorias";
 import {
   filasTipoSesionRadiografia,
   boxplotDominioComun,
@@ -165,8 +166,28 @@ export function TipoSesionRadiografia({
    * y se listaría como «sin cursos-horario en esta facultad» teniéndolos. Es
    * exactamente la confusión que F109 reparó en la lista de conmutadores.
    */
-  const filasConDato = filas.filter((f) => (f.n_ch_total ?? 0) > 0);
-  const filasVacias = filas.filter((f) => (f.n_ch_total ?? 0) <= 0);
+  /*
+   * G39 · Y ordenadas por cursos-horario, de mayor a menor.
+   *
+   * Gonzalo, viendo esta rejilla: «la mayor está al final cuando debería estar
+   * al principio». TEORICO con 493 cursos-horario salía detrás de Ricardo con 1.
+   *
+   * **Cuarta superficie con la misma regla.** G37 la aplicó en la lista de
+   * conmutadores, G39 la llevó a la radiografía y a la tarjeta genérica, y esta
+   * rejilla —que vive en el mismo archivo que una de ellas— se quedó fuera otra
+   * vez. Por eso la regla tiene módulo propio: cada sitio que la reimplementa es
+   * un sitio que puede olvidarla, y el guard de abajo enumera los cuatro.
+   */
+  const filasConDato = ordenarPorCursosHorario(
+    filas.filter((f) => (f.n_ch_total ?? 0) > 0),
+    (f) => f.n_ch_total,
+    (f) => f.categoria_label,
+  );
+  const filasVacias = ordenarPorCursosHorario(
+    filas.filter((f) => (f.n_ch_total ?? 0) <= 0),
+    (f) => f.n_ch_total,
+    (f) => f.categoria_label,
+  );
   const procedencia = contexto === "editable"
     ? "Exploración previa · último marco ejecutado"
     : "Marco ejecutado";
