@@ -31,7 +31,14 @@ function render(sel: CriterioSeleccion) {
   );
 }
 
-describe("ExcepcionesFacultad — F24: el criterio se decide por facultad", () => {
+/**
+ * ⚠️ Este componente **no se monta en producción desde F84**: los criterios de
+ * estudiante son generales (ADR 0057, regla 4) y los categóricos de
+ * curso-horario se deciden en el bloque de cada facultad. El test sigue verde
+ * porque el componente funciona, no porque alguien lo esté usando: dejarlo sin
+ * esta nota lo convertiría en un falso verde.
+ */
+describe("ExcepcionesFacultad — sin uso en producción (F84)", () => {
   // La regla de producto: «absolutamente toda la información de criterios es por
   // facultad… debe permitir escoger cada criterio no a nivel general sino a
   // nivel de criterio por facultad». Antes esto era un alta genérica detrás de
