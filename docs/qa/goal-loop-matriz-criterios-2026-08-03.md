@@ -452,3 +452,37 @@ primera reconstrucción; después, los criterios ya se actualizan uno a uno.
 
 **Commits**: `b8eba383`, `dba0fef4`. **Gate**: typecheck 0 · 3.465 tests en 420
 archivos.
+
+### G39 (cierre) — Por qué el contrato de composición sigue sin verse
+
+El backend R **sí** tiene el motor nuevo: el proceso del 8787 arrancó a las 11:04
+y el último cambio de R es de las 10:47. El bloqueo que arrastraba este doc —«un
+backend vivo no toma cambios de R»— dejó de existir.
+
+Lo que impide verlo es otra cosa, y es del fixture. Reconstruir el marco de
+`f111-seed` desde el proyecto guardado da, de forma reproducible:
+
+> Base leída y marco construido: **0 de 29.083 estudiantes únicos elegibles** y
+> 5.263 cursos-horario elegibles.
+
+Cinco mil cursos-horario sobreviven y ningún estudiante. Sin población elegible
+no hay distribución de composición que dibujar, así que las tarjetas de los tres
+pasos salen sin evidencia — correctamente: la superficie no fabrica lo que el
+motor no publicó.
+
+**Atribución**: encaja con el daño del anonimizador documentado en la sección
+Pendiente de este ADR (F110) — `.pulso_pii_clasificar_columna` casaba `nombre`
+por subcadena y sustituyó valores de columnas legítimas por nombres inventados.
+Los rótulos de facultad de este proyecto son exactamente esa firma («Karina E
+Karina», «Andres»), y si los criterios de alumno filtran por facultad contra
+valores que ya no existen, el resultado es cero.
+
+El clasificador está reparado; **los fixtures publicados siguen sucios** porque
+regenerarlos exige la sal, que no se persiste. Así que la verificación visual del
+contrato de composición necesita un proyecto cuyo marco reconstruya con población
+— no un arreglo de código.
+
+**Lo que sí está verificado del contrato**: los 7 casos de R (escala 0–100,
+`n_fuera`, tabla exacta en los 21 cortes, whitelist), los guards de superficie
+con mutación, y el montaje de la tarjeta en los tres pasos. Lo único pendiente es
+verlo con cifras en pantalla.
