@@ -6,6 +6,7 @@
  * arma `aulasSupervivientesFacultad` y las mutaciones `setAulaExcluida`; aquí
  * solo se pinta, con buscador y scroll para las facultades de cientos de CH.
  */
+import { CategoriaEvidencia } from "../criterios/CategoriaEvidencia";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import type { CriteriosSeleccionMarco } from "../../../../api/client";
@@ -24,12 +25,19 @@ function normalizarBusqueda(s: string): string {
 }
 
 export function AulasFinalesCard({
+  tasaAsistencia = null,
   aulas,
   seleccion,
   facLabel,
   onToggle,
   onReactivarTodas,
 }: {
+  /**
+   * Asistencia histórica del marco, para estimar presentes por curso-horario.
+   * `null` cuando el proyecto no la trae: la tarjeta lo declara en vez de
+   * fabricar una estimación.
+   */
+  tasaAsistencia?: number | null;
   /** Cursos-horario supervivientes de la facultad (orden elegibles desc). */
   aulas: AulaFinal[];
   seleccion: CriteriosSeleccionMarco;
@@ -150,12 +158,28 @@ export function AulasFinalesCard({
                     <span className="cmv2-aulas-finales-label">{a.label}</span>
                     {a.detalle ? <span className="cmv2-aulas-finales-detalle">{a.detalle}</span> : null}
                   </span>
-                  {/* La unidad se declara una vez en la cabecera de la lista,
-                      no 646 veces —una por fila—: repetirla no informa y aleja
-                      la cifra del nombre del curso-horario. El `title` la
+                  {/* G22 · La variante `unidad` de la tarjeta estándar.
+                      Gonzalo: «para ese caso no podemos tener densidad ni
+                      cursos-horario totales, pero sí cuántos alumnos son
+                      elegibles y, si hay asistencia histórica, cuánto es y
+                      cuánto representa». Con cientos de filas la tarjeta es
+                      justo eso: dos cifras, sin gráfico.
+
+                      La unidad se declara una vez en la cabecera de la lista,
+                      no una por fila: repetirla no informa. El `title` la
                       conserva para quien llegue a una fila suelta. */}
-                  <span className="cmv2-aulas-finales-elig" title="Estudiantes únicos elegibles en este curso-horario">
-                    {fmtInt(a.eligibleN)}
+                  <span className="cmv2-aulas-finales-elig">
+                    <CategoriaEvidencia
+                      aporte={{
+                        ch: 1,
+                        chContraste: 1,
+                        elegibles: a.eligibleN,
+                        tasaAsistencia,
+                        distribucion: null,
+                      }}
+                      dominio={null}
+                      variante="unidad"
+                    />
                   </span>
                 </li>
               );

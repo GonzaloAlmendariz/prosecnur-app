@@ -175,3 +175,22 @@ observable. **Si el diff toca `api/`, la suite del área se corre antes de
 commitear**, cueste lo que cueste el ciclo. Seis líneas en R y sesenta cuestan lo
 mismo de verificar, y el coste de no hacerlo ya se midió dos veces: ~40 commits
 en rojo la primera, ~10 la segunda.
+
+
+### 7 · Construido, probado, enseñado — y nunca cableado
+
+Las cuatro variantes de tarjeta existían con sus guards, se probaron por
+mutación y se enseñaron en una hoja de revisión. **Sólo `categoria` estaba
+montada.** Gonzalo lo dijo dos veces —«no veo en la app los cuatro tipos de
+tarjeta»— antes de que yo lo comprobara; hasta entonces lo estaba dando por
+hecho porque el componente existía y sus pruebas pasaban.
+
+Un guard verde sobre un componente prueba que **el componente funciona**, no que
+alguien lo use. Y una hoja de revisión con el componente real renderizado prueba
+todavía menos: enseña lo que la app *podría* mostrar.
+
+**Mecanismo**: la variante la decide un mapa único (`varianteDeCriterio`) con un
+caso que exige que **las cuatro estén cubiertas** — un mapa que nunca devuelve
+una variante la deja sin montar. Y la comprobación de que están vivas se hace
+**contando en el DOM de la app cargada**, no leyendo el fuente: medido tras
+cablearlas, 18 categoría · 3 umbral · 3 proporción · 40 unidad.

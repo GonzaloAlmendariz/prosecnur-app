@@ -13,6 +13,7 @@ import {
 import { CriteriosRadiografiaCardDetalle } from "./CriteriosRadiografiaCardDetalle";
 import { rotuloSegmento } from "./segmentoRotulo";
 import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "../criterios/CategoriaEvidencia";
+import { varianteDeCriterio } from "./varianteCriterio";
 import type { AporteCategoria } from "../criterios/controles";
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import "./criterioFacultadRadiografia.css";
@@ -175,7 +176,14 @@ export function CriterioFacultadRadiografia({
                     cursos-horario». Antes esto era un bloque propio con su
                     boxplot, su escala y una lista de diez cifras — dos
                     tratamientos distintos para el mismo dato. */}
-                <CategoriaEvidencia aporte={aporteDeFila(row)} dominio={domain} />
+                {/* G22 · La variante la decide el criterio, no el componente.
+                    Las cuatro existían con sus guards y sólo `categoria` estaba
+                    montada: se construyeron, se probaron y nunca se cablearon. */}
+                <CategoriaEvidencia
+                  aporte={aporteDeFila(row)}
+                  dominio={domain}
+                  variante={varianteDeCriterio(entry.id)}
+                />
               </article>
             ))}
           </div>
