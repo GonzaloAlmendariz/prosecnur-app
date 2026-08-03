@@ -116,3 +116,43 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
     expect(html).not.toContain("sin cursos-horario en esta facultad");
   });
 });
+
+describe("CategoriaEvidencia · los dos granos y la cobertura del dato", () => {
+  it("muestra matrículas junto a estudiantes, sin confundirlos", () => {
+    // Los dos granos conviven en la cabecera de la app (21.362 estudiantes,
+    // 92.017 matrículas). La tarjeta que decide tiene que traer ambos, cada uno
+    // con su nombre, o se decide sin saber sobre qué.
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ matriculas: 19846 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).toContain("</strong> matrículas");
+    expect(html).toContain("</strong> estudiantes");
+    expect(html).toContain("una persona cuenta una vez por cada curso-horario");
+  });
+
+  it("declara cuando la distribución se calculó sobre menos CH de los que hay", () => {
+    // Sin este número, la caja parece describir toda la categoría cuando puede
+    // estar describiendo una parte.
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 120, chConDato: 90 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).toContain("distribución sobre");
+    expect(html).toContain("90");
+  });
+
+  it("no lo declara cuando todos los CH traen el dato", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 120, chConDato: 120 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).not.toContain("distribución sobre");
+  });
+});

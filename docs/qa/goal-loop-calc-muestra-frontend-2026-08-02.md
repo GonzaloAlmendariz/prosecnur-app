@@ -3614,6 +3614,46 @@ la app: *rAF no dispara con el panel del navegador oculto*. Reemplazado por un
 rendimiento habría sido válida con el método anterior — y el síntoma, un timeout,
 se parece mucho a «la app se colgó».
 
+### F95 — La duplicación que quedaba, y el dato que la justificaba
+
+Al medir dónde están los 6.359 nodos apareció otra vez el patrón: **cada
+categoría aparece dos veces dentro del mismo criterio** —«A DISTANCIA» ×2,
+«PRESENCIAL» ×2, «OBLIGATORIO» ×2—. Creía haberlo cerrado en F56.
+
+Los dos bloques, medidos:
+
+| bloque | alto | nodos |
+|---|---:|---:|
+| Distribución por categoría (compacto) | 1.465 px | **482** |
+| Conmutadores con su evidencia | 286 px | 86 |
+
+**Pero no era duplicación pura**, y comprobarlo evitó el error de F78 —quitar
+ruido y quitar información se parecen en un diff—. El bloque compacto traía dos
+datos que mi tarjeta no tenía:
+
+- **Matrículas**: el otro grano. La cabecera de la app muestra 21.362 estudiantes
+  y 92.017 matrículas por separado; una tarjeta que sólo dice estudiantes decide
+  sin la mitad del cuadro.
+- **CH con dato**: cuántos cursos-horario traen realmente el valor del criterio.
+  Si son menos que los que hay, **la caja describe una parte de la categoría y no
+  toda**, y sin ese número nadie lo sabe.
+
+Ambos incorporados a la tarjeta de categoría, que es donde el ADR dice que va
+todo lo necesario para decidir. Y el segundo sólo se declara cuando hay
+diferencia: si todos los CH traen el dato, el aviso sobra.
+
+| | |
+|---|---:|
+| Tarjetas con los dos granos | **18** |
+| Desbordes | **0** |
+| Vitest | 868 → **871** en 109 archivos |
+
+**Queda listo el paso siguiente**: con estos dos datos ya en la tarjeta, el
+bloque compacto pasa a ser redundante salvo por la leyenda del boxplot. Retirarlo
+son ~480 nodos por criterio, pero es un cambio estructural visible y exige
+comprobar antes qué más vive sólo ahí —el mismo cuidado que salvó a «Composición»
+en F67—.
+
 ### Estado del loop
 
 | | |
