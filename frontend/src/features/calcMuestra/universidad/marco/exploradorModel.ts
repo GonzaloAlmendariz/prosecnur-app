@@ -6,6 +6,7 @@
  * por tipo de sesión y contraste con la selección de titulares — patrón
  * territorialSummaryModel: el `.tsx` solo presenta.
  */
+import { ordenarPorCursosHorario } from "../criterios/ordenCategorias";
 import type {
   CalcMuestraAulasCriterioRadiografiaFila,
   CalcMuestraAulasCriteriosRadiografia,
@@ -320,8 +321,23 @@ export function tipoSesionShares(
 ): TipoSesionShare[] {
   const total = facultad.por_tipo_sesion.reduce((acc, row) => acc + Math.max(0, row.elegibles), 0);
   if (total <= 0) return [];
-  const ordenadas = [...facultad.por_tipo_sesion].sort(
-    (a, b) => b.elegibles - a.elegibles || a.tipo.localeCompare(b.tipo, "es"),
+  /*
+   * G39 · Ordena por cursos-horario totales, no por alumnos elegibles.
+   *
+   * Gonzalo: «en "Tipo de sesión · radiografía por categoría" recuerda que
+   * quienes tienen más CH totales siempre van primero, en todos los criterios
+   * que lo tengan». Esta tabla ordenaba por `elegibles`, que es otra cosa: un
+   * tipo con pocos cursos-horario muy poblados subía por encima de otro con
+   * muchos cursos pequeños, y la lista dejaba de contestar «qué pesa en el
+   * marco» para contestar «dónde hay más gente».
+   *
+   * Importa además porque `maxRows` recorta por arriba: ordenar por otra cifra
+   * cambia **qué filas sobreviven**, no sólo en qué orden salen.
+   */
+  const ordenadas = ordenarPorCursosHorario(
+    facultad.por_tipo_sesion,
+    (row) => row.ch,
+    (row) => row.tipo,
   );
   const limitadas = maxRows == null ? ordenadas : ordenadas.slice(0, Math.max(1, maxRows));
   return limitadas.map((row) => ({

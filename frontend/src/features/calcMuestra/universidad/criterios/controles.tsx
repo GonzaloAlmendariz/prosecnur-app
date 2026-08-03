@@ -8,6 +8,7 @@ import type {
   CriterioSeleccion,
   CriterioVariable,
 } from "../../../../api/client";
+import { ordenarPorCursosHorario } from "./ordenCategorias";
 import type { CalcMuestraAulasCriterioRadiografiaV2Distribution } from "../../../../api/calcMuestraCriteriosRadiografia";
 import {
   categoriaMarcada,
@@ -155,7 +156,14 @@ export function ControlFlat({
    */
   aporte?: (segmentKey: string) => AporteCategoria | null;
 }) {
-  const cats = variable.categories ?? [];
+  /*
+   * G39 · También aquí las categorías con más cursos-horario van primero.
+   *
+   * `aulas` es el conteo de cursos-horario únicos de la categoría en el catálogo
+   * — la cifra que no cambia al decidir. Esta tarjeta salía en el orden del
+   * payload, que es el de la columna de origen.
+   */
+  const cats = ordenarPorCursosHorario(variable.categories ?? [], (c) => c.aulas, (c) => c.label);
   const unidad = unidadCriterio(variable);
   // Lista larga → fluye en varias columnas dentro de la tarjeta ancha.
   const long = cats.length >= 8;

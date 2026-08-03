@@ -15,6 +15,7 @@ import { Switch } from "./Switch";
 import { heredarFacultad, toggleTipoEnFacultad, type FilaFacultad } from "./tipoSesionModel";
 import { CategoriaEvidencia, dominioCategorias, EjeCategorias } from "./CategoriaEvidencia";
 import type { AporteCategoria } from "./controles";
+import { ordenarPorCursosHorario } from "./ordenCategorias";
 
 /** A partir de tantas categorías se pliega el ruido (0 CH aquí y no activo). */
 
@@ -74,30 +75,17 @@ export function FacultadCategoriaToggles({
   // Las categorías sin cursos aquí no reciben tarjeta: se nombran abajo.
   const sinOrdenar = hayDistribucion && ocultasN > 0 ? relevantes : fila.tipos;
   /*
-   * G37 · Las categorías con más cursos-horario, primero.
+   * G37 → G39 · Las categorías con más cursos-horario, primero. La regla vive en
+   * `ordenCategorias.ts` porque Gonzalo la pidió «en todos los criterios que lo
+   * tengan» y esta lista era sólo la primera.
    *
-   * Gonzalo: «las categorías con mayor cantidad de CH siempre van primero en su
-   * criterio». El orden del catálogo es el de la columna de origen —alfabético o
-   * de aparición—, que no dice nada sobre qué decisión pesa: la categoría que se
-   * lleva la mitad del marco podía quedar quinta, debajo de cuatro residuales.
-   *
-   * Ordena por **`chContraste`** —los cursos-horario que la categoría tiene en
-   * esta facultad, estén incluidos o no—, no por `ch` —los que siguen dentro—.
-   * Con `ch` la lista se reordenaría sola a cada conmutador: apagas una y salta
-   * al fondo, y la siguiente que querías tocar ya no está donde la dejaste.
-   * `chContraste` no cambia al decidir, así que el orden es el mismo durante
-   * toda la sesión de ajuste.
-   *
-   * Desempate por etiqueta para que dos categorías del mismo tamaño no bailen
-   * entre renders.
+   * El peso es `chContraste` —los cursos-horario que la categoría tiene en esta
+   * facultad— y no `ch` —los que siguen dentro—: el segundo cambia con cada
+   * conmutador y reordenaría la lista bajo el cursor.
    */
-  const pesoDe = (t: { key: string; ch?: number | null }) => {
-    const contraste = evidencia?.(t.key)?.chContraste;
-    return contraste ?? t.ch ?? 0;
-  };
-  const visibles = [...sinOrdenar].sort(
-    (a, b) => pesoDe(b) - pesoDe(a) || a.label.localeCompare(b.label, "es"),
-  );
+  const pesoDe = (t: { key: string; ch?: number | null }) =>
+    evidencia?.(t.key)?.chContraste ?? t.ch ?? 0;
+  const visibles = ordenarPorCursosHorario(sinOrdenar, pesoDe, (t) => t.label);
   // Regla 3 del ADR: la escala es del criterio en esta facultad, no de cada caja.
   const dominio = dominioCategorias(visibles.map((t) => evidencia?.(t.key) ?? null));
   return (
