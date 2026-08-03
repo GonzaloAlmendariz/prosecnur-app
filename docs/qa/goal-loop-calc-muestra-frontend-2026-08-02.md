@@ -4096,8 +4096,58 @@ categorías tiene cada variable.
 
 Gate: typecheck 0 · 915 pruebas en 113 archivos.
 
-**Siguiente**: la pestaña de mapeo, en cuanto Gonzalo decida si sólo diagnostica
-o además corrige.
+### F110 — Los nombres los puso el anonimizador
+
+Antes de construir la pestaña de mapeo, auditar lo que ya existe: **la pestaña
+Variables ya hace el mapeo columna→rol**, y sus tres mapeos relevantes están
+bien y confirmados (Facultad→«Facultad», Docente→«Docente», Tipo de
+docente→«Tipo de docente»). Ambas hojas traen su columna de facultad. El defecto
+no estaba en el mapeo.
+
+Estaba antes. `.pulso_pii_clasificar_columna` casa el patrón `nombre` **por
+subcadena**, así que **«Nombre del curso» se clasificaba como nombre de
+persona** y sus valores se sustituían por nombres inventados. Verificado
+ejecutando el clasificador contra las 19 columnas reales de la hoja de
+curso-horario.
+
+Los nombres de la pantalla son **sintéticos** — «Karina Y Elena DE LA Jimenez»
+es firma del anonimizador, no un dato de cliente. Eso corrige el marco de F109:
+no es que la dimensión facultad *sea* docentes en los datos reales; es que la
+fixture con la que miro está sucia.
+
+**La consecuencia excede a este módulo.** Los proyectos de referencia son las
+fixtures con las que se reproducen bugs (ADR 0043). Una anonimización que
+ensucia columnas legítimas **fabrica bugs fantasma**: se diagnostica el motor
+por un defecto que puso la herramienta de anonimizar. Yo mismo llevaba dos
+iteraciones persiguiéndolo.
+
+| medida | antes | después |
+|---|---|---|
+| «Nombre del curso» | `nombre` (persona) | **no PII** |
+| «Nombre de docente» · «Docente» · «Nombre Completo» | `nombre` | **`nombre`** |
+| «Celular» · «Correo PUCP» | contacto | **contacto** |
+
+Reparación conservadora, porque **aquí no hay red debajo**: `pulso_detectar_pii`
+busca correos, celulares y DNIs por valor, **no nombres**, y además salta las
+columnas que este clasificador marca. Un falso negativo es una fuga y no la caza
+nadie. Por eso la lista es de complementos inequívocos y cada verdadero positivo
+queda fijado uno a uno en el test.
+
+**Mi prueba cazó el mismo defecto dentro de mi reparación**: sin anclar el final
+del complemento, `encuesta` casaba en «nombre del **encuesta**do» — y un
+encuestado es una persona. La coincidencia por subcadena es la causa raíz;
+repetirla en el parche costaba una fuga, no una fixture sucia.
+
+**Queda abierto**: los fixtures ya publicados siguen sucios (se anonimizaron con
+el clasificador viejo y regenerarlos exige la sal, que no se persiste), y falta
+comprobar si esto explica la dimensión facultad entera o sólo una parte.
+
+Gate: suites de anonimización y proyectos de referencia en verde.
+
+**Siguiente**: comprobar cuánto de la dimensión facultad explica F110 —
+regenerando o derivando un marco sobre una base sin columnas «nombre de X»— y,
+en paralelo, la pestaña de mapeo en cuanto Gonzalo decida si sólo diagnostica o
+además corrige.
 
 ### F103 — El agujero estaba en mi propio guard
 
