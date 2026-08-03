@@ -3894,7 +3894,40 @@ sin commitear. El árbol sobrevivió —el `apply` restauró y el `pop` sólo se
 duplicar—, pero arriesgar la unidad de trabajo para tomar una medida es
 innecesario: `git show <commit>:<ruta>` da lo mismo sin tocar el árbol.
 
-**Siguiente**: los tres `<details>` de Definición y Salidas, con su lote.
+**Siguiente**: los dos `<details>` de Definición, con su lote.
+
+### F103 — El agujero estaba en mi propio guard
+
+El guard de F101/F102 buscaba `<details>` **literal** por archivo y daba verde
+sobre Aulas. `PanelAvanzado` renderiza uno cerrado por dentro y estaba montado
+ahí escondiendo **la semilla y los pesos del objetivo**. Un guard con un agujero
+no es media protección: es un falso verde con forma de contrato.
+
+El componente justificaba el defecto en su docblock: «sin esconder nada — un
+clic y está todo». Un clic **es** esconder; la frase describe el coste y lo
+presenta como su ausencia.
+
+Tres montajes, tres juicios:
+
+| montaje | contenido | veredicto |
+|---|---|---|
+| Auditoría y reproducibilidad | semilla, corridas, pesos | **abre** — determina la muestra |
+| Historial de corridas | «elige dos para compararlas» | **abre** — la etiqueta da una instrucción |
+| Nombres de hojas y detalles | renombrar hojas de salida | **se queda** — configuración secundaria real |
+
+El guard resuelve ahora la transitividad: localiza los componentes locales que
+renderizan un `<details>` y exige `defaultOpen` en cada montaje suyo dentro de
+área cubierta. Probado por mutación — al quitar el `defaultOpen` falla **y nombra
+archivo y componente**, que es la diferencia entre un guard que avisa y uno que
+obliga a repetir el barrido a mano.
+
+**Error propio, cuarta vez**: `return ( {/* … */} <Componente>` — un comentario
+JSX como primer hijo de un `return` se parsea como objeto literal y rompe el
+archivo. Cinco errores de sintaxis que no señalan la causa. El typecheck lo caza
+siempre; lo que cuesta es el ciclo. Al ADR como patrón 32, con su mecanismo: el
+comentario de un elemento raíz va **encima del `return`**.
+
+Gate: typecheck 0 · 893 pruebas en 111 archivos.
 
 ### Estado del loop
 

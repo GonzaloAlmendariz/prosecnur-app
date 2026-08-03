@@ -501,6 +501,38 @@ que es justo la diferencia entre estar y estar alcanzable
 (`ParticularidadesPanel.test.tsx`). Una captura lo probaría una vez; el guard lo
 prueba en cada corrida.
 
+### 31 · Un guard que mira el archivo no ve lo que el componente esconde
+
+El guard de «nada plegado» buscaba `<details>` **literal** en cada archivo y daba
+verde sobre Aulas. Pero `PanelAvanzado` renderiza un `<details>` cerrado por
+dentro, y estaba montado ahí escondiendo **la semilla y los pesos del objetivo**
+— lo que determina la muestra en un módulo cuyo propósito es que la selección
+sea defendible.
+
+El componente además justificaba el defecto en su propio docblock: «sin esconder
+nada — un clic y está todo». Un clic **es** esconder; la frase describe el coste
+y lo presenta como su ausencia.
+
+**Mecanismo**: el guard resuelve la transitividad — localiza los componentes
+locales que renderizan un `<details>` y exige que cada montaje suyo en área
+cubierta declare `defaultOpen`. Y el criterio para plegar queda escrito en el
+componente: se pliega lo que **no** es el trabajo ni la evidencia con la que se
+decide. Renombrar hojas de salida, sí; nada de la cadena que hace defendible la
+selección.
+
+### 32 · El comentario JSX que no puede ir donde lo pongo
+
+Cuarta vez en la sesión: `return ( {/* … */} <Componente …> )`. Un comentario JSX
+como primer hijo de `return (` se parsea como objeto literal y rompe el archivo
+entero — cinco errores de sintaxis que no señalan la causa.
+
+El typecheck lo caza siempre, así que nunca ha llegado lejos. Lo que cuesta es el
+ciclo: escribir, fallar, releer, mover.
+
+**Mecanismo**: el comentario que explica un elemento raíz va **encima del
+`return`**, como comentario de línea. Dentro del JSX sólo cuando ya hay un
+elemento padre que lo contenga.
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
