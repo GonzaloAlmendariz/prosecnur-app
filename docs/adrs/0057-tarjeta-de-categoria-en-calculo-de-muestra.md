@@ -656,3 +656,21 @@ Y la auditoría de vocabulario se hace sobre el texto renderizado, no sobre
   Esto sube la prioridad de la pestaña de mapeo por encima de cualquier pulido
   restante de la superficie, y le añade una pregunta que antes no tenía:
   **cuál es la columna de facultad**, no sólo qué categorías tiene cada variable.
+
+  **Causa parcial localizada (F110)**: el mapeo de la pestaña Variables es
+  correcto —Facultad→«Facultad», confirmada— y ambas hojas traen su columna de
+  facultad. El defecto está antes: `.pulso_pii_clasificar_columna` casaba
+  `nombre` **por subcadena**, así que **«Nombre del curso» se clasificaba como
+  nombre de persona** y sus valores se sustituían por nombres inventados. Los
+  nombres que la superficie muestra son sintéticos —«Karina Y Elena DE LA
+  Jimenez» es firma del anonimizador, no un dato de cliente—.
+
+  La consecuencia excede a este módulo: **los proyectos de referencia son las
+  fixtures con las que se reproducen bugs**, y una anonimización que ensucia
+  columnas legítimas **fabrica bugs fantasma** — se diagnostica el motor por un
+  defecto que puso la herramienta de anonimizar.
+
+  Reparado el clasificador. Los fixtures ya publicados **siguen sucios**: se
+  anonimizaron con el clasificador viejo y regenerarlos exige la sal, que no se
+  persiste. Queda por comprobar si esto explica la dimensión facultad entera o
+  sólo una parte.
