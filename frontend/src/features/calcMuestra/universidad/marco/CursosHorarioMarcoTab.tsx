@@ -556,31 +556,6 @@ export function CursosHorarioMarcoTab({
                 </AvisoModulo>
               ) : (
                 <>
-                <PanoramaCursosHorario
-                  filas={panoramaFilas}
-                  criterios={aulaToggle.map((v) => ({ id: v.id, label: v.label }))}
-                  facultadAbierta={facultadFoco}
-                  onAbrirFacultad={setFacultadFoco}
-                />
-                {/* ADR 0057, regla 2 · La matriz es parte del Panorama por
-                    facultad, no un bloque de cierre. Comparar criterios entre
-                    facultades y elegir en cuál entrar es el mismo gesto: se lee
-                    la matriz y se abre la facultad, arriba, antes de bajar al
-                    detalle. Como cierre del recorrido llegaba después de las
-                    decisiones que debía informar. */}
-                {criteriosRadiografiaF1Lista ? (
-                  <section className="cmv2-chfp-transversal" aria-labelledby="cmv2-chfp-matriz-title">
-                    <header>
-                      <strong id="cmv2-chfp-matriz-title">Impacto de cada criterio por facultad</strong>
-                      {matrizEmbudo ? (
-                        <span>
-                          {matrizEmbudo.columns.length} criterios × {matrizEmbudo.rows.filter((row) => row.row_kind === "faculty").length} facultades sobre el marco ejecutado
-                        </span>
-                      ) : null}
-                    </header>
-                    <MatrizEmbudoCriterios matriz={matrizEmbudo} rawPresent={matrizRawPresent} />
-                  </section>
-                ) : null}
                 <div
                   className="cmv2-chfp-bloques"
                   data-qa-geometry-group="calc-muestra/facultades-ch"
@@ -692,10 +667,29 @@ export function CursosHorarioMarcoTab({
                     facultad, ajusto mis criterios, y abajo es como la matriz de
                     todo lo que se va haciendo y se va confirmando».
 
-                    No duplica el Panorama de arriba: aquél es marginal —qué
-                    recuperaría si quito una regla— y sirve para elegir en qué
-                    facultad entrar. Ésta es la procedencia: de dónde salieron
-                    los cursos-horario elegibles. */}
+                    G20 · Es la única matriz que queda. La marginal —qué
+                    recuperaría si quito una regla— se retiró: dos tablas antes
+                    de la primera decisión abrían la pestaña con comparaciones
+                    en vez de con lo que se decide. */}
+                {/* G20 · Panorama BAJA y los criterios suben, y la matriz
+                    marginal se retira: sólo sobrevive la de cascada.
+
+                    Gonzalo: «Panorama se va abajo para que criterios vaya
+                    arriba, y sólo una matriz sobrevive, la de abajo».
+
+                    Lo que se decide es el criterio de una facultad; el
+                    panorama comparativo y la procedencia son lectura de
+                    cierre, no de apertura. Con las dos tablas arriba, la
+                    pestaña abría con comparaciones antes de la primera
+                    decisión — y la regla 2 del ADR 0057, que ponía la matriz
+                    en el Panorama, queda superada por el ADR 0058: la matriz
+                    que sobrevive cuenta la procedencia, y eso va al final. */}
+                <PanoramaCursosHorario
+                  filas={panoramaFilas}
+                  criterios={aulaToggle.map((v) => ({ id: v.id, label: v.label }))}
+                  facultadAbierta={facultadFoco}
+                  onAbrirFacultad={setFacultadFoco}
+                />
                 <section className="cmv2-chfp-transversal" aria-labelledby="cmv2-chfp-cascada-title">
                   <header>
                     <strong id="cmv2-chfp-cascada-title">De dónde salen los cursos-horario elegibles</strong>

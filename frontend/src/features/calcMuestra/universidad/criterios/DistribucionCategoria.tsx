@@ -213,14 +213,29 @@ function Cuantiles({ d, dom, formato }: { d: Dist; dom: DominioEscala; formato: 
      * detrás. Una etiqueta que no está bajo su marca deja de nombrarla, que es
      * justo lo único que tenía que hacer.
      */
-    const ocupado = [-Infinity, -Infinity];
+    /*
+     * G18 · Tantas filas como hagan falta, una por etiqueta como máximo.
+     *
+     * Medido en la app: **27 solapes**. Con dos filas y cuatro marcas apiñadas
+     * —Q1 38, mediana 38, media 40, Q3 40 en una escala de 0 a 60— las dos se
+     * llenaban y la rama de emergencia encimaba las etiquetas: se leía «QMEDIA»
+     * y «3840». Dos cifras superpuestas no son una cifra difícil de leer, son
+     * una cifra falsa.
+     *
+     * Con una fila por etiqueta el solape es imposible por construcción, y el
+     * caso peor —cuatro filas— sólo ocurre cuando la distribución está tan
+     * concentrada que las cuatro marcas coinciden, que es justo cuando más
+     * importa distinguirlas.
+     */
+    const ocupado: number[] = [];
     return crudas.map((m) => {
-      // Primera fila con hueco. Si ninguna lo tiene —cuatro marcas apiñadas—,
-      // gana la que lleva más tiempo libre: solaparse un poco es menos malo que
-      // colocar la etiqueta lejos de lo que nombra.
       let fila = ocupado.findIndex((ultimo) => m.x >= ultimo + MIN_SEPARACION);
-      if (fila < 0) fila = ocupado[0] <= ocupado[1] ? 0 : 1;
-      ocupado[fila] = m.x;
+      if (fila < 0) {
+        ocupado.push(m.x);
+        fila = ocupado.length - 1;
+      } else {
+        ocupado[fila] = m.x;
+      }
       return { ...m, fila };
     });
   }, [d, dom]);

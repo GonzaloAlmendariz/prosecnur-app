@@ -45,6 +45,7 @@ export function ControlRango({
   etiqueta,
   descripcion,
   deshabilitado = false,
+  umbralSospecha = 40,
   onCambio,
 }: {
   desde: number;
@@ -56,11 +57,27 @@ export function ControlRango({
   etiqueta: string;
   descripcion?: string;
   deshabilitado?: boolean;
+  /**
+   * Cuántos valores distintos dejan de ser plausibles para este criterio.
+   * `null` desactiva el aviso — no todo rango es ordinal.
+   */
+  umbralSospecha?: number | null;
   onCambio: (rango: { desde: number; hasta: number }) => void;
 }) {
   const id = useId();
 
   const emitir = (d: number, h: number) => onCambio(ordenarRango(d, h, min, max));
+
+  /*
+   * No es una validación: es una lectura. Un criterio ordinal con cientos de
+   * valores distintos casi nunca es ordinal — suele ser un identificador que
+   * cayó en el rol equivocado. Se declara la sospecha y se deja decidir; el
+   * motor puede tener razón y este control no es quién para bloquear.
+   */
+  const avisoDominio =
+    umbralSospecha != null && max - min + 1 > umbralSospecha
+      ? `El rango va de ${min} a ${max}: son ${max - min + 1} valores distintos. Si esto debería ser un nivel o un ciclo, revisa a qué columna está mapeado en Datos › Variables.`
+      : null;
 
   const span = max - min;
   const pct = (v: number) => (span > 0 ? ((v - min) / span) * 100 : 0);
@@ -120,6 +137,18 @@ export function ControlRango({
       </div>
 
       {descripcion ? <p className="cmv2-umbral-efecto">{descripcion}</p> : null}
+
+      {/* G17 · Un dominio implausiblemente ancho delata un mapeo equivocado.
+          Medido en la app: «Nivel del curso» ofrecía un rango de 1 a 852 porque
+          el proyecto lo mapeó a la columna del CÓDIGO de curso. El motor obedece
+          —un mapeo manual gana por diseño, y eso está bien— así que el sitio
+          donde el error se puede ver es aquí, cuando se ofrece elegir sobre él.
+
+          Con dos `<select>` de 852 opciones esto pasaba inadvertido; con una
+          barra, el rango se lee de un vistazo. Decirlo cuesta una línea. */}
+      {avisoDominio ? (
+        <p className="cmv2-umbral-sospecha" role="note">{avisoDominio}</p>
+      ) : null}
     </div>
   );
 }

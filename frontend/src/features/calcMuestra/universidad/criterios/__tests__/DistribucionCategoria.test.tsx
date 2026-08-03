@@ -365,14 +365,23 @@ describe("DistribucionCategoria · coherencia y etiquetas (F119)", () => {
     // su x: una etiqueta desplazada deja de nombrar la marca que tiene encima.
     for (const [marca, x] of [["p25", "31%"], ["p50", "40%"], ["media", "41.6%"], ["p75", "51%"]]) {
       expect(html, marca).toContain(`data-marca="${marca}" data-fila=`);
-      expect(html, marca).toMatch(new RegExp(`data-marca="${marca}" data-fila="[01]" style="left:${x.replace(".", "\\.")}"`));
+      expect(html, marca).toMatch(new RegExp(`data-marca="${marca}" data-fila="[0-9]" style="left:${x.replace(".", "\\.")}"`));
     }
+    // G18 · Ninguna pareja en la misma fila puede quedar a menos de la
+    // separación mínima. Medido en la app antes de esto: 27 solapes.
+    const pares = [...html.matchAll(/data-fila="(\d)" style="left:([\d.]+)%"/g)]
+      .map((m) => ({ fila: m[1], x: Number(m[2]) }));
+    for (let i = 0; i < pares.length; i++)
+      for (let j = 0; j < i; j++)
+        if (pares[i].fila === pares[j].fila)
+          expect(Math.abs(pares[i].x - pares[j].x)).toBeGreaterThanOrEqual(13);
+
     // Y que dos etiquetas contiguas no acaben en la misma fila.
-    const filas = [...html.matchAll(/data-marca="(\w+)" data-fila="([01])"/g)].map((m) => m[2]);
+    const filas = [...html.matchAll(/data-marca="(\w+)" data-fila="(\d)"/g)].map((m) => m[2]);
     for (let i = 1; i < filas.length; i++) {
       if (filas[i] === filas[i - 1]) {
         // Permitido sólo si están lo bastante separadas para no chocar.
-        const xs = [...html.matchAll(/data-fila="[01]" style="left:([\d.]+)%"/g)].map((m) => Number(m[1]));
+        const xs = [...html.matchAll(/data-fila="[0-9]" style="left:([\d.]+)%"/g)].map((m) => Number(m[1]));
         expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(13);
       }
     }
@@ -380,6 +389,27 @@ describe("DistribucionCategoria · coherencia y etiquetas (F119)", () => {
 
   it("sin choques todas se quedan en la primera fila", () => {
     const html = render({ p25: 10, p50: 40, media: 55, p75: 80 });
+    expect(html).not.toContain('data-fila="1"');
+  });
+});
+
+describe("DistribucionCategoria · el solape es imposible por construcción (G18)", () => {
+  it("cuatro marcas apiñadas usan cuatro filas, no dos encimadas", () => {
+    // El caso real de la app: Q1 38, mediana 38, media 40, Q3 40 sobre 0..60.
+    // Con dos filas se leía «QMEDIA» y «3840» — dos cifras superpuestas no son
+    // una cifra difícil de leer, son una cifra falsa.
+    const html = render({ p25: 38, p50: 38, media: 40, p75: 40 });
+    const pares = [...html.matchAll(/data-fila="(\d)" style="left:([\d.]+)%"/g)]
+      .map((m) => ({ fila: m[1], x: Number(m[2]) }));
+    expect(pares).toHaveLength(4);
+    for (let i = 0; i < pares.length; i++)
+      for (let j = 0; j < i; j++)
+        if (pares[i].fila === pares[j].fila)
+          expect(Math.abs(pares[i].x - pares[j].x)).toBeGreaterThanOrEqual(13);
+  });
+
+  it("una distribución holgada sigue usando una sola fila", () => {
+    const html = render({ p25: 10, p50: 35, media: 60, p75: 85 });
     expect(html).not.toContain('data-fila="1"');
   });
 });

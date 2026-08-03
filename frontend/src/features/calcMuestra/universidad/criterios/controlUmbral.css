@@ -178,3 +178,11 @@
 
 .cmv2-rango-campos { display: flex; align-items: center; gap: 6px; }
 .cmv2-rango-guion { color: var(--pulso-text-muted); }
+
+/* G17 · Sospecha de mapeo, no validación: se declara y se deja decidir. */
+.cmv2-umbral-sospecha {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+}

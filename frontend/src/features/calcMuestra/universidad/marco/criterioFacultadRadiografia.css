@@ -157,22 +157,6 @@
   white-space: nowrap;
 }
 
-.cmv2-crc-compact-detail {
-  min-width: 0;
-}
-
-.cmv2-crc-compact-detail > summary {
-  width: fit-content;
-  color: var(--cmv2-accent-fg);
-  font-size: 10.5px;
-  font-weight: var(--pulso-weight-semibold);
-  cursor: pointer;
-}
-
-.cmv2-crc-compact-detail[open] > summary {
-  margin-bottom: 8px;
-}
-
 .cmv2-crc-card[data-context="faculty"] {
   overflow: hidden;
   border-color: var(--cmv2-accent-border);
@@ -207,3 +191,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* G19 · Retiradas las reglas de `cmv2-crc-compact-detail`: estilaban la consola
+   de «Efecto de este criterio», que salió de la superficie. Las cazó el guard de
+   huérfanas en la misma corrida. */

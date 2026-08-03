@@ -235,7 +235,12 @@
   height: 4px;
   background: var(--cmv2-border-strong, var(--cmv2-border));
 }
+/* G21 · El último rótulo del eje se apilaba en vertical —«200» medía 6 px—
+   porque `translateX(-100%)` lo sacaba del contenedor y el texto se rompía.
+   Con `nowrap` se mantiene en una línea; el desbordamiento de 1–2 px por la
+   derecha es preferible a una cifra ilegible. */
 .cmv2-dist-eje-corte b {
+  white-space: nowrap;
   font-size: 9.5px;
   font-weight: var(--pulso-weight-regular);
   color: var(--pulso-text-muted);
@@ -249,6 +254,10 @@
 /* --- Cuantiles ----------------------------------------------------------- */
 /* Alto de la fila de cifras: lo usa `cmv2-dist-guias` para saber dónde parar. */
 :root { --cmv2-dist-alto-cuantiles: 58px; }
+/* Con tres o cuatro filas la zona necesita más alto, o la última etiqueta cae
+   fuera del contenedor y el filete que la une a su marca queda colgando. */
+.cmv2-dist-cuantiles:has(> dl > div[data-fila="2"]) { --cmv2-dist-alto-cuantiles: 84px; }
+.cmv2-dist-cuantiles:has(> dl > div[data-fila="3"]) { --cmv2-dist-alto-cuantiles: 110px; }
 .cmv2-dist-cuantiles {
   position: relative;
   height: var(--cmv2-dist-alto-cuantiles);
@@ -274,9 +283,15 @@
   gap: 0;
   white-space: nowrap;
 }
+/* G18 · Una fila por etiqueta cuando hace falta. El alto de la zona crece con
+   ellas para que la última no se salga del contenedor. */
 .cmv2-dist-cuantiles dl > div[data-fila="1"] { top: 32px; }
+.cmv2-dist-cuantiles dl > div[data-fila="2"] { top: 58px; }
+.cmv2-dist-cuantiles dl > div[data-fila="3"] { top: 84px; }
 /* Un filete que une la etiqueta de la segunda fila con su marca: sin él,
    bajarla la desconecta de lo que nombra. */
+.cmv2-dist-cuantiles dl > div[data-fila="2"]::before,
+.cmv2-dist-cuantiles dl > div[data-fila="3"]::before,
 .cmv2-dist-cuantiles dl > div[data-fila="1"]::before {
   content: "";
   position: absolute;
