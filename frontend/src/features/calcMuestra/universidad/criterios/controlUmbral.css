@@ -1,0 +1,104 @@
+/*
+ * F120 · Nivelador de umbral y proporción.
+ *
+ * Vive bajo el conmutador, en el hueco que hasta ahora quedaba vacío. Su ancho
+ * es el de la columna del control, no el del gráfico: son dos cosas distintas
+ * —lo que fijo y lo que veo— y mezclarlas de ancho las mezcla de rol.
+ */
+.cmv2-umbral-control {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+.cmv2-umbral-control[data-deshabilitado] { opacity: 0.55; }
+
+.cmv2-umbral-etiqueta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-umbral-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Deslizador: busca. Se le da todo el ancho sobrante porque recorrerlo ES la
+   decisión — con el gráfico al lado, cada posición enseña qué recorta. */
+.cmv2-umbral-rango {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--cmv2-accent);
+  cursor: pointer;
+}
+.cmv2-umbral-rango:focus-visible { outline: 2px solid var(--cmv2-accent); outline-offset: 3px; }
+
+/* Campo numérico: fija. Un mínimo de 20 se escribe; con el deslizador cuesta
+   clavarlo, y peor cuanto más ancho es el rango. */
+.cmv2-umbral-campo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  flex: none;
+  padding: 2px 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+}
+.cmv2-umbral-campo input {
+  width: 3.4ch;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  /* Las flechas nativas roban ancho y su paso ignora `step` en algunos
+     navegadores; el deslizador ya cubre el ajuste fino. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.cmv2-umbral-campo input::-webkit-outer-spin-button,
+.cmv2-umbral-campo input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cmv2-umbral-campo input:focus-visible { outline: none; }
+.cmv2-umbral-campo:focus-within { border-color: var(--cmv2-accent); }
+.cmv2-umbral-campo em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* Qué pasa si el valor se queda aquí. Es lo único que justifica una línea más. */
+.cmv2-umbral-efecto {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+}
+
+.cmv2-umbral-rango-nota {
+  display: flex;
+  justify-content: space-between;
+  margin: -2px 0 0;
+  font-size: 9.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-umbral-rango { transition: none; }
+}
