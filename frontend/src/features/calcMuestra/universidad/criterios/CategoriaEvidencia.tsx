@@ -63,11 +63,24 @@ const fmt = (v: number | null | undefined) =>
  */
 export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
   return (
-    <p className="cmv2-cat-escala-nota">
-      Escala común del criterio: <strong>{fmt(dominio.min)}</strong> a{" "}
-      <strong>{fmt(dominio.max)}</strong> alumnos elegibles por curso-horario.
-      Todas las cajas se dibujan sobre ella, así que se pueden comparar entre sí.
-    </p>
+    <div className="cmv2-cat-escala-cabecera">
+      <p className="cmv2-cat-escala-nota">
+        Escala común del criterio: <strong>{fmt(dominio.min)}</strong> a{" "}
+        <strong>{fmt(dominio.max)}</strong> estudiantes elegibles por curso-horario.
+        Todas las cajas se dibujan sobre ella, así que se pueden comparar entre sí.
+      </p>
+      {/* Qué significa cada marca de la caja.
+          La tarjeta dibuja cuatro marcas —rango, mediana, media, bigotes— y no
+          decía qué era ninguna: sólo el `aria-label` lo explicaba, así que quien
+          ve el gráfico tenía menos información que quien no lo ve. La leyenda va
+          una vez por criterio, no por categoría. */}
+      <ul className="cmv2-cat-leyenda" aria-hidden="true">
+        <li><i className="cmv2-cat-leyenda-rango" /> mitad central (P25–P75)</li>
+        <li><i className="cmv2-cat-leyenda-mediana" /> mediana</li>
+        <li><i className="cmv2-cat-leyenda-media" /> media</li>
+        <li><i className="cmv2-cat-leyenda-bigote" /> de P10 a P90</li>
+      </ul>
+    </div>
   );
 }
 

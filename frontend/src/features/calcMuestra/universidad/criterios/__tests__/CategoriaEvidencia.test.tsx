@@ -83,9 +83,20 @@ describe("CategoriaEvidencia", () => {
     // otra cifra— y la aserción pasaría sin probar nada.
     const nota = /<p class="cmv2-cat-escala-nota">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
     expect(nota).toContain("Escala común del criterio");
-    expect(nota).toContain("alumnos elegibles por curso-horario");
+    expect(nota).toContain("estudiantes elegibles por curso-horario");
     expect(nota).toContain(">10<");
     expect(nota).toContain(">120<");
+  });
+
+  it("declara qué significa cada marca de la caja", () => {
+    // La tarjeta dibuja cuatro marcas y no decía qué era ninguna: sólo el
+    // `aria-label` lo explicaba, así que quien VE el gráfico tenía menos
+    // información que quien no lo ve. La leyenda va una vez por criterio.
+    const html = renderToStaticMarkup(<EjeCategorias dominio={{ min: 10, max: 120 }} />);
+    expect(html).toContain("mitad central (P25–P75)");
+    expect(html).toContain("mediana");
+    expect(html).toContain("media");
+    expect(html).toContain("de P10 a P90");
   });
 
   it("cada caja lleva los extremos de la escala pegados a ella", () => {
