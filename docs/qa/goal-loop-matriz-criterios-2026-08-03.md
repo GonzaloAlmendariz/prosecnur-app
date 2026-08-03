@@ -130,3 +130,66 @@ en espera» sobre un orden que no es el que se aplica.
 El motor ya publica el suyo (`order_source: "motor_r"`). Ahora se lee de ahí y
 la lista del ADR queda de respaldo para cuando la cascada no está publicada.
 Medido: de **11** a **5** criterios en espera.
+
+### G11 — La matriz reacciona a la celda, no a la columna
+
+Verificado en la app: **1 celda en edición**, **5 en espera sólo en esa fila**, 1
+fila marcada, y la celda resaltada es el cruce de la facultad abierta con
+«Matriculados / población». La regla 1 del ADR 0057 funcionando de punta a punta.
+
+### G12 — El realce marca lo que cambió, no lo que se está tocando
+
+Se enciende cuando la cifra se movió respecto del render anterior. Encenderlo en
+la celda en edición anunciaría un cambio que todavía no ocurrió: confirmar no
+mueve nada hasta reconstruir el marco.
+
+Sólo color y opacidad. Con `prefers-reduced-motion` el realce se queda **fijo**
+en vez de desaparecer: quien apaga el movimiento sigue necesitando saber qué
+cambió.
+
+### G13 — Los cinco viewports
+
+| viewport | página desborda | scroll propio | columna fija |
+|---|---|---|---|
+| 1710×1107 · 1440×1000 · 1366×768 · 1280×720 | no | sí | sí |
+| **1024×600**, medido con redimensionado real | **no** | **sí** | **sí** |
+
+**Falso positivo del detector**: seis elementos daban `scrollWidth > clientWidth`
+sin scroll propio. Son `text-overflow: ellipsis` — el recorte intencional produce
+exactamente esa señal. Contar una decisión de diseño como defecto es el mismo
+patrón que llevo toda la sesión cazando, esta vez en mi instrumento de QA.
+
+Mi primera medición fue peor: cambiar `documentElement.style.width` no
+redimensiona el viewport. Rehecha con `resize_window`.
+
+### G14 — Consistencia del motor R
+
+Las etiquetas que llegan a la matriz salen del registro de criterios y de las
+entradas de la radiografía — las mismas que muestra la UI. **No queda «aula»
+donde la superficie dice «curso-horario»**, que era el riesgo tras los barridos
+de vocabulario de F66–F71.
+
+### G15 — Repaso de los loops recientes
+
+- CSS huérfano: **sin deuda nueva**; la línea base por pestaña se mantiene.
+- Contenido plegado: los **tres** `<details>` vivos son los declarados por nombre
+  (mensaje del motor, ejemplo didáctico, renombrado de hojas).
+- ADR 0058 recoge los **cinco errores del goal** con su mecanismo.
+
+## Estado del goal
+
+| | |
+|---|---|
+| Iteraciones | **G1–G15** |
+| Inconsistencias de motor encontradas | **1** (descuadre de 7 CH) — reparada |
+| Defectos propios encontrados por mutación o medición | **6** |
+| Gate | typecheck 0 · 1.032 pruebas en 120 archivos · área R en verde |
+
+**Abierto**, para decidir contigo:
+
+- La matriz marginal (`MatrizEmbudoCriterios`) sigue arriba como Panorama. Son
+  dos matrices en la misma pestaña con preguntas distintas; funciona, pero
+  conviene revisar si el rótulo de cada una deja claro cuál responde qué.
+- Los niveladores de umbral y rango están construidos y probados, pero **todavía
+  no montados** en los criterios reales: hoy el mínimo se edita con el control
+  anterior.
