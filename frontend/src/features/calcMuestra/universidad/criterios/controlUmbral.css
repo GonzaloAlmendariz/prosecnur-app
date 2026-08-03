@@ -102,3 +102,79 @@
 @media (prefers-reduced-motion: reduce) {
   .cmv2-umbral-rango { transition: none; }
 }
+
+
+/*
+ * F121 · Rango de dos manijas.
+ *
+ * Dos `<input type="range">` superpuestos, no un widget propio: cada manija es
+ * un control nativo que se opera con teclado y anuncia un lector de pantalla.
+ * Uno dibujado a mano se ve igual y no hace nada de eso.
+ *
+ * Las pistas nativas se ocultan y se dibuja una sola detrás, con la banda del
+ * tramo: dos pistas superpuestas se ven como un borrón.
+ */
+.cmv2-rango-pistas {
+  position: relative;
+  height: 22px;
+  margin-top: 2px;
+}
+.cmv2-rango-pistas::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text) 14%, transparent);
+}
+/* La banda ES la lectura: el tramo que entra. Detrás de las manijas y sin
+   puntero — mover el rango es mover una manija. */
+.cmv2-rango-banda {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: var(--cmv2-accent);
+  pointer-events: none;
+}
+.cmv2-rango-manija {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: none;
+  appearance: none;
+  -webkit-appearance: none;
+  /* Sin esto, el input de arriba tapa al de abajo en toda su superficie y la
+     manija inferior deja de poder agarrarse. */
+  pointer-events: none;
+}
+.cmv2-rango-manija::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--cmv2-accent);
+  box-shadow: 0 1px 3px color-mix(in srgb, #000 26%, transparent);
+  cursor: pointer;
+}
+.cmv2-rango-manija::-moz-range-thumb {
+  pointer-events: auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--pulso-surface);
+  border: 2px solid var(--cmv2-accent);
+  cursor: pointer;
+}
+.cmv2-rango-manija:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
+.cmv2-rango-manija:focus-visible::-moz-range-thumb { outline: 2px solid var(--cmv2-accent); outline-offset: 2px; }
+
+.cmv2-rango-campos { display: flex; align-items: center; gap: 6px; }
+.cmv2-rango-guion { color: var(--pulso-text-muted); }
