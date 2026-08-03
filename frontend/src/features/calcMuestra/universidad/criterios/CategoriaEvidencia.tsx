@@ -65,6 +65,21 @@ export function dominioCategorias(
    * cada lado y la caja los marca en su extremo. Un dominio que abarca al
    * atípico para «no perderlo» pierde en cambio las trece categorías restantes.
    */
+  /*
+   * G38 · Si el motor fija el dominio, manda él.
+   *
+   * Gonzalo: «podemos hacer que la distribución tenga ejes del 0 al 100 porque
+   * es un porcentaje». Un eje ajustado al rango observado hace que «85 %»
+   * parezca el extremo de la escala cuando es el 85 % de un máximo posible de
+   * 100 — y con varias facultades, cada una tendría su propio «extremo», que es
+   * justo lo que la regla 3 del ADR prohíbe.
+   *
+   * Sólo aplica cuando el motor la publica; para el resto de criterios el eje
+   * sigue saliendo de los datos y de sus bigotes.
+   */
+  const fijada = aportes.find((a) => a?.escalaEje)?.escalaEje;
+  if (fijada) return dominioRedondeado({ min: fijada.min, max: fijada.max });
+
   const valores: number[] = [];
   if (typeof umbral === "number" && Number.isFinite(umbral)) valores.push(umbral);
   for (const aporte of aportes) {
@@ -233,8 +248,21 @@ export function CategoriaEvidencia({
     // Lo que el corte deja fuera. Es resta de dos cifras que el motor ya
     // publicó —presentación, no un estadístico nuevo—: si alguna falta, no se
     // fabrica.
-    const fuera =
-      aporte.chContraste != null && aporte.ch != null ? aporte.chContraste - aporte.ch : null;
+    /*
+     * G38 · Cuántos deja fuera el corte.
+     *
+     * Gonzalo, sobre composición: «no hay forma de saber cuántos perdemos por el
+     * porcentaje que estamos aplicando». Cuando el motor cuenta esa cifra
+     * (`n_fuera`) se usa la suya: es la única que responde exactamente a esa
+     * pregunta —los que caen por debajo de ESTE umbral—, mientras la resta de
+     * abajo mide algo más ancho, todo lo que la cascada entera descartó.
+     *
+     * La resta se conserva para los criterios donde el motor no cuenta el corte.
+     * Es resta de dos cifras que ya publicó, no un estadístico nuevo.
+     */
+    const fuera = aporte.nFuera != null
+      ? aporte.nFuera
+      : aporte.chContraste != null && aporte.ch != null ? aporte.chContraste - aporte.ch : null;
     return (
       <div className="cmv2-cat-evidencia" data-variante={variante}>
         <div className="cmv2-cat-cifras">

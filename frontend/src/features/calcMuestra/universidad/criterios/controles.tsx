@@ -117,6 +117,23 @@ export type AporteCategoria = {
   distribucion?: CalcMuestraAulasCriterioRadiografiaV2Distribution | null;
   /** Proporción 0–1 esperada de asistencia: convierte elegibles en presentes. */
   tasaAsistencia?: number | null;
+  /**
+   * G38 · Dominio del eje cuando el motor lo fija en vez de deducirlo del dato.
+   *
+   * Una proporción se lee sobre 0–100 porque ése es su máximo posible, no el
+   * que se haya observado: con el eje ajustado al rango, «85 %» parece el
+   * extremo de la escala. Sólo viaja cuando el motor lo publica; si falta, el
+   * eje sigue saliendo de los datos.
+   */
+  escalaEje?: { min: number; max: number } | null;
+  /**
+   * G38 · Cursos-horario que el corte aplicado deja fuera. Lo cuenta R.
+   *
+   * Gonzalo: «no hay forma de saber cuántos perdemos por el porcentaje que
+   * estamos aplicando». `null` es «no aplica» —el criterio está apagado—, no
+   * cero.
+   */
+  nFuera?: number | null;
 };
 
 export function ControlFlat({

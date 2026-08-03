@@ -50,7 +50,7 @@ const row: CalcMuestraAulasCriterioRadiografiaV2Row = {
   signal_distribution: {
     unit: "valor_criterio",
     n_total: 4,
-    n_con_dato: 4,
+    n_con_dato: 4, escala: null, umbral_aplicado: null, n_fuera: null,
     ...distribution,
   },
   delta: {

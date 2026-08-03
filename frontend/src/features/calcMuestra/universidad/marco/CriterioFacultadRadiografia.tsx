@@ -1,4 +1,7 @@
-import type { CalcMuestraAulasCriteriosRadiografia } from "../../../../api/calcMuestraCriteriosRadiografia";
+import type {
+  CalcMuestraAulasCriterioSignalDistribution,
+  CalcMuestraAulasCriteriosRadiografia,
+} from "../../../../api/calcMuestraCriteriosRadiografia";
 import type {
   CalcMuestraCriteriosAnclasHistoricas,
   CalcMuestraCriteriosCascada,
@@ -47,7 +50,23 @@ export type CriterioFacultadEvidence = {
 function aporteDeFila(row: {
   actual: { n_ch: number; n_ch_con_dato: number; n_estudiantes_unicos: number | null; distribution: unknown };
   contraste_total: { n_ch: number; distribution: { media: number | null } };
+  signal_distribution?: CalcMuestraAulasCriterioSignalDistribution | null;
 }): AporteCategoria {
+  /*
+   * G38 · Un criterio de proporción se describe con su proporción.
+   *
+   * Gonzalo: «la distribución y el boxplot debían hacer referencia al porcentaje
+   * de su composición, no a la cantidad de alumnos elegibles». `actual.distribution`
+   * describe alumnos elegibles por curso-horario —la misma variable para todos
+   * los criterios—; `signal_distribution` describe **la señal con la que ESTE
+   * criterio decide**. Para composición son cosas distintas, y el umbral se fija
+   * sobre la segunda.
+   *
+   * El motor ya la publica en porcentaje con su escala (contrato v2), así que
+   * aquí no se convierte nada: se elige cuál de las dos describe el criterio.
+   */
+  const senal = row.signal_distribution ?? null;
+  const esProporcion = senal?.unit === "proporcion";
   return {
     ch: row.actual.n_ch,
     chContraste: row.contraste_total.n_ch,
@@ -55,7 +74,11 @@ function aporteDeFila(row: {
     elegibles: row.actual.n_estudiantes_unicos,
     mediaContraste: row.contraste_total.distribution.media,
     tasaAsistencia: null,
-    distribucion: row.actual.distribution as AporteCategoria["distribucion"],
+    distribucion: (esProporcion
+      ? senal
+      : row.actual.distribution) as AporteCategoria["distribucion"],
+    escalaEje: esProporcion ? senal.escala : null,
+    nFuera: esProporcion ? senal.n_fuera : null,
   };
 }
 

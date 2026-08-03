@@ -289,6 +289,58 @@ describe("normalizeCalcMuestraAulasCriteriosRadiografia — v2", () => {
     expect(invalid.criterios.find((entry) => entry.id === "age")?.status).toBe("invalido");
   });
 
+  it("una señal sin los campos del contrato v2 sigue siendo válida (G38)", () => {
+    /*
+     * Ausente no es malformado.
+     *
+     * Al añadir `escala`, `umbral_aplicado` y `n_fuera` los validé con el helper
+     * de los campos obligatorios, para el que faltar ES estar mal. Resultado:
+     * toda señal que no los trajera quedaba rechazada y la radiografía entera se
+     * caía —frente a un backend anterior, o a cualquier fixture previo—. Lo cazó
+     * la suite de superficie, no el compilador: los tres campos existían en el
+     * tipo, así que nada se veía roto.
+     *
+     * El fixture `row()` de este archivo publica una señal SIN esos campos a
+     * propósito: es un payload de la versión anterior del motor.
+     */
+    const valid = normalizeCalcMuestraAulasCriteriosRadiografia(root({
+      criterios: [sessionEntry()],
+    }));
+    if (!valid || valid.schema !== CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_V2_SCHEMA) {
+      throw new Error("la señal sin campos v2 debería seguir parseando");
+    }
+    const senal = valid.criterios[0]?.rows[0]?.signal_distribution;
+    expect(senal).toBeTruthy();
+    expect(senal?.escala).toBeNull();
+    expect(senal?.umbral_aplicado).toBeNull();
+    expect(senal?.n_fuera).toBeNull();
+  });
+
+  it("una proporción publica su escala y lo que el corte deja fuera (G38)", () => {
+    const valid = normalizeCalcMuestraAulasCriteriosRadiografia(root({
+      criterios: [sessionEntry({
+        rows: [row({
+          signal_distribution: {
+            unit: "proporcion",
+            n_total: 4,
+            n_con_dato: 4,
+            ...distribution,
+            escala: { min: 0, max: 100 },
+            umbral_aplicado: 80,
+            n_fuera: 3,
+          },
+        })],
+      })],
+    }));
+    if (!valid || valid.schema !== CALC_MUESTRA_AULAS_CRITERIOS_RADIOGRAFIA_V2_SCHEMA) {
+      throw new Error("v2 esperado");
+    }
+    const senal = valid.criterios[0]?.rows[0]?.signal_distribution;
+    expect(senal?.escala).toEqual({ min: 0, max: 100 });
+    expect(senal?.umbral_aplicado).toBe(80);
+    expect(senal?.n_fuera).toBe(3);
+  });
+
   it("liga signal_distribution a su n_total explícito", () => {
     const partialSignal = ageEntry({
       rows: [row({

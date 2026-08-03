@@ -300,7 +300,34 @@ function signalDistribution(value: unknown): CalcMuestraAulasCriterioSignalDistr
     !parsedDistribution || nConDato > nTotal ||
     !distributionMatchesDenominator(parsedDistribution, nConDato, nTotal)
   ) return null;
-  return { unit, n_total: nTotal, n_con_dato: nConDato, ...parsedDistribution };
+  // G38 · Los tres campos del contrato v2. Este normalizador es el gemelo del de
+  // `calcMuestraCriteriosRadiografia`: el mismo payload llega por dos rutas y
+  // sólo una lo parseaba, así que el tipo compartido es lo que obliga a que las
+  // dos se muevan juntas.
+  const escalaRaw = record(source.escala);
+  // Ausente no es malformado: sólo un valor presente e ilegible invalida.
+  const opcional = (v: unknown) => (v === undefined ? null : finiteOrNull(v));
+  const escalaMin = escalaRaw ? opcional(escalaRaw.min) : null;
+  const escalaMax = escalaRaw ? opcional(escalaRaw.max) : null;
+  const umbral = opcional(source.umbral_aplicado);
+  const fuera = opcional(source.n_fuera);
+  if (
+    escalaMin === INVALID || escalaMax === INVALID ||
+    umbral === INVALID || fuera === INVALID
+  ) return null;
+  const escala =
+    escalaMin !== null && escalaMax !== null && escalaMax > escalaMin
+      ? { min: escalaMin, max: escalaMax }
+      : null;
+  return {
+    unit,
+    n_total: nTotal,
+    n_con_dato: nConDato,
+    ...parsedDistribution,
+    escala,
+    umbral_aplicado: umbral,
+    n_fuera: fuera,
+  };
 }
 
 export function normalizeCalcMuestraCriteriosTotales(
