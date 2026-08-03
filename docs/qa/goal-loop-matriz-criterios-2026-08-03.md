@@ -486,3 +486,32 @@ contrato de composición necesita un proyecto cuyo marco reconstruya con poblaci
 `n_fuera`, tabla exacta en los 21 cortes, whitelist), los guards de superficie
 con mutación, y el montaje de la tarjeta en los tres pasos. Lo único pendiente es
 verlo con cifras en pantalla.
+
+### G39 — «Matriculados / población»: por qué sigue ahí, y qué falta decidir
+
+Gonzalo, por segunda vez: «¿por qué esto sigue aquí? No entiendo».
+
+**Por qué sigue.** En G33 resolví su primera objeción a medias: filtré los
+criterios **sin columna mapeada**, y éste sí la tiene (`Matriculados`), así que
+sobrevivió al filtro sin que la objeción quedara atendida. Un filtro que resuelve
+el caso que tenía delante y no la pregunta que se hizo.
+
+**Por qué su sitio es el equivocado.** Lo dice su propio texto: «este criterio
+aplica igual en las 15 facultades: el motor todavía no admite un umbral distinto
+por facultad». Un criterio que **no puede decidirse por facultad**, dentro de un
+bloque titulado «Decisión para esta facultad», le pide a cada facultad una
+decisión que no existe. Y duplica la pregunta del primer criterio, que sí es por
+facultad y mide la variable que importa —alumnos elegibles, no matriculados—.
+
+**Por qué no lo he retirado.** Lo intenté y lo revertí: un test protege
+deliberadamente esa capacidad —«una variable numérica no representable en el
+bloque por facultad no se pierde por `soloAjustes`: conserva aquí su control
+global editable»— y hoy ésta es su **única superficie editable**. Retirarlo de
+aquí lo deja sin ningún sitio donde ajustarse, que es un defecto distinto y peor
+que el que corrige.
+
+**Lo que falta decidir** (de Gonzalo, no mío): el umbral de matriculados necesita
+un sitio propio entre los ajustes globales de la mesa, fuera del bloque por
+facultad. Mientras no lo tenga, la elección real es entre pedirle a cada facultad
+una decisión que no existe, o perder la capacidad de ajustarlo. Ninguna de las
+dos es aceptable en silencio, así que queda escrita.
