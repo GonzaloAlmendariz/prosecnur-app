@@ -170,7 +170,7 @@ const canonicalRow: CalcMuestraAulasCriterioRadiografiaV2Row = {
   signal_distribution: {
     unit: "valor_criterio",
     n_total: 10,
-    n_con_dato: 10, escala: null, umbral_aplicado: null, n_fuera: null,
+    n_con_dato: 10, escala: null, umbral_aplicado: null, n_fuera: null, n_fuera_por_corte: [],
     media: 12,
     p10: 4,
     p25: 8,

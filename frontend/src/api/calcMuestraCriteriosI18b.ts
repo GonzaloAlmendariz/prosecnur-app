@@ -189,6 +189,19 @@ function finiteOrNull(value: unknown): number | null | Invalid {
   return INVALID;
 }
 
+/** Lista de números finitos; un elemento ilegible descarta la lista entera. */
+function numberList(value: unknown): number[] {
+  if (value == null) return [];
+  const bruto = Array.isArray(value) ? value : [value];
+  const out: number[] = [];
+  for (const v of bruto) {
+    const n = finiteOrNull(v);
+    if (n === INVALID || n === null) return [];
+    out.push(n);
+  }
+  return out;
+}
+
 function nonNegativeInteger(value: unknown): number | Invalid {
   const parsed = finiteOrNull(value);
   return parsed !== INVALID && parsed !== null && Number.isInteger(parsed) && parsed >= 0
@@ -327,6 +340,7 @@ function signalDistribution(value: unknown): CalcMuestraAulasCriterioSignalDistr
     escala,
     umbral_aplicado: umbral,
     n_fuera: fuera,
+    n_fuera_por_corte: numberList(source.n_fuera_por_corte),
   };
 }
 
