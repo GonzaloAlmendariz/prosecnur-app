@@ -208,6 +208,28 @@
 }
 .cmv2-cat-leyenda-bigote { width: 16px; height: 1px; background: var(--cmv2-border-strong, var(--cmv2-border)); }
 
+/*
+ * F105 · Efecto en el embudo: qué pone o quita esta categoría. Sexto contenido
+ * exigido por ADR 0057 y el único que faltaba en la tarjeta.
+ *
+ * Dos estados con peso distinto: la que está dentro dice qué se perdería al
+ * quitarla; la que está fuera dice cuánto queda fuera. La segunda se tiñe con
+ * el tono de aviso porque es una ausencia que puede no ser intencional.
+ */
+.cmv2-cat-efecto {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-cat-efecto strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-cat-efecto[data-estado="fuera"] {
+  color: var(--pulso-warn-fg, var(--pulso-text-muted));
+}
+.cmv2-cat-efecto[data-estado="fuera"] strong { color: inherit; }
+
 /* Contraste contra el total: contexto, no la cifra principal. */
 .cmv2-cat-contraste { margin: 0; font-size: 11px; color: var(--pulso-text-muted); }
 .cmv2-cat-contraste strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }

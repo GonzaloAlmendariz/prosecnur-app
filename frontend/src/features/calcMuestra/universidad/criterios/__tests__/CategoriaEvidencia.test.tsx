@@ -111,10 +111,29 @@ describe("CategoriaEvidencia · categoría sin cursos en la facultad", () => {
     // Cinco guiones (P10 — P25 — Mediana — …) no informan nada cuando la
     // categoría tiene 0 CH: sólo gastan atención. Quitarlos no quita
     // información; dejarlos sí quita foco de las categorías que sí deciden.
+    // F105 · `chContraste: 0` es lo que hace de esta categoría una ausencia
+    // real y no una exclusión. Antes el fixture heredaba 200 del contraste por
+    // defecto, así que este caso probaba —sin saberlo— la categoría excluida.
     const html = renderToStaticMarkup(
-      <CategoriaEvidencia aporte={aporte({ ch: 0, elegibles: 0 })} dominio={{ min: 10, max: 60 }} />,
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 0, elegibles: 0, chContraste: 0, mediaContraste: null })}
+        dominio={{ min: 10, max: 60 }}
+      />,
     );
     expect(html).toContain("sin cursos-horario en esta facultad");
+    expect(html).not.toContain("Mediana");
+    expect(html).not.toContain("cmv2-cat-caja");
+  });
+
+  it("una categoría excluida tampoco dibuja caja ni cuantiles", () => {
+    // El silencio de la distribución vale para los dos ceros: sin CH incluidos
+    // no hay nada que distribuir, venga de donde venga el cero.
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 0, elegibles: 0, chContraste: 200 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
     expect(html).not.toContain("Mediana");
     expect(html).not.toContain("cmv2-cat-caja");
   });
@@ -168,6 +187,59 @@ describe("CategoriaEvidencia · los dos granos y la cobertura del dato", () => {
   });
 });
 
+describe("CategoriaEvidencia · los dos ceros no significan lo mismo (F105)", () => {
+  // `ch` es el segmento ∩ lo que sigue incluido, así que llega a 0 por dos
+  // caminos: la facultad no tiene esos cursos, o un criterio los dejó fuera.
+  // Tratarlos igual mentía en el segundo caso y encima ocultaba el contraste.
+  it("una categoría excluida dice que está fuera, no que no existe", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 0, elegibles: 0, chContraste: 200, mediaContraste: 24 })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).toContain("Fuera del marco");
+    expect(html).toContain("200");
+    expect(html).not.toContain("sin cursos-horario en esta facultad");
+    // El contraste vuelve: es lo único que dice cuánto se está dejando fuera.
+    expect(html).toContain("En todos los cursos-horario");
+  });
+
+  it("una categoría que de verdad no existe aquí lo dice tal cual", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia
+        aporte={aporte({ ch: 0, elegibles: 0, chContraste: 0, mediaContraste: null })}
+        dominio={{ min: 10, max: 60 }}
+      />,
+    );
+    expect(html).toContain("sin cursos-horario en esta facultad");
+    expect(html).not.toContain("Fuera del marco");
+  });
+});
+
+describe("CategoriaEvidencia · efecto en el embudo (ADR 0057, contenido 5)", () => {
+  it("una categoría dentro dice qué se pierde al quitarla", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia aporte={aporte({ ch: 120, elegibles: 3400 })} dominio={{ min: 10, max: 60 }} />,
+    );
+    // Se comprueba dentro de su propio párrafo: un «120» suelto puede venir de
+    // cualquier cifra de la tarjeta y la aserción pasaría sin probar nada.
+    const efecto = /<p class="cmv2-cat-efecto" data-estado="dentro">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
+    expect(efecto).toContain("Quitarla deja fuera");
+    expect(efecto).toContain(">120<");
+    expect(efecto).toContain(">3,400<");
+  });
+
+  it("no inventa el conteo de estudiantes cuando el motor no lo publica", () => {
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia aporte={aporte({ ch: 120, elegibles: null })} dominio={{ min: 10, max: 60 }} />,
+    );
+    const efecto = /<p class="cmv2-cat-efecto" data-estado="dentro">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
+    expect(efecto).toContain("Quitarla deja fuera");
+    expect(efecto).not.toContain("estudiantes");
+  });
+});
+
 describe("CategoriaEvidencia · contraste contra el total", () => {
   it("dice cómo se ve la categoría en todos los cursos-horario", () => {
     // Un criterio existe para recortar; sin el contraste no se sabe si el
@@ -193,10 +265,15 @@ describe("CategoriaEvidencia · contraste contra el total", () => {
     expect(html).not.toContain("En todos los cursos-horario");
   });
 
-  it("una categoría sin cursos aquí no muestra contraste", () => {
+  it("una categoría que no existe en la facultad no muestra contraste", () => {
+    // F105 · Esta prueba afirmaba lo contrario de lo correcto: usaba
+    // `chContraste: 849` —una categoría con 849 CH en el marco, excluida— y
+    // exigía que NO se mostrara el contraste. Justo entonces el contraste es lo
+    // único que dice cuánto se está dejando fuera. El caso sin contraste es el
+    // de la categoría que de verdad no está aquí.
     const html = renderToStaticMarkup(
       <CategoriaEvidencia
-        aporte={aporte({ ch: 0, chContraste: 849, mediaContraste: 26.9 })}
+        aporte={aporte({ ch: 0, chContraste: 0, mediaContraste: null })}
         dominio={{ min: 10, max: 60 }}
       />,
     );

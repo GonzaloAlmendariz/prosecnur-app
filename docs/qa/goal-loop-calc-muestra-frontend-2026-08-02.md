@@ -3926,8 +3926,46 @@ declara el permiso sobrante.
 
 Gate: typecheck 0 · 895 pruebas en 111 archivos.
 
-**Siguiente**: reauditar la superficie de criterios de curso-horario con la vara
-alta, que es lo que el goal pide y donde quedan pendientes de fondo.
+### F105 — La tarjeta declaraba no tener cursos cuando los tenía fuera
+
+Reauditada la tarjeta de categoría contra la **tabla del propio ADR 0057**, campo
+por campo. Cinco de los seis contenidos estaban. Faltaba el **efecto en el
+embudo** — que es además lo que Gonzalo pidió integrar con otras palabras.
+
+Buscando dónde ponerlo apareció algo peor. `ch` es el segmento **∩ lo que sigue
+incluido** (verificado en el motor: `actual_idx <-
+segment_idx[included_actual[segment_idx]]`), así que llega a 0 por dos caminos
+que no significan lo mismo:
+
+- la facultad no tiene cursos de esa categoría, o
+- los tiene y **un criterio los dejó fuera**.
+
+La tarjeta trataba ambos como «sin cursos-horario en esta facultad» **y ocultaba
+el contraste en ese estado**. Una categoría con 200 CH en el marco, excluida,
+declaraba no tener ninguno — y escondía justo la cifra que dice cuánto se está
+dejando fuera.
+
+El defecto no se ve mirando la pantalla: los dos estados renderizan la misma
+frase y la frase es cierta en uno de los dos. Sólo aparece leyendo qué mide el
+número.
+
+| medida | antes | después |
+|---|---:|---:|
+| Contenidos de ADR 0057 en la tarjeta | 5 de 6 | **6 de 6** |
+| Estados distinguidos para `ch === 0` | 1 | **2** |
+| Contraste visible en categoría excluida | no | **sí** |
+
+**Dos pruebas mías cubrían lo contrario de lo que creían.** El fixture heredaba
+`chContraste: 200`, así que «una categoría sin cursos aquí» llevaba tiempo
+probando la categoría *excluida*; y una de ellas **exigía que no se mostrara el
+contraste**, que es exactamente lo que hay que mostrar en ese estado. Un test
+puede fijar un defecto con la misma firmeza con que fija una reparación.
+
+Gate: typecheck 0 · 900 pruebas en 111 archivos. ADR 0057 sube a 34 patrones.
+
+**Siguiente**: seguir la reauditoría de criterios de curso-horario con la vara
+alta — el resto de las cinco reglas del ADR contrastadas contra la superficie
+real, no de memoria.
 
 ### F103 — El agujero estaba en mi propio guard
 
