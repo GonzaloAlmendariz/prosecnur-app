@@ -182,3 +182,28 @@
 
 /* Cobertura parcial del dato: aviso discreto, no alarma. */
 .cmv2-cat-parcial { color: var(--pulso-text-muted); }
+
+/* Leyenda de la caja: una vez por criterio, con las mismas marcas del gráfico. */
+.cmv2-cat-escala-cabecera { display: grid; gap: 3px; }
+.cmv2-cat-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-cat-leyenda li { display: flex; align-items: center; gap: 5px; }
+.cmv2-cat-leyenda i { display: inline-block; }
+.cmv2-cat-leyenda-rango {
+  width: 16px; height: 9px; border-radius: 3px;
+  background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
+}
+.cmv2-cat-leyenda-mediana { width: 2px; height: 11px; border-radius: 1px; background: var(--cmv2-accent); }
+.cmv2-cat-leyenda-media {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--pulso-text); box-shadow: 0 0 0 2px var(--cmv2-surface);
+}
+.cmv2-cat-leyenda-bigote { width: 16px; height: 1px; background: var(--cmv2-border-strong, var(--cmv2-border)); }

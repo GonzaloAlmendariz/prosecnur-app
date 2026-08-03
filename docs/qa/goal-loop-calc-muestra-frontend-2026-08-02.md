@@ -3654,6 +3654,42 @@ son ~480 nodos por criterio, pero es un cambio estructural visible y exige
 comprobar antes qué más vive sólo ahí —el mismo cuidado que salvó a «Composición»
 en F67—.
 
+### F96 — El gráfico no decía qué significaba cada marca
+
+Hecho el inventario de lo que vive **sólo** en el bloque compacto: 112 textos, de
+los que casi todos son sus propias cabeceras o cifras que la tarjeta ya trae tras
+F95. Queda **una cosa real, y es un hueco de mi propia tarjeta**.
+
+La caja dibuja **cuatro marcas** —la mitad central, la mediana, la media y los
+bigotes— y **en ningún sitio decía qué era cada una**. Sólo el `aria-label` lo
+explicaba: quien **ve** el gráfico tenía menos información que quien no lo ve.
+Esa leyenda la cargaba el bloque compacto.
+
+Añadida donde corresponde —**una vez por criterio**, no por categoría— y con las
+mismas marcas dibujadas, no con texto que las describa:
+
+| marca | significa |
+|---|---|
+| barra | mitad central (P25–P75) |
+| línea | mediana |
+| punto | media |
+| trazo fino | de P10 a P90 |
+
+De paso, la nota de escala decía «alumnos» donde la cabecera de la app dice
+estudiantes: corregido.
+
+| | |
+|---|---:|
+| Leyendas en la superficie | **3** (una por criterio con cajas) |
+| Desbordes | **0** |
+| Vitest | 871 → **872** en 109 archivos |
+
+**Con esto el bloque compacto queda sin contenido propio.** Retirarlo son ~480
+nodos por criterio, y ya no cuesta información. Es el siguiente paso, y ahora sí
+con el inventario hecho: la razón por la que no lo hice antes —y por la que no lo
+haré sin verificar una vez más— es que en este loop ya retiré dos veces algo que
+parecía redundante y no lo era.
+
 ### Estado del loop
 
 | | |
