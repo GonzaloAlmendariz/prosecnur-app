@@ -174,3 +174,21 @@
   .cmv2-tsr-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cmv2-tsr-counts > div:last-child { grid-column: 1 / -1; }
 }
+
+/*
+ * G39 · Las categorías sin cursos-horario aquí, nombradas.
+ *
+ * Reemplazan a siete tarjetas de seis ceros que ocupaban 1.789 px verticales y
+ * hundían a las cuatro que sí deciden. Nombrarlas conserva lo único que tenían
+ * que decir —que existen y están vacías aquí— en una línea.
+ */
+.cmv2-tsr-vacias {
+  margin: 6px 0 2px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+.cmv2-tsr-vacias strong {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}

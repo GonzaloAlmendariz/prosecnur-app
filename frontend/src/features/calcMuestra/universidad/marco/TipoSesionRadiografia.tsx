@@ -157,6 +157,16 @@ export function TipoSesionRadiografia({
   contexto: TipoSesionRadiografiaContexto;
 }) {
   const filas = filasTipoSesionRadiografia(radiografia, facultadKey ?? "", facultad.facultad);
+  /*
+   * G39 · La categoría tiene cursos-horario AQUÍ o no los tiene.
+   *
+   * El criterio es `n_ch_total`, no `n_ch_elegibles`: lo segundo cuenta los que
+   * siguen incluidos, así que una categoría que el criterio excluye tendría cero
+   * y se listaría como «sin cursos-horario en esta facultad» teniéndolos. Es
+   * exactamente la confusión que F109 reparó en la lista de conmutadores.
+   */
+  const filasConDato = filas.filter((f) => (f.n_ch_total ?? 0) > 0);
+  const filasVacias = filas.filter((f) => (f.n_ch_total ?? 0) <= 0);
   const procedencia = contexto === "editable"
     ? "Exploración previa · último marco ejecutado"
     : "Marco ejecutado";
@@ -194,13 +204,33 @@ export function TipoSesionRadiografia({
               Estas cifras pertenecen al último marco ejecutado. El borrador entra al recalcular.
             </p>
           ) : null}
-          {filas.length ? (
+          {/*
+            * G39 · Las categorías sin cursos-horario aquí se NOMBRAN, no reciben
+            * tarjeta. Es la decisión de G33 aplicada donde faltaba.
+            *
+            * Medido en la app: 11 tarjetas, **sólo 4 con cursos-horario**, y las
+            * otras 7 ocupando 1.789 px verticales con todas sus cifras en cero.
+            * Una tarjeta con seis ceros y un boxplot vacío no es información
+            * ausente presentada con honestidad: es el mismo hueco repetido siete
+            * veces, y hunde a las cuatro que sí deciden.
+            *
+            * No se ocultan —eso sería el defecto contrario, y esta superficie ya
+            * lo corrigió una vez—: se listan por su nombre, que es todo lo que
+            * tienen que decir.
+            */}
+          {filasVacias.length ? (
+            <p className="cmv2-tsr-vacias" role="note">
+              <strong>Sin cursos-horario en esta facultad ({filasVacias.length}):</strong>{" "}
+              {filasVacias.map((f) => f.categoria_label).join(" · ")}
+            </p>
+          ) : null}
+          {filasConDato.length ? (
             <div
               className="cmv2-tsr-grid"
               data-qa-geometry-group="calc-muestra/session-type-radiografia"
               data-qa-geometry-contract="intrinsic"
             >
-              {filas.map((fila) => (
+              {filasConDato.map((fila) => (
                 <article className="cmv2-tsr-card" key={fila.categoria_key} data-qa-geometry-member>
                   <header className="cmv2-tsr-card-head">
                     <strong>{fila.categoria_label}</strong>
