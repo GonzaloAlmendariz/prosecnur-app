@@ -417,6 +417,7 @@ function MinFacultadCard({
                 rango que llega al doble del máximo observado deja la mitad del
                 recorrido en una zona donde no hay nada que decidir. */}
             <ControlUmbral
+              alineadoConEje
               valor={propio ?? umbralGeneral}
               min={1}
               max={topeNivelador}

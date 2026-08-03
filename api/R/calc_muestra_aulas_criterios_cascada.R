@@ -10,10 +10,30 @@
 
 # Fuente unica del orden metodologico. La salida sigue siendo dinamica: solo
 # publica ids presentes en el inventario R de la radiografia.
+# G30 · El orden del embudo es el de la SUPERFICIE.
+#
+# Decision de Gonzalo: «debe ser el orden de la superficie el que tiene el orden
+# correcto ahora».
+#
+# Hasta aqui habia DOS ordenes que no coincidian. Medido en la app: la pantalla
+# presentaba el minimo primero y el motor lo aplicaba **undecimo**. Importa
+# porque la cifra de cada tarjeta —«quitarla deja fuera N cursos-horario»— se
+# calcula en este orden, y dos criterios que se solapan quitan distinto segun
+# cual va antes: leer la lista de arriba abajo describia un embudo que no era el
+# que corrio.
+#
+# El minimo de alumnos elegibles abre el embudo porque es el que mas recorta —en
+# Gastronomia se lleva 36 de 45 cursos-horario— y aplicarlo el ultimo dejaba a
+# los criterios anteriores decidiendo sobre un marco que el iba a cambiar.
+#
+# Los criterios de estudiante siguen delante: filtran alumnos, y el minimo se
+# mide sobre los alumnos que sobreviven a ellos. Invertir eso si cambiaria el
+# significado del minimo, no solo su cifra.
 .cm_criterios_orden_motor <- c(
   "formation", "condition", "age", "faculty", "level",
-  "modality", "session_type", "teacher_type", "course_level",
-  "condicion_curso", "enrolled_total", "campus", "minEligible",
+  "minEligible",
+  "modality", "condicion_curso", "course_level", "session_type",
+  "teacher_type", "campus", "enrolled_total",
   "c7", "c8_facultad", "c8"
 )
 

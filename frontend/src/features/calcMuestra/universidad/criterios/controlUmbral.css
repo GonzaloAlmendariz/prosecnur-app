@@ -24,11 +24,35 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
+/*
+ * G31 · El deslizador se alinea con el eje del gráfico.
+ *
+ * Gonzalo: «si son los únicos deberían poder ocupar todo el ancho y que el
+ * slider esté alineado con el eje de forma elegante».
+ *
+ * No es sólo estético: cuando la pista del deslizador ocupa exactamente el
+ * mismo recorrido que la escala del gráfico, **arrastrar la manija es mover el
+ * corte sobre la distribución**. Con el control en su propia caja y el gráfico
+ * en otra, el usuario tenía que traducir «un tercio de la barra» a «un tercio
+ * del eje» — y las dos barras ni siquiera medían lo mismo.
+ *
+ * El campo numérico sale de la fila y baja: quitarle el ancho al deslizador es
+ * quitarle resolución al gesto que sí recorre la escala.
+ */
 .cmv2-umbral-fila {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  gap: 6px;
   min-width: 0;
+}
+.cmv2-umbral-control[data-alineado] .cmv2-umbral-fila {
+  /* La pista arranca donde arranca el eje y termina donde termina. */
+  width: 100%;
+}
+.cmv2-umbral-control[data-alineado] {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin-top: 4px;
 }
 
 /* Deslizador: busca. Se le da todo el ancho sobrante porque recorrerlo ES la
@@ -45,6 +69,7 @@
 
 /* Campo numérico: fija. Un mínimo de 20 se escribe; con el deslizador cuesta
    clavarlo, y peor cuanto más ancho es el rango. */
+.cmv2-umbral-control[data-alineado] .cmv2-umbral-campo { justify-self: start; }
 .cmv2-umbral-campo {
   display: inline-flex;
   align-items: baseline;
