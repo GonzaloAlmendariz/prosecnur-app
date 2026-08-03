@@ -121,3 +121,26 @@ describe("MatrizCascadaCriterios · el realce del embudo vivo (G12)", () => {
     expect(html).not.toContain('data-recalculado="true"');
   });
 });
+
+describe("la matriz se puede recorrer con teclado (G39)", () => {
+  /*
+   * Medido en la app: 1.501 px de tabla fuera de vista, `tabindex` nulo y sin un
+   * solo elemento focalizable dentro —las celdas son texto—, así que con teclado
+   * no había forma de llegar a los criterios de la derecha.
+   *
+   * De los tres contenedores con scroll de la pestaña era el único así: el de
+   * Panorama ya declaraba `tabindex` y el de cursos-horario contiene
+   * conmutadores. Enumerarlos los tres fue lo que lo señaló; mirar sólo el que
+   * se estaba tocando no habría dicho cuál faltaba.
+   *
+   * Contener el desbordamiento sin poder recorrerlo es esconder contenido con
+   * otro nombre (Contrato de Superficie, C4).
+   */
+  it("el contenedor con scroll declara foco y se anuncia", () => {
+    const html = render();
+    const scroll = /<div class="cmv2-mtz-scroll"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(scroll).toContain('tabindex="0"');
+    expect(scroll).toContain('role="region"');
+    expect(scroll).toContain("aria-label=");
+  });
+});
