@@ -639,3 +639,20 @@ Y la auditoría de vocabulario se hace sobre el texto renderizado, no sobre
   responda dónde vive mejor cada variable: en la base de estudiantes o en la de
   curso-horario. Hoy esa pregunta no tiene dónde formularse, así que un catálogo
   sucio sólo se descubre cuando ya se está decidiendo con él.
+
+  **Medido en la app el 2026-08-02 (F109), y es peor de lo que el reporte
+  original decía.** La contaminación no está sólo entre las categorías de tipo de
+  docente: está **en la dimensión facultad**. El selector rotulado «Facultad» de
+  la pestaña de criterios ofrece **17 opciones, de las cuales 16 son nombres de
+  personas** — el valor activo al medir era la clave de un docente. Los rótulos
+  llegan hasta los `aria-label`: «Condición del curso en ‹nombre de persona›».
+
+  El alcance es la premisa entera de este ADR. La regla 1 dice que **todos los
+  criterios son por facultad**; si la dimensión facultad son docentes, cada
+  decisión por facultad de esta superficie se está tomando contra un docente.
+  Ninguna reparación de presentación lo arregla: la superficie está dibujando
+  fielmente lo que el marco le publica.
+
+  Esto sube la prioridad de la pestaña de mapeo por encima de cualquier pulido
+  restante de la superficie, y le añade una pregunta que antes no tenía:
+  **cuál es la columna de facultad**, no sólo qué categorías tiene cada variable.

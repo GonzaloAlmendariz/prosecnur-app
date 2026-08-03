@@ -52,8 +52,25 @@ export function FacultadCategoriaToggles({
   // todos ruido): muestra las que tienen CH en la facultad (o están activas) y
   // pliega el resto. Si el catálogo no trae distribución, no pliega nada.
   const hayDistribucion = fila.tipos.some((t) => t.ch != null);
+  // F109 · El filtro era `ch > 0 || activo`, y `ch` cuenta sólo los CH que
+  // **siguen incluidos**. Una categoría que el criterio excluye tiene `ch = 0` y
+  // el conmutador apagado, así que se plegaba — y el botón la contaba como «sin
+  // cursos en esta facultad» teniéndolos.
+  //
+  // Es la misma confusión que F105 reparó DENTRO de la tarjeta, gobernando aquí
+  // **qué tarjetas llegas a ver**: lo que un criterio deja fuera desaparecía de
+  // la lista rotulado como inexistente. `contraste_total` viene filtrado por
+  // facultad (`evidenciaPorCategoria` cruza por facultad Y segmento), así que
+  // dice si la categoría tiene cursos AQUÍ estén incluidos o no.
+  //
+  // El domado original sobrevive: las ~52 categorías de DTI que son ruido no
+  // tienen cursos en esta facultad, su contraste es 0 y siguen plegadas.
+  const tieneCursosAqui = (t: { key: string; ch?: number | null }) => {
+    const contraste = evidencia?.(t.key)?.chContraste;
+    return contraste != null ? contraste > 0 : (t.ch ?? 0) > 0;
+  };
   const relevantes = hayDistribucion
-    ? fila.tipos.filter((t) => (t.ch ?? 0) > 0 || t.activo)
+    ? fila.tipos.filter((t) => tieneCursosAqui(t) || t.activo)
     : fila.tipos;
   const ocultasN = fila.tipos.length - relevantes.length;
   const plegable = hayDistribucion && fila.tipos.length >= UMBRAL_PLEGADO && ocultasN > 0;
