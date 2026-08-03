@@ -741,6 +741,118 @@ reparó y vuelve exacto no es una regresión del producto, es trabajo perdido �
 conviene buscarlo en el historial antes de rediagnosticarlo.
 
 
+### 46 · Una rama por defecto omite en silencio
+
+De las cuatro variantes de tarjeta, tres declaraban su `data-variante` y la
+categórica no. No era un olvido puntual: era **el caso por defecto** del
+componente —el `return` final, sin condición— y un caso por defecto no se siente
+como una rama que haya que declarar.
+
+El coste no es cosmético. Sin declaración no hay forma de distinguir «esta
+tarjeta es categórica» de «esta tarjeta se rompió y cayó al caso por defecto»,
+que es exactamente lo que la regla de la casa llama *verde por ausencia*. Y hace
+inauditable la superficie: no se puede contar qué variantes hay sin abrirla
+criterio a criterio.
+
+**Mecanismo**: las cuatro ramas declaran, y el guard comprueba las cuatro más un
+caso que caza una quinta rama futura que vuelva a omitir el atributo.
+
+### 47 · Un CSS que no se aplica no da error: pinta otra cosa parecida
+
+Las manijas del rango llevaban desde F121 sin usar ni una línea de su propio
+estilo. `theme.css` declara `input[type="range"]` globalmente, y ese selector
+tiene especificidad **(0,1,1)** —un elemento más un atributo—, que le gana a
+`.cmv2-rango-manija` **(0,1,0)**. Lo que se veía era el thumb del tema, con su
+`margin-top: -6px` calibrado para un carril de 6 px sobre uno que mide 22.
+
+Lo que hace a este defecto tan duradero es que **no deja hueco**: no hay un
+elemento sin estilo ni un error en consola, hay un control que se ve casi bien.
+Sobrevivió a tres iteraciones de ajuste fino sobre esas mismas líneas, cada una
+midiendo el resultado de una regla que no estaba en juego.
+
+**Mecanismo**: los selectores se cualifican con el elemento para empatar la
+especificidad y ganar por orden. Y la señal a buscar: si un ajuste de CSS *no
+cambia nada*, la hipótesis no es «el valor no es el correcto» sino «esta regla no
+está ganando». Se comprueba antes de seguir afinando.
+
+El mismo defecto vive en `.pulso-xfsim-range-input` (simulador XLSForm), que
+también pierde contra el global — otra clase, la misma causa.
+
+### 48 · El orden de una lista es una afirmación sobre qué pesa
+
+Las categorías de cada criterio salían en el orden de la columna de origen
+—alfabético o de aparición—, que no dice nada sobre qué decisión importa: la
+categoría que se lleva la mitad del marco podía quedar quinta, debajo de cuatro
+residuales.
+
+Lo interesante es **por cuál de las dos cifras ordenar**. `ch` cuenta los
+cursos-horario que siguen incluidos; `chContraste`, los que la categoría tiene en
+la facultad estén dentro o no. Ordenar por `ch` hace que la lista se reordene a
+cada conmutador: apagas una categoría y salta al fondo, y la siguiente que
+querías tocar ya no está donde la dejaste. Un orden que responde al gesto que
+estás haciendo es peor que no ordenar.
+
+**Mecanismo**: se ordena por `chContraste`, que no cambia al decidir, con
+desempate por etiqueta. Y el caso que lo prueba necesita un fixture donde las dos
+cifras **discrepen** — el compartido daba el mismo orden por ambas, así que no
+distinguía nada y pasaba igual.
+
+### 49 · Ausente no es malformado
+
+Al añadir tres campos opcionales al contrato de la señal los validé con el helper
+de los obligatorios, para el que faltar ES estar mal. Resultado: toda señal que no
+los trajera quedaba rechazada, y con ella la radiografía entera — frente a un
+backend anterior, o a cualquier fixture previo.
+
+El compilador no podía verlo: los tres campos existían en el tipo. Lo cazó una
+prueba de superficie que no habla de ellos, al notar que la superficie ensamblada
+había perdido sus gráficos.
+
+**Mecanismo**: un campo opcional distingue **tres** estados y hay que
+conservarlos — ausente («no aplica»), nulo («el motor dice que no hay») y
+presente-pero-ilegible («el payload está roto»). Sólo el tercero invalida.
+Colapsar los dos primeros contra el tercero convierte compatibilidad hacia atrás
+en un fallo total, y colapsarlos al revés convierte un payload roto en una lectura
+tranquilizadora.
+
+### 50 · Cuando la etiqueta y el dato no coinciden, hay dos reparaciones
+
+G25 midió un defecto real: las tarjetas de composición mostraban «mediana 30 %» y
+un eje hasta 200 %. El diagnóstico fue correcto —se rotulaba el gráfico con la
+unidad del **umbral** teniendo el dato del **conteo**— y la reparación fue por el
+lado equivocado: cambió la etiqueta.
+
+Cambiar la etiqueta **siempre funciona**. El rótulo deja de mentir, la
+inconsistencia visible desaparece y el caso se cierra. Por eso es la tentadora. Lo
+que deja detrás es una superficie que describe con precisión algo que nadie
+preguntó: composición seguía decidiéndose con un corte en porcentaje mientras su
+gráfico contaba alumnos.
+
+La otra reparación es traer el dato que la etiqueta promete. Aquí ya existía en el
+motor y sólo le faltaban contrato y unidad (G38).
+
+**Regla operativa**: ante una etiqueta que no corresponde a su dato, la pregunta
+no es «¿cómo rotulo esto bien?» sino «¿cuál de los dos está mal, y qué pregunta
+está haciendo esta superficie?». Si la respuesta es que el control decide sobre
+una variable y el gráfico describe otra, el defecto es el gráfico.
+
+### 51 · Revertir es también un acto de documentación
+
+Este ADR contiene ahora dos decisiones opuestas sobre la misma superficie (G25 y
+G38) y las dos siguen escritas. La tentación al revertir es sustituir: dejar sólo
+la decisión vigente, que es la correcta.
+
+Pero el guard de G25 y su comentario **no eran un error**: eran una reparación
+razonable con la información de entonces, y su diagnóstico sigue siendo válido.
+Borrarlos deja la decisión actual sin la razón por la que no es la obvia, y hace
+que el mismo rodeo esté disponible otra vez.
+
+**Mecanismo**: al revertir, el comentario y el guard se reescriben contando el
+arco —qué se midió, qué se reparó, por qué el lado era el equivocado— en vez de
+sustituirse. El coste es unas líneas; el beneficio es que la próxima persona que
+mire ese `Set` sepa que ya se probó de la otra forma.
+
+
 ## Pendiente
 
 - **Motor**: el preview de criterios exige un contexto transitorio de sesión, así
