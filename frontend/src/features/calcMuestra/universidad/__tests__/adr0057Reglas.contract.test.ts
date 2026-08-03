@@ -257,3 +257,54 @@ describe("ADR 0057 · lenguaje y transparencia", () => {
     }
   });
 });
+
+describe("ADR 0057 · una sola tarjeta para todas las categorías (F112)", () => {
+  /**
+   * Gonzalo, al aprobar el diseño: «si este va a ser el criterio de tarjeta que
+   * vamos a utilizar, tiene que estar este mismo criterio en absolutamente
+   * todos los criterios, en cada una de las categorías de criterio donde haya
+   * cursos-horario».
+   *
+   * Antes había dos tratamientos para el mismo dato: los criterios categóricos
+   * con `CategoriaEvidencia`, y los numéricos y de rango con un bloque compacto
+   * propio —su boxplot, su escala, su lista de diez cifras—. Dos gráficos que
+   * describen lo mismo y no se parecen enseñan a desconfiar de ambos.
+   */
+  const SUPERFICIES_CON_CATEGORIAS = [
+    "criterios/FacultadCategoriaToggles.tsx",
+    "marco/CriterioFacultadRadiografia.tsx",
+  ];
+
+  for (const archivo of SUPERFICIES_CON_CATEGORIAS) {
+    it(`${archivo} dibuja sus categorías con la tarjeta común`, () => {
+      const fuente = leer(archivo);
+      expect(fuente, archivo).toContain("<CategoriaEvidencia");
+    });
+
+    it(`${archivo} no conserva un gráfico propio en paralelo`, () => {
+      // Un segundo boxplot en la misma superficie vuelve a partir el
+      // tratamiento aunque la tarjeta esté presente.
+      const fuente = leer(archivo);
+      expect(fuente, archivo).not.toContain("<CriterioBoxplotPercentilar");
+      expect(fuente, archivo).not.toContain("<BoxplotElegibles");
+    });
+  }
+
+  it("ninguna superficie de criterios recorta su lista de categorías", () => {
+    // Un `slice(0, N)` sobre las categorías esconde decisiones y las sustituye
+    // por un contador. Medido antes de F112: se veían 4 de N segmentos.
+    for (const archivo of SUPERFICIES_CON_CATEGORIAS) {
+      const fuente = leer(archivo);
+      expect(fuente, archivo).not.toMatch(/MAX_VISIBLE_SEGMENTS|\.slice\(0,\s*MAX/);
+    }
+  });
+
+  it("el segundo boxplot del módulo comparte escala con sus hermanos", () => {
+    // `BoxplotElegibles` normalizaba cada caja contra su propio [min…max]: la
+    // regla 3 en la superficie donde nadie la había mirado.
+    const fuente = leer("marco/BoxplotElegibles.tsx");
+    expect(fuente).toContain("dominio");
+    expect(fuente).toContain("boxplotPosicionesPropias(caja, dominio)");
+    expect(leer("marco/TipoSesionRadiografia.tsx")).toContain("boxplotDominioComun");
+  });
+});

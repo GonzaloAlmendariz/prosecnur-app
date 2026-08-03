@@ -12,6 +12,7 @@ import type {
 import { fmtDec, fmtInt, fmtSignedInt } from "../../sharedCore";
 import {
   filasTipoSesionRadiografia,
+  boxplotDominioComun,
   hayBoxplotElegibles,
   tipoSesionShares,
 } from "./exploradorModel";
@@ -38,6 +39,13 @@ export function medianaTitle(mediana: number | null): string {
 function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionFacultad }) {
   const tipos = tipoSesionShares(facultad);
   const hayBoxplot = hayBoxplotElegibles(tipos);
+  // F112 · Escala común a los tipos de esta facultad. Cada caja se dibujaba
+  // sobre su propio [min…max] a todo el ancho, así que SEMINARIO (18–23) y
+  // TEÓRICO (15–156) salían iguales — y esta tabla los apila una debajo de otra
+  // precisamente para compararlos (ADR 0057, regla 3).
+  const dominioTipos = boxplotDominioComun(
+    tipos.map((t) => t.caja).filter((c): c is NonNullable<typeof c> => Boolean(c)),
+  );
   if (!tipos.length) {
     return (
       <p className="cmv2-explorador-card-vacio" data-qa-geometry-member>
@@ -105,7 +113,7 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
               {hayBoxplot && (
                 <td className="cmv2-boxplot-col">
                   {tipo.caja ? (
-                    <BoxplotElegibles caja={tipo.caja} tipo={tipo.tipo} />
+                    <BoxplotElegibles caja={tipo.caja} tipo={tipo.tipo} dominio={dominioTipos} />
                   ) : (
                     <span className="cmv2-boxplot-vacio" title={medianaTitle(tipo.medianaElegibles)}>—</span>
                   )}
@@ -127,7 +135,9 @@ function LegacyTipoSesion({ facultad }: { facultad: CalcMuestraAulasExploracionF
             <span className="cmv2-boxplot-leyenda-media" aria-hidden="true" />media
           </span>
           <span className="cmv2-boxplot-leyenda-nota">
-            Escala propia por tipo (elegibles por aula). Este resumen no incluye P10/P90 ni contraste total.
+            {dominioTipos
+              ? `Escala común a los tipos: ${fmtInt(dominioTipos.min)} a ${fmtInt(dominioTipos.max)} elegibles por curso-horario, así se pueden comparar entre sí. Este resumen no incluye P10/P90 ni contraste total.`
+              : "Este resumen no incluye P10/P90 ni contraste total."}
           </span>
         </p>
       )}

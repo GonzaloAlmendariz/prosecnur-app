@@ -406,9 +406,46 @@ export type BoxplotPosiciones = {
  * numéricas de los extremos dan la escala real de cada una. Rango degenerado
  * (min==max, un único valor) ⇒ todo al centro (0.5).
  */
-export function boxplotPosicionesPropias(caja: BoxplotResumen): BoxplotPosiciones {
-  const span = caja.max - caja.min;
-  const frac = (v: number) => (span > 0 ? Math.min(1, Math.max(0, (v - caja.min) / span)) : 0.5);
+/**
+ * Dominio común a un conjunto de cajas.
+ *
+ * F112 · Sin esto cada boxplot mapeaba su propio [min…max] a todo el ancho. La
+ * intención era legítima —una distribución estrecha se lee con el mismo detalle
+ * que una ancha—, pero el precio es que **deja de comparar**: medido en el
+ * marco real, SEMINARIO (18–23) y TEÓRICO (15–156) salían del MISMO ancho, y la
+ * tarjeta las presenta una debajo de otra precisamente para compararlas.
+ *
+ * Es la regla 3 del ADR 0057, que se escribió por este defecto en otra
+ * superficie y aquí seguía vivo.
+ */
+export function boxplotDominioComun(cajas: BoxplotResumen[]): { min: number; max: number } | null {
+  const vals: number[] = [];
+  for (const c of cajas) {
+    for (const v of [c.min, c.max, c.q1, c.q3, c.mediana, c.media]) {
+      if (typeof v === "number" && Number.isFinite(v)) vals.push(v);
+    }
+  }
+  if (!vals.length) return null;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  return max > min ? { min, max } : { min, max: min + 1 };
+}
+
+/**
+ * Posiciones 0..1 de una caja sobre un dominio.
+ *
+ * Con `dominio` la caja se proyecta sobre la escala del criterio y es comparable
+ * con sus hermanas. Sin él cae a su propio rango — se conserva sólo para la
+ * caja que se dibuja sola, donde no hay nada con lo que comparar.
+ */
+export function boxplotPosicionesPropias(
+  caja: BoxplotResumen,
+  dominio?: { min: number; max: number } | null,
+): BoxplotPosiciones {
+  const lo = dominio ? dominio.min : caja.min;
+  const hi = dominio ? dominio.max : caja.max;
+  const span = hi - lo;
+  const frac = (v: number) => (span > 0 ? Math.min(1, Math.max(0, (v - lo) / span)) : 0.5);
   return {
     min: frac(caja.min),
     q1: frac(caja.q1),

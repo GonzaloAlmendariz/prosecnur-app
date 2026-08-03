@@ -34,13 +34,9 @@ function dist(over: Partial<Dist> = {}): Dist {
 
 const dominio = { min: 0, max: 100 };
 
-function render(over: Partial<Dist> = {}, conTotal = true) {
+function render(over: Partial<Dist> = {}) {
   return renderToStaticMarkup(
-    <DistribucionCategoria
-      elegible={{ nCh: 554, distribucion: dist(over) }}
-      total={{ nCh: 697, distribucion: conTotal ? dist({ media: 28.3 }) : null }}
-      dominio={dominio}
-    />,
+    <DistribucionCategoria elegible={{ nCh: 554, distribucion: dist(over) }} dominio={dominio} />,
   );
 }
 
@@ -125,24 +121,39 @@ describe("DistribucionCategoria · cuantiles bajo su posición", () => {
   });
 });
 
-describe("DistribucionCategoria · el conmutador", () => {
-  it("ofrece elegibles y todos, con sus CH", () => {
+describe("DistribucionCategoria · el eje (F112)", () => {
+  // Gonzalo: «no sólo debe estar claro cuáles son los puntos del eje x que
+  // forman parte de los cuartiles, sino el eje en general — cuáles son los
+  // límites, cuáles son los puntos más importantes».
+  it("rotula el eje con números redondos, no con los extremos del dominio", () => {
     const html = render();
-    expect(html).toContain("Elegibles");
-    expect(html).toContain("554");
-    expect(html).toContain("697");
+    const eje = /<div class="cmv2-dist-eje"[^>]*>([\s\S]*?)<\/div><div class="cmv2-dist-cuantiles"/.exec(html)?.[1] ?? html;
+    // Dominio 0..100 → cortes de 20 en 20. Un eje rotulado con 6,4 · 21,7 se
+    // lee peor que 20 · 40 aunque describa lo mismo.
+    for (const v of ["0", "20", "40", "60", "80", "100"]) {
+      expect(eje).toContain(`<b>${v}</b>`);
+    }
   });
 
-  it("arranca en elegibles: es la vista que decide", () => {
+  it("los cortes del eje caen en su posición real de la escala", () => {
     const html = render();
-    const eleg = /<button[^>]*aria-pressed="true"[^>]*>([\s\S]*?)<\/button>/.exec(html)?.[1] ?? "";
-    expect(eleg).toContain("Elegibles");
+    // 20 sobre 0..100 → 20%. Si el eje se repartiera por igual, no coincidiría.
+    expect(html).toContain("left:20%");
+    expect(html).toContain("left:60%");
   });
 
-  it("sin distribución total no ofrece un conmutador de una sola opción", () => {
-    const html = render({}, false);
-    expect(html).not.toContain("cmv2-dist-switch");
-    expect(html).toContain("cmv2-dist-caja");
+  it("no dibuja eje cuando la escala es degenerada", () => {
+    const html = renderToStaticMarkup(
+      <DistribucionCategoria
+        elegible={{ nCh: 1, distribucion: dist() }}
+        dominio={{ min: 5, max: 5 }}
+      />,
+    );
+    expect(html).not.toContain("cmv2-dist-eje");
+  });
+
+  it("ya no ofrece conmutador: la distribución que decide es la de elegibles", () => {
+    expect(render()).not.toContain("cmv2-dist-switch");
   });
 });
 
@@ -174,11 +185,7 @@ describe("DistribucionCategoria · lo que no se ve", () => {
 
   it("sin distribución ni escala declara la ausencia", () => {
     const html = renderToStaticMarkup(
-      <DistribucionCategoria
-        elegible={{ nCh: 0, distribucion: null }}
-        total={{ nCh: 0, distribucion: null }}
-        dominio={null}
-      />,
+      <DistribucionCategoria elegible={{ nCh: 0, distribucion: null }} dominio={null} />,
     );
     expect(html).toContain("sin distribución publicada");
   });

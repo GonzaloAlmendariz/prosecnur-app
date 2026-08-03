@@ -82,7 +82,8 @@ export function EjeCategorias({ dominio }: { dominio: DominioCategorias }) {
       <p className="cmv2-cat-escala-nota">
         Escala común del criterio: <strong>{fmt(dominio.min)}</strong> a{" "}
         <strong>{fmt(dominio.max)}</strong> estudiantes elegibles por curso-horario.
-        Todas las cajas se dibujan sobre ella, así que se pueden comparar entre sí.
+        Las tres capas de cada categoría se dibujan sobre ella, así que se pueden
+        comparar entre sí.
       </p>
       {/* Qué significa cada marca. Va una vez por criterio, no por categoría.
           F111 · Antes decía «de P10 a P90» para los bigotes; con el boxplot
@@ -131,8 +132,13 @@ export function CategoriaEvidencia({
   const sinCursos = aporte.ch === 0;
   const excluida = sinCursos && (aporte.chContraste ?? 0) > 0;
   const d = sinCursos ? null : aporte.distribucion ?? null;
+  // F112 · Con 0 alumnos elegibles no hay presentes que estimar: la categoría
+  // excluida mostraba «~0 presentes de 0», que ocupa una casilla para decir que
+  // no hay nada — y ya lo dice la línea de efecto, con su cifra real.
   const presentes =
-    typeof aporte.elegibles === "number" && typeof aporte.tasaAsistencia === "number"
+    typeof aporte.elegibles === "number" &&
+    aporte.elegibles > 0 &&
+    typeof aporte.tasaAsistencia === "number"
       ? Math.round(aporte.elegibles * aporte.tasaAsistencia)
       : null;
 
@@ -153,24 +159,29 @@ export function CategoriaEvidencia({
           <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>{" "}
           {plural(aporte.elegibles, "alumno elegible", "alumnos elegibles")}
         </span>
-        {/* La tasa es del marco, no de esta categoría: sólo se muestra cuando el
-            proyecto la trae, y se dice sobre qué se aplica. */}
-        {aporte.tasaAsistencia != null ? (
-          <span className="cmv2-cat-presentes" title="Asistencia previa observada, aplicada a los alumnos elegibles">
-            <strong>{Math.round(aporte.tasaAsistencia * 100)}%</strong> asistencia previa
-            {presentes != null ? <em>~{fmtInt(presentes)} presentes</em> : null}
+        {/* F112 · La tasa es **un solo parámetro del marco**, no una medición de
+            esta categoría: el motor publica un número y se aplica igual a todas.
+            Gonzalo lo señaló —«el porcentaje de asistencia previa no debe hacer
+            referencia al total de alumnos»— y tiene razón: rotulada a secas se
+            lee como si fuera propia de la categoría.
+
+            Se dice de qué a qué convierte, con las dos cifras a la vista, y el
+            criterio declara una vez que el supuesto es común. */}
+        {aporte.tasaAsistencia != null && presentes != null ? (
+          <span className="cmv2-cat-presentes" title="Supuesto de asistencia del marco, aplicado a los alumnos elegibles de esta categoría">
+            ~<strong>{fmtInt(presentes)}</strong> presentes de {fmtInt(aporte.elegibles)}
+            <em>{Math.round(aporte.tasaAsistencia * 100)}% de asistencia supuesta</em>
           </span>
         ) : null}
       </div>
       {/* Contraste: la misma categoría sobre TODOS los cursos-horario. Sin él no
           se sabe si el subconjunto elegible se parece al total o si los
           criterios lo han desplazado —que es justo lo que un criterio hace—. */}
-      {(!sinCursos || excluida) && aporte.chContraste != null && aporte.mediaContraste != null ? (
-        <p className="cmv2-cat-contraste">
-          En todos los cursos-horario: <strong>{fmtInt(aporte.chContraste)}</strong> CH,
-          media <strong>{fmt(aporte.mediaContraste)}</strong>
-        </p>
-      ) : null}
+      {/* F112 · Retirada la línea «En todos los cursos-horario: N CH, media M».
+          Duplicaba «CH totales», que ya está arriba, y su otra mitad era la
+          media de la distribución general — justo lo que Gonzalo dijo que no
+          decide: «nos importa la distribución de los elegibles, no tanto la
+          distribución general de todo». */}
       {/* F105 · El efecto de la categoría en el embudo, que es el sexto
           contenido que ADR 0057 exige de esta tarjeta y era el único que
           faltaba. No hay cálculo nuevo: es `ch` y `elegibles` dichos como lo
@@ -202,7 +213,6 @@ export function CategoriaEvidencia({
       {!sinCursos ? (
         <DistribucionCategoria
           elegible={{ nCh: aporte.ch, distribucion: d }}
-          total={{ nCh: aporte.chContraste ?? null, distribucion: aporte.distribucionContraste ?? null }}
           dominio={dominio}
         />
       ) : null}

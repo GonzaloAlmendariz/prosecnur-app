@@ -124,6 +124,6 @@
 }
 .cmv2-cat-efecto[data-estado="fuera"] strong { color: inherit; }
 
-/* Contraste contra el total: contexto, no la cifra principal. */
-.cmv2-cat-contraste { margin: 0; font-size: 11px; color: var(--pulso-text-muted); }
-.cmv2-cat-contraste strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
+/* F112 · Retiradas las reglas de `cmv2-cat-contraste`: la línea «En todos los
+   cursos-horario» duplicaba «CH totales» y describía la distribución general,
+   que no decide. */
