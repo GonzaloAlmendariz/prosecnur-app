@@ -49,19 +49,36 @@ export function dominioCategorias(
    */
   umbral?: number | null,
 ): DominioCategorias | null {
+  /*
+   * G26 · La escala se acota a los BIGOTES, no a los extremos.
+   *
+   * Medido en la app: con el dominio tomado de `min`/`max`, una categoría con
+   * cola larga estiraba la escala hasta 200 y **8 de 19 cajas quedaban por
+   * debajo del 5 % del ancho** — la mediana de anchos era 8 %. Comparar dos
+   * rayitas de tres píxeles no es comparar.
+   *
+   * Los bigotes de Tukey son la convención para «hasta dónde llega el grueso»:
+   * usarlos como límite conserva la escala compartida —que es lo que la regla 3
+   * del ADR 0057 exige— y devuelve el ancho a las categorías que sí deciden.
+   *
+   * Lo que queda fuera no se esconde: el motor publica cuántos atípicos hay de
+   * cada lado y la caja los marca en su extremo. Un dominio que abarca al
+   * atípico para «no perderlo» pierde en cambio las trece categorías restantes.
+   */
   const valores: number[] = [];
   if (typeof umbral === "number" && Number.isFinite(umbral)) valores.push(umbral);
   for (const aporte of aportes) {
     const d = aporte?.distribucion;
     if (!d) continue;
-    // Cada marca que el gráfico dibuja entra en la escala que la posiciona.
-    for (const v of [d.p10, d.p25, d.p50, d.p75, d.p90, d.media, d.min, d.max, d.bigote_inf, d.bigote_sup]) {
+    // Los cuantiles y la media siempre caen dentro de los bigotes por
+    // construcción, así que no hace falta añadirlos: bastan los extremos.
+    for (const v of [d.p10, d.p25, d.p50, d.p75, d.p90, d.media]) {
       if (typeof v === "number" && Number.isFinite(v)) valores.push(v);
     }
-    // El histograma se dibuja de su primer borde al último.
-    const bordes = d.hist_breaks;
-    if (bordes?.length) {
-      valores.push(bordes[0], bordes[bordes.length - 1]);
+    const inf = typeof d.bigote_inf === "number" ? d.bigote_inf : d.min;
+    const sup = typeof d.bigote_sup === "number" ? d.bigote_sup : d.max;
+    for (const v of [inf, sup]) {
+      if (typeof v === "number" && Number.isFinite(v)) valores.push(v);
     }
   }
   if (!valores.length) return null;

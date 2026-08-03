@@ -37,11 +37,18 @@ const fmt = (v: number | null | undefined, dec = 1) =>
 const fmtInt = (v: number | null | undefined) =>
   typeof v === "number" && Number.isFinite(v) ? Math.round(v).toLocaleString("es-PE") : "—";
 
-/** Posición porcentual de un valor en la escala común. */
+/**
+ * Posición porcentual de un valor en la escala común.
+ *
+ * G26 · Se acota a [0, 100]. Con el dominio ceñido a los bigotes, un atípico
+ * cae fuera y sin el acotado se dibujaría fuera del contenedor —el defecto de
+ * F113—. Pegado al borde declara lo que es: «hay más allá de aquí», que es
+ * justo lo que la marca de atípicos dice con su cifra.
+ */
 function pos(valor: number, dom: DominioEscala): number {
   const ancho = dom.max - dom.min;
   if (!(ancho > 0)) return 0;
-  return ((valor - dom.min) / ancho) * 100;
+  return Math.max(0, Math.min(100, ((valor - dom.min) / ancho) * 100));
 }
 
 const tiene = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
