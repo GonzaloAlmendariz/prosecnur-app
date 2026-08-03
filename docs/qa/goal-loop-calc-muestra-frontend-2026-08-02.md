@@ -4182,6 +4182,47 @@ comentario de un elemento raíz va **encima del `return`**.
 
 Gate: typecheck 0 · 893 pruebas en 111 archivos.
 
+### F111 — Densidad, boxplot y cuantiles sobre un solo eje
+
+Rediseño pedido por Gonzalo. Cross-layer, contrato congelado primero, porque
+**ninguna de las tres lecturas se deriva en el cliente**: entre P10 y P90 hay
+infinitas formas, y los bigotes estándar son los de Tukey. R publica ahora
+`min`, `max`, `bigote_inf`, `bigote_sup`, `n_atipicos`, `hist_breaks` y
+`hist_counts`, con **cortes comunes** a todos los segmentos de la facultad.
+
+| medida | antes | después |
+|---|---|---|
+| Capas del gráfico | caja suelta + fila equiespaciada | **3 sobre un solo eje** |
+| Cuantiles | repartidos por igual | **bajo su posición real** |
+| Elegibles vs total | dos cifras de media | **conmutador, misma escala** |
+| Cifras | 4, con matrículas | **CH totales · CH elegibles · alumnos elegibles · asistencia** |
+
+**La suite de R llevaba ~40 commits en rojo.** Bisecado hasta `27f45750` (F71):
+renombré una etiqueta del motor y corrí sólo las pruebas del frontend. El
+oráculo del payload avisó y nadie lo miraba — el gate de la casa dice
+literalmente «tests afectados si tocaste lógica». Rebendecido con las dos
+razones escritas, y el cambio de F111 **probado confinado**: podando los siete
+campos nuevos reaparece exactamente el hash previo (`fb817066…`).
+
+Otros tres defectos que sólo aparecieron mirando:
+
+- La leyenda seguía diciendo «de P10 a P90» tras cambiar a Tukey. Una leyenda
+  que sobrevive a su gráfico se lee con la misma confianza que una cifra.
+- **«MedianaP75»** pegadas en la app: la separación es un % fijo y «Mediana»
+  mide el doble que «P25». La respuesta no es empujar más, es que las cinco
+  midan lo mismo — P50.
+- Una distribución con todo en null dibujaba un marco vacío sin decirlo (C3).
+
+**Pendiente visible**: la densidad no se dibuja en el proyecto abierto porque el
+histograma se calcula al construir el marco y el suyo es anterior a F111.
+Aparece al reconstruir; el componente degrada bien sin ella.
+
+Gate: typecheck 0 · 934 pruebas en 114 archivos · área de R en verde.
+
+**Siguiente**: aprobación de Gonzalo para extender la tarjeta a todas las
+categorías de todos los criterios, y la pestaña de mapeo cuando decida si sólo
+diagnostica o además corrige.
+
 ### Estado del loop
 
 | | |
