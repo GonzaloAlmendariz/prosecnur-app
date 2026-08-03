@@ -642,7 +642,11 @@ describe("superficie I18b de criterios", () => {
     expect(studentRoute).not.toContain("<details");
 
     expect(classroomRoute).not.toContain("Radiografía antes de decidir");
-    expect(classroomRoute).toContain('aria-label="Radiografía de session_type en Ingeniería"');
+    // F98 · El bloque compacto de radiografía se retiró: mostraba las mismas
+    // categorías que los conmutadores —cada etiqueta dos veces en el mismo
+    // criterio— y todo lo que aportaba vive ya en la tarjeta de categoría
+    // (matrículas y CH con dato en F95, la leyenda en F96, el contraste en F97).
+    expect(classroomRoute).not.toContain('aria-label="Radiografía de session_type en Ingeniería"');
     expect(classroomRoute.match(/data-decision="transversal"/g)).toHaveLength(2);
     expect(classroomRoute).toContain("<strong>enrolled_total</strong>");
     expect(classroomRoute).toContain("<strong>Composición del curso-horario</strong>");
@@ -675,8 +679,8 @@ describe("superficie I18b de criterios", () => {
     expect(classroomRoute).toContain("Qué queda después de cada criterio");
     expect(classroomRoute).toContain("Comparación con 2025");
     expect(classroomRoute).toContain('data-match-level="exacta"');
-    expect(classroomRoute.indexOf('aria-label="Radiografía de session_type en Ingeniería"')).toBeLessThan(
-      classroomRoute.indexOf('aria-label="session_type en Ingeniería"'),
-    );
+    // Los conmutadores con su evidencia siguen presentes: retirar el duplicado
+    // no puede llevarse el original.
+    expect(classroomRoute).toContain('aria-label="session_type en Ingeniería"');
   });
 });

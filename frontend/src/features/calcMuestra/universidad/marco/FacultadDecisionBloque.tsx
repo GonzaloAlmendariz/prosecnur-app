@@ -143,14 +143,18 @@ function CriterioFacultadCard({
       </button>
       {abierto ? (
         <>
-          {radiografiaCard && criterioEvidence ? (
-            <CriterioFacultadRadiografia
-              card={radiografiaCard}
-              facultyKey={excKey}
-              facultyLabel={facLabel}
-              evidence={criterioEvidence}
-            />
-          ) : variable.id === SESSION_TYPE_VARIABLE_ID ? (
+          {/* F98 · El bloque compacto de radiografía sale de aquí.
+              Mostraba las mismas categorías que los conmutadores de abajo —cada
+              etiqueta aparecía dos veces en el mismo criterio— con 482 nodos
+              frente a 86. Gonzalo lo señaló tres veces: «los criterios con
+              switcher de selección tienen que ser uno con los gráficos, son un
+              todo», y el ADR 0057 lo fija: la categoría es la unidad y todo lo
+              necesario para decidirla vive en su contenedor.
+              No se retiró hasta que la tarjeta trajo **todo** lo que este bloque
+              aportaba: matrículas y CH con dato (F95), la leyenda de las marcas
+              (F96) y el contraste contra el total (F97). El inventario está en
+              el doc del loop. */}
+          {variable.id === SESSION_TYPE_VARIABLE_ID ? (
             <FacultadRadiografiaCard
               fac={fac}
               modo="tipos"

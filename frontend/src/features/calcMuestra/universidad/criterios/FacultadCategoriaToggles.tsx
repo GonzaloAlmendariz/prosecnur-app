@@ -118,21 +118,29 @@ export function FacultadCategoriaToggles({
                   <CategoriaEvidencia aporte={dato} dominio={dominio} />
                 ) : null;
               })()}
-              <span className="cmv2-crit-item-count">
-                {t.ch != null ? (
-                  <>
-                    {fmtInt(t.ch)} <em>CH</em>
-                  </>
-                ) : hayDistribucion ? (
-                  <em>sin distribución</em>
-                ) : null}
-                {t.elegibles != null ? (
-                  <>
-                    {" · "}
-                    {fmtInt(t.elegibles)} <em>elegibles</em>
-                  </>
-                ) : null}
-              </span>
+              {/* F98 · Esta columna sólo se dibuja cuando la categoría NO trae
+                  su evidencia completa. Con ella, mostraba un «849 CH» suelto al
+                  borde derecho mientras la evidencia decía «639 CH» dos dedos a
+                  la izquierda: dos cifras distintas de cursos-horario para la
+                  misma categoría, y la de la derecha sin decir de qué era —el
+                  contraste contra el total, que la evidencia ya nombra—. */}
+              {evidencia?.(t.key)?.distribucion ? null : (
+                <span className="cmv2-crit-item-count">
+                  {t.ch != null ? (
+                    <>
+                      {fmtInt(t.ch)} <em>CH</em>
+                    </>
+                  ) : hayDistribucion ? (
+                    <em>sin distribución</em>
+                  ) : null}
+                  {t.elegibles != null ? (
+                    <>
+                      {" · "}
+                      {fmtInt(t.elegibles)} <em>elegibles</em>
+                    </>
+                  ) : null}
+                </span>
+              )}
             </li>
           );
         })}
