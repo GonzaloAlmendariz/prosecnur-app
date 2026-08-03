@@ -128,6 +128,18 @@ export type AporteCategoria = {
    */
   escalaEje?: { min: number; max: number } | null;
   /**
+   * G39 · Cuántos cursos-horario deja fuera CADA posición del control.
+   *
+   * Gonzalo: «no hay forma de saber cuántas CH descartamos (y su porcentaje con
+   * que nos quedamos respecto al total) para poder tomar una decisión más
+   * meditada, a ver si aplicamos más o menos porcentaje mínimo». La cifra tiene
+   * que cambiar mientras se arrastra, y el motor no puede recalcularla por cada
+   * píxel: publica la tabla y aquí se **consulta**, no se suma. Sumar los cubos
+   * del histograma falla justo en el umbral —son cerrados por la derecha— y en
+   * el extremo de la escala.
+   */
+  descartePorCorte?: { cortes: number[]; fuera: number[]; total: number } | null;
+  /**
    * G38 · Cursos-horario que el corte aplicado deja fuera. Lo cuenta R.
    *
    * Gonzalo: «no hay forma de saber cuántos perdemos por el porcentaje que

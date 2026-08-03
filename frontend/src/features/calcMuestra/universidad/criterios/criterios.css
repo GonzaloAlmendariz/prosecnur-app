@@ -1955,3 +1955,36 @@
 
 /* G33 · Retiradas las reglas de los dos plegadores que salieron de la
    superficie: «Ver todas» y el toggle de la prevalencia legacy. */
+
+/*
+ * G39 · Lo que cuesta la posición del control, junto al control.
+ *
+ * La cifra decide: mover el deslizador sin ella es elegir un porcentaje a
+ * ciegas. Va antes del gráfico y no dentro de él porque responde a «cuánto
+ * pierdo aquí», no a «cómo se reparten» — y porque tiene que poder leerse sin
+ * apartar la vista de la manija.
+ */
+.cmv2-crit-coste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 6px 0 2px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+}
+.cmv2-crit-coste strong {
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+.cmv2-crit-coste-queda {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}

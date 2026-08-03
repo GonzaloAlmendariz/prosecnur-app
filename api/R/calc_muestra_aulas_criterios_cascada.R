@@ -745,7 +745,7 @@ calc_muestra_aulas_criterios_preview <- function(
     out[field] <- list(distribution[[field]])
   }
   # Vectores: no son escalares y la whitelist de arriba los descartaría.
-  for (field in c("hist_breaks", "hist_counts")) {
+  for (field in c("hist_breaks", "hist_counts", "n_fuera_por_corte")) {
     v <- value[[field]]
     if (is.numeric(v)) out[field] <- list(v)
   }

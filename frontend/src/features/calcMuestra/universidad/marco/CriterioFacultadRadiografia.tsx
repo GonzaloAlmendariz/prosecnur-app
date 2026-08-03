@@ -79,6 +79,15 @@ function aporteDeFila(row: {
       : row.actual.distribution) as AporteCategoria["distribucion"],
     escalaEje: esProporcion ? senal.escala : null,
     nFuera: esProporcion ? senal.n_fuera : null,
+    descartePorCorte:
+      esProporcion &&
+      senal.hist_breaks != null &&
+      senal.n_fuera_por_corte.length === senal.hist_breaks.length
+        ? { cortes: senal.hist_breaks, fuera: senal.n_fuera_por_corte, total: senal.n_total }
+        // Longitudes distintas es un payload incoherente: sin tabla, la línea
+        // no se dibuja. Indexar dos vectores desalineados daría una cifra
+        // plausible y falsa, que es peor que no dar ninguna.
+        : null,
   };
 }
 

@@ -7,6 +7,7 @@
  * solo se pinta, con buscador y scroll para las facultades de cientos de CH.
  */
 import { CategoriaEvidencia } from "../criterios/CategoriaEvidencia";
+import { usarPlegado } from "../criterios/usarPlegado";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import type { CriteriosSeleccionMarco } from "../../../../api/client";
@@ -51,7 +52,15 @@ export function AulasFinalesCard({
   // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
   // click para ver la lista que la facultad acaba de producir —«si algo está
   // oculto es un error de diseño»—. Con una facultad a la vez hay alto de sobra.
-  const [abierto, setAbierto] = useState(true);
+  /*
+   * G39 · También obedece a «plegar todos».
+   *
+   * Se quedó fuera de la primera pasada por vivir en otro archivo: los cinco
+   * criterios del bloque migraron y éste no, así que plegar todos dejaba uno
+   * abierto. Medido en la app —5 de 6— y no leído: un `grep` de `useState(true)`
+   * acotado al directorio del bloque no lo veía porque su tarjeta está aquí.
+   */
+  const [abierto, setAbierto] = usarPlegado(true);
   const [q, setQ] = useState("");
   const [verTodas, setVerTodas] = useState(false);
   const claves = useMemo(() => aulas.map((a) => a.classroomKey), [aulas]);

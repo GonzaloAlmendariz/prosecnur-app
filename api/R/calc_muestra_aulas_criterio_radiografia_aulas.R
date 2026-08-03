@@ -182,7 +182,8 @@
   es_proporcion <- identical(unit, "proporcion")
   if (es_proporcion) v <- v * 100
   n_total <- as.integer(length(v))
-  n_dato <- as.integer(sum(is.finite(v)))
+  v_fin <- v[is.finite(v)]
+  n_dato <- as.integer(length(v_fin))
 
   # El umbral llega en la misma unidad en que se fija el control: fracción para
   # composición (0,80). Se lleva a la escala publicada para que comparar sea
@@ -197,15 +198,48 @@
     NA_integer_
   }
 
-  breaks <- .cm_criterio_radiografia_breaks(v)
+  # G39 · Para una proporción, los cortes se alinean con el paso del control.
+  #
+  # Gonzalo: «no hay forma de saber cuántas CH descartamos (y su porcentaje con
+  # que nos quedamos respecto al total) para poder tomar una decisión más
+  # meditada, a ver si aplicamos más o menos porcentaje mínimo».
+  #
+  # Esa cifra tiene que cambiar **mientras se arrastra**, y el motor no puede
+  # recalcularla por cada píxel. Publicando el histograma en cubos de 5 puntos
+  # sobre 0–100 —el mismo paso que el deslizador— la cuenta de «cuántos quedan
+  # por debajo de X» es la suma exacta de los cubos anteriores para **cualquier**
+  # posición que el control pueda tomar. No es un estadístico que el cliente
+  # invente: es la suma de conteos ya publicados, y sale exacta porque el corte
+  # sólo cae en bordes de cubo.
+  breaks <- if (es_proporcion) seq(0, 100, by = 5) else .cm_criterio_radiografia_breaks(v)
   dist <- .cm_criterio_radiografia_distribucion(v, breaks = breaks)
+  # G39 · Cuántos quedan fuera en CADA posición que el control puede tomar.
+  #
+  # Sumar los cubos del histograma parecía suficiente, y falla justo donde más
+  # duele: los cubos son cerrados por la derecha, así que un curso-horario que
+  # está EXACTAMENTE en el umbral cae del lado de los descartados aunque el
+  # criterio lo admita (`>= umbral`). Medido: con umbral 80 el cliente sumaba 5 y
+  # el motor contaba 4. Y en el extremo de la escala no hay convención que lo
+  # arregle — el último corte no puede ser a la vez borde de cubo y frontera
+  # exclusiva.
+  #
+  # Así que la cuenta la hace quien tiene los datos, para los 21 cortes posibles.
+  # Son 21 enteros y le quitan al cliente toda ocasión de equivocarse de
+  # convención: no suma, consulta.
+  n_fuera_por_corte <- if (es_proporcion && length(dist$hist_breaks)) {
+    vapply(dist$hist_breaks, function(corte) as.integer(sum(v_fin < corte)), integer(1))
+  } else {
+    integer(0)
+  }
+
   c(
     list(unit = unit, n_total = n_total, n_con_dato = n_dato),
     dist,
     list(
       escala = if (es_proporcion) list(min = 0, max = 100) else NULL,
       umbral_aplicado = umbral_pub,
-      n_fuera = n_fuera
+      n_fuera = n_fuera,
+      n_fuera_por_corte = n_fuera_por_corte
     )
   )
 }
