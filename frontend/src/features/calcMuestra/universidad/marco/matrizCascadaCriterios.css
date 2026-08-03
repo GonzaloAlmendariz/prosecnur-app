@@ -1,0 +1,173 @@
+/*
+ * ADR 0058 · La matriz de criterios.
+ *
+ * Misma estética que la tarjeta de categoría: cifras tabulares, el acento del
+ * módulo para lo que se está tocando y el tono de aviso para lo que se pierde.
+ * Lo único con peso propio es la última fila — es la respuesta.
+ */
+.cmv2-mtz {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* El scroll vive aquí, no en la página: con quince facultades la tabla es ancha
+   y recortar columnas escondería criterios (No Scroll Jail). */
+.cmv2-mtz-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+}
+
+.cmv2-mtz-tabla {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 640px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-mtz-caption {
+  caption-side: top;
+  padding: 12px 14px 10px;
+  text-align: left;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-mtz-caption strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+
+.cmv2-mtz-tabla th,
+.cmv2-mtz-tabla td {
+  padding: 7px 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+.cmv2-mtz-tabla th[scope="row"] {
+  text-align: left;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  /* La facultad se queda a la vista mientras se desplaza la tabla: sin esto,
+     al llegar a la última columna ya no se sabe de qué fila es la cifra. */
+  position: sticky;
+  left: 0;
+  background: var(--pulso-surface);
+  z-index: 1;
+}
+
+.cmv2-mtz-tabla thead th {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-muted);
+  border-bottom: 1px solid var(--cmv2-border);
+  vertical-align: bottom;
+}
+.cmv2-mtz-tabla thead th[scope="col"]:first-child { text-align: left; }
+
+.cmv2-mtz-tabla tbody tr + tr th,
+.cmv2-mtz-tabla tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--pulso-text) 8%, transparent);
+}
+
+.cmv2-mtz-universo { color: var(--pulso-text-muted); }
+
+/* Cada celda es una resta: el tono de aviso dice que ahí se perdió algo. */
+.cmv2-mtz-celda { color: var(--pulso-warn-fg, var(--pulso-text)); }
+/* Se aplicó y no quitó ninguno, frente a no aplicar aquí: dos cosas distintas
+   que sin marca se ven igual. El punto es «corrió»; el guion, «no aplica». */
+.cmv2-mtz-celda[data-vacia] { color: var(--pulso-text-muted); opacity: 0.5; }
+
+/*
+ * El estado del embudo es de la CELDA, no de la columna (ADR 0057, regla 1;
+ * ADR 0058). Pintar la columna pondría en duda filas que nadie tocó.
+ */
+.cmv2-mtz-celda[data-estado="editando"] {
+  background: color-mix(in srgb, var(--cmv2-accent) 12%, transparent);
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+/* «Espera» no es «sin dato»: es dato de antes del cambio. Se atenúa para que no
+   se lea con la misma firmeza que lo confirmado. */
+.cmv2-mtz-celda[data-estado="espera"] { opacity: 0.4; font-style: italic; }
+
+.cmv2-mtz-tabla tr[data-fila-edicion] th[scope="row"] { color: var(--cmv2-accent-fg); }
+.cmv2-mtz-tabla tr[data-fila-edicion] th[scope="row"]::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  margin-right: 7px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: var(--cmv2-accent);
+}
+
+.cmv2-mtz-quedan b { font-size: 13.5px; font-weight: var(--pulso-weight-semibold); }
+.cmv2-mtz-quedan span {
+  display: block;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+
+/* La última fila es la respuesta: con cuántos cursos-horario nos quedamos. */
+.cmv2-mtz-total th,
+.cmv2-mtz-total td {
+  border-top: 2px solid var(--cmv2-border) !important;
+  padding-top: 10px;
+  padding-bottom: 11px;
+  background: var(--pulso-surface-2);
+}
+.cmv2-mtz-total th[scope="row"] { background: var(--pulso-surface-2); }
+.cmv2-mtz-total .cmv2-mtz-quedan b {
+  font-size: 16px;
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-mtz-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+.cmv2-mtz-leyenda i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  vertical-align: -1px;
+  border-radius: 3px;
+}
+.cmv2-mtz-leyenda i[data-m="quita"] { background: var(--pulso-warn-fg, var(--pulso-text)); opacity: 0.75; }
+.cmv2-mtz-leyenda i[data-m="cero"] { background: var(--pulso-text-muted); opacity: 0.4; }
+.cmv2-mtz-leyenda i[data-m="noaplica"] { border: 1px dashed var(--cmv2-border-strong, var(--cmv2-border)); }
+.cmv2-mtz-leyenda i[data-m="edit"] { background: color-mix(in srgb, var(--cmv2-accent) 45%, transparent); }
+
+.cmv2-mtz-descuadre {
+  margin: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-warn-border, var(--cmv2-border));
+  border-radius: var(--pulso-radius);
+  background: color-mix(in srgb, var(--pulso-warn-bg, var(--pulso-surface-2)) 55%, transparent);
+  font-size: 11px;
+  color: var(--pulso-warn-fg, var(--pulso-text));
+}
+
+.cmv2-mtz-vacia {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px dashed var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+@media (max-width: 1024px) {
+  .cmv2-mtz-tabla th,
+  .cmv2-mtz-tabla td { padding: 6px 9px; }
+}
