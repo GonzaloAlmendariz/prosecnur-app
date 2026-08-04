@@ -831,3 +831,17 @@ diferencial 18 vs default (verificar con zoom); H32 — en variables × cruce
 
 **Gate:** var-cruce 323 (incluida la base multi-fuente), apiladas-cruce 7,
 plan-texto 113, consolidado 95: **todo verde**. Audit limpio.
+
+### Claim de carril — sesión paralela B (2026-08-03 ~22:15)
+
+Hay **dos sesiones corriendo este goal sobre el mismo árbol**. La sesión A
+está en vuelo sobre L4/L5 (agrupadas, apiladas, metadata, router — archivos
+modificados sin commitear). Para no duplicar fixes (trampa documentada:
+4 de 9 ramas históricas repararon el mismo bug dos veces), la sesión B —la
+que formalizó el mandato expandido— **reclama L8**: `p_boxplot`,
+`p_media_rango`, `p_radar`, `p_tabla` + preset `radar_tabla` (86 partículas),
+en `graficador_radar.R`, `graficador_boxplot.R`, `graficador_media_rango.R` —
+cero solape con los archivos en vuelo de A. Sus entradas de bitácora se
+numeran `B1, B2…` para no chocar con la serie P de A. Regla para ambas:
+antes de editar un archivo, verificar que no esté modificado sin commitear
+por la otra sesión (`git status`).

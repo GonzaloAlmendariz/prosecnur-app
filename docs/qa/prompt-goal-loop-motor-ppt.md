@@ -16,6 +16,19 @@ dimensión base; los hallazgos de multibase se anotan allá.
 
 Ejecuta el GOAL loop de auditoría total del motor PPT.
 
+**MANDATO PERMANENTE (Gonzalo, 2026-08-03): este goal es INDEFINIDO — no
+termina, no finaliza y no se detiene por absolutamente nada.** No es solo
+auditar: es auditar-mejorar-perfeccionar en tres ejes permanentes — (1)
+generar TODAS las combinaciones posibles entre slides, graficadores y
+configuraciones y comprobar VISUALMENTE (no inferir) que cada render es
+sofisticado y bien diseñado, mejorando lo que se vea pobre; (2) paridad
+UI↔motor en ambos sentidos, incluida la especificidad condicional (ej.
+ajustar cada columna de multiapiladas por separado según cuántas haya); (3)
+revamp continuo de la UI de Gráficos, proponer y construir funcionalidades
+profesionales, y documentarlo todo en la bitácora. Texto completo del mandato
+en la sección «Mandato expandido» del doc vivo. Al agotar un lote se pasa al
+siguiente; al agotar la cola se re-censa y se re-audita con vara más alta.
+
 **PASO CERO, OBLIGATORIO E INNEGOCIABLE: lee COMPLETO
 `docs/qa/goal-loop-motor-ppt-2026-08-03.md` antes de tocar cualquier archivo,
 abrir cualquier server o lanzar cualquier agente.** Ahí viven la vara, el
