@@ -138,6 +138,15 @@
   }
   values <- (context$values %||% list())[[id]] %||% rep("", n)
   if (identical(kind, "hierarchical")) {
+    # G41 · El jerarquico lee del docente, no de una columna con su id.
+    #
+    # `values[[id]]` no existe para `teacher_type` —el texto crudo del docente
+    # vive en `values$teacher`, que es lo que evalua el propio criterio en
+    # `.cm_criterios_preview_aula_flag`—, asi que aqui llegaba un vector de
+    # cadenas vacias y TODA mascara jerarquica salia en FALSE. Los totales de
+    # tipo de docente publicaban ceros sin que nada fallara.
+    crudos <- (context$values %||% list())$teacher %||% rep("", n)
+    if (!any(nzchar(trimws(as.character(values))))) values <- crudos
     variable <- .cm_criterios_catalog_variable(context, id)
     segments <- .cm_criterio_radiografia_teacher_segments(variable, values)
     hit <- Filter(function(x) identical(x$key, segment_key), segments)
@@ -339,17 +348,95 @@ calc_muestra_aulas_criterios_totales <- function(context) {
   groups[order(vapply(groups, `[[`, character(1), "label"))]
 }
 
-.cm_criterios_step_counts <- function(before, after, faculties) {
+# G41 · Las categorias del criterio, para repartir lo que LLEGA a el.
+#
+# Gonzalo: «si quedan 100 cursos-horario hasta un criterio, la suma de sus
+# elegibles en cada categoria no deberia ser 100?». Debia serlo y no lo era: la
+# tarjeta de cada categoria contaba su universo de partida (todos los CH de esa
+# categoria, antes de que nadie filtrara) y los elegibles del marco COMPLETO
+# (tras los criterios que vienen despues). Ninguna de las dos cifras describia
+# el momento en que se decide, asi que ninguna sumaba la barra de arriba.
+#
+# El reparto se calcula aqui —donde el motor ya lleva el vector de vivos paso a
+# paso— y no en la radiografia, que trabaja sobre el marco ya ejecutado y no
+# conoce el estado intermedio.
+#
+# Criterios de aula con categorias. Un umbral numerico no tiene categorias que
+# repartir y un criterio de estudiante filtra personas, no cursos-horario.
+#
+# El jerarquico (tipo de docente) publica sus hojas, no sus grupos: un grupo y
+# sus hijos describen los mismos cursos-horario, asi que mezclarlos contaria dos
+# veces. Aun asi puede no cerrar —un curso-horario con dos docentes de tipos
+# distintos cae en dos hojas—, y para eso esta la comprobacion de mas abajo: si
+# la suma no da lo que llega, no se publica nada.
+#
+# La etiqueta no viaja: la superficie ya conoce el nombre de la categoria que
+# esta pintando y la busca por `segment_key`. Publicarla aqui solo engordaria
+# la cascada con texto que el front ya tiene.
+.cm_criterios_step_segments <- function(spec, context) {
+  entry <- spec$entry
+  if (!is.list(entry) || !identical(spec$scope, "aula")) return(NULL)
+  kind <- .cm_aulas_scalar(entry$kind, "")
+  if (!kind %in% c("flat", "hierarchical")) return(NULL)
+  segments <- .cm_criterios_unique_segments(entry)
+  if (identical(kind, "hierarchical")) {
+    segments <- Filter(function(segment) {
+      !identical(.cm_aulas_scalar(segment$segment_kind, ""), "grupo")
+    }, segments)
+  }
+  if (!length(segments)) return(NULL)
+  out <- lapply(segments, function(segment) {
+    if (identical(.cm_aulas_scalar(segment$segment_kind, ""), "global")) return(NULL)
+    key <- .cm_aulas_scalar(segment$segment_key, "")
+    if (!nzchar(key)) return(NULL)
+    list(
+      segment_key = key,
+      mask = .cm_criterios_total_aula_mask(entry, segment, context) %in% TRUE
+    )
+  })
+  out <- Filter(Negate(is.null), out)
+  if (!length(out)) NULL else out
+}
+
+.cm_criterios_step_counts <- function(before, after, faculties, segments = NULL) {
   faculty_rows <- lapply(faculties, function(faculty) {
     before_n <- as.integer(sum(before[faculty$idx] %in% TRUE))
     after_n <- as.integer(sum(after[faculty$idx] %in% TRUE))
-    list(
+    row <- list(
       faculty_key = faculty$faculty_key,
       label = faculty$label,
       before_ch = before_n,
       after_ch = after_n,
       excluded_ch = as.integer(before_n - after_n)
     )
+    if (length(segments)) {
+      reparto <- lapply(segments, function(segment) list(
+        segment_key = segment$segment_key,
+        before_ch = as.integer(sum(
+          before[faculty$idx] %in% TRUE & segment$mask[faculty$idx]
+        )),
+        after_ch = as.integer(sum(
+          after[faculty$idx] %in% TRUE & segment$mask[faculty$idx]
+        ))
+      ))
+      # G41 · El reparto se publica siempre; lo que se declara es si PARTICIONA.
+      #
+      # La primera version lo callaba cuando la suma no daba el total, y eso
+      # borro de la pantalla la cifra de «Tipo de docente» —Gonzalo: «pero ahora
+      # aqui ya no salen»—. El dato por categoria es correcto y util: de los N
+      # que llegan, cuantos tienen este tipo de docente. Lo que no se puede
+      # prometer ahi es que las categorias sumen N, porque un curso-horario con
+      # dos docentes de tipos distintos cuenta en dos.
+      #
+      # Asi que se publica el reparto y, junto a el, si las categorias son
+      # excluyentes. La superficie enseña la cifra siempre y avisa cuando no
+      # suman, en vez de dejar un hueco que nadie sabe leer.
+      row$segments <- reparto
+      row$segments_particionan <-
+        sum(vapply(reparto, `[[`, integer(1), "before_ch")) == before_n &&
+        sum(vapply(reparto, `[[`, integer(1), "after_ch")) == after_n
+    }
+    row
   })
   before_total <- as.integer(sum(before %in% TRUE))
   after_total <- as.integer(sum(after %in% TRUE))
@@ -465,7 +552,9 @@ calc_muestra_aulas_criterios_totales <- function(context) {
       status <- if (informative) "informativo" else if (applies) "aplicado" else "inactivo"
     }
     current <- current & flag
-    counts <- .cm_criterios_step_counts(before, current, faculties)
+    counts <- .cm_criterios_step_counts(
+      before, current, faculties, .cm_criterios_step_segments(spec, context)
+    )
     steps[[i]] <- list(
       order = as.integer(i), criterion_id = id, card_id = spec$card_id,
       label = spec$label, scope = spec$scope, gate = spec$gate,
@@ -663,7 +752,9 @@ calc_muestra_aulas_criterios_preview <- function(
       status <- if (applies) "aplicado" else "inactivo"
     }
     current <- current & flag
-    counts <- .cm_criterios_step_counts(before, current, faculties)
+    counts <- .cm_criterios_step_counts(
+      before, current, faculties, .cm_criterios_step_segments(spec, context)
+    )
     steps[[i]] <- list(
       order = as.integer(i), criterion_id = id, card_id = spec$card_id,
       label = spec$label, scope = spec$scope, gate = spec$gate,
@@ -796,11 +887,29 @@ calc_muestra_aulas_criterios_preview <- function(
   .pulso_whitelist_scalar_fields(value, c("before_ch", "after_ch", "excluded_ch"))
 }
 
+.pulso_sanitize_calc_muestra_criteria_cascade_segment <- function(value) {
+  if (!is.list(value)) return(NULL)
+  .pulso_whitelist_scalar_fields(
+    value, c("segment_key", "before_ch", "after_ch")
+  )
+}
+
 .pulso_sanitize_calc_muestra_criteria_cascade_faculty <- function(value) {
   if (!is.list(value)) return(NULL)
   out <- .pulso_whitelist_scalar_fields(value, c(
-    "faculty_key", "label", "before_ch", "after_ch", "excluded_ch"
+    "faculty_key", "label", "before_ch", "after_ch", "excluded_ch",
+    "segments_particionan"
   ))
+  # G41 · El reparto por categoria viaja en el `.pulso`. Un campo nuevo que no
+  # se anade aqui se pierde al guardar y reaparece vacio al abrir: el proyecto
+  # se veria distinto segun si la sesion lo construyo o lo cargo.
+  if (length(value$segments)) {
+    segments <- lapply(
+      .pulso_record_list(value$segments),
+      .pulso_sanitize_calc_muestra_criteria_cascade_segment
+    )
+    out["segments"] <- list(Filter(Negate(is.null), segments))
+  }
   out
 }
 

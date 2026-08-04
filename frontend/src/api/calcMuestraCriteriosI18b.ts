@@ -51,10 +51,33 @@ export type CalcMuestraCriteriosCascadeCount = {
   excluded_ch: number;
 };
 
+/**
+ * G41 · Cómo se reparte entre las categorías del criterio lo que llega a él.
+ *
+ * Lo publican los criterios de aula con categorías; si esas categorías son
+ * excluyentes lo dice `segments_particionan`. La etiqueta no viaja: se busca
+ * por `segment_key` en el catálogo que la superficie ya tiene.
+ */
+export type CalcMuestraCriteriosCascadeSegment = {
+  segment_key: string;
+  before_ch: number;
+  after_ch: number;
+};
+
 export type CalcMuestraCriteriosCascadeFaculty =
   CalcMuestraCriteriosCascadeCount & {
     faculty_key: string;
     label: string;
+    segments?: CalcMuestraCriteriosCascadeSegment[];
+    /**
+     * G41 · Si las categorías del criterio son excluyentes.
+     *
+     * `true` → cada curso-horario cae en una y sus cifras suman `before_ch`.
+     * `false` → se solapan (tipo de docente: un curso-horario puede tener dos
+     * docentes de tipos distintos), así que las cifras son correctas una a una
+     * pero no suman el total. La superficie lo dice en vez de callar el dato.
+     */
+    segments_particionan?: boolean;
   };
 
 export type CalcMuestraCriteriosCascadeStep = {
@@ -429,6 +452,41 @@ function cascadeCount(value: unknown): CalcMuestraCriteriosCascadeCount | null {
   return { before_ch: before, after_ch: after, excluded_ch: excluded };
 }
 
+/**
+ * G41 · El reparto se descarta solo, sin llevarse la cascada por delante.
+ *
+ * El resto del normalizador devuelve `null` ante cualquier incoherencia, y ahí
+ * es lo correcto: una cascada que no cuadra no se puede enseñar. Aquí no: los
+ * segmentos son un detalle **adicional** de cada criterio, así que un reparto
+ * ilegible —o ausente, como en todo `.pulso` guardado antes de esta capacidad—
+ * se ignora y la pantalla sigue teniendo su embudo.
+ *
+ * Lo que NO se valida aquí es que las cifras sumen el total: cuando las
+ * categorías se solapan no deben sumarlo, y exigirlo borraba de la pantalla un
+ * dato correcto. Esa distinción la declara el motor en `segments_particionan`.
+ */
+function cascadeSegments(
+  value: unknown,
+): CalcMuestraCriteriosCascadeSegment[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) return undefined;
+  const segments: CalcMuestraCriteriosCascadeSegment[] = [];
+  const keys = new Set<string>();
+  for (const rawSegment of value) {
+    const segment = record(rawSegment);
+    if (!segment) return undefined;
+    const key = text(segment.segment_key);
+    const before = nonNegativeInteger(segment.before_ch);
+    const after = nonNegativeInteger(segment.after_ch);
+    if (
+      key === INVALID || before === INVALID || after === INVALID ||
+      after > before || keys.has(key)
+    ) return undefined;
+    keys.add(key);
+    segments.push({ segment_key: key, before_ch: before, after_ch: after });
+  }
+  return segments;
+}
+
 export function normalizeCalcMuestraCriteriosCascada(
   raw: unknown,
 ): CalcMuestraCriteriosCascada | null {
@@ -492,7 +550,13 @@ export function normalizeCalcMuestraCriteriosCascada(
         facultyKeys.has(facultyKey)
       ) return null;
       facultyKeys.add(facultyKey);
-      faculties.push({ faculty_key: facultyKey, label: facultyLabel, ...counts });
+      faculties.push({
+        faculty_key: facultyKey,
+        label: facultyLabel,
+        ...counts,
+        segments: cascadeSegments(faculty.segments),
+        segments_particionan: faculty.segments_particionan === true,
+      });
     }
     const facultyTotals = faculties.reduce(
       (sum, faculty) => ({
@@ -950,9 +1014,14 @@ export async function apiCalcMuestraCriteriosPreview(
 
 export type CalcMuestraCriteriosPreviewState =
   | { status: "loading" }
-  | { status: "ready"; data: CalcMuestraCriteriosCascada }
-  | { status: "stale"; message: string }
-  | { status: "error"; message: string };
+  /**
+   * G41 · `recalculando` marca la respuesta que ya no describe lo que se está
+   * viendo: la superficie la sigue enseñando para no parpadear, pero tiene que
+   * poder decir que hay otra en camino.
+   */
+  | { status: "ready"; data: CalcMuestraCriteriosCascada; recalculando?: boolean }
+  | { status: "stale"; message: string; recalculando?: boolean }
+  | { status: "error"; message: string; recalculando?: boolean };
 
 type PreviewLoader = (
   input: CalcMuestraCriteriosPreviewInput,

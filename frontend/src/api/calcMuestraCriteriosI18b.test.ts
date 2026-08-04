@@ -399,3 +399,72 @@ describe("F45 · el aviso del preview no suplanta al motor", () => {
     expect(stale?.message).not.toContain("El marco cambió mientras");
   });
 });
+
+/**
+ * G41 · El reparto por categoría entra por el normalizador o no entra.
+ *
+ * Es la cifra que la tarjeta enseña como «llegan aquí», así que un reparto que
+ * no cuadra con el `before_ch` de su facultad no puede pasar: sería un número
+ * inventado con aspecto de dato del motor. Y al revés — descartarlo no puede
+ * llevarse la cascada entera por delante, porque entonces un detalle opcional
+ * apagaría el embudo de toda la pantalla.
+ */
+describe("normalizeCalcMuestraCriteriosCascada · reparto por categoría", () => {
+  const conSegmentos = (segments: unknown, particionan = false) => {
+    const raw = structuredClone(cascadeRaw) as typeof cascadeRaw;
+    raw.steps[0].faculties[0].before_ch = 10;
+    raw.steps[0].faculties[0].after_ch = 6;
+    raw.steps[0].faculties[0].excluded_ch = 4;
+    raw.steps[0].total = { before_ch: 10, after_ch: 6, excluded_ch: 4 };
+    raw.steps[1].faculties[0].before_ch = 6;
+    raw.steps[1].faculties[0].after_ch = 6;
+    raw.steps[1].total = { before_ch: 6, after_ch: 6, excluded_ch: 0 };
+    (raw.steps[0].faculties[0] as Record<string, unknown>).segments = segments;
+    (raw.steps[0].faculties[0] as Record<string, unknown>).segments_particionan = particionan;
+    return normalizeCalcMuestraCriteriosCascada(raw);
+  };
+
+  it("conserva el reparto que suma lo que llega y lo que sale", () => {
+    const raw = structuredClone(cascadeRaw) as typeof cascadeRaw;
+    const cascada = conSegmentos([
+      { segment_key: "teorico", before_ch: 7, after_ch: 6 },
+      { segment_key: "laboratorio", before_ch: 3, after_ch: 0 },
+    ], true);
+    void raw;
+    const segments = cascada?.steps[0].faculties[0].segments;
+    expect(segments).toHaveLength(2);
+    expect(segments?.reduce((n, s) => n + s.before_ch, 0)).toBe(10);
+    expect(cascada?.steps[0].faculties[0].segments_particionan).toBe(true);
+  });
+
+  /*
+   * G41 · Un reparto que no suma NO se descarta.
+   *
+   * La primera versión lo hacía, y en la app eso vació la casilla de «Tipo de
+   * docente»: sus categorías se solapan —un curso-horario con dos docentes de
+   * tipos distintos cuenta en dos— así que la suma nunca iba a cerrar, y la
+   * cifra por categoría era correcta igualmente. Quien declara si particionan
+   * es el motor (`segments_particionan`); la superficie lo dice en pantalla.
+   */
+  it("conserva el reparto que no suma y lo marca como no excluyente", () => {
+    const cascada = conSegmentos([
+      { segment_key: "teorico", before_ch: 7, after_ch: 6 },
+    ]);
+    expect(cascada).not.toBeNull();
+    expect(cascada?.steps[0].faculties[0].segments).toHaveLength(1);
+    expect(cascada?.steps[0].faculties[0].segments_particionan).toBe(false);
+    expect(cascada?.steps[0].faculties[0].before_ch).toBe(10);
+  });
+
+  it("descarta el reparto ilegible, sin perder la cascada", () => {
+    const cascada = conSegmentos([{ segment_key: "", before_ch: -1, after_ch: 9 }]);
+    expect(cascada).not.toBeNull();
+    expect(cascada?.steps[0].faculties[0].segments).toBeUndefined();
+  });
+
+  it("una cascada sin reparto sigue siendo válida", () => {
+    const cascada = normalizeCalcMuestraCriteriosCascada(cascadeRaw);
+    expect(cascada).not.toBeNull();
+    expect(cascada?.steps[0].faculties[0].segments).toBeUndefined();
+  });
+});
