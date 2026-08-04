@@ -1317,3 +1317,28 @@ verde.
 `objetivo` debe decir «clave o etiqueta del índice/subíndice según el modo»
 y idealmente la UI debería ofrecer un selector poblado desde el catálogo en
 vez de texto libre (propuesta de eje 3).
+
+### B13 — L9: diferenciales de los formals ocultos + leyenda del FODA sincronizada (2026-08-04, sesión B)
+
+Ocho diferenciales renderizados y mirados (`sweep_ocultos.R` + `diag_o.R`):
+
+**VIVOS y valiosos (candidatos a superficie UI cuando el registry libere):**
+
+- Heatmap: `etiq_brecha_filas`/`etiq_brecha_cols` (renombran fila/columna de
+  brecha), `brecha_cortes` (recalibra el gradiente), `titulo_total_x`
+  («Nacional»), `mostrar_n_cruce_x` (N por columna: «Callao (N=56)») — los
+  cinco actúan y se ven profesionales.
+- FODA: `cortes_chip` (recolorea chips), `titulos_areas_foda` (retitula
+  cuadrantes — **claves SINGULARES**: `fortaleza/oportunidad/debilidad/
+  amenaza`; con claves equivocadas se ignora en silencio — robustez menor
+  anotada).
+
+**Reparado:**
+
+- **B-H21 — la leyenda del FODA ignoraba los cortes efectivos**: un override
+  de `cortes_chip = c(50, 65)` recoloreaba los chips pero la leyenda seguía
+  declarando 60–80 (¡peor que no tener leyenda!). Ahora usa `chip_cortes`
+  efectivos — render verificado («Menor a 50 / 50 - 65 / Mayor a 65»).
+
+**Gate:** dim-foda-leyenda 6, graficador-dimensiones 39, iconos-foda-radar
+52: todo verde.
