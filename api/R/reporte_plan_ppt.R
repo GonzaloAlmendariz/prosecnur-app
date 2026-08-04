@@ -3491,8 +3491,10 @@ reporte_ppt_plan <- function(
 
     etype <- el$.element_type %||% ""
     # barras_agrupadas ya imprime su "Base: ..." como caption del grafico
-    # (nota_pie): duplicarla en el placeholder era el default (P9/P17/P20).
-    if (etype %in% c("barras_agrupadas", "barras_apiladas", "barras_categoricas")) return(NULL)
+    # (nota_pie): duplicarla en el placeholder era el default (P9/P17/P20;
+    # pie/donut se sumaron en B19 — su caption ademas chocaba con la leyenda).
+    if (etype %in% c("barras_agrupadas", "barras_apiladas", "barras_categoricas",
+                     "pie", "donut")) return(NULL)
     if (identical(etype, "barras_multiapiladas") &&
         !.base_multifuente_el(el, .extract_ref_values)) return(NULL)
     excluir_base <- switch(
