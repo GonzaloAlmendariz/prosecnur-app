@@ -441,6 +441,13 @@ graficar_barras_agrupadas <- function(
   if (!all(names(etiquetas_series) %in% cols_porcentaje)) {
     stop("Los names de `etiquetas_series` deben coincidir con `cols_porcentaje`.", call. = FALSE)
   }
+  # Default editorial: la serie sintetica unica ("Porcentaje") no gana nada
+  # con leyenda — es ruido bajo el grafico. El knob mostrar_leyenda decide
+  # cuando hay series reales (cruce) o la serie unica tiene nombre propio.
+  if (length(etiquetas_series) == 1L &&
+      identical(unname(unlist(etiquetas_series))[[1]], "Porcentaje")) {
+    mostrar_leyenda <- FALSE
+  }
   cols_n_map <- NULL
   if (!is.null(cols_n)) {
     if (is.list(cols_n) && !is.data.frame(cols_n)) cols_n <- unlist(cols_n, use.names = TRUE)

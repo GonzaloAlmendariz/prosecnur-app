@@ -3493,6 +3493,10 @@ reporte_ppt_plan <- function(
     if (is.null(el) || !inherits(el, "ppt_element")) return(NULL)
 
     etype <- el$.element_type %||% ""
+    # barras_agrupadas ya imprime su "Base: ..." como caption del grafico
+    # (nota_pie por defecto): duplicarla en el placeholder del slide era el
+    # default (P9). El placeholder queda para base manual o tipos sin caption.
+    if (identical(etype, "barras_agrupadas")) return(NULL)
     excluir_base <- switch(
       etype,
       barras_apiladas = .reporte_plan_excluir_cascada(
@@ -5541,11 +5545,17 @@ reporte_ppt_plan <- function(
 
       if (!length(etiquetas_series)) return(.blank_canvas(preset_args, overrides))
       series_keys <- .graficos_norm_text_key(unname(etiquetas_series))
-      colores_series <- ifelse(
-        grepl("intervenci", series_keys), "#0072BC",
-        ifelse(grepl("comparaci", series_keys), "#00A98F", "#B8C4CE")
-      )
-      names(colores_series) <- unname(etiquetas_series)
+      colores_series <- if (any(grepl("intervenci|comparaci", series_keys))) {
+        stats::setNames(ifelse(
+          grepl("intervenci", series_keys), "#0072BC",
+          ifelse(grepl("comparaci", series_keys), "#00A98F", "#B8C4CE")
+        ), unname(etiquetas_series))
+      } else {
+        # Cruce sin marca institucional: dejar que .graficos_mk_palette asigne
+        # colores distinguibles de la casa. El gris #B8C4CE uniforme para toda
+        # serie no-ACNUR hacia ilegible cualquier cruce (P9 del GOAL loop).
+        NULL
+      }
     }
 
     # Detectar si la variable es select_multiple -> agregar subtitulo destacado.

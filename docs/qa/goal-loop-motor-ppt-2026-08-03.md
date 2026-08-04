@@ -156,7 +156,7 @@ explicar parte del corrimiento.
 | L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **Hecho (P4–P6)** — 32/42 args con diferencial (top_two_box va en L3); H11/H16/H17 reparados; queda paridad Word (→L11) e ícono de catálogo |
 | — | **Regla de cola (pedido de Gonzalo 2026-08-03): todo lo específico de ACNUR (D2, D3, re-render acnur de L2+) se difiere al FINAL de la cola** | | Vigente |
 | L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | **Hecho (P7+P8)** — contrato saneado (11 fantasmas fuera, 2 destapados) y diferenciales de render mirados; queda H18 (borde top_two_box) y paridad (→L11) |
-| L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | Cola |
+| L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | **En curso (P9)** — defaults editoriales reparados (leyenda/colores de cruce/Base única); quedan H18, H20 (orden) y el barrido arg-por-arg |
 | L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | Cola |
 | L6 | `p_barras_categoricas` + `p_numerico` + `p_histograma` + presets | 142 | Cola |
 | L7 | `p_pie` + `p_donut` + `p_nube_palabras` + `p_mapa_cobertura` + presets | 72 | Cola |
@@ -469,3 +469,41 @@ pie abajo-izquierda (la calibración de P3 en acción).
 **Ledger tras P8:** los 110 args de slides tienen censo y ~70 tienen
 diferencial mirado en la genérica; ninguno acredita aún 5/5 (falta paridad
 Word/consolidado — L11 — y bordes sistemáticos por slide).
+
+### P9 — L4: los defaults de barras agrupadas se ven bien de verdad (2026-08-03)
+
+Mandato directo de Gonzalo: «los gráficos no solo deben ser funcionales,
+tenemos que establecer el default que se vea mejor». Diagnóstico con render
+lado a lado (firma del motor vs suelo Pulso — producción usa el suelo) y
+forense de píxeles + código:
+
+**Tres defectos de default, reparados con render antes/después:**
+
+1. **Cruce ilegible (gris sobre gris).** `reporte_plan_ppt.R` asignaba
+   colores de serie con la regla ACNUR hardcodeada («intervención»→azul,
+   «comparación»→teal, **todo lo demás→#B8C4CE**): un cruce por sexo salía
+   con ambas series del mismo gris y porcentajes blancos invisibles. Ahora,
+   si ninguna serie tiene marca institucional, decide la paleta de la casa
+   (`.graficos_mk_palette`): azul marino/teal distinguibles. La regla ACNUR
+   sobrevive intacta para intervención/comparación.
+2. **Leyenda muerta.** El suelo traía `mostrar_leyenda = FALSE` global — con
+   cruce no había forma de saber qué barra era de quién. Ahora el suelo dice
+   TRUE, el graficador **auto-oculta la serie sintética única** («Porcentaje»)
+   y una serie única con nombre propio conserva su leyenda. De paso: el arg
+   UI tenía `default` **duplicado** (`FALSE` y `TRUE` — R leía el primero);
+   quedó un solo TRUE coherente con el suelo.
+3. **Base duplicada.** Cada lámina mostraba «Base: N» dos veces (caption del
+   gráfico + placeholder auto del slide). El placeholder ya no auto-infiere
+   para `barras_agrupadas`; la base manual del analista se respeta siempre.
+
+**Gate:** `test-graficador-agrupadas-defaults-editoriales.R` nuevo (6 asserts:
+leyenda auto-oculta/conservada, colores de cruce distinguibles y sin gris
+uniforme, Base única en XML + base manual respetada) + presets-defaults-
+contrato (expectativas del criterio de la casa actualizadas a TRUE),
+argumentos-ui 459, metadata 230, var-cruce 323, override-colores 19: **todo
+verde**. Audit de congelados limpio (monolito 9.412 ≤ 9.418).
+
+**Abierto en L4:** H20 — el orden efectivo de barras parece frecuencia aunque
+el suelo pide `instrumento` (diferencial dedicado pendiente con empates
+rotos); detalle del orden leyenda↔barras (`invertir_leyenda`); H18 de
+top_two_box; y el barrido arg-por-arg de los 20+35 del graficador/preset.
