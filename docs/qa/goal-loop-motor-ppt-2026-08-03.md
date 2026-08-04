@@ -1039,3 +1039,33 @@ les corresponde resolverlos.
 paleta hcl ajena a la casa (B-H5c, requiere decidir contra el sistema de
 paletas por proyecto); puntos jitter del boxplot casi invisibles (alpha
 0.28); cortes de semáforo del boxplot en líneas blancas invisibles (B03).
+
+### B3 — L8: orden del instrumento en boxplot, degradado manual que no mata, slot de referencia legible (2026-08-03, sesión B)
+
+**Reparado (render antes/después mirado en las tres láminas):**
+
+1. **B-H8 — boxplot respeta el orden del instrumento.** El graficador hacía
+   `unique(df$categoria)` (orden de aparición en los datos), pisoteando el
+   factor ordenado que el glue arma desde las choices. Portado el patrón de
+   media_rango (preservar niveles entrantes, unique solo como fallback).
+   B01 rinde Callao → Lima Norte → Lima Sur.
+2. **B-H3 — `degradado_manual` sin gradiente ya no mata la lámina.** En
+   media_rango degrada a `degradado_automatico` con warning (y con gradiente
+   completo sigue siendo manual — test lo fija); en boxplot —que ni siquiera
+   expone args de gradiente— ese modo siempre degrada con aviso. M03 pasó de
+   «Sin datos» a lámina viva con cortes punteados 6–8. El stop del helper
+   compartido de dimensiones queda intacto (es de L9).
+3. **B-H10 — el slot «Promedio general» respira.** Doble causa: altura
+   relativa 0.13 y un `span_use` calculado SOLO con las medias (que se
+   agrupan en décimas: span 0.5 sobre un plot de 3+ unidades). Ahora el span
+   incluye los bigotes del rango y la altura sube a 0.24. M02 muestra cajón
+   redondeado con label arriba y chip 7.1 abajo, separados y legibles.
+
+**Gate:** plan-ppt-boxplot 35, media-rango-significancia 5,
+l8-defaults-editoriales 20 (3 tests nuevos: orden de factor, degradación con
+aviso ×2, manual-completo sigue manual), radar-solo-tabla 5: todo verde.
+
+**Pendientes del carril tras B3:** B-H5c (paleta de cruce del radar — decidir
+contra el sistema de paletas por proyecto), B-H6 (curar `umbral_rojo_pct`),
+B-H2 (smoke de render radar_tabla), B-D1 (combinado compat sin tabla),
+jitter/cortes invisibles del boxplot (editorial menor), paridad Word (L11).

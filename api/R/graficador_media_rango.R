@@ -91,7 +91,7 @@ graficar_media_rango <- function(
     alpha_rango       = 0.95,
     marker_style      = c("burbuja", "rectangulo", "punto_texto", "punto"),
     escala_burbuja    = 1,
-    altura_bloque_ref_rel = 0.13,
+    altura_bloque_ref_rel = 0.24,
     size_chip_ref_max_pt  = NULL,
     umbral_brecha     = 0,
     destacar_significativos = FALSE,
@@ -191,6 +191,22 @@ graficar_media_rango <- function(
   orientacion <- match.arg(orientacion)
   modo <- match.arg(modo)
   modo_semaforo <- .dim_normalize_semaforo_modo(modo_semaforo)
+  # "Degradado manual" sin gradiente definido no puede clasificar nada: antes
+  # abortaba y la lamina entera degradaba a "Sin datos". Se degrada con aviso
+  # al degradado automatico, que si sabe inferir sus cortes.
+  if (identical(modo_semaforo, "degradado_manual")) {
+    grad_cols <- as.character(semaforo_gradiente_colores %||% character(0))
+    grad_cols <- grad_cols[!is.na(grad_cols) & nzchar(trimws(grad_cols))]
+    grad_vals <- suppressWarnings(as.numeric(semaforo_gradiente_valores))
+    grad_vals <- grad_vals[is.finite(grad_vals)]
+    if (length(grad_cols) < 2L || length(grad_vals) < 2L) {
+      warning(
+        "Semaforo 'degradado_manual' sin `semaforo_gradiente_colores`/`_valores`: se usa 'degradado_automatico'.",
+        call. = FALSE
+      )
+      modo_semaforo <- "degradado_automatico"
+    }
+  }
   semaforo_gradiente_segmentos <- .dim_normalize_gradiente_segmentos(
     semaforo_gradiente_segmentos,
     default = 20L
@@ -510,7 +526,14 @@ graficar_media_rango <- function(
   }
 
   ref_value_plot <- if (identical(modo, "delta")) 0 else ref_value
-  ylim_use <- limites_y %||% range(c(sum_df$media, ref_value_plot), na.rm = TRUE)
+  # El span visual incluye los bigotes del rango: calcularlo solo con las
+  # medias (que suelen agruparse en decimas) achataba el bloque de referencia
+  # hasta que su label y su chip quedaban montados uno sobre otro.
+  ylim_use <- limites_y %||% range(
+    c(sum_df$media, ref_value_plot,
+      if (isTRUE(mostrar_rango)) c(sum_df$rango_inf, sum_df$rango_sup)),
+    na.rm = TRUE
+  )
   span_use <- diff(range(ylim_use, na.rm = TRUE))
   if (!is.finite(span_use) || span_use <= 0) span_use <- 10
 
