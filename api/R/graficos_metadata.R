@@ -2696,7 +2696,9 @@
     invertir_leyenda         = TRUE,
 
     canvas_h_title           = 0.08,
-    canvas_h_caption         = 0.00,
+    # El caption "Base: ..." con reserva 0 se dibujaba montado sobre el borde
+    # inferior del cajon (residuo B20).
+    canvas_h_caption         = 0.10,
     # 0.08 no alcanzaba para la leyenda a 2 columnas con 4+ categorias: las
     # filas desbordaban la banda y pisaban el caption (B-H24).
     canvas_h_legend_bottom   = 0.14,
