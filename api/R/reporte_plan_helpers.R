@@ -420,6 +420,101 @@
   )
 }
 
+# Geometria adaptativa del indice limpio. La version rigida colisionaba en dos
+# bordes vistos en render (H16/H17 del GOAL loop del motor PPT): un titulo que
+# envuelve a dos lineas quedaba pisado por la primera fila (caja fija de 0.62
+# y tabla anclada en 2.14), y con ~10 secciones el bloque desbordaba la lamina
+# ademas de partir el badge "10.1" en dos lineas (ancho fijo 0.26). Aqui se
+# estiman las lineas del titulo, se corre la tabla, se dimensiona el badge por
+# digitos reales y se comprime filas/subtemas (con pisos y reduccion tipografica
+# suave) cuando el presupuesto vertical no alcanza. Los overrides explicitos del
+# analista en `style` son el punto de partida; la compresion solo los reduce
+# cuando el bloque desbordaria la lamina.
+#' @keywords internal
+.indice_fit_layout <- function(style, title_txt, secciones, subindices_df) {
+  sv <- function(name, default) {
+    v <- style[[name]]
+    if (is.null(v)) default else v
+  }
+  sn <- function(name, default, min = NULL, max = NULL) {
+    v <- suppressWarnings(as.numeric(sv(name, default))[1])
+    if (!length(v) || !is.finite(v)) v <- default
+    if (!is.null(min)) v <- base::max(min, v)
+    if (!is.null(max)) v <- base::min(max, v)
+    v
+  }
+
+  n <- length(secciones)
+  title_txt <- as.character(title_txt %||% "")[1]
+
+  title_left <- sn("title_left", 6.58, min = 0)
+  title_top <- sn("title_top", 1.32, min = 0)
+  title_width <- sn("title_width", 5.10, min = 1)
+  title_size <- sn("title_size", 28, min = 10)
+  # 0.85 em por caracter: el titulo del indice va en mayusculas y bold.
+  chars_por_linea <- base::max(8, floor(title_width * 96 / (title_size * 0.85)))
+  lineas_titulo <- base::max(1L, as.integer(ceiling(nchar(title_txt) / chars_por_linea)))
+  title_height <- sn("title_height", 0.62 + 0.40 * (lineas_titulo - 1L), min = 0.2)
+
+  table_left <- sn("table_left", 6.56, min = 0)
+  table_top <- sn("table_top", 2.14 + base::max(0, title_height - 0.62), min = 0)
+  table_width <- sn("table_width", 5.22, min = 3)
+  row_height_default <- if (n <= 4L) 0.55 else base::max(0.34, base::min(0.48, 2.34 / n))
+  row_height <- sn("row_height", row_height_default, min = 0.24)
+
+  style$number_width <- sv("number_width", 0.55)
+  style$number_size <- sv("number_size", if (n <= 4L) 20 else 16)
+  style$section_size <- sv("section_size", if (n <= 4L) 18 else 16)
+  style$section_fill <- sv("section_fill", "#E7E7E7")
+  style$row_gap_color <- sv("row_gap_color", "#F2F2F2")
+  style$subtopic_heading <- sv("subtopic_heading", FALSE)
+  style$subtopic_marker <- sv("subtopic_marker", "number_text")
+  style$subtopic_row_height <- sn("subtopic_row_height", 0.76, min = 0.18)
+  style$subtopic_col_gap <- sv("subtopic_col_gap", 0.16)
+  style$subtopic_size <- sv("subtopic_size", 16)
+  style$subtopic_number_size <- sv("subtopic_number_size", 16)
+  style$subtopic_badge_gap <- sv("subtopic_badge_gap", 0.08)
+
+  n_sub <- if (is.data.frame(subindices_df)) nrow(subindices_df) else 0L
+  max_chars_numero <- if (n_sub > 0L) nchar(paste0(base::max(1L, n), ".", n_sub)) else 3L
+  # 0.26 historico alcanza hasta "9.9"; cada caracter extra suma 0.07.
+  style$subtopic_badge_width <- sv(
+    "subtopic_badge_width",
+    0.26 + 0.07 * base::max(0L, max_chars_numero - 3L)
+  )
+
+  bottom <- sn("indice_bottom_limit", 7.05, min = 5)
+  cols <- base::max(1, round(sn("subtopic_cols", 2, min = 1, max = 3)))
+  filas_sub <- if (n_sub > 0L) ceiling(n_sub / cols) else 0L
+  colchon <- if (n_sub > 0L) 0.5 else 0.15
+  filas_alto <- n * row_height + filas_sub * style$subtopic_row_height
+  requerido <- filas_alto + colchon
+  disponible <- bottom - table_top
+  if (requerido > disponible && filas_alto > 0) {
+    # El colchon no se escala: la reduccion recae entera sobre las filas.
+    escala <- base::max(0.45, (disponible - colchon) / filas_alto)
+    row_height <- base::max(0.26, row_height * escala)
+    style$subtopic_row_height <- base::max(0.34, style$subtopic_row_height * escala)
+    if (escala < 0.8) {
+      reduce <- function(v, piso) base::max(piso, round(suppressWarnings(as.numeric(v)[1]) * 0.85))
+      style$section_size <- reduce(style$section_size, 11)
+      style$number_size <- reduce(style$number_size, 11)
+      style$subtopic_size <- reduce(style$subtopic_size, 10)
+      style$subtopic_number_size <- reduce(style$subtopic_number_size, 10)
+    }
+  }
+  style$table_width <- table_width
+  style$row_height <- row_height
+
+  list(
+    style = style,
+    title_left = title_left, title_top = title_top,
+    title_width = title_width, title_height = title_height, title_size = title_size,
+    table_left = table_left, table_top = table_top,
+    table_width = table_width, row_height = row_height
+  )
+}
+
 # Recalibra pies (base/right/footer) e iconos del contrato contra la geometria
 # del layout real. Los `type_idx` del contrato estan calibrados contra
 # `plantilla_16_9.pptx`; las plantillas institucionales numeran los `body`

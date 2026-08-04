@@ -7346,9 +7346,13 @@ reporte_ppt_plan <- function(
             title_txt <- toupper(title_txt)
           }
 
+          # Geometria adaptativa (H16/H17): titulo multilinea corre la tabla,
+          # badges por digitos y compresion vertical. reporte_plan_helpers.R.
+          fit <- .indice_fit_layout(style, title_txt, secciones, subindices_df)
+          style <- fit$style
           title_prop <- officer::fp_text(
             color = as.character(.style_value(style, "title_color", "#081F5C"))[1],
-            font.size = .style_num(style, "title_size", 28, min = 10),
+            font.size = fit$title_size,
             bold = TRUE,
             font.family = as.character(style$font_family)[1]
           )
@@ -7359,41 +7363,21 @@ reporte_ppt_plan <- function(
               line_spacing = 1
             )
           )
-          title_left <- .style_num(style, "title_left", 6.58, min = 0)
-          title_top <- .style_num(style, "title_top", 1.32, min = 0)
-          title_width <- .style_num(style, "title_width", 5.10, min = 1)
-          title_height <- .style_num(style, "title_height", 0.62, min = 0.2)
           doc <- officer::ph_with(
             doc,
             value = title_value,
             location = officer::ph_location(
-              left = title_left,
-              top = title_top,
-              width = title_width,
-              height = title_height
+              left = fit$title_left,
+              top = fit$title_top,
+              width = fit$title_width,
+              height = fit$title_height
             )
           )
 
-          table_left <- .style_num(style, "table_left", 6.56, min = 0)
-          table_top <- .style_num(style, "table_top", 2.14, min = 0)
-          table_width <- .style_num(style, "table_width", 5.22, min = 3)
-          row_height_default <- if (length(secciones) <= 4L) 0.55 else max(0.34, min(0.48, 2.34 / length(secciones)))
-          row_height <- .style_num(style, "row_height", row_height_default, min = 0.24)
-          style$number_width <- style$number_width %||% 0.55
-          style$number_size <- style$number_size %||% if (length(secciones) <= 4L) 20 else 16
-          style$section_size <- style$section_size %||% if (length(secciones) <= 4L) 18 else 16
-          style$section_fill <- style$section_fill %||% "#E7E7E7"
-          style$row_gap_color <- style$row_gap_color %||% "#F2F2F2"
-          style$subtopic_heading <- style$subtopic_heading %||% FALSE
-          style$subtopic_marker <- style$subtopic_marker %||% "number_text"
-          style$subtopic_row_height <- style$subtopic_row_height %||% 0.76
-          style$subtopic_col_gap <- style$subtopic_col_gap %||% 0.16
-          style$subtopic_badge_width <- style$subtopic_badge_width %||% 0.26
-          style$subtopic_badge_gap <- style$subtopic_badge_gap %||% 0.08
-          style$subtopic_size <- style$subtopic_size %||% 16
-          style$subtopic_number_size <- style$subtopic_number_size %||% 16
-          style$table_width <- table_width
-          style$row_height <- row_height
+          table_left <- fit$table_left
+          table_top <- fit$table_top
+          table_width <- fit$table_width
+          row_height <- fit$row_height
 
           subindices_inline <- isTRUE(.style_value(style, "subindices_inline", TRUE))
           if (length(secciones) && nrow(subindices_df) && subindices_inline) {

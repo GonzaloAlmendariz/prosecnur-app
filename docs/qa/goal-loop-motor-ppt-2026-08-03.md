@@ -153,7 +153,8 @@ explicar parte del corrimiento.
 | L0 | Fundación: censo + doc | — | **Hecho (P1)** |
 | L1 | Placeholders ↔ campos que ofrece la UI (prueba 1) — defecto fundacional `pic` como texto | 163 ph plantilla principal | **Hecho (P2)** — lado UI; el lado motor pasó a L1b |
 | L1b | **Cluster ACNUR**: contenidos fuera de su placeholder en el render (pie sobre logo, footer en panel, subtexto/fecha invisibles, pie en hueco de ícono) | ~30 slots × plantilla acnur | **Hecho (P3)** — quedan D2 y D3 en bandeja |
-| L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **En curso (P4+P5)** — 32/42 args con diferencial (top_two_box va en L3); reparar H11, H16, H17 |
+| L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **Hecho (P4–P6)** — 32/42 args con diferencial (top_two_box va en L3); H11/H16/H17 reparados; queda paridad Word (→L11) e ícono de catálogo |
+| — | **Regla de cola (pedido de Gonzalo 2026-08-03): todo lo específico de ACNUR (D2, D3, re-render acnur de L2+) se difiere al FINAL de la cola** | | Vigente |
 | L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | Cola |
 | L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | Cola |
 | L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | Cola |
@@ -366,3 +367,37 @@ el efecto pedido).
   queda **pisado por la primera fila** (sin reflow del bloque).
 
 **Gate:** solo renders (sin diff de código en este tramo).
+
+### P6 — L2: reparación de H11, H16 y H17 con render verificado (2026-08-03)
+
+**Reparado:**
+
+1. **H16/H17 — geometría adaptativa del índice.** Nuevo `.indice_fit_layout`
+   (`reporte_plan_helpers.R`; el monolito congelado baja a 9.402, −16 bajo su
+   línea base): estima las líneas del título (mayúsculas bold, 0.85 em/char),
+   agranda su caja y corre la tabla; dimensiona el badge de subtema por
+   dígitos reales (0.26 + 0.07 por carácter extra sobre «9.9»); y comprime
+   filas/subtemas con pisos (0.26/0.34) y reducción tipográfica suave cuando
+   el bloque desborda el límite de 7.05 — el colchón fijo no se escala, la
+   reducción recae entera en las filas. Overrides del analista = punto de
+   partida; la compresión solo actúa ante desborde.
+2. **H11 — honestidad del título del objetivo.** El registry ahora lo llama
+   «Título (banda lateral)» y explica que va en la banda vertical angosta del
+   costado (recomienda una palabra corta). La banda es diseño del layout
+   (0.75×4.54 sin rotación declarada); no se toca el motor.
+
+**Evidencia de render (antes → después):** título de 3 líneas completo con la
+tabla debajo (antes: tercera línea pisada); 10 secciones + 6 subtemas dentro
+de lámina con badges «10.x» enteros (antes: desborde y «10.1» partido);
+control de 3 secciones idéntico al histórico. Residuo menor: en el peor caso
+el descender de la última fila roza el borde inferior — anotado, no bloquea.
+
+**Gate:** `test-reporte-plan-indice-fit.R` nuevo (16 asserts: geometría
+histórica intacta, corrimiento por título, compresión al presupuesto, badge
+adaptativo, overrides respetados) + engine-plan-ppt-texto (113), calibración
+de pies (20) y layout-geometry (78): **todo verde**. Audit de congelados
+limpio.
+
+**Regla nueva de cola:** por pedido de Gonzalo, todo lo ACNUR (D2, D3 y
+re-render acnur) se difiere al final. Siguiente: **L3 — slides de gráficos
+(68 args, incluye top_two_box)** sobre la plantilla genérica.

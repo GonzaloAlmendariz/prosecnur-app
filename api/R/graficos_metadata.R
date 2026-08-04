@@ -374,7 +374,8 @@
            descripcion = "PNG decorativo que aparece al lado del texto. Debes haberlo subido antes en 'Iconos'."),
       list(name = "texto",  label = "Contenido",  tipo_input = "textarea", grupo = "textos",
            descripcion = "El mensaje principal del slide. Párrafo corto, 2-4 líneas."),
-      list(name = "titulo", label = "Título",     tipo_input = "string",   grupo = "textos")
+      list(name = "titulo", label = "Título (banda lateral)", tipo_input = "string", grupo = "textos",
+           descripcion = "Se muestra en la banda vertical angosta del costado izquierdo del layout, no como encabezado horizontal. Conviene una sola palabra corta (ej. 'Objetivo').")
     )
   ),
 
