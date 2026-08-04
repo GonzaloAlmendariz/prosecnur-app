@@ -1219,3 +1219,32 @@ reclama **L9 — familia dimensiones**: `p_dim_radar`, `p_dim_radar_tabla`,
 ambos libres. Pendiente diferido de L8 (para cuando el registry se libere):
 curar `mostrar_valores`/`valores_decimales` del radar, `umbral_rojo_pct` con
 apagado, y decidir B-H11/B-D1.
+
+### B10 — L9 arranca: censo args↔formals de la familia dimensiones (2026-08-03, sesión B)
+
+Censo reproducible (`.GRAFICADORES_META` vs `formals()`, excluyendo técnicos;
+`overrides/filtros/base` son passthroughs curados, no fantasmas). Hallazgos:
+
+- **B-H12 — `iter_var`/`iter_level` ocultos en los 5 elementos dim** con
+  constructor: la capacidad de iterar el gráfico por nivel existe en toda la
+  familia y no tiene superficie en ninguna parte.
+- **B-H13 — inconsistencia entre hermanos**: `radar_min_ejes` está curado en
+  `p_dim_comparativo_radarbar` pero oculto en `p_dim_radar`; `modo_semaforo`
+  curado en `p_dim_heatmap` pero oculto en `p_dim_foda` (que además tiene
+  `cortes_chip` oculto). El mismo concepto se ofrece o esconde según el
+  elemento.
+- **B-H14 — `p_dim_heatmap` esconde su mejor funcionalidad**: 9 formals sin
+  superficie (etiquetas y colores/cortes de brecha, gradiente, títulos de
+  totales, tamaño de eje X, N por cruce) — la UI ofrece los switches de
+  brecha pero no sus controles.
+- **B-H15 — `p_dim_foda` con 27 formals ocultos** (confirma el censo P1):
+  semáforo completo, geometría de tarjetas/matriz/dispersión, textos de
+  áreas, jitter. El elemento más configurable del motor es una caja negra
+  desde la UI.
+- `p_dim_heatmap_criterios`: solo `source` oculto (técnico multibase — OK).
+
+Plan del carril: sweep de renders por elemento (banco = patrón
+`make_dimensiones_ppt_fixture` de los tests: `reporte_dimensiones` +
+`subindice`/`indice`), luego curar por valor (no las 48 a ciegas: primero
+mirar cuáles cambian algo visible — prueba 2 — y proponer la superficie
+mínima que haga a la familia consistente).
