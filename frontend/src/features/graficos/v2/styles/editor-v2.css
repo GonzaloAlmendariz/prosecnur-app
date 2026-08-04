@@ -141,6 +141,22 @@
     color var(--motion-dur-fast) ease !important;
 }
 
+/* Declaración de qué informe es este plan cuando el estudio tiene varias bases.
+   No es un control: es la respuesta a «¿uno conjunto o uno por base?». */
+.pulso-gv2-modo-multibase {
+  border: 1px solid var(--pulso-border) !important;
+  background: var(--pulso-surface) !important;
+  color: var(--pulso-text-soft) !important;
+  font-size: 11.5px !important;
+  cursor: default !important;
+}
+
+.pulso-gv2-modo-multibase.is-conjunto {
+  border-color: color-mix(in srgb, var(--pulso-primary-border) 70%, var(--pulso-border)) !important;
+  background: color-mix(in srgb, var(--pulso-primary-soft) 55%, var(--pulso-surface)) !important;
+  color: var(--pulso-primary) !important;
+}
+
 .pulso-gv2-pill-button:active:not(:disabled),
 .pulso-gv2-icon-button:active:not(:disabled),
 .pulso-gv2-segmented button:active:not(:disabled) {
@@ -951,6 +967,81 @@
   border-radius: 13px;
   border: 1px solid var(--pulso-border);
   background: rgba(255, 255, 255, 0.78);
+}
+
+/* Desglose por base: el total global no distingue cubrir una base de rozar
+   cuatro, y una base entera sin gráficos se disolvía en el promedio. */
+.pulso-gv2-coverage-bases {
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  border-radius: 13px;
+  border: 1px solid var(--pulso-border);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.pulso-gv2-coverage-bases-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulso-gv2-coverage-bases-alert {
+  color: var(--pulso-danger-fg);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.pulso-gv2-coverage-base-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 11.5px;
+}
+
+.pulso-gv2-coverage-base-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.pulso-gv2-coverage-base-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--pulso-border);
+  overflow: hidden;
+}
+
+.pulso-gv2-coverage-base-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pulso-primary);
+}
+
+.pulso-gv2-coverage-base-count {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--pulso-weight-heavy);
+}
+
+.pulso-gv2-coverage-base-row.is-vacia .pulso-gv2-coverage-base-count {
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-gv2-coverage-base-row.is-vacia .pulso-gv2-coverage-base-bar {
+  background: color-mix(in srgb, var(--pulso-danger-border) 55%, var(--pulso-border));
 }
 
 .pulso-gv2-coverage-kpi[data-tone="success"] {
@@ -21880,6 +21971,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Referencia sin base en un estudio multibase: el gráfico no se puede
+   renderizar hasta elegirla, así que el chip no puede leerse como un dato
+   más — lleva el tono de la alerta que el plan ya levanta. */
+.pulso-gv2-variable-trigger-source.is-sin-base {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
 }
 
 .pulso-gv2-variable-trigger-chevron {

@@ -296,6 +296,10 @@
         step = 0.01,
         descripcion = "Espacio en pulgadas entre el número y el texto del subíndice."
       ),
+      # `iconos_focos_left_cm`/`top_cm` existen como formals y funcionan, pero
+      # se mantienen SIN superficie por decisión previa (test de argumentos-ui
+      # los excluye): posicionar focos en cm absolutos rompe la composición de
+      # la plantilla con facilidad. Ver bandeja D4 del GOAL loop motor PPT.
       list(
         name = "estilo",
         label = "Ajustes avanzados de índice",
@@ -1296,6 +1300,7 @@
 
       # --- Barra extra (Top2Box / Bottom2Box / N) ------------------------
       list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
+           default = TRUE,
            descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
            descripcion = "Hex del color de la barra extra. Ej. '#081F5C'."),
@@ -1320,6 +1325,7 @@
 
       # --- Etiquetas de valores ------------------------------------------
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo",
+           default = TRUE,
            descripcion = "Escribe el % dentro de cada segmento de la barra."),
       list(name = "mostrar_n_en_etiquetas", label = "Mostrar frecuencia en porcentajes", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
@@ -1343,6 +1349,7 @@
            default = 0.085,
            descripcion = "A partir de este umbral, la etiqueta va dentro del segmento sin desplazar."),
       list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool",   grupo = "filtro",
+           default = TRUE,
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
            default = FALSE,
@@ -1632,11 +1639,11 @@
 	      list(name = "otros_al_final",       label = "Otros al final",        tipo_input = "bool", grupo = "estilo",
 	           default = TRUE,
 	           descripcion = "Mueve categorías Otro/Otros al final del orden visual aunque su frecuencia sea alta."),
-	      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
+	      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
 
       # --- Valores y cálculo ---------------------------------------------
-      list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "mostrar_n_en_etiquetas", label = "Mostrar frecuencia en porcentajes", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16)."),
@@ -1668,7 +1675,7 @@
            descripcion = "Por debajo de este valor relativo, la etiqueta se muestra fuera de la barra para que no se pierda."),
 
       # --- Barra extra (menos común acá) ---------------------------------
-      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo", default = FALSE),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
            descripcion = "Texto que rotula la columna extra cuando se muestra."),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos",
@@ -1832,6 +1839,7 @@
 
       # --- N sobre barras ------------------------------------------------
       list(name = "mostrar_n_sobre_barras", label = "Mostrar N arriba de cada barra", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
            descripcion = "Imprime 'N = 120' encima de cada barra. Útil cuando el tamaño muestral varía entre grupos."),
       list(name = "prefijo_n_sobre_barras", label = "Prefijo del N",        tipo_input = "string", grupo = "textos",
            default = "N = "),
@@ -1841,12 +1849,13 @@
       # --- Eje Y ---------------------------------------------------------
       list(name = "mostrar_eje_y",        label = "Mostrar eje Y numérico", tipo_input = "bool",   grupo = "estilo",
            default = FALSE,
+           default = TRUE,
            descripcion = "Si los valores están dentro de las barras, normalmente el eje Y sobra."),
 
       # --- Serie ---------------------------------------------------------
       list(name = "colores_series",       label = "Colores por serie",     tipo_input = "series_colors", grupo = "estilo",
            descripcion = "Asigna un color a cada serie que aparece en la leyenda."),
-      list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "abajo",   label = "Abajo"),
@@ -2203,6 +2212,7 @@
       list(name = "mostrar_outliers",     label = "Mostrar outliers",      tipo_input = "bool",   grupo = "estilo",
            descripcion = "Dibujar los puntos que caen fuera de los bigotes."),
       list(name = "mostrar_media",        label = "Mostrar media",         tipo_input = "bool",   grupo = "estilo",
+           default = TRUE,
            descripcion = "Añade un marcador con la media además de la mediana."),
       list(name = "mostrar_rango",        label = "Mostrar rango extendido", tipo_input = "bool", grupo = "estilo",
            descripcion = "Dibuja barras con min-max o IQR según tipo_rango."),
@@ -2236,13 +2246,14 @@
       .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "nota_pie")),
 
       list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "filtro"),
-      list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "iqr",     label = "IQR (P25-P75)"),
              list(value = "min_max", label = "Min-Max")
            )),
       list(name = "mostrar_ref_label",    label = "Mostrar línea/etiqueta de referencia", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
            descripcion = "Añade una línea o texto con el promedio global como referencia visual."),
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
       list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),

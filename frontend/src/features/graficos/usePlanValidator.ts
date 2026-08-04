@@ -17,6 +17,13 @@ import { isDerivedReportVariableRef } from "./derivedReportVariables";
 //   - "slot-empty": slide con slot sin graficador.
 //   - "var-unknown": un graficador referencia una variable que no está
 //     en el instrumento (probablemente borraste/renombraste la pregunta).
+//   - "var-sin-base": con varias bases, la referencia no dice de cuál es.
+//     Es ERROR porque el motor no puede resolverla: el preview y el export
+//     abortan con "La referencia de `var` requiere prefijo `fuente$`". Pasa
+//     solo con planes que nacieron cuando el estudio tenía una sola base y
+//     siguieron vivos después de sumar las demás; hasta que se distinguió
+//     este caso, el plan decía que la variable no existía ("¿la renombraste
+//     o borraste?") mientras el selector mostraba a su lado la base real.
 //   - "icon-unknown": un slide de población referencia un ícono que ya
 //     no está en el catálogo (alguien lo borró).
 //   - "paleta-monocromatica": una paleta tiene muchos colores con hue
@@ -36,6 +43,7 @@ export type ValidationIssue = {
     | "plan-vacio"
     | "slot-empty"
     | "var-unknown"
+    | "var-sin-base"
     | "icon-unknown"
     | "paleta-monocromatica"
     | "numeric-invalid"
@@ -93,6 +101,18 @@ export function usePlanValidator(): ValidationSummary {
     }
     const resolveVar = (ref: string) => varsByRef.get(ref);
 
+    // En qué bases vive cada nombre suelto. Con varias bases, una ref sin `$`
+    // no es necesariamente una variable perdida: casi siempre es una que se
+    // eligió cuando el estudio tenía una sola base.
+    const basesPorVariable = new Map<string, string[]>();
+    for (const v of variables) {
+      const previas = basesPorVariable.get(v.name) ?? [];
+      if (!previas.includes(v.source)) previas.push(v.source);
+      basesPorVariable.set(v.name, previas);
+    }
+    const basesDeVariableSuelta = (ref: string) =>
+      ref.includes("$") ? [] : (basesPorVariable.get(ref) ?? []);
+
     for (const slide of slides) {
       const slideMeta = slidesById[slide.tipo];
       if (!slideMeta) continue;
@@ -127,12 +147,18 @@ export function usePlanValidator(): ValidationSummary {
             slotName: slot,
           }));
 
-          // Variable desconocida dentro del graficador
+          // Variable desconocida dentro del graficador. Con varias bases hay
+          // que separar dos cosas que se veían igual: la que no existe y la
+          // que existe pero no dice de qué base es.
           checkVarRefs(graf, varNames).forEach((varName) => {
+            const aviso = avisoDeVariableNoResuelta(
+              varName,
+              multi ? basesDeVariableSuelta(varName) : [],
+            );
             issues.push({
-              severity: "warning",
-              code: "var-unknown",
-              message: `"${slideMeta.titulo_humano}" (${humanizeSlot(slot)}): la variable "${varName}" no está en el instrumento. ¿La renombraste o borraste?`,
+              severity: aviso.severity,
+              code: aviso.code,
+              message: `"${slideMeta.titulo_humano}" (${humanizeSlot(slot)}): ${aviso.detalle}`,
               slideId: slide.id,
               slotName: slot,
             });
@@ -219,6 +245,40 @@ function humanizeSlot(slot: string): string {
 
 // Inspecciona los args del graficador y devuelve nombres de variables
 // que el graficador referencia pero no existen en el instrumento.
+// Una referencia que no resolvió puede ser dos cosas muy distintas, y hasta
+// que se separaron el analista recibía siempre la peor lectura ("¿la
+// renombraste o borraste?") justo cuando la variable estaba intacta.
+export function avisoDeVariableNoResuelta(
+  varName: string,
+  basesDondeExiste: string[],
+): { severity: ValidationIssue["severity"]; code: ValidationIssue["code"]; detalle: string } {
+  if (basesDondeExiste.length === 1) {
+    return {
+      severity: "error",
+      code: "var-sin-base",
+      detalle: `la variable "${varName}" no dice de qué base es. Está en ${listarBases(basesDondeExiste)}; vuelve a elegirla para dejarlo escrito.`,
+    };
+  }
+  if (basesDondeExiste.length > 1) {
+    return {
+      severity: "error",
+      code: "var-sin-base",
+      detalle: `la variable "${varName}" existe en ${listarBases(basesDondeExiste)}. Elige de cuál es: el gráfico no puede resolverla solo.`,
+    };
+  }
+  return {
+    severity: "warning",
+    code: "var-unknown",
+    detalle: `la variable "${varName}" no está en el instrumento. ¿La renombraste o borraste?`,
+  };
+}
+
+function listarBases(bases: string[]): string {
+  if (bases.length <= 1) return bases[0] ? `"${bases[0]}"` : "";
+  const entrecomilladas = bases.map((base) => `"${base}"`);
+  return `${entrecomilladas.slice(0, -1).join(", ")} y ${entrecomilladas[entrecomilladas.length - 1]}`;
+}
+
 function checkVarRefs(graf: GraficadorRef, varNames: Set<string>): string[] {
   const refs = collectVarRefs(graf.args ?? {});
   return Array.from(new Set(refs.filter((v) => (

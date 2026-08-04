@@ -420,9 +420,12 @@ export function graficosWarmupScope(search: string): "active" | "consolidated" {
 
 async function warmupGraficosLocalData() {
   const api = await import("../api/client");
+  // El registry se calienta por el hook, no por el cliente crudo: así el
+  // catálogo queda cacheado y el picker de graficadores abre sin request.
+  const { prefetchGraficosRegistry } = await import("../features/graficos/useGraficosRegistry");
   const scope = graficosWarmupScope(typeof window === "undefined" ? "" : window.location.search);
   return Promise.allSettled([
-    api.apiGraficosRegistry(),
+    prefetchGraficosRegistry(),
     api.apiGraficosPresetsMetadata(),
     api.apiGraficosTemplates(),
     api.apiGraficosConfigGet(),

@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, AlertTriangle, AlignJustify, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, AlignJustify, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigExport,
@@ -22,6 +22,8 @@ import { SuggestedPlanButton } from "./SuggestedPlanButton";
 import { usePlanValidator } from "./usePlanValidator";
 import { EstiloGlobalDialog } from "./v2/shell/EstiloGlobalDialog";
 import { useProjectShell } from "../project/ProjectShell";
+import { useSession } from "../../lib/SessionContext";
+import { modoMultibaseDelPlan } from "./modoMultibase";
 import type { GraficosReportScope } from "./reportScope";
 
 type GraficosJsonSectionId =
@@ -810,6 +812,7 @@ export function GraficosHeader({
             {isSharedReport && (
               <span className="pulso-gv2-pill-button" role="status">Informe compartido</span>
             )}
+            <ModoMultibaseBadge />
           </div>
         </div>
 
@@ -1218,6 +1221,30 @@ export function GraficosHeader({
 
       <EstiloGlobalDialog open={estiloOpen} onClose={() => setEstiloOpen(false)} />
     </div>
+  );
+}
+
+// Con varias bases, la superficie tiene que declarar de qué informe se trata:
+// uno solo que las mezcla o uno por base. Es la primera pregunta del analista
+// al abrir Gráficos y la respuesta vivía sólo en `processing_mode`, decidido en
+// Carga y sin eco aquí.
+function ModoMultibaseBadge() {
+  const { state } = useSession();
+  const modo = modoMultibaseDelPlan(
+    state?.estudio_processing_mode,
+    state?.n_bases,
+    state?.active_base,
+  );
+  if (!modo.visible) return null;
+  return (
+    <span
+      className={`pulso-gv2-pill-button pulso-gv2-modo-multibase is-${modo.clave}`}
+      role="status"
+      title={modo.explicacion}
+    >
+      <Layers3 size={12} aria-hidden="true" />
+      {modo.etiqueta}
+    </span>
   );
 }
 

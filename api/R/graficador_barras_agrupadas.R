@@ -953,13 +953,15 @@ graficar_barras_agrupadas <- function(
   # puede venir corto, sin nombres o como el deparse de un vector; se sanea con
   # el helper compartido antes de scale_fill_manual para no abortar con
   # "Insufficient values in manual scale" / "Unknown colour name".
-  if (isTRUE(usar_color_categorias)) {
-    pal_cat <- .graficos_mk_palette(levels(df_long$.fill_key), pal_user = colores_categorias)
-    p <- p + ggplot2::scale_fill_manual(values = pal_cat)
-  } else if (!is.null(colores_series)) {
-    pal_ser <- .graficos_mk_palette(levels(df_long$.serie), pal_user = colores_series)
-    p <- p + ggplot2::scale_fill_manual(values = pal_ser)
-  }
+  #
+  # La escala se aplica SIEMPRE, con override o sin él: cuando no se aplicaba
+  # ninguna, ggplot pintaba con su escala por defecto y la primera serie salía
+  # #F8766D (salmón). Como la UI de barras agrupadas no expone control de color,
+  # ese era justamente el caso normal. `.graficos_mk_palette` con `pal_user`
+  # nulo devuelve la paleta institucional, igual que en apiladas y categóricas.
+  pal_user_efectivo <- if (isTRUE(usar_color_categorias)) colores_categorias else colores_series
+  pal_fill <- .graficos_mk_palette(levels(df_long$.fill_key), pal_user = pal_user_efectivo)
+  p <- p + ggplot2::scale_fill_manual(values = pal_fill)
 
   if (!is.null(ancho_max_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
