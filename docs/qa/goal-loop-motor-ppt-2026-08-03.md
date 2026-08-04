@@ -1096,3 +1096,19 @@ radar 36, dimensiones-iconos-foda-radar 52: todo verde. Monolito 9.418.
 sigue en vuelo de la sesión A, se hará cuando libere), B-D1, editorial menor
 de boxplot (jitter/cortes invisibles), radar chico en lámina completa (parte
 de la familia H9), paridad Word (L11).
+
+### B5 — L8: el boxplot se deja leer (2026-08-03, sesión B)
+
+Pulido editorial con render verificado (B01/B03): los puntos jitter suben de
+alpha 0.28→0.45 y toman una versión oscurecida (×0.55) del color de su caja —
+con el MISMO color desaparecían sobre la caja y se lavaban fuera; las líneas
+punteadas de los cortes del semáforo pasan de #C7CDD6 (invisible sobre fondo
+claro) a #8A97A8 con 0.5 de grosor. Test: alpha de firma + paleta de puntos
+disjunta de la de cajas (30 asserts del archivo en verde).
+
+**Estado del carril L8 tras cinco tramos:** 12 hallazgos cerrados con test y
+render (B-H1, B-H2, B-H3, B-H4, B-H5a/b/c, B-H7, B-H8, B-H9, B-H10, B5
+editorial). Quedan: B-H6 (curar umbral_rojo_pct — esperando que la sesión A
+libere graficos_metadata.R), B-D1 (combinado compat), radar chico en lámina
+completa (familia H9, común a varios graficadores), paridad Word (L11) y el
+barrido fino del preset radar_tabla (37 args).
