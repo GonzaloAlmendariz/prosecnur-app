@@ -1439,3 +1439,14 @@
     objective_icono = obj$icono %||% NULL
   )
 }
+
+#' @keywords internal
+# Labels de la leyenda de semaforo del FODA: el significado del color (umbral
+# de puntaje via .dim_range_labels), nunca el nombre del color.
+.dim_foda_legend_labels <- function(sem) {
+  cortes <- suppressWarnings(as.numeric(sem$cortes %||% numeric(0)))
+  if (length(cortes) >= 2 && all(is.finite(cortes[1:2]))) {
+    return(.dim_range_labels(cortes[1], cortes[2]))
+  }
+  c("Bajo", "Medio", "Alto")
+}
