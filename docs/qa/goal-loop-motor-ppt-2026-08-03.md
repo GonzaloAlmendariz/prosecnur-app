@@ -1681,3 +1681,22 @@ Ambos consumen ahora el ancho físico que el motor inyecta desde P14
 
 **Gate:** l7-pie-nube 13, graficador-dimensiones 39, iconos-foda-radar 52,
 dim-foda-leyenda 10: todo verde. Renders antes/después mirados (X3/X4).
+
+### B29 — Vara alta 2: población 5 con cinco familias y narrativo con heatmap (2026-08-04, sesión B)
+
+Los cajones de 3.95" (los más angostos del motor) con pie, donut, boxplot,
+media_rango y radar box a la vez, más heatmap en slide narrativo
+(`sweep_pob.R`):
+
+- **En verde**: boxplot, media_rango y radar box legibles en cajón mínimo
+  (los escalados de B2–B28 rinden); pie con etiquetas completas; heatmap en
+  narrativo convive con su bloque de texto.
+- **B-H33 reparado**: el donut clipeaba su etiqueta izquierda porque la
+  leyenda DERECHA le robaba ancho al panel en cajones mínimos — en slots
+  < 5" la leyenda pasa abajo automáticamente (render verificado: anillo más
+  grande y leyenda contenida).
+- Residuos menores anotados (cajón mínimo): la etiqueta izquierda del donut
+  aún roza el borde en 3.95" y el caption se apretuja contra la leyenda —
+  rendimientos decrecientes; candidatos a un pase futuro de micro-tipografía.
+
+**Gate:** l7-pie-nube 13: verde. Renders mirados.
