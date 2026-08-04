@@ -65,9 +65,15 @@
 
 .auto_bar_width_apiladas <- function(n_categorias,
                                      grosor_barras_mult = 1,
-                                     usar_grupos_canvas = TRUE) {
+                                     usar_grupos_canvas = TRUE,
+                                     n_reales = n_categorias) {
   n_eff <- suppressWarnings(as.numeric(n_categorias)[1])
   if (!is.finite(n_eff) || is.na(n_eff) || n_eff <= 0) n_eff <- 1
+
+  n_reales_eff <- suppressWarnings(as.numeric(n_reales)[1])
+  if (!is.finite(n_reales_eff) || is.na(n_reales_eff) || n_reales_eff <= 0) {
+    n_reales_eff <- n_eff
+  }
 
   mult_eff <- suppressWarnings(as.numeric(grosor_barras_mult)[1])
   if (!is.finite(mult_eff) || is.na(mult_eff) || mult_eff <= 0) mult_eff <- 1
@@ -88,7 +94,19 @@
     base <- base * 0.88
   }
 
-  max(0.40, min(0.85, base * mult_eff))
+  out <- max(0.40, min(0.85, base * mult_eff))
+
+  # Una sola fila REAL (dicotomicas apiladas tipicas): las filas virtuales
+  # que evitan la "barra gigante aislada" (min_filas_layout = 2) dejaban una
+  # cinta enclenque de ~22% del panel — feedback directo B36/G-2 ("barra muy
+  # delgada y poco profesional"). Ensanchamos a una banda con cuerpo (~35%
+  # del panel con 2 filas virtuales) conservando el centrado vertical. El
+  # multiplicador del usuario sigue mandando por encima del piso.
+  if (n_reales_eff == 1 && n_eff > n_reales_eff) {
+    out <- max(out, min(1.20, 0.95 * mult_eff))
+  }
+
+  out
 }
 
 .estimate_label_width_apiladas <- function(labels, size) {
@@ -1607,10 +1625,22 @@ graficar_barras_apiladas <- function(
     grosor_eff <- .auto_bar_width_apiladas(
       n_categorias = n_categorias_grosor,
       grosor_barras_mult = grosor_barras_mult,
-      usar_grupos_canvas = usar_grupos_canvas
+      usar_grupos_canvas = usar_grupos_canvas,
+      n_reales = n_categorias
     )
   } else {
     grosor_eff <- grosor_barras
+  }
+
+  # Piso editorial para UNA fila real bajo filas virtuales (B36/G-2): tanto el
+  # 0.7 manual por defecto como el auto (~0.59) dejaban la banda en ~22-26%
+  # del panel — "barra muy delgada y poco profesional". Subimos a ~35%
+  # conservando el centrado. Solo pisamos la banda tipica de defaults
+  # [0.55, 0.85]: un grosor explicito fuera de ese rango es intencion del
+  # analista y se respeta.
+  if (isTRUE(usar_canvas) && n_categorias == 1L && min_filas_layout > 1L &&
+      is.finite(grosor_eff) && grosor_eff >= 0.55 && grosor_eff <= 0.85) {
+    grosor_eff <- 0.95
   }
 
   label_fit_scale <- 1
