@@ -988,10 +988,12 @@
       list(name = "modo",         label = "Modo",                 tipo_input = "choice",         grupo = "datos",
            choices = list(
              list(value = "sm",  label = "Select múltiple", hint = "Una variable con opciones múltiples."),
-             list(value = "box", label = "Cajas/cortes",    hint = "Una variable agrupada por rangos.")
+             list(value = "box", label = "Cajas/cortes",    hint = "Varias preguntas de una escala compartida, resumidas por cortes (ej. T2B).")
            )),
-      list(name = "var",          label = "Variable (modo box)",  tipo_input = "variable_opt",   grupo = "datos"),
-      list(name = "vars",         label = "Variables (modo sm)",  tipo_input = "variables_list", grupo = "datos"),
+      list(name = "var",          label = "Variable (modo Select múltiple)",  tipo_input = "variable_opt",   grupo = "datos",
+           descripcion = "La pregunta de selección múltiple cuyas opciones serán los ejes del radar. Solo en modo Select múltiple."),
+      list(name = "vars",         label = "Variables (modo Cajas/cortes)",  tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box). Solo en modo Cajas/cortes."),
       list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos"),
       list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro",
            descripcion = "Cantidad máxima de categorías a mostrar. Si vacío, se muestran todas."),
@@ -1017,8 +1019,10 @@
              list(value = "sm",  label = "Select múltiple"),
              list(value = "box", label = "Cajas/cortes")
            )),
-      list(name = "var",          label = "Variable (modo box)",  tipo_input = "variable_opt",   grupo = "datos"),
-      list(name = "vars",         label = "Variables (modo sm)",  tipo_input = "variables_list", grupo = "datos"),
+      list(name = "var",          label = "Variable (modo Select múltiple)",  tipo_input = "variable_opt",   grupo = "datos",
+           descripcion = "La pregunta de selección múltiple cuyas opciones serán los ejes del radar. Solo en modo Select múltiple."),
+      list(name = "vars",         label = "Variables (modo Cajas/cortes)",  tipo_input = "variables_list", grupo = "datos",
+           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box). Solo en modo Cajas/cortes."),
       list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos"),
       list(name = "titulo_tabla", label = "Título de la tabla",   tipo_input = "string",         grupo = "textos"),
       list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro"),

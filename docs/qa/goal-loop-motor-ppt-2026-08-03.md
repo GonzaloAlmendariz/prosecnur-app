@@ -1726,3 +1726,27 @@ navegación por `__pulsoNav`, readiness real):
 Higiene: pila de referencia dejada VIVA para uso de Gonzalo (API 8801, Vite
 5191, proyecto acnur_acg abierto); el resto de servers de otras sesiones
 intactos.
+
+### B33 — Flujo real end-to-end: B-H34, las etiquetas de var/vars del radar estaban CRUZADAS (2026-08-04, sesión B)
+
+Auditoría con el editor real (acnur_acg vivo): radar agregado desde la
+biblioteca, `D1_information` (selección múltiple real, 560 respuestas)
+elegida siguiendo las etiquetas de la UI, «Valores en vértices» activado
+desde la pestaña Estilo… y el preview murió con
+`p_radar_tabla(modo='sm'): var debe ser character(1) no vacio ·
+E_PREVIEW_FAILED`.
+
+**B-H34 (GRAVE, prueba 2 — solo el flujo real lo destapa):** el registry
+etiquetaba `var` como «Variable (modo box)» y `vars` como «Variables (modo
+sm)» — EXACTAMENTE AL REVÉS del motor (modo sm consume `var` = la SM madre;
+modo box consume `vars` = varias likert). El analista que sigue las
+etiquetas pone su variable en el campo equivocado y el preview falla.
+Corregido en radar y tabla con etiquetas y descripciones honestas
+(«Variable (modo Select múltiple)» / «Variables (modo Cajas/cortes)») y el
+hint del modo box deja de decir «una variable».
+
+Punto a favor del preview: el error del motor SÍ se muestra en la UI
+(`E_PREVIEW_FAILED` con el mensaje real) — el estándar que el export debería
+imitar.
+
+**Gate:** argumentos-ui 459, metadata 228: verde. Commit por hunks.
