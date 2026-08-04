@@ -1594,3 +1594,30 @@ tarjetas completas con chips dentro del borde.
 **Gate:** l8-defaults 34 (incluye el mock del glue que pasa por el camino
 Word), media-rango-significancia 5, dim-foda-leyenda 10, plan-texto 113:
 todo verde. Audit de congelados limpio.
+
+### B25 — Re-censo tras 31 pases de la sesión B y estado de la cola (2026-08-04, sesión B)
+
+**Censo re-medido** (mismo script del P1, sobre el working tree con las
+curaciones B):
+
+| Métrica | P1 (2026-08-03) | B25 (2026-08-04) | Δ |
+|---|---|---|---|
+| Graficadores en registry | 20 | **19** | −1 (`p_dim_radar_tabla` retirado, B-H16) |
+| Args curados de graficadores | 213 | **227** | +14 (curaciones B17/B18/B20/B22) |
+| Args curados de slides | 110 | 101 | −9 (fantasmas retirados por A en P7/P8) |
+| Presets suelo | 11 tipos / 315 | 11 / 315 | = (cambios de valor, no de censo) |
+| Monolito `reporte_plan_ppt.R` | 9.418 | **9.400** | −18 (lógica movida a helpers) |
+
+**Estado de la cola global**: L1–L3 hechos (A); L4/L5/L6 de A con
+remanentes (H24–H26, preset agrupadas, sus archivos siguen en vuelo);
+**L7, L8 y L9 CERRADOS por la sesión B** (censo, sweeps, diferenciales,
+bordes, suelo, paridad Word y curación UI — 31 pases, ~30 reparaciones, 2
+capacidades nuevas, 1 retiro); L10/L11-consolidado esperan el router;
+L12 hecho para los carriles B (quedan los de A); L13/ACNUR diferido al final
+por regla de Gonzalo. Pendientes B menores: mapa territorial (banco de
+referencia), etiquetas de slices contiguos, B-D1/B-D2/B-D3 en bandeja.
+
+**Lo que solo Gonzalo puede destrabar**: los archivos en vuelo de la sesión A
+(agrupadas/apiladas/metadata/router + frontend multibase) llevan ~3h sin
+commitear; si esa sesión murió, conviene commitear o descartar ese trabajo
+para liberar L4–L6, L10 y L11.
