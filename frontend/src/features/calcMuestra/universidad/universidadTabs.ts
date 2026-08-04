@@ -60,6 +60,19 @@ export const UNIVERSITY_LOCAL_TAB_ALIASES: Record<string, string> = {
   // aterrizan en su reemplazo.
   "marco-criterios": "marco-criterios-alumno",
   "marco-categorias": "marco-criterios-alumno",
+  /*
+   * G42 · El explorador de bases reabrió en Datos (`def-explorador`), no aquí.
+   *
+   * Este alias se queda: lo que aquel split absorbió dentro de la radiografía
+   * —el explorador POR FACULTAD del marco— sigue absorbido, y un tab guardado
+   * con el id viejo tiene que aterrizar donde está su contenido. El explorador
+   * nuevo responde otra pregunta (cómo son las bases leídas) y por eso vive en
+   * otra sección con id propio.
+   *
+   * De paso, la trampa: este alias existía cuando se reabrió la pestaña con el
+   * mismo id, así que la dirección era correcta, el rail la pintaba y el desk
+   * montaba la radiografía. Resucitar un id exige mirar esta tabla primero.
+   */
   "marco-explorador": "marco-ch-radiografia",
   // D10 ejecutada: Consistencia es pestaña propia de Datos, inmediatamente
   // después de Fuentes. El alias histórico apunta ahora a su hogar real; la
@@ -228,7 +241,16 @@ export function universitySidebarTabs({
   if (activeSection === "definicion") {
     const baseReady = declaredSourcesReady || hasDescriptiveFrame;
     const baseConfigured = baseReady && requiredMapped;
-    const [estudioTab, basesTab, consistenciaTab, variablesTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
+    const [estudioTab, basesTab, consistenciaTab, variablesTab, exploradorTab, historicoTab] =
+      CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
+    // G42 · La base histórica es OPCIONAL: su pestaña acredita cuando el motor
+    // publicó la referencia, y hasta entonces no bloquea nada —el marco se
+    // construye sin ella—, así que no puede pintarse como un paso pendiente.
+    const referenciaLista = Boolean(
+      (workspace.source_bindings ?? []).find(
+        (binding) => binding.role === "referencia_asistencia",
+      )?.file_id,
+    );
     const consistencyStatus = evaluarConsistenciaMarco(workspace.source_mode, aulasState?.frame);
     return [
       { ...estudioTab, status: guideStatus(Boolean(estudio.titulo)) },
@@ -237,6 +259,10 @@ export function universitySidebarTabs({
       { ...basesTab, status: guideStatus(baseReady, hasSource) },
       { ...consistenciaTab, status: baseReady ? consistencyStatus : guideStatus(false, baseReady || hasSource) },
       { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
+      // G42 · El explorador describe lo que ya hay: listo en cuanto el motor
+      // publicó filas, sin exigir criterios ni cascada.
+      { ...exploradorTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...historicoTab, status: guideStatus(referenciaLista, true) },
     ];
   }
   if (activeSection === "marco") {
@@ -255,7 +281,8 @@ export function universitySidebarTabs({
       : null;
     const alumnosDecision = normalizeCalcMuestraAlumnosPorChDecision(workspace.aulas_config?.alumnos_por_ch_decision);
     const alumnosDecisionReady = alumnosPorChDecisionIsCurrent(alumnosPorCh, alumnosDecision);
-    const [criteriosTab, alumnosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
+    const [criteriosTab, alumnosTab, radiografiaTab, poblacionTab, aulasTab, coberturaTab] =
+      CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco;
     return [
       { ...criteriosTab, status: guideStatus(criteriosCatalogoReady && criteriosRadiografiaReady, hasDescriptiveFrame) },
       { ...alumnosTab, status: guideStatus(alumnosDecisionReady, Boolean(alumnosPorCh || alumnosPorChRaw)) },

@@ -39,6 +39,8 @@ import {
 import { universitySidebarTabs } from "./universidadTabs";
 import { DefBasesTab, DefConsistenciaTab, DefEstudioTab, DefVariablesTab } from "./definicion";
 import { AlumnosPorChMarcoTab, CursosHorarioMarcoTab, MarcoAulasTab, MarcoPoblacionTab } from "./marco";
+import { ExploradorBasesTab } from "./definicion/ExploradorBasesTab";
+import { DefHistoricoTab } from "./definicion/DefHistoricoTab";
 import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab } from "./calculo";
@@ -417,6 +419,20 @@ export function UniversidadDesk({
             </div>}
             {showLocalTab("def-consistencia") && <div id="cmv2-local-def-consistencia" className="cmv2-definition-stack">
               <DefConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
+            </div>}
+            {showLocalTab("def-explorador") && <div id="cmv2-local-def-explorador" className="cmv2-definition-stack">
+              <ExploradorBasesTab aulasState={aulasState} />
+            </div>}
+            {showLocalTab("def-historico") && <div id="cmv2-local-def-historico" className="cmv2-definition-stack">
+              <DefHistoricoTab
+                workspace={syncedWorkspace}
+                aulasState={aulasState}
+                referencia={referenciaAsistencia}
+                onWorkspace={onWorkspace}
+                onSourceUpload={onSourceUpload}
+                onReferenceSheetChange={onReferenceSheetChange}
+                uploadingSourceId={uploadingSourceId}
+              />
             </div>}
             {showLocalTab("def-variables") && <div id="cmv2-local-def-variables" className="cmv2-definition-stack">
               <DefVariablesTab

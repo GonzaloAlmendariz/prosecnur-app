@@ -8,8 +8,10 @@ import {
   FileText,
   Grid3X3,
   GraduationCap,
+  History,
   PieChart,
   RefreshCw,
+  Search,
   Send,
   Settings2,
   Sigma,
@@ -81,13 +83,22 @@ function pestanaAula<const Key extends ClassroomLabTab>(
   };
 }
 
-/** Las 23 pestañas públicas del escritorio de muestra universitaria. */
+/** Las 25 pestañas públicas del escritorio de muestra universitaria. */
 export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   definicion: [
     pestana("definicion", "def-estudio", "Estudio", "nombre, cliente y alcance", ClipboardList, { targetId: "cmv2-local-def-estudio" }),
     pestana("definicion", "def-bases", "Fuentes", "archivos, hojas y lectura", Database, { targetId: "cmv2-local-def-bases" }),
     pestana("definicion", "def-consistencia", "Consistencia", "llaves entre estudiante y curso-horario", Link2, { targetId: "cmv2-local-def-consistencia" }),
     pestana("definicion", "def-variables", "Variables", "columnas de la base", Table2, { targetId: "cmv2-local-def-variables" }),
+    // G42 · La base de un estudio ya aplicado no es una fuente del marco: no lo
+    // construye ni lo cambia. Vivía al final de Fuentes, donde no se encontraba
+    // y se leía como una base más.
+    // G42 · Ver las bases por dentro, variable a variable, sin decidir nada.
+    // Gonzalo: «el explorador es un explorador de la base, por lo que debe
+    // estar en la sección Datos, no Marco». Marco decide qué entra; Datos es
+    // donde se mira lo que hay.
+    pestana("definicion", "def-explorador", "Explorador", "distribuciones de estudiantes y cursos-horario, variable a variable", Search, { targetId: "cmv2-local-def-explorador" }),
+    pestana("definicion", "def-historico", "Histórico", "base de un estudio anterior como referencia de asistencia", History, { targetId: "cmv2-local-def-historico" }),
   ],
   marco: [
     pestana("marco", "marco-criterios-alumno", "Criterios del estudiante", "quién es elegible: formación, condición, edad, facultades y nivel", GraduationCap, { targetId: "cmv2-local-marco-criterios-alumno" }),
