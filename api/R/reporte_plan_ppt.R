@@ -3955,25 +3955,7 @@ reporte_ppt_plan <- function(
     el_for_word$overrides$titulo    <- NULL
     el_for_word$overrides$subtitulo <- NULL
     el_for_word$overrides$nota_pie  <- NULL
-    if (identical(etype, "media_rango")) {
-      # Reducir tamano de ejes para Word (device mas angosto)
-      size_ejes_orig <- el_for_word$overrides$size_ejes %||% 9
-      el_for_word$overrides$size_ejes <- min(size_ejes_orig, 8)
-      modo_word <- el_for_word$overrides$modo %||% NULL
-      if (identical(modo_word, "score_ref") && is.null(el_for_word$overrides$size_delta)) {
-        size_media_word <- suppressWarnings(as.numeric(el_for_word$overrides$size_media)[1])
-        if (!is.finite(size_media_word) || is.na(size_media_word) || size_media_word <= 0) {
-          size_media_word <- 3
-        }
-        el_for_word$overrides$size_delta <- max(2.4, size_media_word * 0.72)
-      }
-      if (identical(modo_word, "score_ref") && is.null(el_for_word$overrides$delta_umbral_cerca_ref)) {
-        el_for_word$overrides$delta_umbral_cerca_ref <- 5
-      }
-      if (identical(modo_word, "score_ref") && is.null(el_for_word$overrides$delta_rel_cerca_ref)) {
-        el_for_word$overrides$delta_rel_cerca_ref <- 0.34
-      }
-    }
+    el_for_word <- .word_ajustar_el(el_for_word, etype)
     p_word <- tryCatch(.render_element_impl(el_for_word), error = function(e) plot)
 
     base <- tryCatch(
