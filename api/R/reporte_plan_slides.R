@@ -1490,6 +1490,18 @@ p_barras_multiapiladas <- function(
     if (!length(top2box_labels)) top2box_labels <- NULL
   }
   titulos_grupo <- .ppt_as_chr_vec(titulos_grupo, keep_names = TRUE)
+  if (!is.null(titulos_grupo) && is.null(names(titulos_grupo)) &&
+      any(grepl("=", titulos_grupo, fixed = TRUE))) {
+    # El registry documenta el formato textual "clave=Titulo" (uno por
+    # linea); se parsea aqui para que esa promesa sea cierta tambien fuera
+    # del builder de la UI (que ya envia objeto nombrado). GOAL motor PPT P20.
+    piezas <- unlist(strsplit(titulos_grupo, "\r?\n"))
+    piezas <- piezas[grepl("=", piezas, fixed = TRUE)]
+    claves <- trimws(sub("=.*$", "", piezas))
+    valores <- trimws(sub("^[^=]*=", "", piezas))
+    ok <- nzchar(claves) & nzchar(valores)
+    titulos_grupo <- if (any(ok)) stats::setNames(valores[ok], claves[ok]) else NULL
+  }
   if (!is.null(titulos_grupo)) {
     if (!is.character(titulos_grupo) || !length(titulos_grupo)) {
       .plan_spec_abort("`titulos_grupo` debe ser NULL o character() no vacio.")

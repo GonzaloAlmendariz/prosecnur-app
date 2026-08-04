@@ -67,3 +67,14 @@ test_that("apiladas sin cruce sigue rindiendo la barra unica de siempre", {
   expect_false(grepl("Lima Norte", xml, fixed = TRUE))
   expect_match(xml, "Medio", fixed = TRUE)
 })
+
+test_that("titulos_grupo acepta el formato textual clave=Titulo que documenta la UI (H30)", {
+  el <- p_barras_multiapiladas(
+    modo = "var_cruce", vars = c("q1", "q2"), cruces = "zona",
+    titulos_grupo = "q1=Oportunidad\nq2=Amabilidad"
+  )
+  tg <- el$titulos_grupo %||% el$slots$titulos_grupo
+  expect_true(is.character(tg))
+  expect_identical(unname(tg[["q1"]]), "Oportunidad")
+  expect_identical(unname(tg[["q2"]]), "Amabilidad")
+})
