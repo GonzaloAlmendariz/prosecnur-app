@@ -220,6 +220,13 @@ graficar_pie <- function(
   pos_nota_pie       <- match.arg(pos_nota_pie)
   leyenda_posicion   <- match.arg(leyenda_posicion)
   exportar           <- match.arg(exportar)
+  # En paneles compartidos (el motor inyecta el ancho fisico del cajon, P14)
+  # las etiquetas a tamano de lamina completa se clipeaban en los bordes
+  # (B-H31): se escalan al ancho real, con piso legible.
+  ancho_chk <- suppressWarnings(as.numeric(ancho)[1])
+  if (is.finite(ancho_chk) && ancho_chk > 0 && ancho_chk < 9) {
+    size_etiquetas_pct <- max(2.6, size_etiquetas_pct * ancho_chk / 12.5)
+  }
   font_family <- as.character(font_family %||% "Arial")[1]
   if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
 
