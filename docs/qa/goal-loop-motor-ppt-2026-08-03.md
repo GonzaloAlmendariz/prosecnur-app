@@ -153,7 +153,7 @@ explicar parte del corrimiento.
 | L0 | Fundación: censo + doc | — | **Hecho (P1)** |
 | L1 | Placeholders ↔ campos que ofrece la UI (prueba 1) — defecto fundacional `pic` como texto | 163 ph plantilla principal | **Hecho (P2)** — lado UI; el lado motor pasó a L1b |
 | L1b | **Cluster ACNUR**: contenidos fuera de su placeholder en el render (pie sobre logo, footer en panel, subtexto/fecha invisibles, pie en hueco de ícono) | ~30 slots × plantilla acnur | **Hecho (P3)** — quedan D2 y D3 en bandeja |
-| L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **En curso (P4)** — 17/42 args con diferencial mirado; falta índice (15) y reparar H11 |
+| L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **En curso (P4+P5)** — 32/42 args con diferencial (top_two_box va en L3); reparar H11, H16, H17 |
 | L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | Cola |
 | L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | Cola |
 | L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | Cola |
@@ -335,3 +335,34 @@ Decks diferenciales A (mínimos) y B (todo activado) sobre la genérica,
 **Pendiente L2:** índice (15 args), top_two_box va en L3; paridad Word de
 sección (`subtitulo`/`introduccion_word` deben SÍ aparecer allá); prueba con
 ícono real del catálogo.
+
+### P5 — L2: los 15 args del índice, con 11 renders mirados (2026-08-03)
+
+Nueve variantes + dos de formato de subíndices, todas contra la genérica.
+
+**En verde (diferencial confirmado):** índice vacío → layout de plantilla con
+índice de fábrica; `titulo`+`secciones` → filas numeradas; `subtemas` → 3.1…
+bajo la última sección (como documenta el registry); `subindices` distribuye
+por sección cuando llega **nombrado** (`list("Sección"=c(...))`), como
+data.frame o como líneas `Sección: item` — mi primera prueba con lista sin
+nombres cayó a la última sección, que es exactamente el fallback documentado
+(H14 cerrado: correcto); `mostrar_iconos_focos=FALSE` conserva los focos
+originales de la plantilla; `iconos_focos` reemplaza posicionalmente;
+`iconos_focos_diametro_cm`/`icon_scale` actúan; `subtopic_badge_fill/width/gap`
+tiñen y compactan los badges; `redibujar_focos` + `objeto_unico` +
+`left_cm`/`top_cm` mueven los focos redibujados (con la advertencia de que las
+bombillas del fondo de plantilla no se mueven — puede quedar descentrado, es
+el efecto pedido).
+
+**Hallazgos:**
+
+- **H15 (menor)**: `iconos_focos_fill` escalar tiñe solo el primer foco (el
+  código rellena el resto con los defaults, deliberado). El label «Colores de
+  focos» no lo dice; falta descripcion que aclare el comportamiento posicional.
+- **H16 (borde, reparar)**: con 10 secciones el índice **desborda la lámina**
+  (subtemas cortados por abajo) y el badge de dos dígitos parte «10.1» en dos
+  líneas. No compacta ni avisa.
+- **H17 (borde, reparar)**: un título de índice que envuelve a dos líneas
+  queda **pisado por la primera fila** (sin reflow del bloque).
+
+**Gate:** solo renders (sin diff de código en este tramo).
