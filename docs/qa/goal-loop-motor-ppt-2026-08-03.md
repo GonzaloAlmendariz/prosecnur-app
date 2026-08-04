@@ -1,7 +1,7 @@
 # GOAL · Auditoría total del motor PPT — partícula por partícula
 
 Tipo: Goal operativo QA **permanente e indefinido**
-Estado: En curso — **sin condición de cierre; no se detiene**
+Estado: En curso
 Fecha: 2026-08-03
 Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado del motor
 Prompt de arranque: `docs/qa/prompt-goal-loop-motor-ppt.md` (pegar tal cual en sesión nueva)
