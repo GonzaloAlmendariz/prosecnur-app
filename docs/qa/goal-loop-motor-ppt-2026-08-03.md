@@ -2115,3 +2115,6 @@ blanco. Regla afinada: var vacío con `vars`/`bloques` poblados es ruido
 de serialización. Reproducido con su plan real y verificado: la lámina
 renderiza completa. Lección de la vara: todo blindaje nuevo necesita el
 caso «campo vacío CONVIVIENDO con el campo hermano poblado».
+
+**Veredicto de Gonzalo (2026-08-04):** exportó de nuevo y «Prueba 2 sale
+completa». B49 confirmado por el usuario — el criterio que cierra.
