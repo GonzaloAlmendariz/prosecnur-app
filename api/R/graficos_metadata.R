@@ -807,7 +807,11 @@
     descripcion   = "Pie chart clásico con porcentajes. Útil para variables con pocas categorías.",
     icono_ui      = "PieChart",
     args = c(list(
-      list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos")
+      list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
+      list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
+           descripcion = "Muestra solo las K categorías más frecuentes y agrupa el resto en 'Otros'. Recomendado con más de 6 categorías."),
+      list(name = "etiqueta_otros", label = "Etiqueta de Otros", tipo_input = "string", grupo = "filtro",
+           default = "Otros")
     ), .args_graf_comunes())
   ),
 
@@ -816,7 +820,11 @@
     descripcion   = "Variante compacta del pie, con un hueco al centro. Usado en grids densas.",
     icono_ui      = "CircleDot",
     args = c(list(
-      list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos")
+      list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
+      list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
+           descripcion = "Muestra solo las K categorías más frecuentes y agrupa el resto en 'Otros'. Recomendado con más de 6 categorías."),
+      list(name = "etiqueta_otros", label = "Etiqueta de Otros", tipo_input = "string", grupo = "filtro",
+           default = "Otros")
     ), .args_graf_comunes())
   ),
 

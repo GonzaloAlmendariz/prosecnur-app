@@ -603,7 +603,15 @@ graficar_pie <- function(
 
     } else {
 
-      h_leg <- if (isTRUE(mostrar_leyenda) && !is.null(leg)) canvas_h_legend_bottom else 0.01
+      h_leg <- if (isTRUE(mostrar_leyenda) && !is.null(leg)) {
+        # La banda declarada asume 2 filas; con muchas categorias las filas
+        # reales desbordaban e invadian el caption (B-H28). La banda crece
+        # con las filas necesarias, con techo para no comerse el pie.
+        filas_leg <- ceiling(nlevels(df$categoria) / max(1L, ncol_leyenda_bajo))
+        min(0.34, max(canvas_h_legend_bottom, filas_leg * 0.055))
+      } else {
+        0.01
+      }
       h_mid <- max(0.01, 1 - (canvas_h_title + h_leg + canvas_h_caption) - canvas_pad_top)
 
       p_final <- cowplot::plot_grid(

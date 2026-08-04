@@ -1538,3 +1538,26 @@ solaparse. Commit por hunks (trabajo de A intacto).
 **Gate:** presets-defaults-contrato 9, argumentos-ui 459, l7-pie-nube 9:
 todo verde. Queda del carril: sweep de la nube con `parent_var`, mapa de
 cobertura (titulo/contexto ocultos + banco territorial) y bordes.
+
+### B22 — L7: bordes del carril y B-H28 reparado (2026-08-04, sesión B)
+
+Bordes renderizados y mirados (`sweep_bordes7.R`): pie/donut de 1 categoría
+degradan sanos; **la nube vacía degrada con mensaje específico y honesto**
+(«Sin respuestas abiertas para mostrar» — el ejemplo a seguir para el «Sin
+datos» mudo del resto del motor); nube con `parent_var` renderiza.
+
+**Reparado (B-H28, con render antes/después):** el pie de 12 categorías
+desbordaba su leyenda sobre el caption y el borde. Dos piezas:
+
+1. **La banda de leyenda se auto-deriva de las filas necesarias**
+   (`ceiling(n/columnas) × 0.055`, piso = valor declarado, techo 0.34): 12
+   ítems viven en su banda; 4 categorías no pagan de más.
+2. **`top_k` + `etiqueta_otros` curados** en pie Y donut (formals nuevos en
+   los constructores — existían solo en el graficador): R6 rinde top-6 +
+   «Otros» 39% en paleta de la casa, leyenda contenida.
+
+Residuo anotado: etiquetas % de slices contiguos chicos aún pueden rozarse
+(umbral/leader-lines como refinamiento futuro).
+
+**Gate:** argumentos-ui 459, l7-pie-nube 9, presets-contrato 9: todo verde.
+Commit por hunks (trabajo de A intacto).
