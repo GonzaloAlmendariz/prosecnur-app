@@ -1525,3 +1525,16 @@ Residuo anotado: el caption del pie roza el borde de su banda
 **Gate:** l7-pie-nube 9, argumentos-ui 459, metadata 228,
 presets-defaults-contrato: todo verde. Commit por hunks (trabajo de A
 intacto).
+
+### B21 — L7: el donut hereda todo y el caption gana su franja (2026-08-04, sesión B)
+
+Verificado con render: el donut hereda paleta de la casa, orden del
+instrumento y leyenda derecha limpia (comparte `graficar_pie` vía
+`tipo_pie`). El residuo del caption pisando el borde quedó reparado: los
+suelos de pie y donut reservan `canvas_h_caption = 0.10` (antes 0.00 con
+caption presente) — Q2 rinde cada zona en su banda: pie, leyenda y Base sin
+solaparse. Commit por hunks (trabajo de A intacto).
+
+**Gate:** presets-defaults-contrato 9, argumentos-ui 459, l7-pie-nube 9:
+todo verde. Queda del carril: sweep de la nube con `parent_var`, mapa de
+cobertura (titulo/contexto ocultos + banco territorial) y bordes.
