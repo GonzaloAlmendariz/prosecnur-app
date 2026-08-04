@@ -3492,14 +3492,9 @@ reporte_ppt_plan <- function(
     # default (P9; apiladas sumaba ademas su columna N — triple marca, P17).
     # El placeholder queda para base manual o tipos sin caption propio.
     if (etype %in% c("barras_agrupadas", "barras_apiladas")) return(NULL)
+    # (agrupadas y apiladas retornaron arriba: su caption ya trae la base)
     excluir_base <- switch(
       etype,
-      barras_apiladas = .reporte_plan_excluir_cascada(
-        presets$barras_apiladas$args, el$overrides %||% list(), el
-      ),
-      barras_agrupadas = .reporte_plan_excluir_cascada(
-        presets$barras_agrupadas$args, el$overrides %||% list(), el
-      ),
       barras_multiapiladas = .reporte_plan_excluir_cascada(
         presets$barras_apiladas$args, el$overrides %||% list(), el,
         preset_args_extra = presets$multi_apiladas$args
@@ -4281,6 +4276,16 @@ reporte_ppt_plan <- function(
     var <- el$var
     filtros <- el$filtros %||% list()
     overrides <- el$overrides %||% list()
+    # H29: con cruce, una fila apilada por grupo — exactamente lo que ya hace
+    # multiapiladas modo "cruce". Este render solo cubre la barra unica.
+    cruce_ref <- .extract_ref_values(el$cruces %||% overrides$cruces %||% NULL)
+    cruce_ref <- cruce_ref[!is.na(cruce_ref) & nzchar(trimws(cruce_ref))]
+    if (length(cruce_ref)) {
+      el$modo <- "cruce"
+      el$cruce <- cruce_ref[[1]]
+      el$.element_type <- "barras_multiapiladas"
+      return(.render_element_impl(el))
+    }
     excluir_opciones <- .reporte_plan_excluir_cascada(preset_args, overrides, el)
     ctx_excluir <- .resolve_ref(var, arg_name = "var")
     excluir_opciones <- .exclusion_for_ctx(ctx_excluir, excluir_opciones)
