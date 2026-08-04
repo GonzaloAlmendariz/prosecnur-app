@@ -1248,3 +1248,40 @@ Plan del carril: sweep de renders por elemento (banco = patrón
 `subindice`/`indice`), luego curar por valor (no las 48 a ciegas: primero
 mirar cuáles cambian algo visible — prueba 2 — y proponer la superficie
 mínima que haga a la familia consistente).
+
+### B11 — L9: primer sweep de dimensiones (7 láminas) + leyenda del FODA reparada (2026-08-03, sesión B)
+
+Banco propio a escala (8 vars → 3 subíndices → 1 índice, cruce de 3 zonas,
+N=150; `sweep_dim.R`), con suelo y guías. **En verde:** dim_radar general y
+con cruce; dim_heatmap simple y con brechas (filas+columnas, colores y
+totales correctos); comparativo radarbar (barras agrupadas legibles con
+valores); FODA subíndices (cuadrantes con tarjetas y chips).
+
+**Reparado:**
+
+- **B-H18 — la leyenda del FODA decía «Rojo / Ambar / Verde»**: los nombres
+  de los colores como etiquetas (AI slop; ninguna información). Ahora usa el
+  significado — «Menor a 60 / 60 - 80 / Mayor a 80» vía `.dim_range_labels`
+  con los cortes reales del semáforo (helper `.dim_foda_legend_labels`
+  testeado; sin cortes degrada a Bajo/Medio/Alto, jamás a nombres de color).
+  Render antes/después mirado.
+
+**Hallazgos nuevos:**
+
+- **B-H16**: `p_dim_radar_tabla` está RETIRADO del flujo PPT (el constructor
+  aborta con deprecación) pero el registry lo sigue curando con 9 args — la
+  UI ofrece un elemento que el motor rechaza. Retirarlo del registry cuando
+  se libere (o el validador de planes debería marcarlo).
+- **B-H17**: la descripción de `objetivo` promete texto libre («ej.
+  'Satisfacción'») pero el motor exige la CLAVE del catálogo
+  (`idx_global`) — con el texto humano la lámina muere en «Sin datos» sin
+  explicar por qué. Curar con hint honesto y/o resolver por label.
+- **B-H19**: `modo="indicadores"` de dim_radar degrada a «Sin datos» con un
+  catálogo válido de subíndices+índice — diagnosticar si exige objetivo de
+  otro nivel o está roto.
+- Editorial: banda superior vacía dentro del panel en heatmap/comparativo
+  (espacio reservado sin contenido); paleta del comparativo es la de
+  dimensiones (azul/naranja/verde IPE), consistente dentro de la familia.
+
+**Gate:** dim-foda-leyenda 4 (nuevo), graficador-dimensiones 39,
+dimensiones-iconos-foda-radar 52: todo verde.

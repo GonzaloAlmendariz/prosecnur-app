@@ -4862,7 +4862,9 @@ graficar_foda_dimensiones <- function(
       legend_icon_block
     } else {
       .dim_heat_legend_block(
-        labels = c("Rojo", "Ambar", "Verde"),
+        # La leyenda dice que SIGNIFICA cada color (umbral de puntaje), no el
+        # nombre del color: "Rojo/Ambar/Verde" no informaba nada al lector.
+        labels = .dim_foda_legend_labels(sem),
         colors = c(sem$rojo, sem$ambar, sem$verde),
         size = max(7, size_items),
         colour = "#4A5F75"
