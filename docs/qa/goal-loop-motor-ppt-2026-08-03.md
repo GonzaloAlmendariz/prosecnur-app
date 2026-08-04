@@ -1796,3 +1796,52 @@ del diferencial (7 vs 8 etiquetas). Paridad conceptual con
 
 **Gate:** l8-defaults 36, argumentos-ui 459, radar-solo-tabla 5: verde.
 Commit por hunks (trabajo de A intacto).
+
+### B36 — Mandato directo de Gonzalo con el proyecto Conta real (2026-08-04, sesión B)
+
+Gonzalo probó el motor con su estudio real (`ACRD CONTA/Conta 03-08-2.pulso`,
+multibase de 4 actores) y entregó feedback consolidado con screenshots. Queda
+registrado como cola priorizada del loop — **el énfasis del goal se mueve a
+apiladas, multiapiladas, agrupadas y slides de contenido**:
+
+- **G-1 (HECHO)** La base de apiladas debe salir en la **esquina inferior
+  izquierda del SLIDE** (su placeholder de base), no como caption del gráfico
+  a la derecha. Fix: `nota_pie = NULL` por defecto en apiladas y los 3 sitios
+  de multiapiladas; ambas fuera de la lista de supresión de
+  `.base_auto_from_element_impl`. Verificado con su lámina real (p12_1
+  estudiantes): «Base: 160 estudiantes» en el pie izquierdo del slide.
+- **G-2 (PARCIAL)** Wrap muy corto y barra delgada/poco profesional en
+  apiladas. El wrap subió (`ancho_max_eje_y` 22→34, verificado sin truncado).
+  **Pendiente**: con 1 sola fila la barra queda flaca dentro de un panel
+  gigante — engordar barra/centrar bloque según filas disponibles.
+- **G-3 (HECHO)** La lámina automática de «Otros» pasa a **opt-in**
+  (`auto_otros_slides` default FALSE).
+- **G-4 (HECHO con G-1)** Multiapiladas duplicaba base: manda la prorrateada
+  del SLIDE; la del gráfico apagada por defecto (la UI llama «base» a la del
+  slide y «pie del gráfico» a la otra).
+- **G-5** Editor jerárquico especializado del índice: agregar
+  secciones/subsecciones de forma profesional con **íconos elegibles** — hoy
+  salen íconos hardcodeados en los focos.
+- **G-6..G-11** Revamp completo del selector de paletas (Suite Visual): no
+  considera informes multibase; falta agrupación general reversible de listas
+  iguales para aplicar la misma paleta; íconos/elementos rotos; swatches
+  CUADRADOS (hoy píldoras); recomendación ACNUR no debe estar siempre
+  presente (oculta en estilos).
+- **G-12** El export con láminas a medio armar muere críptico («Graficador no
+  registrado: NA»): validar el plan antes del job con mensaje claro o saltar
+  la lámina vacía.
+- **G-13 (GRAVE — pérdida de datos)** Al **duplicar el proyecto** los
+  instrumentos del editor XLSForm no persistieron y por momentos tampoco el
+  plan de PPTs. Preocupación máxima de Gonzalo; investigación abierta en esta
+  sesión.
+
+**Hallazgo de frontera (loop multibase):** el plan real guarda refs peladas
+(`p12_1`) y el proyecto está en `processing_mode = multibase` (4 fuentes), así
+que `POST /api/graficos/ppt` y `preview-slide` abortan con «La referencia de
+`var` requiere prefijo `fuente$`». La UI en vivo escopea por base activa; el
+export por plan no. Pertenece al GOAL «Gráficos sabe de qué base habla».
+
+**Gate:** apiladas-cruce 7, apiladas-frecuencia 11, var-cruce 323,
+agrupadas-defaults 9, presets-contrato 9 (359 asserts) + preview real de
+apilada y agrupada rasterizado. Commit `ef8fbd63` por hunks (trabajo de A
+intacto en el árbol).
