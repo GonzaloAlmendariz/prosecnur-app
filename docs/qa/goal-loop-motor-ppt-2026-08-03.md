@@ -1898,3 +1898,35 @@ job done. 32 asserts en lamina-borrador; jobs y slides-args-contrato verdes.
 
 Nota operativa: los jobs usan el paquete INSTALADO — el fix exige
 `R CMD INSTALL` + reinicio del backend para verse en la app.
+
+### B40 — Revamp del selector de paletas + fosilización de presets (2026-08-04, sesión B)
+
+**G-16 (`e854e17f`)** — «los fixes no llegan»: la UI de Base PPT guarda TODOS
+los args del preset (46 en el proyecto Conta), fosilizando defaults viejos
+que pisan las mejoras del motor. Migración dirigida
+`.graficos_migrar_defaults_fosiles` (tabla explícita; hoy apiladas
+`ancho_max_eje_y` 22→34) en las dos costuras: normalizador de config y
+`.enriquecer_presets`. Verificado exportando el plan real CON sus presets
+fosilizados. Lección: los jobs callr recargan el paquete instalado en cada
+export (los fixes de worker llegan solos), pero el proceso del servidor y
+el config guardado necesitan reinicio + migración.
+
+**G-6..G-11 (`b81be1bd`)** — revamp del selector de paletas verificado en el
+navegador con el Conta real: multibase visible (fuentes por lista, chips en
+hero), «Agrupar listas idénticas» global/reversible/persistida que gobierna
+sugeridas + mapa por etiqueta + Vaciar, swatches cuadrados (hoja nueva
+`paletas-suite.css`; editor-v2.css congelado), y las «Líneas visuales»
+(ACNUR) fuera del detalle de paletas hacia su propia pestaña en Estilo
+global y Configuración global. Bug atrapado en vivo: jsonlite des-encaja
+`fuentes` de 1 elemento a escalar → normalización defensiva + I().
+
+**Analizado el PPTX real del usuario** (`Conta_03_08_2_reporte_04_08_26`):
+la base ya sale en la esquina inferior izquierda (workers al día); «Otros»
+y wrap viejos = proceso del servidor sin reiniciar. Hallazgo nuevo B41:
+la Base del slide puede SOLAPARSE con la leyenda del gráfico cuando
+`canvas_h_caption_in = 0` (visto en su lámina de docentes) — pendiente.
+
+**Cola viva:** G-5 (editor jerárquico del índice con íconos elegibles),
+B41 (solape base/leyenda), composición vertical adaptiva de apiladas,
+doctrina de bases agrupadas/pie/donut, G-8 (íconos rotos por confirmar
+tras el revamp).
