@@ -1389,3 +1389,43 @@ brechas del heatmap (×5), cortes/títulos/dispersión del FODA (×4+). El
 patrón transversal más dañino de la familia: **todos los errores útiles del
 motor mueren en stderr y el analista solo ve «Sin datos»** — la lámina
 degradada debería llevar el motivo (propuesta eje 3, transversal al motor).
+
+### B16 — Especificación de curación UI de los carriles B (lista para aplicar al liberar el registry) (2026-08-04, sesión B)
+
+Superficie mínima propuesta, verificada partícula por partícula en B1–B15.
+Cada línea = un arg a curar en `graficos_metadata.R` con su descripción
+honesta:
+
+**`p_radar` / `p_tabla` (L8):**
+- `mostrar_valores` (bool, valores) — «Porcentaje en cada vértice, coloreado
+  por serie» · `valores_decimales` (number, valores, default 0).
+- `umbral_rojo_pct` en `p_tabla` (number, semaforo, default 60) — «Valores
+  bajo este umbral se resaltan en rojo. 0 = sin resaltado» (requiere cablear
+  el 0 como apagado — hoy siempre resalta).
+
+**`p_dim_heatmap` (L9):**
+- `etiq_brecha_filas` / `etiq_brecha_cols` (string, textos) — renombran la
+  fila/columna de brecha.
+- `brecha_cortes` (codigos_list, semaforo) — cortes del gradiente de brecha.
+- `titulo_total_x` (string, textos) — título de la columna Total.
+- `mostrar_n_cruce_x` (bool, valores) — «(N=…) bajo cada columna del cruce».
+
+**`p_dim_foda` (L9):**
+- `modo_foda` ya curado, pero «dispersion» debe curar junto `corte_score`
+  (number, datos, obligatorio en dispersión — hoy su ausencia mata la lámina).
+- `cortes_chip` (codigos_list, semaforo) — recolorea chips Y leyenda (B-H21).
+- `titulos_areas_foda` (4 strings, textos) — claves singulares
+  fortaleza/oportunidad/debilidad/amenaza.
+
+**Toda la familia dim:** `iter_var` (variable_opt, datos) + `iter_level`
+(string, datos) — «Renderiza el gráfico solo para un nivel de esta variable
+(no puede ser la de cruce)».
+
+**Retiros:** `p_dim_radar_tabla` sale del registry (B-H16, el motor lo
+rechaza); la descripción de `objetivo` en toda la familia pasa a «Clave o
+etiqueta del índice (modo general) o subíndice (modo indicadores)» —
+idealmente selector poblado del catálogo.
+
+**Transversal (propuesta eje 3):** la lámina degradada «Sin datos» debe
+mostrar el motivo real del motor (hoy muere en stderr) — es la mejora de
+UX/depuración de mayor palanca encontrada en toda la sesión B.
