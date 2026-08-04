@@ -742,6 +742,20 @@ graficar_barras_agrupadas <- function(
         ancho_max_eje_y_eff <- 32
       }
     }
+    # H22: en paneles angostos (media lamina o menos) el wrap por caracteres
+    # calibrado para lamina completa desbordaba la caja de etiquetas hacia
+    # fuera de la lamina. Si el motor paso el ancho fisico del cajon
+    # (`ancho`, via ancho_slot), el wrap efectivo se deriva del espacio real.
+    ancho_dev <- suppressWarnings(as.numeric(ancho)[1])
+    if (!forzar_ancho_max_eje_y && is.finite(ancho_dev) && ancho_dev > 0 && ancho_dev < 9) {
+      w_eti <- suppressWarnings(as.numeric(canvas_w_etiquetas)[1])
+      if (!is.finite(w_eti) || w_eti <= 0 || w_eti >= 1) w_eti <- 0.45
+      char_in <- size_ejes_eff * 0.55 / 72
+      chars_fit <- max(10L, as.integer(floor((ancho_dev * w_eti - 0.12) / char_in)))
+      ancho_max_eje_y_eff <- if (is.null(ancho_max_eje_y_eff)) chars_fit else {
+        min(suppressWarnings(as.numeric(ancho_max_eje_y_eff)[1]), chars_fit)
+      }
+    }
   }
 
   usar_color_categorias <- !is.null(colores_categorias) &&

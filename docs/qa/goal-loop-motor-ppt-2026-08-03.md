@@ -622,3 +622,24 @@ con zoom en leyendas de 2 y 3 series (la 3.ª toma el amarillo de la casa).
 argumentos-ui 459, override-colores 19, var-cruce 323: todo verde. Réplica
 pendiente del patrón en los demás graficadores con leyenda (apiladas,
 categóricas, pie/donut, radar) cuando toque su lote.
+
+### P14 — L4: H22 reparado — el wrap conoce el ancho real del panel (2026-08-03)
+
+**Reparado:** `.render_element` acepta `ancho_slot` y los 16 puntos de render
+de gráficos del motor pasan el ancho físico de su cajón (12.5/12.75 lámina
+completa; 6.1 mitades y grids 2×2; 5.1–5.2 población; 3.95 población 5/6).
+El graficador, **solo en paneles angostos (<9")**, deriva el wrap efectivo del
+espacio real (`ancho × canvas_w_etiquetas` ÷ ancho de carácter) — la lámina
+completa queda intacta por construcción. El override explícito de `ancho` del
+analista sigue mandando.
+
+**Evidencia (guías activas, antes → después):** en dos-gráficos «Ni
+satisfecho ni insatisfecho» desbordaba fuera de la lámina; ahora envuelve a
+dos líneas dentro de su caja. Grid 2×2: las cuatro celdas contenidas.
+Gráfico+texto: etiquetas dentro. Control de lámina completa: sin cambios.
+
+**Gate:** defaults-editoriales 9, var-cruce 323, plan-texto 113, calibración
+de pies 20, override-colores 19: todo verde. Congelado en 9.418 exacto, audit
+limpio. Con esto **L4 queda con H18 (top_two_box), H24–H26 y el barrido de
+los 35 args del preset** antes de declararse hecho; sigue L5 (apiladas) con
+el patrón completo (sweep + glifo cuadrado + espaciado de leyenda).

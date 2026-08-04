@@ -4100,7 +4100,13 @@ reporte_ppt_plan <- function(
   # Dispatcher generico: renderiza cualquier ppt_element. La cascara degrada
   # `pulso_slide_render_error` a canvas "Sin datos" (reporte_plan_condiciones.R)
   # para que un fallo por-lamina no mate el deck completo.
-  .render_element <- function(el) .plan_render_element_degradable(.render_element_impl, el)
+  # ancho_slot: ancho fisico (in) del cajon destino, para el wrap real (H22).
+  .render_element <- function(el, ancho_slot = NULL) {
+    if (!is.null(ancho_slot) && inherits(el, "ppt_element") && is.null((el$overrides %||% list())$ancho)) {
+      el$overrides$ancho <- ancho_slot
+    }
+    .plan_render_element_degradable(.render_element_impl, el)
+  }
 
   .render_element_impl <- function(el) {
 
@@ -8062,7 +8068,7 @@ reporte_ppt_plan <- function(
 
       el_plot <- .element_adapt_to_plot_slot(el_plot, contract$slots$plot)
       el_plot <- .inject_var_titulo(el_plot)
-      p <- .render_element(el_plot)
+      p <- .render_element(el_plot, ancho_slot = 12.5)
 
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
@@ -8171,8 +8177,8 @@ reporte_ppt_plan <- function(
       el_right <- .element_adapt_to_plot_slot(el_right, contract$slots$right)
       el_left  <- .inject_var_titulo(el_left)
       el_right <- .inject_var_titulo(el_right)
-      pL <- .render_element(el_left)
-      pR <- .render_element(el_right)
+      pL <- .render_element(el_left, ancho_slot = 6.1)
+      pR <- .render_element(el_right, ancho_slot = 6.1)
 
       if (is.null(pL)) pL <- .plan_canvas_render_nulo("No se pudo renderizar left: ",  el_left$.element_type  %||% "<NA>")
       if (is.null(pR)) pR <- .plan_canvas_render_nulo("No se pudo renderizar right: ", el_right$.element_type %||% "<NA>")
@@ -8271,7 +8277,7 @@ reporte_ppt_plan <- function(
       }
 
       el_plot <- .element_adapt_to_plot_slot(el_plot, contract$slots$plot)
-      p <- .render_element(el_plot)
+      p <- .render_element(el_plot, ancho_slot = 12.75)
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
         p <- .plan_canvas_render_nulo("slide_1_narrativo: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").")
@@ -8381,8 +8387,8 @@ reporte_ppt_plan <- function(
       el_right <- .element_adapt_to_plot_slot(el_right, contract$slots$right)
       el_left  <- .inject_var_titulo(el_left)
       el_right <- .inject_var_titulo(el_right)
-      pL <- .render_element(el_left)
-      pR <- .render_element(el_right)
+      pL <- .render_element(el_left, ancho_slot = 6.1)
+      pR <- .render_element(el_right, ancho_slot = 6.1)
 
       if (is.null(pL)) pL <- .plan_canvas_render_nulo("slide_2_narrativo: no se pudo renderizar left.")
       if (is.null(pR)) pR <- .plan_canvas_render_nulo("slide_2_narrativo: no se pudo renderizar right.")
@@ -8498,10 +8504,10 @@ reporte_ppt_plan <- function(
       el_ur <- .inject_var_titulo(el_ur)
       el_bl <- .inject_var_titulo(el_bl)
       el_br <- .inject_var_titulo(el_br)
-      pUL <- .render_element(.inject_title_override(el_ul))
-      pUR <- .render_element(.inject_title_override(el_ur))
-      pBL <- .render_element(.inject_title_override(el_bl))
-      pBR <- .render_element(.inject_title_override(el_br))
+      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 6.1)
+      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 6.1)
+      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 6.1)
+      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 6.1)
 
       if (is.null(pUL)) pUL <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_left.")
       if (is.null(pUR)) pUR <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_right.")
@@ -8619,10 +8625,10 @@ reporte_ppt_plan <- function(
       el_ur <- .inject_var_titulo(el_ur)
       el_bl <- .inject_var_titulo(el_bl)
       el_br <- .inject_var_titulo(el_br)
-      pUL <- .render_element(.inject_title_override(el_ul))
-      pUR <- .render_element(.inject_title_override(el_ur))
-      pBL <- .render_element(.inject_title_override(el_bl))
-      pBR <- .render_element(.inject_title_override(el_br))
+      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 5.2)
+      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 5.2)
+      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 5.2)
+      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 5.2)
 
       if (is.null(pUL)) pUL <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar up_left (",      el_ul$.element_type %||% "<NA>", ").")
       if (is.null(pUR)) pUR <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar up_right (",     el_ur$.element_type %||% "<NA>", ").")
@@ -8737,7 +8743,7 @@ reporte_ppt_plan <- function(
         message("  • graficos a crear: 1")
       }
 
-      p <- .render_element(el_plot)
+      p <- .render_element(el_plot, ancho_slot = 6.1)
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
         p <- .plan_canvas_render_nulo("text_r: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").")
@@ -8832,7 +8838,7 @@ reporte_ppt_plan <- function(
         message("  • graficos a crear: 1")
       }
 
-      p <- .render_element(el_plot)
+      p <- .render_element(el_plot, ancho_slot = 6.1)
       if (is.null(p)) {
         vv <- .element_var_label(el_plot) %||% "<sin vars>"
         p <- .plan_canvas_render_nulo("text_l: no se pudo renderizar plot (", el_plot$.element_type %||% "<NA>", " | ", vv, ").")
@@ -8921,8 +8927,8 @@ reporte_ppt_plan <- function(
       if (!inherits(el1, "ppt_element")) el1 <- .plan_elemento_degradado("text_r2: `plot1` debe ser `ppt_element`.")
       if (!inherits(el2, "ppt_element")) el2 <- .plan_elemento_degradado("text_r2: `plot2` debe ser `ppt_element`.")
 
-      p1 <- .render_element(el1)
-      p2 <- .render_element(el2)
+      p1 <- .render_element(el1, ancho_slot = 6.1)
+      p2 <- .render_element(el2, ancho_slot = 6.1)
 
       if (is.null(p1)) p1 <- .plan_canvas_render_nulo("text_r2: no se pudo renderizar plot1.")
       if (is.null(p2)) p2 <- .plan_canvas_render_nulo("text_r2: no se pudo renderizar plot2.")
@@ -9006,8 +9012,8 @@ reporte_ppt_plan <- function(
       if (!inherits(el1, "ppt_element")) el1 <- .plan_elemento_degradado("text_l2: `plot1` debe ser `ppt_element`.")
       if (!inherits(el2, "ppt_element")) el2 <- .plan_elemento_degradado("text_l2: `plot2` debe ser `ppt_element`.")
 
-      p1 <- .render_element(el1)
-      p2 <- .render_element(el2)
+      p1 <- .render_element(el1, ancho_slot = 6.1)
+      p2 <- .render_element(el2, ancho_slot = 6.1)
 
       if (is.null(p1)) p1 <- .plan_canvas_render_nulo("text_l2: no se pudo renderizar plot1.")
       if (is.null(p2)) p2 <- .plan_canvas_render_nulo("text_l2: no se pudo renderizar plot2.")
@@ -9091,8 +9097,8 @@ reporte_ppt_plan <- function(
       if (!inherits(el_left, "ppt_element"))  el_left <- .plan_elemento_degradado("poblacion_2: `left` debe ser `ppt_element`.")
       if (!inherits(el_right, "ppt_element")) el_right <- .plan_elemento_degradado("poblacion_2: `right` debe ser `ppt_element`.")
 
-      pL <- .render_element(.inject_title_override(el_left))
-      pR <- .render_element(.inject_title_override(el_right))
+      pL <- .render_element(.inject_title_override(el_left), ancho_slot = 5.1)
+      pR <- .render_element(.inject_title_override(el_right), ancho_slot = 5.1)
 
       if (is.null(pL)) pL <- .plan_canvas_render_nulo("poblacion_2: no se pudo renderizar left.")
       if (is.null(pR)) pR <- .plan_canvas_render_nulo("poblacion_2: no se pudo renderizar right.")
@@ -9161,7 +9167,7 @@ reporte_ppt_plan <- function(
       pics <- lapply(1:5, function(i) slots[[paste0("pic", i)]] %||% NULL)
       for (i in 1:5) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_5: `pic", i, "` debe ser `ppt_element`.")
 
-      plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic)))
+      plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic), ancho_slot = 3.95))
       for (i in 1:5) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_5: no se pudo renderizar pic", i, ".")
 
       rendered <- c(rendered, plots)
@@ -9223,7 +9229,7 @@ reporte_ppt_plan <- function(
       pics <- lapply(1:6, function(i) slots[[paste0("pic", i)]] %||% NULL)
       for (i in 1:6) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_6: `pic", i, "` debe ser `ppt_element`.")
 
-      plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic)))
+      plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic), ancho_slot = 3.95))
       for (i in 1:6) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_6: no se pudo renderizar pic", i, ".")
 
       rendered <- c(rendered, plots)
