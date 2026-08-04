@@ -17,6 +17,19 @@ export type CriteriosI18bSurfaceSource = {
   config: CalcMuestraWorkspaceAulasConfig;
   borrador: CriteriosSeleccionMarco;
   previewEnabled: boolean;
+  /**
+   * G41 · Los filtros legacy, traducidos igual que en el build.
+   *
+   * El motor lee la composición de `config.filters` —así la manda `construir`,
+   * con `filtrosLegacyPayload`— pero la tarjeta los edita en la RAÍZ del config
+   * de aulas. El preview recibía el config crudo, así que sus umbrales le
+   * llegaban en un sitio donde no mira: evaluaba la composición como apagada y
+   * devolvía la misma cascada pasara lo que pasara con el deslizador.
+   *
+   * Medido con el motor: mismo borrador, `filters` puestos → el paso corta 2→1;
+   * en la raíz → 2→2 y `applies = FALSE`.
+   */
+  filtersPayload?: Record<string, unknown> | null;
 };
 
 export function useCriteriosI18bSurface(
@@ -80,9 +93,16 @@ export function useCriteriosI18bSurface(
     return {
       source_frame_hash: frameHash,
       criteria_hash: i18b.cascade.criteria_hash,
-      config: { ...source.config, criterios_seleccion: source.borrador } as Record<string, unknown>,
+      config: {
+        ...source.config,
+        criterios_seleccion: source.borrador,
+        ...(source.filtersPayload ? { filters: source.filtersPayload } : {}),
+      } as Record<string, unknown>,
     };
-  }, [frameHash, i18b.cascade, source?.borrador, source?.config, source?.previewEnabled]);
+  }, [
+    frameHash, i18b.cascade, source?.borrador, source?.config,
+    source?.filtersPayload, source?.previewEnabled,
+  ]);
 
   return {
     ...i18b,

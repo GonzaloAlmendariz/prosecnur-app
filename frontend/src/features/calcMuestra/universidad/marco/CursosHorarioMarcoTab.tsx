@@ -36,6 +36,7 @@ import {
   type CriteriosSeleccionMarco,
   type MonitoreoRow,
 } from "../../../../api/client";
+import { seleccionActiva } from "../../dominio/criteriosMarco";
 import {
   ELEGIBLES_POR_AULA_ID,
   minEligibleThreshold,
@@ -47,7 +48,7 @@ import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { frameIntegrity } from "../shared/frameIntegrity";
-import { normalizeUniversityAulasConfig } from "../shared/study";
+import { filtrosLegacyPayload, normalizeUniversityAulasConfig } from "../shared/study";
 import {
   copiarVariableCriterio,
   reconciliarBorradorCriterios,
@@ -60,7 +61,7 @@ import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
 import { MANUAL_EXCLUDED_ID, reactivarTodas, setAulaExcluida } from "../criterios/aulasFinalesModel";
 import { rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
-import { FacultadDecisionBloque } from "./FacultadDecisionBloque";
+import { FacultadDecisionBloque, type RepartoCriterio } from "./FacultadDecisionBloque";
 import { facultadesBloque, resumenDecisionFacultad, slugFacultad } from "./facultadDecisionModel";
 import { PanoramaCursosHorario } from "./PanoramaCursosHorario";
 import { CriteriosRadiografiaConsola } from "./CriteriosRadiografiaConsola";
@@ -79,6 +80,9 @@ import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
 import "../criterios/criterios.css";
 import "./marco.css";
+/** G41 · Id del criterio de composición en el ciclo de confirmación. */
+const COMPOSICION_ID = "composicion";
+
 export function CursosHorarioMarcoTab({
   workspace,
   aulasState,
@@ -244,15 +248,38 @@ export function CursosHorarioMarcoTab({
     [sessionVariable, sessionTypeDominante],
   );
 
+  /*
+   * G41 · Dos ajustes en el mismo render no pueden pisarse.
+   *
+   * Los tres emisores construían su workspace desde el `workspace` y el
+   * `config` capturados por el render, así que dos llamadas seguidas —encender
+   * un paso de composición y mover su porcentaje— producían dos objetos hechos
+   * sobre la MISMA base: el segundo llegaba sin el cambio del primero y lo
+   * borraba. Reproducido: el switch volvía a apagarse solo mientras el umbral
+   * sí se guardaba.
+   *
+   * El ref recuerda lo último emitido, que es lo que el padre todavía no ha
+   * devuelto por props. Cada patch parte de ahí, no de la foto del render.
+   */
+  const workspaceRef = useRef(workspace);
+  useEffect(() => { workspaceRef.current = workspace; }, [workspace]);
+  function emitirWorkspace(patch: Partial<CalcMuestraWorkspaceAulasConfig>) {
+    const base = workspaceRef.current;
+    const baseConfig = normalizeUniversityAulasConfig(base.aulas_config);
+    const next = { ...base, aulas_config: { ...baseConfig, ...patch } };
+    workspaceRef.current = next;
+    onWorkspace(next);
+  }
+
   // ---- edición del borrador (mismo contrato que CriteriosMarcoTab) ---------
   function patchSeleccion(next: CriteriosSeleccionMarco) {
-    onWorkspace({ ...workspace, aulas_config: { ...config, criterios_seleccion: next } });
+    emitirWorkspace({ criterios_seleccion: next });
   }
   function patchTeacherTypeOrden(keys: string[]) {
-    onWorkspace({ ...workspace, aulas_config: { ...config, teacher_type_orden: keys } });
+    emitirWorkspace({ teacher_type_orden: keys });
   }
   function patchAulasConfig(patch: Partial<CalcMuestraWorkspaceAulasConfig>) {
-    onWorkspace({ ...workspace, aulas_config: { ...config, ...patch } });
+    emitirWorkspace(patch);
   }
   function marcarPendiente(id: string) {
     setPendientes((prev) => {
@@ -304,15 +331,60 @@ export function CursosHorarioMarcoTab({
   // siguientes. Sin eso, el embudo vivo no puede existir.
   function confirmarTodo() {
     patchSeleccion(reconciliarBorradorCriterios(seleccion, borrador, pendientes, tiposBorrador));
+    if (Object.keys(borradorComposicion).length) patchAulasConfig(borradorComposicion);
+    setBorradorComposicion({});
     setPendientes(new Set());
   }
   function descartarTodo() {
     setBorrador(seleccion);
+    setBorradorComposicion({});
     setPendientes(new Set());
+  }
+
+  /*
+   * G41 · La composición también se confirma.
+   *
+   * Gonzalo: «este no tiene botón de confirmar cuando todos los demás criterios
+   * lo tienen». No lo tenía porque era el único que escribía directo al
+   * workspace —«se guarda al instante»—, así que nunca llegaba a estar
+   * pendiente de nada. Eso lo dejaba fuera del ciclo que gobierna a los demás:
+   * ajustar, ver el efecto, confirmar.
+   *
+   * Ahora sus tres pasos escriben en un borrador propio que alimenta la
+   * superficie y el recorrido vivo, y confirmar es lo que los lleva al
+   * workspace. Descartar devuelve lo confirmado, igual que en el resto.
+   */
+  const [borradorComposicion, setBorradorComposicion] =
+    useState<Partial<CalcMuestraWorkspaceAulasConfig>>({});
+  const configComposicion = useMemo(
+    () => ({ ...config, ...borradorComposicion }),
+    [config, borradorComposicion],
+  );
+  function editarComposicion(patch: Partial<CalcMuestraWorkspaceAulasConfig>) {
+    setBorradorComposicion((prev) => ({ ...prev, ...patch }));
+    marcarPendiente(COMPOSICION_ID);
+  }
+  function confirmarComposicion() {
+    if (Object.keys(borradorComposicion).length) patchAulasConfig(borradorComposicion);
+    setBorradorComposicion({});
+    setPendientes((prev) => {
+      const next = new Set(prev);
+      next.delete(COMPOSICION_ID);
+      return next;
+    });
+  }
+  function descartarComposicion() {
+    setBorradorComposicion({});
+    setPendientes((prev) => {
+      const next = new Set(prev);
+      next.delete(COMPOSICION_ID);
+      return next;
+    });
   }
 
   /** Confirma un solo criterio y deja los demás pendientes tal como estaban. */
   function confirmarCriterio(id: string) {
+    if (id === COMPOSICION_ID) return confirmarComposicion();
     if (!pendientes.has(id)) return;
     patchSeleccion(reconciliarBorradorCriterios(seleccion, borrador, new Set([id]), tiposBorrador));
     setPendientes((prev) => {
@@ -343,6 +415,7 @@ export function CursosHorarioMarcoTab({
    * borrador a lo confirmado, descartar copia de lo confirmado al borrador.
    */
   function descartarCriterio(id: string) {
+    if (id === COMPOSICION_ID) return descartarComposicion();
     if (!pendientes.has(id)) return;
     setBorrador((prev) =>
       copiarVariableCriterio(prev, seleccion, id, tiposBorrador.get(id) ?? "flat"),
@@ -371,8 +444,31 @@ export function CursosHorarioMarcoTab({
   const radiografiaV2 = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2"
     ? criteriosRadiografia
     : null;
+  /*
+   * G41 · Los filtros del borrador, traducidos como los traduce el build.
+   *
+   * Gonzalo quiere que al soltar el deslizador se actualice «cuántas quedan,
+   * cuántas se van y su porcentaje» sobre los cursos-horario que sobrevivieron
+   * a los criterios previos. El motor sabe hacerlo —el preview recalcula la
+   * cascada sobre el marco ya construido— pero lee la composición de
+   * `config.filters`, y la tarjeta la edita en la raíz del config. Sin esta
+   * traducción el preview evaluaba la composición como apagada.
+   */
+  const filtersPayload = useMemo(
+    () => filtrosLegacyPayload(configComposicion, seleccionActiva(borrador), {
+      c7: opcionalesActivosMotor.includes("c7"),
+      c8: opcionalesActivosMotor.includes("c8"),
+    }),
+    [configComposicion, borrador, opcionalesActivosMotor],
+  );
   const i18b = useCriteriosI18bSurface(
-    { frame: marcoPublicable ? aulasState?.frame ?? null : null, config, borrador, previewEnabled: totalPendientes > 0 || marcoDesactualizado },
+    {
+      frame: marcoPublicable ? aulasState?.frame ?? null : null,
+      config,
+      borrador,
+      filtersPayload,
+      previewEnabled: totalPendientes > 0 || marcoDesactualizado,
+    },
     radiografiaV2?.frame_hash ?? null,
     radiografiaV2,
   );
@@ -415,6 +511,9 @@ export function CursosHorarioMarcoTab({
   const cascadaViva = previewCascada?.status === "ready" ? previewCascada.data : i18b.cascade;
   /** El recorrido está vivo: lo que se ve ya incluye los criterios confirmados. */
   const previewVivo = previewCascada?.status === "ready";
+  /** …y hay otro recálculo en camino, así que la cifra aún no es la del umbral. */
+  const previewRecalculando = previewCascada?.status === "ready" &&
+    previewCascada.recalculando === true;
   /*
    * G39 · Por qué el recorrido NO está vivo, cuando no lo está.
    *
@@ -536,6 +635,128 @@ export function CursosHorarioMarcoTab({
       return llegan == null ? null : { llegan, universo: fila.universo };
     };
   }, [cascadaViva, bloqueFoco, aula]);
+
+  /**
+   * G41 · Cómo se reparte entre las categorías lo que llega a cada criterio.
+   *
+   * Gonzalo: «si quedan 100 cursos-horario hasta un criterio, la suma de sus
+   * elegibles en cada categoría no debería ser 100?». Debía serlo: la tarjeta
+   * enseñaba el universo de partida y los elegibles del marco completo, dos
+   * momentos ajenos al que se está decidiendo, y ninguno sumaba la barra.
+   *
+   * El reparto lo publica el motor por paso × facultad × categoría, y sólo
+   * cuando cierra con el `before_ch` de esa facultad. Aquí se consulta; no se
+   * reparte nada en el cliente, que es como se fabrican cifras que nadie puede
+   * auditar contra el marco.
+   */
+  const repartoDe = useMemo(() => {
+    const clave = bloqueFoco?.excKey || bloqueFoco?.facLabel || "";
+    const porCriterio = new Map<string, RepartoCriterio>();
+    for (const paso of cascadaViva?.steps ?? []) {
+      const facultad = paso.faculties.find(
+        (f) => f.faculty_key === clave || f.label === clave,
+      );
+      if (!facultad?.segments?.length) continue;
+      porCriterio.set(paso.criterion_id, {
+        llegan: new Map(facultad.segments.map((s) => [s.segment_key, s.before_ch])),
+        particionan: facultad.segments_particionan === true,
+      });
+    }
+    return (criterioId: string) => porCriterio.get(criterioId) ?? null;
+  }, [cascadaViva, bloqueFoco]);
+
+  /**
+   * G41 · Cuántos cursos-horario llegan a un paso y cuántos quedan tras él.
+   *
+   * Gonzalo, sobre composición: «estos siguen sin decir cuántos CH descartamos
+   * en función del porcentaje y con cuántos nos quedamos». La barra del
+   * recorrido ya decía lo primero para los criterios con tarjeta; los pasos de
+   * composición viven dentro de una sola tarjeta y se habían quedado sin cifra.
+   *
+   * Es el par `before_ch`/`after_ch` del motor para la facultad abierta, no una
+   * resta local: si el paso no publicara su facultad, restar mentiría.
+   */
+  /*
+   * G41 · El umbral que se está viendo no es el que corrió el marco.
+   *
+   * Gonzalo: «cuando muevo el porcentaje mínimo los números no son dinámicos y
+   * no se actualizan». Es cierto y no puede arreglarse mostrando otra cifra: el
+   * par llegan/quedan lo publica el motor para el marco EJECUTADO, y mover el
+   * deslizador no vuelve a ejecutar nada —se guarda al instante, sí, pero el
+   * marco es el de antes—.
+   *
+   * Lo que sí se puede es dejar de presentarlo como si respondiera al umbral
+   * nuevo. Aquí se compara el filtro vigente con el `filters_echo` que el frame
+   * guarda de su propia construcción: si difieren, el paso pasa a «pendiente» y
+   * la línea pide recalcular en vez de dar una cifra que ya no describe nada.
+   */
+  const composicionPendiente = useMemo(() => {
+    const eco = aulasState?.frame?.filters_echo as Record<string, unknown> | null | undefined;
+    // Los umbrales viven en la raíz del config de aulas (es lo que edita la
+    // tarjeta), y el eco del frame los guarda con las mismas claves.
+    const vigentes = configComposicion as unknown as Record<string, unknown>;
+    const pares: Array<[string, string, string]> = [
+      ["c7", "require_min_prevalence", "min_prevalence_pct"],
+      ["c8_facultad", "require_faculty_prevalence", "min_faculty_prevalence_pct"],
+      ["c8", "require_cycle_homogeneity", "min_cycle_homogeneity_pct"],
+    ];
+    const pendientes = new Set<string>();
+    if (!eco || typeof eco !== "object") return pendientes;
+    for (const [criterioId, flagKey, pctKey] of pares) {
+      const ecoFlag = eco[flagKey];
+      // Un eco parcial (frames viejos) no es comparable: no se inventa desfase.
+      if (typeof ecoFlag !== "boolean") continue;
+      if (ecoFlag !== (vigentes[flagKey] === true)) { pendientes.add(criterioId); continue; }
+      if (!ecoFlag) continue;
+      const ecoPct = Number(eco[pctKey]);
+      const pctVigente = Number(vigentes[pctKey]);
+      if (!Number.isFinite(ecoPct) || !Number.isFinite(pctVigente)) continue;
+      if (Math.abs(ecoPct - pctVigente) > 1e-9) pendientes.add(criterioId);
+    }
+    return pendientes;
+  }, [aulasState?.frame?.filters_echo, configComposicion]);
+
+  const recorteDe = useMemo(() => {
+    const clave = bloqueFoco?.excKey || bloqueFoco?.facLabel || "";
+    const porCriterio = new Map<
+      string,
+      {
+        llegan: number; quedan: number; aplicado: boolean;
+        recalculando: boolean; sinRecorridoVivo: boolean;
+      }
+    >();
+    for (const paso of cascadaViva?.steps ?? []) {
+      const facultad = paso.faculties.find(
+        (f) => f.faculty_key === clave || f.label === clave,
+      );
+      if (!facultad) continue;
+      porCriterio.set(paso.criterion_id, {
+        llegan: facultad.before_ch,
+        quedan: facultad.after_ch,
+        // El motor ya distingue el paso que corrió del que no; sin este dato la
+        // superficie leía «no dejó fuera a nadie» de un paso apagado.
+        // Con el recorrido vivo la cascada YA se recalculó con el umbral que se
+        // está viendo, así que no hay nada pendiente que avisar: `applies` sale
+        // del preview del borrador. Sin él, la cifra es del marco ejecutado y
+        // un umbral distinto la deja sin describir nada.
+        aplicado: paso.applies === true && paso.status === "aplicado" &&
+          (previewVivo || !composicionPendiente.has(paso.criterion_id)),
+        recalculando: previewRecalculando,
+        /*
+         * G41 · Por qué el umbral no se actualiza solo, cuando no lo hace.
+         *
+         * Gonzalo: «lo moví y me sale este paso aún no ha corrido». Es cierto y
+         * el aviso se quedaba corto: el recorrido vivo exige el contexto
+         * transitorio del motor, que sólo existe si el marco se construyó en
+         * ESTA sesión —al abrir un `.pulso` guardado nunca está—. Con eso, una
+         * reconstrucción basta para que los siguientes cambios de umbral se
+         * recalculen solos, y eso es lo que hay que decir.
+         */
+        sinRecorridoVivo: !previewVivo,
+      });
+    }
+    return (criterioId: string) => porCriterio.get(criterioId) ?? null;
+  }, [cascadaViva, bloqueFoco, composicionPendiente, previewVivo, previewRecalculando]);
 
   /**
    * G39 · Con cuántos cursos-horario se termina.
@@ -748,6 +969,7 @@ export function CursosHorarioMarcoTab({
                     <FacultadDecisionBloque
                       confirmadorDe={confirmadorDe}
                       lleganDe={lleganDe}
+                      repartoDe={repartoDe}
                       cierreDelRecorrido={cierreDelRecorrido}
                       key={bloque.excKey || bloque.facLabel}
                       sinPlegado
@@ -786,9 +1008,11 @@ export function CursosHorarioMarcoTab({
                         /* Mínimo de elegibles y composición: criterios 7 y 8,
                            penúltimos, justo antes del mayor detalle. */
                         <CursosHorarioBaseGlobal
-                          config={config}
-                          onPatchConfig={patchAulasConfig}
+                          config={configComposicion}
+                          onPatchConfig={editarComposicion}
+                          confirmador={confirmadorDe(COMPOSICION_ID)}
                           evidenciaComposicion={evidenciaComposicion}
+                          recorteComposicion={recorteDe}
                         />
                       }
                     />
