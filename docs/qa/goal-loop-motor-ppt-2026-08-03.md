@@ -1971,3 +1971,27 @@ leyenda quedan justas (subir la reserva a ~0.34in o mover la leyenda);
 Artefactos: `$SCRATCH/deck/deck5.pptx` (deck de 8 láminas),
 `$SCRATCH/deck4bases.json` (plan reutilizable), `multi_local.png`
 (multiactor fusionado). Backend de pruebas 8801 con `Conta_ref2.pulso`.
+
+### B43 — G-21 en tierra: el multiactor queda editorial y el export deja de manglar planes (2026-08-04, sesión B)
+
+Mandato «sigue mejorando esos gráficos para que sean robustos»:
+
+- **Leyenda fantasma + TOP2BOX 0% — una sola causa** (`d548bfc4`): la
+  pasada 1 de la rama multiactor (all_opts) había quedado sin canonizar
+  (el edit de fce29c84 ancló en la rama gemela con cruce). Canonizada:
+  leyenda exacta de 5 y top2box real (98/86/98/93). El top2box tomaba
+  «las dos últimas» de la lista con fantasmas — por eso daba 0%.
+- **Título de tema legible**: el wrap usaba ~40 chars sobre una columna
+  de 0.13 del ancho y se clippeaba; ahora envuelve a ~18 (0.36·wrap_y).
+- **Reserva del pie 0.24→0.34in** para la Base del slide.
+- **G-22 (`86520218`): la lámina multiactor salía EN BLANCO solo en el
+  export** — un plan que mezcla tipos de slide se rectangulariza con el
+  parse simplificado de plumber y los `vars` llegan mangleados; el
+  preview parsea crudo y por eso vivía. /ppt y /word re-parsean el body
+  con simplifyVector=FALSE (`.graficos_body_sin_simplificar`).
+
+Deck final verificado (8/8 páginas): identidad institucional 3 temas ×
+4 actores con N por barra — el «comparar públicos por tema» del pedido,
+en calidad editorial. Fleco nuevo primero en cola: la Base multibase de
+DOS líneas aún roza la leyenda inferior (la reserva actual es para una
+línea); evaluar reserva dinámica por líneas de base o leyenda arriba.
