@@ -347,7 +347,10 @@
 
 .graficos_rebuild_graf_json <- function(g, graficador_registry = .GRAFICADOR_REGISTRY) {
   g <- .as_json_list(g)
-  if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+  if (is.null(g)) return(NULL)
+  # NA = lamina borrador rectangularizada por jsonlite (nzchar(NA) es TRUE).
+  graf_ref <- as.character(g$graficador %||% NA_character_)[1]
+  if (is.na(graf_ref) || !nzchar(trimws(graf_ref))) return(NULL)
   graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
   if (!(graficador_name %in% graficador_registry)) {
     stop(sprintf("Graficador no registrado: %s", g$graficador), call. = FALSE)
@@ -356,6 +359,23 @@
   args <- .graficos_drop_blank_optional_refs(g$args %||% list())
   if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
   do.call(fn, .clean_rebuild_args(args, fn))
+}
+
+# B36/G-12: una lamina borrador (slot de grafico REQUERIDO sin graficador)
+# exporta como canvas en blanco conservando su titulo, en vez de matar el
+# deck entero con "argument grafico is missing". Solo rellena formals sin
+# default: un slot opcional que quedo NULL conserva el default de la funcion.
+.graficos_fill_blank_graf_slots <- function(payload, fn, grafs) {
+  fmls <- formals(fn)
+  for (slot_name in grafs) {
+    if (!is.null(payload[[slot_name]])) next
+    if (!(slot_name %in% names(fmls))) next
+    # El formal sin default es el simbolo vacio: no se puede asignar ni tocar
+    # sin disparar "argument missing"; se compara con quote(expr = ).
+    requerido <- identical(fmls[[slot_name]], quote(expr = ))
+    if (requerido) payload[[slot_name]] <- .graficos_blank_graph_element()
+  }
+  payload
 }
 
 .graficos_rebuild_slide_json <- function(s, slide_registry = .SLIDE_REGISTRY,
@@ -399,6 +419,7 @@
       (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
       (length(v) == 1L && is.atomic(v) && is.na(v))
   }, logical(1))]
+  payload <- .graficos_fill_blank_graf_slots(payload, fn, slide_registry[[tipo]]$grafs)
   do.call(fn, payload)
 }
 
@@ -787,7 +808,12 @@
 
 .rebuild_graf <- function(g) {
   if (is.null(g)) return(NULL)
-  if (is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+  # NA cuenta como "sin graficador": una lamina borrador (grafico vacio) que
+  # jsonlite rectangulariza llega como graficador = NA, y nzchar(NA) es TRUE
+  # — sin este guard el export moria con "Graficador no registrado: NA"
+  # (B36/G-12 con el plan real del usuario).
+  graf_ref <- as.character(g$graficador %||% NA_character_)[1]
+  if (is.na(graf_ref) || !nzchar(trimws(graf_ref))) return(NULL)
   graficador_name <- .graficos_resolve_graficador_name(g$graficador)
   if (!(graficador_name %in% .GRAFICADOR_REGISTRY)) {
     stop_api(400, "E_UNKNOWN_GRAF", sprintf("Graficador no registrado: %s", g$graficador))
@@ -2837,7 +2863,11 @@ mount_graficos <- function(pr) {
         args
       }
       rebuild_graf <- function(g) {
-        if (is.null(g) || is.null(g$graficador) || !nzchar(g$graficador)) return(NULL)
+        if (is.null(g)) return(NULL)
+        # NA = lamina borrador rectangularizada (nzchar(NA) es TRUE): sin este
+        # guard el export completo moria con "Graficador no registrado: NA".
+        graf_ref <- as.character(g$graficador %||% NA_character_)[1]
+        if (is.na(graf_ref) || !nzchar(trimws(graf_ref))) return(NULL)
         graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
         if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
         fn <- getExportedValue("prosecnurapp", graficador_name)
@@ -2881,6 +2911,7 @@ mount_graficos <- function(pr) {
             (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
             (length(v) == 1L && is.atomic(v) && is.na(v))
         }, logical(1))]
+        payload <- .graficos_fill_blank_graf_slots(payload, fn, slide_registry[[tipo0]]$grafs)
         do.call(fn, payload)
       }
 
