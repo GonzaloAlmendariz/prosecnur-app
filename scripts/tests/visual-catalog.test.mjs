@@ -406,7 +406,6 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
     "frontend/src/lib/navegacion/catalogos/calcMuestra.ts",
     "CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas",
     [
-      "Marco de cursos-horario",
       "Objetivo de muestra",
       "Comparar métodos",
       "Simulación",

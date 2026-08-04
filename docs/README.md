@@ -127,8 +127,13 @@ arquitectura canónica.
   loop de la superficie del módulo, con su cola de lotes y transversales.
 - [GOAL de la matriz y los criterios de curso-horario](qa/goal-loop-matriz-criterios-2026-08-03.md):
   serie G; la matriz de cascada, las tarjetas de criterio y el recorrido vivo.
+- [GOAL del motor PPT/Word de Gráficos](qa/goal-loop-motor-ppt-2026-08-03.md):
+  auditoría total e indefinida del motor de reportes; bitácora B y cola viva.
+- [GOAL multibase de Gráficos](qa/goal-loop-graficos-multibase-2026-08-03.md):
+  la superficie declara de qué base habla; cobertura y validación por base.
 - [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).
 - [Prompt del loop de Cálculo de muestra](qa/prompt-goal-loop-calc-muestra.md).
+- [Prompt del loop del motor PPT](qa/prompt-goal-loop-motor-ppt.md).
 - [Fuentes legibles de Monitoreo](plan-fuentes-legibles-2026-07.md).
 - [Monitoreo de acreditación](plan-monitoreo-acreditacion-2026-07.md).
 - [Monitoreo telefónico](plan-monitoreo-telefonico-2026-07.md).
