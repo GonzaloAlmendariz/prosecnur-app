@@ -89,3 +89,19 @@ test_that("los estados del mapa territorial tienen colores distinguibles", {
   })
   expect_true(all(d > 40))
 })
+
+# B28 (B-H31): en paneles compartidos el pie clipeaba sus etiquetas — ahora
+# escala el texto al ancho fisico que inyecta el motor (P14).
+
+test_that("el pie escala sus etiquetas al ancho del slot", {
+  d <- .l7_pie_data()
+  tam <- function(p) {
+    for (ly in p$layers) if (inherits(ly$geom, "GeomText")) return(ly$aes_params$size)
+    NA_real_
+  }
+  p_full <- graficar_pie(data = d, var_categoria = "categoria", var_pct = "pct",
+                         usar_canvas = FALSE, exportar = "rplot", ancho = 12.5)
+  p_slot <- graficar_pie(data = d, var_categoria = "categoria", var_pct = "pct",
+                         usar_canvas = FALSE, exportar = "rplot", ancho = 6.1)
+  expect_lt(tam(p_slot), tam(p_full))
+})

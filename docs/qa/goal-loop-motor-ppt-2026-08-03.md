@@ -1664,3 +1664,20 @@ Ambos son el siguiente objetivo de reparación (B28). Nota de banco: el radar
 box exige `vars` con list_name compartido — las columnas recodificadas
 `r100_*` no sirven como ejes de box (error claro del motor… en stderr, como
 siempre).
+
+### B28 — B-H31 y B-H32 REPARADOS: pie y FODA conocen su slot (2026-08-04, sesión B)
+
+Ambos consumen ahora el ancho físico que el motor inyecta desde P14
+(`el$overrides$ancho`):
+
+1. **Pie (B-H31)**: en paneles < 9" las etiquetas escalan al ancho real
+   (`× ancho/12.5`, piso 2.6) — X3 rinde «31% (46)» y «69% (104)» completos
+   en el cuarto de lámina. Test: la etiqueta del slot es menor que la de
+   lámina completa.
+2. **FODA (B-H32)**: en paneles < 9" el texto de tarjeta y chip escalan
+   (factor `ancho/12.5`, pisos 5.5/6) y la tarjeta se ensancha hasta el
+   clamp oficial (0.90) — X4 rinde tarjetas íntegras con chips dentro del
+   borde en gráfico+texto. Completa a B24 (que cubría solo Word).
+
+**Gate:** l7-pie-nube 13, graficador-dimensiones 39, iconos-foda-radar 52,
+dim-foda-leyenda 10: todo verde. Renders antes/después mirados (X3/X4).

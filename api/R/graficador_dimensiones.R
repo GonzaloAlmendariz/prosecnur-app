@@ -3088,6 +3088,16 @@ graficar_foda_dimensiones <- function(
   if (!is.finite(tamano_texto_chip) || is.na(tamano_texto_chip) || tamano_texto_chip <= 0) {
     tamano_texto_chip <- max(8, size_items + 1.0)
   }
+  # En paneles compartidos (el motor inyecta el ancho fisico, P14) las
+  # tarjetas a tamano de lamina completa truncaban label y chip (B-H32; el
+  # ajuste de B24 cubria solo la variante Word). Escala proporcional con piso.
+  ancho_chk <- suppressWarnings(as.numeric(ancho)[1])
+  if (is.finite(ancho_chk) && ancho_chk > 0 && ancho_chk < 9) {
+    f_slot <- max(0.6, ancho_chk / 12.5)
+    tamano_texto_tarjeta <- max(5.5, tamano_texto_tarjeta * f_slot)
+    tamano_texto_chip <- max(6, tamano_texto_chip * f_slot)
+    ancho_tarjeta_base_rel <- min(0.90, ancho_tarjeta_base_rel * 1.18)
+  }
   tarjetas_color_solido <- isTRUE(tarjetas_color_solido)
   jitter_x_rel <- suppressWarnings(as.numeric(jitter_x_rel)[1])
   if (!is.finite(jitter_x_rel) || is.na(jitter_x_rel) || jitter_x_rel < 0) jitter_x_rel <- 0.06
