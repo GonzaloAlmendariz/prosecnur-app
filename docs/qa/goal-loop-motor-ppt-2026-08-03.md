@@ -1561,3 +1561,21 @@ Residuo anotado: etiquetas % de slices contiguos chicos aún pueden rozarse
 
 **Gate:** argumentos-ui 459, l7-pie-nube 9, presets-contrato 9: todo verde.
 Commit por hunks (trabajo de A intacto).
+
+### B23 — L9: paridad Word de dimensiones — 3/4 en verde y B-H29 (2026-08-04, sesión B)
+
+`reporte_word_plan` real con los 4 elementos de la familia (docx→png,
+2 páginas miradas):
+
+- **En verde**: dim_radar con cruce (4 series + Total, leyenda espaciada),
+  dim_heatmap con brechas (la leyenda de umbrales del fix B-H18 viaja a
+  Word), comparativo radarbar (valores y leyenda correctos).
+- **B-H29 (nuevo, Word-específico)**: las tarjetas del FODA truncan el label
+  («Atención al usuari…») y el chip de puntos desborda el borde derecho — en
+  PPT las mismas tarjetas se ven bien; el render Word usa un ancho menor y
+  el ancho de tarjeta relativo no compensa el texto de tamaño fijo. Queda
+  como primer ítem del carril L9-Word (la maquinaria de anchos por slot de
+  H22/P14 es el patrón de reparación candidato).
+
+Con esto la prueba 5 del carril L9 queda barrida (Word); falta consolidado
+(L11 transversal, router en vuelo de A).
