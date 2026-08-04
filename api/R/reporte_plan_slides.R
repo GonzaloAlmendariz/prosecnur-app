@@ -1723,11 +1723,20 @@ p_barras_multiapiladas <- function(
 #' p_pie("p108", filtros = list(sexo = "Mujer", edad_grupo = c("60-69", "70+")))
 #' @family reporte
 #' @export
-p_pie <- function(var, titulo = NULL, overrides = list(), base = list(), filtros = list()) {
+p_pie <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
+                  overrides = list(), base = list(), filtros = list()) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
+  # top_k/etiqueta_otros existian solo como formals del graficador: sin
+  # formal aqui la UI no podia ofrecerlos (B22).
+  if (!is.null(top_k) && is.null(overrides$top_k)) {
+    overrides$top_k <- suppressWarnings(as.integer(top_k)[1])
+  }
+  if (!is.null(etiqueta_otros) && is.null(overrides$etiqueta_otros)) {
+    overrides$etiqueta_otros <- as.character(etiqueta_otros)[1]
+  }
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
 
@@ -1751,11 +1760,20 @@ p_pie <- function(var, titulo = NULL, overrides = list(), base = list(), filtros
 #' @param filtros Lista nombrada de filtros por igualdad/inclusion.
 #' @family reporte
 #' @export
-p_donut <- function(var, titulo = NULL, overrides = list(), base = list(), filtros = list()) {
+p_donut <- function(var, titulo = NULL, top_k = NULL, etiqueta_otros = NULL,
+                  overrides = list(), base = list(), filtros = list()) {
   if (!is.character(var) || length(var) != 1L || !nzchar(trimws(var))) {
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
+  # top_k/etiqueta_otros existian solo como formals del graficador: sin
+  # formal aqui la UI no podia ofrecerlos (B22).
+  if (!is.null(top_k) && is.null(overrides$top_k)) {
+    overrides$top_k <- suppressWarnings(as.integer(top_k)[1])
+  }
+  if (!is.null(etiqueta_otros) && is.null(overrides$etiqueta_otros)) {
+    overrides$etiqueta_otros <- as.character(etiqueta_otros)[1]
+  }
 
   titulo <- .ppt_norm_text1(titulo, blank = NULL)
 
