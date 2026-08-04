@@ -2075,3 +2075,32 @@ dev server.
 
 **Cola:** misterio del grosor físico de la barra (instrumentar alturas),
 Base combinada en láminas de 4 gráficos, G-8 íconos rotos por confirmar.
+
+### B48 — Los cuatro pendientes del mandato, cerrados (2026-08-04, sesión B)
+
+Mandato «resuelve del 1 al 4 sin detenerte»:
+
+1. **Grosor físico de la barra sola** (`583fdbc0`): instrumentado con el
+   layout attr — el panel de 2.2in perdía 2×0.63in en el pad que protege
+   etiquetas de eje de 5+ líneas; el área de barras quedaba en 0.83in y
+   la banda en 0.29in. El piso ahora garantiza ÁREA DE BARRAS (1.5in/1
+   fila) sumando el pad estimado: banda física de 0.46in (~1.2cm) medida
+   con el preset real. Editorial.
+2. **Base combinada en láminas multi-gráfico** (`ba32c8b4`, G-24):
+   `.base_auto_de_elementos` junta las refs de todos los slots; el deck
+   real dice «Base: 52 docentes, 172 estudiantes, 178 egresados y 15
+   administrativos». Aplicado en los 5 sitios (2/4 gráficos, población,
+   texto_r2/l2).
+3. **Paletas sin íconos rotos** (`00727ae6`): pasada en vivo — 0 SVGs
+   rotos en paletas y líneas visuales, swatches cuadrados (4px). Y el
+   reporte con screenshot de Gonzalo («esto se tapa»): el diálogo fijaba
+   grid de 3 filas y el toggle de agrupación era un 4º hijo — el buscador
+   caía en la fila colapsada y tapaba la primera lista (21px medidos).
+   Sidebar de vuelta a flex vía paletas-suite.css.
+4. **Refs peladas = base activa** (`ba32c8b4`, G-23): el worker califica
+   las refs del plan guardado con la base activa antes del rebuild
+   (misma semántica que la UI en vivo); `.graficos_active_base_name`
+   resuelve también en modo `multibase`. Prueba positiva y negativa con
+   el proyecto real; el error negativo ahora nombra la variable.
+
+Los 4 con test o medición y verificados contra el Conta real.
