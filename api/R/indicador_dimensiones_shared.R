@@ -799,12 +799,22 @@
 
   label_idx <- function(v, key = NULL) {
     kk <- as.character(key %||% .dim_nm_get(idx_var_to_key, v) %||% "")
+    # La etiqueta humana declarada en indice() viaja en meta_indices y los
+    # labels reales de la columna van ANTES que el embellecido de la clave:
+    # sin esto, indice("global", "Índice global de satisfacción") se
+    # presentaba (y se resolvía) como "Global".
+    meta_etiq <- if (nzchar(kk) && kk %in% names(meta_indices)) {
+      as.character(meta_indices[[kk]]$etiqueta %||% "")[1]
+    } else {
+      ""
+    }
     .dim_first_nonempty(
       .dim_nm_get(lbl_idx, kk),
       .dim_nm_get(lbl_idx, v),
-      if (nzchar(kk)) .dim_pretty_label(kk) else "",
+      meta_etiq,
       label_data(v),
       label_var(v),
+      if (nzchar(kk)) .dim_pretty_label(kk) else "",
       .dim_pretty_label(v)
     )
   }

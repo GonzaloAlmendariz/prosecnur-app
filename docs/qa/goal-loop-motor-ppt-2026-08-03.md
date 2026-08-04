@@ -1285,3 +1285,35 @@ valores); FODA subíndices (cuadrantes con tarjetas y chips).
 
 **Gate:** dim-foda-leyenda 4 (nuevo), graficador-dimensiones 39,
 dimensiones-iconos-foda-radar 52: todo verde.
+
+### B12 — L9: el índice recupera su nombre (B-H20) y B-H19/H17 se re-diagnostican (2026-08-04, sesión B)
+
+**Diagnóstico que corrige a la bitácora anterior:**
+
+- **B-H19 CERRADO como emparejamiento**: `modo="indicadores"` funciona — su
+  catálogo se indexa por claves de SUBÍNDICE (`atencion`, no `idx_global`).
+  Render verificado (radar de los 3 ítems del subíndice). El problema real
+  es UX: el par modo↔objetivo es una trampa invisible y el error explicativo
+  del motor (que hasta sugiere el modo correcto) muere en stderr — el
+  analista solo ve «Sin datos».
+- **B-H17 re-diagnosticado**: el resolver de `.dim_build_payload` SÍ acepta
+  clave o etiqueta humana. Mi prueba falló por el hallazgo de fondo:
+
+**B-H20 REPARADO — el catálogo perdía la etiqueta humana del índice.**
+`indice("global", "Índice global de satisfacción", ...)` se presentaba y
+resolvía como «Global»: `label_idx` embellecía la clave ANTES de consultar
+`meta_indices$etiqueta` (que ni miraba) y los labels reales de la columna —
+mientras `label_sub` sí consulta su meta (inconsistencia entre hermanos).
+Precedencia corregida: config → etiqueta del meta → label de la columna →
+clave embellecida. Con esto el objetivo por etiqueta humana funciona
+(diagnóstico X2: 0 láminas degradadas) y los títulos de la familia muestran
+el nombre que el analista declaró.
+
+**Gate:** dim-foda-leyenda+B-H20 6, graficador-dimensiones 39,
+dimensiones-ppt-radar 36, iconos-foda-radar 52, cruces-jerarquia 21: todo
+verde.
+
+**Pendiente afilado para cuando el registry se libere**: la descripción de
+`objetivo` debe decir «clave o etiqueta del índice/subíndice según el modo»
+y idealmente la UI debería ofrecer un selector poblado desde el catálogo en
+vez de texto libre (propuesta de eje 3).
