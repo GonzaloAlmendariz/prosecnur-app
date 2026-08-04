@@ -76,7 +76,7 @@ graficar_boxplot <- function(
     orientacion       = c("vertical", "horizontal"),
     colores_categorias = NULL,
     mostrar_puntos    = TRUE,
-    alpha_puntos      = 0.28,
+    alpha_puntos      = 0.45,
     size_puntos       = 1.35,
     jitter_width      = 0.15,
     jitter_height     = 0,
@@ -413,9 +413,9 @@ graficar_boxplot <- function(
         data = data.frame(yint = as.numeric(cortes_chip_eje)),
         ggplot2::aes(yintercept = .data$yint),
         inherit.aes = FALSE,
-        colour = "#C7CDD6",
+        colour = "#8A97A8",
         linetype = "dashed",
-        linewidth = 0.36
+        linewidth = 0.5
       )
   }
 
@@ -438,7 +438,15 @@ graficar_boxplot <- function(
     )
 
   if (isTRUE(mostrar_puntos)) {
-    p_core <- p_core + ggplot2::scale_colour_manual(values = pal, drop = FALSE)
+    # Los puntos con el MISMO color de su caja desaparecen sobre ella y se
+    # lavan fuera: una version oscurecida los mantiene visibles sin gritar.
+    pal_puntos <- vapply(pal, function(col) {
+      m <- tryCatch(grDevices::col2rgb(col) * 0.55, error = function(e) NULL)
+      if (is.null(m)) return(as.character(col))
+      grDevices::rgb(m[1], m[2], m[3], maxColorValue = 255)
+    }, character(1))
+    names(pal_puntos) <- names(pal)
+    p_core <- p_core + ggplot2::scale_colour_manual(values = pal_puntos, drop = FALSE)
   }
 
   axis_breaks <- NULL

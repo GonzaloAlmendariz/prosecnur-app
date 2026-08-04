@@ -260,3 +260,18 @@ test_that("smoke B-H2: el camino real del plan llega al radar con datos construi
   expect_true(length(con_tabla) >= 1L)
   expect_identical(con_tabla[[1]][["radar_scale"]], 0)
 })
+
+test_that("los puntos del boxplot se distinguen de su caja (B5 editorial)", {
+  fml <- formals(graficar_boxplot)
+  expect_identical(eval(fml$alpha_puntos), 0.45)
+  d <- .l8_num_data()
+  p <- graficar_boxplot(
+    data = d, var_categoria = "categoria", var_valor = "valor",
+    usar_canvas = FALSE, exportar = "rplot"
+  )
+  built <- ggplot2::ggplot_build(p)
+  fills <- toupper(unique(stats::na.omit(built$data[[1]]$fill)))
+  pts <- toupper(unique(stats::na.omit(built$data[[2]]$colour)))
+  expect_true(length(pts) > 0)
+  expect_length(intersect(fills, pts), 0)
+})
