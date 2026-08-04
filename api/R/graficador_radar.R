@@ -185,8 +185,8 @@ graficar_radar <- function(
     legend_n_por_fila = 6L,
 
     legend_key_cm           = 0.35,
-    legend_espaciado        = 0.25, # pt
-    legend_key_spacing_x_cm = 0.10,
+    legend_espaciado        = 6, # pt
+    legend_key_spacing_x_cm = 0.22,
 
     titulo       = NULL,
     subtitulo    = NULL,
@@ -371,10 +371,10 @@ graficar_radar <- function(
   if (!is.finite(legend_key_cm) || legend_key_cm <= 0) legend_key_cm <- 0.35
 
   legend_espaciado <- suppressWarnings(as.numeric(legend_espaciado))
-  if (!is.finite(legend_espaciado) || legend_espaciado < 0) legend_espaciado <- 0.25
+  if (!is.finite(legend_espaciado) || legend_espaciado < 0) legend_espaciado <- 6
 
   legend_key_spacing_x_cm <- suppressWarnings(as.numeric(legend_key_spacing_x_cm))
-  if (!is.finite(legend_key_spacing_x_cm) || legend_key_spacing_x_cm < 0) legend_key_spacing_x_cm <- 0.10
+  if (!is.finite(legend_key_spacing_x_cm) || legend_key_spacing_x_cm < 0) legend_key_spacing_x_cm <- 0.22
 
   icono_size_radar <- suppressWarnings(as.numeric(icono_size_radar)[1])
   if (!is.finite(icono_size_radar) || is.na(icono_size_radar) || icono_size_radar <= 0) {
@@ -685,6 +685,14 @@ graficar_radar <- function(
 
   if (length(ejes) < 3) stop("Radar requiere al menos 3 ejes.", call. = FALSE)
   if (length(grupos) < 1) stop("Radar requiere al menos 1 grupo.", call. = FALSE)
+
+  # Serie unica sintetica: una leyenda que solo dice "Total" no informa nada
+  # (paridad con el auto-hide de la serie "Porcentaje" en barras agrupadas).
+  # Una serie unica con nombre propio conserva su leyenda.
+  if (length(grupos) == 1L &&
+      trimws(tolower(as.character(grupos[[1]]))) %in% c("total", "")) {
+    mostrar_leyenda <- FALSE
+  }
 
   df_plot <- df0 |>
     dplyr::mutate(

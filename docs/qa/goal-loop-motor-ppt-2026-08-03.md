@@ -999,3 +999,43 @@ Banco discriminante: ingreso lognormal (media ≠ mediana).
 
 Detalle menor: leyenda «Media» bajo tarjeta única es ruido (candidata a
 auto-hide como la serie sintética de agrupadas).
+
+### B2 — L8: leyenda del radar y chips honestos, con render verificado (2026-08-03, sesión B)
+
+**Reparado:**
+
+1. **B-H5a/b — leyenda del radar al estándar de la casa.**
+   `legend_espaciado` 0.25pt→6pt y `legend_key_spacing_x_cm` 0.10→0.22 (firma
+   y fallbacks); la serie única sintética «Total» ya no dibuja leyenda
+   (paridad con el auto-hide de «Porcentaje» en agrupadas, P9) — una serie
+   única con nombre propio la conserva. Render verificado: R01 sin leyenda
+   muerta y con el radar aprovechando el slot liberado.
+2. **B-H9 — el semáforo del chip solo actúa cuando se le pide.** Sin
+   `cortes_chip` y en modo `grupos`, boxplot y media_rango pintaban los chips
+   con terciles automáticos de las medias: SIEMPRE un grupo rojo aunque todos
+   promediaran 7+/10 (color relativo con semántica absoluta). Default nuevo:
+   chip neutral blanco con texto navy, legible (`size_media` boxplot
+   2.3→3.2); el semáforo exige cortes declarados o modo degradado. Docs del
+   formal actualizados. Render verificado en B01 (7.1/7.3/6.8 legibles) y
+   M01/M02/M04.
+3. **B-H7 (segunda pasada) — el fix del glue no disparaba por
+   partial-matching de R**: `args$modo` casaba con `modo_semaforo` y
+   `is.null()` nunca era TRUE. Movido a helper
+   `.media_rango_activar_score_ref` (reporte_plan_helpers.R; el monolito
+   recupera sus líneas) con indexado `[["modo"]]` exacto. Render verificado:
+   M02 muestra por fin línea de referencia global, slot «Promedio», deltas
+   ±0.2 y chips circulares. Test con mock que captura los args reales del
+   graficador.
+
+**Gate:** l8-defaults-editoriales 14 (firma, auto-hide, chips neutral/semáforo
+×2 graficadores, glue score_ref con mock), plan-ppt-boxplot 35,
+media-rango-significancia 5, radar-solo-tabla 5, orders-informales 8: todo
+verde. Audit del congelado: mi neto es 0; queda **+1 de la sesión A**
+(dedup de categóricas, `7d6c422d`) y +100 de editor-v2.css (loop multibase) —
+les corresponde resolverlos.
+
+**Residuos anotados:** B-H10 — en score_ref el label del slot de referencia
+(«Promedio general») se encima con su chip; leyenda de radar con cruce aún en
+paleta hcl ajena a la casa (B-H5c, requiere decidir contra el sistema de
+paletas por proyecto); puntos jitter del boxplot casi invisibles (alpha
+0.28); cortes de semáforo del boxplot en líneas blancas invisibles (B03).

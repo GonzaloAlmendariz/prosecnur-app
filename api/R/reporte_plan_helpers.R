@@ -2561,3 +2561,15 @@ p_reset <- function(
   }
   el
 }
+
+# "Mostrar referencia" de la UI de media_rango promete linea/etiqueta del
+# promedio global, que solo existe en modo score_ref: encenderlo sin declarar
+# modo activa ese modo (si no, el switch es inerte con el default "score").
+# Indexado exacto obligatorio: args$modo hace partial-match con modo_semaforo.
+.media_rango_activar_score_ref <- function(args) {
+  if (isTRUE(args[["mostrar_ref_label"]]) && is.null(args[["modo"]])) {
+    args[["modo"]] <- "score_ref"
+    args[["mostrar_ref_line"]] <- args[["mostrar_ref_line"]] %||% TRUE
+  }
+  args
+}
