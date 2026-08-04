@@ -2058,3 +2058,20 @@ absorbe alto. Instrumentar las alturas del ensamblado antes de tocar.
 **Cola:** G-5 (editor jerárquico del índice con íconos elegibles — el
 grande pendiente), Base combinada en láminas de 4 gráficos, misterio del
 grosor físico.
+
+### B47 — G-5 cerrado: el índice gana su editor jerárquico (2026-08-04, sesión B)
+
+`9bb22f8d`: el índice se editaba con 4 textareas crudas y los focos salían
+con íconos hardcodeados. Nuevo `IndiceBuilder` (Inspector v2 tab Contenido
++ SlideEditor legacy): secciones ordenables con ícono del foco ELEGIBLE
+del catálogo real de la plantilla (10 opciones; solo las primeras 5
+secciones llevan foco) y subtemas como chips. `indiceModel.ts` traduce en
+ambos sentidos al contrato plano del motor sin cambiarlo (round-trip
+testeado). El shim lucide ganó 3 íconos. Verificado en el navegador con
+el Conta real: interacción viva (título + aria-pressed), textareas viejas
+fuera. Trampa nueva: tocar `src/vendor/lucide-react.ts` rompe el HMR de
+Vite con «Invalid hook call» (re-optimización a medias) — reiniciar el
+dev server.
+
+**Cola:** misterio del grosor físico de la barra (instrumentar alturas),
+Base combinada en láminas de 4 gráficos, G-8 íconos rotos por confirmar.
