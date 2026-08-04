@@ -1634,6 +1634,8 @@
 }
 
 .graficos_placeholder_role <- function(slot_name, spec) {
+  declared <- as.character(spec$role %||% "")[1]
+  if (nzchar(declared)) return(declared)
   if (!is.null(spec$type) && as.character(spec$type)[1] %in% c("pic")) return("chart")
   if (
     slot_name %in% c("plot", "plot1", "plot2", "left", "right", "up_left", "up_right", "bottom_left", "bottom_right") ||
@@ -1680,6 +1682,11 @@
     type_idx <- suppressWarnings(as.integer(type_idx)[1])
     by_idx <- by_type[by_type$type_idx == type_idx, , drop = FALSE]
     if (nrow(by_idx)) return(by_idx[1, , drop = FALSE])
+    # El contrato pidio un idx que esta plantilla no tiene. Caer al primer
+    # placeholder del tipo dibujaba el slot sobre una shape arbitraria (en
+    # las plantillas con menos bodies, el primero es el LOGO): mejor no
+    # ofrecer el slot que ofrecerlo en un lugar que el render no honra.
+    return(NULL)
   }
 
   by_type[1, , drop = FALSE]

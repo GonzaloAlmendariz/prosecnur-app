@@ -592,7 +592,10 @@
       title = list(type = "title", type_idx = NULL),
       plot  = list(type = "pic",   type_idx = NULL),
       base  = list(type = "body",  type_idx = 2, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
-      right = list(type = "body",  type_idx = 3)
+      # `role` lo lee solo la capa de preview (.graficos_placeholder_role):
+      # sin la marca, la heuristica por nombre clasificaba este pie de texto
+      # como slot de grafico. El motor PPT ignora este campo.
+      right = list(type = "body",  type_idx = 3, role = "note")
     )
   ),
 

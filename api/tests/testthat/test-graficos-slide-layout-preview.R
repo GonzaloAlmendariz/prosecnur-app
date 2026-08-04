@@ -37,3 +37,39 @@ test_that("preview-slide render PNG option is opt-in", {
     "render_slide_preview debe ser booleano"
   )
 })
+
+test_that("un slot con type_idx inexistente en la plantilla no se ofrece (no cae al logo)", {
+  skip_if_not_installed("officer")
+
+  # En plantilla_acnur el layout right_grafico_texto no tiene body idx=4:
+  # antes el footer caia al primer body del tipo (posiciones arbitrarias,
+  # incluida la caja grande de texto). Ahora el slot se omite.
+  acnur <- .graficos_slide_layout_preview("p_slide_grafico_texto_derecha", template_id = "acnur_16_9")
+  keys_acnur <- vapply(acnur$placeholders, function(x) x$key %||% "", character(1))
+  expect_false("footer" %in% keys_acnur)
+
+  # En la plantilla generica el idx existe y el slot se sigue ofreciendo.
+  generic <- .graficos_slide_layout_preview("p_slide_grafico_texto_derecha", template_id = "generic_16_9")
+  keys_generic <- vapply(generic$placeholders, function(x) x$key %||% "", character(1))
+  expect_true("footer" %in% keys_generic)
+})
+
+test_that("el pie derecho de slide_1 se clasifica como nota, no como grafico", {
+  skip_if_not_installed("officer")
+
+  preview <- .graficos_slide_layout_preview("p_slide_1_grafico")
+  keys <- vapply(preview$placeholders, function(x) x$key %||% "", character(1))
+  roles <- vapply(preview$placeholders, function(x) x$role %||% "", character(1))
+  expect_true("right" %in% keys)
+  expect_identical(roles[[which(keys == "right")[[1]]]], "note")
+  expect_identical(roles[[which(keys == "plot")[[1]]]], "chart")
+})
+
+test_that("el subtitulo del separador declara que solo aplica a Word", {
+  meta <- .SLIDES_META[["p_slide_seccion"]]
+  args <- meta$args
+  nombres <- vapply(args, function(a) a$name, character(1))
+  sub <- args[[which(nombres == "subtitulo")[[1]]]]
+  expect_match(sub$label, "Word")
+  expect_match(sub$descripcion, "Word")
+})
