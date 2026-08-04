@@ -48,6 +48,10 @@
 #' @param radar_scale Escala general del radar dentro del panel (clamp interno).
 #'
 #' @param mostrar_puntos Si `TRUE`, dibuja puntos en cada vértice.
+#' @param mostrar_valores Si `TRUE`, etiqueta cada vértice con su porcentaje
+#'   (coloreado por serie). Da el ancla numérica que la tela sola no ofrece.
+#' @param size_valores Tamaño del texto de los valores por vértice.
+#' @param valores_decimales Decimales del porcentaje por vértice.
 #' @param size_linea,size_punto Tamaños de líneas y puntos.
 #' @param alpha_relleno Transparencia del relleno cuando `rellenar_poligono = TRUE`.
 #' @param rellenar_poligono Si `TRUE`, rellena polígonos por grupo.
@@ -170,6 +174,9 @@ graficar_radar <- function(
     radar_scale = 1,
 
     mostrar_puntos = TRUE,
+    mostrar_valores = FALSE,
+    size_valores    = 2.9,
+    valores_decimales = 0L,
     size_linea     = 0.9,
     alpha_relleno  = 0.18,
     size_punto     = 2.2,
@@ -930,6 +937,33 @@ graficar_radar <- function(
       data = df_xy,
       ggplot2::aes(x = .data$x, y = .data$y, color = .data$.grupo),
       size = size_punto
+    )
+  }
+
+  if (isTRUE(mostrar_valores)) {
+    # Ancla numerica por vertice: sin esto el lector no puede saber si un eje
+    # esta en 30% o en 60% (el radar no trae niveles por default).
+    dec_val <- suppressWarnings(as.integer(valores_decimales)[1])
+    if (!is.finite(dec_val) || is.na(dec_val) || dec_val < 0L) dec_val <- 0L
+    n_series <- max(1L, length(grupos))
+    df_val <- df_xy |>
+      dplyr::mutate(
+        .pct = if (identical(escala_valor, "proporcion_1")) .data$.valor * 100 else .data$.valor,
+        .lab_val = paste0(formatC(round(.data$.pct, dec_val), format = "f", digits = dec_val), "%"),
+        .r_lab = .data$.valor_plot * radar_scale + ring_max_plot * 0.085,
+        # Separacion tangencial por serie: dos series con valores parecidos
+        # caen sobre el mismo rayo y sus etiquetas se montarian.
+        .t_lab = (as.integer(.data$.grupo) - (n_series + 1) / 2) *
+          ring_max_plot * 0.11,
+        x = .data$.r_lab * cos(.data$.ang) - .data$.t_lab * sin(.data$.ang),
+        y = .data$.r_lab * sin(.data$.ang) + .data$.t_lab * cos(.data$.ang)
+      )
+    p <- p + ggplot2::geom_text(
+      data = df_val,
+      ggplot2::aes(x = .data$x, y = .data$y, label = .data$.lab_val, color = .data$.grupo),
+      size = size_valores,
+      fontface = "bold",
+      show.legend = FALSE
     )
   }
 

@@ -1112,3 +1112,28 @@ editorial). Quedan: B-H6 (curar umbral_rojo_pct — esperando que la sesión A
 libere graficos_metadata.R), B-D1 (combinado compat), radar chico en lámina
 completa (familia H9, común a varios graficadores), paridad Word (L11) y el
 barrido fino del preset radar_tabla (37 args).
+
+### B6 — L8: el radar gana su ancla numérica — `mostrar_valores` (2026-08-03, sesión B)
+
+**Capacidad nueva (eje 1 + eje 2 del mandato).** El radar no ofrecía ningún
+anclaje numérico: sin niveles (apagados por default editorial) ni valores, el
+lector no podía distinguir 30% de 60%. `graficar_radar` gana
+`mostrar_valores` (+ `size_valores`, `valores_decimales`): porcentaje por
+vértice coloreado por serie, con offset radial y **separación tangencial por
+serie** (dos series con valores parecidos caían sobre el mismo rayo y se
+montaban — verificado y corregido con render). Default FALSE (opt-in).
+Render mirado: serie única limpia (42–45% legibles) y dos series separadas
+(68%/77% en el mismo vértice, ambos legibles).
+
+También se evaluó y DESCARTÓ el «radar chico en lámina completa» como fix de
+geometría: el `lim_xy = 1.18×` reserva espacio de etiquetas que en canvas son
+externas, pero encogerlo arriesga clipping de los labels de los vértices
+superiores (anclan al corner mapeado por lim_xy) y la ganancia neta es ~6%.
+La pequeñez restante es inherente a un gráfico radial en 16:9 — el ancla
+numérica ataca el problema real (legibilidad, no tamaño).
+
+**Superficie UI pendiente**: curar `mostrar_valores`/`valores_decimales` en
+el registry cuando la sesión A libere `graficos_metadata.R` (junto con B-H6).
+
+**Gate:** l8-defaults-editoriales 34 (test del diferencial de capas GeomText
+con labels %), radar-solo-tabla 5, dimensiones-ppt-radar 36: todo verde.
