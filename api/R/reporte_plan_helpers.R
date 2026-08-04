@@ -2612,14 +2612,23 @@ p_reset <- function(
 # texto de Base del slide. Sin esta reserva, la leyenda del grafico y la
 # Base se solapaban (visto en el export real de Conta, lamina de docentes
 # con canvas_h_caption_in = 0).
-.reservar_pie_para_base_slide <- function(args) {
+.reservar_pie_para_base_slide <- function(args, min_in = 0.34) {
   if (!is.list(args)) return(args)
   np <- args$nota_pie %||% NULL
   tiene_caption <- !is.null(np) && any(nzchar(trimws(as.character(np))))
   if (tiene_caption) return(args)
   cap <- suppressWarnings(as.numeric(args$canvas_h_caption_in %||% NA_real_)[1])
   # 0.24 quedaba justo: el texto de Base (size 14) rozaba la leyenda en los
-  # exports reales de Conta. 0.34 da la franja completa.
-  if (!is.finite(cap) || cap < 0.34) args$canvas_h_caption_in <- 0.34
+  # exports reales de Conta. 0.34 cubre una linea; las multiapiladas
+  # multibase pasan 0.5 porque su Base prorrateada ("Base: 47 docentes,
+  # 128 estudiantes, ...") envuelve a DOS lineas en el placeholder del
+  # template.
+  min_in <- suppressWarnings(as.numeric(min_in)[1])
+  if (!is.finite(min_in) || min_in <= 0) min_in <- 0.34
+  # La banda va en canvas_h_reserva_pie_in: la fila caption desaparece
+  # cuando no hay nota_pie, asi que reservar via canvas_h_caption_in era
+  # un no-op (B44).
+  reserva <- suppressWarnings(as.numeric(args$canvas_h_reserva_pie_in %||% NA_real_)[1])
+  if (!is.finite(reserva) || reserva < min_in) args$canvas_h_reserva_pie_in <- min_in
   args
 }
