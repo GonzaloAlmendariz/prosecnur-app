@@ -1412,7 +1412,12 @@
     if (length(hit) && !is.na(hit)) hit else NA_character_
   }
 
-  for (inst in inst_sources) {
+  fuente_nombres <- names(inst_sources)
+  if (is.null(fuente_nombres)) fuente_nombres <- rep("", length(inst_sources))
+
+  for (inst_idx in seq_along(inst_sources)) {
+    inst <- inst_sources[[inst_idx]]
+    fuente_nm <- trimws(as.character(fuente_nombres[inst_idx] %||% ""))
     if (is.null(inst) || !is.list(inst)) next
     choices <- inst$choices
     if (is.null(choices) || !is.data.frame(choices) || nrow(choices) == 0L) next
@@ -1426,7 +1431,7 @@
       rows <- choices[trimws(as.character(choices$list_name)) == ln, , drop = FALSE]
       if (!nrow(rows)) next
       if (is.null(out[[ln]])) {
-        out[[ln]] <- list(list_name = ln, choices = list(), .seen = character(0))
+        out[[ln]] <- list(list_name = ln, choices = list(), .seen = character(0), fuentes = character(0))
         order <- c(order, ln)
       }
       for (i in seq_len(nrow(rows))) {
@@ -1449,6 +1454,9 @@
   lapply(order, function(ln) {
     x <- out[[ln]]
     x$.seen <- NULL
+    # I() evita que jsonlite des-encaje un vector de 1 fuente a escalar:
+    # el contrato con la UI es "array siempre".
+    x$fuentes <- I(as.character(x$fuentes %||% character(0)))
     x
   })
 }

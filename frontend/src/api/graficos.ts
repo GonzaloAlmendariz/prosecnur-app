@@ -617,7 +617,13 @@ export async function apiGraficosShareImport(packageFileId: string, selectedBase
 // los value-labels reales. El analista asigna colores y el store guarda
 // `paletas: { list_name: { label: hex } }`.
 export type PaletaChoiceItem = { name: string; label: string };
-export type PaletaSugeridaEntry = { list_name: string; choices: PaletaChoiceItem[] };
+export type PaletaSugeridaEntry = {
+  list_name: string;
+  choices: PaletaChoiceItem[];
+  /** Bases del estudio donde vive la lista (multibase). Ausente en configs
+   *  viejas o proyectos de base única. */
+  fuentes?: string[];
+};
 
 export async function apiGraficosPaletasSugeridas() {
   return handle<{ listas: PaletaSugeridaEntry[] }>(

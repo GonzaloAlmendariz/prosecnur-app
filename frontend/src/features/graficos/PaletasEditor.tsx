@@ -18,7 +18,7 @@ import {
 } from "../../api/client";
 import { usePlanStore } from "./store";
 import { LoadingBlock, ErrorBlock, EmptyState, SectionEyebrow } from "../../components/States";
-import { PptStyleProfilesPanel } from "./PptStyleProfilesPanel";
+import "./v2/styles/paletas-suite.css";
 
 // Editor de paletas de colores por `list_name` del XLSForm. Cada fila
 // de la tabla es un value-label; el analista le asigna un color. Las
@@ -41,6 +41,41 @@ type SugeridaPalette = {
 
 function opcionesKey(choices: Array<{ name: string; label: string }>) {
   return choices.map((item) => `${item.name}::${item.label}`).join("|");
+}
+
+// B38/G-7: preferencia reversible de "agrupar listas idénticas". Persistida
+// para que la decisión sobreviva a cerrar el diálogo; por defecto activa —
+// aplicar la misma paleta a todas las listas con las mismas opciones es lo
+// que un informe consistente espera.
+const AGRUPAR_IDENTICAS_KEY = "pulso.graficos.paletas.agruparIdenticas";
+
+function loadAgruparIdenticas(): boolean {
+  try {
+    const raw = localStorage.getItem(AGRUPAR_IDENTICAS_KEY);
+    return raw == null ? true : raw === "true";
+  } catch {
+    return true;
+  }
+}
+
+function saveAgruparIdenticas(value: boolean) {
+  try {
+    localStorage.setItem(AGRUPAR_IDENTICAS_KEY, String(value));
+  } catch {
+    // localStorage restringido — la preferencia vive solo esta sesión.
+  }
+}
+
+/** Bases dignas de mostrarse: más de una fuente real (multibase).
+ *  jsonlite des-encaja los vectores de longitud 1 a escalar, así que
+ *  `fuentes` puede llegar como string suelto — se normaliza a array. */
+function fuentesVisibles(entry: PaletaSugeridaEntry): string[] {
+  const raw = entry.fuentes as unknown;
+  const fuentes = Array.isArray(raw)
+    ? raw.filter((f): f is string => typeof f === "string" && f.length > 0)
+    : typeof raw === "string" && raw.length > 0 ? [raw] : [];
+  if (fuentes.length <= 1 && (fuentes.length === 0 || fuentes[0] === "default")) return [];
+  return fuentes;
 }
 
 function compactColors(colors: Array<string | undefined>) {
@@ -106,7 +141,8 @@ export function PaletasEditor() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [activeListName, setActiveListName] = useState<string | null>(null);
-  const [aplicarAGrupo, setAplicarAGrupo] = useState(false);
+  const [agruparIdenticas, setAgruparIdenticas] = useState(loadAgruparIdenticas);
+  const [aplicarAGrupo, setAplicarAGrupo] = useState(loadAgruparIdenticas);
   const [paletaInvertidaPreviews, setPaletaInvertidaPreviews] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -171,26 +207,47 @@ export function PaletasEditor() {
     [listaFirmas],
   );
 
+  // Al cambiar de lista, el toggle por-lista arranca en la preferencia
+  // global (agrupar identicas): reversible en ambos sentidos.
   useEffect(() => {
-    setAplicarAGrupo(false);
-  }, [activeListName]);
+    setAplicarAGrupo(agruparIdenticas);
+  }, [activeListName, agruparIdenticas]);
+
+  function toggleAgruparIdenticas(value: boolean) {
+    setAgruparIdenticas(value);
+    saveAgruparIdenticas(value);
+  }
+
+  // Listas destino de cualquier edición: el grupo de firma idéntica cuando
+  // la agrupación está activa, solo la activa cuando no.
+  const listasDestino = aplicarAGrupo && listasMismaFirma.length > 1
+    ? listasMismaFirma
+    : (activaData ? [activaData] : []);
 
   function aplicarPaletaSugerida(
     paleta: string[],
     invertir = false,
   ) {
     if (!activaData) return;
-    const targetLists = aplicarAGrupo && listasMismaFirma.length > 1
-      ? listasMismaFirma
-      : [activaData];
     const colors = invertir ? [...paleta].reverse() : paleta;
-    targetLists.forEach((lista) => {
+    listasDestino.forEach((lista) => {
       const nueva: Record<string, string> = {};
       lista.choices.forEach((c, i) => {
         nueva[c.label] = colors[i % colors.length];
       });
       setPaleta(lista.list_name, nueva);
     });
+  }
+
+  // B38/G-7: las ediciones manuales (color puntual, vaciar) también deben
+  // respetar la agrupación — antes solo las sugeridas aplicaban al grupo y
+  // el mapa por-etiqueta rompía la consistencia silenciosamente.
+  function setColorEnGrupo(label: string, color: string) {
+    listasDestino.forEach((lista) => setColorEnPaleta(lista.list_name, label, color));
+  }
+
+  function vaciarPaletaGrupo() {
+    listasDestino.forEach((lista) => removePaleta(lista.list_name));
   }
 
   if (loading) {
@@ -229,6 +286,24 @@ export function PaletasEditor() {
           hint="Cada lista de respuestas puede tener su paleta. Si no le asignas colores, prosecnur usa su paleta azul por defecto."
         />
 
+        {gruposCompatibles > 0 && (
+          <label
+            className="pulso-gv2-paletas-group-all"
+            data-active={agruparIdenticas ? "true" : "false"}
+            title="Con la agrupación activa, cualquier paleta o color que apliques se replica en todas las listas con exactamente las mismas opciones. Puedes desactivarla en cualquier momento; también por lista desde el panel derecho."
+          >
+            <input
+              type="checkbox"
+              checked={agruparIdenticas}
+              onChange={(e) => toggleAgruparIdenticas(e.target.checked)}
+            />
+            <span>
+              <Layers size={12} /> Agrupar listas idénticas
+              <small>{gruposCompatibles} grupo{gruposCompatibles === 1 ? "" : "s"} con las mismas opciones</small>
+            </span>
+          </label>
+        )}
+
         <div className="pulso-gv2-paletas-search">
           <Search size={13} />
           <input
@@ -261,9 +336,14 @@ export function PaletasEditor() {
               >
                 <span className="pulso-gv2-paleta-row-copy">
                   <code>{l.list_name}</code>
-                  <small>
+                  <small title={fuentesVisibles(l).join(", ") || undefined}>
                     {l.choices.length} {l.choices.length === 1 ? "opción" : "opciones"}
                     {firmasSimilares > 1 ? ` · ${firmasSimilares} listas compatibles` : ""}
+                    {fuentesVisibles(l).length === 1
+                      ? ` · ${fuentesVisibles(l)[0]}`
+                      : fuentesVisibles(l).length > 1
+                        ? ` · ${fuentesVisibles(l).length} bases`
+                        : ""}
                   </small>
                 </span>
                 <span className="pulso-gv2-paleta-row-visual" title={tienePaleta ? "Paleta personalizada" : "Base predeterminada sin cambios"}>
@@ -298,8 +378,6 @@ export function PaletasEditor() {
           </div>
         ) : (
           <>
-            <PptStyleProfilesPanel />
-
             <header className="pulso-gv2-paleta-hero">
               <div className="pulso-gv2-paleta-hero-main">
                 <span className="pulso-gv2-paleta-hero-mark">
@@ -317,6 +395,11 @@ export function PaletasEditor() {
                     <span><Palette size={12} /> {activaData.choices.length} categorías</span>
                     <span><CheckCircle2 size={12} /> {totalPaletasPersonalizadas}/{listasSugeridas.length} listas personalizadas</span>
                     <span><Layers size={12} /> {gruposCompatibles || 0} grupos compatibles</span>
+                    {fuentesVisibles(activaData).length > 0 && (
+                      <span title="Bases del estudio donde vive esta lista">
+                        {fuentesVisibles(activaData).join(" · ")}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {listasMismaFirma.length > 1 && (
@@ -365,8 +448,10 @@ export function PaletasEditor() {
                 {coloresPersonalizados > 0 && (
                   <button
                     type="button"
-                    onClick={() => removePaleta(activaData.list_name)}
-                    title="Quitar todos los colores personalizados de esta lista"
+                    onClick={() => vaciarPaletaGrupo()}
+                    title={listasDestino.length > 1
+                      ? `Quitar los colores personalizados de las ${listasDestino.length} listas agrupadas`
+                      : "Quitar todos los colores personalizados de esta lista"}
                     className="pulso-gv2-paleta-clear-button"
                   >
                     <Trash2 size={12} /> Vaciar
@@ -476,7 +561,7 @@ export function PaletasEditor() {
                               id={colorInputId}
                               type="color"
                               value={colorValue}
-                              onChange={(e) => setColorEnPaleta(activaData.list_name, c.label, e.target.value)}
+                              onChange={(e) => setColorEnGrupo(c.label, e.target.value)}
                               className="pulso-gv2-paleta-native-color"
                             />
                           </td>
@@ -488,7 +573,7 @@ export function PaletasEditor() {
                                 const v = e.target.value;
                                 // Validar hex básico
                                 if (/^#?[0-9a-fA-F]{0,6}$/.test(v)) {
-                                  setColorEnPaleta(activaData.list_name, c.label, v.startsWith("#") || v === "" ? v : `#${v}`);
+                                  setColorEnGrupo(c.label, v.startsWith("#") || v === "" ? v : `#${v}`);
                                 }
                               }}
                               placeholder="#cccccc"
