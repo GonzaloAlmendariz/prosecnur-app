@@ -780,6 +780,21 @@ graficar_barras_agrupadas <- function(
   # ---------------------------------------------------------------------------
   width_dodge <- 0.70
 
+  key_cuadrado_cm <- suppressWarnings(as.numeric(legend_key_cm)[1])
+  if (!is.finite(key_cuadrado_cm) || key_cuadrado_cm <= 0) key_cuadrado_cm <- 0.30
+  .draw_key_cuadrado <- function(data, params, size) {
+    alfa <- data$alpha %||% 1
+    if (is.na(alfa)) alfa <- 1
+    grid::rectGrob(
+      width  = grid::unit(key_cuadrado_cm, "cm"),
+      height = grid::unit(key_cuadrado_cm, "cm"),
+      gp = grid::gpar(
+        col = NA,
+        fill = scales::alpha(data$fill %||% "grey20", alfa)
+      )
+    )
+  }
+
   p <- ggplot2::ggplot(
     df_long,
     ggplot2::aes(
@@ -790,7 +805,12 @@ graficar_barras_agrupadas <- function(
   ) +
     ggplot2::geom_col(
       position = ggplot2::position_dodge(width = width_dodge),
-      width    = grosor_barras_eff
+      width    = grosor_barras_eff,
+      # Glifo de tamano ABSOLUTO: el key box hereda la altura del texto de la
+      # leyenda (mas alto que ancho), asi que tanto el glifo default como
+      # draw_key_rect salian rectangulares. Este dibuja siempre un cuadrado
+      # de legend_key_cm x legend_key_cm centrado en el box.
+      key_glyph = .draw_key_cuadrado
     )
 
   # ---------------------------------------------------------------------------
@@ -1215,11 +1235,13 @@ graficar_barras_agrupadas <- function(
         size  = size_leyenda,
         family = font_family,
         face  = if ("leyenda" %in% textos_negrita) "bold" else "plain",
-        margin = ggplot2::margin(l = legend_espaciado, r = legend_espaciado, unit = "pt")
+        # l = aire swatch-texto; r = separacion con el item siguiente (mayor,
+        # para que los pares swatch+texto se lean como unidades separadas)
+        margin = ggplot2::margin(l = legend_espaciado, r = legend_espaciado * 2.5, unit = "pt")
       ),
       legend.key.width  = grid::unit(legend_key_cm, "cm"),
       legend.key.height = grid::unit(legend_key_cm, "cm"),
-      legend.key.spacing.x = grid::unit(0.10, "cm"),
+      legend.key.spacing.x = grid::unit(0.22, "cm"),
       plot.margin = ggplot2::margin(0, 0, 0, 0)
     ) +
     ggplot2::guides(
