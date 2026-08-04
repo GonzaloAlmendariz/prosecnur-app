@@ -865,3 +865,18 @@ etiquetas a 3 líneas dentro de su caja, con la lámina notablemente mejor
 compuesta. **Gate:** var-cruce 323, apiladas-cruce 7, plan-texto 113,
 frecuencia-etiquetas 11, consolidado 95 — todo verde; monolito 9.417 (bajo
 línea base); audit limpio.
+
+### P22 — H32 REPARADO: el slot expandido respeta el borde de la lámina (2026-08-03)
+
+Forense por XML (EMU→pulgadas): el dibujo de variables×cruce terminaba en
+**7.62"** — 0.12" más allá del borde físico (7.5) — porque la expansión
+`pulso_needs_tall_plot_slot` (+1.2 cm para etiquetas altas) no conocía el
+límite inferior. `.plot_slot_expand_down_cm` ahora clampa el bottom a 7.32"
+(la altura original nunca se reduce). Verificado por XML (bottom = 7.32
+exacto) y por render: caption «Base: 59-61 respuestas» completo, leyenda en
+su fila, seis filas de var×cruce contenidas.
+
+**Gate:** var-cruce 323, apiladas-cruce 7, plan-texto 113,
+frecuencia-etiquetas 11: todo verde. Monolito 9.418 tras compactación; audit
+limpio. La técnica del forense EMU por XML queda anotada para verificar
+bordes sin depender del rasterizado.
