@@ -1,3 +1,18 @@
+# Prosecnur 0.7.0 · los reportes de varias bases salen editoriales
+
+- Gráficos: el índice del reporte se arma por secciones. Cada sección lleva su título, sus subtemas y un ícono elegido de un catálogo de diez; antes eran cuatro cajas de texto con nombres internos y los focos salían con íconos fijos.
+- Gráficos: el selector de paletas entiende los estudios de varias bases. Dice en qué bases vive cada lista, agrupa las listas con las mismas opciones y aplica una paleta a todo el grupo de una vez, con vuelta atrás; los colores elegidos llegan idénticos al reporte.
+- Gráficos: comparar públicos por tema funciona con todas las bases del estudio. Escalas iguales escritas con mayúsculas distintas, o con una categoría residual de más, se leen como una sola serie, con leyenda única y el Top 2 calculado sobre las categorías reales.
+- Gráficos: la Base de cada lámina vive en la esquina inferior izquierda del slide. El caption dentro del gráfico queda como opción, las láminas con varios gráficos suman las bases de todos los actores y la leyenda ya no pisa el texto de Base.
+- Gráficos: el export termina aunque el plan tenga láminas a medio armar. Una lámina sin gráfico sale con su título y el lienzo vacío, y mezclar tipos de lámina ya no rompe la lectura del plan.
+- Gráficos: las barras salen bien puestas por defecto. Una apilada de una sola fila es una banda con cuerpo y centrada, los porcentajes chicos viven dentro de su segmento sin flechas de desborde, y la lámina automática de «Otros» se enciende solo si se pide.
+- Formularios: duplicar o guardar un proyecto conserva los instrumentos del editor y el plan de gráficos. El guardado espera los cambios de los últimos segundos, y una carga fallida ya no deja un plan vacío en su lugar.
+
+Los instalables no están firmados: Windows mostrará el aviso de SmartScreen y
+macOS pedirá abrir desde el menú contextual la primera vez. En macOS la
+actualización es manual, descargando el DMG; en Windows el actualizador
+automático sigue funcionando.
+
 # Prosecnur 0.6.3 · el marco de cursos-horario se decide viendo
 
 - Carga: un estudio que organiza varias bases lo sigue haciendo al reabrirlo. La declaración vivía mientras la pantalla estaba montada y se perdía al cerrar el proyecto, así que Fuentes volvía a mostrar «Plan pendiente de activar» y desaparecía el camino a las bases siguientes. Los proyectos anteriores abren como hasta ahora.
