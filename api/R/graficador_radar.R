@@ -391,6 +391,11 @@ graficar_radar <- function(
   eje_label_mult <- suppressWarnings(as.numeric(eje_label_mult))
   if (!is.finite(eje_label_mult) || eje_label_mult <= 0) eje_label_mult <- 1.06
   radar_scale <- suppressWarnings(as.numeric(radar_scale))
+  # Contrato de p_tabla: radar_scale = 0 con tabla activa significa "solo
+  # tabla" — el radar no se dibuja y la tabla ocupa el panel completo. Sin
+  # esto, el 0 caia al clamp [0.70, 1.10] y p_tabla rendia el radar igual.
+  ocultar_radar <- is.finite(radar_scale) && radar_scale <= 0 &&
+    isTRUE(mostrar_tabla_derecha)
   if (!is.finite(radar_scale) || radar_scale <= 0) radar_scale <- 1
   radar_scale <- max(0.70, min(1.10, radar_scale))
 
@@ -1260,7 +1265,10 @@ graficar_radar <- function(
     # Panel: radar + tabla
     if (isTRUE(mostrar_tabla_derecha)) {
       tabla_ph_ancho <- suppressWarnings(as.numeric(tabla_ph_ancho))
-      if (!is.finite(tabla_ph_ancho) || tabla_ph_ancho <= 0 || tabla_ph_ancho >= 0.85) tabla_ph_ancho <- 0.40
+      tabla_ph_ancho_max <- if (isTRUE(ocultar_radar)) 1 else 0.85
+      if (!is.finite(tabla_ph_ancho) || tabla_ph_ancho <= 0 || tabla_ph_ancho > tabla_ph_ancho_max) {
+        tabla_ph_ancho <- if (isTRUE(ocultar_radar)) 0.92 else 0.40
+      }
       tabla_ph_gap <- suppressWarnings(as.numeric(tabla_ph_gap))
       if (!is.finite(tabla_ph_gap) || tabla_ph_gap < 0) tabla_ph_gap <- 0.03
       tabla_ph_margin_top <- suppressWarnings(as.numeric(tabla_ph_margin_top))
@@ -1271,7 +1279,11 @@ graficar_radar <- function(
       w_tab <- tabla_ph_ancho
       w_gap <- tabla_ph_gap
       w_radar <- 1 - w_tab - w_gap
-      if (w_radar <= 0.10) {
+      if (isTRUE(ocultar_radar)) {
+        # Solo tabla: el radar no reserva panel y la tabla se centra.
+        w_gap <- 0
+        w_radar <- 0
+      } else if (w_radar <= 0.10) {
         w_tab <- min(0.45, max(0.25, w_tab))
         w_gap <- min(0.05, max(0.01, w_gap))
         w_radar <- 1 - w_tab - w_gap
@@ -1279,15 +1291,17 @@ graficar_radar <- function(
 
       # Radar izquierda: dibujar como grob clippeado para que las etiquetas
       # del radar no invadan el placeholder reservado para la tabla.
-      panel_draw <- .wrap_clip(ggplot2::ggplotGrob(p_panel))
-      canvas <- canvas + cowplot::draw_grob(
-        panel_draw,
-        x = 0, y = y_panel0, width = w_radar, height = panel_h,
-        hjust = 0, vjust = 0
-      )
-      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_panel0, w_radar, panel_h)
+      if (!isTRUE(ocultar_radar)) {
+        panel_draw <- .wrap_clip(ggplot2::ggplotGrob(p_panel))
+        canvas <- canvas + cowplot::draw_grob(
+          panel_draw,
+          x = 0, y = y_panel0, width = w_radar, height = panel_h,
+          hjust = 0, vjust = 0
+        )
+        if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_panel0, w_radar, panel_h)
+      }
 
-      if (draw_axis_labels_external && nrow(lab_axes_text)) {
+      if (!isTRUE(ocultar_radar) && draw_axis_labels_external && nrow(lab_axes_text)) {
         for (k in seq_len(nrow(lab_axes_text))) {
           pos_k <- .external_label_layout(
             lbl_row = lab_axes_text[k, , drop = FALSE],
@@ -1416,9 +1430,10 @@ graficar_radar <- function(
 
       # IMPORTANTE: anclar el grob al borde izquierdo del PH para evitar
       # que una tabla ancha "derrame" por la izquierda cuando auto_fit = FALSE.
+      x_tab <- if (isTRUE(ocultar_radar)) (1 - w_tab) * 0.5 else (w_radar + w_gap)
       canvas <- canvas + cowplot::draw_grob(
         tab_draw,
-        x = (w_radar + w_gap),
+        x = x_tab,
         y = y_tab + (h_tab * 0.5),
         width  = w_tab,
         height = h_tab,
@@ -1426,7 +1441,7 @@ graficar_radar <- function(
         scale = scale_tab
       )
 
-      if (debug_ph_bordes) canvas <- canvas + .ph_border(w_radar + w_gap, y_tab, w_tab, h_tab)
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(x_tab, y_tab, w_tab, h_tab)
 
     } else {
       panel_draw <- .wrap_clip(ggplot2::ggplotGrob(p_panel))
@@ -1472,8 +1487,8 @@ graficar_radar <- function(
 
   if (has_legend && !is.null(leg_grob)) {
 
-    # ancho del panel (izquierda)
-    panel_w <- if (isTRUE(mostrar_tabla_derecha)) w_radar else 1
+    # ancho del panel (izquierda); en modo solo-tabla la leyenda usa el ancho entero
+    panel_w <- if (isTRUE(mostrar_tabla_derecha) && !isTRUE(ocultar_radar)) w_radar else 1
 
     # leyenda solo ocupa ancho del panel
     legend_ph_x <- 0
@@ -1507,7 +1522,7 @@ graficar_radar <- function(
 
   # Leyenda de íconos (parte superior del slot de leyenda)
   if (has_icono_leyenda_radar) {
-    panel_w_icleg <- if (isTRUE(mostrar_tabla_derecha) && exists("w_radar")) w_radar else 1
+    panel_w_icleg <- if (isTRUE(mostrar_tabla_derecha) && !isTRUE(ocultar_radar) && exists("w_radar")) w_radar else 1
     iconos_leg_radar <- axis_iconos[
       vapply(axis_iconos, function(x) !is.null(x) && nzchar(as.character(x %||% "")), logical(1))
     ]

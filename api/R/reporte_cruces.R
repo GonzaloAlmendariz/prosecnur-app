@@ -428,6 +428,17 @@ get_categorias <- function(var,
     }
   }
 
+  if (!is.null(obj) && is.atomic(obj)) {
+    # Formato informal que circula en fixtures y overrides manuales: un vector
+    # de codigos (o codigo -> label si viene nombrado) en vez de
+    # list(names, labels). Sin esta normalizacion, obj[["names"]] aborta.
+    obj <- if (!is.null(names(obj)) && any(nzchar(names(obj)))) {
+      list(names = names(obj), labels = as.character(obj))
+    } else {
+      list(names = as.character(obj))
+    }
+  }
+
   if (!is.null(obj)) {
     codes  <- as.character(obj[["names"]])
     labels <- .cruces_fill_empty_choice_labels(codes, obj[["labels"]])
