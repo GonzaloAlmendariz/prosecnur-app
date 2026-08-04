@@ -142,7 +142,10 @@ function whatIsForRole(role: string): ReactNode {
 // BaseUploadCard — tarjeta numerada con dropzone real y resumen inmediato
 // -----------------------------------------------------------------------------
 
-function BaseUploadCard({
+// G42 · Exportada para la pestaña Histórico, que carga la base de referencia
+// con la misma tarjeta: dos dropzones distintas para el mismo gesto serían dos
+// sitios donde arreglar el mismo detalle.
+export function BaseUploadCard({
   binding,
   index,
   isUploading,
@@ -505,19 +508,12 @@ export function DefBasesTab({
           />
         ))}
       </div>
-      <ReferenciaAsistenciaCard referencia={referencia}>
-        {referenceBinding ? (
-          <BaseUploadCard
-            binding={referenceBinding}
-            index={0}
-            isUploading={uploadingSourceId === referenceBinding.id}
-            gated={false}
-            filasMotor={0}
-            onUpload={(next, file) => void onSourceUpload(next, file)}
-            onSheet={updateSheet}
-          />
-        ) : null}
-      </ReferenciaAsistenciaCard>
+      {/* G42 · La base de un estudio anterior salió de aquí a su propia pestaña
+          (Datos › Histórico). Vivía al final de esta lista, entre las fuentes
+          que SÍ construyen el marco, y ahí se leía como una más: no lo es —no
+          entra al marco vigente ni cambia el tamaño de muestra— y encima no se
+          encontraba. Gonzalo: «falta la pestaña para agregar la base de
+          monitoreo del año pasado». */}
       {sourceMode !== "seleccion_existente" && <SolicitudDtiButton />}
       {showCompat && (
         <AvisoModulo tone={compatOk ? "success" : "warn"} role="status" compact>

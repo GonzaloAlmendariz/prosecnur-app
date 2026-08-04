@@ -21,14 +21,20 @@ function firma(pestanas: readonly { id: string; label: string }[]) {
 }
 
 describe("catálogos canónicos de pestañas", () => {
-  it("fija las 24 pestañas vivas de Muestra universitaria con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(24);
+  it("fija las 26 pestañas vivas de Muestra universitaria con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(26);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
       // D10: Consistencia inmediatamente después de Fuentes.
       "def-consistencia:Consistencia",
       "def-variables:Variables",
+      // G42 · Mirar la base es parte de Datos, no de Marco: Marco decide qué
+      // entra, Datos enseña lo que hay.
+      "def-explorador:Explorador",
+      // La base de un estudio anterior no construye el marco; se declara aparte
+      // y al final, para no leerse como una fuente más.
+      "def-historico:Histórico",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.marco)).toEqual([
       "marco-criterios-alumno:Criterios del estudiante",

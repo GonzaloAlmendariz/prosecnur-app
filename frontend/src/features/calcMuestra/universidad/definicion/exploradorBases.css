@@ -1,0 +1,234 @@
+/* G42 · Explorador de bases (Marco › Explorador).
+   Reparto de dos columnas como el explorador de Procesamiento: lista de
+   variables a la izquierda, la elegida desplegada a la derecha. */
+
+.cmv2-expb {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.cmv2-expb-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.cmv2-expb-title {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--cmv2-accent);
+  max-width: 62ch;
+}
+.cmv2-expb-title > div > strong {
+  display: block;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: var(--pulso-weight-semibold);
+}
+.cmv2-expb-title p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+.cmv2-expb-title p strong { color: var(--pulso-text); }
+
+.cmv2-expb-bases { display: flex; gap: 6px; }
+.cmv2-expb-bases button {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-bases button em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-expb-bases button[data-activo] {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 45%, var(--cmv2-border));
+  color: var(--pulso-text);
+  background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--pulso-surface));
+}
+
+/* La lista scrollea dentro de su carril; el panel no empuja la página. */
+.cmv2-expb-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+@media (max-width: 900px) {
+  .cmv2-expb-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cmv2-expb-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.cmv2-expb-buscador {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+}
+.cmv2-expb-buscador input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+  outline: none;
+}
+.cmv2-expb-lista ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+  max-height: 520px;
+}
+.cmv2-expb-lista li button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-sm, 8px);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.cmv2-expb-lista li button:hover { background: var(--pulso-surface-2); }
+.cmv2-expb-lista li button[data-activa] {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 40%, var(--cmv2-border));
+  background: color-mix(in srgb, var(--cmv2-accent) 8%, transparent);
+}
+.cmv2-expb-var {
+  font-size: 12px;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-medium);
+  word-break: break-word;
+}
+.cmv2-expb-meta { font-size: 10.5px; color: var(--pulso-text-subtle); }
+.cmv2-expb-vacio { padding: 8px; font-size: 11.5px; color: var(--pulso-text-muted); }
+
+.cmv2-expb-card {
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cmv2-expb-card > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cmv2-expb-card > header strong { font-size: 13.5px; color: var(--pulso-text); }
+.cmv2-expb-card > header span {
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-expb-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.cmv2-expb-cifras dt { font-size: 10.5px; color: var(--pulso-text-subtle); text-transform: uppercase; letter-spacing: .02em; }
+.cmv2-expb-cifras dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-expb-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding: 6px 0 0;
+  border-bottom: 1px solid var(--cmv2-border);
+}
+.cmv2-expb-hist i {
+  flex: 1;
+  min-width: 2px;
+  background: color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
+  border-radius: 2px 2px 0 0;
+}
+
+.cmv2-expb-categorias {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cmv2-expb-categorias li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 2fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.cmv2-expb-cat-label {
+  font-size: 12px;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmv2-expb-cat-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+.cmv2-expb-cat-bar i {
+  display: block;
+  height: 100%;
+  background: color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+}
+.cmv2-expb-cat-n {
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.cmv2-expb-cat-n em { font-style: normal; color: var(--pulso-text-subtle); }
+.cmv2-expb-otras { margin: 0; font-size: 11.5px; color: var(--pulso-text-muted); }

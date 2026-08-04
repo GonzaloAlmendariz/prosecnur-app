@@ -293,6 +293,10 @@ describe("MarcoConsistenciaTab", () => {
       "def-bases",
       "def-consistencia",
       "def-variables",
+      // G42 · Explorador e Histórico cierran Datos: uno describe las bases y el
+      // otro declara la del estudio anterior; ninguno construye marco.
+      "def-explorador",
+      "def-historico",
     ]);
     expect(marco.map((tab) => tab.id)).toEqual([
       "marco-criterios-alumno",

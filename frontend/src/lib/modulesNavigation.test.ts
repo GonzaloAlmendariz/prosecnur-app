@@ -334,7 +334,7 @@ describe("manifiesto primario de navegación", () => {
 
     // D10 (2026-08-02): Consistencia dejó de ser subpágina de Fuentes y pasó a
     // pestaña propia de Datos, inmediatamente después. 23 → 24.
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(24);
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(26);
     expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas.map((tab) => tab.id)).toEqual([
       "objetivo",
       "metodo",
