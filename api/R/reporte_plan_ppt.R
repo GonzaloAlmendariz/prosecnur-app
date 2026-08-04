@@ -702,7 +702,10 @@ reporte_ppt_plan <- function(
     }
 
     spec$loc <- loc
-    spec$loc$height <- max(as.numeric(loc$height), new_height_cm / 2.54)
+    # H32: la expansion nunca cruza el borde inferior de la lamina.
+    tope_in <- 7.32 - suppressWarnings(as.numeric(loc$top)[1])
+    alto_exp <- max(as.numeric(loc$height), new_height_cm / 2.54)
+    spec$loc$height <- if (is.finite(tope_in) && tope_in > 0) min(alto_exp, max(as.numeric(loc$height), tope_in)) else alto_exp
     spec
   }
 
@@ -3489,11 +3492,9 @@ reporte_ppt_plan <- function(
     etype <- el$.element_type %||% ""
     # barras_agrupadas ya imprime su "Base: ..." como caption del grafico
     # (nota_pie): duplicarla en el placeholder era el default (P9/P17/P20).
-    # Queda para base manual, tipos sin caption propio y multi-fuente.
     if (etype %in% c("barras_agrupadas", "barras_apiladas")) return(NULL)
     if (identical(etype, "barras_multiapiladas") &&
         !.base_multifuente_el(el, .extract_ref_values)) return(NULL)
-    # (agrupadas y apiladas retornaron arriba: su caption ya trae la base)
     excluir_base <- switch(
       etype,
       barras_multiapiladas = .reporte_plan_excluir_cascada(
