@@ -2259,6 +2259,51 @@ reporte_ppt_plan <- function(
     paste(paste(codes, labels, sep = "="), collapse = "|")
   }
 
+  # B42/G-20: en multibase cada instrumento nombra sus listas distinto y las
+  # etiquetas divergen en detalles sin significado (mayusculas: "En
+  # desacuerdo" vs "En Desacuerdo") o en la presencia de la categoria
+  # residual SIN INF. Comparar la firma EXACTA rechazaba escalas
+  # semanticamente identicas y el "comparar publicos por tema" moria en
+  # "Sin datos". La equivalencia se decide en tres pasadas: exacta →
+  # normalizada (trim/minusculas/sin acentos) → normalizada sin categorias
+  # especiales (SIN INF y familia 90/94-99 del estandar de la casa).
+  .norm_label_scale <- function(x) {
+    x <- tolower(trimws(as.character(x)))
+    x <- iconv(x, from = "UTF-8", to = "ASCII//TRANSLIT")
+    x[is.na(x)] <- ""
+    gsub("[^a-z0-9]+", " ", x)
+  }
+
+  .es_categoria_especial <- function(codes, labels) {
+    codes_chr <- trimws(as.character(codes))
+    lab_norm <- .norm_label_scale(labels)
+    codes_chr %in% c("90", "94", "95", "96", "97", "98", "99") |
+      lab_norm %in% c("sin inf", "sin informacion", "ns nr", "no sabe",
+                      "no responde", "no sabe no responde", "no aplica",
+                      "no precisa")
+  }
+
+  .choice_signature_from_ctx_norm <- function(ctx, sin_especiales = FALSE) {
+    ln <- .list_name_from_ctx(ctx)
+    ch <- ctx$choices
+    if (is.na(ln) || !nzchar(ln) || is.null(ch) || !is.data.frame(ch) ||
+        !("list_name" %in% names(ch)) || !("name" %in% names(ch))) {
+      return(NA_character_)
+    }
+    lab_col <- .choices_label_col(ch)
+    sub <- ch[ch$list_name == ln, , drop = FALSE]
+    if (!nrow(sub)) return(NA_character_)
+    labels <- if (!is.na(lab_col) && lab_col %in% names(sub)) sub[[lab_col]] else sub$name
+    codes <- trimws(as.character(sub$name))
+    if (isTRUE(sin_especiales)) {
+      keep <- !.es_categoria_especial(codes, labels)
+      codes <- codes[keep]
+      labels <- labels[keep]
+    }
+    if (!length(codes)) return(NA_character_)
+    paste(paste(codes, .norm_label_scale(labels), sep = "="), collapse = "|")
+  }
+
   .shared_scale_spec <- function(ctxs, arg_name = "vars") {
     lns <- vapply(ctxs, .list_name_from_ctx, character(1))
     lns_nonempty <- unique(lns[!is.na(lns) & nzchar(lns)])
@@ -2288,11 +2333,60 @@ reporte_ppt_plan <- function(
       ))
     }
 
+    for (sin_especiales in c(FALSE, TRUE)) {
+      sigs_n <- vapply(ctxs, .choice_signature_from_ctx_norm, character(1),
+                       sin_especiales = sin_especiales)
+      sigs_n_nonempty <- unique(sigs_n[!is.na(sigs_n) & nzchar(sigs_n)])
+      if (length(sigs_n_nonempty) == 1L) {
+        idx <- which(!is.na(sigs_n) & nzchar(sigs_n))[1]
+        return(list(
+          list_name = lns[idx] %||% NA_character_,
+          choices = ctxs[[idx]]$choices %||% NULL,
+          equivalent = TRUE
+        ))
+      }
+    }
+
     stop(
       "multiapiladas (modo='", arg_name, "'): las referencias no comparten una escala compatible. ",
       "Listas encontradas: ", paste(lns_nonempty, collapse = " | "),
       call. = FALSE
     )
+  }
+
+
+  # B42/G-20b: con escala equivalente por firma, las etiquetas crudas de cada
+  # fuente ("De acuerdo" vs "De Acuerdo") deben fundirse en la etiqueta
+  # canonica de la escala elegida. Sin esto, la union de opciones duplicaba
+  # series y leyenda, y el top2box contaba solo la mitad de los actores.
+  .canonizar_freq_a_escala <- function(tab, ctx, spec) {
+    if (is.null(tab) || !nrow(tab) || !isTRUE(spec$equivalent)) return(tab)
+    ch_canon <- spec$choices
+    ln_canon <- spec$list_name
+    if (is.null(ch_canon) || !is.data.frame(ch_canon) ||
+        is.na(ln_canon) || !nzchar(ln_canon)) return(tab)
+    ch_src <- ctx$choices
+    ln_src <- .list_name_from_ctx(ctx)
+    if (is.null(ch_src) || !is.data.frame(ch_src) ||
+        is.na(ln_src) || !nzchar(ln_src)) return(tab)
+    lab_col_src <- .choices_label_col(ch_src)
+    lab_col_can <- .choices_label_col(ch_canon)
+    sub_src <- ch_src[ch_src$list_name == ln_src, , drop = FALSE]
+    sub_can <- ch_canon[ch_canon$list_name == ln_canon, , drop = FALSE]
+    if (!nrow(sub_src) || !nrow(sub_can)) return(tab)
+    labs_src <- as.character(if (!is.na(lab_col_src) && lab_col_src %in% names(sub_src)) sub_src[[lab_col_src]] else sub_src$name)
+    labs_can <- as.character(if (!is.na(lab_col_can) && lab_col_can %in% names(sub_can)) sub_can[[lab_col_can]] else sub_can$name)
+    codes_src <- trimws(as.character(sub_src$name))
+    codes_can <- trimws(as.character(sub_can$name))
+    canon_por_codigo <- stats::setNames(labs_can, codes_can)
+    codigo_por_label_src <- stats::setNames(codes_src, labs_src)
+    ops <- as.character(tab$Opciones)
+    codes_of_ops <- unname(codigo_por_label_src[ops])
+    mapped <- unname(canon_por_codigo[codes_of_ops])
+    ok <- !is.na(mapped) & nzchar(mapped)
+    ops[ok] <- mapped[ok]
+    tab$Opciones <- ops
+    tab
   }
 
   .title_of_var <- function(var, source = NULL) {
@@ -4700,6 +4794,7 @@ reporte_ppt_plan <- function(
         ctx_v <- ctxs[[i]]
         tab <- .tab_freq(v, filtros = filtros)
         if (is.null(tab) || !nrow(tab)) next
+        tab <- .canonizar_freq_a_escala(tab, ctx_v, scale_spec)
 
         N_total <- NA_real_
         if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
@@ -5116,6 +5211,7 @@ reporte_ppt_plan <- function(
             ctx_v <- refs_i[[ref]]
             tab <- .tab_freq(ref, filtros = filtros)
             if (is.null(tab) || !nrow(tab)) next
+            tab <- .canonizar_freq_a_escala(tab, ctx_v, scale_spec)
 
             N_total <- NA_real_
             if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
@@ -5199,6 +5295,7 @@ reporte_ppt_plan <- function(
           tab_total <- .tab_freq(v, filtros = filtros)
           if (is.null(tab_total) || !nrow(tab_total)) next
 
+          tab_total <- .canonizar_freq_a_escala(tab_total, ctx_vars[[i]], scale_spec)
           tab_total <- .reporte_plan_prepare_freq_options(tab_total, incluir_sin_n = incluir_sin_n)
           tab_total <- .reporte_plan_filter_freq_options(tab_total, excluir_opciones)
 
@@ -5286,6 +5383,7 @@ reporte_ppt_plan <- function(
             )
 
             if (is.null(tab) || !nrow(tab)) next
+            tab <- .canonizar_freq_a_escala(tab, ctx_v, scale_spec)
 
             N_total <- NA_real_
             if ("Opciones" %in% names(tab) && "n" %in% names(tab)) {
