@@ -36,3 +36,17 @@ test_that("una fila real SIN filas virtuales conserva la calibracion base", {
     .auto_bar_width_apiladas(1)
   )
 })
+
+test_that("la reserva del pie va en su propio carril (B44)", {
+  # Sin nota_pie, la banda se reserva en canvas_h_reserva_pie_in — la fila
+  # caption desaparece cuando no hay caption y reservar ahi era un no-op.
+  out <- .reservar_pie_para_base_slide(list(), min_in = 0.5)
+  expect_equal(out$canvas_h_reserva_pie_in, 0.5)
+  expect_null(out$canvas_h_caption_in)
+  # Con caption propio no se reserva nada.
+  con_caption <- .reservar_pie_para_base_slide(list(nota_pie = "Base: 10"), min_in = 0.5)
+  expect_null(con_caption$canvas_h_reserva_pie_in)
+  # Una reserva explicita mayor se respeta.
+  mayor <- .reservar_pie_para_base_slide(list(canvas_h_reserva_pie_in = 0.8))
+  expect_equal(mayor$canvas_h_reserva_pie_in, 0.8)
+})

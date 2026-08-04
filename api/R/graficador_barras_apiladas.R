@@ -1159,6 +1159,7 @@ graficar_barras_apiladas <- function(
     canvas_h_header_in    = 0.75,
     canvas_h_legend_in    = 0.75,
     canvas_h_caption_in   = 0.40,
+    canvas_h_reserva_pie_in = 0,
     canvas_h_panel_in     = NULL,
     canvas_h_panel_in_min = 0,
     canvas_h_toprow_in    = 0.18,
@@ -2530,7 +2531,13 @@ graficar_barras_apiladas <- function(
     )
   }
   h_legend_in  <- if (has_legend && !legend_is_side)  canvas_h_legend_in  else 0
-  h_caption_in <- if (has_caption) canvas_h_caption_in else 0
+  # B44/G-21: sin caption propio, la Base del SLIDE vive justo debajo del
+  # canvas; canvas_h_reserva_pie_in deja esa banda vacia para que la
+  # leyenda no choque con el texto de Base (antes la fila caption
+  # simplemente desaparecia y cualquier reserva era un no-op).
+  reserva_pie_in <- suppressWarnings(as.numeric(canvas_h_reserva_pie_in)[1])
+  if (!is.finite(reserva_pie_in) || reserva_pie_in < 0) reserva_pie_in <- 0
+  h_caption_in <- if (has_caption) canvas_h_caption_in else reserva_pie_in
   if (isTRUE(needs_tall_label_slot) && has_legend && !legend_is_side) {
     h_legend_in <- max(h_legend_in, 0.40)
   }
