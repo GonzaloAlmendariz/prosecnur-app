@@ -2104,3 +2104,14 @@ Mandato «resuelve del 1 al 4 sin detenerte»:
    el proyecto real; el error negativo ahora nombra la variable.
 
 Los 4 con test o medición y verificados contra el Conta real.
+
+### B49 — «Prueba 2 desaparece»: regresión del blindaje G-15, cazada y sellada (2026-08-04, sesión B)
+
+Gonzalo re-exportó tras reiniciar: todo bien salvo su lámina de comparar
+públicos, que desaparecía. Causa (`b4a08a40`): la UI de temas serializa
+`var: {}` vacío JUNTO a los `vars` válidos, y el detector ampliado de
+refs en blanco (G-15) lo tomaba como «var requerido vacío» → elemento en
+blanco. Regla afinada: var vacío con `vars`/`bloques` poblados es ruido
+de serialización. Reproducido con su plan real y verificado: la lámina
+renderiza completa. Lección de la vara: todo blindaje nuevo necesita el
+caso «campo vacío CONVIVIENDO con el campo hermano poblado».
