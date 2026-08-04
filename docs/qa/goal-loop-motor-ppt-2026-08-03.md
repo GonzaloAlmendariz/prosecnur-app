@@ -845,3 +845,23 @@ cero solape con los archivos en vuelo de A. Sus entradas de bitácora se
 numeran `B1, B2…` para no chocar con la serie P de A. Regla para ambas:
 antes de editar un archivo, verificar que no esté modificado sin commitear
 por la otra sesión (`git status`).
+
+### P21 — H31 REPARADO: wrap_y de multiapiladas por fin manda (2026-08-03)
+
+Diferencial computacional (magick compare): 0 píxeles de cambio con
+`wrap_y = 18` — inerte confirmado. Dos causas encadenadas, ambas reparadas:
+
+1. **Cascada invertida:** `el$wrap_y` (la decisión por gráfico) estaba DEBAJO
+   del preset de tipo — el suelo `multi_apiladas$ancho_max_eje_y = 40` lo
+   pisaba siempre. Reordenada: override > elemento > preset multi > preset
+   single (los dos puntos: `wrap_y_eff` y `block_wrap`).
+2. **Re-wrap del graficador:** el motor envolvía las etiquetas a `wrap_y_eff`
+   pero el graficador apiladas re-envolvía con SU `ancho_max_eje_y` (suelo
+   22), borrando la diferencia. El motor ahora impone `wrap_y_eff` tras el
+   merge en los do.call de modo var y var_cruce.
+
+Verificación: 8.016 píxeles de diferencial tras el fix; M04 rinde las
+etiquetas a 3 líneas dentro de su caja, con la lámina notablemente mejor
+compuesta. **Gate:** var-cruce 323, apiladas-cruce 7, plan-texto 113,
+frecuencia-etiquetas 11, consolidado 95 — todo verde; monolito 9.417 (bajo
+línea base); audit limpio.
