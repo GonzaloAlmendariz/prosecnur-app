@@ -912,3 +912,67 @@ lógica adicionales (la dedup se cubre por el patrón ya testeado).
 > se enciende — carril L8): ya está commiteado, B no necesita re-commitearlo.
 > Regla desde ahora: TODOS los archivos compartidos (incluido el monolito) se
 > stagean por hunks mientras haya dos sesiones sobre el árbol.
+
+### B1 — L8 arranca: sweep de radar/tabla/boxplot/media_rango (16 variantes) + tres reparaciones (2026-08-03, sesión B)
+
+Sweep `SWEEP_L8` (patrón P12: banco sintético con orders_list canónico, guías,
+16 láminas miradas). Primera cosecha del carril:
+
+**Reparado (con test y render verificado):**
+
+1. **B-H1 — `get_categorias` moría con orders_list informal.** Una entrada de
+   `orders_list` como vector plano (formato que circula en fixtures propios,
+   p.ej. `test-engine-reporte-cruces-dimensiones-jerarquia.R:87`) reventaba
+   `obj[["names"]]` con subscript-out-of-bounds y degradaba la lámina entera a
+   «Sin datos». Ahora el vector plano se normaliza (nombrado = código→label) y
+   el formato canónico `list(names, labels)` queda intacto.
+   `test-reporte-cruces-orders-informales.R` (8 asserts, incluye
+   `.radar_build_box`).
+2. **B-H4 — `p_tabla` renderizaba el radar que promete no tener.** Doble
+   bloqueo: `radar_scale=0` se trataba como inválido (reset a 1 + clamp
+   [0.70,1.10]) y `tabla_ph_ancho=1.0` caía al default 0.40. Ahora
+   `radar_scale=0` + tabla activa = modo **solo tabla** (el radar no se
+   dibuja, la tabla se centra a ancho completo; leyenda usa el ancho entero).
+   Render antes/después mirado: T01 pasó de radar+tabla a tabla sola limpia.
+   `test-graficador-radar-solo-tabla.R` (5 asserts, fallback histórico fijado).
+3. **B-H7 — «Mostrar referencia» de media_rango era inerte.** La
+   línea/etiqueta del promedio global solo existe en `modo="score_ref"` y la
+   UI no cura `modo`: el switch jamás podía actuar. El glue ahora activa
+   `score_ref` cuando el analista enciende el switch sin declarar modo. (Este
+   hunk viajó en el commit `7d6c422d` de la sesión A por barrido del working
+   tree compartido — anotado, código correcto.)
+
+**En verde del sweep:** radar sm default/cruce/top_n+omit; radar box T2B 5
+preguntas y cruce 3 zonas; tabla box con cruce (columnas por grupo); boxplot
+3 zonas/sin cruce/semáforo grupos/degradado auto (paleta de la casa ✓);
+media-rango 3 zonas y minmax 2 grupos.
+
+**Hallazgos abiertos del carril (B-serie):**
+
+- **B-H2**: ningún test renderiza radar_tabla de verdad (el único usa
+  `solo_lista=TRUE`) — el builder ya quedó cubierto; falta smoke de render.
+- **B-H3**: `modo_semaforo="degradado_manual"` de media_rango exige
+  `semaforo_gradiente_colores/valores` que la UI no ofrece → lámina muerta
+  «Sin datos». Curar los args o degradar a automático con warning.
+- **B-H5 (editorial radar)**: leyenda «Total» de serie única no se
+  auto-oculta (patrón P9); `legend_espaciado=0.25pt` (cero visual, patrón
+  P12/P16 pendiente de réplica); paleta de cruce no es la de la casa
+  (hcl "Dark 3"); radar chico en lámina completa sin valores en vértices.
+- **B-H6**: la tabla T2B pinta de rojo todo valor `<umbral_rojo_pct` (60
+  default) — el knob existe como formal pero no está curado ni la semántica
+  se declara en ninguna parte visible.
+- **B-H8**: boxplot ordena el eje X por su cuenta (¿alfabético?) ignorando el
+  orden del instrumento; media_rango sí lo respeta. Unificar.
+- **B-H9 (editorial)**: chips de promedio microscópicos e ilegibles, rojos
+  por defecto sin cortes (semántica engañosa: media 7.1/10 en rojo); puntos
+  jitter casi invisibles (alpha 0.28 lavado); cortes de semáforo del boxplot
+  en líneas blancas punteadas invisibles sobre fondo claro.
+- **B-D1 (bandeja)**: `p_radar_tabla` combinado (compat) rinde radar SIN
+  tabla por default (`mostrar_tabla_derecha=FALSE` de fábrica) — el nombre
+  promete ambos. Decidir default o retirar del motor.
+- **RT/M02**: `accent` del diferencial de `mostrar_ref_label` ahora sí debe
+  verificarse con render (fix aplicado post-sweep).
+
+**Gate:** cruces-categorias, cruces-jerarquia, dimensiones-ppt-radar,
+dimensiones-iconos-foda-radar, radar-solo-tabla (5), orders-informales (8):
+**todo verde**.
