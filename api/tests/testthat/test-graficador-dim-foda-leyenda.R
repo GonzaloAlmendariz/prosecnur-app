@@ -12,3 +12,61 @@ test_that("sin cortes finitos degrada a Bajo/Medio/Alto (nunca nombres de color)
   expect_identical(.dim_foda_legend_labels(list()), c("Bajo", "Medio", "Alto"))
   expect_identical(.dim_foda_legend_labels(list(cortes = NA)), c("Bajo", "Medio", "Alto"))
 })
+
+# B12 (B-H20): el catálogo de dimensiones perdía la etiqueta humana del
+# índice — indice("global", "Índice global de satisfacción") se presentaba y
+# resolvía como "Global" porque label_idx embellecía la clave antes de mirar
+# meta_indices y los labels reales de la columna.
+
+.l9_dim_ctx <- function() {
+  dat <- data.frame(
+    p1 = c("5", "4", "5", "4", "5", "4"),
+    p2 = c("4", "4", "5", "3", "5", "4"),
+    stringsAsFactors = FALSE
+  )
+  survey <- data.frame(
+    name = c("p1", "p2"), type = rep("select_one sat", 2),
+    list_name = rep("sat", 2), label = c("P1", "P2"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = "sat", name = as.character(1:5), label = as.character(1:5),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(survey = survey, choices = choices, orders_list = NULL)
+  d1 <- reporte_dimensiones(
+    data = dat, instrumento = inst, vars = c("p1", "p2"),
+    prefijo = "r100_", reemplazar = FALSE,
+    orden_por_lista = list(sat = as.character(1:5))
+  )
+  d2 <- reporte_dimensiones_indices(
+    data = d1,
+    subindices = list(
+      subindice("s1", "Atención al usuario", "r100_p1"),
+      subindice("s2", "Canales digitales", "r100_p2")
+    ),
+    indices = list(
+      indice("global", "Índice global de satisfacción", c("s1", "s2"))
+    )
+  )
+  list(data = d2, inst = inst)
+}
+
+test_that("el catálogo de dimensiones conserva la etiqueta humana del índice", {
+  fx <- .l9_dim_ctx()
+  ctx <- .dim_build_context(data = fx$data, instrumento = fx$inst)
+  expect_identical(
+    ctx$catalog_general[["idx_global"]]$label,
+    "Índice global de satisfacción"
+  )
+})
+
+test_that("el objetivo se resuelve también por la etiqueta humana", {
+  fx <- .l9_dim_ctx()
+  ctx <- .dim_build_context(data = fx$data, instrumento = fx$inst)
+  payload <- .dim_build_payload(
+    ctx = ctx, modo = "general",
+    objetivo = "Índice global de satisfacción"
+  )
+  expect_false(is.null(payload))
+})
