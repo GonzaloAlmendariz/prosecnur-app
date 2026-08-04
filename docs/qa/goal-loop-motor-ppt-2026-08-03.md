@@ -557,3 +557,48 @@ replicable).
 
 **Gate:** defaults-editoriales 6, presets-contrato 9, argumentos-ui 459,
 var-cruce 323: todo verde.
+
+### P12 — L4: barrido exhaustivo de barras agrupadas, 22 variantes miradas (2026-08-03)
+
+Pedido de Gonzalo: ir gráfico por gráfico generando **todas las
+configuraciones y combinaciones** y comprobar que cada una se vea profesional.
+Patrón instaurado: script de barrido (`SWEEP/sweep_agrupadas.R`, replicable
+por graficador) — una lámina por variante con guías activas, hojas de
+contacto para el barrido grueso y zoom forense donde algo se ve mal.
+
+**Reparado en este pase:**
+
+- **Leyenda pegada** (lo que señaló Gonzalo): `legend_espaciado` de la firma
+  era **0.20 puntos** (cero visual) — a 6 pt, más margen swatch-texto en el
+  theme y `legend.spacing.x`; el arg UI declaraba 4 y ahora declara 6 con
+  descripción. Verificado con zoom: «■ Mujer  ■ Hombre» respira.
+
+**Las 22 variantes (todas renderizadas y miradas):** defaults serie
+única/cruce ✓; mayor_menor/menor_mayor ✓; orden manual ✓; mostrar_ceros ✓;
+excluir opción con N recalculado (150→125) ✓; top-5 + Otros ✓ (con la lámina
+extra auto-generada del detalle de Otros — feature `auto_otros_slides`);
+etiqueta de Otros custom ✓; Otros sin forzar al final ✓; mayúscula inicial ✓;
+wrap 12 / interlineado / forzar 45 / etiquetas 25 % ✓; cruce sin leyenda
+explícito ✓; leyenda invertida ✓; combo cruce+top4+orden ✓; 1 sola categoría
+degrada sin romper ✓.
+
+**Hallazgos nuevos:**
+
+- **H24**: `max_categorias` se ignora si `agrupar_resto_en_otros=FALSE`
+  (salen las 12 barras apretadas). Decidir semántica: recortar sin agrupar o
+  documentar que solo aplica agrupando.
+- **H25**: la semántica de `umbral_posicion` no es la de su descripción — con
+  0.5, 17 % y 35 % siguen dentro (parece primar «si el texto cabe en la
+  barra, va dentro», que estéticamente es correcto). Ajustar descripción o
+  comportamiento.
+- **H26**: 12 categorías × cruce no dispara split de lámina (24 barras
+  ilegibles); revisar el auto-split con cruce.
+- **D6 (bandeja)**: con `invertir_leyenda=TRUE` la leyenda queda en el mismo
+  orden vertical que las barras del dodge — candidata a default de la casa.
+- Detalle: interlineado alto + wrap agresivo pueden invadir la categoría
+  vecina (los knobs lo permiten; el default está sincronizado).
+
+**Ledger L4:** 18 de los 20 args del graficador con diferencial mirado
+(faltan formals técnicos), más leyenda/espaciado del preset. Pendiente: H22
+(ancho por slot), H18 (top_two_box), barrido fino de los 35 args del preset
+(canvas_*).
