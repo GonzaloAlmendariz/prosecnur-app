@@ -1787,6 +1787,8 @@ p_nube_palabras <- function(
     var,
     parent_var = NULL,
     titulo = NULL,
+    max_palabras = NULL,
+    min_chars = NULL,
     overrides = list(),
     base = list(),
     filtros = list()
@@ -1795,6 +1797,14 @@ p_nube_palabras <- function(
     .plan_spec_abort("`var` debe ser character(1) no vacio.")
   }
   var <- trimws(var)
+  # La UI curaba max_palabras/min_chars pero el puente payload->constructor
+  # los descartaba por no ser formals: eran controles muertos (B19).
+  if (!is.null(max_palabras) && is.null(overrides$max_palabras)) {
+    overrides$max_palabras <- suppressWarnings(as.integer(max_palabras)[1])
+  }
+  if (!is.null(min_chars) && is.null(overrides$min_chars)) {
+    overrides$min_chars <- suppressWarnings(as.integer(min_chars)[1])
+  }
 
   if (!is.null(parent_var)) {
     if (!is.character(parent_var) || length(parent_var) != 1L || !nzchar(trimws(parent_var))) {

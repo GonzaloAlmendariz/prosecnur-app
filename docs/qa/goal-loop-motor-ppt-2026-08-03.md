@@ -1474,3 +1474,28 @@ Con L8 y L9 completos (auditoría + curación), la sesión B reclama **L7 —
 `graficador_pie_dicotomico.R`, `graficador_nube_palabras.R` y
 `graficador_mapa_cobertura.R` — los tres libres. El registry sigue con el
 trabajo en vuelo de A (técnica de hunks vigente).
+
+### B19 — L7 arranca: fantasmas de la nube reparados y dedup de Base para pie/donut (2026-08-04, sesión B)
+
+Censo del carril: `p_pie`/`p_donut` con contrato limpio; **`max_palabras` y
+`min_chars` de la nube eran FANTASMAS** (el puente los descartaba por no ser
+formals — defecto fundacional otra vez); `p_mapa` con titulo/contexto
+ocultos (menor).
+
+**Reparado con render verificado:**
+
+1. **B-H26 — fantasmas de la nube**: formals nuevos con passthrough a
+   overrides. Q6 rinde exactamente 5 palabras de ≥6 caracteres.
+2. **B-H22 — pie/donut entran a la dedup de Base** (P9/P17/P23): el
+   placeholder auto ya no duplica el caption del gráfico. La base manual del
+   analista se respeta siempre (regla de la casa).
+
+**Hallazgos abiertos del carril (siguiente tramo):**
+
+- **B-H23**: paleta del pie ajena a la casa (morado/cyan/lima/salmón).
+- **B-H24**: la leyenda del pie desborda su banda y pisa el caption
+  (geometría del canvas del preset — perfil H23 de agrupadas).
+- **B-H25**: el pie ordena una ordinal por frecuencia, ignorando el
+  instrumento (perfil B-H8/H20).
+
+**Gate:** l7-pie-nube 3 (nuevo), plan-texto 113, argumentos-ui 459: verde.
