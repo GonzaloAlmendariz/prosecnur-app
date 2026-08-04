@@ -29,10 +29,18 @@ p_radar <- function(modo = c("sm", "box"),
                     sm_omit_codes  = NULL,
                     sm_omit_labels = NULL,
                     sm_omit_na     = TRUE,
+                    mostrar_valores = NULL,
+                    valores_decimales = NULL,
                     overrides = list(),
                     base = list(),
                     filtros = list()) {
   overrides <- c(list(mostrar_tabla_derecha = FALSE), overrides %||% list())
+  if (!is.null(mostrar_valores) && is.null(overrides$mostrar_valores)) {
+    overrides$mostrar_valores <- isTRUE(mostrar_valores)
+  }
+  if (!is.null(valores_decimales) && is.null(overrides$valores_decimales)) {
+    overrides$valores_decimales <- valores_decimales
+  }
   p_radar_tabla(
     modo = modo, var = var, vars = vars, cruce = cruce,
     box_labels = box_labels, colores_series = colores_series,
@@ -61,9 +69,13 @@ p_tabla <- function(modo = c("sm", "box"),
                     sm_omit_codes  = NULL,
                     sm_omit_labels = NULL,
                     sm_omit_na     = TRUE,
+                    umbral_rojo_pct = NULL,
                     overrides = list(),
                     base = list(),
                     filtros = list()) {
+  if (!is.null(umbral_rojo_pct) && is.null(overrides$umbral_rojo_pct)) {
+    overrides$umbral_rojo_pct <- suppressWarnings(as.numeric(umbral_rojo_pct)[1])
+  }
   overrides <- c(list(
     mostrar_tabla_derecha = TRUE,
     # Ocultar la parte del radar: el motor respeta estos flags para

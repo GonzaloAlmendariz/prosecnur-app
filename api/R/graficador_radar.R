@@ -1424,7 +1424,11 @@ graficar_radar <- function(
         firstcol_bold = tabla_firstcol_bold,
         firstcol_size = tabla_firstcol_size,
         firstcol_indent_npc = tabla_firstcol_indent_npc,
-        highlight_threshold = umbral_rojo_pct,
+        highlight_threshold = {
+          # 0 (o negativo) = regla roja apagada; sin esto 0% aun se pintaba.
+          u <- suppressWarnings(as.numeric(umbral_rojo_pct)[1])
+          if (!is.finite(u) || u <= 0) -Inf else u
+        },
         highlight_col = "red",
         padding_mm = tabla_padding_mm,
         line_lwd = tabla_line_lwd

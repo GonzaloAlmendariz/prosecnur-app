@@ -990,7 +990,12 @@
       list(name = "sm_omit_codes",label = "Códigos a omitir",     tipo_input = "codigos_list",   grupo = "filtro",
            descripcion = "Códigos de respuesta que no queremos en el radar (ej. 88=No sabe, 90=No aplica)."),
       list(name = "sm_omit_na",   label = "Omitir NA",            tipo_input = "bool",           grupo = "filtro",
-           descripcion = "Excluir casos con respuesta vacía.")
+           descripcion = "Excluir casos con respuesta vacía."),
+      list(name = "mostrar_valores", label = "Valores en vértices", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Etiqueta cada vértice con su porcentaje, coloreado por serie. Da el ancla numérica que la telaraña sola no ofrece."),
+      list(name = "valores_decimales", label = "Decimales de los valores", tipo_input = "number", grupo = "valores",
+           default = 0)
     ), .args_graf_comunes())
   ),
 
@@ -1010,7 +1015,10 @@
       list(name = "titulo_tabla", label = "Título de la tabla",   tipo_input = "string",         grupo = "textos"),
       list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro"),
       list(name = "sm_omit_codes",label = "Códigos a omitir",     tipo_input = "codigos_list",   grupo = "filtro"),
-      list(name = "sm_omit_na",   label = "Omitir NA",            tipo_input = "bool",           grupo = "filtro")
+      list(name = "sm_omit_na",   label = "Omitir NA",            tipo_input = "bool",           grupo = "filtro"),
+      list(name = "umbral_rojo_pct", label = "Umbral de resaltado en rojo", tipo_input = "number", grupo = "semaforo",
+           default = 60,
+           descripcion = "Valores bajo este umbral (%) se resaltan en rojo. Pensado para T2B de satisfacción; usa 0 para desactivar la regla (ej. tablas de uso o menciones).")
     ), .args_graf_comunes())
   ),
 
@@ -1028,30 +1036,19 @@
              list(value = "indicadores",  label = "Indicadores",    hint = "Compara indicadores individuales.")
            )),
       list(name = "objetivo",  label = "Objetivo",    tipo_input = "string",       grupo = "datos",
-           descripcion = "Qué se está midiendo (ej. 'Satisfacción', 'Calidad de atención')."),
+           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
       list(name = "cruce",     label = "Dividir por", tipo_input = "variable_opt", grupo = "datos"),
       list(name = "incluir_total", label = "Incluir serie total", tipo_input = "bool", grupo = "filtro",
-           descripcion = "Añade una serie con el total de la muestra como referencia.")
+           descripcion = "Añade una serie con el total de la muestra como referencia."),
+      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
+           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
+      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
     ), .args_graf_comunes())
   ),
 
-  p_dim_radar_tabla = list(
-    titulo_humano = "Radar dimensional + tabla",
-    descripcion   = "Radar de dimensiones con una tabla al costado. Versión con tabla para contextualizar los puntajes.",
-    icono_ui      = "Radar",
-    requisito     = "dimensiones",
-    args = c(list(
-      list(name = "modo",          label = "Nivel",        tipo_input = "choice",       grupo = "datos",
-           choices = list(
-             list(value = "general",      label = "Índice general"),
-             list(value = "indicadores",  label = "Indicadores")
-           )),
-      list(name = "objetivo",      label = "Objetivo",     tipo_input = "string",       grupo = "datos"),
-      list(name = "cruce",         label = "Dividir por",  tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "titulo_tabla",  label = "Título tabla", tipo_input = "string",       grupo = "textos"),
-      list(name = "incluir_total", label = "Incluir total",tipo_input = "bool",         grupo = "filtro")
-    ), .args_graf_comunes())
-  ),
+  # p_dim_radar_tabla fue RETIRADO del flujo PPT (el constructor aborta con
+  # deprecación): no se ofrece en el registry. Compat de planes viejos vive en
+  # el motor.
 
   p_dim_heatmap = list(
     titulo_humano = "Heatmap de dimensiones",
@@ -1064,19 +1061,34 @@
              list(value = "general",      label = "Índice general"),
              list(value = "indicadores",  label = "Indicadores")
            )),
-      list(name = "objetivo",  label = "Objetivo",   tipo_input = "string",       grupo = "datos"),
+      list(name = "objetivo",  label = "Objetivo",   tipo_input = "string",       grupo = "datos",
+           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
       list(name = "cruce",     label = "Cruce",      tipo_input = "variable_opt", grupo = "datos"),
       list(name = "incluir_total", label = "Incluir totales", tipo_input = "bool", grupo = "filtro"),
       list(name = "brecha_filas",   label = "Brecha por filas",   tipo_input = "bool", grupo = "filtro",
            descripcion = "Añade columna 'Brecha' con max-min por fila."),
       list(name = "brecha_cols",    label = "Brecha por columnas",tipo_input = "bool", grupo = "filtro"),
+      list(name = "etiq_brecha_filas", label = "Etiqueta de brecha (columna)", tipo_input = "string", grupo = "textos",
+           default = "Brecha"),
+      list(name = "etiq_brecha_cols",  label = "Etiqueta de brecha (fila)",    tipo_input = "string", grupo = "textos",
+           default = "Brecha"),
+      list(name = "brecha_cortes",  label = "Cortes del gradiente de brecha", tipo_input = "codigos_list", grupo = "semaforo",
+           descripcion = "Dos valores que calibran el sombreado de la brecha (default 0 y 30)."),
+      list(name = "titulo_total_x", label = "Título de la columna Total", tipo_input = "string", grupo = "textos",
+           default = "Total"),
+      list(name = "mostrar_n_cruce_x", label = "Mostrar N por columna", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Añade (N=…) bajo cada columna del cruce."),
       list(name = "modo_semaforo",  label = "Tipo de semáforo",   tipo_input = "choice", grupo = "semaforo",
            choices = list(
              list(value = "grupos",               label = "Por grupos"),
              list(value = "degradado_automatico", label = "Degradado auto"),
              list(value = "degradado_manual",     label = "Degradado manual"),
              list(value = "degradado",            label = "Degradado simple")
-           ))
+           )),
+      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
+           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
+      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
     ), .args_graf_comunes())
   ),
 
@@ -1091,11 +1103,15 @@
              list(value = "general",      label = "Índice general"),
              list(value = "indicadores",  label = "Indicadores")
            )),
-      list(name = "objetivo",       label = "Objetivo",        tipo_input = "string",       grupo = "datos"),
+      list(name = "objetivo",       label = "Objetivo",        tipo_input = "string",       grupo = "datos",
+           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
       list(name = "cruce",          label = "Dividir por",     tipo_input = "variable_opt", grupo = "datos"),
       list(name = "incluir_total",  label = "Incluir total",   tipo_input = "bool",         grupo = "filtro"),
       list(name = "radar_min_ejes", label = "Mínimo de ejes en radar", tipo_input = "number", grupo = "avanzado",
-           descripcion = "Si hay menos dimensiones que este número, el radar se reemplaza por barras.")
+           descripcion = "Si hay menos dimensiones que este número, el radar se reemplaza por barras."),
+      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
+           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
+      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
     ), .args_graf_comunes())
   ),
 
@@ -1110,7 +1126,8 @@
              list(value = "subindices",    label = "Subíndices"),
              list(value = "indicadores",   label = "Indicadores")
            )),
-      list(name = "objetivo",  label = "Objetivo",          tipo_input = "string",       grupo = "datos"),
+      list(name = "objetivo",  label = "Objetivo",          tipo_input = "string",       grupo = "datos",
+           descripcion = "Clave o etiqueta del índice (nivel 'Índice general') o del subíndice (nivel 'Indicadores'), según el catálogo de dimensiones del proyecto."),
       list(name = "modo_foda", label = "Disposición",       tipo_input = "choice",       grupo = "estilo",
            choices = list(
              list(value = "matriz",      label = "Matriz 2×2"),
@@ -1119,7 +1136,14 @@
       list(name = "cruce",         label = "Cruce",           tipo_input = "variable_opt", grupo = "datos"),
       list(name = "incluir_total", label = "Incluir total",   tipo_input = "bool",         grupo = "filtro"),
       list(name = "usar_pesos",    label = "Aplicar pesos",   tipo_input = "bool",         grupo = "filtro",
-           descripcion = "Si los subíndices tienen pesos declarados, los aplica al ranking FODA.")
+           descripcion = "Si los subíndices tienen pesos declarados, los aplica al ranking FODA."),
+      list(name = "cortes_chip",   label = "Cortes del semáforo", tipo_input = "codigos_list", grupo = "semaforo",
+           descripcion = "Dos valores que separan rojo/ámbar/verde en los chips (default 60 y 80). La leyenda usa estos mismos cortes."),
+      list(name = "corte_score",   label = "Corte de puntaje (dispersión)", tipo_input = "number", grupo = "datos",
+           descripcion = "Umbral que separa alto/bajo en el eje de puntaje. OBLIGATORIO en disposición 'Dispersión'."),
+      list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
+           descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
+      list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
     ), .args_graf_comunes())
   ),
 

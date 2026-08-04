@@ -2662,6 +2662,7 @@ p_dim_foda <- function(
     ancho_chip_rel = 0.18,
     sufijo_puntaje = " pts",
     cortes_chip = NULL,
+    corte_score = NULL,
     modo_semaforo = c("grupos", "degradado_automatico", "degradado_manual", "degradado"),
     tamano_texto_tarjeta = NULL,
     tamano_letra_recuadro = NULL,
@@ -2687,6 +2688,11 @@ p_dim_foda <- function(
   modo_foda <- match.arg(modo_foda)
   modo_semaforo <- .dim_normalize_semaforo_modo(modo_semaforo)
   disposicion_recuadro <- as.character(disposicion_recuadro %||% "dos_lineas")[1]
+  # `corte_score` es obligatorio en modo_foda='dispersion' (viaja al
+  # graficador via overrides; sin formal la UI no podia ofrecerlo).
+  if (!is.null(corte_score) && is.null(overrides$corte_score)) {
+    overrides$corte_score <- suppressWarnings(as.numeric(corte_score)[1])
+  }
 
   if (!is.null(objetivo)) {
     if (!is.character(objetivo) || length(objetivo) != 1L || !nzchar(trimws(objetivo))) {

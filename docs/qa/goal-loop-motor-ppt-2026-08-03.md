@@ -1429,3 +1429,27 @@ idealmente selector poblado del catálogo.
 **Transversal (propuesta eje 3):** la lámina degradada «Sin datos» debe
 mostrar el motivo real del motor (hoy muere en stderr) — es la mejora de
 UX/depuración de mayor palanca encontrada en toda la sesión B.
+
+### B17 — La especificación B16 aplicada: la UI por fin ofrece lo que el motor hace (2026-08-04, sesión B)
+
+Aplicada la curación al registry (commit por hunks — `git apply --cached
+--reverse` del patch de la sesión A, que conserva su trabajo en el árbol):
+
+- **p_radar**: `mostrar_valores` + `valores_decimales` (nuevos formals del
+  wrapper que rutean a overrides). **p_tabla**: ídem `umbral_rojo_pct`, y el
+  graficador ahora trata `0` como regla roja APAGADA (antes 0% aún se
+  pintaba).
+- **Familia dim**: `iter_var`/`iter_level` curados en radar, heatmap,
+  comparativo y foda; heatmap gana superficie para `etiq_brecha_*`,
+  `brecha_cortes`, `titulo_total_x` y `mostrar_n_cruce_x`; foda para
+  `cortes_chip` y `corte_score` (nuevo formal, obligatorio en dispersión —
+  su descripción lo declara). La descripción de `objetivo` en las 4 entradas
+  dice la verdad: clave o etiqueta según catálogo y nivel.
+- **`p_dim_radar_tabla` RETIRADO del registry** (B-H16): el motor lo rechaza
+  desde hace tiempo; la UI deja de ofrecerlo (compat de planes viejos sigue
+  en el motor).
+- Diferido: `titulos_areas_foda` (necesita input de mapa clave→texto o
+  parseo textual en el constructor — como el de multiapiladas P20).
+
+**Gate:** argumentos-ui 459, metadata 228 (los -2 son las entradas del
+elemento retirado), radar-solo-tabla 5, dim-foda-leyenda 6: todo verde.
