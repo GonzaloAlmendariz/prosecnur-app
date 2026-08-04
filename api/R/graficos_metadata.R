@@ -1549,8 +1549,13 @@
       .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra")),
 
       # --- Serie y leyenda -----------------------------------------------
+      # El `default` tiene que ser el del motor (`graficar_barras_agrupadas`).
+      # Sin él, un preset guardado que no incluya la clave se pintaba como "No"
+      # en la UI mientras el render usaba TRUE: el analista veía la leyenda
+      # apagada y el gráfico salía con leyenda.
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo",
-           descripcion = "Útil poner en FALSE cuando hay una sola serie (no hace falta explicarla)."),
+           default = TRUE,
+           descripcion = "Con cruce, la leyenda es la única forma de saber qué serie es cuál. La serie única se oculta sola aunque esté en Sí."),
       list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "abajo",  label = "Abajo"),
@@ -2482,7 +2487,10 @@
     mostrar_barra_extra      = FALSE,
     prefijo_barra_extra      = "",
 
-    mostrar_leyenda          = FALSE,
+    # TRUE y no FALSE: con cruce la leyenda es la única forma de saber qué
+    # serie es cuál. La serie única sintética ("Porcentaje") se auto-oculta en
+    # el graficador, así que este TRUE no mete ruido en gráficos sin cruce.
+    mostrar_leyenda          = TRUE,
     orden_barras             = "instrumento",
     # 12 y no 10: una lista de opciones que ya trae 10 categorías del
     # instrumento suele ganar 1-2 más al codificar los "Otros" abiertos, y con
