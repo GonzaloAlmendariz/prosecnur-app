@@ -349,7 +349,9 @@ graficar_barras_agrupadas <- function(
     canvas_h_toprow_in        = 0.18,
 
     legend_key_cm             = 0.30,
-    legend_espaciado          = 0.20,
+    # 6 pt y no 0.20: con 0.20 el swatch quedaba pegado al texto y la leyenda
+    # se leia como una sola palabra ("MujerHombre"). La UI declara 6.
+    legend_espaciado          = 6,
     legend_n_por_fila         = 6L,
 
     encabezado_desplazamiento_in = 0,
@@ -1095,8 +1097,12 @@ graficar_barras_agrupadas <- function(
         color = color_leyenda,
         size  = size_leyenda,
         family = font_family,
-        face  = if ("leyenda" %in% textos_negrita) "bold" else "plain"
+        face  = if ("leyenda" %in% textos_negrita) "bold" else "plain",
+        # aire entre el swatch y su texto, y entre items contiguos: sin esto
+        # la leyenda se leia "■Mujer■Hombre" como una sola palabra
+        margin = ggplot2::margin(l = 4, r = 12)
       ),
+      legend.spacing.x   = grid::unit(6, "pt"),
       plot.title         = ggplot2::element_text(
         hjust = hjust_titulo,
         color = color_titulo,
