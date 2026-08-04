@@ -1,15 +1,68 @@
 # GOAL · Auditoría total del motor PPT — partícula por partícula
 
-Tipo: Goal operativo QA
-Estado: En curso
+Tipo: Goal operativo QA **permanente e indefinido**
+Estado: En curso — **sin condición de cierre; no se detiene**
 Fecha: 2026-08-03
 Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado del motor
 Prompt de arranque: `docs/qa/prompt-goal-loop-motor-ppt.md` (pegar tal cual en sesión nueva)
 
-- **Abierto**: 2026-08-03 · **Cierra**: sólo Gonzalo
-- **Alcance**: loop de convergencia sobre TODO el motor PPT — cada slide, cada
-  graficador, cada argumento, cada placeholder — contra el render real. No se
-  cierra hasta que cada partícula del censo tenga sus cinco pruebas en verde.
+- **Abierto**: 2026-08-03 · **Cierra**: sólo Gonzalo (y su mandato del
+  2026-08-03 es explícito: el goal es indefinido y **no debe parar jamás**)
+- **Alcance**: loop de convergencia sobre TODO el motor PPT/Word — cada slide,
+  cada graficador, cada argumento, cada placeholder — contra el render real.
+  Al vaciar la cola se re-audita desde el principio con la vara más alta.
+
+## Mandato expandido (2026-08-03, pedido de Gonzalo)
+
+Pedido textual (transcripción fiel, ortografía normalizada):
+
+> «Nuestro interés es que el generador de PPTs y Word sea un generador sólido
+> y profesional, pero ahora tiene una serie de dimensiones combinadas que
+> evitan ello: una UI que necesita un mayor revamp — aunque bien encaminada,
+> aún hay muchos elementos que en términos de UI resultan algo confusos y no
+> muy pulidos —; un motor de gráficos que tiene para generar PPTs, para cada
+> gráfico y para slides con distintos elementos en él — todos funcionan, pero
+> no se ha hecho un intento sostenido y continuado de poner absolutamente
+> todas las posibles combinaciones actuales existentes entre todas y comprobar
+> si el motor genuinamente genera elementos visuales bien diseñados y con
+> buena sofisticación visual —. Además la UI tiene gran especificidad para
+> ajustar cada detalle de cada gráfico, pero ¿de verdad los tiene?
+> ¿Multiapiladas puede ajustar cada detalle de sus gráficos en función de cada
+> decisión que se tome, por ejemplo si son dos o tres columnas para agregar
+> elementos? No. He ahí el detalle: necesitamos un goal indefinido, que no
+> termina ni finaliza, que genera una revisión extremadamente exhaustiva y no
+> infiera sino compruebe visualmente al mayor grado posible de detalle todas
+> las funciones, todos los gráficos, todas las configuraciones en su
+> totalidad, todo y absolutamente todo lo que esto puede generar; mejorarlo,
+> corregirlo, perfeccionarlo, añadir las funcionalidades, documentar cambios
+> y mejoras, proponer cosas increíbles y profesionales, mejorar por completo
+> la UI y verificar que coincida con todo lo que el motor es capaz de hacer y
+> facilitarle la vida al usuario para que pueda usar con mayor facilidad esta
+> herramienta. Sé que es bastante, pero es fundamental que esto sea un goal
+> totalmente indefinido y que no pare por absolutamente nada. No debe parar,
+> repito, no debe parar jamás.»
+
+El generador de PPT/Word debe ser **sólido y profesional**, y hoy lo frenan
+tres dimensiones combinadas. El goal pasa de «auditar» a
+«auditar-mejorar-perfeccionar», en tres ejes permanentes:
+
+1. **Eje motor — sofisticación visual comprobada.** No basta que cada función
+   corra: hay que generar **todas las combinaciones posibles** entre slides,
+   graficadores y configuraciones, mirar el render de cada una y comprobar que
+   el resultado es visualmente bien diseñado. Lo que se vea pobre se mejora,
+   no solo se anota (patrón P9/P13/P15: default editorial > default funcional).
+2. **Eje paridad — la UI ofrece exactamente lo que el motor hace.** En ambos
+   sentidos: todo control ofrecido tiene efecto real (fantasmas fuera), y toda
+   capacidad real del motor tiene superficie utilizable — incluida la
+   especificidad condicional (ej.: si multiapiladas rinde 2 o 3 columnas, la
+   UI debe permitir ajustar cada columna, no solo el conjunto).
+3. **Eje experiencia — la herramienta facilita la vida.** Revamp continuo de
+   la UI de Gráficos: elementos confusos o poco pulidos se rediseñan;
+   funcionalidades nuevas y propuestas profesionales se documentan y
+   construyen; cada mejora queda registrada en esta bitácora.
+
+Regla de no-parada: al agotar un lote se pasa al siguiente; al agotar la cola
+se re-censa y se re-audita con vara más alta; nunca se declara «terminado».
 - **Frontera**: la dimensión base pertenece al loop de Gráficos multibase
   (`goal-loop-graficos-multibase-2026-08-03.md`); los hallazgos multibase se
   anotan allá. Arquitectura → ADR.
@@ -750,3 +803,31 @@ cuadrados y conector para el segmento pequeño (2 %). Sin cruce, la barra
 
 **Gate:** apiladas-cruce 4, apiladas-frecuencia 11, agrupadas-defaults 9,
 plan-texto 113, var-cruce 323: **todo verde**. Audit de congelados limpio.
+
+### P20 — L5: sweep de multiapiladas (7 variantes) + tres reparaciones (2026-08-03)
+
+**En verde del sweep:** multilista default (3 filas, N por fila); Top2Box con
+columna 79/67/71; numerar OE; modo cruce explícito; variables × cruce con
+títulos de grupo aplicados; Top2 con labels explícitos.
+
+**Reparado:**
+
+1. **H30 — `titulos_grupo` honra su doc:** el registry documenta el formato
+   textual «clave=Título» pero el constructor lo rechazaba (el builder de la
+   UI envía objeto nombrado, por eso no reventaba desde ahí). El constructor
+   ahora parsea el formato textual — la promesa es cierta por todos los
+   caminos. Test en `test-graficador-apiladas-cruce.R`.
+2. **Doble Base de multiapiladas (dedup P9/P17 extendida con matiz):** la
+   base auto del slide se suprime salvo cuando los refs son **multi-fuente**
+   («Base: 2 docentes, 3 estudiantes…» no vive en el caption del gráfico y se
+   conserva — el test de var-cruce que la fija siguió verde). Helper
+   `.base_multifuente_el` en helpers; monolito en 9.418 exacto.
+3. El código del fix se apoyó en el hallazgo de que el modo interno del
+   multilista de la UI es `"var"` (no `"multilista"`) — anotado para el censo.
+
+**Abiertos nuevos:** H31 — `wrap_y` de multiapiladas sin efecto visible en el
+diferencial 18 vs default (verificar con zoom); H32 — en variables × cruce
+(2 grupos × 3 filas) la leyenda pisa la franja del caption.
+
+**Gate:** var-cruce 323 (incluida la base multi-fuente), apiladas-cruce 7,
+plan-texto 113, consolidado 95: **todo verde**. Audit limpio.

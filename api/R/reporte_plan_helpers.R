@@ -420,6 +420,29 @@
   )
 }
 
+# TRUE si los refs de un multilista abarcan mas de una fuente explicita
+# ("docentes$x", "estudiantes$y"). Con una sola fuente, la base auto del
+# slide duplica el caption del grafico y se suprime (dedup P20); la base
+# multi-fuente ("Base: 2 docentes, 3 estudiantes...") si aporta y se queda.
+#' @keywords internal
+.base_multifuente_el <- function(el, extract) {
+  refs <- c(
+    extract(el$vars %||% NULL), extract(el$var %||% NULL),
+    unlist(lapply(el$bloques %||% list(), function(b) {
+      extract(c(b$var %||% NULL, b$vars %||% NULL))
+    }))
+  )
+  .base_refs_multifuente(refs)
+}
+
+#' @keywords internal
+.base_refs_multifuente <- function(refs) {
+  refs <- as.character(refs %||% character(0))
+  srcs <- refs[grepl("$", refs, fixed = TRUE)]
+  srcs <- unique(sub("\\$.*$", "", srcs))
+  length(srcs) > 1L
+}
+
 # Leyenda del slide Top Two Box (H18). Con el layout fijo (gap 88, una linea
 # centrada bajo cada swatch) diez categorias desbordaban sobre el texto del
 # extremo derecho y las etiquetas largas se superponian en una sopa ilegible.

@@ -3488,10 +3488,11 @@ reporte_ppt_plan <- function(
 
     etype <- el$.element_type %||% ""
     # barras_agrupadas ya imprime su "Base: ..." como caption del grafico
-    # (nota_pie por defecto): duplicarla en el placeholder del slide era el
-    # default (P9; apiladas sumaba ademas su columna N — triple marca, P17).
-    # El placeholder queda para base manual o tipos sin caption propio.
+    # (nota_pie): duplicarla en el placeholder era el default (P9/P17/P20).
+    # Queda para base manual, tipos sin caption propio y multi-fuente.
     if (etype %in% c("barras_agrupadas", "barras_apiladas")) return(NULL)
+    if (identical(etype, "barras_multiapiladas") &&
+        !.base_multifuente_el(el, .extract_ref_values)) return(NULL)
     # (agrupadas y apiladas retornaron arriba: su caption ya trae la base)
     excluir_base <- switch(
       etype,
@@ -3517,7 +3518,7 @@ reporte_ppt_plan <- function(
         if (length(refs_block)) refs_base <- c(refs_base, refs_block)
       }
       refs_base <- refs_base[!duplicated(refs_base)]
-      if (!length(refs_base)) return(NULL)
+      if (!length(refs_base) || !.base_refs_multifuente(refs_base)) return(NULL)
 
       return(.base_auto_from_refs(
         refs = refs_base,
@@ -4276,8 +4277,7 @@ reporte_ppt_plan <- function(
     var <- el$var
     filtros <- el$filtros %||% list()
     overrides <- el$overrides %||% list()
-    # H29: con cruce, una fila apilada por grupo — exactamente lo que ya hace
-    # multiapiladas modo "cruce". Este render solo cubre la barra unica.
+    # H29: con cruce delega en multiapiladas modo "cruce" (fila por grupo).
     cruce_ref <- .extract_ref_values(el$cruces %||% overrides$cruces %||% NULL)
     cruce_ref <- cruce_ref[!is.na(cruce_ref) & nzchar(trimws(cruce_ref))]
     if (length(cruce_ref)) {
