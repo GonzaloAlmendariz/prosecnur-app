@@ -77,3 +77,20 @@
   color: var(--pulso-text-soft, rgba(15, 23, 42, 0.72));
   white-space: nowrap;
 }
+
+/* B48: el sidebar comprime con flex-shrink y el buscador (min-height 34)
+   se pintaba ENCIMA de la primera fila (21px de solape medidos). Todo lo
+   que no es la lista queda rigido; la lista (flex:1) absorbe el ajuste. */
+.pulso-gv2-paletas-sidebar > *:not(.pulso-gv2-paletas-list) {
+  flex: 0 0 auto;
+}
+
+/* B48: el dialogo fijaba un grid de 3 filas (eyebrow/search/lista) y el
+   toggle de agrupacion es un CUARTO hijo — el buscador caia en la fila
+   minmax(0,1fr) colapsada y se pintaba sobre la primera lista (21px de
+   solape medidos). Volvemos al flex column de la regla base, que soporta
+   cualquier numero de controles fijos con la lista absorbiendo el resto. */
+.pulso-gv2-estilo-body .pulso-gv2-paletas-editor .pulso-gv2-paletas-sidebar {
+  display: flex;
+  flex-direction: column;
+}
