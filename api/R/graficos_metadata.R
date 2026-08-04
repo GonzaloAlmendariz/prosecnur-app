@@ -1551,8 +1551,18 @@
            descripcion = "Separación horizontal fina entre ítems de la leyenda manual."),
 
       # --- Canvas ---------------------------------------------------------
-      list(name = "canvas_w_etiquetas",     label = "Ancho columna etiquetas", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_w_buf_etq_bars",  label = "Espacio etiquetas→barras", tipo_input = "number", grupo = "canvas"),
+      # B36/G-14: cada multiapilada reparte su ancho en columnas — tema
+      # (títulos de bloque), nombres de base/actor, barras y columna extra.
+      # Los cuatro anchos son fracciones del ancho total y se exponen todos:
+      # un multi-tema con títulos largos necesita otra proporción que uno
+      # de dos bloques cortos.
+      list(name = "canvas_w_grupo",         label = "Ancho columna de tema",  tipo_input = "number", grupo = "canvas",
+           descripcion = "Fracción del ancho para la columna de títulos de bloque/tema en multi-tema. 0 la colapsa (sin columna de tema)."),
+      list(name = "canvas_w_buf_grupo_etq", label = "Espacio tema→bases",     tipo_input = "number", grupo = "canvas",
+           descripcion = "Separación entre la columna de tema y la de nombres de base."),
+      list(name = "canvas_w_etiquetas",     label = "Ancho columna de bases", tipo_input = "number", grupo = "canvas",
+           descripcion = "Fracción del ancho para los nombres de base/actor de cada barra."),
+      list(name = "canvas_w_buf_etq_bars",  label = "Espacio bases→barras", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_bars",          label = "Ancho zona de barras",   tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_buf_bars_extra",label = "Espacio barras→columna extra", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_w_extra",         label = "Ancho columna extra",    tipo_input = "number", grupo = "canvas"),
@@ -1566,6 +1576,8 @@
       list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_gap_grupos",      label = "Separación entre bloques", tipo_input = "number", grupo = "canvas",
+           descripcion = "Espacio vertical extra entre bloques temáticos, como fracción del alto de una fila."),
 
       # --- Grosor de barras ----------------------------------------------
       list(name = "grosor_modo",          label = "Modo de grosor", tipo_input = "choice", grupo = "canvas",
