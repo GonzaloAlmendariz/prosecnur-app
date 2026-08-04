@@ -226,6 +226,11 @@ graficar_pie <- function(
   ancho_chk <- suppressWarnings(as.numeric(ancho)[1])
   if (is.finite(ancho_chk) && ancho_chk > 0 && ancho_chk < 9) {
     size_etiquetas_pct <- max(2.6, size_etiquetas_pct * ancho_chk / 12.5)
+    # En cajones minimos (poblacion 5/6) la leyenda derecha roba ancho al
+    # panel y el donut clipeaba su etiqueta izquierda (B-H33).
+    if (ancho_chk < 5 && identical(leyenda_posicion, "derecha")) {
+      leyenda_posicion <- "abajo"
+    }
   }
   font_family <- as.character(font_family %||% "Arial")[1]
   if (is.na(font_family) || !nzchar(trimws(font_family))) font_family <- "Arial"
