@@ -3489,8 +3489,9 @@ reporte_ppt_plan <- function(
     etype <- el$.element_type %||% ""
     # barras_agrupadas ya imprime su "Base: ..." como caption del grafico
     # (nota_pie por defecto): duplicarla en el placeholder del slide era el
-    # default (P9). El placeholder queda para base manual o tipos sin caption.
-    if (identical(etype, "barras_agrupadas")) return(NULL)
+    # default (P9; apiladas sumaba ademas su columna N — triple marca, P17).
+    # El placeholder queda para base manual o tipos sin caption propio.
+    if (etype %in% c("barras_agrupadas", "barras_apiladas")) return(NULL)
     excluir_base <- switch(
       etype,
       barras_apiladas = .reporte_plan_excluir_cascada(

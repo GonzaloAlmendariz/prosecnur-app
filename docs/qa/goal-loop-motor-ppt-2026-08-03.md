@@ -695,3 +695,17 @@ ruta canvas manual de apiladas ya era buena y quedó intacta).
 
 **Gate:** parse de los tres archivos + render mirado; suites de apiladas
 pendientes de correr en el sweep L5 completo.
+
+### P17 — L5: H27 reparado — apiladas deja de triplicar el N (2026-08-03)
+
+**Reparado:** la supresión del auto-base del slide (P9) se extiende a
+`barras_apiladas`: quedan el caption del gráfico («Base: N respuestas») y la
+columna N verde por fila — dos marcas con roles distintos; el placeholder del
+slide ya no duplica. La base manual del analista se materializa siempre.
+Multiapiladas espera su propio render antes de decidir. Verificado con guías.
+
+**D7 (bandeja):** la escala likert-5 de apiladas rinde rojo/amarillo/verde/
+navy/gris — los dos tramos más positivos no comunican intensidad. La paleta
+NO está en el suelo (sale del graficador); investigar su origen en el sweep
+L5 y decidir si pasa a gradiente coherente o es estilo deliberado de reportes
+reales.
