@@ -82,6 +82,17 @@ export type AporteCategoria = {
   /** Cursos-horario totales con esta categoría (contraste). */
   chContraste: number | null;
   /**
+   * G41 · Cursos-horario de esta categoría que **llegan** al criterio: los que
+   * siguen vivos justo antes de aplicarlo.
+   *
+   * Es la única de las tres cifras que habla del momento en que se decide.
+   * `chContraste` cuenta el universo de partida y `ch` los que sobreviven al
+   * marco completo —incluidos los criterios que van después—, así que ninguna
+   * sumaba lo que la barra de arriba promete. Ésta sí: el motor sólo la publica
+   * cuando el reparto cierra con su `before_ch`.
+   */
+  llegan?: number | null;
+  /**
    * Cursos-horario de la categoría que **traen el dato** del criterio.
    *
    * Si es menor que `ch`, la distribución se calculó sobre menos unidades de las

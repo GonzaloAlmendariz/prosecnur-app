@@ -348,7 +348,32 @@ export function CategoriaEvidencia({
           suma de matrículas ocupaba una casilla sin decidir nada. */}
       <div className="cmv2-cat-cifras">
         <span><strong>{aporte.chContraste == null ? "—" : fmtInt(aporte.chContraste)}</strong>CH totales</span>
-        <span><strong>{aporte.ch == null ? "—" : fmtInt(aporte.ch)}</strong>CH elegibles</span>
+        {/*
+         * G41 · Dentro del recorrido sólo se dice «llegan hasta aquí».
+         *
+         * Aquí decía «CH elegibles» con los que sobreviven al marco COMPLETO, y
+         * Gonzalo dio con el defecto por la vía corta: «si quedan 100
+         * cursos-horario hasta un criterio, la suma de sus elegibles en cada
+         * categoría no debería ser 100?». No lo era —sumaba el final del
+         * embudo, no lo que llega— y encima la barra de arriba decía otra cosa
+         * a dos dedos de distancia.
+         *
+         * El primer arreglo dejó la cifra vieja como respaldo cuando el motor
+         * no publica reparto, y eso reintrodujo el problema en otra forma:
+         * «unos casos dicen CH elegibles y otros llegan hasta aquí». Dos
+         * nombres en la misma posición se leen como dos versiones del mismo
+         * número. Ahora «CH elegibles» nombra **sólo** el final —el titular de
+         * la facultad y el cierre del recorrido— y aquí, si no hay reparto, no
+         * se dibuja celda: una casilla vacía es más honesta que una cifra que
+         * responde a otra pregunta.
+         */}
+        {aporte.llegan != null ? (
+          <span title="Cursos-horario de esta categoría que siguen en carrera cuando se aplica este criterio; sumados con los de las demás categorías dan el total que llega">
+            <strong>{fmtInt(aporte.llegan)}</strong>llegan hasta aquí
+          </span>
+        ) : (
+          <span aria-hidden="true" />
+        )}
         {/* `n_estudiantes_unicos`: una persona cuenta una vez aunque esté en
             varios cursos-horario. */}
         <span title="Estudiantes únicos elegibles: una persona cuenta una vez aunque esté en varios cursos-horario">

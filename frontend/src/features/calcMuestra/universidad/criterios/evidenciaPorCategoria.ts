@@ -16,6 +16,13 @@ export function evidenciaPorCategoria(
   card: CriterioRadiografiaCard | null | undefined,
   facultyKey: string,
   tasaAsistencia?: number | null,
+  /**
+   * G41 · Cuántos cursos-horario de cada categoría **llegan** a este criterio,
+   * publicado por el motor en la cascada. Opcional: los criterios que no
+   * particionan —y los `.pulso` guardados antes de esta capacidad— no lo traen,
+   * y la tarjeta se queda como estaba en vez de inventar un reparto.
+   */
+  lleganPorCategoria?: Map<string, number> | null,
 ): (categoriaKey: string) => AporteCategoria | null {
   if (!card) return () => null;
 
@@ -41,6 +48,7 @@ export function evidenciaPorCategoria(
         matriculas: row.actual?.n_matriculas ?? null,
         distribucion: row.actual?.distribution ?? null,
         tasaAsistencia: tasaAsistencia ?? null,
+        llegan: lleganPorCategoria?.get(clave) ?? null,
       });
     }
   }

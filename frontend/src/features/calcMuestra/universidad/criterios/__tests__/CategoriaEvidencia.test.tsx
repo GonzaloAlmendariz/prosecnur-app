@@ -47,8 +47,14 @@ describe("CategoriaEvidencia", () => {
     const html = renderToStaticMarkup(<CategoriaEvidencia aporte={aporte()} dominio={dominio} />);
     // F111 · Las cuatro cifras que Gonzalo fijó: CH totales, CH elegibles,
     // alumnos elegibles y la tasa de asistencia previa. Sale «matrículas».
+    //
+    // G41 · La segunda dejó de ser «CH elegibles»: ese nombre quedó reservado
+    // para el número final de la facultad, y dentro del recorrido la casilla
+    // dice «llegan hasta aquí» —o no dice nada, como en este caso, cuando el
+    // motor no publica reparto para el criterio—. Dos nombres en la misma
+    // posición se leían como dos versiones del mismo número.
     expect(html).toContain("CH totales");
-    expect(html).toContain("CH elegibles");
+    expect(html).not.toContain("CH elegibles");
     expect(html).toContain("alumnos elegibles");
     expect(html).toContain("una persona cuenta una vez");
     expect(html).toContain("Mediana");
@@ -433,5 +439,37 @@ describe("cada variante declara qué es (G36)", () => {
       const sinDeclarar = render(v).match(/class="cmv2-cat-evidencia"(?! data-variante)/g) ?? [];
       expect(sinDeclarar).toHaveLength(0);
     }
+  });
+});
+
+/**
+ * G41 · Un solo nombre por posición.
+ *
+ * Gonzalo: «en algunos casos sigue siendo CH elegibles y en otros llegan hasta
+ * aquí. La idea es que el número final sea CH elegibles de la facultad, pero
+ * antes de eso mantener la nomenclatura, llegan hasta aquí».
+ */
+describe("CategoriaEvidencia · nomenclatura del recorrido", () => {
+  it("con reparto del motor la casilla dice «llegan hasta aquí»", () => {
+    const dato = aporte({ llegan: 587 });
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia aporte={dato} dominio={dominioCategorias([dato])!} />,
+    );
+    expect(html).toContain("llegan hasta aquí");
+    expect(html).toContain("587");
+    expect(html).not.toContain("CH elegibles");
+  });
+
+  it("sin reparto no cae en «CH elegibles»: deja la casilla vacía", () => {
+    const dato = aporte();
+    const html = renderToStaticMarkup(
+      <CategoriaEvidencia aporte={dato} dominio={dominioCategorias([dato])!} />,
+    );
+    expect(html).not.toContain("CH elegibles");
+    expect(html).not.toContain("llegan hasta aquí");
+    // La casilla sigue existiendo aunque esté vacía: la rejilla de cuatro
+    // columnas alinea las tarjetas entre sí, y una que se recoloca rompe la
+    // lectura en columna de todo el criterio.
+    expect(html).toContain('<span aria-hidden="true"></span>');
   });
 });
