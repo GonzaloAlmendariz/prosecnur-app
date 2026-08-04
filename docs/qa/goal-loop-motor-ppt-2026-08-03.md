@@ -1453,3 +1453,15 @@ Aplicada la curación al registry (commit por hunks — `git apply --cached
 
 **Gate:** argumentos-ui 459, metadata 228 (los -2 son las entradas del
 elemento retirado), radar-solo-tabla 5, dim-foda-leyenda 6: todo verde.
+
+### B18 — El FODA completa su superficie: títulos de cuadrante desde la UI (2026-08-04, sesión B)
+
+`titulos_areas_foda` cierra el último diferido de la espec B16: el
+constructor parsea el formato textual del textarea («cuadrante=Título» por
+línea, patrón P20 de multiapiladas) y **tolera plurales** (fortalezas→
+fortaleza…), que antes se ignoraban en silencio. Curado en el registry como
+textarea con descripción del formato. Tests del parseo y del mapeo de alias
+(4 asserts nuevos; el campo viaja en `overrides$titulos_areas_foda`).
+Commit por hunks otra vez — el trabajo de la sesión A sigue intacto.
+
+**Gate:** dim-foda-leyenda 10, argumentos-ui 461, metadata 228: todo verde.

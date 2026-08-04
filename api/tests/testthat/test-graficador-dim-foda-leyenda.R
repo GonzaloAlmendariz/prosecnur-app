@@ -70,3 +70,29 @@ test_that("el objetivo se resuelve también por la etiqueta humana", {
   )
   expect_false(is.null(payload))
 })
+
+# B18: titulos_areas_foda acepta el formato textual del textarea de la UI
+# ("cuadrante=Titulo" por linea) y tolera plurales — antes las claves en
+# plural se ignoraban en silencio.
+
+test_that("titulos_areas_foda parsea el formato textual y tolera plurales", {
+  el <- p_dim_foda(
+    nivel = "subindices", objetivo = "idx_x",
+    titulos_areas_foda = "fortalezas=LO QUE FUNCIONA\noportunidad=DONDE CRECER\ndebilidades=LO QUE FALLA\namenaza=RIESGOS"
+  )
+  t <- el$overrides$titulos_areas_foda
+  expect_identical(unname(t[["fortaleza"]]), "LO QUE FUNCIONA")
+  expect_identical(unname(t[["oportunidad"]]), "DONDE CRECER")
+  expect_identical(unname(t[["debilidad"]]), "LO QUE FALLA")
+  expect_identical(unname(t[["amenaza"]]), "RIESGOS")
+})
+
+test_that("titulos_areas_foda con vector nombrado en plural tambien mapea", {
+  el <- p_dim_foda(
+    nivel = "subindices", objetivo = "idx_x",
+    titulos_areas_foda = c(fortalezas = "A", amenazas = "B")
+  )
+  t <- el$overrides$titulos_areas_foda
+  expect_identical(unname(t[["fortaleza"]]), "A")
+  expect_identical(unname(t[["amenaza"]]), "B")
+})
