@@ -1137,3 +1137,22 @@ el registry cuando la sesión A libere `graficos_metadata.R` (junto con B-H6).
 
 **Gate:** l8-defaults-editoriales 34 (test del diferencial de capas GeomText
 con labels %), radar-solo-tabla 5, dimensiones-ppt-radar 36: todo verde.
+
+### B7 — L8: paridad Word verificada para el carril completo (2026-08-03, sesión B)
+
+Prueba 5 de la vara sobre las cuatro superficies del carril, con
+`reporte_word_plan` real (docx → pdf → png, 2 páginas miradas; script
+`sweep_word.R` del harness):
+
+- **Radar sm con cruce**: paleta de la casa, leyenda espaciada, sin tabla.
+- **Tabla box**: tabla SOLA (el contrato B-H4 se sostiene en Word), regla
+  roja <60% activa (43% en rojo, 63/73% en negro).
+- **Boxplot**: chips neutrales blancos legibles, orden del instrumento
+  (Callao→LN→LS), puntos oscurecidos visibles, paleta de la casa.
+- **Media-rango con referencia**: línea global + slot «Promedio general»
+  legible + deltas ±0.1/−0.2 — el fix B-H7/B-H10 completo vive en Word.
+
+Veredicto: **paridad PPT↔Word del carril L8 en verde sin reparaciones** —
+ambos caminos comparten graficadores y glue, así que los 13 cierres de la
+sesión B viajan solos al Word. Pendiente de la prueba 5: preview y
+consolidado (rutas del router), que se auditarán como lote transversal L11.
