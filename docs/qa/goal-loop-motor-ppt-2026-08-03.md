@@ -1186,3 +1186,24 @@ Tres renders con `.PRESETS_DEFAULT_PULSO` aplicado como lo hace el router
   familia que H12 (tabla técnica estirada).
 
 **Gate:** solo renders (pase de auditoría sin diff de producto).
+
+### B9 — L8 en paneles compartidos: los cuatro se adaptan; B-H6 se afila (2026-08-03, sesión B)
+
+Cuatro láminas con suelo de producción y guías (`sweep_multi.R`): radar+boxplot
+a media lámina, tabla+media-rango a media lámina, grid 2×2 con los cuatro, y
+radar en panel de gráfico+texto. **Sin roturas**: los cuatro graficadores del
+carril se adaptan al ancho del slot (wrap de etiquetas del radar a dos
+líneas, chips y slot de referencia legibles en cuartos de lámina, auto-hide
+de leyenda operando en paneles mínimos, tabla compacta de 6 filas en un
+cuarto).
+
+**B-H6 afilado con evidencia**: en el cuarto de lámina, la tabla sm de «Uso
+de servicios» sale con TODAS sus celdas en rojo (44/45/40/40/44/45% < umbral
+60) — la regla trata un porcentaje de USO como si fuera una satisfacción
+reprobada. `umbral_rojo_pct` existe como formal pero: (a) no está curado en
+la UI, (b) no puede desactivarse declarativamente desde ahí, y (c) su default
+60 solo tiene sentido para T2B de satisfacción. Cuando el registry se libere:
+curar el arg con descripción honesta y permitir apagarlo (p.ej. 0 = sin
+regla). La lámina M3 es el caso de demostración.
+
+**Gate:** solo renders (pase de auditoría; sin diff de producto).
