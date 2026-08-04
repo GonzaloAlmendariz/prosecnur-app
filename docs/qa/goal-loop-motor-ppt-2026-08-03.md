@@ -1995,3 +1995,21 @@ Deck final verificado (8/8 páginas): identidad institucional 3 temas ×
 en calidad editorial. Fleco nuevo primero en cola: la Base multibase de
 DOS líneas aún roza la leyenda inferior (la reserva actual es para una
 línea); evaluar reserva dinámica por líneas de base o leyenda arriba.
+
+### B44 — La Base del slide gana su banda real (2026-08-04, sesión B)
+
+El fix B41 era un **placebo**: reservaba vía `canvas_h_caption_in`, pero la
+fila caption DESAPARECE cuando no hay `nota_pie` (el ensamblado del canvas
+la colapsa a 0) — la leyenda seguía pegada al borde y la Base multibase de
+dos líneas la pisaba. Lección para la vara: verificar un fix de layout
+exige medir el render DESPUÉS del cambio, no asumir que la palanca opera.
+
+Fix real (`ec96f9a2`): nuevo formal `canvas_h_reserva_pie_in` en apiladas
+— banda inferior vacía cuando no hay caption propio — y el helper escribe
+en ese carril (0.34in apiladas/agrupadas, 0.5in multiapiladas por su Base
+prorrateada de dos líneas). Verificado con el deck real: leyenda dentro
+del marco y Base despejada, cero solape.
+
+Pendiente del carril: agrupadas usa otro graficador sin el formal (el
+helper se lo pasa pero .keep_formals lo dropea — su Base es de una línea,
+tolerable); portarlo cuando toque su canvas. G-5 (índice) sigue en cola.
