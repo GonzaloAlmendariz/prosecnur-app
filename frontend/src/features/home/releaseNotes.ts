@@ -12,6 +12,19 @@ export type ReleaseNote = {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.7.0",
+    date: "2026-08-04",
+    highlights: [
+      "Gráficos: el índice del reporte se arma por secciones. Cada sección lleva su título, sus subtemas y un ícono elegido de un catálogo de diez; antes eran cuatro cajas de texto con nombres internos y los focos salían con íconos fijos.",
+      "Gráficos: el selector de paletas entiende los estudios de varias bases. Dice en qué bases vive cada lista, agrupa las listas con las mismas opciones y aplica una paleta a todo el grupo de una vez, con vuelta atrás; los colores elegidos llegan idénticos al reporte.",
+      "Gráficos: comparar públicos por tema funciona con todas las bases del estudio. Escalas iguales escritas con mayúsculas distintas, o con una categoría residual de más, se leen como una sola serie, con leyenda única y el Top 2 calculado sobre las categorías reales.",
+      "Gráficos: la Base de cada lámina vive en la esquina inferior izquierda del slide. El caption dentro del gráfico queda como opción, las láminas con varios gráficos suman las bases de todos los actores y la leyenda ya no pisa el texto de Base.",
+      "Gráficos: el export termina aunque el plan tenga láminas a medio armar. Una lámina sin gráfico sale con su título y el lienzo vacío, y mezclar tipos de lámina ya no rompe la lectura del plan.",
+      "Gráficos: las barras salen bien puestas por defecto. Una apilada de una sola fila es una banda con cuerpo y centrada, los porcentajes chicos viven dentro de su segmento sin flechas de desborde, y la lámina automática de «Otros» se enciende solo si se pide.",
+      "Formularios: duplicar o guardar un proyecto conserva los instrumentos del editor y el plan de gráficos. El guardado espera los cambios de los últimos segundos, y una carga fallida ya no deja un plan vacío en su lugar.",
+    ],
+  },
+  {
     version: "0.6.3",
     date: "2026-08-03",
     highlights: [
