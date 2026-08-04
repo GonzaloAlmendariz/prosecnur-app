@@ -93,3 +93,12 @@ test_that("el slide de un grafico agrupadas muestra la Base una sola vez", {
   slide_xml2 <- paste(readLines(unz(out_ppt2, "ppt/slides/slide1.xml"), warn = FALSE, encoding = "UTF-8"), collapse = "\n")
   expect_match(slide_xml2, "censo docente", fixed = TRUE)
 })
+
+test_that("la leyenda declara sus defaults editoriales (P12/P13)", {
+  fmls <- formals(graficar_barras_agrupadas)
+  expect_identical(fmls$legend_espaciado, 6)
+  expect_identical(fmls$legend_key_cm, 0.30)
+  # el glifo cuadrado absoluto existe y es el que usa la capa de barras
+  src <- deparse(body(graficar_barras_agrupadas))
+  expect_true(any(grepl("key_glyph = .draw_key_cuadrado", src, fixed = TRUE)))
+})

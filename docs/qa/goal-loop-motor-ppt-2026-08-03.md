@@ -602,3 +602,23 @@ degrada sin romper ✓.
 (faltan formals técnicos), más leyenda/espaciado del preset. Pendiente: H22
 (ancho por slot), H18 (top_two_box), barrido fino de los 35 args del preset
 (canvas_*).
+
+### P13 — L4: el swatch de la leyenda es cuadrado SIEMPRE (2026-08-03)
+
+Reporte directo de Gonzalo: el cuadrito de color se estiraba a rectángulo y
+los ítems seguían muy pegados de por sí. Forense con zoom: el key box de
+ggplot hereda la **altura del texto** de la leyenda (más alto que ancho), así
+que tanto el glifo default (además encogido por `grosor_barras`) como
+`draw_key_rect` salían rectangulares.
+
+**Reparado:** glifo propio `.draw_key_cuadrado` de tamaño **absoluto**
+(`legend_key_cm` × `legend_key_cm`, centrado en el box) — cuadrado siempre,
+sin importar tipografía ni grosor de barra. Separación general por defecto:
+margen derecho del ítem a 2.5× `legend_espaciado` y `legend.key.spacing.x`
+0.22 cm — los pares swatch+texto se leen como unidades separadas. Verificado
+con zoom en leyendas de 2 y 3 series (la 3.ª toma el amarillo de la casa).
+
+**Gate:** defaults-editoriales 9 (nuevo assert de firma + glifo),
+argumentos-ui 459, override-colores 19, var-cruce 323: todo verde. Réplica
+pendiente del patrón en los demás graficadores con leyenda (apiladas,
+categóricas, pie/donut, radar) cuando toque su lote.
