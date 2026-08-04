@@ -2131,3 +2131,18 @@ canonización multibase. Regla operativa para el analista: esperar el
 «Guardado ✓» del autosave (~2s) antes de exportar. Observación suelta:
 el backend dev murió una vez sin traza durante la sesión de prueba (no
 reproducido; vigilar).
+
+### B51 — Publicado: todo el trabajo del loop está en origin con CI verde (2026-08-04, sesión B)
+
+`/publicar` completado: main `d9f4ce76 → c8840e7e`, Quality
+[30945217656](https://github.com/GonzaloAlmendariz/prosecnur-app/actions/runs/30945217656)
+en success sobre el SHA exacto. El pre-flight escalado atrapó 9 contratos
+antes del push: 2 bugs reales (nombres de `titulos_areas_foda` pelados
+por `as.character`, color del chip del boxplot desfasado tras 3eba4506) y
+7 expectativas del comportamiento pre-mandato (captions en el gráfico,
+Otros por-template). Lección para la vara: el gate parcial por diff no ve
+los contratos de OTROS archivos que certifican el comportamiento que un
+mandato cambió — la suite completa antes de publicar es irreemplazable.
+
+Siguiente partícula: paridad WORD del deck multibase (nunca verificada
+visualmente; el mandato cubre ambos motores).
