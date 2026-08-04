@@ -1796,8 +1796,11 @@ reporte_ppt_plan <- function(
     raw <- trimws(raw)
     raw <- raw[nzchar(raw)]
     if (!length(raw)) raw <- default
-    raw <- rep(raw, length.out = n)
-    fallback <- rep(default, length.out = n)
+    # Interpolar, no reciclar: con n > 4 el reciclado repetia rojo/amarillo en
+    # el extremo positivo de la escala (H18). El gradiente conserva la
+    # semantica negativo->positivo de la paleta declarada.
+    raw <- if (length(raw) < n) grDevices::colorRampPalette(raw)(n) else raw[seq_len(n)]
+    fallback <- if (n > length(default)) grDevices::colorRampPalette(default)(n) else rep(default, length.out = n)
     vapply(seq_len(n), function(i) .indice_sanitize_fill(raw[[i]], fallback[[i]]), character(1))
   }
 
@@ -1887,19 +1890,10 @@ reporte_ppt_plan <- function(
     top_sum <- sum(valores[top_two_indices])
     top_formula <- paste(paste0(round(valores[top_two_indices]), "%"), collapse = " + ")
 
-    legend_x0 <- bar_x + 170
-    legend_y <- 385
-    legend_gap <- 88
-    legends <- vapply(seq_along(valores), function(i) {
-      x <- legend_x0 + (i - 1L) * legend_gap
-      sprintf(
-        '<rect x="%.2f" y="%.2f" width="24" height="24" fill="%s"/><text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" font-size="%.1f" font-weight="700" fill="%s">%s</text>',
-        x, legend_y, colors[[i]],
-        x + 12, legend_y + 58,
-        legend_size, blue,
-        .svg_text_escape(etiquetas[[i]])
-      )
-    }, character(1))
+    # Gap adaptativo + etiquetas a dos lineas (H18): reporte_plan_helpers.R.
+    legends <- .top_two_legend_svg(
+      etiquetas, colors, bar_x, bar_w, legend_size, blue, .svg_text_escape
+    )
 
     left_lines <- strsplit(as.character(extremo_izquierda %||% ""), "\\n", fixed = FALSE)[[1]]
     right_lines <- strsplit(as.character(extremo_derecha %||% ""), "\\n", fixed = FALSE)[[1]]

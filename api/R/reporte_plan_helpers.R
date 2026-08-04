@@ -420,6 +420,59 @@
   )
 }
 
+# Leyenda del slide Top Two Box (H18). Con el layout fijo (gap 88, una linea
+# centrada bajo cada swatch) diez categorias desbordaban sobre el texto del
+# extremo derecho y las etiquetas largas se superponian en una sopa ilegible.
+# Aqui el gap se adapta al ancho de la barra, la tipografia se reduce con
+# muchas categorias y cada etiqueta envuelve a lo sumo en dos lineas que
+# caben bajo su swatch (con elipsis si aun asi no cabe).
+#' @keywords internal
+.top_two_legend_svg <- function(etiquetas, colores, bar_x, bar_w,
+                                legend_size, color_texto, escape) {
+  n <- length(etiquetas)
+  if (!n) return(character(0))
+  legend_y <- 385
+  gap <- base::max(56, base::min(88, (bar_w - 260) / base::max(1L, n - 1L)))
+  x0 <- if (n <= 5L) bar_x + 170 else bar_x + (bar_w - gap * (n - 1L)) / 2
+  size_eff <- if (n > 8L) base::max(10, legend_size - 9)
+    else if (n > 6L) base::max(12, legend_size - 6)
+    else legend_size
+  max_chars <- base::max(6L, as.integer(floor(gap / (size_eff * 0.55))))
+
+  vapply(seq_len(n), function(i) {
+    x <- x0 + (i - 1L) * gap
+    palabras <- strsplit(as.character(etiquetas[[i]] %||% ""), "\\s+")[[1]]
+    lineas <- character(0)
+    actual <- ""
+    for (w in palabras) {
+      cand <- if (nzchar(actual)) paste(actual, w) else w
+      if (nchar(cand) > max_chars && nzchar(actual)) {
+        lineas <- c(lineas, actual)
+        actual <- w
+      } else {
+        actual <- cand
+      }
+    }
+    lineas <- c(lineas, actual)
+    if (length(lineas) > 2L) {
+      lineas <- c(lineas[[1]], paste(lineas[-1], collapse = " "))
+    }
+    lineas <- vapply(lineas, function(l) {
+      if (nchar(l) > max_chars + 2L) paste0(substr(l, 1L, base::max(1L, max_chars)), "…") else l
+    }, character(1))
+    textos <- paste(vapply(seq_along(lineas), function(j) {
+      sprintf(
+        '<text x="%.2f" y="%.2f" text-anchor="middle" font-family="Arial, sans-serif" font-size="%.1f" font-weight="700" fill="%s">%s</text>',
+        x + 12, legend_y + 46 + (j - 1L) * (size_eff + 4), size_eff, color_texto, escape(lineas[[j]])
+      )
+    }, character(1)), collapse = "")
+    sprintf(
+      '<rect x="%.2f" y="%.2f" width="24" height="24" fill="%s"/>%s',
+      x, legend_y, colores[[i]], textos
+    )
+  }, character(1))
+}
+
 # Geometria adaptativa del indice limpio. La version rigida colisionaba en dos
 # bordes vistos en render (H16/H17 del GOAL loop del motor PPT): un titulo que
 # envuelve a dos lineas quedaba pisado por la primera fila (caja fija de 0.62
