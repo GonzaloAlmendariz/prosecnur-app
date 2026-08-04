@@ -1621,3 +1621,21 @@ referencia), etiquetas de slices contiguos, B-D1/B-D2/B-D3 en bandeja.
 (agrupadas/apiladas/metadata/router + frontend multibase) llevan ~3h sin
 commitear; si esa sesión murió, conviene commitear o descartar ese trabajo
 para liberar L4–L6, L10 y L11.
+
+### B26 — L7 COMPLETO: el mapa territorial rinde con banco sintético y B-H30 reparado (2026-08-04, sesión B)
+
+El mapa de cobertura territorial renderiza con un contexto sintético (2
+distritos × 3 manzanas, los 5 estados, labels y summary — patrón de banco
+documentado en `sweep_mapa.R`): zonas coloreadas, labels de distrito y
+leyenda completa. **B-H30 al primer vistazo**: «Comparación territorial»
+(#00A98F) y «Cobertura efectiva» (#00B398) eran dos teals indistinguibles —
+estados opuestos con el mismo color en mapa y leyenda. Reparación con
+criterio institucional: la comparación CONSERVA su teal ACNUR (paridad con
+las series de barras, P9) y es la efectiva la que pasa al verde de éxito de
+la casa (#2E7D32). Test de distinguibilidad: toda pareja de estados con
+distancia RGB > 40.
+
+**Con esto L7 queda COMPLETO** (pie, donut, nube y mapa: censo, sweeps,
+bordes, fantasmas reparados, dedup, paleta, orden, leyenda y estados).
+
+**Gate:** l7-pie-nube 12: verde. Render antes/después mirado.

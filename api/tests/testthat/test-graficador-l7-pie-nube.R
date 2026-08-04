@@ -73,3 +73,19 @@ test_that("el suelo Pulso del pie respeta instrumento y da aire a la leyenda", {
   expect_identical(suelo$ordenar_categorias, "ninguno")
   expect_identical(suelo$canvas_h_legend_bottom, 0.14)
 })
+
+# B26 (B-H30): comparacion y efectiva del mapa territorial compartian dos
+# teals indistinguibles (#00A98F vs #00B398). comparacion CONSERVA el teal
+# institucional ACNUR (paridad con barras, P9); efectiva pasa al verde de
+# exito de la casa.
+
+test_that("los estados del mapa territorial tienen colores distinguibles", {
+  cols <- .mapa_status_colors
+  expect_identical(cols[["comparacion"]], "#00A98F")
+  expect_identical(cols[["efectiva"]], "#2E7D32")
+  d <- utils::combn(names(cols), 2, function(par) {
+    a <- grDevices::col2rgb(cols[[par[1]]]); b <- grDevices::col2rgb(cols[[par[2]]])
+    sqrt(sum((a - b)^2))
+  })
+  expect_true(all(d > 40))
+})
