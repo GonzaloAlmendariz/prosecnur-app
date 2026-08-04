@@ -643,3 +643,33 @@ de pies 20, override-colores 19: todo verde. Congelado en 9.418 exacto, audit
 limpio. Con esto **L4 queda con H18 (top_two_box), H24–H26 y el barrido de
 los 35 args del preset** antes de declararse hecho; sigue L5 (apiladas) con
 el patrón completo (sweep + glifo cuadrado + espaciado de leyenda).
+
+### P15 — H18 reparado: top_two_box degrada con gradiente y leyenda adaptativa (2026-08-03)
+
+**Reparado:**
+
+1. **Paleta interpolada, no reciclada** (`.top_two_parse_colors`): con n>4 el
+   reciclado repetía rojo/amarillo en el extremo positivo; ahora
+   `colorRampPalette` interpola la escala declarada — el gradiente conserva
+   la semántica negativo→positivo (verificado: 10 categorías rinden rojo→
+   naranja→amarillo→verdes, con el segmento top-two en verde).
+2. **Leyenda adaptativa** (`.top_two_legend_svg`, nuevo en helpers; el
+   monolito baja a 9.412): gap derivado del ancho de la barra, swatches
+   centrados (ya no desbordan sobre el texto del extremo), tipografía
+   escalonada (n>6 y n>8) y etiquetas envueltas a lo sumo en dos líneas con
+   elipsis.
+
+Control de 4 categorías idéntico al histórico. Residuo menor anotado: con 10
+etiquetas larguísimas los textos truncados quedan densos (legibles pero
+apretados) — mejorable con leyenda multi-fila si algún estudio real lo
+necesita.
+
+**Nota para Gonzalo (pregunta del tramo):** los defaults editoriales viven en
+el suelo `.PRESETS_DEFAULT_PULSO` + firmas de graficador y son
+**parametrizables desde la UI** (preset de proyecto u override por gráfico);
+el glifo cuadrado es regla fija (su tamaño `legend_key_cm` sí es knob); los
+anchos por slot de H22 son constantes del motor que reflejan la geometría de
+los layouts — refinamiento anotado: derivarlos de `layout_properties` en vez
+de constantes.
+
+**Gate:** plan-texto 113, indice-fit 16, calibración 20; audit limpio.
