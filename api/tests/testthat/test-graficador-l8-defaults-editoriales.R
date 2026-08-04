@@ -183,3 +183,80 @@ test_that("degradado_manual CON gradiente completo sigue siendo manual", {
     )
   )
 })
+
+test_that("las series del radar sin paleta de proyecto usan la paleta de la casa (B-H5c)", {
+  d <- data.frame(
+    eje = rep(c("Atencion", "Canales", "Personal", "Tiempos"), 2),
+    grupo = rep(c("Mujer", "Hombre"), each = 4),
+    valor = c(.61, .45, .38, .22, .55, .49, .30, .28),
+    stringsAsFactors = FALSE
+  )
+  p <- graficar_radar(data = d, usar_canvas = FALSE, exportar = "rplot")
+  built <- ggplot2::ggplot_build(p)
+  cols <- toupper(unique(unlist(lapply(built$data, function(l) l$colour))))
+  # navy y teal de la casa presentes; el salmon del hue_pal de ggplot, ausente
+  expect_true("#0B4F8C" %in% cols)
+  expect_true("#2A9D8F" %in% cols)
+  expect_false("#F8766D" %in% cols)
+})
+
+test_that("smoke B-H2: el camino real del plan llega al radar con datos construidos", {
+  likert <- c("Bajo", "Medio", "Alto")
+  set.seed(3)
+  df <- data.frame(
+    p1 = sample(likert, 40, replace = TRUE),
+    p2 = sample(likert, 40, replace = TRUE),
+    p3 = sample(likert, 40, replace = TRUE),
+    servicios = vapply(seq_len(40), function(i)
+      paste(sample(c("bib", "lab", "tut"), sample(1:2, 1)), collapse = " "),
+      character(1)),
+    stringsAsFactors = FALSE
+  )
+  inst <- list(
+    survey = data.frame(
+      name = c("p1", "p2", "p3", "servicios"),
+      type = c(rep("select_one lst_lik", 3), "select_multiple lst_srv"),
+      list_name = c(rep("lst_lik", 3), "lst_srv"),
+      label = c("P1", "P2", "P3", "Servicios"),
+      stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c(rep("lst_lik", 3), rep("lst_srv", 3)),
+      name = c(likert, "bib", "lab", "tut"),
+      label = c(likert, "Biblioteca", "Laboratorio", "Tutoria"),
+      stringsAsFactors = FALSE
+    ),
+    orders_list = list(lst_lik = list(names = likert, labels = likert))
+  )
+  llamadas <- list()
+  testthat::with_mocked_bindings(
+    graficar_radar = function(...) {
+      llamadas[[length(llamadas) + 1L]] <<- list(...)
+      ggplot2::ggplot()
+    },
+    {
+      plan <- list(
+        diapo_001 = p_slide_1_grafico(
+          p_radar(modo = "sm", var = "servicios"), titulo = "radar sm"),
+        diapo_002 = p_slide_1_grafico(
+          p_tabla(modo = "box", vars = c("p1", "p2", "p3"),
+                  box_labels = c("Medio", "Alto")),
+          titulo = "tabla box")
+      )
+      invisible(reporte_ppt_plan(
+        data = df, instrumento = inst, plan = plan,
+        solo_lista = TRUE, build_render_meta = TRUE,
+        mensajes_progreso = FALSE
+      ))
+    }
+  )
+  expect_true(length(llamadas) >= 2L)
+  # radar sm: datos construidos con las 3 opciones del select multiple
+  d_sm <- llamadas[[1]][["data"]]
+  expect_true(is.data.frame(d_sm) && nrow(d_sm) >= 3L)
+  # tabla box: el contrato solo-tabla viaja hasta el graficador (el plan
+  # tambien renderiza para Word, asi que se busca la llamada por su firma)
+  con_tabla <- Filter(function(a) isTRUE(a[["mostrar_tabla_derecha"]]), llamadas)
+  expect_true(length(con_tabla) >= 1L)
+  expect_identical(con_tabla[[1]][["radar_scale"]], 0)
+})

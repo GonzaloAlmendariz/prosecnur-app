@@ -6571,8 +6571,7 @@ reporte_ppt_plan <- function(
         }
 
         default_palette <- function(labels) {
-          cols <- grDevices::hcl.colors(length(labels), palette = "Dark 3")
-          stats::setNames(cols, labels)
+          .graficos_mk_palette(as.character(labels))
         }
 
         rows <- list()

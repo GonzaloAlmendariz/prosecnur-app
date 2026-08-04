@@ -830,8 +830,11 @@ graficar_radar <- function(
     # "Unknown colour name".
     pal <- .graficos_mk_palette(as.character(grupos), pal_user = colores_series)
     if (!length(pal)) pal <- NULL
-  } else if (requireNamespace("scales", quietly = TRUE)) {
-    pal <- stats::setNames(scales::hue_pal()(length(grupos)), as.character(grupos))
+  } else {
+    # Sin override ni paleta de proyecto: paleta de la casa (navy/teal/...),
+    # no el hue_pal de ggplot — mismas series que agrupadas post-P9.
+    pal <- .graficos_mk_palette(as.character(grupos))
+    if (!length(pal)) pal <- NULL
   }
 
   # ---------------------------------------------------------------------------
