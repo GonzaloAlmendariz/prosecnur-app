@@ -560,8 +560,9 @@
     categoria     = "poblacion",
     slots         = c("grafico_superior_1", "grafico_superior_2", "grafico_superior_3",
                       "grafico_inferior_1", "grafico_inferior_2", "icono"),
-    # Sin `base`: el constructor no la acepta; el pie de lámina es `pie`.
-    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie", "etiqueta"))
+    # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
+    # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie"))
   ),
 
   p_slide_6_graficos_poblacion = list(
@@ -571,8 +572,9 @@
     categoria     = "poblacion",
     slots         = c("grafico_superior_1", "grafico_superior_2", "grafico_superior_3",
                       "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3", "icono"),
-    # Sin `base`: el constructor no la acepta; el pie de lámina es `pie`.
-    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie", "etiqueta"))
+    # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
+    # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie"))
   )
 )
 

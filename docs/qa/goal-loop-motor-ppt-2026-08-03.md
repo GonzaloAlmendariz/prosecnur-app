@@ -155,7 +155,7 @@ explicar parte del corrimiento.
 | L1b | **Cluster ACNUR**: contenidos fuera de su placeholder en el render (pie sobre logo, footer en panel, subtexto/fecha invisibles, pie en hueco de ícono) | ~30 slots × plantilla acnur | **Hecho (P3)** — quedan D2 y D3 en bandeja |
 | L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **Hecho (P4–P6)** — 32/42 args con diferencial (top_two_box va en L3); H11/H16/H17 reparados; queda paridad Word (→L11) e ícono de catálogo |
 | — | **Regla de cola (pedido de Gonzalo 2026-08-03): todo lo específico de ACNUR (D2, D3, re-render acnur de L2+) se difiere al FINAL de la cola** | | Vigente |
-| L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | **En curso (P7)** — contrato args↔formals saneado (9 fantasmas fuera, 2 ocultos con superficie); falta diferencial de render por slide y top_two_box |
+| L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | **Hecho (P7+P8)** — contrato saneado (11 fantasmas fuera, 2 destapados) y diferenciales de render mirados; queda H18 (borde top_two_box) y paridad (→L11) |
 | L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | Cola |
 | L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | Cola |
 | L6 | `p_barras_categoricas` + `p_numerico` + `p_histograma` + presets | 142 | Cola |
@@ -439,3 +439,33 @@ contraste flojo sobre el fondo gris — va al lote de presets (L10).
 **Pendiente L3:** diferencial de render por slide de gráficos (top_two_box,
 2/4 gráficos, etiqueta en narrativos, íconos de catálogo en población) y
 bordes.
+
+### P8 — L3: diferenciales de render de los slides de gráficos (2026-08-03)
+
+Trece láminas miradas (decks `L3_sub`, `L3_ttb`, `L3_rest` del harness).
+
+**En verde:** `subtitulo` de 1_grafico (bajo el título); `top_two_box` con
+defaults y con 12 args customizados a la vez (valores, etiquetas, índices
+abajo-izquierda, extremos, paleta, grosores, tamaños, color de %, margen de
+llave, flecha) — borde de 1 sola categoría degrada sin romper; 2_graficos y
+4_graficos con base/pie en su sitio; `etiqueta` de narrativo se combina sobre
+el texto como promete; población 4/6 con **ícono real de catálogo** centrado y
+pie abajo-izquierda (la calibración de P3 en acción).
+
+**Hallazgos:**
+
+- **H18 (borde, reparar)**: `top_two_box` con 10 categorías **recicla la
+  paleta cada 4** (el segmento top-two queda con colores «negativos»), las
+  etiquetas largas de la leyenda se superponen ilegibles y los swatches
+  desbordan sobre el texto del extremo derecho.
+- **H19 (cerrado en esta pasada)**: `etiqueta` de poblacion_5/6 es un formal
+  aceptado pero **jamás dibujado** — retirada de la superficie y sumada al
+  guard del contrato (49 asserts).
+- `accent_color` de top_two_box quedó con diferencial no concluyente (el color
+  de prueba era casi idéntico al default) — re-probar en la reauditoría.
+
+**Gate:** contrato 49 + metadata 230 + argumentos-ui 459: todo verde. Sin TS.
+
+**Ledger tras P8:** los 110 args de slides tienen censo y ~70 tienen
+diferencial mirado en la genérica; ninguno acredita aún 5/5 (falta paridad
+Word/consolidado — L11 — y bordes sistemáticos por slide).
