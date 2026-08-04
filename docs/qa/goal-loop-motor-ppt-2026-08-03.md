@@ -1930,3 +1930,44 @@ la Base del slide puede SOLAPARSE con la leyenda del gráfico cuando
 B41 (solape base/leyenda), composición vertical adaptiva de apiladas,
 doctrina de bases agrupadas/pie/donut, G-8 (íconos rotos por confirmar
 tras el revamp).
+
+### B42 — El deck de 4 bases como banco de pruebas: G-18/G-20 cerrados, G-21 abierto (2026-08-04, sesión B)
+
+Encargo directo G-19: diseñar el reporte completo del estudio Conta (4
+actores) priorizando multiapiladas por preguntas comunes, y usarlo para
+poner a prueba el motor multibase. Censo: 11 preguntas comunes a los 4
+actores (consentimiento, edad, género, 3 de identidad institucional, 1
+likert de propósitos, 3 servicios). Deck de 8 láminas: portada, índice,
+2× población (4 agrupadas por actor), 3× multiapiladas multiactor, 1
+apilada. Iteración export→raster→fix cuatro veces.
+
+**Cerrado con el deck como evidencia:**
+- G-18 real (`b142d2ad` + `62dfe87a`): la lámina «Otros» tenía DOS
+  compuertas vivas — el formal del motor (TRUE) y el default por-template
+  de `.graficos_delivery_options` (TRUE salvo ACNUR). Ambas opt-in ya;
+  el deck pasó de 11 páginas (3 Otros no pedidos) a 8 exactas.
+- G-17: agrupadas con base al slide (doctrina completa apiladas+multi+agrupadas).
+- B41: reserva del pie (0.24in) cuando la base vive en el slide.
+- G-20/G-20b (`fce29c84`): el «comparar públicos por tema» moría en «Sin
+  datos» — la firma exacta de escalas rechazaba listas idénticas salvo
+  mayúsculas/SIN INF (lst_p12|lst_p10|lst_p17|lst_p9), y aun pasando el
+  gate las etiquetas crudas partían las series. Equivalencia en tres
+  pasadas + canonización por código en las 4 pasadas de tabulación.
+  Verificado con los RDS reales del job: 4 actores fusionados en colores
+  canónicos.
+- Trampa de metodología de verificación: un canvas compuesto no se juzga
+  por `$data` — SIEMPRE rasterizar.
+
+**G-21 (mandato nuevo de Gonzalo, prioridad del loop): «los motores deben
+entregar multiapiladas, apiladas y agrupadas en la MEJOR calidad posible
+POR DEFECTO».** Flecos concretos detectados en el deck para la próxima
+iteración: (a) la leyenda multiactor lista variantes Title Case sin uso
+(9 items donde van 5); (b) el TOP2BOX de la barra extra multiactor da 0%
+(preexistente); (c) el título de bloque de la columna de tema sale
+cortado («...pósitos definidos con claridad»); (d) la Base del slide y la
+leyenda quedan justas (subir la reserva a ~0.34in o mover la leyenda);
+(e) el slide de 4 agrupadas hereda «Base: 52 docentes» de un solo actor.
+
+Artefactos: `$SCRATCH/deck/deck5.pptx` (deck de 8 láminas),
+`$SCRATCH/deck4bases.json` (plan reutilizable), `multi_local.png`
+(multiactor fusionado). Backend de pruebas 8801 con `Conta_ref2.pulso`.
