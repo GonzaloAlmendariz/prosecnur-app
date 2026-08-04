@@ -16,9 +16,12 @@
 
 .mapa_status_colors <- c(
   no_intervenido = "#E8EBEF",
+  # comparacion conserva el teal institucional ACNUR (paridad con las series
+  # de barras, P9); era EFECTIVA la que chocaba con ese teal (#00B398 vs
+  # #00A98F, indistinguibles — B-H30) y pasa al verde de exito de la casa.
   comparacion = "#00A98F",
   intervencion = "#0072BC",
-  efectiva = "#00B398",
+  efectiva = "#2E7D32",
   alerta = "#EF4A60"
 )
 
