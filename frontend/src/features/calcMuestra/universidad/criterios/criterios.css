@@ -1904,14 +1904,9 @@
   color: var(--pulso-text-muted);
 }
 
-/* F25 · El grano del criterio se declara cuando no es por facultad. */
-.cmv2-crit-grano {
-  margin: 6px 0 0;
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-  line-height: 1.45;
-}
-.cmv2-crit-grano strong { color: var(--pulso-text); font-weight: var(--pulso-weight-semibold); }
+/* G40 · Retiradas las reglas de `cmv2-crit-grano` (F25, la nota «aplica igual
+ * en las N facultades»): su único selector salió del TSX al desaparecer el
+ * criterio general. */
 
 /* F100 · Retiradas las reglas de `cmv2-crit-card-radiografia` (la radiografía
  * plegada dentro del criterio de estudiante, fuera en F40) y `cmv2-crit-exc-add`
