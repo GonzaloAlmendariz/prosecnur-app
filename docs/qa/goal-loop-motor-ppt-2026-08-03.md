@@ -1639,3 +1639,28 @@ distancia RGB > 40.
 bordes, fantasmas reparados, dedup, paleta, orden, leyenda y estados).
 
 **Gate:** l7-pie-nube 12: verde. Render antes/después mirado.
+
+### B27 — Vara más alta: combinaciones cruzadas entre familias (2026-08-04, sesión B)
+
+Cuatro láminas mezclando familias que nunca habían compartido lámina
+(`sweep_cross.R`): dim_radar+pie, heatmap+donut, grid de 4 familias
+(radar box + nube + pie + comparativo), foda+texto.
+
+**En verde:** la nube se adapta al cuarto de lámina sin desbordes; radar box
+y comparativo legibles en cuartos; heatmap+donut conviven; dim_radar+pie a
+media lámina correctos.
+
+**Hallazgos nuevos (mismo linaje que H22, con patrón de fix conocido):**
+
+- **B-H31 — el pie corta sus etiquetas en panel angosto**: en el cuarto de
+  lámina, «31% (46)» y «69% (104)» se clipean en los bordes — el pie no
+  consume el `ancho_slot` que el motor inyecta desde P14.
+- **B-H32 — las tarjetas del FODA truncan también en PPT compartido**
+  (gráfico+texto): el mismo mal que B-H29 en Word; el fix por tipo de B24
+  cubre solo la variante Word — el render PPT del foda necesita consumir
+  `ancho_slot` y escalar tarjetas/chips como hace el wrap de barras.
+
+Ambos son el siguiente objetivo de reparación (B28). Nota de banco: el radar
+box exige `vars` con list_name compartido — las columnas recodificadas
+`r100_*` no sirven como ejes de box (error claro del motor… en stderr, como
+siempre).
