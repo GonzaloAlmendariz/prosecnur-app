@@ -709,3 +709,25 @@ navy/gris — los dos tramos más positivos no comunican intensidad. La paleta
 NO está en el suelo (sale del graficador); investigar su origen en el sweep
 L5 y decidir si pasa a gradiente coherente o es estilo deliberado de reportes
 reales.
+
+### P18 — L5: sweep de apiladas (12 variantes) y el hallazgo H29 (2026-08-03)
+
+Sweep con el patrón de P12 (hoja de contacto + guías). **En verde (9/12):**
+default; excluir opción con N recalculado (200→157) y paleta reindexada; sin
+leyenda; sin columna N; sin valores; un decimal; barra delgada; dicotómica; y
+leyenda a 2 por fila (queda descentrada a la derecha — detalle anotado).
+
+**H29 (GRAVE, confirmado por diferencial Y por código):** `cruces` de
+`p_barras_apiladas` es **inerte** — A02 (cruce por zona) y A03 (6 grupos)
+rinden idénticos al default con una sola barra, cuando el registry promete
+«cada barra es un grupo de la variable de cruce». Causa:
+`.render_barras_apiladas` (reporte_plan_ppt.R:4280) construye la tabla solo
+con `var` y **jamás lee `el$cruces`**. Ruta de reparación diseñada: con cruce
+presente, delegar a la maquinaria de multiapiladas `modo="cruce"` (que ya
+construye una fila apilada por grupo). Por regla de la casa, nace con su test
+rojo primero — primera prioridad del siguiente tramo. Mientras tanto la UI
+sigue ofreciendo el campo: mismo perfil que el defecto fundacional.
+
+Otros detalles del sweep: umbral de etiquetas de apiladas (A10) sin efecto
+visible con 12 % — verificar semántica como H25; con cruce, la etiqueta de
+fila muestra el label completo de la variable (parte de H29).
