@@ -522,3 +522,38 @@ frecuencia — fallback razonable, pero la descripción del arg podría decirlo.
 Con esto, `orden_barras` acredita pruebas 1–3; los bancos del harness deben
 llevar `orders_list` de aquí en adelante (regla para todos los lotes de
 graficadores).
+
+### P11 — L4: guías de placeholders en el harness (pedido de Gonzalo) (2026-08-03)
+
+Gonzalo pidió comprobar los espacios de los placeholders con guías. El motor
+ya lo trae: `presets$base$debug_ph_bordes = TRUE` (mecanismo `debug_ph` del
+router) dibuja el borde de cada zona del canvas. Queda incorporado al harness
+como modo estándar de verificación (script `render_guias.R`, patrón
+replicable).
+
+**Lo que las guías destaparon en barras agrupadas:**
+
+- **H23 (regresión de P9, REPARADA)**: el suelo reservaba
+  `canvas_h_legend_in = 0` (coherente con la leyenda apagada de antes); con
+  la leyenda encendida, «Mujer/Hombre» invadía la última barra. Suelo a 0.35;
+  sin leyenda el graficador colapsa la reserva a 0 solo. Verificado con
+  guías: la leyenda vive en su propia fila.
+- **H22 (abierto, diseño listo)**: en paneles a media lámina (slide_2,
+  text_r) una etiqueta de 29 caracteres desborda la lámina por la izquierda.
+  Causa raíz: el graficador no conoce el ancho real del device (el canvas se
+  calibró para lámina completa; `ancho` formal queda en su default 10"). El
+  fix requiere que el motor inyecte el ancho del slot como hint al renderizar
+  elementos de slides multi-gráfico, y que el wrap efectivo se derive de
+  `ancho × canvas_w_etiquetas` y el tamaño tipográfico. Entra como ítem
+  propio del lote.
+- **H21/D5 (bandeja)**: con eje 0–100 (`usar_eje_libre=FALSE`, comparabilidad
+  entre láminas) y valores máximos bajos, dos tercios de la caja de barras
+  quedan vacíos; y `canvas_w_etiquetas=0.45` fijo desperdicia espacio con
+  etiquetas cortas (el perfil ACNUR ya usa `canvas_w_adaptativo=TRUE`).
+  Opciones: (a) mantener 0–100 (defendible) + ancho adaptativo de etiquetas
+  en el suelo; (b) eje libre por default. Recomendación: (a). Decide Gonzalo.
+- Detalle pendiente: orden de la leyenda vs orden vertical de las barras
+  (`invertir_leyenda`) y padding swatch-texto de la leyenda.
+
+**Gate:** defaults-editoriales 6, presets-contrato 9, argumentos-ui 459,
+var-cruce 323: todo verde.
