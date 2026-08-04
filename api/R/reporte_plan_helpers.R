@@ -2605,3 +2605,19 @@ p_reset <- function(
   el_for_word$overrides <- ov
   el_for_word
 }
+
+# B41: cuando el caption del grafico esta apagado (doctrina B36/G-17: la
+# Base vive en la esquina inferior izquierda del SLIDE), el panel del canvas
+# no puede llegar hasta el borde inferior — la franja del pie queda para el
+# texto de Base del slide. Sin esta reserva, la leyenda del grafico y la
+# Base se solapaban (visto en el export real de Conta, lamina de docentes
+# con canvas_h_caption_in = 0).
+.reservar_pie_para_base_slide <- function(args) {
+  if (!is.list(args)) return(args)
+  np <- args$nota_pie %||% NULL
+  tiene_caption <- !is.null(np) && any(nzchar(trimws(as.character(np))))
+  if (tiene_caption) return(args)
+  cap <- suppressWarnings(as.numeric(args$canvas_h_caption_in %||% NA_real_)[1])
+  if (!is.finite(cap) || cap < 0.24) args$canvas_h_caption_in <- 0.24
+  args
+}

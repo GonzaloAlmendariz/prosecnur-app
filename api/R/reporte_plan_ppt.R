@@ -75,7 +75,10 @@ reporte_ppt_plan <- function(
     master             = "Office Theme",
     mensajes_progreso  = TRUE,
     solo_lista         = FALSE,
-    auto_otros_slides  = TRUE,
+    # B41/G-18: opt-in. El default TRUE hacia aparecer la lamina "Otros" en
+    # todo caller que no pasara el flag (feedback directo de Gonzalo: la
+    # lamina automatica es una opcion, no lo normal).
+    auto_otros_slides  = FALSE,
     build_render_meta  = FALSE
 ) {
 
@@ -3492,10 +3495,10 @@ reporte_ppt_plan <- function(
     etype <- el$.element_type %||% ""
     # Doctrina B36 (Gonzalo): la base vive en la esquina inferior izquierda
     # del SLIDE (su placeholder de base).
-    # Apiladas y multiapiladas ya NO imprimen caption propio, asi que su base
-    # de slide vuelve. Los etypes que aun llevan caption en el grafico
-    # (agrupadas/categoricas/pie/donut) siguen suprimidos para no duplicar.
-    if (etype %in% c("barras_agrupadas", "barras_categoricas", "pie", "donut")) return(NULL)
+    # Apiladas, multiapiladas y agrupadas (G-17) ya NO imprimen caption
+    # propio, asi que su base de slide vuelve. Los etypes que aun llevan
+    # caption en el grafico (categoricas/pie/donut) siguen suprimidos.
+    if (etype %in% c("barras_categoricas", "pie", "donut")) return(NULL)
     excluir_base <- switch(
       etype,
       barras_multiapiladas = .reporte_plan_excluir_cascada(
@@ -4381,6 +4384,7 @@ reporte_ppt_plan <- function(
     }
 
     args <- .merge_args(base_args, preset_args, overrides)
+    args <- .reservar_pie_para_base_slide(args)
     fun  <- graficar_barras_apiladas
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)
@@ -4822,6 +4826,7 @@ reporte_ppt_plan <- function(
       }
 
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
+      args <- .reservar_pie_para_base_slide(args)
       args$ancho_max_eje_y <- wrap_y_eff  # sin re-wrap del graficador (H31)
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
@@ -4992,6 +4997,7 @@ reporte_ppt_plan <- function(
       base_args <- .apply_top2box_alias(base_args)
 
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
+      args <- .reservar_pie_para_base_slide(args)
       args$ancho_max_eje_y <- wrap_y_eff  # idem modo var: sin re-wrap (H31)
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
@@ -5380,6 +5386,7 @@ reporte_ppt_plan <- function(
       }
 
       args <- .merge_args(args, overrides)
+      args <- .reservar_pie_para_base_slide(args)
       args$usar_canvas <- TRUE
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
@@ -5589,7 +5596,10 @@ reporte_ppt_plan <- function(
       umbral_barra        = 0,
       titulo              = NULL,
       subtitulo           = NULL,
-      nota_pie            = base_caption %||% .format_n_caption(N_total, unit = base_unit)
+      # Doctrina B36 extendida a agrupadas (G-17, pedido directo): la base
+      # vive en la esquina inferior izquierda del SLIDE, no como caption del
+      # grafico. Reactivable via overrides$nota_pie.
+      nota_pie            = NULL
     )
 
     preset_args <- preset_args %||% list()
@@ -5613,6 +5623,7 @@ reporte_ppt_plan <- function(
     overrides$colores_grupos   <- NULL
 
     args <- .merge_args(base_args, preset_args, overrides)
+    args <- .reservar_pie_para_base_slide(args)
     fun  <- graficar_barras_agrupadas
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)

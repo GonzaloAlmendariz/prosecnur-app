@@ -975,7 +975,9 @@ test_that("barras agrupadas excluyen egresados sin grado y recalculan porcentaje
   labels <- .ppt_plan_text_labels(out$rendered[[1]])
   expect_true("bach" %in% labels)
   expect_false("sin" %in% labels)
-  expect_true("Base: 2 respuestas" %in% labels)
+  # Doctrina B36/G-17: la Base ya no viaja como caption del grafico (vive en
+  # el placeholder del slide).
+  expect_false("Base: 2 respuestas" %in% labels)
 })
 
 test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abiertas", {
@@ -1011,6 +1013,9 @@ test_that("reporte_ppt_plan inserta slide Otros como lista de respuestas abierta
     plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    # G-18: la lamina automatica de Otros es opt-in; este test prueba la
+    # feature, asi que la enciende explicitamente.
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1069,6 +1074,7 @@ test_that("slide Otros paginada mantiene titulo sin contador entre parentesis", 
     plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1120,6 +1126,7 @@ test_that("reporte_ppt_plan explica Otros agrupado por maximo de categorias", {
       agrupar_resto_en_otros = TRUE
     )),
     solo_lista = TRUE,
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1168,6 +1175,7 @@ test_that("slide Otros lista solo respuestas aun no categorizadas", {
     plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1222,6 +1230,7 @@ test_that("slide Otros (select_multiple) incluye a quien marco una opcion nombra
     plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12_recod"))),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1273,6 +1282,8 @@ test_that("slide Otros usa variable madre cuando la recodificada queda en Otros"
     )),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    # G-18: la lamina de Otros es opt-in.
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1319,6 +1330,7 @@ test_that("slide Otros no se genera si el campo abierto esta vacio", {
     plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1358,6 +1370,7 @@ test_that("slide Otros no se genera si el campo abierto queda vacio tras limpiez
     plan = list(diapo_001 = p_slide_1_grafico(grafico = p_barras_agrupadas("p12"))),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -1407,6 +1420,7 @@ test_that("slide Otros respeta fuente y filtros del grafico original", {
     ),
     presets = p_presets(barras_agrupadas = list(usar_canvas = TRUE, mostrar_leyenda = FALSE)),
     solo_lista = TRUE,
+    auto_otros_slides = TRUE,
     mensajes_progreso = FALSE
   )
 
@@ -2443,7 +2457,9 @@ test_that("graficar_barras_apiladas modera layout canvas con una sola barra", {
   layout <- attr(p, "pulso_barras_apiladas_layout")
   expect_equal(layout$n_categorias, 1)
   expect_equal(layout$y_axis_max, 2)
-  expect_equal(layout$grosor_eff, 0.70)
+  # B36/G-2: una fila real bajo filas virtuales recibe el piso editorial
+  # (0.95) — el 0.70 manual por defecto dejaba una cinta enclenque.
+  expect_equal(layout$grosor_eff, 0.95)
 })
 
 test_that("multiapiladas multiactor reservan la mayor parte del canvas para las barras", {
