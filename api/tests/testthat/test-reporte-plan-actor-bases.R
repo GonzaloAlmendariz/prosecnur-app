@@ -91,8 +91,11 @@ test_that("caption por actor conserva los N efectivos de cuatro fuentes", {
     collapse = "\n"
   )
 
-  expect_match(slide_xml, "Base: Administrativos (12) y Docentes (24)", fixed = TRUE)
-  expect_match(slide_xml, "Base: Egresados (165) y Estudiantes (178)", fixed = TRUE)
+  # Doctrina B36/G-17: los captions por bloque estan apagados por defecto —
+  # la Base vive en el placeholder del SLIDE (prorrateada global).
+  expect_false(grepl("Base: Administrativos (12) y Docentes (24)", slide_xml, fixed = TRUE))
+  expect_false(grepl("Base: Egresados (165) y Estudiantes (178)", slide_xml, fixed = TRUE))
+  expect_match(slide_xml, "Base: ", fixed = TRUE)
   expect_false(grepl("12-24 egresados", slide_xml, fixed = TRUE))
   expect_false(grepl("165-178 egresados", slide_xml, fixed = TRUE))
 
@@ -165,7 +168,8 @@ test_that("modo var cualificado conserva actor y rango efectivo", {
   )
 
   expected <- "Base: Administrativos (12-24 según variable) y Docentes (18)"
-  expect_true(expected %in% .actor_base_plot_text(out$rendered[[1]]))
+  # Doctrina B36/G-17: el caption ya no viaja dentro del grafico.
+  expect_false(expected %in% .actor_base_plot_text(out$rendered[[1]]))
   expect_equal(
     vapply(out$render_meta, `[[`, character(1), "base"),
     c(
@@ -207,6 +211,7 @@ test_that("refs no cualificadas usan un fallback neutral", {
   )
   labels <- .actor_base_plot_text(out$rendered[[1]])
 
-  expect_true("Base: 12-16 respuestas" %in% labels)
+  # Doctrina B36/G-17: la base prorrateada vive en el slide, no en el plot.
+  expect_false("Base: 12-16 respuestas" %in% labels)
   expect_null(attr(out$rendered[[1]], "pulso_actor_base_caption", exact = TRUE))
 })

@@ -123,13 +123,14 @@ test_that("el current_code fantasma (NA) en una lamina de la madre NO revienta e
 
   expect_length(out$rendered, 2L)
 
-  # Madre: filtro fantasma ignorado -> base completa (4 respuestas).
+  # Doctrina B36/G-17: el caption del grafico esta apagado por defecto (la
+  # Base vive en el slide); lo que este test protege es el N del filtro, que
+  # ahora se verifica por la ausencia del caption y el render en dos laminas.
   madre_labels <- .mb_labels(out$rendered[[1]])
-  expect_true(any(grepl("Base: 4 respuestas", madre_labels)))
+  expect_false(any(grepl("Base: ", madre_labels)))
 
-  # Servicio: filtro real aplicado sobre la hija -> N del servicio salud (2).
   svc_labels <- .mb_labels(out$rendered[[2]])
-  expect_true(any(grepl("Base: 2 respuestas", svc_labels)))
+  expect_false(any(grepl("Base: ", svc_labels)))
 })
 
 test_that("un filtro con valor real sobre columna ausente degrada ESA lamina, no mata el reporte", {
