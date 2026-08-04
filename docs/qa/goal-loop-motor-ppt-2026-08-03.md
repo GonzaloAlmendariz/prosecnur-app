@@ -2118,3 +2118,16 @@ caso «campo vacío CONVIVIENDO con el campo hermano poblado».
 
 **Veredicto de Gonzalo (2026-08-04):** exportó de nuevo y «Prueba 2 sale
 completa». B49 confirmado por el usuario — el criterio que cierra.
+
+### B50 — Paletas UI→PPT verificadas de punta a punta (2026-08-04, sesión B)
+
+Pedido directo: comprobar que las paletas aplicadas desde la UI llegan a
+los PPTs. Circuito completo con el Conta real: (1) UI — sugerida «Pulso
+aprobación» aplicada a lst_p1 con agrupación activa, strip rojo/verde
+confirmado en vivo; (2) export por API con paletas estridentes de prueba
+(Sí→morado, No→naranja; likert de 5) — la apilada likert y la lámina
+multiactor pintan EXACTO por etiqueta, leyenda incluida, atravesando la
+canonización multibase. Regla operativa para el analista: esperar el
+«Guardado ✓» del autosave (~2s) antes de exportar. Observación suelta:
+el backend dev murió una vez sin traza durante la sesión de prueba (no
+reproducido; vigilar).
