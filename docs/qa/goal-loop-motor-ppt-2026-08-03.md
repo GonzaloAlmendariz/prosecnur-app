@@ -731,3 +731,22 @@ sigue ofreciendo el campo: mismo perfil que el defecto fundacional.
 Otros detalles del sweep: umbral de etiquetas de apiladas (A10) sin efecto
 visible con 12 % — verificar semántica como H25; con cruce, la etiqueta de
 fila muestra el label completo de la variable (parte de H29).
+
+### P19 — H29 REPARADO: el cruce de apiladas rinde una fila por grupo (2026-08-03)
+
+Regla de la casa cumplida: primero el test rojo
+(`test-graficador-apiladas-cruce.R`, 2 fallos exactos que demuestran el
+defecto), luego el fix. `.render_barras_apiladas` ahora **delega al modo
+"cruce" de multiapiladas** cuando `el$cruces` viene poblado (una fila apilada
+por grupo, vía el dispatcher para heredar todo el wiring de presets); el
+código muerto que dejó la delegación (ramas del switch de excluir_base para
+agrupadas/apiladas) se retiró y el monolito queda en 9.418 exacto.
+
+**Evidencia de render (guías activas):** «Cruce por zona» rinde tres filas
+apiladas (Callao/Lima Norte/Lima Sur) con columna N por grupo (76/55/69),
+caption con rango («Base: 55-76 respuestas»), leyenda multi-fila con swatches
+cuadrados y conector para el segmento pequeño (2 %). Sin cruce, la barra
+única histórica intacta (test lo fija).
+
+**Gate:** apiladas-cruce 4, apiladas-frecuencia 11, agrupadas-defaults 9,
+plan-texto 113, var-cruce 323: **todo verde**. Audit de congelados limpio.
