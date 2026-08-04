@@ -51,3 +51,54 @@ test_that("el relleno de slots respeta los formals opcionales", {
   expect_false(is.null(filled$grafico))
   expect_null(filled$extra)
 })
+
+# --- G-15: refs vacias con formas exoticas (informe conjunto a medio armar) ---
+
+test_that("var como lista vacia o NA cuenta como ref en blanco", {
+  expect_true(.graficos_blank_ref_value(list()))
+  expect_true(.graficos_blank_ref_value(character(0)))
+  expect_true(.graficos_blank_ref_value(NA_character_))
+  expect_true(.graficos_blank_ref_value(list(NULL)))
+  expect_true(.graficos_blank_ref_value(list("", "  ")))
+  expect_false(.graficos_blank_ref_value("docentes$p13_1"))
+  expect_false(.graficos_blank_ref_value(list("docentes$p13_1")))
+  expect_false(.graficos_blank_ref_value(NULL))
+})
+
+test_that("un graficador con var vacio ([] de la UI) degrada a canvas en blanco", {
+  out <- .rebuild_graf(list(graficador = "p_barras_apiladas", args = list(var = list())))
+  expect_s3_class(out, "ppt_element")
+  out2 <- .rebuild_graf(list(graficador = "p_barras_agrupadas", args = list(var = "")))
+  expect_s3_class(out2, "ppt_element")
+})
+
+test_that("un graficador SIN var (formal requerido ausente) degrada a canvas en blanco", {
+  out <- .rebuild_graf(list(graficador = "p_barras_apiladas", args = list(titulo = "x")))
+  expect_s3_class(out, "ppt_element")
+})
+
+test_that("vars presente pero vacio tambien degrada", {
+  expect_true(.graficos_args_missing_required_ref(list(vars = list())))
+})
+
+test_that("multiapiladas sin var sigue funcionando (var es opcional ahi)", {
+  el <- .rebuild_graf(list(
+    graficador = "p_barras_multiapiladas",
+    args = list(modo = "var_cruce", vars = list(bloque = c("p1", "p2")))
+  ))
+  expect_s3_class(el, "ppt_element")
+})
+
+test_that("una ref valida envuelta en list() por la rectangularizacion se desenvuelve", {
+  # Plan mixto (borrador + valida): var de la lamina valida llega como
+  # list("fuente$var") — antes moria con "`var` debe ser character(1)".
+  args <- .graficos_unwrap_scalar_refs(list(var = list("estudiantes$p7"), overrides = list(a = 1)))
+  expect_identical(args$var, "estudiantes$p7")
+  expect_true(is.list(args$overrides))
+})
+
+test_that("el rebuild con var en lista-de-1 produce el elemento real, no un blank", {
+  el <- .rebuild_graf(list(graficador = "p_barras_agrupadas", args = list(var = list("p7"))))
+  expect_s3_class(el, "ppt_element")
+  expect_identical(el$.element_type, "barras_agrupadas")
+})

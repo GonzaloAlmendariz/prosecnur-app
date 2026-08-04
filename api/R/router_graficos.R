@@ -356,9 +356,12 @@
     stop(sprintf("Graficador no registrado: %s", g$graficador), call. = FALSE)
   }
   fn <- getExportedValue("prosecnurapp", graficador_name)
-  args <- .graficos_drop_blank_optional_refs(g$args %||% list())
+  args <- .graficos_unwrap_scalar_refs(g$args %||% list())
+  args <- .graficos_drop_blank_optional_refs(args)
   if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
-  do.call(fn, .clean_rebuild_args(args, fn))
+  args <- .clean_rebuild_args(args, fn)
+  if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
+  do.call(fn, args)
 }
 
 # B36/G-12: una lamina borrador (slot de grafico REQUERIDO sin graficador)
@@ -760,7 +763,24 @@
 }
 
 .graficos_blank_ref_value <- function(x) {
-  is.character(x) && (!length(x) || all(!nzchar(trimws(x))))
+  # Una ref "vacia" puede llegar con varias formas segun quien serializo:
+  # "" o "   " (string), character(0), [] / {} de la UI (list()), NA de la
+  # rectangularizacion de jsonlite, o una lista cuyos elementos son todos
+  # vacios. Sin reconocerlas todas, el export muere criptico dentro de callr
+  # con "`var` debe ser character(1) no vacio" (B36/G-15, informe conjunto
+  # con un tema a medio armar).
+  if (is.null(x)) return(FALSE)
+  if (!length(x)) return(TRUE)
+  if (is.list(x)) {
+    return(all(vapply(x, function(v) {
+      is.null(v) || .graficos_blank_ref_value(v) || (is.atomic(v) && all(is.na(v)))
+    }, logical(1))))
+  }
+  # nzchar(NA_character_) es TRUE: sin el is.na() explicito, un NA de la
+  # rectangularizacion pasaria como ref "con contenido".
+  if (is.character(x)) return(all(is.na(x) | !nzchar(trimws(x))))
+  if (is.atomic(x) && all(is.na(x))) return(TRUE)
+  FALSE
 }
 
 .graficos_args_missing_required_ref <- function(args) {
@@ -772,6 +792,8 @@
   }
   vars <- args$vars
   if (is.character(vars) && (!length(vars) || all(!nzchar(trimws(vars))))) return(TRUE)
+  # `vars` presente pero vacio ([] de la UI) tambien es una ref faltante.
+  if (is.list(vars) && !length(vars)) return(TRUE)
   if (is.list(vars) && length(vars)) {
     has_empty_block <- any(vapply(vars, function(value) {
       if (is.character(value)) return(!length(value) || all(!nzchar(trimws(value))))
@@ -799,6 +821,38 @@
   args
 }
 
+# B36/G-15: cuando un plan mezcla laminas borrador (var=[]) con laminas
+# validas, la rectangularizacion de jsonlite convierte `var` en columna de
+# lista y la lamina VALIDA llega como list("fuente$var") — que los spec
+# constructors rechazan con "`var` debe ser character(1) no vacio". Se
+# desenvuelven aqui las refs escalares conocidas; las listas legitimas
+# (overrides, box_labels, ...) no se tocan.
+.GRAFICOS_SCALAR_REF_ARGS <- c(
+  "var", "cruce", "cruces", "iter_var", "objetivo", "var_texto", "grupo", "fila"
+)
+
+.graficos_unwrap_scalar_refs <- function(args) {
+  if (!is.list(args)) return(args)
+  for (arg_name in intersect(.GRAFICOS_SCALAR_REF_ARGS, names(args))) {
+    v <- args[[arg_name]]
+    if (is.list(v) && length(v) == 1L && is.atomic(v[[1]]) && length(v[[1]]) == 1L) {
+      args[[arg_name]] <- v[[1]]
+    }
+  }
+  args
+}
+
+# B36/G-15: si tras limpiar los args queda SIN VALOR un formal requerido del
+# graficador (var de apiladas/agrupadas, tipicamente porque el slide del
+# informe conjunto esta a medio armar), degradamos a canvas en blanco en vez
+# de dejar que callr muera con "argument var is missing". `...` se excluye.
+.graficos_args_faltan_requeridos <- function(fn, args) {
+  fmls <- formals(fn)
+  fmls <- fmls[setdiff(names(fmls), "...")]
+  requeridos <- names(fmls)[vapply(fmls, function(f) identical(f, quote(expr = )), logical(1))]
+  length(setdiff(requeridos, names(args))) > 0L
+}
+
 .graficos_blank_graph_element <- function() {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("Se requiere el paquete 'ggplot2' para crear placeholders de graficos vacios.", call. = FALSE)
@@ -819,9 +873,12 @@
     stop_api(400, "E_UNKNOWN_GRAF", sprintf("Graficador no registrado: %s", g$graficador))
   }
   fn <- getExportedValue("prosecnurapp", graficador_name)
-  args <- .graficos_drop_blank_optional_refs(g$args %||% list())
+  args <- .graficos_unwrap_scalar_refs(g$args %||% list())
+  args <- .graficos_drop_blank_optional_refs(args)
   if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
-  do.call(fn, .clean_rebuild_args(args, fn))
+  args <- .clean_rebuild_args(args, fn)
+  if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
+  do.call(fn, args)
 }
 
 .rebuild_slide <- function(s) {
@@ -2871,7 +2928,8 @@ mount_graficos <- function(pr) {
         graficador_name <- .graficos_resolve_graficador_name(g$graficador, graficador_registry)
         if (!(graficador_name %in% graficador_registry)) stop(sprintf("Graficador no registrado: %s", g$graficador))
         fn <- getExportedValue("prosecnurapp", graficador_name)
-        args <- .graficos_drop_blank_optional_refs(g$args %||% list())
+        args <- .graficos_unwrap_scalar_refs(g$args %||% list())
+        args <- .graficos_drop_blank_optional_refs(args)
         if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
         args <- promote_graph_title(args, fn)
         args <- args[names(args) %in% names(formals(fn))]
@@ -2881,6 +2939,7 @@ mount_graficos <- function(pr) {
             (length(v) == 1L && is.list(v) && is.null(v[[1]])) ||
             (length(v) == 1L && is.atomic(v) && is.na(v))
         }, logical(1))]
+        if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
         do.call(fn, args)
       }
       as_list_shallow <- function(x) {
