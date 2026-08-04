@@ -421,6 +421,10 @@ graficar_media_rango <- function(
     )
 
   chip_cols <- .resolve_chip_colores(chip_colores)
+  # El semaforo solo actua con cortes declarados o modo degradado explicito.
+  # Los terciles automaticos de las medias pintaban SIEMPRE un grupo en rojo
+  # aunque todos promediaran alto (color relativo con semantica absoluta).
+  semaforo_activo <- !is.null(cortes_chip) || !identical(modo_semaforo, "grupos")
   chip_cuts <- cortes_chip
   if (is.null(chip_cuts)) {
     q <- suppressWarnings(stats::quantile(sum_df$media_raw, probs = c(1/3, 2/3), na.rm = TRUE, names = FALSE))
@@ -435,22 +439,27 @@ graficar_media_rango <- function(
     }
   }
 
-  sum_df$chip_fill <- .dim_semaforo_color(
-    x = sum_df$media_raw,
-    cortes = chip_cuts,
-    colores = list(
-      rojo = chip_cols[["rojo"]],
-      ambar = chip_cols[["ambar"]],
-      verde = chip_cols[["verde"]]
-    ),
-    digits = 0,
-    na_color = NA_character_,
-    modo = modo_semaforo,
-    gradiente_colores = semaforo_gradiente_colores,
-    gradiente_valores = semaforo_gradiente_valores,
-    gradiente_limites = semaforo_gradiente_limites,
-    gradiente_segmentos = semaforo_gradiente_segmentos
-  )
+  sum_df$chip_fill <- if (isTRUE(semaforo_activo)) {
+    .dim_semaforo_color(
+      x = sum_df$media_raw,
+      cortes = chip_cuts,
+      colores = list(
+        rojo = chip_cols[["rojo"]],
+        ambar = chip_cols[["ambar"]],
+        verde = chip_cols[["verde"]]
+      ),
+      digits = 0,
+      na_color = NA_character_,
+      modo = modo_semaforo,
+      gradiente_colores = semaforo_gradiente_colores,
+      gradiente_valores = semaforo_gradiente_valores,
+      gradiente_limites = semaforo_gradiente_limites,
+      gradiente_segmentos = semaforo_gradiente_segmentos
+    )
+  } else {
+    "#FFFFFF"
+  }
+  chip_texto_color <- if (isTRUE(semaforo_activo)) chip_texto_color else color_media
   sum_df$delta_significativo <- TRUE
   if (isTRUE(destacar_significativos)) {
     sum_df$delta_significativo <- vapply(as.character(sum_df$categoria), function(cat_i) {
@@ -653,22 +662,26 @@ graficar_media_rango <- function(
     ref_line_colour <- "#9AA6B8"
     ref_box_fill <- if (is.na(color_fondo)) "#F2F4F7" else color_fondo
     ref_text_colour <- "#637082"
-    ref_chip_fill <- .dim_semaforo_color(
-      x = ref_value,
-      cortes = chip_cuts,
-      colores = list(
-        rojo = chip_cols[["rojo"]],
-        ambar = chip_cols[["ambar"]],
-        verde = chip_cols[["verde"]]
-      ),
-      digits = 0,
-      na_color = NA_character_,
-      modo = modo_semaforo,
-      gradiente_colores = semaforo_gradiente_colores,
-      gradiente_valores = semaforo_gradiente_valores,
-      gradiente_limites = semaforo_gradiente_limites,
-      gradiente_segmentos = semaforo_gradiente_segmentos
-    )[1]
+    ref_chip_fill <- if (isTRUE(semaforo_activo)) {
+      .dim_semaforo_color(
+        x = ref_value,
+        cortes = chip_cuts,
+        colores = list(
+          rojo = chip_cols[["rojo"]],
+          ambar = chip_cols[["ambar"]],
+          verde = chip_cols[["verde"]]
+        ),
+        digits = 0,
+        na_color = NA_character_,
+        modo = modo_semaforo,
+        gradiente_colores = semaforo_gradiente_colores,
+        gradiente_valores = semaforo_gradiente_valores,
+        gradiente_limites = semaforo_gradiente_limites,
+        gradiente_segmentos = semaforo_gradiente_segmentos
+      )[1]
+    } else {
+      "#FFFFFF"
+    }
 
     if (isTRUE(use_ref_slot)) {
       ref_box_label <- if (isTRUE(mostrar_ref_label)) {

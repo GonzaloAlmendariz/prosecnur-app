@@ -22,7 +22,9 @@
 #'   del texto del chip de media.
 #' @param cortes_chip Cortes del semaforo para clasificar la media en tres
 #'   estados (`rojo`, `ambar`, `verde`). Debe contener al menos 2 valores.
-#'   Si es `NULL`, se estima automaticamente desde los datos.
+#'   Si es `NULL` y `modo_semaforo = "grupos"` (default), el chip queda
+#'   NEUTRAL (blanco con texto navy): el semaforo solo actua cuando el
+#'   analista declara cortes o pide un modo degradado.
 #'   Cuando se define explicitamente, se agregan lineas punteadas en esos cortes
 #'   y se fuerzan como marcas del eje numerico.
 #' @param modo_semaforo Modo del semaforo para el chip: `"grupos"` mantiene la
@@ -80,7 +82,7 @@ graficar_boxplot <- function(
     jitter_height     = 0,
     mostrar_media     = TRUE,
     color_media       = "#173B63",
-    size_media        = 2.3,
+    size_media        = 3.2,
     cortes_chip       = NULL,
     modo_semaforo     = c("grupos", "degradado"),
     chip_colores      = c(rojo = "#C62828", ambar = "#EF6C00", verde = "#2E7D32"),
@@ -302,6 +304,12 @@ graficar_boxplot <- function(
       dplyr::group_by(.data$categoria) |>
       dplyr::summarise(media = mean(.data$valor, na.rm = TRUE), .groups = "drop")
 
+    # El semaforo solo actua cuando el analista lo pide (cortes declarados o
+    # modo degradado). Sin eso, los terciles automaticos de las medias pintaban
+    # SIEMPRE un grupo en rojo aunque todos promediaran alto: color relativo
+    # con semantica absoluta. El default honesto es un chip neutral.
+    semaforo_activo <- !is.null(cortes_chip) || !identical(modo_semaforo, "grupos")
+
     chip_cuts <- cortes_chip
     if (is.null(chip_cuts)) {
       q <- suppressWarnings(stats::quantile(mean_df$media, probs = c(1/3, 2/3), na.rm = TRUE, names = FALSE))
@@ -316,18 +324,23 @@ graficar_boxplot <- function(
       }
     }
 
-    mean_df$chip_fill <- .dim_semaforo_color(
-      x = mean_df$media,
-      cortes = chip_cuts,
-      colores = list(
-        rojo = chip_cols[["rojo"]],
-        ambar = chip_cols[["ambar"]],
-        verde = chip_cols[["verde"]]
-      ),
-      digits = 0,
-      na_color = NA_character_,
-      modo = modo_semaforo
-    )
+    mean_df$chip_fill <- if (isTRUE(semaforo_activo)) {
+      .dim_semaforo_color(
+        x = mean_df$media,
+        cortes = chip_cuts,
+        colores = list(
+          rojo = chip_cols[["rojo"]],
+          ambar = chip_cols[["ambar"]],
+          verde = chip_cols[["verde"]]
+        ),
+        digits = 0,
+        na_color = NA_character_,
+        modo = modo_semaforo
+      )
+    } else {
+      "#FFFFFF"
+    }
+    chip_texto_eff <- if (isTRUE(semaforo_activo)) chip_texto_color else color_media
     mean_df$chip_label <- paste0(
       format(round(mean_df$media, chip_decimales), nsmall = chip_decimales, trim = TRUE),
       chip_sufijo
@@ -339,7 +352,7 @@ graficar_boxplot <- function(
         ggplot2::aes(x = .data$categoria, y = .data$media, label = .data$chip_label),
         inherit.aes = FALSE,
         fill = mean_df$chip_fill,
-        text.colour = chip_texto_color,
+        text.colour = chip_texto_eff,
         border.colour = color_media,
         fontface = "bold",
         size = size_media,

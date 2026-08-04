@@ -6135,13 +6135,7 @@ reporte_ppt_plan <- function(
 
     fun  <- graficar_media_rango
     args <- .merge_args(base_args, preset_args, overrides)
-    # "Mostrar referencia" de la UI promete linea/etiqueta del promedio global,
-    # que solo existe en modo score_ref: encenderlo sin declarar modo activa
-    # ese modo (si no, el switch es inerte con el default "score").
-    if (isTRUE(args$mostrar_ref_label) && is.null(args$modo)) {
-      args$modo <- "score_ref"
-      args$mostrar_ref_line <- args$mostrar_ref_line %||% TRUE
-    }
+    args <- .media_rango_activar_score_ref(args)
     args <- .keep_formals(fun, args)
 
     tryCatch(
