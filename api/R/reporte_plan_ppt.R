@@ -4417,14 +4417,11 @@ reporte_ppt_plan <- function(
     preset_args_multi$excluir_opciones <- NULL
     overrides$excluir_opciones <- NULL
     incluir_sin_n <- TRUE
-    wrap_y_eff <- overrides$ancho_max_eje_y %||%
-      overrides$wrap_y %||%
-      preset_args_multi$ancho_max_eje_y %||%
-      preset_args_multi$wrap_y %||%
-      preset_args_single$ancho_max_eje_y %||%
-      preset_args_single$wrap_y %||%
-      el$ancho_max_eje_y %||%
-      el$wrap_y %||%
+    # H31: el$wrap_y (decision por grafico) gana al preset de tipo.
+    wrap_y_eff <- overrides$ancho_max_eje_y %||% overrides$wrap_y %||%
+      el$ancho_max_eje_y %||% el$wrap_y %||%
+      preset_args_multi$ancho_max_eje_y %||% preset_args_multi$wrap_y %||%
+      preset_args_single$ancho_max_eje_y %||% preset_args_single$wrap_y %||%
       50
     wrap_y_eff <- suppressWarnings(as.numeric(wrap_y_eff)[1])
     if (!is.finite(wrap_y_eff) || is.na(wrap_y_eff) || wrap_y_eff < 10) {
@@ -4518,12 +4515,12 @@ reporte_ppt_plan <- function(
       block_overrides <- block_el$overrides %||% list()
       block_wrap <- block_overrides$ancho_max_eje_y %||%
         block_overrides$wrap_y %||%
+        block_el$ancho_max_eje_y %||%
+        block_el$wrap_y %||%
         preset_args_multi$ancho_max_eje_y %||%
         preset_args_multi$wrap_y %||%
         preset_args_single$ancho_max_eje_y %||%
         preset_args_single$wrap_y %||%
-        block_el$ancho_max_eje_y %||%
-        block_el$wrap_y %||%
         50
       block_wrap <- suppressWarnings(as.numeric(block_wrap)[1])
       if (!is.finite(block_wrap) || is.na(block_wrap) || block_wrap < 10) {
@@ -4838,6 +4835,7 @@ reporte_ppt_plan <- function(
       }
 
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
+      args$ancho_max_eje_y <- wrap_y_eff  # sin re-wrap del graficador (H31)
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
       args <- .keep_formals(fun, args)
@@ -5007,6 +5005,7 @@ reporte_ppt_plan <- function(
       base_args <- .apply_top2box_alias(base_args)
 
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
+      args$ancho_max_eje_y <- wrap_y_eff  # idem modo var: sin re-wrap (H31)
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
       args <- .keep_formals(fun, args)
