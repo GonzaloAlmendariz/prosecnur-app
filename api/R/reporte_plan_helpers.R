@@ -2618,6 +2618,8 @@ p_reset <- function(
   tiene_caption <- !is.null(np) && any(nzchar(trimws(as.character(np))))
   if (tiene_caption) return(args)
   cap <- suppressWarnings(as.numeric(args$canvas_h_caption_in %||% NA_real_)[1])
-  if (!is.finite(cap) || cap < 0.24) args$canvas_h_caption_in <- 0.24
+  # 0.24 quedaba justo: el texto de Base (size 14) rozaba la leyenda en los
+  # exports reales de Conta. 0.34 da la franja completa.
+  if (!is.finite(cap) || cap < 0.34) args$canvas_h_caption_in <- 0.34
   args
 }
