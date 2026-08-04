@@ -52,6 +52,9 @@
 #'   (coloreado por serie). Da el ancla numérica que la tela sola no ofrece.
 #' @param size_valores Tamaño del texto de los valores por vértice.
 #' @param valores_decimales Decimales del porcentaje por vértice.
+#' @param valores_umbral_pct Umbral (%) bajo el cual un vértice no se
+#'   etiqueta — evita el amontonamiento con muchos ejes de valores chicos.
+#'   0 etiqueta todos.
 #' @param size_linea,size_punto Tamaños de líneas y puntos.
 #' @param alpha_relleno Transparencia del relleno cuando `rellenar_poligono = TRUE`.
 #' @param rellenar_poligono Si `TRUE`, rellena polígonos por grupo.
@@ -177,6 +180,7 @@ graficar_radar <- function(
     mostrar_valores = FALSE,
     size_valores    = 2.9,
     valores_decimales = 0L,
+    valores_umbral_pct = 3,
     size_linea     = 0.9,
     alpha_relleno  = 0.18,
     size_punto     = 2.2,
@@ -946,6 +950,8 @@ graficar_radar <- function(
     dec_val <- suppressWarnings(as.integer(valores_decimales)[1])
     if (!is.finite(dec_val) || is.na(dec_val) || dec_val < 0L) dec_val <- 0L
     n_series <- max(1L, length(grupos))
+    umbral_val <- suppressWarnings(as.numeric(valores_umbral_pct)[1])
+    if (!is.finite(umbral_val) || umbral_val < 0) umbral_val <- 3
     df_val <- df_xy |>
       dplyr::mutate(
         .pct = if (identical(escala_valor, "proporcion_1")) .data$.valor * 100 else .data$.valor,
@@ -957,7 +963,10 @@ graficar_radar <- function(
           ring_max_plot * 0.11,
         x = .data$.r_lab * cos(.data$.ang) - .data$.t_lab * sin(.data$.ang),
         y = .data$.r_lab * sin(.data$.ang) + .data$.t_lab * cos(.data$.ang)
-      )
+      ) |>
+      # Con muchos ejes y valores chicos las etiquetas se amontonan al centro
+      # (visto con datos reales ACNUR): bajo el umbral no se etiqueta.
+      dplyr::filter(.data$.pct >= umbral_val)
     p <- p + ggplot2::geom_text(
       data = df_val,
       ggplot2::aes(x = .data$x, y = .data$y, label = .data$.lab_val, color = .data$.grupo),

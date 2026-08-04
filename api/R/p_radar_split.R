@@ -31,6 +31,7 @@ p_radar <- function(modo = c("sm", "box"),
                     sm_omit_na     = TRUE,
                     mostrar_valores = NULL,
                     valores_decimales = NULL,
+                    valores_umbral_pct = NULL,
                     overrides = list(),
                     base = list(),
                     filtros = list()) {
@@ -40,6 +41,9 @@ p_radar <- function(modo = c("sm", "box"),
   }
   if (!is.null(valores_decimales) && is.null(overrides$valores_decimales)) {
     overrides$valores_decimales <- valores_decimales
+  }
+  if (!is.null(valores_umbral_pct) && is.null(overrides$valores_umbral_pct)) {
+    overrides$valores_umbral_pct <- suppressWarnings(as.numeric(valores_umbral_pct)[1])
   }
   p_radar_tabla(
     modo = modo, var = var, vars = vars, cruce = cruce,

@@ -301,4 +301,15 @@ test_that("mostrar_valores etiqueta cada vertice con su porcentaje (B6)", {
   expect_length(labs, 8)
   expect_true(all(grepl("^[0-9]+%$", labs)))
   expect_true("61%" %in% labs)
+
+  # B35: bajo el umbral (default 3%) el vertice no se etiqueta
+  d_chico <- d
+  d_chico$valor[1] <- 0.01
+  p_umbral <- graficar_radar(data = d_chico, usar_canvas = FALSE,
+                             exportar = "rplot", mostrar_valores = TRUE)
+  expect_length(labs_de(p_umbral), 7)
+  p_todo <- graficar_radar(data = d_chico, usar_canvas = FALSE,
+                           exportar = "rplot", mostrar_valores = TRUE,
+                           valores_umbral_pct = 0)
+  expect_length(labs_de(p_todo), 8)
 })

@@ -1005,7 +1005,10 @@
            default = FALSE,
            descripcion = "Etiqueta cada vértice con su porcentaje, coloreado por serie. Da el ancla numérica que la telaraña sola no ofrece."),
       list(name = "valores_decimales", label = "Decimales de los valores", tipo_input = "number", grupo = "valores",
-           default = 0)
+           default = 0),
+      list(name = "valores_umbral_pct", label = "Umbral de valores (%)", tipo_input = "number", grupo = "valores",
+           default = 3,
+           descripcion = "Los vértices por debajo de este porcentaje no se etiquetan — evita el amontonamiento con muchos ejes de valores chicos. 0 etiqueta todos.")
     ), .args_graf_comunes())
   ),
 
