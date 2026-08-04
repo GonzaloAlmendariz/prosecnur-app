@@ -32,7 +32,11 @@
   if (!nzchar(template)) template <- "generic_16_9"
   auto_others <- auto_otros_slides %||% global$auto_otros_slides %||% global$autoOtrosSlides %||%
     cfg$auto_otros_slides %||% cfg$autoOtrosSlides
-  if (is.null(auto_others)) auto_others <- !identical(template, "acnur_16_9")
+  # B42/G-18: opt-in universal. El default por-template (TRUE salvo ACNUR)
+  # era la compuerta que seguia inyectando la lamina "Otros" aunque el
+  # motor ya defaulteara FALSE — el usuario la pidio como opcion, no como
+  # sorpresa.
+  if (is.null(auto_others)) auto_others <- FALSE
   list(
     profile_id = profile,
     template_id = template,
