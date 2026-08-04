@@ -169,6 +169,15 @@ graficar_boxplot <- function(
 
   orientacion <- match.arg(orientacion)
   modo_semaforo <- .dim_normalize_semaforo_modo(modo_semaforo)
+  # Este graficador no expone args de gradiente manual: ese modo no puede
+  # clasificar nada y antes mataba la lamina. Se degrada con aviso.
+  if (identical(modo_semaforo, "degradado_manual")) {
+    warning(
+      "Semaforo 'degradado_manual' no esta soportado en boxplot: se usa 'degradado_automatico'.",
+      call. = FALSE
+    )
+    modo_semaforo <- "degradado_automatico"
+  }
   pos_titulo  <- match.arg(pos_titulo)
   pos_nota_pie <- match.arg(pos_nota_pie)
   exportar <- match.arg(exportar)
@@ -241,6 +250,12 @@ graficar_boxplot <- function(
     out
   }
 
+  # Mismo patron que media_rango: un factor entrante trae el orden del
+  # instrumento (el glue del plan lo arma desde las choices) y se respeta;
+  # unique() solo como fallback para datos sin orden declarado.
+  cat_is_factor <- is.factor(data[[var_categoria]])
+  cat_levels_in <- if (cat_is_factor) levels(data[[var_categoria]]) else NULL
+
   df <- data |>
     dplyr::select(
       categoria = dplyr::all_of(var_categoria),
@@ -258,7 +273,12 @@ graficar_boxplot <- function(
 
   if (!nrow(df)) stop("No hay datos numericos validos para boxplot.", call. = FALSE)
 
-  lvls <- unique(df$categoria)
+  if (cat_is_factor && length(cat_levels_in)) {
+    lvls <- cat_levels_in[cat_levels_in %in% df$categoria]
+    if (!length(lvls)) lvls <- unique(df$categoria)
+  } else {
+    lvls <- unique(df$categoria)
+  }
   if (isTRUE(invertir_barras)) lvls <- rev(lvls)
   df$categoria <- factor(df$categoria, levels = lvls)
 

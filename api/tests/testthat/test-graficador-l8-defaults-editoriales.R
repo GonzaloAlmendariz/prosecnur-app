@@ -137,3 +137,49 @@ test_that("el glue activa score_ref cuando la UI enciende 'Mostrar referencia' (
   expect_identical(capturado[["modo"]], "score_ref")
   expect_true(isTRUE(capturado[["mostrar_ref_line"]]))
 })
+
+test_that("boxplot respeta los niveles del factor entrante (orden del instrumento)", {
+  d <- .l8_num_data()
+  d$categoria <- factor(d$categoria, levels = c("Lima Sur", "Callao", "Lima Norte"))
+  p <- graficar_boxplot(
+    data = d, var_categoria = "categoria", var_valor = "valor",
+    usar_canvas = FALSE, exportar = "rplot"
+  )
+  expect_identical(levels(p$data$categoria), c("Lima Sur", "Callao", "Lima Norte"))
+})
+
+test_that("degradado_manual sin gradiente degrada con aviso en vez de matar la lamina", {
+  d <- .l8_num_data()
+  expect_warning(
+    p_mr <- graficar_media_rango(
+      data = d, var_categoria = "categoria", var_valor = "valor",
+      modo_semaforo = "degradado_manual",
+      usar_canvas = FALSE, exportar = "rplot"
+    ),
+    "degradado_automatico"
+  )
+  expect_s3_class(p_mr, "ggplot")
+
+  expect_warning(
+    p_bx <- graficar_boxplot(
+      data = d, var_categoria = "categoria", var_valor = "valor",
+      modo_semaforo = "degradado_manual",
+      usar_canvas = FALSE, exportar = "rplot"
+    ),
+    "degradado_automatico"
+  )
+  expect_s3_class(p_bx, "ggplot")
+})
+
+test_that("degradado_manual CON gradiente completo sigue siendo manual", {
+  d <- .l8_num_data()
+  expect_no_warning(
+    graficar_media_rango(
+      data = d, var_categoria = "categoria", var_valor = "valor",
+      modo_semaforo = "degradado_manual",
+      semaforo_gradiente_colores = c("#C62828", "#2E7D32"),
+      semaforo_gradiente_valores = c(5, 9),
+      usar_canvas = FALSE, exportar = "rplot"
+    )
+  )
+})
