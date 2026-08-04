@@ -236,7 +236,9 @@ test_that("reporte_ppt_plan boxplot dibuja cortes_chip en lineas y eje", {
 
   cols <- unique(toupper(stats::na.omit(as.character(gb$data[[idx_hline]]$colour))))
   expect_true(length(cols) >= 1L)
-  expect_true(all(cols == "#C7CDD6"))
+  # 3eba4506: los cortes del semaforo se oscurecieron a proposito para ser
+  # perceptibles sobre el panel claro.
+  expect_true(all(cols == "#8A97A8"))
 
   y_scale <- p$scales$get_scales("y")
   expect_true(all(c(2.8, 3.6) %in% y_scale$breaks))

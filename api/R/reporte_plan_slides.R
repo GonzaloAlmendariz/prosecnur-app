@@ -2833,7 +2833,11 @@ p_dim_foda <- function(
     if (!is.character(titulos_areas_foda) || !length(titulos_areas_foda)) {
       .plan_spec_abort("`titulos_areas_foda` debe ser NULL o un vector character.")
     }
+    nms_orig_foda <- names(titulos_areas_foda)
     titulos_areas_foda <- as.character(titulos_areas_foda)
+    # as.character() pela los nombres: sin restaurarlos, todo vector nombrado
+    # caia a la rama sin-nombres y abortaba con menos de 4 valores.
+    if (!is.null(nms_orig_foda)) names(titulos_areas_foda) <- nms_orig_foda
     llaves <- c("fortaleza", "oportunidad", "debilidad", "amenaza")
     # Formato textual del textarea de la UI: lineas "cuadrante=Titulo".
     if (length(titulos_areas_foda) == 1L && grepl("=", titulos_areas_foda, fixed = TRUE)) {
