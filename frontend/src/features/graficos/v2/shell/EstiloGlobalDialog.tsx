@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles, CheckCircle2 } from "lucide-react";
 import { IconModes } from "../../../../lib/icons";
 import { PaletasEditor } from "../../PaletasEditor";
+import { PptStyleProfilesPanel } from "../../PptStyleProfilesPanel";
 import { IconosEditor } from "../../IconosEditor";
 import { PresetsEditor } from "../../PresetsEditor";
 import { OverridesEditor } from "../../OverridesEditor";
@@ -17,7 +18,7 @@ import { GlidingTabList } from "../../../../components/GlidingTabList";
 // Cada tab monta una superficie visual. Los ajustes que todavía no tienen
 // catálogo curado no se editan desde acá para evitar campos crudos.
 
-type Tab = "ppt" | "word" | "paletas" | "iconos" | "modos";
+type Tab = "ppt" | "word" | "paletas" | "lineas" | "iconos" | "modos";
 
 const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hint: string; summary: string }[] = [
   {
@@ -43,6 +44,14 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
     Icon: Palette,
     hint: "Línea visual y colores por etiqueta de respuesta",
     summary: "Aplica identidades visuales y fija colores por categorías del instrumento.",
+  },
+  {
+    key: "lineas",
+    label: "Líneas visuales",
+    eyebrow: "Identidad",
+    Icon: Layers3,
+    hint: "Identidades completas (ACNUR, institucional) aplicables al plan",
+    summary: "Aplica una identidad completa —color, portada y bases PPT— solo cuando la necesites.",
   },
   {
     key: "iconos",
@@ -237,6 +246,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               {tab === "ppt" && <PresetsEditor />}
               {tab === "word" && <WordTabContent onClose={onClose} />}
               {tab === "paletas" && <PaletasEditor />}
+              {tab === "lineas" && <PptStyleProfilesPanel />}
               {tab === "iconos" && <IconosEditor />}
               {tab === "modos" && <OverridesEditor />}
             </div>

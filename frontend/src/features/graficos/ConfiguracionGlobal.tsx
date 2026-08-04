@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Palette, Image, Sliders, Layers3, Settings2 } from "lucide-react";
 import { usePlanStore } from "./store";
 import { PaletasEditor } from "./PaletasEditor";
+import { PptStyleProfilesPanel } from "./PptStyleProfilesPanel";
 import { IconosEditor } from "./IconosEditor";
 import { PresetsEditor } from "./PresetsEditor";
 import { OverridesEditor } from "./OverridesEditor";
@@ -17,10 +18,11 @@ import { DefaultsModal } from "./DefaultsModal";
 //
 // Cada tab es un componente aparte para mantener este archivo manejable.
 
-type Tab = "paletas" | "iconos" | "presets" | "overrides";
+type Tab = "paletas" | "lineas" | "iconos" | "presets" | "overrides";
 
 const TABS: { key: Tab; label: string; icon: typeof Palette }[] = [
   { key: "paletas",   label: "Paletas",   icon: Palette },
+  { key: "lineas",    label: "Líneas visuales", icon: Layers3 },
   { key: "iconos",    label: "Iconos",    icon: Image },
   { key: "presets",   label: "Presets",   icon: Sliders },
   { key: "overrides", label: "Estilos guardados", icon: Layers3 },
@@ -189,6 +191,7 @@ export function ConfiguracionGlobal() {
           {/* Tab body */}
           <div style={{ padding: 14 }}>
             {tab === "paletas"   && <PaletasEditor />}
+            {tab === "lineas"    && <PptStyleProfilesPanel />}
             {tab === "iconos"    && <IconosEditor />}
             {tab === "presets"   && <PresetsEditor />}
             {tab === "overrides" && <OverridesEditor />}

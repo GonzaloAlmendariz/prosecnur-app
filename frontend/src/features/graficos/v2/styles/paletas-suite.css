@@ -1,0 +1,79 @@
+/* ==========================================================================
+   paletas-suite.css — refinamientos B38 del selector de paletas (G-6..G-11)
+   ==========================================================================
+   Hoja propia porque editor-v2.css está congelado a crecimiento. Los
+   selectores llevan un ancestro extra para ganar por especificidad sin
+   depender del orden de la cascada del bundle.
+
+   G-9: los swatches son CUADRADOS (muestras de color de gráfico, no
+   píldoras de estado). Radio 3px = la esquina de las barras reales. */
+
+.pulso-gv2-paletas-editor .pulso-gv2-paleta-row-strip span {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 3px;
+}
+
+.pulso-gv2-paletas-editor .pulso-gv2-sugerido-swatches span {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border-radius: 3px;
+}
+
+.pulso-gv2-paletas-editor .pulso-gv2-paleta-state-strip span {
+  border-radius: 3px;
+}
+
+.pulso-gv2-ppt-style-panel .pulso-gv2-ppt-style-swatches span {
+  border-radius: 4px;
+}
+
+/* G-7: toggle global de agrupación en el header del sidebar. */
+.pulso-gv2-paletas-group-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--pulso-border, rgba(15, 23, 42, 0.10));
+  background: var(--pulso-surface-2, rgba(15, 23, 42, 0.03));
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.pulso-gv2-paletas-group-all[data-active="true"] {
+  border-color: var(--pulso-button-accent, #0f766e);
+  background: color-mix(in srgb, var(--pulso-button-accent, #0f766e) 8%, transparent);
+}
+
+.pulso-gv2-paletas-group-all input {
+  accent-color: var(--pulso-button-accent, #0f766e);
+}
+
+.pulso-gv2-paletas-group-all small {
+  display: block;
+  opacity: 0.72;
+}
+
+/* G-6: chips de bases (multibase) en filas y hero. */
+.pulso-gv2-paleta-fuentes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.pulso-gv2-paleta-fuentes span {
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--pulso-border, rgba(15, 23, 42, 0.12));
+  background: var(--pulso-surface-2, rgba(15, 23, 42, 0.04));
+  color: var(--pulso-text-soft, rgba(15, 23, 42, 0.72));
+  white-space: nowrap;
+}
