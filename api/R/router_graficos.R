@@ -1185,6 +1185,37 @@
   base
 }
 
+# B38/G-16: la UI de Base PPT guarda TODOS los args del preset (46 en un
+# proyecto real), asi que un default viejo queda FOSILIZADO en la config y
+# pisa cualquier mejora del motor — el usuario "no ve" los fixes. Esta tabla
+# migra solo valores que coinciden EXACTO con el default viejo (nadie eligio
+# 22 a mano: era el valor que la UI copiaba sola); un valor distinto es
+# decision del analista y se respeta. Se aplica en el normalizador, la unica
+# costura por la que pasan el GET de config y el config efectivo del export.
+.GRAFICOS_MIGRACIONES_DEFAULTS <- list(
+  list(tipo = "barras_apiladas", arg = "ancho_max_eje_y", de = 22, a = 34)
+)
+
+.graficos_migrar_defaults_fosiles <- function(presets) {
+  if (!.graficos_is_obj(presets)) return(presets)
+  for (mig in .GRAFICOS_MIGRACIONES_DEFAULTS) {
+    entry <- presets[[mig$tipo]]
+    if (!.graficos_is_obj(entry)) next
+    holder <- if (.graficos_is_obj(entry$args)) entry$args else entry
+    actual <- suppressWarnings(as.numeric(holder[[mig$arg]] %||% NA_real_)[1])
+    if (is.finite(actual) && identical(actual, as.numeric(mig$de))) {
+      holder[[mig$arg]] <- mig$a
+      if (.graficos_is_obj(entry$args)) {
+        entry$args <- holder
+      } else {
+        entry <- holder
+      }
+      presets[[mig$tipo]] <- entry
+    }
+  }
+  presets
+}
+
 .graficos_normalize_config <- function(input, sid = NULL, include_legacy_aliases = FALSE) {
   defaults <- .graficos_default_config(sid)
   envelope <- if (.graficos_is_obj(input)) input else list()
@@ -1197,7 +1228,11 @@
   cfg$plan <- if (.graficos_is_obj(plan) && is.list(plan$slides)) plan else defaults$plan
 
   presets <- .graficos_pick_alias(src, "presets")
-  cfg$presets <- if (.graficos_is_obj(presets)) presets else defaults$presets
+  cfg$presets <- if (.graficos_is_obj(presets)) {
+    .graficos_migrar_defaults_fosiles(presets)
+  } else {
+    defaults$presets
+  }
 
   w_presets <- .graficos_pick_alias(src, "w_presets", "wPresets")
   cfg$w_presets <- if (.graficos_is_obj(w_presets)) {
@@ -1430,6 +1465,11 @@
 .enriquecer_presets <- function(presets_json, debug_ph = NULL) {
   if (is.null(presets_json)) presets_json <- list()
   if (!is.list(presets_json)) return(presets_json)
+
+  # G-16: los presets del body llegan directo de la UI (sin pasar por el
+  # normalizador de config), asi que la migracion de defaults fosiles
+  # tambien tiene que correr aqui — es la costura comun de ppt/word/ppt-all.
+  presets_json <- .graficos_migrar_defaults_fosiles(presets_json)
 
   # 1) Canvas siempre activo en cada tipo de preset (excepto `base`,
   # que no usa canvas).
