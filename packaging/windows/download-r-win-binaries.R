@@ -22,7 +22,7 @@ if (nzchar(test_repository)) {
   # CRAN Windows no publica MD5 de binarios. El snapshot fechado de Posit
   # conserva exactamente las versiones del lock y expone un Hash MD5
   # autoritativo por archivo, requisito para aceptar cachés o descargas.
-  snapshot_date <- "2026-07-30"
+  snapshot_date <- "2026-08-04"
   contrib <- sprintf(
     "https://packagemanager.posit.co/cran/%s/bin/windows/contrib/%s",
     snapshot_date,
