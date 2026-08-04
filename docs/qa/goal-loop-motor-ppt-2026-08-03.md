@@ -1465,3 +1465,12 @@ textarea con descripción del formato. Tests del parseo y del mapeo de alias
 Commit por hunks otra vez — el trabajo de la sesión A sigue intacto.
 
 **Gate:** dim-foda-leyenda 10, argumentos-ui 461, metadata 228: todo verde.
+
+### Claim de carril — sesión B toma L7 (2026-08-04 ~00:50)
+
+Con L8 y L9 completos (auditoría + curación), la sesión B reclama **L7 —
+`p_pie` + `p_donut` + `p_nube_palabras` + `p_mapa_cobertura` y sus presets
+`pie` (19) y `donut` (16) + `nube_palabras` (11)** en
+`graficador_pie_dicotomico.R`, `graficador_nube_palabras.R` y
+`graficador_mapa_cobertura.R` — los tres libres. El registry sigue con el
+trabajo en vuelo de A (técnica de hunks vigente).
