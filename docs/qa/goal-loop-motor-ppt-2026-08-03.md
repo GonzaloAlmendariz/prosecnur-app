@@ -1156,3 +1156,33 @@ Veredicto: **paridad PPT↔Word del carril L8 en verde sin reparaciones** —
 ambos caminos comparten graficadores y glue, así que los 13 cierres de la
 sesión B viajan solos al Word. Pendiente de la prueba 5: preview y
 consolidado (rutas del router), que se auditarán como lote transversal L11.
+
+### B8 — L8: el suelo de producción auditado para el carril (prueba 3) (2026-08-03, sesión B)
+
+Tres renders con `.PRESETS_DEFAULT_PULSO` aplicado como lo hace el router
+(flat → `p_presets` → `normalize_block` envuelve en `$args`), mirados:
+
+- **Resuelto el misterio del censo**: el suelo de `radar_tabla` guarda sus 37
+  claves en lista PLANA (sin `$args`), a diferencia de la lectura que hice en
+  B1 — el formato es consistente con `.enriquecer_presets` y `p_presets` lo
+  normaliza; el suelo SÍ llega al graficador en producción.
+- **Regla de harness (nueva, para todos los lotes)**: los sweeps deben correr
+  DOS veces — firma pelada (`p_presets()`) y suelo de producción
+  (`do.call(p_presets, lapply(.PRESETS_DEFAULT_PULSO, as.list))`) — porque el
+  suelo transforma la superficie (la tabla T2B pasa de líneas simples a
+  header navy con filas alternadas). Los sweeps B1–B7 fueron con firma
+  pelada; el pase con suelo de radar/tabla quedó verde (solo-tabla, regla
+  roja y leyenda sobreviven).
+- **B-H11 (estructural, anotado)**: `boxplot`, `media_rango` y `numerico` NO
+  tienen suelo Pulso (`.PRESETS_DEFAULT_PULSO` cubre 11 tipos; ellos no
+  están): su default efectivo en producción es la firma del graficador — que
+  tras B2/B3/B5 ya es editorial. Decidir si merecen suelo propio cuando se
+  audite L10 (cadena de herencia completa).
+- **B-D1 con workaround verificado**: el combinado compat muestra radar +
+  tabla correctamente con `overrides = list(mostrar_tabla_derecha = TRUE)`;
+  el default FALSE de fábrica sigue siendo discutible pero tiene salida.
+- Detalle menor anotado: con `tabla_auto_fit = FALSE` del suelo y pocas
+  filas, los valores (73%) quedan chicos frente a filas muy altas — misma
+  familia que H12 (tabla técnica estirada).
+
+**Gate:** solo renders (pase de auditoría sin diff de producto).
