@@ -150,8 +150,9 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   // que el plan anterior se escriba sobre la base entrante.
   useEffect(() => {
     let cancelled = false;
+    let retryTimer: number | null = null;
 
-    async function hydrateFromBackend() {
+    async function hydrateFromBackend(attempt = 0) {
       if (cancelled) return;
       // Invalidar ANTES de pedir: la revisión es el criterio con el que la
       // siembra distingue "borrador nuevo" de "vaciado a propósito", y si
@@ -173,7 +174,22 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         if (!cancelled) hydrate(mergeWithDefaults(r.config));
       } catch {
         rememberRevision(null);
-        if (!cancelled) hydrate(DEFAULT_CONFIG);
+        // NUNCA hidratar defaults ante un fallo del GET: marcar el store
+        // como hidratado con un plan vacío arma el autosave y el flush de
+        // guardar/duplicar proyecto para PISAR el plan real en el backend
+        // (G-13: así se perdía el plan de PPTs). Un backend sano sin config
+        // responde ok con defaults, así que este catch es solo la ruta de
+        // error de red/sesión: reintentamos con backoff y `hydrated` queda
+        // en false — autosave, flush y export siguen desarmados hasta leer
+        // el config real.
+        if (!cancelled) {
+          const delays = [2000, 5000, 10000, 15000];
+          const delay = delays[Math.min(attempt, delays.length - 1)];
+          retryTimer = window.setTimeout(() => {
+            retryTimer = null;
+            void hydrateFromBackend(attempt + 1);
+          }, delay);
+        }
       }
     }
 
@@ -181,6 +197,10 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
 
     function rehydrateScopedConfig() {
       if (timer.current) window.clearTimeout(timer.current);
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
       void hydrateFromBackend();
     }
     function rehydrateActiveConfig() {
@@ -191,6 +211,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     return () => {
       cancelled = true;
       if (timer.current) window.clearTimeout(timer.current);
+      if (retryTimer) window.clearTimeout(retryTimer);
       window.removeEventListener("pulso:session-changed", rehydrateScopedConfig);
       window.removeEventListener("pulso:active-base-changed", rehydrateActiveConfig);
     };

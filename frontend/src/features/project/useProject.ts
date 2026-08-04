@@ -20,6 +20,7 @@ import {
   ProjectStatus,
 } from "../../api/client";
 import { flushGraficosConfigIfHydrated } from "../graficos/configSnapshot";
+import { flushPendingSyncs } from "../../lib/pendingFlushRegistry";
 import { flushHojasRutaWorkspaceIfHydrated } from "../hojasRuta/configSnapshot";
 import type { RecentProject } from "./types";
 
@@ -209,6 +210,7 @@ export function useProject(sessionId?: string) {
     }
     setBusy(true);
     try {
+      await flushPendingSyncs();
       await flushGraficosConfigIfHydrated();
       await flushHojasRutaWorkspaceIfHydrated();
       const r = await apiProjectSave(null);
@@ -233,6 +235,7 @@ export function useProject(sessionId?: string) {
       const defaultName = status.name ?? "MiProyecto";
       const path = await electronApi.saveProjectDialog(defaultName, { defaultPath: dirname(status.path) });
       if (!path) return null;
+      await flushPendingSyncs();
       await flushGraficosConfigIfHydrated();
       await flushHojasRutaWorkspaceIfHydrated();
       const r = await apiProjectSave(path);
@@ -268,6 +271,7 @@ export function useProject(sessionId?: string) {
         );
       }
       if (!path) return null;
+      await flushPendingSyncs();
       await flushGraficosConfigIfHydrated();
       await flushHojasRutaWorkspaceIfHydrated();
       const r = await apiProjectDuplicate({
