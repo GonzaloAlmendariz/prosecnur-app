@@ -3492,7 +3492,7 @@ reporte_ppt_plan <- function(
     etype <- el$.element_type %||% ""
     # barras_agrupadas ya imprime su "Base: ..." como caption del grafico
     # (nota_pie): duplicarla en el placeholder era el default (P9/P17/P20).
-    if (etype %in% c("barras_agrupadas", "barras_apiladas")) return(NULL)
+    if (etype %in% c("barras_agrupadas", "barras_apiladas", "barras_categoricas")) return(NULL)
     if (identical(etype, "barras_multiapiladas") &&
         !.base_multifuente_el(el, .extract_ref_values)) return(NULL)
     excluir_base <- switch(
@@ -6135,6 +6135,13 @@ reporte_ppt_plan <- function(
 
     fun  <- graficar_media_rango
     args <- .merge_args(base_args, preset_args, overrides)
+    # "Mostrar referencia" de la UI promete linea/etiqueta del promedio global,
+    # que solo existe en modo score_ref: encenderlo sin declarar modo activa
+    # ese modo (si no, el switch es inerte con el default "score").
+    if (isTRUE(args$mostrar_ref_label) && is.null(args$modo)) {
+      args$modo <- "score_ref"
+      args$mostrar_ref_line <- args$mostrar_ref_line %||% TRUE
+    }
     args <- .keep_formals(fun, args)
 
     tryCatch(

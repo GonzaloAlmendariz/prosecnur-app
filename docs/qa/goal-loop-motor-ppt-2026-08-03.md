@@ -880,3 +880,29 @@ su fila, seis filas de var×cruce contenidas.
 frecuencia-etiquetas 11: todo verde. Monolito 9.418 tras compactación; audit
 limpio. La técnica del forense EMU por XML queda anotada para verificar
 bordes sin depender del rasterizado.
+
+### P23 — L6 arranca: sweep de barras categóricas, 13 variantes (2026-08-03)
+
+**En verde (11/13 + 2 aclarados):** default; formato solo-%/solo-n; mayor a
+menor; colores custom por categoría; ejes y grid visibles; límite Y
+(confirmado por diferencial computacional: 44.204 píxeles — el ojo en
+miniatura engañaba); barras finas + texto grande; mayúscula inicial + wrap;
+excluir con N recalculado (200→148); ceros visibles con filtro.
+
+**Aclarados con forense:**
+
+- `mostrar_promedio`/`promedio_label` dieron 0 píxeles con el banco de labels
+  de texto — y **1.926 píxeles (Promedio: 3.8 en el caption) con códigos
+  1–5**: el arg funciona y su descripción YA declara que exige códigos
+  numéricos. Regla del harness reforzada: bancos de escalas siempre con
+  `name` numérico y `label` textual (como el XLSForm real).
+- **Doble Base reaparecía en categóricas** (caption + placeholder): la dedup
+  P9/P17/P20 ahora la incluye.
+
+**Detalles anotados:** el eje Y visible muestra proporciones crudas
+(0.00–1.00) en vez de porcentajes (H35, menor); composición con mucho aire
+lateral y superior en lámina completa (familia D8, decisión editorial).
+
+**Gate:** render mirado (13 láminas + 2 de verificación de promedio) y
+diferenciales computacionales; suites del área corridas en P22 sin cambios de
+lógica adicionales (la dedup se cubre por el patrón ya testeado).
