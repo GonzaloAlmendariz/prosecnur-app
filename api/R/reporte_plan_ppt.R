@@ -5142,6 +5142,9 @@ reporte_ppt_plan <- function(
             tab_total <- .tab_freq(ref, filtros = filtros)
             if (is.null(tab_total) || !nrow(tab_total)) next
 
+            tab_total <- .canonizar_freq_a_escala(
+              tab_total, .resolve_ref(ref, arg_name = "vars"), scale_spec
+            )
             tab_total <- .reporte_plan_prepare_freq_options(tab_total, incluir_sin_n = incluir_sin_n)
             tab_total <- .reporte_plan_filter_freq_options(tab_total, excluir_opciones)
 
@@ -5203,7 +5206,11 @@ reporte_ppt_plan <- function(
           group_title <- as.character(group_title)[1]
           if (!nzchar(trimws(group_title))) group_title <- group_id
           if (requireNamespace("stringr", quietly = TRUE)) {
-            group_title <- stringr::str_wrap(group_title, width = max(12, floor(wrap_y_eff * 0.8)))
+            # B43/G-21: la columna de tema del layout multiactor es angosta
+            # (canvas_w_grupo = 0.13 del ancho); el wrap de 0.8*wrap_y (~40
+            # chars) producia lineas que se clippeaban en el borde. Se envuelve
+            # a lo que la columna realmente sostiene (~18 chars con el default).
+            group_title <- stringr::str_wrap(group_title, width = max(10, floor(wrap_y_eff * 0.36)))
           }
 
           filas_var <- 0L

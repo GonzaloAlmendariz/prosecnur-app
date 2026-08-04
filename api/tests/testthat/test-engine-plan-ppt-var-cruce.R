@@ -1559,12 +1559,15 @@ test_that("var_cruce permite varias fuentes cuando vars se define por bloques no
   labels <- unique(unlist(lapply(gb$data, function(x) {
     if ("label" %in% names(x)) as.character(x$label) else character(0)
   })))
+  # B43: los titulos de bloque se envuelven al ancho real de su columna;
+  # comparar sin saltos de linea.
+  labels_sin_wrap <- gsub("[[:space:]]+", " ", labels)
 
   expect_s3_class(p, "ggplot")
   expect_true(all(c(
     "Conoce la mision", "Sabe donde consultar",
     "Docentes", "Estudiantes", "Administrativos"
-  ) %in% labels))
+  ) %in% labels_sin_wrap))
 })
 
 test_that("var_cruce multi-fuente hace fallback si falta un titulo de bloque", {
