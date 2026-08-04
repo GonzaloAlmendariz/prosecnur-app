@@ -507,3 +507,18 @@ verde**. Audit de congelados limpio (monolito 9.412 ≤ 9.418).
 el suelo pide `instrumento` (diferencial dedicado pendiente con empates
 rotos); detalle del orden leyenda↔barras (`invertir_leyenda`); H18 de
 top_two_box; y el barrido arg-por-arg de los 20+35 del graficador/preset.
+
+### P10 — L4: H20 cerrado — el orden del instrumento SÍ manda (2026-08-03)
+
+Diferencial dedicado con frecuencias que discriminan (instrumento A,B,C;
+frecuencias B>C>A): **con `orders_list` poblado** —que es lo que el pipeline
+real arma siempre desde las choices del XLSForm— el default `instrumento`
+rinde A,B,C y el override `mayor_menor` rinde B,C,A. Ambas caras verificadas
+en render. H20 se cierra como **artefacto de fixture**: mis bancos sintéticos
+omitían `orders_list` y el motor caía al orden de la tabla de frecuencias.
+Matiz anotado para la vara: en bases sin diccionario el orden efectivo es
+frecuencia — fallback razonable, pero la descripción del arg podría decirlo.
+
+Con esto, `orden_barras` acredita pruebas 1–3; los bancos del harness deben
+llevar `orders_list` de aquí en adelante (regla para todos los lotes de
+graficadores).
