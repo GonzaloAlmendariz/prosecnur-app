@@ -874,8 +874,10 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$umbral_mostrar_etiqueta, 0.12)
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_peq_factor_ancho, 2.5)
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_peq_factor_ancho, 2.5)
-  expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_arriba_si_no_caben))
-  expect_true(isTRUE(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_arriba_si_no_caben))
+  # B45 (pedido directo): sacar la etiqueta chica arriba de la barra con
+  # conector es una opcion, no el default.
+  expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$barras_apiladas$etiquetas_arriba_si_no_caben))
+  expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$multi_apiladas$etiquetas_arriba_si_no_caben))
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_conectores_etiquetas, "segmento")
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_conectores_etiquetas, "segmento")
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$posicion_conector_etiquetas, "centro")

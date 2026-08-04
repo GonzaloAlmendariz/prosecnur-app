@@ -1345,7 +1345,8 @@
       list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool",   grupo = "filtro",
            descripcion = "Si está activo, las etiquetas de segmentos muy chicos se desplazan horizontalmente para no superponerse."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro",
-           descripcion = "Si una barra tiene al menos un porcentaje que no entra bien, coloca todos sus porcentajes encima y los conecta con su segmento."),
+           default = FALSE,
+           descripcion = "Opción: si una barra tiene un porcentaje que no entra bien, coloca todos sus porcentajes encima conectados con una línea guía. Por defecto la etiqueta vive dentro de su segmento."),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro",
            descripcion = "Separación vertical entre la barra y los porcentajes superiores."),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
@@ -2454,7 +2455,10 @@
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
     repeler_etiquetas_peq    = TRUE,
-    etiquetas_arriba_si_no_caben = TRUE,
+    # B45 (pedido directo): sacar la etiqueta chica ARRIBA de la barra con
+    # flecha es una opcion, no el default — por defecto la etiqueta vive
+    # dentro de su segmento (o se oculta bajo el umbral).
+    etiquetas_arriba_si_no_caben = FALSE,
     etiquetas_arriba_offset = 0.17,
     color_conectores_etiquetas = "segmento",
     posicion_conector_etiquetas = "centro",
@@ -2504,7 +2508,8 @@
     size_ejes                = 16,
     size_leyenda             = 16,
     size_barra_extra         = 16,
-    etiquetas_arriba_si_no_caben = TRUE,
+    # B45: opt-in, igual que en apiladas.
+    etiquetas_arriba_si_no_caben = FALSE,
     etiquetas_arriba_offset = 0.17,
     color_conectores_etiquetas = "segmento",
     posicion_conector_etiquetas = "centro",

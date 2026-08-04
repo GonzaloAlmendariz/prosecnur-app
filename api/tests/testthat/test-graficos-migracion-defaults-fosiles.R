@@ -33,3 +33,22 @@ test_that("la migracion corre dentro de .enriquecer_presets (costura del export)
   out <- .enriquecer_presets(presets)
   expect_equal(out$barras_apiladas$args$ancho_max_eje_y, 34)
 })
+
+test_that("delivery_options no enciende la lamina Otros por defecto (G-18)", {
+  d <- .graficos_delivery_options(list(), template_id = NULL, auto_otros_slides = NULL)
+  expect_false(d$auto_otros_slides)
+  # Encenderla sigue siendo posible por cualquiera de las tres vias.
+  expect_true(.graficos_delivery_options(list(), auto_otros_slides = TRUE)$auto_otros_slides)
+  expect_true(.graficos_delivery_options(list(auto_otros_slides = TRUE))$auto_otros_slides)
+})
+
+test_that("etiquetas_arriba_si_no_caben TRUE fosilizado migra a FALSE (B45)", {
+  presets <- list(barras_apiladas = list(args = list(etiquetas_arriba_si_no_caben = TRUE)))
+  out <- .graficos_migrar_defaults_fosiles(presets)
+  expect_false(out$barras_apiladas$args$etiquetas_arriba_si_no_caben)
+  # FALSE explicito o ausente no se tocan.
+  p2 <- list(barras_apiladas = list(args = list(etiquetas_arriba_si_no_caben = FALSE)))
+  expect_false(.graficos_migrar_defaults_fosiles(p2)$barras_apiladas$args$etiquetas_arriba_si_no_caben)
+  p3 <- list(barras_apiladas = list(args = list(otro = 1)))
+  expect_null(.graficos_migrar_defaults_fosiles(p3)$barras_apiladas$args$etiquetas_arriba_si_no_caben)
+})
