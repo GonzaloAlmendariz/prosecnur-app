@@ -1342,3 +1342,28 @@ Ocho diferenciales renderizados y mirados (`sweep_ocultos.R` + `diag_o.R`):
 
 **Gate:** dim-foda-leyenda 6, graficador-dimensiones 39, iconos-foda-radar
 52: todo verde.
+
+### B14 — L9: bordes de la familia dimensiones en verde (2026-08-04, sesión B)
+
+Seis láminas de borde renderizadas y miradas (`sweep_bordes.R`): radar de 12
+subíndices con nombres largos (wrap a 2 líneas, dodecágono legible, cero
+solapes), heatmap de 14 filas con cruce de N=10 (compacto, completo),
+FODA de 12 subíndices (tarjetas en 2 columnas por cuadrante), comparativo
+12×2, radar de 1 subíndice y FODA de 1 subíndice (degradan sanos). **Sin
+roturas** — la familia es estructuralmente robusta.
+
+**Bandeja nueva:**
+
+- **B-D2**: el corte de puntaje del FODA (default 80) deja los cuadrantes
+  altos (Fortalezas/Oportunidades) VACÍOS en todos los bancos probados
+  (puntajes reales 47–70): el default sugiere que todo está mal. ¿Derivar el
+  corte de la mediana de los puntajes, bajarlo, o es un estándar
+  metodológico deliberado? Decisión de Gonzalo/revisor metodológico.
+- **B-D3 (metodológica, C5)**: la celda de cruce con N=10 («Frontera») se
+  muestra con la misma confianza visual que la de N=140 — sin marca de base
+  chica. Considerar umbral de advertencia (asterisco o atenuado) — cruza con
+  el criterio del revisor metodológico.
+
+**Estado del carril L9**: camino feliz + ocultos de alto valor + bordes
+auditados. Queda: modos dispersión/multilista del FODA, `iter_var`
+diferencial, y la curación UI (bloqueada por el registry).
