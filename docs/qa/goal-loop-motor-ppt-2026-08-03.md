@@ -155,7 +155,7 @@ explicar parte del corrimiento.
 | L1b | **Cluster ACNUR**: contenidos fuera de su placeholder en el render (pie sobre logo, footer en panel, subtexto/fecha invisibles, pie en hueco de ícono) | ~30 slots × plantilla acnur | **Hecho (P3)** — quedan D2 y D3 en bandeja |
 | L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **Hecho (P4–P6)** — 32/42 args con diferencial (top_two_box va en L3); H11/H16/H17 reparados; queda paridad Word (→L11) e ícono de catálogo |
 | — | **Regla de cola (pedido de Gonzalo 2026-08-03): todo lo específico de ACNUR (D2, D3, re-render acnur de L2+) se difiere al FINAL de la cola** | | Vigente |
-| L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | Cola |
+| L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | **En curso (P7)** — contrato args↔formals saneado (9 fantasmas fuera, 2 ocultos con superficie); falta diferencial de render por slide y top_two_box |
 | L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | Cola |
 | L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | Cola |
 | L6 | `p_barras_categoricas` + `p_numerico` + `p_histograma` + presets | 142 | Cola |
@@ -183,6 +183,7 @@ Al vaciar la cola se reaudita desde L1 con la vara más alta.
 | D1 | Censo del prompt vs censo medido (17/385 vs 11/315 presets; 58 vs 63 formals) | (a) corregir el prompt; (b) dejar nota | (b) manda este doc; el prompt no se toca hasta que Gonzalo lo pida |
 | D2 | El cajón inferior-derecho de la plantilla ACNUR (9.20,6.92) se superpone al arte del logo UNHCR del propio template: cualquier pie/footer alineado a la derecha ahí pisa el wordmark | (a) encoger/mover el box en el template hasta ~x 10.9; (b) alinear izquierda solo en acnur; (c) suprimir pies inferiores-derechos en acnur | Se deja el box del template como destino (es SU box declarado); la reparación de la plantilla es data de diseño y la decide Gonzalo. El perfil ACNUR ya esquiva esto en slide_1 vía `source_footer_*` (2.15,6.96) |
 | D3 | La portada ACNUR tiene `subtexto` y `fecha` aparcados a 0×0 fuera de lámina (labels sembrados `prosecnur:title_slide:subtexto`/`date` en (13.55,7.72)): ¿diseño deliberado o accidente del sembrado? | (a) diseño: ocultar ambos campos en la UI cuando template=acnur; (b) accidente: darles geometría real en el template | Se asume (a) —la portada ACNUR no muestra fecha/subtexto— y el motor los deja invisibles; la UI los sigue ofreciendo (mejora pendiente si se confirma (a)) |
+| D4 | `iconos_focos_left_cm`/`top_cm` del índice y `etiqueta` de 1/2/4_graficos y población: formals sin superficie u ofrecidos sin efecto. ¿Exponer/implementar o dejar ocultos? | (a) left/top: exponer con validación de rango; (b) dejar ocultos (foot-gun de composición); (c) etiqueta: implementarla como tag visual donde falta placeholder | Adoptado (b) para left/top (decisión previa fijada en test) y retirada la `etiqueta` de la superficie donde el motor no la consume; (c) queda como mejora si Gonzalo la pide |
 
 ## Bitácora
 
@@ -401,3 +402,40 @@ limpio.
 **Regla nueva de cola:** por pedido de Gonzalo, todo lo ACNUR (D2, D3 y
 re-render acnur) se difiere al final. Siguiente: **L3 — slides de gráficos
 (68 args, incluye top_two_box)** sobre la plantilla genérica.
+
+### P7 — L3: el contrato args↔formals de los 14 slides, saneado (2026-08-03)
+
+**Hallazgo estructural (misma familia que el defecto fundacional):** el puente
+payload→constructor filtra con `payload[names(payload) %in% formals(fn)]`
+(router_graficos.R) — **todo arg curado sin formal muere en silencio**. Censo
+sistemático (script R contra `.SLIDES_META` + `formals()`):
+
+| Slide | Fantasmas (UI ofrecía, motor descartaba) | Ocultos con render real |
+|---|---|---|
+| `p_slide_1_grafico` | `etiqueta` | `subtitulo` |
+| `p_slide_2_graficos` | `etiqueta` | — |
+| `p_slide_4_graficos` | `etiqueta` (formal existe pero el motor la ignora: «tag/etiqueta no tiene placeholder en 4_paneles») | — |
+| `p_slide_2_graficos_poblacion` | `pie`, `etiqueta` | `texto` |
+| `p_slide_4_graficos_poblacion` | `pie`, `etiqueta` | — |
+| `p_slide_5/6_graficos_poblacion` | `base` | — |
+| `p_slide_indice` | — | `left_cm`/`top_cm` (ocultos a propósito → D4) |
+
+**Reparado:** los helpers `.args_slide_titulos_base` /
+`.args_slide_poblacion_basico` ahora reciben `incluir` y cada slide ofrece
+exactamente lo que su constructor acepta y el motor consume. Se dio superficie
+a `subtitulo` (1_grafico — render verificado: aparece bajo el título) y
+`texto` (poblacion_2 — ya verificado en P2). `etiqueta` sigue viva donde sí
+funciona (narrativos y grafico+texto, se combina con el texto).
+
+**Guard permanente:** `test-graficos-slides-args-contrato.R` — todo arg
+curado debe ser formal del constructor; los destapados no pueden volver a
+esconderse; la etiqueta no puede volver a ofrecerse donde no se consume.
+
+**Gate:** contrato 47, metadata 230, argumentos-ui 459, slide-layout-preview
+25: **todo verde**. Render diferencial del subtítulo mirado (con/sin).
+Detalle menor anotado: el color default del subtítulo (`#85BB85`) tiene
+contraste flojo sobre el fondo gris — va al lote de presets (L10).
+
+**Pendiente L3:** diferencial de render por slide de gráficos (top_two_box,
+2/4 gráficos, etiqueta en narrativos, íconos de catálogo en población) y
+bordes.

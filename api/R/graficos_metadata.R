@@ -55,27 +55,37 @@
 # ===========================================================================
 
 # Args de títulos + base + pie + etiqueta que casi todos los slides de
-# contenido comparten.
-.args_slide_titulos_base <- function() list(
-  list(name = "titulo",     label = "Título del slide",    tipo_input = "string",   grupo = "textos",
-       descripcion = "Aparece arriba del gráfico como encabezado."),
-  list(name = "etiqueta",   label = "Etiqueta corta",      tipo_input = "string",   grupo = "textos",
-       descripcion = "Texto pequeño a la izquierda del título (ej. sección numerada)."),
-  list(name = "base",       label = "Base",                tipo_input = "string",   grupo = "textos",
-       descripcion = "Nota al pie con la base real (ej. 'Base: 120 encuestados'). Si la dejas vacía, se infiere automáticamente."),
-  list(name = "pie",        label = "Pie (nota)",          tipo_input = "textarea", grupo = "textos",
-       descripcion = "Línea de fuente o disclaimer al pie del slide.")
-)
+# contenido comparten. `incluir` filtra por slide: un arg solo se ofrece si el
+# constructor del slide tiene el formal Y el motor lo consume — el puente de
+# payload (router) descarta en silencio lo que el constructor no acepta, así
+# que un arg de más aquí es un campo fantasma que el analista escribe en vano
+# (auditoría P7 del GOAL loop del motor PPT).
+.args_slide_titulos_base <- function(incluir = c("titulo", "etiqueta", "base", "pie")) {
+  args <- list(
+    titulo = list(name = "titulo",     label = "Título del slide",    tipo_input = "string",   grupo = "textos",
+         descripcion = "Aparece arriba del gráfico como encabezado."),
+    etiqueta = list(name = "etiqueta",   label = "Etiqueta corta",      tipo_input = "string",   grupo = "textos",
+         descripcion = "Texto pequeño que antecede al bloque de texto del slide (ej. sección numerada)."),
+    base = list(name = "base",       label = "Base",                tipo_input = "string",   grupo = "textos",
+         descripcion = "Nota al pie con la base real (ej. 'Base: 120 encuestados'). Si la dejas vacía, se infiere automáticamente."),
+    pie = list(name = "pie",        label = "Pie (nota)",          tipo_input = "textarea", grupo = "textos",
+         descripcion = "Línea de fuente o disclaimer al pie del slide.")
+  )
+  unname(args[intersect(names(args), incluir)])
+}
 
-.args_slide_poblacion_basico <- function() list(
-  list(name = "titulo",   label = "Título del slide", tipo_input = "string",   grupo = "textos"),
-  list(name = "icono",    label = "Ícono",            tipo_input = "icono",    grupo = "textos",
-       descripcion = "PNG central del slide, elegido desde los iconos subidos en Configuración global > Iconos."),
-  list(name = "base",     label = "Base",             tipo_input = "string",   grupo = "textos",
-       descripcion = "Nota al pie con la base real. Vacío = automática."),
-  list(name = "pie",      label = "Pie",              tipo_input = "textarea", grupo = "textos"),
-  list(name = "etiqueta", label = "Etiqueta corta",   tipo_input = "string",   grupo = "textos")
-)
+.args_slide_poblacion_basico <- function(incluir = c("titulo", "icono", "base", "pie", "etiqueta")) {
+  args <- list(
+    titulo = list(name = "titulo",   label = "Título del slide", tipo_input = "string",   grupo = "textos"),
+    icono = list(name = "icono",    label = "Ícono",            tipo_input = "icono",    grupo = "textos",
+         descripcion = "PNG central del slide, elegido desde los iconos subidos en Configuración global > Iconos."),
+    base = list(name = "base",     label = "Base",             tipo_input = "string",   grupo = "textos",
+         descripcion = "Nota al pie con la base real. Vacío = automática."),
+    pie = list(name = "pie",      label = "Pie",              tipo_input = "textarea", grupo = "textos"),
+    etiqueta = list(name = "etiqueta", label = "Etiqueta corta",   tipo_input = "string",   grupo = "textos")
+  )
+  unname(args[intersect(names(args), incluir)])
+}
 
 # Args compartidos por TODOS los graficadores.
 .args_graf_comunes <- function() list(
@@ -418,7 +428,11 @@
     icono_ui      = "BarChart2",
     categoria     = "1grafico",
     slots         = "grafico",
-    args = .args_slide_titulos_base()  # definido abajo
+    # Sin `etiqueta`: el constructor no la acepta (el puente la descartaba).
+    args = c(.args_slide_titulos_base(c("titulo", "base", "pie")), list(
+      list(name = "subtitulo", label = "Subtítulo", tipo_input = "string", grupo = "textos",
+           descripcion = "Línea secundaria que aparece justo debajo del título del slide.")
+    ))
   ),
 
   p_slide_1_grafico_narrativo = list(
@@ -463,7 +477,8 @@
     icono_ui      = "Columns2",
     categoria     = "2graficos",
     slots         = c("izquierda", "derecha"),
-    args = .args_slide_titulos_base()
+    # Sin `etiqueta`: el constructor no la acepta (el puente la descartaba).
+    args = .args_slide_titulos_base(c("titulo", "base", "pie"))
   ),
 
   p_slide_2_graficos_narrativo = list(
@@ -507,7 +522,9 @@
     icono_ui      = "LayoutGrid",
     categoria     = "4graficos",
     slots         = c("superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"),
-    args = .args_slide_titulos_base()
+    # Sin `etiqueta`: el layout 4_paneles no tiene placeholder y el motor la
+    # ignora explícitamente (reporte_plan_ppt.R, bloque paneles_4).
+    args = .args_slide_titulos_base(c("titulo", "base", "pie"))
   ),
 
   # ---- Población (con ícono central) -------------------------------------
@@ -518,7 +535,12 @@
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
     slots         = c("izquierda", "derecha", "icono"),
-    args = .args_slide_poblacion_basico()
+    # Sin `pie`/`etiqueta` (el constructor no los acepta); con `texto`, que el
+    # constructor sí renderiza bajo el título y no tenía superficie.
+    args = c(.args_slide_poblacion_basico(c("titulo", "icono", "base")), list(
+      list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Línea introductoria que aparece bajo el título del slide.")
+    ))
   ),
 
   p_slide_4_graficos_poblacion = list(
@@ -527,7 +549,8 @@
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
     slots         = c("superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha", "icono"),
-    args = .args_slide_poblacion_basico()
+    # Sin `pie`/`etiqueta`: el constructor no los acepta (el puente los descartaba).
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
   ),
 
   p_slide_5_graficos_poblacion = list(
@@ -537,7 +560,8 @@
     categoria     = "poblacion",
     slots         = c("grafico_superior_1", "grafico_superior_2", "grafico_superior_3",
                       "grafico_inferior_1", "grafico_inferior_2", "icono"),
-    args = .args_slide_poblacion_basico()
+    # Sin `base`: el constructor no la acepta; el pie de lámina es `pie`.
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie", "etiqueta"))
   ),
 
   p_slide_6_graficos_poblacion = list(
@@ -547,7 +571,8 @@
     categoria     = "poblacion",
     slots         = c("grafico_superior_1", "grafico_superior_2", "grafico_superior_3",
                       "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3", "icono"),
-    args = .args_slide_poblacion_basico()
+    # Sin `base`: el constructor no la acepta; el pie de lámina es `pie`.
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "pie", "etiqueta"))
   )
 )
 
