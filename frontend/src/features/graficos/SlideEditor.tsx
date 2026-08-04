@@ -7,6 +7,7 @@ import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useVariables } from "./useVariables";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import GraficadorSlot from "./GraficadorSlot";
+import IndiceBuilder from "./IndiceBuilder";
 import { SlidePreview } from "./SlidePreview";
 import { LoadingBlock, EmptyState, SectionEyebrow } from "../../components/States";
 import { inferSlideVariableTitle } from "./slideAutoTitle";
@@ -44,10 +45,18 @@ export default function SlideEditor() {
   const grafSlots = slide ? (SLIDE_GRAF_SLOTS[slide.tipo] ?? []) : [];
   const grafSlotSet = useMemo(() => new Set(grafSlots), [grafSlots]);
 
+  // B47/G-5: el Índice tiene builder jerárquico propio — sus 4 campos de
+  // texto plano (secciones/subtemas/subindices/iconos_focos) salen del
+  // formulario genérico; el resto de args (título, focos avanzados) queda.
+  const esIndice = slide?.tipo === "p_slide_indice";
+
   const gruposDeArgs = useMemo(() => {
     if (!slideMeta) return [];
     // Excluir args que son slots de graficador (ya los maneja GraficadorSlot).
-    const nonSlotArgs = slideMeta.args.filter((a) => !grafSlotSet.has(a.name));
+    const INDICE_BUILDER_ARGS = new Set(["secciones", "subtemas", "subindices", "iconos_focos"]);
+    const nonSlotArgs = slideMeta.args.filter(
+      (a) => !grafSlotSet.has(a.name) && !(esIndice && INDICE_BUILDER_ARGS.has(a.name)),
+    );
     const byGrupo: Partial<Record<ArgGrupo, typeof nonSlotArgs>> = {};
     for (const a of nonSlotArgs) {
       const g = normalizeArgGroup(a.grupo as ArgGrupo);
@@ -57,7 +66,7 @@ export default function SlideEditor() {
       .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
-  }, [slideMeta, grafSlotSet]);
+  }, [slideMeta, grafSlotSet, esIndice]);
 
   if (!slide) {
     return (
@@ -106,6 +115,9 @@ export default function SlideEditor() {
       </header>
 
       {loading && <LoadingBlock variant="inline" label="Cargando opciones del slide…" />}
+
+      {/* Builder jerárquico del índice (B47/G-5) */}
+      {esIndice && slide && <IndiceBuilder slide={slide} />}
 
       {/* Args no-slot (textos, datos del slide) */}
       {gruposDeArgs.length > 0 && (
