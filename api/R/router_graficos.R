@@ -101,6 +101,7 @@
   if (candidate %in% graficador_registry) candidate else raw
 }
 
+
 # B43/G-22: plumber parsea el body con simplifyVector=TRUE y un plan que
 # mezcla tipos de slide (poblacion_4 + 1_grafico) se RECTANGULARIZA: los
 # payloads se vuelven data.frames anidados y los `vars` de multiapiladas
@@ -1484,6 +1485,12 @@
         out[[ln]] <- list(list_name = ln, choices = list(), .seen = character(0), fuentes = character(0))
         order <- c(order, ln)
       }
+      # B38/G-6: en un proyecto multibase la UI necesita saber en que bases
+      # vive cada lista para hablar en terminos del informe (no solo de la
+      # base activa).
+      if (nzchar(fuente_nm) && !(fuente_nm %in% out[[ln]]$fuentes)) {
+        out[[ln]]$fuentes <- c(out[[ln]]$fuentes, fuente_nm)
+      }
       for (i in seq_len(nrow(rows))) {
         code <- trimws(as.character(rows$name[i] %||% ""))
         label <- if (!is.na(label_col) && label_col %in% names(rows)) {
@@ -1528,6 +1535,42 @@
   # normalizador de config), asi que la migracion de defaults fosiles
   # tambien tiene que correr aqui — es la costura comun de ppt/word/ppt-all.
   presets_json <- .graficos_migrar_defaults_fosiles(presets_json)
+
+  # 0) Suelo editorial: cada tipo hereda `.PRESETS_DEFAULT_PULSO` y el proyecto
+  # escribe encima.
+  #
+  # Antes esos defaults sólo se aplicaban al CREAR la config, así que a la hora
+  # de renderizar una clave ausente caía al default de la firma del graficador
+  # —y la casa opina distinto del motor en 56 de 136 claves comparables, siete
+  # de ellas interruptores visibles (leyenda de agrupadas, frecuencia de
+  # categóricas, eje Y de numéricas…)—. El resultado era que quién ganaba
+  # dependía de un accidente: un preset parcial, o el botón «Valor por defecto»
+  # —que borra el preset entero— devolvían el criterio del motor, no el de
+  # Pulso. Con el suelo aquí la precedencia es una sola y siempre la misma:
+  # motor → Pulso → proyecto → slide.
+  # `base` queda fuera a propósito: no es un graficador con su propia firma
+  # —lo heredan todos— y sus tamaños se derivan entre sí (`size_titulo_seccion`
+  # sale de `size_titulo_slide`). Ahí "no configurado" es un estado con
+  # significado y el motor tiene que poder distinguirlo.
+  #
+  # Y el suelo se descuenta de lo que el proyecto declaró en `base`: el motor
+  # hereda `base$args` hacia cada tipo, así que rellenar el tipo con las ~40
+  # claves de fábrica dejaría sin efecto el estilo común del analista en las
+  # que se solapan (`size_leyenda`, `size_subtitulo`, `size_titulo`,
+  # `size_texto_barras`). La jerarquía tiene que quedar en este orden:
+  # motor → Pulso → base del proyecto → tipo del proyecto → override del slide.
+  claves_base_proyecto <- names(presets_json$base %||% list())
+  for (tipo in setdiff(names(.PRESETS_DEFAULT_PULSO), "base")) {
+    suelo <- .PRESETS_DEFAULT_PULSO[[tipo]]
+    if (!is.list(suelo)) next
+    suelo <- suelo[setdiff(names(suelo), claves_base_proyecto)]
+    guardado <- presets_json[[tipo]]
+    presets_json[[tipo]] <- if (is.list(guardado) && length(guardado)) {
+      utils::modifyList(suelo, guardado)
+    } else {
+      suelo
+    }
+  }
 
   # 1) Canvas siempre activo en cada tipo de preset (excepto `base`,
   # que no usa canvas).

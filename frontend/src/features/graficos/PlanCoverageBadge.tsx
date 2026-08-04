@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { BarChart3, CheckCircle2, CircleSlash2, EyeOff, Loader2, RefreshCw, Target } from "lucide-react";
 import type { GraficosCoverageSummary, GraficosCoverageVariable } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePlanCoverage, variableCoverageRef } from "./usePlanCoverage";
+import { basesSinCubrir, coberturaPorBase } from "./coberturaPorBase";
 
 const STATUS_LABELS: Record<string, string> = {
   cubierta: "Incluidas",
@@ -28,11 +31,45 @@ export function PlanCoverageBadge() {
   const setCoverageExcluded = usePlanStore((s) => s.setCoverageExcluded);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // El popover mide 680px y se anclaba con `right: 0` al badge, que en el
+  // toolbar vive a media pantalla: en 1280 —viewport de la matriz de QA— se
+  // salía ~70px por la izquierda y el contenido quedaba cortado. Se ancla al
+  // viewport, como el picker de variables.
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
 
   useEffect(() => {
     if (!open) return;
+    function place() {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const margen = 14;
+      const ancho = Math.min(680, window.innerWidth - margen * 2);
+      const derecha = rect.right - ancho;
+      const left = Math.max(margen, Math.min(derecha, window.innerWidth - ancho - margen));
+      setPopoverStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left,
+        width: ancho,
+        right: "auto",
+        // Sin piso artificial: en 1024x600 el toolbar envuelve y el badge baja
+        // hasta ~310px, así que un mínimo de 280px empujaba el popover fuera
+        // de la pantalla. Lo que no entra se recorre por dentro.
+        maxHeight: Math.max(160, window.innerHeight - rect.bottom - 20),
+      });
+    }
+    place();
+    // Tras un resize el toolbar se reacomoda: medir en el mismo frame devuelve
+    // la geometría anterior y el popover queda con el alto del viewport viejo.
+    const replace = () => requestAnimationFrame(() => requestAnimationFrame(place));
+    window.addEventListener("resize", replace);
     function onDocMouseDown(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      // El popover ya no cuelga del root (va por portal), así que hay que
+      // excluirlo a mano o cada click dentro lo cerraría.
+      if (rootRef.current?.contains(target) || popoverRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -40,6 +77,7 @@ export function PlanCoverageBadge() {
     document.addEventListener("mousedown", onDocMouseDown);
     document.addEventListener("keydown", onKey);
     return () => {
+      window.removeEventListener("resize", replace);
       document.removeEventListener("mousedown", onDocMouseDown);
       document.removeEventListener("keydown", onKey);
     };
@@ -59,6 +97,9 @@ export function PlanCoverageBadge() {
     : summary && summary.unused_graphable === 0
       ? "success"
       : "info";
+
+  const desglose = useMemo(() => coberturaPorBase(coverage?.sources), [coverage]);
+  const sinCubrir = useMemo(() => basesSinCubrir(desglose), [desglose]);
 
   const groups = useMemo(() => {
     const map: Record<string, Array<{ source: string; variable: GraficosCoverageVariable }>> = {};
@@ -85,8 +126,11 @@ export function PlanCoverageBadge() {
         {label}
       </button>
 
-      {open && (
-        <div className="pulso-gv2-coverage-popover" role="dialog" aria-label="Cobertura del plan de gráficos">
+      {/* El popover va por portal: el toolbar tiene backdrop-filter y un
+          `position: fixed` dentro de él se ancla al toolbar, no al viewport
+          —medía bien y se dibujaba 140px más abajo, fuera de pantalla—. */}
+      {open && typeof document !== "undefined" && createPortal((
+        <div ref={popoverRef} className="pulso-gv2-coverage-popover" role="dialog" aria-label="Cobertura del plan de gráficos" style={popoverStyle}>
           <div className="pulso-gv2-coverage-head">
             <span className={`pulso-gv2-coverage-head-mark is-${tone}`} aria-hidden="true">
               {loading ? <Loader2 size={15} className="pulso-spin" /> : <Target size={15} />}
@@ -143,6 +187,39 @@ export function PlanCoverageBadge() {
                 <CoverageKpi tone="mode" label="Recodificadas" value={summary.covered_by_recod} />
                 <CoverageKpi tone="muted" label="No graficables" value={summary.not_graphable + summary.empty} />
               </div>
+
+              {desglose.length > 1 && (
+                <div className="pulso-gv2-coverage-bases">
+                  <div className="pulso-gv2-coverage-bases-head">
+                    <span>Por base</span>
+                    {sinCubrir.length > 0 && (
+                      <span className="pulso-gv2-coverage-bases-alert">
+                        {sinCubrir.length === 1
+                          ? `${sinCubrir[0]} no tiene ningún gráfico`
+                          : `${sinCubrir.length} bases sin ningún gráfico`}
+                      </span>
+                    )}
+                  </div>
+                  {desglose.map((fila) => (
+                    <div
+                      key={fila.base}
+                      className={`pulso-gv2-coverage-base-row ${fila.incluidas === 0 ? "is-vacia" : ""}`}
+                    >
+                      <span className="pulso-gv2-coverage-base-name">{fila.base}</span>
+                      <span className="pulso-gv2-coverage-base-bar" aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${fila.graficables > 0 ? Math.round((fila.incluidas / fila.graficables) * 100) : 0}%`,
+                          }}
+                        />
+                      </span>
+                      <span className="pulso-gv2-coverage-base-count">
+                        {fila.incluidas}/{fila.graficables}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
@@ -161,7 +238,7 @@ export function PlanCoverageBadge() {
           <CoverageGroup status="no_graficable" items={groups.no_graficable ?? []} compact />
           <CoverageGroup status="vacía" items={groups.vacía ?? []} compact />
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }

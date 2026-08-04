@@ -112,6 +112,41 @@ test_that("graficar_barras_agrupadas: override de series corto/deparse no crashe
   expect_error(.render_agrupadas_series(df, colores_series = 'c("#0072BC", "#00A98F")'), NA)
 })
 
+# Sin override, el graficador no aplicaba NINGUNA escala de relleno y caía en la
+# escala por defecto de ggplot: la primera serie salía #F8766D (salmón) en vez de
+# la paleta institucional. Era el caso más común —la UI de barras agrupadas no
+# expone control de color—, así que el gráfico "normal" era el que salía mal.
+test_that("graficar_barras_agrupadas sin override usa la paleta institucional, no el default de ggplot", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("scales")
+
+  fills_de <- function(p) {
+    build <- ggplot2::ggplot_build(p)
+    unique(unlist(lapply(build$data, function(d) if ("fill" %in% names(d)) unique(d$fill) else NULL)))
+  }
+
+  df1 <- .barras_override_fixture_1serie()
+  p1 <- graficar_barras_agrupadas(
+    data = df1, var_categoria = "categoria", var_n = "N",
+    cols_porcentaje = "pct", etiquetas_series = c(pct = "Porcentaje"),
+    mostrar_barra_extra = FALSE, exportar = "rplot", usar_canvas = FALSE
+  )
+  esperado_1 <- unname(.graficos_mk_palette("Porcentaje"))
+  expect_true(esperado_1 %in% fills_de(p1))
+  expect_false("#F8766D" %in% fills_de(p1))
+
+  df2 <- .barras_override_fixture_2series()
+  p2 <- graficar_barras_agrupadas(
+    data = df2, var_categoria = "categoria", var_n = "N",
+    cols_porcentaje = c("pct_a", "pct_b"),
+    etiquetas_series = c(pct_a = "Serie A", pct_b = "Serie B"),
+    mostrar_barra_extra = FALSE, exportar = "rplot", usar_canvas = FALSE
+  )
+  esperado_2 <- unname(.graficos_mk_palette(c("Serie A", "Serie B")))
+  expect_true(all(esperado_2 %in% fills_de(p2)))
+  expect_false(any(c("#F8766D", "#00BFC4") %in% fills_de(p2)))
+})
+
 # El helper compartido `.graficos_mk_palette` es la única fuente del saneo:
 # verificamos sus contratos de longitud, deparse y descarte de no-color.
 test_that(".graficos_mk_palette rellena, extrae hex del deparse y descarta no-color", {

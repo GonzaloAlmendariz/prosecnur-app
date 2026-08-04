@@ -140,6 +140,11 @@ export default function VariablePicker({
   const selectedLabel = selectedVar ? safeText(selectedVar.label, selectedVar.name) : "";
   const selectedCode = selectedVar ? safeText(selectedVar.name) : "";
   const selectedSourceLabel = selectedVar ? (selectedSource?.name ?? "") : (pickerSource ?? "");
+  // Con varias bases, una referencia sin prefijo no tiene base: la que se
+  // mostraba era la del picker, o sea la primera que resultara tener ese
+  // nombre. El chip parecía una atribución y el motor, en cambio, ni siquiera
+  // puede renderizar el gráfico. Se dice lo que hay: falta elegir la base.
+  const refSinBase = multi && !parsed.source && !!parsed.name;
 
   function handleSourceChange(newSource: string) {
     if (!sources.some((s) => s.name === newSource)) return;
@@ -211,9 +216,13 @@ export default function VariablePicker({
               : `${eligible.length} variable${eligible.length === 1 ? "" : "s"} disponible${eligible.length === 1 ? "" : "s"}`}
           </small>
         </span>
-        {selectedVar && selectedSourceLabel && (
+        {refSinBase ? (
+          <span className="pulso-gv2-variable-trigger-source is-sin-base" title="Esta variable no dice de qué base es; vuelve a elegirla.">
+            falta la base
+          </span>
+        ) : selectedVar && selectedSourceLabel ? (
           <span className="pulso-gv2-variable-trigger-source">{selectedSourceLabel}</span>
-        )}
+        ) : null}
         <ChevronDown size={14} className="pulso-gv2-variable-trigger-chevron" />
       </button>
 

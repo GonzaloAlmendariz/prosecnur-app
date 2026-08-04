@@ -1,3 +1,29 @@
+# Etiqueta de segmento: porcentaje solo, o porcentaje con la frecuencia entre
+# paréntesis.
+#
+# La decisión es de `mostrar_n_en_etiquetas` y de nada más. Antes la tomaba
+# también `etiquetas_arriba_si_no_caben`, que es un ajuste de POSICIÓN —qué
+# hacer cuando la etiqueta no entra en su segmento— y que el preset de la casa
+# trae encendido: bastaba con eso para que todas las láminas de apiladas
+# salieran «98% (51)» aunque el switch de frecuencia estuviera apagado y el
+# propio motor de plan pidiera `mostrar_n_en_etiquetas = FALSE` en sus cinco
+# llamadas. Dónde va el texto y qué dice el texto son dos decisiones distintas.
+#
+# `lab_arriba` es la variante que se usa cuando la etiqueta se desplaza fuera
+# del segmento; lleva frecuencia bajo la misma condición, para que mover una
+# etiqueta no cambie lo que informa.
+.apiladas_etiquetas_con_frecuencia <- function(lab, n_txt, mostrar_n_en_etiquetas) {
+  lab <- as.character(lab)
+  n_txt <- as.character(n_txt)
+  con_n <- nzchar(n_txt) & !is.na(n_txt) & !is.na(lab) & nzchar(lab)
+  if (!isTRUE(mostrar_n_en_etiquetas)) {
+    return(list(lab = lab, lab_arriba = lab))
+  }
+  lab_arriba <- lab
+  lab_arriba[con_n] <- paste0(lab[con_n], " (", n_txt[con_n], ")")
+  list(lab = lab_arriba, lab_arriba = lab_arriba)
+}
+
 # internal helpers for top/bottom box presets
 .normalize_box_label <- function(x) {
   x <- as.character(x %||% "")[1]
@@ -1790,13 +1816,13 @@ graficar_barras_apiladas <- function(
       dplyr::ungroup()
 
     if (".n_label_val" %in% names(df_lab)) {
-      n_txt <- .fmt_count_label(df_lab$.n_label_val)
-      has_n <- nzchar(n_txt) & !is.na(df_lab$lab) & nzchar(df_lab$lab)
-      df_lab$.lab_arriba <- df_lab$lab
-      df_lab$.lab_arriba[has_n] <- paste0(df_lab$lab[has_n], " (", n_txt[has_n], ")")
-      if (isTRUE(mostrar_n_en_etiquetas) || isTRUE(etiquetas_arriba_si_no_caben)) {
-        df_lab$lab[has_n] <- df_lab$.lab_arriba[has_n]
-      }
+      etiquetas <- .apiladas_etiquetas_con_frecuencia(
+        df_lab$lab,
+        .fmt_count_label(df_lab$.n_label_val),
+        mostrar_n_en_etiquetas
+      )
+      df_lab$lab <- etiquetas$lab
+      df_lab$.lab_arriba <- etiquetas$lab_arriba
     } else {
       df_lab$.lab_arriba <- df_lab$lab
     }
