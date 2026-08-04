@@ -1069,3 +1069,30 @@ aviso ×2, manual-completo sigue manual), radar-solo-tabla 5: todo verde.
 contra el sistema de paletas por proyecto), B-H6 (curar `umbral_rojo_pct`),
 B-H2 (smoke de render radar_tabla), B-D1 (combinado compat sin tabla),
 jitter/cortes invisibles del boxplot (editorial menor), paridad Word (L11).
+
+### B4 — L8: la paleta de la casa llega al radar + smoke del camino real (2026-08-03, sesión B)
+
+**Reparado:**
+
+1. **B-H5c — series del radar en paleta de la casa.** Sin override ni paleta
+   de proyecto, el radar caía al `hue_pal` de ggplot (salmón/verde/celeste) y
+   el box multi-fuente a hcl «Dark 3». Ambos defaults pasan a
+   `.graficos_mk_palette` (navy #0B4F8C / teal #2A9D8F / dorado…), las mismas
+   series que agrupadas post-P9. La paleta de proyecto (`paleta_<list>`)
+   sigue mandando cuando existe. Render verificado: R05 navy/teal/dorado.
+   De paso el monolito vuelve a **9.418 exacto** (el default_palette de 4
+   líneas quedó de 3).
+2. **B-H2 — smoke del camino real.** Test con mock que atraviesa
+   `reporte_ppt_plan` de verdad: el radar sm recibe datos construidos (≥3
+   opciones del select multiple) y el contrato solo-tabla de `p_tabla`
+   (mostrar_tabla_derecha + radar_scale=0) llega hasta el graficador.
+   Detalle del camino: con `build_render_meta` cada elemento se renderiza
+   también para Word, así que las llamadas se filtran por firma.
+
+**Gate:** l8-defaults-editoriales 27, radar-solo-tabla 5, dimensiones-ppt-
+radar 36, dimensiones-iconos-foda-radar 52: todo verde. Monolito 9.418.
+
+**Pendiente del carril:** B-H6 (curar umbral_rojo_pct — `graficos_metadata.R`
+sigue en vuelo de la sesión A, se hará cuando libere), B-D1, editorial menor
+de boxplot (jitter/cortes invisibles), radar chico en lámina completa (parte
+de la familia H9), paridad Word (L11).
