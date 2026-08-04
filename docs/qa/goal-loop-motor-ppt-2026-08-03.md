@@ -1207,3 +1207,15 @@ curar el arg con descripción honesta y permitir apagarlo (p.ej. 0 = sin
 regla). La lámina M3 es el caso de demostración.
 
 **Gate:** solo renders (pase de auditoría; sin diff de producto).
+
+### Claim de carril — sesión B toma L9 (2026-08-03 ~23:40)
+
+L8 quedó agotado en lo que no depende del registry (que la sesión A mantiene
+en vuelo desde hace ~1h junto con agrupadas/apiladas/router). La sesión B
+reclama **L9 — familia dimensiones**: `p_dim_radar`, `p_dim_radar_tabla`,
+`p_dim_heatmap`, `p_dim_comparativo_radarbar`, `p_dim_foda`,
+`p_dim_heatmap_criterios` + sus **48 formals no curados** (foda concentra
+27), en `graficador_dimensiones.R` e `indicador_dimensiones_shared.R` —
+ambos libres. Pendiente diferido de L8 (para cuando el registry se libere):
+curar `mostrar_valores`/`valores_decimales` del radar, `umbral_rojo_pct` con
+apagado, y decidir B-H11/B-D1.
