@@ -1367,3 +1367,25 @@ roturas** — la familia es estructuralmente robusta.
 **Estado del carril L9**: camino feliz + ocultos de alto valor + bordes
 auditados. Queda: modos dispersión/multilista del FODA, `iter_var`
 diferencial, y la curación UI (bloqueada por el registry).
+
+### B15 — L9: dispersión e iter_var están vivos; el censo de capacidades ocultas queda completo (2026-08-04, sesión B)
+
+Cuatro diferenciales más (`sweep_disp.R`):
+
+- **`modo_foda="dispersion"` VIVO y valioso**: scatter Puntaje×Desviación con
+  cuadrantes y tarjetas posicionadas — pero **exige `corte_score`** (oculto)
+  y sin él la lámina muere en «Sin datos» (misma familia que B-H3: el modo se
+  ofrece sin su acompañante obligatorio). Residuos editoriales: las tarjetas
+  truncan el label del indicador («El trato fue»), y el tick del corte SD se
+  encima con el tick regular del eje X.
+- **`iter_var`/`iter_level` VIVOS** (radar y heatmap): filtran el gráfico al
+  nivel pedido — la capacidad de iterar existe de verdad (B-H12 confirmado
+  como capacidad real sin superficie). Validación correcta: iter_var no
+  puede coincidir con cruce (error claro… que muere en stderr, como todos).
+
+**Censo de capacidades ocultas de L9 COMPLETO**: de los 48 formals no
+curados, los verificados vivos y valiosos son iter_var/iter_level (×5),
+brechas del heatmap (×5), cortes/títulos/dispersión del FODA (×4+). El
+patrón transversal más dañino de la familia: **todos los errores útiles del
+motor mueren en stderr y el analista solo ve «Sin datos»** — la lámina
+degradada debería llevar el motivo (propuesta eje 3, transversal al motor).
