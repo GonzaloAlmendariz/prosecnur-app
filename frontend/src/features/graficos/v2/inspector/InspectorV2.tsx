@@ -6,6 +6,7 @@ import { usePlanStore, SLIDE_LABELS, InspectorTab } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
 import { useVariables } from "../../useVariables";
 import { ArgGroup, ARG_GROUP_ORDER, normalizeArgGroup } from "../../ArgGroup";
+import IndiceBuilder from "../../IndiceBuilder";
 import GraficadorSlot, { getSlotLabel } from "../../GraficadorSlot";
 import { graficadorDisplayName, humanizeIdentifier } from "../../graficadorDisplay";
 import { SlidePreview } from "../../SlidePreview";
@@ -222,8 +223,21 @@ export function InspectorV2() {
         {loading && <LoadingBlock variant="inline" label="Cargando opciones del slide…" />}
 
         {/* Tab Contenido: solo args de textos */}
+        {activeTab.key === "content" && slide.tipo === "p_slide_indice" && (
+          /* B47/G-5: el Índice edita jerarquía + íconos con builder propio;
+             sus 4 campos planos salen del formulario genérico. */
+          <IndiceBuilder slide={slide} />
+        )}
         {activeTab.key === "content" && (
-          <ContentTabBody slide={slide} args={argsInActiveTab} updatePayload={updatePayload} variables={variables} autoTitle={autoTitle} />
+          <ContentTabBody
+            slide={slide}
+            args={slide.tipo === "p_slide_indice"
+              ? argsInActiveTab.filter((a) => !["secciones", "subtemas", "subindices", "iconos_focos"].includes(a.name))
+              : argsInActiveTab}
+            updatePayload={updatePayload}
+            variables={variables}
+            autoTitle={autoTitle}
+          />
         )}
 
         {/* Tab Datos: args de datos + slots de graficador */}

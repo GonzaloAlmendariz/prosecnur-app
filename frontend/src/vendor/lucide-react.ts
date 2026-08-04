@@ -69,6 +69,7 @@ export { default as ChevronsUp } from "lucide-react/dist/esm/icons/chevrons-up.m
 export { default as ChevronsUpDown } from "lucide-react/dist/esm/icons/chevrons-up-down.mjs";
 export { default as ChevronUp } from "lucide-react/dist/esm/icons/chevron-up.mjs";
 export { default as Circle } from "lucide-react/dist/esm/icons/circle.mjs";
+export { default as CircleUserRound } from "lucide-react/dist/esm/icons/circle-user-round.mjs";
 export { default as CircleAlert } from "lucide-react/dist/esm/icons/circle-alert.mjs";
 export { default as CircleDot } from "lucide-react/dist/esm/icons/circle-dot.mjs";
 export { default as CircleHelp } from "lucide-react/dist/esm/icons/circle-question-mark.mjs";
@@ -87,7 +88,9 @@ export { default as Columns2 } from "lucide-react/dist/esm/icons/columns-2.mjs";
 export { default as Columns3 } from "lucide-react/dist/esm/icons/columns-3.mjs";
 export { default as Combine } from "lucide-react/dist/esm/icons/combine.mjs";
 export { default as Compass } from "lucide-react/dist/esm/icons/compass.mjs";
+export { default as Contact } from "lucide-react/dist/esm/icons/contact.mjs";
 export { default as ContactRound } from "lucide-react/dist/esm/icons/contact-round.mjs";
+export { default as Crosshair } from "lucide-react/dist/esm/icons/crosshair.mjs";
 export { default as CornerDownLeft } from "lucide-react/dist/esm/icons/corner-down-left.mjs";
 export { default as Copy } from "lucide-react/dist/esm/icons/copy.mjs";
 export { default as Database } from "lucide-react/dist/esm/icons/database.mjs";
