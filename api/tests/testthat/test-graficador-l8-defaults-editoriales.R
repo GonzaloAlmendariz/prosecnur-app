@@ -275,3 +275,30 @@ test_that("los puntos del boxplot se distinguen de su caja (B5 editorial)", {
   expect_true(length(pts) > 0)
   expect_length(intersect(fills, pts), 0)
 })
+
+test_that("mostrar_valores etiqueta cada vertice con su porcentaje (B6)", {
+  d <- data.frame(
+    eje = rep(c("Atencion", "Canales", "Personal", "Tiempos"), 2),
+    grupo = rep(c("Mujer", "Hombre"), each = 4),
+    valor = c(.61, .45, .38, .22, .55, .49, .30, .28),
+    stringsAsFactors = FALSE
+  )
+  p_sin <- graficar_radar(data = d, usar_canvas = FALSE, exportar = "rplot")
+  p_con <- graficar_radar(data = d, usar_canvas = FALSE, exportar = "rplot",
+                          mostrar_valores = TRUE)
+  labs_de <- function(p) {
+    out <- character(0)
+    for (ly in p$layers) {
+      if (inherits(ly$geom, "GeomText") && is.data.frame(ly$data) &&
+          ".lab_val" %in% names(ly$data)) {
+        out <- c(out, as.character(ly$data$.lab_val))
+      }
+    }
+    out
+  }
+  expect_length(labs_de(p_sin), 0)
+  labs <- labs_de(p_con)
+  expect_length(labs, 8)
+  expect_true(all(grepl("^[0-9]+%$", labs)))
+  expect_true("61%" %in% labs)
+})
