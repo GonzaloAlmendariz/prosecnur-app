@@ -27,6 +27,7 @@ export function FacultadCategoriaToggles({
   ariaLabel,
   sinBarra = false,
   evidencia,
+  solapan = false,
 }: {
   /** Fila con las categorías de la facultad (CH/elegibles + activo efectivo). */
   fila: FilaFacultad;
@@ -46,6 +47,15 @@ export function FacultadCategoriaToggles({
    * que es lo que el ADR corrige.
    */
   evidencia?: (categoriaKey: string) => AporteCategoria | null;
+  /**
+   * G41 · Las categorías de este criterio NO son excluyentes.
+   *
+   * Pasa en tipo de docente: un curso-horario con dos docentes de tipos
+   * distintos cuenta en las dos tarjetas. Sus cifras siguen siendo correctas
+   * una a una, pero no suman los que llegan, y sin avisarlo el lector suma y
+   * no le cuadra —que es exactamente lo que hay que evitar aquí—.
+   */
+  solapan?: boolean;
 }) {
   // Domar listas largas (p.ej. condición del curso trae ~52 valores DTI, casi
   // todos ruido): muestra las que tienen CH en la facultad (o están activas) y
@@ -106,6 +116,17 @@ export function FacultadCategoriaToggles({
           son <strong>todos los valores distintos de la columna</strong>. Si aparecen valores
           que no son categorías —nombres, códigos sueltos—, la columna de origen los mezcla:
           revísala en Datos › Variables antes de decidir con ella.
+        </p>
+      ) : null}
+      {/* G41 · Cuando las categorías se solapan hay que decirlo, no callar la
+          cifra. La primera versión ocultaba «llegan hasta aquí» en este caso y
+          la tarjeta se quedaba con un hueco: peor: el dato existía y era
+          correcto, sólo que no se puede sumar. */}
+      {solapan ? (
+        <p className="cmv2-crit-empty-note" data-solapan="true">
+          Un curso-horario puede tener <strong>más de un docente</strong>, así que aquí cuenta
+          en cada tipo que le corresponde: las cifras de las tarjetas no suman los que llegan
+          al criterio.
         </p>
       ) : null}
       {dominio ? <EjeCategorias dominio={dominio} /> : null}

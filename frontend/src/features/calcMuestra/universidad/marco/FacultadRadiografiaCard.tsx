@@ -44,6 +44,7 @@ export function FacultadRadiografiaCard({
   criteriosRadiografia = null,
   facultadKey,
   contextoRadiografia = "ejecutado",
+  recorte,
 }: {
   fac: CalcMuestraAulasExploracionFacultad;
   /** Standalone (Explorador): resalta la tarjeta seleccionada. */
@@ -61,6 +62,12 @@ export function FacultadRadiografiaCard({
   /** Clave autoritativa para unir la colección F1 en contextos editables. */
   facultadKey?: string;
   contextoRadiografia?: TipoSesionRadiografiaContexto;
+  /**
+   * G41 · Universo y supervivientes de la facultad según el motor: el mismo par
+   * que el embudo. Opcional — sin él la tarjeta usa el censo de la exploración,
+   * que es lo que había.
+   */
+  recorte?: { llegan: number; quedan: number } | null;
 }) {
   // Guard defensivo: en dev, un render concurrente/StrictMode transitorio puede
   // montar la tarjeta con `fac` aún sin resolver. El componente no usa hooks, así
@@ -120,7 +127,13 @@ export function FacultadRadiografiaCard({
       <div className="cmv2-radiografia-facts">
         {verResumen && (
         <p className="cmv2-radiografia-sobreviven">
-          <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)} cursos-horario
+          {/* G41 · La misma cifra que el titular de la facultad y que el
+              embudo. Aquí decía 592 de 849 —el censo de la exploración, que
+              agrupa por la columna `faculty`— mientras dos líneas más arriba el
+              recorrido empezaba en 798 y acababa en 554. Cuando el motor
+              publica su par, manda; sin él se cae a la exploración. */}
+          <strong>{fmtInt(recorte?.quedan ?? fac.ch_elegibles)}</strong> de{" "}
+          {fmtInt(recorte?.llegan ?? fac.ch_total)} cursos-horario
           siguen siendo candidatos con los criterios vigentes
           {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} elegibles/aula` : ""}
         </p>

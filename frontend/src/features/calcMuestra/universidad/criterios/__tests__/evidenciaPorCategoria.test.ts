@@ -62,3 +62,31 @@ describe("evidenciaPorCategoria", () => {
     expect(evidenciaPorCategoria(null, "derecho")("presencial")).toBeNull();
   });
 });
+
+/**
+ * G41 · Gonzalo: «si quedan 100 cursos-horario hasta un criterio, la suma de sus
+ * elegibles en cada categoría no debería ser 100?».
+ *
+ * El puente no reparte nada: sólo trae el `before_ch` que el motor publicó para
+ * esa categoría y esa facultad. Lo que se fija aquí es que llegue a la tarjeta
+ * y que su ausencia no rompa nada — un `.pulso` guardado antes de esta
+ * capacidad no trae reparto y la tarjeta debe seguir en pie.
+ */
+describe("evidenciaPorCategoria · cuántos llegan al criterio", () => {
+  it("trae el reparto del motor para la categoría", () => {
+    const llegan = new Map([["presencial", 52]]);
+    expect(evidenciaPorCategoria(card(), "derecho", 0.7, llegan)("presencial")?.llegan).toBe(52);
+  });
+
+  it("sin reparto la tarjeta conserva sus cifras y `llegan` queda en null", () => {
+    const dato = evidenciaPorCategoria(card(), "derecho", 0.7)("presencial");
+    expect(dato?.llegan).toBeNull();
+    expect(dato?.ch).toBe(40);
+    expect(dato?.chContraste).toBe(60);
+  });
+
+  it("una categoría sin fila en el reparto no inventa cifra", () => {
+    const llegan = new Map([["virtual", 3]]);
+    expect(evidenciaPorCategoria(card(), "derecho", 0.7, llegan)("presencial")?.llegan).toBeNull();
+  });
+});
