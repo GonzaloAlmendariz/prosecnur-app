@@ -2434,7 +2434,8 @@
     size_leyenda             = 16,
     size_barra_extra         = 16,
     size_titulo_extra        = 16,
-    ancho_max_eje_y          = 22,
+    # 22 partia las preguntas largas en 6+ lineas (feedback directo B36).
+    ancho_max_eje_y          = 34,
     prefijo_barra_extra      = "",
 
     color_texto_barras       = "white",
@@ -3930,7 +3931,7 @@
       overrides_reusables = meta$overrides_reusables %||% list(),
       scope_rules = meta$scope_rules %||% list(),
       template_id = as.character(meta$template_id %||% "generic_16_9"),
-      auto_otros_slides = isTRUE(meta$auto_otros_slides %||% TRUE)
+      auto_otros_slides = isTRUE(meta$auto_otros_slides %||% FALSE)
     )
   })
   list(style_profiles = profiles)

@@ -3490,11 +3490,12 @@ reporte_ppt_plan <- function(
     if (is.null(el) || !inherits(el, "ppt_element")) return(NULL)
 
     etype <- el$.element_type %||% ""
-    # Estos etypes ya imprimen su "Base: ..." como caption del grafico:
-    # duplicarla en el placeholder era el default (P9/P17/P20; pie/donut B19).
-    if (etype %in% c("barras_agrupadas", "barras_apiladas", "barras_categoricas", "pie", "donut")) return(NULL)
-    if (identical(etype, "barras_multiapiladas") &&
-        !.base_multifuente_el(el, .extract_ref_values)) return(NULL)
+    # Doctrina B36 (Gonzalo): la base vive en la esquina inferior izquierda
+    # del SLIDE (su placeholder de base).
+    # Apiladas y multiapiladas ya NO imprimen caption propio, asi que su base
+    # de slide vuelve. Los etypes que aun llevan caption en el grafico
+    # (agrupadas/categoricas/pie/donut) siguen suprimidos para no duplicar.
+    if (etype %in% c("barras_agrupadas", "barras_categoricas", "pie", "donut")) return(NULL)
     excluir_base <- switch(
       etype,
       barras_multiapiladas = .reporte_plan_excluir_cascada(
@@ -4365,7 +4366,10 @@ reporte_ppt_plan <- function(
       colores_grupos   = colores_grupos,
       titulo           = NULL,
       subtitulo        = NULL,
-      nota_pie         = .format_n_caption(N_total)
+      # Doctrina de Gonzalo (B36): la base vive en la esquina inferior
+      # IZQUIERDA del SLIDE (su placeholder de base), no como caption del
+      # grafico. El analista puede reactivarla via overrides$nota_pie.
+      nota_pie         = NULL
     )
 
     # merge: base_args <- preset_args <- overrides (overrides manda)
@@ -4806,7 +4810,7 @@ reporte_ppt_plan <- function(
         colores_grupos   = colores_grupos,
         titulo           = NULL,
         subtitulo        = NULL,
-        nota_pie         = actor_caption %||% .format_n_caption(N_by_v)
+        nota_pie         = NULL
       )
 
       base_args <- .apply_top2box_alias(base_args)
@@ -4982,7 +4986,7 @@ reporte_ppt_plan <- function(
         colores_grupos   = colores_grupos,
         titulo           = NULL,
         subtitulo        = NULL,
-        nota_pie         = .format_n_caption(df_block$N)
+        nota_pie         = NULL
       )
 
       base_args <- .apply_top2box_alias(base_args)
@@ -5348,7 +5352,7 @@ reporte_ppt_plan <- function(
         colores_grupos         = colores_grupos,
         titulo                 = NULL,
         subtitulo              = NULL,
-        nota_pie               = actor_caption %||% .format_n_caption(df_block$N),
+        nota_pie               = NULL,
         usar_canvas            = TRUE,
         canvas_w_grupo         = if (!sin_grupo_word) 0.24 else 0,
         canvas_w_buf_grupo_etq = if (!sin_grupo_word) 0.03 else 0,
