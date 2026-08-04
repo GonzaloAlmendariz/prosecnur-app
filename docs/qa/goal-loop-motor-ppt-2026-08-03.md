@@ -153,7 +153,7 @@ explicar parte del corrimiento.
 | L0 | Fundación: censo + doc | — | **Hecho (P1)** |
 | L1 | Placeholders ↔ campos que ofrece la UI (prueba 1) — defecto fundacional `pic` como texto | 163 ph plantilla principal | **Hecho (P2)** — lado UI; el lado motor pasó a L1b |
 | L1b | **Cluster ACNUR**: contenidos fuera de su placeholder en el render (pie sobre logo, footer en panel, subtexto/fecha invisibles, pie en hueco de ícono) | ~30 slots × plantilla acnur | **Hecho (P3)** — quedan D2 y D3 en bandeja |
-| L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | Cola |
+| L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **En curso (P4)** — 17/42 args con diferencial mirado; falta índice (15) y reparar H11 |
 | L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | Cola |
 | L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | Cola |
 | L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | Cola |
@@ -299,3 +299,39 @@ de plan/render: **726 PASS / 0 FAIL**. Audit de congelados limpio para
 **Abierto:** D2 (box acnur sobre su propio logo) y D3 (portada acnur sin
 fecha/subtexto) en bandeja; verificación visual en app (canvas + preview con
 proyecto acnur) pendiente para un pase de QA visual conjunto.
+
+### P4 — L2 parcial: slides estructurales, camino feliz + bordes (2026-08-03)
+
+Decks diferenciales A (mínimos) y B (todo activado) sobre la genérica,
+10 láminas miradas (script en scratchpad, patrón replicable con el harness).
+
+**Verificado en verde (pruebas 1–3 sobre 17 args):**
+
+- Portada: `titulo`/`subtitulo`/`fecha`/`subtexto` — presentes y en su sitio
+  en B, ausentes limpiamente en A.
+- Sección: `titulo` ✓; `subtitulo` e `introduccion_word` NO aparecen en PPT,
+  consistente con sus labels (van a Word). Diferencial confirmado.
+- Texto: `titulo`/`texto`/`bullets` (con viñetas)/`base` ✓ en B; A sin restos.
+- Tabla técnica: `titulo`/`filas`/`pie` ✓; con 2 filas degrada sin romper.
+- Objetivo: `texto` ✓; `titulo` e `icono` con hallazgos (abajo).
+
+**Hallazgos nuevos:**
+
+- **H10 (texto)**: el bloque ocupa una fracción mínima de la lámina (caja de
+  12.4×2.8 con tipografía chica y el resto vacío). Funcional pero pobre;
+  candidato a tamaño adaptativo. Decisión de diseño pendiente.
+- **H11 (objetivo)**: `titulo` cae en la franja vertical del layout
+  (0.75×4.54, banner lateral sin rotación declarada) y se rasteriza vertical
+  letra-a-letra: ilegible. El registry no avisa que ese título es un banner
+  lateral. Reparar en el próximo tramo (aviso en registry o estilo rotado
+  deliberado).
+- **H12 (tabla técnica)**: las filas se estiran a llenar toda la caja — con 2
+  filas quedan celdas de altura enorme. Borde sin rotura, estética pobre.
+- **H13 (objetivo/icono)**: un graficador arbitrario como `icono` desborda el
+  cuadro (etiquetas y caption por fuera). El camino real usa el catálogo de
+  íconos; falta la prueba con ícono del catálogo y el borde «gráfico como
+  ícono» debería recortarse o avisarse.
+
+**Pendiente L2:** índice (15 args), top_two_box va en L3; paridad Word de
+sección (`subtitulo`/`introduccion_word` deben SÍ aparecer allá); prueba con
+ícono real del catálogo.
