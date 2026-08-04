@@ -767,9 +767,16 @@
 }
 
 .graficos_active_base_name <- function(sid) {
-  if (exists("estudio_is_independent_siblings", mode = "function") &&
-      estudio_is_independent_siblings(sid) &&
-      exists("estudio_active_base", mode = "function")) {
+  # B48/G-23: la base activa tambien importa en modo `multibase` (no solo
+  # independent_siblings): las refs peladas del plan guardado significan
+  # "de la base activa" — la misma semantica que la UI usa en vivo. Sin
+  # esto, el worker no podia calificarlas y el export moria con el
+  # criptico "requiere prefijo fuente$".
+  if (!exists("estudio_active_base", mode = "function")) return("")
+  multibase <- length(tryCatch(estudio_data_sources(sid), error = function(e) list())) > 1L
+  siblings <- exists("estudio_is_independent_siblings", mode = "function") &&
+    estudio_is_independent_siblings(sid)
+  if (siblings || multibase) {
     return(as.character(estudio_active_base(sid) %||% ""))
   }
   ""

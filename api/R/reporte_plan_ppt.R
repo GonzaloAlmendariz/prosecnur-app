@@ -3582,6 +3582,44 @@ reporte_ppt_plan <- function(
 
   # Caption "Base: N" degradable: si el calculo falla por datos, la lamina sale
   # sin caption (warning) en vez de matar el deck (reporte_plan_condiciones.R).
+  # B48/G-24: en laminas de VARIOS graficos (2/4 poblacion), la Base auto
+  # tomaba solo el primer elemento — «Base: 52 docentes» en una lamina que
+  # compara 4 actores. Este combinador junta las refs de todos los
+  # elementos: si cruzan varias fuentes, la Base sale prorrateada por
+  # fuente (reusa .base_auto_from_refs); si no, cae al primer elemento.
+  .base_auto_de_elementos <- function(els, sufijo_auto = NULL, formato = "Base: %s") {
+    refs <- character(0)
+    for (el in els) {
+      if (!inherits(el, "ppt_element")) next
+      ref <- tryCatch({
+        v <- as.character(el$var %||% "")[1]
+        if (is.na(v) || !nzchar(trimws(v))) NA_character_
+        else if (grepl("$", v, fixed = TRUE)) v
+        else {
+          src <- tryCatch(.element_source(el), error = function(e) NULL)
+          if (!is.null(src) && nzchar(as.character(src)[1])) paste0(src, "$", trimws(v)) else v
+        }
+      }, error = function(e) NA_character_)
+      if (!is.na(ref)) refs <- c(refs, ref)
+    }
+    refs <- unique(refs)
+    srcs <- unique(vapply(refs, function(r) {
+      m <- regmatches(r, regexec("^([^$]+)\\$", r))[[1]]
+      if (length(m) == 2L) m[2] else ""
+    }, character(1)))
+    srcs <- srcs[nzchar(srcs)]
+    if (length(refs) >= 2L && length(srcs) >= 2L) {
+      combinada <- tryCatch(
+        .base_auto_from_refs(refs, sufijo_auto = sufijo_auto, formato = formato),
+        error = function(e) NULL
+      )
+      if (!is.null(combinada) && nzchar(trimws(as.character(combinada)[1]))) return(combinada)
+    }
+    primero <- Filter(function(e) inherits(e, "ppt_element"), els)
+    if (!length(primero)) return(NULL)
+    .base_auto_from_element(primero[[1]], sufijo_auto = sufijo_auto, formato = formato)
+  }
+
   .base_auto_from_element <- function(el, sufijo_auto = NULL, formato = "Base: %s") .reporte_plan_nota_base_sellada(.plan_base_caption_segura(.base_auto_from_element_impl, el, sufijo_auto, formato), data_sources, source = tryCatch(.element_source(el), error = function(e) NULL))
   .base_auto_from_element_impl <- function(el, sufijo_auto = NULL, formato = "Base: %s") {
     if (is.null(el) || !inherits(el, "ppt_element")) return(NULL)
@@ -8319,8 +8357,8 @@ reporte_ppt_plan <- function(
         # BASE auto desde left si no se declara
         base_txt <- slots$base %||% NULL
         if (is.null(base_txt)) {
-          base_txt <- .base_auto_from_element(
-            el         = el_left,
+          base_txt <- .base_auto_de_elementos(
+            els        = list(el_left, el_right),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
             formato     = presets$base$args$formato %||% "Base: %s"
           )
@@ -8546,8 +8584,8 @@ reporte_ppt_plan <- function(
         suppress_base_placeholder <- isTRUE((slide$meta %||% list())$suppress_base_placeholder)
         base_txt <- if (suppress_base_placeholder) " " else slots$base %||% NULL
         if (!suppress_base_placeholder && is.null(base_txt)) {
-          base_txt <- .base_auto_from_element(
-            el          = el_left,
+          base_txt <- .base_auto_de_elementos(
+            els        = list(el_left, el_right),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
             formato     = presets$base$args$formato %||% "Base: %s"
           )
@@ -8658,8 +8696,8 @@ reporte_ppt_plan <- function(
 
         base_txt <- slots$base %||% NULL
         if (is.null(base_txt)) {
-          base_txt <- .base_auto_from_element(
-            el          = el_ul,
+          base_txt <- .base_auto_de_elementos(
+            els        = list(el_ul, el_ur, el_bl, el_br),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
             formato     = presets$base$args$formato %||% "Base: %s"
           )
@@ -8795,8 +8833,8 @@ reporte_ppt_plan <- function(
         # base (body 3 = pie de lamina)  -  opcional/auto
         base_txt <- slots$base %||% NULL
         if (is.null(base_txt)) {
-          base_txt <- .base_auto_from_element(
-            el         = el_ul,
+          base_txt <- .base_auto_de_elementos(
+            els        = list(el_ul, el_ur, el_bl, el_br),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
             formato     = presets$base$args$formato %||% "Base: %s"
           )
@@ -9075,8 +9113,8 @@ reporte_ppt_plan <- function(
         # base auto (por defecto desde plot1)
         base_txt <- slots$base %||% NULL
         if (is.null(base_txt)) {
-          base_txt <- .base_auto_from_element(
-            el         = el1,
+          base_txt <- .base_auto_de_elementos(
+            els        = list(el1, el2),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
             formato     = presets$base$args$formato %||% "Base: %s"
           )
@@ -9159,8 +9197,8 @@ reporte_ppt_plan <- function(
         # base auto desde plot1
         base_txt <- slots$base %||% NULL
         if (is.null(base_txt)) {
-          base_txt <- .base_auto_from_element(
-            el         = el1,
+          base_txt <- .base_auto_de_elementos(
+            els        = list(el1, el2),
             sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
             formato     = presets$base$args$formato %||% "Base: %s"
           )
