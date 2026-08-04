@@ -1880,3 +1880,21 @@ barras, extra, y `canvas_gap_grupos` (aire entre bloques).
 G-6..G-11 (revamp del selector de paletas), composición vertical de
 apiladas de pocas filas (alto adaptivo del panel — diseño), doctrina de
 bases para agrupadas/categoricas/pie/donut.
+
+### B39 — G-15: el informe conjunto con temas a medio armar mataba el export (2026-08-04, sesión B)
+
+Gonzalo reportó con screenshot: exportar su informe conjunto (4 bases, slide
+multiapiladas «Comparar públicos por tema» + apiladas/agrupadas) moría con
+«`var` debe ser character(1) no vacio» en callr. Cadena real (`2b41a9a9`):
+un slide a medio armar serializa `var: []`; jsonlite rectangulariza el plan
+y la lámina VÁLIDA hereda `var` como columna de lista (`list("fuente$var")`)
+que el spec constructor rechaza. Tres blindajes en los rebuilds:
+`.graficos_unwrap_scalar_refs` (desenvuelve refs escalares),
+`.graficos_blank_ref_value` ampliado ("", character(0), [], NA — nzchar(NA)
+es TRUE —, listas de vacíos; vars=[] cuenta como faltante) y
+`.graficos_args_faltan_requeridos` (formal requerido ausente → canvas en
+blanco). Export real mixto (borradores + válidas + multiapiladas vars=[]):
+job done. 32 asserts en lamina-borrador; jobs y slides-args-contrato verdes.
+
+Nota operativa: los jobs usan el paquete INSTALADO — el fix exige
+`R CMD INSTALL` + reinicio del backend para verse en la app.
