@@ -21,6 +21,71 @@
 # Prefija los errores del worker con la base activa, para que el usuario
 # sepa QUÉ base rompió en estudios multibase. Con base vacía/NULL devuelve
 # el mensaje tal cual (proyectos single-base).
+# B48/G-23: la UI en vivo escopea las refs peladas ("p12_1") contra la base
+# activa, pero el plan GUARDADO viaja con esas refs al worker, donde `data`
+# trae TODAS las bases y el motor exige prefijo `fuente$`. Este helper
+# replica la semantica de la UI en el export: califica las refs escalares y
+# los bloques de `vars` con la base activa. Las refs ya calificadas y los
+# planes sin base activa (informe conjunto) no se tocan.
+.graficos_calificar_ref <- function(ref, active_base) {
+  ref_chr <- as.character(ref %||% "")[1]
+  if (is.na(ref_chr) || !nzchar(trimws(ref_chr))) return(ref)
+  if (grepl("$", ref_chr, fixed = TRUE)) return(ref)
+  paste0(active_base, "$", trimws(ref_chr))
+}
+
+.graficos_calificar_refs_plan <- function(plan, active_base) {
+  base_chr <- as.character(active_base %||% "")[1]
+  if (is.na(base_chr) || !nzchar(trimws(base_chr))) return(plan)
+  slides <- plan$slides %||% list()
+  if (!length(slides)) return(plan)
+
+  calificar_args <- function(args) {
+    if (!is.list(args)) return(args)
+    for (nm in c("var", "cruce", "cruces", "iter_var", "objetivo", "var_texto", "grupo", "fila")) {
+      if (!is.null(args[[nm]])) args[[nm]] <- .graficos_calificar_ref(args[[nm]], base_chr)
+    }
+    if (!is.null(args$vars)) {
+      if (is.list(args$vars)) {
+        args$vars <- lapply(args$vars, function(bloque) {
+          if (is.character(bloque)) {
+            vapply(bloque, .graficos_calificar_ref, character(1), active_base = base_chr, USE.NAMES = FALSE)
+          } else if (is.list(bloque)) {
+            lapply(bloque, .graficos_calificar_ref, active_base = base_chr)
+          } else {
+            bloque
+          }
+        })
+      } else if (is.character(args$vars)) {
+        args$vars <- vapply(args$vars, .graficos_calificar_ref, character(1), active_base = base_chr, USE.NAMES = FALSE)
+      }
+    }
+    args
+  }
+
+  calificar_graf <- function(g) {
+    if (!is.list(g)) return(g)
+    if (!is.null(g$args)) g$args <- calificar_args(g$args)
+    g
+  }
+
+  plan$slides <- lapply(slides, function(sl) {
+    if (!is.list(sl)) return(sl)
+    payload <- sl$payload
+    if (is.list(payload)) {
+      for (nm in names(payload)) {
+        v <- payload[[nm]]
+        if (is.list(v) && (!is.null(v$graficador) || !is.null(v$args))) {
+          payload[[nm]] <- calificar_graf(v)
+        }
+      }
+      sl$payload <- payload
+    }
+    sl
+  })
+  plan
+}
+
 .graficos_job_base_error <- function(active_base) {
   function(msg) {
     if (!is.null(active_base) && nzchar(as.character(active_base))) {
@@ -78,6 +143,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
+  plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
     report = report, base_error = base_error, item_label = "slide"
@@ -176,6 +242,7 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
+  plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
     plan, slide_registry, graficador_registry, icon_registry,
     report = report, base_error = base_error, item_label = "seccion"
