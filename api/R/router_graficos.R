@@ -1216,7 +1216,11 @@
 # decision del analista y se respeta. Se aplica en el normalizador, la unica
 # costura por la que pasan el GET de config y el config efectivo del export.
 .GRAFICOS_MIGRACIONES_DEFAULTS <- list(
-  list(tipo = "barras_apiladas", arg = "ancho_max_eje_y", de = 22, a = 34)
+  list(tipo = "barras_apiladas", arg = "ancho_max_eje_y", de = 22, a = 34),
+  # B45: la etiqueta chica fuera de la barra con flecha paso a opt-in; el
+  # TRUE fosilizado era el default que la UI copiaba sola.
+  list(tipo = "barras_apiladas", arg = "etiquetas_arriba_si_no_caben", de = TRUE, a = FALSE),
+  list(tipo = "multi_apiladas", arg = "etiquetas_arriba_si_no_caben", de = TRUE, a = FALSE)
 )
 
 .graficos_migrar_defaults_fosiles <- function(presets) {
@@ -1225,8 +1229,14 @@
     entry <- presets[[mig$tipo]]
     if (!.graficos_is_obj(entry)) next
     holder <- if (.graficos_is_obj(entry$args)) entry$args else entry
-    actual <- suppressWarnings(as.numeric(holder[[mig$arg]] %||% NA_real_)[1])
-    if (is.finite(actual) && identical(actual, as.numeric(mig$de))) {
+    valor <- holder[[mig$arg]]
+    coincide <- if (is.logical(mig$de)) {
+      isTRUE(valor) == isTRUE(mig$de) && is.logical(valor %||% NA)
+    } else {
+      actual <- suppressWarnings(as.numeric(valor %||% NA_real_)[1])
+      is.finite(actual) && identical(actual, as.numeric(mig$de))
+    }
+    if (coincide) {
       holder[[mig$arg]] <- mig$a
       if (.graficos_is_obj(entry$args)) {
         entry$args <- holder
