@@ -2557,9 +2557,22 @@ graficar_barras_apiladas <- function(
       n_categorias <= 2L &&
       (is.null(canvas_h_panel_in) || !is.finite(suppressWarnings(as.numeric(canvas_h_panel_in)[1])) ||
          suppressWarnings(as.numeric(canvas_h_panel_in)[1]) <= 0)) {
-    # Piso fisico del panel: con el grosor editorial (~35% del panel para
-    # 1 fila) esto da una banda de ~2cm, no una cinta.
-    panel_floor_in <- if (n_categorias == 1L) 2.2 else 2.8
+    # Piso fisico del panel: el area de barras real descuenta el pad interno
+    # que protege etiquetas de eje altas (B48: con una etiqueta de 5+ lineas
+    # el pad llegaba a 0.63in por lado y la banda quedaba en 0.29in aunque
+    # el grosor efectivo fuera 0.95). El piso garantiza area de barras, no
+    # solo panel: piso = area_deseada + 2*pad_estimado.
+    pad_est_in <- suppressWarnings(as.numeric(canvas_pad_bars_y_in)[1])
+    if (!is.finite(pad_est_in) || pad_est_in < 0) pad_est_in <- 0
+    if (isTRUE(needs_tall_label_slot)) {
+      size_pad_est <- suppressWarnings(as.numeric(size_ejes)[1])
+      if (!is.finite(size_pad_est) || size_pad_est <= 0) size_pad_est <- 13.8
+      size_pad_est <- min(size_pad_est, 13.8)
+      pad_est_in <- max(pad_est_in, max_lineas_eje_y_est * size_pad_est * 0.80 / 72 / 2 + 0.25)
+    }
+    area_deseada_in <- if (n_categorias == 1L) 1.5 else 2.1
+    panel_floor_in <- max(if (n_categorias == 1L) 2.2 else 2.8,
+                          area_deseada_in + 2 * pad_est_in)
     if (h_panel_in < panel_floor_in) {
       h_total_in <- h_total_in - h_panel_in + panel_floor_in
       h_panel_in <- panel_floor_in
