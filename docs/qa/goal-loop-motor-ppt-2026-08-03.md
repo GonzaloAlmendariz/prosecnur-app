@@ -906,3 +906,9 @@ lateral y superior en lámina completa (familia D8, decisión editorial).
 **Gate:** render mirado (13 láminas + 2 de verificación de promedio) y
 diferenciales computacionales; suites del área corridas en P22 sin cambios de
 lógica adicionales (la dedup se cubre por el patrón ya testeado).
+
+> **Nota de coordinación (P23):** el commit `7d6c422d` arrastró sin querer un
+> hunk de la sesión B (activación de `score_ref` cuando `mostrar_ref_label`
+> se enciende — carril L8): ya está commiteado, B no necesita re-commitearlo.
+> Regla desde ahora: TODOS los archivos compartidos (incluido el monolito) se
+> stagean por hunks mientras haya dos sesiones sobre el árbol.
