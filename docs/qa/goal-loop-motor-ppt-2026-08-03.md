@@ -976,3 +976,26 @@ media-rango 3 zonas y minmax 2 grupos.
 **Gate:** cruces-categorias, cruces-jerarquia, dimensiones-ppt-radar,
 dimensiones-iconos-foda-radar, radar-solo-tabla (5), orders-informales (8):
 **todo verde**.
+
+### P24 — L6: sweep de p_numerico — metrica y formato son fantasmas de motor (2026-08-03)
+
+Cinco variantes renderizadas. La tarjeta numérica (big number) funciona en
+default, cruce por sexo y N por grupo. **Dos fantasmas confirmados con
+números duros:**
+
+- **H36 — `metrica` ignorada:** pedida `median` por sexo sobre ingreso
+  lognormal, el render muestra **exactamente las medias** (2.171,1/2.253,7;
+  medianas reales 1.961,5/1.991,5) y la leyenda dice «Media» fija.
+  `.render_numerico` (reporte_plan_ppt.R:6156) calcula `mean(x2)` y
+  `.m = mean(.data$.x)` sin leer jamás `el$metrica` (opciones declaradas:
+  N/pct/mean/median).
+- **H37 — `formato` ignorado:** `formato = "S/ %s"` rinde «2.214,1» pelado.
+
+**Plan de fix (próximo tramo, test rojo primero):** cascada
+`overrides$metrica %||% el$metrica %||% preset %||% "mean"`; switch
+mean/median/N/pct en los DOS sitios de cálculo; etiqueta de leyenda dinámica
+(«Media»/«Mediana»/«N»/«%»); `sprintf(formato, valor)` con formato validado.
+Banco discriminante: ingreso lognormal (media ≠ mediana).
+
+Detalle menor: leyenda «Media» bajo tarjeta única es ruido (candidata a
+auto-hide como la serie sintética de agrupadas).
