@@ -4863,8 +4863,9 @@ graficar_foda_dimensiones <- function(
     } else {
       .dim_heat_legend_block(
         # La leyenda dice que SIGNIFICA cada color (umbral de puntaje), no el
-        # nombre del color: "Rojo/Ambar/Verde" no informaba nada al lector.
-        labels = .dim_foda_legend_labels(sem),
+        # nombre del color, y usa los cortes EFECTIVOS del chip (un override
+        # de cortes_chip recoloreaba los chips con la leyenda desincronizada).
+        labels = .dim_foda_legend_labels(list(cortes = chip_cortes)),
         colors = c(sem$rojo, sem$ambar, sem$verde),
         size = max(7, size_items),
         colour = "#4A5F75"
