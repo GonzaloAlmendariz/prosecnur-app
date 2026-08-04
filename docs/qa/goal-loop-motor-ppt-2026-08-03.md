@@ -1845,3 +1845,38 @@ export por plan no. Pertenece al GOAL «Gráficos sabe de qué base habla».
 agrupadas-defaults 9, presets-contrato 9 (359 asserts) + preview real de
 apilada y agrupada rasterizado. Commit `ef8fbd63` por hunks (trabajo de A
 intacto en el árbol).
+
+### B37 — G-13, G-2, G-12 y G-14 reparados y verificados end-to-end (2026-08-04, sesión B)
+
+**G-13 (GRAVE, cerrado)** — la pérdida al duplicar tenía dos ventanas, ambas
+selladas (`fd7c1144`): (1) un GET de config fallido hidrataba plan VACÍO
+marcado `hydrated` y el flush de guardar/duplicar lo PUTeaba encima del real
+— ahora reintenta con backoff y deja `hydrated=false` (autosave/flush/export
+desarmados); (2) los autosaves del editor XLSForm eran debounced +
+fire-and-forget y el save/duplicate no los esperaba — nuevo
+`pendingFlushRegistry` + `flushAndSync` esperado por save/saveAs/duplicate.
+Peritaje del `.pulso` duplicado real: los 4 instrumentos y el plan SÍ están
+dentro; el dato viajaba, se perdía en las ventanas. 466 tests + typecheck.
+
+**G-2 (cerrado)** — piso editorial 0.95 para apiladas de UNA fila real bajo
+filas virtuales (`868261bb`): la banda pasa de ~22-26% a ~35% del panel,
+centrado intacto, y solo pisa la banda default [0.55, 0.85]. Verificado
+re-rasterizando la lámina real.
+
+**G-12 (cerrado)** — `b577e57e`: nzchar(NA) es TRUE, así que la lámina
+borrador rectangularizada (graficador = NA) mataba el export con
+«Graficador no registrado: NA»; y con el guard puesto, el slot requerido
+vacío moría en «argument grafico is missing». Guard NA-safe en los tres
+rebuilds + `.graficos_fill_blank_graf_slots` (slots requeridos → canvas en
+blanco con título). Export real de las 7 láminas del usuario: job done,
+borradores como título + canvas vacío. 15 asserts nuevos.
+
+**G-14 (nuevo pedido, cerrado)** — `8523111b`: multiapiladas ahora expone
+en el registry los anchos de TODAS sus columnas: tema (`canvas_w_grupo`,
+0 = colapsa), buffer tema→bases, bases (relabel honesto de etiquetas),
+barras, extra, y `canvas_gap_grupos` (aire entre bloques).
+
+**Cola viva:** G-5 (editor jerárquico del índice con íconos elegibles),
+G-6..G-11 (revamp del selector de paletas), composición vertical de
+apiladas de pocas filas (alto adaptivo del panel — diseño), doctrina de
+bases para agrupadas/categoricas/pie/donut.
