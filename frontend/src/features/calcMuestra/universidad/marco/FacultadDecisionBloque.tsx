@@ -51,6 +51,22 @@ import {
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import { resumenDecisionFacultad, type FacultadBloque } from "./facultadDecisionModel";
 
+/**
+ * G41 · Lo que el motor sabe del criterio que se está decidiendo: cuántos
+ * cursos-horario de cada categoría llegan hasta él, y si esas categorías son
+ * excluyentes entre sí.
+ *
+ * Van juntos a propósito. Las cifras se enseñan siempre —la primera versión las
+ * ocultaba cuando no sumaban, y eso vació la tarjeta de «Tipo de docente»— pero
+ * sólo se pueden leer como un reparto del total cuando `particionan`; si no, un
+ * mismo curso-horario cuenta en dos categorías y la superficie tiene que
+ * decirlo en vez de dejar que el lector sume a ojo.
+ */
+export type RepartoCriterio = {
+  llegan: Map<string, number>;
+  particionan: boolean;
+};
+
 /** Parseo de un input numérico opcional: vacío → null; inválido → null. */
 function parseEntero(raw: string): number | null {
   if (!raw.trim()) return null;
@@ -86,6 +102,7 @@ function CriterioFacultadCard({
   criteriosRadiografia,
   radiografiaCard,
   criterioEvidence,
+  reparto,
   onSel,
   confirmador,
 }: {
@@ -93,6 +110,8 @@ function CriterioFacultadCard({
   seleccion: CriteriosSeleccionMarco;
   excKey: string;
   facLabel: string;
+  /** G41 · Cuántos CH de cada categoría llegan a ESTE criterio (motor). */
+  reparto?: RepartoCriterio | null;
   /** Radiografía de la facultad (para el detalle por tipo junto al criterio). */
   fac: CalcMuestraAulasExploracionFacultad;
   exploracion: CalcMuestraAulasExploracion | null;
@@ -171,17 +190,24 @@ function CriterioFacultadCard({
               aportaba: matrículas y CH con dato (F95), la leyenda de las marcas
               (F96) y el contraste contra el total (F97). El inventario está en
               el doc del loop. */}
-          {variable.id === SESSION_TYPE_VARIABLE_ID ? (
-            <FacultadRadiografiaCard
-              fac={fac}
-              modo="tipos"
-              criteriosRadiografia={criteriosRadiografia}
-              facultadKey={excKey}
-              contextoRadiografia="editable"
-            />
-          ) : variable.id === "condicion_curso" ? (
-            <FacultadRadiografiaCard fac={fac} modo="condicion" />
-          ) : null}
+          {/* G41 · Retirada la radiografía de tipo de sesión que iba encima de
+              los conmutadores. Gonzalo: «¿por qué tenemos estas tarjetas si ya
+              abajo está la información radiográfica, no se repite?».
+
+              Se repetía: la tarjeta de arriba decía N CH total, llegan hasta
+              aquí, medias y cuantiles de cada categoría, y la tarjeta de cada
+              conmutador dice lo mismo —con su distribución dibujada y el efecto
+              de quitarla— a un dedo de distancia. Es el mismo defecto que F98
+              reparó en este criterio con el bloque compacto: cada etiqueta
+              aparecía dos veces dentro del mismo criterio.
+
+              Lo único que la de arriba tenía y la de abajo no eran las
+              matrículas elegibles, y F111 ya había decidido que esa cifra no
+              decide nada junto a «alumnos elegibles». La condición del curso
+              pierde aquí su barra apilada por la misma razón.
+
+              El componente sigue vivo y en uso en el explorador de aulas, que
+              es donde su lectura no compite con ninguna decisión. */}
           {tieneRadiografia ? (
             <p className="cmv2-chfp-selecciona-nota">
               Marca {variable.id === "condicion_curso" ? "las condiciones" : "los tipos"} que entran al
@@ -195,7 +221,10 @@ function CriterioFacultadCard({
             onSel={onSel}
             ariaLabel={`${variable.label} en ${facLabel}`}
             sinBarra={tieneRadiografia}
-            evidencia={evidenciaPorCategoria(radiografiaCard, excKey, tasaAsistencia(seleccion))}
+            evidencia={evidenciaPorCategoria(
+              radiografiaCard, excKey, tasaAsistencia(seleccion), reparto?.llegan,
+            )}
+            solapan={reparto ? !reparto.particionan : false}
           />
         </>
       ) : null}
@@ -643,6 +672,7 @@ export function FacultadDecisionBloque({
   slotCierre,
   confirmadorDe,
   lleganDe,
+  repartoDe,
   cierreDelRecorrido,
 }: {
   bloque: FacultadBloque;
@@ -679,6 +709,8 @@ export function FacultadDecisionBloque({
   confirmadorDe?: (criterioId: string) => ReactNode;
   /** G39 · Cuántos cursos-horario llegan a cada criterio en esta facultad. */
   lleganDe?: (criterioId: string) => { llegan: number; universo: number } | null;
+  /** G41 · De los que llegan, cuántos son de cada categoría del criterio. */
+  repartoDe?: (criterioId: string) => RepartoCriterio | null;
   /** G39 · Con cuántos se termina, tras el último criterio. */
   cierreDelRecorrido?: { quedan: number; universo: number } | null;
   slotApertura?: ReactNode;
@@ -713,6 +745,23 @@ export function FacultadDecisionBloque({
       ? "Sin ajustes propios"
       : `${resumen.propias} ${resumen.propias === 1 ? "criterio propio" : "criterios propios"}`;
 
+  /*
+   * G41 · El titular de la facultad cuenta lo mismo que su embudo.
+   *
+   * Decía «592 de 849 CH elegibles» mientras el recorrido, dos dedos más abajo,
+   * empezaba en 798 y terminaba en 554. No era un error de cálculo sino dos
+   * censos distintos: la exploración agrupa por la columna `faculty` del
+   * curso-horario y el motor de criterios evalúa por facultad efectiva, así que
+   * los compartidos con otra facultad entran en uno y no en el otro.
+   *
+   * Manda el embudo: es el que ejecuta el marco y el que la pantalla desglosa
+   * paso a paso. Sin cascada —un `.pulso` viejo, un marco a medio construir— se
+   * cae a la exploración, que es lo que había.
+   */
+  const chFacultad = cierreDelRecorrido
+    ? { elegibles: cierreDelRecorrido.quedan, total: cierreDelRecorrido.universo }
+    : { elegibles: fac.ch_elegibles, total: fac.ch_total };
+
   return (
     <article className="cmv2-chfp-bloque" data-open={abierto} data-decidido={resumen.propias > 0 || undefined}>
       {/* F41 · Sin plegado la cabecera es un rótulo, no un control: ofrecer un
@@ -722,7 +771,7 @@ export function FacultadDecisionBloque({
         <span className="cmv2-chfp-bloque-title">
           <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
           <span className="cmv2-chfp-bloque-meta">
-            {fmtInt(fac.ch_elegibles)} de {fmtInt(fac.ch_total)} CH elegibles
+            {fmtInt(chFacultad.elegibles)} de {fmtInt(chFacultad.total)} CH elegibles
             {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
           </span>
         </span>
@@ -746,7 +795,7 @@ export function FacultadDecisionBloque({
         </span>        <span className="cmv2-chfp-bloque-title">
           <span className="cmv2-chfp-bloque-nombre">{facLabel}</span>
           <span className="cmv2-chfp-bloque-meta">
-            {fmtInt(fac.ch_elegibles)} de {fmtInt(fac.ch_total)} CH elegibles
+            {fmtInt(chFacultad.elegibles)} de {fmtInt(chFacultad.total)} CH elegibles
             {fac.est_aula_mediana != null ? ` · mediana ${fmtDec(fac.est_aula_mediana, 0)} por aula` : ""}
           </span>
         </span>
@@ -765,7 +814,15 @@ export function FacultadDecisionBloque({
           <div className="cmv2-chfp-info" aria-label={`Radiografía de ${facLabel}`}>
             <span className="cmv2-chfp-section-eyebrow">Información de la facultad</span>
             <div className="cmv2-chfp-info-scroll">
-              <FacultadRadiografiaCard fac={fac} modo="resumen" />
+              <FacultadRadiografiaCard
+                fac={fac}
+                modo="resumen"
+                recorte={
+                  cierreDelRecorrido
+                    ? { llegan: cierreDelRecorrido.universo, quedan: cierreDelRecorrido.quedan }
+                    : null
+                }
+              />
             </div>
           </div>
           <PlegadoContexto.Provider value={ordenPlegado}>
@@ -860,6 +917,7 @@ export function FacultadDecisionBloque({
                   criteriosRadiografia={criteriosRadiografia}
                   radiografiaCard={criterioCards.get(variable.id) ?? null}
                   criterioEvidence={criterioEvidence}
+                  reparto={repartoDe?.(variable.id) ?? null}
                   onSel={(next) => onToggleVariable(variable.id, next)}
                 />
               );
@@ -901,6 +959,7 @@ export function FacultadDecisionBloque({
                 criteriosRadiografia={criteriosRadiografia}
                 radiografiaCard={criterioCards.get(sessionVar.id) ?? null}
                 criterioEvidence={criterioEvidence}
+                reparto={repartoDe?.(sessionVar.id) ?? null}
                 onSel={(next) => onToggleVariable(sessionVar.id, next)}
               />
               </>

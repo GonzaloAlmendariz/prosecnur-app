@@ -22,6 +22,7 @@
  * patrón que teacher_type_orden); no pasa por el borrador confirmable porque
  * no vive en criterios_seleccion.
  */
+import type { ReactNode } from "react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { CategoriaEvidencia, dominioCategorias } from "./CategoriaEvidencia";
 import type { AporteCategoria } from "./controles";
@@ -72,6 +73,78 @@ function CosteDelCorte({ tabla, umbral }: {
     <p className="cmv2-crit-coste" role="status">
       Con <strong>{umbral}%</strong> descartas <strong>{fmtInt(fuera)}</strong> de {fmtInt(tabla.total)} cursos-horario
       <span className="cmv2-crit-coste-queda">te quedas con el {pct}%</span>
+    </p>
+  );
+}
+
+/**
+ * G41 · Qué hace este paso con el marco, en cursos-horario.
+ *
+ * Gonzalo: «estos siguen sin decir cuántos CH descartamos en función del
+ * porcentaje y con cuántos nos quedamos». La tarjeta tenía la distribución de
+ * la señal y el coste del corte, pero no la cifra llana: cuántos llegan al
+ * paso, cuántos salen con el umbral puesto y con cuántos se sigue.
+ *
+ * Sale del `before_ch`/`after_ch` que el motor publica para ESTE paso en la
+ * facultad abierta — el mismo par que dibuja la barra del recorrido, no una
+ * resta local.
+ */
+function RecorteDelPaso({
+  recorte,
+  activo,
+}: {
+  recorte: {
+    llegan: number; quedan: number; aplicado: boolean;
+    recalculando?: boolean; sinRecorridoVivo?: boolean;
+  } | null;
+  activo: boolean;
+}) {
+  if (!recorte) return null;
+  const fuera = recorte.llegan - recorte.quedan;
+  // La cifra en pantalla es la del umbral anterior mientras el motor recalcula.
+  if (recorte.recalculando) {
+    return (
+      <p className="cmv2-crit-paso-recorte" data-estado="recalculando" role="status">
+        Recalculando con el umbral nuevo…
+      </p>
+    );
+  }
+  /*
+   * G41 · «No deja fuera ninguno» sólo se puede decir de un paso que corrió.
+   *
+   * Gonzalo: «no tiene sentido que 554 lleguen hasta aquí y que si declaro no
+   * deje ninguna; alguna debe irse». Tenía razón y el defecto era mío: la
+   * cifra sale del marco EJECUTADO, y en su proyecto los dos pasos estaban
+   * apagados cuando se construyó. El paso no dejó fuera a nadie porque no
+   * corrió, no porque el umbral no muerda —medido en su base, exigir 90% del
+   * mismo nivel alcanzaría a 2.084 cursos-horario—.
+   *
+   * Con el interruptor recién encendido pasa lo mismo: el ajuste se guarda al
+   * instante pero el marco es el de antes. Decirlo aquí, junto a la cifra, es
+   * lo que impide leerla como el efecto de lo que se acaba de declarar.
+   */
+  if (!recorte.aplicado) {
+    return (
+      <p className="cmv2-crit-paso-recorte" data-estado="sin-aplicar" role="note">
+        <strong>{fmtInt(recorte.llegan)}</strong> llegan hasta aquí ·{" "}
+        {!activo
+          ? "el paso está apagado, así que no deja fuera a ninguno"
+          : recorte.sinRecorridoVivo
+            ? "este paso aún no ha corrido. Recalcula el marco una vez y desde ahí el umbral se actualiza solo"
+            : "este paso aún no ha corrido: recalcula el marco para ver a cuántos deja fuera"}
+      </p>
+    );
+  }
+  return (
+    <p className="cmv2-crit-paso-recorte" data-estado="aplicado" role="note">
+      <strong>{fmtInt(recorte.llegan)}</strong> llegan hasta aquí ·{" "}
+      {fuera > 0 ? (
+        <>
+          deja fuera <strong>{fmtInt(fuera)}</strong> y quedan <strong>{fmtInt(recorte.quedan)}</strong>
+        </>
+      ) : (
+        <>no deja fuera ninguno con el umbral del marco vigente</>
+      )}
     </p>
   );
 }
@@ -143,6 +216,8 @@ export function CriterioComposicionCard({
   config,
   onPatch,
   evidenciaDe,
+  recorteDe,
+  confirmador,
 }: {
   /** Config de aulas ya normalizado (la tab lo deriva del workspace). */
   config: CalcMuestraWorkspaceAulasConfig;
@@ -154,6 +229,25 @@ export function CriterioComposicionCard({
    * inventa una distribución que el motor no publicó.
    */
   evidenciaDe?: (criterioId: string) => AporteCategoria | null;
+  /**
+   * G41 · Cuántos cursos-horario llegan a cada paso y cuántos quedan tras él,
+   * en la facultad abierta. Del motor; sin él la tarjeta se dibuja igual.
+   */
+  recorteDe?: (
+    criterioId: string,
+  ) => {
+    llegan: number; quedan: number; aplicado: boolean;
+    recalculando?: boolean; sinRecorridoVivo?: boolean;
+  } | null;
+  /**
+   * G41 · El confirmador de este criterio, como en cualquier otro.
+   *
+   * Gonzalo: «este no tiene botón de confirmar cuando todos los demás criterios
+   * lo tienen». Era el único que escribía directo al workspace, así que nunca
+   * estaba pendiente y no había nada que confirmar; ahora sus pasos van a un
+   * borrador y entran al mismo ciclo.
+   */
+  confirmador?: ReactNode;
 }) {
   // ADR 0057 · Una regla ACTIVA no puede estar plegada.
   //
@@ -247,6 +341,7 @@ export function CriterioComposicionCard({
               ariaLabel="Exigir misma facultad del curso (paso 1 de la composición)"
               onToggle={() => onPatch({ require_faculty_prevalence: !paso1 })}
             />
+            <RecorteDelPaso recorte={recorteDe?.("c8_facultad") ?? null} activo={paso1} />
             <EvidenciaPaso
               aporte={evidenciaDe?.("c8_facultad") ?? null}
               umbral={pctDe(config.min_faculty_prevalence_pct, 0.8)}
@@ -278,6 +373,7 @@ export function CriterioComposicionCard({
               ariaLabel="Exigir mismo nivel del curso (paso 2 del criterio 8)"
               onToggle={() => onPatch({ require_cycle_homogeneity: !paso2 })}
             />
+            <RecorteDelPaso recorte={recorteDe?.("c8") ?? null} activo={paso2} />
             <EvidenciaPaso
               aporte={evidenciaDe?.("c8") ?? null}
               umbral={pctDe(config.min_cycle_homogeneity_pct, 0.8)}
@@ -285,7 +381,11 @@ export function CriterioComposicionCard({
           </li>
         </ol>
         <span className="cmv2-crit-num-hint">
-          Se guarda al instante; recalcula el marco (botón de arriba) para ver su efecto en los cursos-horario.
+          {/* G41 · Ya no se guarda al instante: la composición pasó al ciclo de
+              los demás criterios —ajustar, ver el efecto, confirmar—, y el pie
+              tiene que decir lo que ocurre de verdad. */}
+          Confirma para dejarlo fijado; recalcula el marco (botón de arriba) para ver su efecto en la
+          población de estudiantes.
         </span>
 
         {/*
@@ -340,6 +440,7 @@ export function CriterioComposicionCard({
               ariaLabel="Exigir prevalencia mínima de elegibles"
               onToggle={() => onPatch({ require_min_prevalence: !legacyOn })}
             />
+            <RecorteDelPaso recorte={recorteDe?.("c7") ?? null} activo={legacyOn} />
             <EvidenciaPaso
               aporte={evidenciaDe?.("c7") ?? null}
               umbral={pctDe(config.min_prevalence_pct, 0.8)}
@@ -348,6 +449,7 @@ export function CriterioComposicionCard({
         </div>
       </div>
       ) : null}
+      {confirmador}
     </article>
   );
 }

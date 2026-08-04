@@ -14,6 +14,7 @@
  * El motor no cambia: conserva los umbrales guardados y sus filas en la
  * cascada. Lo que se retira es la superficie que pedía decidirlos en general.
  */
+import type { ReactNode } from "react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import type { AporteCategoria } from "../criterios/controles";
 import { CriterioComposicionCard } from "../criterios/CriterioComposicionCard";
@@ -22,6 +23,8 @@ export function CursosHorarioBaseGlobal({
   config,
   onPatchConfig,
   evidenciaComposicion,
+  recorteComposicion,
+  confirmador,
 }: {
   config: CalcMuestraWorkspaceAulasConfig;
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
@@ -31,6 +34,18 @@ export function CursosHorarioBaseGlobal({
    * evidencia — la superficie no fabrica la distribución que falte.
    */
   evidenciaComposicion?: (criterioId: string) => AporteCategoria | null;
+  /**
+   * G41 · Cuántos cursos-horario llegan a cada paso de composición y cuántos
+   * quedan tras él, en la facultad abierta.
+   */
+  recorteComposicion?: (
+    criterioId: string,
+  ) => {
+    llegan: number; quedan: number; aplicado: boolean;
+    recalculando?: boolean; sinRecorridoVivo?: boolean;
+  } | null;
+  /** G41 · El confirmador de la composición, como el de cualquier criterio. */
+  confirmador?: ReactNode;
 }) {
   return (
     <div
@@ -48,6 +63,8 @@ export function CursosHorarioBaseGlobal({
         config={config}
         onPatch={onPatchConfig}
         evidenciaDe={evidenciaComposicion}
+        recorteDe={recorteComposicion}
+        confirmador={confirmador}
       />
     </div>
   );

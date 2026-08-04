@@ -79,8 +79,22 @@ export function useCascadePreview(request: CalcMuestraCriteriosPreviewInput | nu
     };
   }, [request]);
 
-  // Mientras se recalcula se sigue enseñando lo último resuelto.
-  return state?.status === "loading" ? resueltoRef.current ?? state : state;
+  /*
+   * Mientras se recalcula se sigue enseñando lo último resuelto.
+   *
+   * G41 · …pero diciendo que se está recalculando. Medido con el proyecto real:
+   * cada preview sobre 5.263 cursos-horario tarda lo suyo, así que al mover el
+   * deslizador la pantalla seguía enseñando la respuesta del umbral ANTERIOR
+   * sin distinguirse en nada de la definitiva —Gonzalo movió a 95 % y leyó las
+   * cifras del 60 %, que descartaban menos, como si el motor se contradijera—.
+   * El motor es monótono (comprobado: 0,5→0 fuera · 0,8→2 · 0,95→2); lo que
+   * faltaba era decir que la cifra en pantalla aún no es la del umbral que se
+   * está viendo.
+   */
+  if (state?.status === "loading" && resueltoRef.current) {
+    return { ...resueltoRef.current, recalculando: true as const };
+  }
+  return state;
 }
 
 export function CriteriosEmbudoVivo({

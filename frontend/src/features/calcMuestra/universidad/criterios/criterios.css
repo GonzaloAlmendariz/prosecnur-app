@@ -1431,6 +1431,36 @@
   transition: border-color var(--motion-dur-fast) var(--motion-ease-out),
     background var(--motion-dur-fast) var(--motion-ease-out);
 }
+/*
+ * G41 · La línea de recorte ocupa su propia fila del paso.
+ *
+ * El `li` es una rejilla de cuatro columnas (orden · texto · umbral · switch) y
+ * este párrafo entró como quinta celda: estiraba la fila a más de 1.400 px de
+ * alto y dejaba la frase colgando bajo el switch. Va abajo, cruzando el ancho
+ * completo, separada por una hairline: es una consecuencia de lo de arriba, no
+ * un quinto control.
+ */
+.cmv2-crit-paso-recorte {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-crit-paso-recorte strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+/* Sin aplicar: la cifra no describe el umbral que se está viendo, así que no
+   compite con las que sí lo hacen. */
+.cmv2-crit-paso-recorte[data-estado="sin-aplicar"] strong {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-medium);
+}
+
 .cmv2-crit-paso[data-active="true"] {
   border-color: color-mix(in srgb, var(--cmv2-accent) 28%, var(--cmv2-border));
   background: color-mix(in srgb, var(--cmv2-accent-soft) 42%, var(--pulso-surface));
