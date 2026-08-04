@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { ChoiceCodeMap, SurveyMonkeyVisualLogicRule } from "../../../api/client";
+import { apiXlsformFormSave, type ChoiceCodeMap, type SurveyMonkeyVisualLogicRule } from "../../../api/client";
 import type { XlsformEditorWorkbook } from "../types";
 import {
+  createPersistenceScheduler,
   deleteForm,
   deriveFormName,
   getActiveForm,
@@ -17,6 +18,14 @@ import {
   type PersistedSnapshot,
   workbookHasSurveyMonkeyLogic,
 } from "./persistence";
+
+vi.mock("../../../api/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../api/client")>();
+  return {
+    ...actual,
+    apiXlsformFormSave: vi.fn(async () => ({ ok: true })),
+  };
+});
 
 function workbook(label: string, surveyMonkeyLogic: XlsformEditorWorkbook["surveyMonkeyLogic"] = null): XlsformEditorWorkbook {
   return {
@@ -441,5 +450,65 @@ describe("savedAt robusto en el índice de la biblioteca", () => {
     expect(byId.a).toBe(Date.parse("2026-07-15T18:34:54Z"));
     expect(byId.b).toBeGreaterThan(0); // 0 → Date.now() (no 1970)
     expect(byId.c).toBe(1784140494000);
+  });
+});
+
+describe("flushAndSync (G-13: guardar proyecto espera el POST del editor)", () => {
+  test("espera el POST al backend en vuelo antes de resolver", async () => {
+    vi.stubGlobal("localStorage", makeStorage());
+    const saveMock = vi.mocked(apiXlsformFormSave);
+    saveMock.mockClear();
+    let resolveSave: () => void = () => {};
+    saveMock.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveSave = () => resolve({ ok: true } as never);
+      }),
+    );
+
+    const scheduler = createPersistenceScheduler(undefined, 60_000);
+    scheduler.schedule(
+      "f1",
+      workbook("uno"),
+      { sourceName: null, sourceKind: null },
+      "/tmp/proyecto.pulso",
+    );
+
+    let settled = false;
+    const done = scheduler.flushAndSync().then(() => {
+      settled = true;
+    });
+    // Dar oportunidad a que el flush dispare el POST sin resolverlo aun.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    expect(settled).toBe(false);
+
+    resolveSave();
+    await done;
+    expect(settled).toBe(true);
+  });
+
+  test("sin pendiente ni POSTs en vuelo resuelve de inmediato", async () => {
+    vi.stubGlobal("localStorage", makeStorage());
+    const scheduler = createPersistenceScheduler(undefined, 60_000);
+    await expect(scheduler.flushAndSync()).resolves.toBeUndefined();
+  });
+
+  test("resuelve aunque el POST al backend falle (no bloquea el guardado)", async () => {
+    vi.stubGlobal("localStorage", makeStorage());
+    const saveMock = vi.mocked(apiXlsformFormSave);
+    saveMock.mockClear();
+    saveMock.mockImplementationOnce(async () => {
+      throw new Error("red caida");
+    });
+    const scheduler = createPersistenceScheduler(undefined, 60_000);
+    scheduler.schedule(
+      "f1",
+      workbook("uno"),
+      { sourceName: null, sourceKind: null },
+      "/tmp/proyecto.pulso",
+    );
+    await expect(scheduler.flushAndSync()).resolves.toBeUndefined();
+    expect(saveMock).toHaveBeenCalledTimes(1);
   });
 });

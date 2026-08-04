@@ -69,6 +69,7 @@ import { ConfigIoButtons } from "../../components/ConfigIoButtons";
 import SaveEntregableButton from "../project/SaveEntregableButton";
 import { sanitizeFilenameStem } from "../project/FilenameInput";
 import { useSession } from "../../lib/SessionContext";
+import { registerPendingFlush } from "../../lib/pendingFlushRegistry";
 import { editorFormIdFromSearch, editorRequestedFormExists } from "./state/editorDeepLink";
 
 // -----------------------------------------------------------------------------
@@ -668,6 +669,18 @@ export default function XlsformEditorPage() {
     }, 2000);
   }
   const persistence = persistenceRef.current;
+
+  // Guardar/duplicar proyecto esperan este flusher (G-13): sin él, un edit
+  // hecho dentro de la ventana del debounce no llega al backend antes de que
+  // build_pulso serialice y la copia nace sin el último workbook. Al
+  // desmontar despachamos el pendiente y recién entonces des-registramos,
+  // así un guardado inmediatamente posterior aún espera ese POST.
+  useEffect(() => {
+    const unregister = registerPendingFlush(() => persistence.flushAndSync());
+    return () => {
+      void persistence.flushAndSync().finally(unregister);
+    };
+  }, [persistence]);
 
   // Scope de persistencia: el path del .pulso activo (o null si no
   // hay proyecto). Determina el bucket de localStorage para que el

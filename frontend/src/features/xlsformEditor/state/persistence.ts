@@ -795,6 +795,10 @@ export type PersistenceScheduler = {
   /** Fuerza el guardado pendiente inmediato (cancela debounce). Usa el
    *  `formId` con el que se agendó. */
   flush: () => number | null;
+  /** Flush + espera de TODOS los POST al backend en vuelo. Los flujos de
+   *  guardar/duplicar proyecto lo esperan para que build_pulso serialice el
+   *  último workbook y no el de hace un debounce (G-13). Nunca rechaza. */
+  flushAndSync: () => Promise<void>;
   /** Cancela el guardado pendiente sin escribir. */
   cancel: () => void;
 };
@@ -817,6 +821,9 @@ export function createPersistenceScheduler(
     meta: FormPersistenceMeta;
     scope: ProjectScope;
   } | null = null;
+  // POSTs al backend aún en vuelo. flushAndSync los espera para que un
+  // guardado de proyecto no serialice la sesión antes de que aterricen.
+  const inFlightSyncs = new Set<Promise<unknown>>();
 
   const flush = (): number | null => {
     if (timer) {
@@ -826,12 +833,20 @@ export function createPersistenceScheduler(
     if (!pending) return null;
     // Guardado local bajo la clave por-formulario + upsert del índice.
     const ts = saveForm(pending.scope, pending.formId, pending.workbook, pending.meta);
-    // Fire-and-forget al backend: upsert del formulario en la colección; si
-    // es el activo el backend re-deriva el espejo que consume el .pulso.
-    void syncFormToBackend(pending.formId, pending.workbook, pending.meta).catch(() => {});
+    // Al backend: upsert del formulario en la colección; si es el activo el
+    // backend re-deriva el espejo que consume el .pulso. No bloqueante para
+    // el editor, pero rastreado para que flushAndSync pueda esperarlo.
+    const sync = syncFormToBackend(pending.formId, pending.workbook, pending.meta).catch(() => {});
+    inFlightSyncs.add(sync);
+    void sync.finally(() => inFlightSyncs.delete(sync));
     pending = null;
     if (ts != null && onSaved) onSaved(ts);
     return ts;
+  };
+
+  const flushAndSync = async (): Promise<void> => {
+    flush();
+    await Promise.allSettled(Array.from(inFlightSyncs));
   };
 
   const schedule: PersistenceScheduler["schedule"] = (formId, workbook, meta, scope = null) => {
@@ -848,7 +863,7 @@ export function createPersistenceScheduler(
     pending = null;
   };
 
-  return { schedule, flush, cancel };
+  return { schedule, flush, flushAndSync, cancel };
 }
 
 // -----------------------------------------------------------------------------
