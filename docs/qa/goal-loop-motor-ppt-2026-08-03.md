@@ -1777,3 +1777,22 @@ router para el carril — **prueba 5 del preview: VERDE**.
 Higiene: pila viva para Gonzalo (API 8801 / Vite 5191, copia
 acnur_acg-20260804-064824); el plan de prueba quedó «sin guardar» sobre una
 copia temporal — sin efecto en el fixture canónico.
+
+### B34/B35 — Export PPTX real EN VERDE + umbral de valores por vértice (2026-08-04, sesión B)
+
+**B34 — la última pata del end-to-end**: PPTX exportado desde el botón real
+de la UI (job del backend), archivo localizado en downloads de la sesión y
+rasterizado: paridad total con el preview, y la **Base auto-inferida dice
+«560 respuestas»** — el N real de quienes respondieron la SM, no los 1.283
+del estudio (el denominador correcto, calculado solo). Con esto el carril
+radar acredita preview + PPTX + Word con datos reales.
+
+**B35 — el amontonamiento confirmado en producción, reparado**: con 12 ejes
+reales (1–2 % apiñados al centro), nuevo `valores_umbral_pct` (default 3):
+bajo el umbral el vértice no se etiqueta; 0 etiqueta todos. Formal en
+graficador y wrapper, curado en el registry con descripción honesta, y test
+del diferencial (7 vs 8 etiquetas). Paridad conceptual con
+`umbral_etiqueta_pct` del pie.
+
+**Gate:** l8-defaults 36, argumentos-ui 459, radar-solo-tabla 5: verde.
+Commit por hunks (trabajo de A intacto).
