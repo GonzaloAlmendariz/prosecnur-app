@@ -2469,7 +2469,10 @@
 
     canvas_h_toprow_in       = 0.10,
     canvas_h_header_in       = 1.25,
-    canvas_h_legend_in       = 0.00,
+    # 0.35 y no 0: con mostrar_leyenda=TRUE la leyenda del cruce necesita su
+    # fila; con 0 invadía la última barra. Sin leyenda (serie única) el
+    # graficador ya colapsa esta reserva a 0 solo.
+    canvas_h_legend_in       = 0.35,
     canvas_h_caption_in      = 0.28,
 
     alto_por_categoria       = 0.64,
