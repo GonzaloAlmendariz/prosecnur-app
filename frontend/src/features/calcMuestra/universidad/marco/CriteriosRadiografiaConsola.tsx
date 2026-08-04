@@ -121,6 +121,7 @@ export function CriteriosRadiografiaConsola({
   onReconstruir,
   puedeReconstruir,
   reconstruyendo,
+  recuperacionPropia = true,
 }: {
   catalogo: CriteriosCatalogo;
   radiografia: CalcMuestraAulasCriteriosRadiografia | null;
@@ -131,6 +132,20 @@ export function CriteriosRadiografiaConsola({
   onReconstruir?: () => void;
   puedeReconstruir?: boolean;
   reconstruyendo?: boolean;
+  /**
+   * G40 · Quién anuncia que falta la radiografía.
+   *
+   * La tarjeta de recuperación y la barra superior de la pestaña resultaron ser
+   * lo mismo: mismo `onReconstruir`, misma condición y el mismo mensaje en dos
+   * registros. Gonzalo: «estos dos elementos pueden integrarse en uno solo y
+   * quedarse arriba sin ser muy invasivos, ¿qué tan diferentes son o hacen lo
+   * mismo?».
+   *
+   * Donde la superficie ya tiene esa barra —la pestaña de curso-horario— la
+   * consola calla en vez de repetirla. Donde no la hay, la tarjeta sigue siendo
+   * el único aviso y la única salida, así que es el valor por defecto.
+   */
+  recuperacionPropia?: boolean;
 }) {
   const i18b = useCriteriosI18bSurface(
     i18bSource,
@@ -159,6 +174,7 @@ export function CriteriosRadiografiaConsola({
   const legacyContract = radiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v1";
   const needsRecovery = framePresent && (!rawRadiographyPresent || legacyContract);
   if (needsRecovery) {
+    if (!recuperacionPropia) return null;
     return (
       <CriteriosRadiografiaRecovery
         scope={scope}

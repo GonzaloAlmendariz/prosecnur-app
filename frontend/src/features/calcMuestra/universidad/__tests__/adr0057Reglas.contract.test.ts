@@ -98,10 +98,28 @@ describe("ADR 0057 · regla 1 — no hay sección de criterios transversales", (
     expect(tab).not.toContain("Transversales a todas las facultades");
   });
 
-  it("los criterios comunes se montan como piezas del flujo de la facultad", () => {
+  /*
+   * G40 · La regla se endurece: los criterios comunes tampoco se montan dentro
+   * del flujo de la facultad.
+   *
+   * El ADR 0057 los había traído aquí desde la sección «transversales», y el
+   * caso anterior fijaba justamente eso (`slotApertura` + `slotCierre`). No
+   * alcanzó: una tarjeta que decide un umbral para las 17 facultades sigue
+   * siendo un criterio general aunque se dibuje dentro del bloque de una.
+   * Gonzalo, señalando «Matriculados / población»: «ya te dije que quitaras
+   * este criterio general».
+   *
+   * Sobrevive la composición del curso-horario, que no es un criterio de
+   * filtrado sino la regla de armado del propio CH.
+   */
+  it("no monta tarjetas de criterio común dentro del bloque de facultad", () => {
     const tab = leer("marco/CursosHorarioMarcoTab.tsx");
-    expect(tab).toContain("slotApertura");
-    expect(tab).toContain("slotCierre");
+    expect(tab).not.toContain("slotApertura=");
+    expect(tab).toContain("slotCierre=");
+    const base = leer("marco/CursosHorarioBaseGlobal.tsx");
+    expect(base).not.toContain("GlobalCriterioCard");
+    expect(base).not.toContain("GlobalMinCard");
+    expect(base).toContain("CriterioComposicionCard");
   });
 });
 

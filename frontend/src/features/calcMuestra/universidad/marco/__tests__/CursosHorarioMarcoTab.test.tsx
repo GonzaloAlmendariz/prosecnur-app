@@ -118,9 +118,15 @@ describe("CursosHorarioMarcoTab — vista integrada facultad-primaria", () => {
     // posición: matriculados abre, mínimo y composición cierran.
     expect(html).not.toContain("Ajustes del marco");
     expect(html).not.toContain("Transversales a todas las facultades");
-    // Una variable numérica no representable en el bloque por facultad no se
-    // pierde por `soloAjustes`: conserva aquí su control global editable.
-    expect(html).toContain("Matrículas inscritas por curso-horario");
+    /*
+     * G40 · Aquí se afirmaba lo contrario: que una variable numérica sin
+     * control por facultad «no se pierde» y conserva su tarjeta global. Esa
+     * tarjeta es la que Gonzalo mandó retirar dos veces —«todos los criterios
+     * son por facultad, ninguno es general»—, así que la superficie ya no la
+     * monta y el caso fija la ausencia. Su umbral sigue en el motor y en la
+     * cascada; lo que desaparece es la petición de decidirlo en general.
+     */
+    expect(html).not.toContain("Matrículas inscritas por curso-horario");
     // Bloque de la facultad con su radiografía visible (primer bloque abierto).
     expect(html).toContain("PSICOLOGÍA");
     /*

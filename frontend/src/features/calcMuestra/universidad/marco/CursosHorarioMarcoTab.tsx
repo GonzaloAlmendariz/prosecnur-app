@@ -398,25 +398,6 @@ export function CursosHorarioMarcoTab({
     complete: i18b.status === "complete",
   } : null;
 
-  /**
-   * G11 · La celda que la matriz resalta.
-   *
-   * ADR 0057, regla 1: no existe el criterio general. La celda es el cruce de
-   * **la facultad abierta** con **el criterio pendiente**, y sólo esa se tiñe —
-   * pintar la columna pondría en duda las quince filas que nadie tocó.
-   *
-   * Con varios pendientes se toma el primero en orden de embudo: es el que
-   * bloquea a los demás, así que es el que hay que confirmar antes.
-   */
-  const celdaEnEdicion = useMemo(() => {
-    if (!pendientes.size) return null;
-    const facultadKey = bloqueFoco?.excKey || bloqueFoco?.facLabel || null;
-    if (!facultadKey) return null;
-    const orden = ordenEmbudoDelMotor(cascadaViva, catalogo.variables);
-    const criterioId = orden.find((id) => pendientes.has(id)) ?? [...pendientes][0];
-    return criterioId ? { facultadKey, criterioId } : null;
-  }, [pendientes, bloqueFoco, i18b.cascade, catalogo.variables]);
-
   /*
    * G39 · La cascada que la superficie enseña es la viva, no sólo la ejecutada.
    *
@@ -448,6 +429,28 @@ export function CursosHorarioMarcoTab({
    */
   const previewBloqueado =
     previewCascada?.status === "stale" ? previewCascada.message : null;
+
+  /**
+   * G11 · La celda que la matriz resalta.
+   *
+   * ADR 0057, regla 1: no existe el criterio general. La celda es el cruce de
+   * **la facultad abierta** con **el criterio pendiente**, y sólo esa se tiñe —
+   * pintar la columna pondría en duda las quince filas que nadie tocó.
+   *
+   * Con varios pendientes se toma el primero en orden de embudo: es el que
+   * bloquea a los demás, así que es el que hay que confirmar antes.
+   *
+   * Va después de `cascadaViva` a propósito: lee la cascada viva, y declararlo
+   * antes lo dejaba en zona muerta temporal (el memo corre en el primer render).
+   */
+  const celdaEnEdicion = useMemo(() => {
+    if (!pendientes.size) return null;
+    const facultadKey = bloqueFoco?.excKey || bloqueFoco?.facLabel || null;
+    if (!facultadKey) return null;
+    const orden = ordenEmbudoDelMotor(cascadaViva, catalogo.variables);
+    const criterioId = orden.find((id) => pendientes.has(id)) ?? [...pendientes][0];
+    return criterioId ? { facultadKey, criterioId } : null;
+  }, [pendientes, bloqueFoco, cascadaViva, catalogo.variables]);
 
   /**
    * G10 · El confirmador de cada criterio, dentro de la tarjeta que se edita.
@@ -620,7 +623,16 @@ export function CursosHorarioMarcoTab({
               data-beam={beam ? "true" : "false"}
               disabled={!listoParaRecalcular}
               onClick={onReconstruir}
-              title={totalPendientes > 0 ? "Confirma o descarta los cambios antes de recalcular el marco" : undefined}
+              /* G40 · Al absorber la tarjeta de recuperación, este botón hereda
+                 lo único que ella decía y aquí faltaba: por qué está apagado
+                 cuando no hay nada pendiente. */
+              title={
+                totalPendientes > 0
+                  ? "Confirma o descarta los cambios antes de recalcular el marco"
+                  : !puedeReconstruir
+                    ? "Completa o corrige las fuentes del marco para habilitar el recálculo"
+                    : undefined
+              }
             >
               <span className="cmv2-crit-apply-btn-inner">
                 {reconstruyendo ? (
@@ -657,6 +669,12 @@ export function CursosHorarioMarcoTab({
               onReconstruir={onReconstruir}
               puedeReconstruir={listoParaRecalcular}
               reconstruyendo={reconstruyendo}
+              /* G40 · La barra de arriba ya dice que falta la radiografía y ya
+                 ofrece el único botón que la repone —es literalmente el mismo
+                 `onReconstruir`—. La tarjeta de recuperación repetía el aviso
+                 en párrafo y ocupaba media pantalla antes de la primera
+                 decisión. */
+              recuperacionPropia={false}
             />
           ) : null}
 
@@ -750,57 +768,28 @@ export function CursosHorarioMarcoTab({
                       onMinimoFacultad={editarMinimoFacultad}
                       onToggleAula={editarExclusionAula}
                       onReactivarAulas={reactivarAulas}
-                      slotApertura={
-                        /* ADR 0057, regla 1 · Matriculados abre el embudo de la
-                           facultad. Vivía en una sección «transversales» encima
-                           de todo, que lo leía como criterio general y lo sacaba
-                           del orden. Su valor sigue siendo común —el contrato no
-                           admite umbral por facultad— y la propia tarjeta lo
-                           dice. */
-                        <CursosHorarioBaseGlobal
-                        piezas="apertura"
-                        aulaVariables={aula}
-                        seleccion={borrador}
-                        facultades={facRefs}
-                        teacherTypeOrden={config.teacher_type_orden}
-                        config={config}
-                        soloAjustes
-                        variablesPorFacultadIds={variablesPorFacultadIds}
-                        onSelVariable={editarVariable}
-                        onRango={(facultad, rangos) => {
-                          const rangeVar = aula.find((v) => v.kind === "range");
-                          editarRango(rangeVar?.id ?? "course_level", facultad, rangos);
-                        }}
-                        onTeacherTypeOrden={patchTeacherTypeOrden}
-                        onUmbral={editarUmbral}
-                        onTasa={editarTasa}
-                        onPatchConfig={patchAulasConfig}
-                        evidenciaComposicion={evidenciaComposicion}
-            />
-                      }
+                      /* G40 · La apertura ya no monta criterios comunes.
+                          ADR 0057 los había traído aquí desde la sección
+                          «transversales» para meterlos en el embudo, pero
+                          seguían siendo lo que la regla 1 niega: un criterio que
+                          se decide una vez para las 17 facultades. Gonzalo, dos
+                          veces: «todos los criterios son por facultad, ninguno
+                          es general».
+
+                          Lo que se retira en pantalla es «Matriculados /
+                          población»: su decisión la toma «Mínimo de alumnos
+                          elegibles», que sí tiene valor propio por facultad y
+                          enseña la distribución sobre la que se decide. El
+                          motor conserva el umbral guardado y su fila en la
+                          cascada. */
                       slotCierre={
                         /* Mínimo de elegibles y composición: criterios 7 y 8,
                            penúltimos, justo antes del mayor detalle. */
                         <CursosHorarioBaseGlobal
-                        piezas="cierre"
-                        aulaVariables={aula}
-                        seleccion={borrador}
-                        facultades={facRefs}
-                        teacherTypeOrden={config.teacher_type_orden}
-                        config={config}
-                        soloAjustes
-                        variablesPorFacultadIds={variablesPorFacultadIds}
-                        onSelVariable={editarVariable}
-                        onRango={(facultad, rangos) => {
-                          const rangeVar = aula.find((v) => v.kind === "range");
-                          editarRango(rangeVar?.id ?? "course_level", facultad, rangos);
-                        }}
-                        onTeacherTypeOrden={patchTeacherTypeOrden}
-                        onUmbral={editarUmbral}
-                        onTasa={editarTasa}
-                        onPatchConfig={patchAulasConfig}
-                        evidenciaComposicion={evidenciaComposicion}
-            />
+                          config={config}
+                          onPatchConfig={patchAulasConfig}
+                          evidenciaComposicion={evidenciaComposicion}
+                        />
                       }
                     />
                   ))}
