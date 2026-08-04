@@ -47,7 +47,9 @@ test_that("la etiqueta solo se ofrece donde el motor la consume", {
   # de 1_grafico/2_graficos/poblacion_2/poblacion_4 no la aceptan.
   sin_etiqueta <- c(
     "p_slide_1_grafico", "p_slide_2_graficos", "p_slide_4_graficos",
-    "p_slide_2_graficos_poblacion", "p_slide_4_graficos_poblacion"
+    "p_slide_2_graficos_poblacion", "p_slide_4_graficos_poblacion",
+    # formal aceptado pero jamas dibujado (render diferencial P8)
+    "p_slide_5_graficos_poblacion", "p_slide_6_graficos_poblacion"
   )
   for (nm in sin_etiqueta) {
     curated <- vapply(.SLIDES_META[[nm]]$args, function(a) a$name, character(1))
