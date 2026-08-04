@@ -101,6 +101,25 @@
   if (candidate %in% graficador_registry) candidate else raw
 }
 
+# B43/G-22: plumber parsea el body con simplifyVector=TRUE y un plan que
+# mezcla tipos de slide (poblacion_4 + 1_grafico) se RECTANGULARIZA: los
+# payloads se vuelven data.frames anidados y los `vars` de multiapiladas
+# llegan mangleados — la lamina salia en blanco solo en el export (el
+# preview parsea el body crudo sin simplificar y por eso vivia). Este
+# helper re-parsea el body crudo con simplifyVector=FALSE y devuelve las
+# claves pedidas; si el body no es legible, cae a los args de plumber.
+.graficos_body_sin_simplificar <- function(req, claves) {
+  body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+  if (!nzchar(body_raw)) return(NULL)
+  Encoding(body_raw) <- "UTF-8"
+  parsed <- tryCatch(
+    jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+    error = function(e) NULL
+  )
+  if (!is.list(parsed)) return(NULL)
+  parsed[intersect(claves, names(parsed))]
+}
+
 .normalize_plan <- function(plan) {
   if (is.null(plan)) return(list(slides = list()))
   if (is.data.frame(plan)) plan <- as.list(plan)
@@ -3113,6 +3132,13 @@ mount_graficos <- function(pr) {
     plumber::pr_post("/api/graficos/ppt", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
       sid <- session_header(req)
       s <- .require_rp_data(sid)
+      crudo <- .graficos_body_sin_simplificar(req, c("plan", "presets", "w_presets", "config"))
+      if (is.list(crudo)) {
+        plan <- crudo$plan %||% plan
+        presets <- crudo$presets %||% presets
+        w_presets <- crudo$w_presets %||% w_presets
+        config <- crudo$config %||% config
+      }
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
       plan <- .normalize_plan(plan)
       validation <- .validar_plan_json(plan)
@@ -3282,6 +3308,13 @@ mount_graficos <- function(pr) {
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt_all")
     })) |>
     plumber::pr_post("/api/graficos/word", wrap_endpoint(function(req, res, plan = NULL, presets = NULL, w_presets = NULL, config = NULL) {
+      crudo <- .graficos_body_sin_simplificar(req, c("plan", "presets", "w_presets", "config"))
+      if (is.list(crudo)) {
+        plan <- crudo$plan %||% plan
+        presets <- crudo$presets %||% presets
+        w_presets <- crudo$w_presets %||% w_presets
+        config <- crudo$config %||% config
+      }
       sid <- session_header(req)
       s <- .require_rp_data(sid)
       if (is.null(plan)) stop_api(400, "E_NO_PLAN", "Falta 'plan' en el body")
