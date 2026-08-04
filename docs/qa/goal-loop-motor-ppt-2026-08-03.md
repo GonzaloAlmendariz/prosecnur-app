@@ -210,15 +210,15 @@ explicar parte del corrimiento.
 | — | **Regla de cola (pedido de Gonzalo 2026-08-03): todo lo específico de ACNUR (D2, D3, re-render acnur de L2+) se difiere al FINAL de la cola** | | Vigente |
 | L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | **Hecho (P7+P8)** — contrato saneado (11 fantasmas fuera, 2 destapados) y diferenciales de render mirados; queda H18 (borde top_two_box) y paridad (→L11) |
 | L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | **En curso (P9)** — defaults editoriales reparados (leyenda/colores de cruce/Base única); quedan H18, H20 (orden) y el barrido arg-por-arg |
-| L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | Cola |
-| L6 | `p_barras_categoricas` + `p_numerico` + `p_histograma` + presets | 142 | Cola |
-| L7 | `p_pie` + `p_donut` + `p_nube_palabras` + `p_mapa_cobertura` + presets | 72 | Cola |
-| L8 | `p_boxplot` + `p_media_rango` + `p_radar` + `p_tabla` + preset `radar_tabla` | 86 | Cola |
-| L9 | Familia dimensiones (`p_dim_*`) + sus 48 formals no curados | 100 | Cola |
-| L10 | Preset `base` (23) + cadena de herencia completa (prueba 3 transversal) | 23 | Cola |
-| L11 | Paridad Word y consolidado (prueba 5 transversal) | — | Cola |
-| L12 | Formals no curados: curar con superficie o retirar | 63 | Cola |
-| L13 | Plantillas secundarias (acnur, OPS, plantilla.pptx) | 293 ph | Cola |
+| L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | **Hecho (A: P16–P21)** — quedan H24–H26 |
+| L6 | `p_barras_categoricas` + `p_numerico` + `p_histograma` + presets | 142 | **En curso (A: P23–P24)** — bloqueado por archivos en vuelo de A |
+| L7 | `p_pie` + `p_donut` + `p_nube_palabras` + `p_mapa_cobertura` + presets | 72 | **HECHO (B: B19–B22, B26, B28–B29)** |
+| L8 | `p_boxplot` + `p_media_rango` + `p_radar` + `p_tabla` + preset `radar_tabla` | 86 | **HECHO (B: B1–B8)** |
+| L9 | Familia dimensiones (`p_dim_*`) + sus 48 formals no curados | 100 | **HECHO (B: B10–B18, B23–B24)** |
+| L10 | Preset `base` (23) + cadena de herencia completa (prueba 3 transversal) | 23 | Cola — espera el router (A); suelo auditado en B8 |
+| L11 | Paridad Word y consolidado (prueba 5 transversal) | — | **Word HECHO para L7/L8/L9 (B7, B23–B24)**; consolidado espera el router |
+| L12 | Formals no curados: curar con superficie o retirar | 63 | **HECHO para carriles B (B17–B18, B22)**; quedan los de A |
+| L13 | Plantillas secundarias (acnur, OPS, plantilla.pptx) | 293 ph | Diferido al FINAL por regla de Gonzalo |
 
 Al vaciar la cola se reaudita desde L1 con la vara más alta.
 
@@ -227,6 +227,7 @@ Al vaciar la cola se reaudita desde L1 con la vara más alta.
 | Fecha | Args con 5/5 | Placeholders con 5/5 | Nota |
 |---|---|---|---|
 | 2026-08-03 | 0 / 701 | 0 / 456 | Censo fundacional |
+| 2026-08-04 | ~430 / ~690 con diferencial mirado | 89 / 163 (plantilla ppal., prueba 1) | B25/B30: carriles A (L1–L5 y parte de L6) + carriles B (L7/L8/L9 completos con sweeps, bordes, suelo, Word y curación); ninguna partícula acredita aún 5/5 formal porque el consolidado (prueba 5) espera el router |
 | 2026-08-03 | 0 / 701 | 0 / 456 | P2: avance parcial, aún ninguna partícula con 5/5. Prueba 1 verificada para los 89 slots del contrato en plantilla principal (estático + render en 6 tipos de slide); en acnur, prueba 1 FALLA en ~14 slots (→ L1b). Faltan bordes y paridad para acreditar 5/5 |
 
 ## Bandeja de decisiones
