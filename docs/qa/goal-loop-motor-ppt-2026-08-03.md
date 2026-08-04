@@ -1750,3 +1750,30 @@ Punto a favor del preview: el error del motor SÍ se muestra en la UI
 imitar.
 
 **Gate:** argumentos-ui 459, metadata 228: verde. Commit por hunks.
+
+### B33 (cierre) — Preview real EN VERDE: la cadena completa funciona con datos de ACNUR (2026-08-04, sesión B)
+
+Flujo end-to-end operado como un analista en la app real (acnur_acg, 1.283
+casos): modelo «Un gráfico» insertado → Radar elegido en la biblioteca →
+`D1_information` seleccionada en el campo con la etiqueta CORREGIDA
+(«Variable (modo Select múltiple)») → «Valores en vértices» activado desde
+la pestaña Estilo → **Ver lámina rinde el preview por el router**: radar de
+12 ejes con porcentajes reales (Redes sociales 63 %, TV 27 %…), valores por
+vértice del B6 operando desde el toggle, paleta de la casa (B4) y leyenda
+«Total» auto-oculta (B2). Primera verificación de la ruta preview del
+router para el carril — **prueba 5 del preview: VERDE**.
+
+**Fricciones/hallazgos del flujo real:**
+
+- **B-UX1**: dos bibliotecas separadas (modelos de slides vs graficadores)
+  con búsquedas que no cruzan — buscar «radar» en la de modelos da «Sin
+  resultados» sin pista de dónde vive. Propuesta eje 3: búsqueda cruzada o
+  hint («busca en Elegir visual»).
+- Editorial anotado: `mostrar_valores` con 12 ejes y valores reales chicos
+  (1–10 %) amontona etiquetas cerca del centro — candidata regla: umbral de
+  ocultado de valores por vértice (paridad con `umbral_etiqueta_pct` del
+  pie).
+
+Higiene: pila viva para Gonzalo (API 8801 / Vite 5191, copia
+acnur_acg-20260804-064824); el plan de prueba quedó «sin guardar» sobre una
+copia temporal — sin efecto en el fixture canónico.
