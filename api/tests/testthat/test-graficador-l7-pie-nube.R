@@ -35,3 +35,41 @@ test_that("pie y donut no duplican la Base en el placeholder del slide", {
   bases <- lapply(out$render_meta, function(m) m$base)
   expect_true(all(vapply(bases, is.null, logical(1))))
 })
+
+# B20: paleta de la casa en el pie, orden "natural" aceptado (antes match.arg
+# lo rechazaba y la lamina moria — B-H27) y suelo ninguno/0.14.
+
+.l7_pie_data <- function() {
+  data.frame(
+    categoria = c("Muy bajo", "Bajo", "Medio", "Alto"),
+    pct = c(13, 21, 25, 41),
+    n = c(19, 32, 37, 62),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("el pie sin paleta usa la de la casa, no el hue de ggplot", {
+  d <- .l7_pie_data()
+  p <- graficar_pie(data = d, var_categoria = "categoria", var_pct = "pct",
+                    usar_canvas = FALSE, exportar = "rplot")
+  built <- ggplot2::ggplot_build(p)
+  fills <- toupper(unique(stats::na.omit(unlist(lapply(built$data, function(l) l$fill)))))
+  expect_true("#0B4F8C" %in% fills)
+  expect_false("#F8766D" %in% fills)
+})
+
+test_that("ordenar_categorias='natural' es aceptado y respeta el orden entrante", {
+  d <- .l7_pie_data()
+  expect_no_error(
+    p <- graficar_pie(data = d, var_categoria = "categoria", var_pct = "pct",
+                      ordenar_categorias = "natural",
+                      usar_canvas = FALSE, exportar = "rplot")
+  )
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("el suelo Pulso del pie respeta instrumento y da aire a la leyenda", {
+  suelo <- .PRESETS_DEFAULT_PULSO$pie
+  expect_identical(suelo$ordenar_categorias, "ninguno")
+  expect_identical(suelo$canvas_h_legend_bottom, 0.14)
+})

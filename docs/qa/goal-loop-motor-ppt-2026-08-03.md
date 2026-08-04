@@ -1499,3 +1499,29 @@ ocultos (menor).
   instrumento (perfil B-H8/H20).
 
 **Gate:** l7-pie-nube 3 (nuevo), plan-texto 113, argumentos-ui 459: verde.
+
+### B20 — L7: el pie se vuelve de la casa (paleta, orden, leyenda) y B-H27 al descubierto (2026-08-04, sesión B)
+
+**Reparado con render antes/después (Q2):**
+
+1. **B-H23 — paleta de la casa**: sin override, el pie caía al hue crudo de
+   ggplot (morado/cyan/lima/salmón); ahora usa `.graficos_mk_palette`
+   (navy/teal/dorado/naranja) — paridad con radar (B4) y barras (P9).
+2. **B-H25 — orden del instrumento**: el suelo forzaba `"asc"` (reordena por
+   valor y destruye ordinales); pasa a `"ninguno"` y la leyenda rinde
+   Muy bajo → Alto.
+3. **B-H24 — la leyenda cabe en su banda**: suelo
+   `canvas_h_legend_bottom` 0.08→0.14 (2 filas contenidas, ya no pisan el
+   caption). Defaults declarados de la UI alineados (prueba 3).
+4. **B-H27 (¡descubierto al curar!)** — la UI ofrecía el valor `"natural"`
+   («orden del instrumento») que `match.arg` del graficador RECHAZABA: elegir
+   la opción correcta mataba la lámina. El graficador acepta `natural` como
+   alias de `ninguno`, su default de firma pasa a `ninguno`, y la UI pone
+   «Natural» como default y primera opción.
+
+Residuo anotado: el caption del pie roza el borde de su banda
+(`canvas_h_caption = 0` con caption presente) — menor.
+
+**Gate:** l7-pie-nube 9, argumentos-ui 459, metadata 228,
+presets-defaults-contrato: todo verde. Commit por hunks (trabajo de A
+intacto).

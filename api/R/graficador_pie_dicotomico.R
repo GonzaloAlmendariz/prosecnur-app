@@ -133,7 +133,7 @@ graficar_pie <- function(
     nudge_radial_etiqueta = 0,
 
     # Orden / top-k
-    ordenar_categorias = c("desc", "asc", "ninguno"),
+    ordenar_categorias = c("ninguno", "desc", "asc", "natural"),
     top_k              = NULL,
     etiqueta_otros     = "Otros",
 
@@ -212,6 +212,9 @@ graficar_pie <- function(
 
   tipo_pie           <- match.arg(tipo_pie)
   ordenar_categorias <- match.arg(ordenar_categorias)
+  # "natural" es el valor que ofrece la UI para el orden del instrumento;
+  # antes match.arg lo rechazaba y la lamina moria (B-H27).
+  if (identical(ordenar_categorias, "natural")) ordenar_categorias <- "ninguno"
   pos_titulo         <- match.arg(pos_titulo)
   pos_subtitulo      <- match.arg(pos_subtitulo)
   pos_nota_pie       <- match.arg(pos_nota_pie)
@@ -402,6 +405,13 @@ graficar_pie <- function(
     # evitando el crash "Insufficient values in manual scale".
     pal_pie <- .mk_palette(levels(df$categoria), pal_user = colores_categorias)
     p_panel <- p_panel + ggplot2::scale_fill_manual(values = pal_pie, drop = FALSE)
+  } else {
+    # Sin override ni paleta de proyecto: paleta de la casa, no el hue crudo
+    # de ggplot (morado/cyan/lima/salmon) — paridad con radar (B4) y barras.
+    pal_pie <- .mk_palette(levels(df$categoria))
+    if (length(pal_pie)) {
+      p_panel <- p_panel + ggplot2::scale_fill_manual(values = pal_pie, drop = FALSE)
+    }
   }
 
   # Etiquetas %

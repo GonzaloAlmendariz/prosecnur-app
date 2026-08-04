@@ -2002,17 +2002,17 @@
       list(name = "subtitulo",            label = "Subtítulo (fijo)",      tipo_input = "string", grupo = "textos"),
       list(name = "nota_pie",             label = "Nota al pie (fija)",    tipo_input = "string", grupo = "textos"),
       list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "filtro",
-           default = "asc",
+           default = "natural",
            choices = list(
+             list(value = "natural", label = "Natural (orden del instrumento)"),
              list(value = "asc",     label = "Ascendente (menor → mayor)"),
-             list(value = "desc",    label = "Descendente (mayor → menor)"),
-             list(value = "natural", label = "Natural (orden del instrumento)")
+             list(value = "desc",    label = "Descendente (mayor → menor)")
            )),
 
       # --- Canvas --------------------------------------------------------
       list(name = "canvas_h_title",         label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.08),
       list(name = "canvas_h_caption",       label = "Alto zona pie (in)",    tipo_input = "number", grupo = "canvas", default = 0),
-      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas", default = 0.08),
+      list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas", default = 0.14),
       list(name = "canvas_w_legend_right",  label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas",
            descripcion = "Fracción del ancho reservada cuando la leyenda va a la derecha. Ej. 0.30 = 30% para la leyenda."),
       list(name = "canvas_pad_top",         label = "Padding superior (in)", tipo_input = "number", grupo = "canvas", default = 0),
@@ -2697,13 +2697,17 @@
 
     canvas_h_title           = 0.08,
     canvas_h_caption         = 0.00,
-    canvas_h_legend_bottom   = 0.08,
+    # 0.08 no alcanzaba para la leyenda a 2 columnas con 4+ categorias: las
+    # filas desbordaban la banda y pisaban el caption (B-H24).
+    canvas_h_legend_bottom   = 0.14,
     canvas_pad_top           = 0.00,
 
     pos_titulo               = "centro",
     size_titulo              = 14,
 
-    ordenar_categorias       = "asc"
+    # "asc" reordenaba por valor y destruia el orden del instrumento en
+    # ordinales (B-H25): "ninguno" respeta los niveles que arma el glue.
+    ordenar_categorias       = "ninguno"
   ),
 
   donut = list(
