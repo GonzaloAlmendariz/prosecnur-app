@@ -12,13 +12,14 @@ test_that("perfil ACNUR resuelve plantilla y opciones de entrega institucionales
   expect_true(file.exists(path))
 })
 
-test_that("perfil generico conserva plantilla y laminas Otros automaticas", {
+test_that("perfil generico conserva plantilla y las laminas Otros son opt-in", {
   withr::local_options(list(prosecnur.template_pptx = NA_character_))
   delivery <- .graficos_delivery_options(list())
   path <- .graficos_resolve_template_pptx(config = list())
 
   expect_equal(delivery$template_id, "generic_16_9")
-  expect_true(delivery$auto_otros_slides)
+  # B45/G-18: la lamina Otros es opt-in universal (pedido directo).
+  expect_false(delivery$auto_otros_slides)
   expect_equal(basename(path), "plantilla_16_9.pptx")
 })
 
