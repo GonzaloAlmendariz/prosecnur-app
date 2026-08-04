@@ -2039,3 +2039,22 @@ cuando filas_reales ≤ 2 (p.ej. tope de alto físico del panel + centrado)
 o reducir el alto del placeholder de la lámina. Medir las filas del
 canvas con el preset real del proyecto antes de tocar. G-5 (índice)
 sigue en cola.
+
+### B46 — Composición compacta de la barra sola y banda en agrupadas (2026-08-04, sesión B)
+
+`3ec03651`: cuando el alto físico del slot (inyectado vía
+`overrides$alto`, que ya existía) supera el contenido intrínseco del
+canvas y hay 1-2 filas reales, el excedente va a márgenes simétricos en
+vez de estirar las filas — el bloque queda centrado y compacto, sin los
+dos vacíos enormes del feedback. El panel gana piso físico (2.2in/2.8in).
+Agrupadas gana `canvas_h_reserva_pie_in` (paridad B44).
+
+**Misterio abierto (medir, no adivinar):** el layout attr reporta
+`grosor_eff = 0.95` con `y_axis_max = 2`, pero la banda renderiza más
+fina de lo que 0.95/2 del panel predice — hay una capa intermedia
+(insets del subpanel de barras / canvas_pad_bars_y_in / toprow) que
+absorbe alto. Instrumentar las alturas del ensamblado antes de tocar.
+
+**Cola:** G-5 (editor jerárquico del índice con íconos elegibles — el
+grande pendiente), Base combinada en láminas de 4 gráficos, misterio del
+grosor físico.
