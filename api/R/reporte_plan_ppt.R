@@ -517,6 +517,8 @@ reporte_ppt_plan <- function(
     if (is.null(spec) || is.null(spec$type)) {
       .plan_input_abort("Placeholder spec invalido (NULL o sin $type).")
     }
+    # `suppress` lo marca .ppt_calibrar_pies_iconos: sin cajon real, se omite.
+    if (isTRUE(spec$suppress)) return(doc)
     type_idx <- spec$type_idx %||% NULL
     if (!is.null(type_idx)) {
       type_idx <- suppressWarnings(as.integer(type_idx))
@@ -7065,18 +7067,8 @@ reporte_ppt_plan <- function(
       PPT_CONTRACT$slide_1$slots$title,
       height = (presets$base$args %||% list())$slide_title_height
     )
-    slide_1_bottom_specs <- .ppt_bottom_text_specs(
-      slide_1_layout_props,
-      slide_width = slide_dims$width,
-      slide_height = slide_dims$height
-    )
-    if (!is.null(slide_1_bottom_specs)) {
-      PPT_CONTRACT$slide_1$slots$base <- slide_1_bottom_specs$base
-      PPT_CONTRACT$slide_1$slots$right <- .ppt_configured_source_spec(
-        slide_1_bottom_specs$right,
-        presets$base$args %||% list()
-      )
-    }
+    # base/right de slide_1 se calibran junto al resto de pies en
+    # .ppt_calibrar_pies_iconos, al final de este bloque.
     section_layout_props <- officer::layout_properties(
       doc,
       layout = PPT_CONTRACT$section$layout,
@@ -7170,6 +7162,14 @@ reporte_ppt_plan <- function(
     PPT_CONTRACT$poblacion_2$layout <- layout_poblacion_2
     PPT_CONTRACT$poblacion_5$layout <- layout_poblacion_5
     PPT_CONTRACT$poblacion_6$layout <- layout_poblacion_6
+
+    # Pies e iconos por geometria del layout real (reporte_plan_helpers.R):
+    # los type_idx del contrato asumen la numeracion de la plantilla generica.
+    PPT_CONTRACT <- .ppt_calibrar_pies_iconos(
+      PPT_CONTRACT, doc, master, slide_dims,
+      layout_exists = .layout_exists,
+      base_args = presets$base$args %||% list()
+    )
   }
 
   # ---------------------------------------------------------------------------

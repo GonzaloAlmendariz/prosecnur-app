@@ -420,6 +420,140 @@
   )
 }
 
+# Recalibra pies (base/right/footer) e iconos del contrato contra la geometria
+# del layout real. Los `type_idx` del contrato estan calibrados contra
+# `plantilla_16_9.pptx`; las plantillas institucionales numeran los `body`
+# distinto (la ACNUR no tiene el body-logo y todo el indice corre en uno), y el
+# fallback por tipo colocaba el footer dentro del texto narrativo o del panel,
+# y el pie de poblacion dentro del hueco del icono central.
+#
+# Criterio geometrico (el mismo que ya usaba slide_1 via
+# `.ppt_bottom_text_specs`): pie = cajon inferior mas a la derecha; base =
+# cajon inferior mas a la izquierda; icono = cajon cuadrado chico centrado
+# fuera de la franja inferior. Si el layout tiene un solo cajon inferior y el
+# slide tambien declara `base`, el pie se suprime (el cajon es de la base).
+# Sin cajon utilizable, el slot se marca `suppress` y `.ph_with_strict` lo
+# omite: mejor no mostrar el texto que ponerlo en un placeholder arbitrario.
+#' @keywords internal
+.ppt_calibrar_pies_iconos <- function(contract, doc, master, slide_dims,
+                                      layout_exists, base_args = list()) {
+  calibraciones <- list(
+    list(ck = "slide_1",           slot = "base",       modo = "base"),
+    list(ck = "slide_1",           slot = "right",      modo = "pie"),
+    list(ck = "slide_2",           slot = "right_text", modo = "pie"),
+    list(ck = "slide_1_narrativo", slot = "footer",     modo = "pie"),
+    list(ck = "slide_2_narrativo", slot = "footer",     modo = "pie"),
+    list(ck = "paneles_4",         slot = "footer",     modo = "pie"),
+    list(ck = "text_r",            slot = "footer",     modo = "pie"),
+    list(ck = "text_l",            slot = "footer",     modo = "pie"),
+    list(ck = "text_r2",           slot = "footer",     modo = "pie"),
+    list(ck = "text_l2",           slot = "footer",     modo = "pie"),
+    list(ck = "text_r",            slot = "text",       modo = "panel"),
+    list(ck = "text_l",            slot = "text",       modo = "panel"),
+    list(ck = "text_r2",           slot = "text",       modo = "panel"),
+    list(ck = "text_l2",           slot = "text",       modo = "panel"),
+    list(ck = "poblacion_5",       slot = "footer",     modo = "pie"),
+    list(ck = "poblacion_6",       slot = "footer",     modo = "pie"),
+    list(ck = "poblacion_2",       slot = "icon",       modo = "icono"),
+    list(ck = "poblacion_4",       slot = "icon",       modo = "icono"),
+    list(ck = "poblacion_5",       slot = "icon",       modo = "icono"),
+    list(ck = "poblacion_6",       slot = "icon",       modo = "icono")
+  )
+
+  props_cache <- list()
+  layout_props_de <- function(layout_name) {
+    if (!is.null(props_cache[[layout_name]])) return(props_cache[[layout_name]])
+    props <- tryCatch(
+      officer::layout_properties(doc, layout = layout_name, master = master),
+      error = function(e) NULL
+    )
+    props_cache[[layout_name]] <<- props
+    props
+  }
+
+  for (cal in calibraciones) {
+    entry <- contract[[cal$ck]]
+    if (is.null(entry)) next
+    layout_name <- entry$layout
+    if (is.null(layout_name) || is.na(layout_name) || !layout_exists(layout_name)) next
+    spec <- entry$slots[[cal$slot]]
+    if (is.null(spec)) next
+    props <- layout_props_de(layout_name)
+    if (is.null(props) || !nrow(props)) next
+
+    bodies <- props[
+      props$type == "body" &
+        is.finite(props$offx) & is.finite(props$offy) &
+        is.finite(props$cx) & is.finite(props$cy),
+      , drop = FALSE
+    ]
+    target <- NULL
+    if (cal$modo %in% c("pie", "base")) {
+      bottom <- bodies[
+        bodies$offy >= slide_dims$height * 0.72 &
+          bodies$cy > 0.05 & bodies$cy <= 1 & bodies$cx >= 1 &
+          bodies$offx >= 0 &
+          bodies$offx + bodies$cx <= slide_dims$width + 0.05,
+        , drop = FALSE
+      ]
+      if (identical(cal$modo, "base")) {
+        if (nrow(bottom)) target <- bottom[which.min(bottom$offx), , drop = FALSE]
+        # Sin cajon inferior, la base conserva su loc del contrato.
+        if (is.null(target)) next
+      } else {
+        tiene_base <- !is.null(entry$slots$base)
+        if (nrow(bottom) >= 2L || (nrow(bottom) == 1L && !tiene_base)) {
+          target <- bottom[which.max(bottom$offx), , drop = FALSE]
+        }
+      }
+    } else if (identical(cal$modo, "panel")) {
+      # El panel lateral de texto de los layouts grafico+texto: el unico
+      # cajon alto fuera de la franja inferior. Sin el, el texto principal
+      # caia al cajon inferior-izquierdo.
+      paneles <- bodies[
+        bodies$offy < slide_dims$height * 0.72 & bodies$cy >= 3,
+        , drop = FALSE
+      ]
+      if (nrow(paneles)) target <- paneles[which.max(paneles$cy), , drop = FALSE]
+      if (is.null(target)) next
+    } else if (identical(cal$modo, "icono")) {
+      cuadrados <- bodies[
+        bodies$offy < slide_dims$height * 0.72 &
+          bodies$cy >= 1 & bodies$cx <= 3 &
+          abs(bodies$cx - bodies$cy) <= 0.6,
+        , drop = FALSE
+      ]
+      if (nrow(cuadrados)) {
+        centrado <- abs(cuadrados$offx + cuadrados$cx / 2 - slide_dims$width / 2)
+        target <- cuadrados[which.min(centrado), , drop = FALSE]
+      }
+    }
+
+    if (is.null(target)) {
+      spec$suppress <- TRUE
+      spec$loc <- NULL
+    } else {
+      spec$suppress <- NULL
+      spec$type_idx <- suppressWarnings(as.integer(target$type_idx[[1]]))
+      spec$loc <- list(
+        left = as.numeric(target$offx[[1]]),
+        top = as.numeric(target$offy[[1]]),
+        width = as.numeric(target$cx[[1]]),
+        height = as.numeric(target$cy[[1]])
+      )
+      if (identical(cal$modo, "base")) spec$align <- spec$align %||% "left"
+      if (identical(cal$modo, "pie")) spec$align <- spec$align %||% "right"
+    }
+    if (identical(cal$ck, "slide_1") && identical(cal$slot, "right") &&
+        !isTRUE(spec$suppress)) {
+      spec <- .ppt_configured_source_spec(spec, base_args)
+    }
+    contract[[cal$ck]]$slots[[cal$slot]] <- spec
+  }
+
+  contract
+}
+
 .ppt_configured_source_spec <- function(spec, base_args = list()) {
   if (!is.list(spec)) return(spec)
   values <- suppressWarnings(as.numeric(c(

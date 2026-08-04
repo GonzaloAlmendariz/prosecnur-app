@@ -152,7 +152,7 @@ explicar parte del corrimiento.
 |---|---|---|---|
 | L0 | Fundación: censo + doc | — | **Hecho (P1)** |
 | L1 | Placeholders ↔ campos que ofrece la UI (prueba 1) — defecto fundacional `pic` como texto | 163 ph plantilla principal | **Hecho (P2)** — lado UI; el lado motor pasó a L1b |
-| L1b | **Cluster ACNUR**: contenidos fuera de su placeholder en el render (pie sobre logo, footer en panel, subtexto/fecha invisibles, pie en hueco de ícono) | ~30 slots × plantilla acnur | Cola (siguiente) |
+| L1b | **Cluster ACNUR**: contenidos fuera de su placeholder en el render (pie sobre logo, footer en panel, subtexto/fecha invisibles, pie en hueco de ícono) | ~30 slots × plantilla acnur | **Hecho (P3)** — quedan D2 y D3 en bandeja |
 | L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | Cola |
 | L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | Cola |
 | L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | Cola |
@@ -180,6 +180,8 @@ Al vaciar la cola se reaudita desde L1 con la vara más alta.
 | # | Decisión pendiente | Opciones | Supuesto adoptado |
 |---|---|---|---|
 | D1 | Censo del prompt vs censo medido (17/385 vs 11/315 presets; 58 vs 63 formals) | (a) corregir el prompt; (b) dejar nota | (b) manda este doc; el prompt no se toca hasta que Gonzalo lo pida |
+| D2 | El cajón inferior-derecho de la plantilla ACNUR (9.20,6.92) se superpone al arte del logo UNHCR del propio template: cualquier pie/footer alineado a la derecha ahí pisa el wordmark | (a) encoger/mover el box en el template hasta ~x 10.9; (b) alinear izquierda solo en acnur; (c) suprimir pies inferiores-derechos en acnur | Se deja el box del template como destino (es SU box declarado); la reparación de la plantilla es data de diseño y la decide Gonzalo. El perfil ACNUR ya esquiva esto en slide_1 vía `source_footer_*` (2.15,6.96) |
+| D3 | La portada ACNUR tiene `subtexto` y `fecha` aparcados a 0×0 fuera de lámina (labels sembrados `prosecnur:title_slide:subtexto`/`date` en (13.55,7.72)): ¿diseño deliberado o accidente del sembrado? | (a) diseño: ocultar ambos campos en la UI cuando template=acnur; (b) accidente: darles geometría real en el template | Se asume (a) —la portada ACNUR no muestra fecha/subtexto— y el motor los deja invisibles; la UI los sigue ofreciendo (mejora pendiente si se confirma (a)) |
 
 ## Bitácora
 
@@ -258,3 +260,42 @@ preexistentes de fuentes) y engine-plan-ppt-texto: verdes. Sin TS tocado.
   slot).
 - La UI del canvas con acnur queda con menos slots dibujados (los inexactos ya
   no se dibujan); la verificación visual en app queda para el pase de L1b.
+
+### P3 — L1b: el motor coloca pies, textos e íconos por geometría real (2026-08-03)
+
+**Causa raíz confirmada**: los `type_idx` del contrato están calibrados contra
+`plantilla_16_9` y la ACNUR **no tiene el body-logo**, así que toda su
+numeración de `body` corre en uno; el fallback por tipo colocaba en el primer
+body del layout. Además el perfil `acnur_kobo_cruncher_plus` ya reposiciona el
+pie de `slide_1` vía `source_footer_*` (2.15,6.96) — ese caso concreto no
+llegaba al entregable con perfil; los footers de narrativos/text_*/población y
+los íconos sí.
+
+**Reparado (motor):**
+
+1. Nuevo `.ppt_calibrar_pies_iconos` en `reporte_plan_helpers.R` (el monolito
+   congelado queda en su línea base, 9.418): recalibra por geometría del
+   layout real — pie = cajón inferior más a la derecha; base = el más a la
+   izquierda; panel de texto = cajón alto lateral; ícono = cuadrado chico
+   centrado. Absorbe el bloque ad-hoc que ya hacía esto para `slide_1`
+   (`.ppt_bottom_text_specs` sigue existiendo y testeado).
+2. Sin cajón utilizable → `spec$suppress` y `.ph_with_strict` omite el
+   contenido en vez de colocarlo en un placeholder arbitrario.
+3. Con un solo cajón inferior y slot `base` presente, el pie se suprime (el
+   cajón es de la base).
+
+**Evidencia de render (antes → después, acnur):** footer narrativo pisando el
+texto → cajón inferior derecho; texto principal de `text_r` abajo-izquierda
+pisando la Base y panel vacío → texto en su panel, Base legible; pie de
+`poblacion_5` en el hueco del ícono → cajón inferior. Genérica: sin cambios
+visibles (paridad verificada lámina a lámina). PNGs regenerables con
+`api/scripts/qa_motor_ppt_render.R`.
+
+**Gate:** `test-reporte-plan-calibracion-pies.R` nuevo (20 asserts: posiciones
+acnur, posiciones históricas de la genérica, supresión sin cajón) + 14 suites
+de plan/render: **726 PASS / 0 FAIL**. Audit de congelados limpio para
+`reporte_plan_ppt.R`.
+
+**Abierto:** D2 (box acnur sobre su propio logo) y D3 (portada acnur sin
+fecha/subtexto) en bandeja; verificación visual en app (canvas + preview con
+proyecto acnur) pendiente para un pase de QA visual conjunto.
