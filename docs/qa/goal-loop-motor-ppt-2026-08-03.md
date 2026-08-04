@@ -673,3 +673,25 @@ los layouts — refinamiento anotado: derivarlos de `layout_properties` en vez
 de constantes.
 
 **Gate:** plan-texto 113, indice-fit 16, calibración 20; audit limpio.
+
+### P16 — L5 arranca: el glifo cuadrado es de la casa y apiladas lo adopta (2026-08-03)
+
+**Reparado:** `.graficos_key_glyph_cuadrado(lado_cm)` pasa a
+`graficador_helpers.R` como constructor compartido; agrupadas lo consume y
+**apiladas** reemplaza su `draw_key_rect` (mismo mal: box con altura de
+texto) y sube `legend_espaciado` de 0.20 pt a 6. Render verificado con guías:
+leyenda de 5 ítems con swatches cuadrados, aire y multi-fila centrada (la
+ruta canvas manual de apiladas ya era buena y quedó intacta).
+
+**Hallazgos nuevos del primer render de apiladas (cola L5):**
+
+- **H27**: TRIPLE marca de N en la lámina — caption del gráfico («Base: 150
+  respuestas»), placeholder del slide (ídem) y la columna N verde («150»).
+  La deduplicación de P9 cubría solo `barras_agrupadas`; decidir el default
+  de apiladas (probable: caption + columna N, sin placeholder).
+- **H28**: la paleta likert-5 de apiladas mezcla semáforo (rojo/amarillo/
+  verde) con navy y gris en los dos tramos más positivos — no comunica
+  intensidad. Candidata a gradiente coherente en el suelo.
+
+**Gate:** parse de los tres archivos + render mirado; suites de apiladas
+pendientes de correr en el sweep L5 completo.

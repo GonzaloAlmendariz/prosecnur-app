@@ -794,20 +794,7 @@ graficar_barras_agrupadas <- function(
   # ---------------------------------------------------------------------------
   width_dodge <- 0.70
 
-  key_cuadrado_cm <- suppressWarnings(as.numeric(legend_key_cm)[1])
-  if (!is.finite(key_cuadrado_cm) || key_cuadrado_cm <= 0) key_cuadrado_cm <- 0.30
-  .draw_key_cuadrado <- function(data, params, size) {
-    alfa <- data$alpha %||% 1
-    if (is.na(alfa)) alfa <- 1
-    grid::rectGrob(
-      width  = grid::unit(key_cuadrado_cm, "cm"),
-      height = grid::unit(key_cuadrado_cm, "cm"),
-      gp = grid::gpar(
-        col = NA,
-        fill = scales::alpha(data$fill %||% "grey20", alfa)
-      )
-    )
-  }
+  .draw_key_cuadrado <- .graficos_key_glyph_cuadrado(legend_key_cm)
 
   p <- ggplot2::ggplot(
     df_long,

@@ -1157,7 +1157,9 @@ graficar_barras_apiladas <- function(
     # LEYENDA
     # ==========================
     legend_key_cm         = 0.30,
-    legend_espaciado      = 0.20,
+    # 6 pt y no 0.20: mismo criterio editorial que agrupadas (P13) — con 0.20
+    # el swatch quedaba pegado al texto.
+    legend_espaciado      = 6,
     legend_n_por_fila     = 6L,
     legend_ancho_rel      = NULL,
     legend_gap_npc        = 0.018,
@@ -1655,7 +1657,8 @@ graficar_barras_apiladas <- function(
       fill = .data$.grupo
     )
   ) +
-    ggplot2::geom_col(width = grosor_eff, orientation = "y", key_glyph = ggplot2::draw_key_rect) +
+    ggplot2::geom_col(width = grosor_eff, orientation = "y",
+                      key_glyph = .graficos_key_glyph_cuadrado(legend_key_cm)) +
     ggplot2::scale_x_continuous(expand = expand_x) +
     {
       if (usar_y_numerico) {
