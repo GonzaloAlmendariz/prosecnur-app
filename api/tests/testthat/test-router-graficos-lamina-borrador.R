@@ -102,3 +102,33 @@ test_that("el rebuild con var en lista-de-1 produce el elemento real, no un blan
   expect_s3_class(el, "ppt_element")
   expect_identical(el$.element_type, "barras_agrupadas")
 })
+
+test_that("var vacio con vars poblados NO cuenta como ref faltante (B49)", {
+  # La UI de temas serializa var: {} junto a vars validos — es ruido.
+  args <- list(
+    modo = "var_cruce",
+    var = list(), cruces = list(), bloques = list(),
+    vars = list(tema_1 = c("docentes$p13_1", "estudiantes$p11_1"))
+  )
+  expect_false(.graficos_args_missing_required_ref(args))
+  # Sin vars ni bloques, var vacio SI es falta.
+  expect_true(.graficos_args_missing_required_ref(list(var = list())))
+})
+
+test_that("la lamina de temas con var vacio rebuilds al elemento real", {
+  slide <- list(tipo = "p_slide_1_grafico", payload = list(
+    titulo = "prueba 2",
+    grafico = list(graficador = "p_barras_multiapiladas", args = list(
+      modo = "var_cruce",
+      var = list(), cruces = list(), bloques = list(),
+      vars = list(tema_1 = c("docentes$p13_1", "estudiantes$p11_1")),
+      titulos_grupo = list(tema_1 = "Servicio de salud")
+    ))
+  ))
+  out <- .graficos_rebuild_slide_json(slide)
+  expect_false(is.null(out))
+  el <- out$slots$plot %||% out$slots$grafico %||% NULL
+  # El elemento del slot es multiapiladas real, no el blank ggplot_raw.
+  tipos <- unlist(lapply(out$slots, function(x) if (inherits(x, "ppt_element")) x$.element_type else NULL))
+  expect_true("barras_multiapiladas" %in% tipos)
+})

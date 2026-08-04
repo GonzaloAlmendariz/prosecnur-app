@@ -815,8 +815,18 @@
 
 .graficos_args_missing_required_ref <- function(args) {
   if (!is.list(args)) return(FALSE)
+  # B49: la UI serializa `var: {}` vacio JUNTO a `vars`/`bloques` poblados
+  # (multiapiladas por temas). Ese var vacio es ruido de serializacion, no
+  # una ref requerida faltante — sin esta excepcion la lamina de comparar
+  # publicos se degradaba a canvas en blanco.
+  tiene_contenido <- function(x) {
+    (is.list(x) && length(x) > 0L) ||
+      (is.character(x) && any(nzchar(trimws(x))))
+  }
   for (arg_name in c("var", "objetivo")) {
     if (!is.null(args[[arg_name]]) && .graficos_blank_ref_value(args[[arg_name]])) {
+      if (identical(arg_name, "var") &&
+          (tiene_contenido(args$vars) || tiene_contenido(args$bloques))) next
       return(TRUE)
     }
   }
