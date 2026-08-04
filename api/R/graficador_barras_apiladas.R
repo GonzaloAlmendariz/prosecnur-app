@@ -2545,12 +2545,38 @@ graficar_barras_apiladas <- function(
   h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
   if (h_total_in <= 0) h_total_in <- 1
 
+  # B46/G-21: con 1-2 filas reales, estirar el canvas al alto fisico del
+  # slot dejaba una cinta perdida entre dos vacios enormes (feedback
+  # directo: "sigue escueta la barra sola"). Si el alto fisico inyectado
+  # por el slide supera al contenido intrinseco, el excedente se va a
+  # MARGENES simetricos arriba y abajo — el bloque queda centrado y las
+  # filas conservan su proporcion editorial.
+  pad_flex_h <- 0
+  alto_fisico <- suppressWarnings(as.numeric(alto)[1])
+  if (is.finite(alto_fisico) && alto_fisico > 0 &&
+      n_categorias <= 2L &&
+      (is.null(canvas_h_panel_in) || !is.finite(suppressWarnings(as.numeric(canvas_h_panel_in)[1])) ||
+         suppressWarnings(as.numeric(canvas_h_panel_in)[1]) <= 0)) {
+    # Piso fisico del panel: con el grosor editorial (~35% del panel para
+    # 1 fila) esto da una banda de ~2cm, no una cinta.
+    panel_floor_in <- if (n_categorias == 1L) 2.2 else 2.8
+    if (h_panel_in < panel_floor_in) {
+      h_total_in <- h_total_in - h_panel_in + panel_floor_in
+      h_panel_in <- panel_floor_in
+    }
+    if (alto_fisico > h_total_in) {
+      pad_total_in <- alto_fisico - h_total_in
+      h_total_in <- alto_fisico
+      pad_flex_h <- (pad_total_in / 2) / h_total_in
+    }
+  }
+
   header_h  <- h_header_in  / h_total_in
   panel_h   <- h_panel_in   / h_total_in
   legend_h  <- h_legend_in  / h_total_in
   caption_h <- h_caption_in / h_total_in
 
-  y_header0 <- 1 - header_h
+  y_header0 <- 1 - pad_flex_h - header_h
   if (has_legend && legend_is_top && !legend_is_side) {
     y_legend0  <- y_header0 - legend_h
     y_panel0   <- y_legend0 - panel_h
