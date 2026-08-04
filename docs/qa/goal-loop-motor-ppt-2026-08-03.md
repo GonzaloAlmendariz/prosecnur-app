@@ -1579,3 +1579,18 @@ Commit por hunks (trabajo de A intacto).
 
 Con esto la prueba 5 del carril L9 queda barrida (Word); falta consolidado
 (L11 transversal, router en vuelo de A).
+
+### B24 — B-H29 REPARADO: las tarjetas del FODA caben en Word (2026-08-04, sesión B)
+
+Causa: Word renderiza a 6.0–6.6" (vs 12.5 del PPT) y las tarjetas usan ancho
+relativo con texto en puntos absolutos — a la mitad del ancho físico, el
+label truncaba y el chip desbordaba. Fix con el patrón de la casa: el bloque
+ad-hoc de ajustes Word de media_rango se absorbe en un helper por tipo
+(`.word_ajustar_el`, reporte_plan_helpers) que suma la rama `dim_foda`
+(texto de tarjeta 7pt, chip 7.5pt, tarjeta al 88% del ancho). **El monolito
+baja a 9.400 (−18 bajo su línea base)** y el render Word muestra las
+tarjetas completas con chips dentro del borde.
+
+**Gate:** l8-defaults 34 (incluye el mock del glue que pasa por el camino
+Word), media-rango-significancia 5, dim-foda-leyenda 10, plan-texto 113:
+todo verde. Audit de congelados limpio.

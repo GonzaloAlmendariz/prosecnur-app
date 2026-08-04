@@ -2573,3 +2573,35 @@ p_reset <- function(
   }
   args
 }
+
+# Ajustes por tipo para la variante Word de un elemento (device mas angosto
+# que el PPT: 6.0-6.6in vs 12.5). Absorbe el bloque ad-hoc de media_rango y
+# suma el del FODA (B-H29: las tarjetas truncaban label y chip en Word).
+.word_ajustar_el <- function(el_for_word, etype) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  ov <- el_for_word$overrides %||% list()
+  if (identical(etype, "media_rango")) {
+    size_ejes_orig <- ov$size_ejes %||% 9
+    ov$size_ejes <- min(size_ejes_orig, 8)
+    modo_word <- ov$modo %||% NULL
+    if (identical(modo_word, "score_ref") && is.null(ov$size_delta)) {
+      size_media_word <- suppressWarnings(as.numeric(ov$size_media)[1])
+      if (!is.finite(size_media_word) || is.na(size_media_word) || size_media_word <= 0) {
+        size_media_word <- 3
+      }
+      ov$size_delta <- max(2.4, size_media_word * 0.72)
+    }
+    if (identical(modo_word, "score_ref") && is.null(ov$delta_umbral_cerca_ref)) {
+      ov$delta_umbral_cerca_ref <- 5
+    }
+    if (identical(modo_word, "score_ref") && is.null(ov$delta_rel_cerca_ref)) {
+      ov$delta_rel_cerca_ref <- 0.34
+    }
+  } else if (identical(etype, "dim_foda")) {
+    if (is.null(ov$tamano_texto_tarjeta)) ov$tamano_texto_tarjeta <- 7
+    if (is.null(ov$tamano_texto_chip)) ov$tamano_texto_chip <- 7.5
+    if (is.null(ov$ancho_tarjeta_base_rel)) ov$ancho_tarjeta_base_rel <- 0.88
+  }
+  el_for_word$overrides <- ov
+  el_for_word
+}
