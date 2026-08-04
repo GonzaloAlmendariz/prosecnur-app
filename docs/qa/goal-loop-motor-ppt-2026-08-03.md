@@ -2013,3 +2013,29 @@ del marco y Base despejada, cero solape.
 Pendiente del carril: agrupadas usa otro graficador sin el formal (el
 helper se lo pasa pero .keep_formals lo dropea — su Base es de una línea,
 tolerable); portarlo cuando toque su canvas. G-5 (índice) sigue en cola.
+
+### B45 — Etiquetas dentro de la barra por defecto y banda multiactor real (2026-08-04, sesión B)
+
+Feedback directo con screenshots (`36a2c26c`):
+
+- «El número por defecto no debe salir de la barra ni generar una
+  flecha»: `etiquetas_arriba_si_no_caben` pasa a FALSE en el suelo de
+  apiladas y multiapiladas, registry con default/descripcion honestos,
+  contrato argumentos-ui actualizado, y la migración de fósiles ahora
+  también cubre lógicos (el TRUE copiado por la UI migra; un FALSE
+  explícito o clave ausente no se tocan).
+- La banda de la Base multiactor sube a 0.85in intrínsecos: con paneles
+  altos (12 filas) las fracciones se reescalan al placeholder y 0.5
+  quedaba en ~0.35in físicos — menos que las dos líneas de la Base.
+
+Verificado con el deck v5: la lámina identidad (3 temas × 4 actores) sin
+choque Base/leyenda, y la apilada sola sin etiquetas voladoras.
+
+**Abierto (próxima iteración): composición vertical de la barra sola.**
+El grosor ya es correcto (35% del panel de barras) pero el PANEL vive
+entre dos zonas vacías grandes — las fracciones intrínsecas del canvas
+se estiran al alto del placeholder. La palanca es limitar el estiramiento
+cuando filas_reales ≤ 2 (p.ej. tope de alto físico del panel + centrado)
+o reducir el alto del placeholder de la lámina. Medir las filas del
+canvas con el preset real del proyecto antes de tocar. G-5 (índice)
+sigue en cola.
