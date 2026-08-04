@@ -1701,3 +1701,28 @@ media_rango y radar box a la vez, más heatmap en slide narrativo
   rendimientos decrecientes; candidatos a un pase futuro de micro-tipografía.
 
 **Gate:** l7-pie-nube 13: verde. Renders mirados.
+
+### B32 — Eje 3 verificado EN LA APP REAL: la curación B llega al analista (2026-08-04, sesión B)
+
+Con `/ver-ui` sobre la pila de referencia `acnur_acg` (API 8801 + Vite 5191,
+navegación por `__pulsoNav`, readiness real):
+
+- **Hallazgo operativo primero**: el backend de la pila llevaba 12h corriendo
+  con el paquete VIEJO — la API servía el registry pre-curación (20
+  graficadores, cero args nuevos). R no hace hot-reload: **toda verificación
+  UI tras tocar el registry exige reiniciar el backend** (regla para el
+  harness). Reiniciada la pila huérfana, la cadena quedó fresca.
+- **API verificada**: `/api/graficos/registry` sirve 19 graficadores
+  (`p_dim_radar_tabla` retirado ✓) y TODOS los args curados: mostrar_valores/
+  valores_decimales (radar), umbral_rojo_pct (tabla), top_k/etiqueta_otros
+  (pie), brechas/totales/N/iter (heatmap), cortes/corte_score/títulos/iter
+  (foda), max_palabras/min_chars (nube).
+- **UI verificada con proyecto real**: biblioteca de graficadores sin el
+  retirado (búsqueda «radar» → solo Radar y Tabla); slide de Radar creado; la
+  pestaña Estilo muestra «Valores en vértices» con la descripción honesta de
+  B6 y sus decimales (screenshot en evidencia). Los 5 modelos de dimensión
+  correctamente ocultos por requisito en un proyecto sin dimensiones.
+
+Higiene: pila de referencia dejada VIVA para uso de Gonzalo (API 8801, Vite
+5191, proyecto acnur_acg abierto); el resto de servers de otras sesiones
+intactos.
