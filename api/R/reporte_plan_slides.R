@@ -2807,6 +2807,28 @@ p_dim_foda <- function(
     }
     titulos_areas_foda <- as.character(titulos_areas_foda)
     llaves <- c("fortaleza", "oportunidad", "debilidad", "amenaza")
+    # Formato textual del textarea de la UI: lineas "cuadrante=Titulo".
+    if (length(titulos_areas_foda) == 1L && grepl("=", titulos_areas_foda, fixed = TRUE)) {
+      lineas <- strsplit(titulos_areas_foda, "\n", fixed = TRUE)[[1]]
+      lineas <- trimws(lineas)
+      lineas <- lineas[nzchar(lineas) & grepl("=", lineas, fixed = TRUE)]
+      if (length(lineas)) {
+        kv_k <- trimws(sub("=.*$", "", lineas))
+        kv_v <- trimws(sub("^[^=]*=", "", lineas))
+        keep <- nzchar(kv_k) & nzchar(kv_v)
+        titulos_areas_foda <- stats::setNames(kv_v[keep], kv_k[keep])
+      }
+    }
+    nms_raw <- names(titulos_areas_foda %||% character(0))
+    if (!is.null(nms_raw)) {
+      # Tolerar plurales y alias frecuentes: antes se ignoraban en silencio.
+      alias <- c(fortalezas = "fortaleza", oportunidades = "oportunidad",
+                 debilidades = "debilidad", amenazas = "amenaza")
+      nml <- tolower(trimws(nms_raw))
+      hit_alias <- nml %in% names(alias)
+      nms_raw[hit_alias] <- unname(alias[nml[hit_alias]])
+      names(titulos_areas_foda) <- nms_raw
+    }
     nms <- names(titulos_areas_foda %||% character(0))
     if (is.null(nms) || !any(nzchar(trimws(nms)))) {
       if (length(titulos_areas_foda) < 4L) {

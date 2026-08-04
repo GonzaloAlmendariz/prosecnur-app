@@ -1141,6 +1141,8 @@
            descripcion = "Dos valores que separan rojo/ámbar/verde en los chips (default 60 y 80). La leyenda usa estos mismos cortes."),
       list(name = "corte_score",   label = "Corte de puntaje (dispersión)", tipo_input = "number", grupo = "datos",
            descripcion = "Umbral que separa alto/bajo en el eje de puntaje. OBLIGATORIO en disposición 'Dispersión'."),
+      list(name = "titulos_areas_foda", label = "Títulos de los cuadrantes", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Una línea por cuadrante con formato 'cuadrante=Título'. Cuadrantes: fortaleza, oportunidad, debilidad, amenaza (se aceptan plurales)."),
       list(name = "iter_var",   label = "Iterar por variable", tipo_input = "variable_opt", grupo = "avanzado",
            descripcion = "Renderiza el gráfico solo para un nivel de esta variable (no puede ser la de cruce)."),
       list(name = "iter_level", label = "Nivel de iteración",  tipo_input = "string", grupo = "avanzado")
