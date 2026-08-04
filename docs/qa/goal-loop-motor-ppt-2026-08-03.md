@@ -2146,3 +2146,24 @@ mandato cambió — la suite completa antes de publicar es irreemplazable.
 
 Siguiente partícula: paridad WORD del deck multibase (nunca verificada
 visualmente; el mandato cubre ambos motores).
+
+### B52 — Paridad Word: primer sweep visual del deck real, 4 hallazgos (2026-08-04, sesión B)
+
+Export Word del plan Conta real (job en verde, 4 páginas — portada e
+índice no viajan a Word por diseño). Hallazgos para el carril W:
+
+- **W-1**: en la apilada sola, el «2%» del segmento chico sale GIGANTE y
+  desbordado (el size de texto PPT no escala al canvas Word) y la
+  leyenda sale microscópica y solapada («Totalmente en desacu…8n
+  desacuerd…»). Los w_presets deben gobernar ambos tamaños.
+- **W-2**: la Base queda flotando a media página, lejísimos del gráfico
+  — el bloque gráfico+base necesita cohesión vertical en el documento.
+- **W-3**: en el multiactor, las etiquetas de actor («Docentes»,
+  «Estudiantes») clippean por la izquierda y el bloque se pega al margen
+  con media página derecha vacía.
+- **W-4**: la Base de Word usa el formato actor-caption viejo
+  («Docentes (52) y Estudiantes (155)») mientras PPT usa la prorrateada
+  («52 docentes y 155 estudiantes») — unificar formato.
+
+El PPT del mismo plan está editorial; Word es ahora el frente con más
+deuda visible del motor.
