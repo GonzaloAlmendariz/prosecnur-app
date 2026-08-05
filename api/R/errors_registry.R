@@ -198,6 +198,8 @@ errores_registrados <- function() {
     "E_CALC_MUESTRA_ASISTENCIA_FILTROS",                     "calc_muestra_asistencia_referencia.R", "400",
     "E_CALC_MUESTRA_ASISTENCIA_INPUT",                       "calc_muestra_asistencia_referencia.R", "400",
     "E_CALC_MUESTRA_ASISTENCIA_REFERENCE",                   "router_calc_muestra.R",             "400",
+    "E_CALC_MUESTRA_EXPLORAR_ARCHIVO",                       "calc_muestra_explorador_base.R", "400",
+    "E_CALC_MUESTRA_EXPLORAR_HOJA",                          "calc_muestra_explorador_base.R", "400",
     "E_CALC_MUESTRA_AULAS_COMPARE",                          "router_calc_muestra.R",             "400",
     "E_CALC_MUESTRA_AULAS_EXPORT",                           "router_calc_muestra.R",             "400",
     "E_CALC_MUESTRA_AULAS_FRAME",                            "router_calc_muestra.R",             "400",
