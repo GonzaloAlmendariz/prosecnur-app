@@ -537,9 +537,36 @@ mount_calc_muestra <- function(pr) {
       } else {
         estudio_input
       }
+      # ADR 0060 · el catálogo de filtros describe a ESTA base, así que viaja en
+      # su binding dentro del workspace; el diseño del estudio previo llega por
+      # el body. Ninguno es obligatorio: sin ellos el motor lee igual y declara
+      # que degradó.
+      workspace_vigente <- if (has_workspace) {
+        body$workspace
+      } else {
+        (s$calc_muestra_estudio %||% list())$workspace %||% list()
+      }
+      filtros_corte <- NULL
+      bindings <- workspace_vigente$source_bindings
+      if (is.list(bindings)) {
+        for (binding in bindings) {
+          if (is.list(binding) &&
+                identical(calc_str(binding$role, ""), "referencia_asistencia")) {
+            filtros_corte <- binding$filtros_corte
+            break
+          }
+        }
+      }
+      diseno_referencia <- body$diseno %||% workspace_vigente$diseno_historico %||% list()
+
       referencia <- tryCatch({
         tabla <- .cm_table_from_payload(sid, body, "referencia_asistencia")
-        calc_muestra_asistencia_referencia(tabla, estudio = estudio_referencia)
+        calc_muestra_asistencia_referencia(
+          tabla,
+          estudio = estudio_referencia,
+          diseno = diseno_referencia,
+          filtros_corte = filtros_corte
+        )
       }, error = function(e) {
         if (inherits(e, "api_error")) stop(e)
         stop_api(

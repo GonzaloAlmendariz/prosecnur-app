@@ -509,11 +509,33 @@ export function DefBasesTab({
         ))}
       </div>
       {/* G42 · La base de un estudio anterior salió de aquí a su propia pestaña
-          (Datos › Histórico). Vivía al final de esta lista, entre las fuentes
-          que SÍ construyen el marco, y ahí se leía como una más: no lo es —no
-          entra al marco vigente ni cambia el tamaño de muestra— y encima no se
-          encontraba. Gonzalo: «falta la pestaña para agregar la base de
-          monitoreo del año pasado». */}
+          (Datos › Histórico) porque vivía al final de esta lista, entre las
+          fuentes que SÍ construyen el marco, y ahí se leía como una más.
+          G44 · Gonzalo: «cuando nosotros agregamos la base, debe estar en
+          bases». Vuelve a Fuentes —aquí se sube todo— pero en su propio grupo,
+          separada de las que construyen el marco: sigue sin entrar al marco
+          vigente ni cambiar el tamaño de muestra. Su LECTURA es lo que vive en
+          Histórico. */}
+      {referenceBinding ? (
+        <div className="cmv2-source-optional" aria-label="Fuente opcional">
+          <div className="cmv2-source-optional-head">
+            <span className="cmv2-eyebrow">Fuente opcional</span>
+            <p>
+              Un estudio ya aplicado, para heredar sus tasas de campo. No entra al marco ni
+              cambia cuántos cursos-horario se seleccionan. Su lectura está en Histórico.
+            </p>
+          </div>
+          <BaseUploadCard
+            binding={referenceBinding}
+            index={frameBindings.length}
+            isUploading={uploadingSourceId === referenceBinding.id}
+            gated={false}
+            filasMotor={0}
+            onUpload={(next, file) => void onSourceUpload(next, file)}
+            onSheet={updateSheet}
+          />
+        </div>
+      ) : null}
       {sourceMode !== "seleccion_existente" && <SolicitudDtiButton />}
       {showCompat && (
         <AvisoModulo tone={compatOk ? "success" : "warn"} role="status" compact>

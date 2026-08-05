@@ -139,32 +139,60 @@ export function ExploradorBasesTab({
     nombres.get(columna) ?? { titulo: columna, tecnico: columna, origen: "interno" };
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    if (!q) return variables;
+    // Ordenado por el nombre que se ve, no por el técnico: buscar «Condición»
+    // en una lista alfabetizada por `condicion_curso` es buscar a ciegas.
+    const orden = [...variables].sort((a, b) => {
+      const ta = nombres.get(a.columna)?.titulo ?? a.columna;
+      const tb = nombres.get(b.columna)?.titulo ?? b.columna;
+      return ta.localeCompare(tb, "es");
+    });
+    if (!q) return orden;
     // Se busca por los dos nombres: quien subió la base escribe el del archivo y
     // quien conoce el motor escribe el técnico.
-    return variables.filter((row) => {
+    return orden.filter((row) => {
       const nombre = nombres.get(row.columna);
       return row.columna.toLowerCase().includes(q) ||
         (nombre?.titulo ?? "").toLowerCase().includes(q);
     });
   }, [variables, busqueda, nombres]);
   /*
-   * El índice se agrupa por tipo porque son dos lecturas distintas: una
-   * categórica se mira por reparto y una numérica por forma. Mezcladas, la
-   * lista obliga a leer el subtítulo de cada fila para saber qué se va a ver.
+   * G43 · El índice se agrupa por ORIGEN, no por tipo.
+   *
+   * Gonzalo: «muchas variables en el explorador ni siquiera están en la base».
+   * Tenía razón y era el defecto de fondo: lo que se explora es el `aula_frame`,
+   * que es el marco DERIVADO —34 columnas—, y ahí conviven las del archivo con
+   * las que calcula el motor (`included`, `exclude_reason`, `size_group`,
+   * `prevalence_ratio`…). Mezcladas en una sola lista, las derivadas se leían
+   * como columnas del Excel que nadie recordaba haber subido.
+   *
+   * Agrupar por categórica/numérica —lo que hacía la versión anterior— separa
+   * dos lecturas, sí, pero el tipo ya se ve en cada fila y no responde a la
+   * pregunta que el usuario se hace al abrir la pestaña: ¿esto lo subí yo?
    */
   const grupos = useMemo(() => ([
     {
-      clave: "categorica" as const,
-      titulo: "Categóricas",
-      filas: visibles.filter((row) => row.tipo === "categorica"),
+      clave: "excel" as const,
+      titulo: "De tu archivo",
+      nota: null as string | null,
+      filas: visibles.filter((row) => nombres.get(row.columna)?.origen === "excel"),
     },
     {
-      clave: "numerica" as const,
-      titulo: "Numéricas",
-      filas: visibles.filter((row) => row.tipo === "numerica"),
+      clave: "motor" as const,
+      titulo: "Que calcula el marco",
+      nota: null,
+      filas: visibles.filter((row) => nombres.get(row.columna)?.origen === "motor"),
     },
-  ].filter((grupo) => grupo.filas.length)), [visibles]);
+    {
+      clave: "interno" as const,
+      titulo: "Otras columnas del marco",
+      nota: null,
+      filas: visibles.filter((row) => nombres.get(row.columna)?.origen === "interno"),
+    },
+  ].filter((grupo) => grupo.filas.length)), [visibles, nombres]);
+  const delArchivo = useMemo(
+    () => variables.filter((row) => nombres.get(row.columna)?.origen === "excel").length,
+    [variables, nombres],
+  );
 
   const activa: VariableExplorador | null =
     visibles.find((row) => row.columna === variable) ?? visibles[0] ?? null;
@@ -210,8 +238,15 @@ export function ExploradorBasesTab({
           ))}
         </div>
         <p className="cmv2-expb-nota" role="note">
-          Las bases <strong>tal como se leyeron</strong>, sin criterios ni embudo. Lo que recorta
-          cada criterio vive en Marco › Cursos-horario: criterios + radiografía.
+          {filas.length ? (
+            <>
+              <strong>{fmtInt(variables.length)} columnas</strong> del marco vigente
+              {delArchivo ? <> · {fmtInt(delArchivo)} vienen de tu archivo</> : null}. Sin criterios
+              ni embudo: lo que recorta cada criterio vive en Marco › Cursos-horario.
+            </>
+          ) : (
+            <>Las bases <strong>tal como se leyeron</strong>, sin criterios ni embudo.</>
+          )}
         </p>
       </header>
 
@@ -291,7 +326,14 @@ export function ExploradorBasesTab({
               ))}
               {!visibles.length ? (
                 <p className="cmv2-expb-sin-match">Ninguna variable coincide con «{busqueda}».</p>
-              ) : null}
+              ) : (
+                /* El marco no arrastra el archivo entero, y callarlo hacía
+                   buscar aquí columnas que nunca van a estar. */
+                <p className="cmv2-expb-pie" role="note">
+                  El marco no arrastra todas las columnas del archivo: los datos de contacto y los
+                  que no participan del muestreo se quedan fuera.
+                </p>
+              )}
             </div>
           </aside>
 

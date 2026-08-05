@@ -24,7 +24,7 @@
 import { AlertTriangle, Info } from "lucide-react";
 import type { CalcMuestraReferenciaAsistencia } from "../../../../api/client";
 import { fmtInt } from "../../sharedCore";
-import { CifraMotor, FlujoVertical, PanelAvanzado, type FlujoEtapa } from "../ui";
+import { CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
 import "./historicoEstudio.css";
 
 const pct = (value: number | null | undefined) =>
@@ -76,7 +76,15 @@ export function HistoricoEstudioPanel({
 }: {
   referencia: CalcMuestraReferenciaAsistencia;
 }) {
-  const { diseno, encuentros, cadena, cobertura, identidad, estudio, filtros_corte: filtros } = referencia;
+  const {
+    diseno, encuentros, cadena, cobertura, identidad, estudio,
+    filtros_corte: filtros, dimensiones,
+  } = referencia;
+  // Facultad primero: es la unidad de reparto del dimensionamiento.
+  const ordenDimension = ["facultad", "tamano", "rango_horario", "tipo_sesion"];
+  const dimensionesOrdenadas = [...dimensiones].sort(
+    (a, b) => ordenDimension.indexOf(a.dimension_key) - ordenDimension.indexOf(b.dimension_key),
+  );
   const conGlosario = cobertura.glosario_completo;
 
   // El embudo se arma sólo con lo observado. Cada arista nombra su merma: es la
@@ -174,7 +182,10 @@ export function HistoricoEstudioPanel({
               origen="motor"
             />
           </div>
-          <PanelAvanzado titulo="Parámetros del cálculo">
+          {/* ADR 0057: los parámetros no se pliegan. Son justo lo que permite
+              auditar de dónde salió el tamaño de muestra que se hereda. */}
+          <div className="cmv2-hist-params-wrap">
+            <span className="cmv2-eyebrow">Parámetros del cálculo</span>
             <dl className="cmv2-hist-params">
               <div><dt>Nivel de confianza</dt><dd>{pct(diseno.nivel_confianza)}</dd></div>
               <div><dt>Proporción esperada (p)</dt><dd>{diseno.proporcion_esperada ?? "—"}</dd></div>
@@ -189,7 +200,7 @@ export function HistoricoEstudioPanel({
                 <dd>{diseno.ponderado === null ? "—" : diseno.ponderado ? "Sí se aplicó" : "No aplica"}</dd>
               </div>
             </dl>
-          </PanelAvanzado>
+          </div>
         </div>
       ) : (
         <p className="cmv2-hist-nota" role="status">
@@ -275,6 +286,68 @@ export function HistoricoEstudioPanel({
           />
         </div>
       </div>
+
+      {/* 4 · El perfil que se hereda: por facultad primero, porque el
+          dimensionamiento reparte aulas por facultad y necesita SU tasa, no la
+          global. Las demás dimensiones acompañan, nunca se cruzan entre sí. */}
+      {dimensionesOrdenadas.map((dimension) => {
+        const filas = dimension.filas.filter((fila) => fila.k > 0);
+        if (!filas.length) return null;
+        const esFacultad = dimension.dimension_key === "facultad";
+        return (
+          <div className="cmv2-hist-bloque" key={dimension.dimension_key}>
+            <header className="cmv2-hist-bloque-head">
+              <span className="cmv2-eyebrow">
+                {esFacultad ? "El perfil que se hereda" : "Perfil complementario"}
+              </span>
+              <h4>Por {dimension.dimension_label.toLowerCase()}</h4>
+              {esFacultad ? (
+                <p>
+                  Cada facultad rindió distinto, y el dimensionamiento reparte aulas por
+                  facultad: esta es la tasa que hereda cada una. Donde hubo pocas aulas la
+                  celda publica la global y lo dice.
+                </p>
+              ) : null}
+            </header>
+            <table className="cmv2-hist-perfil" data-destacada={esFacultad ? "si" : undefined}>
+              <thead>
+                <tr>
+                  <th scope="col">{dimension.dimension_label}</th>
+                  <th scope="col">Aulas</th>
+                  <th scope="col">Elegibles</th>
+                  <th scope="col">Asistentes</th>
+                  <th scope="col">Tasa</th>
+                  <th scope="col">IC 95%</th>
+                  <th scope="col">Publica</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((fila) => (
+                  <tr key={fila.celda_key} data-degradada={fila.fuente_publicada === "global" ? "si" : undefined}>
+                    <th scope="row">{fila.celda_label}</th>
+                    <td>{fmtInt(fila.k)}</td>
+                    <td>{num(fila.matriculados)}</td>
+                    <td>{num(fila.asistentes)}</td>
+                    <td className="cmv2-hist-perfil-tasa">{pct(fila.tasa)}</td>
+                    <td>
+                      {fila.ic_low !== null && fila.ic_high !== null
+                        ? `${pct(fila.ic_low)}–${pct(fila.ic_high)}`
+                        : "—"}
+                    </td>
+                    <td>
+                      {fila.fuente_publicada === "celda"
+                        ? "su tasa"
+                        : fila.fuente_publicada === "global"
+                          ? `global · k=${fmtInt(fila.k)}`
+                          : "no publica"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
 
       {/* Filtros declarados: qué cortaba el instrumento y cómo contó cada corte */}
       {filtros.length > 0 ? (

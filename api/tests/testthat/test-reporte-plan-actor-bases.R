@@ -174,12 +174,14 @@ test_that("modo var cualificado conserva actor y rango efectivo", {
   expect_false(expected %in% .actor_base_plot_text(out$rendered[[1]]))
   # B52/W-4: cada bloque Word rotula su base con el formato prorrateado por
   # fuente del PPT (reporte multifuente => «N fuente»), no el actor-caption.
+  # B56/W-8: q1 tiene no-respuesta (12 y 18 validas de 24), asi que su base
+  # reducida declara el criterio; q2 responde completo y queda sin marca.
   expect_equal(
     vapply(out$render_meta, `[[`, character(1), "base"),
     c(
-      "Base: 12 administrativos",
+      "Base: 12 administrativos (respuestas válidas)",
       "Base: 24 administrativos",
-      "Base: 18 docentes"
+      "Base: 18 docentes (respuestas válidas)"
     )
   )
 })

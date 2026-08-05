@@ -3469,20 +3469,13 @@ reporte_ppt_plan <- function(
     excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
     if (!nrow(tab2)) return(NULL)
+    reducida <- (excluded_any || .reporte_plan_base_na_reducida(N_total, tryCatch(.filter_data(filtros, source = ctx_base$source), error = function(e) NULL))) && !.reporte_plan_is_select_multiple(var)
     if ((excluded_any && !.reporte_plan_is_select_multiple(var)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
     if (!is.finite(N_total)) return(NULL)
 
-    N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
-
-    # SOLO AUTO: sufijo opcional
-    suf <- NULL
-    if (!is.null(sufijo_auto) && is.character(sufijo_auto) && length(sufijo_auto) == 1L) {
-      sufijo_auto <- trimws(sufijo_auto)
-      if (nzchar(sufijo_auto)) suf <- sufijo_auto
-    }
-
-    base_core <- if (is.null(suf)) N_pretty else paste(N_pretty, suf)
-    sprintf(formato, base_core)
+    # B56/W-8: composicion (N + sufijo_auto + marca de criterio cuando la
+    # exclusion redujo el denominador) delegada a reporte_plan_base_criterio.R.
+    .reporte_plan_base_componer_nota(N_total, sufijo_auto, formato, reducida)
   }
 
   .base_auto_from_refs <- function(refs, filtros = list(), sufijo_auto = NULL, formato = "Base: %s", excluir_opciones = NULL) {
@@ -3526,11 +3519,12 @@ reporte_ppt_plan <- function(
         excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
         if (!nrow(tab2)) return(NULL)
+        reducida <- (excluded_any || .reporte_plan_base_na_reducida(N_total, tryCatch(.filter_data(filtros, source = src), error = function(e) NULL))) && !.reporte_plan_is_select_multiple(first_ref, source = src)
         if ((excluded_any && !.reporte_plan_is_select_multiple(first_ref, source = src)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
         if (!is.finite(N_total)) return(NULL)
 
         N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
-        return(sprintf(formato, .fmt_base_part(N_pretty, src)))
+        return(sprintf(formato, .reporte_plan_base_marca_criterio(.fmt_base_part(N_pretty, src), reducida)))
       }
 
       return(.base_auto_from_var(
@@ -3543,6 +3537,7 @@ reporte_ppt_plan <- function(
     }
 
     parts <- character(0)
+    alguna_reducida <- FALSE
     for (src in srcs_used) {
       idx <- which(vapply(ctxs, `[[`, character(1), "source") == src)[1]
       ref_src <- refs[idx]
@@ -3562,8 +3557,10 @@ reporte_ppt_plan <- function(
       excluded_any <- isTRUE(attr(tab2, "excluded_any", exact = TRUE))
 
       if (!nrow(tab2)) next
+      reducida <- (excluded_any || .reporte_plan_base_na_reducida(N_total, tryCatch(.filter_data(filtros, source = src), error = function(e) NULL))) && !.reporte_plan_is_select_multiple(ref_src, source = src)
       if ((excluded_any && !.reporte_plan_is_select_multiple(ref_src, source = src)) || !is.finite(N_total)) N_total <- sum(tab2$n, na.rm = TRUE)
       if (!is.finite(N_total)) next
+      alguna_reducida <- alguna_reducida || reducida
 
       N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
       parts <- c(parts, .fmt_base_part(N_pretty, src))
@@ -3577,7 +3574,7 @@ reporte_ppt_plan <- function(
     } else {
       paste0(paste(parts[-length(parts)], collapse = ", "), " y ", parts[length(parts)])
     }
-    sprintf(formato, base_core)
+    sprintf(formato, .reporte_plan_base_marca_criterio(base_core, alguna_reducida))
   }
 
   # Caption "Base: N" degradable: si el calculo falla por datos, la lamina sale

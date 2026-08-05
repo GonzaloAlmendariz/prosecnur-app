@@ -1,85 +1,41 @@
 /**
- * Pestaña «Histórico» (sección Datos): la base de un estudio ya aplicado que se
- * usa como referencia de asistencia.
+ * Pestaña «Histórico» (sección Datos): qué dejó el estudio que ya se aplicó.
  *
  * G42 · Gonzalo: «falta la pestaña para agregar la base de monitoreo del año
  * pasado para tenerlo como histórico».
  *
- * El motor ya sabía leerla —calcula tasas por celda, sus intervalos y las anclas
- * que el mínimo de elegibles usa— pero la carga vivía como una tarjeta más al
- * final de Fuentes, entre las bases que SÍ construyen el marco. Ahí no se
- * encuentra y, peor, se lee como si fuera otra fuente del marco: no lo es. No
- * entra al marco vigente ni cambia el número de cursos-horario a seleccionar;
- * sólo transfiere tasas agregadas de un estudio anterior.
+ * G44 · Segunda pasada. La primera versión ponía aquí la carga del archivo, y
+ * eso estaba mal por partida doble: la base histórica ya se sube en Fuentes
+ * —donde se suben todas—, y repetir el uploader hacía que esta pestaña se
+ * leyera como un trámite. Gonzalo: «lo que tenemos que ver en histórico es toda
+ * la información rica que hemos recolectado, de forma elegante, gráfica,
+ * visual, que es como se caracteriza todo este módulo».
  *
- * Por eso tiene pestaña propia y no una sección dentro de Fuentes: es una
- * decisión distinta, opcional, y con su propia lectura (cobertura, tramos y
- * celdas que publican global por k insuficiente).
+ * Entonces esta pestaña no carga nada: **lee**. Muestra el estudio previo como
+ * lo que es —un diseño que se decidió y un campo que ocurrió— para que quien
+ * dimensiona el estudio nuevo sepa de dónde sale cada tasa que va a heredar.
+ * El detalle por celda (tamaño, rango horario, facultad, tipo de sesión) sigue
+ * en `ReferenciaAsistenciaCard`, debajo de la lectura del estudio.
+ *
+ * No entra al marco vigente ni cambia el número de cursos-horario a
+ * seleccionar; sólo transfiere tasas agregadas de un estudio anterior.
  */
 import type {
   CalcMuestraAulasState,
   CalcMuestraReferenciaAsistencia,
-  CalcMuestraWorkspace,
-  CalcMuestraWorkspaceSourceBinding,
 } from "../../../../api/client";
-import {
-  ensureUniversitySourceBindings,
-  sourceBindingPatchForSheet,
-} from "../shared/categorias";
 import { AvisoModulo } from "../shared/AvisoModulo";
-import { BaseUploadCard } from "./DefBasesTab";
+import { HistoricoEstudioPanel } from "./HistoricoEstudioPanel";
 import { ReferenciaAsistenciaCard } from "./ReferenciaAsistenciaCard";
 
 export function DefHistoricoTab({
-  workspace,
   aulasState,
   referencia,
-  onWorkspace,
-  onSourceUpload,
-  onReferenceSheetChange,
-  uploadingSourceId,
 }: {
-  workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
   referencia: CalcMuestraReferenciaAsistencia | null;
-  onWorkspace: (workspace: CalcMuestraWorkspace) => void;
-  onSourceUpload: (
-    binding: CalcMuestraWorkspaceSourceBinding,
-    file: File,
-  ) => void | Promise<void>;
-  onReferenceSheetChange: (
-    binding: CalcMuestraWorkspaceSourceBinding,
-    workspace: CalcMuestraWorkspace,
-  ) => void | Promise<void>;
-  uploadingSourceId: string | null;
 }) {
-  const sourceMode = workspace.source_mode ?? "base_madre";
-  const allBindings = ensureUniversitySourceBindings(sourceMode, workspace.source_bindings);
-  const binding = allBindings.find(
-    (item: CalcMuestraWorkspaceSourceBinding) => item.role === "referencia_asistencia",
-  ) ?? null;
   const marcoConstruido = Boolean(aulasState?.frame);
-
-  function updateSheet(id: string, sheetName: string) {
-    const target = allBindings.find((item: CalcMuestraWorkspaceSourceBinding) => item.id === id);
-    if (!target) return;
-    const patch = (target.available_sheets ?? []).length > 0
-      ? sourceBindingPatchForSheet(target, sheetName)
-      : { sheet_name: sheetName };
-    const nextBinding = { ...target, ...patch };
-    const nextWorkspace: CalcMuestraWorkspace = {
-      ...workspace,
-      source_bindings: allBindings.map((item: CalcMuestraWorkspaceSourceBinding) =>
-        (item.id === id ? nextBinding : item)),
-    };
-    // Cambiar la hoja de esta base cambia lo que se leyó: el motor la recalcula
-    // en cuanto hay archivo. Sin eso la tarjeta enseñaría tasas de la hoja vieja.
-    if (nextBinding.file_id) {
-      void onReferenceSheetChange(nextBinding, nextWorkspace);
-      return;
-    }
-    onWorkspace(nextWorkspace);
-  }
 
   return (
     <section
@@ -89,23 +45,15 @@ export function DefHistoricoTab({
       data-qa-geometry-contract="intrinsic"
       aria-label="Base histórica de referencia"
     >
-      {binding ? (
-        <BaseUploadCard
-          binding={binding}
-          index={0}
-          isUploading={uploadingSourceId === binding.id}
-          gated={false}
-          filasMotor={0}
-          onUpload={(next: CalcMuestraWorkspaceSourceBinding, file: File) =>
-            void onSourceUpload(next, file)}
-          onSheet={updateSheet}
-        />
-      ) : null}
+      {referencia ? <HistoricoEstudioPanel referencia={referencia} /> : null}
       <ReferenciaAsistenciaCard referencia={referencia} />
-      {!referencia && !marcoConstruido ? (
+      {!referencia ? (
+        // C3: sin base cargada la pestaña dice dónde se carga, en vez de
+        // ofrecer un segundo uploader que compita con Fuentes.
         <AvisoModulo tone="info" role="status" compact>
-          Puedes declararla ahora o más tarde: el marco se construye sin ella, y al cargarla
-          se calibra sobre el marco vigente.
+          {marcoConstruido
+            ? "Sube la base del estudio anterior en Fuentes y su lectura aparecerá aquí."
+            : "Puedes declararla ahora o más tarde: se sube en Fuentes, el marco se construye sin ella y al cargarla se calibra sobre el marco vigente."}
         </AvisoModulo>
       ) : null}
     </section>

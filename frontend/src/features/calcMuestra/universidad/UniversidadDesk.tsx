@@ -424,14 +424,10 @@ export function UniversidadDesk({
               <ExploradorBasesTab aulasState={aulasState} workspace={syncedWorkspace} />
             </div>}
             {showLocalTab("def-historico") && <div id="cmv2-local-def-historico" className="cmv2-definition-stack">
+              {/* G44: Histórico sólo lee. La base se sube en Fuentes. */}
               <DefHistoricoTab
-                workspace={syncedWorkspace}
                 aulasState={aulasState}
                 referencia={referenciaAsistencia}
-                onWorkspace={onWorkspace}
-                onSourceUpload={onSourceUpload}
-                onReferenceSheetChange={onReferenceSheetChange}
-                uploadingSourceId={uploadingSourceId}
               />
             </div>}
             {showLocalTab("def-variables") && <div id="cmv2-local-def-variables" className="cmv2-definition-stack">

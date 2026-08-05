@@ -241,6 +241,15 @@
   background: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 12%, transparent);
 }
 
+.cmv2-expb-pie {
+  margin: 12px 8px 4px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-subtle);
+}
+
 .cmv2-expb-sin-match {
   margin: 10px 8px;
   font-size: 11.5px;
