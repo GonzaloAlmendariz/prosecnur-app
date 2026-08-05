@@ -2799,7 +2799,11 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     !isNonNegativeCountOrNull(globalNoRespondieron) ||
     globalK !== cobertura.observados ||
     globalK !== asistencia.k ||
-    globalMatriculados !== asistencia.denominador ||
+    // ADR 0060: `global.matriculados` es la matrícula del aula, que es lo que
+    // usan las celdas por dimensión. Con el glosario, en cambio, la asistencia
+    // se mide sobre ELEGIBLES, así que los dos denominadores dejan de coincidir
+    // legítimamente. Sólo se exige la igualdad en la lectura heredada.
+    (!glosarioCompleto && globalMatriculados !== asistencia.denominador) ||
     globalAsistentes !== asistencia.numerador ||
     globalEnviadas !== apertura.numerador ||
     globalValidas !== efectividad.numerador ||

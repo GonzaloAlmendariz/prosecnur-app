@@ -1,0 +1,288 @@
+/* ADR 0060 · lectura del estudio histórico.
+   Tres bloques en secuencia —planeado, ocurrido, transferible— con el lenguaje
+   del desk: cifras con procedencia, flujo con mermas nombradas y razones que
+   muestran su denominador. */
+
+.cmv2-hist-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-4);
+  min-width: 0;
+}
+
+.cmv2-hist-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  padding: var(--cmv2-space-4);
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-lg);
+  background: var(--cmv2-surface);
+  min-width: 0;
+}
+
+.cmv2-hist-bloque-head h4 {
+  margin: 2px 0 0;
+  font-size: var(--pulso-font-md);
+  font-weight: 600;
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-hist-bloque-head p {
+  margin: 6px 0 0;
+  max-width: 74ch;
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--cmv2-space-3);
+}
+
+.cmv2-hist-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--cmv2-space-2) var(--cmv2-space-4);
+  margin: 0;
+}
+
+.cmv2-hist-params > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cmv2-space-2);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--cmv2-border);
+}
+
+.cmv2-hist-params dt {
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-params dd {
+  margin: 0;
+  font-size: var(--pulso-font-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-hist-cobertura {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-3);
+  padding-top: var(--cmv2-space-2);
+  border-top: 1px solid var(--cmv2-border);
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-cobertura strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-strong);
+}
+
+/* Cada tramo muestra su razón: la tasa sin denominador no se puede auditar. */
+.cmv2-hist-tramos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--cmv2-space-2);
+}
+
+.cmv2-hist-tramo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--cmv2-space-3);
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-md);
+  background: var(--pulso-surface-1);
+  min-width: 0;
+}
+
+.cmv2-hist-tramo header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmv2-hist-tramo header strong {
+  font-size: var(--pulso-font-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-hist-tramo-lectura {
+  margin: 0;
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-tramo footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--cmv2-border);
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-tramo-razon {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-hist-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-hist-filtros li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--cmv2-space-2);
+  padding: 6px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-sm);
+  background: var(--pulso-surface-1);
+  font-size: var(--pulso-font-xs);
+}
+
+.cmv2-hist-filtro-orden {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-filtro-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-hist-filtro-clase {
+  font-variant: small-caps;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-filtro-efecto {
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-filtros li[data-en-denominador="si"] .cmv2-hist-filtro-efecto {
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-hist-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: var(--cmv2-space-3);
+  border: 1px dashed var(--cmv2-border);
+  border-radius: var(--pulso-radius-md);
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-alertas {
+  padding: var(--cmv2-space-3);
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-fg) 35%, var(--cmv2-border));
+  border-radius: var(--pulso-radius-md);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, var(--cmv2-surface));
+}
+
+.cmv2-hist-alertas header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-warn-fg);
+  font-size: var(--pulso-font-xs);
+}
+
+.cmv2-hist-alertas ul {
+  margin: 6px 0 0;
+  padding-left: 22px;
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-params-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+  padding-top: var(--cmv2-space-2);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+/* Perfil por dimensión: la facultad se destaca porque es la unidad de reparto
+   del dimensionamiento; las demás acompañan sin competir. */
+.cmv2-hist-perfil {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--pulso-font-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-hist-perfil th,
+.cmv2-hist-perfil td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--cmv2-border);
+  white-space: nowrap;
+}
+
+.cmv2-hist-perfil thead th {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-perfil th:first-child,
+.cmv2-hist-perfil tbody th {
+  text-align: left;
+  white-space: normal;
+  font-weight: 500;
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-hist-perfil-tasa {
+  font-weight: 600;
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-hist-perfil[data-destacada="si"] .cmv2-hist-perfil-tasa {
+  font-size: var(--pulso-font-sm);
+}
+
+/* Una celda que publica la global no se disfraza: se marca. */
+.cmv2-hist-perfil tr[data-degradada="si"] td:last-child {
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-hist-perfil tbody tr:last-child th,
+.cmv2-hist-perfil tbody tr:last-child td {
+  border-bottom: 0;
+}
