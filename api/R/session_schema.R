@@ -351,10 +351,11 @@ session_schema <- function() {
 
     # --- Cálculo de muestra ---
     "calc_muestra_estudio",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
-    "calc_muestra_referencia_asistencia", "literal", "persistible", "router_calc_muestra.R", "session_set", "solo tabla agregada calibrada (celda/k/tasa/IC); sin filas por CH ni PII; fuente raw efímera no viaja",
+    "calc_muestra_referencia_asistencia", "literal", "persistible", "router_calc_muestra.R", "session_set", "agregados del estudio ANTERIOR: celda/k/tasa/IC, embudos, composicion, cuotas, serie semanal y cadenas de reemplazo (fila por cadena del historico, sin PII). La fuente raw no viaja y su binding queda pendiente, asi que si el agregado no se guarda la lectura se pierde y hay que volver a subir la base",
     "calc_muestra_reporte",        "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_config",   "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_criterios_contexto", "literal", "cache_stripped", "router_calc_muestra_criterios.R", "session_set", "contexto atomico estudiante x CH para preview; nunca viaja en .pulso",
+    "calc_muestra_explorador_cache", "literal", "cache_stripped", "project_pulso.R", "directa", "distribuciones por columna del Explorador; el save las resetea y se recalculan del marco",
     "calc_muestra_aulas_frame",    "literal", "persistible",    "router_calc_muestra.R", "session_set", "sanitizada en save: PII (unique_student_ids) y population/exclusions fuera",
     "calc_muestra_aulas_selection", "literal", "persistible",   "router_calc_muestra.R", "session_set", "sanitizada en save: PII (unique_student_ids) fuera",
     "calc_muestra_aulas_export",   "literal", "persistible",    "router_calc_muestra.R", "session_set", "",

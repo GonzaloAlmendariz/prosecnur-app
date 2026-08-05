@@ -1130,6 +1130,162 @@
   color: var(--cmv2-accent);
 }
 
+/* G53 · La aclaración del tiempo no es del mismo tipo que la del conteo: no
+   corrige una cifra, condiciona todas. Se marca en ámbar para que se lea como
+   advertencia de lectura y no como nota al pie. */
+.cmv2-hist-aclaracion[data-tono="tiempo"] {
+  border-left-color: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 55%, transparent);
+  background: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 8%, transparent);
+  margin-top: var(--cmv2-space-2);
+}
+
+.cmv2-hist-aclaracion[data-tono="tiempo"] b { color: var(--pulso-warn-fg, #b26a00); }
+
+/* ── La tasa que se hereda no es una constante ───────────────────────────── */
+
+/* G53 · Va dentro del chip de la cifra global, debajo de su definición: la
+   dispersión tiene que leerse a la vez que el número, no en otra vista. */
+.cmv2-hist-dispersion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--cmv2-space-2);
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-hist-dispersion-rotulo {
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-dispersion-serie {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 26px;
+}
+
+.cmv2-hist-dispersion-serie > span {
+  flex: 1;
+  min-width: 3px;
+  border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--cmv2-accent) 38%, transparent);
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+.cmv2-hist-dispersion-serie > span[data-extremo="max"] {
+  background: color-mix(in srgb, var(--cmv2-accent) 85%, transparent);
+}
+
+/* El mínimo en ámbar: es el tramo que la cifra global esconde. */
+.cmv2-hist-dispersion-serie > span[data-extremo="min"] {
+  background: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 70%, transparent);
+}
+
+.cmv2-hist-dispersion p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-dispersion p b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-dispersion p button {
+  display: inline;
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--cmv2-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.cmv2-hist-dispersion p button:hover { text-decoration-style: solid; }
+
+/* ── Titulares y reemplazos: cuándo ocurrió cada grupo ───────────────────── */
+
+.cmv2-hist-cuando {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-hist-cuando-par {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--cmv2-space-3);
+}
+
+.cmv2-hist-cuando-par > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 9px;
+  border-left: 2px solid var(--cmv2-border);
+}
+
+.cmv2-hist-cuando-par > span[data-rol="titular"] {
+  border-left-color: color-mix(in srgb, var(--cmv2-accent) 70%, transparent);
+}
+
+.cmv2-hist-cuando-par > span[data-rol="reemplazo"] {
+  border-left-color: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 60%, transparent);
+}
+
+.cmv2-hist-cuando-par small {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-cuando-par strong {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-cuando-par em {
+  font-style: normal;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-cuando > p {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-cuando > p b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
 /* Cómo se llenó la cuota: dos cifras grandes con la paleta de sexo y, debajo,
    la facultad que se quedó corta. Es la lectura que explica la ponderación. */
 .cmv2-hist-cuota-lectura {

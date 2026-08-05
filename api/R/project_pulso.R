@@ -93,7 +93,13 @@
     "key", "label", "k", "numerador", "denominador", "tasa", "ic_low",
     "ic_high", "metodo_ic"
   )
-  allowed <- c("asistencia", "completitud", "validez", "producto")
+  # `completitud`, `validez` y `producto` son los nombres v1; el ADR 0060 los
+  # reemplazó por apertura/efectividad/rendimiento. Se aceptan los dos juegos
+  # para que un `.pulso` guardado antes siga abriendo.
+  allowed <- c(
+    "asistencia", "completitud", "validez", "producto",
+    "apertura", "efectividad", "rendimiento"
+  )
   out <- list()
   for (key in intersect(allowed, names(value))) {
     segment <- value[[key]]
@@ -104,12 +110,167 @@
   out
 }
 
+# G53 · La lectura del histórico tiene que sobrevivir al guardado.
+#
+# La whitelist se quedó en la v1 y podaba, sin decirlo, todo lo que el ADR 0060
+# añadió: diseño, encuentros, embudos, composición, cuotas, serie de campo y
+# cadenas de reemplazo. El efecto era que al reabrir el proyecto la pestaña
+# Histórico volvía a su estado vacío —«sube la base del estudio anterior en
+# Fuentes»— y había que subirla otra vez.
+#
+# Y aquí no hay forma de recalcularlo: el archivo crudo de la referencia se
+# excluye a propósito del zip (`.pulso_sanitize_calc_muestra_reference_bindings`
+# deja el binding en «pendiente»), porque es la base de OTRO estudio. Si el
+# agregado no viaja, no viaja nada.
+#
+# Lo que viaja son agregados del estudio anterior: conteos por celda, por
+# criterio, por semana y por cadena. No hay filas por estudiante ni datos
+# personales; el curso-horario histórico es una etiqueta de aula de un año que
+# ya cerró.
+.pulso_sanitize_calc_muestra_asistencia_record <- function(value, fields) {
+  if (!is.list(value) && !is.data.frame(value)) return(NULL)
+  .pulso_whitelist_scalar_fields(value, fields)
+}
+
+.pulso_sanitize_calc_muestra_asistencia_records <- function(value, fields) {
+  filas <- lapply(
+    .pulso_record_list(value),
+    function(fila) .pulso_sanitize_calc_muestra_asistencia_record(fila, fields)
+  )
+  unname(Filter(Negate(is.null), filas))
+}
+
+.pulso_sanitize_calc_muestra_asistencia_embudo <- function(value) {
+  if (!is.list(value)) return(NULL)
+  out <- .pulso_whitelist_scalar_fields(
+    value,
+    c("dimension_key", "dimension_label", "orden")
+  )
+  out["filas"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(value$filas, c(
+    "celda_key", "celda_label", "k", "elegibles", "asistentes", "ya_medidas",
+    "no_elegibles", "elegibles_presentes", "efectivas", "no_efectivas",
+    "pct_ausencia", "pct_ya_medidas", "pct_rechazo", "efectividad", "rendimiento"
+  )))
+  out
+}
+
+.pulso_sanitize_calc_muestra_asistencia_composicion <- function(value) {
+  if (!is.list(value)) return(NULL)
+  out <- .pulso_whitelist_scalar_fields(
+    value,
+    c("criterio_key", "criterio_label", "orden")
+  )
+  out["categorias"] <- list(
+    .pulso_sanitize_calc_muestra_asistencia_records(value$categorias, c("categoria", "n", "pct"))
+  )
+  # El reparto es una lista de registros —una categoría por tramo de la barra—,
+  # no un vector de números: aplanarlo dejaba la barra apilada sin sus tramos y
+  # el normalizador del cliente rechazaba el payload entero al reabrir.
+  filas <- lapply(.pulso_record_list(value$filas), function(fila) {
+    if (!is.list(fila) && !is.data.frame(fila)) return(NULL)
+    out_fila <- .pulso_whitelist_scalar_fields(fila, c("facultad", "n"))
+    out_fila["reparto"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(
+      fila$reparto,
+      c("categoria", "n", "pct", "elegibles")
+    ))
+    out_fila
+  })
+  out["filas"] <- list(unname(Filter(Negate(is.null), filas)))
+  out
+}
+
+.pulso_sanitize_calc_muestra_asistencia_serie <- function(value) {
+  if (!is.list(value)) return(NULL)
+  out <- .pulso_whitelist_scalar_fields(value, "unidad")
+  out["filas"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(value$filas, c(
+    "semana", "etiqueta", "orden", "k", "elegibles", "ausentes", "asistentes",
+    "ya_medidas", "no_elegibles", "a_encuestar", "registros", "efectivas",
+    "no_efectivas", "efectivas_acumuladas", "asistencia", "pct_ya_medidas",
+    "efectividad", "efectividad_denominador", "rendimiento", "efectivas_por_aula"
+  )))
+  deriva <- value$deriva
+  if (is.list(deriva)) {
+    out_deriva <- .pulso_whitelist_scalar_fields(deriva, c(
+      "tramos", "tramos_medibles", "etiqueta_primera", "etiqueta_ultima",
+      "efectividad_primera", "efectividad_ultima",
+      "efectividad_min", "efectividad_min_etiqueta", "efectividad_min_k",
+      "efectividad_max", "efectividad_max_etiqueta", "efectividad_max_k",
+      "tramo_dominante", "peso_dominante", "ya_medidas_primera",
+      "ya_medidas_ultima", "agotamiento_crece", "por_aula_primera",
+      "por_aula_ultima"
+    ))
+    out_deriva["puntos"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(
+      deriva$puntos,
+      c("etiqueta", "k", "a_encuestar", "efectividad", "pct_ya_medidas")
+    ))
+    out["deriva"] <- list(out_deriva)
+  } else {
+    out["deriva"] <- list(NULL)
+  }
+  out
+}
+
+.pulso_sanitize_calc_muestra_asistencia_cuotas <- function(value) {
+  if (!is.list(value)) return(NULL)
+  out <- .pulso_whitelist_scalar_fields(value, c(
+    "unidad", "cuota_mujeres", "cuota_hombres", "logradas_mujeres",
+    "logradas_hombres", "cumplimiento_mujeres", "cumplimiento_hombres"
+  ))
+  out["filas"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(value$filas, c(
+    "facultad", "aulas", "cuota_total", "cuota_mujeres", "cuota_hombres",
+    "logradas", "logradas_mujeres", "logradas_hombres", "cumplimiento",
+    "cumplimiento_mujeres", "cumplimiento_hombres"
+  )))
+  out
+}
+
+.pulso_sanitize_calc_muestra_asistencia_cadenas <- function(value) {
+  if (!is.list(value)) return(NULL)
+  out <- .pulso_whitelist_scalar_fields(value, c(
+    "unidad", "cadenas_declaradas", "cadenas_resueltas", "resueltas_con_titular",
+    "resueltas_con_reemplazo", "profundidad_maxima"
+  ))
+  for (grupo in c("titulares", "reemplazos")) {
+    out[grupo] <- list(if (is.list(value[[grupo]])) {
+      .pulso_whitelist_scalar_fields(
+        value[[grupo]],
+        c("aplicados", "semana_media", "efectivas", "rendimiento")
+      )
+    } else NULL)
+  }
+  out["motivos"] <- list(
+    .pulso_sanitize_calc_muestra_asistencia_records(value$motivos, c("motivo", "codigo", "n", "orden"))
+  )
+  filas <- lapply(.pulso_record_list(value$filas), function(fila) {
+    if (!is.list(fila) && !is.data.frame(fila)) return(NULL)
+    out_fila <- .pulso_whitelist_scalar_fields(fila, c(
+      "cadena", "facultad", "titular", "nombre_curso", "horario",
+      "efectivas_mujeres", "efectivas_hombres", "escalones_trabajados",
+      "aplicados", "resuelta_en", "semana_inicio", "semana_fin",
+      "efectivas", "elegibles", "rendimiento"
+    ))
+    out_fila["escalones"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(
+      fila$escalones,
+      c(
+        "posicion", "semana", "rol", "curso_horario", "estado", "efectivas",
+        "efectivas_mujeres", "efectivas_hombres", "elegibles", "rendimiento",
+        "motivo", "motivo_codigo"
+      )
+    ))
+    out_fila
+  })
+  out["filas"] <- list(unname(Filter(Negate(is.null), filas)))
+  out
+}
+
 .pulso_sanitize_calc_muestra_asistencia <- function(value) {
   if (!is.list(value)) return(NULL)
   root_fields <- c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
-    "unidad", "denominador", "estudio", "cobertura", "identidad", "umbrales",
-    "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
+    "unidad", "denominador", "estudio", "diseno", "filtros_corte", "cobertura",
+    "encuentros", "embudos", "composicion", "cuotas", "serie_campo",
+    "cadenas_reemplazo", "identidad", "umbrales", "cadena", "global",
+    "dimensiones", "advertencias", "celdas_criterios"
   )
   out <- stats::setNames(vector("list", length(root_fields)), root_fields)
   for (field in root_fields[seq_len(8L)]) {
@@ -119,13 +280,65 @@
     value$estudio,
     c("id", "label", "periodo", "fuente")
   ))
-  out["cobertura"] <- list(.pulso_whitelist_scalar_fields(
-    value$cobertura,
-    c("agendados", "aplicados", "observados")
+  out["diseno"] <- list(.pulso_whitelist_scalar_fields(
+    value$diseno,
+    c(
+      "poblacion_objetivo", "nivel_confianza", "proporcion_esperada",
+      "margen_error", "deff", "muestra", "ratio_sobremuestra", "sobremuestra",
+      "aulas_marco", "aulas_dimensionadas", "aulas_aplicadas",
+      "tasa_respuesta_asumida", "efectivas_logradas", "base_analitica",
+      "casos_recortados", "ponderacion_alcance", "afijacion",
+      "metodo_seleccion", "metodo_ajuste", "ponderado", "declarado"
+    )
   ))
+  out["filtros_corte"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(
+    value$filtros_corte,
+    c("id", "etiqueta", "columna", "condicion", "clase", "origen", "orden", "en_denominador")
+  ))
+  out["cobertura"] <- list(local({
+    cobertura <- .pulso_whitelist_scalar_fields(
+      value$cobertura,
+      c("agendados", "aplicados", "observados", "glosario_completo")
+    )
+    # Las dos listas de columnas son vectores, no escalares: la whitelist de
+    # escalares las dejaría en NULL y el aviso de glosario incompleto perdería
+    # justo lo que tiene que nombrar.
+    for (campo in c("columnas_glosario", "columnas_criterio")) {
+      columnas <- value$cobertura[[campo]]
+      if (is.list(columnas)) columnas <- unlist(columnas, use.names = FALSE)
+      cobertura[campo] <- list(if (length(columnas)) as.list(as.character(columnas)) else list())
+    }
+    cobertura
+  }))
+  out["encuentros"] <- list(if (is.list(value$encuentros)) {
+    .pulso_whitelist_scalar_fields(
+      value$encuentros,
+      c(
+        "elegibles", "asistentes", "ya_medidas", "no_elegibles",
+        "elegibles_presentes", "efectivas", "no_efectivas", "no_realizadas",
+        "presentes_no_contados", "unidades_publicables",
+        "unidades_con_residual_negativo"
+      )
+    )
+  } else NULL)
+  embudos <- lapply(
+    .pulso_record_list(value$embudos),
+    .pulso_sanitize_calc_muestra_asistencia_embudo
+  )
+  out["embudos"] <- list(unname(Filter(Negate(is.null), embudos)))
+  composicion <- lapply(
+    .pulso_record_list(value$composicion),
+    .pulso_sanitize_calc_muestra_asistencia_composicion
+  )
+  out["composicion"] <- list(unname(Filter(Negate(is.null), composicion)))
+  out["cuotas"] <- list(.pulso_sanitize_calc_muestra_asistencia_cuotas(value$cuotas))
+  out["serie_campo"] <- list(.pulso_sanitize_calc_muestra_asistencia_serie(value$serie_campo))
+  out["cadenas_reemplazo"] <- list(
+    .pulso_sanitize_calc_muestra_asistencia_cadenas(value$cadenas_reemplazo)
+  )
   out["identidad"] <- list(.pulso_whitelist_scalar_fields(
     value$identidad,
-    c("regla", "verificada", "verificables", "inconsistentes")
+    c("regla", "verificada", "verificables", "inconsistentes", "residuales_negativos")
   ))
   out["umbrales"] <- list(.pulso_whitelist_scalar_fields(
     value$umbrales,

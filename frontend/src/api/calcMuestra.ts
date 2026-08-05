@@ -2463,13 +2463,59 @@ export type CalcMuestraReferenciaAsistenciaSemana = {
   asistencia: number | null;
   pct_ya_medidas: number | null;
   efectividad: number | null;
+  /**
+   * Sobre qué se midió la efectividad de esa semana. Es el mismo denominador
+   * que usa la cadena global —presentes a encuestar con glosario, registros sin
+   * él—, para que la cifra semanal y la publicada sean la misma métrica.
+   */
+  efectividad_denominador: number | null;
   rendimiento: number | null;
   efectivas_por_aula: number | null;
+};
+
+/**
+ * Cuánto se movió la tasa a lo largo del campo.
+ *
+ * G53 · Existe porque la tasa que se hereda es un promedio y la superficie la
+ * mostraba como una constante. En 2025 la efectividad global (74,6 %) es un
+ * ponderado que la semana 1 domina con el 47 % del denominador, mientras el
+ * rango real va de 56 % a 80 %.
+ */
+export type CalcMuestraReferenciaAsistenciaDeriva = {
+  tramos: number;
+  tramos_medibles: number;
+  etiqueta_primera: string;
+  etiqueta_ultima: string;
+  efectividad_primera: number | null;
+  efectividad_ultima: number | null;
+  efectividad_min: number | null;
+  efectividad_min_etiqueta: string;
+  efectividad_min_k: number | null;
+  efectividad_max: number | null;
+  efectividad_max_etiqueta: string;
+  efectividad_max_k: number | null;
+  /** El tramo que más pesa en el promedio global, y cuánto pesa. */
+  tramo_dominante: string;
+  peso_dominante: number | null;
+  ya_medidas_primera: number | null;
+  ya_medidas_ultima: number | null;
+  /** Si el marco se fue agotando: cada semana llegó más gente ya medida. */
+  agotamiento_crece: boolean;
+  por_aula_primera: number | null;
+  por_aula_ultima: number | null;
+  puntos: Array<{
+    etiqueta: string;
+    k: number;
+    a_encuestar: number | null;
+    efectividad: number | null;
+    pct_ya_medidas: number | null;
+  }>;
 };
 
 export type CalcMuestraReferenciaAsistenciaSerieCampo = {
   unidad: "semana_de_campo";
   filas: CalcMuestraReferenciaAsistenciaSemana[];
+  deriva: CalcMuestraReferenciaAsistenciaDeriva | null;
 };
 
 /**
@@ -2479,6 +2525,13 @@ export type CalcMuestraReferenciaAsistenciaSerieCampo = {
  */
 export type CalcMuestraReferenciaAsistenciaEscalon = {
   posicion: number;
+  /**
+   * En qué semana se aplicó. Sólo la trae el escalón aplicado: una reserva que
+   * nadie contactó no ocurrió en ninguna semana. Con ella se ve que un reemplazo
+   * no es sólo un escalón más, sino un aula aplicada más tarde, cuando el marco
+   * ya estaba más agotado.
+   */
+  semana: number | null;
   /** «Titular», «Reemplazo 1», «Reemplazo 2»… */
   rol: string;
   curso_horario: string;
@@ -2508,8 +2561,20 @@ export type CalcMuestraReferenciaAsistenciaCadenaSeleccion = {
   aplicados: number;
   /** Escalón en el que se resolvió; null si la cadena nunca se resolvió. */
   resuelta_en: number | null;
+  /** Ventana en la que esta cadena ocurrió de verdad. */
+  semana_inicio: number | null;
+  semana_fin: number | null;
   efectivas: number | null;
   elegibles: number | null;
+  rendimiento: number | null;
+};
+
+/** Cuándo se aplicó un grupo de escalones y qué rindió. */
+export type CalcMuestraReferenciaAsistenciaPerfilEscalones = {
+  aplicados: number;
+  /** Semana media de aplicación: los reemplazos ocurren más tarde. */
+  semana_media: number | null;
+  efectivas: number | null;
   rendimiento: number | null;
 };
 
@@ -2525,6 +2590,13 @@ export type CalcMuestraReferenciaAsistenciaCadenasReemplazo = {
   resueltas_con_titular: number;
   resueltas_con_reemplazo: number;
   profundidad_maxima: number;
+  /**
+   * Titulares y reemplazos comparados como dos grupos. Responde lo que la
+   * matriz sola no puede: si los reemplazos se aplicaron más tarde y si eso se
+   * notó en lo que rindieron.
+   */
+  titulares: CalcMuestraReferenciaAsistenciaPerfilEscalones | null;
+  reemplazos: CalcMuestraReferenciaAsistenciaPerfilEscalones | null;
   motivos: { motivo: string; codigo: string; n: number; orden: number }[];
   filas: CalcMuestraReferenciaAsistenciaCadenaSeleccion[];
 };
@@ -2714,18 +2786,23 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       asText(root.denominador) !== "matriculados_totales")
   ) return null;
 
+  /*
+   * G53 · Los metadatos del estudio son etiquetas, no datos.
+   *
+   * Exigir id, label y fuente no vacíos tiraba el payload ENTERO cuando el
+   * proyecto todavía no tenía título: `{id: "", label: "Estudio sin título",
+   * periodo: "", fuente: ""}` devolvía null y la pestaña Histórico mostraba
+   * «sube la base del estudio anterior en Fuentes» con la lectura completa ya
+   * calculada en la sesión. Un rótulo vacío no invalida 194 aulas medidas: se
+   * degrada a vacío y la superficie pone su propio texto.
+   */
   const studyRecord = asRecord(root.estudio);
   if (!studyRecord) return null;
-  const studyId = asText(studyRecord.id);
-  const studyLabel = asText(studyRecord.label);
-  const studyPeriod = asText(studyRecord.periodo, true);
-  const studySource = asText(studyRecord.fuente);
-  if (!studyId || !studyLabel || studyPeriod === null || !studySource) return null;
   const estudio: CalcMuestraReferenciaAsistenciaEstudio = {
-    id: studyId,
-    label: studyLabel,
-    periodo: studyPeriod,
-    fuente: studySource,
+    id: asText(studyRecord.id, true) ?? "",
+    label: asText(studyRecord.label, true) ?? "",
+    periodo: asText(studyRecord.periodo, true) ?? "",
+    fuente: asText(studyRecord.fuente, true) ?? "",
   };
 
   const coverageRecord = asRecord(root.cobertura);
@@ -3270,6 +3347,24 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     const record = asRecord(value);
     return record && Object.keys(record).length > 0 ? record : null;
   };
+  const perfilEscalones = (
+    value: unknown,
+  ): CalcMuestraReferenciaAsistenciaPerfilEscalones | null => {
+    const record = bloque(value);
+    if (!record) return null;
+    const aplicados = asNonNegativeInteger(record.aplicados);
+    if (aplicados === INVALID_NUMBER) return null;
+    const num = (raw: unknown): number | null => {
+      const parsed = asFiniteOrNull(raw);
+      return parsed === INVALID_NUMBER ? null : parsed;
+    };
+    return {
+      aplicados,
+      semana_media: num(record.semana_media),
+      efectivas: num(record.efectivas),
+      rendimiento: num(record.rendimiento),
+    };
+  };
   const encuentrosRecord = bloque(root.encuentros);
   let encuentros: CalcMuestraReferenciaAsistenciaEncuentros | null = null;
   if (encuentrosRecord) {
@@ -3442,12 +3537,63 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         efectivas: n(w.efectivas), no_efectivas: n(w.no_efectivas),
         efectivas_acumuladas: n(w.efectivas_acumuladas),
         asistencia: n(w.asistencia), pct_ya_medidas: n(w.pct_ya_medidas),
-        efectividad: n(w.efectividad), rendimiento: n(w.rendimiento),
+        efectividad: n(w.efectividad),
+        efectividad_denominador: n(w.efectividad_denominador),
+        rendimiento: n(w.rendimiento),
         efectivas_por_aula: n(w.efectivas_por_aula),
       });
     }
     if (!semanas.length) return null;
-    serieCampo = { unidad: "semana_de_campo", filas: semanas };
+
+    // La deriva es opcional: una base con un solo tramo medible no la trae, y
+    // su ausencia sólo significa que no hay dispersión que declarar.
+    let deriva: CalcMuestraReferenciaAsistenciaDeriva | null = null;
+    const derivaRecord = bloque(serieRecord.deriva);
+    if (derivaRecord) {
+      const n = (value: unknown): number | null => {
+        const parsed = asFiniteOrNull(value);
+        return parsed === INVALID_NUMBER ? null : parsed;
+      };
+      const tramos = asNonNegativeInteger(derivaRecord.tramos);
+      const medibles = asNonNegativeInteger(derivaRecord.tramos_medibles);
+      if (tramos !== INVALID_NUMBER && medibles !== INVALID_NUMBER) {
+        const puntos: CalcMuestraReferenciaAsistenciaDeriva["puntos"] = [];
+        for (const rawPunto of asList(derivaRecord.puntos)) {
+          const p = asRecord(rawPunto);
+          if (!p) continue;
+          const k = asNonNegativeInteger(p.k);
+          puntos.push({
+            etiqueta: asText(p.etiqueta, true) ?? "",
+            k: k === INVALID_NUMBER ? 0 : k,
+            a_encuestar: n(p.a_encuestar),
+            efectividad: n(p.efectividad),
+            pct_ya_medidas: n(p.pct_ya_medidas),
+          });
+        }
+        deriva = {
+          tramos, tramos_medibles: medibles,
+          etiqueta_primera: asText(derivaRecord.etiqueta_primera, true) ?? "",
+          etiqueta_ultima: asText(derivaRecord.etiqueta_ultima, true) ?? "",
+          efectividad_primera: n(derivaRecord.efectividad_primera),
+          efectividad_ultima: n(derivaRecord.efectividad_ultima),
+          efectividad_min: n(derivaRecord.efectividad_min),
+          efectividad_min_etiqueta: asText(derivaRecord.efectividad_min_etiqueta, true) ?? "",
+          efectividad_min_k: n(derivaRecord.efectividad_min_k),
+          efectividad_max: n(derivaRecord.efectividad_max),
+          efectividad_max_etiqueta: asText(derivaRecord.efectividad_max_etiqueta, true) ?? "",
+          efectividad_max_k: n(derivaRecord.efectividad_max_k),
+          tramo_dominante: asText(derivaRecord.tramo_dominante, true) ?? "",
+          peso_dominante: n(derivaRecord.peso_dominante),
+          ya_medidas_primera: n(derivaRecord.ya_medidas_primera),
+          ya_medidas_ultima: n(derivaRecord.ya_medidas_ultima),
+          agotamiento_crece: derivaRecord.agotamiento_crece === true,
+          por_aula_primera: n(derivaRecord.por_aula_primera),
+          por_aula_ultima: n(derivaRecord.por_aula_ultima),
+          puntos,
+        };
+      }
+    }
+    serieCampo = { unidad: "semana_de_campo", filas: semanas, deriva };
   }
 
   let cadenasReemplazo: CalcMuestraReferenciaAsistenciaCadenasReemplazo | null = null;
@@ -3506,8 +3652,10 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         const estado = asText(e.estado);
         if (posicion === INVALID_NUMBER || !rol || !cursoHorario) return null;
         if (estado !== "aplicado" && estado !== "cayo" && estado !== "reserva") return null;
+        const semanaEscalon = asFiniteOrNull(e.semana);
         escalones.push({
           posicion, rol, curso_horario: cursoHorario, estado,
+          semana: semanaEscalon === INVALID_NUMBER ? null : semanaEscalon,
           efectivas: n(e.efectivas),
           efectivas_mujeres: n(e.efectivas_mujeres), efectivas_hombres: n(e.efectivas_hombres),
           elegibles: n(e.elegibles), rendimiento: n(e.rendimiento),
@@ -3525,6 +3673,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         escalones,
         escalones_trabajados: trabajados, aplicados,
         resuelta_en: resueltaEn === INVALID_NUMBER ? null : resueltaEn,
+        semana_inicio: n(f.semana_inicio), semana_fin: n(f.semana_fin),
         efectivas: n(f.efectivas), elegibles: n(f.elegibles), rendimiento: n(f.rendimiento),
       });
     }
@@ -3536,6 +3685,8 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       resueltas_con_titular: leidos.resueltas_con_titular,
       resueltas_con_reemplazo: leidos.resueltas_con_reemplazo,
       profundidad_maxima: leidos.profundidad_maxima,
+      titulares: perfilEscalones(cadenasRecord.titulares),
+      reemplazos: perfilEscalones(cadenasRecord.reemplazos),
       motivos, filas,
     };
   }

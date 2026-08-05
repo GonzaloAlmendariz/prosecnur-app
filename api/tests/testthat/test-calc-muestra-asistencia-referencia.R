@@ -871,6 +871,156 @@ test_that("la serie semanal publica sus bases y las cadenas su historia", {
   }
 })
 
+# G53 · Gonzalo: «hay que tomar el porcentaje de efectividad with a grain of
+# salt, porque la efectividad no es la misma la primera semana que la ultima
+# […] en titulares y reemplazos no esta ese detalle».
+#
+# El agregado publica una tasa unica y la superficie la hereda como si fuera una
+# constante. Estos casos fijan lo que hace falta para poder decir que es un
+# promedio: su rango, quien lo pondera, si el marco se agoto, y cuando ocurrio
+# cada escalon de las cadenas.
+
+test_that("la serie declara cuanto se movio la efectividad", {
+  .asr_skip_sin_engine()
+
+  datos <- .asr_fixture
+  n <- nrow(datos)
+  # Tres tramos de tamano muy distinto: el primero pesa mas que los otros dos
+  # juntos, que es el caso real —en 2025 la semana 1 aporto el 47 % del
+  # denominador y por eso el promedio global se le parece.
+  datos$semana <- c(rep(1L, ceiling(n * 0.6)), rep(2L, floor(n * 0.25)))[seq_len(n)]
+  datos$semana[is.na(datos$semana)] <- 3L
+  out <- .asr_run(datos)
+
+  deriva <- out$serie_campo$deriva
+  expect_false(is.null(deriva))
+  expect_identical(deriva$tramos, length(out$serie_campo$filas))
+
+  efectividades <- vapply(out$serie_campo$filas, function(f) f$efectividad, numeric(1))
+  efectividades <- efectividades[is.finite(efectividades)]
+  expect_equal(deriva$efectividad_min, min(efectividades), tolerance = 1e-9)
+  expect_equal(deriva$efectividad_max, max(efectividades), tolerance = 1e-9)
+  # El rango tiene que poder contrastarse con la cifra global: el promedio
+  # ponderado de los tramos cae entre su minimo y su maximo, y si no cae es que
+  # la serie y la cadena no midieron sobre la misma base. Ese fue justo el
+  # defecto: sin glosario la cadena media efectivas sobre registros y la serie
+  # sobre presentes, dos numeros distintos bajo la misma palabra.
+  expect_lte(deriva$efectividad_min, out$cadena$efectividad$tasa + 1e-9)
+  expect_gte(deriva$efectividad_max, out$cadena$efectividad$tasa - 1e-9)
+  # Y la reconstruccion literal: cada tasa semanal sale de sus dos absolutos.
+  for (fila in out$serie_campo$filas) {
+    if (!is.finite(fila$efectividad)) next
+    expect_equal(
+      fila$efectividad, fila$efectivas / fila$efectividad_denominador,
+      tolerance = 1e-9
+    )
+  }
+
+  # Quien pondera el promedio: el tramo con mas gente a encuestar, y su peso.
+  denominadores <- vapply(out$serie_campo$filas, function(f) f$a_encuestar, numeric(1))
+  esperado <- out$serie_campo$filas[[which.max(denominadores)]]$etiqueta
+  expect_identical(deriva$tramo_dominante, esperado)
+  expect_gt(deriva$peso_dominante, 0)
+  expect_lte(deriva$peso_dominante, 1)
+  expect_length(deriva$puntos, length(out$serie_campo$filas))
+})
+
+test_that("el agotamiento del marco tolera un escalon que baja", {
+  .asr_skip_sin_engine()
+
+  # La serie real de 2025 es 5,9 % · 11,5 % · 10,9 % · 18,1 %: sube con claridad
+  # y tiene un tramo que baja. Exigir monotonia estricta declaraba «sin
+  # tendencia» justo donde el agotamiento se ve a simple vista.
+  filas <- lapply(c(0.059, 0.115, 0.109, 0.181), function(pct) {
+    list(etiqueta = "x", k = 10L, a_encuestar = 100, efectividad = 0.7,
+         pct_ya_medidas = pct, efectivas_por_aula = 15)
+  })
+  fn <- get(".cm_asist_deriva", mode = "function", inherits = TRUE)
+  expect_true(fn(filas)$agotamiento_crece)
+
+  # Y una subida de decimas no es una tendencia.
+  planas <- lapply(c(0.100, 0.101, 0.102, 0.103), function(pct) {
+    list(etiqueta = "x", k = 10L, a_encuestar = 100, efectividad = 0.7,
+         pct_ya_medidas = pct, efectivas_por_aula = 15)
+  })
+  expect_false(fn(planas)$agotamiento_crece)
+})
+
+test_that("cada escalon aplicado dice en que semana ocurrio", {
+  .asr_skip_sin_engine()
+
+  datos <- .asr_fixture
+  n <- nrow(datos)
+  # Dos cadenas de dos escalones: en cada una cae el titular y entra el
+  # reemplazo, que se aplica una semana despues.
+  pares <- min(2L, floor(n / 2))
+  skip_if(pares < 1L, "la fixture no alcanza para dos escalones")
+  datos$cadena <- rep(seq_len(ceiling(n / 2)), each = 2L)[seq_len(n)]
+  datos$posicion <- rep(c(1L, 2L), length.out = n)
+  datos$semana <- rep(c(1L, 2L), length.out = n)
+  out <- .asr_run(datos)
+
+  cadenas <- out$cadenas_reemplazo
+  for (fila in cadenas$filas) {
+    for (escalon in fila$escalones) {
+      if (identical(escalon$estado, "aplicado")) next
+      # Una reserva o una caida no ocurrieron en ninguna semana: ponerles una
+      # seria inventarla.
+      expect_true(is.na(escalon$semana))
+    }
+    aplicadas <- Filter(function(e) identical(e$estado, "aplicado"), fila$escalones)
+    semanas <- vapply(aplicadas, function(e) e$semana, integer(1))
+    semanas <- semanas[!is.na(semanas)]
+    if (length(semanas)) {
+      expect_identical(fila$semana_inicio, min(semanas))
+      expect_identical(fila$semana_fin, max(semanas))
+    }
+  }
+
+  # El agregado que la superficie necesita para no recorrer 1.200 escalones.
+  expect_false(is.null(cadenas$titulares))
+  expect_false(is.null(cadenas$reemplazos))
+  expect_gte(cadenas$titulares$aplicados, 0L)
+})
+
+test_that("una cadena que no aplico nada no cuenta como resuelta", {
+  .asr_skip_sin_engine()
+
+  # `resuelta_en` vale NA cuando ningun escalon se aplico, y `!is.null(NA)` es
+  # TRUE: con esa prueba la cadena entraba en «resueltas» y, al no ser su
+  # titular, engrosaba «con reemplazo». En 2025 publicaba 170 resueltas y 25 con
+  # reemplazo donde son 169 y 24.
+  datos <- .asr_fixture
+  n <- nrow(datos)
+  skip_if(n < 3L, "la fixture no alcanza")
+  datos$cadena <- seq_len(n)
+  datos$posicion <- rep(1L, n)
+  datos$rol <- rep("TITULAR", n)
+  # La primera cadena se declara con su titular caido y sin suplente aplicado.
+  datos$estado_aplicacion[1L] <- "No aplicada"
+  datos$motivo_no_aplicacion <- ""
+  datos$motivo_no_aplicacion[1L] <- "Docente no autorizo"
+  out <- .asr_run(datos)
+
+  cadenas <- out$cadenas_reemplazo
+  expect_identical(cadenas$cadenas_declaradas, n)
+  # Resueltas = las que aplicaron algo. Ni una mas.
+  con_aplicacion <- sum(vapply(cadenas$filas, function(f) f$aplicados > 0L, logical(1)))
+  expect_identical(cadenas$cadenas_resueltas, as.integer(con_aplicacion))
+  expect_lt(cadenas$cadenas_resueltas, cadenas$cadenas_declaradas)
+  expect_identical(
+    cadenas$resueltas_con_titular + cadenas$resueltas_con_reemplazo,
+    cadenas$cadenas_resueltas
+  )
+  # Y las que no aplicaron nada siguen en la matriz, con su escalon caido: se
+  # cuentan distinto, no se esconden.
+  sin_aplicar <- Filter(function(f) identical(f$aplicados, 0L), cadenas$filas)
+  expect_gte(length(sin_aplicar), 1L)
+  for (fila in sin_aplicar) {
+    expect_true(all(vapply(fila$escalones, function(e) e$estado != "aplicado", logical(1))))
+  }
+})
+
 test_that("un campo ausente viaja como null y no como objeto vacio", {
   .asr_skip_sin_engine()
 
