@@ -250,6 +250,43 @@
 
 .cmv2-hist-paso-nota b[data-sale="si"] { color: var(--pulso-text-muted); }
 
+/* Las tres tasas de lectura del embudo. Ojo con el nombre: `-tasas` (plural) es
+   este contenedor y `-tasa` (singular) era la barra que se mudó a
+   shared/graficos. Una limpieza por prefijo se llevó ésta por delante y el
+   bloque quedó como texto corrido en cursiva; el contrato de CSS huérfano no lo
+   vio porque detecta CSS sin marcado, no marcado sin CSS. */
+.cmv2-hist-tasas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-4);
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmv2-hist-tasas span { display: flex; flex-direction: column; gap: 1px; }
+
+.cmv2-hist-tasas small {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-tasas strong {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-tasas em { font-style: normal; font-size: 10px; color: var(--pulso-text-muted); }
+
+.cmv2-hist-tasas span[data-fuerte="si"] strong {
+  font-size: 24px;
+  color: var(--cmv2-accent-fg);
+}
+
 /* ── Métricas: cifra al frente ───────────────────────────────────────────── */
 
 .cmv2-hist-metricas {
@@ -792,13 +829,75 @@
   line-height: 1.4;
 }
 
+/* Tres líneas donde antes había una llave suelta: la columna medía 950 px y
+   sólo llevaba el código. Con nombre y hora, la fila se reconoce sin abrir el
+   hover. */
 .cmv2-hist-matriz-titular {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
   overflow: hidden;
+}
+
+.cmv2-hist-matriz-titular b {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--pulso-text);
 }
+
+.cmv2-hist-matriz-titular i {
+  overflow: hidden;
+  font-size: 9.5px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-matriz-titular small {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+  opacity: 0.85;
+}
+
+/* Cumplimiento de cuota por sexo, con la paleta oficial del módulo. */
+.cmv2-hist-matriz-cuota {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cmv2-hist-matriz-cuota b {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-hist-matriz-cuota b[data-sexo="mujer"] { color: var(--cmv2-sex-mujer); }
+.cmv2-hist-matriz-cuota b[data-sexo="hombre"] { color: var(--cmv2-sex-hombre); }
+
+.cmv2-hist-matriz-cuota i {
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* Quedarse corto es la señal que importa: es lo que obliga a ponderar. */
+.cmv2-hist-matriz-cuota b[data-corto] i { color: var(--pulso-warn-fg); }
+
 
 /* La casilla es el dato: el color dice qué pasó, la cifra cuántas encuestas dio
    y bajo ella la efectividad de esa aula. Sin el porcentaje, 25 completas de un
@@ -997,3 +1096,78 @@
 
 /* Lo que tiene tooltip se comporta como algo consultable. */
 [data-tip] { cursor: help; }
+
+/* Un peldaño que recibe gente en vez de perderla. El tramo va en el tono del
+   módulo y no en el de la merma: no es una pérdida ni un descuento, es gente
+   que estuvo en el aula y respondió. */
+.cmv2-hist-paso-suma {
+  /* Sólido y no rayado: este tramo mide 105 sobre 6.232, o sea 9 px, y una
+     textura de 3 px de paso ahí es ruido, no señal. El color del módulo lo
+     separa de las mermas, que van en ámbar. */
+  min-width: 5px;
+  border-radius: 2px;
+  background: var(--cmv2-accent);
+}
+
+.cmv2-hist-paso-nota b[data-suma] { color: var(--cmv2-accent); }
+
+/* La aclaración del tramo que crece: una frase, en el sitio donde pasa. */
+.cmv2-hist-aclaracion {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 2px solid color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
+  border-radius: 0 6px 6px 0;
+  background: var(--cmv2-accent-soft);
+  font-size: 10px;
+  line-height: 1.5;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-aclaracion b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--cmv2-accent);
+}
+
+/* Cómo se llenó la cuota: dos cifras grandes con la paleta de sexo y, debajo,
+   la facultad que se quedó corta. Es la lectura que explica la ponderación. */
+.cmv2-hist-cuota-lectura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmv2-hist-cuota-lectura ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-hist-cuota-lectura li { display: flex; flex-direction: column; gap: 1px; }
+
+.cmv2-hist-cuota-lectura strong {
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+
+.cmv2-hist-cuota-lectura li[data-sexo="mujer"] strong { color: var(--cmv2-sex-mujer); }
+.cmv2-hist-cuota-lectura li[data-sexo="hombre"] strong { color: var(--cmv2-sex-hombre); }
+
+.cmv2-hist-cuota-lectura span { font-size: 10px; color: var(--pulso-text-muted); }
+
+.cmv2-hist-cuota-lectura p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}

@@ -39,6 +39,7 @@ import type {
   CalcMuestraReferenciaAsistenciaCadenaSeleccion,
   CalcMuestraReferenciaAsistenciaCadenasReemplazo,
   CalcMuestraReferenciaAsistenciaComposicion,
+  CalcMuestraReferenciaAsistenciaCuotas,
   CalcMuestraReferenciaAsistenciaEmbudoFila,
   CalcMuestraReferenciaAsistenciaSerieCampo,
 } from "../../../../api/client";
@@ -65,6 +66,7 @@ function PasoEmbudo({
   valor,
   universo,
   mermas = [],
+  suma,
   tono,
 }: {
   label: string;
@@ -72,6 +74,12 @@ function PasoEmbudo({
   universo: number;
   /** Todo lo que se va en este peldaño. Puede irse por más de un motivo. */
   mermas?: { n: number; texto: string; sale?: boolean }[];
+  /**
+   * Lo que ENTRA en este peldaño. Un embudo que sube rompe la metáfora, y por
+   * eso comunica: es la señal de que respondió gente que el conteo del aula no
+   * había visto.
+   */
+  suma?: { n: number; texto: string };
   tono?: "meta";
 }) {
   // La barra del peldaño mide `valor` sobre el universo y las mermas se dibujan
@@ -84,16 +92,28 @@ function PasoEmbudo({
   // «encuestas completas» se iban 1.122 personas y la leyenda declaraba 335,
   // así que la caída no cuadraba con las cifras de al lado.
   const activas = mermas.filter((m) => m.n > 0);
+  const entra = suma && suma.n > 0 ? suma.n : 0;
   const perdido = activas.reduce((acc, m) => acc + m.n, 0);
-  const sobrevive = Math.max(0, valor - perdido);
+  const sobrevive = Math.max(0, valor + entra - perdido);
   const escala = (n: number) => (universo > 0 ? (n / universo) * 100 : 0);
-  const anchoTotal = escala(valor);
+  const anchoTotal = escala(valor + entra);
   return (
     <li className="cmv2-hist-paso" data-tono={tono}>
       <span className="cmv2-hist-paso-label">{label}</span>
       <span className="cmv2-hist-paso-cifra">{fmtInt(valor)}</span>
       <span className="cmv2-hist-paso-track">
         <span className="cmv2-hist-paso-fill" style={{ width: `${escala(sobrevive)}%` }} />
+        {entra > 0 ? (
+          <span
+            className="cmv2-hist-paso-suma"
+            style={{ width: `${escala(entra)}%` }}
+            {...tip({
+              titulo: `${fmtInt(entra)} personas`,
+              nota: suma?.texto,
+              tono: "asistencia",
+            })}
+          />
+        ) : null}
         {activas.map((merma, i) => (
           <span
             key={merma.texto}
@@ -116,6 +136,12 @@ function PasoEmbudo({
           className="cmv2-hist-paso-nota"
           style={{ paddingInlineEnd: `${Math.max(0, 100 - anchoTotal)}%` }}
         >
+          {entra > 0 ? (
+            <span>
+              <b data-suma="si">+{fmtInt(entra)}</b> {suma?.texto}
+              {activas.length > 0 ? " · " : null}
+            </span>
+          ) : null}
           {activas.map((merma, i) => (
             <span key={merma.texto}>
               {i > 0 ? " · " : null}
@@ -369,6 +395,27 @@ function SerieCampo({
   );
 }
 
+
+/** «17:00-20:00» se lee peor que «5:00–8:00 pm», que es como se dice una clase. */
+function horaLegible(horario: string): string {
+  const partes = horario.split(/[-–]/).map((p) => p.trim());
+  const ampm = (hhmm: string) => {
+    const m = /^(\d{1,2}):(\d{2})/.exec(hhmm);
+    if (!m) return "";
+    const h = Number(m[1]);
+    const sufijo = h < 12 ? "am" : "pm";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${m[2]} ${sufijo}`;
+  };
+  const desde = ampm(partes[0] ?? "");
+  const hasta = partes[1] ? ampm(partes[1]) : "";
+  if (!desde) return horario;
+  if (!hasta) return desde;
+  // El sufijo se repite sólo si cambia de mitad del día.
+  const mismoSufijo = desde.slice(-2) === hasta.slice(-2);
+  return mismoSufijo ? `${desde.slice(0, -3)}–${hasta}` : `${desde}–${hasta}`;
+}
+
 /**
  * La matriz de cadenas: una fila por titular y la historia de qué le pasó.
  *
@@ -383,9 +430,16 @@ function SerieCampo({
  */
 function MatrizCadenas({
   cadenas,
+  cuotas,
 }: {
   cadenas: CalcMuestraReferenciaAsistenciaCadenasReemplazo;
+  /** Cuota por facultad y sexo, cuando el estudio la declara. */
+  cuotas: CalcMuestraReferenciaAsistenciaCuotas | null;
 }) {
+  const cuotaDe = (facultad: string) =>
+    cuotas?.filas.find(
+      (f) => f.facultad.trim().toUpperCase() === facultad.trim().toUpperCase(),
+    ) ?? null;
   const columnas = Math.min(cadenas.profundidad_maxima, 8);
   // Agrupada por facultad: comparar dos cursos-horario sólo tiene sentido dentro
   // de su facultad, porque el tamaño de aula y la asistencia cambian por
@@ -448,6 +502,25 @@ function MatrizCadenas({
                   {fmtInt(grupo.filas.length)} titulares · {fmtInt(grupo.efectivas)} completas
                   {grupo.conReemplazo > 0 ? ` · ${fmtInt(grupo.conReemplazo)} con reemplazo` : ""}
                 </em>
+                {/* Aquí SÍ hay denominador —la cuota del diseño—, así que se
+                    puede dar una tasa. Es cumplimiento, no efectividad: por eso
+                    pasa del 100 % sin que nada esté mal. */}
+                {(() => {
+                  const q = cuotaDe(grupo.facultad);
+                  if (!q || (q.cuota_mujeres === null && q.cuota_hombres === null)) return null;
+                  return (
+                    <span className="cmv2-hist-matriz-cuota">
+                      <b data-sexo="mujer">
+                        M {fmtInt(q.logradas_mujeres ?? 0)}/{fmtInt(q.cuota_mujeres ?? 0)}
+                        <i>{pct(q.cumplimiento_mujeres, 0)}</i>
+                      </b>
+                      <b data-sexo="hombre" data-corto={(q.cumplimiento_hombres ?? 1) < 1 || undefined}>
+                        H {fmtInt(q.logradas_hombres ?? 0)}/{fmtInt(q.cuota_hombres ?? 0)}
+                        <i>{pct(q.cumplimiento_hombres, 0)}</i>
+                      </b>
+                    </span>
+                  );
+                })()}
               </span>
             </div>
             {grupo.filas.map((fila) => (
@@ -458,10 +531,14 @@ function MatrizCadenas({
                   {...tip({
                     titulo: fila.titular,
                     filas: [
+                      ...(fila.nombre_curso ? [{ label: "Curso", valor: fila.nombre_curso }] : []),
                       { label: "Facultad", valor: fila.facultad || "Sin facultad" },
-                      { label: "Escalones trabajados", valor: fmtInt(fila.escalones_trabajados) },
-                      { label: "Aulas aplicadas", valor: fmtInt(fila.aplicados) },
                       { label: "Encuestas completas", valor: fmtInt(fila.efectivas ?? 0) },
+                      // Composición, no tasa: no existe denominador por sexo en
+                      // cada curso-horario, así que un porcentaje aquí mentiría.
+                      { label: "Mujeres", valor: fmtInt(fila.efectivas_mujeres ?? 0) },
+                      { label: "Hombres", valor: fmtInt(fila.efectivas_hombres ?? 0) },
+                      { label: "Escalones trabajados", valor: fmtInt(fila.escalones_trabajados) },
                     ],
                     nota: fila.resuelta_en === null
                       ? "La cadena nunca se resolvió"
@@ -471,7 +548,9 @@ function MatrizCadenas({
                     tono: fila.resuelta_en === 1 ? "efectiva" : "perdida",
                   })}
                 >
-                  {fila.titular}
+                  <b>{fila.titular}</b>
+                  {fila.nombre_curso ? <i>{fila.nombre_curso}</i> : null}
+                  {fila.horario ? <small>{horaLegible(fila.horario)}</small> : null}
                 </span>
                 {Array.from({ length: columnas }, (_, i) => {
                   const escalon = fila.escalones[i];
@@ -559,7 +638,9 @@ export function HistoricoEstudioPanel({
     .sort((a, b) => a.orden - b.orden);
   const otras = dimensiones.filter((d) => d.dimension_key !== "facultad");
 
-  const logradas = encuentros?.efectivas ?? cadena.rendimiento.numerador ?? null;
+  // Lo conseguido en campo: lo declara el diseño y, si no, sale del embudo.
+  const logradas =
+    diseno.efectivas_logradas ?? encuentros?.efectivas ?? cadena.rendimiento.numerador ?? null;
   const meta = diseno.muestra;
   const cumplimiento = meta && logradas ? logradas / meta : null;
   const universo = encuentros?.elegibles ?? cadena.asistencia.denominador ?? 0;
@@ -763,22 +844,21 @@ export function HistoricoEstudioPanel({
               label="A quienes tocaba encuestar"
               valor={encuentros.elegibles_presentes ?? 0}
               universo={universo}
-              // Este peldaño pierde por DOS motivos y antes declaraba uno solo:
-              // la barra bajaba 1.122 y la leyenda decía 335. Los que nunca
-              // abrieron se obtienen por resta, así que se nombran como lo que
-              // son y no se presentan como un conteo directo.
+              // Este peldaño no sólo pierde: también recibe. En 43 aulas
+              // respondió gente que el conteo no había visto, y con ese tramo
+              // declarado el embudo cuadra exactamente:
+              // 4.425 + 105 = 3.303 + 335 + 892.
+              suma={{
+                n: encuentros.presentes_no_contados ?? 0,
+                texto: "respondieron sin estar en el conteo del aula",
+              }}
               mermas={[
                 {
                   n: encuentros.no_efectivas ?? 0,
                   texto: "abrieron la encuesta y no quisieron continuar",
                 },
                 {
-                  n: Math.max(
-                    0,
-                    (encuentros.elegibles_presentes ?? 0)
-                      - (encuentros.efectivas ?? 0)
-                      - (encuentros.no_efectivas ?? 0),
-                  ),
+                  n: encuentros.no_realizadas ?? 0,
                   texto: "nunca llegaron a abrirla",
                 },
               ]}
@@ -790,6 +870,21 @@ export function HistoricoEstudioPanel({
               tono="meta"
             />
           </ol>
+          {(encuentros.presentes_no_contados ?? 0) > 0 ? (
+            /*
+             * Minimalista y en el sitio donde pasa: el tramo azul del tercer
+             * peldaño necesita una frase, no un párrafo. Sin ella, quien sume
+             * las cifras encuentra un embudo que crece y no sabe por qué.
+             */
+            <p className="cmv2-hist-aclaracion">
+              <b>+{fmtInt(encuentros.presentes_no_contados ?? 0)}</b> respondieron sin aparecer en el
+              conteo del aula, en{" "}
+              <b>{fmtInt(encuentros.unidades_con_residual_negativo)}</b> de{" "}
+              {fmtInt(cobertura.aplicados)} aulas. Pasa cuando el aplicador cuenta al entrar y
+              después llega gente: oyentes, alumnos de otra sección, quien pasaba por ahí. El
+              formulario los registró igual, así que cuentan.
+            </p>
+          ) : null}
           <div className="cmv2-hist-tasas">
             <span>
               <small>Asistencia</small>
@@ -976,7 +1071,7 @@ export function HistoricoEstudioPanel({
                 ))}
             </ul>
           ) : null}
-          <MatrizCadenas cadenas={referencia.cadenas_reemplazo} />
+          <MatrizCadenas cadenas={referencia.cadenas_reemplazo} cuotas={referencia.cuotas} />
         </div>
       ) : null}
 
@@ -1105,7 +1200,80 @@ export function HistoricoEstudioPanel({
                 </span>
               </li>
             ) : null}
+
+            {/* La escalera terminaba en las aulas y callaba qué fue de las
+                encuestas. El recorte y la ponderación son decisiones del diseño
+                tanto como el tamaño muestral, y son las que explican por qué la
+                base con la que se analiza no es la que salió de campo. */}
+            {logradas !== null ? (
+              <li data-tono="real">
+                <span className="cmv2-hist-escalera-cifra">{num(logradas)}</span>
+                <span className="cmv2-hist-escalera-que">encuestas completas conseguidas</span>
+                <span className="cmv2-hist-escalera-como">
+                  {diseno.sobremuestra !== null && diseno.sobremuestra > 0
+                    ? `${pct(logradas / diseno.sobremuestra, 0)} de la sobremuestra buscada`
+                    : "lo que campo llegó a levantar"}
+                </span>
+              </li>
+            ) : null}
+            {diseno.base_analitica !== null ? (
+              <li data-tono="meta">
+                <span className="cmv2-hist-escalera-cifra">{num(diseno.base_analitica)}</span>
+                <span className="cmv2-hist-escalera-que">base con la que se analizó</span>
+                <span className="cmv2-hist-escalera-como">
+                  {diseno.casos_recortados !== null && diseno.casos_recortados > 0
+                    ? `−${fmtInt(diseno.casos_recortados)} recortados al azar dentro de cada celda, para que ninguna pesara más de lo que le tocaba`
+                    : diseno.metodo_ajuste || "tras el ajuste final"}
+                </span>
+              </li>
+            ) : null}
           </ol>
+
+          {/* La cuota se reparte por sexo y no siempre se llena igual. Es la
+              lectura que explica por qué una facultad hubo que ponderarla, y
+              vive aquí porque es una consecuencia del diseño, no del campo. */}
+          {referencia.cuotas ? (
+            <div className="cmv2-hist-cuota-lectura">
+              <span className="cmv2-eyebrow">Cómo se llenó la cuota</span>
+              <ul>
+                <li data-sexo="mujer">
+                  <strong>{pct(referencia.cuotas.cumplimiento_mujeres, 0)}</strong>
+                  <span>
+                    de la cuota de mujeres · {fmtInt(referencia.cuotas.logradas_mujeres ?? 0)} de{" "}
+                    {fmtInt(referencia.cuotas.cuota_mujeres ?? 0)}
+                  </span>
+                </li>
+                <li data-sexo="hombre">
+                  <strong>{pct(referencia.cuotas.cumplimiento_hombres, 0)}</strong>
+                  <span>
+                    de la cuota de hombres · {fmtInt(referencia.cuotas.logradas_hombres ?? 0)} de{" "}
+                    {fmtInt(referencia.cuotas.cuota_hombres ?? 0)}
+                  </span>
+                </li>
+              </ul>
+              {(() => {
+                const cortas = referencia.cuotas.filas.filter(
+                  (f) => f.aulas > 0 && ((f.cumplimiento_hombres ?? 1) < 1 || (f.cumplimiento_mujeres ?? 1) < 1),
+                );
+                if (!cortas.length) return null;
+                return (
+                  <p>
+                    {cortas.length === 1 ? "Una facultad se quedó corta" : `${cortas.length} facultades se quedaron cortas`}
+                    :{" "}
+                    {cortas
+                      .map((f) => {
+                        const lado = (f.cumplimiento_hombres ?? 1) < 1 ? "hombres" : "mujeres";
+                        const valor = lado === "hombres" ? f.cumplimiento_hombres : f.cumplimiento_mujeres;
+                        return `${f.facultad} (${lado}, ${pct(valor, 0)})`;
+                      })
+                      .join(" · ")}
+                    . Es lo que obliga a ponderar: sin peso, esas personas
+                    quedarían subrepresentadas en el análisis.
+                  </p>
+                );
+              })()}
+            </div>
+          ) : null}
 
           {/* Las decisiones que no son cifras: cómo se repartió, cómo se
               eligió, cómo se ajustó al final. */}
@@ -1128,7 +1296,7 @@ export function HistoricoEstudioPanel({
                 {diseno.ponderado === null
                   ? "No declarado"
                   : diseno.ponderado
-                    ? "Sí se aplicó"
+                    ? diseno.ponderacion_alcance || "Sí se aplicó"
                     : "No hizo falta"}
               </dd>
             </div>
