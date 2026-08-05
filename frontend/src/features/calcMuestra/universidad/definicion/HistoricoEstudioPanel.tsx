@@ -507,23 +507,75 @@ function ComposicionCriterio({
 }: {
   composicion: CalcMuestraReferenciaAsistenciaComposicion;
 }) {
-  const orden = composicion.categorias.map((c) => c.categoria);
+  // Un criterio cuyos valores son todos números es ordinal: se ordena por su
+  // valor, no alfabéticamente («10» antes que «2»), y se nombra con el criterio
+  // delante, porque un «6» suelto no dice qué mide.
+  const numerico = composicion.categorias.every((c) => /^\d+([.,]\d+)?$/.test(c.categoria.trim()));
+  const categorias = numerico
+    ? [...composicion.categorias].sort((a, b) => Number(a.categoria) - Number(b.categoria))
+    : composicion.categorias;
+  const orden = categorias.map((c) => c.categoria);
+  const nombrar = (categoria: string) =>
+    numerico ? `${composicion.criterio_label} ${categoria}` : categoria;
+  // Con pocas categorías, tonos fijos. Con muchas, o cuando el criterio es
+  // ordinal, un recorrido por la paleta: seis colores repetidos en diez niveles
+  // se leen como ruido, y un recorrido conserva el orden que el criterio trae.
   const tonos = ["a", "b", "c", "d", "e", "f"];
+  const rampa = numerico || orden.length > tonos.length;
   const tonoDe = (categoria: string) => tonos[Math.max(0, orden.indexOf(categoria)) % tonos.length];
-  // Ordenadas por cuánto pesa la primera categoría: así las facultades con
-  // perfil parecido quedan juntas y la excepción salta a la vista.
-  const filas = [...composicion.filas].sort((a, b) => {
-    const peso = (f: (typeof composicion.filas)[number]) =>
-      (f.reparto.find((r) => r.categoria === orden[0])?.pct ?? 0);
-    return peso(b) - peso(a);
-  });
+  // El orden de las facultades tiene que contar algo. Con un criterio ordinal,
+  // su valor promedio: las de cursos iniciales quedan juntas y las de avanzados
+  // también, así el recorrido se lee en diagonal. Con uno nominal, cuánto pesa
+  // la primera categoría, que es la que encabeza la leyenda.
+  const peso = (f: (typeof composicion.filas)[number]) => {
+    if (!numerico) return f.reparto.find((r) => r.categoria === orden[0])?.pct ?? 0;
+    const total = f.reparto.reduce((acc, r) => acc + r.n, 0);
+    if (!total) return 0;
+    return f.reparto.reduce((acc, r) => acc + Number(r.categoria) * r.n, 0) / total;
+  };
+  const filas = [...composicion.filas].sort((a, b) =>
+    numerico ? peso(a) - peso(b) : peso(b) - peso(a),
+  );
+  // Anclas de la paleta categórica del sistema, en orden de tono. Una rampa de
+  // dos anclas sobre diez categorías se lee como degradado: los vecinos quedan
+  // a un paso de distancia y no se distinguen. Con siete anclas, dos categorías
+  // contiguas siempre caen en familias de color distintas, y el recorrido sigue
+  // siendo monótono, así que el orden se conserva.
+  const ANCLAS = [
+    "var(--pulso-accent-violet)",
+    "var(--pulso-accent-sky)",
+    "var(--pulso-accent-cyan)",
+    "var(--pulso-accent-green)",
+    "var(--pulso-accent-amber)",
+    "var(--pulso-accent-rose)",
+    "var(--pulso-accent-steel)",
+  ];
+  const estiloDe = (categoria: string) => {
+    if (!rampa) return undefined;
+    const i = Math.max(0, orden.indexOf(categoria));
+    const t = i / Math.max(1, orden.length - 1);
+    const paso = t * (ANCLAS.length - 1);
+    const base = Math.min(ANCLAS.length - 2, Math.floor(paso));
+    const mezcla = Math.round((1 - (paso - base)) * 100);
+    // Alternar claro/oscuro entre vecinos añade una segunda señal además del
+    // tono, que es lo que separa dos segmentos contiguos y estrechos.
+    const ajuste = i % 2 === 0 ? "white 0%" : "black 14%";
+    return {
+      ["--cmv2-hist-comp-tono" as string]:
+        `color-mix(in oklab, color-mix(in oklab, ${ANCLAS[base]} ${mezcla}%, ${ANCLAS[base + 1]}) 86%, ${ajuste})`,
+    };
+  };
 
   return (
     <div className="cmv2-hist-comp">
       <ul className="cmv2-hist-comp-leyenda">
-        {composicion.categorias.map((categoria) => (
-          <li key={categoria.categoria} data-tono={tonoDe(categoria.categoria)}>
-            <span>{categoria.categoria}</span>
+        {categorias.map((categoria) => (
+          <li
+            key={categoria.categoria}
+            data-tono={rampa ? undefined : tonoDe(categoria.categoria)}
+            style={estiloDe(categoria.categoria)}
+          >
+            <span>{nombrar(categoria.categoria)}</span>
             <b>{fmtInt(categoria.n)}</b>
             <em>{pct(categoria.pct, 0)}</em>
           </li>
@@ -535,14 +587,15 @@ function ComposicionCriterio({
             <span className="cmv2-hist-comp-nombre" title={fila.facultad}>{fila.facultad}</span>
             <span className="cmv2-hist-comp-k">{fmtInt(fila.n)}</span>
             <span className="cmv2-hist-comp-track">
-              {fila.reparto
-                .filter((r) => r.n > 0)
+              {orden
+                .map((categoria) => fila.reparto.find((r) => r.categoria === categoria))
+                .filter((r): r is NonNullable<typeof r> => Boolean(r) && (r?.n ?? 0) > 0)
                 .map((r) => (
                   <span
                     key={r.categoria}
-                    data-tono={tonoDe(r.categoria)}
-                    style={{ width: `${(r.pct ?? 0) * 100}%` }}
-                    title={`${r.categoria}: ${fmtInt(r.n)} de ${fmtInt(fila.n)} (${pct(r.pct, 0)})`}
+                    data-tono={rampa ? "rampa" : tonoDe(r.categoria)}
+                    style={{ width: `${(r.pct ?? 0) * 100}%`, ...estiloDe(r.categoria) }}
+                    title={`${nombrar(r.categoria)}: ${fmtInt(r.n)} de ${fmtInt(fila.n)} (${pct(r.pct, 0)})`}
                   />
                 ))}
             </span>

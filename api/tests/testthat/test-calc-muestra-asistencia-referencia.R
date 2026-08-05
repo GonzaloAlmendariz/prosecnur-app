@@ -170,7 +170,7 @@ test_that("el root exacto declara procedencia, estudio, umbrales y dimensiones",
   expect_named(out, c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
     "unidad", "denominador", "estudio", "diseno", "filtros_corte", "cobertura",
-    "encuentros", "embudos", "serie_campo", "cadenas_reemplazo",
+    "encuentros", "embudos", "composicion", "serie_campo", "cadenas_reemplazo",
     "identidad", "umbrales",
     "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
   ))
