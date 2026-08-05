@@ -251,6 +251,10 @@ test_that(".pulso conserva solo el resumen agregado y degrada su binding raw", {
   celda <- resumen$dimensiones[[1L]]$filas[[1L]]
   campos_celda <- c(
     "celda_key", "celda_label", "orden", "k", "matriculados", "asistentes",
+    # G53 · La ventana temporal de la celda. Es agregado, no fila: dice en qué
+    # tramo del campo se aplicó, que es lo que permite leer su tasa sin
+    # confundirla con una propiedad de la facultad.
+    "semana_min", "semana_max", "semana_media", "k_con_semana",
     "tasa", "estimador", "media_ch", "sd_ch", "ic_low", "ic_high",
     "metodo_ic", "suficiencia", "tasa_publicada", "k_publicada",
     "fuente_publicada"
@@ -258,7 +262,7 @@ test_that(".pulso conserva solo el resumen agregado y degrada su binding raw", {
   expect_identical(
     names(celda),
     campos_celda,
-    info = "La celda agregada no fue saneada a sus 17 campos canónicos"
+    info = "La celda agregada no fue saneada a sus 21 campos canónicos"
   )
   contaminantes_root <- intersect(
     c("rows", "filas", "raw", "data", "tabla_raw"),

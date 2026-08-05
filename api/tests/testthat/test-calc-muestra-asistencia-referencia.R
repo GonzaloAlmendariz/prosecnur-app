@@ -147,6 +147,9 @@
   fila <- hit[[1L]]
   expect_named(fila, c(
     "celda_key", "celda_label", "orden", "k", "matriculados", "asistentes",
+    # G53 · En que tramo del campo se aplico la celda: sin eso, su tasa se lee
+    # como una propiedad de la facultad y no como lo que rindio cuando le toco.
+    "semana_min", "semana_max", "semana_media", "k_con_semana",
     "tasa", "estimador", "media_ch", "sd_ch", "ic_low", "ic_high",
     "metodo_ic", "suficiencia", "tasa_publicada", "k_publicada",
     "fuente_publicada"
@@ -981,6 +984,47 @@ test_that("cada escalon aplicado dice en que semana ocurrio", {
   expect_false(is.null(cadenas$titulares))
   expect_false(is.null(cadenas$reemplazos))
   expect_gte(cadenas$titulares$aplicados, 0L)
+})
+
+test_that("cada celda declara en que tramo del campo se aplico", {
+  .asr_skip_sin_engine()
+
+  # Gonzalo: «en general en todo el reporte no se toma ese dato contextual y es
+  # super importante». Vale igual por facultad y por criterio: en 2025 Educacion
+  # se aplico en la semana 2,7 de media y Arquitectura en la 1,6, asi que sus
+  # tasas no describen dos facultades bajo las mismas condiciones.
+  base <- .asr_run()
+  # Sin columna de semana la ventana no se finge.
+  for (embudo in base$embudos) {
+    for (fila in embudo$filas) expect_true(is.na(fila$semana_min))
+  }
+
+  datos <- .asr_fixture
+  n <- nrow(datos)
+  datos$semana <- rep(c(1L, 2L, 3L), length.out = n)
+  out <- .asr_run(datos)
+
+  # Los embudos solo existen con el glosario del encuentro; las dimensiones
+  # siempre. Se comprueban las celdas de ambos caminos, las que haya.
+  celdas <- c(
+    unlist(lapply(out$embudos, function(e) e$filas), recursive = FALSE),
+    unlist(lapply(out$dimensiones, function(d) d$filas), recursive = FALSE)
+  )
+  expect_gt(length(celdas), 0L)
+  fechadas <- 0L
+  for (fila in celdas) {
+    if (is.na(fila$semana_min)) next
+    fechadas <- fechadas + 1L
+    expect_gte(fila$semana_min, 1L)
+    expect_lte(fila$semana_min, fila$semana_max)
+    # La media cae dentro de su propia ventana, o describe otras aulas.
+    expect_gte(fila$semana_media, fila$semana_min)
+    expect_lte(fila$semana_media, fila$semana_max)
+    # Y no se puede fechar mas aulas de las que tiene la celda.
+    expect_lte(fila$k_con_semana, fila$k)
+  }
+  # Las celdas con tasa publicada tambien la traen: es donde se hereda.
+  expect_gt(fechadas, 0L)
 })
 
 test_that("una cadena que no aplico nada no cuenta como resuelta", {

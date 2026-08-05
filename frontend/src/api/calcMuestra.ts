@@ -2395,6 +2395,17 @@ export type CalcMuestraReferenciaAsistenciaCelda = {
   k: number;
   matriculados: number | null;
   asistentes: number | null;
+  /**
+   * G53 · En qué tramo del campo se aplicó esta celda. Una facultad cuyas aulas
+   * cayeron todas en la última semana no rindió menos por ser esa facultad,
+   * sino porque para entonces el marco ya estaba más agotado. Null cuando la
+   * base no declara semana.
+   */
+  semana_min: number | null;
+  semana_max: number | null;
+  semana_media: number | null;
+  /** Cuántas de sus aulas traen fecha: con la mitad sin fechar, la media miente. */
+  k_con_semana: number | null;
   tasa: number | null;
   estimador: "razon_agregada";
   media_ch: number | null;
@@ -2417,6 +2428,11 @@ export type CalcMuestraReferenciaAsistenciaEmbudoFila = {
   celda_key: string;
   celda_label: string;
   k: number;
+  /** G53 · La ventana de campo de esta celda; null si la base no trae semana. */
+  semana_min: number | null;
+  semana_max: number | null;
+  semana_media: number | null;
+  k_con_semana: number | null;
   elegibles: number | null;
   asistentes: number | null;
   ya_medidas: number | null;
@@ -2767,6 +2783,31 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   const asMetodoIc = (value: unknown): CalcMuestraReferenciaAsistenciaMetodoIc | null => {
     const text = asText(value);
     return text === "bootstrap_percentil" || text === "no_aplica" ? text : null;
+  };
+
+  /**
+   * G53 · La ventana de campo de una celda. Una base sin columna de semana no
+   * la trae, así que sus cuatro campos degradan a null en vez de invalidar la
+   * celda: el resto de la lectura no depende de que el estudio fechara sus
+   * aulas.
+   */
+  const ventanaDe = (record: Record<string, unknown>) => {
+    const entero = (raw: unknown): number | null => {
+      const parsed = asFiniteOrNull(raw);
+      return parsed === INVALID_NUMBER || parsed === null || !Number.isInteger(parsed)
+        ? null
+        : parsed;
+    };
+    const decimal = (raw: unknown): number | null => {
+      const parsed = asFiniteOrNull(raw);
+      return parsed === INVALID_NUMBER ? null : parsed;
+    };
+    return {
+      semana_min: entero(record.semana_min),
+      semana_max: entero(record.semana_max),
+      semana_media: decimal(record.semana_media),
+      k_con_semana: entero(record.k_con_semana),
+    };
   };
 
   const root = asRecord(raw);
@@ -3247,6 +3288,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         k,
         matriculados,
         asistentes: asistentesCelda,
+        ...ventanaDe(row),
         tasa,
         estimador: "razon_agregada",
         media_ch: mediaCh,
@@ -3413,6 +3455,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       };
       filas.push({
         celda_key: celdaKey, celda_label: celdaLabel, k,
+        ...ventanaDe(f),
         elegibles: n(f.elegibles), asistentes: n(f.asistentes),
         ya_medidas: n(f.ya_medidas), no_elegibles: n(f.no_elegibles),
         elegibles_presentes: n(f.elegibles_presentes),

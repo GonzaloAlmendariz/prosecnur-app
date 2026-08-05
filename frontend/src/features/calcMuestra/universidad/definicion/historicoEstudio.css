@@ -345,6 +345,13 @@
   list-style: none;
 }
 
+/* G53 · Con eje temporal la rejilla gana la columna de la ventana. Va entre el
+   conteo de aulas y la barra: primero cuántas, después cuándo, y sólo entonces
+   qué rindieron. */
+.cmv2-hist-perfil[data-ventana="si"] {
+  grid-template-columns: minmax(120px, 1.1fr) 28px 58px minmax(0, 2.4fr) 82px;
+}
+
 .cmv2-hist-fila { display: contents; }
 
 /* El nombre envuelve en vez de truncarse: una categoría del dato puede ser larga
@@ -530,6 +537,12 @@
   background: repeating-linear-gradient(-45deg,
     color-mix(in srgb, var(--pulso-text-muted) 45%, transparent) 0 2px, transparent 2px 4px);
 }
+/* La ventana no es un tramo del reparto: su muestra lleva el acento del módulo
+   y no un color de la leyenda de pérdidas. */
+.cmv2-hist-leyenda span[data-tipo="ventana"]::before {
+  background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 70%, transparent);
+}
 
 .cmv2-hist-apilado {
   display: grid;
@@ -541,7 +554,41 @@
   list-style: none;
 }
 
+.cmv2-hist-apilado[data-ventana="si"] {
+  grid-template-columns: minmax(120px, 1.1fr) 28px 58px minmax(0, 3fr) 44px;
+}
+
 .cmv2-hist-apilado li { display: contents; }
+
+/* La ventana de campo: el tramo que ocupó esta celda sobre el eje del operativo
+   completo, con una marca en su semana media. Lo que se compara de un vistazo es
+   la POSICIÓN —quién se aplicó pronto y quién tarde—, no su longitud. */
+.cmv2-hist-ventana {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cmv2-border) 45%, transparent);
+  overflow: hidden;
+  cursor: default;
+}
+
+.cmv2-hist-ventana i {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cmv2-accent) 42%, transparent);
+}
+
+.cmv2-hist-ventana b {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: var(--cmv2-accent);
+}
 
 .cmv2-hist-apilado-nombre {
   font-size: 11px;
