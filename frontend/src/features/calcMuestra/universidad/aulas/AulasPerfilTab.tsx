@@ -159,9 +159,8 @@ export function AulasPerfilTab({
             facultades
           </h4>
           <p>
-            Cuántas aulas le tocaron a cada facultad y cuántos estudiantes elegibles hay detrás.
-            Las dos cifras no van juntas: una facultad puede tener pocas aulas y muchos elegibles si
-            las suyas son grandes.
+Aulas y estudiantes elegibles no van juntos: una facultad puede tener pocas aulas
+            y muchos elegibles si las suyas son grandes.
           </p>
         </header>
         <ol className="cmv2-perfil-facultades">
@@ -207,11 +206,10 @@ export function AulasPerfilTab({
             <span className="cmv2-eyebrow">De qué está hecha la muestra</span>
             <h4>Qué tipo de cursos-horario le tocó a cada facultad</h4>
             <p>
-              Cada barra reparte las aulas de una facultad entre las categorías del criterio y suma
-              su 100 %. Sirve para ver quién concentra un tipo de aula que el resto casi no tiene,
-              porque eso cambia cómo hay que trabajarla en campo.
+              Quién concentra un tipo de aula que el resto casi no tiene, porque eso cambia cómo hay
+              que trabajarla en campo.
               {marco.length > 0
-                ? " La línea vertical marca dónde caería el corte si la muestra tuviera la misma composición que el marco."
+                ? " La línea marca dónde caería el corte con la composición del marco."
                 : ""}
             </p>
           </header>

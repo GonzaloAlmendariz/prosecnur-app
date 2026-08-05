@@ -808,8 +808,7 @@ export function HistoricoEstudioPanel({
             <span className="cmv2-eyebrow">Qué pasó en las aulas</span>
             <h4>De {fmtInt(universo)} estudiantes a {fmtInt(encuentros.efectivas ?? 0)} encuestas completas</h4>
             <p>
-              Cada estudiante terminó en uno solo de estos grupos. El ancho de la barra es la
-              cantidad de personas; la parte rayada es la que se fue en ese paso.
+              Cada estudiante terminó en uno solo de estos grupos.
             </p>
           </header>
           <ol className="cmv2-hist-embudo">
@@ -939,9 +938,8 @@ export function HistoricoEstudioPanel({
             <span className="cmv2-eyebrow">Dónde perdió cada facultad</span>
             <h4>El embudo, facultad por facultad</h4>
             <p>
-              Dos facultades pueden terminar con el mismo resultado por razones opuestas: una
-              porque sus alumnos faltaron, otra porque ya habían contestado en otro curso. La
-              barra reparte a los estudiantes de cada facultad entre esas cuatro salidas.
+              Dos facultades pueden llegar al mismo resultado por razones opuestas: una porque sus
+              alumnos faltaron, otra porque ya habían contestado en otro curso.
             </p>
           </header>
           <div className="cmv2-hist-leyenda">
@@ -967,9 +965,8 @@ export function HistoricoEstudioPanel({
             <span className="cmv2-eyebrow">De qué está hecho el marco</span>
             <h4>Qué tipo de cursos-horario tiene cada facultad</h4>
             <p>
-              Cada barra reparte las aulas de una facultad entre las categorías del criterio, y
-              siempre suma el 100 % de esa facultad. Sirve para ver quién concentra un tipo de aula
-              que el resto casi no tiene, porque eso cambia lo que hay que esperar de ella.
+              Quién concentra un tipo de aula que el resto casi no tiene, porque eso cambia lo que
+              hay que esperar de esa facultad.
             </p>
           </header>
           {[...referencia.composicion]
@@ -1026,8 +1023,8 @@ export function HistoricoEstudioPanel({
             <span className="cmv2-eyebrow">El campo en el tiempo</span>
             <h4>Qué pasó cada semana</h4>
             <p>
-              Cada semana declara sus cifras en el orden en que ocurrieron, y cada porcentaje lleva
-              al lado las dos cantidades que lo producen.
+              Si el campo se fue agotando: cuanto más avanza, más probable es que quien está en la
+              siguiente aula ya haya respondido en otra.
             </p>
           </header>
           <SerieCampo serie={referencia.serie_campo} meta={meta} />
@@ -1045,10 +1042,8 @@ export function HistoricoEstudioPanel({
             </h4>
             <p>
               El diseño sortea, para cada puesto de la muestra, un curso-horario titular y una
-              cadena de suplentes por si ese se cae. Una fila por titular; cada columna es un
-              escalón de su cadena. Verde con cifra es que se aplicó y cuántas encuestas dio, ámbar
-              es que se cayó, y el gris claro son suplentes que nunca hizo falta contactar. Pasa el
-              cursor por cualquier casilla para ver el curso-horario y qué pasó.
+              cadena de suplentes por si ese se cae. Una fila por titular, una columna por escalón
+              de su cadena.
             </p>
           </header>
           <div className="cmv2-hist-leyenda">
@@ -1083,9 +1078,8 @@ export function HistoricoEstudioPanel({
             <h4>Asistencia por facultad</h4>
             <p>
               De cada 100 estudiantes matriculados en las aulas visitadas de esa facultad, cuántos
-              estaban en clase el día de la visita. La barra va de 0 a 100 % y la línea vertical
-              marca el {pct(refPerfil, 0)} de referencia, para ver de un vistazo quién queda por
-              encima y quién por debajo.
+              estaban en clase el día de la visita. La línea marca el {pct(refPerfil, 0)} de
+              referencia.
             </p>
           </header>
           <ol className="cmv2-hist-perfil">
@@ -1101,8 +1095,7 @@ export function HistoricoEstudioPanel({
                   de repetir la misma aclaración en cada fila. */}
               <p className="cmv2-hist-nota-grupo">
                 Estas {degradadas} se aplicaron en muy pocas aulas para fijar una cifra propia, así
-                que heredan el {pct(refPerfil, 0)} de referencia. Pasa el cursor para ver qué
-                observó cada una.
+                que heredan el {pct(refPerfil, 0)} de referencia.
               </p>
               <ol className="cmv2-hist-perfil">
                 {filasFacultad
@@ -1141,8 +1134,8 @@ export function HistoricoEstudioPanel({
             <span className="cmv2-eyebrow">Cómo se dimensionó</span>
             <h4>Del universo a las aulas que había que visitar</h4>
             <p>
-              El recorrido que llevó de la población entera al número de cursos-horario a aplicar.
-              Cada paso toma la cifra anterior y le aplica una decisión del diseño.
+              De la población entera a las aulas que había que visitar, y de ahí a la base con la
+              que se analizó.
             </p>
           </header>
 
@@ -1222,7 +1215,7 @@ export function HistoricoEstudioPanel({
                 <span className="cmv2-hist-escalera-que">base con la que se analizó</span>
                 <span className="cmv2-hist-escalera-como">
                   {diseno.casos_recortados !== null && diseno.casos_recortados > 0
-                    ? `−${fmtInt(diseno.casos_recortados)} recortados al azar dentro de cada celda, para que ninguna pesara más de lo que le tocaba`
+                    ? `−${fmtInt(diseno.casos_recortados)} recortados al azar en las facultades que superaron su cuota`
                     : diseno.metodo_ajuste || "tras el ajuste final"}
                 </span>
               </li>
@@ -1258,7 +1251,7 @@ export function HistoricoEstudioPanel({
                 if (!cortas.length) return null;
                 return (
                   <p>
-                    {cortas.length === 1 ? "Una facultad se quedó corta" : `${cortas.length} facultades se quedaron cortas`}
+                    {cortas.length === 1 ? "No llegó" : `No llegaron`}
                     :{" "}
                     {cortas
                       .map((f) => {
