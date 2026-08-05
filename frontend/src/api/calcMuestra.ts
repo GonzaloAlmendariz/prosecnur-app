@@ -747,7 +747,65 @@ export type CalcMuestraWorkspaceSourceBinding = {
   rows?: number;
   columns?: number;
   notes?: string;
+  /**
+   * ADR 0060 · catálogo de filtros de corte del instrumento que produjo esta
+   * base. Vive en el binding y no en el workspace para que viaje en el `.pulso`
+   * junto a la fuente que describe: dos bases distintas pueden declarar filtros
+   * distintos, y un catálogo suelto no sabría a cuál pertenece.
+   */
+  filtros_corte?: CalcMuestraFiltroCorteDeclarado[];
 };
+
+/**
+ * ADR 0060 · lo que el usuario declara por filtro. Cuántos hay, cómo se llaman,
+ * qué columna los produce y qué condición los dispara es propiedad del estudio;
+ * la `clase` es lo único cerrado, porque es lo que el motor interpreta para
+ * decidir el efecto sobre el denominador.
+ */
+export type CalcMuestraFiltroCorteDeclarado = {
+  id: string;
+  etiqueta: string;
+  columna: string;
+  condicion: string;
+  clase: CalcMuestraReferenciaAsistenciaFiltroClase;
+  origen: "campo" | "formulario";
+  orden: number;
+  /** Una sugerencia no cuenta como declarada hasta que el usuario la confirma. */
+  confirmado: boolean;
+};
+
+/** ADR 0060 · la clase decide si el corte queda dentro o fuera del denominador. */
+export const CALC_MUESTRA_FILTRO_CLASES: Array<{
+  clase: CalcMuestraReferenciaAsistenciaFiltroClase;
+  label: string;
+  detalle: string;
+  enDenominador: boolean;
+}> = [
+  {
+    clase: "rechazo",
+    label: "Rechazo",
+    detalle: "Podía responder y no quiso. Es una pérdida real del operativo.",
+    enDenominador: true,
+  },
+  {
+    clase: "abandono",
+    label: "Abandono",
+    detalle: "Empezó y no terminó, sin declinar explícitamente.",
+    enDenominador: true,
+  },
+  {
+    clase: "no_elegible",
+    label: "No elegible",
+    detalle: "No pertenecía al estudio. Nunca debió contar en la meta.",
+    enDenominador: false,
+  },
+  {
+    clase: "ya_medido",
+    label: "Ya medido",
+    detalle: "Respondió en otro encuentro. No es pérdida: ya cumplió.",
+    enDenominador: false,
+  },
+];
 
 export type CalcMuestraAulasSheetInspectionSheet = {
   name: string;

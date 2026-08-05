@@ -11,12 +11,15 @@ import { Database, ListChecks } from "lucide-react";
 import { EmptyState } from "../../../../components/States";
 import type {
   CalcMuestraAulasState,
+  CalcMuestraFiltroCorteDeclarado,
   CalcMuestraWorkspace,
+  CalcMuestraWorkspaceSourceBinding,
   CalcMuestraWorkspaceVariableMapping,
 } from "../../../../api/client";
 import { fmtInt, rowsFrom } from "../../sharedCore";
 import { UNIVERSITY_REQUIRED_VARIABLES } from "../shared/constants";
 import {
+  ensureUniversitySourceBindings,
   inferUniversityColumn,
   isUniversityUserFacingColumnName,
   universityColumnOptionsBySource,
@@ -32,6 +35,7 @@ import {
   universityRoleValueType,
   upsertUniversityVariableMapping,
 } from "./variableRoles";
+import { FiltrosCorteCard } from "./FiltrosCorteCard";
 import { VariableMapCard } from "./VariableMapCard";
 import "./definicion.css";
 
@@ -98,6 +102,14 @@ export function DefVariablesTab({
   // de ese rol. Los roles de alumno leen la base madre / MATRICULADO; los de
   // curso-horario, el catálogo / CURSO Y HORARIO. Nunca se mezclan columnas de
   // la otra hoja, aunque exista una homónima (queda desambiguada por hoja).
+  const allBindings = ensureUniversitySourceBindings(
+    workspace.source_mode ?? "base_madre",
+    workspace.source_bindings,
+  );
+  const referenceBinding = allBindings.find(
+    (item: CalcMuestraWorkspaceSourceBinding) => item.role === "referencia_asistencia",
+  ) ?? null;
+
   const columnsBySource = universityColumnOptionsBySource(workspace, aulasState);
   const studentColumns = columnsBySource.student.filter(isUniversityUserFacingColumnName);
   const classroomColumns = columnsBySource.classroom.filter(isUniversityUserFacingColumnName);
@@ -202,6 +214,22 @@ export function DefVariablesTab({
           )}
         </div>
       </header>
+
+      {/* ADR 0060 · los filtros de corte abren la pestaña: antes de decir qué
+          significa cada columna hay que declarar qué registros entran. Es el
+          mismo emparejamiento que el resto, con la dirección invertida. */}
+      <FiltrosCorteCard
+        binding={referenceBinding}
+        filtros={referenceBinding?.filtros_corte ?? []}
+        onChange={(filtros: CalcMuestraFiltroCorteDeclarado[]) => {
+          if (!referenceBinding) return;
+          onWorkspace({
+            ...workspace,
+            source_bindings: allBindings.map((item: CalcMuestraWorkspaceSourceBinding) =>
+              (item.id === referenceBinding.id ? { ...item, filtros_corte: filtros } : item)),
+          });
+        }}
+      />
 
       {SECCIONES.map((seccion) => {
         const bases = UNIVERSITY_REQUIRED_VARIABLES.filter(

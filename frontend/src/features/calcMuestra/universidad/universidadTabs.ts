@@ -241,7 +241,7 @@ export function universitySidebarTabs({
   if (activeSection === "definicion") {
     const baseReady = declaredSourcesReady || hasDescriptiveFrame;
     const baseConfigured = baseReady && requiredMapped;
-    const [estudioTab, basesTab, consistenciaTab, variablesTab, exploradorTab, historicoTab] =
+    const [estudioTab, basesTab, consistenciaTab, exploradorTab, variablesTab, historicoTab] =
       CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion;
     // G42 · La base histórica es OPCIONAL: su pestaña acredita cuando el motor
     // publicó la referencia, y hasta entonces no bloquea nada —el marco se
@@ -258,10 +258,10 @@ export function universitySidebarTabs({
       // entre ellas es su propia pestaña y su propio estado.
       { ...basesTab, status: guideStatus(baseReady, hasSource) },
       { ...consistenciaTab, status: baseReady ? consistencyStatus : guideStatus(false, baseReady || hasSource) },
-      { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
       // G42 · El explorador describe lo que ya hay: listo en cuanto el motor
       // publicó filas, sin exigir criterios ni cascada.
       { ...exploradorTab, status: guideStatus(hasDescriptiveFrame, declaredSourcesReady || hasSource) },
+      { ...variablesTab, status: guideStatus(baseConfigured, baseReady || hasSource) },
       { ...historicoTab, status: guideStatus(referenciaLista, true) },
     ];
   }
