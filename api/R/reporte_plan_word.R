@@ -392,6 +392,11 @@ reporte_word_plan <- function(
   # -------------------------------------------------------------------------
   g_i      <- 0L
   log_rows <- vector("list", length(render_meta))
+  # B55: los PNG temporales de cada gráfico deben sobrevivir hasta que
+  # print(doc) empaquete el docx (officer copia las imágenes recién ahí).
+  # Se acumulan y se limpian al salir — también en rutas de error.
+  img_paths <- character(0)
+  on.exit(unlink(img_paths[file.exists(img_paths)]), add = TRUE)
 
   for (idx in seq_along(render_meta)) {
     entry <- render_meta[[idx]]
@@ -482,10 +487,16 @@ reporte_word_plan <- function(
       # al otro lado de un salto de pagina. Se renderiza el PNG y se inserta
       # via fpar(external_img) para que titulo+imagen+Base viajen juntos.
       img_path <- tempfile(fileext = ".png")
+      img_paths <- c(img_paths, img_path)
       ggplot2::ggsave(
         filename = img_path, plot = p, width = w, height = h,
         units = "in", dpi = img_dpi, bg = presets_word$image$bg %||% "white"
       )
+      # B55: officer (temp_blipfill) COPIA la imagen a un segundo tempfile
+      # png propio durante body_add_fpar; ese es el archivo que r:embed
+      # referencia al hacer print(doc). El snapshot acotado a esta llamada
+      # registra esa copia para la misma limpieza post-print.
+      pngs_pre_add <- list.files(tempdir(), pattern = "\\.png$", full.names = TRUE)
       doc <- officer::body_add_fpar(
         doc,
         value = officer::fpar(
@@ -493,6 +504,10 @@ reporte_word_plan <- function(
           fp_p = officer::fp_par(text.align = "center", keep_with_next = TRUE)
         )
       )
+      img_paths <- c(img_paths, setdiff(
+        list.files(tempdir(), pattern = "\\.png$", full.names = TRUE),
+        pngs_pre_add
+      ))
       if (!is.null(pie_txt))
         doc <- .add_par_w(doc, pie_txt, presets_word$base_style, align = "center")
       doc <- officer::body_add_par(doc, "", style = "Normal")
@@ -518,6 +533,9 @@ reporte_word_plan <- function(
 
   if (!isTRUE(solo_lista)) {
     print(doc, target = path_docx)
+    # Con el docx ya escrito, los PNG intermedios sobran (el on.exit cubre
+    # además los caminos de error previos al print).
+    unlink(img_paths[file.exists(img_paths)])
     if (isTRUE(mensajes_progreso))
       message("DOCX generado en: ", normalizePath(path_docx, winslash = "/"))
   }
