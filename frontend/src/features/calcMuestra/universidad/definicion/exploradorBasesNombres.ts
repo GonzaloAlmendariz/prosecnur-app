@@ -47,9 +47,18 @@ const DERIVADAS: Record<string, { titulo: string; detalle: string }> = {
     titulo: "Proporción de elegibles",
     detalle: "elegibles sobre matriculados del curso-horario",
   },
-  included: { titulo: "Entra al marco", detalle: "resultado de aplicar todos los criterios" },
-  exclude_reason: { titulo: "Motivo de exclusión", detalle: "criterio que dejó fuera el curso-horario" },
-  size_group: { titulo: "Tramo de tamaño", detalle: "grupo por número de elegibles" },
+  included: {
+    titulo: "¿Entra al marco?",
+    detalle: "resultado de aplicar todos los criterios al curso-horario",
+  },
+  exclude_reason: {
+    titulo: "Por qué quedó fuera",
+    detalle: "criterios que dejaron fuera el curso-horario; puede ser más de uno",
+  },
+  size_group: {
+    titulo: "Tamaño del curso-horario",
+    detalle: "tramo por número de alumnos elegibles",
+  },
   prevalence_ratio: {
     titulo: "Prevalencia de elegibles",
     detalle: "elegibles sobre la matrícula total del curso-horario",
@@ -66,16 +75,37 @@ const DERIVADAS: Record<string, { titulo: string; detalle: string }> = {
     titulo: "Coincidencia de nivel",
     detalle: "proporción de matriculados en el nivel de referencia",
   },
-  level_reference: { titulo: "Nivel de referencia", detalle: "nivel con el que se compara el curso" },
-  course_level_num: { titulo: "Nivel del curso (número)", detalle: "nivel normalizado a número" },
-  unique_student_hash: { titulo: "Huella de estudiantes", detalle: "control de duplicados; no identifica a nadie" },
+  level_reference: {
+    titulo: "Nivel con el que se compara",
+    detalle: "si se usa el nivel declarado del curso o el más frecuente entre sus alumnos",
+  },
+  course_level_num: {
+    titulo: "Nivel del curso en número",
+    detalle: "el nivel declarado, normalizado para poder ordenarlo",
+  },
+  unique_student_hash: {
+    titulo: "Huella de sus estudiantes",
+    detalle: "control de duplicados entre cursos; no identifica a nadie",
+  },
   sex_top_1: { titulo: "Sexo predominante", detalle: "categoría de sexo más frecuente del curso-horario" },
-  sex_top_1_n: { titulo: "Frecuencia del sexo predominante", detalle: "cuántos estudiantes lo componen" },
+  sex_top_1_n: {
+    titulo: "Alumnos del sexo predominante",
+    detalle: "cuántos estudiantes componen esa categoría",
+  },
   sex_top_2: { titulo: "Segundo sexo", detalle: "segunda categoría de sexo del curso-horario" },
-  sex_top_2_n: { titulo: "Frecuencia del segundo sexo", detalle: "cuántos estudiantes lo componen" },
+  sex_top_2_n: {
+    titulo: "Alumnos del segundo sexo",
+    detalle: "cuántos estudiantes componen esa categoría",
+  },
   teacher_type_top: { titulo: "Tipo de docente predominante", detalle: "categoría de docente más frecuente" },
-  label: { titulo: "Etiqueta del curso-horario", detalle: "nombre legible que arma el motor" },
-  classroom_id: { titulo: "Identificador de curso-horario", detalle: "clave con la que el motor une las bases" },
+  label: {
+    titulo: "Nombre completo del curso-horario",
+    detalle: "curso, horario y sección, unidos por el motor para poder leerlo",
+  },
+  classroom_id: {
+    titulo: "Clave del curso-horario",
+    detalle: "con ella el motor une la matrícula con el catálogo",
+  },
 };
 
 /** Etiqueta institucional del rol, para cuando el archivo no declara nombre. */
