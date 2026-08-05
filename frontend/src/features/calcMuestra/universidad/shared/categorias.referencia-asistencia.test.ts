@@ -391,4 +391,47 @@ describe("normalizeCalcMuestraReferenciaAsistencia", () => {
       },
     })).rejects.toThrow();
   });
+
+  it("acepta el payload sin la dimensión de tamaño, que es opcional", async () => {
+    const api = await import("../../../../api/calcMuestra") as unknown as Record<string, unknown>;
+    const normalizeCalcMuestraReferenciaAsistencia =
+      api.normalizeCalcMuestraReferenciaAsistencia as ReferenciaNormalizer;
+
+    // Los tramos de tamaño los declara el estudio en Marco. Sin grupos
+    // declarados el motor omite esa dimensión y las tres restantes conservan
+    // sus órdenes 2, 3 y 4.
+    //
+    // Este test existe porque el defecto se escapó dos veces: el motor cambió
+    // el contrato y el normalizador siguió exigiendo cuatro dimensiones con
+    // `orden === índice + 1`. El payload llegaba entero, el cliente lo
+    // descartaba en silencio y la pestaña quedaba en blanco sin decir por qué.
+    const base = payloadValido();
+    const todas = base.dimensiones as Array<Record<string, unknown>>;
+    const sinTamano = {
+      ...base,
+      dimensiones: todas.filter((d) => d.dimension_key !== "tamano"),
+    };
+
+    const normalizado = normalizeCalcMuestraReferenciaAsistencia(sinTamano);
+    expect(normalizado).not.toBeNull();
+    expect(normalizado?.dimensiones.map((d) => d.dimension_key)).toEqual([
+      "rango_horario",
+      "facultad",
+      "tipo_sesion",
+    ]);
+
+    // Con las cuatro sigue funcionando: quitarla es opcional, no obligatorio.
+    expect(normalizeCalcMuestraReferenciaAsistencia(base)).not.toBeNull();
+
+    // Lo que sí invalida el payload es perder una dimensión que describe el
+    // marco, o que los órdenes dejen de ser crecientes.
+    expect(normalizeCalcMuestraReferenciaAsistencia({
+      ...base,
+      dimensiones: todas.filter((d) => d.dimension_key !== "facultad"),
+    })).toBeNull();
+    expect(normalizeCalcMuestraReferenciaAsistencia({
+      ...base,
+      dimensiones: [...todas].reverse(),
+    })).toBeNull();
+  });
 });

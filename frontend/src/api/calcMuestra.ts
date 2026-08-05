@@ -2979,27 +2979,43 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     metodo_ic: globalMetodoIc,
   };
 
-  const dimensionKeys: CalcMuestraReferenciaAsistenciaDimensionKey[] = [
-    "tamano",
+  // `tamano` es opcional desde que sus tramos los declara el estudio en Marco:
+  // sin grupos declarados el motor omite la dimensión en vez de imponer una
+  // escala propia. Las otras tres describen el marco y siempre viajan.
+  //
+  // Exigir las cuatro dejaba en blanco la pestaña de cualquier estudio que no
+  // usara grupos de tamaño, sin decir por qué: el payload llegaba entero y el
+  // cliente lo descartaba en silencio.
+  const dimensionKeysObligatorias: CalcMuestraReferenciaAsistenciaDimensionKey[] = [
     "rango_horario",
     "facultad",
     "tipo_sesion",
   ];
   const rawDimensions = asList(root.dimensiones);
+  const dimensionKeys: CalcMuestraReferenciaAsistenciaDimensionKey[] =
+    rawDimensions.length === dimensionKeysObligatorias.length + 1
+      ? ["tamano", ...dimensionKeysObligatorias]
+      : dimensionKeysObligatorias;
   if (rawDimensions.length !== dimensionKeys.length) return null;
   const dimensiones: CalcMuestraReferenciaAsistenciaDimension[] = [];
+  let ordenPrevio = 0;
   for (let dimensionIndex = 0; dimensionIndex < dimensionKeys.length; dimensionIndex += 1) {
     const expectedKey = dimensionKeys[dimensionIndex]!;
     const record = asRecord(rawDimensions[dimensionIndex]);
     if (!record) return null;
     const label = asText(record.dimension_label);
     const order = asPositiveInteger(record.orden);
+    // `orden` declara posición relativa, no índice absoluto: cuando el motor
+    // omite `tamano` porque el estudio no declaró grupos, las tres restantes
+    // conservan sus órdenes 2, 3 y 4. Exigir índice+1 rechazaba el payload
+    // entero y dejaba la pestaña en blanco sin decir por qué.
     if (
       asText(record.dimension_key) !== expectedKey ||
       !label ||
       order === INVALID_NUMBER ||
-      order !== dimensionIndex + 1
+      order <= ordenPrevio
     ) return null;
+    ordenPrevio = order;
 
     const rawRows = asList(record.filas);
     const filas: CalcMuestraReferenciaAsistenciaCelda[] = [];
@@ -3193,7 +3209,15 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     });
   }
 
-  const encuentrosRecord = asRecord(root.encuentros);
+  // Un objeto sin claves es cómo R expresa «ausente» al serializar. Se lee como
+  // ausencia y no como un bloque presente y vacío, que invalidaría el payload
+  // entero: sin glosario, `encuentros` llegaba como `{}` y contradecía a
+  // `glosario_completo`, así que ninguna base heredada se podía leer.
+  const bloque = (value: unknown) => {
+    const record = asRecord(value);
+    return record && Object.keys(record).length > 0 ? record : null;
+  };
+  const encuentrosRecord = bloque(root.encuentros);
   let encuentros: CalcMuestraReferenciaAsistenciaEncuentros | null = null;
   if (encuentrosRecord) {
     const num = (value: unknown): number | null => {
@@ -3304,7 +3328,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   }
 
   let serieCampo: CalcMuestraReferenciaAsistenciaSerieCampo | null = null;
-  const serieRecord = asRecord(root.serie_campo);
+  const serieRecord = bloque(root.serie_campo);
   if (serieRecord) {
     const semanas: CalcMuestraReferenciaAsistenciaSemana[] = [];
     for (const rawSemana of asList(serieRecord.filas)) {
@@ -3338,7 +3362,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   }
 
   let cadenasReemplazo: CalcMuestraReferenciaAsistenciaCadenasReemplazo | null = null;
-  const cadenasRecord = asRecord(root.cadenas_reemplazo);
+  const cadenasRecord = bloque(root.cadenas_reemplazo);
   if (cadenasRecord) {
     const campos = [
       "cadenas_declaradas", "cadenas_resueltas", "resueltas_con_titular",

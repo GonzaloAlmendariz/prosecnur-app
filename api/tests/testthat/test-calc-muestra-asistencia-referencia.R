@@ -238,7 +238,7 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
     verificada = TRUE,
     verificables = 190L,
     inconsistentes = 0L,
-    residuales_negativos = NULL
+    residuales_negativos = NA_integer_
   ))
 
   global <- out$global
@@ -638,7 +638,9 @@ test_that("sin las columnas del glosario el motor degrada y lo declara", {
   expect_identical(out$schema, "calc_muestra_referencia_asistencia_v2")
   expect_false(out$cobertura$glosario_completo)
   expect_identical(out$cobertura$columnas_glosario, list())
-  expect_null(out$encuentros)
+  # NA y no NULL: un NULL se serializaría como `{}`, que el cliente leería como
+  # un bloque de encuentros presente contradiciendo a `glosario_completo`.
+  expect_true(is.na(out$encuentros))
   expect_identical(out$denominador, "matriculados_totales")
   expect_identical(out$identidad$regla, "A = E + no_respondieron")
 
@@ -773,7 +775,8 @@ test_that("el diseno del estudio previo viaja con la referencia", {
 
   vacio <- calc_muestra_asistencia_referencia(.asr_v2_base(), bootstrap_n = 50L)
   expect_false(vacio$diseno$declarado)
-  expect_null(vacio$diseno$muestra)
+  # NA, no NULL: un NULL se serializaría como `{}` y el cliente no lo lee.
+  expect_true(is.na(vacio$diseno$muestra))
   expect_identical(vacio$filtros_corte, list())
 })
 
@@ -813,8 +816,10 @@ test_that("la serie semanal publica sus bases y las cadenas su historia", {
   # La fixture heredada no declara semana ni cadena: ambos bloques son opcionales
   # y su ausencia se lee como NULL, no como error.
   base <- .asr_run()
-  expect_null(base$serie_campo)
-  expect_null(base$cadenas_reemplazo)
+  # NA y no NULL: un NULL se serializaría como `{}` y el cliente lo leería como
+  # un bloque presente y vacío, que invalida el payload entero.
+  expect_true(is.na(base$serie_campo))
+  expect_true(is.na(base$cadenas_reemplazo))
 
   datos <- .asr_fixture
   n <- nrow(datos)
@@ -860,4 +865,28 @@ test_that("la serie semanal publica sus bases y las cadenas su historia", {
       expect_true(escalon$estado %in% c("aplicado", "cayo", "reserva"))
     }
   }
+})
+
+test_that("un campo ausente viaja como null y no como objeto vacio", {
+  .asr_skip_sin_engine()
+
+  # jsonlite serializa `NULL` dentro de una lista como `{}`, no como `null`. El
+  # contrato del cliente declara `number | null`, así que un estudio que no
+  # declaraba su diseño previo mandaba diecisiete `{}` y el normalizador
+  # rechazaba el payload entero: la pestaña quedaba vacía sin decir por qué.
+  datos <- .asr_fixture
+  n <- nrow(datos)
+  datos$cadena <- seq_len(n)
+  datos$posicion <- rep(1L, n)
+  datos$rol <- rep("TITULAR", n)
+  out <- .asr_run(datos)
+
+  json <- as.character(jsonlite::toJSON(out, auto_unbox = TRUE, na = "null"))
+  expect_false(grepl('"poblacion_objetivo":{}', json, fixed = TRUE))
+  expect_true(grepl('"poblacion_objetivo":null', json, fixed = TRUE))
+  expect_false(out$diseno$declarado)
+
+  # Ningún escalar del payload puede salir como `{}`: ese es exactamente el
+  # valor que el cliente no sabe leer.
+  expect_false(grepl(":{}", json, fixed = TRUE))
 })
