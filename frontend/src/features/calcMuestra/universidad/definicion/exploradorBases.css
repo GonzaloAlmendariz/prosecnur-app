@@ -476,9 +476,13 @@
   flex-direction: column;
   gap: 2px;
 }
+/* G47 · La etiqueta admite dos líneas y algo más de ancho: un motivo de
+   exclusión combinado —«Mínimo por aula · Modalidad · Matriculados · Mínimo de
+   alumnos elegibles»— truncado a una línea empezaba igual que sus vecinos y no
+   se distinguía de ellos. */
 .cmv2-expb-categorias li {
   display: grid;
-  grid-template-columns: minmax(120px, 260px) minmax(0, 1fr) 68px 52px;
+  grid-template-columns: minmax(140px, 320px) minmax(0, 1fr) 68px 52px;
   align-items: center;
   gap: 12px;
   padding: 5px 8px;
@@ -494,10 +498,13 @@
 }
 .cmv2-expb-cat-label {
   font-size: 12px;
+  line-height: 1.35;
   color: var(--pulso-text);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 .cmv2-expb-cat-bar {
   height: 9px;

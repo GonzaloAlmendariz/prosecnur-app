@@ -49,6 +49,7 @@ import {
   type VariableExplorador,
 } from "./exploradorBasesModel";
 import { nombreDeColumna, type NombreColumna } from "./exploradorBasesNombres";
+import { etiquetaDeValor } from "./exploradorBasesValores";
 import "./exploradorBases.css";
 
 type BaseExplorable = "aulas" | "estudiantes";
@@ -428,8 +429,16 @@ export function ExploradorBasesTab({
                       <dt>Con dato</dt>
                       <dd>{fmtInt(distribucion.conDato)}</dd>
                     </div>
-                    <div data-alerta={distribucion.sinDato > 0 || undefined}>
-                      <dt>Sin dato</dt>
+                    {/* G47 · En «por qué quedó fuera», la ausencia no es un
+                        hueco del dato: son los cursos-horario que nadie excluyó.
+                        Llamarlo «sin dato» con un 46,9% en ámbar hacía sonar a
+                        problema lo que es el resultado deseado. */}
+                    <div
+                      data-alerta={
+                        (distribucion.sinDato > 0 && activa.columna !== "exclude_reason") || undefined
+                      }
+                    >
+                      <dt>{activa.columna === "exclude_reason" ? "Sin motivo" : "Sin dato"}</dt>
                       <dd>
                         {fmtInt(distribucion.sinDato)}
                         {distribucion.sinDato > 0 ? (
@@ -474,10 +483,24 @@ export function ExploradorBasesTab({
                     data-qa-geometry-group="calc-muestra/explorador-categorias"
                     data-qa-geometry-contract="equal"
                   >
-                    {distribucion.categorias.map((categoria) => (
+                    {distribucion.categorias.map((categoria) => {
+                      /* G47 · En una derivada, el valor también lo escribe el
+                         motor: `min_eligible_per_class|modality|…` no es una
+                         categoría, es su registro interno. Se traduce y el
+                         crudo se conserva en el `title` para volver al dato. En
+                         una columna del archivo NO se toca: reescribir el valor
+                         del usuario sería reescribir su base. */
+                      const derivada = nombreDe(activa.columna).origen !== "excel";
+                      const etiqueta = derivada
+                        ? etiquetaDeValor(activa.columna, categoria.clave) ?? categoria.clave
+                        : categoria.clave;
+                      return (
                       <li key={categoria.clave} data-qa-geometry-member data-qa-geometry-capacity="owned">
-                        <span className="cmv2-expb-cat-label" title={categoria.clave}>
-                          {categoria.clave}
+                        <span
+                          className="cmv2-expb-cat-label"
+                          title={etiqueta === categoria.clave ? categoria.clave : `${etiqueta} · ${categoria.clave}`}
+                        >
+                          {etiqueta}
                         </span>
                         <span className="cmv2-expb-cat-bar" aria-hidden="true">
                           <i style={{ width: `${Math.max(0.8, categoria.share * 100)}%` }} />
@@ -485,7 +508,8 @@ export function ExploradorBasesTab({
                         <span className="cmv2-expb-cat-n">{fmtInt(categoria.n)}</span>
                         <span className="cmv2-expb-cat-pct">{fmtPct(categoria.share)}</span>
                       </li>
-                    ))}
+                      );
+                    })}
                     {/* La cola entra como una fila más, apagada: fuera de la
                         lista se leía como un pie de página y no como parte del
                         mismo reparto, que es lo que suma el total.
@@ -525,7 +549,11 @@ export function ExploradorBasesTab({
                     <ul>
                       {distribucion.otras.filas.map((categoria) => (
                         <li key={categoria.clave}>
-                          <span title={categoria.clave}>{categoria.clave}</span>
+                          <span title={categoria.clave}>
+                            {nombreDe(activa.columna).origen !== "excel"
+                              ? etiquetaDeValor(activa.columna, categoria.clave) ?? categoria.clave
+                              : categoria.clave}
+                          </span>
                           <em>{fmtInt(categoria.n)}</em>
                           <b>{fmtPct(categoria.share)}</b>
                         </li>
