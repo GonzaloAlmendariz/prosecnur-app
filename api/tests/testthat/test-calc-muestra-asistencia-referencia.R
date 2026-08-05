@@ -156,16 +156,17 @@ test_that("el root exacto declara procedencia, estudio, umbrales y dimensiones",
   out <- .asr_run()
   expect_named(out, c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
-    "unidad", "denominador", "estudio", "cobertura", "identidad", "umbrales",
+    "unidad", "denominador", "estudio", "diseno", "filtros_corte", "cobertura",
+    "encuentros", "identidad", "umbrales",
     "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
   ))
-  expect_identical(out$schema, "calc_muestra_referencia_asistencia_v1")
+  expect_identical(out$schema, "calc_muestra_referencia_asistencia_v2")
   expect_identical(out$owner, "estudio_historico_externo")
   expect_identical(out$momento, "post_hoc_estudio_previo")
   expect_identical(out$transferible, "modelo_por_celda")
   expect_identical(out$modelo, "marginales_independientes")
   expect_false(out$combinable)
-  expect_identical(out$unidad, "curso_horario_aplicado")
+  expect_identical(out$unidad, "encuentro_en_curso_horario_aplicado")
   expect_identical(out$denominador, "matriculados_totales")
   expect_true(all(c("id", "label", "periodo", "fuente") %in% names(out$estudio)))
   for (campo in names(.asr_estudio)) {
@@ -211,13 +212,16 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
   expect_identical(out$cobertura, list(
     agendados = 194L,
     aplicados = 192L,
-    observados = 190L
+    observados = 190L,
+    glosario_completo = FALSE,
+    columnas_glosario = list()
   ))
   expect_identical(out$identidad, list(
     regla = "A = E + no_respondieron",
     verificada = TRUE,
     verificables = 190L,
-    inconsistentes = 0L
+    inconsistentes = 0L,
+    residuales_negativos = NULL
   ))
 
   global <- out$global
@@ -236,12 +240,12 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
   expect_false(anyNA(unlist(global[c("media_ch", "sd_ch", "ic_low", "ic_high")])))
   expect_identical(global$metodo_ic, "bootstrap_percentil")
 
-  expect_named(out$cadena, c("asistencia", "completitud", "validez", "producto"))
+  expect_named(out$cadena, c("asistencia", "apertura", "efectividad", "rendimiento"))
   esperada <- list(
     asistencia = c(numerador = 4792L, denominador = 6861L),
-    completitud = c(numerador = 3610L, denominador = 4792L),
-    validez = c(numerador = 3223L, denominador = 3610L),
-    producto = c(numerador = 3223L, denominador = 6861L)
+    apertura = c(numerador = 3610L, denominador = 4792L),
+    efectividad = c(numerador = 3223L, denominador = 3610L),
+    rendimiento = c(numerador = 3223L, denominador = 6861L)
   )
   for (key in names(esperada)) {
     tramo <- out$cadena[[key]]
@@ -263,11 +267,11 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
     expect_identical(tramo$metodo_ic, "bootstrap_percentil")
   }
   expect_equal(
-    out$cadena$producto$tasa,
-    out$cadena$asistencia$tasa * out$cadena$completitud$tasa * out$cadena$validez$tasa,
+    out$cadena$rendimiento$tasa,
+    out$cadena$asistencia$tasa * out$cadena$apertura$tasa * out$cadena$efectividad$tasa,
     tolerance = 1e-12
   )
-  expect_lte(abs(out$cadena$producto$tasa - 0.469), 0.002)
+  expect_lte(abs(out$cadena$rendimiento$tasa - 0.469), 0.002)
 })
 
 test_that("celdas congelan bandas, estimador, IC y reglas de publicación", {
@@ -420,7 +424,7 @@ test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabi
         matriculados = 20L, asistieron = 10L, enviadas = 15L,
         validas = 12L, no_respondieron = 0L
       ),
-      tramo = "completitud",
+      tramo = "apertura",
       tasa = 1.5
     ),
     validas_mayor_enviadas = list(
@@ -428,7 +432,7 @@ test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabi
         matriculados = 20L, asistieron = 15L, enviadas = 10L,
         validas = 12L, no_respondieron = 0L
       ),
-      tramo = "validez",
+      tramo = "efectividad",
       tasa = 1.2
     )
   )
@@ -538,11 +542,13 @@ test_that("encabezado agrupador real se promueve y admite tipo de sesion ausente
   if (inherits(capturado, "error")) return(invisible())
   out <- capturado
 
-  expect_identical(out$schema, "calc_muestra_referencia_asistencia_v1")
+  expect_identical(out$schema, "calc_muestra_referencia_asistencia_v2")
   expect_identical(out$cobertura, list(
     agendados = 12L,
     aplicados = 12L,
-    observados = 12L
+    observados = 12L,
+    glosario_completo = FALSE,
+    columnas_glosario = list()
   ))
   expect_identical(out$global$k, 12L)
   expect_identical(out$global$metodo_ic, "bootstrap_percentil")
@@ -578,4 +584,178 @@ test_that("bootstrap es reproducible, invariante al orden y no toca el RNG globa
   rm(".Random.seed", envir = .GlobalEnv)
   invisible(.asr_run())
   expect_false(exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
+})
+
+# --- ADR 0060: glosario del encuentro, filtros declarables y diseño ------------
+
+.asr_v2_base <- function(n = 40L, extra = list()) {
+  datos <- data.frame(
+    `CURSO-HORARIO` = sprintf("CH-V2-%03d", seq_len(n)),
+    `STATUS DE APLICACIÓN` = rep("APLICADA", n),
+    `MATRICULADOS TOTALES` = rep(40, n),
+    `N° ASISTENTES EN AULA` = rep(30, n),
+    `TOTAL ENVIADAS` = rep(24, n),
+    `TOTAL LARGAS` = rep(20, n),
+    `N° ASISTENTES QUE NO RESPONDIERON` = rep(6, n),
+    `RANGO - HORARIO` = rep("Regular", n),
+    facultad = rep("Facultad X", n),
+    tipo_sesion = rep("Teórica", n),
+    check.names = FALSE
+  )
+  for (key in names(extra)) datos[[key]] <- extra[[key]]
+  datos
+}
+
+.asr_v2_glosario <- function(n = 40L, no_efectivas = 3) {
+  .asr_v2_base(n, list(
+    `MATRICULADOS POBLACIÓN` = rep(35, n),
+    ya_medidas = rep(2, n),
+    no_elegibles = rep(1, n),
+    no_efectivas = rep(no_efectivas, n)
+  ))
+}
+
+test_that("sin las columnas del glosario el motor degrada y lo declara", {
+  out <- calc_muestra_asistencia_referencia(.asr_v2_base(), bootstrap_n = 50L)
+
+  expect_identical(out$schema, "calc_muestra_referencia_asistencia_v2")
+  expect_false(out$cobertura$glosario_completo)
+  expect_identical(out$cobertura$columnas_glosario, list())
+  expect_null(out$encuentros)
+  expect_identical(out$denominador, "matriculados_totales")
+  expect_identical(out$identidad$regla, "A = E + no_respondieron")
+
+  # La cadena heredada sigue siendo multiplicativa y cierra en el rendimiento.
+  expect_equal(out$cadena$asistencia$tasa, 30 / 40)
+  expect_equal(out$cadena$apertura$tasa, 24 / 30)
+  expect_equal(out$cadena$efectividad$tasa, 20 / 24)
+  expect_equal(
+    out$cadena$rendimiento$tasa,
+    out$cadena$asistencia$tasa * out$cadena$apertura$tasa * out$cadena$efectividad$tasa
+  )
+})
+
+test_that("con el glosario el denominador pasa a elegibles presentes", {
+  out <- calc_muestra_asistencia_referencia(.asr_v2_glosario(), bootstrap_n = 50L)
+
+  expect_true(out$cobertura$glosario_completo)
+  expect_identical(out$denominador, "elegibles_presentes")
+  expect_identical(out$unidad, "encuentro_en_curso_horario_aplicado")
+  expect_setequal(
+    unlist(out$cobertura$columnas_glosario),
+    c("elegibles", "ya_medidas", "no_elegibles", "no_efectivas")
+  )
+
+  enc <- out$encuentros
+  # 40 aulas x (30 - 2 - 1) elegibles presentes
+  expect_identical(enc$elegibles_presentes, 40 * 27)
+  expect_identical(enc$efectivas, 40 * 20)
+  expect_identical(enc$no_efectivas, 40 * 3)
+  expect_identical(enc$no_realizadas, 40 * 4)
+
+  # ADR 0060, identidad de cierre del encuentro.
+  expect_identical(
+    enc$elegibles_presentes,
+    enc$efectivas + enc$no_efectivas + enc$no_realizadas
+  )
+  expect_identical(
+    out$identidad$regla,
+    "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+  )
+  # asistencia sobre elegibles, efectividad sobre elegibles presentes.
+  expect_equal(out$cadena$asistencia$tasa, 30 / 35)
+  expect_equal(out$cadena$efectividad$tasa, 20 / 27)
+  expect_equal(out$cadena$rendimiento$tasa, 20 / 35)
+})
+
+test_that("un residual negativo se marca y no se publica", {
+  # no_efectivas = 12 deja elegibles_presentes - efectivas - no_efectivas < 0.
+  out <- calc_muestra_asistencia_referencia(
+    .asr_v2_glosario(no_efectivas = 12), bootstrap_n = 50L
+  )
+
+  expect_identical(out$identidad$residuales_negativos, 40L)
+  expect_identical(out$encuentros$unidades_publicables, 0L)
+  expect_true(is.na(out$encuentros$no_realizadas))
+})
+
+test_that("la taxonomia de clases de filtro es cerrada", {
+  base <- .asr_v2_base()
+
+  expect_error(
+    calc_muestra_asistencia_referencia(
+      base, bootstrap_n = 50L,
+      filtros_corte = list(list(id = "x", clase = "inventada"))
+    ),
+    "no pertenece a la taxonom"
+  )
+  expect_error(
+    calc_muestra_asistencia_referencia(
+      base, bootstrap_n = 50L,
+      filtros_corte = list(list(id = "a", clase = "rechazo"), list(id = "a", clase = "abandono"))
+    ),
+    "repetido"
+  )
+  expect_error(
+    calc_muestra_asistencia_referencia(
+      base, bootstrap_n = 50L,
+      filtros_corte = list(list(id = "a", clase = "rechazo", origen = "excel"))
+    ),
+    "origen"
+  )
+  expect_error(
+    calc_muestra_asistencia_referencia(
+      base, bootstrap_n = 50L,
+      filtros_corte = list(list(clase = "rechazo"))
+    ),
+    "debe declarar un id"
+  )
+})
+
+test_that("la clase decide el efecto sobre el denominador, no el estudio", {
+  out <- calc_muestra_asistencia_referencia(
+    .asr_v2_base(), bootstrap_n = 50L,
+    filtros_corte = list(
+      list(id = "ciclos", clase = "no_elegible", orden = 3),
+      list(id = "consent", clase = "rechazo", orden = 1),
+      list(id = "repetido", clase = "ya_medido", origen = "campo", orden = 2)
+    )
+  )
+
+  # Se ordenan por `orden`, no por el orden de declaración.
+  expect_identical(vapply(out$filtros_corte, function(f) f$id, ""), c("consent", "repetido", "ciclos"))
+  efecto <- vapply(out$filtros_corte, function(f) f$en_denominador, logical(1))
+  expect_identical(efecto, c(TRUE, FALSE, FALSE))
+  expect_identical(out$filtros_corte[[2]]$origen, "campo")
+  # El origen por defecto es el formulario.
+  expect_identical(out$filtros_corte[[1]]$origen, "formulario")
+})
+
+test_that("el diseno del estudio previo viaja con la referencia", {
+  out <- calc_muestra_asistencia_referencia(
+    .asr_v2_base(), bootstrap_n = 50L,
+    diseno = list(
+      poblacion_objetivo = 22234, muestra = 2500, sobremuestra = 3750,
+      ratio_sobremuestra = 1.5, nivel_confianza = 0.95,
+      proporcion_esperada = 0.30, margen_error = 0.0246, deff = 2,
+      aulas_marco = 1097, aulas_dimensionadas = 170, aulas_aplicadas = 194,
+      tasa_respuesta_asumida = 0.7038,
+      afijacion = "proporcional_facultad_sexo",
+      metodo_seleccion = "sistematico",
+      metodo_ajuste = "recorte_aleatorio_por_celda",
+      ponderado = TRUE
+    )
+  )
+
+  expect_true(out$diseno$declarado)
+  expect_identical(out$diseno$muestra, 2500)
+  expect_identical(out$diseno$sobremuestra, 3750)
+  expect_identical(out$diseno$deff, 2)
+  expect_identical(out$diseno$metodo_ajuste, "recorte_aleatorio_por_celda")
+  expect_true(out$diseno$ponderado)
+
+  vacio <- calc_muestra_asistencia_referencia(.asr_v2_base(), bootstrap_n = 50L)
+  expect_false(vacio$diseno$declarado)
+  expect_null(vacio$diseno$muestra)
+  expect_identical(vacio$filtros_corte, list())
 })

@@ -62,15 +62,15 @@ export function ReferenciaAsistenciaTau({
             </div>
             <div>
               <span>Producto de referencia</span>
-              <strong>{fmtRate(referencia.cadena.producto.tasa)}</strong>
+              <strong>{fmtRate(referencia.cadena.rendimiento.tasa)}</strong>
             </div>
           </div>
 
           <div className="cmv2-ref-tau-chain" aria-label="Cadena histórica de rendimiento">
             {[
               referencia.cadena.asistencia,
-              referencia.cadena.completitud,
-              referencia.cadena.validez,
+              referencia.cadena.apertura,
+              referencia.cadena.efectividad,
             ].map((tramo) => (
               <article key={tramo.key} data-qa-geometry-member>
                 <div>

@@ -7,7 +7,8 @@
   list(
     curso_horario = c("curso_horario", "CURSO-HORARIO"),
     estado_aplicacion = c(
-      "estado_aplicacion", "status", "estado", "STATUS DE APLICACIÓN"
+      "estado_aplicacion", "status", "estado", "resultado",
+      "STATUS DE APLICACIÓN"
     ),
     matriculados = c(
       "matriculados", "matriculados_totales", "MATRICULADOS TOTALES"
@@ -15,14 +16,46 @@
     asistentes = c(
       "asistieron", "asistentes", "N° ASISTENTES EN AULA"
     ),
-    enviadas = c("enviadas", "TOTAL ENVIADAS"),
-    validas = c("validas", "TOTAL LARGAS", "TOTAL LARGAS (válidas)"),
+    enviadas = c("registros", "enviadas", "TOTAL ENVIADAS"),
+    validas = c(
+      "efectivas", "validas", "TOTAL LARGAS", "TOTAL LARGAS (válidas)"
+    ),
     no_respondieron = c(
       "no_respondieron", "N° ASISTENTES QUE NO RESPONDIERON"
     ),
-    rango_horario = c("rango_horario", "RANGO - HORARIO"),
+    rango_horario = c("rango_horario", "bloque_horario", "RANGO - HORARIO"),
     facultad = c("facultad"),
-    tipo_sesion = c("tipo_sesion")
+    tipo_sesion = c("tipo_sesion", "tipo_curso")
+  )
+}
+
+# ADR 0060. Columnas del glosario del encuentro. Son opcionales porque una base
+# histórica anterior al ADR no las trae: cuando faltan, el motor degrada a la
+# lectura v1 y lo declara en `cobertura$glosario`. Los nombres de entrada
+# aceptan los encabezados heredados para que una base de 2025 cargue sin
+# edición manual.
+.cm_asist_optional_aliases <- function() {
+  list(
+    elegibles = c(
+      "elegibles", "matriculados_poblacion", "MATRICULADOS POBLACIÓN"
+    ),
+    ya_medidas = c(
+      "ya_medidas", "ya_medidos", "duplicados_ya_respondieron",
+      "DUPLICADOS (YA RESPONDIERON)"
+    ),
+    no_elegibles = c("no_elegibles", "no_elegibles_formulario"),
+    no_efectivas = c("no_efectivas", "cortas_total", "TOTAL CORTAS"),
+    rechazos_en_aula = c(
+      "rechazos_en_aula", "declinaron_sin_abrir", "CANTIDAD DE RECHAZOS"
+    )
+  )
+}
+
+.cm_asist_resolve_optional <- function(datos) {
+  vapply(
+    .cm_asist_optional_aliases(),
+    function(candidates) .cm_criterios_col_exacta(datos, candidates),
+    character(1)
   )
 }
 
@@ -503,6 +536,129 @@
 
 # Senal estricta para el inspector de hojas. Una coincidencia parcial debe
 # volver NULL para que el clasificador general conserve su precedencia.
+# ADR 0060. El diseño del estudio previo es lo que permite leer sus tasas: sin
+# saber sobre qué meta se trabajó, una tasa de campo es un número suelto. Todos
+# los campos son opcionales —una base puede no traer su diseño documentado— y
+# se emiten como NULL cuando faltan, nunca como cero.
+.cm_asist_design_number <- function(value) {
+  parsed <- suppressWarnings(as.numeric(value[1L]))
+  if (length(parsed) != 1L || !is.finite(parsed)) return(NULL)
+  parsed
+}
+
+.cm_asist_design <- function(diseno) {
+  if (!is.list(diseno)) diseno <- list()
+  num <- function(key) .cm_asist_design_number(diseno[[key]])
+  out <- list(
+    poblacion_objetivo = num("poblacion_objetivo"),
+    nivel_confianza = num("nivel_confianza"),
+    proporcion_esperada = num("proporcion_esperada"),
+    margen_error = num("margen_error"),
+    deff = num("deff"),
+    muestra = num("muestra"),
+    ratio_sobremuestra = num("ratio_sobremuestra"),
+    sobremuestra = num("sobremuestra"),
+    aulas_marco = num("aulas_marco"),
+    aulas_dimensionadas = num("aulas_dimensionadas"),
+    aulas_aplicadas = num("aulas_aplicadas"),
+    tasa_respuesta_asumida = num("tasa_respuesta_asumida"),
+    afijacion = .cm_aulas_scalar(diseno$afijacion, ""),
+    metodo_seleccion = .cm_aulas_scalar(diseno$metodo_seleccion, ""),
+    metodo_ajuste = .cm_aulas_scalar(diseno$metodo_ajuste, ""),
+    ponderado = if (is.logical(diseno$ponderado) && length(diseno$ponderado) == 1L) {
+      diseno$ponderado
+    } else NULL
+  )
+  # La tasa asumida es reconstruible cuando el diseño trae sobremuestra y las
+  # aulas dimensionadas con sus elegibles; si no viene declarada se deja NULL
+  # antes que inventarla.
+  out$declarado <- any(vapply(out, function(x) !is.null(x) && !identical(x, ""), logical(1)))
+  out
+}
+
+# ADR 0060. Los filtros de corte se declaran por estudio; lo único cerrado es
+# la clase, que decide el efecto sobre el denominador.
+.cm_asist_filter_classes <- function() {
+  c("rechazo", "abandono", "no_elegible", "ya_medido")
+}
+
+.cm_asist_filters <- function(filtros) {
+  if (is.null(filtros)) return(list())
+  if (!is.list(filtros)) {
+    stop_api(
+      400,
+      "E_CALC_MUESTRA_ASISTENCIA_FILTROS",
+      "El catálogo de filtros de corte debe ser una lista."
+    )
+  }
+  valid <- .cm_asist_filter_classes()
+  seen <- character(0)
+  out <- lapply(seq_along(filtros), function(idx) {
+    item <- filtros[[idx]]
+    if (!is.list(item)) {
+      stop_api(
+        400,
+        "E_CALC_MUESTRA_ASISTENCIA_FILTROS",
+        sprintf("El filtro en la posición %d debe ser un objeto.", idx)
+      )
+    }
+    clase <- .cm_aulas_scalar(item$clase, "")
+    if (!nzchar(clase) || !(clase %in% valid)) {
+      stop_api(
+        400,
+        "E_CALC_MUESTRA_ASISTENCIA_FILTROS",
+        sprintf(
+          "El filtro '%s' declara la clase '%s', que no pertenece a la taxonomía: %s.",
+          .cm_aulas_scalar(item$id, sprintf("#%d", idx)),
+          clase,
+          paste(valid, collapse = ", ")
+        ),
+        details = list(clases_validas = as.list(valid))
+      )
+    }
+    id <- .cm_aulas_scalar(item$id, "")
+    if (!nzchar(id)) {
+      stop_api(
+        400,
+        "E_CALC_MUESTRA_ASISTENCIA_FILTROS",
+        sprintf("El filtro en la posición %d debe declarar un id.", idx)
+      )
+    }
+    if (id %in% seen) {
+      stop_api(
+        400,
+        "E_CALC_MUESTRA_ASISTENCIA_FILTROS",
+        sprintf("El id de filtro '%s' está repetido.", id)
+      )
+    }
+    seen <<- c(seen, id)
+    origen <- .cm_aulas_scalar(item$origen, "formulario")
+    if (!(origen %in% c("campo", "formulario"))) {
+      stop_api(
+        400,
+        "E_CALC_MUESTRA_ASISTENCIA_FILTROS",
+        sprintf(
+          "El filtro '%s' declara origen '%s'; solo se admite campo o formulario.",
+          id, origen
+        )
+      )
+    }
+    orden <- .cm_asist_design_number(item$orden)
+    list(
+      id = id,
+      etiqueta = .cm_aulas_scalar(item$etiqueta, id),
+      columna = .cm_aulas_scalar(item$columna, ""),
+      condicion = .cm_aulas_scalar(item$condicion, ""),
+      clase = clase,
+      origen = origen,
+      orden = if (is.null(orden)) as.numeric(idx) else orden,
+      # El efecto sobre el denominador lo decide la clase, nunca el estudio.
+      en_denominador = clase %in% c("rechazo", "abandono")
+    )
+  })
+  out[order(vapply(out, function(x) x$orden, numeric(1)))]
+}
+
 .cm_asist_sheet_role_hint <- function(df) {
   if (!is.data.frame(df) || !ncol(df)) return(NULL)
   prepared <- .cm_asist_prepare_input(df)
@@ -522,8 +678,48 @@
   )
 }
 
+# ADR 0060. Taxonomía del encuentro. Se calcula sólo cuando la base trae las
+# columnas del glosario; si no, el resultado es NULL y el contrato lo declara.
+# `no_realizadas` es residual —sale de restar— y por eso se marca cuando queda
+# negativa en vez de publicarse: un residual negativo no es un dato.
+.cm_asist_encuentros <- function(model) {
+  needed <- c("elegibles", "ya_medidas", "no_elegibles")
+  if (!all(needed %in% names(model))) return(NULL)
+  cero <- function(x) ifelse(is.finite(x), x, 0)
+  asistentes <- model$asistentes
+  ya <- cero(model$ya_medidas)
+  noel <- cero(model$no_elegibles)
+  efectivas <- model$validas
+  no_efectivas <- if ("no_efectivas" %in% names(model)) {
+    cero(model$no_efectivas)
+  } else {
+    pmax(cero(model$enviadas) - cero(efectivas) - noel, 0)
+  }
+  elegibles_presentes <- asistentes - ya - noel
+  no_realizadas <- elegibles_presentes - efectivas - no_efectivas
+  publicable <- is.finite(no_realizadas) & no_realizadas >= 0
+  suma <- function(x, mask = NULL) {
+    if (!is.null(mask)) x <- x[mask]
+    .cm_asist_strict_sum(x)
+  }
+  list(
+    elegibles = suma(model$elegibles),
+    asistentes = suma(asistentes),
+    ya_medidas = suma(ya),
+    no_elegibles = suma(noel),
+    elegibles_presentes = suma(elegibles_presentes),
+    efectivas = suma(efectivas),
+    no_efectivas = suma(no_efectivas),
+    no_realizadas = suma(no_realizadas, publicable),
+    unidades_publicables = as.integer(sum(publicable, na.rm = TRUE)),
+    unidades_con_residual_negativo = as.integer(sum(!publicable, na.rm = TRUE))
+  )
+}
+
 calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
-                                                bootstrap_n = 2000L) {
+                                                bootstrap_n = 2000L,
+                                                diseno = list(),
+                                                filtros_corte = NULL) {
   if (!is.data.frame(datos) || !nrow(datos)) {
     stop_api(
       400,
@@ -594,6 +790,14 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
   frame$facultad[is.na(frame$facultad)] <- ""
   frame$tipo_sesion[is.na(frame$tipo_sesion)] <- ""
 
+  # ADR 0060: columnas del glosario del encuentro. Se adjuntan sólo si la base
+  # las trae; su ausencia degrada la lectura, no la invalida.
+  optional <- .cm_asist_resolve_optional(datos)
+  glosario_columnas <- names(optional)[nzchar(optional)]
+  for (field in glosario_columnas) {
+    frame[[field]] <- .cm_asist_numeric(datos[[optional[[field]]]])
+  }
+
   material_without_key <- !nzchar(frame$curso_horario)
   if (any(material_without_key)) {
     stop_api(
@@ -653,18 +857,34 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
 
   calculated <- .cm_asist_with_seed({
     global <- .cm_asist_global(model, bootstrap_n)
+    # ADR 0060. Los tramos se renombran y su denominador cambia cuando la base
+    # trae el glosario: `efectividad` se mide sobre los elegibles presentes, no
+    # sobre los registros, y `rendimiento` sobre elegibles, no sobre matrícula.
+    tiene_glosario <- all(c("elegibles", "ya_medidas", "no_elegibles") %in% names(model))
+    cero <- function(x) ifelse(is.finite(x), x, 0)
+    base_asistencia <- if (tiene_glosario) model$elegibles else model$matriculados
+    # Apertura y efectividad NO comparten denominador. Con el glosario ambas se
+    # miden sobre los elegibles presentes; sin él se conserva la cadena
+    # heredada —registros sobre presentes, efectivas sobre registros— que es
+    # multiplicativa y cierra en el rendimiento.
+    base_apertura <- if (tiene_glosario) {
+      model$asistentes - cero(model$ya_medidas) - cero(model$no_elegibles)
+    } else {
+      model$asistentes
+    }
+    base_efectividad <- if (tiene_glosario) base_apertura else model$enviadas
     chain <- list(
       asistencia = .cm_asist_chain_segment(
-        "asistencia", "Asistencia", model$asistentes, model$matriculados, bootstrap_n
+        "asistencia", "Asistencia", model$asistentes, base_asistencia, bootstrap_n
       ),
-      completitud = .cm_asist_chain_segment(
-        "completitud", "Completitud", model$enviadas, model$asistentes, bootstrap_n
+      apertura = .cm_asist_chain_segment(
+        "apertura", "Apertura", model$enviadas, base_apertura, bootstrap_n
       ),
-      validez = .cm_asist_chain_segment(
-        "validez", "Validez", model$validas, model$enviadas, bootstrap_n
+      efectividad = .cm_asist_chain_segment(
+        "efectividad", "Efectividad", model$validas, base_efectividad, bootstrap_n
       ),
-      producto = .cm_asist_chain_segment(
-        "producto", "Producto", model$validas, model$matriculados, bootstrap_n
+      rendimiento = .cm_asist_chain_segment(
+        "rendimiento", "Rendimiento", model$validas, base_asistencia, bootstrap_n
       )
     )
     dimensions <- list(
@@ -688,26 +908,45 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     list(global = global, chain = chain, dimensions = dimensions)
   })
 
+  encuentros <- .cm_asist_encuentros(model)
+  tiene_glosario <- !is.null(encuentros)
+
   .cm_asist_criterios_adjuntar(list(
-    schema = "calc_muestra_referencia_asistencia_v1",
+    schema = "calc_muestra_referencia_asistencia_v2",
     owner = "estudio_historico_externo",
     momento = "post_hoc_estudio_previo",
     transferible = "modelo_por_celda",
     modelo = "marginales_independientes",
     combinable = FALSE,
-    unidad = "curso_horario_aplicado",
-    denominador = "matriculados_totales",
+    unidad = "encuentro_en_curso_horario_aplicado",
+    denominador = if (tiene_glosario) "elegibles_presentes" else "matriculados_totales",
     estudio = .cm_asist_study(estudio),
+    diseno = .cm_asist_design(diseno),
+    filtros_corte = .cm_asist_filters(filtros_corte),
     cobertura = list(
       agendados = as.integer(nrow(frame)),
       aplicados = as.integer(sum(applied)),
-      observados = as.integer(sum(observed))
+      observados = as.integer(sum(observed)),
+      # Declara si la base trae el vocabulario del ADR 0060 o si el motor tuvo
+      # que degradar a la lectura heredada: sin esto, un consumidor no puede
+      # saber sobre qué denominador está leyendo las tasas.
+      glosario_completo = tiene_glosario,
+      columnas_glosario = as.list(glosario_columnas)
     ),
+    encuentros = encuentros,
     identidad = list(
-      regla = "A = E + no_respondieron",
+      regla = if (tiene_glosario) {
+        "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+      } else {
+        "A = E + no_respondieron"
+      },
       verificada = verifiable > 0L && inconsistent == 0L,
       verificables = verifiable,
-      inconsistentes = as.integer(inconsistent)
+      inconsistentes = as.integer(inconsistent),
+      # El residual negativo es la señal de que el conteo de campo no cierra.
+      residuales_negativos = if (tiene_glosario) {
+        encuentros$unidades_con_residual_negativo
+      } else NULL
     ),
     umbrales = list(
       insuficiente_max = 11L,

@@ -160,18 +160,18 @@ export function ReferenciaAsistenciaCard({
             <div className="cmv2-ref-asist-chain-head">
               <div>
                 <small>Cadena histórica</small>
-                <strong>Asistencia → completitud → validez</strong>
+                <strong>Asistencia → apertura → efectividad</strong>
               </div>
               <div className="cmv2-ref-asist-product">
-                <small>Producto del estudio</small>
-                <strong>{rateLabel(referencia.cadena.producto.tasa)}</strong>
-                <span>k={fmtInt(referencia.cadena.producto.k)}</span>
+                <small>Rendimiento del estudio</small>
+                <strong>{rateLabel(referencia.cadena.rendimiento.tasa)}</strong>
+                <span>k={fmtInt(referencia.cadena.rendimiento.k)}</span>
               </div>
             </div>
             <div className="cmv2-ref-asist-chain-grid">
               <ChainLink tramo={referencia.cadena.asistencia} />
-              <ChainLink tramo={referencia.cadena.completitud} />
-              <ChainLink tramo={referencia.cadena.validez} />
+              <ChainLink tramo={referencia.cadena.apertura} />
+              <ChainLink tramo={referencia.cadena.efectividad} />
             </div>
           </div>
 

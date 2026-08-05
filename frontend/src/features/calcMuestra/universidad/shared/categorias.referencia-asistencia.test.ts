@@ -50,13 +50,13 @@ function payloadValido(): Record<string, unknown> {
     metodo_ic: denominador === 0 ? "no_aplica" : "bootstrap_percentil",
   });
   return {
-    schema: "calc_muestra_referencia_asistencia_v1",
+    schema: "calc_muestra_referencia_asistencia_v2",
     owner: "estudio_historico_externo",
     momento: "post_hoc_estudio_previo",
     transferible: "modelo_por_celda",
     modelo: "marginales_independientes",
     combinable: false,
-    unidad: "curso_horario_aplicado",
+    unidad: "encuentro_en_curso_horario_aplicado",
     denominador: "matriculados_totales",
     estudio: {
       id: "estudio-sintetico",
@@ -64,12 +64,19 @@ function payloadValido(): Record<string, unknown> {
       periodo: "2026-I",
       fuente: "fixture_sintetico",
     },
-    cobertura: { agendados: 12, aplicados: 12, observados: 12 },
+    cobertura: {
+      agendados: 12,
+      aplicados: 12,
+      observados: 12,
+      glosario_completo: false,
+      columnas_glosario: [],
+    },
     identidad: {
       regla: "A = E + no_respondieron",
       verificada: true,
       verificables: 12,
       inconsistentes: 0,
+      residuales_negativos: null,
     },
     umbrales: {
       insuficiente_max: 11,
@@ -81,9 +88,9 @@ function payloadValido(): Record<string, unknown> {
     },
     cadena: {
       asistencia: tramo("asistencia", "Asistencia", 0, 120),
-      completitud: tramo("completitud", "Completitud", 0, 0),
-      validez: tramo("validez", "Validez", 0, 0),
-      producto: tramo("producto", "Producto", 0, 120),
+      apertura: tramo("apertura", "Apertura", 0, 0),
+      efectividad: tramo("efectividad", "Efectividad", 0, 0),
+      rendimiento: tramo("rendimiento", "Rendimiento", 0, 120),
     },
     global: {
       k: 12,
@@ -194,7 +201,7 @@ describe("normalizeCalcMuestraReferenciaAsistencia", () => {
 
     expect(normalize(null)).toBeNull();
     expect(normalize({ schema: "schema_desconocido" })).toBeNull();
-    expect(normalize({ schema: "calc_muestra_referencia_asistencia_v1" })).toBeNull();
+    expect(normalize({ schema: "calc_muestra_referencia_asistencia_v2" })).toBeNull();
 
     const obligatorios = [
       "owner", "momento", "transferible", "modelo", "combinable",
@@ -213,7 +220,7 @@ describe("normalizeCalcMuestraReferenciaAsistencia", () => {
     const normalized = normalize(payloadValido());
     expect(normalized).not.toBeNull();
     if (!normalized) return;
-    expect(normalized.schema).toBe("calc_muestra_referencia_asistencia_v1");
+    expect(normalized.schema).toBe("calc_muestra_referencia_asistencia_v2");
     expect(normalized.owner).toBe("estudio_historico_externo");
     expect(normalized.combinable).toBe(false);
     expect(normalized.dimensiones.map((dimension) => dimension.dimension_key)).toEqual([
@@ -280,7 +287,7 @@ describe("normalizeCalcMuestraReferenciaAsistencia", () => {
 
     const productoIncoherente = payloadValido();
     const cadenaProducto = productoIncoherente.cadena as Record<string, Record<string, unknown>>;
-    cadenaProducto.producto!.tasa = 0.25;
+    cadenaProducto.rendimiento!.tasa = 0.25;
     expect(api.normalizeCalcMuestraReferenciaAsistencia(productoIncoherente)).toBeNull();
   });
 
