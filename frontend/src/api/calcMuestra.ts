@@ -2428,6 +2428,46 @@ export type CalcMuestraReferenciaAsistenciaEmbudo = {
   filas: CalcMuestraReferenciaAsistenciaEmbudoFila[];
 };
 
+/**
+ * Una semana del operativo. La serie existe para poner en el tiempo lo que el
+ * agregado esconde: `pct_ya_medidas` creciendo semana a semana es la huella del
+ * agotamiento del marco, y sin ella la cifra global no dice si eso pasó.
+ */
+export type CalcMuestraReferenciaAsistenciaSemana = {
+  semana: number;
+  etiqueta: string;
+  orden: number;
+  k: number;
+  elegibles: number | null;
+  asistentes: number | null;
+  ya_medidas: number | null;
+  efectivas: number | null;
+  asistencia: number | null;
+  pct_ya_medidas: number | null;
+  rendimiento: number | null;
+};
+
+export type CalcMuestraReferenciaAsistenciaSerieCampo = {
+  unidad: "semana_de_campo";
+  filas: CalcMuestraReferenciaAsistenciaSemana[];
+};
+
+/**
+ * Qué costó cubrir el diseño: cuántas celdas se resolvieron con su titular,
+ * cuántas necesitaron bajar a un reemplazo y por qué se cayeron las que se
+ * cayeron. Los motivos los clasifica la base, no el motor.
+ */
+export type CalcMuestraReferenciaAsistenciaCoberturaCeldas = {
+  celdas_declaradas: number;
+  celdas_cubiertas: number;
+  celdas_con_titular: number;
+  celdas_con_reemplazo: number;
+  aplicadas_titular: number;
+  aplicadas_reemplazo: number;
+  no_aplicadas: number;
+  motivos: { motivo: string; n: number; orden: number }[];
+};
+
 export type CalcMuestraReferenciaAsistenciaDimensionKey =
   | "tamano"
   | "rango_horario"
@@ -2463,6 +2503,10 @@ export type CalcMuestraReferenciaAsistencia = {
   encuentros: CalcMuestraReferenciaAsistenciaEncuentros | null;
   /** Vacío cuando la base no trae el glosario del encuentro. */
   embudos: CalcMuestraReferenciaAsistenciaEmbudo[];
+  /** null cuando la base no declara semana de campo. */
+  serie_campo: CalcMuestraReferenciaAsistenciaSerieCampo | null;
+  /** null cuando la base no declara celda del diseño ni rol. */
+  cobertura_celdas: CalcMuestraReferenciaAsistenciaCoberturaCeldas | null;
   identidad: CalcMuestraReferenciaAsistenciaIdentidad;
   umbrales: CalcMuestraReferenciaAsistenciaUmbrales;
   cadena: CalcMuestraReferenciaAsistenciaCadena;
@@ -3143,6 +3187,81 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     embudos.push({ dimension_key: key, dimension_label: label, orden, filas });
   }
 
+  // Serie semanal y cobertura de celdas son opcionales de punta a punta: la base
+  // puede no declarar semana, celda ni rol. Ausentes se leen como null, pero un
+  // bloque presente y mal formado invalida el payload en vez de degradarse a
+  // medias, porque una serie a la que le falta una semana miente sobre la
+  // tendencia que se dibuja con ella.
+  let serieCampo: CalcMuestraReferenciaAsistenciaSerieCampo | null = null;
+  const serieRecord = asRecord(root.serie_campo);
+  if (serieRecord) {
+    const semanas: CalcMuestraReferenciaAsistenciaSemana[] = [];
+    for (const rawSemana of asList(serieRecord.filas)) {
+      const w = asRecord(rawSemana);
+      if (!w) return null;
+      const semana = asNonNegativeInteger(w.semana);
+      const etiqueta = asText(w.etiqueta);
+      const orden = asNonNegativeInteger(w.orden);
+      const k = asNonNegativeInteger(w.k);
+      if (semana === INVALID_NUMBER || !etiqueta || orden === INVALID_NUMBER || k === INVALID_NUMBER) {
+        return null;
+      }
+      const n = (value: unknown): number | null => {
+        const parsed = asFiniteOrNull(value);
+        return parsed === INVALID_NUMBER ? null : parsed;
+      };
+      semanas.push({
+        semana, etiqueta, orden, k,
+        elegibles: n(w.elegibles), asistentes: n(w.asistentes),
+        ya_medidas: n(w.ya_medidas), efectivas: n(w.efectivas),
+        asistencia: n(w.asistencia), pct_ya_medidas: n(w.pct_ya_medidas),
+        rendimiento: n(w.rendimiento),
+      });
+    }
+    if (!semanas.length) return null;
+    serieCampo = { unidad: "semana_de_campo", filas: semanas };
+  }
+
+  let coberturaCeldas: CalcMuestraReferenciaAsistenciaCoberturaCeldas | null = null;
+  const celdasRecord = asRecord(root.cobertura_celdas);
+  if (celdasRecord) {
+    const campos = [
+      "celdas_declaradas", "celdas_cubiertas", "celdas_con_titular",
+      "celdas_con_reemplazo", "aplicadas_titular", "aplicadas_reemplazo",
+      "no_aplicadas",
+    ] as const;
+    const leidos: Record<string, number> = {};
+    for (const campo of campos) {
+      const valor = asNonNegativeInteger(celdasRecord[campo]);
+      if (valor === INVALID_NUMBER) return null;
+      leidos[campo] = valor;
+    }
+    const declaradas = leidos.celdas_declaradas;
+    const cubiertas = leidos.celdas_cubiertas;
+    const conTitular = leidos.celdas_con_titular;
+    const conReemplazo = leidos.celdas_con_reemplazo;
+    // Una celda se cubre con su titular o con un reemplazo, nunca con ambos.
+    if (conTitular + conReemplazo !== cubiertas) return null;
+    if (cubiertas > declaradas && declaradas > 0) return null;
+    const motivos: { motivo: string; n: number; orden: number }[] = [];
+    for (const rawMotivo of asList(celdasRecord.motivos)) {
+      const m = asRecord(rawMotivo);
+      if (!m) return null;
+      const motivo = asText(m.motivo);
+      const cuantos = asNonNegativeInteger(m.n);
+      const orden = asNonNegativeInteger(m.orden);
+      if (!motivo || cuantos === INVALID_NUMBER || orden === INVALID_NUMBER) return null;
+      motivos.push({ motivo, n: cuantos, orden });
+    }
+    coberturaCeldas = {
+      celdas_declaradas: declaradas, celdas_cubiertas: cubiertas,
+      celdas_con_titular: conTitular, celdas_con_reemplazo: conReemplazo,
+      aplicadas_titular: leidos.aplicadas_titular,
+      aplicadas_reemplazo: leidos.aplicadas_reemplazo,
+      no_aplicadas: leidos.no_aplicadas, motivos,
+    };
+  }
+
   // El bloque de encuentros existe exactamente cuando el glosario se leyó, y el
   // denominador declarado en la raíz tiene que decir lo mismo.
   if (glosarioCompleto !== (encuentros !== null)) return null;
@@ -3166,6 +3285,8 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     cobertura,
     encuentros,
     embudos,
+    serie_campo: serieCampo,
+    cobertura_celdas: coberturaCeldas,
     identidad,
     umbrales,
     cadena,
