@@ -111,9 +111,22 @@
   )
 }
 
-.asr_run <- function(datos = .asr_fixture, bootstrap_n = 200L) {
+# Los tramos de tamano ya no son una escala del motor: los declara el estudio en
+# Marco. Estos reproducen los cortes historicos, para que el golden de celdas
+# siga midiendo lo mismo que medía antes.
+.asr_grupos_tamano <- list(
+  list(id = "T1", label = "Menos de 15", min = 0, max = 14),
+  list(id = "T2", label = "15 a 24", min = 15, max = 24),
+  list(id = "T3", label = "25 a 39", min = 25, max = 39),
+  list(id = "T4", label = "40 a 59", min = 40, max = 59),
+  list(id = "T5", label = "60 o más", min = 60, max = NA)
+)
+
+.asr_run <- function(datos = .asr_fixture, bootstrap_n = 200L,
+                     grupos_tamano = NULL) {
   fn <- get("calc_muestra_asistencia_referencia", mode = "function", inherits = TRUE)
-  fn(datos, estudio = .asr_estudio, bootstrap_n = bootstrap_n)
+  fn(datos, estudio = .asr_estudio, bootstrap_n = bootstrap_n,
+     grupos_tamano = grupos_tamano)
 }
 
 .asr_dimension <- function(out, dimension_key) {
@@ -157,7 +170,8 @@ test_that("el root exacto declara procedencia, estudio, umbrales y dimensiones",
   expect_named(out, c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
     "unidad", "denominador", "estudio", "diseno", "filtros_corte", "cobertura",
-    "encuentros", "embudos", "identidad", "umbrales",
+    "encuentros", "embudos", "serie_campo", "cadenas_reemplazo",
+    "identidad", "umbrales",
     "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
   ))
   expect_identical(out$schema, "calc_muestra_referencia_asistencia_v2")
@@ -181,14 +195,17 @@ test_that("el root exacto declara procedencia, estudio, umbrales y dimensiones",
     quantile_type = 7L
   ))
 
-  expect_length(out$dimensiones, 4L)
+  # Sin `grupos_tamano` declarados, la dimension de tamano NO se emite: los
+  # tramos los fija cada estudio en Marco y el motor no impone una escala
+  # propia. Con grupos declarados vuelve, y eso se prueba aparte.
+  expect_length(out$dimensiones, 3L)
   expect_identical(
     vapply(out$dimensiones, function(x) x$dimension_key, character(1)),
-    c("tamano", "rango_horario", "facultad", "tipo_sesion")
+    c("rango_horario", "facultad", "tipo_sesion")
   )
   for (i in seq_along(out$dimensiones)) {
     dimension <- .asr_dimension(out, out$dimensiones[[i]]$dimension_key)
-    expect_identical(dimension$orden, as.integer(i))
+    expect_true(is.integer(dimension$orden) && dimension$orden > 0L)
     expect_true(is.character(dimension$dimension_label) && nzchar(dimension$dimension_label))
     expect_type(dimension$filas, "list")
   }
@@ -276,7 +293,7 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
 
 test_that("celdas congelan bandas, estimador, IC y reglas de publicación", {
   .asr_skip_sin_engine()
-  out <- .asr_run()
+  out <- .asr_run(grupos_tamano = .asr_grupos_tamano)
   esperado <- data.frame(
     celda_key = paste0("T", 1:5),
     k = c(30L, 40L, 50L, 50L, 20L),
@@ -758,4 +775,89 @@ test_that("el diseno del estudio previo viaja con la referencia", {
   expect_false(vacio$diseno$declarado)
   expect_null(vacio$diseno$muestra)
   expect_identical(vacio$filtros_corte, list())
+})
+
+test_that("los tramos de tamano salen de los grupos declarados, no del motor", {
+  .asr_skip_sin_engine()
+
+  # Sin declaracion, la dimension no existe: el motor no inventa una escala.
+  sin_grupos <- .asr_run()
+  expect_false("tamano" %in% vapply(
+    sin_grupos$dimensiones, function(d) d$dimension_key, character(1)
+  ))
+
+  # Con dos tramos propios, la dimension habla en ESOS tramos.
+  propios <- .asr_run(grupos_tamano = list(
+    list(id = "chico", label = "Hasta 39", min = 0, max = 39),
+    list(id = "grande", label = "40 o más", min = 40, max = NA)
+  ))
+  dimension <- .asr_dimension(propios, "tamano")
+  expect_identical(
+    vapply(dimension$filas, function(f) f$celda_key, character(1)),
+    c("chico", "grande")
+  )
+  expect_identical(
+    vapply(dimension$filas, function(f) f$celda_label, character(1)),
+    c("Hasta 39", "40 o más")
+  )
+  # Reparto exhaustivo y sin solape: cada curso-horario cae en un tramo.
+  expect_identical(
+    sum(vapply(dimension$filas, function(f) f$k, integer(1))),
+    sum(vapply(.asr_dimension(propios, "facultad")$filas, function(f) f$k, integer(1)))
+  )
+})
+
+test_that("la serie semanal publica sus bases y las cadenas su historia", {
+  .asr_skip_sin_engine()
+
+  # La fixture heredada no declara semana ni cadena: ambos bloques son opcionales
+  # y su ausencia se lee como NULL, no como error.
+  base <- .asr_run()
+  expect_null(base$serie_campo)
+  expect_null(base$cadenas_reemplazo)
+
+  datos <- .asr_fixture
+  n <- nrow(datos)
+  datos$semana <- rep(c(1L, 2L), length.out = n)
+  datos$cadena <- seq_len(n)
+  datos$posicion <- rep(1L, n)
+  datos$rol <- rep("TITULAR", n)
+  out <- .asr_run(datos)
+
+  expect_identical(out$serie_campo$unidad, "semana_de_campo")
+  expect_length(out$serie_campo$filas, 2L)
+  for (semana in out$serie_campo$filas) {
+    # Toda tasa publicada tiene que poder reconstruirse desde los absolutos que
+    # viajan a su lado: un porcentaje sin su base no se puede verificar.
+    expect_equal(
+      semana$asistencia, semana$asistentes / semana$elegibles,
+      tolerance = 1e-9
+    )
+    expect_equal(
+      semana$rendimiento, semana$efectivas / semana$elegibles,
+      tolerance = 1e-9
+    )
+    expect_gte(semana$elegibles, semana$asistentes)
+  }
+  # El acumulado del último corte es el total del campo.
+  ultimo <- out$serie_campo$filas[[length(out$serie_campo$filas)]]
+  expect_equal(
+    ultimo$efectivas_acumuladas,
+    sum(vapply(out$serie_campo$filas, function(f) f$efectivas, numeric(1)))
+  )
+
+  cadenas <- out$cadenas_reemplazo
+  expect_identical(cadenas$unidad, "cadena_de_reemplazo")
+  expect_identical(cadenas$cadenas_declaradas, n)
+  # Una cadena se resuelve en su titular o en un reemplazo, nunca en ambos.
+  expect_identical(
+    cadenas$resueltas_con_titular + cadenas$resueltas_con_reemplazo,
+    cadenas$cadenas_resueltas
+  )
+  for (fila in cadenas$filas) {
+    expect_gte(length(fila$escalones), 1L)
+    for (escalon in fila$escalones) {
+      expect_true(escalon$estado %in% c("aplicado", "cayo", "reserva"))
+    }
+  }
 })
