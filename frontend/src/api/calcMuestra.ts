@@ -2513,6 +2513,24 @@ export type CalcMuestraReferenciaAsistenciaCadenasReemplazo = {
   filas: CalcMuestraReferenciaAsistenciaCadenaSeleccion[];
 };
 
+/**
+ * Composición del marco por criterio, cruzada con facultad. El embudo dice cómo
+ * rindió cada tipo de aula; esto dice cuántas hay de cada tipo, que es otra
+ * pregunta y hace falta para leer la primera. Una facultad con muchos talleres
+ * no se parece a una con clases teóricas grandes.
+ */
+export type CalcMuestraReferenciaAsistenciaComposicion = {
+  criterio_key: string;
+  criterio_label: string;
+  orden: number;
+  categorias: { categoria: string; n: number; pct: number | null }[];
+  filas: {
+    facultad: string;
+    n: number;
+    reparto: { categoria: string; n: number; pct: number | null; elegibles: number | null }[];
+  }[];
+};
+
 export type CalcMuestraReferenciaAsistenciaDimensionKey =
   | "tamano"
   | "rango_horario"
@@ -2548,6 +2566,8 @@ export type CalcMuestraReferenciaAsistencia = {
   encuentros: CalcMuestraReferenciaAsistenciaEncuentros | null;
   /** Vacío cuando la base no trae el glosario del encuentro. */
   embudos: CalcMuestraReferenciaAsistenciaEmbudo[];
+  /** Vacío cuando ningún criterio tiene más de una categoría. */
+  composicion: CalcMuestraReferenciaAsistenciaComposicion[];
   /** null cuando la base no declara semana de campo. */
   serie_campo: CalcMuestraReferenciaAsistenciaSerieCampo | null;
   /** null cuando la base no declara la cadena de reemplazo. */
@@ -3237,6 +3257,52 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   // bloque presente y mal formado invalida el payload en vez de degradarse a
   // medias, porque una serie a la que le falta una semana miente sobre la
   // tendencia que se dibuja con ella.
+  const composicion: CalcMuestraReferenciaAsistenciaComposicion[] = [];
+  for (const rawComp of asList(root.composicion)) {
+    const c = asRecord(rawComp);
+    if (!c) return null;
+    const key = asText(c.criterio_key);
+    const label = asText(c.criterio_label);
+    const orden = asNonNegativeInteger(c.orden);
+    if (!key || !label || orden === INVALID_NUMBER) return null;
+    const n = (value: unknown): number | null => {
+      const parsed = asFiniteOrNull(value);
+      return parsed === INVALID_NUMBER ? null : parsed;
+    };
+    const categorias: { categoria: string; n: number; pct: number | null }[] = [];
+    for (const rawCat of asList(c.categorias)) {
+      const cat = asRecord(rawCat);
+      if (!cat) return null;
+      const nombre = asText(cat.categoria);
+      const cuantos = asNonNegativeInteger(cat.n);
+      if (!nombre || cuantos === INVALID_NUMBER) return null;
+      categorias.push({ categoria: nombre, n: cuantos, pct: n(cat.pct) });
+    }
+    if (categorias.length < 2) return null;
+    const filas: CalcMuestraReferenciaAsistenciaComposicion["filas"] = [];
+    for (const rawFila of asList(c.filas)) {
+      const f = asRecord(rawFila);
+      if (!f) return null;
+      const facultad = asText(f.facultad);
+      const total = asNonNegativeInteger(f.n);
+      if (!facultad || total === INVALID_NUMBER) return null;
+      const reparto: CalcMuestraReferenciaAsistenciaComposicion["filas"][number]["reparto"] = [];
+      for (const rawR of asList(f.reparto)) {
+        const rr = asRecord(rawR);
+        if (!rr) return null;
+        const nombre = asText(rr.categoria);
+        const cuantos = asNonNegativeInteger(rr.n);
+        if (!nombre || cuantos === INVALID_NUMBER) return null;
+        reparto.push({ categoria: nombre, n: cuantos, pct: n(rr.pct), elegibles: n(rr.elegibles) });
+      }
+      // El reparto de una facultad tiene que sumar sus propias aulas: si no,
+      // los porcentajes de la barra no describen a esa facultad.
+      if (reparto.reduce((acc, r) => acc + r.n, 0) !== total) return null;
+      filas.push({ facultad, n: total, reparto });
+    }
+    composicion.push({ criterio_key: key, criterio_label: label, orden, categorias, filas });
+  }
+
   let serieCampo: CalcMuestraReferenciaAsistenciaSerieCampo | null = null;
   const serieRecord = asRecord(root.serie_campo);
   if (serieRecord) {
@@ -3378,6 +3444,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     cobertura,
     encuentros,
     embudos,
+    composicion,
     serie_campo: serieCampo,
     cadenas_reemplazo: cadenasReemplazo,
     identidad,

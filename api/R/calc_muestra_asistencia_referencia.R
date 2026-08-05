@@ -1049,6 +1049,64 @@
 # facultad, así que necesita saber DÓNDE se perdió la gente en cada una. Una
 # facultad con mucha ausencia y otra con mucho traslape piden decisiones
 # distintas aunque su rendimiento final coincida.
+#' Composicion del marco por criterio, cruzada con facultad.
+#'
+#' El embudo por criterio dice como RINDIO cada tipo de aula. Esto dice cuantas
+#' hay de cada tipo, que es otra pregunta y hace falta para leer la primera: un
+#' criterio con buen rendimiento y tres aulas no mueve el operativo.
+#'
+#' El cruce con facultad es lo que de verdad se usa al dimensionar. Una facultad
+#' con muchos talleres no se parece a una con clases teoricas grandes, y
+#' repartir la muestra como si se parecieran es lo que descuadra las cuotas.
+#'
+#' NULL si la columna no existe o si tiene una sola categoria: un criterio que
+#' no varia no describe nada.
+.cm_asist_composicion_por <- function(model, columna, etiqueta, orden) {
+  if (is.null(model[[columna]])) return(NULL)
+  valores <- trimws(as.character(model[[columna]]))
+  valores[is.na(valores) | !nzchar(valores)] <- "Sin dato"
+  categorias <- sort(unique(valores))
+  if (length(categorias) < 2L) return(NULL)
+
+  facultades <- trimws(as.character(model$facultad))
+  facultades[is.na(facultades) | !nzchar(facultades)] <- "Sin facultad"
+
+  elegibles_fuente <- if (is.null(model$elegibles)) model$matriculados else model$elegibles
+  totales <- vapply(categorias, function(cat) sum(valores == cat), integer(1))
+
+  filas <- lapply(sort(unique(facultades)), function(fac) {
+    idx <- which(facultades == fac)
+    reparto <- lapply(categorias, function(cat) {
+      hit <- idx[valores[idx] == cat]
+      list(
+        categoria = cat,
+        n = as.integer(length(hit)),
+        pct = .cm_asist_ratio(length(hit), length(idx)),
+        elegibles = .cm_asist_strict_sum(elegibles_fuente[hit])
+      )
+    })
+    list(
+      facultad = fac,
+      n = as.integer(length(idx)),
+      reparto = reparto
+    )
+  })
+
+  list(
+    criterio_key = columna,
+    criterio_label = etiqueta,
+    orden = as.integer(orden),
+    categorias = lapply(seq_along(categorias), function(i) {
+      list(
+        categoria = categorias[[i]],
+        n = as.integer(totales[[i]]),
+        pct = .cm_asist_ratio(totales[[i]], length(valores))
+      )
+    }),
+    filas = filas
+  )
+}
+
 .cm_asist_embudo_por <- function(model, columna, etiqueta, orden) {
   if (!(columna %in% names(model))) return(NULL)
   needed <- c("elegibles", "ya_medidas", "no_elegibles")
@@ -1341,6 +1399,16 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     )),
     # El operativo en el tiempo y el costo de cubrir cada celda del diseño.
     # Ambos NULL cuando la base no declara semana, celda ni rol.
+    # Cuantas aulas hay de cada tipo, y como se reparten por facultad. Responde
+    # una pregunta distinta a la del embudo: composicion, no rendimiento.
+    composicion = Filter(Negate(is.null), list(
+      .cm_asist_composicion_por(model, "condicion_curso", "Condición del curso", 1L),
+      .cm_asist_composicion_por(model, "tipo_sesion", "Tipo de sesión", 2L),
+      .cm_asist_composicion_por(model, "nivel_curso", "Nivel del curso", 3L),
+      .cm_asist_composicion_por(model, "tipo_docente", "Tipo de docente", 4L),
+      .cm_asist_composicion_por(model, "modalidad", "Modalidad", 5L),
+      .cm_asist_composicion_por(model, "rango_horario", "Rango horario", 6L)
+    )),
     serie_campo = .cm_asist_serie_campo(model),
     cadenas_reemplazo = .cm_asist_cadenas(frame),
     identidad = list(

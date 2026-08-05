@@ -57,6 +57,7 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     filtros_corte: [],
     encuentros: null,
     embudos: [],
+  composicion: [],
   serie_campo: null,
   cadenas_reemplazo: null,
     identidad: {
