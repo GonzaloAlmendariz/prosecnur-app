@@ -876,6 +876,87 @@
 # diseño previo mandaba diecisiete `{}` y el normalizador rechazaba el payload
 # entero: la pestaña quedaba vacía sin decir por qué. `NA_real_` sí serializa
 # como `null`.
+#' Diccionario del apartado de diseno de la base historica.
+#'
+#' ADR 0060. Una base historica describe un estudio entero, no solo su campo, y
+#' hasta ahora el diseno tenia que llegar por fuera: si nadie lo declaraba, la
+#' vista «Como se dimensiono» simplemente no existia y el estudio quedaba sin
+#' explicar como llego a su numero de aulas.
+#'
+#' El apartado es una hoja `diseno` de dos columnas, `campo` y `valor`. Dos
+#' columnas y no una fila ancha porque asi el formato crece sin romper: un
+#' estudio que declare un campo nuevo agrega una fila, y una base vieja que no
+#' lo traiga sigue leyendose igual.
+#'
+#' Es el mismo formato para leer y para publicar: lo que la app exporta de un
+#' estudio es lo que la app sabe volver a leer.
+.cm_asist_diseno_campos <- function() {
+  list(
+    poblacion_objetivo = c("poblacion_objetivo", "poblacion", "universo"),
+    nivel_confianza = c("nivel_confianza", "confianza"),
+    proporcion_esperada = c("proporcion_esperada", "p_esperada", "proporcion"),
+    margen_error = c("margen_error", "margen", "error"),
+    deff = c("deff", "efecto_diseno", "efecto_de_diseno"),
+    muestra = c("muestra", "muestra_objetivo", "n"),
+    ratio_sobremuestra = c("ratio_sobremuestra", "ratio", "factor_sobremuestra"),
+    sobremuestra = c("sobremuestra", "muestra_operativa"),
+    aulas_marco = c("aulas_marco", "marco", "cursos_horario_marco"),
+    aulas_dimensionadas = c("aulas_dimensionadas", "aulas_previstas", "aulas_objetivo"),
+    aulas_aplicadas = c("aulas_aplicadas", "aulas_logradas"),
+    tasa_respuesta_asumida = c("tasa_respuesta_asumida", "tasa_asumida", "tasa_respuesta"),
+    afijacion = c("afijacion", "reparto"),
+    metodo_seleccion = c("metodo_seleccion", "seleccion"),
+    metodo_ajuste = c("metodo_ajuste", "ajuste"),
+    ponderado = c("ponderado", "ponderacion")
+  )
+}
+
+#' Convierte la hoja `campo`/`valor` en la lista que consume el motor.
+#'
+#' Tolera el orden de las filas, mayusculas, acentos y campos desconocidos: una
+#' fila que el contrato no reconoce se ignora en vez de invalidar la hoja,
+#' porque una base puede documentar mas cosas de las que este motor lee.
+calc_muestra_asistencia_diseno_declarado <- function(tabla) {
+  if (!is.data.frame(tabla) || !nrow(tabla) || ncol(tabla) < 2L) return(list())
+
+  col_campo <- .cm_criterios_col_exacta(tabla, c("campo", "parametro", "clave", "key"))
+  col_valor <- .cm_criterios_col_exacta(tabla, c("valor", "value", "dato"))
+  if (!nzchar(col_campo) || !nzchar(col_valor)) {
+    # Sin encabezados reconocibles se asumen las dos primeras columnas, que es
+    # como se ve una hoja de parametros escrita a mano.
+    col_campo <- names(tabla)[[1L]]
+    col_valor <- names(tabla)[[2L]]
+  }
+
+  claves <- .cm_aulas_text_key(tabla[[col_campo]])
+  valores <- tabla[[col_valor]]
+  campos <- .cm_asist_diseno_campos()
+
+  out <- list()
+  for (destino in names(campos)) {
+    alias <- .cm_aulas_text_key(campos[[destino]])
+    hit <- which(claves %in% alias)
+    if (!length(hit)) next
+    crudo <- valores[[hit[[1L]]]]
+    if (is.na(crudo)) next
+    out[[destino]] <- crudo
+  }
+
+  # `ponderado` es logico y llega escrito de mil formas; el resto lo interpreta
+  # el motor, que ya sabe descartar lo que no sea un numero.
+  if (!is.null(out$ponderado)) {
+    texto <- .cm_aulas_text_key(out$ponderado)
+    out$ponderado <- if (texto %in% c("si", "true", "1", "verdadero", "aplico", "se aplico")) {
+      TRUE
+    } else if (texto %in% c("no", "false", "0", "falso", "no aplica")) {
+      FALSE
+    } else {
+      NULL
+    }
+  }
+  out
+}
+
 .cm_asist_design_number <- function(value) {
   parsed <- suppressWarnings(as.numeric(value[1L]))
   if (length(parsed) != 1L || !is.finite(parsed)) return(NA_real_)

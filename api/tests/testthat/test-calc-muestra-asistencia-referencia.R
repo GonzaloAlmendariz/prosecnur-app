@@ -890,3 +890,49 @@ test_that("un campo ausente viaja como null y no como objeto vacio", {
   # valor que el cliente no sabe leer.
   expect_false(grepl(":{}", json, fixed = TRUE))
 })
+
+test_that("la base declara su propio diseno en una hoja campo/valor", {
+  .asr_skip_sin_engine()
+  fn <- get("calc_muestra_asistencia_diseno_declarado", mode = "function", inherits = TRUE)
+
+  # ADR 0060. Dos columnas y no una fila ancha: un estudio que declare un campo
+  # nuevo agrega una fila, y una base vieja que no lo traiga se sigue leyendo.
+  hoja <- data.frame(
+    campo = c(
+      "poblacion_objetivo", "nivel_confianza", "muestra", "aulas_marco",
+      "afijacion", "ponderado", "un_campo_que_el_motor_no_conoce"
+    ),
+    valor = c("22234", "0.95", "2500", "1097", "Proporcional", "Sí", "lo que sea"),
+    stringsAsFactors = FALSE
+  )
+  leido <- fn(hoja)
+  expect_identical(leido$poblacion_objetivo, "22234")
+  expect_true(leido$ponderado)
+  # Un campo desconocido se ignora en vez de invalidar la hoja: una base puede
+  # documentar más cosas de las que este motor lee.
+  expect_false("un_campo_que_el_motor_no_conoce" %in% names(leido))
+
+  # El orden de las filas no importa, ni las mayúsculas ni los acentos.
+  revuelta <- hoja[rev(seq_len(nrow(hoja))), , drop = FALSE]
+  revuelta$campo <- toupper(revuelta$campo)
+  expect_identical(fn(revuelta)$muestra, "2500")
+
+  # Sin encabezados reconocibles se asumen las dos primeras columnas, que es
+  # como se ve una hoja de parámetros escrita a mano.
+  sin_encabezado <- stats::setNames(hoja, c("A", "B"))
+  expect_identical(fn(sin_encabezado)$aulas_marco, "1097")
+
+  # Una hoja vacía o inservible devuelve lista vacía, nunca un error.
+  expect_identical(fn(NULL), list())
+  expect_identical(fn(data.frame()), list())
+
+  # Y el motor lo consume igual que si viniera del cliente.
+  out <- .asr_run()
+  expect_false(out$diseno$declarado)
+  con_diseno <- calc_muestra_asistencia_referencia(
+    .asr_fixture, estudio = .asr_estudio, bootstrap_n = 50L, diseno = leido
+  )
+  expect_true(con_diseno$diseno$declarado)
+  expect_identical(con_diseno$diseno$muestra, 2500)
+  expect_true(con_diseno$diseno$ponderado)
+})

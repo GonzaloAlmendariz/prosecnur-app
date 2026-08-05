@@ -273,6 +273,51 @@ encabezados históricos: una base de 2025 debe seguir cargando sin edición
 manual. El glosario gobierna los nombres internos y de salida, no lo que el
 usuario trae en su archivo.
 
+## Formato de la base histórica
+
+Una base histórica describe **un estudio entero**, no sólo su campo. Antes el
+diseño tenía que llegar por fuera de la base, y un estudio que nadie declarara
+perdía la lectura que explica cómo llegó a su número de aulas: el dato existía
+en la cabeza de quien lo hizo y en ningún archivo.
+
+El formato es un libro con dos hojas. Es el mismo para leer y para publicar: lo
+que la app exporta de un estudio es lo que la app sabe volver a leer.
+
+### Hoja `referencia` — una fila por curso-horario
+
+Llave `curso_horario`, única. Obligatorias: `estado_aplicacion`,
+`matriculados`, `asistentes`, `registros`, `efectivas`, `no_respondieron`,
+`rango_horario`, `facultad`, `tipo_sesion`.
+
+Opcionales, cada una habilita una lectura y su ausencia sólo la desactiva:
+
+| Grupo | Columnas | Qué habilita |
+|---|---|---|
+| Glosario del encuentro | `elegibles`, `ya_medidas`, `no_elegibles`, `no_efectivas`, `rechazos_en_aula` | el embudo sobre elegibles en vez de matrícula |
+| Criterios del curso-horario | `condicion_curso`, `nivel_curso`, `tipo_docente`, `modalidad` | composición y embudo por criterio |
+| Operativo | `semana`, `cadena`, `posicion`, `rol`, `rol_detalle`, `motivo_no_aplicacion` | serie semanal y matriz de titulares y reemplazos |
+| Contexto | `hora_inicio` | el rango horario dice de qué hora a qué hora |
+
+Las filas no aplicadas **sí van** en la hoja: son el dato de la matriz de
+cadenas. El motor las excluye de las tasas por `estado_aplicacion`.
+
+### Hoja `diseno` — dos columnas, `campo` y `valor`
+
+Dos columnas y no una fila ancha porque así el formato crece sin romper: un
+estudio que declare un campo nuevo agrega una fila, y una base que no lo traiga
+se sigue leyendo igual. Un campo que el motor no conoce se ignora en vez de
+invalidar la hoja, porque una base puede documentar más cosas de las que un
+motor concreto lee.
+
+`poblacion_objetivo`, `nivel_confianza`, `proporcion_esperada`, `margen_error`,
+`deff`, `muestra`, `ratio_sobremuestra`, `sobremuestra`, `aulas_marco`,
+`aulas_dimensionadas`, `aulas_aplicadas`, `tasa_respuesta_asumida`,
+`afijacion`, `metodo_seleccion`, `metodo_ajuste`, `ponderado`.
+
+Precedencia cuando hay más de una fuente: lo que manda el cliente gana (está
+corrigiendo a mano), después lo que declara la base, y al final lo que quedó en
+el workspace.
+
 ## Consecuencias
 
 **Las tasas publicadas cambian, y es correcto.** Con el denominador de
