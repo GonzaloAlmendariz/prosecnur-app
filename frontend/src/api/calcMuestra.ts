@@ -2474,7 +2474,12 @@ export type CalcMuestraReferenciaAsistenciaEscalon = {
   curso_horario: string;
   estado: "aplicado" | "cayo" | "reserva";
   efectivas: number | null;
+  elegibles: number | null;
+  /** Efectividad de esa aula: la cantidad sola premia al aula grande. */
+  rendimiento: number | null;
   motivo: string | null;
+  /** Letra estable del motivo, para caber en la casilla. */
+  motivo_codigo: string | null;
 };
 
 /** Una cadena de selección: un titular y los suplentes que entran si ese se cae. */
@@ -2504,7 +2509,7 @@ export type CalcMuestraReferenciaAsistenciaCadenasReemplazo = {
   resueltas_con_titular: number;
   resueltas_con_reemplazo: number;
   profundidad_maxima: number;
-  motivos: { motivo: string; n: number; orden: number }[];
+  motivos: { motivo: string; codigo: string; n: number; orden: number }[];
   filas: CalcMuestraReferenciaAsistenciaCadenaSeleccion[];
 };
 
@@ -3285,7 +3290,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     }
     if (leidos.cadenas_resueltas > leidos.cadenas_declaradas) return null;
 
-    const motivos: { motivo: string; n: number; orden: number }[] = [];
+    const motivos: { motivo: string; codigo: string; n: number; orden: number }[] = [];
     for (const rawMotivo of asList(cadenasRecord.motivos)) {
       const m = asRecord(rawMotivo);
       if (!m) return null;
@@ -3293,7 +3298,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       const cuantos = asNonNegativeInteger(m.n);
       const orden = asNonNegativeInteger(m.orden);
       if (!motivo || cuantos === INVALID_NUMBER || orden === INVALID_NUMBER) return null;
-      motivos.push({ motivo, n: cuantos, orden });
+      motivos.push({ motivo, codigo: asText(m.codigo, true) ?? "", n: cuantos, orden });
     }
 
     const n = (value: unknown): number | null => {
@@ -3324,7 +3329,9 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         if (estado !== "aplicado" && estado !== "cayo" && estado !== "reserva") return null;
         escalones.push({
           posicion, rol, curso_horario: cursoHorario, estado,
-          efectivas: n(e.efectivas), motivo: asText(e.motivo, true) || null,
+          efectivas: n(e.efectivas), elegibles: n(e.elegibles), rendimiento: n(e.rendimiento),
+          motivo: asText(e.motivo, true) || null,
+          motivo_codigo: asText(e.motivo_codigo, true) || null,
         });
       }
       if (!escalones.length) return null;

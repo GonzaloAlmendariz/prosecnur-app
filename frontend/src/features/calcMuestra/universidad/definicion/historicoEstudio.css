@@ -219,7 +219,6 @@
     var(--hist-descuento) 0 3px, transparent 3px 6px);
 }
 
-
 .cmv2-hist-paso-pct {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -419,34 +418,7 @@
   color: var(--pulso-text-muted);
 }
 
-/* ── Parámetros y filtros ────────────────────────────────────────────────── */
-
-.cmv2-hist-params {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 2px var(--cmv2-space-4);
-  margin: 0;
-}
-
-.cmv2-hist-params > div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--cmv2-space-2);
-  padding: 4px 0;
-  border-bottom: 1px solid var(--cmv2-border);
-}
-
-.cmv2-hist-params dt { font-size: 11px; color: var(--pulso-text-muted); }
-
-.cmv2-hist-params dd {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  color: var(--pulso-text);
-}
+/* Filtros de corte del instrumento. */
 
 .cmv2-hist-filtros {
   display: flex;
@@ -846,20 +818,23 @@
 .cmv2-hist-matriz {
   display: grid;
   grid-template-columns:
-    minmax(104px, 1.1fr) minmax(96px, 1.2fr)
-    repeat(var(--cmv2-hist-escalones, 6), 32px)
-    52px;
+    minmax(112px, 1fr)
+    repeat(var(--cmv2-hist-escalones, 6), 46px)
+    54px;
   min-width: max-content;
   gap: 0;
 }
 
+/* Las tres son filas lógicas de la misma rejilla: sin `contents`, el div de
+   grupo ocuparía UNA celda y correría todas las columnas de la tabla. */
 .cmv2-hist-matriz-head,
+.cmv2-hist-matriz-grupo,
 .cmv2-hist-matriz-fila { display: contents; }
 
 .cmv2-hist-matriz-head > span {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   padding: 6px 8px;
   border-bottom: 1px solid var(--cmv2-border);
   background: var(--cmv2-surface);
@@ -871,14 +846,39 @@
   color: var(--pulso-text-muted);
 }
 
-.cmv2-hist-matriz-head > span:first-child,
-.cmv2-hist-matriz-head > span:nth-child(2) { text-align: left; }
+.cmv2-hist-matriz-head > span:first-child { text-align: left; }
+
+/* Cabecera de facultad: ocupa la fila entera y separa un grupo del siguiente. */
+.cmv2-hist-matriz-grupo > span {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--cmv2-border);
+  background: var(--cmv2-accent-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cmv2-accent);
+}
+
+.cmv2-hist-matriz-grupo em {
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--pulso-text-muted);
+}
 
 .cmv2-hist-matriz-fila > * {
   padding: 3px 8px;
   border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
   font-size: 10px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .cmv2-hist-matriz-titular {
@@ -889,72 +889,197 @@
   color: var(--pulso-text);
 }
 
-.cmv2-hist-matriz-facultad {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--pulso-text-muted);
+/* La casilla es el dato: el color dice qué pasó, la cifra cuántas encuestas dio
+   y bajo ella la efectividad de esa aula. Sin el porcentaje, 25 completas de un
+   aula de 30 y de una de 90 se leerían igual. */
+.cmv2-hist-matriz-casilla {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 3px 2px;
+  text-align: center;
 }
 
-/* La casilla es el dato: su color dice qué pasó en ese escalón. */
-.cmv2-hist-matriz-casilla {
-  padding: 3px 2px;
-  font-size: 9px;
+.cmv2-hist-matriz-casilla b {
+  font-size: 10px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  line-height: 1.15;
+}
+
+.cmv2-hist-matriz-casilla i {
+  font-size: 8px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
   color: var(--pulso-text-muted);
 }
 
 .cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="aplicado"] {
-  background: color-mix(in srgb, var(--pulso-success-fg) 22%, transparent);
-  font-weight: 600;
+  background: color-mix(in srgb, var(--pulso-success-fg) 20%, transparent);
   color: var(--pulso-text);
 }
 
 .cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="cayo"] {
   background: color-mix(in srgb, var(--pulso-warn-fg) 30%, transparent);
+  color: var(--pulso-warn-fg);
 }
+
+.cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="cayo"] b { font-size: 11px; }
 
 .cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="reserva"] {
   background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
 }
 
 .cmv2-hist-matriz-total {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   color: var(--pulso-text);
 }
 
-.cmv2-hist-motivos { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
-
-.cmv2-hist-motivos > li {
-  display: grid;
-  grid-template-columns: minmax(150px, 1.2fr) minmax(0, 2fr) 32px;
-  gap: var(--cmv2-space-2);
-  align-items: center;
-}
-
-.cmv2-hist-motivos-nombre { font-size: 11px; line-height: 1.25; text-wrap: pretty; color: var(--pulso-text); }
-
-.cmv2-hist-motivos-track {
-  height: 12px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--pulso-text-muted) 9%, transparent);
-  overflow: hidden;
-}
-
-.cmv2-hist-motivos-track > span {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--pulso-warn-fg) 52%, transparent);
-}
-
-.cmv2-hist-motivos-n {
+.cmv2-hist-matriz-total b {
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  line-height: 1.15;
+}
+
+.cmv2-hist-matriz-total i {
+  font-size: 8px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+/* Leyenda de códigos: la letra de la casilla con su significado al lado. */
+.cmv2-hist-codigos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 4px var(--cmv2-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-hist-codigos > li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.cmv2-hist-codigos b {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-warn-fg) 30%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-hist-codigos span {
+  flex: 1 1 auto;
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-codigos em {
+  flex: none;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+/* Escalera del dimensionamiento: cada peldaño toma la cifra anterior y le
+   aplica una decisión. Es un recorrido, no una lista de parámetros sueltos. */
+
+.cmv2-hist-escalera { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none; }
+
+.cmv2-hist-escalera > li {
+  display: grid;
+  grid-template-columns: 92px minmax(150px, 1fr) minmax(0, 1.6fr);
+  gap: var(--cmv2-space-3);
+  align-items: baseline;
+  padding: 10px 0 10px 16px;
+  border-left: 2px solid var(--cmv2-border);
+  position: relative;
+}
+
+/* El punto sobre la guía: marca el escalón sin necesitar un icono. */
+.cmv2-hist-escalera > li::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 17px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--cmv2-border);
+}
+
+.cmv2-hist-escalera > li[data-tono="meta"] { border-left-color: color-mix(in srgb, var(--cmv2-accent) 55%, transparent); }
+.cmv2-hist-escalera > li[data-tono="meta"]::before { background: var(--cmv2-accent); }
+.cmv2-hist-escalera > li[data-tono="real"] { border-left-color: color-mix(in srgb, var(--pulso-success-fg) 55%, transparent); }
+.cmv2-hist-escalera > li[data-tono="real"]::before { background: var(--pulso-success-fg); }
+
+.cmv2-hist-escalera-cifra {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-escalera > li[data-tono="meta"] .cmv2-hist-escalera-cifra { color: var(--cmv2-accent); }
+.cmv2-hist-escalera > li[data-tono="real"] .cmv2-hist-escalera-cifra { color: var(--pulso-success-fg); }
+
+.cmv2-hist-escalera-que {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-wrap: pretty;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-escalera-como {
+  font-size: 10px;
+  line-height: 1.4;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}
+
+/* Las decisiones que no son cifras. */
+.cmv2-hist-decisiones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--cmv2-space-3);
+  margin: 0;
+  padding-top: var(--cmv2-space-3);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmv2-hist-decisiones > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.cmv2-hist-decisiones dt {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-decisiones dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  text-wrap: pretty;
   color: var(--pulso-text);
 }
