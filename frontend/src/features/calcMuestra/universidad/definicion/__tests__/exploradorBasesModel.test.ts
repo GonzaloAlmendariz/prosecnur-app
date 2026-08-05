@@ -57,16 +57,39 @@ describe("exploradorBasesModel · distribución", () => {
     expect(dist.categorias.reduce((acc, row) => acc + row.n, 0)).toBe(dist.conDato);
   });
 
-  it("agrupa la cola en «otras» en vez de listar cien categorías", () => {
-    const muchas = Array.from({ length: 40 }, (_, index) => ({
+  /*
+   * G45 · Gonzalo midió el tope contra el uso: «el máximo debería ser algo de
+   * cuarenta categorías; lo demás ya puede quedar como otras tantas, pero con
+   * la posibilidad de verlas». Con 12, la condición del curso —51 valores—
+   * escondía la mitad de lo que se va a mirar.
+   */
+  it("dibuja hasta 40 categorías y agrupa el resto sin perderlo", () => {
+    const muchas = Array.from({ length: 55 }, (_, index) => ({
       cat: `C${index}`,
     })) as unknown as MonitoreoRow[];
     const dist = distribucionDe(muchas, "cat", "categorica");
     if (dist?.tipo !== "categorica") throw new Error("categorica esperada");
-    expect(dist.categorias).toHaveLength(12);
-    expect(dist.otras?.categorias).toBe(28);
+    expect(dist.categorias).toHaveLength(40);
+    expect(dist.otras?.categorias).toBe(15);
+    // La cola viaja entera para poder desplegarse, no sólo su total.
+    expect(dist.otras?.filas).toHaveLength(15);
+    expect(dist.otras?.truncadas).toBe(0);
     expect(dist.categorias.reduce((acc, row) => acc + row.n, 0) + (dist.otras?.n ?? 0))
       .toBe(dist.conDato);
+  });
+
+  it("una columna de texto libre no vuelca miles de filas al desplegable", () => {
+    // «Docente» trae 501 valores distintos en el proyecto real; a esa escala la
+    // lista deja de ser una lectura y pasa a ser una espera.
+    const libres = Array.from({ length: 600 }, (_, index) => ({
+      cat: `V${index}`,
+    })) as unknown as MonitoreoRow[];
+    const dist = distribucionDe(libres, "cat", "categorica");
+    if (dist?.tipo !== "categorica") throw new Error("categorica esperada");
+    expect(dist.otras?.filas).toHaveLength(500);
+    // Lo que queda fuera se declara en vez de desaparecer.
+    expect(dist.otras?.truncadas).toBe(60);
+    expect(dist.otras?.categorias).toBe(560);
   });
 
   it("la numérica publica cuantiles y un histograma que suma el total", () => {

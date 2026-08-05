@@ -29,6 +29,7 @@ import { Info } from "lucide-react";
 import type {
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaAsistenciaCelda,
+  CalcMuestraReferenciaAsistenciaEmbudoFila,
 } from "../../../../api/client";
 import { fmtInt } from "../../sharedCore";
 import "./historicoEstudio.css";
@@ -61,28 +62,36 @@ function PasoEmbudo({
   merma?: { n: number; texto: string; sale?: boolean };
   tono?: "meta";
 }) {
-  const ancho = universo > 0 ? Math.max(1.5, (valor / universo) * 100) : 0;
-  const anchoMerma = merma && universo > 0 ? (merma.n / universo) * 100 : 0;
+  // La barra del peldaño mide `valor` sobre el universo y la merma se dibuja
+  // DENTRO de ese ancho: lo que sobrevive más lo que se va suma exactamente el
+  // tramo. Sumarlas por fuera hacía que el primer peldaño —que es el 100 %—
+  // desbordara su carril y desarmara la rejilla.
+  const perdido = merma?.n ?? 0;
+  const sobrevive = Math.max(0, valor - perdido);
+  const anchoTotal = universo > 0 ? (valor / universo) * 100 : 0;
+  const anchoVivo = universo > 0 ? (sobrevive / universo) * 100 : 0;
+  const anchoMerma = universo > 0 ? (perdido / universo) * 100 : 0;
   return (
     <li className="cmv2-hist-paso" data-tono={tono}>
       <span className="cmv2-hist-paso-label">{label}</span>
+      <span className="cmv2-hist-paso-cifra">{fmtInt(valor)}</span>
       <span className="cmv2-hist-paso-track">
-        <span className="cmv2-hist-paso-fill" style={{ width: `${ancho}%` }}>
-          <b>{fmtInt(valor)}</b>
-        </span>
-        {merma && anchoMerma > 0 ? (
+        <span className="cmv2-hist-paso-fill" style={{ width: `${anchoVivo}%` }} />
+        {anchoMerma > 0 ? (
           <span
             className="cmv2-hist-paso-merma"
-            data-sale={merma.sale ? "si" : undefined}
+            data-sale={merma?.sale ? "si" : undefined}
             style={{ width: `${anchoMerma}%` }}
           />
         ) : null}
       </span>
       <span className="cmv2-hist-paso-pct">{pct(universo > 0 ? valor / universo : null, 0)}</span>
       {merma && anchoMerma > 0 ? (
-        // La leyenda de la merma se ancla al tramo rayado que describe: si vive
-        // al inicio de la fila, se lee como si hablara de la barra llena.
-        <span className="cmv2-hist-paso-nota" style={{ marginLeft: `${ancho}%` }}>
+        // La leyenda arranca donde arranca el tramo rayado que describe.
+        <span
+          className="cmv2-hist-paso-nota"
+          style={{ paddingInlineEnd: `${Math.max(0, 100 - anchoTotal)}%` }}
+        >
           <b data-sale={merma.sale ? "si" : undefined}>−{fmtInt(merma.n)}</b> {merma.texto}
         </span>
       ) : null}
@@ -127,6 +136,40 @@ function FilaPerfil({
   );
 }
 
+/**
+ * El embudo repartido dentro de una dimensión. Cada barra suma 100 % de SUS
+ * estudiantes, así que compara proporciones y no tamaños: una facultad chica y
+ * una grande se leen en la misma escala.
+ */
+function EmbudoApilado({ filas }: { filas: CalcMuestraReferenciaAsistenciaEmbudoFila[] }) {
+  return (
+    <ol className="cmv2-hist-apilado">
+      {[...filas]
+        .filter((f) => (f.elegibles ?? 0) > 0)
+        .sort((a, b) => (b.rendimiento ?? 0) - (a.rendimiento ?? 0))
+        .map((f) => {
+          const base = f.elegibles ?? 0;
+          const seg = (n: number | null) => (base > 0 ? ((n ?? 0) / base) * 100 : 0);
+          const descuento = (f.ya_medidas ?? 0) + (f.no_elegibles ?? 0);
+          const fuera = base - (f.efectivas ?? 0) - (f.no_efectivas ?? 0) - descuento;
+          return (
+            <li key={f.celda_key}>
+              <span className="cmv2-hist-apilado-nombre" title={f.celda_label}>{f.celda_label}</span>
+              <span className="cmv2-hist-apilado-k">{fmtInt(f.k)}</span>
+              <span className="cmv2-hist-apilado-track">
+                <span data-tipo="efectiva" style={{ width: `${seg(f.efectivas)}%` }} title={`${fmtInt(f.efectivas ?? 0)} completaron`} />
+                <span data-tipo="rechazo" style={{ width: `${seg(f.no_efectivas)}%` }} title={`${fmtInt(f.no_efectivas ?? 0)} empezaron y no siguieron`} />
+                <span data-tipo="ausencia" style={{ width: `${seg(Math.max(0, fuera))}%` }} title={`${fmtInt(Math.max(0, fuera))} faltaron o no la abrieron`} />
+                <span data-tipo="descuento" style={{ width: `${seg(descuento)}%` }} title={`${fmtInt(descuento)} ya habían contestado o no eran del estudio`} />
+              </span>
+              <span className="cmv2-hist-apilado-cifra">{pct(f.rendimiento, 0)}</span>
+            </li>
+          );
+        })}
+    </ol>
+  );
+}
+
 export function HistoricoEstudioPanel({
   referencia,
 }: {
@@ -140,6 +183,12 @@ export function HistoricoEstudioPanel({
 
   const facultad = dimensiones.find((d) => d.dimension_key === "facultad");
   const embudoFacultad = referencia.embudos.find((e) => e.dimension_key === "facultad");
+  // Los criterios de curso-horario son los ejes con los que el marco filtra
+  // aulas; verlos aquí cierra el circuito entre lo que se filtró y lo que rindió.
+  const CRITERIOS = ["condicion_curso", "nivel_curso", "tipo_docente", "modalidad", "tipo_sesion"];
+  const embudosCriterio = referencia.embudos
+    .filter((e) => CRITERIOS.includes(e.dimension_key) && e.filas.length > 1)
+    .sort((a, b) => a.orden - b.orden);
   const otras = dimensiones.filter((d) => d.dimension_key !== "facultad");
 
   const logradas = encuentros?.efectivas ?? cadena.rendimiento.numerador ?? null;
@@ -363,34 +412,37 @@ export function HistoricoEstudioPanel({
             <span data-tipo="ausencia">Faltaron o no la abrieron</span>
             <span data-tipo="descuento">Ya habían contestado o no eran del estudio</span>
           </div>
-          <ol className="cmv2-hist-apilado">
-            {[...embudoFacultad.filas]
-              .filter((f) => (f.elegibles ?? 0) > 0)
-              .sort((a, b) => (b.rendimiento ?? 0) - (a.rendimiento ?? 0))
-              .map((f) => {
-                const base = f.elegibles ?? 0;
-                const seg = (n: number | null) => (base > 0 ? ((n ?? 0) / base) * 100 : 0);
-                const descuento = (f.ya_medidas ?? 0) + (f.no_elegibles ?? 0);
-                const fuera = base - (f.efectivas ?? 0) - (f.no_efectivas ?? 0) - descuento;
-                return (
-                  <li key={f.celda_key}>
-                    <span className="cmv2-hist-apilado-nombre" title={f.celda_label}>{f.celda_label}</span>
-                    <span className="cmv2-hist-apilado-k">{fmtInt(f.k)}</span>
-                    <span className="cmv2-hist-apilado-track">
-                      <span data-tipo="efectiva" style={{ width: `${seg(f.efectivas)}%` }} title={`${fmtInt(f.efectivas ?? 0)} completaron`} />
-                      <span data-tipo="rechazo" style={{ width: `${seg(f.no_efectivas)}%` }} title={`${fmtInt(f.no_efectivas ?? 0)} empezaron y no siguieron`} />
-                      <span data-tipo="ausencia" style={{ width: `${seg(Math.max(0, fuera))}%` }} title={`${fmtInt(Math.max(0, fuera))} faltaron o no la abrieron`} />
-                      <span data-tipo="descuento" style={{ width: `${seg(descuento)}%` }} title={`${fmtInt(descuento)} ya habían contestado o no eran del estudio`} />
-                    </span>
-                    <span className="cmv2-hist-apilado-cifra">{pct(f.rendimiento, 0)}</span>
-                  </li>
-                );
-              })}
-          </ol>
+          <EmbudoApilado filas={embudoFacultad.filas} />
         </div>
       ) : null}
 
-      {/* 5 · El perfil que se hereda */}
+      {/* 5 · Los mismos criterios con los que el marco filtra aulas */}
+      {embudosCriterio.length > 0 ? (
+        <div className="cmv2-hist-bloque">
+          <header className="cmv2-hist-bloque-head">
+            <span className="cmv2-eyebrow">Criterios del curso-horario</span>
+            <h4>Qué rindió cada tipo de aula</h4>
+            <p>
+              Los mismos ejes con los que Marco decide qué aulas entran. Sirve para saber si un
+              taller rinde distinto que una clase teórica antes de fijar los criterios de este año.
+            </p>
+          </header>
+          <div className="cmv2-hist-leyenda">
+            <span data-tipo="efectiva">Completaron</span>
+            <span data-tipo="rechazo">Empezaron y no siguieron</span>
+            <span data-tipo="ausencia">Faltaron o no la abrieron</span>
+            <span data-tipo="descuento">Ya habían contestado o no eran del estudio</span>
+          </div>
+          {embudosCriterio.map((e) => (
+            <div className="cmv2-hist-criterio" key={e.dimension_key}>
+              <span className="cmv2-eyebrow">{e.dimension_label}</span>
+              <EmbudoApilado filas={e.filas} />
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* 6 · El perfil que se hereda */}
       {filasFacultad.length > 0 ? (
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">

@@ -2311,6 +2311,8 @@ export type CalcMuestraReferenciaAsistenciaCobertura = {
   /** ADR 0060: declara si se leyó con el glosario del encuentro o degradado. */
   glosario_completo: boolean;
   columnas_glosario: string[];
+  /** ADR 0060 · criterios de curso-horario detectados (condición, nivel, docente…). */
+  columnas_criterio: string[];
 };
 
 /** ADR 0060: la regla depende de si la base trae el glosario del encuentro. */
@@ -2585,12 +2587,16 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   const columnasGlosario = asList(coverageRecord.columnas_glosario)
     .map((item) => asText(item))
     .filter((item): item is string => Boolean(item));
+  const columnasCriterio = asList(coverageRecord.columnas_criterio)
+    .map((item) => asText(item))
+    .filter((item): item is string => Boolean(item));
   const cobertura: CalcMuestraReferenciaAsistenciaCobertura = {
     agendados,
     aplicados,
     observados,
     glosario_completo: glosarioCompleto,
     columnas_glosario: columnasGlosario,
+    columnas_criterio: columnasCriterio,
   };
 
   const identityRecord = asRecord(root.identidad);

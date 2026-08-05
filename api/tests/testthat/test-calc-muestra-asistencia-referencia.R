@@ -157,7 +157,7 @@ test_that("el root exacto declara procedencia, estudio, umbrales y dimensiones",
   expect_named(out, c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
     "unidad", "denominador", "estudio", "diseno", "filtros_corte", "cobertura",
-    "encuentros", "identidad", "umbrales",
+    "encuentros", "embudos", "identidad", "umbrales",
     "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
   ))
   expect_identical(out$schema, "calc_muestra_referencia_asistencia_v2")
@@ -214,7 +214,7 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
     aplicados = 192L,
     observados = 190L,
     glosario_completo = FALSE,
-    columnas_glosario = list()
+    columnas_glosario = list(), columnas_criterio = list()
   ))
   expect_identical(out$identidad, list(
     regla = "A = E + no_respondieron",
@@ -548,7 +548,7 @@ test_that("encabezado agrupador real se promueve y admite tipo de sesion ausente
     aplicados = 12L,
     observados = 12L,
     glosario_completo = FALSE,
-    columnas_glosario = list()
+    columnas_glosario = list(), columnas_criterio = list()
   ))
   expect_identical(out$global$k, 12L)
   expect_identical(out$global$metodo_ic, "bootstrap_percentil")

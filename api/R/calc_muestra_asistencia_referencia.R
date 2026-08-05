@@ -47,8 +47,24 @@
     no_efectivas = c("no_efectivas", "cortas_total", "TOTAL CORTAS"),
     rechazos_en_aula = c(
       "rechazos_en_aula", "declinaron_sin_abrir", "CANTIDAD DE RECHAZOS"
-    )
+    ),
+    # ADR 0060 · criterios de curso-horario. Son los mismos ejes con los que el
+    # marco decide qué aulas entran (Marco › Criterios por facultad), así que
+    # tenerlos aquí permite preguntar lo que de verdad se pregunta al
+    # dimensionar: si un aula de taller rinde distinto que una de teoría, o si
+    # el docente contratado cambia la asistencia.
+    condicion_curso = c("condicion_curso", "condicion", "CONDICIÓN"),
+    nivel_curso = c("nivel_curso", "nivel_del_curso", "NIVEL DEL CURSO"),
+    tipo_docente = c("tipo_docente", "tipo_de_docente"),
+    modalidad = c("modalidad", "MODALIDAD")
   )
+}
+
+# Las opcionales se dividen por naturaleza: los conteos del encuentro entran
+# como números y los criterios de curso-horario como categorías. Pasar un
+# criterio por `as.numeric` lo dejaría en NA y borraría la dimensión entera.
+.cm_asist_optional_numeric_fields <- function() {
+  c("elegibles", "ya_medidas", "no_elegibles", "no_efectivas", "rechazos_en_aula")
 }
 
 .cm_asist_resolve_optional <- function(datos) {
@@ -846,8 +862,18 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
   # las trae; su ausencia degrada la lectura, no la invalida.
   optional <- .cm_asist_resolve_optional(datos)
   glosario_columnas <- names(optional)[nzchar(optional)]
+  # `glosario_completo` habla del embudo del encuentro; un criterio presente no
+  # convierte una base heredada en una base con glosario.
+  glosario_conteos <- intersect(glosario_columnas, .cm_asist_optional_numeric_fields())
+  numericos <- .cm_asist_optional_numeric_fields()
   for (field in glosario_columnas) {
-    frame[[field]] <- .cm_asist_numeric(datos[[optional[[field]]]])
+    frame[[field]] <- if (field %in% numericos) {
+      .cm_asist_numeric(datos[[optional[[field]]]])
+    } else {
+      valores <- trimws(as.character(datos[[optional[[field]]]]))
+      valores[is.na(valores)] <- ""
+      valores
+    }
   }
 
   material_without_key <- !nzchar(frame$curso_horario)
@@ -983,7 +1009,8 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       # que degradar a la lectura heredada: sin esto, un consumidor no puede
       # saber sobre qué denominador está leyendo las tasas.
       glosario_completo = tiene_glosario,
-      columnas_glosario = as.list(glosario_columnas)
+      columnas_glosario = as.list(glosario_conteos),
+      columnas_criterio = as.list(setdiff(glosario_columnas, glosario_conteos))
     ),
     encuentros = encuentros,
     # El mismo embudo, abierto por las dimensiones que el operativo puede
@@ -991,7 +1018,11 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     embudos = Filter(Negate(is.null), list(
       .cm_asist_embudo_por(model, "facultad", "Facultad", 1L),
       .cm_asist_embudo_por(model, "rango_horario", "Rango horario", 2L),
-      .cm_asist_embudo_por(model, "tipo_sesion", "Tipo de sesion", 3L)
+      .cm_asist_embudo_por(model, "tipo_sesion", "Tipo de sesion", 3L),
+      .cm_asist_embudo_por(model, "condicion_curso", "Condicion del curso", 4L),
+      .cm_asist_embudo_por(model, "nivel_curso", "Nivel del curso", 5L),
+      .cm_asist_embudo_por(model, "tipo_docente", "Tipo de docente", 6L),
+      .cm_asist_embudo_por(model, "modalidad", "Modalidad", 7L)
     )),
     identidad = list(
       regla = if (tiene_glosario) {

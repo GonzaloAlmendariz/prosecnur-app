@@ -69,7 +69,7 @@ function payloadValido(): Record<string, unknown> {
       aplicados: 12,
       observados: 12,
       glosario_completo: false,
-      columnas_glosario: [],
+      columnas_glosario: [], columnas_criterio: [],
     },
     identidad: {
       regla: "A = E + no_respondieron",

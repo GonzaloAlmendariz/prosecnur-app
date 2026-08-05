@@ -38,8 +38,22 @@ export type DistribucionCategorica = {
   conDato: number;
   sinDato: number;
   categorias: CategoriaExplorador[];
-  /** Categorías que no entran en el top mostrado, agregadas. */
-  otras: { n: number; categorias: number } | null;
+  /**
+   * Categorías que no entran en el top mostrado.
+   *
+   * G45 · Además del agregado viajan sus `filas`, para que la cola se pueda
+   * abrir y leer. Gonzalo: «lo demás ya puede quedar como otras tantas
+   * categorías, pero con la posibilidad de que de alguna u otra forma podamos
+   * verlas, quizás como una lista». Un «otras 39 categorías» que no se puede
+   * abrir esconde justo lo que uno quiere comprobar cuando algo no cuadra.
+   */
+  otras: {
+    n: number;
+    categorias: number;
+    filas: CategoriaExplorador[];
+    /** Cuántas quedan fuera incluso de la lista desplegable. */
+    truncadas: number;
+  } | null;
 };
 
 export type DistribucionNumerica = {
@@ -133,7 +147,23 @@ export function inventarioVariables(rows: MonitoreoRow[]): VariableExplorador[] 
   return out.sort((a, b) => a.columna.localeCompare(b.columna, "es"));
 }
 
-const TOP_CATEGORIAS = 12;
+/*
+ * G45 · Cuántas categorías se dibujan con barra.
+ *
+ * Estaba en 12 y Gonzalo lo midió contra el uso: «el máximo debería ser algo de
+ * cuarenta categorías; lo demás ya puede quedar como otras tantas». Con 12, una
+ * variable como la condición del curso —51 valores— escondía en «otras» la
+ * mitad de lo que se quiere mirar.
+ */
+const TOP_CATEGORIAS = 40;
+
+/*
+ * Y cuántas se listan al abrir la cola. El tope existe porque una columna de
+ * texto libre puede traer miles de valores distintos —«Docente» trae 501— y
+ * volcar todos al DOM convierte una lectura en una espera; lo que quede fuera
+ * se declara en vez de desaparecer.
+ */
+const MAX_COLA = 500;
 
 export function distribucionDe(
   rows: MonitoreoRow[],
@@ -204,7 +234,12 @@ export function distribucionDe(
     sinDato,
     categorias,
     otras: resto.length
-      ? { n: resto.reduce((acc, row) => acc + row.n, 0), categorias: resto.length }
+      ? {
+          n: resto.reduce((acc, row) => acc + row.n, 0),
+          categorias: resto.length,
+          filas: resto.slice(0, MAX_COLA),
+          truncadas: Math.max(0, resto.length - MAX_COLA),
+        }
       : null,
   };
 }

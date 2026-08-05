@@ -487,6 +487,73 @@
 .cmv2-expb-cat-n { color: var(--pulso-text); font-weight: var(--pulso-weight-medium); }
 .cmv2-expb-cat-pct { color: var(--pulso-text-subtle); }
 
+/* G45 · La cola se abre: su fila es un control, no un rótulo. */
+.cmv2-expb-cola-toggle {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.cmv2-expb-cola-toggle:hover { color: var(--pulso-text); }
+.cmv2-expb-cola-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* A esta escala la barra ya no compara nada, así que la cola va como lista en
+   columnas: lo que se busca aquí es encontrar un valor, no medirlo. */
+.cmv2-expb-cola {
+  margin-top: 4px;
+  padding: 10px 8px 4px;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+}
+.cmv2-expb-cola ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  columns: 3 220px;
+  column-gap: 24px;
+}
+.cmv2-expb-cola li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  break-inside: avoid;
+  padding: 2px 0;
+  font-size: 11.5px;
+}
+.cmv2-expb-cola li span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+}
+.cmv2-expb-cola li em {
+  font-style: normal;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-expb-cola li b {
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-subtle);
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
+  text-align: right;
+}
+.cmv2-expb-cola p {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-subtle);
+}
+
 /* La cola es parte del reparto, pero no una categoría que se pueda decidir. */
 .cmv2-expb-categorias li[data-resto] .cmv2-expb-cat-label {
   color: var(--pulso-text-subtle);
