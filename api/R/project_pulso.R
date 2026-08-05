@@ -249,6 +249,9 @@
   # base se strippeaba arriba).
   s$graficos_preview_cache <- NULL
   s$explorador_cache <- NULL
+  # G49 · La hoja cacheada del explorador de bases es relectura pura del archivo
+  # que ya viaja en `files/`: guardarla duplicaria la base dentro del `.pulso`.
+  s$calc_muestra_explorador_cache <- NULL
   s$calc_muestra_aulas_criterios_contexto <- NULL
   if (!is.null(s$calc_muestra_aulas_frame) && is.list(s$calc_muestra_aulas_frame)) {
     frame <- .pulso_sanitize_calc_muestra_criteria_frame(

@@ -492,6 +492,55 @@ mount_calc_muestra <- function(pr) {
     })) |>
 
     # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/marco/explorar-base — perfil descriptivo de una
+    # hoja declarada, SIN marco construido.
+    # Body: { file_id, sheet?, filtros?: [{ columna, valores[] }], top? }
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/marco/explorar-base",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      file_id <- calc_str(body$file_id %||% body$fileId, "")
+      if (!nzchar(file_id)) {
+        stop_api(400, "E_CALC_MUESTRA_FILE_REQUIRED", "Declara primero la base en Datos > Fuentes.")
+      }
+      meta <- get_file(sid, file_id)
+      hoja <- calc_str(body$sheet %||% body$hoja, "")
+      # Leer MATRICULADO cuesta ~7 s (136.284 filas): con un filtro por clic,
+      # releer el archivo cada vez convierte la exploracion en una espera. La
+      # hoja se cachea en la sesion —no viaja en el `.pulso`— y los filtros
+      # corren sobre memoria.
+      cache_key <- "calc_muestra_explorador_cache"
+      cache <- session_get(sid, required = FALSE)[[cache_key]] %||% list()
+      # Separador visible a proposito: un NUL en el fuente lo rechaza el parser
+      # de R y deja el archivo ilegible (mismo tropiezo que el detector de
+      # cascada CSS con su separador).
+      slot <- paste0(file_id, "\r", hoja)
+      datos <- cache[[slot]]
+      if (!is.data.frame(datos)) {
+        datos <- .cm_aulas_read_table(meta$path, if (nzchar(hoja)) hoja else NULL)
+        cache[[slot]] <- datos
+        # Una sola hoja por sesion: dos bases grandes en memoria no aportan y el
+        # usuario explora una a la vez.
+        if (length(cache) > 2L) cache <- cache[tail(seq_along(cache), 2L)]
+        session_set(sid, cache_key, cache)
+      }
+      filtros <- body$filtros %||% body$filters %||% list()
+      if (!is.null(filtros) && !is.list(filtros)) filtros <- list()
+      # El tope de categorias lo fija la superficie (hoy 40) pero se acota aqui:
+      # un cliente pidiendo 100.000 convertiria la respuesta en un volcado.
+      top <- max(5L, min(200L, as.integer(.cm_aulas_num(body$top, 40))))
+      perfil <- calc_muestra_explorar_base(
+        datos = datos,
+        sheet = hoja,
+        filtros = filtros,
+        top = top,
+        unidad = calc_str(body$unidad %||% body$unit, "filas")
+      )
+      list(ok = TRUE, file_id = file_id, original_name = meta$original_name, perfil = perfil)
+    })) |>
+
+    # -----------------------------------------------------------------------
     # POST /api/calc-muestra/asistencia/referencia — calcula y guarda el
     # agregado metodológico de un estudio histórico externo.
     # Body: { referencia_asistencia|referencia_asistencia_file_id,

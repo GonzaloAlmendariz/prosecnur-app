@@ -62,35 +62,176 @@
 }
 .cmv2-expb-conmutador button[data-activo] em { color: var(--cmv2-accent); }
 
-/* G46 · El selector de facultad vive junto al de base: son las dos preguntas
-   que acotan lo que se está mirando, y separarlas obligaba a buscarlas. */
-.cmv2-expb-facultad {
+/* G51 · Filas o personas. Sólo aparece cuando la hoja tiene con qué contar
+   personas; ofrecer una unidad que no existe es peor que no ofrecerla. */
+.cmv2-expb-unidad {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 12px;
+  padding: 3px;
+  gap: 3px;
   border: 1px solid var(--cmv2-border);
   border-radius: 999px;
-  background: var(--pulso-surface);
+  background: var(--pulso-surface-2);
 }
-.cmv2-expb-facultad > span {
-  font-size: 10px;
-  letter-spacing: .05em;
-  text-transform: uppercase;
+.cmv2-expb-unidad button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
+}
+.cmv2-expb-unidad button[data-activo] {
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+
+/* --- filtros dinámicos ----------------------------------------------------- */
+
+/* G50 · La línea de filtros es el autofiltro de la hoja: chips de lo que está
+   acotando, y un desplegable para añadir otra columna. Va sobre el cuerpo y no
+   dentro del índice porque acota AMBOS carriles, no la variable en foco. */
+.cmv2-expb-filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.cmv2-expb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 5px 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 32%, var(--cmv2-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cmv2-accent) 9%, transparent);
+  font-size: 11.5px;
+  color: var(--pulso-text);
+  max-width: 340px;
+}
+.cmv2-expb-chip strong {
+  font-weight: var(--pulso-weight-semibold);
+  white-space: nowrap;
+}
+.cmv2-expb-chip strong::after { content: ":"; }
+.cmv2-expb-chip > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--pulso-text-muted);
 }
-.cmv2-expb-facultad select {
-  max-width: 260px;
+.cmv2-expb-chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+}
+.cmv2-expb-chip button:hover {
+  background: color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  color: var(--pulso-text);
+}
+
+.cmv2-expb-anadir {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 9px;
+  border: 1px dashed var(--cmv2-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+}
+.cmv2-expb-anadir:focus-within {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-border));
+}
+.cmv2-expb-anadir select {
+  max-width: 220px;
   border: 0;
   background: transparent;
-  color: var(--pulso-text);
-  font-size: 12.5px;
-  font-weight: var(--pulso-weight-medium);
+  color: inherit;
+  font-size: 11.5px;
   cursor: pointer;
   outline: none;
 }
-.cmv2-expb-facultad:focus-within {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-border));
+
+.cmv2-expb-limpiar {
+  border: 0;
+  background: transparent;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.cmv2-expb-limpiar:hover { color: var(--pulso-text); }
+
+/* Los valores de la columna que se está acotando: una nube de conmutadores.
+   C4 · con muchas categorías la nube posee su propio scroll en vez de empujar
+   el cuerpo fuera del viewport. */
+.cmv2-expb-valores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 132px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+.cmv2-expb-valores button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out),
+    border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-valores button em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-expb-valores button:hover { border-color: var(--pulso-text-muted); }
+.cmv2-expb-valores button[data-activo] {
+  background: var(--cmv2-accent);
+  border-color: transparent;
+  color: #fff;
+}
+.cmv2-expb-valores button[data-activo] em { color: rgb(255 255 255 / 78%); }
+.cmv2-expb-cerrar-valores {
+  margin-left: auto;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
 }
 
 /* G46 · La nota baja a su propia línea.
@@ -174,29 +315,13 @@
   padding-right: 4px;
 }
 
-.cmv2-expb-grupo + .cmv2-expb-grupo { margin-top: 10px; }
-.cmv2-expb-grupo h3 {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 0 0 4px;
-  padding: 4px 8px;
-  background: var(--pulso-surface);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--pulso-text-muted);
-}
-.cmv2-expb-grupo h3 span {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-.cmv2-expb-grupo ul {
+/* G49 · El índice volvió a ser una lista plana.
+ *
+ * Estaba partido en «tu base» y «derivadas del marco» porque describía
+ * `aula_frame`, donde conviven las columnas del Excel con las que el motor
+ * calcula. Ahora la fuente es el archivo: todas las columnas son del usuario y
+ * un encabezado de grupo separaría lo que nadie pidió separar. */
+.cmv2-expb-plana {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -208,7 +333,7 @@
 /* Una línea por variable: con dos, la mitad del inventario quedaba fuera del
    viewport y había que buscar con scroll lo que el índice debe dar de un
    vistazo. */
-.cmv2-expb-grupo li button {
+.cmv2-expb-plana li button {
   position: relative;
   width: 100%;
   display: grid;
@@ -223,15 +348,15 @@
   cursor: pointer;
   transition: background var(--motion-dur-fast) var(--motion-ease-out);
 }
-.cmv2-expb-grupo li button:hover { background: var(--pulso-surface-2); }
-.cmv2-expb-grupo li button:focus-visible {
+.cmv2-expb-plana li button:hover { background: var(--pulso-surface-2); }
+.cmv2-expb-plana li button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
   outline-offset: -2px;
 }
-.cmv2-expb-grupo li button[data-activa] {
+.cmv2-expb-plana li button[data-activa] {
   background: color-mix(in srgb, var(--cmv2-accent) 10%, transparent);
 }
-.cmv2-expb-grupo li button[data-activa]::before {
+.cmv2-expb-plana li button[data-activa]::before {
   content: "";
   position: absolute;
   left: 0;
@@ -249,7 +374,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.cmv2-expb-grupo li button[data-activa] .cmv2-expb-var {
+.cmv2-expb-plana li button[data-activa] .cmv2-expb-var {
   font-weight: var(--pulso-weight-semibold);
 }
 .cmv2-expb-meta {
@@ -273,15 +398,6 @@
   border-radius: 999px;
   color: var(--pulso-warn-fg, #b26a00);
   background: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 12%, transparent);
-}
-
-.cmv2-expb-pie {
-  margin: 12px 8px 4px;
-  padding-top: 10px;
-  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
-  font-size: 10.5px;
-  line-height: 1.5;
-  color: var(--pulso-text-muted);
 }
 
 .cmv2-expb-sin-match {
@@ -496,15 +612,40 @@
   }
   .cmv2-expb-categorias .cmv2-expb-cat-bar { grid-column: 1 / -1; order: 3; }
 }
+/* G50 · La etiqueta es un botón: cada categoría filtra por sí misma.
+   La pregunta que sigue a «cuántos hay» casi siempre es «y de esos, qué pasa
+   con…», y obligar a subir al desplegable para responderla rompía el hilo. */
 .cmv2-expb-cat-label {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
   font-size: 12px;
   line-height: 1.35;
   color: var(--pulso-text);
+  cursor: pointer;
   overflow: hidden;
+  /* Una etiqueta sin espacios —«TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)»—
+     no tiene dónde partir y se cortaba a media palabra contra la barra en vez
+     de usar las dos líneas que tiene concedidas. */
+  overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  transition: color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-cat-label:hover { color: var(--cmv2-accent); }
+.cmv2-expb-cat-label:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.cmv2-expb-cat-label[data-en-filtro] {
+  color: var(--cmv2-accent);
+  font-weight: var(--pulso-weight-semibold);
 }
 .cmv2-expb-cat-bar {
   height: 9px;
