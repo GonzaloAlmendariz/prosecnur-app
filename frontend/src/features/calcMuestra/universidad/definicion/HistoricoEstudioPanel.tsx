@@ -26,10 +26,13 @@
  * el bundle de gráficos por cuatro perfiles marginales.
  */
 import { Info } from "lucide-react";
+import { useState } from "react";
 import type {
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaAsistenciaCelda,
+  CalcMuestraReferenciaAsistenciaCoberturaCeldas,
   CalcMuestraReferenciaAsistenciaEmbudoFila,
+  CalcMuestraReferenciaAsistenciaSerieCampo,
 } from "../../../../api/client";
 import { fmtInt } from "../../sharedCore";
 import "./historicoEstudio.css";
@@ -197,6 +200,129 @@ function EmbudoApilado({
   );
 }
 
+/**
+ * La serie del operativo. Cada semana es una columna con tres lecturas apiladas
+ * sobre la misma escala 0 a 100 %, así que la tendencia se ve sin leer cifras.
+ *
+ * Existe por una pregunta concreta que el agregado no puede responder: si el
+ * campo se fue agotando. Mientras más aulas se aplican, más probable es que
+ * quien está en la siguiente ya haya respondido en otra; `pct_ya_medidas`
+ * semana a semana es la única forma de ver si eso pasó de verdad.
+ */
+function SerieCampo({ serie }: { serie: CalcMuestraReferenciaAsistenciaSerieCampo }) {
+  const filas = [...serie.filas].sort((a, b) => a.orden - b.orden);
+  const maxAulas = Math.max(1, ...filas.map((f) => f.k));
+  return (
+    <ol className="cmv2-hist-serie">
+      {filas.map((fila) => (
+        <li key={fila.semana}>
+          <span className="cmv2-hist-serie-nombre">{fila.etiqueta}</span>
+          <span className="cmv2-hist-serie-aulas" title={`${fmtInt(fila.k)} cursos-horario aplicados`}>
+            <span style={{ width: `${(fila.k / maxAulas) * 100}%` }} />
+            <em>{fmtInt(fila.k)}</em>
+          </span>
+          <span className="cmv2-hist-serie-tasas">
+            <BarraTasa label="Asistieron" valor={fila.asistencia} tono="asistencia" />
+            <BarraTasa label="Ya habían contestado" valor={fila.pct_ya_medidas} tono="descuento" />
+            <BarraTasa label="Encuestas completas" valor={fila.rendimiento} tono="meta" />
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/**
+ * Barra de tasa: la primitiva única de este panel. Escala fija de 0 a 100 %,
+ * misma altura y mismo lugar para la cifra en todos los bloques, para que dos
+ * barras de secciones distintas se puedan comparar de un vistazo.
+ */
+function BarraTasa({
+  label,
+  valor,
+  tono,
+}: {
+  label: string;
+  valor: number | null;
+  tono: "asistencia" | "descuento" | "meta";
+}) {
+  const ancho = valor !== null && Number.isFinite(valor) ? Math.max(0, Math.min(100, valor * 100)) : 0;
+  return (
+    <span className="cmv2-hist-tasa" data-tono={tono}>
+      <span className="cmv2-hist-tasa-label">{label}</span>
+      <span className="cmv2-hist-tasa-track">
+        <span style={{ width: `${ancho}%` }} />
+      </span>
+      <span className="cmv2-hist-tasa-cifra">{pct(valor, 0)}</span>
+    </span>
+  );
+}
+
+/**
+ * Qué costó cubrir el diseño. El embudo cuenta cómo rindió lo que se aplicó;
+ * esto cuenta lo que hubo que hacer para conseguirlo, que es la otra mitad de
+ * la lección operativa: cuántas celdas se resolvieron con su titular, cuántas
+ * obligaron a bajar por la cadena de reemplazos y por qué se cayeron las que
+ * se cayeron.
+ */
+function CoberturaCeldas({
+  cobertura,
+}: {
+  cobertura: CalcMuestraReferenciaAsistenciaCoberturaCeldas;
+}) {
+  const { celdas_declaradas: declaradas, celdas_con_titular: conTitular } = cobertura;
+  const conReemplazo = cobertura.celdas_con_reemplazo;
+  const sinCubrir = Math.max(0, declaradas - cobertura.celdas_cubiertas);
+  const base = Math.max(1, declaradas);
+  const totalMotivos = cobertura.motivos.reduce((acc, m) => acc + m.n, 0);
+  return (
+    <>
+      <div className="cmv2-hist-cobertura">
+        <span className="cmv2-hist-cobertura-track" aria-hidden="true">
+          <span data-tipo="titular" style={{ width: `${(conTitular / base) * 100}%` }} />
+          <span data-tipo="reemplazo" style={{ width: `${(conReemplazo / base) * 100}%` }} />
+          <span data-tipo="sin-cubrir" style={{ width: `${(sinCubrir / base) * 100}%` }} />
+        </span>
+        <ul className="cmv2-hist-cobertura-leyenda">
+          <li data-tipo="titular">
+            <strong>{fmtInt(conTitular)}</strong>
+            <span>se resolvieron con el curso-horario que tocaba</span>
+          </li>
+          <li data-tipo="reemplazo">
+            <strong>{fmtInt(conReemplazo)}</strong>
+            <span>necesitaron bajar a un reemplazo</span>
+          </li>
+          {sinCubrir > 0 ? (
+            <li data-tipo="sin-cubrir">
+              <strong>{fmtInt(sinCubrir)}</strong>
+              <span>quedaron sin cubrir</span>
+            </li>
+          ) : null}
+        </ul>
+      </div>
+      {cobertura.motivos.length > 0 ? (
+        <>
+          <p className="cmv2-hist-nota-grupo">
+            Por qué se cayeron los {fmtInt(totalMotivos)} cursos-horario que no llegaron a aplicarse.
+            El motivo lo clasifica la base del estudio, no el módulo.
+          </p>
+          <ol className="cmv2-hist-motivos">
+            {[...cobertura.motivos].sort((a, b) => b.n - a.n).map((motivo) => (
+              <li key={motivo.motivo}>
+                <span className="cmv2-hist-motivos-nombre">{motivo.motivo}</span>
+                <span className="cmv2-hist-motivos-track">
+                  <span style={{ width: `${(motivo.n / Math.max(1, totalMotivos)) * 100}%` }} />
+                </span>
+                <span className="cmv2-hist-motivos-n">{fmtInt(motivo.n)}</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function HistoricoEstudioPanel({
   referencia,
 }: {
@@ -285,6 +411,21 @@ export function HistoricoEstudioPanel({
   // sin base; si no, la línea cae en un sitio y las barras heredadas en otro.
   const refPerfil = heredadas[0]?.tasa_publicada ?? cadena.asistencia.tasa;
 
+  // Un conmutador, no una pila. Con todo apilado la pestaña medía 2.800 px de
+  // scroll y las comparaciones que importan (esta facultad contra aquella, esta
+  // semana contra la siguiente) quedaban a media pantalla de distancia. Cada
+  // vista responde una pregunta y sólo se ofrece si hay datos para responderla.
+  const vistas = [
+    { id: "general" as const, label: "El embudo", disponible: true },
+    { id: "facultad" as const, label: "Por facultad", disponible: Boolean(embudoFacultad) || filasFacultad.length > 0 },
+    { id: "criterio" as const, label: "Por criterio", disponible: embudosCriterio.length > 0 || otras.length > 0 },
+    { id: "semana" as const, label: "Semana a semana", disponible: Boolean(referencia.serie_campo) },
+    { id: "cobertura" as const, label: "Cobertura del diseño", disponible: Boolean(referencia.cobertura_celdas) },
+    { id: "diseno" as const, label: "Cómo se dimensionó", disponible: diseno.declarado || filtros.length > 0 },
+  ].filter((v) => v.disponible);
+  const [vista, setVista] = useState<(typeof vistas)[number]["id"]>("general");
+  const vistaActiva = vistas.some((v) => v.id === vista) ? vista : "general";
+
   return (
     <section
       className="cmv2-hist-panel"
@@ -342,7 +483,24 @@ export function HistoricoEstudioPanel({
         ) : null}
       </div>
 
+      {vistas.length > 1 ? (
+        <div className="cmv2-hist-conmutador" role="group" aria-label="Desglose del estudio histórico">
+          {vistas.map((opcion) => (
+            <button
+              key={opcion.id}
+              type="button"
+              aria-pressed={vistaActiva === opcion.id}
+              data-activo={vistaActiva === opcion.id || undefined}
+              onClick={() => setVista(opcion.id)}
+            >
+              {opcion.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {/* 2 · ¿Dónde se perdió? */}
+      {vistaActiva === "general" ? (<>
       {encuentros && universo > 0 ? (
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
@@ -435,7 +593,10 @@ export function HistoricoEstudioPanel({
         </ul>
       ) : null}
 
+      </>) : null}
+
       {/* 4 · El mismo embudo, abierto por facultad: dónde perdió cada una */}
+      {vistaActiva === "facultad" ? (<>
       {embudoFacultad && embudoFacultad.filas.length > 0 ? (
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
@@ -457,7 +618,11 @@ export function HistoricoEstudioPanel({
         </div>
       ) : null}
 
+      {/* 6 · El perfil por facultad vive en la misma vista que su embudo */}
+      </>) : null}
+
       {/* 5 · Los mismos criterios con los que el marco filtra aulas */}
+      {vistaActiva === "criterio" ? (<>
       {embudosCriterio.length > 0 ? (
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
@@ -483,8 +648,43 @@ export function HistoricoEstudioPanel({
         </div>
       ) : null}
 
-      {/* 6 · El perfil que se hereda */}
-      {filasFacultad.length > 0 ? (
+      </>) : null}
+
+      {vistaActiva === "semana" && referencia.serie_campo ? (
+        <div className="cmv2-hist-bloque">
+          <header className="cmv2-hist-bloque-head">
+            <span className="cmv2-eyebrow">El campo en el tiempo</span>
+            <h4>Qué pasó semana a semana</h4>
+            <p>
+              La barra gris es cuántos cursos-horario se aplicaron esa semana. Debajo, tres tasas
+              sobre la misma escala: cuántos estudiantes fueron a clase, cuántos de los presentes ya
+              habían contestado en otro curso, y cuántas encuestas completas salieron.
+            </p>
+          </header>
+          <SerieCampo serie={referencia.serie_campo} />
+        </div>
+      ) : null}
+
+      {vistaActiva === "cobertura" && referencia.cobertura_celdas ? (
+        <div className="cmv2-hist-bloque">
+          <header className="cmv2-hist-bloque-head">
+            <span className="cmv2-eyebrow">Lo que costó cubrir el diseño</span>
+            <h4>
+              {fmtInt(referencia.cobertura_celdas.celdas_cubiertas)} de{" "}
+              {fmtInt(referencia.cobertura_celdas.celdas_declaradas)} celdas cubiertas
+            </h4>
+            <p>
+              El diseño reparte la muestra en celdas y cada una hay que cubrirla. Se cubre con el
+              curso-horario que salió sorteado o, si ese se cae, bajando por la cadena de
+              reemplazos. Cuántas necesitaron reemplazo es lo que de verdad cuesta el operativo.
+            </p>
+          </header>
+          <CoberturaCeldas cobertura={referencia.cobertura_celdas} />
+        </div>
+      ) : null}
+
+      {/* 6 · El perfil que se hereda, en la misma vista que su embudo */}
+      {vistaActiva === "facultad" && filasFacultad.length > 0 ? (
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
             <span className="cmv2-eyebrow">El perfil que se hereda</span>
@@ -524,7 +724,7 @@ export function HistoricoEstudioPanel({
         </div>
       ) : null}
 
-      {otras.map((dimension) => {
+      {(vistaActiva === "criterio" ? otras : []).map((dimension) => {
         const filas = [...dimension.filas].filter((f) => f.k > 0).sort((a, b) => (b.tasa ?? 0) - (a.tasa ?? 0));
         if (!filas.length) return null;
         return (
@@ -543,7 +743,7 @@ export function HistoricoEstudioPanel({
       })}
 
       {/* Cómo se calculó: los parámetros a la vista, no plegados (ADR 0057) */}
-      {diseno.declarado ? (
+      {vistaActiva === "diseno" && diseno.declarado ? (
         <div className="cmv2-hist-bloque cmv2-hist-bloque-secundario">
           <header className="cmv2-hist-bloque-head">
             <span className="cmv2-eyebrow">Cómo se dimensionó</span>
@@ -567,7 +767,7 @@ export function HistoricoEstudioPanel({
         </div>
       ) : null}
 
-      {filtros.length > 0 ? (
+      {vistaActiva === "diseno" && filtros.length > 0 ? (
         <div className="cmv2-hist-bloque cmv2-hist-bloque-secundario">
           <header className="cmv2-hist-bloque-head">
             <span className="cmv2-eyebrow">Instrumento</span>

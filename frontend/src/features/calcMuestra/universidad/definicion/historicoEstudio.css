@@ -617,3 +617,206 @@
   padding-top: var(--cmv2-space-2);
   border-top: 1px solid var(--cmv2-border);
 }
+
+/* Conmutador de desglose. Mismo gesto que el del Explorador de bases: una sola
+   fila de pastillas, la activa con el tono del módulo. */
+
+.cmv2-hist-conmutador {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-lg);
+  background: var(--cmv2-surface);
+}
+
+.cmv2-hist-conmutador button {
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  transition: background 160ms var(--cmv2-ease-out, ease), color 160ms var(--cmv2-ease-out, ease);
+}
+
+.cmv2-hist-conmutador button:hover { color: var(--pulso-text); }
+
+.cmv2-hist-conmutador button[data-activo] {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent);
+  font-weight: 600;
+}
+
+.cmv2-hist-conmutador button:focus-visible {
+  outline: 2px solid var(--cmv2-accent);
+  outline-offset: 1px;
+}
+
+/* Serie semanal. La semana es la fila; dentro, tres tasas sobre la misma escala
+   para que la tendencia se lea en vertical. */
+
+.cmv2-hist-serie { display: flex; flex-direction: column; gap: var(--cmv2-space-3); margin: 0; padding: 0; list-style: none; }
+
+.cmv2-hist-serie > li {
+  display: grid;
+  grid-template-columns: 96px minmax(60px, 120px) minmax(0, 1fr);
+  gap: var(--cmv2-space-3);
+  align-items: center;
+  padding-bottom: var(--cmv2-space-3);
+  border-bottom: 1px solid var(--cmv2-border);
+}
+
+.cmv2-hist-serie > li:last-child { padding-bottom: 0; border-bottom: none; }
+
+.cmv2-hist-serie-nombre { font-size: 11px; font-weight: 600; color: var(--pulso-text); }
+
+/* La barra de aulas es su propia rejilla: el carril mide la proporción y la
+   cifra vive en una columna fija. Con flex, un `width: 100 %` sobre el carril
+   empujaba el número fuera de la celda. */
+.cmv2-hist-serie-aulas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px;
+  gap: 6px;
+  align-items: center;
+}
+
+.cmv2-hist-serie-aulas > span:first-child {
+  height: 14px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 26%, transparent);
+}
+
+.cmv2-hist-serie-aulas em {
+  font-size: 10px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-serie-tasas { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+/* Barra de tasa: la primitiva compartida. Misma altura, misma escala y la cifra
+   siempre en el mismo sitio, para que dos bloques distintos se comparen. */
+.cmv2-hist-tasa {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 40px;
+  gap: var(--cmv2-space-2);
+  align-items: center;
+}
+
+.cmv2-hist-tasa-label { font-size: 10px; color: var(--pulso-text-muted); }
+
+.cmv2-hist-tasa-track {
+  height: 12px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 9%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-hist-tasa-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 320ms var(--cmv2-ease-out, ease);
+}
+
+.cmv2-hist-tasa[data-tono="asistencia"] .cmv2-hist-tasa-track > span {
+  background: color-mix(in srgb, var(--cmv2-accent) 70%, transparent);
+}
+
+.cmv2-hist-tasa[data-tono="descuento"] .cmv2-hist-tasa-track > span {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 62%, transparent);
+}
+
+.cmv2-hist-tasa[data-tono="meta"] .cmv2-hist-tasa-track > span {
+  background: color-mix(in srgb, var(--pulso-success-fg) 68%, transparent);
+}
+
+.cmv2-hist-tasa-cifra {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text);
+}
+
+/* Cobertura del diseño: una sola barra con el reparto y su leyenda al pie. */
+
+.cmv2-hist-cobertura { display: flex; flex-direction: column; gap: var(--cmv2-space-3); }
+
+.cmv2-hist-cobertura-track {
+  display: flex;
+  height: 26px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-text-muted) 9%, transparent);
+}
+
+.cmv2-hist-cobertura-track > span { transition: width 320ms var(--cmv2-ease-out, ease); }
+.cmv2-hist-cobertura-track > span[data-tipo="titular"] { background: color-mix(in srgb, var(--cmv2-accent) 74%, transparent); }
+.cmv2-hist-cobertura-track > span[data-tipo="reemplazo"] { background: color-mix(in srgb, var(--pulso-warn-fg) 58%, transparent); }
+.cmv2-hist-cobertura-track > span[data-tipo="sin-cubrir"] {
+  background: repeating-linear-gradient(-45deg,
+    color-mix(in srgb, var(--pulso-text-muted) 34%, transparent) 0 3px, transparent 3px 6px);
+}
+
+.cmv2-hist-cobertura-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-hist-cobertura-leyenda li { display: flex; align-items: baseline; gap: 6px; }
+
+.cmv2-hist-cobertura-leyenda strong {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-cobertura-leyenda span { font-size: 11px; color: var(--pulso-text-muted); }
+.cmv2-hist-cobertura-leyenda li[data-tipo="titular"] strong { color: var(--cmv2-accent); }
+.cmv2-hist-cobertura-leyenda li[data-tipo="reemplazo"] strong { color: var(--pulso-warn-fg); }
+
+.cmv2-hist-motivos { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+
+.cmv2-hist-motivos > li {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) minmax(0, 2fr) 32px;
+  gap: var(--cmv2-space-2);
+  align-items: center;
+}
+
+.cmv2-hist-motivos-nombre { font-size: 11px; line-height: 1.25; text-wrap: pretty; color: var(--pulso-text); }
+
+.cmv2-hist-motivos-track {
+  height: 12px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 9%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-hist-motivos-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--pulso-warn-fg) 52%, transparent);
+}
+
+.cmv2-hist-motivos-n {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text);
+}
