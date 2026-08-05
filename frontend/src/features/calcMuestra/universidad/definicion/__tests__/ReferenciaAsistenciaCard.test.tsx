@@ -43,6 +43,7 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     diseno: DISENO_VACIO,
     filtros_corte: [],
     encuentros: null,
+    embudos: [],
     identidad: {
       regla: "A = E + no_respondieron",
       verificada: true,

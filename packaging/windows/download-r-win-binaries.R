@@ -12,6 +12,30 @@ dir.create(out_arg, recursive = TRUE, showWarnings = FALSE)
 out_dir <- normalizePath(out_arg, mustWork = TRUE)
 
 r_minor <- sub("^(\\d+\\.\\d+).*$", "\\1", r_version)
+
+# La fecha del snapshot vive en packaging/r-snapshot-date.txt, fuente única
+# compartida con el descargador de macOS (ADR 0059): las dos plataformas leen
+# el mismo calendario y lock + fecha avanzan juntos en el mismo commit.
+read_snapshot_date <- function() {
+  snapshot_path <- file.path(getwd(), "packaging", "r-snapshot-date.txt")
+  if (!file.exists(snapshot_path)) {
+    stop(
+      "Ejecuta este script desde la raíz del repo; no encontré packaging/r-snapshot-date.txt.",
+      call. = FALSE
+    )
+  }
+  lines <- readLines(snapshot_path, warn = FALSE, encoding = "UTF-8")
+  snapshot_date <- if (length(lines)) trimws(lines[[1]]) else ""
+  if (!grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", snapshot_date) ||
+      is.na(as.Date(snapshot_date, format = "%Y-%m-%d"))) {
+    stop(
+      "packaging/r-snapshot-date.txt debe contener una fecha ISO (AAAA-MM-DD) real.",
+      call. = FALSE
+    )
+  }
+  snapshot_date
+}
+
 test_repository <- Sys.getenv("PROSECNUR_BINARY_TEST_REPOSITORY")
 if (nzchar(test_repository)) {
   if (!identical(Sys.getenv("PROSECNUR_BINARY_TEST_MODE"), "1")) {
@@ -22,10 +46,9 @@ if (nzchar(test_repository)) {
   # CRAN Windows no publica MD5 de binarios. El snapshot fechado de Posit
   # conserva exactamente las versiones del lock y expone un Hash MD5
   # autoritativo por archivo, requisito para aceptar cachés o descargas.
-  snapshot_date <- "2026-08-04"
   contrib <- sprintf(
     "https://packagemanager.posit.co/cran/%s/bin/windows/contrib/%s",
-    snapshot_date,
+    read_snapshot_date(),
     r_minor
   )
 }

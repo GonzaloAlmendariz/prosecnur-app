@@ -310,6 +310,32 @@ test('macOS poda extras y deja exactamente binarios verificados más manifest', 
   assert.equal(md5(fs.readFileSync(path.join(state.cache, state.binaryName))), state.binaryHash)
 })
 
+test('la fecha del snapshot de binarios es una fuente única ISO que ambos descargadores leen', () => {
+  // ADR 0059: un solo calendario de binarios R. La fecha vive en un único
+  // archivo compartido; ninguno de los dos descargadores lleva fecha inline ni
+  // lee el índice vivo de cloud.r-project.org, cuya deriva intra-run rompió
+  // v0.7.0 dos veces.
+  const datePath = path.join(REPO_ROOT, 'packaging/r-snapshot-date.txt')
+  assert.ok(fs.existsSync(datePath), 'falta packaging/r-snapshot-date.txt')
+  const snapshotDate = fs.readFileSync(datePath, 'utf8').trim()
+  assert.match(snapshotDate, /^\d{4}-\d{2}-\d{2}$/)
+  const parsed = new Date(`${snapshotDate}T00:00:00Z`)
+  assert.ok(!Number.isNaN(parsed.getTime()), `fecha inválida: ${snapshotDate}`)
+  // Rechaza fechas con forma ISO pero imposibles (p. ej. 2026-02-31).
+  assert.equal(parsed.toISOString().slice(0, 10), snapshotDate)
+
+  for (const script of [
+    'packaging/windows/download-r-win-binaries.R',
+    'packaging/macos/download-r-mac-binaries.R'
+  ]) {
+    const text = fs.readFileSync(path.join(REPO_ROOT, script), 'utf8')
+    assert.match(text, /r-snapshot-date\.txt/, `${script} no lee la fuente única`)
+    assert.match(text, /packagemanager\.posit\.co/, `${script} no usa el snapshot de Posit`)
+    assert.doesNotMatch(text, /cloud\.r-project\.org/, `${script} sigue leyendo el índice vivo`)
+    assert.doesNotMatch(text, /\d{4}-\d{2}-\d{2}/, `${script} conserva una fecha inline`)
+  }
+})
+
 test('workflows y stage macOS no permiten caché por prefijo ni copias opcionales del runtime R', () => {
   const quality = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/quality.yml'), 'utf8')
   const release = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/release.yml'), 'utf8')

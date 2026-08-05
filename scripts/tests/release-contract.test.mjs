@@ -364,11 +364,27 @@ test('precheck reusa Quality del mismo SHA sin abrir un canal sin gate', () => {
   const jobOf = (name) =>
     workflow.match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [a-z-]+:\\n)`, 'm'))?.[1] ?? ''
 
-  // El reuso se hace por SHA exacto: el arbol, incluida la definicion de
-  // quality.yml, queda fijado por el commit, asi que un verde de ese SHA no
-  // puede diferir del run que se omite. Reusar por branch o por tag no valdria.
-  assert.match(jobOf('precheck'), /head_sha=\$\{\{ github\.sha \}\}/)
-  assert.match(jobOf('precheck'), /conclusion=="success"/)
+  // El reuso base se hace por SHA exacto y, desde el ADR 0059, la logica vive
+  // en un script testeable que ademas camina la ancestria por primer padre
+  // para diffs puros de packaging. El workflow lo llama con el SHA del build y
+  // un checkout con historia suficiente para la profundidad maxima de 5.
+  const lineage = fs.readFileSync(
+    new URL('../release-precheck-lineage.mjs', import.meta.url),
+    'utf8'
+  )
+  assert.match(jobOf('precheck'), /node scripts\/release-precheck-lineage\.mjs "\$\{\{ github\.sha \}\}"/)
+  assert.match(jobOf('precheck'), /fetch-depth: 64/)
+  // La consulta sigue siendo por head_sha exacto y conclusion success: reusar
+  // por branch o por tag no valdria, porque no fijan el arbol.
+  assert.match(lineage, /head_sha=\$\{sha\}/)
+  assert.match(lineage, /conclusion=="success"/)
+  // La lista blanca es CERRADA (api/renv.lock + packaging/**) y cualquier ruta
+  // .github/ corta la caminata: la definicion del gate solo se valida
+  // corriendolo. Ampliar la lista exige revisar el ADR 0059.
+  assert.match(lineage, /ALLOWED_EXACT = new Set\(\['api\/renv\.lock'\]\)/)
+  assert.match(lineage, /ALLOWED_PREFIXES = \['packaging\/'\]/)
+  assert.match(lineage, /startsWith\('\.github\/'\)/)
+  assert.match(lineage, /LINEAGE_MAX_DEPTH = 5/)
   assert.match(jobOf('quality'), /if: needs\.precheck\.outputs\.skip_gate != 'true'/)
 
   // Los dos builds SIGUEN detras del gate. Desengancharlos para ganar

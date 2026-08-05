@@ -478,7 +478,25 @@
   # no hay señal, se cae a la sintética SOLO por clave exacta (.cm_criterios_col_exacta,
   # NO fuzzy): con fuzzy, "teacher" (nombre del docente, ya enriquecido) es
   # subcadena de "teacher_type" y secuestraría el rol.
-  col <- .cm_aulas_col(raw, mapping$teacher_type)
+  #
+  # G44 · Y la resolución sobre la base es EXACTA, no fuzzy.
+  #
+  # El comentario de arriba anticipaba el riesgo y el fuzzy seguía aquí: con
+  # `.cm_aulas_col`, la columna sintética `teacher` —que el enriquecimiento
+  # acababa de rellenar con el NOMBRE del docente— casaba con el candidato
+  # "teacher_type" por parecido y el rol se daba por resuelto. Al creer que la
+  # base ya traía señal, el rellenado desde el catálogo se saltaba la columna
+  # buena («Tipo de docente») y el marco publicaba nombres propios como si
+  # fueran categorías.
+  #
+  # Medido en el proyecto de Gonzalo: 2.576 «tipos» con forma de
+  # «FERNANDEZ SANTA MARIA, XAVIER» contra las 5 categorías reales del archivo,
+  # y el criterio recortando el marco por docente concreto.
+  #
+  # La guarda de abajo no alcanzaba porque su `ocupadas` mira el mapeo de
+  # `teacher`, y en ese proyecto apunta a la columna de códigos («Docente»), que
+  # ni siquiera vive en la base madre: la sintética quedaba libre de sospecha.
+  col <- .cm_criterios_col_exacta(raw, mapping$teacher_type)
   if (!nzchar(col)) col <- .cm_criterios_col_exacta(raw, "teacher_type")
   if (!nzchar(col)) return("")
   # Match exacto por clave con un candidato propio: la columna sí es de tipo
@@ -486,8 +504,14 @@
   # haya reclamado en bases sin columna de nombre de docente.
   claves_propias <- .cm_aulas_text_key(.cm_aulas_chr_vec(mapping$teacher_type))
   if (.cm_aulas_text_key(col) %in% claves_propias) return(col)
-  ocupadas <- c(.cm_aulas_col(raw, mapping$teacher), .cm_aulas_col(raw, mapping$condition))
-  if (col %in% ocupadas[nzchar(ocupadas)]) return("")
+  # Las columnas sintéticas del enriquecimiento se nombran por su ROL, así que
+  # `teacher` y `teacher_email` son suyas aunque el mapeo apunte a otra parte.
+  ocupadas <- c(
+    .cm_aulas_col(raw, mapping$teacher), .cm_aulas_col(raw, mapping$condition),
+    "teacher", "teacher_email"
+  )
+  ocupadas <- .cm_aulas_text_key(ocupadas[nzchar(ocupadas)])
+  if (.cm_aulas_text_key(col) %in% ocupadas) return("")
   col
 }
 

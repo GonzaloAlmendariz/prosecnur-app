@@ -716,6 +716,58 @@
   )
 }
 
+# ADR 0060 · el embudo no sólo agregado: el dimensionamiento reparte aulas por
+# facultad, así que necesita saber DÓNDE se perdió la gente en cada una. Una
+# facultad con mucha ausencia y otra con mucho traslape piden decisiones
+# distintas aunque su rendimiento final coincida.
+.cm_asist_embudo_por <- function(model, columna, etiqueta, orden) {
+  if (!(columna %in% names(model))) return(NULL)
+  needed <- c("elegibles", "ya_medidas", "no_elegibles")
+  if (!all(needed %in% names(model))) return(NULL)
+  cero <- function(x) ifelse(is.finite(x), x, 0)
+  claves <- trimws(as.character(model[[columna]]))
+  claves[!nzchar(claves) | is.na(claves)] <- "Sin dato"
+  filas <- lapply(sort(unique(claves)), function(clave) {
+    sel <- claves == clave
+    elegibles <- .cm_asist_strict_sum(model$elegibles[sel])
+    asistentes <- .cm_asist_strict_sum(model$asistentes[sel])
+    ya <- .cm_asist_strict_sum(cero(model$ya_medidas)[sel])
+    noel <- .cm_asist_strict_sum(cero(model$no_elegibles)[sel])
+    efectivas <- .cm_asist_strict_sum(model$validas[sel])
+    no_efectivas <- if ("no_efectivas" %in% names(model)) {
+      .cm_asist_strict_sum(cero(model$no_efectivas)[sel])
+    } else {
+      NA_real_
+    }
+    presentes <- if (is.finite(asistentes)) asistentes - cero(ya) - cero(noel) else NA_real_
+    list(
+      celda_key = .cm_criterios_fac_key(clave),
+      celda_label = clave,
+      k = as.integer(sum(sel)),
+      elegibles = elegibles,
+      asistentes = asistentes,
+      ya_medidas = ya,
+      no_elegibles = noel,
+      elegibles_presentes = presentes,
+      efectivas = efectivas,
+      no_efectivas = no_efectivas,
+      # Las tres pérdidas expresadas sobre el universo de la celda, que es lo
+      # que permite comparar facultades de tamaños muy distintos.
+      pct_ausencia = .cm_asist_ratio(elegibles - asistentes, elegibles),
+      pct_ya_medidas = .cm_asist_ratio(ya, asistentes),
+      pct_rechazo = .cm_asist_ratio(no_efectivas, presentes),
+      efectividad = .cm_asist_ratio(efectivas, presentes),
+      rendimiento = .cm_asist_ratio(efectivas, elegibles)
+    )
+  })
+  list(
+    dimension_key = columna,
+    dimension_label = etiqueta,
+    orden = as.integer(orden),
+    filas = filas
+  )
+}
+
 calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
                                                 bootstrap_n = 2000L,
                                                 diseno = list(),
@@ -934,6 +986,13 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       columnas_glosario = as.list(glosario_columnas)
     ),
     encuentros = encuentros,
+    # El mismo embudo, abierto por las dimensiones que el operativo puede
+    # accionar. Vacío cuando la base no trae el glosario del encuentro.
+    embudos = Filter(Negate(is.null), list(
+      .cm_asist_embudo_por(model, "facultad", "Facultad", 1L),
+      .cm_asist_embudo_por(model, "rango_horario", "Rango horario", 2L),
+      .cm_asist_embudo_por(model, "tipo_sesion", "Tipo de sesion", 3L)
+    )),
     identidad = list(
       regla = if (tiene_glosario) {
         "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
