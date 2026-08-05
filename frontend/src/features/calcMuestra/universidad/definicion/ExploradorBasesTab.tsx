@@ -93,8 +93,23 @@ function Histograma({ dist }: { dist: DistribucionNumerica }) {
 export function ExploradorBasesTab({
   aulasState,
   workspace,
+  onReconstruir,
+  puedeReconstruir = false,
+  reconstruyendo = false,
 }: {
   aulasState: CalcMuestraAulasState | null;
+  /**
+   * G48 · La misma acción que reconstruye el marco desde Marco.
+   *
+   * Gonzalo: «lo único que no me cierra es que dentro del explorador
+   * estudiantes está en cero y sale que la población no viaja con el proyecto
+   * guardado». El aviso decía la verdad —`project_pulso.R` borra
+   * `frame$population` al guardar, a propósito— pero dejaba al usuario en un
+   * callejón: entendía por qué está vacío y no tenía desde dónde arreglarlo.
+   */
+  onReconstruir?: () => void;
+  puedeReconstruir?: boolean;
+  reconstruyendo?: boolean;
   /** G43 · Trae el mapeo rol → columna para llamar a cada variable como se llama
    *  en el archivo del usuario, no como la nombra el motor. */
   workspace?: CalcMuestraWorkspace | null;
@@ -114,6 +129,7 @@ export function ExploradorBasesTab({
     );
   }, [aulasState?.frame, base]);
   const facultades = useMemo(() => facultadesDe(filasBase), [filasBase]);
+  const marcoConstruido = Boolean(aulasState?.frame);
   /*
    * G46 · Lo que se describe es el subconjunto de la facultad abierta.
    *
@@ -222,7 +238,6 @@ export function ExploradorBasesTab({
     [filas, activa],
   );
 
-  const marcoConstruido = Boolean(aulasState?.frame);
   const disponibles = {
     aulas: rowsFrom(aulasState?.frame?.aula_frame).length,
     estudiantes: rowsFrom(aulasState?.frame?.population).length,
@@ -266,7 +281,14 @@ export function ExploradorBasesTab({
               }}
             >
               {opcion.label}
-              <em>{fmtInt(opcion.n)}</em>
+              {/* G48 · «0» a secas se lee como «no hay estudiantes». Lo que pasa
+                  es que la población no viaja en el `.pulso`, y decirlo aquí
+                  evita el susto antes de entrar. */}
+              <em>
+                {opcion.id === "estudiantes" && opcion.n === 0 && marcoConstruido
+                  ? "sin cargar"
+                  : fmtInt(opcion.n)}
+              </em>
             </button>
           ))}
         </div>
@@ -319,8 +341,18 @@ export function ExploradorBasesTab({
                 ? "La población no viaja en el proyecto guardado"
                 : "El marco todavía no publica la población de estudiantes"}
             hint={base === "estudiantes" && marcoConstruido
-              ? "Son decenas de miles de filas que se reconstruyen: recalcula el marco en esta sesión y vuelve aquí. Los cursos-horario sí viajan y puedes explorarlos ahora."
+              ? "El proyecto guarda el marco de cursos-horario pero no la población: son decenas de miles de filas que se reconstruyen desde tus fuentes. Recalcula una vez en esta sesión y aparece."
               : "Construye el marco desde tus fuentes (sección Marco) y vuelve aquí."}
+            cta={onReconstruir ? (
+              <button
+                type="button"
+                className="cmv2-expb-reconstruir"
+                disabled={!puedeReconstruir || reconstruyendo}
+                onClick={onReconstruir}
+              >
+                {reconstruyendo ? "Calculando…" : "Calcular población y cursos-horario elegibles"}
+              </button>
+            ) : undefined}
           />
         </div>
       ) : (

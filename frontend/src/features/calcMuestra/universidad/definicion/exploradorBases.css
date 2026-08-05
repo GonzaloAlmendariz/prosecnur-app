@@ -605,6 +605,25 @@
   opacity: .45;
 }
 
+/* G48 · El botón de la salida: mismo peso que una acción primaria del módulo,
+   porque lo es —reconstruye el marco—, pero dentro del vacío que lo pide. */
+.cmv2-expb-reconstruir {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--cmv2-accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  cursor: pointer;
+  transition: filter var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-reconstruir:hover:not(:disabled) { filter: brightness(1.06); }
+.cmv2-expb-reconstruir:disabled { opacity: .45; cursor: not-allowed; }
+
 /* --- vacío ---------------------------------------------------------------- */
 
 /* C3 · El vacío se queda dentro de la superficie y conserva su alto: sin esto

@@ -421,7 +421,13 @@ export function UniversidadDesk({
               <DefConsistenciaTab workspace={syncedWorkspace} aulasState={aulasState} />
             </div>}
             {showLocalTab("def-explorador") && <div id="cmv2-local-def-explorador" className="cmv2-definition-stack">
-              <ExploradorBasesTab aulasState={aulasState} workspace={syncedWorkspace} />
+              <ExploradorBasesTab
+                aulasState={aulasState}
+                workspace={syncedWorkspace}
+                onReconstruir={() => void onSourceBuild(syncedWorkspace)}
+                puedeReconstruir={puedeReconstruirMarco && !busy}
+                reconstruyendo={Boolean(busy)}
+              />
             </div>}
             {showLocalTab("def-historico") && <div id="cmv2-local-def-historico" className="cmv2-definition-stack">
               {/* G44: Histórico sólo lee. La base se sube en Fuentes. */}
