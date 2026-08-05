@@ -51,7 +51,7 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     },
     cobertura: {
       agendados: 194, aplicados: 192, observados: 190,
-      glosario_completo: false, columnas_glosario: [],
+      glosario_completo: false, columnas_glosario: [], columnas_criterio: [],
     },
     diseno: DISENO_VACIO,
     filtros_corte: [],

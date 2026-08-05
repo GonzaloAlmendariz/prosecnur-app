@@ -100,6 +100,8 @@ export function ExploradorBasesTab({
   const [base, setBase] = useState<BaseExplorable>("aulas");
   const [busqueda, setBusqueda] = useState("");
   const [variable, setVariable] = useState<string>("");
+  /** G45 · La cola de categorías se abre bajo demanda, no de entrada. */
+  const [colaAbierta, setColaAbierta] = useState(false);
 
   const filas = useMemo<MonitoreoRow[]>(() => {
     const frame = aulasState?.frame;
@@ -230,7 +232,7 @@ export function ExploradorBasesTab({
               type="button"
               aria-pressed={base === opcion.id}
               data-activo={base === opcion.id || undefined}
-              onClick={() => { setBase(opcion.id); setVariable(""); }}
+              onClick={() => { setBase(opcion.id); setVariable(""); setColaAbierta(false); }}
             >
               {opcion.label}
               <em>{fmtInt(opcion.n)}</em>
@@ -300,7 +302,7 @@ export function ExploradorBasesTab({
                           <button
                             type="button"
                             data-activa={activa?.columna === row.columna || undefined}
-                            onClick={() => setVariable(row.columna)}
+                            onClick={() => { setVariable(row.columna); setColaAbierta(false); }}
                             title={`${nombreDe(row.columna).titulo} · columna ${row.columna} · ${fmtPct(share)} con dato`}
                           >
                             <span className="cmv2-expb-var">{nombreDe(row.columna).titulo}</span>
@@ -425,12 +427,23 @@ export function ExploradorBasesTab({
                     ))}
                     {/* La cola entra como una fila más, apagada: fuera de la
                         lista se leía como un pie de página y no como parte del
-                        mismo reparto, que es lo que suma el total. */}
+                        mismo reparto, que es lo que suma el total.
+
+                        G45 · Y se puede abrir. Un «otras N categorías» cerrado
+                        esconde justo lo que uno va a comprobar cuando algo no
+                        cuadra; al desplegarse va como lista —sin barras— porque
+                        a esa escala la barra ya no compara nada. */}
                     {distribucion.otras ? (
                       <li data-resto="true" data-qa-geometry-member data-qa-geometry-capacity="owned">
-                        <span className="cmv2-expb-cat-label">
-                          Otras {fmtInt(distribucion.otras.categorias)} categorías
-                        </span>
+                        <button
+                          type="button"
+                          className="cmv2-expb-cat-label cmv2-expb-cola-toggle"
+                          aria-expanded={colaAbierta}
+                          onClick={() => setColaAbierta((abierta) => !abierta)}
+                        >
+                          {colaAbierta ? "Ocultar" : "Ver"} las otras{" "}
+                          {fmtInt(distribucion.otras.categorias)} categorías
+                        </button>
                         <span className="cmv2-expb-cat-bar" aria-hidden="true">
                           <i
                             style={{
@@ -446,6 +459,25 @@ export function ExploradorBasesTab({
                     ) : null}
                   </ul>
                 )}
+                {distribucion.tipo === "categorica" && distribucion.otras && colaAbierta ? (
+                  <div className="cmv2-expb-cola">
+                    <ul>
+                      {distribucion.otras.filas.map((categoria) => (
+                        <li key={categoria.clave}>
+                          <span title={categoria.clave}>{categoria.clave}</span>
+                          <em>{fmtInt(categoria.n)}</em>
+                          <b>{fmtPct(categoria.share)}</b>
+                        </li>
+                      ))}
+                    </ul>
+                    {distribucion.otras.truncadas > 0 ? (
+                      <p role="note">
+                        Y {fmtInt(distribucion.otras.truncadas)} categorías más, cada una por debajo
+                        de las listadas.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </article>
             )}
           </div>

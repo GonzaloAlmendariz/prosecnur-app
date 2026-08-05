@@ -135,22 +135,44 @@
 /* ── Embudo: el ancho es el dato ─────────────────────────────────────────── */
 
 .cmv2-hist-embudo {
-  display: grid;
-  grid-template-columns: minmax(120px, auto) minmax(0, 1fr) 44px;
-  gap: 3px var(--cmv2-space-3);
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.cmv2-hist-paso { display: contents; }
+/* Cada peldaño es su propia rejilla. Con `display: contents` sobre una rejilla
+   compartida, la leyenda de la merma —que ocupa una columna concreta— rompía el
+   auto-placement y empujaba el peldaño siguiente a la columna equivocada. */
+.cmv2-hist-paso {
+  display: grid;
+  /* Ancho FIJO en la primera columna, no `auto`: cada peldaño es su propia
+     rejilla, así que un `auto` haría que cada etiqueta midiera distinto y las
+     barras arrancaran en puntos diferentes. Con el ancho fijo, todas las barras
+     comparten origen y la caída se puede comparar de un vistazo. */
+  grid-template-columns: 190px 56px minmax(0, 1fr) 44px;
+  grid-template-areas:
+    "label cifra track pct"
+    ".     .     nota  .";
+  gap: 2px var(--cmv2-space-3);
+  align-items: center;
+}
+
+.cmv2-hist-paso-label { grid-area: label; }
+.cmv2-hist-paso-cifra { grid-area: cifra; }
+.cmv2-hist-paso-track { grid-area: track; }
+.cmv2-hist-paso-pct { grid-area: pct; }
+.cmv2-hist-paso-nota { grid-area: nota; }
 
 .cmv2-hist-paso-label {
+  overflow: hidden;
   font-size: var(--pulso-font-xs);
   font-weight: 500;
-  color: var(--pulso-text-strong);
+  text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--pulso-text-strong);
 }
 
 .cmv2-hist-paso-track {
@@ -160,23 +182,20 @@
   min-width: 0;
 }
 
+.cmv2-hist-paso-cifra {
+  font-size: var(--pulso-font-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text-strong);
+}
+
 .cmv2-hist-paso-fill {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 8px;
   border-radius: 4px 0 0 4px;
   background: linear-gradient(90deg,
     color-mix(in srgb, var(--cmv2-accent) 55%, transparent),
     color-mix(in srgb, var(--cmv2-accent) 82%, transparent));
   transition: width 320ms var(--cmv2-ease-out, ease);
-}
-
-.cmv2-hist-paso-fill b {
-  font-size: var(--pulso-font-xs);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: #fff;
 }
 
 .cmv2-hist-paso[data-tono="meta"] .cmv2-hist-paso-fill {
@@ -188,9 +207,6 @@
 /* Pérdida y descuento se distinguen: la primera es un fracaso del operativo, la
    segunda gente que ya cumplió o que nunca perteneció al estudio. */
 .cmv2-hist-paso-merma {
-  display: flex;
-  align-items: center;
-  padding-left: 6px;
   border-radius: 0 4px 4px 0;
   overflow: hidden;
   background: repeating-linear-gradient(-45deg,
@@ -210,13 +226,16 @@
   color: var(--pulso-text-muted);
 }
 
-/* La leyenda arranca donde arranca el tramo rayado (margin-left inline), para
-   que se lea pegada a lo que describe y no al inicio de la fila. */
+/* La leyenda termina donde termina el tramo rayado que describe. Anclarla por
+   la derecha —y no por el inicio del rayado— deja todo el ancho de la fila para
+   el texto, así que no se apila en una columna de dos palabras. */
 .cmv2-hist-paso-nota {
-  grid-column: 2 / 3;
-  margin-bottom: 8px;
+  box-sizing: border-box;
+  min-width: 0;
+  margin-bottom: 10px;
   font-size: 11px;
-  line-height: 1.3;
+  line-height: 1.35;
+  text-align: right;
   color: var(--pulso-text-muted);
 }
 
@@ -478,7 +497,7 @@
 
 @media (max-width: 900px) {
   .cmv2-hist-hero { grid-template-columns: 1fr; }
-  .cmv2-hist-embudo { grid-template-columns: minmax(96px, auto) minmax(0, 1fr) 40px; }
+  .cmv2-hist-paso { grid-template-columns: 128px 48px minmax(0, 1fr) 40px; }
   .cmv2-hist-perfil { grid-template-columns: minmax(96px, 1fr) 24px minmax(0, 1.8fr) 46px; }
 }
 
@@ -578,4 +597,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cmv2-hist-apilado-track span { transition: none; }
+}
+
+.cmv2-hist-criterio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+  padding-top: var(--cmv2-space-2);
+  border-top: 1px solid var(--cmv2-border);
 }
