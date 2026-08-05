@@ -14,8 +14,6 @@
  * Entonces esta pestaña no carga nada: **lee**. Muestra el estudio previo como
  * lo que es —un diseño que se decidió y un campo que ocurrió— para que quien
  * dimensiona el estudio nuevo sepa de dónde sale cada tasa que va a heredar.
- * El detalle por celda (tamaño, rango horario, facultad, tipo de sesión) sigue
- * en `ReferenciaAsistenciaCard`, debajo de la lectura del estudio.
  *
  * No entra al marco vigente ni cambia el número de cursos-horario a
  * seleccionar; sólo transfiere tasas agregadas de un estudio anterior.
@@ -26,7 +24,6 @@ import type {
 } from "../../../../api/client";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { HistoricoEstudioPanel } from "./HistoricoEstudioPanel";
-import { ReferenciaAsistenciaCard } from "./ReferenciaAsistenciaCard";
 
 export function DefHistoricoTab({
   aulasState,
@@ -46,7 +43,6 @@ export function DefHistoricoTab({
       aria-label="Base histórica de referencia"
     >
       {referencia ? <HistoricoEstudioPanel referencia={referencia} /> : null}
-      <ReferenciaAsistenciaCard referencia={referencia} />
       {!referencia ? (
         // C3: sin base cargada la pestaña dice dónde se carga, en vez de
         // ofrecer un segundo uploader que compita con Fuentes.

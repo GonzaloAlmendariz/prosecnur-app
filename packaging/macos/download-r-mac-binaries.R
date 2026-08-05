@@ -16,11 +16,31 @@ if (!nzchar(out_arg) || !nzchar(r_version) || !arch %in% c("arm64", "x86_64")) {
 dir.create(out_arg, recursive = TRUE, showWarnings = FALSE)
 out_dir <- normalizePath(out_arg, mustWork = TRUE)
 
-repo <- "https://cloud.r-project.org"
 r_minor <- sub("^(\\d+\\.\\d+).*$", "\\1", r_version)
-# Layout de CRAN para macOS (R 4.x):
-#   bin/macosx/big-sur-arm64/contrib/<r-minor>/   (Apple Silicon)
-#   bin/macosx/big-sur-x86_64/contrib/<r-minor>/  (Intel)
+
+# La fecha del snapshot vive en packaging/r-snapshot-date.txt, fuente única
+# compartida con el descargador de Windows (ADR 0059): las dos plataformas leen
+# el mismo calendario y lock + fecha avanzan juntos en el mismo commit.
+read_snapshot_date <- function() {
+  snapshot_path <- file.path(getwd(), "packaging", "r-snapshot-date.txt")
+  if (!file.exists(snapshot_path)) {
+    stop(
+      "Ejecuta este script desde la raíz del repo; no encontré packaging/r-snapshot-date.txt.",
+      call. = FALSE
+    )
+  }
+  lines <- readLines(snapshot_path, warn = FALSE, encoding = "UTF-8")
+  snapshot_date <- if (length(lines)) trimws(lines[[1]]) else ""
+  if (!grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", snapshot_date) ||
+      is.na(as.Date(snapshot_date, format = "%Y-%m-%d"))) {
+    stop(
+      "packaging/r-snapshot-date.txt debe contener una fecha ISO (AAAA-MM-DD) real.",
+      call. = FALSE
+    )
+  }
+  snapshot_date
+}
+
 test_repository <- Sys.getenv("PROSECNUR_BINARY_TEST_REPOSITORY")
 if (nzchar(test_repository)) {
   if (!identical(Sys.getenv("PROSECNUR_BINARY_TEST_MODE"), "1")) {
@@ -28,7 +48,18 @@ if (nzchar(test_repository)) {
   }
   contrib <- sub("/+$", "", test_repository)
 } else {
-  contrib <- sprintf("%s/bin/macosx/big-sur-%s/contrib/%s", repo, arch, r_minor)
+  # El índice vivo de CRAN macOS caduca sin que ningún commit cambie (deriva
+  # intra-run documentada en el ADR 0059). El snapshot fechado de Posit sirve
+  # el mismo layout binario por arquitectura y además publica un Hash MD5
+  # autoritativo por archivo:
+  #   bin/macosx/big-sur-arm64/contrib/<r-minor>/   (Apple Silicon)
+  #   bin/macosx/big-sur-x86_64/contrib/<r-minor>/  (Intel)
+  contrib <- sprintf(
+    "https://packagemanager.posit.co/cran/%s/bin/macosx/big-sur-%s/contrib/%s",
+    read_snapshot_date(),
+    arch,
+    r_minor
+  )
 }
 
 lock_path <- file.path(getwd(), "api", "renv.lock")
@@ -100,7 +131,7 @@ if (length(invalid)) {
 }
 
 cat("[Prosecnur] Leyendo indice CRAN macOS (", arch, "): ", contrib, "\n", sep = "")
-db <- available.packages(contriburl = contrib)
+db <- available.packages(contriburl = contrib, fields = c("Hash", "MD5sum"))
 missing <- setdiff(packages, rownames(db))
 mismatched <- intersect(packages, rownames(db))
 mismatched <- mismatched[vapply(
@@ -196,6 +227,26 @@ prune_cache <- function(directory, expected_names) {
   }
 }
 
+# El índice del snapshot publica el MD5 del binario en `Hash`; los espejos
+# CRAN clásicos usaban `MD5sum`. Se acepta cualquiera de los dos campos con
+# forma de MD5 y se falla cerrado si ninguno existe: sin checksum autoritativo
+# no se acepta ni caché ni descarga.
+expected_binary_md5 <- function(package) {
+  for (field in c("MD5sum", "Hash")) {
+    if (!field %in% colnames(db)) next
+    candidate <- as.character(db[package, field])
+    if (!is.na(candidate) && grepl("^[0-9A-Fa-f]{32}$", candidate)) {
+      return(tolower(candidate))
+    }
+  }
+  stop(
+    "El índice macOS no publica un checksum MD5 autoritativo para ",
+    package,
+    ".",
+    call. = FALSE
+  )
+}
+
 claim_cache(out_dir)
 prune_cache(out_dir, expected_files)
 cat("[Prosecnur] Paquetes mac (", arch, ") a descargar: ", length(packages), "\n", sep = "")
@@ -204,10 +255,7 @@ for (pkg in packages) {
   version <- lock$packages[[pkg]]$version
   file <- sprintf("%s_%s.tgz", pkg, version)
   dest <- file.path(out_dir, file)
-  expected_md5 <- if ("MD5sum" %in% colnames(db)) tolower(as.character(db[pkg, "MD5sum"])) else NA_character_
-  if (is.na(expected_md5) || !grepl("^[0-9a-f]{32}$", expected_md5)) {
-    stop("El índice macOS no publica un checksum MD5 autoritativo para ", pkg, ".", call. = FALSE)
-  }
+  expected_md5 <- expected_binary_md5(pkg)
   if (dir.exists(dest)) unlink(dest, recursive = TRUE, force = TRUE)
   if (file.exists(dest) && file.info(dest)$size > 0) {
     actual_md5 <- unname(tools::md5sum(dest))

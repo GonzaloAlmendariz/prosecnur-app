@@ -64,6 +64,14 @@ jobs:
   # job existia antes de 32aa1ec5 y su retiro llevo el release de ~9 a ~31+ min,
   # porque el flujo normal (pushear main, esperar Quality verde, taggear ese
   # mismo commit) paga el gate dos veces.
+  #
+  # Sin verde del SHA exacto, el ADR 0059 permite caminar la ancestria por
+  # primer padre (maximo 5) mientras el diff acumulado toque solo la lista
+  # blanca cerrada de packaging (api/renv.lock y packaging/**): el arbol de
+  # producto es identico por construccion al del ancestro ya verificado.
+  # Cualquier otro archivo —incluida cualquier ruta .github/— corta la caminata
+  # y el gate corre completo. La logica vive en un script testeable y todo
+  # reuso imprime el SHA verde reusado y los archivos del diff.
   precheck:
     name: ¿Quality ya pasó para este SHA?
     needs: contract
@@ -71,20 +79,23 @@ jobs:
     outputs:
       skip_gate: ${{ steps.check.outputs.skip_gate }}
     steps:
-      - name: Buscar Quality exitoso del mismo commit
+      # La caminata necesita historia local: 64 commits de primer padre cubren
+      # con holgura la profundidad maxima de 5 del ADR 0059.
+      - name: Checkout with lineage history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 64
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Buscar Quality verde del mismo SHA o de un ancestro de packaging
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          ok=$(gh api "repos/${{ github.repository }}/actions/workflows/quality.yml/runs?head_sha=${{ github.sha }}&status=completed&per_page=20" \
-            --jq '[.workflow_runs[] | select(.conclusion=="success")] | length' 2>/dev/null || echo 0)
-          if [ "${ok:-0}" -gt 0 ]; then
-            echo "skip_gate=true" >> "$GITHUB_OUTPUT"
-            echo "[precheck] Quality ya pasó para ${{ github.sha }}; se reusa ese verde."
-          else
-            echo "skip_gate=false" >> "$GITHUB_OUTPUT"
-            echo "[precheck] Sin Quality exitoso previo para este SHA; el gate corre completo."
-          fi
+        run: node scripts/release-precheck-lineage.mjs "${{ github.sha }}"
 
   quality:
     name: Quality gate

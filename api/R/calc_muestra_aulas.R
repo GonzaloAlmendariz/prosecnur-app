@@ -192,6 +192,18 @@
   }, logical(1))
 }
 
+# G44 · Columna del mapeo o, si no resuelve, la sintética del enriquecimiento.
+#
+# El enriquecimiento desde el catálogo crea columnas nombradas por su rol
+# (`teacher`, `teacher_email`). Un mapeo manual a una columna que vive sólo en
+# el catálogo deja al resolver sin nada que devolver, y el dato enriquecido
+# —que sí está— se queda sin publicar.
+.cm_aulas_col_o_sintetica <- function(df, candidates, rol) {
+  col <- .cm_aulas_col(df, candidates)
+  if (nzchar(col)) return(col)
+  .cm_criterios_col_exacta(df, rol)
+}
+
 .cm_aulas_config_mapping <- function(mapping = list()) {
   if (is.null(mapping) || !is.list(mapping)) mapping <- list()
   defaults <- list(
@@ -1041,8 +1053,18 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   classroom_label <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$classroom_label), "")
   modality <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$modality), "")
   session_type <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$session_type), "")
-  teacher <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$teacher), "")
-  teacher_email <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$teacher_email), "")
+  # G44 · El docente enriquecido vive en la columna sintética `teacher`.
+  #
+  # `.cm_aulas_enrich_with_catalog` escribe el nombre del docente en una columna
+  # nombrada por el ROL, no por la del archivo. Si el mapeo apunta a otra
+  # columna —en el proyecto de Gonzalo, a «Docente», que trae los códigos y sólo
+  # existe en el catálogo— el resolver no encontraba nada y el nombre se perdía,
+  # con el agravante de que sus valores sí llegaban al marco: cambiados de sitio,
+  # dentro de `teacher_type`.
+  teacher <- .cm_aulas_values(raw, .cm_aulas_col_o_sintetica(raw, mapping$teacher, "teacher"), "")
+  teacher_email <- .cm_aulas_values(
+    raw, .cm_aulas_col_o_sintetica(raw, mapping$teacher_email, "teacher_email"), ""
+  )
   faculty <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$faculty), "")
   program <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$program), "")
   level <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$level), "")

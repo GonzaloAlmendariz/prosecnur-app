@@ -2,7 +2,7 @@
 
 Estado: Aceptado
 
-Implementacion: Pendiente
+Implementacion: Completa
 
 Fecha: 2026-08-04
 
@@ -120,3 +120,19 @@ cuentan, y la definición del propio gate solo puede validarse corriéndolo.
   verde) sobre los tags `v0.7.0` (`e98a47d9` fallido, `737b22a6` publicado).
 - El DMG ausente de `v0.7.0` es el comportamiento best-effort del ADR 0056;
   puede reponerse con un build posterior bajo este ADR sin re-taggear.
+- Artefactos de la implementación: la fuente única de la fecha es
+  `packaging/r-snapshot-date.txt`, leída por
+  `packaging/windows/download-r-win-binaries.R` y
+  `packaging/macos/download-r-mac-binaries.R` (ambos contra
+  `packagemanager.posit.co`, con checksum MD5 autoritativo del índice —
+  `Hash`/`MD5sum` — y fail-closed si falta); el precheck por linaje vive en
+  `scripts/release-precheck-lineage.mjs`, invocado por el job `precheck` de
+  `release.yml` con checkout de historia, y sus fixtures deterministas en
+  `scripts/tests/release-precheck-lineage.test.mjs`; la fuente única y la
+  ausencia de fecha inline las afirma `scripts/tests/check-r-lock.test.mjs`.
+- Los instaladores del runtime base de R (`R-<ver>-win.exe`, `R-<ver>-<arch>.pkg`
+  en los build scripts) siguen viniendo de `cloud.r-project.org`: Posit no
+  sirve esos instaladores en el snapshot (404 verificado) y son archivos
+  inmutables anclados a versión exacta, no un índice que derive. El criterio
+  «`rg cloud.r-project.org packaging/` limpio» aplica a los descargadores de
+  binarios de paquetes, que eran los dos calendarios del incidente.

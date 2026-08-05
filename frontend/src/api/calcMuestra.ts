@@ -2396,6 +2396,36 @@ export type CalcMuestraReferenciaAsistenciaCelda = {
   fuente_publicada: CalcMuestraReferenciaAsistenciaFuentePublicada;
 };
 
+/**
+ * ADR 0060 · el embudo abierto por una dimensión accionable. Una facultad con
+ * mucha ausencia y otra con mucho traslape piden decisiones distintas aunque su
+ * rendimiento coincida, así que se transporta el desglose y no sólo la tasa.
+ */
+export type CalcMuestraReferenciaAsistenciaEmbudoFila = {
+  celda_key: string;
+  celda_label: string;
+  k: number;
+  elegibles: number | null;
+  asistentes: number | null;
+  ya_medidas: number | null;
+  no_elegibles: number | null;
+  elegibles_presentes: number | null;
+  efectivas: number | null;
+  no_efectivas: number | null;
+  pct_ausencia: number | null;
+  pct_ya_medidas: number | null;
+  pct_rechazo: number | null;
+  efectividad: number | null;
+  rendimiento: number | null;
+};
+
+export type CalcMuestraReferenciaAsistenciaEmbudo = {
+  dimension_key: string;
+  dimension_label: string;
+  orden: number;
+  filas: CalcMuestraReferenciaAsistenciaEmbudoFila[];
+};
+
 export type CalcMuestraReferenciaAsistenciaDimensionKey =
   | "tamano"
   | "rango_horario"
@@ -2429,6 +2459,8 @@ export type CalcMuestraReferenciaAsistencia = {
   filtros_corte: CalcMuestraReferenciaAsistenciaFiltro[];
   cobertura: CalcMuestraReferenciaAsistenciaCobertura;
   encuentros: CalcMuestraReferenciaAsistenciaEncuentros | null;
+  /** Vacío cuando la base no trae el glosario del encuentro. */
+  embudos: CalcMuestraReferenciaAsistenciaEmbudo[];
   identidad: CalcMuestraReferenciaAsistenciaIdentidad;
   umbrales: CalcMuestraReferenciaAsistenciaUmbrales;
   cadena: CalcMuestraReferenciaAsistenciaCadena;
@@ -3071,6 +3103,40 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       unidades_con_residual_negativo: negativos,
     };
   }
+  const embudos: CalcMuestraReferenciaAsistenciaEmbudo[] = [];
+  for (const rawDim of asList(root.embudos)) {
+    const dim = asRecord(rawDim);
+    if (!dim) return null;
+    const key = asText(dim.dimension_key);
+    const label = asText(dim.dimension_label);
+    const orden = asNonNegativeInteger(dim.orden);
+    if (!key || !label || orden === INVALID_NUMBER) return null;
+    const filas: CalcMuestraReferenciaAsistenciaEmbudoFila[] = [];
+    for (const rawFila of asList(dim.filas)) {
+      const f = asRecord(rawFila);
+      if (!f) return null;
+      const celdaKey = asText(f.celda_key);
+      const celdaLabel = asText(f.celda_label);
+      const k = asNonNegativeInteger(f.k);
+      if (!celdaKey || !celdaLabel || k === INVALID_NUMBER) return null;
+      const n = (value: unknown): number | null => {
+        const parsed = asFiniteOrNull(value);
+        return parsed === INVALID_NUMBER ? null : parsed;
+      };
+      filas.push({
+        celda_key: celdaKey, celda_label: celdaLabel, k,
+        elegibles: n(f.elegibles), asistentes: n(f.asistentes),
+        ya_medidas: n(f.ya_medidas), no_elegibles: n(f.no_elegibles),
+        elegibles_presentes: n(f.elegibles_presentes),
+        efectivas: n(f.efectivas), no_efectivas: n(f.no_efectivas),
+        pct_ausencia: n(f.pct_ausencia), pct_ya_medidas: n(f.pct_ya_medidas),
+        pct_rechazo: n(f.pct_rechazo), efectividad: n(f.efectividad),
+        rendimiento: n(f.rendimiento),
+      });
+    }
+    embudos.push({ dimension_key: key, dimension_label: label, orden, filas });
+  }
+
   // El bloque de encuentros existe exactamente cuando el glosario se leyó, y el
   // denominador declarado en la raíz tiene que decir lo mismo.
   if (glosarioCompleto !== (encuentros !== null)) return null;
@@ -3093,6 +3159,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     filtros_corte: filtros,
     cobertura,
     encuentros,
+    embudos,
     identidad,
     umbrales,
     cadena,
