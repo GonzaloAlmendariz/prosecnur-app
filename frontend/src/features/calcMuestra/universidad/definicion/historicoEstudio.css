@@ -167,11 +167,13 @@
 .cmv2-hist-paso-nota { grid-area: nota; }
 
 .cmv2-hist-paso-label {
-  overflow: hidden;
+  /* La etiqueta envuelve en vez de truncarse: la columna es fija para que las
+     barras compartan origen, y una etiqueta cortada («A quienes tocaba encu…»)
+     deja al peldaño sin decir qué grupo mide. */
   font-size: var(--pulso-font-xs);
   font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  text-wrap: pretty;
   color: var(--pulso-text-strong);
 }
 

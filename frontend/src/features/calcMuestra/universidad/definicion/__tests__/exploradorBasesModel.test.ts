@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { distribucionDe, inventarioVariables } from "../exploradorBasesModel";
+import { distribucionDe, facultadesDe, inventarioVariables } from "../exploradorBasesModel";
 import type { MonitoreoRow } from "../../../../../api/client";
 
 /**
@@ -104,5 +104,40 @@ describe("exploradorBasesModel · distribución", () => {
 
   it("sin filas no inventa distribución", () => {
     expect(distribucionDe([], "modalidad", "categorica")).toBeNull();
+  });
+});
+
+/**
+ * G46 · Gonzalo: «deberíamos tener un selector de facultad […] para identificar
+ * si condición tiene las típicas tres o cuatro categorías pero alguna otra
+ * facultad es la que agrega muchas otras».
+ *
+ * El total esconde exactamente eso: medido en su proyecto, «Condición» tiene 51
+ * valores en el marco entero y 9 dentro de CIENCIAS E INGENIERÍA. La cola no
+ * era ruido de la columna: era otra facultad escribiendo distinto.
+ */
+describe("facultadesDe", () => {
+  const filas = [
+    { faculty: "DERECHO", x: 1 },
+    { faculty: "CIENCIAS", x: 2 },
+    { faculty: "CIENCIAS", x: 3 },
+    { faculty: "", x: 4 },
+    { faculty: null, x: 5 },
+  ] as unknown as MonitoreoRow[];
+
+  it("lista las facultades por tamaño, no alfabéticamente", () => {
+    expect(facultadesDe(filas)).toEqual([
+      { clave: "CIENCIAS", n: 2 },
+      { clave: "DERECHO", n: 1 },
+    ]);
+  });
+
+  it("las filas sin facultad no inventan una categoría vacía", () => {
+    const total = facultadesDe(filas).reduce((acc, row) => acc + row.n, 0);
+    expect(total).toBe(3);
+  });
+
+  it("sin filas no hay facultades que ofrecer", () => {
+    expect(facultadesDe([])).toEqual([]);
   });
 });

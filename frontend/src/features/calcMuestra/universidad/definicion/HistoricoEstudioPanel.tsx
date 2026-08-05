@@ -141,12 +141,30 @@ function FilaPerfil({
  * estudiantes, así que compara proporciones y no tamaños: una facultad chica y
  * una grande se leen en la misma escala.
  */
-function EmbudoApilado({ filas }: { filas: CalcMuestraReferenciaAsistenciaEmbudoFila[] }) {
+function EmbudoApilado({
+  filas,
+  prefijo,
+}: {
+  filas: CalcMuestraReferenciaAsistenciaEmbudoFila[];
+  /** Nombre de la dimensión, para nombrar categorías que sólo son un número. */
+  prefijo?: string;
+}) {
+  // Un criterio como `nivel_curso` llega con valores «6», «9», «3»: la cifra
+  // sola no dice qué mide. Cuando toda la dimensión es numérica se antepone su
+  // nombre («Nivel del curso 6»); si ya trae texto, se respeta tal cual.
+  const soloNumeros =
+    Boolean(prefijo) && filas.length > 0 && filas.every((f) => /^\d+([.,]\d+)?$/.test(f.celda_label.trim()));
+  const nombrar = (label: string) => (soloNumeros ? `${prefijo} ${label}` : label);
+
   return (
     <ol className="cmv2-hist-apilado">
       {[...filas]
         .filter((f) => (f.elegibles ?? 0) > 0)
-        .sort((a, b) => (b.rendimiento ?? 0) - (a.rendimiento ?? 0))
+        .sort((a, b) =>
+          soloNumeros
+            ? Number(a.celda_label) - Number(b.celda_label)
+            : (b.rendimiento ?? 0) - (a.rendimiento ?? 0),
+        )
         .map((f) => {
           const base = f.elegibles ?? 0;
           const seg = (n: number | null) => (base > 0 ? ((n ?? 0) / base) * 100 : 0);
@@ -154,7 +172,7 @@ function EmbudoApilado({ filas }: { filas: CalcMuestraReferenciaAsistenciaEmbudo
           const fuera = base - (f.efectivas ?? 0) - (f.no_efectivas ?? 0) - descuento;
           return (
             <li key={f.celda_key}>
-              <span className="cmv2-hist-apilado-nombre" title={f.celda_label}>{f.celda_label}</span>
+              <span className="cmv2-hist-apilado-nombre" title={nombrar(f.celda_label)}>{nombrar(f.celda_label)}</span>
               <span className="cmv2-hist-apilado-k">{fmtInt(f.k)}</span>
               <span className="cmv2-hist-apilado-track">
                 <span data-tipo="efectiva" style={{ width: `${seg(f.efectivas)}%` }} title={`${fmtInt(f.efectivas ?? 0)} completaron`} />
@@ -436,7 +454,7 @@ export function HistoricoEstudioPanel({
           {embudosCriterio.map((e) => (
             <div className="cmv2-hist-criterio" key={e.dimension_key}>
               <span className="cmv2-eyebrow">{e.dimension_label}</span>
-              <EmbudoApilado filas={e.filas} />
+              <EmbudoApilado filas={e.filas} prefijo={e.dimension_label} />
             </div>
           ))}
         </div>
