@@ -2159,7 +2159,70 @@ export type CalcMuestraAulasState = {
 };
 
 export const CALC_MUESTRA_REFERENCIA_ASISTENCIA_SCHEMA =
-  "calc_muestra_referencia_asistencia_v1" as const;
+  "calc_muestra_referencia_asistencia_v2" as const;
+
+/**
+ * ADR 0060. Diseño del estudio previo. Sin saber sobre qué meta se trabajó, una
+ * tasa de campo es un número suelto: por eso el histórico transporta el diseño
+ * junto a las tasas. Todo campo ausente viaja como `null`, nunca como cero.
+ */
+export type CalcMuestraReferenciaAsistenciaDiseno = {
+  poblacion_objetivo: number | null;
+  nivel_confianza: number | null;
+  proporcion_esperada: number | null;
+  margen_error: number | null;
+  deff: number | null;
+  muestra: number | null;
+  ratio_sobremuestra: number | null;
+  sobremuestra: number | null;
+  aulas_marco: number | null;
+  aulas_dimensionadas: number | null;
+  aulas_aplicadas: number | null;
+  tasa_respuesta_asumida: number | null;
+  afijacion: string;
+  metodo_seleccion: string;
+  metodo_ajuste: string;
+  ponderado: boolean | null;
+  /** Falso cuando la base no documentó su diseño: la referencia sigue siendo válida. */
+  declarado: boolean;
+};
+
+/** ADR 0060. La clase es lo único cerrado; decide el efecto sobre el denominador. */
+export type CalcMuestraReferenciaAsistenciaFiltroClase =
+  | "rechazo"
+  | "abandono"
+  | "no_elegible"
+  | "ya_medido";
+
+export type CalcMuestraReferenciaAsistenciaFiltro = {
+  id: string;
+  etiqueta: string;
+  columna: string;
+  condicion: string;
+  clase: CalcMuestraReferenciaAsistenciaFiltroClase;
+  /** Un mismo fenómeno medido por campo y por formulario NO se suma dos veces. */
+  origen: "campo" | "formulario";
+  orden: number;
+  en_denominador: boolean;
+};
+
+/**
+ * ADR 0060. Taxonomía del encuentro. Es `null` cuando la base histórica no trae
+ * las columnas del glosario y el motor tuvo que degradar a la lectura heredada.
+ */
+export type CalcMuestraReferenciaAsistenciaEncuentros = {
+  elegibles: number | null;
+  asistentes: number | null;
+  ya_medidas: number | null;
+  no_elegibles: number | null;
+  elegibles_presentes: number | null;
+  efectivas: number | null;
+  no_efectivas: number | null;
+  /** Residual: `null` cuando ninguna unidad lo tiene publicable. */
+  no_realizadas: number | null;
+  unidades_publicables: number;
+  unidades_con_residual_negativo: number;
+};
 
 export type CalcMuestraReferenciaAsistenciaMetodoIc =
   | "bootstrap_percentil"
@@ -2187,13 +2250,23 @@ export type CalcMuestraReferenciaAsistenciaCobertura = {
   agendados: number;
   aplicados: number;
   observados: number;
+  /** ADR 0060: declara si se leyó con el glosario del encuentro o degradado. */
+  glosario_completo: boolean;
+  columnas_glosario: string[];
 };
 
+/** ADR 0060: la regla depende de si la base trae el glosario del encuentro. */
+export type CalcMuestraReferenciaAsistenciaIdentidadRegla =
+  | "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+  | "A = E + no_respondieron";
+
 export type CalcMuestraReferenciaAsistenciaIdentidad = {
-  regla: "A = E + no_respondieron";
+  regla: CalcMuestraReferenciaAsistenciaIdentidadRegla;
   verificada: boolean;
   verificables: number;
   inconsistentes: number;
+  /** Unidades donde el conteo de campo no cierra. `null` en modo degradado. */
+  residuales_negativos: number | null;
 };
 
 export type CalcMuestraReferenciaAsistenciaUmbrales = {
@@ -2207,9 +2280,9 @@ export type CalcMuestraReferenciaAsistenciaUmbrales = {
 
 export type CalcMuestraReferenciaAsistenciaTramoKey =
   | "asistencia"
-  | "completitud"
-  | "validez"
-  | "producto";
+  | "apertura"
+  | "efectividad"
+  | "rendimiento";
 
 export type CalcMuestraReferenciaAsistenciaTramo = {
   key: CalcMuestraReferenciaAsistenciaTramoKey;
@@ -2225,9 +2298,9 @@ export type CalcMuestraReferenciaAsistenciaTramo = {
 
 export type CalcMuestraReferenciaAsistenciaCadena = {
   asistencia: CalcMuestraReferenciaAsistenciaTramo;
-  completitud: CalcMuestraReferenciaAsistenciaTramo;
-  validez: CalcMuestraReferenciaAsistenciaTramo;
-  producto: CalcMuestraReferenciaAsistenciaTramo;
+  apertura: CalcMuestraReferenciaAsistenciaTramo;
+  efectividad: CalcMuestraReferenciaAsistenciaTramo;
+  rendimiento: CalcMuestraReferenciaAsistenciaTramo;
 };
 
 export type CalcMuestraReferenciaAsistenciaGlobal = {
@@ -2290,10 +2363,14 @@ export type CalcMuestraReferenciaAsistencia = {
   transferible: "modelo_por_celda";
   modelo: "marginales_independientes";
   combinable: false;
-  unidad: "curso_horario_aplicado";
-  denominador: "matriculados_totales";
+  unidad: "encuentro_en_curso_horario_aplicado";
+  /** ADR 0060: `elegibles_presentes` con el glosario, `matriculados_totales` degradado. */
+  denominador: "elegibles_presentes" | "matriculados_totales";
   estudio: CalcMuestraReferenciaAsistenciaEstudio;
+  diseno: CalcMuestraReferenciaAsistenciaDiseno;
+  filtros_corte: CalcMuestraReferenciaAsistenciaFiltro[];
   cobertura: CalcMuestraReferenciaAsistenciaCobertura;
+  encuentros: CalcMuestraReferenciaAsistenciaEncuentros | null;
   identidad: CalcMuestraReferenciaAsistenciaIdentidad;
   umbrales: CalcMuestraReferenciaAsistenciaUmbrales;
   cadena: CalcMuestraReferenciaAsistenciaCadena;
@@ -2379,8 +2456,12 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     asText(root.transferible) !== "modelo_por_celda" ||
     asText(root.modelo) !== "marginales_independientes" ||
     unwrap(root.combinable) !== false ||
-    asText(root.unidad) !== "curso_horario_aplicado" ||
-    asText(root.denominador) !== "matriculados_totales"
+    asText(root.unidad) !== "encuentro_en_curso_horario_aplicado" ||
+    // ADR 0060: el denominador depende de si el motor leyó el glosario del
+    // encuentro. Su coherencia con `cobertura.glosario_completo` se verifica
+    // más abajo, cuando ese campo ya está parseado.
+    (asText(root.denominador) !== "elegibles_presentes" &&
+      asText(root.denominador) !== "matriculados_totales")
   ) return null;
 
   const studyRecord = asRecord(root.estudio);
@@ -2409,10 +2490,17 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     aplicados > agendados ||
     observados > aplicados
   ) return null;
+  const glosarioCompleto = unwrap(coverageRecord.glosario_completo);
+  if (typeof glosarioCompleto !== "boolean") return null;
+  const columnasGlosario = asList(coverageRecord.columnas_glosario)
+    .map((item) => asText(item))
+    .filter((item): item is string => Boolean(item));
   const cobertura: CalcMuestraReferenciaAsistenciaCobertura = {
     agendados,
     aplicados,
     observados,
+    glosario_completo: glosarioCompleto,
+    columnas_glosario: columnasGlosario,
   };
 
   const identityRecord = asRecord(root.identidad);
@@ -2421,19 +2509,30 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   const identityVerified = unwrap(identityRecord.verificada);
   const verificables = asNonNegativeInteger(identityRecord.verificables);
   const inconsistentes = asNonNegativeInteger(identityRecord.inconsistentes);
+  // ADR 0060: la regla que aplica la fija el motor según haya leído o no el
+  // glosario del encuentro. Aceptar una regla que no corresponde al modo
+  // declarado sería admitir un payload incoherente consigo mismo.
+  const expectedRule: CalcMuestraReferenciaAsistenciaIdentidadRegla = glosarioCompleto
+    ? "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+    : "A = E + no_respondieron";
+  const residualesNegativos = identityRecord.residuales_negativos == null
+    ? null
+    : asNonNegativeInteger(identityRecord.residuales_negativos);
   if (
-    identityRule !== "A = E + no_respondieron" ||
+    identityRule !== expectedRule ||
     typeof identityVerified !== "boolean" ||
     verificables === INVALID_NUMBER ||
     inconsistentes === INVALID_NUMBER ||
+    residualesNegativos === INVALID_NUMBER ||
     inconsistentes > verificables ||
     (identityVerified && (verificables === 0 || inconsistentes !== 0))
   ) return null;
   const identidad: CalcMuestraReferenciaAsistenciaIdentidad = {
-    regla: "A = E + no_respondieron",
+    regla: expectedRule,
     verificada: identityVerified,
     verificables,
     inconsistentes,
+    residuales_negativos: residualesNegativos,
   };
 
   const thresholdsRecord = asRecord(root.umbrales);
@@ -2514,8 +2613,8 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   };
   const warningForTramo = (key: CalcMuestraReferenciaAsistenciaTramoKey) => {
     if (key === "asistencia") return hasInvalidAttendanceRateWarning;
-    if (key === "completitud") return hasCountWarning("enviadas_mayor_asistentes");
-    if (key === "validez") return hasCountWarning("validas_mayor_enviadas");
+    if (key === "apertura") return hasCountWarning("enviadas_mayor_asistentes");
+    if (key === "efectividad") return hasCountWarning("validas_mayor_enviadas");
     return hasInvalidAttendanceRateWarning ||
       hasCountWarning("enviadas_mayor_asistentes") ||
       hasCountWarning("validas_mayor_enviadas");
@@ -2570,32 +2669,41 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   const chainRecord = asRecord(root.cadena);
   if (!chainRecord) return null;
   const asistencia = parseTramo(chainRecord.asistencia, "asistencia");
-  const completitud = parseTramo(chainRecord.completitud, "completitud");
-  const validez = parseTramo(chainRecord.validez, "validez");
-  const producto = parseTramo(chainRecord.producto, "producto");
-  if (!asistencia || !completitud || !validez || !producto) return null;
+  const apertura = parseTramo(chainRecord.apertura, "apertura");
+  const efectividad = parseTramo(chainRecord.efectividad, "efectividad");
+  const rendimiento = parseTramo(chainRecord.rendimiento, "rendimiento");
+  if (!asistencia || !apertura || !efectividad || !rendimiento) return null;
   if (
-    asistencia.k !== completitud.k ||
-    asistencia.k !== validez.k ||
-    asistencia.k !== producto.k ||
-    asistencia.numerador !== completitud.denominador ||
-    completitud.numerador !== validez.denominador ||
-    validez.numerador !== producto.numerador ||
-    asistencia.denominador !== producto.denominador ||
+    asistencia.k !== apertura.k ||
+    asistencia.k !== efectividad.k ||
+    asistencia.k !== rendimiento.k ||
+    efectividad.numerador !== rendimiento.numerador ||
+    asistencia.denominador !== rendimiento.denominador
+  ) return null;
+  // ADR 0060: las invariantes de encadenamiento dependen del modo. En la lectura
+  // heredada la cadena es multiplicativa —presentes sobre matrícula, registros
+  // sobre presentes, efectivas sobre registros— y cierra en el rendimiento. Con
+  // el glosario, apertura y efectividad comparten el denominador de elegibles
+  // presentes y esa multiplicación deja de tener sentido.
+  if (glosarioCompleto) {
+    if (apertura.denominador !== efectividad.denominador) return null;
+  } else if (
+    asistencia.numerador !== apertura.denominador ||
+    apertura.numerador !== efectividad.denominador ||
     (asistencia.tasa !== null &&
-      completitud.tasa !== null &&
-      validez.tasa !== null &&
-      producto.tasa !== null &&
+      apertura.tasa !== null &&
+      efectividad.tasa !== null &&
+      rendimiento.tasa !== null &&
       !sameSerializedRate(
-        producto.tasa,
-        asistencia.tasa * completitud.tasa * validez.tasa,
+        rendimiento.tasa,
+        asistencia.tasa * apertura.tasa * efectividad.tasa,
       ))
   ) return null;
   const cadena: CalcMuestraReferenciaAsistenciaCadena = {
     asistencia,
-    completitud,
-    validez,
-    producto,
+    apertura,
+    efectividad,
+    rendimiento,
   };
 
   const globalRecord = asRecord(root.global);
@@ -2635,8 +2743,8 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     globalK !== asistencia.k ||
     globalMatriculados !== asistencia.denominador ||
     globalAsistentes !== asistencia.numerador ||
-    globalEnviadas !== completitud.numerador ||
-    globalValidas !== validez.numerador ||
+    globalEnviadas !== apertura.numerador ||
+    globalValidas !== efectividad.numerador ||
     !ratioMatchesCounts(globalAsistentes, globalMatriculados, globalTasa) ||
     !intervalMatchesMethod(
       globalK,
@@ -2809,6 +2917,106 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     });
   }
 
+  // ADR 0060: bloques nuevos del v2. Ninguno invalida la referencia si falta —
+  // una base histórica anterior al ADR no documenta su diseño ni sus filtros—,
+  // pero un payload con un bloque presente y malformado sí se rechaza.
+  const disenoRecord = asRecord(root.diseno);
+  const disenoNumber = (value: unknown): number | null => {
+    const parsed = asFiniteOrNull(value);
+    return parsed === INVALID_NUMBER ? null : parsed;
+  };
+  const ponderadoRaw = disenoRecord ? unwrap(disenoRecord.ponderado) : null;
+  const diseno: CalcMuestraReferenciaAsistenciaDiseno = {
+    poblacion_objetivo: disenoNumber(disenoRecord?.poblacion_objetivo),
+    nivel_confianza: disenoNumber(disenoRecord?.nivel_confianza),
+    proporcion_esperada: disenoNumber(disenoRecord?.proporcion_esperada),
+    margen_error: disenoNumber(disenoRecord?.margen_error),
+    deff: disenoNumber(disenoRecord?.deff),
+    muestra: disenoNumber(disenoRecord?.muestra),
+    ratio_sobremuestra: disenoNumber(disenoRecord?.ratio_sobremuestra),
+    sobremuestra: disenoNumber(disenoRecord?.sobremuestra),
+    aulas_marco: disenoNumber(disenoRecord?.aulas_marco),
+    aulas_dimensionadas: disenoNumber(disenoRecord?.aulas_dimensionadas),
+    aulas_aplicadas: disenoNumber(disenoRecord?.aulas_aplicadas),
+    tasa_respuesta_asumida: disenoNumber(disenoRecord?.tasa_respuesta_asumida),
+    afijacion: asText(disenoRecord?.afijacion, true) ?? "",
+    metodo_seleccion: asText(disenoRecord?.metodo_seleccion, true) ?? "",
+    metodo_ajuste: asText(disenoRecord?.metodo_ajuste, true) ?? "",
+    ponderado: typeof ponderadoRaw === "boolean" ? ponderadoRaw : null,
+    declarado: unwrap(disenoRecord?.declarado) === true,
+  };
+
+  const FILTRO_CLASES: CalcMuestraReferenciaAsistenciaFiltroClase[] = [
+    "rechazo", "abandono", "no_elegible", "ya_medido",
+  ];
+  const filtros: CalcMuestraReferenciaAsistenciaFiltro[] = [];
+  for (const raw of asList(root.filtros_corte)) {
+    const item = asRecord(raw);
+    if (!item) return null;
+    const id = asText(item.id);
+    const clase = asText(item.clase);
+    const origen = asText(item.origen);
+    const orden = asFiniteOrNull(item.orden);
+    const enDenominador = unwrap(item.en_denominador);
+    if (
+      !id ||
+      !clase ||
+      !FILTRO_CLASES.includes(clase as CalcMuestraReferenciaAsistenciaFiltroClase) ||
+      (origen !== "campo" && origen !== "formulario") ||
+      orden === INVALID_NUMBER ||
+      orden === null ||
+      typeof enDenominador !== "boolean"
+    ) return null;
+    const claseTipada = clase as CalcMuestraReferenciaAsistenciaFiltroClase;
+    // El efecto sobre el denominador lo decide la clase; si el payload discrepa,
+    // el catálogo no es confiable.
+    const esperado = claseTipada === "rechazo" || claseTipada === "abandono";
+    if (enDenominador !== esperado) return null;
+    filtros.push({
+      id,
+      etiqueta: asText(item.etiqueta) ?? id,
+      columna: asText(item.columna, true) ?? "",
+      condicion: asText(item.condicion, true) ?? "",
+      clase: claseTipada,
+      origen,
+      orden,
+      en_denominador: enDenominador,
+    });
+  }
+
+  const encuentrosRecord = asRecord(root.encuentros);
+  let encuentros: CalcMuestraReferenciaAsistenciaEncuentros | null = null;
+  if (encuentrosRecord) {
+    const num = (value: unknown): number | null => {
+      const parsed = asFiniteOrNull(value);
+      return parsed === INVALID_NUMBER ? null : parsed;
+    };
+    const publicables = asNonNegativeInteger(encuentrosRecord.unidades_publicables);
+    const negativos = asNonNegativeInteger(
+      encuentrosRecord.unidades_con_residual_negativo,
+    );
+    if (publicables === INVALID_NUMBER || negativos === INVALID_NUMBER) return null;
+    encuentros = {
+      elegibles: num(encuentrosRecord.elegibles),
+      asistentes: num(encuentrosRecord.asistentes),
+      ya_medidas: num(encuentrosRecord.ya_medidas),
+      no_elegibles: num(encuentrosRecord.no_elegibles),
+      elegibles_presentes: num(encuentrosRecord.elegibles_presentes),
+      efectivas: num(encuentrosRecord.efectivas),
+      no_efectivas: num(encuentrosRecord.no_efectivas),
+      no_realizadas: num(encuentrosRecord.no_realizadas),
+      unidades_publicables: publicables,
+      unidades_con_residual_negativo: negativos,
+    };
+  }
+  // El bloque de encuentros existe exactamente cuando el glosario se leyó, y el
+  // denominador declarado en la raíz tiene que decir lo mismo.
+  if (glosarioCompleto !== (encuentros !== null)) return null;
+  const denominadorEsperado = glosarioCompleto
+    ? "elegibles_presentes"
+    : "matriculados_totales";
+  if (asText(root.denominador) !== denominadorEsperado) return null;
+
   return {
     schema: CALC_MUESTRA_REFERENCIA_ASISTENCIA_SCHEMA,
     owner: "estudio_historico_externo",
@@ -2816,10 +3024,13 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     transferible: "modelo_por_celda",
     modelo: "marginales_independientes",
     combinable: false,
-    unidad: "curso_horario_aplicado",
-    denominador: "matriculados_totales",
+    unidad: "encuentro_en_curso_horario_aplicado",
+    denominador: glosarioCompleto ? "elegibles_presentes" : "matriculados_totales",
     estudio,
+    diseno,
+    filtros_corte: filtros,
     cobertura,
+    encuentros,
     identidad,
     umbrales,
     cadena,

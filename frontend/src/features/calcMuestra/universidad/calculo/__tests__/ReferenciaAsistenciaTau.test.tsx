@@ -35,13 +35,13 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     fuente_publicada: "global",
   };
   return {
-    schema: "calc_muestra_referencia_asistencia_v1",
+    schema: "calc_muestra_referencia_asistencia_v2",
     owner: "estudio_historico_externo",
     momento: "post_hoc_estudio_previo",
     transferible: "modelo_por_celda",
     modelo: "marginales_independientes",
     combinable: false,
-    unidad: "curso_horario_aplicado",
+    unidad: "encuentro_en_curso_horario_aplicado",
     denominador: "matriculados_totales",
     estudio: {
       id: "estudio-sintetico",
@@ -49,12 +49,19 @@ function referencia(): CalcMuestraReferenciaAsistencia {
       periodo: "2026-I",
       fuente: "fixture_sintetico",
     },
-    cobertura: { agendados: 194, aplicados: 192, observados: 190 },
+    cobertura: {
+      agendados: 194, aplicados: 192, observados: 190,
+      glosario_completo: false, columnas_glosario: [],
+    },
+    diseno: DISENO_VACIO,
+    filtros_corte: [],
+    encuentros: null,
     identidad: {
       regla: "A = E + no_respondieron",
       verificada: true,
       verificables: 190,
       inconsistentes: 0,
+      residuales_negativos: null,
     },
     umbrales: {
       insuficiente_max: 11,
@@ -66,9 +73,9 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     },
     cadena: {
       asistencia: tramo("asistencia", "Asistencia", 4792, 6861),
-      completitud: tramo("completitud", "Completitud", 3610, 4792),
-      validez: tramo("validez", "Validez", 3223, 3610),
-      producto: tramo("producto", "Producto", 3223, 6861),
+      apertura: tramo("apertura", "Apertura", 3610, 4792),
+      efectividad: tramo("efectividad", "Efectividad", 3223, 3610),
+      rendimiento: tramo("rendimiento", "Rendimiento", 3223, 6861),
     },
     global: {
       k: 190,
@@ -93,6 +100,15 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     advertencias: ["marginales_no_combinables", "celda_degradada_a_global"],
   } as CalcMuestraReferenciaAsistencia;
 }
+
+const DISENO_VACIO = {
+  poblacion_objetivo: null, nivel_confianza: null, proporcion_esperada: null,
+  margen_error: null, deff: null, muestra: null, ratio_sobremuestra: null,
+  sobremuestra: null, aulas_marco: null, aulas_dimensionadas: null,
+  aulas_aplicadas: null, tasa_respuesta_asumida: null,
+  afijacion: "", metodo_seleccion: "", metodo_ajuste: "",
+  ponderado: null, declarado: false,
+};
 
 describe("ReferenciaAsistenciaTau", () => {
   it("declara geometría y contiene su propio vacío", () => {
@@ -121,7 +137,7 @@ describe("ReferenciaAsistenciaTau", () => {
     expect(html).toContain("Producto de referencia");
     expect(html).toContain("47.0%");
     expect(html).toContain("Estudio histórico externo");
-    for (const label of ["Asistencia", "Completitud", "Validez"]) {
+    for (const label of ["Asistencia", "Apertura", "Efectividad"]) {
       expect(html).toContain(label);
     }
     expect(html.match(/k=190/g)?.length).toBeGreaterThanOrEqual(3);
