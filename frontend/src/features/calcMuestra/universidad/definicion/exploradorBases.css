@@ -1,96 +1,119 @@
-/* G42 · Explorador de bases (Marco › Explorador).
-   Reparto de dos columnas como el explorador de Procesamiento: lista de
-   variables a la izquierda, la elegida desplegada a la derecha. */
+/* G42/G43 · Explorador de bases (Datos › Explorador).
+ *
+ * Índice a la izquierda, lectura a la derecha — el mismo reparto del explorador
+ * de Procesamiento. La geometría es de la superficie, no del contenido: el
+ * marco no cambia con el número de variables ni con el de categorías (C2), cada
+ * carril posee su scroll (C4) y el vacío se queda dentro (C3).
+ */
 
 .cmv2-expb {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  /* La superficie ocupa el alto disponible del panel: sin esto, la lectura
+     terminaba a media pantalla y dejaba un hueco muerto debajo. */
+  flex: 1;
 }
 
-.cmv2-expb-head {
+/* --- barra de contexto ---------------------------------------------------- */
+
+.cmv2-expb-barra {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
 }
-.cmv2-expb-title {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  color: var(--cmv2-accent);
-  max-width: 62ch;
-}
-.cmv2-expb-title > div > strong {
-  display: block;
-  color: var(--pulso-text);
-  font-size: 14px;
-  font-weight: var(--pulso-weight-semibold);
-}
-.cmv2-expb-title p {
-  margin: 2px 0 0;
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--pulso-text-muted);
-}
-.cmv2-expb-title p strong { color: var(--pulso-text); }
 
-.cmv2-expb-bases { display: flex; gap: 6px; }
-.cmv2-expb-bases button {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 6px 12px;
+.cmv2-expb-conmutador {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+}
+.cmv2-expb-conmutador button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
   color: var(--pulso-text-muted);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: var(--pulso-weight-medium);
   cursor: pointer;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-out),
+  transition: background var(--motion-dur-fast) var(--motion-ease-out),
     color var(--motion-dur-fast) var(--motion-ease-out);
 }
-.cmv2-expb-bases button em {
+.cmv2-expb-conmutador button em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--pulso-text-subtle);
   font-variant-numeric: tabular-nums;
 }
-.cmv2-expb-bases button[data-activo] {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 45%, var(--cmv2-border));
+.cmv2-expb-conmutador button:hover { color: var(--pulso-text); }
+.cmv2-expb-conmutador button[data-activo] {
+  background: var(--pulso-surface);
   color: var(--pulso-text);
-  background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--pulso-surface));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+.cmv2-expb-conmutador button[data-activo] em { color: var(--cmv2-accent); }
+
+.cmv2-expb-nota {
+  margin: 0;
+  flex: 1 1 340px;
+  max-width: 68ch;
+  text-align: right;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-subtle);
+}
+.cmv2-expb-nota strong {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-semibold);
 }
 
-/* La lista scrollea dentro de su carril; el panel no empuja la página. */
+/* --- cuerpo: índice + lectura --------------------------------------------- */
+
 .cmv2-expb-cuerpo {
   display: grid;
-  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: 16px;
   min-height: 0;
+  flex: 1;
 }
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
+  .cmv2-expb-cuerpo { grid-template-columns: 216px minmax(0, 1fr); gap: 12px; }
+}
+@media (max-width: 820px) {
   .cmv2-expb-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .cmv2-expb-nota { text-align: left; }
 }
 
-.cmv2-expb-lista {
+.cmv2-expb-indice {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
 }
+
 .cmv2-expb-buscador {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 7px;
+  padding: 7px 11px;
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  color: var(--pulso-text-muted);
+  color: var(--pulso-text-subtle);
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-buscador:focus-within {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-border));
 }
 .cmv2-expb-buscador input {
   flex: 1;
@@ -101,108 +124,330 @@
   font-size: 12px;
   outline: none;
 }
-.cmv2-expb-lista ul {
+
+/* Un solo dueño de scroll en el carril.
+ *
+ * G43 · El `flex` sólo acota cuando algún ancestro tiene altura fija, y aquí no
+ * siempre la hay: medido a 1024x600, la superficie crecía a 940 px y empujaba
+ * el panel entero, con el índice fuera de vista. El tope en `vh` la mantiene
+ * dentro del viewport sin depender de lo que hagan los contenedores de arriba;
+ * el mínimo evita que en pantallas cortas quede una rendija de dos filas. */
+.cmv2-expb-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: clamp(220px, 54vh, 760px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.cmv2-expb-grupo + .cmv2-expb-grupo { margin-top: 10px; }
+.cmv2-expb-grupo h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 4px 8px;
+  background: var(--pulso-surface);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-subtle);
+}
+.cmv2-expb-grupo h3 span {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.cmv2-expb-grupo ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  overflow: auto;
-  max-height: 520px;
-}
-.cmv2-expb-lista li button {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
   gap: 1px;
-  padding: 6px 8px;
-  border: 1px solid transparent;
-  border-radius: var(--pulso-radius-sm, 8px);
+}
+
+/* Una línea por variable: con dos, la mitad del inventario quedaba fuera del
+   viewport y había que buscar con scroll lo que el índice debe dar de un
+   vistazo. */
+.cmv2-expb-grupo li button {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 7px;
+  border: 0;
+  border-radius: 7px;
   background: transparent;
   text-align: left;
   cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
 }
-.cmv2-expb-lista li button:hover { background: var(--pulso-surface-2); }
-.cmv2-expb-lista li button[data-activa] {
-  border-color: color-mix(in srgb, var(--cmv2-accent) 40%, var(--cmv2-border));
-  background: color-mix(in srgb, var(--cmv2-accent) 8%, transparent);
+.cmv2-expb-grupo li button:hover { background: var(--pulso-surface-2); }
+.cmv2-expb-grupo li button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+  outline-offset: -2px;
+}
+.cmv2-expb-grupo li button[data-activa] {
+  background: color-mix(in srgb, var(--cmv2-accent) 10%, transparent);
+}
+.cmv2-expb-grupo li button[data-activa]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--cmv2-accent);
 }
 .cmv2-expb-var {
   font-size: 12px;
+  line-height: 1.35;
   color: var(--pulso-text);
-  font-weight: var(--pulso-weight-medium);
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.cmv2-expb-meta { font-size: 10.5px; color: var(--pulso-text-subtle); }
-.cmv2-expb-vacio { padding: 8px; font-size: 11.5px; color: var(--pulso-text-muted); }
+.cmv2-expb-grupo li button[data-activa] .cmv2-expb-var {
+  font-weight: var(--pulso-weight-semibold);
+}
+.cmv2-expb-meta {
+  font-size: 10.5px;
+  color: var(--pulso-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+/*
+ * G43 · La cobertura sólo se nombra cuando falta dato.
+ *
+ * Medido en pantalla en dos versiones: con la barra en todas las filas, las
+ * completas —la mayoría— formaban un subrayado continuo que se leía como
+ * separador de lista; dejándola sólo en las parciales, seguía pareciendo un
+ * subrayado y competía con el nombre. Una cifra pequeña dice lo mismo, ocupa
+ * el hueco que ya existía y no dibuja una línea que nadie pidió.
+ */
+.cmv2-expb-parcial {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: var(--pulso-warn-fg, #b26a00);
+  background: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 12%, transparent);
+}
 
+.cmv2-expb-sin-match {
+  margin: 10px 8px;
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+}
+
+/* --- lectura -------------------------------------------------------------- */
+
+.cmv2-expb-lectura {
+  min-height: 0;
+  max-height: clamp(260px, 62vh, 900px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* C3 · El vacío se queda DENTRO de la tarjeta. Con la tarjeta al alto de su
+   contenido, una variable de pocas categorías dejaba medio carril en blanco
+   fuera del marco, que es exactamente el hueco que la cláusula prohíbe. */
 .cmv2-expb-card {
+  flex: 1;
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  padding: 14px 16px;
+  padding: 16px 18px 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-.cmv2-expb-card > header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.cmv2-expb-card > header strong { font-size: 13.5px; color: var(--pulso-text); }
-.cmv2-expb-card > header span {
-  font-size: 11.5px;
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
+  gap: 16px;
 }
 
-.cmv2-expb-cifras {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+.cmv2-expb-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 65%, transparent);
+}
+.cmv2-expb-card-title h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  word-break: break-word;
+}
+.cmv2-expb-card-title p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-subtle);
+}
+
+.cmv2-expb-chips {
+  display: flex;
   gap: 8px;
   margin: 0;
 }
-.cmv2-expb-cifras dt { font-size: 10.5px; color: var(--pulso-text-subtle); text-transform: uppercase; letter-spacing: .02em; }
-.cmv2-expb-cifras dd {
-  margin: 2px 0 0;
-  font-size: 15px;
-  color: var(--pulso-text);
+.cmv2-expb-chips > div {
+  min-width: 92px;
+  padding: 6px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+.cmv2-expb-chips dt {
+  font-size: 9.5px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-subtle);
+}
+.cmv2-expb-chips dd {
+  margin: 1px 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 14px;
   font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
+.cmv2-expb-chips dd em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text-subtle);
+}
+.cmv2-expb-chips > div[data-alerta] {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 35%, var(--cmv2-border));
+}
+.cmv2-expb-chips > div[data-alerta] dd em {
+  color: var(--pulso-warn-fg, #b26a00);
+}
 
+/* --- numérica ------------------------------------------------------------- */
+
+/* El histograma toma el alto que sobra: en un panel alto, 168 px fijos dejaban
+   la mitad del carril vacío bajo los cuantiles. */
+.cmv2-expb-numerica {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.cmv2-expb-figura {
+  margin: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 .cmv2-expb-hist {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 120px;
-  padding: 6px 0 0;
+  flex: 1;
+  min-height: 168px;
+  padding-top: 6px;
   border-bottom: 1px solid var(--cmv2-border);
 }
-.cmv2-expb-hist i {
+.cmv2-expb-hist > span {
   flex: 1;
   min-width: 2px;
-  background: color-mix(in srgb, var(--cmv2-accent) 55%, transparent);
-  border-radius: 2px 2px 0 0;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--cmv2-accent) 45%, transparent);
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-hist > span:hover {
+  background: color-mix(in srgb, var(--cmv2-accent) 75%, transparent);
+}
+.cmv2-expb-hist-mediana {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--pulso-text) 45%, transparent);
 }
 
+.cmv2-expb-eje {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--pulso-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-expb-eje [data-marca="mediana"] { color: var(--pulso-text-muted); }
+
+.cmv2-expb-cuantiles {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+@media (max-width: 720px) {
+  .cmv2-expb-cuantiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.cmv2-expb-cuantiles > div {
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+.cmv2-expb-cuantiles dt {
+  font-size: 9.5px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-subtle);
+}
+.cmv2-expb-cuantiles dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- categórica ----------------------------------------------------------- */
+
+/* Columnas fijas para que las cifras formen columna: con anchos automáticos,
+   cada fila alineaba distinto y comparar exigía leer número a número. */
 .cmv2-expb-categorias {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 .cmv2-expb-categorias li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(90px, 2fr) auto;
+  grid-template-columns: minmax(120px, 260px) minmax(0, 1fr) 68px 52px;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-categorias li:hover { background: var(--pulso-surface-2); }
+@media (max-width: 720px) {
+  .cmv2-expb-categorias li {
+    grid-template-columns: minmax(0, 1fr) 60px 48px;
+  }
+  .cmv2-expb-categorias .cmv2-expb-cat-bar { grid-column: 1 / -1; order: 3; }
 }
 .cmv2-expb-cat-label {
   font-size: 12px;
@@ -212,23 +457,45 @@
   white-space: nowrap;
 }
 .cmv2-expb-cat-bar {
-  height: 8px;
+  height: 9px;
   border-radius: 999px;
-  background: var(--pulso-surface-2);
+  background: color-mix(in srgb, var(--cmv2-border) 55%, transparent);
   overflow: hidden;
 }
 .cmv2-expb-cat-bar i {
   display: block;
   height: 100%;
-  background: color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+  border-radius: 999px;
+  background: var(--cmv2-accent);
+  opacity: .75;
 }
-.cmv2-expb-cat-n {
+.cmv2-expb-cat-n,
+.cmv2-expb-cat-pct {
   font-size: 11.5px;
-  color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
+  text-align: right;
 }
-.cmv2-expb-cat-n em { font-style: normal; color: var(--pulso-text-subtle); }
-.cmv2-expb-otras { margin: 0; font-size: 11.5px; color: var(--pulso-text-muted); }
+.cmv2-expb-cat-n { color: var(--pulso-text); font-weight: var(--pulso-weight-medium); }
+.cmv2-expb-cat-pct { color: var(--pulso-text-subtle); }
+
+/* La cola es parte del reparto, pero no una categoría que se pueda decidir. */
+.cmv2-expb-categorias li[data-resto] .cmv2-expb-cat-label {
+  color: var(--pulso-text-subtle);
+  font-style: italic;
+}
+.cmv2-expb-categorias li[data-resto] .cmv2-expb-cat-bar i {
+  background: var(--pulso-text-subtle);
+  opacity: .45;
+}
+
+/* --- vacío ---------------------------------------------------------------- */
+
+/* C3 · El vacío se queda dentro de la superficie y conserva su alto: sin esto
+   la pestaña se encogía a la altura del texto y el panel perdía su marco. */
+.cmv2-expb-vacio-marco {
+  flex: 1;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

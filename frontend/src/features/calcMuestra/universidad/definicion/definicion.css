@@ -1717,3 +1717,253 @@
   font-size: 12px;
   color: var(--pulso-danger-fg, var(--pulso-warn-fg));
 }
+
+/* ADR 0060 · catálogo de filtros de corte de la base histórica.
+   Reusa la tarjeta de emparejamiento de variables (.cmv2-defi-var-*): sólo
+   añade lo propio del filtro —cabecera, orden, rejilla de campos y significado
+   de la clase— para no duplicar el lenguaje visual de la pestaña. */
+.cmv2-defi-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-4);
+  border: 1px solid var(--pulso-border-soft);
+  border-radius: var(--pulso-radius-lg);
+  background: var(--pulso-surface-1);
+}
+
+.cmv2-defi-filtros-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+}
+
+.cmv2-defi-filtros-head h4 {
+  margin: 2px 0 0;
+  font-size: var(--pulso-font-md);
+  font-weight: 600;
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-defi-filtros-head p {
+  margin: 4px 0 0;
+  max-width: 62ch;
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-filtros-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid var(--pulso-border-soft);
+  border-radius: var(--pulso-radius-sm);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-strong);
+  font-size: var(--pulso-font-xs);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cmv2-defi-filtros-empty {
+  margin: 0;
+  padding: var(--pulso-space-3);
+  border: 1px dashed var(--pulso-border-soft);
+  border-radius: var(--pulso-radius-sm);
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-filtros-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-defi-filtros-orden {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--pulso-surface-3);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-filtros-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-xs);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.cmv2-defi-filtros-label:focus-visible,
+.cmv2-defi-filtros-label:hover {
+  border-color: var(--pulso-border-soft);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-defi-filtros-move,
+.cmv2-defi-filtros-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-xs);
+  background: transparent;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+}
+
+.cmv2-defi-filtros-move:hover:not(:disabled),
+.cmv2-defi-filtros-remove:hover {
+  border-color: var(--pulso-border-soft);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-strong);
+}
+
+.cmv2-defi-filtros-move:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* La tarjeta de filtro tiene layout propio: `.cmv2-defi-var-card` es un grid de
+   cuatro áreas nombradas para una variable por fila, y un filtro necesita
+   apilar cabecera, cuatro campos y su significado. */
+.cmv2-defi-filtro-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-2);
+  padding: var(--cmv2-space-3) var(--cmv2-space-3) var(--cmv2-space-3) var(--cmv2-space-4);
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-md);
+  background: var(--cmv2-surface);
+  min-width: 0;
+}
+
+.cmv2-defi-filtro-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: var(--pulso-radius-md) 0 0 var(--pulso-radius-md);
+  background: var(--cmv2-border-strong);
+}
+
+.cmv2-defi-filtro-card[data-state="confirmada"]::before {
+  background: var(--pulso-success-fg);
+}
+
+.cmv2-defi-filtro-card[data-state="falta"] {
+  background: color-mix(in srgb, var(--pulso-warn-bg) 16%, var(--cmv2-surface));
+}
+
+.cmv2-defi-filtro-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cmv2-space-2);
+  min-width: 0;
+}
+
+.cmv2-defi-filtro-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cmv2-defi-filtro-ic {
+  display: inline-flex;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-filtro-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.cmv2-defi-filtro-input {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-sm);
+  background: var(--pulso-surface-1);
+  color: var(--pulso-text-strong);
+  font-size: var(--pulso-font-xs);
+}
+
+.cmv2-defi-filtro-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--cmv2-space-2);
+}
+
+.cmv2-defi-filtro-ok {
+  font-size: var(--pulso-font-xs);
+  font-weight: 600;
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-defi-filtro-action {
+  padding: 5px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-sm);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-strong);
+  font-size: var(--pulso-font-xs);
+  cursor: pointer;
+}
+
+.cmv2-defi-filtro-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cmv2-defi-filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--pulso-space-2);
+}
+
+.cmv2-defi-filtros-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cmv2-defi-filtros-grid small {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-filtros-meaning {
+  margin: 0;
+  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text-muted);
+}
