@@ -578,6 +578,21 @@
   # El resto es reserva que nunca hizo falta contactar.
   trabajado <- aplicada | nzchar(motivo) | frame$estado %in% c("reemplazada", "no_aplicada")
 
+  # Codigo corto y estable por motivo, para que la casilla pueda decir POR QUE
+  # se cayo sin desbordarse. Se asigna por frecuencia (A el mas comun) y la
+  # leyenda viaja con los datos: la casilla nunca queda con una letra muda.
+  caidas_todas <- which(!aplicada & nzchar(motivo))
+  tabla_motivos <- if (length(caidas_todas)) {
+    sort(table(motivo[caidas_todas]), decreasing = TRUE)
+  } else {
+    table(character(0))
+  }
+  codigo_de <- stats::setNames(
+    LETTERS[seq_len(min(length(tabla_motivos), 26L))],
+    names(tabla_motivos)[seq_len(min(length(tabla_motivos), 26L))]
+  )
+  elegibles_fuente <- if (is.null(frame$elegibles)) frame$matriculados else frame$elegibles
+
   claves <- sort(unique(cadenas[is.finite(cadenas)]))
   filas <- lapply(seq_along(claves), function(i) {
     idx <- which(is.finite(cadenas) & cadenas == claves[[i]])
@@ -593,6 +608,16 @@
       } else {
         "reserva"
       }
+      efectivas_escalon <- if (aplicada[fila] && is.finite(frame$validas[fila])) {
+        frame$validas[fila]
+      } else {
+        NULL
+      }
+      elegibles_escalon <- if (aplicada[fila] && is.finite(elegibles_fuente[fila])) {
+        elegibles_fuente[fila]
+      } else {
+        NULL
+      }
       list(
         posicion = if (is.finite(posicion[fila])) as.integer(posicion[fila]) else j,
         rol = if (nzchar(detalle[fila])) detalle[fila] else {
@@ -600,8 +625,22 @@
         },
         curso_horario = frame$curso_horario[fila],
         estado = estado,
-        efectivas = if (aplicada[fila] && is.finite(frame$validas[fila])) frame$validas[fila] else NULL,
-        motivo = if (nzchar(motivo[fila])) motivo[fila] else NULL
+        efectivas = efectivas_escalon,
+        elegibles = elegibles_escalon,
+        # Efectividad de ESA aula: cuantos de sus elegibles completaron. Es la
+        # cifra con la que se compara un aula contra otra; la cantidad sola
+        # premia al aula grande.
+        rendimiento = if (!is.null(efectivas_escalon) && !is.null(elegibles_escalon)) {
+          .cm_asist_ratio(efectivas_escalon, elegibles_escalon)
+        } else {
+          NULL
+        },
+        motivo = if (nzchar(motivo[fila])) motivo[fila] else NULL,
+        motivo_codigo = if (nzchar(motivo[fila]) && !is.na(codigo_de[[motivo[fila]]] %||% NA)) {
+          unname(codigo_de[[motivo[fila]]])
+        } else {
+          NULL
+        }
       )
     })
 
@@ -628,11 +667,15 @@
   # Motivos de caida, agregados. El texto libre lo clasifica la base; el motor
   # solo cuenta, porque inventar categorias aqui las volveria invisibles al
   # estudio que las declara.
-  caidas <- which(!aplicada & nzchar(motivo))
-  motivos <- if (length(caidas)) {
-    tabla <- sort(table(motivo[caidas]), decreasing = TRUE)
-    lapply(seq_along(tabla), function(i) {
-      list(motivo = names(tabla)[[i]], n = as.integer(tabla[[i]]), orden = i)
+  motivos <- if (length(tabla_motivos)) {
+    lapply(seq_along(tabla_motivos), function(i) {
+      nombre <- names(tabla_motivos)[[i]]
+      list(
+        motivo = nombre,
+        codigo = unname(codigo_de[[nombre]] %||% ""),
+        n = as.integer(tabla_motivos[[i]]),
+        orden = i
+      )
     })
   } else list()
 

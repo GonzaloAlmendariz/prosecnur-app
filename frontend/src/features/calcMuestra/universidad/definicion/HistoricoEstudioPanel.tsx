@@ -26,10 +26,11 @@
  * el bundle de gráficos por cuatro perfiles marginales.
  */
 import { Info } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type {
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaAsistenciaCelda,
+  CalcMuestraReferenciaAsistenciaCadenaSeleccion,
   CalcMuestraReferenciaAsistenciaCadenasReemplazo,
   CalcMuestraReferenciaAsistenciaEmbudoFila,
   CalcMuestraReferenciaAsistenciaSerieCampo,
@@ -367,70 +368,107 @@ function MatrizCadenas({
   cadenas: CalcMuestraReferenciaAsistenciaCadenasReemplazo;
 }) {
   const columnas = Math.min(cadenas.profundidad_maxima, 8);
-  const filas = [...cadenas.filas].sort((a, b) => {
-    if (b.escalones_trabajados !== a.escalones_trabajados) {
-      return b.escalones_trabajados - a.escalones_trabajados;
-    }
-    return (b.efectivas ?? 0) - (a.efectivas ?? 0);
-  });
-  // Encabezados de una o dos letras: la columna mide 30 px y «Titular» se
-  // apilaba letra por letra. El nombre completo vive en el `title`.
+  // Agrupada por facultad: comparar dos cursos-horario sólo tiene sentido dentro
+  // de su facultad, porque el tamaño de aula y la asistencia cambian por
+  // facultad. Dentro de cada grupo, primero las cadenas que más costaron.
+  const porFacultad = new Map<string, CalcMuestraReferenciaAsistenciaCadenaSeleccion[]>();
+  for (const fila of cadenas.filas) {
+    const clave = fila.facultad || "Sin facultad";
+    const grupo = porFacultad.get(clave);
+    if (grupo) grupo.push(fila);
+    else porFacultad.set(clave, [fila]);
+  }
+  const grupos = [...porFacultad.entries()]
+    .map(([facultad, filas]) => ({
+      facultad,
+      filas: [...filas].sort((a, b) => {
+        if (b.escalones_trabajados !== a.escalones_trabajados) {
+          return b.escalones_trabajados - a.escalones_trabajados;
+        }
+        return (b.efectivas ?? 0) - (a.efectivas ?? 0);
+      }),
+      efectivas: filas.reduce((acc, f) => acc + (f.efectivas ?? 0), 0),
+      conReemplazo: filas.filter((f) => f.resuelta_en !== null && f.resuelta_en !== 1).length,
+    }))
+    .sort((a, b) => b.filas.length - a.filas.length);
   const encabezados = Array.from({ length: columnas }, (_, i) => (i === 0 ? "T" : `R${i}`));
+
   return (
     <div className="cmv2-hist-matriz-marco">
       <div
         className="cmv2-hist-matriz"
         style={{ ["--cmv2-hist-escalones" as string]: String(columnas) }}
         role="table"
-        aria-label="Historia de cada cadena de reemplazo"
+        aria-label="Historia de cada cadena de reemplazo, por facultad"
       >
         <div className="cmv2-hist-matriz-head" role="row">
           <span role="columnheader">Titular sorteado</span>
-          <span role="columnheader">Facultad</span>
           {encabezados.map((etiqueta, i) => (
             <span key={etiqueta} role="columnheader" title={i === 0 ? "Titular" : `Reemplazo ${i}`}>
               {etiqueta}
             </span>
           ))}
-          <span role="columnheader" title="Encuestas completas que dio la cadena">Total</span>
+          <span role="columnheader" title="Encuestas completas de toda la cadena">Total</span>
         </div>
-        {filas.map((fila) => (
-          <div className="cmv2-hist-matriz-fila" role="row" key={fila.cadena}>
-            <span className="cmv2-hist-matriz-titular" role="cell" title={fila.titular}>
-              {fila.titular}
-            </span>
-            <span className="cmv2-hist-matriz-facultad" role="cell" title={fila.facultad}>
-              {fila.facultad}
-            </span>
-            {Array.from({ length: columnas }, (_, i) => {
-              const escalon = fila.escalones[i];
-              if (!escalon) {
-                return <span key={i} className="cmv2-hist-matriz-casilla" data-estado="vacio" role="cell" />;
-              }
-              const titulo = [
-                `${escalon.rol}: ${escalon.curso_horario}`,
-                escalon.estado === "aplicado"
-                  ? `Se aplicó · ${fmtInt(escalon.efectivas ?? 0)} completas`
-                  : escalon.estado === "cayo"
-                    ? `Se cayó · ${escalon.motivo ?? "sin motivo registrado"}`
-                    : "No hizo falta contactarlo",
-              ].join("\n");
-              return (
-                <span
-                  key={i}
-                  className="cmv2-hist-matriz-casilla"
-                  data-estado={escalon.estado}
-                  role="cell"
-                  title={titulo}
-                >
-                  {escalon.estado === "aplicado" ? fmtInt(escalon.efectivas ?? 0) : null}
+        {grupos.map((grupo) => (
+          <Fragment key={grupo.facultad}>
+            <div className="cmv2-hist-matriz-grupo" role="row">
+              <span role="cell">
+                {grupo.facultad}
+                <em>
+                  {fmtInt(grupo.filas.length)} titulares · {fmtInt(grupo.efectivas)} completas
+                  {grupo.conReemplazo > 0 ? ` · ${fmtInt(grupo.conReemplazo)} con reemplazo` : ""}
+                </em>
+              </span>
+            </div>
+            {grupo.filas.map((fila) => (
+              <div className="cmv2-hist-matriz-fila" role="row" key={fila.cadena}>
+                <span className="cmv2-hist-matriz-titular" role="cell" title={fila.titular}>
+                  {fila.titular}
                 </span>
-              );
-            })}
-            <span className="cmv2-hist-matriz-total" role="cell">
-              {fmtInt(fila.efectivas ?? 0)}
-            </span>
-          </div>
+                {Array.from({ length: columnas }, (_, i) => {
+                  const escalon = fila.escalones[i];
+                  if (!escalon) {
+                    return (
+                      <span key={i} className="cmv2-hist-matriz-casilla" data-estado="vacio" role="cell" />
+                    );
+                  }
+                  const titulo = [
+                    `${escalon.rol}: ${escalon.curso_horario}`,
+                    escalon.estado === "aplicado"
+                      ? `Se aplicó · ${fmtInt(escalon.efectivas ?? 0)} completas de ${fmtInt(escalon.elegibles ?? 0)} elegibles (${pct(escalon.rendimiento, 0)})`
+                      : escalon.estado === "cayo"
+                        ? `Se cayó · ${escalon.motivo ?? "sin motivo registrado"}`
+                        : "No hizo falta contactarlo",
+                  ].join("\n");
+                  return (
+                    <span
+                      key={i}
+                      className="cmv2-hist-matriz-casilla"
+                      data-estado={escalon.estado}
+                      role="cell"
+                      title={titulo}
+                    >
+                      {escalon.estado === "aplicado" ? (
+                        <>
+                          <b>{fmtInt(escalon.efectivas ?? 0)}</b>
+                          {/* La efectividad del aula: sin ella, 25 completas de un
+                              aula de 30 y de una de 90 se leen igual. */}
+                          <i>{pct(escalon.rendimiento, 0)}</i>
+                        </>
+                      ) : escalon.estado === "cayo" && escalon.motivo_codigo ? (
+                        <b>{escalon.motivo_codigo}</b>
+                      ) : null}
+                    </span>
+                  );
+                })}
+                <span className="cmv2-hist-matriz-total" role="cell">
+                  <b>{fmtInt(fila.efectivas ?? 0)}</b>
+                  <i>{pct(fila.rendimiento, 0)}</i>
+                </span>
+              </div>
+            ))}
+          </Fragment>
         ))}
       </div>
     </div>
@@ -796,36 +834,26 @@ export function HistoricoEstudioPanel({
             </p>
           </header>
           <div className="cmv2-hist-leyenda">
-            <span data-tipo="efectiva">Se aplicó</span>
-            <span data-tipo="rechazo">Se cayó</span>
-            <span data-tipo="ausencia">No hizo falta</span>
+            <span data-tipo="efectiva">Se aplicó · completas y % de sus elegibles</span>
+            <span data-tipo="rechazo">Se cayó · la letra dice por qué</span>
+            <span data-tipo="ausencia">No hizo falta contactarlo</span>
           </div>
-          <MatrizCadenas cadenas={referencia.cadenas_reemplazo} />
+          {/* La letra de la casilla no puede quedar muda: su significado va
+              inmediatamente antes de la matriz, no al pie de la página. */}
           {referencia.cadenas_reemplazo.motivos.length > 0 ? (
-            <>
-              <p className="cmv2-hist-nota-grupo">
-                Por qué se cayeron los titulares y reemplazos que no llegaron a aplicarse. El motivo
-                lo clasifica la base del estudio, no el módulo.
-              </p>
-              <ol className="cmv2-hist-motivos">
-                {[...referencia.cadenas_reemplazo.motivos]
-                  .sort((a, b) => b.n - a.n)
-                  .map((motivo) => {
-                    const total = referencia.cadenas_reemplazo?.motivos
-                      .reduce((acc, m) => acc + m.n, 0) ?? 1;
-                    return (
-                      <li key={motivo.motivo}>
-                        <span className="cmv2-hist-motivos-nombre">{motivo.motivo}</span>
-                        <span className="cmv2-hist-motivos-track">
-                          <span style={{ width: `${(motivo.n / Math.max(1, total)) * 100}%` }} />
-                        </span>
-                        <span className="cmv2-hist-motivos-n">{fmtInt(motivo.n)}</span>
-                      </li>
-                    );
-                  })}
-              </ol>
-            </>
+            <ul className="cmv2-hist-codigos">
+              {[...referencia.cadenas_reemplazo.motivos]
+                .sort((a, b) => a.orden - b.orden)
+                .map((motivo) => (
+                  <li key={motivo.motivo}>
+                    <b>{motivo.codigo}</b>
+                    <span>{motivo.motivo}</span>
+                    <em>{fmtInt(motivo.n)}</em>
+                  </li>
+                ))}
+            </ul>
           ) : null}
+          <MatrizCadenas cadenas={referencia.cadenas_reemplazo} />
         </div>
       ) : null}
 
@@ -890,25 +918,103 @@ export function HistoricoEstudioPanel({
 
       {/* Cómo se calculó: los parámetros a la vista, no plegados (ADR 0057) */}
       {vistaActiva === "diseno" && diseno.declarado ? (
-        <div className="cmv2-hist-bloque cmv2-hist-bloque-secundario">
+        <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
             <span className="cmv2-eyebrow">Cómo se dimensionó</span>
-            <h4>Parámetros del estudio anterior</h4>
+            <h4>Del universo a las aulas que había que visitar</h4>
+            <p>
+              El recorrido que llevó de la población entera al número de cursos-horario a aplicar.
+              Cada paso toma la cifra anterior y le aplica una decisión del diseño.
+            </p>
           </header>
-          <dl className="cmv2-hist-params">
-            <div><dt>Población objetivo</dt><dd>{num(diseno.poblacion_objetivo)}</dd></div>
-            <div><dt>Confianza</dt><dd>{pct(diseno.nivel_confianza, 0)}</dd></div>
-            <div><dt>Proporción esperada</dt><dd>{diseno.proporcion_esperada ?? "—"}</dd></div>
-            <div><dt>Margen de error</dt><dd>{pct(diseno.margen_error, 2)}</dd></div>
-            <div><dt>Efecto de diseño</dt><dd>{diseno.deff ?? "—"}</dd></div>
-            <div><dt>Aulas dimensionadas</dt><dd>{num(diseno.aulas_dimensionadas)}</dd></div>
-            <div><dt>Afijación</dt><dd>{diseno.afijacion || "—"}</dd></div>
-            <div><dt>Selección</dt><dd>{diseno.metodo_seleccion || "—"}</dd></div>
-            <div><dt>Ajuste final</dt><dd>{diseno.metodo_ajuste || "—"}</dd></div>
+
+          {/* El cálculo como recorrido y no como lista suelta: cada escalón dice
+              qué decisión lo produjo, que es lo que hay que replicar o cambiar
+              este año. */}
+          <ol className="cmv2-hist-escalera">
+            <li>
+              <span className="cmv2-hist-escalera-cifra">{num(diseno.poblacion_objetivo)}</span>
+              <span className="cmv2-hist-escalera-que">estudiantes en la población</span>
+              <span className="cmv2-hist-escalera-como">el universo del que se quería hablar</span>
+            </li>
+            <li data-tono="meta">
+              <span className="cmv2-hist-escalera-cifra">{num(diseno.muestra)}</span>
+              <span className="cmv2-hist-escalera-que">encuestas necesarias</span>
+              <span className="cmv2-hist-escalera-como">
+                {[
+                  diseno.nivel_confianza !== null ? `${pct(diseno.nivel_confianza, 0)} de confianza` : null,
+                  diseno.margen_error !== null ? `±${pct(diseno.margen_error, 2)}` : null,
+                  diseno.proporcion_esperada !== null ? `p = ${diseno.proporcion_esperada}` : null,
+                  diseno.deff !== null ? `efecto de diseño ${diseno.deff}` : null,
+                ].filter(Boolean).join(" · ")}
+              </span>
+            </li>
+            {diseno.sobremuestra !== null ? (
+              <li>
+                <span className="cmv2-hist-escalera-cifra">{num(diseno.sobremuestra)}</span>
+                <span className="cmv2-hist-escalera-que">encuestas a buscar en campo</span>
+                <span className="cmv2-hist-escalera-como">
+                  {diseno.ratio_sobremuestra !== null
+                    ? `sobremuestra ×${diseno.ratio_sobremuestra} para absorber lo que se pierde`
+                    : "sobremuestra para absorber lo que se pierde"}
+                </span>
+              </li>
+            ) : null}
+            {diseno.aulas_dimensionadas !== null ? (
+              <li>
+                <span className="cmv2-hist-escalera-cifra">{num(diseno.aulas_dimensionadas)}</span>
+                <span className="cmv2-hist-escalera-que">cursos-horario a visitar</span>
+                <span className="cmv2-hist-escalera-como">
+                  {diseno.tasa_respuesta_asumida !== null
+                    ? `suponiendo que respondería el ${pct(diseno.tasa_respuesta_asumida, 0)} de cada aula`
+                    : "según el rendimiento supuesto por aula"}
+                </span>
+              </li>
+            ) : null}
+            {diseno.aulas_aplicadas !== null ? (
+              <li data-tono="real">
+                <span className="cmv2-hist-escalera-cifra">{num(diseno.aulas_aplicadas)}</span>
+                <span className="cmv2-hist-escalera-que">cursos-horario aplicados de verdad</span>
+                <span className="cmv2-hist-escalera-como">
+                  {diseno.aulas_dimensionadas !== null && diseno.aulas_dimensionadas > 0
+                    ? `${diseno.aulas_aplicadas > diseno.aulas_dimensionadas ? "+" : ""}${fmtInt(diseno.aulas_aplicadas - diseno.aulas_dimensionadas)} frente a lo dimensionado`
+                    : "lo que el operativo llegó a cubrir"}
+                </span>
+              </li>
+            ) : null}
+          </ol>
+
+          {/* Las decisiones que no son cifras: cómo se repartió, cómo se
+              eligió, cómo se ajustó al final. */}
+          <dl className="cmv2-hist-decisiones">
+            <div>
+              <dt>Cómo se repartió</dt>
+              <dd>{diseno.afijacion || "No declarado"}</dd>
+            </div>
+            <div>
+              <dt>Cómo se eligieron las aulas</dt>
+              <dd>{diseno.metodo_seleccion || "No declarado"}</dd>
+            </div>
+            <div>
+              <dt>Cómo se ajustó al final</dt>
+              <dd>{diseno.metodo_ajuste || "No declarado"}</dd>
+            </div>
             <div>
               <dt>Ponderación</dt>
-              <dd>{diseno.ponderado === null ? "—" : diseno.ponderado ? "Sí se aplicó" : "No aplica"}</dd>
+              <dd>
+                {diseno.ponderado === null
+                  ? "No declarado"
+                  : diseno.ponderado
+                    ? "Sí se aplicó"
+                    : "No hizo falta"}
+              </dd>
             </div>
+            {diseno.aulas_marco !== null ? (
+              <div>
+                <dt>Marco disponible</dt>
+                <dd>{fmtInt(diseno.aulas_marco)} cursos-horario elegibles</dd>
+              </div>
+            ) : null}
           </dl>
         </div>
       ) : null}
