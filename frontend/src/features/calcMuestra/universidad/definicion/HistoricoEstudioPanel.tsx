@@ -170,9 +170,12 @@ function PasoEmbudo({
 function FilaPerfil({
   fila,
   referencia,
+  campo,
 }: {
   fila: CalcMuestraReferenciaAsistenciaCelda;
   referencia: number | null;
+  /** Primera y última semana del operativo, para situar la ventana de la celda. */
+  campo?: { min: number; max: number } | null;
 }) {
   const heredada = fila.fuente_publicada === "global";
   // La barra pinta `tasa_publicada`, que es la que el módulo va a usar, no la
@@ -190,6 +193,7 @@ function FilaPerfil({
     <li className="cmv2-hist-fila" data-heredada={heredada ? "si" : undefined}>
       <span className="cmv2-hist-fila-nombre">{fila.celda_label}</span>
       <span className="cmv2-hist-fila-k">{fmtInt(fila.k)}</span>
+      {campo ? <VentanaCampo fila={fila} campo={campo} /> : null}
       <span
         className="cmv2-hist-fila-track"
         aria-label={detalle}
@@ -198,6 +202,14 @@ function FilaPerfil({
           filas: [
             { label: "Asistencia", valor: pct(valor) },
             { label: "Aulas aplicadas", valor: fmtInt(fila.k) },
+            ...(fila.semana_min !== null && fila.semana_max !== null
+              ? [{
+                  label: "Se aplicó en",
+                  valor: fila.semana_min === fila.semana_max
+                    ? `Semana ${fmtInt(fila.semana_min)}`
+                    : `Semanas ${fmtInt(fila.semana_min)}–${fmtInt(fila.semana_max)}`,
+                }]
+              : []),
           ],
           nota: detalle,
           tono: heredada ? "heredada" : "asistencia",
@@ -218,13 +230,69 @@ function FilaPerfil({
  * estudiantes, así que compara proporciones y no tamaños: una facultad chica y
  * una grande se leen en la misma escala.
  */
+/**
+ * Cuándo se aplicó una celda, dentro del campo completo.
+ *
+ * G53 · Gonzalo: «en general en todo el reporte no se toma ese dato contextual
+ * y es súper importante». En 2025, Educación se aplicó en la semana 2,7 de
+ * media y Arquitectura en la 1,6: sus tasas no describen dos facultades bajo
+ * las mismas condiciones, porque para la segunda mitad del campo el marco ya
+ * estaba más agotado. La pista sitúa la ventana de la celda sobre el eje del
+ * operativo, así que la comparación se ve sin leer una cifra.
+ */
+function VentanaCampo({
+  fila,
+  campo,
+}: {
+  fila: Pick<
+    CalcMuestraReferenciaAsistenciaEmbudoFila,
+    "semana_min" | "semana_max" | "semana_media" | "k_con_semana" | "k"
+  >;
+  campo: { min: number; max: number };
+}) {
+  if (fila.semana_min === null || fila.semana_max === null) return null;
+  const ancho = Math.max(1, campo.max - campo.min + 1);
+  const pos = (semana: number) => ((semana - campo.min) / ancho) * 100;
+  const izquierda = pos(fila.semana_min);
+  const largo = Math.max(6, pos(fila.semana_max + 1) - izquierda);
+  const media = fila.semana_media;
+  return (
+    <span
+      className="cmv2-hist-ventana"
+      {...tip({
+        titulo: "Cuándo se aplicó",
+        filas: [
+          {
+            label: "Semanas",
+            valor: fila.semana_min === fila.semana_max
+              ? `${fmtInt(fila.semana_min)}`
+              : `${fmtInt(fila.semana_min)}–${fmtInt(fila.semana_max)}`,
+          },
+          ...(media !== null ? [{ label: "Media", valor: media.toFixed(1) }] : []),
+          // Con la mitad de las aulas sin fechar, la media habla de otra cosa.
+          ...(fila.k_con_semana !== null && fila.k_con_semana < fila.k
+            ? [{ label: "Aulas con fecha", valor: `${fmtInt(fila.k_con_semana)} de ${fmtInt(fila.k)}` }]
+            : []),
+        ],
+        nota: "El campo se fue agotando, así que lo que se aplicó tarde no rindió en las mismas condiciones",
+      })}
+    >
+      <i style={{ left: `${izquierda}%`, width: `${largo}%` }} />
+      {media !== null ? <b style={{ left: `${pos(media + 0.5)}%` }} /> : null}
+    </span>
+  );
+}
+
 function EmbudoApilado({
   filas,
   prefijo,
+  campo,
 }: {
   filas: CalcMuestraReferenciaAsistenciaEmbudoFila[];
   /** Nombre de la dimensión, para nombrar categorías que sólo son un número. */
   prefijo?: string;
+  /** Primera y última semana del operativo, para situar cada ventana. */
+  campo?: { min: number; max: number } | null;
 }) {
   // Un criterio como `nivel_curso` llega con valores «6», «9», «3»: la cifra
   // sola no dice qué mide. Cuando toda la dimensión es numérica se antepone su
@@ -234,7 +302,9 @@ function EmbudoApilado({
   const nombrar = (label: string) => (soloNumeros ? `${prefijo} ${label}` : label);
 
   return (
-    <ol className="cmv2-hist-apilado">
+    // La rejilla gana una columna cuando hay eje temporal: el `li` es
+    // `display: contents`, así que el reparto se declara aquí.
+    <ol className="cmv2-hist-apilado" data-ventana={campo ? "si" : undefined}>
       {[...filas]
         .filter((f) => (f.elegibles ?? 0) > 0)
         .sort((a, b) =>
@@ -248,9 +318,10 @@ function EmbudoApilado({
           const descuento = (f.ya_medidas ?? 0) + (f.no_elegibles ?? 0);
           const fuera = base - (f.efectivas ?? 0) - (f.no_efectivas ?? 0) - descuento;
           return (
-            <li key={f.celda_key}>
+            <li key={f.celda_key} data-con-ventana={campo ? "si" : undefined}>
               <span className="cmv2-hist-apilado-nombre">{nombrar(f.celda_label)}</span>
               <span className="cmv2-hist-apilado-k">{fmtInt(f.k)}</span>
+              {campo ? <VentanaCampo fila={f} campo={campo} /> : null}
               <span
                 className="cmv2-hist-apilado-track"
                 {...tip({
@@ -261,7 +332,13 @@ function EmbudoApilado({
                     { label: "Faltaron o no la abrieron", valor: fmtInt(Math.max(0, fuera)) },
                     { label: "Ya habían contestado", valor: fmtInt(descuento) },
                   ],
-                  nota: `${fmtInt(base)} estudiantes del estudio en ${fmtInt(f.k)} aulas`,
+                  nota: `${fmtInt(base)} estudiantes del estudio en ${fmtInt(f.k)} aulas${
+                    f.semana_min !== null && f.semana_max !== null
+                      ? f.semana_min === f.semana_max
+                        ? `, todas en la semana ${fmtInt(f.semana_min)}`
+                        : `, aplicadas entre las semanas ${fmtInt(f.semana_min)} y ${fmtInt(f.semana_max)}`
+                      : ""
+                  }`,
                   tono: "efectiva",
                 })}
               >
@@ -738,6 +815,16 @@ export function HistoricoEstudioPanel({
   } = referencia;
   const conGlosario = cobertura.glosario_completo;
   const deriva = referencia.serie_campo?.deriva ?? null;
+  // El eje sobre el que se sitúa cada ventana: la primera y la última semana del
+  // operativo. Sale de la serie, que es quien las conoce todas; sin serie no hay
+  // eje y las ventanas no se dibujan.
+  const campo = (() => {
+    const semanas = (referencia.serie_campo?.filas ?? [])
+      .map((f) => f.semana)
+      .filter((s): s is number => Number.isFinite(s));
+    if (semanas.length < 2) return null;
+    return { min: Math.min(...semanas), max: Math.max(...semanas) };
+  })();
 
   const facultad = dimensiones.find((d) => d.dimension_key === "facultad");
   const embudoFacultad = referencia.embudos.find((e) => e.dimension_key === "facultad");
@@ -1084,8 +1171,11 @@ export function HistoricoEstudioPanel({
             <span data-tipo="rechazo">Empezaron y no siguieron</span>
             <span data-tipo="ausencia">Faltaron o no la abrieron</span>
             <span data-tipo="descuento">Ya habían contestado o no eran del estudio</span>
+            {/* La columna nueva no puede quedar muda: sin rótulo, la pista se
+                lee como una barra más del reparto. */}
+            {campo ? <span data-tipo="ventana">Semanas en que se aplicó</span> : null}
           </div>
-          <EmbudoApilado filas={embudoFacultad.filas} />
+          <EmbudoApilado filas={embudoFacultad.filas} campo={campo} />
         </div>
       ) : null}
 
@@ -1142,11 +1232,14 @@ export function HistoricoEstudioPanel({
             <span data-tipo="rechazo">Empezaron y no siguieron</span>
             <span data-tipo="ausencia">Faltaron o no la abrieron</span>
             <span data-tipo="descuento">Ya habían contestado o no eran del estudio</span>
+            {/* La columna nueva no puede quedar muda: sin rótulo, la pista se
+                lee como una barra más del reparto. */}
+            {campo ? <span data-tipo="ventana">Semanas en que se aplicó</span> : null}
           </div>
           {embudosCriterio.map((e) => (
             <div className="cmv2-hist-criterio" key={e.dimension_key}>
               <span className="cmv2-eyebrow">{e.dimension_label}</span>
-              <EmbudoApilado filas={e.filas} prefijo={e.dimension_label} />
+              <EmbudoApilado filas={e.filas} prefijo={e.dimension_label} campo={campo} />
             </div>
           ))}
         </div>
@@ -1277,13 +1370,20 @@ export function HistoricoEstudioPanel({
               De cada 100 estudiantes matriculados en las aulas visitadas de esa facultad, cuántos
               estaban en clase el día de la visita. La línea marca el {pct(refPerfil, 0)} de
               referencia.
+              {/* G53 · La pista de la izquierda no puede quedar muda. */}
+              {campo ? (
+                <>
+                  {" "}
+                  La pista de la izquierda dice en qué semanas del campo se aplicaron sus aulas.
+                </>
+              ) : null}
             </p>
           </header>
-          <ol className="cmv2-hist-perfil">
+          <ol className="cmv2-hist-perfil" data-ventana={campo ? "si" : undefined}>
             {filasFacultad
               .filter((f) => f.fuente_publicada !== "global")
               .map((fila) => (
-                <FilaPerfil key={fila.celda_key} fila={fila} referencia={refPerfil} />
+                <FilaPerfil key={fila.celda_key} fila={fila} referencia={refPerfil} campo={campo} />
               ))}
           </ol>
           {degradadas > 0 ? (
@@ -1294,11 +1394,11 @@ export function HistoricoEstudioPanel({
                 Estas {degradadas} se aplicaron en muy pocas aulas para fijar una cifra propia, así
                 que heredan el {pct(refPerfil, 0)} de referencia.
               </p>
-              <ol className="cmv2-hist-perfil">
+              <ol className="cmv2-hist-perfil" data-ventana={campo ? "si" : undefined}>
                 {filasFacultad
                   .filter((f) => f.fuente_publicada === "global")
                   .map((fila) => (
-                    <FilaPerfil key={fila.celda_key} fila={fila} referencia={refPerfil} />
+                    <FilaPerfil key={fila.celda_key} fila={fila} referencia={refPerfil} campo={campo} />
                   ))}
               </ol>
             </>
@@ -1314,10 +1414,13 @@ export function HistoricoEstudioPanel({
             <header className="cmv2-hist-bloque-head">
               <span className="cmv2-eyebrow">Asistencia según</span>
               <h4>{dimension.dimension_label}</h4>
+              {campo ? (
+                <p>La pista de la izquierda dice en qué semanas del campo se aplicaron sus aulas.</p>
+              ) : null}
             </header>
-            <ol className="cmv2-hist-perfil">
+            <ol className="cmv2-hist-perfil" data-ventana={campo ? "si" : undefined}>
               {filas.map((fila) => (
-                <FilaPerfil key={fila.celda_key} fila={fila} referencia={cadena.asistencia.tasa} />
+                <FilaPerfil key={fila.celda_key} fila={fila} referencia={cadena.asistencia.tasa} campo={campo} />
               ))}
             </ol>
           </div>

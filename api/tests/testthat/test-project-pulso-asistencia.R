@@ -48,7 +48,9 @@
     embudos = list(list(
       dimension_key = "facultad", dimension_label = "Facultad", orden = 1L,
       filas = list(list(
-        celda_key = "derecho", celda_label = "Derecho", k = 21L, elegibles = 900,
+        celda_key = "derecho", celda_label = "Derecho", k = 21L,
+        semana_min = 1L, semana_max = 3L, semana_media = 1.56, k_con_semana = 21L,
+        elegibles = 900,
         asistentes = 700, ya_medidas = 40, no_elegibles = 10,
         elegibles_presentes = 650, efectivas = 500, no_efectivas = 60,
         pct_ausencia = 0.22, pct_ya_medidas = 0.06, pct_rechazo = 0.09,
@@ -157,7 +159,9 @@
     dimensiones = list(list(
       dimension_key = "facultad", dimension_label = "Facultad", orden = 1L,
       filas = list(list(celda_key = "derecho", celda_label = "Derecho", orden = 1L,
-                        k = 21L, matriculados = 900, asistentes = 700, tasa = 0.78,
+                        k = 21L, matriculados = 900, asistentes = 700,
+                        semana_min = 1L, semana_max = 3L, semana_media = 1.56,
+                        k_con_semana = 21L, tasa = 0.78,
                         estimador = "razon", media_ch = 0.77, sd_ch = 0.1,
                         ic_low = 0.74, ic_high = 0.82, metodo_ic = "bootstrap",
                         suficiencia = "solida", tasa_publicada = 0.78,
@@ -200,6 +204,15 @@ test_that("la dimension temporal sobrevive al guardado", {
   expect_identical(guardada$serie_campo$deriva$efectividad_max, 0.795)
   expect_true(guardada$serie_campo$deriva$agotamiento_crece)
   expect_length(guardada$serie_campo$deriva$puntos, 1L)
+
+  # La ventana por celda: sin ella, la tasa de una facultad se lee como una
+  # propiedad suya y no como lo que rindio en el tramo de campo que le toco.
+  celda_embudo <- guardada$embudos[[1L]]$filas[[1L]]
+  expect_identical(celda_embudo$semana_min, 1L)
+  expect_identical(celda_embudo$semana_max, 3L)
+  expect_identical(celda_embudo$k_con_semana, 21L)
+  celda_dimension <- guardada$dimensiones[[1L]]$filas[[1L]]
+  expect_identical(celda_dimension$semana_media, 1.56)
 
   # La semana de cada escalon: una cadena que bajo escalones se resolvio tarde.
   cadena <- guardada$cadenas_reemplazo$filas[[1L]]

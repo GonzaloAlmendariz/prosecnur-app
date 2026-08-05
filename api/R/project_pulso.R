@@ -67,6 +67,10 @@
   if (!is.list(value)) return(NULL)
   .pulso_whitelist_scalar_fields(value, c(
     "celda_key", "celda_label", "orden", "k", "matriculados", "asistentes",
+    # G53 · Cuándo se aplicó la celda. Sin la ventana, la tasa de una facultad
+    # se lee como una propiedad suya y no como lo que rindió en el tramo de
+    # campo que le tocó.
+    "semana_min", "semana_max", "semana_media", "k_con_semana",
     "tasa", "estimador", "media_ch", "sd_ch", "ic_low", "ic_high",
     "metodo_ic", "suficiencia", "tasa_publicada", "k_publicada",
     "fuente_publicada"
@@ -147,7 +151,9 @@
     c("dimension_key", "dimension_label", "orden")
   )
   out["filas"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(value$filas, c(
-    "celda_key", "celda_label", "k", "elegibles", "asistentes", "ya_medidas",
+    "celda_key", "celda_label", "k",
+    "semana_min", "semana_max", "semana_media", "k_con_semana",
+    "elegibles", "asistentes", "ya_medidas",
     "no_elegibles", "elegibles_presentes", "efectivas", "no_efectivas",
     "pct_ausencia", "pct_ya_medidas", "pct_rechazo", "efectividad", "rendimiento"
   )))

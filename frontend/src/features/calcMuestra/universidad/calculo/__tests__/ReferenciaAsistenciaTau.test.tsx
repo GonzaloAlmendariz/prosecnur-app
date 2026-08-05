@@ -22,6 +22,12 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     k: 9,
     matriculados: 94,
     asistentes: 76,
+    // La ventana de campo de la celda: esta fixture describe un estudio sin
+    // columna de semana, que es el caso en que los cuatro campos van a null.
+    semana_min: null,
+    semana_max: null,
+    semana_media: null,
+    k_con_semana: null,
     tasa: 76 / 94,
     estimador: "razon_agregada",
     media_ch: 0.8,

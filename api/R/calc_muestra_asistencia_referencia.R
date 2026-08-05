@@ -366,8 +366,33 @@
   )
 }
 
+#' Cuando se aplico una celda.
+#'
+#' G53 · Gonzalo: «en general en todo el reporte no se toma ese dato contextual
+#' y es super importante». Vale igual por facultad y por criterio: una facultad
+#' cuyas aulas cayeron todas en la ultima semana no rindio menos por ser esa
+#' facultad, sino porque para entonces el marco ya estaba mas agotado. Sin la
+#' ventana, su tasa se lee como una propiedad suya.
+#'
+#' Devuelve NULL cuando la base no declara semana o ninguna fila de la celda la
+#' trae: la superficie omite el dato en vez de inventarlo.
+.cm_asist_ventana <- function(semanas) {
+  if (is.null(semanas)) return(NULL)
+  valores <- suppressWarnings(as.numeric(semanas))
+  valores <- valores[is.finite(valores)]
+  if (!length(valores)) return(NULL)
+  list(
+    semana_min = as.integer(min(valores)),
+    semana_max = as.integer(max(valores)),
+    semana_media = mean(valores),
+    # Cuantas aulas de la celda tienen semana: con la mitad sin fechar, la media
+    # habla de otra cosa y la superficie tiene que poder callarse.
+    k_con_semana = as.integer(length(valores))
+  )
+}
+
 .cm_asist_cell <- function(key, label, order, matriculados, asistentes,
-                           bootstrap_n, global) {
+                           bootstrap_n, global, semanas = NULL) {
   stats <- .cm_asist_cell_stats(matriculados, asistentes, bootstrap_n)
   sufficiency <- .cm_asist_sufficiency(stats$k)
 
@@ -399,6 +424,7 @@
     published_source <- publication$source
   }
 
+  ventana <- .cm_asist_ventana(semanas)
   list(
     celda_key = key,
     celda_label = label,
@@ -406,6 +432,10 @@
     k = stats$k,
     matriculados = stats$matriculados,
     asistentes = stats$asistentes,
+    semana_min = ventana$semana_min %||% NA_integer_,
+    semana_max = ventana$semana_max %||% NA_integer_,
+    semana_media = ventana$semana_media %||% NA_real_,
+    k_con_semana = ventana$k_con_semana %||% NA_integer_,
     tasa = stats$tasa,
     estimador = "razon_agregada",
     media_ch = stats$media_ch,
@@ -473,7 +503,8 @@
       model$matriculados[idx],
       model$asistentes[idx],
       bootstrap_n,
-      global
+      global,
+      semanas = if (is.null(model$semana)) NULL else model$semana[idx]
     )
   })
   list(
@@ -1033,7 +1064,8 @@
       model$matriculados[idx],
       model$asistentes[idx],
       bootstrap_n,
-      global
+      global,
+      semanas = if (is.null(model$semana)) NULL else model$semana[idx]
     )
   })
   list(
@@ -1497,10 +1529,17 @@ calc_muestra_asistencia_diseno_declarado <- function(tabla) {
       NA_real_
     }
     presentes <- if (is.finite(asistentes)) asistentes - cero(ya) - cero(noel) else NA_real_
+    ventana <- .cm_asist_ventana(if (is.null(model$semana)) NULL else model$semana[sel])
     list(
       celda_key = .cm_criterios_fac_key(clave),
       celda_label = clave,
       k = as.integer(sum(sel)),
+      # Cuando ocurrio esta celda. Una facultad aplicada entera en la ultima
+      # semana no rindio menos por ser esa facultad.
+      semana_min = ventana$semana_min %||% NA_integer_,
+      semana_max = ventana$semana_max %||% NA_integer_,
+      semana_media = ventana$semana_media %||% NA_real_,
+      k_con_semana = ventana$k_con_semana %||% NA_integer_,
       elegibles = elegibles,
       asistentes = asistentes,
       ya_medidas = ya,
