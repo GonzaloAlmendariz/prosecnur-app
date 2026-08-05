@@ -667,10 +667,13 @@ test_that("Word aplica el preset apilado institucional por defecto", {
   expect_false(isTRUE(apiladas$mostrar_barra_extra))
   expect_equal(as.numeric(apiladas$canvas_w_extra), 0)
   expect_equal(as.numeric(apiladas$canvas_w_bars), 0.82)
-  expect_equal(as.numeric(apiladas$legend_key_cm), 0.15)
+  # B52/W-1: leyenda a 8 pt (6 era ilegible en 6.1in) y key 0.18; ademas la
+  # etiqueta chica espeja a la normal para que el editorial 5.6 no gobierne.
+  expect_equal(as.numeric(apiladas$legend_key_cm), 0.18)
   expect_equal(as.integer(apiladas$legend_n_por_fila), 10L)
   expect_equal(as.numeric(apiladas$legend_espaciado), 0)
-  expect_equal(as.numeric(apiladas$size_leyenda), 6)
+  expect_equal(as.numeric(apiladas$size_leyenda), 8)
+  expect_equal(as.numeric(apiladas$size_texto_barras_peq), as.numeric(apiladas$size_texto_barras))
   expect_equal(as.numeric(apiladas$canvas_h_legend_in), 0.42)
   expect_equal(as.numeric(apiladas$centro_cowplot), 0.5)
 
@@ -720,7 +723,7 @@ test_that("config de graficos expone defaults Word aunque w_presets venga vacio"
   expect_equal(cfg$w_presets$chart_options$ocultar_etiqueta_si_titulo, TRUE)
   expect_equal(cfg$w_presets$chart_presets$barras_apiladas$legend_n_por_fila, 10)
   expect_equal(cfg$w_presets$chart_presets$barras_apiladas$canvas_w_bars, 0.82)
-  expect_equal(cfg$w_presets$chart_presets$barras_apiladas$legend_key_cm, 0.15)
+  expect_equal(cfg$w_presets$chart_presets$barras_apiladas$legend_key_cm, 0.18)
   expect_false(isTRUE(cfg$w_presets$chart_presets$barras_apiladas$mostrar_barra_extra))
 
   custom <- .graficos_normalize_config(list(

@@ -107,11 +107,13 @@ test_that("caption por actor conserva los N efectivos de cuatro fuentes", {
     build_render_meta = TRUE,
     mensajes_progreso = FALSE
   )$render_meta
+  # B52/W-4: Word usa la MISMA base prorrateada que el slide PPT; el caption
+  # por actor («Administrativos (12) y …») es solo fallback.
   expect_equal(
     vapply(word_meta, `[[`, character(1), "base"),
     c(
-      "Base: Administrativos (12) y Docentes (24)",
-      "Base: Egresados (165) y Estudiantes (178)"
+      "Base: 12 administrativos y 24 docentes",
+      "Base: 165 egresados y 178 estudiantes"
     )
   )
 })
@@ -170,12 +172,14 @@ test_that("modo var cualificado conserva actor y rango efectivo", {
   expected <- "Base: Administrativos (12-24 según variable) y Docentes (18)"
   # Doctrina B36/G-17: el caption ya no viaja dentro del grafico.
   expect_false(expected %in% .actor_base_plot_text(out$rendered[[1]]))
+  # B52/W-4: cada bloque Word rotula su base con el formato prorrateado por
+  # fuente del PPT (reporte multifuente => «N fuente»), no el actor-caption.
   expect_equal(
     vapply(out$render_meta, `[[`, character(1), "base"),
     c(
-      "Base: Administrativos (12)",
-      "Base: Administrativos (24)",
-      "Base: Docentes (18)"
+      "Base: 12 administrativos",
+      "Base: 24 administrativos",
+      "Base: 18 docentes"
     )
   )
 })
