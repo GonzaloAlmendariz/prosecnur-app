@@ -39,6 +39,11 @@
     # 6 pt era ilegible en el lienzo de 6.1in (B52/W-1); 8 pt es el piso
     # legible del manual para texto auxiliar impreso.
     size_leyenda             = 8,
+    # W-5 (B54): cuando la columna extra pedida sobrevive en Word, su
+    # tipografia baja del 16 editorial (calibrado a 12.2in) al cuerpo del
+    # lienzo de 6.1in.
+    size_barra_extra         = 9,
+    size_titulo_extra        = 9,
     centro_cowplot           = 0.5
   ),
 
@@ -184,6 +189,13 @@ w_presets <- function(
       if (is.null(patch) || !is.list(patch)) next
       if (!is.null(patch$args) && is.list(patch$args)) patch <- patch$args
       presets_ppt[[nm]] <- ensure_block(presets_ppt[[nm]])
+      # W-5 (B54): si el preset PPT del usuario pide la columna extra de
+      # forma deliberada (barra_extra_preset != "ninguno"), el patch Word
+      # no puede apagarla ni pisar la particion de anchos que ese preset
+      # declara; solo re-escala el resto (tipografia, alturas, leyenda).
+      if (nm %in% c("barras_apiladas", "multi_apiladas")) {
+        patch <- .word_patch_conservar_barra_extra(patch, presets_ppt[[nm]]$args)
+      }
       presets_ppt[[nm]]$args <- utils::modifyList(
         presets_ppt[[nm]]$args %||% list(),
         patch

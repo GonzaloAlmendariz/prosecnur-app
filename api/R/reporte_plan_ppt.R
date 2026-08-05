@@ -4042,7 +4042,7 @@ reporte_ppt_plan <- function(
           sub               <- block_data
           sub$vars          <- vars_list[nm]
           sub$titulos_grupo <- NULL   # no mostrar en el chart; sale como titulo Word
-          title_g <- as.character(titulos_grupo[[nm]] %||% nm)[1]
+          title_g <- .word_titulo_bloque_multi(block_data$title_slide, titulos_grupo[[nm]] %||% nm)
           .push_multi_block(sub, title_g)
         }
 
@@ -4056,7 +4056,7 @@ reporte_ppt_plan <- function(
           sub$titulos_grupo <- NULL
           title_v <- tryCatch(.title_of_var(v), error = function(e) v)
           if (is.null(title_v) || !nzchar(trimws(as.character(title_v)[1]))) title_v <- v
-          .push_multi_block(sub, as.character(title_v)[1])
+          .push_multi_block(sub, .word_titulo_bloque_multi(block_data$title_slide, title_v))
         }
 
       } else {

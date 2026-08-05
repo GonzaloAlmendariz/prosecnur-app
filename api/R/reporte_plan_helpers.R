@@ -2600,6 +2600,106 @@ p_reset <- function(
   ov
 }
 
+# W-5 (B54): el default Word apaga la columna extra (mostrar_barra_extra
+# FALSE + canvas_w_extra 0) porque la marca N implicita del preset editorial
+# PPT (mostrar_barra_extra=TRUE de fabrica con barra_extra_preset="ninguno")
+# no aporta en el lienzo de 6.1in. Pero un pedido DELIBERADO en los overrides
+# de la lamina — barra_extra_preset ("top2box", "totales", ...),
+# titulo_barra_extra o mostrar_barra_extra=TRUE — tiene que sobrevivir: Word
+# solo re-escala la geometria (las fracciones canvas_w_* se normalizan por su
+# suma contra el lienzo fisico del docx, ver w_sum en el graficador). Un
+# mostrar_barra_extra=FALSE explicito en la lamina sigue mandando.
+.word_barra_extra_pedida <- function(ov) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  if (!is.list(ov)) ov <- list()
+  preset_extra <- trimws(as.character(ov$barra_extra_preset %||% "")[1])
+  titulo_extra <- trimws(as.character(ov$titulo_barra_extra %||% "")[1])
+  if (is.na(preset_extra)) preset_extra <- ""
+  if (is.na(titulo_extra)) titulo_extra <- ""
+  isTRUE(ov$mostrar_barra_extra) ||
+    (nzchar(preset_extra) && !identical(preset_extra, "ninguno")) ||
+    nzchar(titulo_extra)
+}
+
+.word_conservar_barra_extra_pedida <- function(ov, w_extra = 0.16, w_bars = 0.64,
+                                               w_buf = 0.02) {
+  if (!is.list(ov)) ov <- list()
+  if (isFALSE(ov$mostrar_barra_extra)) return(ov)
+  if (!.word_barra_extra_pedida(ov)) return(ov)
+  ov$mostrar_barra_extra <- TRUE
+  # Geometria Word solo donde la lamina no la fijo: la columna extra recibe
+  # una fraccion legible del lienzo (0.16 de 6.1in ~ 1in) y las barras ceden
+  # el ancho equivalente. Las fracciones son relativas (se re-normalizan).
+  if (is.null(ov$canvas_w_extra)) ov$canvas_w_extra <- w_extra
+  if (is.null(ov$canvas_w_buf_bars_extra)) ov$canvas_w_buf_bars_extra <- w_buf
+  if (is.null(ov$canvas_w_bars)) ov$canvas_w_bars <- w_bars
+  ov
+}
+
+# W-5 (B54), capa de PRESET: el default PPT de fabrica tambien trae
+# mostrar_barra_extra=TRUE (columna N implicita), asi que el unico pedido
+# inequivoco en esta capa es un barra_extra_preset explicito del usuario
+# ("totales"/"top2box"/...). Con el, el patch default Word no puede apagar la
+# columna ni pisar la particion de anchos que el preset del usuario declara.
+.word_patch_conservar_barra_extra <- function(patch, ppt_args) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  if (!is.list(patch)) return(patch)
+  if (!is.list(ppt_args)) ppt_args <- list()
+  preset_extra <- trimws(as.character(ppt_args$barra_extra_preset %||% "")[1])
+  if (is.na(preset_extra) || !nzchar(preset_extra) ||
+      identical(preset_extra, "ninguno")) {
+    return(patch)
+  }
+  drop_keys <- c(
+    "mostrar_barra_extra", "barra_extra_preset", "prefijo_barra_extra",
+    "titulo_barra_extra", "canvas_w_etiquetas", "canvas_w_buf_etq_bars",
+    "canvas_w_bars", "canvas_w_buf_bars_extra", "canvas_w_extra"
+  )
+  patch[setdiff(names(patch), drop_keys)]
+}
+
+# W-6 (B54): en Word el alto de la imagen ES alto_word_sugerido, asi que el
+# piso B46 del graficador (panel de 2.8in para <=2 filas, pensado para llenar
+# el slot fisico del SLIDE) hacia que un bloque de 2 actores saliera con
+# barras ~2.5x mas gruesas que su vecino de 4 en la misma pagina. Fijar
+# canvas_h_panel_in proporcional a los actores esquiva ese piso: 0.55in por
+# fila (espejo de alto_por_categoria del preset Word) con piso 1.1in
+# (canvas_h_panel_in_min del preset Word).
+.word_escalar_panel_multi <- function(block_clean) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  ov <- block_clean$overrides %||% list()
+  if (!is.null(ov$canvas_h_panel_in)) return(block_clean)
+  # Con `cruce` las filas dependen de los niveles observados en la data; se
+  # respeta el calculo intrinseco del graficador.
+  if (!is.null(block_clean$cruce)) return(block_clean)
+  refs <- unlist(block_clean$vars %||% list(), use.names = FALSE)
+  refs <- trimws(as.character(refs))
+  n_act <- sum(!is.na(refs) & nzchar(refs))
+  if (n_act < 1L) return(block_clean)
+  alto_cat <- suppressWarnings(as.numeric(ov$alto_por_categoria %||% 0.55)[1])
+  if (!is.finite(alto_cat) || alto_cat <= 0) alto_cat <- 0.55
+  ov$canvas_h_panel_in <- max(1.1, alto_cat * n_act)
+  block_clean$overrides <- ov
+  block_clean
+}
+
+# W-7 (B54): el titulo de la lamina (payload$titulo -> el$title_slide) se
+# integra al titulo Word de cada bloque del split multiapiladas. Sin el, dos
+# grupos con el mismo titulos_grupo salian con titulos identicos («Grafico
+# N 3. Servicio de salud» / «N 4. Servicio de salud») y el texto que el
+# usuario escribio en su lamina no viajaba al docx.
+.word_titulo_bloque_multi <- function(titulo_lamina, titulo_grupo) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  lam <- trimws(as.character(titulo_lamina %||% "")[1])
+  grp <- trimws(as.character(titulo_grupo %||% "")[1])
+  if (is.na(lam)) lam <- ""
+  if (is.na(grp)) grp <- ""
+  if (!nzchar(lam)) return(grp)
+  if (!nzchar(grp)) return(lam)
+  if (identical(tolower(lam), tolower(grp))) return(grp)
+  paste0(lam, " \u2014 ", grp)
+}
+
 # Limpieza + geometria Word de un bloque multiapiladas (extraida del closure
 # `.push_multi_block` de reporte_ppt_plan(), congelado a crecimiento).
 .word_preparar_block_multi <- function(block_data, word_image = NULL) {
@@ -2614,6 +2714,13 @@ p_reset <- function(
   # Compensar que sin columna de grupo las barras se perciben algo mas delgadas
   if (is.null(block_clean$overrides$grosor_barras_mult))
     block_clean$overrides$grosor_barras_mult <- 2.30
+  # W-5 (B54): un pedido explicito de columna extra en la lamina sobrevive al
+  # default Word; particion multiactor (0.30 etiquetas + 0.54 barras + 0.14).
+  block_clean$overrides <- .word_conservar_barra_extra_pedida(
+    block_clean$overrides, w_extra = 0.14, w_bars = 0.54
+  )
+  # W-6 (B54): panel proporcional al numero de actores del bloque.
+  block_clean <- .word_escalar_panel_multi(block_clean)
   block_clean$overrides <- .word_calibrar_canvas_overrides(
     block_clean$overrides, word_image
   )
@@ -2628,6 +2735,11 @@ p_reset <- function(
   ov <- el_for_word$overrides %||% list()
   if (etype %in% c("barras_apiladas", "barras_multiapiladas", "barras_agrupadas")) {
     ov <- .word_calibrar_canvas_overrides(ov, word_image)
+  }
+  if (etype %in% c("barras_apiladas", "barras_multiapiladas")) {
+    # W-5 (B54): el pedido de columna extra de la lamina sobrevive al default
+    # Word que la apaga (el default solo rige cuando nadie la pidio).
+    ov <- .word_conservar_barra_extra_pedida(ov)
   }
   if (identical(etype, "media_rango")) {
     size_ejes_orig <- ov$size_ejes %||% 9
