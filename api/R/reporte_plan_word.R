@@ -25,14 +25,54 @@
     ancho_max_eje_y          = 36,
     size_ejes                = 7,
     size_texto_barras        = 2.8,
+    # W-1 (B52): sin este espejo, el preset editorial PPT (5.6 mm) seguia
+    # gobernando las etiquetas de segmentos chicos via el fallback
+    # `size_texto_barras_peq %||% size_texto_barras` del graficador, y el
+    # "2%" salia al doble de tamano que el resto de valores en Word.
+    size_texto_barras_peq    = 2.8,
 
     leyenda_posicion         = "abajo",
     mostrar_leyenda          = TRUE,
-    legend_key_cm            = 0.15,
+    legend_key_cm            = 0.18,
     legend_espaciado         = 0,
     legend_n_por_fila        = 10,
-    size_leyenda             = 6,
+    # 6 pt era ilegible en el lienzo de 6.1in (B52/W-1); 8 pt es el piso
+    # legible del manual para texto auxiliar impreso.
+    size_leyenda             = 8,
     centro_cowplot           = 0.5
+  ),
+
+  # W-3 (B52): los bloques multiapiladas (baterias y laminas multiactor)
+  # renderizaban en Word con el preset editorial PPT (16 pt sobre un lienzo
+  # de 6.1in): las etiquetas de actor clipeaban por la izquierda y la
+  # leyenda desbordaba. Estos tamanos estan calibrados al lienzo Word.
+  multi_apiladas = list(
+    mostrar_barra_extra      = FALSE,
+
+    canvas_w_etiquetas       = 0.30,
+    canvas_w_buf_etq_bars    = 0.02,
+    canvas_w_bars            = 0.60,
+    canvas_w_extra           = 0.08,
+
+    canvas_h_toprow_in       = 0,
+    canvas_h_legend_in       = 0.42,
+    canvas_h_caption_in      = 0.45,
+    alto_por_categoria       = 0.55,
+
+    ancho_max_eje_y          = 26,
+    size_ejes                = 9,
+    size_titulos_grupo       = 9,
+    size_texto_barras        = 2.8,
+    size_texto_barras_peq    = 2.8,
+    size_barra_extra         = 9,
+    size_titulo_extra        = 9,
+
+    leyenda_posicion         = "abajo",
+    mostrar_leyenda          = TRUE,
+    legend_key_cm            = 0.18,
+    legend_espaciado         = 0,
+    legend_n_por_fila        = 10,
+    size_leyenda             = 8
   )
 )
 
@@ -151,6 +191,16 @@ w_presets <- function(
     }
   }
 
+  # W-1/W-3 (B52): el render Word ocurre DENTRO de reporte_ppt_plan, que no
+  # recibe presets_word. Se sella aqui el lienzo fisico del docx para que
+  # `.word_ajustar_el()` re-calibre ancho/alto del canvas (el slot adapter
+  # PPT inyecta ~12.2x5.9in y la imagen Word se inserta a este tamano).
+  img <- (presets_word %||% list())$image %||% list()
+  presets_ppt$base$args$word_image <- list(
+    width_in  = suppressWarnings(as.numeric(img$width_in  %||% 6.1)[1]),
+    height_in = suppressWarnings(as.numeric(img$height_in %||% 2.95)[1])
+  )
+
   class(presets_ppt) <- c("ppt_presets", "list")
   presets_ppt
 }
@@ -258,6 +308,10 @@ reporte_word_plan <- function(
       officer::ftext(text, prop = .fp_w(st)),
       fp_p = officer::fp_par(text.align = align, keep_with_next = isTRUE(keep_with_next))
     )
+    # W-2 (B52): en officer 0.7.x, body_add_fpar con `style` REEMPLAZA el
+    # pPr del fpar (se pierden keepNext y jc). Si el párrafo exige
+    # keep_with_next, manda el fp_par y se omite el estilo nombrado.
+    if (isTRUE(keep_with_next)) style <- NULL
     officer::body_add_fpar(doc, value = fpar, style = style)
   }
 
@@ -411,7 +465,22 @@ reporte_word_plan <- function(
         doc <- officer::body_add_break(doc)
       }
       doc <- .add_par_w(doc, title_txt, presets_word$title_style, align = "center", style = "Normal", keep_with_next = TRUE)
-      doc <- officer::body_add_gg(doc, value = p, width = w, height = h, res = img_dpi)
+      # W-2 (B52): body_add_gg no permite fp_par, asi que el parrafo de la
+      # imagen no podia declarar keep_with_next y la Base quedaba huerfana
+      # al otro lado de un salto de pagina. Se renderiza el PNG y se inserta
+      # via fpar(external_img) para que titulo+imagen+Base viajen juntos.
+      img_path <- tempfile(fileext = ".png")
+      ggplot2::ggsave(
+        filename = img_path, plot = p, width = w, height = h,
+        units = "in", dpi = img_dpi, bg = presets_word$image$bg %||% "white"
+      )
+      doc <- officer::body_add_fpar(
+        doc,
+        value = officer::fpar(
+          officer::external_img(img_path, width = w, height = h, unit = "in"),
+          fp_p = officer::fp_par(text.align = "center", keep_with_next = TRUE)
+        )
+      )
       if (!is.null(pie_txt))
         doc <- .add_par_w(doc, pie_txt, presets_word$base_style, align = "center")
       doc <- officer::body_add_par(doc, "", style = "Normal")

@@ -2574,12 +2574,61 @@ p_reset <- function(
   args
 }
 
+# Lienzo fisico de la imagen Word (pulgadas). El sello viaja en
+# presets$base$args$word_image (lo estampa .apply_word_chart_presets desde
+# w_presets()$image); si falta, caen los defaults de w_presets().
+.word_canvas_image_in <- function(word_image = NULL) {
+  word_image <- if (is.list(word_image)) word_image else list()
+  w <- suppressWarnings(as.numeric(word_image$width_in)[1])
+  h <- suppressWarnings(as.numeric(word_image$height_in)[1])
+  if (!is.finite(w) || is.na(w) || w <= 0) w <- 6.1
+  if (!is.finite(h) || is.na(h) || h <= 0) h <- 2.95
+  list(width_in = w, height_in = h)
+}
+
+# W-1/W-3 (B52): el slot adapter del PPT inyecta overrides$ancho/alto con la
+# geometria del SLIDE (~12.2x5.9in), pero el docx inserta la imagen al tamano
+# de w_presets()$image (6.1x2.95in por defecto). Con el ancho fantasma, la
+# leyenda estimaba sus filas contra 12in (items solapados al render real) y
+# el estiramiento B46 inflaba el alto de una barra sola hasta ~6in de vacio.
+# En el camino Word, el canvas se calibra SIEMPRE al lienzo del docx; el
+# control explicito del usuario para Word es w_presets(image=...).
+.word_calibrar_canvas_overrides <- function(ov, word_image = NULL) {
+  dims <- .word_canvas_image_in(word_image)
+  ov$ancho <- dims$width_in
+  ov$alto <- dims$height_in
+  ov
+}
+
+# Limpieza + geometria Word de un bloque multiapiladas (extraida del closure
+# `.push_multi_block` de reporte_ppt_plan(), congelado a crecimiento).
+.word_preparar_block_multi <- function(block_data, word_image = NULL) {
+  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  block_clean <- block_data
+  block_clean$overrides <- block_clean$overrides %||% list()
+  block_clean$overrides$titulo    <- NULL
+  block_clean$overrides$subtitulo <- NULL
+  # Flag para renderizado Word: omite columna de grupo en var_cruce
+  block_clean$.word_sin_grupo <- TRUE
+  block_clean$.word_render <- TRUE
+  # Compensar que sin columna de grupo las barras se perciben algo mas delgadas
+  if (is.null(block_clean$overrides$grosor_barras_mult))
+    block_clean$overrides$grosor_barras_mult <- 2.30
+  block_clean$overrides <- .word_calibrar_canvas_overrides(
+    block_clean$overrides, word_image
+  )
+  block_clean
+}
+
 # Ajustes por tipo para la variante Word de un elemento (device mas angosto
 # que el PPT: 6.0-6.6in vs 12.5). Absorbe el bloque ad-hoc de media_rango y
 # suma el del FODA (B-H29: las tarjetas truncaban label y chip en Word).
-.word_ajustar_el <- function(el_for_word, etype) {
+.word_ajustar_el <- function(el_for_word, etype, word_image = NULL) {
   `%||%` <- function(x, y) if (!is.null(x)) x else y
   ov <- el_for_word$overrides %||% list()
+  if (etype %in% c("barras_apiladas", "barras_multiapiladas", "barras_agrupadas")) {
+    ov <- .word_calibrar_canvas_overrides(ov, word_image)
+  }
   if (identical(etype, "media_rango")) {
     size_ejes_orig <- ov$size_ejes %||% 9
     ov$size_ejes <- min(size_ejes_orig, 8)

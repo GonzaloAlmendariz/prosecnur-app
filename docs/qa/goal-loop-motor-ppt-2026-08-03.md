@@ -2167,3 +2167,37 @@ Export Word del plan Conta real (job en verde, 4 páginas — portada e
 
 El PPT del mismo plan está editorial; Word es ahora el frente con más
 deuda visible del motor.
+
+### B53 — Carril W ejecutado: paridad Word W-1..W-4 reparada (2026-08-04, sesión B)
+
+Especialista de entregables sobre el diagnóstico B52; los cuatro con
+causa raíz distinta y dos bugs de librería encontrados en el camino:
+
+- **W-1**: el «2%» gigante venía del preset editorial PPT
+  (`size_texto_barras_peq=5.6`) que el preset Word no espejaba — el
+  fallback `%||%` nunca se activaba porque el peq editorial SÍ existía.
+  La leyenda microscópica era la otra mitad: el re-render Word heredaba
+  el ancho del slot PPT (~12.2 in) y estimaba filas de leyenda contra un
+  lienzo fantasma, insertado luego a 6.1 in. Presets Word propios
+  (peq=2.8, leyenda 8pt, key 0.18cm) + re-calibración del canvas al
+  `word_image` real. La barra sola bajó de 6.0 in de vacío a 2.96.
+- **W-2**: `body_add_gg` no acepta `fp_par` → imagen vía
+  `fpar(external_img)` con `keep_with_next`. Bug de officer 0.7.x
+  cazado: `body_add_fpar(style=)` PISA el `pPr` del fpar — el
+  `keep_with_next` y el centrado del título se descartaban en silencio.
+- **W-3**: el multiactor renderizaba etiquetas de actor a 16pt sobre una
+  columna de ~1.2 in — «Estudiantes» desbordaba el borde. Bloque
+  `multi_apiladas` nuevo en los presets Word calibrado a 6.1 in.
+- **W-4**: `pulso_actor_base_caption` (formato viejo) tenía precedencia
+  sobre la base prorrateada; invertido — Word dice ahora «Base: 52
+  docentes y 155 estudiantes», idéntico al PPT.
+
+31 asserts nuevos en 3 test files de contrato Word (escala, base
+multiactor, cohesión XML del docx); baseline sintético reprodujo los 4
+defectos y el post-fix los elimina (rasters inspeccionados; ambos
+gráficos + bases caben en 1 página, antes 2). reporte_plan_ppt.R
+(congelado) quedó −2 líneas bajo su línea base. Cambio colateral
+intencional a validar con Gonzalo: los títulos Word salen ahora
+centrados (siempre estuvo declarado; el bug de officer lo tragaba).
+Pendiente: re-export del deck Conta real in-app (worker callr exige
+`R CMD INSTALL` previo).

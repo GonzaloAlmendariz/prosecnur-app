@@ -3995,16 +3995,11 @@ reporte_ppt_plan <- function(
     # Helper: renderiza un sub-bloque multiapiladas y agrega a render_meta
     .push_multi_block <- function(block_data, title_word) {
       title_word <- .word_text_or_null(title_word) %||% .word_title_for_element(block_data)
-      block_clean <- block_data
-      block_clean$overrides <- block_clean$overrides %||% list()
-      block_clean$overrides$titulo    <- NULL
-      block_clean$overrides$subtitulo <- NULL
-      # Flag para renderizado Word: omite columna de grupo en var_cruce
-      block_clean$.word_sin_grupo <- TRUE
-      block_clean$.word_render <- TRUE
-      # Compensar que sin columna de grupo las barras se perciben algo mas delgadas
-      if (is.null(block_clean$overrides$grosor_barras_mult))
-        block_clean$overrides$grosor_barras_mult <- 2.30
+      # Limpieza + geometria Word del bloque (helper en reporte_plan_helpers.R)
+      block_clean <- .word_preparar_block_multi(
+        block_data,
+        word_image = presets$base$args$word_image %||% NULL
+      )
 
       p_b <- tryCatch(
         .render_barras_multiapiladas(block_clean, preset_args_multi = pm, preset_args_single = ps),
@@ -4020,7 +4015,10 @@ reporte_ppt_plan <- function(
         .base_auto_from_element(block_el, sufijo_auto = suf, formato = fmt),
         error = function(e) NULL
       )
-      base_b <- attr(p_b, "pulso_actor_base_caption", exact = TRUE) %||% base_b
+      # W-4 (B52): la Base sellada/prorrateada («52 docentes y 155
+      # estudiantes») manda, igual que en el slide PPT; el caption por actor
+      # («Docentes (52) y …») queda solo como fallback.
+      base_b <- base_b %||% attr(p_b, "pulso_actor_base_caption", exact = TRUE)
 
       render_meta[[length(render_meta) + 1]] <<- list(
         kind      = "chart",
@@ -4091,7 +4089,7 @@ reporte_ppt_plan <- function(
     el_for_word$overrides$titulo    <- NULL
     el_for_word$overrides$subtitulo <- NULL
     el_for_word$overrides$nota_pie  <- NULL
-    el_for_word <- .word_ajustar_el(el_for_word, etype)
+    el_for_word <- .word_ajustar_el(el_for_word, etype, word_image = presets$base$args$word_image %||% NULL)
     p_word <- tryCatch(.render_element_impl(el_for_word), error = function(e) plot)
 
     base <- tryCatch(
