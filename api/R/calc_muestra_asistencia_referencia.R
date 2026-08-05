@@ -611,12 +611,12 @@
       efectivas_escalon <- if (aplicada[fila] && is.finite(frame$validas[fila])) {
         frame$validas[fila]
       } else {
-        NULL
+        NA_real_
       }
       elegibles_escalon <- if (aplicada[fila] && is.finite(elegibles_fuente[fila])) {
         elegibles_fuente[fila]
       } else {
-        NULL
+        NA_real_
       }
       list(
         posicion = if (is.finite(posicion[fila])) as.integer(posicion[fila]) else j,
@@ -630,16 +630,16 @@
         # Efectividad de ESA aula: cuantos de sus elegibles completaron. Es la
         # cifra con la que se compara un aula contra otra; la cantidad sola
         # premia al aula grande.
-        rendimiento = if (!is.null(efectivas_escalon) && !is.null(elegibles_escalon)) {
+        rendimiento = if (!is.na(efectivas_escalon) && !is.na(elegibles_escalon)) {
           .cm_asist_ratio(efectivas_escalon, elegibles_escalon)
         } else {
-          NULL
+          NA_real_
         },
-        motivo = if (nzchar(motivo[fila])) motivo[fila] else NULL,
+        motivo = if (nzchar(motivo[fila])) motivo[fila] else NA_character_,
         motivo_codigo = if (nzchar(motivo[fila]) && !is.na(codigo_de[[motivo[fila]]] %||% NA)) {
           unname(codigo_de[[motivo[fila]]])
         } else {
-          NULL
+          NA_character_
         }
       )
     })
@@ -657,7 +657,7 @@
       escalones = escalones,
       escalones_trabajados = as.integer(ultimo_trabajado),
       aplicados = as.integer(length(aplicados)),
-      resuelta_en = if (is.na(resuelta_en)) NULL else resuelta_en,
+      resuelta_en = resuelta_en,
       efectivas = efectivas,
       elegibles = elegibles,
       rendimiento = .cm_asist_ratio(efectivas, elegibles)
@@ -869,9 +869,16 @@
 # saber sobre qué meta se trabajó, una tasa de campo es un número suelto. Todos
 # los campos son opcionales —una base puede no traer su diseño documentado— y
 # se emiten como NULL cuando faltan, nunca como cero.
+# Un campo ausente sale como NA, nunca como NULL.
+#
+# jsonlite serializa `NULL` dentro de una lista como `{}`, no como `null`, y el
+# contrato del cliente declara `number | null`. Un estudio que no declaraba su
+# diseño previo mandaba diecisiete `{}` y el normalizador rechazaba el payload
+# entero: la pestaña quedaba vacía sin decir por qué. `NA_real_` sí serializa
+# como `null`.
 .cm_asist_design_number <- function(value) {
   parsed <- suppressWarnings(as.numeric(value[1L]))
-  if (length(parsed) != 1L || !is.finite(parsed)) return(NULL)
+  if (length(parsed) != 1L || !is.finite(parsed)) return(NA_real_)
   parsed
 }
 
@@ -896,12 +903,16 @@
     metodo_ajuste = .cm_aulas_scalar(diseno$metodo_ajuste, ""),
     ponderado = if (is.logical(diseno$ponderado) && length(diseno$ponderado) == 1L) {
       diseno$ponderado
-    } else NULL
+    } else NA
   )
   # La tasa asumida es reconstruible cuando el diseño trae sobremuestra y las
   # aulas dimensionadas con sus elegibles; si no viene declarada se deja NULL
   # antes que inventarla.
-  out$declarado <- any(vapply(out, function(x) !is.null(x) && !identical(x, ""), logical(1)))
+  out$declarado <- any(vapply(
+    out,
+    function(x) !is.null(x) && !identical(x, "") && !(length(x) == 1L && is.na(x)),
+    logical(1)
+  ))
   out
 }
 
@@ -1385,7 +1396,9 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       columnas_glosario = as.list(glosario_conteos),
       columnas_criterio = as.list(setdiff(glosario_columnas, glosario_conteos))
     ),
-    encuentros = encuentros,
+    # NA y no NULL: sin glosario, un NULL saldría `{}` y el cliente lo leería
+    # como un bloque de encuentros presente, contradiciendo a `glosario_completo`.
+    encuentros = encuentros %||% NA,
     # El mismo embudo, abierto por las dimensiones que el operativo puede
     # accionar. Vacío cuando la base no trae el glosario del encuentro.
     embudos = Filter(Negate(is.null), list(
@@ -1409,8 +1422,11 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       .cm_asist_composicion_por(model, "modalidad", "Modalidad", 5L),
       .cm_asist_composicion_por(model, "rango_horario", "Rango horario", 6L)
     )),
-    serie_campo = .cm_asist_serie_campo(model),
-    cadenas_reemplazo = .cm_asist_cadenas(frame),
+    # `%||% NA` por la misma razón: un bloque ausente como NULL saldría `{}` y
+    # el cliente lo leería como un bloque presente y vacío, que es peor que
+    # ausente porque invalida el payload entero.
+    serie_campo = .cm_asist_serie_campo(model) %||% NA,
+    cadenas_reemplazo = .cm_asist_cadenas(frame) %||% NA,
     identidad = list(
       regla = if (tiene_glosario) {
         "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
@@ -1423,7 +1439,7 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       # El residual negativo es la señal de que el conteo de campo no cierra.
       residuales_negativos = if (tiene_glosario) {
         encuentros$unidades_con_residual_negativo
-      } else NULL
+      } else NA_integer_
     ),
     umbrales = list(
       insuficiente_max = 11L,
