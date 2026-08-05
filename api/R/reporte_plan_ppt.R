@@ -4514,7 +4514,7 @@ reporte_ppt_plan <- function(
     }
 
     args <- .merge_args(base_args, preset_args, overrides)
-    args <- .reservar_pie_para_base_slide(args)
+    args <- .reservar_pie_para_base_slide(args, word_render = isTRUE(el$.word_render))
     fun  <- graficar_barras_apiladas
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)
@@ -4957,7 +4957,7 @@ reporte_ppt_plan <- function(
       }
 
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
-      args <- .reservar_pie_para_base_slide(args, min_in = 0.85)
+      args <- .reservar_pie_para_base_slide(args, min_in = 0.85, word_render = isTRUE(el$.word_render))
       args$ancho_max_eje_y <- wrap_y_eff  # sin re-wrap del graficador (H31)
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
@@ -5128,7 +5128,7 @@ reporte_ppt_plan <- function(
       base_args <- .apply_top2box_alias(base_args)
 
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
-      args <- .reservar_pie_para_base_slide(args, min_in = 0.85)
+      args <- .reservar_pie_para_base_slide(args, min_in = 0.85, word_render = isTRUE(el$.word_render))
       args$ancho_max_eje_y <- wrap_y_eff  # idem modo var: sin re-wrap (H31)
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
@@ -5527,7 +5527,7 @@ reporte_ppt_plan <- function(
       }
 
       args <- .merge_args(args, overrides)
-      args <- .reservar_pie_para_base_slide(args, min_in = 0.85)
+      args <- .reservar_pie_para_base_slide(args, min_in = 0.85, word_render = isTRUE(el$.word_render))
       args$usar_canvas <- TRUE
       fun  <- graficar_barras_apiladas
       args <- .force_canvas_args(fun, args)
@@ -5764,7 +5764,7 @@ reporte_ppt_plan <- function(
     overrides$colores_grupos   <- NULL
 
     args <- .merge_args(base_args, preset_args, overrides)
-    args <- .reservar_pie_para_base_slide(args)
+    args <- .reservar_pie_para_base_slide(args, word_render = isTRUE(el$.word_render))
     fun  <- graficar_barras_agrupadas
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)

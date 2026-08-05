@@ -27,6 +27,14 @@
 #   Objetivos_Secciones             |       1       | SKIP
 #   Title Slide                     |       1       | SKIP (logo derecho)
 
+# B55 (higiene): definición canónica NULL-only de `%||%` para este archivo.
+# OJO: no puede asignarse como `%||%` top-level — helpers_calc_comunes.R ya
+# publica un `%||%` en el namespace con OTRA semántica (NA también cae al
+# fallback) y, por orden de colación, un binding aquí lo pisaría para todo
+# el paquete (calc-muestra incluido). Los closures del archivo que necesitan
+# la semántica NULL-only la alian localmente: `%||%` <- .rp_null_default.
+.rp_null_default <- function(x, y) if (!is.null(x)) x else y
+
 # Unidad de análisis que acompaña a cada resultado en planes relacionales.
 # Vive fuera del renderer grande para que Gráficos, PPT y sus pruebas usen el
 # mismo vocabulario sin depender de nombres técnicos de las fuentes.
@@ -2610,7 +2618,7 @@ p_reset <- function(
 # suma contra el lienzo fisico del docx, ver w_sum en el graficador). Un
 # mostrar_barra_extra=FALSE explicito en la lamina sigue mandando.
 .word_barra_extra_pedida <- function(ov) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  `%||%` <- .rp_null_default
   if (!is.list(ov)) ov <- list()
   preset_extra <- trimws(as.character(ov$barra_extra_preset %||% "")[1])
   titulo_extra <- trimws(as.character(ov$titulo_barra_extra %||% "")[1])
@@ -2642,7 +2650,7 @@ p_reset <- function(
 # ("totales"/"top2box"/...). Con el, el patch default Word no puede apagar la
 # columna ni pisar la particion de anchos que el preset del usuario declara.
 .word_patch_conservar_barra_extra <- function(patch, ppt_args) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  `%||%` <- .rp_null_default
   if (!is.list(patch)) return(patch)
   if (!is.list(ppt_args)) ppt_args <- list()
   preset_extra <- trimws(as.character(ppt_args$barra_extra_preset %||% "")[1])
@@ -2666,7 +2674,7 @@ p_reset <- function(
 # fila (espejo de alto_por_categoria del preset Word) con piso 1.1in
 # (canvas_h_panel_in_min del preset Word).
 .word_escalar_panel_multi <- function(block_clean) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  `%||%` <- .rp_null_default
   ov <- block_clean$overrides %||% list()
   if (!is.null(ov$canvas_h_panel_in)) return(block_clean)
   # Con `cruce` las filas dependen de los niveles observados en la data; se
@@ -2689,7 +2697,7 @@ p_reset <- function(
 # N 3. Servicio de salud» / «N 4. Servicio de salud») y el texto que el
 # usuario escribio en su lamina no viajaba al docx.
 .word_titulo_bloque_multi <- function(titulo_lamina, titulo_grupo) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  `%||%` <- .rp_null_default
   lam <- trimws(as.character(titulo_lamina %||% "")[1])
   grp <- trimws(as.character(titulo_grupo %||% "")[1])
   if (is.na(lam)) lam <- ""
@@ -2703,7 +2711,7 @@ p_reset <- function(
 # Limpieza + geometria Word de un bloque multiapiladas (extraida del closure
 # `.push_multi_block` de reporte_ppt_plan(), congelado a crecimiento).
 .word_preparar_block_multi <- function(block_data, word_image = NULL) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  `%||%` <- .rp_null_default
   block_clean <- block_data
   block_clean$overrides <- block_clean$overrides %||% list()
   block_clean$overrides$titulo    <- NULL
@@ -2731,7 +2739,7 @@ p_reset <- function(
 # que el PPT: 6.0-6.6in vs 12.5). Absorbe el bloque ad-hoc de media_rango y
 # suma el del FODA (B-H29: las tarjetas truncaban label y chip en Word).
 .word_ajustar_el <- function(el_for_word, etype, word_image = NULL) {
-  `%||%` <- function(x, y) if (!is.null(x)) x else y
+  `%||%` <- .rp_null_default
   ov <- el_for_word$overrides %||% list()
   if (etype %in% c("barras_apiladas", "barras_multiapiladas", "barras_agrupadas")) {
     ov <- .word_calibrar_canvas_overrides(ov, word_image)
@@ -2773,8 +2781,15 @@ p_reset <- function(
 # texto de Base del slide. Sin esta reserva, la leyenda del grafico y la
 # Base se solapaban (visto en el export real de Conta, lamina de docentes
 # con canvas_h_caption_in = 0).
-.reservar_pie_para_base_slide <- function(args, min_in = 0.34) {
+#
+# W-8 (B55): la reserva es doctrina de SLIDE. En Word la Base es un parrafo
+# del documento (reporte_word_plan la agrega debajo de la imagen), asi que
+# la banda solo abria 0.34-0.85in de aire muerto dentro del PNG entre el
+# grafico y su Base. Con word_render = TRUE la reserva no se impone; una
+# nota_pie o una reserva explicita del analista siguen mandando.
+.reservar_pie_para_base_slide <- function(args, min_in = 0.34, word_render = FALSE) {
   if (!is.list(args)) return(args)
+  if (isTRUE(word_render)) return(args)
   np <- args$nota_pie %||% NULL
   tiene_caption <- !is.null(np) && any(nzchar(trimws(as.character(np))))
   if (tiene_caption) return(args)

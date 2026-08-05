@@ -131,6 +131,30 @@
   slides_r
 }
 
+# B55: los marcos de depuración de placeholders (config.debug_ph de la UI,
+# que .enriquecer_presets() materializa como debug_ph_bordes en los presets)
+# son una herramienta de PREVIEW. Los entregables finales (PPT, ZIP multibase
+# y Word) los ignoran siempre: un export con debug_ph.activo=TRUE en el body
+# no puede salir con marcos magenta. Se apaga el flag en cada capa donde
+# pudo quedar sembrado (base, tipo plano o tipo$args); color/grosor quedan
+# inertes sin el flag.
+.graficos_export_sin_debug_ph <- function(presets) {
+  if (!is.list(presets)) return(presets)
+  apagar <- function(x) {
+    if (!is.list(x)) return(x)
+    if (!is.null(x$debug_ph_bordes)) x$debug_ph_bordes <- FALSE
+    if (is.list(x$args) && !is.null(x$args$debug_ph_bordes)) {
+      x$args$debug_ph_bordes <- FALSE
+    }
+    x
+  }
+  out <- lapply(presets, apagar)
+  names(out) <- names(presets)
+  if (!is.list(out$base)) out$base <- list()
+  out$base$debug_ph_bordes <- FALSE
+  out
+}
+
 # Worker del job `graficos.ppt` (POST /api/graficos/ppt): exporta el PPT
 # de la base activa. Los data/instrumento viajan por RDS (job_save_rds)
 # porque las listas multibase no sobreviven la serialización de args.
@@ -142,6 +166,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
+  presets <- .graficos_export_sin_debug_ph(presets)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(
@@ -210,7 +235,7 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
         data = stats::setNames(list(all_data[[base]]), base),
         instrumento = stats::setNames(list(all_inst[[base]]), base),
         path_ppt = out_path,
-        presets = .build_presets(info$presets),
+        presets = .build_presets(.graficos_export_sin_debug_ph(info$presets)),
         plan = p_plan(slides = slides_r),
         env_diapos = palette_env,
         template_pptx = info$template_pptx,
@@ -241,6 +266,7 @@ graficos_job_worker_word <- function(rp_data_path, rp_inst_path, plan, presets, 
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
   report("loading", percent = 2, message = "Cargando datos y plantilla...")
+  presets <- .graficos_export_sin_debug_ph(presets)
   palette_env <- .graficos_palette_env(paletas, parent = parent.frame())
   plan <- .graficos_calificar_refs_plan(plan, active_base)
   slides_r <- .graficos_job_rebuild_slides(

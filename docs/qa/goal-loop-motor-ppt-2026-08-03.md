@@ -2264,3 +2264,64 @@ de %||% (patrón preexistente del archivo) — candidata a pase de higiene.
 Pendientes de ratificación: doctrina N implícita apagada en Word
 (revisor metodológico), multilista sin prefijo de lámina, W-6 data-aware
 para modo cruce si un deck real lo reproduce.
+
+### B56 — Ratificación metodológica de las tres doctrinas Word (2026-08-04, sesión B)
+
+Revisor metodológico independiente, con evidencia de código citada:
+
+1. **Leyenda con escala completa — RATIFICADA.** El motor ya distingue
+   bien: categoría ofrecida con 0% se queda (mapeo color↔categoría
+   estable entre láminas, comparabilidad entre olas, el 0% ES hallazgo);
+   categoría excluida del denominador sale de tabla, barra y leyenda con
+   base recalculada. La palanca para deck «de válidos» es
+   excluir_codigos_especiales (opt-in). **Supuesto a documentar**: el
+   catálogo canónico multibase toma el PRIMER ctx que matchea
+   (reporte_plan_ppt.R:2341) — la leyenda depende del orden de las
+   fuentes. Mejora propuesta: canon = unión en orden de instrumento,
+   especiales al final; test de invarianza al orden de refs.
+2. **Bases 47/52 sin criterio — CAMBIAR.** «Base: 47 docentes» y «Base:
+   52 docentes» tipográficamente idénticas en páginas contiguas; lector
+   externo lee caída de campo o errata, y compara porcentajes de
+   denominadores distintos. El hook existe: excluded_any en
+   reporte_plan_ppt.R:3472. Propuesta mínima: sufijo automático
+   «(excluye SIN INF)» / «(47 de 52 válidas)» vía sufijo_auto, sin tocar
+   el congelado; paridad byte-idéntica cuando no hay exclusión.
+   Invariante intocable: select_multiple mantiene base = Total.
+3. **N implícita apagada en Word — RATIFICADA con condición.** Para var
+   única y multiactor el N vive en la línea Base (sin pérdida); pero en
+   modo CRUCE la columna implícita lleva el n POR SEGMENTO y la Base
+   auto solo computa totales — apagarla ahí pierde el aviso de base
+   chica por subgrupo. Salidas: (a) Base Word de cruce desglosa n por
+   segmento, o (b) documentar que en cruces se pide
+   barra_extra_preset="totales". Ideal en ambos medios: marcador n<30
+   por fila.
+
+Partículas nuevas derivadas: W-8 (sufijo de criterio de base con
+excluded_any), W-9 (n por segmento en cruces Word o doctrina
+documentada), W-10 (canon multibase invariante al orden de fuentes),
+W-11 (marcador de base chica n<30 por fila, ambos motores).
+
+### B57 — Pulido Word: franja de pie, debug_ph, PNGs temporales, higiene %||% (2026-08-04, sesión B)
+
+1. El aire gráfico↔Base NO era el caption (B41): era
+   `.reservar_pie_para_base_slide` (0.34/0.85in para el placeholder del
+   SLIDE) colándose al camino Word. Parámetro `word_render` con
+   early-return; 5 call sites pasan `isTRUE(el$.word_render)` (PPT:
+   NULL→FALSE, 98 asserts de geometría PPT lo confirman). Antes/después
+   del deck real: el canvas cierra bajo la leyenda.
+2. Exports finales ignoran `debug_ph` (marcos magenta):
+   `.graficos_export_sin_debug_ph` en los 3 workers (ppt, ppt_all,
+   word); el preview los conserva. 17 asserts en ambos sentidos.
+3. PNGs temporales del Word limpiados tras `print(doc)` con on.exit —
+   incluida la SEGUNDA copia que officer hace en `body_add_fpar`
+   (temp_blipfill), capturada por snapshot acotado.
+4. %||% consolidado en `.rp_null_default` privado + alias en closures.
+   Hallazgo que condicionó el diseño: el paquete tiene un %||% top-level
+   con OTRA semántica (NA→fallback) en helpers_calc_comunes.R; un
+   top-level nuevo lo habría pisado para todo el paquete.
+
+Verificador APTO: 14 test files, 262 asserts, 0 fallos; congelado sin
+crecer. Colas nuevas: el consolidado también enriquece debug_ph (decidir
+si es export final → one-liner en su runner) y el alto fijo 2.95in de la
+apilada single en Word (la banda recuperada engorda la barra en vez de
+compactar el bloque).
