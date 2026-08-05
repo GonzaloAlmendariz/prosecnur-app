@@ -132,6 +132,9 @@ export function ExploradorBasesTab({
     if (!fileId) {
       setPerfil(null);
       setError(null);
+      // El fetch anterior se aborta sin pasar por su `catch`: sin esto, saltar
+      // al marco dejaba la nota diciendo «Recalculando…» para siempre.
+      setCargando(false);
       return;
     }
     const control = new AbortController();
@@ -155,10 +158,22 @@ export function ExploradorBasesTab({
   }, [fileId, sheet, claveFiltros, unidad]);
 
   /* ---- el marco, cuando es la fuente elegida: mismo camino de siempre ---- */
-  const filasMarco = useMemo<MonitoreoRow[]>(
+  const filasMarcoBase = useMemo<MonitoreoRow[]>(
     () => (fuente?.tipo === "marco" ? rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame) : []),
     [fuente?.tipo, aulasState?.frame],
   );
+  // Los filtros valen igual sobre el marco: un chip que se deja poner y no acota
+  // nada miente sobre lo que se está mirando. Aquí se aplican en el cliente
+  // porque las filas ya están en memoria.
+  const filasMarco = useMemo<MonitoreoRow[]>(() => {
+    if (!filtros.length) return filasMarcoBase;
+    return filasMarcoBase.filter((row) =>
+      filtros.every((filtro) => {
+        const valor = (row as Record<string, unknown>)[filtro.columna];
+        return valor != null && filtro.valores.includes(String(valor).trim());
+      }),
+    );
+  }, [filasMarcoBase, filtros]);
   const columnasMarco = useMemo<ColumnaVista[]>(() => {
     if (fuente?.tipo !== "marco" || !filasMarco.length) return [];
     return inventarioVariables(filasMarco).map((row) => {
@@ -216,6 +231,13 @@ export function ExploradorBasesTab({
     [columnas],
   );
   const filtroDe = (columna: string) => filtros.find((f) => f.columna === columna) ?? null;
+  /* Los filtros hablan el idioma de la pantalla: sobre el marco, un chip que
+     dijera `included: true` obligaría a traducir mentalmente lo que la lista de
+     categorías ya muestra como «¿Entra al marco?: Sí». */
+  const columnaDe = (columna: string) => columnas.find((col) => col.columna === columna) ?? null;
+  const rotuloColumna = (columna: string) => columnaDe(columna)?.titulo ?? columna;
+  const rotuloValor = (columna: string, clave: string) =>
+    columnaDe(columna)?.traduceValores ? etiquetaDeValor(columna, clave) ?? clave : clave;
   function alternarValor(columna: string, valor: string) {
     setFiltros((prev) => {
       const actual = prev.find((f) => f.columna === columna);
@@ -232,7 +254,7 @@ export function ExploradorBasesTab({
   }
 
   const filas = fuente?.tipo === "marco" ? filasMarco.length : perfil?.filas ?? 0;
-  const filasBase = fuente?.tipo === "marco" ? filasMarco.length : perfil?.filasBase ?? 0;
+  const filasBase = fuente?.tipo === "marco" ? filasMarcoBase.length : perfil?.filasBase ?? 0;
   const acotada = filtros.length > 0 && filas !== filasBase;
   const unidadDisponible = fuente?.tipo === "archivo" && (perfil?.unidadDisponible ?? false);
   const marcoConstruido = Boolean(aulasState?.frame);
@@ -301,8 +323,11 @@ export function ExploradorBasesTab({
         ) : null}
 
         <p className="cmv2-expb-nota" role="note">
-          {cargando ? (
-            <>Leyendo la base…</>
+          {/* Mientras se relee con un filtro nuevo se conserva el perfil
+              anterior, así que la nota anuncia el recálculo en vez de vaciarse;
+              en la primera carga lo dice el cuerpo y aquí sobraría. */}
+          {cargando && columnas.length ? (
+            <>Recalculando con los filtros…</>
           ) : columnas.length ? (
             <>
               <strong>{fmtInt(filas)}</strong>
@@ -324,11 +349,15 @@ export function ExploradorBasesTab({
       <div className="cmv2-expb-filtros">
         {filtros.map((filtro) => (
           <span key={filtro.columna} className="cmv2-expb-chip">
-            <strong>{filtro.columna}</strong>
-            <span>{filtro.valores.length === 1 ? filtro.valores[0] : `${filtro.valores.length} valores`}</span>
+            <strong>{rotuloColumna(filtro.columna)}</strong>
+            <span>
+              {filtro.valores.length === 1
+                ? rotuloValor(filtro.columna, filtro.valores[0]!)
+                : `${filtro.valores.length} valores`}
+            </span>
             <button
               type="button"
-              aria-label={`Quitar el filtro de ${filtro.columna}`}
+              aria-label={`Quitar el filtro de ${rotuloColumna(filtro.columna)}`}
               onClick={() => setFiltros((prev) => prev.filter((f) => f.columna !== filtro.columna))}
             >
               <X size={12} aria-hidden="true" />
@@ -359,8 +388,12 @@ export function ExploradorBasesTab({
       </div>
 
       {editandoFiltro ? (
-        <div className="cmv2-expb-valores" role="group" aria-label={`Valores de ${editandoFiltro}`}>
-          {(columnas.find((col) => col.columna === editandoFiltro)?.categorias ?? []).map((cat) => {
+        <div
+          className="cmv2-expb-valores"
+          role="group"
+          aria-label={`Valores de ${rotuloColumna(editandoFiltro)}`}
+        >
+          {(columnaDe(editandoFiltro)?.categorias ?? []).map((cat) => {
             const activo = filtroDe(editandoFiltro)?.valores.includes(cat.clave) ?? false;
             return (
               <button
@@ -370,7 +403,7 @@ export function ExploradorBasesTab({
                 aria-pressed={activo}
                 onClick={() => alternarValor(editandoFiltro, cat.clave)}
               >
-                {cat.clave}
+                {rotuloValor(editandoFiltro, cat.clave)}
                 <em>{fmtInt(cat.n)}</em>
               </button>
             );
@@ -391,13 +424,25 @@ export function ExploradorBasesTab({
         </div>
       ) : !columnas.length ? (
         <div className="cmv2-expb-vacio-marco">
+          {/* Un cruce puede quedarse sin filas, y decir «esta base no trae
+              columnas» sería culpar al archivo de lo que hizo el filtro. */}
           <EmptyState
             icon={<Compass size={22} aria-hidden="true" />}
-            title={cargando ? "Leyendo la base…" : "Esta base no trae columnas legibles"}
+            title={cargando
+              ? "Leyendo la base…"
+              : filtros.length && !filas
+                ? "Ningún registro cumple estos filtros"
+                : "Esta base no trae columnas legibles"}
             hint={cargando
               ? "La primera lectura de una base grande tarda unos segundos; después los filtros son inmediatos."
-              : "Revisa la hoja declarada en Datos › Fuentes."}
-            cta={!cargando && fuente?.tipo === "marco" && onReconstruir && !marcoConstruido ? (
+              : filtros.length && !filas
+                ? `De ${fmtInt(filasBase)} filas, ninguna cruza todas las condiciones activas.`
+                : "Revisa la hoja declarada en Datos › Fuentes."}
+            cta={!cargando && filtros.length && !filas ? (
+              <button type="button" className="cmv2-expb-reconstruir" onClick={() => setFiltros([])}>
+                Quitar los filtros
+              </button>
+            ) : !cargando && fuente?.tipo === "marco" && onReconstruir && !marcoConstruido ? (
               <button
                 type="button"
                 className="cmv2-expb-reconstruir"
@@ -424,7 +469,11 @@ export function ExploradorBasesTab({
             <div className="cmv2-expb-scroll">
               <ul className="cmv2-expb-plana">
                 {visibles.map((col) => {
-                  const share = filas ? col.conDato / filas : 0;
+                  // La cobertura se mide contra el total de la propia columna,
+                  // no contra las filas: contando personas, `conDato` habla de
+                  // estudiantes y dividir entre matrículas daba 20% a columnas
+                  // que están completas.
+                  const share = col.conDato / Math.max(1, col.conDato + col.sinDato);
                   return (
                     <li key={col.columna}>
                       <button
