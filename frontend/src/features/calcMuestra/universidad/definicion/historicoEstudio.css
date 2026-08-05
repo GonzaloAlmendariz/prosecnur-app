@@ -208,7 +208,6 @@
 /* Pérdida y descuento se distinguen: la primera es un fracaso del operativo, la
    segunda gente que ya cumplió o que nunca perteneció al estudio. */
 .cmv2-hist-paso-merma {
-  border-radius: 0 4px 4px 0;
   overflow: hidden;
   background: repeating-linear-gradient(-45deg,
     var(--hist-perdida) 0 3px, transparent 3px 6px);
@@ -218,6 +217,10 @@
   background: repeating-linear-gradient(-45deg,
     var(--hist-descuento) 0 3px, transparent 3px 6px);
 }
+
+/* Sólo la última merma redondea por la derecha: entre dos tramos contiguos el
+   borde curvo abriría un hueco que se lee como dato. */
+.cmv2-hist-paso-merma[data-ultima] { border-radius: 0 4px 4px 0; }
 
 .cmv2-hist-paso-pct {
   font-size: 11px;

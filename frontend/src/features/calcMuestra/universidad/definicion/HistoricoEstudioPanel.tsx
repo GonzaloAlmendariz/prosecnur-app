@@ -32,6 +32,7 @@ import type {
   CalcMuestraReferenciaAsistenciaCelda,
   CalcMuestraReferenciaAsistenciaCadenaSeleccion,
   CalcMuestraReferenciaAsistenciaCadenasReemplazo,
+  CalcMuestraReferenciaAsistenciaComposicion,
   CalcMuestraReferenciaAsistenciaEmbudoFila,
   CalcMuestraReferenciaAsistenciaSerieCampo,
 } from "../../../../api/client";
@@ -57,51 +58,66 @@ function PasoEmbudo({
   label,
   valor,
   universo,
-  merma,
+  mermas = [],
   tono,
 }: {
   label: string;
   valor: number;
   universo: number;
-  merma?: { n: number; texto: string; sale?: boolean };
+  /** Todo lo que se va en este peldaño. Puede irse por más de un motivo. */
+  mermas?: { n: number; texto: string; sale?: boolean }[];
   tono?: "meta";
 }) {
-  // La barra del peldaño mide `valor` sobre el universo y la merma se dibuja
+  // La barra del peldaño mide `valor` sobre el universo y las mermas se dibujan
   // DENTRO de ese ancho: lo que sobrevive más lo que se va suma exactamente el
-  // tramo. Sumarlas por fuera hacía que el primer peldaño —que es el 100 %—
+  // tramo. Sumarlas por fuera hacía que el primer peldaño, que es el 100 %,
   // desbordara su carril y desarmara la rejilla.
-  const perdido = merma?.n ?? 0;
+  //
+  // Un peldaño puede perder gente por más de un motivo, y dibujar sólo el
+  // primero fue un defecto real: del tramo «a quienes tocaba encuestar» a
+  // «encuestas completas» se iban 1.122 personas y la leyenda declaraba 335,
+  // así que la caída no cuadraba con las cifras de al lado.
+  const activas = mermas.filter((m) => m.n > 0);
+  const perdido = activas.reduce((acc, m) => acc + m.n, 0);
   const sobrevive = Math.max(0, valor - perdido);
-  const anchoTotal = universo > 0 ? (valor / universo) * 100 : 0;
-  const anchoVivo = universo > 0 ? (sobrevive / universo) * 100 : 0;
-  const anchoMerma = universo > 0 ? (perdido / universo) * 100 : 0;
+  const escala = (n: number) => (universo > 0 ? (n / universo) * 100 : 0);
+  const anchoTotal = escala(valor);
   return (
     <li className="cmv2-hist-paso" data-tono={tono}>
       <span className="cmv2-hist-paso-label">{label}</span>
       <span className="cmv2-hist-paso-cifra">{fmtInt(valor)}</span>
       <span className="cmv2-hist-paso-track">
-        <span className="cmv2-hist-paso-fill" style={{ width: `${anchoVivo}%` }} />
-        {anchoMerma > 0 ? (
+        <span className="cmv2-hist-paso-fill" style={{ width: `${escala(sobrevive)}%` }} />
+        {activas.map((merma, i) => (
           <span
+            key={merma.texto}
             className="cmv2-hist-paso-merma"
-            data-sale={merma?.sale ? "si" : undefined}
-            style={{ width: `${anchoMerma}%` }}
+            data-sale={merma.sale ? "si" : undefined}
+            data-ultima={i === activas.length - 1 || undefined}
+            style={{ width: `${escala(merma.n)}%` }}
+            title={`${fmtInt(merma.n)} ${merma.texto}`}
           />
-        ) : null}
+        ))}
       </span>
       <span className="cmv2-hist-paso-pct">{pct(universo > 0 ? valor / universo : null, 0)}</span>
-      {merma && anchoMerma > 0 ? (
-        // La leyenda arranca donde arranca el tramo rayado que describe.
+      {activas.length > 0 ? (
+        // La leyenda termina donde termina el tramo que describe.
         <span
           className="cmv2-hist-paso-nota"
           style={{ paddingInlineEnd: `${Math.max(0, 100 - anchoTotal)}%` }}
         >
-          <b data-sale={merma.sale ? "si" : undefined}>−{fmtInt(merma.n)}</b> {merma.texto}
+          {activas.map((merma, i) => (
+            <span key={merma.texto}>
+              {i > 0 ? " · " : null}
+              <b data-sale={merma.sale ? "si" : undefined}>−{fmtInt(merma.n)}</b> {merma.texto}
+            </span>
+          ))}
         </span>
       ) : null}
     </li>
   );
 }
+
 
 /**
  * Una celda del perfil: una barra a escala fija 0 a 100 %, una línea con el
@@ -475,6 +491,68 @@ function MatrizCadenas({
   );
 }
 
+/**
+ * Composición del marco por criterio, cruzada con facultad.
+ *
+ * El embudo de al lado responde «cómo rindió cada tipo de aula». Esto responde
+ * «cuántas hay de cada tipo», que es otra pregunta y hace falta para leer la
+ * primera: un criterio con buen rendimiento y tres aulas no mueve el operativo.
+ *
+ * El cruce con facultad es lo que de verdad se usa al dimensionar, porque una
+ * facultad con muchos talleres no se parece a una con clases teóricas grandes y
+ * repartir la muestra como si se parecieran descuadra las cuotas.
+ */
+function ComposicionCriterio({
+  composicion,
+}: {
+  composicion: CalcMuestraReferenciaAsistenciaComposicion;
+}) {
+  const orden = composicion.categorias.map((c) => c.categoria);
+  const tonos = ["a", "b", "c", "d", "e", "f"];
+  const tonoDe = (categoria: string) => tonos[Math.max(0, orden.indexOf(categoria)) % tonos.length];
+  // Ordenadas por cuánto pesa la primera categoría: así las facultades con
+  // perfil parecido quedan juntas y la excepción salta a la vista.
+  const filas = [...composicion.filas].sort((a, b) => {
+    const peso = (f: (typeof composicion.filas)[number]) =>
+      (f.reparto.find((r) => r.categoria === orden[0])?.pct ?? 0);
+    return peso(b) - peso(a);
+  });
+
+  return (
+    <div className="cmv2-hist-comp">
+      <ul className="cmv2-hist-comp-leyenda">
+        {composicion.categorias.map((categoria) => (
+          <li key={categoria.categoria} data-tono={tonoDe(categoria.categoria)}>
+            <span>{categoria.categoria}</span>
+            <b>{fmtInt(categoria.n)}</b>
+            <em>{pct(categoria.pct, 0)}</em>
+          </li>
+        ))}
+      </ul>
+      <ol className="cmv2-hist-comp-filas">
+        {filas.map((fila) => (
+          <li key={fila.facultad}>
+            <span className="cmv2-hist-comp-nombre" title={fila.facultad}>{fila.facultad}</span>
+            <span className="cmv2-hist-comp-k">{fmtInt(fila.n)}</span>
+            <span className="cmv2-hist-comp-track">
+              {fila.reparto
+                .filter((r) => r.n > 0)
+                .map((r) => (
+                  <span
+                    key={r.categoria}
+                    data-tono={tonoDe(r.categoria)}
+                    style={{ width: `${(r.pct ?? 0) * 100}%` }}
+                    title={`${r.categoria}: ${fmtInt(r.n)} de ${fmtInt(fila.n)} (${pct(r.pct, 0)})`}
+                  />
+                ))}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export function HistoricoEstudioPanel({
   referencia,
 }: {
@@ -668,31 +746,52 @@ export function HistoricoEstudioPanel({
               label="Estudiantes del estudio"
               valor={universo}
               universo={universo}
-              merma={
+              mermas={
                 encuentros.asistentes !== null
-                  ? { n: universo - encuentros.asistentes, texto: "faltaron a clase ese día" }
-                  : undefined
+                  ? [{ n: universo - encuentros.asistentes, texto: "faltaron a clase ese día" }]
+                  : []
               }
             />
             <PasoEmbudo
               label="Fueron a clase"
               valor={encuentros.asistentes ?? 0}
               universo={universo}
-              merma={{
-                n: (encuentros.ya_medidas ?? 0) + (encuentros.no_elegibles ?? 0),
-                texto: "no sumaban: ya habían contestado en otro curso, o no eran del estudio",
-                sale: true,
-              }}
+              mermas={[
+                {
+                  n: encuentros.ya_medidas ?? 0,
+                  texto: "declararon en el aula que ya habían contestado en otro curso",
+                  sale: true,
+                },
+                {
+                  n: encuentros.no_elegibles ?? 0,
+                  texto: "abrieron y el formulario los descartó por no ser del estudio",
+                  sale: true,
+                },
+              ]}
             />
             <PasoEmbudo
               label="A quienes tocaba encuestar"
               valor={encuentros.elegibles_presentes ?? 0}
               universo={universo}
-              merma={
-                encuentros.no_efectivas
-                  ? { n: encuentros.no_efectivas, texto: "abrieron la encuesta y no quisieron continuar" }
-                  : undefined
-              }
+              // Este peldaño pierde por DOS motivos y antes declaraba uno solo:
+              // la barra bajaba 1.122 y la leyenda decía 335. Los que nunca
+              // abrieron se obtienen por resta, así que se nombran como lo que
+              // son y no se presentan como un conteo directo.
+              mermas={[
+                {
+                  n: encuentros.no_efectivas ?? 0,
+                  texto: "abrieron la encuesta y no quisieron continuar",
+                },
+                {
+                  n: Math.max(
+                    0,
+                    (encuentros.elegibles_presentes ?? 0)
+                      - (encuentros.efectivas ?? 0)
+                      - (encuentros.no_efectivas ?? 0),
+                  ),
+                  texto: "nunca llegaron a abrirla",
+                },
+              ]}
             />
             <PasoEmbudo
               label="Encuestas completas"
@@ -775,6 +874,30 @@ export function HistoricoEstudioPanel({
 
       {/* 5 · Los mismos criterios con los que el marco filtra aulas */}
       {vistaActiva === "criterio" ? (<>
+      {/* Primero QUÉ hay, después CÓMO rindió: sin saber cuántas aulas de cada
+          tipo existen, un rendimiento alto sobre tres aulas se lee como señal. */}
+      {referencia.composicion.length > 0 ? (
+        <div className="cmv2-hist-bloque">
+          <header className="cmv2-hist-bloque-head">
+            <span className="cmv2-eyebrow">De qué está hecho el marco</span>
+            <h4>Qué tipo de cursos-horario tiene cada facultad</h4>
+            <p>
+              Cada barra reparte las aulas de una facultad entre las categorías del criterio, y
+              siempre suma el 100 % de esa facultad. Sirve para ver quién concentra un tipo de aula
+              que el resto casi no tiene, porque eso cambia lo que hay que esperar de ella.
+            </p>
+          </header>
+          {[...referencia.composicion]
+            .sort((a, b) => a.orden - b.orden)
+            .map((composicion) => (
+              <div className="cmv2-hist-criterio" key={composicion.criterio_key}>
+                <span className="cmv2-eyebrow">{composicion.criterio_label}</span>
+                <ComposicionCriterio composicion={composicion} />
+              </div>
+            ))}
+        </div>
+      ) : null}
+
       {embudosCriterio.length > 0 ? (
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
