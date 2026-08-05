@@ -1729,7 +1729,7 @@
   padding: var(--pulso-space-4);
   border: 1px solid var(--pulso-border-soft);
   border-radius: var(--pulso-radius-lg);
-  background: var(--pulso-surface-1);
+  background: var(--pulso-surface-2);
 }
 
 .cmv2-defi-filtros-head {
@@ -1741,15 +1741,15 @@
 
 .cmv2-defi-filtros-head h4 {
   margin: 2px 0 0;
-  font-size: var(--pulso-font-md);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-defi-filtros-head p {
   margin: 4px 0 0;
   max-width: 62ch;
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }
 
@@ -1760,10 +1760,10 @@
   flex: 0 0 auto;
   padding: 6px 12px;
   border: 1px solid var(--pulso-border-soft);
-  border-radius: var(--pulso-radius-sm);
+  border-radius: 6px;
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-strong);
-  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text);
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -1772,8 +1772,8 @@
   margin: 0;
   padding: var(--pulso-space-3);
   border: 1px dashed var(--pulso-border-soft);
-  border-radius: var(--pulso-radius-sm);
-  font-size: var(--pulso-font-xs);
+  border-radius: 6px;
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }
 
@@ -1804,7 +1804,7 @@
   min-width: 0;
   padding: 2px 6px;
   border: 1px solid transparent;
-  border-radius: var(--pulso-radius-xs);
+  border-radius: 4px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -1824,7 +1824,7 @@
   width: 22px;
   height: 22px;
   border: 1px solid transparent;
-  border-radius: var(--pulso-radius-xs);
+  border-radius: 4px;
   background: transparent;
   color: var(--pulso-text-muted);
   cursor: pointer;
@@ -1834,7 +1834,7 @@
 .cmv2-defi-filtros-remove:hover {
   border-color: var(--pulso-border-soft);
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-defi-filtros-move:disabled {
@@ -1907,10 +1907,10 @@
   min-width: 0;
   padding: 6px 8px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-sm);
-  background: var(--pulso-surface-1);
-  color: var(--pulso-text-strong);
-  font-size: var(--pulso-font-xs);
+  border-radius: 6px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: 11px;
 }
 
 .cmv2-defi-filtro-confirm {
@@ -1921,7 +1921,7 @@
 }
 
 .cmv2-defi-filtro-ok {
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-weight: 600;
   color: var(--pulso-success-fg);
 }
@@ -1929,10 +1929,10 @@
 .cmv2-defi-filtro-action {
   padding: 5px 12px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-sm);
+  border-radius: 6px;
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-strong);
-  font-size: var(--pulso-font-xs);
+  color: var(--pulso-text);
+  font-size: 11px;
   cursor: pointer;
 }
 
@@ -1964,7 +1964,7 @@
 
 .cmv2-defi-filtros-meaning {
   margin: 0;
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }
 
@@ -1981,6 +1981,6 @@
 .cmv2-source-optional-head p {
   margin: 4px 0 0;
   max-width: 74ch;
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }

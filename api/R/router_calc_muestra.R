@@ -558,6 +558,14 @@ mount_calc_muestra <- function(pr) {
         }
       }
       diseno_referencia <- body$diseno %||% workspace_vigente$diseno_historico %||% list()
+      # Los tramos de tamaño los declara el estudio en Marco. Si no los usa, el
+      # motor omite esa dimensión en vez de imponer una escala propia.
+      aulas_config <- workspace_vigente$aulas$config %||% list()
+      grupos_tamano <- if (isTRUE(aulas_config$usar_grupos_tamano)) {
+        aulas_config$grupos_tamano
+      } else {
+        NULL
+      }
 
       referencia <- tryCatch({
         tabla <- .cm_table_from_payload(sid, body, "referencia_asistencia")
@@ -565,7 +573,8 @@ mount_calc_muestra <- function(pr) {
           tabla,
           estudio = estudio_referencia,
           diseno = diseno_referencia,
-          filtros_corte = filtros_corte
+          filtros_corte = filtros_corte,
+          grupos_tamano = grupos_tamano
         )
       }, error = function(e) {
         if (inherits(e, "api_error")) stop(e)
