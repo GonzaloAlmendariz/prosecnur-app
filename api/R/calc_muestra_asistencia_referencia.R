@@ -74,7 +74,14 @@
     # entran si ese se cae. Es la unidad que el diseño manda cubrir.
     cadena = c("cadena", "estrato_id", "estrato", "CADENA"),
     posicion = c("posicion", "posicion_cadena", "POSICION"),
-    motivo = c("motivo", "motivo_no_aplicacion", "MOTIVO")
+    motivo = c("motivo", "motivo_no_aplicacion", "MOTIVO"),
+    # Composicion por sexo de las completas. NO da efectividad por sexo: para
+    # eso haria falta el denominador por sexo en cada curso-horario, que nadie
+    # observa. Lo que si se puede es decir de que estan hechas las completas.
+    efectivas_mujeres = c("efectivas_mujeres", "mujeres", "n_mujeres"),
+    efectivas_hombres = c("efectivas_hombres", "hombres", "n_hombres"),
+    nombre_curso = c("nombre_curso", "curso", "nombre_del_curso"),
+    horario = c("horario", "horario_curso")
   )
 }
 
@@ -83,7 +90,7 @@
 # criterio por `as.numeric` lo dejaría en NA y borraría la dimensión entera.
 .cm_asist_optional_numeric_fields <- function() {
   c("elegibles", "ya_medidas", "no_elegibles", "no_efectivas", "rechazos_en_aula",
-    "semana", "cadena", "posicion")
+    "semana", "cadena", "posicion", "efectivas_mujeres", "efectivas_hombres")
 }
 
 .cm_asist_resolve_optional <- function(datos) {
@@ -486,6 +493,81 @@
 #' semana es la unica forma de ver si eso ocurrio o si es una intuicion.
 #'
 #' Devuelve NULL si la base no declara semana; el bloque no se dibuja.
+#' Cumplimiento de cuota por facultad y sexo.
+#'
+#' Ojo con el nombre: esto NO es efectividad. La efectividad divide completas
+#' entre las personas a las que tocaba encuestar, y su denominador es una
+#' poblacion. Aqui el denominador es la cuota, que es una decision del diseno,
+#' asi que lo que sale es CUMPLIMIENTO y puede pasar del 100 % (en 2025 las
+#' mujeres cerraron en 144 %). Confundirlas seria el mismo error que el ADR 0060
+#' vino a corregir: dos universos bajo una misma palabra.
+#'
+#' Es la lectura que explica por que una facultad hubo que ponderarla: en 2025,
+#' Estudios Generales Letras fue la unica donde los hombres no llegaron a su
+#' cuota (92 %) mientras sus mujeres cerraban en 115 %.
+#'
+#' NULL si el estudio no declara cuotas por facultad.
+.cm_asist_cuotas <- function(model, cuotas) {
+  if (is.null(cuotas) || !is.data.frame(cuotas) || !nrow(cuotas)) return(NULL)
+  col_fac <- .cm_criterios_col_exacta(cuotas, c("facultad", "faculty", "estrato"))
+  if (!nzchar(col_fac)) return(NULL)
+  col_tot <- .cm_criterios_col_exacta(cuotas, c("cuota_total", "cuota", "meta"))
+  col_muj <- .cm_criterios_col_exacta(cuotas, c("cuota_mujeres", "meta_mujeres", "mujeres"))
+  col_hom <- .cm_criterios_col_exacta(cuotas, c("cuota_hombres", "meta_hombres", "hombres"))
+  if (!nzchar(col_muj) && !nzchar(col_hom) && !nzchar(col_tot)) return(NULL)
+
+  claves_cuota <- .cm_aulas_text_key(cuotas[[col_fac]])
+  facultades <- trimws(as.character(model$facultad))
+  facultades[is.na(facultades) | !nzchar(facultades)] <- "Sin facultad"
+  claves_modelo <- .cm_aulas_text_key(facultades)
+  cero <- function(x) if (is.null(x)) 0 else ifelse(is.finite(x), x, 0)
+  numero <- function(col, i) {
+    if (!nzchar(col)) return(NA_real_)
+    v <- suppressWarnings(as.numeric(cuotas[[col]][i]))
+    if (length(v) != 1L || !is.finite(v)) NA_real_ else v
+  }
+
+  filas <- lapply(seq_len(nrow(cuotas)), function(i) {
+    idx <- which(claves_modelo == claves_cuota[i])
+    logradas <- .cm_asist_strict_sum(model$validas[idx])
+    muj <- sum(cero(model$efectivas_mujeres[idx]))
+    hom <- sum(cero(model$efectivas_hombres[idx]))
+    meta_tot <- numero(col_tot, i)
+    meta_muj <- numero(col_muj, i)
+    meta_hom <- numero(col_hom, i)
+    list(
+      facultad = trimws(as.character(cuotas[[col_fac]][i])),
+      aulas = as.integer(length(idx)),
+      cuota_total = meta_tot,
+      cuota_mujeres = meta_muj,
+      cuota_hombres = meta_hom,
+      logradas = logradas,
+      logradas_mujeres = muj,
+      logradas_hombres = hom,
+      cumplimiento = .cm_asist_ratio(logradas, meta_tot),
+      cumplimiento_mujeres = .cm_asist_ratio(muj, meta_muj),
+      cumplimiento_hombres = .cm_asist_ratio(hom, meta_hom)
+    )
+  })
+  filas <- Filter(function(f) f$aulas > 0L || is.finite(f$cuota_total %||% NA), filas)
+  if (!length(filas)) return(NULL)
+
+  total <- function(campo) sum(vapply(filas, function(f) {
+    v <- f[[campo]]
+    if (is.null(v) || !is.finite(v)) 0 else v
+  }, numeric(1)))
+  list(
+    unidad = "cumplimiento_de_cuota",
+    cuota_mujeres = total("cuota_mujeres"),
+    cuota_hombres = total("cuota_hombres"),
+    logradas_mujeres = total("logradas_mujeres"),
+    logradas_hombres = total("logradas_hombres"),
+    cumplimiento_mujeres = .cm_asist_ratio(total("logradas_mujeres"), total("cuota_mujeres")),
+    cumplimiento_hombres = .cm_asist_ratio(total("logradas_hombres"), total("cuota_hombres")),
+    filas = filas
+  )
+}
+
 .cm_asist_serie_campo <- function(model) {
   if (is.null(model$semana)) return(NULL)
   semanas <- suppressWarnings(as.numeric(model$semana))
@@ -593,6 +675,7 @@
   )
   elegibles_fuente <- if (is.null(frame$elegibles)) frame$matriculados else frame$elegibles
 
+  cero <- function(x) if (is.null(x)) 0 else ifelse(is.finite(x), x, 0)
   claves <- sort(unique(cadenas[is.finite(cadenas)]))
   filas <- lapply(seq_along(claves), function(i) {
     idx <- which(is.finite(cadenas) & cadenas == claves[[i]])
@@ -626,6 +709,8 @@
         curso_horario = frame$curso_horario[fila],
         estado = estado,
         efectivas = efectivas_escalon,
+        efectivas_mujeres = if (aplicada[fila]) sum(cero(frame$efectivas_mujeres[fila])) else NA_real_,
+        efectivas_hombres = if (aplicada[fila]) sum(cero(frame$efectivas_hombres[fila])) else NA_real_,
         elegibles = elegibles_escalon,
         # Efectividad de ESA aula: cuantos de sus elegibles completaron. Es la
         # cifra con la que se compara un aula contra otra; la cantidad sola
@@ -654,6 +739,15 @@
       cadena = as.integer(claves[[i]]),
       facultad = if (length(idx)) facultad[[idx[[1L]]]] else "",
       titular = frame$curso_horario[[orden[[1L]]]],
+      # Nombre y horario del titular: la llave sola no deja reconocer la fila.
+      nombre_curso = if (is.null(frame$nombre_curso)) "" else {
+        .cm_aulas_scalar(frame$nombre_curso[[orden[[1L]]]], "")
+      },
+      horario = if (is.null(frame$horario)) "" else {
+        .cm_aulas_scalar(frame$horario[[orden[[1L]]]], "")
+      },
+      efectivas_mujeres = sum(cero(frame$efectivas_mujeres[orden[aplicada[orden]]])),
+      efectivas_hombres = sum(cero(frame$efectivas_hombres[orden[aplicada[orden]]])),
       escalones = escalones,
       escalones_trabajados = as.integer(ultimo_trabajado),
       aplicados = as.integer(length(aplicados)),
@@ -904,6 +998,13 @@
     aulas_dimensionadas = c("aulas_dimensionadas", "aulas_previstas", "aulas_objetivo"),
     aulas_aplicadas = c("aulas_aplicadas", "aulas_logradas"),
     tasa_respuesta_asumida = c("tasa_respuesta_asumida", "tasa_asumida", "tasa_respuesta"),
+    # Lo que pasó DESPUÉS del campo: la escalera terminaba en las aulas
+    # aplicadas y callaba qué fue de las encuestas conseguidas. El recorte y la
+    # ponderación son decisiones del diseño tanto como el tamaño muestral.
+    efectivas_logradas = c("efectivas_logradas", "encuestas_completas", "logradas"),
+    base_analitica = c("base_analitica", "base_final", "n_analitico"),
+    casos_recortados = c("casos_recortados", "recortados", "recorte_n"),
+    ponderacion_alcance = c("ponderacion_alcance", "alcance_ponderacion", "ponderado_en"),
     afijacion = c("afijacion", "reparto"),
     metodo_seleccion = c("metodo_seleccion", "seleccion"),
     metodo_ajuste = c("metodo_ajuste", "ajuste"),
@@ -979,6 +1080,10 @@ calc_muestra_asistencia_diseno_declarado <- function(tabla) {
     aulas_dimensionadas = num("aulas_dimensionadas"),
     aulas_aplicadas = num("aulas_aplicadas"),
     tasa_respuesta_asumida = num("tasa_respuesta_asumida"),
+    efectivas_logradas = num("efectivas_logradas"),
+    base_analitica = num("base_analitica"),
+    casos_recortados = num("casos_recortados"),
+    ponderacion_alcance = .cm_aulas_scalar(diseno$ponderacion_alcance, ""),
     afijacion = .cm_aulas_scalar(diseno$afijacion, ""),
     metodo_seleccion = .cm_aulas_scalar(diseno$metodo_seleccion, ""),
     metodo_ajuste = .cm_aulas_scalar(diseno$metodo_ajuste, ""),
@@ -1119,6 +1224,22 @@ calc_muestra_asistencia_diseno_declarado <- function(tabla) {
   elegibles_presentes <- asistentes - ya - noel
   no_realizadas <- elegibles_presentes - efectivas - no_efectivas
   publicable <- is.finite(no_realizadas) & no_realizadas >= 0
+
+  # ADR 0060 · presentes que el conteo no vio.
+  #
+  # En 43 de las 194 aulas de 2025 respondieron mas personas de las que el
+  # aplicador conto. No es un error de nadie: el conteo de cabezas se hace a
+  # ojo y al empezar, y en un aula presencial entra gente que no estaba en la
+  # lista (oyentes, alumnos de otra seccion, quien pasaba por ahi). Los
+  # registros vienen del formulario y son el dato duro; el conteo es el debil.
+  #
+  # Antes esto se escondia dentro de una resta: el agregado publicaba 892 (la
+  # suma de las aulas donde el residual cierra) mientras el embudo dibujaba 787
+  # (el neto), y las dos cifras no se podian reconciliar mirando la pantalla.
+  # Publicarlo como su propio tramo hace que el embudo cuadre y, sobre todo,
+  # nombra un fenomeno que el operativo de este ano puede corregir contando al
+  # final en vez de al principio.
+  presentes_no_contados <- pmax(0, -no_realizadas)
   suma <- function(x, mask = NULL) {
     if (!is.null(mask)) x <- x[mask]
     .cm_asist_strict_sum(x)
@@ -1132,6 +1253,7 @@ calc_muestra_asistencia_diseno_declarado <- function(tabla) {
     efectivas = suma(efectivas),
     no_efectivas = suma(no_efectivas),
     no_realizadas = suma(no_realizadas, publicable),
+    presentes_no_contados = suma(presentes_no_contados),
     unidades_publicables = as.integer(sum(publicable, na.rm = TRUE)),
     unidades_con_residual_negativo = as.integer(sum(!publicable, na.rm = TRUE))
   )
@@ -1251,7 +1373,8 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
                                                 bootstrap_n = 2000L,
                                                 diseno = list(),
                                                 filtros_corte = NULL,
-                                                grupos_tamano = NULL) {
+                                                grupos_tamano = NULL,
+                                                cuotas = NULL) {
   if (!is.data.frame(datos) || !nrow(datos)) {
     stop_api(
       400,
@@ -1506,11 +1629,12 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     # `%||% NA` por la misma razón: un bloque ausente como NULL saldría `{}` y
     # el cliente lo leería como un bloque presente y vacío, que es peor que
     # ausente porque invalida el payload entero.
+    cuotas = .cm_asist_cuotas(model, cuotas) %||% NA,
     serie_campo = .cm_asist_serie_campo(model) %||% NA,
     cadenas_reemplazo = .cm_asist_cadenas(frame) %||% NA,
     identidad = list(
       regla = if (tiene_glosario) {
-        "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+        "elegibles_presentes + presentes_no_contados = efectivas + no_efectivas + no_realizadas"
       } else {
         "A = E + no_respondieron"
       },

@@ -59,6 +59,7 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     embudos: [],
   composicion: [],
   serie_campo: null,
+  cuotas: null,
   cadenas_reemplazo: null,
     identidad: {
       regla: "A = E + no_respondieron",
@@ -110,6 +111,8 @@ const DISENO_VACIO = {
   margen_error: null, deff: null, muestra: null, ratio_sobremuestra: null,
   sobremuestra: null, aulas_marco: null, aulas_dimensionadas: null,
   aulas_aplicadas: null, tasa_respuesta_asumida: null,
+  efectivas_logradas: null, base_analitica: null, casos_recortados: null,
+  ponderacion_alcance: "",
   afijacion: "", metodo_seleccion: "", metodo_ajuste: "",
   ponderado: null, declarado: false,
 };

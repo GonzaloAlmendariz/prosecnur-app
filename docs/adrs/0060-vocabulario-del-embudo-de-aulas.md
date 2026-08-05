@@ -318,6 +318,30 @@ Precedencia cuando hay más de una fuente: lo que manda el cliente gana (está
 corrigiendo a mano), después lo que declara la base, y al final lo que quedó en
 el workspace.
 
+### Hoja `cuotas` — una fila por facultad
+
+`facultad | cuota_total | cuota_mujeres | cuota_hombres`. Una hoja propia
+porque el grano es la facultad: no cabe en `referencia`, que va por
+curso-horario, ni en `diseno`, que son cifras únicas del estudio.
+
+Con ella se calcula **cumplimiento de cuota**, que NO es efectividad y no debe
+llamarse así. La efectividad divide completas entre las personas a las que
+tocaba encuestar, y su denominador es una población observada. Aquí el
+denominador es la cuota, que es una decisión del diseño, así que el resultado
+puede pasar del 100 %: en 2025 las mujeres cerraron en 143 % y los hombres en
+122 %. Confundirlas sería exactamente el error que este ADR vino a corregir.
+
+Es la lectura que explica una ponderación. En 2025, Estudios Generales Letras
+fue la única facultad donde los hombres no llegaron a su cuota (92 %, 166 de
+180) mientras sus mujeres cerraban en 115 %.
+
+### Lo que NO se puede calcular
+
+**Efectividad por sexo a nivel de curso-horario.** Haría falta el denominador
+por sexo en cada aula —cuántas mujeres y cuántos hombres elegibles había— y eso
+nadie lo observa. Lo que sí se puede publicar por curso-horario es la
+**composición** de sus completas, y así se nombra.
+
 ## Consecuencias
 
 **Las tasas publicadas cambian, y es correcto.** Con el denominador de

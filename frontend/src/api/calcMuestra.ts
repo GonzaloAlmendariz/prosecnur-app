@@ -2237,6 +2237,11 @@ export type CalcMuestraReferenciaAsistenciaDiseno = {
   aulas_dimensionadas: number | null;
   aulas_aplicadas: number | null;
   tasa_respuesta_asumida: number | null;
+  /** Lo que pasó después del campo, tan parte del diseño como el tamaño. */
+  efectivas_logradas: number | null;
+  base_analitica: number | null;
+  casos_recortados: number | null;
+  ponderacion_alcance: string;
   afijacion: string;
   metodo_seleccion: string;
   metodo_ajuste: string;
@@ -2278,6 +2283,11 @@ export type CalcMuestraReferenciaAsistenciaEncuentros = {
   no_efectivas: number | null;
   /** Residual: `null` cuando ninguna unidad lo tiene publicable. */
   no_realizadas: number | null;
+  /**
+   * Presentes que el conteo del aula no vio: respondieron más personas de las
+   * que el aplicador contó. No es un error, es cómo funciona un aula abierta.
+   */
+  presentes_no_contados: number | null;
   unidades_publicables: number;
   unidades_con_residual_negativo: number;
 };
@@ -2317,7 +2327,7 @@ export type CalcMuestraReferenciaAsistenciaCobertura = {
 
 /** ADR 0060: la regla depende de si la base trae el glosario del encuentro. */
 export type CalcMuestraReferenciaAsistenciaIdentidadRegla =
-  | "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+  | "elegibles_presentes + presentes_no_contados = efectivas + no_efectivas + no_realizadas"
   | "A = E + no_respondieron";
 
 export type CalcMuestraReferenciaAsistenciaIdentidad = {
@@ -2474,6 +2484,8 @@ export type CalcMuestraReferenciaAsistenciaEscalon = {
   curso_horario: string;
   estado: "aplicado" | "cayo" | "reserva";
   efectivas: number | null;
+  efectivas_mujeres: number | null;
+  efectivas_hombres: number | null;
   elegibles: number | null;
   /** Efectividad de esa aula: la cantidad sola premia al aula grande. */
   rendimiento: number | null;
@@ -2487,6 +2499,10 @@ export type CalcMuestraReferenciaAsistenciaCadenaSeleccion = {
   cadena: number;
   facultad: string;
   titular: string;
+  nombre_curso: string;
+  horario: string;
+  efectivas_mujeres: number | null;
+  efectivas_hombres: number | null;
   escalones: CalcMuestraReferenciaAsistenciaEscalon[];
   escalones_trabajados: number;
   aplicados: number;
@@ -2531,6 +2547,37 @@ export type CalcMuestraReferenciaAsistenciaComposicion = {
   }[];
 };
 
+/**
+ * Cumplimiento de cuota por facultad y sexo.
+ *
+ * NO es efectividad. La efectividad divide completas entre las personas a las
+ * que tocaba encuestar, y su denominador es una población. Aquí el denominador
+ * es la cuota, que es una decisión del diseño, así que lo que sale es
+ * cumplimiento y puede pasar del 100 %: en 2025 las mujeres cerraron en 144 %.
+ */
+export type CalcMuestraReferenciaAsistenciaCuotas = {
+  unidad: "cumplimiento_de_cuota";
+  cuota_mujeres: number | null;
+  cuota_hombres: number | null;
+  logradas_mujeres: number | null;
+  logradas_hombres: number | null;
+  cumplimiento_mujeres: number | null;
+  cumplimiento_hombres: number | null;
+  filas: {
+    facultad: string;
+    aulas: number;
+    cuota_total: number | null;
+    cuota_mujeres: number | null;
+    cuota_hombres: number | null;
+    logradas: number | null;
+    logradas_mujeres: number | null;
+    logradas_hombres: number | null;
+    cumplimiento: number | null;
+    cumplimiento_mujeres: number | null;
+    cumplimiento_hombres: number | null;
+  }[];
+};
+
 export type CalcMuestraReferenciaAsistenciaDimensionKey =
   | "tamano"
   | "rango_horario"
@@ -2568,6 +2615,8 @@ export type CalcMuestraReferenciaAsistencia = {
   embudos: CalcMuestraReferenciaAsistenciaEmbudo[];
   /** Vacío cuando ningún criterio tiene más de una categoría. */
   composicion: CalcMuestraReferenciaAsistenciaComposicion[];
+  /** null cuando el estudio no declara cuotas por facultad. */
+  cuotas: CalcMuestraReferenciaAsistenciaCuotas | null;
   /** null cuando la base no declara semana de campo. */
   serie_campo: CalcMuestraReferenciaAsistenciaSerieCampo | null;
   /** null cuando la base no declara la cadena de reemplazo. */
@@ -2718,7 +2767,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   // glosario del encuentro. Aceptar una regla que no corresponde al modo
   // declarado sería admitir un payload incoherente consigo mismo.
   const expectedRule: CalcMuestraReferenciaAsistenciaIdentidadRegla = glosarioCompleto
-    ? "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+    ? "elegibles_presentes + presentes_no_contados = efectivas + no_efectivas + no_realizadas"
     : "A = E + no_respondieron";
   const residualesNegativos = identityRecord.residuales_negativos == null
     ? null
@@ -3164,6 +3213,10 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     aulas_dimensionadas: disenoNumber(disenoRecord?.aulas_dimensionadas),
     aulas_aplicadas: disenoNumber(disenoRecord?.aulas_aplicadas),
     tasa_respuesta_asumida: disenoNumber(disenoRecord?.tasa_respuesta_asumida),
+    efectivas_logradas: disenoNumber(disenoRecord?.efectivas_logradas),
+    base_analitica: disenoNumber(disenoRecord?.base_analitica),
+    casos_recortados: disenoNumber(disenoRecord?.casos_recortados),
+    ponderacion_alcance: asText(disenoRecord?.ponderacion_alcance, true) ?? "",
     afijacion: asText(disenoRecord?.afijacion, true) ?? "",
     metodo_seleccion: asText(disenoRecord?.metodo_seleccion, true) ?? "",
     metodo_ajuste: asText(disenoRecord?.metodo_ajuste, true) ?? "",
@@ -3238,6 +3291,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       efectivas: num(encuentrosRecord.efectivas),
       no_efectivas: num(encuentrosRecord.no_efectivas),
       no_realizadas: num(encuentrosRecord.no_realizadas),
+      presentes_no_contados: num(encuentrosRecord.presentes_no_contados),
       unidades_publicables: publicables,
       unidades_con_residual_negativo: negativos,
     };
@@ -3325,6 +3379,41 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       filas.push({ facultad, n: total, reparto });
     }
     composicion.push({ criterio_key: key, criterio_label: label, orden, categorias, filas });
+  }
+
+  let cuotas: CalcMuestraReferenciaAsistenciaCuotas | null = null;
+  const cuotasRecord = bloque(root.cuotas);
+  if (cuotasRecord) {
+    const n = (value: unknown): number | null => {
+      const parsed = asFiniteOrNull(value);
+      return parsed === INVALID_NUMBER ? null : parsed;
+    };
+    const filas: CalcMuestraReferenciaAsistenciaCuotas["filas"] = [];
+    for (const rawFila of asList(cuotasRecord.filas)) {
+      const f = asRecord(rawFila);
+      if (!f) return null;
+      const facultad = asText(f.facultad, true) ?? "";
+      const aulas = asNonNegativeInteger(f.aulas);
+      if (!facultad || aulas === INVALID_NUMBER) return null;
+      filas.push({
+        facultad, aulas,
+        cuota_total: n(f.cuota_total), cuota_mujeres: n(f.cuota_mujeres),
+        cuota_hombres: n(f.cuota_hombres), logradas: n(f.logradas),
+        logradas_mujeres: n(f.logradas_mujeres), logradas_hombres: n(f.logradas_hombres),
+        cumplimiento: n(f.cumplimiento), cumplimiento_mujeres: n(f.cumplimiento_mujeres),
+        cumplimiento_hombres: n(f.cumplimiento_hombres),
+      });
+    }
+    if (!filas.length) return null;
+    cuotas = {
+      unidad: "cumplimiento_de_cuota",
+      cuota_mujeres: n(cuotasRecord.cuota_mujeres), cuota_hombres: n(cuotasRecord.cuota_hombres),
+      logradas_mujeres: n(cuotasRecord.logradas_mujeres),
+      logradas_hombres: n(cuotasRecord.logradas_hombres),
+      cumplimiento_mujeres: n(cuotasRecord.cumplimiento_mujeres),
+      cumplimiento_hombres: n(cuotasRecord.cumplimiento_hombres),
+      filas,
+    };
   }
 
   let serieCampo: CalcMuestraReferenciaAsistenciaSerieCampo | null = null;
@@ -3419,7 +3508,9 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         if (estado !== "aplicado" && estado !== "cayo" && estado !== "reserva") return null;
         escalones.push({
           posicion, rol, curso_horario: cursoHorario, estado,
-          efectivas: n(e.efectivas), elegibles: n(e.elegibles), rendimiento: n(e.rendimiento),
+          efectivas: n(e.efectivas),
+          efectivas_mujeres: n(e.efectivas_mujeres), efectivas_hombres: n(e.efectivas_hombres),
+          elegibles: n(e.elegibles), rendimiento: n(e.rendimiento),
           motivo: asText(e.motivo, true) || null,
           motivo_codigo: asText(e.motivo_codigo, true) || null,
         });
@@ -3427,7 +3518,11 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       if (!escalones.length) return null;
       const resueltaEn = asFiniteOrNull(f.resuelta_en);
       filas.push({
-        cadena, facultad: asText(f.facultad, true) ?? "", titular, escalones,
+        cadena, facultad: asText(f.facultad, true) ?? "", titular,
+        nombre_curso: asText(f.nombre_curso, true) ?? "",
+        horario: asText(f.horario, true) ?? "",
+        efectivas_mujeres: n(f.efectivas_mujeres), efectivas_hombres: n(f.efectivas_hombres),
+        escalones,
         escalones_trabajados: trabajados, aplicados,
         resuelta_en: resueltaEn === INVALID_NUMBER ? null : resueltaEn,
         efectivas: n(f.efectivas), elegibles: n(f.elegibles), rendimiento: n(f.rendimiento),
@@ -3470,6 +3565,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     embudos,
     composicion,
     serie_campo: serieCampo,
+    cuotas,
     cadenas_reemplazo: cadenasReemplazo,
     identidad,
     umbrales,

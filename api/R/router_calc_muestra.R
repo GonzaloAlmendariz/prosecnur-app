@@ -58,25 +58,32 @@
 # Lee el apartado de diseño de la MISMA fuente que la tabla principal, sin
 # obligar al cliente a mandarlo dos veces. Silencioso a propósito: una base sin
 # esa hoja es el caso normal, no un error.
-.cm_diseno_declarado_en_archivo <- function(sid, body,
-                                            key = "referencia_asistencia",
-                                            hoja = "diseno") {
+# Lee una hoja opcional del MISMO archivo que la tabla principal. Silenciosa a
+# propósito: una base sin esa hoja es el caso normal, no un error.
+.cm_hoja_de_archivo <- function(sid, body, hoja,
+                                key = "referencia_asistencia") {
   file_id <- calc_str(
     body[[paste0(key, "_file_id")]] %||% body[[paste0(key, "FileId")]],
     ""
   )
-  if (!nzchar(file_id)) return(list())
+  if (!nzchar(file_id)) return(NULL)
   meta <- get_file(sid, file_id)
-  if (!is.list(meta) || !nzchar(meta$path %||% "")) return(list())
+  if (!is.list(meta) || !nzchar(meta$path %||% "")) return(NULL)
   ext <- tolower(tools::file_ext(meta$path))
-  if (!ext %in% c("xlsx", "xls")) return(list())
-  if (!requireNamespace("readxl", quietly = TRUE)) return(list())
+  if (!ext %in% c("xlsx", "xls")) return(NULL)
+  if (!requireNamespace("readxl", quietly = TRUE)) return(NULL)
   disponibles <- readxl::excel_sheets(meta$path)
   objetivo <- disponibles[.cm_aulas_text_key(disponibles) == .cm_aulas_text_key(hoja)]
-  if (!length(objetivo)) return(list())
-  calc_muestra_asistencia_diseno_declarado(
-    .cm_aulas_read_table(meta$path, sheet = objetivo[[1L]])
-  )
+  if (!length(objetivo)) return(NULL)
+  .cm_aulas_read_table(meta$path, sheet = objetivo[[1L]])
+}
+
+.cm_diseno_declarado_en_archivo <- function(sid, body,
+                                            key = "referencia_asistencia",
+                                            hoja = "diseno") {
+  tabla <- .cm_hoja_de_archivo(sid, body, hoja = hoja, key = key)
+  if (is.null(tabla)) return(list())
+  calc_muestra_asistencia_diseno_declarado(tabla)
 }
 
 .cm_table_from_payload <- function(sid, body, key) {
@@ -641,6 +648,13 @@ mount_calc_muestra <- function(pr) {
         .cm_diseno_declarado_en_archivo(sid, body),
         error = function(e) list()
       )
+      # Las cuotas por facultad y sexo viven en su propia hoja: son por
+      # facultad, así que no caben en `referencia` (por curso-horario) ni en
+      # `diseno` (cifras únicas del estudio).
+      cuotas_de_la_base <- tryCatch(
+        .cm_hoja_de_archivo(sid, body, hoja = "cuotas"),
+        error = function(e) NULL
+      )
       diseno_referencia <- body$diseno %||%
         (if (length(diseno_de_la_base)) diseno_de_la_base else NULL) %||%
         workspace_vigente$diseno_historico %||%
@@ -661,7 +675,8 @@ mount_calc_muestra <- function(pr) {
           estudio = estudio_referencia,
           diseno = diseno_referencia,
           filtros_corte = filtros_corte,
-          grupos_tamano = grupos_tamano
+          grupos_tamano = grupos_tamano,
+          cuotas = cuotas_de_la_base
         )
       }, error = function(e) {
         if (inherits(e, "api_error")) stop(e)

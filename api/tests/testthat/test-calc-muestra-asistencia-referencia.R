@@ -170,7 +170,8 @@ test_that("el root exacto declara procedencia, estudio, umbrales y dimensiones",
   expect_named(out, c(
     "schema", "owner", "momento", "transferible", "modelo", "combinable",
     "unidad", "denominador", "estudio", "diseno", "filtros_corte", "cobertura",
-    "encuentros", "embudos", "composicion", "serie_campo", "cadenas_reemplazo",
+    "encuentros", "embudos", "composicion", "cuotas", "serie_campo",
+    "cadenas_reemplazo",
     "identidad", "umbrales",
     "cadena", "global", "dimensiones", "advertencias", "celdas_criterios"
   ))
@@ -674,12 +675,15 @@ test_that("con el glosario el denominador pasa a elegibles presentes", {
 
   # ADR 0060, identidad de cierre del encuentro.
   expect_identical(
-    enc$elegibles_presentes,
+    # La identidad incluye a los presentes que el conteo no vio: sin ese
+    # término, el agregado publicaba 892 mientras el embudo dibujaba 787 y las
+    # dos cifras no se podían reconciliar.
+    enc$elegibles_presentes + enc$presentes_no_contados,
     enc$efectivas + enc$no_efectivas + enc$no_realizadas
   )
   expect_identical(
     out$identidad$regla,
-    "elegibles_presentes = efectivas + no_efectivas + no_realizadas"
+    "elegibles_presentes + presentes_no_contados = efectivas + no_efectivas + no_realizadas"
   )
   # asistencia sobre elegibles, efectividad sobre elegibles presentes.
   expect_equal(out$cadena$asistencia$tasa, 30 / 35)
