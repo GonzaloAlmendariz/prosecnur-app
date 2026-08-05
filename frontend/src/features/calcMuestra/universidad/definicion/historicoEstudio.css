@@ -657,60 +657,146 @@
   outline-offset: 1px;
 }
 
-/* Serie semanal. La semana es la fila; dentro, tres tasas sobre la misma escala
-   para que la tendencia se lea en vertical. */
+/* Serie semanal. Cada semana es una tarjeta con sus absolutos, sus tasas y su
+   acumulado, porque una tasa sin las dos cantidades que la producen no se puede
+   verificar. */
 
-.cmv2-hist-serie { display: flex; flex-direction: column; gap: var(--cmv2-space-3); margin: 0; padding: 0; list-style: none; }
+.cmv2-hist-semanas { display: flex; flex-direction: column; gap: var(--cmv2-space-3); }
 
-.cmv2-hist-serie > li {
+.cmv2-hist-semana {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  padding: var(--cmv2-space-3);
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-lg);
+  background: var(--cmv2-surface-tint, var(--cmv2-surface));
+}
+
+.cmv2-hist-semana > header {
   display: grid;
-  grid-template-columns: 96px minmax(60px, 120px) minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
   gap: var(--cmv2-space-3);
   align-items: center;
-  padding-bottom: var(--cmv2-space-3);
-  border-bottom: 1px solid var(--cmv2-border);
 }
 
-.cmv2-hist-serie > li:last-child { padding-bottom: 0; border-bottom: none; }
+.cmv2-hist-semana h5 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
 
-.cmv2-hist-serie-nombre { font-size: 11px; font-weight: 600; color: var(--pulso-text); }
-
-/* La barra de aulas es su propia rejilla: el carril mide la proporción y la
-   cifra vive en una columna fija. Con flex, un `width: 100 %` sobre el carril
-   empujaba el número fuera de la celda. */
-.cmv2-hist-serie-aulas {
+.cmv2-hist-semana-aulas {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 26px;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
 }
 
-.cmv2-hist-serie-aulas > span:first-child {
-  height: 14px;
+.cmv2-hist-semana-aulas > span {
+  height: 10px;
   border-radius: 3px;
-  background: color-mix(in srgb, var(--pulso-text-muted) 26%, transparent);
+  background: color-mix(in srgb, var(--cmv2-accent) 34%, transparent);
 }
 
-.cmv2-hist-serie-aulas em {
+.cmv2-hist-semana-aulas em {
   font-size: 10px;
   font-style: normal;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  white-space: nowrap;
   color: var(--pulso-text-muted);
 }
 
-.cmv2-hist-serie-tasas { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+/* El flujo de absolutos: cada cifra es el universo de la siguiente. */
+.cmv2-hist-semana-flujo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-2) var(--cmv2-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-hist-semana-flujo > li { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.cmv2-hist-semana-flujo strong {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-semana-flujo span { font-size: 10px; line-height: 1.3; color: var(--pulso-text-muted); }
+.cmv2-hist-semana-flujo > li[data-merma="si"] strong { color: var(--pulso-warn-fg); }
+.cmv2-hist-semana-flujo > li[data-tono="meta"] strong { color: var(--pulso-success-fg); }
+
+.cmv2-hist-semana-tasas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: var(--cmv2-space-2);
+  border-top: 1px solid var(--cmv2-border);
+}
+
+.cmv2-hist-semana-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-4);
+  align-items: center;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-semana-pie strong {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-semana-avance {
+  flex: 1 1 120px;
+  height: 5px;
+  min-width: 90px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 14%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-hist-semana-avance > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pulso-success-fg);
+}
 
 /* Barra de tasa: la primitiva compartida. Misma altura, misma escala y la cifra
    siempre en el mismo sitio, para que dos bloques distintos se comparen. */
 .cmv2-hist-tasa {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 40px;
+  grid-template-columns: 190px minmax(0, 1fr) 40px;
   gap: var(--cmv2-space-2);
   align-items: center;
 }
 
-.cmv2-hist-tasa-label { font-size: 10px; color: var(--pulso-text-muted); }
+.cmv2-hist-tasa-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10px;
+  color: var(--pulso-text);
+}
+
+/* El numerador y el denominador de la tasa, para que el porcentaje se pueda
+   verificar sin salir de la fila. */
+.cmv2-hist-tasa-label em {
+  font-size: 9px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
 
 .cmv2-hist-tasa-track {
   height: 12px;
@@ -746,47 +832,99 @@
   color: var(--pulso-text);
 }
 
-/* Cobertura del diseño: una sola barra con el reparto y su leyenda al pie. */
+/* Matriz de cadenas: una fila por titular, una columna por escalón. Scroll
+   propio en ambos ejes (No Scroll Jail: el marco es quien scrollea, no la
+   página). */
 
-.cmv2-hist-cobertura { display: flex; flex-direction: column; gap: var(--cmv2-space-3); }
-
-.cmv2-hist-cobertura-track {
-  display: flex;
-  height: 26px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--pulso-text-muted) 9%, transparent);
+.cmv2-hist-matriz-marco {
+  max-height: 420px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-lg);
+  overflow: auto;
 }
 
-.cmv2-hist-cobertura-track > span { transition: width 320ms var(--cmv2-ease-out, ease); }
-.cmv2-hist-cobertura-track > span[data-tipo="titular"] { background: color-mix(in srgb, var(--cmv2-accent) 74%, transparent); }
-.cmv2-hist-cobertura-track > span[data-tipo="reemplazo"] { background: color-mix(in srgb, var(--pulso-warn-fg) 58%, transparent); }
-.cmv2-hist-cobertura-track > span[data-tipo="sin-cubrir"] {
-  background: repeating-linear-gradient(-45deg,
-    color-mix(in srgb, var(--pulso-text-muted) 34%, transparent) 0 3px, transparent 3px 6px);
+.cmv2-hist-matriz {
+  display: grid;
+  grid-template-columns:
+    minmax(104px, 1.1fr) minmax(96px, 1.2fr)
+    repeat(var(--cmv2-hist-escalones, 6), 32px)
+    52px;
+  min-width: max-content;
+  gap: 0;
 }
 
-.cmv2-hist-cobertura-leyenda {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--cmv2-space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+.cmv2-hist-matriz-head,
+.cmv2-hist-matriz-fila { display: contents; }
 
-.cmv2-hist-cobertura-leyenda li { display: flex; align-items: baseline; gap: 6px; }
-
-.cmv2-hist-cobertura-leyenda strong {
-  font-size: 17px;
+.cmv2-hist-matriz-head > span {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--cmv2-border);
+  background: var(--cmv2-surface);
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-matriz-head > span:first-child,
+.cmv2-hist-matriz-head > span:nth-child(2) { text-align: left; }
+
+.cmv2-hist-matriz-fila > * {
+  padding: 3px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.cmv2-hist-matriz-titular {
+  overflow: hidden;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--pulso-text);
 }
 
-.cmv2-hist-cobertura-leyenda span { font-size: 11px; color: var(--pulso-text-muted); }
-.cmv2-hist-cobertura-leyenda li[data-tipo="titular"] strong { color: var(--cmv2-accent); }
-.cmv2-hist-cobertura-leyenda li[data-tipo="reemplazo"] strong { color: var(--pulso-warn-fg); }
+.cmv2-hist-matriz-facultad {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text-muted);
+}
+
+/* La casilla es el dato: su color dice qué pasó en ese escalón. */
+.cmv2-hist-matriz-casilla {
+  padding: 3px 2px;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="aplicado"] {
+  background: color-mix(in srgb, var(--pulso-success-fg) 22%, transparent);
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="cayo"] {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 30%, transparent);
+}
+
+.cmv2-hist-matriz-fila .cmv2-hist-matriz-casilla[data-estado="reserva"] {
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+}
+
+.cmv2-hist-matriz-total {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text);
+}
 
 .cmv2-hist-motivos { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 

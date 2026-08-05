@@ -30,7 +30,7 @@ import { useState } from "react";
 import type {
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaAsistenciaCelda,
-  CalcMuestraReferenciaAsistenciaCoberturaCeldas,
+  CalcMuestraReferenciaAsistenciaCadenasReemplazo,
   CalcMuestraReferenciaAsistenciaEmbudoFila,
   CalcMuestraReferenciaAsistenciaSerieCampo,
 } from "../../../../api/client";
@@ -201,55 +201,146 @@ function EmbudoApilado({
 }
 
 /**
- * La serie del operativo. Cada semana es una columna con tres lecturas apiladas
- * sobre la misma escala 0 a 100 %, así que la tendencia se ve sin leer cifras.
+ * La serie del operativo, semana a semana.
  *
- * Existe por una pregunta concreta que el agregado no puede responder: si el
- * campo se fue agotando. Mientras más aulas se aplican, más probable es que
- * quien está en la siguiente ya haya respondido en otra; `pct_ya_medidas`
- * semana a semana es la única forma de ver si eso pasó de verdad.
+ * La primera versión sólo daba porcentajes y no decía sobre qué: un «81 %»
+ * suelto obliga a adivinar el denominador. Aquí cada semana declara sus
+ * absolutos en el orden en que ocurren (a cuántos alcanzaba, cuántos fueron a
+ * clase, a cuántos tocaba encuestar, cuántas completas salieron) y el
+ * porcentaje va al lado de las dos cifras que lo producen.
+ *
+ * Existe por una pregunta que el agregado no puede responder: si el campo se
+ * fue agotando. Mientras más aulas se aplican, más probable es que quien está
+ * en la siguiente ya haya respondido en otra.
  */
-function SerieCampo({ serie }: { serie: CalcMuestraReferenciaAsistenciaSerieCampo }) {
+function SerieCampo({
+  serie,
+  meta,
+}: {
+  serie: CalcMuestraReferenciaAsistenciaSerieCampo;
+  meta: number | null;
+}) {
   const filas = [...serie.filas].sort((a, b) => a.orden - b.orden);
   const maxAulas = Math.max(1, ...filas.map((f) => f.k));
+  const totalEfectivas = filas[filas.length - 1]?.efectivas_acumuladas ?? null;
   return (
-    <ol className="cmv2-hist-serie">
-      {filas.map((fila) => (
-        <li key={fila.semana}>
-          <span className="cmv2-hist-serie-nombre">{fila.etiqueta}</span>
-          <span className="cmv2-hist-serie-aulas" title={`${fmtInt(fila.k)} cursos-horario aplicados`}>
-            <span style={{ width: `${(fila.k / maxAulas) * 100}%` }} />
-            <em>{fmtInt(fila.k)}</em>
-          </span>
-          <span className="cmv2-hist-serie-tasas">
-            <BarraTasa label="Asistieron" valor={fila.asistencia} tono="asistencia" />
-            <BarraTasa label="Ya habían contestado" valor={fila.pct_ya_medidas} tono="descuento" />
-            <BarraTasa label="Encuestas completas" valor={fila.rendimiento} tono="meta" />
-          </span>
-        </li>
-      ))}
-    </ol>
+    <div className="cmv2-hist-semanas">
+      {filas.map((fila) => {
+        const acumulado = fila.efectivas_acumuladas ?? 0;
+        const avance = meta && meta > 0 ? Math.min(100, (acumulado / meta) * 100) : null;
+        return (
+          <article className="cmv2-hist-semana" key={fila.semana}>
+            <header>
+              <h5>{fila.etiqueta}</h5>
+              <span className="cmv2-hist-semana-aulas">
+                <span style={{ width: `${(fila.k / maxAulas) * 100}%` }} />
+                <em>{fmtInt(fila.k)} aulas</em>
+              </span>
+            </header>
+
+            {/* Los absolutos en el orden en que ocurren: cada cifra es el
+                universo de la siguiente, así que la cadena se lee sola. */}
+            <ol className="cmv2-hist-semana-flujo">
+              <li>
+                <strong>{num(fila.elegibles)}</strong>
+                <span>estudiantes del estudio en esas aulas</span>
+              </li>
+              <li data-merma="si">
+                <strong>−{num(fila.ausentes)}</strong>
+                <span>faltaron a clase</span>
+              </li>
+              <li>
+                <strong>{num(fila.asistentes)}</strong>
+                <span>estaban en el aula</span>
+              </li>
+              <li data-merma="si">
+                <strong>−{num((fila.ya_medidas ?? 0) + (fila.no_elegibles ?? 0))}</strong>
+                <span>ya habían contestado o no eran del estudio</span>
+              </li>
+              <li>
+                <strong>{num(fila.a_encuestar)}</strong>
+                <span>a quienes tocaba encuestar</span>
+              </li>
+              <li data-tono="meta">
+                <strong>{num(fila.efectivas)}</strong>
+                <span>encuestas completas</span>
+              </li>
+            </ol>
+
+            {/* Cada tasa dice de dónde sale: numerador sobre denominador. */}
+            <div className="cmv2-hist-semana-tasas">
+              <BarraTasa
+                label="Asistencia"
+                detalle={`${num(fila.asistentes)} de ${num(fila.elegibles)}`}
+                valor={fila.asistencia}
+                tono="asistencia"
+              />
+              <BarraTasa
+                label="Ya habían contestado"
+                detalle={`${num(fila.ya_medidas)} de ${num(fila.asistentes)} presentes`}
+                valor={fila.pct_ya_medidas}
+                tono="descuento"
+              />
+              <BarraTasa
+                label="Efectividad"
+                detalle={`${num(fila.efectivas)} de ${num(fila.a_encuestar)}`}
+                valor={fila.efectividad}
+                tono="meta"
+              />
+            </div>
+
+            <footer className="cmv2-hist-semana-pie">
+              <span>
+                <strong>{num(fila.efectivas_por_aula)}</strong> encuestas por aula
+              </span>
+              <span>
+                <strong>{num(acumulado)}</strong> acumuladas
+                {avance !== null ? ` · ${avance.toFixed(0)} % de la meta` : ""}
+              </span>
+              {avance !== null ? (
+                <span className="cmv2-hist-semana-avance" aria-hidden="true">
+                  <span style={{ width: `${avance}%` }} />
+                </span>
+              ) : null}
+            </footer>
+          </article>
+        );
+      })}
+      {totalEfectivas !== null ? (
+        <p className="cmv2-hist-nota-grupo">
+          El campo duró {filas.length} semanas y acumuló {num(totalEfectivas)} encuestas completas.
+          Las encuestas por aula caen de {num(filas[0]?.efectivas_por_aula)} a{" "}
+          {num(filas[filas.length - 1]?.efectivas_por_aula)} entre la primera semana y la última.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
 /**
  * Barra de tasa: la primitiva única de este panel. Escala fija de 0 a 100 %,
- * misma altura y mismo lugar para la cifra en todos los bloques, para que dos
- * barras de secciones distintas se puedan comparar de un vistazo.
+ * misma altura y mismo lugar para la cifra en todos los bloques. `detalle`
+ * lleva el numerador y el denominador, porque un porcentaje sin su base no se
+ * puede verificar ni comparar.
  */
 function BarraTasa({
   label,
+  detalle,
   valor,
   tono,
 }: {
   label: string;
+  detalle?: string;
   valor: number | null;
   tono: "asistencia" | "descuento" | "meta";
 }) {
   const ancho = valor !== null && Number.isFinite(valor) ? Math.max(0, Math.min(100, valor * 100)) : 0;
   return (
     <span className="cmv2-hist-tasa" data-tono={tono}>
-      <span className="cmv2-hist-tasa-label">{label}</span>
+      <span className="cmv2-hist-tasa-label">
+        {label}
+        {detalle ? <em>{detalle}</em> : null}
+      </span>
       <span className="cmv2-hist-tasa-track">
         <span style={{ width: `${ancho}%` }} />
       </span>
@@ -259,67 +350,90 @@ function BarraTasa({
 }
 
 /**
- * Qué costó cubrir el diseño. El embudo cuenta cómo rindió lo que se aplicó;
- * esto cuenta lo que hubo que hacer para conseguirlo, que es la otra mitad de
- * la lección operativa: cuántas celdas se resolvieron con su titular, cuántas
- * obligaron a bajar por la cadena de reemplazos y por qué se cayeron las que
- * se cayeron.
+ * La matriz de cadenas: una fila por titular y la historia de qué le pasó.
+ *
+ * El diseño no manda aplicar un curso-horario suelto. Manda cubrir un puesto, y
+ * para cada puesto sortea una cadena que empieza en un titular y sigue en sus
+ * suplentes; si el titular se cae, se baja un escalón. El agregado («169 de 170
+ * cubiertas») dice el resultado y calla el costo: una cadena resuelta al primer
+ * intento y otra que necesitó cinco valen lo mismo ahí y no cuestan lo mismo.
+ *
+ * Cada columna es un escalón y cada casilla dice qué pasó en él. Ordena por lo
+ * que costó, así que las cadenas que dieron trabajo quedan arriba.
  */
-function CoberturaCeldas({
-  cobertura,
+function MatrizCadenas({
+  cadenas,
 }: {
-  cobertura: CalcMuestraReferenciaAsistenciaCoberturaCeldas;
+  cadenas: CalcMuestraReferenciaAsistenciaCadenasReemplazo;
 }) {
-  const { celdas_declaradas: declaradas, celdas_con_titular: conTitular } = cobertura;
-  const conReemplazo = cobertura.celdas_con_reemplazo;
-  const sinCubrir = Math.max(0, declaradas - cobertura.celdas_cubiertas);
-  const base = Math.max(1, declaradas);
-  const totalMotivos = cobertura.motivos.reduce((acc, m) => acc + m.n, 0);
+  const columnas = Math.min(cadenas.profundidad_maxima, 8);
+  const filas = [...cadenas.filas].sort((a, b) => {
+    if (b.escalones_trabajados !== a.escalones_trabajados) {
+      return b.escalones_trabajados - a.escalones_trabajados;
+    }
+    return (b.efectivas ?? 0) - (a.efectivas ?? 0);
+  });
+  // Encabezados de una o dos letras: la columna mide 30 px y «Titular» se
+  // apilaba letra por letra. El nombre completo vive en el `title`.
+  const encabezados = Array.from({ length: columnas }, (_, i) => (i === 0 ? "T" : `R${i}`));
   return (
-    <>
-      <div className="cmv2-hist-cobertura">
-        <span className="cmv2-hist-cobertura-track" aria-hidden="true">
-          <span data-tipo="titular" style={{ width: `${(conTitular / base) * 100}%` }} />
-          <span data-tipo="reemplazo" style={{ width: `${(conReemplazo / base) * 100}%` }} />
-          <span data-tipo="sin-cubrir" style={{ width: `${(sinCubrir / base) * 100}%` }} />
-        </span>
-        <ul className="cmv2-hist-cobertura-leyenda">
-          <li data-tipo="titular">
-            <strong>{fmtInt(conTitular)}</strong>
-            <span>se resolvieron con el curso-horario que tocaba</span>
-          </li>
-          <li data-tipo="reemplazo">
-            <strong>{fmtInt(conReemplazo)}</strong>
-            <span>necesitaron bajar a un reemplazo</span>
-          </li>
-          {sinCubrir > 0 ? (
-            <li data-tipo="sin-cubrir">
-              <strong>{fmtInt(sinCubrir)}</strong>
-              <span>quedaron sin cubrir</span>
-            </li>
-          ) : null}
-        </ul>
-      </div>
-      {cobertura.motivos.length > 0 ? (
-        <>
-          <p className="cmv2-hist-nota-grupo">
-            Por qué se cayeron los {fmtInt(totalMotivos)} cursos-horario que no llegaron a aplicarse.
-            El motivo lo clasifica la base del estudio, no el módulo.
-          </p>
-          <ol className="cmv2-hist-motivos">
-            {[...cobertura.motivos].sort((a, b) => b.n - a.n).map((motivo) => (
-              <li key={motivo.motivo}>
-                <span className="cmv2-hist-motivos-nombre">{motivo.motivo}</span>
-                <span className="cmv2-hist-motivos-track">
-                  <span style={{ width: `${(motivo.n / Math.max(1, totalMotivos)) * 100}%` }} />
+    <div className="cmv2-hist-matriz-marco">
+      <div
+        className="cmv2-hist-matriz"
+        style={{ ["--cmv2-hist-escalones" as string]: String(columnas) }}
+        role="table"
+        aria-label="Historia de cada cadena de reemplazo"
+      >
+        <div className="cmv2-hist-matriz-head" role="row">
+          <span role="columnheader">Titular sorteado</span>
+          <span role="columnheader">Facultad</span>
+          {encabezados.map((etiqueta, i) => (
+            <span key={etiqueta} role="columnheader" title={i === 0 ? "Titular" : `Reemplazo ${i}`}>
+              {etiqueta}
+            </span>
+          ))}
+          <span role="columnheader" title="Encuestas completas que dio la cadena">Total</span>
+        </div>
+        {filas.map((fila) => (
+          <div className="cmv2-hist-matriz-fila" role="row" key={fila.cadena}>
+            <span className="cmv2-hist-matriz-titular" role="cell" title={fila.titular}>
+              {fila.titular}
+            </span>
+            <span className="cmv2-hist-matriz-facultad" role="cell" title={fila.facultad}>
+              {fila.facultad}
+            </span>
+            {Array.from({ length: columnas }, (_, i) => {
+              const escalon = fila.escalones[i];
+              if (!escalon) {
+                return <span key={i} className="cmv2-hist-matriz-casilla" data-estado="vacio" role="cell" />;
+              }
+              const titulo = [
+                `${escalon.rol}: ${escalon.curso_horario}`,
+                escalon.estado === "aplicado"
+                  ? `Se aplicó · ${fmtInt(escalon.efectivas ?? 0)} completas`
+                  : escalon.estado === "cayo"
+                    ? `Se cayó · ${escalon.motivo ?? "sin motivo registrado"}`
+                    : "No hizo falta contactarlo",
+              ].join("\n");
+              return (
+                <span
+                  key={i}
+                  className="cmv2-hist-matriz-casilla"
+                  data-estado={escalon.estado}
+                  role="cell"
+                  title={titulo}
+                >
+                  {escalon.estado === "aplicado" ? fmtInt(escalon.efectivas ?? 0) : null}
                 </span>
-                <span className="cmv2-hist-motivos-n">{fmtInt(motivo.n)}</span>
-              </li>
-            ))}
-          </ol>
-        </>
-      ) : null}
-    </>
+              );
+            })}
+            <span className="cmv2-hist-matriz-total" role="cell">
+              {fmtInt(fila.efectivas ?? 0)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -420,7 +534,7 @@ export function HistoricoEstudioPanel({
     { id: "facultad" as const, label: "Por facultad", disponible: Boolean(embudoFacultad) || filasFacultad.length > 0 },
     { id: "criterio" as const, label: "Por criterio", disponible: embudosCriterio.length > 0 || otras.length > 0 },
     { id: "semana" as const, label: "Semana a semana", disponible: Boolean(referencia.serie_campo) },
-    { id: "cobertura" as const, label: "Cobertura del diseño", disponible: Boolean(referencia.cobertura_celdas) },
+    { id: "cobertura" as const, label: "Titulares y reemplazos", disponible: Boolean(referencia.cadenas_reemplazo) },
     { id: "diseno" as const, label: "Cómo se dimensionó", disponible: diseno.declarado || filtros.length > 0 },
   ].filter((v) => v.disponible);
   const [vista, setVista] = useState<(typeof vistas)[number]["id"]>("general");
@@ -654,32 +768,64 @@ export function HistoricoEstudioPanel({
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
             <span className="cmv2-eyebrow">El campo en el tiempo</span>
-            <h4>Qué pasó semana a semana</h4>
+            <h4>Qué pasó cada semana</h4>
             <p>
-              La barra gris es cuántos cursos-horario se aplicaron esa semana. Debajo, tres tasas
-              sobre la misma escala: cuántos estudiantes fueron a clase, cuántos de los presentes ya
-              habían contestado en otro curso, y cuántas encuestas completas salieron.
+              Cada semana declara sus cifras en el orden en que ocurrieron, y cada porcentaje lleva
+              al lado las dos cantidades que lo producen.
             </p>
           </header>
-          <SerieCampo serie={referencia.serie_campo} />
+          <SerieCampo serie={referencia.serie_campo} meta={meta} />
         </div>
       ) : null}
 
-      {vistaActiva === "cobertura" && referencia.cobertura_celdas ? (
+      {vistaActiva === "cobertura" && referencia.cadenas_reemplazo ? (
         <div className="cmv2-hist-bloque">
           <header className="cmv2-hist-bloque-head">
-            <span className="cmv2-eyebrow">Lo que costó cubrir el diseño</span>
+            <span className="cmv2-eyebrow">La historia de cada titular</span>
             <h4>
-              {fmtInt(referencia.cobertura_celdas.celdas_cubiertas)} de{" "}
-              {fmtInt(referencia.cobertura_celdas.celdas_declaradas)} celdas cubiertas
+              {fmtInt(referencia.cadenas_reemplazo.resueltas_con_titular)} se resolvieron al primer
+              intento, {fmtInt(referencia.cadenas_reemplazo.resueltas_con_reemplazo)} necesitaron
+              reemplazo
             </h4>
             <p>
-              El diseño reparte la muestra en celdas y cada una hay que cubrirla. Se cubre con el
-              curso-horario que salió sorteado o, si ese se cae, bajando por la cadena de
-              reemplazos. Cuántas necesitaron reemplazo es lo que de verdad cuesta el operativo.
+              El diseño sortea, para cada puesto de la muestra, un curso-horario titular y una
+              cadena de suplentes por si ese se cae. Una fila por titular; cada columna es un
+              escalón de su cadena. Verde con cifra es que se aplicó y cuántas encuestas dio, ámbar
+              es que se cayó, y el gris claro son suplentes que nunca hizo falta contactar. Pasa el
+              cursor por cualquier casilla para ver el curso-horario y qué pasó.
             </p>
           </header>
-          <CoberturaCeldas cobertura={referencia.cobertura_celdas} />
+          <div className="cmv2-hist-leyenda">
+            <span data-tipo="efectiva">Se aplicó</span>
+            <span data-tipo="rechazo">Se cayó</span>
+            <span data-tipo="ausencia">No hizo falta</span>
+          </div>
+          <MatrizCadenas cadenas={referencia.cadenas_reemplazo} />
+          {referencia.cadenas_reemplazo.motivos.length > 0 ? (
+            <>
+              <p className="cmv2-hist-nota-grupo">
+                Por qué se cayeron los titulares y reemplazos que no llegaron a aplicarse. El motivo
+                lo clasifica la base del estudio, no el módulo.
+              </p>
+              <ol className="cmv2-hist-motivos">
+                {[...referencia.cadenas_reemplazo.motivos]
+                  .sort((a, b) => b.n - a.n)
+                  .map((motivo) => {
+                    const total = referencia.cadenas_reemplazo?.motivos
+                      .reduce((acc, m) => acc + m.n, 0) ?? 1;
+                    return (
+                      <li key={motivo.motivo}>
+                        <span className="cmv2-hist-motivos-nombre">{motivo.motivo}</span>
+                        <span className="cmv2-hist-motivos-track">
+                          <span style={{ width: `${(motivo.n / Math.max(1, total)) * 100}%` }} />
+                        </span>
+                        <span className="cmv2-hist-motivos-n">{fmtInt(motivo.n)}</span>
+                      </li>
+                    );
+                  })}
+              </ol>
+            </>
+          ) : null}
         </div>
       ) : null}
 

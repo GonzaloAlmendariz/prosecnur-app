@@ -2437,14 +2437,24 @@ export type CalcMuestraReferenciaAsistenciaSemana = {
   semana: number;
   etiqueta: string;
   orden: number;
+  /** Cursos-horario aplicados esa semana. */
   k: number;
   elegibles: number | null;
+  ausentes: number | null;
   asistentes: number | null;
   ya_medidas: number | null;
+  no_elegibles: number | null;
+  /** Presentes, del estudio y sin haber contestado antes: base de la efectividad. */
+  a_encuestar: number | null;
+  registros: number | null;
   efectivas: number | null;
+  no_efectivas: number | null;
+  efectivas_acumuladas: number | null;
   asistencia: number | null;
   pct_ya_medidas: number | null;
+  efectividad: number | null;
   rendimiento: number | null;
+  efectivas_por_aula: number | null;
 };
 
 export type CalcMuestraReferenciaAsistenciaSerieCampo = {
@@ -2453,19 +2463,49 @@ export type CalcMuestraReferenciaAsistenciaSerieCampo = {
 };
 
 /**
- * Qué costó cubrir el diseño: cuántas celdas se resolvieron con su titular,
- * cuántas necesitaron bajar a un reemplazo y por qué se cayeron las que se
- * cayeron. Los motivos los clasifica la base, no el motor.
+ * Un escalón de una cadena: qué pasó con ese curso-horario concreto.
+ * `aplicado` se aplicó, `cayo` se trabajó y no se pudo, `reserva` nunca hizo
+ * falta contactarlo.
  */
-export type CalcMuestraReferenciaAsistenciaCoberturaCeldas = {
-  celdas_declaradas: number;
-  celdas_cubiertas: number;
-  celdas_con_titular: number;
-  celdas_con_reemplazo: number;
-  aplicadas_titular: number;
-  aplicadas_reemplazo: number;
-  no_aplicadas: number;
+export type CalcMuestraReferenciaAsistenciaEscalon = {
+  posicion: number;
+  /** «Titular», «Reemplazo 1», «Reemplazo 2»… */
+  rol: string;
+  curso_horario: string;
+  estado: "aplicado" | "cayo" | "reserva";
+  efectivas: number | null;
+  motivo: string | null;
+};
+
+/** Una cadena de selección: un titular y los suplentes que entran si ese se cae. */
+export type CalcMuestraReferenciaAsistenciaCadenaSeleccion = {
+  cadena: number;
+  facultad: string;
+  titular: string;
+  escalones: CalcMuestraReferenciaAsistenciaEscalon[];
+  escalones_trabajados: number;
+  aplicados: number;
+  /** Escalón en el que se resolvió; null si la cadena nunca se resolvió. */
+  resuelta_en: number | null;
+  efectivas: number | null;
+  elegibles: number | null;
+  rendimiento: number | null;
+};
+
+/**
+ * La matriz de cadenas. El diseño no manda aplicar un curso-horario suelto:
+ * manda cubrir un puesto, y para cada puesto sortea una cadena que empieza en
+ * un titular. Contar sólo cuántas se aplicaron esconde lo que costó.
+ */
+export type CalcMuestraReferenciaAsistenciaCadenasReemplazo = {
+  unidad: "cadena_de_reemplazo";
+  cadenas_declaradas: number;
+  cadenas_resueltas: number;
+  resueltas_con_titular: number;
+  resueltas_con_reemplazo: number;
+  profundidad_maxima: number;
   motivos: { motivo: string; n: number; orden: number }[];
+  filas: CalcMuestraReferenciaAsistenciaCadenaSeleccion[];
 };
 
 export type CalcMuestraReferenciaAsistenciaDimensionKey =
@@ -2505,8 +2545,8 @@ export type CalcMuestraReferenciaAsistencia = {
   embudos: CalcMuestraReferenciaAsistenciaEmbudo[];
   /** null cuando la base no declara semana de campo. */
   serie_campo: CalcMuestraReferenciaAsistenciaSerieCampo | null;
-  /** null cuando la base no declara celda del diseño ni rol. */
-  cobertura_celdas: CalcMuestraReferenciaAsistenciaCoberturaCeldas | null;
+  /** null cuando la base no declara la cadena de reemplazo. */
+  cadenas_reemplazo: CalcMuestraReferenciaAsistenciaCadenasReemplazo | null;
   identidad: CalcMuestraReferenciaAsistenciaIdentidad;
   umbrales: CalcMuestraReferenciaAsistenciaUmbrales;
   cadena: CalcMuestraReferenciaAsistenciaCadena;
@@ -3212,39 +3252,41 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       };
       semanas.push({
         semana, etiqueta, orden, k,
-        elegibles: n(w.elegibles), asistentes: n(w.asistentes),
-        ya_medidas: n(w.ya_medidas), efectivas: n(w.efectivas),
+        elegibles: n(w.elegibles), ausentes: n(w.ausentes), asistentes: n(w.asistentes),
+        ya_medidas: n(w.ya_medidas), no_elegibles: n(w.no_elegibles),
+        a_encuestar: n(w.a_encuestar), registros: n(w.registros),
+        efectivas: n(w.efectivas), no_efectivas: n(w.no_efectivas),
+        efectivas_acumuladas: n(w.efectivas_acumuladas),
         asistencia: n(w.asistencia), pct_ya_medidas: n(w.pct_ya_medidas),
-        rendimiento: n(w.rendimiento),
+        efectividad: n(w.efectividad), rendimiento: n(w.rendimiento),
+        efectivas_por_aula: n(w.efectivas_por_aula),
       });
     }
     if (!semanas.length) return null;
     serieCampo = { unidad: "semana_de_campo", filas: semanas };
   }
 
-  let coberturaCeldas: CalcMuestraReferenciaAsistenciaCoberturaCeldas | null = null;
-  const celdasRecord = asRecord(root.cobertura_celdas);
-  if (celdasRecord) {
+  let cadenasReemplazo: CalcMuestraReferenciaAsistenciaCadenasReemplazo | null = null;
+  const cadenasRecord = asRecord(root.cadenas_reemplazo);
+  if (cadenasRecord) {
     const campos = [
-      "celdas_declaradas", "celdas_cubiertas", "celdas_con_titular",
-      "celdas_con_reemplazo", "aplicadas_titular", "aplicadas_reemplazo",
-      "no_aplicadas",
+      "cadenas_declaradas", "cadenas_resueltas", "resueltas_con_titular",
+      "resueltas_con_reemplazo", "profundidad_maxima",
     ] as const;
     const leidos: Record<string, number> = {};
     for (const campo of campos) {
-      const valor = asNonNegativeInteger(celdasRecord[campo]);
+      const valor = asNonNegativeInteger(cadenasRecord[campo]);
       if (valor === INVALID_NUMBER) return null;
       leidos[campo] = valor;
     }
-    const declaradas = leidos.celdas_declaradas;
-    const cubiertas = leidos.celdas_cubiertas;
-    const conTitular = leidos.celdas_con_titular;
-    const conReemplazo = leidos.celdas_con_reemplazo;
-    // Una celda se cubre con su titular o con un reemplazo, nunca con ambos.
-    if (conTitular + conReemplazo !== cubiertas) return null;
-    if (cubiertas > declaradas && declaradas > 0) return null;
+    // Una cadena se resuelve en su titular o en un reemplazo, nunca en ambos.
+    if (leidos.resueltas_con_titular + leidos.resueltas_con_reemplazo !== leidos.cadenas_resueltas) {
+      return null;
+    }
+    if (leidos.cadenas_resueltas > leidos.cadenas_declaradas) return null;
+
     const motivos: { motivo: string; n: number; orden: number }[] = [];
-    for (const rawMotivo of asList(celdasRecord.motivos)) {
+    for (const rawMotivo of asList(cadenasRecord.motivos)) {
       const m = asRecord(rawMotivo);
       if (!m) return null;
       const motivo = asText(m.motivo);
@@ -3253,12 +3295,56 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       if (!motivo || cuantos === INVALID_NUMBER || orden === INVALID_NUMBER) return null;
       motivos.push({ motivo, n: cuantos, orden });
     }
-    coberturaCeldas = {
-      celdas_declaradas: declaradas, celdas_cubiertas: cubiertas,
-      celdas_con_titular: conTitular, celdas_con_reemplazo: conReemplazo,
-      aplicadas_titular: leidos.aplicadas_titular,
-      aplicadas_reemplazo: leidos.aplicadas_reemplazo,
-      no_aplicadas: leidos.no_aplicadas, motivos,
+
+    const n = (value: unknown): number | null => {
+      const parsed = asFiniteOrNull(value);
+      return parsed === INVALID_NUMBER ? null : parsed;
+    };
+    const filas: CalcMuestraReferenciaAsistenciaCadenaSeleccion[] = [];
+    for (const rawFila of asList(cadenasRecord.filas)) {
+      const f = asRecord(rawFila);
+      if (!f) return null;
+      const cadena = asNonNegativeInteger(f.cadena);
+      const trabajados = asNonNegativeInteger(f.escalones_trabajados);
+      const aplicados = asNonNegativeInteger(f.aplicados);
+      const titular = asText(f.titular);
+      if (cadena === INVALID_NUMBER || trabajados === INVALID_NUMBER
+          || aplicados === INVALID_NUMBER || !titular) {
+        return null;
+      }
+      const escalones: CalcMuestraReferenciaAsistenciaEscalon[] = [];
+      for (const rawEscalon of asList(f.escalones)) {
+        const e = asRecord(rawEscalon);
+        if (!e) return null;
+        const posicion = asNonNegativeInteger(e.posicion);
+        const rol = asText(e.rol);
+        const cursoHorario = asText(e.curso_horario);
+        const estado = asText(e.estado);
+        if (posicion === INVALID_NUMBER || !rol || !cursoHorario) return null;
+        if (estado !== "aplicado" && estado !== "cayo" && estado !== "reserva") return null;
+        escalones.push({
+          posicion, rol, curso_horario: cursoHorario, estado,
+          efectivas: n(e.efectivas), motivo: asText(e.motivo, true) || null,
+        });
+      }
+      if (!escalones.length) return null;
+      const resueltaEn = asFiniteOrNull(f.resuelta_en);
+      filas.push({
+        cadena, facultad: asText(f.facultad, true) ?? "", titular, escalones,
+        escalones_trabajados: trabajados, aplicados,
+        resuelta_en: resueltaEn === INVALID_NUMBER ? null : resueltaEn,
+        efectivas: n(f.efectivas), elegibles: n(f.elegibles), rendimiento: n(f.rendimiento),
+      });
+    }
+
+    cadenasReemplazo = {
+      unidad: "cadena_de_reemplazo",
+      cadenas_declaradas: leidos.cadenas_declaradas,
+      cadenas_resueltas: leidos.cadenas_resueltas,
+      resueltas_con_titular: leidos.resueltas_con_titular,
+      resueltas_con_reemplazo: leidos.resueltas_con_reemplazo,
+      profundidad_maxima: leidos.profundidad_maxima,
+      motivos, filas,
     };
   }
 
@@ -3286,7 +3372,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     encuentros,
     embudos,
     serie_campo: serieCampo,
-    cobertura_celdas: coberturaCeldas,
+    cadenas_reemplazo: cadenasReemplazo,
     identidad,
     umbrales,
     cadena,
