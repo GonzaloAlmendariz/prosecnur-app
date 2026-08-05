@@ -55,6 +55,30 @@
   config_input
 }
 
+# Lee el apartado de diseño de la MISMA fuente que la tabla principal, sin
+# obligar al cliente a mandarlo dos veces. Silencioso a propósito: una base sin
+# esa hoja es el caso normal, no un error.
+.cm_diseno_declarado_en_archivo <- function(sid, body,
+                                            key = "referencia_asistencia",
+                                            hoja = "diseno") {
+  file_id <- calc_str(
+    body[[paste0(key, "_file_id")]] %||% body[[paste0(key, "FileId")]],
+    ""
+  )
+  if (!nzchar(file_id)) return(list())
+  meta <- get_file(sid, file_id)
+  if (!is.list(meta) || !nzchar(meta$path %||% "")) return(list())
+  ext <- tolower(tools::file_ext(meta$path))
+  if (!ext %in% c("xlsx", "xls")) return(list())
+  if (!requireNamespace("readxl", quietly = TRUE)) return(list())
+  disponibles <- readxl::excel_sheets(meta$path)
+  objetivo <- disponibles[.cm_aulas_text_key(disponibles) == .cm_aulas_text_key(hoja)]
+  if (!length(objetivo)) return(list())
+  calc_muestra_asistencia_diseno_declarado(
+    .cm_aulas_read_table(meta$path, sheet = objetivo[[1L]])
+  )
+}
+
 .cm_table_from_payload <- function(sid, body, key) {
   direct <- body[[key]] %||% NULL
   if (!is.null(direct)) return(.cm_aulas_as_df(direct, key))
@@ -606,7 +630,21 @@ mount_calc_muestra <- function(pr) {
           }
         }
       }
-      diseno_referencia <- body$diseno %||% workspace_vigente$diseno_historico %||% list()
+      # ADR 0060 · el diseño lo declara la propia base, en su hoja `diseno`.
+      # Una base histórica describe un estudio entero, no sólo su campo: si el
+      # diseño tiene que llegar por fuera, un estudio sin nadie que lo declare
+      # pierde la vista que explica cómo llegó a su número de aulas.
+      #
+      # Precedencia: lo que manda el cliente gana (está corrigiendo a mano),
+      # después lo que declara la base, y al final lo que quedó en el workspace.
+      diseno_de_la_base <- tryCatch(
+        .cm_diseno_declarado_en_archivo(sid, body),
+        error = function(e) list()
+      )
+      diseno_referencia <- body$diseno %||%
+        (if (length(diseno_de_la_base)) diseno_de_la_base else NULL) %||%
+        workspace_vigente$diseno_historico %||%
+        list()
       # Los tramos de tamaño los declara el estudio en Marco. Si no los usa, el
       # motor omite esa dimensión en vez de imponer una escala propia.
       aulas_config <- workspace_vigente$aulas$config %||% list()
