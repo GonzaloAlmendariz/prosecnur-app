@@ -271,6 +271,36 @@ test_that("todas las opciones excluidas degrada a lamina sin caption", {
   expect_null(meta[[1]]$base)
 })
 
+test_that("bases ponderadas no dan falso positivo y marcan solo masa en NA", {
+  # (a) Pesos heterogeneos SIN NA en la variable: el Total valido ponderado
+  # (26*0.5 + 26*1.5 = 52) es igual al universo ponderado; la comparacion
+  # flotante no puede inventar una reduccion => nota byte-identica sin marca.
+  docentes_w <- data.frame(
+    p1 = rep(c("3", "4"), 26),
+    peso = rep(c(0.5, 1.5), 26),
+    stringsAsFactors = FALSE
+  )
+  meta <- .bc_meta(
+    docentes_w, .bc_inst(.bc_survey_p1(), .bc_acuerdo_choices()),
+    .bc_plan_var()
+  )
+  expect_identical(.bc_bases(meta), "Base: 52")
+
+  # (b) La no-respuesta CON masa ponderada reduce el denominador: 44 filas
+  # validas con masa 47 (40*1 + 4*1.75) contra un universo ponderado de 52
+  # (47 + 8*0.625): la nota muestra el N ponderado valido y lleva marca.
+  docentes_w_na <- data.frame(
+    p1 = c(rep("4", 30), rep("3", 10), rep("1", 4), rep(NA_character_, 8)),
+    peso = c(rep(1, 40), rep(1.75, 4), rep(0.625, 8)),
+    stringsAsFactors = FALSE
+  )
+  meta_na <- .bc_meta(
+    docentes_w_na, .bc_inst(.bc_survey_p1(), .bc_acuerdo_choices()),
+    .bc_plan_var()
+  )
+  expect_identical(.bc_bases(meta_na), "Base: 47 (respuestas válidas)")
+})
+
 test_that("la marca de criterio es idempotente y con paridad exacta", {
   componer <- prosecnurapp:::.reporte_plan_base_componer_nota
   marcar <- prosecnurapp:::.reporte_plan_base_marca_criterio
