@@ -3,6 +3,7 @@ export { AulasObjetivoTab } from "./AulasObjetivoTab";
 export { AulasMetodoTab } from "./AulasMetodoTab";
 export { AulasSimulacionTab } from "./AulasSimulacionTab";
 export { AulasSeleccionTab } from "./AulasSeleccionTab";
+export { AulasPerfilTab } from "./AulasPerfilTab";
 export { AulasReemplazosTab } from "./AulasReemplazosTab";
 export { AulasAuditoriaTab } from "./AulasAuditoriaTab";
 export {

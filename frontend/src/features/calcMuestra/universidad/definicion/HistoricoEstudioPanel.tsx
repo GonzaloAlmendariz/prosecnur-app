@@ -27,7 +27,12 @@
  */
 import { Info } from "lucide-react";
 import { Fragment, useState } from "react";
-import { tip, useTooltipHistorico } from "./TooltipHistorico";
+import {
+  BarraTasa,
+  ComposicionCriterio,
+  componerCriterio,
+} from "../shared/graficos/PrimitivasGrafico";
+import { tip, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
 import type {
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaAsistenciaCelda,
@@ -365,38 +370,6 @@ function SerieCampo({
 }
 
 /**
- * Barra de tasa: la primitiva única de este panel. Escala fija de 0 a 100 %,
- * misma altura y mismo lugar para la cifra en todos los bloques. `detalle`
- * lleva el numerador y el denominador, porque un porcentaje sin su base no se
- * puede verificar ni comparar.
- */
-function BarraTasa({
-  label,
-  detalle,
-  valor,
-  tono,
-}: {
-  label: string;
-  detalle?: string;
-  valor: number | null;
-  tono: "asistencia" | "descuento" | "meta";
-}) {
-  const ancho = valor !== null && Number.isFinite(valor) ? Math.max(0, Math.min(100, valor * 100)) : 0;
-  return (
-    <span className="cmv2-hist-tasa" data-tono={tono}>
-      <span className="cmv2-hist-tasa-label">
-        {label}
-        {detalle ? <em>{detalle}</em> : null}
-      </span>
-      <span className="cmv2-hist-tasa-track">
-        <span style={{ width: `${ancho}%` }} />
-      </span>
-      <span className="cmv2-hist-tasa-cifra">{pct(valor, 0)}</span>
-    </span>
-  );
-}
-
-/**
  * La matriz de cadenas: una fila por titular y la historia de qué le pasó.
  *
  * El diseño no manda aplicar un curso-horario suelto. Manda cubrir un puesto, y
@@ -565,129 +538,6 @@ function MatrizCadenas({
   );
 }
 
-/**
- * Composición del marco por criterio, cruzada con facultad.
- *
- * El embudo de al lado responde «cómo rindió cada tipo de aula». Esto responde
- * «cuántas hay de cada tipo», que es otra pregunta y hace falta para leer la
- * primera: un criterio con buen rendimiento y tres aulas no mueve el operativo.
- *
- * El cruce con facultad es lo que de verdad se usa al dimensionar, porque una
- * facultad con muchos talleres no se parece a una con clases teóricas grandes y
- * repartir la muestra como si se parecieran descuadra las cuotas.
- */
-function ComposicionCriterio({
-  composicion,
-}: {
-  composicion: CalcMuestraReferenciaAsistenciaComposicion;
-}) {
-  // Un criterio cuyos valores son todos números es ordinal: se ordena por su
-  // valor, no alfabéticamente («10» antes que «2»), y se nombra con el criterio
-  // delante, porque un «6» suelto no dice qué mide.
-  const numerico = composicion.categorias.every((c) => /^\d+([.,]\d+)?$/.test(c.categoria.trim()));
-  const categorias = numerico
-    ? [...composicion.categorias].sort((a, b) => Number(a.categoria) - Number(b.categoria))
-    : composicion.categorias;
-  const orden = categorias.map((c) => c.categoria);
-  const nombrar = (categoria: string) =>
-    numerico ? `${composicion.criterio_label} ${categoria}` : categoria;
-  // Con pocas categorías, tonos fijos. Con muchas, o cuando el criterio es
-  // ordinal, un recorrido por la paleta: seis colores repetidos en diez niveles
-  // se leen como ruido, y un recorrido conserva el orden que el criterio trae.
-  const tonos = ["a", "b", "c", "d", "e", "f"];
-  const rampa = numerico || orden.length > tonos.length;
-  const tonoDe = (categoria: string) => tonos[Math.max(0, orden.indexOf(categoria)) % tonos.length];
-  // El orden de las facultades tiene que contar algo. Con un criterio ordinal,
-  // su valor promedio: las de cursos iniciales quedan juntas y las de avanzados
-  // también, así el recorrido se lee en diagonal. Con uno nominal, cuánto pesa
-  // la primera categoría, que es la que encabeza la leyenda.
-  const peso = (f: (typeof composicion.filas)[number]) => {
-    if (!numerico) return f.reparto.find((r) => r.categoria === orden[0])?.pct ?? 0;
-    const total = f.reparto.reduce((acc, r) => acc + r.n, 0);
-    if (!total) return 0;
-    return f.reparto.reduce((acc, r) => acc + Number(r.categoria) * r.n, 0) / total;
-  };
-  const filas = [...composicion.filas].sort((a, b) =>
-    numerico ? peso(a) - peso(b) : peso(b) - peso(a),
-  );
-  // Anclas de la paleta categórica del sistema, en orden de tono. Una rampa de
-  // dos anclas sobre diez categorías se lee como degradado: los vecinos quedan
-  // a un paso de distancia y no se distinguen. Con siete anclas, dos categorías
-  // contiguas siempre caen en familias de color distintas, y el recorrido sigue
-  // siendo monótono, así que el orden se conserva.
-  const ANCLAS = [
-    "var(--pulso-accent-violet)",
-    "var(--pulso-accent-sky)",
-    "var(--pulso-accent-cyan)",
-    "var(--pulso-accent-green)",
-    "var(--pulso-accent-amber)",
-    "var(--pulso-accent-rose)",
-    "var(--pulso-accent-steel)",
-  ];
-  const estiloDe = (categoria: string) => {
-    if (!rampa) return undefined;
-    const i = Math.max(0, orden.indexOf(categoria));
-    const t = i / Math.max(1, orden.length - 1);
-    const paso = t * (ANCLAS.length - 1);
-    const base = Math.min(ANCLAS.length - 2, Math.floor(paso));
-    const mezcla = Math.round((1 - (paso - base)) * 100);
-    // Alternar claro/oscuro entre vecinos añade una segunda señal además del
-    // tono, que es lo que separa dos segmentos contiguos y estrechos.
-    const ajuste = i % 2 === 0 ? "white 0%" : "black 14%";
-    return {
-      ["--cmv2-hist-comp-tono" as string]:
-        `color-mix(in oklab, color-mix(in oklab, ${ANCLAS[base]} ${mezcla}%, ${ANCLAS[base + 1]}) 86%, ${ajuste})`,
-    };
-  };
-
-  return (
-    <div className="cmv2-hist-comp">
-      <ul className="cmv2-hist-comp-leyenda">
-        {categorias.map((categoria) => (
-          <li
-            key={categoria.categoria}
-            data-tono={rampa ? undefined : tonoDe(categoria.categoria)}
-            style={estiloDe(categoria.categoria)}
-          >
-            <span>{nombrar(categoria.categoria)}</span>
-            <b>{fmtInt(categoria.n)}</b>
-            <em>{pct(categoria.pct, 0)}</em>
-          </li>
-        ))}
-      </ul>
-      <ol className="cmv2-hist-comp-filas">
-        {filas.map((fila) => (
-          <li key={fila.facultad}>
-            <span className="cmv2-hist-comp-nombre">{fila.facultad}</span>
-            <span className="cmv2-hist-comp-k">{fmtInt(fila.n)}</span>
-            <span className="cmv2-hist-comp-track">
-              {orden
-                .map((categoria) => fila.reparto.find((r) => r.categoria === categoria))
-                .filter((r): r is NonNullable<typeof r> => Boolean(r) && (r?.n ?? 0) > 0)
-                .map((r) => (
-                  <span
-                    key={r.categoria}
-                    data-tono={rampa ? "rampa" : tonoDe(r.categoria)}
-                    style={{ width: `${(r.pct ?? 0) * 100}%`, ...estiloDe(r.categoria) }}
-                    {...tip({
-                      titulo: nombrar(r.categoria),
-                      filas: [
-                        { label: "Cursos-horario", valor: `${fmtInt(r.n)} de ${fmtInt(fila.n)}` },
-                        { label: "Del total de la facultad", valor: pct(r.pct, 0) },
-                        { label: "Estudiantes elegibles", valor: fmtInt(r.elegibles ?? 0) },
-                      ],
-                      nota: fila.facultad,
-                    })}
-                  />
-                ))}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
 export function HistoricoEstudioPanel({
   referencia,
 }: {
@@ -791,7 +641,7 @@ export function HistoricoEstudioPanel({
   const [vista, setVista] = useState<(typeof vistas)[number]["id"]>("general");
   // Un solo tooltip para toda la superficie, por delegación: la matriz tiene
   // ~1.400 casillas y montar un listener en cada una costaría más que dibujarla.
-  const { manejadores, tooltip } = useTooltipHistorico();
+  const { manejadores, tooltip } = useTooltipGrafico();
   const vistaActiva = vistas.some((v) => v.id === vista) ? vista : "general";
 
   return (
@@ -1032,7 +882,17 @@ export function HistoricoEstudioPanel({
             .map((composicion) => (
               <div className="cmv2-hist-criterio" key={composicion.criterio_key}>
                 <span className="cmv2-eyebrow">{composicion.criterio_label}</span>
-                <ComposicionCriterio composicion={composicion} />
+                <ComposicionCriterio
+                  composicion={{
+                    criterio_label: composicion.criterio_label,
+                    categorias: composicion.categorias,
+                    filas: composicion.filas.map((fila) => ({
+                      grupo: fila.facultad,
+                      n: fila.n,
+                      reparto: fila.reparto,
+                    })),
+                  }}
+                />
               </div>
             ))}
         </div>

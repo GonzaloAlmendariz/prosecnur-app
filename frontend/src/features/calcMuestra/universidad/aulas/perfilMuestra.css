@@ -1,0 +1,153 @@
+/* Perfil de la muestra seleccionada.
+
+   Mismo lenguaje que el histórico: las primitivas compartidas hacen el trabajo
+   gráfico y esta hoja sólo pone el marco de los bloques. Si algo de aquí se
+   parece a `historicoEstudio.css`, es porque debe: una barra de Selección y una
+   de Datos tienen que poder compararse de un vistazo. */
+
+.cmv2-perfil {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  min-width: 0;
+}
+
+.cmv2-perfil-vacio {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+  padding: var(--cmv2-space-4);
+}
+
+.cmv2-perfil-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmv2-space-3);
+  padding: var(--cmv2-space-4);
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-lg);
+  background: var(--cmv2-surface);
+  min-width: 0;
+}
+
+/* El año pasado acompaña, no compite: mismo marco, menos peso. */
+.cmv2-perfil-bloque-tenue { background: var(--cmv2-surface-tint, var(--cmv2-surface)); }
+
+.cmv2-perfil-head h4 {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pulso-text);
+}
+
+.cmv2-perfil-head p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-perfil-criterio { display: flex; flex-direction: column; gap: var(--cmv2-space-2); }
+
+/* Reparto por facultad: aulas y elegibles en columnas fijas, porque son dos
+   cifras que no van juntas y hay que poder leerlas por separado. */
+.cmv2-perfil-facultades {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-perfil-facultades > li {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.4fr) minmax(0, 3fr) 34px 52px;
+  gap: var(--cmv2-space-2);
+  align-items: center;
+}
+
+.cmv2-perfil-facultad-nombre {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text);
+}
+
+.cmv2-perfil-facultad-track {
+  height: 15px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 9%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-perfil-facultad-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--cmv2-accent) 72%, transparent);
+  transition: width 320ms var(--cmv2-ease-out, ease);
+}
+
+.cmv2-perfil-facultad-n,
+.cmv2-perfil-facultad-eleg {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cmv2-perfil-facultad-n { font-weight: 600; color: var(--pulso-text); }
+.cmv2-perfil-facultad-eleg { color: var(--pulso-text-muted); }
+
+.cmv2-perfil-pie {
+  margin: 0;
+  padding-top: var(--cmv2-space-2);
+  border-top: 1px solid var(--cmv2-border);
+  font-size: 10px;
+  line-height: 1.45;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-perfil-pie strong {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-perfil-referencia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmv2-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-perfil-referencia > li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  max-width: 210px;
+}
+
+.cmv2-perfil-referencia strong {
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+  color: var(--pulso-text);
+}
+
+.cmv2-perfil-referencia span {
+  font-size: 10px;
+  line-height: 1.35;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}

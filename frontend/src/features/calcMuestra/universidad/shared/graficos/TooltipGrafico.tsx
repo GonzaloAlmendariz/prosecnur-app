@@ -1,5 +1,5 @@
 /**
- * El tooltip de los gráficos del histórico.
+ * El tooltip de los gráficos del módulo de cursos-horario.
  *
  * Gonzalo: «el hover es un hover del browser, y lo interesante es que sea un
  * hover profesional, elegante, minimalista que nosotros manejemos».
@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import "./graficos.css";
 
 export type TooltipDatos = {
   titulo: string;
@@ -44,7 +45,7 @@ export function tipAria(datos: TooltipDatos): string {
 
 const MARGEN = 14;
 
-export function useTooltipHistorico() {
+export function useTooltipGrafico() {
   const [datos, setDatos] = useState<TooltipDatos | null>(null);
   const [punto, setPunto] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const ultimo = useRef<Element | null>(null);
@@ -86,11 +87,11 @@ export function useTooltipHistorico() {
 
   return {
     manejadores: { onMouseMove, onMouseLeave },
-    tooltip: <TooltipHistorico datos={datos} punto={punto} />,
+    tooltip: <TooltipGrafico datos={datos} punto={punto} />,
   };
 }
 
-function TooltipHistorico({
+function TooltipGrafico({
   datos,
   punto,
 }: {
@@ -123,7 +124,7 @@ function TooltipHistorico({
   return createPortal(
     <div
       ref={caja}
-      className="cmv2-hist-tip"
+      className="cmv2-graf-tip"
       role="presentation"
       style={{
         left: pos?.left ?? punto.x + MARGEN,
@@ -133,12 +134,12 @@ function TooltipHistorico({
         opacity: pos ? 1 : 0,
       }}
     >
-      <p className="cmv2-hist-tip-titulo">
-        {datos.tono ? <span className="cmv2-hist-tip-punto" data-tono={datos.tono} /> : null}
+      <p className="cmv2-graf-tip-titulo">
+        {datos.tono ? <span className="cmv2-graf-tip-punto" data-tono={datos.tono} /> : null}
         {datos.titulo}
       </p>
       {datos.filas?.length ? (
-        <dl className="cmv2-hist-tip-filas">
+        <dl className="cmv2-graf-tip-filas">
           {datos.filas.map((fila) => (
             <div key={fila.label}>
               <dt>{fila.label}</dt>
@@ -147,7 +148,7 @@ function TooltipHistorico({
           ))}
         </dl>
       ) : null}
-      {datos.nota ? <p className="cmv2-hist-tip-nota">{datos.nota}</p> : null}
+      {datos.nota ? <p className="cmv2-graf-tip-nota">{datos.nota}</p> : null}
     </div>,
     document.body,
   );
