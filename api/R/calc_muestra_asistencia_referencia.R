@@ -68,8 +68,12 @@
     # titular o hubo que bajar a un reemplazo, sobre qué celda del diseño, y por
     # qué se cayó la que no se aplicó.
     semana = c("semana", "semana_campo", "SEMANA"),
-    rol = c("rol", "rol_efectivo", "rol_en_cadena", "ROL"),
-    celda = c("celda", "estrato_id", "estrato", "ESTRATO"),
+    rol = c("rol", "rol_efectivo", "ROL"),
+    rol_detalle = c("rol_detalle", "rol_en_cadena"),
+    # La cadena de reemplazo: un curso-horario titular y los suplentes que
+    # entran si ese se cae. Es la unidad que el diseño manda cubrir.
+    cadena = c("cadena", "estrato_id", "estrato", "CADENA"),
+    posicion = c("posicion", "posicion_cadena", "POSICION"),
     motivo = c("motivo", "motivo_no_aplicacion", "MOTIVO")
   )
 }
@@ -79,7 +83,7 @@
 # criterio por `as.numeric` lo dejaría en NA y borraría la dimensión entera.
 .cm_asist_optional_numeric_fields <- function() {
   c("elegibles", "ya_medidas", "no_elegibles", "no_efectivas", "rechazos_en_aula",
-    "semana")
+    "semana", "cadena", "posicion")
 }
 
 .cm_asist_resolve_optional <- function(datos) {
@@ -497,63 +501,129 @@
     )
     asistentes <- .cm_asist_strict_sum(model$asistentes[idx])
     ya_medidas <- sum(cero(model$ya_medidas[idx]))
+    no_elegibles <- sum(cero(model$no_elegibles[idx]))
     efectivas <- .cm_asist_strict_sum(model$validas[idx])
+    no_efectivas <- sum(cero(model$no_efectivas[idx]))
+    registros <- .cm_asist_strict_sum(model$enviadas[idx])
+    ausentes <- max(0, elegibles - asistentes)
+    # A quienes de verdad les tocaba responder esa semana: presentes, del
+    # estudio y sin haber contestado antes. Es el denominador de la
+    # efectividad, y sin publicarlo el porcentaje no se puede reconstruir.
+    a_encuestar <- max(0, asistentes - ya_medidas - no_elegibles)
     list(
       semana = as.integer(claves[[i]]),
       etiqueta = sprintf("Semana %d", as.integer(claves[[i]])),
       orden = i,
       k = length(idx),
       elegibles = elegibles,
+      ausentes = ausentes,
       asistentes = asistentes,
       ya_medidas = ya_medidas,
+      no_elegibles = no_elegibles,
+      a_encuestar = a_encuestar,
+      registros = registros,
       efectivas = efectivas,
+      no_efectivas = no_efectivas,
+      efectivas_acumuladas = 0,
       asistencia = .cm_asist_ratio(asistentes, elegibles),
       pct_ya_medidas = .cm_asist_ratio(ya_medidas, asistentes),
-      rendimiento = .cm_asist_ratio(efectivas, elegibles)
+      efectividad = .cm_asist_ratio(efectivas, a_encuestar),
+      rendimiento = .cm_asist_ratio(efectivas, elegibles),
+      efectivas_por_aula = .cm_asist_ratio(efectivas, length(idx))
     )
   })
+
+  # El acumulado dice cuanto faltaba para la meta en cada corte; se calcula al
+  # final porque cada semana necesita todas las anteriores.
+  acumulado <- 0
+  for (i in seq_along(filas)) {
+    if (is.finite(filas[[i]]$efectivas)) acumulado <- acumulado + filas[[i]]$efectivas
+    filas[[i]]$efectivas_acumuladas <- acumulado
+  }
+
   list(unidad = "semana_de_campo", filas = filas)
 }
 
-#' Cobertura de las celdas del diseno.
+#' Matriz de cadenas de reemplazo: la historia de cada titular.
 #'
-#' Una celda es una unidad del diseno que habia que cubrir; el operativo la
-#' cubre con su titular o, si esa cae, bajando por la cadena de reemplazos. Sin
-#' esta matriz el histórico solo dice cuanto rindio lo que se aplico, y calla lo
-#' que de verdad se paga por conseguirlo: cuantas celdas necesitaron reemplazo.
+#' El diseno no manda aplicar un curso-horario suelto: manda cubrir un puesto, y
+#' para cada puesto sortea una cadena que empieza en un titular y sigue en sus
+#' suplentes. Cuando el titular se cae se baja un escalon. Contar solo cuantas
+#' se aplicaron esconde lo que costo: una cadena resuelta en el titular y otra
+#' que necesito cuatro llamadas valen lo mismo en el agregado y no cuestan lo
+#' mismo en campo.
 #'
-#' Recibe el frame COMPLETO, no el modelo: las no aplicadas son justamente el
-#' dato. Devuelve NULL si la base no declara celda ni rol.
-.cm_asist_cobertura_celdas <- function(frame) {
-  if (is.null(frame$celda) && is.null(frame$rol)) return(NULL)
+#' Devuelve una fila por cadena con sus escalones en orden, cada uno con lo que
+#' paso ahi. Las posiciones que nunca se trabajaron se marcan como reserva y no
+#' se recorren: son relleno del sorteo, no operativo.
+#'
+#' NULL si la base no declara cadena.
+.cm_asist_cadenas <- function(frame) {
+  if (is.null(frame$cadena)) return(NULL)
+  cadenas <- suppressWarnings(as.numeric(frame$cadena))
+  if (!any(is.finite(cadenas))) return(NULL)
 
-  celda <- if (is.null(frame$celda)) rep("", nrow(frame)) else trimws(as.character(frame$celda))
-  celda[is.na(celda)] <- ""
-  rol <- if (is.null(frame$rol)) rep("", nrow(frame)) else trimws(as.character(frame$rol))
-  rol[is.na(rol)] <- ""
+  posicion <- if (is.null(frame$posicion)) rep(NA_real_, nrow(frame)) else {
+    suppressWarnings(as.numeric(frame$posicion))
+  }
+  detalle <- if (is.null(frame$rol_detalle)) rep("", nrow(frame)) else {
+    trimws(as.character(frame$rol_detalle))
+  }
+  detalle[is.na(detalle)] <- ""
   motivo <- if (is.null(frame$motivo)) rep("", nrow(frame)) else trimws(as.character(frame$motivo))
   motivo[is.na(motivo)] <- ""
-
+  facultad <- frame$facultad
   aplicada <- frame$estado == "aplicada"
-  es_titular <- grepl("titular", rol, ignore.case = TRUE)
-  es_reemplazo <- grepl("reemplazo", rol, ignore.case = TRUE)
+  # Un escalon «trabajado» es el que el operativo toco: se aplico o se cayo.
+  # El resto es reserva que nunca hizo falta contactar.
+  trabajado <- aplicada | nzchar(motivo) | frame$estado %in% c("reemplazada", "no_aplicada")
 
-  claves <- unique(celda[nzchar(celda)])
-  # Sin celdas declaradas la matriz no existe, pero el reparto titular/reemplazo
-  # sigue siendo legible sobre el total.
-  cubiertas_titular <- 0L
-  cubiertas_reemplazo <- 0L
-  if (length(claves)) {
-    for (clave in claves) {
-      idx <- which(celda == clave & aplicada)
-      if (!length(idx)) next
-      if (any(es_titular[idx])) {
-        cubiertas_titular <- cubiertas_titular + 1L
+  claves <- sort(unique(cadenas[is.finite(cadenas)]))
+  filas <- lapply(seq_along(claves), function(i) {
+    idx <- which(is.finite(cadenas) & cadenas == claves[[i]])
+    orden <- idx[order(posicion[idx], na.last = TRUE)]
+    ultimo_trabajado <- if (any(trabajado[orden])) max(which(trabajado[orden])) else 1L
+
+    escalones <- lapply(seq_len(ultimo_trabajado), function(j) {
+      fila <- orden[[j]]
+      estado <- if (aplicada[fila]) {
+        "aplicado"
+      } else if (trabajado[fila]) {
+        "cayo"
       } else {
-        cubiertas_reemplazo <- cubiertas_reemplazo + 1L
+        "reserva"
       }
-    }
-  }
+      list(
+        posicion = if (is.finite(posicion[fila])) as.integer(posicion[fila]) else j,
+        rol = if (nzchar(detalle[fila])) detalle[fila] else {
+          if (j == 1L) "Titular" else sprintf("Reemplazo %d", j - 1L)
+        },
+        curso_horario = frame$curso_horario[fila],
+        estado = estado,
+        efectivas = if (aplicada[fila] && is.finite(frame$validas[fila])) frame$validas[fila] else NULL,
+        motivo = if (nzchar(motivo[fila])) motivo[fila] else NULL
+      )
+    })
+
+    aplicados <- which(aplicada[orden])
+    efectivas <- .cm_asist_strict_sum(frame$validas[orden[aplicados]])
+    elegibles_fuente <- if (is.null(frame$elegibles)) frame$matriculados else frame$elegibles
+    elegibles <- .cm_asist_strict_sum(elegibles_fuente[orden[aplicados]])
+    resuelta_en <- if (length(aplicados)) as.integer(aplicados[[1L]]) else NA_integer_
+
+    list(
+      cadena = as.integer(claves[[i]]),
+      facultad = if (length(idx)) facultad[[idx[[1L]]]] else "",
+      titular = frame$curso_horario[[orden[[1L]]]],
+      escalones = escalones,
+      escalones_trabajados = as.integer(ultimo_trabajado),
+      aplicados = as.integer(length(aplicados)),
+      resuelta_en = if (is.na(resuelta_en)) NULL else resuelta_en,
+      efectivas = efectivas,
+      elegibles = elegibles,
+      rendimiento = .cm_asist_ratio(efectivas, elegibles)
+    )
+  })
 
   # Motivos de caida, agregados. El texto libre lo clasifica la base; el motor
   # solo cuenta, porque inventar categorias aqui las volveria invisibles al
@@ -566,15 +636,18 @@
     })
   } else list()
 
+  resueltas <- vapply(filas, function(f) !is.null(f$resuelta_en), logical(1))
+  en_titular <- vapply(filas, function(f) identical(f$resuelta_en, 1L), logical(1))
+
   list(
-    celdas_declaradas = length(claves),
-    celdas_cubiertas = cubiertas_titular + cubiertas_reemplazo,
-    celdas_con_titular = cubiertas_titular,
-    celdas_con_reemplazo = cubiertas_reemplazo,
-    aplicadas_titular = as.integer(sum(aplicada & es_titular)),
-    aplicadas_reemplazo = as.integer(sum(aplicada & es_reemplazo)),
-    no_aplicadas = as.integer(sum(!aplicada & (es_titular | es_reemplazo))),
-    motivos = motivos
+    unidad = "cadena_de_reemplazo",
+    cadenas_declaradas = length(claves),
+    cadenas_resueltas = as.integer(sum(resueltas)),
+    resueltas_con_titular = as.integer(sum(en_titular)),
+    resueltas_con_reemplazo = as.integer(sum(resueltas & !en_titular)),
+    profundidad_maxima = max(1L, max(vapply(filas, function(f) f$escalones_trabajados, integer(1)))),
+    motivos = motivos,
+    filas = filas
   )
 }
 
@@ -1226,7 +1299,7 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     # El operativo en el tiempo y el costo de cubrir cada celda del diseño.
     # Ambos NULL cuando la base no declara semana, celda ni rol.
     serie_campo = .cm_asist_serie_campo(model),
-    cobertura_celdas = .cm_asist_cobertura_celdas(frame),
+    cadenas_reemplazo = .cm_asist_cadenas(frame),
     identidad = list(
       regla = if (tiene_glosario) {
         "elegibles_presentes = efectivas + no_efectivas + no_realizadas"

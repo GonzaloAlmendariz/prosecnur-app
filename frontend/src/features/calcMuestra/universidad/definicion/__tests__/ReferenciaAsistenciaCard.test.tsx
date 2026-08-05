@@ -45,7 +45,7 @@ function referencia(): CalcMuestraReferenciaAsistencia {
     encuentros: null,
     embudos: [],
   serie_campo: null,
-  cobertura_celdas: null,
+  cadenas_reemplazo: null,
     identidad: {
       regla: "A = E + no_respondieron",
       verificada: true,
