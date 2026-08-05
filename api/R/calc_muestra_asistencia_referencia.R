@@ -568,7 +568,7 @@
   )
 }
 
-.cm_asist_serie_campo <- function(model) {
+.cm_asist_serie_campo <- function(model, tiene_glosario = TRUE) {
   if (is.null(model$semana)) return(NULL)
   semanas <- suppressWarnings(as.numeric(model$semana))
   validas <- is.finite(semanas)
@@ -592,6 +592,12 @@
     # estudio y sin haber contestado antes. Es el denominador de la
     # efectividad, y sin publicarlo el porcentaje no se puede reconstruir.
     a_encuestar <- max(0, asistentes - ya_medidas - no_elegibles)
+    # G53 · El mismo denominador que la cadena global, o la cifra semanal y la
+    # cifra publicada no son la misma metrica. Sin glosario la cadena mide
+    # efectivas sobre registros; medir aqui sobre presentes daba dos numeros
+    # distintos bajo la misma palabra —el error que el ADR 0060 vino a
+    # corregir— y ponerlos juntos en la superficie los haria incomparables.
+    base_efectividad <- if (tiene_glosario) a_encuestar else registros
     list(
       semana = as.integer(claves[[i]]),
       etiqueta = sprintf("Semana %d", as.integer(claves[[i]])),
@@ -609,7 +615,10 @@
       efectivas_acumuladas = 0,
       asistencia = .cm_asist_ratio(asistentes, elegibles),
       pct_ya_medidas = .cm_asist_ratio(ya_medidas, asistentes),
-      efectividad = .cm_asist_ratio(efectivas, a_encuestar),
+      efectividad = .cm_asist_ratio(efectivas, base_efectividad),
+      # El denominador viaja al lado de su tasa: la superficie no tiene que
+      # adivinar si esta semana se midio sobre presentes o sobre registros.
+      efectividad_denominador = base_efectividad,
       rendimiento = .cm_asist_ratio(efectivas, elegibles),
       efectivas_por_aula = .cm_asist_ratio(efectivas, length(idx))
     )
@@ -623,7 +632,98 @@
     filas[[i]]$efectivas_acumuladas <- acumulado
   }
 
-  list(unidad = "semana_de_campo", filas = filas)
+  list(unidad = "semana_de_campo", filas = filas, deriva = .cm_asist_deriva(filas))
+}
+
+#' Cuanto se mueve una tasa a lo largo del campo.
+#'
+#' G53 · Gonzalo: «hay que tomar el porcentaje de efectividad with a grain of
+#' salt, porque la efectividad no es la misma la primera semana que la ultima
+#' […] en general en todo el reporte no se toma ese dato contextual y es super
+#' importante».
+#'
+#' Tiene razon y el dato de 2025 lo confirma, aunque no de la forma que se
+#' supone. La efectividad no cae en linea recta —72,7 %, 76,0 %, 79,5 % y 56,4 %
+#' en la ultima— pero el promedio global (74,6 %) es un ponderado que la semana
+#' 1 domina con el 47 % del denominador, y el rango real va de 56 % a 80 %. Lo
+#' que si crece semana a semana, y de forma monotona, es el agotamiento del
+#' marco: el 5,9 % de los presentes ya habia contestado en la semana 1 y el
+#' 18,1 % en la ultima. Esa es la razon por la que las encuestas por aula bajan
+#' de 17,7 a 14,2.
+#'
+#' Este bloque publica esas tres cosas —rango, quien pondera el promedio y si el
+#' agotamiento crece— para que la superficie pueda decirlo sin recalcularlo, y
+#' para que quien hereda la tasa sepa que hereda un promedio y no una constante.
+.cm_asist_deriva <- function(filas) {
+  if (!length(filas)) return(NULL)
+  valor <- function(f, campo) {
+    v <- f[[campo]]
+    if (is.null(v) || !is.finite(v)) NA_real_ else as.numeric(v)
+  }
+  efectividades <- vapply(filas, valor, numeric(1), "efectividad")
+  medibles <- which(is.finite(efectividades))
+  if (!length(medibles)) return(NULL)
+
+  denominadores <- vapply(filas, valor, numeric(1), "a_encuestar")
+  denominadores[!is.finite(denominadores)] <- 0
+  total_denominador <- sum(denominadores)
+  i_max_peso <- which.max(denominadores)
+  i_min <- medibles[[which.min(efectividades[medibles])]]
+  i_max <- medibles[[which.max(efectividades[medibles])]]
+  primera <- medibles[[1L]]
+  ultima <- medibles[[length(medibles)]]
+
+  ya_medidas <- vapply(filas, valor, numeric(1), "pct_ya_medidas")
+  con_ya <- which(is.finite(ya_medidas))
+  # Tendencia por rangos, no monotonia estricta. En 2025 la serie va 5,9 % ·
+  # 11,5 % · 10,9 % · 18,1 %: sube con claridad pero tiene un escalon que baja,
+  # y exigir que nunca bajara declaraba «sin tendencia» justo donde el
+  # agotamiento del marco se ve a simple vista. Spearman ordena los tramos y
+  # tolera ese ruido; el segundo requisito evita llamar tendencia a una subida
+  # de decimas.
+  agotamiento_crece <- FALSE
+  if (length(con_ya) > 2L) {
+    serie_ya <- ya_medidas[con_ya]
+    rho <- suppressWarnings(stats::cor(seq_along(serie_ya), serie_ya, method = "spearman"))
+    agotamiento_crece <- is.finite(rho) && rho >= 0.6 &&
+      (serie_ya[[length(serie_ya)]] - serie_ya[[1L]]) >= 0.02
+  }
+
+  por_aula <- vapply(filas, valor, numeric(1), "efectivas_por_aula")
+  con_aula <- which(is.finite(por_aula))
+
+  list(
+    tramos = as.integer(length(filas)),
+    tramos_medibles = as.integer(length(medibles)),
+    etiqueta_primera = filas[[primera]]$etiqueta,
+    etiqueta_ultima = filas[[ultima]]$etiqueta,
+    efectividad_primera = efectividades[[primera]],
+    efectividad_ultima = efectividades[[ultima]],
+    efectividad_min = efectividades[[i_min]],
+    efectividad_min_etiqueta = filas[[i_min]]$etiqueta,
+    efectividad_min_k = as.integer(filas[[i_min]]$k),
+    efectividad_max = efectividades[[i_max]],
+    efectividad_max_etiqueta = filas[[i_max]]$etiqueta,
+    efectividad_max_k = as.integer(filas[[i_max]]$k),
+    # Que tramo pondera el promedio global. Sin esto, «74,6 %» parece la tasa de
+    # una semana cualquiera cuando en realidad es, sobre todo, la de la primera.
+    tramo_dominante = filas[[i_max_peso]]$etiqueta,
+    peso_dominante = if (total_denominador > 0) denominadores[[i_max_peso]] / total_denominador else NA_real_,
+    ya_medidas_primera = if (length(con_ya)) ya_medidas[[con_ya[[1L]]]] else NA_real_,
+    ya_medidas_ultima = if (length(con_ya)) ya_medidas[[con_ya[[length(con_ya)]]]] else NA_real_,
+    agotamiento_crece = agotamiento_crece,
+    por_aula_primera = if (length(con_aula)) por_aula[[con_aula[[1L]]]] else NA_real_,
+    por_aula_ultima = if (length(con_aula)) por_aula[[con_aula[[length(con_aula)]]]] else NA_real_,
+    # La serie compacta, para dibujarla junto a la cifra global sin repetir el
+    # bloque entero de la vista semanal.
+    puntos = lapply(filas, function(f) list(
+      etiqueta = f$etiqueta,
+      k = as.integer(f$k),
+      a_encuestar = valor(f, "a_encuestar"),
+      efectividad = valor(f, "efectividad"),
+      pct_ya_medidas = valor(f, "pct_ya_medidas")
+    ))
+  )
 }
 
 #' Matriz de cadenas de reemplazo: la historia de cada titular.
@@ -674,6 +774,16 @@
     names(tabla_motivos)[seq_len(min(length(tabla_motivos), 26L))]
   )
   elegibles_fuente <- if (is.null(frame$elegibles)) frame$matriculados else frame$elegibles
+  # G53 · En que semana se aplico cada escalon. Una cadena que bajo tres
+  # escalones no solo costo mas: se resolvio tarde, cuando el marco ya estaba
+  # mas agotado, asi que su rendimiento no es comparable con el de una titular
+  # aplicada la primera semana. Sin esta columna la matriz obliga a suponer que
+  # todas ocurrieron a la vez.
+  semanas <- if (is.null(frame$semana)) {
+    rep(NA_real_, nrow(frame))
+  } else {
+    suppressWarnings(as.numeric(frame$semana))
+  }
 
   cero <- function(x) if (is.null(x)) 0 else ifelse(is.finite(x), x, 0)
   claves <- sort(unique(cadenas[is.finite(cadenas)]))
@@ -703,6 +813,9 @@
       }
       list(
         posicion = if (is.finite(posicion[fila])) as.integer(posicion[fila]) else j,
+        # Solo la del escalon que se aplico: una reserva que nadie contacto no
+        # ocurrio en ninguna semana, y ponerle una fecha seria inventarla.
+        semana = if (aplicada[fila] && is.finite(semanas[fila])) as.integer(semanas[fila]) else NA_integer_,
         rol = if (nzchar(detalle[fila])) detalle[fila] else {
           if (j == 1L) "Titular" else sprintf("Reemplazo %d", j - 1L)
         },
@@ -730,6 +843,8 @@
     })
 
     aplicados <- which(aplicada[orden])
+    semanas_cadena <- semanas[orden[aplicados]]
+    semanas_cadena <- semanas_cadena[is.finite(semanas_cadena)]
     efectivas <- .cm_asist_strict_sum(frame$validas[orden[aplicados]])
     elegibles_fuente <- if (is.null(frame$elegibles)) frame$matriculados else frame$elegibles
     elegibles <- .cm_asist_strict_sum(elegibles_fuente[orden[aplicados]])
@@ -752,6 +867,9 @@
       escalones_trabajados = as.integer(ultimo_trabajado),
       aplicados = as.integer(length(aplicados)),
       resuelta_en = resuelta_en,
+      # La ventana en la que esta cadena ocurrio de verdad.
+      semana_inicio = if (length(semanas_cadena)) as.integer(min(semanas_cadena)) else NA_integer_,
+      semana_fin = if (length(semanas_cadena)) as.integer(max(semanas_cadena)) else NA_integer_,
       efectivas = efectivas,
       elegibles = elegibles,
       rendimiento = .cm_asist_ratio(efectivas, elegibles)
@@ -773,8 +891,44 @@
     })
   } else list()
 
-  resueltas <- vapply(filas, function(f) !is.null(f$resuelta_en), logical(1))
+  # G53 · `resuelta_en` vale NA cuando la cadena no aplico ningun escalon, y
+  # `!is.null(NA_integer_)` es TRUE: con esa prueba una cadena que nunca se
+  # resolvio se contaba como resuelta y, al no ser su titular, engrosaba el
+  # grupo «con reemplazo». En 2025 eso publicaba 170 resueltas y 25 con
+  # reemplazo donde son 169 y 24.
+  resueltas <- vapply(filas, function(f) isTRUE(is.finite(f$resuelta_en)), logical(1))
   en_titular <- vapply(filas, function(f) identical(f$resuelta_en, 1L), logical(1))
+
+  # G53 · Cuando ocurrio cada cosa, y si eso se noto.
+  #
+  # Un reemplazo no es solo un escalon mas: es un aula que se aplico DESPUES. En
+  # 2025 los titulares cayeron en la semana 1,5 de media y los reemplazos en la
+  # 2,7 —mas de una semana despues—, y para entonces el marco ya estaba mas
+  # agotado. Sin esta comparacion, la matriz deja pensar que las dos mitades se
+  # aplicaron en las mismas condiciones y que la diferencia de rendimiento, si
+  # la hay, es del aula.
+  perfil_escalones <- function(es_titular) {
+    semanas_grupo <- numeric(0)
+    efectivas_grupo <- numeric(0)
+    elegibles_grupo <- numeric(0)
+    for (f in filas) {
+      for (e in f$escalones) {
+        if (!identical(e$estado, "aplicado")) next
+        if ((e$posicion == 1L) != es_titular) next
+        if (is.finite(e$semana %||% NA_integer_)) semanas_grupo <- c(semanas_grupo, e$semana)
+        if (is.finite(e$efectivas %||% NA_real_)) efectivas_grupo <- c(efectivas_grupo, e$efectivas)
+        if (is.finite(e$elegibles %||% NA_real_)) elegibles_grupo <- c(elegibles_grupo, e$elegibles)
+      }
+    }
+    list(
+      aplicados = as.integer(max(length(efectivas_grupo), length(semanas_grupo))),
+      semana_media = if (length(semanas_grupo)) mean(semanas_grupo) else NA_real_,
+      efectivas = sum(efectivas_grupo),
+      rendimiento = .cm_asist_ratio(sum(efectivas_grupo), sum(elegibles_grupo))
+    )
+  }
+  perfil_titular <- perfil_escalones(TRUE)
+  perfil_reemplazo <- perfil_escalones(FALSE)
 
   list(
     unidad = "cadena_de_reemplazo",
@@ -783,6 +937,8 @@
     resueltas_con_titular = as.integer(sum(en_titular)),
     resueltas_con_reemplazo = as.integer(sum(resueltas & !en_titular)),
     profundidad_maxima = max(1L, max(vapply(filas, function(f) f$escalones_trabajados, integer(1)))),
+    titulares = perfil_titular,
+    reemplazos = perfil_reemplazo,
     motivos = motivos,
     filas = filas
   )
@@ -1630,7 +1786,7 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     # el cliente lo leería como un bloque presente y vacío, que es peor que
     # ausente porque invalida el payload entero.
     cuotas = .cm_asist_cuotas(model, cuotas) %||% NA,
-    serie_campo = .cm_asist_serie_campo(model) %||% NA,
+    serie_campo = .cm_asist_serie_campo(model, tiene_glosario) %||% NA,
     cadenas_reemplazo = .cm_asist_cadenas(frame) %||% NA,
     identidad = list(
       regla = if (tiene_glosario) {

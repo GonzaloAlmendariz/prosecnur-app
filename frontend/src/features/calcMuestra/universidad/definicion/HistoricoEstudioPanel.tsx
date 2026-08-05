@@ -279,6 +279,86 @@ function EmbudoApilado({
 }
 
 /**
+ * La tasa que se hereda no es una constante.
+ *
+ * G53 · Gonzalo: «hay que tomar el porcentaje de efectividad with a grain of
+ * salt, porque la efectividad no es la misma la primera semana que la última».
+ * Tiene razón, y el dato lo matiza: en 2025 la efectividad va 72,7 % · 76,0 % ·
+ * 79,5 % · 56,4 %, así que no cae en línea recta, pero el 74,6 % publicado es un
+ * promedio que la semana 1 domina con el 47 % del denominador y el rango real va
+ * de 56 % a 80 %.
+ *
+ * Este bloque va pegado a la cifra global, no en otra vista: quien lee «74,6 %»
+ * y se lo lleva para dimensionar tiene que ver ahí mismo que es un promedio.
+ * Las barras son la serie; la más alta y la más baja quedan marcadas.
+ */
+function DispersionTasa({
+  deriva,
+  tasaGlobal,
+  onVerSemanas,
+}: {
+  deriva: NonNullable<CalcMuestraReferenciaAsistenciaSerieCampo["deriva"]>;
+  tasaGlobal: number | null;
+  onVerSemanas: () => void;
+}) {
+  const puntos = deriva.puntos.filter((p) => p.efectividad !== null);
+  if (puntos.length < 2) return null;
+  const valores = puntos.map((p) => p.efectividad ?? 0);
+  const techo = Math.max(...valores, tasaGlobal ?? 0);
+  const piso = Math.min(...valores, tasaGlobal ?? 1);
+  // Escala con aire para que la diferencia entre 56 % y 80 % no se lea como una
+  // barra llena contra una vacía.
+  const rango = Math.max(0.08, (techo - piso) * 1.35);
+  const base = Math.max(0, piso - (rango - (techo - piso)) / 2);
+  const alto = (valor: number) => Math.max(6, Math.min(100, ((valor - base) / rango) * 100));
+
+  return (
+    <div className="cmv2-hist-dispersion">
+      <div className="cmv2-hist-dispersion-serie" aria-hidden="true">
+        {puntos.map((punto, i) => {
+          const extremo = punto.etiqueta === deriva.efectividad_min_etiqueta
+            ? "min"
+            : punto.etiqueta === deriva.efectividad_max_etiqueta
+              ? "max"
+              : undefined;
+          return (
+            <span
+              key={`${punto.etiqueta}-${i}`}
+              data-extremo={extremo}
+              style={{ height: `${alto(punto.efectividad ?? 0)}%` }}
+              {...tip({
+                titulo: punto.etiqueta,
+                filas: [
+                  { label: "Efectividad", valor: pct(punto.efectividad, 1) },
+                  { label: "Aulas", valor: fmtInt(punto.k) },
+                  { label: "A encuestar", valor: num(punto.a_encuestar) },
+                ],
+              })}
+            />
+          );
+        })}
+      </div>
+      <p>
+        <span className="cmv2-hist-dispersion-rotulo">Esa efectividad es un promedio:</span> va
+        entre <b>{pct(deriva.efectividad_min, 0)}</b> ({deriva.efectividad_min_etiqueta},{" "}
+        {fmtInt(deriva.efectividad_min_k ?? 0)} aulas) y <b>{pct(deriva.efectividad_max, 0)}</b> (
+        {deriva.efectividad_max_etiqueta}, {fmtInt(deriva.efectividad_max_k ?? 0)} aulas).
+        {deriva.peso_dominante !== null && deriva.peso_dominante >= 0.3 ? (
+          <>
+            {" "}
+            El promedio lo fija sobre todo {deriva.tramo_dominante}, que aporta{" "}
+            {pct(deriva.peso_dominante, 0)} de la base.
+          </>
+        ) : null}
+        <button type="button" onClick={onVerSemanas}>
+          Ver semana a semana
+        </button>
+      </p>
+    </div>
+  );
+}
+
+/**
  * La serie del operativo, semana a semana.
  *
  * La primera versión sólo daba porcentajes y no decía sobre qué: un «81 %»
@@ -361,7 +441,10 @@ function SerieCampo({
               />
               <BarraTasa
                 label="Efectividad"
-                detalle={`${num(fila.efectivas)} de ${num(fila.a_encuestar)}`}
+                // El denominador que se publica es el que se usó, no el del
+                // flujo: sin glosario la efectividad se mide sobre registros y
+                // `a_encuestar` diría una base que no es la de esta tasa.
+                detalle={`${num(fila.efectivas)} de ${num(fila.efectividad_denominador ?? fila.a_encuestar)}`}
                 valor={fila.efectividad}
                 tono="meta"
               />
@@ -389,6 +472,17 @@ function SerieCampo({
           El campo duró {filas.length} semanas y acumuló {num(totalEfectivas)} encuestas completas.
           Las encuestas por aula caen de {num(filas[0]?.efectivas_por_aula)} a{" "}
           {num(filas[filas.length - 1]?.efectivas_por_aula)} entre la primera semana y la última.
+          {/* G53 · La efectividad no cae en línea recta y decirlo evita la
+              lectura fácil: lo que sí es sostenido es el agotamiento. */}
+          {serie.deriva ? (
+            <>
+              {" "}
+              La efectividad no baja en línea recta —va de{" "}
+              {pct(serie.deriva.efectividad_min, 0)} a {pct(serie.deriva.efectividad_max, 0)}— pero
+              el promedio que se hereda lo fija {serie.deriva.tramo_dominante}, con{" "}
+              {pct(serie.deriva.peso_dominante, 0)} de la base.
+            </>
+          ) : null}
         </p>
       ) : null}
     </div>
@@ -539,6 +633,14 @@ function MatrizCadenas({
                       { label: "Mujeres", valor: fmtInt(fila.efectivas_mujeres ?? 0) },
                       { label: "Hombres", valor: fmtInt(fila.efectivas_hombres ?? 0) },
                       { label: "Escalones trabajados", valor: fmtInt(fila.escalones_trabajados) },
+                      ...(fila.semana_inicio !== null
+                        ? [{
+                            label: "Se aplicó en",
+                            valor: fila.semana_fin !== null && fila.semana_fin !== fila.semana_inicio
+                              ? `Semanas ${fmtInt(fila.semana_inicio)}–${fmtInt(fila.semana_fin)}`
+                              : `Semana ${fmtInt(fila.semana_inicio)}`,
+                          }]
+                        : []),
                     ],
                     nota: fila.resuelta_en === null
                       ? "La cadena nunca se resolvió"
@@ -564,9 +666,17 @@ function MatrizCadenas({
                         titulo: escalon.curso_horario,
                         filas: [
                           { label: escalon.rol, valor: "se aplicó" },
+                          // G53 · Cuándo. Un reemplazo se aplicó más tarde, con
+                          // el marco ya más agotado, así que su cifra no es
+                          // comparable con la de un titular de la semana 1.
+                          ...(escalon.semana !== null
+                            ? [{ label: "Semana", valor: `Semana ${fmtInt(escalon.semana)}` }]
+                            : []),
                           { label: "Encuestas completas", valor: fmtInt(escalon.efectivas ?? 0) },
                           { label: "Estudiantes elegibles", valor: fmtInt(escalon.elegibles ?? 0) },
-                          { label: "Efectividad del aula", valor: pct(escalon.rendimiento, 0) },
+                          // Rendimiento y no efectividad: el denominador son los
+                          // elegibles del aula, no los que estaban presentes.
+                          { label: "Rendimiento del aula", valor: pct(escalon.rendimiento, 0) },
                         ],
                         tono: "efectiva",
                       }
@@ -627,6 +737,7 @@ export function HistoricoEstudioPanel({
     filtros_corte: filtros, dimensiones,
   } = referencia;
   const conGlosario = cobertura.glosario_completo;
+  const deriva = referencia.serie_campo?.deriva ?? null;
 
   const facultad = dimensiones.find((d) => d.dimension_key === "facultad");
   const embudoFacultad = referencia.embudos.find((e) => e.dimension_key === "facultad");
@@ -904,6 +1015,32 @@ export function HistoricoEstudioPanel({
               <em>de todos los estudiantes del estudio, cuántas encuestas completas salieron</em>
             </span>
           </div>
+          {/* G53 · La dispersión va inmediatamente debajo del trío, no en otra
+              vista: quien se lleva el 74,6 % para dimensionar tiene que ver aquí
+              mismo que es un promedio. En fila propia y no dentro del chip,
+              porque metida ahí ensanchaba la Efectividad y empujaba el
+              Rendimiento fuera de la línea. */}
+          {deriva ? (
+            <DispersionTasa
+              deriva={deriva}
+              tasaGlobal={cadena.efectividad.tasa}
+              onVerSemanas={() => setVista("semana")}
+            />
+          ) : null}
+          {/* El agotamiento del marco es lo único que sí crece de forma
+              sostenida, y es lo que cambia la lectura de las tres tasas: no son
+              propiedades del estudio, son promedios de un campo que se fue
+              gastando. */}
+          {deriva?.agotamiento_crece ? (
+            <p className="cmv2-hist-aclaracion" data-tono="tiempo">
+              Cada semana llegó más gente que ya había contestado en otra aula:{" "}
+              <b>{pct(deriva.ya_medidas_primera, 1)}</b> de los presentes en{" "}
+              {deriva.etiqueta_primera.toLowerCase()} y <b>{pct(deriva.ya_medidas_ultima, 1)}</b> en{" "}
+              {deriva.etiqueta_ultima.toLowerCase()}, con las encuestas por aula bajando de{" "}
+              <b>{num(deriva.por_aula_primera)}</b> a <b>{num(deriva.por_aula_ultima)}</b>. Un campo
+              más largo que el de 2025 se parece más a esa cola que a este promedio.
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="cmv2-hist-nota" role="status">
@@ -1039,6 +1176,15 @@ export function HistoricoEstudioPanel({
               {fmtInt(referencia.cadenas_reemplazo.resueltas_con_titular)} se resolvieron al primer
               intento, {fmtInt(referencia.cadenas_reemplazo.resueltas_con_reemplazo)} necesitaron
               reemplazo
+              {/* Y las que no se resolvieron: sin nombrarlas, la suma de las dos
+                  cifras de arriba no llega a las cadenas declaradas y parece un
+                  error de conteo. */}
+              {(() => {
+                const sinCubrir = referencia.cadenas_reemplazo.cadenas_declaradas
+                  - referencia.cadenas_reemplazo.cadenas_resueltas;
+                if (sinCubrir <= 0) return "";
+                return ` y ${fmtInt(sinCubrir)} ${sinCubrir === 1 ? "se quedó" : "se quedaron"} sin cubrir`;
+              })()}
             </h4>
             <p>
               El diseño sortea, para cada puesto de la muestra, un curso-horario titular y una
@@ -1046,6 +1192,57 @@ export function HistoricoEstudioPanel({
               de su cadena.
             </p>
           </header>
+          {/* G53 · Gonzalo: «en titulares y reemplazos no está ese detalle». Un
+              reemplazo no es sólo un escalón más: es un aula aplicada más tarde.
+              Comparar los dos grupos en el tiempo y en lo que rindieron es lo
+              que dice si esa demora se notó. */}
+          {(() => {
+            const t = referencia.cadenas_reemplazo.titulares;
+            const r = referencia.cadenas_reemplazo.reemplazos;
+            if (!t || !r || !r.aplicados || t.semana_media === null || r.semana_media === null) {
+              return null;
+            }
+            const demora = r.semana_media - t.semana_media;
+            const brecha = (t.rendimiento ?? 0) - (r.rendimiento ?? 0);
+            // Los reemplazos aplicados (49) no son las cadenas que necesitaron
+            // reemplazo (24): sobre una cadena ya resuelta por su titular se
+            // aplicaron aulas extra para completar cuota. Sin decirlo, las dos
+            // cifras del bloque se leen como un error de conteo.
+            const extra = r.aplicados - referencia.cadenas_reemplazo.resueltas_con_reemplazo;
+            return (
+              <div className="cmv2-hist-cuando">
+                <div className="cmv2-hist-cuando-par">
+                  <span data-rol="titular">
+                    <small>Titulares aplicados</small>
+                    <strong>{fmtInt(t.aplicados)}</strong>
+                    <em>semana {t.semana_media.toFixed(1)} en promedio · rinden {pct(t.rendimiento, 0)}</em>
+                  </span>
+                  <span data-rol="reemplazo">
+                    <small>Reemplazos aplicados</small>
+                    <strong>{fmtInt(r.aplicados)}</strong>
+                    <em>semana {r.semana_media.toFixed(1)} en promedio · rinden {pct(r.rendimiento, 0)}</em>
+                  </span>
+                </div>
+                <p>
+                  Los reemplazos entraron <b>{demora.toFixed(1)} semanas</b> después que los
+                  titulares
+                  {Math.abs(brecha) < 0.03
+                    ? ", y aun así rindieron prácticamente lo mismo: la demora costó calendario, no encuestas."
+                    : brecha > 0
+                      ? `, y rindieron ${pct(brecha, 0)} menos: parte de lo que cuesta un reemplazo es el campo que ya avanzó.`
+                      : `, y rindieron ${pct(-brecha, 0)} más que los titulares.`}
+                  {extra > 0 ? (
+                    <>
+                      {" "}
+                      De esos {fmtInt(r.aplicados)},{" "}
+                      {fmtInt(referencia.cadenas_reemplazo.resueltas_con_reemplazo)} entraron porque
+                      su titular se cayó y {fmtInt(extra)} se aplicaron además del titular.
+                    </>
+                  ) : null}
+                </p>
+              </div>
+            );
+          })()}
           <div className="cmv2-hist-leyenda">
             <span data-tipo="efectiva">Se aplicó · completas y % de sus elegibles</span>
             <span data-tipo="rechazo">Se cayó · la letra dice por qué</span>
