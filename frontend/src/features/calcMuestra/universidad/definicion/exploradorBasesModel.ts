@@ -117,6 +117,34 @@ const COLUMNAS_OCULTAS = new Set([
   "teacher_email",
 ]);
 
+/**
+ * G46 · Las facultades presentes en la base, con cuántas filas trae cada una.
+ *
+ * Gonzalo: «deberíamos tener un selector de facultad […] para identificar si, por
+ * ejemplo, condición tiene las típicas tres o cuatro categorías pero alguna otra
+ * facultad es la que agrega muchas otras». El total esconde justo eso: una cola
+ * de 11 categorías puede ser una facultad entera escribiendo distinto.
+ *
+ * Ordenadas por tamaño y no alfabéticamente: al abrir el selector, lo primero
+ * que se busca es dónde está el grueso de la base.
+ */
+export function facultadesDe(
+  rows: MonitoreoRow[],
+  columna = "faculty",
+): Array<{ clave: string; n: number }> {
+  if (!rows.length) return [];
+  const conteo = new Map<string, number>();
+  for (const row of rows) {
+    const valor = (row as Record<string, unknown>)[columna];
+    if (vacio(valor)) continue;
+    const clave = String(valor).trim();
+    conteo.set(clave, (conteo.get(clave) ?? 0) + 1);
+  }
+  return [...conteo.entries()]
+    .map(([clave, n]) => ({ clave, n }))
+    .sort((a, b) => b.n - a.n || a.clave.localeCompare(b.clave, "es"));
+}
+
 export function inventarioVariables(rows: MonitoreoRow[]): VariableExplorador[] {
   if (!rows.length) return [];
   const columnas = new Set<string>();

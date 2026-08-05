@@ -10,7 +10,7 @@
     list(key = "T2", label = "15 a 24", order = 2L, mask = values >= 15 & values <= 24),
     list(key = "T3", label = "25 a 39", order = 3L, mask = values >= 25 & values <= 39),
     list(key = "T4", label = "40 a 59", order = 4L, mask = values >= 40 & values <= 59),
-    list(key = "T5", label = "60 o mas", order = 5L, mask = values >= 60)
+    list(key = "T5", label = "60 o más", order = 5L, mask = values >= 60)
   )
 }
 
@@ -34,7 +34,7 @@
 .cm_asist_joint_dimensions <- function(model) {
   list(
     list(
-      key = "tamano", label = "Tamano del curso-horario", order = 1L,
+      key = "tamano", label = "Tamaño del curso-horario", order = 1L,
       cells = .cm_asist_size_definitions(model$matriculados)
     ),
     list(
@@ -42,7 +42,7 @@
       cells = .cm_asist_joint_categories(model$rango_horario)
     ),
     list(
-      key = "tipo_sesion", label = "Tipo de sesion", order = 3L,
+      key = "tipo_sesion", label = "Tipo de sesión", order = 3L,
       cells = .cm_asist_joint_categories(model$tipo_sesion)
     )
   )

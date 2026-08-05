@@ -43,6 +43,7 @@ import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt, fmtPct, rowsFrom } from "../../sharedCore";
 import {
   distribucionDe,
+  facultadesDe,
   inventarioVariables,
   type DistribucionNumerica,
   type VariableExplorador,
@@ -102,15 +103,32 @@ export function ExploradorBasesTab({
   const [variable, setVariable] = useState<string>("");
   /** G45 · La cola de categorías se abre bajo demanda, no de entrada. */
   const [colaAbierta, setColaAbierta] = useState(false);
+  /** G46 · «Todas» o una facultad concreta. */
+  const [facultad, setFacultad] = useState<string>("");
 
-  const filas = useMemo<MonitoreoRow[]>(() => {
+  const filasBase = useMemo<MonitoreoRow[]>(() => {
     const frame = aulasState?.frame;
     return rowsFrom<MonitoreoRow>(
       base === "aulas" ? frame?.aula_frame : frame?.population,
     );
   }, [aulasState?.frame, base]);
+  const facultades = useMemo(() => facultadesDe(filasBase), [filasBase]);
+  /*
+   * G46 · Lo que se describe es el subconjunto de la facultad abierta.
+   *
+   * El inventario de variables se calcula sobre la base COMPLETA a propósito:
+   * si se recalculara sobre el filtro, el índice cambiaría de tamaño al cambiar
+   * de facultad y una variable sin dato ahí desaparecería en vez de decir que
+   * está vacía. La lista se queda quieta; las cifras se mueven.
+   */
+  const filas = useMemo<MonitoreoRow[]>(() => {
+    if (!facultad) return filasBase;
+    return filasBase.filter(
+      (row) => String((row as Record<string, unknown>).faculty ?? "").trim() === facultad,
+    );
+  }, [filasBase, facultad]);
 
-  const variables = useMemo(() => inventarioVariables(filas), [filas]);
+  const variables = useMemo(() => inventarioVariables(filasBase), [filasBase]);
   /**
    * La columna que el motor leyó, publicada por el catálogo de criterios.
    *
@@ -208,7 +226,14 @@ export function ExploradorBasesTab({
     aulas: rowsFrom(aulasState?.frame?.aula_frame).length,
     estudiantes: rowsFrom(aulasState?.frame?.population).length,
   };
-  const cobertura = activa && filas.length ? activa.conDato / filas.length : null;
+  /*
+   * G46 · La cobertura se mide sobre lo que se está describiendo.
+   *
+   * Salía de `activa.conDato` —del inventario GLOBAL— dividido entre las filas
+   * del subconjunto: con una facultad abierta daba 5.168/849 y la pantalla
+   * llegó a publicar «sin dato -508,7%». Ahora sale de la propia distribución,
+   * que ya cuenta sobre las filas que se están mirando.
+   */
 
   return (
     <section
@@ -232,19 +257,41 @@ export function ExploradorBasesTab({
               type="button"
               aria-pressed={base === opcion.id}
               data-activo={base === opcion.id || undefined}
-              onClick={() => { setBase(opcion.id); setVariable(""); setColaAbierta(false); }}
+              onClick={() => {
+                setBase(opcion.id);
+                setVariable("");
+                setColaAbierta(false);
+                setFacultad("");
+              }}
             >
               {opcion.label}
               <em>{fmtInt(opcion.n)}</em>
             </button>
           ))}
         </div>
+        {facultades.length > 1 ? (
+          <label className="cmv2-expb-facultad">
+            <span>Facultad</span>
+            <select
+              value={facultad}
+              onChange={(event) => { setFacultad(event.target.value); setColaAbierta(false); }}
+            >
+              <option value="">Todas · {fmtInt(filasBase.length)}</option>
+              {facultades.map((row) => (
+                <option key={row.clave} value={row.clave}>
+                  {row.clave} · {fmtInt(row.n)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <p className="cmv2-expb-nota" role="note">
           {filas.length ? (
             <>
               <strong>{fmtInt(variables.length)} columnas</strong> del marco vigente
-              {delArchivo ? <> · {fmtInt(delArchivo)} vienen de tu archivo</> : null}. Sin criterios
-              ni embudo: lo que recorta cada criterio vive en Marco › Cursos-horario.
+              {delArchivo ? <> · {fmtInt(delArchivo)} vienen de tu archivo</> : null}
+              {facultad ? <> · describiendo <strong>{fmtInt(filas.length)}</strong> filas de {facultad}</> : null}.
+              {" "}Sin criterios ni embudo: lo que recorta cada criterio vive en Marco › Cursos-horario.
             </>
           ) : (
             <>Las bases <strong>tal como se leyeron</strong>, sin criterios ni embudo.</>
@@ -343,8 +390,12 @@ export function ExploradorBasesTab({
             {!activa || !distribucion ? (
               <EmptyState
                 icon={<Search size={20} aria-hidden="true" />}
-                title="Esa variable no trae datos utilizables"
-                hint="Elige otra en el índice de la izquierda."
+                title={facultad
+                  ? "Esta variable no trae datos en esta facultad"
+                  : "Esa variable no trae datos utilizables"}
+                hint={facultad
+                  ? "La columna existe en el marco, pero ninguna fila de esta facultad la tiene poblada. Vuelve a «Todas» para verla completa."
+                  : "Elige otra en el índice de la izquierda."}
               />
             ) : (
               <article className="cmv2-expb-card">
@@ -352,9 +403,14 @@ export function ExploradorBasesTab({
                   <div className="cmv2-expb-card-title">
                     <h3>{nombreDe(activa.columna).titulo}</h3>
                     <p>
+                      {/* G46 · Con una facultad abierta, el recuento es el de
+                          ESA facultad: el del inventario es global y decía «51
+                          valores» sobre una lectura que enseñaba nueve. */}
                       {distribucion.tipo === "numerica"
                         ? "Numérica"
-                        : `Categórica · ${fmtInt(activa.distintos)} valores distintos`}
+                        : `Categórica · ${fmtInt(
+                            distribucion.categorias.length + (distribucion.otras?.categorias ?? 0),
+                          )} valores distintos${facultad ? " aquí" : ""}`}
                       {" · "}
                       {/* De dónde sale la columna. Sin esto, «Alumnos elegibles»
                           parece venir del archivo y no del marco. */}
@@ -376,8 +432,13 @@ export function ExploradorBasesTab({
                       <dt>Sin dato</dt>
                       <dd>
                         {fmtInt(distribucion.sinDato)}
-                        {cobertura != null && distribucion.sinDato > 0 ? (
-                          <em>{fmtPct(1 - cobertura)}</em>
+                        {distribucion.sinDato > 0 ? (
+                          <em>
+                            {fmtPct(
+                              distribucion.sinDato /
+                                Math.max(1, distribucion.conDato + distribucion.sinDato),
+                            )}
+                          </em>
                         ) : null}
                       </dd>
                     </div>

@@ -21,8 +21,7 @@
 .cmv2-expb-barra {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -63,11 +62,46 @@
 }
 .cmv2-expb-conmutador button[data-activo] em { color: var(--cmv2-accent); }
 
+/* G46 · El selector de facultad vive junto al de base: son las dos preguntas
+   que acotan lo que se está mirando, y separarlas obligaba a buscarlas. */
+.cmv2-expb-facultad {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+}
+.cmv2-expb-facultad > span {
+  font-size: 10px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-subtle);
+}
+.cmv2-expb-facultad select {
+  max-width: 260px;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
+  outline: none;
+}
+.cmv2-expb-facultad:focus-within {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-border));
+}
+
+/* G46 · La nota baja a su propia línea.
+   Con dos controles arriba (base y facultad) competía por el ancho y acababa
+   pisando la barra en 1440. Es contexto, no control: no tiene por qué disputar
+   la primera línea. */
 .cmv2-expb-nota {
   margin: 0;
-  flex: 1 1 340px;
-  max-width: 68ch;
-  text-align: right;
+  flex: 1 0 100%;
+  max-width: 92ch;
+  text-align: left;
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--pulso-text-subtle);

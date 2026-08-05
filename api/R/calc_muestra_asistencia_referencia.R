@@ -400,7 +400,7 @@
     list(key = "T2", label = "15 a 24", include = model$matriculados >= 15 & model$matriculados <= 24),
     list(key = "T3", label = "25 a 39", include = model$matriculados >= 25 & model$matriculados <= 39),
     list(key = "T4", label = "40 a 59", include = model$matriculados >= 40 & model$matriculados <= 59),
-    list(key = "T5", label = "60 o mas", include = model$matriculados >= 60)
+    list(key = "T5", label = "60 o más", include = model$matriculados >= 60)
   )
 
   rows <- lapply(seq_along(definitions), function(i) {
@@ -418,7 +418,7 @@
   })
   list(
     dimension_key = "tamano",
-    dimension_label = "Tamano del curso-horario",
+    dimension_label = "Tamaño del curso-horario",
     orden = 1L,
     filas = rows
   )
@@ -689,7 +689,7 @@
   if (!all(nzchar(resolved))) return(NULL)
   list(
     role = "referencia_asistencia",
-    label = "Referencia historica de asistencia",
+    label = "Referencia histórica de asistencia",
     confidence = 0.92
   )
 }
@@ -979,7 +979,7 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       ),
       .cm_asist_category_dimension(
         model, "tipo_sesion", factor_levels$tipo_sesion,
-        "tipo_sesion", "Tipo de sesion", 4L, bootstrap_n, global,
+        "tipo_sesion", "Tipo de sesión", 4L, bootstrap_n, global,
         .cm_criterios_fac_key
       )
     )
@@ -1018,7 +1018,7 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
     embudos = Filter(Negate(is.null), list(
       .cm_asist_embudo_por(model, "facultad", "Facultad", 1L),
       .cm_asist_embudo_por(model, "rango_horario", "Rango horario", 2L),
-      .cm_asist_embudo_por(model, "tipo_sesion", "Tipo de sesion", 3L),
+      .cm_asist_embudo_por(model, "tipo_sesion", "Tipo de sesión", 3L),
       .cm_asist_embudo_por(model, "condicion_curso", "Condicion del curso", 4L),
       .cm_asist_embudo_por(model, "nivel_curso", "Nivel del curso", 5L),
       .cm_asist_embudo_por(model, "tipo_docente", "Tipo de docente", 6L),
