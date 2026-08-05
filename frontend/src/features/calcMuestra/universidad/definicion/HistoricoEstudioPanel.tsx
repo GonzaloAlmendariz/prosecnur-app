@@ -27,6 +27,7 @@
  */
 import { Info } from "lucide-react";
 import { Fragment, useState } from "react";
+import { tip, useTooltipHistorico } from "./TooltipHistorico";
 import type {
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaAsistenciaCelda,
@@ -95,7 +96,11 @@ function PasoEmbudo({
             data-sale={merma.sale ? "si" : undefined}
             data-ultima={i === activas.length - 1 || undefined}
             style={{ width: `${escala(merma.n)}%` }}
-            title={`${fmtInt(merma.n)} ${merma.texto}`}
+            {...tip({
+              titulo: `${fmtInt(merma.n)} personas`,
+              nota: merma.texto,
+              tono: merma.sale ? "descuento" : "perdida",
+            })}
           />
         ))}
       </span>
@@ -152,9 +157,21 @@ function FilaPerfil({
       : undefined;
   return (
     <li className="cmv2-hist-fila" data-heredada={heredada ? "si" : undefined}>
-      <span className="cmv2-hist-fila-nombre" title={fila.celda_label}>{fila.celda_label}</span>
-      <span className="cmv2-hist-fila-k" title={`${fmtInt(fila.k)} aulas aplicadas`}>{fmtInt(fila.k)}</span>
-      <span className="cmv2-hist-fila-track" title={detalle}>
+      <span className="cmv2-hist-fila-nombre">{fila.celda_label}</span>
+      <span className="cmv2-hist-fila-k">{fmtInt(fila.k)}</span>
+      <span
+        className="cmv2-hist-fila-track"
+        aria-label={detalle}
+        {...tip({
+          titulo: fila.celda_label,
+          filas: [
+            { label: "Asistencia", valor: pct(valor) },
+            { label: "Aulas aplicadas", valor: fmtInt(fila.k) },
+          ],
+          nota: detalle,
+          tono: heredada ? "heredada" : "asistencia",
+        })}
+      >
         <span className="cmv2-hist-fila-barra" style={{ width: `${ancho}%` }} />
         {referencia !== null ? (
           <span className="cmv2-hist-fila-ref" style={{ left: `${Math.min(100, referencia * 100)}%` }} />
@@ -201,13 +218,26 @@ function EmbudoApilado({
           const fuera = base - (f.efectivas ?? 0) - (f.no_efectivas ?? 0) - descuento;
           return (
             <li key={f.celda_key}>
-              <span className="cmv2-hist-apilado-nombre" title={nombrar(f.celda_label)}>{nombrar(f.celda_label)}</span>
+              <span className="cmv2-hist-apilado-nombre">{nombrar(f.celda_label)}</span>
               <span className="cmv2-hist-apilado-k">{fmtInt(f.k)}</span>
-              <span className="cmv2-hist-apilado-track">
-                <span data-tipo="efectiva" style={{ width: `${seg(f.efectivas)}%` }} title={`${fmtInt(f.efectivas ?? 0)} completaron`} />
-                <span data-tipo="rechazo" style={{ width: `${seg(f.no_efectivas)}%` }} title={`${fmtInt(f.no_efectivas ?? 0)} empezaron y no siguieron`} />
-                <span data-tipo="ausencia" style={{ width: `${seg(Math.max(0, fuera))}%` }} title={`${fmtInt(Math.max(0, fuera))} faltaron o no la abrieron`} />
-                <span data-tipo="descuento" style={{ width: `${seg(descuento)}%` }} title={`${fmtInt(descuento)} ya habían contestado o no eran del estudio`} />
+              <span
+                className="cmv2-hist-apilado-track"
+                {...tip({
+                  titulo: nombrar(f.celda_label),
+                  filas: [
+                    { label: "Completaron", valor: fmtInt(f.efectivas ?? 0) },
+                    { label: "Empezaron y no siguieron", valor: fmtInt(f.no_efectivas ?? 0) },
+                    { label: "Faltaron o no la abrieron", valor: fmtInt(Math.max(0, fuera)) },
+                    { label: "Ya habían contestado", valor: fmtInt(descuento) },
+                  ],
+                  nota: `${fmtInt(base)} estudiantes del estudio en ${fmtInt(f.k)} aulas`,
+                  tono: "efectiva",
+                })}
+              >
+                <span data-tipo="efectiva" style={{ width: `${seg(f.efectivas)}%` }} />
+                <span data-tipo="rechazo" style={{ width: `${seg(f.no_efectivas)}%` }} />
+                <span data-tipo="ausencia" style={{ width: `${seg(Math.max(0, fuera))}%` }} />
+                <span data-tipo="descuento" style={{ width: `${seg(descuento)}%` }} />
               </span>
               <span className="cmv2-hist-apilado-cifra">{pct(f.rendimiento, 0)}</span>
             </li>
@@ -420,11 +450,21 @@ function MatrizCadenas({
         <div className="cmv2-hist-matriz-head" role="row">
           <span role="columnheader">Titular sorteado</span>
           {encabezados.map((etiqueta, i) => (
-            <span key={etiqueta} role="columnheader" title={i === 0 ? "Titular" : `Reemplazo ${i}`}>
+            <span
+              key={etiqueta}
+              role="columnheader"
+              {...tip({ titulo: i === 0 ? "Titular" : `Reemplazo ${i}`,
+                nota: i === 0 ? "El curso-horario que salió sorteado" : "Entra sólo si se cae el escalón anterior" })}
+            >
               {etiqueta}
             </span>
           ))}
-          <span role="columnheader" title="Encuestas completas de toda la cadena">Total</span>
+          <span
+            role="columnheader"
+            {...tip({ titulo: "Total", nota: "Encuestas completas de toda la cadena, sumando sus escalones aplicados" })}
+          >
+            Total
+          </span>
         </div>
         {grupos.map((grupo) => (
           <Fragment key={grupo.facultad}>
@@ -439,7 +479,25 @@ function MatrizCadenas({
             </div>
             {grupo.filas.map((fila) => (
               <div className="cmv2-hist-matriz-fila" role="row" key={fila.cadena}>
-                <span className="cmv2-hist-matriz-titular" role="cell" title={fila.titular}>
+                <span
+                  className="cmv2-hist-matriz-titular"
+                  role="cell"
+                  {...tip({
+                    titulo: fila.titular,
+                    filas: [
+                      { label: "Facultad", valor: fila.facultad || "Sin facultad" },
+                      { label: "Escalones trabajados", valor: fmtInt(fila.escalones_trabajados) },
+                      { label: "Aulas aplicadas", valor: fmtInt(fila.aplicados) },
+                      { label: "Encuestas completas", valor: fmtInt(fila.efectivas ?? 0) },
+                    ],
+                    nota: fila.resuelta_en === null
+                      ? "La cadena nunca se resolvió"
+                      : fila.resuelta_en === 1
+                        ? "Se resolvió con el titular"
+                        : `Se resolvió en el reemplazo ${fila.resuelta_en - 1}`,
+                    tono: fila.resuelta_en === 1 ? "efectiva" : "perdida",
+                  })}
+                >
                   {fila.titular}
                 </span>
                 {Array.from({ length: columnas }, (_, i) => {
@@ -449,21 +507,37 @@ function MatrizCadenas({
                       <span key={i} className="cmv2-hist-matriz-casilla" data-estado="vacio" role="cell" />
                     );
                   }
-                  const titulo = [
-                    `${escalon.rol}: ${escalon.curso_horario}`,
-                    escalon.estado === "aplicado"
-                      ? `Se aplicó · ${fmtInt(escalon.efectivas ?? 0)} completas de ${fmtInt(escalon.elegibles ?? 0)} elegibles (${pct(escalon.rendimiento, 0)})`
-                      : escalon.estado === "cayo"
-                        ? `Se cayó · ${escalon.motivo ?? "sin motivo registrado"}`
-                        : "No hizo falta contactarlo",
-                  ].join("\n");
+                  const datosTip = escalon.estado === "aplicado"
+                    ? {
+                        titulo: escalon.curso_horario,
+                        filas: [
+                          { label: escalon.rol, valor: "se aplicó" },
+                          { label: "Encuestas completas", valor: fmtInt(escalon.efectivas ?? 0) },
+                          { label: "Estudiantes elegibles", valor: fmtInt(escalon.elegibles ?? 0) },
+                          { label: "Efectividad del aula", valor: pct(escalon.rendimiento, 0) },
+                        ],
+                        tono: "efectiva",
+                      }
+                    : escalon.estado === "cayo"
+                      ? {
+                          titulo: escalon.curso_horario,
+                          filas: [{ label: escalon.rol, valor: "se cayó" }],
+                          nota: escalon.motivo ?? "Sin motivo registrado",
+                          tono: "perdida",
+                        }
+                      : {
+                          titulo: escalon.curso_horario,
+                          filas: [{ label: escalon.rol, valor: "en reserva" }],
+                          nota: "No hizo falta contactarlo",
+                          tono: "reserva",
+                        };
                   return (
                     <span
                       key={i}
                       className="cmv2-hist-matriz-casilla"
                       data-estado={escalon.estado}
                       role="cell"
-                      title={titulo}
+                      {...tip(datosTip)}
                     >
                       {escalon.estado === "aplicado" ? (
                         <>
@@ -584,7 +658,7 @@ function ComposicionCriterio({
       <ol className="cmv2-hist-comp-filas">
         {filas.map((fila) => (
           <li key={fila.facultad}>
-            <span className="cmv2-hist-comp-nombre" title={fila.facultad}>{fila.facultad}</span>
+            <span className="cmv2-hist-comp-nombre">{fila.facultad}</span>
             <span className="cmv2-hist-comp-k">{fmtInt(fila.n)}</span>
             <span className="cmv2-hist-comp-track">
               {orden
@@ -595,7 +669,15 @@ function ComposicionCriterio({
                     key={r.categoria}
                     data-tono={rampa ? "rampa" : tonoDe(r.categoria)}
                     style={{ width: `${(r.pct ?? 0) * 100}%`, ...estiloDe(r.categoria) }}
-                    title={`${nombrar(r.categoria)}: ${fmtInt(r.n)} de ${fmtInt(fila.n)} (${pct(r.pct, 0)})`}
+                    {...tip({
+                      titulo: nombrar(r.categoria),
+                      filas: [
+                        { label: "Cursos-horario", valor: `${fmtInt(r.n)} de ${fmtInt(fila.n)}` },
+                        { label: "Del total de la facultad", valor: pct(r.pct, 0) },
+                        { label: "Estudiantes elegibles", valor: fmtInt(r.elegibles ?? 0) },
+                      ],
+                      nota: fila.facultad,
+                    })}
                   />
                 ))}
             </span>
@@ -707,6 +789,9 @@ export function HistoricoEstudioPanel({
     { id: "diseno" as const, label: "Cómo se dimensionó", disponible: diseno.declarado || filtros.length > 0 },
   ].filter((v) => v.disponible);
   const [vista, setVista] = useState<(typeof vistas)[number]["id"]>("general");
+  // Un solo tooltip para toda la superficie, por delegación: la matriz tiene
+  // ~1.400 casillas y montar un listener en cada una costaría más que dibujarla.
+  const { manejadores, tooltip } = useTooltipHistorico();
   const vistaActiva = vistas.some((v) => v.id === vista) ? vista : "general";
 
   return (
@@ -715,7 +800,9 @@ export function HistoricoEstudioPanel({
       data-qa-geometry-group="calc-muestra/historico-estudio"
       data-qa-geometry-contract="intrinsic"
       aria-label="Lectura del estudio histórico"
+      {...manejadores}
     >
+      {tooltip}
       {/* 1 · ¿Se cumplió? */}
       <div className="cmv2-hist-hero">
         <div className="cmv2-hist-hero-id">
