@@ -1,79 +1,80 @@
 /**
  * Pestaña «Explorador» (sección Datos): las bases por dentro, variable a
- * variable.
+ * variable, con filtros dinámicos.
  *
- * G42 · Gonzalo: «falta la pestaña que nos permite explorar las bases de
- * estudiantes y cursos-horario con gráficos muy similares a los del explorador
- * de base de procesamiento/validación».
+ * G42 · Nació de un pedido de Gonzalo: «falta la pestaña que nos permite
+ * explorar las bases de estudiantes y cursos-horario con gráficos muy similares
+ * a los del explorador de base de procesamiento/validación».
  *
- * Toma el mismo reparto que aquel —lista de variables a la izquierda, la
- * elegida desplegada a la derecha— pero no lo reusa: el de Procesamiento vive
- * sobre la base cargada del pipeline (su store, sus endpoints, Plotly) y aquí
- * las bases son las que el motor de muestra ya publicó en el frame. Traer aquel
- * componente habría significado arrastrar su store y su runtime de gráficos a
- * una pestaña que sólo describe dos tablas que ya están en memoria.
+ * G49 · Y se rehízo por un error de diseño propio. La primera versión describía
+ * `aula_frame`, que es PRODUCTO del marco: exigía construirlo para mirar un
+ * Excel y mezclaba las columnas del archivo con las que el motor deriva.
+ * Gonzalo: «¿por qué este explorador te pediría tener un marco completo si se
+ * supone que este es un paso previo al marco? […] con las dos bases iniciales y
+ * crudas teníamos suficiente para ir mapeando qué teníamos». Ahora describe las
+ * bases declaradas en Fuentes —archivo y hoja— y el marco queda como una opción
+ * más, al final, para auditar lo que el motor calculó.
  *
- * Lo que se ve es la base LEÍDA, no el marco: sin criterios aplicados y sin
- * embudo. La pestaña lo dice, porque la misma columna aquí y en la radiografía
- * responde a preguntas distintas.
+ * G50 · Los filtros son de cualquier columna, no sólo de facultad: «yo también
+ * tengo que ser capaz de tener filtros dinámicos que me permitan ese nivel de
+ * especificidad […] explorar como si tuviera el Excel, pero la diferencia aquí
+ * es que hay gráficos». Se cruzan en AND entre columnas y en OR dentro de una,
+ * igual que el autofiltro de una hoja de cálculo.
  *
- * G43 · Segunda pasada visual. La primera versión funcionaba y se leía como un
- * formulario: título repetido —la pestaña ya lo declara—, un párrafo de tres
- * líneas compitiendo con el dato, doce variables visibles de veintiséis en
- * fichas de dos líneas, y medio viewport vacío bajo la tarjeta. Ahora la
- * superficie se organiza como lo que es, un índice y una lectura:
- *
- * - una sola barra de contexto con el conmutador de base y el recuento;
- * - índice denso, agrupado por tipo, con la cobertura de cada variable a la
- *   vista, a una línea por fila;
- * - lectura a la derecha con su cabecera de cifras y el gráfico al ancho.
- *
- * Cada carril posee su scroll (C4) y el vacío vive dentro de la superficie
- * (C3): la página no crece ni se queda con un hueco al pie.
+ * El perfil lo calcula R: la base real tiene 136.284 filas y contar categorías
+ * en el cliente exigiría moverla entera por cada clic.
  */
-import { useMemo, useState } from "react";
-import { Compass, Search } from "../../../../vendor/lucide-react";
-import {
-  normalizeCriteriosCatalogo,
-  type CalcMuestraAulasState,
-  type CalcMuestraWorkspace,
-  type MonitoreoRow,
+import { useEffect, useMemo, useState } from "react";
+import { Compass, Plus, Search, X } from "../../../../vendor/lucide-react";
+import type {
+  CalcMuestraAulasState,
+  CalcMuestraWorkspace,
+  MonitoreoRow,
 } from "../../../../api/client";
+import {
+  apiCalcMuestraExplorarBase,
+  type ExploradorBaseCategoria,
+  type ExploradorBaseFiltro,
+  type ExploradorBasePerfil,
+  type ExploradorBaseResumen,
+} from "../../../../api/calcMuestraExploradorBase";
 import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt, fmtPct, rowsFrom } from "../../sharedCore";
-import {
-  distribucionDe,
-  facultadesDe,
-  inventarioVariables,
-  type DistribucionNumerica,
-  type VariableExplorador,
-} from "./exploradorBasesModel";
-import { nombreDeColumna, type NombreColumna } from "./exploradorBasesNombres";
+import { distribucionDe, inventarioVariables } from "./exploradorBasesModel";
+import { nombreDeColumna } from "./exploradorBasesNombres";
 import { etiquetaDeValor } from "./exploradorBasesValores";
+import { fuentesExplorables, type FuenteExplorable } from "./exploradorBasesFuentes";
 import "./exploradorBases.css";
 
-type BaseExplorable = "aulas" | "estudiantes";
+/** Forma común de una columna, venga del archivo (R) o del marco (cliente). */
+type ColumnaVista = {
+  columna: string;
+  titulo: string;
+  detalle: string | null;
+  tipo: "numerica" | "categorica";
+  conDato: number;
+  sinDato: number;
+  distintos: number;
+  categorias: ExploradorBaseCategoria[];
+  otras: { n: number; categorias: number; truncadas: number; filas: ExploradorBaseCategoria[] } | null;
+  resumen: ExploradorBaseResumen | null;
+  /** Traduce los valores; sólo las derivadas del marco lo necesitan. */
+  traduceValores: boolean;
+};
 
-/**
- * G43 · El histograma dice dónde está la masa; el eje dice dónde cae.
- *
- * Sin las marcas del eje las barras son una silueta: se ve que hay una joroba y
- * no dónde está. La mediana se marca sobre las barras porque es la referencia
- * que se busca al mirar una distribución de tamaños.
- */
-function Histograma({ dist }: { dist: DistribucionNumerica }) {
-  const alto = Math.max(...dist.bins.map((bin) => bin.n), 1);
-  const rango = dist.max - dist.min;
-  const posMediana = rango > 0 ? ((dist.p50 - dist.min) / rango) * 100 : 50;
+function Histograma({ resumen }: { resumen: ExploradorBaseResumen }) {
+  const alto = Math.max(...resumen.bins.map((bin) => bin.n), 1);
+  const rango = resumen.max - resumen.min;
+  const posMediana = rango > 0 ? ((resumen.p50 - resumen.min) / rango) * 100 : 50;
   return (
     <figure
       className="cmv2-expb-figura"
       role="img"
-      aria-label={`Distribución de ${dist.conDato} valores entre ${fmtDec(dist.min, 1)} y ${fmtDec(dist.max, 1)}, mediana ${fmtDec(dist.p50, 1)}`}
+      aria-label={`Distribución entre ${fmtDec(resumen.min, 1)} y ${fmtDec(resumen.max, 1)}, mediana ${fmtDec(resumen.p50, 1)}`}
     >
       <div className="cmv2-expb-hist">
         <i className="cmv2-expb-hist-mediana" style={{ left: `${posMediana}%` }} aria-hidden="true" />
-        {dist.bins.map((bin, index) => (
+        {resumen.bins.map((bin, index) => (
           <span
             key={index}
             style={{ height: `${Math.max(1.5, (bin.n / alto) * 100)}%` }}
@@ -82,9 +83,9 @@ function Histograma({ dist }: { dist: DistribucionNumerica }) {
         ))}
       </div>
       <figcaption className="cmv2-expb-eje" aria-hidden="true">
-        <span>{fmtDec(dist.min, 1)}</span>
-        <span data-marca="mediana">mediana {fmtDec(dist.p50, 1)}</span>
-        <span>{fmtDec(dist.max, 1)}</span>
+        <span>{fmtDec(resumen.min, 1)}</span>
+        <span data-marca="mediana">mediana {fmtDec(resumen.p50, 1)}</span>
+        <span>{fmtDec(resumen.max, 1)}</span>
       </figcaption>
     </figure>
   );
@@ -98,252 +99,305 @@ export function ExploradorBasesTab({
   reconstruyendo = false,
 }: {
   aulasState: CalcMuestraAulasState | null;
-  /**
-   * G48 · La misma acción que reconstruye el marco desde Marco.
-   *
-   * Gonzalo: «lo único que no me cierra es que dentro del explorador
-   * estudiantes está en cero y sale que la población no viaja con el proyecto
-   * guardado». El aviso decía la verdad —`project_pulso.R` borra
-   * `frame$population` al guardar, a propósito— pero dejaba al usuario en un
-   * callejón: entendía por qué está vacío y no tenía desde dónde arreglarlo.
-   */
+  workspace?: CalcMuestraWorkspace | null;
   onReconstruir?: () => void;
   puedeReconstruir?: boolean;
   reconstruyendo?: boolean;
-  /** G43 · Trae el mapeo rol → columna para llamar a cada variable como se llama
-   *  en el archivo del usuario, no como la nombra el motor. */
-  workspace?: CalcMuestraWorkspace | null;
 }) {
-  const [base, setBase] = useState<BaseExplorable>("aulas");
+  const fuentes = useMemo(
+    () => fuentesExplorables(workspace, aulasState),
+    [workspace, aulasState],
+  );
+  const [fuenteId, setFuenteId] = useState("");
+  const fuente: FuenteExplorable | null =
+    fuentes.find((item) => item.id === fuenteId) ?? fuentes[0] ?? null;
+
+  const [filtros, setFiltros] = useState<ExploradorBaseFiltro[]>([]);
+  const [unidad, setUnidad] = useState<"filas" | "estudiantes">("filas");
+  const [variable, setVariable] = useState("");
   const [busqueda, setBusqueda] = useState("");
-  const [variable, setVariable] = useState<string>("");
-  /** G45 · La cola de categorías se abre bajo demanda, no de entrada. */
   const [colaAbierta, setColaAbierta] = useState(false);
-  /** G46 · «Todas» o una facultad concreta. */
-  const [facultad, setFacultad] = useState<string>("");
+  const [editandoFiltro, setEditandoFiltro] = useState<string | null>(null);
 
-  const filasBase = useMemo<MonitoreoRow[]>(() => {
-    const frame = aulasState?.frame;
-    return rowsFrom<MonitoreoRow>(
-      base === "aulas" ? frame?.aula_frame : frame?.population,
-    );
-  }, [aulasState?.frame, base]);
-  const facultades = useMemo(() => facultadesDe(filasBase), [filasBase]);
-  const marcoConstruido = Boolean(aulasState?.frame);
-  /*
-   * G46 · Lo que se describe es el subconjunto de la facultad abierta.
-   *
-   * El inventario de variables se calcula sobre la base COMPLETA a propósito:
-   * si se recalculara sobre el filtro, el índice cambiaría de tamaño al cambiar
-   * de facultad y una variable sin dato ahí desaparecería en vez de decir que
-   * está vacía. La lista se queda quieta; las cifras se mueven.
-   */
-  const filas = useMemo<MonitoreoRow[]>(() => {
-    if (!facultad) return filasBase;
-    return filasBase.filter(
-      (row) => String((row as Record<string, unknown>).faculty ?? "").trim() === facultad,
-    );
-  }, [filasBase, facultad]);
+  const [perfil, setPerfil] = useState<ExploradorBasePerfil | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const variables = useMemo(() => inventarioVariables(filasBase), [filasBase]);
-  /**
-   * La columna que el motor leyó, publicada por el catálogo de criterios.
-   *
-   * Es la fuente fiable del nombre del archivo: el `config.mapping` del frame
-   * mezcla los alias candidatos de cada rol y sus pares salen cruzados.
-   */
-  const mappingMotor = useMemo(() => {
-    const catalogo = normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null);
-    const mapa: Record<string, string> = {};
-    for (const variable of catalogo.variables) {
-      if (variable.mappedColumn && variable.mappedColumn.trim()) {
-        mapa[variable.id] = variable.mappedColumn.trim();
-      }
+  const claveFiltros = JSON.stringify(filtros);
+  const esArchivo = fuente?.tipo === "archivo";
+  const fileId = esArchivo ? fuente.fileId : "";
+  const sheet = esArchivo ? fuente.sheet : "";
+
+  useEffect(() => {
+    if (!fileId) {
+      setPerfil(null);
+      setError(null);
+      return;
     }
-    return mapa;
-  }, [aulasState?.frame?.criterios_catalogo]);
-  const nombres = useMemo(() => {
-    const mapa = new Map<string, NombreColumna>();
-    for (const row of variables) {
-      mapa.set(
-        row.columna,
-        nombreDeColumna(row.columna, workspace?.variable_mappings, mappingMotor),
-      );
-    }
-    return mapa;
-  }, [variables, workspace?.variable_mappings, mappingMotor]);
-  const nombreDe = (columna: string): NombreColumna =>
-    nombres.get(columna) ?? { titulo: columna, tecnico: columna, origen: "interno" };
+    const control = new AbortController();
+    setCargando(true);
+    setError(null);
+    apiCalcMuestraExplorarBase(
+      { file_id: fileId, sheet, filtros: JSON.parse(claveFiltros), unidad, top: 40 },
+      { signal: control.signal },
+    )
+      .then((resultado) => {
+        setPerfil(resultado);
+        setCargando(false);
+      })
+      .catch((e: unknown) => {
+        if (control.signal.aborted) return;
+        setPerfil(null);
+        setCargando(false);
+        setError(e instanceof Error ? e.message : "No se pudo leer la base declarada.");
+      });
+    return () => control.abort();
+  }, [fileId, sheet, claveFiltros, unidad]);
+
+  /* ---- el marco, cuando es la fuente elegida: mismo camino de siempre ---- */
+  const filasMarco = useMemo<MonitoreoRow[]>(
+    () => (fuente?.tipo === "marco" ? rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame) : []),
+    [fuente?.tipo, aulasState?.frame],
+  );
+  const columnasMarco = useMemo<ColumnaVista[]>(() => {
+    if (fuente?.tipo !== "marco" || !filasMarco.length) return [];
+    return inventarioVariables(filasMarco).map((row) => {
+      const nombre = nombreDeColumna(row.columna, workspace?.variable_mappings);
+      const dist = distribucionDe(filasMarco, row.columna, row.tipo);
+      return {
+        columna: row.columna,
+        titulo: nombre.titulo,
+        detalle: nombre.origen === "motor" ? nombre.detalle ?? null : null,
+        tipo: row.tipo,
+        conDato: dist?.conDato ?? row.conDato,
+        sinDato: dist?.sinDato ?? 0,
+        distintos: row.distintos,
+        categorias: dist?.tipo === "categorica" ? dist.categorias.map((c) => ({ clave: c.clave, n: c.n })) : [],
+        otras: dist?.tipo === "categorica" && dist.otras
+          ? { ...dist.otras, filas: dist.otras.filas.map((c) => ({ clave: c.clave, n: c.n })) }
+          : null,
+        resumen: dist?.tipo === "numerica"
+          ? { min: dist.min, max: dist.max, media: dist.media, p25: dist.p25, p50: dist.p50, p75: dist.p75, bins: dist.bins }
+          : null,
+        traduceValores: nombre.origen !== "excel",
+      } satisfies ColumnaVista;
+    });
+  }, [fuente?.tipo, filasMarco, workspace?.variable_mappings]);
+
+  const columnas = useMemo<ColumnaVista[]>(() => {
+    if (fuente?.tipo === "marco") return columnasMarco;
+    if (!perfil) return [];
+    return perfil.columnas.map((col) => ({
+      columna: col.columna,
+      titulo: col.columna,
+      detalle: null,
+      tipo: col.tipo,
+      conDato: col.conDato,
+      sinDato: col.sinDato,
+      distintos: col.distintos,
+      categorias: col.categorias,
+      otras: col.otras,
+      resumen: col.resumen,
+      traduceValores: false,
+    }));
+  }, [fuente?.tipo, columnasMarco, perfil]);
+
   const visibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    // Ordenado por el nombre que se ve, no por el técnico: buscar «Condición»
-    // en una lista alfabetizada por `condicion_curso` es buscar a ciegas.
-    const orden = [...variables].sort((a, b) => {
-      const ta = nombres.get(a.columna)?.titulo ?? a.columna;
-      const tb = nombres.get(b.columna)?.titulo ?? b.columna;
-      return ta.localeCompare(tb, "es");
-    });
-    if (!q) return orden;
-    // Se busca por los dos nombres: quien subió la base escribe el del archivo y
-    // quien conoce el motor escribe el técnico.
-    return orden.filter((row) => {
-      const nombre = nombres.get(row.columna);
-      return row.columna.toLowerCase().includes(q) ||
-        (nombre?.titulo ?? "").toLowerCase().includes(q);
-    });
-  }, [variables, busqueda, nombres]);
-  /*
-   * G43 · El índice se agrupa por ORIGEN, no por tipo.
-   *
-   * Gonzalo: «muchas variables en el explorador ni siquiera están en la base».
-   * Tenía razón y era el defecto de fondo: lo que se explora es el `aula_frame`,
-   * que es el marco DERIVADO —34 columnas—, y ahí conviven las del archivo con
-   * las que calcula el motor (`included`, `exclude_reason`, `size_group`,
-   * `prevalence_ratio`…). Mezcladas en una sola lista, las derivadas se leían
-   * como columnas del Excel que nadie recordaba haber subido.
-   *
-   * Agrupar por categórica/numérica —lo que hacía la versión anterior— separa
-   * dos lecturas, sí, pero el tipo ya se ve en cada fila y no responde a la
-   * pregunta que el usuario se hace al abrir la pestaña: ¿esto lo subí yo?
-   */
-  const grupos = useMemo(() => ([
-    {
-      clave: "excel" as const,
-      titulo: "De tu archivo",
-      nota: null as string | null,
-      filas: visibles.filter((row) => nombres.get(row.columna)?.origen === "excel"),
-    },
-    {
-      clave: "motor" as const,
-      titulo: "Que calcula el marco",
-      nota: null,
-      filas: visibles.filter((row) => nombres.get(row.columna)?.origen === "motor"),
-    },
-    {
-      clave: "interno" as const,
-      titulo: "Otras columnas del marco",
-      nota: null,
-      filas: visibles.filter((row) => nombres.get(row.columna)?.origen === "interno"),
-    },
-  ].filter((grupo) => grupo.filas.length)), [visibles, nombres]);
-  const delArchivo = useMemo(
-    () => variables.filter((row) => nombres.get(row.columna)?.origen === "excel").length,
-    [variables, nombres],
-  );
+    const orden = [...columnas].sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
+    return q ? orden.filter((col) => col.titulo.toLowerCase().includes(q)) : orden;
+  }, [columnas, busqueda]);
 
-  const activa: VariableExplorador | null =
-    visibles.find((row) => row.columna === variable) ?? visibles[0] ?? null;
-  const distribucion = useMemo(
-    () => (activa ? distribucionDe(filas, activa.columna, activa.tipo) : null),
-    [filas, activa],
-  );
+  const activa = visibles.find((col) => col.columna === variable) ?? visibles[0] ?? null;
 
-  const disponibles = {
-    aulas: rowsFrom(aulasState?.frame?.aula_frame).length,
-    estudiantes: rowsFrom(aulasState?.frame?.population).length,
-  };
-  /*
-   * G46 · La cobertura se mide sobre lo que se está describiendo.
-   *
-   * Salía de `activa.conDato` —del inventario GLOBAL— dividido entre las filas
-   * del subconjunto: con una facultad abierta daba 5.168/849 y la pantalla
-   * llegó a publicar «sin dato -508,7%». Ahora sale de la propia distribución,
-   * que ya cuenta sobre las filas que se están mirando.
-   */
+  /* ---- filtros: sólo columnas categóricas con una lista manejable ---- */
+  const filtrables = useMemo(
+    () => columnas.filter((col) => col.tipo === "categorica" && col.distintos <= 200),
+    [columnas],
+  );
+  const filtroDe = (columna: string) => filtros.find((f) => f.columna === columna) ?? null;
+  function alternarValor(columna: string, valor: string) {
+    setFiltros((prev) => {
+      const actual = prev.find((f) => f.columna === columna);
+      if (!actual) return [...prev, { columna, valores: [valor] }];
+      const valores = actual.valores.includes(valor)
+        ? actual.valores.filter((v) => v !== valor)
+        : [...actual.valores, valor];
+      // Un filtro sin valores no acota nada y ocupa un chip: se retira solo.
+      return valores.length
+        ? prev.map((f) => (f.columna === columna ? { columna, valores } : f))
+        : prev.filter((f) => f.columna !== columna);
+    });
+    setColaAbierta(false);
+  }
+
+  const filas = fuente?.tipo === "marco" ? filasMarco.length : perfil?.filas ?? 0;
+  const filasBase = fuente?.tipo === "marco" ? filasMarco.length : perfil?.filasBase ?? 0;
+  const acotada = filtros.length > 0 && filas !== filasBase;
+  const unidadDisponible = fuente?.tipo === "archivo" && (perfil?.unidadDisponible ?? false);
+  const marcoConstruido = Boolean(aulasState?.frame);
+
+  if (!fuentes.length) {
+    return (
+      <section className="cmv2-expb" data-audit-ready="false" aria-label="Explorador de bases">
+        <div className="cmv2-expb-vacio-marco">
+          <EmptyState
+            icon={<Compass size={22} aria-hidden="true" />}
+            title="Todavía no hay bases declaradas"
+            hint="Sube tus archivos en Datos › Fuentes y vuelve aquí: el explorador las describe tal como están, sin necesidad de construir el marco."
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
       className="cmv2-expb"
-      data-audit-ready={filas.length ? "true" : "false"}
+      data-audit-ready={columnas.length ? "true" : "false"}
       data-qa-geometry-group="calc-muestra/explorador-bases"
       data-qa-geometry-contract="intrinsic"
       aria-label="Explorador de bases"
     >
-      {/* Una sola barra de contexto: qué base se mira, cuánto trae y de qué
-          habla. El título de la pestaña ya lo declara el chrome (C1), así que
-          repetirlo aquí sólo gastaba la primera línea de la superficie. */}
       <header className="cmv2-expb-barra">
         <div className="cmv2-expb-conmutador" role="group" aria-label="Base a explorar">
-          {([
-            { id: "aulas" as const, label: "Cursos-horario", n: disponibles.aulas },
-            { id: "estudiantes" as const, label: "Estudiantes", n: disponibles.estudiantes },
-          ]).map((opcion) => (
+          {fuentes.map((item) => (
             <button
-              key={opcion.id}
+              key={item.id}
               type="button"
-              aria-pressed={base === opcion.id}
-              data-activo={base === opcion.id || undefined}
+              aria-pressed={fuente?.id === item.id}
+              data-activo={fuente?.id === item.id || undefined}
+              title={item.detalle}
               onClick={() => {
-                setBase(opcion.id);
+                setFuenteId(item.id);
                 setVariable("");
+                setFiltros([]);
                 setColaAbierta(false);
-                setFacultad("");
+                setEditandoFiltro(null);
               }}
             >
-              {opcion.label}
-              {/* G48 · «0» a secas se lee como «no hay estudiantes». Lo que pasa
-                  es que la población no viaja en el `.pulso`, y decirlo aquí
-                  evita el susto antes de entrar. */}
-              <em>
-                {opcion.id === "estudiantes" && opcion.n === 0 && marcoConstruido
-                  ? "sin cargar"
-                  : fmtInt(opcion.n)}
-              </em>
+              {item.etiqueta}
             </button>
           ))}
         </div>
-        {facultades.length > 1 ? (
-          <label className="cmv2-expb-facultad">
-            <span>Facultad</span>
-            <select
-              value={facultad}
-              onChange={(event) => { setFacultad(event.target.value); setColaAbierta(false); }}
+
+        {unidadDisponible ? (
+          <div className="cmv2-expb-unidad" role="group" aria-label="Qué se cuenta">
+            {([
+              { id: "filas" as const, label: "Filas" },
+              { id: "estudiantes" as const, label: "Estudiantes" },
+            ]).map((opcion) => (
+              <button
+                key={opcion.id}
+                type="button"
+                aria-pressed={unidad === opcion.id}
+                data-activo={unidad === opcion.id || undefined}
+                onClick={() => setUnidad(opcion.id)}
+              >
+                {opcion.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <p className="cmv2-expb-nota" role="note">
+          {cargando ? (
+            <>Leyendo la base…</>
+          ) : columnas.length ? (
+            <>
+              <strong>{fmtInt(filas)}</strong>
+              {acotada ? <> de {fmtInt(filasBase)}</> : null} filas ·{" "}
+              <strong>{fmtInt(columnas.length)}</strong> columnas
+              {unidad === "estudiantes" && perfil?.estudiantes != null ? (
+                <> · {fmtInt(perfil.estudiantes)} estudiantes distintos</>
+              ) : null}
+              {fuente?.tipo === "marco"
+                ? " · lo que el motor derivó, no tu archivo"
+                : " · tal como se leyó, sin criterios"}
+            </>
+          ) : null}
+        </p>
+      </header>
+
+      {/* G50 · Los filtros, como el autofiltro de una hoja: chips arriba, y la
+          lista de valores de la columna que se está acotando. */}
+      <div className="cmv2-expb-filtros">
+        {filtros.map((filtro) => (
+          <span key={filtro.columna} className="cmv2-expb-chip">
+            <strong>{filtro.columna}</strong>
+            <span>{filtro.valores.length === 1 ? filtro.valores[0] : `${filtro.valores.length} valores`}</span>
+            <button
+              type="button"
+              aria-label={`Quitar el filtro de ${filtro.columna}`}
+              onClick={() => setFiltros((prev) => prev.filter((f) => f.columna !== filtro.columna))}
             >
-              <option value="">Todas · {fmtInt(filasBase.length)}</option>
-              {facultades.map((row) => (
-                <option key={row.clave} value={row.clave}>
-                  {row.clave} · {fmtInt(row.n)}
+              <X size={12} aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+        {filtrables.length ? (
+          <label className="cmv2-expb-anadir">
+            <Plus size={13} aria-hidden="true" />
+            <select
+              value={editandoFiltro ?? ""}
+              onChange={(event) => setEditandoFiltro(event.target.value || null)}
+            >
+              <option value="">Filtrar por…</option>
+              {filtrables.map((col) => (
+                <option key={col.columna} value={col.columna}>
+                  {col.titulo}
                 </option>
               ))}
             </select>
           </label>
         ) : null}
-        <p className="cmv2-expb-nota" role="note">
-          {filas.length ? (
-            <>
-              <strong>{fmtInt(variables.length)} columnas</strong> del marco vigente
-              {delArchivo ? <> · {fmtInt(delArchivo)} vienen de tu archivo</> : null}
-              {facultad ? <> · describiendo <strong>{fmtInt(filas.length)}</strong> filas de {facultad}</> : null}.
-              {" "}Sin criterios ni embudo: lo que recorta cada criterio vive en Marco › Cursos-horario.
-            </>
-          ) : (
-            <>Las bases <strong>tal como se leyeron</strong>, sin criterios ni embudo.</>
-          )}
-        </p>
-      </header>
+        {filtros.length > 1 ? (
+          <button type="button" className="cmv2-expb-limpiar" onClick={() => setFiltros([])}>
+            Quitar todos
+          </button>
+        ) : null}
+      </div>
 
-      {!filas.length ? (
-        /*
-         * G42 · El vacío de Estudiantes casi nunca significa «no hay datos».
-         *
-         * El backend PODA `frame$population` al guardar el `.pulso`
-         * (project_pulso.R): son decenas de miles de filas que se pueden
-         * reconstruir, así que no viajan. Al abrir un proyecto guardado la
-         * población siempre sale en cero, y decir «el marco todavía no publica»
-         * mandaría a buscar un problema que no existe.
-         */
+      {editandoFiltro ? (
+        <div className="cmv2-expb-valores" role="group" aria-label={`Valores de ${editandoFiltro}`}>
+          {(columnas.find((col) => col.columna === editandoFiltro)?.categorias ?? []).map((cat) => {
+            const activo = filtroDe(editandoFiltro)?.valores.includes(cat.clave) ?? false;
+            return (
+              <button
+                key={cat.clave}
+                type="button"
+                data-activo={activo || undefined}
+                aria-pressed={activo}
+                onClick={() => alternarValor(editandoFiltro, cat.clave)}
+              >
+                {cat.clave}
+                <em>{fmtInt(cat.n)}</em>
+              </button>
+            );
+          })}
+          <button type="button" className="cmv2-expb-cerrar-valores" onClick={() => setEditandoFiltro(null)}>
+            Listo
+          </button>
+        </div>
+      ) : null}
+
+      {error ? (
         <div className="cmv2-expb-vacio-marco">
           <EmptyState
             icon={<Compass size={22} aria-hidden="true" />}
-            title={base === "aulas"
-              ? "El marco todavía no publica la base de cursos-horario"
-              : marcoConstruido
-                ? "La población no viaja en el proyecto guardado"
-                : "El marco todavía no publica la población de estudiantes"}
-            hint={base === "estudiantes" && marcoConstruido
-              ? "El proyecto guarda el marco de cursos-horario pero no la población: son decenas de miles de filas que se reconstruyen desde tus fuentes. Recalcula una vez en esta sesión y aparece."
-              : "Construye el marco desde tus fuentes (sección Marco) y vuelve aquí."}
-            cta={onReconstruir ? (
+            title="No se pudo leer esta base"
+            hint={error}
+          />
+        </div>
+      ) : !columnas.length ? (
+        <div className="cmv2-expb-vacio-marco">
+          <EmptyState
+            icon={<Compass size={22} aria-hidden="true" />}
+            title={cargando ? "Leyendo la base…" : "Esta base no trae columnas legibles"}
+            hint={cargando
+              ? "La primera lectura de una base grande tarda unos segundos; después los filtros son inmediatos."
+              : "Revisa la hoja declarada en Datos › Fuentes."}
+            cta={!cargando && fuente?.tipo === "marco" && onReconstruir && !marcoConstruido ? (
               <button
                 type="button"
                 className="cmv2-expb-reconstruir"
@@ -357,150 +411,97 @@ export function ExploradorBasesTab({
         </div>
       ) : (
         <div className="cmv2-expb-cuerpo">
-          <aside className="cmv2-expb-indice" aria-label="Variables de la base">
+          <aside className="cmv2-expb-indice" aria-label="Columnas de la base">
             <label className="cmv2-expb-buscador">
               <Search size={14} aria-hidden="true" />
               <input
                 type="search"
                 value={busqueda}
-                placeholder={`Buscar entre ${fmtInt(variables.length)} variables`}
+                placeholder={`Buscar entre ${fmtInt(columnas.length)} columnas`}
                 onChange={(event) => setBusqueda(event.target.value)}
               />
             </label>
             <div className="cmv2-expb-scroll">
-              {grupos.map((grupo) => (
-                <section key={grupo.clave} className="cmv2-expb-grupo">
-                  <h3>
-                    {grupo.titulo}
-                    <span>{fmtInt(grupo.filas.length)}</span>
-                  </h3>
-                  <ul>
-                    {grupo.filas.map((row) => {
-                      const share = filas.length ? row.conDato / filas.length : 0;
-                      return (
-                        <li key={row.columna}>
-                          <button
-                            type="button"
-                            data-activa={activa?.columna === row.columna || undefined}
-                            onClick={() => { setVariable(row.columna); setColaAbierta(false); }}
-                            title={`${nombreDe(row.columna).titulo} · columna ${row.columna} · ${fmtPct(share)} con dato`}
-                          >
-                            <span className="cmv2-expb-var">{nombreDe(row.columna).titulo}</span>
-                            {/* G43 · La cobertura sólo se nombra cuando falta
-                                dato, y como cifra: la barra bajo cada fila —dos
-                                versiones probadas en pantalla— se leía como un
-                                subrayado, y al dibujarse en todas las filas
-                                dejaba de señalar la que importa. */}
-                            {share < 0.995 ? (
-                              <span className="cmv2-expb-parcial" title="Filas con dato">
-                                {fmtPct(share)}
-                              </span>
-                            ) : null}
-                            <span className="cmv2-expb-meta">
-                              {row.tipo === "numerica" ? "núm." : fmtInt(row.distintos)}
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ))}
-              {!visibles.length ? (
-                <p className="cmv2-expb-sin-match">Ninguna variable coincide con «{busqueda}».</p>
-              ) : (
-                /* El marco no arrastra el archivo entero, y callarlo hacía
-                   buscar aquí columnas que nunca van a estar. */
-                <p className="cmv2-expb-pie" role="note">
-                  El marco no arrastra todas las columnas del archivo: los datos de contacto y los
-                  que no participan del muestreo se quedan fuera.
-                </p>
-              )}
+              <ul className="cmv2-expb-plana">
+                {visibles.map((col) => {
+                  const share = filas ? col.conDato / filas : 0;
+                  return (
+                    <li key={col.columna}>
+                      <button
+                        type="button"
+                        data-activa={activa?.columna === col.columna || undefined}
+                        onClick={() => { setVariable(col.columna); setColaAbierta(false); }}
+                        title={`${col.titulo} · ${fmtPct(share)} con dato`}
+                      >
+                        <span className="cmv2-expb-var">{col.titulo}</span>
+                        {share < 0.995 ? (
+                          <span className="cmv2-expb-parcial" title="Filas con dato">{fmtPct(share)}</span>
+                        ) : null}
+                        <span className="cmv2-expb-meta">
+                          {col.tipo === "numerica" ? "núm." : fmtInt(col.distintos)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+                {!visibles.length ? (
+                  <li className="cmv2-expb-sin-match">Ninguna columna coincide con «{busqueda}».</li>
+                ) : null}
+              </ul>
             </div>
           </aside>
 
           <div className="cmv2-expb-lectura">
-            {!activa || !distribucion ? (
+            {!activa ? (
               <EmptyState
                 icon={<Search size={20} aria-hidden="true" />}
-                title={facultad
-                  ? "Esta variable no trae datos en esta facultad"
-                  : "Esa variable no trae datos utilizables"}
-                hint={facultad
-                  ? "La columna existe en el marco, pero ninguna fila de esta facultad la tiene poblada. Vuelve a «Todas» para verla completa."
-                  : "Elige otra en el índice de la izquierda."}
+                title="Elige una columna en el índice"
+                hint="Cada una se describe con su distribución."
               />
             ) : (
               <article className="cmv2-expb-card">
                 <header className="cmv2-expb-card-head">
                   <div className="cmv2-expb-card-title">
-                    <h3>{nombreDe(activa.columna).titulo}</h3>
+                    <h3>{activa.titulo}</h3>
                     <p>
-                      {/* G46 · Con una facultad abierta, el recuento es el de
-                          ESA facultad: el del inventario es global y decía «51
-                          valores» sobre una lectura que enseñaba nueve. */}
-                      {distribucion.tipo === "numerica"
+                      {activa.tipo === "numerica"
                         ? "Numérica"
-                        : `Categórica · ${fmtInt(
-                            distribucion.categorias.length + (distribucion.otras?.categorias ?? 0),
-                          )} valores distintos${facultad ? " aquí" : ""}`}
-                      {" · "}
-                      {/* De dónde sale la columna. Sin esto, «Alumnos elegibles»
-                          parece venir del archivo y no del marco. */}
-                      {nombreDe(activa.columna).origen === "excel" ? (
-                        <>columna del archivo · <code>{activa.columna}</code> en el motor</>
-                      ) : nombreDe(activa.columna).origen === "motor" ? (
-                        <>la calcula el marco: {nombreDe(activa.columna).detalle}</>
-                      ) : (
-                        <>columna del marco · <code>{activa.columna}</code></>
-                      )}
+                        : `Categórica · ${fmtInt(activa.distintos)} valores distintos${acotada ? " aquí" : ""}`}
+                      {activa.detalle ? <> · {activa.detalle}</> : null}
                     </p>
                   </div>
                   <dl className="cmv2-expb-chips">
                     <div>
-                      <dt>Con dato</dt>
-                      <dd>{fmtInt(distribucion.conDato)}</dd>
+                      <dt>{unidad === "estudiantes" ? "Estudiantes" : "Con dato"}</dt>
+                      <dd>{fmtInt(activa.conDato)}</dd>
                     </div>
-                    {/* G47 · En «por qué quedó fuera», la ausencia no es un
-                        hueco del dato: son los cursos-horario que nadie excluyó.
-                        Llamarlo «sin dato» con un 46,9% en ámbar hacía sonar a
-                        problema lo que es el resultado deseado. */}
-                    <div
-                      data-alerta={
-                        (distribucion.sinDato > 0 && activa.columna !== "exclude_reason") || undefined
-                      }
-                    >
-                      <dt>{activa.columna === "exclude_reason" ? "Sin motivo" : "Sin dato"}</dt>
+                    <div data-alerta={activa.sinDato > 0 || undefined}>
+                      <dt>Sin dato</dt>
                       <dd>
-                        {fmtInt(distribucion.sinDato)}
-                        {distribucion.sinDato > 0 ? (
-                          <em>
-                            {fmtPct(
-                              distribucion.sinDato /
-                                Math.max(1, distribucion.conDato + distribucion.sinDato),
-                            )}
-                          </em>
+                        {fmtInt(activa.sinDato)}
+                        {activa.sinDato > 0 ? (
+                          <em>{fmtPct(activa.sinDato / Math.max(1, activa.conDato + activa.sinDato))}</em>
                         ) : null}
                       </dd>
                     </div>
                   </dl>
                 </header>
 
-                {distribucion.tipo === "numerica" ? (
+                {activa.tipo === "numerica" && activa.resumen ? (
                   <div className="cmv2-expb-numerica">
-                    <Histograma dist={distribucion} />
+                    <Histograma resumen={activa.resumen} />
                     <dl
                       className="cmv2-expb-cuantiles"
                       data-qa-geometry-group="calc-muestra/explorador-cuantiles"
                       data-qa-geometry-contract="equal"
                     >
                       {([
-                        ["Mínimo", distribucion.min],
-                        ["P25", distribucion.p25],
-                        ["Mediana", distribucion.p50],
-                        ["Media", distribucion.media],
-                        ["P75", distribucion.p75],
-                        ["Máximo", distribucion.max],
+                        ["Mínimo", activa.resumen.min],
+                        ["P25", activa.resumen.p25],
+                        ["Mediana", activa.resumen.p50],
+                        ["Media", activa.resumen.media],
+                        ["P75", activa.resumen.p75],
+                        ["Máximo", activa.resumen.max],
                       ] as const).map(([label, valor]) => (
                         <div key={label} data-qa-geometry-member data-qa-geometry-capacity="owned">
                           <dt>{label}</dt>
@@ -510,95 +511,85 @@ export function ExploradorBasesTab({
                     </dl>
                   </div>
                 ) : (
-                  <ul
-                    className="cmv2-expb-categorias"
-                    data-qa-geometry-group="calc-muestra/explorador-categorias"
-                    data-qa-geometry-contract="equal"
-                  >
-                    {distribucion.categorias.map((categoria) => {
-                      /* G47 · En una derivada, el valor también lo escribe el
-                         motor: `min_eligible_per_class|modality|…` no es una
-                         categoría, es su registro interno. Se traduce y el
-                         crudo se conserva en el `title` para volver al dato. En
-                         una columna del archivo NO se toca: reescribir el valor
-                         del usuario sería reescribir su base. */
-                      const derivada = nombreDe(activa.columna).origen !== "excel";
-                      const etiqueta = derivada
-                        ? etiquetaDeValor(activa.columna, categoria.clave) ?? categoria.clave
-                        : categoria.clave;
-                      return (
-                      <li key={categoria.clave} data-qa-geometry-member data-qa-geometry-capacity="owned">
-                        <span
-                          className="cmv2-expb-cat-label"
-                          title={etiqueta === categoria.clave ? categoria.clave : `${etiqueta} · ${categoria.clave}`}
-                        >
-                          {etiqueta}
-                        </span>
-                        <span className="cmv2-expb-cat-bar" aria-hidden="true">
-                          <i style={{ width: `${Math.max(0.8, categoria.share * 100)}%` }} />
-                        </span>
-                        <span className="cmv2-expb-cat-n">{fmtInt(categoria.n)}</span>
-                        <span className="cmv2-expb-cat-pct">{fmtPct(categoria.share)}</span>
-                      </li>
-                      );
-                    })}
-                    {/* La cola entra como una fila más, apagada: fuera de la
-                        lista se leía como un pie de página y no como parte del
-                        mismo reparto, que es lo que suma el total.
-
-                        G45 · Y se puede abrir. Un «otras N categorías» cerrado
-                        esconde justo lo que uno va a comprobar cuando algo no
-                        cuadra; al desplegarse va como lista —sin barras— porque
-                        a esa escala la barra ya no compara nada. */}
-                    {distribucion.otras ? (
-                      <li data-resto="true" data-qa-geometry-member data-qa-geometry-capacity="owned">
-                        <button
-                          type="button"
-                          className="cmv2-expb-cat-label cmv2-expb-cola-toggle"
-                          aria-expanded={colaAbierta}
-                          onClick={() => setColaAbierta((abierta) => !abierta)}
-                        >
-                          {colaAbierta ? "Ocultar" : "Ver"} las otras{" "}
-                          {fmtInt(distribucion.otras.categorias)} categorías
-                        </button>
-                        <span className="cmv2-expb-cat-bar" aria-hidden="true">
-                          <i
-                            style={{
-                              width: `${Math.max(0.8, (distribucion.otras.n / distribucion.conDato) * 100)}%`,
-                            }}
-                          />
-                        </span>
-                        <span className="cmv2-expb-cat-n">{fmtInt(distribucion.otras.n)}</span>
-                        <span className="cmv2-expb-cat-pct">
-                          {fmtPct(distribucion.otras.n / distribucion.conDato)}
-                        </span>
-                      </li>
-                    ) : null}
-                  </ul>
-                )}
-                {distribucion.tipo === "categorica" && distribucion.otras && colaAbierta ? (
-                  <div className="cmv2-expb-cola">
-                    <ul>
-                      {distribucion.otras.filas.map((categoria) => (
-                        <li key={categoria.clave}>
-                          <span title={categoria.clave}>
-                            {nombreDe(activa.columna).origen !== "excel"
-                              ? etiquetaDeValor(activa.columna, categoria.clave) ?? categoria.clave
-                              : categoria.clave}
+                  <>
+                    <ul
+                      className="cmv2-expb-categorias"
+                      data-qa-geometry-group="calc-muestra/explorador-categorias"
+                      data-qa-geometry-contract="equal"
+                    >
+                      {activa.categorias.map((categoria) => {
+                        const etiqueta = activa.traduceValores
+                          ? etiquetaDeValor(activa.columna, categoria.clave) ?? categoria.clave
+                          : categoria.clave;
+                        const share = activa.conDato ? categoria.n / activa.conDato : 0;
+                        const enFiltro = filtroDe(activa.columna)?.valores.includes(categoria.clave) ?? false;
+                        return (
+                          <li key={categoria.clave} data-qa-geometry-member data-qa-geometry-capacity="owned">
+                            {/* Cada categoría es también un filtro: la pregunta
+                                que sigue a «cuántos hay» casi siempre es «y de
+                                esos, qué pasa con…». */}
+                            <button
+                              type="button"
+                              className="cmv2-expb-cat-label"
+                              data-en-filtro={enFiltro || undefined}
+                              title={`${etiqueta} · filtrar por este valor`}
+                              onClick={() => alternarValor(activa.columna, categoria.clave)}
+                            >
+                              {etiqueta}
+                            </button>
+                            <span className="cmv2-expb-cat-bar" aria-hidden="true">
+                              <i style={{ width: `${Math.max(0.8, share * 100)}%` }} />
+                            </span>
+                            <span className="cmv2-expb-cat-n">{fmtInt(categoria.n)}</span>
+                            <span className="cmv2-expb-cat-pct">{fmtPct(share)}</span>
+                          </li>
+                        );
+                      })}
+                      {activa.otras ? (
+                        <li data-resto="true" data-qa-geometry-member data-qa-geometry-capacity="owned">
+                          <button
+                            type="button"
+                            className="cmv2-expb-cat-label cmv2-expb-cola-toggle"
+                            aria-expanded={colaAbierta}
+                            onClick={() => setColaAbierta((abierta) => !abierta)}
+                          >
+                            {colaAbierta ? "Ocultar" : "Ver"} las otras {fmtInt(activa.otras.categorias)} categorías
+                          </button>
+                          <span className="cmv2-expb-cat-bar" aria-hidden="true">
+                            <i style={{ width: `${Math.max(0.8, (activa.otras.n / Math.max(1, activa.conDato)) * 100)}%` }} />
                           </span>
-                          <em>{fmtInt(categoria.n)}</em>
-                          <b>{fmtPct(categoria.share)}</b>
+                          <span className="cmv2-expb-cat-n">{fmtInt(activa.otras.n)}</span>
+                          <span className="cmv2-expb-cat-pct">
+                            {fmtPct(activa.otras.n / Math.max(1, activa.conDato))}
+                          </span>
                         </li>
-                      ))}
+                      ) : null}
                     </ul>
-                    {distribucion.otras.truncadas > 0 ? (
-                      <p role="note">
-                        Y {fmtInt(distribucion.otras.truncadas)} categorías más, cada una por debajo
-                        de las listadas.
-                      </p>
+                    {activa.otras && colaAbierta ? (
+                      <div className="cmv2-expb-cola">
+                        <ul>
+                          {activa.otras.filas.map((categoria) => (
+                            <li key={categoria.clave}>
+                              <span title={categoria.clave}>
+                                {activa.traduceValores
+                                  ? etiquetaDeValor(activa.columna, categoria.clave) ?? categoria.clave
+                                  : categoria.clave}
+                              </span>
+                              <em>{fmtInt(categoria.n)}</em>
+                              <b>{fmtPct(categoria.n / Math.max(1, activa.conDato))}</b>
+                            </li>
+                          ))}
+                        </ul>
+                        {activa.otras.truncadas > 0 ? (
+                          <p role="note">
+                            Y {fmtInt(activa.otras.truncadas)} categorías más, cada una por debajo de las
+                            listadas.
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
-                  </div>
-                ) : null}
+                  </>
+                )}
               </article>
             )}
           </div>

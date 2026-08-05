@@ -1190,3 +1190,100 @@
 .cmv2-hist-comp [data-tono="f"] { --cmv2-hist-comp-tono: color-mix(in srgb, var(--pulso-success-fg) 34%, transparent); }
 
 .cmv2-hist-comp-track > span[data-tono] { background: var(--cmv2-hist-comp-tono); }
+
+/* Tooltip propio de los gráficos del histórico.
+
+   Sustituye al `title` nativo, que tarda ~1 s en aparecer, se pinta con la
+   tipografía del sistema operativo (así que el mismo gráfico se ve distinto en
+   macOS y en Windows) y no admite jerarquía: un dato con título y cuatro cifras
+   se aplanaba en una línea de texto corrido. */
+
+.cmv2-hist-tip {
+  position: fixed;
+  z-index: 1400;
+  max-width: 260px;
+  padding: 9px 11px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-raised, var(--cmv2-surface));
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 6%),
+    0 8px 24px -6px rgb(0 0 0 / 18%);
+  pointer-events: none;
+  transition: opacity 90ms var(--cmv2-ease-out, ease);
+}
+
+.cmv2-hist-tip-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: pretty;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-tip-punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--pulso-text-muted);
+}
+
+.cmv2-hist-tip-punto[data-tono="efectiva"] { background: var(--pulso-success-fg); }
+.cmv2-hist-tip-punto[data-tono="perdida"] { background: var(--pulso-warn-fg); }
+.cmv2-hist-tip-punto[data-tono="descuento"] { background: color-mix(in srgb, var(--pulso-text-muted) 55%, transparent); }
+.cmv2-hist-tip-punto[data-tono="asistencia"] { background: var(--cmv2-accent); }
+.cmv2-hist-tip-punto[data-tono="heredada"] { background: color-mix(in srgb, var(--pulso-text-muted) 40%, transparent); }
+.cmv2-hist-tip-punto[data-tono="reserva"] { background: color-mix(in srgb, var(--pulso-text-muted) 26%, transparent); }
+
+/* Etiqueta a la izquierda, cifra a la derecha y alineadas en columna: así dos
+   valores se comparan de un vistazo sin leer la etiqueta. */
+.cmv2-hist-tip-filas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--cmv2-space-3);
+  margin: 7px 0 0;
+}
+
+.cmv2-hist-tip-filas > div { display: contents; }
+
+.cmv2-hist-tip-filas dt {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-tip-filas dd {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-tip-nota {
+  margin: 7px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 70%, transparent);
+  font-size: 10px;
+  line-height: 1.4;
+  text-wrap: pretty;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-hist-tip-titulo:only-child + .cmv2-hist-tip-nota,
+.cmv2-hist-tip-titulo + .cmv2-hist-tip-nota {
+  margin-top: 5px;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Lo que tiene tooltip se comporta como algo consultable. */
+[data-tip] { cursor: help; }
