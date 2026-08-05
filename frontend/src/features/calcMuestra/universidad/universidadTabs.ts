@@ -174,6 +174,8 @@ function classroomLabStatusesForSidebar(
     metodo: guideStatus(comparisonReady, hasCalculatedQuota),
     laboratorio: guideStatus(comparisonReady, hasCalculatedQuota),
     seleccion: guideStatus(selectionReady, comparisonReady),
+    // El perfil describe la selección: existe en cuanto ella existe.
+    perfil: guideStatus(selectionReady, selectionReady),
     reemplazos: guideStatus(replacementReady, selectionReady),
     auditoria: guideStatus(selectionReady || comparisonReady, hasCalculatedQuota),
   };

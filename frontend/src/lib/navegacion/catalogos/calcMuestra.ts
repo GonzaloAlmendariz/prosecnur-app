@@ -34,6 +34,7 @@ export type ClassroomLabTab =
   | "metodo"
   | "laboratorio"
   | "seleccion"
+  | "perfil"
   | "reemplazos"
   | "auditoria";
 
@@ -119,6 +120,7 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestanaAula("metodo", "Comparar métodos", "Elegir la opción más representativa", Settings2),
     pestanaAula("laboratorio", "Simulación", "Estabilidad y repetidos", BarChart3),
     pestanaAula("seleccion", "Cursos-horario titulares", "Unidades que se intentan primero", Table2),
+    pestanaAula("perfil", "Perfil de la muestra", "De qué está hecha, facultad por facultad", PieChart),
     pestanaAula("reemplazos", "Reemplazos por curso-horario", "Rutas Rn.1, Rn.2...", RefreshCw),
     pestanaAula("auditoria", "Sustento técnico", "Campos, pesos y fuentes", FileText),
   ],

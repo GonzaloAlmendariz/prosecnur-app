@@ -21,8 +21,8 @@ function firma(pestanas: readonly { id: string; label: string }[]) {
 }
 
 describe("catálogos canónicos de pestañas", () => {
-  it("fija las 26 pestañas vivas de Muestra universitaria con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(26);
+  it("fija las 27 pestañas vivas de Muestra universitaria con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(27);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
@@ -60,6 +60,7 @@ describe("catálogos canónicos de pestañas", () => {
       "metodo:Comparar métodos",
       "laboratorio:Simulación",
       "seleccion:Cursos-horario titulares",
+      "perfil:Perfil de la muestra",
       "reemplazos:Reemplazos por curso-horario",
       "auditoria:Sustento técnico",
     ]);

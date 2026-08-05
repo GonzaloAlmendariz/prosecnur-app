@@ -50,6 +50,7 @@ import {
   AulasObjetivoTab,
   AulasReemplazosTab,
   AulasSeleccionTab,
+  AulasPerfilTab,
   AulasSimulacionTab,
   buildClassroomLabModel,
 } from "./aulas";
@@ -520,6 +521,13 @@ export function UniversidadDesk({
                 onSelectMethod={onSeleccionarAulas}
                 onSimulateReplacements={onSimularReemplazos}
                 onNavigate={onNavigate}
+              />
+            )}
+            {activeLabTab === "perfil" && (
+              <AulasPerfilTab
+                titulares={labModel.m1Rows}
+                marco={aulasState?.frame?.aula_frame ?? []}
+                referencia={referenciaAsistencia}
               />
             )}
             {activeLabTab === "reemplazos" && (

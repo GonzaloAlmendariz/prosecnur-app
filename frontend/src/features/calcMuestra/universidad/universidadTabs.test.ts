@@ -69,7 +69,7 @@ describe("universitySidebarTabs — Selección", () => {
     expect(resolveUniversityClassroomTab("auditoria")).toBe("auditoria");
   });
 
-  it("expone solo las seis pestañas vivas y conserva sus gates", () => {
+  it("expone solo las siete pestañas vivas y conserva sus gates", () => {
     const tabs = universitySidebarTabs({
       activeSection: "aulas",
       estudio: estudioConResultado,
@@ -82,6 +82,7 @@ describe("universitySidebarTabs — Selección", () => {
       "metodo:working",
       "laboratorio:working",
       "seleccion:pending",
+      "perfil:pending",
       "reemplazos:pending",
       "auditoria:working",
     ]);
