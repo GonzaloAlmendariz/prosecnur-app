@@ -2201,3 +2201,66 @@ intencional a validar con Gonzalo: los títulos Word salen ahora
 centrados (siempre estuvo declarado; el bug de officer lo tragaba).
 Pendiente: re-export del deck Conta real in-app (worker callr exige
 `R CMD INSTALL` previo).
+
+### B54 — Cierre visual del Word sobre el deck Conta real: W-1..W-4 APTOS, 3 hallazgos nuevos (2026-08-04, sesión B)
+
+Render in-process del body real del usuario (su_export.json,
+simplifyVector=FALSE) contra la copia del proyecto: 5 slides → docx de 3
+páginas (la cohesión ganó una página vs B52). Página a página:
+
+- **W-1 APTO**: el «2%» al mismo tamaño que 34%/64%; leyenda 8pt en una
+  fila, 5 etiquetas completas. **W-2 APTO**: los 4 bloques
+  título+gráfico+Base viajan juntos. **W-3 APTO**: 4 actores completos a
+  ancho completo. **W-4 APTO**: «Base: 52 docentes, 172 estudiantes,
+  178 egresados y 15 administrativos» — prorrateada idéntica a PPT.
+  Prueba 2 presente y completa.
+
+Hallazgos nuevos:
+
+- **W-5 (serio, paridad de CONTENIDO)**: el TOP2BOX pedido por lámina
+  (`barra_extra_preset="top2box"` + título + negrita) sale en PPT pero
+  desaparece del Word: el chart_preset Word default
+  (`mostrar_barra_extra=FALSE`, `canvas_w_extra=0`) pisa la capa de
+  presets y el override de lámina no trae el TRUE explícito. El override
+  que PIDE barra extra debe ganar al default Word.
+- **W-6**: panel multiactor de altura fija — con 2 actores la barra sale
+  ~2.5× más gruesa que con 4 en la misma página; la altura debe escalar
+  con el número de actores.
+- **W-7**: el `payload.titulo` de la lámina («prueba 2») no viaja a
+  Word; los dos gráficos del split salen con título idéntico sin la
+  marca de comparación.
+- Sin numerar (a revisar antes de ascender): leyenda con categorías
+  vacías vs base de válidos (ojo metodológico); la portada SÍ viaja a
+  Word (B52 decía que no — documentar); el `debug_ph.activo` del body
+  pinta marcos magenta en el Word exportado (¿el export debe ignorarlo?).
+- Aire de ~2-3cm entre gráfico y Base: el PNG reserva la franja de
+  caption interna (canvas_h_caption_in=0.45 del preset Word) aunque la
+  Base vive como texto del documento — estética afinable.
+
+Rasters e drivers reproducibles en scratchpad/word_real/. Huérfano
+ajeno detectado en :8799 (3+ días); candidato a dev-prune.
+
+### B55 — W-5..W-7 reparados y verificados sobre el deck real (2026-08-04, sesión B)
+
+- **W-5**: `.apply_word_chart_presets` pisaba la barra extra pedida.
+  Regla nueva en 3 sentidos, todos con test: lo pedido (override de
+  lámina o preset de usuario explícito) sobrevive y Word solo re-escala
+  su geometría (extra 0.16 del lienzo, 9pt); un FALSE explícito manda;
+  la columna N implícita del default de fábrica sigue apagada (evita
+  regresar W-1). El deck real muestra el TOP2BOX (98%) en pág. 2.
+- **W-6**: el piso B46 del graficador (pensado para llenar el slot PPT)
+  inflaba el panel Word con pocas filas. `.word_escalar_panel_multi`
+  fija canvas_h_panel_in = max(1.1, 0.55×n_actores); grosor comparable
+  2 vs 4 actores (±25% por layout attr). `cruce` conserva el cálculo
+  intrínseco (filas data-driven).
+- **W-7**: `.word_titulo_bloque_multi` compone «prueba 2 — Servicio de
+  salud» en los splits var_cruce y var (multilista sin prefijo, decisión
+  anti-ruido en baterías, a ratificar).
+
+Verificador APTO: 86 asserts de los 6 test files W + adyacentes verdes,
+congelado −2 bajo línea base (2 hunks de delegación pura). Deuda de
+estilo anotada: reporte_plan_helpers.R acumula 6 redefiniciones locales
+de %||% (patrón preexistente del archivo) — candidata a pase de higiene.
+Pendientes de ratificación: doctrina N implícita apagada en Word
+(revisor metodológico), multilista sin prefijo de lámina, W-6 data-aware
+para modo cruce si un deck real lo reproduce.
