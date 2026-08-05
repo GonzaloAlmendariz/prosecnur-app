@@ -2325,3 +2325,26 @@ crecer. Colas nuevas: el consolidado también enriquece debug_ph (decidir
 si es export final → one-liner en su runner) y el alto fijo 2.95in de la
 apilada single en Word (la banda recuperada engorda la barra en vez de
 compactar el bloque).
+
+### B58 — W-8: la nota de Base declara su criterio (2026-08-04, sesión B)
+
+El hook contratado (excluded_any) NO disparaba en el caso real: el 47<52
+del deck Conta viene de 5 NA (Limpieza remapea SIN INF a NA), no de una
+exclusión declarada. Se implementó la exclusión Y la puerta NA (Total
+válido < universo ponderado post-filtro, tolerancia 1e-6, mismas sumas
+de peso en ambos lados — sin falsos positivos). Marca editorial elegida:
+«(respuestas válidas)», única incluso en prorrateo multiactor («Base: 52
+docentes y 155 estudiantes (respuestas válidas)»), compartida
+estructuralmente por Word y PPT. Invariantes: select_multiple exento en
+los 3 sitios (base = Total siempre); filtro-solo no marca (decisión
+declarada del estudio); paridad byte-idéntica sin reducción; la puerta
+NA jamás recalcula N, solo marca. Helper nuevo
+reporte_plan_base_criterio.R (102 líneas); congelado en 9553 (−5).
+
+Doble revisión: verificador APTO (462 asserts) y revisor metodológico
+RATIFICA los 3 puntos con supuestos documentados (relevance no declarada
+como filtro marcará — la vía limpia es declararla en filtros; SM fuera
+de la marca por diseño; pesos degenerados sin consecuencia). Test
+ponderado añadido a pedido del revisor (24 PASS). Colas que deja: la
+nota interna de categoricas/pie/donut no marca reducción por NA;
+media_rango/nube/dim_* declaran universos propios sin marca.
