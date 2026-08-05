@@ -1,9 +1,8 @@
 /* ADR 0060 · lectura del estudio histórico.
    Tres recursos gráficos y ningún adorno: un embudo cuyo ancho ES la merma, un
-   perfil de barras a escala fija 0–100 % con banda de intervalo y línea de
-   referencia, y una franja de métricas con la cifra al frente. El color codifica
-   significado —descuento vs pérdida, sobre vs bajo la referencia, dato propio vs
-   global heredada— nunca decora. */
+   perfil de barras a escala fija de 0 a 100 % con línea de promedio, y una franja de métricas con la cifra al frente. El color codifica
+   significado (descuento frente a pérdida, dato propio frente a global heredada)
+   y nunca decora. */
 
 .cmv2-hist-panel {
   display: flex;
@@ -31,15 +30,15 @@
 
 .cmv2-hist-hero-id h4 {
   margin: 2px 0 0;
-  font-size: var(--pulso-font-lg);
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-hero-id p {
   margin: 4px 0 0;
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }
 
@@ -65,7 +64,7 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-hero-cifras span[data-cumple="si"] strong { color: var(--pulso-success-fg); }
@@ -93,13 +92,13 @@
   top: -3px;
   bottom: -3px;
   width: 2px;
-  background: var(--pulso-text-strong);
+  background: var(--pulso-text);
   opacity: 0.55;
 }
 
 .cmv2-hist-hero-lectura {
   margin: 6px 0 0;
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }
 
@@ -120,15 +119,15 @@
 
 .cmv2-hist-bloque-head h4 {
   margin: 2px 0 0;
-  font-size: var(--pulso-font-md);
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-bloque-head p {
   margin: 4px 0 0;
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }
 
@@ -144,7 +143,7 @@
 }
 
 /* Cada peldaño es su propia rejilla. Con `display: contents` sobre una rejilla
-   compartida, la leyenda de la merma —que ocupa una columna concreta— rompía el
+   compartida, la leyenda de la merma (que ocupa una columna concreta) rompía el
    auto-placement y empujaba el peldaño siguiente a la columna equivocada. */
 .cmv2-hist-paso {
   display: grid;
@@ -170,11 +169,11 @@
   /* La etiqueta envuelve en vez de truncarse: la columna es fija para que las
      barras compartan origen, y una etiqueta cortada («A quienes tocaba encu…»)
      deja al peldaño sin decir qué grupo mide. */
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.25;
   text-wrap: pretty;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-paso-track {
@@ -185,11 +184,11 @@
 }
 
 .cmv2-hist-paso-cifra {
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-paso-fill {
@@ -222,14 +221,14 @@
 
 
 .cmv2-hist-paso-pct {
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--pulso-text-muted);
 }
 
 /* La leyenda termina donde termina el tramo rayado que describe. Anclarla por
-   la derecha —y no por el inicio del rayado— deja todo el ancho de la fila para
+   la derecha, y no por el inicio del rayado, deja todo el ancho de la fila para
    el texto, así que no se apila en una columna de dos palabras. */
 .cmv2-hist-paso-nota {
   box-sizing: border-box;
@@ -271,7 +270,7 @@
   font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-tasas em { font-style: normal; font-size: 10px; color: var(--pulso-text-muted); }
@@ -311,13 +310,13 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-metricas span {
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-weight: 500;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-metricas em {
@@ -327,11 +326,11 @@
   color: var(--pulso-text-muted);
 }
 
-/* ── Perfil: escala fija 0–100 %, banda de IC y línea de referencia ──────── */
+/* Perfil: escala fija de 0 a 100 % y una línea con el promedio del estudio. */
 
 .cmv2-hist-perfil {
   display: grid;
-  grid-template-columns: minmax(120px, 1.1fr) 28px minmax(0, 2.4fr) 52px;
+  grid-template-columns: minmax(120px, 1.1fr) 28px minmax(0, 2.4fr) 82px;
   gap: 2px var(--cmv2-space-2);
   align-items: center;
   margin: 0;
@@ -341,12 +340,14 @@
 
 .cmv2-hist-fila { display: contents; }
 
+/* El nombre envuelve en vez de truncarse: una categoría del dato puede ser larga
+   («TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)») y cortada deja de nombrar lo
+   que la barra mide. */
 .cmv2-hist-fila-nombre {
-  overflow: hidden;
-  font-size: var(--pulso-font-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--pulso-text-strong);
+  font-size: 11px;
+  line-height: 1.25;
+  text-wrap: pretty;
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-fila-k {
@@ -364,13 +365,6 @@
   overflow: hidden;
 }
 
-.cmv2-hist-fila-ic {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: color-mix(in srgb, var(--pulso-text-muted) 14%, transparent);
-}
-
 .cmv2-hist-fila-barra {
   position: absolute;
   inset: 3px auto 3px 0;
@@ -379,34 +373,50 @@
   transition: width 320ms var(--cmv2-ease-out, ease);
 }
 
-.cmv2-hist-fila-barra[data-sobre="si"] {
-  background: color-mix(in srgb, var(--pulso-success-fg) 62%, transparent);
+/* Una facultad que hereda la cifra global lo dice con texto, no con textura: la
+   barra se atenúa y el porcentaje lleva su etiqueta al lado. */
+.cmv2-hist-fila[data-heredada="si"] .cmv2-hist-fila-barra {
+  background: color-mix(in srgb, var(--pulso-text-muted) 22%, transparent);
 }
 
-/* Una celda que hereda la global no se disfraza de dato propio. */
-.cmv2-hist-fila[data-degradada="si"] .cmv2-hist-fila-barra {
-  background: repeating-linear-gradient(-45deg,
-    color-mix(in srgb, var(--pulso-text-muted) 40%, transparent) 0 3px, transparent 3px 6px);
-}
-
-.cmv2-hist-fila[data-degradada="si"] .cmv2-hist-fila-nombre,
-.cmv2-hist-fila[data-degradada="si"] .cmv2-hist-fila-tasa { color: var(--pulso-text-muted); }
+.cmv2-hist-fila[data-heredada="si"] .cmv2-hist-fila-nombre,
+.cmv2-hist-fila[data-heredada="si"] .cmv2-hist-fila-tasa { color: var(--pulso-text-muted); }
 
 .cmv2-hist-fila-ref {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--pulso-text-strong);
+  background: var(--pulso-text);
+  opacity: 0.42;
+}
+
+.cmv2-hist-fila-tasa { color: var(--pulso-text-muted); }
+
+.cmv2-hist-fila-ref {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--pulso-text);
   opacity: 0.42;
 }
 
 .cmv2-hist-fila-tasa {
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
+}
+
+.cmv2-hist-nota-grupo {
+  margin: var(--cmv2-space-2) 0 0;
+  padding-top: var(--cmv2-space-2);
+  border-top: 1px dashed var(--cmv2-border);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
 }
 
 /* ── Parámetros y filtros ────────────────────────────────────────────────── */
@@ -427,15 +437,15 @@
   border-bottom: 1px solid var(--cmv2-border);
 }
 
-.cmv2-hist-params dt { font-size: var(--pulso-font-xs); color: var(--pulso-text-muted); }
+.cmv2-hist-params dt { font-size: 11px; color: var(--pulso-text-muted); }
 
 .cmv2-hist-params dd {
   margin: 0;
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-filtros {
@@ -454,9 +464,9 @@
   gap: var(--cmv2-space-2);
   padding: 5px 10px;
   border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius-sm);
+  border-radius: 6px;
   background: var(--cmv2-surface);
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
 }
 
 .cmv2-hist-filtro-orden {
@@ -476,7 +486,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--pulso-text-strong);
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-filtro-efecto { font-size: 10px; color: var(--pulso-text-muted); }
@@ -493,14 +503,14 @@
   padding: var(--cmv2-space-3);
   border: 1px dashed var(--cmv2-border);
   border-radius: var(--pulso-radius-md);
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   color: var(--pulso-text-muted);
 }
 
 @media (max-width: 900px) {
   .cmv2-hist-hero { grid-template-columns: 1fr; }
   .cmv2-hist-paso { grid-template-columns: 128px 48px minmax(0, 1fr) 40px; }
-  .cmv2-hist-perfil { grid-template-columns: minmax(96px, 1fr) 24px minmax(0, 1.8fr) 46px; }
+  .cmv2-hist-perfil { grid-template-columns: minmax(96px, 1fr) 24px minmax(0, 1.8fr) 76px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -554,11 +564,10 @@
 .cmv2-hist-apilado li { display: contents; }
 
 .cmv2-hist-apilado-nombre {
-  overflow: hidden;
-  font-size: var(--pulso-font-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--pulso-text-strong);
+  font-size: 11px;
+  line-height: 1.25;
+  text-wrap: pretty;
+  color: var(--pulso-text);
 }
 
 .cmv2-hist-apilado-k {
@@ -590,7 +599,7 @@
 }
 
 .cmv2-hist-apilado-cifra {
-  font-size: var(--pulso-font-xs);
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   text-align: right;

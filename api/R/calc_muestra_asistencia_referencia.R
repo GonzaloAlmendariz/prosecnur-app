@@ -53,10 +53,16 @@
     # tenerlos aquí permite preguntar lo que de verdad se pregunta al
     # dimensionar: si un aula de taller rinde distinto que una de teoría, o si
     # el docente contratado cambia la asistencia.
-    condicion_curso = c("condicion_curso", "condicion", "CONDICIÓN"),
+    condicion_curso = c(
+      "condicion_curso", "condicion", "CONDICIÓN", "condicion_del_curso"
+    ),
     nivel_curso = c("nivel_curso", "nivel_del_curso", "NIVEL DEL CURSO"),
     tipo_docente = c("tipo_docente", "tipo_de_docente"),
-    modalidad = c("modalidad", "MODALIDAD")
+    modalidad = c("modalidad", "MODALIDAD"),
+    # Con la hora de inicio del curso-horario, «Regular tarde» deja de ser un
+    # rotulo interno y pasa a decir de que hora a que hora va. Sin ella la
+    # dimension sigue funcionando, solo que muda.
+    hora_inicio = c("hora_inicio", "horario", "hora", "HORARIO")
   )
 }
 
@@ -394,14 +400,48 @@
   )
 }
 
-.cm_asist_size_dimension <- function(model, bootstrap_n, global) {
-  definitions <- list(
-    list(key = "T1", label = "Menos de 15", include = model$matriculados < 15),
-    list(key = "T2", label = "15 a 24", include = model$matriculados >= 15 & model$matriculados <= 24),
-    list(key = "T3", label = "25 a 39", include = model$matriculados >= 25 & model$matriculados <= 39),
-    list(key = "T4", label = "40 a 59", include = model$matriculados >= 40 & model$matriculados <= 59),
-    list(key = "T5", label = "60 o más", include = model$matriculados >= 60)
-  )
+#' Grupos de tamano declarados por el estudio, normalizados.
+#'
+#' El modulo deja que cada estudio arme sus propios tramos de tamano en Marco
+#' (`grupos_tamano` + `usar_grupos_tamano`). Esta dimension tiene que hablar en
+#' esos tramos y no en una escala fija del motor: si el estudio parte en 30 y 80,
+#' leer el historico en cortes de 15/25/40/60 obliga a traducir a mano justo
+#' cuando se compara con el marco vigente.
+#'
+#' Devuelve NULL cuando el estudio no declara grupos o los desactiva; el llamador
+#' omite la dimension en vez de inventar una escala.
+.cm_asist_size_groups <- function(grupos) {
+  if (is.null(grupos) || !length(grupos)) return(NULL)
+  if (is.data.frame(grupos)) grupos <- split(grupos, seq_len(nrow(grupos)))
+
+  parsed <- lapply(seq_along(grupos), function(i) {
+    grupo <- grupos[[i]]
+    if (!is.list(grupo)) return(NULL)
+    min_value <- suppressWarnings(as.numeric(grupo$min %||% NA_real_))
+    max_value <- suppressWarnings(as.numeric(grupo$max %||% NA_real_))
+    if (!length(min_value) || is.na(min_value)) min_value <- 0
+    if (!length(max_value) || is.na(max_value)) max_value <- Inf
+    id <- .cm_aulas_scalar(grupo$id, sprintf("G%d", i))
+    label <- .cm_aulas_scalar(grupo$label, id)
+    if (!nzchar(label)) label <- id
+    list(key = id, label = label, min = min_value, max = max_value)
+  })
+  parsed <- Filter(Negate(is.null), parsed)
+  if (!length(parsed)) return(NULL)
+  parsed[order(vapply(parsed, function(g) g$min, numeric(1)))]
+}
+
+.cm_asist_size_dimension <- function(model, bootstrap_n, global, grupos = NULL) {
+  groups <- .cm_asist_size_groups(grupos)
+  if (is.null(groups)) return(NULL)
+
+  definitions <- lapply(groups, function(group) {
+    list(
+      key = group$key,
+      label = group$label,
+      include = model$matriculados >= group$min & model$matriculados <= group$max
+    )
+  })
 
   rows <- lapply(seq_along(definitions), function(i) {
     definition <- definitions[[i]]
@@ -447,14 +487,51 @@
       ""
     }
     if (!nzchar(label)) label <- "Sin dato"
-    list(key = key, label = label, include = value_keys == key)
+    # Una base exportada de Excel suele prefijar la categoria con su orden
+    # («1. Especial manana») para que la hoja ordene sola. Ese numero es
+    # tipografia de la hoja, no parte del nombre: se usa para ordenar y se
+    # quita de la etiqueta.
+    prefix <- suppressWarnings(as.numeric(sub("^\\s*([0-9]+)\\s*[.)-].*$", "\\1", label)))
+    if (!is.na(prefix)) label <- trimws(sub("^\\s*[0-9]+\\s*[.)-]\\s*", "", label))
+    if (!nzchar(label)) label <- "Sin dato"
+    list(key = key, label = label, orden_declarado = prefix, include = value_keys == key)
   })
+  # El prefijo de orden, cuando existe, manda sobre el orden de aparicion.
+  declared <- vapply(definitions, function(d) d$orden_declarado %||% NA_real_, numeric(1))
+  if (any(!is.na(declared))) {
+    declared[is.na(declared)] <- max(declared, na.rm = TRUE) + seq_len(sum(is.na(declared)))
+    definitions <- definitions[order(declared)]
+  }
   list(definitions = definitions, value_keys = value_keys)
+}
+
+#' Rango de horas observado dentro de cada categoria, como «07:00 a 08:30».
+#'
+#' Se lee de la propia base, no de una tabla de cortes del motor: los tramos los
+#' fija cada estudio y la unica fuente fiel de donde cae cada uno son las horas
+#' que de verdad se aplicaron.
+.cm_asist_franja_horaria <- function(horas, idx) {
+  if (is.null(horas) || !length(idx)) return("")
+  valores <- trimws(as.character(horas[idx]))
+  valores <- valores[!is.na(valores) & nzchar(valores)]
+  if (!length(valores)) return("")
+  # Acepta «17:00-20:00» y «17:00»; solo importa el inicio.
+  inicio <- sub("^\\s*([0-9]{1,2}):([0-9]{2}).*$", "\\1:\\2", valores)
+  validas <- grepl("^[0-9]{1,2}:[0-9]{2}$", inicio)
+  if (!any(validas)) return("")
+  inicio <- inicio[validas]
+  minutos <- as.integer(sub(":.*$", "", inicio)) * 60L +
+    as.integer(sub("^.*:", "", inicio))
+  formato <- function(m) sprintf("%02d:%02d", m %/% 60L, m %% 60L)
+  desde <- formato(min(minutos))
+  hasta <- formato(max(minutos))
+  if (identical(desde, hasta)) desde else sprintf("%s a %s", desde, hasta)
 }
 
 .cm_asist_category_dimension <- function(model, column, declared_levels,
                                          dimension_key, dimension_label, order,
-                                         bootstrap_n, global, key_fn) {
+                                         bootstrap_n, global, key_fn,
+                                         horas = NULL) {
   categories <- .cm_asist_category_definitions(
     model[[column]],
     declared_levels,
@@ -463,9 +540,15 @@
   rows <- lapply(seq_along(categories), function(i) {
     category <- categories[[i]]
     idx <- which(category$include)
+    franja <- .cm_asist_franja_horaria(horas, idx)
+    etiqueta <- if (nzchar(franja)) {
+      sprintf("%s (%s)", category$label, franja)
+    } else {
+      category$label
+    }
     .cm_asist_cell(
       category$key,
-      category$label,
+      etiqueta,
       i,
       model$matriculados[idx],
       model$asistentes[idx],
@@ -787,7 +870,8 @@
 calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
                                                 bootstrap_n = 2000L,
                                                 diseno = list(),
-                                                filtros_corte = NULL) {
+                                                filtros_corte = NULL,
+                                                grupos_tamano = NULL) {
   if (!is.data.frame(datos) || !nrow(datos)) {
     stop_api(
       400,
@@ -966,11 +1050,11 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       )
     )
     dimensions <- list(
-      .cm_asist_size_dimension(model, bootstrap_n, global),
+      .cm_asist_size_dimension(model, bootstrap_n, global, grupos_tamano),
       .cm_asist_category_dimension(
         model, "rango_horario", factor_levels$rango_horario,
         "rango_horario", "Rango horario", 2L, bootstrap_n, global,
-        .cm_criterios_fac_key
+        .cm_criterios_fac_key, model$hora_inicio
       ),
       .cm_asist_category_dimension(
         model, "facultad", factor_levels$facultad,
@@ -983,7 +1067,8 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
         .cm_criterios_fac_key
       )
     )
-    list(global = global, chain = chain, dimensions = dimensions)
+    # Sin grupos declarados la dimension de tamano no se emite.
+    list(global = global, chain = chain, dimensions = Filter(Negate(is.null), dimensions))
   })
 
   encuentros <- .cm_asist_encuentros(model)

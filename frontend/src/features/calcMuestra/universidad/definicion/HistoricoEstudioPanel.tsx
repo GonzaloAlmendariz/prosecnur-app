@@ -100,10 +100,16 @@ function PasoEmbudo({
 }
 
 /**
- * Una celda del perfil. La barra se escala a 100 %, no al máximo observado, para
- * que dos dimensiones distintas sean comparables entre sí; el intervalo se pinta
- * encima como una banda, y una celda que publica la global se dibuja rayada
- * porque su valor no es propio.
+ * Una celda del perfil: una barra a escala fija 0 a 100 %, una línea con el
+ * promedio del estudio y nada más.
+ *
+ * La versión anterior superponía tres codificaciones en 200 px (banda de
+ * intervalo, color según estuviera sobre o bajo el promedio, rayado si el valor
+ * era heredado) y el resultado no se leía: parecían barras grises al azar con
+ * un halo alrededor de la punta. Aquí cada cosa se dice una sola vez y de una
+ * sola forma. El intervalo, que sigue importando, se lee al pasar el cursor; y
+ * una facultad sin cifra propia lo dice con palabras, que es más honesto que
+ * una textura que hay que descifrar.
  */
 function FilaPerfil({
   fila,
@@ -112,26 +118,29 @@ function FilaPerfil({
   fila: CalcMuestraReferenciaAsistenciaCelda;
   referencia: number | null;
 }) {
-  const degradada = fila.fuente_publicada === "global";
-  const ancho = fila.tasa !== null ? Math.max(1.5, Math.min(100, fila.tasa * 100)) : 0;
-  const banda = fila.ic_low !== null && fila.ic_high !== null
-    ? { left: Math.max(0, fila.ic_low * 100), width: Math.max(1, (fila.ic_high - fila.ic_low) * 100) }
-    : null;
-  const sobreReferencia = referencia !== null && fila.tasa !== null && fila.tasa >= referencia;
+  const heredada = fila.fuente_publicada === "global";
+  // La barra pinta `tasa_publicada`, que es la que el módulo va a usar, no la
+  // `tasa` observada. Con poca base el motor descarta la observada y publica la
+  // global: dibujar la observada mostraba a Gastronomía liderando con 98 % sobre
+  // 3 aulas, un número que nadie iba a heredar.
+  const valor = fila.tasa_publicada ?? fila.tasa;
+  const ancho = valor !== null ? Math.max(1.5, Math.min(100, valor * 100)) : 0;
+  const detalle = heredada
+    ? `Observada: ${pct(fila.tasa, 0)} sobre ${fmtInt(fila.k)} aulas, base insuficiente para publicarla`
+    : fila.ic_low !== null && fila.ic_high !== null
+      ? `Entre ${pct(fila.ic_low, 0)} y ${pct(fila.ic_high, 0)} sobre ${fmtInt(fila.k)} aulas`
+      : undefined;
   return (
-    <li className="cmv2-hist-fila" data-degradada={degradada ? "si" : undefined}>
+    <li className="cmv2-hist-fila" data-heredada={heredada ? "si" : undefined}>
       <span className="cmv2-hist-fila-nombre" title={fila.celda_label}>{fila.celda_label}</span>
-      <span className="cmv2-hist-fila-k">{fmtInt(fila.k)}</span>
-      <span className="cmv2-hist-fila-track">
-        {banda ? (
-          <span className="cmv2-hist-fila-ic" style={{ left: `${banda.left}%`, width: `${banda.width}%` }} />
-        ) : null}
-        <span className="cmv2-hist-fila-barra" data-sobre={sobreReferencia ? "si" : undefined} style={{ width: `${ancho}%` }} />
+      <span className="cmv2-hist-fila-k" title={`${fmtInt(fila.k)} aulas aplicadas`}>{fmtInt(fila.k)}</span>
+      <span className="cmv2-hist-fila-track" title={detalle}>
+        <span className="cmv2-hist-fila-barra" style={{ width: `${ancho}%` }} />
         {referencia !== null ? (
           <span className="cmv2-hist-fila-ref" style={{ left: `${Math.min(100, referencia * 100)}%` }} />
         ) : null}
       </span>
-      <span className="cmv2-hist-fila-tasa">{pct(fila.tasa)}</span>
+      <span className="cmv2-hist-fila-tasa">{pct(valor)}</span>
     </li>
   );
 }
@@ -257,10 +266,24 @@ export function HistoricoEstudioPanel({
     });
   }
 
+  // Ordenar por la tasa observada ponía arriba a las facultades de 2 y 3 aulas,
+  // justo las que no tienen cifra propia. Primero van las que sí midieron, de
+  // mayor a menor; después las que heredan el promedio.
   const filasFacultad = facultad
-    ? [...facultad.filas].filter((f) => f.k > 0).sort((a, b) => (b.tasa ?? 0) - (a.tasa ?? 0))
+    ? [...facultad.filas]
+        .filter((f) => f.k > 0)
+        .sort((a, b) => {
+          const heredaA = a.fuente_publicada === "global" ? 1 : 0;
+          const heredaB = b.fuente_publicada === "global" ? 1 : 0;
+          if (heredaA !== heredaB) return heredaA - heredaB;
+          return (b.tasa_publicada ?? b.tasa ?? 0) - (a.tasa_publicada ?? a.tasa ?? 0);
+        })
     : [];
-  const degradadas = filasFacultad.filter((f) => f.fuente_publicada === "global").length;
+  const heredadas = filasFacultad.filter((f) => f.fuente_publicada === "global");
+  const degradadas = heredadas.length;
+  // La línea de referencia tiene que ser el mismo valor que heredan las celdas
+  // sin base; si no, la línea cae en un sitio y las barras heredadas en otro.
+  const refPerfil = heredadas[0]?.tasa_publicada ?? cadena.asistencia.tasa;
 
   return (
     <section
@@ -378,8 +401,8 @@ export function HistoricoEstudioPanel({
               <small>Efectividad</small>
               <strong>{pct(cadena.efectividad.tasa)}</strong>
               <em>
-                de aquellos a quienes tocaba encuestar —los que estaban en el aula, eran del
-                estudio y todavía no habían contestado— cuántos completaron la encuesta
+                de quienes estaban en el aula, eran del estudio y todavía no habían contestado,
+                cuántos completaron la encuesta
               </em>
             </span>
             <span>
@@ -467,18 +490,37 @@ export function HistoricoEstudioPanel({
             <span className="cmv2-eyebrow">El perfil que se hereda</span>
             <h4>Asistencia por facultad</h4>
             <p>
-              Qué porcentaje de sus estudiantes asistió a clase, facultad por facultad. La línea
-              vertical es el promedio de todo el estudio; la banda gris, el margen de error.
-              {degradadas > 0
-                ? ` Las ${degradadas} rayadas tuvieron muy pocas aulas para tener cifra propia, así que muestran ese promedio.`
-                : ""}
+              De cada 100 estudiantes matriculados en las aulas visitadas de esa facultad, cuántos
+              estaban en clase el día de la visita. La barra va de 0 a 100 % y la línea vertical
+              marca el {pct(refPerfil, 0)} de referencia, para ver de un vistazo quién queda por
+              encima y quién por debajo.
             </p>
           </header>
           <ol className="cmv2-hist-perfil">
-            {filasFacultad.map((fila) => (
-              <FilaPerfil key={fila.celda_key} fila={fila} referencia={cadena.asistencia.tasa} />
-            ))}
+            {filasFacultad
+              .filter((f) => f.fuente_publicada !== "global")
+              .map((fila) => (
+                <FilaPerfil key={fila.celda_key} fila={fila} referencia={refPerfil} />
+              ))}
           </ol>
+          {degradadas > 0 ? (
+            <>
+              {/* Las que no fijan cifra propia se agrupan bajo su propio rótulo en vez
+                  de repetir la misma aclaración en cada fila. */}
+              <p className="cmv2-hist-nota-grupo">
+                Estas {degradadas} se aplicaron en muy pocas aulas para fijar una cifra propia, así
+                que heredan el {pct(refPerfil, 0)} de referencia. Pasa el cursor para ver qué
+                observó cada una.
+              </p>
+              <ol className="cmv2-hist-perfil">
+                {filasFacultad
+                  .filter((f) => f.fuente_publicada === "global")
+                  .map((fila) => (
+                    <FilaPerfil key={fila.celda_key} fila={fila} referencia={refPerfil} />
+                  ))}
+              </ol>
+            </>
+          ) : null}
         </div>
       ) : null}
 

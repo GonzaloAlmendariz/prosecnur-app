@@ -51,7 +51,7 @@
 .cmv2-expb-conmutador button em {
   font-style: normal;
   font-size: 11px;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
 .cmv2-expb-conmutador button:hover { color: var(--pulso-text); }
@@ -77,7 +77,7 @@
   font-size: 10px;
   letter-spacing: .05em;
   text-transform: uppercase;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 .cmv2-expb-facultad select {
   max-width: 260px;
@@ -104,7 +104,7 @@
   text-align: left;
   font-size: 11.5px;
   line-height: 1.5;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 .cmv2-expb-nota strong {
   color: var(--pulso-text-muted);
@@ -143,7 +143,7 @@
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);
   background: var(--pulso-surface);
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
   transition: border-color var(--motion-dur-fast) var(--motion-ease-out);
 }
 .cmv2-expb-buscador:focus-within {
@@ -190,7 +190,7 @@
   font-weight: var(--pulso-weight-semibold);
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 .cmv2-expb-grupo h3 span {
   font-variant-numeric: tabular-nums;
@@ -254,7 +254,7 @@
 }
 .cmv2-expb-meta {
   font-size: 10.5px;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
 /*
@@ -281,7 +281,7 @@
   border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
   font-size: 10.5px;
   line-height: 1.5;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 
 .cmv2-expb-sin-match {
@@ -334,7 +334,7 @@
 .cmv2-expb-card-title p {
   margin: 3px 0 0;
   font-size: 11.5px;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 
 .cmv2-expb-chips {
@@ -353,7 +353,7 @@
   font-size: 9.5px;
   letter-spacing: .05em;
   text-transform: uppercase;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 .cmv2-expb-chips dd {
   margin: 1px 0 0;
@@ -369,7 +369,7 @@
   font-style: normal;
   font-size: 10.5px;
   font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 .cmv2-expb-chips > div[data-alerta] {
   border-color: color-mix(in srgb, var(--pulso-warn-fg, #b26a00) 35%, var(--cmv2-border));
@@ -430,7 +430,7 @@
   justify-content: space-between;
   margin-top: 6px;
   font-size: 10.5px;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
 .cmv2-expb-eje [data-marca="mediana"] { color: var(--pulso-text-muted); }
@@ -454,7 +454,7 @@
   font-size: 9.5px;
   letter-spacing: .05em;
   text-transform: uppercase;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 .cmv2-expb-cuantiles dd {
   margin: 2px 0 0;
@@ -519,7 +519,7 @@
   text-align: right;
 }
 .cmv2-expb-cat-n { color: var(--pulso-text); font-weight: var(--pulso-weight-medium); }
-.cmv2-expb-cat-pct { color: var(--pulso-text-subtle); }
+.cmv2-expb-cat-pct { color: var(--pulso-text-muted); }
 
 /* G45 · La cola se abre: su fila es un control, no un rótulo. */
 .cmv2-expb-cola-toggle {
@@ -577,7 +577,7 @@
 }
 .cmv2-expb-cola li b {
   font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
   min-width: 42px;
   text-align: right;
@@ -585,16 +585,16 @@
 .cmv2-expb-cola p {
   margin: 10px 0 0;
   font-size: 11px;
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
 }
 
 /* La cola es parte del reparto, pero no una categoría que se pueda decidir. */
 .cmv2-expb-categorias li[data-resto] .cmv2-expb-cat-label {
-  color: var(--pulso-text-subtle);
+  color: var(--pulso-text-muted);
   font-style: italic;
 }
 .cmv2-expb-categorias li[data-resto] .cmv2-expb-cat-bar i {
-  background: var(--pulso-text-subtle);
+  background: var(--pulso-text-muted);
   opacity: .45;
 }
 
