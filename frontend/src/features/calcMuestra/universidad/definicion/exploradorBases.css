@@ -92,82 +92,134 @@
 
 /* G50 · La línea de filtros es el autofiltro de la hoja: chips de lo que está
    acotando, y un desplegable para añadir otra columna. Va sobre el cuerpo y no
-   dentro del índice porque acota AMBOS carriles, no la variable en foco. */
+   dentro del índice porque acota AMBOS carriles, no la variable en foco.
+
+   G52 · Es la ancla del popover de valores, así que posee posición propia. El
+   alto mínimo la reserva aunque no haya ningún filtro: sin él, poner el primero
+   empujaba el índice y la lectura una fila entera hacia abajo. */
 .cmv2-expb-filtros {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  min-height: 28px;
+  min-height: 30px;
 }
 
+/* --- chip de filtro activo --- */
+
+/* Dos controles en una píldora —abrir y quitar— separados por una hairline, en
+   vez de una X pegada al texto: el objetivo de 18 px es pequeño y sin la línea
+   se pulsa «quitar» queriendo «editar». */
 .cmv2-expb-chip {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 5px 4px 10px;
-  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 32%, var(--cmv2-border));
+  align-items: stretch;
+  max-width: 360px;
+  border: 1px solid color-mix(in srgb, var(--cmv2-accent) 30%, var(--cmv2-border));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--cmv2-accent) 9%, transparent);
+  background: color-mix(in srgb, var(--cmv2-accent) 8%, var(--pulso-surface));
+  overflow: hidden;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-chip[data-abierto] {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 62%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 16%, transparent);
+}
+.cmv2-expb-chip-abrir {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 9px 5px 11px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
   font-size: 11.5px;
   color: var(--pulso-text);
-  max-width: 340px;
+  cursor: pointer;
 }
-.cmv2-expb-chip strong {
+.cmv2-expb-chip-abrir strong {
   font-weight: var(--pulso-weight-semibold);
   white-space: nowrap;
 }
-.cmv2-expb-chip strong::after { content: ":"; }
-.cmv2-expb-chip > span {
+.cmv2-expb-chip-abrir strong::after {
+  content: ":";
+  color: var(--pulso-text-muted);
+}
+.cmv2-expb-chip-abrir > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--pulso-text-muted);
+  color: var(--cmv2-accent);
+  font-weight: var(--pulso-weight-medium);
 }
-.cmv2-expb-chip button {
+.cmv2-expb-chip-abrir:hover { background: color-mix(in srgb, var(--cmv2-accent) 8%, transparent); }
+
+.cmv2-expb-chip-quitar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 24px;
   border: 0;
-  border-radius: 999px;
+  border-left: 1px solid color-mix(in srgb, var(--cmv2-accent) 22%, var(--cmv2-border));
   background: transparent;
   color: var(--pulso-text-muted);
   cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
 }
-.cmv2-expb-chip button:hover {
-  background: color-mix(in srgb, var(--pulso-text) 10%, transparent);
-  color: var(--pulso-text);
+.cmv2-expb-chip-quitar:hover {
+  background: color-mix(in srgb, var(--pulso-danger-fg, #c0392b) 12%, transparent);
+  color: var(--pulso-danger-fg, #c0392b);
+}
+.cmv2-expb-chip button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+  outline-offset: -2px;
 }
 
+/* --- añadir filtro --- */
+
+/* El select va transparente encima de la píldora: la flecha nativa del sistema
+   rompía la familia de controles del módulo, y un menú propio para elegir entre
+   nueve columnas sería inventar un componente que el sistema ya da. */
 .cmv2-expb-anadir {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px 4px 9px;
-  border: 1px dashed var(--cmv2-border);
+  gap: 6px;
+  padding: 5px 9px 5px 11px;
+  border: 1px solid var(--cmv2-border);
   border-radius: 999px;
-  background: transparent;
+  background: var(--pulso-surface);
   color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
   cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-out),
+    color var(--motion-dur-fast) var(--motion-ease-out);
+}
+.cmv2-expb-anadir:hover {
+  border-color: color-mix(in srgb, var(--cmv2-accent) 45%, var(--cmv2-border));
+  color: var(--pulso-text);
 }
 .cmv2-expb-anadir:focus-within {
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-border));
+  border-color: color-mix(in srgb, var(--cmv2-accent) 60%, var(--cmv2-border));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cmv2-accent) 14%, transparent);
 }
 .cmv2-expb-anadir select {
-  max-width: 220px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 11.5px;
   cursor: pointer;
-  outline: none;
 }
 
 .cmv2-expb-limpiar {
+  margin-left: 2px;
   border: 0;
   background: transparent;
   padding: 4px 6px;
@@ -180,59 +232,105 @@
 }
 .cmv2-expb-limpiar:hover { color: var(--pulso-text); }
 
-/* Los valores de la columna que se está acotando: una nube de conmutadores.
-   C4 · con muchas categorías la nube posee su propio scroll en vez de empujar
-   el cuerpo fuera del viewport. */
+/* --- popover de valores --- */
+
+/* Cuelga de la barra en vez de empujar el cuerpo: abrir un filtro no debe mover
+   de sitio la lectura que se está mirando. z-index 1400 es la convención de la
+   casa para overlays que deben pasar por encima del toolbar. */
 .cmv2-expb-valores {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1400;
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 14%), 0 2px 6px rgb(0 0 0 / 8%);
+  overflow: hidden;
+}
+.cmv2-expb-valores header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px 8px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 65%, transparent);
+}
+.cmv2-expb-valores header h4 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+.cmv2-expb-valores header p {
+  margin: 0;
+  flex: 1;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-expb-valores header button {
+  padding: 4px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  cursor: pointer;
+}
+.cmv2-expb-valores header button:hover { background: var(--pulso-surface); border-color: var(--pulso-text-muted); }
+
+/* C4 · Con muchas categorías la nube posee su propio scroll: el popover no
+   crece hasta salirse del viewport. El tope en `vh` es lo que lo mantiene
+   entero en pantallas cortas —medido a 1024x600, con 168 px fijos la última
+   fila quedaba cortada por el borde inferior. */
+.cmv2-expb-nube {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  max-height: 132px;
+  max-height: min(168px, 22vh);
   overflow: auto;
-  padding: 10px 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-surface-2);
+  padding: 11px 14px 13px;
 }
-.cmv2-expb-valores button {
+.cmv2-expb-nube button {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
+  max-width: 100%;
   padding: 4px 10px;
   border: 1px solid var(--cmv2-border);
   border-radius: 999px;
-  background: var(--pulso-surface);
+  background: var(--pulso-surface-2);
   color: var(--pulso-text);
+  font-family: inherit;
   font-size: 11.5px;
   cursor: pointer;
   transition: background var(--motion-dur-fast) var(--motion-ease-out),
     border-color var(--motion-dur-fast) var(--motion-ease-out);
 }
-.cmv2-expb-valores button em {
+.cmv2-expb-nube button em {
   font-style: normal;
   font-size: 10.5px;
   color: var(--pulso-text-muted);
   font-variant-numeric: tabular-nums;
 }
-.cmv2-expb-valores button:hover { border-color: var(--pulso-text-muted); }
-.cmv2-expb-valores button[data-activo] {
+.cmv2-expb-nube button:hover {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-text-muted);
+}
+.cmv2-expb-nube button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+  outline-offset: 1px;
+}
+.cmv2-expb-nube button[data-activo] {
   background: var(--cmv2-accent);
   border-color: transparent;
   color: #fff;
 }
-.cmv2-expb-valores button[data-activo] em { color: rgb(255 255 255 / 78%); }
-.cmv2-expb-cerrar-valores {
-  margin-left: auto;
-  align-self: flex-start;
-  padding: 4px 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-  font-weight: var(--pulso-weight-medium);
-  cursor: pointer;
-}
+.cmv2-expb-nube button[data-activo] em { color: rgb(255 255 255 / 78%); }
 
 /* G46 · La nota baja a su propia línea.
    Con dos controles arriba (base y facultad) competía por el ancho y acababa

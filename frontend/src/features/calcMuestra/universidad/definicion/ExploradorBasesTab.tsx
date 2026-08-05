@@ -24,8 +24,8 @@
  * El perfil lo calcula R: la base real tiene 136.284 filas y contar categorías
  * en el cliente exigiría moverla entera por cada clic.
  */
-import { useEffect, useMemo, useState } from "react";
-import { Compass, Plus, Search, X } from "../../../../vendor/lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Compass, Filter, Search, X } from "../../../../vendor/lucide-react";
 import type {
   CalcMuestraAulasState,
   CalcMuestraWorkspace,
@@ -238,6 +238,53 @@ export function ExploradorBasesTab({
   const rotuloColumna = (columna: string) => columnaDe(columna)?.titulo ?? columna;
   const rotuloValor = (columna: string, clave: string) =>
     columnaDe(columna)?.traduceValores ? etiquetaDeValor(columna, clave) ?? clave : clave;
+  /*
+   * G52 · Una columna filtrada no se describe a sí misma.
+   *
+   * Al acotar por «Facultad: CIENCIAS E INGENIERÍA», el perfil devuelve una
+   * sola facultad —es correcto: eso es lo que queda— y entonces el popover de
+   * esa columna ofrecía un único valor, sin forma de añadir una segunda
+   * facultad. Es la trampa clásica del autofiltro, y se resuelve igual que en
+   * una hoja: el desplegable de una columna muestra SU catálogo, no su
+   * resultado. Aquí se conserva el último catálogo visto sin ese filtro; los
+   * conteos son los de ese momento, que es justo lo que la hoja también hace.
+   */
+  const catalogoValores = useRef(new Map<string, ExploradorBaseCategoria[]>());
+  useEffect(() => {
+    for (const col of columnas) {
+      if (col.tipo !== "categorica") continue;
+      if (filtros.some((filtro) => filtro.columna === col.columna)) continue;
+      catalogoValores.current.set(col.columna, col.categorias);
+    }
+  }, [columnas, filtros]);
+
+  const valoresEnEdicion = !editandoFiltro
+    ? []
+    : filtroDe(editandoFiltro)
+      ? catalogoValores.current.get(editandoFiltro) ?? columnaDe(editandoFiltro)?.categorias ?? []
+      : columnaDe(editandoFiltro)?.categorias ?? [];
+  const seleccionadosEnEdicion = editandoFiltro ? filtroDe(editandoFiltro)?.valores.length ?? 0 : 0;
+
+  // El popover se cierra como cualquier desplegable: click fuera o Escape. Sin
+  // esto quedaba abierto tapando la lectura mientras se navegaba el índice.
+  const barraFiltrosRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!editandoFiltro) return;
+    const fuera = (event: MouseEvent) => {
+      const barra = barraFiltrosRef.current;
+      if (barra && !barra.contains(event.target as Node)) setEditandoFiltro(null);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEditandoFiltro(null);
+    };
+    document.addEventListener("mousedown", fuera);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", fuera);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [editandoFiltro]);
+
   function alternarValor(columna: string, valor: string) {
     setFiltros((prev) => {
       const actual = prev.find((f) => f.columna === columna);
@@ -296,6 +343,9 @@ export function ExploradorBasesTab({
                 setFiltros([]);
                 setColaAbierta(false);
                 setEditandoFiltro(null);
+                // Otra base, otras columnas: el catálogo de la anterior no
+                // describe nada aquí.
+                catalogoValores.current.clear();
               }}
             >
               {item.etiqueta}
@@ -344,34 +394,57 @@ export function ExploradorBasesTab({
         </p>
       </header>
 
-      {/* G50 · Los filtros, como el autofiltro de una hoja: chips arriba, y la
-          lista de valores de la columna que se está acotando. */}
-      <div className="cmv2-expb-filtros">
-        {filtros.map((filtro) => (
-          <span key={filtro.columna} className="cmv2-expb-chip">
-            <strong>{rotuloColumna(filtro.columna)}</strong>
-            <span>
-              {filtro.valores.length === 1
-                ? rotuloValor(filtro.columna, filtro.valores[0]!)
-                : `${filtro.valores.length} valores`}
+      {/* G50/G52 · Los filtros, como el autofiltro de una hoja: una sola barra
+          con los chips activos y un desplegable para añadir otra columna. La
+          lista de valores cuelga de la barra como popover y no empuja el cuerpo:
+          abrir un filtro no tiene por qué mover de sitio lo que se está
+          leyendo. */}
+      <div className="cmv2-expb-filtros" ref={barraFiltrosRef}>
+        {filtros.map((filtro) => {
+          const abierto = editandoFiltro === filtro.columna;
+          return (
+            <span key={filtro.columna} className="cmv2-expb-chip" data-abierto={abierto || undefined}>
+              {/* El chip también abre su lista: para corregir un filtro se va a
+                  él, no al desplegable de añadir. */}
+              <button
+                type="button"
+                className="cmv2-expb-chip-abrir"
+                aria-expanded={abierto}
+                onClick={() => setEditandoFiltro(abierto ? null : filtro.columna)}
+              >
+                <strong>{rotuloColumna(filtro.columna)}</strong>
+                <span>
+                  {filtro.valores.length === 1
+                    ? rotuloValor(filtro.columna, filtro.valores[0]!)
+                    : `${filtro.valores.length} valores`}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="cmv2-expb-chip-quitar"
+                aria-label={`Quitar el filtro de ${rotuloColumna(filtro.columna)}`}
+                onClick={() => {
+                  setFiltros((prev) => prev.filter((f) => f.columna !== filtro.columna));
+                  if (abierto) setEditandoFiltro(null);
+                }}
+              >
+                <X size={11} aria-hidden="true" />
+              </button>
             </span>
-            <button
-              type="button"
-              aria-label={`Quitar el filtro de ${rotuloColumna(filtro.columna)}`}
-              onClick={() => setFiltros((prev) => prev.filter((f) => f.columna !== filtro.columna))}
-            >
-              <X size={12} aria-hidden="true" />
-            </button>
-          </span>
-        ))}
+          );
+        })}
+
         {filtrables.length ? (
           <label className="cmv2-expb-anadir">
-            <Plus size={13} aria-hidden="true" />
+            <Filter size={12} aria-hidden="true" />
+            <span>{filtros.length ? "Añadir filtro" : "Filtrar por…"}</span>
+            <ChevronDown size={13} aria-hidden="true" />
             <select
-              value={editandoFiltro ?? ""}
+              aria-label="Añadir un filtro por columna"
+              value=""
               onChange={(event) => setEditandoFiltro(event.target.value || null)}
             >
-              <option value="">Filtrar por…</option>
+              <option value="">Elegir columna…</option>
               {filtrables.map((col) => (
                 <option key={col.columna} value={col.columna}>
                   {col.titulo}
@@ -380,39 +453,51 @@ export function ExploradorBasesTab({
             </select>
           </label>
         ) : null}
+
         {filtros.length > 1 ? (
-          <button type="button" className="cmv2-expb-limpiar" onClick={() => setFiltros([])}>
+          <button
+            type="button"
+            className="cmv2-expb-limpiar"
+            onClick={() => { setFiltros([]); setEditandoFiltro(null); }}
+          >
             Quitar todos
           </button>
         ) : null}
-      </div>
 
-      {editandoFiltro ? (
-        <div
-          className="cmv2-expb-valores"
-          role="group"
-          aria-label={`Valores de ${rotuloColumna(editandoFiltro)}`}
-        >
-          {(columnaDe(editandoFiltro)?.categorias ?? []).map((cat) => {
-            const activo = filtroDe(editandoFiltro)?.valores.includes(cat.clave) ?? false;
-            return (
-              <button
-                key={cat.clave}
-                type="button"
-                data-activo={activo || undefined}
-                aria-pressed={activo}
-                onClick={() => alternarValor(editandoFiltro, cat.clave)}
-              >
-                {rotuloValor(editandoFiltro, cat.clave)}
-                <em>{fmtInt(cat.n)}</em>
+        {editandoFiltro ? (
+          <div className="cmv2-expb-valores" role="group" aria-label={`Valores de ${rotuloColumna(editandoFiltro)}`}>
+            <header>
+              <h4>{rotuloColumna(editandoFiltro)}</h4>
+              <p>
+                {seleccionadosEnEdicion
+                  ? `${fmtInt(seleccionadosEnEdicion)} de ${fmtInt(valoresEnEdicion.length)} elegidos`
+                  : `${fmtInt(valoresEnEdicion.length)} valores · elige los que quieras ver`}
+              </p>
+              <button type="button" onClick={() => setEditandoFiltro(null)}>
+                Listo
               </button>
-            );
-          })}
-          <button type="button" className="cmv2-expb-cerrar-valores" onClick={() => setEditandoFiltro(null)}>
-            Listo
-          </button>
-        </div>
-      ) : null}
+            </header>
+            <div className="cmv2-expb-nube">
+              {valoresEnEdicion.map((cat) => {
+                const activo = filtroDe(editandoFiltro)?.valores.includes(cat.clave) ?? false;
+                return (
+                  <button
+                    key={cat.clave}
+                    type="button"
+                    data-activo={activo || undefined}
+                    aria-pressed={activo}
+                    onClick={() => alternarValor(editandoFiltro, cat.clave)}
+                  >
+                    {activo ? <Check size={11} aria-hidden="true" /> : null}
+                    {rotuloValor(editandoFiltro, cat.clave)}
+                    <em>{fmtInt(cat.n)}</em>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
 
       {error ? (
         <div className="cmv2-expb-vacio-marco">
