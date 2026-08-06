@@ -73,7 +73,9 @@ esa declaración es un insumo de Carga que Analítica y Gráficos consumen.**
    de una base. Un estudio de una sola tabla, o de bases integradas, no la
    necesita y no la ve. Una regla, un sitio.
 
-3. **Dos direcciones, y la que manda es generar.** La app **emite** la plantilla
+3. **Dos direcciones, y la que manda es el editor.** *(Enmendada el 2026-08-06,
+   ver «Enmienda» al final.)* La redacción original decía que generar el Excel
+   era la vía principal: La app **emite** la plantilla
    ya poblada con las variables y etiquetas de cada base, ordenadas por sección,
    y el analista sólo empareja filas y escribe la etiqueta estándar. También
    **acepta** un archivo en ese formato, para estudios que ya lo tienen resuelto
@@ -190,3 +192,52 @@ esa declaración es un insumo de Carga que Analítica y Gráficos consumen.**
   `api/R/surveymonkey_api.R`, rama `fam == "matrix"`. Conservar el enunciado de
   la matriz en una columna propia del survey sigue siendo trabajo aparte y
   reduciría —sin eliminar— la necesidad de curar etiquetas a mano.
+
+
+## Enmienda — 2026-08-06: la vía principal es el editor
+
+**Qué cambia.** La decisión 3 ponía al Excel como vía principal. Se invierte: el
+mapeo se hace en la pestaña y el Excel queda como import/export.
+
+**Por qué.** La plantilla generada sale con **300 filas sin emparejar** —una por
+variable de cada base— frente a las **154 ya emparejadas** de la matriz que el
+equipo mantenía a mano. La forma sin emparejar es correcta *para un archivo*: en
+un Excel una sugerencia se vuelve indistinguible de una decisión y termina en una
+lámina sin que nadie lo note. Pero es peor para trabajar, y el juicio del usuario
+fue directo: «el formato de Excel que te pasé es mucho más intuitivo».
+
+En una herramienta el dilema no existe. Una propuesta puede **verse como
+propuesta** —marcada, con su chip, confirmable de un clic— y no se guarda mientras
+nadie la confirme. Eso conserva la prohibición original sin pagar su costo.
+
+**Qué se conserva sin cambios.** Las reglas 1, 2, 4, 5, 6, 7 y 8. En particular la
+5 —escribir siempre en `analitica_config_por_base`— que es la que hace seguro a
+este ADR frente al 0061.
+
+**Qué se añade.**
+
+- **Propuestas de emparejado** por la terna (etiqueta normalizada, firma de
+  escala, ordinal de aparición). Las dos primeras no bastan: en el estudio medido
+  «Servicio de salud» con escala Sí/No aparece dos veces por base —«¿Conoce?» y
+  «¿Ha utilizado?»— y sólo el orden las separa. Medido contra las cuatro bases
+  reales: 84 propuestas, 17 en los cuatro públicos y 28 en tres, que coinciden
+  con los conteos de la matriz hecha a mano.
+- **Una etiqueta que se repite entre propuestas no se prellena.** Ofrecer
+  «Servicio de salud» como etiqueta estándar de tres filas distintas reproduce la
+  ambigüedad que este ADR existe para eliminar, y encima invita a confirmarla de
+  un clic. El campo vacío pide lo único que el analista tiene que aportar.
+- **`diapositiva` por fila.** La matriz real ya la traía como `Diapo` —133 de 154
+  filas asignadas a 44 láminas, 42 de ellas con más de una pregunta—. Declararla
+  es lo que permitirá que Gráficos derive el mazo en vez de armarlo lámina por
+  lámina. El consumo desde Gráficos queda pendiente y merece decisión propia:
+  cambia de dónde nace el plan de láminas.
+
+**Invariantes nuevos, verificados por test.**
+
+- Una propuesta sin confirmar **no se guarda**.
+- Una variable **no puede estar en dos filas**: serían dos preguntas donde hay
+  una, y el conteo por público —y el gráfico que salga de él— quedaría mal sin
+  ninguna señal en pantalla.
+- Una propuesta que choca con algo ya decidido **se descarta entera**, no a
+  medias: aceptarla parcialmente produciría una fila que dice ser la misma
+  pregunta en tres públicos cuando el analista sólo confirmó dos.
