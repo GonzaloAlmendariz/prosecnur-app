@@ -198,3 +198,71 @@ test_that("el plan derivado lo acepta el graficador real", {
     expect_silent(do.call(p_barras_multiapiladas, g$args))
   }
 })
+
+test_that("una lámina con escalas distintas se apila en bloques, no aborta", {
+  # B1, medido en el PPT real: la lámina que juntaba «¿Cuál es su género?»
+  # (3 categorías) con una pregunta Sí/No salía entera como «Sin datos» y se
+  # perdía también el tema que sí era graficable. La causa: en `var_cruce` el
+  # motor comprueba la escala sobre TODAS las refs de la lámina, aplanando los
+  # temas — el validador del frontend la comprueba por tema, y ahí discrepan.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "Sí/No", diapositiva = "1",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1")),
+    list(etiqueta_estandar = "Otra escala", diapositiva = "1",
+         # p20 es Sí/No en docentes; p30 es Malo/Bueno en estudiantes. Para que
+         # la fila sea homogénea entre públicos usamos la misma escala en ambos.
+         variables = list(estudiantes = "p30"))
+  ))
+
+  args <- .graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$grafico$args
+  expect_equal(args$modo, "multilista")
+  expect_equal(length(args$bloques), 2L)
+  expect_true(all(vapply(args$bloques, function(b) identical(b$modo, "var_cruce"), logical(1))))
+  # Y el spec lo acepta el graficador real, que es lo único que prueba que no
+  # volverá a degradarse a «Sin datos».
+  expect_silent(do.call(p_barras_multiapiladas, args))
+})
+
+test_that("una lámina de escala única sigue usando var_cruce", {
+  # `multilista` arrastra cowplot y es más pesado: no se usa cuando no hace falta.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "A", diapositiva = "1",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1")),
+    list(etiqueta_estandar = "B", diapositiva = "1",
+         variables = list(docentes = "p14_1", estudiantes = "p12_1"))
+  ))
+  args <- .graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$grafico$args
+  expect_equal(args$modo, "var_cruce")
+  expect_equal(length(args$vars), 2L)
+})
+
+test_that("la firma de escala lee la lista del instrumento procesado", {
+  # El instrumento procesado guarda la lista en su propia columna y deja `type`
+  # en «select_one» a secas. Leyendo sólo `type`, toda variable de opción única
+  # devolvía la misma firma y la comparación dejaba de distinguir nada — que fue
+  # lo que hizo que el agrupado por escala no separara nada.
+  inst_proc <- list(
+    survey = data.frame(type = c("select_one", "select_one"),
+                        list_name = c("lst_a", "lst_b"),
+                        name = c("p1", "p2"), label = c("A", "B"),
+                        stringsAsFactors = FALSE),
+    choices = data.frame(list_name = c("lst_a", "lst_a", "lst_b", "lst_b"),
+                         name = c("1", "2", "1", "2"),
+                         label = c("Sí", "No", "Malo", "Bueno"),
+                         stringsAsFactors = FALSE))
+  f1 <- .equiv_firma_escala(inst_proc, "p1")
+  f2 <- .equiv_firma_escala(inst_proc, "p2")
+  expect_true(nzchar(f1) && nzchar(f2))
+  expect_false(identical(f1, f2))
+
+  # Y la forma cruda («select_one lst_a») sigue funcionando.
+  inst_crudo <- inst_proc
+  inst_crudo$survey$type <- c("select_one lst_a", "select_one lst_b")
+  inst_crudo$survey$list_name <- NULL
+  expect_false(identical(.equiv_firma_escala(inst_crudo, "p1"),
+                         .equiv_firma_escala(inst_crudo, "p2")))
+})
