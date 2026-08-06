@@ -126,6 +126,14 @@ type PlanStore = {
 
   // --- Flags de sincronización ---
   hydrated: boolean;
+  /**
+   * La carga de la config reintenta con backoff (hasta 15 s) y hasta ahora lo
+   * hacía en silencio: el editor se pintaba vacío y no había forma de
+   * distinguir «cargando» de «no hay láminas». Este flag es lo que permite
+   * decirlo en pantalla.
+   */
+  hydrationRetrying: boolean;
+  setHydrationRetrying: (retrying: boolean) => void;
   dirty: boolean;
 
   // --- Undo/redo ---
@@ -365,6 +373,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
   canvasViewport: DEFAULT_CANVAS_VIEWPORT,
 
   hydrated: false,
+  hydrationRetrying: false,
+  setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),
   dirty: false,
 
   past: [],
@@ -417,6 +427,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     density: cfg.density ?? "comfortable",
     canvasViewport: cfg.canvas_viewport ?? DEFAULT_CANVAS_VIEWPORT,
     hydrated: true,
+    hydrationRetrying: false,
     dirty: false,
     // El hydrate viene del backend (autosave inicial o import). No
     // historizamos el estado pre-hidratación porque era placeholder vacío.
