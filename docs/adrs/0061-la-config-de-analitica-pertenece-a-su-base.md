@@ -196,6 +196,13 @@ las bases no compartan instrumento.**
 
 ## Notas
 
+- **Continuado por el ADR 0062.** Este ADR impide que la etiqueta curada de una
+  base contamine a otra, pero no provee ni la etiqueta ni la correspondencia
+  entre públicos: deja al analista teclear una por una en la base correcta. El
+  0062 declara esa correspondencia y llena las etiquetas desde ella. El orden
+  importa y no es intercambiable: sin el scoping de este ADR, importar una
+  matriz de 152 etiquetas en una configuración compartida multiplicaría por
+  quince el defecto que aquí se cierra.
 - El origen de la ambigüedad que motivó las ediciones vive en el importador de
   SurveyMonkey (`api/R/surveymonkey_api.R`, rama `fam == "matrix"`). Conservar el
   enunciado de la matriz en una columna propia del survey, para que el ítem sea

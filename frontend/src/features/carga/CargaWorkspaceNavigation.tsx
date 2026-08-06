@@ -2,6 +2,7 @@ import { ContextTabRail, type ContextTabRailItem } from "../../components/Contex
 import {
   ClipboardCheck,
   ClipboardList,
+  GitCompare,
   ListTree,
   Table2,
   UploadCloud,
@@ -27,6 +28,7 @@ const CARGA_WORKSPACE_ICONS: Readonly<Record<CargaWorkspaceTab, LucideIcon>> = {
   revision: ClipboardCheck,
   estructura: ListTree,
   datos: Table2,
+  equivalencias: GitCompare,
 };
 
 const CARGA_WORKSPACE_RAIL_STATES = {

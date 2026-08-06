@@ -346,7 +346,7 @@ describe("manifiesto primario de navegación", () => {
       "reemplazos",
       "auditoria",
     ]);
-    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(25);
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(26);
     expect(DASHBOARD_PESTANAS).toHaveLength(4);
 
     for (const [seccion, pestanas] of Object.entries(
