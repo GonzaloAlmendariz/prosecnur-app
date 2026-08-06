@@ -73,15 +73,13 @@ esa declaración es un insumo de Carga que Analítica y Gráficos consumen.**
    de una base. Un estudio de una sola tabla, o de bases integradas, no la
    necesita y no la ve. Una regla, un sitio.
 
-3. **Dos direcciones, y la que manda es el editor.** *(Enmendada el 2026-08-06,
-   ver «Enmienda» al final.)* La redacción original decía que generar el Excel
-   era la vía principal: La app **emite** la plantilla
-   ya poblada con las variables y etiquetas de cada base, ordenadas por sección,
-   y el analista sólo empareja filas y escribe la etiqueta estándar. También
-   **acepta** un archivo en ese formato, para estudios que ya lo tienen resuelto
-   por fuera. Generar es la vía principal porque el formato lo produce quien lo
-   consume: desaparece la deriva entre lo que el Excel trae y lo que el
-   importador espera.
+3. **Dos direcciones: el editor y el Excel.** *(Enmendada el 2026-08-06; la
+   redacción original ponía al Excel como vía principal. Ver «Enmienda» al
+   final.)* El mapeo se hace en la pestaña. Además, la app **emite** una
+   plantilla poblada con las variables y etiquetas de cada base y **acepta** un
+   archivo en ese formato, para estudios que ya lo tienen resuelto por fuera.
+   Que el formato lo produzca quien lo consume es lo que evita la deriva entre
+   lo que el Excel trae y lo que el importador espera.
 
 4. **Acepta nombres crudos de plataforma.** El importador normaliza `q00NN_000M`
    a `pNN_M` con la regla existente del normalizador, además de aceptar los
