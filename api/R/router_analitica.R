@@ -2260,14 +2260,53 @@
   zip_path
 }
 
-.analitica_scoped_base <- function(sid) {
+# Topologías en las que cada base trae su propio instrumento. Ver ADR 0061: en
+# ellas un nombre de variable NO identifica la misma pregunta entre bases —
+# medido en Acreditación Contabilidad, `p13_1` es «¿Conoce el servicio de salud?»
+# (Sí/No) en docentes y la batería de satisfacción (4 puntos) en estudiantes—,
+# así que una config compartida aplica overrides de una base sobre otra.
+# `single`/`integrated` describen lo contrario: un solo instrumento, nombres
+# comparables, config del estudio.
+.ANALITICA_TOPOLOGIAS_POR_BASE <- c("separate", "independent")
+
+# ¿La config de Analítica de ESTE estudio pertenece a cada base? Predicado
+# aparte de `.analitica_scoped_base()` porque Gráficos lo necesita para resolver
+# la config de una base que NO es la activa (ADR 0061): sin él, cada consumidor
+# volvería a inventar la regla y a caer en la global por su cuenta.
+.analitica_config_es_por_base <- function(sid) {
   if (exists("estudio_is_independent_siblings", mode = "function") &&
-      estudio_is_independent_siblings(sid) &&
-      exists("estudio_active_base", mode = "function")) {
-    active <- as.character(estudio_active_base(sid) %||% "")
-    if (nzchar(active)) return(active)
+      estudio_is_independent_siblings(sid)) {
+    return(TRUE)
   }
-  ""
+  # ADR 0061: el modo `multibase` con bases separadas tiene la misma propiedad
+  # que `independent_siblings` —instrumentos distintos— y hasta aquí leía la
+  # config global. La condición de >1 base evita scopear un estudio de una sola
+  # tabla que declaró topología por adelantado.
+  if (!exists("estudio_topology", mode = "function")) return(FALSE)
+  topology <- as.character(estudio_topology(sid) %||% "")
+  if (!(topology %in% .ANALITICA_TOPOLOGIAS_POR_BASE)) return(FALSE)
+  s <- session_get(sid, required = FALSE)
+  length(((s %||% list())$estudio %||% list())$bases %||% list()) > 1L
+}
+
+.analitica_scoped_base <- function(sid) {
+  if (!exists("estudio_active_base", mode = "function")) return("")
+  if (!.analitica_config_es_por_base(sid)) return("")
+  active <- as.character(estudio_active_base(sid) %||% "")
+  if (nzchar(active)) active else ""
+}
+
+# Config de Analítica que corresponde a UNA base concreta, sea o no la activa.
+# `NULL` significa «esta base no tiene config propia y no hereda nada», que es
+# justo lo que el ADR 0061 exige de las bases separadas: la global pudo
+# escribirse mirando otra base y no hay forma de atribuirla.
+.analitica_cfg_para_base <- function(sid, base, s = NULL) {
+  s <- s %||% session_get(sid, required = FALSE)
+  if (is.null(s)) return(NULL)
+  configs <- s$analitica_config_por_base
+  if (is.list(configs) && !is.null(configs[[base]])) return(configs[[base]])
+  if (.analitica_config_es_por_base(sid)) return(NULL)
+  s$analitica_config
 }
 
 .analitica_config_get <- function(sid, s = NULL) {
@@ -2281,7 +2320,18 @@
     }
     # Migracion conservadora: si el proyecto tenia una unica config
     # analitica global, se asigna solo a la base activa inicial.
-    if ((is.null(configs) || length(configs) == 0L) && !is.null(s$analitica_config)) {
+    #
+    # ADR 0061: esta herencia se limita a `independent_siblings`, que es donde
+    # nacio y donde el global tiene un dueno unico (la config previa a que ese
+    # modo existiera). Las topologias que el 0061 empieza a scopear NO heredan:
+    # su global pudo escribirse mirando varias bases —medido en Acreditacion
+    # Contabilidad, etiquetas de docentes conviviendo con secciones de
+    # estudiantes— y no hay forma de atribuirlo. Se conserva intacto en el
+    # estado, sin aplicarse, y la base arranca en el default.
+    hereda_global <- exists("estudio_is_independent_siblings", mode = "function") &&
+      estudio_is_independent_siblings(sid)
+    if (hereda_global && (is.null(configs) || length(configs) == 0L) &&
+        !is.null(s$analitica_config)) {
       configs <- list()
       configs[[active]] <- s$analitica_config
       session_set(sid, "analitica_config_por_base", configs)
@@ -2465,15 +2515,14 @@
   ln
 }
 
-.analitica_apply_data_review <- function(rp_data, rp_inst, cfg) {
-  datos <- .analitica_datos_config(cfg)
-  data <- rp_data
-  inst <- rp_inst
-  if (exists(".bases_normalize_report_context", mode = "function")) {
-    ctx <- .bases_normalize_report_context(data, inst)
-    data <- ctx$data
-    inst <- ctx$inst
-  }
+# Aplica SOLO los overrides de etiqueta —de pregunta y de opción— sobre un par
+# (data, inst). Extraído de `.analitica_apply_data_review()` para que Gráficos
+# aplique exactamente los mismos textos sin arrastrar la normalización ni los
+# pases de orden, que allá ya corren por su cuenta (ADR 0061). Una etiqueta
+# curada que valiera distinto en Analítica y en el PPT es el defecto que esta
+# función existe para impedir; por eso hay un solo cuerpo y dos llamantes.
+.analitica_apply_label_overrides <- function(data, inst, datos) {
+  datos <- datos %||% list()
 
   for (var in names(datos$variable_labels)) {
     label <- datos$variable_labels[[var]]
@@ -2544,6 +2593,23 @@
       }
     }
   }
+
+  list(data = data, inst = inst)
+}
+
+.analitica_apply_data_review <- function(rp_data, rp_inst, cfg) {
+  datos <- .analitica_datos_config(cfg)
+  data <- rp_data
+  inst <- rp_inst
+  if (exists(".bases_normalize_report_context", mode = "function")) {
+    ctx <- .bases_normalize_report_context(data, inst)
+    data <- ctx$data
+    inst <- ctx$inst
+  }
+
+  aplicado <- .analitica_apply_label_overrides(data, inst, datos)
+  data <- aplicado$data
+  inst <- aplicado$inst
 
   dummy_lookup <- .analitica_select_multiple_dummy_lookup(data, inst)
   if (length(dummy_lookup)) {
@@ -2711,6 +2777,32 @@
   reviewed <- .analitica_apply_data_review(rp_data, rp_inst, cfg)
   data <- reviewed$data
   inst <- reviewed$inst
+
+  # ADR 0061: `label_original` tiene que decir lo que dice el instrumento, no el
+  # override. `.analitica_apply_data_review()` reescribe `attr(col, "label")` y
+  # `inst$survey$label`, así que leerlos después devolvía el texto EDITADO en los
+  # dos campos: la pantalla no podía mostrar de qué se está separando el analista
+  # y «Restaurar etiquetas originales» perdía su referencia visible.
+  #
+  # La segunda pasada sólo se paga cuando hay overrides. Sin ellos los dos
+  # valores coinciden por definición y basta con leer la columna ya revisada.
+  datos_cfg <- .analitica_datos_config(cfg)
+  labels_base <- list()
+  if (length(datos_cfg$variable_labels) || length(datos_cfg$value_labels)) {
+    cfg_sin_overrides <- cfg
+    cfg_sin_overrides$datos$variable_labels <- NULL
+    cfg_sin_overrides$datos$value_labels <- NULL
+    base_pair <- tryCatch(
+      .analitica_apply_data_review(rp_data, rp_inst, cfg_sin_overrides),
+      error = function(e) NULL
+    )
+    if (!is.null(base_pair)) {
+      for (nm_base in names(base_pair$data)) {
+        lab <- attr(base_pair$data[[nm_base]], "label", exact = TRUE)
+        if (!is.null(lab)) labels_base[[nm_base]] <- as.character(lab)[1]
+      }
+    }
+  }
   dummy_lookup <- .analitica_select_multiple_dummy_lookup(data, inst)
   vars <- .variables_desde_instrumento(inst)
   by_name <- list()
@@ -2744,7 +2836,11 @@
     col <- if (nm %in% names(data)) data[[nm]] else NULL
     dummy_meta <- dummy_lookup[[nm]] %||% NULL
     vmeta <- by_name[[nm]] %||% list(name = nm, label = "", tipo = "", list_name = "")
-    original_label <- if (!is.null(col)) attr(col, "label", exact = TRUE) %||% "" else ""
+    original_label <- if (!is.null(labels_base[[nm]])) {
+      labels_base[[nm]]
+    } else if (!is.null(col)) {
+      attr(col, "label", exact = TRUE) %||% ""
+    } else ""
     if (!is.null(dummy_meta) && !nzchar(as.character(original_label))) {
       original_label <- as.character(dummy_meta$dummy_option_label %||% "")
     }

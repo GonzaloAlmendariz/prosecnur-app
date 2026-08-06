@@ -534,10 +534,11 @@
   if (!exists(".orden_categorias_from_cfg", mode = "function")) return(src)
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(src)
-  configs <- s$analitica_config_por_base
-  global_cfg <- s$analitica_config
   for (nm in names(inst_sources)) {
-    cfg <- if (is.list(configs) && !is.null(configs[[nm]])) configs[[nm]] else global_cfg
+    # ADR 0061: la config de una base se resuelve con el mismo criterio que en
+    # Analítica. Antes se caía a la global cuando la base no tenía entrada
+    # propia, que es la misma fuga que el ADR corrige del lado de las etiquetas.
+    cfg <- .analitica_cfg_para_base(sid, nm, s = s)
     orden_cfg <- .orden_categorias_from_cfg(cfg)
     if (!length(orden_cfg)) next
     inst <- .apply_orden_categorias(inst_sources[[nm]], orden_cfg)
@@ -564,6 +565,64 @@
       }
     }
   }
+  src$inst_sources <- inst_sources
+  src
+}
+
+# Etiquetas curadas por el analista en Analítica → Datos, aplicadas también aquí
+# (ADR 0061). El PPT no pasa por `.analitica_apply_data_review`, así que sin este
+# pase el selector de variables y los títulos de lámina mostraban el texto del
+# XLSForm mientras las tablas de Analítica mostraban el editado — dos verdades
+# para la misma variable en el mismo estudio.
+#
+# El caso que lo motiva: el importador de SurveyMonkey deja las tres baterías de
+# una matriz con el MISMO label («Servicio de salud» en ¿Conoce?, ¿Ha utilizado?
+# y satisfacción), así que sin la etiqueta curada el selector es ambiguo por
+# construcción y elegir mal no da ninguna señal.
+#
+# Reusa `.analitica_apply_label_overrides()`: un solo cuerpo para los dos
+# consumidores es lo que impide que vuelvan a divergir.
+.graficos_apply_data_review_labels_sources <- function(sid, src) {
+  inst_sources <- src$inst_sources
+  if (!is.list(inst_sources) || !length(inst_sources)) return(src)
+  if (!exists(".analitica_apply_label_overrides", mode = "function")) return(src)
+  s <- session_get(sid, required = FALSE)
+  if (is.null(s)) return(src)
+
+  for (nm in names(inst_sources)) {
+    cfg <- .analitica_cfg_para_base(sid, nm, s = s)
+    datos <- .analitica_datos_config(cfg)
+    if (!length(datos$variable_labels) && !length(datos$value_labels)) next
+
+    data <- src$data_sources[[nm]]
+    if (!is.data.frame(data)) next
+
+    aplicado <- tryCatch(
+      .analitica_apply_label_overrides(data, inst_sources[[nm]], datos),
+      error = function(e) NULL
+    )
+    if (is.null(aplicado)) next
+
+    inst_sources[[nm]] <- aplicado$inst
+    data <- aplicado$data
+
+    # `reporte_data()` adjunta el instrumento ORIGINAL en
+    # `attr(data, "instrumento_reporte")` y varios graficadores lo leen antes que
+    # `inst`. Sin sincronizar `var_labels`, la etiqueta curada viviría sólo en
+    # `inst_sources` y el título de la lámina volvería al texto del XLSForm.
+    # Mismo motivo y mismo patrón que el pase de orden de categorías de arriba.
+    ir <- attr(data, "instrumento_reporte", exact = TRUE)
+    if (is.list(ir) && length(datos$variable_labels)) {
+      vl <- ir$var_labels %||% character(0)
+      for (var in names(datos$variable_labels)) {
+        vl[var] <- as.character(datos$variable_labels[[var]])
+      }
+      ir$var_labels <- vl
+      attr(data, "instrumento_reporte") <- ir
+    }
+    src$data_sources[[nm]] <- data
+  }
+
   src$inst_sources <- inst_sources
   src
 }
@@ -729,6 +788,10 @@
     if (exists(".graficos_add_virtual_koica_group_sources", mode = "function")) {
       src <- tryCatch(.graficos_add_virtual_koica_group_sources(sid, src), error = function(e) src)
     }
+    # Etiquetas curadas en Analítica → Datos (ADR 0061). Va ANTES del orden de
+    # categorías porque ese pase reescribe `orders_list$labels`: aplicar las
+    # etiquetas después dejaría el orden con los textos viejos.
+    src <- tryCatch(.graficos_apply_data_review_labels_sources(sid, src), error = function(e) src)
     # Orden de categorías definido en Analítica (por list_name): el PPT NO pasa
     # por .analitica_apply_data_review, así que se re-aplica aquí, por base, para
     # que tablas y PPT respeten la misma secuencia. Va después de normalize
