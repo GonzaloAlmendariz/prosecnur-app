@@ -84,6 +84,7 @@ import {
   cargaWorkspaceTabId,
 } from "./CargaWorkspaceNavigation";
 import { CargaWorkspaceHeader } from "./CargaWorkspaceHeader";
+import { EquivalenciasPanel } from "./EquivalenciasPanel";
 import { CargaSourcesPlan } from "./CargaSourcesPlan";
 import {
   CargaMonitoringDiscovery,
@@ -759,6 +760,9 @@ export default function CargaPage() {
     : topologyResolution.mode === "multi"
       ? 0
       : Number(hasXlsform || hasData);
+  // Conteo de la equivalencia declarada, para que la pestaña diga si hay trabajo
+  // hecho sin obligar a abrirla.
+  const [equivalenciasFilas, setEquivalenciasFilas] = useState(0);
   const reviewHasIssues = Boolean(cargaReview && (
     !cargaReview.compatibility.ok
     || cargaReview.choice_mapping.pending
@@ -773,6 +777,13 @@ export default function CargaPage() {
     baseCount: isMultiBase ? topologyBases.length : hasData ? 1 : 0,
     instrumentBaseCount: isMultiBase ? multiBaseInstrumentCount : undefined,
     dataBaseCount: isMultiBase ? multiBaseDataCount : undefined,
+    // ADR 0062: la equivalencia entre públicos sólo significa algo cuando las
+    // bases NO comparten instrumento. Espejo del predicado que el backend usa
+    // para scopear la config de Analítica (ADR 0061).
+    basesSeparadas:
+      (declaredTopology === "separate" || declaredTopology === "independent")
+      && topologyBases.length > 1,
+    equivalenciasDeclaradas: equivalenciasFilas,
   };
   const activeCargaTab = resolveCargaWorkspaceTab(cargaDireccion.pestana, workspaceContext);
   const cargaPlanActive = activeCargaTab === CARGA_WORKSPACE_TABS[0].key;
@@ -1354,6 +1365,8 @@ export default function CargaPage() {
                   action={cargaReviewSummary?.all_ready && !busy && !error ? <ContinuarCTA /> : undefined}
                 />
               </>
+            ) : activeCargaTab === "equivalencias" ? (
+              <EquivalenciasPanel onImported={() => setEquivalenciasFilas((n) => n + 1)} />
             ) : activeCargaTab === "estructura" ? (
               showInspection && estructura ? (
                 <CargaStructureWorkbench
@@ -1738,6 +1751,8 @@ export default function CargaPage() {
                 action={cargaReview?.ready && allReady && !busy && !error ? <ContinuarCTA /> : undefined}
               />
             </>
+            ) : activeCargaTab === "equivalencias" ? (
+              <EquivalenciasPanel onImported={() => setEquivalenciasFilas((n) => n + 1)} />
             ) : activeCargaTab === "estructura" ? (
             showInspection && estructura ? (
               <CargaStructureWorkbench

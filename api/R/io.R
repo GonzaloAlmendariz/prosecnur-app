@@ -1,7 +1,7 @@
 allowed_upload_kinds <- c("xlsform", "data", "sav", "sav_bundle", "plan_limpieza",
                           "plantilla_codif", "universo_muestra", "graficos_share",
                           "monitoreo_operational_package", "monitoreo_reference_drift",
-                          "plan_trabajo")
+                          "plan_trabajo", "equivalencias")
 
 ext_for_kind <- function(kind, original_name) {
   name <- trimws(as.character(original_name %||% ""))

@@ -537,7 +537,7 @@ export async function apiCodifSourceSet(source: string) {
   );
 }
 
-export type UploadKind = "xlsform" | "data" | "sav" | "sav_bundle" | "plan_limpieza" | "plantilla_codif" | "universo_muestra" | "graficos_share" | "monitoreo_operational_package" | "monitoreo_reference_drift" | "plan_trabajo";
+export type UploadKind = "xlsform" | "data" | "sav" | "sav_bundle" | "plan_limpieza" | "plantilla_codif" | "universo_muestra" | "graficos_share" | "monitoreo_operational_package" | "monitoreo_reference_drift" | "plan_trabajo" | "equivalencias";
 
 export function isSavLikeFileName(name: string) {
   return /\.sav(?:\s+\d+)?$/i.test(name.trim());
