@@ -49,8 +49,12 @@ import { downloadUrl } from "../../api/core";
 import "./EquivalenciasPanel.css";
 
 export type EquivalenciasPanelProps = {
-  /** Se dispara tras importar, para que la página refresque lo que dependa. */
-  onImported?: () => void;
+  /**
+   * Reporta cuántas preguntas hay declaradas, no cuántas veces se importó. El
+   * chip de la pestaña decía «1 pregunta emparejada» tras subir una matriz de
+   * 300 filas porque contaba importaciones.
+   */
+  onDeclaradas?: (n: number) => void;
 };
 
 function resumenAplicacion(imp: EquivalenciasImportacion): {
@@ -66,7 +70,7 @@ function resumenAplicacion(imp: EquivalenciasImportacion): {
   );
 }
 
-export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
+export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   const [estado, setEstado] = useState<EquivalenciasEstado | null>(null);
   const [cargando, setCargando] = useState(true);
   const [ocupado, setOcupado] = useState<"" | "plantilla" | "importar" | "sugerir" | "guardar">("");
@@ -82,6 +86,7 @@ export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
       const est = await getEquivalencias();
       setEstado(est);
       setFilas(aFilasEditor(est.filas ?? []));
+      onDeclaradas?.(est.n_filas ?? 0);
       setSucio(false);
       if (est.disponible) {
         // El catálogo va aparte del estado: son cientos de entradas y el estado
@@ -95,7 +100,7 @@ export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [onDeclaradas]);
 
   useEffect(() => {
     void refrescar();
@@ -131,20 +136,25 @@ export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
         const subido = await apiUpload(file, "equivalencias");
         const imp = await importarEquivalencias(subido.file_id);
         setEstado(imp.estado);
+        // Sin esto la tabla quedaba vacía tras importar y sólo se veía el
+        // resumen de cobertura: el trabajo entraba al backend y no se podía
+        // seguir editando en pantalla.
+        setFilas(aFilasEditor(imp.estado.filas ?? []));
+        setSucio(false);
+        onDeclaradas?.(imp.estado.n_filas ?? 0);
         const { aplicadas, conservadas } = resumenAplicacion(imp);
         setAviso(
           conservadas > 0
             ? `${aplicadas} etiquetas aplicadas. ${conservadas} se conservaron porque ya estaban editadas a mano.`
             : `${aplicadas} etiquetas aplicadas en ${imp.estado.bases.length} públicos.`,
         );
-        onImported?.();
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setOcupado("");
       }
     },
-    [onImported],
+    [onDeclaradas],
   );
 
   const onSugerir = useCallback(async () => {
@@ -176,17 +186,17 @@ export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
       setEstado(out.estado);
       setFilas(aFilasEditor(out.estado.filas ?? []));
       setSucio(false);
+      onDeclaradas?.(out.estado.n_filas ?? 0);
       const { aplicadas, conservadas } = resumenAplicacion(out);
       setAviso(conservadas > 0
         ? `Guardado. ${aplicadas} etiquetas aplicadas, ${conservadas} conservadas por estar editadas a mano.`
         : `Guardado. ${aplicadas} etiquetas aplicadas.`);
-      onImported?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setOcupado("");
     }
-  }, [filas, onImported]);
+  }, [filas, onDeclaradas]);
 
   if (cargando && !estado) {
     return (

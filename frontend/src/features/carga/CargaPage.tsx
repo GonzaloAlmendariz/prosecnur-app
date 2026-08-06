@@ -1366,7 +1366,7 @@ export default function CargaPage() {
                 />
               </>
             ) : activeCargaTab === "equivalencias" ? (
-              <EquivalenciasPanel onImported={() => setEquivalenciasFilas((n) => n + 1)} />
+              <EquivalenciasPanel onDeclaradas={setEquivalenciasFilas} />
             ) : activeCargaTab === "estructura" ? (
               showInspection && estructura ? (
                 <CargaStructureWorkbench
@@ -1752,7 +1752,7 @@ export default function CargaPage() {
               />
             </>
             ) : activeCargaTab === "equivalencias" ? (
-              <EquivalenciasPanel onImported={() => setEquivalenciasFilas((n) => n + 1)} />
+              <EquivalenciasPanel onDeclaradas={setEquivalenciasFilas} />
             ) : activeCargaTab === "estructura" ? (
             showInspection && estructura ? (
               <CargaStructureWorkbench
