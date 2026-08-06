@@ -84,6 +84,18 @@
       .equiv_firma_escala(inst, vars[[b]])
     }, character(1))
     firmas <- firmas[nzchar(firmas)]
+
+    # Una pregunta sin lista de opciones no se puede apilar. `.equiv_firma_escala`
+    # las marca con el prefijo `libre:` (texto abierto, numérica sin recodificar,
+    # fecha). Medido: la fila de «indique un correo electrónico» entraba al mazo
+    # —su firma es `libre:text`, homogénea entre públicos y por tanto pasaba el
+    # filtro de divergencia— y tumbaba la lámina entera con «no comparten una
+    # escala compatible», que además apunta al sitio equivocado.
+    if (length(firmas) && all(startsWith(firmas, "libre:"))) {
+      anota_fuera(fila, "no_graficable", unique(firmas)[1])
+      next
+    }
+
     if (length(unique(firmas)) > 1L) {
       anota_fuera(fila, "escala_divergente",
                   paste(unique(firmas), collapse = " || "))

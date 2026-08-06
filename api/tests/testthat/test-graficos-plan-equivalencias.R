@@ -266,3 +266,44 @@ test_that("la firma de escala lee la lista del instrumento procesado", {
   expect_false(identical(.equiv_firma_escala(inst_crudo, "p1"),
                          .equiv_firma_escala(inst_crudo, "p2")))
 })
+
+test_that("una pregunta sin lista de opciones no entra al mazo", {
+  # Medido en el PPT real: la fila de «indique un correo electrónico» —texto
+  # abierto— tumbaba la lámina entera con «no comparten una escala compatible»,
+  # un mensaje que además apunta al sitio equivocado. Pasaba el filtro de
+  # divergencia porque su firma (`libre:text`) es homogénea entre públicos:
+  # homogénea, pero no graficable como barras apiladas.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(a = list(nombre = "a"), b = list(nombre = "b")),
+                    processing_mode = "multibase", topology_declared = "separate",
+                    active_base = "a")
+  inst <- function() list(
+    survey = data.frame(type = c("text", "select_one"), list_name = c("", "lst"),
+                        name = c("p2", "p1"), label = c("Correo", "Consiente"),
+                        section = "Pag1", stringsAsFactors = FALSE),
+    choices = data.frame(list_name = c("lst", "lst"), name = c("1", "2"),
+                         label = c("Sí", "No"), stringsAsFactors = FALSE))
+  s$rp_inst_sources <- list(a = inst(), b = inst())
+  .session_env[[sid]] <- s
+
+  session_set(sid, "equivalencias_publicos", list(
+    schema = "equivalencias_publicos/v1", bases = c("a", "b"), n_filas = 2L,
+    filas = list(
+      list(etiqueta_estandar = "Correo", diapositiva = "1",
+           variables = list(a = "p2", b = "p2")),
+      list(etiqueta_estandar = "Consiente", diapositiva = "1",
+           variables = list(a = "p1", b = "p1")))))
+
+  out <- .graficos_plan_desde_equivalencias(sid)
+  # La lámina sobrevive con la pregunta que SÍ se puede graficar.
+  expect_equal(length(out$plan$slides), 1L)
+  args <- out$plan$slides[[1]]$payload$grafico$args
+  expect_equal(length(args$vars), 1L)
+  expect_equal(args$titulos_grupo$tema_1, "Consiente")
+  # Y la de texto se reporta con su motivo, no desaparece en silencio.
+  fuera <- Filter(function(x) identical(x$motivo, "no_graficable"), out$fuera)
+  expect_equal(length(fuera), 1L)
+  expect_equal(fuera[[1]]$etiqueta, "Correo")
+})
