@@ -226,9 +226,8 @@ este ADR frente al 0061.
   un clic. El campo vacío pide lo único que el analista tiene que aportar.
 - **`diapositiva` por fila.** La matriz real ya la traía como `Diapo` —133 de 154
   filas asignadas a 44 láminas, 42 de ellas con más de una pregunta—. Declararla
-  es lo que permitirá que Gráficos derive el mazo en vez de armarlo lámina por
-  lámina. El consumo desde Gráficos queda pendiente y merece decisión propia:
-  cambia de dónde nace el plan de láminas.
+  es lo que permite que Gráficos derive el mazo en vez de armarlo lámina por
+  lámina. **El consumo desde Gráficos lo decide el ADR 0063.**
 
 **Invariantes nuevos, verificados por test.**
 
