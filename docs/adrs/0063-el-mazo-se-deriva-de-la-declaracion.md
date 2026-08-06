@@ -44,11 +44,14 @@ Tres piezas del sistema actual deciden la forma de esta decisión:
    `multilista` toma exactamente la forma que la declaración produce: un `tema`
    por pregunta con las variables de cada público, y `titulos_grupo` con la
    etiqueta estándar.
-3. **Un guard de escalas que opera por tema, no por lámina.**
-   `multiApiladasScaleGroups()` devuelve un grupo por tema y
-   `evaluateScaleCompat()` emite un veredicto por grupo. Una lámina puede juntar
-   preguntas de escalas distintas; lo que no puede es una pregunta cuyos públicos
-   no compartan escala.
+3. **Dos guards de escala que NO coinciden en el grano.** El del frontend
+   (`multiApiladasScaleGroups()` + `evaluateScaleCompat()`) emite un veredicto
+   **por tema**. El del motor R, en `modo = "var_cruce"`, comprueba sobre
+   **todas las refs de la lámina**, aplanando los temas. Esta decisión se
+   escribió creyendo el grano del frontend, y el PPT real lo desmintió: una
+   lámina que juntaba género con una pregunta Sí/No moría entera. Por eso el
+   generador agrupa por escala y usa `multilista` —que existe justo para apilar
+   bloques de escalas distintas— cuando hay más de un grupo.
 
 ## Decision
 
@@ -66,21 +69,36 @@ un mecanismo de plan aparte.**
    defecto.
 
 2. **Una lámina por `diapositiva` declarada, un tema por pregunta, una barra por
-   público.** El graficador es `p_barras_multiapiladas` en modo `multilista`.
+   público.** El graficador es `p_barras_multiapiladas`: `var_cruce` cuando toda
+   la lámina comparte escala, `multilista` con un bloque por escala cuando no.
 
 3. **Las filas sin lámina no entran al mazo.** No asignar lámina es una decisión
    del analista, no un olvido que la app deba completar — 21 de las 154 filas de
    la matriz real están así, y rellenarlas produciría láminas que nadie pidió.
 
-4. **Una pregunta cuyos públicos no comparten escala se reporta y no se grafica.**
-   Es un defecto de la declaración o del instrumento. Fabricar la lámina lo
-   escondería detrás de un gráfico con aspecto correcto, que es exactamente el
-   modo de fallo que el ADR 0062 vino a cerrar.
+4. **Sólo entran al mazo las preguntas de opción —única o múltiple—**,
+   directamente o a través de su recodificada. Una numérica entra sólo si
+   Codificación le construyó una recodificada de opción, que es lo que el render
+   acaba dibujando. Texto abierto, fechas y numéricas sin recodificar se
+   reportan como `no_graficable`.
 
-5. **El orden del mazo es el declarado**: por `diapositiva`, y dentro por el orden
+   El alcance importa: esto filtra **el mazo, no la declaración**. Una pregunta
+   de texto abierto sigue teniendo etiqueta estándar y sigue siendo equivalente
+   entre públicos —Analítica la usa—; lo que no puede es ser una lámina. La
+   declaración sirve a dos consumidores con necesidades distintas.
+
+5. **Una pregunta cuyos públicos no comparten escala se reporta y no se grafica.**
+   Es un defecto de la declaración o del instrumento, o una diferencia real:
+   medido en Acreditación Contabilidad, «¿Cuántos años tiene?» tiene rangos
+   distintos por público —docentes 18-51+, egresados 22-36+— y compararlos en un
+   mismo gráfico sería incorrecto. Fabricar la lámina lo escondería detrás de un
+   gráfico con aspecto correcto, que es exactamente el modo de fallo que el ADR
+   0062 vino a cerrar.
+
+6. **El orden del mazo es el declarado**: por `diapositiva`, y dentro por el orden
    de las filas. El generador no reordena por criterios propios.
 
-6. **La derivación no persiste nada.** No escribe `graficos_config`, no toca la
+7. **La derivación no persiste nada.** No escribe `graficos_config`, no toca la
    declaración y no marca el proyecto como sucio. Sólo devuelve una propuesta.
 
 ## Consecuencias
@@ -114,6 +132,7 @@ un mecanismo de plan aparte.**
 - Derivar el mazo escribiendo directamente sobre `graficos_config$plan`.
 - Completar láminas no declaradas con heurísticas.
 - Graficar una pregunta cuyos públicos no comparten escala.
+- Llevar al mazo una pregunta que no sea de opción.
 
 ## Cumplimiento
 
@@ -123,6 +142,13 @@ un mecanismo de plan aparte.**
 - Un caso comprueba que las filas sin `diapositiva` **no** producen lámina.
 - Un caso comprueba que una pregunta cuyos públicos no comparten escala se
   reporta y no aparece en el plan.
+- Un caso comprueba la graficabilidad por tipo: opción única y múltiple sí,
+  numérica sólo con recodificada de opción, texto abierto no.
+- Un caso comprueba que una lámina de escalas mixtas se apila en `multilista` en
+  vez de degradarse, y que su spec lo acepta el graficador real
+  (`expect_silent(do.call(p_barras_multiapiladas, args))`) — los casos que sólo
+  fijan la forma que el generador construye pasaron con un `modo` que el motor
+  rechazaba.
 - Un caso comprueba que el orden del mazo es el declarado y no el alfabético ni
   el de inserción.
 - Un caso comprueba que derivar **no** persiste: ni `graficos_config`, ni la

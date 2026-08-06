@@ -338,3 +338,21 @@ test_that("una etiqueta ambigua no se prellena", {
   unica <- Filter(function(f) identical(f$variables$docentes, "p15_1"), sug)[[1]]
   expect_equal(unica$etiqueta_estandar, "Otra pregunta")
 })
+
+test_that("sólo las preguntas de opción son graficables, directa o vía recodificada", {
+  inst <- list(survey = data.frame(
+    type = c("select_one", "select_multiple", "text", "integer", "select_one", "integer"),
+    list_name = c("lst_a", "lst_b", "", "", "lst_e", ""),
+    name = c("p1", "p2", "p3", "p4", "p4_recod", "p9"),
+    label = c("Única", "Múltiple", "Abierta", "Edad", "Rango de edad", "Suelta"),
+    stringsAsFactors = FALSE))
+
+  expect_true(.equiv_es_graficable(inst, "p1"))   # opción única
+  expect_true(.equiv_es_graficable(inst, "p2"))   # opción múltiple
+  expect_false(.equiv_es_graficable(inst, "p3"))  # texto abierto
+  # Numérica con recodificada de opción: es lo que el render acaba dibujando.
+  expect_true(.equiv_es_graficable(inst, "p4"))
+  # Numérica sin recodificada: no hay nada que apilar.
+  expect_false(.equiv_es_graficable(inst, "p9"))
+  expect_false(.equiv_es_graficable(inst, "inexistente"))
+})
