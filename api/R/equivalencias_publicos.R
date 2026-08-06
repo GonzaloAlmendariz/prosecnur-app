@@ -500,3 +500,28 @@
                  }, character(1)))
   out[orden]
 }
+
+
+# ¿Esta variable se puede graficar como barras apiladas? Solo las de opción
+# —única o múltiple—, directamente o a través de su recodificada.
+#
+# La regla se dice por TIPO y no por «tiene lista», que era el proxy anterior:
+# el tipo es el criterio real del analista y el que hace legible el motivo
+# cuando una fila queda fuera del mazo. Una numérica entra sólo si Codificación
+# le construyó una recodificada de opción única —«¿Cuántos años tiene?» ->
+# rangos de edad—, que es lo que el render acaba dibujando.
+#
+# Ojo con el alcance: esto filtra el MAZO, no la declaración. Una pregunta de
+# texto abierto sigue teniendo etiqueta estándar y sigue siendo equivalente
+# entre públicos; lo que no puede es ser una lámina.
+.equiv_es_graficable <- function(inst, var) {
+  sv <- (inst %||% list())$survey
+  if (is.null(sv) || !"name" %in% names(sv)) return(FALSE)
+  tipo_de <- function(v) {
+    i <- which(as.character(sv$name) == as.character(v))[1]
+    if (is.na(i)) return("")
+    sub("\\s+.*$", "", trimws(as.character((sv$type %||% "")[i])))
+  }
+  if (tipo_de(var) %in% c("select_one", "select_multiple")) return(TRUE)
+  tipo_de(paste0(as.character(var), "_recod")) %in% c("select_one", "select_multiple")
+}

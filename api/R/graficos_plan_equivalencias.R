@@ -85,14 +85,23 @@
     }, character(1))
     firmas <- firmas[nzchar(firmas)]
 
-    # Una pregunta sin lista de opciones no se puede apilar. `.equiv_firma_escala`
-    # las marca con el prefijo `libre:` (texto abierto, numérica sin recodificar,
-    # fecha). Medido: la fila de «indique un correo electrónico» entraba al mazo
-    # —su firma es `libre:text`, homogénea entre públicos y por tanto pasaba el
-    # filtro de divergencia— y tumbaba la lámina entera con «no comparten una
-    # escala compatible», que además apunta al sitio equivocado.
-    if (length(firmas) && all(startsWith(firmas, "libre:"))) {
-      anota_fuera(fila, "no_graficable", unique(firmas)[1])
+    # Sólo se grafican las preguntas de opción —única o múltiple—, directamente
+    # o vía su recodificada. Medido: la fila de «indique un correo electrónico»
+    # entraba al mazo —es texto abierto, pero su firma era homogénea entre
+    # públicos y por tanto pasaba el filtro de divergencia— y tumbaba la lámina
+    # entera con «no comparten una escala compatible», un mensaje que apunta al
+    # sitio equivocado: no es que las escalas difieran, es que no hay escala.
+    #
+    # Esto filtra el MAZO, no la declaración: esa pregunta sigue teniendo
+    # etiqueta estándar y sigue siendo equivalente entre públicos.
+    graficables <- vapply(names(vars), function(b) {
+      inst <- inst_por_base[[b]]
+      !is.null(inst) && exists(".equiv_es_graficable", mode = "function") &&
+        isTRUE(.equiv_es_graficable(inst, vars[[b]]))
+    }, logical(1))
+    if (!all(graficables)) {
+      anota_fuera(fila, "no_graficable",
+                  paste(names(vars)[!graficables], collapse = ", "))
       next
     }
 
