@@ -8,6 +8,7 @@ import {
   Database,
   FileText,
   GitBranch,
+  GitCompare,
   GitMerge,
   Grid3X3,
   Layers,
@@ -95,6 +96,7 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("carga", "revision", "Revisión", "Incidencias de carga", ShieldAlert),
     pestana("carga", "estructura", "Estructura", "Variables y códigos", ListChecks),
     pestana("carga", "datos", "Datos", "Respuestas en tabla", Table2),
+    pestana("carga", "equivalencias", "Equivalencias", "La misma pregunta en cada público", GitCompare, { disponibilidad: "condicional" }),
   ],
   validacion: [
     pestana("validacion", "explorar", "Explorar respuestas", "Distribuciones y señales de revisión", Compass, { direccionPublicada: false }),
@@ -139,6 +141,23 @@ export function pestanasAnaliticaDisponibles({
   return PROCESAMIENTO_PESTANAS.analitica.filter((tab) =>
     tab.disponibilidad !== "condicional"
       || (multibaseDisponible && !basesHermanasIndependientes),
+  );
+}
+
+/**
+ * ADR 0062: la equivalencia entre públicos sólo tiene sentido cuando las bases
+ * NO comparten instrumento — ahí un nombre de variable no identifica la misma
+ * pregunta entre bases. Con una sola base, o con bases integradas, la pestaña no
+ * se ofrece. Es el espejo en el cliente del predicado que el backend usa para
+ * scopear la configuración de Analítica (ADR 0061): una regla, dos lados.
+ */
+export function pestanasCargaDisponibles({
+  basesSeparadas,
+}: {
+  basesSeparadas: boolean;
+}) {
+  return PROCESAMIENTO_PESTANAS.carga.filter((tab) =>
+    tab.disponibilidad !== "condicional" || basesSeparadas,
   );
 }
 

@@ -15,9 +15,9 @@ import {
 } from "./runtime";
 
 describe("manifiesto de navegación", () => {
-  it("mantiene el inventario completo de 205 nodos vivos", () => {
+  it("mantiene el inventario completo de 206 nodos vivos", () => {
     // +1 por D10: Consistencia es pestaña propia de Datos.
-    expect(MANIFIESTO_NAVEGACION).toHaveLength(205);
+    expect(MANIFIESTO_NAVEGACION).toHaveLength(206);
   });
 
   it("cubre los ocho módulos y no inventa ninguno", () => {
@@ -115,7 +115,7 @@ describe("manifiesto de navegación", () => {
     );
   });
 
-  it("expone las 27 pestañas de Muestra, 25 de Procesamiento y 4 de Dashboard", () => {
+  it("expone las 27 pestañas de Muestra, 26 de Procesamiento y 4 de Dashboard", () => {
     const muestra = nodosDe("calc-muestra").filter(
       (nodo) =>
         nodo.nivel === "pestana"
@@ -130,7 +130,7 @@ describe("manifiesto de navegación", () => {
 
     expect(muestra).toHaveLength(27);
     expect(nodoPorClave("calc-muestra/opinion-universitaria/aulas/marco")).toBeNull();
-    expect(procesamiento).toHaveLength(25);
+    expect(procesamiento).toHaveLength(26);
     expect(dashboard).toHaveLength(4);
   });
 

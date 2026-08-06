@@ -14,6 +14,7 @@ import {
   PROCESAMIENTO_PESTANAS,
   TOTAL_PESTANAS_PROCESAMIENTO,
   pestanasAnaliticaDisponibles,
+  pestanasCargaDisponibles,
 } from "./procesamiento";
 
 function firma(pestanas: readonly { id: string; label: string }[]) {
@@ -72,14 +73,16 @@ describe("catálogos canónicos de pestañas", () => {
     ]);
   });
 
-  it("fija las 25 pestañas de Procesamiento con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(25);
+  it("fija las 26 pestañas de Procesamiento con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_PROCESAMIENTO).toBe(26);
     expect(firma(PROCESAMIENTO_PESTANAS.carga)).toEqual([
       "plan:Plan",
       "fuentes:Fuentes",
       "revision:Revisión",
       "estructura:Estructura",
       "datos:Datos",
+      // ADR 0062: condicional, sólo con bases separadas.
+      "equivalencias:Equivalencias",
     ]);
     expect(firma(PROCESAMIENTO_PESTANAS.validacion)).toEqual([
       "explorar:Explorar respuestas",
@@ -201,6 +204,21 @@ describe("catálogos canónicos de pestañas", () => {
         multibaseDisponible: false,
         basesHermanasIndependientes: false,
       }).some((tab) => tab.id === "multibase"),
+    ).toBe(false);
+
+    // ADR 0062: Equivalencias es la unica condicional de Carga y solo aparece
+    // con bases que no comparten instrumento. Sin ese filtro, un estudio de una
+    // sola base veria una pestana que no puede significar nada.
+    expect(
+      PROCESAMIENTO_PESTANAS.carga
+        .filter((tab) => tab.disponibilidad === "condicional")
+        .map((tab) => tab.id),
+    ).toEqual(["equivalencias"]);
+    expect(pestanasCargaDisponibles({ basesSeparadas: true })).toHaveLength(6);
+    expect(
+      pestanasCargaDisponibles({ basesSeparadas: false }).some(
+        (tab) => tab.id === "equivalencias",
+      ),
     ).toBe(false);
     expect(
       pestanasAnaliticaDisponibles({

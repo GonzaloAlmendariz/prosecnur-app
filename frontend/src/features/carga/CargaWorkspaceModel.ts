@@ -20,6 +20,10 @@ export type CargaWorkspaceContext = {
   baseCount: number;
   instrumentBaseCount?: number;
   dataBaseCount?: number;
+  /** ADR 0062: sólo con bases que no comparten instrumento existe la pestaña. */
+  basesSeparadas?: boolean;
+  /** Filas de la equivalencia ya declarada, si el estudio la tiene. */
+  equivalenciasDeclaradas?: number;
 };
 
 export type CargaWorkspaceMetadata = {
@@ -276,16 +280,41 @@ function dataItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
   return item("datos", "pending", "Carga o conecta respuestas para abrir la vista tabular.");
 }
 
+/**
+ * ADR 0062. La pestaña sólo entra cuando las bases no comparten instrumento; el
+ * filtro vive en `cargaWorkspaceItems`, no aquí, para que este builder describa
+ * un solo estado y no dos cosas a la vez.
+ */
+function equivalencesItem(context: CargaWorkspaceContext): CargaWorkspaceItem {
+  const declaradas = context.equivalenciasDeclaradas ?? 0;
+  if (declaradas > 0) {
+    return item(
+      "equivalencias",
+      "ready",
+      `${declaradas} ${declaradas === 1 ? "pregunta emparejada" : "preguntas emparejadas"} entre los públicos.`,
+    );
+  }
+  return item(
+    "equivalencias",
+    "pending",
+    "Declara qué pregunta de un público equivale a cuál de otro para poder compararlos.",
+  );
+}
+
 export function cargaWorkspaceItems(
   context: CargaWorkspaceContext,
 ): readonly CargaWorkspaceItem[] {
-  return [
+  const items = [
     planItem(context),
     sourcesItem(context),
     reviewItem(context),
     structureItem(context),
     dataItem(context),
   ];
+  // Espejo en el cliente del predicado del backend (ADR 0061/0062): sin bases
+  // separadas la equivalencia no significa nada y la pestaña no se ofrece.
+  if (context.basesSeparadas) items.push(equivalencesItem(context));
+  return items;
 }
 
 export function isCargaWorkspaceTab(value: unknown): value is CargaWorkspaceTab {
