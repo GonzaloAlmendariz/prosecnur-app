@@ -62,7 +62,7 @@ test_that("una lámina por diapositiva declarada, un tema por pregunta", {
 
   args <- out$plan$slides[[1]]$payload$grafico$args
   expect_equal(out$plan$slides[[1]]$payload$grafico$graficador, "p_barras_multiapiladas")
-  expect_equal(args$modo, "multilista")
+  expect_equal(args$modo, "var_cruce")
   # Un tema por pregunta, con las variables de cada público prefijadas por base.
   expect_equal(length(args$vars), 2L)
   expect_equal(unlist(args$vars$tema_1), c("docentes$p13_1", "estudiantes$p11_1"))
@@ -175,4 +175,26 @@ test_that("la fuente `equivalencias` devuelve el mazo derivado por el mismo endp
              error = function(e) "error-esperado-sin-datos"),
     "equivalencias"
   ))
+})
+
+
+test_that("el plan derivado lo acepta el graficador real", {
+  # El caso que faltaba y por el que el PPT reventó: los demás fijan la forma que
+  # ESTE archivo construye, no la que el motor acepta. `multilista` pasaba todos
+  # los tests y abortaba en el render con «`bloques` debe ser una lista no
+  # vacia». La única prueba que vale es pasarle el spec al graficador.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "¿Conoce el servicio de salud?", diapositiva = "1",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1")),
+    list(etiqueta_estandar = "¿Conoce bienestar psicológico?", diapositiva = "1",
+         variables = list(docentes = "p14_1", estudiantes = "p12_1"))
+  ))
+
+  out <- .graficos_plan_desde_equivalencias(sid)
+  for (slide in out$plan$slides) {
+    g <- slide$payload$grafico
+    expect_silent(do.call(p_barras_multiapiladas, g$args))
+  }
 })

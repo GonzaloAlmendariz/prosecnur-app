@@ -10,10 +10,16 @@
 # `SuggestedPlanButton`) y es el que se reusa; un segundo generador en paralelo
 # sería peor que uno.
 #
-# El graficador es `p_barras_multiapiladas` en modo `multilista`, que es el que
+# El graficador es `p_barras_multiapiladas` en modo `var_cruce`, que es el que
 # ya existe para comparar públicos y el mismo de la lámina «prueba 2» del PPT
 # entregado. Esa lámina no falló por el graficador: falló por el emparejamiento,
 # que hasta el ADR 0062 no tenía dónde vivir.
+#
+# `var_cruce` y NO `multilista`: en `var_cruce`, `vars` es una lista nombrada de
+# bloques con refs `fuente$variable`, que es exactamente la forma que produce la
+# declaración. `multilista` exige `bloques` con su propio submodo y aborta con
+# «`bloques` debe ser una lista no vacia». Lo descubrió el PPT real, no los
+# tests: fijaban la forma que yo construía en vez de la que el motor acepta.
 
 # Referencia de variable que entiende Gráficos: `base$variable`.
 .gpe_ref <- function(base, var) paste0(base, "$", var)
@@ -116,7 +122,7 @@
         grafico = list(
           graficador = "p_barras_multiapiladas",
           args = list(
-            modo = "multilista",
+            modo = "var_cruce",
             vars = vars_arg,
             titulos_grupo = titulos
           )
