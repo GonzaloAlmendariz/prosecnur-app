@@ -387,8 +387,31 @@
   i <- which(as.character(sv$name) == as.character(var))[1]
   if (is.na(i)) return("")
   tipo <- trimws(as.character((sv$type %||% "")[i]))
-  m <- regmatches(tipo, regexec("^select_(?:one|multiple)\\s+(\\S+)", tipo, perl = TRUE))[[1]]
-  lista <- if (length(m) >= 2L) m[2] else ""
+  # El instrumento PROCESADO guarda la lista en su propia columna y deja `type`
+  # en «select_one» a secas; el crudo la trae pegada («select_one lst_p5»). Sin
+  # mirar las dos formas, toda variable de opción única devolvía la misma firma
+  # —«libre:select_one»— y la comparación de escalas dejaba de distinguir nada.
+  lista <- if ("list_name" %in% names(sv)) trimws(as.character(sv$list_name[i])) else ""
+  if (is.na(lista)) lista <- ""
+  if (!nzchar(lista)) {
+    m <- regmatches(tipo, regexec("^select_(?:one|multiple)\\s+(\\S+)", tipo, perl = TRUE))[[1]]
+    lista <- if (length(m) >= 2L) m[2] else ""
+  }
+
+  # Una variable numérica no tiene lista propia, pero el render la grafica por su
+  # recodificada (`p4` -> `lst_p4_recod`). Mirar sólo la variable devolvía
+  # «libre:integer» para todas y la fila pasaba el filtro; luego la lámina moría
+  # con «no comparten una escala compatible». Medido en Acreditación
+  # Contabilidad: «¿Cuántos años tiene?» tiene rangos DISTINTOS por público
+  # —docentes 18-51+, egresados 22-36+—, así que la divergencia es real y la
+  # fila tiene que reportarse, no graficarse.
+  if (!nzchar(lista)) {
+    j <- which(as.character(sv$name) == paste0(as.character(var), "_recod"))[1]
+    if (!is.na(j) && "list_name" %in% names(sv)) {
+      lr <- trimws(as.character(sv$list_name[j]))
+      if (!is.na(lr) && nzchar(lr)) lista <- lr
+    }
+  }
   if (!nzchar(lista)) return(paste0("libre:", sub("\\s+.*$", "", tipo)))
   ch <- (inst %||% list())$choices
   if (is.null(ch) || !all(c("list_name", "name") %in% names(ch))) return(paste0("lista:", lista))

@@ -10,7 +10,7 @@
 # `SuggestedPlanButton`) y es el que se reusa; un segundo generador en paralelo
 # sería peor que uno.
 #
-# El graficador es `p_barras_multiapiladas` en modo `var_cruce`, que es el que
+# El graficador es `p_barras_multiapiladas`, que es el que
 # ya existe para comparar públicos y el mismo de la lámina «prueba 2» del PPT
 # entregado. Esa lámina no falló por el graficador: falló por el emparejamiento,
 # que hasta el ADR 0062 no tenía dónde vivir.
@@ -99,9 +99,18 @@
   }
 
   # 2) Una lámina por clave declarada; un tema por pregunta.
-  slides <- list()
-  for (lamina in .gpe_orden_laminas(names(por_lamina))) {
-    filas <- por_lamina[[lamina]]
+  #
+  # El agrupamiento por escala NO es cosmético. En `modo = "var_cruce"` el motor
+  # comprueba la escala sobre TODAS las refs de la lámina, aplanando los temas
+  # —el validador del frontend la comprueba por tema, y ahí es donde los dos
+  # discrepan—. Una lámina que junta género (3 categorías) con una de Sí/No
+  # abortaba entera con «las referencias no comparten una escala compatible» y
+  # salía como «Sin datos», perdiendo también el tema que sí era graficable.
+  #
+  # `multilista` existe exactamente para esto: apila bloques de escalas
+  # distintas en una sola composición vertical. Un solo grupo sigue usando
+  # `var_cruce`, que es más simple y no arrastra la dependencia de cowplot.
+  bloque_de <- function(filas) {
     vars_arg <- list()
     titulos <- list()
     for (i in seq_along(filas)) {
@@ -113,20 +122,36 @@
         USE.NAMES = FALSE))
       titulos[[clave]] <- as.character(f$etiqueta_estandar %||% "")
     }
+    list(modo = "var_cruce", vars = vars_arg, titulos_grupo = titulos)
+  }
+
+  slides <- list()
+  for (lamina in .gpe_orden_laminas(names(por_lamina))) {
+    filas <- por_lamina[[lamina]]
+
+    # Firma de escala de la fila: ya la validamos homogénea entre públicos, así
+    # que basta la del primer público para agrupar.
+    firma_fila <- vapply(filas, function(f) {
+      b <- names(f$variables)[1]
+      inst <- inst_por_base[[b]]
+      if (is.null(inst) || !exists(".equiv_firma_escala", mode = "function")) return("")
+      .equiv_firma_escala(inst, f$variables[[b]])
+    }, character(1))
+
+    grupos <- split(seq_along(filas), factor(firma_fila, levels = unique(firma_fila)))
+    args <- if (length(grupos) == 1L) {
+      bloque_de(filas)
+    } else {
+      list(modo = "multilista",
+           bloques = unname(lapply(grupos, function(idx) bloque_de(filas[idx]))))
+    }
 
     slides[[length(slides) + 1L]] <- list(
       id = paste0("s-equiv-", lamina),
       tipo = "p_slide_1_grafico",
       payload = list(
         titulo = "",
-        grafico = list(
-          graficador = "p_barras_multiapiladas",
-          args = list(
-            modo = "var_cruce",
-            vars = vars_arg,
-            titulos_grupo = titulos
-          )
-        )
+        grafico = list(graficador = "p_barras_multiapiladas", args = args)
       )
     )
   }
