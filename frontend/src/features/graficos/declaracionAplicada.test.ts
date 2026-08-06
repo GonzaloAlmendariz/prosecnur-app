@@ -4,7 +4,7 @@ import { avisoDeclaracionAplicada, estadoDeclaracionAplicada } from "./declaraci
 describe("desfase entre el mazo aplicado y la declaración", () => {
   it("un plan que no salió de la declaración no se compara", () => {
     // Sin este caso, cualquier proyecto con equivalencias declaradas vería el
-    // aviso aunque su plan de láminas se hubiera armado a mano.
+    // aviso aunque su plan de diapositivas se hubiera armado a mano.
     expect(estadoDeclaracionAplicada({
       revisionAplicada: "", revisionActual: "abc", declarada: true,
     })).toBe("sin-mazo-derivado");
@@ -31,7 +31,7 @@ describe("desfase entre el mazo aplicado y la declaración", () => {
 
   it("la declaración desapareció bajo un mazo ya aplicado", () => {
     // No es lo mismo que estar desfasado: no hay con qué contrastar, y las
-    // láminas siguen siendo válidas.
+    // diapositivas siguen siendo válidas.
     expect(estadoDeclaracionAplicada({
       revisionAplicada: "abc", revisionActual: "", declarada: false,
     })).toBe("declaracion-retirada");

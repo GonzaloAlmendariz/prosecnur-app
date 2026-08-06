@@ -10,6 +10,10 @@ Fecha de decision: 2026-08-06
 
 Reemplaza: —
 
+Enmendado por: ADR 0064 (el enunciado vive en la diapositiva) — cambia el reparto de
+trabajo entre los campos de la declaración y **revoca una regla de la enmienda de
+más abajo**: la que prohíbe prellenar etiquetas repetidas
+
 Extiende: ADR 0061 (la config de Analítica pertenece a su base)
 
 Relacionados: ADR 0036 (el filtro de universo se materializa en Carga y se
@@ -34,7 +38,7 @@ hoy un acto de memoria del analista frente a un selector que no lo ayuda.
 
 Dos consecuencias medidas sobre ese estudio:
 
-1. **La comparación falla en silencio.** En la lámina «prueba 2» del PPT
+1. **La comparación falla en silencio.** En la diapositiva «prueba 2» del PPT
    entregado, un grupo comparaba docentes `p13_2` (¿Conoce bienestar
    psicológico?, 90 %) contra estudiantes `p12_2` (¿Ha utilizado bienestar
    psicológico?, 31 %) bajo el título «Servicio de salud». Se lee como una
@@ -114,10 +118,10 @@ esa declaración es un insumo de Carga que Analítica y Gráficos consumen.**
 **A favor**
 
 - La comparación entre públicos deja de depender de la memoria: se elige la
-  pregunta y cada lámina resuelve la variable de su base.
+  pregunta y cada diapositiva resuelve la variable de su base.
 - La etiqueta ambigua que deja el importador de matrices se resuelve una vez y
   para las cuatro bases, con el texto que el equipo ya redactó.
-- El error de la lámina «prueba 2» pasa a ser detectable: comparar dos filas
+- El error de la diapositiva «prueba 2» pasa a ser detectable: comparar dos filas
   distintas de la matriz es un dato, no una intuición.
 
 **En contra, y asumido**
@@ -126,7 +130,7 @@ esa declaración es un insumo de Carga que Analítica y Gráficos consumen.**
   plantilla llegue poblada. Se acepta porque la alternativa —inferir la
   correspondencia por parecido de etiquetas— produce emparejamientos plausibles
   y falsos, que es peor que no tenerlos: un emparejamiento inventado se ve igual
-  que uno correcto en la lámina resultante.
+  que uno correcto en la diapositiva resultante.
 - **Puede quedar desfasada.** El sello lo detecta, no lo impide. Un estudio que
   cambie su instrumento tendrá que revisar la matriz.
 - **Añade una pestaña a Carga**, que ya tiene cinco. Se acota con la
@@ -155,7 +159,7 @@ esa declaración es un insumo de Carga que Analítica y Gráficos consumen.**
   coincidir y la declaración se reporta desfasada.
 - Verificación sobre estudio real: importar la matriz de Acreditación
   Contabilidad y comprobar las 152 etiquetas aplicadas en las cuatro bases, y
-  que la comparación de la lámina «prueba 2» queda señalada como preguntas
+  que la comparación de la diapositiva «prueba 2» queda señalada como preguntas
   distintas.
 
 ## Notas
@@ -201,7 +205,7 @@ mapeo se hace en la pestaña y el Excel queda como import/export.
 variable de cada base— frente a las **154 ya emparejadas** de la matriz que el
 equipo mantenía a mano. La forma sin emparejar es correcta *para un archivo*: en
 un Excel una sugerencia se vuelve indistinguible de una decisión y termina en una
-lámina sin que nadie lo note. Pero es peor para trabajar, y el juicio del usuario
+diapositiva sin que nadie lo note. Pero es peor para trabajar, y el juicio del usuario
 fue directo: «el formato de Excel que te pasé es mucho más intuitivo».
 
 En una herramienta el dilema no existe. Una propuesta puede **verse como
@@ -225,9 +229,9 @@ este ADR frente al 0061.
   ambigüedad que este ADR existe para eliminar, y encima invita a confirmarla de
   un clic. El campo vacío pide lo único que el analista tiene que aportar.
 - **`diapositiva` por fila.** La matriz real ya la traía como `Diapo` —133 de 154
-  filas asignadas a 44 láminas, 42 de ellas con más de una pregunta—. Declararla
-  es lo que permite que Gráficos derive el mazo en vez de armarlo lámina por
-  lámina. **El consumo desde Gráficos lo decide el ADR 0063.**
+  filas asignadas a 44 diapositivas, 42 de ellas con más de una pregunta—. Declararla
+  es lo que permite que Gráficos derive el mazo en vez de armarlo diapositiva por
+  diapositiva. **El consumo desde Gráficos lo decide el ADR 0063.**
 
 **Invariantes nuevos, verificados por test.**
 
@@ -238,3 +242,11 @@ este ADR frente al 0061.
 - Una propuesta que choca con algo ya decidido **se descarta entera**, no a
   medias: aceptarla parcialmente produciría una fila que dice ser la misma
   pregunta en tres públicos cuando el analista sólo confirmó dos.
+
+> **Revocado por el ADR 0064** (2026-08-06): la regla «una etiqueta que se repite
+> entre propuestas no se prellena». Existía porque la `etiqueta_estandar` era el
+> único campo capaz de desambiguar «Servicio de salud» entre tres preguntas
+> distintas. El 0064 sube ese trabajo al enunciado de la diapositiva, con lo que la
+> unicidad pasa a exigirse **dentro de una diapositiva** y el prellenado deja de
+> reintroducir ambigüedad. El resto de esta enmienda sigue vigente, incluidos sus
+> tres invariantes.

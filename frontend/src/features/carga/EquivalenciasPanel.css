@@ -11,7 +11,7 @@
 
 .pulso-equiv-head {
   display: flex;
-  align-items: flex-start;
+  align-temas: flex-start;
   justify-content: space-between;
   gap: var(--pulso-space-3);
   flex-wrap: wrap;
@@ -19,7 +19,7 @@
 
 .pulso-equiv-title {
   display: flex;
-  align-items: flex-start;
+  align-temas: flex-start;
   gap: var(--pulso-space-2);
   color: var(--pulso-module-processing);
   min-width: 0;
@@ -46,7 +46,7 @@
 
 .pulso-equiv-actions {
   display: flex;
-  align-items: center;
+  align-temas: center;
   gap: var(--pulso-space-2);
   flex-shrink: 0;
 }
@@ -56,7 +56,7 @@
    captura y ninguna metrica. */
 .pulso-equiv-btn {
   display: inline-flex;
-  align-items: center;
+  align-temas: center;
   gap: var(--pulso-space-2);
 }
 
@@ -148,7 +148,7 @@
    ella comparten caja; la diferencia se resuelve dentro. */
 .pulso-equiv-resumen > li {
   display: flex;
-  align-items: flex-start;
+  align-temas: flex-start;
   gap: var(--pulso-space-2);
   min-height: 52px;
   padding: var(--pulso-space-2) var(--pulso-space-3);
@@ -171,7 +171,7 @@
 
 .pulso-equiv-resumen-estado {
   display: inline-flex;
-  align-items: center;
+  align-temas: center;
   padding-top: 1px;
   flex-shrink: 0;
 }
@@ -260,7 +260,7 @@
 
 .pulso-equiv-celda-etiqueta {
   display: flex;
-  align-items: center;
+  align-temas: center;
   gap: var(--pulso-space-1);
   min-width: 0;
 }
@@ -270,7 +270,7 @@
    igual, que es exactamente lo que el ADR 0062 prohibe. */
 .pulso-equiv-chip-sugerida {
   display: inline-flex;
-  align-items: center;
+  align-temas: center;
   gap: 3px;
   flex-shrink: 0;
   padding: 1px 6px;
@@ -298,16 +298,446 @@
 
 .pulso-equiv-acciones-fila {
   display: flex;
-  align-items: center;
+  align-temas: center;
   gap: 2px;
 }
 
 .pulso-equiv-pie-editor {
   display: flex;
-  align-items: center;
+  align-temas: center;
   justify-content: space-between;
   gap: var(--pulso-space-3);
   flex-wrap: wrap;
   font-size: 12px;
   color: var(--pulso-text-faint);
 }
+
+/* --- Vista por diapositiva (ADR 0064) ------------------------------------------
+   La declaracion se lee agrupada por la diapositiva del informe, que es la unidad
+   que el analista decide y la que Graficos convierte en diapositiva. La escala
+   se dice UNA vez en la cabecera de la tarjeta en lugar de repetirse por fila:
+   es lo que permite leer las invariantes E1/E2 sin buscarlas. */
+
+.pulso-equiv-vistas {
+  display: flex;
+  align-temas: center;
+  gap: var(--pulso-space-1);
+  font-size: 12px;
+}
+
+.pulso-equiv-vistas button {
+  padding: 3px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pulso-equiv-vistas button.is-active {
+  border-color: var(--pulso-module-processing);
+  color: var(--pulso-module-processing);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-vistas-nota {
+  margin-left: auto;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-equiv-diapositivas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-equiv-diapositiva {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  min-width: 0;
+  /* C4: una diapositiva con cuatro publicos es ancha por construccion; su
+     desplazamiento vive dentro de la tarjeta y nunca en la pagina. */
+  overflow-x: auto;
+}
+
+/* Lo que no tiene diapositiva no es una diapositiva mas: es trabajo pendiente, y se
+   distingue sin depender solo del color. */
+.pulso-equiv-diapositiva.is-pendiente {
+  border-style: dashed;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-diapositiva-head {
+  display: flex;
+  align-temas: flex-start;
+  gap: var(--pulso-space-3);
+  min-width: 0;
+}
+
+.pulso-equiv-diapositiva-id {
+  display: inline-flex;
+  align-temas: center;
+  gap: 5px;
+  flex-shrink: 0;
+  min-width: 78px;
+  padding: 3px 8px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-module-processing);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-equiv-diapositiva-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* El enunciado es el titulo de la diapositiva: se escribe donde se lee. */
+.pulso-equiv-enunciado {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pulso-equiv-enunciado:hover,
+.pulso-equiv-enunciado:focus {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-enunciado::placeholder {
+  font-weight: 500;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-equiv-seccion,
+.pulso-equiv-diapositiva-nota {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  padding-left: 6px;
+  margin: 0;
+}
+
+.pulso-equiv-diapositiva-meta {
+  display: flex;
+  align-temas: center;
+  gap: var(--pulso-space-2);
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+/* El chip dice lo que CABE —la escala corta entera, o cuantas opciones son— y
+   nunca recorta con puntos suspensivos: a 240 px con `text-overflow`, una escala
+   de cinco puntos deformaba la cabecera y lo unico legible era el principio de
+   la primera opcion. La lista entera vive en el globo. */
+.pulso-equiv-chip-escala {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+button.pulso-equiv-chip-escala:hover,
+.pulso-equiv-chip-escala.is-abierto {
+  border-color: var(--pulso-module-processing);
+  color: var(--pulso-module-processing);
+}
+
+.pulso-equiv-chip-escala.is-abierto svg { transform: rotate(180deg); }
+.pulso-equiv-chip-escala svg { transition: transform 140ms ease; }
+
+/* `fixed` y no `absolute`: la tarjeta de diapositiva tiene `overflow-x: auto`
+   —su tabla es mas ancha que el contenedor— y recortaria cualquier hijo
+   posicionado dentro. z-index por encima del toolbar, que va en 1000 con
+   `transform` propio y tapa todo overlay por debajo. */
+.pulso-equiv-escala-globo {
+  position: fixed;
+  z-index: 1400;
+  width: 300px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-panel, 0 10px 30px rgba(0, 0, 0, 0.14));
+  animation: pulso-equiv-globo-entra 140ms ease-out;
+}
+
+@keyframes pulso-equiv-globo-entra {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Quien pide menos movimiento recibe el globo sin animacion, no una version
+   suavizada: el objetivo es que aparezca, no que viaje. */
+@media (prefers-reduced-motion: reduce) {
+  .pulso-equiv-escala-globo { animation: none; }
+  .pulso-equiv-chip-escala svg { transition: none; }
+}
+
+.pulso-equiv-escala-globo-head {
+  margin: 0 0 var(--pulso-space-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-equiv-escala-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.pulso-equiv-escala-lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  line-height: 1.45;
+}
+
+/* El codigo va en ancho fijo y tabular: una escala se reconoce por el orden de
+   sus codigos tanto como por sus etiquetas. */
+.pulso-equiv-escala-codigo {
+  flex-shrink: 0;
+  min-width: 20px;
+  text-align: right;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-equiv-chip-n {
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Los avisos DESCRIBEN el estado de la diapositiva; no denuncian un error. Una
+   escala divergente entre publicos puede ser un hallazgo del estudio —los rangos
+   de edad de docentes y egresados son distintos de verdad— y dos escalas en una
+   diapositiva solo significan que saldra apilada. En tono de alerta, las 25
+   diapositivas que los muestran se leian como 25 fallos. */
+/* Cada aviso es UNA caja. Apilados dentro de un solo recuadro se leian como un
+   parrafo de problemas de la diapositiva; separados, cada uno es un hecho sobre
+   un tema concreto, que es lo que son. */
+.pulso-equiv-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  margin: 0;
+  /* La tabla de la tarjeta es mas ancha que el contenedor y lo hace scrollear en
+     horizontal; sin esto el aviso se estiraba al ancho de la tabla y su texto
+     salia fuera de la vista en vez de romper en varias lineas. */
+  min-width: 0;
+  align-self: stretch;
+  position: sticky;
+  left: 0;
+}
+
+/* Rectangulo, no pastilla. El aviso no cabe en una linea —nombra el tema y las
+   escalas de cada publico— asi que su geometria es la de una caja de texto:
+   radio de tarjeta, padding igual en los cuatro lados y el icono anclado a la
+   primera linea. Con radio de chip y padding vertical corto, dos lineas se veian
+   como una pastilla deformada. */
+.pulso-equiv-aviso-caja {
+  display: flex;
+  align-temas: flex-start;
+  gap: var(--pulso-space-2);
+  margin: 0;
+  padding: var(--pulso-space-2);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  line-height: 1.55;
+  min-width: 0;
+}
+
+/* El texto es quien rompe en lineas; sin `min-width: 0` un tema flex se niega a
+   encogerse por debajo de su contenido y la caja crece en vez de envolver. */
+.pulso-equiv-aviso-caja > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pulso-equiv-aviso-caja strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+/* El icono lleva el tono del modulo: informa de que superficie habla sin gritar.
+   Anclado arriba, se queda junto a la primera linea cuando el texto ocupa tres. */
+.pulso-equiv-aviso-caja > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--pulso-module-processing);
+}
+
+.pulso-equiv-avisos li {
+  display: flex;
+  align-temas: flex-start;
+  gap: 5px;
+}
+
+.pulso-equiv-diapositiva-tabla {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+
+.pulso-equiv-diapositiva-tabla th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  padding: 2px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  white-space: nowrap;
+}
+
+.pulso-equiv-diapositiva-tabla td {
+  padding: 2px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+}
+
+.pulso-equiv-diapositiva-tabla tr:last-child td { border-bottom: none; }
+.pulso-equiv-diapositiva-tabla tr.is-sugerida td { background: var(--pulso-info-bg); }
+
+/* E1: los publicos de este tema no comparten escala. Marca de borde y no solo de
+   fondo, para que sobreviva a una captura de bajo contraste — pero en tono
+   neutro: senala cual es la fila, no la acusa. */
+.pulso-equiv-diapositiva-tabla tr.is-escala-rota td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--pulso-border-strong);
+}
+
+.pulso-equiv-diapositiva-tabla input,
+.pulso-equiv-diapositiva-tabla select {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  padding: 2px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+/* La celda de variable es un boton hasta que se edita: montar un `select` por
+   celda con cientos de `option` deja decenas de miles de nodos en el DOM y la
+   pestana tarda en responder al primer clic. */
+.pulso-equiv-var {
+  width: 100%;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.pulso-equiv-var:hover,
+.pulso-equiv-var:focus {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-var.is-vacia { color: var(--pulso-text-faint); }
+
+.pulso-equiv-col-cob { width: 58px; }
+
+/* Puntos en posicion fija por publico: «3/4» dice cuantos faltan y nunca cual. */
+.pulso-equiv-dots {
+  display: inline-flex;
+  align-temas: center;
+  gap: 3px;
+}
+
+.pulso-equiv-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.pulso-equiv-dots i.is-on { background: var(--pulso-module-processing); }
+.pulso-equiv-dots i.is-off {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--pulso-border-strong);
+}
+
+.pulso-equiv-add-tema {
+  align-self: flex-start;
+  display: inline-flex;
+  align-temas: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+}
+
+.pulso-equiv-add-tema:hover {
+  border-color: var(--pulso-module-processing);
+  color: var(--pulso-module-processing);
+}
+
+/* Acciones que operan sobre todo el editor —agrupar, confirmar en bloque—. Viven
+   junto al selector de vista y no en la cabecera: la cabecera declara que es la
+   superficie y por donde entran los datos; esto opera sobre lo que ya esta
+   dentro, y mezclarlas hacia leer «Subir matriz» y «Confirmar 58 propuestas»
+   como acciones del mismo rango. */
+.pulso-equiv-accion-masiva {
+  display: inline-flex;
+  align-temas: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pulso-equiv-accion-masiva:hover {
+  border-color: var(--pulso-module-processing);
+  color: var(--pulso-module-processing);
+}
+
+.pulso-equiv-accion-masiva svg { color: var(--pulso-module-processing); }

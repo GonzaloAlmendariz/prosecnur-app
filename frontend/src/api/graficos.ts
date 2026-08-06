@@ -875,7 +875,7 @@ export type GraficosSuggestedPlanResponse = {
   declarada?: boolean;
   /** ADR 0063: revisión de la declaración de la que salió el mazo. */
   revision?: string;
-  n_laminas?: number;
+  n_diapositivas?: number;
   /** Filas que no entraron al mazo, con su motivo. */
   fuera?: { etiqueta: string; motivo: string; detalle?: string }[];
 };
@@ -996,7 +996,7 @@ export type GraficosConsolidadoPreflight = {
  * `includePlan` trae además el plan sugerido que el backend ya armó para
  * contar `n_slides`. Es opt-in porque pesa ~48 KB contra los ~4 KB de los
  * contadores: el menú del conjunto se abre muchas veces y no lo necesita; el
- * editor compartido sí, para sembrar sus láminas sin recalcular nada.
+ * editor compartido sí, para sembrar sus diapositivas sin recalcular nada.
  */
 export async function apiGraficosConsolidadoPreflight(
   options: { includePlan?: boolean } = {},

@@ -37,7 +37,7 @@ export function EquivalenciasTabla({
         <thead>
           <tr>
             <th scope="col" className="pulso-equiv-col-etiqueta">Etiqueta estándar</th>
-            <th scope="col" className="pulso-equiv-col-diapo">Lámina</th>
+            <th scope="col" className="pulso-equiv-col-diapo">Diapositiva</th>
             {bases.map((base) => (
               <th key={base} scope="col">{base}</th>
             ))}
@@ -72,7 +72,7 @@ export function EquivalenciasTabla({
                   className="pulso-equiv-input-diapo"
                   value={fila.diapositiva ?? ""}
                   placeholder="—"
-                  aria-label={`Lámina de la fila ${fila.id}`}
+                  aria-label={`Diapositiva de la fila ${fila.id}`}
                   onChange={(e) => onEditar(fila.id, "diapositiva", e.target.value)}
                 />
               </td>

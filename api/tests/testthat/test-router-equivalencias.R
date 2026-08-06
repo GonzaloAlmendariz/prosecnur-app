@@ -141,13 +141,23 @@ test_that("plantilla e importación cierran el ciclo sobre la sesión", {
   expect_true(file.exists(meta$path))
   expect_equal(meta$kind, "equivalencias_plantilla")
 
-  # La plantilla recién emitida vuelve a entrar: cuatro variables sin emparejar,
-  # ninguna con etiqueta estándar todavía.
+  # ADR 0064: la plantilla sale SEMBRADA. Las cuatro variables del fixture se
+  # emparejan por (etiqueta, escala, ordinal) en dos filas, y ambas vuelven
+  # marcadas como propuesta: el viaje por el Excel no las convierte en decisión.
   out <- .equiv_importar_desde_file(sid, meta$file_id)
   expect_true(out$estado$declarada)
-  expect_equal(out$estado$n_filas, 4L)
-  expect_equal(out$estado$n_sin_etiqueta, 4L)
-  # Sin etiquetas escritas no hay nada que aplicar: la importación no inventa.
+  expect_equal(out$estado$n_filas, 2L)
+  expect_equal(out$estado$n_sugeridas, 2L)
+  expect_true(all(vapply(out$estado$filas, function(f) isTRUE(f$sugerida), logical(1))))
+  # Cada propuesta cubre los dos públicos: eso es lo que la siembra aporta frente
+  # a las cuatro filas sueltas que emitía antes.
+  expect_true(all(vapply(out$estado$filas, function(f) length(f$variables), integer(1)) == 2L))
+
+  # La etiqueta se repite entre propuestas —«Servicio de salud» nombra dos
+  # preguntas distintas— así que no se prellena: es lo único que el analista
+  # tiene que aportar.
+  expect_equal(out$estado$n_sin_etiqueta, 2L)
+  # Y una propuesta sin confirmar NO aplica etiquetas, aunque las trajera.
   expect_equal(out$aplicacion$docentes$aplicadas, 0L)
 
   # Y el sello queda guardado, que es lo que permite detectar el desfase después.

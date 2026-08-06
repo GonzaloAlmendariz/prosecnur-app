@@ -126,6 +126,10 @@
     schema = equiv$schema,
     n_filas = as.integer(equiv$n_filas %||% length(equiv$filas)),
     n_sin_etiqueta = as.integer(equiv$n_sin_etiqueta %||% 0L),
+    # Cuántas filas siguen siendo propuesta. Se cuenta aquí y no en el cliente
+    # para que el chip de la pestaña y el pie del editor digan lo mismo.
+    n_sugeridas = as.integer(sum(vapply(equiv$filas %||% list(),
+                                        function(f) isTRUE(f$sugerida), logical(1)))),
     bases = as.character(equiv$bases %||% character(0)),
     importada_en = as.character(equiv$importada_en %||% ""),
     # Huella del contenido: Gráficos la compara contra la que quedó grabada al
@@ -143,7 +147,11 @@
     stop_api(500, "E_EQUIV_SIN_OPENXLSX", "El paquete R 'openxlsx' no está instalado.")
   }
   inst_por_base <- .equiv_inst_por_base(sid)
-  df <- .equiv_plantilla_df(inst_por_base, .equiv_get(sid))
+  # ADR 0064: la plantilla sale sembrada con los emparejados propuestos, marcados
+  # en la columna `origen`. Es lo que evita que la via del Excel entregue 300
+  # filas sueltas cuando el motor ya sabe emparejar la mayoria.
+  df <- .equiv_plantilla_df(inst_por_base, .equiv_get(sid),
+                            propuestas = .equiv_sugerir(inst_por_base))
 
   s <- session_get(sid)
   dir_out <- file.path(s$dir, "downloads")
@@ -239,13 +247,22 @@
     # Una fila sin ninguna variable no declara nada; guardarla solo ensuciaria
     # la tabla y el conteo.
     if (!length(vars)) next
-    limpias[[length(limpias) + 1L]] <- list(
+    limpia <- list(
       seccion = as.character(f$seccion %||% ""),
       etiqueta_estandar = trimws(as.character(f$etiqueta_estandar %||% "")),
       variables = vars,
       diapositiva = trimws(as.character(f$diapositiva %||% "")),
+      enunciado = trimws(as.character(f$enunciado %||% "")),
       cantidad = length(vars)
     )
+    # ADR 0064: la propuesta SE GUARDA, marcada. La regla anterior la descartaba
+    # al guardar, y con la plantilla sembrada eso destruia el trabajo: confirmar
+    # diez de cincuenta y ocho propuestas y pulsar Guardar borraba las otras
+    # cuarenta y ocho sin ninguna senal. Lo que la prohibicion del ADR 0062
+    # protege —que una sugerencia nunca actue como decision— se cumple en los dos
+    # sitios donde importa: no escribe etiquetas y no llega al mazo.
+    if (isTRUE(f$sugerida)) limpia$sugerida <- TRUE
+    limpias[[length(limpias) + 1L]] <- limpia
   }
 
   inst_por_base <- .equiv_inst_por_base(sid)
@@ -255,6 +272,7 @@
     filas = limpias,
     n_filas = length(limpias),
     n_sin_etiqueta = sum(vapply(limpias, function(f) !nzchar(f$etiqueta_estandar), logical(1))),
+    n_sugeridas = sum(vapply(limpias, function(f) isTRUE(f$sugerida), logical(1))),
     sellos = lapply(inst_por_base, .equiv_sello_instrumento),
     importada_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     origen = list(hoja = "editor")
@@ -301,7 +319,14 @@ mount_equivalencias <- function(pr) {
       out <- lapply(inst_por_base, function(inst) {
         vars <- .equiv_variables_de_base(inst)
         lapply(seq_len(nrow(vars)), function(i) {
-          list(name = vars$name[i], label = vars$label[i], seccion = vars$seccion[i])
+          # `firma` es lo que compara (ADR 0064, E1/E2); `escala` es lo que se
+          # lee. Viajan juntas para que la tarjeta no tenga que derivar una de
+          # la otra y acabar comparando por el texto truncado.
+          list(name = vars$name[i], label = vars$label[i], seccion = vars$seccion[i],
+               firma = .equiv_firma_escala(inst, vars$name[i]),
+               # Las opciones viajan enteras: cuánto se muestra lo decide la
+               # superficie, que es quien sabe cuánto espacio tiene.
+               opciones = .equiv_escala_opciones(inst, vars$name[i]))
         })
       })
       list(ok = TRUE, variables = out)
