@@ -26,6 +26,11 @@
 .EQUIV_COL_SECCION <- "seccion"
 .EQUIV_COL_ETIQUETA <- "etiqueta_estandar"
 .EQUIV_SUFIJO_ETIQUETA <- "_etiqueta"
+# ADR 0062: la matriz real del equipo ya traia una columna `Diapo` con el plan
+# del informe —133 de 154 filas asignadas a 44 diapositivas, 42 de ellas con mas
+# de una pregunta—. Declararla aqui es lo que permite que Graficos derive el
+# mazo en vez de armarlo lamina por lamina.
+.EQUIV_COL_DIAPOSITIVA <- "diapositiva"
 
 # Normaliza un encabezado a su forma comparable: minúsculas, sin tildes, sin
 # espacios ni signos. «Etiqueta estándar», «ETIQUETA_ESTANDAR» y «etiqueta
@@ -157,8 +162,14 @@
                      paste(bases, collapse = ", ")))
   }
 
+  i_diapo <- idx_de(.EQUIV_COL_DIAPOSITIVA)
+  # «Diapo» es como la llaman las matrices ya escritas; aceptarla evita pedirle
+  # al equipo que renombre una columna para que la app la lea.
+  if (is.na(i_diapo)) i_diapo <- idx_de("diapo")
+
   seccion <- if (!is.na(i_seccion)) .equiv_fill_down(df[[i_seccion]]) else rep(NA_character_, nrow(df))
   etiqueta <- trimws(as.character(df[[i_etiqueta]]))
+  diapo <- if (!is.na(i_diapo)) trimws(as.character(df[[i_diapo]])) else rep(NA_character_, nrow(df))
 
   filas <- list()
   for (r in seq_len(nrow(df))) {
@@ -174,6 +185,7 @@
       seccion = if (is.na(seccion[r])) "" else seccion[r],
       etiqueta_estandar = lab,
       variables = vars,
+      diapositiva = if (is.na(diapo[r])) "" else diapo[r],
       # Derivado, no pedido: en cuántos públicos existe la pregunta.
       cantidad = length(vars)
     )
@@ -287,6 +299,7 @@
   cols <- list()
   cols[[.EQUIV_COL_SECCION]] <- character(0)
   cols[[.EQUIV_COL_ETIQUETA]] <- character(0)
+  cols[[.EQUIV_COL_DIAPOSITIVA]] <- character(0)
   for (b in bases) {
     cols[[b]] <- character(0)
     cols[[paste0(b, .EQUIV_SUFIJO_ETIQUETA)]] <- character(0)
@@ -302,6 +315,7 @@
       fila <- list()
       fila[[.EQUIV_COL_SECCION]] <- as.character(f$seccion %||% "")
       fila[[.EQUIV_COL_ETIQUETA]] <- as.character(f$etiqueta_estandar %||% "")
+      fila[[.EQUIV_COL_DIAPOSITIVA]] <- as.character(f$diapositiva %||% "")
       for (b in bases) {
         v <- as.character((f$variables %||% list())[[b]] %||% "")
         fila[[b]] <- v
@@ -327,6 +341,7 @@
       fila <- list()
       fila[[.EQUIV_COL_SECCION]] <- pendientes$seccion[i]
       fila[[.EQUIV_COL_ETIQUETA]] <- ""
+      fila[[.EQUIV_COL_DIAPOSITIVA]] <- ""
       for (b2 in bases) {
         fila[[b2]] <- if (identical(b2, b)) pendientes$name[i] else ""
         fila[[paste0(b2, .EQUIV_SUFIJO_ETIQUETA)]] <-
@@ -343,4 +358,122 @@
   names(df) <- names(cols)
   rownames(df) <- NULL
   df
+}
+
+# -----------------------------------------------------------------------------
+# Sugerencia de emparejado (ADR 0062, enmienda del editor)
+# -----------------------------------------------------------------------------
+#
+# El ADR se niega a INFERIR emparejamientos dentro de un Excel, y con razon: ahi
+# una sugerencia es indistinguible de una decision y termina en una lamina sin
+# que nadie lo note. En una herramienta el caso es otro — una sugerencia puede
+# verse COMO sugerencia y confirmarse de un clic—, asi que aqui se calculan pero
+# viajan marcadas y NUNCA se guardan solas.
+#
+# La firma que empareja es la terna (etiqueta normalizada, escala, ordinal de
+# aparicion). Las dos primeras no bastan en el caso real: en Acreditacion
+# Contabilidad «Servicio de salud» con escala Si/No aparece DOS veces por base
+# —«¿Conoce?» y «¿Ha utilizado?»— y solo el orden las separa. Con la terna, la
+# n-esima aparicion de una base calza con la n-esima de otra, que es exactamente
+# como estan construidos los cuestionarios paralelos de un estudio multiactor.
+
+# Firma de escala de una variable: los codigos y etiquetas de su lista, en orden.
+# Reusa el mismo criterio que el guard de multi-apiladas del frontend (la FIRMA,
+# no el `list_name`): el importador de SurveyMonkey genera un nombre de lista por
+# pregunta, asi que los nombres no dicen nada.
+.equiv_firma_escala <- function(inst, var) {
+  sv <- (inst %||% list())$survey
+  if (is.null(sv) || !"name" %in% names(sv)) return("")
+  i <- which(as.character(sv$name) == as.character(var))[1]
+  if (is.na(i)) return("")
+  tipo <- trimws(as.character((sv$type %||% "")[i]))
+  m <- regmatches(tipo, regexec("^select_(?:one|multiple)\\s+(\\S+)", tipo, perl = TRUE))[[1]]
+  lista <- if (length(m) >= 2L) m[2] else ""
+  if (!nzchar(lista)) return(paste0("libre:", sub("\\s+.*$", "", tipo)))
+  ch <- (inst %||% list())$choices
+  if (is.null(ch) || !all(c("list_name", "name") %in% names(ch))) return(paste0("lista:", lista))
+  filas <- which(as.character(ch$list_name) == lista)
+  if (!length(filas)) return(paste0("lista:", lista))
+  etiquetas <- if ("label" %in% names(ch)) as.character(ch$label)[filas] else as.character(ch$name)[filas]
+  paste(as.character(ch$name)[filas], etiquetas, sep = "=", collapse = "|")
+}
+
+# Clave de emparejado por variable, con el ordinal ya resuelto.
+.equiv_claves_de_base <- function(inst) {
+  vars <- .equiv_variables_de_base(inst)
+  if (!nrow(vars)) return(list())
+  vistas <- list()
+  out <- list()
+  for (i in seq_len(nrow(vars))) {
+    nombre <- vars$name[i]
+    base_clave <- paste(.equiv_norm_col(vars$label[i]),
+                        .equiv_firma_escala(inst, nombre), sep = "@@")
+    n <- (vistas[[base_clave]] %||% 0L) + 1L
+    vistas[[base_clave]] <- n
+    out[[nombre]] <- list(clave = paste0(base_clave, "##", n),
+                          etiqueta = vars$label[i], seccion = vars$seccion[i])
+  }
+  out
+}
+
+# Propone filas de equivalencia agrupando por esa clave. Devuelve SOLO lo que
+# calza en mas de una base: una variable que no empareja no es una sugerencia,
+# es una fila que el analista tendra que decidir, y ofrecerla como propuesta
+# invitaria a confirmarla sin mirar.
+.equiv_sugerir <- function(inst_por_base) {
+  bases <- names(inst_por_base %||% list())
+  if (length(bases) < 2L) return(list())
+
+  por_clave <- list()
+  for (b in bases) {
+    claves <- .equiv_claves_de_base(inst_por_base[[b]])
+    for (nombre in names(claves)) {
+      k <- claves[[nombre]]$clave
+      entrada <- por_clave[[k]] %||% list(variables = list(),
+                                          etiqueta = claves[[nombre]]$etiqueta,
+                                          seccion = claves[[nombre]]$seccion)
+      # Una base aporta como mucho una variable por clave: el ordinal ya la hizo
+      # unica, y dos de la misma base en la misma fila no seria una equivalencia
+      # entre publicos sino un error de lectura.
+      if (is.null(entrada$variables[[b]])) entrada$variables[[b]] <- nombre
+      por_clave[[k]] <- entrada
+    }
+  }
+
+  # Una etiqueta que se repite entre propuestas NO se prellena. En el estudio
+  # medido, las tres baterias de servicios dan tres filas distintas y correctas
+  # —¿Conoce?, ¿Ha utilizado?, satisfaccion— pero las tres se llaman «Servicio
+  # de salud» en el XLSForm. Ofrecer ese texto como etiqueta estandar reproduce
+  # exactamente la ambiguedad que este ADR existe para eliminar, y encima
+  # invita a confirmarla de un clic. Vacia, el campo pide lo unico que el
+  # analista tiene que aportar.
+  candidatas <- vapply(por_clave, function(e) as.character(e$etiqueta %||% ""), character(1))
+  utiles <- names(por_clave)[vapply(por_clave, function(e) length(e$variables) >= 2L, logical(1))]
+  repetidas <- names(which(table(candidatas[utiles]) > 1L))
+
+  out <- list()
+  for (k in names(por_clave)) {
+    e <- por_clave[[k]]
+    if (length(e$variables) < 2L) next
+    etiqueta <- as.character(e$etiqueta %||% "")
+    if (etiqueta %in% repetidas) etiqueta <- ""
+    out[[length(out) + 1L]] <- list(
+      seccion = as.character(e$seccion %||% ""),
+      etiqueta_estandar = etiqueta,
+      variables = e$variables,
+      cantidad = length(e$variables),
+      # La marca es el contrato con la UI: sin ella, una propuesta se ve igual
+      # que una decision tomada.
+      sugerida = TRUE
+    )
+  }
+  # Primero lo que cubre mas publicos: es donde una confirmacion rinde mas.
+  orden <- order(-vapply(out, function(x) x$cantidad, integer(1)),
+                 vapply(out, function(x) {
+                   # Las que quedaron sin etiqueta se ordenan por su primera
+                   # variable, para que las tres de una bateria salgan juntas.
+                   e <- x$etiqueta_estandar
+                   if (nzchar(e)) e else paste0("~", unlist(x$variables)[1])
+                 }, character(1)))
+  out[orden]
 }

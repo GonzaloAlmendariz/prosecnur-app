@@ -220,6 +220,46 @@
   list(estado = .equiv_estado(sid), aplicacion = resumen)
 }
 
+# Guarda la declaracion editada en la pestana. Misma forma que la importada, asi
+# que Excel y editor producen el MISMO artefacto — es lo que impide que las dos
+# vias se separen y que una acabe pudiendo expresar cosas que la otra no.
+.equiv_guardar_declaracion <- function(sid, filas) {
+  bases <- names(.equiv_inst_por_base(sid))
+  limpias <- list()
+  for (f in (filas %||% list())) {
+    vars <- list()
+    for (b in bases) {
+      v <- .equiv_var_canonica((f$variables %||% list())[[b]] %||% "")
+      if (nzchar(v)) vars[[b]] <- v
+    }
+    # Una fila sin ninguna variable no declara nada; guardarla solo ensuciaria
+    # la tabla y el conteo.
+    if (!length(vars)) next
+    limpias[[length(limpias) + 1L]] <- list(
+      seccion = as.character(f$seccion %||% ""),
+      etiqueta_estandar = trimws(as.character(f$etiqueta_estandar %||% "")),
+      variables = vars,
+      diapositiva = trimws(as.character(f$diapositiva %||% "")),
+      cantidad = length(vars)
+    )
+  }
+
+  inst_por_base <- .equiv_inst_por_base(sid)
+  equiv <- list(
+    schema = "equivalencias_publicos/v1",
+    bases = bases,
+    filas = limpias,
+    n_filas = length(limpias),
+    n_sin_etiqueta = sum(vapply(limpias, function(f) !nzchar(f$etiqueta_estandar), logical(1))),
+    sellos = lapply(inst_por_base, .equiv_sello_instrumento),
+    importada_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    origen = list(hoja = "editor")
+  )
+  session_set(sid, "equivalencias_publicos", equiv)
+  resumen <- .equiv_aplicar_a_analitica(sid, equiv)
+  list(estado = .equiv_estado(sid), aplicacion = resumen)
+}
+
 mount_equivalencias <- function(pr) {
   pr |>
     plumber::pr_get("/api/carga/equivalencias", wrap_endpoint(function(req, res) {
@@ -245,5 +285,40 @@ mount_equivalencias <- function(pr) {
       }
       out <- .equiv_importar_desde_file(sid, file_id, body$hoja)
       c(list(ok = TRUE), out)
+    })) |>
+
+    plumber::pr_get("/api/carga/equivalencias/variables", wrap_endpoint(function(req, res) {
+      # Catalogo por base para los selectores del editor. Va aparte del estado
+      # porque son cientos de entradas (300 en el estudio medido) y el estado se
+      # pide en cada montaje de la pestana.
+      sid <- session_header(req)
+      .equiv_requiere_disponible(sid)
+      inst_por_base <- .equiv_inst_por_base(sid)
+      out <- lapply(inst_por_base, function(inst) {
+        vars <- .equiv_variables_de_base(inst)
+        lapply(seq_len(nrow(vars)), function(i) {
+          list(name = vars$name[i], label = vars$label[i], seccion = vars$seccion[i])
+        })
+      })
+      list(ok = TRUE, variables = out)
+    })) |>
+
+    plumber::pr_get("/api/carga/equivalencias/sugerencias", wrap_endpoint(function(req, res) {
+      # Se calculan a pedido y NUNCA se guardan solas: viajan marcadas para que
+      # la pestana pueda mostrarlas como propuesta y no como decision tomada.
+      sid <- session_header(req)
+      .equiv_requiere_disponible(sid)
+      list(ok = TRUE, sugerencias = .equiv_sugerir(.equiv_inst_por_base(sid)))
+    })) |>
+
+    plumber::pr_post("/api/carga/equivalencias/declaracion", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      .equiv_requiere_disponible(sid)
+      body <- .analitica_json_body(req)
+      if (is.null(body$filas)) {
+        stop_api(400, "E_EQUIV_FILAS_REQUERIDAS",
+                 "Body debe incluir 'filas' con la declaracion editada.")
+      }
+      c(list(ok = TRUE), .equiv_guardar_declaracion(sid, body$filas))
     }))
 }

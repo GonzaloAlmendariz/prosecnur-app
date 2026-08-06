@@ -16,15 +16,34 @@ import {
   CheckCircle2,
   Download,
   GitCompare,
+  Save,
+  Sparkles,
   Upload,
 } from "../../vendor/lucide-react";
 import {
   generarPlantillaEquivalencias,
   getEquivalencias,
+  getSugerenciasEquivalencias,
+  getVariablesEquivalencias,
+  guardarEquivalencias,
   importarEquivalencias,
   type EquivalenciasEstado,
   type EquivalenciasImportacion,
+  type VariableDeBase,
 } from "../../api/equivalencias";
+import { EquivalenciasTabla } from "./EquivalenciasTabla";
+import {
+  aFilasEditor,
+  asignarVariable,
+  confirmarFila,
+  editarCampo,
+  filaVacia,
+  filasParaGuardar,
+  incorporarSugerencias,
+  quitarFila,
+  resumenEditor,
+  type FilaEditor,
+} from "./equivalenciasEditorModel";
 import { apiUpload } from "../../api/estudio";
 import { downloadUrl } from "../../api/core";
 import "./EquivalenciasPanel.css";
@@ -50,14 +69,26 @@ function resumenAplicacion(imp: EquivalenciasImportacion): {
 export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
   const [estado, setEstado] = useState<EquivalenciasEstado | null>(null);
   const [cargando, setCargando] = useState(true);
-  const [ocupado, setOcupado] = useState<"" | "plantilla" | "importar">("");
+  const [ocupado, setOcupado] = useState<"" | "plantilla" | "importar" | "sugerir" | "guardar">("");
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+  const [filas, setFilas] = useState<FilaEditor[]>([]);
+  const [variablesPorBase, setVariablesPorBase] = useState<Record<string, VariableDeBase[]>>({});
+  const [sucio, setSucio] = useState(false);
 
   const refrescar = useCallback(async () => {
     setCargando(true);
     try {
-      setEstado(await getEquivalencias());
+      const est = await getEquivalencias();
+      setEstado(est);
+      setFilas(aFilasEditor(est.filas ?? []));
+      setSucio(false);
+      if (est.disponible) {
+        // El catálogo va aparte del estado: son cientos de entradas y el estado
+        // se pide en cada montaje.
+        const cat = await getVariablesEquivalencias();
+        setVariablesPorBase(cat.variables ?? {});
+      }
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -116,6 +147,47 @@ export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
     [onImported],
   );
 
+  const onSugerir = useCallback(async () => {
+    setOcupado("sugerir");
+    setError("");
+    try {
+      const { sugerencias } = await getSugerenciasEquivalencias();
+      setFilas((prev) => {
+        const next = incorporarSugerencias(prev, sugerencias);
+        const nuevas = next.length - prev.length;
+        setAviso(nuevas > 0
+          ? `${nuevas} propuestas añadidas. Revísalas y confírmalas: sin confirmar no se guardan.`
+          : "No hay propuestas nuevas que no choquen con lo ya declarado.");
+        return next;
+      });
+      setSucio(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setOcupado("");
+    }
+  }, []);
+
+  const onGuardar = useCallback(async () => {
+    setOcupado("guardar");
+    setError("");
+    try {
+      const out = await guardarEquivalencias(filasParaGuardar(filas));
+      setEstado(out.estado);
+      setFilas(aFilasEditor(out.estado.filas ?? []));
+      setSucio(false);
+      const { aplicadas, conservadas } = resumenAplicacion(out);
+      setAviso(conservadas > 0
+        ? `Guardado. ${aplicadas} etiquetas aplicadas, ${conservadas} conservadas por estar editadas a mano.`
+        : `Guardado. ${aplicadas} etiquetas aplicadas.`);
+      onImported?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setOcupado("");
+    }
+  }, [filas, onImported]);
+
   if (cargando && !estado) {
     return (
       <section className="pulso-equiv" aria-label="Equivalencias entre públicos">
@@ -161,6 +233,16 @@ export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
             <Download size={14} aria-hidden="true" />
             {declarada ? "Descargar plantilla actual" : "Generar plantilla"}
           </button>
+          <button
+            type="button"
+            className="pulso-secondary pulso-equiv-btn"
+            onClick={() => void onSugerir()}
+            disabled={ocupado !== ""}
+            title="Propone emparejamientos por etiqueta, escala y orden. No se guardan sin confirmar."
+          >
+            <Sparkles size={14} aria-hidden="true" />
+            Proponer emparejados
+          </button>
           <label className="pulso-secondary pulso-equiv-btn pulso-equiv-btn-file">
             <Upload size={14} aria-hidden="true" />
             Subir matriz
@@ -192,7 +274,40 @@ export function EquivalenciasPanel({ onImported }: EquivalenciasPanelProps) {
         data-qa-geometry-capacity="owned"
         data-surface-contract="carga-equivalencias"
       >
-        {!declarada ? (
+        {filas.length > 0 ? (
+          <>
+            <EquivalenciasTabla
+              bases={bases.length ? bases : Object.keys(variablesPorBase)}
+              filas={filas}
+              variablesPorBase={variablesPorBase}
+              onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
+              onEditar={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
+              onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
+              onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
+              onAgregarFila={() => { setFilas((p) => [...p, filaVacia()]); setSucio(true); }}
+            />
+            <div className="pulso-equiv-pie-editor">
+              <span>
+                {(() => {
+                  const r = resumenEditor(filas);
+                  return `${r.confirmadas} confirmadas`
+                    + (r.sugeridas ? ` · ${r.sugeridas} propuestas sin confirmar` : "")
+                    + (r.sinEtiqueta ? ` · ${r.sinEtiqueta} sin etiqueta` : "")
+                    + (r.conDiapositiva ? ` · ${r.conDiapositiva} con lámina` : "");
+                })()}
+              </span>
+              <button
+                type="button"
+                className="pulso-primary pulso-equiv-btn"
+                onClick={() => void onGuardar()}
+                disabled={ocupado !== "" || !sucio}
+              >
+                <Save size={14} aria-hidden="true" />
+                {sucio ? "Guardar cambios" : "Sin cambios"}
+              </button>
+            </div>
+          </>
+        ) : !declarada ? (
           // C5 categoría 1: vacío legítimo — el estudio todavía no la declaró.
           // El estado dice qué falta y cómo se llena, dentro de su propia caja.
           <div className="pulso-equiv-vacio">
