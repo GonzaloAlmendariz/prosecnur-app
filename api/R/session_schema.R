@@ -251,6 +251,7 @@ session_schema <- function() {
     "choice_code_maps_pending",    "literal", "persistible",    "router_carga.R",    "session_set", "",
     "choice_code_maps_confirmed",  "literal", "persistible",    "router_carga.R",    "session_set", "",
     "inst_estructura_por_base",    "literal", "persistible",    "carga_estructura_base.R", "session_set", "",
+    "equivalencias_publicos",      "literal", "persistible",    "router_equivalencias.R", "session_set", "ADR 0062: equivalencia declarada entre publicos",
     "inst_limpieza",               "literal", "persistible",    "carga_estructura_base.R", "session_set", "",
     "multi_integrated_draft",      "literal", "persistible",    "multi_integrated.R", "session_set", "",
     "surveymonkey_survey_catalog", "literal", "cache_stripped", "surveymonkey_multibase.R", "directa", "catálogo externo regenerable desde la integración",

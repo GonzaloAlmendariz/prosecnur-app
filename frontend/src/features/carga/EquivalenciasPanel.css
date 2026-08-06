@@ -1,0 +1,211 @@
+/* Equivalencias entre públicos (ADR 0062).
+   Solo tokens `--pulso-*`: ningún hex literal, para que la superficie herede el
+   tono del módulo y sobreviva a un cambio de identidad sin retoques. */
+
+.pulso-equiv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+}
+
+.pulso-equiv-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  flex-wrap: wrap;
+}
+
+.pulso-equiv-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  color: var(--pulso-module-processing);
+  min-width: 0;
+}
+
+.pulso-equiv-title > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-equiv-title strong {
+  color: var(--pulso-text);
+  font-size: 14px;
+}
+
+.pulso-equiv-title small {
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 62ch;
+}
+
+.pulso-equiv-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  flex-shrink: 0;
+}
+
+/* `pulso-secondary` es la clase de la casa y no trae gap propio: sin esto el
+   icono queda pegado al texto («⊥Subir matriz»), que fue lo que mostro la
+   captura y ninguna metrica. */
+.pulso-equiv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+}
+
+/* El input de archivo va oculto DENTRO del label: el label es el control
+   alcanzable y conserva foco de teclado, que es lo que C4 exige. */
+.pulso-equiv-btn-file {
+  position: relative;
+  cursor: pointer;
+}
+
+.pulso-equiv-btn-file input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+
+.pulso-equiv-error,
+.pulso-equiv-aviso {
+  margin: 0;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border-radius: var(--pulso-radius-chip);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pulso-equiv-error {
+  background: var(--pulso-danger-bg);
+  border: 1px solid var(--pulso-danger-border);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-equiv-aviso {
+  background: var(--pulso-success-bg);
+  border: 1px solid var(--pulso-success-border);
+  color: var(--pulso-success-fg);
+}
+
+/* C3: este contenedor es el dueño declarado de la capacidad. El vacío vive
+   aquí dentro, con borde y material propios, y no como aire suelto en el
+   panel. */
+.pulso-equiv-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+  min-height: 0;
+  padding: var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface);
+  overflow: auto;
+}
+
+.pulso-equiv-vacio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  margin: 0;
+}
+
+.pulso-equiv-vacio p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--pulso-text-soft);
+  max-width: 68ch;
+}
+
+.pulso-equiv-vacio strong {
+  color: var(--pulso-text);
+}
+
+.pulso-equiv-vacio-nota {
+  color: var(--pulso-text-faint);
+  font-size: 12px;
+}
+
+.pulso-equiv-resumen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+}
+
+/* C2: el marco lo fija el rol, no el contenido. Una base con alerta y otra sin
+   ella comparten caja; la diferencia se resuelve dentro. */
+.pulso-equiv-resumen > li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pulso-space-2);
+  min-height: 52px;
+  padding: var(--pulso-space-2) var(--pulso-space-3);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-resumen > li.is-ready .pulso-equiv-resumen-estado {
+  color: var(--pulso-success-fg);
+}
+
+.pulso-equiv-resumen > li.is-attention {
+  border-color: var(--pulso-warn-border);
+}
+
+.pulso-equiv-resumen > li.is-attention .pulso-equiv-resumen-estado {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-equiv-resumen-estado {
+  display: inline-flex;
+  align-items: center;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.pulso-equiv-resumen-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pulso-equiv-resumen-copy strong {
+  font-size: 13px;
+  color: var(--pulso-text);
+}
+
+.pulso-equiv-resumen-copy small {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  line-height: 1.4;
+}
+
+.pulso-equiv-alerta {
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-equiv-pie {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}
+
+.pulso-equiv-cargando {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pulso-text-soft);
+}
