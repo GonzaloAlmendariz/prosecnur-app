@@ -307,3 +307,45 @@ test_that("una pregunta sin lista de opciones no entra al mazo", {
   expect_equal(length(fuera), 1L)
   expect_equal(fuera[[1]]$etiqueta, "Correo")
 })
+
+test_that("la revisión cambia con lo que cambia el mazo, y sólo con eso", {
+  # El ADR 0063 acepta que la propuesta envejezca a cambio de que la diferencia
+  # sea VISIBLE. Esta huella es lo que la vuelve comprobable, así que tiene que
+  # moverse exactamente cuando el mazo cambiaría — ni más ni menos.
+  fila <- function(lam, et, vars) list(diapositiva = lam, etiqueta_estandar = et, variables = vars)
+  base <- list(filas = list(
+    fila("1", "A", list(x = "p1", y = "q1")),
+    fila("2", "B", list(x = "p2", y = "q2"))))
+
+  r0 <- .equiv_declaracion_revision(base)
+  expect_true(nzchar(r0))
+  expect_equal(r0, .equiv_declaracion_revision(base))
+
+  # Reordenar las filas sin cambiar su contenido NO cambia el mazo.
+  reordenada <- list(filas = rev(base$filas))
+  expect_equal(r0, .equiv_declaracion_revision(reordenada))
+
+  # Cambiar de lámina, de etiqueta o de variable SÍ lo cambia.
+  otra_lamina <- base; otra_lamina$filas[[1]]$diapositiva <- "3"
+  expect_false(identical(r0, .equiv_declaracion_revision(otra_lamina)))
+  otra_etiqueta <- base; otra_etiqueta$filas[[1]]$etiqueta_estandar <- "A cambiada"
+  expect_false(identical(r0, .equiv_declaracion_revision(otra_etiqueta)))
+  otra_var <- base; otra_var$filas[[1]]$variables$x <- "p99"
+  expect_false(identical(r0, .equiv_declaracion_revision(otra_var)))
+
+  # Sin filas no hay revisión que comparar.
+  expect_equal(.equiv_declaracion_revision(list(filas = list())), "")
+})
+
+test_that("la propuesta viaja con su revisión", {
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "X", diapositiva = "1",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1"))))
+  out <- .graficos_plan_desde_equivalencias(sid)
+  expect_true(nzchar(out$revision))
+  # Y la misma revisión sale por el endpoint que la UI consume.
+  expect_equal(out$revision,
+               .graficos_plan_sugerido_por_fuente(sid, list(fuente = "equivalencias"))$revision)
+})

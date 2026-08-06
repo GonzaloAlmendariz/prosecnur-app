@@ -80,6 +80,9 @@ export type GraficosConfig = {
   density?: Density;
   canvas_viewport?: CanvasViewport;
 
+  /** ADR 0063: revisión de la declaración con la que se armó el plan. */
+  equivalencias_revision?: string;
+
   // Bloque v4: reglas flexibles por alcance. La UI puede ignorarlas; el
   // backend las conserva y las resuelve para export/render.
   scope_rules?: Record<string, unknown>;
@@ -125,6 +128,13 @@ type PlanStore = {
   canvasViewport: CanvasViewport;
 
   // --- Flags de sincronización ---
+  /**
+   * Revisión de la declaración de equivalencias con la que se armó este plan.
+   * Vacía cuando el plan no salió de ahí. ADR 0063: sin ella, el desfase entre
+   * el mazo aplicado y la declaración sólo se puede sospechar.
+   */
+  equivalenciasRevision: string;
+  setEquivalenciasRevision: (revision: string) => void;
   hydrated: boolean;
   /**
    * La carga de la config reintenta con backoff (hasta 15 s) y hasta ahora lo
@@ -372,6 +382,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
   density: "comfortable",
   canvasViewport: DEFAULT_CANVAS_VIEWPORT,
 
+  equivalenciasRevision: "",
+  setEquivalenciasRevision: (revision) => set({ equivalenciasRevision: revision, dirty: true }),
   hydrated: false,
   hydrationRetrying: false,
   setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),
@@ -426,6 +438,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     inspectorTab: cfg.inspector_tab ?? "content",
     density: cfg.density ?? "comfortable",
     canvasViewport: cfg.canvas_viewport ?? DEFAULT_CANVAS_VIEWPORT,
+    equivalenciasRevision: cfg.equivalencias_revision ?? "",
     hydrated: true,
     hydrationRetrying: false,
     dirty: false,

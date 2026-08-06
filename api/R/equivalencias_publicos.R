@@ -525,3 +525,31 @@
   if (tipo_de(var) %in% c("select_one", "select_multiple")) return(TRUE)
   tipo_de(paste0(as.character(var), "_recod")) %in% c("select_one", "select_multiple")
 }
+
+
+# Revisión de la declaración: huella de su CONTENIDO, no de cuándo se guardó.
+#
+# El ADR 0063 acepta que la propuesta envejezca —la declaración puede cambiar
+# después de aplicar el mazo— a cambio de que la diferencia sea visible en vez
+# de sospechada. Esta huella es lo que la vuelve comprobable.
+#
+# Entra lo que cambia el mazo: qué preguntas, con qué variables, en qué lámina y
+# con qué etiqueta. NO entra el sello de instrumentos ni la fecha de importación:
+# reimportar la misma matriz sin tocar nada no debe pintar el mazo como
+# desfasado, porque no lo está.
+.equiv_declaracion_revision <- function(equiv) {
+  filas <- (equiv %||% list())$filas %||% list()
+  if (!length(filas)) return("")
+  partes <- vapply(filas, function(f) {
+    vars <- f$variables %||% list()
+    orden <- order(names(vars))
+    paste(
+      as.character(f$diapositiva %||% ""),
+      as.character(f$etiqueta_estandar %||% ""),
+      paste(names(vars)[orden], unlist(vars)[orden], sep = "=", collapse = ","),
+      sep = "\u001e"
+    )
+  }, character(1))
+  # Ordenado: reordenar las filas sin cambiar su contenido no cambia el mazo.
+  .equiv_hash_estable(sort(partes))
+}

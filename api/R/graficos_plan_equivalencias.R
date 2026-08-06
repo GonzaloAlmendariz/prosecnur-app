@@ -41,7 +41,7 @@
   s <- session_get(sid, required = FALSE)
   equiv <- (s %||% list())$equivalencias_publicos
   vacio <- list(declarada = FALSE, plan = list(slides = list()),
-                fuera = list(), n_laminas = 0L)
+                fuera = list(), n_laminas = 0L, revision = "")
   if (is.null(equiv) || !length(equiv$filas %||% list())) return(vacio)
 
   inst_por_base <- if (exists(".equiv_inst_por_base", mode = "function")) {
@@ -116,7 +116,8 @@
 
   if (!length(por_lamina)) {
     return(list(declarada = TRUE, plan = list(slides = list()),
-                fuera = fuera, n_laminas = 0L))
+                fuera = fuera, n_laminas = 0L,
+                revision = .equiv_declaracion_revision(equiv)))
   }
 
   # 2) Una lámina por clave declarada; un tema por pregunta.
@@ -181,7 +182,10 @@
     declarada = TRUE,
     plan = list(slides = slides),
     fuera = fuera,
-    n_laminas = length(slides)
+    n_laminas = length(slides),
+    # Viaja con la propuesta para que, al aplicarla, quede grabada junto al plan
+    # y el desfase posterior sea comprobable en vez de sospechado.
+    revision = .equiv_declaracion_revision(equiv)
   )
 }
 
@@ -204,6 +208,7 @@
     fuente = "equivalencias",
     declarada = derivado$declarada,
     n_laminas = derivado$n_laminas,
+    revision = derivado$revision,
     # Lo que no entro viaja con su motivo: un mazo mas corto de lo esperado sin
     # explicacion se lee como un fallo del generador.
     fuera = derivado$fuera,
