@@ -183,6 +183,9 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         // en false — autosave, flush y export siguen desarmados hasta leer
         // el config real.
         if (!cancelled) {
+          // Que el reintento se vea: hasta ahora esperar 15 s con el lienzo
+          // vacio era indistinguible de un proyecto sin laminas.
+          usePlanStore.getState().setHydrationRetrying(true);
           const delays = [2000, 5000, 10000, 15000];
           const delay = delays[Math.min(attempt, delays.length - 1)];
           retryTimer = window.setTimeout(() => {

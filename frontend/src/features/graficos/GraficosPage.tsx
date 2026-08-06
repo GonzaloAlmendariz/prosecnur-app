@@ -11,6 +11,8 @@ import {
 } from "../../api/client";
 import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
+import { LoadingBlock } from "../../components/States";
+import { graficosBodyLoadingLabel, graficosBodyState } from "./graficosBodyState";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
@@ -41,6 +43,7 @@ export default function GraficosPage() {
   const presets = usePlanStore((s) => s.presets);
   const wPresets = usePlanStore((s) => s.wPresets);
   const hydrated = usePlanStore((s) => s.hydrated);
+  const hydrationRetrying = usePlanStore((s) => s.hydrationRetrying);
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
   const { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan } =
@@ -68,6 +71,10 @@ export default function GraficosPage() {
   const [seededSlideCount, setSeededSlideCount] = useState(0);
 
   const prepOk = !!state?.analitica_prep_ok;
+  // La precedencia vive en `graficosBodyState`, no aquí: el estado «todavía no
+  // hidrató» es inalcanzable desde el navegador una vez hidratado, así que la
+  // decisión se prueba como función pura.
+  const bodyState = graficosBodyState({ hydrated, hydrationRetrying, isSharedReport, prepOk });
   const sharedReady = sharedPreflightStatus === "ready" && sharedPreflight?.ready === true;
   const canExport = (isSharedReport ? sharedReady : prepOk) && plan.slides.length > 0 && hydrated;
   const pendingSharedRequirements = sharedReportPendingRequirements(sharedPreflight);
@@ -339,7 +346,9 @@ export default function GraficosPage() {
         </ChromeSlotPortal>
       )}
 
-      {isSharedReport || prepOk ? (
+      {bodyState === "cargando" || bodyState === "reintentando" ? (
+        <LoadingBlock label={graficosBodyLoadingLabel(bodyState)} />
+      ) : bodyState === "editor" ? (
         <EditorShell />
       ) : (
         <GraficosPrepBlocked />
