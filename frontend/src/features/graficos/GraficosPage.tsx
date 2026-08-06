@@ -13,6 +13,8 @@ import { useSession } from "../../lib/SessionContext";
 import { Alert } from "../../components/Alert";
 import { LoadingBlock } from "../../components/States";
 import { graficosBodyLoadingLabel, graficosBodyState } from "./graficosBodyState";
+import { avisoDeclaracionAplicada, estadoDeclaracionAplicada } from "./declaracionAplicada";
+import { getEquivalencias } from "../../api/equivalencias";
 import { JobProgress } from "../../components/JobProgress";
 import { PageFrame } from "../../components/PageFrame";
 import { ChromeSlotPortal } from "../../app/ModuleChromeSlots";
@@ -44,6 +46,34 @@ export default function GraficosPage() {
   const wPresets = usePlanStore((s) => s.wPresets);
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrationRetrying = usePlanStore((s) => s.hydrationRetrying);
+  const equivalenciasRevision = usePlanStore((s) => s.equivalenciasRevision);
+  // Declaración de ahora, para contrastarla con la que armó el mazo. Sólo se
+  // pide cuando el plan salió de ahí: un proyecto que armó sus láminas a mano no
+  // tiene por qué pagar la consulta ni ver el aviso.
+  const [declaracionActual, setDeclaracionActual] = useState<{ revision: string; declarada: boolean } | null>(null);
+  useEffect(() => {
+    if (!equivalenciasRevision) { setDeclaracionActual(null); return; }
+    let cancelado = false;
+    void (async () => {
+      try {
+        const est = await getEquivalencias();
+        if (!cancelado) setDeclaracionActual({ revision: est.revision ?? "", declarada: Boolean(est.declarada) });
+      } catch {
+        // Sin respuesta no se afirma nada: callar es preferible a avisar de un
+        // desfase que no se pudo comprobar.
+        if (!cancelado) setDeclaracionActual(null);
+      }
+    })();
+    return () => { cancelado = true; };
+  }, [equivalenciasRevision]);
+
+  const avisoDeclaracion = declaracionActual
+    ? avisoDeclaracionAplicada(estadoDeclaracionAplicada({
+        revisionAplicada: equivalenciasRevision,
+        revisionActual: declaracionActual.revision,
+        declarada: declaracionActual.declarada,
+      }))
+    : "";
 
   // Autosave: hidrata al montar + guarda debounced 2s en cada cambio.
   const { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan } =
@@ -298,6 +328,8 @@ export default function GraficosPage() {
               onCancelled={onExportCancelled}
             />
           )}
+
+          {avisoDeclaracion && <Alert kind="warn">{avisoDeclaracion}</Alert>}
 
           {busyValidating && <Alert kind="info">{busyValidating}</Alert>}
           {warns.length > 0 && <Alert kind="warn">{warns.join(" · ")}</Alert>}

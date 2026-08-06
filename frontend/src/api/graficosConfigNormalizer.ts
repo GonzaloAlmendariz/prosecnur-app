@@ -148,6 +148,7 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
   const density = pick(source, "density");
   const canvasViewport = pick(source, "canvas_viewport", ["canvasViewport"]);
   const scopeRules = pick(source, "scope_rules", ["scopeRules"]);
+  const equivalenciasRevision = pick(source, "equivalencias_revision", ["equivalenciasRevision"]);
 
   const config: Dict = {
     version: "graficos/4",
@@ -163,6 +164,10 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
     inspector_tab: validInspectorTab(inspectorTab) ? inspectorTab : "content",
     density: validDensity(density) ? density : "comfortable",
     canvas_viewport: validViewport(canvasViewport) ? canvasViewport : DEFAULT_CANVAS_VIEWPORT,
+    // ADR 0063. Campo de primera clase y no huésped de `_unknown`: de ahí
+    // sobreviviría por accidente, y este sello es el que decide si el aviso de
+    // desfase aparece.
+    equivalencias_revision: typeof equivalenciasRevision === "string" ? equivalenciasRevision : "",
   };
 
   config.scope_rules = isObj(scopeRules)

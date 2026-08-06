@@ -92,6 +92,7 @@ export function SuggestedPlanButton() {
   const projectShell = useOptionalProjectShell();
   const currentPlan = usePlanStore((s) => s.plan);
   const loadPlan = usePlanStore((s) => s.loadPlan);
+  const setEquivalenciasRevision = usePlanStore((s) => s.setEquivalenciasRevision);
   const applyPptStyleProfile = usePlanStore((s) => s.applyPptStyleProfile);
   const setScopeRules = usePlanStore((s) => s.setScopeRules);
   const { profiles: styleProfiles } = usePptStyleProfiles();
@@ -188,6 +189,12 @@ export function SuggestedPlanButton() {
   function replacePlan() {
     if (!result) return;
     loadPlan(clonePlanWithFreshIds(result.plan));
+    // ADR 0063: se graba de qué revisión de la declaración salió el mazo. Sin
+    // esto el desfase posterior sólo se puede sospechar. Un plan que NO viene de
+    // la declaración la deja vacía a propósito: no hay nada que contrastar.
+    setEquivalenciasRevision(
+      result.fuente === "equivalencias" ? (result.revision ?? "") : "",
+    );
     applySelectedStyleProfile();
     setOpen(false);
   }

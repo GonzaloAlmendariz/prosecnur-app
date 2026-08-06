@@ -873,6 +873,8 @@ export type GraficosSuggestedPlanResponse = {
   /** ADR 0063: qué generó esta propuesta. `equivalencias` = mazo declarado. */
   fuente?: string;
   declarada?: boolean;
+  /** ADR 0063: revisión de la declaración de la que salió el mazo. */
+  revision?: string;
   n_laminas?: number;
   /** Filas que no entraron al mazo, con su motivo. */
   fuera?: { etiqueta: string; motivo: string; detalle?: string }[];

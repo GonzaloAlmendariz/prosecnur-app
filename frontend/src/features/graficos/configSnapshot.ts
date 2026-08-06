@@ -37,6 +37,7 @@ export function buildGraficosConfigFromStore(): GraficosConfig {
     inspector_tab: state.inspectorTab,
     density: state.density,
     canvas_viewport: state.canvasViewport,
+    equivalencias_revision: state.equivalenciasRevision,
     scope_rules: buildGraficosScopeRules(state.scopeRules, {
       presets: state.presets,
       paletas: state.paletas,

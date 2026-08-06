@@ -98,7 +98,8 @@
   if (!disponible || is.null(equiv)) {
     return(list(
       ok = TRUE, disponible = disponible, declarada = FALSE,
-      n_filas = 0L, bases = character(0), cobertura = list(), desfasadas = character(0)
+      n_filas = 0L, bases = character(0), cobertura = list(), desfasadas = character(0),
+      revision = ""
     ))
   }
 
@@ -127,6 +128,9 @@
     n_sin_etiqueta = as.integer(equiv$n_sin_etiqueta %||% 0L),
     bases = as.character(equiv$bases %||% character(0)),
     importada_en = as.character(equiv$importada_en %||% ""),
+    # Huella del contenido: Gráficos la compara contra la que quedó grabada al
+    # aplicar el mazo para saber si la propuesta envejeció (ADR 0063).
+    revision = .equiv_declaracion_revision(equiv),
     cobertura = cobertura,
     desfasadas = desfasadas,
     filas = equiv$filas
