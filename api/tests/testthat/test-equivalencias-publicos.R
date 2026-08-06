@@ -163,10 +163,12 @@ test_that("la plantilla sale poblada con las variables y etiquetas de cada base"
   )
   df <- .equiv_plantilla_df(inst)
 
+  # ADR 0064: `enunciado` viaja junto a la diapositiva. Sin esa columna, reexportar
+  # una declaración perdería el texto que titula la diapositiva.
   expect_setequal(
     names(df),
-    c("seccion", "etiqueta_estandar", "diapositiva", "docentes", "docentes_etiqueta",
-      "estudiantes", "estudiantes_etiqueta")
+    c("origen", "seccion", "diapositiva", "enunciado", "etiqueta_estandar",
+      "docentes", "docentes_etiqueta", "estudiantes", "estudiantes_etiqueta")
   )
   # Una fila por variable de cada base: la app NO adivina qué se empareja con qué.
   expect_equal(nrow(df), 3L)
@@ -355,4 +357,174 @@ test_that("sólo las preguntas de opción son graficables, directa o vía recodi
   # Numérica sin recodificada: no hay nada que apilar.
   expect_false(.equiv_es_graficable(inst, "p9"))
   expect_false(.equiv_es_graficable(inst, "inexistente"))
+})
+
+# --- ADR 0064: el enunciado y la lectura de la matriz real --------------------
+
+test_that("la matriz real entra aunque readxl desambigue los encabezados repetidos", {
+  # Las matrices del equipo titulan DOS bloques con el nombre del publico —el de
+  # variables y el de ayuda «Variable labels»—, asi que readxl entrega
+  # `Docentes...2` y `Docentes...12`. Sin retirar ese sufijo, NINGUNA columna
+  # normalizaba a «docentes» y la matriz de 152 filas rebotaba entera con
+  # E_EQUIV_SIN_COLUMNAS_BASE.
+  df <- data.frame(
+    "Sección" = c("1.2 Servicios", NA),
+    "Docentes...2" = c("q0013_0001", "q0013_0002"),
+    "...3" = c("¿Conoce salud?", "¿Conoce psicología?"),
+    "Etiqueta estandar" = c("Servicio de salud", "Bienestar psicológico"),
+    "Diapo" = c(3, 3),
+    "Docentes...12" = c("q0013_0001 '¿Conoce salud?'", "q0013_0002 '¿Conoce psicología?'"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+
+  equiv <- .equiv_desde_df(df, c("docentes"))
+
+  expect_equal(equiv$n_filas, 2L)
+  # De las dos columnas «Docentes» se elige la de VARIABLES por su contenido: un
+  # nombre de variable no lleva espacios y la de ayuda si. Elegir por posicion
+  # seria un supuesto sobre como alguien ordeno su Excel.
+  expect_equal(equiv$filas[[1]]$variables$docentes, "p13_1")
+  expect_equal(equiv$filas[[2]]$variables$docentes, "p13_2")
+  expect_equal(equiv$filas[[1]]$diapositiva, "3")
+  # La seccion vive en celdas combinadas y se rellena hacia abajo.
+  expect_equal(equiv$filas[[2]]$seccion, "1.2 Servicios")
+})
+
+test_that("el enunciado se lee de la matriz y se rellena hacia abajo", {
+  df <- data.frame(
+    seccion = c("1.2 Servicios", NA),
+    enunciado = c("¿Conoce los siguientes servicios?", NA),
+    etiqueta_estandar = c("Servicio de salud", "Bienestar psicológico"),
+    diapositiva = c("3", "3"),
+    docentes = c("p13_1", "p13_2"),
+    stringsAsFactors = FALSE
+  )
+
+  equiv <- .equiv_desde_df(df, c("docentes"))
+
+  # El enunciado es un atributo de la DIAPOSITIVA escrito una vez sobre su bloque; sin
+  # el relleno hacia abajo, la segunda fila lo perderia y la diapositiva diria dos
+  # cosas segun que fila se leyera primero.
+  expect_equal(equiv$filas[[1]]$enunciado, "¿Conoce los siguientes servicios?")
+  expect_equal(equiv$filas[[2]]$enunciado, "¿Conoce los siguientes servicios?")
+})
+
+test_that("cambiar el enunciado mueve la revision de la declaracion", {
+  base_filas <- list(list(
+    seccion = "", etiqueta_estandar = "Salud", diapositiva = "3",
+    enunciado = "", variables = list(docentes = "p13_1"), cantidad = 1L))
+  con_enunciado <- base_filas
+  con_enunciado[[1]]$enunciado <- "¿Conoce los siguientes servicios?"
+
+  # El enunciado titula la diapositiva (ADR 0064), asi que cambiarlo cambia el mazo:
+  # si no moviera la revision, Graficos no podria avisar del desfase.
+  expect_false(identical(
+    .equiv_declaracion_revision(list(filas = base_filas)),
+    .equiv_declaracion_revision(list(filas = con_enunciado))
+  ))
+})
+
+test_that("las opciones de la escala salen enteras y con la caja original", {
+  .esc <- function(labels) list(
+    survey = data.frame(type = "select_one lst", name = "p1", label = "X",
+                        stringsAsFactors = FALSE),
+    choices = data.frame(list_name = "lst", name = as.character(seq_along(labels)),
+                         label = labels, stringsAsFactors = FALSE))
+
+  op <- .equiv_escala_opciones(.esc(c("Sí", "No")), "p1")
+  # Caja ORIGINAL: la firma las pasa a minusculas para comparar, y derivar de ahi
+  # el texto pintaba «si / no» en pantalla.
+  expect_equal(vapply(op, function(x) x$etiqueta, character(1)), c("Sí", "No"))
+  expect_equal(vapply(op, function(x) x$codigo, character(1)), c("1", "2"))
+
+  # Enteras: cuanto cabe lo decide la superficie. Recortar aqui obligaba a elegir
+  # un limite a ciegas y mutilaba las escalas de cinco puntos del estudio.
+  expect_length(.equiv_escala_opciones(.esc(as.character(1:9)), "p1"), 9L)
+
+  # Sin lista no hay opciones; inventar una ensenaria una escala que no existe.
+  libre <- list(survey = data.frame(type = "integer", name = "p1", label = "X",
+                                    stringsAsFactors = FALSE))
+  expect_length(.equiv_escala_opciones(libre, "p1"), 0L)
+})
+
+test_that("la caja de las opciones no cuenta como escala distinta", {
+  # Medido: 56 de 58 temas de Acreditacion Contabilidad quedaban fuera del mazo
+  # porque un cuestionario escribia «Totalmente en desacuerdo» y otro «Totalmente
+  # en Desacuerdo». La caja es un accidente de transcripcion, no una escala.
+  ch_min <- data.frame(list_name = "lst", name = c("1", "2"),
+                       label = c("Totalmente en desacuerdo", "De acuerdo"),
+                       stringsAsFactors = FALSE)
+  ch_may <- data.frame(list_name = "lst", name = c("1", "2"),
+                       label = c("Totalmente en Desacuerdo", " De  acuerdo "),
+                       stringsAsFactors = FALSE)
+  inst <- function(ch) list(
+    survey = data.frame(type = "select_one lst", name = "p1", label = "X",
+                        stringsAsFactors = FALSE),
+    choices = ch)
+
+  expect_equal(.equiv_firma_escala(inst(ch_min), "p1"),
+               .equiv_firma_escala(inst(ch_may), "p1"))
+
+  # El CODIGO si se compara literal: ahi un 1 contra un 2 cambia lo que la barra
+  # significa, y confundirlos seria el defecto que la firma existe para evitar.
+  ch_otro <- ch_min
+  ch_otro$name <- c("2", "1")
+  expect_false(identical(.equiv_firma_escala(inst(ch_min), "p1"),
+                         .equiv_firma_escala(inst(ch_otro), "p1")))
+})
+
+# --- ADR 0064: la plantilla sembrada y el efecto de una propuesta -------------
+
+test_that("la plantilla sale sembrada y marca lo propuesto en su columna", {
+  inst <- list(
+    docentes = .eqp_inst(c("p13_1", "p14_1"), c("Servicio de salud", "Servicio de salud")),
+    estudiantes = .eqp_inst(c("p11_1", "p12_1"), c("Servicio de salud", "Servicio de salud"))
+  )
+  df <- .equiv_plantilla_df(inst, propuestas = .equiv_sugerir(inst))
+
+  # Dos filas emparejadas en vez de cuatro sueltas: es lo que la siembra aporta.
+  expect_equal(nrow(df), 2L)
+  expect_true(all(df$origen == .EQUIV_ORIGEN_PROPUESTA))
+  expect_true(all(nzchar(df$docentes)))
+  expect_true(all(nzchar(df$estudiantes)))
+
+  # Y vuelve marcada: el viaje por el Excel no convierte la propuesta en decision.
+  equiv <- .equiv_desde_df(df, c("docentes", "estudiantes"))
+  expect_equal(equiv$n_sugeridas, 2L)
+  expect_true(isTRUE(equiv$filas[[1]]$sugerida))
+})
+
+test_that("una propuesta ya declarada no se vuelve a sembrar", {
+  inst <- list(
+    docentes = .eqp_inst(c("p13_1", "p14_1"), c("Servicio de salud", "Servicio de salud")),
+    estudiantes = .eqp_inst(c("p11_1", "p12_1"), c("Servicio de salud", "Servicio de salud"))
+  )
+  ya <- list(filas = list(list(
+    seccion = "", etiqueta_estandar = "Salud", diapositiva = "3", enunciado = "",
+    variables = list(docentes = "p13_1", estudiantes = "p11_1"), cantidad = 2L)))
+
+  df <- .equiv_plantilla_df(inst, equiv = ya, propuestas = .equiv_sugerir(inst))
+
+  # La declarada primero y sin marca; la propuesta que la tocaba se descarta
+  # ENTERA, no a medias — el mismo invariante que rige en el editor.
+  expect_equal(df$origen[1], "")
+  expect_equal(df$etiqueta_estandar[1], "Salud")
+  expect_equal(sum(df$docentes == "p13_1"), 1L)
+  # Y ninguna variable se emite dos veces.
+  expect_equal(sum(nzchar(df$docentes)), 2L)
+  expect_equal(sum(nzchar(df$estudiantes)), 2L)
+})
+
+test_that("una propuesta sin confirmar no escribe etiquetas", {
+  equiv <- list(bases = c("docentes"), filas = list(
+    list(etiqueta_estandar = "Decidida", variables = list(docentes = "p13_1")),
+    list(etiqueta_estandar = "Propuesta", variables = list(docentes = "p14_1"),
+         sugerida = TRUE)))
+
+  labels <- .equiv_variable_labels_por_base(equiv)
+
+  # Se conserva en la declaracion —para eso viaja marcada— pero no actua: aplicar
+  # su etiqueta seria tratar una sugerencia como una decision.
+  expect_equal(labels$docentes[["p13_1"]], "Decidida")
+  expect_null(labels$docentes[["p14_1"]])
 })

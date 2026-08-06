@@ -13,7 +13,7 @@
  * guarda sin que nadie la confirme.
  */
 
-import type { EquivalenciaFila } from "../../api/equivalencias";
+import type { EquivalenciaFila, OpcionDeEscala, VariableDeBase } from "../../api/equivalencias";
 
 export type FilaEditor = EquivalenciaFila & {
   /** Identidad estable de la fila mientras se edita; no viaja al backend. */
@@ -26,13 +26,14 @@ export function nuevaFilaId(): string {
   return `fila-${contador}`;
 }
 
-export function filaVacia(seccion = ""): FilaEditor {
+export function filaVacia(seccion = "", diapositiva = "", enunciado = ""): FilaEditor {
   return {
     id: nuevaFilaId(),
     seccion,
     etiqueta_estandar: "",
     variables: {},
-    diapositiva: "",
+    diapositiva,
+    enunciado,
     cantidad: 0,
   };
 }
@@ -66,13 +67,32 @@ export function asignarVariable(
   });
 }
 
+export type CampoFila = "etiqueta_estandar" | "seccion" | "diapositiva" | "enunciado";
+
 export function editarCampo(
   filas: readonly FilaEditor[],
   filaId: string,
-  campo: "etiqueta_estandar" | "seccion" | "diapositiva",
+  campo: CampoFila,
   valor: string,
 ): FilaEditor[] {
   return filas.map((fila) => (fila.id === filaId ? { ...fila, [campo]: valor } : fila));
+}
+
+/**
+ * Edita un campo en TODAS las filas de una diapositiva. El enunciado y la sección son
+ * atributos de la diapositiva que el formato plano guarda repetidos por fila (ADR
+ * 0064); escribirlos en una sola fila dejaría la diapositiva diciendo dos cosas según
+ * qué fila se leyera primero.
+ */
+export function editarCampoDeDiapositiva(
+  filas: readonly FilaEditor[],
+  diapositiva: string,
+  campo: CampoFila,
+  valor: string,
+): FilaEditor[] {
+  return filas.map((fila) =>
+    (fila.diapositiva ?? "").trim() === diapositiva ? { ...fila, [campo]: valor } : fila,
+  );
 }
 
 export function quitarFila(filas: readonly FilaEditor[], filaId: string): FilaEditor[] {
@@ -134,15 +154,19 @@ export function confirmarTodas(filas: readonly FilaEditor[]): FilaEditor[] {
 }
 
 /**
- * Lo que se guarda. Las filas sin variables no declaran nada, y **las que siguen
- * marcadas como sugeridas no se guardan**: una propuesta que se persiste sin que
- * nadie la mire es indistinguible de una decisión, que es justo lo que el ADR
- * 0062 prohíbe.
+ * Lo que se guarda. Las filas sin variables no declaran nada y se descartan.
+ *
+ * Las propuestas **sí se guardan, marcadas** (ADR 0064). La regla anterior las
+ * descartaba al guardar, y con la plantilla sembrada eso destruía el trabajo:
+ * confirmar diez de cincuenta y ocho propuestas y pulsar Guardar borraba las
+ * otras cuarenta y ocho sin ninguna señal. Lo que el ADR 0062 protege —que una
+ * sugerencia nunca actúe como decisión— se cumple donde importa: una propuesta
+ * no escribe etiquetas en Analítica y no llega al mazo.
  */
 export function filasParaGuardar(filas: readonly FilaEditor[]): EquivalenciaFila[] {
   return filas
-    .filter((fila) => Object.keys(fila.variables).length > 0 && !fila.sugerida)
-    .map(({ id: _id, sugerida: _sugerida, ...resto }) => ({
+    .filter((fila) => Object.keys(fila.variables).length > 0)
+    .map(({ id: _id, ...resto }) => ({
       ...resto,
       cantidad: Object.keys(resto.variables).length,
     }));
@@ -155,6 +179,333 @@ export type ResumenEditor = {
   sinEtiqueta: number;
   conDiapositiva: number;
 };
+
+// ---------------------------------------------------------------------------
+// Agrupación en diapositivas (ADR 0064)
+// ---------------------------------------------------------------------------
+
+export type InfoEscala = { firma: string; opciones: OpcionDeEscala[] };
+
+/** `base -> variable -> {firma, opciones}`, para no rebuscar en el catálogo. */
+export type CatalogoEscalas = Record<string, Record<string, InfoEscala>>;
+
+export function catalogoEscalas(
+  variablesPorBase: Record<string, readonly VariableDeBase[]>,
+): CatalogoEscalas {
+  const out: CatalogoEscalas = {};
+  for (const [base, vars] of Object.entries(variablesPorBase ?? {})) {
+    const porNombre: Record<string, InfoEscala> = {};
+    for (const v of vars ?? []) {
+      porNombre[v.name] = { firma: v.firma ?? "", opciones: v.opciones ?? [] };
+    }
+    out[base] = porNombre;
+  }
+  return out;
+}
+
+/**
+ * Cuántos caracteres de escala caben en el chip antes de que valga más la pena
+ * decir cuántas opciones hay. Por encima de esto el chip recortaba con puntos
+ * suspensivos, que deforma la cabecera y no dice nada útil: el popover es quien
+ * enseña la lista entera.
+ */
+const CHIP_ESCALA_MAX = 30;
+
+/** Texto del chip: la escala entera si cabe, y si no cuántas opciones tiene. */
+export function resumenEscala(opciones: readonly OpcionDeEscala[]): string {
+  if (!opciones.length) return "";
+  const completo = opciones.map((o) => o.etiqueta).join(" / ");
+  if (completo.length <= CHIP_ESCALA_MAX) return completo;
+  return `${opciones.length} opciones`;
+}
+
+/** Una escala y los públicos que la usan. Nombrar los dos es lo que convierte
+ *  «no comparten escala» en algo que se puede resolver sin abrir el instrumento. */
+export type EscalaConBases = {
+  /** Resumen legible, para el aviso. */
+  texto: string;
+  /** Opciones enteras, para el popover. Vacío cuando la escala no tiene lista. */
+  opciones: OpcionDeEscala[];
+  bases: string[];
+};
+
+export type EscalaDeFila = {
+  /** Firmas distintas entre los públicos del tema. */
+  firmas: string[];
+  /** Resumen legible; el del primer público que la declare. */
+  texto: string;
+  /** Opciones enteras de esa primera escala. */
+  opciones: OpcionDeEscala[];
+  /** **E1 rota**: los públicos de este tema no comparten escala. */
+  rota: boolean;
+  /** Qué escala usa cada público, agrupado por firma y en orden de aparición. */
+  porFirma: EscalaConBases[];
+};
+
+/**
+ * Escala de un tema. **E1** del ADR 0064: las variables de los distintos
+ * públicos deben compartir firma. Se compara la firma y nunca el texto, porque
+ * dos listas distintas pueden verse iguales truncadas.
+ *
+ * Una variable sin firma —numérica sin recodificar, texto libre— no cuenta como
+ * divergencia: no tiene escala que contradecir, y marcarla en rojo enseñaría un
+ * problema donde sólo hay una ausencia.
+ */
+/**
+ * Cómo se nombra una escala que no tiene lista de opciones. El backend devuelve
+ * `escala` vacía en ese caso —no hay opciones que enumerar— y la firma guarda el
+ * tipo. Sin traducirlo, el aviso decía «escala sin etiquetas en docentes; escala
+ * sin etiquetas en estudiantes», que se lee como un sinsentido: dos escalas
+ * distintas con el mismo nombre. Con el tipo dice lo que de verdad pasa —«código
+ * PUCP es numérico en docentes y texto en estudiantes»—, que además es el
+ * hallazgo.
+ */
+function textoDeEscala(info: InfoEscala): string {
+  const resumen = resumenEscala(info.opciones);
+  if (resumen) return resumen;
+  const libre = /^libre:(.*)$/.exec(info.firma);
+  if (libre) {
+    const tipo = libre[1];
+    if (/^(integer|decimal)$/.test(tipo)) return "numérica, sin opciones";
+    if (tipo === "text") return "texto libre";
+    if (/^(date|datetime|time)$/.test(tipo)) return "fecha";
+    return tipo ? `tipo ${tipo}, sin opciones` : "sin escala";
+  }
+  const lista = /^lista:(.*)$/.exec(info.firma);
+  if (lista) return `lista «${lista[1]}» sin opciones descritas`;
+  return "sin escala";
+}
+
+export function escalaDeFila(fila: FilaEditor, cat: CatalogoEscalas): EscalaDeFila {
+  const firmas: string[] = [];
+  const porFirma: EscalaConBases[] = [];
+  for (const [base, variable] of Object.entries(fila.variables)) {
+    const info = cat[base]?.[variable];
+    if (!info?.firma) continue;
+    const i = firmas.indexOf(info.firma);
+    if (i === -1) {
+      firmas.push(info.firma);
+      porFirma.push({ texto: textoDeEscala(info), opciones: info.opciones, bases: [base] });
+    } else {
+      porFirma[i].bases.push(base);
+    }
+  }
+  const primera = porFirma.find((e) => e.opciones.length) ?? porFirma[0];
+  return {
+    firmas,
+    texto: primera?.texto ?? "",
+    opciones: primera?.opciones ?? [],
+    rota: firmas.length > 1,
+    porFirma,
+  };
+}
+
+export type DiapositivaEditor = {
+  /** Clave declarada. `""` es el grupo de lo que todavía no tiene diapositiva. */
+  clave: string;
+  enunciado: string;
+  seccion: string;
+  filas: FilaEditor[];
+  /** Resumen de la escala dominante de la diapositiva, para el chip. */
+  escalaTexto: string;
+  /** Sus opciones enteras, para el popover que las despliega. */
+  escalaOpciones: OpcionDeEscala[];
+  /**
+   * Escalas distintas presentes entre sus temas, en texto legible. Más de una =
+   * **E2**: la diapositiva sale apilada en bloques.
+   */
+  escalas: string[];
+  /**
+   * Temas cuyos públicos no comparten escala (**E1**), con nombre y con qué
+   * escala usa cada público. Un conteo no basta: «1 tema no comparte escala» no
+   * dice cuál de los cuatro es ni qué hay que mirar.
+   */
+  temasEscalaRota: { etiqueta: string; porFirma: EscalaConBases[] }[];
+  /** Etiquetas repetidas dentro de la diapositiva (**E3**): barras indistinguibles. */
+  etiquetasRepetidas: { etiqueta: string; veces: number }[];
+};
+
+/**
+ * Orden de diapositivas. Numérico cuando se puede: como texto, «10» va antes que «2»
+ * y el editor mostraría un orden que nadie pidió. Lo que no tiene diapositiva va al
+ * final, porque es trabajo pendiente y no una diapositiva más.
+ */
+function ordenarClaves(claves: readonly string[]): string[] {
+  return [...claves].sort((a, b) => {
+    if (a === "") return 1;
+    if (b === "") return -1;
+    const na = Number(a);
+    const nb = Number(b);
+    const aNum = a !== "" && Number.isFinite(na);
+    const bNum = b !== "" && Number.isFinite(nb);
+    if (aNum && bNum) return na - nb;
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return a.localeCompare(b, "es");
+  });
+}
+
+export function agruparEnDiapositivas(
+  filas: readonly FilaEditor[],
+  cat: CatalogoEscalas,
+): DiapositivaEditor[] {
+  const grupos = new Map<string, FilaEditor[]>();
+  for (const fila of filas) {
+    const clave = (fila.diapositiva ?? "").trim();
+    const actual = grupos.get(clave);
+    if (actual) actual.push(fila);
+    else grupos.set(clave, [fila]);
+  }
+
+  return ordenarClaves([...grupos.keys()]).map((clave) => {
+    const propias = grupos.get(clave) ?? [];
+    const firmas: string[] = [];
+    const escalas: string[] = [];
+    let escalaTexto = "";
+    let escalaOpciones: OpcionDeEscala[] = [];
+    const temasEscalaRota: { etiqueta: string; porFirma: EscalaConBases[] }[] = [];
+    for (const fila of propias) {
+      const e = escalaDeFila(fila, cat);
+      if (e.rota) {
+        temasEscalaRota.push({
+          etiqueta: fila.etiqueta_estandar.trim() || Object.values(fila.variables).join(" · "),
+          porFirma: e.porFirma,
+        });
+      }
+      for (let i = 0; i < e.firmas.length; i += 1) {
+        if (firmas.includes(e.firmas[i])) continue;
+        firmas.push(e.firmas[i]);
+        escalas.push(e.porFirma[i]?.texto ?? "");
+      }
+      if (!escalaTexto && e.texto) {
+        escalaTexto = e.texto;
+        escalaOpciones = e.opciones;
+      }
+    }
+
+    // E3 se comprueba DENTRO de la diapositiva y no en todo el estudio: que
+    // «Servicio de salud» se repita entre diapositivas es correcto —cada una tiene su
+    // enunciado—, y sólo dentro de una serían dos barras con el mismo nombre.
+    const conteo = new Map<string, { etiqueta: string; veces: number }>();
+    for (const fila of propias) {
+      const et = fila.etiqueta_estandar.trim();
+      if (!et) continue;
+      const clave3 = et.toLowerCase();
+      const previo = conteo.get(clave3);
+      if (previo) previo.veces += 1;
+      else conteo.set(clave3, { etiqueta: et, veces: 1 });
+    }
+    const repetidas = [...conteo.values()].filter((c) => c.veces > 1);
+
+    return {
+      clave,
+      enunciado: propias.find((f) => (f.enunciado ?? "").trim())?.enunciado?.trim() ?? "",
+      seccion: propias.find((f) => f.seccion.trim())?.seccion.trim() ?? "",
+      filas: propias,
+      escalaTexto,
+      escalaOpciones,
+      escalas,
+      temasEscalaRota,
+      etiquetasRepetidas: repetidas,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Agrupación asistida (ADR 0064, regla 8)
+// ---------------------------------------------------------------------------
+//
+// El instrumento ya trae sus baterías: en cada público las variables de una
+// matriz comparten raíz (`p13_1`, `p13_2`, `p13_3` → `p13`). Dos temas que
+// comparten raíz **en algún público** pertenecen a la misma batería, y esa
+// batería es el punto de partida de una diapositiva.
+//
+// La unión se hace POR PÚBLICO y no sobre la tupla completa: «Empleabilidad»
+// sólo existe en estudiantes, así que nunca compartiría una firma de cuatro
+// públicos con sus hermanas — pero sí comparte la raíz `p11` con ellas dentro de
+// estudiantes, que es como se descubre que van juntas.
+//
+// Medido contra la matriz real: reconstruye 33 de las 44 diapositivas exactas.
+// Las 11 restantes juntan dos baterías, y las baterías largas —una de 25 temas—
+// el analista las parte. Por eso esto PROPONE y no resuelve: se aplica al editor
+// como una edición más, visible en las tarjetas, y sólo se persiste al guardar.
+
+/** Raíz de una variable de batería: `p13_1` → `p13`. Una variable sin sufijo
+ *  numérico no pertenece a ninguna batería y devuelve `""`. */
+function raizDeVariable(nombre: string): string {
+  const m = /^(.*?)_\d{1,4}$/.exec(nombre);
+  return m ? m[1] : "";
+}
+
+/**
+ * Propone una diapositiva para cada tema que no tenga una, agrupando por batería
+ * del instrumento. **No toca los que ya tienen diapositiva**: una asignación
+ * hecha por el analista no se reescribe por una heurística.
+ *
+ * Las claves nuevas continúan la numeración existente, para que la propuesta no
+ * choque con lo declarado ni renumere el informe.
+ */
+export function agruparPorBateria(filas: readonly FilaEditor[]): FilaEditor[] {
+  const sinDiapo = filas
+    .map((fila, i) => ({ fila, i }))
+    .filter(({ fila }) => !(fila.diapositiva ?? "").trim());
+  if (!sinDiapo.length) return [...filas];
+
+  // Union-find sobre los índices de `sinDiapo`.
+  const padre = sinDiapo.map((_, i) => i);
+  const raiz = (a: number): number => {
+    let x = a;
+    while (padre[x] !== x) {
+      padre[x] = padre[padre[x]];
+      x = padre[x];
+    }
+    return x;
+  };
+  const unir = (a: number, b: number) => {
+    const ra = raiz(a);
+    const rb = raiz(b);
+    if (ra !== rb) padre[ra] = rb;
+  };
+
+  const porRaiz = new Map<string, number>();
+  sinDiapo.forEach(({ fila }, idx) => {
+    for (const [base, variable] of Object.entries(fila.variables)) {
+      const r = raizDeVariable(variable);
+      if (!r) continue;
+      const clave = `${base}::${r}`;
+      const previo = porRaiz.get(clave);
+      if (previo === undefined) porRaiz.set(clave, idx);
+      else unir(previo, idx);
+    }
+  });
+
+  // Numeración: se continúa después de la mayor clave numérica ya declarada.
+  let siguiente = 0;
+  for (const fila of filas) {
+    const n = Number((fila.diapositiva ?? "").trim());
+    if (Number.isFinite(n)) siguiente = Math.max(siguiente, n);
+  }
+
+  // El orden de las claves nuevas sigue el orden de la declaración, no el de los
+  // componentes: un informe numerado al azar obligaría a reordenarlo entero.
+  const claveDeGrupo = new Map<number, string>();
+  const asignada = new Map<number, string>();
+  sinDiapo.forEach((_, idx) => {
+    const g = raiz(idx);
+    let clave = claveDeGrupo.get(g);
+    if (clave === undefined) {
+      siguiente += 1;
+      clave = String(siguiente);
+      claveDeGrupo.set(g, clave);
+    }
+    asignada.set(sinDiapo[idx].i, clave);
+  });
+
+  return filas.map((fila, i) => {
+    const clave = asignada.get(i);
+    return clave === undefined ? fila : { ...fila, diapositiva: clave };
+  });
+}
 
 export function resumenEditor(filas: readonly FilaEditor[]): ResumenEditor {
   const confirmadas = filas.filter((f) => !f.sugerida && Object.keys(f.variables).length > 0);

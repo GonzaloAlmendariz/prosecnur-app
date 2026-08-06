@@ -48,7 +48,7 @@ export default function GraficosPage() {
   const hydrationRetrying = usePlanStore((s) => s.hydrationRetrying);
   const equivalenciasRevision = usePlanStore((s) => s.equivalenciasRevision);
   // Declaración de ahora, para contrastarla con la que armó el mazo. Sólo se
-  // pide cuando el plan salió de ahí: un proyecto que armó sus láminas a mano no
+  // pide cuando el plan salió de ahí: un proyecto que armó sus diapositivas a mano no
   // tiene por qué pagar la consulta ni ver el aviso.
   const [declaracionActual, setDeclaracionActual] = useState<{ revision: string; declarada: boolean } | null>(null);
   useEffect(() => {
@@ -113,7 +113,7 @@ export default function GraficosPage() {
     setSharedPreflightStatus("loading");
     setSharedPreflightError("");
     try {
-      // includePlan: el editor siembra sus láminas con este mismo plan, así el
+      // includePlan: el editor siembra sus diapositivas con este mismo plan, así el
       // conteo que promete el menú del conjunto y lo que aparece en el lienzo
       // salen del único cálculo que ya se paga aquí.
       const result = await apiGraficosConsolidadoPreflight({ includePlan: true });
@@ -136,7 +136,7 @@ export default function GraficosPage() {
     return () => window.removeEventListener("pulso:session-changed", reload);
   }, [isSharedReport, loadSharedPreflight, state?.session_id]);
   // Siembra del informe compartido: si el borrador nunca se guardó y el plan
-  // está vacío, el lienzo aterriza con las láminas que el preflight propuso en
+  // está vacío, el lienzo aterriza con las diapositivas que el preflight propuso en
   // vez del estado "Sin slides aún" que contradecía al menú del conjunto.
   useEffect(() => {
     const suggested = sharedPreflight?.plan;
@@ -187,7 +187,7 @@ export default function GraficosPage() {
         if (!readiness?.ready) {
           setError({
             message: "El informe compartido todavía no está listo para exportarse.",
-            hint: "Puedes seguir configurando sus láminas. Completa y aprueba cada base en Analítica, luego vuelve a comprobar.",
+            hint: "Puedes seguir configurando sus diapositivas. Completa y aprueba cada base en Analítica, luego vuelve a comprobar.",
           });
           return;
         }
@@ -266,7 +266,7 @@ export default function GraficosPage() {
 
           {isSharedReport && seededSlideCount > 0 && !dirty && (
             <Alert kind="info">
-              {seededSlideCount} láminas compuestas desde {sharedPreflight?.source_order.length ?? 0} bases
+              {seededSlideCount} diapositivas compuestas desde {sharedPreflight?.source_order.length ?? 0} bases
               aprobadas. Todavía no se guardan: quedan fijadas al editar o exportar.
             </Alert>
           )}

@@ -10,12 +10,14 @@
 // La superficie tiene dos entradas deliberadas y en este orden: generar la
 // plantilla poblada (la vía principal del ADR) y subir una ya escrita.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  CheckCheck,
   CheckCircle2,
   Download,
   GitCompare,
+  Layers,
   Save,
   Sparkles,
   Upload,
@@ -32,11 +34,17 @@ import {
   type VariableDeBase,
 } from "../../api/equivalencias";
 import { EquivalenciasTabla } from "./EquivalenciasTabla";
+import { EquivalenciasDiapositivas } from "./EquivalenciasDiapositivas";
 import {
   aFilasEditor,
+  agruparEnDiapositivas,
+  agruparPorBateria,
   asignarVariable,
+  catalogoEscalas,
   confirmarFila,
+  confirmarTodas,
   editarCampo,
+  editarCampoDeDiapositiva,
   filaVacia,
   filasParaGuardar,
   incorporarSugerencias,
@@ -79,6 +87,44 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   const [filas, setFilas] = useState<FilaEditor[]>([]);
   const [variablesPorBase, setVariablesPorBase] = useState<Record<string, VariableDeBase[]>>({});
   const [sucio, setSucio] = useState(false);
+  // Por diapositiva es la vista por defecto (ADR 0064): es el grano en que se decide
+  // el mazo. La tabla plana se conserva porque sigue siendo la mejor forma de
+  // barrer 150 temas buscando uno.
+  const [vista, setVista] = useState<"diapositivas" | "tabla">("diapositivas");
+
+  // ADR 0064 regla 8: la agrupación se PROPONE. Se aplica al editor como una
+  // edición más —visible en las tarjetas, revertible sin guardar— y sólo se
+  // persiste al pulsar Guardar. Acierta 33 de 44 diapositivas del estudio
+  // medido; las baterías largas hay que partirlas a mano, así que ofrecerla como
+  // algo que se acepta en bloque sería el error que el ADR 0062 prohíbe.
+  const onAgrupar = useCallback(() => {
+    setFilas((prev) => {
+      const next = agruparPorBateria(prev);
+      const nuevas = next.filter(
+        (f, i) => (f.diapositiva ?? "") !== (prev[i]?.diapositiva ?? ""),
+      ).length;
+      setAviso(
+        nuevas > 0
+          ? `${nuevas} temas agrupados por batería del formulario. Revisa las tarjetas —las baterías largas suelen partirse en varias— y guarda cuando estén bien.`
+          : "Todos los temas ya tienen diapositiva.",
+      );
+      return next;
+    });
+    setSucio(true);
+  }, []);
+
+  const onConfirmarTodas = useCallback(() => {
+    setFilas((prev) => {
+      const pendientes = prev.filter((f) => f.sugerida).length;
+      setAviso(
+        pendientes > 0
+          ? `${pendientes} propuestas confirmadas. Guarda para que apliquen sus etiquetas y entren al mazo.`
+          : "No hay propuestas pendientes.",
+      );
+      return confirmarTodas(prev);
+    });
+    setSucio(true);
+  }, []);
 
   const refrescar = useCallback(async () => {
     setCargando(true);
@@ -198,6 +244,16 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
     }
   }, [filas, onDeclaradas]);
 
+  // El catálogo se indexa una vez y no en cada fila: son cientos de variables por
+  // base y la vista de diapositivas resuelve la escala de cada tema al pintar.
+  const catalogo = useMemo(() => catalogoEscalas(variablesPorBase), [variablesPorBase]);
+  const diapositivas = useMemo(() => agruparEnDiapositivas(filas, catalogo), [filas, catalogo]);
+  const resumen = useMemo(() => resumenEditor(filas), [filas]);
+  const sinDiapositiva = useMemo(
+    () => filas.filter((f) => !(f.diapositiva ?? "").trim()).length,
+    [filas],
+  );
+
   if (cargando && !estado) {
     return (
       <section className="pulso-equiv" aria-label="Equivalencias entre públicos">
@@ -286,25 +342,88 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
       >
         {filas.length > 0 ? (
           <>
-            <EquivalenciasTabla
-              bases={bases.length ? bases : Object.keys(variablesPorBase)}
-              filas={filas}
-              variablesPorBase={variablesPorBase}
-              onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
-              onEditar={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
-              onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
-              onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
-              onAgregarFila={() => { setFilas((p) => [...p, filaVacia()]); setSucio(true); }}
-            />
+            <div className="pulso-equiv-vistas" role="group" aria-label="Forma de ver la declaración">
+              <button
+                type="button"
+                className={vista === "diapositivas" ? "is-active" : ""}
+                aria-pressed={vista === "diapositivas"}
+                onClick={() => setVista("diapositivas")}
+              >
+                Por diapositiva
+              </button>
+              <button
+                type="button"
+                className={vista === "tabla" ? "is-active" : ""}
+                aria-pressed={vista === "tabla"}
+                onClick={() => setVista("tabla")}
+              >
+                Lista
+              </button>
+              {/* Las dos acciones que operan sobre TODO el editor viven junto al
+                  selector de vista y no en la cabecera: la cabecera declara qué
+                  es la superficie y por dónde entran los datos; esto opera sobre
+                  lo que ya está dentro. */}
+              {sinDiapositiva > 0 && (
+                <button
+                  type="button"
+                  className="pulso-equiv-accion-masiva"
+                  onClick={onAgrupar}
+                  title="Agrupa por la batería del formulario: los temas cuyas variables comparten raíz en algún público van a la misma diapositiva."
+                >
+                  <Layers size={13} aria-hidden="true" />
+                  Agrupar {sinDiapositiva} sin diapositiva
+                </button>
+              )}
+              {resumen.sugeridas > 0 && (
+                <button
+                  type="button"
+                  className="pulso-equiv-accion-masiva"
+                  onClick={onConfirmarTodas}
+                >
+                  <CheckCheck size={13} aria-hidden="true" />
+                  Confirmar {resumen.sugeridas} propuestas
+                </button>
+              )}
+              <span className="pulso-equiv-vistas-nota">
+                {diapositivas.filter((l) => l.clave !== "").length} diapositivas · {filas.length} temas
+              </span>
+            </div>
+
+            {vista === "diapositivas" ? (
+              <EquivalenciasDiapositivas
+                bases={bases.length ? bases : Object.keys(variablesPorBase)}
+                diapositivas={diapositivas}
+                catalogo={catalogo}
+                variablesPorBase={variablesPorBase}
+                onEditarFila={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
+                onEditarDiapositiva={(clave, campo, v) => { setFilas((p) => editarCampoDeDiapositiva(p, clave, campo, v)); setSucio(true); }}
+                onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
+                onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
+                onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
+                onAgregarTema={(clave) => {
+                  const diapo = diapositivas.find((l) => l.clave === clave);
+                  setFilas((p) => [...p, filaVacia(diapo?.seccion ?? "", clave, diapo?.enunciado ?? "")]);
+                  setSucio(true);
+                }}
+              />
+            ) : (
+              <EquivalenciasTabla
+                bases={bases.length ? bases : Object.keys(variablesPorBase)}
+                filas={filas}
+                variablesPorBase={variablesPorBase}
+                onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
+                onEditar={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
+                onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
+                onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
+                onAgregarFila={() => { setFilas((p) => [...p, filaVacia()]); setSucio(true); }}
+              />
+            )}
             <div className="pulso-equiv-pie-editor">
               <span>
-                {(() => {
-                  const r = resumenEditor(filas);
-                  return `${r.confirmadas} confirmadas`
-                    + (r.sugeridas ? ` · ${r.sugeridas} propuestas sin confirmar` : "")
-                    + (r.sinEtiqueta ? ` · ${r.sinEtiqueta} sin etiqueta` : "")
-                    + (r.conDiapositiva ? ` · ${r.conDiapositiva} con lámina` : "");
-                })()}
+                {`${resumen.confirmadas} confirmadas`
+                  + (resumen.sugeridas ? ` · ${resumen.sugeridas} propuestas sin confirmar` : "")
+                  + (resumen.sinEtiqueta ? ` · ${resumen.sinEtiqueta} sin etiqueta` : "")
+                  + (resumen.conDiapositiva ? ` · ${resumen.conDiapositiva} con diapositiva` : "")}
               </span>
               <button
                 type="button"

@@ -10,22 +10,26 @@ Fecha de decision: 2026-08-06
 
 Reemplaza: —
 
+Enmendado por: ADR 0064 (el enunciado vive en la diapositiva) — la diapositiva derivada
+deja de salir con `titulo = ""`: toma el enunciado que la declaración pasa a
+llevar
+
 Extiende: ADR 0062 (la equivalencia entre públicos se declara), ADR 0018
 (Gráficos comparte planes editables como paquete portable)
 
 ## Contexto
 
 El ADR 0062 hizo que el estudio declare qué pregunta de un público equivale a
-cuál de otro, y su enmienda añadió la lámina del informe a la que va cada
+cuál de otro, y su enmienda añadió la diapositiva del informe a la que va cada
 pregunta. La matriz real de Acreditación Contabilidad ya traía ese plan:
-**133 de 154 filas asignadas a 44 láminas, 42 de ellas agrupando más de una
+**133 de 154 filas asignadas a 44 diapositivas, 42 de ellas agrupando más de una
 pregunta**.
 
-Hoy ese dato se declara, se guarda y no lo usa nadie. El plan de láminas de
-Gráficos vive en `graficos_config$plan$slides` y se arma lámina por lámina en el
+Hoy ese dato se declara, se guarda y no lo usa nadie. El plan de diapositivas de
+Gráficos vive en `graficos_config$plan$slides` y se arma diapositiva por diapositiva en el
 editor, sin conocer la declaración.
 
-El costo de esa desconexión está medido. En la lámina «prueba 2» del PPT
+El costo de esa desconexión está medido. En la diapositiva «prueba 2» del PPT
 entregado, un grupo comparaba docentes `p13_2` (¿Conoce bienestar psicológico?,
 90 %) contra estudiantes `p12_2` (¿Ha utilizado bienestar psicológico?, 31 %)
 bajo un título que no nombraba a ninguna de las dos. **El graficador no tuvo la
@@ -47,9 +51,9 @@ Tres piezas del sistema actual deciden la forma de esta decisión:
 3. **Dos guards de escala que NO coinciden en el grano.** El del frontend
    (`multiApiladasScaleGroups()` + `evaluateScaleCompat()`) emite un veredicto
    **por tema**. El del motor R, en `modo = "var_cruce"`, comprueba sobre
-   **todas las refs de la lámina**, aplanando los temas. Esta decisión se
+   **todas las refs de la diapositiva**, aplanando los temas. Esta decisión se
    escribió creyendo el grano del frontend, y el PPT real lo desmintió: una
-   lámina que juntaba género con una pregunta Sí/No moría entera. Por eso el
+   diapositiva que juntaba género con una pregunta Sí/No moría entera. Por eso el
    generador agrupa por escala y usa `multilista` —que existe justo para apilar
    bloques de escalas distintas— cuando hay más de un grupo.
 
@@ -63,18 +67,18 @@ un mecanismo de plan aparte.**
    editable como cualquier otro y **la declaración no lo vuelve a sobrescribir
    por su cuenta**.
 
-   Si la declaración mandara siempre, editar una lámina a mano sería imposible o
+   Si la declaración mandara siempre, editar una diapositiva a mano sería imposible o
    se perdería en la siguiente derivación, en silencio. Un plan que se regenera
    solo destruye trabajo sin dejar rastro, que es la forma más cara de este
    defecto.
 
-2. **Una lámina por `diapositiva` declarada, un tema por pregunta, una barra por
+2. **Una diapositiva por `diapositiva` declarada, un tema por pregunta, una barra por
    público.** El graficador es `p_barras_multiapiladas`: `var_cruce` cuando toda
-   la lámina comparte escala, `multilista` con un bloque por escala cuando no.
+   la diapositiva comparte escala, `multilista` con un bloque por escala cuando no.
 
-3. **Las filas sin lámina no entran al mazo.** No asignar lámina es una decisión
+3. **Las filas sin diapositiva no entran al mazo.** No asignar diapositiva es una decisión
    del analista, no un olvido que la app deba completar — 21 de las 154 filas de
-   la matriz real están así, y rellenarlas produciría láminas que nadie pidió.
+   la matriz real están así, y rellenarlas produciría diapositivas que nadie pidió.
 
 4. **Sólo entran al mazo las preguntas de opción —única o múltiple—**,
    directamente o a través de su recodificada. Una numérica entra sólo si
@@ -84,14 +88,14 @@ un mecanismo de plan aparte.**
 
    El alcance importa: esto filtra **el mazo, no la declaración**. Una pregunta
    de texto abierto sigue teniendo etiqueta estándar y sigue siendo equivalente
-   entre públicos —Analítica la usa—; lo que no puede es ser una lámina. La
+   entre públicos —Analítica la usa—; lo que no puede es ser una diapositiva. La
    declaración sirve a dos consumidores con necesidades distintas.
 
 5. **Una pregunta cuyos públicos no comparten escala se reporta y no se grafica.**
    Es un defecto de la declaración o del instrumento, o una diferencia real:
    medido en Acreditación Contabilidad, «¿Cuántos años tiene?» tiene rangos
    distintos por público —docentes 18-51+, egresados 22-36+— y compararlos en un
-   mismo gráfico sería incorrecto. Fabricar la lámina lo escondería detrás de un
+   mismo gráfico sería incorrecto. Fabricar la diapositiva lo escondería detrás de un
    gráfico con aspecto correcto, que es exactamente el modo de fallo que el ADR
    0062 vino a cerrar.
 
@@ -120,8 +124,8 @@ un mecanismo de plan aparte.**
   —regenerar solo— destruye las ediciones manuales sin avisar. La propuesta
   declara de qué revisión de la declaración sale, para que la diferencia sea
   visible en vez de sospechada.
-- **Una lámina por `diapositiva` es una convención, no una ley.** Un analista que
-  quiera dos láminas para una misma pregunta tendrá que editarlas tras aplicar.
+- **Una diapositiva por `diapositiva` es una convención, no una ley.** Un analista que
+  quiera dos diapositivas para una misma pregunta tendrá que editarlas tras aplicar.
 - **Depende de que la declaración esté hecha.** Sin `diapositiva` asignada no hay
   mazo que derivar, y la superficie tiene que decirlo en vez de proponer un plan
   vacío.
@@ -130,21 +134,21 @@ un mecanismo de plan aparte.**
 
 - Un segundo generador de plan en paralelo a `plan/sugerido`.
 - Derivar el mazo escribiendo directamente sobre `graficos_config$plan`.
-- Completar láminas no declaradas con heurísticas.
+- Completar diapositivas no declaradas con heurísticas.
 - Graficar una pregunta cuyos públicos no comparten escala.
 - Llevar al mazo una pregunta que no sea de opción.
 
 ## Cumplimiento
 
-- Un caso comprueba que una declaración con dos láminas y tres preguntas produce
-  el plan esperado: una lámina por `diapositiva`, un tema por pregunta, las
+- Un caso comprueba que una declaración con dos diapositivas y tres preguntas produce
+  el plan esperado: una diapositiva por `diapositiva`, un tema por pregunta, las
   variables de cada público en su tema y la etiqueta estándar como título.
-- Un caso comprueba que las filas sin `diapositiva` **no** producen lámina.
+- Un caso comprueba que las filas sin `diapositiva` **no** producen diapositiva.
 - Un caso comprueba que una pregunta cuyos públicos no comparten escala se
   reporta y no aparece en el plan.
 - Un caso comprueba la graficabilidad por tipo: opción única y múltiple sí,
   numérica sólo con recodificada de opción, texto abierto no.
-- Un caso comprueba que una lámina de escalas mixtas se apila en `multilista` en
+- Un caso comprueba que una diapositiva de escalas mixtas se apila en `multilista` en
   vez de degradarse, y que su spec lo acepta el graficador real
   (`expect_silent(do.call(p_barras_multiapiladas, args))`) — los casos que sólo
   fijan la forma que el generador construye pasaron con un `modo` que el motor
@@ -154,14 +158,14 @@ un mecanismo de plan aparte.**
 - Un caso comprueba que derivar **no** persiste: ni `graficos_config`, ni la
   declaración, ni la marca de proyecto sucio.
 - Verificación sobre estudio real: derivar el mazo de Acreditación Contabilidad y
-  comprobar que las láminas de servicios traen las tres baterías en filas
+  comprobar que las diapositivas de servicios traen las tres baterías en filas
   separadas y con los cuatro públicos correctos.
 
 ## Notas
 
-- La propuesta viaja con la lista de lo que quedó fuera y por qué —sin lámina,
+- La propuesta viaja con la lista de lo que quedó fuera y por qué —sin diapositiva,
   sin escala común, sin variables— porque un mazo más corto de lo esperado sin
   explicación se lee como un fallo del generador.
 - Queda fuera de esta decisión, y es trabajo aparte: que el editor de
-  equivalencias ofrezca asignar láminas de forma asistida (hoy es un campo de
+  equivalencias ofrezca asignar diapositivas de forma asistida (hoy es un campo de
   texto), y que Gráficos avise cuando la declaración cambió después de aplicar.

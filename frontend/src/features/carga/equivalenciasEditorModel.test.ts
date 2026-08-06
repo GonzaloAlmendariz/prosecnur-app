@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aFilasEditor,
+  agruparPorBateria,
   asignarVariable,
   confirmarFila,
   filasParaGuardar,
@@ -80,19 +81,24 @@ describe("editor de equivalencias", () => {
     expect(out[0].etiqueta_estandar).toBe("A");
   });
 
-  it("una sugerencia sin confirmar NO se guarda", () => {
-    // El corazón del ADR 0062: una propuesta persistida sin que nadie la mire es
-    // indistinguible de una decisión.
+  it("una sugerencia sin confirmar se guarda MARCADA, no se pierde", () => {
+    // ADR 0064: la regla del 0062 —descartarla al guardar— destruía trabajo en
+    // cuanto la plantilla empezó a sembrar propuestas: confirmar diez de
+    // cincuenta y ocho y pulsar Guardar borraba las otras cuarenta y ocho. Lo
+    // que se protege es que la propuesta no ACTÚE como decisión, y eso lo
+    // garantizan el importador de etiquetas y el generador del mazo.
     const filas = incorporarSugerencias([], [fila("Propuesta", { docentes: "p13_1", estudiantes: "p11_1" })]);
-    expect(filasParaGuardar(filas)).toHaveLength(0);
+    const pendientes = filasParaGuardar(filas);
+    expect(pendientes).toHaveLength(1);
+    expect(pendientes[0].sugerida).toBe(true);
 
     const confirmadas = confirmarFila(filas, filas[0].id);
     const guardadas = filasParaGuardar(confirmadas);
     expect(guardadas).toHaveLength(1);
     expect(guardadas[0].cantidad).toBe(2);
-    // Y lo que viaja al backend no lleva los campos de edición.
+    expect(guardadas[0].sugerida).toBe(false);
+    // Y lo que viaja al backend no lleva la identidad de edición.
     expect("id" in guardadas[0]).toBe(false);
-    expect("sugerida" in guardadas[0]).toBe(false);
   });
 
   it("las filas sin variables no se guardan", () => {
@@ -114,5 +120,47 @@ describe("editor de equivalencias", () => {
     expect(r.sugeridas).toBe(1);
     expect(r.sinEtiqueta).toBe(1);
     expect(r.conDiapositiva).toBe(1);
+  });
+});
+
+describe("agruparPorBateria", () => {
+  const f = (etiqueta: string, variables: Record<string, string>, diapositiva = "") => ({
+    seccion: "",
+    etiqueta_estandar: etiqueta,
+    variables,
+    cantidad: Object.keys(variables).length,
+    diapositiva,
+  });
+
+  it("junta los temas que comparten raíz en algún público", () => {
+    const filas = aFilasEditor([
+      f("Salud", { docentes: "p13_1", estudiantes: "p11_1" }),
+      f("Bienestar", { docentes: "p13_2", estudiantes: "p11_2" }),
+      // Sólo existe en estudiantes: nunca compartiría una firma de dos públicos
+      // con sus hermanas, pero sí la raíz `p11` DENTRO de estudiantes. Es el caso
+      // que obliga a unir por público y no por la tupla completa.
+      f("Empleabilidad", { estudiantes: "p11_3" }),
+      f("Otra cosa", { docentes: "p20", estudiantes: "p30" }),
+    ]);
+
+    const out = agruparPorBateria(filas);
+    expect(out[0].diapositiva).toBe(out[1].diapositiva);
+    expect(out[2].diapositiva).toBe(out[0].diapositiva);
+    // Sin sufijo numérico no hay batería: va a su propia diapositiva.
+    expect(out[3].diapositiva).not.toBe(out[0].diapositiva);
+  });
+
+  it("no reescribe una diapositiva ya asignada y continúa su numeración", () => {
+    const filas = aFilasEditor([
+      f("Ya puesta", { docentes: "p13_1" }, "7"),
+      f("Sin poner", { docentes: "p20_1" }),
+    ]);
+
+    const out = agruparPorBateria(filas);
+    // Una asignación del analista no la reescribe una heurística.
+    expect(out[0].diapositiva).toBe("7");
+    // Y la clave nueva continúa después de la mayor ya declarada, para no
+    // chocar con el informe ni renumerarlo.
+    expect(out[1].diapositiva).toBe("8");
   });
 });

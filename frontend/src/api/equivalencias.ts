@@ -15,8 +15,15 @@ export type EquivalenciaFila = {
   variables: Record<string, string>;
   /** En cuántos públicos existe la pregunta. Derivado, no escrito por nadie. */
   cantidad: number;
-  /** Lámina del informe a la que va la pregunta (ADR 0062). */
+  /** Diapositiva del informe a la que va la pregunta (ADR 0062). */
   diapositiva?: string;
+  /**
+   * Enunciado de la diapositiva (ADR 0064): el texto que el importador de matrices
+   * pierde al aplanar el grupo en sus ítems, y el que titula la diapositiva del mazo.
+   * Viaja por fila porque el formato plano no tiene dónde poner un atributo de
+   * grupo; todas las filas de una diapositiva llevan el mismo.
+   */
+  enunciado?: string;
   /**
    * Propuesta del motor, no decisión del analista. La marca es el contrato con
    * la UI: sin ella una sugerencia se vería igual que algo ya confirmado.
@@ -121,7 +128,25 @@ export async function guardarEquivalencias(
   );
 }
 
-export type VariableDeBase = { name: string; label: string; seccion: string };
+export type VariableDeBase = {
+  name: string;
+  label: string;
+  seccion: string;
+  /**
+   * Firma de escala: códigos y etiquetas de su lista, en orden. Es lo que se
+   * COMPARA para las invariantes E1/E2 del ADR 0064.
+   */
+  firma?: string;
+  /**
+   * Opciones de esa escala, enteras y con la caja original del instrumento. Es
+   * lo que se MUESTRA; nunca se compara, porque dos listas distintas pueden
+   * verse iguales una vez resumidas. Viajan completas a propósito: cuánto cabe
+   * en pantalla lo decide la superficie, que es quien sabe cuánto espacio tiene.
+   */
+  opciones?: OpcionDeEscala[];
+};
+
+export type OpcionDeEscala = { codigo: string; etiqueta: string };
 
 export async function getVariablesEquivalencias(): Promise<{
   ok: boolean;

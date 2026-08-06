@@ -38,11 +38,11 @@ export function estadoDeclaracionAplicada({
 export function avisoDeclaracionAplicada(estado: EstadoDeclaracionAplicada): string {
   switch (estado) {
     case "desfasada":
-      return "Las equivalencias cambiaron después de armar estas láminas. "
+      return "Las equivalencias cambiaron después de armar estas diapositivas. "
         + "El plan no se actualiza solo para no perder lo que hayas editado a mano: "
         + "vuelve a proponer el mazo desde Planes → Equivalencias si quieres los cambios.";
     case "declaracion-retirada":
-      return "Estas láminas salieron de una declaración de equivalencias que ya no existe. "
+      return "Estas diapositivas salieron de una declaración de equivalencias que ya no existe. "
         + "Siguen funcionando, pero no hay con qué contrastarlas.";
     default:
       return "";

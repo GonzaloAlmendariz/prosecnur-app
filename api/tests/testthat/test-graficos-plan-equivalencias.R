@@ -3,10 +3,10 @@ source("setup-load-all.R")
 # ADR 0063 — el mazo comparativo se deriva de la declaración.
 #
 # La declaración del ADR 0062 dice qué pregunta de un público equivale a cuál de
-# otro y a qué lámina va. Estos casos fijan qué plan sale de ahí, y sobre todo
-# qué NO sale: una fila sin lámina no produce diapositiva, y una pregunta cuyos
+# otro y a qué diapositiva va. Estos casos fijan qué plan sale de ahí, y sobre todo
+# qué NO sale: una fila sin diapositiva asignada no entra al mazo, y una pregunta cuyos
 # públicos no comparten escala se reporta en vez de graficarse — fabricar esa
-# lámina escondería el defecto detrás de un gráfico con aspecto correcto, que es
+# fabricarla escondería el defecto detrás de un gráfico con aspecto correcto, que es
 # el modo de fallo que el ADR 0062 vino a cerrar.
 
 .gpe_inst <- function(nombres, etiquetas, listas) {
@@ -47,7 +47,7 @@ source("setup-load-all.R")
     filas = filas, n_filas = length(filas)))
 }
 
-test_that("una lámina por diapositiva declarada, un tema por pregunta", {
+test_that("una diapositiva por cada clave declarada, un tema por pregunta", {
   sid <- .gpe_setup()
   on.exit(session_delete(sid), add = TRUE)
   .gpe_declarar(sid, list(
@@ -71,15 +71,15 @@ test_that("una lámina por diapositiva declarada, un tema por pregunta", {
   expect_equal(args$titulos_grupo$tema_1, "¿Conoce el servicio de salud?")
 })
 
-test_that("las filas sin lámina no producen diapositiva", {
+test_that("las filas sin diapositiva asignada no entran al mazo", {
   sid <- .gpe_setup()
   on.exit(session_delete(sid), add = TRUE)
   .gpe_declarar(sid, list(
-    list(etiqueta_estandar = "Va a la lámina 1", diapositiva = "1",
+    list(etiqueta_estandar = "Va a la diapositiva 1", diapositiva = "1",
          variables = list(docentes = "p13_1", estudiantes = "p11_1")),
-    # No asignar lámina es una decisión del analista, no un olvido que la app
+    # No asignar diapositiva es una decisión del analista, no un olvido que la app
     # deba completar: 21 de las 154 filas reales están así.
-    list(etiqueta_estandar = "Sin lámina", diapositiva = "",
+    list(etiqueta_estandar = "Sin diapositiva", diapositiva = "",
          variables = list(docentes = "p14_1", estudiantes = "p12_1"))
   ))
 
@@ -88,7 +88,7 @@ test_that("las filas sin lámina no producen diapositiva", {
   expect_equal(length(out$plan$slides[[1]]$payload$grafico$args$vars), 1L)
   # Lo que queda fuera se reporta: un mazo más corto sin explicación se lee como
   # un fallo del generador.
-  expect_true(any(vapply(out$fuera, function(x) identical(x$motivo, "sin_lamina"), logical(1))))
+  expect_true(any(vapply(out$fuera, function(x) identical(x$motivo, "sin_diapositiva"), logical(1))))
 })
 
 test_that("una pregunta cuyos públicos no comparten escala se reporta y no se grafica", {
@@ -164,7 +164,7 @@ test_that("la fuente `equivalencias` devuelve el mazo derivado por el mismo endp
   expect_true(out$ok)
   expect_equal(out$fuente, "equivalencias")
   expect_equal(length(out$plan$slides), 1L)
-  expect_equal(out$n_laminas, 1L)
+  expect_equal(out$n_diapositivas, 1L)
   expect_true(out$declarada)
 
   # Y sin fuente declarada NO se cuela: el generador de perfiles sigue siendo el
@@ -199,11 +199,11 @@ test_that("el plan derivado lo acepta el graficador real", {
   }
 })
 
-test_that("una lámina con escalas distintas se apila en bloques, no aborta", {
-  # B1, medido en el PPT real: la lámina que juntaba «¿Cuál es su género?»
+test_that("una diapositiva con escalas distintas se apila en bloques, no aborta", {
+  # B1, medido en el PPT real: la diapositiva que juntaba «¿Cuál es su género?»
   # (3 categorías) con una pregunta Sí/No salía entera como «Sin datos» y se
   # perdía también el tema que sí era graficable. La causa: en `var_cruce` el
-  # motor comprueba la escala sobre TODAS las refs de la lámina, aplanando los
+  # motor comprueba la escala sobre TODAS las refs de la diapositiva, aplanando los
   # temas — el validador del frontend la comprueba por tema, y ahí discrepan.
   sid <- .gpe_setup()
   on.exit(session_delete(sid), add = TRUE)
@@ -225,7 +225,7 @@ test_that("una lámina con escalas distintas se apila en bloques, no aborta", {
   expect_silent(do.call(p_barras_multiapiladas, args))
 })
 
-test_that("una lámina de escala única sigue usando var_cruce", {
+test_that("una diapositiva de escala única sigue usando var_cruce", {
   # `multilista` arrastra cowplot y es más pesado: no se usa cuando no hace falta.
   sid <- .gpe_setup()
   on.exit(session_delete(sid), add = TRUE)
@@ -269,7 +269,7 @@ test_that("la firma de escala lee la lista del instrumento procesado", {
 
 test_that("una pregunta sin lista de opciones no entra al mazo", {
   # Medido en el PPT real: la fila de «indique un correo electrónico» —texto
-  # abierto— tumbaba la lámina entera con «no comparten una escala compatible»,
+  # abierto— tumbaba la diapositiva entera con «no comparten una escala compatible»,
   # un mensaje que además apunta al sitio equivocado. Pasaba el filtro de
   # divergencia porque su firma (`libre:text`) es homogénea entre públicos:
   # homogénea, pero no graficable como barras apiladas.
@@ -297,7 +297,7 @@ test_that("una pregunta sin lista de opciones no entra al mazo", {
            variables = list(a = "p1", b = "p1")))))
 
   out <- .graficos_plan_desde_equivalencias(sid)
-  # La lámina sobrevive con la pregunta que SÍ se puede graficar.
+  # La diapositiva sobrevive con la pregunta que SÍ se puede graficar.
   expect_equal(length(out$plan$slides), 1L)
   args <- out$plan$slides[[1]]$payload$grafico$args
   expect_equal(length(args$vars), 1L)
@@ -325,9 +325,9 @@ test_that("la revisión cambia con lo que cambia el mazo, y sólo con eso", {
   reordenada <- list(filas = rev(base$filas))
   expect_equal(r0, .equiv_declaracion_revision(reordenada))
 
-  # Cambiar de lámina, de etiqueta o de variable SÍ lo cambia.
-  otra_lamina <- base; otra_lamina$filas[[1]]$diapositiva <- "3"
-  expect_false(identical(r0, .equiv_declaracion_revision(otra_lamina)))
+  # Cambiar de diapositiva, de etiqueta o de variable SÍ lo cambia.
+  otra_diapositiva <- base; otra_diapositiva$filas[[1]]$diapositiva <- "3"
+  expect_false(identical(r0, .equiv_declaracion_revision(otra_diapositiva)))
   otra_etiqueta <- base; otra_etiqueta$filas[[1]]$etiqueta_estandar <- "A cambiada"
   expect_false(identical(r0, .equiv_declaracion_revision(otra_etiqueta)))
   otra_var <- base; otra_var$filas[[1]]$variables$x <- "p99"

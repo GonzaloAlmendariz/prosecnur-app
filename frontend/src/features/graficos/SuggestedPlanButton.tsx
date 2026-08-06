@@ -309,7 +309,7 @@ export function SuggestedPlanButton() {
                   setProfileId("equivalencias");
                   setResult(null);
                 }}
-                title="Arma el mazo con las laminas declaradas en Carga → Equivalencias"
+                title="Arma el mazo con las diapositivas declaradas en Carga → Equivalencias"
               >
                 <GitMerge size={13} /> Equivalencias
               </button>
@@ -322,7 +322,7 @@ export function SuggestedPlanButton() {
                 <small>
                   {result?.declarada === false
                     ? "Este estudio todavía no declara equivalencias. Decláralas en Carga → Equivalencias para poder derivar el mazo."
-                    : "Una lámina por cada lámina declarada, una barra por público. Las preguntas sin lámina asignada no entran."}
+                    : "Una diapositiva por cada una declarada en la matriz, con su enunciado como título y una barra por público. Las preguntas sin diapositiva asignada no entran."}
                 </small>
               </div>
             )}
@@ -336,7 +336,7 @@ export function SuggestedPlanButton() {
                     return acc;
                   }, {});
                   const texto: Record<string, string> = {
-                    sin_lamina: "sin lámina asignada",
+                    sin_diapositiva: "sin diapositiva asignada",
                     escala_divergente: "con escalas distintas entre públicos",
                     sin_variables: "sin variables",
                   };
