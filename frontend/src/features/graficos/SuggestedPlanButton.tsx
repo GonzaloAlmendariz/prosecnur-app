@@ -100,7 +100,7 @@ export function SuggestedPlanButton() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GraficosSuggestedPlanResponse | null>(null);
-  const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus">("auto");
+  const [profileId, setProfileId] = useState<"auto" | "acnur_kobo_cruncher_plus" | "equivalencias">("auto");
   const [acnurMode, setAcnurMode] = useState<"general" | "territorial">("general");
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("paired_district");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -155,6 +155,9 @@ export function SuggestedPlanButton() {
       const config = buildGraficosConfigFromStore();
       const next = await apiGraficosPlanSugerido({
         ...config,
+        // ADR 0063: el mazo declarado entra por este mismo endpoint como una
+        // fuente mas, no por un generador aparte.
+        ...(profileId === "equivalencias" ? { fuente: "equivalencias" } : {}),
         ...(profileId === "acnur_kobo_cruncher_plus"
           ? {
               profile_id: profileId,
@@ -291,7 +294,51 @@ export function SuggestedPlanButton() {
               >
                 <BarChart3 size={13} /> ACNUR
               </button>
+              <button
+                type="button"
+                className={profileId === "equivalencias" ? "is-active" : ""}
+                aria-pressed={profileId === "equivalencias"}
+                onClick={() => {
+                  setProfileId("equivalencias");
+                  setResult(null);
+                }}
+                title="Arma el mazo con las laminas declaradas en Carga → Equivalencias"
+              >
+                <GitMerge size={13} /> Equivalencias
+              </button>
             </div>
+
+            {profileId === "equivalencias" && (
+              // `editor-v2.css` esta congelado a crecimiento, asi que se reusa la
+              // clase que ya existe para texto de apoyo en este popover.
+              <div className="pulso-gv2-suggest-option-text">
+                <small>
+                  {result?.declarada === false
+                    ? "Este estudio todavía no declara equivalencias. Decláralas en Carga → Equivalencias para poder derivar el mazo."
+                    : "Una lámina por cada lámina declarada, una barra por público. Las preguntas sin lámina asignada no entran."}
+                </small>
+              </div>
+            )}
+
+            {profileId === "equivalencias" && (result?.fuera?.length ?? 0) > 0 && (
+              <div className="pulso-gv2-suggest-option-text">
+                <small>{(() => {
+                  const fuera = result?.fuera ?? [];
+                  const porMotivo = fuera.reduce<Record<string, number>>((acc, f) => {
+                    acc[f.motivo] = (acc[f.motivo] ?? 0) + 1;
+                    return acc;
+                  }, {});
+                  const texto: Record<string, string> = {
+                    sin_lamina: "sin lámina asignada",
+                    escala_divergente: "con escalas distintas entre públicos",
+                    sin_variables: "sin variables",
+                  };
+                  return `Fuera del mazo: ${Object.entries(porMotivo)
+                    .map(([m, n]) => `${n} ${texto[m] ?? m}`)
+                    .join(" · ")}.`;
+                })()}</small>
+              </div>
+            )}
 
             {profileId === "acnur_kobo_cruncher_plus" && (
               <div className="pulso-gv2-suggest-acnur">
