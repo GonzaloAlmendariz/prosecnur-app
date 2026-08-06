@@ -15,6 +15,13 @@ export type EquivalenciaFila = {
   variables: Record<string, string>;
   /** En cuántos públicos existe la pregunta. Derivado, no escrito por nadie. */
   cantidad: number;
+  /** Lámina del informe a la que va la pregunta (ADR 0062). */
+  diapositiva?: string;
+  /**
+   * Propuesta del motor, no decisión del analista. La marca es el contrato con
+   * la UI: sin ella una sugerencia se vería igual que algo ya confirmado.
+   */
+  sugerida?: boolean;
 };
 
 export type EquivalenciaCoberturaBase = {
@@ -85,5 +92,37 @@ export async function importarEquivalencias(
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ file_id: fileId, hoja }),
     }),
+  );
+}
+
+export async function getSugerenciasEquivalencias(): Promise<{
+  ok: boolean;
+  sugerencias: EquivalenciaFila[];
+}> {
+  return handle(
+    await apiFetch("/api/carga/equivalencias/sugerencias", { headers: headers() }),
+  );
+}
+
+export async function guardarEquivalencias(
+  filas: EquivalenciaFila[],
+): Promise<EquivalenciasImportacion> {
+  return handle<EquivalenciasImportacion>(
+    await apiFetch("/api/carga/equivalencias/declaracion", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ filas }),
+    }),
+  );
+}
+
+export type VariableDeBase = { name: string; label: string; seccion: string };
+
+export async function getVariablesEquivalencias(): Promise<{
+  ok: boolean;
+  variables: Record<string, VariableDeBase[]>;
+}> {
+  return handle(
+    await apiFetch("/api/carga/equivalencias/variables", { headers: headers() }),
   );
 }

@@ -209,3 +209,105 @@
   font-size: 13px;
   color: var(--pulso-text-soft);
 }
+
+/* --- Tabla del editor (ADR 0062, enmienda) --------------------------------
+   La forma la dicta el Excel que el equipo ya usaba: una fila por pregunta y
+   los publicos en paralelo. Es la que se lee de corrido. */
+
+.pulso-equiv-tabla-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-2);
+  min-width: 0;
+  /* C4: la tabla es ancha por construccion (una columna por publico) y su
+     desplazamiento vive DENTRO de su contenedor, no en la pagina. */
+  overflow-x: auto;
+}
+
+.pulso-equiv-tabla {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+
+.pulso-equiv-tabla th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+  padding: var(--pulso-space-1) var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border-strong);
+  white-space: nowrap;
+}
+
+.pulso-equiv-tabla td {
+  padding: 3px var(--pulso-space-2);
+  border-bottom: 1px solid var(--pulso-border);
+  vertical-align: middle;
+}
+
+.pulso-equiv-tabla tr.is-sugerida td {
+  background: var(--pulso-info-bg);
+}
+
+.pulso-equiv-col-etiqueta { min-width: 260px; }
+.pulso-equiv-col-diapo { width: 68px; }
+.pulso-equiv-col-n {
+  width: 64px;
+  text-align: right;
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-equiv-celda-etiqueta {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-1);
+  min-width: 0;
+}
+
+/* La marca de propuesta no puede vivir solo en el color de fondo: en una
+   captura o con poco contraste, una fila sugerida y una decidida se leerian
+   igual, que es exactamente lo que el ADR 0062 prohibe. */
+.pulso-equiv-chip-sugerida {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--pulso-info-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-info-fg);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pulso-equiv-tabla input,
+.pulso-equiv-tabla select {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+.pulso-equiv-input-diapo { text-align: center; }
+
+.pulso-equiv-acciones-fila {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pulso-equiv-pie-editor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pulso-space-3);
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--pulso-text-faint);
+}

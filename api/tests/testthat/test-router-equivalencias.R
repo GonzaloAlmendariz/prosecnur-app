@@ -154,3 +154,41 @@ test_that("plantilla e importación cierran el ciclo sobre la sesión", {
   s <- session_get(sid)
   expect_true(nzchar(s$equivalencias_publicos$sellos$docentes))
 })
+
+test_that("el editor y el Excel producen el mismo artefacto", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+
+  out <- .equiv_guardar_declaracion(sid, list(
+    list(seccion = "Servicios", etiqueta_estandar = "¿Conoce el Servicio de salud?",
+         variables = list(docentes = "q0013_0001", estudiantes = "p11_1"),
+         diapositiva = "3"),
+    # Fila sin ninguna variable: no declara nada y no debe ensuciar el conteo.
+    list(seccion = "Servicios", etiqueta_estandar = "Sobra", variables = list())
+  ))
+
+  expect_equal(out$estado$n_filas, 1L)
+  s <- session_get(sid)
+  fila <- s$equivalencias_publicos$filas[[1]]
+  # El editor acepta códigos crudos igual que el importador: una vía no puede
+  # expresar cosas que la otra no.
+  expect_equal(fila$variables$docentes, "p13_1")
+  expect_equal(fila$diapositiva, "3")
+  expect_equal(fila$cantidad, 2L)
+
+  # Y guardar aplica las etiquetas igual que importar.
+  expect_equal(s$analitica_config_por_base$docentes$datos$variable_labels[["p13_1"]],
+               "¿Conoce el Servicio de salud?")
+
+  # El sello queda tomado al guardar, no sólo al importar desde Excel.
+  expect_true(nzchar(s$equivalencias_publicos$sellos$estudiantes))
+})
+
+test_that("las sugerencias no se guardan solas", {
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+  sug <- .equiv_sugerir(.equiv_inst_por_base(sid))
+  expect_true(length(sug) > 0)
+  # Pedirlas no declara nada: el estado sigue sin declaración.
+  expect_false(.equiv_estado(sid)$declarada)
+})

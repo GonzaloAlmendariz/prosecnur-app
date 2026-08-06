@@ -290,6 +290,7 @@ errores_registrados <- function() {
     "E_ESTUDIO_TOPOLOGIA",                                   "session_store.R",                   "400",
     "E_EQUIV_ARCHIVO_NO_ENCONTRADO",                         "router_equivalencias.R",            "404",
     "E_EQUIV_FILE_ID_REQUERIDO",                             "router_equivalencias.R",            "400",
+    "E_EQUIV_FILAS_REQUERIDAS",                              "router_equivalencias.R",            "400",
     "E_EQUIV_HOJA_NO_ENCONTRADA",                            "router_equivalencias.R",            "400",
     "E_EQUIV_NO_APLICA",                                     "router_equivalencias.R",            "409",
     "E_EQUIV_SIN_BASES",                                     "equivalencias_publicos.R",          "400",

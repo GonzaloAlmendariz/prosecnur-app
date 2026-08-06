@@ -165,7 +165,7 @@ test_that("la plantilla sale poblada con las variables y etiquetas de cada base"
 
   expect_setequal(
     names(df),
-    c("seccion", "etiqueta_estandar", "docentes", "docentes_etiqueta",
+    c("seccion", "etiqueta_estandar", "diapositiva", "docentes", "docentes_etiqueta",
       "estudiantes", "estudiantes_etiqueta")
   )
   # Una fila por variable de cada base: la app NO adivina qué se empareja con qué.
@@ -230,4 +230,111 @@ test_that("la columna de etiqueta por base no se confunde con la de la base", {
   # importador la tomara como columna de base, la declaración traería basura.
   expect_equal(vuelta$filas[[1]]$variables$docentes, "p13_1")
   expect_equal(length(vuelta$filas[[1]]$variables), 1L)
+})
+
+# --- Diapositiva y sugerencias (enmienda del editor, ADR 0062) ---------------
+
+test_that("lee la columna de diapositiva y acepta el nombre corto de las matrices reales", {
+  df <- .eqp_df_real()
+  df$Diapo <- c(3, 3, 5, NA)  # el nombre que usan las matrices ya escritas
+  equiv <- .equiv_desde_df(df, c("docentes", "estudiantes"))
+  expect_equal(equiv$filas[[1]]$diapositiva, "3")
+  expect_equal(equiv$filas[[2]]$diapositiva, "3")
+  expect_equal(equiv$filas[[3]]$diapositiva, "5")
+})
+
+test_that("la sugerencia separa baterías que comparten etiqueta y escala", {
+  # El caso real: «Servicio de salud» con escala Sí/No aparece DOS veces por
+  # base —¿Conoce? y ¿Ha utilizado?— y sólo el orden las distingue. Sin el
+  # ordinal, la sugerencia mezclaría las dos.
+  inst <- list(
+    docentes = list(survey = data.frame(
+      type = c("select_one si_no", "select_one si_no", "select_one sat"),
+      name = c("p13_1", "p14_1", "p15_1"),
+      label = rep("Servicio de salud", 3), section = "Pag1", stringsAsFactors = FALSE),
+      choices = data.frame(
+        list_name = c("si_no", "si_no", "sat", "sat"),
+        name = c("1", "2", "1", "2"),
+        label = c("Sí", "No", "Malo", "Bueno"), stringsAsFactors = FALSE)),
+    estudiantes = list(survey = data.frame(
+      type = c("select_one lst_a", "select_one lst_b", "select_one lst_c"),
+      name = c("p11_1", "p12_1", "p13_1"),
+      label = rep("Servicio de salud", 3), section = "Pag1", stringsAsFactors = FALSE),
+      choices = data.frame(
+        list_name = c("lst_a", "lst_a", "lst_b", "lst_b", "lst_c", "lst_c"),
+        name = c("1", "2", "1", "2", "1", "2"),
+        label = c("Sí", "No", "Sí", "No", "Malo", "Bueno"), stringsAsFactors = FALSE))
+  )
+
+  sug <- .equiv_sugerir(inst)
+  empareja <- function(varDoc) {
+    hit <- Filter(function(f) identical(f$variables$docentes, varDoc), sug)
+    if (!length(hit)) NULL else hit[[1]]$variables$estudiantes
+  }
+  # La 1.ª Sí/No con la 1.ª, la 2.ª con la 2.ª, y la escala distinta aparte.
+  expect_equal(empareja("p13_1"), "p11_1")
+  expect_equal(empareja("p14_1"), "p12_1")
+  expect_equal(empareja("p15_1"), "p13_1")
+
+  # Y viajan marcadas: sin la marca, una propuesta se ve igual que una decisión.
+  expect_true(all(vapply(sug, function(f) isTRUE(f$sugerida), logical(1))))
+})
+
+test_that("no propone lo que existe en una sola base", {
+  inst <- list(
+    docentes = list(survey = data.frame(
+      type = "select_one lst", name = "p1", label = "Solo docentes",
+      section = "Pag1", stringsAsFactors = FALSE),
+      choices = data.frame(list_name = "lst", name = "1", label = "Sí", stringsAsFactors = FALSE)),
+    estudiantes = list(survey = data.frame(
+      type = "select_one lst", name = "p9", label = "Solo estudiantes",
+      section = "Pag1", stringsAsFactors = FALSE),
+      choices = data.frame(list_name = "lst", name = "1", label = "Sí", stringsAsFactors = FALSE))
+  )
+  # Ofrecer una fila de una sola base como «propuesta» invitaría a confirmarla
+  # sin mirar; no es una equivalencia, es una decisión pendiente.
+  expect_equal(length(.equiv_sugerir(inst)), 0L)
+})
+
+test_that("una etiqueta ambigua no se prellena", {
+  # Las tres baterías de servicios producen tres filas correctas, pero las tres
+  # se llaman «Servicio de salud» en el XLSForm. Prellenar ese texto reproduce
+  # la ambigüedad que el ADR existe para eliminar, y encima invita a
+  # confirmarla de un clic.
+  inst <- list(
+    docentes = list(survey = data.frame(
+      type = c("select_one si_no", "select_one si_no", "select_one otra"),
+      name = c("p13_1", "p14_1", "p15_1"),
+      label = c("Servicio de salud", "Servicio de salud", "Otra pregunta"),
+      section = "Pag1", stringsAsFactors = FALSE),
+      choices = data.frame(
+        list_name = c("si_no", "si_no", "otra", "otra"),
+        name = c("1", "2", "1", "2"),
+        label = c("Sí", "No", "A", "B"), stringsAsFactors = FALSE)),
+    estudiantes = list(survey = data.frame(
+      type = c("select_one si_no", "select_one si_no", "select_one otra"),
+      name = c("p11_1", "p12_1", "p13_1"),
+      label = c("Servicio de salud", "Servicio de salud", "Otra pregunta"),
+      section = "Pag1", stringsAsFactors = FALSE),
+      choices = data.frame(
+        list_name = c("si_no", "si_no", "otra", "otra"),
+        name = c("1", "2", "1", "2"),
+        label = c("Sí", "No", "A", "B"), stringsAsFactors = FALSE))
+  )
+
+  sug <- .equiv_sugerir(inst)
+  ambiguas <- Filter(function(f) identical(f$variables$docentes, "p13_1")
+                       || identical(f$variables$docentes, "p14_1"), sug)
+  expect_equal(length(ambiguas), 2L)
+  # Las dos que comparten etiqueta llegan con el campo vacío...
+  expect_true(all(vapply(ambiguas, function(f) !nzchar(f$etiqueta_estandar), logical(1))))
+  # ...y el emparejado sigue siendo correcto: lo que se omite es el texto, no la
+  # equivalencia.
+  expect_setequal(
+    vapply(ambiguas, function(f) f$variables$estudiantes, character(1)),
+    c("p11_1", "p12_1")
+  )
+  # La que no es ambigua sí conserva su etiqueta.
+  unica <- Filter(function(f) identical(f$variables$docentes, "p15_1"), sug)[[1]]
+  expect_equal(unica$etiqueta_estandar, "Otra pregunta")
 })
