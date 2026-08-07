@@ -442,11 +442,31 @@ qué se está renombrando y qué queda como está. El valor sigue viajando como
 no aprenda una sintaxis nueva—, pero el analista ya no lo escribe: era
 trasladarle un detalle de serialización.
 
+## El radar de un solo público, y los matriciales: verificado
+
+Se forzó radar en las cuatro diapositivas de 5+ temas, levantando a propósito el
+guard de etiquetas largas, para poder juzgarlo con los ojos. Dos salieron **«Sin
+datos»** — dos defectos que sólo el render enseña:
+
+1. Los temas de una batería comparten el arranque —«Estoy satisfecho(a) con los
+   programas de…»— y al recortarlos a 42 caracteres quedaban **idénticos**. El
+   eje del radar es un factor: un nivel duplicado lo mata con «factor level is
+   duplicated». Ahora el corte se alarga hasta que los homónimos se separan.
+2. Al arreglar eso se rompieron los otros dos: el recorte se calculaba sobre la
+   **columna**, donde cada eje aparece una vez por grupo, y el desambiguador
+   leía esas repeticiones legítimas como homónimos. Se calcula sobre los
+   niveles y se aplica por posición.
+
+**Veredicto visual**: los de nombre corto (29 y 30) se leen muy bien. Los
+matriciales de frase larga funcionan —la forma se lee, se ve qué temas están
+altos y cuáles bajos— pero las etiquetas se rozan y dos de ellas empiezan igual,
+así que de un vistazo no se distinguen sin mirar la tabla. Por eso el defecto
+sigue siendo caer a barras; la decisión de cambiarlo ya tiene su imagen.
+
 ## Qué falta para cerrar
 
 - **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
   elegirse por bloque, como el corte.
-- **Verificar el radar de un solo público** en PPT (diapositivas 10 y 25).
 - **Los args de graficador fuera del grupo `datos` no tienen dónde salir**: el
   inspector v2 renderiza el slot con `mode="data"`. Se sirven en el registro
   pero la UI no los muestra (`titulo_tabla` y `umbral_rojo_pct` de `p_tabla`
@@ -470,3 +490,5 @@ trasladarle un detalle de serialización.
   enunciado—, pero un estudio que renombre sus temas perdería el nombre corto.
 - **`%||%` con data frames de una columna** sigue siendo una mina: está fuera
   del alcance de este goal, pero conviene abrirlo.
+- **Los títulos del mazo**: confirmado que es dato, no código. Cuando la matriz
+  traiga la columna `enunciado`, las 44 láminas se titulan solas.
