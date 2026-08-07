@@ -209,14 +209,14 @@ explicar parte del corrimiento.
 | L2 | Slides estructurales: portada, índice, sección, texto, tabla técnica, objetivo | 42 args | **Hecho (P4–P6)** — 32/42 args con diferencial (top_two_box va en L3); H11/H16/H17 reparados; queda paridad Word (→L11) e ícono de catálogo |
 | — | **Regla de cola (pedido de Gonzalo 2026-08-03): todo lo específico de ACNUR (D2, D3, re-render acnur de L2+) se difiere al FINAL de la cola** | | Vigente |
 | L3 | Slides de gráficos (1/2/4/n, narrativos, población) | 68 args | **Hecho (P7+P8)** — contrato saneado (11 fantasmas fuera, 2 destapados) y diferenciales de render mirados; queda H18 (borde top_two_box) y paridad (→L11) |
-| L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | **En curso (P9)** — defaults editoriales reparados (leyenda/colores de cruce/Base única); quedan H18, H20 (orden) y el barrido arg-por-arg |
+| L4 | `p_barras_agrupadas` + preset `barras_agrupadas` | 55 | **HECHO (A: P9–P15)** — fila sinceada en P28: defaults editoriales reparados, H20 cerrado (P10), barrido de 22 variantes (P12), H18 reparado (P15). La fila decía «en curso» desde el 08-03 |
 | L5 | `p_barras_apiladas` + `p_barras_multiapiladas` + presets | 108 | **Hecho (A: P16–P21)** — quedan H24–H26 |
-| L6 | `p_barras_categoricas` + `p_numerico` + `p_histograma` + presets | 142 | **En curso (A: P23–P24)** — bloqueado por archivos en vuelo de A |
+| L6 | `p_barras_categoricas` + `p_numerico` + `p_histograma` + presets | 142 | **HECHO (A: P23–P27)** — `p_numerico` cerrado (H36/H37/H38), ejes reparados (H35/H39) y `p_histograma` barrido arg-por-arg sin fantasmas (H40 reparado). Colas: H41 (separador decimal de bins) y los 33 formals sin superficie del histograma → L12 |
 | L7 | `p_pie` + `p_donut` + `p_nube_palabras` + `p_mapa_cobertura` + presets | 72 | **HECHO (B: B19–B22, B26, B28–B29)** |
 | L8 | `p_boxplot` + `p_media_rango` + `p_radar` + `p_tabla` + preset `radar_tabla` | 86 | **HECHO (B: B1–B8)** |
 | L9 | Familia dimensiones (`p_dim_*`) + sus 48 formals no curados | 100 | **HECHO (B: B10–B18, B23–B24)** |
-| L10 | Preset `base` (23) + cadena de herencia completa (prueba 3 transversal) | 23 | Cola — espera el router (A); suelo auditado en B8 |
-| L11 | Paridad Word y consolidado (prueba 5 transversal) | — | **Word HECHO para L7/L8/L9 (B7, B23–B24)**; consolidado espera el router |
+| L10 | Preset `base` (23) + cadena de herencia completa (prueba 3 transversal) | 23 | **DESBLOQUEADO (P28)** — el router no está en vuelo; suelo auditado en B8. Siguiente natural tras L11 |
+| L11 | Paridad Word y consolidado (prueba 5 transversal) | — | **DESBLOQUEADO (P28)** — Word HECHO para L7/L8/L9 (B7, B23–B24); el consolidado ya no espera nada. **Es el cuello de botella de la cobertura**: ninguna partícula acredita 5/5 mientras la prueba 5 no corra |
 | L12 | Formals no curados: curar con superficie o retirar | 63 | **HECHO para carriles B (B17–B18, B22)**; quedan los de A |
 | L13 | Plantillas secundarias (acnur, OPS, plantilla.pptx) | 293 ph | Diferido al FINAL por regla de Gonzalo |
 
@@ -228,6 +228,9 @@ Al vaciar la cola se reaudita desde L1 con la vara más alta.
 |---|---|---|---|
 | 2026-08-03 | 0 / 701 | 0 / 456 | Censo fundacional |
 | 2026-08-04 | ~430 / ~690 con diferencial mirado | 89 / 163 (plantilla ppal., prueba 1) | B25/B30: carriles A (L1–L5 y parte de L6) + carriles B (L7/L8/L9 completos con sweeps, bordes, suelo, Word y curación); ninguna partícula acredita aún 5/5 formal porque el consolidado (prueba 5) espera el router |
+| 2026-08-06 | ~471 / ~690 con diferencial mirado | 89 / 163 (plantilla ppal., prueba 1) | P27: **L6 cerrado**. Los 25 args del registry de `p_histograma` con diferencial por hash de render, sin fantasmas (dos «inertes» eran del harness, no del motor); H40 reparado. Colas: H41 y 33 formals sin superficie → L12 |
+| 2026-08-06 | ~446 / ~690 con diferencial mirado | 89 / 163 (plantilla ppal., prueba 1) | P26: eje Y de categóricas (H35) y título de eje del histograma (H39) reparados; los 3 modos de `p_histograma` auditados con render. Queda su barrido arg-por-arg |
+| 2026-08-06 | ~438 / ~690 con diferencial mirado | 89 / 163 (plantilla ppal., prueba 1) | P25: `p_numerico` cerrado — sus 8 args curados pasan pruebas 1–4 con render mirado (la 5, consolidado, sigue esperando al router). El sweep destapó H38 en `graficar_barras_numericas`, compartido con la familia dimensiones |
 | 2026-08-03 | 0 / 701 | 0 / 456 | P2: avance parcial, aún ninguna partícula con 5/5. Prueba 1 verificada para los 89 slots del contrato en plantilla principal (estático + render en 6 tipos de slide); en acnur, prueba 1 FALLA en ~14 slots (→ L1b). Faltan bordes y paridad para acreditar 5/5 |
 
 ## Bandeja de decisiones
@@ -1000,6 +1003,303 @@ Banco discriminante: ingreso lognormal (media ≠ mediana).
 
 Detalle menor: leyenda «Media» bajo tarjeta única es ruido (candidata a
 auto-hide como la serie sintética de agrupadas).
+
+### P25 — L6 se destraba: H36 y H37 REPARADOS, y H38 al descubierto (2026-08-06)
+
+El bloqueo «archivos en vuelo de A» que congelaba L6 había vencido: B51 publicó
+todo el carril y el working tree de hoy no toca `api/R/`. Se retoma el plan
+escrito en P24, con test rojo primero.
+
+**H36 — `metrica` no era un arg ignorado, eran tres declaraciones en conflicto.**
+El forense de P24 encontró que el motor calculaba `mean()` fijo; el censo de
+este pase encontró que además el **default declarado nunca fue el efectivo**
+(prueba 3 de la vara, no solo la 2):
+
+| Dónde | Qué declaraba |
+|---|---|
+| `p_numerico()` (constructor) | `"N"` — por el orden de `match.arg`, no por decisión |
+| `graficos_metadata.R` (UI) | `mean` primero, sin `default` explícito |
+| `.render_numerico` (motor) | `mean()` cableado y leyenda «Media» fija |
+
+Se unifica en **`mean`**, que es lo que hoy se renderiza y lo que el preset
+editorial asume (`colores_series = c(Media = "#081F5C")`). Cablead la cascada
+override > elemento > preset > motor, con switch en los **dos** sitios de
+cálculo (sin cruce y con cruce) y etiqueta de leyenda derivada de la métrica
+(Media/Mediana/Casos/Porcentaje). Semántica declarada de `pct`: sin cruce es la
+cobertura (válidos sobre casos de la base); con cruce, la participación de cada
+grupo sobre el total válido.
+
+**H37 — `formato` tenía dos lecturas legítimas y ninguna implementada.** La
+descripción prometía sprintf numérico (`'%.1f'`) y la sonda de P24 usaba
+plantilla de texto (`'S/ %s'`). Se implementan **ambas** y se resuelve por la
+conversión presente: con `%s` envuelve la cifra ya formateada y **conserva los
+separadores de la casa** (`S/ 3.660,0`); con conversión numérica formatea el
+valor crudo. Lo que `sprintf` rechace se descarta y la etiqueta cae al formateo
+de la casa: un formato mal escrito en la UI no puede matar la lámina.
+
+**Trampa cazada en el camino:** el preset trae `colores_series` keyed por la
+**etiqueta** de la serie. Al renombrarla a «Mediana» el lookup por nombre de
+`.graficos_mk_palette` fallaba en silencio y la serie caía al azul genérico
+`#0B4F8C` en vez del navy `#081F5C`. Se re-kea la entrada única al renombrar.
+
+**Defaults editoriales que arrastra la métrica (patrón P9):** un conteo no se
+lee «20,0» (decimales a 0) y el «N = 20» encima de la barra sobra cuando la
+barra **es** el conteo (auto-hide). `pct` estrena su sufijo `%`.
+
+**H38 (NUEVO, reparado) — la barra corta desaparecía de la lámina.** Al mirar
+el render de `S/ %s` con razón extrema (media 12 vs 480.000) el grupo «Hombres»
+no mostraba **ni barra ni etiqueta**. Tres defectos encadenados:
+
+1. El umbral dentro/fuera comparaba el **valor absoluto** contra
+   `umbral_interno = 0.15`, un umbral pensado para proporciones: con magnitudes
+   crudas (ingresos, montos, conteos) *toda* etiqueta caía dentro. Ahora decide
+   por la proporción respecto de la barra más alta. Con datos proporcionales el
+   criterio coincide con el anterior (verificado con test).
+2. `color_texto_barras_externo` heredaba el color **interno**: con el preset
+   pintando el texto de barra en blanco, la etiqueta de fuera era blanca sobre
+   blanco. Ahora cae a `color_ejes` (negro de fábrica en ambos, así que no
+   altera a quien no declara colores).
+3. Reparados 1 y 2, la etiqueta externa **chocaba** con el «N = 5» que va
+   encima. El N ahora se apila por encima cuando el valor salió fuera.
+
+Este defecto no es exclusivo de `p_numerico`: vive en
+`graficar_barras_numericas`, que la familia dimensiones también usa.
+
+**Evidencia:** 5 láminas del sweep de métricas + 2 del caso extremo
+(antes/después), miradas una a una, no inferidas. Los valores del banco
+discriminante se comprueban contra la verdad calculada aparte (grupo 2: media
+6320 vs mediana 1200).
+
+**Superficie UI:** ninguna. El frontend lee `default` del registry de forma
+genérica (`GraficadorForm.tsx:98`), así que declarar `default = "mean"` corrige
+la paridad UI↔motor sin tocar TS.
+
+**Archivo congelado:** la lógica nueva vive en `reporte_plan_numerico.R` (210
+líneas, patrón de B58); `reporte_plan_ppt.R` queda en 9.558, su línea base
+exacta, sin subirla. `node agentic/sync-agentic-os.mjs --audit` OK.
+
+**Gate:** `test-graficador-numerico-metrica-formato.R` nuevo (60 asserts) +
+suites del área `^(graficador|engine-plan-ppt|reporte-plan|graficos)`: **49
+archivos, 423 tests, 2.427 asserts, 0 fallos, 0 errores**. Sin typecheck ni
+vitest: el pase no toca TS.
+
+**Queda abierto en L6:** H35 y el sweep de `p_histograma` → ambos atacados en
+P26.
+
+### P26 — L6: los dos ejes que no se dejaban leer (2026-08-06)
+
+**H35 REPARADO — el eje Y de categóricas hablaba en proporciones crudas.** El
+motor alimenta `var_valor = "pct"` con `modo_valor = "valor"`, así que lo
+graficado es una proporción: con el eje encendido la lámina mostraba
+0.00 / 0.25 / 0.50 mientras las etiquetas de barra decían «45% (9)» — dos
+escalas para el mismo dato en la misma lámina. Ahora el eje se formatea en
+porcentajes cuando lo graficado es una proporción, detectado de forma explícita
+(`modo_valor == "porcentaje"`, o `var_valor` idéntico a `var_pct`) y con formal
+nuevo `eje_y_porcentaje` para forzarlo en cualquiera de los dos sentidos. El
+preset apaga el eje de fábrica, así que sólo mordía al analista que lo encendía.
+
+**Sweep de `p_histograma`: el eje YA estaba bien.** Los tres modos rinden su
+escala correcta (`40%…0%` en porcentaje, `20 / 10 / 0` en conteo) y con su
+título propio («Porcentaje del total», «Frecuencia»). No hereda H35.
+
+**Falsa alarma descartada con diferencial, y vale registrarla.** A 5,4 pulgadas
+de ancho las etiquetas apiladas salían truncadas —«18% (12)» se leía «8% (12»,
+o sea **un número plausible y falso**—. Antes de anotarlo se midió el
+placeholder real de la plantilla: **12,5 pulgadas** para un gráfico, **6,25**
+por gráfico en las láminas de dos columnas. Se re-renderizó a 6,25 y a 9,0: las
+etiquetas salen completas en ambos. **El truncamiento era artefacto del canvas
+que yo había achicado, no un defecto del motor.** Lección para el loop: el
+ancho del banco de pruebas se toma de `layout_properties()`, no del ojo.
+
+**H39 (NUEVO, reparado) — el título del eje Y se escribía encima de sus
+marcas.** `axis.title.y` se declaraba sin margen, así que «Porcentaje del
+total» tachaba «30%» y «20%». A diferencia de H35, este **viaja encendido de
+fábrica** (el preset del histograma trae `mostrar_eje_y = TRUE`), o sea que
+llegaba al entregable sin que nadie lo activara. Margen derecho de 6pt; render
+antes/después mirado a 6,25 pulgadas.
+
+**Trampa reconfirmada:** por el camino del plan el motor fuerza canvas, así que
+el objeto devuelto es un cowplot y **su tema no es el del gráfico**. Un test que
+introspeccione tema tiene que llamar al graficador directo; el que valide datos
+o etiquetas, por atributos.
+
+**Gate:** `test-graficador-categoricas-eje-y.R` nuevo (12 asserts, cubre H35 y
+H39) + suites del área `^(graficador|engine-plan-ppt|reporte-plan|graficos)`:
+**50 archivos, 428 tests, 2.439 asserts, 0 fallos, 0 errores**. Ningún archivo
+congelado tocado (`graficador_barras_categoricas.R` y
+`graficador_barras_numericas.R` no están en la lista).
+
+### P27 — L6: barrido arg-por-arg de `p_histograma` (2026-08-06)
+
+Diferencial por hash de render sobre los **25 args del registry**, con banco que
+incluye hueco de bins vacíos, tercer grupo pequeño para excluir y etiquetas
+largas para abreviar. **Ningún fantasma**: los 18 args con contrario probado
+cambian el render.
+
+**Dos inertes que resultaron ser mi harness, no el motor** — vale registrarlo
+porque es el error de método que este loop puede repetir:
+
+- `ancho_bin` y `bins` salieron idénticos al default porque el harness fijaba
+  `ancho_bin = 2` en la llamada base y el caso los pasaba **duplicados**. Con
+  el harness corregido, las cuatro geometrías rinden bins distintos.
+- `etiqueta_cima_formato` y `etiqueta_cima_orden_grupo` salieron inertes contra
+  el default `etiqueta_cima_modo = "conteos_grupo"`, que lleva **una sola
+  pieza** de información: no hay nada que partir en dos líneas ni que reordenar.
+  Con `porcentaje_grupo_conteos_grupo` ambos actúan
+  (`H 5(38%)` → dos líneas / `H 38%(5)`). Es especificidad condicional
+  legítima —justo lo que el eje 2 del mandato pide— y **no** un arg muerto.
+  Regla para el barrido: un arg condicional se prueba en el contexto que lo
+  activa, o se declara fantasma en falso.
+
+**H40 (NUEVO, reparado) — `bins = N` inventaba intervalos que no existen.**
+`ancho_bin` ya rendía cortes enteros; `bins` usa `seq(length.out=)` y sobre una
+variable entera devolvía **`19-22.5` junto a `22.5-26`**. Nadie tiene 22,5 años
+y el límite no dice dónde cae quien tiene 22. Al redondear los cortes apareció
+el segundo defecto encadenado: la condición que elige el intervalo cerrado
+exigía que la **mediana** del paso fuera entera, y `bins` produce pasos
+desiguales (3,4,4,3 → 3,5); sin esa rama las etiquetas salían `19-22` y `22-26`,
+con **el límite repetido** y la misma ambigüedad. Ahora manda el corte, no la
+regularidad: `19-21 · 22-25 · 26-29 · 30-32`.
+
+Evidencia de no-regresión: los hashes de las dos variantes de `ancho_bin` no se
+movieron (`738b8014b9`, `79a14dfa3e`), y hay test que fija sus etiquetas exactas.
+
+**Queda anotado, sin reparar:**
+
+- **H41 (menor)** — las etiquetas de bin usan «.» como separador decimal contra
+  la convención de la casa («3.660,0»). `graficar_histograma` no recibe los
+  separadores, así que darle superficie es trabajo propio, no un parche.
+- **L12 para esta familia** — `graficar_histograma` tiene **33 formals sin
+  superficie ninguna** (ni registry ni preset): `limite_inferior`,
+  `limite_superior`, `cerrar_intervalos`, `incluir_na_grupo`,
+  `etiqueta_sin_grupo`, `alternar_etiquetas_cima`, `repeler_etiquetas_cima_x`,
+  `desfase_etiquetas_cima`… Varios son decisiones metodológicas reales
+  (`cerrar_intervalos` decide si el intervalo es abierto por derecha;
+  `incluir_na_grupo` decide si los sin-dato entran al denominador) y merecen
+  curación o retiro explícito.
+
+**Gate:** `test-graficador-histograma-bins.R` nuevo (9 asserts) + suites del
+área: **51 archivos, 432 tests, 2.448 asserts, 0 fallos, 0 errores**.
+
+### P28 — Sinceramiento de la cola: tres lotes parados por bloqueos vencidos (2026-08-06)
+
+Al evaluar lo pendiente apareció que **la cola llevaba días subreportando el
+avance**. La regla de no-parada hace saltar al lote siguiente sin volver a
+mirar si el bloqueo del anterior sigue vivo, y nadie relee la fila.
+
+| Fila | Decía | Verificado hoy |
+|---|---|---|
+| L4 | «quedan H18, H20 y el barrido arg-por-arg» | **Hecho**: P10 cerró H20, P12 hizo el barrido de 22 variantes, P15 reparó H18. La fila nunca se actualizó |
+| L6 | «bloqueado por archivos en vuelo de A» | Bloqueo **vencido** con B51; destrabado y cerrado en P25–P27 |
+| L10 | «espera el router (A)» | `router_graficos.R` **no está tocado** en el árbol: el bloqueo venció |
+| L11 | «consolidado espera el router» | Igual |
+
+Consecuencia que importa: **ninguna partícula acredita 5/5** y la causa única es
+la prueba 5 (consolidado), que es L11 — parado por un bloqueo inexistente.
+Desbloquear L11 es lo que convierte los ~471 args «con diferencial mirado» en
+cobertura acreditada.
+
+Regla que se adopta: al abrir un lote se **re-verifica el bloqueo** del que dice
+estar bloqueado (¿sigue el archivo en vuelo? ¿sigue sin commitear?), y al cerrar
+un hallazgo se actualiza **la fila de la cola**, no solo la bitácora.
+
+### P29 — Doctrina: el porcentaje va solo (pedido de Gonzalo, 2026-08-06)
+
+Pedido textual, con énfasis explícito: **«en todos los gráficos donde su
+principal indicador sea el porcentaje… parece que ha habido como un forzamiento
+a que cada porcentaje vaya acompañado de su cuenta. Esto es solo una opción, es
+completamente opcional y no está implementada por defecto.»**
+
+La doctrina queda así: **un gráfico cuyo indicador principal es el porcentaje
+muestra únicamente el porcentaje.** El conteo (`45% (9)`) es una opción apagada
+de fábrica, que solo aparece si el analista la enciende desde la UI.
+
+**Por qué el emparejamiento sobraba:** la nota de Base ya declara el N de la
+lámina («Base: 20 respuestas»), así que pegarle la frecuencia a cada barra
+repite el dato, compite con la cifra que importa y ensucia la composición. En
+láminas de 2–4 gráficos la etiqueta doble es además la primera en volverse
+ilegible.
+
+**Estaba forzado en tres capas a la vez** —por eso apagarlo en una no bastaba, y
+por eso conviene registrarlo:
+
+| Capa | Qué forzaba | Ahora |
+|---|---|---|
+| Motor (`base_args` de categóricas) | `formato_valor = "porcentaje_n"` + `mostrar_frecuencia = TRUE` | `"porcentaje"` + `FALSE` |
+| Preset `barras_categoricas` (**gana al motor**) | lo mismo | `"porcentaje"` + `FALSE` |
+| Preset `histograma` + `default` del registry | `mostrar_frecuencia = TRUE` | `FALSE` |
+
+Alcance verificado: apiladas, multiapiladas, agrupadas, pie y donut **ya estaban
+limpias** (no emparejan frecuencia y no exponen el control). En `p_numerico` la
+regla alcanza a `metrica = "pct"`, donde el `N = 20` encima de la barra es el
+mismo emparejamiento; `mean`/`median` lo conservan porque ahí el N **no** es el
+indicador repetido sino el tamaño del grupo.
+
+La opción sigue alcanzable: `formato_valor` ofrece «Porcentaje + frecuencia» y
+el histograma conserva su switch, ambos con descripción que ahora dice que están
+apagados por defecto.
+
+**Nota de migración:** los presets de usuario ya guardados
+(`s$graficos_presets_defaults`) conservan el valor viejo — un cambio de fábrica
+no los reescribe.
+
+**Eran CUATRO capas, no tres.** Dos las destaparon los tests, no la lectura:
+
+1. El contrato `test-graficos-presets-defaults-contrato.R` falló con el mensaje
+   exacto **«la UI muestra TRUE y al renderizar vale FALSE»**: `mostrar_frecuencia`
+   estaba declarado en **dos** sitios de UI —los args del graficador
+   (`p_histograma`) y los del editor de presets (`histograma`)— y solo se había
+   cambiado uno. Es literalmente la clase de mentira que abrió este loop, cazada
+   por una capa de contrato que ya existía.
+2. Escribiendo el test del layout híbrido apareció que `graficar_histograma`
+   tiene **su propio formal** `mostrar_frecuencia = TRUE`. El preset lo tapaba
+   en el camino del PPT, pero cualquier llamada directa seguía emparejando el
+   conteo. Corregido: la doctrina vale en todas las capas, no solo donde llega
+   el preset.
+
+Regla que se lleva el loop: un default de la casa vive en **cuatro** sitios
+—formal del graficador, base_args del motor, preset, y `default` del registry
+(×2 cuando el arg está curado en el graficador y en el editor de presets)— y
+cambiarlo exige recorrerlos todos. El test de contrato de presets es el que lo
+verifica; conviene correrlo siempre que se toque un default.
+
+### P30 — Capacidad nueva: la frecuencia del intervalo convive con los porcentajes
+
+Pedido de Gonzalo al aclarar la doctrina del histograma: **«cada bin tiene la
+frecuencia en la parte superior de su barra, pero a su vez hay porcentajes
+dentro de los segmentos»**.
+
+No se podía. `posicion_etiquetas` es excluyente (`segmento` | `cima` |
+`ninguna`), así que pedir el N arriba **vaciaba los segmentos**. La composición
+más natural del histograma apilado no existía.
+
+Formal nuevo **`mostrar_n_intervalo`** (apagado por defecto), independiente de
+`posicion_etiquetas`: escribe el N del tramo sobre la barra sin tocar las
+etiquetas de segmento. Con `posicion_etiquetas = "cima"` no dibuja, porque ahí
+el resumen superior ya puede incluir el conteo vía `etiqueta_cima_modo` y serían
+dos etiquetas encima; hay test que lo fija.
+
+**Dónde más rinde:** en `porcentaje_bin`, que aplana todas las barras a 100% y
+por diseño **esconde qué tramo es grande**. El N arriba devuelve exactamente esa
+información: se lee la composición del tramo y su tamaño a la vez.
+
+La otra variante que Gonzalo describía —«los porcentajes de los segmentos arriba
+y la frecuencia también arriba»— **ya existía**:
+`posicion_etiquetas = "cima"` + `etiqueta_cima_modo = "porcentaje_grupo_conteos_grupo"`
+rinde `H 5(38%)  M 4(31%)`.
+
+**Gate de P29+P30:** suites del área `^(graficador|engine-plan-ppt|reporte-plan|graficos)`:
+**2.453 asserts, 0 fallos, 0 errores**. Tres tests de contrato actualizados a la
+doctrina nueva (no relajados: siguen afirmando el default, con el valor
+correcto). Renders mirados: los 3 modos × con/sin grupo + el layout híbrido.
+`--audit` OK; ningún archivo congelado tocado.
+
+**Bandeja abierta (D7):** el `modo` de fábrica del histograma es
+`porcentaje_total`, no `conteo`. `conteo` y `porcentaje_total` dibujan la misma
+forma y solo cambian las unidades, así que es decisión de lectura, no
+estructural. Recomendación: dejar `porcentaje_total` —comparable entre bases y
+estudios, y la nota de Base ya declara el N—. **Pendiente de Gonzalo**, con los
+cinco renders comparativos ya entregados.
 
 ### B2 — L8: leyenda del radar y chips honestos, con render verificado (2026-08-03, sesión B)
 
