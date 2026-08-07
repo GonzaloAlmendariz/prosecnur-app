@@ -1,0 +1,38 @@
+/* Editor de nombres de columna, una caja por base del estudio.
+ *
+ * Hoja propia porque `editor-v2.css` está congelado a crecimiento.
+ *
+ * Sólo layout: las cajas viven dentro de `.pulso-arg-field`, que ya estila
+ * todo input del panel. Repetir aquí el borde, el fondo y el foco las haría
+ * divergir del resto de campos en cuanto alguien retoque el canon. */
+
+.pulso-gv2-base-labels {
+  display: grid;
+  gap: 6px;
+}
+
+.pulso-gv2-base-labels-row {
+  display: grid;
+  /* La clave ocupa un ancho fijo para que todas las cajas empiecen en la misma
+   * columna: leídos en vertical, los nombres técnicos forman una lista. */
+  grid-template-columns: minmax(88px, 22%) 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.pulso-gv2-base-labels-key {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text-soft);
+  /* Un nombre de base largo no puede empujar la caja fuera del panel. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulso-gv2-base-labels-empty {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-faint);
+}

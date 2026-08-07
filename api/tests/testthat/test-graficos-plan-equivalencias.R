@@ -376,3 +376,86 @@ test_that("con un solo publico el eje Y es la pregunta, no el actor", {
   expect_true(is.numeric(args$overrides$canvas_w_etiquetas))
   expect_silent(do.call(p_barras_multiapiladas, args))
 })
+
+# ---------------------------------------------------------------------------
+# Trazabilidad: lo declarado es lo que sale.
+# ---------------------------------------------------------------------------
+#
+# Es la garantia que sostiene toda la pestana: si manana se sube un Excel
+# estandarizado y una equivalencia no llega al mazo, el analista no tiene como
+# enterarse — la lamina simplemente no esta, o esta con una variable de menos.
+# Medido sobre el estudio real: 263 pares declarados, 263 emitidos.
+
+.gpe_refs_del_plan <- function(args) {
+  if (identical(args$modo, "multilista")) {
+    return(unlist(lapply(args$bloques, .gpe_refs_del_plan), use.names = FALSE))
+  }
+  unlist(args$vars, use.names = FALSE)
+}
+
+.gpe_pares_emitidos <- function(plan) {
+  out <- character(0)
+  for (sl in plan$slides) {
+    d <- sub("^s-equiv-", "", sl$id)
+    for (r in .gpe_refs_del_plan(sl$payload$grafico$args)) {
+      out <- c(out, paste0(d, "|", r))
+    }
+  }
+  sort(unique(out))
+}
+
+.gpe_pares_declarados <- function(filas) {
+  out <- character(0)
+  for (f in filas) {
+    d <- trimws(as.character(f$diapositiva %||% ""))
+    if (!nzchar(d)) next
+    for (b in names(f$variables)) out <- c(out, paste0(d, "|", b, "$", f$variables[[b]]))
+  }
+  sort(unique(out))
+}
+
+test_that("cada par declarado sale en el mazo, y no sale ninguno que no se declaro", {
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  filas <- list(
+    # Diapositiva de dos publicos, escala compartida.
+    list(etiqueta_estandar = "Salud", diapositiva = "1",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1")),
+    list(etiqueta_estandar = "Bienestar", diapositiva = "1",
+         variables = list(docentes = "p14_1", estudiantes = "p12_1")),
+    # Diapositiva de un solo publico.
+    list(etiqueta_estandar = "Solo docentes", diapositiva = "2",
+         variables = list(docentes = "p20")),
+    # Diapositiva de escalas mixtas: se parte en bloques y NINGUNO puede perderse.
+    list(etiqueta_estandar = "Mixta A", diapositiva = "3",
+         variables = list(docentes = "p13_1")),
+    list(etiqueta_estandar = "Mixta B", diapositiva = "3",
+         variables = list(estudiantes = "p30"))
+  )
+  .gpe_declarar(sid, filas)
+
+  plan <- .graficos_plan_desde_equivalencias(sid)$plan
+  expect_setequal(.gpe_pares_emitidos(plan), .gpe_pares_declarados(filas))
+})
+
+test_that("una fila sin diapositiva no se pierde en silencio: se reporta con motivo", {
+  # Un mazo mas corto de lo esperado sin explicacion es indistinguible de un bug.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "Con lamina", diapositiva = "1",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1")),
+    list(etiqueta_estandar = "Sin lamina", diapositiva = "",
+         variables = list(docentes = "p14_1"))
+  ))
+  res <- .graficos_plan_desde_equivalencias(sid)
+
+  expect_length(res$plan$slides, 1L)
+  fuera <- res$fuera %||% list()
+  expect_length(fuera, 1L)
+  expect_equal(as.character(fuera[[1]]$motivo), "sin_diapositiva")
+  # Y la fila descartada se identifica, no se cuenta a secas: sin la etiqueta y
+  # sus variables, «1 fila fuera» no dice cual hay que revisar.
+  expect_equal(as.character(fuera[[1]]$etiqueta), "Sin lamina")
+  expect_equal(names(fuera[[1]]$variables), "docentes")
+})
