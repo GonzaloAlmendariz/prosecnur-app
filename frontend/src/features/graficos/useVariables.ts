@@ -145,6 +145,12 @@ export function invalidateVariables() {
 // perteneciente a la fuente "default" (back-compat single-base).
 export function parseVarRef(ref: string | null | undefined): { source: string | null; name: string } {
   if (!ref) return { source: null, name: "" };
+  // El payload de un slide viaja como JSON y sobrevive al cambio de graficador:
+  // `vars` de multi-apiladas en modo `var_cruce` es un objeto de bloques, y al
+  // pasar ese slide a Radar el picker recibe un objeto donde el tipo promete un
+  // string. Sin esta guarda, `ref.indexOf` tumba la aplicación entera en vez de
+  // mostrar el campo vacío para que el analista lo vuelva a llenar.
+  if (typeof ref !== "string") return { source: null, name: "" };
   const idx = ref.indexOf("$");
   if (idx < 0) return { source: null, name: ref };
   return { source: ref.slice(0, idx), name: ref.slice(idx + 1) };

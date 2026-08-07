@@ -45,6 +45,13 @@
 #'
 #' @param wrap_ejes Ancho de wrapping para etiquetas de ejes.
 #' @param eje_label_mult Multiplicador radial para separar etiquetas del borde.
+#' @param margen_etiquetas Holgura horizontal del panel, como multiplicador. El
+#'   limite se calcula sobre el anillo de etiquetas mas un 5 %, que alcanza para
+#'   nombres cortos; con etiquetas largas —«Costos y presupuestos»— el texto se
+#'   centra en su ancla y su mitad izquierda cae fuera del panel, que la recorta
+#'   a media palabra. Sube el limite sin mover las etiquetas: el radar se dibuja
+#'   mas chico y el texto entra. Por defecto `1`, que conserva el encuadre de
+#'   los radares ya existentes.
 #' @param radar_scale Escala general del radar dentro del panel (clamp interno).
 #'
 #' @param mostrar_puntos Si `TRUE`, dibuja puntos en cada vértice.
@@ -174,6 +181,7 @@ graficar_radar <- function(
 
     wrap_ejes = 24,
     eje_label_mult = 1.06,
+    margen_etiquetas = 1,
     radar_scale = 1,
 
     mostrar_puntos = TRUE,
@@ -1022,7 +1030,9 @@ graficar_radar <- function(
     )
   }
 
-  lim_xy <- ring_max_plot * max(1.18, label_ring_mult * 1.05)
+  margen_etiquetas <- suppressWarnings(as.numeric(margen_etiquetas)[1])
+  if (!is.finite(margen_etiquetas) || margen_etiquetas < 1) margen_etiquetas <- 1
+  lim_xy <- ring_max_plot * max(1.18, label_ring_mult * 1.05) * margen_etiquetas
 
   # --- Íconos en ejes (requiere lim_xy) -------------------------------------
   if (has_iconos_radar) {
