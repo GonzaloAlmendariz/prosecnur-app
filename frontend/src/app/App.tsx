@@ -151,7 +151,7 @@ export default function App() {
                   <Route path="/bitacora" element={<BitacoraPage />} />
                   <Route path="/recopiladores" element={<RecopiladoresPage />} />
                   <Route path="/diseno-estudio" element={<Navigate to="/bitacora" replace />} />
-                  <Route path="/plan-trabajo" element={<Navigate to="/bitacora?tab=cronograma" replace />} />
+                  <Route path="/plan-trabajo" element={<Navigate to="/bitacora?seccion=cronograma" replace />} />
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/muestra" element={<MuestraHub />} />
