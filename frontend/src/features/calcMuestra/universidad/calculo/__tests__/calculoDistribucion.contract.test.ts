@@ -9,7 +9,6 @@ const calculationCss = readFileSync(new URL("../calculo.css", import.meta.url), 
 const distributionCss = readFileSync(new URL("../calculoDistribucion.css", import.meta.url), "utf8");
 const catalogSource = readFileSync(new URL("../../../../../lib/navegacion/catalogos/calcMuestra.ts", import.meta.url), "utf8");
 const objectiveSource = readFileSync(new URL("../../aulas/AulasObjetivoTab.tsx", import.meta.url), "utf8");
-const legacyDistributionSource = readFileSync(new URL("../../../motor/pestanas/TabDistribucion.tsx", import.meta.url), "utf8");
 
 describe("contrato I19 de Distribución", () => {
   it("no importa calculadoras, stores ni perfiles legacy en la superficie R-owned", () => {
@@ -32,7 +31,6 @@ describe("contrato I19 de Distribución", () => {
     expect(catalogSource).not.toContain('"calculo-ch-facultad", "Cursos-horario por facultad"');
     expect(chSource).not.toContain("Cursos-horario por facultad");
     expect(objectiveSource).toContain('aria-label="Cursos-horario requeridos"');
-    expect(legacyDistributionSource).not.toContain("«Cursos-horario por facultad»");
   });
 
   it("CH y Distribución declaran geometría y readiness en markup", () => {

@@ -3,10 +3,10 @@
  *
  * Este módulo es deliberadamente "tonto": expone el estado de la perilla
  * (usePerillaParametros) y el bloque de sliders (ParametrosSliders). Quién
- * calcula es la pestaña Parámetros (universidad/calculo/CalculoParametrosTab):
- * ahí vive el ÚNICO useMemoriaCalculo que alimenta fórmulas encadenadas y
- * memoria de cálculo. "Aplicar al estudio" lleva los parámetros explorados al
- * componente real y recalcula.
+ * calcula es la pestaña que lo monte: ahí debe vivir el ÚNICO useMemoriaCalculo
+ * que alimenta fórmulas encadenadas y memoria de cálculo. "Aplicar al estudio"
+ * lleva los parámetros explorados al componente real y recalcula. Sin
+ * consumidores desde el retiro de la pestaña Parámetros (2026-08-07).
  */
 import { useMemo, useState, type CSSProperties } from "react";
 import { RotateCcw, Wand2 } from "lucide-react";
