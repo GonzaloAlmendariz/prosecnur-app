@@ -16,13 +16,21 @@
 import { BarChart3, Radar } from "../../vendor/lucide-react";
 import type { BloqueEditor } from "./equivalenciasEditorModel";
 
+export type EstiloRadar = { value: string; label: string; hint?: string };
+
 export type BloqueGraficoProps = {
   bloque: BloqueEditor;
+  /**
+   * Estilos que ofrece el motor. Llegan del backend: uno nuevo aparece aquí sin
+   * tocar este archivo, y uno retirado deja de ofrecerse en vez de quedar como
+   * opción muerta que dibuja otra cosa.
+   */
+  estilos?: readonly EstiloRadar[];
   /** Escribe el campo en todas las filas del bloque. */
-  onCambiar: (campo: "grafico" | "corte", valor: string) => void;
+  onCambiar: (campo: "grafico" | "corte" | "estilo", valor: string) => void;
 };
 
-export function BloqueGrafico({ bloque, onCambiar }: BloqueGraficoProps) {
+export function BloqueGrafico({ bloque, estilos = [], onCambiar }: BloqueGraficoProps) {
   if (!bloque.ofrecerRadar) return null;
 
   const esRadar = bloque.grafico === "radar" && bloque.elegibleRadar;
@@ -106,6 +114,31 @@ export function BloqueGrafico({ bloque, onCambiar }: BloqueGraficoProps) {
               elige al menos una opción
             </span>
           )}
+        </span>
+      )}
+
+      {/* El estilo se declara por BLOQUE, junto al corte, porque dice cómo se
+          lee ese bloque: una batería de perfil se presenta con líneas y una de
+          diagnóstico con la grilla a la vista, y las dos conviven en el mismo
+          mazo. Fuera del radar no significa nada, así que no se muestra. */}
+      {esRadar && estilos.length > 0 && (
+        <span className="pulso-equiv-estilo" role="group" aria-label="Estilo del radar">
+          <span className="pulso-equiv-corte-label">Estilo:</span>
+          {estilos.map((e) => {
+            const activo = (bloque.estilo || estilos[0]?.value) === e.value;
+            return (
+              <button
+                key={e.value}
+                type="button"
+                className={activo ? "pulso-equiv-estilo-op is-on" : "pulso-equiv-estilo-op"}
+                aria-pressed={activo}
+                title={e.hint}
+                onClick={() => onCambiar("estilo", e.value)}
+              >
+                {e.label}
+              </button>
+            );
+          })}
         </span>
       )}
     </span>

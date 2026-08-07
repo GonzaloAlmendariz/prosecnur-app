@@ -463,10 +463,39 @@ altos y cuáles bajos— pero las etiquetas se rozan y dos de ellas empiezan igu
 así que de un vistazo no se distinguen sin mirar la tabla. Por eso el defecto
 sigue siendo caer a barras; la decisión de cambiarlo ya tiene su imagen.
 
+## El estilo se declara por bloque
+
+El estilo dice **cómo se lee ese bloque**: una batería de perfil se presenta con
+líneas y una de diagnóstico con la grilla a la vista, y las dos conviven en el
+mismo mazo. Por eso se declara donde se declara el corte —en el bloque— y no una
+vez para todo el informe.
+
+- Columna `estilo` en el formato de intercambio, con fill-down que se reinicia
+  en cada diapositiva, igual que `grafico` y `corte`.
+- Desplegable cerrado en el Excel, para `grafico` y para `estilo`. Escritos a
+  mano son la fuente de error más tonta del formato: «Radar» con mayúscula o
+  «auditoría» con tilde no casan con la clave del motor, y el bloque sale en
+  barras sin que nadie sepa por qué. Aun así, una clave desconocida cae a
+  `comparativo` en vez de abortar el mazo.
+- Pastillas en el editor, con el mismo lenguaje que las del indicador. El
+  catálogo **llega del motor**: un estilo nuevo aparece en la pestaña sin tocar
+  el frontend, y uno retirado deja de ofrecerse en vez de quedar como opción
+  muerta que dibuja otra cosa.
+
+## El editor ya no ofrece lo que el mazo va a rechazar
+
+Al subir la matriz real se vio que el control ofrecía radar en las diapositivas
+10 y 25, donde el mazo lo rechaza por etiquetas largas. Eso rompe la única
+garantía que sostiene la pestaña: el analista lo declara, guarda, genera y
+recibe barras sin saber por qué.
+
+El límite **viaja desde el motor** (`radar_max_etiqueta` en el estado) en vez de
+copiarse en el frontend, donde divergiría en cuanto alguien lo afine. Medido con
+el Excel del estudio: los bloques de 200 y 105 caracteres muestran el control
+apagado con el motivo y el número; los de nombre corto se activan.
+
 ## Qué falta para cerrar
 
-- **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
-  elegirse por bloque, como el corte.
 - **Los args de graficador fuera del grupo `datos` no tienen dónde salir**: el
   inspector v2 renderiza el slot con `mode="data"`. Se sirven en el registro
   pero la UI no los muestra (`titulo_tabla` y `umbral_rojo_pct` de `p_tabla`

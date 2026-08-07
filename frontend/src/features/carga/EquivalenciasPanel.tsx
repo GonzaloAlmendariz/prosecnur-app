@@ -248,7 +248,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
   // El catálogo se indexa una vez y no en cada fila: son cientos de variables por
   // base y la vista de diapositivas resuelve la escala de cada tema al pintar.
   const catalogo = useMemo(() => catalogoEscalas(variablesPorBase), [variablesPorBase]);
-  const diapositivas = useMemo(() => agruparEnDiapositivas(filas, catalogo), [filas, catalogo]);
+  const diapositivas = useMemo(() => agruparEnDiapositivas(filas, catalogo, estado?.radar_max_etiqueta), [filas, catalogo, estado?.radar_max_etiqueta]);
   const resumen = useMemo(() => resumenEditor(filas), [filas]);
   const sinDiapositiva = useMemo(
     () => filas.filter((f) => !(f.diapositiva ?? "").trim()).length,
@@ -396,6 +396,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 diapositivas={diapositivas}
                 catalogo={catalogo}
                 variablesPorBase={variablesPorBase}
+                estilosRadar={estado?.estilos_radar}
                 onEditarFila={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
                 onEditarDiapositiva={(clave, campo, v) => { setFilas((p) => editarCampoDeDiapositiva(p, clave, campo, v)); setSucio(true); }}
                 onEditarBloque={(ids, campo, v) => { setFilas((p) => editarCampoDeBloque(p, ids, campo, v)); setSucio(true); }}

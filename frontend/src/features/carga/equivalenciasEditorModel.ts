@@ -73,7 +73,8 @@ export type CampoFila =
   | "diapositiva"
   | "enunciado"
   | "grafico"
-  | "corte";
+  | "corte"
+  | "estilo";
 
 export function editarCampo(
   filas: readonly FilaEditor[],
@@ -353,6 +354,8 @@ export type BloqueEditor = {
   grafico: string;
   /** Códigos que suman el indicador del radar, en el orden de la escala. */
   corte: string[];
+  /** Clave de estilo del radar. `""` = `comparativo`. */
+  estilo: string;
   /** Públicos con variable asignada, si TODOS sus temas coinciden. */
   publicos: string[];
   /**
@@ -423,6 +426,12 @@ function ordenarClaves(claves: readonly string[]): string[] {
 export function agruparEnDiapositivas(
   filas: readonly FilaEditor[],
   cat: CatalogoEscalas,
+  /**
+   * Largo máximo del nombre de un tema para que el bloque pueda salir como
+   * radar. Llega del motor: sin él, el editor ofrecería un radar que el mazo
+   * rechaza después y lo declarado dejaría de ser lo que sale.
+   */
+  radarMaxEtiqueta?: number,
 ): DiapositivaEditor[] {
   const grupos = new Map<string, FilaEditor[]>();
   for (const fila of filas) {
@@ -457,6 +466,7 @@ export function agruparEnDiapositivas(
           filas: [fila],
           grafico: (fila.grafico ?? "").trim().toLowerCase(),
           corte: (fila.corte ?? "").split(",").map((c) => c.trim()).filter(Boolean),
+          estilo: (fila.estilo ?? "").trim().toLowerCase(),
           publicos: [],
           ofrecerRadar: false,
           elegibleRadar: false,
@@ -488,13 +498,27 @@ export function agruparEnDiapositivas(
       const rectangular = coberturas.length > 0 && new Set(coberturas).size === 1;
       bloque.publicos = rectangular ? Object.keys(bloque.filas[0].variables).sort() : [];
       bloque.ofrecerRadar = bloque.filas.length >= RADAR_MIN_EJES;
+      // Un vértice no admite una oración. Es el MISMO límite que aplica el
+      // motor al derivar el mazo: ofrecer aquí lo que allá se rechaza rompe la
+      // única garantía que sostiene la pestaña — que lo declarado es lo que sale.
+      const masLargo = Math.max(
+        0,
+        ...bloque.filas.map((f) => (f.etiqueta_estandar ?? "").trim().length),
+      );
+      const etiquetasLargas =
+        typeof radarMaxEtiqueta === "number" &&
+        radarMaxEtiqueta > 0 &&
+        masLargo > radarMaxEtiqueta;
+
       bloque.motivoNoRadar = !bloque.ofrecerRadar
         ? ""
         : !rectangular
           ? "sus temas no cubren los mismos públicos: al radar le faltarían vértices en unas series y no en otras"
           : bloque.opciones.length === 0
             ? "su escala no tiene opciones con las que construir un indicador"
-            : "";
+            : etiquetasLargas
+              ? `sus temas son demasiado largos para un vértice (${masLargo} caracteres, máximo ${radarMaxEtiqueta}): en un radar se taparían entre sí`
+              : "";
       bloque.elegibleRadar = bloque.ofrecerRadar && !bloque.motivoNoRadar;
     }
 

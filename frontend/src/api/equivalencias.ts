@@ -41,6 +41,13 @@ export type EquivalenciaFila = {
    */
   corte?: string;
   /**
+   * Clave de estilo del radar. Vacía = `comparativo`, el que sincroniza con la
+   * matriz. Es del BLOQUE porque el estilo dice cómo se lee ese bloque: una
+   * batería de perfil se presenta con líneas y una de diagnóstico con la grilla
+   * a la vista, y las dos conviven en el mismo mazo.
+   */
+  estilo?: string;
+  /**
    * Propuesta del motor, no decisión del analista. La marca es el contrato con
    * la UI: sin ella una sugerencia se vería igual que algo ya confirmado.
    */
@@ -72,6 +79,19 @@ export type EquivalenciasEstado = {
    * contra la que quedó grabada al aplicar el mazo para saber si envejeció.
    */
   revision?: string;
+  /**
+   * Estilos de radar que ofrece el motor. Llegan del backend y no se copian
+   * aquí: uno nuevo aparece en la pestaña sin tocar el frontend, y uno retirado
+   * deja de ofrecerse en vez de quedar como opción muerta.
+   */
+  estilos_radar?: { value: string; label: string; hint?: string }[];
+  /**
+   * Largo máximo del nombre de un tema para que el bloque pueda salir como
+   * radar. Viaja desde el motor y no se copia aquí: el editor no puede ofrecer
+   * un radar que el mazo va a rechazar después, porque entonces lo declarado
+   * deja de ser lo que sale.
+   */
+  radar_max_etiqueta?: number;
   filas?: EquivalenciaFila[];
 };
 

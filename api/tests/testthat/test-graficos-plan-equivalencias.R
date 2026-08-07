@@ -476,3 +476,26 @@ test_that("el radar derivado arranca el eje en la mitad alta", {
   expect_equal(args$modo, "publicos")
   expect_equal(args$eje_min, 50)
 })
+
+test_that("el estilo del radar se declara por bloque", {
+  # El estilo dice COMO se lee ese bloque: una bateria de perfil se presenta con
+  # lineas y una de diagnostico con la grilla a la vista, y las dos conviven en
+  # el mismo mazo. Por eso se declara donde se declara el corte, no una vez para
+  # todo el informe.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  declarar <- function(estilo) {
+    .gpe_declarar(sid, lapply(1:5, function(i) list(
+      etiqueta_estandar = paste("T", i), diapositiva = "1",
+      grafico = "radar", corte = "1,2", estilo = estilo,
+      variables = list(estudiantes = "p30"))))
+    .graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$grafico$args$estilo
+  }
+  expect_equal(declarar("auditoria"), "auditoria")
+  expect_equal(declarar("silueta"), "silueta")
+  # Sin declarar, el que sincroniza con la matriz.
+  expect_equal(declarar(""), "comparativo")
+  # Una clave que el motor no conoce cae al defecto en vez de abortar el mazo:
+  # un Excel con «Auditoría» acentuado no puede dejar la lamina sin dibujar.
+  expect_equal(declarar("auditoría"), "comparativo")
+})
