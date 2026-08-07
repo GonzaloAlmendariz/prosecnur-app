@@ -58,9 +58,13 @@
     }
     list(name = nm, label = lab)
   })
-  signature <- paste(vapply(items, function(it) {
-    paste0(as.character(it$name %||% ""), "=", as.character(it$label %||% ""))
-  }, character(1)), collapse = "|")
+  # La firma normaliza la etiqueta; `items` conserva la ORIGINAL, que es la que
+  # se muestra. Sin normalizar, dos escalas que solo difieren en mayusculas se
+  # leian como distintas y el validador bloqueaba el export.
+  signature <- .escala_firma(
+    vapply(items, function(it) as.character(it$name %||% ""), character(1)),
+    vapply(items, function(it) as.character(it$label %||% ""), character(1))
+  )
   list(items = items, signature = signature)
 }
 

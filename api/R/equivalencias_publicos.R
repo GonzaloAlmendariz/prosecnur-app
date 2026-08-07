@@ -622,8 +622,10 @@
   # una diferencia de escala; tratarla como tal dejaba fuera del mazo 56 de las
   # preguntas que este ADR existe para poder comparar. El código sí se compara
   # literal: ahí un 1 contra un 2 sí cambia lo que la barra significa.
-  etiquetas <- tolower(gsub("\\s+", " ", trimws(etiquetas)))
-  paste(as.character(ch$name)[filas], etiquetas, sep = "=", collapse = "|")
+  # La regla vive en `escala_firma.R`, compartida con Graficos: tenerla dos
+  # veces las hizo discrepar y el validador del plan bloqueaba el export de un
+  # mazo que el motor renderiza bien.
+  .escala_firma(as.character(ch$name)[filas], etiquetas)
 }
 
 # Opciones de la escala de una variable, con su código y su etiqueta ORIGINAL.
