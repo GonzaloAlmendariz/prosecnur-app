@@ -738,21 +738,30 @@
     descripcion   = "Varias barras apiladas en un solo gráfico. Perfecto para comparar preguntas con la misma escala de respuesta.",
     icono_ui      = "Rows3",
     args = c(list(
-      list(name = "modo", label = "Modo", tipo_input = "choice", grupo = "datos",
-           descripcion = "Cómo construir las barras.",
+      # Mismas palabras que el constructor de multi-apiladas
+      # (`MultiApiladasBuilder.tsx`): dos vocabularios para la misma decisión
+      # obligan al analista a traducir «Variables × cruce» a «Abrir preguntas
+      # por grupos» cada vez que cambia de superficie.
+      list(name = "modo", label = "Qué es cada barra", tipo_input = "choice", grupo = "datos",
+           descripcion = "Decide qué ocupa cada fila del gráfico. Los campos de abajo cambian según lo que elijas.",
            choices = list(
-             list(value = "var",        label = "Una variable", hint = "Una sola pregunta."),
-             list(value = "cruce",      label = "Cruzada",       hint = "Una pregunta partida por los grupos de un cruce."),
-             list(value = "var_cruce",  label = "Variables × cruce", hint = "Varias preguntas agrupadas en bloques temáticos, cada una cruzada."),
-             list(value = "multilista", label = "Multilista",    hint = "Bloques arbitrarios, avanzado.")
+             list(value = "var",        label = "Comparar preguntas", hint = "Varias preguntas con la misma escala, una fila por pregunta."),
+             list(value = "cruce",      label = "Abrir una pregunta por grupos", hint = "Una pregunta dividida por región, sexo, sede u otro grupo."),
+             list(value = "var_cruce",  label = "Abrir preguntas por grupos", hint = "Varias preguntas, cada una abierta por el mismo grupo."),
+             list(value = "multilista", label = "Combinar bloques", hint = "Varios bloques verticales, incluso con escalas distintas.")
            )),
-      list(name = "vars",          label = "Variables",     tipo_input = "variables_list", grupo = "datos",
+      list(name = "vars",          label = "Preguntas",     tipo_input = "variables_list", grupo = "datos",
+           depende = list(arg = "modo", valores = list("var", "var_cruce", "multilista")),
            descripcion = "Preguntas a incluir. Todas deben tener la misma escala de respuestas."),
-      list(name = "var",           label = "Variable única",tipo_input = "variable_opt",   grupo = "datos",
-           descripcion = "Usado en modo 'Cruzada': una sola variable partida por los grupos del cruce."),
-      list(name = "cruces",        label = "Variable de cruce", tipo_input = "variable_opt", grupo = "datos"),
+      list(name = "var",           label = "Pregunta",tipo_input = "variable_opt",   grupo = "datos",
+           depende = list(arg = "modo", valores = list("cruce")),
+           descripcion = "Una sola pregunta partida por los grupos del cruce."),
+      list(name = "cruces",        label = "Dividir por", tipo_input = "variable_opt", grupo = "datos",
+           depende = list(arg = "modo", valores = list("cruce", "var_cruce")),
+           descripcion = "Cada grupo de esta variable abre su propia barra."),
       list(name = "titulos_grupo", label = "Títulos por bloque", tipo_input = "textarea",  grupo = "textos",
-           descripcion = "Solo en modo 'Variables × cruce'. Formato: 'clave=Título'. Una línea por bloque."),
+           depende = list(arg = "modo", valores = list("var_cruce")),
+           descripcion = "Formato: 'clave=Título'. Una línea por bloque."),
       list(name = "numerar_oe",     label = "Numerar OE", tipo_input = "bool", grupo = "textos",
            descripcion = "Si se activa, antepone OE 1:, OE 2:, etc. a los grupos visibles. Vacío = detección automática por contexto."),
       list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "filtro",
@@ -839,16 +848,17 @@
     args = c(list(
       list(name = "var",     label = "Variable",    tipo_input = "variable_opt", grupo = "datos"),
       list(name = "metrica", label = "Métrica",     tipo_input = "choice",       grupo = "filtro",
+           default = "mean",
            descripcion = "Qué estadístico mostrar.",
            choices = list(
              list(value = "mean",   label = "Media",      hint = "Promedio aritmético."),
              list(value = "median", label = "Mediana",    hint = "Valor central."),
-             list(value = "pct",    label = "Porcentaje", hint = "% sobre el total."),
-             list(value = "N",      label = "Conteo (N)", hint = "Cantidad de casos.")
+             list(value = "pct",    label = "Porcentaje", hint = "Participación del grupo sobre el total válido; sin cruce, la cobertura de la variable."),
+             list(value = "N",      label = "Conteo (N)", hint = "Cantidad de casos válidos.")
            )),
       list(name = "cruce",   label = "Dividir por", tipo_input = "variable_opt", grupo = "datos"),
       list(name = "formato", label = "Formato",     tipo_input = "string",       grupo = "avanzado",
-           descripcion = "Formato del número (ej. '%.1f' para 1 decimal, '%.0f%%' para entero con %).")
+           descripcion = "Plantilla del número. Con '%s' envuelve la cifra conservando los separadores de la casa (ej. 'S/ %s' → S/ 3.660,0); con una conversión numérica ('%.2f') formatea el valor crudo.")
     ), .args_graf_comunes())
   ),
 
@@ -877,8 +887,8 @@
            default = TRUE,
            descripcion = "Si se desactiva, oculta rangos sin casos para compactar el histograma."),
       list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores",
-           default = TRUE,
-           descripcion = "Escribe etiquetas como 42% (76)."),
+           default = FALSE,
+           descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
       list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),
@@ -895,6 +905,9 @@
            descripcion = "Oculta grupos como 'Prefiero no responder' cuando el apilado debe mostrar solo categorías sustantivas."),
       list(name = "orden_grupos", label = "Orden de grupos", tipo_input = "codigos_list", grupo = "datos",
            descripcion = "Orden opcional para los grupos apilados. Ejemplo: Hombre, Mujer."),
+      list(name = "mostrar_n_intervalo", label = "Frecuencia del intervalo encima de la barra", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Escribe cuántos casos tiene cada intervalo sobre su barra, sin tocar las etiquetas de los segmentos. Da el N del tramo mientras los segmentos muestran porcentajes."),
       list(name = "posicion_etiquetas", label = "Ubicación de etiquetas", tipo_input = "choice", grupo = "valores",
            default = "segmento",
            descripcion = "Permite poner etiquetas dentro de cada segmento o una etiqueta resumida encima de cada barra.",
@@ -989,16 +1002,51 @@
     descripcion   = "Gráfico radar (telaraña) sin tabla al costado. Ocupa todo el placeholder. Ideal cuando querés la tabla en otro slot o no la necesitás.",
     icono_ui      = "Radar",
     args = c(list(
-      list(name = "modo",         label = "Modo",                 tipo_input = "choice",         grupo = "datos",
+      list(name = "modo",         label = "Qué compara el radar", tipo_input = "choice",         grupo = "datos",
+           descripcion = "Decide qué es un eje y qué es una línea. Los campos de abajo cambian según lo que elijas.",
            choices = list(
-             list(value = "sm",  label = "Select múltiple", hint = "Una variable con opciones múltiples."),
-             list(value = "box", label = "Cajas/cortes",    hint = "Varias preguntas de una escala compartida, resumidas por cortes (ej. T2B).")
+             list(value = "sm",  label = "Las opciones de una pregunta", hint = "Un eje por opción de una pregunta de selección múltiple."),
+             list(value = "box", label = "Varias preguntas de la misma escala", hint = "Un eje por pregunta, cada una resumida por un corte (ej. Top-Two-Box)."),
+             list(value = "publicos", label = "Los públicos del estudio", hint = "Una línea por base y un eje por tema de la matriz de equivalencias. Necesita bases separadas.")
            )),
-      list(name = "var",          label = "Variable (modo Select múltiple)",  tipo_input = "variable_opt",   grupo = "datos",
-           descripcion = "La pregunta de selección múltiple cuyas opciones serán los ejes del radar. Solo en modo Select múltiple."),
-      list(name = "vars",         label = "Variables (modo Cajas/cortes)",  tipo_input = "variables_list", grupo = "datos",
-           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box). Solo en modo Cajas/cortes."),
-      list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos"),
+      # `depende` deja que la UI muestre sólo lo que el modo elegido usa. Antes,
+      # el modo se repetía en cada etiqueta —«Variable (modo Select múltiple)»—
+      # y el analista veía tres juegos de campos de los que dos sobraban: la
+      # etiqueta hacía de aviso porque el panel no sabía filtrar.
+      list(name = "var",          label = "Pregunta",  tipo_input = "variable_opt",   grupo = "datos",
+           depende = list(arg = "modo", valores = list("sm")),
+           descripcion = "La pregunta de selección múltiple cuyas opciones serán los ejes del radar."),
+      list(name = "vars",         label = "Preguntas",  tipo_input = "variables_list", grupo = "datos",
+           depende = list(arg = "modo", valores = list("box")),
+           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box)."),
+      list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos",
+           depende = list(arg = "modo", valores = list("sm", "box")),
+           descripcion = "Cada grupo de esta variable es una línea del radar."),
+
+      # ---- Modo «Entre públicos» (ADR 0064) ----
+      # Mismo dibujo, otra procedencia de las series: aquí cada serie es una
+      # fuente del estudio, no un cruce dentro de una base. Los ejes llegan
+      # armados desde la matriz de equivalencias —son bloques con NOMBRE, que es
+      # lo que se dibuja en el vértice— y por eso `vars` no se re-declara.
+      list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "Códigos de la escala que cuentan como indicador. El porcentaje se calcula sobre las respuestas válidas, no sobre el total: un público con más no-respuesta saldría artificialmente bajo. Ej. '3,4' para el top-two-box de una escala cuyo 5 es 'sin información'."),
+      list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "Cómo se llama el indicador en la cabecera de la tabla. Vacío = se arma con las etiquetas de los códigos elegidos."),
+      list(name = "estilo", label = "Estilo", tipo_input = "choice", grupo = "datos",
+           default = "comparativo",
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "Cómo se dibuja la telaraña: líneas por público, siluetas rellenas, o la vista de auditoría con la grilla visible para revisar la lectura del eje.",
+           # Se derivan del catálogo del motor y no se copian a mano: un estilo
+           # nuevo aparece en la UI sin tocar este archivo, y uno retirado deja
+           # de ofrecerse.
+           choices = function() .radar_mb_choices_ui()),
+      list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
+           default = TRUE,
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "El radar no etiqueta sus vértices —con varios públicos y muchos ejes los números se montan— así que la tabla es el ancla numérica. Apágala sólo si la lámina ya trae su propia tabla en otro slot."),
+
       list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro",
            descripcion = "Cantidad máxima de categorías a mostrar. Si vacío, se muestran todas."),
       list(name = "sm_omit_codes",label = "Códigos a omitir",     tipo_input = "codigos_list",   grupo = "filtro",
@@ -1021,16 +1069,19 @@
     descripcion   = "Tabla de Top-Two-Box (o indicadores agregados) sin el radar al costado. Útil para acompañar un radar colocado en otro slot, o como resumen ejecutivo suelto.",
     icono_ui      = "Table",
     args = c(list(
-      list(name = "modo",         label = "Modo",                 tipo_input = "choice",         grupo = "datos",
+      list(name = "modo",         label = "Qué resume la tabla",  tipo_input = "choice",         grupo = "datos",
            choices = list(
-             list(value = "sm",  label = "Select múltiple"),
-             list(value = "box", label = "Cajas/cortes")
+             list(value = "sm",  label = "Las opciones de una pregunta", hint = "Una fila por opción de una pregunta de selección múltiple."),
+             list(value = "box", label = "Varias preguntas de la misma escala", hint = "Una fila por pregunta, resumida por un corte (ej. Top-Two-Box).")
            )),
-      list(name = "var",          label = "Variable (modo Select múltiple)",  tipo_input = "variable_opt",   grupo = "datos",
-           descripcion = "La pregunta de selección múltiple cuyas opciones serán los ejes del radar. Solo en modo Select múltiple."),
-      list(name = "vars",         label = "Variables (modo Cajas/cortes)",  tipo_input = "variables_list", grupo = "datos",
-           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box). Solo en modo Cajas/cortes."),
-      list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos"),
+      list(name = "var",          label = "Pregunta",  tipo_input = "variable_opt",   grupo = "datos",
+           depende = list(arg = "modo", valores = list("sm")),
+           descripcion = "La pregunta de selección múltiple cuyas opciones serán las filas de la tabla."),
+      list(name = "vars",         label = "Preguntas",  tipo_input = "variables_list", grupo = "datos",
+           depende = list(arg = "modo", valores = list("box")),
+           descripcion = "Varias preguntas que comparten escala, resumidas por cortes (ej. Top-Two-Box)."),
+      list(name = "cruce",        label = "Dividir por",          tipo_input = "variable_opt",   grupo = "datos",
+           descripcion = "Cada grupo de esta variable es una columna de la tabla."),
       list(name = "titulo_tabla", label = "Título de la tabla",   tipo_input = "string",         grupo = "textos"),
       list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro"),
       list(name = "sm_omit_codes",label = "Códigos a omitir",     tipo_input = "codigos_list",   grupo = "filtro"),
@@ -1748,7 +1799,8 @@
            descripcion = "Ajusta solo el texto visible de las categorías."),
 
       list(name = "formato_valor", label = "Formato de etiquetas", tipo_input = "choice", grupo = "valores",
-           default = "porcentaje_n",
+           default = "porcentaje",
+           descripcion = "Un gráfico de porcentajes muestra porcentajes. La frecuencia se agrega solo si la pides.",
            choices = list(
              list(value = "valor", label = "Valor"),
              list(value = "n", label = "Frecuencia"),
@@ -1757,7 +1809,8 @@
              list(value = "valor_n", label = "Valor + frecuencia")
            )),
       list(name = "mostrar_valores", label = "Mostrar etiquetas", tipo_input = "bool", grupo = "valores", default = TRUE),
-      list(name = "mostrar_frecuencia", label = "Mostrar frecuencia", tipo_input = "bool", grupo = "valores", default = TRUE),
+      list(name = "mostrar_frecuencia", label = "Mostrar frecuencia", tipo_input = "bool", grupo = "valores", default = FALSE,
+           descripcion = "Agrega el conteo junto al porcentaje. Apagado por defecto."),
       list(name = "decimales", label = "Decimales", tipo_input = "number", grupo = "valores", default = 0),
       list(name = "size_texto_barras", label = "Tamaño de etiquetas", tipo_input = "number", grupo = "valores", default = 5.6),
       list(name = "color_texto_barras", label = "Color de etiquetas", tipo_input = "color", grupo = "valores", default = "#081F5C"),
@@ -1908,7 +1961,8 @@
            descripcion = "Orden opcional para los grupos apilados. Ejemplo: Hombre, Mujer."),
 
       list(name = "mostrar_valores", label = "Mostrar etiquetas", tipo_input = "bool", grupo = "valores", default = TRUE),
-      list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores", default = TRUE),
+      list(name = "mostrar_frecuencia", label = "Mostrar frecuencia junto al %", tipo_input = "bool", grupo = "valores", default = FALSE,
+           descripcion = "Agrega el conteo al porcentaje: 42% (76) en vez de 42%. Apagado por defecto."),
       list(name = "mostrar_resumen_grupos_subtitulo", label = "Resumen de grupos en subtítulo", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Agrega al subtítulo la distribución general de los grupos visibles. Ejemplo: Sexo: Hombre 82% · Mujer 18%."),
@@ -1921,6 +1975,9 @@
       list(name = "pos_y_subtitulo", label = "Separación título-subtítulo", tipo_input = "number", grupo = "textos",
            default = 0.25, min = 0.05, max = 0.55, step = 0.01,
            descripcion = "Posición vertical del subtítulo dentro del encabezado del gráfico. Valores menores lo bajan y lo separan más del título."),
+      list(name = "mostrar_n_intervalo", label = "Frecuencia del intervalo encima de la barra", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Escribe cuántos casos tiene cada intervalo sobre su barra, sin tocar las etiquetas de los segmentos. Da el N del tramo mientras los segmentos muestran porcentajes."),
       list(name = "posicion_etiquetas", label = "Ubicación de etiquetas", tipo_input = "choice", grupo = "valores",
            default = "segmento",
            choices = list(
@@ -2593,8 +2650,11 @@
     normalizar_etiquetas      = "ninguna",
 
     mostrar_valores           = TRUE,
-    formato_valor             = "porcentaje_n",
-    mostrar_frecuencia        = TRUE,
+    # Doctrina de la casa: un gráfico cuyo indicador principal es el porcentaje
+    # muestra SOLO el porcentaje. La frecuencia es opcional y se enciende desde
+    # la UI (`formato_valor = "porcentaje_n"` o `mostrar_frecuencia = TRUE`).
+    formato_valor             = "porcentaje",
+    mostrar_frecuencia        = FALSE,
     decimales                 = 0,
     size_texto_barras         = 5.6,
     color_texto_barras        = .PULSO_PPT_COLORS$azul,
@@ -2684,7 +2744,10 @@
     ancho_bin                = NULL,
     mostrar_bins_vacios      = TRUE,
     mostrar_valores          = TRUE,
-    mostrar_frecuencia       = TRUE,
+    # Doctrina de la casa: en los modos de porcentaje la lamina muestra SOLO el
+    # porcentaje; el conteo se enciende desde la UI. En modo `conteo` el
+    # indicador principal YA es la frecuencia y este arg no interviene.
+    mostrar_frecuencia       = FALSE,
     mostrar_resumen_grupos_subtitulo = FALSE,
     prefijo_resumen_grupos_subtitulo = "",
     separador_resumen_grupos_subtitulo = " · ",
@@ -3689,6 +3752,14 @@
     if (as.character(arg$tipo_input %||% "") %in% c("overrides", "filtros", "base_config", "meta")) next
     # Evita duplicar el mismo concepto cuando existe el nombre canónico.
     if (identical(nm, "wrap_y") && isTRUE(has_label_width)) next
+
+    # `choices` puede llegar como función para resolverse AL SERVIR y no al
+    # construir la lista. Hace falta cuando el catálogo vive en un archivo que R
+    # carga después de éste — sin `Collate`, el orden es alfabético y
+    # `graficos_metadata.R` se evalúa antes que `graficos_radar_multibase.R`.
+    # A cambio, el motor es la única fuente de esos valores: un estilo nuevo
+    # aparece en la UI sin tocar este archivo.
+    if (is.function(arg$choices)) arg$choices <- arg$choices()
 
     arg$grupo <- .graf_arg_ui_group(nm, arg$grupo %||% NULL)
     out[[length(out) + 1L]] <- .graf_arg_ui_patch(arg)

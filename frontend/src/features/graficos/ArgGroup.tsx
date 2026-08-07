@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { IconDiagnostic } from "../../lib/icons";
 import { ArgGrupo, ArgMetadata, VarInfo } from "../../api/client";
 import { ArgField, ArgState } from "./ArgField";
+import { argsQueAplican } from "./argDependencias";
 
 // Agrupa los args por intención. El backend ya manda los nombres nuevos
 // (lectura, valores, leyenda, espacio...), pero mantenemos compatibilidad
@@ -101,6 +102,12 @@ export function ArgGroup({
 }) {
   const normalizedGrupo = normalizeArgGroup(grupo);
   const meta = GRUPO_META[normalizedGrupo];
+
+  // Un graficador con modos declara los campos de TODOS sus modos; aquí se
+  // muestran sólo los del modo elegido. Se filtra en ArgGroup y no en cada
+  // llamador para que valga igual en el editor, el panel de estilo y el de
+  // filtros.
+  args = argsQueAplican(args, values);
 
   if (args.length === 0) return null;
 

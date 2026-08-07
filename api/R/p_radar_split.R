@@ -17,8 +17,18 @@
 #'
 #' Alias de `p_radar_tabla` que fuerza `mostrar_tabla_derecha = FALSE`.
 #' Útil para slides donde el radar ocupa todo el placeholder.
+#'
+#' El modo `publicos` es el mismo dibujo con otra procedencia de las series:
+#' en `sm` y `box` cada serie sale de un cruce DENTRO de una base, y en
+#' `publicos` cada serie es una fuente del estudio (ADR 0064). Es un modo y no
+#' un graficador aparte porque para el analista sigue siendo «un radar»; lo
+#' único que cambia es qué compara.
+#' @param corte Sólo en modo `publicos`: códigos que suman el indicador.
+#' @param corte_etiqueta Sólo en modo `publicos`: nombre del indicador.
+#' @param estilo Sólo en modo `publicos`: clave de `.RADAR_MB_ESTILOS`.
+#' @param mostrar_tabla Sólo en modo `publicos`: compone el radar con su tabla.
 #' @export
-p_radar <- function(modo = c("sm", "box"),
+p_radar <- function(modo = c("sm", "box", "publicos"),
                     var  = NULL,
                     vars = NULL,
                     cruce = NULL,
@@ -32,9 +42,22 @@ p_radar <- function(modo = c("sm", "box"),
                     mostrar_valores = NULL,
                     valores_decimales = NULL,
                     valores_umbral_pct = NULL,
+                    corte = NULL,
+                    corte_etiqueta = NULL,
+                    estilo = NULL,
+                    mostrar_tabla = TRUE,
                     overrides = list(),
                     base = list(),
                     filtros = list()) {
+  # El modo se resuelve ANTES del `match.arg` de `p_radar_tabla`, que no conoce
+  # `publicos` y abortaría.
+  if (identical(as.character(modo)[1], "publicos")) {
+    return(p_radar_publicos(
+      vars = vars, corte = corte, estilo = estilo %||% "comparativo",
+      corte_etiqueta = corte_etiqueta, mostrar_tabla = isTRUE(mostrar_tabla),
+      titulo = titulo, overrides = overrides, base = base, filtros = filtros
+    ))
+  }
   overrides <- c(list(mostrar_tabla_derecha = FALSE), overrides %||% list())
   if (!is.null(mostrar_valores) && is.null(overrides$mostrar_valores)) {
     overrides$mostrar_valores <- isTRUE(mostrar_valores)

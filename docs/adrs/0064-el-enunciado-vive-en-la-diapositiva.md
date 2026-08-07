@@ -384,3 +384,34 @@ Y elegir variable es **buscar, no recorrer**: la celda filtra por código o por
 etiqueta contra el catálogo de su base, el mismo gesto que el desplegable del
 Excel. Un `<select>` con las 102 variables de la base ordenadas por el formulario
 pedía reconocer `p13_1` entre cien hermanas.
+
+## Enmienda — 2026-08-06: comparar públicos es un modo del radar
+
+La primera implementación registró `p_radar_publicos` como graficador propio, y
+Gonzalo lo corrigió al verlo: *«el radar y el radar entre públicos son lo mismo;
+el radar entre públicos debería ser un tipo de radar»*.
+
+**Decisión.** El radar entre públicos es `p_radar(modo = "publicos")`, no un
+graficador aparte. Para el analista sigue siendo un radar; lo único que cambia
+es de dónde salen las series —de un cruce dentro de una base (`sm`, `box`) o de
+las fuentes del estudio (`publicos`)—. El constructor delega en
+`p_radar_publicos()`, que es donde vive el cálculo, y el elemento de plan sigue
+siendo `radar_publicos`.
+
+Consecuencias:
+
+- El mazo derivado emite `graficador = "p_radar"` con `modo = "publicos"`. Como
+  `p_radar` ya está en `.GRAFICADOR_REGISTRY`, se materializa por el mismo
+  camino que cualquier otra lámina sin registrar nada nuevo.
+- Se retiró la capacidad `multibase` que apagaba una tarjeta propia en el
+  picker. El requisito lo dice el hint del modo.
+- El render sigue enganchándose por convención de nombre
+  (`.render_radar_publicos`), así que `reporte_plan_ppt.R` no crece.
+
+**Regla 11 — un graficador se elige por lo que compara, no por su mecánica.**
+Un arg que sólo aplica a un modo lo declara con
+`depende = list(arg = "modo", valores = …)`, y el panel muestra únicamente los
+campos de ese modo. Antes el modo se repetía en cada etiqueta —«Variable (modo
+Select múltiple)»— porque la UI no sabía filtrar: la etiqueta hacía de aviso.
+Mientras no se haya elegido modo no se esconde nada; un panel vacío al abrir un
+graficador nuevo se lee como roto.

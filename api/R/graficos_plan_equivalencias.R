@@ -24,6 +24,17 @@
 # Referencia de variable que entiende Gráficos: `base$variable`.
 .gpe_ref <- function(base, var) paste0(base, "$", var)
 
+# Nombre del indicador a partir de sus codigos y de la escala del primer tema. Se
+# deriva en vez de declararse: las opciones elegidas ya dicen como se llama.
+.gpe_etiqueta_corte <- function(filas, inst_por_base, corte) {
+  if (!length(filas) || !exists(".equiv_escala_opciones", mode = "function")) return("")
+  f <- filas[[1]]
+  b <- names(f$variables)[1]
+  inst <- inst_por_base[[b]]
+  if (is.null(inst)) return("")
+  .radar_mb_etiqueta_corte(corte, .equiv_escala_opciones(inst, f$variables[[b]]))
+}
+
 # Orden declarado de las diapositivas. Numérico cuando se puede: como texto, «10»
 # ordena antes que «2» y el mazo saldría en un orden que nadie pidió.
 .gpe_orden_diapositivas <- function(claves) {
@@ -156,6 +167,7 @@
   }
 
   slides <- list()
+  radar_pendiente <- list()
   for (diapositiva in .gpe_orden_diapositivas(names(por_diapositiva))) {
     filas <- por_diapositiva[[diapositiva]]
 
@@ -169,12 +181,73 @@
     }, character(1))
 
     grupos <- split(seq_along(filas), factor(firma_fila, levels = unique(firma_fila)))
-    args <- if (length(grupos) == 1L) {
+
+    # ADR 0064: un bloque puede declarar `grafico = radar` con su corte.
+    #
+    # El radar es de la DIAPOSITIVA, no de un bloque suelto: no se puede apilar
+    # una telarana con barras en el mismo lugar. Asi que sale radar cuando la
+    # diapositiva tiene UN solo bloque y ese bloque lo pide. Si la diapositiva
+    # junta escalas distintas, se queda en barras apiladas y se reporta: dibujar
+    # media diapositiva de cada forma seria peor que no aplicar la decision.
+    pedido_radar <- function(idx) {
+      pedido <- vapply(filas[idx], function(f) {
+        tolower(trimws(as.character(f$grafico %||% "")))
+      }, character(1))
+      any(pedido == "radar")
+    }
+    corte_de <- function(idx) {
+      corte <- vapply(filas[idx], function(f) trimws(as.character(f$corte %||% "")), character(1))
+      corte <- corte[nzchar(corte)]
+      if (length(corte)) corte[1] else ""
+    }
+
+    quiere_radar <- any(vapply(grupos, pedido_radar, logical(1)))
+    corte <- corte_de(seq_along(filas))
+    radar_ok <- quiere_radar && length(grupos) == 1L && nzchar(corte)
+
+    if (quiere_radar && !radar_ok) {
+      radar_pendiente[[length(radar_pendiente) + 1L]] <- list(
+        diapositiva = diapositiva,
+        n_temas = length(filas),
+        corte = corte,
+        motivo = if (!nzchar(corte)) "sin_indicador" else "escalas_mixtas"
+      )
+    }
+
+    # En las barras el eje se llama `tema_i` y su titulo viaja aparte en
+    # `titulos_grupo`; en el radar el NOMBRE del eje es la etiqueta que se
+    # dibuja en el vertice, asi que se arma con ella.
+    ejes_radar <- function(filas) {
+      out <- list()
+      for (i in seq_along(filas)) {
+        f <- filas[[i]]
+        etiqueta <- trimws(as.character(f$etiqueta_estandar %||% ""))
+        if (!nzchar(etiqueta)) etiqueta <- paste("Tema", i)
+        # Dos temas con la misma etiqueta colapsarian en un solo vertice: se
+        # desambigua en vez de perder uno.
+        if (!is.null(out[[etiqueta]])) etiqueta <- paste0(etiqueta, " (", i, ")")
+        out[[etiqueta]] <- as.list(vapply(
+          names(f$variables), function(b) .gpe_ref(b, f$variables[[b]]),
+          character(1), USE.NAMES = FALSE))
+      }
+      out
+    }
+
+    args <- if (radar_ok) {
+      # `p_radar` en modo `publicos` y no un graficador aparte: para el analista
+      # sigue siendo un radar, y lo unico que cambia es de donde salen las
+      # series. El constructor delega en `p_radar_publicos`, que es donde vive el
+      # calculo.
+      list(modo = "publicos", vars = ejes_radar(filas), corte = corte,
+           corte_etiqueta = .gpe_etiqueta_corte(filas, inst_por_base, corte),
+           estilo = "comparativo", mostrar_tabla = TRUE)
+    } else if (length(grupos) == 1L) {
       bloque_de(filas)
     } else {
       list(modo = "multilista",
            bloques = unname(lapply(grupos, function(idx) bloque_de(filas[idx]))))
     }
+    graficador <- if (radar_ok) "p_radar" else "p_barras_multiapiladas"
 
     # ADR 0064: la diapositiva se titula con su enunciado. En el formato plano el
     # enunciado se escribe por fila —el Excel no tiene dónde poner un atributo de
@@ -201,7 +274,7 @@
       tipo = "p_slide_1_grafico",
       payload = list(
         titulo = enunciado,
-        grafico = list(graficador = "p_barras_multiapiladas", args = args)
+        grafico = list(graficador = graficador, args = args)
       )
     )
   }
@@ -211,6 +284,10 @@
     plan = list(slides = slides),
     fuera = fuera,
     n_diapositivas = length(slides),
+    # Bloques que pidieron radar y salieron como barras. Se devuelve para que la
+    # superficie lo diga: una decision declarada que no se aplica y no se ve es
+    # peor que no poder declararla.
+    radar_pendiente = radar_pendiente,
     # Viaja con la propuesta para que, al aplicarla, quede grabada junto al plan
     # y el desfase posterior sea comprobable en vez de sospechado.
     revision = .equiv_declaracion_revision(equiv)
@@ -240,6 +317,11 @@
     # Lo que no entro viaja con su motivo: un mazo mas corto de lo esperado sin
     # explicacion se lee como un fallo del generador.
     fuera = derivado$fuera,
+    # Bloques que declararon radar y salieron como barras porque el render aun
+    # no dibuja una serie por fuente. Viaja para que la superficie lo diga: una
+    # decision declarada que no se aplica y no se ve es peor que no poder
+    # declararla.
+    radar_pendiente = derivado$radar_pendiente %||% list(),
     coverage = list(),
     warnings = character(0)
   )

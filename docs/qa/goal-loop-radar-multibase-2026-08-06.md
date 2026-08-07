@@ -1,0 +1,218 @@
+# GOAL · El radar compara públicos, y el indicador lo decide el analista
+
+Tipo: Goal operativo QA
+Estado: En curso
+Fecha: 2026-08-06
+Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado de la superficie
+
+- **Abierto**: 2026-08-06 · **Cierra**: sólo Gonzalo
+- **Alcance**: loop de convergencia, no una lista lineal. No se cierra hasta
+  validarlo todo: motor, interfaz, estilos y render en PPT.
+- **Banco de prueba**: `ACRD CONTA/Conta 06-08.pulso` con `Matriz.xlsx` — 4
+  bases reales (`docentes` 102 vars, `estudiantes` 88, `egresados` 75,
+  `administrativos` 35), 153 temas en 44 diapositivas. Es proyecto de cliente:
+  se trabaja **sobre copia**, nunca se commitea.
+
+## Qué se pide
+
+> «Si un bloque tiene de cinco temas a más y todos los actores presentes tienen
+> todos los temas, que exista la posibilidad de escoger barras multiapiladas o
+> un gráfico de radar. El indicador es o una categoría o la suma de un par de
+> categorías —la opción "Sí", o el top-two-box, que aquí son la 3 y la 4, no la
+> 5 que es sin información—. Esto no es hardcodeado, se define en la interfaz.
+> Y el radar tiene que tener varios estilos, como las multiapiladas, y uno de
+> ellos multibase que se sincronice con esto.»
+
+## El hallazgo que ordena el goal
+
+**Ningún radar del motor puede tener una serie por FUENTE.** Los dos que
+existen cruzan por una variable *dentro de una base*:
+
+| Graficador | Ejes | Series | Sirve aquí |
+|---|---|---|---|
+| `p_radar` modo `sm` | opciones de una `select_multiple` | `cruce` (una variable) | no |
+| `p_radar` modo `box` | varias preguntas de una escala | `cruce` (una variable) | **casi** |
+| `p_dim_radar` | dimensiones calculadas | `cruce` (una variable) | no |
+
+El modo `box` acierta la forma —varias preguntas de escala compartida,
+resumidas por un corte— pero su serie sale de una variable, no de las cuatro
+bases. Y el camino multibase (`base$variable`) está resuelto de forma genérica
+en `graficos_consolidado.R`, pero la consolidación sólo acepta
+`p_barras_multiapiladas` en modo `var_cruce` y salta el resto.
+
+**Consecuencia**: el radar multibase es capacidad nueva del motor, no un
+argumento. Y su render cae en `reporte_plan_ppt.R`, que está en
+`policy.frozen_growth_files` — por eso la implementación vive en archivo propio
+y el monolito sólo la llama, que es la regla de la casa.
+
+## Estado por carril
+
+| Carril | Estado |
+|---|---|
+| **R1** · La declaración lleva `grafico` y `corte` por bloque | **hecho** |
+| **R2** · El corte se define en la interfaz, sin nada fijo | **hecho** |
+| **R3** · Ida y vuelta por Excel sin perder la decisión | **hecho** |
+| **R4** · El mazo reporta los bloques que piden radar | **hecho** |
+| **R5** · El motor dibuja una serie por público | **hecho** |
+| **R6** · El radar tiene estilos, uno de ellos multibase | **hecho** |
+| **R7** · El render en PPT: gráfico y tabla, elegantes | **hecho** |
+
+## Reglas que el loop ya fijó
+
+1. **El indicador se declara, no se deduce.** Cuál es el corte —«Sí», o la suma
+   de «De acuerdo» y «Totalmente de acuerdo»— es una decisión metodológica del
+   estudio. Una regla como «los dos últimos» sería falsa justo en esta escala,
+   donde el quinto valor es «SIN INF».
+2. **Elegible = 5+ temas y cobertura rectangular.** Todos los públicos presentes
+   con todos los temas. Lo que rompe la figura es el hueco —un vértice que le
+   falta a una serie y no a otra—, no el número de series: con un solo público
+   el radar sale con una línea y se lee perfectamente.
+3. **El control se muestra aunque no se pueda activar**, con el motivo al lado.
+   Esconderlo hacía que la función pareciera inexistente.
+4. **Nada de nombres de base fijos.** Las columnas y las series salen de las
+   bases declaradas del estudio: tres bases producen tres series y seis, seis.
+
+## Medido sobre el banco de prueba
+
+```
+bloques con diapositiva:        53
+  de 5+ temas:                   4   ← todos con cobertura rectangular
+    D10  7 temas · administrativos
+    D25  6 temas · docentes
+    D29  6 temas · docentes, estudiantes, egresados
+    D30  5 temas · docentes, estudiantes, egresados
+```
+
+## Lo que el loop encontró al implementar
+
+**`%||%` revienta con un data frame de una sola columna.** Para un data frame
+`length()` es el número de columnas, así que `length(a) == 1 && is.na(a)` evalúa
+`is.na()` sobre el objeto entero y `&&` recibe un vector. Las bases reales
+tienen decenas de columnas y nunca lo tocan; el fixture del test sí. Está en
+`helpers_calc_comunes.R` y lo usa medio motor — vale la pena mirarlo aparte.
+
+**El panel del radar recortaba las etiquetas a media palabra.** El límite se
+calculaba como el anillo de etiquetas más un 5 %, que alcanza para nombres
+cortos; «Costos y presupuestos» se centra en su ancla y su mitad izquierda caía
+fuera. Se añadió `margen_etiquetas` a `graficar_radar`, con defecto `1` para no
+mover el encuadre de los radares que ya existen.
+
+**Ningún estilo etiqueta los vértices.** Con tres públicos y seis temas serían
+18 números dentro de una banda de ocho puntos —el perfil de egreso mide entre
+90 % y 98 %— y se montarían unos sobre otros. El ancla numérica es la tabla.
+
+**Diez anillos de grilla no se leen**: las etiquetas de nivel se escriben una
+sobre otra sobre el mismo rayo («0%11%22%33%…»). El estilo de auditoría usa
+cinco.
+
+## Medido: el radar de la diapositiva 29
+
+Indicador = códigos 3+4 (top-two-box), dejando fuera el 5 «SIN INF».
+
+| Tema | docentes | estudiantes | egresados |
+|---|---:|---:|---:|
+| Estados Financieros | 98.0 | 96.3 | 98.1 |
+| Auditoría | 96.1 | 90.8 | 98.1 |
+| Costos y presupuestos | 92.2 | 93.6 | 93.8 |
+| Finanzas | 96.1 | 95.4 | 93.2 |
+| Tributación | 94.1 | 96.3 | 97.5 |
+| Visión empresarial | 92.2 | 93.6 | 95.0 |
+
+Bases: 51 docentes · 109 estudiantes · 161 egresados. Sin huecos.
+
+## Estilos del radar
+
+| Clave | Para qué |
+|---|---|
+| `comparativo` | Una línea por público. El que sincroniza con la matriz. |
+| `silueta` | Polígonos rellenos, sin números: la forma del perfil. |
+| `auditoria` | Grilla y radios visibles, leyenda al costado. |
+| `limpio` | Sólo líneas y ejes, para una lámina que ya trae su tabla. |
+
+## Cómo se engancha sin tocar el archivo congelado
+
+El despacho del PPT resuelve por convención de nombre:
+
+```r
+fn_name <- paste0(".render_", etype)
+if (!exists(fn_name, mode = "function", inherits = TRUE)) ...
+```
+
+Así que `.render_radar_publicos`, definido a nivel de paquete en
+`graficos_radar_multibase.R`, **se encuentra solo**. No hizo falta añadir una
+rama a `reporte_plan_ppt.R` ni subir su línea base.
+
+Lo único que el despacho no da son las fuentes: pasa `(el, preset_args)` y nada
+más. Se toman con `dynGet("data_sources")` / `dynGet("instrument_sources")`, que
+existe justo para leer una variable del entorno de llamada sin acoplarse a la
+profundidad del frame. Si no aparecen, el renderer lo dice en vez de dibujar un
+radar vacío.
+
+## Comparar públicos es un MODO del radar
+
+Corrección de Gonzalo al revisar la primera versión, que lo había registrado
+como graficador aparte:
+
+> «El radar y el radar entre públicos son lo mismo; el radar entre públicos
+> debería ser un tipo de radar.»
+
+Tiene razón, y el registro lo estaba partiendo en dos. Para el analista sigue
+siendo **un radar**: lo único que cambia es de dónde salen las series —de un
+cruce dentro de una base (`sm`, `box`) o de las fuentes del estudio
+(`publicos`)—. Dos tarjetas en el picker obligaban a saber de antemano cuál de
+las dos abrir.
+
+`p_radar(modo = "publicos", …)` delega en `p_radar_publicos()`, que sigue siendo
+donde vive el cálculo. El elemento de plan y el renderer no cambian. Y como
+`p_radar` ya está en `.GRAFICADOR_REGISTRY`, el mazo derivado se materializa por
+el mismo camino que cualquier otra lámina, sin registrar nada nuevo.
+
+Efecto colateral: se cayó la maquinaria de `feature_kind = "multibase"` que
+apagaba la tarjeta cuando el estudio no tenía bases separadas. El requisito lo
+dice ahora el hint del modo. Menos piezas.
+
+## El panel muestra sólo lo que el modo usa
+
+Un graficador con modos declara los campos de TODOS sus modos, porque el
+registro describe la función R entera. El panel no sabía filtrar, así que la
+etiqueta hacía de aviso: «Variable (modo Select múltiple)», «Variables (modo
+Cajas/cortes)». El analista que elegía «Entre públicos» veía nueve campos de los
+que cuatro no se leen nunca.
+
+Ahora cada arg puede declarar `depende = list(arg = "modo", valores = …)` y el
+frontend lo evalúa contra el payload (`argDependencias.ts`, filtrado en
+`ArgGroup` para que valga igual en el editor, el panel de estilo y el de
+filtros). Con eso las etiquetas pierden el sufijo técnico y quedan en
+«Pregunta», «Preguntas», «Indicador».
+
+Regla que fija el test: **mientras no se haya elegido modo no se esconde nada**.
+Un panel vacío al abrir un graficador nuevo se lee como roto.
+
+De paso, los modos se nombran con lo que el analista decide y no con la
+mecánica: «Las opciones de una pregunta», «Varias preguntas de la misma
+escala», «Los públicos del estudio». Multi-apiladas adopta las palabras de su
+propio constructor (`MultiApiladasBuilder.tsx`) en vez de las del registro:
+tener dos vocabularios para la misma decisión obligaba a traducir «Variables ×
+cruce» a «Abrir preguntas por grupos» al cambiar de superficie.
+
+## Un crash encontrado de paso
+
+`parseVarRef` recibía un objeto donde el tipo promete un string y tumbaba la
+aplicación entera con `ref.indexOf is not a function`. El payload de un slide
+sobrevive al cambio de graficador: `vars` de multi-apiladas en modo `var_cruce`
+es un objeto de bloques, y al pasar ese slide a Radar el picker lo recibe tal
+cual. Es anterior a este goal —pasa entre cualquier par de graficadores que
+compartan el nombre `vars`— y ahora devuelve campo vacío en vez de morir.
+
+## Qué falta para cerrar
+
+- **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
+  elegirse por bloque, como el corte.
+- **Verificar el radar de un solo público** en PPT (diapositivas 10 y 25).
+- **Los args de graficador fuera del grupo `datos` no tienen dónde salir**: el
+  inspector v2 renderiza el slot con `mode="data"`. Se sirven en el registro
+  pero la UI no los muestra (`titulo_tabla` y `umbral_rojo_pct` de `p_tabla`
+  están así hoy). Por eso los cuatro controles del modo `publicos` se declararon
+  en `datos`.
+- **`%||%` con data frames de una columna** sigue siendo una mina: está fuera
+  del alcance de este goal, pero conviene abrirlo.
