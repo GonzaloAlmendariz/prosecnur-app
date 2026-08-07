@@ -6,17 +6,19 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
+Módulo `calc-muestra` · ruta `/calc-muestra` · 46 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 1d1b1b0f | sí | — |
-| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | 1b97e000 | sí | — |
-| `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | f27f1c99 | sí | — |
+| `calc-muestra` | modulo | Cálculo de muestra y marco muestral | sí | 8a016c40 | sí | — |
+| `calc-muestra/opinion-universitaria` | modo | Muestra de cursos-horario | sí | 341135c7 | sí | — |
+| `calc-muestra/opinion-universitaria/definicion` | seccion | Datos | sí | e87026e8 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-estudio` | pestana | Estudio | sí | fe3098c2 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-bases` | pestana | Fuentes | sí | 63cd982d | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-consistencia` | pestana | Consistencia | sí | 01225810 | sí | — |
 | `calc-muestra/opinion-universitaria/definicion/def-variables` | pestana | Variables | sí | 620ea7d4 | sí | — |
+| `calc-muestra/opinion-universitaria/definicion/def-explorador` | pestana | Explorador | sí | 21ca216a | sí | — |
+| `calc-muestra/opinion-universitaria/definicion/def-historico` | pestana | Histórico | sí | 19c8ea82 | sí | — |
 | `calc-muestra/opinion-universitaria/marco` | seccion | Marco | sí | 982996d4 | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-criterios-alumno` | pestana | Criterios del estudiante | sí | 5d26023c | sí | — |
 | `calc-muestra/opinion-universitaria/marco/marco-alumnos-ch` | pestana | Alumnos por CH | sí | 14c56a1c | sí | — |
@@ -29,11 +31,12 @@ Módulo `calc-muestra` · ruta `/calc-muestra` · 43 direcciones.
 | `calc-muestra/opinion-universitaria/calculo/calculo-propuestas` | pestana | Propuestas | sí | 19f0c7d7 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-ch-facultad` | pestana | Cursos-horario requeridos | sí | d2750258 | sí | — |
 | `calc-muestra/opinion-universitaria/calculo/calculo-distribucion` | pestana | Distribución | sí | 70d96f11 | sí | — |
-| `calc-muestra/opinion-universitaria/aulas` | seccion | Selección | sí | 458ffc24 | sí | — |
+| `calc-muestra/opinion-universitaria/aulas` | seccion | Selección | sí | 07cf44df | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/objetivo` | pestana | Objetivo de muestra | sí | f9575405 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/metodo` | pestana | Comparar métodos | sí | 18b9eef5 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/laboratorio` | pestana | Simulación | sí | 3da06c70 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/seleccion` | pestana | Cursos-horario titulares | sí | 9a9670e8 | sí | — |
+| `calc-muestra/opinion-universitaria/aulas/perfil` | pestana | Perfil de la muestra | sí | b3271b5e | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/reemplazos` | pestana | Reemplazos por curso-horario | sí | fe9330a1 | sí | — |
 | `calc-muestra/opinion-universitaria/aulas/auditoria` | pestana | Sustento técnico | sí | 60e11b53 | sí | — |
 | `calc-muestra/opinion-universitaria/salidas` | seccion | Entrega | sí | 870e8de5 | sí | — |
