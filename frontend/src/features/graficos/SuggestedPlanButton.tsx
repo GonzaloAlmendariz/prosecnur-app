@@ -12,6 +12,7 @@ import { usePptStyleProfiles } from "./usePptStyleProfiles";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useOptionalProjectShell } from "../project/ProjectShell";
 import { buildSuggestedPlanRecipeMarkdown } from "./suggestedPlanRecipe";
+import { esEquivalente, sincronizarEquivalentes } from "./sincronizarEquivalentes";
 
 function newSlideId(prefix = "sug") {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -206,6 +207,29 @@ export function SuggestedPlanButton() {
     applySelectedStyleProfile();
     setOpen(false);
   }
+
+  /**
+   * Pone al día SOLO el bloque que deriva la matriz de equivalencias. Ni
+   * «Reemplazar» —que borra el perfil sociodemográfico y todo lo hecho a mano—
+   * ni «Fusionar» —que al regenerar deja el bloque por duplicado— sirven cuando
+   * el mazo mezcla lo derivado con lo construido a mano.
+   */
+  function sincronizarPlan() {
+    if (!result) return;
+    const suggested = clonePlanWithFreshIds(result.plan);
+    const out = sincronizarEquivalentes(currentPlan, suggested.slides);
+    loadPlan(out.plan);
+    setEquivalenciasRevision(result.revision ?? "");
+    applySelectedStyleProfile();
+    setOpen(false);
+  }
+
+  const derivadasEnPlan = currentPlan.slides.filter(esEquivalente).length;
+  const puedeSincronizar =
+    result?.fuente === "equivalencias" && (result?.plan.slides.length ?? 0) > 0;
+  const ayudaSincronizar = derivadasEnPlan > 0
+    ? `Reemplaza las ${derivadasEnPlan} diapositivas que salieron de la matriz y deja el resto del mazo intacto.`
+    : "Añade las diapositivas de la matriz como un bloque propio, que podrás actualizar sin tocar el resto.";
 
   function applySelectedStyleProfile() {
     if (!result) return;
@@ -541,6 +565,14 @@ export function SuggestedPlanButton() {
                 <button type="button" onClick={mergePlan}>
                   <GitMerge size={12} /> Fusionar al final
                 </button>
+                {/* Sólo cuando el estudio declara equivalencias CON plan: sin un
+                    bloque derivado que sincronizar, el botón no tendría qué
+                    hacer y competiría con los otros dos por atención. */}
+                {puedeSincronizar && (
+                  <button type="button" onClick={sincronizarPlan} title={ayudaSincronizar}>
+                    <RefreshCw size={12} /> Actualizar diapositivas equivalentes
+                  </button>
+                )}
                 <button type="button" onClick={() => setOpen(false)}>
                   Cancelar
                 </button>

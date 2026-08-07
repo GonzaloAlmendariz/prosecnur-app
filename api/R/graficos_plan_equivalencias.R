@@ -192,6 +192,12 @@
 
     slides[[length(slides) + 1L]] <- list(
       id = paste0("s-equiv-", diapositiva),
+      # Marca de procedencia. El `id` no basta: al aplicar, el editor clona el
+      # plan con ids nuevos y `s-equiv-3` entra al lienzo como `sug-a1b2`, con lo
+      # que despues de aplicarlo ya no se puede saber cual vino de la matriz.
+      # Sin esta marca no hay forma de regenerar el bloque de equivalencias sin
+      # tocar las diapositivas hechas a mano.
+      origen = "equivalencias",
       tipo = "p_slide_1_grafico",
       payload = list(
         titulo = enunciado,
