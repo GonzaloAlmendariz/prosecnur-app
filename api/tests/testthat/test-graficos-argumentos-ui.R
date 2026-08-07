@@ -128,6 +128,10 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     "variable", "variable_opt", "variables_list", "string", "textarea",
     "number", "bool", "choice", "codigos_list", "multiflag", "color",
     "series_colors", "criteria_config", "technical_rows", "icono", "overrides", "filtros",
+    # `base_labels` dibuja una caja por base del estudio. Existe porque pedirle
+    # al analista que escriba «clave=Titulo» por linea le traslada un detalle de
+    # serializacion: la aplicacion ya sabe cuantas bases hay y como se llaman.
+    "base_labels",
     "base_config", "meta"
   )
   ui_grupo_soportado <- c(
@@ -914,11 +918,17 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
 	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_leyenda, .PULSO_PPT_COLORS$azul)
 	  expect_equal(.PRESETS_DEFAULT_PULSO$barras_numericas$colores_series$Media, .PULSO_PPT_COLORS$azul)
   expect_equal(.PRESETS_DEFAULT_PULSO$histograma$modo, "porcentaje_total")
-  expect_true(.PRESETS_DEFAULT_PULSO$histograma$mostrar_frecuencia)
+  # Doctrina P29: un grafico cuyo indicador principal es el porcentaje muestra
+  # SOLO el porcentaje; el conteo es opcional y se enciende desde la UI. En modo
+  # `conteo` la etiqueta ya es la frecuencia y este arg no interviene.
+  expect_false(isTRUE(.PRESETS_DEFAULT_PULSO$histograma$mostrar_frecuencia))
 	  expect_equal(.PRESETS_DEFAULT_PULSO$radar_tabla$tabla_header_fill, .PULSO_PPT_COLORS$azul)
 
+  # El recorrido de una escala de valoracion va de rojizo a verde, pasando por un
+  # durazno. Antes terminaba en azul marino: es el color de la marca, no el de
+  # «lo mejor», y rompia la lectura de un vistazo porque el ojo busca el verde.
   fallback <- .reporte_plan_pulso_palette_for_levels(c("1", "2", "3", "4"))
-  expect_equal(unname(fallback), c("#CA5651", "#EFD25E", "#85BB85", "#081F5C"))
+  expect_equal(unname(fallback), c("#CA5651", "#E4A34C", "#85BB85", "#4F8A3E"))
 
   choices <- data.frame(
     list_name = rep("likert", 2),

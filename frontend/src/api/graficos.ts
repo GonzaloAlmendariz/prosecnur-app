@@ -97,6 +97,11 @@ export type ArgTipoInput =
   // keywords CSS (white, black, transparent). Se renderiza con
   // <input type="color"> nativo como fallback al popover custom.
   | "color"
+  // base_labels: una caja por base del estudio para renombrar las columnas de
+  // una tabla comparativa. El valor viaja como texto `clave=Título` por línea
+  // —el mismo formato que `titulos_grupo`— pero el analista nunca lo escribe:
+  // la aplicación ya sabe cuántas bases hay y cómo se llaman.
+  | "base_labels"
   // series_colors: editor visual de pares serie → color. El valor viaja
   // como objeto nombrado { "Serie": "#RRGGBB" }, sin edición JSON.
   | "series_colors"

@@ -404,6 +404,44 @@ de maquetación, no como un gráfico: pasado cierto punto, aire vale más que ba
 Resultado sobre las mismas láminas: de 3.56 a 4.70 in de canvas con cinco filas,
 y de 2.43 a 3.03 con tres.
 
+## Lo declarado es lo que sale: medido y fijado
+
+La preocupación de fondo:
+
+> «No quiero que el día de mañana subamos el Excel estandarizado y que no me
+> pegue ninguna equivalencia. La cosa es que ya esté todo.»
+
+Se comparó, par a par, lo que declara la matriz del estudio contra lo que emite
+el mazo:
+
+```
+declarado en la matriz : 263 pares (diapositiva, base$variable)
+emitido en el mazo     : 263
+declarados que NO salen: 0
+emitidos sin declarar  : 0
+descartados con motivo : 20  ·  todos «sin_diapositiva»
+```
+
+Queda fijado como prueba permanente, sobre un caso que cubre las tres formas —
+dos públicos con escala compartida, un solo público, y escalas mixtas partidas en
+bloques—: **ningún par declarado puede faltar, y ninguno puede aparecer sin
+declararse.** Con una segunda prueba para lo descartado: una fila sin diapositiva
+se reporta con su etiqueta y sus variables, no como «1 fila fuera» — un mazo más
+corto de lo esperado sin explicación es indistinguible de un fallo.
+
+## Los nombres de columna se editan por caja, no por sintaxis
+
+> «¿Cómo es posible que en nombres de columnas me ponga un cuadro de texto todo
+> simple, cuando tranquilamente puede detectar cuántas bases hay y mostrarme una
+> caja por columna?»
+
+Tiene razón, y el arreglo es un tipo de campo nuevo (`base_labels`): una caja por
+base, con el nombre técnico de etiqueta y de placeholder, así se ve de un vistazo
+qué se está renombrando y qué queda como está. El valor sigue viajando como
+`clave=Título` por línea —el mismo formato que `titulos_grupo`, para que el motor
+no aprenda una sintaxis nueva—, pero el analista ya no lo escribe: era
+trasladarle un detalle de serialización.
+
 ## Qué falta para cerrar
 
 - **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder

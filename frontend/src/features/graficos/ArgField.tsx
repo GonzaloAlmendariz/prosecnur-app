@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import BaseLabelsField from "./BaseLabelsField";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
@@ -377,6 +378,9 @@ function FieldControl({
           onChange={onChange}
         />
       );
+
+    case "base_labels":
+      return <BaseLabelsField value={shownValue} onChange={onChange} />;
 
     case "series_colors":
       return (
@@ -1644,6 +1648,9 @@ function buildTypeHint(meta: ArgMetadata, options: { forText?: boolean; forNumbe
   }
   if (tipo === "series_colors") {
     return "Asigna colores por serie para distinguir mejor cada grupo.";
+  }
+  if (tipo === "base_labels") {
+    return "Una caja por base del estudio. Lo que dejes vacío conserva el nombre técnico.";
   }
   if (tipo === "criteria_config") {
     return "Define criterios y parámetros avanzados para segmentar o agrupar datos.";
