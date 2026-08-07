@@ -306,3 +306,90 @@ test_that("los tres controles viajan del elemento de plan al dibujo", {
   expect_equal(args$valores_decimales, 0L)
   expect_equal(args$limites, c(0.5, 1))
 })
+
+# ---------------------------------------------------------------------------
+# Lo que el radar muestra POR DEFECTO, y la tabla editable.
+# ---------------------------------------------------------------------------
+
+test_that("por defecto se ven los radios y no las cifras sobre la figura", {
+  # La telarana se lee por su forma. Los radios del centro a cada punta son la
+  # estructura que deja seguir un tema; los numeros del vertice y las etiquetas
+  # de nivel son dos capas de cifras sobre esa forma, y la tabla al costado ya
+  # da el dato exacto. Las dos se encienden desde la UI, pero no arrancan asi.
+  a <- .radar_mb_estilo_args("comparativo")
+  expect_true(a$mostrar_radios)
+  expect_false(a$mostrar_valores)
+  expect_false(a$mostrar_niveles)
+  expect_true(a$mostrar_tela)
+
+  # `auditoria` es el unico que si etiqueta los niveles: existe para revisar la
+  # lectura del eje, no para presentar.
+  expect_true(.radar_mb_estilo_args("auditoria")$mostrar_niveles)
+})
+
+test_that("los nombres de los temas no quedan pegados al poligono", {
+  # El tope de 1.10 del graficador impedia pedir mas aire. Con seis ejes de
+  # nombre largo, un 10 % dejaba «Costos y presupuestos» tocando la figura.
+  expect_gt(.RADAR_MB_MARGENES$eje_label_mult, 1.10)
+  expect_lt(.RADAR_MB_MARGENES$radar_scale, 1)
+})
+
+test_that("el encabezado de la tabla se escribe a mano y las columnas se renombran", {
+  d <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("docentes", "docentes")),
+                  valor = c(98, 96), n = c(51L, 51L))
+  tabla <- .radar_mb_tabla(d, "De acuerdo + Totalmente de Acuerdo")
+
+  # El indicador NO entra en la celda: metido ahi se comia media tabla, y ademas
+  # hace falta aunque la tabla este apagada. Va al subtitulo del grafico.
+  expect_equal(.radar_mb_nombres_tabla(tabla)[1], "Tema")
+  expect_equal(.radar_mb_capturar_args(d, indicador = "De acuerdo + Totalmente de Acuerdo")$subtitulo,
+               "% De acuerdo + Totalmente de Acuerdo")
+  expect_null(.radar_mb_capturar_args(d)$subtitulo)
+
+  # Con titulo propio, manda el titulo.
+  propio <- .radar_mb_nombres_tabla(tabla, titulo_tema = "Competencia")
+  expect_equal(propio[1], "Competencia")
+
+  # Las columnas de publico se renombran por clave; lo que no se nombra se queda.
+  renom <- .radar_mb_nombres_tabla(tabla, encabezados = list(docentes = "Docentes"))
+  expect_equal(renom[2], "Docentes")
+  expect_equal(.radar_mb_nombres_tabla(tabla, encabezados = list(nadie = "X"))[2], "docentes")
+})
+
+test_that("los renombres se declaran como en las multiapiladas", {
+  # Mismo formato que `titulos_grupo`: el analista no aprende una sintaxis nueva
+  # por cambiar de graficador.
+  expect_equal(.radar_mb_renombres("docentes=Docentes\negresados=Egresados"),
+               list(docentes = "Docentes", egresados = "Egresados"))
+  expect_equal(.radar_mb_renombres("  docentes = Docentes  "), list(docentes = "Docentes"))
+  expect_equal(.radar_mb_renombres("sin igual"), list())
+  expect_equal(.radar_mb_renombres(NULL), list())
+})
+
+test_that("los anchos de tabla se acotan a algo dibujable", {
+  # La UI pide un porcentaje y el motor una fraccion; confundirlas dejaba la
+  # primera columna en el 4500 % del ancho.
+  expect_equal(.radar_mb_fraccion(45), 0.45)
+  expect_equal(.radar_mb_fraccion(0.45), 0.45)
+  # Por debajo de 0.2 el nombre del tema se parte en cinco lineas; por encima de
+  # 0.8 las cifras se apelmazan contra el borde.
+  expect_equal(.radar_mb_fraccion(95), 0.8)
+  expect_equal(.radar_mb_fraccion(0.01), 0.2)
+  # Todo lo mayor que 1 se lee como porcentaje, asi que un «5» es 5 % y sube al
+  # minimo dibujable — no 500 %.
+  expect_equal(.radar_mb_fraccion(5), 0.2)
+  expect_true(is.na(.radar_mb_fraccion(NULL)))
+  expect_equal(.radar_mb_proporcion(0.1), 0.3)
+  expect_true(is.na(.radar_mb_proporcion("")))
+})
+
+test_that("los cuatro controles de tabla viajan del elemento al compositor", {
+  el <- p_radar(modo = "publicos", vars = list(A = list("docentes$p1")), corte = "3,4",
+                tabla_titulo = "Competencia",
+                tabla_encabezados = "docentes=Docentes",
+                tabla_ancho_tema = 45, tabla_proporcion = 1.4)
+  expect_equal(el$tabla_titulo, "Competencia")
+  expect_equal(el$tabla_encabezados, list(docentes = "Docentes"))
+  expect_equal(el$tabla_ancho_tema, 0.45)
+  expect_equal(el$tabla_proporcion, 1.4)
+})

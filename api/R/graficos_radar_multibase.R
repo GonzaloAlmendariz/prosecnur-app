@@ -50,12 +50,51 @@
   max(0L, min(3L, d))
 }
 
+# Fraccion del ancho de tabla que ocupa la primera columna. Fuera de 0.2-0.8 no
+# se acepta: por debajo el nombre del tema se parte en cinco lineas y por encima
+# las cifras se apelmazan contra el borde derecho.
+.radar_mb_fraccion <- function(x) {
+  v <- suppressWarnings(as.numeric(x %||% NA)[1])
+  if (!is.finite(v) || v <= 0) return(NA_real_)
+  # Se acepta tanto 0.45 como 45: la UI pide un porcentaje y el motor una
+  # fraccion, y confundirlas dejaba la columna en el 4500 % del ancho.
+  if (v > 1) v <- v / 100
+  max(0.2, min(0.8, v))
+}
+
+# Ancho de la tabla respecto al radar.
+.radar_mb_proporcion <- function(x) {
+  v <- suppressWarnings(as.numeric(x %||% NA)[1])
+  if (!is.finite(v) || v <= 0) return(NA_real_)
+  max(0.3, min(3, v))
+}
+
 # Piso declarado del eje, en puntos porcentuales. El recorte contra los datos
 # vive en `.radar_mb_piso()`, que si los tiene a la vista.
 .radar_mb_eje_min <- function(x) {
   v <- suppressWarnings(as.numeric(x %||% 0)[1])
   if (!is.finite(v) || v <= 0) return(0)
   min(v, 99)
+}
+
+# Renombres de columna declarados como «clave=Titulo», una por linea. Mismo
+# formato que `titulos_grupo` de las multiapiladas: el analista no tiene por que
+# aprender una sintaxis nueva por cambiar de graficador.
+#
+# Lo que no se nombra se queda como esta. Un mapa parcial es lo normal: casi
+# siempre se retoca una sola columna.
+.radar_mb_renombres <- function(x) {
+  txt <- as.character(x %||% "")
+  if (!length(txt) || !any(nzchar(trimws(txt)))) return(list())
+  lineas <- unlist(strsplit(paste(txt, collapse = "\n"), "[\n;]"))
+  out <- list()
+  for (l in lineas) {
+    if (!grepl("=", l, fixed = TRUE)) next
+    clave <- trimws(sub("=.*$", "", l))
+    valor <- trimws(sub("^[^=]*=", "", l))
+    if (nzchar(clave)) out[[clave]] <- valor
+  }
+  out
 }
 
 # Códigos del indicador a partir de la forma declarada («3,4»).
@@ -168,14 +207,19 @@
 .RADAR_MB_ESTILOS <- list(
   comparativo = list(
     etiqueta = "Comparativo entre públicos",
-    descripcion = "Una línea por público, con su valor en cada vértice. El estilo que sincroniza con la matriz de equivalencias.",
+    descripcion = "Una línea por público sobre la telaraña, con los radios que van del centro a cada tema. El estilo que sincroniza con la matriz de equivalencias.",
     args = list(
       rellenar_poligono = FALSE,
       mostrar_puntos = TRUE,
-      mostrar_valores = FALSE,
+      # Los radios del centro a cada punta son la estructura que deja seguir un
+      # tema desde el centro; sin ellos la telarana es solo anillos concentricos.
+      mostrar_radios = TRUE,
       mostrar_tela = TRUE,
-      mostrar_radios = FALSE,
-      mostrar_niveles = TRUE,
+      # Ni numeros en los vertices ni etiquetas de nivel por defecto: son dos
+      # capas de cifras sobre una figura que se lee por su forma, y la tabla al
+      # costado ya da el dato exacto. Las dos se encienden desde la UI.
+      mostrar_valores = FALSE,
+      mostrar_niveles = FALSE,
       leyenda_posicion = "abajo",
       size_linea = 1.1,
       size_punto = 2.4
@@ -190,6 +234,7 @@
       mostrar_puntos = FALSE,
       mostrar_valores = FALSE,
       mostrar_tela = TRUE,
+      mostrar_radios = TRUE,
       mostrar_niveles = FALSE,
       leyenda_posicion = "abajo",
       size_linea = 0.9
@@ -236,13 +281,20 @@
 # anillo, el radar a escala 1 recortaba las etiquetas de los lados y los propios
 # porcentajes. Medido en la diapositiva 29 del estudio.
 .RADAR_MB_MARGENES <- list(
-  radar_scale = 1,
   wrap_ejes = 12L,
-  eje_label_mult = 1.06,
+  # Aire entre la punta del poligono y el nombre del tema. Con 1.06 el texto
+  # quedaba pegado al borde y «Costos y presupuestos» parecia parte de la
+  # figura; el radar encoge un poco y el nombre respira.
+  radar_scale = 0.92,
+  eje_label_mult = 1.20,
   # Holgura para que los nombres largos entren enteros. Encoger el radar no
   # bastaba: las etiquetas se anclan al anillo, no al poligono, asi que seguian
   # cayendo fuera del panel y se cortaban a media palabra.
-  margen_etiquetas = 1.42
+  #
+  # Bajo de 1.42 a 1.18 al subir `eje_label_mult`: el aire lo da ahora el anillo
+  # de etiquetas, y el margen extra solo dejaba media lamina en blanco entre el
+  # radar y la tabla.
+  margen_etiquetas = 1.18
 )
 
 # Catalogo de estilos en la forma que consume el registro de graficadores. Se
@@ -292,7 +344,8 @@
 
 #' Dibuja el radar comparativo.
 .radar_mb_grafico <- function(datos, estilo = NULL, overrides = list(), titulo = NULL,
-                              mostrar_valores = NULL, decimales = NULL, eje_min = NULL) {
+                              mostrar_valores = NULL, decimales = NULL, eje_min = NULL,
+                              indicador = "") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop_api(500, "E_RADAR_SIN_GGPLOT2", "El paquete R 'ggplot2' no está instalado.")
   }
@@ -302,7 +355,14 @@
       var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
       escala_valor = "proporcion_100",
       limites = c(0, 100),
-      titulo = titulo
+      titulo = titulo,
+      # El indicador va aqui y no en el encabezado de la tabla: «De acuerdo +
+      # Totalmente de Acuerdo» dentro de una celda se comia media tabla, y
+      # ademas hace falta aunque la tabla este apagada — sin el, la telarana no
+      # dice de que porcentaje habla.
+      subtitulo = if (nzchar(trimws(as.character(indicador %||% "")))) {
+        paste0("% ", trimws(as.character(indicador)))
+      } else NULL
     ),
     .radar_mb_estilo_args(estilo)
   )
@@ -373,6 +433,14 @@
 #' @param eje_min Piso del eje radial en puntos porcentuales. `0` es el eje
 #'   completo; `50` estira la mitad alta para ver diferencias dentro de una
 #'   banda estrecha.
+#' @param tabla_titulo Encabezado de la primera columna. Vacío = «Tema» más el
+#'   nombre del indicador.
+#' @param tabla_encabezados Renombres de las columnas de público, `clave=Título`
+#'   por línea. Lo que no se nombra se queda como está.
+#' @param tabla_ancho_tema Ancho de la primera columna como fracción del ancho
+#'   de la tabla (0.2–0.8). Vacío = lo que pida el contenido.
+#' @param tabla_proporcion Ancho de la tabla respecto al radar. `1` es la mitad
+#'   de la lámina para cada uno; el defecto da más espacio al radar.
 #' @param titulo,overrides,base,filtros Como el resto de elementos del plan.
 #' @export
 p_radar_publicos <- function(
@@ -384,6 +452,10 @@ p_radar_publicos <- function(
     mostrar_valores = FALSE,
     decimales = 0L,
     eje_min = 0,
+    tabla_titulo = NULL,
+    tabla_encabezados = NULL,
+    tabla_ancho_tema = NULL,
+    tabla_proporcion = NULL,
     titulo = NULL,
     overrides = list(),
     base = list(),
@@ -411,6 +483,10 @@ p_radar_publicos <- function(
     mostrar_valores = isTRUE(mostrar_valores),
     decimales      = .radar_mb_decimales(decimales),
     eje_min        = .radar_mb_eje_min(eje_min),
+    tabla_titulo   = as.character(tabla_titulo %||% "")[1],
+    tabla_encabezados = .radar_mb_renombres(tabla_encabezados),
+    tabla_ancho_tema  = .radar_mb_fraccion(tabla_ancho_tema),
+    tabla_proporcion  = .radar_mb_proporcion(tabla_proporcion),
     title_slide    = titulo,
     overrides      = overrides,
     base           = base,
@@ -444,11 +520,36 @@ p_radar_publicos <- function(
                          titulo = el$title_slide,
                          mostrar_valores = el$mostrar_valores,
                          decimales = el$decimales,
-                         eje_min = el$eje_min)
+                         eje_min = el$eje_min,
+                         indicador = el$corte_etiqueta)
   if (!isTRUE(el$mostrar_tabla)) return(g)
 
   tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = el$decimales)
-  .radar_mb_componer(g, tabla)
+  .radar_mb_componer(g, tabla,
+                     titulo_tema = el$tabla_titulo,
+                     encabezados = el$tabla_encabezados,
+                     ancho_tema = el$tabla_ancho_tema,
+                     proporcion = el$tabla_proporcion)
+}
+
+# Encabezados finales de la tabla.
+#
+# La primera columna dice «Tema» a secas. El indicador NO va aqui: metido en la
+# celda, «De acuerdo + Totalmente de Acuerdo» se comia media tabla, y ademas
+# hace falta aunque la tabla este apagada. Vive en el subtitulo del grafico.
+#
+# Las columnas de publico se renombran por clave, y la clave es el nombre de la
+# base tal como llega del estudio: «docentes», no «Docentes». Lo que no se
+# nombra se queda como esta.
+.radar_mb_nombres_tabla <- function(tabla, titulo_tema = "", encabezados = list()) {
+  nombres <- names(tabla)
+  titulo_tema <- trimws(as.character(titulo_tema %||% "")[1])
+  if (nzchar(titulo_tema)) nombres[1] <- titulo_tema
+  for (clave in names(encabezados %||% list())) {
+    j <- match(clave, names(tabla))
+    if (!is.na(j)) nombres[j] <- as.character(encabezados[[clave]])
+  }
+  nombres
 }
 
 # Compone el radar con su tabla. La tabla NO es adorno: con tres publicos sobre
@@ -456,7 +557,8 @@ p_radar_publicos <- function(
 # Etiquetar los vertices seria poner 18 numeros dentro de esa banda.
 #
 # `cowplot` y `gridExtra` ya son dependencias declaradas; no se anade ninguna.
-.radar_mb_componer <- function(grafico, tabla) {
+.radar_mb_componer <- function(grafico, tabla, titulo_tema = "", encabezados = list(),
+                               ancho_tema = NA_real_, proporcion = NA_real_) {
   if (!requireNamespace("gridExtra", quietly = TRUE) ||
       !requireNamespace("cowplot", quietly = TRUE)) {
     return(grafico)
@@ -471,8 +573,7 @@ p_radar_publicos <- function(
   for (j in seq_len(ncol(fmt))[-1]) {
     fmt[[j]] <- ifelse(is.na(fmt[[j]]), "—", sprintf(patron, fmt[[j]]))
   }
-  indicador <- attr(tabla, "indicador") %||% ""
-  if (nzchar(indicador)) names(fmt)[1] <- paste0(names(fmt)[1], "  ·  ", indicador)
+  names(fmt) <- .radar_mb_nombres_tabla(tabla, titulo_tema, encabezados)
 
   n <- nrow(fmt)
   k <- ncol(fmt)
@@ -504,6 +605,18 @@ p_radar_publicos <- function(
   )
 
   grob <- gridExtra::tableGrob(fmt, rows = NULL, theme = tema)
+  # `tableGrob` dimensiona por contenido, asi que un encabezado largo empuja la
+  # primera columna hasta comerse la tabla. Con un ancho declarado se reparte a
+  # mano: la primera columna toma su fraccion y el resto se divide en partes
+  # iguales, que es lo que hace comparables las cifras.
+  if (is.finite(ancho_tema) && k > 1L) {
+    ancho_total <- sum(as.numeric(grid::convertWidth(grob$widths, "cm")))
+    if (is.finite(ancho_total) && ancho_total > 0) {
+      resto <- (1 - ancho_tema) / (k - 1)
+      grob$widths <- grid::unit(c(ancho_tema, rep(resto, k - 1)) * ancho_total, "cm")
+    }
+  }
+  rel <- if (is.finite(proporcion)) proporcion else 1
   cowplot::plot_grid(grafico, cowplot::ggdraw(grob),
-                     ncol = 2, rel_widths = c(1.35, 1))
+                     ncol = 2, rel_widths = c(1.35, rel))
 }

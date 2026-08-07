@@ -29,6 +29,8 @@
 #' @param mostrar_tabla Sólo en modo `publicos`: compone el radar con su tabla.
 #' @param eje_min Sólo en modo `publicos`: piso del eje radial en puntos
 #'   porcentuales.
+#' @param tabla_titulo,tabla_encabezados,tabla_ancho_tema,tabla_proporcion Sólo
+#'   en modo `publicos`: encabezados y anchos de la tabla al costado.
 #' @export
 p_radar <- function(modo = c("sm", "box", "publicos"),
                     var  = NULL,
@@ -49,6 +51,10 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     estilo = NULL,
                     mostrar_tabla = TRUE,
                     eje_min = NULL,
+                    tabla_titulo = NULL,
+                    tabla_encabezados = NULL,
+                    tabla_ancho_tema = NULL,
+                    tabla_proporcion = NULL,
                     overrides = list(),
                     base = list(),
                     filtros = list()) {
@@ -63,6 +69,8 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
       corte_etiqueta = corte_etiqueta, mostrar_tabla = isTRUE(mostrar_tabla),
       mostrar_valores = isTRUE(mostrar_valores),
       decimales = valores_decimales %||% 0L, eje_min = eje_min %||% 0,
+      tabla_titulo = tabla_titulo, tabla_encabezados = tabla_encabezados,
+      tabla_ancho_tema = tabla_ancho_tema, tabla_proporcion = tabla_proporcion,
       titulo = titulo, overrides = overrides, base = base, filtros = filtros
     ))
   }
