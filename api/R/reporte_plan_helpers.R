@@ -444,6 +444,12 @@
 }
 
 #' @keywords internal
+# OJO: este predicado NO decide si hay nota de base, solo si las refs cruzan
+# varias fuentes. El camino `multilista` de `reporte_plan_ppt.R` lo usaba como
+# condicion para emitirla, y una lamina de escalas mixtas sobre un solo publico
+# salia SIN base — 9 de las 44 del mazo de equivalencias medido. En un informe de
+# encuesta la base no es opcional; si se vuelve a usar como guard, que sea para
+# elegir el FORMATO, nunca para decidir si se escribe.
 .base_refs_multifuente <- function(refs) {
   refs <- as.character(refs %||% character(0))
   srcs <- refs[grepl("$", refs, fixed = TRUE)]

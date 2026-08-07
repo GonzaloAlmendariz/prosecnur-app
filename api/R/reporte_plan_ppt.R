@@ -3652,7 +3652,7 @@ reporte_ppt_plan <- function(
         if (length(refs_block)) refs_base <- c(refs_base, refs_block)
       }
       refs_base <- refs_base[!duplicated(refs_base)]
-      if (!length(refs_base) || !.base_refs_multifuente(refs_base)) return(NULL)
+      if (!length(refs_base)) return(NULL)  # sin exigir multifuente: ver .base_refs_multifuente()
 
       return(.base_auto_from_refs(
         refs = refs_base,

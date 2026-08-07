@@ -293,6 +293,39 @@ Detalle que costó un test: la UI pide un porcentaje y el motor una fracción.
 `.radar_mb_fraccion()` acepta las dos formas (`45` y `0.45`); sin eso, un 45
 dejaba la columna en el 4500 % del ancho.
 
+## El mazo completo en PPT: 44 láminas auditadas
+
+Se generó el mazo entero desde la matriz del estudio y se miró lámina por
+lámina. Cinco defectos, todos reparados:
+
+**1 · El mazo entero moría al llegar al radar.** `el_plot$var` cae al **match
+parcial** de R cuando no encuentra el nombre exacto, así que devolvía `vars` —una
+lista nombrada de vectores— que el resolvedor deparseaba a
+`c("docentes$p30_1", …)`. El elemento declara ahora `var = NULL` explícito. No se
+veía antes porque las pruebas rendían la lámina con título puesto, y el título es
+justo lo que dispara ese camino.
+
+**2 · Un radar con enunciados por eje no es un radar.** Las diapositivas 10 y 25
+declaran temas de 91 a 200 caracteres. Envueltos a 12 columnas dan hasta
+diecisiete líneas por vértice: se tapaban entre sí y sepultaban el polígono — la
+lámina salía como una lista de frases **sin gráfico**. Ahora el mazo no las
+convierte en radar y lo reporta como `etiquetas_largas`; el dibujo además recorta
+en el último espacio, con «…», por si alguien lo declara igual. El nombre entero
+sigue en la tabla.
+
+**3 · La tabla se salía de la lámina y tapaba el radar.** `tableGrob` dimensiona
+por contenido y no recorta. La primera columna se envuelve.
+
+**4 · Los títulos de bloque se escribían unos encima de otros — en las 40 láminas
+de barras.** `cowplot::draw_text` dibuja centrado y no recorta. Cada título se
+acota ahora a lo que su bloque sostiene, contado en **filas de barras**: medir la
+distancia entre la primera y la última categoría daba cero en un bloque de una
+sola barra, que era justo el caso peor (siete temas de un solo público).
+
+**5 · Nueve láminas salían sin nota de base.** El camino de escalas mixtas exigía
+refs de *varias* fuentes para emitirla y devolvía `NULL` si no. En un informe de
+encuesta la base no es opcional.
+
 ## Qué falta para cerrar
 
 - **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
@@ -306,5 +339,13 @@ dejaba la columna en el 4500 % del ancho.
 - **Con tres series dentro de dos puntos, los números del vértice se rozan.**
   Mejoró mucho al llevarlos hacia dentro y separarlos más, pero a ese tamaño
   algo de solape queda; la tabla sigue siendo el ancla exacta.
+- **El mazo sale sin títulos porque la matriz del estudio no declara enunciados**
+  (0 de 44). Las 35 láminas de un solo juego de escalas reciben el título
+  automático del motor —el rótulo de la primera variable, que nombra un tema y no
+  la diapositiva— y las 9 de escalas mixtas no reciben ninguno. La inconsistencia
+  es del relleno automático; la reparación de fondo es declarar el enunciado, que
+  la interfaz ya pide por diapositiva.
+- **En un bloque de un solo público, cada barra se rotula con ese público**
+  (siete veces «Administrativos»). No informa nada que el pie no diga ya.
 - **`%||%` con data frames de una columna** sigue siendo una mina: está fuera
   del alcance de este goal, pero conviene abrirlo.

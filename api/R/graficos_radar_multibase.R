@@ -69,6 +69,32 @@
   max(0.3, min(3, v))
 }
 
+# Largo maximo del nombre de un tema para que el radar siga siendo legible.
+#
+# Medido sobre el estudio: la diapositiva 10 declara siete temas de 91 a 200
+# caracteres. Envueltos a 12 columnas dan hasta diecisiete lineas por vertice,
+# que se tapan entre si y sepultan el poligono — la lamina salia como una lista
+# de frases sin grafico. Un radar compara de un vistazo; si el eje necesita una
+# oracion, lo que toca es barras.
+.RADAR_MB_MAX_ETIQUETA <- 42L
+
+# Recorta el nombre del eje para dibujarlo. El nombre completo NO se pierde: la
+# tabla al costado lo lleva entero, que es donde se lee con calma.
+.radar_mb_recortar_eje <- function(x, max_chars = .RADAR_MB_MAX_ETIQUETA) {
+  x <- as.character(x)
+  largo <- nchar(x)
+  recortar <- !is.na(largo) & largo > max_chars
+  if (!any(recortar)) return(x)
+  # Corta en el ultimo espacio antes del limite para no partir una palabra.
+  x[recortar] <- vapply(x[recortar], function(t) {
+    corte <- substr(t, 1L, max_chars)
+    esp <- regexpr("[[:space:]][^[:space:]]*$", corte)
+    if (esp > 1L) corte <- substr(corte, 1L, esp - 1L)
+    paste0(trimws(corte), "…")
+  }, character(1))
+  x
+}
+
 # Piso declarado del eje, en puntos porcentuales. El recorte contra los datos
 # vive en `.radar_mb_piso()`, que si los tiene a la vista.
 .radar_mb_eje_min <- function(x) {
@@ -349,6 +375,9 @@
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop_api(500, "E_RADAR_SIN_GGPLOT2", "El paquete R 'ggplot2' no está instalado.")
   }
+  # El nombre largo se recorta SOLO para dibujar. La tabla lo lleva entero.
+  datos$eje <- factor(.radar_mb_recortar_eje(as.character(datos$eje)),
+                      levels = .radar_mb_recortar_eje(levels(datos$eje)))
   args <- utils::modifyList(
     list(
       data = datos,
@@ -475,6 +504,12 @@ p_radar_publicos <- function(
 
   el <- list(
     .element_type  = "radar_publicos",
+    # `var = NULL` explicito y no por omision: el motor del PPT lee `el$var` para
+    # titular la lamina, y el `$` de R hace MATCH PARCIAL cuando no encuentra el
+    # nombre exacto. Sin este campo, `el$var` devolvia `vars` —una lista nombrada
+    # de vectores— que el resolvedor deparseaba a `c("docentes$p30_1", ...)` y
+    # tumbaba el mazo entero con «La fuente c("docentes no existe en data».
+    var            = NULL,
     vars           = lapply(vars, function(x) as.character(unlist(x))),
     corte          = as.character(corte)[1],
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
@@ -532,6 +567,15 @@ p_radar_publicos <- function(
                      proporcion = el$tabla_proporcion)
 }
 
+# Envuelve el texto de la primera columna para que la tabla quepa en su mitad de
+# la lamina. Sin esto, `tableGrob` —que dimensiona por contenido y no recorta—
+# devolvia un grob mas ancho que la diapositiva.
+.radar_mb_envolver <- function(x, ancho = 58L) {
+  x <- as.character(x)
+  if (!requireNamespace("stringr", quietly = TRUE)) return(x)
+  stringr::str_wrap(x, width = ancho)
+}
+
 # Encabezados finales de la tabla.
 #
 # La primera columna dice «Tema» a secas. El indicador NO va aqui: metido en la
@@ -570,6 +614,10 @@ p_radar_publicos <- function(
   if (!is.finite(dec)) dec <- 0L
   patron <- paste0("%.", max(0L, min(3L, dec)), "f%%")
   fmt <- tabla
+  # La primera columna se envuelve. `tableGrob` dimensiona por contenido y no
+  # recorta: un tema de 200 caracteres producia una tabla mas ancha que la
+  # lamina, que se salia por la derecha y encima tapaba el radar.
+  fmt[[1]] <- .radar_mb_envolver(as.character(fmt[[1]]))
   for (j in seq_len(ncol(fmt))[-1]) {
     fmt[[j]] <- ifelse(is.na(fmt[[j]]), "—", sprintf(patron, fmt[[j]]))
   }
