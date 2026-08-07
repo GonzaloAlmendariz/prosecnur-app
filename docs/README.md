@@ -131,6 +131,9 @@ arquitectura canónica.
   auditoría total e indefinida del motor de reportes; bitácora B y cola viva.
 - [GOAL multibase de Gráficos](qa/goal-loop-graficos-multibase-2026-08-03.md):
   la superficie declara de qué base habla; cobertura y validación por base.
+- [GOAL del radar entre públicos](qa/goal-loop-radar-multibase-2026-08-06.md):
+  el radar compara públicos y el analista declara el indicador; forma, color y
+  reparto del alto del mazo derivado de la matriz.
 - [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).
 - [Prompt del loop de Cálculo de muestra](qa/prompt-goal-loop-calc-muestra.md).
 - [Prompt del loop del motor PPT](qa/prompt-goal-loop-motor-ppt.md).
