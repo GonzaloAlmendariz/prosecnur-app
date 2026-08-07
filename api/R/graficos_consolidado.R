@@ -647,13 +647,20 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
     mensajes_progreso = FALSE
   )
   report("export", percent = 96, message = "Registrando PPT y procedencia...")
+  # D8/H42: la receta se respeta tal cual —congelarla es el punto—, pero el
+  # resultado declara si el suelo con el que se construyo sigue siendo el
+  # vigente. Sin esto, un deck reconstruido de una receta vieja es
+  # indistinguible de uno que ignora la doctrina de hoy.
+  floor_check <- .pkg_fn(".graficos_presets_floor_compare")(recipe$presets_floor)
+
   list(
     path = result_path,
     n_slides = as.integer(length(rebuilt)),
     recipe_fingerprint = recipe$input_fingerprint,
     releases = recipe$releases,
     source_order = recipe$source_order,
-    plan_sha256 = recipe$plan_sha256
+    plan_sha256 = recipe$plan_sha256,
+    presets_floor = floor_check
   )
 }
 attr(graficos_consolidado_job_runner, "prosecnur_job_function_name") <- "graficos_consolidado_job_runner"
@@ -743,6 +750,10 @@ graficos_consolidado_start <- function(sid, config = NULL, presets = NULL, expec
     releases = preflight$releases,
     config = preflight$config,
     presets = enriched_presets,
+    # D8/H42: la receta congela el suelo enriquecido a proposito (procedencia).
+    # El sello dice CUAL congelo, para que al renderizar la divergencia con la
+    # doctrina vigente sea un dato y no una diferencia invisible.
+    presets_floor = .graficos_presets_floor_stamp(),
     paletas = preflight$config$paletas %||% list(),
     auto_otros_slides = delivery$auto_otros_slides,
     updated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
