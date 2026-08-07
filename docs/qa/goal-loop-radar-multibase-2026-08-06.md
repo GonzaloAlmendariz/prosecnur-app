@@ -372,6 +372,38 @@ mejor»: rompía la lectura de un vistazo, porque el ojo busca el verde. Y el ro
 contra azul en una dicotomía marca una de las dos como mala — en «¿Conoce el
 reglamento?» el «No» es un dato, no una falta.
 
+## El espacio vertical, medido con los bordes de debug
+
+> «En casi todas las diapositivas hay mucho espacio abajo que no se está
+> aprovechando. Mejor renderizar con el filtro de líneas debug, que nos permite
+> ver cómo se está formando la distribución.»
+
+Renderizado con `debug_ph_bordes = TRUE`, el reparto se lee de una vez:
+
+```
+hueco físico:  6.00 in de alto × 12.5 de ancho
+canvas armado: 3.56 in  →  el 41 % de la lámina quedaba en blanco
+   cabecera 0.00 · panel 2.39 · leyenda 0.75 · reserva de pie 0.85
+```
+
+Dos causas, las dos reparadas:
+
+**La leyenda cobraba un fijo de 0.75 in** — un cuarto del panel para dibujar UNA
+línea de texto. Ahora la banda se calcula a partir de las filas que la leyenda va
+a ocupar (0.32 in cuando entra en una, más cuando no). Es una estimación: el
+reparto real en filas se resuelve al dibujar, con las anchuras de texto ya
+medidas, así que se redondea hacia arriba — quedarse corto recorta la leyenda,
+que es peor que sobrar un poco.
+
+**El canvas se armaba con su alto intrínseco** (filas × alto por fila) y luego se
+colocaba conservando su proporción, así que el resto del hueco quedaba en blanco.
+Ahora el sobrante se reparte a las filas hasta un grosor máximo. El tope existe
+porque una lámina de dos barras estirada a pantalla completa se lee como un error
+de maquetación, no como un gráfico: pasado cierto punto, aire vale más que barra.
+
+Resultado sobre las mismas láminas: de 3.56 a 4.70 in de canvas con cinco filas,
+y de 2.43 a 3.03 con tres.
+
 ## Qué falta para cerrar
 
 - **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
