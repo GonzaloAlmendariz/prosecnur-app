@@ -299,9 +299,14 @@
       # sigue siendo un radar, y lo unico que cambia es de donde salen las
       # series. El constructor delega en `p_radar_publicos`, que es donde vive el
       # calculo.
+      # El eje arranca en 50 y no en 0. Un indicador de acuerdo o satisfaccion
+      # vive en la mitad alta —el perfil de egreso medido va de 90 % a 98 %— y
+      # de 0 a 100 las tres series se dibujan una encima de otra. El piso NO
+      # miente: si algun tema cae por debajo, `.radar_mb_piso()` lo baja solo y
+      # lo dice.
       list(modo = "publicos", vars = ejes_radar(filas), corte = corte,
            corte_etiqueta = .gpe_etiqueta_corte(filas, inst_por_base, corte),
-           estilo = "comparativo", mostrar_tabla = TRUE)
+           estilo = "comparativo", mostrar_tabla = TRUE, eje_min = 50)
     } else if (length(grupos) == 1L) {
       bloque_de(filas)
     } else {

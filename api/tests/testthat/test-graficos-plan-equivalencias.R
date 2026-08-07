@@ -459,3 +459,20 @@ test_that("una fila sin diapositiva no se pierde en silencio: se reporta con mot
   expect_equal(as.character(fuera[[1]]$etiqueta), "Sin lamina")
   expect_equal(names(fuera[[1]]$variables), "docentes")
 })
+
+test_that("el radar derivado arranca el eje en la mitad alta", {
+  # Un indicador de acuerdo o satisfaccion vive arriba: el perfil de egreso
+  # medido va de 90 % a 98 %, y de 0 a 100 las tres series se dibujan una encima
+  # de otra. El piso no miente — si un tema cae por debajo, el motor lo baja.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  filas <- lapply(1:5, function(i) list(
+    etiqueta_estandar = paste("Tema", i), diapositiva = "1",
+    grafico = "radar", corte = "1,2",
+    variables = list(estudiantes = "p30")))
+  .gpe_declarar(sid, filas)
+
+  args <- .graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$grafico$args
+  expect_equal(args$modo, "publicos")
+  expect_equal(args$eje_min, 50)
+})

@@ -282,9 +282,16 @@ test_that("el piso del eje estira la banda alta sin recortar ningun dato", {
   # dibujaria ese 42 % en el centro del radar, donde se lee como cero.
   bajo <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("g", "g")),
                      valor = c(42.3, 98.0), n = c(51L, 51L))
+  # Y no baja al minimo EXACTO: ese valor caeria en el centro del radar, que es
+  # justo lo que se lee como cero. Se coloca un escalon por debajo, en multiplos
+  # de cinco para que los anillos den cifras legibles.
   expect_message(piso <- .radar_mb_piso(bajo, 50), "42.3")
-  expect_equal(piso, 42.3)
+  expect_lt(piso, 42.3)
+  expect_equal(piso, 35)
   expect_silent(expect_equal(.radar_mb_piso(bajo, 40), 40))
+  # Un minimo bajo lleva el piso a cero, no a un negativo.
+  muy_bajo <- data.frame(eje = factor("A"), grupo = factor("g"), valor = 2, n = 10L)
+  expect_equal(suppressMessages(.radar_mb_piso(muy_bajo, 50)), 0)
 
   expect_equal(.radar_mb_eje_min(150), 99)
   expect_equal(.radar_mb_eje_min(-3), 0)
@@ -429,6 +436,29 @@ test_that("un nombre de tema que es una oracion se recorta para dibujarlo", {
   expect_equal(.radar_mb_recortar_eje("Estados Financieros"), "Estados Financieros")
 })
 
+test_that("dos temas que arrancan igual no colapsan en el mismo vertice", {
+  # Los temas de una bateria comparten casi siempre el arranque. Al recortarlos
+  # quedaban IDENTICOS, y el eje del radar es un factor: un nivel duplicado lo
+  # mata con «factor level is duplicated» y la lamina salia «Sin datos».
+  # Medido en la diapositiva 10 del estudio, con siete temas de un solo publico.
+  x <- c("Estoy satisfecho(a) con los programas de motivación e incentivos de la Universidad",
+         "Estoy satisfecho(a) con los programas de ayuda (becas, movilidad, bolsa de trabajo)",
+         "Corto")
+  r <- .radar_mb_recortar_eje(x)
+  expect_equal(anyDuplicated(r), 0L)
+  # Se alargan a la vez, para que sigan leyendose como el mismo bloque de texto
+  # y se distingan por donde de verdad difieren.
+  expect_gt(nchar(r[1]), .RADAR_MB_MAX_ETIQUETA)
+  expect_equal(nchar(r[1]), nchar(r[2]), tolerance = 12)
+  # Lo corto no se toca aunque sus vecinos crezcan.
+  expect_equal(r[3], "Corto")
+
+  # Si ni el texto entero los separa, es el mismo tema declarado dos veces: se
+  # numeran para que el radar dibuje sus dos vertices en vez de morir.
+  expect_equal(unname(.radar_mb_recortar_eje(c("Igual", "Igual"))),
+               c("Igual (1)", "Igual (2)"))
+})
+
 test_that("el nombre completo sobrevive en la tabla aunque el vertice lo recorte", {
   # El recorte es solo para dibujar. La cifra se lee en la tabla, y ahi el tema
   # tiene que decirse entero o no se sabe de que habla.
@@ -448,4 +478,22 @@ test_that("la tabla envuelve el tema para no salirse de la lamina", {
   envuelto <- .radar_mb_envolver(largo)
   expect_true(grepl("\n", envuelto, fixed = TRUE))
   expect_lte(max(nchar(strsplit(envuelto, "\n", fixed = TRUE)[[1]])), 60L)
+})
+
+test_that("el recorte se calcula sobre los niveles, no sobre la columna", {
+  # En la columna cada eje aparece una vez por grupo. Calcular ahi el recorte
+  # hacia que el desambiguador leyera esas repeticiones LEGITIMAS como homonimos
+  # y les colgara «(1) (2) (3)»: ningun valor casaba ya con su nivel y el radar
+  # se quedaba sin una sola fila valida — la lamina salia «Sin datos».
+  d <- data.frame(
+    eje = factor(rep(c("Estados Financieros", "Auditoría"), each = 3),
+                 levels = c("Estados Financieros", "Auditoría")),
+    grupo = factor(rep(c("docentes", "estudiantes", "egresados"), times = 2)),
+    valor = c(98, 96, 98, 96, 91, 98), n = 50L,
+    stringsAsFactors = FALSE
+  )
+  args <- .radar_mb_capturar_args(d)
+  expect_equal(levels(args$data$eje), c("Estados Financieros", "Auditoría"))
+  expect_equal(sum(is.na(args$data$eje)), 0L)
+  expect_equal(nrow(args$data), 6L)
 })
