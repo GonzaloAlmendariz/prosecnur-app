@@ -48,3 +48,31 @@ test_that("el wrapper p_tabla declara el colapso del radar en sus overrides", {
   expect_true(isTRUE(el$overrides$mostrar_tabla_derecha))
   expect_identical(el$overrides$tabla_ph_ancho, 1.0)
 })
+
+test_that("las etiquetas de vertice dicen el porcentaje real en escala 0-100", {
+  # `.valor` ya viene normalizado a 0-1 para AMBAS escalas, asi que la etiqueta
+  # siempre multiplica por 100. Condicionarlo escribia «1.0%» sobre un vertice
+  # que vale 98 %, y el umbral —que compara contra 3— borraba de paso casi todas
+  # las etiquetas. No se veia porque ningun estilo enciende `mostrar_valores`.
+  d <- data.frame(
+    eje = c("A", "B", "C"), grupo = "g",
+    valor = c(98.0, 96.3, 2.0), stringsAsFactors = FALSE
+  )
+  p <- graficar_radar(d, var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
+                      escala_valor = "proporcion_100",
+                      mostrar_valores = TRUE, valores_decimales = 1)
+  capas <- Filter(function(l) inherits(l$geom, "GeomText"), p$layers)
+  etiquetas <- unlist(lapply(capas, function(l) as.character(l$data$.lab_val)))
+  expect_true("98.0%" %in% etiquetas)
+  expect_true("96.3%" %in% etiquetas)
+  # El umbral por defecto (3 %) sigue silenciando lo que es de verdad chico.
+  expect_false("2.0%" %in% etiquetas)
+
+  # Y la escala 0-1 no se rompe al arreglar la otra.
+  d1 <- transform(d, valor = d$valor / 100)
+  p1 <- graficar_radar(d1, var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
+                       escala_valor = "proporcion_1",
+                       mostrar_valores = TRUE, valores_decimales = 1)
+  capas1 <- Filter(function(l) inherits(l$geom, "GeomText"), p1$layers)
+  expect_true("98.0%" %in% unlist(lapply(capas1, function(l) as.character(l$data$.lab_val))))
+})

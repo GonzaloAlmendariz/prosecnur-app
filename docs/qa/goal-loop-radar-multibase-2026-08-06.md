@@ -97,9 +97,11 @@ cortos; «Costos y presupuestos» se centra en su ancla y su mitad izquierda ca�
 fuera. Se añadió `margen_etiquetas` a `graficar_radar`, con defecto `1` para no
 mover el encuadre de los radares que ya existen.
 
-**Ningún estilo etiqueta los vértices.** Con tres públicos y seis temas serían
-18 números dentro de una banda de ocho puntos —el perfil de egreso mide entre
-90 % y 98 %— y se montarían unos sobre otros. El ancla numérica es la tabla.
+**Ningún estilo etiqueta los vértices por defecto.** Con tres públicos y seis
+temas serían 18 números dentro de una banda de ocho puntos —el perfil de egreso
+mide entre 90 % y 98 %— y se montarían unos sobre otros. El ancla numérica es la
+tabla. Pero es una decisión de lectura, no una ley: ver más abajo los tres
+controles que la ponen en manos del analista.
 
 **Diez anillos de grilla no se leen**: las etiquetas de nivel se escriben una
 sobre otra sobre el mismo rayo («0%11%22%33%…»). El estilo de auditoría usa
@@ -204,6 +206,49 @@ es un objeto de bloques, y al pasar ese slide a Radar el picker lo recibe tal
 cual. Es anterior a este goal —pasa entre cualquier par de graficadores que
 compartan el nombre `vars`— y ahora devuelve campo vacío en vez de morir.
 
+## Tres controles de lectura, pedidos al ver la primera versión
+
+> «Uno es que no aparezcan los porcentajes, otro que los porcentajes puedan no
+> tener decimal sino números enteros, y tercero poder definir un eje mínimo, que
+> no vaya de cero a cien sino de cincuenta a cien para que se perciban mejor las
+> diferencias.»
+
+| Control | Qué hace |
+|---|---|
+| **Números en los vértices** | Escribe el porcentaje sobre cada punto. Vale para los tres modos del radar. |
+| **Decimales** | 0 = enteros. Manda a la vez sobre el vértice y sobre la tabla. |
+| **El eje arranca en (%)** | Piso del eje radial. Con 50, la mitad alta ocupa todo el radio. |
+
+Tres cosas que el loop tuvo que resolver para que funcionaran de verdad:
+
+**Las etiquetas decían «1.0%» donde el dato era 98 %.** Bug preexistente de
+`graficar_radar`: el bloque de ingesta normaliza `.valor` a 0–1 para *ambas*
+escalas, pero la etiqueta multiplicaba por 100 sólo cuando la entrada venía como
+`proporcion_1`. De paso el umbral —que compara contra 3— borraba casi todas las
+etiquetas, porque 0.98 < 3. No se veía porque ningún estilo enciende
+`mostrar_valores`, y el radar de dimensiones usa la otra escala.
+
+**El número se escribía encima del nombre del tema.** Un indicador entre
+públicos vive en la banda alta, donde el anillo exterior ya lo ocupa la etiqueta
+del eje. Se añadió `valores_hacia_dentro` —el número va hacia el centro— y el
+paso de separación tangencial crece con el número de series: con tres, el
+reparto simétrico dejaba las de los extremos casi encima de la del medio.
+
+**Un piso por encima del valor más bajo miente.** El graficador recorta al
+centro lo que cae debajo del piso, y un 42 % dibujado en el centro se lee como
+cero. `.radar_mb_piso()` baja el piso hasta el mínimo observado y **dice cuál lo
+forzó**, en vez de dibujar un dato falso o de ignorar en silencio lo declarado.
+
+El defecto de decimales pasó a **0**: en un informe de encuesta el porcentaje
+entero es la norma, y el decimal sugiere una precisión que la muestra no tiene
+—con n = 51, un punto vale dos casos—.
+
+Y una regla de registro que hizo falta: **un `grupo = "datos"` declarado gana
+sobre la heurística de nombre.** Sin ella `mostrar_valores` volvía a «valores»
+por su nombre y desaparecía de la UI, porque el inspector renderiza el slot de
+graficador con `mode="data"`. Medido: cambia exactamente un arg en todo el
+registro.
+
 ## Qué falta para cerrar
 
 - **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
@@ -212,7 +257,10 @@ compartan el nombre `vars`— y ahora devuelve campo vacío en vez de morir.
 - **Los args de graficador fuera del grupo `datos` no tienen dónde salir**: el
   inspector v2 renderiza el slot con `mode="data"`. Se sirven en el registro
   pero la UI no los muestra (`titulo_tabla` y `umbral_rojo_pct` de `p_tabla`
-  están así hoy). Por eso los cuatro controles del modo `publicos` se declararon
-  en `datos`.
+  están así hoy). Por eso los controles del modo `publicos` se declararon en
+  `datos`.
+- **Con tres series dentro de dos puntos, los números del vértice se rozan.**
+  Mejoró mucho al llevarlos hacia dentro y separarlos más, pero a ese tamaño
+  algo de solape queda; la tabla sigue siendo el ancla exacta.
 - **`%||%` con data frames de una columna** sigue siendo una mina: está fuera
   del alcance de este goal, pero conviene abrirlo.

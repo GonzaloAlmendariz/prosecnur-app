@@ -26,6 +26,32 @@ source("setup-load-all.R")
   list(data = data, inst = inst)
 }
 
+# Captura los argumentos con los que se llamaria a `graficar_radar`, sin dibujar.
+# Lo que estas pruebas cuidan es el cableado —que lo declarado LLEGUE al
+# graficador—, no los pixeles: un arg que se guarda y nadie lee sale como si
+# nunca se hubiera declarado.
+.radar_mb_capturar_args <- function(datos, ...) {
+  capturado <- NULL
+  testthat::with_mocked_bindings(
+    graficar_radar = function(...) { capturado <<- list(...); NULL },
+    .radar_mb_grafico(datos, ...),
+    .package = "prosecnurapp"
+  )
+  capturado
+}
+
+.radar_mb_capturar_render <- function(el, sources) {
+  capturado <- NULL
+  data_sources <- sources$data_sources
+  instrument_sources <- sources$inst_sources
+  testthat::with_mocked_bindings(
+    graficar_radar = function(...) { capturado <<- list(...); NULL },
+    .render_radar_publicos(el),
+    .package = "prosecnurapp"
+  )
+  capturado
+}
+
 .rmb_sources <- function(...) {
   partes <- list(...)
   list(
@@ -178,8 +204,16 @@ test_that("comparar publicos es un MODO del radar, no otro graficador", {
   # renderiza el slot de graficador con `mode="data"`: un arg fuera de ese grupo
   # se sirve pero no tiene donde salir en la UI.
   grupo_de <- function(n) Filter(function(a) identical(a$name, n), g$args)[[1]]$grupo
-  for (a in c("corte", "corte_etiqueta", "estilo", "mostrar_tabla")) {
+  for (a in c("corte", "corte_etiqueta", "estilo", "mostrar_tabla", "eje_min")) {
     expect_equal(grupo_de(a), "datos", info = a)
+  }
+  # Los controles de lectura valen para los TRES modos, asi que no dependen del
+  # modo. `mostrar_valores` necesita ademas que el `datos` declarado gane sobre
+  # la heuristica de nombre, que si no lo manda a «valores» — un grupo que el
+  # inspector no renderiza para un slot de graficador.
+  for (a in c("mostrar_valores", "valores_decimales")) {
+    expect_equal(grupo_de(a), "datos", info = a)
+    expect_null(Filter(function(x) identical(x$name, a), g$args)[[1]]$depende)
   }
 })
 
@@ -192,4 +226,83 @@ test_that("p_radar(modo = publicos) construye el elemento multibase", {
   expect_equal(p_radar(modo = "box", vars = c("p1", "p2"),
                        box_labels = c("De acuerdo", "Totalmente de acuerdo"))$.element_type,
                "radar_tabla")
+})
+
+# ---------------------------------------------------------------------------
+# Los tres controles de lectura: numeros, decimales y piso del eje.
+# ---------------------------------------------------------------------------
+
+test_that("los numeros en los vertices se piden y el umbral no los silencia", {
+  # Sin bajar el umbral, `graficar_radar` deja mudo todo vertice por debajo de
+  # 3 %, y quien pidio ver los numeros no entiende por que faltan algunos.
+  d <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("g", "g")),
+                  valor = c(1.5, 80), n = c(100L, 100L))
+  args <- .radar_mb_capturar_args(d, mostrar_valores = TRUE)
+  expect_true(args$mostrar_valores)
+  expect_equal(args$valores_umbral_pct, 0)
+
+  # Sin declarar nada, manda el estilo.
+  expect_false(.radar_mb_capturar_args(d)$mostrar_valores)
+})
+
+test_that("los decimales mandan sobre el vertice y sobre la tabla a la vez", {
+  d <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("g", "g")),
+                  valor = c(98.04, 96.25), n = c(51L, 51L))
+  expect_equal(.radar_mb_capturar_args(d, decimales = 0)$valores_decimales, 0L)
+
+  # La tabla redondea con el MISMO numero: una celda que dice 98 con el valor
+  # guardado en 98.04 es una cifra que no cuadra con el resto del informe.
+  t0 <- .radar_mb_tabla(d, "T2B", decimales = 0)
+  expect_equal(t0$g, c(98, 96))
+  expect_equal(attr(t0, "decimales"), 0L)
+  t1 <- .radar_mb_tabla(d, "T2B", decimales = 1)
+  expect_equal(t1$g, c(98.0, 96.2))
+  expect_equal(attr(t1, "decimales"), 1L)
+
+  # Se acota en un solo sitio para que vertice y tabla no puedan discrepar.
+  expect_equal(.radar_mb_decimales(-4), 0L)
+  expect_equal(.radar_mb_decimales(99), 3L)
+  expect_equal(.radar_mb_decimales("x"), 0L)
+  # El defecto es 0 en las TRES puertas —constructor, tabla y formato— o la
+  # celda y el vertice dicen cosas distintas.
+  expect_equal(.radar_mb_decimales(NULL), 0L)
+  expect_equal(attr(.radar_mb_tabla(d, "T2B"), "decimales"), 0L)
+  expect_equal(p_radar_publicos(vars = list(A = list("a$b")), corte = "3")$decimales, 0L)
+})
+
+test_that("el piso del eje estira la banda alta sin recortar ningun dato", {
+  d <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("g", "g")),
+                  valor = c(92.2, 98.0), n = c(51L, 51L))
+  # `graficar_radar` toma los limites en escala 0-1.
+  expect_equal(.radar_mb_capturar_args(d, eje_min = 50)$limites, c(0.5, 1))
+  # Cero = eje completo, que sigue siendo el defecto.
+  expect_equal(.radar_mb_capturar_args(d)$limites, c(0, 100))
+
+  # Un piso por encima del valor mas bajo baja hasta el, y lo dice. Dejarlo
+  # dibujaria ese 42 % en el centro del radar, donde se lee como cero.
+  bajo <- data.frame(eje = factor(c("A", "B")), grupo = factor(c("g", "g")),
+                     valor = c(42.3, 98.0), n = c(51L, 51L))
+  expect_message(piso <- .radar_mb_piso(bajo, 50), "42.3")
+  expect_equal(piso, 42.3)
+  expect_silent(expect_equal(.radar_mb_piso(bajo, 40), 40))
+
+  expect_equal(.radar_mb_eje_min(150), 99)
+  expect_equal(.radar_mb_eje_min(-3), 0)
+})
+
+test_that("los tres controles viajan del elemento de plan al dibujo", {
+  # El eslabon que se rompe callado: un arg que el constructor guarda pero el
+  # renderer no lee sale como si nunca se hubiera declarado.
+  el <- p_radar(modo = "publicos", vars = list(A = list("docentes$p1")),
+                corte = "3,4", mostrar_valores = TRUE,
+                valores_decimales = 0, eje_min = 50)
+  expect_true(el$mostrar_valores)
+  expect_equal(el$decimales, 0L)
+  expect_equal(el$eje_min, 50)
+
+  src <- .rmb_sources(docentes = .rmb_fuente(c("3", "4", "3", "1")))
+  args <- .radar_mb_capturar_render(el, src)
+  expect_true(args$mostrar_valores)
+  expect_equal(args$valores_decimales, 0L)
+  expect_equal(args$limites, c(0.5, 1))
 })

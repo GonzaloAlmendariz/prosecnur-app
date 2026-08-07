@@ -1042,10 +1042,15 @@
            # nuevo aparece en la UI sin tocar este archivo, y uno retirado deja
            # de ofrecerse.
            choices = function() .radar_mb_choices_ui()),
+      list(name = "eje_min", label = "El eje arranca en (%)", tipo_input = "number", grupo = "datos",
+           default = 0,
+           min = 0, max = 99,
+           depende = list(arg = "modo", valores = list("publicos")),
+           descripcion = "Piso del eje radial. Con 0 se ve el eje completo. Súbelo cuando todos los valores caen en una banda estrecha —seis temas entre 90 % y 98 % se ven idénticos de 0 a 100 y se separan de 50 a 100. Si el piso deja fuera un dato, baja solo hasta el valor más bajo en vez de recortarlo al centro."),
       list(name = "mostrar_tabla", label = "Tabla al costado", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            depende = list(arg = "modo", valores = list("publicos")),
-           descripcion = "El radar no etiqueta sus vértices —con varios públicos y muchos ejes los números se montan— así que la tabla es el ancla numérica. Apágala sólo si la lámina ya trae su propia tabla en otro slot."),
+           descripcion = "Da la cifra exacta de cada celda. Con varios públicos y valores parecidos los números del vértice se montan y la tabla es lo que se lee; apágala sólo si la lámina ya trae su propia tabla en otro slot."),
 
       list(name = "top_n",        label = "Top N",                tipo_input = "number",         grupo = "filtro",
            descripcion = "Cantidad máxima de categorías a mostrar. Si vacío, se muestran todas."),
@@ -1053,11 +1058,17 @@
            descripcion = "Códigos de respuesta que no queremos en el radar (ej. 88=No sabe, 90=No aplica)."),
       list(name = "sm_omit_na",   label = "Omitir NA",            tipo_input = "bool",           grupo = "filtro",
            descripcion = "Excluir casos con respuesta vacía."),
-      list(name = "mostrar_valores", label = "Valores en vértices", tipo_input = "bool", grupo = "valores",
+      # Estos dos valen para los TRES modos y por eso no llevan `depende`. Y van
+      # en «datos» y no en «valores»: el inspector renderiza el slot de
+      # graficador con `mode="data"`, asi que un arg fuera de ese grupo se sirve
+      # pero no tiene donde salir en la UI.
+      list(name = "mostrar_valores", label = "Números en los vértices", tipo_input = "bool", grupo = "datos",
            default = FALSE,
-           descripcion = "Etiqueta cada vértice con su porcentaje, coloreado por serie. Da el ancla numérica que la telaraña sola no ofrece."),
-      list(name = "valores_decimales", label = "Decimales de los valores", tipo_input = "number", grupo = "valores",
-           default = 0),
+           descripcion = "Escribe el porcentaje sobre cada vértice, del color de su serie. Con muchas series y valores parecidos los números se montan; ahí la tabla lee mejor."),
+      list(name = "valores_decimales", label = "Decimales", tipo_input = "number", grupo = "datos",
+           default = 0,
+           min = 0, max = 3,
+           descripcion = "0 muestra enteros. En el modo Entre públicos manda también sobre la tabla, para que la cifra del vértice y la de la celda sean la misma."),
       list(name = "valores_umbral_pct", label = "Umbral de valores (%)", tipo_input = "number", grupo = "valores",
            default = 3,
            descripcion = "Los vértices por debajo de este porcentaje no se etiquetan — evita el amontonamiento con muchos ejes de valores chicos. 0 etiqueta todos.")
@@ -3263,6 +3274,13 @@
 .graf_arg_ui_group <- function(arg_name, grupo = NULL) {
   nm <- as.character(arg_name %||% "")
   gp <- as.character(grupo %||% "")
+
+  # Un `datos` declarado gana sobre la heurística de nombre. `datos` nunca es
+  # fallback —nada cae ahí por accidente—, así que escribirlo es afirmar que el
+  # arg decide QUÉ se dibuja y no cómo se ve. Sin esta línea, `mostrar_valores`
+  # del radar volvía a «valores» por su nombre y desaparecía de la UI: el
+  # inspector renderiza el slot de graficador con `mode="data"`.
+  if (identical(gp, "datos")) return("datos")
 
   if (nm %in% c("debug_ph_bordes", "debug_ph_col", "debug_ph_lwd", "debug_lw", "exportar")) {
     return("diagnostico")

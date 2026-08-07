@@ -58,6 +58,9 @@
 #' @param mostrar_valores Si `TRUE`, etiqueta cada vértice con su porcentaje
 #'   (coloreado por serie). Da el ancla numérica que la tela sola no ofrece.
 #' @param size_valores Tamaño del texto de los valores por vértice.
+#' @param valores_hacia_dentro Si `TRUE`, el número se escribe hacia el centro
+#'   en vez de hacia afuera. Con valores altos el anillo exterior ya lo ocupa el
+#'   nombre del eje, y la cifra se escribía encima.
 #' @param valores_decimales Decimales del porcentaje por vértice.
 #' @param valores_umbral_pct Umbral (%) bajo el cual un vértice no se
 #'   etiqueta — evita el amontonamiento con muchos ejes de valores chicos.
@@ -186,6 +189,7 @@ graficar_radar <- function(
 
     mostrar_puntos = TRUE,
     mostrar_valores = FALSE,
+    valores_hacia_dentro = FALSE,
     size_valores    = 2.9,
     valores_decimales = 0L,
     valores_umbral_pct = 3,
@@ -962,13 +966,24 @@ graficar_radar <- function(
     if (!is.finite(umbral_val) || umbral_val < 0) umbral_val <- 3
     df_val <- df_xy |>
       dplyr::mutate(
-        .pct = if (identical(escala_valor, "proporcion_1")) .data$.valor * 100 else .data$.valor,
+        # `.valor` ya viene normalizado a 0-1 para AMBAS escalas (el bloque de
+        # ingesta divide entre 100 cuando la entrada es `proporcion_100`), asi
+        # que aqui siempre se multiplica. Condicionarlo escribia «1.0%» sobre un
+        # vertice que vale 98 %, y el umbral —que compara contra 3— borraba de
+        # paso casi todas las etiquetas. No se veia porque ningun estilo
+        # encendia `mostrar_valores` con datos en 0-100.
+        .pct = .data$.valor * 100,
         .lab_val = paste0(formatC(round(.data$.pct, dec_val), format = "f", digits = dec_val), "%"),
-        .r_lab = .data$.valor_plot * radar_scale + ring_max_plot * 0.085,
+        # Hacia adentro cuando se pide: con valores altos el anillo exterior ya
+        # lo ocupa el nombre del eje y la cifra se escribia encima de el.
+        .r_lab = .data$.valor_plot * radar_scale +
+          ring_max_plot * if (isTRUE(valores_hacia_dentro)) -0.10 else 0.085,
         # Separacion tangencial por serie: dos series con valores parecidos
-        # caen sobre el mismo rayo y sus etiquetas se montarian.
+        # caen sobre el mismo rayo y sus etiquetas se montarian. El paso crece
+        # con el numero de series porque con tres o mas el reparto simetrico
+        # deja a las de los extremos casi encima de la del medio.
         .t_lab = (as.integer(.data$.grupo) - (n_series + 1) / 2) *
-          ring_max_plot * 0.11,
+          ring_max_plot * (if (n_series >= 3L) 0.155 else 0.11),
         x = .data$.r_lab * cos(.data$.ang) - .data$.t_lab * sin(.data$.ang),
         y = .data$.r_lab * sin(.data$.ang) + .data$.t_lab * cos(.data$.ang)
       ) |>
