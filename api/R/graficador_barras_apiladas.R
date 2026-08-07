@@ -2566,6 +2566,14 @@ graficar_barras_apiladas <- function(
     )
   }
   h_legend_in  <- if (has_legend && !legend_is_side)  canvas_h_legend_in  else 0
+  # El fijo de 0.75in se lleva un cuarto del placeholder para dibujar UNA linea
+  # de texto, y las barras se aprietan arriba dejando media lamina en blanco
+  # (visto con `debug_ph_bordes`). Se ajusta a las filas que la leyenda necesita,
+  # sin pasar nunca del valor declarado: quien pida mas alto lo conserva.
+  if (h_legend_in > 0) {
+    h_legend_in <- min(h_legend_in, .barras_leyenda_alto_in(
+      niveles_leyenda, size_leyenda, ancho, key_cm = legend_key_cm))
+  }
   # B44/G-21: sin caption propio, la Base del SLIDE vive justo debajo del
   # canvas; canvas_h_reserva_pie_in deja esa banda vacia para que la
   # leyenda no choque con el texto de Base (antes la fila caption
@@ -2575,6 +2583,19 @@ graficar_barras_apiladas <- function(
   h_caption_in <- if (has_caption) canvas_h_caption_in else reserva_pie_in
   if (isTRUE(needs_tall_label_slot) && has_legend && !legend_is_side) {
     h_legend_in <- max(h_legend_in, 0.40)
+  }
+
+  # El canvas se coloca conservando su proporcion, asi que un alto intrinseco
+  # corto deja el resto del hueco en blanco: medido, 3.56 de 6 pulgadas. El
+  # sobrante se reparte a las filas hasta un grosor maximo, y solo cuando el alto
+  # del panel es el intrinseco (nadie lo fijo a mano).
+  if (is.null(canvas_h_panel_in) || !is.finite(suppressWarnings(as.numeric(canvas_h_panel_in)[1])) ||
+      suppressWarnings(as.numeric(canvas_h_panel_in)[1]) <= 0) {
+    alto_por_cat_eff <- .barras_alto_fila_ajustado(
+      alto_por_cat_eff, n_filas_virtuales, alto,
+      alto_fijo_in = h_header_in + h_legend_in + h_caption_in)
+    h_panel_in <- max(h_panel_in, n_filas_virtuales * alto_por_cat_eff)
+    if (is.finite(panel_min) && panel_min > 0) h_panel_in <- max(h_panel_in, panel_min)
   }
 
   h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
