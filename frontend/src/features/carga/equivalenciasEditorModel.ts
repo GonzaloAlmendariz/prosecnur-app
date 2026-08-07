@@ -67,7 +67,13 @@ export function asignarVariable(
   });
 }
 
-export type CampoFila = "etiqueta_estandar" | "seccion" | "diapositiva" | "enunciado";
+export type CampoFila =
+  | "etiqueta_estandar"
+  | "seccion"
+  | "diapositiva"
+  | "enunciado"
+  | "grafico"
+  | "corte";
 
 export function editarCampo(
   filas: readonly FilaEditor[],
@@ -93,6 +99,24 @@ export function editarCampoDeDiapositiva(
   return filas.map((fila) =>
     (fila.diapositiva ?? "").trim() === diapositiva ? { ...fila, [campo]: valor } : fila,
   );
+}
+
+/**
+ * Edita un campo en todas las filas de un bloque, identificadas por su `id`.
+ *
+ * El gráfico y el corte son atributos del BLOQUE —los temas que comparten
+ * escala— y el formato plano los guarda repetidos en sus filas, igual que el
+ * enunciado en las de la diapositiva. Escribirlos en una sola fila dejaría el
+ * bloque diciendo dos cosas según cuál se leyera primero.
+ */
+export function editarCampoDeBloque(
+  filas: readonly FilaEditor[],
+  ids: readonly string[],
+  campo: CampoFila,
+  valor: string,
+): FilaEditor[] {
+  const set = new Set(ids);
+  return filas.map((fila) => (set.has(fila.id) ? { ...fila, [campo]: valor } : fila));
 }
 
 export function quitarFila(filas: readonly FilaEditor[], filaId: string): FilaEditor[] {
@@ -204,19 +228,30 @@ export function catalogoEscalas(
 }
 
 /**
- * Cuántos caracteres de escala caben en el chip antes de que valga más la pena
- * decir cuántas opciones hay. Por encima de esto el chip recortaba con puntos
- * suspensivos, que deforma la cabecera y no dice nada útil: el popover es quien
- * enseña la lista entera.
+ * Texto del chip de escala: SIEMPRE cuántas opciones son, nunca cuáles.
+ *
+ * Antes decía la escala entera cuando cabía —«Sí / No»— y el número cuando no.
+ * Con eso, dos bloques de la misma diapositiva se anunciaban en dos idiomas
+ * distintos y el chip cambiaba de forma según lo larga que fuera la lista. El
+ * chip dice el TAMAÑO de la escala, que es lo comparable entre bloques; cuáles
+ * son las opciones lo dice el popover al abrirlo.
  */
-const CHIP_ESCALA_MAX = 30;
-
-/** Texto del chip: la escala entera si cabe, y si no cuántas opciones tiene. */
 export function resumenEscala(opciones: readonly OpcionDeEscala[]): string {
   if (!opciones.length) return "";
-  const completo = opciones.map((o) => o.etiqueta).join(" / ");
-  if (completo.length <= CHIP_ESCALA_MAX) return completo;
-  return `${opciones.length} opciones`;
+  return opciones.length === 1 ? "1 opción" : `${opciones.length} opciones`;
+}
+
+/**
+ * Las opciones enumeradas, para el aviso de escala divergente. Ahí el conteo no
+ * sirve —«5 opciones en docentes; 5 opciones en estudiantes» no dice en qué
+ * difieren— y hace falta ver los textos: es lo que destapó que 56 de 58
+ * divergencias eran sólo mayúsculas.
+ */
+export function listarEscala(opciones: readonly OpcionDeEscala[], max = 4): string {
+  if (!opciones.length) return "";
+  const etiquetas = opciones.map((o) => o.etiqueta);
+  if (etiquetas.length <= max) return etiquetas.join(" / ");
+  return `${etiquetas.slice(0, max).join(" / ")} … (${etiquetas.length})`;
 }
 
 /** Una escala y los públicos que la usan. Nombrar los dos es lo que convierte
@@ -261,8 +296,8 @@ export type EscalaDeFila = {
  * hallazgo.
  */
 function textoDeEscala(info: InfoEscala): string {
-  const resumen = resumenEscala(info.opciones);
-  if (resumen) return resumen;
+  const listado = listarEscala(info.opciones);
+  if (listado) return listado;
   const libre = /^libre:(.*)$/.exec(info.firma);
   if (libre) {
     const tipo = libre[1];
@@ -300,21 +335,61 @@ export function escalaDeFila(fila: FilaEditor, cat: CatalogoEscalas): EscalaDeFi
   };
 }
 
+/**
+ * Un bloque de la diapositiva: los temas que comparten escala.
+ *
+ * Es la unidad que el render dibuja junto —`multilista` apila un bloque por
+ * escala— y por eso es también la unidad que enseña sus opciones. Una
+ * diapositiva que junta «¿Conoce?» (Sí/No) con la satisfacción (5 puntos) tiene
+ * dos bloques con **categorías distintas**, y decir «la escala de la
+ * diapositiva» ahí era decir la de uno de los dos y callar el otro.
+ */
+export type BloqueEditor = {
+  /** Firma que comparten sus temas. `""` = ninguno declara escala. */
+  firma: string;
+  opciones: OpcionDeEscala[];
+  filas: FilaEditor[];
+  /** `""` = barras multiapiladas (el defecto); `radar`. */
+  grafico: string;
+  /** Códigos que suman el indicador del radar, en el orden de la escala. */
+  corte: string[];
+  /** Públicos con variable asignada, si TODOS sus temas coinciden. */
+  publicos: string[];
+  /**
+   * ¿Se muestra el control de gráfico? Basta con tener ejes suficientes.
+   *
+   * Se muestra aunque el radar no se pueda activar: esconderlo hacía que la
+   * función pareciera inexistente. En el estudio medido, 4 bloques de 53 tienen
+   * 5+ temas y sólo 2 pueden dibujar el radar — los otros dos merecen saber por
+   * qué, no quedarse sin control.
+   */
+  ofrecerRadar: boolean;
+  /**
+   * ¿Se puede ACTIVAR el radar? Además de los ejes, **cobertura rectangular**:
+   * todos los públicos presentes con todos los temas. Lo que rompe la figura es
+   * el hueco —un vértice que le falta a una serie y no a otra deforma el
+   * polígono sin decir por qué—, no el número de series: con un solo público el
+   * radar sale con una línea y se lee perfectamente.
+   */
+  elegibleRadar: boolean;
+  /** Por qué no se puede activar. Vacío cuando sí se puede. */
+  motivoNoRadar: string;
+};
+
+/** Mínimo de ejes para que un radar diga más que las barras. */
+export const RADAR_MIN_EJES = 5;
+
 export type DiapositivaEditor = {
   /** Clave declarada. `""` es el grupo de lo que todavía no tiene diapositiva. */
   clave: string;
   enunciado: string;
   seccion: string;
   filas: FilaEditor[];
-  /** Resumen de la escala dominante de la diapositiva, para el chip. */
-  escalaTexto: string;
-  /** Sus opciones enteras, para el popover que las despliega. */
-  escalaOpciones: OpcionDeEscala[];
   /**
-   * Escalas distintas presentes entre sus temas, en texto legible. Más de una =
-   * **E2**: la diapositiva sale apilada en bloques.
+   * Sus temas agrupados por escala, en orden de aparición. Más de uno = **E2**:
+   * la diapositiva sale apilada, un bloque por escala.
    */
-  escalas: string[];
+  bloques: BloqueEditor[];
   /**
    * Temas cuyos públicos no comparten escala (**E1**), con nombre y con qué
    * escala usa cada público. Un conteo no basta: «1 tema no comparte escala» no
@@ -359,10 +434,7 @@ export function agruparEnDiapositivas(
 
   return ordenarClaves([...grupos.keys()]).map((clave) => {
     const propias = grupos.get(clave) ?? [];
-    const firmas: string[] = [];
-    const escalas: string[] = [];
-    let escalaTexto = "";
-    let escalaOpciones: OpcionDeEscala[] = [];
+    const bloques: BloqueEditor[] = [];
     const temasEscalaRota: { etiqueta: string; porFirma: EscalaConBases[] }[] = [];
     for (const fila of propias) {
       const e = escalaDeFila(fila, cat);
@@ -372,14 +444,24 @@ export function agruparEnDiapositivas(
           porFirma: e.porFirma,
         });
       }
-      for (let i = 0; i < e.firmas.length; i += 1) {
-        if (firmas.includes(e.firmas[i])) continue;
-        firmas.push(e.firmas[i]);
-        escalas.push(e.porFirma[i]?.texto ?? "");
-      }
-      if (!escalaTexto && e.texto) {
-        escalaTexto = e.texto;
-        escalaOpciones = e.opciones;
+      // El tema entra al bloque de SU primera firma. Uno con E1 rota reparte sus
+      // públicos entre escalas y no pertenece limpiamente a ninguno; se le pone
+      // en el primero y su aviso propio dice lo que le pasa.
+      const firma = e.firmas[0] ?? "";
+      const bloque = bloques.find((b) => b.firma === firma);
+      if (bloque) bloque.filas.push(fila);
+      else {
+        bloques.push({
+          firma,
+          opciones: e.opciones,
+          filas: [fila],
+          grafico: (fila.grafico ?? "").trim().toLowerCase(),
+          corte: (fila.corte ?? "").split(",").map((c) => c.trim()).filter(Boolean),
+          publicos: [],
+          ofrecerRadar: false,
+          elegibleRadar: false,
+          motivoNoRadar: "",
+        });
       }
     }
 
@@ -397,14 +479,31 @@ export function agruparEnDiapositivas(
     }
     const repetidas = [...conteo.values()].filter((c) => c.veces > 1);
 
+    // Elegibilidad del radar, por bloque. Se calcula al cerrarlo porque las tres
+    // condiciones son sobre el conjunto de sus temas, no sobre uno.
+    for (const bloque of bloques) {
+      const coberturas = bloque.filas.map((f) =>
+        Object.keys(f.variables).sort().join("|"),
+      );
+      const rectangular = coberturas.length > 0 && new Set(coberturas).size === 1;
+      bloque.publicos = rectangular ? Object.keys(bloque.filas[0].variables).sort() : [];
+      bloque.ofrecerRadar = bloque.filas.length >= RADAR_MIN_EJES;
+      bloque.motivoNoRadar = !bloque.ofrecerRadar
+        ? ""
+        : !rectangular
+          ? "sus temas no cubren los mismos públicos: al radar le faltarían vértices en unas series y no en otras"
+          : bloque.opciones.length === 0
+            ? "su escala no tiene opciones con las que construir un indicador"
+            : "";
+      bloque.elegibleRadar = bloque.ofrecerRadar && !bloque.motivoNoRadar;
+    }
+
     return {
       clave,
       enunciado: propias.find((f) => (f.enunciado ?? "").trim())?.enunciado?.trim() ?? "",
       seccion: propias.find((f) => f.seccion.trim())?.seccion.trim() ?? "",
       filas: propias,
-      escalaTexto,
-      escalaOpciones,
-      escalas,
+      bloques,
       temasEscalaRota,
       etiquetasRepetidas: repetidas,
     };

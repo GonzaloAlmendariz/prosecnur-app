@@ -149,7 +149,8 @@ test_that("la plantilla de un estudio sin declaracion sale con encabezados y sin
   # `Variables`, que es para lo que esta.
   expect_equal(nrow(hoja), 0L)
   expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
-                              "estudiantes", "diapositiva", "enunciado"))
+                              "estudiantes", "diapositiva", "enunciado",
+                              "grafico", "corte"))
 
   # Y subirla sin escribir nada se rechaza en vez de borrar lo que hubiera.
   expect_error(.equiv_importar_desde_file(sid, meta$file_id), class = "api_error")
@@ -255,7 +256,8 @@ test_that("la hoja de consulta viaja aparte y el importador la ignora", {
   hoja <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_PLANTILLA,
                              .name_repair = "minimal")
   expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
-                              "estudiantes", "diapositiva", "enunciado"))
+                              "estudiantes", "diapositiva", "enunciado",
+                              "grafico", "corte"))
 
   # El catalogo lleva las variables de las dos bases: es donde se buscan los
   # codigos ahora que la hoja de trabajo no los vuelca.

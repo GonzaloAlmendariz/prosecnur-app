@@ -44,6 +44,7 @@ import {
   confirmarFila,
   confirmarTodas,
   editarCampo,
+  editarCampoDeBloque,
   editarCampoDeDiapositiva,
   filaVacia,
   filasParaGuardar,
@@ -397,6 +398,7 @@ export function EquivalenciasPanel({ onDeclaradas }: EquivalenciasPanelProps) {
                 variablesPorBase={variablesPorBase}
                 onEditarFila={(id, campo, v) => { setFilas((p) => editarCampo(p, id, campo, v)); setSucio(true); }}
                 onEditarDiapositiva={(clave, campo, v) => { setFilas((p) => editarCampoDeDiapositiva(p, clave, campo, v)); setSucio(true); }}
+                onEditarBloque={(ids, campo, v) => { setFilas((p) => editarCampoDeBloque(p, ids, campo, v)); setSucio(true); }}
                 onAsignar={(id, base, v) => { setFilas((p) => asignarVariable(p, id, base, v)); setSucio(true); }}
                 onQuitar={(id) => { setFilas((p) => quitarFila(p, id)); setSucio(true); }}
                 onConfirmar={(id) => { setFilas((p) => confirmarFila(p, id)); setSucio(true); }}
