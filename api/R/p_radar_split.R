@@ -27,6 +27,8 @@
 #' @param corte_etiqueta Sólo en modo `publicos`: nombre del indicador.
 #' @param estilo Sólo en modo `publicos`: clave de `.RADAR_MB_ESTILOS`.
 #' @param mostrar_tabla Sólo en modo `publicos`: compone el radar con su tabla.
+#' @param eje_min Sólo en modo `publicos`: piso del eje radial en puntos
+#'   porcentuales.
 #' @export
 p_radar <- function(modo = c("sm", "box", "publicos"),
                     var  = NULL,
@@ -46,15 +48,21 @@ p_radar <- function(modo = c("sm", "box", "publicos"),
                     corte_etiqueta = NULL,
                     estilo = NULL,
                     mostrar_tabla = TRUE,
+                    eje_min = NULL,
                     overrides = list(),
                     base = list(),
                     filtros = list()) {
   # El modo se resuelve ANTES del `match.arg` de `p_radar_tabla`, que no conoce
   # `publicos` y abortaría.
   if (identical(as.character(modo)[1], "publicos")) {
+    # `mostrar_valores` y `valores_decimales` son los MISMOS args que los otros
+    # dos modos ya exponen: el analista no tiene por que aprender un nombre
+    # distinto segun lo que el radar compare.
     return(p_radar_publicos(
       vars = vars, corte = corte, estilo = estilo %||% "comparativo",
       corte_etiqueta = corte_etiqueta, mostrar_tabla = isTRUE(mostrar_tabla),
+      mostrar_valores = isTRUE(mostrar_valores),
+      decimales = valores_decimales %||% 0L, eje_min = eje_min %||% 0,
       titulo = titulo, overrides = overrides, base = base, filtros = filtros
     ))
   }

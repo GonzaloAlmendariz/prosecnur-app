@@ -37,6 +37,27 @@
   list(valor = 100 * dentro / n, n = n)
 }
 
+# Decimales del porcentaje. Se acota aqui y no en cada consumidor para que el
+# vertice y la tabla no puedan discrepar: una celda que dice 98 con el numero
+# guardado en 98.04 es una cifra que no cuadra con el resto del informe.
+#
+# El defecto es 0. En un informe de encuesta el porcentaje entero es la norma, y
+# el decimal sugiere una precision que la muestra no tiene: con n = 51, un punto
+# vale dos casos.
+.radar_mb_decimales <- function(x) {
+  d <- suppressWarnings(as.integer(x %||% 0L)[1])
+  if (!is.finite(d)) d <- 0L
+  max(0L, min(3L, d))
+}
+
+# Piso declarado del eje, en puntos porcentuales. El recorte contra los datos
+# vive en `.radar_mb_piso()`, que si los tiene a la vista.
+.radar_mb_eje_min <- function(x) {
+  v <- suppressWarnings(as.numeric(x %||% 0)[1])
+  if (!is.finite(v) || v <= 0) return(0)
+  min(v, 99)
+}
+
 # Códigos del indicador a partir de la forma declarada («3,4»).
 .radar_mb_codigos <- function(corte) {
   x <- trimws(unlist(strsplit(as.character(corte %||% ""), "[,;|]")))
@@ -243,13 +264,35 @@
   utils::modifyList(.RADAR_MB_MARGENES, .RADAR_MB_ESTILOS[[clave]]$args)
 }
 
+# Piso del eje radial, en puntos porcentuales.
+#
+# El defecto es 0 y no el rango de los datos: con seis temas entre 90 % y 98 %,
+# un eje autoajustado convierte ocho puntos de diferencia en la mitad del radio
+# y exagera lo que el analista tendria que leer como «todos altos y parecidos».
+# Pero cuando ESE es justamente el punto —ver la diferencia dentro de una banda
+# estrecha— el piso se sube a proposito, y por eso se declara.
+#
+# Nunca por encima del valor mas bajo: el graficador recorta al centro lo que
+# cae debajo del piso, y un 42 % dibujado en el centro se lee como cero. Si el
+# piso pedido deja fuera un dato, se baja y se dice cual lo forzo.
+.radar_mb_piso <- function(datos, eje_min) {
+  piso <- suppressWarnings(as.numeric(eje_min %||% 0)[1])
+  if (!is.finite(piso) || piso <= 0) return(0)
+  piso <- min(piso, 99)
+  v <- datos$valor[is.finite(datos$valor)]
+  if (!length(v)) return(piso)
+  minimo <- min(v)
+  if (piso <= minimo) return(piso)
+  culpable <- datos[is.finite(datos$valor) & datos$valor == minimo, , drop = FALSE][1, ]
+  message(sprintf(
+    "radar_publicos: el piso del eje baja de %s a %s — «%s» en %s vale %.1f%% y quedaria recortado al centro.",
+    format(piso), format(minimo), as.character(culpable$eje), as.character(culpable$grupo), minimo))
+  minimo
+}
+
 #' Dibuja el radar comparativo.
-#'
-#' Los limites van fijos en 0–100 y no al rango de los datos: con seis temas
-#' entre 90 % y 98 %, un eje ajustado al rango convierte ocho puntos de
-#' diferencia en la mitad del radio y exagera lo que el analista tendria que
-#' leer como «todos altos y parecidos». Medido en la diapositiva 29 del estudio.
-.radar_mb_grafico <- function(datos, estilo = NULL, overrides = list(), titulo = NULL) {
+.radar_mb_grafico <- function(datos, estilo = NULL, overrides = list(), titulo = NULL,
+                              mostrar_valores = NULL, decimales = NULL, eje_min = NULL) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop_api(500, "E_RADAR_SIN_GGPLOT2", "El paquete R 'ggplot2' no está instalado.")
   }
@@ -263,6 +306,26 @@
     ),
     .radar_mb_estilo_args(estilo)
   )
+  # Lo que el analista declara pisa al estilo: el estilo es un punto de partida,
+  # no un candado.
+  if (!is.null(mostrar_valores)) {
+    args$mostrar_valores <- isTRUE(mostrar_valores)
+    # El umbral del graficador (3 %) existe para radares con muchos ejes de
+    # valores chicos. Un indicador entre publicos no tiene ese problema y sus
+    # ceros legitimos —un tema en el que nadie esta de acuerdo— merecen su
+    # etiqueta, asi que aqui se apaga.
+    args$valores_umbral_pct <- 0
+    # Hacia el centro: un indicador entre publicos vive en la banda alta, donde
+    # el anillo exterior ya lo ocupa el nombre del tema. Escribir «98.0%» hacia
+    # afuera lo tapaba.
+    args$valores_hacia_dentro <- TRUE
+  }
+  if (!is.null(decimales)) {
+    dec <- suppressWarnings(as.integer(decimales)[1])
+    if (is.finite(dec)) args$valores_decimales <- max(0L, min(3L, dec))
+  }
+  piso <- .radar_mb_piso(datos, eje_min)
+  if (piso > 0) args$limites <- c(piso / 100, 1)
   if (length(overrides)) args <- utils::modifyList(args, overrides)
   do.call(graficar_radar, args)
 }
@@ -270,18 +333,24 @@
 # Tabla que acompana al radar: una fila por tema, una columna por publico, y el
 # indicador en la esquina. Es lo que da las cifras exactas que la telarana solo
 # insinua.
-.radar_mb_tabla <- function(datos, etiqueta_corte = "") {
+.radar_mb_tabla <- function(datos, etiqueta_corte = "", decimales = 0L) {
+  dec <- suppressWarnings(as.integer(decimales)[1])
+  if (!is.finite(dec)) dec <- 0L
+  dec <- max(0L, min(3L, dec))
   ejes <- levels(datos$eje)
   grupos <- levels(datos$grupo)
   out <- data.frame(Tema = ejes, stringsAsFactors = FALSE)
   for (g in grupos) {
     col <- vapply(ejes, function(e) {
       v <- datos$valor[datos$eje == e & datos$grupo == g]
-      if (!length(v) || is.na(v[1])) NA_real_ else round(v[1], 1)
+      if (!length(v) || is.na(v[1])) NA_real_ else round(v[1], dec)
     }, numeric(1))
     out[[g]] <- unname(col)
   }
   attr(out, "indicador") <- as.character(etiqueta_corte %||% "")
+  # El formato viaja con la tabla: el redondeo y el texto tienen que decir lo
+  # mismo, o la celda muestra 98 y el numero guardado es 98.04.
+  attr(out, "decimales") <- dec
   out
 }
 
@@ -298,6 +367,12 @@
 #' @param estilo Clave de estilo: `comparativo`, `silueta`, `auditoria`, `limpio`.
 #' @param corte_etiqueta Nombre del indicador. Si falta, la tabla lo omite.
 #' @param mostrar_tabla Si `TRUE`, compone el radar con su tabla al costado.
+#' @param mostrar_valores Si `TRUE`, escribe el porcentaje en cada vértice.
+#' @param decimales Decimales del porcentaje, en el vértice y en la tabla.
+#'   `0` (el defecto) da enteros.
+#' @param eje_min Piso del eje radial en puntos porcentuales. `0` es el eje
+#'   completo; `50` estira la mitad alta para ver diferencias dentro de una
+#'   banda estrecha.
 #' @param titulo,overrides,base,filtros Como el resto de elementos del plan.
 #' @export
 p_radar_publicos <- function(
@@ -306,6 +381,9 @@ p_radar_publicos <- function(
     estilo = "comparativo",
     corte_etiqueta = NULL,
     mostrar_tabla = TRUE,
+    mostrar_valores = FALSE,
+    decimales = 0L,
+    eje_min = 0,
     titulo = NULL,
     overrides = list(),
     base = list(),
@@ -330,6 +408,9 @@ p_radar_publicos <- function(
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     estilo         = as.character(estilo %||% "comparativo")[1],
     mostrar_tabla  = isTRUE(mostrar_tabla),
+    mostrar_valores = isTRUE(mostrar_valores),
+    decimales      = .radar_mb_decimales(decimales),
+    eje_min        = .radar_mb_eje_min(eje_min),
     title_slide    = titulo,
     overrides      = overrides,
     base           = base,
@@ -360,10 +441,13 @@ p_radar_publicos <- function(
   overrides <- utils::modifyList(as.list(preset_args %||% list()),
                                  as.list(el$overrides %||% list()))
   g <- .radar_mb_grafico(datos, estilo = el$estilo, overrides = overrides,
-                         titulo = el$title_slide)
+                         titulo = el$title_slide,
+                         mostrar_valores = el$mostrar_valores,
+                         decimales = el$decimales,
+                         eje_min = el$eje_min)
   if (!isTRUE(el$mostrar_tabla)) return(g)
 
-  tabla <- .radar_mb_tabla(datos, el$corte_etiqueta)
+  tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = el$decimales)
   .radar_mb_componer(g, tabla)
 }
 
@@ -380,9 +464,12 @@ p_radar_publicos <- function(
   navy <- "#062A63"
   gris <- "#F2F2F2"
 
+  dec <- suppressWarnings(as.integer(attr(tabla, "decimales") %||% 0L)[1])
+  if (!is.finite(dec)) dec <- 0L
+  patron <- paste0("%.", max(0L, min(3L, dec)), "f%%")
   fmt <- tabla
   for (j in seq_len(ncol(fmt))[-1]) {
-    fmt[[j]] <- ifelse(is.na(fmt[[j]]), "—", sprintf("%.1f%%", fmt[[j]]))
+    fmt[[j]] <- ifelse(is.na(fmt[[j]]), "—", sprintf(patron, fmt[[j]]))
   }
   indicador <- attr(tabla, "indicador") %||% ""
   if (nzchar(indicador)) names(fmt)[1] <- paste0(names(fmt)[1], "  ·  ", indicador)
