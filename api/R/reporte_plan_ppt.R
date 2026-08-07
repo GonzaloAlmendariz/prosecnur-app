@@ -4772,7 +4772,7 @@ reporte_ppt_plan <- function(
         block_render$overrides$subtitulo <- block_render$.multilista_block_subtitle %||% ""
         if (is.null(block_render$overrides$legend_key_aspect_yx)) {
           block_aspect_yx <- parent_aspect_yx * (rel_heights_plan[[idx_block]] / rel_total)
-          block_render$overrides$legend_key_aspect_yx <- max(0.08, min(parent_aspect_yx, block_aspect_yx))
+          block_render$overrides[c("legend_key_aspect_yx", "titulos_grupo_alto_rel")] <- list(max(0.08, min(parent_aspect_yx, block_aspect_yx)), rel_heights_plan[[idx_block]] / rel_total)
         }
 
         p_block <- .render_barras_multiapiladas(
