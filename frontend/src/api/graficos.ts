@@ -61,6 +61,13 @@ export type Slide = {
   id: string;
   tipo: SlideType;
   payload: SlidePayload;
+  /**
+   * De dónde salió la diapositiva. `equivalencias` marca las que deriva la
+   * matriz (ADR 0063/0064) y es lo que permite regenerar ese bloque sin tocar
+   * las que alguien armó a mano. El `id` no sirve para esto: al aplicar, el plan
+   * se clona con ids nuevos. Ausente = la puso una persona.
+   */
+  origen?: string;
 };
 
 export type PlanJson = {
