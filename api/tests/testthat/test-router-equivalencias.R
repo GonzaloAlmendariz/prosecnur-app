@@ -131,7 +131,7 @@ test_that("el estado de un estudio sin declaración no inventa nada", {
   expect_equal(estado$n_filas, 0L)
 })
 
-test_that("plantilla e importación cierran el ciclo sobre la sesión", {
+test_that("la plantilla de un estudio sin declaracion sale con encabezados y sin filas", {
   skip_if_not_installed("openxlsx")
   skip_if_not_installed("readxl")
   sid <- .req_setup("separate")
@@ -141,28 +141,18 @@ test_that("plantilla e importación cierran el ciclo sobre la sesión", {
   expect_true(file.exists(meta$path))
   expect_equal(meta$kind, "equivalencias_plantilla")
 
-  # ADR 0064: la plantilla sale SEMBRADA. Las cuatro variables del fixture se
-  # emparejan por (etiqueta, escala, ordinal) en dos filas, y ambas vuelven
-  # marcadas como propuesta: el viaje por el Excel no las convierte en decisión.
-  out <- .equiv_importar_desde_file(sid, meta$file_id)
-  expect_true(out$estado$declarada)
-  expect_equal(out$estado$n_filas, 2L)
-  expect_equal(out$estado$n_sugeridas, 2L)
-  expect_true(all(vapply(out$estado$filas, function(f) isTRUE(f$sugerida), logical(1))))
-  # Cada propuesta cubre los dos públicos: eso es lo que la siembra aporta frente
-  # a las cuatro filas sueltas que emitía antes.
-  expect_true(all(vapply(out$estado$filas, function(f) length(f$variables), integer(1)) == 2L))
+  hoja <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_PLANTILLA,
+                             .name_repair = "minimal")
+  # Ni una fila. Antes volcaba una por CADA variable de cada base, con su codigo
+  # en una sola columna y el resto vacias: una escalera diagonal que enterraba lo
+  # que el analista si tiene que decidir. Los codigos se buscan en la hoja
+  # `Variables`, que es para lo que esta.
+  expect_equal(nrow(hoja), 0L)
+  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
+                              "estudiantes", "diapositiva", "enunciado"))
 
-  # La etiqueta se repite entre propuestas —«Servicio de salud» nombra dos
-  # preguntas distintas— así que no se prellena: es lo único que el analista
-  # tiene que aportar.
-  expect_equal(out$estado$n_sin_etiqueta, 2L)
-  # Y una propuesta sin confirmar NO aplica etiquetas, aunque las trajera.
-  expect_equal(out$aplicacion$docentes$aplicadas, 0L)
-
-  # Y el sello queda guardado, que es lo que permite detectar el desfase después.
-  s <- session_get(sid)
-  expect_true(nzchar(s$equivalencias_publicos$sellos$docentes))
+  # Y subirla sin escribir nada se rechaza en vez de borrar lo que hubiera.
+  expect_error(.equiv_importar_desde_file(sid, meta$file_id), class = "api_error")
 })
 
 test_that("el editor y el Excel producen el mismo artefacto", {
@@ -201,4 +191,96 @@ test_that("las sugerencias no se guardan solas", {
   expect_true(length(sug) > 0)
   # Pedirlas no declara nada: el estado sigue sin declaración.
   expect_false(.equiv_estado(sid)$declarada)
+})
+
+test_that("exportar e importar sin editar devuelve la MISMA declaracion", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+
+  # Los tres modos del ADR 0064 —escribirlo en el Excel, decidirlo en la pestana,
+  # o decidirlo y descargarlo— solo conviven si el archivo no pierde nada al
+  # viajar. Esta garantia es lo que impide que la proxima columna que alguien
+  # anada se caiga en silencio: fue exactamente lo que paso con `enunciado`.
+  #
+  # El fixture mapea TODAS las variables del instrumento: asi la plantilla no
+  # anade filas sueltas y la comparacion es de identidad, no de contencion.
+  declarada <- list(
+    schema = "equivalencias_publicos/v1",
+    bases = c("docentes", "estudiantes"),
+    filas = list(
+      list(seccion = "1.2 Servicios", etiqueta_estandar = "Servicio de salud",
+           variables = list(docentes = "p13_1", estudiantes = "p11_1"),
+           diapositiva = "3", enunciado = "¿Conoce los siguientes servicios?",
+           cantidad = 2L),
+      list(seccion = "1.2 Servicios", etiqueta_estandar = "Bienestar",
+           variables = list(docentes = "p14_1", estudiantes = "p13_1"),
+           diapositiva = "3", enunciado = "¿Conoce los siguientes servicios?",
+           cantidad = 2L)
+    )
+  )
+  session_set(sid, "equivalencias_publicos", declarada)
+
+  meta <- .equiv_escribir_plantilla(sid)
+  vuelta <- .equiv_importar_desde_file(sid, meta$file_id)$estado
+
+  expect_equal(vuelta$n_filas, 2L)
+  comparable <- function(filas) {
+    lapply(filas, function(f) list(
+      seccion = as.character(f$seccion %||% ""),
+      etiqueta_estandar = as.character(f$etiqueta_estandar %||% ""),
+      diapositiva = as.character(f$diapositiva %||% ""),
+      enunciado = as.character(f$enunciado %||% ""),
+      variables = f$variables[order(names(f$variables))]
+    ))
+  }
+  expect_equal(comparable(vuelta$filas), comparable(declarada$filas))
+})
+
+test_that("la hoja de consulta viaja aparte y el importador la ignora", {
+  skip_if_not_installed("openxlsx")
+  skip_if_not_installed("readxl")
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+
+  meta <- .equiv_escribir_plantilla(sid)
+  hojas <- readxl::excel_sheets(meta$path)
+  expect_true(.EQUIV_HOJA_PLANTILLA %in% hojas)
+  expect_true(.EQUIV_HOJA_CATALOGO %in% hojas)
+
+  # El catalogo reemplaza a las columnas `<base>_etiqueta`, que doblaban el ancho
+  # de la hoja donde se escribe. La hoja de trabajo lleva el nucleo y el plan, y
+  # ninguna columna de ayuda.
+  hoja <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_PLANTILLA,
+                             .name_repair = "minimal")
+  expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
+                              "estudiantes", "diapositiva", "enunciado"))
+
+  # El catalogo lleva las variables de las dos bases: es donde se buscan los
+  # codigos ahora que la hoja de trabajo no los vuelca.
+  cat_ <- readxl::read_excel(meta$path, sheet = .EQUIV_HOJA_CATALOGO,
+                             .name_repair = "minimal")
+  expect_equal(names(cat_), c("base", "variable", "etiqueta"))
+  expect_setequal(unique(cat_$base), c("docentes", "estudiantes"))
+})
+
+test_that("cada columna de publico trae el desplegable de SUS variables", {
+  skip_if_not_installed("openxlsx")
+  sid <- .req_setup("separate")
+  on.exit(session_delete(sid), add = TRUE)
+
+  meta <- .equiv_escribir_plantilla(sid)
+  val <- xml2::read_xml(unz(meta$path, "xl/worksheets/sheet1.xml"))
+  nodos <- xml2::xml_find_all(val, "//*[local-name()='dataValidation']")
+  expect_gte(length(nodos), 2L)
+
+  # El rango se calcula del catalogo, agrupado por base: cada columna apunta a un
+  # tramo distinto. Nada de listas fijas — un estudio de tres bases o de seis
+  # produce sus tres o seis desplegables sin tocar codigo.
+  formulas <- vapply(nodos, function(n) {
+    xml2::xml_text(xml2::xml_find_first(n, ".//*[local-name()='formula1']"))
+  }, character(1))
+  expect_true(all(grepl(sprintf("^'%s'!\\$B\\$", .EQUIV_HOJA_CATALOGO), formulas)))
+  expect_equal(length(unique(formulas)), 2L)
 })

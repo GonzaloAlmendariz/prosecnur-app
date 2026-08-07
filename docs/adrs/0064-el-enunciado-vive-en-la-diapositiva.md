@@ -263,3 +263,124 @@ la firma declaraba divergentes entre públicos, **56 diferían sólo en mayúscu
 («Totalmente en desacuerdo» contra «Totalmente en Desacuerdo»). Los 2 reales son
 el código PUCP —numérico en un público, texto en otro— y los rangos de edad. Con
 la corrección el mazo pasó de 34 a 44 diapositivas sin tocar la declaración.
+
+## Enmienda — 2026-08-06: el formato de intercambio y sus tres modos
+
+La declaración se puede construir de tres maneras y **las tres son igual de
+válidas**: escribirla en el Excel que la app emite, decidirla en la pestaña de
+Equivalencias, o decidirla ahí y descargarla. Nada de lo que se hace en una vía
+se pierde al pasar por otra.
+
+### El formato
+
+Hoja canónica `Equivalencias`; si el archivo no la trae, la primera. Ocho
+columnas, en este orden:
+
+```
+seccion │ etiqueta_estandar │ <base₁> │ <base₂> │ … │ diapositiva │ enunciado
+```
+
+| Columna | Papel | Al leer |
+|---|---|---|
+| `etiqueta_estandar` | nombre del tema; la barra del gráfico | la columna es obligatoria, su contenido no |
+| `<base>` — una por base del estudio | el código de la variable en ese público | al menos una |
+| `seccion` | dimensión del informe | opcional |
+| `diapositiva` (alias `diapo`) | a qué diapositiva va el tema | opcional |
+| `enunciado` | título de la diapositiva | opcional |
+| cualquier otra | — | se ignora sin avisar |
+
+**El núcleo va primero.** Sección, etiqueta y los públicos son lo que declara la
+equivalencia; detrás, el plan del informe. La versión anterior emitía trece
+columnas y ponía `origen`, `seccion`, `diapositiva` y `enunciado` **antes** de lo
+que el analista busca: al abrir el archivo, lo primero que veía era maquinaria.
+
+**Las columnas del plan se emiten siempre, y vacías si hace falta.** Emitirlas
+sólo cuando ya tienen datos dejaba al analista sin la columna justo cuando quería
+empezar a repartir diapositivas desde el Excel.
+
+**Los nombres de las columnas de público son los de las bases del estudio.** No
+hay lista fija: un estudio de tres bases produce tres columnas y uno de seis,
+seis.
+
+### Lo que el archivo NO lleva
+
+**Ni una fila por variable.** La versión anterior volcaba una fila por cada
+variable de cada base —300 en el estudio medido—, cada una con su código en una
+sola columna y las otras vacías. Visto en la hoja es una escalera diagonal:
+emparejar exigía cortar y pegar filas hasta alinear los códigos, y las 19 de
+«Datos generales» que nunca se emparejan enterraban lo que sí hay que decidir.
+La plantilla lleva lo que el estudio declara; si no declara nada, sale con sus
+encabezados y sin filas. Subirla así se rechaza en vez de aceptar una declaración
+vacía que borraría la anterior en silencio.
+
+**Ni emparejados propuestos.** En estas columnas una propuesta es
+indistinguible de una decisión —no hay dónde marcarla— y volvería como decidida
+al importarla, que es lo que el ADR 0062 prohíbe. Emparejar con ayuda se hace en
+el editor, donde una propuesta se ve como propuesta y se confirma de un clic.
+
+**Ni columnas de etiqueta por base.** Doblaban el ancho de la hoja donde se
+escribe para dar una ayuda que no declara nada. Esa ayuda vive ahora en una hoja
+`Variables` (base · variable · etiqueta) que el importador ignora.
+
+### Lo que el archivo sí aporta
+
+**Un desplegable por columna de público, con sus variables y sólo las suyas.** El
+rango se calcula del catálogo, que ya viene agrupado por base — sin nombres de
+rango ni listas fijas. Además de ahorrar la búsqueda del código, cierra un error
+que ninguna validación posterior distingue bien: escribir en la columna de un
+público un código que pertenece a otro. `p13_1` existe en las cuatro bases del
+estudio medido y significa cosas distintas en cada una.
+
+### La garantía
+
+**Exportar e importar sin editar devuelve la misma declaración.** Es lo que
+mantiene los tres modos en armonía y lo que impide que la próxima columna que
+alguien añada se caiga en silencio — que es exactamente lo que pasó con
+`enunciado`. Está fijada por test, no por costumbre.
+
+### Reglas de lectura
+
+- Los encabezados se comparan normalizados: sin tildes, minúsculas, signos a `_`.
+- `seccion`, `enunciado` y `diapositiva` se rellenan hacia abajo: son atributos
+  de un bloque de filas y en las matrices reales sólo la primera celda los trae.
+- Se aceptan los códigos crudos de la plataforma (`q0013_0001`) y los canónicos
+  (`p13_1`).
+- Una fila declara algo si trae al menos una variable de una base del estudio.
+
+## Enmienda — 2026-08-06: regenerar el mazo sin tocar lo hecho a mano
+
+Aplicar un plan derivado tenía dos formas y las dos fallan cuando el mazo mezcla
+lo derivado con lo construido a mano: **Reemplazar** sustituye el plan entero y
+se lleva el perfil sociodemográfico por actor; **Fusionar** concatena, y al
+regenerar tras cambiar la matriz deja el bloque de equivalencias por duplicado.
+
+Peor: al aplicar, el editor clonaba el plan con ids nuevos, así que `s-equiv-3`
+entraba al lienzo como `sug-a1b2` y **después de aplicarlo ya no se podía saber
+cuál venía de la matriz**. La marca de procedencia se destruía justo al usarla.
+
+**Cada diapositiva derivada lleva `origen: "equivalencias"`**, que sobrevive al
+clonado, y un tercer botón —«Actualizar diapositivas equivalentes»— reemplaza
+sólo ese bloque, en su sitio, dejando el resto del mazo intacto. Aparece sólo
+cuando hay algo que sincronizar. Los otros dos botones no cambian: cada uno sigue
+haciendo lo que su nombre dice.
+
+**Dentro del bloque manda la regeneración; lo que se quiere conservar a mano vive
+fuera de él.** El bloque vuelve a la posición que tenía —un mazo que abre con las
+comparaciones no puede acabar con ellas detrás de los anexos por haber
+regenerado—, las diapositivas que la matriz ya no produce se retiran, y
+sincronizar dos veces no duplica nada.
+
+## Enmienda — 2026-08-06: la interfaz muestra lo que dice algo
+
+Un campo vacío no es información. La pestaña pintaba un recuadro de enunciado con
+su texto de ayuda en las 44 diapositivas que no lo tenían, y la columna de
+diapositiva eran 157 celdas diciendo «—»: nada de eso informaba, y tapaba lo que
+sí —la etiqueta y los códigos por público—.
+
+Vacío es una acción discreta («Añadir enunciado»), no un recuadro esperando
+texto. Alcanzable siempre: un clic o el foco de teclado lo convierte en campo.
+
+Y elegir variable es **buscar, no recorrer**: la celda filtra por código o por
+etiqueta contra el catálogo de su base, el mismo gesto que el desplegable del
+Excel. Un `<select>` con las 102 variables de la base ordenadas por el formulario
+pedía reconocer `p13_1` entre cien hermanas.
