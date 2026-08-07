@@ -316,7 +316,13 @@ describe("normalizeCalcMuestraReferenciaAsistencia", () => {
     expect(api.normalizeCalcMuestraReferenciaAsistencia(payload)).toBeNull();
   });
 
-  it("solo acepta diagnostico fuera de rango con alerta y degradacion sin clamp", async () => {
+  it("rechaza toda tasa fuera de rango, con o sin advertencia del backend", async () => {
+    // Contrato viejo (retirado por el ADR 0060, fix D5): una tasa > 1 se
+    // aceptaba como "diagnóstico" si viajaba la advertencia dinámica
+    // `asistentes_mayor_matriculados:N` y la publicación degradaba a global sin
+    // clamp. Hoy una tasa imposible es un defecto de fórmula y el normalizador
+    // falla cerrado siempre; el contrato nuevo lo congela
+    // src/api/__tests__/calcMuestra.tasa-imposible-fail-closed.test.ts.
     const api = await import("../../../../api/calcMuestra");
     const prepararDiagnostico = () => {
       const payload = payloadValido();
@@ -345,13 +351,10 @@ describe("normalizeCalcMuestraReferenciaAsistencia", () => {
 
     const degradadoGlobal = prepararDiagnostico();
     agregaAdvertenciaDinamica(degradadoGlobal);
-    const normalizadoGlobal = api.normalizeCalcMuestraReferenciaAsistencia(degradadoGlobal);
-    expect(normalizadoGlobal).not.toBeNull();
-    expect(normalizadoGlobal?.dimensiones[0].filas[0]).toMatchObject({
-      tasa: 1.5,
-      tasa_publicada: 0,
-      fuente_publicada: "global",
-    });
+    expect(
+      api.normalizeCalcMuestraReferenciaAsistencia(degradadoGlobal),
+      "La advertencia dinámica ya no habilita tasas > 1: fallo cerrado",
+    ).toBeNull();
 
     const sinPublicacion = prepararDiagnostico();
     agregaAdvertenciaDinamica(sinPublicacion);
@@ -364,6 +367,165 @@ describe("normalizeCalcMuestraReferenciaAsistencia", () => {
       sinPublicacion,
     );
     expect(normalizadoSinPublicacion).toBeNull();
+  });
+
+  it("acepta la salida sancionada del desborde: tasa null + conteos + residual_negativo + no_aplica", async () => {
+    // B1 (ADR 0060): la forma que el backend emite ante un conteo de campo que
+    // no cierra —congelada por test-calc-muestra-asistencia-referencia.R— es
+    // numerador 15, denominador 10, tasa NA, `residual_negativo = true` y
+    // `metodo_ic = "no_aplica"`. La marca es la ÚNICA llave que habilita tasa
+    // null con conteos poblados; el fail-closed del contrato D5 sigue intacto
+    // (tasa 1.3 explícita se rechaza en calcMuestra.tasa-imposible-fail-closed).
+    const api = await import("../../../../api/calcMuestra");
+    const payloadResidual = () => {
+      const payload = payloadValido();
+      const cadena = payload.cadena as Record<string, Record<string, unknown>>;
+      Object.assign(cadena.asistencia!, {
+        numerador: 15,
+        denominador: 10,
+        tasa: null,
+        residual_negativo: true,
+        ic_low: null,
+        ic_high: null,
+        metodo_ic: "no_aplica",
+      });
+      // Coherencia de encadenamiento sin glosario: apertura se mide sobre los
+      // asistentes (15) y el rendimiento sobre los mismos elegibles (10).
+      Object.assign(cadena.apertura!, {
+        numerador: 0,
+        denominador: 15,
+        tasa: 0,
+        ic_low: 0,
+        ic_high: 0,
+        metodo_ic: "bootstrap_percentil",
+      });
+      Object.assign(cadena.rendimiento!, { numerador: 0, denominador: 10, tasa: 0 });
+      // El global comparte los conteos desbordados, así que publica el mismo
+      // patrón sancionado (reparación paralela del backend).
+      Object.assign(payload.global as Record<string, unknown>, {
+        matriculados: 10,
+        asistentes: 15,
+        tasa: null,
+        residual_negativo: true,
+        ic_low: null,
+        ic_high: null,
+        metodo_ic: "no_aplica",
+      });
+      // Sin tasa global publicable, las celdas degradan a sin_publicacion.
+      const dimensiones = payload.dimensiones as Array<{
+        filas: Array<Record<string, unknown>>;
+      }>;
+      for (const dimension of dimensiones) {
+        for (const fila of dimension.filas) {
+          if (fila.fuente_publicada !== "celda") continue;
+          Object.assign(fila, {
+            matriculados: 10,
+            asistentes: 15,
+            tasa: null,
+            residual_negativo: true,
+            ic_low: null,
+            ic_high: null,
+            metodo_ic: "no_aplica",
+            tasa_publicada: null,
+            k_publicada: null,
+            fuente_publicada: "sin_publicacion",
+          });
+        }
+      }
+      agregaAdvertenciaDinamica(payload);
+      return payload;
+    };
+
+    const normalizado = api.normalizeCalcMuestraReferenciaAsistencia(payloadResidual());
+    expect(normalizado, "El tramo residual legítimo debe aceptarse").not.toBeNull();
+    expect(normalizado?.cadena.asistencia).toMatchObject({
+      numerador: 15,
+      denominador: 10,
+      tasa: null,
+      residual_negativo: true,
+      metodo_ic: "no_aplica",
+    });
+    expect(normalizado?.global).toMatchObject({
+      matriculados: 10,
+      asistentes: 15,
+      tasa: null,
+      residual_negativo: true,
+    });
+    expect(normalizado?.dimensiones[0]?.filas[0]).toMatchObject({
+      tasa: null,
+      residual_negativo: true,
+      fuente_publicada: "sin_publicacion",
+    });
+
+    // Sin la marca, la misma forma (tasa null con conteos poblados) sigue
+    // siendo payload defectuoso: el fail-closed no se relajó.
+    const sinMarca = payloadResidual();
+    const cadenaSinMarca = sinMarca.cadena as Record<string, Record<string, unknown>>;
+    cadenaSinMarca.asistencia!.residual_negativo = false;
+    expect(
+      api.normalizeCalcMuestraReferenciaAsistencia(sinMarca),
+      "Tasa null con conteos poblados y sin marca = payload defectuoso",
+    ).toBeNull();
+
+    // La marca tampoco habilita publicar la magnitud imposible: residual true
+    // con tasa poblada es contradictorio y falla cerrado.
+    const marcaConTasa = payloadResidual();
+    const cadenaConTasa = marcaConTasa.cadena as Record<string, Record<string, unknown>>;
+    cadenaConTasa.asistencia!.tasa = 1.5;
+    expect(
+      api.normalizeCalcMuestraReferenciaAsistencia(marcaConTasa),
+      "residual_negativo con tasa poblada es contradictorio: fallo cerrado",
+    ).toBeNull();
+  });
+
+  it("acepta una celda residual que degrada su publicación a la global válida", async () => {
+    // B1 · path de celdas de dimensiones: el desborde vive en UNA celda; la
+    // global sigue sana y la celda publica por degradación (tasa_publicada =
+    // global.tasa), exactamente como cualquier celda sin tasa propia.
+    const api = await import("../../../../api/calcMuestra");
+    const payload = payloadValido();
+    Object.assign(primeraCelda(payload), {
+      matriculados: 120,
+      asistentes: 156,
+      tasa: null,
+      residual_negativo: true,
+      ic_low: null,
+      ic_high: null,
+      metodo_ic: "no_aplica",
+      tasa_publicada: 0,
+      k_publicada: 12,
+      fuente_publicada: "global",
+    });
+    agregaAdvertenciaDinamica(payload);
+
+    const normalizado = api.normalizeCalcMuestraReferenciaAsistencia(payload);
+    expect(normalizado, "La celda residual legítima debe aceptarse").not.toBeNull();
+    expect(normalizado?.dimensiones[0]?.filas[0]).toMatchObject({
+      matriculados: 120,
+      asistentes: 156,
+      tasa: null,
+      residual_negativo: true,
+      metodo_ic: "no_aplica",
+      tasa_publicada: 0,
+      fuente_publicada: "global",
+    });
+
+    // La misma celda sin la marca vuelve al fail-closed original.
+    const sinMarca = api.normalizeCalcMuestraReferenciaAsistencia({
+      ...payload,
+      dimensiones: (payload.dimensiones as Array<Record<string, unknown>>).map(
+        (dimension, index) => index === 0
+          ? {
+              ...dimension,
+              filas: [{
+                ...(dimension.filas as Array<Record<string, unknown>>)[0],
+                residual_negativo: false,
+              }],
+            }
+          : dimension,
+      ),
+    });
+    expect(sinMarca, "Celda con tasa null sin marca = payload defectuoso").toBeNull();
   });
 
   it("el wrapper rechaza si la respuesta directa difiere del sibling de state", async () => {

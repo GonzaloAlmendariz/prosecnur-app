@@ -71,7 +71,10 @@
     # se lee como una propiedad suya y no como lo que rindió en el tramo de
     # campo que le tocó.
     "semana_min", "semana_max", "semana_media", "k_con_semana",
-    "tasa", "estimador", "media_ch", "sd_ch", "ic_low", "ic_high",
+    # B2/ADR 0060: la marca de desborde (tasa imposible -> NA) viaja con la
+    # celda; sin ella el Histórico reabierto no puede explicar el NA.
+    "tasa", "residual_negativo", "estimador", "media_ch", "sd_ch",
+    "ic_low", "ic_high",
     "metodo_ic", "suficiencia", "tasa_publicada", "k_publicada",
     "fuente_publicada"
   ))
@@ -94,8 +97,10 @@
 .pulso_sanitize_calc_muestra_asistencia_chain <- function(value) {
   if (!is.list(value)) return(list())
   fields <- c(
-    "key", "label", "k", "numerador", "denominador", "tasa", "ic_low",
-    "ic_high", "metodo_ic"
+    # B2/ADR 0060: `residual_negativo` es la marca del contrato nuevo (tasa
+    # desbordada -> NA + marca); si no viaja, el .pulso reabre con un NA mudo.
+    "key", "label", "k", "numerador", "denominador", "tasa",
+    "residual_negativo", "ic_low", "ic_high", "metodo_ic"
   )
   # `completitud`, `validez` y `producto` son los nombres v1; el ADR 0060 los
   # reemplazó por apertura/efectividad/rendimiento. Se aceptan los dos juegos
@@ -153,9 +158,12 @@
   out["filas"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(value$filas, c(
     "celda_key", "celda_label", "k",
     "semana_min", "semana_max", "semana_media", "k_con_semana",
-    "elegibles", "asistentes", "ya_medidas",
+    # H1/H2 (ADR 0060): el denominador sancionado, el intervalo [min, max] de
+    # la asistencia de elegibles y la marca de desborde de la celda.
+    "elegibles", "asistentes", "asistentes_elegibles", "ya_medidas",
     "no_elegibles", "elegibles_presentes", "efectivas", "no_efectivas",
-    "pct_ausencia", "pct_ya_medidas", "pct_rechazo", "efectividad", "rendimiento"
+    "pct_ausencia", "pct_ya_medidas", "pct_rechazo", "efectividad", "rendimiento",
+    "asistencia_elegibles_min", "asistencia_elegibles_max", "residual_negativo"
   )))
   out
 }
@@ -190,8 +198,15 @@
   out <- .pulso_whitelist_scalar_fields(value, "unidad")
   out["filas"] <- list(.pulso_sanitize_calc_muestra_asistencia_records(value$filas, c(
     "semana", "etiqueta", "orden", "k", "elegibles", "ausentes", "asistentes",
+    # H1/H2 (ADR 0060): asistentes_elegibles (numerador sancionado, capado por
+    # identidad), el intervalo [min, max] de la asistencia de elegibles y la
+    # marca de desborde. Sin ellos, el Histórico reabierto pierde justo la
+    # divulgación que el saneo introdujo.
+    "asistentes_elegibles",
     "ya_medidas", "no_elegibles", "a_encuestar", "registros", "efectivas",
-    "no_efectivas", "efectivas_acumuladas", "asistencia", "pct_ya_medidas",
+    "no_efectivas", "efectivas_acumuladas", "asistencia",
+    "asistencia_elegibles_min", "asistencia_elegibles_max",
+    "residual_negativo", "pct_ya_medidas",
     "efectividad", "efectividad_denominador", "rendimiento", "efectivas_por_aula"
   )))
   deriva <- value$deriva
@@ -358,8 +373,9 @@
     value$global,
     c(
       "k", "matriculados", "asistentes", "enviadas", "validas",
-      "no_respondieron", "tasa", "media_ch", "sd_ch", "ic_low", "ic_high",
-      "metodo_ic"
+      # B2/ADR 0060: la marca de desborde del global viaja con su tasa.
+      "no_respondieron", "tasa", "residual_negativo", "media_ch", "sd_ch",
+      "ic_low", "ic_high", "metodo_ic"
     )
   ))
   dimensiones <- lapply(
@@ -376,6 +392,114 @@
     .pulso_sanitize_calc_muestra_asistencia_criteria(value$celdas_criterios)
   )
   out
+}
+
+# -----------------------------------------------------------------------------
+# Migración ADR 0060/D4 — tasas imposibles persistidas en la referencia
+# -----------------------------------------------------------------------------
+# Un .pulso guardado antes del saneo de tasas puede traer tasas > 1 en la
+# cadena, el global, las celdas de dimensiones, la serie semanal y los embudos:
+# el contrato viejo las conservaba como «tasa diagnóstica». El cliente nuevo es
+# fail-closed —una sola tasa imposible invalida el payload entero— y la pestaña
+# Histórico reabriría vacía. Al cargar se migran al contrato nuevo: tasa = NA +
+# residual_negativo = TRUE, con las magnitudes (numerador/denominador,
+# absolutos) intactas para el diagnóstico. Así «un .pulso v1 abre sin pérdida»
+# (ADR 0060, punto 11) sigue siendo cierto.
+#
+# Pura e idempotente: sobre una referencia ya saneada no toca nada, así que
+# abrir dos veces el mismo proyecto da exactamente lo mismo.
+.pulso_migrate_asistencia_tasas_imposibles <- function(ref) {
+  if (!is.list(ref)) return(ref)
+  imposible <- function(v) {
+    v <- suppressWarnings(as.numeric(v %||% NA_real_))
+    length(v) == 1L && is.finite(v) && (v < 0 || v > 1 + sqrt(.Machine$double.eps))
+  }
+  # Tramo/celda/global con intervalo: al sanear la tasa, el IC calculado sobre
+  # ella deja de tener sentido y el contrato del cliente exige "no_aplica".
+  sanea_con_ic <- function(rec) {
+    if (!is.list(rec) || !imposible(rec$tasa)) return(rec)
+    rec$tasa <- NA_real_
+    rec$residual_negativo <- TRUE
+    rec["ic_low"] <- list(NA_real_)
+    rec["ic_high"] <- list(NA_real_)
+    rec$metodo_ic <- "no_aplica"
+    rec
+  }
+  sanea_campos <- function(rec, campos) {
+    if (!is.list(rec)) return(rec)
+    for (campo in intersect(campos, names(rec))) {
+      if (imposible(rec[[campo]])) {
+        rec[campo] <- list(NA_real_)
+        rec$residual_negativo <- TRUE
+      }
+    }
+    rec
+  }
+
+  if (is.list(ref$cadena)) {
+    for (key in names(ref$cadena)) {
+      ref$cadena[[key]] <- sanea_con_ic(ref$cadena[[key]])
+    }
+  }
+  if (is.list(ref$global)) ref$global <- sanea_con_ic(ref$global)
+  # ¿El global (ya saneado) sigue siendo publicable? Decide a qué degradan las
+  # celdas cuya publicación quedó inválida.
+  tasa_global <- suppressWarnings(as.numeric((ref$global %||% list())$tasa %||% NA_real_))
+  global_ok <- length(tasa_global) == 1L && is.finite(tasa_global) &&
+    tasa_global >= 0 && tasa_global <= 1
+
+  republica <- function(cel) {
+    if (global_ok) {
+      cel$fuente_publicada <- "global"
+      cel$tasa_publicada <- tasa_global
+      cel["k_publicada"] <- list(ref$global$k %||% NA_integer_)
+    } else {
+      cel$fuente_publicada <- "sin_publicacion"
+      cel["tasa_publicada"] <- list(NA_real_)
+      cel["k_publicada"] <- list(NA_integer_)
+    }
+    cel
+  }
+  if (is.list(ref$dimensiones)) {
+    ref$dimensiones <- lapply(ref$dimensiones, function(dimension) {
+      if (!is.list(dimension) || !is.list(dimension$filas)) return(dimension)
+      dimension$filas <- lapply(dimension$filas, function(cel) {
+        if (!is.list(cel)) return(cel)
+        migrada <- imposible(cel$tasa)
+        cel <- sanea_con_ic(cel)
+        fuente <- as.character(cel$fuente_publicada %||% "")[1L]
+        # Una celda que publicaba su propia tasa imposible degrada a global; y
+        # una que publicaba un global hoy inválido degrada a sin_publicacion.
+        if ((migrada && identical(fuente, "celda")) ||
+            (identical(fuente, "global") && !global_ok)) {
+          cel <- republica(cel)
+        }
+        cel
+      })
+      dimension
+    })
+  }
+  if (is.list(ref$serie_campo) && is.list(ref$serie_campo$filas)) {
+    ref$serie_campo$filas <- lapply(ref$serie_campo$filas, function(fila) {
+      sanea_campos(fila, c(
+        "asistencia", "asistencia_elegibles_min", "asistencia_elegibles_max",
+        "pct_ya_medidas", "efectividad", "rendimiento"
+      ))
+    })
+  }
+  if (is.list(ref$embudos)) {
+    ref$embudos <- lapply(ref$embudos, function(embudo) {
+      if (!is.list(embudo) || !is.list(embudo$filas)) return(embudo)
+      embudo$filas <- lapply(embudo$filas, function(fila) {
+        sanea_campos(fila, c(
+          "pct_ausencia", "pct_ya_medidas", "pct_rechazo", "efectividad",
+          "rendimiento", "asistencia_elegibles_min", "asistencia_elegibles_max"
+        ))
+      })
+      embudo
+    })
+  }
+  ref
 }
 
 .pulso_sanitize_calc_muestra_reference_bindings <- function(bindings) {
@@ -2353,6 +2477,11 @@ load_pulso <- function(src_path) {
   s_saved <- .pulso_sanitize_graficos_consolidado_state(s_saved)
   s_saved <- .pulso_rewrite_paths(s_saved, uploads_dir)
   s_saved <- .pulso_sanitize_graficos_consolidado_state(s_saved)
+  # Migración ADR 0060/D4: un state.rds con referencia de asistencia vieja
+  # puede traer tasas > 1 persistidas; se sanean al contrato nuevo (NA + marca
+  # residual) para que el cliente fail-closed no vacíe el Histórico.
+  s_saved$calc_muestra_referencia_asistencia <-
+    .pulso_migrate_asistencia_tasas_imposibles(s_saved$calc_muestra_referencia_asistencia)
   s_saved$id  <- new_sid           # preservar sid nuevo
   s_saved$dir <- new_sess$dir      # preservar tempdir nuevo
   s_saved$project_path <- normalizePath(src_path, mustWork = FALSE)

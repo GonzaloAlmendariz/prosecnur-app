@@ -25,6 +25,7 @@ function probabilidadFuenteLabel(value: string | null | undefined): string {
   const key = raw.toLowerCase().replace(/[\s-]+/g, "_");
   const labels: Record<string, string> = {
     prescribed_design: "Diseño definido por el cálculo",
+    prescribed_design_reference: "Diseño prescrito (referencial)",
     design: "Diseño probabilístico base",
     base_design: "Diseño probabilístico base",
     pps: "PPS sistemático",
@@ -34,6 +35,7 @@ function probabilidadFuenteLabel(value: string | null | undefined): string {
     simulation: "Simulación de probabilidades",
     simulated: "Simulación de probabilidades",
     monte_carlo: "Simulación Monte Carlo",
+    monte_carlo_sequential_discount: "Monte Carlo con descuento secuencial",
   };
   return labels[key] ?? raw.replace(/_/g, " ");
 }

@@ -1763,23 +1763,12 @@ calc_muestra_calcular_componente <- function(comp) {
   )
 }
 
+# D6: una sola fuente de la fórmula de tamaño muestral. calc_n_muestra
+# (helpers_calc_comunes.R) valida los parámetros (NA, rango de e/p/deff) y
+# redondea hacia ARRIBA (ceiling): round() podía publicar un n por debajo del
+# que garantiza el margen de error pedido.
 .cm_calc_n_muestra_redondeado <- function(N, p = 0.5, z = 1.96, e, deff = 1) {
-  if (any(is.na(c(N, p, z, e, deff)))) {
-    stop_api(400, "E_CALC_PARAMS",
-             "Parámetros del cálculo no pueden ser NA.")
-  }
-  if (e <= 0 || e >= 1) {
-    stop_api(400, "E_CALC_ERROR_RANGO",
-             sprintf("El margen de error debe estar en (0, 1), recibido: %s", e))
-  }
-  q <- 1 - p
-  num <- z^2 * p * q * deff
-  n <- if (is.infinite(N) || N <= 0) {
-    num / e^2
-  } else {
-    (N * num) / ((N - 1) * e^2 + num)
-  }
-  as.integer(max(round(n), 1L))
+  max(calc_n_muestra(N = N, p = p, z = z, e = e, deff = deff), 1L)
 }
 
 .cm_distribuir_con_piso <- function(n_total, pesos, piso = 0L) {

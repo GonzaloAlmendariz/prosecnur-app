@@ -159,7 +159,10 @@
       umbral = round(.cm_aulas_num(umbral, 0.80), 4),
       aulas = as.integer(marco_aulas),
       cobertura_pct = cobertura_pct,
-      unidades_rotas = character(0)
+      unidades_rotas = character(0),
+      # D6: sin ctx$criterios no hay señal por aula; el conteo de pases por NA
+      # se declara desconocido, nunca 0 (cero afirmaría evidencia que no hay).
+      composicion_na_n = NA_integer_
     )
   }
   list(

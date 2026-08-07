@@ -270,6 +270,15 @@
   numerator / denominator
 }
 
+# ADR 0060: toda tasa de este contrato esta acotada a [0, 1] por construccion;
+# un valor fuera de ese rango es un conteo de campo que no cierra, no un dato.
+# El patron de publicacion es NA + marca `residual_negativo` (el mismo de
+# .cm_asist_chain_segment y .cm_asist_encuentros); esta guarda centraliza la
+# deteccion para celdas, global, serie semanal y embudos.
+.cm_asist_tasa_imposible <- function(rate) {
+  is.finite(rate) && (rate < 0 || rate > 1 + sqrt(.Machine$double.eps))
+}
+
 .cm_asist_bootstrap_ratio <- function(numerator, denominator, bootstrap_n,
                                       level = 0.95) {
   k <- length(numerator)
@@ -337,6 +346,7 @@
       matriculados = NA_real_,
       asistentes = NA_real_,
       tasa = NA_real_,
+      residual_negativo = FALSE,
       media_ch = NA_real_,
       sd_ch = NA_real_,
       ic_low = NA_real_,
@@ -348,16 +358,26 @@
   matriculados_total <- sum(matriculados)
   asistentes_total <- sum(asistentes)
   tasa <- .cm_asist_ratio(asistentes_total, matriculados_total)
+  # B2/ADR 0060: mismo patron que la cadena (.cm_asist_chain_segment). Un
+  # desborde (mas asistentes que matriculados) publica NA + marca residual,
+  # nunca la magnitud imposible; los totales quedan para el diagnostico.
+  residual_negativo <- .cm_asist_tasa_imposible(tasa)
+  if (residual_negativo) tasa <- NA_real_
   tasas_ch <- ifelse(matriculados > 0, asistentes / matriculados, NA_real_)
   tasas_complete <- all(is.finite(tasas_ch))
-  interval <- .cm_asist_bootstrap_ratio(asistentes, matriculados, bootstrap_n)
-  has_interval <- k >= 12L && all(is.finite(interval))
+  interval <- if (residual_negativo) {
+    c(low = NA_real_, high = NA_real_)
+  } else {
+    .cm_asist_bootstrap_ratio(asistentes, matriculados, bootstrap_n)
+  }
+  has_interval <- k >= 12L && is.finite(tasa) && all(is.finite(interval))
 
   list(
     k = k,
     matriculados = matriculados_total,
     asistentes = asistentes_total,
     tasa = tasa,
+    residual_negativo = residual_negativo,
     media_ch = if (tasas_complete) mean(tasas_ch) else NA_real_,
     sd_ch = if (tasas_complete && k >= 2L) stats::sd(tasas_ch) else NA_real_,
     ic_low = unname(interval[[1L]]),
@@ -437,6 +457,10 @@
     semana_media = ventana$semana_media %||% NA_real_,
     k_con_semana = ventana$k_con_semana %||% NA_integer_,
     tasa = stats$tasa,
+    # B2/ADR 0060: cuando la tasa de la celda desbordo 1 se publica NA y esta
+    # marca dice por que; la publicacion degrada a global/sin_publicacion por
+    # el mismo camino que una celda insuficiente.
+    residual_negativo = isTRUE(stats$residual_negativo),
     estimador = "razon_agregada",
     media_ch = stats$media_ch,
     sd_ch = stats$sd_ch,
@@ -618,6 +642,20 @@
     efectivas <- .cm_asist_strict_sum(model$validas[idx])
     no_efectivas <- sum(cero(model$no_efectivas[idx]))
     registros <- .cm_asist_strict_sum(model$enviadas[idx])
+    # ADR 0060: asistentes_elegibles = asistentes - presentes_no_elegibles es
+    # el unico numerador comparable con `elegibles` (mismo universo). Sin
+    # glosario no_elegibles suma 0 y la cifra colapsa a los asistentes brutos.
+    #
+    # H1/ADR 0060 (§198-203): la resta es una COTA SUPERIOR, no una
+    # observacion — el `no_elegibles` de la base puede ser solo los
+    # DETECTADOS, asi que el bruto puede desbordar a los elegibles cuando el
+    # aplicador conto mas cabezas de las que habia en lista. La identidad
+    # `asistentes_elegibles <= elegibles` se impone con el cap; el desborde se
+    # divulga como residual, no se publica.
+    asistentes_elegibles_bruto <- if (is.finite(asistentes)) max(0, asistentes - no_elegibles) else NA_real_
+    desborde_conteo <- is.finite(asistentes_elegibles_bruto) && is.finite(elegibles) &&
+      asistentes_elegibles_bruto > elegibles
+    asistentes_elegibles <- if (desborde_conteo) elegibles else asistentes_elegibles_bruto
     ausentes <- max(0, elegibles - asistentes)
     # A quienes de verdad les tocaba responder esa semana: presentes, del
     # estudio y sin haber contestado antes. Es el denominador de la
@@ -629,6 +667,43 @@
     # distintos bajo la misma palabra —el error que el ADR 0060 vino a
     # corregir— y ponerlos juntos en la superficie los haria incomparables.
     base_efectividad <- if (tiene_glosario) a_encuestar else registros
+    # H2/ADR 0060: toda tasa publicada de la semana pasa por la misma guarda.
+    # Un valor fuera de [0, 1] va NA y enciende la marca residual de la fila;
+    # los absolutos quedan al lado para el diagnostico.
+    residual_negativo <- desborde_conteo
+    publica <- function(rate) {
+      if (.cm_asist_tasa_imposible(rate)) {
+        residual_negativo <<- TRUE
+        return(NA_real_)
+      }
+      rate
+    }
+    # H1/ADR 0060 (§198-203): la asistencia de elegibles solo se conoce por
+    # INTERVALO. Cota inferior = efectivas confirmadas / elegibles (personas
+    # que seguro estuvieron, eran del estudio y respondieron); cota superior =
+    # min(asistentes - no_elegibles, elegibles) / elegibles. El campo
+    # `asistencia` conserva su nombre y publica la cota superior para no
+    # romper consumidores; el intervalo viaja aditivamente al lado.
+    # Sin glosario el denominador ya cayo a matriculados (asistencia bruta) y
+    # el intervalo no es computable.
+    asistencia_elegibles_min <- if (tiene_glosario) {
+      publica(.cm_asist_ratio(efectivas, elegibles))
+    } else {
+      NA_real_
+    }
+    asistencia_elegibles_max <- if (tiene_glosario) {
+      publica(.cm_asist_ratio(asistentes_elegibles, elegibles))
+    } else {
+      NA_real_
+    }
+    asistencia <- if (tiene_glosario) {
+      asistencia_elegibles_max
+    } else {
+      publica(.cm_asist_ratio(asistentes, elegibles))
+    }
+    pct_ya_medidas <- publica(.cm_asist_ratio(ya_medidas, asistentes_elegibles))
+    efectividad <- publica(.cm_asist_ratio(efectivas, base_efectividad))
+    rendimiento <- publica(.cm_asist_ratio(efectivas, elegibles))
     list(
       semana = as.integer(claves[[i]]),
       etiqueta = sprintf("Semana %d", as.integer(claves[[i]])),
@@ -637,6 +712,7 @@
       elegibles = elegibles,
       ausentes = ausentes,
       asistentes = asistentes,
+      asistentes_elegibles = asistentes_elegibles,
       ya_medidas = ya_medidas,
       no_elegibles = no_elegibles,
       a_encuestar = a_encuestar,
@@ -644,13 +720,25 @@
       efectivas = efectivas,
       no_efectivas = no_efectivas,
       efectivas_acumuladas = 0,
-      asistencia = .cm_asist_ratio(asistentes, elegibles),
-      pct_ya_medidas = .cm_asist_ratio(ya_medidas, asistentes),
-      efectividad = .cm_asist_ratio(efectivas, base_efectividad),
+      asistencia = asistencia,
+      # H1/ADR 0060: el intervalo [min, max] de la asistencia de elegibles;
+      # `asistencia` es la cota superior y estos dos campos lo hacen explicito
+      # sin romper a ningun consumidor del campo historico.
+      asistencia_elegibles_min = asistencia_elegibles_min,
+      asistencia_elegibles_max = asistencia_elegibles_max,
+      # Marca del desborde: la semana existio pero su conteo de campo no
+      # cierra (alguna tasa fue imposible o el cap de la identidad actuo), asi
+      # que el valor afectado va NA y esta bandera dice por que.
+      residual_negativo = residual_negativo,
+      # ADR 0060: el traslape se mide sobre asistentes_elegibles, no sobre
+      # todos los presentes (los no elegibles inflaban el denominador).
+      pct_ya_medidas = pct_ya_medidas,
+      efectividad = efectividad,
       # El denominador viaja al lado de su tasa: la superficie no tiene que
       # adivinar si esta semana se midio sobre presentes o sobre registros.
       efectividad_denominador = base_efectividad,
-      rendimiento = .cm_asist_ratio(efectivas, elegibles),
+      rendimiento = rendimiento,
+      # No es probabilidad (puede superar 1 con normalidad): no pasa la guarda.
       efectivas_por_aula = .cm_asist_ratio(efectivas, length(idx))
     )
   })
@@ -1082,7 +1170,17 @@
   numerator_total <- .cm_asist_strict_sum(numerator)
   denominator_total <- .cm_asist_strict_sum(denominator)
   rate <- .cm_asist_ratio(numerator_total, denominator_total)
-  interval <- .cm_asist_bootstrap_ratio(numerator, denominator, bootstrap_n)
+  # ADR 0060: toda tasa de la cadena esta acotada a 1 por construccion; un
+  # desborde es un conteo de campo que no cierra. Se publica NA + marca
+  # residual (patron del residual negativo), nunca la magnitud imposible; el
+  # numerador y el denominador quedan para el diagnostico.
+  residual_negativo <- is.finite(rate) && rate > 1 + sqrt(.Machine$double.eps)
+  if (residual_negativo) rate <- NA_real_
+  interval <- if (residual_negativo) {
+    c(low = NA_real_, high = NA_real_)
+  } else {
+    .cm_asist_bootstrap_ratio(numerator, denominator, bootstrap_n)
+  }
   has_interval <- k >= 12L && is.finite(rate) && all(is.finite(interval))
   list(
     key = key,
@@ -1091,6 +1189,7 @@
     numerador = numerator_total,
     denominador = denominator_total,
     tasa = rate,
+    residual_negativo = residual_negativo,
     ic_low = unname(interval[[1L]]),
     ic_high = unname(interval[[2L]]),
     metodo_ic = if (has_interval) "bootstrap_percentil" else "no_aplica"
@@ -1108,6 +1207,9 @@
     validas = if (m_complete) .cm_asist_strict_sum(model$validas) else NA_real_,
     no_respondieron = if (m_complete) .cm_asist_strict_sum(model$no_respondieron) else NA_real_,
     tasa = stats$tasa,
+    # B2/ADR 0060: el global hereda el saneo de la celda agregada — una tasa
+    # global > 1 (mas asistentes que matriculados) va NA con esta marca.
+    residual_negativo = isTRUE(stats$residual_negativo),
     media_ch = stats$media_ch,
     sd_ch = stats$sd_ch,
     ic_low = stats$ic_low,
@@ -1529,6 +1631,26 @@ calc_muestra_asistencia_diseno_declarado <- function(tabla) {
       NA_real_
     }
     presentes <- if (is.finite(asistentes)) asistentes - cero(ya) - cero(noel) else NA_real_
+    # ADR 0060: mismo denominador sancionado que la serie semanal, con el
+    # mismo cap de identidad (H1): asistentes_elegibles <= elegibles. El bruto
+    # es cota superior, no observacion — `no_elegibles` puede ser solo los
+    # detectados.
+    asistentes_elegibles_bruto <- if (is.finite(asistentes)) max(0, asistentes - cero(noel)) else NA_real_
+    desborde_conteo <- is.finite(asistentes_elegibles_bruto) && is.finite(elegibles) &&
+      asistentes_elegibles_bruto > elegibles
+    asistentes_elegibles <- if (desborde_conteo) elegibles else asistentes_elegibles_bruto
+    # H2/ADR 0060: en celdas con desborde, las perdidas relativas salian
+    # imposibles (pct_ausencia negativa, efectividad > 1). Toda tasa de la
+    # celda pasa por la guarda: valor fuera de [0, 1] -> NA + marca residual,
+    # conservando los absolutos para el diagnostico.
+    residual_negativo <- desborde_conteo
+    publica <- function(rate) {
+      if (.cm_asist_tasa_imposible(rate)) {
+        residual_negativo <<- TRUE
+        return(NA_real_)
+      }
+      rate
+    }
     ventana <- .cm_asist_ventana(if (is.null(model$semana)) NULL else model$semana[sel])
     list(
       celda_key = .cm_criterios_fac_key(clave),
@@ -1542,6 +1664,7 @@ calc_muestra_asistencia_diseno_declarado <- function(tabla) {
       k_con_semana = ventana$k_con_semana %||% NA_integer_,
       elegibles = elegibles,
       asistentes = asistentes,
+      asistentes_elegibles = asistentes_elegibles,
       ya_medidas = ya,
       no_elegibles = noel,
       elegibles_presentes = presentes,
@@ -1549,11 +1672,20 @@ calc_muestra_asistencia_diseno_declarado <- function(tabla) {
       no_efectivas = no_efectivas,
       # Las tres pérdidas expresadas sobre el universo de la celda, que es lo
       # que permite comparar facultades de tamaños muy distintos.
-      pct_ausencia = .cm_asist_ratio(elegibles - asistentes, elegibles),
-      pct_ya_medidas = .cm_asist_ratio(ya, asistentes),
-      pct_rechazo = .cm_asist_ratio(no_efectivas, presentes),
-      efectividad = .cm_asist_ratio(efectivas, presentes),
-      rendimiento = .cm_asist_ratio(efectivas, elegibles)
+      pct_ausencia = publica(.cm_asist_ratio(elegibles - asistentes, elegibles)),
+      # ADR 0060: el traslape de la celda se mide sobre asistentes_elegibles
+      # (asistentes - no_elegibles), no sobre todos los presentes.
+      pct_ya_medidas = publica(.cm_asist_ratio(ya, asistentes_elegibles)),
+      pct_rechazo = publica(.cm_asist_ratio(no_efectivas, presentes)),
+      efectividad = publica(.cm_asist_ratio(efectivas, presentes)),
+      rendimiento = publica(.cm_asist_ratio(efectivas, elegibles)),
+      # H1/ADR 0060: el intervalo [min, max] de la asistencia de elegibles de
+      # la celda, mismo contrato que la serie semanal.
+      asistencia_elegibles_min = publica(.cm_asist_ratio(efectivas, elegibles)),
+      asistencia_elegibles_max = publica(.cm_asist_ratio(asistentes_elegibles, elegibles)),
+      # Marca del desborde de la celda: algun conteo no cerro y las tasas
+      # afectadas van NA en lugar de publicar un valor imposible.
+      residual_negativo = residual_negativo
     )
   })
   list(
@@ -1733,9 +1865,24 @@ calc_muestra_asistencia_referencia <- function(datos, estudio = list(),
       model$asistentes
     }
     base_efectividad <- if (tiene_glosario) base_apertura else model$enviadas
+    # ADR 0060: con glosario el numerador del tramo de asistencia son los
+    # asistentes ELEGIBLES (asistentes - no_elegibles), el mismo universo que
+    # su denominador `elegibles`; mezclar universos producia tasas > 1.
+    #
+    # H1/ADR 0060 (§198-203): la resta es una COTA SUPERIOR, no una
+    # observacion (`no_elegibles` puede ser solo los detectados), y por
+    # identidad los asistentes elegibles de un aula no superan sus elegibles.
+    # El cap se aplica aula por aula para que el agregado y el bootstrap
+    # hereden la misma cota.
+    numerador_asistencia <- if (tiene_glosario) {
+      bruto <- pmax(0, model$asistentes - cero(model$no_elegibles))
+      ifelse(is.finite(base_asistencia), pmin(bruto, base_asistencia), bruto)
+    } else {
+      model$asistentes
+    }
     chain <- list(
       asistencia = .cm_asist_chain_segment(
-        "asistencia", "Asistencia", model$asistentes, base_asistencia, bootstrap_n
+        "asistencia", "Asistencia", numerador_asistencia, base_asistencia, bootstrap_n
       ),
       apertura = .cm_asist_chain_segment(
         "apertura", "Apertura", model$enviadas, base_apertura, bootstrap_n

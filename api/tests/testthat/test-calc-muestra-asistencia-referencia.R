@@ -150,7 +150,10 @@
     # G53 · En que tramo del campo se aplico la celda: sin eso, su tasa se lee
     # como una propiedad de la facultad y no como lo que rindio cuando le toco.
     "semana_min", "semana_max", "semana_media", "k_con_semana",
-    "tasa", "estimador", "media_ch", "sd_ch", "ic_low", "ic_high",
+    # B2/ADR 0060: toda celda declara si su tasa desbordo (NA + marca), igual
+    # que los tramos de la cadena.
+    "tasa", "residual_negativo", "estimador", "media_ch", "sd_ch",
+    "ic_low", "ic_high",
     "metodo_ic", "suficiencia", "tasa_publicada", "k_publicada",
     "fuente_publicada"
   ))
@@ -248,9 +251,12 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
   global <- out$global
   expect_named(global, c(
     "k", "matriculados", "asistentes", "enviadas", "validas",
-    "no_respondieron", "tasa", "media_ch", "sd_ch", "ic_low", "ic_high",
-    "metodo_ic"
+    # B2/ADR 0060: el global tambien declara el desborde con la marca
+    # residual en lugar de publicar una tasa > 1.
+    "no_respondieron", "tasa", "residual_negativo", "media_ch", "sd_ch",
+    "ic_low", "ic_high", "metodo_ic"
   ))
+  expect_false(global$residual_negativo)
   expect_equal(global$k, 190L)
   expect_equal(global$matriculados, 6861L)
   expect_equal(global$asistentes, 4792L)
@@ -270,10 +276,13 @@ test_that("cadena, global, cobertura e identidad conservan las cifras estrictas"
   )
   for (key in names(esperada)) {
     tramo <- out$cadena[[key]]
+    # D4/ADR 0060: todo tramo declara `residual_negativo` (FALSE en datos
+    # limpios); cuando la tasa desborda 1 va NA y la marca lo divulga.
     expect_named(tramo, c(
       "key", "label", "k", "numerador", "denominador", "tasa",
-      "ic_low", "ic_high", "metodo_ic"
+      "residual_negativo", "ic_low", "ic_high", "metodo_ic"
     ))
+    expect_false(tramo$residual_negativo)
     expect_identical(tramo$key, key)
     expect_true(is.character(tramo$label) && nzchar(tramo$label))
     expect_equal(tramo$k, 190L)
@@ -429,6 +438,12 @@ test_that("curso_horario vacio con datos materiales se rechaza como input invali
   }
 })
 
+# D4/ADR 0060 (contrato nuevo): una tasa de la cadena esta acotada a 1 por
+# construccion; una jerarquia observada invertida (mas asistentes que
+# matriculados, mas enviadas que asistentes, mas validas que enviadas) es un
+# conteo de campo que no cierra. El contrato viejo conservaba la "tasa
+# diagnostica" > 1; el nuevo publica NA + marca `residual_negativo` y conserva
+# la magnitud en numerador/denominador para el diagnostico.
 test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabilidades invalidas", {
   .asr_skip_sin_engine()
   casos <- list(
@@ -438,7 +453,8 @@ test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabi
         validas = 10L, no_respondieron = 0L
       ),
       tramo = "asistencia",
-      tasa = 1.5
+      numerador = 15L,
+      denominador = 10L
     ),
     enviadas_mayor_asistentes = list(
       valores = c(
@@ -446,7 +462,8 @@ test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabi
         validas = 12L, no_respondieron = 0L
       ),
       tramo = "apertura",
-      tasa = 1.5
+      numerador = 15L,
+      denominador = 10L
     ),
     validas_mayor_enviadas = list(
       valores = c(
@@ -454,7 +471,8 @@ test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabi
         validas = 12L, no_respondieron = 0L
       ),
       tramo = "efectividad",
-      tasa = 1.2
+      numerador = 12L,
+      denominador = 10L
     )
   )
 
@@ -475,11 +493,22 @@ test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabi
     if (inherits(capturado, "error")) next
     out <- capturado
 
+    tramo <- out$cadena[[caso$tramo]]
+    expect_true(
+      is.na(tramo$tasa),
+      info = paste("Una tasa > 1 no se publica; va NA con marca:", nombre)
+    )
+    expect_true(
+      isTRUE(tramo$residual_negativo),
+      info = paste("El desborde debe divulgarse como residual_negativo:", nombre)
+    )
     expect_equal(
-      out$cadena[[caso$tramo]]$tasa,
-      caso$tasa,
-      tolerance = 1e-12,
-      info = paste("La tasa diagnostica debe conservar su magnitud:", nombre)
+      tramo$numerador, caso$numerador,
+      info = paste("El numerador conserva la magnitud para el diagnostico:", nombre)
+    )
+    expect_equal(
+      tramo$denominador, caso$denominador,
+      info = paste("El denominador conserva la magnitud para el diagnostico:", nombre)
     )
     expect_false(
       out$identidad$verificada,
@@ -491,6 +520,16 @@ test_that("jerarquias observadas alertan sin borrar magnitud ni publicar probabi
       any(grepl(nombre, advertencias, fixed = TRUE)),
       info = paste("Falta advertencia dinamica para:", nombre)
     )
+
+    # B2/ADR 0060: el global sanea igual que la cadena cuando su propia tasa
+    # desborda (mas asistentes que matriculados): NA + marca residual, con las
+    # magnitudes intactas para el diagnostico.
+    if (identical(nombre, "asistentes_mayor_matriculados")) {
+      expect_true(is.na(out$global$tasa))
+      expect_true(isTRUE(out$global$residual_negativo))
+      expect_equal(out$global$asistentes, 15)
+      expect_equal(out$global$matriculados, 10)
+    }
 
     filas <- unlist(
       lapply(out$dimensiones, function(dimension) dimension$filas),
@@ -688,8 +727,10 @@ test_that("con el glosario el denominador pasa a elegibles presentes", {
     out$identidad$regla,
     "elegibles_presentes + presentes_no_contados = efectivas + no_efectivas + no_realizadas"
   )
-  # asistencia sobre elegibles, efectividad sobre elegibles presentes.
-  expect_equal(out$cadena$asistencia$tasa, 30 / 35)
+  # D4/ADR 0060: asistencia = asistentes_elegibles / elegibles (mismo
+  # universo). Con 30 asistentes y 1 no elegible por aula el numerador es 29,
+  # no 30: `asistentes / elegibles` mezclaba universos (tasa prohibida).
+  expect_equal(out$cadena$asistencia$tasa, 29 / 35)
   expect_equal(out$cadena$efectividad$tasa, 20 / 27)
   expect_equal(out$cadena$rendimiento$tasa, 20 / 35)
 })
