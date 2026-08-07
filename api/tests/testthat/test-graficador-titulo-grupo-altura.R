@@ -55,3 +55,18 @@ test_that("un bloque de una sola barra tambien se acota", {
   corto <- .barras_acotar_titulo_grupo(titulo, n_filas = 1L)
   expect_equal(length(strsplit(corto, "\n", fixed = TRUE)[[1]]), 3L)
 })
+
+test_that("un sub-bloque de escalas mixtas encoge su titulo en proporcion", {
+  # En una lamina de escalas mixtas tres o cuatro bloques se reparten la altura:
+  # ahi la fila mide la mitad y el titulo tiene que encogerse igual, o invade al
+  # vecino. El motor pasa esa porcion a cada sub-bloque.
+  titulo <- paste(paste0("l", 1:12), collapse = "\n")
+  entero <- length(strsplit(.barras_acotar_titulo_grupo(titulo, 2L, alto_rel = 1), "\n")[[1]])
+  mitad  <- length(strsplit(.barras_acotar_titulo_grupo(titulo, 2L, alto_rel = 0.5), "\n")[[1]])
+  expect_equal(entero, 6L)
+  expect_equal(mitad, 3L)
+
+  # Una proporcion invalida o mayor que uno no puede AMPLIAR el cupo.
+  expect_equal(length(strsplit(.barras_acotar_titulo_grupo(titulo, 2L, alto_rel = 5), "\n")[[1]]), 6L)
+  expect_equal(length(strsplit(.barras_acotar_titulo_grupo(titulo, 2L, alto_rel = NA), "\n")[[1]]), 6L)
+})

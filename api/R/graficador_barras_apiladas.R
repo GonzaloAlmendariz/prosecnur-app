@@ -1138,8 +1138,13 @@ graficar_barras_apiladas <- function(
     posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
     linewidth_conectores_etiquetas = 0.32,
     color_barra_extra     = "#000000",
-    size_barra_extra      = 3,
-    size_titulo_extra     = 3,
+    # 3 pt no es un tamano, es un borron. La columna extra lleva la cifra que
+    # resume la lamina —el top-two-box— y salia mas pequena que cualquier otro
+    # texto del grafico; dos rutas del motor ya la subian a 11 a mano, senal de
+    # que el defecto nunca sirvio. Se alinea con `size_ejes` para que la cifra
+    # pese lo que pesa un rotulo de barra.
+    size_barra_extra      = 10,
+    size_titulo_extra     = 8.5,
     color_ejes            = "#000000",
     size_ejes             = 9,
     color_titulos_grupo   = NULL,
@@ -1173,6 +1178,10 @@ graficar_barras_apiladas <- function(
     var_grupo_id          = NULL,
     var_grupo_titulo      = NULL,
     canvas_w_grupo        = 0,
+    # Porcion de la lamina que ocupa este grafico. El motor la pasa a cada
+    # sub-bloque de escalas mixtas, donde la fila mide la mitad y el titulo tiene
+    # que encogerse igual.
+    titulos_grupo_alto_rel = 1,
     canvas_w_buf_grupo_etq= 0,
     canvas_gap_grupos     = 0,
 
@@ -2877,7 +2886,8 @@ graficar_barras_apiladas <- function(
       # de verdad. Medir la distancia entre la primera y la ultima categoria
       # daba cero en un bloque de una sola barra —justo el caso donde el titulo
       # largo invade a los vecinos—.
-      title_i <- .barras_acotar_titulo_grupo(title_i, group_df$n_cat[i])
+      title_i <- .barras_acotar_titulo_grupo(title_i, group_df$n_cat[i],
+                                            alto_rel = titulos_grupo_alto_rel)
       canvas <- canvas + cowplot::draw_text(
         text     = title_i,
         x        = x_group_txt,

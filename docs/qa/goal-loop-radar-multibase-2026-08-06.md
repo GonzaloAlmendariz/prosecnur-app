@@ -326,6 +326,52 @@ sola barra, que era justo el caso peor (siete temas de un solo público).
 refs de *varias* fuentes para emitirla y devolvía `NULL` si no. En un informe de
 encuesta la base no es opcional.
 
+## Segunda pasada sobre el mazo: la forma, el color y la cifra
+
+**La forma del gráfico la decide cuántos actores toca, no el gusto.** Corrección
+de Gonzalo:
+
+> «Si es un multiapilado donde todas las barras son de un mismo actor, el eje Y
+> ya no es el actor: es el tema, la pregunta en sí misma. El tema como canal
+> aparte es cuando hay varios actores; ahí sí tienes que diferenciar tema y
+> actor.»
+
+El canal lateral existe para separar **dos** dimensiones. Con un solo público
+sólo hay una, y repetir «Administrativos» en las siete barras no informa nada que
+el pie no diga ya —«Base: 15 administrativos»— mientras empuja el tema a un canal
+estrecho, que es justo donde los títulos se apilaban. Ahora un bloque de un solo
+público sale como `modo = "var"`: una barra por pregunta, la pregunta en el eje.
+
+**El canal se ensancha en su caso y no en el otro.** Con varios actores, el canal
+del tema pasa de 13 % a 22 % y su envoltura de ~18 a ~32 caracteres; con uno
+solo, lo que se ensancha es el eje Y. Darle 22 % al canal del tema en una lámina
+que no lo usa sólo empuja las barras a la derecha.
+
+### El top-two-box era una opción a medias
+
+La barra extra ya salía de fábrica, pero con preset «ninguno» y **3 pt** de
+tamaño: una columna estrecha con una cifra diminuta, sin título y sin color. Eso
+no es una opción apagada — ocupa el sitio y no dice nada. Dos rutas del motor ya
+la subían a 11 a mano, señal de que el defecto nunca sirvió.
+
+- El tamaño de fábrica se alinea con `size_ejes`, para que la cifra pese lo que
+  pesa un rótulo de barra.
+- El mazo de equivalencias lo enciende cuando la escala tiene **de 4 a 6**
+  categorías. Con 2 (Sí/No) la suma de las dos últimas es la barra entera; con 7
+  o más, «las dos mejores» deja de resumir la mitad alta.
+
+### La paleta decía otra cosa que los datos
+
+| | Antes | Ahora |
+|---|---|---|
+| Escala de acuerdo | rojo · amarillo · verde claro · **azul marino** · gris | rojo · **durazno** · verde claro · **verde oscuro** · gris |
+| Dicotomía (Sí/No) | **azul marino · rojo** | azul marino · **azul claro** |
+
+El azul marino en el extremo positivo es el color de la marca, no el de «lo
+mejor»: rompía la lectura de un vistazo, porque el ojo busca el verde. Y el rojo
+contra azul en una dicotomía marca una de las dos como mala — en «¿Conoce el
+reglamento?» el «No» es un dato, no una falta.
+
 ## Qué falta para cerrar
 
 - **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
@@ -345,7 +391,12 @@ encuesta la base no es opcional.
   la diapositiva— y las 9 de escalas mixtas no reciben ninguno. La inconsistencia
   es del relleno automático; la reparación de fondo es declarar el enunciado, que
   la interfaz ya pide por diapositiva.
-- **En un bloque de un solo público, cada barra se rotula con ese público**
-  (siete veces «Administrativos»). No informa nada que el pie no diga ya.
+- **El top-two-box por defecto está resuelto en el mazo de equivalencias, no en
+  el motor.** Que la barra extra nazca encendida en *cualquier* apilada de 4–6
+  categorías es una decisión que toca todos los reportes existentes; conviene
+  tomarla aparte, con su bandera en la interfaz.
+- **En `modo = "var"` el rótulo de la barra sale del instrumento, no de la
+  etiqueta estándar declarada.** En este estudio coinciden —la etiqueta ES el
+  enunciado—, pero un estudio que renombre sus temas perdería el nombre corto.
 - **`%||%` con data frames de una columna** sigue siendo una mina: está fuera
   del alcance de este goal, pero conviene abrirlo.

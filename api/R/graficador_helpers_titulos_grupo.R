@@ -25,8 +25,13 @@
 
 # Recorta el titulo a las lineas que caben en un bloque de `n_filas` barras.
 # Siempre deja al menos una linea: un bloque sin titulo no dice de que habla.
+# `alto_rel` es la porcion de la lamina que ocupa este grafico. Vale 1 en un
+# grafico normal y menos en un sub-bloque de escalas mixtas, donde tres o cuatro
+# bloques se reparten la altura: ahi la fila mide la mitad y el titulo tiene que
+# encogerse en la misma proporcion o invade al vecino.
 .barras_acotar_titulo_grupo <- function(titulo, n_filas,
-                                        lineas_por_fila = .BARRAS_LINEAS_POR_FILA) {
+                                        lineas_por_fila = .BARRAS_LINEAS_POR_FILA,
+                                        alto_rel = 1) {
   titulo <- as.character(titulo)[1]
   if (is.na(titulo) || !nzchar(trimws(titulo))) return("")
   lineas <- strsplit(titulo, "\n", fixed = TRUE)[[1]]
@@ -34,7 +39,9 @@
 
   n_filas <- suppressWarnings(as.integer(n_filas)[1])
   if (!is.finite(n_filas) || n_filas < 1L) n_filas <- 1L
-  cupo <- max(1L, n_filas * as.integer(lineas_por_fila))
+  alto_rel <- suppressWarnings(as.numeric(alto_rel)[1])
+  if (!is.finite(alto_rel) || alto_rel <= 0) alto_rel <- 1
+  cupo <- max(1L, as.integer(floor(n_filas * as.integer(lineas_por_fila) * min(1, alto_rel))))
   if (length(lineas) <= cupo) return(titulo)
 
   lineas <- lineas[seq_len(cupo)]

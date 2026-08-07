@@ -405,8 +405,16 @@
 
   main <- c("#081F5C", "#CA5651", "#85BB85", "#EFD25E", "#BFBFBF",
             "#E4A34C", "#7594CC", "#9688D3", "#D8D8D8")
-  approval <- c("#CA5651", "#EFD25E", "#85BB85", "#081F5C", "#BFBFBF",
-                "#E4A34C", "#7594CC", "#9688D3", "#D8D8D8")
+  # Escala de acuerdo/satisfacción: el recorrido va de rojizo a verde, pasando
+  # por un durazno. El azul marino que ocupaba el extremo positivo no dice nada
+  # en un recorrido de valoración —es el color de la marca, no el de «lo mejor»—
+  # y rompía la lectura de un vistazo: el ojo busca el verde.
+  approval <- c("#CA5651", "#E4A34C", "#85BB85", "#4F8A3E", "#BFBFBF",
+                "#EFD25E", "#7594CC", "#9688D3", "#D8D8D8")
+  # Dicotomía sin recorrido (Sí/No, Conoce/No conoce): dos tonos del mismo azul.
+  # Rojo contra azul marca una como mala, y en «¿Conoce el reglamento?» el «No»
+  # es un dato, no una falta.
+  dicotomia <- c("#081F5C", "#9EC3E6")
 
   low_high_words <- paste(
     "nada", "poco", "bajo", "desacuerdo", "insatis", "malo",
@@ -416,7 +424,13 @@
   looks_like_scale <- all(grepl("^[0-9]+$", levels)) ||
     any(grepl(low_high_words, tolower(levels), perl = TRUE))
 
-  pal <- if (looks_like_scale && length(levels) >= 3L) approval else main
+  pal <- if (looks_like_scale && length(levels) >= 3L) {
+    approval
+  } else if (length(levels) == 2L) {
+    dicotomia
+  } else {
+    main
+  }
   stats::setNames(rep_len(pal, length(levels)), levels)
 }
 

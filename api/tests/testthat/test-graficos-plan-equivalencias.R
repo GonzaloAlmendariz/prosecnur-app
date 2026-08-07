@@ -219,7 +219,12 @@ test_that("una diapositiva con escalas distintas se apila en bloques, no aborta"
   args <- .graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$grafico$args
   expect_equal(args$modo, "multilista")
   expect_equal(length(args$bloques), 2L)
-  expect_true(all(vapply(args$bloques, function(b) identical(b$modo, "var_cruce"), logical(1))))
+  # La FORMA de cada bloque la decide cuantos publicos toca: el primero compara
+  # docentes con estudiantes y necesita las dos dimensiones —tema en el canal,
+  # actor en la barra—; el segundo es de un solo publico, y ahi el eje Y es la
+  # pregunta y el actor se dice una vez en el pie.
+  expect_equal(vapply(args$bloques, function(b) as.character(b$modo), character(1)),
+               c("var_cruce", "var"))
   # Y el spec lo acepta el graficador real, que es lo único que prueba que no
   # volverá a degradarse a «Sin datos».
   expect_silent(do.call(p_barras_multiapiladas, args))
@@ -348,4 +353,26 @@ test_that("la propuesta viaja con su revisión", {
   # Y la misma revisión sale por el endpoint que la UI consume.
   expect_equal(out$revision,
                .graficos_plan_sugerido_por_fuente(sid, list(fuente = "equivalencias"))$revision)
+})
+
+test_that("con un solo publico el eje Y es la pregunta, no el actor", {
+  # Repetir «Administrativos» en las siete barras no informa nada —el pie ya dice
+  # «Base: 15 administrativos»— y obliga a meter el tema en un canal lateral, que
+  # es donde los titulos se apilaban unos sobre otros. El canal del tema existe
+  # para separar DOS dimensiones; con un solo publico solo hay una.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "A", diapositiva = "1", variables = list(docentes = "p13_1")),
+    list(etiqueta_estandar = "B", diapositiva = "1", variables = list(docentes = "p14_1"))
+  ))
+  args <- .graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$grafico$args
+  expect_equal(args$modo, "var")
+  expect_equal(length(args$vars), 2L)
+  expect_null(args$titulos_grupo)
+  # Sin canal de tema, ensancharlo solo empujaria las barras a la derecha: el
+  # texto largo esta en el eje Y.
+  expect_null(args$overrides$canvas_w_grupo)
+  expect_true(is.numeric(args$overrides$canvas_w_etiquetas))
+  expect_silent(do.call(p_barras_multiapiladas, args))
 })

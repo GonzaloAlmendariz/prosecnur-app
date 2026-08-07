@@ -35,6 +35,22 @@
 # archivo no encontraria el valor.
 .gpe_max_etiqueta_radar <- function() .RADAR_MB_MAX_ETIQUETA
 
+# ¿La escala de esta diapositiva admite un top-two-box?
+#
+# La firma es `codigo=etiqueta|codigo=etiqueta|...`, asi que las categorias se
+# cuentan por separadores. Con 2 opciones la suma de las dos ultimas es la barra
+# entera; con 7 o mas, «las dos mejores» deja de resumir la mitad alta.
+.GPE_TOP2BOX_CATEGORIAS <- c(4L, 6L)
+
+.gpe_admite_top2box <- function(firmas) {
+  firmas <- as.character(firmas %||% character(0))
+  firmas <- unique(firmas[nzchar(firmas)])
+  if (length(firmas) != 1L) return(FALSE)
+  if (!grepl("=", firmas[1], fixed = TRUE)) return(FALSE)
+  n <- length(strsplit(firmas[1], "|", fixed = TRUE)[[1]])
+  n >= .GPE_TOP2BOX_CATEGORIAS[1] && n <= .GPE_TOP2BOX_CATEGORIAS[2]
+}
+
 .gpe_etiqueta_corte <- function(filas, inst_por_base, corte) {
   if (!length(filas) || !exists(".equiv_escala_opciones", mode = "function")) return("")
   f <- filas[[1]]
@@ -160,7 +176,28 @@
   # `multilista` existe exactamente para esto: apila bloques de escalas
   # distintas en una sola composición vertical. Un solo grupo sigue usando
   # `var_cruce`, que es más simple y no arrastra la dependencia de cowplot.
+  # ¿Cuántos públicos toca este conjunto de filas? Es lo que decide la FORMA del
+  # gráfico, no un detalle de estilo.
+  publicos_de <- function(filas) {
+    unique(unlist(lapply(filas, function(f) names(f$variables))))
+  }
+
   bloque_de <- function(filas) {
+    # Un solo público: el eje Y es la PREGUNTA, una barra por tema, y el público
+    # se dice una vez en el pie. Repetir «Administrativos» en las siete barras no
+    # informa nada —el pie ya dice «Base: 15 administrativos»— y obliga a meter el
+    # tema en un canal lateral, que es donde se apilaban unos sobre otros.
+    #
+    # El canal del tema solo existe cuando hay VARIOS públicos: ahí sí hacen falta
+    # las dos dimensiones, tema y actor, y cada una necesita su sitio.
+    if (length(publicos_de(filas)) == 1L) {
+      refs <- vapply(filas, function(f) {
+        b <- names(f$variables)[1]
+        .gpe_ref(b, f$variables[[b]])
+      }, character(1))
+      return(list(modo = "var", vars = as.list(unname(refs))))
+    }
+
     vars_arg <- list()
     titulos <- list()
     for (i in seq_along(filas)) {
@@ -272,6 +309,53 @@
            bloques = unname(lapply(grupos, function(idx) bloque_de(filas[idx]))))
     }
     graficador <- if (radar_ok) "p_radar" else "p_barras_multiapiladas"
+
+    # El canal del tema y su envoltura, dimensionados para lo que la matriz pone
+    # ahi de verdad.
+    #
+    # Los defectos del motor —13 % de ancho y envoltura a ~18 caracteres— estan
+    # pensados para nombres cortos de bloque. Aqui el nombre del bloque es la
+    # etiqueta estandar, que en el estudio medido pasa de 100 caracteres: a 18
+    # columnas son siete lineas por tema, y tres bloques seguidos se escribian
+    # unos sobre otros. Con el canal mas ancho el mismo texto cabe en la mitad de
+    # lineas y no hay que recortarlo.
+    #
+    # `wrap_y` sube con el: el motor deriva la envoltura del titulo de bloque de
+    # ese valor. En estas laminas el eje Y son nombres de publico —«Docentes»,
+    # «Egresados»—, asi que subirlo no los toca.
+    if (!radar_ok) {
+      # Con un solo publico el texto largo esta en el EJE Y —es la pregunta— y no
+      # en el canal del tema, que ni siquiera existe. Cada canal se ensancha en su
+      # caso y no en el otro: darle 22 % al canal del tema en una lamina que no lo
+      # usa solo empuja las barras a la derecha.
+      ancho <- if (identical(args$modo, "var")) {
+        list(canvas_w_etiquetas = 0.34, wrap_y = 62)
+      } else {
+        # Los defectos del motor —13 % de ancho y envoltura a ~18 caracteres—
+        # estan pensados para nombres cortos de bloque. Aqui el nombre del bloque
+        # es la etiqueta estandar, que en el estudio medido pasa de 100
+        # caracteres: a 18 columnas son siete lineas por tema, y tres bloques
+        # seguidos se escribian unos sobre otros. `wrap_y` sube con el canal
+        # porque el motor deriva de ahi la envoltura del titulo de bloque; en
+        # estas laminas el eje Y son nombres de publico y no los toca.
+        list(canvas_w_grupo = 0.22, wrap_y = 90)
+      }
+      args$overrides <- utils::modifyList(ancho, as.list(args$overrides %||% list()))
+
+      # Top-two-box encendido cuando la escala lo admite.
+      #
+      # La barra extra ya salia de fabrica, pero con preset «ninguno»: una
+      # columna estrecha con una cifra diminuta, sin titulo y sin color. Eso no
+      # es una opcion apagada, es una opcion a medias — ocupa el sitio y no dice
+      # nada. El top-two-box es lo que de verdad se usa, asi que es el defecto.
+      #
+      # Solo de 4 a 6 categorias: con 2 (Si/No) la suma de las dos ultimas es la
+      # barra entera, y con 7 o mas «las dos mejores» deja de ser un resumen
+      # honesto de la mitad alta.
+      if (.gpe_admite_top2box(firma_fila)) {
+        args$top2box <- TRUE
+      }
+    }
 
     # ADR 0064: la diapositiva se titula con su enunciado. En el formato plano el
     # enunciado se escribe por fila —el Excel no tiene dónde poner un atributo de
