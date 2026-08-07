@@ -979,14 +979,21 @@ graficar_radar <- function(
         .lab_val = paste0(formatC(round(.data$.pct, dec_val), format = "f", digits = dec_val), "%"),
         # Hacia adentro cuando se pide: con valores altos el anillo exterior ya
         # lo ocupa el nombre del eje y la cifra se escribia encima de el.
+        #
+        # Y cada serie en su propio ANILLO. Separarlas solo de lado no bastaba:
+        # tres publicos dentro de dos puntos —el caso normal de un indicador de
+        # acuerdo— caen practicamente en el mismo radio, y las tres cifras se
+        # rozaban aunque estuvieran corridas. Con un escalon radial por serie se
+        # separan aunque los valores sean identicos.
         .r_lab = .data$.valor_plot * radar_scale +
-          ring_max_plot * if (isTRUE(valores_hacia_dentro)) -0.10 else 0.085,
-        # Separacion tangencial por serie: dos series con valores parecidos
-        # caen sobre el mismo rayo y sus etiquetas se montarian. El paso crece
-        # con el numero de series porque con tres o mas el reparto simetrico
-        # deja a las de los extremos casi encima de la del medio.
+          ring_max_plot * (if (isTRUE(valores_hacia_dentro)) -0.10 else 0.085) +
+          ring_max_plot * (as.integer(.data$.grupo) - 1) *
+            (if (isTRUE(valores_hacia_dentro)) -0.075 else 0.075),
+        # Separacion tangencial por serie: con el escalon radial ya puesto, el
+        # paso de lado se acorta para que cada cifra siga cerca de SU rayo — una
+        # etiqueta muy corrida deja de leerse como perteneciente a ese eje.
         .t_lab = (as.integer(.data$.grupo) - (n_series + 1) / 2) *
-          ring_max_plot * (if (n_series >= 3L) 0.155 else 0.11),
+          ring_max_plot * (if (n_series >= 3L) 0.085 else 0.07),
         x = .data$.r_lab * cos(.data$.ang) - .data$.t_lab * sin(.data$.ang),
         y = .data$.r_lab * sin(.data$.ang) + .data$.t_lab * cos(.data$.ang)
       ) |>

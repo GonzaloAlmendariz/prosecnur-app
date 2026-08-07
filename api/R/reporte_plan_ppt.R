@@ -4845,7 +4845,7 @@ reporte_ppt_plan <- function(
 
         tabs_by_v[[v]] <- tab
         N_by_v[v] <- N_total
-        labels_by_v[v] <- .title_of_var(v)
+        labels_by_v[v] <- as.character(.named_lookup(el$overrides$etiquetas_vars, v, .title_of_var(v)))[1]
         all_opts <- union(all_opts, as.character(tab$Opciones))
       }
 

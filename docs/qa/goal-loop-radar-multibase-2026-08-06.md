@@ -511,23 +511,33 @@ del NA escalar y `is.na(a)` devolvía una matriz: `&&` recibía un vector y
 abortaba. Lo usa medio motor; las bases reales tienen decenas de columnas y nunca
 lo tocaban, un fixture de prueba sí.
 
-## Qué falta para cerrar
+## Los tres faltantes, cerrados
 
-- **Con tres series dentro de dos puntos, los números del vértice se rozan.**
-  Mejoró mucho al llevarlos hacia dentro y separarlos más, pero a ese tamaño
-  algo de solape queda; la tabla sigue siendo el ancla exacta.
-- **El mazo sale sin títulos porque la matriz del estudio no declara enunciados**
-  (0 de 44). Las 35 láminas de un solo juego de escalas reciben el título
-  automático del motor —el rótulo de la primera variable, que nombra un tema y no
-  la diapositiva— y las 9 de escalas mixtas no reciben ninguno. La inconsistencia
-  es del relleno automático; la reparación de fondo es declarar el enunciado, que
-  la interfaz ya pide por diapositiva.
-- **El top-two-box por defecto está resuelto en el mazo de equivalencias, no en
-  el motor.** Que la barra extra nazca encendida en *cualquier* apilada de 4–6
-  categorías es una decisión que toca todos los reportes existentes; conviene
-  tomarla aparte, con su bandera en la interfaz.
-- **En `modo = "var"` el rótulo de la barra sale del instrumento, no de la
-  etiqueta estándar declarada.** En este estudio coinciden —la etiqueta ES el
-  enunciado—, pero un estudio que renombre sus temas perdería el nombre corto.
-- **Los títulos del mazo**: confirmado que es dato, no código. Cuando la matriz
-  traiga la columna `enunciado`, las 44 láminas se titulan solas.
+**El título del mazo sale de la sección, no del primer tema.** El relleno del
+motor era peor que no titular: usaba el rótulo de la primera variable, que nombra
+un tema y no la diapositiva — tres láminas seguidas salían «Servicio de salud»
+siendo cosas distintas, y las de escalas mixtas no recibían nada. La sección es
+el mejor nombre disponible de la diapositiva y estaba a la vista: la matriz la
+declara. De paso **`seccion` encuentra su consumidor en el mazo**, que es lo que
+la regla 7 del ADR 0064 pedía —o eso, o salir del formato—.
+
+**En `modo = "var"` el eje lleva la etiqueta declarada.** Un estudio que renombra
+sus temas —«Estados Financieros» en vez del enunciado entero— perdía el nombre
+corto justo en la forma donde el eje ES el nombre. Viaja por el canal de
+`overrides`, que ya existía: `reporte_plan_ppt.R` queda en su línea base con una
+sustitución de una línea.
+
+**Cada serie escribe su cifra en su propio anillo.** Separarlas sólo de lado no
+bastaba: tres públicos dentro de dos puntos —el caso normal de un indicador de
+acuerdo— caen prácticamente en el mismo radio y las tres cifras se rozaban aunque
+estuvieran corridas. Con un escalón radial por serie se separan aunque los
+valores sean idénticos, y el paso tangencial se acorta para que cada cifra siga
+cerca de SU rayo.
+
+## Lo único que queda, y por qué
+
+**El top-two-box como default del motor.** El criterio está claro y está
+implementado en el mazo de equivalencias, donde se verificó. Hacerlo default
+global vive en `reporte_plan_ppt.R` —congelado— y su archivo hermano
+`reporte_plan_slides.R` tiene trabajo sin commitear de otra sesión. Tocarlo ahora
+es pisarla. Es un cambio de una tarde cuando ese árbol esté limpio.

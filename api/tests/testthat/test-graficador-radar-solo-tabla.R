@@ -76,3 +76,27 @@ test_that("las etiquetas de vertice dicen el porcentaje real en escala 0-100", {
   capas1 <- Filter(function(l) inherits(l$geom, "GeomText"), p1$layers)
   expect_true("98.0%" %in% unlist(lapply(capas1, function(l) as.character(l$data$.lab_val))))
 })
+
+test_that("cada serie escribe su cifra en su propio anillo", {
+  # Separarlas solo de lado no bastaba: tres publicos dentro de dos puntos —el
+  # caso normal de un indicador de acuerdo— caen practicamente en el mismo radio
+  # y las tres cifras se rozaban aunque estuvieran corridas.
+  d <- data.frame(
+    eje = rep(c("A", "B", "C"), each = 3),
+    grupo = rep(c("g1", "g2", "g3"), times = 3),
+    valor = rep(c(96, 96, 96), times = 3),
+    stringsAsFactors = FALSE
+  )
+  p <- graficar_radar(d, var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
+                      escala_valor = "proporcion_100",
+                      mostrar_valores = TRUE, valores_umbral_pct = 0)
+  capa <- Filter(function(l) inherits(l$geom, "GeomText"), p$layers)[[1]]
+  # Mismo eje, mismo valor, tres series: los tres puntos tienen que caer en
+  # posiciones distintas o el lector ve un borron.
+  en_a <- capa$data[capa$data$.eje == "A", c("x", "y")]
+  expect_equal(nrow(en_a), 3L)
+  expect_equal(nrow(unique(round(en_a, 6))), 3L)
+  # Y la distancia entre las tres es apreciable, no de un pelo.
+  d_min <- min(stats::dist(as.matrix(en_a)))
+  expect_gt(d_min, 0.04)
+})
