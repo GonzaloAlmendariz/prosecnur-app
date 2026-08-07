@@ -393,3 +393,59 @@ test_that("los cuatro controles de tabla viajan del elemento al compositor", {
   expect_equal(el$tabla_ancho_tema, 0.45)
   expect_equal(el$tabla_proporcion, 1.4)
 })
+
+test_that("el elemento declara `var` para que el `$` de R no haga match parcial", {
+  # El motor del PPT titula la lamina con `el$var`, y el `$` de R cae al match
+  # PARCIAL cuando no encuentra el nombre exacto: sin un `var` declarado,
+  # `el$var` devolvia `vars` —una lista nombrada de vectores— que el resolvedor
+  # deparseaba a `c("docentes$p30_1", ...)` y tumbaba el mazo entero.
+  el <- p_radar_publicos(vars = list(A = list("docentes$p1")), corte = "3,4")
+  expect_true("var" %in% names(el))
+  expect_null(el[["var"]])
+  expect_null(el$var)
+})
+
+# ---------------------------------------------------------------------------
+# Lo que hace ilegible un radar: nombres de tema que son oraciones.
+# ---------------------------------------------------------------------------
+
+test_that("un nombre de tema que es una oracion se recorta para dibujarlo", {
+  # Medido sobre el estudio: la diapositiva 10 declara siete temas de 91 a 200
+  # caracteres. Envueltos a 12 columnas dan hasta diecisiete lineas por vertice,
+  # que se tapan entre si y sepultan el poligono — la lamina salia como una
+  # lista de frases SIN grafico.
+  largo <- "Considero que las capacitaciones y los programas de actualización brindados por la Universidad son idóneos"
+  corto <- .radar_mb_recortar_eje(largo)
+  expect_lt(nchar(corto), nchar(largo))
+  expect_lte(nchar(corto), .RADAR_MB_MAX_ETIQUETA + 1L)
+  expect_true(endsWith(corto, "…"))
+  # Corta en un espacio: «capacitacio…» se lee como un error de datos, no como
+  # un texto acortado. Lo que queda tiene que ser un prefijo de palabras enteras.
+  sin_puntos <- sub("…$", "", corto)
+  expect_true(startsWith(largo, sin_puntos))
+  expect_true(substr(largo, nchar(sin_puntos) + 1L, nchar(sin_puntos) + 1L) == " ")
+
+  # Lo que ya cabe no se toca.
+  expect_equal(.radar_mb_recortar_eje("Estados Financieros"), "Estados Financieros")
+})
+
+test_that("el nombre completo sobrevive en la tabla aunque el vertice lo recorte", {
+  # El recorte es solo para dibujar. La cifra se lee en la tabla, y ahi el tema
+  # tiene que decirse entero o no se sabe de que habla.
+  largo <- paste(rep("palabra", 30), collapse = " ")
+  d <- data.frame(eje = factor(largo), grupo = factor("g"), valor = 90, n = 10L)
+  expect_equal(as.character(.radar_mb_tabla(d, "")$Tema), largo)
+
+  args <- .radar_mb_capturar_args(d)
+  expect_lte(max(nchar(levels(args$data$eje))), .RADAR_MB_MAX_ETIQUETA + 1L)
+})
+
+test_that("la tabla envuelve el tema para no salirse de la lamina", {
+  # `tableGrob` dimensiona por contenido y no recorta: un tema de 200 caracteres
+  # devolvia un grob mas ancho que la diapositiva, que se salia por la derecha y
+  # encima tapaba el radar.
+  largo <- paste(rep("palabra", 30), collapse = " ")
+  envuelto <- .radar_mb_envolver(largo)
+  expect_true(grepl("\n", envuelto, fixed = TRUE))
+  expect_lte(max(nchar(strsplit(envuelto, "\n", fixed = TRUE)[[1]])), 60L)
+})

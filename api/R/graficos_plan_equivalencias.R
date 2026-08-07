@@ -26,6 +26,15 @@
 
 # Nombre del indicador a partir de sus codigos y de la escala del primer tema. Se
 # deriva en vez de declararse: las opciones elegidas ya dicen como se llama.
+# Largo maximo del nombre de un tema para ofrecerlo como eje de radar. Es el
+# mismo limite que usa el dibujo: declarar el numero aparte dejaria que el mazo
+# emitiera radares que el graficador tiene que recortar.
+#
+# Funcion y no constante porque R carga los archivos en orden alfabetico y este
+# se evalua ANTES que `graficos_radar_multibase.R`: una asignacion a nivel de
+# archivo no encontraria el valor.
+.gpe_max_etiqueta_radar <- function() .RADAR_MB_MAX_ETIQUETA
+
 .gpe_etiqueta_corte <- function(filas, inst_por_base, corte) {
   if (!length(filas) || !exists(".equiv_escala_opciones", mode = "function")) return("")
   f <- filas[[1]]
@@ -203,14 +212,29 @@
 
     quiere_radar <- any(vapply(grupos, pedido_radar, logical(1)))
     corte <- corte_de(seq_along(filas))
-    radar_ok <- quiere_radar && length(grupos) == 1L && nzchar(corte)
+
+    # Un vertice no admite una oracion. Medido sobre el estudio: la diapositiva
+    # 10 declara siete temas de 91 a 200 caracteres, y el radar salio como una
+    # lista de frases sin grafico —las etiquetas se tapaban entre si y sepultaban
+    # el poligono—. Cuando el tema necesita una oracion, la forma correcta son
+    # las barras, que tienen ancho para leerla.
+    etiquetas <- vapply(filas, function(f) as.character(f$etiqueta_estandar %||% ""), character(1))
+    etiquetas_ok <- !length(etiquetas) || max(nchar(etiquetas), na.rm = TRUE) <= .gpe_max_etiqueta_radar()
+
+    radar_ok <- quiere_radar && length(grupos) == 1L && nzchar(corte) && etiquetas_ok
 
     if (quiere_radar && !radar_ok) {
       radar_pendiente[[length(radar_pendiente) + 1L]] <- list(
         diapositiva = diapositiva,
         n_temas = length(filas),
         corte = corte,
-        motivo = if (!nzchar(corte)) "sin_indicador" else "escalas_mixtas"
+        motivo = if (!nzchar(corte)) {
+          "sin_indicador"
+        } else if (length(grupos) != 1L) {
+          "escalas_mixtas"
+        } else {
+          "etiquetas_largas"
+        }
       )
     }
 

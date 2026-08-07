@@ -2859,14 +2859,25 @@ graficar_barras_apiladas <- function(
         .group_title = dplyr::first(.data$.group_title),
         y_min = min(.data$.y_abs, na.rm = TRUE),
         y_max = max(.data$.y_abs, na.rm = TRUE),
+        n_cat = dplyr::n(),
         .groups = "drop"
       )
 
     x_group_txt <- x_group0 + (w_group * 0.5)
+    # El titulo se dibuja centrado en su bloque, y `draw_text` no recorta: un
+    # titulo mas alto que su bloque invade los vecinos. Con enunciados completos
+    # como nombre de tema —el caso de la matriz de equivalencias— los titulos de
+    # tres bloques seguidos se escribian unos encima de otros y quedaban
+    # ilegibles. Cada uno se acota a las lineas que su bloque sostiene.
     for (i in seq_len(nrow(group_df))) {
       title_i <- as.character(group_df$.group_title[i])
       if (is.na(title_i)) title_i <- ""
       if (!nzchar(trimws(title_i))) next
+      # El cupo se cuenta por FILAS de barras, que es lo que el titulo comparte
+      # de verdad. Medir la distancia entre la primera y la ultima categoria
+      # daba cero en un bloque de una sola barra —justo el caso donde el titulo
+      # largo invade a los vecinos—.
+      title_i <- .barras_acotar_titulo_grupo(title_i, group_df$n_cat[i])
       canvas <- canvas + cowplot::draw_text(
         text     = title_i,
         x        = x_group_txt,
