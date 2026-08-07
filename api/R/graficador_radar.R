@@ -823,7 +823,10 @@ graficar_radar <- function(
   # que las etiquetas caigan dentro del poligono.
   min_label_gap <- 0.03 + (max_label_lines - 1L) * 0.01
   label_ring_mult <- max(eje_label_mult, radar_scale + min_label_gap)
-  label_ring_mult <- min(label_ring_mult, 1.10)
+  # El tope de 1.10 evita que un `radar_scale` grande empuje las etiquetas fuera
+  # del panel, pero no puede impedir que se pida MAS aire a proposito: con seis
+  # ejes de nombre largo, un 10 % deja el texto pegado al poligono.
+  label_ring_mult <- min(label_ring_mult, max(1.10, eje_label_mult))
   label_ring <- ring_max_plot * label_ring_mult
   lab_axes <- angle_tbl |>
     dplyr::mutate(

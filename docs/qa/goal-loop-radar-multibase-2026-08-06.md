@@ -249,6 +249,50 @@ por su nombre y desaparecía de la UI, porque el inspector renderiza el slot de
 graficador con `mode="data"`. Medido: cambia exactamente un arg en todo el
 registro.
 
+## Lo que se ve por defecto, revisado
+
+Segunda pasada de Gonzalo sobre las láminas:
+
+> «Cada punto no debería tener el porcentaje, sino las diagonales que van del
+> centro a las puntas. Los cortes de 50, 60, 70… tampoco deberían estar por
+> defecto. Y si activamos la tabla al costado, deberíamos poder editar sus
+> encabezados y cuánto ancho necesita.»
+
+| | Antes | Ahora |
+|---|---|---|
+| Radios del centro a cada punta | no | **sí** |
+| Etiquetas de nivel (0 %, 25 %…) | sí | no — se encienden desde la UI |
+| Números en los vértices | no | no |
+| Aire entre el nombre del tema y la figura | 6 % del radio | **20 %** |
+
+La telaraña se lee por su forma. Los radios son la estructura que deja seguir un
+tema desde el centro; los niveles y los números son dos capas de cifras encima de
+esa forma, y la tabla al costado ya da el dato exacto.
+
+**El indicador se mudó del encabezado de la tabla al subtítulo del gráfico.**
+Metido en la celda, «De acuerdo + Totalmente de Acuerdo» se comía media tabla —
+que fue justo la queja. Y en el subtítulo se lee **aunque la tabla esté
+apagada**: sin él, la telaraña no dice de qué porcentaje habla.
+
+**El tope de 1.10 del anillo de etiquetas impedía pedir más aire.** Existía para
+que un `radar_scale` grande no empujara los nombres fuera del panel, pero también
+bloqueaba subirlos a propósito. Ahora sólo topa lo que no se pidió. De paso el
+margen del panel bajó de 1.42 a 1.18: con el aire ya puesto en el anillo, lo
+único que hacía era dejar media lámina en blanco entre el radar y la tabla.
+
+### La tabla se edita
+
+| Control | Para qué |
+|---|---|
+| **Encabezado de la primera columna** | Vacío = «Tema». |
+| **Nombres de las columnas** | `base=Título` por línea, mismo formato que `titulos_grupo` de las multiapiladas. Lo que no se nombra se queda igual. |
+| **Ancho de la primera columna (%)** | `tableGrob` dimensiona por contenido, así que un encabezado largo se comía la tabla. Con un ancho declarado, el resto se reparte en partes iguales — que es lo que hace comparables las cifras. |
+| **Ancho de la tabla frente al radar** | Para decidir cuál de los dos manda en la lámina. |
+
+Detalle que costó un test: la UI pide un porcentaje y el motor una fracción.
+`.radar_mb_fraccion()` acepta las dos formas (`45` y `0.45`); sin eso, un 45
+dejaba la columna en el 4500 % del ancho.
+
 ## Qué falta para cerrar
 
 - **El estilo se fija en `comparativo`** al derivar el mazo. Debería poder
