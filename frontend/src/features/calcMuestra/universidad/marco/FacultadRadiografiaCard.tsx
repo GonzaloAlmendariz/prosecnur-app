@@ -1,10 +1,10 @@
 /**
  * Tarjeta ancha de radiografía de UNA facultad: distribución por tipo de sesión
  * con el mini-boxplot de elegibles por aula, mediana, badges (multi-facultad,
- * local externo, sin condición) y el desplegable por nivel. Extraída de
- * ExploradorAulasTab para consumirse también en la vista integrada
- * facultad-primaria de «Cursos-horario» sin duplicar. Presentación pura: la
- * lógica calculable vive en exploradorModel.ts.
+ * local externo, sin condición) y el desplegable por nivel. Extraída del
+ * antiguo Explorador de aulas (retirado tras absorberse en la radiografía por
+ * facultad) para la vista integrada facultad-primaria de «Cursos-horario».
+ * Presentación pura: la lógica calculable vive en exploradorModel.ts.
  *
  * Dos modos:
  *  - `onSelect` presente ⇒ la cabecera es un botón que selecciona la facultad

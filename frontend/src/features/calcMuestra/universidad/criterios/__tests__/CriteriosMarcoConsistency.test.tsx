@@ -8,7 +8,6 @@ import type {
 import { ResumenDiseno } from "../../../motor/ResumenDiseno";
 import type { MotorEfectivo } from "../../../motor/usePerfilEfectivo";
 import { CursosHorarioMarcoTab } from "../../marco/CursosHorarioMarcoTab";
-import { ExploradorAulasTab } from "../../marco/ExploradorAulasTab";
 import { frameIntegrity } from "../../shared/frameIntegrity";
 import { CriteriosMarcoTab } from "../CriteriosMarcoTab";
 
@@ -386,12 +385,9 @@ function renderCursosHorario(state: CalcMuestraAulasState): string {
 }
 
 describe("publicación de la radiografía según integridad", () => {
-  it("un frame coherente conserva la radiografía integrada y el Explorador", () => {
+  it("un frame coherente conserva la radiografía integrada", () => {
     const state = integrityState();
     const integrada = renderCursosHorario(state);
-    const explorador = renderToStaticMarkup(
-      <ExploradorAulasTab workspace={workspace} aulasState={state} />,
-    );
 
     expect(frameIntegrity(state.frame).status).toBe("consistent");
     /*
@@ -407,8 +403,6 @@ describe("publicación de la radiografía según integridad", () => {
      */
     expect(integrada).toContain("Decisión para esta facultad");
     expect(integrada).toContain("PSICOLOGÍA");
-    expect(explorador).toContain('data-audit-ready="true"');
-    expect(explorador).toContain("Psicología General");
   });
 
   it("un mismatch bloquea la radiografía integrada pero conserva reconstrucción", () => {
@@ -437,33 +431,11 @@ describe("publicación de la radiografía según integridad", () => {
     );
   });
 
-  it("Explorador no publica cifras de una radiografía contradictoria", () => {
-    const state = integrityState({
-      exploracion: {
-        ...exploracionCoherente,
-        totales: { ...exploracionCoherente.totales, ch_elegibles: 3 },
-      },
-    });
-    const html = renderToStaticMarkup(
-      <ExploradorAulasTab workspace={workspace} aulasState={state} />,
-    );
-
-    expect(html).toContain('data-audit-ready="false"');
-    expect(html).toContain("Reconstruye el marco");
-    expect(html).not.toContain("Psicología General");
-  });
-
   it("sin owner ninguna superficie publica la radiografía como canónica", () => {
     const state = integrityState({ aula_frame: [{ classroom_id: "CH-sin-flag" }] });
     const criterios = renderCriterios(state);
-    const explorador = renderToStaticMarkup(
-      <ExploradorAulasTab workspace={workspace} aulasState={state} />,
-    );
 
     expect(criterios).toMatch(/[Rr]econstruye|S\/D/);
     expect(criterios).not.toContain("Suma de matrículas elegibles");
-    expect(explorador).toContain('data-audit-ready="false"');
-    expect(explorador).toContain("Reconstruye el marco");
-    expect(explorador).not.toContain("Psicología General");
   });
 });

@@ -12,107 +12,6 @@
   align-content: start;
 }
 
-/* --- Pestaña Parámetros: cockpit sliders + fórmulas -------------------------- */
-.cmv2-calc-cockpit {
-  display: grid;
-  grid-template-columns: minmax(260px, 340px) 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-@media (max-width: 1100px) {
-  .cmv2-calc-cockpit {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* La columna de sliders es el PANEL DE CONTROL del cockpit: superficie raised
-   con sombra corta que agrupa la exploración (perillas + aplicar + CTA) como
-   un solo instrumento frente a la cadena de fórmulas, que queda flat. */
-.cmv2-calc-cockpit-sliders {
-  display: grid;
-  gap: 10px;
-  padding: 16px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 14px;
-  background: var(--cmv2-surface-raised);
-  box-shadow:
-    var(--cmv2-shadow-card, 0 1px 2px rgba(15, 23, 42, 0.05)),
-    0 10px 24px color-mix(in srgb, var(--cmv2-accent) 5%, transparent);
-}
-
-/* Zona de disparo del cálculo oficial: hairline que separa la exploración
-   continua (sliders) de la acción primaria única del panel. */
-.cmv2-calc-cta-zona {
-  display: grid;
-  gap: 8px;
-  margin-top: 2px;
-  padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
-}
-
-/* Segmento de confianza: el fondo/color del botón activo transiciona en vez
-   de saltar (150ms; el cambio de estado es discreto, no continuo). */
-.cmv2-calc-cockpit-sliders .cmv2-did-segment button {
-  transition:
-    background-color 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease,
-    transform var(--motion-dur-press, 120ms) var(--cmv2-ease-out, ease-out);
-}
-
-.cmv2-calc-cockpit-sliders .cmv2-calc-cta {
-  justify-content: center;
-  width: 100%;
-  min-height: 38px;
-  font-size: 13px;
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--cmv2-accent) 16%, transparent);
-}
-
-/* Estado calculando: el CTA baja su énfasis mientras el spinner trabaja. */
-.cmv2-calc-cta[data-calculando] {
-  box-shadow: none;
-}
-
-.cmv2-calc-cta-nota {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-calc-cockpit-formulas {
-  display: grid;
-  gap: 14px;
-  align-content: start;
-}
-
-/* Mejora propia · rail narrativo: un conector con gradiente entre los 3 pasos
-   de Cochran subraya que cada fórmula alimenta a la siguiente. */
-.cmv2-calc-cockpit-formulas .cmv2-calc-paso {
-  position: relative;
-}
-
-.cmv2-calc-cockpit-formulas .cmv2-calc-paso:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  left: 26px;
-  bottom: -14px;
-  width: 2px;
-  height: 14px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--cmv2-accent-border), transparent);
-  pointer-events: none;
-}
-
-/* La memoria de cálculo cierra la pestaña como disclosure de nivel inferior:
-   hairline + aire, sin sumar otra caja (el panel de la memoria es de didactica). */
-.cmv2-calc-memoria-zona {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
-}
-
 /* --- Pestaña Propuestas: escenarios ------------------------------------------ */
 .cmv2-calc-escenarios {
   display: grid;
@@ -343,54 +242,6 @@
   gap: 12px;
 }
 
-.cmv2-calc-pending-strip,
-.cmv2-calc-resultados-strip {
-  border: 1px solid var(--cmv2-border);
-  border-radius: 10px;
-  background: var(--cmv2-surface-tint);
-}
-
-.cmv2-calc-pending-strip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 8px 12px;
-  color: var(--pulso-text-muted);
-  font-size: 11.5px;
-}
-
-.cmv2-calc-pending-strip svg {
-  flex: none;
-  color: var(--cmv2-accent);
-}
-
-.cmv2-calc-pending-strip strong {
-  color: var(--pulso-text);
-  font-size: 12px;
-}
-
-.cmv2-calc-resultados-strip {
-  padding: 6px;
-}
-
-.cmv2-calc-resultados-strip .cmv2-uni-cifra {
-  min-height: 0;
-  padding: 7px 9px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-}
-
-.cmv2-calc-resultados-strip .cmv2-uni-cifra + .cmv2-uni-cifra {
-  border-left: 1px solid var(--cmv2-border);
-  border-radius: 0;
-}
-
-.cmv2-calc-resultados-strip .cmv2-uni-cifra-valor {
-  font-size: 16px;
-}
-
 /* Los stat-tiles del encabezado pierden la sombra: dentro del panel raised
    solo hay un nivel de elevación (regla de superficies del desk). */
 .cmv2-calc-supuestos-panel .cmv2-uni-cifra {
@@ -506,61 +357,16 @@
   grid-column: 1 / -1;
 }
 
-.cmv2-calc-supuesto-controles .cmv2-did-slider,
-.cmv2-calc-supuesto-controles .cmv2-calc-presets {
+.cmv2-calc-supuesto-controles .cmv2-did-slider {
   grid-column: 1 / -1;
 }
 
-.cmv2-calc-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.cmv2-calc-presets button {
-  border: 1px solid var(--cmv2-border);
-  border-radius: 999px;
-  background: var(--cmv2-surface-tint);
-  padding: 4px 10px;
-  min-height: 0;
-  font-size: 11px;
-  font-weight: var(--pulso-weight-semibold);
-  color: var(--pulso-text-muted);
-  cursor: pointer;
-  transition:
-    border-color var(--motion-dur-fast, 120ms) ease,
-    color var(--motion-dur-fast, 120ms) ease,
-    background-color 150ms ease,
-    transform var(--motion-dur-press, 120ms) var(--cmv2-ease-out, ease-out);
-}
-
-/* Mejora propia · los chips presionables responden al dedo (Emil: todo botón
-   confirma el press). Aplica a presets de tau y al segmento de confianza. */
-.cmv2-calc-presets button:active,
-.cmv2-calc-cockpit-sliders .cmv2-did-segment button:active {
-  transform: scale(0.97);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cmv2-calc-presets button:hover {
-    border-color: var(--cmv2-accent-border);
-    color: var(--cmv2-accent);
-  }
-}
-
-/* Estados completos de los presionables locales (presets, piso, ¿por qué
-   importa?): mismo ring de foco del sistema, nunca el outline del browser. */
-.cmv2-calc-presets button:focus-visible,
+/* Estados completos de los presionables locales (piso, ¿por qué importa?):
+   mismo ring de foco del sistema, nunca el outline del browser. */
 .cmv2-calc-piso:focus-visible,
 .cmv2-calc-porque:focus-visible {
   outline: 2px solid transparent;
   box-shadow: 0 0 0 3px var(--pulso-primary-focus);
-}
-
-.cmv2-calc-presets button[data-active="true"] {
-  border-color: var(--cmv2-accent-border);
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent);
 }
 
 .cmv2-calc-supuesto-visual {
@@ -675,48 +481,6 @@
   color: var(--pulso-text-muted);
 }
 
-/* --- Micro-barra n efectivo vs n nominal -------------------------------------- */
-.cmv2-calc-minibar {
-  display: grid;
-  gap: 6px;
-}
-
-.cmv2-calc-minibar-fila {
-  display: grid;
-  grid-template-columns: 78px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-}
-
-.cmv2-calc-minibar-fila span {
-  color: var(--pulso-text-muted);
-}
-
-.cmv2-calc-minibar-fila i {
-  display: block;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--cmv2-control-bg);
-  overflow: hidden;
-}
-
-.cmv2-calc-minibar-fila b {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--cmv2-accent);
-}
-
-.cmv2-calc-minibar-fila[data-tono="soft"] b {
-  background: var(--cmv2-accent-border);
-}
-
-.cmv2-calc-minibar-fila strong {
-  font-variant-numeric: tabular-nums;
-  color: var(--pulso-text);
-}
-
 /* --- Aviso de resultado desactualizado ----------------------------------------- */
 .cmv2-calc-aviso {
   display: flex;
@@ -737,15 +501,6 @@
   min-width: 220px;
 }
 
-.cmv2-calc-supuestos-foot {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.55;
-  color: var(--pulso-text-muted);
-  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
-  padding-top: 10px;
-}
-
 /* =============================================================================
    Motion de la sección Cálculo (reglas Emil Kowalski):
    - entradas ease-out < 300ms, solo transform/opacity/filter;
@@ -754,19 +509,6 @@
    - todo dentro de prefers-reduced-motion: no-preference.
    ============================================================================= */
 @media (prefers-reduced-motion: no-preference) {
-  /* Parámetros · cascada narrativa de los 3 pasos de Cochran (solo al montar). */
-  .cmv2-calc-cascada > .cmv2-calc-paso {
-    animation: cmv2-calc-enter 260ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
-  }
-
-  .cmv2-calc-cascada > .cmv2-calc-paso:nth-child(2) {
-    animation-delay: 90ms;
-  }
-
-  .cmv2-calc-cascada > .cmv2-calc-paso:nth-child(3) {
-    animation-delay: 180ms;
-  }
-
   /* Propuestas · cascada de etapas del flujo n fórmula → aulas. Las etapas son
      los hijos impares del flujo (los pares son aristas, que solo funden). */
   .cmv2-calc-stagger .cmv2-uni-flujo > .cmv2-uni-flujo-etapa {
@@ -821,18 +563,6 @@
   .cmv2-calc-svg-punto-movil {
     animation: cmv2-calc-fade 200ms ease-out 360ms both;
     transition: transform 200ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
-  }
-
-  /* Supuestos · barras n efectivo/nominal: crecen al montar, y el ancho
-     transiciona suave cuando cambia el deff (elemento diminuto, sin costo). */
-  .cmv2-calc-minibar-fila i b {
-    transform-origin: left center;
-    animation: cmv2-calc-crece 480ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
-    transition: width 200ms var(--cmv2-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
-  }
-
-  .cmv2-calc-minibar-fila:nth-child(2) i b {
-    animation-delay: 80ms;
   }
 
   /* Supuestos · el aviso "desactualizado" entra con slide-down+fade; su salida
@@ -1052,12 +782,6 @@
 @keyframes cmv2-calc-trazo {
   to {
     stroke-dashoffset: 0;
-  }
-}
-
-@keyframes cmv2-calc-crece {
-  from {
-    transform: scaleX(0);
   }
 }
 
