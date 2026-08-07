@@ -648,11 +648,50 @@ button.pulso-equiv-chip-escala:hover,
   gap: 5px;
 }
 
+/* Modelo de columnas deliberado. El navegador repartia el sobrante entre todas
+   por igual: los publicos quedaban anchisimos, «mover» y la papelera se
+   apelotonaban a la izquierda de su celda y sobraba aire muerto a la derecha.
+   Aqui el Tema absorbe TODO el sobrante y las demas se encogen a su contenido
+   —`width: 1%` con `nowrap` es la forma de decir «lo minimo»—. */
 .pulso-equiv-diapositiva-tabla {
   border-collapse: collapse;
   width: 100%;
   font-size: 12px;
 }
+
+.pulso-equiv-diapositiva-tabla th,
+.pulso-equiv-diapositiva-tabla td {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.pulso-equiv-diapositiva-tabla th.pulso-equiv-col-etiqueta,
+.pulso-equiv-diapositiva-tabla td:first-child {
+  width: 100%;
+  white-space: normal;
+}
+
+/* Los publicos van centrados bajo su encabezado y con un ancho minimo comun:
+   sin el, una columna con `p9` y otra con `p12_1` se desalineaban a ojo. */
+.pulso-equiv-diapositiva-tabla th:not(.pulso-equiv-col-etiqueta),
+.pulso-equiv-diapositiva-tabla td:not(:first-child) {
+  text-align: center;
+  padding-left: var(--pulso-space-3);
+  padding-right: var(--pulso-space-3);
+}
+
+.pulso-equiv-diapositiva-tabla th:not(.pulso-equiv-col-etiqueta) {
+  min-width: 92px;
+}
+
+/* La ultima columna pega con el borde de la tarjeta, no con la penultima. */
+.pulso-equiv-diapositiva-tabla th:last-child,
+.pulso-equiv-diapositiva-tabla td:last-child {
+  padding-right: 0;
+  text-align: right;
+}
+
+.pulso-equiv-acciones-fila { justify-content: flex-end; }
 
 .pulso-equiv-diapositiva-tabla th {
   text-align: left;
@@ -799,4 +838,229 @@ button.pulso-equiv-chip-escala:hover,
 .pulso-equiv-var-input::placeholder {
   color: var(--pulso-text-faint);
   font-variant-numeric: normal;
+}
+
+/* --- Bloques dentro de la diapositiva (ADR 0064) --------------------------
+   Un bloque son los temas que comparten escala, que es como el render los
+   dibuja: `multilista` apila un bloque por escala. Cada uno tiene SUS
+   categorias, y por eso cada uno lleva su chip: anunciar «la escala de la
+   diapositiva» era decir la de un bloque y callar la del otro. */
+
+/* El bloque es un `tbody` de la tabla de la tarjeta, no una tabla propia: asi
+   hay UN modelo de columnas y las de un bloque caen donde las del de arriba.
+   Cuando la diapositiva se parte en varios, cada uno se ve como una unidad con
+   el tono del modulo a la izquierda; con uno solo no hay nada que distinguir y
+   la caja seria decoracion. */
+/* Cuando la diapositiva se parte, cada bloque tiene que LEERSE como una unidad.
+   Un filete de 3 px no bastaba: con dos bloques seguidos no se veia donde
+   terminaba uno. Ahora el bloque entero va sobre su propio material, con una
+   llave de color a la izquierda que recorre todas sus filas y aire real entre
+   uno y otro. */
+/* Un bloque tiene que leerse como una unidad AUNQUE tenga una sola fila, que es
+   el caso comun: de los 53 bloques del estudio medido, la mayoria tiene uno o
+   dos temas. Con un tinte apenas perceptible y un filete fino, dos bloques
+   seguidos de un tema cada uno se leian como cuatro filas sueltas.
+   Material propio, llave gruesa con sus extremos redondeados y aire real entre
+   uno y otro. */
+tbody.pulso-equiv-bloque.is-partido td {
+  background: var(--pulso-surface-2);
+  border-bottom-color: transparent;
+}
+
+tbody.pulso-equiv-bloque.is-partido td:first-child {
+  border-left: 4px solid var(--pulso-module-processing);
+  padding-left: var(--pulso-space-3);
+}
+
+/* La llave tiene principio y fin: sin las esquinas, el bloque parecia una franja
+   cortada por arriba y por abajo. */
+tbody.pulso-equiv-bloque.is-partido tr:first-child td:first-child {
+  border-top-left-radius: 6px;
+}
+
+tbody.pulso-equiv-bloque.is-partido tr:last-child td:first-child {
+  border-bottom-left-radius: 6px;
+}
+
+tbody.pulso-equiv-bloque.is-partido tr:last-child td:last-child {
+  border-top-right-radius: 0;
+}
+
+/* Aire entre bloques. Se pinta con un borde del color del panel para no romper
+   el modelo de columnas: un `tr` espaciador desalinearia la tabla. */
+tbody.pulso-equiv-bloque.is-partido + tbody.pulso-equiv-bloque.is-partido
+  tr:first-child td {
+  border-top: var(--pulso-space-3) solid var(--pulso-surface);
+}
+
+/* La cabecera del bloque cierra por arriba y sus filas no se separan del
+   material: son la misma pieza. */
+tbody.pulso-equiv-bloque.is-partido tr:first-child td {
+  padding-top: var(--pulso-space-2);
+}
+
+tbody.pulso-equiv-bloque.is-partido tr:last-child td {
+  padding-bottom: var(--pulso-space-2);
+  border-bottom: none;
+}
+
+/* La cabecera del bloque ocupa toda la fila con `colSpan`, asi que es a la vez
+   primera y ultima celda y heredaba el `text-align: right` de la columna de
+   acciones: los controles se iban al borde derecho, lejos del bloque que
+   describen. */
+/* El selector lleva la tabla por delante a proposito: `td:last-child` de la
+   columna de acciones suma una pseudoclase y ganaba, asi que los controles del
+   bloque se iban al borde derecho, lejos del bloque que describen. */
+.pulso-equiv-diapositiva-tabla .pulso-equiv-bloque-head td {
+  padding-top: var(--pulso-space-2);
+  padding-bottom: var(--pulso-space-2);
+  padding-right: 0;
+  border-bottom: none;
+  white-space: normal;
+  text-align: left;
+}
+
+/* Los tres elementos de la cabecera —escala, grafico, corte— con aire propio:
+   pegados se leian como una sola tira de controles sin jerarquia. */
+.pulso-equiv-bloque-head td > span {
+  margin-right: var(--pulso-space-3);
+}
+
+/* La cabecera del bloque envuelve: con cinco opciones de escala larga, el
+   control del corte no cabe en una linea y forzarlo desbordaba la tarjeta. */
+.pulso-equiv-bloque-head td > * {
+  vertical-align: middle;
+}
+
+.pulso-equiv-bloque-n {
+  margin-left: var(--pulso-space-2);
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+/* Mover es una accion, no un dato: la diapositiva ya esta en la esquina de la
+   tarjeta y repetirla en cada fila no decia nada. Arranca vacia y solo pide el
+   destino. */
+.pulso-equiv-mover {
+  width: auto;
+  min-width: 44px;
+  padding: 1px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  text-align: center;
+}
+
+button.pulso-equiv-mover:hover,
+.pulso-equiv-mover:focus {
+  border-color: var(--pulso-module-processing);
+  color: var(--pulso-module-processing);
+}
+
+/* --- Grafico y corte del bloque (ADR 0064) --------------------------------
+   Solo aparece cuando el bloque es elegible: 5+ ejes, cobertura rectangular y
+   2+ publicos. Ofrecerlo siempre pondria un control muerto en las 53 cabeceras
+   del estudio medido, de las que solo 2 lo pueden usar. */
+
+.pulso-equiv-bloque-grafico {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  flex-wrap: wrap;
+  margin-left: var(--pulso-space-2);
+}
+
+.pulso-equiv-grafico-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+}
+
+.pulso-equiv-grafico-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: none;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pulso-equiv-grafico-switch button.is-active {
+  background: var(--pulso-surface-2);
+  color: var(--pulso-module-processing);
+}
+
+/* El corte son casillas sobre las opciones REALES del bloque. Una regla fija
+   —«los dos ultimos»— seria falsa en cuanto la escala traiga su «sin
+   informacion» al final, que es lo que pasa en el estudio medido. */
+.pulso-equiv-corte {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-equiv-corte-label { color: var(--pulso-text-faint); }
+
+/* Cada opcion es un boton que se enciende. La version con casilla duplicaba el
+   estado —recuadro Y color— y metia un control de 13 px en una fila de
+   pastillas; encendida, la pastilla ya dice que esta dentro del indicador. */
+.pulso-equiv-corte-op {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.pulso-equiv-corte-op:hover { border-color: var(--pulso-border-strong); }
+
+.pulso-equiv-corte-op.is-on {
+  border-color: var(--pulso-module-processing);
+  background: var(--pulso-module-processing);
+  color: var(--pulso-surface);
+  font-weight: 600;
+}
+
+.pulso-equiv-corte-codigo {
+  color: var(--pulso-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-equiv-corte-op.is-on .pulso-equiv-corte-codigo {
+  color: var(--pulso-surface);
+  opacity: 0.75;
+}
+
+/* Sin eleccion no hay indicador: se avisa donde se decide. */
+.pulso-equiv-corte-falta { color: var(--pulso-warn-fg); font-size: 11px; }
+
+/* El motivo por el que un bloque no puede ser radar se dice al lado del boton
+   apagado: un control deshabilitado sin explicacion se lee como algo roto. */
+.pulso-equiv-radar-motivo {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  font-style: italic;
+}
+
+.pulso-equiv-grafico-switch button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

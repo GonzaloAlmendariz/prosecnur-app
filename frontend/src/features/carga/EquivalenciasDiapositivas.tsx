@@ -20,8 +20,9 @@ import { useEffect, useState } from "react";
 import { Check, Info, Layers, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
 import type { CampoFila, CatalogoEscalas, FilaEditor, DiapositivaEditor } from "./equivalenciasEditorModel";
-import { escalaDeFila } from "./equivalenciasEditorModel";
+import { escalaDeFila, resumenEscala } from "./equivalenciasEditorModel";
 import { EscalaChip } from "./EscalaChip";
+import { BloqueGrafico } from "./BloqueGrafico";
 
 export type EquivalenciasDiapositivasProps = {
   bases: string[];
@@ -30,6 +31,8 @@ export type EquivalenciasDiapositivasProps = {
   variablesPorBase: Record<string, VariableDeBase[]>;
   onEditarFila: (filaId: string, campo: CampoFila, valor: string) => void;
   onEditarDiapositiva: (clave: string, campo: CampoFila, valor: string) => void;
+  /** Escribe un campo en todas las filas de un bloque (gráfico y corte). */
+  onEditarBloque: (ids: string[], campo: CampoFila, valor: string) => void;
   onAsignar: (filaId: string, base: string, variable: string) => void;
   onQuitar: (filaId: string) => void;
   onConfirmar: (filaId: string) => void;
@@ -222,6 +225,7 @@ export function EquivalenciasDiapositivas({
   variablesPorBase,
   onEditarFila,
   onEditarDiapositiva,
+  onEditarBloque,
   onAsignar,
   onQuitar,
   onConfirmar,
@@ -245,122 +249,9 @@ export function EquivalenciasDiapositivas({
 
       {diapositivas.map((diapo) => {
         const sinDiapositiva = diapo.clave === "";
-        return (
-          <section
-            key={diapo.clave || "__sin__"}
-            className={sinDiapositiva ? "pulso-equiv-diapositiva is-pendiente" : "pulso-equiv-diapositiva"}
-            data-qa-geometry-group="carga-equivalencias-diapositiva"
-            data-qa-geometry-contract="intrinsic"
-            aria-label={sinDiapositiva ? "Temas sin diapositiva" : `Diapositiva ${diapo.clave}`}
-          >
-            <header className="pulso-equiv-diapositiva-head">
-              <div className="pulso-equiv-diapositiva-id">
-                <Layers size={14} aria-hidden="true" />
-                <span>{sinDiapositiva ? "Sin diapositiva" : diapo.clave}</span>
-              </div>
-
-              <div className="pulso-equiv-diapositiva-texto">
-                {sinDiapositiva ? (
-                  // C5: el vacío de este grupo dice qué es y qué falta, en vez de
-                  // parecer una diapositiva más que salió mal.
-                  <p className="pulso-equiv-diapositiva-nota">
-                    Estos temas están declarados pero no van a ninguna diapositiva, así que
-                    no entran al mazo. Escríbeles una diapositiva para agruparlos.
-                  </p>
-                ) : (
-                  <CampoEditable
-                    className="pulso-equiv-enunciado"
-                    valor={diapo.enunciado}
-                    vacio="Añadir enunciado"
-                    etiqueta={`Enunciado de la diapositiva ${diapo.clave} — será su título`}
-                    onCambiar={(v) => onEditarDiapositiva(diapo.clave, "enunciado", v)}
-                  />
-                )}
-                {diapo.seccion && <span className="pulso-equiv-seccion">{diapo.seccion}</span>}
-              </div>
-
-              <div className="pulso-equiv-diapositiva-meta">
-                <EscalaChip
-                  texto={diapo.escalaTexto}
-                  opciones={diapo.escalaOpciones}
-                  contexto={sinDiapositiva ? "estos temas" : `la diapositiva ${diapo.clave}`}
-                />
-                <span className="pulso-equiv-chip-n">
-                  {diapo.filas.length} {diapo.filas.length === 1 ? "tema" : "temas"}
-                </span>
-              </div>
-            </header>
-
-            {/* Las invariantes describen una diapositiva, así que no se evalúan
-                sobre el grupo de lo que aún no tiene una. Ahí decían «reúne 14
-                escalas: saldrá apilada» sobre algo que no va a salir, y «no
-                entra al mazo» por la escala cuando lo que lo deja fuera es no
-                tener diapositiva. */}
-            {!sinDiapositiva &&
-              (diapo.escalas.length > 1 ||
-                diapo.temasEscalaRota.length > 0 ||
-                diapo.etiquetasRepetidas.length > 0) && (
-              <div className="pulso-equiv-avisos">
-                {diapo.temasEscalaRota.slice(0, MAX_AVISOS_TEMA).map((tema, i) => (
-                  <p className="pulso-equiv-aviso-caja" key={`escala-${i}`}>
-                    <Info size={13} aria-hidden="true" />
-                    <span>
-                      <strong>«{tema.etiqueta}»</strong> no comparte escala:{" "}
-                      {tema.porFirma.map((e) => `${e.texto} en ${listar(e.bases)}`).join("; ")}
-                      . No entra al mazo.
-                    </span>
-                  </p>
-                ))}
-
-                {diapo.temasEscalaRota.length > MAX_AVISOS_TEMA && (
-                  <p className="pulso-equiv-aviso-caja">
-                    <Info size={13} aria-hidden="true" />
-                    <span>
-                      Otros {diapo.temasEscalaRota.length - MAX_AVISOS_TEMA} temas de esta
-                      diapositiva tampoco comparten escala entre públicos.
-                    </span>
-                  </p>
-                )}
-
-                {diapo.escalas.length > 1 && (
-                  <p className="pulso-equiv-aviso-caja">
-                    <Info size={13} aria-hidden="true" />
-                    <span>
-                      Reúne {diapo.escalas.length} escalas
-                      ({diapo.escalas.filter(Boolean).join(" · ")}): el gráfico saldrá apilado
-                      en un bloque por escala.
-                    </span>
-                  </p>
-                )}
-
-                {diapo.etiquetasRepetidas.map((rep) => (
-                  <p className="pulso-equiv-aviso-caja" key={`repetida-${rep.etiqueta}`}>
-                    <Info size={13} aria-hidden="true" />
-                    <span>
-                      <strong>«{rep.etiqueta}»</strong> nombra {rep.veces} temas de esta
-                      diapositiva: saldrían {rep.veces} barras con el mismo nombre.
-                    </span>
-                  </p>
-                ))}
-              </div>
-            )}
-
-            <table className="pulso-equiv-diapositiva-tabla">
-              <thead>
-                <tr>
-                  <th scope="col" className="pulso-equiv-col-etiqueta">Tema</th>
-                  {bases.map((base) => (
-                    <th key={base} scope="col">{base}</th>
-                  ))}
-                  <th scope="col" className="pulso-equiv-col-cob">Públicos</th>
-                  <th scope="col" className="pulso-equiv-col-diapo">Diapositiva</th>
-                  <th scope="col"><span className="pulso-sr-only">Acciones</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {diapo.filas.map((fila: FilaEditor) => {
-                  const esc = escalaDeFila(fila, catalogo);
-                  return (
+        const filaTr = (fila: FilaEditor) => {
+          const esc = escalaDeFila(fila, catalogo);
+          return (
                     <tr
                       key={fila.id}
                       className={
@@ -428,16 +319,6 @@ export function EquivalenciasDiapositivas({
                         </span>
                       </td>
 
-                      <td className="pulso-equiv-col-diapo">
-                        <CampoEditable
-                          className="pulso-equiv-input-diapo"
-                          valor={fila.diapositiva ?? ""}
-                          vacio="—"
-                          etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra diapositiva`}
-                          onCambiar={(v) => onEditarFila(fila.id, "diapositiva", v)}
-                        />
-                      </td>
-
                       <td>
                         <div className="pulso-equiv-acciones-fila">
                           {fila.sugerida && (
@@ -451,6 +332,20 @@ export function EquivalenciasDiapositivas({
                               <Check size={12} />
                             </button>
                           )}
+                          {/* Mover es una ACCION, no un dato: la diapositiva ya
+                              está en la esquina de la tarjeta y repetirla en
+                              cada fila no decía nada. El campo arranca vacío y
+                              pide el destino. */}
+                          <CampoEditable
+                            className="pulso-equiv-mover"
+                            valor=""
+                            vacio="mover"
+                            etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra diapositiva`}
+                            onCambiar={(v) => {
+                              const destino = v.trim();
+                              if (destino) onEditarFila(fila.id, "diapositiva", destino);
+                            }}
+                          />
                           <button
                             type="button"
                             className="pulso-icon pulso-icon-danger"
@@ -463,9 +358,169 @@ export function EquivalenciasDiapositivas({
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
+          );
+        };
+
+        return (
+          <section
+            key={diapo.clave || "__sin__"}
+            className={sinDiapositiva ? "pulso-equiv-diapositiva is-pendiente" : "pulso-equiv-diapositiva"}
+            data-qa-geometry-group="carga-equivalencias-diapositiva"
+            data-qa-geometry-contract="intrinsic"
+            aria-label={sinDiapositiva ? "Temas sin diapositiva" : `Diapositiva ${diapo.clave}`}
+          >
+            <header className="pulso-equiv-diapositiva-head">
+              <div className="pulso-equiv-diapositiva-id">
+                <Layers size={14} aria-hidden="true" />
+                <span>{sinDiapositiva ? "Sin diapositiva" : diapo.clave}</span>
+              </div>
+
+              <div className="pulso-equiv-diapositiva-texto">
+                {sinDiapositiva ? (
+                  // C5: el vacío de este grupo dice qué es y qué falta, en vez de
+                  // parecer una diapositiva más que salió mal.
+                  <p className="pulso-equiv-diapositiva-nota">
+                    Estos temas están declarados pero no van a ninguna diapositiva, así que
+                    no entran al mazo. Escríbeles una diapositiva para agruparlos.
+                  </p>
+                ) : (
+                  <CampoEditable
+                    className="pulso-equiv-enunciado"
+                    valor={diapo.enunciado}
+                    vacio="Añadir enunciado"
+                    etiqueta={`Enunciado de la diapositiva ${diapo.clave} — será su título`}
+                    onCambiar={(v) => onEditarDiapositiva(diapo.clave, "enunciado", v)}
+                  />
+                )}
+                {diapo.seccion && <span className="pulso-equiv-seccion">{diapo.seccion}</span>}
+              </div>
+
+              <div className="pulso-equiv-diapositiva-meta">
+                {/* La escala NO vive aquí: vive en cada bloque. Una diapositiva
+                    que junta «¿Conoce?» con la satisfacción tiene dos escalas
+                    con categorías distintas, y anunciar «la escala de la
+                    diapositiva» era decir la de uno y callar la del otro. */}
+                <span className="pulso-equiv-chip-n">
+                  {diapo.filas.length} {diapo.filas.length === 1 ? "tema" : "temas"}
+                </span>
+              </div>
+            </header>
+
+            {/* Las invariantes describen una diapositiva, así que no se evalúan
+                sobre el grupo de lo que aún no tiene una. Ahí decían «reúne 14
+                escalas: saldrá apilada» sobre algo que no va a salir, y «no
+                entra al mazo» por la escala cuando lo que lo deja fuera es no
+                tener diapositiva. */}
+            {!sinDiapositiva &&
+              (diapo.bloques.length > 1 ||
+                diapo.temasEscalaRota.length > 0 ||
+                diapo.etiquetasRepetidas.length > 0) && (
+              <div className="pulso-equiv-avisos">
+                {diapo.temasEscalaRota.slice(0, MAX_AVISOS_TEMA).map((tema, i) => (
+                  <p className="pulso-equiv-aviso-caja" key={`escala-${i}`}>
+                    <Info size={13} aria-hidden="true" />
+                    <span>
+                      <strong>«{tema.etiqueta}»</strong> no comparte escala:{" "}
+                      {tema.porFirma.map((e) => `${e.texto} en ${listar(e.bases)}`).join("; ")}
+                      . No entra al mazo.
+                    </span>
+                  </p>
+                ))}
+
+                {diapo.temasEscalaRota.length > MAX_AVISOS_TEMA && (
+                  <p className="pulso-equiv-aviso-caja">
+                    <Info size={13} aria-hidden="true" />
+                    <span>
+                      Otros {diapo.temasEscalaRota.length - MAX_AVISOS_TEMA} temas de esta
+                      diapositiva tampoco comparten escala entre públicos.
+                    </span>
+                  </p>
+                )}
+
+                {diapo.bloques.length > 1 && (
+                  <p className="pulso-equiv-aviso-caja">
+                    <Info size={13} aria-hidden="true" />
+                    <span>
+                      Reúne {diapo.bloques.length} escalas distintas: el gráfico saldrá
+                      apilado, un bloque por escala. Cada bloque tiene sus propias
+                      categorías — ábrelas en su chip.
+                    </span>
+                  </p>
+                )}
+
+                {diapo.etiquetasRepetidas.map((rep) => (
+                  <p className="pulso-equiv-aviso-caja" key={`repetida-${rep.etiqueta}`}>
+                    <Info size={13} aria-hidden="true" />
+                    <span>
+                      <strong>«{rep.etiqueta}»</strong> nombra {rep.veces} temas de esta
+                      diapositiva: saldrían {rep.veces} barras con el mismo nombre.
+                    </span>
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* UNA tabla por tarjeta, con los bloques como `tbody`.
+                Antes cada bloque montaba su propia tabla: repetía la cabecera de
+                públicos y, sobre todo, cada tabla calculaba sus anchos por su
+                cuenta, así que las columnas de un bloque no caían donde las del
+                bloque de arriba. Con una sola tabla hay un único modelo de
+                columnas y todo queda alineado. */}
+            <table className="pulso-equiv-diapositiva-tabla">
+              <thead>
+                <tr>
+                  <th scope="col" className="pulso-equiv-col-etiqueta">Tema</th>
+                  {bases.map((base) => (
+                    <th key={base} scope="col">{base}</th>
+                  ))}
+                  <th scope="col" className="pulso-equiv-col-cob">Públicos</th>
+                  <th scope="col"><span className="pulso-sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+
+              {/* El bloque agrupa por escala y es lo que el render apila. En el
+                  grupo de lo que aún no tiene diapositiva no hay apilado que
+                  anticipar, así que ahí no se parte: eran 16 cajas sobre 300
+                  temas sin emparejar que no decían nada. */}
+              {sinDiapositiva ? (
+                <tbody>{diapo.filas.map(filaTr)}</tbody>
+              ) : (
+                diapo.bloques.map((bloque, bi) => (
+                  <tbody
+                    className={diapo.bloques.length > 1
+                      ? "pulso-equiv-bloque is-partido"
+                      : "pulso-equiv-bloque"}
+                    key={`bloque-${bi}`}
+                  >
+                    <tr className="pulso-equiv-bloque-head">
+                      <td colSpan={bases.length + 3}>
+                        <EscalaChip
+                          texto={resumenEscala(bloque.opciones)}
+                          opciones={bloque.opciones}
+                          contexto={
+                            diapo.bloques.length > 1
+                              ? `el bloque ${bi + 1} de la diapositiva ${diapo.clave}`
+                              : `la diapositiva ${diapo.clave}`
+                          }
+                        />
+                        {diapo.bloques.length > 1 && (
+                          <span className="pulso-equiv-bloque-n">
+                            bloque {bi + 1} de {diapo.bloques.length} · {bloque.filas.length}
+                            {bloque.filas.length === 1 ? " tema" : " temas"}
+                          </span>
+                        )}
+                        <BloqueGrafico
+                          bloque={bloque}
+                          onCambiar={(campo, valor) =>
+                            onEditarBloque(bloque.filas.map((f) => f.id), campo, valor)
+                          }
+                        />
+                      </td>
+                    </tr>
+                    {bloque.filas.map(filaTr)}
+                  </tbody>
+                ))
+              )}
             </table>
 
             <button

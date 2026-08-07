@@ -25,6 +25,22 @@ export type EquivalenciaFila = {
    */
   enunciado?: string;
   /**
+   * Cómo se dibuja el bloque: `""` (barras multiapiladas, el defecto) o `radar`.
+   * Es un atributo del BLOQUE —los temas que comparten escala— y como el
+   * enunciado viaja repetido en sus filas, que es lo que el formato plano
+   * permite.
+   */
+  grafico?: string;
+  /**
+   * Códigos de la escala que suman el indicador, separados por coma: `"3,4"` es
+   * el top-two-box de una escala de 4 puntos más un «sin información».
+   *
+   * Se declara y no se deduce: cuál es el corte es una decisión metodológica del
+   * estudio, no una propiedad de la escala. Un radar necesita UN número por eje
+   * y por serie; las barras dibujan la distribución entera y no lo necesitan.
+   */
+  corte?: string;
+  /**
    * Propuesta del motor, no decisión del analista. La marca es el contrato con
    * la UI: sin ella una sugerencia se vería igual que algo ya confirmado.
    */

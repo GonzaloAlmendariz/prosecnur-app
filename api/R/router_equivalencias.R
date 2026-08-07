@@ -281,6 +281,8 @@
       variables = vars,
       diapositiva = trimws(as.character(f$diapositiva %||% "")),
       enunciado = trimws(as.character(f$enunciado %||% "")),
+      grafico = tolower(trimws(as.character(f$grafico %||% ""))),
+      corte = trimws(as.character(f$corte %||% "")),
       cantidad = length(vars)
     )
     # ADR 0064: la propuesta SE GUARDA, marcada. La regla anterior la descartaba

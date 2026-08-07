@@ -36,11 +36,22 @@
 # diapositiva del mazo. Vive por FILA en el formato plano —el Excel no tiene donde
 # poner un atributo de grupo— y la diapositiva toma el primero no vacio de las suyas.
 .EQUIV_COL_ENUNCIADO <- "enunciado"
+# ADR 0064: como se dibuja el bloque y con que corte.
+#
+# `grafico` es `""` (barras multiapiladas, el defecto) o `radar`. `corte` son los
+# CODIGOS de la escala que suman el indicador —«3,4» para el top-two-box de una
+# escala de 4 puntos mas un «sin informacion»—, y por eso se declaran en vez de
+# deducirse: cual es el corte es una decision metodologica del estudio, no una
+# propiedad de la escala. Un radar necesita UN numero por eje y por serie; las
+# barras dibujan la distribucion entera y no lo necesitan.
+.EQUIV_COL_GRAFICO <- "grafico"
+.EQUIV_COL_CORTE <- "corte"
+.EQUIV_GRAFICO_RADAR <- "radar"
+
 # ADR 0064: de donde viene la fila. `propuesta` marca lo que calculo el motor y
-# nadie ha confirmado todavia. La columna es lo que permite sembrar la plantilla
-# con emparejados sin violar la prohibicion del ADR 0062 —dentro de un Excel una
-# sugerencia era indistinguible de una decision—: aqui se distingue, viaja
-# marcada de ida y de vuelta, y no surte efecto hasta confirmarse.
+# nadie ha confirmado todavia. Se lee pero ya no se emite: en el formato actual
+# una propuesta seria indistinguible de una decision, asi que la plantilla no se
+# siembra y emparejar con ayuda se hace en el editor.
 .EQUIV_COL_ORIGEN <- "origen"
 .EQUIV_ORIGEN_PROPUESTA <- "propuesta"
 
@@ -72,6 +83,35 @@
 # combinadas, así que sólo la primera fila del bloque la tiene: leída con
 # readxl, el resto llega NA. Sin este pase, 141 de 154 filas quedarían sin
 # sección.
+# Relleno hacia abajo que se REINICIA al cambiar de grupo.
+#
+# `enunciado`, `grafico` y `corte` son atributos de una diapositiva o de un
+# bloque suyo, no del documento: rellenarlos sin frontera los arrastra a las
+# diapositivas siguientes. Medido: declarar radar en la diapositiva 29 —6 filas—
+# y reimportar el archivo devolvia 47 filas con radar, porque el valor seguia
+# cayendo hasta el final de la hoja.
+#
+# `seccion` no usa esto: una seccion SI abarca varias diapositivas y su relleno
+# tiene que cruzar esa frontera.
+.equiv_fill_down_en <- function(x, grupo) {
+  x <- as.character(x)
+  grupo <- as.character(grupo)
+  ultimo <- NA_character_
+  grupo_ultimo <- NA_character_
+  for (i in seq_along(x)) {
+    if (!identical(grupo[i], grupo_ultimo)) {
+      ultimo <- NA_character_
+      grupo_ultimo <- grupo[i]
+    }
+    if (!is.na(x[i]) && nzchar(trimws(x[i]))) {
+      ultimo <- trimws(x[i])
+    } else {
+      x[i] <- ultimo
+    }
+  }
+  x
+}
+
 .equiv_fill_down <- function(x) {
   x <- as.character(x)
   ultimo <- NA_character_
@@ -205,6 +245,8 @@
   if (is.na(i_diapo)) i_diapo <- idx_de("diapo")
 
   i_enunciado <- idx_de(.EQUIV_COL_ENUNCIADO)
+  i_grafico <- idx_de(.EQUIV_COL_GRAFICO)
+  i_corte <- idx_de(.EQUIV_COL_CORTE)
   i_origen <- idx_de(.EQUIV_COL_ORIGEN)
   origen <- if (!is.na(i_origen)) .equiv_norm_col(df[[i_origen]]) else rep("", nrow(df))
 
@@ -213,7 +255,12 @@
   diapo <- if (!is.na(i_diapo)) trimws(as.character(df[[i_diapo]])) else rep(NA_character_, nrow(df))
   # Igual que la sección, el enunciado vive en celdas combinadas: es un atributo
   # de la diapositiva escrito una vez sobre su bloque de filas.
-  enunciado <- if (!is.na(i_enunciado)) .equiv_fill_down(df[[i_enunciado]]) else rep(NA_character_, nrow(df))
+  # El enunciado, el grafico y el corte se rellenan DENTRO de su diapositiva y no
+  # mas alla: son atributos suyos, y arrastrarlos a la siguiente los inventa.
+  diapo_grupo <- ifelse(is.na(diapo), "", diapo)
+  enunciado <- if (!is.na(i_enunciado)) .equiv_fill_down_en(df[[i_enunciado]], diapo_grupo) else rep(NA_character_, nrow(df))
+  grafico <- if (!is.na(i_grafico)) .equiv_fill_down_en(df[[i_grafico]], diapo_grupo) else rep(NA_character_, nrow(df))
+  corte <- if (!is.na(i_corte)) .equiv_fill_down_en(df[[i_corte]], diapo_grupo) else rep(NA_character_, nrow(df))
 
   filas <- list()
   for (r in seq_len(nrow(df))) {
@@ -231,6 +278,8 @@
       variables = vars,
       diapositiva = if (is.na(diapo[r])) "" else diapo[r],
       enunciado = if (is.na(enunciado[r])) "" else enunciado[r],
+      grafico = if (is.na(grafico[r])) "" else tolower(trimws(grafico[r])),
+      corte = if (is.na(corte[r])) "" else trimws(corte[r]),
       # Derivado, no pedido: en cuántos públicos existe la pregunta.
       cantidad = length(vars)
     )
@@ -374,7 +423,8 @@
   # Pero se emiten siempre, y vacias si hace falta: emitirlas solo cuando ya
   # tienen datos dejaba al analista sin la columna justo cuando quiere empezar a
   # repartir diapositivas desde el Excel.
-  extras <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO)
+  extras <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO,
+              .EQUIV_COL_GRAFICO, .EQUIV_COL_CORTE)
 
   cols <- list()
   cols[[.EQUIV_COL_SECCION]] <- character(0)
@@ -723,6 +773,8 @@
       # El enunciado titula la diapositiva (ADR 0064), así que cambiarlo cambia el
       # mazo y tiene que mover la revisión.
       as.character(f$enunciado %||% ""),
+      as.character(f$grafico %||% ""),
+      as.character(f$corte %||% ""),
       as.character(f$etiqueta_estandar %||% ""),
       paste(names(vars)[orden], unlist(vars)[orden], sep = "=", collapse = ","),
       sep = "\u001e"

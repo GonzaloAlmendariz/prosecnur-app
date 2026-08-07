@@ -168,7 +168,7 @@ test_that("la plantilla sale poblada con las variables y etiquetas de cada base"
   # ayuda por base ya no estan: salieron a la hoja de consulta, donde dan la
   # misma ayuda sin doblar el ancho de la hoja donde se escribe.
   expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes", "estudiantes",
-                            "diapositiva", "enunciado"))
+                            "diapositiva", "enunciado", "grafico", "corte"))
   # Sin nada declarado, la plantilla sale SIN filas. Antes volcaba una por cada
   # variable de cada base —300 en el estudio medido—, cada una con su codigo en
   # una sola columna: una escalera diagonal que habia que cortar y pegar para
@@ -488,7 +488,7 @@ test_that("las columnas del plan van al final y son opcionales al leer", {
   # diapositivas desde el Excel.
   df <- .equiv_plantilla_df(inst)
   expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes",
-                            "diapositiva", "enunciado"))
+                            "diapositiva", "enunciado", "grafico", "corte"))
 
   # Y un archivo que no las trae importa igual: son opcionales.
   minima <- data.frame(seccion = "1.2 Servicios", etiqueta_estandar = "Salud",
@@ -532,4 +532,31 @@ test_that("una propuesta sin confirmar no escribe etiquetas", {
   # su etiqueta seria tratar una sugerencia como una decision.
   expect_equal(labels$docentes[["p13_1"]], "Decidida")
   expect_null(labels$docentes[["p14_1"]])
+})
+
+test_that("el grafico y el corte no se arrastran a la diapositiva siguiente", {
+  # Medido: declarar radar en un bloque de 6 filas y reimportar devolvia 47 filas
+  # con radar, porque el relleno hacia abajo seguia cayendo hasta el final de la
+  # hoja. `enunciado`, `grafico` y `corte` son atributos de SU diapositiva.
+  df <- data.frame(
+    seccion = c("3.2 Perfil", NA, NA, NA),
+    diapositiva = c("29", "29", "30", "30"),
+    enunciado = c("¿Qué tan de acuerdo?", NA, NA, NA),
+    grafico = c("radar", NA, NA, NA),
+    corte = c("3,4", NA, NA, NA),
+    etiqueta_estandar = c("A", "B", "C", "D"),
+    docentes = c("p30_1", "p30_2", "p31_1", "p31_2"),
+    stringsAsFactors = FALSE
+  )
+
+  equiv <- .equiv_desde_df(df, c("docentes"))
+  g <- vapply(equiv$filas, function(f) as.character(f$grafico %||% ""), character(1))
+  e <- vapply(equiv$filas, function(f) as.character(f$enunciado %||% ""), character(1))
+
+  expect_equal(g, c("radar", "radar", "", ""))
+  expect_equal(e, c("¿Qué tan de acuerdo?", "¿Qué tan de acuerdo?", "", ""))
+
+  # La seccion SI cruza la frontera: una seccion abarca varias diapositivas.
+  expect_equal(vapply(equiv$filas, function(f) f$seccion, character(1)),
+               rep("3.2 Perfil", 4))
 })
