@@ -1852,7 +1852,9 @@ p_nube_palabras <- function(
 #' @title KPI numerico
 #'
 #' @param var Variable base (opcional segun metrica).
-#' @param metrica "N", "pct", "mean", "median".
+#' @param metrica "mean" (default), "median", "N" o "pct". Sin cruce, `pct` es
+#'   la cobertura (casos validos sobre casos de la base); con cruce, la
+#'   participacion de cada grupo sobre el total valido.
 #' @param cruce Variable opcional de cruce (si el renderer lo soporta).
 #' @param titulo Titulo opcional.
 #' @param formato Formato de salida (p.ej. `"%.0f%%"`).
@@ -1866,7 +1868,9 @@ p_nube_palabras <- function(
 #' @export
 p_numerico <- function(
     var = NULL,
-    metrica = c("N", "pct", "mean", "median"),
+    # H36: el orden manda el default. Era "N" mientras el motor rendia medias y
+    # el registry ofrecia "mean" primero; se unifica en "mean".
+    metrica = c("mean", "median", "N", "pct"),
     cruce = NULL,
     titulo = NULL,
     formato = NULL,

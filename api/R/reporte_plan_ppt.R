@@ -5857,8 +5857,8 @@ reporte_ppt_plan <- function(
       var_n = "n",
       var_pct = "pct",
       modo_valor = "valor",
-      formato_valor = "porcentaje_n",
-      mostrar_frecuencia = TRUE,
+      formato_valor = "porcentaje",   # doctrina: el conteo es opt-in de la UI
+      mostrar_frecuencia = FALSE,
       colores_categorias = colores_categorias,
       titulo = NULL,
       subtitulo = NULL,
@@ -6380,13 +6380,15 @@ reporte_ppt_plan <- function(
     if (is.factor(x_raw)) x_raw <- as.character(x_raw)
     x <- suppressWarnings(as.numeric(x_raw))
 
-    nombre_serie   <- preset_args$nombre_serie   %||% overrides$nombre_serie   %||% "v1"
-    etiqueta_serie <- preset_args$etiqueta_serie %||% overrides$etiqueta_serie %||% "Media"
+    # H36/H37 — cascada, semantica y defaults en reporte_plan_numerico.R.
+    metrica <- .numerico_resolver_metrica(overrides, el, preset_args)
 
-    preset_args$nombre_serie   <- NULL
-    preset_args$etiqueta_serie <- NULL
-    overrides$nombre_serie     <- NULL
-    overrides$etiqueta_serie   <- NULL
+    nombre_serie   <- preset_args$nombre_serie   %||% overrides$nombre_serie   %||% "v1"
+    etiqueta_serie <- preset_args$etiqueta_serie %||% overrides$etiqueta_serie %||%
+      .numerico_etiqueta_metrica(metrica)
+
+    preset_args$metrica <- preset_args$nombre_serie <- preset_args$etiqueta_serie <- NULL
+    overrides$metrica   <- overrides$nombre_serie   <- overrides$etiqueta_serie   <- NULL
 
     if (is.null(cruce)) {
 
@@ -6394,7 +6396,8 @@ reporte_ppt_plan <- function(
       if (!length(x2)) return(.blank_canvas(preset_args, overrides))
 
       N <- length(x2)
-      m <- mean(x2, na.rm = TRUE)
+      # Sin cruce, `pct` es la cobertura: casos validos sobre casos de la base.
+      m <- .numerico_agregar(x2, nrow(df), metrica)
       if (!is.finite(m)) return(.blank_canvas(preset_args, overrides))
 
       cat_label <- tryCatch(.title_of_var(ctx_var$raw_ref), error = function(e) ctx_var$var)
@@ -6420,11 +6423,13 @@ reporte_ppt_plan <- function(
       d2 <- d2[!is.na(d2$.cruce) & nzchar(trimws(as.character(d2$.cruce))), , drop = FALSE]
       if (!nrow(d2)) return(.blank_canvas(preset_args, overrides))
 
+      # Con cruce, `pct` reparte el total valido entre los grupos visibles.
+      n_universo <- nrow(d2)
       df_wide <- d2 |>
         dplyr::group_by(.data$.cruce) |>
         dplyr::summarise(
           N  = dplyr::n(),
-          .m = mean(.data$.x, na.rm = TRUE),
+          .m = .numerico_agregar(.data$.x[is.finite(.data$.x)], n_universo, metrica),
           .groups = "drop"
         ) |>
         dplyr::rename(categoria = .data$.cruce)
@@ -6448,6 +6453,9 @@ reporte_ppt_plan <- function(
       .list_name_from_ctx(ctx_var)
     }
     colores_cat <- .paleta_auto(list_name_use, env_diapos)
+
+    .aj <- .numerico_ajustar_args(el, preset_args, overrides, metrica, etiqueta_serie)
+    preset_args <- .aj$preset_args; overrides <- .aj$overrides
 
     base_args <- list(
       data                = df_wide,
@@ -6479,13 +6487,10 @@ reporte_ppt_plan <- function(
     args <- .force_canvas_args(fun, args)
     args <- .keep_formals(fun, args)
 
-    tryCatch(
-      suppressWarnings(do.call(fun, args)),
-      error = function(e) {
-        message("⚠️ .render_numerico(): ", conditionMessage(e))
-        NULL
-      }
-    )
+    p <- tryCatch(suppressWarnings(do.call(fun, args)), error = function(e) {
+      message("⚠️ .render_numerico(): ", conditionMessage(e)); NULL
+    })
+    .numerico_sellar(p, metrica, etiqueta_serie, df_wide, nombre_serie, args)
   }
 
   .render_histograma <- function(el, preset_args) {
