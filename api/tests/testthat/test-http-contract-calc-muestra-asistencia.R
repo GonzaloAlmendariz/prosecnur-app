@@ -74,7 +74,7 @@ test_that("POST asistencia/referencia conserva el contrato y los api_error por e
   expect_true(isTRUE(respuesta$json$ok))
   referencia <- respuesta$json$referencia_asistencia
   expect_true(is.list(referencia))
-  expect_identical(referencia$schema, "calc_muestra_referencia_asistencia_v1")
+  expect_identical(referencia$schema, "calc_muestra_referencia_asistencia_v2")
   expect_identical(referencia$owner, "estudio_historico_externo")
   expect_equal(as.numeric(referencia$cobertura$agendados), 12)
   expect_equal(as.numeric(referencia$cobertura$aplicados), 12)

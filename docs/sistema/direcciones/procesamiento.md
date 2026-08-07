@@ -6,17 +6,18 @@
 > la fuente es `frontend/src/lib/modules.ts` más las secciones `## Gobierna`
 > de la bóveda de sistema.
 
-Módulo `procesamiento` · ruta `/procesamiento` · 31 direcciones.
+Módulo `procesamiento` · ruta `/procesamiento` · 32 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `procesamiento` | modulo | Procesamiento | sí | 6e287734 | sí | — |
-| `procesamiento/carga` | seccion | Carga | sí | a64dfab7 | sí | — |
+| `procesamiento` | modulo | Procesamiento | sí | d5f1f9e8 | sí | — |
+| `procesamiento/carga` | seccion | Carga | sí | 54b0fe12 | sí | — |
 | `procesamiento/carga/plan` | pestana | Plan | sí | 15be26db | sí | — |
 | `procesamiento/carga/fuentes` | pestana | Fuentes | sí | 2af0cc2d | sí | — |
 | `procesamiento/carga/revision` | pestana | Revisión | sí | ceb10bef | sí | — |
 | `procesamiento/carga/estructura` | pestana | Estructura | sí | a11a637c | sí | — |
 | `procesamiento/carga/datos` | pestana | Datos | sí | 7ba2907b | sí | — |
+| `procesamiento/carga/equivalencias` | pestana | Equivalencias | sí | c59f981b | sí | — |
 | `procesamiento/validacion` | seccion | Validación | sí | cf25e7fd | sí | — |
 | `procesamiento/validacion/explorar` | pestana | Explorar respuestas | no; usa `nodo:` | 0d982e69 | sí | — |
 | `procesamiento/validacion/instrumento` | pestana | Reglas del formulario | no; usa `nodo:` | be600079 | sí | — |
