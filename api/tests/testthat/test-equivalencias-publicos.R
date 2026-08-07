@@ -163,21 +163,17 @@ test_that("la plantilla sale poblada con las variables y etiquetas de cada base"
   )
   df <- .equiv_plantilla_df(inst)
 
-  # ADR 0064: `enunciado` viaja junto a la diapositiva. Sin esa columna, reexportar
-  # una declaración perdería el texto que titula la diapositiva.
-  expect_setequal(
-    names(df),
-    c("origen", "seccion", "diapositiva", "enunciado", "etiqueta_estandar",
-      "docentes", "docentes_etiqueta", "estudiantes", "estudiantes_etiqueta")
-  )
-  # Una fila por variable de cada base: la app NO adivina qué se empareja con qué.
-  expect_equal(nrow(df), 3L)
-  expect_equal(sum(nzchar(df$docentes)), 2L)
-  expect_equal(sum(nzchar(df$estudiantes)), 1L)
-  # La etiqueta por base viaja como ayuda de lectura, poblada por la app.
-  expect_equal(df$docentes_etiqueta[df$docentes == "p13_1"], "Servicio de salud")
-  # La etiqueta estándar es lo único que el analista escribe: llega vacía.
-  expect_true(all(!nzchar(df$etiqueta_estandar)))
+  # El nucleo primero: seccion, etiqueta estandar y una columna por publico.
+  # Detras las dos del plan del informe, opcionales al leer. Las columnas de
+  # ayuda por base ya no estan: salieron a la hoja de consulta, donde dan la
+  # misma ayuda sin doblar el ancho de la hoja donde se escribe.
+  expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes", "estudiantes",
+                            "diapositiva", "enunciado"))
+  # Sin nada declarado, la plantilla sale SIN filas. Antes volcaba una por cada
+  # variable de cada base —300 en el estudio medido—, cada una con su codigo en
+  # una sola columna: una escalera diagonal que habia que cortar y pegar para
+  # emparejar, y que enterraba lo que si hay que decidir.
+  expect_equal(nrow(df), 0L)
 })
 
 test_that("reabrir la plantilla conserva lo ya declarado y sólo añade lo pendiente", {
@@ -196,12 +192,9 @@ test_that("reabrir la plantilla conserva lo ya declarado y sólo añade lo pendi
   expect_equal(df$etiqueta_estandar[1], "¿Conoce el Servicio de salud?")
   expect_equal(df$docentes[1], "p13_1")
   expect_equal(df$estudiantes[1], "p11_1")
-  expect_equal(df$docentes_etiqueta[1], "Servicio de salud")
 
-  # Y las dos que faltan aparecen sin emparejar, una por base.
-  expect_equal(nrow(df), 3L)
-  expect_setequal(df$docentes[-1], c("p14_1", ""))
-  expect_setequal(df$estudiantes[-1], c("p12_1", ""))
+  # Y nada mas: lo que el estudio no declara no ocupa una fila.
+  expect_equal(nrow(df), 1L)
 })
 
 test_that("la plantilla vuelve a entrar por el importador sin perder nada", {
@@ -224,14 +217,13 @@ test_that("la plantilla vuelve a entrar por el importador sin perder nada", {
   expect_equal(vuelta$filas[[1]]$seccion, "Servicios")
 })
 
-test_that("la columna de etiqueta por base no se confunde con la de la base", {
+test_that("una plantilla sin filas se rechaza con un error explicito", {
+  # La plantilla de un estudio que no declara nada sale con encabezados y sin
+  # filas. Subirla tal cual no declara nada, y decirlo es mejor que aceptar una
+  # declaracion vacia que borraria la anterior en silencio.
   inst <- list(docentes = .eqp_inst(c("p13_1"), c("Servicio de salud")))
-  df <- .equiv_plantilla_df(inst)
-  vuelta <- .equiv_desde_df(df, "docentes")
-  # `docentes_etiqueta` contiene texto, no un nombre de variable. Si el
-  # importador la tomara como columna de base, la declaración traería basura.
-  expect_equal(vuelta$filas[[1]]$variables$docentes, "p13_1")
-  expect_equal(length(vuelta$filas[[1]]$variables), 1L)
+  expect_error(.equiv_desde_df(.equiv_plantilla_df(inst), "docentes"),
+               class = "api_error")
 })
 
 # --- Diapositiva y sugerencias (enmienda del editor, ADR 0062) ---------------
@@ -475,44 +467,57 @@ test_that("la caja de las opciones no cuenta como escala distinta", {
 
 # --- ADR 0064: la plantilla sembrada y el efecto de una propuesta -------------
 
-test_that("la plantilla sale sembrada y marca lo propuesto en su columna", {
+test_that("la plantilla no se siembra: en seis columnas una propuesta no se distingue", {
   inst <- list(
     docentes = .eqp_inst(c("p13_1", "p14_1"), c("Servicio de salud", "Servicio de salud")),
     estudiantes = .eqp_inst(c("p11_1", "p12_1"), c("Servicio de salud", "Servicio de salud"))
   )
-  df <- .equiv_plantilla_df(inst, propuestas = .equiv_sugerir(inst))
+  df <- .equiv_plantilla_df(inst)
 
-  # Dos filas emparejadas en vez de cuatro sueltas: es lo que la siembra aporta.
-  expect_equal(nrow(df), 2L)
-  expect_true(all(df$origen == .EQUIV_ORIGEN_PROPUESTA))
-  expect_true(all(nzchar(df$docentes)))
-  expect_true(all(nzchar(df$estudiantes)))
-
-  # Y vuelve marcada: el viaje por el Excel no convierte la propuesta en decision.
-  equiv <- .equiv_desde_df(df, c("docentes", "estudiantes"))
-  expect_equal(equiv$n_sugeridas, 2L)
-  expect_true(isTRUE(equiv$filas[[1]]$sugerida))
+  # El motor SABE emparejarlas —lo hace en el editor— pero en estas columnas no hay
+  # donde marcar que eso es una propuesta, y volveria como decision al importarla.
+  expect_equal(nrow(df), 0L)
+  expect_false("origen" %in% names(df))
 })
 
-test_that("una propuesta ya declarada no se vuelve a sembrar", {
+test_that("las columnas del plan van al final y son opcionales al leer", {
+  inst <- list(docentes = .eqp_inst(c("p13_1"), c("Salud")))
+
+  # Se emiten SIEMPRE y detras del nucleo: emitirlas solo cuando ya tienen datos
+  # dejaba al analista sin la columna justo cuando quiere empezar a repartir
+  # diapositivas desde el Excel.
+  df <- .equiv_plantilla_df(inst)
+  expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes",
+                            "diapositiva", "enunciado"))
+
+  # Y un archivo que no las trae importa igual: son opcionales.
+  minima <- data.frame(seccion = "1.2 Servicios", etiqueta_estandar = "Salud",
+                       docentes = "p13_1", stringsAsFactors = FALSE)
+  equiv <- .equiv_desde_df(minima, c("docentes"))
+  expect_equal(equiv$n_filas, 1L)
+  expect_equal(equiv$filas[[1]]$diapositiva, "")
+  expect_equal(equiv$filas[[1]]$enunciado, "")
+
+  # Lo declarado en ellas sobrevive a reexportar.
+  con_plan <- list(filas = list(list(
+    seccion = "", etiqueta_estandar = "Salud", diapositiva = "3",
+    enunciado = "¿Conoce los siguientes servicios?",
+    variables = list(docentes = "p13_1"), cantidad = 1L)))
+  df2 <- .equiv_plantilla_df(inst, equiv = con_plan)
+  expect_equal(df2$diapositiva[1], "3")
+  expect_equal(df2$enunciado[1], "¿Conoce los siguientes servicios?")
+})
+
+test_that("el catalogo de variables sale aparte, no en la hoja de trabajo", {
   inst <- list(
-    docentes = .eqp_inst(c("p13_1", "p14_1"), c("Servicio de salud", "Servicio de salud")),
-    estudiantes = .eqp_inst(c("p11_1", "p12_1"), c("Servicio de salud", "Servicio de salud"))
+    docentes = .eqp_inst(c("p13_1", "p14_1"), c("Salud", "Bienestar")),
+    estudiantes = .eqp_inst(c("p11_1"), c("Salud"))
   )
-  ya <- list(filas = list(list(
-    seccion = "", etiqueta_estandar = "Salud", diapositiva = "3", enunciado = "",
-    variables = list(docentes = "p13_1", estudiantes = "p11_1"), cantidad = 2L)))
+  cat <- .equiv_catalogo_df(inst)
 
-  df <- .equiv_plantilla_df(inst, equiv = ya, propuestas = .equiv_sugerir(inst))
-
-  # La declarada primero y sin marca; la propuesta que la tocaba se descarta
-  # ENTERA, no a medias — el mismo invariante que rige en el editor.
-  expect_equal(df$origen[1], "")
-  expect_equal(df$etiqueta_estandar[1], "Salud")
-  expect_equal(sum(df$docentes == "p13_1"), 1L)
-  # Y ninguna variable se emite dos veces.
-  expect_equal(sum(nzchar(df$docentes)), 2L)
-  expect_equal(sum(nzchar(df$estudiantes)), 2L)
+  expect_equal(names(cat), c("base", "variable", "etiqueta"))
+  expect_equal(nrow(cat), 3L)
+  expect_equal(cat$etiqueta[cat$variable == "p14_1"], "Bienestar")
 })
 
 test_that("una propuesta sin confirmar no escribe etiquetas", {

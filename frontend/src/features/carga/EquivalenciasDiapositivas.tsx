@@ -16,7 +16,7 @@
 // La lógica (agrupar, escalas, invariantes) vive en `equivalenciasEditorModel`;
 // aquí sólo hay render y eventos.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Info, Layers, Plus, Sparkles, Trash2 } from "../../vendor/lucide-react";
 import type { VariableDeBase } from "../../api/equivalencias";
 import type { CampoFila, CatalogoEscalas, FilaEditor, DiapositivaEditor } from "./equivalenciasEditorModel";
@@ -51,12 +51,95 @@ function listar(bases: readonly string[]): string {
 }
 
 
-/** Celda de variable. El `<select>` sólo se monta al editar: con 153 temas por
- *  4 públicos, montarlos todos mete decenas de miles de `<option>` en el DOM y
- *  la pestaña tarda en responder al primer clic. */
+/**
+ * Campo que sólo se ve cuando dice algo. Vacío es una acción discreta —«Añadir
+ * enunciado»— y no un recuadro esperando texto.
+ *
+ * La diferencia importa a escala: con 44 diapositivas sin enunciado, la vista
+ * eran 44 recuadros vacíos con el mismo texto gris repetido, y la columna de
+ * diapositiva eran 157 celdas diciendo «—». Nada de eso informaba de nada, y
+ * tapaba lo que sí: la etiqueta y los códigos por público.
+ *
+ * Alcanzable siempre: un clic —o el foco de teclado— lo convierte en input.
+ */
+function CampoEditable({
+  valor,
+  vacio,
+  onCambiar,
+  className,
+  etiqueta,
+}: {
+  valor: string;
+  vacio: string;
+  onCambiar: (v: string) => void;
+  className: string;
+  etiqueta: string;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [borrador, setBorrador] = useState(valor);
+
+  // El valor puede cambiar por fuera —editar el enunciado de la diapositiva lo
+  // escribe en todas sus filas— y el borrador tiene que seguirlo mientras no se
+  // esté editando aquí.
+  useEffect(() => {
+    if (!editando) setBorrador(valor);
+  }, [valor, editando]);
+
+  if (!editando) {
+    return (
+      <button
+        type="button"
+        className={valor ? className : `${className} is-vacio`}
+        aria-label={etiqueta}
+        onClick={() => setEditando(true)}
+      >
+        {valor || vacio}
+      </button>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      className={className}
+      value={borrador}
+      aria-label={etiqueta}
+      onChange={(e) => setBorrador(e.target.value)}
+      onBlur={() => {
+        setEditando(false);
+        if (borrador !== valor) onCambiar(borrador);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setBorrador(valor);
+          setEditando(false);
+        }
+      }}
+    />
+  );
+}
+
+/**
+ * Celda de variable. Escribe para buscar en vez de recorrer la lista.
+ *
+ * Era un `<select>` con las 102 variables de la base: para poner `p13_1` había
+ * que reconocerla entre cien hermanas ordenadas por el formulario. Ahora es un
+ * campo con `list=`, que filtra por código o por etiqueta mientras escribes —el
+ * mismo gesto que el desplegable del Excel, y por el mismo motivo.
+ *
+ * El `<datalist>` se monta UNA vez por base y lo comparten todas las celdas: con
+ * 153 temas por 4 públicos, montar uno por celda serían decenas de miles de
+ * `<option>` y la pestaña tardaría en responder al primer clic.
+ *
+ * Sólo se acepta un código que exista en esa base. Un código de otro público
+ * escrito aquí es el error que ninguna validación posterior distingue bien de
+ * una decisión, porque `p13_1` existe en las cuatro y significa cosas distintas.
+ */
 function CeldaVariable({
   valor,
   opciones,
+  listaId,
   activa,
   onActivar,
   onCerrar,
@@ -65,12 +148,19 @@ function CeldaVariable({
 }: {
   valor: string;
   opciones: VariableDeBase[];
+  listaId: string;
   activa: boolean;
   onActivar: () => void;
   onCerrar: () => void;
   onElegir: (v: string) => void;
   etiqueta: string;
 }) {
+  const [borrador, setBorrador] = useState(valor);
+
+  useEffect(() => {
+    if (activa) setBorrador(valor);
+  }, [activa, valor]);
+
   if (!activa) {
     return (
       <button
@@ -83,24 +173,45 @@ function CeldaVariable({
       </button>
     );
   }
+
+  const confirmar = () => {
+    const limpio = borrador.trim();
+    // Vaciar la celda es una decisión válida —esta pregunta no existe en este
+    // público— y por eso el vacío se acepta igual que un código.
+    if (!limpio) {
+      if (valor) onElegir("");
+      onCerrar();
+      return;
+    }
+    if (opciones.some((v) => v.name === limpio)) {
+      if (limpio !== valor) onElegir(limpio);
+      onCerrar();
+      return;
+    }
+    // Lo que no existe en esta base no entra: se descarta y la celda vuelve a lo
+    // que decía.
+    setBorrador(valor);
+    onCerrar();
+  };
+
   return (
-    <select
+    <input
       autoFocus
-      value={valor}
+      list={listaId}
+      className="pulso-equiv-var-input"
+      value={borrador}
+      placeholder="buscar…"
       aria-label={etiqueta}
-      onBlur={onCerrar}
-      onChange={(e) => {
-        onElegir(e.target.value);
-        onCerrar();
+      onChange={(e) => setBorrador(e.target.value)}
+      onBlur={confirmar}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setBorrador(valor);
+          onCerrar();
+        }
       }}
-    >
-      <option value="">—</option>
-      {opciones.map((v) => (
-        <option key={v.name} value={v.name}>
-          {v.name} · {v.label.slice(0, 70)}
-        </option>
-      ))}
-    </select>
+    />
   );
 }
 
@@ -120,6 +231,18 @@ export function EquivalenciasDiapositivas({
 
   return (
     <div className="pulso-equiv-diapositivas">
+      {/* Un `datalist` por base, compartido por todas sus celdas. Montarlo por
+          celda serían decenas de miles de `<option>` en el DOM. */}
+      {bases.map((base) => (
+        <datalist key={base} id={`pulso-equiv-vars-${base}`}>
+          {(variablesPorBase[base] ?? []).map((v) => (
+            <option key={v.name} value={v.name}>
+              {v.label.slice(0, 80)}
+            </option>
+          ))}
+        </datalist>
+      ))}
+
       {diapositivas.map((diapo) => {
         const sinDiapositiva = diapo.clave === "";
         return (
@@ -145,12 +268,12 @@ export function EquivalenciasDiapositivas({
                     no entran al mazo. Escríbeles una diapositiva para agruparlos.
                   </p>
                 ) : (
-                  <input
+                  <CampoEditable
                     className="pulso-equiv-enunciado"
-                    value={diapo.enunciado}
-                    placeholder="¿Qué pregunta hace esta diapositiva? — será su título"
-                    aria-label={`Enunciado de la diapositiva ${diapo.clave}`}
-                    onChange={(e) => onEditarDiapositiva(diapo.clave, "enunciado", e.target.value)}
+                    valor={diapo.enunciado}
+                    vacio="Añadir enunciado"
+                    etiqueta={`Enunciado de la diapositiva ${diapo.clave} — será su título`}
+                    onCambiar={(v) => onEditarDiapositiva(diapo.clave, "enunciado", v)}
                   />
                 )}
                 {diapo.seccion && <span className="pulso-equiv-seccion">{diapo.seccion}</span>}
@@ -273,6 +396,7 @@ export function EquivalenciasDiapositivas({
                           <CeldaVariable
                             valor={fila.variables[base] ?? ""}
                             opciones={variablesPorBase[base] ?? []}
+                            listaId={`pulso-equiv-vars-${base}`}
                             activa={editando?.filaId === fila.id && editando?.base === base}
                             onActivar={() => setEditando({ filaId: fila.id, base })}
                             onCerrar={() => setEditando(null)}
@@ -305,12 +429,12 @@ export function EquivalenciasDiapositivas({
                       </td>
 
                       <td className="pulso-equiv-col-diapo">
-                        <input
+                        <CampoEditable
                           className="pulso-equiv-input-diapo"
-                          value={fila.diapositiva ?? ""}
-                          placeholder="—"
-                          aria-label={`Mover ${fila.etiqueta_estandar || "el tema"} a otra diapositiva`}
-                          onChange={(e) => onEditarFila(fila.id, "diapositiva", e.target.value)}
+                          valor={fila.diapositiva ?? ""}
+                          vacio="—"
+                          etiqueta={`Mover ${fila.etiqueta_estandar || "el tema"} a otra diapositiva`}
+                          onCambiar={(v) => onEditarFila(fila.id, "diapositiva", v)}
                         />
                       </td>
 

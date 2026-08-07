@@ -11,7 +11,7 @@
 
 .pulso-equiv-head {
   display: flex;
-  align-temas: flex-start;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--pulso-space-3);
   flex-wrap: wrap;
@@ -19,7 +19,7 @@
 
 .pulso-equiv-title {
   display: flex;
-  align-temas: flex-start;
+  align-items: flex-start;
   gap: var(--pulso-space-2);
   color: var(--pulso-module-processing);
   min-width: 0;
@@ -46,7 +46,7 @@
 
 .pulso-equiv-actions {
   display: flex;
-  align-temas: center;
+  align-items: center;
   gap: var(--pulso-space-2);
   flex-shrink: 0;
 }
@@ -56,7 +56,7 @@
    captura y ninguna metrica. */
 .pulso-equiv-btn {
   display: inline-flex;
-  align-temas: center;
+  align-items: center;
   gap: var(--pulso-space-2);
 }
 
@@ -148,7 +148,7 @@
    ella comparten caja; la diferencia se resuelve dentro. */
 .pulso-equiv-resumen > li {
   display: flex;
-  align-temas: flex-start;
+  align-items: flex-start;
   gap: var(--pulso-space-2);
   min-height: 52px;
   padding: var(--pulso-space-2) var(--pulso-space-3);
@@ -171,7 +171,7 @@
 
 .pulso-equiv-resumen-estado {
   display: inline-flex;
-  align-temas: center;
+  align-items: center;
   padding-top: 1px;
   flex-shrink: 0;
 }
@@ -260,7 +260,7 @@
 
 .pulso-equiv-celda-etiqueta {
   display: flex;
-  align-temas: center;
+  align-items: center;
   gap: var(--pulso-space-1);
   min-width: 0;
 }
@@ -270,7 +270,7 @@
    igual, que es exactamente lo que el ADR 0062 prohibe. */
 .pulso-equiv-chip-sugerida {
   display: inline-flex;
-  align-temas: center;
+  align-items: center;
   gap: 3px;
   flex-shrink: 0;
   padding: 1px 6px;
@@ -294,17 +294,38 @@
   color: var(--pulso-text);
 }
 
-.pulso-equiv-input-diapo { text-align: center; }
+/* La celda de diapositiva es un boton hasta que se edita, igual que la de
+   variable: 157 recuadros diciendo «—» no informaban de nada. */
+.pulso-equiv-input-diapo {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--pulso-radius-chip);
+  background: transparent;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+button.pulso-equiv-input-diapo:hover,
+.pulso-equiv-input-diapo:focus {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+
+.pulso-equiv-input-diapo.is-vacio { color: var(--pulso-text-faint); }
 
 .pulso-equiv-acciones-fila {
   display: flex;
-  align-temas: center;
+  align-items: center;
   gap: 2px;
 }
 
 .pulso-equiv-pie-editor {
   display: flex;
-  align-temas: center;
+  align-items: center;
   justify-content: space-between;
   gap: var(--pulso-space-3);
   flex-wrap: wrap;
@@ -320,7 +341,7 @@
 
 .pulso-equiv-vistas {
   display: flex;
-  align-temas: center;
+  align-items: center;
   gap: var(--pulso-space-1);
   font-size: 12px;
 }
@@ -377,14 +398,14 @@
 
 .pulso-equiv-diapositiva-head {
   display: flex;
-  align-temas: flex-start;
+  align-items: flex-start;
   gap: var(--pulso-space-3);
   min-width: 0;
 }
 
 .pulso-equiv-diapositiva-id {
   display: inline-flex;
-  align-temas: center;
+  align-items: center;
   gap: 5px;
   flex-shrink: 0;
   min-width: 78px;
@@ -405,7 +426,11 @@
   min-width: 0;
 }
 
-/* El enunciado es el titulo de la diapositiva: se escribe donde se lee. */
+/* El enunciado es el titulo de la diapositiva: se escribe donde se lee.
+
+   Vacio NO es un recuadro esperando texto sino una accion discreta. Con 44
+   diapositivas sin enunciado, la vista eran 44 recuadros grises identicos que
+   tapaban lo unico que si informa: la etiqueta y los codigos por publico. */
 .pulso-equiv-enunciado {
   width: 100%;
   min-width: 0;
@@ -416,6 +441,11 @@
   color: var(--pulso-text);
   font-size: 14px;
   font-weight: 600;
+  text-align: left;
+  /* La regla global de `button` en la casa es `display: flex` centrado, asi que
+     `text-align` no basta: el enunciado y su accion vacia se alineaban al medio
+     de la tarjeta como si fueran un titulo de portada. */
+  justify-content: flex-start;
 }
 
 .pulso-equiv-enunciado:hover,
@@ -424,9 +454,16 @@
   background: var(--pulso-surface-2);
 }
 
-.pulso-equiv-enunciado::placeholder {
+/* La accion se ve como accion —mas pequena y en el tono del modulo— y no como un
+   enunciado que alguien escribio en gris. */
+.pulso-equiv-enunciado.is-vacio {
+  font-size: 12px;
   font-weight: 500;
   color: var(--pulso-text-faint);
+}
+
+.pulso-equiv-enunciado.is-vacio:hover {
+  color: var(--pulso-module-processing);
 }
 
 .pulso-equiv-seccion,
@@ -439,7 +476,7 @@
 
 .pulso-equiv-diapositiva-meta {
   display: flex;
-  align-temas: center;
+  align-items: center;
   gap: var(--pulso-space-2);
   flex-shrink: 0;
   font-size: 11px;
@@ -572,7 +609,7 @@ button.pulso-equiv-chip-escala:hover,
    como una pastilla deformada. */
 .pulso-equiv-aviso-caja {
   display: flex;
-  align-temas: flex-start;
+  align-items: flex-start;
   gap: var(--pulso-space-2);
   margin: 0;
   padding: var(--pulso-space-2);
@@ -607,7 +644,7 @@ button.pulso-equiv-chip-escala:hover,
 
 .pulso-equiv-avisos li {
   display: flex;
-  align-temas: flex-start;
+  align-items: flex-start;
   gap: 5px;
 }
 
@@ -683,7 +720,7 @@ button.pulso-equiv-chip-escala:hover,
 /* Puntos en posicion fija por publico: «3/4» dice cuantos faltan y nunca cual. */
 .pulso-equiv-dots {
   display: inline-flex;
-  align-temas: center;
+  align-items: center;
   gap: 3px;
 }
 
@@ -702,7 +739,7 @@ button.pulso-equiv-chip-escala:hover,
 .pulso-equiv-add-tema {
   align-self: flex-start;
   display: inline-flex;
-  align-temas: center;
+  align-items: center;
   gap: 4px;
   padding: 2px 8px;
   border: 1px dashed var(--pulso-border);
@@ -724,7 +761,7 @@ button.pulso-equiv-chip-escala:hover,
    como acciones del mismo rango. */
 .pulso-equiv-accion-masiva {
   display: inline-flex;
-  align-temas: center;
+  align-items: center;
   gap: 5px;
   padding: 3px 10px;
   border: 1px solid var(--pulso-border);
@@ -741,3 +778,25 @@ button.pulso-equiv-chip-escala:hover,
 }
 
 .pulso-equiv-accion-masiva svg { color: var(--pulso-module-processing); }
+
+/* La celda de variable en modo busqueda. Escribes y el navegador filtra por
+   codigo o por etiqueta contra el `datalist` de SU base: el mismo gesto que el
+   desplegable del Excel, y por el mismo motivo — reconocer `p13_1` entre cien
+   hermanas ordenadas por el formulario no es una tarea que se le pueda pedir a
+   nadie. */
+.pulso-equiv-var-input {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--pulso-module-processing);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pulso-equiv-var-input::placeholder {
+  color: var(--pulso-text-faint);
+  font-variant-numeric: normal;
+}

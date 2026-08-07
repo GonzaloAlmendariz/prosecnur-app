@@ -147,11 +147,8 @@
     stop_api(500, "E_EQUIV_SIN_OPENXLSX", "El paquete R 'openxlsx' no está instalado.")
   }
   inst_por_base <- .equiv_inst_por_base(sid)
-  # ADR 0064: la plantilla sale sembrada con los emparejados propuestos, marcados
-  # en la columna `origen`. Es lo que evita que la via del Excel entregue 300
-  # filas sueltas cuando el motor ya sabe emparejar la mayoria.
-  df <- .equiv_plantilla_df(inst_por_base, .equiv_get(sid),
-                            propuestas = .equiv_sugerir(inst_por_base))
+  df <- .equiv_plantilla_df(inst_por_base, .equiv_get(sid))
+  catalogo <- .equiv_catalogo_df(inst_por_base)
 
   s <- session_get(sid)
   dir_out <- file.path(s$dir, "downloads")
@@ -162,21 +159,52 @@
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, .EQUIV_HOJA_PLANTILLA)
   openxlsx::writeData(wb, .EQUIV_HOJA_PLANTILLA, df, withFilter = nrow(df) > 0L)
-  # Las columnas `*_etiqueta` son ayuda de lectura y no entran a la declaración;
-  # se marcan en gris para que se vean como lo que son y nadie las edite creyendo
-  # que cambian algo.
-  gris <- openxlsx::createStyle(fontColour = "#5F6368", textDecoration = "italic")
-  cols_ayuda <- which(grepl(paste0(.EQUIV_SUFIJO_ETIQUETA, "$"), names(df)))
-  if (length(cols_ayuda) && nrow(df) > 0L) {
-    openxlsx::addStyle(wb, .EQUIV_HOJA_PLANTILLA, gris,
-                       rows = seq_len(nrow(df)) + 1L, cols = cols_ayuda,
-                       gridExpand = TRUE, stack = TRUE)
-  }
   cabecera <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#E8EAED")
   openxlsx::addStyle(wb, .EQUIV_HOJA_PLANTILLA, cabecera, rows = 1L,
                      cols = seq_along(df), gridExpand = TRUE, stack = TRUE)
   openxlsx::freezePane(wb, .EQUIV_HOJA_PLANTILLA, firstRow = TRUE)
   openxlsx::setColWidths(wb, .EQUIV_HOJA_PLANTILLA, cols = seq_along(df), widths = "auto")
+
+  # Hoja de consulta. Reemplaza a las columnas `<base>_etiqueta`, que doblaban el
+  # ancho de la hoja donde se escribe para dar una ayuda —reconocer que `p13_1`
+  # es «Servicio de salud»— que no declara nada. Aqui esta la misma ayuda, fuera
+  # del sitio de trabajo. El importador ignora esta hoja.
+  if (nrow(catalogo)) {
+    openxlsx::addWorksheet(wb, .EQUIV_HOJA_CATALOGO)
+    openxlsx::writeData(wb, .EQUIV_HOJA_CATALOGO, catalogo, withFilter = TRUE)
+    openxlsx::addStyle(wb, .EQUIV_HOJA_CATALOGO, cabecera, rows = 1L,
+                       cols = seq_along(catalogo), gridExpand = TRUE, stack = TRUE)
+    openxlsx::freezePane(wb, .EQUIV_HOJA_CATALOGO, firstRow = TRUE)
+    openxlsx::setColWidths(wb, .EQUIV_HOJA_CATALOGO, cols = seq_along(catalogo),
+                           widths = "auto")
+
+    # Un desplegable por columna de publico, con SUS variables y solo las suyas.
+    #
+    # Sin esto, llenar la hoja era ir al catalogo, buscar el codigo y copiarlo a
+    # mano; con 300 variables eso es el mismo trabajo que la hoja venia a evitar.
+    # Y ademas impide el error que ninguna validacion posterior atrapa bien:
+    # escribir en la columna de un publico una variable que pertenece a otro.
+    #
+    # El rango se CALCULA del catalogo, que ya viene agrupado por base. Nada de
+    # nombres de rango ni de listas fijas: un estudio de tres bases o de seis
+    # produce sus tres o seis desplegables sin tocar una linea.
+    filas_validacion <- max(nrow(df), 1L) + 500L
+    for (b in names(inst_por_base)) {
+      col <- which(names(df) == b)
+      if (!length(col)) next
+      pos <- which(catalogo$base == b)
+      if (!length(pos)) next
+      rango <- sprintf("'%s'!$B$%d:$B$%d", .EQUIV_HOJA_CATALOGO,
+                       min(pos) + 1L, max(pos) + 1L)
+      # Se extiende bastante por debajo de la ultima fila para que el analista
+      # siga teniendo el desplegable en las que anada, que es el caso normal
+      # cuando la plantilla sale vacia.
+      openxlsx::dataValidation(wb, .EQUIV_HOJA_PLANTILLA,
+                               cols = col[1], rows = 2L:filas_validacion,
+                               type = "list", value = rango,
+                               allowBlank = TRUE, showErrorMsg = FALSE)
+    }
+  }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
 
   .register_output_file(sid, "equivalencias_plantilla", path)

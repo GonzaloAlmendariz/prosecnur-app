@@ -326,6 +326,12 @@
 # confirmarse.
 
 .EQUIV_HOJA_PLANTILLA <- "Equivalencias"
+# Hoja de consulta con el catalogo de variables por base. El importador la ignora:
+# solo lee la hoja de la declaracion.
+.EQUIV_HOJA_CATALOGO <- "Variables"
+# Hoja de consulta con el catalogo de variables por base. El importador la ignora:
+# solo se lee la hoja de la declaracion.
+.EQUIV_HOJA_CATALOGO <- "Variables"
 
 # Variables reales de un instrumento, con su etiqueta, en el orden del formulario.
 .equiv_variables_de_base <- function(inst) {
@@ -352,56 +358,46 @@
 
 # Data frame de la plantilla. Separado del escritor de xlsx para poder probar la
 # forma sin depender de openxlsx.
-.equiv_plantilla_df <- function(inst_por_base, equiv = NULL, propuestas = NULL) {
+.equiv_plantilla_df <- function(inst_por_base, equiv = NULL) {
   bases <- names(inst_por_base %||% list())
   if (!length(bases)) {
     stop_api(400, "E_EQUIV_SIN_BASES",
              "El estudio no declara bases con las que armar la plantilla.")
   }
 
+  declaradas <- (equiv %||% list())$filas %||% list()
+
+  # El NUCLEO —seccion, etiqueta estandar y una columna por publico— es lo que
+  # declara la equivalencia y va primero. Detras, el plan del informe.
+  #
+  # Las dos del plan son OPCIONALES al leer: un archivo sin ellas importa igual.
+  # Pero se emiten siempre, y vacias si hace falta: emitirlas solo cuando ya
+  # tienen datos dejaba al analista sin la columna justo cuando quiere empezar a
+  # repartir diapositivas desde el Excel.
+  extras <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO)
+
   cols <- list()
-  cols[[.EQUIV_COL_ORIGEN]] <- character(0)
   cols[[.EQUIV_COL_SECCION]] <- character(0)
-  cols[[.EQUIV_COL_DIAPOSITIVA]] <- character(0)
-  # El enunciado se emite junto a la diapositiva, no al final: son el par que la
-  # describe, y separarlos obligaría a leer el Excel de izquierda a derecha dos
-  # veces. Sin esta columna la ida y vuelta perdería el texto al reexportar.
-  cols[[.EQUIV_COL_ENUNCIADO]] <- character(0)
   cols[[.EQUIV_COL_ETIQUETA]] <- character(0)
-  for (b in bases) {
-    cols[[b]] <- character(0)
-    cols[[paste0(b, .EQUIV_SUFIJO_ETIQUETA)]] <- character(0)
-  }
+  for (b in bases) cols[[b]] <- character(0)
+  for (e in extras) cols[[e]] <- character(0)
 
   filas <- list()
-
-  # 1) Lo ya declarado se emite primero y en su orden: reabrir la plantilla no
-  #    puede desordenar el trabajo hecho ni obligar a rehacerlo.
   ya_mapeadas <- stats::setNames(vector("list", length(bases)), bases)
-  # El catálogo por base se resuelve UNA vez. Antes se recalculaba dentro del
-  # bucle de filas y por cada base: sobre el estudio medido eran 152 x 4 lecturas
-  # completas del instrumento para emitir un archivo.
+  # El catalogo por base se resuelve UNA vez: dentro del bucle de filas eran
+  # 152 x 4 lecturas completas del instrumento para emitir un archivo.
   vars_por_base <- lapply(inst_por_base, .equiv_variables_de_base)
 
-  emitir <- function(f, origen) {
+  emitir <- function(f) {
     fila <- list()
-    fila[[.EQUIV_COL_ORIGEN]] <- origen
     fila[[.EQUIV_COL_SECCION]] <- as.character(f$seccion %||% "")
-    fila[[.EQUIV_COL_DIAPOSITIVA]] <- as.character(f$diapositiva %||% "")
-    fila[[.EQUIV_COL_ENUNCIADO]] <- as.character(f$enunciado %||% "")
     fila[[.EQUIV_COL_ETIQUETA]] <- as.character(f$etiqueta_estandar %||% "")
     for (b in bases) {
       v <- as.character((f$variables %||% list())[[b]] %||% "")
       fila[[b]] <- v
-      lab <- ""
-      if (nzchar(v)) {
-        vars_b <- vars_por_base[[b]]
-        hit <- which(vars_b$name == v)
-        if (length(hit)) lab <- vars_b$label[hit[1]]
-        ya_mapeadas[[b]] <<- c(ya_mapeadas[[b]], v)
-      }
-      fila[[paste0(b, .EQUIV_SUFIJO_ETIQUETA)]] <- lab
+      if (nzchar(v)) ya_mapeadas[[b]] <<- c(ya_mapeadas[[b]], v)
     }
+    for (e in extras) fila[[e]] <- as.character(f[[e]] %||% "")
     filas[[length(filas) + 1L]] <<- fila
   }
 
@@ -409,75 +405,69 @@
   # estandar o si le asignaron diapositiva. Una fila con una sola variable, sin
   # etiqueta y sin diapositiva no declara nada: es la misma informacion que «esta
   # variable existe», que ya esta en el instrumento.
-  #
-  # La distincion no es cosmetica. El proyecto medido tenia guardada la plantilla
-  # vacia anterior —300 filas de una variable cada una—, asi que TODA propuesta
-  # chocaba contra ellas y la siembra salia con cero emparejados: la funcion
-  # nueva no hacia nada justo en el caso para el que se escribio.
   decide <- function(f) {
     length(f$variables %||% list()) > 1L ||
       nzchar(trimws(as.character(f$etiqueta_estandar %||% ""))) ||
       nzchar(trimws(as.character(f$diapositiva %||% "")))
   }
 
-  declaradas <- (equiv %||% list())$filas %||% list()
-  decididas <- Filter(decide, declaradas)
-  sueltas <- Filter(function(f) !decide(f), declaradas)
+  # 1) Lo decidido primero y en su orden: reabrir la plantilla no puede
+  #    desordenar el trabajo hecho ni obligar a rehacerlo.
+  for (f in Filter(decide, declaradas)) emitir(f)
 
-  for (f in decididas) {
-    emitir(f, if (isTRUE(f$sugerida)) .EQUIV_ORIGEN_PROPUESTA else "")
-  }
-
-  # 2) Los emparejados que el motor propone, marcados. Se descarta entera la
-  #    propuesta que toque una variable ya DECIDIDA: aceptarla a medias diria ser
-  #    la misma pregunta en tres publicos cuando solo dos estan decididos —el
-  #    mismo invariante que ya rige en el editor—. Una fila suelta si la absorbe:
-  #    no habia nada que perder en ella.
-  for (p in (propuestas %||% list())) {
-    vars_p <- p$variables %||% list()
-    choca <- any(vapply(names(vars_p), function(b) {
-      as.character(vars_p[[b]]) %in% (ya_mapeadas[[b]] %||% character(0))
-    }, logical(1)))
-    if (choca) next
-    emitir(p, .EQUIV_ORIGEN_PROPUESTA)
-  }
-
-  # 3) Las filas sueltas que ninguna propuesta absorbio, en su orden original.
-  for (f in sueltas) {
+  # 2) Lo declarado que no decide nada, en su orden original.
+  for (f in Filter(function(f) !decide(f), declaradas)) {
     vars_f <- f$variables %||% list()
-    absorbida <- any(vapply(names(vars_f), function(b) {
+    ya <- any(vapply(names(vars_f), function(b) {
       as.character(vars_f[[b]]) %in% (ya_mapeadas[[b]] %||% character(0))
     }, logical(1)))
-    if (absorbida) next
-    emitir(f, "")
+    if (ya) next
+    emitir(f)
   }
 
-  # 4) Lo que sigue sin aparecer, una fila por variable y por base. El analista
-  #    las junta moviendo celdas; la app no adivina cuáles son la misma pregunta.
-  for (b in bases) {
-    vars_b <- vars_por_base[[b]]
-    pendientes <- vars_b[!vars_b$name %in% (ya_mapeadas[[b]] %||% character(0)), , drop = FALSE]
-    for (i in seq_len(nrow(pendientes))) {
-      fila <- list()
-      fila[[.EQUIV_COL_ORIGEN]] <- ""
-      fila[[.EQUIV_COL_SECCION]] <- pendientes$seccion[i]
-      fila[[.EQUIV_COL_DIAPOSITIVA]] <- ""
-      fila[[.EQUIV_COL_ENUNCIADO]] <- ""
-      fila[[.EQUIV_COL_ETIQUETA]] <- ""
-      for (b2 in bases) {
-        fila[[b2]] <- if (identical(b2, b)) pendientes$name[i] else ""
-        fila[[paste0(b2, .EQUIV_SUFIJO_ETIQUETA)]] <-
-          if (identical(b2, b)) pendientes$label[i] else ""
-      }
-      filas[[length(filas) + 1L]] <- fila
-    }
-  }
+  # Y NADA MAS. La plantilla lleva lo que el estudio declara; si no declara nada,
+  # sale con sus encabezados y sin filas.
+  #
+  # Antes volcaba una fila por CADA variable de cada base: 300 filas en el estudio
+  # medido, cada una con su codigo en una sola columna y las otras tres vacias.
+  # Visto en la hoja es una escalera diagonal, y emparejar exigia cortar y pegar
+  # filas hasta alinear los codigos. Ese volcado tampoco decia nada que el
+  # instrumento no dijera ya —y ahora lo dice la hoja `Variables`, que es donde se
+  # buscan los codigos—, asi que su unico efecto era enterrar lo que el analista
+  # si tiene que decidir debajo de 300 filas que nunca va a emparejar.
+  #
+  # Tampoco se siembra con los emparejados que el motor propone: en estas columnas
+  # una propuesta es indistinguible de una decision —no hay donde marcarla— y
+  # volveria como decidida al importarla, que es lo que el ADR 0062 prohibe.
+  # Emparejar con ayuda se hace en el editor, donde una propuesta se ve como tal.
 
   if (!length(filas)) {
     return(as.data.frame(cols, stringsAsFactors = FALSE, check.names = FALSE))
   }
   df <- do.call(rbind.data.frame, c(filas, list(stringsAsFactors = FALSE)))
   names(df) <- names(cols)
+  rownames(df) <- NULL
+  df
+}
+
+# Catalogo de variables por base, para la hoja de consulta. Es lo que reemplaza a
+# las columnas `<base>_etiqueta` que antes doblaban el ancho de la hoja de
+# trabajo: la misma ayuda —reconocer que `p13_1` es «Servicio de salud»— pero
+# fuera de donde se escribe.
+.equiv_catalogo_df <- function(inst_por_base) {
+  filas <- list()
+  for (b in names(inst_por_base %||% list())) {
+    vars <- .equiv_variables_de_base(inst_por_base[[b]])
+    for (i in seq_len(nrow(vars))) {
+      filas[[length(filas) + 1L]] <- list(base = b, variable = vars$name[i],
+                                          etiqueta = vars$label[i])
+    }
+  }
+  if (!length(filas)) {
+    return(data.frame(base = character(0), variable = character(0),
+                      etiqueta = character(0), stringsAsFactors = FALSE))
+  }
+  df <- do.call(rbind.data.frame, c(filas, list(stringsAsFactors = FALSE)))
   rownames(df) <- NULL
   df
 }
