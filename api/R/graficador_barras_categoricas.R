@@ -153,6 +153,7 @@ graficar_barras_categoricas <- function(
     formato_valor             = c("valor", "n", "porcentaje", "porcentaje_n", "valor_n"),
     mostrar_frecuencia        = FALSE,
     decimales                 = 0,
+    eje_y_porcentaje          = NULL,
     titulo                    = NULL,
     subtitulo                 = NULL,
     nota_pie                  = NULL,
@@ -333,10 +334,33 @@ graficar_barras_categoricas <- function(
   face_valores <- if ("valores" %in% textos_negrita) "bold" else "plain"
   face_nota <- if ("nota_pie" %in% textos_negrita) "bold" else "plain"
 
+  # H35 — cuando lo graficado es una proporcion, el eje Y tiene que leerse en
+  # porcentajes. El motor alimenta `var_valor = "pct"` con `modo_valor =
+  # "valor"`, asi que el eje visible mostraba 0.00–1.00 mientras las etiquetas
+  # de barra decian «45%»: dos escalas para el mismo dato en la misma lamina.
+  # Solo muerde con el eje encendido (el preset lo apaga de fabrica).
+  eje_y_es_pct <- if (!is.null(eje_y_porcentaje)) {
+    isTRUE(eje_y_porcentaje)
+  } else {
+    identical(modo_valor, "porcentaje") ||
+      (!is.null(var_valor) && !is.null(var_pct) && identical(var_valor, var_pct))
+  }
+
+  escala_y <- if (eje_y_es_pct) {
+    ggplot2::scale_y_continuous(
+      labels = function(z) .barras_categoricas_format_pct(z, decimales)
+    )
+  } else {
+    ggplot2::scale_y_continuous(
+      labels = function(z) .barras_categoricas_format_num(z, decimales)
+    )
+  }
+
   p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$x, y = .data$valor, fill = .data$categoria)) +
     ggplot2::geom_col(width = grosor_barras, color = NA) +
     ggplot2::scale_fill_manual(values = stats::setNames(df$fill, df$categoria), guide = "none") +
     ggplot2::scale_x_discrete(labels = stats::setNames(df$x_label, df$categoria)) +
+    escala_y +
     ggplot2::coord_cartesian(ylim = c(0, ymax), clip = "off") +
     ggplot2::labs(title = titulo, subtitle = subtitulo, caption = label_note, x = NULL, y = NULL) +
     ggplot2::theme_minimal(base_family = font_family) +

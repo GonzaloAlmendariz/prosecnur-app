@@ -682,7 +682,7 @@
       list(name = "promedio_label", label = "Etiqueta del promedio", tipo_input = "string", grupo = "valores",
            default = "Promedio"),
       list(name = "formato_valor", label = "Formato de etiquetas", tipo_input = "choice", grupo = "valores",
-           default = "porcentaje_n",
+           default = "porcentaje",
            choices = list(
              list(value = "valor", label = "Valor"),
              list(value = "n", label = "Frecuencia"),

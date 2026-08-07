@@ -30,6 +30,11 @@
 #' @param orientacion Orientacion del grafico: `"vertical"` o `"horizontal"`.
 #'
 #' @param formato_valor Formato de las etiquetas de valor: `"numero"` o `"moneda"`.
+#' @param formato_etiqueta Plantilla `sprintf` opcional aplicada a la etiqueta de
+#'   valor ya formateada. Con `"%s"` envuelve el numero de la casa conservando
+#'   sus separadores (`"S/ %s"` -> `"S/ 3.660,0"`); con una conversion numerica
+#'   (`"%.2f"`, `"%d"`, `"%e"`, `"%g"`) se aplica al valor crudo. Un formato
+#'   invalido se descarta y la etiqueta cae al formateo de la casa.
 #' @param decimales Numero de decimales a mostrar.
 #' @param simbolo_moneda Simbolo de moneda cuando `formato_valor = "moneda"`.
 #' @param separador_miles Separador de miles para el formateo numerico.
@@ -129,6 +134,7 @@ graficar_barras_numericas <- function(
     orden_categorias     = c("original", "nivel", "mayor_menor", "menor_mayor"),
 
     formato_valor        = c("numero", "moneda"),
+    formato_etiqueta     = NULL,
     decimales            = 1,
     simbolo_moneda       = "S/",
     separador_miles      = ".",
@@ -253,7 +259,11 @@ graficar_barras_numericas <- function(
   legend_is_top  <- identical(leyenda_posicion, "arriba")
   legend_is_side <- leyenda_posicion %in% c("derecha", "izquierda")
   if (is.null(color_texto_barras_interno)) color_texto_barras_interno <- color_texto_barras
-  if (is.null(color_texto_barras_externo)) color_texto_barras_externo <- color_texto_barras
+  # H38 — la etiqueta que cae FUERA de la barra vive sobre el lienzo, no sobre
+  # el relleno: heredar el color interno la volvia blanca sobre blanco cada vez
+  # que un preset pintaba el texto de barra en claro. El defecto de fabrica de
+  # ambos es "#000000", asi que esto no altera a quien no declara colores.
+  if (is.null(color_texto_barras_externo)) color_texto_barras_externo <- color_ejes
 
   if (!requireNamespace("ggplot2", quietly = TRUE) ||
       !requireNamespace("dplyr", quietly = TRUE) ||
@@ -360,6 +370,10 @@ graficar_barras_numericas <- function(
   # ---------------------------------------------------------------------------
   # 3) Etiquetas de VALOR (dentro/afuera)
   # ---------------------------------------------------------------------------
+  # Barras cuya etiqueta de valor termina FUERA: el N que va encima debe
+  # subirse para no escribirse sobre ella (H38).
+  claves_valor_fuera <- character()
+
   if (isTRUE(mostrar_valores)) {
 
     if (!requireNamespace("scales", quietly = TRUE)) {
@@ -387,9 +401,50 @@ graficar_barras_numericas <- function(
       )
     }
 
+    # Plantilla del analista sobre la etiqueta ya formateada. Dos lecturas
+    # legitimas conviven en la descripcion del arg: "S/ %s" envuelve el numero
+    # de la casa (y conserva sus separadores) y "%.1f" formatea el valor crudo.
+    # Se resuelve por la conversion presente; lo que sprintf rechace se
+    # descarta para que un formato mal escrito nunca mate la lamina.
+    if (!is.null(formato_etiqueta) &&
+        is.character(formato_etiqueta) &&
+        length(formato_etiqueta) == 1L &&
+        nzchar(trimws(formato_etiqueta))) {
+
+      fmt <- trimws(formato_etiqueta)
+      usa_numero <- grepl("%[-+ #0-9.]*[dioxXeEfgGa]", fmt)
+
+      aplicado <- tryCatch({
+        salida <- if (usa_numero) {
+          sprintf(fmt, df_lab$.valor)
+        } else {
+          sprintf(fmt, df_lab$lab)
+        }
+        if (length(salida) != nrow(df_lab) || anyNA(salida)) NULL else salida
+      }, error = function(e) NULL, warning = function(w) NULL)
+
+      if (!is.null(aplicado)) df_lab$lab <- aplicado
+    }
+
+    # H38 — dentro/fuera se decide por la PROPORCION de la barra respecto de la
+    # mas alta, no por el valor absoluto. Con datos proporcionales (0-1) el
+    # criterio coincide con el anterior, pero con magnitudes crudas (ingresos,
+    # montos, conteos) todo valor superaba el umbral y la etiqueta se dibujaba
+    # dentro de una barra de altura casi nula: en blanco sobre blanco, el grupo
+    # desaparecia de la lamina sin avisar.
+    df_lab$.share <- df_lab$.valor / max_valor
+
     df_lab$mostrar <- df_lab$.valor >= umbral_etiqueta
-    df_in  <- df_lab[df_lab$mostrar & df_lab$.valor >= umbral_interno, , drop = FALSE]
-    df_out <- df_lab[df_lab$mostrar & df_lab$.valor <  umbral_interno, , drop = FALSE]
+    df_in  <- df_lab[df_lab$mostrar & df_lab$.share >= umbral_interno, , drop = FALSE]
+    df_out <- df_lab[df_lab$mostrar & df_lab$.share <  umbral_interno, , drop = FALSE]
+
+    if (nrow(df_out)) {
+      claves_valor_fuera <- paste(
+        as.character(df_out[[var_categoria]]),
+        as.character(df_out$.serie),
+        sep = "\r"
+      )
+    }
 
     if (orientacion == "vertical") {
 
@@ -511,7 +566,12 @@ graficar_barras_numericas <- function(
       dplyr::left_join(df_n, by = var_categoria) |>
       dplyr::mutate(
         lab_n = paste0(prefijo_n_sobre_barras, format(.data[[var_n]], big.mark = ",", scientific = FALSE)),
-        y_n   = .valor_max + (max_valor * 0.06)
+        y_n   = .valor_max + (max_valor * dplyr::if_else(
+          paste(as.character(.data[[var_categoria]]), as.character(.data$.serie), sep = "\r") %in%
+            claves_valor_fuera,
+          0.13,
+          0.06
+        ))
       )
 
     p <- p +
@@ -769,6 +829,14 @@ graficar_barras_numericas <- function(
     }
   }
 
+  # Las etiquetas de valor ya formateadas quedan legibles desde fuera: con
+  # canvas viven dentro de grobs y `ggplot_build()` no las alcanza.
+  attr(p_final, "pulso_barras_numericas_labels") <- if (exists("df_lab", inherits = FALSE)) {
+    as.character(df_lab$lab)
+  } else {
+    character()
+  }
+
   # ---------------------------------------------------------------------------
   # 6) Exportacion (con p_final)
   # ---------------------------------------------------------------------------
@@ -858,8 +926,11 @@ graficar_histograma <- function(
     separador_resumen_grupos_subtitulo = " · ",
 
     mostrar_valores = TRUE,
-    mostrar_frecuencia = TRUE,
+    # Doctrina de la casa: en los modos de porcentaje la etiqueta lleva SOLO el
+    # porcentaje; el conteo es opt-in. En modo `conteo` este arg no interviene.
+    mostrar_frecuencia = FALSE,
     posicion_etiquetas = c("segmento", "cima", "ninguna"),
+    mostrar_n_intervalo = FALSE,
     etiqueta_cima_modo = c("conteos_grupo", "conteo_total", "porcentaje_conteos_grupo", "porcentaje_grupo_conteos_grupo"),
     etiqueta_cima_formato = c("lineal", "dos_lineas"),
     etiqueta_cima_orden_grupo = c("frecuencia_porcentaje", "porcentaje_frecuencia"),
@@ -1019,6 +1090,17 @@ graficar_histograma <- function(
     bins <- as.integer(bins %||% 8L)
     if (!is.finite(bins) || bins < 1L) bins <- 8L
     breaks <- seq(lo, hi, length.out = bins + 1L)
+
+    # H40 — sobre una variable entera (edad, hijos, años de estudio) los cortes
+    # fraccionarios de `length.out` producen intervalos que no existen y cuyo
+    # limite es ambiguo: «19-22.5» no dice donde cae quien tiene 22, y nadie
+    # tiene 22.5 años. `ancho_bin` ya rendia enteros; `bins` no. Se ajustan
+    # cuando el dato es entero, respetando el numero de intervalos pedido
+    # siempre que el rango alcance.
+    if (all(abs(d$.x - round(d$.x)) < 1e-8, na.rm = TRUE)) {
+      redondeados <- unique(round(breaks))
+      if (length(redondeados) >= 2L) breaks <- redondeados
+    }
   }
   breaks <- unique(breaks)
   if (length(breaks) < 2L) stop("No se pudieron construir intervalos para el histograma.", call. = FALSE)
@@ -1030,9 +1112,14 @@ graficar_histograma <- function(
   right <- identical(cerrar_intervalos, "derecha")
   lefts <- breaks[-length(breaks)]
   rights <- breaks[-1]
-  step_med <- stats::median(diff(breaks), na.rm = TRUE)
-  entero <- all(abs(c(lefts, rights, step_med) - round(c(lefts, rights, step_med))) < 1e-8)
-  if (!right && entero && step_med >= 1) {
+  # H40 — la condicion exigia que la MEDIANA del paso fuera entera, cosa que
+  # `bins = N` rompe en cuanto los pasos son desiguales (3,4,4,3 → 3.5). Con
+  # cortes enteros y paso minimo >= 1 el intervalo cerrado siempre es legible,
+  # y es el que evita el limite repetido («19-22» junto a «22-26» no dice donde
+  # cae quien tiene 22). Lo que manda son los cortes, no la regularidad.
+  paso_min <- min(diff(breaks), na.rm = TRUE)
+  entero <- all(abs(c(lefts, rights) - round(c(lefts, rights))) < 1e-8)
+  if (!right && entero && is.finite(paso_min) && paso_min >= 1) {
     labels <- ifelse(round(rights - 1) <= round(lefts),
                      .fmt_num(lefts),
                      paste0(.fmt_num(lefts), "-", .fmt_num(rights - 1)))
@@ -1294,6 +1381,11 @@ graficar_histograma <- function(
   if (identical(posicion_etiquetas, "cima") && !is.null(top_data) && nrow(top_data)) {
     expand_y_eff <- max(expand_y_eff, 0.18)
   }
+  # Mismo aire para la frecuencia del intervalo: sin el, `clip = "off"` la deja
+  # colgando fuera del panel.
+  if (isTRUE(mostrar_n_intervalo) && !identical(posicion_etiquetas, "cima")) {
+    expand_y_eff <- max(expand_y_eff, 0.12)
+  }
 
   p <- ggplot2::ggplot(tab, ggplot2::aes(x = .data$.bin, y = .data$.valor, fill = .data$.grupo)) +
     ggplot2::geom_col(width = ancho_barras, color = NA) +
@@ -1304,7 +1396,11 @@ graficar_histograma <- function(
     ggplot2::theme(
       panel.grid.major.x = ggplot2::element_blank(),
       panel.grid.minor = ggplot2::element_blank(),
-      axis.title.y = if (isTRUE(mostrar_eje_y)) ggplot2::element_text(color = color_ejes, size = size_ejes) else ggplot2::element_blank(),
+      # H39 — el titulo del eje Y se declaraba sin margen y se escribia ENCIMA
+      # de las marcas: «30%» y «20%» quedaban tachadas por «Porcentaje del
+      # total». Viaja encendido de fabrica (el preset del histograma trae
+      # mostrar_eje_y = TRUE), asi que llegaba al entregable.
+      axis.title.y = if (isTRUE(mostrar_eje_y)) ggplot2::element_text(color = color_ejes, size = size_ejes, margin = ggplot2::margin(r = 6)) else ggplot2::element_blank(),
       axis.text.y = if (isTRUE(mostrar_eje_y)) ggplot2::element_text(color = color_ejes, size = size_ejes) else ggplot2::element_blank(),
       axis.text.x = if (isTRUE(mostrar_eje_x)) ggplot2::element_text(color = color_ejes, size = size_ejes, face = if ("eje_x" %in% textos_negrita || "ejes" %in% textos_negrita) "bold" else "plain") else ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
@@ -1372,6 +1468,31 @@ graficar_histograma <- function(
       fontface = if ("valores" %in% textos_negrita) "bold" else "plain",
       show.legend = FALSE
     )
+  }
+
+  # Frecuencia del INTERVALO encima de la barra, independiente de donde vayan
+  # las etiquetas de segmento. Permite la composicion natural del histograma
+  # apilado —el N del tramo arriba y los porcentajes dentro de cada segmento—
+  # que antes era inalcanzable: `posicion_etiquetas` es excluyente y elegir
+  # "cima" vaciaba los segmentos. Con "cima" no se dibuja: ahi el resumen
+  # superior ya puede incluir el conteo via `etiqueta_cima_modo`.
+  if (isTRUE(mostrar_n_intervalo) && !identical(posicion_etiquetas, "cima")) {
+    n_bin <- stats::aggregate(cbind(.valor, n) ~ .bin + .bin_label, tab, sum, na.rm = TRUE)
+    n_bin <- n_bin[n_bin$n > 0, , drop = FALSE]
+
+    if (nrow(n_bin)) {
+      p <- p + ggplot2::geom_text(
+        data = n_bin,
+        ggplot2::aes(x = .data$.bin, y = .data$.valor, label = .data$n),
+        inherit.aes = FALSE,
+        vjust = -0.45,
+        color = color_etiqueta_cima,
+        size = size_etiqueta_cima,
+        family = font_family,
+        fontface = if ("valores" %in% textos_negrita) "bold" else "plain",
+        show.legend = FALSE
+      )
+    }
   }
 
   p_final <- p

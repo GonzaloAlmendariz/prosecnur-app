@@ -85,7 +85,12 @@ test_that(".enriquecer_presets aplica el criterio de la casa cuando el proyecto 
   # única sintética se auto-oculta en el graficador.
   vacio <- .enriquecer_presets(list())
   expect_true(isTRUE(vacio$barras_agrupadas$mostrar_leyenda))
-  expect_true(isTRUE(vacio$barras_categoricas$mostrar_frecuencia))
+  # Doctrina P29: el conteo junto al porcentaje dejo de ser default. La nota de
+  # Base ya declara el N de la lamina, asi que pegarlo a cada barra repetia el
+  # dato; el analista lo enciende con `formato_valor = "porcentaje_n"` o
+  # `mostrar_frecuencia = TRUE`.
+  expect_false(isTRUE(vacio$barras_categoricas$mostrar_frecuencia))
+  expect_identical(vacio$barras_categoricas$formato_valor, "porcentaje")
 
   # Preset parcial: lo que el proyecto declara manda; el resto hereda de Pulso.
   parcial <- .enriquecer_presets(list(barras_agrupadas = list(grosor_barras = 1)))
