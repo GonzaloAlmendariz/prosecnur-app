@@ -22,7 +22,7 @@ import type { VariableDeBase } from "../../api/equivalencias";
 import type { CampoFila, CatalogoEscalas, FilaEditor, DiapositivaEditor } from "./equivalenciasEditorModel";
 import { escalaDeFila, resumenEscala } from "./equivalenciasEditorModel";
 import { EscalaChip } from "./EscalaChip";
-import { BloqueGrafico } from "./BloqueGrafico";
+import { BloqueGrafico, type EstiloRadar } from "./BloqueGrafico";
 
 export type EquivalenciasDiapositivasProps = {
   bases: string[];
@@ -31,8 +31,10 @@ export type EquivalenciasDiapositivasProps = {
   variablesPorBase: Record<string, VariableDeBase[]>;
   onEditarFila: (filaId: string, campo: CampoFila, valor: string) => void;
   onEditarDiapositiva: (clave: string, campo: CampoFila, valor: string) => void;
-  /** Escribe un campo en todas las filas de un bloque (gráfico y corte). */
+  /** Escribe un campo en todas las filas de un bloque (gráfico, corte, estilo). */
   onEditarBloque: (ids: string[], campo: CampoFila, valor: string) => void;
+  /** Estilos de radar que ofrece el motor. Llegan del backend, no se copian. */
+  estilosRadar?: readonly EstiloRadar[];
   onAsignar: (filaId: string, base: string, variable: string) => void;
   onQuitar: (filaId: string) => void;
   onConfirmar: (filaId: string) => void;
@@ -223,6 +225,7 @@ export function EquivalenciasDiapositivas({
   diapositivas,
   catalogo,
   variablesPorBase,
+  estilosRadar,
   onEditarFila,
   onEditarDiapositiva,
   onEditarBloque,
@@ -511,6 +514,7 @@ export function EquivalenciasDiapositivas({
                         )}
                         <BloqueGrafico
                           bloque={bloque}
+                          estilos={estilosRadar}
                           onCambiar={(campo, valor) =>
                             onEditarBloque(bloque.filas.map((f) => f.id), campo, valor)
                           }

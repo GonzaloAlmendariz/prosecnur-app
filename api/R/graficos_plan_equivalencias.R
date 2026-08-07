@@ -246,6 +246,16 @@
       corte <- corte[nzchar(corte)]
       if (length(corte)) corte[1] else ""
     }
+    # El estilo se declara por bloque, como el corte: dice COMO se lee ese
+    # bloque. Una bateria de perfil se presenta con lineas y una de diagnostico
+    # con la grilla a la vista, y las dos conviven en el mismo mazo. Una clave
+    # que el motor no conozca cae a `comparativo` en vez de abortar el mazo.
+    estilo_de <- function(idx) {
+      est <- vapply(filas[idx], function(f) tolower(trimws(as.character(f$estilo %||% ""))), character(1))
+      est <- est[nzchar(est)]
+      if (!length(est)) return("comparativo")
+      if (is.null(.RADAR_MB_ESTILOS[[est[1]]])) "comparativo" else est[1]
+    }
 
     quiere_radar <- any(vapply(grupos, pedido_radar, logical(1)))
     corte <- corte_de(seq_along(filas))
@@ -306,7 +316,7 @@
       # lo dice.
       list(modo = "publicos", vars = ejes_radar(filas), corte = corte,
            corte_etiqueta = .gpe_etiqueta_corte(filas, inst_por_base, corte),
-           estilo = "comparativo", mostrar_tabla = TRUE, eje_min = 50)
+           estilo = estilo_de(seq_along(filas)), mostrar_tabla = TRUE, eje_min = 50)
     } else if (length(grupos) == 1L) {
       bloque_de(filas)
     } else {

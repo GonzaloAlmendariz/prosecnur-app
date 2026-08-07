@@ -150,7 +150,7 @@ test_that("la plantilla de un estudio sin declaracion sale con encabezados y sin
   expect_equal(nrow(hoja), 0L)
   expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
                               "estudiantes", "diapositiva", "enunciado",
-                              "grafico", "corte"))
+                              "grafico", "corte", "estilo"))
 
   # Y subirla sin escribir nada se rechaza en vez de borrar lo que hubiera.
   expect_error(.equiv_importar_desde_file(sid, meta$file_id), class = "api_error")
@@ -257,7 +257,7 @@ test_that("la hoja de consulta viaja aparte y el importador la ignora", {
                              .name_repair = "minimal")
   expect_equal(names(hoja), c("seccion", "etiqueta_estandar", "docentes",
                               "estudiantes", "diapositiva", "enunciado",
-                              "grafico", "corte"))
+                              "grafico", "corte", "estilo"))
 
   # El catalogo lleva las variables de las dos bases: es donde se buscan los
   # codigos ahora que la hoja de trabajo no los vuelca.
@@ -283,6 +283,18 @@ test_that("cada columna de publico trae el desplegable de SUS variables", {
   formulas <- vapply(nodos, function(n) {
     xml2::xml_text(xml2::xml_find_first(n, ".//*[local-name()='formula1']"))
   }, character(1))
-  expect_true(all(grepl(sprintf("^'%s'!\\$B\\$", .EQUIV_HOJA_CATALOGO), formulas)))
-  expect_equal(length(unique(formulas)), 2L)
+
+  # Las de PUBLICO apuntan al catalogo, cada una a su tramo.
+  del_catalogo <- grepl(sprintf("^'%s'!\\$B\\$", .EQUIV_HOJA_CATALOGO), formulas)
+  expect_equal(sum(del_catalogo), 2L)
+  expect_equal(length(unique(formulas[del_catalogo])), 2L)
+
+  # Las de VALOR CERRADO —como se dibuja el bloque y con que estilo— van como
+  # lista literal. Escritas a mano son la fuente de error mas tonta del formato:
+  # «Radar» con mayuscula o «auditoría» con tilde no casan con la clave del motor
+  # y el bloque sale en barras sin que nadie sepa por que.
+  literales <- formulas[!del_catalogo]
+  expect_gte(length(literales), 2L)
+  expect_true(any(grepl("radar", literales, fixed = TRUE)))
+  expect_true(any(grepl("auditoria", literales, fixed = TRUE)))
 })

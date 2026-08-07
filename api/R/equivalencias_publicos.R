@@ -46,6 +46,11 @@
 # barras dibujan la distribucion entera y no lo necesitan.
 .EQUIV_COL_GRAFICO <- "grafico"
 .EQUIV_COL_CORTE <- "corte"
+# Clave de estilo del radar. Vacia = `comparativo`, que es el que sincroniza con
+# la matriz. Se declara por BLOQUE porque el estilo dice como se lee ese bloque:
+# una bateria de perfil se presenta con lineas y una de diagnostico con la grilla
+# a la vista, y las dos pueden convivir en el mismo mazo.
+.EQUIV_COL_ESTILO <- "estilo"
 .EQUIV_GRAFICO_RADAR <- "radar"
 
 # ADR 0064: de donde viene la fila. `propuesta` marca lo que calculo el motor y
@@ -247,6 +252,7 @@
   i_enunciado <- idx_de(.EQUIV_COL_ENUNCIADO)
   i_grafico <- idx_de(.EQUIV_COL_GRAFICO)
   i_corte <- idx_de(.EQUIV_COL_CORTE)
+  i_estilo <- idx_de(.EQUIV_COL_ESTILO)
   i_origen <- idx_de(.EQUIV_COL_ORIGEN)
   origen <- if (!is.na(i_origen)) .equiv_norm_col(df[[i_origen]]) else rep("", nrow(df))
 
@@ -261,6 +267,7 @@
   enunciado <- if (!is.na(i_enunciado)) .equiv_fill_down_en(df[[i_enunciado]], diapo_grupo) else rep(NA_character_, nrow(df))
   grafico <- if (!is.na(i_grafico)) .equiv_fill_down_en(df[[i_grafico]], diapo_grupo) else rep(NA_character_, nrow(df))
   corte <- if (!is.na(i_corte)) .equiv_fill_down_en(df[[i_corte]], diapo_grupo) else rep(NA_character_, nrow(df))
+  estilo <- if (!is.na(i_estilo)) .equiv_fill_down_en(df[[i_estilo]], diapo_grupo) else rep(NA_character_, nrow(df))
 
   filas <- list()
   for (r in seq_len(nrow(df))) {
@@ -280,6 +287,7 @@
       enunciado = if (is.na(enunciado[r])) "" else enunciado[r],
       grafico = if (is.na(grafico[r])) "" else tolower(trimws(grafico[r])),
       corte = if (is.na(corte[r])) "" else trimws(corte[r]),
+      estilo = if (is.na(estilo[r])) "" else tolower(trimws(estilo[r])),
       # Derivado, no pedido: en cuántos públicos existe la pregunta.
       cantidad = length(vars)
     )
@@ -424,7 +432,7 @@
   # tienen datos dejaba al analista sin la columna justo cuando quiere empezar a
   # repartir diapositivas desde el Excel.
   extras <- c(.EQUIV_COL_DIAPOSITIVA, .EQUIV_COL_ENUNCIADO,
-              .EQUIV_COL_GRAFICO, .EQUIV_COL_CORTE)
+              .EQUIV_COL_GRAFICO, .EQUIV_COL_CORTE, .EQUIV_COL_ESTILO)
 
   cols <- list()
   cols[[.EQUIV_COL_SECCION]] <- character(0)

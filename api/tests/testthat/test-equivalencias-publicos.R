@@ -168,7 +168,7 @@ test_that("la plantilla sale poblada con las variables y etiquetas de cada base"
   # ayuda por base ya no estan: salieron a la hoja de consulta, donde dan la
   # misma ayuda sin doblar el ancho de la hoja donde se escribe.
   expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes", "estudiantes",
-                            "diapositiva", "enunciado", "grafico", "corte"))
+                            "diapositiva", "enunciado", "grafico", "corte", "estilo"))
   # Sin nada declarado, la plantilla sale SIN filas. Antes volcaba una por cada
   # variable de cada base —300 en el estudio medido—, cada una con su codigo en
   # una sola columna: una escalera diagonal que habia que cortar y pegar para
@@ -488,7 +488,7 @@ test_that("las columnas del plan van al final y son opcionales al leer", {
   # diapositivas desde el Excel.
   df <- .equiv_plantilla_df(inst)
   expect_equal(names(df), c("seccion", "etiqueta_estandar", "docentes",
-                            "diapositiva", "enunciado", "grafico", "corte"))
+                            "diapositiva", "enunciado", "grafico", "corte", "estilo"))
 
   # Y un archivo que no las trae importa igual: son opcionales.
   minima <- data.frame(seccion = "1.2 Servicios", etiqueta_estandar = "Salud",

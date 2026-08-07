@@ -137,6 +137,19 @@
     revision = .equiv_declaracion_revision(equiv),
     cobertura = cobertura,
     desfasadas = desfasadas,
+    # Catalogo de estilos de radar, para que el editor los ofrezca sin
+    # duplicarlos. Se deriva del motor: un estilo nuevo aparece en la pestana
+    # sin tocar el frontend, y uno retirado deja de ofrecerse.
+    estilos_radar = if (exists(".radar_mb_choices_ui", mode = "function")) {
+      .radar_mb_choices_ui()
+    } else list(),
+    # Largo maximo del nombre de un tema para que el bloque pueda salir como
+    # radar. Viaja desde el motor y no se copia en el frontend: el editor no
+    # puede ofrecer un radar que el mazo va a rechazar despues, porque entonces
+    # lo declarado deja de ser lo que sale.
+    radar_max_etiqueta = if (exists(".RADAR_MB_MAX_ETIQUETA")) {
+      as.integer(.RADAR_MB_MAX_ETIQUETA)
+    } else NA_integer_,
     filas = equiv$filas
   )
 }
@@ -203,6 +216,28 @@
                                cols = col[1], rows = 2L:filas_validacion,
                                type = "list", value = rango,
                                allowBlank = TRUE, showErrorMsg = FALSE)
+    }
+
+    # Las dos columnas de valor cerrado tambien se ofrecen por lista. Escritas a
+    # mano son la fuente de error mas tonta del formato: «Radar» con mayuscula o
+    # «auditoría» con tilde no casan con la clave del motor, y el bloque sale en
+    # barras sin que nadie sepa por que.
+    #
+    # `openxlsx` acepta una lista literal como cadena entrecomillada; no hace
+    # falta una hoja auxiliar para dos y cuatro valores.
+    cerradas <- list()
+    cerradas[[.EQUIV_COL_GRAFICO]] <- c("", .EQUIV_GRAFICO_RADAR)
+    if (exists(".RADAR_MB_ESTILOS")) {
+      cerradas[[.EQUIV_COL_ESTILO]] <- c("", names(.RADAR_MB_ESTILOS))
+    }
+    for (nm in names(cerradas)) {
+      col <- which(names(df) == nm)
+      if (!length(col)) next
+      openxlsx::dataValidation(
+        wb, .EQUIV_HOJA_PLANTILLA, cols = col[1], rows = 2L:filas_validacion,
+        type = "list",
+        value = sprintf("\"%s\"", paste(cerradas[[nm]], collapse = ",")),
+        allowBlank = TRUE, showErrorMsg = FALSE)
     }
   }
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
@@ -283,6 +318,7 @@
       enunciado = trimws(as.character(f$enunciado %||% "")),
       grafico = tolower(trimws(as.character(f$grafico %||% ""))),
       corte = trimws(as.character(f$corte %||% "")),
+      estilo = tolower(trimws(as.character(f$estilo %||% ""))),
       cantidad = length(vars)
     )
     # ADR 0064: la propuesta SE GUARDA, marcada. La regla anterior la descartaba
