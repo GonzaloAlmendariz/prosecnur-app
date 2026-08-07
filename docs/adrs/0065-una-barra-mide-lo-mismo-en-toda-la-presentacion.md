@@ -70,3 +70,21 @@ mismo en la lámina 3 y en la lámina 30.
 `api/tests/testthat/test-graficador-alto-y-leyenda.R` fija las tres reglas: que
 el sobrante engorde las filas, que el tope las acote, y que un hueco chico no
 las apriete dos veces.
+
+## Notas
+
+**Por qué un tope y no un rango.** Se evaluó dejar que el alto de fila variara
+dentro de una banda estrecha en vez de topar. Se descartó: una banda sigue siendo
+una función del número de filas, así que el grosor seguiría cambiando de lámina
+en lámina —sólo que menos—, y a cambio nadie podría decir cuánto mide una barra.
+Un tope da una respuesta: mide lo mismo, salvo en las láminas tan cargadas que no
+llegan a él.
+
+**Dónde se toca.** El número vive en `.BARRAS_ALTO_FILA_MAX_IN`
+(`api/R/graficador_helpers_leyenda.R`). Subirlo es una decisión de dirección de
+arte con el mismo peso que cambiar una tipografía: se cambia en la constante, no
+repartido en llamadas ni por override de una lámina suelta.
+
+**Qué NO gobierna este ADR.** El ancho de los canales laterales —el del tema y el
+del eje Y— se dimensiona por su contenido y no por esta regla: ahí lo que hay que
+comparar entre láminas es el texto, no una magnitud.
