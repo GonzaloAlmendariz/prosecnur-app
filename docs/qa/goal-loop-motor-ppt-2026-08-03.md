@@ -1263,6 +1263,82 @@ Regla que se lleva el loop: un default de la casa vive en **cuatro** sitios
 cambiarlo exige recorrerlos todos. El test de contrato de presets es el que lo
 verifica; conviene correrlo siempre que se toque un default.
 
+### P31 — L11 arranca: el consolidado comparte motor pero congela su suelo (2026-08-06)
+
+Primer tramo de L11 (prueba 5, el cuello de botella de la cobertura). Censo del
+camino, sin reparar todavía.
+
+**La buena noticia:** el consolidado llama al **mismo** `reporte_ppt_plan`
+(`graficos_consolidado.R:638`), así que todo lo decidido en el motor —métrica,
+formato, doctrina del porcentaje, bins, ejes— fluye idéntico. No hay un segundo
+motor que mantener sincronizado.
+
+**El hallazgo (H42):** el suelo de la casa **no se aplica al renderizar**, se
+congela al encolar.
+
+| Función | Qué hace |
+|---|---|
+| `graficos_consolidado_start` (699) | `.enriquecer_presets(...)` en 732 y **materializa la receta** con el resultado |
+| `graficos_consolidado_job_runner` (617) | lee `recipe$presets` y lo pasa por `.build_presets` **sin re-enriquecer** |
+
+Consecuencia para la prueba 5: **una receta materializada antes de un cambio de
+doctrina rinde con los defaults viejos** mientras preview, PPTX y Word rinden
+con los nuevos. Con el cambio de P29 esto es concreto y verificable: un
+consolidado encolado ayer saldría con `porcentaje_n` y su conteo pegado, y la
+misma lámina por los otros tres caminos saldría con el porcentaje solo. Los
+cuatro caminos divergen, que es exactamente lo que la prueba 5 prohíbe.
+
+**No es obviamente un defecto**, y por eso va a bandeja y no a reparación
+directa: congelar es lo correcto para la reproducibilidad —la receta es un
+artefacto de procedencia y se espera que reconstruya el mismo deck—. La tensión
+real es entre reproducir el pasado y respetar la doctrina vigente. Es la
+«fosilización de presets» que B40 ya nombró, ahora con un caso concreto.
+
+**Segunda trampa del camino:** `graficos_consolidado_job_runner` corre en un job
+`callr`, o sea **contra el paquete instalado**. Cualquier verificación de la
+prueba 5 por este camino exige `R CMD INSTALL` primero, o se está midiendo
+código viejo. Un test que lo olvide da verde en falso.
+
+**D8 — RESUELTA (Gonzalo, 2026-08-06): versionar el suelo.** Ni re-enriquecer
+siempre —perdería la reproducibilidad de recetas ya aprobadas— ni conservar el
+congelado en silencio —los cuatro caminos divergen sin aviso—.
+
+### P32 — D8 implementada: el suelo editorial lleva versión (2026-08-06)
+
+`graficos_presets_floor.R` (nuevo). La receta declara con qué suelo se
+construyó y al renderizar se compara con el vigente: **la divergencia deja de
+ser invisible y pasa a ser un dato**. La receta no se reescribe —congelarla es
+el punto—; lo que cambia es que el resultado puede decir que su suelo envejeció.
+
+El sello combina dos cosas y la segunda es la que importa:
+
+- **`version`** (`.PRESETS_FLOOR_VERSION`, hoy `2`): etiqueta declarada, que se
+  sube a mano al cambiar la doctrina. Es lo que un humano lee. `1` = suelo
+  previo; `2` = P29, el porcentaje va solo.
+- **`digest`**: hash del contenido real de `.PRESETS_DEFAULT_PULSO`. Es lo que
+  **impide que la etiqueta mienta**. Sin él, la versión sería otra declaración
+  capaz de divergir de lo que el motor hace —exactamente la familia de defecto
+  que abrió este loop, y que ya mordió dos veces hoy (H36 y las cuatro capas de
+  P29)—. El digest manda sobre la etiqueta en ambos sentidos, y hay test que lo
+  fija.
+
+Degrada sin romper: sin `digest` disponible el sello cae a solo-versión en vez
+de abortar el encolado, y una receta anterior a esta feature se declara
+`sin_sello` en vez de reventar.
+
+**Lo que esto NO cierra todavía:** el sello hace la divergencia legible, pero
+nadie la muestra aún —falta superficie (que el deck o el panel lo declaren) y
+falta decidir si un suelo desactualizado debe advertir al reconstruir. La
+prueba 5 pasa de «no acreditable» a «acreditable con evidencia declarada».
+
+**Trampa vigente para quien siga:** `graficos_consolidado_job_runner` corre en
+`callr` **contra el paquete instalado**. Verificar la prueba 5 end-to-end por
+este camino exige `R CMD INSTALL` primero, o se mide código viejo y el test da
+verde en falso.
+
+**Gate:** `test-graficos-presets-floor.R` nuevo (16 asserts) +
+`test-graficos-consolidado.R` (95) y `-draft.R` (14) en verde.
+
 ### P30 — Capacidad nueva: la frecuencia del intervalo convive con los porcentajes
 
 Pedido de Gonzalo al aclarar la doctrina del histograma: **«cada bin tiene la
