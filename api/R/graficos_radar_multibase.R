@@ -80,20 +80,48 @@
 
 # Recorta el nombre del eje para dibujarlo. El nombre completo NO se pierde: la
 # tabla al costado lo lleva entero, que es donde se lee con calma.
+#
+# El resultado tiene que seguir siendo UNICO. Dos temas de una bateria comparten
+# casi siempre el arranque —«Estoy satisfecho(a) con los programas de…»— y al
+# recortar quedaban identicos: el eje del radar es un factor, y un nivel
+# duplicado lo mata con «factor level is duplicated». La lamina salia «Sin
+# datos». Por eso el corte se alarga hasta que los homonimos se separan.
+.radar_mb_recortar_uno <- function(t, max_chars) {
+  if (is.na(t) || nchar(t) <= max_chars) return(t)
+  corte <- substr(t, 1L, max_chars)
+  # Corta en el ultimo espacio antes del limite para no partir una palabra.
+  esp <- regexpr("[[:space:]][^[:space:]]*$", corte)
+  if (esp > 1L) corte <- substr(corte, 1L, esp - 1L)
+  paste0(trimws(corte), "…")
+}
+
 .radar_mb_recortar_eje <- function(x, max_chars = .RADAR_MB_MAX_ETIQUETA) {
   x <- as.character(x)
-  largo <- nchar(x)
-  recortar <- !is.na(largo) & largo > max_chars
-  if (!any(recortar)) return(x)
-  # Corta en el ultimo espacio antes del limite para no partir una palabra.
-  x[recortar] <- vapply(x[recortar], function(t) {
-    corte <- substr(t, 1L, max_chars)
-    esp <- regexpr("[[:space:]][^[:space:]]*$", corte)
-    if (esp > 1L) corte <- substr(corte, 1L, esp - 1L)
-    paste0(trimws(corte), "…")
-  }, character(1))
-  x
+  if (!length(x)) return(x)
+  out <- vapply(x, .radar_mb_recortar_uno, character(1),
+                max_chars = max_chars, USE.NAMES = FALSE)
+
+  # Los homonimos se alargan a la vez —no uno solo— para que sigan leyendose
+  # como el mismo bloque de texto y se distingan por donde de verdad difieren.
+  limite <- max_chars
+  tope <- max(nchar(x), na.rm = TRUE)
+  while (anyDuplicated(out) && limite < tope) {
+    limite <- limite + max_chars
+    repetidos <- out %in% out[duplicated(out)]
+    out[repetidos] <- vapply(x[repetidos], .radar_mb_recortar_uno, character(1),
+                             max_chars = limite, USE.NAMES = FALSE)
+  }
+  # Si ni el texto entero los separa, son el mismo tema declarado dos veces:
+  # se numeran para que el radar dibuje sus dos vertices en vez de morir.
+  if (anyDuplicated(out)) {
+    dup <- out %in% out[duplicated(out)]
+    out[dup] <- paste0(out[dup], " (", ave_seq(out[dup]), ")")
+  }
+  out
 }
+
+# Posicion de cada elemento dentro de su grupo de iguales: 1, 2, 3...
+ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 
 # Piso declarado del eje, en puntos porcentuales. El recorte contra los datos
 # vive en `.radar_mb_piso()`, que si los tiene a la vista.
@@ -360,12 +388,18 @@
   v <- datos$valor[is.finite(datos$valor)]
   if (!length(v)) return(piso)
   minimo <- min(v)
-  if (piso <= minimo) return(piso)
+  if (piso < minimo) return(piso)
+  # Bajar EXACTAMENTE al minimo no basta: ese valor caeria en el centro del
+  # radar, que es justo lo que se lee como cero. El piso se coloca un escalon
+  # por debajo, redondeado a multiplos de cinco para que los anillos den cifras
+  # legibles.
+  nuevo <- max(0, floor((minimo - 5) / 5) * 5)
   culpable <- datos[is.finite(datos$valor) & datos$valor == minimo, , drop = FALSE][1, ]
   message(sprintf(
-    "radar_publicos: el piso del eje baja de %s a %s — «%s» en %s vale %.1f%% y quedaria recortado al centro.",
-    format(piso), format(minimo), as.character(culpable$eje), as.character(culpable$grupo), minimo))
-  minimo
+    "radar_publicos: el piso del eje baja de %s a %s — «%s» en %s vale %.1f%% y en %s quedaria en el centro.",
+    format(piso), format(nuevo), as.character(culpable$eje), as.character(culpable$grupo),
+    minimo, format(piso)))
+  nuevo
 }
 
 #' Dibuja el radar comparativo.
@@ -376,8 +410,14 @@
     stop_api(500, "E_RADAR_SIN_GGPLOT2", "El paquete R 'ggplot2' no está instalado.")
   }
   # El nombre largo se recorta SOLO para dibujar. La tabla lo lleva entero.
-  datos$eje <- factor(.radar_mb_recortar_eje(as.character(datos$eje)),
-                      levels = .radar_mb_recortar_eje(levels(datos$eje)))
+  #
+  # El recorte se calcula sobre los NIVELES y se aplica por posicion. Calcularlo
+  # sobre la columna lo rompia: ahi cada eje aparece una vez por grupo, el
+  # desambiguador leia esas repeticiones legitimas como homonimos y les colgaba
+  # «(1) (2) (3)» — con lo que ningun valor casaba ya con su nivel y el radar se
+  # quedaba sin una sola fila valida.
+  niveles <- .radar_mb_recortar_eje(levels(datos$eje))
+  datos$eje <- factor(niveles[as.integer(datos$eje)], levels = niveles)
   args <- utils::modifyList(
     list(
       data = datos,
