@@ -494,13 +494,25 @@ copiarse en el frontend, donde divergiría en cuanto alguien lo afine. Medido co
 el Excel del estudio: los bloques de 200 y 105 caracteres muestran el control
 apagado con el motivo y el número; los de nombre corto se activan.
 
+## Dos deudas cerradas de camino
+
+**Los args de graficador fuera de `datos` no tenían dónde salir.** El tab de
+Filtros es un editor de REGLAS y no monta el slot del graficador, así que
+`valores`, `tabla` y `semaforo` se servían en el registro y la UI no los
+mostraba — `titulo_tabla` y `umbral_rojo_pct` de `p_tabla` llevaban así desde que
+existen. Pasan a «Estilo», que es donde se buscan: decidir si el porcentaje se
+escribe sobre la barra, o con cuántos decimales, es una decisión de lectura y no
+un filtro. Un test fija que ningún grupo canónico quede sin tab y que ninguno
+aparezca en dos.
+
+**`%||%` reventaba con un data frame de una columna.** Para un data frame
+`length()` es el número de COLUMNAS, así que uno de una sola entraba en la rama
+del NA escalar y `is.na(a)` devolvía una matriz: `&&` recibía un vector y
+abortaba. Lo usa medio motor; las bases reales tienen decenas de columnas y nunca
+lo tocaban, un fixture de prueba sí.
+
 ## Qué falta para cerrar
 
-- **Los args de graficador fuera del grupo `datos` no tienen dónde salir**: el
-  inspector v2 renderiza el slot con `mode="data"`. Se sirven en el registro
-  pero la UI no los muestra (`titulo_tabla` y `umbral_rojo_pct` de `p_tabla`
-  están así hoy). Por eso los controles del modo `publicos` se declararon en
-  `datos`.
 - **Con tres series dentro de dos puntos, los números del vértice se rozan.**
   Mejoró mucho al llevarlos hacia dentro y separarlos más, pero a ese tamaño
   algo de solape queda; la tabla sigue siendo el ancla exacta.
@@ -517,7 +529,5 @@ apagado con el motivo y el número; los de nombre corto se activan.
 - **En `modo = "var"` el rótulo de la barra sale del instrumento, no de la
   etiqueta estándar declarada.** En este estudio coinciden —la etiqueta ES el
   enunciado—, pero un estudio que renombre sus temas perdería el nombre corto.
-- **`%||%` con data frames de una columna** sigue siendo una mina: está fuera
-  del alcance de este goal, pero conviene abrirlo.
 - **Los títulos del mazo**: confirmado que es dato, no código. Cuando la matriz
   traiga la columna `enunciado`, las 44 láminas se titulan solas.

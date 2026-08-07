@@ -25,7 +25,22 @@
 # `construir_plantilla_ppt.R`, `indicador_dimensiones.R`, `reporte_ficha_tecnica.R`,
 # `reporte_filter_helpers.R`) usan `if (!is.null(x)) x else y`; borrarlas les
 # cambiaría el manejo de NA escalar en pleno render, así que se quedan locales.
-`%||%` <- function(a, b) if (is.null(a) || (length(a) == 1 && is.na(a))) b else a
+# El `%||%` de la casa: NULL y el NA escalar caen al defecto.
+#
+# `is.list(a)` NO es un adorno. Para un data frame `length()` es el numero de
+# COLUMNAS, asi que un data frame de una sola columna entraba en la rama del NA
+# escalar y `is.na(a)` devolvia una matriz — `&&` recibia un vector y abortaba
+# con «invalid argument type». Las bases reales tienen decenas de columnas y
+# nunca lo tocaban; un fixture de prueba con una si.
+#
+# La regla es la misma de siempre —solo el NA de longitud uno cuenta como
+# ausencia— y las listas quedan fuera porque una lista vacia o de un elemento es
+# un valor, no un hueco.
+`%||%` <- function(a, b) {
+  if (is.null(a)) return(b)
+  if (!is.list(a) && length(a) == 1L && is.na(a)) return(b)
+  a
+}
 
 # ---------------------------------------------------------------------------
 # Fórmula clásica de tamaño muestral con FPC y deff
