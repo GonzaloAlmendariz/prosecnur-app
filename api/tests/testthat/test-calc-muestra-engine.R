@@ -755,3 +755,58 @@ test_that("calcular_estudio aplica cálculo a todos los componentes", {
   expect_true(!is.null(out$componentes[[2]]$resultado))
   expect_true(!is.null(out$decision_log))
 })
+
+# ---------------------------------------------------------------------------
+# CRUD de la colección de componentes (delegado desde el router)
+# ---------------------------------------------------------------------------
+
+test_that("componentes_upsert agrega al final y genera id cmp- cuando falta", {
+  comp <- calc_muestra_normalize_componente(list(actor = "Docentes"))
+  comps <- calc_muestra_componentes_upsert(list(), comp, "add")
+  expect_equal(length(comps), 1L)
+  expect_true(grepl("^cmp-", comps[[1]]$id))
+
+  # id vacío en un componente crudo: el upsert lo completa antes de anexar.
+  crudo <- comp
+  crudo$id <- ""
+  comps2 <- calc_muestra_componentes_upsert(comps, crudo, "add")
+  expect_equal(length(comps2), 2L)
+  expect_true(grepl("^cmp-", comps2[[2]]$id))
+  # Orden de inserción intacto.
+  expect_identical(comps2[[1]]$id, comps[[1]]$id)
+})
+
+test_that("componentes_upsert con update reemplaza in-place por id", {
+  a <- calc_muestra_normalize_componente(list(id = "cmp-aaaaaaaa", actor = "A"))
+  b <- calc_muestra_normalize_componente(list(id = "cmp-bbbbbbbb", actor = "B"))
+  comps <- list(a, b)
+
+  editado <- calc_muestra_normalize_componente(
+    list(id = "cmp-aaaaaaaa", actor = "A editado")
+  )
+  out <- calc_muestra_componentes_upsert(comps, editado, "update")
+  expect_equal(length(out), 2L)
+  expect_identical(out[[1]]$actor, "A editado")
+  expect_identical(out[[2]]$actor, "B")
+
+  # update con id desconocido: contrato histórico = agrega al final.
+  nuevo <- calc_muestra_normalize_componente(
+    list(id = "cmp-cccccccc", actor = "C")
+  )
+  out2 <- calc_muestra_componentes_upsert(comps, nuevo, "update")
+  expect_equal(length(out2), 3L)
+  expect_identical(out2[[3]]$id, "cmp-cccccccc")
+})
+
+test_that("componentes_sin quita solo el id pedido y tolera colecciones vacías", {
+  a <- calc_muestra_normalize_componente(list(id = "cmp-aaaaaaaa", actor = "A"))
+  b <- calc_muestra_normalize_componente(list(id = "cmp-bbbbbbbb", actor = "B"))
+
+  out <- calc_muestra_componentes_sin(list(a, b), "cmp-aaaaaaaa")
+  expect_equal(length(out), 1L)
+  expect_identical(out[[1]]$id, "cmp-bbbbbbbb")
+
+  # Id inexistente: colección intacta (el endpoint decide el contrato).
+  expect_equal(length(calc_muestra_componentes_sin(list(a, b), "cmp-zzzzzzzz")), 2L)
+  expect_identical(calc_muestra_componentes_sin(list(), "cmp-aaaaaaaa"), list())
+})

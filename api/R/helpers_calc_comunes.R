@@ -192,6 +192,17 @@ ajustar_cuadratura_residuo <- function(asignado, n_objetivo, pesos = NULL) {
 # primer elemento de vectores (calc_num/calc_int devuelven default si
 # length != 1), y `.monitoreo_bool` acepta "si"/"sí" y devuelve FALSE ante
 # strings no reconocidos (calc_bool solo tokens en inglés y devuelve default).
+#
+# Misma regla para los coercers de aulas (`calc_muestra_aulas.R`): los
+# `.cm_aulas_scalar/num/int/bool` NO son duplicados de `calc_str/calc_num/...`
+# y NO se fusionan. Divergen a propósito: `.cm_aulas_scalar` recorta espacios
+# con trimws y toma el primer elemento de vectores (calc_str no recorta);
+# `.cm_aulas_num`/`.cm_aulas_int` también toman el primer elemento y rechazan
+# no-finitos (calc_num/calc_int devuelven default ante length != 1 y validan
+# rango min/max); `.cm_aulas_bool` acepta "si"/"s" vía clave normalizada y
+# devuelve FALSE ante strings no reconocidos (calc_bool solo tokens en inglés
+# y devuelve el default). Regla práctica: input HTTP de routers → `calc_*`;
+# celdas sucias de Excel / marcos de aulas → `.cm_aulas_*`.
 
 #' Coerce a número con default si inválido o fuera de rango.
 calc_num <- function(x, default, min = -Inf, max = Inf) {

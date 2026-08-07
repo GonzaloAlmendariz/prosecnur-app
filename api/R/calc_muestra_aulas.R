@@ -655,11 +655,19 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
     if (nzchar(sheet)) {
       available <- readxl::excel_sheets(path)
       if (!sheet %in% available) {
-        stop(sprintf(
-          "No se encontro la pestana '%s' en el Excel. Hojas disponibles: %s.",
-          sheet,
-          paste(available, collapse = ", ")
-        ), call. = FALSE)
+        # Condicion clasificada: los routers que traducen esto a un api_error
+        # (p. ej. explorar-base -> E_CALC_MUESTRA_EXPLORAR_HOJA) necesitan
+        # distinguir "hoja inexistente" (el mensaje con las hojas disponibles
+        # es util para el usuario) de un archivo ilegible. Sigue heredando de
+        # "error", asi que los tryCatch genericos existentes no cambian.
+        stop(errorCondition(
+          sprintf(
+            "No se encontro la pestana '%s' en el Excel. Hojas disponibles: %s.",
+            sheet,
+            paste(available, collapse = ", ")
+          ),
+          class = "cm_aulas_hoja_error"
+        ))
       }
       return(.cm_aulas_clean_table_names(as.data.frame(readxl::read_excel(path, sheet = sheet), stringsAsFactors = FALSE, check.names = FALSE)))
     }
@@ -3895,49 +3903,6 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
       check.names = FALSE
     )
   )
-}
-
-.cm_aulas_select_once <- function(aula_frame, selector, seed = NULL) {
-  if (!is.null(seed)) set.seed(seed)
-  n_total <- min(nrow(aula_frame), max(1L, .cm_aulas_int(selector$n_aulas, 1L)))
-  quotas <- .cm_aulas_quota_by_stratum(aula_frame, n_total)
-  selected <- list()
-  selected_ids <- character(0)
-  selected_students <- character(0)
-  duplicate_penalty <- .cm_aulas_num(selector$duplicate_penalty, 1.25)
-  coverage_weight <- .cm_aulas_num(selector$coverage_weight, 1)
-  pps_weight <- .cm_aulas_num(selector$pps_weight, 0.15)
-
-  for (st in names(quotas)) {
-    quota <- quotas[[st]]
-    for (slot in seq_len(quota)) {
-      cand <- aula_frame[aula_frame$stratum == st & !aula_frame$classroom_id %in% selected_ids, , drop = FALSE]
-      if (!nrow(cand)) next
-      scores <- vapply(seq_len(nrow(cand)), function(i) {
-        ids <- .cm_aulas_student_ids(cand$unique_student_ids[[i]])
-        overlap <- length(intersect(ids, selected_students))
-        unique_added <- length(setdiff(ids, selected_students))
-        jitter <- stats::runif(1, 0, 1e-6)
-        coverage_weight * unique_added -
-          duplicate_penalty * overlap +
-          pps_weight * log1p(.cm_aulas_num(cand$eligible_n[[i]], 0)) +
-          jitter
-      }, numeric(1))
-      pick <- which.max(scores)
-      row <- cand[pick, , drop = FALSE]
-      ids <- .cm_aulas_student_ids(row$unique_student_ids[[1]])
-      row$selector_score <- scores[[pick]]
-      row$unique_added <- length(setdiff(ids, selected_students))
-      row$duplicate_overlap <- length(intersect(ids, selected_students))
-      selected[[length(selected) + 1L]] <- row
-      selected_ids <- c(selected_ids, row$classroom_id[[1]])
-      selected_students <- unique(c(selected_students, ids))
-    }
-  }
-  if (!length(selected)) return(aula_frame[0, , drop = FALSE])
-  out <- do.call(rbind, selected)
-  rownames(out) <- NULL
-  out
 }
 
 calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_progress = NULL) {
