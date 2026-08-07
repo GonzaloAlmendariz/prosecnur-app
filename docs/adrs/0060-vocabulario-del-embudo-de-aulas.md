@@ -1,7 +1,17 @@
 # ADR 0060 — Cada encuentro con una persona en el aula tiene un resultado, y se llama igual en toda la app
 
 - **Estado**: aceptada
-- **Implementación**: no iniciada
+- **Implementación**: parcial — 2026-08-07. Ya en producción: contrato v2 con
+  glosario del encuentro, denominadores sancionados en serie semanal, cadena y
+  embudo (`asistentes_elegibles` capado, `pct_ya_medidas` sobre
+  `asistentes_elegibles`), intervalo `asistencia_elegibles_min/max`, tasa > 1
+  = NA + `residual_negativo` en todos los paths (Cumplimiento 4 y 5),
+  normalizador frontend fail-closed, migración en carga para `.pulso` con
+  tasas viejas (Cumplimiento 11) y tests de contrato
+  (`test-calc-muestra-asistencia-adr0060.R`). Pendiente: guard 9 (vocabulario
+  retirado sigue como nombres de campo internos del modelo), punto 10
+  (`poblacion` a secas en el frontend) y catálogo de filtros de corte
+  declarado por el estudio (sección 4).
 - **Fecha**: 2026-08-04
 - **Fecha de decisión**: 2026-08-04 — ratificada por Gonzalo tras revisar el glosario término por término
 - **Contexto previo**: ADR 0043 (proyectos de referencia), ADR 0057 (tarjeta de categoría), ADR 0058 (matriz de cascada), `api/R/calc_muestra_asistencia_referencia.R`

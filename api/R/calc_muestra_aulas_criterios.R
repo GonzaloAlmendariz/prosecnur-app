@@ -785,13 +785,17 @@
 # >= 1 fila eligible_row en un aula del marco filtrado, sobre poblacion_n),
 # qué unidades quedarían con 0 aulas y el umbral configurado. Orden del
 # reporte: c7 → c8_facultad → c8 (facultad ANTES que nivel, acuerdo 2026-07-15).
+# na_pass: por criterio, vector lógico por aula con TRUE donde la señal del
+# gate es NA (el gate NA-pasa: `is.na(x) | x >= umbral` deja entrar sin
+# evidencia). D6: ese pase silencioso se divulga como `composicion_na_n`.
 calc_muestra_aulas_impacto_opcionales <- function(aula_frame,
                                                   base_ok,
                                                   evals,
                                                   aplica,
                                                   umbrales,
                                                   filas,
-                                                  population) {
+                                                  population,
+                                                  na_pass = list()) {
   cids <- .cm_aulas_values(aula_frame, "classroom_id", "")
   facs <- .cm_aulas_values(aula_frame, "faculty", "")
   poblacion_n <- if (is.data.frame(population)) nrow(population) else 0L
@@ -812,7 +816,9 @@ calc_muestra_aulas_impacto_opcionales <- function(aula_frame,
       umbral = round(.cm_aulas_num(umbral, NA_real_), 4),
       aulas = as.integer(sum(keep)),
       cobertura_pct = if (poblacion_n > 0L) round(alcanzables / poblacion_n, 4) else NA_real_,
-      unidades_rotas = sort(rotas)
+      unidades_rotas = sort(rotas),
+      # D6: aulas del marco que pasaron ESTE gate sin señal (métrica NA).
+      composicion_na_n = as.integer(sum(keep & (na_pass[[id]] %in% TRUE)))
     )
   }
   list(
@@ -974,7 +980,14 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     aplica = list(c7 = aplica$c7, c8_facultad = aplica$c8_facultad, c8 = aplica$c8),
     umbrales = list(c7 = pct7, c8_facultad = pct8fac, c8 = pct8),
     filas = filas,
-    population = population
+    population = population,
+    # D6: la señal NA por gate (el `is.na(x)` de cada eval) para divulgar
+    # cuántas aulas pasaron sin evidencia (composicion_na_n).
+    na_pass = list(
+      c7 = is.na(ratio),
+      c8_facultad = is.na(stats$faculty_match_share),
+      c8 = is.na(stats$level_match_share)
+    )
   )
 
   # Gate autoritativo de la selección por categorías (scope aula). Los únicos

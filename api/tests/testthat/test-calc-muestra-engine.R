@@ -336,12 +336,16 @@ test_that("línea de base servicios calcula n por territorio y cuotas por servic
   res <- calc_muestra_calcular_componente(comp)
 
   expect_equal(comp$marco$marco_validado, 4238L)
-  expect_equal(res$n_objetivo, 1444L)
+  # D6 (fórmula única): el n por territorio redondea hacia ARRIBA (ceiling,
+  # delegado a calc_n_muestra), como todo n de la app. Con round() tres
+  # territorios publicaban un n por debajo del que garantiza el margen de
+  # error (261/211/251 vs 262/212/252) y el total era 1444.
+  expect_equal(res$n_objetivo, 1447L)
   expect_equal(
     vapply(res$distribucion_estratos, function(x) x$n, integer(1)),
-    c(271L, 279L, 261L, 171L, 211L, 251L)
+    c(271L, 279L, 262L, 171L, 212L, 252L)
   )
-  expect_equal(sum(vapply(res$cuotas_matriz, function(x) x$n, integer(1))), 1444L)
+  expect_equal(sum(vapply(res$cuotas_matriz, function(x) x$n, integer(1))), 1447L)
   expect_true(all(vapply(res$cuotas_matriz, function(x) x$n, integer(1)) >= 30L))
   expect_true(grepl("territorio x servicio", res$advertencia))
 })

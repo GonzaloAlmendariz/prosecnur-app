@@ -1015,6 +1015,11 @@ export type CalcMuestraAulasPerfilOpcional = {
   cobertura_pct: number;
   /** Unidades académicas cuya cuota se rompe con el criterio activo. */
   unidades_rotas: string[];
+  /**
+   * D6 (ADR 0060) · registros del marco sin dato para evaluar el criterio.
+   * Divulgación aditiva: frames previos no lo traen y no hay UI en esta ronda.
+   */
+  composicion_na_n?: number | null;
 };
 
 /** Perfil institucional agregado que el backend adjunta al frame de aulas
@@ -2361,6 +2366,13 @@ export type CalcMuestraReferenciaAsistenciaTramo = {
   numerador: number | null;
   denominador: number | null;
   tasa: number | null;
+  /**
+   * ADR 0060 · marca del desborde: el conteo de campo no cierra (más
+   * numerador que denominador), así que la tasa viaja null y esta bandera
+   * divulga por qué. Es la ÚNICA forma sancionada de tasa null con conteos
+   * poblados; sin la marca, ese patrón invalida el payload.
+   */
+  residual_negativo?: boolean;
   ic_low: number | null;
   ic_high: number | null;
   metodo_ic: CalcMuestraReferenciaAsistenciaMetodoIc;
@@ -2381,6 +2393,8 @@ export type CalcMuestraReferenciaAsistenciaGlobal = {
   validas: number | null;
   no_respondieron: number | null;
   tasa: number | null;
+  /** ADR 0060 · mismo contrato que en el tramo: tasa null sancionada por desborde. */
+  residual_negativo?: boolean;
   media_ch: number | null;
   sd_ch: number | null;
   ic_low: number | null;
@@ -2407,6 +2421,8 @@ export type CalcMuestraReferenciaAsistenciaCelda = {
   /** Cuántas de sus aulas traen fecha: con la mitad sin fechar, la media miente. */
   k_con_semana: number | null;
   tasa: number | null;
+  /** ADR 0060 · mismo contrato que en el tramo: tasa null sancionada por desborde. */
+  residual_negativo?: boolean;
   estimador: "razon_agregada";
   media_ch: number | null;
   sd_ch: number | null;
@@ -2435,6 +2451,11 @@ export type CalcMuestraReferenciaAsistenciaEmbudoFila = {
   k_con_semana: number | null;
   elegibles: number | null;
   asistentes: number | null;
+  /**
+   * ADR 0060 · asistentes - no_elegibles: el único numerador comparable con
+   * `elegibles` (mismo universo). Aditivo; bases previas al ADR no lo traen.
+   */
+  asistentes_elegibles?: number | null;
   ya_medidas: number | null;
   no_elegibles: number | null;
   elegibles_presentes: number | null;
@@ -2445,6 +2466,11 @@ export type CalcMuestraReferenciaAsistenciaEmbudoFila = {
   pct_rechazo: number | null;
   efectividad: number | null;
   rendimiento: number | null;
+  /** ADR 0060 · desborde del conteo de la celda: la tasa afectada viaja null. */
+  residual_negativo?: boolean;
+  /** ADR 0060 · cotas de la asistencia elegible cuando el conteo trae holgura. */
+  asistencia_elegibles_min?: number | null;
+  asistencia_elegibles_max?: number | null;
 };
 
 export type CalcMuestraReferenciaAsistenciaEmbudo = {
@@ -2468,6 +2494,11 @@ export type CalcMuestraReferenciaAsistenciaSemana = {
   elegibles: number | null;
   ausentes: number | null;
   asistentes: number | null;
+  /**
+   * ADR 0060 · asistentes - no_elegibles: numerador de `asistencia` cuando el
+   * glosario existe. Aditivo; bases previas al ADR no lo traen.
+   */
+  asistentes_elegibles?: number | null;
   ya_medidas: number | null;
   no_elegibles: number | null;
   /** Presentes, del estudio y sin haber contestado antes: base de la efectividad. */
@@ -2477,6 +2508,11 @@ export type CalcMuestraReferenciaAsistenciaSemana = {
   no_efectivas: number | null;
   efectivas_acumuladas: number | null;
   asistencia: number | null;
+  /** ADR 0060 · el desborde semanal publica asistencia null + esta marca. */
+  residual_negativo?: boolean;
+  /** ADR 0060 · cotas de la asistencia elegible cuando el conteo trae holgura. */
+  asistencia_elegibles_min?: number | null;
+  asistencia_elegibles_max?: number | null;
   pct_ya_medidas: number | null;
   efectividad: number | null;
   /**
@@ -2939,38 +2975,65 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     advertencias.push(warning);
   }
   if (!advertencias.length) return null;
-  const hasCountWarning = (key: string) => advertencias.some((warning) =>
-    new RegExp(`^${key}:[1-9]\\d*$`).test(warning),
-  );
-  const hasInvalidAttendanceRateWarning = hasCountWarning(
-    "asistentes_mayor_matriculados",
-  );
   const isProbability = (value: number | null): value is number =>
     value !== null && value >= 0 && value <= 1;
-  const isAllowedDiagnosticRate = (value: number | null) =>
-    value === null || isProbability(value) ||
-    (value > 1 && hasInvalidAttendanceRateWarning);
+  // ADR 0060 (D5): una tasa mayor que 1 es un defecto de fórmula, no un dato.
+  // Antes se toleraba como "diagnóstico" cuando viajaba la advertencia dinámica
+  // del backend (`asistentes_mayor_matriculados:N`); hoy invalida el payload
+  // con el mismo fallo cerrado que el resto de identidades del normalizador
+  // (conteos negativos, cuadre numerador/denominador/tasa, clamp). El backend
+  // publica NA + marca residual en esos casos, así que una tasa > 1 solo puede
+  // venir de un payload defectuoso.
+  const isProbabilityOrNull = (value: number | null) =>
+    value === null || isProbability(value);
   const sameSerializedRate = (left: number, right: number) =>
     Math.abs(left - right) <= 5e-4 * Math.max(1, Math.abs(left), Math.abs(right));
   const isNonNegativeCountOrNull = (value: number | null) =>
     value === null || (Number.isInteger(value) && value >= 0);
+  // ADR 0060 · marca del desborde. Ausente (payloads previos al ADR) se lee
+  // como false; cualquier valor presente que no sea booleano invalida el
+  // payload (fail-closed: una marca ilegible no habilita nada).
+  const INVALID_FLAG = Symbol("invalid-residual-flag");
+  const asResidualFlag = (value: unknown): boolean | typeof INVALID_FLAG => {
+    const unwrapped = unwrap(value);
+    if (unwrapped === undefined || unwrapped === null) return false;
+    return typeof unwrapped === "boolean" ? unwrapped : INVALID_FLAG;
+  };
   const ratioMatchesCounts = (
     numerator: number | null,
     denominator: number | null,
     rate: number | null,
+    residualNegativo = false,
   ) => {
     if (numerator === null || denominator === null || denominator <= 0) {
       return rate === null;
     }
-    return rate !== null && sameSerializedRate(rate, numerator / denominator);
+    if (rate === null) {
+      // ADR 0060: la salida SANCIONADA del desborde es tasa null + conteos
+      // poblados + `residual_negativo = true`. Sin la marca, una tasa null con
+      // conteos poblados sigue siendo payload defectuoso (fail-closed).
+      return residualNegativo === true;
+    }
+    return sameSerializedRate(rate, numerator / denominator);
   };
+  // La marca sólo es coherente con la forma sancionada: conteos poblados
+  // (el numerador y el denominador quedan para el diagnóstico) y tasa null
+  // (la magnitud imposible nunca se publica). Cualquier otra combinación con
+  // la marca en true es contradictoria y se rechaza.
+  const residualShapeValid = (
+    numerator: number | null,
+    denominator: number | null,
+    rate: number | null,
+    residualNegativo: boolean,
+  ) =>
+    !residualNegativo ||
+    (numerator !== null && denominator !== null && denominator > 0 && rate === null);
   const intervalMatchesMethod = (
     k: number,
     rate: number | null,
     low: number | null,
     high: number | null,
     method: CalcMuestraReferenciaAsistenciaMetodoIc,
-    allowsDiagnostic: (value: number | null) => boolean,
   ) => {
     if (method === "no_aplica") {
       return low === null && high === null && (k < 12 || rate === null);
@@ -2980,16 +3043,8 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       low !== null &&
       high !== null &&
       low <= high &&
-      allowsDiagnostic(low) &&
-      allowsDiagnostic(high);
-  };
-  const warningForTramo = (key: CalcMuestraReferenciaAsistenciaTramoKey) => {
-    if (key === "asistencia") return hasInvalidAttendanceRateWarning;
-    if (key === "apertura") return hasCountWarning("enviadas_mayor_asistentes");
-    if (key === "efectividad") return hasCountWarning("validas_mayor_enviadas");
-    return hasInvalidAttendanceRateWarning ||
-      hasCountWarning("enviadas_mayor_asistentes") ||
-      hasCountWarning("validas_mayor_enviadas");
+      isProbability(low) &&
+      isProbability(high);
   };
 
   const parseTramo = (
@@ -3006,6 +3061,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     const icLow = asFiniteOrNull(record.ic_low);
     const icHigh = asFiniteOrNull(record.ic_high);
     const metodoIc = asMetodoIc(record.metodo_ic);
+    const residualNegativo = asResidualFlag(record.residual_negativo);
     if (
       !label ||
       k === INVALID_NUMBER ||
@@ -3015,16 +3071,15 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       icLow === INVALID_NUMBER ||
       icHigh === INVALID_NUMBER ||
       !metodoIc ||
+      residualNegativo === INVALID_FLAG ||
       !isNonNegativeCountOrNull(numerador) ||
       !isNonNegativeCountOrNull(denominadorTramo)
     ) return null;
-    const allowsDiagnostic = (candidate: number | null) =>
-      candidate === null || isProbability(candidate) ||
-      (candidate > 1 && warningForTramo(expectedKey));
     if (
-      !allowsDiagnostic(tasa) ||
-      !ratioMatchesCounts(numerador, denominadorTramo, tasa) ||
-      !intervalMatchesMethod(k, tasa, icLow, icHigh, metodoIc, allowsDiagnostic)
+      !isProbabilityOrNull(tasa) ||
+      !residualShapeValid(numerador, denominadorTramo, tasa, residualNegativo) ||
+      !ratioMatchesCounts(numerador, denominadorTramo, tasa, residualNegativo) ||
+      !intervalMatchesMethod(k, tasa, icLow, icHigh, metodoIc)
     ) return null;
     return {
       key: expectedKey,
@@ -3033,6 +3088,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       numerador,
       denominador: denominadorTramo,
       tasa,
+      residual_negativo: residualNegativo,
       ic_low: icLow,
       ic_high: icHigh,
       metodo_ic: metodoIc,
@@ -3092,7 +3148,9 @@ export function normalizeCalcMuestraReferenciaAsistencia(
   const globalIcLow = asFiniteOrNull(globalRecord.ic_low);
   const globalIcHigh = asFiniteOrNull(globalRecord.ic_high);
   const globalMetodoIc = asMetodoIc(globalRecord.metodo_ic);
+  const globalResidual = asResidualFlag(globalRecord.residual_negativo);
   if (
+    globalResidual === INVALID_FLAG ||
     globalK === INVALID_NUMBER ||
     globalMatriculados === INVALID_NUMBER ||
     globalAsistentes === INVALID_NUMBER ||
@@ -3105,7 +3163,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     globalIcLow === INVALID_NUMBER ||
     globalIcHigh === INVALID_NUMBER ||
     !globalMetodoIc ||
-    !isAllowedDiagnosticRate(globalTasa) ||
+    !isProbabilityOrNull(globalTasa) ||
     !isNonNegativeCountOrNull(globalMatriculados) ||
     !isNonNegativeCountOrNull(globalAsistentes) ||
     !isNonNegativeCountOrNull(globalEnviadas) ||
@@ -3118,17 +3176,24 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     // se mide sobre ELEGIBLES, así que los dos denominadores dejan de coincidir
     // legítimamente. Sólo se exige la igualdad en la lectura heredada.
     (!glosarioCompleto && globalMatriculados !== asistencia.denominador) ||
-    globalAsistentes !== asistencia.numerador ||
+    // Con glosario el numerador de la cadena es asistentes_elegibles capado a
+    // elegibles (ADR 0060), un derivado que solo puede REDUCIR al crudo del
+    // global; la igualdad estricta solo aplica a la lectura heredada.
+    (!glosarioCompleto && globalAsistentes !== asistencia.numerador) ||
+    (glosarioCompleto &&
+      asistencia.numerador !== null &&
+      globalAsistentes !== null &&
+      asistencia.numerador > globalAsistentes) ||
     globalEnviadas !== apertura.numerador ||
     globalValidas !== efectividad.numerador ||
-    !ratioMatchesCounts(globalAsistentes, globalMatriculados, globalTasa) ||
+    !residualShapeValid(globalAsistentes, globalMatriculados, globalTasa, globalResidual) ||
+    !ratioMatchesCounts(globalAsistentes, globalMatriculados, globalTasa, globalResidual) ||
     !intervalMatchesMethod(
       globalK,
       globalTasa,
       globalIcLow,
       globalIcHigh,
       globalMetodoIc,
-      isAllowedDiagnosticRate,
     )
   ) return null;
   const global: CalcMuestraReferenciaAsistenciaGlobal = {
@@ -3139,6 +3204,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
     validas: globalValidas,
     no_respondieron: globalNoRespondieron,
     tasa: globalTasa,
+    residual_negativo: globalResidual,
     media_ch: globalMedia,
     sd_ch: globalSd,
     ic_low: globalIcLow,
@@ -3207,6 +3273,8 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       const tasaPublicada = asFiniteOrNull(row.tasa_publicada);
       const kPublicada = asNullableNonNegativeInteger(row.k_publicada);
       const fuentePublicada = asText(row.fuente_publicada);
+      const residualCelda = asResidualFlag(row.residual_negativo);
+      if (residualCelda === INVALID_FLAG) return null;
       const expectedSufficiency: CalcMuestraReferenciaAsistenciaSuficiencia =
         k === INVALID_NUMBER || k === 0
           ? "vacia"
@@ -3245,14 +3313,14 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         !isNonNegativeCountOrNull(asistentesCelda) ||
         (mediaCh !== null && mediaCh < 0) ||
         (sdCh !== null && sdCh < 0) ||
-        !ratioMatchesCounts(asistentesCelda, matriculados, tasa) ||
+        !residualShapeValid(asistentesCelda, matriculados, tasa, residualCelda) ||
+        !ratioMatchesCounts(asistentesCelda, matriculados, tasa, residualCelda) ||
         !intervalMatchesMethod(
           k,
           tasa,
           icLow,
           icHigh,
           metodoIc,
-          isAllowedDiagnosticRate,
         ) ||
         (k === 0 && (
           matriculados !== null ||
@@ -3262,7 +3330,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
           sdCh !== null
         )) ||
         (tasaPublicada !== null && !isProbability(tasaPublicada)) ||
-        !isAllowedDiagnosticRate(tasa) ||
+        !isProbabilityOrNull(tasa) ||
         (fuentePublicada === "celda" &&
           (k < umbrales.delgada_min ||
             !isProbability(tasa) ||
@@ -3290,6 +3358,7 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         asistentes: asistentesCelda,
         ...ventanaDe(row),
         tasa,
+        residual_negativo: residualCelda,
         estimador: "razon_agregada",
         media_ch: mediaCh,
         sd_ch: sdCh,
@@ -3457,12 +3526,16 @@ export function normalizeCalcMuestraReferenciaAsistencia(
         celda_key: celdaKey, celda_label: celdaLabel, k,
         ...ventanaDe(f),
         elegibles: n(f.elegibles), asistentes: n(f.asistentes),
+        asistentes_elegibles: n(f.asistentes_elegibles),
         ya_medidas: n(f.ya_medidas), no_elegibles: n(f.no_elegibles),
         elegibles_presentes: n(f.elegibles_presentes),
         efectivas: n(f.efectivas), no_efectivas: n(f.no_efectivas),
         pct_ausencia: n(f.pct_ausencia), pct_ya_medidas: n(f.pct_ya_medidas),
         pct_rechazo: n(f.pct_rechazo), efectividad: n(f.efectividad),
         rendimiento: n(f.rendimiento),
+        residual_negativo: unwrap(f.residual_negativo) === true,
+        asistencia_elegibles_min: n(f.asistencia_elegibles_min),
+        asistencia_elegibles_max: n(f.asistencia_elegibles_max),
       });
     }
     embudos.push({ dimension_key: key, dimension_label: label, orden, filas });
@@ -3575,11 +3648,16 @@ export function normalizeCalcMuestraReferenciaAsistencia(
       semanas.push({
         semana, etiqueta, orden, k,
         elegibles: n(w.elegibles), ausentes: n(w.ausentes), asistentes: n(w.asistentes),
+        asistentes_elegibles: n(w.asistentes_elegibles),
         ya_medidas: n(w.ya_medidas), no_elegibles: n(w.no_elegibles),
         a_encuestar: n(w.a_encuestar), registros: n(w.registros),
         efectivas: n(w.efectivas), no_efectivas: n(w.no_efectivas),
         efectivas_acumuladas: n(w.efectivas_acumuladas),
-        asistencia: n(w.asistencia), pct_ya_medidas: n(w.pct_ya_medidas),
+        asistencia: n(w.asistencia),
+        residual_negativo: unwrap(w.residual_negativo) === true,
+        asistencia_elegibles_min: n(w.asistencia_elegibles_min),
+        asistencia_elegibles_max: n(w.asistencia_elegibles_max),
+        pct_ya_medidas: n(w.pct_ya_medidas),
         efectividad: n(w.efectividad),
         efectividad_denominador: n(w.efectividad_denominador),
         rendimiento: n(w.rendimiento),

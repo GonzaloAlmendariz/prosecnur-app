@@ -255,14 +255,17 @@ test_that(".pulso conserva solo el resumen agregado y degrada su binding raw", {
     # tramo del campo se aplicó, que es lo que permite leer su tasa sin
     # confundirla con una propiedad de la facultad.
     "semana_min", "semana_max", "semana_media", "k_con_semana",
-    "tasa", "estimador", "media_ch", "sd_ch", "ic_low", "ic_high",
+    # B2/ADR 0060: la marca de desborde viaja con la tasa de la celda (una
+    # tasa imposible se persiste como NA + residual_negativo, nunca > 1).
+    "tasa", "residual_negativo", "estimador", "media_ch", "sd_ch",
+    "ic_low", "ic_high",
     "metodo_ic", "suficiencia", "tasa_publicada", "k_publicada",
     "fuente_publicada"
   )
   expect_identical(
     names(celda),
     campos_celda,
-    info = "La celda agregada no fue saneada a sus 21 campos canónicos"
+    info = "La celda agregada no fue saneada a sus 22 campos canónicos"
   )
   contaminantes_root <- intersect(
     c("rows", "filas", "raw", "data", "tabla_raw"),

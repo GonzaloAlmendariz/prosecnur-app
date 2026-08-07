@@ -1722,7 +1722,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     cap <- stats::quantile(eligible[eligible > 0], probs = 0.90, na.rm = TRUE, names = FALSE)
     if (is.finite(cap) && cap > 0) eligible <- pmin(eligible, cap)
   }
-  eligible[eligible <= 0] <- 1
+  # D6: un aula sin elegibles pesa 0 (probabilidad de inclusion nula), no 1:
+  # regalarle MOS positiva la metia al bombo PPS. El caso todos-cero lo cubre
+  # el fallback uniforme de .cm_aulas_inclusion_probabilities.
   eligible
 }
 
@@ -1758,42 +1760,84 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   pmin(1, pmax(0, pik))
 }
 
-.cm_aulas_balance_matrix <- function(df, vars) {
+.cm_aulas_balance_matrix <- function(df, vars, pik = NULL) {
   vars <- intersect(.cm_aulas_chr_vec(vars), names(df))
-  if (!length(vars)) return(matrix(1, nrow = nrow(df), ncol = 1, dimnames = list(NULL, "intercept")))
-  data <- df[, vars, drop = FALSE]
-  for (nm in names(data)) {
-    if (is.numeric(data[[nm]])) {
-      data[[nm]][!is.finite(data[[nm]])] <- 0
+  out <- if (!length(vars)) {
+    matrix(1, nrow = nrow(df), ncol = 1, dimnames = list(NULL, "intercept"))
+  } else {
+    data <- df[, vars, drop = FALSE]
+    for (nm in names(data)) {
+      if (is.numeric(data[[nm]])) {
+        data[[nm]][!is.finite(data[[nm]])] <- 0
+      } else {
+        values <- .cm_aulas_values(data, nm, "sin_dato")
+        values[!nzchar(values)] <- "sin_dato"
+        data[[nm]] <- factor(values)
+      }
+    }
+    mm <- tryCatch(stats::model.matrix(~ . - 1, data = data), error = function(e) NULL)
+    if (is.null(mm) || !nrow(mm)) {
+      matrix(1, nrow = nrow(df), ncol = 1, dimnames = list(NULL, "intercept"))
     } else {
-      values <- .cm_aulas_values(data, nm, "sin_dato")
-      values[!nzchar(values)] <- "sin_dato"
-      data[[nm]] <- factor(values)
+      cbind(intercept = 1, mm)
     }
   }
-  mm <- tryCatch(stats::model.matrix(~ . - 1, data = data), error = function(e) NULL)
-  if (is.null(mm) || !nrow(mm)) return(matrix(1, nrow = nrow(df), ncol = 1, dimnames = list(NULL, "intercept")))
-  cbind(intercept = 1, mm)
+  # D2 (Deville-Tille): pik como PRIMERA columna de balance fija el tamano de
+  # muestra del cube (sum(pik_k/pik_k) = n sobre la muestra); sin ella
+  # samplecube/lcube pueden entregar n != cuota y el ajuste posterior altera
+  # la muestra del diseno.
+  if (!is.null(pik)) out <- cbind(pik = as.numeric(pik), out)
+  out
 }
 
+# Devuelve la seleccion cuadrada a la cuota MAS la metadata del ajuste
+# (added_n/removed_n): un ajuste por sorteo ponderado altera la muestra del
+# diseno y el llamador debe divulgarlo, nunca aplicarlo en silencio.
+#
+# H4: una unidad de CERTEZA (pik >= 1) esta en la muestra con probabilidad 1
+# por diseno; recortarla contradice su pi publicada y rompe el peso 1/pi. El
+# recorte sortea solo entre las unidades con pik < 1 y toca certezas
+# unicamente como ultimo recurso, divulgandolo con warning.
 .cm_aulas_fix_pick_count <- function(picked, pik, quota, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   picked <- unique(as.integer(picked[is.finite(picked) & picked > 0]))
   quota <- as.integer(quota)
   universe <- seq_along(pik)
-  if (length(picked) > quota) {
-    keep <- sample(picked, quota, prob = pmax(pik[picked], 1e-9))
-    return(sort(keep))
+  added_n <- 0L
+  removed_n <- 0L
+  warning <- character(0)
+  # sample.int en vez de sample(x, ...): con un candidato unico, sample(x)
+  # sortearia sobre 1:x en vez de sobre x (la trampa clasica de sample()).
+  sorteo <- function(pool, n) {
+    pool[sample.int(length(pool), n, prob = pmax(pik[pool], 1e-9))]
   }
-  if (length(picked) < quota) {
+  if (length(picked) > quota) {
+    removed_n <- length(picked) - quota
+    certeza <- picked[pik[picked] >= 1 - sqrt(.Machine$double.eps)]
+    sorteables <- setdiff(picked, certeza)
+    if (length(certeza) >= quota) {
+      # Ultimo recurso: hasta las certezas exceden la cuota. Se recortan
+      # certezas divulgandolo — su pi publicada (1) ya no describe el proceso.
+      warning <- sprintf(
+        "Recorte de tamano alcanzo unidades de certeza (pik >= 1): se conservaron %d de %d certezas para cerrar la cuota; la pi publicada de las recortadas no describe el proceso.",
+        quota, length(certeza)
+      )
+      picked <- if (length(certeza) > quota) sorteo(certeza, quota) else certeza
+    } else {
+      picked <- c(certeza, sorteo(sorteables, quota - length(certeza)))
+    }
+  } else if (length(picked) < quota) {
     rest <- setdiff(universe, picked)
     add_n <- min(length(rest), quota - length(picked))
     if (add_n > 0L) {
-      add <- sample(rest, add_n, prob = pmax(pik[rest], 1e-9))
-      picked <- c(picked, add)
+      picked <- c(picked, sorteo(rest, add_n))
+      added_n <- add_n
     }
   }
-  sort(unique(picked))
+  list(
+    indices = sort(unique(picked)), added_n = added_n, removed_n = removed_n,
+    warning = warning
+  )
 }
 
 .cm_aulas_pick_systematic <- function(pik, seed = NULL) {
@@ -1810,7 +1854,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 .cm_aulas_pick_cube <- function(df, pik, selector, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   if (!requireNamespace("sampling", quietly = TRUE)) return(NULL)
-  x <- .cm_aulas_balance_matrix(df, selector$balance_vars)
+  x <- .cm_aulas_balance_matrix(df, selector$balance_vars, pik = pik)
   tryCatch(which(as.numeric(sampling::samplecube(x, pik, order = 1, comment = FALSE)) > 0), error = function(e) NULL)
 }
 
@@ -1818,7 +1862,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (!is.null(seed)) set.seed(seed)
   if (!requireNamespace("BalancedSampling", quietly = TRUE)) return(NULL)
   vars <- unique(c(.cm_aulas_chr_vec(selector$spread_vars), .cm_aulas_chr_vec(selector$balance_vars)))
-  x <- .cm_aulas_balance_matrix(df, vars)
+  x <- .cm_aulas_balance_matrix(df, vars, pik = pik)
   out <- tryCatch({
     if (exists("lcube", where = asNamespace("BalancedSampling"), inherits = FALSE)) {
       get("lcube", envir = asNamespace("BalancedSampling"))(pik, x)
@@ -1840,8 +1884,14 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (quota >= nrow(df)) {
     return(list(indices = seq_len(nrow(df)), pik = rep(1, nrow(df)), engine_used = engine, warning = character(0)))
   }
-  mos <- .cm_aulas_measure_of_size(df, selector)
-  pik <- .cm_aulas_inclusion_probabilities(mos, quota)
+  # D1: el estratificado_aleatorio sortea SRS uniforme, asi que su pi real (y
+  # la unica publicable) es cuota/N por estrato; publicar la PPS/MOS aqui
+  # producia pesos 1/pi de un diseno que no fue el ejecutado.
+  pik <- if (engine == "estratificado_aleatorio") {
+    rep(quota / nrow(df), nrow(df))
+  } else {
+    .cm_aulas_inclusion_probabilities(.cm_aulas_measure_of_size(df, selector), quota)
+  }
   warnings <- character(0)
   engine_used <- engine
   picked <- NULL
@@ -1878,8 +1928,24 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     if (!is.null(seed)) set.seed(seed)
     picked <- sample(seq_len(nrow(df)), quota, prob = pmax(pik, 1e-9))
   }
-  picked <- .cm_aulas_fix_pick_count(picked, pik, quota, seed)
-  list(indices = picked, pik = pik, engine_used = engine_used, warning = unique(warnings))
+  raw_n <- length(unique(as.integer(picked[is.finite(picked) & picked > 0])))
+  fixed <- .cm_aulas_fix_pick_count(picked, pik, quota, seed)
+  # H4: si el recorte tuvo que tocar certezas, la divulgacion viaja.
+  warnings <- c(warnings, fixed$warning)
+  # D2: un ajuste de tamano altera la muestra que entrego el motor; se divulga
+  # siempre (warning + metadata), nunca se aplica en silencio.
+  if (fixed$added_n > 0L || fixed$removed_n > 0L) {
+    warnings <- c(warnings, sprintf(
+      "Ajuste de tamano divulgado: el sorteo %s entrego %d aulas para una cuota de %d; se %s por sorteo ponderado sobre pik.",
+      engine_used, raw_n, quota,
+      if (fixed$added_n > 0L) sprintf("agregaron %d", fixed$added_n) else sprintf("quitaron %d", fixed$removed_n)
+    ))
+  }
+  list(
+    indices = fixed$indices, pik = pik, engine_used = engine_used,
+    warning = unique(warnings),
+    size_adjustment = list(added_n = fixed$added_n, removed_n = fixed$removed_n)
+  )
 }
 
 .cm_aulas_annotate_selection_metrics <- function(df, selector) {
@@ -1919,6 +1985,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   rows <- list()
   warnings <- character(0)
   engine_used <- character(0)
+  # D2: el ajuste de tamano de cada estrato se agrega y viaja como DATO en los
+  # attrs de la seleccion, no solo como texto del warning.
+  size_adjustment <- list(added_n = 0L, removed_n = 0L)
   for (st in names(quotas)) {
     quota <- quotas[[st]]
     cand <- aula_frame[aula_frame$stratum == st, , drop = FALSE]
@@ -1930,6 +1999,12 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     }
     warnings <- c(warnings, picked$warning)
     engine_used <- c(engine_used, picked$engine_used)
+    if (is.list(picked$size_adjustment)) {
+      size_adjustment$added_n <- size_adjustment$added_n +
+        .cm_aulas_int(picked$size_adjustment$added_n, 0L)
+      size_adjustment$removed_n <- size_adjustment$removed_n +
+        .cm_aulas_int(picked$size_adjustment$removed_n, 0L)
+    }
     if (!length(picked$indices)) next
     row <- cand[picked$indices, , drop = FALSE]
     row$pi_design_candidate <- as.numeric(picked$pik[picked$indices])
@@ -1942,6 +2017,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   out <- .cm_descuento_finalize_once(out, descuento)
   attr(out, "engine_used") <- if (length(engine_used)) paste(unique(engine_used), collapse = "|") else engine
   attr(out, "warnings") <- unique(c(warnings, descuento$warnings))
+  attr(out, "size_adjustment") <- size_adjustment
   out
 }
 
@@ -2319,10 +2395,14 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   titulars <- .cm_aulas_select_once_dispatch(aula_frame, selector, engine, seed = if (is.null(seed)) NULL else seed + 1009L, objective = objective)
   warnings <- attr(titulars, "warnings") %||% character(0)
   used <- attr(titulars, "engine_used") %||% engine
+  # D2: el ajuste de tamano del sorteo de titulares viaja como dato hasta la
+  # seleccion final.
+  size_adjustment <- attr(titulars, "size_adjustment") %||% list(added_n = 0L, removed_n = 0L)
   if (!nrow(titulars)) {
     out <- aula_frame[0, , drop = FALSE]
     attr(out, "engine_used") <- if (length(used)) paste(unique(used), collapse = "|") else engine
     attr(out, "warnings") <- unique(warnings)
+    attr(out, "size_adjustment") <- size_adjustment
     return(out)
   }
   titulars$wave <- "M1"
@@ -2359,18 +2439,26 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   rownames(out) <- NULL
   attr(out, "engine_used") <- if (length(used)) paste(unique(used), collapse = "|") else engine
   attr(out, "warnings") <- unique(warnings)
+  attr(out, "size_adjustment") <- size_adjustment
   out
 }
 
 .cm_aulas_design_probabilities <- function(aula_frame, selector, engine) {
+  engine <- .cm_aulas_engine_key(engine)
   n_total <- min(nrow(aula_frame), max(1L, .cm_aulas_int(selector$n_aulas, 1L)))
   quotas <- .cm_aulas_quota_by_stratum(aula_frame, n_total)
   out <- stats::setNames(rep(0, nrow(aula_frame)), aula_frame$classroom_id)
   for (st in names(quotas)) {
     idx <- which(aula_frame$stratum == st)
     if (!length(idx)) next
-    mos <- .cm_aulas_measure_of_size(aula_frame[idx, , drop = FALSE], selector)
-    out[idx] <- .cm_aulas_inclusion_probabilities(mos, quotas[[st]])
+    if (engine == "estratificado_aleatorio") {
+      # D1: SRS por estrato -> pi uniforme cuota_h/N_h, la misma con la que
+      # sortea .cm_aulas_pick_indices para este engine.
+      out[idx] <- min(1, quotas[[st]] / length(idx))
+    } else {
+      mos <- .cm_aulas_measure_of_size(aula_frame[idx, , drop = FALSE], selector)
+      out[idx] <- .cm_aulas_inclusion_probabilities(mos, quotas[[st]])
+    }
   }
   out
 }
@@ -3260,14 +3348,18 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
 # F2: corridas Monte Carlo del sorteo final segun la fuente de probabilidad.
 # - pool_controlado: pi_final SOLO puede estimarse por simulacion (la
 #   optimizacion posterior invalida las pi prescritas) -> corre el MC completo.
+# - D3: descuento secuencial aplicado EN-SORTEO (sequential_discount ON con un
+#   engine secuencial y marco con ids): la pi del proceso depende del orden de
+#   extraccion y del traslape, asi que tampoco es prescrita -> MC encendido
+#   por defecto (mismo presupuesto de escala .cm_aulas_mc_final_budget).
 # - Engines de diseño prescrito (todo lo demas): pi_final = pi_design de forma
 #   exacta y deterministica; el MC solo llenaba la columna pi_mc de
 #   transparencia. Correr 500 selecciones completas para una columna
 #   informativa congelaba la via sincrona sin aporte metodologico -> 0 por
 #   default. La transparencia queda OPT-IN via selector$mc_prescribed_transparency.
-.cm_aulas_seleccionar_mc_runs <- function(selector, engine) {
+.cm_aulas_seleccionar_mc_runs <- function(selector, engine, sequential_discount = FALSE) {
   engine <- .cm_aulas_engine_key(engine)
-  if (engine == "pool_controlado") {
+  if (engine == "pool_controlado" || isTRUE(sequential_discount)) {
     return(max(.cm_aulas_int(selector$simulation_runs, 0L), .cm_aulas_int(selector$monte_carlo_n, 0L)))
   }
   if (.cm_aulas_bool(selector$mc_prescribed_transparency, FALSE)) {
@@ -3299,7 +3391,13 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   frame_n <- max(0L, .cm_aulas_int(frame_n, 0L))
   selector <- config$selector %||% list()
   engine <- .cm_aulas_engine_key(selector$selector_engine)
-  mc_runs <- .cm_aulas_mc_final_budget(frame_n, .cm_aulas_seleccionar_mc_runs(selector, engine))
+  # D3: el costo no puede ver si el marco trae ids parseables; asume que el
+  # descuento secuencial aplicara (cota superior segura: manda a job, no
+  # congela la via sync).
+  descuento_secuencial <- engine != "pool_controlado" &&
+    engine %in% .cm_descuento_engines_secuenciales() &&
+    .cm_aulas_bool(selector$sequential_discount, TRUE)
+  mc_runs <- .cm_aulas_mc_final_budget(frame_n, .cm_aulas_seleccionar_mc_runs(selector, engine, descuento_secuencial))
   waves_n <- 1L + max(0L, .cm_aulas_int(selector$replacement_waves, 0L))
   as.numeric(frame_n) * waves_n * (1 + mc_runs)
 }
@@ -3414,7 +3512,29 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   coverage_score <- if (is.finite(coverage_pct)) round(min(100, 100 * coverage_pct * 1.25), 1) else 0
   reserve_score <- round(max(0, min(100, 70 + 15 * reserve_ratio)), 1)
   overall <- representativity$representativity_score
-  probability_source <- if (engine == "pool_controlado") "monte_carlo_after_optimization" else "prescribed_design"
+  # D3: si el sorteo de ESTA corrida aplico el descuento secuencial, las pi
+  # que la tarjeta publica (design_pi estatica) no describen el proceso
+  # ejecutado. El MC del proceso corre solo en la seleccion final (correrlo
+  # por tarjeta multiplicaria el costo de la comparacion), asi que la tarjeta
+  # lo declara: pi referenciales del diseno estatico, no del sorteo.
+  descuento_estado <- .cm_descuento_estado(aula_frame, local_selector, engine)
+  descuento_secuencial <- engine != "pool_controlado" &&
+    isTRUE(descuento_estado$applied) && identical(descuento_estado$mode, "sequential")
+  probability_source <- if (engine == "pool_controlado") {
+    "monte_carlo_after_optimization"
+  } else if (descuento_secuencial) {
+    "prescribed_design_reference"
+  } else {
+    "prescribed_design"
+  }
+  if (descuento_secuencial) {
+    warnings <- c(warnings, paste(
+      "Comparacion de metodos con descuento secuencial aplicado al sorteo:",
+      "las pi de esta tarjeta son referenciales del diseno estatico",
+      "(pi_design); la pi del proceso secuencial solo se estima por Monte",
+      "Carlo en la seleccion final, no en la comparacion."
+    ))
+  }
   risk_flags <- .cm_aulas_risk_flags(aula_frame, selected, local_selector, engine, engine_used, warnings, balance, concentration)
   simulation_summary <- .cm_aulas_method_simulation_summary(frame_result, aula_frame, local_selector, engine, objective, requested_runs = local_selector$simulation_runs, on_progress = on_progress)
   balance_metric_rows <- representativity$metrics[representativity$metrics$metric_group == "balance" & representativity$metrics$active %in% TRUE, , drop = FALSE]
@@ -3844,6 +3964,10 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   selection_df <- .cm_aulas_select_waves(aula_frame, selector, engine, waves, seed = selector$seed, objective = objective, on_progress = on_progress)
   engine_used <- .cm_aulas_scalar(attr(selection_df, "engine_used"), engine)
   fallback_warnings <- attr(selection_df, "warnings") %||% character(0)
+  # D2: el ajuste de tamano del sorteo viaja como DATO (attr de la seleccion),
+  # no solo como texto de warning; merge() lo perderia, asi que se captura
+  # aqui y se re-adjunta al final.
+  size_adjustment <- attr(selection_df, "size_adjustment") %||% list(added_n = 0L, removed_n = 0L)
   if (!nrow(selection_df)) stop("No se pudo seleccionar aulas con el marco actual.", call. = FALSE)
   rownames(selection_df) <- NULL
 
@@ -3854,15 +3978,29 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   selected_counts <- stats::aggregate(classroom_id ~ stratum + wave, data = selection_df, FUN = length)
   names(selected_counts)[names(selected_counts) == "classroom_id"] <- "selected_in_stratum_wave"
   selection_df <- merge(selection_df, selected_counts, by = c("stratum", "wave"), all.x = TRUE, sort = FALSE)
+  attr(selection_df, "size_adjustment") <- size_adjustment
 
   design_pi <- .cm_aulas_design_probabilities(aula_frame, selector, engine)
-  probability_source <- if (engine == "pool_controlado") "monte_carlo_after_optimization" else "prescribed_design"
+  # D3: el descuento secuencial EN-SORTEO invalida la pi estatica (la pi del
+  # proceso depende del orden de extraccion y del traslape). El estado se
+  # resuelve con el marco REAL (ids parseables), igual que en el sorteo.
+  descuento_estado <- .cm_descuento_estado(aula_frame, selector, engine)
+  descuento_secuencial <- engine != "pool_controlado" &&
+    isTRUE(descuento_estado$applied) && identical(descuento_estado$mode, "sequential")
+  probability_source <- if (engine == "pool_controlado") {
+    "monte_carlo_after_optimization"
+  } else if (descuento_secuencial) {
+    "monte_carlo_sequential_discount"
+  } else {
+    "prescribed_design"
+  }
+  usa_mc <- probability_source %in% c("monte_carlo_after_optimization", "monte_carlo_sequential_discount")
   # F2: con diseño prescrito el MC era pura transparencia (pi_final = pi_design
   # exacta); 500 corridas por default congelaban la via sincrona. La semantica
-  # (0 por default para prescritos, opt-in via mc_prescribed_transparency)
-  # vive en .cm_aulas_seleccionar_mc_runs, compartida con el estimador de
-  # costo del router.
-  mc_runs <- .cm_aulas_seleccionar_mc_runs(selector, engine)
+  # (0 por default para prescritos, opt-in via mc_prescribed_transparency,
+  # encendido con descuento secuencial) vive en .cm_aulas_seleccionar_mc_runs,
+  # compartida con el estimador de costo del router.
+  mc_runs <- .cm_aulas_seleccionar_mc_runs(selector, engine, descuento_secuencial)
   if (mc_runs > 0L) {
     .cm_aulas_progress(on_progress, "simulacion_mc", message = "Simulación Monte Carlo", force = TRUE)
   }
@@ -3871,13 +4009,13 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     mc$note <- "MC de transparencia omitido: pi prescritas por diseño (pi_final = pi_design). Activa selector$mc_prescribed_transparency para estimar pi_mc por simulacion."
   }
   pi_mc_lookup <- mc$pi
-  pi_final_lookup <- if (probability_source == "monte_carlo_after_optimization") pi_mc_lookup else design_pi
+  pi_final_lookup <- if (usa_mc) pi_mc_lookup else design_pi
   student_pi_lookup <- .cm_aulas_student_probability_summary(aula_frame, pi_final_lookup)
 
   selection_df$pi_base <- as.numeric(design_pi[selection_df$classroom_id])
   selection_df$pi_design <- as.numeric(design_pi[selection_df$classroom_id])
   selection_df$pi_mc <- as.numeric(pi_mc_lookup[selection_df$classroom_id])
-  selection_df$pi_final <- if (probability_source == "monte_carlo_after_optimization") selection_df$pi_mc else selection_df$pi_design
+  selection_df$pi_final <- if (usa_mc) selection_df$pi_mc else selection_df$pi_design
   # Invariante innegociable: toda aula SELECCIONADA tiene pi_final > 0 (y por
   # ende peso finito), con cualquier presupuesto Monte Carlo. En el path MC un
   # conteo de 0 por corridas recortadas colapsaba pi_mc -> pi_final = 0 -> peso
@@ -3885,7 +4023,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   # conserva el estimador crudo en su columna para transparencia; pi_final usa
   # el rescate para no romper los pesos.
   missing_final <- !is.finite(selection_df$pi_final) | selection_df$pi_final <= 0
-  mc_rescued_n <- if (probability_source == "monte_carlo_after_optimization") {
+  mc_rescued_n <- if (usa_mc) {
     sum(missing_final & .cm_aulas_role_values(selection_df) != "extra_reserve_pool")
   } else {
     0L
@@ -3965,6 +4103,14 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     fallback_warnings,
     if (probability_source == "monte_carlo_after_optimization") {
       "Se eligio la mejor muestra entre candidatas; pi_final usa simulacion Monte Carlo posterior a la optimizacion."
+    } else {
+      character(0)
+    },
+    # D3: con descuento secuencial en-sorteo la pi publicada es la del PROCESO
+    # (estimada por Monte Carlo del mismo sorteo secuencial), no la del diseno
+    # estatico; se divulga siempre.
+    if (probability_source == "monte_carlo_sequential_discount") {
+      "Descuento secuencial aplicado en el sorteo: pi_final se estima por Monte Carlo del proceso secuencial (probability_source monte_carlo_sequential_discount); pi_design se conserva como referencia del diseno estatico y como rescate divulgado cuando el estimador MC es invalido."
     } else {
       character(0)
     },

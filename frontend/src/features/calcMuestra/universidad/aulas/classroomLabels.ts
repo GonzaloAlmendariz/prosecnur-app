@@ -24,6 +24,7 @@ export function classroomProbabilitySourceLabel(value: string | null | undefined
   const key = raw.toLowerCase().replace(/[\s-]+/g, "_");
   const labels: Record<string, string> = {
     prescribed_design: "Diseño definido por el cálculo",
+    prescribed_design_reference: "Diseño prescrito (referencial)",
     design: "Diseño probabilístico base",
     base_design: "Diseño probabilístico base",
     pps: "PPS sistemático",
@@ -34,6 +35,7 @@ export function classroomProbabilitySourceLabel(value: string | null | undefined
     simulated: "Simulación de probabilidades",
     monte_carlo: "Simulación Monte Carlo",
     monte_carlo_after_optimization: "Simulación Monte Carlo tras optimización",
+    monte_carlo_sequential_discount: "Monte Carlo con descuento secuencial",
   };
   return labels[key] ?? raw.replace(/_/g, " ");
 }

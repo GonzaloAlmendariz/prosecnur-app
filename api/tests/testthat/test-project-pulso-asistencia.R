@@ -242,6 +242,85 @@ test_that("las listas de columnas no se pierden por no ser escalares", {
   )
 })
 
+# B3/ADR 0060 (punto 11): un .pulso guardado ANTES del saneo de tasas puede
+# traer tasas > 1 persistidas («tasa diagnóstica» del contrato viejo). El
+# cliente nuevo es fail-closed: una sola tasa imposible invalida el payload y
+# el Histórico reabre vacío. La migración de carga las sanea al contrato nuevo
+# (NA + residual_negativo, magnitudes intactas) y es idempotente.
+test_that("la migracion de carga sanea las tasas imposibles persistidas", {
+  vieja <- .asist_ref_completa()
+  # El estado viejo con desborde: cadena y global con la tasa diagnostica
+  # > 1, una celda que publica su propia tasa imposible, una semana y una
+  # celda de embudo con tasas fuera de [0, 1].
+  vieja$cadena$asistencia$tasa <- 1.3
+  vieja$cadena$asistencia$ic_low <- 1.28
+  vieja$cadena$asistencia$ic_high <- 1.32
+  vieja$global$tasa <- 1.3
+  vieja$dimensiones[[1L]]$filas[[1L]]$tasa <- 1.3
+  vieja$dimensiones[[1L]]$filas[[1L]]$tasa_publicada <- 1.3
+  vieja$dimensiones[[1L]]$filas[[1L]]$fuente_publicada <- "celda"
+  vieja$serie_campo$filas[[1L]]$asistencia <- 2.3
+  vieja$embudos[[1L]]$filas[[1L]]$pct_ausencia <- -1.3
+  vieja$embudos[[1L]]$filas[[1L]]$efectividad <- 1.06
+
+  migrada <- .pulso_migrate_asistencia_tasas_imposibles(vieja)
+
+  tramo <- migrada$cadena$asistencia
+  expect_true(is.na(tramo$tasa))
+  expect_true(isTRUE(tramo$residual_negativo))
+  expect_true(is.na(tramo$ic_low) && is.na(tramo$ic_high))
+  expect_identical(tramo$metodo_ic, "no_aplica")
+  # Las magnitudes quedan para el diagnostico.
+  expect_identical(tramo$numerador, 4931)
+  expect_identical(tramo$denominador, 6232)
+
+  expect_true(is.na(migrada$global$tasa))
+  expect_true(isTRUE(migrada$global$residual_negativo))
+
+  celda <- migrada$dimensiones[[1L]]$filas[[1L]]
+  expect_true(is.na(celda$tasa))
+  expect_true(isTRUE(celda$residual_negativo))
+  # Con el global tambien invalido, la publicacion degrada a sin_publicacion.
+  expect_identical(celda$fuente_publicada, "sin_publicacion")
+  expect_true(is.na(celda$tasa_publicada))
+  expect_true(is.na(celda$k_publicada))
+
+  semana <- migrada$serie_campo$filas[[1L]]
+  expect_true(is.na(semana$asistencia))
+  expect_true(isTRUE(semana$residual_negativo))
+  # Los absolutos de la semana no se tocan.
+  expect_identical(semana$elegibles, 2569)
+  expect_identical(semana$asistentes, 2091)
+
+  fila_embudo <- migrada$embudos[[1L]]$filas[[1L]]
+  expect_true(is.na(fila_embudo$pct_ausencia))
+  expect_true(is.na(fila_embudo$efectividad))
+  expect_true(isTRUE(fila_embudo$residual_negativo))
+  # Una tasa valida de la misma fila sobrevive intacta.
+  expect_identical(fila_embudo$rendimiento, 0.56)
+
+  # Idempotencia: migrar lo migrado no cambia nada.
+  expect_identical(.pulso_migrate_asistencia_tasas_imposibles(migrada), migrada)
+
+  # Y sobre una referencia sana es un no-op.
+  sana <- .asist_ref_completa()
+  expect_identical(.pulso_migrate_asistencia_tasas_imposibles(sana), sana)
+})
+
+test_that("una celda que publicaba un global valido conserva su publicacion", {
+  vieja <- .asist_ref_completa()
+  vieja$dimensiones[[1L]]$filas[[1L]]$tasa <- 1.3
+  vieja$dimensiones[[1L]]$filas[[1L]]$tasa_publicada <- 1.3
+  vieja$dimensiones[[1L]]$filas[[1L]]$fuente_publicada <- "celda"
+  # global sano (0.7912): la celda migrada degrada a global, no a
+  # sin_publicacion.
+  migrada <- .pulso_migrate_asistencia_tasas_imposibles(vieja)
+  celda <- migrada$dimensiones[[1L]]$filas[[1L]]
+  expect_identical(celda$fuente_publicada, "global")
+  expect_identical(celda$tasa_publicada, 0.7912)
+  expect_identical(celda$k_publicada, 190L)
+})
+
 test_that("una referencia v1 sigue abriendo despues del cambio", {
   # Un `.pulso` guardado antes del ADR 0060 no trae los bloques nuevos y usa los
   # nombres viejos de la cadena. Tiene que sobrevivir sin inventar campos.
