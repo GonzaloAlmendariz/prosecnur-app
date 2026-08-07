@@ -195,7 +195,19 @@
         b <- names(f$variables)[1]
         .gpe_ref(b, f$variables[[b]])
       }, character(1))
-      return(list(modo = "var", vars = as.list(unname(refs))))
+      # El eje Y lleva la ETIQUETA ESTANDAR, no el rotulo del instrumento.
+      #
+      # Sin esto, un estudio que renombra sus temas —«Estados Financieros» en vez
+      # del enunciado entero— perdia el nombre corto justo en la forma donde el
+      # eje ES el nombre. La declaracion manda: para eso se declara.
+      etiquetas <- list()
+      for (i in seq_along(filas)) {
+        lab <- trimws(as.character(filas[[i]]$etiqueta_estandar %||% ""))
+        if (nzchar(lab)) etiquetas[[refs[i]]] <- lab
+      }
+      args <- list(modo = "var", vars = as.list(unname(refs)))
+      if (length(etiquetas)) args$overrides <- list(etiquetas_vars = etiquetas)
+      return(args)
     }
 
     vars_arg <- list()
@@ -383,6 +395,26 @@
       if (nzchar(e)) {
         enunciado <- e
         break
+      }
+    }
+
+    # Sin enunciado, titula la SECCION. Es el mejor nombre disponible de la
+    # diapositiva y estaba a la vista: la matriz la declara, y hasta ahora no
+    # tenia ningun consumidor en el mazo —la regla 7 del ADR 0064 pedia que
+    # encontrara uno o saliera del formato—.
+    #
+    # Lo que hacia el motor era peor que no titular: rellenaba con el rotulo de
+    # la PRIMERA variable, que nombra un tema y no la diapositiva. Medido en el
+    # estudio, tres laminas seguidas salian tituladas «Servicio de salud» siendo
+    # cosas distintas, y las de escalas mixtas no recibian nada — 35 con un
+    # titulo enganoso y 9 sin ninguno.
+    if (!nzchar(enunciado)) {
+      for (f in filas) {
+        sec <- trimws(as.character(f$seccion %||% ""))
+        if (nzchar(sec)) {
+          enunciado <- sec
+          break
+        }
       }
     }
 

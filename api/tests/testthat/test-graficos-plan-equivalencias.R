@@ -499,3 +499,48 @@ test_that("el estilo del radar se declara por bloque", {
   # un Excel con «Auditoría» acentuado no puede dejar la lamina sin dibujar.
   expect_equal(declarar("auditoría"), "comparativo")
 })
+
+test_that("sin enunciado titula la seccion, no el primer tema", {
+  # El relleno del motor era peor que no titular: usaba el rotulo de la PRIMERA
+  # variable, que nombra un tema y no la diapositiva. Medido en el estudio, tres
+  # laminas seguidas salian «Servicio de salud» siendo cosas distintas. La
+  # seccion es el mejor nombre disponible de la diapositiva y estaba a la vista.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "A", diapositiva = "1", seccion = "1.1 Institucionales",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1")),
+    list(etiqueta_estandar = "B", diapositiva = "1", seccion = "1.1 Institucionales",
+         variables = list(docentes = "p14_1", estudiantes = "p12_1"))
+  ))
+  expect_equal(.graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$titulo,
+               "1.1 Institucionales")
+
+  # El enunciado sigue mandando cuando existe: la seccion es el respaldo.
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "A", diapositiva = "1", seccion = "1.1 Institucionales",
+         enunciado = "¿Conoce la misión?",
+         variables = list(docentes = "p13_1", estudiantes = "p11_1"))
+  ))
+  expect_equal(.graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$titulo,
+               "¿Conoce la misión?")
+})
+
+test_that("con un solo publico el eje Y lleva la etiqueta declarada", {
+  # Un estudio que renombra sus temas —«Estados Financieros» en vez del enunciado
+  # entero— perdia el nombre corto justo en la forma donde el eje ES el nombre.
+  sid <- .gpe_setup()
+  on.exit(session_delete(sid), add = TRUE)
+  .gpe_declarar(sid, list(
+    list(etiqueta_estandar = "Estados Financieros", diapositiva = "1",
+         variables = list(docentes = "p13_1")),
+    list(etiqueta_estandar = "Auditoría", diapositiva = "1",
+         variables = list(docentes = "p14_1"))
+  ))
+  args <- .graficos_plan_desde_equivalencias(sid)$plan$slides[[1]]$payload$grafico$args
+  expect_equal(args$modo, "var")
+  expect_equal(args$overrides$etiquetas_vars[["docentes$p13_1"]], "Estados Financieros")
+  expect_equal(args$overrides$etiquetas_vars[["docentes$p14_1"]], "Auditoría")
+  # El ancho del eje Y sigue puesto: los dos overrides conviven.
+  expect_true(is.numeric(args$overrides$canvas_w_etiquetas))
+})
