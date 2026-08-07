@@ -18,8 +18,12 @@
 #   POST /api/calc-muestra/iniciar-estudio     — inicia estudio por tipo
 #   POST /api/calc-muestra/modo-trabajo        — transición de modo
 #   POST /api/calc-muestra/marco/config        — configura marco de aulas
+#   POST /api/calc-muestra/marco/inspeccionar-archivo — lista hojas y roles
+#   POST /api/calc-muestra/marco/explorar-base — perfil descriptivo de una hoja
 #   POST /api/calc-muestra/asistencia/referencia — calcula referencia histórica
 #   POST /api/calc-muestra/marco/construir     — construye marco de aulas
+#   POST /api/calc-muestra/marco/criterios/preview — preview de criterios
+#       (montado por mount_calc_muestra_criterios, router_calc_muestra_criterios.R)
 #   POST /api/calc-muestra/aulas/comparar-metodos — compara motores
 #   POST /api/calc-muestra/aulas/seleccionar   — selecciona aulas M1..Mk
 #   POST /api/calc-muestra/aulas/simular-reemplazos — simula reservas
@@ -84,6 +88,35 @@
   tabla <- .cm_hoja_de_archivo(sid, body, hoja = hoja, key = key)
   if (is.null(tabla)) return(list())
   calc_muestra_asistencia_diseno_declarado(tabla)
+}
+
+# Estado de aulas tras iniciar un estudio: con demo válido (frame + selection)
+# usa sus piezas, sin demo resetea a defaults. Una sola definición de las
+# claves reemplaza las dos ramas casi idénticas de session_set que tenía el
+# endpoint. Las entradas NULL son deliberadas: session_set con NULL limpia la
+# clave, igual que antes.
+.cm_iniciar_aulas_estado <- function(aulas_demo) {
+  demo_ok <- is.list(aulas_demo) && !is.null(aulas_demo$frame) &&
+    !is.null(aulas_demo$selection)
+  if (demo_ok) {
+    list(
+      calc_muestra_aulas_config = aulas_demo$config %||% calc_muestra_aulas_default_config(),
+      calc_muestra_aulas_frame = aulas_demo$frame,
+      calc_muestra_aulas_selection = aulas_demo$selection,
+      calc_muestra_aulas_method_comparison = aulas_demo$method_comparison %||% NULL,
+      calc_muestra_aulas_replacement_simulation = aulas_demo$replacement_simulation %||% NULL,
+      calc_muestra_aulas_export = NULL
+    )
+  } else {
+    list(
+      calc_muestra_aulas_config = calc_muestra_aulas_default_config(),
+      calc_muestra_aulas_frame = NULL,
+      calc_muestra_aulas_selection = NULL,
+      calc_muestra_aulas_method_comparison = NULL,
+      calc_muestra_aulas_replacement_simulation = NULL,
+      calc_muestra_aulas_export = NULL
+    )
+  }
 }
 
 .cm_table_from_payload <- function(sid, body, key) {
@@ -316,23 +349,9 @@ mount_calc_muestra <- function(pr) {
       comp <- calc_muestra_normalize_componente(input)
       s <- session_get(sid)
       estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
-      comps <- estudio$componentes
-      if (identical(op, "update") && nzchar(comp$id)) {
-        ids <- vapply(comps, function(c) c$id, character(1))
-        idx <- match(comp$id, ids)
-        if (is.na(idx)) {
-          comps <- c(comps, list(comp))
-        } else {
-          comps[[idx]] <- comp
-        }
-      } else {
-        if (!nzchar(comp$id)) comp$id <- paste0("cmp-",
-                                                 paste(sample(c(0:9, letters), 8,
-                                                              replace = TRUE),
-                                                       collapse = ""))
-        comps <- c(comps, list(comp))
-      }
-      estudio$componentes <- comps
+      estudio$componentes <- calc_muestra_componentes_upsert(
+        estudio$componentes, comp, op
+      )
       session_set(sid, "calc_muestra_estudio", estudio)
       # F5: cambia contenido del reporte -> stale, preservando job_id/path.
       session_set(sid, "calc_muestra_reporte",
@@ -354,8 +373,7 @@ mount_calc_muestra <- function(pr) {
       }
       s <- session_get(sid)
       estudio <- s$calc_muestra_estudio %||% calc_muestra_normalize_estudio(list())
-      ids <- vapply(estudio$componentes, function(c) c$id, character(1))
-      estudio$componentes <- estudio$componentes[ids != cid]
+      estudio$componentes <- calc_muestra_componentes_sin(estudio$componentes, cid)
       session_set(sid, "calc_muestra_estudio", estudio)
       # F5: cambia contenido del reporte -> stale, preservando job_id/path.
       session_set(sid, "calc_muestra_reporte",
@@ -445,20 +463,9 @@ mount_calc_muestra <- function(pr) {
         demo_warning <- aulas_demo$error
         aulas_demo <- NULL
       }
-      if (is.list(aulas_demo) && !is.null(aulas_demo$frame) && !is.null(aulas_demo$selection)) {
-        session_set(sid, "calc_muestra_aulas_config", aulas_demo$config %||% calc_muestra_aulas_default_config())
-        session_set(sid, "calc_muestra_aulas_frame", aulas_demo$frame)
-        session_set(sid, "calc_muestra_aulas_selection", aulas_demo$selection)
-        session_set(sid, "calc_muestra_aulas_method_comparison", aulas_demo$method_comparison %||% NULL)
-        session_set(sid, "calc_muestra_aulas_replacement_simulation", aulas_demo$replacement_simulation %||% NULL)
-        session_set(sid, "calc_muestra_aulas_export", NULL)
-      } else {
-        session_set(sid, "calc_muestra_aulas_config", calc_muestra_aulas_default_config())
-        session_set(sid, "calc_muestra_aulas_frame", NULL)
-        session_set(sid, "calc_muestra_aulas_selection", NULL)
-        session_set(sid, "calc_muestra_aulas_method_comparison", NULL)
-        session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
-        session_set(sid, "calc_muestra_aulas_export", NULL)
+      estado_aulas <- .cm_iniciar_aulas_estado(aulas_demo)
+      for (clave in names(estado_aulas)) {
+        session_set(sid, clave, estado_aulas[[clave]])
       }
       list(ok = TRUE, estudio = estudio, state = .cm_state_payload(sid), demo_warning = demo_warning)
     })) |>
@@ -549,7 +556,20 @@ mount_calc_muestra <- function(pr) {
       slot <- paste0(file_id, "\r", hoja)
       datos <- cache[[slot]]
       if (!is.data.frame(datos)) {
-        datos <- .cm_aulas_read_table(meta$path, if (nzchar(hoja)) hoja else NULL)
+        # La lectura falla con stop() crudo (hoja inexistente, formato no
+        # soportado, readxl ausente): sin traducción llegaría al cliente como
+        # 500 E_INTERNAL y el usuario perdería el mensaje útil — sobre todo
+        # el listado de hojas disponibles cuando se equivocó de pestaña.
+        datos <- tryCatch(
+          .cm_aulas_read_table(meta$path, if (nzchar(hoja)) hoja else NULL),
+          error = function(e) {
+            if (inherits(e, "api_error")) stop(e)
+            if (inherits(e, "cm_aulas_hoja_error")) {
+              stop_api(400, "E_CALC_MUESTRA_EXPLORAR_HOJA", conditionMessage(e))
+            }
+            stop_api(400, "E_CALC_MUESTRA_EXPLORAR_ARCHIVO", conditionMessage(e))
+          }
+        )
         cache[[slot]] <- datos
         # Una sola hoja por sesion: dos bases grandes en memoria no aportan y el
         # usuario explora una a la vez.
@@ -715,20 +735,26 @@ mount_calc_muestra <- function(pr) {
         body$config %||% s$calc_muestra_aulas_config %||% list(), body
       )
       config <- calc_muestra_aulas_normalize_config(config_input)
-      base_madre <- .cm_table_from_payload(sid, body, "base_madre")
-      estudiantes <- .cm_table_from_payload(sid, body, "estudiantes")
-      inscripciones <- .cm_table_from_payload(sid, body, "inscripciones")
-      catalogo_curso_horario <- .cm_table_from_payload(sid, body, "catalogo_curso_horario")
-      frame <- tryCatch(
+      # Las lecturas de payload también fallan con stop() crudo (tabla
+      # malformada, hoja inexistente): dentro del tryCatch se traducen al
+      # mismo 400 accionable en vez de filtrarse como 500 E_INTERNAL. Un
+      # api_error previo (p. ej. file_id desconocido) se re-lanza intacto.
+      frame <- tryCatch({
+        base_madre <- .cm_table_from_payload(sid, body, "base_madre")
+        estudiantes <- .cm_table_from_payload(sid, body, "estudiantes")
+        inscripciones <- .cm_table_from_payload(sid, body, "inscripciones")
+        catalogo_curso_horario <- .cm_table_from_payload(sid, body, "catalogo_curso_horario")
         calc_muestra_aulas_construir(
           base_madre = base_madre,
           estudiantes = estudiantes,
           inscripciones = inscripciones,
           catalogo_curso_horario = catalogo_curso_horario,
           config = config
-        ),
-        error = function(e) stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
-      )
+        )
+      }, error = function(e) {
+        if (inherits(e, "api_error")) stop(e)
+        stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
+      })
       frame <- .cm_criterios_frame_guardar(
         sid, frame, s$calc_muestra_referencia_asistencia
       )

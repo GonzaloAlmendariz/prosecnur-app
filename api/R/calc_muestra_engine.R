@@ -773,6 +773,49 @@ calc_muestra_normalize_componente <- function(comp = list()) {
 }
 
 # ---------------------------------------------------------------------------
+# CRUD de la colección de componentes del estudio
+# ---------------------------------------------------------------------------
+#
+# El router de calc-muestra delega aquí el add/update/delete de la lista de
+# componentes: el matching por id, el orden de inserción y la generación de
+# ids `cmp-` son comportamiento observable del contrato HTTP y viven en el
+# engine para ser testeables sin plumber.
+
+#' Inserta o actualiza un componente en la colección, preservando el orden.
+#'
+#' Con `op = "update"` y un id no vacío reemplaza in-place el componente con
+#' ese id; si el id no existe en la colección, lo agrega al final (contrato
+#' histórico del endpoint). Con cualquier otra `op` agrega al final,
+#' generando un id `cmp-` cuando falta.
+#'
+#' @param componentes Lista actual de componentes normalizados.
+#' @param componente Componente ya pasado por calc_muestra_normalize_componente.
+#' @param op `"add"` (default) o `"update"`.
+#' @return Lista de componentes actualizada.
+calc_muestra_componentes_upsert <- function(componentes, componente, op = "add") {
+  if (!is.list(componentes)) componentes <- list()
+  if (identical(op, "update") && nzchar(componente$id %||% "")) {
+    ids <- vapply(componentes, function(c) c$id, character(1))
+    idx <- match(componente$id, ids)
+    if (is.na(idx)) return(c(componentes, list(componente)))
+    componentes[[idx]] <- componente
+    return(componentes)
+  }
+  if (!nzchar(componente$id %||% "")) componente$id <- .cm_random_id()
+  c(componentes, list(componente))
+}
+
+#' Devuelve la colección sin el componente del id dado (orden intacto).
+#'
+#' Un id inexistente deja la colección igual; no es error del engine — el
+#' endpoint decide qué contrato exponer ante ids desconocidos.
+calc_muestra_componentes_sin <- function(componentes, id) {
+  if (!is.list(componentes) || !length(componentes)) return(list())
+  ids <- vapply(componentes, function(c) c$id, character(1))
+  componentes[ids != id]
+}
+
+# ---------------------------------------------------------------------------
 # Cuadro maestro de inferencia para acreditaciones PUCP (compendio §4.1)
 # ---------------------------------------------------------------------------
 

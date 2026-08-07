@@ -223,7 +223,7 @@ http_contract_server <- function() {
   h <- curl::new_handle(timeout = timeout)
   headers <- c(Accept = "application/json")
   if (!is.null(sid)) headers <- c(headers, "X-Pulso-Session" = sid)
-  if (identical(method, "POST")) {
+  if (method %in% c("POST", "DELETE")) {
     json <- if (is.null(body)) {
       "{}"
     } else {
@@ -231,6 +231,9 @@ http_contract_server <- function() {
     }
     payload <- charToRaw(enc2utf8(json))
     curl::handle_setopt(h, post = TRUE, postfieldsize = length(payload), postfields = payload)
+    # DELETE con body JSON (mismo wire que el frontend): post=TRUE arma el
+    # request con payload y customrequest reescribe el verbo.
+    if (!identical(method, "POST")) curl::handle_setopt(h, customrequest = method)
     headers <- c(headers, "Content-Type" = "application/json; charset=utf-8")
   }
   curl::handle_setheaders(h, .list = as.list(headers))
@@ -253,6 +256,10 @@ http_get <- function(srv, path, sid = NULL, timeout = 120) {
 
 http_post_json <- function(srv, path, body = NULL, sid = NULL, timeout = 120) {
   .http_contract_request(srv, path, "POST", body = body, sid = sid, timeout = timeout)
+}
+
+http_delete_json <- function(srv, path, body = NULL, sid = NULL, timeout = 120) {
+  .http_contract_request(srv, path, "DELETE", body = body, sid = sid, timeout = timeout)
 }
 
 # Poll de /api/jobs/<id> hasta estado terminal. El GET mismo cosecha el
