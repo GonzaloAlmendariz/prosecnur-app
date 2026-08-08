@@ -46,6 +46,13 @@ type SlideLibraryCategory = "estructural" | "1g" | "2g" | "grid" | "poblacion" |
 
 type SlideLibraryFilter = "all" | SlideLibraryCategory;
 
+export type SlideLibraryStateName =
+  | "ready"
+  | "loading"
+  | "error"
+  | "empty"
+  | "no-results";
+
 const FILTER_ORDER: readonly SlideLibraryFilter[] = [
   "all",
   "estructural",
@@ -156,6 +163,12 @@ export function SlidePicker({
   const selectedModel = filteredModels.find((model) => model.metadata.name === selectedName)
     ?? filteredModels[0]
     ?? null;
+  const libraryState = deriveSlideLibraryState(
+    loading,
+    error,
+    inventory?.length ?? 0,
+    filteredModels.length,
+  );
 
   const categoryCounts = useMemo(() => {
     const counts = Object.fromEntries(
@@ -360,7 +373,11 @@ export function SlidePicker({
                     <p>{activeFilterMeta.hint}</p>
                   </div>
                 </div>
-                <span className="pulso-slide-library-visible-count">
+                <span
+                  className="pulso-slide-library-visible-count"
+                  aria-live={libraryState === "ready" ? "polite" : undefined}
+                  aria-atomic={libraryState === "ready" ? "true" : undefined}
+                >
                   {filteredModels.length} {filteredModels.length === 1 ? "modelo visible" : "modelos visibles"}
                 </span>
               </div>
@@ -398,32 +415,11 @@ export function SlidePicker({
                 data-qa-geometry-group="slide-library-models"
                 data-qa-geometry-contract="equal"
               >
-                {loading && (inventory?.length ?? 0) === 0 && (
+                {libraryState !== "ready" && (
                   <SlideLibraryState
-                    state="loading"
-                    title="Cargando catálogo"
-                    detail="Estamos consultando los modelos del proyecto."
-                  />
-                )}
-                {!loading && error && (inventory?.length ?? 0) === 0 && (
-                  <SlideLibraryState
-                    state="error"
-                    title="No se pudo cargar el catálogo"
-                    detail={error}
-                  />
-                )}
-                {!loading && !error && (inventory?.length ?? 0) === 0 && (
-                  <SlideLibraryState
-                    state="empty"
-                    title="Catálogo vacío"
-                    detail="El catálogo no devolvió modelos de slide."
-                  />
-                )}
-                {!loading && (inventory?.length ?? 0) > 0 && filteredModels.length === 0 && (
-                  <SlideLibraryState
-                    state="no-results"
-                    title="Sin coincidencias"
-                    detail="Ajusta la búsqueda o elige otra familia."
+                    state={libraryState}
+                    title={slideGalleryStateTitle(libraryState)}
+                    detail={slideGalleryStateDetail(libraryState, error)}
                   />
                 )}
                 {filteredModels.map((model, index) => {
@@ -496,13 +492,42 @@ export function SlidePicker({
             <aside
               className="pulso-slide-library-inspector"
               data-family={selectedModel?.category ?? "all"}
-              aria-label="Detalle del modelo seleccionado"
+              data-state={libraryState}
+              aria-label={selectedModel ? "Detalle del modelo seleccionado" : undefined}
+              aria-labelledby={selectedModel ? undefined : "pulso-slide-library-inspector-state-title"}
             >
               {selectedModel === null ? (
-                <div className="pulso-slide-library-inspector-empty">
-                  <Search size={20} aria-hidden="true" />
-                  <strong>No hay un modelo visible</strong>
-                  <span>Ajusta la búsqueda para volver a la biblioteca.</span>
+                <div
+                  className="pulso-slide-library-inspector-stack"
+                  data-qa-geometry-group="slide-library-inspector"
+                  data-qa-geometry-contract="intrinsic"
+                >
+                  <div
+                    className="pulso-slide-library-inspector-empty"
+                    data-state={libraryState}
+                    data-qa-geometry-member
+                    data-qa-geometry-capacity="owned"
+                  >
+                    <Search size={20} aria-hidden="true" />
+                    <strong id="pulso-slide-library-inspector-state-title">
+                      {slideInspectorStateTitle(libraryState)}
+                    </strong>
+                    <span>{slideInspectorStateDetail(libraryState)}</span>
+                  </div>
+                  <div className="pulso-slide-library-insert-panel" data-qa-geometry-member>
+                    <PulsoButton
+                      variant="primary"
+                      size="lg"
+                      className="pulso-slide-library-insert"
+                      disabled
+                    >
+                      <FilePlus2 size={16} aria-hidden="true" />
+                      Insertar modelo
+                    </PulsoButton>
+                    <span className="pulso-slide-library-insert-hint">
+                      {slideInspectorDisabledReason(libraryState)}
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <div
@@ -616,14 +641,12 @@ export function SlidePicker({
   );
 }
 
-type SlideLibraryStateName = "loading" | "error" | "empty" | "no-results";
-
 function SlideLibraryState({
   state,
   title,
   detail,
 }: {
-  state: SlideLibraryStateName;
+  state: Exclude<SlideLibraryStateName, "ready">;
   title: string;
   detail: string;
 }) {
@@ -632,13 +655,120 @@ function SlideLibraryState({
       className="pulso-slide-library-empty"
       data-state={state}
       data-qa-geometry-capacity="owned"
-      aria-live={state === "loading" ? "polite" : "assertive"}
     >
-      <Search size={20} aria-hidden="true" />
-      <strong>{title}</strong>
-      <span>{detail}</span>
+      <div
+        className="pulso-slide-library-state-region"
+        {...slideLibraryStateA11y(state)}
+      >
+        <Search size={20} aria-hidden="true" />
+        <strong>{title}</strong>
+        <span>{detail}</span>
+      </div>
     </li>
   );
+}
+
+export function deriveSlideLibraryState(
+  loading: boolean,
+  error: string,
+  inventoryCount: number,
+  filteredCount: number,
+): SlideLibraryStateName {
+  if (loading && inventoryCount === 0) return "loading";
+  if (error && inventoryCount === 0) return "error";
+  if (inventoryCount === 0) return "empty";
+  if (filteredCount === 0) return "no-results";
+  return "ready";
+}
+
+function slideGalleryStateTitle(
+  state: Exclude<SlideLibraryStateName, "ready">,
+): string {
+  switch (state) {
+    case "loading":
+      return "Cargando catálogo";
+    case "error":
+      return "No se pudo cargar el catálogo";
+    case "empty":
+      return "Catálogo vacío";
+    case "no-results":
+      return "Sin coincidencias";
+  }
+}
+
+function slideGalleryStateDetail(
+  state: Exclude<SlideLibraryStateName, "ready">,
+  error: string,
+): string {
+  switch (state) {
+    case "loading":
+      return "Estamos consultando los modelos del proyecto.";
+    case "error":
+      return error;
+    case "empty":
+      return "El catálogo no devolvió modelos de slide.";
+    case "no-results":
+      return "Ajusta la búsqueda o elige otra familia.";
+  }
+}
+
+function slideLibraryStateA11y(state: SlideLibraryStateName): {
+  role: "alert" | "status";
+  "aria-live": "assertive" | "polite";
+  "aria-atomic": "true";
+  "aria-busy": "true" | undefined;
+} {
+  return {
+    role: state === "error" ? "alert" : "status",
+    "aria-live": state === "error" ? "assertive" : "polite",
+    "aria-atomic": "true",
+    "aria-busy": state === "loading" ? "true" : undefined,
+  };
+}
+
+function slideInspectorStateTitle(state: SlideLibraryStateName): string {
+  switch (state) {
+    case "loading":
+      return "Preparando el inspector";
+    case "error":
+      return "Inspector no disponible";
+    case "empty":
+      return "No hay modelos para revisar";
+    case "no-results":
+      return "No hay una selección visible";
+    default:
+      return "Selecciona un modelo";
+  }
+}
+
+function slideInspectorStateDetail(state: SlideLibraryStateName): string {
+  switch (state) {
+    case "loading":
+      return "La vista previa aparecerá cuando termine la carga.";
+    case "error":
+      return "Revisa la conexión y recarga la aplicación para reintentar.";
+    case "empty":
+      return "El marco se mantiene listo para cuando exista inventario.";
+    case "no-results":
+      return "Cambia la búsqueda o la familia para volver a comparar.";
+    default:
+      return "Revisa su forma y contenido antes de insertarlo.";
+  }
+}
+
+function slideInspectorDisabledReason(state: SlideLibraryStateName): string {
+  switch (state) {
+    case "loading":
+      return "La inserción se habilitará cuando termine la carga.";
+    case "error":
+      return "Revisa la conexión y recarga la aplicación para reintentar.";
+    case "empty":
+      return "No hay modelos disponibles para insertar.";
+    case "no-results":
+      return "Cambia la búsqueda o la familia para elegir un modelo.";
+    default:
+      return "Selecciona un modelo para habilitar la inserción.";
+  }
 }
 
 function modelTitle(metadata: SlideMetadata): string {

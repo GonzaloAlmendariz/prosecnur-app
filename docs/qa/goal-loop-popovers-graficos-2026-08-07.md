@@ -153,8 +153,8 @@ la reconfiguración grande.
 | **L2 · Paridad del GraficadorPicker** | Misma gramática que L1; miniaturas de forma de gráfico; descripciones completas sin truncar; camino a dimensiones (B11, B12, B14, B15) | V1, V3, V8 | **hecho · I2** |
 | **L3 · Direccionabilidad + a11y compartida** | `usePanelDireccionable` en ambos; helper de focus trap común; QA puede abrirlos por URL (B7, B8) | V5, V6 | **hecho · I3** |
 | **L4 · Verdad del registry** | Conteos y subtítulos derivados (B5); blueprints desde `slots`/metadata y no desde `includes()` del nombre; barrida de copy del registry (B13 y hermanos); contraste blueprint↔layout PPT real con `officer::layout_properties()` | V2, V8 | **hecho · I4** |
-| **L5 · Degradación y viewports** | Estados vacío/error/sin-resultados/`dimOk=false` en los 5 viewports; matriz con foco en 1024x600 | V7 | pendiente |
-| **L6 · Tests de contrato** | Registry↔picker (todo tipo del registry tiene label, categoría, blueprint), taxonomía, y smoke de teclado (B17) | gate | pendiente |
+| **L5 · Degradación y viewports** | Estados vacío/error/sin-resultados/`dimOk=false` en los 5 viewports; matriz con foco en 1024x600 | V7 | **hecho · I5** |
+| **L6 · Tests de contrato** | Registry↔picker (todo tipo del registry tiene label, categoría, blueprint), taxonomía y smoke montado de teclado; incorpora promesas A/B diferidas, cardinalidad ARIA, búsqueda, foco/Escape y reemplazo real (B17) | gate | pendiente |
 | **L7 · Paridad preview↔motor PPT** | Resolver template-aware compartido por preview y renderer; corregir portada, objetivo con ícono, `top_two`, texto/splits y slots poblacionales; matriz parametrizada de los 20 tipos contra la plantilla ACNUR. Se coordina con el loop del motor PPT | V2 | pendiente |
 
 Al vaciar la cola: re-censar (¿tipos nuevos en el registry?, ¿familias
@@ -197,7 +197,7 @@ Proporcional al diff, siempre con evidencia visual:
 | V4 flujo | ✓ L1 (B6, B10) | — (un solo pick por apertura, aceptable) |
 | V5 accesibilidad | ✓ L1 + I3 (B7) | ✓ L2 + I3 (B7, B16) |
 | V6 direccionable | ✓ I3 (B8) | ✓ I3 (B8) |
-| V7 degradación | parcial (1024x600; estados degradados y matriz completa → L5) | parcial L2 (`dimOk=false`, no-results y 1024; matriz completa → L5) |
+| V7 degradación | ✓ I5 (5 estados × 5 viewports; C1–C5) | ✓ I5 (7 estados/guards × 5 viewports; C1–C5) |
 | V8 español | ✓ L1 + L4 | ✓ L2 + L4 (B13) |
 
 ## Registro de iteraciones
@@ -436,6 +436,82 @@ Proporcional al diff, siempre con evidencia visual:
     `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
     L5–L7 permanecen abiertos y el goal sigue en curso.
 
+- **I5 · 2026-08-08 · L5 Degradación y viewports** — Ambos pickers comparten
+  un modelo explícito `ready/loading/error/empty/no-results`, conservan el
+  marco completo en degradación y fallan cerrados al cambiar de sesión. El
+  lote queda acotado a `useGraficosRegistry.ts`, ambos pickers, sus dos hojas
+  propias, un contrato focal nuevo y este ledger; no toca `SessionContext`,
+  API/wire, backend, store, persistencia, `.pulso`, motor PPT, navegación ni
+  `editor-v2.css`.
+  - **V7 / C1–C3:** galería e inspector declaran el mismo estado y conservan
+    grupo `intrinsic`, miembro/capacidad y CTA nativo visible pero
+    deshabilitado. Hay una sola live-region degradada dentro del `listitem`:
+    error es `alert/assertive`, los demás estados son `status/polite`, todos
+    atómicos y sólo loading queda busy. El count anuncia únicamente en ready.
+  - **V7 / C4:** GraficadorPicker redistribuye la suma lateral de
+    `176+316` a `196+296` y, en compacto, de `150+278` a `170+258`;
+    SlidePicker redistribuye sus regímenes compactos de `144+248` a
+    `156+236` y de `132+236` a `156+212`. El ancho central agregado, cards,
+    ownership de scroll, terminal alcanzable y geometría ready quedan
+    invariantes; desaparecen los cortes arbitrarios de palabras en los rails.
+  - **V7 / C5:** cualquier forma de rechazo sirve un mensaje público constante
+    y veraz —conexión + recarga de la aplicación— y registra sólo tipo, nombre
+    y código corto allowlisted, nunca message/body/stack. El snapshot del
+    registry queda etiquetado por `sid`: A→B expone de inmediato registry nulo,
+    maps vacíos y loading; sólo una caché del mismo sid conserva
+    stale-while-revalidate. `dimOk` exige `state.session_id === sessionId`,
+    `available=false` permanece cerrado y el modo consulta manda sobre toda
+    promesa de inserción.
+  - **I5.F1 rechazada; I5.F2 acreditada:** la primera entrega pasó pruebas pero
+    fue vetada por dos revisiones independientes: conservaba el catálogo A
+    bajo B, duplicaba regiones vivas, publicaba una recuperación falsa,
+    filtraba el error técnico y contradecía el modo consulta. La segunda pasada
+    del mismo writer y los mismos seis archivos cerró los seis vetos; guardian
+    contractual y censo causal quedaron **APROBADOS**, sin P1/P2, migración ni
+    ADR. La respuesta tardía puede reemplazar la entrada única del caché y
+    provocar una recarga redundante posterior, pero no contamina la vista;
+    su prueba montada queda en L6.
+  - **Evidencia BEFORE:** síntesis
+    `/private/tmp/prosecnur-l5-before-OhdzO8/L5-BEFORE-SYNTHESIS.md`
+    (SHA-256 `3980c5db61081acca867b2f991ba8e088b63ecc532c7d175bc8b1b42ba712334`),
+    matriz principal SHA-256
+    `1dc61ec45b7027488444f4e5ec96aea38a0b21f3b1d6d356519e72a83ac2d29e`
+    y complemento causal A→B
+    `/private/tmp/prosecnur-l5-before-OhdzO8/l5-before-cross-session-report.json`.
+    El BEFORE final era 10 PASS / 50 FAIL / 0 INVALID: 35/35 celdas de
+    Graficadores partían palabras; SlidePicker confundía loading/error/empty
+    en el inspector; y registry B antes de state B heredaba `dimOk` de A.
+  - **Evidencia AFTER:** auditoría
+    `/private/tmp/prosecnur-l5-after-corrective-gfVJaa/L5-AFTER-CORRECTIVE-AUDIT.md`
+    (SHA-256 `b09a9d222066da524b2e2987c7a6ef6a7bface73ad44a0951e023fc25950c882`)
+    y reporte final (SHA-256
+    `f84dc7e2ba69d920fecb76ef93d03fd94a64c9a3cf3cc4fb067fcbdf2e3a4c7d`):
+    60/60 celdas y C1–C5 PASS en 1710×1107, 1440×1000, 1366×768,
+    1280×720 y 1024×600; 12/12 probes extra PASS —ocho formas de rechazo y
+    ambos órdenes A→B en 1440/1024—; 0 overflow, jails, errores adicionales o
+    escrituras. Foco adelante/atrás, Escape, retiro de `panel` y restauración
+    conectada pasan 60/60. Root, galería, suma rail+inspector y cards ready
+    tienen delta 0 px contra BEFORE. Las capturas obligatorias de todos los
+    estados viven en esa misma carpeta; proyecto canónico y copia temporal
+    conservan SHA-256
+    `70ca67b9f5dcdbf2ad06c7144a005f48023122a57c97b152c11862412b4fde70`.
+  - **Run visual rechazado conservado:**
+    `l5-after-corrective-report.run1.json` (SHA-256
+    `a2320ee500a4ec4db5f6f5b8ba6f7e0f613b0f8d1966b3f9dadc7ac0c0dcf27e`).
+    El harness confundía la elipsis histórica del hint secundario con el
+    contrato primario, buscaba `Listo para revisar` fuera del inspector y
+    contaba dos veces cada abort esperado. Sólo cambió el probe temporal y se
+    reejecutó la matriz completa; no hubo reclasificación manual.
+  - **Gate final:** focal L5 9/9, Gráficos 39 archivos /
+    211 tests, `tsc -b --force`, `pnpm -C frontend typecheck` y diff-check
+    acotado verdes. `editor-v2.css` conserva 33.123 líneas y SHA-256
+    `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
+    El verificador serial quedó **APROBADO**: ownership exacto de seis rutas +
+    ledger, índice vacío, hashes QA coincidentes, 50 capturas existentes y
+    ningún P0/P1/P2 de L5. El gate documental conserva el baseline preexistente
+    de 11 errores/33 advertencias, sin categoría causal nueva. L6–L7 siguen
+    abiertos y el goal continúa activo.
+
 ## Bandeja de decisiones
 
 - ¿«Popover» o toma completa? I1 materializa el supuesto conservador como toma
@@ -449,10 +525,13 @@ Proporcional al diff, siempre con evidencia visual:
 - ¿El catálogo tiene 19 o 20 graficadores? Resuelto en I4: registry R, payload
   y UI coinciden en 19/19; el vigésimo pertenecía al baseline documental y no
   hay evidencia de una entrada runtime retirada que deba resucitarse.
-- ¿Cómo envuelve el rail compacto? AFTER-2 conserva todo el texto sin clipping,
-  pero `overflow-wrap:anywhere` puede partir «Distribución» o «Dimensiones» en
-  1024. Recomendación para L5: ensanchar el rail o reservar mejor el count antes
-  de relajar el wrap; el supuesto conservador actual prioriza contenido completo.
+- ¿Cómo envuelve el rail compacto? Resuelto para la vara L5 en I5: el rail de
+  Graficadores gana 20 px tomados del inspector, las palabras y counts quedan
+  completos y el hint secundario se oculta sólo en compacto. SlidePicker aplica
+  la misma redistribución en sus dos regímenes compactos. En 1710/1440/1366,
+  cuatro hints secundarios de Slides conservan la elipsis CSS histórica; no se
+  presentan como contenido completo. Recomendación para una vara posterior:
+  decidir entre dos líneas o retirar esos hints, sin reducir cards ni galería.
 - ¿Qué foco recibe una inserción que reemplaza el trigger vacío? Resuelto en I3:
   el mismo `RefObject` estable pertenece al trigger lógico antes y después del
   reemplazo, por lo que «Elegir gráfico» puede convertirse en «Cambiar» sin
@@ -478,10 +557,17 @@ Proporcional al diff, siempre con evidencia visual:
   voseo ni un fallo funcional; recomendación para una barrida posterior de V8:
   evaluar «Ajustes de estilo» con el vocabulario técnico completo, sin un
   reemplazo aislado en L4.
-- En 1024x600 el rail de graficadores conserva contenido y scroll, pero
-  `overflow-wrap:anywhere` parte palabras como «Distribución» y «Dimensiones».
-  L5 debe resolver la composición compacta y no sólo esconder el quiebre.
-- Los tests de I3/I4 cubren contrato estructural y helpers; la QA browser de I4
-  ejerció Enter, doble clic, CTA, futuro insertable y matriz del host. L6 debe
-  persistir ese smoke montado —incluido reemplazo real desde un slot poblado—
-  para que no dependa sólo de evidencia temporal.
+- En 1024x600 el rail de Graficadores ya conserva etiquetas, counts, contenido
+  y scroll sin `overflow-wrap:anywhere`; I5 lo acredita en los siete estados y
+  C1–C5. La composición compacta queda resuelta sin esconder el label primario.
+- Los tests de I3–I5 cubren contrato estructural, helpers, estados y cierre
+  fail-closed por sid; la QA browser ejerció teclado, foco y transiciones reales.
+  L6 debe persistir el smoke montado —promesas A/B en ambos órdenes,
+  cardinalidad de live-regions, búsqueda, foco/Escape y reemplazo real desde un
+  slot poblado— para que no dependa sólo de evidencia temporal.
+- El caché del registry sigue siendo una entrada módulo única. Una respuesta
+  tardía de A puede desplazar la entrada B y causar una recarga redundante, pero
+  el snapshot ligado a sid impide exponer datos o maps cruzados. Recomendación:
+  probar la carrera con promesas diferidas en L6 y migrar a caché por sid sólo
+  si la redundancia se confirma como coste real; no ampliar persistencia ni
+  `.pulso` por esta deuda.

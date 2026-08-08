@@ -95,7 +95,7 @@
 
 .pulso-graficador-library-stage {
   display: grid;
-  grid-template-columns: 176px minmax(0, 1fr) 316px;
+  grid-template-columns: 196px minmax(0, 1fr) 296px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -140,7 +140,8 @@
   border: 1px solid transparent;
   border-radius: var(--pulso-radius);
   box-shadow: none;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
   white-space: normal;
 }
 
@@ -171,7 +172,8 @@
   gap: var(--pulso-space-1);
   min-width: 0;
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
   white-space: normal;
 }
 
@@ -182,7 +184,8 @@
   font-size: 12px;
   font-weight: var(--pulso-weight-semibold);
   line-height: 1.15;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
   white-space: normal;
 }
 
@@ -193,7 +196,8 @@
   color: var(--pulso-text-faint);
   font-size: 10px;
   line-height: 1.15;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
   white-space: normal;
 }
 
@@ -480,6 +484,12 @@
   background: var(--pulso-surface);
   border: 1px dashed var(--pulso-border-strong);
   border-radius: var(--pulso-radius-card);
+}
+
+.pulso-graficador-library-state-region {
+  display: grid;
+  place-items: center;
+  gap: var(--pulso-space-2);
 }
 
 .pulso-graficador-library-state strong {
@@ -965,7 +975,7 @@
 
 @media (max-width: 1150px) {
   .pulso-graficador-library-stage {
-    grid-template-columns: 150px minmax(0, 1fr) 278px;
+    grid-template-columns: 170px minmax(0, 1fr) 258px;
   }
 
   .pulso-graficador-library-rail,
@@ -990,7 +1000,7 @@
   }
 
   .pulso-graficador-library-filter-copy small {
-    font-size: 9px;
+    display: none;
   }
 
   .pulso-graficador-library-grid {
