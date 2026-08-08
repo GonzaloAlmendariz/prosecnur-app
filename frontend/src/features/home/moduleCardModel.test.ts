@@ -174,7 +174,7 @@ function makeOverview(): ProjectOverview {
       source("dashboard", "/tablero", "active"),
       source("calc-muestra", "/calc-muestra"),
       source("hojas-ruta", "/hojas-ruta"),
-      source("plan-trabajo", "/bitacora?tab=cronograma", "pending"),
+      source("plan-trabajo", "/bitacora?seccion=cronograma", "pending"),
       source("recopiladores", "/recopiladores"),
       source("monitoreo", "/monitoreo"),
     ],
@@ -331,7 +331,7 @@ describe("moduleCardModel", () => {
 
     expect(view("diseno-estudio", overview).action).toEqual({
       label: "Continuar cronograma",
-      route: "/bitacora?tab=cronograma",
+      route: "/bitacora?seccion=cronograma",
     });
   });
 

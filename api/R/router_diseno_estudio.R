@@ -409,7 +409,7 @@
       category = "campo"
     ),
     .diseno_status(
-      "plan-trabajo", "Cronograma", "/bitacora?tab=cronograma", if (has_plan) "ready" else "pending",
+      "plan-trabajo", "Cronograma", "/bitacora?seccion=cronograma", if (has_plan) "ready" else "pending",
       if (has_plan) sprintf("%d actividad(es), %d hito(s) y %d ventana(s) sincronizables.", protocol$workplan_tasks_count, protocol$workplan_milestones_count, protocol$workplan_windows_count) else "Sin cronograma operativo importado.",
       c(.diseno_scalar(protocol$workplan_title, ""), if (has_plan) "Cronograma normalizado" else ""),
       category = "campo"

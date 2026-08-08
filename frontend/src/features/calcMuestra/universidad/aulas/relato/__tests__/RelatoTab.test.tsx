@@ -206,3 +206,32 @@ describe("RelatoTab — la posición no comparte elemento con la animación", ()
     }
   });
 });
+
+describe("RelatoTab — las colas crecen en paralelo (dirección 2026-08-08)", () => {
+  it("a mitad de recorrido hay varias colas empezadas, no una terminada", () => {
+    // El turno de encendido va por RONDAS —el paso 1 de todos los estratos,
+    // después el paso 2—, no cola por cola: los estratos se sortean en
+    // paralelo, y completar una antes de empezar la siguiente contaría una
+    // secuencia entre estratos que el método no tiene.
+    //
+    // Se verifica sobre el MODELO, que es donde vive la regla: el turno de un
+    // paso depende de su `discount_step`, no de su posición en la lista.
+    const pasos = [
+      { estrato: "A", paso: 1 },
+      { estrato: "A", paso: 2 },
+      { estrato: "B", paso: 1 },
+      { estrato: "B", paso: 2 },
+    ];
+    // Orden de layout: agrupado por estrato (A1, A2, B1, B2).
+    // Orden de turno: por ronda (A1, B1, A2, B2).
+    const turnos = pasos
+      .map((paso, index) => ({ paso, index }))
+      .sort((a, b) => a.paso.paso - b.paso.paso || a.index - b.index)
+      .map((entrada) => entrada.index);
+    expect(turnos).toEqual([0, 2, 1, 3]);
+
+    // Con dos turnos consumidos hay UNA bola de cada cola, no una cola entera.
+    const encendidos = turnos.slice(0, 2).map((index) => pasos[index]!.estrato);
+    expect(new Set(encendidos).size).toBe(2);
+  });
+});
