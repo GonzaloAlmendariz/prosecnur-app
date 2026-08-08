@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Calculator,
+  CirclePlay,
   ClipboardList,
   Compass,
   Database,
@@ -36,6 +37,7 @@ export type ClassroomLabTab =
   | "seleccion"
   | "perfil"
   | "reemplazos"
+  | "aulas-relato"
   | "auditoria";
 
 export type PestanaCalcMuestraUniversidad<Key extends string = string> = {
@@ -84,7 +86,7 @@ function pestanaAula<const Key extends ClassroomLabTab>(
   };
 }
 
-/** Las 25 pestañas públicas del escritorio de muestra universitaria. */
+/** Las 28 pestañas públicas del escritorio de muestra universitaria. */
 export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
   definicion: [
     pestana("definicion", "def-estudio", "Estudio", "nombre, cliente y alcance", ClipboardList, { targetId: "cmv2-local-def-estudio" }),
@@ -122,6 +124,10 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestanaAula("seleccion", "Cursos-horario titulares", "Unidades que se intentan primero", Table2),
     pestanaAula("perfil", "Perfil de la muestra", "De qué está hecha, facultad por facultad", PieChart),
     pestanaAula("reemplazos", "Reemplazos por curso-horario", "Rutas Rn.1, Rn.2...", RefreshCw),
+    // ADR 0067: el sustento narrado — la corrida persistida contada escena por
+    // escena, con lente por facultad (`foco`). Vive junto a Sustento técnico
+    // porque publica los MISMOS números de la misma corrida.
+    pestanaAula("aulas-relato", "Relato", "La corrida contada escena por escena", CirclePlay),
     pestanaAula("auditoria", "Sustento técnico", "Campos, pesos y fuentes", FileText),
   ],
   salidas: [

@@ -22,8 +22,8 @@ function firma(pestanas: readonly { id: string; label: string }[]) {
 }
 
 describe("catálogos canónicos de pestañas", () => {
-  it("fija las 27 pestañas vivas de Muestra universitaria con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(27);
+  it("fija las 28 pestañas vivas de Muestra universitaria con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(28);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
@@ -63,6 +63,9 @@ describe("catálogos canónicos de pestañas", () => {
       "seleccion:Cursos-horario titulares",
       "perfil:Perfil de la muestra",
       "reemplazos:Reemplazos por curso-horario",
+      // ADR 0067: el sustento narrado de la corrida persistida, junto al
+      // Sustento técnico porque publica los mismos números de la misma corrida.
+      "aulas-relato:Relato",
       "auditoria:Sustento técnico",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas)).toEqual([

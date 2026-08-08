@@ -177,6 +177,8 @@ function classroomLabStatusesForSidebar(
     // El perfil describe la selección: existe en cuanto ella existe.
     perfil: guideStatus(selectionReady, selectionReady),
     reemplazos: guideStatus(replacementReady, selectionReady),
+    // ADR 0067: el relato narra la corrida persistida — mismo gate que Perfil.
+    "aulas-relato": guideStatus(selectionReady, selectionReady),
     auditoria: guideStatus(selectionReady || comparisonReady, hasCalculatedQuota),
   };
 }

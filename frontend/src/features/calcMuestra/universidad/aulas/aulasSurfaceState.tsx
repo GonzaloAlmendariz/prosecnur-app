@@ -17,6 +17,7 @@ export type AulasSurfaceStage =
   | "metodo"
   | "laboratorio"
   | "seleccion"
+  | "relato"
   | "reemplazos"
   | "auditoria";
 
@@ -172,7 +173,9 @@ export function resolveAulasStageNotice(
     };
   }
 
-  if (stage === "seleccion") return null;
+  // El relato (ADR 0067) narra la selección persistida: con ella acreditada no
+  // exige nada más — las cadenas M2+ ya viajan en las filas de la selección.
+  if (stage === "seleccion" || stage === "relato") return null;
 
   if (!model.replacementReady) {
     return {

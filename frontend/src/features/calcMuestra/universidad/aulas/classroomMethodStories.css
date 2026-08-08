@@ -111,132 +111,14 @@
   margin-top: auto;
 }
 
-.cmv2-method-story-visual {
-  position: relative;
-  display: grid;
-  min-height: 82px;
-  align-content: center;
-  gap: 8px;
-  padding: 10px;
-  overflow: hidden;
-  border: 1px solid var(--pulso-border);
-  border-radius: var(--pulso-radius-md);
-  background: var(--pulso-surface-2);
-}
-
-.cmv2-method-story-visual > svg {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  color: var(--pulso-text-soft);
-}
-
-.cmv2-method-story-visual > strong {
-  color: var(--pulso-text-muted);
-  font-size: 0.68rem;
-  text-align: center;
-}
-
-.cmv2-method-story-visual.is-systematic > div,
-.cmv2-method-story-visual.is-pivotal > div,
-.cmv2-method-story-visual.is-pool > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-}
-
-.cmv2-method-story-visual.is-systematic i {
-  width: 7px;
-  height: 20px;
-  border-radius: 999px;
-  background: var(--pulso-border);
-}
-
-.cmv2-method-story-visual.is-systematic i[data-picked] {
-  height: 34px;
-  background: var(--pulso-success-fg);
-  animation: cmv2-method-hop 2.6s ease-in-out infinite;
-}
-
-.cmv2-method-story-visual.is-cube span {
-  display: grid;
-  grid-template-columns: 54px 1fr;
-  align-items: center;
-  gap: 7px;
-  color: var(--pulso-text-muted);
-  font-size: 0.62rem;
-}
-
-.cmv2-method-story-visual.is-cube span > i {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--pulso-border);
-}
-
-.cmv2-method-story-visual.is-cube em {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--pulso-success-fg);
-  animation: cmv2-method-balance 2.8s ease-in-out infinite alternate;
-}
-
-.cmv2-method-story-visual.is-pivotal i {
-  width: 13px;
-  height: 13px;
-  border: 2px solid var(--pulso-success-border);
-  border-radius: 50%;
-  background: var(--pulso-surface);
-}
-
-.cmv2-method-story-visual.is-pivotal i[data-side="left"] {
-  animation: cmv2-method-left 2.4s ease-in-out infinite alternate;
-}
-
-.cmv2-method-story-visual.is-pivotal i[data-side="right"] {
-  animation: cmv2-method-right 2.4s ease-in-out infinite alternate;
-}
-
-.cmv2-method-story-visual.is-pool i {
-  width: 13px;
-  height: 28px;
-  border-radius: 3px;
-  background: var(--pulso-border);
-  animation: cmv2-method-pool 2.4s ease-in-out infinite alternate;
-}
-
-.cmv2-method-story-visual.is-pool i[data-best] {
-  height: 40px;
-  background: var(--pulso-success-fg);
-}
+/* Los visuales caseros de método (cmv2-method-story-visual) se retiraron en
+   la iteración mini-goo 2026-08-07: hoy la tarjeta monta MetodoGooEsquema
+   (didactica/), que declara «esquema ilustrativo · no son aulas reales». */
 
 .cmv2-method-comparator-body {
   display: grid;
   gap: 14px;
   padding-top: 12px;
-}
-
-@keyframes cmv2-method-hop {
-  50% { transform: translateY(-4px); }
-}
-
-@keyframes cmv2-method-balance {
-  from { transform: scaleX(0.75); transform-origin: left; }
-  to { transform: scaleX(1); transform-origin: left; }
-}
-
-@keyframes cmv2-method-left {
-  to { transform: translateX(-8px); }
-}
-
-@keyframes cmv2-method-right {
-  to { transform: translateX(8px); }
-}
-
-@keyframes cmv2-method-pool {
-  to { opacity: 0.38; }
 }
 
 @media (max-width: 900px), (max-height: 700px) {
@@ -254,8 +136,3 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .cmv2-method-story-visual * {
-    animation: none !important;
-  }
-}

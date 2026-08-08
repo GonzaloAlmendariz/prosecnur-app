@@ -1,0 +1,363 @@
+/* =============================================================================
+   Mini-goo ilustrativos de la pestaña Método (cmv2-mgoo-*).
+   Solo tokens var(--cmv2-* / --pulso-* / --motion-*); cero hex.
+
+   REGLA DE VERDAD DEL MOVIMIENTO: los estilos BASE codifican el estado
+   RESUELTO de cada mecanismo; los keyframes solo recorren el camino hacia él
+   en loop (~5.6 s). Así, bajo prefers-reduced-motion basta apagar la
+   animación para quedar en el cuadro estático final, con la misma
+   declaración «esquema ilustrativo · no son aulas reales».
+   ============================================================================= */
+
+.cmv2-mgoo {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-mgoo-lienzo {
+  width: 100%;
+  aspect-ratio: 100 / 62;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-raised);
+}
+
+/* C1: la superficie declara qué es — visible también en el cuadro estático. */
+.cmv2-mgoo-declaracion {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-mgoo-recta {
+  stroke: var(--cmv2-border-strong);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 2;
+}
+
+/* --- Bolas: base = estado resuelto ------------------------------------------- */
+
+.cmv2-mgoo-bola {
+  transform: translate(var(--gx1), var(--gy1));
+  animation: cmv2-mgoo-mover 5.6s var(--motion-ease-out) infinite;
+}
+
+.cmv2-mgoo-cuerpo {
+  fill: var(--cmv2-surface-tint);
+  stroke: var(--cmv2-border-strong);
+  stroke-width: 0.45;
+}
+
+.cmv2-mgoo-bola.is-sorteada .cmv2-mgoo-cuerpo,
+.cmv2-mgoo-bola.is-gemela .cmv2-mgoo-cuerpo,
+.cmv2-mgoo-bola.is-ganadora .cmv2-mgoo-cuerpo,
+.cmv2-mgoo-bola.is-estructura .cmv2-mgoo-cuerpo {
+  fill: color-mix(in srgb, var(--cmv2-accent) 28%, var(--cmv2-surface-raised));
+  stroke: var(--cmv2-accent-border);
+}
+
+/* La estructura ya atada: presente y en reposo (sin viaje ni halo). */
+.cmv2-mgoo-bola.is-estructura {
+  animation: none;
+}
+
+/* --- Tirantes: la esencia del lenguaje — la estructura se ve ATÁNDOSE ---------
+   Base = estado FINAL (red completa sólida; las redes perdedoras atenuadas):
+   bajo prefers-reduced-motion queda la red estática completa. */
+
+.cmv2-mgoo-tirante {
+  fill: none;
+  stroke: color-mix(in srgb, var(--cmv2-accent) 55%, var(--cmv2-border-strong));
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+/* PPS: el tirante de la viajera hace preview punteado (~150 ms) → snap sólido
+   con la vibración amortiguada, sincronizado con su llegada (46 % del loop). */
+.cmv2-mgoo-tirante.is-snap {
+  animation:
+    cmv2-mgoo-tirante-snap 5.6s var(--motion-ease-out) infinite,
+    cmv2-mgoo-tirante-vibra 5.6s var(--motion-ease-out) infinite;
+}
+
+/* Cube/pivotal: la red completa nace en cascada rapidísima al resolverse. */
+.cmv2-mgoo-tirante.is-red {
+  animation: cmv2-mgoo-tirante-red 5.6s var(--motion-ease-out) infinite;
+  animation-delay: calc(var(--tir-i, 0) * 50ms);
+}
+
+/* Pool: la red ganadora aparece y queda; las perdedoras se desvanecen ENTERAS
+   (bolas + tirantes), que es como pierde un cluster candidato. */
+.cmv2-mgoo-tirante.is-ganador {
+  animation: cmv2-mgoo-cluster-aparece 5.6s var(--motion-ease-out) infinite;
+}
+
+.cmv2-mgoo-tirante.is-perdedor {
+  opacity: 0.22;
+  animation: cmv2-mgoo-cluster-pierde 5.6s var(--motion-ease-out) infinite;
+}
+
+/* PPS: las grandes «suenan» más — halo que pulsa en secuencia de paso k. */
+.cmv2-mgoo-halo {
+  fill: none;
+  stroke: var(--cmv2-accent);
+  stroke-width: 0.55;
+  opacity: 0.85;
+  animation: cmv2-mgoo-pulso 5.6s var(--motion-ease-out) infinite;
+  animation-delay: calc(var(--mgoo-i, 0) * 0.6s);
+}
+
+/* Resto del bombo: pierde protagonismo al resolverse. */
+.cmv2-mgoo-bola.is-resto {
+  opacity: 0.4;
+  animation-name: cmv2-mgoo-mover, cmv2-mgoo-apagar;
+  animation-duration: 5.6s, 5.6s;
+  animation-iteration-count: infinite, infinite;
+}
+
+/* Descuento PPS: la grande ya cubierta se encoge (dato ilustrado, no azar). */
+.cmv2-mgoo-bola.is-descontada {
+  transform: translate(var(--gx1), var(--gy1)) scale(0.55);
+  opacity: 0.45;
+  animation-name: cmv2-mgoo-encoger;
+}
+
+/* Pivotal: la gemela expulsada sale del cluster y se desvanece. */
+.cmv2-mgoo-bola.is-repelida {
+  opacity: 0.3;
+  animation-name: cmv2-mgoo-mover, cmv2-mgoo-apagar;
+  animation-duration: 5.6s, 5.6s;
+  animation-iteration-count: infinite, infinite;
+}
+
+/* Pool: clusters candidatos en paralelo; los perdedores se desvanecen. */
+.cmv2-mgoo-bola.is-perdedora {
+  opacity: 0.25;
+  animation-name: cmv2-mgoo-mover, cmv2-mgoo-cluster-pierde;
+  animation-duration: 5.6s, 5.6s;
+  animation-iteration-count: infinite, infinite;
+}
+
+.cmv2-mgoo-bola.is-ganadora {
+  animation-name: cmv2-mgoo-mover, cmv2-mgoo-cluster-aparece;
+  animation-duration: 5.6s, 5.6s;
+  animation-iteration-count: infinite, infinite;
+}
+
+.cmv2-mgoo-anillo-ganador {
+  fill: none;
+  stroke: var(--pulso-success-border);
+  stroke-width: 0.7;
+  stroke-dasharray: 2.4 1.6;
+  animation: cmv2-mgoo-pulso 5.6s var(--motion-ease-out) infinite;
+}
+
+/* --- Mini-barras de balance (cube / pivotal) ---------------------------------- */
+
+.cmv2-mgoo-barra-pista {
+  fill: var(--cmv2-surface-tint);
+}
+
+.cmv2-mgoo-barra-valor {
+  fill: var(--cmv2-accent);
+  transform: scaleX(var(--mgoo-fill, 0));
+  transform-origin: left center;
+  transform-box: fill-box;
+  animation: cmv2-mgoo-llenar 5.6s var(--motion-ease-out) infinite;
+}
+
+/* --- Keyframes: candidata → vibración → resuelta → reinicio del loop ---------- */
+
+@keyframes cmv2-mgoo-mover {
+  0%, 16% {
+    transform: translate(var(--gx0), var(--gy0)) scale(1);
+  }
+  21% {
+    transform: translate(calc(var(--gx0) + 1.4px), calc(var(--gy0) - 1px)) scale(1);
+  }
+  26% {
+    transform: translate(calc(var(--gx0) - 1.4px), calc(var(--gy0) + 1px)) scale(1);
+  }
+  31% {
+    transform: translate(var(--gx0), var(--gy0)) scale(1);
+  }
+  /* Resolución SIMULTÁNEA + asentamiento subamortiguado reducido (mismo
+     lenguaje que el Relato: +6 % → −3 % → +2 % → −1 % → 0). */
+  46% {
+    transform: translate(var(--gx1), var(--gy1)) scale(1.06);
+  }
+  52% {
+    transform: translate(var(--gx1), var(--gy1)) scale(0.97);
+  }
+  60% {
+    transform: translate(var(--gx1), var(--gy1)) scale(1.02);
+  }
+  70% {
+    transform: translate(var(--gx1), var(--gy1)) scale(0.99);
+  }
+  78%, 92% {
+    transform: translate(var(--gx1), var(--gy1)) scale(1);
+  }
+  100% {
+    transform: translate(var(--gx0), var(--gy0)) scale(1);
+  }
+}
+
+@keyframes cmv2-mgoo-apagar {
+  0%, 40% {
+    opacity: 1;
+  }
+  52%, 92% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes cmv2-mgoo-encoger {
+  0%, 34% {
+    transform: translate(var(--gx1), var(--gy1)) scale(1);
+    opacity: 1;
+  }
+  50%, 92% {
+    transform: translate(var(--gx1), var(--gy1)) scale(0.55);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(var(--gx1), var(--gy1)) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes cmv2-mgoo-pulso {
+  0%, 38% {
+    opacity: 0;
+  }
+  50%, 78% {
+    opacity: 0.85;
+  }
+  92%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cmv2-mgoo-cluster-aparece {
+  0%, 12% {
+    opacity: 0;
+  }
+  26%, 100% {
+    opacity: 1;
+  }
+}
+
+@keyframes cmv2-mgoo-cluster-pierde {
+  0%, 12% {
+    opacity: 0;
+  }
+  26%, 44% {
+    opacity: 1;
+  }
+  58%, 92% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes cmv2-mgoo-llenar {
+  0%, 42% {
+    transform: scaleX(0);
+  }
+  62%, 100% {
+    transform: scaleX(var(--mgoo-fill, 0));
+  }
+}
+
+/* Tirante PPS: invisible → preview punteado (~43 %; ≈150 ms antes de la
+   llegada del 46 %) → sólido al tensarse. */
+@keyframes cmv2-mgoo-tirante-snap {
+  0%, 40% {
+    opacity: 0;
+    stroke-dasharray: 1.4 1.6;
+  }
+  43%, 45% {
+    opacity: 0.4;
+    stroke-dasharray: 1.4 1.6;
+  }
+  46%, 92% {
+    opacity: 0.9;
+    stroke-dasharray: 200 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dasharray: 1.4 1.6;
+  }
+}
+
+/* La cuerda vibra al tensarse: misma senoide amortiguada del asentamiento. */
+@keyframes cmv2-mgoo-tirante-vibra {
+  0%, 46% {
+    transform: translate(0, 0);
+  }
+  52% {
+    transform: translate(0.5px, -0.4px);
+  }
+  60% {
+    transform: translate(-0.25px, 0.2px);
+  }
+  70% {
+    transform: translate(0.12px, -0.1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Nacimiento en cascada de la red (stagger 50 ms por tirante vía --tir-i). */
+@keyframes cmv2-mgoo-tirante-red {
+  0%, 46% {
+    opacity: 0;
+  }
+  52%, 92% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- Enlace de la tarjeta al Relato (solo con selección vigente) --------------- */
+
+.cmv2-method-story-relato {
+  justify-self: start;
+  font-size: 11px;
+  color: var(--cmv2-accent-fg);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--cmv2-accent-border);
+}
+
+.cmv2-method-story-relato:hover,
+.cmv2-method-story-relato:focus-visible {
+  border-bottom-style: solid;
+}
+
+/* --- Cuadro estático final --------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-mgoo-bola,
+  .cmv2-mgoo-halo,
+  .cmv2-mgoo-anillo-ganador,
+  .cmv2-mgoo-barra-valor,
+  .cmv2-mgoo-tirante {
+    animation: none;
+  }
+
+  /* El halo del PPS queda encendido: en estático también se ve qué se sorteó. */
+  .cmv2-mgoo-halo {
+    opacity: 0.85;
+  }
+}
