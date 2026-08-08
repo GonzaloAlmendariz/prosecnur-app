@@ -1,18 +1,25 @@
 /**
- * E4 · «El sorteo» — el ensamblaje bola por bola (polish 2026-08-07).
+ * E4 · «El sorteo» — la cadena de titulares (dirección 2026-08-08).
  *
- * La escena ya no resuelve el cluster de golpe: la bola k se despega del
- * borde del bombo, viaja por un arco DETERMINISTA (arcoGoo) hasta su posición
- * en la estructura, aterriza con un squash suave y su cifra publicada (neto o
- * elegibles) aparece al lado; las barras de balance hacen tick con cada
- * aterrizaje. El usuario puede ir bola por bola con el sub-stepper — también
- * en el modo estático de reduced motion (cuadros discretos).
+ * El campo se pinta ENTERO en gris: es el marco del que se elige. Después cada
+ * curso-horario sorteado se ENCIENDE en su sitio, en el orden que publicó
+ * `discount_step`, y se ata a la anterior de su mismo estrato hasta formar la
+ * cola de titulares. Las barras de balance hacen tick con cada encendido, y el
+ * sub-stepper permite ir de a una — también en reduced motion, como cuadros
+ * discretos.
  *
- * El ORDEN de aterrizaje es exactamente el orden publicado de las filas:
- * `discount_step` en corridas secuenciales (el encogimiento es publicar
- * `eligible_n_neto`); en cube, la secuencia de lectura del ensamblaje
- * simultáneo — y la escena lo declara. Nada se re-sortea. Sin `discount_step`,
- * el agregado por estrato con el hueco declarado.
+ * Qué cambió y por qué: antes la bola volaba desde el borde del bombo y se
+ * ataba a sus DOS vecinas más cercanas. Las dos cosas contaban algo que el
+ * muestreo no hace. El vuelo sugería una llegada —la bola ya estaba en el
+ * marco, lo que cambia es su estado—, y la vecindad es una relación ESPACIAL:
+ * unía bolas por estar al lado. La cadena por orden de sorteo sí es una
+ * relación del método.
+ *
+ * El ORDEN sale íntegro del dato: `discount_step` en corridas secuenciales (y
+ * ahí el encogimiento es publicar `eligible_n_neto`). Se encadena DENTRO del
+ * estrato porque el paso reinicia en cada uno; unir el último de un estrato
+ * con el primero del siguiente dibujaría una sucesión que no ocurrió. Sin
+ * `discount_step` no hay cadena: agregado por estrato con el hueco declarado.
  */
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -20,15 +27,7 @@ import { fmtInt } from "../../../../sharedCore";
 import { discountModeDetalle, discountModeLabel } from "../../descuentoRepetidosModel";
 import { RELATO_BOLAS_MAX, type RelatoEscenaSorteo, type RelatoPasoSorteo } from "../relatoModel";
 import { EnsamblajeBalanceado } from "./EnsamblajeBalanceado";
-import {
-  arcoGoo,
-  bobbingDeBola,
-  membranaGoo,
-  origenBombo,
-  posicionGoo,
-  radioGoo,
-  vecinasMasCercanas,
-} from "./goo";
+import { bobbingDeBola, membranaGoo, posicionGoo, radioGoo } from "./goo";
 import { RelatoCifra, RelatoHuecos } from "./relatoPartes";
 
 /** ~820 ms por bola: con ~30 titulares son ~25 s, dentro del tope de 60 s. */
@@ -51,11 +50,6 @@ function prefiereMovimientoReducido(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** Ángulo del vuelo origen → destino (grados): orienta el estiramiento tangente. */
-function anguloDeVuelo(origen: { x: number; y: number }, destino: { x: number; y: number }): number {
-  return (Math.atan2(destino.y - origen.y, destino.x - origen.x) * 180) / Math.PI;
-}
-
 export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
   const visibles = escena.pasos.slice(0, RELATO_BOLAS_MAX);
   const ocultos = escena.pasos.length - visibles.length;
@@ -75,52 +69,71 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
     return () => window.clearTimeout(timer);
   }, [reducido, autoAvance, aterrizadas, total]);
 
+  // ---------------------------------------------------------------------
+  // UN solo campo: el marco entero, y las sorteadas encendiéndose dentro
+  // ---------------------------------------------------------------------
+  //
+  // Antes las bolas volaban desde el borde y se ataban a sus DOS vecinas más
+  // cercanas. Esa topología era espacial, no del sorteo: unía bolas por estar
+  // al lado, que es una relación que el muestreo no tiene. Ahora el campo se
+  // pinta completo en gris —el marco del que se elige— y cada sorteada se
+  // ENCIENDE en su sitio, en el orden que publicó `discount_step`, atándose a
+  // la anterior de SU MISMO estrato. La cadena es el sorteo.
+  //
+  // El encadenado es por estrato porque `discount_step` reinicia en cada uno:
+  // unir el último de un estrato con el primero del siguiente dibujaría una
+  // sucesión que no ocurrió. Y de paso hace corta la animación —los estratos
+  // avanzan en paralelo—, que con 196 titulares de a uno serían ~29 s.
+  const campo = escena.campo;
   const maxElegibles = Math.max(
     1,
     ...visibles.map((paso) => elegiblesEnsamblados(paso, escena.encoge) ?? 0),
+    ...campo.map((bola) => bola.elegibles ?? 0),
   );
-  const geometria = visibles.map((paso, index) => {
-    const destino = posicionGoo(index, total);
-    const origen = origenBombo(index);
-    return {
+  // Orden del campo: el mismo criterio del bombo (tamaño publicado, desempate
+  // por código), para que una bola caiga en el mismo lugar en las dos escenas.
+  const unidades = [
+    ...visibles.map((paso, orden) => ({
+      clave: `paso-${paso.code}`,
+      orden,
       paso,
-      destino,
-      origen,
-      arco: arcoGoo(origen, destino),
-      r: radioGoo(elegiblesEnsamblados(paso, escena.encoge), maxElegibles),
-    };
-  });
-  const ultima = aterrizadas > 0 ? geometria[aterrizadas - 1] : null;
+      elegibles: elegiblesEnsamblados(paso, escena.encoge),
+    })),
+    ...campo.map((bola) => ({
+      clave: `campo-${bola.code}`,
+      orden: null as number | null,
+      paso: null,
+      elegibles: bola.elegibles,
+      bola,
+    })),
+  ].sort(
+    (a, b) =>
+      (b.elegibles ?? -1) - (a.elegibles ?? -1) ||
+      a.clave.localeCompare(b.clave, "es", { sensitivity: "base", numeric: true }),
+  );
+  const geometria = unidades.map((unidad, index) => ({
+    ...unidad,
+    pos: posicionGoo(index, unidades.length),
+    r: radioGoo(unidad.elegibles, maxElegibles),
+  }));
+
+  const ultima = aterrizadas > 0 ? visibles[aterrizadas - 1] : null;
   const bolasBalance = escena.balance?.variables[0]?.porBola.length ?? 0;
 
-  // Red masa-resorte destilada: cada bola colocada se ata con tirantes a sus
-  // DOS vecinas más cercanas del layout ya calculado (topología determinista).
-  const destinos = geometria.map((bola) => bola.destino);
-  const tirantes = geometria
-    .slice(0, aterrizadas)
-    .flatMap((bola, k) =>
-      vecinasMasCercanas(k, destinos).map((vecina) => ({ de: vecina, a: k })),
-    );
-  // Propagación local atenuada del aterrizaje: 1er grado = vecinas conectadas
-  // de la bola reciente; 2º grado = las vecinas de esas, a mitad de amplitud.
-  const reciente = aterrizadas - 1;
-  const onda1 = reciente > 0 ? vecinasMasCercanas(reciente, destinos) : [];
-  const onda2 = Array.from(
-    new Set(onda1.flatMap((vecina) => vecinasMasCercanas(vecina, destinos))),
-  ).filter((index) => index !== reciente && !onda1.includes(index));
-  function ondaDe(index: number): { grado: 1 | 2; dx: number; dy: number } | null {
-    const grado = onda1.includes(index) ? 1 : onda2.includes(index) ? 2 : null;
-    if (grado == null || reciente < 0) return null;
-    const desde = geometria[reciente].destino;
-    const hasta = geometria[index].destino;
-    const distancia = Math.hypot(hasta.x - desde.x, hasta.y - desde.y) || 1;
-    const amplitud = grado === 1 ? 3.5 : 1.75;
-    return {
-      grado: grado as 1 | 2,
-      dx: ((hasta.x - desde.x) / distancia) * amplitud,
-      dy: ((hasta.y - desde.y) / distancia) * amplitud,
-    };
+  // La cadena: eslabón entre pasos CONSECUTIVOS del mismo estrato, hasta donde
+  // llegó el sub-stepper. Es la única topología que el dato respalda.
+  const porOrden = new Map(
+    geometria.filter((u) => u.orden != null).map((u) => [u.orden as number, u]),
+  );
+  const ultimoDelEstrato = new Map<string, number>();
+  const eslabones: Array<{ de: number; a: number }> = [];
+  for (let k = 0; k < aterrizadas; k += 1) {
+    const estrato = visibles[k]!.estrato;
+    const previo = ultimoDelEstrato.get(estrato);
+    if (previo != null) eslabones.push({ de: previo, a: k });
+    ultimoDelEstrato.set(estrato, k);
   }
+  const reciente = aterrizadas - 1;
 
   function irABola(valor: number) {
     setAutoAvance(false);
@@ -141,115 +154,113 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
             className="cmv2-relato-goo is-ensamblaje"
             viewBox="0 0 100 100"
             role="img"
-            aria-label={`Estructura de la muestra: ${fmtInt(aterrizadas)} de ${fmtInt(total)} bolas ensambladas en el orden publicado del sorteo`}
+            aria-label={`Cola de titulares: ${fmtInt(aterrizadas)} de ${fmtInt(total)} cursos-horario sorteados, en el orden publicado, sobre un marco de ${fmtInt(geometria.length)} unidades`}
           >
-            {/* Tirantes (struts): la bola que llega se ata a sus DOS vecinas
-                más cercanas. El del aterrizaje hace preview punteado ~120 ms
-                antes del contacto y SNAP sólido al tensarse, vibrando con la
-                misma senoide amortiguada del asentamiento. */}
-            {tirantes.map((tirante) => {
-              const desde = geometria[tirante.de];
-              const hasta = geometria[tirante.a];
+            {/* La cola: cada eslabón une dos pasos CONSECUTIVOS del mismo
+                estrato. El recién tensado hace SNAP y vibra con la senoide
+                amortiguada del asentamiento. */}
+            {eslabones.map((eslabon) => {
+              const desde = porOrden.get(eslabon.de);
+              const hasta = porOrden.get(eslabon.a);
+              if (!desde || !hasta) return null;
               const membrana = membranaGoo(
-                { ...desde.destino, r: desde.r },
-                { ...hasta.destino, r: hasta.r },
+                { ...desde.pos, r: desde.r },
+                { ...hasta.pos, r: hasta.r },
               );
-              const esReciente = tirante.a === reciente && !reducido;
+              const esReciente = eslabon.a === reciente && !reducido;
               return (
                 <path
-                  key={`tirante-${tirante.de}-${tirante.a}${esReciente ? "-snap" : ""}`}
+                  key={`eslabon-${eslabon.de}-${eslabon.a}${esReciente ? "-snap" : ""}`}
                   className={`cmv2-relato-goo-membrana${esReciente ? " is-snap" : ""}`}
                   d={membrana.d}
                   style={{ strokeWidth: membrana.grosor.toFixed(2) }}
                 />
               );
             })}
-            {geometria.map((bola, index) => {
-              const enCluster = index < aterrizadas;
-              const esReciente = index === reciente && aterrizadas > 0;
-              const onda = enCluster && !esReciente && !reducido ? ondaDe(index) : null;
+            {geometria.map((unidad, index) => {
+              const paso = unidad.paso;
+              // Encendida = ya salió en el sorteo hasta donde va el stepper.
+              const encendida = paso != null && (unidad.orden as number) < aterrizadas;
+              const esReciente = paso != null && unidad.orden === reciente && aterrizadas > 0;
               const bobbing = bobbingDeBola(index);
-              const pos = enCluster ? bola.destino : bola.origen;
-              const anillo = enCluster && !escena.encoge && (bola.paso.yaCubiertos ?? 0) > 0;
-              const detalle = [
-                bola.paso.etiqueta,
-                bola.paso.facultad,
-                cifraDeAterrizaje(bola.paso, escena.encoge),
-                escena.encoge && bola.paso.bruto != null && bola.paso.neto != null
-                  ? `${fmtInt(bola.paso.bruto)} → ${fmtInt(bola.paso.neto)} netos`
-                  : "",
-                (bola.paso.yaCubiertos ?? 0) > 0 ? `${fmtInt(bola.paso.yaCubiertos)} ya cubiertos` : "",
-              ]
-                .filter(Boolean)
-                .join(" · ");
+              const anillo = encendida && !escena.encoge && (paso!.yaCubiertos ?? 0) > 0;
+              const codigo = paso ? paso.code : unidad.bola!.code;
+              const cifra = paso
+                ? cifraDeAterrizaje(paso, escena.encoge)
+                : unidad.bola!.elegibles != null
+                  ? `${fmtInt(unidad.bola!.elegibles)} elegibles`
+                  : "";
+              const detalle = paso
+                ? [
+                    paso.etiqueta,
+                    paso.facultad,
+                    cifra,
+                    escena.encoge && paso.bruto != null && paso.neto != null
+                      ? `${fmtInt(paso.bruto)} → ${fmtInt(paso.neto)} netos`
+                      : "",
+                    (paso.yaCubiertos ?? 0) > 0 ? `${fmtInt(paso.yaCubiertos)} ya cubiertos` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : [unidad.bola!.etiqueta, unidad.bola!.facultad, cifra].filter(Boolean).join(" · ");
               return (
                 <g
-                  key={`${bola.paso.paso}-${bola.paso.code}${esReciente ? "-aterriza" : ""}${onda ? `-onda${aterrizadas}` : ""}`}
+                  key={`${unidad.clave}${esReciente ? "-enciende" : ""}`}
                   tabIndex={0}
                   className={[
                     "cmv2-relato-goo-bola",
-                    "is-sorteada",
-                    enCluster ? "is-ensamblada" : "is-espera",
+                    // Gris hasta que sale: el marco del que se elige. Una bola
+                    // que aún no salió NO se pinta de sorteada.
+                    encendida ? "is-sorteada" : "is-candidata",
+                    encendida ? "is-ensamblada" : "",
                     esReciente && !reducido ? "is-aterrizando" : "",
-                    onda ? `is-onda-${onda.grado}` : "",
-                    bola.paso.certeza ? "is-certeza" : "",
+                    encendida && paso!.certeza ? "is-certeza" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
                   style={{
-                    // Estado en reposo: espera en el borde del bombo o ya en su
-                    // sitio del cluster; las animaciones (aterrizaje/onda, con
-                    // las vars del dato) mandan mientras corren.
-                    transform: `translate(${pos.x.toFixed(2)}px, ${pos.y.toFixed(2)}px)`,
+                    // La bola NO se mueve: ya está en su sitio del marco y lo
+                    // que cambia es su estado. El vuelo desde el borde contaba
+                    // una llegada que el sorteo no hace.
+                    transform: `translate(${unidad.pos.x.toFixed(2)}px, ${unidad.pos.y.toFixed(2)}px)`,
                     ["--relato-i" as string]: String(Math.min(index, 24)),
-                    ["--goo-sombra" as string]: `${Math.max(0.4, bola.r * 0.14).toFixed(2)}px`,
+                    ["--goo-sombra" as string]: `${Math.max(0.4, unidad.r * 0.14).toFixed(2)}px`,
                     ["--wob-dur" as string]: bobbing.duracion,
                     ["--wob-delay" as string]: bobbing.fase,
-                    ["--ox" as string]: `${bola.origen.x.toFixed(2)}px`,
-                    ["--oy" as string]: `${bola.origen.y.toFixed(2)}px`,
-                    ["--mx" as string]: `${bola.arco.x.toFixed(2)}px`,
-                    ["--my" as string]: `${bola.arco.y.toFixed(2)}px`,
-                    ["--tx" as string]: `${bola.destino.x.toFixed(2)}px`,
-                    ["--ty" as string]: `${bola.destino.y.toFixed(2)}px`,
-                    // Estiramiento tangente en vuelo: el ángulo del arco.
-                    ["--rot" as string]: `${anguloDeVuelo(bola.origen, bola.destino).toFixed(1)}deg`,
-                    // Propagación atenuada: empujón unitario desde la reciente.
-                    ...(onda
-                      ? {
-                          ["--ondx" as string]: `${onda.dx.toFixed(2)}px`,
-                          ["--ondy" as string]: `${onda.dy.toFixed(2)}px`,
-                        }
-                      : {}),
                   }}
                 >
-                  <title>{`Paso ${fmtInt(bola.paso.paso)} · ${bola.paso.code} · ${detalle}`}</title>
-                  <circle className="cmv2-relato-goo-cuerpo" r={bola.r.toFixed(2)} />
+                  <title>
+                    {paso
+                      ? `Paso ${fmtInt(paso.paso)} · ${paso.estrato} · ${codigo} · ${detalle}`
+                      : `Sin sortear · ${codigo} · ${detalle}`}
+                  </title>
+                  <circle className="cmv2-relato-goo-cuerpo" r={unidad.r.toFixed(2)} />
                   <circle
                     className="cmv2-relato-goo-brillo"
-                    r={(bola.r * 0.34).toFixed(2)}
-                    cx={(-bola.r * 0.32).toFixed(2)}
-                    cy={(-bola.r * 0.36).toFixed(2)}
+                    r={(unidad.r * 0.34).toFixed(2)}
+                    cx={(-unidad.r * 0.32).toFixed(2)}
+                    cy={(-unidad.r * 0.36).toFixed(2)}
                   />
-                  {bola.paso.certeza && (
-                    <circle className="cmv2-relato-goo-doble" r={Math.max(0.8, bola.r - 1.1).toFixed(2)} />
+                  {encendida && paso!.certeza && (
+                    <circle className="cmv2-relato-goo-doble" r={Math.max(0.8, unidad.r - 1.1).toFixed(2)} />
                   )}
-                  {anillo && <circle className="cmv2-relato-goo-anillo" r={(bola.r + 0.9).toFixed(2)} />}
-                  {enCluster && (
-                    <text className="cmv2-relato-goo-paso" dy="0.9">{fmtInt(bola.paso.paso)}</text>
+                  {anillo && <circle className="cmv2-relato-goo-anillo" r={(unidad.r + 0.9).toFixed(2)} />}
+                  {encendida && (
+                    <text className="cmv2-relato-goo-paso" dy="0.9">{fmtInt(paso!.paso)}</text>
                   )}
-                  {enCluster ? (
+                  {encendida ? (
                     <text
                       className={`cmv2-relato-goo-rotulo${esReciente ? " is-reciente" : ""}`}
-                      y={bola.r + 2.6}
+                      y={unidad.r + 2.6}
                     >
-                      {bola.paso.code}
-                      {esReciente ? ` · ${cifraDeAterrizaje(bola.paso, escena.encoge)}` : ""}
+                      {codigo}
+                      {esReciente ? ` · ${cifra}` : ""}
                     </text>
                   ) : (
-                    /* Bola viva (c): hover/focus revela código y cifra AL
-                       INSTANTE, sin transición de entrada. */
-                    <text className="cmv2-relato-goo-rotulo is-hover" y={bola.r + 2.6}>
-                      {bola.paso.code} · {cifraDeAterrizaje(bola.paso, escena.encoge)}
+                    /* Bola viva: hover/focus revela código y cifra al instante. */
+                    <text className="cmv2-relato-goo-rotulo is-hover" y={unidad.r + 2.6}>
+                      {codigo}
+                      {cifra ? ` · ${cifra}` : ""}
                     </text>
                   )}
                 </g>
@@ -292,7 +303,7 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
             <p className="cmv2-relato-indicador" aria-live="polite">
               Bola {fmtInt(aterrizadas)} de {fmtInt(total)}
               {ultima
-                ? ` · ${ultima.paso.code} · ${cifraDeAterrizaje(ultima.paso, escena.encoge)}`
+                ? ` · ${ultima.code} · ${cifraDeAterrizaje(ultima, escena.encoge)}`
                 : ""}
             </p>
           </div>

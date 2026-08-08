@@ -235,6 +235,7 @@ describe("E4 · el sorteo", () => {
         code: "CH 2",
         etiqueta: "Derecho Romano · M 10-12",
         facultad: "DERECHO",
+        estrato: "DERECHO · Hombre · G1",
         bruto: 18,
         yaCubiertos: 0,
         neto: 18,
@@ -245,6 +246,7 @@ describe("E4 · el sorteo", () => {
         code: "CH 1",
         etiqueta: "Cálculo 1 · L 8-10",
         facultad: "CIENCIAS E INGENIERIA",
+        estrato: "CIENCIAS E INGENIERIA · Mujer · G2",
         bruto: 40,
         yaCubiertos: 5,
         neto: 35,
@@ -502,5 +504,57 @@ describe("el lente por facultad (foco)", () => {
     const relato = relatoCompleto("facultad-inexistente");
     expect(relato.foco).toBeNull();
     expect((relato.escenas[4] as RelatoEscenaTitulares).titulares).toBe(2);
+  });
+});
+
+describe("E4 · la cadena y su campo (dirección 2026-08-08)", () => {
+  it("cada paso lleva su estrato, que es por donde se encadena", () => {
+    const escena = relatoCompleto().escenas[3] as RelatoEscenaSorteo;
+    // `discount_step` reinicia en cada estrato, así que el paso sin su estrato
+    // no alcanza para encadenar: 1 y 1 de estratos distintos no son sucesivos.
+    expect(escena.pasos.map((paso) => paso.estrato)).toEqual([
+      "DERECHO · Hombre · G1",
+      "CIENCIAS E INGENIERIA · Mujer · G2",
+    ]);
+  });
+
+  it("el campo trae las candidatas NO sorteadas, para que la cadena no flote", () => {
+    const escena = relatoCompleto().escenas[3] as RelatoEscenaSorteo;
+    // Las sorteadas ya viajan como pasos; el campo es el resto del marco.
+    expect(escena.campo.map((bola) => bola.code)).toEqual(["CH-C", "CH-D"]);
+    expect(escena.campo.every((bola) => !bola.seleccionada)).toBe(true);
+  });
+
+  it("el campo respeta el cupo que deja la cadena", () => {
+    // El cap es compartido: si la muestra ya lo llena, no queda fondo — y es
+    // correcto, porque la cadena es la historia. Con 60 pasos el campo va
+    // vacío aunque el marco tenga candidatas de sobra.
+    const titulares = Array.from({ length: RELATO_BOLAS_MAX }, (_, i) =>
+      filaTitular({
+        classroom_id: `CH-${i}`,
+        operational_code: `CH ${i}`,
+        eligible_n: 500 - i,
+        discount_step: i + 1,
+        selection_slot_id: `slot-${i}`,
+      }),
+    );
+    const relato = construirRelato({
+      selection: seleccionSintetica(),
+      selectionRows: titulares,
+      frame: FRAME_SINTETICO,
+      frameRows: bomboGrande(200),
+      estratosCalculo: ESTRATOS_CALCULO,
+      selectorFields: SELECTOR_FIELDS,
+      foco: null,
+    });
+    const escena = relato!.escenas[3] as RelatoEscenaSorteo;
+    expect(escena.pasos.length).toBe(RELATO_BOLAS_MAX);
+    expect(escena.campo).toEqual([]);
+  });
+
+  it("sin marco en memoria el campo va vacío en vez de inventarse", () => {
+    const escena = relatoCompleto(null, []).escenas[3] as RelatoEscenaSorteo;
+    expect(escena.campo).toEqual([]);
+    expect(escena.pasos.length).toBeGreaterThan(0);
   });
 });
