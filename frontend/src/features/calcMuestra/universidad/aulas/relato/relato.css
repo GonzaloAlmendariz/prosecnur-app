@@ -492,6 +492,44 @@
    asentamiento SUBAMORTIGUADO multi-pico (+8% → −4% → +2% → −1% → 0 con
    tiempos crecientes). Un ease-out simple se siente muerto: el feel está en
    pasarse del equilibrio y oscilar de vuelta. */
+/* F113 · Con motor a bordo, la escala la integra la física por bola.
+   `--goo-escala` la escribe `MotorGoo` cuadro a cuadro; los keyframes de abajo
+   quedan como camino declarativo para reduced-motion y para donde no hay rAF.
+   Los dos no pueden convivir: comparten `transform`, y la que gana SIEMPRE es
+   la animación —el mismo pisotón que colapsaba las bolas al origen—. Por eso el
+   motor apaga el keyframe en vez de sumarse a él.
+
+   La entrada exige un keyframe propio y no un `animation: none`: anima opacidad
+   Y transform, así que apagarla del todo se lleva puesto el fundido escalonado,
+   pero dejarla viva clava el transform en `scale(1)` con su `both` y el motor
+   escribe una variable que nadie lee. Se parte en dos: la opacidad sigue en
+   CSS, el transform es del motor. Medido: sin esto, las 196 bolas llevaban
+   `is-motor` y `--goo-escala`, y la escala renderizada no se movía de 1. */
+.cmv2-relato-goo-bola.is-motor.is-aterrizando,
+.cmv2-relato-goo-bola.is-motor.is-candidata .cmv2-relato-goo-cuerpo,
+.cmv2-relato-goo-bola.is-motor.is-candidata .cmv2-relato-goo-brillo {
+  animation: none;
+}
+
+.cmv2-relato-goo-bola.is-motor {
+  animation: cmv2-relato-goo-entrada-motor var(--motion-dur-base) var(--motion-ease-out) both;
+  animation-delay: calc(var(--relato-i, 0) * 40ms);
+  transform: scale(var(--goo-escala, 1));
+  transform-origin: center;
+  transform-box: fill-box;
+  will-change: transform;
+}
+
+/* Igual que `cmv2-relato-goo-entrada` pero SIN tocar transform. */
+@keyframes cmv2-relato-goo-entrada-motor {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .cmv2-relato-goo-bola.is-aterrizando {
   animation: cmv2-relato-goo-aterrizar 950ms var(--motion-ease-out) both;
   will-change: transform;
