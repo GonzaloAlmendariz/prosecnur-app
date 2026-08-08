@@ -571,6 +571,15 @@ export default function XlsformEditorPage() {
   // Biblioteca multi-formulario del proyecto: entradas ligeras (sin workbook)
   // que alimentan el conmutador rápido del toolbar y — en Oleada 3 — el hub.
   const [forms, setForms] = useState<LibraryEntry[]>([]);
+  // El hub no se pinta hasta que el índice del backend contestó (o falló).
+  //
+  // Sin esto el usuario veía dos homepages seguidos: primero la biblioteca
+  // sembrada desde localStorage —que en una máquina fresca está vacía, así que
+  // salía la variante "welcome" con el hero de creación y el diagrama— y un
+  // instante después la biblioteca real del .pulso. Y aun con localStorage
+  // caliente, las tarjetas nacían sin su bloque de publicación y crecían al
+  // llegar. Esperar una sola vez cuesta unos ms y entrega una sola superficie.
+  const [libraryReady, setLibraryReady] = useState(false);
   const [instrumentActorCatalog, setInstrumentActorCatalog] = useState<{
     status: "loading" | "ready" | "empty" | "error";
     options: InstrumentActorOption[];
@@ -1029,6 +1038,7 @@ export default function XlsformEditorPage() {
       dispatch({ type: "CLEAR" });
     }
     setRestoreOffer(null);
+    setLibraryReady(false);
     setPublicationUi({
       byFormId: {},
       publishingFormId: null,
@@ -1067,24 +1077,32 @@ export default function XlsformEditorPage() {
       // muestra las tarjetas) para que el usuario elija; solo con UN formulario
       // entramos directo a editarlo. El activo queda apuntado para "Ver todos"
       // / el conmutador del toolbar.
-      if (requestedFormId) {
-        const requestedExists = editorRequestedFormExists(
-          requestedFormId,
-          listForms(projectScope).map((form) => form.id),
-          backendFormIds,
-        ) || localActive === requestedFormId;
-        if (requestedExists) {
-          await switchToFormRef.current?.(requestedFormId);
-          return;
+      try {
+        if (requestedFormId) {
+          const requestedExists = editorRequestedFormExists(
+            requestedFormId,
+            listForms(projectScope).map((form) => form.id),
+            backendFormIds,
+          ) || localActive === requestedFormId;
+          if (requestedExists) {
+            await switchToFormRef.current?.(requestedFormId);
+            return;
+          }
+          toasts.push({
+            kind: "danger",
+            title: "No se encontró el formulario vinculado",
+            detail: "El plan de ingreso apunta a un form_id que ya no está disponible en este proyecto.",
+            durationMs: 6000,
+          });
+        } else if (localActive && formCount <= 1) {
+          await switchToFormRef.current?.(localActive);
         }
-        toasts.push({
-          kind: "danger",
-          title: "No se encontró el formulario vinculado",
-          detail: "El plan de ingreso apunta a un form_id que ya no está disponible en este proyecto.",
-          durationMs: 6000,
-        });
-      } else if (localActive && formCount <= 1) {
-        await switchToFormRef.current?.(localActive);
+      } finally {
+        // El hub ya puede pintarse: o tenemos el índice real, o el backend
+        // falló y lo local es todo lo que habrá. Va en `finally` para que un
+        // `return` temprano o un error de `switchToForm` no dejen el hub
+        // atrapado en su estado de carga.
+        if (!cancelled) setLibraryReady(true);
       }
     })();
     return () => {
@@ -3297,6 +3315,7 @@ export default function XlsformEditorPage() {
       {!workbook && (
         <FormsLibrary
           forms={forms}
+          loading={!libraryReady}
           activeFormId={getActiveForm(projectScope)}
           scope={projectScope}
           onOpen={(id) => { void switchToForm(id); }}
