@@ -1,16 +1,16 @@
 import { type CSSProperties, useMemo, useRef, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Shuffle, X, Check, ImagePlus, Save, RotateCcw } from "lucide-react";
-import { GraficadorMetadata, GraficadorRef } from "../../api/client";
+import { GraficadorRef } from "../../api/client";
 import { IconModes } from "../../lib/icons";
 import { usePlanStore } from "./store";
 import { useGraficosRegistry } from "./useGraficosRegistry";
-import GraficadorPicker from "./GraficadorPicker";
 import GraficadorForm from "./GraficadorForm";
 import MultiApiladasBuilder from "./MultiApiladasBuilder";
 import { graficadorToPresetType } from "./graficadorPresetMap";
 import { graficadorDisplayName, graficadorKindLabel } from "./graficadorDisplay";
 import { GraphSquareIcon, resolveGraphLucideIcon } from "./lucideRegistry";
+import { useGraficosLibraries } from "./GraficosLibrariesHost";
 
 // Card que representa un slot de graficador dentro de un slide. Dos
 // estados:
@@ -81,32 +81,22 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
   const setSlot = usePlanStore((s) => s.setSlot);
   const updateArgs = usePlanStore((s) => s.updateSlotArgs);
   const { graficadoresById } = useGraficosRegistry();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const { openGraficadoresLibrary } = useGraficosLibraries();
+  const pickerTriggerRef = useRef<HTMLButtonElement>(null);
   const allowedGroups = MODE_GROUPS[mode];
   // El OverrideDropdown (wand) sólo vive en modo style — el override define
   // estilo, no datos ni filtros, así que duplicarlo en otros tabs sería
   // inconsistente.
   const showOverride = mode === "style";
 
-  function onPick(meta: GraficadorMetadata) {
-    // Al elegir un graficador nuevo, construimos args con los defaults
-    // del registry (los que tengan valor por defecto). Los args sin
-    // default se dejan como undefined para que el usuario los llene.
-    const args: Record<string, unknown> = {};
-    // Preservar args existentes si es un "cambiar graficador" sobre slot ya
-    // poblado y el arg nuevo tiene el mismo nombre.
-    const prevArgs = value?.args ?? {};
-    for (const a of meta.args) {
-      if (prevArgs[a.name] !== undefined) {
-        args[a.name] = prevArgs[a.name];
-      }
-    }
-    setSlot(slideId, slotName, { graficador: meta.name, args });
-    setPickerOpen(false);
-  }
-
   const slotLabel = SLOT_LABELS[slotName] ?? slotName;
-  const replaceGraficadorAction = mode === "data" ? () => setPickerOpen(true) : onRequestDataTab;
+  const openPicker = () => openGraficadoresLibrary({
+    slideId,
+    slotName,
+    slotLabel,
+    returnFocusRef: pickerTriggerRef,
+  });
+  const replaceGraficadorAction = mode === "data" ? openPicker : onRequestDataTab;
   const replaceGraficadorLabel = mode === "data" ? "Reemplazar modelo" : "Ir a Datos";
 
   // En modos style/filters NO mostramos el "slot vacío" porque la
@@ -144,13 +134,13 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
           </span>
         </div>
         <button
+          ref={pickerTriggerRef}
           type="button"
           className="pulso-primary pulso-gv2-pill-button"
-          onClick={() => setPickerOpen(true)}
+          onClick={openPicker}
         >
           <Plus size={13} /> Elegir gráfico
         </button>
-        {pickerOpen && <GraficadorPicker onPick={onPick} onCancel={() => setPickerOpen(false)} />}
       </div>
     );
   }
@@ -193,8 +183,9 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
         )}
         {mode === "data" && (
           <button
+            ref={pickerTriggerRef}
             type="button"
-            onClick={() => setPickerOpen(true)}
+            onClick={openPicker}
             className="pulso-gv2-pill-button pulso-gv2-slot-action"
             aria-label="Cambiar por otro tipo de gráfico"
           >
@@ -240,8 +231,6 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
           />
         )}
       </div>
-
-      {pickerOpen && <GraficadorPicker onPick={onPick} onCancel={() => setPickerOpen(false)} />}
     </div>
   );
 }

@@ -151,7 +151,7 @@ la reconfiguración grande.
 |---|---|---|---|
 | **L1 · Reconfiguración del SlidePicker** | Anatomía única de tile con miniatura blueprint para TODAS las familias (editoriales incluidas); grilla de altura estable; miniatura card = hero (B1, B2); inserter «insertar y seguir» + Enter + flechas (B6, B10); inspector con preview fiel y slots con significado (B3, B4); focus trap (B7); CSS en hoja nueva | V1–V5 | **hecho · I1** |
 | **L2 · Paridad del GraficadorPicker** | Misma gramática que L1; miniaturas de forma de gráfico; descripciones completas sin truncar; camino a dimensiones (B11, B12, B14, B15) | V1, V3, V8 | **hecho · I2** |
-| **L3 · Direccionabilidad + a11y compartida** | `usePanelDireccionable` en ambos; helper de focus trap común; QA puede abrirlos por URL (B7, B8) | V5, V6 | pendiente |
+| **L3 · Direccionabilidad + a11y compartida** | `usePanelDireccionable` en ambos; helper de focus trap común; QA puede abrirlos por URL (B7, B8) | V5, V6 | **hecho · I3** |
 | **L4 · Verdad del registry** | Conteos y subtítulos derivados (B5); blueprints desde `slots`/metadata y no desde `includes()` del nombre; barrida de copy del registry (B13 y hermanos); contraste blueprint↔layout PPT real con `officer::layout_properties()` | V2, V8 | pendiente |
 | **L5 · Degradación y viewports** | Estados vacío/error/sin-resultados/`dimOk=false` en los 5 viewports; matriz con foco en 1024x600 | V7 | pendiente |
 | **L6 · Tests de contrato** | Registry↔picker (todo tipo del registry tiene label, categoría, blueprint), taxonomía, y smoke de teclado (B17) | gate | pendiente |
@@ -194,8 +194,8 @@ Proporcional al diff, siempre con evidencia visual:
 | V2 verdad registry | ✓ parcial (B2; B5 y contraste PPT → L4) | ✓ parcial (catálogo + blueprint; mapping/PPT → L4) |
 | V3 decidibilidad | ✓ L1 (B3, B4) | ✓ L2 (B11, B12, B14) |
 | V4 flujo | ✓ L1 (B6, B10) | — (un solo pick por apertura, aceptable) |
-| V5 accesibilidad | ✓ L1 (B7) | ✓ (B16) |
-| V6 direccionable | ✗ (B8) | ✗ (B8) |
+| V5 accesibilidad | ✓ L1 + I3 (B7) | ✓ L2 + I3 (B7, B16) |
+| V6 direccionable | ✓ I3 (B8) | ✓ I3 (B8) |
 | V7 degradación | parcial (1024x600; estados degradados y matriz completa → L5) | parcial L2 (`dimOk=false`, no-results y 1024; matriz completa → L5) |
 | V8 español | ✓ | ✓ parcial L2 (B15; B13 del registry → L4) |
 
@@ -295,6 +295,72 @@ Proporcional al diff, siempre con evidencia visual:
     `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
     B13 y L3–L6 permanecen abiertos; el goal sigue en curso.
 
+- **I3 · 2026-08-08 · L3 Direccionabilidad + a11y compartida** — Host único
+  de bibliotecas y contrato de apertura/cierre común por Rama 2. El cambio se
+  acotó a `GraficosLibrariesHost.tsx`, `panelesGraficos.ts`,
+  `useLibraryDialogA11y.ts`, los cinco consumidores de Gráficos,
+  `manifiesto.ts` y un test de contrato focal; no añadió ni modificó CSS,
+  `editor-v2.css`, API, registry R, persistencia ni `.pulso`.
+  - **B8 / V6:** BEFORE retenía la URL pero abría 0/4 diálogos por dirección y
+    las cuatro aperturas interactivas escribían 0/4 parámetros `panel`. AFTER-2
+    acredita 4/4 deep links y 4/4 escrituras de URL con
+    `panel=biblioteca-slides` o `panel=biblioteca-graficadores`; ambos ids están
+    declarados en el manifiesto, montados una sola vez en el editor y consumen
+    exactamente una instancia de `usePanelDireccionable`.
+  - **B7 / V5 / C4:** ambos diálogos conservan Radix modal y comparten captura
+    del trigger lógico, autofocus, trap bidireccional, Escape, backdrop y
+    restauración. Hay 30/29 focables en la biblioteca de slides/graficadores;
+    la apertura inmediata tras cerrar pasa 2/2 y no permite que un ciclo viejo
+    robe el foco al nuevo.
+  - **C5 / deep link de graficadores:** como una URL no identifica slot, la
+    apertura directa entra en modo de consulta, sin target ni commit implícito,
+    con razón visible y CTA «Listo para revisar». Las dos pruebas de consulta
+    no cambian slide, slot, modo, inspector ni autosave. La apertura desde un
+    slot captura y revalida el target. La inserción desde un slot vacío pasa
+    2/2 y el foco vuelve al mismo lugar lógico cuando «Elegir gráfico» se
+    convierte en «Cambiar»; el reemplazo comparte esa ruta por contrato de
+    código, pero no se presenta aquí como secuencia visual ejercitada.
+  - **I3.1 rechazada; I3.2 acreditada:** la primera implementación difería la
+    limpieza del target y dejaba pasar `N` dentro del modal, de modo que una
+    reapertura rápida podía heredar estado o competir por foco. La corrección
+    limpia el target sincrónicamente, captura el `RefObject` estable, invalida
+    retornos de foco de ciclos anteriores e ignora `N` dentro de cualquier
+    diálogo. AFTER-2 pasa 2/2 reaperturas a 79/96 ms y 2/2 guards del atajo.
+  - **C1–C5 / geometría visual:** 102/102 comprobaciones, 2/2 cláusulas C1–C5,
+    0 errores de consola/página/API/recursos, sin scroll jail y con contenido
+    terminal alcanzable. Al no tocar estilos, se conserva la geometría
+    acreditada de L1/L2: tiles de slides 290×286 en 1440 y graficadores 254×366;
+    en 1024 la gramática compacta tampoco deriva.
+  - **Evidencia BEFORE:**
+    `/private/tmp/prosecnur-l3-before.vVVWtR/before-slides-{1440x1000,1024x600}-url.png`,
+    `before-slides-{1440x1000,1024x600}-key-n-open.png`,
+    `before-graphs-{1440x1000,1024x600}-url.png` y
+    `before-graphs-{1440x1000,1024x600}-click-open.png`;
+    `l3-before-direccionabilidad-report.json` (SHA-256
+    `f0b4a6f4c747c1d0b58db310a1fa09728b4460150390fae27e66e224e0cad7da`).
+  - **Evidencia AFTER-2:**
+    `/private/tmp/prosecnur-l3-after2.JnBYJs/after2-slides-{1440x1000,1024x600}-url-open.png`,
+    `after2-slides-{1440x1000,1024x600}-n-open.png`,
+    `after2-graphs-{1440x1000,1024x600}-url-open.png`,
+    `after2-graphs-{1440x1000,1024x600}-slot-open.png` y
+    `after2-graphs-{1440x1000,1024x600}-slot-committed.png`;
+    `l3-after2-direccionabilidad-report.json` (SHA-256
+    `dd18e7122350cd6446d4b330884ea96e74781c1ce3f6688d40e3b8c40db4cd3b`) y
+    `visual-inspection.md` en el mismo directorio.
+  - **Primer gate serial de cierre rechazado:** el producto y todos los checks
+    quedaron verdes, pero el ledger mezclaba los 76 ms de un intento previo con
+    los 79 ms del reporte final y atribuía a las 2/2 inserciones una prueba de
+    reemplazo que no se ejecutó. Ambas sobreafirmaciones se retiraron antes del
+    re-gate. El SHA del runner corresponde expresamente a
+    `runner/report.json`, no a la sonda `probe-l3-after2.mjs`.
+  - **Gate final:** `pnpm -C frontend typecheck`; Vitest focal 9/9 y Gráficos
+    37 archivos / 194 tests; build Vite de 1.421 módulos; audit agentic;
+    revisiones independientes de arquitectura y Contrato de Superficie
+    **APROBADAS**; re-gate serial del verificador **APROBADO**. `editor-v2.css`
+    conserva 33.123 líneas y SHA-256
+    `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
+    L4–L6 permanecen abiertos y el goal sigue en curso.
+
 ## Bandeja de decisiones
 
 - ¿«Popover» o toma completa? I1 materializa el supuesto conservador como toma
@@ -313,7 +379,19 @@ Proporcional al diff, siempre con evidencia visual:
   pero `overflow-wrap:anywhere` puede partir «Distribución» o «Dimensiones» en
   1024. Recomendación para L5: ensanchar el rail o reservar mejor el count antes
   de relajar el wrap; el supuesto conservador actual prioriza contenido completo.
-- ¿Qué foco recibe una inserción que reemplaza el trigger vacío? Cancelación por
-  Escape/backdrop restaura al trigger y está acreditada; una inserción puede
-  desmontar ese nodo al crear el slot. L3 debe fijar un fallback persistente
-  («Cambiar» o encabezado del slot) junto con la a11y compartida.
+- ¿Qué foco recibe una inserción que reemplaza el trigger vacío? Resuelto en I3:
+  el mismo `RefObject` estable pertenece al trigger lógico antes y después del
+  reemplazo, por lo que «Elegir gráfico» puede convertirse en «Cambiar» sin
+  perder la restauración; existe además un ancla sólo para lectores de pantalla
+  si no queda trigger lógico montado.
+- ¿Qué hace un deep link a graficadores sin slot? I3 adopta el supuesto
+  conservador de sólo consulta: no inventa un destino ni altera el proyecto.
+  Si se necesitara commit direccionable, la recomendación es diseñar un
+  parámetro `slot=` validado y no inferir el slot activo.
+- La revalidación de commit usa hoy `SLIDE_GRAF_SLOTS`, la misma verdad estática
+  del editor. L4 debe contrastarla con el registry/runtime y decidir una fuente
+  canónica antes de cambiar el contrato.
+- El test focal de I3 cubre el contrato estructural y el QA en vivo acredita
+  Router, Radix y `requestAnimationFrame`; L6 debe añadir el smoke montado
+  reproducible para que esas carreras no dependan sólo de evidencia manual, e
+  incluir un reemplazo real desde un slot ya poblado.
