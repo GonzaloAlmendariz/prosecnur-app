@@ -1211,6 +1211,47 @@
   # placeholder. El combinado `p_radar_tabla` ya no se expone en el
   # registry — sigue vivo en el motor por compat de planes viejos.
 
+  # =========================================================================
+  # SERIE TEMPORAL
+  # =========================================================================
+  # Consume el MISMO corte que el radar entre públicos: los ejes llegan de la
+  # matriz de equivalencias y el indicador se declara con códigos. Cambia sólo
+  # cómo se lee — una línea por tema y un punto por base, en vez de un vértice
+  # por tema y una serie por base. Por eso no se re-declaran las variables.
+  p_serie_temporal = list(
+    titulo_humano = "Serie temporal",
+    descripcion   = "Evolución de uno o varios indicadores a lo largo de las olas del estudio. Cada línea es un tema y cada punto una base. Requiere bases separadas por momento.",
+    icono_ui      = "TrendingUp",
+    categoria     = "comparison",
+    blueprint     = "line-series",
+    requisito     = "Necesita varias bases declaradas en la matriz de equivalencias, una por momento.",
+    args = c(list(
+      list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Códigos de la escala que cuentan como indicador. El porcentaje se calcula sobre las respuestas válidas de cada base, no sobre el total: una ola con más no-respuesta saldría artificialmente baja."),
+      list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
+           descripcion = "Se muestra como subtítulo. Ej. «% de acuerdo o total acuerdo»."),
+      list(name = "mostrar_valores", label = "Mostrar cifras", tipo_input = "bool", grupo = "datos",
+           default = TRUE,
+           descripcion = "Escribe el porcentaje sobre cada punto. Cuando dos series se cruzan, una cifra pasa debajo del punto para no pisarse."),
+      list(name = "max_series_con_cifras", label = "Máximo de series con cifras", tipo_input = "number", grupo = "valores",
+           default = 5, min = 1, max = 12, step = 1,
+           descripcion = "Límite visual del motor: por encima de este número las cifras se apagan solas, porque se pisarían entre sí. La lectura queda en la leyenda y el punto destacado."),
+      list(name = "valores_decimales", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1),
+      list(name = "destacar_ultimo", label = "Destacar el último punto", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
+           descripcion = "Engrosa el marcador de la última ola, que es el dato que el lector busca primero."),
+      list(name = "mostrar_puntos", label = "Mostrar puntos", tipo_input = "bool", grupo = "estilo",
+           default = TRUE),
+      list(name = "colores_series", label = "Colores por serie", tipo_input = "series_colors", grupo = "estilo",
+           descripcion = "Asigna un color a cada tema. Si está vacío, se usa la paleta Pulso."),
+      list(name = "mostrar_grid_y", label = "Mostrar grilla horizontal", tipo_input = "bool", grupo = "estilo",
+           default = TRUE),
+      list(name = "limite_y", label = "Límite del eje Y", tipo_input = "number", grupo = "espacio",
+           descripcion = "Vacío = automático. Fijarlo permite comparar dos láminas entre sí.")
+    ), .args_graf_comunes())
+  ),
+
   p_radar = list(
     titulo_humano = "Radar",
     descripcion   = "Gráfico radar (telaraña) sin tabla al costado. Ocupa todo el espacio disponible. Adecuado cuando la tabla va en otro espacio o no se necesita.",
@@ -2410,6 +2451,39 @@
   # =========================================================================
   # RADAR + TABLA (el más denso en args — 40+)
   # =========================================================================
+  serie_temporal = list(
+    titulo_humano = "Serie temporal",
+    descripcion   = "Estilo global de las líneas de evolución: grosor, tamaño de punto y cifra, leyenda y grilla.",
+    icono_ui      = "TrendingUp",
+    args = list(
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "valores", "eje_x", "eje_y")),
+
+      list(name = "size_linea", label = "Grosor de la línea", tipo_input = "number", grupo = "estilo",
+           default = 0.9, min = 0.3, max = 2.5, step = 0.1),
+      list(name = "size_punto", label = "Tamaño del punto", tipo_input = "number", grupo = "estilo",
+           default = 2.4, min = 0, max = 6, step = 0.2),
+      list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
+           default = 3.1, min = 1.5, max = 8, step = 0.1),
+      list(name = "mostrar_leyenda", label = "Mostrar leyenda", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
+           descripcion = "Con más de una serie, la leyenda es la única forma de saber qué línea es cuál."),
+      list(name = "leyenda_posicion", label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
+           default = "abajo",
+           choices = list(
+             list(value = "abajo", label = "Abajo"),
+             list(value = "arriba", label = "Arriba"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "izquierda", label = "Izquierda"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9),
+      list(name = "expand_y", label = "Aire superior", tipo_input = "number", grupo = "espacio",
+           default = 0.12, min = 0, max = 0.5, step = 0.01,
+           descripcion = "Espacio sobre el punto más alto, para que su cifra no toque el borde.")
+    )
+  ),
+
   radar_tabla = list(
     titulo_humano = "Radar + tabla",
     descripcion   = "Gráfico radar (telaraña) acompañado de una tabla a la derecha (típicamente Top Two Box). Muy configurable para reportes formales.",
