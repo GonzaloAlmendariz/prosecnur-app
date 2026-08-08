@@ -18,7 +18,7 @@ Medido el 2026-08-08 sobre `main`:
 |---|---|
 | Motor R | 31 archivos, ~30.100 líneas (`api/R/grafic*.R`) |
 | Editor | ~32.700 líneas TS + 35.700 CSS |
-| Catálogo | 20 graficadores en 6 familias, 20 layouts de slide |
+| Catálogo | 23 graficadores en 6 familias, 20 layouts de slide |
 | Tests R | 48 archivos, ~11.200 líneas |
 | Tests front | 42 archivos, 250 casos |
 
@@ -53,7 +53,7 @@ reparto real de las zonas.
 | ~~A1~~ | ~~`.keep_formals` deja rastro de lo que descarta~~ | **Hecho** (2026-08-08) | S |
 | ~~A2~~ | ~~Cerrar los args muertos~~ | **Hecho** (2026-08-08). 9 de 11 eran defectos; 2 eran herencia declarada | S |
 | ~~A3~~ | ~~Un solo default por campo~~ | **Replanteado y hecho** (2026-08-08). Ver abajo: unificar los 76 rompería el diseño | S |
-| A4 | Identidad en el motor | Cuatro `color_titulo` por defecto distintos entre graficadores | M |
+| ~A4~ | Identidad en el motor | **Piso creado** (2026-08-08); falta retro-aplicarlo a los graficadores existentes | M |
 | A5 | Retirar la rama `usar_canvas = FALSE` | El motor fuerza `TRUE` siempre; la rama muerta produce salida degradada | M |
 | ~~A6~~ | ~~Congelar dos archivos más~~ | **Hecho a medias, a propósito** (2026-08-08). Solo `graficador_dimensiones.R` | S |
 | A7 | Cobertura de composición | Es el hueco que deja pasar los defectos que sí llegan al cliente | L |
@@ -128,12 +128,12 @@ No la ejerce el producto ni la cubre ningún test.
 |---|---|---|---|
 | ~~B1~~ | ~~Significancia en apiladas~~ | **Hecho** (2026-08-08). En multi-apiladas por temas NO aplica: filas dependientes | S |
 | ~~B2~~ | ~~Serie temporal / línea~~ | **Hecho** (2026-08-08). Entre olas, reusando el df del multibase | L |
-| B3 | Divergentes (Likert centrado) | Modo de apiladas, no graficador nuevo | M |
-| B4 | Dumbbell entre bases | Modo; el df tidy del multibase ya lo alimenta | M |
+| ~~B3~~ | ~~Divergentes (Likert centrado)~~ | **Hecho** (2026-08-08). Graficador propio, no modo: ver abajo | M |
+| ~~B4~~ | ~~Dumbbell entre bases~~ | **Hecho** (2026-08-08). Exige dos bases exactas | M |
 | B5 | Intervalo de confianza del estimador | Desde cero | M |
 | B6 | Coroplético de resultados | Desde cero | L |
 | B7 | Múltiple con denominador declarado | Desde cero | M |
-| B8 | Lollipop / Top-N | Variante de categóricas | S |
+| ~~B8~~ | ~~Lollipop / Top-N~~ | **Hecho** (2026-08-08). El recorte por top_n se declara | S |
 
 ### B2 — cerrado
 
@@ -144,12 +144,16 @@ por una variable de fecha *dentro* de una base sigue sin existir; el graficador
 acepta cualquier df tidy `(eje, grupo, valor)`, así que alimentarlo desde una
 fecha no exigiría rehacerlo.
 
-### B3 y B4 — modos, no graficadores
+### B3 y B4 — graficadores propios, no modos
 
-El precedente es `p_radar(modo = "publicos")`: un modo dentro del graficador,
-con el render enganchado por convención de nombre (`.render_radar_publicos`,
-resuelto con `inherits = TRUE`) para que el archivo congelado no crezca. Los
-divergentes y el dumbbell siguen ese mismo camino.
+El roadmap los planteaba como modos siguiendo el precedente de
+`p_radar(modo = "publicos")`. Al construirlos resultó que no aplica: un modo se
+justifica cuando **para el analista es el mismo gráfico**, y aquí no lo es. El
+divergente cambia el eje de `0..100` a `-100..+100` y exige declarar qué
+categorías caen de cada lado; el dumbbell cambia la unidad de lectura de la
+barra al segmento. Lo que sí se conservó del precedente es el enganche: ambos se
+resuelven por convención de nombre y leen su preset con `dynGet`, así que
+`reporte_plan_ppt.R` no creció ni una línea.
 
 ### B5 y B7 — cambian lo que el gráfico afirma
 
@@ -178,10 +182,34 @@ exige declarar nada nuevo.
 cumplió lo prometido: el censo automático encontró más args muertos que la
 auditoría manual, y uno de ellos no era inerte sino que **abortaba el render**.
 
-**Ola 4 — lectura.** B3 y B4, ambos como modos.
+**Ola 4 — lectura.** ~~B3 y B4~~ — **cerrada el 2026-08-08**, más B8 de propina.
+Los tres resultaron graficadores propios, no modos.
 
-B5 y B7 entran cuando su decisión metodológica esté tomada. A5 y A7 son de
-fondo y no bloquean a nadie.
+### Lo que queda, y por qué
+
+Las cuatro olas del roadmap están cerradas. Estos cinco ítems quedaron fuera a
+propósito, cada uno por una razón distinta:
+
+- **B5 (intervalo de confianza)** y **B7 (denominador de respuesta múltiple)**
+  cambian lo que el gráfico *afirma*, no cómo se ve. Antes de escribirlos hace
+  falta decidir el método —Wald contra Wilson para el IC; casos contra menciones
+  como denominador por defecto— y esa decisión es de la casa, no del motor. Es
+  el mismo principio que ya rige la significancia: el indicador se declara, no
+  se deduce.
+- **B6 (coroplético de resultados)** necesita el marco geográfico que hoy solo
+  usa el mapa de cobertura. No se puede verificar sin datos territoriales
+  reales, y un mapa que no se pudo mirar no se entrega.
+- **A5 (retirar la rama `usar_canvas = FALSE`)** toca cinco graficadores para
+  borrar código que el producto no ejerce. El beneficio es limpieza y el riesgo
+  es real; merece su propia unidad con su propio gate.
+- **A7 (cobertura de composición)** es infraestructura de QA visual, no una
+  reparación. Es el hueco que deja pasar los defectos que sí llegan al cliente
+  —los ocho del cierre de equivalencias, los dos del caption, los dos de la
+  serie temporal— y por eso es el trabajo de fondo más valioso que queda.
+
+**A4** quedó a medias a propósito: el piso de identidad existe y los
+graficadores nuevos nacen con él, pero retro-aplicarlo a los existentes
+cambiaría láminas ya aprobadas.
 
 ## Ya entregado (2026-08-08)
 
