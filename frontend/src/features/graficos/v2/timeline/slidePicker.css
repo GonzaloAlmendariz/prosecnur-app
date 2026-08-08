@@ -735,6 +735,100 @@
   box-shadow: var(--pulso-shadow-low);
 }
 
+.pulso-slide-composition-regions {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.pulso-slide-composition-region {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--pulso-text-muted);
+  background: color-mix(in srgb, var(--pulso-surface-3) 88%, transparent);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius);
+}
+
+.pulso-slide-composition-region[hidden] {
+  display: none;
+}
+
+.pulso-slide-composition-region.is-chart {
+  align-items: flex-end;
+  background: var(--pulso-surface-3);
+  border-color: var(--pulso-slide-library-family-border);
+}
+
+.pulso-slide-composition-region.is-icon {
+  color: var(--pulso-slide-library-family-accent);
+  background: var(--pulso-surface);
+  border-color: var(--pulso-slide-library-family-accent);
+  border-radius: var(--pulso-radius-chip);
+  box-shadow: var(--pulso-shadow-soft);
+}
+
+.pulso-slide-composition-chart-marks {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--pulso-space-1);
+  width: 58%;
+  height: 72%;
+}
+
+.pulso-slide-composition-chart-marks i {
+  display: block;
+  width: 18%;
+  height: 45%;
+  background: var(--pulso-slide-library-family-accent);
+  border-radius: var(--pulso-radius-chip) var(--pulso-radius-chip) 0 0;
+}
+
+.pulso-slide-composition-chart-marks i:nth-child(2) {
+  height: 82%;
+}
+
+.pulso-slide-composition-chart-marks i:nth-child(3) {
+  height: 62%;
+}
+
+.pulso-slide-composition-copy-marks {
+  display: grid;
+  gap: var(--pulso-space-1);
+  width: 72%;
+}
+
+.pulso-slide-composition-copy-marks i {
+  display: block;
+  height: 3px;
+  background: var(--pulso-border-strong);
+  border-radius: var(--pulso-radius-chip);
+}
+
+.pulso-slide-composition-copy-marks i:last-child {
+  width: 64%;
+}
+
+.pulso-slide-composition-icon-mark {
+  display: block;
+  width: 42%;
+  aspect-ratio: 1;
+  background: var(--pulso-slide-library-family-soft);
+  border: 1px solid var(--pulso-slide-library-family-accent);
+  border-radius: 50%;
+}
+
+.pulso-slide-library-blueprint-regions .pulso-slide-library-blueprint-icon-svg {
+  max-width: 58%;
+  max-height: 58%;
+}
+
 .pulso-slide-library-blueprint-brand,
 .pulso-slide-library-blueprint-kicker,
 .pulso-slide-library-blueprint-section-band,

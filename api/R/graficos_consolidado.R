@@ -615,7 +615,7 @@ graficos_consolidado_preflight <- function(sid, config = NULL) {
 }
 
 graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
-                                             template_pptx, result_path,
+                                             template_pptx, template_id, result_path,
                                              progress_path = NULL) {
   .pkg_fn <- function(name) get(name, envir = asNamespace("prosecnurapp"), inherits = FALSE)
   report <- .pkg_fn("job_progress_writer")(progress_path)
@@ -643,6 +643,7 @@ graficos_consolidado_job_runner <- function(data_path, inst_path, recipe_path,
     plan = do.call(.pkg_fn("p_plan"), list(slides = rebuilt)),
     env_diapos = palette_env,
     template_pptx = template_pptx,
+    template_id = template_id,
     auto_otros_slides = recipe$auto_otros_slides,
     mensajes_progreso = FALSE
   )
@@ -778,7 +779,8 @@ graficos_consolidado_start <- function(sid, config = NULL, presets = NULL, expec
       data_path = data_path,
       inst_path = inst_path,
       recipe_path = recipe_path,
-      template_pptx = template
+      template_pptx = template,
+      template_id = delivery$template_id
     ),
     result_filename = .export_filename(sid, "informe_consolidado", "pptx"),
     on_complete = function(job) {

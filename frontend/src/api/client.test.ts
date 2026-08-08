@@ -67,6 +67,7 @@ import {
   apiGraficosPpt,
   apiGraficosConsolidadoPreflight,
   apiGraficosPptConsolidado,
+  apiGraficosSlideLayoutMatrix,
   apiGraficosSlideLayoutPreview,
   apiGraficosPreviewSlide,
   apiGraficosShareExport,
@@ -4182,5 +4183,45 @@ describe("Graficos preview/export client", () => {
       expect.objectContaining({ headers: expect.any(Object) }),
     );
     expect(response.placeholders[0]?.payload_key).toBe("izquierda");
+  });
+
+  test("requests the v2 slide layout matrix with canonical identity and scope query", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({
+      schema: "graficos.slide_layout_matrix/v2",
+      contract_version: 2,
+      template: {
+        id: "template-explicit",
+        fingerprint: "sha256:matrix",
+        identity_source: "template_id",
+      },
+      canvas: { width: 13.333, height: 7.5, aspect_ratio: 16 / 9 },
+      slides: [],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const activeResponse = await apiGraficosSlideLayoutMatrix({ scope: "active" });
+    const response = await apiGraficosSlideLayoutMatrix({
+      profile_id: "profile-explicit",
+      template_id: "template-explicit",
+      scope: "consolidated",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/graficos/slide-layout-matrix?scope=active",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/graficos/slide-layout-matrix?profile_id=profile-explicit&template_id=template-explicit&scope=consolidated",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+    expect(activeResponse.schema).toBe("graficos.slide_layout_matrix/v2");
+    expect(response).toMatchObject({
+      schema: "graficos.slide_layout_matrix/v2",
+      contract_version: 2,
+      template: { fingerprint: "sha256:matrix" },
+    });
   });
 });

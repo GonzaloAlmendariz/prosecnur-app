@@ -161,7 +161,7 @@
 graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, paletas,
                                     slide_registry, graficador_registry,
                                     icon_registry, active_base,
-                                    template_pptx, auto_otros_slides,
+                                    template_pptx, template_id, auto_otros_slides,
                                     result_path, progress_path = NULL) {
   report <- job_progress_writer(progress_path)
   base_error <- .graficos_job_base_error(active_base)
@@ -183,6 +183,7 @@ graficos_job_worker_ppt <- function(rp_data_path, rp_inst_path, plan, presets, p
       plan = p_plan(slides = slides_r),
       env_diapos = palette_env,
       template_pptx = template_pptx,
+      template_id = template_id,
       auto_otros_slides = auto_otros_slides,
       mensajes_progreso = FALSE
     ),
@@ -239,6 +240,7 @@ graficos_job_worker_ppt_all <- function(rp_data_path, rp_inst_path, per_base_pat
         plan = p_plan(slides = slides_r),
         env_diapos = palette_env,
         template_pptx = info$template_pptx,
+        template_id = info$template_id,
         auto_otros_slides = isTRUE(info$auto_otros_slides),
         mensajes_progreso = FALSE
       ),

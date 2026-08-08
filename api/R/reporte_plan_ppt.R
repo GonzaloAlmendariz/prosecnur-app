@@ -53,6 +53,9 @@
 #' @param solo_lista Si `TRUE`, no se escribe el archivo y solo se retorna el objeto de salida.
 #' @param auto_otros_slides Si `TRUE`, inserta automaticamente una slide "Otros"
 #'   despues de cada grafico con campo abierto asociado no vacio.
+#' @param template_id Identidad explícita de la plantilla para el contrato de
+#'   composición. Si se omite, se usa la identidad genérica; nunca se infiere
+#'   desde el path o el nombre del archivo.
 #'
 #' @return Invisiblemente una lista con:
 #' \describe{
@@ -79,7 +82,8 @@ reporte_ppt_plan <- function(
     # todo caller que no pasara el flag (feedback directo de Gonzalo: la
     # lamina automatica es una opcion, no lo normal).
     auto_otros_slides  = FALSE,
-    build_render_meta  = FALSE
+    build_render_meta  = FALSE,
+    template_id        = NULL
 ) {
 
   `%||%` <- function(x, y) if (!is.null(x)) x else y
@@ -334,39 +338,14 @@ reporte_ppt_plan <- function(
   }
 
   .select_placeholder_props <- function(props, spec, layout_name, master_name) {
-    if (!nrow(props)) {
-      .plan_input_abort(
-        "No se encontro placeholder para layout='", layout_name %||% "<NA>",
-        "', master='", master_name %||% "<NA>", "'."
-      )
-    }
-
-    label <- spec$ph_label %||% NULL
-    if (!is.null(label) && nzchar(label)) {
-      props_label <- props[props$ph_label %in% label, , drop = FALSE]
-      if (nrow(props_label)) {
-        return(props_label[1, , drop = FALSE])
-      }
-    }
-
-    props <- props[props$type %in% spec$type, , drop = FALSE]
-    if (!nrow(props)) {
-      .plan_input_abort(
-        "No se encontro placeholder type='", spec$type,
-        "' en layout='", layout_name %||% "<NA>",
-        "', master='", master_name %||% "<NA>", "'."
-      )
-    }
-
-    type_idx <- spec$type_idx %||% NULL
-    if (!is.null(type_idx)) {
-      props_idx <- props[props$type_idx == type_idx, , drop = FALSE]
-      if (nrow(props_idx)) {
-        return(props_idx[1, , drop = FALSE])
-      }
-    }
-
-    props[1, , drop = FALSE]
+    selected <- .ppt_slide_template_select_placeholder(props, spec)
+    if (!is.null(selected)) return(selected)
+    .plan_input_abort(
+      "No se encontro el placeholder efectivo type='", spec$type %||% "<NA>",
+      "' idx='", spec$type_idx %||% "<NA>",
+      "' en layout='", layout_name %||% "<NA>",
+      "', master='", master_name %||% "<NA>", "'."
+    )
   }
 
   .is_slide_title_spec <- function(spec) {
@@ -7144,7 +7123,7 @@ reporte_ppt_plan <- function(
   # ---------------------------------------------------------------------------
   # 7) Abrir plantilla / doc (solo si exporta)
   # ---------------------------------------------------------------------------
-  PPT_CONTRACT <- .PPT_CONTRACT
+  opened_template_path <- NULL
 
   if (isTRUE(solo_lista)) {
     doc <- NULL
@@ -7175,6 +7154,7 @@ reporte_ppt_plan <- function(
 
       if (nzchar(template_interno) && file.exists(template_interno)) {
         if (isTRUE(mensajes_progreso)) message("Usando plantilla interna: ", template_interno)
+        opened_template_path <- template_interno
         doc <- officer::read_pptx(path = template_interno)
       } else {
         if (isTRUE(mensajes_progreso)) message("No se encontro plantilla interna. Usando PPT default.")
@@ -7185,183 +7165,27 @@ reporte_ppt_plan <- function(
       # Plantilla externa explicita
       if (!file.exists(template_pptx)) .plan_input_abort("No existe `template_pptx`: ", template_pptx)
       if (isTRUE(mensajes_progreso)) message("Usando plantilla externa: ", template_pptx)
+      opened_template_path <- template_pptx
       doc <- officer::read_pptx(path = template_pptx)
     }
 
-    layout_info <- tryCatch(officer::layout_summary(doc), error = function(e) NULL)
-    if (is.null(layout_info) || !nrow(layout_info)) {
-      .plan_input_abort("No se pudo leer `layout_summary()` del PPT.")
-    }
-
-    .pick_layout <- function(candidates) {
-      hit <- candidates[candidates %in% layout_info$layout][1]
-      if (length(hit) == 0 || is.na(hit)) return(NA_character_)
-      hit
-    }
-
-    # Preferencias
-    layout_graficos   <- .pick_layout(c("Graficos2", "Graficos"))
-    layout_doble      <- .pick_layout(c("Graficos_2columnas"))
-    layout_narrativo1 <- .pick_layout(c("1_Grafico_narrativo"))
-    layout_narrativo2 <- .pick_layout(c("1_Graficos_2columnas_narrativo"))
-    layout_paneles_4  <- .pick_layout(c("4_paneles"))
-    layout_indice     <- .pick_layout(c("Indice"))
-    layout_text_slide <- .pick_layout(c("Title and Content", "General Objective"))
-    layout_objetivo_icono <- .pick_layout(c("Objetivos_Secciones"))
-    layout_title      <- .pick_layout(c("Title Slide"))
-    layout_poblacion4 <- .pick_layout(c("poblacion_4"))
-    layout_text_right <- .pick_layout(c("right_grafico_texto"))
-    layout_text_left  <- .pick_layout(c("left_grafico_texto"))
-    layout_text_right2 <- .pick_layout(c("right_2graficos_texto"))
-    layout_text_left2  <- .pick_layout(c("left_2graficos_texto"))
-    layout_poblacion_2 <- .pick_layout(c("poblacion_2"))
-    layout_poblacion_5 <- .pick_layout(c("poblacion_5"))
-    layout_poblacion_6 <- .pick_layout(c("poblacion_6"))
-
-    if (is.na(layout_graficos)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'Graficos' o 'Graficos2'.")
-    }
-    if (is.na(layout_doble)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'Graficos_2columnas'.")
-    }
-    if (is.na(layout_title)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'Title Slide'.")
-    }
-    if (is.na(layout_poblacion4)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_4'.")
-    }
-    if (is.na(layout_text_right)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'right_grafico_texto'.")
-    }
-    if (is.na(layout_text_left)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'left_grafico_texto'.")
-    }
-    if (is.na(layout_text_right2)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'right_2graficos_texto'.")
-    }
-    if (is.na(layout_text_left2)) {
-      .plan_input_abort("La plantilla NO tiene layout requerido: 'left_2graficos_texto'.")
-    }
-    if (is.na(layout_poblacion_2)) .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_2'.")
-    if (is.na(layout_poblacion_5)) .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_5'.")
-    if (is.na(layout_poblacion_6)) .plan_input_abort("La plantilla NO tiene layout requerido: 'poblacion_6'.")
-
-    PPT_CONTRACT$slide_1$layout     <- layout_graficos
-    slide_dims <- officer::slide_size(doc)
-    slide_1_layout_props <- officer::layout_properties(
-      doc,
-      layout = layout_graficos,
-      master = master
-    )
-    PPT_CONTRACT$slide_1$slots$title <- .ppt_title_spec_with_height(
-      slide_1_layout_props,
-      PPT_CONTRACT$slide_1$slots$title,
-      height = (presets$base$args %||% list())$slide_title_height
-    )
-    # base/right de slide_1 se calibran junto al resto de pies en
-    # .ppt_calibrar_pies_iconos, al final de este bloque.
-    section_layout_props <- officer::layout_properties(
-      doc,
-      layout = PPT_CONTRACT$section$layout,
-      master = master
-    )
-    PPT_CONTRACT$section$slots$title <- .ppt_safe_section_title_spec(
-      section_layout_props,
-      slide_width = slide_dims$width,
-      slide_height = slide_dims$height,
-      spec = PPT_CONTRACT$section$slots$title
-    )
-    slide_1_plot_height_cm <- suppressWarnings(as.numeric(
-      (presets$base$args$slide_1_plot_height_cm %||%
-        presets$base$args$alto_placeholder_1_grafico_cm %||%
-        NA_real_)[1]
-    ))
-    if (is.finite(slide_1_plot_height_cm) && slide_1_plot_height_cm > 0) {
-      layout_props <- officer::layout_properties(doc, layout = layout_graficos, master = master)
-      plot_props <- .select_placeholder_props(
-        layout_props,
-        PPT_CONTRACT$slide_1$slots$plot,
-        layout_graficos,
-        master
-      )
-      PPT_CONTRACT$slide_1$slots$plot$loc <- list(
-        left = plot_props$offx[[1]],
-        top = plot_props$offy[[1]],
-        width = plot_props$cx[[1]],
-        height = slide_1_plot_height_cm / 2.54
-      )
-    }
-    PPT_CONTRACT$slide_2$layout     <- layout_doble
-    PPT_CONTRACT$slide_2$slots$title <- .ppt_title_spec_with_height(
-      officer::layout_properties(doc, layout = layout_doble, master = master),
-      PPT_CONTRACT$slide_2$slots$title,
-      height = (presets$base$args %||% list())$slide_title_height
-    )
-    if (!is.na(layout_narrativo1)) PPT_CONTRACT$slide_1_narrativo$layout <- layout_narrativo1
-    if (!is.na(layout_narrativo2)) PPT_CONTRACT$slide_2_narrativo$layout <- layout_narrativo2
-    slide_1_narrativo_plot_height_cm <- suppressWarnings(as.numeric(
-      (presets$base$args$slide_1_narrativo_plot_height_cm %||%
-        presets$base$args$alto_placeholder_1_grafico_narrativo_cm %||%
-        NA_real_)[1]
-    ))
-    slide_1_narrativo_plot_top_cm <- suppressWarnings(as.numeric(
-      (presets$base$args$slide_1_narrativo_plot_top_cm %||% NA_real_)[1]
-    ))
-    if (!is.na(layout_narrativo1) &&
-        ((is.finite(slide_1_narrativo_plot_height_cm) && slide_1_narrativo_plot_height_cm > 0) ||
-         (is.finite(slide_1_narrativo_plot_top_cm) && slide_1_narrativo_plot_top_cm > 0))) {
-      layout_props <- officer::layout_properties(doc, layout = layout_narrativo1, master = master)
-      plot_props <- .select_placeholder_props(
-        layout_props,
-        PPT_CONTRACT$slide_1_narrativo$slots$plot,
-        layout_narrativo1,
-        master
-      )
-      PPT_CONTRACT$slide_1_narrativo$slots$plot$loc <- list(
-        left = plot_props$offx[[1]],
-        top = if (is.finite(slide_1_narrativo_plot_top_cm) && slide_1_narrativo_plot_top_cm > 0) {
-          slide_1_narrativo_plot_top_cm / 2.54
-        } else {
-          plot_props$offy[[1]]
-        },
-        width = plot_props$cx[[1]],
-        height = if (is.finite(slide_1_narrativo_plot_height_cm) && slide_1_narrativo_plot_height_cm > 0) {
-          slide_1_narrativo_plot_height_cm / 2.54
-        } else {
-          plot_props$cy[[1]]
-        }
-      )
-    }
-    if (!is.na(layout_narrativo1)) {
-      PPT_CONTRACT$slide_1_narrativo$slots$title <- .ppt_title_spec_with_height(
-        officer::layout_properties(doc, layout = layout_narrativo1, master = master),
-        PPT_CONTRACT$slide_1_narrativo$slots$title,
-        height = (presets$base$args %||% list())$slide_title_height
-      )
-    }
-    if (!is.na(layout_paneles_4))  PPT_CONTRACT$paneles_4$layout <- layout_paneles_4
-    if (!is.na(layout_indice)) PPT_CONTRACT$indice$layout <- layout_indice
-    if (!is.na(layout_text_slide)) PPT_CONTRACT$text_slide$layout <- layout_text_slide
-    if (!is.na(layout_text_slide)) PPT_CONTRACT$technical_table$layout <- layout_text_slide
-    if (!is.na(layout_objetivo_icono)) PPT_CONTRACT$objetivo_icono$layout <- layout_objetivo_icono
-    PPT_CONTRACT$title_slide$layout <- layout_title
-    PPT_CONTRACT$poblacion_4$layout <- layout_poblacion4
-    PPT_CONTRACT$text_r$layout      <- layout_text_right
-    PPT_CONTRACT$text_l$layout      <- layout_text_left
-    PPT_CONTRACT$text_r2$layout     <- layout_text_right2
-    PPT_CONTRACT$text_l2$layout     <- layout_text_left2
-    PPT_CONTRACT$poblacion_2$layout <- layout_poblacion_2
-    PPT_CONTRACT$poblacion_5$layout <- layout_poblacion_5
-    PPT_CONTRACT$poblacion_6$layout <- layout_poblacion_6
-
-    # Pies e iconos por geometria del layout real (reporte_plan_helpers.R):
-    # los type_idx del contrato asumen la numeracion de la plantilla generica.
-    PPT_CONTRACT <- .ppt_calibrar_pies_iconos(
-      PPT_CONTRACT, doc, master, slide_dims,
-      layout_exists = .layout_exists,
-      base_args = presets$base$args %||% list()
-    )
+    # La selección de layouts y toda calibración efectiva se resuelven una sola
+    # vez, fuera de esta rama, para compartir el mismo objeto con el serializer.
   }
+
+  explicit_template_id <- trimws(as.character(template_id %||% "")[1])
+  PPT_RESOLVED_CONTRACT <- .ppt_resolve_slide_template_contract(
+    doc = doc,
+    master = master,
+    presets = presets,
+    metadata = .SLIDES_META,
+    template_id = explicit_template_id,
+    identity_source = if (nzchar(explicit_template_id)) "template_id" else "default",
+    template_fingerprint = .ppt_slide_template_file_fingerprint(opened_template_path)
+  )
+  PPT_CONTRACT <- attr(PPT_RESOLVED_CONTRACT, "ppt_contract")
+  layout_info <- attr(PPT_RESOLVED_CONTRACT, "layout_info")
+  master <- attr(PPT_RESOLVED_CONTRACT, "master")
 
   # ---------------------------------------------------------------------------
   # 8) Render + export (estricto con .PPT_CONTRACT)
@@ -7539,6 +7363,13 @@ reporte_ppt_plan <- function(
 
           # Geometria adaptativa (H16/H17): titulo multilinea corre la tabla,
           # badges por digitos y compresion vertical. reporte_plan_helpers.R.
+          style$title_left <- style$title_left %||% contract$slots$title$loc$left
+          style$title_top <- style$title_top %||% contract$slots$title$loc$top
+          style$title_width <- style$title_width %||% contract$slots$title$loc$width
+          style$title_height <- style$title_height %||% contract$slots$title$loc$height
+          style$table_left <- style$table_left %||% contract$slots$content$loc$left
+          style$table_top <- style$table_top %||% contract$slots$content$loc$top
+          style$table_width <- style$table_width %||% contract$slots$content$loc$width
           fit <- .indice_fit_layout(style, title_txt, secciones, subindices_df)
           style <- fit$style
           title_prop <- officer::fp_text(
@@ -7707,7 +7538,7 @@ reporte_ppt_plan <- function(
     # ---- TOP_TWO_BOX --------------------------------------------------------
     if (identical(stype, "top_two_box")) {
 
-      contract <- PPT_CONTRACT$text_slide
+      contract <- PPT_CONTRACT$top_two_box
       slots <- slide$slots %||% list()
       style <- slide$style %||% slots$estilo %||% list()
       if (!is.null(slots$accent_color)) style$accent_color <- slots$accent_color
@@ -7750,10 +7581,10 @@ reporte_ppt_plan <- function(
           doc,
           value = title_value,
           location = officer::ph_location(
-            left = .style_num(style, "title_left", 0.62, min = 0),
-            top = .style_num(style, "title_top", 0.58, min = 0),
-            width = .style_num(style, "title_width", 10.4, min = 1),
-            height = .style_num(style, "title_height", 0.48, min = 0.2),
+            left = .style_num(style, "title_left", contract$slots$title$loc$left, min = 0),
+            top = .style_num(style, "title_top", contract$slots$title$loc$top, min = 0),
+            width = .style_num(style, "title_width", contract$slots$title$loc$width, min = 1),
+            height = .style_num(style, "title_height", contract$slots$title$loc$height, min = 0.2),
             newlabel = "Top Two Box title"
           )
         )
@@ -7775,10 +7606,10 @@ reporte_ppt_plan <- function(
           doc,
           value = body_value,
           location = officer::ph_location(
-            left = .style_num(style, "text_left", 0.62, min = 0),
-            top = .style_num(style, "text_top", 1.24, min = 0),
-            width = .style_num(style, "text_width", 12.0, min = 3),
-            height = .style_num(style, "text_height", 0.95, min = 0.2),
+            left = .style_num(style, "text_left", contract$slots$text$loc$left, min = 0),
+            top = .style_num(style, "text_top", contract$slots$text$loc$top, min = 0),
+            width = .style_num(style, "text_width", contract$slots$text$loc$width, min = 3),
+            height = .style_num(style, "text_height", contract$slots$text$loc$height, min = 0.2),
             newlabel = "Top Two Box text"
           )
         )
@@ -7791,15 +7622,25 @@ reporte_ppt_plan <- function(
           extremo_derecha = slots$extremo_derecha %||% "Totalmente\nde acuerdo",
           style = style
         )
-        diagram_top <- .style_num(style, "diagram_top", 2.34, min = 0)
-        diagram_height <- .style_num(style, "diagram_height", 4.62, min = 1)
-        diagram_width_default <- diagram_height * (1000 / 520)
+        diagram_spec <- contract$slots$diagram$loc
+        diagram_top <- .style_num(style, "diagram_top", diagram_spec$top, min = 0)
+        diagram_height <- .style_num(style, "diagram_height", diagram_spec$height, min = 1)
+        diagram_width_default <- diagram_spec$width
         diagram_width <- .style_num(style, "diagram_width", diagram_width_default, min = 3)
-        diagram_center_x <- .style_num(style, "diagram_center_x", 1.65 + 9.65 / 2, min = 0)
+        diagram_center_x <- .style_num(
+          style,
+          "diagram_center_x",
+          diagram_spec$left + diagram_spec$width / 2,
+          min = 0
+        )
         diagram_left <- .style_num(
           style,
           "diagram_left",
-          max(0, diagram_center_x - diagram_width / 2),
+          if (is.null(style$diagram_center_x) && is.null(style$diagram_width)) {
+            diagram_spec$left
+          } else {
+            max(0, diagram_center_x - diagram_width / 2)
+          },
           min = 0
         )
         doc <- officer::ph_with(
@@ -8032,10 +7873,10 @@ reporte_ppt_plan <- function(
           presets$base$args$font_family %||% "Arial"
         style$font_family <- style$font_family %||% font_family_default
 
-        title_left <- .style_num(style, "title_left", 0.62, min = 0)
-        title_top <- .style_num(style, "title_top", 0.70, min = 0)
-        title_width <- .style_num(style, "title_width", 11.9, min = 1)
-        title_height <- .style_num(style, "title_height", 0.55, min = 0.2)
+        title_left <- .style_num(style, "title_left", contract$slots$title$loc$left, min = 0)
+        title_top <- .style_num(style, "title_top", contract$slots$title$loc$top, min = 0)
+        title_width <- .style_num(style, "title_width", contract$slots$title$loc$width, min = 1)
+        title_height <- .style_num(style, "title_height", contract$slots$title$loc$height, min = 0.2)
         title_size <- .style_num(style, "title_size", 24, min = 8)
         title_color <- as.character(.style_value(style, "title_color", "#CA5651"))[1]
         uppercase_title <- .style_value(
@@ -8068,10 +7909,10 @@ reporte_ppt_plan <- function(
           )
         )
 
-        table_left <- .style_num(style, "table_left", 0.50, min = 0)
-        table_top <- .style_num(style, "table_top", 1.45, min = 0)
-        table_width <- .style_num(style, "table_width", 12.30, min = 4)
-        table_height <- .style_num(style, "table_height", 5.55, min = 1)
+        table_left <- .style_num(style, "table_left", contract$slots$table$loc$left, min = 0)
+        table_top <- .style_num(style, "table_top", contract$slots$table$loc$top, min = 0)
+        table_width <- .style_num(style, "table_width", contract$slots$table$loc$width, min = 4)
+        table_height <- .style_num(style, "table_height", contract$slots$table$loc$height, min = 1)
         ft <- .make_technical_table_flextable(
           table_data,
           style = style,
@@ -8102,10 +7943,10 @@ reporte_ppt_plan <- function(
             doc,
             value = footer_value,
             location = officer::ph_location(
-              left = .style_num(style, "footer_left", 0.50, min = 0),
-              top = .style_num(style, "footer_top", 7.06, min = 0),
-              width = .style_num(style, "footer_width", 12.25, min = 1),
-              height = .style_num(style, "footer_height", 0.20, min = 0.1)
+              left = .style_num(style, "footer_left", contract$slots$footer$loc$left, min = 0),
+              top = .style_num(style, "footer_top", contract$slots$footer$loc$top, min = 0),
+              width = .style_num(style, "footer_width", contract$slots$footer$loc$width, min = 1),
+              height = .style_num(style, "footer_height", contract$slots$footer$loc$height, min = 0.1)
             )
           )
         }
@@ -9478,6 +9319,7 @@ reporte_ppt_plan <- function(
     plan            = plan,
     rendered        = rendered,
     render_meta     = render_meta,
+    slide_layout_contract = PPT_RESOLVED_CONTRACT,
     .render_element = .render_element,
     log             = log
   ))

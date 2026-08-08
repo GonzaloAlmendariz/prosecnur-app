@@ -1,7 +1,9 @@
 import { apiGraficosConfigPut } from "../../api/client";
+import { getSession } from "../../api/core";
 import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import type { GraficosConfig } from "./store";
 import { usePlanStore } from "./store";
+import { persistWithSlideCompositionAck } from "./slideCompositionPersistence";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -49,7 +51,13 @@ export function buildGraficosConfigFromStore(): GraficosConfig {
 
 export async function flushGraficosConfigIfHydrated(): Promise<boolean> {
   if (!usePlanStore.getState().hydrated) return false;
-  await apiGraficosConfigPut(buildGraficosConfigFromStore());
+  const config = buildGraficosConfigFromStore();
+  await persistWithSlideCompositionAck({
+    sid: getSession(),
+    scope: "active",
+    config,
+    persist: () => apiGraficosConfigPut(config),
+  });
   usePlanStore.getState().markClean();
   return true;
 }

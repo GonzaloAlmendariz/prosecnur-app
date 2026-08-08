@@ -8,6 +8,7 @@ describe("metadataSanitizers", () => {
       slides: [
         {
           name: "p_slide_futuro",
+          render_key: "  render_futuro  ",
           titulo_humano: { label: "Slide futuro" },
           descripcion: {},
           icono_ui: "Type",
@@ -56,6 +57,7 @@ describe("metadataSanitizers", () => {
       "p_slide_texto",
     ]);
     expect(registry.slides[0]).toMatchObject({
+      render_key: "render_futuro",
       categoria: "otro",
       blueprint: {
         kind: "neutral",
@@ -108,6 +110,7 @@ describe("metadataSanitizers", () => {
     });
 
     expect(Object.hasOwn(registry.slides[0], "slot_specs")).toBe(false);
+    expect(registry.slides[0].render_key).toBe("");
     expect(registry.slides[0].blueprint?.kind).toBe("neutral");
     expect(Object.hasOwn(registry.slides[1], "slot_specs")).toBe(true);
     expect(registry.slides[1].slot_specs).toEqual([]);

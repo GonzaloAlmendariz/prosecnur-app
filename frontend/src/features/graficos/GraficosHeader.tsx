@@ -12,6 +12,7 @@ import {
   downloadUrl,
   type GraficosShareInspectResult,
 } from "../../api/client";
+import { getSession } from "../../api/core";
 import { normalizeGraficosConfig } from "../../api/graficosConfigNormalizer";
 import { ContextBar } from "../../components/ContextBar";
 import { GlidingTabList } from "../../components/GlidingTabList";
@@ -25,6 +26,10 @@ import { useProjectShell } from "../project/ProjectShell";
 import { useSession } from "../../lib/SessionContext";
 import { modoMultibaseDelPlan } from "./modoMultibase";
 import type { GraficosReportScope } from "./reportScope";
+import {
+  acknowledgeSlideCompositionConfig,
+  invalidateSlideCompositionPersistenceAck,
+} from "./slideCompositionPersistence";
 
 type GraficosJsonSectionId =
   | "plan"
@@ -686,10 +691,13 @@ export function GraficosHeader({
     }
     setJsonError(""); setJsonMsg(""); setShareBusy("apply");
     try {
+      const sid = getSession();
+      invalidateSlideCompositionPersistenceAck(sid, "active");
       await apiGraficosShareImport(sharePlan.package_file_id, bases);
       const refreshed = await apiGraficosConfigGet();
       const cfg = normalizeGraficosConfig(refreshed.config ?? refreshed, { includeLegacyAliases: true });
       hydrate(cfg as never);
+      acknowledgeSlideCompositionConfig(sid, "active", cfg);
       setJsonMsg(`Plan aplicado a ${bases.length} base${bases.length === 1 ? "" : "s"}`);
     } catch (e) {
       setJsonError((e as Error).message);
@@ -740,8 +748,13 @@ export function GraficosHeader({
         ? { ...current, ...picked }
         : deepMerge(current, picked);
       const synced = syncGlobalScopeRules(next, jsonSections);
+      const sid = getSession();
+      invalidateSlideCompositionPersistenceAck(sid, "active");
       await apiGraficosConfigImport({ version: "graficos/4", config: synced });
-      hydrate(synced as never);
+      const refreshed = await apiGraficosConfigGet();
+      const cfg = normalizeGraficosConfig(refreshed.config ?? refreshed, { includeLegacyAliases: true });
+      hydrate(cfg as never);
+      acknowledgeSlideCompositionConfig(sid, "active", cfg);
       setJsonMsg(`${selectedJsonSections().length} sección${selectedJsonSections().length === 1 ? "" : "es"} importada${selectedJsonSections().length === 1 ? "" : "s"}`);
     } catch (e) {
       setJsonError(`JSON inválido: ${(e as Error).message}`);

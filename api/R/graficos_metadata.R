@@ -158,6 +158,7 @@
     descripcion   = "Primera lámina del reporte, con el título principal, subtítulo, fecha y un texto descriptivo.",
     icono_ui      = "FileText",
     categoria     = "estructural",
+    render_key    = "title_slide",
     blueprint     = list(
       kind = "cover",
       ppt_layout = "Title Slide",
@@ -181,6 +182,7 @@
     descripcion   = "Tabla de contenidos del reporte. Puede usar el layout de la plantilla o un índice limpio generado desde Prosecnur.",
     icono_ui      = "List",
     categoria     = "estructural",
+    render_key    = "indice",
     blueprint     = list(
       kind = "index",
       ppt_layout = "Indice",
@@ -325,6 +327,7 @@
     descripcion   = "Lámina explicativa reutilizable para mostrar cómo se calcula Top Two Box con barra, llave, flecha y leyenda.",
     icono_ui      = "BarChart3",
     categoria     = "estructural",
+    render_key    = "top_two_box",
     blueprint     = list(
       kind = "topTwo",
       ppt_layout = "Title and Content",
@@ -381,6 +384,7 @@
     descripcion   = "Lámina de transición entre bloques grandes del reporte. Muestra solo el título de la sección.",
     icono_ui      = "Bookmark",
     categoria     = "estructural",
+    render_key    = "section",
     blueprint     = list(
       kind = "section",
       ppt_layout = "Section Header",
@@ -402,6 +406,7 @@
     descripcion   = "Bloque de texto con un ícono grande al costado. Útil para enunciar objetivos o hallazgos clave.",
     icono_ui      = "Target",
     categoria     = "estructural",
+    render_key    = "objetivo_icono",
     blueprint     = list(
       kind = "objective",
       ppt_layout = "Objetivos_Secciones",
@@ -425,6 +430,7 @@
     descripcion   = "Lámina solo con texto: título + párrafo + bullets opcionales. Útil para conclusiones o metodología.",
     icono_ui      = "Type",
     categoria     = "estructural",
+    render_key    = "text_slide",
     blueprint     = list(
       kind = "text",
       ppt_layout = "Title and Content",
@@ -447,6 +453,7 @@
     descripcion   = "Slide con una tabla editorial (ej. ficha técnica del estudio, parámetros, metodología).",
     icono_ui      = "Table",
     categoria     = "estructural",
+    render_key    = "technical_table",
     blueprint     = list(
       kind = "technical",
       ppt_layout = "Title and Content",
@@ -468,9 +475,10 @@
     descripcion   = "Lámina estándar con un solo gráfico grande al centro y encabezados arriba/abajo.",
     icono_ui      = "BarChart2",
     categoria     = "1grafico",
+    render_key    = "slide_1",
     blueprint     = list(
       kind = "single",
-      ppt_layout = "Graficos",
+      ppt_layout = "Graficos2",
       structure_label = "Gráfico principal"
     ),
     slot_specs    = list(
@@ -488,6 +496,7 @@
     descripcion   = "Gráfico central con un bloque de texto narrativo arriba. Útil para guiar la lectura.",
     icono_ui      = "AlignLeft",
     categoria     = "1grafico",
+    render_key    = "slide_1_narrativo",
     blueprint     = list(
       kind = "singleNarrative",
       ppt_layout = "1_Grafico_narrativo",
@@ -507,6 +516,7 @@
     descripcion   = "Gráfico a la izquierda, bloque de texto a la derecha. Ideal para hallazgos o recomendaciones junto a la evidencia.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "1grafico",
+    render_key    = "text_r",
     blueprint     = list(
       kind = "splitRight",
       ppt_layout = "right_grafico_texto",
@@ -525,6 +535,7 @@
     descripcion   = "Texto a la izquierda, gráfico a la derecha. Útil cuando quieres que el mensaje se lea antes del gráfico.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "1grafico",
+    render_key    = "text_l",
     blueprint     = list(
       kind = "splitLeft",
       ppt_layout = "left_grafico_texto",
@@ -545,6 +556,7 @@
     descripcion   = "Dos gráficos lado a lado, mismo tamaño. Útil para comparaciones directas.",
     icono_ui      = "Columns2",
     categoria     = "2graficos",
+    render_key    = "slide_2",
     blueprint     = list(
       kind = "two",
       ppt_layout = "Graficos_2columnas",
@@ -563,6 +575,7 @@
     descripcion   = "Dos gráficos con un bloque de texto narrativo arriba.",
     icono_ui      = "AlignLeft",
     categoria     = "2graficos",
+    render_key    = "slide_2_narrativo",
     blueprint     = list(
       kind = "twoNarrative",
       ppt_layout = "1_Graficos_2columnas_narrativo",
@@ -582,6 +595,7 @@
     descripcion   = "Los dos gráficos a la derecha y un bloque de texto a la izquierda.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "2graficos",
+    render_key    = "text_l2",
     blueprint     = list(
       kind = "twoTextLeft",
       ppt_layout = "left_2graficos_texto",
@@ -601,6 +615,7 @@
     descripcion   = "Los dos gráficos a la izquierda y un bloque de texto a la derecha.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "2graficos",
+    render_key    = "text_r2",
     blueprint     = list(
       kind = "twoTextRight",
       ppt_layout = "right_2graficos_texto",
@@ -622,6 +637,7 @@
     descripcion   = "Grid 2×2 con cuatro gráficos compactos. Ideal para ver varias dimensiones en paralelo.",
     icono_ui      = "LayoutGrid",
     categoria     = "4graficos",
+    render_key    = "paneles_4",
     blueprint     = list(
       kind = "grid4",
       ppt_layout = "4_paneles",
@@ -645,6 +661,7 @@
     descripcion   = "Dos gráficos con un ícono grande al centro. Usado para láminas de perfil poblacional.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
+    render_key    = "poblacion_2",
     blueprint     = list(
       kind = "population2",
       ppt_layout = "poblacion_2",
@@ -668,6 +685,7 @@
     descripcion   = "Grid 2×2 con ícono central, típico para slides demográficas.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
+    render_key    = "poblacion_4",
     blueprint     = list(
       kind = "population4",
       ppt_layout = "poblacion_4",
@@ -689,6 +707,7 @@
     descripcion   = "Tres gráficos arriba + dos abajo, con ícono central. Diseñado para caracterizar poblaciones con muchas dimensiones.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
+    render_key    = "poblacion_5",
     blueprint     = list(
       kind = "population5",
       ppt_layout = "poblacion_5",
@@ -712,6 +731,7 @@
     descripcion   = "Grid 3×2 con ícono central, la lámina más densa de población.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
+    render_key    = "poblacion_6",
     blueprint     = list(
       kind = "population6",
       ppt_layout = "poblacion_6",
@@ -4339,6 +4359,7 @@
       descripcion   = as.character(meta$descripcion %||% ""),
       icono_ui      = as.character(meta$icono_ui %||% "FileText"),
       categoria     = as.character(meta$categoria %||% "otro"),
+      render_key    = as.character(meta$render_key),
       blueprint     = list(
         kind = as.character(meta$blueprint$kind),
         ppt_layout = as.character(meta$blueprint$ppt_layout),

@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type {
+  GraficosSlideLayoutMatrix,
+  Slide,
+  SlideMetadata,
+} from "../../api/client";
 import {
   GraficadorBlueprint,
   resolveGraficadorBlueprint,
@@ -11,6 +16,8 @@ import {
 import { canInsertGraficador } from "./GraficadorPicker";
 import { slideAcceptsGraphSlot } from "./GraficosLibrariesHost";
 import { normalizeGraficosRegistry } from "./metadataSanitizers";
+import { SlideLayoutViewer } from "./SlidePreview";
+import { resolveSlideCompositionMap } from "./slideCompositionModel";
 import {
   buildSlideLibraryModel,
   isInsertableSlideType,
@@ -29,7 +36,7 @@ const EXPECTED_SLIDES = [
   ["p_slide_objetivo_icono", "Objetivo con ícono", "estructural", "estructural", "objective", "Objetivos_Secciones", []],
   ["p_slide_texto", "Bloque de texto", "estructural", "estructural", "text", "Title and Content", []],
   ["p_slide_tabla_tecnica", "Tabla técnica", "estructural", "estructural", "technical", "Title and Content", []],
-  ["p_slide_1_grafico", "Un gráfico", "1grafico", "1g", "single", "Graficos", ["grafico"]],
+  ["p_slide_1_grafico", "Un gráfico", "1grafico", "1g", "single", "Graficos2", ["grafico"]],
   ["p_slide_1_grafico_narrativo", "Un gráfico + narrativa", "1grafico", "1g", "singleNarrative", "1_Grafico_narrativo", ["grafico"]],
   ["p_slide_grafico_texto_derecha", "Gráfico + texto a la derecha", "1grafico", "1g", "splitRight", "right_grafico_texto", ["grafico"]],
   ["p_slide_grafico_texto_izquierda", "Gráfico + texto a la izquierda", "1grafico", "1g", "splitLeft", "left_grafico_texto", ["grafico"]],
@@ -92,7 +99,69 @@ function markupAttribute(markup: string, name: string): string | undefined {
 }
 
 function matrixRegistry() {
-  return normalizeGraficosRegistry(fixture.registry);
+  const registry = normalizeGraficosRegistry(fixture.registry);
+  return {
+    ...registry,
+    slides: registry.slides.map((slide) => ({
+      ...slide,
+      render_key: `fixture_${slide.name}`,
+      // La fixture ACNUR congelada antecede a la corrección canónica del layout.
+      ...(slide.name === "p_slide_1_grafico" && slide.blueprint
+        ? {
+          blueprint: {
+            ...slide.blueprint,
+            ppt_layout: "Graficos2",
+          },
+        }
+        : {}),
+    })),
+  };
+}
+
+function compositionMatrix(slides: readonly SlideMetadata[]): GraficosSlideLayoutMatrix {
+  return {
+    schema: "graficos.slide_layout_matrix/v2",
+    contract_version: 2,
+    template: {
+      id: "contract-fixture",
+      fingerprint: "sha256:contract-fixture",
+      identity_source: "template_id",
+    },
+    canvas: { width: 13.333, height: 7.5, aspect_ratio: 16 / 9 },
+    slides: slides.map((slide) => {
+      const slots = slide.slot_specs ?? [];
+      const slotWidth = slots.length > 0 ? 0.8 / slots.length : 0.8;
+      return {
+        tipo: slide.name,
+        render_key: slide.render_key,
+        layout: slide.blueprint?.ppt_layout ?? "",
+        regions: [
+          {
+            key: "titulo",
+            payload_key: "titulo",
+            role: "text",
+            visible: true,
+            rect: { x: 0.08, y: 0.08, width: 0.66, height: 0.09 },
+            geometry_source: "contract_fixture",
+          },
+          ...slots.map((slot, index) => ({
+            key: slot.name,
+            payload_key: slot.name,
+            role: slot.role,
+            visible: true,
+            rect: {
+              x: 0.1 + index * slotWidth,
+              y: 0.28,
+              width: slotWidth,
+              height: 0.5,
+            },
+            geometry_source: "contract_fixture",
+          })),
+        ],
+        diagnostics: [],
+      };
+    }),
+  };
 }
 
 function histogram(values: readonly string[]): Record<string, number> {
@@ -239,6 +308,63 @@ describe("bibliotecas gobernadas por el registry L6", () => {
     });
   });
 
+  it("serializa las mismas regions v2 en card, hero y SlidePreview para 20/20", () => {
+    const registry = matrixRegistry();
+    const matrix = compositionMatrix(registry.slides);
+    const resolutions = resolveSlideCompositionMap(registry.slides, matrix);
+
+    for (const metadata of registry.slides) {
+      const resolution = resolutions[metadata.name];
+      expect(resolution?.status).toBe("ready");
+      if (resolution?.status !== "ready") continue;
+      if (!isInsertableSlideType(metadata.name)) {
+        throw new Error(`Fixture no insertable: ${metadata.name}`);
+      }
+      const composition = resolution.composition;
+      const blueprint = resolveSlidePickerBlueprint(metadata);
+      const slide: Slide = {
+        id: `fixture-${metadata.name}`,
+        tipo: metadata.name,
+        payload: Object.fromEntries(
+          composition.regions.map((region) => [region.payload_key, region.payload_key]),
+        ),
+      };
+      const card = renderToStaticMarkup(createElement(SlidePickerBlueprint, {
+        blueprint,
+        composition,
+        iconoUi: metadata.icono_ui,
+        size: "card",
+      }));
+      const hero = renderToStaticMarkup(createElement(SlidePickerBlueprint, {
+        blueprint,
+        composition,
+        iconoUi: metadata.icono_ui,
+        size: "hero",
+      }));
+      const preview = renderToStaticMarkup(createElement(SlideLayoutViewer, {
+        slide,
+        composition,
+        userPresets: {},
+        presetsDefaults: {},
+      }));
+      const signatures = [card, hero, preview].map((markup) => (
+        markupAttribute(markup, "data-composition-regions")
+      ));
+
+      expect(signatures[0]).toBeTruthy();
+      expect(new Set(signatures).size).toBe(1);
+      expect([card, hero, preview].map((markup) => (
+        markup.match(/data-region-key=/g)?.length ?? 0
+      ))).toEqual(Array(3).fill(composition.regions.length));
+      expect(markupAttribute(card, "data-composition-fingerprint")).toBe(
+        matrix.template.fingerprint,
+      );
+      expect(markupAttribute(preview, "data-composition-fingerprint")).toBe(
+        matrix.template.fingerprint,
+      );
+    }
+  });
+
   it("da precedencia cerrada a slot_specs y usa slots sólo para backend viejo", () => {
     const [legacy, explicit, unknownRole] = normalizeGraficosRegistry({
       slides: [
@@ -309,12 +435,25 @@ describe("bibliotecas gobernadas por el registry L6", () => {
   it("no conserva catálogos ni resolvers basados en el nombre dentro de las bibliotecas", () => {
     const slidePicker = read("v2/timeline/SlidePicker.tsx");
     const slideBlueprint = read("v2/timeline/SlidePickerBlueprint.tsx");
+    const slidePreview = read("SlidePreview.tsx");
+    const compositionHook = read("useSlideCompositions.ts");
     const grafPicker = read("GraficadorPicker.tsx");
     const grafBlueprint = read("GraficadorBlueprint.tsx");
     const host = read("GraficosLibrariesHost.tsx");
 
     expect(slidePicker).not.toMatch(/CANONICAL_TYPES|categoryOf|slidesById|availableTypes/);
     expect(slideBlueprint).not.toMatch(/p_slide_|fallbackSlots|const BLUEPRINTS|typeName|tipo=/);
+    expect(slidePicker.match(/useSlideCompositions\(/g)).toHaveLength(1);
+    expect(slidePreview.match(/useSlideCompositions\(/g)).toHaveLength(1);
+    expect(slidePicker).toContain("usePlanStore(slideCompositionRevision)");
+    expect(slidePreview).toContain("usePlanStore(slideCompositionRevision)");
+    expect(slidePicker).toContain("useGraficosReportScope(location.search)");
+    expect(slidePicker.match(/scope:\s*reportScope/g)).toHaveLength(1);
+    expect(slidePreview.match(/scope:\s*reportScope/g)).toHaveLength(1);
+    expect(slidePreview).not.toContain("apiGraficosSlideLayoutPreview");
+    expect(slidePreview).not.toMatch(/placeholder\.key\s*===|const friendly:/);
+    expect(compositionHook).not.toMatch(/acnur_16_9|template_path/);
+    expect(compositionHook).not.toContain("cache_revision");
     expect(grafPicker).not.toMatch(/graficadorFamily|switch\s*\(graf\.name\)/);
     expect(grafBlueprint).not.toMatch(/case\s+["']p_|\.includes\(["']p_/);
     expect(host).not.toContain("SLIDE_GRAF_SLOTS");

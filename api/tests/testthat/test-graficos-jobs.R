@@ -92,6 +92,7 @@ test_that("las firmas de los workers respetan el contrato de job_submit", {
     expect_false("..." %in% fml)
     expect_false("api_path" %in% fml) # el bootstrap de jobs.R carga el paquete
   }
+  expect_true("template_id" %in% names(formals(graficos_job_worker_ppt)))
 })
 
 test_that(".graficos_job_base_error prefija solo cuando hay base activa", {
@@ -197,6 +198,7 @@ test_that("graficos_job_worker_ppt genera un PPTX real con progreso y n_slides",
     icon_registry = list(),
     active_base = "",
     template_pptx = .graficos_resolve_template_pptx(config = list()),
+    template_id = "generic_16_9",
     auto_otros_slides = FALSE,
     result_path = result_path,
     progress_path = progress_path
@@ -271,6 +273,7 @@ test_that("graficos_job_worker_ppt_all genera un ZIP con un PPTX por base", {
       paletas = list(),
       icon_registry = list(),
       template_pptx = template,
+      template_id = "generic_16_9",
       auto_otros_slides = FALSE,
       filename = sprintf("reporte_%s.pptx", base)
     )
@@ -301,4 +304,83 @@ test_that("graficos_job_worker_ppt_all genera un ZIP con un PPTX por base", {
   expect_identical(result$bases[[1]]$nombre, "docentes")
   expect_identical(result$bases[[1]]$filename, "reporte_docentes.pptx")
   expect_identical(result$bases[[1]]$n_slides, 2L)
+})
+
+test_that("workers PPT propagan template_id explícito hasta reporte_ppt_plan", {
+  td <- tempfile("gjobs_template_id_")
+  dir.create(td)
+  on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
+  rp_data_path <- file.path(td, "data.rds")
+  rp_inst_path <- file.path(td, "inst.rds")
+  saveRDS(list(principal = .gjobs_data()), rp_data_path)
+  saveRDS(list(principal = .gjobs_inst()), rp_inst_path)
+
+  seen <- character()
+  worker_env <- new.env(parent = environment(graficos_job_worker_ppt))
+  worker_env$reporte_ppt_plan <- function(..., path_ppt, template_id = NULL) {
+    seen <<- c(seen, as.character(template_id))
+    if (!file.exists(path_ppt)) file.create(path_ppt)
+    invisible(list())
+  }
+  worker_env$.graficos_job_rebuild_slides <- function(...) {
+    list(p_slide_portada("Mock template identity"))
+  }
+  worker_ppt <- graficos_job_worker_ppt
+  worker_ppt_all <- graficos_job_worker_ppt_all
+  environment(worker_ppt) <- worker_env
+  environment(worker_ppt_all) <- worker_env
+
+  template <- .graficos_resolve_template_pptx(config = list())
+  one_slide <- list(slides = .gjobs_plan()$slides[1])
+  invisible(worker_ppt(
+    rp_data_path = rp_data_path,
+    rp_inst_path = rp_inst_path,
+    plan = one_slide,
+    presets = NULL,
+    paletas = list(),
+    slide_registry = .gjobs_slide_registry(),
+    graficador_registry = .graf_names(),
+    icon_registry = list(),
+    active_base = "",
+    template_pptx = template,
+    template_id = "acnur_16_9",
+    auto_otros_slides = FALSE,
+    result_path = file.path(td, "single.pptx"),
+    progress_path = file.path(td, "single-progress.json")
+  ))
+
+  bases <- c("docentes", "estudiantes")
+  all_data <- setNames(lapply(bases, function(x) .gjobs_data()), bases)
+  all_inst <- setNames(lapply(bases, function(x) .gjobs_inst()), bases)
+  per_base <- setNames(lapply(seq_along(bases), function(i) {
+    list(
+      plan = one_slide,
+      presets = NULL,
+      paletas = list(),
+      icon_registry = list(),
+      template_pptx = template,
+      template_id = c("acnur_16_9", "generic_16_9")[[i]],
+      auto_otros_slides = FALSE,
+      filename = paste0(bases[[i]], ".pptx")
+    )
+  }), bases)
+  all_data_path <- file.path(td, "all-data.rds")
+  all_inst_path <- file.path(td, "all-inst.rds")
+  per_base_path <- file.path(td, "per-base.rds")
+  saveRDS(all_data, all_data_path)
+  saveRDS(all_inst, all_inst_path)
+  saveRDS(per_base, per_base_path)
+
+  invisible(worker_ppt_all(
+    rp_data_path = all_data_path,
+    rp_inst_path = all_inst_path,
+    per_base_path = per_base_path,
+    bases = bases,
+    slide_registry = .gjobs_slide_registry(),
+    graficador_registry = .graf_names(),
+    result_path = file.path(td, "all.zip"),
+    progress_path = file.path(td, "all-progress.json")
+  ))
+
+  expect_identical(seen, c("acnur_16_9", "acnur_16_9", "generic_16_9"))
 })

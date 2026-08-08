@@ -7,6 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
+import { useLocation } from "react-router-dom";
 import type {
   SlideCategoria,
   SlideMetadata,
@@ -34,7 +35,18 @@ import {
   type LucideIcon,
 } from "../../../../vendor/lucide-react";
 import { SLIDE_LABELS, usePlanStore } from "../../store";
+import { useGraficosReportScope } from "../../reportScope";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
+import type {
+  SlideComposition,
+  SlideCompositionDiagnostic,
+  SlideCompositionResolution,
+} from "../../slideCompositionModel";
+import {
+  slideCompositionIdentityFromScopeRules,
+  slideCompositionRevision,
+  useSlideCompositions,
+} from "../../useSlideCompositions";
 import {
   resolveSlidePickerBlueprint,
   SlidePickerBlueprint,
@@ -109,7 +121,11 @@ export function SlidePicker({
   returnFocusRef,
   fallbackFocusRef,
 }: SlidePickerProps) {
+  const location = useLocation();
+  const reportScope = useGraficosReportScope(location.search);
   const addSlide = usePlanStore((state) => state.addSlide);
+  const scopeRules = usePlanStore((state) => state.scopeRules);
+  const compositionRevision = usePlanStore(slideCompositionRevision);
   const { registry, loading, error } = useGraficosRegistry();
   const [filter, setFilter] = useState<SlideLibraryFilter>("all");
   const [query, setQuery] = useState("");
@@ -127,9 +143,24 @@ export function SlidePicker({
   });
 
   const inventory = registry?.slides;
+  const compositionIdentity = useMemo(
+    () => ({
+      ...slideCompositionIdentityFromScopeRules(scopeRules),
+      scope: reportScope,
+    }),
+    [reportScope, scopeRules],
+  );
+  const compositionState = useSlideCompositions(
+    inventory ?? [],
+    compositionIdentity,
+    compositionRevision,
+  );
   const models = useMemo(
-    () => (inventory ?? []).map(buildSlideLibraryModel),
-    [inventory],
+    () => (inventory ?? []).map((metadata) => buildSlideLibraryModel(
+      metadata,
+      compositionState.compositions[metadata.name],
+    )),
+    [compositionState.compositions, inventory],
   );
 
   useEffect(() => {
@@ -280,6 +311,12 @@ export function SlidePicker({
           {...panel.props}
           className="pulso-slide-library-dialog"
           data-audit-ready="slide-picker"
+          data-slide-composition-status={compositionState.loading
+            ? "loading"
+            : compositionState.error
+              ? "fallback"
+              : "matrix"}
+          data-slide-composition-fingerprint={compositionState.fingerprint ?? undefined}
           aria-modal="true"
           {...dialogA11y}
           onKeyDown={(event) => {
@@ -445,8 +482,8 @@ export function SlidePicker({
                         data-qa-geometry-capacity="owned"
                         aria-pressed={selected}
                         aria-label={model.insertableType
-                          ? `${title}. ${blueprint.structureLabel}. Enter o doble clic para insertar; Espacio para seleccionar.`
-                          : `${title}. ${blueprint.structureLabel}. Modelo de una versión futura; Espacio para seleccionar y revisar.`}
+                          ? `${title}. ${blueprint.structureLabel}. ${model.compositionStatusLabel} Enter o doble clic para insertar; Espacio para seleccionar.`
+                          : `${title}. ${blueprint.structureLabel}. ${model.compositionStatusLabel} Modelo de una versión futura; Espacio para seleccionar y revisar.`}
                         tabIndex={selected ? 0 : -1}
                         onClick={() => selectModel(metadata.name)}
                         onDoubleClick={(event) => {
@@ -462,6 +499,8 @@ export function SlidePicker({
                         </span>
                         <SlidePickerBlueprint
                           blueprint={blueprint}
+                          composition={model.composition}
+                          diagnostic={model.compositionDiagnostic}
                           iconoUi={metadata.icono_ui}
                           size="card"
                         />
@@ -548,6 +587,8 @@ export function SlidePicker({
                   <div className="pulso-slide-library-inspector-preview" data-qa-geometry-member>
                     <SlidePickerBlueprint
                       blueprint={selectedModel.blueprint}
+                      composition={selectedModel.composition}
+                      diagnostic={selectedModel.compositionDiagnostic}
                       iconoUi={selectedModel.metadata.icono_ui}
                       size="hero"
                     />
@@ -801,6 +842,9 @@ export function isInsertableSlideType(name: string): name is SlideType {
 export type SlideLibraryModel = {
   metadata: SlideMetadata;
   blueprint: ReturnType<typeof resolveSlidePickerBlueprint>;
+  composition: SlideComposition | null;
+  compositionDiagnostic: SlideCompositionDiagnostic | null;
+  compositionStatusLabel: string;
   category: SlideLibraryCategory;
   title: string;
   description: string;
@@ -810,13 +854,27 @@ export type SlideLibraryModel = {
   compatibilityReason: string;
 };
 
-export function buildSlideLibraryModel(metadata: SlideMetadata): SlideLibraryModel {
+export function buildSlideLibraryModel(
+  metadata: SlideMetadata,
+  compositionResolution?: SlideCompositionResolution,
+): SlideLibraryModel {
   const blueprint = resolveSlidePickerBlueprint(metadata);
   const graphZoneCount = blueprint.graphSlots.length;
   const insertableType = isInsertableSlideType(metadata.name) ? metadata.name : null;
+  const composition = compositionResolution?.status === "ready"
+    ? compositionResolution.composition
+    : null;
+  const compositionDiagnostic = compositionResolution?.status === "fallback"
+    ? compositionResolution.diagnostic
+    : null;
   return {
     metadata,
     blueprint,
+    composition,
+    compositionDiagnostic,
+    compositionStatusLabel: composition
+      ? "Composición efectiva de la plantilla."
+      : "Referencia nominal disponible.",
     category: CATEGORY_BY_REGISTRY[metadata.categoria],
     title: modelTitle(metadata),
     description: metadata.descripcion

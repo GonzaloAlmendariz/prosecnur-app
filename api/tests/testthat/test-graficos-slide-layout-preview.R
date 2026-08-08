@@ -29,6 +29,41 @@ test_that("graficos slide layout preview degrades to local reference for unknown
   expect_equal(length(preview$placeholders), 0)
 })
 
+test_that("preview v1 degrada si la plantilla no puede resolverse", {
+  corrupt <- tempfile(fileext = ".pptx")
+  writeLines("no es un archivo pptx", corrupt, useBytes = TRUE)
+  withr::local_options(list(prosecnur.template_pptx = corrupt))
+
+  preview <- .graficos_slide_layout_preview("p_slide_1_grafico")
+  expect_true(preview$ok)
+  expect_identical(preview$source, "reference_local")
+  expect_identical(preview$reason, "template_unreadable")
+  expect_identical(preview$contract, "slide_1")
+  expect_length(preview$placeholders, 0L)
+})
+
+test_that("preview v1 conserva type y type_idx efectivos sin ampliar el wire v2", {
+  skip_if_not_installed("officer")
+  preview <- .graficos_slide_layout_preview(
+    "p_slide_objetivo_icono",
+    template_id = "acnur_16_9"
+  )
+  by_key <- setNames(preview$placeholders, vapply(preview$placeholders, `[[`, character(1), "key"))
+
+  expect_identical(by_key$text$type, "body")
+  expect_identical(as.integer(by_key$text$type_idx), 1L)
+  expect_identical(by_key$icon$type, "body")
+  expect_identical(as.integer(by_key$icon$type_idx), 2L)
+
+  matrix <- .graficos_slide_layout_matrix(template_id = "acnur_16_9")
+  objective <- matrix$slides[[which(vapply(
+    matrix$slides,
+    function(slide) identical(slide$tipo, "p_slide_objetivo_icono"),
+    logical(1)
+  ))[[1]]]]
+  expect_false(any(c("type", "type_idx") %in% names(objective$regions[[1]])))
+})
+
 test_that("preview-slide render PNG option is opt-in", {
   expect_false(.graficos_preview_bool_option(list(), "render_slide_preview", FALSE))
   expect_true(.graficos_preview_bool_option(list(render_slide_preview = TRUE), "render_slide_preview", FALSE))
@@ -38,15 +73,20 @@ test_that("preview-slide render PNG option is opt-in", {
   )
 })
 
-test_that("un slot con type_idx inexistente en la plantilla no se ofrece (no cae al logo)", {
+test_that("el footer ACNUR usa la calibración efectiva y no cae al panel o logo", {
   skip_if_not_installed("officer")
 
-  # En plantilla_acnur el layout right_grafico_texto no tiene body idx=4:
-  # antes el footer caia al primer body del tipo (posiciones arbitrarias,
-  # incluida la caja grande de texto). Ahora el slot se omite.
+  # La plantilla ACNUR no tiene el body idx=4 del contrato genérico. El
+  # resolver compartido con el renderer lo recalibra al cajón inferior derecho
+  # real (body idx=3), sin caer al panel narrativo ni a un logo.
   acnur <- .graficos_slide_layout_preview("p_slide_grafico_texto_derecha", template_id = "acnur_16_9")
   keys_acnur <- vapply(acnur$placeholders, function(x) x$key %||% "", character(1))
-  expect_false("footer" %in% keys_acnur)
+  expect_true("footer" %in% keys_acnur)
+  footer <- acnur$placeholders[[which(keys_acnur == "footer")[[1]]]]
+  expect_identical(footer$role, "note")
+  expect_gt(footer$rect$x, 0.55)
+  expect_gt(footer$rect$y, 0.85)
+  expect_lt(footer$rect$height, 0.1)
 
   # En la plantilla generica el idx existe y el slot se sigue ofreciendo.
   generic <- .graficos_slide_layout_preview("p_slide_grafico_texto_derecha", template_id = "generic_16_9")

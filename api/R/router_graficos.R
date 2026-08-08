@@ -1839,229 +1839,60 @@
   value
 }
 
-.graficos_internal_template_path <- function(config = NULL, profile_id = NULL, template_id = NULL) {
-  path <- .graficos_resolve_template_pptx(
-    config = config,
-    profile_id = profile_id,
-    template_id = template_id
-  )
-  if (is.na(path)) "" else path
-}
-
-.graficos_slide_contract_key <- function(tipo) {
-  switch(
-    as.character(tipo %||% "")[1],
-    p_slide_portada = "title_slide",
-    p_slide_indice = "indice",
-    p_slide_seccion = "section",
-    p_slide_objetivo_icono = "objetivo_icono",
-    p_slide_texto = "text_slide",
-    p_slide_tabla_tecnica = "technical_table",
-    p_slide_1_grafico = "slide_1",
-    p_slide_2_graficos = "slide_2",
-    p_slide_1_grafico_narrativo = "slide_1_narrativo",
-    p_slide_2_graficos_narrativo = "slide_2_narrativo",
-    p_slide_grafico_texto_derecha = "text_r",
-    p_slide_grafico_texto_izquierda = "text_l",
-    p_slide_2_graficos_texto_derecha = "text_r2",
-    p_slide_2_graficos_texto_izquierda = "text_l2",
-    p_slide_4_graficos = "paneles_4",
-    p_slide_2_graficos_poblacion = "poblacion_2",
-    p_slide_4_graficos_poblacion = "poblacion_4",
-    p_slide_5_graficos_poblacion = "poblacion_5",
-    p_slide_6_graficos_poblacion = "poblacion_6",
-    ""
-  )
-}
-
-.graficos_payload_key_for_slot <- function(contract_key, slot_name) {
-  maps <- list(
-    slide_1 = list(plot = "grafico", right = "pie"),
-    slide_1_narrativo = list(plot = "grafico", footer = "pie"),
-    slide_2 = list(left = "izquierda", right = "derecha", right_text = "pie"),
-    slide_2_narrativo = list(left = "izquierda", right = "derecha", footer = "pie"),
-    paneles_4 = list(
-      up_left = "superior_izquierda",
-      up_right = "superior_derecha",
-      bottom_left = "inferior_izquierda",
-      bottom_right = "inferior_derecha",
-      footer = "pie"
-    ),
-    poblacion_4 = list(
-      up_left = "superior_izquierda",
-      up_right = "superior_derecha",
-      bottom_left = "inferior_izquierda",
-      bottom_right = "inferior_derecha"
-    ),
-    poblacion_5 = list(
-      pic1 = "grafico_superior_2",
-      pic2 = "grafico_superior_1",
-      pic3 = "grafico_superior_3",
-      pic4 = "grafico_inferior_2",
-      pic5 = "grafico_inferior_1",
-      footer = "pie"
-    ),
-    poblacion_6 = list(
-      pic1 = "grafico_superior_2",
-      pic2 = "grafico_superior_1",
-      pic3 = "grafico_superior_3",
-      pic4 = "grafico_inferior_3",
-      pic5 = "grafico_inferior_1",
-      pic6 = "grafico_inferior_2",
-      footer = "pie"
-    ),
-    text_r = list(plot = "grafico", footer = "pie"),
-    text_l = list(plot = "grafico", footer = "pie"),
-    text_r2 = list(plot1 = "grafico_1", plot2 = "grafico_2", footer = "pie"),
-    text_l2 = list(plot1 = "grafico_1", plot2 = "grafico_2", footer = "pie"),
-    objetivo_icono = list(icon = "icono")
-  )
-  map <- maps[[contract_key]] %||% list()
-  as.character(map[[slot_name]] %||% slot_name)[1]
-}
-
-.graficos_placeholder_role <- function(slot_name, spec) {
-  declared <- as.character(spec$role %||% "")[1]
-  if (nzchar(declared)) return(declared)
-  if (!is.null(spec$type) && as.character(spec$type)[1] %in% c("pic")) return("chart")
-  if (
-    slot_name %in% c("plot", "plot1", "plot2", "left", "right", "up_left", "up_right", "bottom_left", "bottom_right") ||
-      grepl("^pic[0-9]+$", slot_name)
-  ) return("chart")
-  if (slot_name %in% c("title", "subtitle", "date", "subtexto", "text")) return("text")
-  if (slot_name %in% c("base", "footer", "right_text", "right")) return("note")
-  if (slot_name %in% c("icon")) return("icon")
-  "shape"
-}
-
-.graficos_rect_from_loc <- function(loc, slide_size) {
-  list(
-    x = max(0, min(1, as.numeric(loc$left %||% 0) / slide_size$width)),
-    y = max(0, min(1, as.numeric(loc$top %||% 0) / slide_size$height)),
-    width = max(0, min(1, as.numeric(loc$width %||% 0) / slide_size$width)),
-    height = max(0, min(1, as.numeric(loc$height %||% 0) / slide_size$height))
-  )
-}
-
-.graficos_rect_from_props <- function(props, slide_size) {
-  list(
-    x = max(0, min(1, as.numeric(props$offx[[1]]) / slide_size$width)),
-    y = max(0, min(1, as.numeric(props$offy[[1]]) / slide_size$height)),
-    width = max(0, min(1, as.numeric(props$cx[[1]]) / slide_size$width)),
-    height = max(0, min(1, as.numeric(props$cy[[1]]) / slide_size$height))
-  )
-}
-
-.graficos_select_placeholder_props <- function(props, spec) {
-  if (!is.data.frame(props) || !nrow(props) || is.null(spec$type)) return(NULL)
-
-  label <- spec$ph_label %||% NULL
-  if (!is.null(label) && nzchar(label) && "ph_label" %in% names(props)) {
-    by_label <- props[props$ph_label %in% label, , drop = FALSE]
-    if (nrow(by_label)) return(by_label[1, , drop = FALSE])
-  }
-
-  by_type <- props[props$type %in% as.character(spec$type)[1], , drop = FALSE]
-  if (!nrow(by_type)) return(NULL)
-
-  type_idx <- spec$type_idx %||% NULL
-  if (!is.null(type_idx) && "type_idx" %in% names(by_type)) {
-    type_idx <- suppressWarnings(as.integer(type_idx)[1])
-    by_idx <- by_type[by_type$type_idx == type_idx, , drop = FALSE]
-    if (nrow(by_idx)) return(by_idx[1, , drop = FALSE])
-    # El contrato pidio un idx que esta plantilla no tiene. Caer al primer
-    # placeholder del tipo dibujaba el slot sobre una shape arbitraria (en
-    # las plantillas con menos bodies, el primero es el LOGO): mejor no
-    # ofrecer el slot que ofrecerlo en un lugar que el render no honra.
-    return(NULL)
-  }
-
-  by_type[1, , drop = FALSE]
-}
-
-.graficos_slide_layout_preview <- function(tipo, config = NULL, profile_id = NULL, template_id = NULL) {
-  tipo <- as.character(tipo %||% "")[1]
-  fallback <- function(contract_key = "", reason = "missing_geometry") {
-    list(
-      ok = TRUE,
-      tipo = tipo,
-      contract = contract_key,
-      layout = NA,
-      aspectRatio = 16 / 9,
-      source = "reference_local",
-      reason = reason,
-      placeholders = list()
+.graficos_slide_layout_scope <- function(value = NULL) {
+  value <- as.character(value %||% "")[1]
+  if (is.na(value) || !nzchar(trimws(value))) return("active")
+  value <- trimws(value)
+  if (!value %in% c("active", "consolidated")) {
+    stop_api(
+      400,
+      "E_BAD_SLIDE_LAYOUT_SCOPE",
+      "scope debe ser 'active' o 'consolidated'."
     )
   }
-  if (!nzchar(tipo)) return(fallback(reason = "missing_tipo"))
+  value
+}
 
-  contract_key <- .graficos_slide_contract_key(tipo)
-  if (!nzchar(contract_key)) return(fallback(reason = "unknown_tipo"))
-  contract <- .PPT_CONTRACT[[contract_key]] %||% NULL
-  if (is.null(contract) || !is.list(contract)) return(fallback(contract_key, "missing_contract"))
-
-  delivery <- .graficos_delivery_options(config, profile_id = profile_id, template_id = template_id)
-  template_path <- .graficos_internal_template_path(
-    config = config,
-    profile_id = delivery$profile_id,
-    template_id = delivery$template_id
-  )
-  if (!nzchar(template_path)) return(fallback(contract_key, "missing_template"))
-
-  doc <- tryCatch(officer::read_pptx(path = template_path), error = function(e) NULL)
-  if (is.null(doc)) return(fallback(contract_key, "template_unreadable"))
-
-  slide_size <- officer::slide_size(doc)
-  layout_info <- officer::layout_summary(doc)
-  layout_name <- as.character(contract$layout %||% "")[1]
-  if (!nzchar(layout_name) || !(layout_name %in% layout_info$layout)) {
-    return(fallback(contract_key, "missing_layout"))
+.graficos_slide_layout_query_id <- function(query, snake_case, camel_case) {
+  for (key in c(snake_case, camel_case)) {
+    value <- as.character(query[[key]] %||% "")[1]
+    if (!is.na(value) && nzchar(trimws(value))) return(trimws(value))
   }
-  master <- layout_info$master[match(layout_name, layout_info$layout)]
-  props <- tryCatch(
-    officer::layout_properties(doc, layout = layout_name, master = master),
-    error = function(e) data.frame()
-  )
+  ""
+}
 
-  slots <- contract$slots %||% list()
-  placeholders <- list()
-  if (is.list(slots) && length(slots)) {
-    for (slot_name in names(slots)) {
-      spec <- slots[[slot_name]]
-      if (!is.list(spec)) next
-
-      rect <- NULL
-      if (!is.null(spec$loc) && is.list(spec$loc)) {
-        rect <- .graficos_rect_from_loc(spec$loc, slide_size)
-      } else {
-        hit <- .graficos_select_placeholder_props(props, spec)
-        if (!is.null(hit)) rect <- .graficos_rect_from_props(hit, slide_size)
-      }
-      if (is.null(rect)) next
-
-      payload_key <- .graficos_payload_key_for_slot(contract_key, slot_name)
-      placeholders[[length(placeholders) + 1L]] <- list(
-        key = slot_name,
-        payload_key = payload_key,
-        label = payload_key,
-        role = .graficos_placeholder_role(slot_name, spec),
-        type = as.character(spec$type %||% "")[1],
-        type_idx = spec$type_idx %||% NA,
-        rect = rect,
-        hidden = FALSE
-      )
-    }
+.graficos_slide_layout_effective_context <- function(req, scope = NULL) {
+  scope <- .graficos_slide_layout_scope(scope)
+  sid <- session_header(req)
+  if (is.null(sid) || !nzchar(as.character(sid)[1])) {
+    return(list(scope = scope, config = NULL, presets = p_presets()))
   }
-
+  cfg <- if (identical(scope, "consolidated")) {
+    graficos_consolidado_draft_get(sid)$config
+  } else {
+    .graficos_effective_config(sid)
+  }
+  if (is.null(cfg) || !is.list(cfg)) {
+    return(list(scope = scope, config = NULL, presets = p_presets()))
+  }
+  enriched <- .enriquecer_presets(cfg$presets %||% list(), cfg$debug_ph %||% NULL)
   list(
-    ok = TRUE,
+    scope = scope,
+    config = cfg,
+    presets = .build_presets(enriched) %||% p_presets()
+  )
+}
+
+.graficos_slide_layout_preview <- function(tipo, config = NULL, profile_id = NULL,
+                                            template_id = NULL, presets = NULL,
+                                            master = NULL) {
+  .graficos_slide_layout_preview_v1(
     tipo = tipo,
-    contract = contract_key,
-    layout = layout_name,
-    aspectRatio = slide_size$width / slide_size$height,
-    source = "template",
-    template_id = delivery$template_id,
-    placeholders = placeholders
+    config = config,
+    profile_id = profile_id,
+    template_id = template_id,
+    presets = presets,
+    master = master
   )
 }
 
@@ -2692,11 +2523,40 @@ mount_graficos <- function(pr) {
       # paletas y overrides al plan actual.
       .ppt_style_profiles_payload()
     })) |>
-    plumber::pr_get("/api/graficos/slide-layout-preview", wrap_endpoint(function(req, res, tipo = "") {
-      tipo <- as.character((req$argsQuery$tipo %||% tipo %||% "")[1])
-      profile_id <- as.character((req$argsQuery$profile_id %||% req$argsQuery$profileId %||% "")[1])
-      template_id <- as.character((req$argsQuery$template_id %||% req$argsQuery$templateId %||% "")[1])
-      .graficos_slide_layout_preview(tipo, profile_id = profile_id, template_id = template_id)
+    plumber::pr_get("/api/graficos/slide-layout-matrix", wrap_endpoint(function(req, res, ...) {
+      query <- req$argsQuery %||% list()
+      profile_id <- .graficos_slide_layout_query_id(query, "profile_id", "profileId")
+      template_id <- .graficos_slide_layout_query_id(query, "template_id", "templateId")
+      context <- .graficos_slide_layout_effective_context(req, query$scope %||% NULL)
+      tryCatch(
+        .graficos_slide_layout_matrix(
+          profile_id = profile_id,
+          template_id = template_id,
+          presets = context$presets,
+          config = context$config
+        ),
+        error = function(e) {
+          stop_api(
+            400,
+            "E_PREVIEW_FAILED",
+            "No se pudo resolver la matriz de layouts solicitada."
+          )
+        }
+      )
+    })) |>
+    plumber::pr_get("/api/graficos/slide-layout-preview", wrap_endpoint(function(req, res, ...) {
+      query <- req$argsQuery %||% list()
+      tipo <- as.character((query$tipo %||% "")[1])
+      profile_id <- .graficos_slide_layout_query_id(query, "profile_id", "profileId")
+      template_id <- .graficos_slide_layout_query_id(query, "template_id", "templateId")
+      context <- .graficos_slide_layout_effective_context(req, "active")
+      .graficos_slide_layout_preview(
+        tipo,
+        config = context$config,
+        profile_id = profile_id,
+        template_id = template_id,
+        presets = context$presets
+      )
     })) |>
     plumber::pr_get("/api/graficos/preview-renderer", wrap_endpoint(function(req, res) {
       c(list(ok = TRUE), .preview_renderer_status())
@@ -3201,6 +3061,7 @@ mount_graficos <- function(pr) {
           plan = do.call(p_plan, list(slides = list(slide_r))),
           env_diapos = palette_env,
           template_pptx = template_pptx,
+          template_id = delivery$template_id,
           auto_otros_slides = delivery$auto_otros_slides,
           mensajes_progreso = FALSE
         )
@@ -3331,6 +3192,7 @@ mount_graficos <- function(pr) {
           icon_registry = icon_registry_arg,
           active_base = active_base_arg,
           template_pptx = template_pptx_arg,
+          template_id = delivery$template_id,
           auto_otros_slides = auto_otros_slides_arg
         ),
         result_filename = .graficos_export_filename(sid, "reporte_ppt", "pptx"),
@@ -3381,6 +3243,11 @@ mount_graficos <- function(pr) {
           errors <- c(errors, sprintf("Base '%s': %s", base, paste(validation$errors, collapse = "; ")))
           next
         }
+        delivery_b <- .graficos_delivery_options(
+          cfg,
+          template_id = plan_b$template_id %||% NULL,
+          auto_otros_slides = plan_b$auto_otros_slides %||% NULL
+        )
         per_base[[base]] <- list(
           plan = plan_b,
           presets = .enriquecer_presets(cfg$presets, cfg$debug_ph),
@@ -3388,13 +3255,11 @@ mount_graficos <- function(pr) {
           icon_registry = .graficos_icon_registry(sid, cfg),
           template_pptx = .graficos_resolve_template_pptx(
             config = cfg,
-            template_id = plan_b$template_id %||% NULL
+            profile_id = delivery_b$profile_id,
+            template_id = delivery_b$template_id
           ),
-          auto_otros_slides = .graficos_delivery_options(
-            cfg,
-            template_id = plan_b$template_id %||% NULL,
-            auto_otros_slides = plan_b$auto_otros_slides %||% NULL
-          )$auto_otros_slides,
+          template_id = delivery_b$template_id,
+          auto_otros_slides = delivery_b$auto_otros_slides,
           filename = .export_filename(sid, "reporte_ppt", "pptx", base = base)
         )
       }

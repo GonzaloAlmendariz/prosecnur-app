@@ -240,6 +240,7 @@ export type ArgMetadata = {
 export type SlideMetadata = {
   // El registry puede adelantarse al union persistible de Slide.tipo.
   name: string;
+  render_key: string;
   titulo_humano: string;
   descripcion: string;
   icono_ui: string;
@@ -834,6 +835,52 @@ export type GraficosSlideLayoutPreviewOptions = {
   template_id?: string;
 };
 
+export type GraficosSlideLayoutRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type GraficosSlideLayoutRegion = {
+  key: string;
+  payload_key: string;
+  role: string;
+  visible: boolean;
+  rect: GraficosSlideLayoutRect;
+  geometry_source: string;
+};
+
+export type GraficosSlideLayoutMatrixSlide = {
+  tipo: string;
+  render_key: string;
+  layout: string;
+  regions: GraficosSlideLayoutRegion[];
+  diagnostics: string[];
+};
+
+export type GraficosSlideLayoutMatrix = {
+  schema: "graficos.slide_layout_matrix/v2";
+  contract_version: 2;
+  template: {
+    id: string;
+    fingerprint: string;
+    identity_source: "template_id" | "profile_id" | "default";
+  };
+  canvas: {
+    width: number;
+    height: number;
+    aspect_ratio: number;
+  };
+  slides: GraficosSlideLayoutMatrixSlide[];
+};
+
+export type GraficosSlideLayoutMatrixOptions = {
+  profile_id?: string;
+  template_id?: string;
+  scope?: "active" | "consolidated";
+};
+
 export async function apiGraficosPreviewSlide(
   slide: Slide,
   config?: unknown,
@@ -867,6 +914,21 @@ export async function apiGraficosSlideLayoutPreview(
     await apiFetch(`/api/graficos/slide-layout-preview?${params.toString()}`, {
       headers: headers(),
     })
+  );
+}
+
+export async function apiGraficosSlideLayoutMatrix(
+  options: GraficosSlideLayoutMatrixOptions = {},
+) {
+  const params = new URLSearchParams();
+  if (options.profile_id) params.set("profile_id", options.profile_id);
+  if (options.template_id) params.set("template_id", options.template_id);
+  if (options.scope) params.set("scope", options.scope);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return handle<GraficosSlideLayoutMatrix>(
+    await apiFetch(`/api/graficos/slide-layout-matrix${query}`, {
+      headers: headers(),
+    }),
   );
 }
 

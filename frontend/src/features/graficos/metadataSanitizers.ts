@@ -294,6 +294,7 @@ function normalizeSlideMetadata(value: unknown): SlideMetadata {
   const categoria = safeText(slide.categoria).trim();
   return {
     name,
+    render_key: safeText(slide.render_key).trim(),
     titulo_humano: safeText(slide.titulo_humano, name).trim() || name,
     descripcion: safeText(slide.descripcion).trim(),
     icono_ui: safeText(slide.icono_ui, "FileText").trim() || "FileText",

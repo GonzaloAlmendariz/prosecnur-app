@@ -364,7 +364,12 @@ test_that("runner genera un unico PPTX multifuente legible", {
   template <- .graficos_resolve_template_pptx(config = list())
 
   result <- graficos_consolidado_job_runner(
-    data_path, inst_path, recipe_path, template, output,
+    data_path = data_path,
+    inst_path = inst_path,
+    recipe_path = recipe_path,
+    template_pptx = template,
+    template_id = "generic_16_9",
+    result_path = output,
     progress_path = file.path(td, "progress.json")
   )
   deck <- officer::read_pptx(output)
@@ -419,8 +424,12 @@ test_that("runner conserva cuatro actores en un unico PPTX", {
   saveRDS(recipe, recipe_path)
 
   result <- graficos_consolidado_job_runner(
-    data_path, inst_path, recipe_path,
-    .graficos_resolve_template_pptx(config = list()), output,
+    data_path = data_path,
+    inst_path = inst_path,
+    recipe_path = recipe_path,
+    template_pptx = .graficos_resolve_template_pptx(config = list()),
+    template_id = "generic_16_9",
+    result_path = output,
     progress_path = file.path(td, "progress.json")
   )
 
@@ -533,11 +542,68 @@ test_that("preflight consume exclusiones y denominador de la revision", {
   saveRDS(recipe, recipe_path)
 
   graficos_consolidado_job_runner(
-    data_path, inst_path, recipe_path,
-    .graficos_resolve_template_pptx(config = list()), output,
+    data_path = data_path,
+    inst_path = inst_path,
+    recipe_path = recipe_path,
+    template_pptx = .graficos_resolve_template_pptx(config = list()),
+    template_id = "generic_16_9",
+    result_path = output,
     progress_path = file.path(td, "progress.json")
   )
   expect_true(file.exists(output))
+})
+
+test_that("runner pasa template_id transitorio al renderer sin leerlo de recipe", {
+  td <- tempfile("gcc_template_identity_")
+  dir.create(td)
+  on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
+  data_path <- file.path(td, "data.rds")
+  inst_path <- file.path(td, "inst.rds")
+  recipe_path <- file.path(td, "recipe.rds")
+  output <- file.path(td, "consolidado.pptx")
+  saveRDS(list(), data_path)
+  saveRDS(list(), inst_path)
+  recipe <- list(
+    plan = list(slides = list()),
+    presets = list(),
+    paletas = list(),
+    auto_otros_slides = FALSE,
+    input_fingerprint = "fingerprint",
+    releases = list(),
+    source_order = list(),
+    plan_sha256 = "plan",
+    presets_floor = NULL
+  )
+  saveRDS(recipe, recipe_path)
+  captured <- NULL
+
+  result <- testthat::with_mocked_bindings(
+    graficos_consolidado_job_runner(
+      data_path = data_path,
+      inst_path = inst_path,
+      recipe_path = recipe_path,
+      template_pptx = "plantilla-transitoria.pptx",
+      template_id = "acnur_16_9",
+      result_path = output,
+      progress_path = file.path(td, "progress.json")
+    ),
+    job_progress_writer = function(...) function(...) invisible(NULL),
+    .graficos_palette_env = function(...) new.env(parent = emptyenv()),
+    .build_presets = function(...) list(),
+    p_plan = function(slides) list(slides = slides),
+    reporte_ppt_plan = function(...) {
+      captured <<- list(...)
+      file.create(captured$path_ppt)
+      invisible(list())
+    },
+    .graficos_presets_floor_compare = function(...) list(status = "same"),
+    .package = "prosecnurapp"
+  )
+
+  expect_false("template_id" %in% names(readRDS(recipe_path)))
+  expect_identical(captured$template_id, "acnur_16_9")
+  expect_identical(captured$template_pptx, "plantilla-transitoria.pptx")
+  expect_identical(result$path, output)
 })
 
 test_that("start persiste receta global y encola exactamente un job", {
@@ -554,11 +620,14 @@ test_that("start persiste receta global y encola exactamente un job", {
     icon_path,
     original_name = "icono-consolidado.png"
   )
-  config <- list(iconos = list(list(
-    id = "ico-consolidado",
-    file_id = icon_meta$file_id,
-    path = icon_meta$path
-  )))
+  config <- list(
+    template_id = "acnur_16_9",
+    iconos = list(list(
+      id = "ico-consolidado",
+      file_id = icon_meta$file_id,
+      path = icon_meta$path
+    ))
+  )
 
   result <- testthat::with_mocked_bindings(
     graficos_consolidado_start(sid, config = config),
@@ -579,8 +648,11 @@ test_that("start persiste receta global y encola exactamente un job", {
   expect_null(s$graficos_consolidado$icon_registry)
   expect_null(s$graficos_consolidado$config$iconos[[1]]$path)
   expect_equal(s$graficos_consolidado$config$iconos[[1]]$file_id, icon_meta$file_id)
+  expect_false("template_id" %in% names(s$graficos_consolidado))
+  expect_identical(captured$args$template_id, "acnur_16_9")
 
   runtime_recipe <- readRDS(captured$args$recipe_path)
+  expect_false("template_id" %in% names(runtime_recipe))
   expect_equal(runtime_recipe$icon_registry[["ico-consolidado"]], icon_meta$path)
   expect_equal(runtime_recipe$icon_registry[[icon_meta$file_id]], icon_meta$path)
 })

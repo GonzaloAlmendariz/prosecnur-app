@@ -1,11 +1,13 @@
 # GOAL · Las bibliotecas de Gráficos se eligen mirando, no adivinando
 
 Tipo: Goal operativo QA
-Estado: En curso
+Estado: Histórico
 Fecha: 2026-08-07
 Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado de la superficie
+Consolidado en: [ADR 0068 · La composición de slides tiene una sola autoridad](../adrs/0068-la-composicion-de-slides-tiene-una-sola-autoridad.md)
 
-- **Abierto**: 2026-08-07 · **Cierra**: sólo Gonzalo
+- **Abierto**: 2026-08-07 · **Cerrado**: 2026-08-08 por decisión explícita
+  de Gonzalo, después de acreditar L7 como último lote
 - **Alcance**: loop de convergencia permanente sobre las dos bibliotecas del
   editor de Gráficos — el **popover de slides** (`SlidePicker`) y el **popover
   de graficadores** (`GraficadorPicker`) — incluidos sus triggers, atajos,
@@ -22,9 +24,11 @@ Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado de l
 > Necesito que diseñes un loop que nunca se detenga de mejoras y criterios
 > para que se mejore.» (Gonzalo, 2026-08-07)
 
-**MANDATO PERMANENTE: este goal es INDEFINIDO — no termina, no finaliza y no
-se detiene por absolutamente nada.** Al agotar la cola de lotes se re-censa y
-se re-audita con la vara más alta. Sólo Gonzalo lo cierra.
+**Decisión final de Gonzalo (2026-08-08): L7 es el último lote.** Al
+acreditarlo se cierra este goal, no se abre un re-censo L8 y el trabajo pasa a
+la bandeja de decisiones pendientes. Esta decisión explícita reemplaza para
+operación futura el mandato indefinido de la apertura; el historial I0–I6 se
+conserva como evidencia de la regla que gobernó esos lotes.
 
 ## Las superficies (censo)
 
@@ -155,23 +159,20 @@ la reconfiguración grande.
 | **L4 · Verdad del registry** | Conteos y subtítulos derivados (B5); blueprints desde `slots`/metadata y no desde `includes()` del nombre; barrida de copy del registry (B13 y hermanos); contraste blueprint↔layout PPT real con `officer::layout_properties()` | V2, V8 | **hecho · I4** |
 | **L5 · Degradación y viewports** | Estados vacío/error/sin-resultados/`dimOk=false` en los 5 viewports; matriz con foco en 1024x600 | V7 | **hecho · I5** |
 | **L6 · Tests de contrato** | Registry↔picker (todo tipo del registry tiene label, categoría, blueprint), taxonomía y smoke montado de teclado; incorpora promesas A/B diferidas, cardinalidad ARIA, búsqueda, foco/Escape y reemplazo real (B17) | gate | **hecho · I6** |
-| **L7 · Paridad preview↔motor PPT** | Resolver template-aware compartido por preview y renderer; corregir portada, objetivo con ícono, `top_two`, texto/splits y slots poblacionales; matriz parametrizada de los 20 tipos contra la plantilla ACNUR. Se coordina con el loop del motor PPT | V2 | pendiente |
+| **L7 · Paridad preview↔motor PPT** | Resolver template-aware compartido por preview y renderer; corregir portada, objetivo con ícono, `top_two`, texto/splits y slots poblacionales; matriz parametrizada de los 20 tipos contra la plantilla ACNUR. Se coordina con el loop del motor PPT | V2 | **hecho · I7 · último lote** |
 
-Al vaciar la cola: re-censar (¿tipos nuevos en el registry?, ¿familias
-nuevas?), subir la vara (¿animación/microinteracción?, ¿modo oscuro?,
-¿previews con datos reales del proyecto?) y volver a L1.
+La cola queda cerrada en L7. No se ejecuta el re-censo que contemplaba la
+regla original; tipos, familias o varas nuevas requieren una decisión nueva y
+un goal distinto.
 
-## Reglas de no detención
+## Regla de cierre
 
-- **Este loop NO se detiene. Sólo Gonzalo lo cierra.** Al cerrar un lote
-  empieza el siguiente de inmediato, hasta agotar el contexto de la sesión.
-- **No se detiene por una decisión**: se anota en la bandeja de abajo con
-  opciones y recomendación, se toma el supuesto más conservador y se sigue.
-- **No se detiene por un hallazgo ajeno**: si es del motor PPT va al loop del
-  motor (`goal-loop-motor-ppt-2026-08-03.md`); si es multibase, al de
-  Gráficos multibase; si es de arquitectura, a un ADR. Se anota y se sigue.
-- **No se detiene por un defecto grande**: se acota, se le pone guard y entra
-  a la cola como lote propio.
+- Gonzalo cerró el loop después de L7; ninguna regla histórica de no detención
+  vuelve a arrancarlo por sí sola.
+- Los hallazgos no bloqueantes quedan en la bandeja con recomendación y orden;
+  decidirlos no modifica retrospectivamente la acreditación I1–I7.
+- Un defecto futuro de producto se abre como reparación o goal nuevo con su
+  propio scope lock, no como L8 implícito.
 
 ## Gate por lote
 
@@ -192,7 +193,7 @@ Proporcional al diff, siempre con evidencia visual:
 | Criterio | SlidePicker | GraficadorPicker |
 |---|---|---|
 | V1 gramática | ✓ L1 (B1, B9) | ✓ L2 (B11, B15) |
-| V2 verdad registry | ✓ parcial L1 + L4 + I6 (registry/label/categoría/blueprint 20/20; paridad PPT real → L7) | ✓ L2 + L4 + I6 (registry/label/categoría/blueprint 19/19) |
+| V2 verdad registry | ✓ L1 + L4 + I6 + I7 (registry/label/categoría 20/20; card, hero, preview y renderer consumen el contrato PPT v2) | ✓ L2 + L4 + I6 (registry/label/categoría/blueprint 19/19) |
 | V3 decidibilidad | ✓ L1 (B3, B4) | ✓ L2 (B11, B12, B14) |
 | V4 flujo | ✓ L1 + I6 (N, flechas, Space, Enter, doble clic, insertar-y-seguir) | ✓ I6 (flechas, Space, Enter, doble clic y reemplazo real) |
 | V5 accesibilidad | ✓ L1 + I3 + I6 (trap causal, Escape y retorno) | ✓ L2 + I3 + I6 (trap causal, Escape y retorno) |
@@ -589,7 +590,140 @@ Proporcional al diff, siempre con evidencia visual:
     y 33 advertencias, sin categoría causal nueva. L7 permanece abierto y el
     goal continúa activo.
 
+- **I7 · 2026-08-08 · L7 Paridad preview↔motor PPT · último lote** — La
+  geometría de las 20 láminas deja de bifurcarse entre renderer, endpoint y
+  React. El scope final quedó congelado en
+  `/private/tmp/prosecnur-l7-scope.UKLmMK/scope-lock.md` (SHA-256
+  `82427dd70d27f7bec4973427906a02a3c1835356b8bfad10507cdadcf50a6c26`),
+  con chrome L6 pixel-estable y `editor-v2.css`, template, proyecto canónico,
+  `SlidePreviewMockup` y `SlideCard` expresamente fuera.
+  - **V2 / autoridad única:** `api/R/graficos_slide_template_contract.R`
+    resuelve después de abrir la plantilla el contrato
+    `graficos.slide_layout_matrix/v2`; `reporte_ppt_plan()` consume ese mismo
+    objeto interno y los serializers publican sólo identidad/huella, canvas,
+    `tipo`, `render_key`, layout, regiones normalizadas y diagnósticos. El GET
+    aditivo acepta `scope=active|consolidated`; el endpoint v1 queda como
+    adaptador. La decisión está registrada en
+    [ADR 0068](../adrs/0068-la-composicion-de-slides-tiene-una-sola-autoridad.md).
+  - **Seis familias causales:** portada oculta fecha/subtexto sin área útil;
+    objetivo usa texto e ícono en sus bodies efectivos; `top_two` tiene
+    `render_key` propio; texto y cuatro splits usan paneles calibrados; las
+    cuatro poblacionales publican las mismas claves/roles que el renderer.
+    Los 20 tipos ACNUR resuelven sin `layout_missing`, región visible de área
+    cero ni fallback. Plantillas secundarias conservan candidatos
+    `Graficos2→Graficos`, `Title and Content→General Objective` y fallback al
+    primer placeholder del tipo cuando falta el `type_idx` exacto.
+  - **Identidad y jobs:** `template_id` se propaga transitoriamente por preview,
+    worker individual, todas-las-bases y consolidado hasta
+    `reporte_ppt_plan()`. No entra en la receta persistida ni en `.pulso`; query
+    explícita gana a aliases snake/camel y configuración legacy. React rechaza
+    antes de cachear cualquier id/source contradictorio.
+  - **Scope y persistencia fail-closed:** card, hero y `SlidePreview` consumen
+    `useSlideCompositions` y el mismo objeto. La matriz sólo se pide tras un
+    ack exitoso y exacto por `sid+scope+revision+generation`; no existe el
+    reloj de 2,5 s. GET, autosave, guardado consolidado, flush de proyecto e
+    imports acreditan el snapshot leído/enviado; failure, ack viejo,
+    rehidratación de igual revisión y request en vuelo quedan cerrados y no
+    reutilizan caché.
+  - **A1–A9 / revisiones independientes:** dos barridas contractuales
+    encontraron y cerraron propagación consolidada, scope efectivo, aliases de
+    identidad/layout/placeholder, identidad de respuesta, carrera de autosave
+    y rutas directas de config. El primer AFTER real añadió A8: Plumber
+    reinyectaba query params y devolvía `500/E_INTERNAL unused argument` aunque
+    el resolver directo fuera verde. Los callbacks matrix/v1 ahora absorben
+    `...` pero leen exclusivamente `req$argsQuery`; la regresión HTTP real pasa
+    de matrix/v1 `500` a `200`, matriz v2/20 ACNUR y stderr vacío. El dictamen
+    contractual final es **COMPATIBLE**, sin P0/P1/P2. El primer gate serial
+    detectó A9, dos resolvers diferidos de test que TypeScript estrechaba a
+    `never`; se inicializaron de forma explícita sin cambiar producto ni la
+    semántica de las pruebas.
+  - **Gate automatizado:** backend termina `DONE` en metadata, layout preview,
+    template routing, jobs, matriz y consolidado; la matriz incluye seis
+    mutantes y un deck real de 20 sentinelas cuyo contrato serializado coincide
+    con el renderer. Frontend termina 42 archivos / 250 tests de Gráficos,
+    focal A6–A9 35/35 y focal A9 21/21; `pnpm -C frontend typecheck` y
+    diff-check acotado quedan verdes tras A9. El gate serial post-A9 termina
+    **APPROVED**, P0/P1/P2/P3 en cero: 93/93 tests del cliente, 1.634
+    aserciones R sin fallos y HTTP real matrix v2/v1 en `200`, con stderr vacío
+    y sin procesos ni puertos propios residuales.
+  - **BEFORE:** acta
+    `/private/tmp/prosecnur-l7-before-NiYP0i/captures/BEFORE-AUDIT.md`
+    (SHA-256
+    `24949aed85ba989f675e77ac7cd900c5f1589034327e3536d35512b6b68aca9f`),
+    4/4 capturas reales `N`/`Cambiar` × 1440×1000/1024×600. V2 rechazaba
+    `p_slide_top_two_box`: card/hero seguían referencia local sin matriz del
+    renderer.
+  - **AFTER visual independiente:** acta
+    `/private/tmp/prosecnur-l7-after-1MnfiC/captures/AFTER-AUDIT.md`
+    (SHA-256
+    `21d19fe683f00465112e13790f2663ebd9dd75600b158bc6d5ff731295e024ed`)
+    y metadata (SHA-256
+    `afe6d8d7b4073e5e0d72120141283f2cb1255c2ddf6996b4cc5b44333bbd2cc7`):
+    **APROBADO VISUAL**, V1–V8 y C1–C5 PASS, 4 PASS / 0 FAIL / 0 DEBT /
+    0 INVALID. GET HTTP `200`, v2, identidad ACNUR explícita, 20/20 firmas
+    card↔hero↔matriz, `SlidePreview` exacto, fallback 0 y errores
+    consola/página/API/request `0/0/0/0`. Chrome BEFORE→AFTER deriva como
+    máximo 0,02 px. Hashes PNG: Slides 1440
+    `5f1fa0a06a334de7aabc8442a05a6183a52f99c7d2a536e7dc4c98c47041ebdf`,
+    Slides 1024
+    `fb16ad380fe91f7c26cf4ecfe65bd79301f407b359251deaf9e10d36876f59ee`,
+    Graficadores 1440
+    `c1fbe307a139b3889ee7dcc33bf9f1f132bdd5480457d61f38205755f0216f44`
+    y Graficadores 1024
+    `306f63a967c83edcec481be119d0efbefb54830487eb654ecb09ceb852b8bbcf`.
+  - **Invariantes y documentación:** proyecto/copia conservan SHA-256
+    `70ca67b9f5dcdbf2ad06c7144a005f48023122a57c97b152c11862412b4fde70`,
+    plantilla
+    `60f18ee74cdefb2767ac24f1cfbfe321486a47132b328ebf9cb65cf487b009bd`
+    y `editor-v2.css`
+    `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
+    El gate documental global conserva 10 errores y 35 advertencias heredados;
+    ADR 0068 y este cierre no introducen categoría causal nueva.
+  - **Cierre por decisión del usuario:** Gonzalo declara L7 como último lote.
+    Tras el gate serial y el commit conventional se finaliza el goal, no se
+    abre L8 y la siguiente conversación parte de la bandeja priorizada.
+
 ## Bandeja de decisiones
+
+### Pendientes priorizadas después del cierre
+
+1. **Identidad persistida de plantilla/perfil.** Hoy la sesión pasa
+   `template_id=acnur_16_9` de forma explícita y transitoria; el `.pulso` no
+   gana campos ni infiere por nombre o path. **Recomendación:** decidir primero
+   la UX y el dueño arquitectónico en un ADR; sólo después evaluar una
+   migración portable. Supuesto conservador: identidad transitoria explícita.
+2. **Portada: fecha y subtexto.** La plantilla ACNUR los deja ocultos porque no
+   ofrece región útil. **Recomendación:** decidir si se retiran del contrato de
+   producto o si la plantilla gana placeholders gobernados; no dibujarlos con
+   coordenadas locales.
+3. **Pie/base y wordmark ACNUR.** Falta decidir qué información pertenece al
+   renderer y cuál queda nativa en la plantilla. **Recomendación:** conservar
+   el wordmark en el master y limitar el renderer a campos declarados.
+4. **Plantillas genérica y secundarias.** L7 conserva aliases compatibles de
+   layout y placeholder, pero la acreditación visual profunda es ACNUR.
+   **Recomendación:** abrir una matriz versionada por plantilla antes de
+   prometer paridad visual equivalente.
+5. **Caché de composiciones.** Los maps de matriz/ack no tienen expulsión y un
+   reemplazo in-place del binario con la misma identidad puede reutilizar la
+   huella anterior hasta rehidratar. **Recomendación:** caché LRU por
+   `sid+scope` y revisión explícita del catálogo de plantillas; no observar
+   paths ni sondear archivos desde React.
+6. **Overrides por instancia.** La biblioteca muestra composición efectiva por
+   tipo; reglas por slide/instancia pueden variar el render final.
+   **Recomendación:** diseñar un contrato de instancia separado antes de
+   mezclarlo con la matriz de catálogo.
+7. **Regiones dinámicas de índice, sección y tabla.** **Recomendación:** sólo
+   incorporarlas cuando el renderer exponga roles y capacidad estables; no
+   estimar geometría a partir del contenido en TypeScript.
+8. **Superficies nominales fuera del picker.** `SlidePreviewMockup`,
+   `PlanNodeCard` y el `SlideCard` de timeline no entraron a L7.
+   **Recomendación:** censarlas en un goal propio si deben adoptar la misma
+   gramática, preservando el PNG del renderer como oracle final.
+9. **Caché del registry por sesión.** I6 acredita que una respuesta A tardía no
+   contamina B, pero puede haber refetch redundante. **Recomendación:** medir
+   antes de migrar el singleton a caché por `sid`.
+
+### Historial de decisiones del loop
 
 - ¿«Popover» o toma completa? I1 materializa el supuesto conservador como toma
   completa declarada con Radix `Dialog`; la UI la llama «Biblioteca», no
