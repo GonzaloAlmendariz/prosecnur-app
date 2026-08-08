@@ -1241,7 +1241,7 @@
       list(name = "mostrar_saldo", label = "Mostrar el saldo", tipo_input = "bool", grupo = "valores",
            default = TRUE,
            descripcion = "Escribe al margen la diferencia entre el lado positivo y el negativo, en puntos porcentuales."),
-      list(name = "umbral_etiqueta", label = "Umbral de etiqueta (%)", tipo_input = "number", grupo = "valores",
+      list(name = "umbral_etiqueta_pct", label = "Umbral de etiqueta (%)", tipo_input = "number", grupo = "valores",
            default = 3, min = 0, max = 20, step = 1,
            descripcion = "Los segmentos por debajo de este porcentaje no llevan cifra: no cabe."),
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro")
@@ -1272,7 +1272,7 @@
       list(name = "mostrar_brecha", label = "Mostrar la brecha", tipo_input = "bool", grupo = "valores",
            default = TRUE,
            descripcion = "Escribe al margen la diferencia en puntos porcentuales."),
-      list(name = "umbral_brecha", label = "Umbral de brecha", tipo_input = "number", grupo = "valores",
+      list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 50, step = 1,
            descripcion = "Sólo se rotulan las brechas de al menos este tamaño.")
     ), .args_graf_comunes())

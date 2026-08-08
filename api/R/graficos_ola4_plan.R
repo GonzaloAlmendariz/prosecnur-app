@@ -134,7 +134,7 @@ p_dumbbell <- function(vars,
                        corte_etiqueta = NULL,
                        orden = c("brecha", "valor", "declarado"),
                        mostrar_brecha = TRUE,
-                       umbral_brecha = 0,
+                       umbral_brecha_pct = 0,
                        titulo = NULL,
                        overrides = list(),
                        base = list(),
@@ -154,7 +154,7 @@ p_dumbbell <- function(vars,
   ov <- overrides
   ov$orden <- orden
   ov$mostrar_brecha <- isTRUE(mostrar_brecha)
-  ov$umbral_brecha <- suppressWarnings(as.numeric(umbral_brecha)[1])
+  ov$umbral_brecha_pct <- suppressWarnings(as.numeric(umbral_brecha_pct)[1])
 
   el <- list(
     .element_type = "dumbbell",

@@ -61,6 +61,10 @@
 #' @param cols_porcentaje Columnas de porcentaje, EN EL ORDEN DE LA ESCALA (de
 #'   peor a mejor). El orden es la declaracion: de el sale que cae a cada lado.
 #' @param etiquetas_grupos Etiquetas visibles de cada categoria.
+#' @param umbral_etiqueta_pct Segmentos por debajo de este PORCENTAJE no llevan
+#'   cifra. El sufijo `_pct` no es decorativo: el patch de UI acota todo arg
+#'   `umbral_*` a la escala 0-1 de las apiladas, y este va en puntos
+#'   porcentuales.
 #' @param n_negativas Cuantos niveles, contando desde el primero, van a la
 #'   izquierda del cero.
 #' @param incluir_neutro Si `TRUE` y la escala tiene un nivel central, se dibuja
@@ -85,7 +89,7 @@ graficar_barras_divergentes <- function(
 
     mostrar_valores = TRUE,
     valores_decimales = 0L,
-    umbral_etiqueta = 3,
+    umbral_etiqueta_pct = 3,
     mostrar_saldo = TRUE,
     etiqueta_saldo = "Saldo",
 
@@ -214,7 +218,7 @@ graficar_barras_divergentes <- function(
     # una, que es un numero que no existe en los datos: se rotula una sola vez.
     lab <- lab[lab$.lado != "neu2", , drop = FALSE]
     lab$.lab <- paste0(formatC(round(lab$.valor, dec), format = "f", digits = dec), "%")
-    lab$.lab[lab$.valor < umbral_etiqueta] <- ""
+    lab$.lab[lab$.valor < umbral_etiqueta_pct] <- ""
     p <- p + ggplot2::geom_text(
       data = lab,
       ggplot2::aes(x = .data$.signo, label = .data$.lab,

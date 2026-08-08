@@ -164,7 +164,7 @@ test_that("la brecha rotulada es la diferencia real", {
 
 test_that("el umbral silencia las brechas chicas", {
   skip_if_not_installed("ggplot2")
-  p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE, umbral_brecha = 26)
+  p <- graficar_dumbbell(.df_brecha(), mostrar_brecha = TRUE, umbral_brecha_pct = 26)
   txt <- .capas(p, "GeomText")
   labs <- unlist(lapply(txt, function(l) as.character(l$data$.lab)))
   expect_true("-27 pp" %in% labs)
