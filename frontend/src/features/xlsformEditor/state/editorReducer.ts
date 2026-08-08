@@ -19,7 +19,7 @@
 //   - "LOAD"       → reemplaza workbook + resetea historia (al importar).
 //   - "UNDO"/"REDO" → mueve el cursor del UndoStack y aplica.
 //   - "MARK_SAVED" → setea dirty=false y guarda lastSavedAt.
-//   - "CLEAR"      → workbook=null, historia vacía (volver al EmptyHome).
+//   - "CLEAR"      → workbook=null, historia vacía (volver al espacio).
 // =============================================================================
 
 import type { XlsformEditorWorkbook } from "../types";
@@ -49,7 +49,7 @@ export type EditorState = {
   /** Stack de undo/redo del workbook. */
   history: UndoStack<XlsformEditorWorkbook | null>;
   /** Id del formulario activo dentro de la colección multi-formulario del
-   *  proyecto. `null` cuando no hay ninguno abierto (hub / EmptyHome). */
+   *  proyecto. `null` cuando no hay ninguno abierto (espacio de forms). */
   activeFormId: string | null;
 };
 

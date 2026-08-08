@@ -2,11 +2,13 @@
 // shell/NewFormActions.tsx — las tres vías para crear un formulario nuevo
 // =============================================================================
 // Las tres puertas de entrada del hub: empezar de cero, importar un XLSForm o
-// traducir una encuesta de SurveyMonkey. Se reusa en dos superficies:
-//   - `variant="cards"` (default): tres tarjetas grandes lado a lado, para el
-//     protagonismo del estado vacío / hero.
-//   - `variant="menu"`: tres filas compactas apiladas, para la expansión inline
-//     de la tarjeta "＋ Nuevo formulario" en el estado poblado.
+// traducir una encuesta de SurveyMonkey. Tres filas compactas apiladas dentro
+// de la tarjeta "＋ Nuevo formulario" cuando se expande.
+//
+// Antes había una segunda disposición (`cards`: tarjetas grandes lado a lado)
+// para el hero del estado vacío. Al unificar el homepage en una sola grilla,
+// ese hero desapareció y con él su disposición: la creación se ve igual con 0
+// formularios que con 5.
 //
 // Los acentos por acción salen de los tokens de módulo de theme.css
 // (--pulso-module-*); nada de hex hardcodeado. Se inyectan como custom
@@ -23,8 +25,6 @@ export type NewFormActionsProps = {
   onNewBlank: () => void;
   onImportXls: () => void;
   onImportSurveyMonkey: () => void;
-  /** Disposición: tarjetas grandes (default) o filas compactas para popover. */
-  variant?: "cards" | "menu";
 };
 
 type ActionSpec = {
@@ -42,14 +42,13 @@ export function NewFormActions({
   onNewBlank,
   onImportXls,
   onImportSurveyMonkey,
-  variant = "cards",
 }: NewFormActionsProps) {
   const actions: ActionSpec[] = [
     {
       key: "blank",
       title: "Empezar de cero",
       description: "Un formulario en blanco para construir pregunta por pregunta.",
-      icon: <IconNew size={variant === "menu" ? 18 : 22} />,
+      icon: <IconNew size={18} />,
       onClick: onNewBlank,
       accent: "var(--pulso-module-editor)",
       accentSoft: "var(--pulso-module-editor-soft)",
@@ -58,7 +57,7 @@ export function NewFormActions({
       key: "xlsform",
       title: "Importar como nuevo",
       description: "Crea un borrador nuevo desde un .xlsx; publicación y público se revisan en este proyecto.",
-      icon: <Upload size={variant === "menu" ? 18 : 22} />,
+      icon: <Upload size={18} />,
       onClick: onImportXls,
       accent: "var(--pulso-module-editor)",
       accentSoft: "var(--pulso-module-editor-soft)",
@@ -72,8 +71,8 @@ export function NewFormActions({
         <img
           src={smMonkey}
           alt=""
-          width={variant === "menu" ? 22 : 28}
-          height={variant === "menu" ? 22 : 28}
+          width={22}
+          height={22}
           className="pulso-xf-home-action-monkey"
         />
       ),
@@ -84,7 +83,7 @@ export function NewFormActions({
   ];
 
   return (
-    <div className={`pulso-xf-home-actions pulso-xf-home-actions--${variant}`}>
+    <div className="pulso-xf-home-actions pulso-xf-home-actions--menu">
       {actions.map((action) => (
         <button
           key={action.key}

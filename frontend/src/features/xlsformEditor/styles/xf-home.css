@@ -776,13 +776,6 @@
   );
 }
 
-/* Hero (biblioteca vacía): borde sólido y más presencia — es el protagonista. */
-.pulso-xf-home-add--hero {
-  border-style: solid;
-  border-color: var(--pulso-module-editor-border);
-  box-shadow: var(--pulso-shadow-low);
-}
-
 .pulso-xf-home-add-head {
   display: flex;
   align-items: flex-start;
@@ -817,10 +810,6 @@
   line-height: 1.25;
 }
 
-.pulso-xf-home-add--hero .pulso-xf-home-add-title {
-  font-size: 20px;
-}
-
 .pulso-xf-home-add-copy {
   margin: 0;
   font-size: 12.5px;
@@ -852,12 +841,6 @@
 
 /* --- Vías de creación (NewFormActions) --------------------------------- */
 
-.pulso-xf-home-actions--cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
-}
-
 .pulso-xf-home-actions--menu {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -876,16 +859,6 @@
     transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
     box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1),
     border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-/* Variante tarjetas: apilada, acento en el borde superior. */
-.pulso-xf-home-actions--cards .pulso-xf-home-action {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 18px 18px 16px;
-  border-radius: 14px;
-  border-top: 3px solid var(--xf-action-accent, var(--pulso-module-editor));
 }
 
 /* Variante menú: fila compacta ícono + texto. */
@@ -911,11 +884,6 @@
   border-radius: 10px;
   background: var(--xf-action-accent-soft, var(--pulso-module-editor-soft));
   color: var(--xf-action-accent, var(--pulso-module-editor));
-}
-
-.pulso-xf-home-actions--cards .pulso-xf-home-action-icon {
-  width: 38px;
-  height: 38px;
 }
 
 .pulso-xf-home-actions--menu .pulso-xf-home-action-icon {
@@ -983,19 +951,17 @@
   flex: 0 0 auto;
 }
 
-/* --- Guía educativa al pie (secundaria y compacta) --------------------- */
-/* La guía "Cómo funciona" es material de apoyo: no debe robar protagonismo a
-   los formularios. Se mantiene compacta — eyebrow + copy en una fila y el
-   diagrama de flujo a escala reducida. */
+/* --- Guía al pie (una sola forma) -------------------------------------- */
+/* "Cómo funciona" es material de apoyo: eyebrow + copy en una fila, con el
+   mismo alto tenga el proyecto cero formularios o seis. Antes eran dos
+   disposiciones —una rejilla de dos columnas que alojaba el diagrama de cuatro
+   pasos en el estado vacío, y una fila compacta en el poblado—, y esa
+   diferencia hacía que el pie creciera al abrir un proyecto sin formularios. */
 
 .pulso-xf-home-guide {
   margin-top: auto;
   padding-top: 16px;
   border-top: 1px dashed var(--pulso-module-editor-border);
-  display: grid;
-  grid-template-columns: minmax(0, 300px) 1fr;
-  align-items: center;
-  gap: 12px 24px;
 }
 
 .pulso-xf-home-guide-eyebrow {
@@ -1008,15 +974,14 @@
 }
 
 .pulso-xf-home-guide-copy {
-  grid-row: 2;
-  grid-column: 1;
   margin: 0;
   font-size: 12.5px;
   color: var(--pulso-text-soft);
   line-height: 1.5;
-  max-width: 300px;
 }
 
+/* `is-compact` es hoy la única forma del pie. La clase se conserva porque el
+   marcado la emite y reglas de tema la referencian por especificidad. */
 .pulso-xf-home-guide.is-compact {
   display: flex;
   align-items: baseline;
@@ -1024,51 +989,8 @@
   padding-top: 10px;
 }
 
-.pulso-xf-home-guide.is-compact .pulso-xf-home-guide-copy {
-  max-width: none;
-}
-
 @media (max-width: 520px) {
   .pulso-xf-home-card-workflow {
     grid-template-columns: 1fr;
-  }
-}
-
-/* El diagrama ocupa la columna derecha y abarca ambas filas — compacto.
-   Especificidad alta a propósito: gana a las reglas heredadas del viejo
-   EmptyHome en theme.css (`.pulso-main--viewport .pulso-xlsform-frame
-   .pulso-hub-flow-svg`) que lo agrandaban a 390px. */
-.pulso-xf-home-guide .pulso-hub-flow,
-.pulso-main--viewport .pulso-xlsform-frame .pulso-xf-home-guide .pulso-hub-flow {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  height: auto;
-  min-height: 0;
-  padding: 0;
-  justify-content: flex-end;
-}
-
-.pulso-xf-home-guide .pulso-hub-flow-svg,
-.pulso-main--viewport .pulso-xlsform-frame .pulso-xf-home-guide .pulso-hub-flow-svg {
-  width: 100%;
-  height: auto;
-  max-width: 620px;
-  margin-left: auto;
-}
-
-@media (max-width: 900px) {
-  .pulso-xf-home-guide {
-    grid-template-columns: 1fr;
-  }
-  .pulso-xf-home-guide-copy {
-    grid-column: 1;
-    max-width: none;
-  }
-  .pulso-xf-home-guide .pulso-hub-flow {
-    grid-column: 1;
-    grid-row: auto;
-  }
-  .pulso-xf-home-guide .pulso-hub-flow-svg {
-    margin: 0 auto;
   }
 }

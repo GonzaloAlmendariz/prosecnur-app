@@ -17253,7 +17253,7 @@ button.pulso-icon-danger:hover:not(:disabled) {
   to   { transform: translateY(4px) scale(0.985); opacity: 0; }
 }
 
-/* EmptyHome: stagger entry de las tarjetas + hover lift. */
+/* Espacio de formularios: stagger entry de las tarjetas + hover lift. */
 @keyframes pulso-empty-home-in {
   from { transform: translateY(8px); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
