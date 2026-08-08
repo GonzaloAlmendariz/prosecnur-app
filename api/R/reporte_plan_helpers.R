@@ -1695,9 +1695,23 @@
   out
 }
 #' @keywords internal
-.keep_formals <- function(fun, args) {
+.keep_formals <- function(fun, args, contexto = NULL) {
   fml <- names(formals(fun))
   if ("..." %in% fml) return(args)
+
+  sobran <- setdiff(names(args), fml)
+  if (length(sobran)) {
+    # El descarte deja rastro. Antes se perdia en silencio: el analista movia un
+    # control, el grafico no cambiaba y no habia nada que mirar. Se ACUMULA en
+    # vez de avisar aqui porque esta funcion corre una vez por slot de cada
+    # lamina (ver reporte_args_descartados.R).
+    ctx <- contexto %||% .reporte_args_nombre_de_funcion(
+      fun,
+      fallback = tryCatch(deparse(substitute(fun))[1], error = function(e) NULL)
+    )
+    .reporte_args_anotar_descarte(sobran, contexto = ctx)
+  }
+
   args[names(args) %in% fml]
 }
 
