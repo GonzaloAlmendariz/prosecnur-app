@@ -1,24 +1,26 @@
 // =============================================================================
 // shell/FormsLibrary.tsx — "Espacio de formularios" del proyecto
 // =============================================================================
-// Homepage del editor cuando no hay workbook abierto. Es un único espacio de
-// trabajo coherente para 0..MAX_FORMS formularios en paralelo:
-//   - encabezado que comunica la capacidad (hasta 6 por proyecto),
-//   - grilla de slots: los formularios existentes (FormCard) + una tarjeta de
-//     creación (AddFormCard) mientras hay cupo + placeholders tenues que
-//     insinúan los slots libres restantes,
-//   - al llegar al tope: sin tarjeta de creación, con una nota sutil,
-//   - guía educativa "Cómo funciona" al pie.
+// Homepage del editor cuando no hay workbook abierto, y el ÚNICO. Es una sola
+// composición para 0..MAX_FORMS formularios:
 //
-// El estado vacío ya NO es una pantalla aparte: es el mismo espacio con la
-// tarjeta de creación en modo "hero". El contenedor externo registra
-// `data-audit-ready` para el QA visual.
+//   encabezado fijo  →  grilla de celdas iguales  →  pie fijo
 //
-// Mientras el índice del backend no contestó (`loading`), este espacio muestra
-// su encabezado definitivo y una grilla de placeholders. Nunca la variante
-// "welcome": afirmar "no tienes formularios" antes de saberlo es justo lo que
-// producía el doble homepage — hero de creación primero, biblioteca real
-// después. Aquí el marco no cambia; solo se llena.
+// **El marco no depende de los datos.** Con cero formularios y con seis se ven
+// el mismo encabezado, la misma grilla y el mismo pie; lo único que cambia es
+// qué celdas hay dentro. La celda de creación (AddFormCard) mide lo mismo que
+// una tarjeta de formulario y está en el mismo sitio, así que crear el primero
+// no reconstruye la pantalla: solo aparece una celda al lado.
+//
+// Esto es C2 del Contrato de Superficie, y es la corrección de fondo del
+// "carga uno y luego otro homepage". Antes había cuatro composiciones: el
+// estado vacío traía un hero que ocupaba la fila entera, un pie expandido y un
+// diagrama de cuatro pasos; el poblado, celdas compactas y pie breve. Pasar de
+// cero a uno cambiaba la superficie entera, no su contenido.
+//
+// Los dos estados de sistema —`loading` y `loadFailed`— no son excepciones a
+// esa regla: conservan el mismo marco y solo sustituyen las celdas por
+// placeholders o anteponen un aviso. Nunca afirman el vacío sin saberlo.
 //
 // Las métricas de cada tarjeta se calculan sobre el workbook en localStorage
 // (loadForm) — el endpoint list del backend es liviano a propósito y no trae
@@ -31,7 +33,6 @@ import { Layers, Lock, TriangleAlert } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
 import { AddFormCard } from "./AddFormCard";
 import { FormCard, type ActorCatalogStatus } from "./FormCard";
-import { HubFlowDiagram } from "./HubFlowDiagram";
 import { computeFormMetrics, type FormCardMetrics } from "./formCardMetrics";
 import { computeHomeSlots } from "./homeSlots";
 import type { InstrumentActorOption } from "./actorAssignmentModel";
@@ -123,18 +124,17 @@ export function FormsLibrary({
   }, [forms, scope]);
 
   const slots = computeHomeSlots(forms.length);
-  // Solo afirmamos "vacío" cuando lo sabemos. En carga no lo sabemos todavía;
-  // con el índice caído y sin copia local, tampoco. `empty` gobierna el hero,
-  // el subtítulo y el diagrama, y equivocarse ahí es el doble homepage.
+  // `empty` ya no gobierna la composición: no hay hero ni diagrama que
+  // encender. Sobrevive solo para el subtítulo, y sigue sin afirmarse mientras
+  // el índice no contestó o falló — decir "no tienes formularios" sin saberlo
+  // era la otra cara del doble homepage.
   const unknown = loading || (loadFailed && slots.empty);
   const empty = !unknown && slots.empty;
   const { count, atLimit, canCreate, ghostSlots } = slots;
 
   return (
     <section
-      className={`pulso-xf-home${empty ? " pulso-xf-home--welcome" : ""}${
-        loading ? " is-loading" : ""
-      }`}
+      className={`pulso-xf-home${loading ? " is-loading" : ""}`}
       aria-label="Espacio de formularios del proyecto"
       aria-busy={loading || undefined}
       data-audit-ready={loading ? "false" : "true"}
@@ -207,14 +207,10 @@ export function FormsLibrary({
           />
         ))}
 
+        {/* Una sola celda de creación, idéntica con 0 o con 5 formularios. Ya
+            no necesita `key` por variante: no hay variante que la remonte. */}
         {canCreate && (
           <AddFormCard
-            // `key` por variante: al pasar de biblioteca vacía (hero, expandida)
-            // a poblada (tile, colapsada) remonta la tarjeta y resetea su estado
-            // interno de expansión — si no, el flash inicial de 0 formularios la
-            // dejaba abierta al hidratar la lista.
-            key={empty ? "add-hero" : "add-tile"}
-            variant={empty ? "hero" : "tile"}
             onNewBlank={onNewBlank}
             onImportXls={onImportXls}
             onImportSurveyMonkey={onImportSurveyMonkey}
@@ -239,15 +235,14 @@ export function FormsLibrary({
         </p>
       )}
 
+      {/* Pie único: mismo texto y mismo alto siempre. Antes crecía en el
+          estado vacío para alojar el diagrama de cuatro pasos. */}
       {loading ? null : (
-        <footer className={`pulso-xf-home-guide${empty ? "" : " is-compact"}`}>
+        <footer className="pulso-xf-home-guide is-compact">
           <span className="pulso-xf-home-guide-eyebrow">Cómo funciona</span>
           <p className="pulso-xf-home-guide-copy">
-            {empty
-              ? "Construye el instrumento paso a paso; el editor guarda los cambios automáticamente."
-              : "Origen, lógica y público preparan una revisión estable para Procesamiento."}
+            Origen, lógica y público preparan una revisión estable para Procesamiento.
           </p>
-          {empty ? <HubFlowDiagram /> : null}
         </footer>
       )}
     </section>

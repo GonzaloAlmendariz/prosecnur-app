@@ -558,7 +558,7 @@ export default function XlsformEditorPage() {
   // Estado del workbook + dirty + lastSavedAt + history (undo/redo) en un
   // solo reducer para mantener consistencia transaccional. Las acciones
   // disponibles son SET (mutación normal), LOAD (importar/restaurar),
-  // CLEAR (volver al EmptyHome), UNDO/REDO y MARK_SAVED.
+  // CLEAR (volver al espacio de formularios), UNDO/REDO y MARK_SAVED.
   const [editorState, dispatch] = useReducer(
     editorReducer,
     null,
@@ -1029,7 +1029,7 @@ export default function XlsformEditorPage() {
   // multi-formulario: migramos cualquier snapshot legacy mono-formulario,
   // fusionamos las entradas que el backend (.pulso) tenga y que aún no estén
   // en localStorage, y si hay un formulario activo lo hidratamos. Si no hay
-  // ninguno, dejamos workbook=null (el hub / EmptyHome).
+  // ninguno, dejamos workbook=null (el espacio de formularios).
   const restoreKey = `${sessionId || "no-session"}::${projectScope ?? "no-project"}`;
   const lastScopeRef = useRef(restoreKey);
   useEffect(() => {
@@ -3306,7 +3306,7 @@ export default function XlsformEditorPage() {
       {error && <ErrorBlock label="No pudimos abrir el editor" detail={error} />}
 
       {/* Input file oculto para "Importar XLSForm" — disponible siempre,
-          tanto desde el EmptyHome como desde la barra de acciones del
+          tanto desde el espacio de formularios como desde la barra del
           editor con workbook. */}
       <input
         ref={xlsInputRef}
@@ -3316,10 +3316,10 @@ export default function XlsformEditorPage() {
         onChange={(e) => void onImportXls(e.target.files?.[0])}
       />
 
-      {/* Sin workbook → solo EmptyHome con sus 3 cards (Empezar de cero
-          / Importar XLSForm / Traducir SurveyMonkey) y resumeBanner.
-          Antes había un Panel "Entradas y salidas" arriba con los mismos
-          4 botones — duplicaba acciones y confundía al usuario. */}
+      {/* Sin workbook abierto, el módulo muestra su único homepage: el
+          espacio de formularios. Una sola composición para 0..6 formularios
+          —encabezado, grilla y pie no cambian con los datos— con las tres vías
+          de creación dentro de su celda. */}
       {!workbook && (
         <FormsLibrary
           forms={forms}
@@ -3410,10 +3410,9 @@ export default function XlsformEditorPage() {
         </Panel>
       )}
 
-      {/* `EmptyHome` arriba ya cubre el caso "sin workbook" con CTAs grandes
-          y el resumeBanner. Antes había un `EmptyState` duplicado aquí
-          que repetía las mismas 3 acciones — eliminado para no doblar el
-          mensaje. */}
+      {/* El espacio de formularios de arriba ya cubre el caso "sin workbook".
+          Antes había un `EmptyState` duplicado aquí que repetía las mismas 3
+          acciones — eliminado para no doblar el mensaje. */}
 
       {workbook && (
         <>

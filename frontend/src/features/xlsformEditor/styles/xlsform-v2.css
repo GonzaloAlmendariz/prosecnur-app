@@ -4549,52 +4549,6 @@ button.pulso-focus-calculation-recipe {
   letter-spacing: 0.1px;
 }
 
-/* === HubOutputs (pills "Qué obtienes al exportar") === */
-.pulso-hub-outputs {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 18px;
-  background: white;
-  border: 1px solid var(--pulso-border);
-  border-radius: 12px;
-}
-
-.pulso-hub-outputs-eyebrow {
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--pulso-text-soft);
-}
-
-.pulso-hub-outputs-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.pulso-hub-outputs-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px 6px 8px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--pulso-text);
-  font-weight: var(--pulso-weight-medium);
-}
-
-.pulso-hub-outputs-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-}
-
 .pulso-inspector-advanced-toggle em {
   font-style: normal;
   margin-left: 4px;
