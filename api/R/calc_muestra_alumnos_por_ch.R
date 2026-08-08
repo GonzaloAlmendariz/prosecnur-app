@@ -307,12 +307,37 @@ calc_muestra_alumnos_por_ch <- function(aula_frame, frame_hash = NA_character_) 
   suppressWarnings(as.numeric(unlist(value, use.names = FALSE))[1])
 }
 
+# F112 · Una facultad SIN cursos-horario elegibles no entra al contrato.
+#
+# El contrato de alumnos por CH trae una fila por facultad del marco, y las que
+# quedaron fuera por criterios viajan con `elegible$n_ch = 0` para poder
+# mostrarse en la columna de contraste: son informativas, no muestreables.
+# Tomarlas como facultades exigibles rompía el estudio real de HSVG, donde
+# «Escuela de Estudios Especiales» y «Escuela de Posgrado» tienen 0 CH
+# elegibles: el guard de cobertura pedía a P1/P2 declararles un estrato, y el
+# analista no puede dárselo porque no hay unidades que muestrear. Peor, si lo
+# declaraba igual, la validación de más abajo lo mataba con `valor_no_positivo`
+# —el estadístico de una distribución vacía es NA—, así que el estrato no tenía
+# ninguna forma válida de existir. El contrato pedía algo imposible.
+#
+# La cobertura se exige entonces sobre las facultades con unidades elegibles,
+# que son exactamente las que el diseño puede repartir.
+.cm_alumnos_por_ch_fila_es_muestreable <- function(row) {
+  snapshot <- if (is.list(row)) row$elegible else NULL
+  if (!is.list(snapshot)) return(FALSE)
+  n_ch <- suppressWarnings(as.numeric(
+    unlist(snapshot$n_ch, use.names = FALSE)
+  )[1])
+  isTRUE(is.finite(n_ch) && n_ch > 0)
+}
+
 .cm_alumnos_por_ch_rows_by_key <- function(contract) {
   filas <- if (is.list(contract)) contract$filas else NULL
   if (!is.list(filas)) return(list())
   out <- list()
   for (row in filas) {
     if (!is.list(row) || identical(row$row_kind, "total")) next
+    if (!.cm_alumnos_por_ch_fila_es_muestreable(row)) next
     key <- .cm_aulas_scalar(row$faculty_key, "")
     if (!nzchar(key) || !is.null(out[[key]])) {
       .cm_alumnos_por_ch_fail(

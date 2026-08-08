@@ -234,6 +234,57 @@ test_that("cada componente P1/P2 cubre exactamente las facultades del contrato",
   expect_length(incomplete$details$sobrantes, 0L)
 })
 
+test_that("F112 · una facultad sin CH elegibles no se le exige a P1/P2", {
+  # Caso real de HSVG: «Escuela de Estudios Especiales» y «Escuela de Posgrado»
+  # viajan en el contrato con 0 CH elegibles para poder verse en la columna de
+  # contraste. El guard de cobertura les pedía un estrato que el analista no
+  # puede dar —no hay unidades que muestrear— y dejaba el estudio sin poder
+  # calcular. Aquí FAC C tiene sus dos CH excluidos del marco.
+  aula_frame <- data.frame(
+    classroom_id = paste0("CH-", 1:7),
+    faculty = c("FAC A", "FAC A", "FAC A", "FAC B", "FAC B", "FAC C", "FAC C"),
+    included = c(TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE),
+    # FAC B necesita un elegible con dato: su estadístico se calcula de verdad
+    # en el camino feliz (el frame compartido lo deja en NA a propósito para
+    # otros tests, que nunca llegan a evaluarlo).
+    eligible_n = c(10, 20, 30, 25, 40, 5, 7),
+    enrolled_total = rep(999, 7),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  frame <- list(
+    schema = "calc_muestra_aulas_frame_v1",
+    frame_hash = "frame-apch-1",
+    aula_frame = aula_frame,
+    alumnos_por_ch = calc_muestra_alumnos_por_ch(aula_frame, "frame-apch-1")
+  )
+
+  # Precondición: FAC C existe como fila del contrato y no tiene elegibles. Sin
+  # esto el test pasaría por no haber puesto nunca la facultad problemática.
+  fac_c <- .apch_row(frame$alumnos_por_ch, "fac_c")
+  expect_identical(as.numeric(fac_c$elegible$n_ch), 0)
+
+  # Los componentes declaran solo A y B, que es lo único muestreable.
+  resuelto <- calc_muestra_alumnos_por_ch_resolver_estudio(.apch_study(), frame)
+  expect_false(inherits(resuelto, "api_error"))
+  expect_true(is.list(resuelto$estudio))
+
+  # Y la cobertura sigue siendo exigente sobre lo que SÍ es muestreable.
+  incompleto <- .apch_capture_error(calc_muestra_alumnos_por_ch_resolver_estudio(
+    local({
+      study <- .apch_study()
+      study$componentes <- lapply(study$componentes, function(component) {
+        component$marco$estratos <- component$marco$estratos[1]
+        component
+      })
+      study
+    }),
+    frame
+  ))
+  expect_s3_class(incompleto, "api_error")
+  expect_identical(unlist(incompleto$details$faltantes), "fac_b")
+})
+
 test_that("divisor decidido, usado y auditado conserva exactamente su valor", {
   frame <- .apch_frame()
   frame$aula_frame$eligible_n <- c(30, 45, 60, 40, 50)
