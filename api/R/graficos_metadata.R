@@ -158,7 +158,12 @@
     descripcion   = "Primera lámina del reporte, con el título principal, subtítulo, fecha y un texto descriptivo.",
     icono_ui      = "FileText",
     categoria     = "estructural",
-    slots         = character(0),
+    blueprint     = list(
+      kind = "cover",
+      ppt_layout = "Title Slide",
+      structure_label = "Portada editorial"
+    ),
+    slot_specs    = list(),
     args = list(
       list(name = "titulo",    label = "Título principal",   tipo_input = "string",   grupo = "textos",
            descripcion = "El título grande que aparece en la tapa del reporte."),
@@ -176,7 +181,12 @@
     descripcion   = "Tabla de contenidos del reporte. Puede usar el layout de la plantilla o un índice limpio generado desde Prosecnur.",
     icono_ui      = "List",
     categoria     = "estructural",
-    slots         = character(0),
+    blueprint     = list(
+      kind = "index",
+      ppt_layout = "Indice",
+      structure_label = "Índice editorial"
+    ),
+    slot_specs    = list(),
     args = list(
       list(
         name = "titulo",
@@ -204,7 +214,7 @@
         label = "Subíndices por sección",
         tipo_input = "textarea",
         grupo = "textos",
-        descripcion = "Opcional. Use una línea por subtema con el formato 'Sección: subtema' para asociarlo a una sección específica."
+        descripcion = "Opcional. Usa una línea por subtema con el formato 'Sección: subtema' para asociarlo a una sección específica."
       ),
       list(
         name = "iconos_focos",
@@ -219,7 +229,7 @@
         tipo_input = "bool",
         grupo = "espacio",
         default = FALSE,
-        descripcion = "Úselo solo si la plantilla no trae focos. Por defecto conserva los focos originales y limpia solo los íconos previos."
+        descripcion = "Úsalo solo si la plantilla no trae focos. Por defecto conserva los focos originales y limpia solo los íconos previos."
       ),
       list(
         name = "mostrar_iconos_focos",
@@ -315,7 +325,12 @@
     descripcion   = "Lámina explicativa reutilizable para mostrar cómo se calcula Top Two Box con barra, llave, flecha y leyenda.",
     icono_ui      = "BarChart3",
     categoria     = "estructural",
-    slots         = character(0),
+    blueprint     = list(
+      kind = "topTwo",
+      ppt_layout = "Title and Content",
+      structure_label = "Explicación visual"
+    ),
+    slot_specs    = list(),
     args = list(
       list(name = "titulo", label = "Título", tipo_input = "string", grupo = "textos",
            descripcion = "Título principal de la lámina."),
@@ -366,7 +381,12 @@
     descripcion   = "Lámina de transición entre bloques grandes del reporte. Muestra solo el título de la sección.",
     icono_ui      = "Bookmark",
     categoria     = "estructural",
-    slots         = character(0),
+    blueprint     = list(
+      kind = "section",
+      ppt_layout = "Section Header",
+      structure_label = "Separador editorial"
+    ),
+    slot_specs    = list(),
     args = list(
       list(name = "titulo",             label = "Título de la sección", tipo_input = "string",   grupo = "textos",
            descripcion = "Nombre del bloque que empieza (ej. 'Satisfacción con el servicio')."),
@@ -382,7 +402,14 @@
     descripcion   = "Bloque de texto con un ícono grande al costado. Útil para enunciar objetivos o hallazgos clave.",
     icono_ui      = "Target",
     categoria     = "estructural",
-    slots         = "icono",
+    blueprint     = list(
+      kind = "objective",
+      ppt_layout = "Objetivos_Secciones",
+      structure_label = "Texto con ícono"
+    ),
+    slot_specs    = list(
+      icono = list(role = "icon", label = "Ícono")
+    ),
     args = list(
       list(name = "icono",  label = "Ícono",      tipo_input = "icono",    grupo = "textos",
            descripcion = "PNG decorativo que aparece al lado del texto. Debes haberlo subido antes en 'Iconos'."),
@@ -398,7 +425,12 @@
     descripcion   = "Lámina solo con texto: título + párrafo + bullets opcionales. Útil para conclusiones o metodología.",
     icono_ui      = "Type",
     categoria     = "estructural",
-    slots         = character(0),
+    blueprint     = list(
+      kind = "text",
+      ppt_layout = "Title and Content",
+      structure_label = "Texto editorial"
+    ),
+    slot_specs    = list(),
     args = list(
       list(name = "titulo",  label = "Título",     tipo_input = "string",   grupo = "textos"),
       list(name = "texto",   label = "Párrafo",    tipo_input = "textarea", grupo = "textos",
@@ -415,7 +447,12 @@
     descripcion   = "Slide con una tabla editorial (ej. ficha técnica del estudio, parámetros, metodología).",
     icono_ui      = "Table",
     categoria     = "estructural",
-    slots         = character(0),
+    blueprint     = list(
+      kind = "technical",
+      ppt_layout = "Title and Content",
+      structure_label = "Tabla editorial"
+    ),
+    slot_specs    = list(),
     args = list(
       list(name = "titulo", label = "Título de la tabla", tipo_input = "string",   grupo = "textos"),
       list(name = "filas",  label = "Filas",              tipo_input = "technical_rows", grupo = "datos",
@@ -431,7 +468,14 @@
     descripcion   = "Lámina estándar con un solo gráfico grande al centro y encabezados arriba/abajo.",
     icono_ui      = "BarChart2",
     categoria     = "1grafico",
-    slots         = "grafico",
+    blueprint     = list(
+      kind = "single",
+      ppt_layout = "Graficos",
+      structure_label = "Gráfico principal"
+    ),
+    slot_specs    = list(
+      grafico = list(role = "chart", label = "Gráfico principal")
+    ),
     # Sin `etiqueta`: el constructor no la acepta (el puente la descartaba).
     args = c(.args_slide_titulos_base(c("titulo", "base", "pie")), list(
       list(name = "subtitulo", label = "Subtítulo", tipo_input = "string", grupo = "textos",
@@ -444,7 +488,14 @@
     descripcion   = "Gráfico central con un bloque de texto narrativo arriba. Útil para guiar la lectura.",
     icono_ui      = "AlignLeft",
     categoria     = "1grafico",
-    slots         = "grafico",
+    blueprint     = list(
+      kind = "singleNarrative",
+      ppt_layout = "1_Grafico_narrativo",
+      structure_label = "Narrativa + gráfico"
+    ),
+    slot_specs    = list(
+      grafico = list(role = "chart", label = "Gráfico principal")
+    ),
     args = c(list(
       list(name = "texto", label = "Texto narrativo", tipo_input = "textarea", grupo = "textos",
            descripcion = "Párrafo de 2-4 líneas que introduce o interpreta el gráfico.")
@@ -456,7 +507,14 @@
     descripcion   = "Gráfico a la izquierda, bloque de texto a la derecha. Ideal para hallazgos o recomendaciones junto a la evidencia.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "1grafico",
-    slots         = "grafico",
+    blueprint     = list(
+      kind = "splitRight",
+      ppt_layout = "right_grafico_texto",
+      structure_label = "Gráfico + texto"
+    ),
+    slot_specs    = list(
+      grafico = list(role = "chart", label = "Gráfico principal")
+    ),
     args = c(list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos")
     ), .args_slide_titulos_base())
@@ -467,7 +525,14 @@
     descripcion   = "Texto a la izquierda, gráfico a la derecha. Útil cuando quieres que el mensaje se lea antes del gráfico.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "1grafico",
-    slots         = "grafico",
+    blueprint     = list(
+      kind = "splitLeft",
+      ppt_layout = "left_grafico_texto",
+      structure_label = "Texto + gráfico"
+    ),
+    slot_specs    = list(
+      grafico = list(role = "chart", label = "Gráfico principal")
+    ),
     args = c(list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos")
     ), .args_slide_titulos_base())
@@ -480,7 +545,15 @@
     descripcion   = "Dos gráficos lado a lado, mismo tamaño. Útil para comparaciones directas.",
     icono_ui      = "Columns2",
     categoria     = "2graficos",
-    slots         = c("izquierda", "derecha"),
+    blueprint     = list(
+      kind = "two",
+      ppt_layout = "Graficos_2columnas",
+      structure_label = "Dos columnas"
+    ),
+    slot_specs    = list(
+      izquierda = list(role = "chart", label = "Izquierda"),
+      derecha = list(role = "chart", label = "Derecha")
+    ),
     # Sin `etiqueta`: el constructor no la acepta (el puente la descartaba).
     args = .args_slide_titulos_base(c("titulo", "base", "pie"))
   ),
@@ -490,7 +563,15 @@
     descripcion   = "Dos gráficos con un bloque de texto narrativo arriba.",
     icono_ui      = "AlignLeft",
     categoria     = "2graficos",
-    slots         = c("izquierda", "derecha"),
+    blueprint     = list(
+      kind = "twoNarrative",
+      ppt_layout = "1_Graficos_2columnas_narrativo",
+      structure_label = "Narrativa + comparación"
+    ),
+    slot_specs    = list(
+      izquierda = list(role = "chart", label = "Izquierda"),
+      derecha = list(role = "chart", label = "Derecha")
+    ),
     args = c(list(
       list(name = "texto", label = "Texto narrativo", tipo_input = "textarea", grupo = "textos")
     ), .args_slide_titulos_base())
@@ -501,7 +582,15 @@
     descripcion   = "Los dos gráficos a la derecha y un bloque de texto a la izquierda.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "2graficos",
-    slots         = c("grafico_1", "grafico_2"),
+    blueprint     = list(
+      kind = "twoTextLeft",
+      ppt_layout = "left_2graficos_texto",
+      structure_label = "Texto + dos gráficos"
+    ),
+    slot_specs    = list(
+      grafico_1 = list(role = "chart", label = "Gráfico superior"),
+      grafico_2 = list(role = "chart", label = "Gráfico inferior")
+    ),
     args = c(list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos")
     ), .args_slide_titulos_base())
@@ -512,7 +601,15 @@
     descripcion   = "Los dos gráficos a la izquierda y un bloque de texto a la derecha.",
     icono_ui      = "LayoutPanelLeft",
     categoria     = "2graficos",
-    slots         = c("grafico_1", "grafico_2"),
+    blueprint     = list(
+      kind = "twoTextRight",
+      ppt_layout = "right_2graficos_texto",
+      structure_label = "Dos gráficos + texto"
+    ),
+    slot_specs    = list(
+      grafico_1 = list(role = "chart", label = "Gráfico superior"),
+      grafico_2 = list(role = "chart", label = "Gráfico inferior")
+    ),
     args = c(list(
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos")
     ), .args_slide_titulos_base())
@@ -525,7 +622,17 @@
     descripcion   = "Grid 2×2 con cuatro gráficos compactos. Ideal para ver varias dimensiones en paralelo.",
     icono_ui      = "LayoutGrid",
     categoria     = "4graficos",
-    slots         = c("superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"),
+    blueprint     = list(
+      kind = "grid4",
+      ppt_layout = "4_paneles",
+      structure_label = "Matriz 2 × 2"
+    ),
+    slot_specs    = list(
+      superior_izquierda = list(role = "chart", label = "Superior izquierda"),
+      superior_derecha = list(role = "chart", label = "Superior derecha"),
+      inferior_izquierda = list(role = "chart", label = "Inferior izquierda"),
+      inferior_derecha = list(role = "chart", label = "Inferior derecha")
+    ),
     # Sin `etiqueta`: el layout 4_paneles no tiene placeholder y el motor la
     # ignora explícitamente (reporte_plan_ppt.R, bloque paneles_4).
     args = .args_slide_titulos_base(c("titulo", "base", "pie"))
@@ -538,7 +645,16 @@
     descripcion   = "Dos gráficos con un ícono grande al centro. Usado para láminas de perfil poblacional.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
-    slots         = c("izquierda", "derecha", "icono"),
+    blueprint     = list(
+      kind = "population2",
+      ppt_layout = "poblacion_2",
+      structure_label = "Dos gráficos + ícono"
+    ),
+    slot_specs    = list(
+      izquierda = list(role = "chart", label = "Izquierda"),
+      derecha = list(role = "chart", label = "Derecha"),
+      icono = list(role = "icon", label = "Ícono central")
+    ),
     # Sin `pie`/`etiqueta` (el constructor no los acepta); con `texto`, que el
     # constructor sí renderiza bajo el título y no tenía superficie.
     args = c(.args_slide_poblacion_basico(c("titulo", "icono", "base")), list(
@@ -552,7 +668,18 @@
     descripcion   = "Grid 2×2 con ícono central, típico para slides demográficas.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
-    slots         = c("superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha", "icono"),
+    blueprint     = list(
+      kind = "population4",
+      ppt_layout = "poblacion_4",
+      structure_label = "Matriz 2 × 2 + ícono"
+    ),
+    slot_specs    = list(
+      superior_izquierda = list(role = "chart", label = "Superior izquierda"),
+      superior_derecha = list(role = "chart", label = "Superior derecha"),
+      inferior_izquierda = list(role = "chart", label = "Inferior izquierda"),
+      inferior_derecha = list(role = "chart", label = "Inferior derecha"),
+      icono = list(role = "icon", label = "Ícono central")
+    ),
     # Sin `pie`/`etiqueta`: el constructor no los acepta (el puente los descartaba).
     args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
   ),
@@ -562,8 +689,19 @@
     descripcion   = "Tres gráficos arriba + dos abajo, con ícono central. Diseñado para caracterizar poblaciones con muchas dimensiones.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
-    slots         = c("grafico_superior_1", "grafico_superior_2", "grafico_superior_3",
-                      "grafico_inferior_1", "grafico_inferior_2", "icono"),
+    blueprint     = list(
+      kind = "population5",
+      ppt_layout = "poblacion_5",
+      structure_label = "Matriz 3 + 2 + ícono"
+    ),
+    slot_specs    = list(
+      grafico_superior_1 = list(role = "chart", label = "Superior izquierda"),
+      grafico_superior_2 = list(role = "chart", label = "Superior centro"),
+      grafico_superior_3 = list(role = "chart", label = "Superior derecha"),
+      grafico_inferior_1 = list(role = "chart", label = "Inferior izquierda"),
+      grafico_inferior_2 = list(role = "chart", label = "Inferior centro"),
+      icono = list(role = "icon", label = "Ícono central")
+    ),
     # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
     # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
     args = .args_slide_poblacion_basico(c("titulo", "icono", "pie"))
@@ -574,13 +712,33 @@
     descripcion   = "Grid 3×2 con ícono central, la lámina más densa de población.",
     icono_ui      = "UsersRound",
     categoria     = "poblacion",
-    slots         = c("grafico_superior_1", "grafico_superior_2", "grafico_superior_3",
-                      "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3", "icono"),
+    blueprint     = list(
+      kind = "population6",
+      ppt_layout = "poblacion_6",
+      structure_label = "Matriz 3 × 2 + ícono"
+    ),
+    slot_specs    = list(
+      grafico_superior_1 = list(role = "chart", label = "Superior izquierda"),
+      grafico_superior_2 = list(role = "chart", label = "Superior centro"),
+      grafico_superior_3 = list(role = "chart", label = "Superior derecha"),
+      grafico_inferior_1 = list(role = "chart", label = "Inferior izquierda"),
+      grafico_inferior_2 = list(role = "chart", label = "Inferior centro"),
+      grafico_inferior_3 = list(role = "chart", label = "Inferior derecha"),
+      icono = list(role = "icon", label = "Ícono central")
+    ),
     # Sin `base` (el constructor no la acepta; el pie de lámina es `pie`) y
     # sin `etiqueta` (formal aceptado pero jamás dibujado — render P8).
     args = .args_slide_poblacion_basico(c("titulo", "icono", "pie"))
   )
 )
+
+# `slot_specs` es la única autoría de slots. Conservamos `slots` derivado para
+# consumidores legacy del metadata interno y para el validador del builder.
+.SLIDES_META <- lapply(.SLIDES_META, function(meta) {
+  slot_names <- names(meta$slot_specs)
+  meta$slots <- if (is.null(slot_names)) character(0) else as.character(slot_names)
+  meta
+})
 
 # ===========================================================================
 # GRAFICADORES
@@ -594,6 +752,8 @@
     titulo_humano = "Barras agrupadas",
     descripcion   = "Barras horizontales o verticales, una por categoría. Si hay cruce, las barras se agrupan por grupo. Útil para comparar porcentajes de una variable entre segmentos.",
     icono_ui      = "BarChartHorizontal",
+    categoria     = "distribution",
+    blueprint     = "bars-grouped",
     args = c(list(
       list(name = "var",    label = "Variable",   tipo_input = "variable",     grupo = "datos",
            descripcion = "La pregunta que quieres graficar."),
@@ -658,6 +818,8 @@
     titulo_humano = "Barras categóricas",
     descripcion   = "Barras verticales para pocas categorías (máximo 10), con un color propio por categoría. Útil para puntajes o distribuciones simples que necesitan una lectura más cuidada.",
     icono_ui      = "ChartColumn",
+    categoria     = "distribution",
+    blueprint     = "bars-categorical",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
            descripcion = "Pregunta categórica que quieres resumir como barras de color por categoría."),
@@ -723,6 +885,8 @@
     titulo_humano = "Barras apiladas",
     descripcion   = "Barras donde cada segmento es una categoría de respuesta. Suma 100% por fila. Ideal para escalas Likert (satisfacción, acuerdo, etc.).",
     icono_ui      = "BarChartBig",
+    categoria     = "distribution",
+    blueprint     = "bars-stacked",
     args = c(list(
       list(name = "var",    label = "Variable",    tipo_input = "variable",     grupo = "datos",
            descripcion = "Variable categórica, típicamente de escala (Likert)."),
@@ -737,6 +901,8 @@
     titulo_humano = "Multi-apiladas",
     descripcion   = "Varias barras apiladas en un solo gráfico. Perfecto para comparar preguntas con la misma escala de respuesta.",
     icono_ui      = "Rows3",
+    categoria     = "distribution",
+    blueprint     = "bars-multi-stacked",
     args = c(list(
       # Mismas palabras que el constructor de multi-apiladas
       # (`MultiApiladasBuilder.tsx`): dos vocabularios para la misma decisión
@@ -777,6 +943,8 @@
     titulo_humano = "Nube de palabras",
     descripcion   = "Nube visual de términos frecuentes en respuestas abiertas. Útil para campos Otro/Otros y comentarios breves.",
     icono_ui      = "Cloud",
+    categoria     = "text",
+    blueprint     = "word-cloud",
     args = c(list(
       list(name = "var", label = "Variable de texto", tipo_input = "variable", grupo = "datos",
            descripcion = "Campo abierto que se usará para tokenizar las respuestas."),
@@ -793,6 +961,8 @@
     titulo_humano = "Mapa de cobertura territorial",
     descripcion   = "Mapa distrital con zonas de aplicación. Disponible cuando el proyecto tiene Hojas de Ruta y Monitoreo territorial.",
     icono_ui      = "Map",
+    categoria     = "territory",
+    blueprint     = "territory-map",
     requisito     = "territorial_coverage",
     feature_kind  = "territorial_coverage",
     args = list(
@@ -819,6 +989,8 @@
     titulo_humano = "Gráfico de torta",
     descripcion   = "Pie chart clásico con porcentajes. Útil para variables con pocas categorías.",
     icono_ui      = "PieChart",
+    categoria     = "distribution",
+    blueprint     = "pie",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
       list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
@@ -832,6 +1004,8 @@
     titulo_humano = "Gráfico de dona",
     descripcion   = "Variante compacta del pie, con un hueco al centro. Usado en grids densas.",
     icono_ui      = "CircleDot",
+    categoria     = "distribution",
+    blueprint     = "donut",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos"),
       list(name = "top_k", label = "Top K + Otros", tipo_input = "number", grupo = "filtro",
@@ -845,6 +1019,8 @@
     titulo_humano = "Indicador numérico",
     descripcion   = "Cifra grande (media, mediana, N, %) cruzada opcionalmente por un segmento. Ideal para KPIs.",
     icono_ui      = "Hash",
+    categoria     = "numeric",
+    blueprint     = "numeric",
     args = c(list(
       list(name = "var",     label = "Variable",    tipo_input = "variable_opt", grupo = "datos"),
       list(name = "metrica", label = "Métrica",     tipo_input = "choice",       grupo = "filtro",
@@ -866,6 +1042,8 @@
     titulo_humano = "Histograma",
     descripcion   = "Distribución de una variable numérica por intervalos. Puede apilar cada intervalo por un grupo, como sexo o sede.",
     icono_ui      = "ChartColumnStacked",
+    categoria     = "numeric",
+    blueprint     = "histogram",
     args = c(list(
       list(name = "var",   label = "Variable numérica", tipo_input = "variable",     grupo = "datos",
            descripcion = "Variable continua o discreta que se agrupará en intervalos."),
@@ -955,6 +1133,8 @@
     titulo_humano = "Box plot",
     descripcion   = "Caja con cuartiles y bigotes. Muestra la distribución de una variable numérica, opcionalmente por grupos.",
     icono_ui      = "BoxSelect",
+    categoria     = "numeric",
+    blueprint     = "boxplot",
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
@@ -975,6 +1155,8 @@
     titulo_humano = "Media y rango",
     descripcion   = "Puntos o burbujas con el promedio de una variable, uno por grupo. Opcional: barras de rango (min-max, IQR).",
     icono_ui      = "Activity",
+    categoria     = "numeric",
+    blueprint     = "mean-range",
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
@@ -999,8 +1181,10 @@
 
   p_radar = list(
     titulo_humano = "Radar",
-    descripcion   = "Gráfico radar (telaraña) sin tabla al costado. Ocupa todo el placeholder. Ideal cuando querés la tabla en otro slot o no la necesitás.",
+    descripcion   = "Gráfico radar (telaraña) sin tabla al costado. Ocupa todo el espacio disponible. Adecuado cuando la tabla va en otro espacio o no se necesita.",
     icono_ui      = "Radar",
+    categoria     = "comparison",
+    blueprint     = "radar",
     args = c(list(
       list(name = "modo",         label = "Qué compara el radar", tipo_input = "choice",         grupo = "datos",
            descripcion = "Decide qué es un eje y qué es una línea. Los campos de abajo cambian según lo que elijas.",
@@ -1093,6 +1277,8 @@
     titulo_humano = "Tabla",
     descripcion   = "Tabla de Top-Two-Box (o indicadores agregados) sin el radar al costado. Útil para acompañar un radar colocado en otro slot, o como resumen ejecutivo suelto.",
     icono_ui      = "Table",
+    categoria     = "comparison",
+    blueprint     = "table",
     args = c(list(
       list(name = "modo",         label = "Qué resume la tabla",  tipo_input = "choice",         grupo = "datos",
            choices = list(
@@ -1123,6 +1309,8 @@
     titulo_humano = "Radar por dimensiones",
     descripcion   = "Radar que compara el puntaje de varias dimensiones (subíndices o indicadores). Requiere haber calculado las dimensiones primero.",
     icono_ui      = "Radar",
+    categoria     = "dimensions",
+    blueprint     = "dimension-radar",
     requisito     = "dimensiones",
     args = c(list(
       list(name = "modo",      label = "Nivel",       tipo_input = "choice",       grupo = "datos",
@@ -1149,6 +1337,8 @@
     titulo_humano = "Heatmap de dimensiones",
     descripcion   = "Mapa de calor con filas = dimensiones y columnas = grupos del cruce. Celdas coloreadas por puntaje.",
     icono_ui      = "LayoutGrid",
+    categoria     = "dimensions",
+    blueprint     = "dimension-heatmap",
     requisito     = "dimensiones",
     args = c(list(
       list(name = "modo",      label = "Nivel",      tipo_input = "choice",       grupo = "datos",
@@ -1191,6 +1381,8 @@
     titulo_humano = "Radar + barras comparativo",
     descripcion   = "Radar con barras al lado, comparando dos o más grupos en un mismo lienzo. Ideal para reportes ejecutivos.",
     icono_ui      = "Activity",
+    categoria     = "dimensions",
+    blueprint     = "dimension-radar-bars",
     requisito     = "dimensiones",
     args = c(list(
       list(name = "modo",           label = "Nivel",           tipo_input = "choice",       grupo = "datos",
@@ -1214,6 +1406,8 @@
     titulo_humano = "Matriz FODA dimensional",
     descripcion   = "Matriz 2×2 o dispersión estilo FODA (fortalezas, oportunidades, debilidades, amenazas) sobre indicadores. Altamente personalizable.",
     icono_ui      = "Grid3X3",
+    categoria     = "dimensions",
+    blueprint     = "dimension-foda",
     requisito     = "dimensiones",
     args = c(list(
       list(name = "nivel",     label = "Nivel de análisis", tipo_input = "choice",       grupo = "datos",
@@ -1248,6 +1442,8 @@
     titulo_humano = "Heatmap por criterios",
     descripcion   = "Heatmap agrupado por criterios temáticos definidos en la config de dimensiones.",
     icono_ui      = "LayoutGrid",
+    categoria     = "dimensions",
+    blueprint     = "dimension-criteria-heatmap",
     requisito     = "dimensiones",
     args = c(list(
       list(name = "config_criterios", label = "Criterios", tipo_input = "criteria_config", grupo = "datos",
@@ -4072,6 +4268,20 @@
 # API helpers
 # ===========================================================================
 
+# Convierte la lista nombrada autoritativa a la forma de array que viaja por
+# JSON. El nombre del slot proviene siempre de la key, nunca de una copia.
+.slide_slot_specs_payload <- function(slot_specs) {
+  if (length(slot_specs) == 0L) return(list())
+  lapply(names(slot_specs), function(name) {
+    spec <- slot_specs[[name]]
+    list(
+      name = as.character(name),
+      role = as.character(spec$role),
+      label = as.character(spec$label)
+    )
+  })
+}
+
 # Devuelve el metadata completo de un slide por nombre (o NULL si no existe).
 .slide_meta <- function(name) .SLIDES_META[[name]]
 
@@ -4109,6 +4319,7 @@
   )
   slides <- lapply(names(.SLIDES_META), function(nm) {
     meta <- .SLIDES_META[[nm]]
+    slot_specs <- .slide_slot_specs_payload(meta$slot_specs)
     # Recuperar formals reales de la función de prosecnur para documentar
     # args que no estén en la lista curada (todos los args técnicos viven
     # en `args_extra`).
@@ -4122,7 +4333,13 @@
       descripcion   = as.character(meta$descripcion %||% ""),
       icono_ui      = as.character(meta$icono_ui %||% "FileText"),
       categoria     = as.character(meta$categoria %||% "otro"),
-      slots         = as.list(meta$slots %||% character(0)),
+      blueprint     = list(
+        kind = as.character(meta$blueprint$kind),
+        ppt_layout = as.character(meta$blueprint$ppt_layout),
+        structure_label = as.character(meta$blueprint$structure_label)
+      ),
+      slot_specs    = slot_specs,
+      slots         = lapply(slot_specs, function(spec) spec$name),
       args          = .normalize_args_for_ui(meta$args %||% list()),
       args_extra    = as.list(args_extra)
     )
@@ -4146,6 +4363,8 @@
       titulo_humano = as.character(meta$titulo_humano %||% nm),
       descripcion   = as.character(meta$descripcion %||% ""),
       icono_ui      = as.character(meta$icono_ui %||% "BarChart"),
+      categoria     = as.character(meta$categoria),
+      blueprint     = as.character(meta$blueprint),
       requisito     = requisito,
       feature_kind  = feature_kind,
       available     = available,

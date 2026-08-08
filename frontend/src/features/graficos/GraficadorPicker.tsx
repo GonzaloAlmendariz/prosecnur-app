@@ -112,7 +112,7 @@ export default function GraficadorPicker({
       FAMILY_ORDER.map((familyName) => [familyName, 0]),
     ) as Record<GraficadorFamily, number>;
     counts.all = inventory.length;
-    for (const graf of inventory) counts[graficadorFamily(graf)] += 1;
+    for (const graf of inventory) counts[graficadorCategory(graf)] += 1;
     return counts;
   }, [inventory]);
 
@@ -124,7 +124,7 @@ export default function GraficadorPicker({
   const filteredGraficadores = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("es");
     return inventory.filter((graf) => {
-      if (family !== "all" && graficadorFamily(graf) !== family) return false;
+      if (family !== "all" && graficadorCategory(graf) !== family) return false;
       if (!normalizedQuery) return true;
       const searchable = [
         graf.name,
@@ -157,7 +157,7 @@ export default function GraficadorPicker({
   function chooseFamily(nextFamily: GraficadorFamily) {
     setFamily(nextFamily);
     const firstInFamily = inventory.find(
-      (graf) => nextFamily === "all" || graficadorFamily(graf) === nextFamily,
+      (graf) => nextFamily === "all" || graficadorCategory(graf) === nextFamily,
     );
     if (firstInFamily) setSelectedName(firstInFamily.name);
   }
@@ -418,7 +418,7 @@ export default function GraficadorPicker({
                   />
                 )}
                 {filteredGraficadores.map((graf, index) => {
-                  const grafFamily = graficadorFamily(graf);
+                  const grafFamily = graficadorCategory(graf);
                   const selected = selectedGraf?.name === graf.name;
                   const canInsert = canInsertGraficador(graf, dimOk);
                   const canCommit = onPick !== undefined && canInsert;
@@ -451,7 +451,7 @@ export default function GraficadorPicker({
                           <span>{graficadorAvailabilityLabel(graf, dimOk, !onPick)}</span>
                         </span>
                         <GraficadorBlueprint
-                          name={graf.name}
+                          blueprint={graf.blueprint}
                           iconoUi={graf.icono_ui}
                           variant="card"
                         />
@@ -533,7 +533,7 @@ function GraficadorInspector({
     );
   }
 
-  const family = graficadorFamily(graf);
+  const family = graficadorCategory(graf);
   const FamilyIcon = FAMILY_META[family].Icon;
   const canInsert = onInsert !== undefined && canInsertGraficador(graf, dimOk);
   const usefulArgs = graf.args.filter((arg) => arg.label.trim().length > 0).slice(0, 4);
@@ -570,7 +570,7 @@ function GraficadorInspector({
           data-qa-geometry-capacity="owned"
         >
           <GraficadorBlueprint
-            name={graf.name}
+            blueprint={graf.blueprint}
             iconoUi={graf.icono_ui}
             variant="hero"
             label={`Vista previa de ${graf.titulo_humano}`}
@@ -709,39 +709,11 @@ function LibraryState({
   );
 }
 
-function graficadorFamily(graf: GraficadorMetadata): Exclude<GraficadorFamily, "all"> {
-  switch (graf.name) {
-    case "p_barras_agrupadas":
-    case "p_barras_categoricas":
-    case "p_barras_apiladas":
-    case "p_barras_multiapiladas":
-    case "p_pie":
-    case "p_donut":
-      return "distribution";
-    case "p_numerico":
-    case "p_histograma":
-    case "p_boxplot":
-    case "p_media_rango":
-      return "numeric";
-    case "p_radar":
-    case "p_tabla":
-      return "comparison";
-    case "p_nube_palabras":
-      return "text";
-    case "p_dim_radar":
-    case "p_dim_heatmap":
-    case "p_dim_comparativo_radarbar":
-    case "p_dim_foda":
-    case "p_dim_heatmap_criterios":
-      return "dimensions";
-    case "p_mapa_cobertura_territorial":
-      return "territory";
-    default:
-      return "other";
-  }
+function graficadorCategory(graf: GraficadorMetadata): Exclude<GraficadorFamily, "all"> {
+  return graf.categoria ?? "other";
 }
 
-function canInsertGraficador(graf: GraficadorMetadata, dimOk: boolean): boolean {
+export function canInsertGraficador(graf: GraficadorMetadata, dimOk: boolean): boolean {
   return graf.available !== false && !(graf.requisito === "dimensiones" && !dimOk);
 }
 

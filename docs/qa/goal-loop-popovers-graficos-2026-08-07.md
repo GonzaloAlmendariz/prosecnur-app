@@ -152,9 +152,10 @@ la reconfiguración grande.
 | **L1 · Reconfiguración del SlidePicker** | Anatomía única de tile con miniatura blueprint para TODAS las familias (editoriales incluidas); grilla de altura estable; miniatura card = hero (B1, B2); inserter «insertar y seguir» + Enter + flechas (B6, B10); inspector con preview fiel y slots con significado (B3, B4); focus trap (B7); CSS en hoja nueva | V1–V5 | **hecho · I1** |
 | **L2 · Paridad del GraficadorPicker** | Misma gramática que L1; miniaturas de forma de gráfico; descripciones completas sin truncar; camino a dimensiones (B11, B12, B14, B15) | V1, V3, V8 | **hecho · I2** |
 | **L3 · Direccionabilidad + a11y compartida** | `usePanelDireccionable` en ambos; helper de focus trap común; QA puede abrirlos por URL (B7, B8) | V5, V6 | **hecho · I3** |
-| **L4 · Verdad del registry** | Conteos y subtítulos derivados (B5); blueprints desde `slots`/metadata y no desde `includes()` del nombre; barrida de copy del registry (B13 y hermanos); contraste blueprint↔layout PPT real con `officer::layout_properties()` | V2, V8 | pendiente |
+| **L4 · Verdad del registry** | Conteos y subtítulos derivados (B5); blueprints desde `slots`/metadata y no desde `includes()` del nombre; barrida de copy del registry (B13 y hermanos); contraste blueprint↔layout PPT real con `officer::layout_properties()` | V2, V8 | **hecho · I4** |
 | **L5 · Degradación y viewports** | Estados vacío/error/sin-resultados/`dimOk=false` en los 5 viewports; matriz con foco en 1024x600 | V7 | pendiente |
 | **L6 · Tests de contrato** | Registry↔picker (todo tipo del registry tiene label, categoría, blueprint), taxonomía, y smoke de teclado (B17) | gate | pendiente |
+| **L7 · Paridad preview↔motor PPT** | Resolver template-aware compartido por preview y renderer; corregir portada, objetivo con ícono, `top_two`, texto/splits y slots poblacionales; matriz parametrizada de los 20 tipos contra la plantilla ACNUR. Se coordina con el loop del motor PPT | V2 | pendiente |
 
 Al vaciar la cola: re-censar (¿tipos nuevos en el registry?, ¿familias
 nuevas?), subir la vara (¿animación/microinteracción?, ¿modo oscuro?,
@@ -191,13 +192,13 @@ Proporcional al diff, siempre con evidencia visual:
 | Criterio | SlidePicker | GraficadorPicker |
 |---|---|---|
 | V1 gramática | ✓ L1 (B1, B9) | ✓ L2 (B11, B15) |
-| V2 verdad registry | ✓ parcial (B2; B5 y contraste PPT → L4) | ✓ parcial (catálogo + blueprint; mapping/PPT → L4) |
+| V2 verdad registry | ✓ parcial L1 + L4 (registry 20/20; paridad PPT real → L7) | ✓ L2 + L4 (registry/blueprint 19/19) |
 | V3 decidibilidad | ✓ L1 (B3, B4) | ✓ L2 (B11, B12, B14) |
 | V4 flujo | ✓ L1 (B6, B10) | — (un solo pick por apertura, aceptable) |
 | V5 accesibilidad | ✓ L1 + I3 (B7) | ✓ L2 + I3 (B7, B16) |
 | V6 direccionable | ✓ I3 (B8) | ✓ I3 (B8) |
 | V7 degradación | parcial (1024x600; estados degradados y matriz completa → L5) | parcial L2 (`dimOk=false`, no-results y 1024; matriz completa → L5) |
-| V8 español | ✓ | ✓ parcial L2 (B15; B13 del registry → L4) |
+| V8 español | ✓ L1 + L4 | ✓ L2 + L4 (B13) |
 
 ## Registro de iteraciones
 
@@ -361,6 +362,80 @@ Proporcional al diff, siempre con evidencia visual:
     `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
     L4–L6 permanecen abiertos y el goal sigue en curso.
 
+- **I4 · 2026-08-08 · L4 Verdad del registry** — El catálogo R pasa a ser la
+  única autoría de orden, conteos, categorías, slots y blueprint para ambas
+  bibliotecas. La iteración se acotó a `graficos_metadata.R` y su test, nueve
+  rutas frontend —ocho modificadas y un contrato nuevo— y este ledger; no
+  tocó CSS, `editor-v2.css`, store, persistencia, `.pulso` ni motor PPT.
+  - **B5 / V2:** SlidePicker sirve exactamente los 20 slides y
+    GraficadorPicker los 19 graficadores del payload, en orden runtime. Las
+    familias observadas son 7/4/4/1/4 en slides y 6/4/2/1/5/1 en
+    graficadores. Desaparecen `CANONICAL_TYPES`, `categoryOf()` en el picker,
+    `SLIDE_GRAF_SLOTS` en el host y los resolvers nombre→familia/forma; loading,
+    error y catálogo vacío no resucitan inventario local.
+  - **Wire R↔TS / C5:** los 20 slides declaran `blueprint` y `slot_specs`; los
+    19 graficadores declaran `categoria` y `blueprint`. `slot_specs` es
+    autoritativo por presencia —incluso `[]`— y `slots` se deriva sólo para
+    compatibilidad con backend viejo. El wire actual contiene 33 roles
+    `chart` y 5 `icon`; `unknown`, `neutral`, `other` y `future` son sentinels
+    exclusivos del frontend. Un slide futuro se puede revisar pero no insertar;
+    un graficador futuro disponible conserva inserción con forma neutral.
+  - **Host / C4–C5:** la revalidación de commit consulta el registry y exige
+    `role=chart`. La QA montada aceptó `chart` y rechazó `icon`, rol futuro
+    normalizado a `unknown` y `slot_specs=[]` aunque `slots=[grafico]`; los
+    rechazos no mutaron el plan. Metadata ausente devuelve `false`, pero se
+    conserva como `INVALID` visual porque sin metadata no existe trigger DOM.
+  - **Blueprint↔PPT real / V2:** la auditoría con `officer` cubrió 20/20 tipos,
+    20/20 mappings y los 18 layouts PPT únicos de la plantilla ACNUR; todos
+    existen. Card y hero comparten resolver y firma para las 20/19 entradas.
+    El contraste, sin embargo, encontró deuda real fuera del alcance de L4:
+    portada con fecha/subtexto fuera de canvas, objetivo con texto e ícono
+    intercambiados y altura cero, preview desconocido para `top_two`, texto y
+    splits descalibrados, y claves/geometría divergentes en las cuatro
+    poblacionales. Por eso V2 de slides sigue parcial y se crea L7; no se
+    presenta `ppt_layout` como fidelidad geométrica.
+  - **B13 / V8:** se revisaron 773 cadenas del registry. El radar cambia
+    `querés/necesitás` por una descripción neutral visible; `Use` y `Úselo`
+    pasan a `Usa` y `Úsalo`. Estas dos últimas formas se acreditan en
+    source/runtime, no como copy visible del popover, porque la biblioteca no
+    renderiza todas las descripciones de argumentos.
+  - **I4.F1 rechazada; I4.F2 acreditada:** la primera entrega reconstruía
+    `ArgMetadata` sin `depende`, anulando 18 reglas de visibilidad del backend.
+    El test causal falló porque `modo=publicos` conservaba `variable_sm`; la
+    reparación tipa y normaliza `depende` escalar/array, preserva las 16 claves
+    válidas y prueba `normalizeGraficosRegistry()` → `argsQueAplican()` para
+    `publicos` y `sm`. El revisor independiente aprobó 18/18 dependencias. Un
+    segundo rechazo por interacción insuficiente quedó cerrado con QA browser
+    literal, sin atribuir esa cobertura a Vitest: L6 debe persistir el smoke.
+  - **Evidencia visual:** BEFORE en
+    `/private/tmp/prosecnur-l4-before-YJBJkt/` (`l4-before-report.json`, SHA-256
+    `c2904b897eca29bcdf8326ee4364f54eb4b31b936f33b3f21d9766ad998d1973`).
+    AFTER en `/private/tmp/prosecnur-l4-after-QJN5lI/`: 4/4 aperturas reales
+    (slides/graficadores × 1440x1000/1024x600), 42 grupos geométricos, 0
+    issues, misses, overflow, scroll jails o errores; reporte focal SHA-256
+    `faa35a056211d8336f663cec7d20bfa08d6e80d9e607da0471d92dff4103f9e2`,
+    runner `f7c9ed1f11899cff53263d5fc657211b66b1b4bdd6b243ad52de66d05feac344`
+    y acta `e778eac6c604e890225ded33e1bfc7308afc58809eac0013e97ed021217109c0`.
+    El slide futuro conservó el mismo hash de plan por Enter, doble clic y CTA;
+    el graficador futuro se insertó con payload exacto y restauró foco a
+    «Cambiar». La copia canónica del proyecto quedó prístina.
+  - **Auditoría PPT:** matriz `/private/tmp/prosecnur-l4-ppt-audit-Z7iloy/matrix-20.csv`
+    (SHA-256 `b2625a7e786768f1cf81a50280113073ac64bbc89f8ad47dadf0989a851c00d1`),
+    plantilla `plantilla_acnur_16_9.pptx` SHA-256
+    `60f18ee74cdefb2767ac24f1cfbfe321486a47132b328ebf9cb65cf487b009bd`,
+    13,3333×7,5 pulgadas, master `Office Theme`.
+  - **Gate final:** backend 47 tests / 1.187
+    expectativas; frontend Gráficos 38 archivos / 202 tests, focal L4 19/19,
+    `pnpm -C frontend typecheck`, build Vite aislado de 1.421 módulos y
+    `git diff --check` verdes; Agentic OS 60/60, sync check/audit sin
+    bloqueantes; revisiones independientes estática, contractual y visual y
+    verificador serial **APROBADAS**. El gate documental global conserva su
+    baseline ajeno de 11 errores/33 warnings —goal aún no enlazado y rutas
+    transitorias de evidencia—, sin divergencia causal de L4.
+    `editor-v2.css` conserva 33.123 líneas y SHA-256
+    `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
+    L5–L7 permanecen abiertos y el goal sigue en curso.
+
 ## Bandeja de decisiones
 
 - ¿«Popover» o toma completa? I1 materializa el supuesto conservador como toma
@@ -371,10 +446,9 @@ Proporcional al diff, siempre con evidencia visual:
   el acento de Procesamiento y se distinguen por icono, etiqueta y composición;
   L2 adoptó la misma regla. Introducir una paleta de familias exigiría
   tokens ratificados por identidad, no aliases locales.
-- ¿El catálogo tiene 19 o 20 graficadores? I2 corrige el censo a los 19 nombres
-  que el registry R y el payload runtime sirven hoy; no se inventa un modelo
-  vigésimo para satisfacer el baseline histórico. L4 debe rastrear si el conteo
-  anterior fue deriva documental o una retirada deliberada.
+- ¿El catálogo tiene 19 o 20 graficadores? Resuelto en I4: registry R, payload
+  y UI coinciden en 19/19; el vigésimo pertenecía al baseline documental y no
+  hay evidencia de una entrada runtime retirada que deba resucitarse.
 - ¿Cómo envuelve el rail compacto? AFTER-2 conserva todo el texto sin clipping,
   pero `overflow-wrap:anywhere` puede partir «Distribución» o «Dimensiones» en
   1024. Recomendación para L5: ensanchar el rail o reservar mejor el count antes
@@ -388,10 +462,26 @@ Proporcional al diff, siempre con evidencia visual:
   conservador de sólo consulta: no inventa un destino ni altera el proyecto.
   Si se necesitara commit direccionable, la recomendación es diseñar un
   parámetro `slot=` validado y no inferir el slot activo.
-- La revalidación de commit usa hoy `SLIDE_GRAF_SLOTS`, la misma verdad estática
-  del editor. L4 debe contrastarla con el registry/runtime y decidir una fuente
-  canónica antes de cambiar el contrato.
-- El test focal de I3 cubre el contrato estructural y el QA en vivo acredita
-  Router, Radix y `requestAnimationFrame`; L6 debe añadir el smoke montado
-  reproducible para que esas carreras no dependan sólo de evidencia manual, e
-  incluir un reemplazo real desde un slot ya poblado.
+- La fuente de slots queda resuelta en I4: `slot_specs` del registry manda por
+  presencia y el host sólo acepta rol `chart`; `slots` existe como fallback de
+  backend viejo, no como segunda autoría.
+- La plantilla ACNUR auditada contiene los 18 layouts referenciados, pero la
+  selección del perfil sigue implícita por nombre/ruta del estudio porque el
+  `.pulso` canónico no persiste `profile_id/template_id`. Recomendación: que el
+  loop del motor PPT cierre esa identidad sin migrar `.pulso` dentro de este
+  goal; el supuesto conservador mantiene la autodetección actual.
+- El contraste real detectó seis familias de deuda preview↔renderer —portada,
+  objetivo, `top_two`, texto, splits y población—. Se acotan en L7 y se
+  coordinan con `goal-loop-motor-ppt-2026-08-03.md`; L4 no modifica el motor ni
+  promete geometría por exponer `ppt_layout`.
+- «Overrides de estilo» aparece una vez y se propaga a 18 graficadores. No es
+  voseo ni un fallo funcional; recomendación para una barrida posterior de V8:
+  evaluar «Ajustes de estilo» con el vocabulario técnico completo, sin un
+  reemplazo aislado en L4.
+- En 1024x600 el rail de graficadores conserva contenido y scroll, pero
+  `overflow-wrap:anywhere` parte palabras como «Distribución» y «Dimensiones».
+  L5 debe resolver la composición compacta y no sólo esconder el quiebre.
+- Los tests de I3/I4 cubren contrato estructural y helpers; la QA browser de I4
+  ejerció Enter, doble clic, CTA, futuro insertable y matriz del host. L6 debe
+  persistir ese smoke montado —incluido reemplazo real desde un slot poblado—
+  para que no dependa sólo de evidencia temporal.
