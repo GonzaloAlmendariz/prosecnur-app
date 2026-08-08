@@ -594,14 +594,8 @@ estudio_init_default_base <- function(sid) {
     .carga_xlsx_register_repeat_bases(sid, parent_base_name = "default")
   }
   carga_universe_filter_reapply(sid, "default", dat_meta$file_id)
-  # Si el XLSForm cargado es exactamente el de una revisión publicada en el
-  # Editor, la base queda ligada a ella y Validación/Analítica pueden leer su
-  # contrato. Se recalcula en cada init porque el par de archivos pudo cambiar.
-  # Es enriquecimiento: una carga válida no puede fallar por esto.
-  tryCatch(instrument_revision_bind_base(sid, "default"),
-           error = function(e) {
-             message("[carga] instrument_revision_bind_base falló: ", conditionMessage(e))
-           })
+  # El enlace con la revisión publicada lo resuelve `estudio_add_base()` /
+  # `estudio_replace_base_files()`, por donde pasan todas las vías de carga.
   invisible(TRUE)
   }, error = function(e) {
     .session_env[[sid]] <- session_before_init
