@@ -138,7 +138,13 @@ test_that("round-trip persistente conserva agregados y strippea contexto/raw", {
     "calc_muestra_aulas_criterios_contexto",
     exact = TRUE
   ))
-  expect_false("unique_student_ids" %in% names(stripped$calc_muestra_aulas_frame$aula_frame))
+  # F114 · la columna SOBREVIVE subrogada. Borrarla apagaba el descuento
+  # secuencial de todo proyecto reabierto; lo que se elimina es la identidad,
+  # no la estructura de traslape que el descuento necesita.
+  ids_guardados <- stripped$calc_muestra_aulas_frame$aula_frame$unique_student_ids
+  expect_true("unique_student_ids" %in% names(stripped$calc_muestra_aulas_frame$aula_frame))
+  expect_false(any(grepl("RAW-STUDENT", ids_guardados, fixed = TRUE)))
+  expect_true(all(grepl("^[0-9|]*$", ids_guardados)))
   expect_identical(
     stripped$calc_muestra_referencia_asistencia$celdas_criterios$schema,
     "calc_muestra_referencia_asistencia_celdas_v1"

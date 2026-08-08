@@ -596,13 +596,52 @@
   # que ya viaja en `files/`: guardarla duplicaria la base dentro del `.pulso`.
   s$calc_muestra_explorador_cache <- NULL
   s$calc_muestra_aulas_criterios_contexto <- NULL
+  # F114 · Los ids de alumno se SUBROGAN, no se borran.
+  #
+  # Borrarlos costaba una función del producto: sin ids no hay traslape que
+  # descontar, así que al reabrir cualquier proyecto el descuento secuencial se
+  # apagaba solo (`applied = FALSE`, `descuento_sin_ids`) y la siguiente
+  # selección corría SIN descontar repetidos. La corrida "tenía éxito" igual —
+  # es el modo silencioso de perder una garantía metodológica. Medido con el
+  # estudio real de HSVG: el marco reconstruido desde el archivo fuente aplica
+  # el descuento; el mismo proyecto reabierto desde su `.pulso`, no.
+  #
+  # Lo que el descuento necesita es la ESTRUCTURA de traslape —qué aulas
+  # comparten alumnos y cuántos—, jamás la identidad. Así que cada id real se
+  # reemplaza por un entero denso asignado por orden de aparición, y el mapa NO
+  # se guarda. Del `.pulso` se puede leer "estas dos aulas comparten 7
+  # alumnos"; no se puede nombrar a ninguno, ni recuperarlo por fuerza bruta,
+  # porque el subrogado no deriva del id (a diferencia de un hash con sal, que
+  # sobre un espacio de códigos de 8 dígitos se invierte en segundos).
+  #
+  # El mapa es ÚNICO para marco y selección: con dos mapas independientes los
+  # subrogados no serían comparables entre tablas y el traslape se perdería
+  # igual, con la agravante de parecer intacto.
+  subrogados <- new.env(parent = emptyenv())
+  contador <- 0L
+  subrogar <- function(columna) {
+    vapply(columna, function(celda) {
+      ids <- .cm_aulas_student_ids(celda)
+      if (!length(ids)) return("")
+      nuevos <- vapply(ids, function(id) {
+        if (!exists(id, envir = subrogados, inherits = FALSE)) {
+          contador <<- contador + 1L
+          assign(id, contador, envir = subrogados)
+        }
+        as.character(get(id, envir = subrogados))
+      }, character(1), USE.NAMES = FALSE)
+      paste(nuevos, collapse = "|")
+    }, character(1), USE.NAMES = FALSE)
+  }
+
   if (!is.null(s$calc_muestra_aulas_frame) && is.list(s$calc_muestra_aulas_frame)) {
     frame <- .pulso_sanitize_calc_muestra_criteria_frame(
       s$calc_muestra_aulas_frame
     )
-    if (is.data.frame(frame$aula_frame) && nrow(frame$aula_frame)) {
-      pii_cols <- intersect(c("unique_student_ids"), names(frame$aula_frame))
-      frame$aula_frame[pii_cols] <- NULL
+    if (is.data.frame(frame$aula_frame) && nrow(frame$aula_frame) &&
+        "unique_student_ids" %in% names(frame$aula_frame)) {
+      frame$aula_frame$unique_student_ids <- subrogar(frame$aula_frame$unique_student_ids)
+      frame$aula_frame$student_ids_policy <- "subrogados_sin_mapa"
     }
     frame$population <- NULL
     frame$population_pool <- NULL
@@ -611,9 +650,10 @@
   }
   if (!is.null(s$calc_muestra_aulas_selection) && is.list(s$calc_muestra_aulas_selection)) {
     selection <- s$calc_muestra_aulas_selection
-    if (is.data.frame(selection$selection) && nrow(selection$selection)) {
-      pii_cols <- intersect(c("unique_student_ids"), names(selection$selection))
-      selection$selection[pii_cols] <- NULL
+    if (is.data.frame(selection$selection) && nrow(selection$selection) &&
+        "unique_student_ids" %in% names(selection$selection)) {
+      selection$selection$unique_student_ids <-
+        subrogar(selection$selection$unique_student_ids)
     }
     s$calc_muestra_aulas_selection <- selection
   }
