@@ -356,6 +356,44 @@
   blockers
 }
 
+# Bases del estudio que están usando una revisión de este formulario.
+#
+# Cierra el lazo que el hub no podía mostrar: publicar dejaba de ser un acto
+# con consecuencia observable. Con esto la tarjeta puede decir "revisión 2 en
+# uso por la base X" en vez de un "Disponible" abstracto, y avisar cuando una
+# base quedó pegada a una revisión anterior.
+.xlsform_revision_bound_bases <- function(s, form_id, latest) {
+  form_id <- as.character(form_id %||% "")[1]
+  if (!nzchar(form_id)) return(list())
+  bases <- ((s %||% list())$estudio %||% list())$bases %||% list()
+  if (!length(bases)) return(list())
+
+  # revision_id → revision_no, solo de las revisiones de este formulario.
+  revisions <- Filter(function(item) {
+    identical(as.character((item %||% list())$form_id %||% "")[1], form_id)
+  }, unname((s %||% list())$instrument_revisions %||% list()))
+  if (!length(revisions)) return(list())
+  by_id <- list()
+  for (revision in revisions) {
+    rid <- as.character(revision$revision_id %||% "")[1]
+    if (nzchar(rid)) by_id[[rid]] <- revision
+  }
+  latest_id <- as.character((latest %||% list())$revision_id %||% "")[1]
+
+  out <- list()
+  for (nombre in names(bases)) {
+    bound_id <- as.character((bases[[nombre]] %||% list())$instrument_revision_id %||% "")[1]
+    if (!nzchar(bound_id) || is.null(by_id[[bound_id]])) next
+    out[[length(out) + 1L]] <- list(
+      base = nombre,
+      revision_id = bound_id,
+      revision_no = as.integer(by_id[[bound_id]]$revision_no %||% 0L),
+      is_latest = nzchar(latest_id) && identical(bound_id, latest_id)
+    )
+  }
+  unname(out)
+}
+
 .xlsform_revision_publication <- function(s, entry) {
   form_id <- as.character(entry$id %||% "")[1]
   draft_hash <- .xlsform_revision_hash(entry$workbook %||% list())
@@ -407,6 +445,7 @@
     latest_revision = latest,
     blockers = blockers,
     warnings = diagnostics$warnings,
+    bound_bases = .xlsform_revision_bound_bases(s, form_id, latest),
     can_publish = !length(blockers) && !identical(status, "published"),
     can_delete = is.null(latest)
   )

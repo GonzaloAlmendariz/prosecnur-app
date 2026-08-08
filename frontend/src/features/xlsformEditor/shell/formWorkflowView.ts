@@ -88,6 +88,16 @@ export function getFormWorkflowView(
           detail: "Asigna a quién responde este instrumento antes de publicarlo.",
         };
 
+  // Qué bases están usando de verdad este instrumento. Es la diferencia entre
+  // "publicaste" y "sirvió": una revisión publicada que ninguna base usa no
+  // está teniendo efecto sobre Procesamiento, y el hub tiene que decirlo.
+  const boundBases = publication.bound_bases ?? [];
+  const basesAlDia = boundBases.filter((bound) => bound.is_latest);
+  const basesAtrasadas = boundBases.filter((bound) => !bound.is_latest);
+  const nombrarBases = (bases: typeof boundBases) => bases
+    .map((bound) => `«${bound.base}»`)
+    .join(", ");
+
   let processing: FormWorkflowStage;
   if (!hasAvailableRevision) {
     processing = {
@@ -95,14 +105,29 @@ export function getFormWorkflowView(
       tone: "neutral",
       detail: "Procesamiento se habilita cuando publiques la primera revisión.",
     };
+  } else if (basesAlDia.length > 0) {
+    processing = {
+      label: basesAlDia.length === 1
+        ? `En uso por ${nombrarBases(basesAlDia)}`
+        : `En uso por ${basesAlDia.length} bases`,
+      tone: "success",
+      detail: basesAtrasadas.length > 0
+        ? `${nombrarBases(basesAtrasadas)} sigue con una revisión anterior; vuelve a cargar ahí el XLSForm de esta.`
+        : `Validación y Analítica leen las decisiones de la revisión ${revisionNo}.`,
+    };
+  } else if (basesAtrasadas.length > 0) {
+    processing = {
+      label: `${nombrarBases(basesAtrasadas)} usa una revisión anterior`,
+      tone: "warning",
+      detail: `Para que tome la revisión ${revisionNo}, exporta el XLSForm y vuelve a cargarlo en Procesamiento.`,
+    };
   } else if (publication.status === "published" && publication.blockers.length === 0) {
     processing = {
-      label: `Disponible · revisión ${revisionNo}`,
-      tone: "success",
-      // La base se liga a esta revisión al cargar en Procesamiento el XLSForm
-      // exportado desde acá — el enlace se hace comparando el instrumento, no
-      // por el nombre del archivo ni por el tipo de estudio.
-      detail: "Carga en Procesamiento el XLSForm exportado de este formulario y la base quedará ligada a esta revisión.",
+      label: `Publicada · revisión ${revisionNo}`,
+      tone: "neutral",
+      // El enlace se hace comparando el instrumento, no por el nombre del
+      // archivo ni por el tipo de estudio.
+      detail: "Ninguna base la usa todavía. Carga en Procesamiento el XLSForm exportado de este formulario para ligarla.",
     };
   } else {
     processing = {

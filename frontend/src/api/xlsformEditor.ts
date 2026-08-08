@@ -41,12 +41,27 @@ export type XlsformInstrumentRevision = {
   published_at: string;
 };
 
+/** Base del estudio que está usando una revisión de este formulario. */
+export type XlsformPublicationBoundBase = {
+  base: string;
+  revision_id: string;
+  revision_no: number;
+  /** Usa la última revisión publicada, no una anterior. */
+  is_latest: boolean;
+};
+
 export type XlsformFormPublication = {
   status: XlsformPublicationStatus;
   draft_content_sha256: string;
   latest_revision: XlsformInstrumentRevision | null;
   blockers: XlsformPublicationDiagnostic[];
   warnings: XlsformPublicationDiagnostic[];
+  /**
+   * Consecuencia observable de publicar. Vacío significa que ninguna base del
+   * estudio está usando todavía este instrumento — publicar sin esto era un
+   * acto sin efecto visible para el usuario.
+   */
+  bound_bases: XlsformPublicationBoundBase[];
   can_publish: boolean;
   can_delete: boolean;
 };
@@ -204,6 +219,20 @@ function normalizeInstrumentRevision(value: unknown): XlsformInstrumentRevision 
   };
 }
 
+function normalizePublicationBoundBase(value: unknown): XlsformPublicationBoundBase | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const v = value as Record<string, unknown>;
+  const base = typeof v.base === "string" ? v.base.trim() : "";
+  if (!base) return null;
+  const revisionNo = Number(v.revision_no);
+  return {
+    base,
+    revision_id: typeof v.revision_id === "string" ? v.revision_id : "",
+    revision_no: Number.isFinite(revisionNo) ? revisionNo : 0,
+    is_latest: v.is_latest === true,
+  };
+}
+
 export function normalizeXlsformFormPublication(value: unknown): XlsformFormPublication {
   const v = value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -238,12 +267,18 @@ export function normalizeXlsformFormPublication(value: unknown): XlsformFormPubl
       ? declaredStatus
       : inferredStatus;
   const canPublishDefault = status !== "published" && status !== "blocked" && Boolean(draftContentSha256);
+  const boundBases = Array.isArray(v.bound_bases)
+    ? v.bound_bases
+      .map(normalizePublicationBoundBase)
+      .filter((item): item is XlsformPublicationBoundBase => item != null)
+    : [];
   return {
     status,
     draft_content_sha256: draftContentSha256,
     latest_revision: latestRevision,
     blockers,
     warnings,
+    bound_bases: boundBases,
     can_publish: typeof v.can_publish === "boolean" ? v.can_publish : canPublishDefault,
     can_delete: typeof v.can_delete === "boolean" ? v.can_delete : latestRevision == null,
   };

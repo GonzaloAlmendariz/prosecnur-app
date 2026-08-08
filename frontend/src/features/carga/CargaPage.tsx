@@ -56,6 +56,7 @@ import { AdaptiveSplitView } from "../../components/AdaptiveSplitView";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
 import { GlidingTabList } from "../../components/GlidingTabList";
 import { BasesPanel } from "./BasesPanel";
+import { InstrumentRevisionBindingNotice } from "./InstrumentRevisionBindingNotice";
 import { EsquemaBaseSelector } from "./EsquemaBaseSelector";
 import { ReconciliacionExtraDialog } from "./ReconciliacionExtraDialog";
 import { summaryLabel as reconSummaryLabel } from "./reconciliacionModel";
@@ -1585,6 +1586,7 @@ export default function CargaPage() {
                   )}
                   <ResumenStat label="Secciones" value={instrumento.n_secciones} />
                   <ResumenStat label="Listas de opciones" value={instrumento.n_listas_opciones} />
+                  <InstrumentRevisionBindingNotice base={estudio?.bases?.default} />
                 </>
               )}
               onPick={(file) => onPick("xlsform", file)}

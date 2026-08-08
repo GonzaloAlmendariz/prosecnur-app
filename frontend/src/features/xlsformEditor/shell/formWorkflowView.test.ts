@@ -11,6 +11,7 @@ function publication(
     latest_revision: null,
     blockers: [],
     warnings: [],
+    bound_bases: [],
     can_publish: true,
     can_delete: true,
     ...overrides,
@@ -105,7 +106,65 @@ describe("getFormWorkflowView", () => {
     }), actors, "docentes_acreditacion");
 
     expect(view.primaryAction).toBe("open");
-    expect(view.processing.label).toBe("Disponible · revisión 2");
+    // Publicada pero sin consumidor: el hito no puede decir "Disponible" como
+    // si Procesamiento ya la estuviera usando.
+    expect(view.processing.label).toBe("Publicada · revisión 2");
+    expect(view.processing.detail).toMatch(/ninguna base la usa todavía/i);
+  });
+
+  test("una revisión en uso nombra la base que la consume", () => {
+    // El lazo que faltaba: publicar era un acto sin consecuencia observable.
+    const view = getFormWorkflowView(publication({
+      status: "published",
+      latest_revision: revision,
+      can_publish: false,
+      can_delete: false,
+      bound_bases: [{
+        base: "default",
+        revision_id: "revision-docentes-2",
+        revision_no: 2,
+        is_latest: true,
+      }],
+    }), actors, "docentes_acreditacion");
+
+    expect(view.processing.label).toBe("En uso por «default»");
+    expect(view.processing.tone).toBe("success");
+  });
+
+  test("una base pegada a una revisión anterior queda advertida", () => {
+    const view = getFormWorkflowView(publication({
+      status: "published",
+      latest_revision: revision,
+      can_publish: false,
+      can_delete: false,
+      bound_bases: [{
+        base: "docentes",
+        revision_id: "revision-docentes-1",
+        revision_no: 1,
+        is_latest: false,
+      }],
+    }), actors, "docentes_acreditacion");
+
+    expect(view.processing.tone).toBe("warning");
+    expect(view.processing.label).toBe("«docentes» usa una revisión anterior");
+    expect(view.processing.detail).toMatch(/revisión 2/);
+  });
+
+  test("con varias bases al día resume el conteo y señala la rezagada", () => {
+    const view = getFormWorkflowView(publication({
+      status: "published",
+      latest_revision: revision,
+      can_publish: false,
+      can_delete: false,
+      bound_bases: [
+        { base: "docentes", revision_id: "revision-docentes-2", revision_no: 2, is_latest: true },
+        { base: "egresados", revision_id: "revision-docentes-2", revision_no: 2, is_latest: true },
+        { base: "piloto", revision_id: "revision-docentes-1", revision_no: 1, is_latest: false },
+      ],
+    }), actors, "docentes_acreditacion");
+
+    expect(view.processing.label).toBe("En uso por 2 bases");
+    expect(view.processing.detail).toMatch(/«piloto» sigue con una revisión anterior/);
   });
 
   test("pending changes preserve the currently available revision", () => {

@@ -56,6 +56,24 @@ export type EstudioBase = {
     positive_choices?: Array<{ name: string; label?: string | null }>;
   }>;
   sibling_family_id?: string | null;
+  /**
+   * Revisión publicada del Editor que explica el instrumento de esta base.
+   * La escribe el backend comparando hashes canónicos: no se fija desde la UI.
+   */
+  instrument_revision_id?: string | null;
+  /**
+   * Resultado del intento de enlace. `no_match` es el caso que hay que
+   * explicar: hay revisiones publicadas pero el XLSForm cargado no es ninguna,
+   * así que las decisiones selladas en el Editor no se están aplicando.
+   */
+  instrument_revision_binding?:
+    | "matched"
+    | "no_match"
+    | "none_published"
+    | "unreadable"
+    | string
+    | null;
+  instrument_revision_binding_detail?: string | null;
   imported_at?: string | null;
   surveymonkey_source_spec?: SurveyMonkeyMultibaseSurveyInput | null;
   surveymonkey_raw_snapshot_file_id?: string | null;
