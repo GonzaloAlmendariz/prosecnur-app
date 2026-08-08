@@ -198,6 +198,79 @@ test_that("el barrido de abiertas redacta contactos sueltos con marcador explici
   expect_true(grepl("para el seguimiento", b$data$observacion[[2]]))
 })
 
+test_that("F111 · una dimension categorica de etiqueta larga no entra al barrido", {
+  # El caso real: `Facultad` tiene 18 niveles en 136,284 filas pero promedia 20
+  # caracteres, y el test de prosa la ascendia por el largo. Un apellido del
+  # estudio que coincide con una palabra del dominio ("COMUN") la destruia, y
+  # como las categorias de la suite de criterios NO se anonimizan, el fixture
+  # quedaba sin poder casar sus criterios contra sus datos.
+  facultades <- c(
+    "CIENCIAS Y ARTES DE LA COMUN.", "ESTUDIOS GENERALES LETRAS",
+    "GASTRONOMIA, HOTELERIA Y TURISMO", "ARQUITECTURA Y URBANISMO",
+    "LETRAS Y CIENCIAS HUMANAS", "GESTION Y ALTA DIRECCION"
+  )
+  df <- data.frame(
+    entrevistado = rep(c("Comun Bustamante", "Aire Gabriela"), length.out = 300),
+    facultad = rep(facultades, length.out = 300),
+    stringsAsFactors = FALSE
+  )
+  # Precondiciones del caso: pocos niveles, etiqueta larga. Si cambian, el test
+  # deja de vigilar lo que dice vigilar.
+  expect_lt(length(unique(df$facultad)) / nrow(df), 0.05)
+  expect_gt(mean(nchar(df$facultad)), 15)
+
+  a <- pulso_anonimizar_data(df, sal = "f111")
+  b <- pulso_anonimizar_abiertas(a$data, a$diccionario)
+
+  expect_identical(b$data$facultad, df$facultad)
+  expect_false("facultad" %in% b$columnas)
+  # Y el nombre de persona sigue seudonimizado: el veto no relaja la PII real.
+  expect_false(any(grepl("Comun|Bustamante", a$data$entrevistado)))
+})
+
+test_that("F111 · el veto categorico no apaga la redaccion de contactos", {
+  # El veto solo apaga el barrido de NOMBRES. Correos, celulares y documentos
+  # se redactan en toda columna de texto, vetada o no: es la garantia dura.
+  df <- data.frame(
+    canal_de_contacto = rep(
+      c("Coordinar por jperez@pucp.edu.pe", "Coordinar por el 987654321"),
+      length.out = 240
+    ),
+    stringsAsFactors = FALSE
+  )
+  expect_lt(length(unique(df$canal_de_contacto)) / nrow(df), 0.05)
+
+  b <- pulso_anonimizar_abiertas(df, diccionario = character(), sal = "f111")
+
+  expect_false(any(grepl("jperez@pucp\\.edu\\.pe", b$data$canal_de_contacto)))
+  expect_false(any(grepl("987654321", b$data$canal_de_contacto)))
+  expect_true(any(grepl("[correo]", b$data$canal_de_contacto, fixed = TRUE)))
+  expect_true(any(grepl("[celular]", b$data$canal_de_contacto, fixed = TRUE)))
+})
+
+test_that("F111 · una letra fuera del alfabeto no parte la palabra en dos", {
+  # `Ü` no estaba en la clase enumerada, asi que «LINGUISTICA» con dieresis se
+  # partia en `LING` + `ISTICA` y un apellido `Ling` entraba DENTRO de la
+  # palabra: «LoayzaÜÍSTICA». Le pasa a la prosa, que el veto no cubre.
+  df <- data.frame(
+    entrevistado = c("Ling Rojas", "Ling Rojas", "Ling Rojas", "Ling Rojas"),
+    comentario = c(
+      "Estudia LINGÜÍSTICA CON MENCIÓN EN ESTUDIOS ANDINOS desde el ciclo pasado",
+      "Pregunto por la mencion en LINGÜÍSTICA y quedo conforme con la respuesta",
+      "El curso de LINGÜÍSTICA aplicada le resulto util para su investigacion",
+      "Converse con Ling sobre el tramite pendiente y quedo todo claro"
+    ),
+    stringsAsFactors = FALSE
+  )
+  a <- pulso_anonimizar_data(df, sal = "f111")
+  b <- pulso_anonimizar_abiertas(a$data, a$diccionario)
+
+  # La palabra sobrevive entera: ningun reemplazo por dentro.
+  expect_true(all(grepl("LINGÜÍSTICA", b$data$comentario[1:3], fixed = TRUE)))
+  # Y el apellido suelto SI se reemplaza: el barrido sigue haciendo su trabajo.
+  expect_false(grepl("\\bLing\\b", b$data$comentario[[4]]))
+})
+
 test_that("pulso_detectar_pii encuentra PII residual y acepta un fixture limpio", {
   crear_pulso <- function(path, data) {
     stage <- tempfile("mk-pulso-"); dir.create(stage, recursive = TRUE)
