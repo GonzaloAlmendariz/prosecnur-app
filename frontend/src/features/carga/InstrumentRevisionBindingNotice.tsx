@@ -16,13 +16,21 @@ import { ShieldCheck, TriangleAlert } from "../../vendor/lucide-react";
 import type { EstudioBase } from "../../api/estudio";
 
 export type InstrumentRevisionBindingNoticeProps = {
-  base: EstudioBase | null | undefined;
+  /**
+   * Estado del enlace. Se acepta suelto porque la única fuente disponible en
+   * un estudio de una sola base es `session/state`: la página solo consulta
+   * `/api/estudio` en modo multibase, que es justo donde esto no hace falta.
+   */
+  binding?: string | null;
+  /** Alternativa cuando sí hay una base del estudio a mano (multibase). */
+  base?: EstudioBase | null;
 };
 
 export function InstrumentRevisionBindingNotice({
+  binding: bindingProp,
   base,
 }: InstrumentRevisionBindingNoticeProps) {
-  const binding = base?.instrument_revision_binding ?? null;
+  const binding = bindingProp ?? base?.instrument_revision_binding ?? null;
 
   // `none_published` es el estado normal de un proyecto que no usa el Editor:
   // no hay nada que explicar y un aviso sería ruido.

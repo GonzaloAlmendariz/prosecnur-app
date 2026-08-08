@@ -234,6 +234,12 @@ export type SessionState = {
   active_base?: string | null;
   n_bases: number;
   bases_nombres: string[];
+  /**
+   * Enlace de la base activa con la revisión publicada del Editor. Está aquí
+   * —y no solo en `/api/estudio`— porque Carga consulta el estudio únicamente
+   * en modo multibase, que es justo donde este enlace no hace falta explicar.
+   */
+  instrument_revision_binding?: string | null;
 };
 
 export type AnaliticaFuenteFile = {

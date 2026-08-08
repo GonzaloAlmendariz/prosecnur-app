@@ -17,6 +17,29 @@ function base(overrides: Partial<EstudioBase> = {}): EstudioBase {
 }
 
 describe("InstrumentRevisionBindingNotice", () => {
+  test("lee el estado suelto, que es la única fuente en un estudio de una base", () => {
+    // CargaPage solo consulta /api/estudio en modo multibase, así que en un
+    // estudio de una sola base —justo donde este aviso hace falta— no hay
+    // objeto `base` que pasarle. El estado llega por `session/state`.
+    const markup = renderToStaticMarkup(
+      <InstrumentRevisionBindingNotice binding="matched" />,
+    );
+
+    expect(markup).toContain("is-ok");
+    expect(markup).toMatch(/revisión publicada en el Editor/);
+  });
+
+  test("el estado suelto tiene precedencia sobre la base", () => {
+    const markup = renderToStaticMarkup(
+      <InstrumentRevisionBindingNotice
+        binding="no_match"
+        base={base({ instrument_revision_binding: "matched" })}
+      />,
+    );
+
+    expect(markup).toContain("is-warn");
+  });
+
   test("calla cuando el proyecto no publica revisiones", () => {
     // Un proyecto que no usa el Editor no tiene nada que explicar; el aviso
     // sería ruido en la tarjeta del formulario.
