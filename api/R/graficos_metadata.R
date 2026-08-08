@@ -759,6 +759,12 @@
            descripcion = "La pregunta que quieres graficar."),
       list(name = "cruces", label = "Dividir por",tipo_input = "variable_opt", grupo = "datos",
            descripcion = "Segunda variable para segmentar (ej. sexo, región). Si la dejas vacía, muestra una serie única."),
+      list(name = "mostrar_significancia", label = "Marcar diferencias significativas", tipo_input = "bool", grupo = "datos",
+           default = FALSE,
+           descripcion = "Agrega a cada barra la letra de los grupos a los que supera de forma significativa, con la misma prueba que usan las tablas de cruces. Necesita un cruce con dos o más grupos."),
+      list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
+           default = 0.05, min = 0.001, max = 0.2, step = 0.005,
+           descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
       list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "estilo",
            default = "instrumento",
            choices = list(

@@ -126,6 +126,12 @@
 #' @param umbral_posicion Umbral (en escala 0-1) para decidir si la etiqueta se coloca
 #'   dentro de la barra (mitad de la altura) o fuera (por encima).
 #' @param sufijo_etiqueta Texto adicional al final de cada etiqueta (por ejemplo, `" pp"`).
+#'   Es un escalar: se aplica igual a todas las etiquetas.
+#' @param sufijos_etiqueta Sufijo POR CELDA, cuando cada barra necesita el suyo
+#'   —el caso de las letras de significancia, donde el sufijo depende de la
+#'   categoria y del grupo. Data frame con la columna de categoria, `.col_pct`
+#'   (la columna de porcentaje de esa serie) y `.sufijo`. Se aplica despues de
+#'   `sufijo_etiqueta` y solo a las celdas presentes en el data frame.
 #'
 #' @param mostrar_barra_extra Si `TRUE`, muestra un texto adicional por categoria basado
 #'   en `var_n` (por ejemplo `N = ...`). En modo estandar se dibuja dentro del mismo ggplot;
@@ -275,6 +281,7 @@ graficar_barras_agrupadas <- function(
     umbral_barra              = 0.01,   # proporcion minima para dibujar una barra
     umbral_posicion           = 0.15,
     sufijo_etiqueta           = "",
+    sufijos_etiqueta          = NULL,
     mostrar_barra_extra       = TRUE,
     prefijo_barra_extra       = NULL,
     titulo_barra_extra        = NULL,
@@ -845,6 +852,21 @@ graficar_barras_agrupadas <- function(
     lab_base[is.na(df_lab$.valor_plot)]                                         <- NA_character_
 
     df_lab$lab <- ifelse(!is.na(lab_base), paste0(lab_base, sufijo_etiqueta), "")
+
+    # Sufijo por celda (letras de significancia). Se pega solo donde la etiqueta
+    # existe: una barra que no muestra su cifra tampoco muestra su letra, porque
+    # una letra suelta sobre una barra sin numero no se puede leer contra nada.
+    if (!is.null(sufijos_etiqueta) && is.data.frame(sufijos_etiqueta) &&
+        nrow(sufijos_etiqueta) && all(c(".col_pct", ".sufijo") %in% names(sufijos_etiqueta)) &&
+        var_categoria %in% names(sufijos_etiqueta)) {
+      idx <- match(
+        paste0(df_lab[[var_categoria]], "\r", df_lab$.col_pct),
+        paste0(sufijos_etiqueta[[var_categoria]], "\r", sufijos_etiqueta$.col_pct)
+      )
+      extra <- sufijos_etiqueta$.sufijo[idx]
+      con_extra <- !is.na(extra) & nzchar(df_lab$lab)
+      df_lab$lab[con_extra] <- paste0(df_lab$lab[con_extra], extra[con_extra])
+    }
     if (isTRUE(mostrar_n_en_etiquetas) && ".n_label_val" %in% names(df_lab)) {
       n_val <- suppressWarnings(as.numeric(df_lab$.n_label_val))
       n_txt <- rep("", length(n_val))
