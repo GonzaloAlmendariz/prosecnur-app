@@ -86,6 +86,12 @@ export type RelatoMasaBombo = {
   aulas: number;
   /** Suma de `eligible_n` publicados de esas aulas; null si no viajan. */
   elegibles: number | null;
+  /**
+   * Cuántas de esas aulas agregadas fueron SORTEADAS. Callar este número
+   * convertiría el agregado en una omisión: el lector vería 60 bolas y creería
+   * que ese es el sorteo, cuando la muestra real puede ser de 196.
+   */
+  sorteadas: number;
 };
 
 export type RelatoResumenPiFacultad = {
@@ -467,6 +473,43 @@ function escenaEstratos(
  * bolas: se declara el hueco y, si el total auditado existe, el resto del
  * bombo se publica como una sola masa del estudio (un hecho, no una invención).
  */
+/**
+ * Recorta las sorteadas al cap y agrega las que no caben por facultad. Vive
+ * aparte porque los TRES caminos del bombo (con marco, con total auditado y sin
+ * nada) pintan las sorteadas, y el cap tiene que valer en los tres: dejarlo
+ * solo en el primero devolvía el mismo defecto por la puerta de al lado.
+ */
+function recortarSorteadas(bolasSorteadas: RelatoBola[]): {
+  visibles: RelatoBola[];
+  ocultas: RelatoBola[];
+} {
+  const ordenadas = [...bolasSorteadas].sort(compararBolas);
+  return {
+    visibles: ordenadas.slice(0, RELATO_BOLAS_MAX),
+    ocultas: ordenadas.slice(RELATO_BOLAS_MAX),
+  };
+}
+
+/** Agrega bolas por facultad conservando cuántas eran sorteadas. */
+function agregarEnMasa(bolas: RelatoBola[]): RelatoMasaBombo[] {
+  const porFacultad = new Map<string, RelatoMasaBombo>();
+  for (const bola of bolas) {
+    const previo = porFacultad.get(bola.facultad) ?? {
+      facultad: bola.facultad,
+      aulas: 0,
+      elegibles: null,
+      sorteadas: 0,
+    };
+    previo.aulas += 1;
+    if (bola.seleccionada) previo.sorteadas += 1;
+    if (bola.elegibles != null) previo.elegibles = (previo.elegibles ?? 0) + bola.elegibles;
+    porFacultad.set(bola.facultad, previo);
+  }
+  return Array.from(porFacultad.values()).sort((a, b) =>
+    compareUniversityFacultyLabels(a.facultad, b.facultad),
+  );
+}
+
 function bomboDelSorteo(
   fuente: RelatoFuente,
   titulares: Array<Record<string, unknown>>,
@@ -496,25 +539,26 @@ function bomboDelSorteo(
         seleccionada: false,
       }))
       .sort(compararBolas);
-    const cupoCandidatas = Math.max(0, RELATO_BOLAS_MAX - bolasSorteadas.length);
+    // El cap es del TOTAL, no solo de las candidatas.
+    //
+    // Antes el cupo se calculaba como `MAX − sorteadas.length` y las sorteadas
+    // se concatenaban aparte, sin tope. Con una muestra mayor que el cap eso
+    // deja el cupo en 0 —correcto— pero mete igual TODAS las sorteadas: medido
+    // con el estudio real, 196 bolas en un viewBox de 0–100, apiladas y con los
+    // 196 rótulos superpuestos hasta ser ilegibles. El cap existía por una
+    // restricción de DOM y terminaba excedido 3.3× justo cuando más importa.
+    // Solo se ve con datos reales: a n=30 nunca aparece.
+    //
+    // Se priorizan las sorteadas (son la historia) y, dentro de ellas, las de
+    // mayor tamaño publicado, que es el orden que ya usa toda la escena. Las
+    // que no caben NO se callan: bajan a la masa rotulada declarando cuántas
+    // eran sorteadas.
+    const sorteadas = recortarSorteadas(bolasSorteadas);
+    const cupoCandidatas = Math.max(0, RELATO_BOLAS_MAX - sorteadas.visibles.length);
     const visibles = candidatas.slice(0, cupoCandidatas);
-    const restantes = candidatas.slice(cupoCandidatas);
-    const masaPorFacultad = new Map<string, RelatoMasaBombo>();
-    for (const bola of restantes) {
-      const previo = masaPorFacultad.get(bola.facultad) ?? {
-        facultad: bola.facultad,
-        aulas: 0,
-        elegibles: null,
-      };
-      previo.aulas += 1;
-      if (bola.elegibles != null) previo.elegibles = (previo.elegibles ?? 0) + bola.elegibles;
-      masaPorFacultad.set(bola.facultad, previo);
-    }
     return {
-      bolas: [...bolasSorteadas, ...visibles].sort(compararBolas),
-      masa: Array.from(masaPorFacultad.values()).sort((a, b) =>
-        compareUniversityFacultyLabels(a.facultad, b.facultad),
-      ),
+      bolas: [...sorteadas.visibles, ...visibles].sort(compararBolas),
+      masa: agregarEnMasa([...sorteadas.ocultas, ...candidatas.slice(cupoCandidatas)]),
       bomboConocido: true,
       huecos,
     };
@@ -527,9 +571,19 @@ function bomboDelSorteo(
     huecos.push(
       "El proyecto no conserva el bombo curso a curso: las no sorteadas se muestran como masa agregada del marco auditado.",
     );
+    const sorteadas = recortarSorteadas(bolasSorteadas);
     return {
-      bolas: [...bolasSorteadas].sort(compararBolas),
-      masa: [{ facultad: "", aulas: totalMarco - idsSorteados.size, elegibles: null }],
+      bolas: sorteadas.visibles,
+      masa: [
+        // Las no sorteadas del marco auditado: un total, sin desglose posible.
+        {
+          facultad: "",
+          aulas: totalMarco - idsSorteados.size,
+          elegibles: null,
+          sorteadas: 0,
+        },
+        ...agregarEnMasa(sorteadas.ocultas),
+      ],
       bomboConocido: false,
       huecos,
     };
@@ -539,9 +593,10 @@ function bomboDelSorteo(
       ? "El proyecto no conserva el bombo curso a curso ni un total auditado del marco: se muestran solo las bolas sorteadas."
       : "El proyecto no conserva el bombo curso a curso de esta facultad: se muestran solo las bolas sorteadas.",
   );
+  const sorteadas = recortarSorteadas(bolasSorteadas);
   return {
-    bolas: [...bolasSorteadas].sort(compararBolas),
-    masa: [],
+    bolas: sorteadas.visibles,
+    masa: agregarEnMasa(sorteadas.ocultas),
     bomboConocido: false,
     huecos,
   };
