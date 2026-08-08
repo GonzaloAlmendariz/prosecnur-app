@@ -33,11 +33,14 @@ se re-audita con la vara más alta. Sólo Gonzalo lo cierra.
 | Popover de slides | `frontend/src/features/graficos/v2/timeline/SlidePicker.tsx` (713 líneas) | `Dialog` accesible; rail de familias, grilla estable, inspector e inserción continua |
 | Blueprint de slides | `v2/timeline/SlidePickerBlueprint.tsx` (318 líneas) | 20 composiciones exhaustivas; card y hero comparten la misma geometría 16:9 |
 | Trigger + atajos | `TimelinePanelV2.tsx` (`SlidePickerTrigger`, teclas `N`/`A`) | CTA fijo arriba del timeline + CTA del vacío |
-| Popover de graficadores | `frontend/src/features/graficos/GraficadorPicker.tsx` (353 líneas) | Portal + backdrop; secciones planas por categoría, focus trap propio |
+| Popover de graficadores | `frontend/src/features/graficos/GraficadorPicker.tsx` (809 líneas) | `Dialog` accesible; rail de familias, grilla estable, inspector, roving focus y commit guardado |
+| Blueprint de graficadores | `frontend/src/features/graficos/GraficadorBlueprint.tsx` (516 líneas) | 19 formas exhaustivas + fallback; card y hero comparten SVG 16:9 |
 | Taxonomía de slides | `v2/timeline/categoryOf.ts` + `SLIDE_LABELS` del store | 20 tipos, 5 familias |
-| Catálogo (verdad) | registry del backend (`api/R/graficos_metadata.R`) vía `useGraficosRegistry` | 20 slides, 20 graficadores; `descripcion`, `slots`, `icono_ui`, `requisito` |
+| Taxonomía de graficadores | `graficadorFamily()` en `GraficadorPicker.tsx` | 19 tipos actuales en 6 familias; `other` conserva tipos futuros |
+| Catálogo (verdad) | registry del backend (`api/R/graficos_metadata.R`) vía `useGraficosRegistry` | 20 slides, **19 graficadores** en el censo I2; `descripcion`, `slots`, `icono_ui`, `requisito` |
 | CSS heredado | `v2/styles/editor-v2.css` — **CONGELADO** (33.123 líneas) | ~1.264 líneas mencionan `pulso-gv2-picker`; I1 confirma cero diff y SHA-256 `aed5548e…bb7f` |
 | CSS propio de L1 | `v2/timeline/slidePicker.css` (1.342 líneas) | Namespace `pulso-slide-library-*`, sólo tokens `--pulso-*`, régimen corto con un dueño de scroll |
+| CSS propio de L2 | `frontend/src/features/graficos/graficadorPicker.css` (1.032 líneas) | Namespace `pulso-graficador-library-*`, tokens `--pulso-*`, cards iguales y régimen corto con `stage` como dueño |
 | Tests | **ninguno** | Cero referencias a `SlidePicker`/`GraficadorPicker` en `*.test.*` |
 
 Regla derivada del censo: **todo CSS nuevo de estos popovers va en hoja
@@ -147,7 +150,7 @@ la reconfiguración grande.
 | Lote | Contenido | Criterios | Estado |
 |---|---|---|---|
 | **L1 · Reconfiguración del SlidePicker** | Anatomía única de tile con miniatura blueprint para TODAS las familias (editoriales incluidas); grilla de altura estable; miniatura card = hero (B1, B2); inserter «insertar y seguir» + Enter + flechas (B6, B10); inspector con preview fiel y slots con significado (B3, B4); focus trap (B7); CSS en hoja nueva | V1–V5 | **hecho · I1** |
-| **L2 · Paridad del GraficadorPicker** | Misma gramática que L1; miniaturas de forma de gráfico; descripciones completas sin truncar; camino a dimensiones (B11, B12, B14, B15) | V1, V3, V8 | pendiente |
+| **L2 · Paridad del GraficadorPicker** | Misma gramática que L1; miniaturas de forma de gráfico; descripciones completas sin truncar; camino a dimensiones (B11, B12, B14, B15) | V1, V3, V8 | **hecho · I2** |
 | **L3 · Direccionabilidad + a11y compartida** | `usePanelDireccionable` en ambos; helper de focus trap común; QA puede abrirlos por URL (B7, B8) | V5, V6 | pendiente |
 | **L4 · Verdad del registry** | Conteos y subtítulos derivados (B5); blueprints desde `slots`/metadata y no desde `includes()` del nombre; barrida de copy del registry (B13 y hermanos); contraste blueprint↔layout PPT real con `officer::layout_properties()` | V2, V8 | pendiente |
 | **L5 · Degradación y viewports** | Estados vacío/error/sin-resultados/`dimOk=false` en los 5 viewports; matriz con foco en 1024x600 | V7 | pendiente |
@@ -187,14 +190,14 @@ Proporcional al diff, siempre con evidencia visual:
 
 | Criterio | SlidePicker | GraficadorPicker |
 |---|---|---|
-| V1 gramática | ✓ L1 (B1, B9; paridad transversal continúa en L2) | ✗ (B11, B15) |
-| V2 verdad registry | ✓ parcial (B2; B5 y contraste PPT → L4) | ✓ parcial (catálogo sí; sin blueprint) |
-| V3 decidibilidad | ✓ L1 (B3, B4) | ✗ (B11, B12, B14) |
+| V1 gramática | ✓ L1 (B1, B9) | ✓ L2 (B11, B15) |
+| V2 verdad registry | ✓ parcial (B2; B5 y contraste PPT → L4) | ✓ parcial (catálogo + blueprint; mapping/PPT → L4) |
+| V3 decidibilidad | ✓ L1 (B3, B4) | ✓ L2 (B11, B12, B14) |
 | V4 flujo | ✓ L1 (B6, B10) | — (un solo pick por apertura, aceptable) |
 | V5 accesibilidad | ✓ L1 (B7) | ✓ (B16) |
 | V6 direccionable | ✗ (B8) | ✗ (B8) |
-| V7 degradación | parcial (1024x600; estados degradados y matriz completa → L5) | sin medir |
-| V8 español | ✓ | ✗ (B13) |
+| V7 degradación | parcial (1024x600; estados degradados y matriz completa → L5) | parcial L2 (`dimOk=false`, no-results y 1024; matriz completa → L5) |
+| V8 español | ✓ | ✓ parcial L2 (B15; B13 del registry → L4) |
 
 ## Registro de iteraciones
 
@@ -240,7 +243,57 @@ Proporcional al diff, siempre con evidencia visual:
     `runner/report.json` bajo `/private/tmp/prosecnur-l1-baseline.ieQ85Y/slidepicker-after-3/`.
     Checks finales: `pnpm -C frontend typecheck`; Vitest Gráficos 36 archivos /
     185 tests; `node agentic/sync-agentic-os.mjs --audit`; verificador serial
-    **APROBADO**. L2–L6 permanecen abiertos y el goal sigue en curso.
+    **APROBADO**. L3–L6 permanecen abiertos y el goal sigue en curso.
+
+- **I2 · 2026-08-07 · L2 GraficadorPicker** — Paridad completa por Rama 2 en
+  `GraficadorPicker.tsx`, `GraficadorBlueprint.tsx` y
+  `graficadorPicker.css`, sin tocar `GraficadorSlot.tsx`,
+  `GraficadorTypeIcon.tsx`, `editor-v2.css`, API, registry ni `.pulso`.
+  - **Censo / C5:** la fuente runtime contiene 19, no 20, graficadores. El
+    picker pasa de 11 visibles —tres ordinarios sin categoría y cinco
+    dimensiones ocultas— a 19/19, distribuidos 6/4/2/1/5/1 en Distribución,
+    Resumen numérico, Comparación, Texto abierto, Dimensiones y Territorio;
+    `Otros` conserva cualquier tipo futuro.
+  - **B11 / V1 / C1–C4:** BEFORE medía anchos 273,5–1.130 px y alto
+    147,94–188,8 px en 1440, y anchos 300,66–926 px en 1024, con 3/5
+    descripciones truncadas. AFTER-2 fija 254×366 y 252×366, respectivamente,
+    con Δ ancho/alto 0/0, singleton sin stretch, texto completo, overflow X 0
+    y cero issues, misses o scroll jails focales. AFTER-1 fue rechazado por
+    heredar `white-space: nowrap` (59/61 overflows; 330/291 px de X oculta) y
+    se reparó antes de acreditar el lote.
+  - **B12 / V3:** los 19 tipos actuales resuelven una forma SVG específica y
+    un fallback futuro; card e inspector montan el mismo componente, `viewBox`
+    `0 0 160 90` y marcas equivalentes. Barras, histograma, nube, radar,
+    radar+barras, FODA, heatmaps y mapa se inspeccionaron en vivo.
+  - **B14 / V3:** las cinco dimensiones permanecen visibles con
+    `dimOk=false`, se pueden seleccionar para decidir, no aceptan Enter,
+    doble clic ni CTA, explican el requisito y enlazan a `/analitica`. El mapa
+    respetó la capability real del proyecto; la rama `available=false` conserva
+    `disabled_reason` y queda en la matriz explícita de L5.
+  - **B15 / V1/V8:** desaparece «Usar modelo»; «Insertar modelo» es el único
+    commit. Click/Espacio sólo seleccionan; Enter, doble clic y CTA convergen
+    en un guard central. Los bloqueados dicen «Revisa el requisito» en vez de
+    prometer una inserción silenciosa.
+  - **B16 / C4:** Radix `Dialog`, nombre y descripción, autofocus, trap,
+    Escape y backdrop restauran al trigger. En 1024x600 `stage` es el único
+    dueño Y (max 3.425); grilla e inspector tienen max 0, y el último modelo y
+    el CTA son alcanzables. El estado sin resultados declara grupo, miembro y
+    capacidad tanto en galería como inspector.
+  - **Evidencia antes:**
+    `/private/tmp/prosecnur-l2-baseline.jcvFuV/l2-before-picker-1440x1000-open.png`
+    y `l2-before-picker-1024x600-open.png`. **AFTER-1 rechazado:**
+    `/private/tmp/prosecnur-l2-after.q8FwpA/graficador-picker-after-report.json`.
+    **Después aprobado:**
+    `/private/tmp/prosecnur-l2-after2.YHLAf8/l2-after2-picker-1440x1000-open.png`,
+    `l2-after2-picker-1024x600-open.png` y
+    `graficador-picker-after2-report.json` (SHA-256
+    `0d3073a625c70bc5cdf7196884ab04d48008be68674fc1a36481465b1ad21a95`).
+  - **Gate final:** `pnpm -C frontend typecheck`; Vitest Gráficos 36 archivos /
+    185 tests; `pnpm -C frontend build`; audit agentic; censo
+    R↔taxonomía↔blueprint 19/19; verificador serial **APROBADO**.
+    `editor-v2.css` conserva 33.123 líneas y SHA-256
+    `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
+    B13 y L3–L6 permanecen abiertos; el goal sigue en curso.
 
 ## Bandeja de decisiones
 
@@ -250,5 +303,17 @@ Proporcional al diff, siempre con evidencia visual:
 - ¿Los colores por familia se mantienen? Resuelto operativamente en I1: no se
   reutilizan cyan/steel/ámbar/rosa como semántica de familia. Todas conservan
   el acento de Procesamiento y se distinguen por icono, etiqueta y composición;
-  L2 debe adoptar la misma regla. Introducir una paleta de familias exigiría
+  L2 adoptó la misma regla. Introducir una paleta de familias exigiría
   tokens ratificados por identidad, no aliases locales.
+- ¿El catálogo tiene 19 o 20 graficadores? I2 corrige el censo a los 19 nombres
+  que el registry R y el payload runtime sirven hoy; no se inventa un modelo
+  vigésimo para satisfacer el baseline histórico. L4 debe rastrear si el conteo
+  anterior fue deriva documental o una retirada deliberada.
+- ¿Cómo envuelve el rail compacto? AFTER-2 conserva todo el texto sin clipping,
+  pero `overflow-wrap:anywhere` puede partir «Distribución» o «Dimensiones» en
+  1024. Recomendación para L5: ensanchar el rail o reservar mejor el count antes
+  de relajar el wrap; el supuesto conservador actual prioriza contenido completo.
+- ¿Qué foco recibe una inserción que reemplaza el trigger vacío? Cancelación por
+  Escape/backdrop restaura al trigger y está acreditada; una inserción puede
+  desmontar ese nodo al crear el slot. L3 debe fijar un fallback persistente
+  («Cambiar» o encabezado del slot) junto con la a11y compartida.

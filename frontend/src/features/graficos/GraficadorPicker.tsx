@@ -1,46 +1,73 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { BarChart3, CheckCircle2, Layers3, Plus, Search, SearchX, X } from "lucide-react";
-import { GraficadorMetadata } from "../../api/client";
-import { useGraficosRegistry } from "./useGraficosRegistry";
-import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
+import * as Dialog from "@radix-ui/react-dialog";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { Link } from "react-router-dom";
+import type { GraficadorMetadata } from "../../api/client";
+import { PulsoButton } from "../../components/PulsoButton";
 import { useSession } from "../../lib/SessionContext";
-import { GraficadorTypeIcon } from "./GraficadorTypeIcon";
+import {
+  ArrowRight,
+  BarChart3,
+  CornerDownLeft,
+  Hash,
+  Layers3,
+  LayoutGrid,
+  Lock,
+  Map as MapIcon,
+  MessageSquare,
+  Radar,
+  Search,
+  SearchX,
+  Table2,
+  X,
+  type LucideIcon,
+} from "../../vendor/lucide-react";
+import { GraficadorBlueprint } from "./GraficadorBlueprint";
+import { useGraficosRegistry } from "./useGraficosRegistry";
+import "./graficadorPicker.css";
 
-// Picker visual de graficador. En vez de una lista textual, mostramos
-// cada graficador como card con icono + titulo_humano + descripción,
-// organizados por categoría (básicos vs dimensiones). El usuario ve de
-// un vistazo cuál gráfico aplica a su caso.
-//
-// El catálogo sale del registry del backend (graficos_metadata.R), así
-// que si se añade/quita un graficador, este componente lo refleja
-// automáticamente sin cambios de código.
+type GraficadorFamily =
+  | "all"
+  | "distribution"
+  | "numeric"
+  | "comparison"
+  | "text"
+  | "dimensions"
+  | "territory"
+  | "other";
 
-type Categoria = { label: string; predicate: (g: GraficadorMetadata) => boolean };
-type GrafCardKind = "distribution" | "numeric" | "multi" | "dimensions" | "territory";
-
-const CATEGORIAS: Categoria[] = [
-  {
-    label: "Distribución por categorías",
-    predicate: (g) => ["p_barras_agrupadas", "p_barras_apiladas", "p_barras_multiapiladas", "p_pie", "p_donut"].includes(g.name),
-  },
-  {
-    label: "Resumen numérico",
-    predicate: (g) => ["p_numerico", "p_boxplot", "p_media_rango"].includes(g.name),
-  },
-  {
-    label: "Comparación multi-variable",
-    predicate: (g) => ["p_radar", "p_tabla", "p_radar_tabla"].includes(g.name),
-  },
-  {
-    label: "Dimensiones e índices",
-    predicate: (g) => g.requisito === "dimensiones",
-  },
-  {
-    label: "Territorio y cobertura",
-    predicate: (g) => g.requisito === "territorial_coverage" || g.feature_kind === "territorial_coverage",
-  },
+const FAMILY_ORDER: readonly GraficadorFamily[] = [
+  "all",
+  "distribution",
+  "numeric",
+  "comparison",
+  "text",
+  "dimensions",
+  "territory",
+  "other",
 ];
+
+const FAMILY_META: Record<
+  GraficadorFamily,
+  { label: string; hint: string; Icon: LucideIcon }
+> = {
+  all: { label: "Todos", hint: "Catálogo completo", Icon: LayoutGrid },
+  distribution: { label: "Distribución", hint: "Categorías y proporciones", Icon: BarChart3 },
+  numeric: { label: "Resumen numérico", hint: "Indicadores y rangos", Icon: Hash },
+  comparison: { label: "Comparación", hint: "Series y tablas", Icon: Radar },
+  text: { label: "Texto abierto", hint: "Términos frecuentes", Icon: MessageSquare },
+  dimensions: { label: "Dimensiones", hint: "Índices calculados", Icon: Layers3 },
+  territory: { label: "Territorio", hint: "Cobertura de campo", Icon: MapIcon },
+  other: { label: "Otros", hint: "Modelos futuros", Icon: Table2 },
+};
+
+const TERRITORIAL_FALLBACK_REASON =
+  "Disponible cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial.";
 
 export default function GraficadorPicker({
   onPick,
@@ -50,304 +77,733 @@ export default function GraficadorPicker({
   onCancel: () => void;
 }) {
   const { registry, loading, error } = useGraficosRegistry();
-  const [query, setQuery] = useState("");
   const { state } = useSession();
-  const dimOk = !!state?.analitica_dim_ok;
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const searchRef = useRef<HTMLInputElement | null>(null);
-  const onCancelRef = useRef(onCancel);
-
-  useEffect(() => {
-    onCancelRef.current = onCancel;
-  }, [onCancel]);
-
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement
+  const dimOk = Boolean(state?.analitica_dim_ok);
+  const [family, setFamily] = useState<GraficadorFamily>("all");
+  const [query, setQuery] = useState("");
+  const [selectedName, setSelectedName] = useState<string | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLUListElement>(null);
+  const cardRefs = useRef(new Map<string, HTMLButtonElement>());
+  const restoreFrameRef = useRef<number | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(
+    typeof document !== "undefined" && document.activeElement instanceof HTMLElement
       ? document.activeElement
-      : null;
-    const focusTimer = window.setTimeout(() => searchRef.current?.focus(), 0);
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCancelRef.current();
-        return;
-      }
-      if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
-      )).filter((element) => element.getClientRects().length > 0);
-      if (focusable.length === 0) {
-        event.preventDefault();
-        dialogRef.current.focus();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener("keydown", onKey);
-      previousFocus?.focus();
-    };
+      : null,
+  );
+
+  const inventory = registry?.graficadores ?? [];
+
+  const familyCounts = useMemo(() => {
+    const counts = Object.fromEntries(
+      FAMILY_ORDER.map((familyName) => [familyName, 0]),
+    ) as Record<GraficadorFamily, number>;
+    counts.all = inventory.length;
+    for (const graf of inventory) counts[graficadorFamily(graf)] += 1;
+    return counts;
+  }, [inventory]);
+
+  const visibleFamilies = useMemo(
+    () => FAMILY_ORDER.filter((familyName) => familyName !== "other" || familyCounts.other > 0),
+    [familyCounts],
+  );
+
+  const filteredGraficadores = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("es");
+    return inventory.filter((graf) => {
+      if (family !== "all" && graficadorFamily(graf) !== family) return false;
+      if (!normalizedQuery) return true;
+      const searchable = [
+        graf.name,
+        graf.titulo_humano,
+        graf.descripcion,
+        ...graf.args.map((arg) => `${arg.label} ${arg.descripcion ?? ""}`),
+      ]
+        .join(" ")
+        .toLocaleLowerCase("es");
+      return searchable.includes(normalizedQuery);
+    });
+  }, [family, inventory, query]);
+
+  const selectedGraf = filteredGraficadores.find((graf) => graf.name === selectedName)
+    ?? filteredGraficadores[0]
+    ?? null;
+  const selectedCanInsert = selectedGraf !== null
+    && canInsertGraficador(selectedGraf, dimOk);
+  const activeFamilyMeta = FAMILY_META[family];
+  const ActiveFamilyIcon = activeFamilyMeta.Icon;
+
+  useEffect(() => {
+    if (restoreFrameRef.current !== null) {
+      cancelAnimationFrame(restoreFrameRef.current);
+      restoreFrameRef.current = null;
+    }
+    if (!previousFocusRef.current && document.activeElement instanceof HTMLElement) {
+      previousFocusRef.current = document.activeElement;
+    }
+    return () => restorePreviousFocus(previousFocusRef, restoreFrameRef);
   }, []);
 
-  const categoriasConItems = useMemo(() => {
-    if (!registry) return [];
-    const q = query.trim().toLowerCase();
-    return CATEGORIAS
-      .filter((cat) => dimOk || cat.label !== "Dimensiones e índices")
-      .map((cat) => ({
-        label: cat.label,
-        items: registry.graficadores
-          .filter((g) => g.available !== false)
-          .filter(cat.predicate)
-          .filter((g) => {
-            if (!q) return true;
-            return (
-              g.name.toLowerCase().includes(q) ||
-              g.titulo_humano.toLowerCase().includes(q) ||
-              g.descripcion.toLowerCase().includes(q)
-            );
-          }),
-      }))
-      .filter((c) => c.items.length > 0);
-  }, [registry, query, dimOk]);
+  function chooseFamily(nextFamily: GraficadorFamily) {
+    setFamily(nextFamily);
+    const firstInFamily = inventory.find(
+      (graf) => nextFamily === "all" || graficadorFamily(graf) === nextFamily,
+    );
+    if (firstInFamily) setSelectedName(firstInFamily.name);
+  }
 
-  const catalogSummary = useMemo(() => {
-    const visibleCount = categoriasConItems.reduce((total, cat) => total + cat.items.length, 0);
-    const hiddenDimensionCount = registry?.graficadores.filter((g) => g.available !== false && g.requisito === "dimensiones").length ?? 0;
-    return {
-      visibleCount,
-      categoryCount: categoriasConItems.length,
-      hiddenDimensionCount,
-    };
-  }, [categoriasConItems, registry]);
+  function focusCard(name: string) {
+    requestAnimationFrame(() => {
+      const card = cardRefs.current.get(name);
+      card?.focus({ preventScroll: true });
+      card?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
+  }
+
+  function insertGraf(graf: GraficadorMetadata) {
+    if (canInsertGraficador(graf, dimOk)) onPick(graf);
+  }
+
+  function handleCardKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+    graf: GraficadorMetadata,
+  ) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setSelectedName(graf.name);
+      insertGraf(graf);
+      return;
+    }
+
+    if (event.key === " " || event.key === "Spacebar") {
+      event.preventDefault();
+      setSelectedName(graf.name);
+      return;
+    }
+
+    const columnCount = renderedColumnCount(gridRef.current);
+    let nextIndex: number | null = null;
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = Math.min(filteredGraficadores.length - 1, index + 1);
+        break;
+      case "ArrowLeft":
+        nextIndex = Math.max(0, index - 1);
+        break;
+      case "ArrowDown":
+        nextIndex = Math.min(filteredGraficadores.length - 1, index + columnCount);
+        break;
+      case "ArrowUp":
+        nextIndex = Math.max(0, index - columnCount);
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = filteredGraficadores.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    const nextGraf = filteredGraficadores[nextIndex];
+    if (!nextGraf) return;
+    event.preventDefault();
+    setSelectedName(nextGraf.name);
+    focusCard(nextGraf.name);
+  }
 
   if (typeof document === "undefined") return null;
 
-  return createPortal(
-    <div
-      onClick={onCancel}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="graf-picker-title"
-      className="pulso-gv2-graf-picker-backdrop"
-      data-audit-ready="graficador-picker"
+  return (
+    <Dialog.Root
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onCancel();
+      }}
     >
-      <div
-        ref={dialogRef}
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        className="pulso-gv2-graf-picker"
-      >
-        <header className="pulso-gv2-graf-picker-head">
-          <div className="pulso-gv2-graf-picker-head-main">
-            <span className="pulso-gv2-graf-picker-mark" aria-hidden="true">
-              <BarChart3 size={17} />
-            </span>
-            <div>
-              <div className="pulso-gv2-graf-picker-eyebrow">Biblioteca de graficadores</div>
-              <h3 id="graf-picker-title" className="pulso-gv2-graf-picker-title">Elegir visual</h3>
-              <div className="pulso-gv2-graf-picker-sub">Tipos por dato, comparación y salida del slide.</div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="pulso-gv2-graf-picker-close"
-            aria-label="Cerrar"
-          >
-            <X size={16} />
-          </button>
-        </header>
-
-        <div className="pulso-gv2-graf-picker-search-wrap">
-          <div className="pulso-gv2-graf-picker-search">
-            <Search size={15} className="pulso-gv2-graf-picker-search-icon" />
-            <input
-              ref={searchRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nombre o descripción…"
-              aria-label="Buscar graficador"
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery("")} className="pulso-gv2-graf-picker-clear" aria-label="Limpiar búsqueda">
-                <X size={13} />
-              </button>
-            )}
-          </div>
-          {!loading && !error && (
-            <div className="pulso-gv2-graf-picker-summary" aria-label="Estado del catálogo visible">
-              <span>
-                <Layers3 size={13} />
-                {catalogSummary.visibleCount} modelos visibles
+      <Dialog.Portal>
+        <Dialog.Overlay className="pulso-graficador-library-overlay" />
+        <Dialog.Content
+          className="pulso-graficador-library-dialog"
+          data-audit-ready="graficador-picker"
+          aria-modal="true"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }));
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            restorePreviousFocus(previousFocusRef, restoreFrameRef);
+          }}
+          onKeyDown={(event) => {
+            if (
+              event.defaultPrevented
+              || event.key !== "Enter"
+              || event.nativeEvent.isComposing
+              || selectedGraf === null
+              || !selectedCanInsert
+            ) return;
+            const target = event.target;
+            if (
+              target instanceof Element
+              && target.closest("button, a, input, select, textarea, [contenteditable='true']")
+            ) return;
+            event.preventDefault();
+            insertGraf(selectedGraf);
+          }}
+        >
+          <header className="pulso-graficador-library-header">
+            <div className="pulso-graficador-library-heading">
+              <span className="pulso-graficador-library-heading-icon" aria-hidden="true">
+                <BarChart3 size={18} />
               </span>
-              <span>
-                <BarChart3 size={13} />
-                {catalogSummary.categoryCount} familias activas
-              </span>
-              <span className={dimOk ? "is-ready" : "is-muted"}>
-                <CheckCircle2 size={13} />
-                {dimOk ? "Dimensiones habilitadas" : `${catalogSummary.hiddenDimensionCount} modelos de dimensión ocultos`}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="pulso-gv2-graf-picker-body">
-          {loading && <LoadingBlock label="Cargando catálogo…" />}
-          {error && <ErrorBlock label="Error cargando catálogo" detail={error} />}
-
-          {!loading && !error && categoriasConItems.length === 0 && query && (
-            <EmptyState
-              icon={<SearchX size={20} />}
-              title={`Sin resultados para "${query}"`}
-              hint="Prueba con otro nombre o limpia el buscador para ver todos los graficadores."
-            />
-          )}
-
-          {!loading && !error && categoriasConItems.length === 0 && !query && (
-            <EmptyState
-              icon={<SearchX size={20} />}
-              title="Catálogo vacío"
-              hint="El registry del backend no devolvió graficadores. Revisa la consola del API."
-            />
-          )}
-
-          {categoriasConItems.map((cat) => (
-            <section key={cat.label} className="pulso-gv2-graf-picker-section">
-              <div className="pulso-gv2-graf-picker-section-head">
-                <span>{cat.label}</span>
-                <span>{cat.items.length}</span>
+              <div>
+                <span className="pulso-graficador-library-eyebrow">
+                  Biblioteca de graficadores
+                </span>
+                <Dialog.Title className="pulso-graficador-library-title">
+                  Elige el tipo de gráfico
+                </Dialog.Title>
+                <Dialog.Description className="pulso-graficador-library-description">
+                  {catalogDescription(inventory.length, loading, error)}
+                </Dialog.Description>
               </div>
-              <div className="pulso-gv2-graf-picker-grid">
-                {cat.items.map((g) => (
-                  <GraficadorCard key={g.name} graf={g} dimOk={dimOk} onPick={onPick} />
-                ))}
+            </div>
+            <Dialog.Close asChild>
+              <PulsoButton
+                variant="icon"
+                size="lg"
+                className="pulso-graficador-library-close"
+                aria-label="Cerrar biblioteca de graficadores"
+              >
+                <X size={17} aria-hidden="true" />
+              </PulsoButton>
+            </Dialog.Close>
+          </header>
+
+          <div className="pulso-graficador-library-stage">
+            <aside className="pulso-graficador-library-rail" aria-label="Familias de graficadores">
+              <span className="pulso-graficador-library-rail-label">Familias</span>
+              <div className="pulso-graficador-library-filters">
+                {visibleFamilies.map((familyName) => {
+                  const { Icon, hint, label } = FAMILY_META[familyName];
+                  return (
+                    <button
+                      key={familyName}
+                      type="button"
+                      className="pulso-graficador-library-filter"
+                      data-family={familyName}
+                      aria-pressed={family === familyName}
+                      aria-controls="pulso-graficador-library-models"
+                      onClick={() => chooseFamily(familyName)}
+                    >
+                      <span className="pulso-graficador-library-filter-icon" aria-hidden="true">
+                        <Icon size={15} />
+                      </span>
+                      <span className="pulso-graficador-library-filter-copy">
+                        <strong>{label}</strong>
+                        <small>{hint}</small>
+                      </span>
+                      <span className="pulso-graficador-library-filter-count">
+                        {familyCounts[familyName]}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+            </aside>
+
+            <section
+              className="pulso-graficador-library-gallery"
+              data-family={family}
+              aria-labelledby="pulso-graficador-library-gallery-title"
+            >
+              <div className="pulso-graficador-library-gallery-header">
+                <div className="pulso-graficador-library-gallery-heading">
+                  <span aria-hidden="true">
+                    <ActiveFamilyIcon size={15} />
+                  </span>
+                  <div>
+                    <h3 id="pulso-graficador-library-gallery-title">
+                      {activeFamilyMeta.label}
+                    </h3>
+                    <p>{activeFamilyMeta.hint}</p>
+                  </div>
+                </div>
+                <span className="pulso-graficador-library-visible-count" aria-live="polite">
+                  {filteredGraficadores.length}{" "}
+                  {filteredGraficadores.length === 1 ? "modelo visible" : "modelos visibles"}
+                </span>
+              </div>
+
+              <label className="pulso-graficador-library-search">
+                <Search size={15} aria-hidden="true" />
+                <span className="pulso-graficador-library-visually-hidden">
+                  Buscar graficador
+                </span>
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key !== "Enter"
+                      || event.nativeEvent.isComposing
+                      || selectedGraf === null
+                      || !selectedCanInsert
+                    ) return;
+                    event.preventDefault();
+                    insertGraf(selectedGraf);
+                  }}
+                  placeholder="Buscar por nombre, uso o requisito…"
+                  aria-label="Buscar graficador"
+                />
+                {selectedGraf && (
+                  <span className="pulso-graficador-library-search-key" aria-hidden="true">
+                    {selectedCanInsert ? (
+                      <><CornerDownLeft size={12} /> insertar</>
+                    ) : (
+                      <><Lock size={12} /> revisar requisito</>
+                    )}
+                  </span>
+                )}
+              </label>
+
+              <ul
+                ref={gridRef}
+                id="pulso-graficador-library-models"
+                className="pulso-graficador-library-grid"
+                aria-label="Modelos de graficador"
+                data-qa-geometry-group="graficador-library-models"
+                data-qa-geometry-contract="equal"
+              >
+                {loading && inventory.length === 0 && (
+                  <LibraryState
+                    state="loading"
+                    title="Cargando catálogo"
+                    detail="Estamos consultando los modelos del proyecto."
+                  />
+                )}
+                {!loading && error && inventory.length === 0 && (
+                  <LibraryState
+                    state="error"
+                    title="No se pudo cargar el catálogo"
+                    detail={error}
+                  />
+                )}
+                {!loading && !error && inventory.length === 0 && (
+                  <LibraryState
+                    state="empty"
+                    title="Catálogo vacío"
+                    detail="El catálogo no devolvió modelos de graficador."
+                  />
+                )}
+                {!loading && inventory.length > 0 && filteredGraficadores.length === 0 && (
+                  <LibraryState
+                    state="no-results"
+                    title="Sin coincidencias"
+                    detail="Prueba otra búsqueda o vuelve a Todos."
+                  />
+                )}
+                {filteredGraficadores.map((graf, index) => {
+                  const grafFamily = graficadorFamily(graf);
+                  const selected = selectedGraf?.name === graf.name;
+                  const canInsert = canInsertGraficador(graf, dimOk);
+                  return (
+                    <li
+                      key={graf.name}
+                      className="pulso-graficador-library-card-frame"
+                      data-model-type={graf.name}
+                    >
+                      <button
+                        ref={(node) => {
+                          if (node) cardRefs.current.set(graf.name, node);
+                          else cardRefs.current.delete(graf.name);
+                        }}
+                        type="button"
+                        className="pulso-graficador-library-card"
+                        data-graficador-library-card
+                        data-family={grafFamily}
+                        data-can-insert={canInsert ? "true" : "false"}
+                        data-qa-geometry-member
+                        data-qa-geometry-capacity="owned"
+                        aria-pressed={selected}
+                        tabIndex={selected ? 0 : -1}
+                        onClick={() => setSelectedName(graf.name)}
+                        onDoubleClick={() => insertGraf(graf)}
+                        onKeyDown={(event) => handleCardKeyDown(event, index, graf)}
+                      >
+                        <span className="pulso-graficador-library-card-meta">
+                          <span>{FAMILY_META[grafFamily].label}</span>
+                          <span>{availabilityLabel(graf, dimOk)}</span>
+                        </span>
+                        <GraficadorBlueprint
+                          name={graf.name}
+                          iconoUi={graf.icono_ui}
+                          variant="card"
+                        />
+                        <span className="pulso-graficador-library-card-copy">
+                          <strong>{graf.titulo_humano}</strong>
+                          <span>{graf.descripcion}</span>
+                        </span>
+                        <span className="pulso-graficador-library-card-affordance">
+                          <span>{canInsert ? "Doble clic para insertar" : "Revisa el requisito"}</span>
+                          {selected && (
+                            <span className="pulso-graficador-library-card-selected">
+                              Seleccionado
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </section>
-          ))}
-        </div>
-      </div>
-    </div>,
-    document.body,
+
+            <GraficadorInspector
+              graf={selectedGraf}
+              dimOk={dimOk}
+              onInsert={insertGraf}
+              onCancel={onCancel}
+              state={inspectorState(loading, error, inventory.length, filteredGraficadores.length)}
+            />
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
-function GraficadorCard({
+function GraficadorInspector({
   graf,
   dimOk,
-  onPick,
+  onInsert,
+  onCancel,
+  state,
 }: {
-  graf: GraficadorMetadata;
+  graf: GraficadorMetadata | null;
   dimOk: boolean;
-  onPick: (g: GraficadorMetadata) => void;
+  onInsert: (graf: GraficadorMetadata) => void;
+  onCancel: () => void;
+  state: "loading" | "error" | "empty" | "no-results" | "ready";
 }) {
-  const requiereDim = graf.requisito === "dimensiones";
-  const requiereTerritorio = graf.requisito === "territorial_coverage" || graf.feature_kind === "territorial_coverage";
-  const dimReady = requiereDim && dimOk;
-  const dimMissing = requiereDim && !dimOk;
-  const kind = grafCardKind(graf);
+  if (!graf) {
+    return (
+      <aside className="pulso-graficador-library-inspector" aria-label="Inspector del modelo">
+        <div
+          className="pulso-graficador-library-inspector-stack"
+          data-qa-geometry-group="graficador-library-inspector"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div
+            className="pulso-graficador-library-inspector-empty"
+            data-state={state}
+            data-qa-geometry-member
+            data-qa-geometry-capacity="owned"
+          >
+            <SearchX size={22} aria-hidden="true" />
+            <strong>{inspectorEmptyTitle(state)}</strong>
+            <span>{inspectorEmptyDetail(state)}</span>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  const family = graficadorFamily(graf);
+  const FamilyIcon = FAMILY_META[family].Icon;
+  const canInsert = canInsertGraficador(graf, dimOk);
+  const usefulArgs = graf.args.filter((arg) => arg.label.trim().length > 0).slice(0, 4);
+  const dimensionMissing = graf.requisito === "dimensiones" && !dimOk;
+  const unavailable = graf.available === false;
+  const availabilityReason = unavailable
+    ? graf.disabled_reason?.trim()
+      || (isTerritorial(graf)
+        ? TERRITORIAL_FALLBACK_REASON
+        : "Este modelo no está disponible en el proyecto actual.")
+    : "";
+
   return (
-    <button
-      type="button"
-      onClick={() => onPick(graf)}
-      className={`pulso-gv2-graf-card ${requiereDim ? "requires-dimensions" : ""} ${requiereTerritorio ? "requires-territory" : ""}`}
-      data-kind={kind}
+    <aside
+      className="pulso-graficador-library-inspector"
+      aria-labelledby="pulso-graficador-library-inspector-title"
     >
-      <span className="pulso-gv2-graf-card-icon">
-        <GraficadorTypeIcon name={graf.name} iconoUi={graf.icono_ui} size={25} />
-      </span>
-      <span className="pulso-gv2-graf-card-copy">
-        <span className="pulso-gv2-graf-card-title">
-          {graf.titulo_humano}
-        </span>
-        <span className="pulso-gv2-graf-card-tags" aria-label="Uso recomendado y salida">
-          <span>{grafCardUsageLabel(graf)}</span>
-          <span>{grafCardOutputLabel(kind)}</span>
-        </span>
-        <span className="pulso-gv2-graf-card-desc">{graf.descripcion}</span>
-      </span>
-      <span className="pulso-gv2-graf-card-footer">
-        <span className="pulso-gv2-graf-card-action" aria-hidden="true">
-          <Plus size={11} /> Usar modelo
-        </span>
-      </span>
-      {dimReady && (
-        <span className="pulso-gv2-graf-card-badge is-ready">
-          Dimensiones listas
-        </span>
-      )}
-      {dimMissing && (
-        <span className="pulso-gv2-graf-card-badge">
-          Requiere dimensiones · ve a Analítica
-        </span>
-      )}
-      {requiereTerritorio && (
-        <span className="pulso-gv2-graf-card-badge is-ready">
-          Hojas de Ruta + Monitoreo
-        </span>
-      )}
-    </button>
+      <div
+        className="pulso-graficador-library-inspector-stack"
+        data-qa-geometry-group="graficador-library-inspector"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="pulso-graficador-library-inspector-heading" data-qa-geometry-member>
+          <span aria-hidden="true"><FamilyIcon size={16} /></span>
+          <div>
+            <small>Modelo seleccionado</small>
+            <strong>{availabilityLabel(graf, dimOk)}</strong>
+          </div>
+        </div>
+
+        <div
+          className="pulso-graficador-library-inspector-preview"
+          data-qa-geometry-member
+          data-qa-geometry-capacity="owned"
+        >
+          <GraficadorBlueprint
+            name={graf.name}
+            iconoUi={graf.icono_ui}
+            variant="hero"
+            label={`Vista previa de ${graf.titulo_humano}`}
+          />
+        </div>
+
+        <section className="pulso-graficador-library-inspector-copy" data-qa-geometry-member>
+          <span>{FAMILY_META[family].label}</span>
+          <h3 id="pulso-graficador-library-inspector-title">{graf.titulo_humano}</h3>
+          <p>{graf.descripcion}</p>
+        </section>
+
+        <section className="pulso-graficador-library-inspector-section" data-qa-geometry-member>
+          <h4>Requisito y disponibilidad</h4>
+          <dl className="pulso-graficador-library-facts">
+            <div>
+              <dt>Familia</dt>
+              <dd>{FAMILY_META[family].label}</dd>
+            </div>
+            <div>
+              <dt>Estado</dt>
+              <dd>{availabilityLabel(graf, dimOk)}</dd>
+            </div>
+          </dl>
+        </section>
+
+        {dimensionMissing && (
+          <section
+            className="pulso-graficador-library-requirement"
+            data-qa-geometry-member
+          >
+            <Lock size={15} aria-hidden="true" />
+            <div>
+              <h4>Prepara las dimensiones</h4>
+              <p>
+                Este modelo necesita índices o dimensiones calculadas antes de insertarse.
+              </p>
+              <Link to="/analitica" onClick={onCancel}>
+                Ir a Analítica <ArrowRight size={13} aria-hidden="true" />
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {unavailable && (
+          <section
+            className="pulso-graficador-library-requirement"
+            data-qa-geometry-member
+          >
+            <Lock size={15} aria-hidden="true" />
+            <div>
+              <h4>Modelo no disponible</h4>
+              <p>{availabilityReason}</p>
+            </div>
+          </section>
+        )}
+
+        <section className="pulso-graficador-library-inspector-section" data-qa-geometry-member>
+          <h4>Decisiones principales</h4>
+          {usefulArgs.length > 0 ? (
+            <ul className="pulso-graficador-library-arg-list">
+              {usefulArgs.map((arg) => (
+                <li key={arg.name}>
+                  <strong>{arg.label}</strong>
+                  <span>{arg.descripcion?.trim() || argGroupLabel(arg.grupo)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Este modelo no exige decisiones adicionales en el catálogo.</p>
+          )}
+        </section>
+
+        <section className="pulso-graficador-library-next-step" data-qa-geometry-member>
+          <ArrowRight size={15} aria-hidden="true" />
+          <div>
+            <h4>Próximo paso</h4>
+            <p>Después de insertar, elige las variables y ajusta los datos en este espacio.</p>
+          </div>
+        </section>
+
+        <div className="pulso-graficador-library-insert-panel" data-qa-geometry-member>
+          <PulsoButton
+            variant="primary"
+            size="lg"
+            className="pulso-graficador-library-insert"
+            disabled={!canInsert}
+            onClick={() => onInsert(graf)}
+          >
+            Insertar modelo
+          </PulsoButton>
+          {!canInsert && (
+            <span className="pulso-graficador-library-insert-hint">
+              Resuelve el requisito indicado para habilitar la inserción.
+            </span>
+          )}
+        </div>
+      </div>
+    </aside>
   );
 }
 
-function grafCardUsageLabel(graf: GraficadorMetadata): string {
+function LibraryState({
+  state,
+  title,
+  detail,
+}: {
+  state: "loading" | "error" | "empty" | "no-results";
+  title: string;
+  detail: string;
+}) {
+  return (
+    <li
+      className="pulso-graficador-library-state"
+      data-state={state}
+      data-qa-geometry-capacity="owned"
+      aria-live={state === "loading" ? "polite" : "assertive"}
+    >
+      {state === "loading" ? <Layers3 size={22} aria-hidden="true" /> : <SearchX size={22} aria-hidden="true" />}
+      <strong>{title}</strong>
+      <span>{detail}</span>
+    </li>
+  );
+}
+
+function graficadorFamily(graf: GraficadorMetadata): Exclude<GraficadorFamily, "all"> {
   switch (graf.name) {
-    case "p_barras_apiladas":
-      return "Escalas Likert";
     case "p_barras_agrupadas":
-      return "Comparar segmentos";
+    case "p_barras_categoricas":
+    case "p_barras_apiladas":
     case "p_barras_multiapiladas":
-      return "Varias preguntas";
     case "p_pie":
     case "p_donut":
-      return "Pocas categorías";
+      return "distribution";
     case "p_numerico":
-      return "KPI ejecutivo";
+    case "p_histograma":
     case "p_boxplot":
-      return "Distribución numérica";
     case "p_media_rango":
-      return "Promedios";
+      return "numeric";
     case "p_radar":
-    case "p_radar_tabla":
-      return "Índices comparables";
     case "p_tabla":
-      return "Tabla ejecutiva";
+      return "comparison";
+    case "p_nube_palabras":
+      return "text";
+    case "p_dim_radar":
+    case "p_dim_heatmap":
+    case "p_dim_comparativo_radarbar":
+    case "p_dim_foda":
+    case "p_dim_heatmap_criterios":
+      return "dimensions";
+    case "p_mapa_cobertura_territorial":
+      return "territory";
     default:
-      return graf.feature_kind === "territorial_coverage" ? "Cobertura territorial" : "Visual estándar";
+      return "other";
   }
 }
 
-function grafCardOutputLabel(kind: GrafCardKind): string {
-  switch (kind) {
-    case "numeric":
-      return "Indicador";
-    case "multi":
-      return "Comparativo";
-    case "dimensions":
-      return "Analítica";
-    case "territory":
-      return "Mapa/tabla";
+function canInsertGraficador(graf: GraficadorMetadata, dimOk: boolean): boolean {
+  return graf.available !== false && !(graf.requisito === "dimensiones" && !dimOk);
+}
+
+function isTerritorial(graf: GraficadorMetadata): boolean {
+  return graf.requisito === "territorial_coverage"
+    || graf.feature_kind === "territorial_coverage";
+}
+
+function availabilityLabel(graf: GraficadorMetadata, dimOk: boolean): string {
+  if (graf.available === false) return "No disponible";
+  if (graf.requisito === "dimensiones") {
+    return dimOk ? "Dimensiones listas" : "Requiere dimensiones";
+  }
+  return "Listo para insertar";
+}
+
+function catalogDescription(count: number, loading: boolean, error: string): string {
+  if (loading && count === 0) return "Cargando el inventario del proyecto.";
+  if (error && count === 0) return "No se pudo consultar el inventario del proyecto.";
+  return `${count} ${count === 1 ? "modelo en el catálogo" : "modelos en el catálogo"}. Compara su forma antes de insertar.`;
+}
+
+function inspectorState(
+  loading: boolean,
+  error: string,
+  inventoryCount: number,
+  filteredCount: number,
+): "loading" | "error" | "empty" | "no-results" | "ready" {
+  if (loading && inventoryCount === 0) return "loading";
+  if (error && inventoryCount === 0) return "error";
+  if (inventoryCount === 0) return "empty";
+  if (filteredCount === 0) return "no-results";
+  return "ready";
+}
+
+function inspectorEmptyTitle(state: "loading" | "error" | "empty" | "no-results" | "ready"): string {
+  switch (state) {
+    case "loading":
+      return "Preparando el inspector";
+    case "error":
+      return "Inspector no disponible";
+    case "empty":
+      return "No hay modelos para revisar";
+    case "no-results":
+      return "No hay una selección visible";
     default:
-      return "Gráfico";
+      return "Selecciona un modelo";
   }
 }
 
-function grafCardKind(graf: GraficadorMetadata): GrafCardKind {
-  if (graf.requisito === "territorial_coverage" || graf.feature_kind === "territorial_coverage") return "territory";
-  if (graf.requisito === "dimensiones") return "dimensions";
-  if (["p_numerico", "p_boxplot", "p_media_rango"].includes(graf.name)) return "numeric";
-  if (["p_radar", "p_tabla", "p_radar_tabla"].includes(graf.name)) return "multi";
-  return "distribution";
+function inspectorEmptyDetail(state: "loading" | "error" | "empty" | "no-results" | "ready"): string {
+  switch (state) {
+    case "loading":
+      return "La vista previa aparecerá cuando termine la carga.";
+    case "error":
+      return "Vuelve a abrir la biblioteca cuando el catálogo responda.";
+    case "empty":
+      return "El marco se mantiene listo para cuando exista inventario.";
+    case "no-results":
+      return "Cambia la búsqueda o la familia para volver a comparar.";
+    default:
+      return "Revisa su forma y requisitos antes de insertarlo.";
+  }
+}
+
+function argGroupLabel(group: string): string {
+  const labels: Record<string, string> = {
+    datos: "Dato que completarás después de insertar.",
+    lectura: "Decisión de lectura del gráfico.",
+    valores: "Presentación de valores.",
+    filtro: "Regla para acotar los datos.",
+    estilo: "Ajuste de presentación.",
+    textos: "Texto visible del gráfico.",
+  };
+  return labels[group] ?? "Ajuste disponible en la configuración del modelo.";
+}
+
+function renderedColumnCount(grid: HTMLUListElement | null): number {
+  if (!grid || typeof window === "undefined") return 1;
+  const columns = window.getComputedStyle(grid).gridTemplateColumns;
+  if (!columns || columns === "none") return 1;
+  return Math.max(1, columns.split(" ").filter(Boolean).length);
+}
+
+function restorePreviousFocus(
+  ref: { current: HTMLElement | null },
+  frameRef: { current: number | null },
+) {
+  const previous = ref.current;
+  if (!previous) return;
+  if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+  frameRef.current = requestAnimationFrame(() => {
+    frameRef.current = null;
+    ref.current = null;
+    if (previous.isConnected) previous.focus({ preventScroll: true });
+  });
 }
