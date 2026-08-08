@@ -403,6 +403,7 @@ export function FormCard({
                 : workflow?.primaryAction
             }
             onAssignAudience={() => actorSelectRef.current?.focus()}
+            onOpen={() => onOpen(entry.id)}
           />
           <div className="pulso-xf-home-card-foot">
             <span className="pulso-xf-home-card-saved">

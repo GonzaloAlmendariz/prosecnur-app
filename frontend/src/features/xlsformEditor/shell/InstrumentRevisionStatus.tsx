@@ -21,6 +21,11 @@ export type FormPublicationStatusProps = {
   onConfirmLogic: () => void;
   primaryAction?: FormWorkflowPrimaryAction;
   onAssignAudience?: () => void;
+  /**
+   * Abrir el formulario para corregir. Es la salida de los bloqueos
+   * estructurales: no se resuelven desde la tarjeta, se resuelven adentro.
+   */
+  onOpen?: () => void;
 };
 
 export function FormPublicationStatus({
@@ -33,6 +38,7 @@ export function FormPublicationStatus({
   onConfirmLogic,
   primaryAction,
   onAssignAudience,
+  onOpen,
 }: FormPublicationStatusProps) {
   if (!publication) {
     return (
@@ -54,23 +60,31 @@ export function FormPublicationStatus({
     isConfirmableLogicBlocker(blocker.id)
   ));
   const resolvedAction = primaryAction ?? (logicBlocker ? "review_logic" : undefined);
+  // `open` es la acción de los bloqueos que no se arreglan desde la tarjeta
+  // (names duplicados, catálogos ausentes, grupos descuadrados). Antes caía en
+  // `actionLabel = null` y la tarjeta quedaba en rojo sin ningún control: el
+  // usuario leía "Publicación bloqueada" y no tenía adónde ir.
   const actionLabel = resolvedAction === "review_logic"
     ? (isConfirmingLogic ? "Guardando revisión…" : "Abrir y revisar lógica")
     : resolvedAction === "assign_audience"
       ? "Elegir público"
       : resolvedAction === "open"
-        ? null
+        ? (view.status === "blocked" ? "Abrir y corregir" : null)
         : view.actionLabel;
   const actionDisabled = resolvedAction === "review_logic"
     ? isConfirmingLogic
     : resolvedAction === "assign_audience"
       ? false
-      : view.actionDisabled;
+      : resolvedAction === "open"
+        ? false
+        : view.actionDisabled;
   const actionHandler = resolvedAction === "review_logic"
     ? onConfirmLogic
     : resolvedAction === "assign_audience"
       ? onAssignAudience
-      : onPublish;
+      : resolvedAction === "open"
+        ? onOpen
+        : onPublish;
   const reasonId = `pulso-xf-publication-reason-${formId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const StatusIcon = view.status === "published"
     ? CheckCircle2
@@ -103,6 +117,16 @@ export function FormPublicationStatus({
         <p id={reasonId} className="pulso-xf-publication-reason">
           {view.reason}
         </p>
+      ) : null}
+      {view.status === "blocked" && view.blockers.length > 0 ? (
+        <ul className="pulso-xf-publication-blockers">
+          {view.blockers.map((blocker) => (
+            <li key={blocker.id} className="pulso-xf-publication-blocker">
+              <strong>{blocker.title}</strong>
+              {blocker.detail ? <span>{blocker.detail}</span> : null}
+            </li>
+          ))}
+        </ul>
       ) : null}
       {error ? <p className="pulso-xf-publication-error" role="alert">{error}</p> : null}
       <span className="pulso-xf-publication-live" aria-live="polite">
