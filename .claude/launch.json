@@ -2,6 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Backend hsvg2026 seleccion (8803)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8803",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "outputs/reference-runs/hsvg2026-aulas-sel-20260808-124151/hsvg2026-aulas-sel.pulso"
+      },
+      "port": 8803
+    },
+    {
       "name": "Backend acnur_acg (8804)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
