@@ -356,7 +356,11 @@
       # caso y no en el otro: darle 22 % al canal del tema en una lamina que no lo
       # usa solo empuja las barras a la derecha.
       ancho <- if (identical(args$modo, "var")) {
-        list(canvas_w_etiquetas = 0.34, wrap_y = 62)
+        # NO se declara `canvas_w_etiquetas`: el graficador lo mide por el texto
+        # de cada lamina, que es mejor que un numero a ojo igual para todas. Un
+        # 0.34 fijo sobra en la que pregunta «¿Conoce el plan de estudios?» y se
+        # queda corto en la que recita un enunciado de dos lineas.
+        list(wrap_y = 62)
       } else {
         # Los defectos del motor —13 % de ancho y envoltura a ~18 caracteres—
         # estan pensados para nombres cortos de bloque. Aqui el nombre del bloque

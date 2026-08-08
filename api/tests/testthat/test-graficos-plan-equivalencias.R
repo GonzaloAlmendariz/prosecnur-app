@@ -373,7 +373,10 @@ test_that("con un solo publico el eje Y es la pregunta, no el actor", {
   # Sin canal de tema, ensancharlo solo empujaria las barras a la derecha: el
   # texto largo esta en el eje Y.
   expect_null(args$overrides$canvas_w_grupo)
-  expect_true(is.numeric(args$overrides$canvas_w_etiquetas))
+  # Y el ancho del eje NO se declara: el graficador lo mide por el texto de cada
+  # lamina, que es mejor que un numero a ojo igual para todas.
+  expect_null(args$overrides$canvas_w_etiquetas)
+  expect_true(is.numeric(args$overrides$wrap_y))
   expect_silent(do.call(p_barras_multiapiladas, args))
 })
 
@@ -541,6 +544,6 @@ test_that("con un solo publico el eje Y lleva la etiqueta declarada", {
   expect_equal(args$modo, "var")
   expect_equal(args$overrides$etiquetas_vars[["docentes$p13_1"]], "Estados Financieros")
   expect_equal(args$overrides$etiquetas_vars[["docentes$p14_1"]], "Auditoría")
-  # El ancho del eje Y sigue puesto: los dos overrides conviven.
-  expect_true(is.numeric(args$overrides$canvas_w_etiquetas))
+  # La envoltura del eje sigue puesta: los dos overrides conviven.
+  expect_true(is.numeric(args$overrides$wrap_y))
 })

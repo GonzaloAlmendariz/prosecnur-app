@@ -121,3 +121,68 @@
   # encoge al colocarse y forzarlo aqui apretaria las barras dos veces.
   max(alto_fila_in, min(objetivo, maximo_in))
 }
+
+# Reparto del sobrante vertical cuando el canvas es mas corto que su hueco.
+# =========================================================================
+#
+# El sobrante se repartia en DOS margenes iguales, arriba y abajo. Con una sola
+# barra eso deja el grafico como una tira flotando en el centro de la lamina —
+# medido: canvas de 3.37 pulgadas en un hueco de 6, con 1.3 de aire por lado— y
+# se lee como un error de maquetacion, no como una decision.
+#
+# La alternativa que NO se tomo fue engordar la barra: eso contradice el ADR
+# 0065, que existe justamente para que una barra mida lo mismo en la lamina 3 y
+# en la 30. El grosor se conserva; lo que cambia es DONDE queda el aire.
+#
+# Arriba va poco y abajo va el resto: la lamina se lee de arriba hacia abajo, y
+# un bloque de contenido anclado alto con su aire debajo es una composicion
+# normal. Dos bandas simetricas, en cambio, solo dicen «aqui falta algo».
+.BARRAS_PAD_ARRIBA <- 0.22
+
+.barras_pad_superior <- function(sobrante_npc, proporcion = .BARRAS_PAD_ARRIBA) {
+  sobrante_npc <- suppressWarnings(as.numeric(sobrante_npc)[1])
+  if (!is.finite(sobrante_npc) || sobrante_npc <= 0) return(0)
+  sobrante_npc * max(0, min(1, proporcion))
+}
+
+# Ancho del canal de etiquetas del eje Y, dimensionado por su CONTENIDO.
+# =====================================================================
+#
+# El defecto era 0.38 —el 38 % del ancho— fuera cual fuera el largo del texto.
+# En una lamina cuyo eje dice «Indique el sueldo mensual bruto que percibe.» eso
+# es cuatro veces lo que hace falta, y ese ancho se lo quita a las barras, que
+# son el dato.
+#
+# El ADR 0065 ya lo dejo escrito al declarar que NO gobierna: los canales
+# laterales se dimensionan por su contenido, porque ahi lo que se compara entre
+# laminas es el texto y no una magnitud.
+#
+# Se acota por los dos lados. Por abajo, para que una etiqueta corta no deje el
+# rotulo pegado a la barra; por arriba, para que una larga no se coma la lamina
+# —a partir de cierto punto lo que toca es envolver el texto, no seguir cediendo
+# ancho—.
+.BARRAS_ETQ_MIN_NPC <- 0.12
+.BARRAS_ETQ_MAX_NPC <- 0.42
+
+.barras_ancho_etiquetas <- function(etiquetas, size_pt, ancho_in,
+                                    minimo = .BARRAS_ETQ_MIN_NPC,
+                                    maximo = .BARRAS_ETQ_MAX_NPC) {
+  etiquetas <- as.character(etiquetas %||% character(0))
+  etiquetas <- etiquetas[nzchar(trimws(etiquetas))]
+  if (!length(etiquetas)) return(minimo)
+
+  ancho_in <- suppressWarnings(as.numeric(ancho_in)[1])
+  if (!is.finite(ancho_in) || ancho_in <= 0) ancho_in <- 10
+  size_pt <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(size_pt) || size_pt <= 0) size_pt <- 9
+
+  # El texto ya puede venir envuelto: manda la linea mas larga, no el total.
+  lineas <- unlist(strsplit(etiquetas, "\n", fixed = TRUE))
+  chars <- suppressWarnings(max(nchar(lineas, type = "width"), na.rm = TRUE))
+  if (!is.finite(chars) || chars <= 0) return(minimo)
+
+  # Mismo modelo de ancho de glifo que usa la leyenda, mas un respiro para que
+  # el rotulo no toque la barra.
+  ancho_npc <- chars * size_pt * 0.52 / 72 / ancho_in + 0.02
+  max(minimo, min(maximo, ancho_npc))
+}
