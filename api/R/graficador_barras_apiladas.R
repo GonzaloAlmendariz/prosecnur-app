@@ -3194,9 +3194,14 @@ graficar_barras_apiladas <- function(
 
   # CAPTION
   if (has_caption) {
+    # Mismo defecto que arrastraba agrupadas: el pie se anclaba al borde
+    # absoluto del lienzo. Se alinea con la columna de contenido
+    # (ver `.graficos_caption_x` en graficador_helpers.R).
+    cap <- .graficos_caption_x(hjust_caption, x_etq0, x_extra0 + w_extra)
+
     canvas <- canvas + cowplot::draw_text(
       text  = caption_text,
-      x     = hjust_caption,
+      x     = cap$x,
       y     = y_caption0 + (caption_h * 0.35),
       hjust = hjust_caption,
       vjust = 0.5,
@@ -3204,7 +3209,7 @@ graficar_barras_apiladas <- function(
       family = font_family,
       colour= color_nota_pie
     )
-    if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_caption0, 1, caption_h)
+    if (debug_ph_bordes) canvas <- canvas + .ph_border(cap$x0, y_caption0, cap$x1 - cap$x0, caption_h)
   }
 
   # ---------------------------------------------------------------------------
