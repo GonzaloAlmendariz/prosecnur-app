@@ -7,7 +7,11 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
-import type { SlideMetadata, SlideType } from "../../../../api/client";
+import type {
+  SlideCategoria,
+  SlideMetadata,
+  SlideType,
+} from "../../../../api/client";
 import { PulsoButton } from "../../../../components/PulsoButton";
 import type { ControlPanel } from "../../../../lib/navegacion/paneles";
 import {
@@ -31,7 +35,6 @@ import {
 } from "../../../../vendor/lucide-react";
 import { SLIDE_LABELS, usePlanStore } from "../../store";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
-import { CATEGORY_LABEL, categoryOf, type SlideCategory } from "./categoryOf";
 import {
   resolveSlidePickerBlueprint,
   SlidePickerBlueprint,
@@ -39,30 +42,9 @@ import {
 import { useLibraryDialogA11y } from "../../useLibraryDialogA11y";
 import "./slidePicker.css";
 
-const CANONICAL_TYPES: readonly SlideType[] = [
-  "p_slide_portada",
-  "p_slide_indice",
-  "p_slide_seccion",
-  "p_slide_objetivo_icono",
-  "p_slide_texto",
-  "p_slide_tabla_tecnica",
-  "p_slide_top_two_box",
-  "p_slide_1_grafico",
-  "p_slide_1_grafico_narrativo",
-  "p_slide_grafico_texto_derecha",
-  "p_slide_grafico_texto_izquierda",
-  "p_slide_2_graficos",
-  "p_slide_2_graficos_narrativo",
-  "p_slide_2_graficos_texto_izquierda",
-  "p_slide_2_graficos_texto_derecha",
-  "p_slide_4_graficos",
-  "p_slide_2_graficos_poblacion",
-  "p_slide_4_graficos_poblacion",
-  "p_slide_5_graficos_poblacion",
-  "p_slide_6_graficos_poblacion",
-];
+type SlideLibraryCategory = "estructural" | "1g" | "2g" | "grid" | "poblacion" | "otro";
 
-type SlideLibraryFilter = "all" | SlideCategory;
+type SlideLibraryFilter = "all" | SlideLibraryCategory;
 
 const FILTER_ORDER: readonly SlideLibraryFilter[] = [
   "all",
@@ -71,11 +53,17 @@ const FILTER_ORDER: readonly SlideLibraryFilter[] = [
   "2g",
   "grid",
   "poblacion",
+  "otro",
 ];
 
 const FILTER_LABELS: Record<SlideLibraryFilter, string> = {
   all: "Todos",
-  ...CATEGORY_LABEL,
+  estructural: "Estructural",
+  "1g": "1 gráfico",
+  "2g": "2 gráficos",
+  grid: "Grid 4",
+  poblacion: "Población",
+  otro: "Otros",
 };
 
 const FILTER_META: Record<SlideLibraryFilter, { Icon: LucideIcon; hint: string }> = {
@@ -85,6 +73,16 @@ const FILTER_META: Record<SlideLibraryFilter, { Icon: LucideIcon; hint: string }
   "2g": { Icon: Columns3, hint: "Comparación" },
   grid: { Icon: Grid3X3, hint: "Panorama 2 × 2" },
   poblacion: { Icon: UsersRound, hint: "Perfil poblacional" },
+  otro: { Icon: Layers3, hint: "Modelos compatibles" },
+};
+
+const CATEGORY_BY_REGISTRY: Record<SlideCategoria, SlideLibraryCategory> = {
+  estructural: "estructural",
+  "1grafico": "1g",
+  "2graficos": "2g",
+  "4graficos": "grid",
+  poblacion: "poblacion",
+  otro: "otro",
 };
 
 const EDITABLE_FIELD_LIMIT = 6;
@@ -105,15 +103,15 @@ export function SlidePicker({
   fallbackFocusRef,
 }: SlidePickerProps) {
   const addSlide = usePlanStore((state) => state.addSlide);
-  const { registry, slidesById } = useGraficosRegistry();
+  const { registry, loading, error } = useGraficosRegistry();
   const [filter, setFilter] = useState<SlideLibraryFilter>("all");
   const [query, setQuery] = useState("");
-  const [selectedType, setSelectedType] = useState<SlideType>(CANONICAL_TYPES[0]);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const [insertAndContinue, setInsertAndContinue] = useState(true);
   const [feedback, setFeedback] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLUListElement>(null);
-  const cardRefs = useRef(new Map<SlideType, HTMLButtonElement>());
+  const cardRefs = useRef(new Map<string, HTMLButtonElement>());
   const insertionCountRef = useRef(0);
   const dialogA11y = useLibraryDialogA11y({
     searchRef,
@@ -121,71 +119,69 @@ export function SlidePicker({
     fallbackFocusRef,
   });
 
-  const availableTypes = useMemo<SlideType[]>(() => {
-    const registryTypes = Array.from(new Set(
-      (registry?.slides ?? [])
-        .map((slide) => slide.name)
-        .filter(Boolean),
-    ));
-    if (registryTypes.length === 0) return [...CANONICAL_TYPES];
-
-    const registrySet = new Set(registryTypes);
-    return [
-      ...CANONICAL_TYPES.filter((type) => registrySet.has(type)),
-      ...registryTypes.filter((type) => !CANONICAL_TYPES.includes(type)),
-    ];
-  }, [registry]);
+  const inventory = registry?.slides;
+  const models = useMemo(
+    () => (inventory ?? []).map(buildSlideLibraryModel),
+    [inventory],
+  );
 
   useEffect(() => {
-    if (availableTypes.length === 0 || availableTypes.includes(selectedType)) return;
-    setSelectedType(availableTypes[0]);
-  }, [availableTypes, selectedType]);
+    if (models.length === 0) {
+      if (selectedName !== null) setSelectedName(null);
+      return;
+    }
+    if (selectedName !== null && models.some((model) => model.metadata.name === selectedName)) return;
+    setSelectedName(models[0].metadata.name);
+  }, [models, selectedName]);
 
-  const filteredTypes = useMemo(() => {
+  const filteredModels = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("es");
-    return availableTypes.filter((type) => {
-      const metadata = slidesById[type];
-      if (filter !== "all" && modelCategory(type, metadata) !== filter) return false;
+    return models.filter((model) => {
+      if (filter !== "all" && model.category !== filter) return false;
       if (!normalizedQuery) return true;
 
       const searchable = [
-        modelTitle(type, metadata),
-        metadata?.descripcion,
-        metadata?.args.map((arg) => arg.label).join(" "),
-        type,
+        model.title,
+        model.description,
+        model.metadata.args.map((arg) => arg.label).join(" "),
+        model.metadata.name,
       ]
         .filter(Boolean)
         .join(" ")
         .toLocaleLowerCase("es");
       return searchable.includes(normalizedQuery);
     });
-  }, [availableTypes, filter, query, slidesById]);
+  }, [filter, models, query]);
 
-  const displayedType = filteredTypes.includes(selectedType)
-    ? selectedType
-    : filteredTypes[0] ?? null;
+  const selectedModel = filteredModels.find((model) => model.metadata.name === selectedName)
+    ?? filteredModels[0]
+    ?? null;
 
   const categoryCounts = useMemo(() => {
     const counts = Object.fromEntries(
       FILTER_ORDER.map((category) => [category, 0]),
     ) as Record<SlideLibraryFilter, number>;
-    counts.all = availableTypes.length;
-    for (const type of availableTypes) {
-      counts[modelCategory(type, slidesById[type])] += 1;
+    counts.all = inventory?.length ?? 0;
+    for (const model of models) {
+      counts[model.category] += 1;
     }
     return counts;
-  }, [availableTypes, slidesById]);
+  }, [inventory?.length, models]);
+  const visibleFilters = useMemo(
+    () => FILTER_ORDER.filter((category) => category !== "otro" || categoryCounts.otro > 0),
+    [categoryCounts],
+  );
 
   const activeFilterMeta = FILTER_META[filter];
   const ActiveFilterIcon = activeFilterMeta.Icon;
-  const selectedModel = displayedType === null
-    ? null
-    : buildSelectedModel(displayedType, slidesById[displayedType]);
-
-  function insertSlide(type: SlideType) {
-    addSlide(type);
+  function insertSlide(model: SlideLibraryModel) {
+    if (!model.insertableType) {
+      setFeedback(model.compatibilityReason);
+      return;
+    }
+    addSlide(model.insertableType);
     insertionCountRef.current += 1;
-    const title = modelTitle(type, slidesById[type]);
+    const title = model.title;
     setFeedback(
       insertAndContinue
         ? `${title} insertado. La biblioteca sigue abierta. Inserción ${insertionCountRef.current}.`
@@ -194,9 +190,14 @@ export function SlidePicker({
     if (!insertAndContinue) onClose();
   }
 
-  function focusCard(type: SlideType) {
+  function selectModel(name: string) {
+    setSelectedName(name);
+    setFeedback("");
+  }
+
+  function focusCard(name: string) {
     requestAnimationFrame(() => {
-      const card = cardRefs.current.get(type);
+      const card = cardRefs.current.get(name);
       card?.focus({ preventScroll: true });
       card?.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
@@ -205,18 +206,18 @@ export function SlidePicker({
   function handleCardKeyDown(
     event: ReactKeyboardEvent<HTMLButtonElement>,
     index: number,
-    type: SlideType,
+    model: SlideLibraryModel,
   ) {
     if (event.key === "Enter") {
       event.preventDefault();
-      setSelectedType(type);
-      insertSlide(type);
+      selectModel(model.metadata.name);
+      insertSlide(model);
       return;
     }
 
     if (event.key === " " || event.key === "Spacebar") {
       event.preventDefault();
-      setSelectedType(type);
+      selectModel(model.metadata.name);
       return;
     }
 
@@ -224,13 +225,13 @@ export function SlidePicker({
     let nextIndex: number | null = null;
     switch (event.key) {
       case "ArrowRight":
-        nextIndex = Math.min(filteredTypes.length - 1, index + 1);
+        nextIndex = Math.min(filteredModels.length - 1, index + 1);
         break;
       case "ArrowLeft":
         nextIndex = Math.max(0, index - 1);
         break;
       case "ArrowDown":
-        nextIndex = Math.min(filteredTypes.length - 1, index + columnCount);
+        nextIndex = Math.min(filteredModels.length - 1, index + columnCount);
         break;
       case "ArrowUp":
         nextIndex = Math.max(0, index - columnCount);
@@ -239,17 +240,17 @@ export function SlidePicker({
         nextIndex = 0;
         break;
       case "End":
-        nextIndex = filteredTypes.length - 1;
+        nextIndex = filteredModels.length - 1;
         break;
       default:
         return;
     }
 
-    const nextType = filteredTypes[nextIndex];
-    if (!nextType) return;
+    const nextModel = filteredModels[nextIndex];
+    if (!nextModel) return;
     event.preventDefault();
-    setSelectedType(nextType);
-    focusCard(nextType);
+    selectModel(nextModel.metadata.name);
+    focusCard(nextModel.metadata.name);
   }
 
   return (
@@ -273,7 +274,7 @@ export function SlidePicker({
               event.defaultPrevented
               || event.key !== "Enter"
               || event.nativeEvent.isComposing
-              || displayedType === null
+              || selectedModel === null
             ) return;
             const target = event.target;
             if (
@@ -281,7 +282,7 @@ export function SlidePicker({
               || (target instanceof HTMLInputElement && target.type === "checkbox")
             ) return;
             event.preventDefault();
-            insertSlide(displayedType);
+            insertSlide(selectedModel);
           }}
         >
           <header className="pulso-slide-library-header">
@@ -295,8 +296,7 @@ export function SlidePicker({
                   Elige la composición del slide
                 </Dialog.Title>
                 <Dialog.Description className="pulso-slide-library-description">
-                  {availableTypes.length} {availableTypes.length === 1 ? "modelo disponible" : "modelos disponibles"}.
-                  Compara la composición antes de insertarla.
+                  {slideCatalogDescription(inventory?.length ?? 0, loading, error)}
                 </Dialog.Description>
               </div>
             </div>
@@ -316,7 +316,7 @@ export function SlidePicker({
             <aside className="pulso-slide-library-rail" aria-label="Familias de modelos">
               <span className="pulso-slide-library-rail-label">Familias</span>
               <div className="pulso-slide-library-filters">
-                {FILTER_ORDER.map((category) => {
+                {visibleFilters.map((category) => {
                   const { Icon, hint } = FILTER_META[category];
                   const active = filter === category;
                   return (
@@ -361,7 +361,7 @@ export function SlidePicker({
                   </div>
                 </div>
                 <span className="pulso-slide-library-visible-count">
-                  {filteredTypes.length} {filteredTypes.length === 1 ? "modelo visible" : "modelos visibles"}
+                  {filteredModels.length} {filteredModels.length === 1 ? "modelo visible" : "modelos visibles"}
                 </span>
               </div>
 
@@ -374,16 +374,20 @@ export function SlidePicker({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key !== "Enter" || event.nativeEvent.isComposing || displayedType === null) return;
+                    if (event.key !== "Enter" || event.nativeEvent.isComposing || selectedModel === null) return;
                     event.preventDefault();
-                    insertSlide(displayedType);
+                    insertSlide(selectedModel);
                   }}
                   placeholder="Buscar por nombre, uso o contenido…"
                   aria-label="Buscar modelo de slide"
                 />
-                <span className="pulso-slide-library-search-key" aria-hidden="true">
-                  <CornerDownLeft size={12} /> insertar
-                </span>
+                {selectedModel && (
+                  <span className="pulso-slide-library-search-key" aria-hidden="true">
+                    {selectedModel.insertableType
+                      ? <><CornerDownLeft size={12} /> insertar</>
+                      : <><Eye size={12} /> solo revisión</>}
+                  </span>
+                )}
               </label>
 
               <ul
@@ -394,58 +398,87 @@ export function SlidePicker({
                 data-qa-geometry-group="slide-library-models"
                 data-qa-geometry-contract="equal"
               >
-                {filteredTypes.map((type, index) => {
-                  const metadata = slidesById[type];
-                  const category = modelCategory(type, metadata);
-                  const blueprint = resolveSlidePickerBlueprint(type, metadata?.slots ?? []);
-                  const title = modelTitle(type, metadata);
-                  const selected = displayedType === type;
+                {loading && (inventory?.length ?? 0) === 0 && (
+                  <SlideLibraryState
+                    state="loading"
+                    title="Cargando catálogo"
+                    detail="Estamos consultando los modelos del proyecto."
+                  />
+                )}
+                {!loading && error && (inventory?.length ?? 0) === 0 && (
+                  <SlideLibraryState
+                    state="error"
+                    title="No se pudo cargar el catálogo"
+                    detail={error}
+                  />
+                )}
+                {!loading && !error && (inventory?.length ?? 0) === 0 && (
+                  <SlideLibraryState
+                    state="empty"
+                    title="Catálogo vacío"
+                    detail="El catálogo no devolvió modelos de slide."
+                  />
+                )}
+                {!loading && (inventory?.length ?? 0) > 0 && filteredModels.length === 0 && (
+                  <SlideLibraryState
+                    state="no-results"
+                    title="Sin coincidencias"
+                    detail="Ajusta la búsqueda o elige otra familia."
+                  />
+                )}
+                {filteredModels.map((model, index) => {
+                  const { metadata, blueprint, category, title } = model;
+                  const selected = selectedModel?.metadata.name === metadata.name;
                   return (
                     <li
-                      key={type}
+                      key={metadata.name}
                       className="pulso-slide-library-card-frame"
-                      data-model-type={type}
+                      data-model-type={metadata.name}
                     >
                       <button
                         ref={(node) => {
-                          if (node) cardRefs.current.set(type, node);
-                          else cardRefs.current.delete(type);
+                          if (node) cardRefs.current.set(metadata.name, node);
+                          else cardRefs.current.delete(metadata.name);
                         }}
                         type="button"
                         className="pulso-slide-library-card"
                         data-slide-library-card
                         data-family={category}
+                        data-can-insert={model.insertableType ? "true" : "false"}
                         data-qa-geometry-member
                         data-qa-geometry-capacity="owned"
                         aria-pressed={selected}
-                        aria-label={`${title}. ${blueprint.structureLabel}. Enter o doble clic para insertar; Espacio para seleccionar.`}
+                        aria-label={model.insertableType
+                          ? `${title}. ${blueprint.structureLabel}. Enter o doble clic para insertar; Espacio para seleccionar.`
+                          : `${title}. ${blueprint.structureLabel}. Modelo de una versión futura; Espacio para seleccionar y revisar.`}
                         tabIndex={selected ? 0 : -1}
-                        onClick={() => setSelectedType(type)}
+                        onClick={() => selectModel(metadata.name)}
                         onDoubleClick={(event) => {
                           event.preventDefault();
-                          setSelectedType(type);
-                          insertSlide(type);
+                          selectModel(metadata.name);
+                          insertSlide(model);
                         }}
-                        onKeyDown={(event) => handleCardKeyDown(event, index, type)}
+                        onKeyDown={(event) => handleCardKeyDown(event, index, model)}
                       >
                         <span className="pulso-slide-library-card-meta">
                           <span>{FILTER_LABELS[category]}</span>
                           <span>{blueprint.structureLabel}</span>
                         </span>
                         <SlidePickerBlueprint
-                          type={type}
-                          slots={metadata?.slots ?? []}
-                          iconoUi={metadata?.icono_ui}
+                          blueprint={blueprint}
+                          iconoUi={metadata.icono_ui}
                           size="card"
                         />
                         <span className="pulso-slide-library-card-copy">
                           <strong>{title}</strong>
-                          <span>{metadata?.descripcion ?? "Modelo listo para completar en el inspector."}</span>
+                          <span>{model.description}</span>
                         </span>
                         <span className="pulso-slide-library-card-affordance">
                           <span>
                             <MousePointer2 size={13} aria-hidden="true" />
-                            Doble clic para insertar
+                            {model.insertableType
+                              ? "Doble clic para insertar"
+                              : "Requiere una versión más reciente"}
                           </span>
                           {selected && (
                             <span className="pulso-slide-library-card-selected">
@@ -457,13 +490,6 @@ export function SlidePicker({
                     </li>
                   );
                 })}
-                {filteredTypes.length === 0 && (
-                  <li className="pulso-slide-library-empty" data-qa-geometry-capacity="owned">
-                    <Search size={20} aria-hidden="true" />
-                    <strong>Sin coincidencias</strong>
-                    <span>Ajusta la búsqueda o elige otra familia.</span>
-                  </li>
-                )}
               </ul>
             </section>
 
@@ -496,9 +522,8 @@ export function SlidePicker({
 
                   <div className="pulso-slide-library-inspector-preview" data-qa-geometry-member>
                     <SlidePickerBlueprint
-                      type={selectedModel.type}
-                      slots={selectedModel.metadata?.slots ?? []}
-                      iconoUi={selectedModel.metadata?.icono_ui}
+                      blueprint={selectedModel.blueprint}
+                      iconoUi={selectedModel.metadata.icono_ui}
                       size="hero"
                     />
                   </div>
@@ -514,7 +539,7 @@ export function SlidePicker({
                     {selectedModel.blueprint.graphSlots.length > 0 ? (
                       <ol className="pulso-slide-library-zone-list">
                         {selectedModel.blueprint.graphSlots.map((slot) => (
-                          <li key={slot}>{humanizeZone(slot)}</li>
+                          <li key={slot.name}>{slot.label}</li>
                         ))}
                       </ol>
                     ) : (
@@ -566,7 +591,8 @@ export function SlidePicker({
                       variant="primary"
                       size="lg"
                       className="pulso-slide-library-insert"
-                      onClick={() => insertSlide(selectedModel.type)}
+                      disabled={!selectedModel.insertableType}
+                      onClick={() => insertSlide(selectedModel)}
                     >
                       <FilePlus2 size={16} aria-hidden="true" />
                       Insertar modelo
@@ -577,7 +603,7 @@ export function SlidePicker({
                       aria-live="polite"
                       aria-atomic="true"
                     >
-                      {feedback}
+                      {feedback || selectedModel.compatibilityReason}
                     </div>
                   </div>
                 </div>
@@ -590,62 +616,46 @@ export function SlidePicker({
   );
 }
 
-function modelCategory(type: SlideType, metadata?: SlideMetadata): SlideCategory {
-  switch (metadata?.categoria) {
-    case "estructural":
-      return "estructural";
-    case "1grafico":
-      return "1g";
-    case "2graficos":
-      return "2g";
-    case "4graficos":
-      return "grid";
-    case "poblacion":
-      return "poblacion";
-    default:
-      return categoryOf(type);
-  }
+type SlideLibraryStateName = "loading" | "error" | "empty" | "no-results";
+
+function SlideLibraryState({
+  state,
+  title,
+  detail,
+}: {
+  state: SlideLibraryStateName;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <li
+      className="pulso-slide-library-empty"
+      data-state={state}
+      data-qa-geometry-capacity="owned"
+      aria-live={state === "loading" ? "polite" : "assertive"}
+    >
+      <Search size={20} aria-hidden="true" />
+      <strong>{title}</strong>
+      <span>{detail}</span>
+    </li>
+  );
 }
 
-function modelTitle(type: SlideType, metadata?: SlideMetadata): string {
-  const registryTitle = metadata?.titulo_humano.trim();
+function modelTitle(metadata: SlideMetadata): string {
+  const registryTitle = metadata.titulo_humano.trim();
   if (registryTitle) return registryTitle;
-  return SLIDE_LABELS[type] ?? humanizeIdentifier(type);
+  return humanizeIdentifier(metadata.name);
 }
 
 function humanizeIdentifier(value: string): string {
   const words = value
-    .replace(/^p_slide_/, "")
     .split("_")
     .filter(Boolean)
     .join(" ");
   return words ? `${words.charAt(0).toLocaleUpperCase("es")}${words.slice(1)}` : "Modelo de slide";
 }
 
-function humanizeZone(slot: string): string {
-  const knownZones: Record<string, string> = {
-    grafico: "Gráfico principal",
-    izquierda: "Izquierda",
-    derecha: "Derecha",
-    grafico_1: "Gráfico superior",
-    grafico_2: "Gráfico inferior",
-    superior_izquierda: "Superior izquierda",
-    superior_derecha: "Superior derecha",
-    inferior_izquierda: "Inferior izquierda",
-    inferior_derecha: "Inferior derecha",
-    grafico_superior_1: "Superior izquierda",
-    grafico_superior_2: "Superior centro",
-    grafico_superior_3: "Superior derecha",
-    grafico_inferior_1: "Inferior izquierda",
-    grafico_inferior_2: "Inferior centro",
-    grafico_inferior_3: "Inferior derecha",
-  };
-  if (knownZones[slot]) return knownZones[slot];
-  return humanizeIdentifier(slot);
-}
-
-function editableFields(metadata?: SlideMetadata): string[] {
-  if (!metadata) return [];
+function editableFields(metadata: SlideMetadata): string[] {
   return Array.from(new Set(
     metadata.args
       .filter((arg) => arg.tipo_input !== "meta" && arg.grupo !== "diagnostico")
@@ -654,22 +664,49 @@ function editableFields(metadata?: SlideMetadata): string[] {
   ));
 }
 
-function buildSelectedModel(type: SlideType, metadata?: SlideMetadata) {
-  const blueprint = resolveSlidePickerBlueprint(type, metadata?.slots ?? []);
+export function isInsertableSlideType(name: string): name is SlideType {
+  return Object.prototype.hasOwnProperty.call(SLIDE_LABELS, name);
+}
+
+export type SlideLibraryModel = {
+  metadata: SlideMetadata;
+  blueprint: ReturnType<typeof resolveSlidePickerBlueprint>;
+  category: SlideLibraryCategory;
+  title: string;
+  description: string;
+  editableFields: string[];
+  nextStep: string;
+  insertableType: SlideType | null;
+  compatibilityReason: string;
+};
+
+export function buildSlideLibraryModel(metadata: SlideMetadata): SlideLibraryModel {
+  const blueprint = resolveSlidePickerBlueprint(metadata);
   const graphZoneCount = blueprint.graphSlots.length;
+  const insertableType = isInsertableSlideType(metadata.name) ? metadata.name : null;
   return {
-    type,
     metadata,
     blueprint,
-    category: modelCategory(type, metadata),
-    title: modelTitle(type, metadata),
-    description: metadata?.descripcion
+    category: CATEGORY_BY_REGISTRY[metadata.categoria],
+    title: modelTitle(metadata),
+    description: metadata.descripcion
       || "Modelo listo para completar desde el inspector del slide.",
     editableFields: editableFields(metadata),
     nextStep: graphZoneCount > 0
       ? `Asigna ${graphZoneCount === 1 ? "un gráfico" : `un gráfico a cada una de las ${graphZoneCount} zonas`} y ajusta sus textos desde el inspector.`
       : "Completa el contenido editorial desde la pestaña Contenido del inspector.",
+    insertableType,
+    compatibilityReason: insertableType
+      ? ""
+      : "Este modelo se puede revisar, pero requiere una versión más reciente de Prosecnur para insertarse.",
   };
+}
+
+function slideCatalogDescription(count: number, loading: boolean, error: string): string {
+  if (loading && count === 0) return "Cargando el inventario del proyecto.";
+  if (error && count === 0) return "No se pudo consultar el inventario del proyecto.";
+  if (count === 0) return "El catálogo no devolvió modelos de slide.";
+  return `${count} ${count === 1 ? "modelo disponible" : "modelos disponibles"}. Compara la composición antes de insertarla.`;
 }
 
 function renderedColumnCount(grid: HTMLUListElement | null): number {

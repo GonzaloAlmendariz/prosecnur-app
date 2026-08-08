@@ -9,14 +9,19 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import type { GraficadorMetadata, GraficadorRef } from "../../api/client";
+import type {
+  GraficadorMetadata,
+  GraficadorRef,
+  SlideMetadata,
+} from "../../api/client";
 import { usePanelDireccionable } from "../../lib/navegacion/paneles";
 import GraficadorPicker from "./GraficadorPicker";
 import {
   PANEL_BIBLIOTECA_GRAFICADORES,
   PANEL_BIBLIOTECA_SLIDES,
 } from "./panelesGraficos";
-import { SLIDE_GRAF_SLOTS, usePlanStore } from "./store";
+import { usePlanStore } from "./store";
+import { useGraficosRegistry } from "./useGraficosRegistry";
 import { SlidePicker } from "./v2/timeline/SlidePicker";
 
 export type GraficadorLibraryTarget = {
@@ -56,10 +61,24 @@ export function compatibleGraficadorRef(
   return { graficador: meta.name, args };
 }
 
+export function slideAcceptsGraphSlot(
+  metadata: SlideMetadata | undefined,
+  slotName: string,
+): boolean {
+  if (!metadata) return false;
+  if (metadata.slot_specs !== undefined) {
+    return metadata.slot_specs.some(
+      (slot) => slot.name === slotName && slot.role === "chart",
+    );
+  }
+  return metadata.slots.includes(slotName);
+}
+
 export function GraficosLibrariesHost({ children }: { children: ReactNode }) {
   const slidesPanel = usePanelDireccionable(PANEL_BIBLIOTECA_SLIDES);
   const graficadoresPanel = usePanelDireccionable(PANEL_BIBLIOTECA_GRAFICADORES);
   const [graficadorTarget, setGraficadorTarget] = useState<GraficadorLibraryTarget | null>(null);
+  const { slidesById } = useGraficosRegistry();
   const slidesReturnFocusRef = useRef<HTMLButtonElement>(null);
   const hostFocusAnchorRef = useRef<HTMLSpanElement>(null);
 
@@ -83,9 +102,10 @@ export function GraficosLibrariesHost({ children }: { children: ReactNode }) {
 
     const state = usePlanStore.getState();
     const slide = state.plan.slides.find((item) => item.id === target.slideId);
-    const validSlot = slide
-      ? SLIDE_GRAF_SLOTS[slide.tipo].includes(target.slotName)
-      : false;
+    const validSlot = slideAcceptsGraphSlot(
+      slide ? slidesById[slide.tipo] : undefined,
+      target.slotName,
+    );
     if (!slide || !validSlot) {
       closeGraficadoresLibrary();
       return;
@@ -98,7 +118,7 @@ export function GraficosLibrariesHost({ children }: { children: ReactNode }) {
       compatibleGraficadorRef(meta, previous ?? null),
     );
     closeGraficadoresLibrary();
-  }, [closeGraficadoresLibrary, graficadorTarget]);
+  }, [closeGraficadoresLibrary, graficadorTarget, slidesById]);
 
   const context = useMemo<GraficosLibrariesContextValue>(() => ({
     openSlidesLibrary: slidesPanel.abrir,

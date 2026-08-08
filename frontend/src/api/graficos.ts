@@ -50,6 +50,76 @@ export type SlideCategoria =
   | "poblacion"
   | "otro";
 
+export type SlideBlueprintKind =
+  | "cover"
+  | "index"
+  | "section"
+  | "objective"
+  | "text"
+  | "technical"
+  | "topTwo"
+  | "single"
+  | "singleNarrative"
+  | "splitRight"
+  | "splitLeft"
+  | "two"
+  | "twoNarrative"
+  | "twoTextLeft"
+  | "twoTextRight"
+  | "grid4"
+  | "population2"
+  | "population4"
+  | "population5"
+  | "population6"
+  // Sentinel exclusivo del frontend para metadata ausente o futura.
+  | "neutral";
+
+export type SlideBlueprint = {
+  kind: SlideBlueprintKind;
+  ppt_layout: string;
+  structure_label: string;
+};
+
+export type SlideSlotRole = "chart" | "icon" | "unknown";
+
+export type SlideSlotSpec = {
+  name: string;
+  role: SlideSlotRole;
+  label: string;
+};
+
+export type GraficadorCategoria =
+  | "distribution"
+  | "numeric"
+  | "comparison"
+  | "text"
+  | "dimensions"
+  | "territory"
+  | "other";
+
+export type GraficadorBlueprintKind =
+  | "bars-grouped"
+  | "bars-categorical"
+  | "bars-stacked"
+  | "bars-multi-stacked"
+  | "pie"
+  | "donut"
+  | "numeric"
+  | "histogram"
+  | "boxplot"
+  | "mean-range"
+  | "radar"
+  | "table"
+  | "word-cloud"
+  | "territory-map"
+  | "dimension-radar"
+  | "dimension-heatmap"
+  | "dimension-radar-bars"
+  | "dimension-foda"
+  | "dimension-criteria-heatmap"
+  // Sentinel exclusivo del frontend para formas que aún no conoce.
+  | "future";
+
 export type GraficadorRef = {
   graficador: string;
   args: Record<string, unknown>;
@@ -138,6 +208,11 @@ export type ArgChoice = {
   hint?: string;
 };
 
+export type ArgMetadataDependencia = {
+  arg: string;
+  valores: string[];
+};
+
 export type ArgMetadata = {
   name: string;
   label: string;
@@ -152,6 +227,7 @@ export type ArgMetadata = {
   relacionados?: string[];
   efecto?: string;
   choices?: ArgChoice[];
+  depende?: ArgMetadataDependencia;
   // Opciones para `multiflag` (multi-select cerrado). Cada entry define
   // un token aceptable. Si el arg es `multiflag` y `opciones` no viene,
   // el UI lo degrada a texto libre como fallback de compat.
@@ -162,11 +238,16 @@ export type ArgMetadata = {
 };
 
 export type SlideMetadata = {
-  name: SlideType;
+  // El registry puede adelantarse al union persistible de Slide.tipo.
+  name: string;
   titulo_humano: string;
   descripcion: string;
   icono_ui: string;
   categoria: SlideCategoria;
+  blueprint?: SlideBlueprint;
+  // Presencia y ausencia son semánticamente distintas: presente (incluso [])
+  // manda; sólo ausente permite compatibilidad con `slots` legacy.
+  slot_specs?: SlideSlotSpec[];
   slots: string[];
   args: ArgMetadata[];
   // args del formals() de la función R que no están en el catálogo curado
@@ -179,6 +260,8 @@ export type GraficadorMetadata = {
   titulo_humano: string;
   descripcion: string;
   icono_ui: string;
+  categoria?: GraficadorCategoria;
+  blueprint?: GraficadorBlueprintKind;
   // "dimensiones" indica que requiere reporte_dimensiones() ejecutado primero
   requisito?: string;
   feature_kind?: string;

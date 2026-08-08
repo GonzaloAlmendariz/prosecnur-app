@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { GraficadorBlueprintKind } from "../../api/client";
 import {
   BarChart3,
   Hash,
@@ -12,85 +13,51 @@ import {
 
 export type GraficadorBlueprintVariant = "card" | "hero";
 
-export type GraficadorBlueprintKind =
-  | "bars-grouped"
-  | "bars-categorical"
-  | "bars-stacked"
-  | "bars-multi-stacked"
-  | "pie"
-  | "donut"
-  | "numeric"
-  | "histogram"
-  | "boxplot"
-  | "mean-range"
-  | "radar"
-  | "table"
-  | "word-cloud"
-  | "territory-map"
-  | "dimension-radar"
-  | "dimension-heatmap"
-  | "dimension-radar-bars"
-  | "dimension-foda"
-  | "dimension-criteria-heatmap"
-  | "future";
+export type { GraficadorBlueprintKind } from "../../api/client";
 
-export function resolveGraficadorBlueprint(name: string): GraficadorBlueprintKind {
-  switch (name) {
-    case "p_barras_agrupadas":
-      return "bars-grouped";
-    case "p_barras_categoricas":
-      return "bars-categorical";
-    case "p_barras_apiladas":
-      return "bars-stacked";
-    case "p_barras_multiapiladas":
-      return "bars-multi-stacked";
-    case "p_pie":
-      return "pie";
-    case "p_donut":
-      return "donut";
-    case "p_numerico":
-      return "numeric";
-    case "p_histograma":
-      return "histogram";
-    case "p_boxplot":
-      return "boxplot";
-    case "p_media_rango":
-      return "mean-range";
-    case "p_radar":
-      return "radar";
-    case "p_tabla":
-      return "table";
-    case "p_nube_palabras":
-      return "word-cloud";
-    case "p_mapa_cobertura_territorial":
-      return "territory-map";
-    case "p_dim_radar":
-      return "dimension-radar";
-    case "p_dim_heatmap":
-      return "dimension-heatmap";
-    case "p_dim_comparativo_radarbar":
-      return "dimension-radar-bars";
-    case "p_dim_foda":
-      return "dimension-foda";
-    case "p_dim_heatmap_criterios":
-      return "dimension-criteria-heatmap";
-    default:
-      return "future";
-  }
+const GRAFICADOR_BLUEPRINT_KINDS = new Set<string>([
+  "bars-grouped",
+  "bars-categorical",
+  "bars-stacked",
+  "bars-multi-stacked",
+  "pie",
+  "donut",
+  "numeric",
+  "histogram",
+  "boxplot",
+  "mean-range",
+  "radar",
+  "table",
+  "word-cloud",
+  "territory-map",
+  "dimension-radar",
+  "dimension-heatmap",
+  "dimension-radar-bars",
+  "dimension-foda",
+  "dimension-criteria-heatmap",
+  "future",
+]);
+
+function isGraficadorBlueprintKind(value: unknown): value is GraficadorBlueprintKind {
+  return typeof value === "string" && GRAFICADOR_BLUEPRINT_KINDS.has(value);
+}
+
+export function resolveGraficadorBlueprint(blueprint: unknown): GraficadorBlueprintKind {
+  return isGraficadorBlueprintKind(blueprint) ? blueprint : "future";
 }
 
 export function GraficadorBlueprint({
-  name,
+  blueprint,
   iconoUi,
   variant = "card",
   label,
 }: {
-  name: string;
+  blueprint?: GraficadorBlueprintKind;
   iconoUi?: string;
   variant?: GraficadorBlueprintVariant;
   label?: string;
 }) {
-  const kind = resolveGraficadorBlueprint(name);
+  const kind = resolveGraficadorBlueprint(blueprint);
   return (
     <span
       className={`pulso-graficador-library-blueprint pulso-graficador-library-blueprint--${variant}`}
