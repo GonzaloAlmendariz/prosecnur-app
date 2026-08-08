@@ -388,9 +388,33 @@ pulso_anonimizar_abiertas <- function(df, diccionario, sal = NULL, min_nchar = 4
     v <- as.character(df[[i]])
     v <- v[!is.na(v) & nzchar(v)]
     if (!length(v)) return(FALSE)
-    # Prosa: valores largos, o muy poco repetidos. Una categórica codificada
-    # tiene pocos niveles distintos y valores cortos.
-    mean(nchar(v)) > 15 || (length(unique(v)) / length(v)) > 0.5
+    ratio <- length(unique(v)) / length(v)
+    # F111 · Veto categórico ANTES del test de prosa: una dimensión del estudio
+    # nunca se barre, por larga que sea su etiqueta.
+    #
+    # El test de prosa era `largo > 15 || poco repetido`, y ese `||` ascendía a
+    # prosa a toda categórica de etiqueta larga. Medido sobre el marco muestral
+    # de HSVG (136,284 filas): `Facultad` tiene 18 niveles y promedia 20
+    # caracteres, así que entraba al barrido y un apellido real que coincide con
+    # una palabra del dominio la destruía —«CIENCIAS Y ARTES DE LA COMUN.» ->
+    # «... DE LA Bustamante.»—. El daño no es cosmético: las categorías de la
+    # suite de criterios NO se anonimizan, así que el fixture quedaba sin poder
+    # casar sus propios criterios contra sus propios datos (0 de 136,284 filas
+    # elegibles) y no reproducía su marco. Es el mismo defecto que documenta
+    # `.PULSO_PII_NOMBRE_NO_PERSONA`, un escalón más abajo: allá se fabricaban
+    # bugs fantasma en el clasificador, acá en el barrido.
+    #
+    # Por qué el veto es seguro: la repetición masiva ES la señal. Un valor que
+    # aparece cientos de veces es una categoría, no el nombre de una persona
+    # escrito en un comentario, que es lo único que este barrido viene a cazar.
+    # Y no abre un hueco de PII: `.pulso_pii_barrer_contactos` —correos,
+    # celulares y documentos— corre igual sobre TODA columna de texto, vetada o
+    # no; el veto solo apaga el barrido de nombres. El piso de filas mantiene el
+    # comportamiento conservador (barrer) en tablas chicas, donde el ratio es
+    # ruido: con 20 respuestas, 4 repetidas no dicen nada.
+    if (length(v) >= 200L && ratio < 0.05) return(FALSE)
+    # Prosa: valores largos, o muy poco repetidos.
+    mean(nchar(v)) > 15 || ratio > 0.5
   }, logical(1))
 
   tokens <- .pulso_pii_tokens_diccionario(diccionario, min_nchar = min_nchar)
@@ -447,11 +471,27 @@ pulso_anonimizar_abiertas <- function(df, diccionario, sal = NULL, min_nchar = 4
 # una columna de 136 mil filas de nombres de curso tiene unos pocos miles de
 # valores distintos, y el resultado es función pura del valor. Sin las dos, el
 # marco muestral de HSVG no termina de procesarse.
+# F111 · El alfabeto del tokenizador se declara por PROPIEDAD Unicode, no por
+# enumeración a mano.
+#
+# La clase enumeraba `áéíóúñ` y sus mayúsculas, y toda letra fuera de esa lista
+# quedaba como separador. Con `Ü` —una letra que el castellano usa— la palabra
+# se partía en dos: «LINGÜÍSTICA» daba las piezas `LING` e `ÍSTICA`, y si algún
+# apellido del estudio era `Ling`, el reemplazo entraba DENTRO de la palabra y
+# escupía «LoayzaÜÍSTICA». Ese daño no lo salva el veto categórico: le pasa
+# igual a la prosa, que es justo lo que este barrido sí debe tocar.
+#
+# `(*UCP)` le pide a PCRE que resuelva `[:alnum:]` y `\b` por propiedades
+# Unicode, así que cubre ü, ç, à y cualquier letra acentuada sin listarla. La
+# misma marca va en el `\b` del reemplazo: si el corte y la frontera no usan el
+# mismo alfabeto, vuelve el reemplazo parcial por la puerta de atrás.
+.PULSO_PII_SEPARADOR_TOKENS <- "(*UCP)[^[:alnum:]]+"
+
 .pulso_pii_barrer_tokens <- function(v, mapa) {
   unicos <- unique(v)
   transformados <- vapply(unicos, function(txt) {
     if (is.na(txt) || !nzchar(txt)) return(txt)
-    piezas <- strsplit(txt, "[^[:alnum:]áéíóúñÁÉÍÓÚÑ]+", perl = TRUE)[[1]]
+    piezas <- strsplit(txt, .PULSO_PII_SEPARADOR_TOKENS, perl = TRUE)[[1]]
     piezas <- piezas[nzchar(piezas)]
     if (!length(piezas)) return(txt)
     hallados <- unique(piezas[vapply(tolower(piezas),
@@ -459,7 +499,7 @@ pulso_anonimizar_abiertas <- function(df, diccionario, sal = NULL, min_nchar = 4
                                      logical(1))])
     if (!length(hallados)) return(txt)
     for (h in hallados) {
-      txt <- gsub(paste0("\\b", .pulso_pii_escape_regex(h), "\\b"),
+      txt <- gsub(paste0("(*UCP)\\b", .pulso_pii_escape_regex(h), "\\b"),
                   get(tolower(h), envir = mapa), txt, perl = TRUE)
     }
     txt
