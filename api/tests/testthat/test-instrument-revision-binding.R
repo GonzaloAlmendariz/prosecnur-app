@@ -209,6 +209,91 @@ test_that("cambiar el XLSForm por uno ajeno suelta el enlace anterior", {
   expect_equal(base$instrument_revision_id, "")
 })
 
+test_that("cualquier vía que registre una base liga sin llamada propia", {
+  # La regresión que esto previene: el enlace vivía en `estudio_init_default_
+  # base()`, por donde pasa la carga manual pero NO la importación de Kobo, el
+  # bundle de SurveyMonkey ni el handoff de Monitoreo — todas registran su base
+  # con `estudio_add_base()` directo. Sembrar la llamada ruta por ruta es lo que
+  # dejó el enlace disponible solo en una parte del producto.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  workbook <- .irb_workbook()
+  .irb_publish_revision(sid, "rev-1", workbook)
+  .irb_register_xlsform(sid, "file-kobo", workbook)
+  estudio_ensure(sid)
+
+  meta <- estudio_add_base(
+    sid,
+    nombre = "kobo_docentes",
+    xlsform_file_id = "file-kobo",
+    data_file_id = "file-data",
+    data_ext = "xlsx",
+    rp_data = NULL,
+    rp_inst = NULL,
+    n_filas = 10L,
+    n_columnas = 3L,
+    extra_meta = list(source_kind = "kobo_api")
+  )
+
+  # El retorno de add_base ya trae el enlace: los routers lo serializan directo.
+  expect_equal(meta$instrument_revision_id, "rev-1")
+  expect_equal(meta$instrument_revision_binding, "matched")
+  expect_equal(.irb_base(sid, "kobo_docentes")$instrument_revision_id, "rev-1")
+})
+
+test_that("reemplazar el XLSForm de una base recalcula su enlace", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  publicado <- .irb_workbook("Instrumento publicado")
+  .irb_publish_revision(sid, "rev-1", publicado)
+  .irb_register_xlsform(sid, "file-uno", .irb_workbook("Otro instrumento"))
+  estudio_ensure(sid)
+  estudio_add_base(
+    sid, nombre = "default", xlsform_file_id = "file-uno",
+    data_file_id = "file-data", data_ext = "xlsx",
+    rp_data = NULL, rp_inst = NULL, n_filas = 5L, n_columnas = 2L
+  )
+  expect_equal(.irb_base(sid)$instrument_revision_binding, "no_match")
+
+  # El usuario reemplaza el formulario por el que sí publicó.
+  .irb_register_xlsform(sid, "file-dos", publicado)
+  meta <- estudio_replace_base_files(
+    sid, nombre = "default", xlsform_file_id = "file-dos",
+    rp_inst = NULL, n_filas = 5L, n_columnas = 2L
+  )
+
+  expect_equal(meta$instrument_revision_binding, "matched")
+  expect_equal(meta$instrument_revision_id, "rev-1")
+})
+
+test_that("registrar una base sin revisiones publicadas no lee el XLSForm", {
+  # El enlace corre en toda alta de base, así que no puede costar una lectura
+  # de disco en los proyectos que nunca usan el Editor.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  estudio_ensure(sid)
+
+  leidos <- 0L
+  testthat::local_mocked_bindings(
+    instrument_revision_workbook_from_xlsx = function(path) {
+      leidos <<- leidos + 1L
+      list()
+    },
+    .package = "prosecnurapp"
+  )
+
+  estudio_add_base(
+    sid, nombre = "default", xlsform_file_id = "file-x",
+    data_file_id = "file-data", data_ext = "xlsx",
+    rp_data = NULL, rp_inst = NULL, n_filas = 1L, n_columnas = 1L
+  )
+
+  expect_equal(leidos, 0L)
+  expect_equal(.irb_base(sid)$instrument_revision_binding, "none_published")
+})
+
 test_that("la publicación reporta qué bases están usando el formulario", {
   # El lazo de vuelta: sin esto el hub decía "Disponible" aunque ninguna base
   # estuviera usando la revisión, y publicar no tenía consecuencia observable.

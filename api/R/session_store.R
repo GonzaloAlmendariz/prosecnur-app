@@ -670,7 +670,30 @@ estudio_add_base <- function(sid, nombre, xlsform_file_id, data_file_id,
 
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
-  invisible(s$estudio$bases[[nombre]])
+  .estudio_bind_instrument_revision(sid, nombre)
+  invisible(session_get(sid)$estudio$bases[[nombre]])
+}
+
+# Liga la base con la revisión publicada que coincida con su XLSForm.
+#
+# Vive acá —y no en cada ruta de carga— porque toda vía que registre o
+# reemplace los archivos de una base pasa por `estudio_add_base()` o
+# `estudio_replace_base_files()`: la carga manual, la importación de Kobo, el
+# bundle de SurveyMonkey y el handoff de Monitoreo. Sembrar la llamada ruta por
+# ruta fue exactamente lo que dejó el enlace disponible solo en acreditación.
+#
+# Es barato en los proyectos que no publican revisiones: `instrument_revision_
+# bind_base()` sale antes de tocar el disco cuando `instrument_revisions` está
+# vacío. Y nunca interrumpe una carga válida.
+.estudio_bind_instrument_revision <- function(sid, nombre) {
+  tryCatch(
+    instrument_revision_bind_base(sid, nombre),
+    error = function(e) {
+      message("[estudio] no se pudo ligar la revisión de '", nombre, "': ",
+              conditionMessage(e))
+      NULL
+    }
+  )
 }
 
 # Elimina una base del estudio. Si se elimina la "primera" (la que
@@ -1124,7 +1147,13 @@ estudio_replace_base_files <- function(sid, nombre,
 
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
-  invisible(s$estudio$bases[[nombre]])
+  # El XLSForm pudo cambiar: el enlace con la revisión se recalcula, nunca se
+  # arrastra. Una base ligada a la revisión de un instrumento que ya no es el
+  # suyo aplicaría reglas de validación ajenas.
+  if (!is.null(xlsform_file_id) && nzchar(xlsform_file_id)) {
+    .estudio_bind_instrument_revision(sid, nombre)
+  }
+  invisible(session_get(sid)$estudio$bases[[nombre]])
 }
 
 estudio_preserve_original_base_files <- function(sid, nombre) {
