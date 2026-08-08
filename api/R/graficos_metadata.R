@@ -2542,6 +2542,99 @@
   # =========================================================================
   # RADAR + TABLA (el más denso en args — 40+)
   # =========================================================================
+  barras_divergentes = list(
+    titulo_humano = "Barras divergentes",
+    descripcion   = "Estilo global de la escala centrada en cero: grosor, cifras, saldo y leyenda.",
+    icono_ui      = "AlignHorizontalJustifyCenter",
+    args = list(
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "valores", "ejes")),
+
+      list(name = "grosor_barras", label = "Grosor de barras", tipo_input = "number", grupo = "espacio",
+           default = 0.68, min = 0.25, max = 0.95, step = 0.01),
+      list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
+           default = 3.0, min = 1.5, max = 8, step = 0.1),
+      list(name = "color_texto_barras", label = "Color de las cifras", tipo_input = "color", grupo = "valores",
+           default = "#FFFFFF",
+           descripcion = "Las cifras van dentro del segmento, así que necesitan contraste con el relleno."),
+      list(name = "etiqueta_saldo", label = "Etiqueta del saldo", tipo_input = "string", grupo = "valores",
+           default = "Saldo"),
+      list(name = "mostrar_leyenda", label = "Mostrar leyenda", tipo_input = "bool", grupo = "estilo",
+           default = TRUE),
+      list(name = "leyenda_posicion", label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
+           default = "abajo",
+           choices = list(
+             list(value = "abajo", label = "Abajo"),
+             list(value = "arriba", label = "Arriba"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "izquierda", label = "Izquierda"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9)
+    )
+  ),
+
+  dumbbell = list(
+    titulo_humano = "Brecha entre dos bases",
+    descripcion   = "Estilo global del dumbbell: tamaño de punto, grosor del segmento, cifras y leyenda.",
+    icono_ui      = "MoveHorizontal",
+    args = list(
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "leyenda", "valores", "ejes")),
+
+      list(name = "size_punto", label = "Tamaño del punto", tipo_input = "number", grupo = "estilo",
+           default = 3.6, min = 1, max = 8, step = 0.2),
+      list(name = "size_segmento", label = "Grosor del segmento", tipo_input = "number", grupo = "estilo",
+           default = 1.6, min = 0.4, max = 4, step = 0.1,
+           descripcion = "El segmento ES la brecha: demasiado fino la esconde, demasiado grueso tapa los puntos."),
+      list(name = "color_segmento", label = "Color del segmento", tipo_input = "color", grupo = "estilo",
+           default = "#C7D2E0"),
+      list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
+           default = 3.0, min = 1.5, max = 8, step = 0.1),
+      list(name = "etiqueta_brecha", label = "Unidad de la brecha", tipo_input = "string", grupo = "valores",
+           default = "pp",
+           descripcion = "Se escribe junto a la diferencia. Por defecto puntos porcentuales."),
+      list(name = "mostrar_leyenda", label = "Mostrar leyenda", tipo_input = "bool", grupo = "estilo",
+           default = TRUE),
+      list(name = "leyenda_posicion", label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
+           default = "abajo",
+           choices = list(
+             list(value = "abajo", label = "Abajo"),
+             list(value = "arriba", label = "Arriba"),
+             list(value = "derecha", label = "Derecha"),
+             list(value = "izquierda", label = "Izquierda"),
+             list(value = "ninguna", label = "Ocultar")
+           )),
+      list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9)
+    )
+  ),
+
+  lollipop = list(
+    titulo_humano = "Ranking (lollipop)",
+    descripcion   = "Estilo global del ranking: tamaño del punto, grosor del tallo y color de énfasis.",
+    icono_ui      = "ListOrdered",
+    args = list(
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "valores", "ejes")),
+
+      list(name = "size_punto", label = "Tamaño del punto", tipo_input = "number", grupo = "estilo",
+           default = 3.6, min = 1, max = 8, step = 0.2),
+      list(name = "size_tallo", label = "Grosor del tallo", tipo_input = "number", grupo = "estilo",
+           default = 0.9, min = 0.2, max = 3, step = 0.1,
+           descripcion = "Fino a propósito: el punto marca el valor y el tallo solo lo ancla al eje."),
+      list(name = "color_punto", label = "Color del punto", tipo_input = "color", grupo = "estilo",
+           default = "#0B4F8C"),
+      list(name = "color_resalte", label = "Color de énfasis", tipo_input = "color", grupo = "estilo",
+           default = "#E76F51",
+           descripcion = "Se usa en las categorías que marques como destacadas."),
+      list(name = "color_tallo", label = "Color del tallo", tipo_input = "color", grupo = "estilo",
+           default = "#C7D2E0"),
+      list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
+           default = 3.0, min = 1.5, max = 8, step = 0.1),
+      list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9)
+    )
+  ),
+
   serie_temporal = list(
     titulo_humano = "Serie temporal",
     descripcion   = "Estilo global de las líneas de evolución: grosor, tamaño de punto y cifra, leyenda y grilla.",
