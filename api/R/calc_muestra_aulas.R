@@ -1848,15 +1848,18 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   )
 }
 
-.cm_aulas_pick_systematic <- function(pik, seed = NULL) {
+# La caminata vive en calc_muestra_aulas_recorrido.R: hace la MISMA selección
+# que `sampling::UPsystematic` (equivalencia fijada por test sobre 200 vectores
+# π) y además publica el recorrido —recta, arranque y marcas—, que es el único
+# orden de sorteo real que existe en este método. Sin eso, el Relato no puede
+# contar la cadena sin inventarla (regla I20). El recorrido viaja como atributo
+# para no cambiar la firma que ya consumen los demás engines.
+.cm_aulas_pick_systematic <- function(pik, seed = NULL, ids = NULL) {
   if (!is.null(seed)) set.seed(seed)
-  if (requireNamespace("sampling", quietly = TRUE)) {
-    out <- tryCatch(sampling::UPsystematic(pik), error = function(e) NULL)
-    if (!is.null(out)) return(which(as.numeric(out) > 0))
-  }
-  quota <- as.integer(round(sum(pik)))
-  if (quota <= 0L) return(integer(0))
-  sample(seq_along(pik), min(quota, length(pik)), prob = pmax(pik, 1e-9))
+  paso <- .cm_aulas_recorrido_sistematico(pik, ids = ids)
+  out <- paso$indices
+  attr(out, "recorrido") <- paso$recorrido
+  out
 }
 
 .cm_aulas_pick_cube <- function(df, pik, selector, seed = NULL) {
@@ -1890,7 +1893,18 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     return(list(indices = integer(0), pik = numeric(nrow(df)), engine_used = engine, warning = character(0)))
   }
   if (quota >= nrow(df)) {
-    return(list(indices = seq_len(nrow(df)), pik = rep(1, nrow(df)), engine_used = engine, warning = character(0)))
+    # La cuota cubre el estrato entero: entran TODAS sin sorteo. No es que
+    # falte el recorrido, es que no hubo caminata —el mismo estatus que una
+    # certeza—. Publicarlo evita que la escena describa 189 de 196 titulares y
+    # calle los 7 que llegaron por acá (medido en el estudio real).
+    return(list(
+      indices = seq_len(nrow(df)), pik = rep(1, nrow(df)), engine_used = engine,
+      warning = character(0),
+      recorrido = .cm_aulas_recorrido_vacio(
+        certezas = as.character(df$classroom_id),
+        motivo = "cuota_cubre_el_estrato"
+      )
+    ))
   }
   # D1: el estratificado_aleatorio sortea SRS uniforme, asi que su pi real (y
   # la unica publicable) es cuota/N por estrato; publicar la PPS/MOS aqui
@@ -1919,7 +1933,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     }
   }
   if (is.null(picked) && engine_used == "sistematico_pps") {
-    picked <- .cm_aulas_pick_systematic(pik, seed)
+    picked <- .cm_aulas_pick_systematic(pik, seed, ids = df$classroom_id)
   }
   if (is.null(picked) && engine_used == "estratificado_aleatorio") {
     if (!is.null(seed)) set.seed(seed)
@@ -1928,7 +1942,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (is.null(picked) && engine_used == "manual_auditable") {
     warnings <- c(warnings, "manual_auditable no selecciona automaticamente; se uso sistematico_pps para producir una propuesta inicial.")
     engine_used <- "sistematico_pps"
-    picked <- .cm_aulas_pick_systematic(pik, seed)
+    picked <- .cm_aulas_pick_systematic(pik, seed, ids = df$classroom_id)
   }
   if (is.null(picked)) {
     warnings <- c(warnings, "No se pudo usar el motor solicitado; se uso muestreo aleatorio ponderado.")
@@ -1949,9 +1963,18 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       if (fixed$added_n > 0L) sprintf("agregaron %d", fixed$added_n) else sprintf("quitaron %d", fixed$removed_n)
     ))
   }
+  # El recorrido describe la caminata que ENTREGÓ el sorteo. Si el ajuste de
+  # tamaño movió unidades después, la recta ya no explica la muestra final: se
+  # publica igual —es el hecho de lo que hizo el método— pero marcado, para que
+  # la escena declare el desajuste en vez de animar una cadena que no cierra.
+  recorrido <- attr(picked, "recorrido", exact = TRUE)
+  if (is.list(recorrido)) {
+    recorrido$ajustado_despues <- fixed$added_n > 0L || fixed$removed_n > 0L
+  }
   list(
     indices = fixed$indices, pik = pik, engine_used = engine_used,
     warning = unique(warnings),
+    recorrido = recorrido,
     size_adjustment = list(added_n = fixed$added_n, removed_n = fixed$removed_n)
   )
 }
@@ -1996,6 +2019,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # D2: el ajuste de tamano de cada estrato se agrega y viaja como DATO en los
   # attrs de la seleccion, no solo como texto del warning.
   size_adjustment <- list(added_n = 0L, removed_n = 0L)
+  recorridos <- list()
   for (st in names(quotas)) {
     quota <- quotas[[st]]
     cand <- aula_frame[aula_frame$stratum == st, , drop = FALSE]
@@ -2007,6 +2031,11 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     }
     warnings <- c(warnings, picked$warning)
     engine_used <- c(engine_used, picked$engine_used)
+    # Una recta por estrato, con su propio arranque: el sorteo corre por
+    # estrato y aplanarlas perdería qué caminata produjo qué cuota.
+    if (is.list(picked$recorrido)) {
+      recorridos[[length(recorridos) + 1L]] <- list(estrato = st, recorrido = picked$recorrido)
+    }
     if (is.list(picked$size_adjustment)) {
       size_adjustment$added_n <- size_adjustment$added_n +
         .cm_aulas_int(picked$size_adjustment$added_n, 0L)
@@ -2026,6 +2055,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   attr(out, "engine_used") <- if (length(engine_used)) paste(unique(engine_used), collapse = "|") else engine
   attr(out, "warnings") <- unique(c(warnings, descuento$warnings))
   attr(out, "size_adjustment") <- size_adjustment
+  attr(out, "recorrido") <- .cm_aulas_recorrido_por_estrato(
+    recorridos, .cm_aulas_recorrido_motivo(engine, descuento$sequential)
+  )
   out
 }
 
@@ -2406,11 +2438,16 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # D2: el ajuste de tamano del sorteo de titulares viaja como dato hasta la
   # seleccion final.
   size_adjustment <- attr(titulars, "size_adjustment") %||% list(added_n = 0L, removed_n = 0L)
+  # El recorrido pertenece al sorteo de TITULARES (M1). Las olas de reemplazo
+  # son otra mecánica —cadenas por equivalencia, no caminata— y mezclarlas
+  # inventaría una recta que nadie recorrió.
+  recorrido <- attr(titulars, "recorrido") %||% NULL
   if (!nrow(titulars)) {
     out <- aula_frame[0, , drop = FALSE]
     attr(out, "engine_used") <- if (length(used)) paste(unique(used), collapse = "|") else engine
     attr(out, "warnings") <- unique(warnings)
     attr(out, "size_adjustment") <- size_adjustment
+    attr(out, "recorrido") <- recorrido
     return(out)
   }
   titulars$wave <- "M1"
@@ -2448,6 +2485,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   attr(out, "engine_used") <- if (length(used)) paste(unique(used), collapse = "|") else engine
   attr(out, "warnings") <- unique(warnings)
   attr(out, "size_adjustment") <- size_adjustment
+  attr(out, "recorrido") <- recorrido
   out
 }
 
@@ -3933,6 +3971,8 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   # no solo como texto de warning; merge() lo perderia, asi que se captura
   # aqui y se re-adjunta al final.
   size_adjustment <- attr(selection_df, "size_adjustment") %||% list(added_n = 0L, removed_n = 0L)
+  # El recorrido se rescata ANTES de los merge: `merge()` descarta atributos.
+  recorrido_sorteo <- attr(selection_df, "recorrido") %||% NULL
   if (!nrow(selection_df)) stop("No se pudo seleccionar aulas con el marco actual.", call. = FALSE)
   rownames(selection_df) <- NULL
 
@@ -4212,6 +4252,12 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     # presente (mode "off" con el flag apagado); resumen bruto vs neto por
     # estrato sobre los titulares M1. Lógica en calc_muestra_aulas_descuento.R.
     sequential_discount = .cm_descuento_resultado(selection_df, aula_frame, selector, engine),
+    # Recorrido del sorteo: la recta, el arranque y las marcas del sistemático
+    # PPS por estrato. Es el ÚNICO orden de selección real que existe en este
+    # método —`orden`/`operational_sequence` son el orden de entrega al campo—,
+    # y sin publicarlo el Relato no puede contar la cadena sin inventarla.
+    # Con otros engines viaja `aplicable = FALSE`: no hubo caminata.
+    recorrido_sorteo = recorrido_sorteo %||% .cm_aulas_recorrido_por_estrato(list()),
     quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)), n_aulas = as.integer(.cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)), stringsAsFactors = FALSE)),
     summary = summary,
     diagnostics = list(
