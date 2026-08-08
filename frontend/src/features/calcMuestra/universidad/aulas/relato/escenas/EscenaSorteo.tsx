@@ -27,7 +27,7 @@ import { fmtInt } from "../../../../sharedCore";
 import { discountModeDetalle, discountModeLabel } from "../../descuentoRepetidosModel";
 import { RELATO_BOLAS_MAX, type RelatoEscenaSorteo, type RelatoPasoSorteo } from "../relatoModel";
 import { EnsamblajeBalanceado } from "./EnsamblajeBalanceado";
-import { bobbingDeBola, membranaGoo, posicionGoo, radioGoo } from "./goo";
+import { bobbingDeBola, escalaPorDensidad, membranaGoo, posicionCadena, radioGoo } from "./goo";
 import { RelatoCifra, RelatoHuecos } from "./relatoPartes";
 
 /** ~820 ms por bola: con ~30 titulares son ~25 s, dentro del tope de 60 s. */
@@ -45,13 +45,48 @@ function cifraDeAterrizaje(paso: RelatoPasoSorteo, encoge: boolean): string {
   return elegibles != null ? `${fmtInt(elegibles)} elegibles` : "";
 }
 
+/**
+ * Agrupa los pasos por estrato conservando su orden de sorteo, y corta por
+ * grupos ENTEROS hasta el cap. Un grupo que no entra completo no entra: media
+ * cadena leería como una cola rota, que es un hecho distinto del que hubo.
+ *
+ * El orden entre estratos es el de su primera aparición en el sorteo, así que
+ * sigue saliendo del dato; el orden DENTRO del estrato es `discount_step`, que
+ * es el único orden de selección real.
+ */
+function agruparEnCadenas(pasos: RelatoPasoSorteo[], cap: number): RelatoPasoSorteo[] {
+  const porEstrato = new Map<string, RelatoPasoSorteo[]>();
+  for (const paso of pasos) {
+    const grupo = porEstrato.get(paso.estrato);
+    if (grupo) grupo.push(paso);
+    else porEstrato.set(paso.estrato, [paso]);
+  }
+  const salida: RelatoPasoSorteo[] = [];
+  for (const grupo of porEstrato.values()) {
+    if (salida.length + grupo.length > cap) continue;
+    salida.push(...grupo);
+  }
+  return salida;
+}
+
 function prefiereMovimientoReducido(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
-  const visibles = escena.pasos.slice(0, RELATO_BOLAS_MAX);
+  // El recorte conserva CADENAS COMPLETAS, no la primera ronda de todo.
+  //
+  // `escena.pasos` viene ordenado por `discount_step`, que reinicia en cada
+  // estrato. Cortar los primeros 60 de ese orden global se lleva 60 pasos «1»
+  // de 60 estratos distintos: ninguno repite estrato y la cadena no tiene un
+  // solo eslabón. Medido con el estudio real —84 estratos, 45 bolas
+  // encendidas, 0 eslabones—: la escena mostraba puntos sueltos.
+  //
+  // Se agrupa por estrato (los estratos entran en el orden en que aparecieron
+  // en el sorteo) y se corta por grupos enteros. Se ve nacer una cola, y otra,
+  // en vez de la primera pieza de sesenta colas que nunca se arman.
+  const visibles = agruparEnCadenas(escena.pasos, RELATO_BOLAS_MAX);
   const ocultos = escena.pasos.length - visibles.length;
   const total = visibles.length;
   // Reduced motion (evaluado una vez): el cluster nace completo; el
@@ -90,8 +125,15 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
     ...visibles.map((paso) => elegiblesEnsamblados(paso, escena.encoge) ?? 0),
     ...campo.map((bola) => bola.elegibles ?? 0),
   );
-  // Orden del campo: el mismo criterio del bombo (tamaño publicado, desempate
-  // por código), para que una bola caiga en el mismo lugar en las dos escenas.
+  // Orden del campo: la CADENA primero, en su orden de sorteo, y el resto del
+  // marco después.
+  //
+  // Se probó ordenar por tamaño publicado (el criterio del bombo) y la escena
+  // quedaba ilegible: dos eslabones consecutivos caían en extremos opuestos de
+  // la espiral y los enlaces se cruzaban hasta leerse como una maraña, no como
+  // una cola. Con el orden de la cadena, los consecutivos son vecinos en la
+  // espiral y la cola se lee como un recorrido. El tamaño sigue siendo el
+  // radio: lo que cambia es dónde se sienta cada bola, no cuánto mide.
   const unidades = [
     ...visibles.map((paso, orden) => ({
       clave: `paso-${paso.code}`,
@@ -106,15 +148,24 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
       elegibles: bola.elegibles,
       bola,
     })),
-  ].sort(
-    (a, b) =>
+  ].sort((a, b) => {
+    // Los pasos van primero, en el orden en que salieron; el campo detrás,
+    // por tamaño publicado, con desempate estable por clave.
+    if (a.orden != null && b.orden != null) return a.orden - b.orden;
+    if (a.orden != null) return -1;
+    if (b.orden != null) return 1;
+    return (
       (b.elegibles ?? -1) - (a.elegibles ?? -1) ||
-      a.clave.localeCompare(b.clave, "es", { sensitivity: "base", numeric: true }),
-  );
+      a.clave.localeCompare(b.clave, "es", { sensitivity: "base", numeric: true })
+    );
+  });
+  // El tamaño sigue siendo el dato; la densidad solo decide en qué escala se
+  // dibuja ese dato para que el campo lleno siga siendo legible.
+  const escala = escalaPorDensidad(unidades.length);
   const geometria = unidades.map((unidad, index) => ({
     ...unidad,
-    pos: posicionGoo(index, unidades.length),
-    r: radioGoo(unidad.elegibles, maxElegibles),
+    pos: posicionCadena(index, unidades.length),
+    r: radioGoo(unidad.elegibles, maxElegibles) * escala,
   }));
 
   const ultima = aterrizadas > 0 ? visibles[aterrizadas - 1] : null;

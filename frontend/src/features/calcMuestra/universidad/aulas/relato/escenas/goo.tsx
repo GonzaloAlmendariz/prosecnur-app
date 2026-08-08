@@ -77,6 +77,56 @@ export function maxElegiblesDeBolas(bolas: Array<{ elegibles: number | null }>):
 }
 
 /**
+ * Factor de escala del radio según CUÁNTAS bolas comparten el campo.
+ *
+ * `radioGoo` traduce el dato a tamaño, pero el dato no sabe cuántas bolas hay:
+ * con 8 el campo respira y con 60 las mismas medidas se encaraman hasta tapar
+ * los rótulos. La espiral de Vogel reparte el radio 41 entre `n` bolas, así que
+ * la separación típica entre vecinas va como 41/√n; el diámetro tiene que
+ * caber ahí. Sin esto, el campo lleno se lee como una mancha —medido con el
+ * estudio real, 60 bolas superpuestas— y el tope de bolas por sí solo no
+ * alcanzaba: recortaba la cantidad, no el tamaño.
+ *
+ * Nunca agranda (tope 1): con pocas bolas manda la escala del dato.
+ */
+export function escalaPorDensidad(total: number): number {
+  if (total <= 1) return 1;
+  const separacion = 41 / Math.sqrt(total);
+  // Lo que tiene que caber en la separación es el DIÁMETRO de la bola más
+  // grande, no su radio. Con la mitad de esa cuenta el campo seguía encimado
+  // —radio 6.26 contra 5.3 de separación, medido con 60 bolas—, que es la
+  // diferencia entre un campo apretado y una mancha.
+  const radioMaximo = 2.6 + 5.2;
+  return Math.max(0.3, Math.min(1, separacion / (2 * radioMaximo)));
+}
+
+/** Vueltas de la espiral continua: 3.5 reparte 60 bolas sin apelmazar el centro. */
+const VUELTAS_CADENA = 3.5;
+
+/**
+ * Posición para un campo que se recorre EN ORDEN (la cadena del sorteo).
+ *
+ * `posicionGoo` usa el ángulo áureo, cuya gracia es dispersar: dos índices
+ * consecutivos quedan a 137° uno del otro. Eso es lo correcto para un bombo
+ * —bolas sin orden, repartidas parejo— y es exactamente lo contrario de lo que
+ * una cola necesita. Con la espiral de Vogel los eslabones salían disparados
+ * de un extremo al otro y la escena se leía como una estrella, no como un
+ * recorrido (medido: 34 bolas, 29 eslabones, todos radiales).
+ *
+ * Acá el ángulo avanza de forma continua y el radio crece con √(i/n), así que
+ * dos consecutivos son VECINOS y la cadena se lee como lo que es: un camino.
+ */
+export function posicionCadena(index: number, total: number): PosicionGoo {
+  const t = (index + 0.5) / Math.max(1, total);
+  const angulo = VUELTAS_CADENA * 2 * Math.PI * Math.sqrt(t);
+  const radio = 41 * Math.sqrt(t);
+  return {
+    x: 50 + radio * Math.cos(angulo),
+    y: 50 + radio * Math.sin(angulo),
+  };
+}
+
+/**
  * Origen de la bola k en el borde del bombo (perímetro), antes de despegar
  * hacia el cluster. Misma espiral áurea: función pura del índice.
  */
@@ -172,7 +222,7 @@ export function BolaGoo({
   etiquetaExtra?: string;
 }) {
   const { x, y } = posicionGoo(index, total);
-  const r = radioGoo(bola.elegibles, maxElegibles);
+  const r = radioGoo(bola.elegibles, maxElegibles) * escalaPorDensidad(total);
   const asentamiento = useAsentamientoGoo(r, index);
   const clase = [
     "cmv2-relato-goo-bola",
