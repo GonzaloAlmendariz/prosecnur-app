@@ -11,7 +11,7 @@ import {
 import { MODULE_TONES, type ProsecnurModuleSlug } from "../../lib/modules";
 import "./aulasFlow.css";
 
-export const AULAS_SAMPLE_ROUTE = "/calc-muestra?mesa=aulas";
+export const AULAS_SAMPLE_ROUTE = "/calc-muestra?modo=opinion-universitaria";
 
 export type AulasFlowStep = "muestra" | "qr" | "pdf" | "monitoreo";
 
