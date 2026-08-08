@@ -148,12 +148,16 @@ describe("RelatoTab — ensamblaje balanceado en reduced motion (iteración cube
     // del ensamblaje sigue operable como cuadros discretos.
     expect(html).toContain("Bola 2 de 2");
     expect(html).toContain("Paso a paso del ensamblaje");
-    // Corrección tirantes: la RED persiste completa — con k aterrizajes hay
-    // hasta 2k tirantes en el DOM (aquí k=2 → la bola 2 atada a su única
-    // vecina). El cluster se lee como UNA estructura atada, no bolas sueltas.
-    const tirantes = html.match(/cmv2-relato-goo-membrana/g) ?? [];
-    expect(tirantes.length).toBe(1);
-    expect(tirantes.length).toBeLessThanOrEqual(2 * 2);
+    // Cadena 2026-08-08: los eslabones unen pasos CONSECUTIVOS del mismo
+    // estrato, no vecinas espaciales. Los dos titulares del fixture están en
+    // estratos distintos (CIENCIAS E INGENIERIA · Mujer · G2 y DERECHO ·
+    // Hombre · G1), así que NO se atan: `discount_step` reinicia por estrato y
+    // unirlos dibujaría una sucesión que el sorteo no hizo. Cero eslabones acá
+    // es la respuesta correcta, no una regresión.
+    const eslabones = html.match(/cmv2-relato-goo-membrana/g) ?? [];
+    expect(eslabones.length).toBe(0);
+    // Y el campo gris del marco sí está: la cadena no flota en el vacío.
+    expect(html).toContain("is-candidata");
   });
 });
 

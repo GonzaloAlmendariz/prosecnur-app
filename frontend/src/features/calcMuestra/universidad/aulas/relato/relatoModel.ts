@@ -108,6 +108,14 @@ export type RelatoPasoSorteo = {
   code: string;
   etiqueta: string;
   facultad: string;
+  /**
+   * Estrato del paso. La cadena se encadena DENTRO del estrato, nunca entre
+   * estratos: `discount_step` reinicia en cada uno, así que unir el último de
+   * un estrato con el primero del siguiente dibujaría una sucesión que el
+   * sorteo no hizo. Además es lo que hace corta la animación — los estratos
+   * avanzan en paralelo, y la duración es la del estrato más largo, no la suma.
+   */
+  estrato: string;
   bruto: number | null;
   yaCubiertos: number | null;
   neto: number | null;
@@ -235,6 +243,14 @@ export type RelatoEscenaSorteo = EscenaBase & {
    */
   encoge: boolean;
   pasos: RelatoPasoSorteo[];
+  /**
+   * Candidatas NO sorteadas que quedan de fondo, en gris: el marco del que
+   * salieron las que se van poniendo negras. Sin ellas la escena muestra una
+   * cadena flotando en el vacío y se pierde de qué se eligió. Salen del mismo
+   * `aula_frame` que el bombo y comparten su cap; vacío = el proyecto no
+   * conserva el marco curso a curso, y la escena lo declara.
+   */
+  campo: RelatoBola[];
   porEstrato: RelatoEstratoCuota[];
   ajustesTamano: string[];
   /** Solo engines balanceados; null conserva intacta la coreografía secuencial/pool. */
@@ -829,6 +845,47 @@ function balanceDelEnsamblaje(
   };
 }
 
+/**
+ * Las candidatas que quedan de fondo en E4. Es el MISMO marco del bombo, así
+ * que se reusa su criterio de tamaño y su cap: lo que cambia es que acá solo
+ * viajan las NO sorteadas, porque las sorteadas ya llegan como pasos.
+ *
+ * El cupo se reparte con la cadena: si los pasos ya llenan el cap no queda
+ * fondo, y es correcto —la cadena es la historia—; con muestras chicas el
+ * fondo llena el resto. Sin `aula_frame` en memoria el campo va vacío y la
+ * escena lo declara en vez de dibujar un marco inventado.
+ */
+function campoDelSorteo(
+  fuente: RelatoFuente,
+  titulares: Array<Record<string, unknown>>,
+  foco: string | null,
+  usadasPorLaCadena: number,
+): RelatoBola[] {
+  const cupo = Math.max(0, RELATO_BOLAS_MAX - usadasPorLaCadena);
+  if (!cupo || !fuente.frameRows.length) return [];
+  const slugFoco = foco ? focoDeFacultad(foco) : null;
+  const idsSorteados = new Set(
+    titulares.map((row) => classroomRowText(row, ["classroom_id"])).filter(Boolean),
+  );
+  return fuente.frameRows
+    .filter((row) => {
+      if (slugFoco != null && focoDeFacultad(facultadDeFila(row)) !== slugFoco) return false;
+      const id = classroomRowText(row, ["classroom_id"]);
+      return !id || !idsSorteados.has(id);
+    })
+    .map((row) => ({
+      code: codigoDeFila(row, classroomRowText(row, ["classroom_id"]) || "CH"),
+      etiqueta: etiquetaDeFila(row),
+      facultad: facultadDeFila(row),
+      elegibles: numeroPublicado(row, ["eligible_n"]),
+      pi: null,
+      certeza: false,
+      seleccionada: false,
+    }))
+    .sort(compararBolas)
+    .slice(0, cupo);
+}
+
 function escenaSorteo(
   fuente: RelatoFuente,
   selection: CalcMuestraAulasSelection,
@@ -847,6 +904,7 @@ function escenaSorteo(
       code: step.code,
       etiqueta: step.label,
       facultad: step.faculty || "Sin facultad",
+      estrato: classroomRowText(step.row, ["stratum"]) || step.faculty || "Sin estrato",
       bruto: step.bruto,
       yaCubiertos: step.yaCubiertos,
       neto: step.neto,
@@ -878,6 +936,7 @@ function escenaSorteo(
     // bola en la realidad. En post-hoc el traslape se anota al ensamblarse.
     encoge: modo === "pasos" && descuento === "sequential",
     pasos,
+    campo: campoDelSorteo(fuente, titulares, foco, pasos.length),
     porEstrato,
     ajustesTamano,
     balance,
