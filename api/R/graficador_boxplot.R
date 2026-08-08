@@ -76,6 +76,8 @@ graficar_boxplot <- function(
     orientacion       = c("vertical", "horizontal"),
     colores_categorias = NULL,
     mostrar_puntos    = TRUE,
+    mostrar_outliers  = FALSE,
+    textos_negrita    = NULL,
     alpha_puntos      = 0.45,
     size_puntos       = 1.35,
     jitter_width      = 0.15,
@@ -297,7 +299,14 @@ graficar_boxplot <- function(
     ggplot2::aes(x = .data$categoria, y = .data$valor, fill = .data$categoria)
   ) +
     ggplot2::geom_boxplot(
-      outlier.shape = NA,
+      # El outlier es el rasgo distintivo del box plot y la UI ofrecia el knob
+      # desde siempre, pero aqui estaba clavado en NA: la opcion no hacia nada.
+      # Sigue apagado por defecto —con `mostrar_puntos` encendido, que es el
+      # default, cada punto ya se dibuja y el outlier saldria DOS veces— y ahora
+      # se puede encender.
+      outlier.shape = if (isTRUE(mostrar_outliers)) 19 else NA,
+      outlier.size = size_puntos,
+      outlier.colour = "#1A3552",
       width = ancho_caja,
       alpha = 0.88,
       colour = "#1A3552",
@@ -419,19 +428,26 @@ graficar_boxplot <- function(
       )
   }
 
+  # La UI ofrecia `textos_negrita` para este graficador desde siempre y el motor
+  # lo descartaba: el knob no hacia nada.
+  face <- .graficos_face_de(textos_negrita)
+
   p_core <- p_core +
     ggplot2::scale_fill_manual(values = pal, drop = FALSE) +
     ggplot2::theme_minimal(base_size = 10) +
     ggplot2::theme(
       axis.title = ggplot2::element_blank(),
-      axis.text.x = ggplot2::element_text(colour = color_ejes, size = size_ejes),
-      axis.text.y = ggplot2::element_text(colour = color_ejes, size = size_ejes),
+      axis.text.x = ggplot2::element_text(colour = color_ejes, size = size_ejes,
+                                          face = face("ejes", "eje_x")),
+      axis.text.y = ggplot2::element_text(colour = color_ejes, size = size_ejes,
+                                          face = face("ejes", "eje_y")),
       panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_line(colour = "#D9E2EC", linewidth = 0.35),
       legend.title = ggplot2::element_blank(),
       legend.position = if (isTRUE(mostrar_leyenda)) "bottom" else "none",
-      legend.text = ggplot2::element_text(colour = color_ejes, size = max(7, size_ejes - 1)),
+      legend.text = ggplot2::element_text(colour = color_ejes, size = max(7, size_ejes - 1),
+                                          face = face("leyenda")),
       plot.background = ggplot2::element_rect(fill = color_fondo, colour = NA),
       panel.background = ggplot2::element_rect(fill = color_fondo, colour = NA),
       plot.margin = ggplot2::margin(2, 6, 2, 4)
