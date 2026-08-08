@@ -540,7 +540,8 @@
       "frontend/src/features/recopiladores/RecopiladoresPage.tsx",
       "frontend/src/features/recopiladores/recopiladores.css",
       "api/R/calc_muestra_aulas.R",
-      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx"
+      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx",
+      "api/R/graficador_dimensiones.R"
     ],
     "code_change_final_gate": "verificador",
     "repair_protocol": "docs/loops-reparacion.md",
@@ -617,7 +618,8 @@
       "frontend/src/features/recopiladores/recopiladores.css": 3311,
       "frontend/src/app/tokens.css": 553,
       "api/R/calc_muestra_aulas.R": 5109,
-      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3942
+      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3942,
+      "api/R/graficador_dimensiones.R": 4946
     },
     "frozen_growth_exempt": []
   }
