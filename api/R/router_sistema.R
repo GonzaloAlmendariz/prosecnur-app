@@ -682,7 +682,16 @@ mount_sistema <- function(pr) {
         estudio_topology_declared = if (is.null(s$estudio)) NA_character_ else as.character(estudio_topology(sid) %||% NA_character_),
         active_base = if (is.null(s$estudio)) NA_character_ else as.character(estudio_active_base(sid) %||% NA_character_),
         n_bases = length(bases),
-        bases_nombres = as.list(names(bases))
+        bases_nombres = as.list(names(bases)),
+        # Enlace de la base activa con la revisión publicada del Editor. Va en
+        # el estado de sesión —y no solo en `/api/estudio`— porque la página de
+        # Carga únicamente consulta el estudio en modo multibase, que es
+        # justamente donde este enlace NO hacía falta explicar.
+        instrument_revision_binding = local({
+          activa <- if (is.null(s$estudio)) "" else as.character(estudio_active_base(sid) %||% "")
+          meta <- if (nzchar(activa)) bases[[activa]] else NULL
+          as.character((meta %||% list())$instrument_revision_binding %||% NA_character_)
+        })
       )
     })) |>
     plumber::pr_post("/api/files/upload", wrap_endpoint(function(req, res, file = NULL, kind = NULL) {

@@ -1586,7 +1586,6 @@ export default function CargaPage() {
                   )}
                   <ResumenStat label="Secciones" value={instrumento.n_secciones} />
                   <ResumenStat label="Listas de opciones" value={instrumento.n_listas_opciones} />
-                  <InstrumentRevisionBindingNotice base={estudio?.bases?.default} />
                 </>
               )}
               onPick={(file) => onPick("xlsform", file)}
@@ -1711,6 +1710,16 @@ export default function CargaPage() {
               onRemove={() => onQuitar("data")}
             />
           </div>
+          )}
+          {/* Fuera del resumen de la tarjeta a propósito: el enlace con la
+              revisión es una propiedad de la base, no de la subida que acabas
+              de hacer. Dentro del resumen solo se veía en la sesión de UI donde
+              se cargó el archivo y desaparecía al reabrir el proyecto. */}
+          {sourceMode === "files" && (
+            <InstrumentRevisionBindingNotice
+              binding={state?.instrument_revision_binding}
+              base={estudio?.bases?.default}
+            />
           )}
             </div>
           ) : activeCargaTab === "revision" ? (

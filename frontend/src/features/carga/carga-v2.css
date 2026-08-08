@@ -7894,19 +7894,20 @@
   color: var(--pulso-danger-fg);
 }
 
-/* Enlace del XLSForm cargado con la revisión publicada en el Editor. Ocupa la
-   fila completa del resumen porque es una frase, no un contador. */
+/* Enlace de la base con la revisión publicada en el Editor. Vive bajo la
+   grilla de insumos, no dentro del resumen de una tarjeta: es una propiedad
+   del proyecto y debe seguir ahí al reabrirlo. */
 .pulso-instrument-binding {
   grid-column: 1 / -1;
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 7px 9px;
-  border-radius: 8px;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 9px 11px;
+  border-radius: 9px;
   border: 1px solid var(--pulso-border);
-  font-size: 11px;
-  line-height: 1.4;
+  font-size: 11.5px;
+  line-height: 1.45;
 }
 
 .pulso-instrument-binding svg {
