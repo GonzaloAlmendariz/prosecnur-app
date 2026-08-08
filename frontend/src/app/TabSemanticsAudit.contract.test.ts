@@ -399,12 +399,12 @@ const REAL_TABSETS: readonly TabsetCase[] = [
     rootMarker: 'className="pulso-focus-tabs"',
     relationStem: "pulso-focus",
   },
-  {
-    name: "B13 XLSForm Inspector",
-    file: "features/xlsformEditor/inspector/Inspector.tsx",
-    rootMarker: 'className="pulso-inspector-tabs"',
-    relationStem: "pulso-inspector",
-  },
+  // B13 auditaba el tabset de `inspector/Inspector.tsx`, un componente que
+  // ningún sitio importaba ni renderizaba: la auditoría pasaba en verde sobre
+  // una superficie que el usuario nunca veía. El inspector vivo es
+  // `inspector/ContextPanel.tsx`, que apila sus secciones sin roles de tab, así
+  // que no hay tabset que auditar aquí. Se retira la entrada junto con el
+  // componente muerto.
   {
     name: "B14 CronogramaSection",
     file: "features/bitacora/CronogramaSection.tsx",
