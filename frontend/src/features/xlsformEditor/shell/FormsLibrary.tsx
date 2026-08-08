@@ -14,6 +14,12 @@
 // tarjeta de creación en modo "hero". El contenedor externo registra
 // `data-audit-ready` para el QA visual.
 //
+// Mientras el índice del backend no contestó (`loading`), este espacio muestra
+// su encabezado definitivo y una grilla de placeholders. Nunca la variante
+// "welcome": afirmar "no tienes formularios" antes de saberlo es justo lo que
+// producía el doble homepage — hero de creación primero, biblioteca real
+// después. Aquí el marco no cambia; solo se llena.
+//
 // Las métricas de cada tarjeta se calculan sobre el workbook en localStorage
 // (loadForm) — el endpoint list del backend es liviano a propósito y no trae
 // workbooks. Si un formulario no tiene copia local (existe solo en el .pulso
@@ -60,6 +66,8 @@ export type FormsLibraryProps = {
   actorCatalogStatus?: ActorCatalogStatus;
   assigningActorFormId?: string | null;
   resumeBanner?: ReactNode;
+  /** El índice del proyecto todavía no contestó: se pinta el espacio en carga. */
+  loading?: boolean;
 };
 
 export function FormsLibrary({
@@ -84,6 +92,7 @@ export function FormsLibrary({
   actorCatalogStatus = "ready",
   assigningActorFormId = null,
   resumeBanner,
+  loading = false,
 }: FormsLibraryProps) {
   // Métricas por formulario, calculadas sobre el workbook local. Se recomputa
   // cuando cambia la identidad del array `forms` (cada save reemite el índice).
@@ -108,15 +117,20 @@ export function FormsLibrary({
     return map;
   }, [forms, scope]);
 
-  const { count, empty, atLimit, canCreate, ghostSlots } = computeHomeSlots(
-    forms.length,
-  );
+  const slots = computeHomeSlots(forms.length);
+  // En carga nunca afirmamos "vacío": `empty` gobierna el hero, el subtítulo y
+  // el diagrama, y equivocarse ahí es el doble homepage.
+  const empty = !loading && slots.empty;
+  const { count, atLimit, canCreate, ghostSlots } = slots;
 
   return (
     <section
-      className={`pulso-xf-home${empty ? " pulso-xf-home--welcome" : ""}`}
+      className={`pulso-xf-home${empty ? " pulso-xf-home--welcome" : ""}${
+        loading ? " is-loading" : ""
+      }`}
       aria-label="Espacio de formularios del proyecto"
-      data-audit-ready="true"
+      aria-busy={loading || undefined}
+      data-audit-ready={loading ? "false" : "true"}
     >
       <header className="pulso-xf-home-head">
         <div className="pulso-xf-home-head-text">
@@ -125,15 +139,24 @@ export function FormsLibrary({
           </span>
           <h2 className="pulso-xf-home-title">Espacio de formularios</h2>
           <p className="pulso-xf-home-subtitle">
-            {empty
-              ? "Diseña, importa o traduce hasta seis formularios en paralelo dentro de este proyecto."
-              : "Abre uno para seguir editándolo o crea otro. Puedes tener hasta seis formularios en paralelo en este proyecto."}
+            {loading
+              ? "Abriendo los formularios de este proyecto…"
+              : empty
+                ? "Diseña, importa o traduce hasta seis formularios en paralelo dentro de este proyecto."
+                : "Abre uno para seguir editándolo o crea otro. Puedes tener hasta seis formularios en paralelo en este proyecto."}
           </p>
         </div>
       </header>
 
       {resumeBanner ? <div className="pulso-xf-home-resume">{resumeBanner}</div> : null}
 
+      {loading ? (
+        <div className="pulso-xf-home-slots" data-slot-count={0} aria-hidden="true">
+          {[0, 1].map((i) => (
+            <span key={`skeleton-${i}`} className="pulso-xf-home-slot-skeleton" />
+          ))}
+        </div>
+      ) : (
       <div className="pulso-xf-home-slots" data-slot-count={count}>
         {forms.map((entry) => (
           <FormCard
@@ -180,8 +203,9 @@ export function FormsLibrary({
           />
         ))}
       </div>
+      )}
 
-      {atLimit && (
+      {atLimit && !loading && (
         <p className="pulso-xf-home-limit-note" role="note">
           <Lock size={13} aria-hidden="true" />
           Límite de {MAX_FORMS} formularios por proyecto. Elimina uno para crear
@@ -189,15 +213,17 @@ export function FormsLibrary({
         </p>
       )}
 
-      <footer className={`pulso-xf-home-guide${empty ? "" : " is-compact"}`}>
-        <span className="pulso-xf-home-guide-eyebrow">Cómo funciona</span>
-        <p className="pulso-xf-home-guide-copy">
-          {empty
-            ? "Construye el instrumento paso a paso; el editor guarda los cambios automáticamente."
-            : "Origen, lógica y público preparan una revisión estable para Procesamiento."}
-        </p>
-        {empty ? <HubFlowDiagram /> : null}
-      </footer>
+      {loading ? null : (
+        <footer className={`pulso-xf-home-guide${empty ? "" : " is-compact"}`}>
+          <span className="pulso-xf-home-guide-eyebrow">Cómo funciona</span>
+          <p className="pulso-xf-home-guide-copy">
+            {empty
+              ? "Construye el instrumento paso a paso; el editor guarda los cambios automáticamente."
+              : "Origen, lógica y público preparan una revisión estable para Procesamiento."}
+          </p>
+          {empty ? <HubFlowDiagram /> : null}
+        </footer>
+      )}
     </section>
   );
 }

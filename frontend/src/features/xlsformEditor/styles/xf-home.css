@@ -132,6 +132,30 @@
   opacity: 0.5;
 }
 
+/* Placeholder de carga: ocupa el lugar de una tarjeta mientras el índice del
+   proyecto viaja. Su altura aproxima la de una FormCard con su bloque de
+   flujo y su estado de publicación, para que al llegar los datos la grilla se
+   llene en vez de estirarse. */
+.pulso-xf-home-slot-skeleton {
+  min-height: 248px;
+  border-radius: 14px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  opacity: 0.6;
+  animation: pulso-xf-home-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulso-xf-home-skeleton-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.65; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso-xf-home-slot-skeleton {
+    animation: none;
+  }
+}
+
 /* --- Tarjeta de formulario --------------------------------------------- */
 
 .pulso-xf-home-card {
