@@ -1,47 +1,18 @@
-import { Award, MoveHorizontal, Scale, Shuffle } from "../../../../vendor/lucide-react";
+import { Link } from "react-router-dom";
+import { Award } from "../../../../vendor/lucide-react";
+import { CALC_MUESTRA_UNIVERSIDAD_PESTANAS } from "../../../../lib/navegacion/catalogos/calcMuestra";
+import { MetodoGooEsquema } from "../../didactica/MetodoGooEsquema";
 import type { ClassroomMethodDecision } from "./classroomMethodStoriesModel";
 import { CLASSROOM_METHOD_STORIES } from "./classroomMethodStoriesModel";
 import "./classroomMethodStories.css";
 
-function MethodStoryVisual({ visual }: { visual: typeof CLASSROOM_METHOD_STORIES[number]["visual"] }) {
-  if (visual === "systematic") {
-    return (
-      <div className="cmv2-method-story-visual is-systematic" role="img" aria-label="Recta ordenada que selecciona un curso-horario cada paso k">
-        <MoveHorizontal size={14} aria-hidden="true" />
-        <div>{Array.from({ length: 10 }, (_, index) => <i key={index} data-picked={index % 3 === 1 || undefined} />)}</div>
-        <strong>+ k</strong>
-      </div>
-    );
-  }
-  if (visual === "cube") {
-    return (
-      <div className="cmv2-method-story-visual is-cube" role="img" aria-label="Tres balanzas ajustan facultad, sexo esperado y tamaño">
-        <Scale size={14} aria-hidden="true" />
-        {[
-          ["Facultad", "68%"],
-          ["Sexo", "52%"],
-          ["Tamaño", "76%"],
-        ].map(([label, width]) => <span key={label}><b>{label}</b><i><em style={{ width }} /></i></span>)}
-      </div>
-    );
-  }
-  if (visual === "pivotal") {
-    return (
-      <div className="cmv2-method-story-visual is-pivotal" role="img" aria-label="Pares de vecinos parecidos se separan conservando su probabilidad total">
-        <Shuffle size={14} aria-hidden="true" />
-        <div>{Array.from({ length: 6 }, (_, index) => <i key={index} data-side={index % 2 ? "right" : "left"} />)}</div>
-        <strong>vecinos → separados</strong>
-      </div>
-    );
-  }
-  return (
-    <div className="cmv2-method-story-visual is-pool" role="img" aria-label="Quinientas muestras candidatas se reducen a la de mejor resultado">
-      <Shuffle size={14} aria-hidden="true" />
-      <div>{Array.from({ length: 9 }, (_, index) => <i key={index} data-best={index === 6 || undefined} />)}</div>
-      <strong>500 → mejor 1</strong>
-    </div>
-  );
-}
+/**
+ * La dirección canónica del Relato sale del catálogo (ADR 0044/0067): la
+ * tarjeta enlaza a «ver con tus aulas reales» cuando la selección existe.
+ */
+const RELATO_TO =
+  CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas.find((tab) => tab.id === "aulas-relato")?.to ??
+  "/calc-muestra?modo=opinion-universitaria&seccion=aulas&pestana=aulas-relato";
 
 export function ClassroomMethodDecisionHero({ decision }: { decision: ClassroomMethodDecision }) {
   const recommended = decision.kind === "recommended";
@@ -66,10 +37,13 @@ export function ClassroomMethodDecisionHero({ decision }: { decision: ClassroomM
 export function ClassroomMethodStories({
   configuredMethodId,
   recommendedMethodId,
+  relatoDisponible = false,
   onConfigure,
 }: {
   configuredMethodId: string;
   recommendedMethodId?: string;
+  /** true cuando existe una selección vigente: habilita el enlace al Relato. */
+  relatoDisponible?: boolean;
   onConfigure: (methodId: string) => void;
 }) {
   return (
@@ -93,7 +67,9 @@ export function ClassroomMethodStories({
             </header>
             <strong>{story.title}</strong>
             <p>{story.story}</p>
-            <MethodStoryVisual visual={story.visual} />
+            {/* Mini-goo ilustrativo del mecanismo (didactica/): declara que no
+                son aulas reales; la corrida real se narra en el Relato. */}
+            <MetodoGooEsquema metodo={story.id} />
             <button
               type="button"
               className={configured ? "cmv2-primary" : "cmv2-ghost"}
@@ -102,6 +78,11 @@ export function ClassroomMethodStories({
             >
               {configured ? "Método configurado" : "Configurar este método"}
             </button>
+            {relatoDisponible && (
+              <Link className="cmv2-method-story-relato" to={RELATO_TO}>
+                Ver con tus aulas reales
+              </Link>
+            )}
           </article>
         );
       })}

@@ -109,6 +109,7 @@ export function AulasMetodoTab({
           <ClassroomMethodStories
             configuredMethodId={String(config.selector_engine ?? config.selector)}
             recommendedMethodId={decision.kind === "recommended" ? decision.methodId : undefined}
+            relatoDisponible={model.selectionReady}
             onConfigure={setSelector}
           />
 

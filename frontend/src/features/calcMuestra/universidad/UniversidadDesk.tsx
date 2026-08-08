@@ -54,6 +54,7 @@ import {
   AulasSimulacionTab,
   buildClassroomLabModel,
 } from "./aulas";
+import { RelatoTab } from "./aulas/relato/RelatoTab";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -532,6 +533,9 @@ export function UniversidadDesk({
             )}
             {activeLabTab === "reemplazos" && (
               <AulasReemplazosTab model={labModel} busy={busy} onSimulateReplacements={onSimularReemplazos} onNavigate={onNavigate} />
+            )}
+            {activeLabTab === "aulas-relato" && (
+              <RelatoTab model={labModel} foco={activeFocus} onNavigate={onNavigate} />
             )}
             {activeLabTab === "auditoria" && <AulasAuditoriaTab model={labModel} onNavigate={onNavigate} />}
           </div>

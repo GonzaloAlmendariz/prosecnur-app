@@ -1,0 +1,1040 @@
+/* =============================================================================
+   Relato de la selección (ADR 0067) · pestaña aulas-relato.
+   Prefijo cmv2-relato-*. Solo tokens var(--cmv2-* / --pulso-* / --motion-*);
+   cero hex. Las transiciones significan: cada entrada animada corresponde a un
+   hecho del sorteo y lleva su cifra al lado; bajo prefers-reduced-motion TODO
+   movimiento se apaga y el contenido queda igual de completo (modo estático).
+   ============================================================================= */
+
+.cmv2-relato {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.cmv2-relato-escenario-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.cmv2-relato-cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cmv2-relato-foco {
+  min-width: 240px;
+}
+
+/* --- Escenario (una sola superficie grande) -------------------------------- */
+
+.cmv2-relato-escenario {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+  animation: cmv2-relato-escena-entrada var(--motion-dur-panel) var(--motion-ease-out);
+}
+
+.cmv2-relato-escena-titulo {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 15px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.cmv2-relato-escena-num {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-escena-cuerpo {
+  display: grid;
+  gap: 10px;
+}
+
+/* --- Cifras ----------------------------------------------------------------- */
+
+.cmv2-relato-cifras {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cmv2-relato-cifra {
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-raised);
+}
+
+.cmv2-relato-cifra strong {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-relato-cifra span {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-cifra small {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-cifra.is-realce {
+  border-color: var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+}
+
+.cmv2-relato-cifra.is-realce strong {
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-relato-flecha {
+  color: var(--pulso-text-muted);
+  font-size: 13px;
+}
+
+.cmv2-relato-nota {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  max-width: 78ch;
+}
+
+.cmv2-relato-enlace {
+  justify-self: start;
+}
+
+/* --- Barras por facultad (E1) ----------------------------------------------- */
+
+.cmv2-relato-barras {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-relato-barra {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation-delay: calc(var(--relato-i, 0) * 30ms);
+}
+
+.cmv2-relato-barra-nombre {
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-relato-barra.is-foco .cmv2-relato-barra-nombre {
+  font-weight: var(--pulso-weight-black);
+  color: var(--cmv2-accent-fg);
+}
+
+.cmv2-relato-barra-pista {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--cmv2-surface-tint);
+  overflow: hidden;
+}
+
+.cmv2-relato-barra-valor {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cmv2-accent);
+  transition: width var(--motion-dur-slow) var(--motion-ease-out);
+}
+
+.cmv2-relato-barra.is-foco .cmv2-relato-barra-valor {
+  background: color-mix(in srgb, var(--cmv2-accent) 78%, var(--pulso-text) 22%);
+}
+
+.cmv2-relato-barra-cifra {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Tablas de escena -------------------------------------------------------- */
+
+.cmv2-relato-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.cmv2-relato-tabla th,
+.cmv2-relato-tabla td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--cmv2-border);
+  text-align: left;
+}
+
+.cmv2-relato-tabla thead th {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-tabla tbody th {
+  font-weight: 500;
+  color: var(--pulso-text);
+}
+
+.cmv2-relato-tabla .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-relato-fila-anim {
+  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation-delay: calc(var(--relato-i, 0) * 30ms);
+}
+
+/* --- Chips (unidades discretas: cursos-horario, estados) --------------------- */
+
+.cmv2-relato-chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmv2-relato-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-surface-raised);
+  font-size: 11px;
+  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation-delay: calc(var(--relato-i, 0) * 25ms);
+}
+
+/* Estado ≠ solo color: la certeza además cambia de forma (borde doble). */
+.cmv2-relato-chip.is-certeza {
+  border-style: double;
+  border-width: 3px;
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.cmv2-relato-chip.is-reserva {
+  border-style: dashed;
+}
+
+.cmv2-relato-chip-code {
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.cmv2-relato-chip-cifra {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Pasos del sorteo (E4) ---------------------------------------------------- */
+
+.cmv2-relato-pasos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-relato-paso {
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--cmv2-surface-raised);
+  animation: cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation-delay: calc(var(--relato-i, 0) * 35ms);
+}
+
+.cmv2-relato-paso-orden {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-accent-border);
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-relato-paso-quien {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cmv2-relato-paso-quien strong {
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-relato-paso-quien small {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-relato-paso-cifras {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-paso-cifras .is-neto {
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+/* --- Huecos declarados y ajustes divulgados ---------------------------------- */
+
+.cmv2-relato-huecos {
+  margin: 0;
+  padding: 8px 10px 8px 26px;
+  display: grid;
+  gap: 4px;
+  border: 1px dashed var(--pulso-warn-border);
+  border-radius: 8px;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-relato-huecos.is-ajuste {
+  border-style: solid;
+}
+
+/* --- Activación de reservas (E5) --------------------------------------------- */
+
+.cmv2-relato-activacion {
+  display: grid;
+  gap: 6px;
+}
+
+/* --- Firma (E6) --------------------------------------------------------------- */
+
+.cmv2-relato-firma {
+  margin: 0;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cmv2-relato-firma div {
+  display: grid;
+  gap: 1px;
+}
+
+.cmv2-relato-firma dt {
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-firma dd {
+  margin: 0;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+  word-break: break-all;
+}
+
+/* --- Línea de tiempo ----------------------------------------------------------- */
+
+.cmv2-relato-timeline {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-raised);
+}
+
+.cmv2-relato-controles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Sub-timeline del ensamblaje (E4): bola por bola, dentro de la escena. */
+.cmv2-relato-substepper {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--cmv2-surface-raised);
+}
+
+.cmv2-relato-substepper .cmv2-relato-indicador {
+  grid-column: 1 / -1;
+}
+
+.cmv2-relato-scrub.is-sub {
+  width: 100%;
+}
+
+.cmv2-relato-scrub {
+  width: 100%;
+  accent-color: var(--cmv2-accent);
+}
+
+.cmv2-relato-indicador {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Goo (E3 bombo · E4 ensamblaje · E5 cadenas) -------------------------------
+   Cada bola es un curso-horario real; su tamaño, sus elegibles publicados.
+   El layout (espiral de ángulo áureo) es determinista: función del orden que
+   el dato ya trae. Las entradas animadas corresponden a hechos ya resueltos. */
+
+.cmv2-relato-goo {
+  width: min(100%, 560px);
+  aspect-ratio: 1;
+  justify-self: center;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 14px;
+  background: var(--cmv2-surface-raised);
+}
+
+.cmv2-relato-goo-bola {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cmv2-relato-goo-entrada var(--motion-dur-base) var(--motion-ease-out) both;
+  animation-delay: calc(var(--relato-i, 0) * 40ms);
+  /* Profundidad por tamaño: --goo-sombra la fija cada bola según su radio. */
+  filter: drop-shadow(0 var(--goo-sombra, 0.6px) calc(var(--goo-sombra, 0.6px) * 1.8) color-mix(in srgb, var(--pulso-text) 22%, transparent));
+}
+
+.cmv2-relato-goo-cuerpo {
+  fill: var(--cmv2-surface-tint);
+  stroke: var(--cmv2-border-strong);
+  stroke-width: 0.4;
+}
+
+/* Highlight radial sutil: material goo sin hex nuevos. */
+.cmv2-relato-goo-brillo {
+  fill: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+/* Bola viva (a): idle bobbing con duración Y fase distintas por bola
+   (--wob-dur = 3s + (i % 5)·0.35s; --wob-delay = i·0.13s, fijadas por el
+   componente). La desincronía es determinista, jamás todas al unísono. */
+.cmv2-relato-goo-bola.is-candidata .cmv2-relato-goo-cuerpo,
+.cmv2-relato-goo-bola.is-candidata .cmv2-relato-goo-brillo,
+.cmv2-relato-goo-bola.is-espera .cmv2-relato-goo-cuerpo,
+.cmv2-relato-goo-bola.is-espera .cmv2-relato-goo-brillo {
+  animation: cmv2-relato-goo-bobbing var(--wob-dur, 3.4s) ease-in-out infinite;
+  animation-delay: var(--wob-delay, 0s);
+}
+
+/* Las ya ensambladas no repiten su entrada al re-renderizarse (ondas). */
+.cmv2-relato-goo-bola.is-ensamblada {
+  animation: none;
+}
+
+/* El aterrizaje: despegue → arco con ESTIRAMIENTO tangente → contacto →
+   asentamiento SUBAMORTIGUADO multi-pico (+8% → −4% → +2% → −1% → 0 con
+   tiempos crecientes). Un ease-out simple se siente muerto: el feel está en
+   pasarse del equilibrio y oscilar de vuelta. */
+.cmv2-relato-goo-bola.is-aterrizando {
+  animation: cmv2-relato-goo-aterrizar 950ms var(--motion-ease-out) both;
+  will-change: transform;
+}
+
+/* Propagación local atenuada (delays fijos 60/120 ms; amplitud y dirección
+   en --ondx/--ondy, calculadas del layout: 1er grado ~3.5px, 2º la mitad). */
+.cmv2-relato-goo-bola.is-onda-1 {
+  animation: cmv2-relato-goo-onda 720ms var(--motion-ease-out) 60ms both;
+}
+
+.cmv2-relato-goo-bola.is-onda-2 {
+  animation: cmv2-relato-goo-onda 720ms var(--motion-ease-out) 120ms both;
+}
+
+/* En espera sobre el borde del bombo la posición de reposo vive en el style
+   inline; la animación de entrada (scale, fill both) la pisaría y colapsa la
+   bola al origen. El bobbing no se pierde: vive en los círculos hijos. */
+.cmv2-relato-goo-bola.is-espera {
+  animation: none;
+}
+
+/* Tirante entre bolas vecinas del cluster (red masa-resorte destilada).
+   PERSISTE para toda bola ya aterrizada: al final el cluster se lee como UNA
+   estructura atada, no bolas cercanas flotando. Peso visual alto a propósito
+   (corrección 2026-08-07: un tirante tenue no se lee como conexión). */
+.cmv2-relato-goo-membrana {
+  fill: none;
+  stroke: color-mix(in srgb, var(--cmv2-accent) 62%, var(--cmv2-border-strong));
+  stroke-linecap: round;
+  opacity: 0.9;
+  animation: cmv2-relato-goo-membrana-entra var(--motion-dur-base) var(--motion-ease-out) both;
+}
+
+/* El tirante del aterrizaje: preview PUNTEADO ~120 ms antes del contacto →
+   SNAP sólido al tensarse, vibrando con la misma senoide amortiguada. */
+.cmv2-relato-goo-membrana.is-snap {
+  animation:
+    cmv2-relato-tirante-snap 950ms var(--motion-ease-out) both,
+    cmv2-relato-tirante-vibra 950ms var(--motion-ease-out) both;
+}
+
+/* Bola viva (c): hover/focus revela el marcador y su cifra AL INSTANTE. */
+.cmv2-relato-goo-rotulo.is-hover {
+  opacity: 0;
+}
+
+.cmv2-relato-goo-bola:hover .cmv2-relato-goo-rotulo.is-hover,
+.cmv2-relato-goo-bola:focus .cmv2-relato-goo-rotulo.is-hover {
+  opacity: 1;
+}
+
+.cmv2-relato-goo-bola.is-sorteada .cmv2-relato-goo-cuerpo {
+  fill: color-mix(in srgb, var(--cmv2-accent) 26%, var(--cmv2-surface-raised));
+  stroke: var(--cmv2-accent-border);
+  stroke-width: 0.5;
+}
+
+/* Certeza: doble contorno (forma, no solo color) — entra sin sorteo. */
+.cmv2-relato-goo-bola.is-certeza .cmv2-relato-goo-cuerpo {
+  stroke: var(--pulso-success-border);
+  stroke-width: 0.7;
+  fill: var(--pulso-success-bg);
+}
+
+.cmv2-relato-goo-doble {
+  fill: none;
+  stroke: var(--pulso-success-border);
+  stroke-width: 0.45;
+}
+
+/* Traslape anotado al ensamblarse (post-hoc): anillo punteado con su cifra. */
+.cmv2-relato-goo-anillo {
+  fill: none;
+  stroke: var(--pulso-warn-accent);
+  stroke-width: 0.5;
+  stroke-dasharray: 1.2 1;
+}
+
+.cmv2-relato-goo-rotulo {
+  fill: var(--pulso-text-muted);
+  font-size: 2.4px;
+  text-anchor: middle;
+}
+
+/* La cifra del aterrizaje: jerarquía del feature, no burbuja de juguete. */
+.cmv2-relato-goo-rotulo.is-reciente {
+  fill: var(--pulso-text);
+  font-size: 2.8px;
+  font-weight: 700;
+}
+
+.cmv2-relato-goo-paso {
+  fill: var(--pulso-text);
+  font-size: 2.8px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.cmv2-relato-goo-masa {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.cmv2-relato-goo-masa li {
+  padding: 5px 10px;
+  border: 1px dashed var(--cmv2-border-strong);
+  border-radius: 999px;
+  background: var(--cmv2-surface-tint);
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-goo-masa strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-relato-paso.is-resto {
+  border-style: dashed;
+}
+
+/* --- El ensamblaje balanceado (E4 · engines cube / local pivotal) --------------
+   Barras pareadas marco vs muestra: composición por CONTEO de filas
+   publicadas. La barra de muestra crece con la serie de convergencia (orden de
+   lectura del ensamblaje simultáneo); su ancho es siempre un dato. */
+
+.cmv2-relato-balance {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface-raised);
+}
+
+.cmv2-relato-balance-leyenda {
+  display: flex;
+  gap: 14px;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-relato-balance-leyenda span::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 6px;
+  border-radius: 999px;
+  margin-right: 5px;
+}
+
+.cmv2-relato-balance-leyenda .is-marco::before {
+  background: var(--cmv2-border-strong);
+}
+
+.cmv2-relato-balance-leyenda .is-muestra::before {
+  background: var(--cmv2-accent);
+}
+
+.cmv2-relato-balance-variable {
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-relato-balance-titulo {
+  margin: 0;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.cmv2-relato-balance-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-relato-balance-fila {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.cmv2-relato-balance-cat {
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-relato-balance-barras {
+  display: grid;
+  gap: 2px;
+}
+
+.cmv2-relato-balance-pista {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cmv2-surface-tint);
+  overflow: hidden;
+}
+
+.cmv2-relato-balance-marco,
+.cmv2-relato-balance-muestra {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width var(--motion-dur-base) var(--motion-ease-out);
+}
+
+.cmv2-relato-balance-marco {
+  background: var(--cmv2-border-strong);
+}
+
+.cmv2-relato-balance-muestra {
+  background: var(--cmv2-accent);
+}
+
+.cmv2-relato-balance-cifras {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
+/* --- Cadenas colgantes (E5) ---------------------------------------------------- */
+
+.cmv2-relato-cadenas {
+  margin: 0;
+  padding: 6px 2px;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cmv2-relato-cadena {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  transform-origin: top center;
+  animation:
+    cmv2-relato-item-entrada var(--motion-dur-base) var(--motion-ease-out) both,
+    cmv2-relato-cadena-sway 4.6s ease-in-out infinite;
+  animation-delay: calc(var(--relato-i, 0) * 30ms), calc(var(--relato-i, 0) * -0.9s);
+}
+
+/* La bola titular: tamaño ∝ elegibles publicados (escala en --relato-escala). */
+.cmv2-relato-cadena-titular {
+  display: inline-grid;
+  place-items: center;
+  width: calc(52px * var(--relato-escala, 1));
+  height: calc(52px * var(--relato-escala, 1));
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--cmv2-accent-border);
+  background: color-mix(in srgb, var(--cmv2-accent) 22%, var(--cmv2-surface-raised));
+  color: var(--pulso-text);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+  text-align: center;
+}
+
+/* La reserva cuelga: condicional (borde discontinuo) unida por su hilo, y al
+   colgarse la cuerda vibra con la misma senoide amortiguada del ensamblaje. */
+.cmv2-relato-cadena-reserva {
+  animation: cmv2-relato-cuerda 820ms var(--motion-ease-out) both;
+  animation-delay: calc(var(--relato-i, 0) * 90ms);
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 1px dashed var(--cmv2-border-strong);
+  background: var(--cmv2-surface-raised);
+  color: var(--pulso-text-muted);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  margin-top: 10px;
+}
+
+.cmv2-relato-cadena-reserva::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 1px;
+  height: 10px;
+  background: var(--cmv2-border-strong);
+}
+
+.cmv2-relato-cadena-vacia {
+  margin-top: 8px;
+  font-size: 9.5px;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Modo estático (prefers-reduced-motion) ----------------------------------- */
+
+.cmv2-relato-estatico {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.cmv2-relato-estatico-escena {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: var(--cmv2-surface);
+}
+
+/* --- Movimiento ----------------------------------------------------------------
+   Cada keyframe de arriba corresponde a la ENTRADA de un hecho ya resuelto
+   (nunca a un azar en curso). Bajo reduced-motion todo queda estático con el
+   mismo contenido; además el JSX apaga el autoplay (data-relato-motion). */
+
+@keyframes cmv2-relato-escena-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cmv2-relato-item-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* La bola se ensambla creciendo hasta su tamaño REAL (el dato publicado). */
+@keyframes cmv2-relato-goo-entrada {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Aterrizaje bola por bola. Coordenadas = vars del dato (--ox/--mx/--tx) y el
+   ángulo del arco (--rot) orienta el estiramiento en vuelo; nunca un azar.
+   Contacto al 52 % y luego la senoide amortiguada con intervalos CRECIENTES:
+   +8 % (52 %) → −4 % (62 %) → +2 % (74 %) → −1 % (88 %) → 0 (100 %). */
+@keyframes cmv2-relato-goo-aterrizar {
+  0% {
+    transform: translate(var(--ox), var(--oy)) scale(1);
+  }
+  /* En vuelo: la bola se ESTIRA en la tangente del arco. */
+  30% {
+    transform: translate(var(--mx), var(--my)) rotate(var(--rot, 0deg)) scale(1.12, 0.92) rotate(calc(-1 * var(--rot, 0deg)));
+  }
+  52% {
+    transform: translate(var(--tx), var(--ty)) scale(1.08);
+  }
+  62% {
+    transform: translate(var(--tx), var(--ty)) scale(0.96);
+  }
+  74% {
+    transform: translate(var(--tx), var(--ty)) scale(1.02);
+  }
+  88% {
+    transform: translate(var(--tx), var(--ty)) scale(0.99);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(1);
+  }
+}
+
+/* Idle bobbing (bola viva): translateY senoidal de ~1.5px. La duración y la
+   fase por bola viajan en --wob-dur/--wob-delay (deterministas por índice). */
+@keyframes cmv2-relato-goo-bobbing {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(0, -1.5px);
+  }
+}
+
+/* La estructura respira: empujón amortiguado hacia --ondx/--ondy y de vuelta
+   (misma senoide del asentamiento, amplitud decreciente). */
+@keyframes cmv2-relato-goo-onda {
+  0% {
+    transform: translate(var(--tx), var(--ty));
+  }
+  24% {
+    transform: translate(calc(var(--tx) + var(--ondx, 0px)), calc(var(--ty) + var(--ondy, 0px)));
+  }
+  50% {
+    transform: translate(calc(var(--tx) - var(--ondx, 0px) * 0.5), calc(var(--ty) - var(--ondy, 0px) * 0.5));
+  }
+  72% {
+    transform: translate(calc(var(--tx) + var(--ondx, 0px) * 0.25), calc(var(--ty) + var(--ondy, 0px) * 0.25));
+  }
+  88% {
+    transform: translate(calc(var(--tx) - var(--ondx, 0px) * 0.1), calc(var(--ty) - var(--ondy, 0px) * 0.1));
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty));
+  }
+}
+
+/* Tirante del aterrizaje: invisible → preview punteado (~120 ms antes del
+   contacto del 52 %) → sólido al tensarse. */
+@keyframes cmv2-relato-tirante-snap {
+  0%, 36% {
+    opacity: 0;
+    stroke-dasharray: 1.6 1.8;
+  }
+  40% {
+    opacity: 0.5;
+    stroke-dasharray: 1.6 1.8;
+  }
+  51% {
+    opacity: 0.55;
+    stroke-dasharray: 1.6 1.8;
+  }
+  52%, 100% {
+    opacity: 0.9;
+    stroke-dasharray: 200 0;
+  }
+}
+
+/* La cuerda vibra al tensarse: misma senoide amortiguada, en el path (el
+   punto de control del bezier no es animable por CSS; se emula trasladando
+   la cuerda entera con amplitud decreciente). */
+@keyframes cmv2-relato-tirante-vibra {
+  0%, 52% {
+    transform: translate(0, 0);
+  }
+  62% {
+    transform: translate(0.6px, -0.45px);
+  }
+  74% {
+    transform: translate(-0.3px, 0.25px);
+  }
+  88% {
+    transform: translate(0.15px, -0.1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes cmv2-relato-goo-membrana-entra {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+
+/* Las cadenas de E5 cuelgan con una oscilación mínima. */
+@keyframes cmv2-relato-cadena-sway {
+  0%, 100% {
+    transform: rotate(0.6deg);
+  }
+  50% {
+    transform: rotate(-0.6deg);
+  }
+}
+
+/* La cuerda de la reserva al colgarse: hundimiento → rebote pasado → asiento
+   (senoide amortiguada vertical, amplitud decreciente). */
+@keyframes cmv2-relato-cuerda {
+  0% {
+    transform: translateY(-4px);
+    opacity: 0;
+  }
+  38% {
+    transform: translateY(2px);
+    opacity: 1;
+  }
+  58% {
+    transform: translateY(-1px);
+  }
+  76% {
+    transform: translateY(0.5px);
+  }
+  90% {
+    transform: translateY(-0.25px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmv2-relato-escenario,
+  .cmv2-relato-barra,
+  .cmv2-relato-fila-anim,
+  .cmv2-relato-chip,
+  .cmv2-relato-paso,
+  .cmv2-relato-goo-bola,
+  .cmv2-relato-goo-bola.is-aterrizando,
+  .cmv2-relato-goo-bola.is-onda-1,
+  .cmv2-relato-goo-bola.is-onda-2,
+  .cmv2-relato-goo-bola.is-candidata .cmv2-relato-goo-cuerpo,
+  .cmv2-relato-goo-bola.is-candidata .cmv2-relato-goo-brillo,
+  .cmv2-relato-goo-bola.is-espera .cmv2-relato-goo-cuerpo,
+  .cmv2-relato-goo-bola.is-espera .cmv2-relato-goo-brillo,
+  .cmv2-relato-goo-membrana,
+  .cmv2-relato-goo-membrana.is-snap,
+  .cmv2-relato-cadena,
+  .cmv2-relato-cadena-reserva {
+    animation: none;
+  }
+
+  .cmv2-relato-barra-valor,
+  .cmv2-relato-balance-marco,
+  .cmv2-relato-balance-muestra {
+    transition: none;
+  }
+}
