@@ -6,8 +6,48 @@
  * `discount_step` en el ensamblaje). Cero azar: dos aperturas del mismo
  * deep-link pintan exactamente el mismo campo de bolas.
  */
+import { useEffect, useId, useRef, useState } from "react";
+
 import { fmtInt, fmtPct } from "../../../../sharedCore";
+import { MotorGoo, motorDisponible } from "../motorGoo";
 import type { RelatoBola, RelatoMasaBombo } from "../relatoModel";
+
+/**
+ * UN motor para toda la app: el bucle de rAF es compartido por construcción
+ * (ver `MotorGoo`), y tener uno por escena reintroduciría justo el problema que
+ * la clase evita — varios acumuladores compitiendo, desincronía no determinista
+ * y un `requestAnimationFrame` por componente.
+ */
+const motorCompartido = new MotorGoo();
+
+/**
+ * Conecta una bola al motor de asentamiento. Devuelve el ref del grupo animado
+ * y si el motor quedó a cargo.
+ *
+ * Cuando el motor NO está disponible —reduced-motion, jsdom, SSR— el hook no
+ * hace nada y el `@keyframes` CSS sigue siendo el camino: realce progresivo, no
+ * sustitución. Por eso la clase `is-motor` se agrega sólo cuando hay motor; es
+ * la que apaga la animación declarativa para que las dos no se peleen el mismo
+ * `transform`.
+ */
+export function useAsentamientoGoo(radio: number, index: number) {
+  const id = useId();
+  const ref = useRef<SVGGElement | null>(null);
+  const [conMotor] = useState(motorDisponible);
+
+  useEffect(() => {
+    const nodo = ref.current;
+    if (!conMotor || !nodo) return undefined;
+    motorCompartido.soltar(id, radio, index, (escala) => {
+      // Se escribe en el estilo, no en el estado de React: un re-render por
+      // cuadro y por bola convertiría 60 bolas en 3,600 renders por segundo.
+      nodo.style.setProperty("--goo-escala", escala.toFixed(4));
+    });
+    return () => motorCompartido.quitar(id);
+  }, [conMotor, id, index, radio]);
+
+  return { ref, conMotor };
+}
 
 /** Ángulo áureo en radianes: espiral de Vogel, constante y determinista. */
 const ANGULO_AUREO = 2.399963229728653;
@@ -133,10 +173,12 @@ export function BolaGoo({
 }) {
   const { x, y } = posicionGoo(index, total);
   const r = radioGoo(bola.elegibles, maxElegibles);
+  const asentamiento = useAsentamientoGoo(r, index);
   const clase = [
     "cmv2-relato-goo-bola",
     bola.seleccionada ? "is-sorteada" : "is-candidata",
     bola.certeza ? "is-certeza" : "",
+    asentamiento.conMotor ? "is-motor" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -158,6 +200,7 @@ export function BolaGoo({
     // origen. El g exterior solo posiciona; el interior anima.
     <g transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`}>
     <g
+      ref={asentamiento.ref}
       className={clase}
       tabIndex={0}
       style={{
