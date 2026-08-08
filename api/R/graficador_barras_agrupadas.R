@@ -306,7 +306,15 @@ graficar_barras_agrupadas <- function(
     color_texto_barras_fuera  = "#081F5C",
     size_texto_barras         = 3,
     color_barra_extra         = "#081F5C",
-    size_barra_extra          = 3,
+    # Mismo criterio que ya se aplico en apiladas: 3 no es un tamano, es un
+    # borron. La columna extra lleva la cifra que resume la fila —la base, o el
+    # top-two-box— y salia a un tercio del tamano de cualquier otro texto del
+    # grafico. Se alinea con `size_ejes` para que pese lo que pesa un rotulo.
+    #
+    # Lo encontro el auditor de composicion: el defecto estaba arreglado en
+    # apiladas desde hacia meses y seguia vivo aqui, porque nadie lo habia
+    # mirado con la misma vara.
+    size_barra_extra          = 9,
     color_ejes                = "#081F5C",
     size_ejes                 = 9,
     lineheight_eje_y          = NULL,
