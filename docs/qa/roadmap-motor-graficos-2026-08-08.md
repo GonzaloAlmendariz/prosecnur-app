@@ -37,14 +37,23 @@ Suites en verde al momento de escribir esto (`testthat::test_file` por archivo;
 - **Los tests de contrato existen y sirven**: defaults fósiles, presets floor,
   argumentos de UI, matriz de templates.
 
-### El límite estructural
+### El límite estructural — ahora con un gate
 
-Los tests cubren **contrato y estructura**, no **composición**. Los ocho
-defectos del cierre de equivalencias (2026-08-07) y los dos de la auditoría de
-hoy son todos de composición, y ninguno lo habría atrapado un test de los que
-existen. De ahí la regla de trabajo: **ante cualquier duda de layout,
-renderizar antes de teorizar**, con `debug_ph_bordes = TRUE` para ver el
-reparto real de las zonas.
+Los tests cubrían **contrato y estructura**, no **composición**. Los ocho
+defectos del cierre de equivalencias (2026-08-07), los dos del caption y los dos
+de la serie temporal son todos de composición, y ninguno lo habría atrapado un
+test de los que existían.
+
+`graficos_composicion_auditar()` (A7) mide ahora tres propiedades del render:
+que ningún texto roce el borde, que ninguno se pise con otro y que ninguno baje
+del mínimo legible. Cada regla se prueba **sembrando el defecto histórico que la
+motivó**. El barrido del catálogo encontró uno nuevo a la primera: la cifra de
+la columna extra de barras agrupadas se dibujaba a un tercio del tamaño del
+resto — el mismo defecto ya reparado en apiladas meses atrás.
+
+La regla de trabajo no cambia, se refuerza: **ante cualquier duda de layout,
+renderizar antes de teorizar**, con `debug_ph_bordes = TRUE`. El auditor dice
+dónde mirar; no reemplaza mirar.
 
 ## Eje A — Mejoras del motor
 
@@ -56,7 +65,7 @@ reparto real de las zonas.
 | ~A4~ | Identidad en el motor | **Piso creado** (2026-08-08); falta retro-aplicarlo a los graficadores existentes | M |
 | A5 | Retirar la rama `usar_canvas = FALSE` | El motor fuerza `TRUE` siempre; la rama muerta produce salida degradada | M |
 | ~~A6~~ | ~~Congelar dos archivos más~~ | **Hecho a medias, a propósito** (2026-08-08). Solo `graficador_dimensiones.R` | S |
-| A7 | Cobertura de composición | Es el hueco que deja pasar los defectos que sí llegan al cliente | L |
+| ~~A7~~ | ~~Cobertura de composición~~ | **Hecho** (2026-08-08). Encontró un defecto nuevo a la primera | L |
 
 ### A1 — el descarte silencioso
 
@@ -187,8 +196,8 @@ Los tres resultaron graficadores propios, no modos.
 
 ### Lo que queda, y por qué
 
-Las cuatro olas del roadmap están cerradas. Estos cinco ítems quedaron fuera a
-propósito, cada uno por una razón distinta:
+Las cuatro olas del roadmap están cerradas, más A7. Estos cuatro ítems quedaron
+fuera a propósito, cada uno por una razón distinta:
 
 - **B5 (intervalo de confianza)** y **B7 (denominador de respuesta múltiple)**
   cambian lo que el gráfico *afirma*, no cómo se ve. Antes de escribirlos hace
@@ -202,10 +211,6 @@ propósito, cada uno por una razón distinta:
 - **A5 (retirar la rama `usar_canvas = FALSE`)** toca cinco graficadores para
   borrar código que el producto no ejerce. El beneficio es limpieza y el riesgo
   es real; merece su propia unidad con su propio gate.
-- **A7 (cobertura de composición)** es infraestructura de QA visual, no una
-  reparación. Es el hueco que deja pasar los defectos que sí llegan al cliente
-  —los ocho del cierre de equivalencias, los dos del caption, los dos de la
-  serie temporal— y por eso es el trabajo de fondo más valioso que queda.
 
 **A4** quedó a medias a propósito: el piso de identidad existe y los
 graficadores nuevos nacen con él, pero retro-aplicarlo a los existentes
