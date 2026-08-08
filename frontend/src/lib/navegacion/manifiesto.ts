@@ -24,6 +24,7 @@ import {
   PANEL_CONFIGURACION,
   PANEL_MODULOS,
 } from "../../features/home/panelesHome";
+import { PANELES_GRAFICOS } from "../../features/graficos/panelesGraficos";
 
 export type NivelNodo = "modulo" | "modo" | "seccion" | "pestana" | "panel";
 
@@ -168,6 +169,7 @@ export const PANELES_POR_MODULO: Readonly<
   global: [PANEL_MODULOS, PANEL_CONFIGURACION],
   monitoreo: [PANEL_CONECTAR_FUENTE],
   "diseno-estudio": [PANEL_AVISOS, PANEL_IMPORTAR],
+  procesamiento: PANELES_GRAFICOS,
 };
 
 export function nodosDe(modulo: ProsecnurModuleSlug): NodoNavegacion[] {

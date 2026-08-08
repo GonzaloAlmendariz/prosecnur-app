@@ -34,6 +34,7 @@ import {
   sharedReportPendingRequirements,
   type SharedReportPreflightStatus,
 } from "./multibaseReportMenuModel";
+import { GraficosLibrariesHost } from "./GraficosLibrariesHost";
 
 type ExportResult = { ok: true; file_id: string; filename?: string; size: number; n_slides: number };
 export default function GraficosPage() {
@@ -381,7 +382,9 @@ export default function GraficosPage() {
       {bodyState === "cargando" || bodyState === "reintentando" ? (
         <LoadingBlock label={graficosBodyLoadingLabel(bodyState)} />
       ) : bodyState === "editor" ? (
-        <EditorShell />
+        <GraficosLibrariesHost>
+          <EditorShell />
+        </GraficosLibrariesHost>
       ) : (
         <GraficosPrepBlocked />
       )}

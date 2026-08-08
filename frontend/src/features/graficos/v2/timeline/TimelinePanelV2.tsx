@@ -18,10 +18,11 @@ import { LayoutPanelTop, Search, X, Plus } from "lucide-react";
 import { usePlanStore, SLIDE_LABELS } from "../../store";
 import { usePlanValidator } from "../../usePlanValidator";
 import { SlideCard } from "./SlideCard";
-import { SlidePicker, SlidePickerTrigger } from "./SlidePicker";
+import { SlidePickerTrigger } from "./SlidePicker";
 import { categoryOf, CATEGORY_LABEL, SlideCategory } from "./categoryOf";
 import { slideDisplayTitle } from "../../slideAutoTitle";
 import { useVariables } from "../../useVariables";
+import { useGraficosLibraries } from "../../GraficosLibrariesHost";
 
 // Timeline V2: cards sortables con @dnd-kit. Drag & drop reordena via
 // `moveSlideTo` (extensión de moveSlide que acepta posición arbitraria).
@@ -34,26 +35,27 @@ export function TimelinePanelV2() {
   const moveSlideTo = usePlanStore((s) => s.moveSlideTo);
   const density = usePlanStore((s) => s.density);
   const { variables } = useVariables();
+  const { openSlidesLibrary, slidesReturnFocusRef } = useGraficosLibraries();
 
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState<"all" | SlideCategory>("all");
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Atajo "N" o "A" para abrir el picker (sin modificador, fuera de inputs)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement | null;
+      if (t?.closest('[role="dialog"][aria-modal="true"]')) return;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "n" || e.key === "N" || e.key === "a" || e.key === "A") {
         e.preventDefault();
-        setPickerOpen(true);
+        openSlidesLibrary();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [openSlidesLibrary]);
   const { issues } = usePlanValidator();
 
   // Index issues by slideId para mostrar badges sin recorrer todo el plan
@@ -151,8 +153,10 @@ export function TimelinePanelV2() {
       </div>
 
       {/* CTA "Agregar slide" siempre arriba — el usuario quiere acceso permanente. */}
-      <SlidePickerTrigger onOpen={() => setPickerOpen(true)} />
-      <SlidePicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      <SlidePickerTrigger
+        onOpen={openSlidesLibrary}
+        triggerRef={slidesReturnFocusRef}
+      />
 
       {slides.length >= 3 && (
         <>
@@ -224,7 +228,7 @@ export function TimelinePanelV2() {
           <button
             type="button"
             className="pulso-gv2-timeline-empty-cta"
-            onClick={() => setPickerOpen(true)}
+            onClick={openSlidesLibrary}
           >
             <Plus size={14} /> Agregar modelo
           </button>

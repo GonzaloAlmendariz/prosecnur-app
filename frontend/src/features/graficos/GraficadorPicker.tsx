@@ -5,10 +5,12 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
 } from "react";
 import { Link } from "react-router-dom";
 import type { GraficadorMetadata } from "../../api/client";
 import { PulsoButton } from "../../components/PulsoButton";
+import type { ControlPanel } from "../../lib/navegacion/paneles";
 import { useSession } from "../../lib/SessionContext";
 import {
   ArrowRight,
@@ -29,6 +31,7 @@ import {
 } from "../../vendor/lucide-react";
 import { GraficadorBlueprint } from "./GraficadorBlueprint";
 import { useGraficosRegistry } from "./useGraficosRegistry";
+import { useLibraryDialogA11y } from "./useLibraryDialogA11y";
 import "./graficadorPicker.css";
 
 type GraficadorFamily =
@@ -69,12 +72,23 @@ const FAMILY_META: Record<
 const TERRITORIAL_FALLBACK_REASON =
   "Disponible cuando el proyecto tenga Hojas de Ruta y Monitoreo territorial.";
 
+const CONSULTATION_REASON =
+  "Para insertar un modelo, abre esta biblioteca desde «Elegir gráfico» o «Cambiar» en un espacio del slide.";
+
 export default function GraficadorPicker({
+  open,
   onPick,
   onCancel,
+  panel,
+  returnFocusRef,
+  fallbackFocusRef,
 }: {
-  onPick: (meta: GraficadorMetadata) => void;
+  open: boolean;
+  onPick?: (meta: GraficadorMetadata) => void;
   onCancel: () => void;
+  panel: ControlPanel;
+  returnFocusRef?: RefObject<HTMLButtonElement>;
+  fallbackFocusRef: RefObject<HTMLElement>;
 }) {
   const { registry, loading, error } = useGraficosRegistry();
   const { state } = useSession();
@@ -85,12 +99,11 @@ export default function GraficadorPicker({
   const searchRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLUListElement>(null);
   const cardRefs = useRef(new Map<string, HTMLButtonElement>());
-  const restoreFrameRef = useRef<number | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(
-    typeof document !== "undefined" && document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null,
-  );
+  const dialogA11y = useLibraryDialogA11y({
+    searchRef,
+    returnFocusRef,
+    fallbackFocusRef,
+  });
 
   const inventory = registry?.graficadores ?? [];
 
@@ -128,21 +141,18 @@ export default function GraficadorPicker({
   const selectedGraf = filteredGraficadores.find((graf) => graf.name === selectedName)
     ?? filteredGraficadores[0]
     ?? null;
-  const selectedCanInsert = selectedGraf !== null
+  const selectedCanInsert = onPick !== undefined
+    && selectedGraf !== null
     && canInsertGraficador(selectedGraf, dimOk);
   const activeFamilyMeta = FAMILY_META[family];
   const ActiveFamilyIcon = activeFamilyMeta.Icon;
 
   useEffect(() => {
-    if (restoreFrameRef.current !== null) {
-      cancelAnimationFrame(restoreFrameRef.current);
-      restoreFrameRef.current = null;
-    }
-    if (!previousFocusRef.current && document.activeElement instanceof HTMLElement) {
-      previousFocusRef.current = document.activeElement;
-    }
-    return () => restorePreviousFocus(previousFocusRef, restoreFrameRef);
-  }, []);
+    if (!open) return;
+    setFamily("all");
+    setQuery("");
+    setSelectedName(null);
+  }, [open]);
 
   function chooseFamily(nextFamily: GraficadorFamily) {
     setFamily(nextFamily);
@@ -161,7 +171,7 @@ export default function GraficadorPicker({
   }
 
   function insertGraf(graf: GraficadorMetadata) {
-    if (canInsertGraficador(graf, dimOk)) onPick(graf);
+    if (onPick && canInsertGraficador(graf, dimOk)) onPick(graf);
   }
 
   function handleCardKeyDown(
@@ -218,25 +228,20 @@ export default function GraficadorPicker({
 
   return (
     <Dialog.Root
-      open
+      modal
+      open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) onCancel();
+        if (!nextOpen && open) onCancel();
       }}
     >
       <Dialog.Portal>
         <Dialog.Overlay className="pulso-graficador-library-overlay" />
         <Dialog.Content
+          {...panel.props}
           className="pulso-graficador-library-dialog"
           data-audit-ready="graficador-picker"
           aria-modal="true"
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }));
-          }}
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            restorePreviousFocus(previousFocusRef, restoreFrameRef);
-          }}
+          {...dialogA11y}
           onKeyDown={(event) => {
             if (
               event.defaultPrevented
@@ -267,7 +272,9 @@ export default function GraficadorPicker({
                   Elige el tipo de gráfico
                 </Dialog.Title>
                 <Dialog.Description className="pulso-graficador-library-description">
-                  {catalogDescription(inventory.length, loading, error)}
+                  {onPick
+                    ? catalogDescription(inventory.length, loading, error)
+                    : CONSULTATION_REASON}
                 </Dialog.Description>
               </div>
             </div>
@@ -363,7 +370,9 @@ export default function GraficadorPicker({
                 />
                 {selectedGraf && (
                   <span className="pulso-graficador-library-search-key" aria-hidden="true">
-                    {selectedCanInsert ? (
+                    {!onPick ? (
+                      <><Lock size={12} /> solo consulta</>
+                    ) : selectedCanInsert ? (
                       <><CornerDownLeft size={12} /> insertar</>
                     ) : (
                       <><Lock size={12} /> revisar requisito</>
@@ -412,6 +421,7 @@ export default function GraficadorPicker({
                   const grafFamily = graficadorFamily(graf);
                   const selected = selectedGraf?.name === graf.name;
                   const canInsert = canInsertGraficador(graf, dimOk);
+                  const canCommit = onPick !== undefined && canInsert;
                   return (
                     <li
                       key={graf.name}
@@ -427,7 +437,7 @@ export default function GraficadorPicker({
                         className="pulso-graficador-library-card"
                         data-graficador-library-card
                         data-family={grafFamily}
-                        data-can-insert={canInsert ? "true" : "false"}
+                        data-can-insert={canCommit ? "true" : "false"}
                         data-qa-geometry-member
                         data-qa-geometry-capacity="owned"
                         aria-pressed={selected}
@@ -438,7 +448,7 @@ export default function GraficadorPicker({
                       >
                         <span className="pulso-graficador-library-card-meta">
                           <span>{FAMILY_META[grafFamily].label}</span>
-                          <span>{availabilityLabel(graf, dimOk)}</span>
+                          <span>{graficadorAvailabilityLabel(graf, dimOk, !onPick)}</span>
                         </span>
                         <GraficadorBlueprint
                           name={graf.name}
@@ -450,7 +460,13 @@ export default function GraficadorPicker({
                           <span>{graf.descripcion}</span>
                         </span>
                         <span className="pulso-graficador-library-card-affordance">
-                          <span>{canInsert ? "Doble clic para insertar" : "Revisa el requisito"}</span>
+                          <span>
+                            {!onPick
+                              ? "Abre un espacio para insertar"
+                              : canInsert
+                                ? "Doble clic para insertar"
+                                : "Revisa el requisito"}
+                          </span>
                           {selected && (
                             <span className="pulso-graficador-library-card-selected">
                               Seleccionado
@@ -467,8 +483,9 @@ export default function GraficadorPicker({
             <GraficadorInspector
               graf={selectedGraf}
               dimOk={dimOk}
-              onInsert={insertGraf}
+              onInsert={onPick ? insertGraf : undefined}
               onCancel={onCancel}
+              consultationReason={onPick ? "" : CONSULTATION_REASON}
               state={inspectorState(loading, error, inventory.length, filteredGraficadores.length)}
             />
           </div>
@@ -483,12 +500,14 @@ function GraficadorInspector({
   dimOk,
   onInsert,
   onCancel,
+  consultationReason,
   state,
 }: {
   graf: GraficadorMetadata | null;
   dimOk: boolean;
-  onInsert: (graf: GraficadorMetadata) => void;
+  onInsert?: (graf: GraficadorMetadata) => void;
   onCancel: () => void;
+  consultationReason: string;
   state: "loading" | "error" | "empty" | "no-results" | "ready";
 }) {
   if (!graf) {
@@ -516,7 +535,7 @@ function GraficadorInspector({
 
   const family = graficadorFamily(graf);
   const FamilyIcon = FAMILY_META[family].Icon;
-  const canInsert = canInsertGraficador(graf, dimOk);
+  const canInsert = onInsert !== undefined && canInsertGraficador(graf, dimOk);
   const usefulArgs = graf.args.filter((arg) => arg.label.trim().length > 0).slice(0, 4);
   const dimensionMissing = graf.requisito === "dimensiones" && !dimOk;
   const unavailable = graf.available === false;
@@ -541,7 +560,7 @@ function GraficadorInspector({
           <span aria-hidden="true"><FamilyIcon size={16} /></span>
           <div>
             <small>Modelo seleccionado</small>
-            <strong>{availabilityLabel(graf, dimOk)}</strong>
+            <strong>{graficadorAvailabilityLabel(graf, dimOk, Boolean(consultationReason))}</strong>
           </div>
         </div>
 
@@ -573,7 +592,7 @@ function GraficadorInspector({
             </div>
             <div>
               <dt>Estado</dt>
-              <dd>{availabilityLabel(graf, dimOk)}</dd>
+              <dd>{graficadorAvailabilityLabel(graf, dimOk, Boolean(consultationReason))}</dd>
             </div>
           </dl>
         </section>
@@ -609,6 +628,19 @@ function GraficadorInspector({
           </section>
         )}
 
+        {consultationReason && (
+          <section
+            className="pulso-graficador-library-requirement"
+            data-qa-geometry-member
+          >
+            <Lock size={15} aria-hidden="true" />
+            <div>
+              <h4>Catálogo en modo consulta</h4>
+              <p>{consultationReason}</p>
+            </div>
+          </section>
+        )}
+
         <section className="pulso-graficador-library-inspector-section" data-qa-geometry-member>
           <h4>Decisiones principales</h4>
           {usefulArgs.length > 0 ? (
@@ -639,13 +671,13 @@ function GraficadorInspector({
             size="lg"
             className="pulso-graficador-library-insert"
             disabled={!canInsert}
-            onClick={() => onInsert(graf)}
+            onClick={() => onInsert?.(graf)}
           >
             Insertar modelo
           </PulsoButton>
           {!canInsert && (
             <span className="pulso-graficador-library-insert-hint">
-              Resuelve el requisito indicado para habilitar la inserción.
+              {consultationReason || "Resuelve el requisito indicado para habilitar la inserción."}
             </span>
           )}
         </div>
@@ -718,11 +750,15 @@ function isTerritorial(graf: GraficadorMetadata): boolean {
     || graf.feature_kind === "territorial_coverage";
 }
 
-function availabilityLabel(graf: GraficadorMetadata, dimOk: boolean): string {
+export function graficadorAvailabilityLabel(
+  graf: GraficadorMetadata,
+  dimOk: boolean,
+  consultationMode = false,
+): string {
   if (graf.available === false) return "No disponible";
-  if (graf.requisito === "dimensiones") {
-    return dimOk ? "Dimensiones listas" : "Requiere dimensiones";
-  }
+  if (graf.requisito === "dimensiones" && !dimOk) return "Requiere dimensiones";
+  if (consultationMode) return "Listo para revisar";
+  if (graf.requisito === "dimensiones") return "Dimensiones listas";
   return "Listo para insertar";
 }
 
@@ -792,18 +828,4 @@ function renderedColumnCount(grid: HTMLUListElement | null): number {
   const columns = window.getComputedStyle(grid).gridTemplateColumns;
   if (!columns || columns === "none") return 1;
   return Math.max(1, columns.split(" ").filter(Boolean).length);
-}
-
-function restorePreviousFocus(
-  ref: { current: HTMLElement | null },
-  frameRef: { current: number | null },
-) {
-  const previous = ref.current;
-  if (!previous) return;
-  if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-  frameRef.current = requestAnimationFrame(() => {
-    frameRef.current = null;
-    ref.current = null;
-    if (previous.isConnected) previous.focus({ preventScroll: true });
-  });
 }

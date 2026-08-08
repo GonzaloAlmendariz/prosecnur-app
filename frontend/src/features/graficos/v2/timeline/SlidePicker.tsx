@@ -5,9 +5,11 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
 } from "react";
 import type { SlideMetadata, SlideType } from "../../../../api/client";
 import { PulsoButton } from "../../../../components/PulsoButton";
+import type { ControlPanel } from "../../../../lib/navegacion/paneles";
 import {
   ArrowRight,
   BarChart3,
@@ -34,6 +36,7 @@ import {
   resolveSlidePickerBlueprint,
   SlidePickerBlueprint,
 } from "./SlidePickerBlueprint";
+import { useLibraryDialogA11y } from "../../useLibraryDialogA11y";
 import "./slidePicker.css";
 
 const CANONICAL_TYPES: readonly SlideType[] = [
@@ -89,9 +92,18 @@ const EDITABLE_FIELD_LIMIT = 6;
 export type SlidePickerProps = {
   open: boolean;
   onClose: () => void;
+  panel: ControlPanel;
+  returnFocusRef: RefObject<HTMLButtonElement>;
+  fallbackFocusRef: RefObject<HTMLElement>;
 };
 
-export function SlidePicker({ open, onClose }: SlidePickerProps) {
+export function SlidePicker({
+  open,
+  onClose,
+  panel,
+  returnFocusRef,
+  fallbackFocusRef,
+}: SlidePickerProps) {
   const addSlide = usePlanStore((state) => state.addSlide);
   const { registry, slidesById } = useGraficosRegistry();
   const [filter, setFilter] = useState<SlideLibraryFilter>("all");
@@ -102,8 +114,12 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
   const searchRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLUListElement>(null);
   const cardRefs = useRef(new Map<SlideType, HTMLButtonElement>());
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const insertionCountRef = useRef(0);
+  const dialogA11y = useLibraryDialogA11y({
+    searchRef,
+    returnFocusRef,
+    fallbackFocusRef,
+  });
 
   const availableTypes = useMemo<SlideType[]>(() => {
     const registryTypes = Array.from(new Set(
@@ -238,6 +254,7 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
 
   return (
     <Dialog.Root
+      modal
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen && open) onClose();
@@ -246,31 +263,11 @@ export function SlidePicker({ open, onClose }: SlidePickerProps) {
       <Dialog.Portal>
         <Dialog.Overlay className="pulso-slide-library-overlay" />
         <Dialog.Content
+          {...panel.props}
           className="pulso-slide-library-dialog"
           data-audit-ready="slide-picker"
           aria-modal="true"
-          onOpenAutoFocus={(event) => {
-            const activeElement = document.activeElement;
-            previousFocusRef.current = activeElement instanceof HTMLElement
-              && activeElement !== document.body
-              && activeElement !== document.documentElement
-              ? activeElement
-              : null;
-            event.preventDefault();
-            requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }));
-          }}
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            const previous = previousFocusRef.current;
-            const fallback = Array.from(
-              document.querySelectorAll<HTMLButtonElement>(
-                '[data-slide-library-trigger="persistent"]',
-              ),
-            ).find((trigger) => trigger.isConnected && !trigger.disabled) ?? null;
-            const returnTarget = previous?.isConnected ? previous : fallback;
-            previousFocusRef.current = null;
-            requestAnimationFrame(() => returnTarget?.focus({ preventScroll: true }));
-          }}
+          {...dialogA11y}
           onKeyDown={(event) => {
             if (
               event.defaultPrevented
@@ -698,9 +695,16 @@ function renderedColumnCount(grid: HTMLUListElement | null): number {
   return Math.max(1, computedTracks.split(/\s+/).length);
 }
 
-export function SlidePickerTrigger({ onOpen }: { onOpen: () => void }) {
+export function SlidePickerTrigger({
+  onOpen,
+  triggerRef,
+}: {
+  onOpen: () => void;
+  triggerRef: RefObject<HTMLButtonElement>;
+}) {
   return (
     <PulsoButton
+      ref={triggerRef}
       variant="secondary"
       size="sm"
       className="pulso-slide-library-trigger"
