@@ -84,20 +84,6 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
-
-.pulso-graph-toolbar-layer-label {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 4px 0 2px;
-  font-size: 10px;
-  font-weight: var(--pulso-weight-heavy);
-  letter-spacing: 0.08em;
-  color: var(--pulso-text-muted);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
 .pulso-graph-toolbar-segment {
   display: inline-flex;
   border: 1px solid var(--pulso-border);
