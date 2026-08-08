@@ -443,12 +443,16 @@
   if (!is.list(overrides)) overrides <- list()
 
   overrides$subtitulo <- "Pregunta de opción múltiple"
-  overrides$face_subtitulo <- "bold"
+  # Italica y no negrita: es una acotacion sobre la pregunta, no un segundo
+  # titulo compitiendo con el primero.
+  overrides$face_subtitulo <- "italic"
 
   size_sub <- suppressWarnings(as.numeric(overrides$size_subtitulo %||% NA_real_)[1])
   overrides$size_subtitulo <- if (is.finite(size_sub)) min(size_sub, 10.5) else 10.0
-  overrides$canvas_h_header_in <- 0.34
-  overrides$encabezado_separacion_in <- 0
+  # El encabezado aloja DOS textos, asi que necesita alto para los dos. Con 0.34
+  # y separacion cero salian superpuestos; ahora el graficador impone su piso de
+  # separacion y aqui solo se pide el alto que hace falta.
+  overrides$canvas_h_header_in <- 0.52
   overrides
 }
 
