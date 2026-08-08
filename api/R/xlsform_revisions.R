@@ -99,15 +99,24 @@
   revisions[[1]]
 }
 
+# Parte los diagnósticos del validador por severidad declarada.
+#
+# Bloquea solo lo que `xlsform_editor_validate()` marcó `level = "error"`: los
+# defectos que hacen que el instrumento no se pueda interpretar como tal. Todo
+# lo demás viaja como advertencia y se publica.
+#
+# Antes esto se decidía por el prefijo del id (`ast-unparseable-*` era la única
+# advertencia posible), así que cualquier diagnóstico nuevo nacía bloqueante y
+# un instrumento con un solo aviso quedaba sin poder sellarse nunca.
 .xlsform_revision_diagnostics <- function(workbook) {
   diagnostics <- .xlsform_editor_validate_workbook(workbook)
   diagnostics <- diagnostics %||% list()
-  warning <- vapply(diagnostics, function(item) {
-    startsWith(as.character(item$id %||% "")[1], "ast-unparseable-")
+  blocking <- vapply(diagnostics, function(item) {
+    identical(as.character(item$level %||% "")[1], "error")
   }, logical(1))
   list(
-    blockers = unname(diagnostics[!warning]),
-    warnings = unname(diagnostics[warning])
+    blockers = unname(diagnostics[blocking]),
+    warnings = unname(diagnostics[!blocking])
   )
 }
 

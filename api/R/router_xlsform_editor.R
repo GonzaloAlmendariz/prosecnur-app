@@ -361,6 +361,26 @@
 #   3. Cada select_one X / select_multiple X tiene X en choices.list_name.
 #   4. Balance estricto de begin_group/end_group y begin_repeat/end_repeat.
 #   5. settings.form_id no vacío y con formato slug.
+#
+# ## Severidad: `error` bloquea la publicación, `warn` no
+#
+# El campo `level` no es decorativo: `.xlsform_revision_diagnostics()` publica
+# solo lo que no tiene ningún `error`. El criterio para asignarlo es si el
+# defecto rompe la *identidad del instrumento* o solo su *contenido lógico*:
+#
+#   - `error` — el instrumento no se puede interpretar como instrumento. Un
+#     `name` vacío, inválido o duplicado hace ambiguo el mapeo data↔variable
+#     del que dependen Validación, Codificación y Analítica; un select sin
+#     catálogo válido no tiene dominio de respuesta; un grupo descuadrado no
+#     exporta; sin `form_id` la revisión no tiene identidad estable.
+#   - `warn` — el instrumento se interpreta bien pero tiene un defecto de
+#     diseño adentro (una expresión que el editor visual no sabe leer, una
+#     referencia colgante). Sellar una revisión con eso documenta la realidad
+#     del instrumento; impedirlo solo dejaría al proyecto sin sello.
+#
+# Antes todo salía como `warn` y `.xlsform_revision_diagnostics()` bloqueaba
+# con cualquier diagnóstico que no fuera `ast-unparseable-*`, así que cualquier
+# instrumento real quedaba permanentemente en "Publicación bloqueada".
 # -----------------------------------------------------------------------------
 
 .xlsform_editor_diag <- function(id, level, title, detail, row_index = NULL, catalog_name = NULL) {
@@ -407,7 +427,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
       if (base %in% c("end_group", "end_repeat", "start", "end", "today", "deviceid", "username", "")) next
       diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
         id = paste0("name-empty-", i - 1L),
-        level = "warn",
+        level = "error",
         title = "Pregunta sin nombre interno",
         detail = "Cada pregunta necesita un identificador. Asignalo desde el inspector.",
         row_index = i - 1L
@@ -417,7 +437,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
     if (!.xlsform_editor_name_is_valid(nm)) {
       diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
         id = paste0("name-invalid-", i - 1L),
-        level = "warn",
+        level = "error",
         title = sprintf("Nombre inválido: \"%s\"", nm),
         detail = "Usa solo letras, números y guion bajo. Empieza con letra.",
         row_index = i - 1L
@@ -434,7 +454,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
     if (length(idxs) > 1) {
       diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
         id = paste0("name-duplicate-", nm),
-        level = "warn",
+        level = "error",
         title = sprintf("Nombre duplicado: \"%s\"", nm),
         detail = sprintf("El identificador \"%s\" se usa en %d filas. Cada pregunta debe tener un nombre único.", nm, length(idxs)),
         row_index = idxs[1] - 1L
@@ -459,7 +479,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
       if (!nzchar(list_ref)) {
         diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
           id = paste0("select-no-list-", i - 1L),
-          level = "warn",
+          level = "error",
           title = "Pregunta de selección sin catálogo",
           detail = "Asigna un catálogo desde el inspector para que la pregunta tenga opciones.",
           row_index = i - 1L
@@ -467,7 +487,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
       } else if (!(list_ref %in% list_names)) {
         diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
           id = paste0("select-missing-list-", i - 1L, "-", list_ref),
-          level = "warn",
+          level = "error",
           title = sprintf("Catálogo \"%s\" no existe", list_ref),
           detail = "La pregunta referencia un catálogo que no está definido en la hoja choices.",
           row_index = i - 1L,
@@ -490,7 +510,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
       if (!length(stack_kind)) {
         diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
           id = paste0("orphan-end-", i - 1L),
-          level = "warn",
+          level = "error",
           title = sprintf("\"%s\" sin apertura previa", base),
           detail = "Esta fila cierra un bloque pero no hay un begin_* correspondiente arriba.",
           row_index = i - 1L
@@ -503,7 +523,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
         if (top_kind != expected) {
           diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
             id = paste0("mismatch-end-", i - 1L),
-            level = "warn",
+            level = "error",
             title = "Cierre cruzado de bloque",
             detail = sprintf("Un \"%s\" abrió pero llegó \"%s\" antes de cerrarlo.", top_kind, base),
             row_index = top_row
@@ -515,7 +535,7 @@ xlsform_editor_validate <- function(survey, choices, settings) {
   for (k in seq_along(stack_kind)) {
     diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
       id = paste0("unclosed-", stack_row[k]),
-      level = "warn",
+      level = "error",
       title = sprintf("\"%s\" sin cierre", stack_kind[k]),
       detail = "Este bloque no tiene su end_* correspondiente. El XLSForm no se exportará bien.",
       row_index = stack_row[k]
@@ -530,14 +550,14 @@ xlsform_editor_validate <- function(survey, choices, settings) {
   if (!nzchar(trimws(form_id_val))) {
     diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
       id = "settings-form-id-empty",
-      level = "warn",
+      level = "error",
       title = "Formulario sin ID",
       detail = "Define un form_id en la pestaña de configuración. Es obligatorio para publicar."
     )
   } else if (!.xlsform_editor_form_id_is_valid(form_id_val)) {
     diagnostics[[length(diagnostics) + 1]] <- .xlsform_editor_diag(
       id = "settings-form-id-invalid",
-      level = "warn",
+      level = "error",
       title = sprintf("form_id \"%s\" inválido", form_id_val),
       detail = "Usa solo letras, números, guion y guion bajo. Debe empezar con letra o _."
     )

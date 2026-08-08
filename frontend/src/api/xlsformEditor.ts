@@ -867,7 +867,13 @@ export async function apiXlsformEditorExportWord(
  */
 export type XlsformEditorRemoteDiagnostic = {
   id: string;
-  level: "warn" | "info";
+  /**
+   * `error` es el que impide publicar una revisión: el validador de R lo
+   * reserva para los defectos que hacen que el instrumento no se pueda
+   * interpretar (names ambiguos, catálogos inexistentes, grupos descuadrados,
+   * form_id ausente). `warn` e `info` se muestran pero no bloquean.
+   */
+  level: "error" | "warn" | "info";
   title: string;
   detail: string;
   rowIndex?: number;

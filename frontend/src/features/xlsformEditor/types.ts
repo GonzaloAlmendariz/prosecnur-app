@@ -140,7 +140,8 @@ export type CatalogSummary = {
 
 export type BuilderDiagnostic = {
   id: string;
-  level: "warn" | "info";
+  /** `error` bloquea la publicación de una revisión; `warn` e `info` no. */
+  level: "error" | "warn" | "info";
   title: string;
   detail: string;
   rowIndex?: number;
