@@ -596,5 +596,8 @@ calc_muestra_alumnos_por_ch_calcular_estudio <- function(estudio, frame = NULL) 
     calculado,
     decision_resuelta$auditoria
   )
-  calc_muestra_distribucion_adjuntar_estudio(auditado, frame)
+  con_distribucion <- calc_muestra_distribucion_adjuntar_estudio(auditado, frame)
+  # I20: el snapshot de comparación P1↔P2 se construye una vez y se estampa
+  # idéntico en ambos resultados (calc_muestra_comparacion_escenarios.R).
+  calc_muestra_comparacion_adjuntar_estudio(con_distribucion, frame)
 }
