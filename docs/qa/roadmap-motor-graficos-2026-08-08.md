@@ -51,11 +51,11 @@ reparto real de las zonas.
 | # | Qué | Por qué duele | Esfuerzo |
 |---|---|---|---|
 | ~~A1~~ | ~~`.keep_formals` deja rastro de lo que descarta~~ | **Hecho** (2026-08-08) | S |
-| A2 | Cerrar los args muertos | Ver tabla abajo | S |
-| A3 | Un solo default por campo | `formato_valor` es `"valor"` en la función y `"porcentaje"` en el registry | S |
+| ~~A2~~ | ~~Cerrar los args muertos~~ | **Hecho** (2026-08-08). 9 de 11 eran defectos; 2 eran herencia declarada | S |
+| ~~A3~~ | ~~Un solo default por campo~~ | **Replanteado y hecho** (2026-08-08). Ver abajo: unificar los 76 rompería el diseño | S |
 | A4 | Identidad en el motor | Cuatro `color_titulo` por defecto distintos entre graficadores | M |
 | A5 | Retirar la rama `usar_canvas = FALSE` | El motor fuerza `TRUE` siempre; la rama muerta produce salida degradada | M |
-| A6 | Congelar dos archivos más | `graficador_dimensiones.R` y `graficos_metadata.R` crecen sin gobierno | S |
+| ~~A6~~ | ~~Congelar dos archivos más~~ | **Hecho a medias, a propósito** (2026-08-08). Solo `graficador_dimensiones.R` | S |
 | A7 | Cobertura de composición | Es el hueco que deja pasar los defectos que sí llegan al cliente | L |
 
 ### A1 — el descarte silencioso
@@ -67,16 +67,46 @@ hace nada.
 
 Va primero porque convierte A2 y A3 de auditoría manual en hallazgo automático.
 
-### A2 — args que la UI ofrece y el motor nunca recibe
+### A2 — args que la UI ofrecía y el motor nunca recibía
 
-Verificado respetando las funciones que aceptan `...`:
+El censo automático que habilitó A1 encontró **once**, tres más que la auditoría
+manual. Cerrados así:
 
-| Preset | Arg que se pierde |
-|---|---|
-| `boxplot` | `textos_negrita`, `decimales_promedio` |
-| `media_rango` | `textos_negrita`, `decimales_promedio` |
-| `dim_heatmap`, `dim_foda`, `dim_heatmap_criterios` | `textos_negrita` |
-| `pie` | `debug_lw` |
+| Arg | Dónde | Desenlace |
+|---|---|---|
+| `textos_negrita` | boxplot, media_rango, dim_heatmap, dim_foda | **Implementado**, vía `.graficos_face_de()` en los helpers |
+| `textos_negrita` | dim_heatmap_criterios | **Retirado**: no dibuja ejes y ya tenía `fontface_texto_criterio` |
+| `mostrar_outliers` | boxplot | **Implementado**: estaba clavado en `outlier.shape = NA` |
+| `decimales_promedio` | boxplot, media_rango | **Renombrado** al arg real, `chip_decimales` |
+| `debug_lw` | pie | **Renombrado** al arg real, `debug_ph_lwd` |
+| `mostrar_rango`, `tipo_rango` | boxplot | **No eran muertos**: media_rango hereda ese preset por diseño |
+
+Uno de ellos no era inerte sino que **abortaba el render**: el registry ofrecía
+`min_max` donde el motor espera `minmax`, así que elegir «Min-Max» en la UI se
+llevaba el mazo por delante con un error de `match.arg`.
+
+### A3 — estaba mal planteado
+
+El barrido sistemático encontró **76** defaults que difieren entre el registry y
+la función. Unificarlos habría roto el diseño: son **dos capas deliberadas** —el
+registry declara el default del PRESET (la identidad de la casa) y la función el
+del motor desnudo (un fallback neutro)—. El preset existe para sobrescribir al
+motor.
+
+Lo que sí es defecto es la divergencia **semántica**: la que cambia *qué* dice
+el gráfico. Ahí el motor sin preset produce otra lámina, y `reporte_ppt_plan()`
+acepta un plan sin presets, así que el camino existe. Se alineó `formato_valor`
+(el caso verificado con un render) y las ocho divergencias semánticas restantes
+quedaron **gobernadas** por un contrato que las declara con su motivo y falla si
+aparece una nueva.
+
+### A6 — solo uno de los dos, a propósito
+
+`graficador_dimensiones.R` (4.946 líneas, 62 funciones, cero declaraciones) es
+un monolito de código y quedó congelado. `graficos_metadata.R` (790
+declaraciones, 19 funciones) es una **tabla** que crece por diseño con el
+catálogo: congelarla cobraría fricción en cada feature legítima sin dar señal.
+Lo que le corresponde es partirse en presets / slides / graficadores.
 
 ### A4 — el motor no tiene identidad propia
 
@@ -91,13 +121,6 @@ El motor fuerza `usar_canvas = TRUE` (`reporte_plan_ppt.R:4172`), pero cada
 graficador conserva la rama alternativa. Esa rama pierde las etiquetas de
 categoría y titula la leyenda con el nombre interno de la variable (`.grupo`).
 No la ejerce el producto ni la cubre ningún test.
-
-### A6 — dos archivos fuera de gobierno
-
-`graficador_dimensiones.R` (4.935 líneas) y `graficos_metadata.R` (4.398) no
-están en `policy.frozen_growth_files` y son los que más crecen después del
-monolito que sí lo está. La lista viva se consulta con
-`node agentic/sync-agentic-os.mjs --audit`.
 
 ## Eje B — Nuevos gráficos
 
@@ -151,7 +174,9 @@ multi-apiladas por temas, y el motor ya delata sus propios argumentos muertos.
 temporal existe y reusa el corte del radar entre públicos, así que declararla no
 exige declarar nada nuevo.
 
-**Ola 3 — barrido de deuda.** A2 + A3 + A6, que A1 vuelve mecánicos.
+**Ola 3 — barrido de deuda.** ~~A2 + A3 + A6~~ — **cerrada el 2026-08-08**. A1
+cumplió lo prometido: el censo automático encontró más args muertos que la
+auditoría manual, y uno de ellos no era inerte sino que **abortaba el render**.
 
 **Ola 4 — lectura.** B3 y B4, ambos como modos.
 
