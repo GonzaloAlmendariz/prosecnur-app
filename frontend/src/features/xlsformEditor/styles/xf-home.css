@@ -587,6 +587,42 @@
   color: var(--pulso-danger-fg);
 }
 
+/* Lista completa de lo que impide publicar. La tarjeta la muestra entera: la
+   versión anterior citaba solo el primer bloqueo y contaba el resto, así que
+   el usuario no sabía qué más corregir sin abrir el formulario a ciegas. */
+.pulso-xf-publication-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.pulso-xf-publication-blocker {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.pulso-xf-publication-blocker strong {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  color: var(--pulso-danger-fg);
+}
+
+.pulso-xf-publication-blocker span {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--pulso-text-soft);
+}
+
 .pulso-xf-publication-live {
   position: absolute;
   width: 1px;

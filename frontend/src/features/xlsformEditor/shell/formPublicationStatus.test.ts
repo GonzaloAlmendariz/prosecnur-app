@@ -82,10 +82,53 @@ describe("getFormPublicationView", () => {
       can_publish: false,
     }))).toMatchObject({
       status: "blocked",
-      label: "Publicación bloqueada",
+      label: "Falta 1 corrección para publicar",
       actionDisabled: true,
-      reason: expect.stringMatching(/abrir.*editar/i),
     });
+  });
+
+  test("expone todos los bloqueos, no solo el primero", () => {
+    // El defecto que esto fija: la vista resumía "corrige X" con el primer
+    // blocker y contaba el resto ("hay 2 observaciones adicionales"), así que
+    // la tarjeta quedaba en rojo permanente sin decir qué más había que
+    // arreglar ni en qué filas estaba.
+    const view = getFormPublicationView(publication({
+      status: "blocked",
+      can_publish: false,
+      blockers: [
+        { id: "name-duplicate-p1", title: "Nombre duplicado", detail: "p1 se usa dos veces", rowIndex: 4 },
+        { id: "select-missing-list-7-sexo", title: "Catálogo no existe", detail: "sexo no está en choices", rowIndex: 7 },
+        { id: "settings-form-id-empty", title: "Formulario sin ID", detail: "Define un form_id" },
+      ],
+    }));
+
+    expect(view.label).toBe("Faltan 3 correcciones para publicar");
+    expect(view.blockers.map((blocker) => blocker.id)).toEqual([
+      "name-duplicate-p1",
+      "select-missing-list-7-sexo",
+      "settings-form-id-empty",
+    ]);
+    expect(view.blockers[0]?.rowIndex).toBe(4);
+    expect(view.blockers[1]?.detail).toBe("sexo no está en choices");
+  });
+
+  test("un bloqueo con revisión publicada aclara que la anterior sigue sirviendo", () => {
+    const view = getFormPublicationView(publication({
+      status: "blocked",
+      can_publish: false,
+      blockers: [{ id: "unclosed-2", title: "Grupo sin cierre", detail: "Falta end_group" }],
+      latest_revision: {
+        schema: "instrument_revision/v1",
+        revision_id: "rev-3",
+        form_id: "actor-b",
+        revision_no: 3,
+        content_sha256: "hash-3",
+        xlsform_file_id: "file-3",
+        published_at: "2026-08-01T12:00:00Z",
+      },
+    }));
+
+    expect(view.reason).toMatch(/revisión 3 sigue disponible/i);
   });
 
   test("un blocker prevalece sobre un status draft contradictorio", () => {
@@ -112,8 +155,13 @@ describe("getFormPublicationView", () => {
     expect(view).toMatchObject({
       status: "blocked",
       actionDisabled: true,
-      reason: expect.stringMatching(/abrir.*editar/i),
     });
+    expect(view.blockers).toEqual([{
+      id: "logic_pending_manual_confirmation",
+      title: "Lógica pendiente de confirmación",
+      detail: "Confirma manualmente la lógica antes de publicar.",
+      rowIndex: undefined,
+    }]);
   });
 
   test("expone estado aria-live mientras publica sin cambiar la revisión local", () => {

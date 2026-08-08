@@ -103,6 +103,25 @@ describe("FormCard workflow", () => {
     expect(markup).toMatch(/aria-label="Abrir [^"]*Encuesta docentes"/);
   });
 
+  test("un bloqueo estructural lista todo y deja una salida", () => {
+    // Antes, un bloqueo que no era de lógica ni de público dejaba
+    // `primaryAction = "open"` con `actionLabel = null`: la tarjeta quedaba en
+    // rojo, citando solo el primer blocker, y sin un solo control que tocar.
+    const markup = renderCard(publication({
+      status: "blocked",
+      can_publish: false,
+      blockers: [
+        { id: "name-duplicate-p1", title: "Nombre duplicado", detail: "p1 se usa en 2 filas", rowIndex: 4 },
+        { id: "settings-form-id-empty", title: "Formulario sin ID", detail: "Define un form_id" },
+      ],
+    }));
+
+    expect(markup).toContain("Faltan 2 correcciones para publicar");
+    expect(markup).toContain("Nombre duplicado");
+    expect(markup).toContain("Formulario sin ID");
+    expect(markup).toContain("Abrir y corregir");
+  });
+
   test("keeps Publish available for a generic form without an audience catalog", () => {
     const markup = renderCard(publication(), {
       actorOptions: [],
