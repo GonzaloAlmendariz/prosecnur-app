@@ -26,6 +26,9 @@
 #' @param var_eje Columna con el tema (una fila del gráfico).
 #' @param var_grupo Columna con la base (debe tener exactamente dos valores).
 #' @param var_valor Columna con el valor.
+#' @param umbral_brecha_pct Solo se rotulan las brechas de al menos este tamano,
+#'   en puntos porcentuales. El sufijo `_pct` evita que el patch de UI lo acote
+#'   a la escala 0-1 de las apiladas.
 #' @param orden `brecha` ordena por tamaño de la diferencia —la lectura de
 #'   ranking—; `valor` por el valor del primer grupo; `declarado` respeta el
 #'   orden de entrada.
@@ -48,7 +51,7 @@ graficar_dumbbell <- function(
     valores_decimales = 0L,
     mostrar_brecha = TRUE,
     etiqueta_brecha = "pp",
-    umbral_brecha = 0,
+    umbral_brecha_pct = 0,
 
     colores_grupos = NULL,
     color_segmento = "#C7D2E0",
@@ -177,7 +180,7 @@ graficar_dumbbell <- function(
   }
 
   if (isTRUE(mostrar_brecha)) {
-    br <- res[abs(res$.brecha) >= umbral_brecha, , drop = FALSE]
+    br <- res[abs(res$.brecha) >= umbral_brecha_pct, , drop = FALSE]
     if (nrow(br)) {
       br$.lab <- paste0(
         ifelse(br$.brecha > 0, "+", ""),
