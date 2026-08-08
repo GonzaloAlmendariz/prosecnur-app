@@ -12,6 +12,25 @@
 # Es la ÚNICA fuente de verdad para este saneo; los graficadores la llaman en
 # lugar de mantener copias anidadas.
 
+# Identidad tipografica del motor
+# ===============================
+#
+# El default de `color_titulo` valia cuatro cosas distintas segun el graficador:
+# `#CA5651` en categoricas y nube, `#081F5C` en agrupadas, `#000000` en
+# apiladas, boxplot y media_rango, y `#004B8D` en dimensiones. La identidad
+# Pulso vivia SOLO en los presets, asi que un render sin preset salia con lo que
+# cada graficador tuviera a mano — un titulo rojo aqui, uno negro alla.
+#
+# Estas constantes son el default de la casa para texto. No reemplazan al
+# preset, que sigue mandando: son el piso para cuando el preset no llega.
+#
+# No se retro-aplican a los graficadores existentes en el mismo movimiento: eso
+# cambiaria el render de laminas ya aprobadas y merece su propia decision. Los
+# graficadores NUEVOS nacen con ellas.
+.PULSO_COLOR_TEXTO <- "#081F5C"
+.PULSO_COLOR_EJES  <- "#081F5C"
+.PULSO_COLOR_GRID  <- "#E3E8EF"
+
 .graficos_mk_palette <- function(levels_cat, pal_user = NULL) {
   `%||%` <- function(x, y) if (!is.null(x)) x else y
 
