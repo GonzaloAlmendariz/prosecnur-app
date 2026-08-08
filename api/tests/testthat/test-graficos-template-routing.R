@@ -23,11 +23,15 @@ test_that("perfil generico conserva plantilla y las laminas Otros son opt-in", {
   expect_equal(basename(path), "plantilla_16_9.pptx")
 })
 
-test_that("preview de layout informa la misma plantilla solicitada", {
+test_that("preview de layout resuelve delivery desde config", {
   withr::local_options(list(prosecnur.template_pptx = NA_character_))
   preview <- .graficos_slide_layout_preview(
     "p_slide_1_grafico_narrativo",
-    profile_id = "acnur_kobo_cruncher_plus"
+    config = list(
+      scope_rules = list(
+        global = list(profile_id = "acnur_kobo_cruncher_plus")
+      )
+    )
   )
   expect_true(preview$ok)
   expect_equal(preview$source, "template")

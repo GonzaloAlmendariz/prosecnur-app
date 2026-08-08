@@ -5,10 +5,16 @@ import {
   apiGraficosConsolidadoDraftGet,
   apiGraficosConsolidadoDraftPut,
 } from "../../api/client";
+import { getSession } from "../../api/core";
 import { createDefaultWordPresets, normalizeGraficosConfig, normalizeWordPresets } from "../../api/graficosConfigNormalizer";
 import { DEFAULT_CANVAS_VIEWPORT, DEFAULT_DEBUG_PH, GraficosConfig, usePlanStore } from "./store";
 import { buildGraficosScopeRules } from "./configSnapshot";
 import type { GraficosReportScope } from "./reportScope";
+import {
+  acknowledgeSlideCompositionConfig,
+  invalidateSlideCompositionPersistenceAck,
+  persistWithSlideCompositionAck,
+} from "./slideCompositionPersistence";
 
 // Autosave del plan de gráficos. Misma mecánica que useAnaliticaAutosave:
 //
@@ -118,7 +124,13 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
       if (draftRevision.current == null) {
         throw new Error("El borrador compartido aun no termino de cargar.");
       }
-      const saved = await apiGraficosConsolidadoDraftPut(config, draftRevision.current);
+      const expectedRevision = draftRevision.current;
+      const saved = await persistWithSlideCompositionAck({
+        sid: getSession(),
+        scope: "consolidated",
+        config,
+        persist: () => apiGraficosConsolidadoDraftPut(config, expectedRevision),
+      });
       rememberRevision(saved.revision);
       return saved.revision;
     })();
@@ -151,9 +163,13 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   useEffect(() => {
     let cancelled = false;
     let retryTimer: number | null = null;
+    let hydrationSequence = 0;
 
     async function hydrateFromBackend(attempt = 0) {
       if (cancelled) return;
+      const sequence = ++hydrationSequence;
+      invalidateSlideCompositionPersistenceAck(getSession(), reportScope);
+      const isCurrent = () => !cancelled && sequence === hydrationSequence;
       // Invalidar ANTES de pedir: la revisión es el criterio con el que la
       // siembra distingue "borrador nuevo" de "vaciado a propósito", y si
       // sobrevive al cambio de scope decide con el valor del scope anterior.
@@ -164,15 +180,22 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
       try {
         if (reportScope === "consolidated") {
           const r = await apiGraficosConsolidadoDraftGet();
-          if (!cancelled) {
+          if (isCurrent()) {
+            const config = mergeWithDefaults(r.config);
             rememberRevision(r.revision);
-            hydrate(mergeWithDefaults(r.config));
+            hydrate(config);
+            acknowledgeSlideCompositionConfig(getSession(), reportScope, config);
           }
           return;
         }
         const r = await apiGraficosConfigGet();
-        if (!cancelled) hydrate(mergeWithDefaults(r.config));
+        if (isCurrent()) {
+          const config = mergeWithDefaults(r.config);
+          hydrate(config);
+          acknowledgeSlideCompositionConfig(getSession(), reportScope, config);
+        }
       } catch {
+        if (!isCurrent()) return;
         rememberRevision(null);
         // NUNCA hidratar defaults ante un fallo del GET: marcar el store
         // como hidratado con un plan vacío arma el autosave y el flush de
@@ -252,7 +275,12 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         if (reportScope === "consolidated") {
           await persistConsolidated(normalized);
         } else {
-          await apiGraficosConfigPut(normalized);
+          await persistWithSlideCompositionAck({
+            sid: getSession(),
+            scope: "active",
+            config: normalized,
+            persist: () => apiGraficosConfigPut(normalized),
+          });
         }
         markClean();
       } catch {

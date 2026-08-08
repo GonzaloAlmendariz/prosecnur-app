@@ -30,7 +30,7 @@ source("setup-load-all.R")
   p_slide_objetivo_icono = c(kind = "objective", ppt_layout = "Objetivos_Secciones", structure_label = "Texto con ícono"),
   p_slide_texto = c(kind = "text", ppt_layout = "Title and Content", structure_label = "Texto editorial"),
   p_slide_tabla_tecnica = c(kind = "technical", ppt_layout = "Title and Content", structure_label = "Tabla editorial"),
-  p_slide_1_grafico = c(kind = "single", ppt_layout = "Graficos", structure_label = "Gráfico principal"),
+  p_slide_1_grafico = c(kind = "single", ppt_layout = "Graficos2", structure_label = "Gráfico principal"),
   p_slide_1_grafico_narrativo = c(kind = "singleNarrative", ppt_layout = "1_Grafico_narrativo", structure_label = "Narrativa + gráfico"),
   p_slide_grafico_texto_derecha = c(kind = "splitRight", ppt_layout = "right_grafico_texto", structure_label = "Gráfico + texto"),
   p_slide_grafico_texto_izquierda = c(kind = "splitLeft", ppt_layout = "left_grafico_texto", structure_label = "Texto + gráfico"),

@@ -5,11 +5,9 @@ import { useLocation } from "react-router-dom";
 import { AlertCircle, Download, Eye, Loader2, X } from "lucide-react";
 import {
   apiGraficosPreviewSlide,
-  apiGraficosSlideLayoutPreview,
   downloadUrl,
   GraficadorRef,
-  GraficosSlideLayoutPlaceholder,
-  GraficosSlideLayoutPreview,
+  GraficosSlideLayoutRegion,
   Slide,
   SlideRenderedPreview,
 } from "../../api/client";
@@ -18,9 +16,20 @@ import { graficadorDisplayName, humanizeIdentifier } from "./graficadorDisplay";
 import { graficadorToPresetType } from "./graficadorPresetMap";
 import { SLIDE_GRAF_SLOTS, SLIDE_LABELS, usePlanStore } from "./store";
 import SlidePreviewMockup from "./SlidePreviewMockup";
+import {
+  slideCompositionRegionSignature,
+  type SlideComposition,
+} from "./slideCompositionModel";
 import { hasConfiguredChartDataArgs } from "./slidePreviewModel";
+import {
+  slideCompositionIdentityFromScopeRules,
+  slideCompositionRevision,
+  useSlideCompositions,
+} from "./useSlideCompositions";
+import { useGraficosRegistry } from "./useGraficosRegistry";
 import { usePresetsDefaults } from "./usePresetsDefaults";
 import { parseGraficosReportScope } from "./reportScope";
+import { SlideCompositionRegions } from "./v2/timeline/SlidePickerBlueprint";
 
 type Props = {
   slide: Slide;
@@ -41,9 +50,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const [previewError, setPreviewError] = useState("");
   const [renderedPreview, setRenderedPreview] = useState<SlideRenderedPreview | null>(null);
   const [lastPreviewHash, setLastPreviewHash] = useState<string | null>(null);
-  const [layout, setLayout] = useState<GraficosSlideLayoutPreview | null>(null);
-  const [layoutLoading, setLayoutLoading] = useState(false);
-  const [layoutError, setLayoutError] = useState("");
   const [isBubbleOpen, setIsBubbleOpen] = useState(false);
   const [isBubbleRendered, setIsBubbleRendered] = useState(false);
   const [isBubbleClosing, setIsBubbleClosing] = useState(false);
@@ -55,6 +61,13 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const previewInFlightRef = useRef<string | null>(null);
   const debugPh = usePlanStore((s) => s.debugPh);
   const userPresets = usePlanStore((s) => s.presets);
+  const scopeRules = usePlanStore((s) => s.scopeRules);
+  const compositionRevision = usePlanStore(slideCompositionRevision);
+  const {
+    registry,
+    loading: registryLoading,
+    error: registryError,
+  } = useGraficosRegistry();
   const { presets: presetsDefaults } = usePresetsDefaults();
   const visualConfigHash = usePlanStore((s) => JSON.stringify({
     presets: s.presets,
@@ -62,13 +75,25 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     iconos: s.iconos,
     identity: pickPresentationIdentity(s.scopeRules.global),
   }));
-  const presentationIdentityHash = usePlanStore((s) => JSON.stringify(
-    pickPresentationIdentity(s.scopeRules.global),
-  ));
-  const presentationIdentity = useMemo(
-    () => JSON.parse(presentationIdentityHash) as ReturnType<typeof pickPresentationIdentity>,
-    [presentationIdentityHash],
+  const compositionIdentity = useMemo(
+    () => ({
+      ...slideCompositionIdentityFromScopeRules(scopeRules),
+      scope: reportScope,
+    }),
+    [reportScope, scopeRules],
   );
+  const compositionState = useSlideCompositions(
+    registry?.slides ?? [],
+    compositionIdentity,
+    compositionRevision,
+  );
+  const compositionResolution = compositionState.compositions[slide.tipo];
+  const composition = compositionResolution?.status === "ready"
+    ? compositionResolution.composition
+    : null;
+  const compositionDiagnostic = compositionResolution?.status === "fallback"
+    ? compositionResolution.diagnostic
+    : null;
 
   const currentHash = hashSlide(slide, `${reportScope}:${visualConfigHash}`);
   const previewFresh = lastPreviewHash === currentHash;
@@ -76,9 +101,14 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const hasRenderedPreview = !!renderedPreview && previewFresh;
   const preIssues = useMemo(() => preValidateSlide(slide), [slide]);
   const blocked = preIssues.length > 0;
-  const placeholders = layout?.placeholders?.filter((ph) => !ph.hidden && hasValidRect(ph)) ?? [];
-  const hasTemplateGeometry = layout?.source === "template" && placeholders.length > 0;
-  const usesLocalFallback = !hasRenderedPreview && !hasTemplateGeometry;
+  const visibleRegions = composition?.regions.filter((region) => region.visible) ?? [];
+  const hasEffectiveComposition = !!composition && visibleRegions.length > 0;
+  const layoutLoading = registryLoading || compositionState.loading;
+  const layoutError = compositionState.error
+    || registryError
+    || compositionDiagnostic?.message
+    || "";
+  const usesLocalFallback = !hasRenderedPreview && !hasEffectiveComposition;
 
   useEffect(() => {
     if (latestHashRef.current === currentHash) return;
@@ -91,30 +121,6 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
     setRenderedPreview(null);
     setLastPreviewHash(null);
   }, [currentHash]);
-
-  useEffect(() => {
-    let alive = true;
-    setLayoutLoading(true);
-    setLayoutError("");
-    apiGraficosSlideLayoutPreview(slide.tipo, {
-      profile_id: presentationIdentity.profile_id,
-      template_id: presentationIdentity.template_id,
-    })
-      .then((response) => {
-        if (!alive) return;
-        setLayout(response);
-        setLayoutError("");
-      })
-      .catch((error) => {
-        if (!alive) return;
-        setLayout(null);
-        setLayoutError((error as Error).message);
-      })
-      .finally(() => {
-        if (alive) setLayoutLoading(false);
-      });
-    return () => { alive = false; };
-  }, [slide.tipo, presentationIdentity.profile_id, presentationIdentity.template_id]);
 
   useEffect(() => {
     return () => {
@@ -230,13 +236,13 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
       ? "Vista de la lámina"
       : previewError
         ? "Vista de referencia"
-        : hasTemplateGeometry
+        : hasEffectiveComposition
           ? "Mostrador de lámina"
           : "Referencia local";
   const chromeDetail = hasRenderedPreview
     ? `Render completo · ${renderedPreview?.renderer || "motor PPT"}`
-    : hasTemplateGeometry
-      ? `${layout?.layout ?? "Layout PPT"} · geometría de plantilla`
+    : hasEffectiveComposition
+      ? `${composition?.layout ?? "Layout PPT"} · geometría efectiva`
       : layoutLoading
         ? "Cargando geometría de plantilla"
         : layoutError
@@ -312,7 +318,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
         >
           <div className="pulso-slide-preview-bubble-arrow" />
           <div className="pulso-slide-preview-chrome">
-            <span className={`pulso-slide-preview-status is-${previewError ? "danger" : hasRenderedPreview || hasTemplateGeometry ? "exact" : "local"}`}>
+            <span className={`pulso-slide-preview-status is-${previewError ? "danger" : hasRenderedPreview || hasEffectiveComposition ? "exact" : "local"}`}>
               {previewBusy ? <Loader2 size={13} className="pulso-spin" /> : <Eye size={13} />}
               <span>
                 <strong>{stateLabel}</strong>
@@ -357,18 +363,17 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 <Loader2 size={18} className="pulso-spin" />
                 <span>Cargando distribución de referencia...</span>
               </div>
-            ) : hasTemplateGeometry ? (
+            ) : hasEffectiveComposition && composition ? (
               <SlideLayoutViewer
                 slide={slide}
-                layout={layout}
-                placeholders={placeholders}
+                composition={composition}
                 userPresets={userPresets}
                 presetsDefaults={presetsDefaults}
               />
             ) : (
               <LocalReferenceViewer
                 slide={slide}
-                reason={layoutError || layout?.reason || "El backend no devolvió geometría para este tipo de lámina."}
+                reason={layoutError || "El backend no devolvió una composición efectiva para este tipo de lámina."}
               />
             )}
             {previewBusy && (
@@ -378,12 +383,14 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
             )}
           </div>
 
-          {(previewError || blocked || !canPreview) && (
+          {(previewError || layoutError || blocked || !canPreview) && (
             <div className="pulso-slide-preview-bubble-note">
               <AlertCircle size={13} />
               <span>
                 {previewError
                   ? `${humanizePreviewError(previewError)} Se mantiene la referencia de distribución.`
+                  : layoutError
+                    ? `${layoutError} Se mantiene la referencia nominal.`
                   : !canPreview
                     ? "La referencia local está disponible; la vista completa requiere datos preparados."
                     : `Para generar la vista: ${preIssues.join(" · ")}`}
@@ -424,56 +431,71 @@ function RenderedSlideViewer({ preview, slide }: { preview: SlideRenderedPreview
   );
 }
 
-function SlideLayoutViewer({
+export function SlideLayoutViewer({
   slide,
-  layout,
-  placeholders,
+  composition,
   userPresets,
   presetsDefaults,
 }: {
   slide: Slide;
-  layout: GraficosSlideLayoutPreview | null;
-  placeholders: GraficosSlideLayoutPlaceholder[];
+  composition: SlideComposition;
   userPresets: PresetArgsMap;
   presetsDefaults: PresetArgsMap;
 }) {
-  const aspectRatio = Number(layout?.aspectRatio);
   const frameStyle: CSSProperties = {
-    aspectRatio: Number.isFinite(aspectRatio) && aspectRatio > 0 ? `${aspectRatio}` : "16 / 9",
+    aspectRatio: String(composition.aspectRatio),
   };
+  const visibleRegionCount = composition.regions.filter((region) => region.visible).length;
 
   return (
-    <div className="pulso-slide-preview-layout">
+    <div
+      className="pulso-slide-preview-layout"
+      data-composition-regions={slideCompositionRegionSignature(composition)}
+      data-composition-fingerprint={composition.template.fingerprint}
+    >
       <div className="pulso-slide-preview-layout-frame" style={frameStyle}>
-        {placeholders.map((placeholder) => {
-          const value = readPayloadValue(slide, placeholder);
-          const assigned = isAssignedValue(value, placeholder.role);
-          const chartLayout = assigned && placeholder.role === "chart" && isGraficadorRef(value)
-            ? buildChartMicroLayout(value, userPresets, presetsDefaults)
-            : null;
-          return (
-            <div
-              key={`${placeholder.key}-${placeholder.payload_key ?? ""}`}
-              className={[
+        <SlideCompositionRegions
+          composition={composition}
+          className="pulso-slide-preview-composition-regions"
+          regionClassName={(region) => {
+            const value = readPayloadValue(slide, region);
+            const assigned = isAssignedValue(value, region.role);
+            const chartLayout = assigned && region.role === "chart" && isGraficadorRef(value)
+              ? buildChartMicroLayout(value, userPresets, presetsDefaults)
+              : null;
+            return [
                 "pulso-slide-preview-slot",
-                `is-${placeholder.role ?? "shape"}`,
                 assigned ? "is-filled" : "is-empty",
                 chartLayout ? "has-chart-layout" : "",
-                Number(placeholder.rect.height) < 0.075 ? "is-small" : "",
-              ].join(" ")}
-              style={rectStyle(placeholder)}
-              title={`${slotDisplayLabel(placeholder)} · ${assigned ? slotValueLabel(value, placeholder.role) : "pendiente"}`}
-            >
-              <span className="pulso-slide-preview-slot-label">{slotDisplayLabel(placeholder)}</span>
-              {chartLayout && <ChartMicroLayout spec={chartLayout} />}
-              <span className="pulso-slide-preview-slot-meta">{assigned ? slotValueLabel(value, placeholder.role) : "Pendiente"}</span>
-            </div>
-          );
-        })}
+                region.rect.height < 0.075 ? "is-small" : "",
+              ].filter(Boolean).join(" ");
+          }}
+          regionTitle={(region) => {
+            const value = readPayloadValue(slide, region);
+            const assigned = isAssignedValue(value, region.role);
+            return `${slotDisplayLabel(region)} · ${assigned ? slotValueLabel(value, region.role) : "pendiente"}`;
+          }}
+          renderRegion={(region) => {
+            const value = readPayloadValue(slide, region);
+            const assigned = isAssignedValue(value, region.role);
+            const chartLayout = assigned && region.role === "chart" && isGraficadorRef(value)
+              ? buildChartMicroLayout(value, userPresets, presetsDefaults)
+              : null;
+            return (
+              <>
+                <span className="pulso-slide-preview-slot-label">{slotDisplayLabel(region)}</span>
+                {chartLayout && <ChartMicroLayout spec={chartLayout} />}
+                <span className="pulso-slide-preview-slot-meta">
+                  {assigned ? slotValueLabel(value, region.role) : "Pendiente"}
+                </span>
+              </>
+            );
+          }}
+        />
       </div>
       <div className="pulso-slide-preview-layout-caption">
         <strong>{SLIDE_LABELS[slide.tipo] ?? humanizeIdentifier(slide.tipo, "Lámina")}</strong>
-        <span>{layout?.layout ?? "Layout PPT"} · {placeholders.length} espacios visibles</span>
+        <span>{composition.layout} · {visibleRegionCount} espacios visibles</span>
       </div>
     </div>
   );
@@ -683,48 +705,9 @@ function PreviewNotice({ tone, children }: { tone: "warn" | "danger" | "muted"; 
   );
 }
 
-function hasValidRect(placeholder: GraficosSlideLayoutPlaceholder) {
-  const rect = placeholder.rect;
-  return !!rect &&
-    Number.isFinite(Number(rect.x)) &&
-    Number.isFinite(Number(rect.y)) &&
-    Number.isFinite(Number(rect.width)) &&
-    Number.isFinite(Number(rect.height)) &&
-    Number(rect.width) > 0 &&
-    Number(rect.height) > 0;
-}
-
-function rectStyle(placeholder: GraficosSlideLayoutPlaceholder): CSSProperties {
-  const rect = placeholder.rect;
-  return {
-    left: `${clamp01(Number(rect.x)) * 100}%`,
-    top: `${clamp01(Number(rect.y)) * 100}%`,
-    width: `${clamp01(Number(rect.width)) * 100}%`,
-    height: `${clamp01(Number(rect.height)) * 100}%`,
-  };
-}
-
-function clamp01(value: number) {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(1, value));
-}
-
-function readPayloadValue(slide: Slide, placeholder: GraficosSlideLayoutPlaceholder) {
+function readPayloadValue(slide: Slide, region: GraficosSlideLayoutRegion) {
   const payload = (slide.payload ?? {}) as Record<string, unknown>;
-  const keys = [
-    placeholder.payload_key,
-    placeholder.key,
-    placeholder.key === "title" ? "titulo" : null,
-    placeholder.key === "subtitle" ? "subtitulo" : null,
-    placeholder.key === "date" ? "fecha" : null,
-    placeholder.key === "footer" ? "pie" : null,
-    placeholder.key === "plot" ? "grafico" : null,
-    placeholder.key === "icon" ? "icono" : null,
-  ].filter((key): key is string => typeof key === "string" && key.length > 0);
-  for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(payload, key)) return payload[key];
-  }
-  return undefined;
+  return payload[region.payload_key];
 }
 
 function isAssignedValue(value: unknown, role?: string) {
@@ -753,41 +736,8 @@ function slotValueLabel(value: unknown, role?: string) {
   return "Asignado";
 }
 
-function slotDisplayLabel(placeholder: GraficosSlideLayoutPlaceholder) {
-  const label = placeholder.payload_key || placeholder.label || placeholder.key;
-  const friendly: Record<string, string> = {
-    titulo: "Título",
-    title: "Título",
-    subtitulo: "Subtítulo",
-    subtitle: "Subtítulo",
-    texto: "Texto",
-    text: "Texto",
-    subtexto: "Subtexto",
-    grafico: "Gráfico",
-    izquierda: "Izquierda",
-    derecha: "Derecha",
-    grafico_1: "Gráfico 1",
-    grafico_2: "Gráfico 2",
-    superior_izquierda: "Superior izquierda",
-    superior_derecha: "Superior derecha",
-    inferior_izquierda: "Inferior izquierda",
-    inferior_derecha: "Inferior derecha",
-    grafico_superior_1: "Superior 1",
-    grafico_superior_2: "Superior 2",
-    grafico_superior_3: "Superior 3",
-    grafico_inferior_1: "Inferior 1",
-    grafico_inferior_2: "Inferior 2",
-    grafico_inferior_3: "Inferior 3",
-    base: "Base",
-    pie: "Pie",
-    footer: "Pie",
-    right_text: "Pie",
-    icono: "Ícono",
-    icon: "Ícono",
-    fecha: "Fecha",
-    date: "Fecha",
-  };
-  return friendly[label] ?? humanizeIdentifier(label, "Espacio");
+function slotDisplayLabel(region: GraficosSlideLayoutRegion) {
+  return humanizeIdentifier(region.payload_key, "Espacio");
 }
 
 function normalizeGuideColor(value: unknown) {
