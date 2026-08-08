@@ -27,7 +27,7 @@
 // =============================================================================
 
 import { useMemo, type ReactNode } from "react";
-import { Layers, Lock } from "../../../vendor/lucide-react";
+import { Layers, Lock, TriangleAlert } from "../../../vendor/lucide-react";
 import type { XlsformFormPublication } from "../../../api/client";
 import { AddFormCard } from "./AddFormCard";
 import { FormCard, type ActorCatalogStatus } from "./FormCard";
@@ -68,6 +68,9 @@ export type FormsLibraryProps = {
   resumeBanner?: ReactNode;
   /** El índice del proyecto todavía no contestó: se pinta el espacio en carga. */
   loading?: boolean;
+  /** El índice no se pudo leer. Sin formularios locales no sabemos si hay. */
+  loadFailed?: boolean;
+  onRetryLoad?: () => void;
 };
 
 export function FormsLibrary({
@@ -93,6 +96,8 @@ export function FormsLibrary({
   assigningActorFormId = null,
   resumeBanner,
   loading = false,
+  loadFailed = false,
+  onRetryLoad,
 }: FormsLibraryProps) {
   // Métricas por formulario, calculadas sobre el workbook local. Se recomputa
   // cuando cambia la identidad del array `forms` (cada save reemite el índice).
@@ -118,9 +123,11 @@ export function FormsLibrary({
   }, [forms, scope]);
 
   const slots = computeHomeSlots(forms.length);
-  // En carga nunca afirmamos "vacío": `empty` gobierna el hero, el subtítulo y
-  // el diagrama, y equivocarse ahí es el doble homepage.
-  const empty = !loading && slots.empty;
+  // Solo afirmamos "vacío" cuando lo sabemos. En carga no lo sabemos todavía;
+  // con el índice caído y sin copia local, tampoco. `empty` gobierna el hero,
+  // el subtítulo y el diagrama, y equivocarse ahí es el doble homepage.
+  const unknown = loading || (loadFailed && slots.empty);
+  const empty = !unknown && slots.empty;
   const { count, atLimit, canCreate, ghostSlots } = slots;
 
   return (
@@ -141,14 +148,33 @@ export function FormsLibrary({
           <p className="pulso-xf-home-subtitle">
             {loading
               ? "Abriendo los formularios de este proyecto…"
-              : empty
-                ? "Diseña, importa o traduce hasta seis formularios en paralelo dentro de este proyecto."
-                : "Abre uno para seguir editándolo o crea otro. Puedes tener hasta seis formularios en paralelo en este proyecto."}
+              : unknown
+                ? "No pudimos leer los formularios de este proyecto."
+                : empty
+                  ? "Diseña, importa o traduce hasta seis formularios en paralelo dentro de este proyecto."
+                  : "Abre uno para seguir editándolo o crea otro. Puedes tener hasta seis formularios en paralelo en este proyecto."}
           </p>
         </div>
       </header>
 
       {resumeBanner ? <div className="pulso-xf-home-resume">{resumeBanner}</div> : null}
+
+      {loadFailed && !loading ? (
+        <p className="pulso-xf-home-load-error" role="alert">
+          <TriangleAlert size={13} aria-hidden="true" />
+          <span>
+            No pudimos leer la biblioteca del proyecto
+            {slots.empty
+              ? ". Puede tener formularios que todavía no se ven aquí."
+              : ". Se muestran los formularios guardados en este equipo."}
+          </span>
+          {onRetryLoad ? (
+            <button type="button" className="pulso-xf-home-load-retry" onClick={onRetryLoad}>
+              Reintentar
+            </button>
+          ) : null}
+        </p>
+      ) : null}
 
       {loading ? (
         <div className="pulso-xf-home-slots" data-slot-count={0} aria-hidden="true">

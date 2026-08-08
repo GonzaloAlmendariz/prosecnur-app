@@ -580,6 +580,10 @@ export default function XlsformEditorPage() {
   // caliente, las tarjetas nacían sin su bloque de publicación y crecían al
   // llegar. Esperar una sola vez cuesta unos ms y entrega una sola superficie.
   const [libraryReady, setLibraryReady] = useState(false);
+  // El índice del proyecto no se pudo leer. Distinto de "no hay formularios":
+  // afirmar el vacío sin saberlo es la misma mentira que producía el hero de
+  // creación delante de un proyecto que sí tenía formularios.
+  const [libraryError, setLibraryError] = useState(false);
   const [instrumentActorCatalog, setInstrumentActorCatalog] = useState<{
     status: "loading" | "ready" | "empty" | "error";
     options: InstrumentActorOption[];
@@ -1039,6 +1043,7 @@ export default function XlsformEditorPage() {
     }
     setRestoreOffer(null);
     setLibraryReady(false);
+    setLibraryError(false);
     setPublicationUi({
       byFormId: {},
       publishingFormId: null,
@@ -1062,6 +1067,7 @@ export default function XlsformEditorPage() {
       try {
         const backend = await refreshBackendFormIndex();
         if (cancelled) return;
+        setLibraryError(false);
         backendFormIds = new Set(backend.forms.map((form) => form.id));
         if (backend.active_form_id && !localActive) {
           localActive = backend.active_form_id;
@@ -1070,7 +1076,9 @@ export default function XlsformEditorPage() {
           formCount = backend.forms.length;
         }
       } catch {
-        // Sin backend / sin proyecto: seguimos con lo local.
+        // Sin backend / sin proyecto: seguimos con lo local, pero sin fingir
+        // que la biblioteca está vacía — no lo sabemos.
+        if (!cancelled) setLibraryError(true);
       }
       if (cancelled) return;
       // Con VARIOS formularios aterrizamos en el hub (workbook=null → FormsLibrary
@@ -3316,6 +3324,15 @@ export default function XlsformEditorPage() {
         <FormsLibrary
           forms={forms}
           loading={!libraryReady}
+          loadFailed={libraryError}
+          onRetryLoad={() => {
+            setLibraryError(false);
+            setLibraryReady(false);
+            void refreshBackendFormIndex()
+              .then(() => setLibraryError(false))
+              .catch(() => setLibraryError(true))
+              .finally(() => setLibraryReady(true));
+          }}
           activeFormId={getActiveForm(projectScope)}
           scope={projectScope}
           onOpen={(id) => { void switchToForm(id); }}
