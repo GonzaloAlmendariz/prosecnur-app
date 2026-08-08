@@ -155,7 +155,7 @@ export default function App() {
                   <Route path="/diseno-muestra" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/diseno-muestra/metodologia/:metodologia" element={<Navigate to="/calc-muestra" replace />} />
                   <Route path="/muestra" element={<MuestraHub />} />
-                  <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra?mesa=aulas" replace />} />
+                  <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra?modo=opinion-universitaria" replace />} />
                   <Route path="/monitoreo" element={<MonitoreoShell />} />
                   <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
                   <Route path="/tablero" element={<DashboardPage />} />
