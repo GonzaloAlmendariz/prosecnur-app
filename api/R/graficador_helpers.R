@@ -51,6 +51,27 @@ hjust_from_pos <- function(pos) {
 }
 
 # ============================================================
+# Negritas por componente
+# ============================================================
+#
+# `textos_negrita` es un vector de tokens ("titulo", "leyenda", …) que enciende
+# la negrita de cada pieza de texto. La resolucion se repetia literal en cada
+# graficador que lo soportaba —y faltaba entera en cinco que si lo ofrecian en
+# la UI, donde el knob no hacia nada—, asi que vive aqui.
+#
+# Devuelve una funcion: `face("titulo")` da "bold" o "plain". Acepta varios
+# tokens y responde "bold" si cualquiera esta encendido, para que un graficador
+# con un solo eje pueda preguntar por `c("ejes", "eje_x")` de una vez.
+.graficos_face_de <- function(textos_negrita) {
+  tokens <- as.character(textos_negrita %||% character(0))
+  tokens <- tokens[!is.na(tokens) & nzchar(tokens)]
+  function(...) {
+    pedidos <- as.character(unlist(list(...)))
+    if (any(pedidos %in% tokens)) "bold" else "plain"
+  }
+}
+
+# ============================================================
 # Area util del pie dentro del canvas
 # ============================================================
 #

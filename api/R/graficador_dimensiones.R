@@ -1184,6 +1184,7 @@ graficar_heatmap_dimensiones <- function(
     size_leyenda = 9,
     color_ejes = "#20324d",
     size_ejes = 10,
+    textos_negrita = NULL,
     size_ejes_x = NULL,
     color_texto_celdas = "#122842",
     size_texto_celdas = 10,
@@ -1478,6 +1479,8 @@ graficar_heatmap_dimensiones <- function(
 
   max_chars <- max(nchar(as.character(axis_order_heat), type = "width"), na.rm = TRUE)
   left_margin <- .dim_clamp(36 + 7 * max_chars, 130, 320)
+  # La UI ofrecia `textos_negrita` para este graficador y el motor lo descartaba.
+  .dimh_face <- .graficos_face_de(textos_negrita)
 
   p_panel <- ggplot2::ggplot(
     sc,
@@ -1499,12 +1502,15 @@ graficar_heatmap_dimensiones <- function(
         size = size_ejes_x,
         colour = color_ejes,
         angle = angle_x,
+        face = .dimh_face("ejes", "eje_x"),
         hjust = if (abs(angle_x) < 1e-6) 0.5 else 0,
         vjust = if (abs(angle_x) < 1e-6) 0.5 else 1
       ),
-      axis.text.y = ggplot2::element_text(size = size_ejes, colour = color_ejes),
+      axis.text.y = ggplot2::element_text(size = size_ejes, colour = color_ejes,
+                                          face = .dimh_face("ejes", "eje_y")),
       legend.title = ggplot2::element_blank(),
-      legend.text = ggplot2::element_text(size = size_leyenda, colour = color_leyenda),
+      legend.text = ggplot2::element_text(size = size_leyenda, colour = color_leyenda,
+                                          face = .dimh_face("leyenda")),
       legend.background = ggplot2::element_rect(fill = color_fondo, color = NA),
       legend.key = ggplot2::element_rect(fill = color_fondo, color = NA),
       plot.background = ggplot2::element_rect(fill = color_fondo, color = NA),
@@ -2910,6 +2916,7 @@ graficar_foda_dimensiones <- function(
     titulo = NULL,
     subtitulo = NULL,
     nota_pie = NULL,
+    textos_negrita = NULL,
     color_titulo = "#004B8D",
     size_titulo = 12,
     color_subtitulo = "#004B8D",
@@ -4762,6 +4769,8 @@ graficar_foda_dimensiones <- function(
     x_text_margin <- if (!isTRUE(sd_tecnico)) ggplot2::margin(t = 7, r = 6, b = 0, l = 6) else ggplot2::margin(t = 4)
     pm_right <- if (!isTRUE(sd_tecnico)) 30 else 8
     pm_left <- if (!isTRUE(sd_tecnico)) 30 else 8
+    # La UI ofrecia `textos_negrita` para el FODA y el motor lo descartaba.
+    .dimf_face <- .graficos_face_de(textos_negrita)
     p_panel <- p_panel +
       ggplot2::theme_minimal(base_size = max(8, size_items)) +
       ggplot2::theme(
@@ -4770,11 +4779,13 @@ graficar_foda_dimensiones <- function(
         panel.grid.minor = ggplot2::element_blank(),
         panel.grid.major = ggplot2::element_line(colour = "#DCE5EF", linewidth = 0.35),
         axis.title = ggplot2::element_text(colour = "#1B314A", size = max(8, size_items)),
-        axis.text.y = ggplot2::element_text(colour = "#334A63", size = max(7, size_items - 1)),
+        axis.text.y = ggplot2::element_text(colour = "#334A63", size = max(7, size_items - 1),
+                                            face = .dimf_face("ejes", "eje_y")),
         axis.text.x = ggplot2::element_text(
           colour = "#334A63",
           size = x_text_size,
           margin = x_text_margin,
+          face = .dimf_face("ejes", "eje_x"),
           lineheight = if (!isTRUE(sd_tecnico)) 0.95 else 1
         ),
         axis.ticks = ggplot2::element_line(colour = "#8AA0B7", linewidth = 0.25),

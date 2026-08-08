@@ -970,7 +970,9 @@ test_that("metadata numerica expone limites seguros para la UI", {
     expect_equal(arg$step, 1)
   }
 
-  avg_decimals <- Filter(function(arg) identical(as.character(arg$name %||% ""), "decimales_promedio"), numeric_args)
+  # Era `decimales_promedio`, que ningun graficador aceptaba: el arg real que
+  # formatea la media del chip es `chip_decimales`.
+  avg_decimals <- Filter(function(arg) identical(as.character(arg$name %||% ""), "chip_decimales"), numeric_args)
   expect_true(length(avg_decimals) > 0)
   for (arg in avg_decimals) {
     expect_equal(arg$min, 0)

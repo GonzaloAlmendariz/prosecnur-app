@@ -129,6 +129,7 @@ graficar_media_rango <- function(
     size_nota_pie     = 8,
     color_ejes        = "#000000",
     size_ejes         = 9,
+    textos_negrita    = NULL,
     limites_y         = NULL,
     cortes_y          = NULL,
     color_fondo       = NA,
@@ -1091,14 +1092,17 @@ graficar_media_rango <- function(
     ggplot2::theme_minimal(base_size = 10) +
     ggplot2::theme(
       axis.title = ggplot2::element_blank(),
-      axis.text.x = ggplot2::element_text(colour = color_ejes, size = size_ejes),
-      axis.text.y = ggplot2::element_text(colour = color_ejes, size = size_ejes),
+      axis.text.x = ggplot2::element_text(colour = color_ejes, size = size_ejes,
+                                          face = .mr_face("ejes", "eje_x")),
+      axis.text.y = ggplot2::element_text(colour = color_ejes, size = size_ejes,
+                                          face = .mr_face("ejes", "eje_y")),
       panel.grid.minor = ggplot2::element_blank(),
       panel.grid.major.x = ggplot2::element_blank(),
       panel.grid.major.y = ggplot2::element_line(colour = "#D9E2EC", linewidth = 0.35),
       legend.title = ggplot2::element_blank(),
       legend.position = if (isTRUE(mostrar_leyenda)) "bottom" else "none",
-      legend.text = ggplot2::element_text(colour = color_ejes, size = max(7, size_ejes - 1)),
+      legend.text = ggplot2::element_text(colour = color_ejes, size = max(7, size_ejes - 1),
+                                          face = .mr_face("leyenda")),
       plot.background = ggplot2::element_rect(fill = color_fondo, colour = NA),
       panel.background = ggplot2::element_rect(fill = color_fondo, colour = NA),
       plot.margin = ggplot2::margin(8, 28, 6, 8)

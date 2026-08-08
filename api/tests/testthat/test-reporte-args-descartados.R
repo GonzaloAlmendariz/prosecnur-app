@@ -96,9 +96,9 @@ test_that("identifica al graficador real, no a como se llame la variable", {
   reporte_args_descartados_reset()
 
   fun <- graficar_boxplot
-  invisible(.keep_formals(fun, list(data = 1, textos_negrita = "titulo")))
+  invisible(.keep_formals(fun, list(data = 1, arg_que_no_existe = 1)))
   fun2 <- graficar_pie
-  invisible(.keep_formals(fun2, list(data = 1, debug_lw = 0.5)))
+  invisible(.keep_formals(fun2, list(data = 1, otro_inexistente = 2)))
 
   rep <- reporte_args_descartados_reporte()
   expect_true("graficar_boxplot" %in% rep$contexto)
@@ -106,21 +106,21 @@ test_that("identifica al graficador real, no a como se llame la variable", {
   expect_false(any(rep$contexto %in% c("fun", "fun2")))
 })
 
-test_that("el registro delata los args muertos que la auditoria encontro a mano", {
-  # `textos_negrita` se ofrece en la UI de boxplot, media_rango y los tres
-  # `dim_*` y no llega al motor en ninguno. Antes habia que descubrirlo
-  # comparando formals contra el registry; ahora lo dice el propio render.
+test_that("los args muertos que el registro delato quedaron cerrados", {
+  # Este registro se construyo para encontrarlos: `textos_negrita` se ofrecia en
+  # la UI de boxplot, media_rango y los `dim_*` sin llegar al motor en ninguno.
+  # Ya se implementaron, asi que el censo tiene que salir limpio — si vuelven a
+  # descartarse, es una regresion.
   reporte_args_descartados_reset()
 
-  for (f in list(graficar_boxplot, graficar_media_rango, graficar_heatmap_dimensiones)) {
+  for (f in list(graficar_boxplot, graficar_media_rango,
+                 graficar_heatmap_dimensiones, graficar_foda_dimensiones)) {
     fun <- f
     invisible(.keep_formals(fun, list(textos_negrita = "titulo")))
   }
 
   rep <- reporte_args_descartados_reporte()
-  muertos <- rep$contexto[rep$argumento == "textos_negrita"]
-  expect_true(all(c("graficar_boxplot", "graficar_media_rango",
-                    "graficar_heatmap_dimensiones") %in% muertos))
+  expect_equal(nrow(rep), 0L)
 })
 
 test_that("sin contexto explicito el registro no se queda mudo", {

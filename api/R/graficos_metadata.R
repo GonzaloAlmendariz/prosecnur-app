@@ -1170,7 +1170,7 @@
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "decimales_promedio", label = "Decimales del promedio", tipo_input = "number",   grupo = "filtro"),
+      list(name = "chip_decimales",     label = "Decimales del promedio", tipo_input = "number",   grupo = "filtro"),
       list(name = "cortes_chip",        label = "Cortes del semáforo",    tipo_input = "codigos_list", grupo = "semaforo",
            descripcion = "Valores numéricos que separan los colores (ej. [3, 4] → rojo <3, amarillo 3-4, verde >4)."),
       list(name = "modo_semaforo",      label = "Tipo de semáforo",  tipo_input = "choice",       grupo = "semaforo",
@@ -1192,7 +1192,7 @@
     args = c(list(
       list(name = "var",                label = "Variable numérica", tipo_input = "variable",     grupo = "datos"),
       list(name = "cruce",              label = "Dividir por",       tipo_input = "variable_opt", grupo = "datos"),
-      list(name = "decimales_promedio", label = "Decimales",         tipo_input = "number",       grupo = "filtro"),
+      list(name = "chip_decimales",     label = "Decimales",         tipo_input = "number",       grupo = "filtro"),
       list(name = "mostrar_ref_label",  label = "Mostrar referencia",tipo_input = "bool",         grupo = "filtro",
            descripcion = "Muestra una línea o etiqueta con el promedio global como referencia."),
       list(name = "cortes_chip",        label = "Cortes del semáforo", tipo_input = "codigos_list", grupo = "semaforo"),
@@ -2406,7 +2406,9 @@
       list(name = "canvas_pad_top",         label = "Padding superior (in)", tipo_input = "number", grupo = "canvas", default = 0),
 
       # --- Debug ---------------------------------------------------------
-      list(name = "debug_lw",             label = "Grosor línea debug",    tipo_input = "number", grupo = "avanzado", default = 1)
+      # Era `debug_lw`, que `graficar_pie()` no acepta: el motor lo descartaba en
+      # silencio y el control no hacia nada. El arg real es `debug_ph_lwd`.
+      list(name = "debug_ph_lwd",         label = "Grosor línea debug",    tipo_input = "number", grupo = "avanzado", default = 1)
     )
   ),
 
@@ -2682,10 +2684,17 @@
     descripcion   = "Heatmap dimensional agrupado por criterios temáticos. Hereda de 'Heatmap dimensional' y 'Base'.",
     icono_ui      = "LayoutGrid",
     args = list(
-
-      # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "eje_x", "eje_y")),
-
+      # `textos_negrita` NO se declara aquí. Este graficador no dibuja ejes:
+      # compone celdas y encabezados a mano, y ya expone su propio control con
+      # `fontface_texto_criterio`. Declararlo ofrecía en la UI un knob que el
+      # motor descartaba en silencio y que además duplicaba un arg existente.
+      list(name = "fontface_texto_criterio", label = "Peso del texto de criterio", tipo_input = "choice", grupo = "textos",
+           default = "plain",
+           choices = list(
+             list(value = "plain", label = "Normal"),
+             list(value = "bold",  label = "Negrita")
+           ),
+           descripcion = "Peso tipográfico de las etiquetas de criterio."),
       list(name = "font_family",          label = "Fuente",                tipo_input = "string", grupo = "textos",
            descripcion = "Vacío = hereda de Base.")
     )
@@ -4021,7 +4030,7 @@
   if (nm %in% c("decimales", "tabla_digits")) {
     return(list(min = 0, max = 4, step = 1, control = "stepper"))
   }
-  if (identical(nm, "decimales_promedio")) {
+  if (nm %in% c("decimales_promedio", "chip_decimales")) {
     return(list(min = 0, max = 2, step = 1, control = "stepper"))
   }
   if (identical(nm, "angle_x")) {
