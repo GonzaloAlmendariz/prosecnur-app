@@ -386,7 +386,7 @@ empieza por donde se decide y se termina por donde se entrega.
 |---|---|---|---|---|
 | **S6** | Diseño y Propuestas se entienden solos | `calculo-diseno` · `calculo-propuestas` | La fórmula y sus parámetros como decisión legible, no como ficha; cuotas por facultad comparables entre sí | en cola |
 | **S7** | CH requeridos y Distribución densifican sin ruido | `calculo-ch-facultad` · `calculo-distribucion` | I19 dejó el dato R-owned (precisión, sensibilidad OFAT); la superficie debe leerse sin memorizar. Pendiente medido de I19: scroll anidado manual en CH y geometría no declarada en Distribución | en cola |
-| **S8** | El comparador P1↔P2 se retoma o se retira | `CalculoComparacionEscenarios` | I20 quedó **vetado y sin commitear** en el árbol. Se rehace sobre el contrato R sin aritmética recreada en React, o se retira con su porqué escrito. No se deja a medias | en cola |
+| **S8** | El comparador P1↔P2 se retoma o se retira | `CalculoComparacionEscenarios` | **Cerrada (2026-08-07): se retomó.** Veto levantado — se rehizo como consumidor estricto: el TS valida y rechaza, nunca origina cifras; el emisor R es owner único (`calc_muestra_comparacion_escenarios.R`, schema v1 owner `engine_r`). Evidencia: revisión de contratos VETO LEVANTADO + `test-calc-muestra-comparacion-escenarios.R` verde con smoke HTTP y round-trip `.pulso` | cerrada |
 
 ### Bloque C — Selección (donde se sortea)
 

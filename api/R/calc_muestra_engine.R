@@ -768,7 +768,10 @@ calc_muestra_normalize_componente <- function(comp = list()) {
     parametros        = .cm_normalize_parametros(parametros_in, tecnica),
     meta              = .cm_normalize_meta(meta_in),
     inferencia_acreditacion = inferencia,
-    resultado         = comp$resultado   # opaco, lo escribe calcular()
+    # Opaco, lo escribe calcular(). El único retoque es el repair del carrier
+    # I20: el autosave reingresa el estudio por JSON y un `"global": null`
+    # parseado a NULL nombrado se reemitiría como `{}` (contrato roto).
+    resultado         = calc_muestra_comparacion_reparar_resultado(comp$resultado)
   )
 }
 
