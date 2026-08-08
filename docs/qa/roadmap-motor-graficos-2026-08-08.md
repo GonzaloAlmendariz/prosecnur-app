@@ -50,7 +50,7 @@ reparto real de las zonas.
 
 | # | Qué | Por qué duele | Esfuerzo |
 |---|---|---|---|
-| A1 | `.keep_formals` deja rastro de lo que descarta | Hoy un arg inexistente se pierde **sin señal alguna**. Es la causa raíz de A2 y A3 | S |
+| ~~A1~~ | ~~`.keep_formals` deja rastro de lo que descarta~~ | **Hecho** (2026-08-08) | S |
 | A2 | Cerrar los args muertos | Ver tabla abajo | S |
 | A3 | Un solo default por campo | `formato_valor` es `"valor"` en la función y `"porcentaje"` en el registry | S |
 | A4 | Identidad en el motor | Cuatro `color_titulo` por defecto distintos entre graficadores | M |
@@ -103,7 +103,7 @@ monolito que sí lo está. La lista viva se consulta con
 
 | # | Qué | Estado del motor | Esfuerzo |
 |---|---|---|---|
-| B1 | Significancia en apiladas y multi | **Ya escrito**: enganchar `.graficos_sig_aplicar` en dos renders más | S |
+| ~~B1~~ | ~~Significancia en apiladas~~ | **Hecho** (2026-08-08). En multi-apiladas por temas NO aplica: filas dependientes | S |
 | B2 | Serie temporal / línea | Desde cero | L |
 | B3 | Divergentes (Likert centrado) | Modo de apiladas, no graficador nuevo | M |
 | B4 | Dumbbell entre bases | Modo; el df tidy del multibase ya lo alimenta | M |
@@ -140,8 +140,9 @@ diseño técnico.
 
 ## Orden propuesto
 
-**Ola 1 — cerrar lo abierto.** B1 + A1. La significancia queda completa donde
-tiene sentido y el motor empieza a delatar sus propios huecos.
+**Ola 1 — cerrar lo abierto.** ~~B1 + A1~~ — **cerrada el 2026-08-08**. La
+significancia llega a apiladas con cruce, se documenta por qué no puede llegar a
+multi-apiladas por temas, y el motor ya delata sus propios argumentos muertos.
 
 **Ola 2 — el hueco real.** B2. Arrastra decisiones de diseño que conviene tomar
 temprano.
@@ -163,6 +164,22 @@ fondo y no bloquean a nadie.
 - **El pie ya no se sale del lienzo.** `.graficos_caption_x()` en
   `graficador_helpers.R` alinea el caption con la columna de contenido en lugar
   del borde absoluto; afectaba a agrupadas **y** a apiladas. 18 casos de test.
+- **Significancia en apiladas con cruce** (Ola 1). Mismo contraste sobre el
+  layout transpuesto: ahí cada fila es un grupo de personas y cada segmento una
+  categoría de respuesta. En multi-apiladas por temas **no aplica** —las filas
+  son preguntas respondidas por las mismas personas, y la prueba exige grupos
+  independientes— y el motor lo declara en vez de callar.
+- **Detección de repeats endurecida** (Ola 1). Antes dependía de que el runtime
+  propagara `repeat_grain` al ctx del motor PPT; sin esa marca, la ausencia se
+  leía como base plana y se emitían letras sobre observaciones dependientes.
+  Ahora se pregunta si la **variable graficada** vive dentro de un bloque
+  `begin_repeat` del XLSForm, contando la profundidad de anidamiento. Validado
+  contra el instrumento real de ACNUR PDM.
+- **El motor delata sus argumentos muertos** (Ola 1, A1). `.keep_formals()`
+  anota lo que descarta en un registro acumulativo
+  (`reporte_args_descartados.R`), en vez de perderlo en silencio. Identifica al
+  graficador buscándolo entre las `graficar_*` del paquete, porque los call
+  sites hacen `fun <- graficar_X` y el `deparse` solo veía `"fun"`.
 
 ## Notas de método
 
