@@ -36,10 +36,20 @@ export function DiagnosticsBadge({
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
+  // `error` es el nivel que impide sellar una revisión. Se cuenta y se anuncia
+  // aparte porque el usuario necesita distinguir "esto hay que arreglarlo para
+  // publicar" de "esto conviene mirarlo".
+  const errorCount = diagnostics.filter((d) => d.level === "error").length;
   const warnCount = diagnostics.filter((d) => d.level === "warn").length;
   const infoCount = diagnostics.filter((d) => d.level === "info").length;
   const total = diagnostics.length;
-  const tone: "ok" | "info" | "warn" = warnCount > 0 ? "warn" : infoCount > 0 ? "info" : "ok";
+  const tone: "ok" | "info" | "warn" | "error" = errorCount > 0
+    ? "error"
+    : warnCount > 0
+      ? "warn"
+      : infoCount > 0
+        ? "info"
+        : "ok";
 
   return (
     <>
@@ -51,15 +61,27 @@ export function DiagnosticsBadge({
         title={
           tone === "ok"
             ? "Todo en orden — no hay sugerencias"
-            : `${total} ${total === 1 ? "sugerencia" : "sugerencias"} (${warnCount} a revisar)`
+            : errorCount > 0
+              ? `${errorCount} ${errorCount === 1 ? "problema impide" : "problemas impiden"} publicar`
+              : `${total} ${total === 1 ? "sugerencia" : "sugerencias"} (${warnCount} a revisar)`
         }
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={`Sugerencias y advertencias (${total})`}
+        aria-label={errorCount > 0
+          ? `Problemas que impiden publicar (${errorCount}) y avisos (${total - errorCount})`
+          : `Sugerencias y advertencias (${total})`}
       >
-        {tone === "ok" ? <CheckCircle2 size={14} /> : tone === "warn" ? <AlertTriangle size={14} /> : <Info size={14} />}
+        {tone === "ok"
+          ? <CheckCircle2 size={14} />
+          : tone === "info"
+            ? <Info size={14} />
+            : <AlertTriangle size={14} />}
         <span className="pulso-diagnostics-badge-label">
-          {tone === "ok" ? "Sin avisos" : `${total} aviso${total === 1 ? "" : "s"}`}
+          {tone === "ok"
+            ? "Sin avisos"
+            : errorCount > 0
+              ? `${errorCount} sin resolver`
+              : `${total} aviso${total === 1 ? "" : "s"}`}
         </span>
       </button>
       {open && triggerRef.current && (
@@ -145,12 +167,13 @@ function DiagnosticsPopover({
   const top = rect.bottom + 8;
   const right = Math.max(12, window.innerWidth - rect.right);
 
-  // Severidad ordering: warn > info, y dentro de cada nivel, mantenemos el
-  // orden de detección para que la primera fila problemática quede arriba.
-  const sorted = [...diagnostics].sort((a, b) => {
-    if (a.level === b.level) return 0;
-    return a.level === "warn" ? -1 : 1;
-  });
+  // Severidad ordering: error > warn > info, y dentro de cada nivel,
+  // mantenemos el orden de detección para que la primera fila problemática
+  // quede arriba. Lo que bloquea la publicación va primero siempre.
+  const rank = (level: BuilderDiagnostic["level"]) =>
+    level === "error" ? 0 : level === "warn" ? 1 : 2;
+  const sorted = [...diagnostics].sort((a, b) => rank(a.level) - rank(b.level));
+  const blockingCount = sorted.filter((d) => d.level === "error").length;
 
   return createPortal(
     <div
@@ -166,7 +189,9 @@ function DiagnosticsPopover({
           <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginTop: 2 }}>
             {sorted.length === 0
               ? "Todo en orden por ahora."
-              : `${sorted.length} ${sorted.length === 1 ? "punto" : "puntos"} por revisar antes de exportar.`}
+              : blockingCount > 0
+                ? `${blockingCount} ${blockingCount === 1 ? "impide" : "impiden"} publicar una revisión.`
+                : `${sorted.length} ${sorted.length === 1 ? "punto" : "puntos"} por revisar antes de exportar.`}
           </div>
         </div>
         <button
@@ -220,9 +245,13 @@ function DiagnosticItem({
     diag.rowIndex != null &&
     selection?.kind === "survey" &&
     selection.rowIndex === diag.rowIndex;
-  const Icon = diag.level === "warn" ? AlertTriangle : Info;
+  const Icon = diag.level === "info" ? Info : AlertTriangle;
   const color =
-    diag.level === "warn" ? "var(--pulso-warn-fg)" : "var(--pulso-info-fg)";
+    diag.level === "error"
+      ? "var(--pulso-danger-fg)"
+      : diag.level === "warn"
+        ? "var(--pulso-warn-fg)"
+        : "var(--pulso-info-fg)";
 
   function go() {
     if (diag.rowIndex != null) onSelectRow(diag.rowIndex);

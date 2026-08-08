@@ -17531,6 +17531,13 @@ body.pulso-outline-drag-active .pulso-xlsform-frame .pulso-canvas-addbetween-tri
   border-color: var(--pulso-warn-border);
   background: var(--pulso-warn-bg);
 }
+/* `error` es el único tono que corresponde a algo que impide publicar una
+   revisión del instrumento, no a una sugerencia. */
+.pulso-diagnostics-badge.tone-error {
+  color: var(--pulso-danger-fg);
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
 
 @keyframes pulso-diagnostics-popover-in {
   from { transform: translateY(-4px) scale(0.98); opacity: 0; }

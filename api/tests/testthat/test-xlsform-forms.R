@@ -261,7 +261,7 @@ test_that("hash canónico ignora metadata de app y conserva semántica ordenada"
   expect_match(.xlsform_revision_hash(wb), "^[0-9a-f]{64}$")
 })
 
-test_that("publication bloqueada tiene precedencia y ast raw queda como warning", {
+test_that("publication bloqueada tiene precedencia y los avisos no bloquean", {
   s <- list()
   entry <- .xlsform_forms_as_entry(make_state("Instrumento"), id = "form-1")
   s <- .xlsform_forms_upsert(s, entry)
@@ -269,16 +269,75 @@ test_that("publication bloqueada tiene precedencia y ast raw queda como warning"
   testthat::local_mocked_bindings(
     .xlsform_editor_validate_workbook = function(workbook) list(
       list(id = "ast-unparseable-relevant-0", level = "warn"),
-      list(id = "name-duplicate-q1", level = "warn")
+      list(id = "name-duplicate-q1", level = "error")
     ),
     .package = "prosecnurapp"
   )
   publication <- .xlsform_revision_publication(s, entry)
   expect_equal(publication$status, "blocked")
   expect_length(publication$blockers, 1L)
+  expect_equal(publication$blockers[[1]]$id, "name-duplicate-q1")
   expect_length(publication$warnings, 1L)
   expect_false(publication$can_publish)
   expect_true(publication$can_delete)
+})
+
+test_that("un diagnóstico de aviso no impide publicar", {
+  # El defecto que esto fija: `.xlsform_revision_diagnostics()` partía por el
+  # prefijo del id —solo `ast-unparseable-*` era aviso— mientras el validador
+  # emitía TODO como `warn`. Así, cualquier instrumento real con una referencia
+  # colgante o una expresión no parseable quedaba en "Publicación bloqueada"
+  # para siempre. La severidad declarada es ahora la única autoridad.
+  s <- list()
+  entry <- .xlsform_forms_as_entry(make_state("Instrumento"), id = "form-1")
+  s <- .xlsform_forms_upsert(s, entry)
+
+  testthat::local_mocked_bindings(
+    .xlsform_editor_validate_workbook = function(workbook) list(
+      list(id = "ast-missing-ref-relevant-3-p9", level = "warn"),
+      list(id = "diagnostico-nuevo-sin-prefijo-conocido", level = "warn")
+    ),
+    .package = "prosecnurapp"
+  )
+  publication <- .xlsform_revision_publication(s, entry)
+  expect_equal(publication$status, "draft")
+  expect_length(publication$blockers, 0L)
+  expect_length(publication$warnings, 2L)
+  expect_true(publication$can_publish)
+})
+
+test_that("el validador marca como error solo lo que rompe la identidad del instrumento", {
+  survey <- data.frame(
+    type = c("text", "text", "select_one sexo", "begin_group"),
+    name = c("p1", "p1", "p2", "grupo"),
+    label = c("Uno", "Uno otra vez", "Sexo", "Grupo"),
+    stringsAsFactors = FALSE
+  )
+  choices <- data.frame(
+    list_name = character(0),
+    name = character(0),
+    label = character(0),
+    stringsAsFactors = FALSE
+  )
+  settings <- data.frame(form_id = "", stringsAsFactors = FALSE)
+
+  diagnostics <- xlsform_editor_validate(survey, choices, settings)
+  by_id <- vapply(diagnostics, function(d) as.character(d$id)[1], character(1))
+  level_of <- function(prefix) {
+    hit <- diagnostics[startsWith(by_id, prefix)]
+    if (!length(hit)) return(NA_character_)
+    as.character(hit[[1]]$level)[1]
+  }
+
+  # Identidad ambigua o instrumento inválido: bloquea.
+  expect_equal(level_of("name-duplicate-"), "error")
+  expect_equal(level_of("select-missing-list-"), "error")
+  expect_equal(level_of("unclosed-"), "error")
+  expect_equal(level_of("settings-form-id-empty"), "error")
+  # Ningún diagnóstico estructural puede quedar como aviso silencioso.
+  expect_true(all(vapply(diagnostics, function(d) {
+    as.character(d$level)[1] %in% c("error", "warn", "info")
+  }, logical(1))))
 })
 
 test_that("publicación exige al menos una pregunta sustantiva", {
