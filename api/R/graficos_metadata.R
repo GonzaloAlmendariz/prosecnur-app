@@ -2603,12 +2603,17 @@
       list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "iqr",     label = "IQR (P25-P75)"),
-             list(value = "min_max", label = "Min-Max")
+             list(value = "minmax", label = "Min-Max")
            )),
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
 
       # --- Cálculo -------------------------------------------------------
-      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "filtro"),
+      # Era `decimales_promedio`, que ningun graficador acepta: el arg real que
+      # formatea la media del chip es `chip_decimales`. El nombre viejo se
+      # descartaba en silencio y los decimales no cambiaban nunca.
+      list(name = "chip_decimales",       label = "Decimales del promedio", tipo_input = "number", grupo = "filtro",
+           default = 1,
+           descripcion = "Decimales de la media que se muestra en el chip de cada categoría."),
 
       # --- Canvas --------------------------------------------------------
       list(name = "canvas_h_title",       label = "Alto zona título (in)",  tipo_input = "number", grupo = "canvas"),
@@ -2629,12 +2634,17 @@
       # --- Negritas -------------------------------------------------------
       .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "nota_pie")),
 
-      list(name = "decimales_promedio",   label = "Decimales del promedio", tipo_input = "number", grupo = "filtro"),
+      # Era `decimales_promedio`, que ningun graficador acepta: el arg real que
+      # formatea la media del chip es `chip_decimales`. El nombre viejo se
+      # descartaba en silencio y los decimales no cambiaban nunca.
+      list(name = "chip_decimales",       label = "Decimales del promedio", tipo_input = "number", grupo = "filtro",
+           default = 1,
+           descripcion = "Decimales de la media que se muestra en el chip de cada categoría."),
       list(name = "mostrar_rango",        label = "Mostrar rango",         tipo_input = "bool",   grupo = "estilo", default = TRUE),
       list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "iqr",     label = "IQR (P25-P75)"),
-             list(value = "min_max", label = "Min-Max")
+             list(value = "minmax", label = "Min-Max")
            )),
       list(name = "mostrar_ref_label",    label = "Mostrar línea/etiqueta de referencia", tipo_input = "bool", grupo = "estilo",
            default = TRUE,
