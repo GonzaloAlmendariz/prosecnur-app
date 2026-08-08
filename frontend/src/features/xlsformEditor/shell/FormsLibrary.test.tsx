@@ -60,6 +60,34 @@ describe("FormsLibrary", () => {
     expect(ready).toContain('data-audit-ready="true"');
   });
 
+  test("con el índice caído y sin copia local no afirma que no hay formularios", () => {
+    // "No pudimos leer" y "no tienes ninguno" son cosas distintas. Ofrecer el
+    // hero de creación delante de un proyecto que quizá ya tiene seis es la
+    // misma mentira que producía el doble homepage.
+    const markup = renderToStaticMarkup(
+      <FormsLibrary {...props({ loadFailed: true, onRetryLoad: vi.fn() })} />,
+    );
+
+    expect(markup).not.toContain("pulso-xf-home--welcome");
+    expect(markup).not.toContain("Crea tu primer formulario");
+    expect(markup).toMatch(/no pudimos leer la biblioteca/i);
+    expect(markup).toContain("Reintentar");
+  });
+
+  test("con formularios locales el fallo se reporta sin ocultarlos", () => {
+    const markup = renderToStaticMarkup(
+      <FormsLibrary
+        {...props({
+          loadFailed: true,
+          forms: [{ id: "form-1", name: "Encuesta docentes", savedAt: Date.now(), source: null }],
+        })}
+      />,
+    );
+
+    expect(markup).toContain("Encuesta docentes");
+    expect(markup).toMatch(/guardados en este equipo/i);
+  });
+
   test("a form without publication data is shown as loading, not as a draft", () => {
     const markup = renderToStaticMarkup(
       <FormsLibrary

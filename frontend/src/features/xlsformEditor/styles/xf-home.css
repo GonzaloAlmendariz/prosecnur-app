@@ -156,6 +156,49 @@
   }
 }
 
+/* El índice del proyecto no se pudo leer. No es lo mismo que no tener
+   formularios, y la diferencia importa: el hub no puede ofrecer "crea tu
+   primer formulario" delante de un proyecto que quizá ya tiene seis. */
+.pulso-xf-home-load-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pulso-xf-home-load-error svg {
+  flex: 0 0 auto;
+}
+
+.pulso-xf-home-load-error span {
+  flex: 1;
+  min-width: 0;
+}
+
+.pulso-xf-home-load-retry {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-bold);
+  cursor: pointer;
+}
+
+.pulso-xf-home-load-retry:hover {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface-2);
+}
+
 /* --- Tarjeta de formulario --------------------------------------------- */
 
 .pulso-xf-home-card {
