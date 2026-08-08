@@ -28,6 +28,8 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   órbita de los ocho módulos del proyecto y Enciclopedia como utilidad global.
 - [Plan de mejoras de julio de 2026](plan-mejoras-2026-07.md): priorización
   operativa de deuda y calidad.
+- [Roadmap del motor de Gráficos](roadmap-motor-graficos-2026-08-08.md): deuda
+  medida del motor y catálogo de tipos de gráfico pendientes, en cuatro olas.
 - [Estado del pulido estético de Monitoreo](pulido-monitoreo-estado.md):
   bitácora viva del recorrido de superficies.
 
