@@ -8,68 +8,80 @@ import {
   GraficadorBlueprint,
   resolveGraficadorBlueprint,
 } from "./GraficadorBlueprint";
-import {
-  canInsertGraficador,
-} from "./GraficadorPicker";
-import {
-  slideAcceptsGraphSlot,
-} from "./GraficosLibrariesHost";
+import { canInsertGraficador } from "./GraficadorPicker";
+import { slideAcceptsGraphSlot } from "./GraficosLibrariesHost";
 import { normalizeGraficosRegistry } from "./metadataSanitizers";
 import {
   buildSlideLibraryModel,
   isInsertableSlideType,
 } from "./v2/timeline/SlidePicker";
+import { CATEGORY_LABEL, categoryOf } from "./v2/timeline/categoryOf";
 import {
   resolveSlidePickerBlueprint,
   SlidePickerBlueprint,
 } from "./v2/timeline/SlidePickerBlueprint";
 
-const SLIDE_MATRIX = [
-  { name: "p_slide_portada", categoria: "estructural", kind: "cover", slots: [] },
-  { name: "p_slide_indice", categoria: "estructural", kind: "index", slots: [] },
-  { name: "p_slide_top_two_box", categoria: "estructural", kind: "topTwo", slots: [] },
-  { name: "p_slide_seccion", categoria: "estructural", kind: "section", slots: [] },
-  { name: "p_slide_objetivo_icono", categoria: "estructural", kind: "objective", slots: [["icono", "icon"]] },
-  { name: "p_slide_texto", categoria: "estructural", kind: "text", slots: [] },
-  { name: "p_slide_tabla_tecnica", categoria: "estructural", kind: "technical", slots: [] },
-  { name: "p_slide_1_grafico", categoria: "1grafico", kind: "single", slots: [["grafico", "chart"]] },
-  { name: "p_slide_1_grafico_narrativo", categoria: "1grafico", kind: "singleNarrative", slots: [["grafico", "chart"]] },
-  { name: "p_slide_grafico_texto_derecha", categoria: "1grafico", kind: "splitRight", slots: [["grafico", "chart"]] },
-  { name: "p_slide_grafico_texto_izquierda", categoria: "1grafico", kind: "splitLeft", slots: [["grafico", "chart"]] },
-  { name: "p_slide_2_graficos", categoria: "2graficos", kind: "two", slots: [["izquierda", "chart"], ["derecha", "chart"]] },
-  { name: "p_slide_2_graficos_narrativo", categoria: "2graficos", kind: "twoNarrative", slots: [["izquierda", "chart"], ["derecha", "chart"]] },
-  { name: "p_slide_2_graficos_texto_izquierda", categoria: "2graficos", kind: "twoTextLeft", slots: [["grafico_1", "chart"], ["grafico_2", "chart"]] },
-  { name: "p_slide_2_graficos_texto_derecha", categoria: "2graficos", kind: "twoTextRight", slots: [["grafico_1", "chart"], ["grafico_2", "chart"]] },
-  { name: "p_slide_4_graficos", categoria: "4graficos", kind: "grid4", slots: [["a", "chart"], ["b", "chart"], ["c", "chart"], ["d", "chart"]] },
-  { name: "p_slide_2_graficos_poblacion", categoria: "poblacion", kind: "population2", slots: [["a", "chart"], ["b", "chart"], ["icono", "icon"]] },
-  { name: "p_slide_4_graficos_poblacion", categoria: "poblacion", kind: "population4", slots: [["a", "chart"], ["b", "chart"], ["c", "chart"], ["d", "chart"], ["icono", "icon"]] },
-  { name: "p_slide_5_graficos_poblacion", categoria: "poblacion", kind: "population5", slots: [["a", "chart"], ["b", "chart"], ["c", "chart"], ["d", "chart"], ["e", "chart"], ["icono", "icon"]] },
-  { name: "p_slide_6_graficos_poblacion", categoria: "poblacion", kind: "population6", slots: [["a", "chart"], ["b", "chart"], ["c", "chart"], ["d", "chart"], ["e", "chart"], ["f", "chart"], ["icono", "icon"]] },
+const EXPECTED_SLIDES = [
+  ["p_slide_portada", "Portada", "estructural", "estructural", "cover", "Title Slide", []],
+  ["p_slide_indice", "Índice", "estructural", "estructural", "index", "Indice", []],
+  ["p_slide_top_two_box", "Explicación Top Two Box", "estructural", "estructural", "topTwo", "Title and Content", []],
+  ["p_slide_seccion", "Separador de sección", "estructural", "estructural", "section", "Section Header", []],
+  ["p_slide_objetivo_icono", "Objetivo con ícono", "estructural", "estructural", "objective", "Objetivos_Secciones", []],
+  ["p_slide_texto", "Bloque de texto", "estructural", "estructural", "text", "Title and Content", []],
+  ["p_slide_tabla_tecnica", "Tabla técnica", "estructural", "estructural", "technical", "Title and Content", []],
+  ["p_slide_1_grafico", "Un gráfico", "1grafico", "1g", "single", "Graficos", ["grafico"]],
+  ["p_slide_1_grafico_narrativo", "Un gráfico + narrativa", "1grafico", "1g", "singleNarrative", "1_Grafico_narrativo", ["grafico"]],
+  ["p_slide_grafico_texto_derecha", "Gráfico + texto a la derecha", "1grafico", "1g", "splitRight", "right_grafico_texto", ["grafico"]],
+  ["p_slide_grafico_texto_izquierda", "Gráfico + texto a la izquierda", "1grafico", "1g", "splitLeft", "left_grafico_texto", ["grafico"]],
+  ["p_slide_2_graficos", "Dos gráficos", "2graficos", "2g", "two", "Graficos_2columnas", ["izquierda", "derecha"]],
+  ["p_slide_2_graficos_narrativo", "Dos gráficos + narrativa", "2graficos", "2g", "twoNarrative", "1_Graficos_2columnas_narrativo", ["izquierda", "derecha"]],
+  ["p_slide_2_graficos_texto_izquierda", "Dos gráficos + texto izquierda", "2graficos", "2g", "twoTextLeft", "left_2graficos_texto", ["grafico_1", "grafico_2"]],
+  ["p_slide_2_graficos_texto_derecha", "Dos gráficos + texto derecha", "2graficos", "2g", "twoTextRight", "right_2graficos_texto", ["grafico_1", "grafico_2"]],
+  ["p_slide_4_graficos", "Cuatro gráficos", "4graficos", "grid", "grid4", "4_paneles", ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"]],
+  ["p_slide_2_graficos_poblacion", "Dos gráficos + ícono (población)", "poblacion", "poblacion", "population2", "poblacion_2", ["izquierda", "derecha"]],
+  ["p_slide_4_graficos_poblacion", "Cuatro gráficos + ícono (población)", "poblacion", "poblacion", "population4", "poblacion_4", ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"]],
+  ["p_slide_5_graficos_poblacion", "Cinco gráficos + ícono", "poblacion", "poblacion", "population5", "poblacion_5", ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2"]],
+  ["p_slide_6_graficos_poblacion", "Seis gráficos + ícono", "poblacion", "poblacion", "population6", "poblacion_6", ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3"]],
 ] as const;
 
-const GRAFICADOR_MATRIX = [
-  ["p_barras_agrupadas", "distribution", "bars-grouped"],
-  ["p_barras_categoricas", "distribution", "bars-categorical"],
-  ["p_barras_apiladas", "distribution", "bars-stacked"],
-  ["p_barras_multiapiladas", "distribution", "bars-multi-stacked"],
-  ["p_nube_palabras", "text", "word-cloud"],
-  ["p_mapa_cobertura_territorial", "territory", "territory-map"],
-  ["p_pie", "distribution", "pie"],
-  ["p_donut", "distribution", "donut"],
-  ["p_numerico", "numeric", "numeric"],
-  ["p_histograma", "numeric", "histogram"],
-  ["p_boxplot", "numeric", "boxplot"],
-  ["p_media_rango", "numeric", "mean-range"],
-  ["p_radar", "comparison", "radar"],
-  ["p_tabla", "comparison", "table"],
-  ["p_dim_radar", "dimensions", "dimension-radar"],
-  ["p_dim_heatmap", "dimensions", "dimension-heatmap"],
-  ["p_dim_comparativo_radarbar", "dimensions", "dimension-radar-bars"],
-  ["p_dim_foda", "dimensions", "dimension-foda"],
-  ["p_dim_heatmap_criterios", "dimensions", "dimension-criteria-heatmap"],
+const EXPECTED_GRAFICADORES = [
+  ["p_barras_agrupadas", "Barras agrupadas", "distribution", "bars-grouped"],
+  ["p_barras_categoricas", "Barras categóricas", "distribution", "bars-categorical"],
+  ["p_barras_apiladas", "Barras apiladas", "distribution", "bars-stacked"],
+  ["p_barras_multiapiladas", "Multi-apiladas", "distribution", "bars-multi-stacked"],
+  ["p_nube_palabras", "Nube de palabras", "text", "word-cloud"],
+  ["p_mapa_cobertura_territorial", "Mapa de cobertura territorial", "territory", "territory-map"],
+  ["p_pie", "Gráfico de torta", "distribution", "pie"],
+  ["p_donut", "Gráfico de dona", "distribution", "donut"],
+  ["p_numerico", "Indicador numérico", "numeric", "numeric"],
+  ["p_histograma", "Histograma", "numeric", "histogram"],
+  ["p_boxplot", "Box plot", "numeric", "boxplot"],
+  ["p_media_rango", "Media y rango", "numeric", "mean-range"],
+  ["p_radar", "Radar", "comparison", "radar"],
+  ["p_tabla", "Tabla", "comparison", "table"],
+  ["p_dim_radar", "Radar por dimensiones", "dimensions", "dimension-radar"],
+  ["p_dim_heatmap", "Heatmap de dimensiones", "dimensions", "dimension-heatmap"],
+  ["p_dim_comparativo_radarbar", "Radar + barras comparativo", "dimensions", "dimension-radar-bars"],
+  ["p_dim_foda", "Matriz FODA dimensional", "dimensions", "dimension-foda"],
+  ["p_dim_heatmap_criterios", "Heatmap por criterios", "dimensions", "dimension-criteria-heatmap"],
 ] as const;
+
+type Fixture = {
+  schema: string;
+  source: { reference_project: string; sha256: string; sanitized: boolean };
+  registry: unknown;
+  sentinels: {
+    future_slide: unknown;
+    future_graficador: unknown;
+  };
+};
 
 const featureDir = path.dirname(fileURLToPath(import.meta.url));
+const fixturePath = path.resolve(
+  featureDir,
+  "../../../../scripts/tests/fixtures/graficos-libraries-acnur-acg.v1.json",
+);
+const fixture = JSON.parse(fs.readFileSync(fixturePath, "utf8")) as Fixture;
 
 function read(relativePath: string): string {
   return fs.readFileSync(path.join(featureDir, relativePath), "utf8");
@@ -80,54 +92,151 @@ function markupAttribute(markup: string, name: string): string | undefined {
 }
 
 function matrixRegistry() {
-  return normalizeGraficosRegistry({
-    slides: SLIDE_MATRIX.map((entry) => ({
-      name: entry.name,
-      titulo_humano: entry.name,
-      descripcion: "Modelo",
-      icono_ui: "FileText",
-      categoria: entry.categoria,
-      blueprint: {
-        kind: entry.kind,
-        ppt_layout: `layout:${entry.kind}`,
-        structure_label: `estructura:${entry.kind}`,
-      },
-      slot_specs: entry.slots.map(([name, role]) => ({ name, role, label: name })),
-      slots: entry.slots.map(([name]) => name),
-      args: [],
-      args_extra: [],
-    })),
-    graficadores: GRAFICADOR_MATRIX.map(([name, categoria, blueprint]) => ({
-      name,
-      titulo_humano: name,
-      descripcion: "Modelo",
-      icono_ui: "BarChart",
-      categoria,
-      blueprint,
-      args: [],
-      args_extra: [],
-    })),
-  });
+  return normalizeGraficosRegistry(fixture.registry);
 }
 
-describe("bibliotecas gobernadas por el registry L4", () => {
-  it("conserva el orden y la matriz runtime completa 20/19", () => {
+function histogram(values: readonly string[]): Record<string, number> {
+  return values.reduce<Record<string, number>>((counts, value) => {
+    counts[value] = (counts[value] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+describe("bibliotecas gobernadas por el registry L6", () => {
+  it("ancla la fixture sanitizada a acnur_acg y fija el censo versionado 20/19", () => {
     const registry = matrixRegistry();
 
+    expect(fixture.schema).toBe("prosecnur.qa.graficos_libraries_fixture.v1");
+    expect(fixture.source).toMatchObject({
+      reference_project: "acnur_acg",
+      sha256: "70ca67b9f5dcdbf2ad06c7144a005f48023122a57c97b152c11862412b4fde70",
+      sanitized: true,
+    });
     expect(registry.slides).toHaveLength(20);
     expect(registry.graficadores).toHaveLength(19);
     expect(registry.slides.map((slide) => slide.name)).toEqual(
-      SLIDE_MATRIX.map((entry) => entry.name),
+      EXPECTED_SLIDES.map(([name]) => name),
     );
     expect(registry.graficadores.map((graf) => graf.name)).toEqual(
-      GRAFICADOR_MATRIX.map(([name]) => name),
+      EXPECTED_GRAFICADORES.map(([name]) => name),
     );
-    expect(registry.slides.map((slide) => resolveSlidePickerBlueprint(slide).kind)).toEqual(
-      SLIDE_MATRIX.map((entry) => entry.kind),
+  });
+
+  it("cubre 20/20 labels, categorías picker, blueprints, layouts y zonas declaradas", () => {
+    const registry = matrixRegistry();
+    const rows = registry.slides.map((slide) => {
+      const model = buildSlideLibraryModel(slide);
+      return [
+        slide.name,
+        model.title,
+        slide.categoria,
+        model.category,
+        model.blueprint.kind,
+        model.blueprint.pptLayout,
+        model.blueprint.graphSlots.map((slot) => slot.name),
+      ];
+    });
+
+    expect(rows).toEqual(EXPECTED_SLIDES);
+    expect(histogram(rows.map((row) => String(row[3])))).toEqual({
+      estructural: 7,
+      "1g": 4,
+      "2g": 4,
+      grid: 1,
+      poblacion: 4,
+    });
+    for (const slide of registry.slides) {
+      expect(slide.slot_specs?.every((slot) => slot.label.trim().length > 0)).toBe(true);
+      expect(slide.slot_specs?.every((slot) => slot.role === "chart" || slot.role === "icon")).toBe(true);
+      expect(isInsertableSlideType(slide.name)).toBe(true);
+    }
+  });
+
+  it("ejecuta categoryOf sobre los 20 SlideType con taxonomía y labels cerrados", () => {
+    const classified = EXPECTED_SLIDES.map(([name, , , expectedCategory]) => [
+      name,
+      categoryOf(name),
+      expectedCategory,
+    ] as const);
+
+    expect(classified.map(([name, actualCategory]) => [name, actualCategory])).toEqual(
+      classified.map(([name, , expectedCategory]) => [name, expectedCategory]),
     );
-    expect(registry.graficadores.map((graf) => resolveGraficadorBlueprint(graf.blueprint))).toEqual(
-      GRAFICADOR_MATRIX.map(([, , blueprint]) => blueprint),
-    );
+    expect(histogram(classified.map(([, actualCategory]) => actualCategory))).toEqual({
+      estructural: 7,
+      "1g": 4,
+      "2g": 4,
+      grid: 1,
+      poblacion: 4,
+    });
+    expect(CATEGORY_LABEL).toEqual({
+      estructural: "Estructural",
+      "1g": "1 gráfico",
+      "2g": "2 gráficos",
+      grid: "Grid 4",
+      poblacion: "Población",
+    });
+    const labels = Object.values(CATEGORY_LABEL);
+    expect(labels.every((label) => label.trim().length > 0)).toBe(true);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it("cubre 19/19 labels, taxonomía y blueprints de graficadores", () => {
+    const registry = matrixRegistry();
+    const rows = registry.graficadores.map((graf) => [
+      graf.name,
+      graf.titulo_humano,
+      graf.categoria,
+      resolveGraficadorBlueprint(graf.blueprint),
+    ]);
+
+    expect(rows).toEqual(EXPECTED_GRAFICADORES);
+    expect(histogram(rows.map((row) => String(row[2])))).toEqual({
+      distribution: 6,
+      text: 1,
+      territory: 1,
+      numeric: 4,
+      comparison: 2,
+      dimensions: 5,
+    });
+    expect(registry.graficadores.every((graf) => graf.titulo_humano.trim().length > 0)).toBe(true);
+  });
+
+  it("mantiene card y hero alineados en los 20 + 19 blueprints", () => {
+    const registry = matrixRegistry();
+
+    registry.slides.forEach((slide, index) => {
+      const expected = EXPECTED_SLIDES[index];
+      const resolved = resolveSlidePickerBlueprint(slide);
+      const card = renderToStaticMarkup(createElement(SlidePickerBlueprint, {
+        blueprint: resolved,
+        iconoUi: slide.icono_ui,
+        size: "card",
+      }));
+      const hero = renderToStaticMarkup(createElement(SlidePickerBlueprint, {
+        blueprint: resolved,
+        iconoUi: slide.icono_ui,
+        size: "hero",
+      }));
+      expect(markupAttribute(card, "data-layout")).toBe(expected[4]);
+      expect(markupAttribute(hero, "data-layout")).toBe(expected[4]);
+      expect(markupAttribute(card, "data-ppt-layout")).toBe(expected[5]);
+      expect(markupAttribute(hero, "data-ppt-layout")).toBe(expected[5]);
+    });
+
+    registry.graficadores.forEach((graf, index) => {
+      const expected = EXPECTED_GRAFICADORES[index][3];
+      const card = renderToStaticMarkup(createElement(GraficadorBlueprint, {
+        blueprint: graf.blueprint,
+        variant: "card",
+      }));
+      const hero = renderToStaticMarkup(createElement(GraficadorBlueprint, {
+        blueprint: graf.blueprint,
+        variant: "hero",
+      }));
+      expect(markupAttribute(card, "data-blueprint")).toBe(expected);
+      expect(markupAttribute(hero, "data-blueprint")).toBe(expected);
+    });
   });
 
   it("da precedencia cerrada a slot_specs y usa slots sólo para backend viejo", () => {
@@ -170,7 +279,6 @@ describe("bibliotecas gobernadas por el registry L4", () => {
     expect(resolveSlidePickerBlueprint(legacy).graphSlots.map((slot) => slot.name)).toEqual(["grafico"]);
     expect(resolveSlidePickerBlueprint(explicit).graphSlots).toEqual([]);
     expect(resolveSlidePickerBlueprint(unknownRole).graphSlots.map((slot) => slot.name)).toEqual(["chart"]);
-
     expect(slideAcceptsGraphSlot(undefined, "grafico")).toBe(false);
     expect(slideAcceptsGraphSlot(legacy, "grafico")).toBe(true);
     expect(slideAcceptsGraphSlot(explicit, "grafico")).toBe(false);
@@ -179,91 +287,26 @@ describe("bibliotecas gobernadas por el registry L4", () => {
     expect(slideAcceptsGraphSlot(unknownRole, "chart")).toBe(true);
   });
 
-  it("mantiene conocido-viejo insertable, slide futuro sólo revisable y graficador futuro insertable", () => {
+  it("usa sentinels: slide futuro sólo revisable y graficador futuro insertable", () => {
     const registry = normalizeGraficosRegistry({
-      slides: [
-        {
-          name: "p_slide_1_grafico",
-          titulo_humano: "Conocido viejo",
-          categoria: "1grafico",
-          slots: ["grafico"],
-          args: [],
-          args_extra: [],
-        },
-        {
-          name: "p_slide_realidad_aumentada",
-          titulo_humano: "Futuro",
-          categoria: "experimental",
-          blueprint: { kind: "immersive" },
-          slot_specs: [{ name: "escena", role: "video", label: "Escena" }],
-          slots: ["escena"],
-          args: [],
-          args_extra: [],
-        },
-      ],
-      graficadores: [{
-        name: "p_holograma",
-        titulo_humano: "Holograma",
-        categoria: "experimental",
-        blueprint: "hologram",
-        available: true,
-        args: [],
-        args_extra: [],
-      }],
+      slides: [fixture.sentinels.future_slide],
+      graficadores: [fixture.sentinels.future_graficador],
     });
-
-    const oldKnown = buildSlideLibraryModel(registry.slides[0]);
-    const future = buildSlideLibraryModel(registry.slides[1]);
-    expect(oldKnown.blueprint.kind).toBe("neutral");
-    expect(oldKnown.insertableType).toBe("p_slide_1_grafico");
-    expect(isInsertableSlideType(registry.slides[0].name)).toBe(true);
-    expect(future.blueprint.kind).toBe("neutral");
-    expect(future.insertableType).toBeNull();
-    expect(future.compatibilityReason).toMatch(/versión más reciente/);
-    expect(isInsertableSlideType(registry.slides[1].name)).toBe(false);
-
+    const futureSlide = buildSlideLibraryModel(registry.slides[0]);
     const futureGraf = registry.graficadores[0];
+
+    expect(futureSlide).toMatchObject({
+      category: "otro",
+      insertableType: null,
+      blueprint: { kind: "neutral" },
+    });
+    expect(futureSlide.compatibilityReason).toMatch(/versión más reciente/);
+    expect(isInsertableSlideType(futureSlide.metadata.name)).toBe(false);
     expect(futureGraf).toMatchObject({ categoria: "other", blueprint: "future" });
     expect(canInsertGraficador(futureGraf, false)).toBe(true);
   });
 
-  it("card y hero pintan el mismo kind resuelto, sin prometer geometría PPT exacta", () => {
-    const registry = matrixRegistry();
-    const slide = registry.slides.find((item) => item.name === "p_slide_4_graficos");
-    const graf = registry.graficadores.find((item) => item.name === "p_dim_foda");
-    expect(slide).toBeDefined();
-    expect(graf).toBeDefined();
-    if (!slide || !graf) throw new Error("La matriz 20/19 quedó incompleta");
-
-    const resolved = resolveSlidePickerBlueprint(slide);
-    const slideCard = renderToStaticMarkup(createElement(SlidePickerBlueprint, {
-      blueprint: resolved,
-      iconoUi: slide.icono_ui,
-      size: "card",
-    }));
-    const slideHero = renderToStaticMarkup(createElement(SlidePickerBlueprint, {
-      blueprint: resolved,
-      iconoUi: slide.icono_ui,
-      size: "hero",
-    }));
-    expect(markupAttribute(slideCard, "data-layout")).toBe("grid4");
-    expect(markupAttribute(slideHero, "data-layout")).toBe("grid4");
-    expect(markupAttribute(slideCard, "data-ppt-layout")).toBe("layout:grid4");
-    expect(markupAttribute(slideHero, "data-ppt-layout")).toBe("layout:grid4");
-
-    const graphCard = renderToStaticMarkup(createElement(GraficadorBlueprint, {
-      blueprint: graf.blueprint,
-      variant: "card",
-    }));
-    const graphHero = renderToStaticMarkup(createElement(GraficadorBlueprint, {
-      blueprint: graf.blueprint,
-      variant: "hero",
-    }));
-    expect(markupAttribute(graphCard, "data-blueprint")).toBe("dimension-foda");
-    expect(markupAttribute(graphHero, "data-blueprint")).toBe("dimension-foda");
-  });
-
-  it("no conserva catálogos, taxonomías ni resolvers basados en el nombre dentro de las bibliotecas", () => {
+  it("no conserva catálogos ni resolvers basados en el nombre dentro de las bibliotecas", () => {
     const slidePicker = read("v2/timeline/SlidePicker.tsx");
     const slideBlueprint = read("v2/timeline/SlidePickerBlueprint.tsx");
     const grafPicker = read("GraficadorPicker.tsx");

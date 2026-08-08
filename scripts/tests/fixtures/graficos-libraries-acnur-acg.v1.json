@@ -1,0 +1,233 @@
+{
+  "schema": "prosecnur.qa.graficos_libraries_fixture.v1",
+  "source": {
+    "reference_project": "acnur_acg",
+    "sha256": "70ca67b9f5dcdbf2ad06c7144a005f48023122a57c97b152c11862412b4fde70",
+    "sanitized": true,
+    "note": "Contrato mínimo derivado del proyecto de referencia; no contiene respuestas, secretos ni rutas de cliente."
+  },
+  "session_ids": {
+    "A": "l6-acnur-acg-session-a",
+    "B": "l6-acnur-acg-session-b"
+  },
+  "sessions": {
+    "A": {
+      "session_id": "l6-acnur-acg-session-a",
+      "created_at": "2026-08-08T00:00:00Z",
+      "xlsform": true,
+      "data": true,
+      "instrumento_parsed": true,
+      "data_previewed": true,
+      "plan_built": true,
+      "auditoria_run": true,
+      "codif_aplicado": true,
+      "analitica_prep_ok": true,
+      "analitica_dim_ok": true,
+      "analitica_multibase_available": false,
+      "analitica_multibase_ok": false,
+      "hojas_ruta_ok": false,
+      "graficos_ppt_ok": false,
+      "graficos_word_ok": false,
+      "estudio_nombre": "ACNUR ACG · fixture sanitizada",
+      "has_estudio": true,
+      "estudio_processing_mode": "single",
+      "active_base": "acnur_acg",
+      "n_bases": 1,
+      "bases_nombres": ["acnur_acg"]
+    },
+    "B": {
+      "session_id": "l6-acnur-acg-session-b",
+      "created_at": "2026-08-08T00:00:00Z",
+      "xlsform": true,
+      "data": true,
+      "instrumento_parsed": true,
+      "data_previewed": true,
+      "plan_built": true,
+      "auditoria_run": true,
+      "codif_aplicado": true,
+      "analitica_prep_ok": true,
+      "analitica_dim_ok": false,
+      "analitica_multibase_available": false,
+      "analitica_multibase_ok": false,
+      "hojas_ruta_ok": false,
+      "graficos_ppt_ok": false,
+      "graficos_word_ok": false,
+      "estudio_nombre": "ACNUR ACG · fixture sanitizada",
+      "has_estudio": true,
+      "estudio_processing_mode": "single",
+      "active_base": "acnur_acg",
+      "n_bases": 1,
+      "bases_nombres": ["acnur_acg"]
+    }
+  },
+  "project_status": {
+    "has_project": true,
+    "path": "/fixtures/acnur_acg.pulso",
+    "name": "acnur_acg",
+    "dirty": false,
+    "last_saved_at": "2026-08-08T00:00:00Z"
+  },
+  "overview": {
+    "project_name": "acnur_acg",
+    "maturity": { "level": "in_progress" },
+    "modules": [],
+    "added_modules": ["procesamiento"]
+  },
+  "estudio": {
+    "has_estudio": true,
+    "nombre": "ACNUR ACG · fixture sanitizada",
+    "processing_mode": "single",
+    "bases": [
+      { "nombre": "acnur_acg", "label": "ACNUR ACG", "active": true }
+    ],
+    "active_base": "acnur_acg"
+  },
+  "config": {
+    "version": "graficos/4",
+    "plan": {
+      "slides": [
+        {
+          "id": "slide-l6-ocupado",
+          "tipo": "p_slide_1_grafico",
+          "payload": {
+            "titulo": "Distribución de prueba",
+            "grafico": {
+              "graficador": "p_barras_agrupadas",
+              "args": {
+                "variable": "sexo",
+                "titulo": "Distribución inicial",
+                "obsoleto": "no debe sobrevivir al reemplazo"
+              }
+            },
+            "base": "",
+            "pie": "",
+            "etiqueta": ""
+          }
+        }
+      ]
+    },
+    "presets": {},
+    "w_presets": {},
+    "selected_slide_id": "slide-l6-ocupado",
+    "paletas": {},
+    "iconos": [],
+    "overrides_reusables": [],
+    "debug_ph": { "activo": false, "color": "#FF00FF", "lwd": 0.6 },
+    "view_mode": "timeline",
+    "inspector_tab": "data",
+    "density": "comfortable",
+    "canvas_viewport": { "x": 0, "y": 0, "zoom": 1 },
+    "scope_rules": {}
+  },
+  "variables": {
+    "sources": [
+      {
+        "name": "acnur_acg",
+        "source_kind": "reference_fixture",
+        "variables": [
+          {
+            "name": "sexo",
+            "label": "Sexo",
+            "tipo": "select_one",
+            "seccion": "Perfil",
+            "graphable": true,
+            "data_available": true
+          }
+        ]
+      }
+    ],
+    "multi": false,
+    "active_base": "acnur_acg",
+    "processing_mode": "single"
+  },
+  "coverage": {
+    "ok": true,
+    "summary": {
+      "total_variables": 1,
+      "graphable_variables": 1,
+      "included_graphable": 1,
+      "unused_graphable": 0,
+      "not_graphable": 0,
+      "empty": 0,
+      "covered_by_recod": 0,
+      "integrated": 0,
+      "excluded_intentionally": 0,
+      "included_refs": 1
+    },
+    "sources": [],
+    "warnings": []
+  },
+  "registry": {
+    "slides": [
+      { "name": "p_slide_portada", "titulo_humano": "Portada", "descripcion": "Primera lámina del reporte.", "icono_ui": "FileText", "categoria": "estructural", "blueprint": { "kind": "cover", "ppt_layout": "Title Slide", "structure_label": "Portada editorial" }, "slot_specs": [], "slots": [], "args": [], "args_extra": [] },
+      { "name": "p_slide_indice", "titulo_humano": "Índice", "descripcion": "Tabla de contenidos del reporte.", "icono_ui": "List", "categoria": "estructural", "blueprint": { "kind": "index", "ppt_layout": "Indice", "structure_label": "Índice editorial" }, "slot_specs": [], "slots": [], "args": [], "args_extra": [] },
+      { "name": "p_slide_top_two_box", "titulo_humano": "Explicación Top Two Box", "descripcion": "Explicación editorial del indicador.", "icono_ui": "PanelTop", "categoria": "estructural", "blueprint": { "kind": "topTwo", "ppt_layout": "Title and Content", "structure_label": "Explicación visual" }, "slot_specs": [], "slots": [], "args": [], "args_extra": [] },
+      { "name": "p_slide_seccion", "titulo_humano": "Separador de sección", "descripcion": "Abre una sección del reporte.", "icono_ui": "PanelsTopLeft", "categoria": "estructural", "blueprint": { "kind": "section", "ppt_layout": "Section Header", "structure_label": "Separador editorial" }, "slot_specs": [], "slots": [], "args": [], "args_extra": [] },
+      { "name": "p_slide_objetivo_icono", "titulo_humano": "Objetivo con ícono", "descripcion": "Objetivo editorial con apoyo visual.", "icono_ui": "Target", "categoria": "estructural", "blueprint": { "kind": "objective", "ppt_layout": "Objetivos_Secciones", "structure_label": "Texto con ícono" }, "slot_specs": [{ "name": "icono", "role": "icon", "label": "Ícono" }], "slots": ["icono"], "args": [], "args_extra": [] },
+      { "name": "p_slide_texto", "titulo_humano": "Bloque de texto", "descripcion": "Contenido editorial sin gráfico.", "icono_ui": "Text", "categoria": "estructural", "blueprint": { "kind": "text", "ppt_layout": "Title and Content", "structure_label": "Texto editorial" }, "slot_specs": [], "slots": [], "args": [], "args_extra": [] },
+      { "name": "p_slide_tabla_tecnica", "titulo_humano": "Tabla técnica", "descripcion": "Ficha técnica tabular.", "icono_ui": "Table2", "categoria": "estructural", "blueprint": { "kind": "technical", "ppt_layout": "Title and Content", "structure_label": "Tabla editorial" }, "slot_specs": [], "slots": [], "args": [], "args_extra": [] },
+      { "name": "p_slide_1_grafico", "titulo_humano": "Un gráfico", "descripcion": "Una visual principal.", "icono_ui": "BarChart3", "categoria": "1grafico", "blueprint": { "kind": "single", "ppt_layout": "Graficos", "structure_label": "Gráfico principal" }, "slot_specs": [{ "name": "grafico", "role": "chart", "label": "Gráfico principal" }], "slots": ["grafico"], "args": [], "args_extra": [] },
+      { "name": "p_slide_1_grafico_narrativo", "titulo_humano": "Un gráfico + narrativa", "descripcion": "Narrativa y una visual.", "icono_ui": "PanelRight", "categoria": "1grafico", "blueprint": { "kind": "singleNarrative", "ppt_layout": "1_Grafico_narrativo", "structure_label": "Narrativa + gráfico" }, "slot_specs": [{ "name": "grafico", "role": "chart", "label": "Gráfico principal" }], "slots": ["grafico"], "args": [], "args_extra": [] },
+      { "name": "p_slide_grafico_texto_derecha", "titulo_humano": "Gráfico + texto a la derecha", "descripcion": "Visual con texto lateral.", "icono_ui": "PanelRight", "categoria": "1grafico", "blueprint": { "kind": "splitRight", "ppt_layout": "right_grafico_texto", "structure_label": "Gráfico + texto" }, "slot_specs": [{ "name": "grafico", "role": "chart", "label": "Gráfico principal" }], "slots": ["grafico"], "args": [], "args_extra": [] },
+      { "name": "p_slide_grafico_texto_izquierda", "titulo_humano": "Gráfico + texto a la izquierda", "descripcion": "Texto lateral con visual.", "icono_ui": "PanelLeft", "categoria": "1grafico", "blueprint": { "kind": "splitLeft", "ppt_layout": "left_grafico_texto", "structure_label": "Texto + gráfico" }, "slot_specs": [{ "name": "grafico", "role": "chart", "label": "Gráfico principal" }], "slots": ["grafico"], "args": [], "args_extra": [] },
+      { "name": "p_slide_2_graficos", "titulo_humano": "Dos gráficos", "descripcion": "Comparación en dos columnas.", "icono_ui": "Columns3", "categoria": "2graficos", "blueprint": { "kind": "two", "ppt_layout": "Graficos_2columnas", "structure_label": "Dos columnas" }, "slot_specs": [{ "name": "izquierda", "role": "chart", "label": "Izquierda" }, { "name": "derecha", "role": "chart", "label": "Derecha" }], "slots": ["izquierda", "derecha"], "args": [], "args_extra": [] },
+      { "name": "p_slide_2_graficos_narrativo", "titulo_humano": "Dos gráficos + narrativa", "descripcion": "Narrativa y comparación.", "icono_ui": "Columns3", "categoria": "2graficos", "blueprint": { "kind": "twoNarrative", "ppt_layout": "1_Graficos_2columnas_narrativo", "structure_label": "Narrativa + comparación" }, "slot_specs": [{ "name": "izquierda", "role": "chart", "label": "Izquierda" }, { "name": "derecha", "role": "chart", "label": "Derecha" }], "slots": ["izquierda", "derecha"], "args": [], "args_extra": [] },
+      { "name": "p_slide_2_graficos_texto_izquierda", "titulo_humano": "Dos gráficos + texto izquierda", "descripcion": "Texto y dos visuales.", "icono_ui": "PanelLeft", "categoria": "2graficos", "blueprint": { "kind": "twoTextLeft", "ppt_layout": "left_2graficos_texto", "structure_label": "Texto + dos gráficos" }, "slot_specs": [{ "name": "grafico_1", "role": "chart", "label": "Gráfico superior" }, { "name": "grafico_2", "role": "chart", "label": "Gráfico inferior" }], "slots": ["grafico_1", "grafico_2"], "args": [], "args_extra": [] },
+      { "name": "p_slide_2_graficos_texto_derecha", "titulo_humano": "Dos gráficos + texto derecha", "descripcion": "Dos visuales y texto.", "icono_ui": "PanelRight", "categoria": "2graficos", "blueprint": { "kind": "twoTextRight", "ppt_layout": "right_2graficos_texto", "structure_label": "Dos gráficos + texto" }, "slot_specs": [{ "name": "grafico_1", "role": "chart", "label": "Gráfico superior" }, { "name": "grafico_2", "role": "chart", "label": "Gráfico inferior" }], "slots": ["grafico_1", "grafico_2"], "args": [], "args_extra": [] },
+      { "name": "p_slide_4_graficos", "titulo_humano": "Cuatro gráficos", "descripcion": "Matriz comparativa de cuatro visuales.", "icono_ui": "Grid3X3", "categoria": "4graficos", "blueprint": { "kind": "grid4", "ppt_layout": "4_paneles", "structure_label": "Matriz 2 × 2" }, "slot_specs": [{ "name": "superior_izquierda", "role": "chart", "label": "Superior izquierda" }, { "name": "superior_derecha", "role": "chart", "label": "Superior derecha" }, { "name": "inferior_izquierda", "role": "chart", "label": "Inferior izquierda" }, { "name": "inferior_derecha", "role": "chart", "label": "Inferior derecha" }], "slots": ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha"], "args": [], "args_extra": [] },
+      { "name": "p_slide_2_graficos_poblacion", "titulo_humano": "Dos gráficos + ícono (población)", "descripcion": "Perfil de población en dos visuales.", "icono_ui": "UsersRound", "categoria": "poblacion", "blueprint": { "kind": "population2", "ppt_layout": "poblacion_2", "structure_label": "Dos gráficos + ícono" }, "slot_specs": [{ "name": "izquierda", "role": "chart", "label": "Izquierda" }, { "name": "derecha", "role": "chart", "label": "Derecha" }, { "name": "icono", "role": "icon", "label": "Ícono central" }], "slots": ["izquierda", "derecha", "icono"], "args": [], "args_extra": [] },
+      { "name": "p_slide_4_graficos_poblacion", "titulo_humano": "Cuatro gráficos + ícono (población)", "descripcion": "Perfil de población en cuatro visuales.", "icono_ui": "UsersRound", "categoria": "poblacion", "blueprint": { "kind": "population4", "ppt_layout": "poblacion_4", "structure_label": "Matriz 2 × 2 + ícono" }, "slot_specs": [{ "name": "superior_izquierda", "role": "chart", "label": "Superior izquierda" }, { "name": "superior_derecha", "role": "chart", "label": "Superior derecha" }, { "name": "inferior_izquierda", "role": "chart", "label": "Inferior izquierda" }, { "name": "inferior_derecha", "role": "chart", "label": "Inferior derecha" }, { "name": "icono", "role": "icon", "label": "Ícono central" }], "slots": ["superior_izquierda", "superior_derecha", "inferior_izquierda", "inferior_derecha", "icono"], "args": [], "args_extra": [] },
+      { "name": "p_slide_5_graficos_poblacion", "titulo_humano": "Cinco gráficos + ícono", "descripcion": "Perfil de población en cinco visuales.", "icono_ui": "UsersRound", "categoria": "poblacion", "blueprint": { "kind": "population5", "ppt_layout": "poblacion_5", "structure_label": "Matriz 3 + 2 + ícono" }, "slot_specs": [{ "name": "grafico_superior_1", "role": "chart", "label": "Superior izquierda" }, { "name": "grafico_superior_2", "role": "chart", "label": "Superior centro" }, { "name": "grafico_superior_3", "role": "chart", "label": "Superior derecha" }, { "name": "grafico_inferior_1", "role": "chart", "label": "Inferior izquierda" }, { "name": "grafico_inferior_2", "role": "chart", "label": "Inferior centro" }, { "name": "icono", "role": "icon", "label": "Ícono central" }], "slots": ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2", "icono"], "args": [], "args_extra": [] },
+      { "name": "p_slide_6_graficos_poblacion", "titulo_humano": "Seis gráficos + ícono", "descripcion": "Perfil de población en seis visuales.", "icono_ui": "UsersRound", "categoria": "poblacion", "blueprint": { "kind": "population6", "ppt_layout": "poblacion_6", "structure_label": "Matriz 3 × 2 + ícono" }, "slot_specs": [{ "name": "grafico_superior_1", "role": "chart", "label": "Superior izquierda" }, { "name": "grafico_superior_2", "role": "chart", "label": "Superior centro" }, { "name": "grafico_superior_3", "role": "chart", "label": "Superior derecha" }, { "name": "grafico_inferior_1", "role": "chart", "label": "Inferior izquierda" }, { "name": "grafico_inferior_2", "role": "chart", "label": "Inferior centro" }, { "name": "grafico_inferior_3", "role": "chart", "label": "Inferior derecha" }, { "name": "icono", "role": "icon", "label": "Ícono central" }], "slots": ["grafico_superior_1", "grafico_superior_2", "grafico_superior_3", "grafico_inferior_1", "grafico_inferior_2", "grafico_inferior_3", "icono"], "args": [], "args_extra": [] }
+    ],
+    "graficadores": [
+      { "name": "p_barras_agrupadas", "titulo_humano": "Barras agrupadas", "descripcion": "Compara categorías entre series.", "icono_ui": "BarChart3", "categoria": "distribution", "blueprint": "bars-grouped", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [{ "name": "variable", "label": "Variable", "tipo_input": "variable", "grupo": "datos" }, { "name": "titulo", "label": "Título", "tipo_input": "string", "grupo": "textos" }], "args_extra": [] },
+      { "name": "p_barras_categoricas", "titulo_humano": "Barras categóricas", "descripcion": "Ordena categorías en barras.", "icono_ui": "BarChart3", "categoria": "distribution", "blueprint": "bars-categorical", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_barras_apiladas", "titulo_humano": "Barras apiladas", "descripcion": "Compara composiciones apiladas.", "icono_ui": "ChartBarStacked", "categoria": "distribution", "blueprint": "bars-stacked", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_barras_multiapiladas", "titulo_humano": "Multi-apiladas", "descripcion": "Compara varios bloques apilados.", "icono_ui": "ChartNoAxesColumnIncreasing", "categoria": "distribution", "blueprint": "bars-multi-stacked", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_nube_palabras", "titulo_humano": "Nube de palabras", "descripcion": "Resume términos frecuentes.", "icono_ui": "Cloud", "categoria": "text", "blueprint": "word-cloud", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_mapa_cobertura_territorial", "titulo_humano": "Mapa de cobertura territorial", "descripcion": "Muestra la cobertura de campo.", "icono_ui": "Map", "categoria": "territory", "blueprint": "territory-map", "requisito": "territorial_coverage", "feature_kind": "territorial_coverage", "available": false, "disabled_reason": "El proyecto de referencia no tiene cobertura territorial preparada.", "args": [], "args_extra": [] },
+      { "name": "p_pie", "titulo_humano": "Gráfico de torta", "descripcion": "Muestra partes de un total.", "icono_ui": "ChartPie", "categoria": "distribution", "blueprint": "pie", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [{ "name": "variable", "label": "Variable", "tipo_input": "variable", "grupo": "datos" }, { "name": "titulo", "label": "Título", "tipo_input": "string", "grupo": "textos" }], "args_extra": [] },
+      { "name": "p_donut", "titulo_humano": "Gráfico de dona", "descripcion": "Muestra proporciones con centro libre.", "icono_ui": "ChartNoAxesColumn", "categoria": "distribution", "blueprint": "donut", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_numerico", "titulo_humano": "Indicador numérico", "descripcion": "Destaca un valor principal.", "icono_ui": "Hash", "categoria": "numeric", "blueprint": "numeric", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_histograma", "titulo_humano": "Histograma", "descripcion": "Muestra una distribución numérica.", "icono_ui": "ChartColumn", "categoria": "numeric", "blueprint": "histogram", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_boxplot", "titulo_humano": "Box plot", "descripcion": "Resume dispersión y atípicos.", "icono_ui": "ChartCandlestick", "categoria": "numeric", "blueprint": "boxplot", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_media_rango", "titulo_humano": "Media y rango", "descripcion": "Compara medias e intervalos.", "icono_ui": "ChartSpline", "categoria": "numeric", "blueprint": "mean-range", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_radar", "titulo_humano": "Radar", "descripcion": "Compara perfiles multivariados.", "icono_ui": "Radar", "categoria": "comparison", "blueprint": "radar", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_tabla", "titulo_humano": "Tabla", "descripcion": "Compara valores en filas y columnas.", "icono_ui": "Table2", "categoria": "comparison", "blueprint": "table", "requisito": "", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_dim_radar", "titulo_humano": "Radar por dimensiones", "descripcion": "Compara índices por dimensión.", "icono_ui": "Radar", "categoria": "dimensions", "blueprint": "dimension-radar", "requisito": "dimensiones", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_dim_heatmap", "titulo_humano": "Heatmap de dimensiones", "descripcion": "Resume dimensiones en una matriz.", "icono_ui": "Grid3X3", "categoria": "dimensions", "blueprint": "dimension-heatmap", "requisito": "dimensiones", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_dim_comparativo_radarbar", "titulo_humano": "Radar + barras comparativo", "descripcion": "Contrasta radar y barras.", "icono_ui": "ChartNoAxesCombined", "categoria": "dimensions", "blueprint": "dimension-radar-bars", "requisito": "dimensiones", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_dim_foda", "titulo_humano": "Matriz FODA dimensional", "descripcion": "Clasifica dimensiones en una matriz FODA.", "icono_ui": "PanelsTopLeft", "categoria": "dimensions", "blueprint": "dimension-foda", "requisito": "dimensiones", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] },
+      { "name": "p_dim_heatmap_criterios", "titulo_humano": "Heatmap por criterios", "descripcion": "Cruza criterios e indicadores.", "icono_ui": "Grid2X2", "categoria": "dimensions", "blueprint": "dimension-criteria-heatmap", "requisito": "dimensiones", "feature_kind": "", "available": true, "disabled_reason": "", "args": [], "args_extra": [] }
+    ]
+  },
+  "sentinels": {
+    "future_slide": {
+      "name": "p_slide_realidad_aumentada",
+      "titulo_humano": "Realidad aumentada futura",
+      "descripcion": "Sentinel de compatibilidad futura.",
+      "icono_ui": "Sparkles",
+      "categoria": "experimental",
+      "blueprint": { "kind": "immersive", "ppt_layout": "Future Layout", "structure_label": "Escena inmersiva" },
+      "slot_specs": [{ "name": "escena", "role": "video", "label": "Escena" }],
+      "slots": ["escena"],
+      "args": [],
+      "args_extra": []
+    },
+    "future_graficador": {
+      "name": "p_holograma",
+      "titulo_humano": "Holograma futuro",
+      "descripcion": "Sentinel de graficador futuro compatible.",
+      "icono_ui": "Sparkles",
+      "categoria": "experimental",
+      "blueprint": "hologram",
+      "requisito": "",
+      "feature_kind": "",
+      "available": true,
+      "disabled_reason": "",
+      "args": [{ "name": "variable", "label": "Variable", "tipo_input": "variable", "grupo": "datos" }, { "name": "titulo", "label": "Título", "tipo_input": "string", "grupo": "textos" }],
+      "args_extra": []
+    }
+  }
+}

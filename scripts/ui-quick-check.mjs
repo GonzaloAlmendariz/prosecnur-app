@@ -431,7 +431,7 @@ function stringOrEmpty(value) {
   return typeof value === "string" && value.length > 0 ? value : "";
 }
 
-async function startStack(opts, logDir) {
+export async function startStack(opts, logDir) {
   const started = {
     frontend: null,
     api: null,
@@ -512,6 +512,11 @@ async function startStack(opts, logDir) {
   });
   console.log("[ui-quick-check] stack listo");
   return started;
+}
+
+export async function stopStack(stack) {
+  await stopProcess(stack?.frontend);
+  await stopProcess(stack?.api);
 }
 
 async function takeBootstrapSession(apiUrl, timeoutMs) {

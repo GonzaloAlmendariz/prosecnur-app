@@ -154,7 +154,7 @@ la reconfiguración grande.
 | **L3 · Direccionabilidad + a11y compartida** | `usePanelDireccionable` en ambos; helper de focus trap común; QA puede abrirlos por URL (B7, B8) | V5, V6 | **hecho · I3** |
 | **L4 · Verdad del registry** | Conteos y subtítulos derivados (B5); blueprints desde `slots`/metadata y no desde `includes()` del nombre; barrida de copy del registry (B13 y hermanos); contraste blueprint↔layout PPT real con `officer::layout_properties()` | V2, V8 | **hecho · I4** |
 | **L5 · Degradación y viewports** | Estados vacío/error/sin-resultados/`dimOk=false` en los 5 viewports; matriz con foco en 1024x600 | V7 | **hecho · I5** |
-| **L6 · Tests de contrato** | Registry↔picker (todo tipo del registry tiene label, categoría, blueprint), taxonomía y smoke montado de teclado; incorpora promesas A/B diferidas, cardinalidad ARIA, búsqueda, foco/Escape y reemplazo real (B17) | gate | pendiente |
+| **L6 · Tests de contrato** | Registry↔picker (todo tipo del registry tiene label, categoría, blueprint), taxonomía y smoke montado de teclado; incorpora promesas A/B diferidas, cardinalidad ARIA, búsqueda, foco/Escape y reemplazo real (B17) | gate | **hecho · I6** |
 | **L7 · Paridad preview↔motor PPT** | Resolver template-aware compartido por preview y renderer; corregir portada, objetivo con ícono, `top_two`, texto/splits y slots poblacionales; matriz parametrizada de los 20 tipos contra la plantilla ACNUR. Se coordina con el loop del motor PPT | V2 | pendiente |
 
 Al vaciar la cola: re-censar (¿tipos nuevos en el registry?, ¿familias
@@ -192,13 +192,14 @@ Proporcional al diff, siempre con evidencia visual:
 | Criterio | SlidePicker | GraficadorPicker |
 |---|---|---|
 | V1 gramática | ✓ L1 (B1, B9) | ✓ L2 (B11, B15) |
-| V2 verdad registry | ✓ parcial L1 + L4 (registry 20/20; paridad PPT real → L7) | ✓ L2 + L4 (registry/blueprint 19/19) |
+| V2 verdad registry | ✓ parcial L1 + L4 + I6 (registry/label/categoría/blueprint 20/20; paridad PPT real → L7) | ✓ L2 + L4 + I6 (registry/label/categoría/blueprint 19/19) |
 | V3 decidibilidad | ✓ L1 (B3, B4) | ✓ L2 (B11, B12, B14) |
-| V4 flujo | ✓ L1 (B6, B10) | — (un solo pick por apertura, aceptable) |
-| V5 accesibilidad | ✓ L1 + I3 (B7) | ✓ L2 + I3 (B7, B16) |
-| V6 direccionable | ✓ I3 (B8) | ✓ I3 (B8) |
-| V7 degradación | ✓ I5 (5 estados × 5 viewports; C1–C5) | ✓ I5 (7 estados/guards × 5 viewports; C1–C5) |
+| V4 flujo | ✓ L1 + I6 (N, flechas, Space, Enter, doble clic, insertar-y-seguir) | ✓ I6 (flechas, Space, Enter, doble clic y reemplazo real) |
+| V5 accesibilidad | ✓ L1 + I3 + I6 (trap causal, Escape y retorno) | ✓ L2 + I3 + I6 (trap causal, Escape y retorno) |
+| V6 direccionable | ✓ I3 + I6 (B8, apertura real y retiro de `panel`) | ✓ I3 + I6 (B8, apertura real y retiro de `panel`) |
+| V7 degradación | ✓ I5 + I6 (matriz visual + smoke persistente) | ✓ I5 + I6 (matriz visual, guards y A→B persistentes) |
 | V8 español | ✓ L1 + L4 | ✓ L2 + L4 (B13) |
+| B17 gate persistente | ✓ I6 (20/20, `categoryOf`, teclado, búsqueda, ARIA y foco) | ✓ I6 (19/19, teclado, guards, reemplazo y A→B) |
 
 ## Registro de iteraciones
 
@@ -512,6 +513,82 @@ Proporcional al diff, siempre con evidencia visual:
     de 11 errores/33 advertencias, sin categoría causal nueva. L6–L7 siguen
     abiertos y el goal continúa activo.
 
+- **I6 · 2026-08-08 · L6 Tests de contrato** — B17 deja de depender de probes
+  temporales: un contrato Vitest exhaustivo y un smoke `node:test` + Playwright
+  montan la aplicación React real servida por Vite, con API fail-closed y una
+  fixture versionada/sanitizada derivada de `acnur_acg`. El lote sólo toca el
+  contrato registry↔picker, el smoke y su fixture, la exportación de ciclo de
+  vida ya existente en `scripts/ui-quick-check.mjs` y este ledger; no modifica
+  pickers, hooks, host, store, `SessionContext`, CSS, backend, API/wire,
+  navegación, persistencia, `.pulso` ni motor PPT.
+  - **B17 / V2:** la fixture `prosecnur.qa.graficos_libraries_fixture.v1`
+    queda anclada al SHA-256 canónico
+    `70ca67b9f5dcdbf2ad06c7144a005f48023122a57c97b152c11862412b4fde70`.
+    El contrato fija orden, label, categoría, blueprint, layout y slots de
+    20/20 slides; label, taxonomía y blueprint de 19/19 graficadores; y
+    card=hero para los 39 modelos. `categoryOf()` se ejerce directamente sobre
+    los 20 tipos con distribución exacta 7 estructurales, 4 `1g`, 4 `2g`,
+    1 `grid` y 4 población. Los sentinels conservan slide futuro sólo revisable
+    y graficador futuro insertable.
+  - **B17 / V4–V6:** el smoke abre Slides con `N`, comprueba autofocus, cruza
+    ambos extremos del trap, busca/no-results/limpia, recorre con flechas,
+    Home/End y Space, inserta con Enter y doble clic y acredita deltas reales
+    `+1/+2` sin cerrar «insertar y seguir». En Graficadores, Space selecciona,
+    Enter y doble clic convergen en reemplazo, Escape retira el panel y el foco
+    vuelve al mismo trigger lógico.
+  - **B17 / reemplazo real:** el slot poblado parte de
+    `p_barras_agrupadas` con `variable`, `titulo` y el sentinel `obsoleto`; tras
+    Enter queda un único `p_pie` en el mismo slide/slot, conserva los dos args
+    compatibles y elimina `obsoleto`. El test consulta la misma instancia de
+    Zustand montada y exige que el tipo anterior desaparezca del DOM.
+  - **B17 / V7:** `loading/error/empty/no-results` montan exactamente una
+    live-region en cada biblioteca con rol, politeness, atomicidad y busy
+    correctos. Slide futuro, `dimOk=false` y `available=false` fallan cerrados;
+    el graficador futuro disponible inserta. State B y registry B se difieren
+    en ambos órdenes y una respuesta registry A llega deliberadamente después
+    de que B ya es visible: nunca reaparecen inventario ni capacidad de A. No
+    se exige cero refetch redundante del caché singleton, conforme a I5.
+  - **Aislamiento/CI:** el router sólo admite endpoints enumerados y un POST
+    computacional de coverage; cualquier endpoint imprevisto o escritura
+    persistente hace fallar el test. El guard recursivo rechaza correos, claves
+    PII, `state.rds` y rutas absolutas de usuario. Chromium se cierra sin
+    silenciar el error y queda desconectado; Vite verifica PID muerto, puerto
+    cerrado y temporal eliminado. El nombre
+    `ui-quick-check-graficos-libraries-mounted.test.mjs` entra en el glob del
+    job `ui-contracts`; `check-r-lock` confirma 0 contratos huérfanos.
+  - **F1 rechazada; F2 acreditada:** el guardian inicial vetó seis falsos
+    verdes —sin `categoryOf`, sin `N`, cleanup Chromium silenciado, trap sin
+    cruzar extremos, reemplazo no exacto y sanitización sólo declarativa—. El
+    mismo writer los cerró en cuatro correctivos acotados. Guardian F2 quedó
+    **APPROVED / COMPATIBLE**, sin P0–P2, migración ni ADR, sobre hashes finales:
+    contrato `b1c24b71ae3ce5b1c50a076ad4b9f635fb576aa36ba8552e6b827101415f581e`,
+    smoke `8dfdf2b8b65f41d2c497112725ec2c77c236be4b7f3e7059c046671af49297dc`,
+    fixture `638de6e790933086d62bef27b394c64dc8bff1336b6fde018a7e7219373153bc`
+    y runner `b375435f0f0efe679acc39f0e063accdce4cd1632b738687c0c0cb41655af246`.
+  - **Evidencia visual:** acta independiente
+    `/private/tmp/prosecnur-l6-qa-EwfNSK/L6-VISUAL-QA-AUDIT.md` (SHA-256
+    `7fa5c64eadae6e54b271955d532cb6f3674cfe881065fc696f6e41813dce5f45`)
+    y runner `report.json` (SHA-256
+    `df869ee84bbec11ed5acca205828655da5818c278e1256390b77f5278618b655`):
+    4/4 capturas causales —`N` y `Cambiar`— en 1440×1000 y 1024×600;
+    V1–V8 y C1–C5 PASS, 42 grupos geométricos, 0 issues/misses/jails/overflow
+    o errores. Los cuatro pares equivalentes L5→L6 son píxel-exactos
+    (`AE=0`, `RMSE=0`); no hay cambio visual de producto. Proyecto canónico y
+    copias conservan el SHA anterior; todos los procesos/puertos propios se
+    limpian y el backend ajeno 8787/PID 40553 se preserva.
+  - **Gate final:** smoke final 5/5, focal 4 archivos / 31 tests,
+    Gráficos 39 archivos / 214 tests, `tsc -b`, typecheck, `node --check`,
+    `git diff --check` y `check-r-lock` verdes. `editor-v2.css` conserva
+    33.123 líneas y SHA-256
+    `aed5548e28d8008d8458d51f409487d7b4892d35daa4223492193130daf6bb7f`.
+    El verificador serial quedó **APPROVED** sobre ownership exacto de cinco
+    rutas, índice vacío, hashes sin drift, capturas y cleanup; no halló
+    P0/P1/P2 de L6. El diff-check global sólo conserva la línea final en blanco
+    de `classroomMethodStories.css`, ruta CalcMuestra ajena y dirty desde la
+    entrada. El gate documental conserva exactamente su baseline de 11 errores
+    y 33 advertencias, sin categoría causal nueva. L7 permanece abierto y el
+    goal continúa activo.
+
 ## Bandeja de decisiones
 
 - ¿«Popover» o toma completa? I1 materializa el supuesto conservador como toma
@@ -560,14 +637,14 @@ Proporcional al diff, siempre con evidencia visual:
 - En 1024x600 el rail de Graficadores ya conserva etiquetas, counts, contenido
   y scroll sin `overflow-wrap:anywhere`; I5 lo acredita en los siete estados y
   C1–C5. La composición compacta queda resuelta sin esconder el label primario.
-- Los tests de I3–I5 cubren contrato estructural, helpers, estados y cierre
-  fail-closed por sid; la QA browser ejerció teclado, foco y transiciones reales.
-  L6 debe persistir el smoke montado —promesas A/B en ambos órdenes,
-  cardinalidad de live-regions, búsqueda, foco/Escape y reemplazo real desde un
-  slot poblado— para que no dependa sólo de evidencia temporal.
-- El caché del registry sigue siendo una entrada módulo única. Una respuesta
-  tardía de A puede desplazar la entrada B y causar una recarga redundante, pero
-  el snapshot ligado a sid impide exponer datos o maps cruzados. Recomendación:
-  probar la carrera con promesas diferidas en L6 y migrar a caché por sid sólo
-  si la redundancia se confirma como coste real; no ampliar persistencia ni
-  `.pulso` por esta deuda.
+- I6 resuelve la dependencia de evidencia temporal: el smoke montado persiste
+  promesas A/B en ambos órdenes y A tardía, cardinalidad de live-regions,
+  búsqueda, teclado, foco/Escape y reemplazo real desde un slot poblado. Los
+  contratos estructurales de I3–I5 permanecen como guard complementario, no
+  como sustituto del browser real.
+- El caché del registry sigue siendo una entrada módulo única. I6 confirma que
+  una respuesta A tardía no vuelve a exponer inventario, maps ni capacidad de A
+  bajo B; no exige ausencia de una recarga redundante posterior. Recomendación:
+  medir esa recarga como coste separado en el próximo re-censo y migrar a caché
+  por sid sólo si se materializa; no ampliar persistencia ni `.pulso` por esta
+  deuda.
