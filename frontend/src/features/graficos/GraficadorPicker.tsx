@@ -44,6 +44,13 @@ type GraficadorFamily =
   | "territory"
   | "other";
 
+export type GraficadorLibraryState =
+  | "ready"
+  | "loading"
+  | "error"
+  | "empty"
+  | "no-results";
+
 const FAMILY_ORDER: readonly GraficadorFamily[] = [
   "all",
   "distribution",
@@ -91,8 +98,12 @@ export default function GraficadorPicker({
   fallbackFocusRef: RefObject<HTMLElement>;
 }) {
   const { registry, loading, error } = useGraficosRegistry();
-  const { state } = useSession();
-  const dimOk = Boolean(state?.analitica_dim_ok);
+  const { state, sessionId } = useSession();
+  const dimOk = graficadorDimensionsReady(
+    state?.session_id,
+    sessionId,
+    state?.analitica_dim_ok,
+  );
   const [family, setFamily] = useState<GraficadorFamily>("all");
   const [query, setQuery] = useState("");
   const [selectedName, setSelectedName] = useState<string | null>(null);
@@ -141,6 +152,12 @@ export default function GraficadorPicker({
   const selectedGraf = filteredGraficadores.find((graf) => graf.name === selectedName)
     ?? filteredGraficadores[0]
     ?? null;
+  const libraryState = deriveGraficadorLibraryState(
+    loading,
+    error,
+    inventory.length,
+    filteredGraficadores.length,
+  );
   const selectedCanInsert = onPick !== undefined
     && selectedGraf !== null
     && canInsertGraficador(selectedGraf, dimOk);
@@ -339,7 +356,11 @@ export default function GraficadorPicker({
                     <p>{activeFamilyMeta.hint}</p>
                   </div>
                 </div>
-                <span className="pulso-graficador-library-visible-count" aria-live="polite">
+                <span
+                  className="pulso-graficador-library-visible-count"
+                  aria-live={libraryState === "ready" ? "polite" : undefined}
+                  aria-atomic={libraryState === "ready" ? "true" : undefined}
+                >
                   {filteredGraficadores.length}{" "}
                   {filteredGraficadores.length === 1 ? "modelo visible" : "modelos visibles"}
                 </span>
@@ -389,32 +410,11 @@ export default function GraficadorPicker({
                 data-qa-geometry-group="graficador-library-models"
                 data-qa-geometry-contract="equal"
               >
-                {loading && inventory.length === 0 && (
+                {libraryState !== "ready" && (
                   <LibraryState
-                    state="loading"
-                    title="Cargando catálogo"
-                    detail="Estamos consultando los modelos del proyecto."
-                  />
-                )}
-                {!loading && error && inventory.length === 0 && (
-                  <LibraryState
-                    state="error"
-                    title="No se pudo cargar el catálogo"
-                    detail={error}
-                  />
-                )}
-                {!loading && !error && inventory.length === 0 && (
-                  <LibraryState
-                    state="empty"
-                    title="Catálogo vacío"
-                    detail="El catálogo no devolvió modelos de graficador."
-                  />
-                )}
-                {!loading && inventory.length > 0 && filteredGraficadores.length === 0 && (
-                  <LibraryState
-                    state="no-results"
-                    title="Sin coincidencias"
-                    detail="Prueba otra búsqueda o vuelve a Todos."
+                    state={libraryState}
+                    title={graficadorGalleryStateTitle(libraryState)}
+                    detail={graficadorGalleryStateDetail(libraryState, error)}
                   />
                 )}
                 {filteredGraficadores.map((graf, index) => {
@@ -486,7 +486,7 @@ export default function GraficadorPicker({
               onInsert={onPick ? insertGraf : undefined}
               onCancel={onCancel}
               consultationReason={onPick ? "" : CONSULTATION_REASON}
-              state={inspectorState(loading, error, inventory.length, filteredGraficadores.length)}
+              state={libraryState}
             />
           </div>
         </Dialog.Content>
@@ -508,11 +508,15 @@ function GraficadorInspector({
   onInsert?: (graf: GraficadorMetadata) => void;
   onCancel: () => void;
   consultationReason: string;
-  state: "loading" | "error" | "empty" | "no-results" | "ready";
+  state: GraficadorLibraryState;
 }) {
   if (!graf) {
     return (
-      <aside className="pulso-graficador-library-inspector" aria-label="Inspector del modelo">
+      <aside
+        className="pulso-graficador-library-inspector"
+        data-state={state}
+        aria-labelledby="pulso-graficador-library-inspector-state-title"
+      >
         <div
           className="pulso-graficador-library-inspector-stack"
           data-qa-geometry-group="graficador-library-inspector"
@@ -525,8 +529,23 @@ function GraficadorInspector({
             data-qa-geometry-capacity="owned"
           >
             <SearchX size={22} aria-hidden="true" />
-            <strong>{inspectorEmptyTitle(state)}</strong>
+            <strong id="pulso-graficador-library-inspector-state-title">
+              {inspectorEmptyTitle(state)}
+            </strong>
             <span>{inspectorEmptyDetail(state)}</span>
+          </div>
+          <div className="pulso-graficador-library-insert-panel" data-qa-geometry-member>
+            <PulsoButton
+              variant="primary"
+              size="lg"
+              className="pulso-graficador-library-insert"
+              disabled
+            >
+              Insertar modelo
+            </PulsoButton>
+            <span className="pulso-graficador-library-insert-hint">
+              {graficadorInspectorDisabledReason(state, consultationReason)}
+            </span>
           </div>
         </div>
       </aside>
@@ -691,7 +710,7 @@ function LibraryState({
   title,
   detail,
 }: {
-  state: "loading" | "error" | "empty" | "no-results";
+  state: Exclude<GraficadorLibraryState, "ready">;
   title: string;
   detail: string;
 }) {
@@ -700,11 +719,15 @@ function LibraryState({
       className="pulso-graficador-library-state"
       data-state={state}
       data-qa-geometry-capacity="owned"
-      aria-live={state === "loading" ? "polite" : "assertive"}
     >
-      {state === "loading" ? <Layers3 size={22} aria-hidden="true" /> : <SearchX size={22} aria-hidden="true" />}
-      <strong>{title}</strong>
-      <span>{detail}</span>
+      <div
+        className="pulso-graficador-library-state-region"
+        {...graficadorLibraryStateA11y(state)}
+      >
+        {state === "loading" ? <Layers3 size={22} aria-hidden="true" /> : <SearchX size={22} aria-hidden="true" />}
+        <strong>{title}</strong>
+        <span>{detail}</span>
+      </div>
     </li>
   );
 }
@@ -715,6 +738,14 @@ function graficadorCategory(graf: GraficadorMetadata): Exclude<GraficadorFamily,
 
 export function canInsertGraficador(graf: GraficadorMetadata, dimOk: boolean): boolean {
   return graf.available !== false && !(graf.requisito === "dimensiones" && !dimOk);
+}
+
+export function graficadorDimensionsReady(
+  stateSessionId: string | undefined,
+  sessionId: string,
+  analiticaDimOk: unknown,
+): boolean {
+  return stateSessionId === sessionId && Boolean(analiticaDimOk);
 }
 
 function isTerritorial(graf: GraficadorMetadata): boolean {
@@ -740,12 +771,12 @@ function catalogDescription(count: number, loading: boolean, error: string): str
   return `${count} ${count === 1 ? "modelo en el catálogo" : "modelos en el catálogo"}. Compara su forma antes de insertar.`;
 }
 
-function inspectorState(
+export function deriveGraficadorLibraryState(
   loading: boolean,
   error: string,
   inventoryCount: number,
   filteredCount: number,
-): "loading" | "error" | "empty" | "no-results" | "ready" {
+): GraficadorLibraryState {
   if (loading && inventoryCount === 0) return "loading";
   if (error && inventoryCount === 0) return "error";
   if (inventoryCount === 0) return "empty";
@@ -753,7 +784,52 @@ function inspectorState(
   return "ready";
 }
 
-function inspectorEmptyTitle(state: "loading" | "error" | "empty" | "no-results" | "ready"): string {
+function graficadorGalleryStateTitle(
+  state: Exclude<GraficadorLibraryState, "ready">,
+): string {
+  switch (state) {
+    case "loading":
+      return "Cargando catálogo";
+    case "error":
+      return "No se pudo cargar el catálogo";
+    case "empty":
+      return "Catálogo vacío";
+    case "no-results":
+      return "Sin coincidencias";
+  }
+}
+
+function graficadorGalleryStateDetail(
+  state: Exclude<GraficadorLibraryState, "ready">,
+  error: string,
+): string {
+  switch (state) {
+    case "loading":
+      return "Estamos consultando los modelos del proyecto.";
+    case "error":
+      return error;
+    case "empty":
+      return "El catálogo no devolvió modelos de graficador.";
+    case "no-results":
+      return "Prueba otra búsqueda o vuelve a Todos.";
+  }
+}
+
+function graficadorLibraryStateA11y(state: GraficadorLibraryState): {
+  role: "alert" | "status";
+  "aria-live": "assertive" | "polite";
+  "aria-atomic": "true";
+  "aria-busy": "true" | undefined;
+} {
+  return {
+    role: state === "error" ? "alert" : "status",
+    "aria-live": state === "error" ? "assertive" : "polite",
+    "aria-atomic": "true",
+    "aria-busy": state === "loading" ? "true" : undefined,
+  };
+}
+
+function inspectorEmptyTitle(state: GraficadorLibraryState): string {
   switch (state) {
     case "loading":
       return "Preparando el inspector";
@@ -768,18 +844,37 @@ function inspectorEmptyTitle(state: "loading" | "error" | "empty" | "no-results"
   }
 }
 
-function inspectorEmptyDetail(state: "loading" | "error" | "empty" | "no-results" | "ready"): string {
+function inspectorEmptyDetail(state: GraficadorLibraryState): string {
   switch (state) {
     case "loading":
       return "La vista previa aparecerá cuando termine la carga.";
     case "error":
-      return "Vuelve a abrir la biblioteca cuando el catálogo responda.";
+      return "Revisa la conexión y recarga la aplicación para reintentar.";
     case "empty":
       return "El marco se mantiene listo para cuando exista inventario.";
     case "no-results":
       return "Cambia la búsqueda o la familia para volver a comparar.";
     default:
       return "Revisa su forma y requisitos antes de insertarlo.";
+  }
+}
+
+export function graficadorInspectorDisabledReason(
+  state: GraficadorLibraryState,
+  consultationReason: string,
+): string {
+  if (consultationReason) return consultationReason;
+  switch (state) {
+    case "loading":
+      return "La inserción se habilitará cuando termine la carga.";
+    case "error":
+      return "Revisa la conexión y recarga la aplicación para reintentar.";
+    case "empty":
+      return "No hay modelos disponibles para insertar.";
+    case "no-results":
+      return "Cambia la búsqueda o la familia para elegir un modelo.";
+    default:
+      return "Selecciona un modelo para habilitar la inserción.";
   }
 }
 
