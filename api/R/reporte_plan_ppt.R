@@ -5760,6 +5760,38 @@ reporte_ppt_plan <- function(
     overrides$var_grupo        <- NULL
     overrides$colores_grupos   <- NULL
 
+    # Significancia entre columnas del cruce. El calculo vive en
+    # `graficos_significancia.R` y consume `comparar_columnas_sig()` —la misma
+    # prueba que firma las letras del XLSX— sobre los conteos que este render YA
+    # produjo, sin recalcular denominadores.
+    base_args <- .graficos_sig_aplicar(
+      base_args        = base_args,
+      df_long          = df_long,
+      cols_n           = cols_n,
+      group_totals     = group_totals,
+      cols_porcentaje  = names(etiquetas_series),
+      etiquetas_series = etiquetas_series,
+      activo           = isTRUE(overrides$mostrar_significancia %||% preset_args$mostrar_significancia),
+      alpha            = overrides$significancia_alpha %||% preset_args$significancia_alpha %||% 0.05,
+      diseno           = .graficos_sig_diseno_de_fuente(ctx_var$instrumento)
+    )
+    nota_significancia <- base_args$nota_pie_significancia
+    base_args$nota_pie_significancia <- NULL
+    # Doctrina B36: agrupadas dejo de imprimir caption propio para que la Base
+    # viva en el placeholder del SLIDE. La nota de letras es la excepcion
+    # declarada: describe el metodo del grafico y tiene que viajar pegada a el,
+    # no al slide, porque una lamina de dos graficos tendria dos mapas de letras
+    # distintos y un solo pie. Solo se activa con la opcion encendida, asi que
+    # apagada el caption sigue vacio y la banda de Base se reserva igual.
+    if (!is.null(nota_significancia) && nzchar(nota_significancia) &&
+        is.null(overrides$nota_pie) && is.null(preset_args$nota_pie)) {
+      base_args$nota_pie <- nota_significancia
+    }
+    preset_args$mostrar_significancia <- NULL
+    preset_args$significancia_alpha <- NULL
+    overrides$mostrar_significancia <- NULL
+    overrides$significancia_alpha <- NULL
+
     args <- .merge_args(base_args, preset_args, overrides)
     args <- .reservar_pie_para_base_slide(args, word_render = isTRUE(el$.word_render))
     fun  <- graficar_barras_agrupadas
@@ -5774,6 +5806,9 @@ reporte_ppt_plan <- function(
       unname(etiquetas_series[names(group_totals)])
     )
     attr(plot, "pulso_barras_base_caption") <- base_caption
+    # La nota viaja como atributo, igual que la base: por doctrina B36 el pie del
+    # SLIDE es el dueño de ese texto y el grafico no dibuja su propio caption.
+    attr(plot, "pulso_sig_nota") <- nota_significancia
     plot
   }
 
