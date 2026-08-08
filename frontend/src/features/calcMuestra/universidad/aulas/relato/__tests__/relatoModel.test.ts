@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import type { CalcMuestraAulasSelection } from "../../../../../../api/client";
 import { vecinasMasCercanas } from "../escenas/goo";
 import {
+  RELATO_BOLAS_MAX,
   construirRelato,
   facultadesDelSorteo,
   focoDeFacultad,
@@ -26,6 +27,7 @@ import {
   FRAME_SINTETICO,
   SELECTOR_FIELDS,
   bomboGrande,
+  filaTitular,
   filasSeleccion,
   seleccionPostHoc,
   seleccionSinOrdenDeSorteo,
@@ -157,8 +159,48 @@ describe("E3 · las probabilidades", () => {
     expect(escena.bolas.every((bola) => bola.seleccionada)).toBe(true);
     expect(escena.bolas).toHaveLength(2);
     // 890 cursos-horario auditados − 2 sorteados: un hecho, no una invención.
-    expect(escena.masa).toEqual([{ facultad: "", aulas: 888, elegibles: null }]);
+    expect(escena.masa).toEqual([
+      { facultad: "", aulas: 888, elegibles: null, sorteadas: 0 },
+    ]);
     expect(escena.huecos.join(" ")).toContain("no conserva el bombo curso a curso");
+  });
+
+  it("una muestra mayor que el cap no desborda el bombo y declara las que faltan", () => {
+    // El defecto que encontró el QA con el estudio real: el cap se aplicaba
+    // solo a las candidatas y las sorteadas se concatenaban aparte, así que con
+    // 196 titulares entraban 196 bolas en un viewBox de 0–100 —ilegibles—
+    // aunque el cap declarado fuera 60. A n=30 no se ve nunca.
+    const titulares = Array.from({ length: RELATO_BOLAS_MAX + 40 }, (_, i) =>
+      filaTitular({
+        classroom_id: `CH-${i}`,
+        operational_code: `CH ${i}`,
+        // Tamaño decreciente: fija qué bolas sobreviven al recorte.
+        eligible_n: 500 - i,
+        selection_slot_id: `slot-${i}`,
+      }),
+    );
+    const relato = construirRelato({
+      selection: seleccionSintetica(),
+      selectionRows: titulares,
+      frame: FRAME_SINTETICO,
+      frameRows: BOMBO_FRAME_ROWS,
+      estratosCalculo: ESTRATOS_CALCULO,
+      selectorFields: SELECTOR_FIELDS,
+      foco: null,
+    });
+    const escena = relato!.escenas[2] as RelatoEscenaProbabilidades;
+
+    expect(escena.bolas.length).toBeLessThanOrEqual(RELATO_BOLAS_MAX);
+    // Sobreviven las de mayor tamaño publicado, y son todas sorteadas: con la
+    // muestra por encima del cap no queda cupo para candidatas.
+    expect(escena.bolas.every((bola) => bola.seleccionada)).toBe(true);
+    expect(escena.bolas[0]!.elegibles).toBe(500);
+
+    // Y las 40 que no caben se declaran, diciendo que eran sorteadas: callarlo
+    // haría creer que la muestra es del tamaño de lo que se ve.
+    const sorteadasEnMasa = escena.masa.reduce((suma, item) => suma + item.sorteadas, 0);
+    expect(sorteadasEnMasa).toBe(40);
+    expect(escena.bolas.length + sorteadasEnMasa).toBe(titulares.length);
   });
 
   it("respeta el cap de bolas y agrega el resto como masa con sus elegibles sumados", () => {

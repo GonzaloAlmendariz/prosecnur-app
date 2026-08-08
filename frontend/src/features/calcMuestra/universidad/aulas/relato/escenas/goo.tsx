@@ -251,6 +251,17 @@ export function MasaGoo({ masa }: { masa: RelatoMasaBombo[] }) {
         <li key={item.facultad || "estudio"}>
           <strong>{fmtInt(item.aulas)}</strong> cursos-horario más en el bombo
           {item.facultad ? ` de ${item.facultad}` : " del estudio"}
+          {/* Cuántas de las agregadas fueron sorteadas: sin este dato, quien
+              cuenta las bolas visibles cree que ese es el tamaño de la muestra.
+              Va primero porque es lo que cambia la lectura de la escena. */}
+          {item.sorteadas > 0 ? (
+            <>
+              {" · "}
+              <strong>{fmtInt(item.sorteadas)} sorteadas</strong>
+            </>
+          ) : (
+            ""
+          )}
           {item.elegibles != null ? ` · ${fmtInt(item.elegibles)} elegibles` : ""}
         </li>
       ))}
