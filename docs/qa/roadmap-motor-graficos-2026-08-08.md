@@ -18,7 +18,7 @@ Medido el 2026-08-08 sobre `main`:
 |---|---|
 | Motor R | 31 archivos, ~30.100 líneas (`api/R/grafic*.R`) |
 | Editor | ~32.700 líneas TS + 35.700 CSS |
-| Catálogo | 19 graficadores en 6 familias, 20 layouts de slide |
+| Catálogo | 20 graficadores en 6 familias, 20 layouts de slide |
 | Tests R | 48 archivos, ~11.200 líneas |
 | Tests front | 42 archivos, 250 casos |
 
@@ -104,7 +104,7 @@ monolito que sí lo está. La lista viva se consulta con
 | # | Qué | Estado del motor | Esfuerzo |
 |---|---|---|---|
 | ~~B1~~ | ~~Significancia en apiladas~~ | **Hecho** (2026-08-08). En multi-apiladas por temas NO aplica: filas dependientes | S |
-| B2 | Serie temporal / línea | Desde cero | L |
+| ~~B2~~ | ~~Serie temporal / línea~~ | **Hecho** (2026-08-08). Entre olas, reusando el df del multibase | L |
 | B3 | Divergentes (Likert centrado) | Modo de apiladas, no graficador nuevo | M |
 | B4 | Dumbbell entre bases | Modo; el df tidy del multibase ya lo alimenta | M |
 | B5 | Intervalo de confianza del estimador | Desde cero | M |
@@ -112,11 +112,14 @@ monolito que sí lo está. La lista viva se consulta con
 | B7 | Múltiple con denominador declarado | Desde cero | M |
 | B8 | Lollipop / Top-N | Variante de categóricas | S |
 
-### B2 — el único hueco sin alternativa
+### B2 — cerrado
 
-No existe ningún gráfico de líneas en el catálogo (`geom_line` solo aparece en
-el radar, para su polígono). Olas de PDM, evolución de indicadores y avance de
-campo no tienen hoy forma de expresarse.
+Era el único hueco sin alternativa: no existía ningún gráfico de líneas
+(`geom_line` solo aparecía en el radar, para su polígono). Resuelto como
+evolución **entre bases**, que es como Prosecnur modela las olas. La evolución
+por una variable de fecha *dentro* de una base sigue sin existir; el graficador
+acepta cualquier df tidy `(eje, grupo, valor)`, así que alimentarlo desde una
+fecha no exigiría rehacerlo.
 
 ### B3 y B4 — modos, no graficadores
 
@@ -144,8 +147,9 @@ diseño técnico.
 significancia llega a apiladas con cruce, se documenta por qué no puede llegar a
 multi-apiladas por temas, y el motor ya delata sus propios argumentos muertos.
 
-**Ola 2 — el hueco real.** B2. Arrastra decisiones de diseño que conviene tomar
-temprano.
+**Ola 2 — el hueco real.** ~~B2~~ — **cerrada el 2026-08-08**. La serie
+temporal existe y reusa el corte del radar entre públicos, así que declararla no
+exige declarar nada nuevo.
 
 **Ola 3 — barrido de deuda.** A2 + A3 + A6, que A1 vuelve mecánicos.
 
@@ -175,6 +179,9 @@ fondo y no bloquean a nadie.
   Ahora se pregunta si la **variable graficada** vive dentro de un bloque
   `begin_repeat` del XLSForm, contando la profundidad de anidamiento. Validado
   contra el instrumento real de ACNUR PDM.
+- **Serie temporal** (Ola 2). `graficador_serie_temporal.R` más su render de
+  plan. Cero líneas nuevas en el archivo congelado: el dispatcher resuelve por
+  convención de nombre y el preset se lee con `dynGet`. 42 casos de test.
 - **El motor delata sus argumentos muertos** (Ola 1, A1). `.keep_formals()`
   anota lo que descarta en un registro acumulativo
   (`reporte_args_descartados.R`), en vez de perderlo en silencio. Identifica al
