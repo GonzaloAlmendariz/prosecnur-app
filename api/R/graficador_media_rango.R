@@ -213,7 +213,16 @@ graficar_media_rango <- function(
   )
   marker_style <- match.arg(marker_style)
   pos_delta <- match.arg(pos_delta)
+  # El registry ofrecio `min_max` (con guion bajo) donde el motor espera
+  # `minmax`, asi que elegir "Min-Max" en la UI abortaba el render con un error
+  # de `match.arg` y se llevaba el mazo por delante. El registry ya dice
+  # `minmax`; el alias se conserva porque el valor viejo pudo quedar persistido
+  # en el `.pulso` de quien ya eligio esa opcion, y abrir ese proyecto no puede
+  # reventar. Se LEE el alias, nunca se escribe.
+  if (identical(as.character(tipo_rango)[1], "min_max")) tipo_rango <- "minmax"
   tipo_rango <- match.arg(tipo_rango)
+  # La UI ofrecia `textos_negrita` y el motor lo descartaba: el knob no hacia nada.
+  .mr_face <- .graficos_face_de(textos_negrita)
   pos_titulo <- match.arg(pos_titulo)
   pos_nota_pie <- match.arg(pos_nota_pie)
   exportar <- match.arg(exportar)
