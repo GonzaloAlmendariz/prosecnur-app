@@ -26,6 +26,10 @@ const GRAFICADOR_BLUEPRINT_KINDS = new Set<string>([
   "histogram",
   "boxplot",
   "mean-range",
+  "bars-diverging",
+  "dumbbell",
+  "lollipop",
+  "line-series",
   "radar",
   "table",
   "word-cloud",
@@ -239,6 +243,92 @@ function BlueprintMarks({
           <g className="pulso-graficador-library-blueprint-primary">
             <circle cx="39" cy="45" r="4" /><circle cx="72" cy="32" r="4" />
             <circle cx="105" cy="54" r="4" /><circle cx="136" cy="37" r="4" />
+          </g>
+        </>
+      );
+    case "bars-diverging":
+      // El eje cruza en cero: lo que importa es que se vea el reparto a los dos
+      // lados, no la longitud total.
+      return (
+        <>
+          <line
+            className="pulso-graficador-library-blueprint-axis"
+            x1="80" y1="14" x2="80" y2="72"
+          />
+          <g className="pulso-graficador-library-blueprint-soft">
+            <rect x="52" y="20" width="28" height="10" rx="2" />
+            <rect x="40" y="36" width="40" height="10" rx="2" />
+            <rect x="58" y="52" width="22" height="10" rx="2" />
+          </g>
+          <g className="pulso-graficador-library-blueprint-primary">
+            <rect x="80" y="20" width="42" height="10" rx="2" />
+            <rect x="80" y="36" width="26" height="10" rx="2" />
+            <rect x="80" y="52" width="48" height="10" rx="2" />
+          </g>
+        </>
+      );
+    case "dumbbell":
+      // La brecha ES el segmento: dos puntos unidos, uno por base.
+      return (
+        <>
+          <ChartAxes />
+          <g className="pulso-graficador-library-blueprint-soft">
+            <line x1="46" y1="26" x2="104" y2="26" strokeWidth="3" strokeLinecap="round" />
+            <line x1="38" y1="44" x2="88" y2="44" strokeWidth="3" strokeLinecap="round" />
+            <line x1="58" y1="62" x2="118" y2="62" strokeWidth="3" strokeLinecap="round" />
+          </g>
+          <g className="pulso-graficador-library-blueprint-primary">
+            <circle cx="46" cy="26" r="4" />
+            <circle cx="104" cy="26" r="4" />
+            <circle cx="38" cy="44" r="4" />
+            <circle cx="88" cy="44" r="4" />
+            <circle cx="58" cy="62" r="4" />
+            <circle cx="118" cy="62" r="4" />
+          </g>
+        </>
+      );
+    case "lollipop":
+      // Tallo fino y punto: la misma lectura que una barra con menos tinta.
+      return (
+        <>
+          <ChartAxes />
+          <g className="pulso-graficador-library-blueprint-soft">
+            <line x1="28" y1="22" x2="122" y2="22" strokeWidth="2" strokeLinecap="round" />
+            <line x1="28" y1="36" x2="98" y2="36" strokeWidth="2" strokeLinecap="round" />
+            <line x1="28" y1="50" x2="76" y2="50" strokeWidth="2" strokeLinecap="round" />
+            <line x1="28" y1="64" x2="58" y2="64" strokeWidth="2" strokeLinecap="round" />
+          </g>
+          <g className="pulso-graficador-library-blueprint-primary">
+            <circle cx="122" cy="22" r="4" />
+            <circle cx="98" cy="36" r="4" />
+            <circle cx="76" cy="50" r="4" />
+            <circle cx="58" cy="64" r="4" />
+          </g>
+        </>
+      );
+    case "line-series":
+      // Evolucion: una linea por tema, un punto por ola, y el ultimo destacado.
+      return (
+        <>
+          <ChartAxes />
+          <g className="pulso-graficador-library-blueprint-soft">
+            <polyline
+              points="32,58 64,50 96,52 124,40"
+              fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            />
+            <circle cx="32" cy="58" r="2.5" />
+            <circle cx="64" cy="50" r="2.5" />
+            <circle cx="96" cy="52" r="2.5" />
+          </g>
+          <g className="pulso-graficador-library-blueprint-primary">
+            <polyline
+              points="32,48 64,36 96,30 124,20"
+              fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            />
+            <circle cx="32" cy="48" r="2.5" />
+            <circle cx="64" cy="36" r="2.5" />
+            <circle cx="96" cy="30" r="2.5" />
+            <circle cx="124" cy="20" r="4.5" />
           </g>
         </>
       );
