@@ -1486,3 +1486,97 @@ test_that(".monitoreo_invalidate_dashboard_caches no confunde el global con un s
     expect_null(out[[k]], info = k)
   }
 })
+
+# ----- F114 · ids de alumno subrogados ---------------------------------------
+
+test_that("F114 · el guardado subroga los ids de alumno y conserva el traslape", {
+  # Borrarlos costaba el descuento secuencial: sin ids no hay traslape que
+  # descontar, así que todo proyecto reabierto corría el sorteo SIN descontar
+  # repetidos, en silencio. Lo que el descuento necesita es la estructura, no
+  # la identidad.
+  sid <- session_create()
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit({ unlink(tmp, force = TRUE); session_delete(sid) }, add = TRUE)
+
+  aula_frame <- data.frame(
+    classroom_id = c("CH-A", "CH-B", "CH-C"),
+    faculty = c("F1", "F1", "F2"),
+    eligible_n = c(3L, 3L, 2L),
+    # A y B comparten DOS alumnos (40123456, 40123457); C no comparte ninguno.
+    unique_student_ids = c(
+      "40123456|40123457|40123458",
+      "40123456|40123457|40123459",
+      "40999001|40999002"
+    ),
+    stringsAsFactors = FALSE
+  )
+  session_set(sid, "calc_muestra_aulas_frame", list(
+    schema = "calc_muestra_aulas_frame_v1",
+    frame_hash = "hash-f114",
+    aula_frame = aula_frame
+  ))
+  session_set(sid, "calc_muestra_aulas_selection", list(
+    schema = "calc_muestra_aulas_selection_v1",
+    selection = data.frame(
+      classroom_id = c("CH-A", "CH-B"),
+      unique_student_ids = c(
+        "40123456|40123457|40123458",
+        "40123456|40123457|40123459"
+      ),
+      stringsAsFactors = FALSE
+    )
+  ))
+
+  build_pulso(sid, tmp, project_name = "F114")
+  abierto <- load_pulso(tmp)
+  on.exit(session_delete(abierto$session_id), add = TRUE)
+  guardado <- session_get(abierto$session_id)$calc_muestra_aulas_frame$aula_frame
+
+  ids <- lapply(guardado$unique_student_ids, .cm_aulas_student_ids)
+
+  # 1. La columna SIGUE: es lo que el descuento necesita para existir.
+  expect_true("unique_student_ids" %in% names(guardado))
+  expect_equal(lengths(ids), c(3L, 3L, 2L))
+
+  # 2. El traslape sobrevive exacto: A∩B = 2, A∩C = 0.
+  expect_length(intersect(ids[[1]], ids[[2]]), 2L)
+  expect_length(intersect(ids[[1]], ids[[3]]), 0L)
+
+  # 3. Ningún id real sobrevive, ni suelto ni dentro del texto.
+  crudo <- paste(guardado$unique_student_ids, collapse = " ")
+  for (real in c("40123456", "40123457", "40123458", "40123459", "40999001")) {
+    expect_false(grepl(real, crudo, fixed = TRUE))
+  }
+  # Y no queda nada con forma de documento que un detector deba cazar.
+  expect_false(grepl("[0-9]{8}", crudo))
+
+  # 4. El mapa es ÚNICO entre marco y selección: con dos mapas independientes
+  #    los subrogados no serían comparables y el traslape entre tablas moriría
+  #    pareciendo intacto.
+  sel <- session_get(abierto$session_id)$calc_muestra_aulas_selection$selection
+  expect_setequal(.cm_aulas_student_ids(sel$unique_student_ids[[1]]), ids[[1]])
+})
+
+test_that("F114 · el marco reabierto todavía puede aplicar el descuento", {
+  # El gate de verdad: no que la columna exista, sino que el motor la acepte.
+  sid <- session_create()
+  tmp <- tempfile(fileext = ".pulso")
+  on.exit({ unlink(tmp, force = TRUE); session_delete(sid) }, add = TRUE)
+
+  aula_frame <- data.frame(
+    classroom_id = c("CH-A", "CH-B"),
+    unique_student_ids = c("40123456|40123457", "40123456|40123458"),
+    stringsAsFactors = FALSE
+  )
+  session_set(sid, "calc_muestra_aulas_frame", list(
+    schema = "calc_muestra_aulas_frame_v1", aula_frame = aula_frame
+  ))
+  expect_true(.cm_descuento_frame_tiene_ids(aula_frame))
+
+  build_pulso(sid, tmp, project_name = "F114 descuento")
+  abierto <- load_pulso(tmp)
+  on.exit(session_delete(abierto$session_id), add = TRUE)
+
+  reabierto <- session_get(abierto$session_id)$calc_muestra_aulas_frame$aula_frame
+  expect_true(.cm_descuento_frame_tiene_ids(reabierto))
+})
