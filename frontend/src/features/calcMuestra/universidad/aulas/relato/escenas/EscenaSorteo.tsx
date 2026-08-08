@@ -134,16 +134,31 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
   // una cola. Con el orden de la cadena, los consecutivos son vecinos en la
   // espiral y la cola se lee como un recorrido. El tamaño sigue siendo el
   // radio: lo que cambia es dónde se sienta cada bola, no cuánto mide.
+  //
+  // LUGAR y TURNO son cosas distintas y se calculan aparte. El lugar en la
+  // espiral agrupa por estrato, para que cada cola se lea como un camino. El
+  // turno —en qué momento se enciende— va por RONDAS: primero el paso 1 de
+  // todos los estratos, después el paso 2, y así. Los estratos se sortean en
+  // paralelo, no uno después del otro, y encender cola por cola contaba una
+  // secuencia entre estratos que el método no tiene.
+  const turnoDe = new Map<number, number>();
+  visibles
+    .map((paso, index) => ({ paso, index }))
+    .sort((a, b) => a.paso.paso - b.paso.paso || a.index - b.index)
+    .forEach((entrada, turno) => turnoDe.set(entrada.index, turno));
+
   const unidades = [
     ...visibles.map((paso, orden) => ({
       clave: `paso-${paso.code}`,
       orden,
+      turno: turnoDe.get(orden) ?? orden,
       paso,
       elegibles: elegiblesEnsamblados(paso, escena.encoge),
     })),
     ...campo.map((bola) => ({
       clave: `campo-${bola.code}`,
       orden: null as number | null,
+      turno: null as number | null,
       paso: null,
       elegibles: bola.elegibles,
       bola,
@@ -168,23 +183,31 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
     r: radioGoo(unidad.elegibles, maxElegibles) * escala,
   }));
 
-  const ultima = aterrizadas > 0 ? visibles[aterrizadas - 1] : null;
+  // La bola del turno actual (la que acaba de encenderse), para el indicador.
+  const indiceReciente = visibles.findIndex(
+    (_, index) => turnoDe.get(index) === aterrizadas - 1,
+  );
+  const ultima = aterrizadas > 0 && indiceReciente >= 0 ? visibles[indiceReciente] : null;
   const bolasBalance = escena.balance?.variables[0]?.porBola.length ?? 0;
 
-  // La cadena: eslabón entre pasos CONSECUTIVOS del mismo estrato, hasta donde
-  // llegó el sub-stepper. Es la única topología que el dato respalda.
+  // La cadena: eslabón entre pasos CONSECUTIVOS del mismo estrato. El par se
+  // dibuja cuando AMBOS extremos ya se encendieron —por turno, no por lugar—,
+  // así que las colas se alargan a la vez en vez de completarse una por una.
   const porOrden = new Map(
     geometria.filter((u) => u.orden != null).map((u) => [u.orden as number, u]),
   );
+  const encendido = (index: number) => (turnoDe.get(index) ?? Infinity) < aterrizadas;
   const ultimoDelEstrato = new Map<string, number>();
   const eslabones: Array<{ de: number; a: number }> = [];
-  for (let k = 0; k < aterrizadas; k += 1) {
+  for (let k = 0; k < visibles.length; k += 1) {
     const estrato = visibles[k]!.estrato;
     const previo = ultimoDelEstrato.get(estrato);
-    if (previo != null) eslabones.push({ de: previo, a: k });
+    if (previo != null && encendido(k) && encendido(previo)) {
+      eslabones.push({ de: previo, a: k });
+    }
     ultimoDelEstrato.set(estrato, k);
   }
-  const reciente = aterrizadas - 1;
+  const reciente = indiceReciente;
 
   function irABola(valor: number) {
     setAutoAvance(false);
@@ -231,7 +254,7 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
             {geometria.map((unidad, index) => {
               const paso = unidad.paso;
               // Encendida = ya salió en el sorteo hasta donde va el stepper.
-              const encendida = paso != null && (unidad.orden as number) < aterrizadas;
+              const encendida = paso != null && (unidad.turno as number) < aterrizadas;
               const esReciente = paso != null && unidad.orden === reciente && aterrizadas > 0;
               const bobbing = bobbingDeBola(index);
               const anillo = encendida && !escena.encoge && (paso!.yaCubiertos ?? 0) > 0;

@@ -730,7 +730,7 @@ export function buildModuleCardView(
             module,
             actionLabel,
             state === "warning" || pending > 0
-              ? "/bitacora?tab=cronograma"
+              ? "/bitacora?seccion=cronograma"
               : undefined,
           ),
           alert: state === "warning" ? "Revisar cronograma" : null,
@@ -745,7 +745,7 @@ export function buildModuleCardView(
           viz,
           sub: log.next_title || "Hay una fecha registrada en el cronograma",
           facts: cardFacts,
-          action: moduleAction(module, "Abrir cronograma", "/bitacora?tab=cronograma"),
+          action: moduleAction(module, "Abrir cronograma", "/bitacora?seccion=cronograma"),
           alert: nodeAlert,
           summary,
         };

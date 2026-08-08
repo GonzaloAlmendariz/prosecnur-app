@@ -13,7 +13,8 @@ import "./aulasFlow.css";
 
 // Dirección canónica del modo universitario (ADR 0044): los alias históricos
 // (`?mesa=`) se leen, pero nunca se escriben. El aterrizaje equivalente lo
-// prueba `calcMuestra/__tests__/aliasMesaNoSeEscribe.contract.test.ts`.
+// prueban `calcMuestra/__tests__/aliasMesaNoSeEscribe.contract.test.ts` y
+// `lib/navegacion/aliasLegacyNoSeEscribe.contract.test.ts`.
 export const AULAS_SAMPLE_ROUTE = "/calc-muestra?modo=opinion-universitaria";
 
 export type AulasFlowStep = "muestra" | "qr" | "pdf" | "monitoreo";
