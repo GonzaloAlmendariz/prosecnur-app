@@ -1128,6 +1128,10 @@ graficar_barras_apiladas <- function(
     color_texto_barras_fuera = NULL,
     size_texto_barras     = 3,
     size_texto_barras_peq = NULL,
+    # Sufijo POR CELDA, cuando cada segmento necesita el suyo: el caso de las
+    # letras de significancia, donde el sufijo depende de la barra y del
+    # segmento. Data frame con la columna de categoria, `.col_pct` y `.sufijo`.
+    sufijos_etiqueta      = NULL,
     etiquetas_uniformes   = FALSE,
     repeler_etiquetas_peq = TRUE,
     desplazamiento_max_etiquetas_peq = 0.07,
@@ -1828,6 +1832,21 @@ graficar_barras_apiladas <- function(
         lab        = .fmt_units_pct(.pct_units, decimales)
       ) |>
       dplyr::ungroup()
+
+    # Sufijo por celda (letras de significancia). Va antes de la frecuencia para
+    # que el orden sea "35% B (140)" y no "35% (140) B": la letra califica al
+    # porcentaje, que es lo que se compara entre grupos.
+    if (!is.null(sufijos_etiqueta) && is.data.frame(sufijos_etiqueta) &&
+        nrow(sufijos_etiqueta) && all(c(".col_pct", ".sufijo") %in% names(sufijos_etiqueta)) &&
+        var_categoria %in% names(sufijos_etiqueta)) {
+      idx <- match(
+        paste0(df_lab[[var_categoria]], "\r", df_lab$.col_pct),
+        paste0(sufijos_etiqueta[[var_categoria]], "\r", sufijos_etiqueta$.col_pct)
+      )
+      extra <- sufijos_etiqueta$.sufijo[idx]
+      con_extra <- !is.na(extra) & nzchar(df_lab$lab)
+      df_lab$lab[con_extra] <- paste0(df_lab$lab[con_extra], extra[con_extra])
+    }
 
     if (".n_label_val" %in% names(df_lab)) {
       etiquetas <- .apiladas_etiquetas_con_frecuencia(

@@ -88,24 +88,117 @@
 # `repeat_grain` o con `parent_base`/`repeat_group` es una base donde una misma
 # persona aporta varias filas. Se lee tanto del atributo como del campo porque
 # el runtime pobla uno u otro segun el camino de carga.
-.graficos_sig_diseno_de_fuente <- function(inst) {
+.graficos_sig_diseno_de_fuente <- function(inst, var = NULL) {
   if (is.null(inst)) return("desconocido")
+
   grain <- attr(inst, "repeat_grain", exact = TRUE) %||%
     (if (is.list(inst)) inst$repeat_grain else NULL)
   if (is.list(grain) && length(grain)) {
-    marcas <- c(
+    marcas <- as.character(c(
       grain$base_name %||% NULL,
       grain$repeat_group %||% NULL,
       grain$parent_base %||% NULL
-    )
-    marcas <- as.character(marcas)
+    ))
     if (any(!is.na(marcas) & nzchar(trimws(marcas)))) return("cluster")
   }
   if (is.list(inst)) {
     directas <- as.character(c(inst$parent_base %||% NULL, inst$repeat_group %||% NULL))
     if (any(!is.na(directas) & nzchar(trimws(directas)))) return("cluster")
   }
+
+  # Señal positiva desde el XLSForm. Las marcas de arriba dependen de que el
+  # runtime las haya propagado al ctx del motor PPT, y cuando no lo hace la
+  # ausencia se leia como "base plana" y el motor SI emitia letras sobre
+  # observaciones dependientes.
+  #
+  # La pregunta correcta no es si el formulario tiene repeats —una base madre de
+  # un formulario con repeats sigue teniendo una fila por persona— sino si LA
+  # VARIABLE GRAFICADA vive dentro de uno. Eso es decidible recorriendo el
+  # survey: entre un `begin_repeat` y su `end_repeat`, cada fila es una
+  # instancia y no una persona.
+  if (isTRUE(.graficos_sig_var_en_repeat(inst, var))) return("cluster")
+
   "independiente"
+}
+
+# ¿La variable esta dentro de un bloque repeat del XLSForm?
+#
+# Devuelve TRUE/FALSE, o NA cuando no hay survey utilizable (el llamador decide
+# si eso basta para abstenerse). Cuenta la profundidad de anidamiento porque los
+# repeats pueden anidarse y un `end_repeat` no siempre cierra el bloque exterior.
+.graficos_sig_var_en_repeat <- function(inst, var = NULL) {
+  var <- as.character(var %||% "")[1]
+  if (is.na(var) || !nzchar(trimws(var))) return(FALSE)
+
+  survey <- NULL
+  if (is.list(inst)) survey <- inst$survey_raw %||% inst$survey
+  if (!is.data.frame(survey) || !all(c("name", "type") %in% names(survey))) return(NA)
+
+  tipos <- trimws(as.character(survey$type))
+  nombres <- trimws(as.character(survey$name))
+  profundidad <- 0L
+
+  for (i in seq_along(tipos)) {
+    tipo <- tipos[[i]]
+    # El XLSForm admite `begin_repeat` y `begin repeat` (guion bajo o espacio).
+    if (grepl("^begin[ _]repeat", tipo, ignore.case = TRUE)) {
+      profundidad <- profundidad + 1L
+      next
+    }
+    if (grepl("^end[ _]repeat", tipo, ignore.case = TRUE)) {
+      profundidad <- max(0L, profundidad - 1L)
+      next
+    }
+    if (identical(nombres[[i]], var)) return(profundidad > 0L)
+  }
+  FALSE
+}
+
+# Matrices desde el layout TRANSPUESTO de apiladas.
+#
+# En barras agrupadas cada FILA del data frame es una categoria de respuesta y
+# cada COLUMNA un grupo del cruce. En apiladas con cruce es al reves: cada fila
+# es un grupo del cruce (una barra apilada por grupo) y cada columna una opcion
+# de respuesta. El contraste que interesa es el mismo —comparar un segmento
+# entre grupos de personas distintas—, pero hay que transponer para armarlo.
+#
+# `df_block` es el data frame del render (una fila por grupo), `cols_n` los
+# nombres de las columnas de conteo en el orden de las opciones, y `var_n` la
+# columna con la base de cada grupo.
+.graficos_sig_matrices_transpuesto <- function(df_block,
+                                               cols_n,
+                                               etiquetas_opciones,
+                                               var_categoria = "categoria",
+                                               var_n = "N") {
+  if (is.null(df_block) || !nrow(df_block)) return(NULL)
+  grupos <- as.character(df_block[[var_categoria]])
+  if (length(grupos) < 2L) return(NULL)
+
+  cols_n <- as.character(cols_n)
+  cols_n <- cols_n[!is.na(cols_n) & nzchar(cols_n)]
+  if (!length(cols_n)) return(NULL)
+  if (!all(cols_n %in% names(df_block))) return(NULL)
+
+  etiquetas <- as.character(etiquetas_opciones %||% cols_n)
+  if (length(etiquetas) != length(cols_n)) etiquetas <- cols_n
+
+  n_mat <- matrix(
+    NA_real_,
+    nrow = length(cols_n),
+    ncol = length(grupos),
+    dimnames = list(etiquetas, grupos)
+  )
+  for (i in seq_along(cols_n)) {
+    n_mat[i, ] <- suppressWarnings(as.numeric(df_block[[cols_n[i]]]))
+  }
+  n_mat[!is.finite(n_mat)] <- 0
+
+  N_vec <- suppressWarnings(as.numeric(df_block[[var_n]]))
+  N_vec[!is.finite(N_vec)] <- 0
+  names(N_vec) <- grupos
+  if (all(N_vec <= 0)) return(NULL)
+
+  list(n_mat = n_mat, N_vec = N_vec)
 }
 
 # Motivo por el que no se emiten letras, o NULL si se pueden emitir.
@@ -123,6 +216,13 @@
   }
   if (identical(diseno, "desconocido")) {
     return("No se asignan letras: no se pudo establecer si las observaciones son independientes.")
+  }
+  if (identical(diseno, "dependiente")) {
+    return(paste0(
+      "No se asignan letras: las barras comparan preguntas respondidas por las ",
+      "mismas personas, y la prueba de diferencia de proporciones exige grupos ",
+      "independientes."
+    ))
   }
   if (n_series < 2L) {
     return("No se asignan letras: hace falta al menos un cruce con dos grupos.")
@@ -290,6 +390,95 @@
   base_args$sufijos_etiqueta <- sufijos
   base_args$nota_pie_significancia <- .graficos_sig_nota(
     etiquetas_series = etiquetas_txt,
+    alpha = alpha,
+    motivo = res$motivo,
+    hay_letras = !is.null(sufijos)
+  )
+  base_args
+}
+
+# Orquestador para apiladas con cruce.
+#
+# Mismo contraste que en agrupadas —un segmento comparado entre grupos de
+# personas distintas— sobre el layout transpuesto: aqui las FILAS son los grupos
+# y las letras los nombran, asi que el mapa de la nota se arma con las
+# categorias del data frame y no con las series.
+#
+# `diseno = "dependiente"` es la puerta para los otros modos de multiapiladas
+# (una fila por pregunta, todas respondidas por las mismas personas): ahi la
+# prueba no aplica y el motor lo dice en vez de callar.
+.graficos_sig_aplicar_transpuesto <- function(base_args,
+                                              df_block,
+                                              cols_n,
+                                              cols_porcentaje,
+                                              etiquetas_opciones,
+                                              activo = FALSE,
+                                              alpha = 0.05,
+                                              diseno = "independiente",
+                                              var_categoria = "categoria",
+                                              var_n = "N") {
+  if (!isTRUE(activo)) return(base_args)
+
+  alpha <- suppressWarnings(as.numeric(alpha)[1])
+  if (!is.finite(alpha) || alpha <= 0 || alpha >= 1) alpha <- 0.05
+
+  grupos <- if (!is.null(df_block) && nrow(df_block)) {
+    as.character(df_block[[var_categoria]])
+  } else {
+    character(0)
+  }
+
+  # Antes de mirar los datos: si el diseño no admite el contraste, se dice y se
+  # sale. Calcular para despues descartar seria gastar y arriesgar una letra.
+  motivo_previo <- .graficos_sig_motivo_abstencion(
+    diseno = diseno,
+    n_series = length(grupos),
+    n_bases_validas = length(grupos)
+  )
+  if (!is.null(motivo_previo)) {
+    base_args$nota_pie_significancia <- .graficos_sig_nota(
+      etiquetas_series = grupos, alpha = alpha, motivo = motivo_previo
+    )
+    return(base_args)
+  }
+
+  mats <- .graficos_sig_matrices_transpuesto(
+    df_block = df_block,
+    cols_n = cols_n,
+    etiquetas_opciones = cols_porcentaje,
+    var_categoria = var_categoria,
+    var_n = var_n
+  )
+  if (is.null(mats)) {
+    base_args$nota_pie_significancia <- .graficos_sig_nota(
+      etiquetas_series = grupos, alpha = alpha,
+      motivo = "No se asignan letras: los datos del cruce no permiten el contraste."
+    )
+    return(base_args)
+  }
+
+  res <- .graficos_sig_calcular(mats$n_mat, mats$N_vec, alpha = alpha, diseno = diseno)
+
+  # `.graficos_sig_sufijos` devuelve (fila, columna) = (opcion, grupo). El
+  # graficador espera lo contrario —fila del grafico es el grupo—, asi que se
+  # intercambian al construir el data frame.
+  sufijos <- NULL
+  if (!is.null(res$letras)) {
+    crudo <- .graficos_sig_sufijos(res$letras, var_categoria = ".opcion")
+    if (!is.null(crudo) && nrow(crudo)) {
+      sufijos <- data.frame(
+        categoria = crudo$.col_pct,
+        .col_pct  = crudo$.opcion,
+        .sufijo   = crudo$.sufijo,
+        stringsAsFactors = FALSE
+      )
+      names(sufijos)[1] <- var_categoria
+    }
+  }
+
+  base_args$sufijos_etiqueta <- sufijos
+  base_args$nota_pie_significancia <- .graficos_sig_nota(
+    etiquetas_series = grupos,
     alpha = alpha,
     motivo = res$motivo,
     hay_letras = !is.null(sufijos)

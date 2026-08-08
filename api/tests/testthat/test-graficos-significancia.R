@@ -232,6 +232,69 @@ test_that("una base hija de repeat se reconoce como diseno cluster", {
   expect_identical(.graficos_sig_diseno_de_fuente(inst_attr), "cluster")
 })
 
+.inst_con_repeat <- function() {
+  list(survey_raw = data.frame(
+    name = c("sexo", "servicios", "p_satisf", "otra", "edad"),
+    type = c("select_one s", "begin_repeat", "select_one l", "text", "integer"),
+    stringsAsFactors = FALSE
+  ))
+}
+
+test_that("una variable dentro de un repeat se detecta aunque el ctx no traiga la marca", {
+  # Es el hueco que dejaba emitir letras sobre observaciones dependientes: si el
+  # runtime no propagaba `repeat_grain`, la ausencia se leia como base plana.
+  # La señal positiva esta en el XLSForm.
+  inst <- .inst_con_repeat()
+  inst$survey_raw$type[5] <- "integer"  # `edad` queda dentro del repeat abierto
+
+  expect_true(.graficos_sig_var_en_repeat(inst, "p_satisf"))
+  expect_identical(.graficos_sig_diseno_de_fuente(inst, "p_satisf"), "cluster")
+})
+
+test_that("una variable anterior al repeat sigue siendo independiente", {
+  inst <- .inst_con_repeat()
+  expect_false(.graficos_sig_var_en_repeat(inst, "sexo"))
+  expect_identical(.graficos_sig_diseno_de_fuente(inst, "sexo"), "independiente")
+})
+
+test_that("el end_repeat cierra el bloque y lo de despues vuelve a ser plano", {
+  inst <- list(survey_raw = data.frame(
+    name = c("sexo", "servicios", "p_satisf", "fin", "ingreso"),
+    type = c("select_one s", "begin_repeat", "select_one l", "end_repeat", "integer"),
+    stringsAsFactors = FALSE
+  ))
+  expect_true(.graficos_sig_var_en_repeat(inst, "p_satisf"))
+  expect_false(.graficos_sig_var_en_repeat(inst, "ingreso"))
+})
+
+test_that("repeats anidados no se cierran de mas con un solo end", {
+  inst <- list(survey_raw = data.frame(
+    name = c("a", "r1", "b", "r2", "c", "fin2", "d", "fin1", "e"),
+    type = c("integer", "begin_repeat", "integer", "begin_repeat", "integer",
+             "end_repeat", "integer", "end_repeat", "integer"),
+    stringsAsFactors = FALSE
+  ))
+  expect_true(.graficos_sig_var_en_repeat(inst, "c"))
+  # `d` sigue dentro del repeat exterior: un `end_repeat` no cerro los dos.
+  expect_true(.graficos_sig_var_en_repeat(inst, "d"))
+  expect_false(.graficos_sig_var_en_repeat(inst, "e"))
+})
+
+test_that("acepta la forma con espacio del XLSForm", {
+  inst <- list(survey_raw = data.frame(
+    name = c("r", "x"),
+    type = c("begin repeat", "integer"),
+    stringsAsFactors = FALSE
+  ))
+  expect_true(.graficos_sig_var_en_repeat(inst, "x"))
+})
+
+test_that("sin survey utilizable no afirma que sea plano", {
+  expect_true(is.na(.graficos_sig_var_en_repeat(list(), "x")))
+  # Sin variable que consultar, no hay nada que decidir.
+  expect_false(.graficos_sig_var_en_repeat(.inst_con_repeat(), NULL))
+})
+
 test_that("una base plana se reconoce como independiente y una ausente como desconocida", {
   expect_identical(
     .graficos_sig_diseno_de_fuente(list(survey = data.frame(name = "p1"))),
@@ -243,6 +306,131 @@ test_that("una base plana se reconoce como independiente y una ausente como desc
     .graficos_sig_diseno_de_fuente(list(repeat_grain = list())),
     "independiente"
   )
+})
+
+# --- Layout transpuesto: apiladas con cruce ---------------------------------
+# Cada FILA es un grupo del cruce (una barra apilada por grupo) y cada columna
+# una opcion de respuesta. Es el layout inverso al de agrupadas.
+
+.df_apiladas_cruce <- function() {
+  tibble::tibble(
+    categoria = c("Lima Norte", "Lima Sur"),
+    N = c(400, 400),
+    n_1 = c(300, 160),   # opcion "Alto"
+    n_2 = c(100, 240)    # opcion "Bajo"
+  )
+}
+
+test_that("el layout transpuesto arma la matriz con las opciones en las filas", {
+  mats <- .graficos_sig_matrices_transpuesto(
+    df_block = .df_apiladas_cruce(),
+    cols_n = c("n_1", "n_2"),
+    etiquetas_opciones = c("pct_1", "pct_2")
+  )
+  expect_equal(dim(mats$n_mat), c(2L, 2L))
+  expect_equal(rownames(mats$n_mat), c("pct_1", "pct_2"))
+  expect_equal(colnames(mats$n_mat), c("Lima Norte", "Lima Sur"))
+  # Fila "Alto": 300 en Lima Norte, 160 en Lima Sur.
+  expect_equal(unname(mats$n_mat[1, ]), c(300, 160))
+  expect_equal(unname(mats$N_vec), c(400, 400))
+})
+
+test_that("un cruce de un solo grupo no arma contraste transpuesto", {
+  mats <- .graficos_sig_matrices_transpuesto(
+    df_block = tibble::tibble(categoria = "Unico", N = 400, n_1 = 300),
+    cols_n = "n_1",
+    etiquetas_opciones = "pct_1"
+  )
+  expect_null(mats)
+})
+
+test_that("apiladas con cruce: la letra nombra al grupo superado", {
+  out <- .graficos_sig_aplicar_transpuesto(
+    base_args = list(),
+    df_block = .df_apiladas_cruce(),
+    cols_n = c("n_1", "n_2"),
+    cols_porcentaje = c("pct_1", "pct_2"),
+    etiquetas_opciones = c("Alto", "Bajo"),
+    activo = TRUE
+  )
+  sf <- out$sufijos_etiqueta
+  expect_true(is.data.frame(sf))
+  expect_true(all(c("categoria", ".col_pct", ".sufijo") %in% names(sf)))
+  # 75% contra 40% en "Alto": Lima Norte (grupo A) supera a Lima Sur (grupo B).
+  alto_norte <- sf$.sufijo[sf$categoria == "Lima Norte" & sf$.col_pct == "pct_1"]
+  expect_identical(trimws(alto_norte), "B")
+  # Y en "Bajo" se invierte.
+  bajo_sur <- sf$.sufijo[sf$categoria == "Lima Sur" & sf$.col_pct == "pct_2"]
+  expect_identical(trimws(bajo_sur), "A")
+})
+
+test_that("la nota del transpuesto mapea las letras a los grupos del cruce", {
+  out <- .graficos_sig_aplicar_transpuesto(
+    base_args = list(),
+    df_block = .df_apiladas_cruce(),
+    cols_n = c("n_1", "n_2"),
+    cols_porcentaje = c("pct_1", "pct_2"),
+    etiquetas_opciones = c("Alto", "Bajo"),
+    activo = TRUE
+  )
+  expect_match(out$nota_pie_significancia, "A = Lima Norte")
+  expect_match(out$nota_pie_significancia, "B = Lima Sur")
+})
+
+test_that("comparar preguntas de las mismas personas se rechaza por diseno", {
+  # Multi-apiladas por temas pone una fila por PREGUNTA, todas respondidas por
+  # las mismas personas. La prueba z de proporciones exige grupos
+  # independientes, asi que ahi no aplica y hay que decirlo, no callar.
+  out <- .graficos_sig_aplicar_transpuesto(
+    base_args = list(),
+    df_block = .df_apiladas_cruce(),
+    cols_n = c("n_1", "n_2"),
+    cols_porcentaje = c("pct_1", "pct_2"),
+    etiquetas_opciones = c("Alto", "Bajo"),
+    activo = TRUE,
+    diseno = "dependiente"
+  )
+  expect_null(out$sufijos_etiqueta)
+  expect_match(out$nota_pie_significancia, "mismas personas")
+  expect_match(out$nota_pie_significancia, "independientes")
+})
+
+test_that("apagada, el transpuesto deja los argumentos intactos", {
+  base_args <- list(data = "x", titulo = "T")
+  out <- .graficos_sig_aplicar_transpuesto(
+    base_args = base_args,
+    df_block = .df_apiladas_cruce(),
+    cols_n = c("n_1", "n_2"),
+    cols_porcentaje = c("pct_1", "pct_2"),
+    etiquetas_opciones = c("Alto", "Bajo"),
+    activo = FALSE
+  )
+  expect_identical(out, base_args)
+})
+
+test_that("apiladas dibuja la letra pegada al porcentaje de su segmento", {
+  skip_if_not_installed("ggplot2")
+  sufijos <- data.frame(
+    categoria = "Lima Norte", .col_pct = "pct_1", .sufijo = " B",
+    stringsAsFactors = FALSE
+  )
+  df <- data.frame(
+    categoria = c("Lima Norte", "Lima Sur"), N = c(400, 400),
+    pct_1 = c(75, 40), pct_2 = c(25, 60),
+    stringsAsFactors = FALSE
+  )
+  p <- graficar_barras_apiladas(
+    data = df, var_categoria = "categoria", var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2"),
+    etiquetas_grupos = c(pct_1 = "Alto", pct_2 = "Bajo"),
+    escala_valor = "proporcion_100",
+    sufijos_etiqueta = sufijos,
+    usar_canvas = FALSE
+  )
+  capas <- Filter(function(l) inherits(l$geom, "GeomText"), p$layers)
+  etiquetas <- unlist(lapply(capas, function(l) as.character(l$data$lab)))
+  expect_true(any(grepl("75% B", etiquetas)))
+  expect_false(any(grepl("40% ", etiquetas)))
 })
 
 .df_sig_cruce <- function() {

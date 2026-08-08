@@ -5103,6 +5103,39 @@ reporte_ppt_plan <- function(
 
       base_args <- .apply_top2box_alias(base_args)
 
+      # Significancia entre los grupos del cruce. Aqui cada FILA es un grupo de
+      # personas distinto, asi que el contraste por segmento es el mismo que en
+      # agrupadas sobre el layout transpuesto (ver graficos_significancia.R).
+      sig_activa <- isTRUE(
+        overrides$mostrar_significancia %||%
+        preset_args_multi$mostrar_significancia %||%
+        preset_args_single$mostrar_significancia
+      )
+      base_args <- .graficos_sig_aplicar_transpuesto(
+        base_args         = base_args,
+        df_block          = df_block,
+        cols_n            = cols_n,
+        cols_porcentaje   = cols_pct,
+        etiquetas_opciones = labels_opts,
+        activo            = sig_activa,
+        alpha             = overrides$significancia_alpha %||%
+                            preset_args_multi$significancia_alpha %||%
+                            preset_args_single$significancia_alpha %||% 0.05,
+        diseno            = .graficos_sig_diseno_de_fuente(ctx_var$instrumento, var)
+      )
+      nota_sig <- base_args$nota_pie_significancia
+      base_args$nota_pie_significancia <- NULL
+      if (!is.null(nota_sig) && nzchar(nota_sig) &&
+          is.null(overrides$nota_pie) && is.null(preset_args_multi$nota_pie) &&
+          is.null(preset_args_single$nota_pie)) {
+        base_args$nota_pie <- nota_sig
+      }
+      for (k in c("mostrar_significancia", "significancia_alpha")) {
+        overrides[[k]] <- NULL
+        preset_args_multi[[k]] <- NULL
+        preset_args_single[[k]] <- NULL
+      }
+
       args <- .merge_args(base_args, preset_args_single, preset_args_multi, overrides)
       args <- .reservar_pie_para_base_slide(args, min_in = 0.85, word_render = isTRUE(el$.word_render))
       args$ancho_max_eje_y <- wrap_y_eff  # idem modo var: sin re-wrap (H31)
@@ -5752,7 +5785,7 @@ reporte_ppt_plan <- function(
       etiquetas_series = etiquetas_series,
       activo           = isTRUE(overrides$mostrar_significancia %||% preset_args$mostrar_significancia),
       alpha            = overrides$significancia_alpha %||% preset_args$significancia_alpha %||% 0.05,
-      diseno           = .graficos_sig_diseno_de_fuente(ctx_var$instrumento)
+      diseno           = .graficos_sig_diseno_de_fuente(ctx_var$instrumento, ctx_var$var)
     )
     nota_significancia <- base_args$nota_pie_significancia
     base_args$nota_pie_significancia <- NULL
