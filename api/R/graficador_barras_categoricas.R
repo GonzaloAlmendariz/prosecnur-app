@@ -150,7 +150,11 @@ graficar_barras_categoricas <- function(
     colores_categorias        = NULL,
     paleta_colores            = NULL,
     mostrar_valores           = TRUE,
-    formato_valor             = c("valor", "n", "porcentaje", "porcentaje_n", "valor_n"),
+    # El registry promete "porcentaje" y la funcion tenia "valor": un render sin
+    # preset escribia "56" donde la UI decia 56%. Un grafico de porcentajes
+    # muestra porcentajes, asi que el default del motor se alinea con lo que la
+    # UI afirma. El resto del orden se conserva para `match.arg`.
+    formato_valor             = c("porcentaje", "valor", "n", "porcentaje_n", "valor_n"),
     mostrar_frecuencia        = FALSE,
     decimales                 = 0,
     eje_y_porcentaje          = NULL,
