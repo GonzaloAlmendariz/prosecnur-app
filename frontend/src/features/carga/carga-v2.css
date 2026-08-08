@@ -7894,6 +7894,38 @@
   color: var(--pulso-danger-fg);
 }
 
+/* Enlace del XLSForm cargado con la revisión publicada en el Editor. Ocupa la
+   fila completa del resumen porque es una frase, no un contador. */
+.pulso-instrument-binding {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-border);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pulso-instrument-binding svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.pulso-instrument-binding.is-ok {
+  color: var(--pulso-success-fg);
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.pulso-instrument-binding.is-warn {
+  color: var(--pulso-warn-fg);
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
 .pulso-feedback-stack {
   margin-top: 16px;
 }

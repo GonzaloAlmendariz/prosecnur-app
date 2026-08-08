@@ -209,6 +209,74 @@ test_that("cambiar el XLSForm por uno ajeno suelta el enlace anterior", {
   expect_equal(base$instrument_revision_id, "")
 })
 
+test_that("la publicación reporta qué bases están usando el formulario", {
+  # El lazo de vuelta: sin esto el hub decía "Disponible" aunque ninguna base
+  # estuviera usando la revisión, y publicar no tenía consecuencia observable.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  workbook <- .irb_workbook()
+  .irb_publish_revision(sid, "rev-1", workbook, form_id = "form-1", revision_no = 1L)
+  .irb_register_xlsform(sid, "file-carga", workbook)
+  .irb_seed_base(sid, nombre = "default")
+  instrument_revision_bind_base(sid, "default")
+
+  s <- session_get(sid)
+  latest <- .xlsform_revision_latest(s, "form-1")
+  ligadas <- .xlsform_revision_bound_bases(s, "form-1", latest)
+
+  expect_length(ligadas, 1L)
+  expect_equal(ligadas[[1]]$base, "default")
+  expect_equal(ligadas[[1]]$revision_no, 1L)
+  expect_true(ligadas[[1]]$is_latest)
+})
+
+test_that("una base pegada a una revisión anterior se reporta como no vigente", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  vieja <- .irb_workbook("Versión uno")
+  nueva <- .irb_workbook("Versión dos")
+  .irb_publish_revision(sid, "rev-1", vieja, form_id = "form-1", revision_no = 1L)
+  .irb_register_xlsform(sid, "file-carga", vieja)
+  .irb_seed_base(sid, nombre = "default")
+  instrument_revision_bind_base(sid, "default")
+
+  # El editor publica una revisión posterior; la base sigue con la anterior.
+  .irb_publish_revision(sid, "rev-2", nueva, form_id = "form-1", revision_no = 2L)
+
+  s <- session_get(sid)
+  latest <- .xlsform_revision_latest(s, "form-1")
+  ligadas <- .xlsform_revision_bound_bases(s, "form-1", latest)
+
+  expect_length(ligadas, 1L)
+  expect_equal(ligadas[[1]]$revision_no, 1L)
+  expect_false(ligadas[[1]]$is_latest)
+})
+
+test_that("las bases de otros formularios no se cuentan como propias", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+
+  propio <- .irb_workbook("Del formulario uno")
+  ajeno <- .irb_workbook("Del formulario dos")
+  .irb_publish_revision(sid, "rev-1", propio, form_id = "form-1", revision_no = 1L)
+  .irb_publish_revision(sid, "rev-2", ajeno, form_id = "form-2", revision_no = 1L)
+  .irb_register_xlsform(sid, "file-carga", ajeno)
+  .irb_seed_base(sid, nombre = "default")
+  instrument_revision_bind_base(sid, "default")
+
+  s <- session_get(sid)
+  expect_length(
+    .xlsform_revision_bound_bases(s, "form-1", .xlsform_revision_latest(s, "form-1")),
+    0L
+  )
+  expect_length(
+    .xlsform_revision_bound_bases(s, "form-2", .xlsform_revision_latest(s, "form-2")),
+    1L
+  )
+})
+
 test_that("gana la revisión más reciente cuando dos comparten contenido", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)

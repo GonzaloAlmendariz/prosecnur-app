@@ -990,6 +990,13 @@
     logic_template_applied_at = as.character(meta$logic_template_applied_at %||% NA_character_),
     logic_template_status = as.character(meta$logic_template_status %||% NA_character_),
     response_filter = meta$response_filter %||% NA_character_,
+    # Enlace con la revisión publicada del Editor. Sin esto la UI no puede
+    # explicar por qué una revisión publicada no está surtiendo efecto sobre
+    # esta base: el motivo (`no_match`, `none_published`, `unreadable`) queda
+    # en el estado y el usuario solo ve que no pasa nada.
+    instrument_revision_id = as.character(meta$instrument_revision_id %||% NA_character_),
+    instrument_revision_binding = as.character(meta$instrument_revision_binding %||% NA_character_),
+    instrument_revision_binding_detail = as.character(meta$instrument_revision_binding_detail %||% NA_character_),
     status          = .estudio_base_status_payload(meta, s),
     multi_integrated = if (is.null(multi_payload)) NA else multi_payload
   )

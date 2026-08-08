@@ -14,6 +14,7 @@ function publication(
     latest_revision: null,
     blockers: [],
     warnings: [],
+    bound_bases: [],
     can_publish: true,
     can_delete: true,
     ...overrides,
