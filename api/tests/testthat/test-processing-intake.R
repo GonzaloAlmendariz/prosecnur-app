@@ -269,6 +269,68 @@ test_that("actor_key del intake acredita exactamente la revisión publicada", {
   expect_equal(missing$validation$blockers[[1]]$field, "actor_key")
 })
 
+test_that("fuera de acreditación una entrada puede no declarar actor", {
+  # El plan exigía actor_key y actor en toda entrada, así que un estudio que no
+  # reparte el instrumento entre públicos no podía siquiera formar una entrada
+  # válida: el puente Editor → Procesamiento solo tenía forma multiactor.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .pi_add_revision(sid, "form-unica", 1L, "rev-unica-1", "a", "Base única")
+
+  sin_actor <- processing_intake_validate(sid, list(list(
+    entry_id = "entry-default",
+    base = "default",
+    base_label = "Base del estudio",
+    instrument_revision_id = "rev-unica-1"
+  )))
+
+  expect_true(sin_actor$validation$valid)
+  expect_equal(sin_actor$validation$entries[[1]]$status, "instrument_ready")
+  expect_length(sin_actor$validation$blockers, 0L)
+})
+
+test_that("un actor declarado a medias sigue siendo un error fuera de acreditación", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .pi_add_revision(sid, "form-unica", 1L, "rev-unica-1", "a", "Base única")
+
+  a_medias <- processing_intake_validate(sid, list(list(
+    entry_id = "entry-default",
+    base = "default",
+    base_label = "Base del estudio",
+    actor = "Docentes",
+    instrument_revision_id = "rev-unica-1"
+  )))
+
+  expect_false(a_medias$validation$valid)
+  expect_true("E_PROCESSING_INTAKE_ACTOR_KEY" %in%
+                vapply(a_medias$validation$blockers, `[[`, character(1), "code"))
+})
+
+test_that("en acreditación el actor sigue siendo obligatorio", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  .pi_add_revision(
+    sid, "form-docentes", 1L, "rev-docentes-1", "a", "Docentes",
+    source_actor_key = "docentes",
+    source_schema = "acreditacion_actor_instrument_draft/v1"
+  )
+  state <- session_get(sid)
+  state$monitoreo_config <- list(monitoreo_profile = list(family = "acreditacion"))
+  .session_env[[sid]] <- state
+
+  sin_actor <- processing_intake_validate(sid, list(list(
+    entry_id = "entry-docentes",
+    base = "docentes",
+    base_label = "Docentes",
+    instrument_revision_id = "rev-docentes-1"
+  )))
+
+  expect_false(sin_actor$validation$valid)
+  expect_true("E_PROCESSING_INTAKE_ACTOR_KEY" %in%
+                vapply(sin_actor$validation$blockers, `[[`, character(1), "code"))
+})
+
 test_that("intake rechaza actor fuera del catálogo aunque revisión y entrada coincidan", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)

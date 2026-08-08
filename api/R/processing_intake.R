@@ -79,7 +79,12 @@
   out
 }
 
-.processing_intake_normalize_entry <- function(entry, index) {
+# `actor_required` distingue el estudio de acreditación multiactor —donde cada
+# base ES un público y sin actor la entrada no significa nada— de cualquier
+# otro estudio, donde el instrumento no se reparte entre actores. Cuando no es
+# requerido, `actor_key`/`actor` pueden venir vacíos; si vienen con valor,
+# igual se validan como identidades bien formadas.
+.processing_intake_normalize_entry <- function(entry, index, actor_required = TRUE) {
   if (!is.list(entry)) entry <- list()
   normalized <- list(
     entry_id = .processing_intake_scalar(entry$entry_id),
@@ -105,11 +110,14 @@
   if (!nzchar(normalized$base_label) || nchar(normalized$base_label, type = "chars") > 160L) {
     add("E_PROCESSING_INTAKE_BASE_LABEL", "base_label es obligatorio y admite hasta 160 caracteres.", "base_label")
   }
-  if (!grepl("^[a-z0-9][a-z0-9_-]{0,71}$", normalized$actor_key)) {
-    add("E_PROCESSING_INTAKE_ACTOR_KEY", "actor_key debe ser una clave técnica estable en minúsculas.", "actor_key")
-  }
-  if (!nzchar(normalized$actor) || nchar(normalized$actor, type = "chars") > 160L) {
-    add("E_PROCESSING_INTAKE_ACTOR", "actor es obligatorio y admite hasta 160 caracteres.", "actor")
+  actor_declared <- nzchar(normalized$actor_key) || nzchar(normalized$actor)
+  if (actor_required || actor_declared) {
+    if (!grepl("^[a-z0-9][a-z0-9_-]{0,71}$", normalized$actor_key)) {
+      add("E_PROCESSING_INTAKE_ACTOR_KEY", "actor_key debe ser una clave técnica estable en minúsculas.", "actor_key")
+    }
+    if (!nzchar(normalized$actor) || nchar(normalized$actor, type = "chars") > 160L) {
+      add("E_PROCESSING_INTAKE_ACTOR", "actor es obligatorio y admite hasta 160 caracteres.", "actor")
+    }
   }
   if (!nzchar(normalized$instrument_revision_id)) {
     add(
@@ -152,39 +160,12 @@
   revisions[[order(revision_no, published, decreasing = TRUE)[[1]]]]
 }
 
+# Leer un XLSForm físico como workbook canónico no es propio del plan de
+# ingreso: el binding por hash de `instrument_revision_binding.R` necesita
+# exactamente lo mismo. La implementación vive allá; acá queda el alias con el
+# nombre que ya usan los llamadores de este archivo.
 .processing_intake_physical_workbook <- function(path) {
-  sheets <- readxl::excel_sheets(path)
-  lower <- tolower(sheets)
-  required <- c("survey", "choices", "settings")
-  if (length(setdiff(required, lower))) {
-    stop("El snapshot no conserva las tres hojas canónicas.", call. = FALSE)
-  }
-  read_sheet <- function(name) {
-    defaults <- .xlsform_editor_default_columns(name)
-    out <- .xlsform_editor_read_sheet(path, name, defaults)
-    if (is.null(out) || ncol(out) == 0L) {
-      out <- as.data.frame(
-        stats::setNames(lapply(defaults, function(column) character(0)), defaults),
-        stringsAsFactors = FALSE,
-        check.names = FALSE
-      )
-    }
-    out
-  }
-  survey <- read_sheet("survey")
-  choices <- read_sheet("choices")
-  settings <- read_sheet("settings")
-  if (!all(c("type", "name") %in% tolower(names(survey)))) {
-    stop("La hoja survey no conserva type y name.", call. = FALSE)
-  }
-  if (ncol(choices) && !all(c("list_name", "name") %in% tolower(names(choices)))) {
-    stop("La hoja choices no conserva list_name y name.", call. = FALSE)
-  }
-  .xlsform_editor_workbook_payload(list(
-    survey = survey,
-    choices = choices,
-    settings = settings
-  ))$workbook
+  instrument_revision_workbook_from_xlsx(path)
 }
 
 .processing_intake_revision_health <- function(s, revision_id) {
@@ -261,6 +242,12 @@
       message = "La revisión publicada de acreditación debe declarar source.actor_key.",
       field = "actor_key"
     )))
+  }
+  # Sin actor declarado y sin ser un estudio de acreditación no hay nada que
+  # contrastar: el catálogo de Monitoreo puede existir por otras razones y no
+  # gobierna a un instrumento que no se reparte entre públicos.
+  if (!nzchar(entry$actor_key) && !.processing_intake_is_acreditacion(s)) {
+    return(list())
   }
   catalog <- .acreditacion_actor_catalog(s)
   if (length(catalog) && !(entry$actor_key %in% catalog)) {
@@ -370,9 +357,10 @@
       sprintf("El plan admite como máximo %d entradas.", .PROCESSING_INTAKE_MAX_ENTRIES)
     )
   }
+  actor_required <- .processing_intake_is_acreditacion(s)
   if (length(entries)) {
     for (i in seq_along(entries)) {
-      result <- .processing_intake_normalize_entry(entries[[i]], i)
+      result <- .processing_intake_normalize_entry(entries[[i]], i, actor_required)
       normalized[[i]] <- result$entry
       blockers <- c(blockers, result$blockers)
     }

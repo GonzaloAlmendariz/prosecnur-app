@@ -99,7 +99,10 @@ export function getFormWorkflowView(
     processing = {
       label: `Disponible · revisión ${revisionNo}`,
       tone: "success",
-      detail: "Esta revisión está fijada y lista para procesar.",
+      // La base se liga a esta revisión al cargar en Procesamiento el XLSForm
+      // exportado desde acá — el enlace se hace comparando el instrumento, no
+      // por el nombre del archivo ni por el tipo de estudio.
+      detail: "Carga en Procesamiento el XLSForm exportado de este formulario y la base quedará ligada a esta revisión.",
     };
   } else {
     processing = {
