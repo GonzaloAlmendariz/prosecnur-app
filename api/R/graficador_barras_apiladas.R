@@ -2646,7 +2646,12 @@ graficar_barras_apiladas <- function(
     if (alto_fisico > h_total_in) {
       pad_total_in <- alto_fisico - h_total_in
       h_total_in <- alto_fisico
-      pad_flex_h <- (pad_total_in / 2) / h_total_in
+      # Antes: dos margenes iguales. Con una sola barra eso dejaba el grafico
+      # como una tira flotando en el centro. El grosor NO se toca —el ADR 0065
+      # existe para que una barra mida lo mismo en toda la presentacion—; lo que
+      # cambia es donde queda el aire: arriba poco y abajo el resto, que es como
+      # se lee una lamina.
+      pad_flex_h <- .barras_pad_superior(pad_total_in / h_total_in)
     }
   }
 
@@ -2669,7 +2674,20 @@ graficar_barras_apiladas <- function(
   # widths (6 columnas efectivas) — grupo + etiquetas + buffers + barras + extra
   w_group <- if (usar_grupos_canvas) canvas_w_grupo else 0
   w_buf0  <- if (usar_grupos_canvas) canvas_w_buf_grupo_etq else 0
+  # El canal de etiquetas se dimensiona por su CONTENIDO cuando nadie declaro
+  # uno. El defecto de 0.38 era el 38 % del ancho fuera cual fuera el texto: en
+  # una lamina cuyo eje dice una frase corta, eso es cuatro veces lo necesario, y
+  # ese ancho se lo quita a las barras, que son el dato.
+  #
+  # Un valor declarado por la lamina o por el preset manda: aqui solo se rellena
+  # el hueco que dejaba un defecto fijo.
+  # `missing()` y no una bandera: la pregunta es si la lamina o el preset lo
+  # declararon, y esa es la unica forma de saberlo sin anadir un flag que haya
+  # que mantener sincronizado. Un valor declarado manda siempre.
   w_etq   <- canvas_w_etiquetas
+  if (missing(canvas_w_etiquetas)) {
+    w_etq <- .barras_ancho_etiquetas(etiquetas_vec, size_ejes_num, ancho)
+  }
   w_buf1  <- canvas_w_buf_etq_bars
   w_bars  <- canvas_w_bars
   w_buf2  <- canvas_w_buf_bars_extra
