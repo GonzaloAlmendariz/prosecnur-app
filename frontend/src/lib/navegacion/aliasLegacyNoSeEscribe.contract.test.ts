@@ -11,16 +11,15 @@
  * Este contrato congela los alias que ya alcanzaron cero escritores. El
  * barrido es sobre literales de string del AST, así los comentarios que
  * documentan el alias («`?tab=` se lee, no se escribe») no cuentan como
- * escritores. Si un alias más llega a cero escritores (hoy `mesa=` sigue
- * vivo en el redirect de /muestra-aulas), se agrega a la lista y queda
- * congelado también.
+ * escritores. Si un alias más llega a cero escritores, se agrega a la lista
+ * y queda congelado también.
  */
 import ts from "typescript";
 import { describe, expect, test } from "vitest";
 import { lineLabel, parseSourcesContaining } from "../../test/contractSourceScan";
 
 /** Alias con cero escritores en producción; escribirlos vuelve rojo el gate. */
-const ALIAS_CONGELADOS = ["tab"] as const;
+const ALIAS_CONGELADOS = ["tab", "mesa"] as const;
 
 function escritoresDe(alias: string): string[] {
   const patron = new RegExp(`[?&]${alias}=`);
