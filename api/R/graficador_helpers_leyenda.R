@@ -15,37 +15,62 @@
 # Vive en archivo propio y no dentro de `graficador_barras_apiladas.R`, que ya
 # pasa de 3.000 lineas.
 
-# Ancho de una etiqueta de leyenda en pulgadas, incluyendo su cuadrito y el
-# espacio que la separa de la siguiente. El glifo medio mide ~0.52 em.
-.barras_leyenda_ancho_item <- function(etiqueta, size_pt, key_cm = 0.34) {
-  n <- nchar(as.character(etiqueta %||% ""))
-  texto_in <- n * size_pt * 0.52 / 72
-  cuadro_in <- max(0.10, key_cm / 2.54)
-  texto_in + cuadro_in + 0.16
-}
+# Filas que va a ocupar la leyenda, con el MISMO modelo que usa el dibujo.
+#
+# Es la parte delicada. El reparto real trabaja en coordenadas normalizadas del
+# canvas, no en pulgadas: parte de `legend_n_por_fila` items por fila y lo baja
+# de uno en uno hasta que ninguna fila pasa del 96 % del ancho. Una estimacion
+# con otro modelo se equivoca en el unico caso que importa —el limite entre una
+# fila y dos— y ahi la banda se dimensiona para una mientras el dibujo pinta dos:
+# `row_h` se parte a la mitad, los cuadritos colapsan y la segunda fila se monta
+# sobre la primera. Medido con la escala de siete categorias: estimaba 1 y el
+# dibujo usaba 2.
+#
+# Por eso esto NO es una aproximacion propia: replica la del dibujo termino a
+# termino. Si aquella cambia, esta tiene que cambiar con ella.
+.BARRAS_LEYENDA_ANCHO_MAX_NPC <- 0.96
 
-# Filas que necesita la leyenda para caber en `ancho_in`.
-.barras_leyenda_filas <- function(etiquetas, size_pt, ancho_in, key_cm = 0.34) {
+.barras_leyenda_filas <- function(etiquetas, size_pt, ancho_in,
+                                  key_cm = 0.34, gap_npc = 0.018,
+                                  aspect_yx = 0.6, n_por_fila = 6L) {
   etiquetas <- as.character(etiquetas %||% character(0))
   etiquetas <- etiquetas[nzchar(trimws(etiquetas))]
-  if (!length(etiquetas)) return(0L)
+  n <- length(etiquetas)
+  if (!n) return(0L)
+
   ancho_in <- suppressWarnings(as.numeric(ancho_in)[1])
   if (!is.finite(ancho_in) || ancho_in <= 0) ancho_in <- 10
-  anchos <- vapply(etiquetas, .barras_leyenda_ancho_item, numeric(1),
-                   size_pt = size_pt, key_cm = key_cm)
-  # Reparto voraz: se llena una fila hasta que el siguiente item no entra. Es lo
-  # mismo que hace el dibujo, que reparte los items en filas de igual capacidad.
-  filas <- 1L
-  usado <- 0
-  for (w in anchos) {
-    if (usado > 0 && usado + w > ancho_in) {
-      filas <- filas + 1L
-      usado <- w
-    } else {
-      usado <- usado + w
-    }
+  size_pt <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(size_pt) || size_pt <= 0) size_pt <- 9
+  aspect_yx <- suppressWarnings(as.numeric(aspect_yx)[1])
+  if (!is.finite(aspect_yx) || aspect_yx <= 0) aspect_yx <- 0.6
+
+  # El cuadrito se toma en su tope: `key_side_y` es el minimo entre ese tope y
+  # `row_h * 0.82`, y `row_h` depende del alto que estamos calculando. Tomar el
+  # tope rompe la circularidad por el lado seguro —sobrestimar el ancho de un
+  # item da una fila de mas, nunca una de menos—.
+  key_side <- max(0.034, suppressWarnings(as.numeric(key_cm)[1]) * 0.11)
+  if (!is.finite(key_side)) key_side <- 0.034
+  key_w <- key_side * aspect_yx
+  key_gap <- min(0.012, max(0.007, gap_npc * 0.60))
+  slot_gap <- min(0.040, max(0.026, gap_npc * 1.80))
+
+  chars <- nchar(gsub("\\s+", " ", gsub("\n", " ", etiquetas)), type = "width")
+  texto_npc <- pmax(0.016, chars * size_pt * 0.52 / 72 / ancho_in)
+  item <- key_w + key_gap + texto_npc
+
+  por_fila <- min(max(1L, as.integer(n_por_fila)), n)
+  repeat {
+    filas <- ceiling(n / por_fila)
+    ids <- ceiling(seq_len(n) / por_fila)
+    anchos <- vapply(seq_len(filas), function(r) {
+      idx <- which(ids == r)
+      sum(item[idx], na.rm = TRUE) + slot_gap * max(0L, length(idx) - 1L)
+    }, numeric(1))
+    if (por_fila <= 1L || max(anchos, na.rm = TRUE) <= .BARRAS_LEYENDA_ANCHO_MAX_NPC) break
+    por_fila <- por_fila - 1L
   }
-  filas
+  as.integer(filas)
 }
 
 # Alto de la banda, en pulgadas.
@@ -53,8 +78,11 @@
 .BARRAS_LEYENDA_HOLGURA_IN <- 0.08
 
 .barras_leyenda_alto_in <- function(etiquetas, size_pt, ancho_in, key_cm = 0.34,
-                                    minimo_in = 0.30) {
-  filas <- .barras_leyenda_filas(etiquetas, size_pt, ancho_in, key_cm = key_cm)
+                                    gap_npc = 0.018, aspect_yx = 0.6,
+                                    n_por_fila = 6L, minimo_in = 0.30) {
+  filas <- .barras_leyenda_filas(etiquetas, size_pt, ancho_in, key_cm = key_cm,
+                                 gap_npc = gap_npc, aspect_yx = aspect_yx,
+                                 n_por_fila = n_por_fila)
   if (!filas) return(0)
   max(minimo_in, filas * .BARRAS_LEYENDA_ALTO_FILA_IN + .BARRAS_LEYENDA_HOLGURA_IN)
 }

@@ -1115,6 +1115,11 @@ graficar_barras_apiladas <- function(
     size_titulo           = 11,
     color_subtitulo       = "#000000",
     size_subtitulo        = 9,
+    # Italica, como en barras agrupadas: el subtitulo es una acotacion sobre la
+    # pregunta —«Pregunta de opcion multiple»—, no un segundo titulo. El formal
+    # NO existia, asi que el `face` que le mandaba el motor se descartaba en
+    # silencio y el aviso salia en redonda.
+    face_subtitulo        = "italic",
     color_nota_pie        = "#000000",
     size_nota_pie         = 8,
     color_leyenda         = "#000000",
@@ -2571,8 +2576,13 @@ graficar_barras_apiladas <- function(
   # (visto con `debug_ph_bordes`). Se ajusta a las filas que la leyenda necesita,
   # sin pasar nunca del valor declarado: quien pida mas alto lo conserva.
   if (h_legend_in > 0) {
+    # Se le pasan los MISMOS parametros con los que dibuja: con otros, la
+    # estimacion se equivoca justo en el limite entre una fila y dos.
     h_legend_in <- min(h_legend_in, .barras_leyenda_alto_in(
-      niveles_leyenda, size_leyenda, ancho, key_cm = legend_key_cm))
+      niveles_leyenda, size_leyenda, ancho,
+      key_cm = legend_key_cm, gap_npc = legend_gap_npc,
+      aspect_yx = legend_key_aspect_yx %||% (suppressWarnings(as.numeric(alto)[1] / as.numeric(ancho)[1])),
+      n_por_fila = legend_n_por_fila))
   }
   # B44/G-21: sin caption propio, la Base del SLIDE vive justo debajo del
   # canvas; canvas_h_reserva_pie_in deja esa banda vacia para que la
@@ -2732,6 +2742,16 @@ graficar_barras_apiladas <- function(
     has_t <- nzchar(trimws(titulo_canvas))
     has_s <- (!is.null(subtitulo) && nzchar(subtitulo))
 
+    # Con los dos textos, `sep` es la distancia ENTRE ellos: cero los dibuja en
+    # la misma coordenada y salen uno encima del otro. El piso se deriva de los
+    # cuerpos de letra —no es una constante— para que valga igual si alguien
+    # sube el tamano del titulo.
+    if (has_t && has_s) {
+      sep_min <- (as.numeric(size_titulo)[1] + as.numeric(size_subtitulo)[1]) *
+        0.5 * 1.15 / 72 / h_total_in
+      if (!is.finite(sep) || sep < sep_min) sep <- sep_min
+    }
+
     if (has_t && has_s) {
       y_title <- y_header_center + (sep * 0.5) + dy_head
       y_sub   <- y_header_center - (sep * 0.5) + dy_head
@@ -2766,7 +2786,8 @@ graficar_barras_apiladas <- function(
         vjust = 0.5,
         size  = size_subtitulo,
         colour= color_subtitulo,
-        family = font_family
+        family = font_family,
+        fontface = if ("subtitulo" %in% textos_negrita) "bold" else face_subtitulo
       )
     }
 
