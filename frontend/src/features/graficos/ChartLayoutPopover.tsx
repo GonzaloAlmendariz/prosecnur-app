@@ -2,7 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { MoveHorizontal, RotateCcw, Ruler, X } from "lucide-react";
 import type { ArgMetadata } from "../../api/client";
-import { buildGridTracks, clampByMeta, clampPairByMeta, flexTrackStyle } from "./chartLayoutHelpers";
+import {
+  buildGridTracks,
+  canShareLayoutMeasurePair,
+  clampByMeta,
+  clampPairByMeta,
+  flexTrackStyle,
+  resolveLayoutMeasureContract,
+} from "./chartLayoutHelpers";
+import type { LayoutMeasureBasis, LayoutMeasureContract } from "./chartLayoutHelpers";
+import "./chartLayoutEditor.css";
 
 type LayoutKind = "bars" | "vertical" | "radar";
 type TitleAlign = "left" | "center" | "right";
@@ -86,31 +95,13 @@ const BARS_PRESETS = new Set(["barras_apiladas", "multi_apiladas", "barras_agrup
 const PIE_PRESETS = new Set(["pie", "donut"]);
 const RADAR_PRESETS = new Set(["radar_tabla", "dim_radar"]);
 
-const ROLE_LABELS: Record<LayoutField["role"], string> = {
-  label: "Etiquetas",
-  gap: "Respiros",
-  plot: "Área gráfica",
-  extra: "Columna apoyo",
-  header: "Encabezado",
-  legend: "Leyenda",
-  caption: "Nota/base",
-  table: "Tabla",
-  row: "Categorías",
-  panel: "Panel",
+const BASIS_LABELS: Record<LayoutMeasureBasis, { label: string; rule: string }> = {
+  "ratio-partition": { label: "Ancho", rule: "Reparto común" },
+  "fixed-inch": { label: "Alto fijo", rule: "Banda del render" },
+  "nested-inch": { label: "Fila interna", rule: "Dentro del panel" },
+  "per-category-inch": { label: "Filas", rule: "Escala con los datos" },
+  "measure-only": { label: "Medida exacta", rule: "Sin reparto visual" },
 };
-
-const ROLE_ORDER: LayoutField["role"][] = [
-  "header",
-  "label",
-  "row",
-  "plot",
-  "legend",
-  "caption",
-  "extra",
-  "table",
-  "gap",
-  "panel",
-];
 
 export function ChartLayoutEditor({
   presetType,
@@ -221,8 +212,15 @@ export function ChartLayoutEditor({
 
   const customFieldCount = fields.filter((field) => hasStoredValue(values[field.name])).length;
   const inheritedFieldCount = fields.filter((field) => !hasStoredValue(values[field.name]) && hasStoredValue(inheritedValues[field.name])).length;
-  const layoutKindLabel = kind === "bars" ? "Gráfico de barras" : kind === "radar" ? "Radar con tabla" : hasPieLayout(argsByName, presetType) ? "Gráfico circular" : "Gráfico vertical";
-  const roleSummary = useMemo(() => buildRoleSummary(fields), [fields]);
+  const layoutKindLabel = kind === "bars" ? "Barras horizontales" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Gráfico circular" : "Gráfico vertical";
+  const measureContracts = useMemo(() => {
+    const contracts: Record<string, LayoutMeasureContract> = {};
+    for (const field of fields) {
+      contracts[field.name] = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
+    }
+    return contracts;
+  }, [argsByName, fields]);
+  const basisSummary = useMemo(() => buildBasisSummary(fields, measureContracts), [fields, measureContracts]);
   const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
   const sourceLabel = sourceState === "manual" ? "Ajustes adicionales" : sourceState === "mode" ? "Estilo guardado" : "Valor por defecto";
   const sourceDetail = sourceState === "manual"
@@ -266,6 +264,9 @@ export function ChartLayoutEditor({
   const showLegend = legendPosition !== "none" && (!argsByName.mostrar_leyenda || boolValueOf("mostrar_leyenda", true));
 
   function beginPairDrag(e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) {
+    const leftContract = resolveLayoutMeasureContract(leftName, argsByName[leftName]);
+    const rightContract = resolveLayoutMeasureContract(rightName, argsByName[rightName]);
+    if (!canShareLayoutMeasurePair(leftContract, rightContract) || leftContract.axis !== axis) return;
     e.preventDefault();
     e.stopPropagation();
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -285,43 +286,6 @@ export function ChartLayoutEditor({
       position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
       label: `Repartiendo espacio entre ${layoutFieldLabel(leftName, fields, argsByName)} y ${layoutFieldLabel(rightName, fields, argsByName)}. Suelta para guardar.`,
     });
-  }
-
-  function beginSingleDrag(e: ReactPointerEvent, axis: "x" | "y", name: string, direction?: 1 | -1) {
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const scalePx = getDragTrackLength(e.currentTarget.parentElement, axis) ?? getCanvasTrackLength(canvasRef.current, axis);
-    dragRef.current = {
-      axis,
-      names: [name],
-      startClient: axis === "x" ? e.clientX : e.clientY,
-      startValues: [valueOf(name)],
-      scalePx,
-      total: Math.max(1e-6, getDragRange(name)),
-      direction,
-      valueMin: getDragMin(name),
-    };
-    setDragGuide({
-      axis,
-      position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
-      label: `Ajustando ${layoutFieldLabel(name, fields, argsByName)}. Suelta para guardar.`,
-    });
-  }
-
-  function getDragRange(name: string): number {
-    const meta = argsByName[name];
-    if (!meta) return 1;
-    const min = typeof meta.min === "number" ? meta.min : 0;
-    const max = typeof meta.max === "number" ? meta.max : 1;
-    const range = max - min;
-    return Number.isFinite(range) && range > 0 ? range : 1;
-  }
-
-  function getDragMin(name: string): number {
-    const meta = argsByName[name];
-    return typeof meta?.min === "number" ? meta.min : 0;
   }
 
   function resetAll() {
@@ -378,29 +342,41 @@ export function ChartLayoutEditor({
     return next;
   }
 
+  const hasPairDrag = hasCompatibleLayoutPair(fields, valueOf, argsByName);
+  const canvasInteractionCopy = hasPairDrag
+    ? "Arrastra bordes entre medidas compatibles o escribe medidas exactas."
+    : "Escribe medidas exactas para ajustar los parámetros publicados.";
+
   return (
-    <div className="pulso-gv2-layout-panel" data-source-state={sourceState} aria-label="Editor visual de espacios del gráfico">
+    <div
+      className="pulso-gv2-layout-panel"
+      data-source-state={sourceState}
+      data-qa-geometry-group="graficos/distribucion-espacio"
+      data-qa-geometry-contract="intrinsic"
+      aria-label={surfaceLabel ? `Editor visual de espacios del gráfico: ${surfaceLabel}` : "Editor visual de espacios del gráfico"}
+    >
           <div className="pulso-gv2-layout-head">
             <span className="pulso-gv2-layout-head-icon"><MoveHorizontal size={14} /></span>
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
-              <strong>{surfaceLabel ? `Mapa de espacios · ${surfaceLabel}` : "Mapa de espacios"}</strong>
-              <span>Arrastra los bordes para repartir espacio. Abre medidas exactas cuando necesites afinar.</span>
+              <strong>Distribución del espacio</strong>
+              <span>Controla parámetros del render. La vista PPT confirma el resultado final.</span>
             </div>
             <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
               <span>Aplicando</span>
               <strong>{sourceLabel}</strong>
               <small>{sourceDetail}</small>
             </div>
-            <div className="pulso-gv2-layout-role-strip" aria-label="Zonas visibles del gráfico">
-              {roleSummary.map(({ role, label, count }) => (
-                <span key={role} data-role={role}>
-                  <i aria-hidden="true" />
-                  {label}
-                  <b>{count}</b>
-                </span>
-              ))}
-            </div>
+          </div>
+
+          <div className="pulso-gv2-layout-basis-strip" aria-label="Bases dimensionales de las medidas visibles">
+            {basisSummary.map((item) => (
+              <span key={item.basis} data-basis={item.basis}>
+                <strong>{item.label}</strong>
+                <small>{item.unitLabel}</small>
+                <em>{item.rule}</em>
+              </span>
+            ))}
           </div>
 
           <div
@@ -408,12 +384,13 @@ export function ChartLayoutEditor({
             className={`pulso-gv2-layout-canvas is-${kind}${dragGuide ? " is-dragging" : ""}`}
             data-layout-kind={layoutKindLabel}
             role="group"
-            aria-label={`Editor visual de espacios para ${layoutKindLabel}. Arrastra bordes entre zonas o escribe medidas exactas.`}
+            aria-label={`Editor visual de espacios para ${layoutKindLabel}. ${canvasInteractionCopy}`}
           >
             {dragGuide && <DragGuide guide={dragGuide} />}
             {kind === "bars" && (
               <BarsLayout
                 fields={fields}
+                argsByName={argsByName}
                 valueOf={valueOf}
                 titleAlign={titleAlign}
                 captionAlign={captionAlign}
@@ -434,31 +411,24 @@ export function ChartLayoutEditor({
                   showTitle={showTitle}
                   showLegend={showLegend}
                   legendPosition={legendPosition}
-                  beginPairDrag={beginPairDrag}
-                  beginSingleDrag={beginSingleDrag}
                   onSetArgValue={setArgValue}
                 />
               ) : (
                 <VerticalLayout
                   fields={fields}
+                  argsByName={argsByName}
                   valueOf={valueOf}
                   titleAlign={titleAlign}
                   captionAlign={captionAlign}
                   showTitle={showTitle}
                   showLegend={showLegend}
                   legendPosition={legendPosition}
-                  beginPairDrag={beginPairDrag}
                   onSetArgValue={setArgValue}
                 />
               )
             )}
             {kind === "radar" && (
-              <RadarLayout
-                valueOf={valueOf}
-                argsByName={argsByName}
-                beginSingleDrag={beginSingleDrag}
-                onSetArgValue={setArgValue}
-              />
+              <RadarLayout argsByName={argsByName} />
             )}
           </div>
 
@@ -527,6 +497,7 @@ function LayoutMeasureBoard({
             field={field}
             value={valueOf(field.name)}
             meta={argsByName[field.name]}
+            contract={resolveLayoutMeasureContract(field.name, argsByName[field.name])}
             onCommit={(next) => onSetArgValue(field.name, next)}
           />
         ))}
@@ -539,11 +510,13 @@ function LayoutMeasureCell({
   field,
   value,
   meta,
+  contract,
   onCommit,
 }: {
   field: LayoutField;
   value: number;
   meta?: ArgMetadata;
+  contract: LayoutMeasureContract;
   onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(formatNumber(value));
@@ -565,7 +538,7 @@ function LayoutMeasureCell({
     <label className="pulso-gv2-layout-measure-cell" data-role={field.role}>
       <span className="pulso-gv2-layout-measure-copy">
         <strong>{field.label}</strong>
-        <small>{layoutFieldHelp(field, meta)}</small>
+        <small>{layoutFieldHelp(field, meta, contract)}</small>
       </span>
       <span className="pulso-gv2-layout-measure-input">
         <input
@@ -588,22 +561,33 @@ function LayoutMeasureCell({
             }
           }}
         />
-        <em>{layoutFieldUnit(meta)}</em>
+        <em>{contract.unitLabel}</em>
       </span>
     </label>
   );
 }
 
-function buildRoleSummary(fields: LayoutField[]): Array<{ role: LayoutField["role"]; label: string; count: number }> {
-  const counts = new Map<LayoutField["role"], number>();
-  fields.forEach((field) => counts.set(field.role, (counts.get(field.role) ?? 0) + 1));
-  return ROLE_ORDER
-    .filter((role) => counts.has(role))
-    .map((role) => ({ role, label: ROLE_LABELS[role], count: counts.get(role) ?? 0 }));
+function buildBasisSummary(
+  fields: LayoutField[],
+  contracts: Record<string, LayoutMeasureContract>
+): Array<{ basis: LayoutMeasureBasis; label: string; unitLabel: string; rule: string }> {
+  const basisOrder: LayoutMeasureBasis[] = [
+    "ratio-partition",
+    "fixed-inch",
+    "nested-inch",
+    "per-category-inch",
+    "measure-only",
+  ];
+  return basisOrder.flatMap((basis) => {
+    const contract = fields.map((field) => contracts[field.name]).find((item) => item?.basis === basis);
+    if (!contract) return [];
+    return [{ basis, ...BASIS_LABELS[basis], unitLabel: contract.unitLabel }];
+  });
 }
 
 function BarsLayout({
   fields,
+  argsByName,
   valueOf,
   titleAlign,
   captionAlign,
@@ -614,6 +598,7 @@ function BarsLayout({
   onSetArgValue,
 }: {
   fields: LayoutField[];
+  argsByName: Record<string, ArgMetadata>;
   valueOf: (name: string) => number;
   titleAlign: TitleAlign;
   captionAlign: TitleAlign;
@@ -635,11 +620,14 @@ function BarsLayout({
         synthetic: true,
       }
     : null;
-  const horizontalFields = sideLegendField && legendPosition === "left"
-    ? [sideLegendField, ...baseHorizontalFields]
-    : sideLegendField
-      ? [...baseHorizontalFields, sideLegendField]
-      : baseHorizontalFields;
+  const horizontalFields = baseHorizontalFields.filter((field) => {
+    const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
+    return contract.basis === "ratio-partition" && contract.canShare;
+  });
+  const intrinsicHorizontalFields: Array<LayoutField & { value?: number; synthetic?: boolean }> = [
+    ...baseHorizontalFields.filter((field) => !horizontalFields.some((candidate) => candidate.name === field.name)),
+    ...(sideLegendField ? [sideLegendField] : []),
+  ];
   const verticalFields = applyVerticalLayoutSemantics(
     VERTICAL_FIELDS.filter((field) => fields.some((item) => item.name === field.name)),
     { showTitle, showLegend, legendPosition }
@@ -649,64 +637,69 @@ function BarsLayout({
     return field ? effectiveVerticalLayoutValue(field, valueOf, showLegend, legendPosition) : valueOf(name);
   };
   const hTotal = horizontalFields.reduce((sum, field) => sum + layoutFieldValue(field, valueOf), 0) || horizontalFields.length;
-  const vTotal = verticalFields.reduce((sum, field) => sum + verticalValueOf(field.name), 0) || verticalFields.length;
+
+  const horizontalSurface = (
+    <>
+      <IntrinsicLayoutRoles fields={intrinsicHorizontalFields} argsByName={argsByName} valueOf={valueOf} />
+      {horizontalFields.length > 0 ? (
+        <BarsHorizontalRow fields={horizontalFields} argsByName={argsByName} valueOf={valueOf} total={hTotal} beginPairDrag={beginPairDrag} onSetArgValue={onSetArgValue} />
+      ) : (
+        <div className="pulso-gv2-layout-qualitative-role" data-role="plot" data-synthetic="true">
+          <span>Área horizontal · Sin partición publicada</span>
+          <small>Usa las medidas exactas; la vista PPT confirma el resultado.</small>
+        </div>
+      )}
+    </>
+  );
 
   if (verticalFields.length === 0) {
-    return <BarsHorizontalRow fields={horizontalFields} valueOf={valueOf} total={hTotal} beginPairDrag={beginPairDrag} onSetArgValue={onSetArgValue} />;
+    return <div className="pulso-gv2-layout-bars-main is-standalone">{horizontalSurface}</div>;
   }
 
-  const rows = buildGridTracks(verticalFields, verticalValueOf);
-
   return (
-    <div className="pulso-gv2-layout-bars-grid" style={{ gridTemplateRows: rows }}>
-      {verticalFields.map((field, index) => {
+    <div className="pulso-gv2-layout-bars-grid is-semantic">
+      {verticalFields.map((field) => {
         const rawValue = verticalValueOf(field.name);
-        const share = vTotal > 0 ? rawValue / vTotal : 0;
-        const next = findNextResizableField(verticalFields, index, verticalValueOf);
-        const nextValue = next ? verticalValueOf(next.name) : 0;
-        const prev = findPrevResizableField(verticalFields, index, verticalValueOf);
-        const prevValue = prev ? verticalValueOf(prev.name) : 0;
+        const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
         const isMain = field.name === "alto_por_categoria";
+        const isInternal = field.name === "canvas_h_toprow_in";
+
+        if (isInternal) return null;
+
         return (
           <div
             key={field.name}
-            className="pulso-gv2-layout-bars-band"
-            style={flexTrackStyle(rawValue, field.role === "gap")}
+            className={`pulso-gv2-layout-bars-band${isMain ? " is-data-panel" : " is-fixed-measure"}`}
+            data-basis={contract.basis}
           >
-            {isResizableField(field) && prev && rawValue > 0 && prevValue > 0 && (
-              <button
-                type="button"
-                className="pulso-gv2-layout-handle is-y is-leading"
-                onPointerDown={(e) => beginPairDrag(e, "y", prev.name, field.name)}
-                aria-label={resizePairLabel(prev, field)}
-                title={resizePairLabel(prev, field)}
-              />
-            )}
-            {isMain && horizontalFields.length > 0 ? (
-              <BarsHorizontalRow fields={horizontalFields} valueOf={valueOf} total={hTotal} beginPairDrag={beginPairDrag} onSetArgValue={onSetArgValue} />
+            {isMain ? (
+              <div className="pulso-gv2-layout-bars-main">
+                <LayoutRuleBadge field={field} value={rawValue} contract={contract} />
+                {verticalFields.filter((candidate) => candidate.name === "canvas_h_toprow_in").map((candidate) => (
+                  <LayoutRuleBadge
+                    key={candidate.name}
+                    field={candidate}
+                    value={verticalValueOf(candidate.name)}
+                    contract={resolveLayoutMeasureContract(candidate.name, argsByName[candidate.name])}
+                  />
+                ))}
+                {horizontalSurface}
+              </div>
             ) : (
               <div
-                className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
+                className={`pulso-gv2-layout-frame${contract.basis === "ratio-partition" && rawValue <= 0 ? " is-zero" : ""}`}
                 data-role={field.role}
+                data-basis={contract.basis}
                 data-title-align={isTitleLayoutField(field) ? titleAlign : undefined}
                 data-caption-align={field.role === "caption" ? captionAlign : undefined}
-                title={`${field.label}: ${formatNumber(rawValue)} (${formatPercent(share)})`}
+                title={layoutMeasureTitle(field, rawValue, contract)}
               >
                 <ZeroButton field={field} onSetArgValue={onSetArgValue} />
                 <span>{field.short}</span>
                 {field.role !== "gap" && (
-                  <FrameMetric value={rawValue} total={vTotal} axisLabel="alto" fieldLabel={field.label} onCommit={(next) => onSetArgValue(field.name, next)} />
+                  <FrameMetric value={rawValue} total={1} axisLabel="alto" fieldLabel={field.label} contract={contract} onCommit={(next) => onSetArgValue(field.name, next)} />
                 )}
               </div>
-            )}
-            {isResizableField(field) && next && rawValue > 0 && nextValue > 0 && (
-              <button
-                type="button"
-                className="pulso-gv2-layout-handle is-y"
-                onPointerDown={(e) => beginPairDrag(e, "y", field.name, next.name)}
-                aria-label={resizePairLabel(field, next)}
-                title={resizePairLabel(field, next)}
-              />
             )}
           </div>
         );
@@ -715,14 +708,72 @@ function BarsLayout({
   );
 }
 
+function LayoutRuleBadge({
+  field,
+  value,
+  contract,
+}: {
+  field: LayoutField;
+  value: number;
+  contract: LayoutMeasureContract;
+}) {
+  return (
+    <div
+      className="pulso-gv2-layout-rule-badge"
+      data-basis={contract.basis}
+      title={layoutMeasureTitle(field, value, contract)}
+    >
+      <span>{field.name === "alto_por_categoria" ? "Alto por fila" : field.short}</span>
+      <strong>{formatNumber(value)} {contract.unitLabel}</strong>
+      <small>{layoutMeasureRule(contract)}</small>
+    </div>
+  );
+}
+
+function IntrinsicLayoutRoles({
+  fields,
+  argsByName,
+  valueOf,
+}: {
+  fields: Array<LayoutField & { value?: number; synthetic?: boolean }>;
+  argsByName: Record<string, ArgMetadata>;
+  valueOf: (name: string) => number;
+}) {
+  if (fields.length === 0) return null;
+  return (
+    <div className="pulso-gv2-layout-intrinsic-roles" aria-label="Roles sin partición geométrica publicada">
+      {fields.map((field) => {
+        if (field.synthetic) {
+          return (
+            <div key={field.name} className="pulso-gv2-layout-qualitative-role" data-role={field.role} data-synthetic="true">
+              <span>{field.short} · Estimado</span>
+              <small>Rol cualitativo; no participa del reparto.</small>
+            </div>
+          );
+        }
+        return (
+          <LayoutRuleBadge
+            key={field.name}
+            field={field}
+            value={valueOf(field.name)}
+            contract={resolveLayoutMeasureContract(field.name, argsByName[field.name])}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function BarsHorizontalRow({
   fields,
+  argsByName,
   valueOf,
   total,
   beginPairDrag,
   onSetArgValue,
 }: {
   fields: Array<LayoutField & { value?: number; synthetic?: boolean }>;
+  argsByName: Record<string, ArgMetadata>;
   valueOf: (name: string) => number;
   total: number;
   beginPairDrag: (e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) => void;
@@ -738,6 +789,7 @@ function BarsHorizontalRow({
       {fields.map((field, index) => {
         const rawValue = layoutFieldValue(field, valueOf);
         const share = total > 0 ? rawValue / total : 0;
+        const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
         const next = findNextResizableField(fields, index, (name) => {
           const item = fields.find((field) => field.name === name);
           return item ? layoutFieldValue(item, valueOf) : valueOf(name);
@@ -753,10 +805,12 @@ function BarsHorizontalRow({
             key={field.name}
             className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
             data-role={field.role}
+            data-basis={contract.basis}
+            data-synthetic={field.synthetic ? "true" : undefined}
             style={flexTrackStyle(rawValue, field.role === "gap")}
-            title={`${field.label}: ${formatNumber(rawValue)} (${formatPercent(share)})`}
+            title={field.synthetic ? `${field.label}: Estimado` : layoutMeasureTitle(field, rawValue, contract, share)}
           >
-            {isResizableField(field) && prev && rawValue > 0 && prevValue > 0 && (
+            {isResizableField(field) && prev && rawValue > 0 && prevValue > 0 && canShareFieldPair(prev, field, argsByName) && (
               <button
                 type="button"
                 className="pulso-gv2-layout-handle is-x is-leading"
@@ -766,17 +820,18 @@ function BarsHorizontalRow({
               />
             )}
             <ZeroButton field={field} onSetArgValue={onSetArgValue} />
-            <span>{field.short}</span>
+            <span>{field.short}{field.synthetic ? " · Estimado" : ""}</span>
             {field.role !== "gap" && (
               <FrameMetric
                 value={rawValue}
                 total={total}
                 axisLabel="ancho"
                 fieldLabel={field.label}
+                contract={contract}
                 onCommit={!field.synthetic ? (next) => onSetArgValue(field.name, next) : undefined}
               />
             )}
-            {isResizableField(field) && next && rawValue > 0 && nextValue > 0 && (
+            {isResizableField(field) && next && rawValue > 0 && nextValue > 0 && canShareFieldPair(field, next, argsByName) && (
               <button
                 type="button"
                 className="pulso-gv2-layout-handle is-x"
@@ -794,23 +849,23 @@ function BarsHorizontalRow({
 
 function VerticalLayout({
   fields,
+  argsByName,
   valueOf,
   titleAlign,
   captionAlign,
   showTitle,
   showLegend,
   legendPosition,
-  beginPairDrag,
   onSetArgValue,
 }: {
   fields: LayoutField[];
+  argsByName: Record<string, ArgMetadata>;
   valueOf: (name: string) => number;
   titleAlign: TitleAlign;
   captionAlign: TitleAlign;
   showTitle: boolean;
   showLegend: boolean;
   legendPosition: LegendPosition;
-  beginPairDrag: (e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) => void;
   onSetArgValue: (name: string, value: number) => void;
 }) {
   const semanticFields = applyVerticalLayoutSemantics(fields, { showTitle, showLegend, legendPosition });
@@ -819,50 +874,29 @@ function VerticalLayout({
     return field ? effectiveVerticalLayoutValue(field, valueOf, showLegend, legendPosition) : valueOf(name);
   };
   const visualFields = buildVerticalVisualFields(semanticFields, semanticValueOf);
-  const total = visualFields.reduce((sum, field) => sum + field.value, 0) || visualFields.length;
-  const rows = buildGridTracks(visualFields, (name) => visualFields.find((field) => field.name === name)?.value ?? 0);
 
   return (
-    <div className="pulso-gv2-layout-column" style={{ gridTemplateRows: rows }}>
-      {visualFields.map((field, index) => {
+    <div className="pulso-gv2-layout-column is-intrinsic">
+      {visualFields.map((field) => {
         const rawValue = field.value;
-        const share = total > 0 ? rawValue / total : 0;
-        const next = findNextResizableField(visualFields, index, (name) => visualFields.find((item) => item.name === name)?.value ?? 0);
-        const nextValue = next ? next.value : 0;
-        const prev = findPrevResizableField(visualFields, index, (name) => visualFields.find((item) => item.name === name)?.value ?? 0);
-        const prevValue = prev ? prev.value : 0;
+        const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
         return (
           <div
             key={field.name}
-            className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
+            className="pulso-gv2-layout-frame"
             data-role={field.role}
+            data-basis={contract.basis}
+            data-synthetic={field.synthetic ? "true" : undefined}
             data-title-align={isTitleLayoutField(field) ? titleAlign : undefined}
             data-caption-align={field.role === "caption" ? captionAlign : undefined}
-            style={flexTrackStyle(rawValue, field.role === "gap")}
-            title={`${field.label}: ${formatNumber(rawValue)} (${formatPercent(share)})`}
+            title={field.synthetic ? `${field.label}: Estimado` : layoutMeasureTitle(field, rawValue, contract)}
           >
-            {isResizableField(field) && prev && rawValue > 0 && prevValue > 0 && !field.synthetic && !prev.synthetic && (
-              <button
-                type="button"
-                className="pulso-gv2-layout-handle is-y is-leading"
-                onPointerDown={(e) => beginPairDrag(e, "y", prev.name, field.name)}
-                aria-label={resizePairLabel(prev, field)}
-                title={resizePairLabel(prev, field)}
-              />
-            )}
             <ZeroButton field={field} onSetArgValue={onSetArgValue} />
-            <span>{field.short}</span>
-            {field.role !== "gap" && (
-              <FrameMetric value={rawValue} total={total} axisLabel="alto" fieldLabel={field.label} onCommit={(next) => onSetArgValue(field.name, next)} />
-            )}
-            {isResizableField(field) && next && rawValue > 0 && nextValue > 0 && !field.synthetic && !next.synthetic && (
-              <button
-                type="button"
-                className="pulso-gv2-layout-handle is-y"
-                onPointerDown={(e) => beginPairDrag(e, "y", field.name, next.name)}
-                aria-label={resizePairLabel(field, next)}
-                title={resizePairLabel(field, next)}
-              />
+            <span>{field.short}{field.synthetic ? " · Estimado" : ""}</span>
+            {field.synthetic ? (
+              <small className="pulso-gv2-layout-qualitative-copy">Rol cualitativo; no deriva su tamaño de medidas sin unidad.</small>
+            ) : field.role !== "gap" && (
+              <FrameMetric value={rawValue} total={1} axisLabel="alto" fieldLabel={field.label} contract={contract} onCommit={!field.synthetic ? (next) => onSetArgValue(field.name, next) : undefined} />
             )}
           </div>
         );
@@ -879,8 +913,6 @@ function PieLayout({
   showTitle,
   showLegend,
   legendPosition,
-  beginPairDrag,
-  beginSingleDrag,
   onSetArgValue,
 }: {
   argsByName: Record<string, ArgMetadata>;
@@ -890,8 +922,6 @@ function PieLayout({
   showTitle: boolean;
   showLegend: boolean;
   legendPosition: LegendPosition;
-  beginPairDrag: (e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) => void;
-  beginSingleDrag: (e: ReactPointerEvent, axis: "x" | "y", name: string, direction?: 1 | -1) => void;
   onSetArgValue: (name: string, value: number) => void;
 }) {
   const titleField = showTitle ? fieldIfPresent(argsByName, "canvas_h_title", "Franja de título", "Título", "header") : null;
@@ -900,77 +930,44 @@ function PieLayout({
   const captionField = fieldIfPresent(argsByName, "canvas_h_caption", "Franja de pie", "Pie", "caption");
   const legendRightField = fieldIfPresent(argsByName, "canvas_w_legend_right", "Leyenda lateral", "Leyenda lateral", "legend");
 
-  const titleValue = titleField ? Math.max(0, valueOf(titleField.name)) : 0;
   const useRightLegend = Boolean(showLegend && legendRightField && legendPosition === "right");
-  const legendRightValue = useRightLegend ? activeLayoutValue(valueOf, legendRightField!.name, 0.2) : 0;
   const activeLegendBottomField = showLegend && !useRightLegend && legendPosition !== "left" ? legendBottomField : null;
-  const legendBottomValue = activeLegendBottomField ? activeLayoutValue(valueOf, activeLegendBottomField.name, 0.1) : 0;
-  const captionValue = captionField ? Math.max(0, valueOf(captionField.name)) : 0;
-  const panelValue = Math.max(0.01, 1 - titleValue - legendBottomValue - captionValue);
   const rows: VisualField[] = [
-    ...(titleField ? [{ ...titleField, value: Math.max(titleValue, 0.035) }] : []),
-    { name: "__layout_panel", label: "Área del gráfico", short: "Área del gráfico", role: "panel", value: panelValue, synthetic: true },
-    ...(activeLegendBottomField ? [{ ...activeLegendBottomField, value: legendBottomValue > 0 ? legendBottomValue : 0 }] : []),
-    ...(captionField ? [{ ...captionField, value: captionValue > 0 ? captionValue : 0.035 }] : []),
+    ...(titleField ? [{ ...titleField, value: Math.max(0, valueOf(titleField.name)) }] : []),
+    { name: "__layout_panel", label: "Área del gráfico", short: "Área del gráfico", role: "panel", value: 1, synthetic: true },
+    ...(useRightLegend && legendRightField ? [{ ...legendRightField, value: Math.max(0, valueOf(legendRightField.name)) }] : []),
+    ...(activeLegendBottomField ? [{ ...activeLegendBottomField, value: Math.max(0, valueOf(activeLegendBottomField.name)) }] : []),
+    ...(captionField ? [{ ...captionField, value: Math.max(0, valueOf(captionField.name)) }] : []),
   ];
-  const total = rows.reduce((sum, field) => sum + field.value, 0) || 1;
-  const templateRows = buildGridTracks(rows, (name) => rows.find((field) => field.name === name)?.value ?? 0);
 
   return (
-    <div className="pulso-gv2-layout-column" style={{ gridTemplateRows: templateRows }}>
-      {rows.map((field, index) => {
-        const realValue = field.synthetic ? field.value : Math.max(0, valueOf(field.name));
-        const share = total > 0 ? field.value / total : 0;
-        const next = rows[index + 1];
-        const nextValue = next ? next.value : 0;
-        const prev = findPrevResizableField(rows, index, (name) => rows.find((item) => item.name === name)?.value ?? 0);
-        const prevValue = prev ? prev.value : 0;
-        const isPanel = field.synthetic;
+    <div className="pulso-gv2-layout-column is-intrinsic">
+      {rows.map((field) => {
+        const realValue = field.synthetic ? 1 : Math.max(0, valueOf(field.name));
+        const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
         return (
           <div
             key={field.name}
-            className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${realValue <= 0 && !isPanel ? " is-zero" : ""}`}
+            className="pulso-gv2-layout-frame"
             data-role={field.role}
+            data-basis={contract.basis}
+            data-synthetic={field.synthetic ? "true" : undefined}
             data-title-align={isTitleLayoutField(field) ? titleAlign : undefined}
             data-caption-align={field.role === "caption" ? captionAlign : undefined}
-            title={`${field.label}: ${formatNumber(realValue)} (${formatPercent(share)})`}
+            title={field.synthetic ? `${field.label}: Estimado` : layoutMeasureTitle(field, realValue, contract)}
           >
-            {!isPanel && prev && field.value > 0 && prevValue > 0 && !prev.synthetic && (
-              <button
-                type="button"
-                className="pulso-gv2-layout-handle is-y is-leading"
-                onPointerDown={(e) => beginPairDrag(e, "y", prev.name, field.name)}
-                aria-label={resizePairLabel(prev, field)}
-                title={resizePairLabel(prev, field)}
-              />
-            )}
-            {!isPanel && <ZeroButton field={field} onSetArgValue={onSetArgValue} />}
-            {isPanel && useRightLegend ? (
-              <PiePanel
-                legendRightField={legendRightField!}
-                legendRightValue={legendRightValue}
-                beginSingleDrag={beginSingleDrag}
-                onSetArgValue={onSetArgValue}
-              />
+            {!field.synthetic && <ZeroButton field={field} onSetArgValue={onSetArgValue} />}
+            <span>{field.short}{field.synthetic ? " · Estimado" : ""}</span>
+            {field.synthetic ? (
+              <small className="pulso-gv2-layout-qualitative-copy">Rol cualitativo; no deriva su tamaño de medidas sin unidad.</small>
             ) : (
-              <>
-                <span>{field.short}</span>
-                <FrameMetric
-                  value={realValue}
-                  total={total}
-                  axisLabel="alto"
-                  fieldLabel={field.label}
-                  onCommit={!isPanel ? (nextValue) => onSetArgValue(field.name, nextValue) : undefined}
-                />
-              </>
-            )}
-            {next && field.value > 0 && nextValue > 0 && !field.synthetic && !next.synthetic && (
-              <button
-                type="button"
-                className="pulso-gv2-layout-handle is-y"
-                onPointerDown={(e) => beginPairDrag(e, "y", field.name, next.name)}
-                aria-label={resizePairLabel(field, next)}
-                title={resizePairLabel(field, next)}
+              <FrameMetric
+                value={realValue}
+                total={1}
+                axisLabel={contract.axis === "x" ? "ancho" : "alto"}
+                fieldLabel={field.label}
+                contract={contract}
+                onCommit={(nextValue) => onSetArgValue(field.name, nextValue)}
               />
             )}
           </div>
@@ -980,87 +977,26 @@ function PieLayout({
   );
 }
 
-function PiePanel({
-  legendRightField,
-  legendRightValue,
-  beginSingleDrag,
-  onSetArgValue,
-}: {
-  legendRightField: LayoutField;
-  legendRightValue: number;
-  beginSingleDrag: (e: ReactPointerEvent, axis: "x" | "y", name: string, direction?: 1 | -1) => void;
-  onSetArgValue: (name: string, value: number) => void;
-}) {
-  const legendShare = Math.max(0, Math.min(0.8, legendRightValue));
-  const plotShare = Math.max(0.05, 1 - legendShare);
-  return (
-    <div className="pulso-gv2-layout-pie-panel">
-      <div className="pulso-gv2-layout-frame" data-role="panel" style={{ flex: `${plotShare} 1 0` }}>
-        <span>Área del gráfico</span>
-        <FrameMetric value={plotShare} total={1} axisLabel="ancho" fieldLabel="Área del gráfico" />
-      </div>
-      {legendRightField && legendRightValue > 0 && (
-        <div className="pulso-gv2-layout-frame" data-role="legend" style={{ flex: `${legendShare} 1 0` }}>
-          <button
-            type="button"
-            className="pulso-gv2-layout-handle is-x is-leading"
-            onPointerDown={(e) => beginSingleDrag(e, "x", legendRightField.name, -1)}
-            aria-label={resizeSingleLabel(legendRightField)}
-            title={resizeSingleLabel(legendRightField)}
-          />
-          <ZeroButton field={legendRightField} onSetArgValue={onSetArgValue} />
-          <span>{legendRightField.short}</span>
-          <FrameMetric
-            value={legendRightValue}
-            total={1}
-            axisLabel="ancho"
-            fieldLabel={legendRightField.label}
-            onCommit={(nextValue) => onSetArgValue(legendRightField.name, nextValue)}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
 function RadarLayout({
-  valueOf,
   argsByName,
-  beginSingleDrag,
-  onSetArgValue,
 }: {
-  valueOf: (name: string) => number;
   argsByName: Record<string, ArgMetadata>;
-  beginSingleDrag: (e: ReactPointerEvent, axis: "x" | "y", name: string) => void;
-  onSetArgValue: (name: string, value: number) => void;
 }) {
-  const table = argsByName.tabla_ph_ancho ? Math.max(0, Math.min(0.8, valueOf("tabla_ph_ancho"))) : 0;
-  const gap = argsByName.tabla_ph_gap ? Math.max(0, Math.min(0.2, valueOf("tabla_ph_gap"))) : 0;
-  const plot = Math.max(0.12, 1 - table - gap);
   return (
-    <div className="pulso-gv2-layout-radar-grid">
-      <div className="pulso-gv2-layout-frame" data-role="plot" style={{ width: `${plot * 100}%` }}>
-        <span>Radar</span>
-        <FrameMetric value={plot} total={1} axisLabel="ancho" fieldLabel="Radar" />
+    <div className="pulso-gv2-layout-radar-grid is-intrinsic">
+      <div className="pulso-gv2-layout-frame" data-role="plot" data-synthetic="true" title="Radar: Estimado">
+        <span>Radar · Estimado</span>
+        <small className="pulso-gv2-layout-qualitative-copy">Rol cualitativo; la vista PPT confirma su tamaño.</small>
       </div>
-      {argsByName.tabla_ph_gap && gap > 0 ? (
-        <div className="pulso-gv2-layout-frame" data-role="gap" style={{ width: `${gap * 100}%` }}>
-          <ZeroButton field={RADAR_FIELDS[1]} onSetArgValue={onSetArgValue} />
-          <span>Gap</span>
+      {argsByName.tabla_ph_gap ? (
+        <div className="pulso-gv2-layout-frame" data-role="gap" data-synthetic="true" title="Separación radar-tabla: Estimado">
+          <span>Gap · Estimado</span>
         </div>
       ) : null}
       {argsByName.tabla_ph_ancho && (
-        <div className="pulso-gv2-layout-frame" data-role="table" style={{ width: `${Math.max(12, table * 100)}%` }}>
-          <ZeroButton field={RADAR_FIELDS[0]} onSetArgValue={onSetArgValue} />
-          <button
-            type="button"
-            className="pulso-gv2-layout-handle is-x is-leading"
-            onPointerDown={(e) => beginSingleDrag(e, "x", "tabla_ph_ancho")}
-            aria-label="Arrastra para ajustar ancho de tabla"
-            title="Arrastra para ajustar ancho de tabla"
-          />
-          <span>Tabla</span>
-          <FrameMetric value={table} total={1} axisLabel="ancho" fieldLabel={RADAR_FIELDS[0].label} onCommit={(next) => onSetArgValue("tabla_ph_ancho", next)} />
+        <div className="pulso-gv2-layout-frame" data-role="table" data-synthetic="true" title="Tabla: Estimado; medida exacta sin unidad publicada">
+          <span>Tabla · Estimado</span>
+          <small className="pulso-gv2-layout-qualitative-copy">Rol cualitativo; edita el valor en Medidas exactas.</small>
         </div>
       )}
     </div>
@@ -1100,28 +1036,21 @@ function fieldIfPresent(
   return argsByName[name] ? { name, label, short, role } : null;
 }
 
-function layoutFieldHelp(field: LayoutField, meta?: ArgMetadata): string {
+function layoutFieldHelp(field: LayoutField, meta: ArgMetadata | undefined, contract: LayoutMeasureContract): string {
   if (field.name === "canvas_w_etiquetas") return "Más espacio evita cortes en preguntas largas.";
   if (field.name === "canvas_w_bars") return "Cuerpo principal donde se dibujan las barras.";
   if (field.name === "canvas_w_extra") return "Reserva para N, total, Top 2 u otra columna de apoyo.";
-  if (field.name === "canvas_h_header_in") return "Zona superior para título, pregunta o subtítulo.";
-  if (field.name === "canvas_h_toprow_in") return "Fila opcional para indicadores sobre las barras.";
-  if (field.name === "alto_por_categoria") return "Controla cuánto respira cada categoría.";
+  if (field.name === "canvas_h_header_in") return "Banda fija para título, pregunta o subtítulo.";
+  if (field.name === "canvas_h_toprow_in") return "Regla interna del panel para indicadores sobre las barras.";
+  if (field.name === "alto_por_categoria") return "Escala dependiente de datos: se aplica una vez por categoría.";
   if (field.role === "legend") return "Espacio reservado para la leyenda visible.";
   if (field.role === "caption") return "Notas, fuente o base al pie del gráfico.";
   if (field.role === "gap") return "Separación visual entre zonas cercanas.";
   if (field.role === "table") return "Área dedicada a la tabla de apoyo.";
   if (meta?.descripcion) return meta.descripcion;
-  return "Medida exacta de esta zona del gráfico.";
-}
-
-function layoutFieldUnit(meta?: ArgMetadata): string {
-  const unit = String(meta?.unidad ?? "").trim();
-  if (unit) return unit;
-  const name = String(meta?.name ?? "");
-  if (name.endsWith("_in")) return "pulg.";
-  if (name.includes("_w_") || name.includes("_h_") || name.includes("_frac")) return "proporción";
-  return "valor";
+  return contract.basis === "measure-only"
+    ? "Medida exacta sin geometría compartida publicada."
+    : layoutMeasureRule(contract);
 }
 
 function isResizableField(field: LayoutField & { synthetic?: boolean }): boolean {
@@ -1168,14 +1097,12 @@ function buildVerticalVisualFields(fields: LayoutField[], valueOf: (name: string
   const hasExplicitPanel = realFields.some((field) => field.role === "row" || field.role === "plot" || field.role === "panel");
   if (hasExplicitPanel) return realFields;
 
-  const used = realFields.reduce((sum, field) => sum + field.value, 0);
-  const panelValue = used < 0.98 ? Math.max(0.01, 1 - used) : Math.max(0.01, used * 0.55);
   const panel: VisualField = {
     name: "__layout_panel",
     label: "Panel gráfico",
     short: "Área del gráfico",
     role: "panel",
-    value: panelValue,
+    value: 1,
     synthetic: true,
   };
   const insertAt = realFields.findIndex((field) => field.role === "legend" || field.role === "caption");
@@ -1361,6 +1288,7 @@ function FrameMetric({
   total,
   axisLabel,
   fieldLabel,
+  contract,
   compact = false,
   onCommit,
 }: {
@@ -1368,17 +1296,12 @@ function FrameMetric({
   total: number;
   axisLabel: "ancho" | "alto";
   fieldLabel?: string;
+  contract: LayoutMeasureContract;
   compact?: boolean;
   onCommit?: (value: number) => void;
 }) {
-  const share = total > 0 ? value / total : 0;
   const axisTitle = axisLabel === "ancho" ? "Ancho" : "Alto";
-  const sharePercent = formatPercent(share);
-  const shareTier = metricShareTier(share, value);
-  const shareLabel = metricShareLabel(shareTier);
-  const metricStyle = {
-    "--metric-progress": `${Math.max(0, Math.min(100, share * 100))}%`,
-  } as CSSProperties;
+  const publishesShare = contract.basis === "ratio-partition" && contract.canShare;
   const [draft, setDraft] = useState(formatNumber(value));
   useEffect(() => {
     setDraft(formatNumber(value));
@@ -1418,6 +1341,34 @@ function FrameMetric({
   ) : (
     <b>{formatNumber(value)}</b>
   );
+  if (!publishesShare) {
+    return (
+      <small
+        className="pulso-gv2-layout-metric is-measure-only"
+        data-axis={axisLabel}
+        data-basis={contract.basis}
+        aria-label={`${fieldLabel ?? "Zona"}: valor exacto ${formatNumber(value)} ${contract.unitLabel}. ${layoutMeasureRule(contract)}`}
+      >
+        <span className="pulso-gv2-layout-metric-cell is-value">
+          <em>Valor</em>
+          {valueControl}
+        </span>
+        <span className="pulso-gv2-layout-metric-cell is-unit">
+          <em>Unidad</em>
+          <b>{contract.unitLabel}</b>
+        </span>
+      </small>
+    );
+  }
+
+  const share = total > 0 ? value / total : 0;
+  const sharePercent = formatPercent(share);
+  const shareTier = metricShareTier(share, value);
+  const shareLabel = metricShareLabel(shareTier);
+  const metricStyle = {
+    "--metric-progress": `${Math.max(0, Math.min(100, share * 100))}%`,
+  } as CSSProperties;
+
   if (compact) {
     return (
       <small
@@ -1508,8 +1459,52 @@ function resizePairLabel(first: LayoutField, second: LayoutField): string {
   return `Arrastra el borde para repartir espacio entre ${first.label} y ${second.label}`;
 }
 
-function resizeSingleLabel(field: LayoutField): string {
-  return `Arrastra el borde para ajustar ${field.label}`;
+function canShareFieldPair(
+  first: LayoutField,
+  second: LayoutField,
+  argsByName: Record<string, ArgMetadata>
+): boolean {
+  return canShareLayoutMeasurePair(
+    resolveLayoutMeasureContract(first.name, argsByName[first.name]),
+    resolveLayoutMeasureContract(second.name, argsByName[second.name])
+  );
+}
+
+function hasCompatibleLayoutPair(
+  fields: LayoutField[],
+  valueOf: (name: string) => number,
+  argsByName: Record<string, ArgMetadata>
+): boolean {
+  const shareableByPartition = new Map<string, number>();
+  for (const field of fields) {
+    if (!isResizableField(field) || valueOf(field.name) <= 0) continue;
+    const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
+    if (!contract.canShare || !contract.partition || contract.basis !== "ratio-partition") continue;
+    const count = (shareableByPartition.get(contract.partition) ?? 0) + 1;
+    if (count >= 2) return true;
+    shareableByPartition.set(contract.partition, count);
+  }
+  return false;
+}
+
+function layoutMeasureRule(contract: LayoutMeasureContract): string {
+  if (contract.basis === "ratio-partition") return "Reparte el ancho con medidas compatibles.";
+  if (contract.basis === "fixed-inch") return "Banda fija del render.";
+  if (contract.basis === "nested-inch") return "Zona interna del panel.";
+  if (contract.basis === "per-category-inch") return "Escala con la cantidad de categorías.";
+  return "Edición exacta; sin reparto visual.";
+}
+
+function layoutMeasureTitle(
+  field: LayoutField,
+  value: number,
+  contract: LayoutMeasureContract,
+  share?: number
+): string {
+  if (contract.basis === "ratio-partition" && contract.canShare && typeof share === "number") {
+    return `${field.label}: ${formatNumber(value)} ${contract.unitLabel} (${formatPercent(share)})`;
+  }
+  return `${field.label}: ${formatNumber(value)} ${contract.unitLabel}. ${layoutMeasureRule(contract)}`;
 }
 
 function layoutFieldLabel(
@@ -1551,12 +1546,4 @@ function getCanvasTrackLength(canvas: HTMLDivElement | null, axis: "x" | "y"): n
   const padY = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
   const axisLength = axis === "x" ? canvas.clientWidth - padX : canvas.clientHeight - padY;
   return Number.isFinite(axisLength) && axisLength > 1 ? axisLength : 1;
-}
-
-function getDragTrackLength(node: HTMLElement | null, axis: "x" | "y"): number | null {
-  if (!node) return null;
-  const rect = node.getBoundingClientRect();
-  const axisLength = axis === "x" ? rect.width : rect.height;
-  if (!Number.isFinite(axisLength) || axisLength <= 1) return null;
-  return axisLength;
 }
