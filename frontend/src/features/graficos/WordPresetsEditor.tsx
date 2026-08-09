@@ -8,6 +8,7 @@ import { ArgGroup, ARG_GROUP_ORDER, GRUPO_META, normalizeArgGroup } from "./ArgG
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
+import { resolveActiveChartLayoutOrigin } from "./chartLayoutOrigin";
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -56,6 +57,7 @@ export function WordPresetsEditor() {
     return Object.keys(patch).some((k) => hasValue(patch[k]));
   }).length;
   const selectedPatchCount = Object.keys(selectedPatch).filter((k) => hasValue(selectedPatch[k])).length;
+  const layoutOrigin = resolveActiveChartLayoutOrigin(selectedPatch);
 
   function setChartOptions(nextOptions: Record<string, unknown>) {
     setWPresets({
@@ -257,6 +259,7 @@ export function WordPresetsEditor() {
                       args={meta.args}
                       values={selectedPatch}
                       inheritedValues={inherited}
+                      origin={layoutOrigin}
                       surfaceLabel="Word"
                       onChangeArg={(name, value) => setPresetArg(meta.name, name, value)}
                       onChangeArgs={(patch) => setPresetPatch(meta.name, patch)}

@@ -10,20 +10,16 @@ import { usePlanStore } from "./store";
 import { LoadingBlock, ErrorBlock } from "../../components/States";
 import { ArgState } from "./ArgField";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
+import { collectActiveChartStyleValues, resolveActiveChartLayoutOrigin } from "./chartLayoutOrigin";
 import { IconChecklist, IconError, IconForward, IconModes, IconSuccess, IconTemplate } from "../../lib/icons";
 
-// Formulario dinámico de un graficador con jerarquía de fuentes:
+// Formulario dinámico de un graficador con dos ámbitos observables:
 //
 //   1. Preset global (por tipo de gráfico)        — gris (heredado)
-//   2. Modo aplicado (override reusable)         — morado
-//   3. Edits custom del usuario sobre 1 ó 2      — azul
+//   2. Ajustes propios del gráfico                 — azul
 //
-// `graf.args.overrides` es el map de keys que no provienen del preset.
-// Para distinguir "viene del modo" vs "edit custom puro": si el conjunto
-// `overrides` matchea EXACTAMENTE algún OverrideReusable compatible,
-// entonces todos esos args son "from-mode". Si solo matchea como subset,
-// los args del modo son "from-mode" y los extras son "custom". Si no
-// matchea ningún modo, son todos "custom".
+// `graf.args.overrides` guarda copias, no identidad de biblioteca. Aunque
+// sus valores coincidan con un estilo guardado, siguen siendo ajustes propios.
 
 type Props = {
   graf: GraficadorRef;
@@ -78,7 +74,6 @@ export default function GraficadorForm({
   const { presets: presetsDefaults } = usePresetsDefaults();
   const { variables } = useVariables();
   const userPresets = usePlanStore((s) => s.presets);
-  const overridesReusables = usePlanStore((s) => s.overridesReusables);
 
   const meta = graficadoresById[graf.graficador];
   const presetType = graficadorToPresetType(graf.graficador, meta?.preset_key);
@@ -147,18 +142,13 @@ export default function GraficadorForm({
   }, [expandedArgs]);
 
   const slotArgs = useMemo<Record<string, unknown>>(() => asRecord(graf.args), [graf.args]);
-  const rawOverrideArgs = useMemo<Record<string, unknown>>(() => {
-    const raw: Record<string, unknown> = {};
-    for (const [name, value] of Object.entries(asRecord(slotArgs.overrides))) {
-      if (!hasArgValue(value) && !(value === "" && allowsEmptyStringOverride(argsByName[name]))) continue;
-      raw[name] = value;
-    }
-    return raw;
-  }, [argsByName, slotArgs]);
+  const ownedStyleValues = useMemo(
+    () => collectActiveChartStyleValues(slotArgs, overrideArgNames),
+    [overrideArgNames, slotArgs],
+  );
 
-  // argState por arg: para args visuales guardados como overrides,
-  // calculamos según overrides y appliedMode. Para args propios del graficador,
-  // marcamos custom si tienen valor (comportamiento legacy).
+  // Los overrides anidados y las copias legacy propias se normalizan contra
+  // la Base PPT. Esta comparación reduce persistencia; nunca atribuye estilo.
   const currentOverrides = useMemo<Record<string, unknown>>(() => {
     const merged: Record<string, unknown> = {};
     for (const [name, value] of Object.entries(asRecord(slotArgs.overrides))) {
@@ -182,55 +172,22 @@ export default function GraficadorForm({
     return merged;
   }, [argsByName, overrideArgNames, presetArgNames, presetValues, slotArgs]);
 
-  const appliedMode = useMemo(() => {
-    if (!presetType) return null;
-    const aplicables = overridesReusables.filter((o) => o.tipo_preset === presetType);
-    // Buscamos contra los overrides crudos del slot. `currentOverrides`
-    // elimina valores iguales al preset para persistencia/manualidad, pero
-    // esos valores todavía pueden venir de un modo activo y deben mostrarse
-    // como "Modo" en la UI.
-    for (const o of aplicables) {
-      const okeys = Object.keys(o.args);
-      if (okeys.length === 0) continue;
-      let isSubset = true;
-      for (const k of okeys) {
-        if (!(k in rawOverrideArgs)) { isSubset = false; break; }
-        if (!sameValue(rawOverrideArgs[k], o.args[k])) { isSubset = false; break; }
-      }
-      if (isSubset) return o;
-    }
-    return null;
-  }, [presetType, overridesReusables, rawOverrideArgs]);
+  const layoutOrigin = useMemo(
+    () => resolveActiveChartLayoutOrigin(ownedStyleValues),
+    [ownedStyleValues],
+  );
 
   const argStates = useMemo<Record<string, ArgState>>(() => {
     const map: Record<string, ArgState> = {};
     for (const a of expandedArgs) {
-      const comesFromAppliedMode = Boolean(
-        appliedMode &&
-        Object.prototype.hasOwnProperty.call(appliedMode.args, a.name) &&
-        Object.prototype.hasOwnProperty.call(rawOverrideArgs, a.name) &&
-        sameValue(rawOverrideArgs[a.name], appliedMode.args[a.name])
-      );
       if (overrideArgNames.has(a.name)) {
-        // Arg del preset
-        if (comesFromAppliedMode) {
-          map[a.name] = "from-mode";
-        } else if (a.name in currentOverrides) {
-          map[a.name] = "custom";
-        } else {
-          map[a.name] = "inherited";
-        }
+        map[a.name] = a.name in ownedStyleValues ? "custom" : "inherited";
       } else {
-        // Arg propio del graficador (var, cruces, etc.) — comportamiento normal
-        map[a.name] = comesFromAppliedMode
-          ? "from-mode"
-          : hasArgValue(slotArgs[a.name])
-            ? "custom"
-            : "inherited";
+        map[a.name] = hasArgValue(slotArgs[a.name]) ? "custom" : "inherited";
       }
     }
     return map;
-  }, [expandedArgs, overrideArgNames, currentOverrides, appliedMode, rawOverrideArgs, slotArgs]);
+  }, [expandedArgs, overrideArgNames, ownedStyleValues, slotArgs]);
 
   // inheritedValues: para args del preset, el valor del preset (gris).
   // Para args propios del graficador, undefined (no hay heredado).
@@ -251,9 +208,9 @@ export default function GraficadorForm({
     return {
       ...slotArgs,
       // Cada arg del preset que tenga override aparece en top-level
-      ...currentOverrides,
+      ...ownedStyleValues,
     };
-  }, [slotArgs, currentOverrides]);
+  }, [slotArgs, ownedStyleValues]);
 
   // Agrupar args expandidos
   const grupos = useMemo(() => {
@@ -365,8 +322,9 @@ export default function GraficadorForm({
             <ChartLayoutEditor
               presetType={presetType}
               args={args}
-              values={valuesForArgs}
+              values={ownedStyleValues}
               inheritedValues={inheritedValues}
+              origin={layoutOrigin}
               onChangeArg={handleChange}
               onChangeArgs={handleLayoutPatch}
               onResetArg={(name) => handleChange(name, null)}

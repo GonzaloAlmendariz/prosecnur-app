@@ -386,6 +386,7 @@ function PresetBody({
                 args={presetArgs}
                 values={values}
                 inheritedValues={currentDefaults}
+                origin={{ kind: "base_ppt" }}
                 onChangeArg={handleSetPresetArg}
                 onChangeArgs={handleSetPresetPatch}
               />

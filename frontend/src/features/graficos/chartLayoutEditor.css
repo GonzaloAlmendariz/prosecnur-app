@@ -88,6 +88,7 @@
   min-inline-size: 0;
   max-inline-size: 220px;
   padding: 6px 9px;
+  overflow: visible;
   border-color: color-mix(in srgb, var(--pulso-primary) 18%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-primary-soft) 42%, var(--pulso-surface));
 }
@@ -96,6 +97,29 @@
 .pulso-gv2-layout-panel .pulso-gv2-layout-state-card strong {
   color: var(--pulso-primary);
   font-size: 10px;
+}
+
+.pulso-gv2-layout-panel .pulso-gv2-layout-state-card strong,
+.pulso-gv2-layout-panel .pulso-gv2-layout-state-card small {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pulso-gv2-overrides-list .pulso-gv2-mode-list-label,
+.pulso-gv2-override-focus-grid span.is-mode > b,
+.pulso-gv2-mode-option[data-kind="mode"] .pulso-gv2-mode-option-label {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pulso-gv2-overrides-list > .pulso-gv2-mode-list-item {
+  flex: 0 0 auto;
 }
 
 .pulso-gv2-layout-basis-strip {
@@ -397,6 +421,10 @@
   inline-size: 100%;
   max-inline-size: 100%;
   min-inline-size: 0;
+}
+
+.pulso-gv2-layout-panel .pulso-gv2-layout-footer {
+  justify-content: flex-end;
 }
 
 .pulso-gv2-layout-panel .pulso-gv2-layout-measure-board {

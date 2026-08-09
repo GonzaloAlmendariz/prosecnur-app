@@ -11,6 +11,8 @@ import {
   resolveLayoutMeasureContract,
 } from "./chartLayoutHelpers";
 import type { LayoutMeasureBasis, LayoutMeasureContract } from "./chartLayoutHelpers";
+import { presentChartLayoutOrigin } from "./chartLayoutOrigin";
+import type { ChartLayoutOrigin } from "./chartLayoutOrigin";
 import "./chartLayoutEditor.css";
 
 type LayoutKind = "bars" | "vertical" | "radar";
@@ -52,6 +54,7 @@ type Props = {
   args: ArgMetadata[];
   values: Record<string, unknown>;
   inheritedValues?: Record<string, unknown>;
+  origin: ChartLayoutOrigin;
   surfaceLabel?: string;
   onChangeArg: (name: string, value: unknown) => void;
   onChangeArgs?: (patch: Record<string, unknown>) => void;
@@ -108,6 +111,7 @@ export function ChartLayoutEditor({
   args,
   values,
   inheritedValues = {},
+  origin,
   surfaceLabel,
   onChangeArg,
   onChangeArgs,
@@ -210,8 +214,7 @@ export function ChartLayoutEditor({
     if (!dragRef.current) setLiveValues({});
   }, [valuesKey, inheritedValuesKey]);
 
-  const customFieldCount = fields.filter((field) => hasStoredValue(values[field.name])).length;
-  const inheritedFieldCount = fields.filter((field) => !hasStoredValue(values[field.name]) && hasStoredValue(inheritedValues[field.name])).length;
+  const ownFields = fields.filter((field) => hasStoredValue(values[field.name]));
   const layoutKindLabel = kind === "bars" ? "Barras horizontales" : kind === "radar" ? "Radar + tabla" : hasPieLayout(argsByName, presetType) ? "Gráfico circular" : "Gráfico vertical";
   const measureContracts = useMemo(() => {
     const contracts: Record<string, LayoutMeasureContract> = {};
@@ -221,15 +224,8 @@ export function ChartLayoutEditor({
     return contracts;
   }, [argsByName, fields]);
   const basisSummary = useMemo(() => buildBasisSummary(fields, measureContracts), [fields, measureContracts]);
-  const sourceState = customFieldCount > 0 ? "manual" : inheritedFieldCount > 0 ? "mode" : "base";
-  const sourceLabel = sourceState === "manual" ? "Ajustes adicionales" : sourceState === "mode" ? "Estilo guardado" : "Valor por defecto";
-  const sourceDetail = sourceState === "manual"
-    ? `${customFieldCount} medida${customFieldCount === 1 ? "" : "s"} personalizada${customFieldCount === 1 ? "" : "s"}`
-    : sourceState === "mode"
-      ? `${inheritedFieldCount} medida${inheritedFieldCount === 1 ? "" : "s"} del estilo`
-      : "Sin cambios propios";
-  const hasManualLayout = customFieldCount > 0;
-  const resetLabel = hasManualLayout ? "Quitar ajustes" : "Sin ajustes adicionales";
+  const originPresentation = presentChartLayoutOrigin(origin);
+  const hasOwnLayout = ownFields.length > 0;
 
   if (!kind || fields.length === 0) return null;
 
@@ -289,12 +285,13 @@ export function ChartLayoutEditor({
   }
 
   function resetAll() {
+    if (!originPresentation.declared || ownFields.length === 0) return;
     setLiveValues({});
     if (onChangeArgs) {
-      onChangeArgs(Object.fromEntries(fields.map((field) => [field.name, null])));
+      onChangeArgs(Object.fromEntries(ownFields.map((field) => [field.name, null])));
       return;
     }
-    for (const field of fields) onResetArg?.(field.name);
+    for (const field of ownFields) onResetArg?.(field.name);
   }
 
   function setArgValue(name: string, value: number) {
@@ -350,7 +347,7 @@ export function ChartLayoutEditor({
   return (
     <div
       className="pulso-gv2-layout-panel"
-      data-source-state={sourceState}
+      data-source-state={originPresentation.state}
       data-qa-geometry-group="graficos/distribucion-espacio"
       data-qa-geometry-contract="intrinsic"
       aria-label={surfaceLabel ? `Editor visual de espacios del gráfico: ${surfaceLabel}` : "Editor visual de espacios del gráfico"}
@@ -362,10 +359,13 @@ export function ChartLayoutEditor({
               <strong>Distribución del espacio</strong>
               <span>Controla parámetros del render. La vista PPT confirma el resultado final.</span>
             </div>
-            <div className="pulso-gv2-layout-state-card" aria-label="Origen dominante de los valores visibles">
-              <span>Aplicando</span>
-              <strong>{sourceLabel}</strong>
-              <small>{sourceDetail}</small>
+            <div
+              className="pulso-gv2-layout-state-card"
+              aria-label={`Procedencia de esta edición: ${originPresentation.label}. ${originPresentation.detail}`}
+            >
+              <span>Procedencia</span>
+              <strong>{originPresentation.label}</strong>
+              <small>{originPresentation.detail}</small>
             </div>
           </div>
 
@@ -440,19 +440,20 @@ export function ChartLayoutEditor({
           />
 
           <div className="pulso-gv2-layout-footer">
-            <div className="pulso-gv2-layout-source-legend" aria-label="Origen de valores">
-              <span className="is-base"><i /> Valor por defecto</span>
-              <span className="is-mode"><i /> Estilo guardado</span>
-              <span className="is-manual"><i /> Ajustes adicionales</span>
-            </div>
             <button
               type="button"
               onClick={resetAll}
               className="pulso-gv2-layout-reset"
-              disabled={!hasManualLayout}
-              title={hasManualLayout ? "Quitar ajustes adicionales y volver al valor visible anterior" : "Este layout no tiene ajustes adicionales"}
+              disabled={!originPresentation.declared || !hasOwnLayout}
+              title={
+                !originPresentation.declared
+                  ? "Declara la procedencia antes de restablecer valores"
+                  : hasOwnLayout
+                    ? "Restablecer únicamente los valores propios visibles"
+                    : "Este ámbito no tiene valores propios visibles"
+              }
             >
-              <RotateCcw size={12} /> {resetLabel}
+              <RotateCcw size={12} /> {originPresentation.resetLabel}
             </button>
           </div>
     </div>

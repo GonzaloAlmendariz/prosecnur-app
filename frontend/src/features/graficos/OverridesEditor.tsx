@@ -12,7 +12,7 @@ import PresetTypePicker from "./PresetTypePicker";
 // Los overrides reutilizables usan solo controles catalogados.
 
 // Overrides reutilizables = mini-presets nombrados (ej. "compacto", "grande")
-// que se aplican a slots específicos dentro de un slide.
+// que se copian como snapshots en slots específicos dentro de un slide.
 //
 // Mirror del patrón `ovr_apiladas_compactas` / `ovr_pie_compacto` de los
 // QMDs de GIZ: útil cuando un grid 4×/5×/6× necesita tamaños distintos
@@ -30,10 +30,10 @@ import PresetTypePicker from "./PresetTypePicker";
 // Los args editables son los del tipo de preset correspondiente — reusamos
 // el catálogo de presets-metadata (los mismos args que edita PresetsEditor).
 //
-// Aplicación: GraficadorSlot muestra un dropdown "Aplicar override" con
-// los overrides compatibles con el tipo del graficador actual (via
-// graficadorToPresetType). Al aplicar, copia los args al campo
-// `overrides` del GraficadorRef.
+// Uso: GraficadorSlot muestra una biblioteca con los overrides compatibles
+// con el tipo del graficador actual (via graficadorToPresetType). Al elegir
+// uno, copia sus args al campo `overrides` del GraficadorRef sin conservar
+// vínculo con esta biblioteca.
 
 function newId() {
   return `ov-${Math.random().toString(36).slice(2, 10)}`;
@@ -92,7 +92,9 @@ export function OverridesEditor() {
   }
 
   function handleDelete(id: string) {
-    const confirm = window.confirm("¿Eliminar este estilo guardado? Los gráficos que lo estén usando volverán al valor por defecto.");
+    const confirm = window.confirm(
+      "¿Eliminar este estilo guardado? Las copias ya hechas en gráficos conservarán sus ajustes; sólo se quitará esta opción de la biblioteca.",
+    );
     if (!confirm) return;
     removeOverride(id);
     if (selectedId === id) {
@@ -194,7 +196,7 @@ export function OverridesEditor() {
             title={overrides.length === 0 ? "Aún no hay estilos guardados" : "Selecciona un estilo guardado"}
             hint={
               overrides.length === 0
-                ? "Un estilo guardado conserva una apariencia reusable para aplicarla cuando el valor por defecto necesita una variante."
+                ? "Un estilo guardado conserva una apariencia reusable para copiarla cuando la Base PPT necesita una variante."
                 : "Elige uno del panel izquierdo para editar sus ajustes."
             }
             cta={
@@ -340,7 +342,7 @@ function OverrideEditPanel({
 
       {tipoMeta?.descripcion && (
         <p className="pulso-gv2-override-description">
-          {tipoMeta.descripcion} Los ajustes que definas acá se aplican sobre el valor por defecto cuando uses este estilo.
+          {tipoMeta.descripcion} Al elegir este estilo, sus valores se copian como ajustes del gráfico sin mantener vínculo con la biblioteca.
         </p>
       )}
 
@@ -364,6 +366,11 @@ function OverrideEditPanel({
                   presetType={override.tipo_preset}
                   args={layoutArgs}
                   values={override.args}
+                  origin={{
+                    kind: "saved_style",
+                    styleId: override.id,
+                    styleLabel: override.nombre,
+                  }}
                   onChangeArg={handleChangeArg}
                   onChangeArgs={(patchIn) => {
                     const next = { ...override.args };
