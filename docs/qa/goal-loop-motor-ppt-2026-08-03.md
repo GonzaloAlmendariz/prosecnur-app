@@ -1263,6 +1263,45 @@ Regla que se lleva el loop: un default de la casa vive en **cuatro** sitios
 cambiarlo exige recorrerlos todos. El test de contrato de presets es el que lo
 verifica; conviene correrlo siempre que se toque un default.
 
+### P33 — L10 arranca: el estilo de la casa no llega a toda la cola (2026-08-06)
+
+Censo del preset `base` (23 args: formato y sufijo de la nota de Base, 9
+tamaños, 4 posiciones de lámina, 5 colores, negritas y tipografía) y de la
+cadena de herencia. **Hallazgo antes de auditar un solo arg**: el mecanismo
+que reparte ese estilo tiene una forma que deja tipos fuera.
+
+`reporte_plan_ppt.R:243` — la herencia se hace así:
+
+```r
+targets <- intersect(names(presets), c(<17 tipos hardcodeados>))
+for (nm in targets) presets[[nm]]$args <- modifyList(base_style, presets[[nm]]$args)
+```
+
+Un tipo recibe el estilo de la casa **solo si** está en la lista escrita a mano
+**y además** ya existe en `names(presets)`. Medido sobre
+`.enriquecer_presets(list())` —el estado de un proyecto que no declaró nada—:
+
+| # | Hallazgo |
+|---|---|
+| **H43a** | `numerico` existe entre los presets enriquecidos pero **no está en la lista**: nunca hereda. Hay que determinar si alguien lo lee (entonces sale sin estilo) o es una clave muerta (entonces sobra) |
+| **H43b** | Los cinco `dim_*` están en la lista pero **no existen** tras enriquecer, así que `intersect` los descarta: **la familia dimensiones entera no recibe el estilo base** —tipografía, colores de eje y leyenda, tamaños— salvo que el proyecto los declare a mano |
+
+H43b importa más de lo que parece: L9 auditó la familia dimensiones y la dio por
+cerrada, pero lo hizo sobre el render, no sobre la cadena. El síntoma no es una
+lámina rota sino una que usa los defaults del graficador en vez de los de la
+casa — se ve bien y está mal, que es justo lo que la prueba 3 existe para cazar.
+
+Indicio de que el propio código lo sabía: `reporte_plan_ppt.R:294` parcha
+**a mano** el `font_family` de `dim_heatmap_criterios` desde `presets$base`.
+Un parche por-arg sobre un tipo sugiere que alguien vio el síntoma sin ver la
+causa; los otros ~21 args de estilo siguen sin llegar.
+
+**Sin reparar todavía.** La reparación natural —que `targets` se derive del
+registro en vez de una lista a mano, y que los tipos ausentes se creen antes de
+heredar— toca el reparto de estilo de **todos** los graficadores a la vez, así
+que exige su propio tramo con render antes/después por familia. Entra a la cola
+como trabajo propio de L10.
+
 ### P31 — L11 arranca: el consolidado comparte motor pero congela su suelo (2026-08-06)
 
 Primer tramo de L11 (prueba 5, el cuello de botella de la cobertura). Censo del
