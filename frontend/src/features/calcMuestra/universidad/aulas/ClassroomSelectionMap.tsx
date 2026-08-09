@@ -91,7 +91,10 @@ export function ClassroomSelectionMapWorkspace({
   const virtualizer = useVirtualizer({
     count: model.virtualRows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: (index) => model.virtualRows[index]?.kind === "group" ? 42 : 104,
+    // 118 y no 104: el nodo pasó a dos líneas de nombre para que el curso se
+    // lea (classroomSelectionMap.css). Si la estimación se queda corta, el
+    // virtualizador encima las filas.
+    estimateSize: (index) => model.virtualRows[index]?.kind === "group" ? 42 : 118,
     getItemKey: (index) => model.virtualRows[index]?.key ?? index,
     overscan: 6,
   });
