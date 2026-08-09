@@ -248,3 +248,38 @@ Se anotan acá y NO se arreglan en este loop; se llevan a su propia unidad.
 - El sorteo desde la UI corrió con `cube_balanceado` aunque el workspace tenía
   `sistematico_pps`: el engine del selector no se estaba tomando del config del
   workspace. Confirmado en la corrida `sel_aulas_20260808153925`.
+
+### De la revisión del informe metodológico externo (2026-08-09)
+
+Llegó una revisión del paquete de Kamila contrastado contra el motor. Lo que
+deja tarea, con lo que agrega esta sesión:
+
+- **PII sin anonimizar — lo más urgente.** `Muestreo Hostigamiento.xlsx` trae
+  nombres, correos institucionales y celulares de docentes. No entra al repo ni
+  a un `.pulso` sin pasar por `api/scripts/pulso_anonimizar.R`. Y ojo con el
+  orden: hasta hoy ese anonimizador **destruía las dimensiones categóricas**
+  (F111, `538eb68f`); un fixture construido antes de ese fix queda con las
+  facultades inservibles. Anonimizar con el código actual, no con un build viejo.
+- **Dimensionar al 95% en vez de al centro.** El motor dimensiona con
+  `aulas = ceil(cuota / (tamaño × tau))`, que apunta a que alcance *en
+  promedio*. El criterio del informe —cuántas aulas hacen falta para que
+  alcance el 95% de las veces— es mejor y no está en la app. Adoptarlo como
+  criterio, no portar su código.
+- **El lazo barato que propone la revisión depende de algo que estaba roto.**
+  Sugiere correr el MC sobre estudiantes únicos NETOS, apoyándose en el
+  descuento secuencial del motor. Correcto, pero el descuento se apagaba solo
+  en todo proyecto reabierto porque el guardado borraba `unique_student_ids`
+  (F114, `a859b321`). Sin ese fix el lazo no podía funcionar. Ya está reparado.
+- **El recorrido de Madow solo se publica sin descuento.** La revisión acierta
+  en que `calc_muestra_aulas_recorrido.R` es Madow (arranque + paso 1, recta de
+  π). Pero con el descuento secuencial ACTIVO el sistemático deja de caminar
+  una recta: sortea de a uno recalculando la MOS neta, y el recorrido se
+  declara inaplicable con motivo `descuento_secuencial`. Quien porte el
+  criterio del 95% tiene que decidir cuál de los dos diseños simula — es
+  exactamente el defecto que la revisión le señala al informe (simular un
+  diseño distinto del que se ejecuta).
+- **Rendimiento efectivo = asistencia × respuesta.** El motor descuenta con
+  `tau` (asistencia) y no con la no-respuesta dentro del aula. Es un cambio de
+  `calc_muestra_asistencia_referencia.R`, no de esta rama.
+- **Piso por facultad `máx(3, 10% del máximo)`.** `minEligible.byFaculty`
+  acepta un valor por facultad pero no la fórmula. Gap chico.
