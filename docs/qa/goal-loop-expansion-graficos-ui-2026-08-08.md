@@ -195,6 +195,81 @@ Baseline reproducible:
   `d22ebc8021317e7e3bee2c8f1eed741375df6b06192bc6e3148ca012156d9ef5`
   y manifiesto 53/53 SHA-256
   `47f791c6cf65a4b9a725179e4de1bff39a87298dbfe24bc0df7e06668b337f60`.
+- Scope lock de G2-L1.5b:
+  `prosecnur-graficos-g2-l1-5b-scope-lock.md`, SHA-256
+  `b22acb9e5493a8fc6c71d1936c773ba689ae5c3a4296c53eef689e0becfdcd83`.
+- Dirección congelada de G2-L1.5b:
+  `prosecnur-graficos-g2-l1-5b-direction.md`, SHA-256
+  `cb3c28ce1fcd06f5340d2fef0ce7d514e072af8e64d44b511b323d18175d760a`.
+- BEFORE de G2-L1.5b: acta externa `G2-L1.5b-QA-BEFORE.md`, SHA-256
+  `9b7450d5a8f9ffcab1deafe7fc467e046682faf59470d38c361e4ec46a1f338c`;
+  reporte bruto SHA-256
+  `b0d6214cd8494143d02883a719101448fdeecf694609b15b4a7ba4be578d1206`,
+  evidencia estructurada SHA-256
+  `86ae7ad9ad6aa28f682821e4c5db9d97c5874ddfbaf523ed23a986539350a7e7`,
+  runner SHA-256
+  `be7d43a2336663ad7b583ea223d0fae2071a79e7d55d6363f85d009f02c0c2b5`
+  y manifiesto 32/32 SHA-256
+  `be11703784f7c70001dc7b37f6b2ff56508de6b08b2d6632f3eecaabd33b4ca9`.
+- Scope lock de la micro-iteración legacy G2-L1.5b r2:
+  `prosecnur-g2-l1-5b-r2-scope-lock.md`, SHA-256
+  `8938852086d29385e13da5f2c863c7cf26d385cc0de51d875ee3009e8a2f2775`;
+  contrato congelado `prosecnur-g2-l1-5b-r2-contract.md`, SHA-256
+  `c5aead40fecda20a8cb72d7534ae35856d73e201d535110d042c5c73056bae45`.
+- Scope lock de G2-L1.5b r3:
+  `prosecnur-g2-l1-5b-r3-scope-lock.md`, SHA-256
+  `45fa52107a67430b81ddc6036f25a6b0208f07b61757a2411f06810e3801b315`;
+  contrato congelado `prosecnur-g2-l1-5b-r3-contract.md`, SHA-256
+  `07898eb640edb33efb61014fbd774dcf24d872f5e98bcaa2d98958db817c5b36`.
+- Scope lock de G2-L1.5b r4:
+  `prosecnur-g2-l1-5b-r4-scope-lock.md`, SHA-256
+  `aa209f352138fc2b1f5295f2eec1d3ea74adae4e3da19dc534c3539645990ddf`;
+  contrato congelado `prosecnur-g2-l1-5b-r4-contract.md`, SHA-256
+  `0700d34936582cf96feddb04be9615632b1f0ea044a71c8b9b0a8875ae6f0fcc`.
+- AFTER r1 de G2-L1.5b, rechazado: acta externa
+  `G2-L1.5b-QA-AFTER-r1.md`, SHA-256
+  `e198f4424cb17edabdb09f0ae3a4b11752defeac806445e8e028d4235ce51a76`;
+  reporte bruto SHA-256
+  `6e4d436411dac4a07490c99026563cc04e08576515a311c76e47a3095e0df5ae`,
+  evidencia estructurada SHA-256
+  `afda11fd507b5510a0a6e79fad14318060ac3c404f2049a028214c5b53cdf04e`,
+  runner SHA-256
+  `3e9f965775a9204c0ed1d603b8721aebb1a1b3c2accfe09280b98aedac580d84`
+  y manifiesto 17/17 SHA-256
+  `4690f99f9fef76e334eb6e1c488039a1aa4ec63f048fc85816578f09df5322d2`.
+- AFTER r2 de G2-L1.5b, rechazado: acta externa
+  `G2-L1.5b-QA-AFTER-r2.md`, SHA-256
+  `a7e07a0bfb8765ab68f9777a0cfc9106361791f51d83e4bdfbd5312b021b6310`;
+  reporte bruto SHA-256
+  `684ac3b22c71e8887bbd7df2879b7ad4620d69aa4c6529e5cc4616396d5000fe`,
+  evidencia estructurada SHA-256
+  `fed0e266cae9c8c945b6084eb3f1061a7e774d055628bdfaaf9b159562fc9121`,
+  runner SHA-256
+  `000a17a4acb38a3cb559f0b48216f655fca9a5f6f59763bfcbffaaa6a4ac432d`
+  y manifiesto 51/51 SHA-256
+  `5a303f3bd6ea4391aee59471e1d710aec9d134eda5357d9b9f5c29232e5f9a2f`.
+- AFTER r3 de G2-L1.5b, rechazado: acta externa
+  `G2-L1.5b-QA-AFTER-r3.md`, SHA-256
+  `5092a773f7db94b1abbe4277a1c5726ebe3fc3aa6bbaae4b8e3361985395f0b7`;
+  reporte bruto SHA-256
+  `7bfd5eebfd540abd72b340646fb74945b07caeab2646438afe94a7994e27feb5`,
+  evidencia estructurada SHA-256
+  `4f37c07461324a1678e3d3d3c2e3b0f67d662a70b501782222099cebfb8dab3b`,
+  runner SHA-256
+  `9201cfe4a90d7b2fc04dab025fd81cbeddbcf53bac24ec27e8f7de4790d6e30b`
+  y manifiesto 52/52 SHA-256
+  `c5f75a7e7f541646c82ef4c5378f84c5267d1cc4d034e30a615508dc80cf3bff`.
+- AFTER r4 de G2-L1.5b, aprobado por QA y por el gate serial: acta
+  externa `G2-L1.5b-QA-AFTER-r4.md`, SHA-256
+  `bff01633dc751e2e86047ac590ac74511d2e5100f8e7ee16f714088cba903db4`;
+  reporte bruto SHA-256
+  `3f04e4240565d36de3a40e4523211210f5a2e02f9099d18a587e3b40f6decc1b`,
+  evidencia estructurada SHA-256
+  `f2c7bd99f394e00d1942fd31f019d7be2d38c0314a39572a1b91c214a8d9af22`,
+  runner SHA-256
+  `2e2f1d3c36f3199ee671cde435a50e289e486978b639bb53b20beb5e06eec980`
+  y manifiesto 54/54 SHA-256
+  `13160a3248e8e1ec7985a3e1890a26a15c775109e02cd9488563546413a05974`.
 
 ## Cola viva de lotes
 
@@ -203,11 +278,12 @@ Baseline reproducible:
 | **G2-L0 · Verdad operativa post-ola 4** | Contrato machine-readable, fail-closed de autoría/capacidad, preview por requisito real, args/aliases, presets, iconos y censo 20/23 | G2, G3, G5–G8 | **cerrado · I0–I4 · `feat(graficos): cerrar contrato operativo del catálogo`** |
 | **G2-L0.1 · Guardas metodológicas de la ola 4** | Verificar y cerrar escala común de divergentes, elegibilidad/denominador de lollipop, firma/peso de Dumbbell y orden temporal acreditado | G2–G4, G6–G8 | **cerrado · I5–I11 · `fix(graficos): cerrar guardas metodológicas de la ola 4`** |
 | **G2-L1 · Puntos comparativos v1** | Una base, indicadores/códigos declarados por grupo, punto + N, sin línea/IC/significancia ni selección múltiple | G1–G8 | **cerrado · I12–I17 · `feat(graficos): incorporar puntos comparativos`** |
-| **G2-L1.5 · Distribuidor dinámico profesional** | Preservar `ChartLayoutEditor`/«Mapa de espacios»; recenso de familias, unidades, ratios, mínimos, densidad, fidelidad control→render R/PPT y acabado visual | G2, G5–G8 | **en curso · I18–I28 · G2-L1.5a cerrado; toma G2-L1.5b** |
+| **G2-L1.5 · Distribuidor dinámico profesional** | Preservar `ChartLayoutEditor`/«Mapa de espacios»; recenso de familias, unidades, ratios, mínimos, densidad, fidelidad control→render R/PPT y acabado visual | G2, G5–G8 | **en curso · I18–I49 · G2-L1.5a y G2-L1.5b cerrados; G2-L1.5c siguiente** |
 | **G2-L1.5a · Bases dimensionales** | Clasificar particiones, pulgadas fijas/internas/por fila; prohibir pares y porcentajes falsos; C1 + contención compacta en hoja propia | G2, G5–G8 | **cerrado · I28 · `fix(graficos): respetar bases del distribuidor`** |
-| **G2-L1.5b · Procedencia explícita** | Consumidores declaran Base PPT / estilo guardado / ajuste del gráfico; no inferir desde heredados | G2, G5, G7–G8 | pendiente tras L1.5a |
-| **G2-L1.5c · Interacción accesible** | Un handle por límite; teclado, foco, `aria-live` y Escape local | G5, G8 | pendiente tras L1.5b |
+| **G2-L1.5b · Procedencia explícita** | Consumidores declaran Base PPT / estilo guardado / ajuste del gráfico; no inferir desde heredados ni por igualdad de valores | G2, G5, G7–G8 | **cerrado · I29–I49 · `fix(graficos): declarar procedencia del distribuidor`** |
+| **G2-L1.5c · Interacción accesible** | Un handle por límite; teclado, foco, `aria-live` y Escape local | G5, G8 | **siguiente · censo y scope lock pendientes** |
 | **G2-L1.5d · Radar, pie y defaults efectivos** | Roles y unidades completos, tabla condicional, bandas/márgenes, panel fijo y fallback sin inventar | G2, G5–G8 | pendiente de contrato metadata propio |
+| **G2-L1.5e · Linaje durable de estilo** | Conservar id + snapshot de nombre y procedencia por campo al aplicar un estilo, con lectura legacy fail-closed | G2, G7–G8 | pendiente de ADR 0070 y versión nueva del contrato de Gráficos; no bloquea L1.5b–d |
 | **G2-L2 · Heatmap de cruce v1** | `select_one × select_one`, normalización por columna, N visible y S/D para base cero | G1–G8 | pendiente · segundo tipo seguro |
 | **G2-L3 · Respuesta múltiple con denominador declarado** | Casos/menciones visibles, elección explícita y guard de grano | G1–G8 | pendiente de ratificación de D3 |
 | **G2-L4 · Intervalos de confianza** | Congelar varianza, ponderación y diseño; motor + editor + salida vertical | G1–G8 | bloqueado metodológicamente por D2; no detiene el loop |
@@ -712,6 +788,279 @@ Baseline reproducible:
   lote —nueve preexistentes y el prompt no rastreado excluido—. G2-L1.5a se
   cierra con commit conventional y el goal pasa inmediatamente a G2-L1.5b.
 
+- **I29 · 2026-08-09 · Censo causal y contrato BEFORE de G2-L1.5b** — Dos
+  censos read-only localizaron la primera divergencia: `ChartLayoutEditor`
+  deduce un supuesto origen dominante por presencia de `values` o
+  `inheritedValues`, y tres consumidores reconstruyen un estilo por igualdad o
+  subconjunto. Al aplicar un estilo, sin embargo, React sólo copia sus valores
+  a `args.overrides`; no persiste id ni linaje. El mismo snapshot puede venir de
+  un ajuste manual, dos estilos pueden compartir valores y editar la biblioteca
+  altera retroactivamente el match. La guardianía contractual congeló el
+  supuesto conservador de D12: G2-L1.5b no inventa persistencia; cada callsite
+  declara su owner, el editor jamás deriva fuente desde valores heredados y un
+  gráfico activo con overrides se rotula `Ajuste de este gráfico`, aunque
+  coincida con un estilo. Sólo el editor dueño de la biblioteca puede afirmar
+  `Estilo guardado: <nombre>`. Identidad durable se separa como G2-L1.5e porque
+  exige ADR 0070, versión contractual y lectura legacy fail-closed. Scope lock
+  y dirección quedaron sellados antes de código; HEAD reutiliza el gate de
+  I28 —3824/3824, focal 9/9 y typecheck forzado cero— y el árbol conserva sólo
+  los tres cambios ajenos excluidos. Siguiente paso: BEFORE dual propio y
+  regresión RED independiente.
+
+- **I30 · 2026-08-09 · Regresión RED de procedencia** — Un autor independiente
+  obtuvo ownership exclusivo sobre dos tests y no tocó producto. El SSR fija
+  los mismos `values` e `inheritedValues` para tres ejecuciones y cambia sólo
+  la prop discriminada: esperaba `Base PPT/base`, `Estilo guardado: <nombre
+  largo>/mode` y `Ajuste de este gráfico/manual`; el componente actual devolvió
+  `Ajustes adicionales/manual` en las tres. Dos guards adicionales exigen que
+  origin ausente/inválido sea `Procedencia no declarada/unknown` y que el reset
+  nombre `Base PPT`, `estilo guardado` o `este gráfico`; hoy el origen inválido
+  vuelve a manual y los tres resets dicen `Quitar ajustes`. El agregado queda
+  en 3 fallos y 4 pases. Un contrato
+  puro adicional exige `resolveActiveChartLayoutOrigin(overrides)`: mapa vacío
+  es Base PPT y cualquier snapshot propio es ajuste, aunque sea idéntico o
+  superset de un estilo reusable; la suite falla primero porque ese módulo aún
+  no existe. Baseline previo 4/4 y `git diff --check` cero. El RED es causal,
+  tests-only y deja al writer un contrato cerrado sin acceso a la biblioteca.
+
+- **I31 · 2026-08-09 · BEFORE visual dual de procedencia** — QA independiente
+  abrió una copia sellada de `acnur_acg` y recorrió Base PPT, gráfico activo con
+  snapshot idéntico a un reusable, editor dueño del estilo y Base Word en
+  1440×1000 y 1024×600. Los ocho casos conservaron C1–C4, último contenido
+  alcanzable, cero scroll interno, cero clipping/overflow y diagnósticos cero;
+  proyecto y congelados quedaron inmutables. C5 falló 8/8 y el acta cerró
+  **RECHAZADO VISUAL P0=0/P1=4/P2=0**: Base PPT se presenta manual, el editor
+  del estilo se presenta manual, Word heredado se presenta como estilo y el
+  slot fabrica `Estilo guardado` por igualdad mientras su propio mapa dice
+  `Ajustes adicionales`. Los cuatro endpoints respondieron 200, 25 PNG se
+  sellaron, el manifiesto validó 32/32 y los puertos 5188/8799 cerraron. Con
+  BEFORE y RED íntegros, el único writer frontend puede implementar el contrato
+  explícito sin contaminar evidencia.
+
+- **I32 · 2026-08-09 · Primer candidato GREEN de G2-L1.5b** — El único writer
+  frontend trabajó en los nueve paths materializados, sin tocar tests, ledger,
+  R, persistencia ni congelados. Añadió la unión discriminada y un resolver cuya
+  firma sólo acepta el mapa propio; `ChartLayoutEditor` exige `origin`, falla
+  cerrado en runtime y limita reset a campos propios visibles. Presets declara
+  Base PPT, el editor de biblioteca entrega id+nombre, Word declara desde su
+  patch y el gráfico activo conserva cualquier snapshot nested/legacy como
+  ajuste aunque iguale la Base PPT. `GraficadorSlot`, `GraficadorForm` y
+  `StylePanel` dejaron de reconstruir `exactMatch`, subset, `appliedMode` o
+  `from-mode`; la igualdad restante sólo normaliza contra Base PPT o evita una
+  confirmación redundante. La acción de biblioteca ahora declara copia sin
+  vínculo. RED→GREEN terminó 13/13, el set focal+vecinos 36/36, typecheck
+  forzado cero y `git diff --check` limpio; el lead repitió 13/13 y censó cero
+  símbolos prohibidos. El candidato aún no está aceptado: pasa a guardianía y
+  QA AFTER dual independientes.
+
+- **I33 · 2026-08-09 · Rechazo contractual r1 y frontera legacy** — La
+  guardianía AFTER rechazó el candidato con **P0=0/P1=2/P2=2**. Para un slot
+  legacy con `canvas_w_bars` top-level y `overrides={}`, `GraficadorForm`
+  declara ajuste porque conoce los nombres visuales, pero el badge y
+  `StylePanel` declaran Base PPT; «Volver a Base PPT» sólo reemplaza el mapa
+  anidado y el merge del store conserva la key top-level. Copiar biblioteca
+  tiene la misma deuda y ni siquiera confirma el reemplazo cuando el mapa
+  anidado está vacío. El gate real de toda la feature confirmó alcance: 45/46
+  archivos y 290 tests verdes, con un único fallo que exige a `StylePanel`
+  resolver el `preset_key` real, justo la metadata necesaria para excluir
+  `var/cruces/filtros`. Cero matches exact/subset reaparecieron, R/persistencia
+  y congelados siguen intactos. Los P2 son copy técnico `owner/snapshot` y aria
+  genérico que oculta el claim visible. La micro r2 quedó congelada antes de
+  producto: collector común nested+legacy por nombres de metadata, patch de
+  reemplazo que nulifica sólo visuales legacy y paridad accesible en español.
+
+- **I34 · 2026-08-09 · QA AFTER r1 dirigido y rechazo visual** — QA cambió su
+  stopping rule al primer defecto del guardián y sembró de forma segura
+  `canvas_h_header_in=1.26` top-level con `overrides={}`. En 1440×1000 y
+  1024×600, acordeón, trigger y resumen dicen Base PPT mientras el mapa dice
+  `Ajuste de este gráfico/manual`; «Usar Base PPT» conserva la contradicción al
+  cerrar/reabrir. El reset interno del mapa sí limpia esa key, confirmando que
+  la causa es el patch incompleto del menú, no el store general. C1–C4 pasan en
+  ambos viewports, C5 falla, diagnósticos son cero, fixture/congelados quedan
+  inmutables y los puertos cierran. AFTER r1 termina **RECHAZADO VISUAL
+  P0=0/P1=1/P2=0**, con 17/17 artefactos; los estados modernos no se declaran
+  verdes por ausencia y pasan a r2.
+
+- **I35 · 2026-08-09 · Regresión RED de legacy, copy y accesibilidad** — El
+  autor independiente amplió sólo los dos tests que ya poseía. El helper puro
+  fija precedencia nested, inclusión exclusiva de nombres visuales top-level,
+  exclusión de `var/vars/cruces/filtro/null` y patch que nulifica sólo keys
+  visuales presentes al usar Base o copiar biblioteca. El SSR exige además que
+  el `aria-label` de la tarjeta incluya `Base PPT`, nombre guardado o ajuste
+  exacto, y que ningún detalle/tooltip publique `owner` o `snapshot`. Baseline
+  fue 1/1 y 7/7; el agregado queda **RED 8 pases / 4 fallos**: collector y
+  builder ausentes, aria genérico y jerga técnica. `git diff --check` permanece
+  limpio. El mismo writer frontend puede reparar ahora sólo cinco paths.
+
+- **I36 · 2026-08-09 · GREEN técnico r2 de procedencia legacy** — El mismo
+  writer frontend reparó únicamente los cinco paths autorizados. Un collector
+  común combina `args.overrides` con claves top-level legacy permitidas por la
+  metadata visual, da precedencia al mapa anidado y excluye datos, filtros y
+  nulos; un builder reemplaza el mapa y nulifica sólo aquellas claves visuales
+  legacy al usar Base PPT o copiar biblioteca. `GraficadorForm`,
+  `GraficadorSlot` y `StylePanel` consumen esa misma verdad; Slot y StylePanel
+  resuelven el preset real más `titulo`, sin reescribir al abrir. El claim
+  accesible reproduce estado y conteos visibles y el copy quedó en español,
+  sin `owner` ni `snapshot`. RED→GREEN terminó 17/17, los contratos de metadata
+  16/16 y toda la feature 46/46 archivos, 295/295 tests; `tsc -b --force`,
+  `git diff --check` y los dos hashes congelados salieron limpios. El lead
+  repitió 17/17 y 16/16. Es candidato técnico, no cierre: pasa a guardianía
+  contractual y QA AFTER r2 dual antes del `verificador` serial.
+
+- **I37 · 2026-08-09 · Guardianía r2 compatible** — La revisión contractual
+  independiente emitió **COMPATIBLE P0=0/P1=0/P2=0** y no editó archivos. En
+  el caso causal `canvas_h_header_in` top-level más `var/filtro`, los tres
+  consumidores declaran ajuste; Base produce `overrides={}` y nulifica sólo la
+  key visual, los datos sobreviven al merge y la reapertura declara Base PPT.
+  Copiar biblioteca comparte la misma limpieza y conserva los datos. La matriz
+  completa de nueve superficies no encontró identidad por igualdad, escritura
+  al abrir, persistencia nueva ni cruces de D12; el único `shallowEqualArgs`
+  evita confirmaciones redundantes y `sameValue` sólo normaliza contra Base.
+  La revisión repitió focal 17/17, metadata 16/16, feature 295/295, typecheck
+  forzado y diff-check limpios, con congelados y contratos sellados intactos.
+  C1 y C5 son conformes estáticamente; C2–C4 y nombre largo siguen reservados
+  al QA visual real, por lo que el lote aún no cierra.
+
+- **I38 · 2026-08-09 · AFTER r2 dual y rechazo por dos causales** — QA
+  independiente completó seis ámbitos en 1440×1000 y 1024×600: 12/12 casos,
+  44 PNG y manifiesto 51/51 íntegro. C1–C4 pasaron 12/12; C5 pasó 10/12, Word
+  reset/reapertura, Escape con foco devuelto, click-outside, aria/conteos,
+  endpoints y diagnósticos fueron conformes. El P1 legacy de r1 sí mejoró:
+  badge, trigger, StylePanel y mapa concuerdan antes, tras Base y tras copia, y
+  `var/cruces/filtro` sobreviven. Sin embargo, el backend devuelve la key
+  top-level limpiada como `{}` tanto para Base como para copia, residuo que no
+  satisface eliminación durable. El segundo P1 es visual: el nombre largo usa
+  `nowrap + ellipsis` en lista, focus-card y opción del popover en ambos
+  viewports, aunque la tarjeta del mapa ya envuelve completa. Proyecto,
+  candidato y congelados quedaron inmutables, puertos cerraron. Veredicto:
+  **RECHAZADO VISUAL P0=0/P1=2/P2=0**. r3 separa diagnóstico de serialización y
+  diagnóstico CSS antes de congelar un nuevo scope; el `verificador` no se
+  lanza todavía.
+
+- **I39 · 2026-08-09 · Diagnóstico causal y scope r3** — Dos carriles
+  read-only aislaron los P1. El tombstone sale de React como `null`, pero
+  `updateSlotArgs` lo retiene por spread; R guarda ese `NULL` nombrado y el
+  serializer global lo devuelve como `{}`. Tras reload, React lo considera
+  ajuste mientras el motor lo descarta, creando drift UI↔render. El fix mínimo
+  queda en el merge del store: borrar sólo keys top-level parcheadas con
+  `null/undefined`, preservando todo otro dato y sin tocar R/API/D12. El clipping
+  nace de tres reglas `nowrap + ellipsis` del CSS congelado; selectores más
+  específicos en `chartLayoutEditor.css` pueden permitir wrap íntegro sin
+  alterar scroll owners. Scope r3 SHA-256 `45fa5210…b315` y contrato
+  `07898eb6…5b36` congelaron un writer de producto con sólo `store.ts` y hoja
+  propia, y un autor RED con `store.test.ts` más el contrato de bibliotecas.
+  Siguiente gate: demostrar ambos fallos antes de producto.
+
+- **I40 · 2026-08-09 · RED r3 de tombstone y nombre íntegro** — El autor
+  independiente verificó los hashes del scope/contrato y tocó sólo los dos
+  tests asignados. El contrato de bibliotecas partió 9/9 verde y añadió un
+  guard que exige los tres selectores y las cuatro declaraciones de wrap; hoy
+  queda 9 pases/1 fallo porque ninguna regla completa existe en la hoja propia.
+  El nuevo test de store aplica el builder real a Base y copia sobre un slot
+  legacy y exige key ausente, JSON limpio, datos preservados y nested exacto;
+  queda 0/1 por `mergeSlotArgsPatch is not a function`, con colección válida.
+  Agregado: **9 pases/2 fallos causales**, `git diff --check` limpio. Producto
+  queda habilitado para un solo writer en `store.ts` y
+  `chartLayoutEditor.css`.
+
+- **I41 · 2026-08-09 · GREEN técnico r3** — El único writer frontend editó
+  sólo los dos paths autorizados. `mergeSlotArgsPatch` clona el mapa, borra
+  únicamente keys top-level parcheadas con `null/undefined` y conserva
+  literalmente falsos, ceros, cadenas vacías, arrays, objetos y
+  `overrides={}`; `updateSlotArgs` ya usa esa operación sin limpieza recursiva.
+  La hoja propia añade un bloque de mayor especificidad para lista, focus-card
+  y opción portada, con wrap/clip íntegros y sin altura ni scroll nuevos.
+  RED→GREEN terminó 11/11, procedencia 17/17, registry+bibliotecas 17/17 y toda
+  la feature 47/47 archivos, 297/297 tests; typecheck forzado, diff-check y
+  hashes congelados salieron limpios. Es candidato técnico, no cierre: debe
+  superar guardianía r3 y AFTER r3 dual con reload real.
+
+- **I42 · 2026-08-09 · Guardianía r3 compatible** — La revisión contractual
+  independiente emitió **COMPATIBLE P0=0/P1=0/P2=0**. Confirmó borrado
+  top-level sin mutación/recursión, preservación de falsy, arrays, objetos y
+  `overrides={}`, y censó que los consumidores existentes usan `null` como
+  tombstone/default sin conflicto transversal. Los tres selectores CSS
+  coinciden con DOM real, vencen al congelado incluso con su orden de import y
+  cubren el portal global sin alturas, scroll owners ni `word-break`. Repitió
+  focal 11/11, suite frontend completa 464/464 archivos, 3834/3834 tests,
+  typecheck y diff-check; scope, contratos y congelados coinciden. Clipping,
+  C1–C5 y autosave→GET→reload siguen reservados al QA real, por lo que no hay
+  cierre todavía.
+
+- **I43 · 2026-08-09 · AFTER r3 rechaza solape en lista compacta** — QA
+  independiente completó 12 casos y 45 PNG. El causal legacy quedó realmente
+  cerrado: Base y copia pasan autosave→GET→`page.reload()`, no dejan key
+  top-level, preservan sentinelas y rehidratan Base/Ajuste respectivamente.
+  Lista, focus-card y popover publican `clip/normal/anywhere`; Word, aria,
+  interacciones y C1–C3 pasan. La inspección visual impidió un falso verde del
+  resumen: en 1024×600 el flex column comprime ocho filas a 42 px mientras el
+  bloque largo necesita 98.84 px, produce 8/8 contenidos fuera de fila y siete
+  solapes adyacentes. En 1440×1000 es 0/0. Veredicto sellado:
+  **RECHAZADO VISUAL P0=0/P1=1/P2=0**, manifiesto 52/52, puertos cerrados.
+
+- **I44 · 2026-08-09 · Diagnóstico y scope r4 de flex-shrink** — El censo
+  read-only localizó la primera divergencia en el ítem hijo: el listado ya es
+  el scroll owner correcto, pero cada `.pulso-gv2-mode-list-item` hereda
+  `flex: 0 1 auto`; con espacio vertical negativo encoge hacia el mínimo y el
+  label con overflow visible pinta sobre filas vecinas. Copy/meta no fijan
+  altura y no son causales. El único patch permitido es
+  `.pulso-gv2-overrides-list > .pulso-gv2-mode-list-item { flex: 0 0 auto; }`
+  en hoja propia. Scope `aa209f35…0ddf` y contrato `0700d349…0fcc` congelan un
+  archivo de producto y un guard estático antes de código.
+
+- **I45 · 2026-08-09 · RED r4 de fila no comprimible** — El autor
+  independiente verificó ambos hashes y partió del contrato de bibliotecas
+  10/10 verde. Añadió un único guard tolerante a whitespace para el selector
+  hijo directo y `flex: 0 0 auto`; el archivo queda **10 pases/1 fallo**, con
+  primera aserción `expected false to be true`. `git diff --check` sigue limpio
+  y producto permanece intacto. El writer queda habilitado sólo para la hoja
+  propia.
+
+- **I46 · 2026-08-09 · GREEN técnico r4** — El único writer añadió exactamente
+  la regla hija directa `flex: 0 0 auto` en `chartLayoutEditor.css`, sin tocar el
+  bloque r3 ni introducir otra declaración. RED→GREEN terminó 11/11, store r3
+  1/1, procedencia 17/17 y feature 47/47 archivos, 298/298 tests; typecheck,
+  diff-check y congelados son conformes. El selector r4 sólo aparece en la hoja
+  propia. El candidato pasa a guardianía y AFTER r4 dual; todavía no cierra.
+
+- **I47 · 2026-08-09 · Guardianía r4 compatible** — La revisión read-only
+  emitió **COMPATIBLE P0=0/P1=0/P2=0**. La regla aparece una vez, tiene un único
+  `flex: 0 0 auto`, especificidad 0,2,0 frente a 0,1,0 congelada y mantiene el
+  bloque r3 intacto. El padre conserva su único `overflow-y:auto`; el hijo no
+  encoge, copy/meta no cambian y `align-items:center` sigue centrando icono y
+  badge. No hay alturas, overflow, media, scroll owners ni `word-break` nuevos.
+  Contrato 11/11, focal procedencia+store 18/18, diff-check y hashes salieron
+  conformes; C4 geométrico queda correctamente reservado a QA.
+
+- **I48 · 2026-08-09 · AFTER r4 elimina compresión y solapes** — QA visual
+  independiente recorrió seis owners en 1440×1000 y 1024×600, 12/12 casos con
+  C1–C5 conformes, y emitió **APROBADO VISUAL P0=0/P1=0/P2=0**. En el causal
+  compacto, r3 tenía 8/8 contenidos fuera de sus filas y siete intersecciones
+  adyacentes; r4 deja 0/8 y cero, mientras 1440 permanece 0/8 y cero. Cada fila
+  contiene label/meta, no adquiere scroll propio, conserva alto intrínseco y
+  centra icono/badge con delta máximo 0.01 px; el listado sigue como único dueño
+  vertical, alcanza la última fila y el nombre largo permanece íntegro en
+  lista, foco y popover. Legacy Base/copia pasó autosave→GET→reload sin
+  tombstones, Word, ARIA, Escape, foco, click-outside, endpoints e invariantes
+  pasaron y los diagnósticos quedaron vacíos. Se sellaron 45 PNG AFTER más dos
+  causales BEFORE r3; el manifiesto validó 54/54 y los puertos 5195/8806
+  cerraron. El lote es candidato, no cierre: pasa al `verificador` serial.
+
+- **I49 · 2026-08-09 · Gate serial y cierre de G2-L1.5b** — El `verificador`
+  independiente emitió **GO · P0=0/P1=0/P2=0** tras auditar los 15 paths
+  exactos, staged vacío, diff-check y todos los hashes congelados. Repitió el
+  frontend completo con 464/464 archivos y 3835/3835 tests, la feature con
+  47/47 y 298/298, procedencia 17/17, bibliotecas 11/11, store 1/1 y typecheck
+  forzado sin output. Los manifiestos BEFORE/r1/r2/r3/r4 validaron
+  32/32, 17/17, 51/51, 52/52 y 54/54. Recalculó desde los reportes y revisó los
+  cuatro PNG causales: a 1024×600 r3 `8/8 + 7` pasa a r4 `0/8 + 0`, y 1440
+  permanece `0/8 + 0`; verificó scroll owner único, última fila alcanzable,
+  nombre largo íntegro, legacy Base/copia autosave→GET→reload, Word, ARIA,
+  interacciones, cuatro endpoints, diagnósticos vacíos, fixture idéntico y todos
+  los puertos cerrados. No quedan pendientes del lote. G2-L1.5b cierra con
+  `fix(graficos): declarar procedencia del distribuidor`; el goal permanece
+  activo y toma inmediatamente G2-L1.5c.
+
 ## Bandeja de decisiones
 
 | ID | Decisión | Recomendación y supuesto conservador | Estado |
@@ -727,3 +1076,4 @@ Baseline reproducible:
 | D9 | Estimando y gramática de puntos comparativos v1 | Una base, indicador `select_one` + códigos objetivo, corte `select_one`, peso efectivo y filtros estrictos; porcentaje ponderado con `n` crudo visible, orden del instrumento, 2–12 grupos, eje 0–100 y puntos sin conectores/IC/significancia/SM | congelado para G2-L1 por revisión metodológica independiente |
 | D10 | Frontera del distribuidor dinámico de espacios | Conservar `ChartLayoutEditor` como control de los args efectivos; metadata/presets fijan nombres, unidades, defaults y límites, y el render R/PPT es el oracle visual. React puede mostrar y editar la distribución, pero no inventar semántica ni una geometría alternativa. La matriz de placeholders de slide de ADR 0068 permanece separada e intacta | resuelto por mandato de Gonzalo · gobierna G2-L1.5 |
 | D11 | Base dimensional del Mapa de espacios | Cada arg se clasifica por eje, unidad y composición; sólo una partición común admite conservación y porcentaje. `alto_por_categoria` es pulgadas por fila y `canvas_h_toprow_in` vive dentro del panel; ninguno se pareará con bandas fijas. Sin unidad canónica, medida exacta y sin drag | congelado para G2-L1.5a por censo React↔R y QA independiente |
+| D12 | ¿La procedencia de un estilo copiado se declara por contexto o se persiste como linaje durable? | G2-L1.5b usa contrato contextual explícito y fail-closed: sólo el owner de biblioteca afirma `Estilo guardado`; el snapshot de un gráfico es `Ajuste de este gráfico`. Persistir id + nombre snapshot + mapa por campo se difiere a G2-L1.5e con ADR 0070, bump de contrato y lectura legacy `unknown`, nunca migración por igualdad | supuesto conservador congelado por guardianía; identidad durable pendiente de decisión arquitectónica, no bloquea el loop |

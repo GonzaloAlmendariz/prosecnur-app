@@ -316,6 +316,21 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+export function mergeSlotArgsPatch(
+  currentArgs: Record<string, unknown> = {},
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = { ...currentArgs };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null || value === undefined) {
+      delete merged[key];
+    } else {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+
 function mergeDeepRecord(
   base: Record<string, unknown> = {},
   patch: Record<string, unknown> = {},
@@ -530,7 +545,10 @@ export const usePlanStore = create<PlanStore>((set) => ({
           if (s.id !== id) return s;
           const current = s.payload[slot] as GraficadorRef | undefined;
           if (!current) return s;
-          const merged: GraficadorRef = { graficador: current.graficador, args: { ...current.args, ...patch } };
+          const merged: GraficadorRef = {
+            graficador: current.graficador,
+            args: mergeSlotArgsPatch(current.args, patch),
+          };
           return { ...s, payload: { ...s.payload, [slot]: merged } };
         }),
       },

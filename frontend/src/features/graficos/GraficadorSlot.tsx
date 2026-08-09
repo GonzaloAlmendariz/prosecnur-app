@@ -11,6 +11,13 @@ import { graficadorToPresetType } from "./graficadorPresetMap";
 import { graficadorDisplayName, graficadorKindLabel } from "./graficadorDisplay";
 import { GraphSquareIcon, resolveGraphLucideIcon } from "./lucideRegistry";
 import { useGraficosLibraries } from "./GraficosLibrariesHost";
+import { usePresetsMetadata } from "./usePresetsMetadata";
+import {
+  buildActiveChartStylePatch,
+  collectActiveChartStyleValues,
+  presentChartLayoutOrigin,
+  resolveActiveChartLayoutOrigin,
+} from "./chartLayoutOrigin";
 
 // Card que representa un slot de graficador dentro de un slide. Dos
 // estados:
@@ -248,15 +255,12 @@ function SlotLabel({ text, slotName }: { text: string; slotName: string }) {
   );
 }
 
-// Dropdown de estilo por gráfico. La UI evita términos internos como
-// override/preset y expresa la herencia en tres capas: valor por defecto,
-// estilo guardado y ajustes adicionales del gráfico.
+// Dropdown de estilo por gráfico. Un estilo guardado se copia al slot y no
+// conserva identidad durable con la biblioteca.
 //
-// Estados visuales:
-//   - "Valor por defecto"  → sin overrides (estilo base)
-//   - "Estilo guardado"     → una variante reusable aplicada exacta
-//   - "Estilo + ajustes"    → variante aplicada + ajustes adicionales
-//   - "Ajustes adicionales" → ajustes propios, sin variante base
+// Estados visibles:
+//   - "Base PPT"                 → sin overrides propios
+//   - "Ajuste de este gráfico"   → cualquier copia propia
 //
 // Acciones:
 //   - Selección de modo predefinido (con confirmación si hay edits).
@@ -277,6 +281,7 @@ function OverrideDropdown({
   const allOverrides = usePlanStore((s) => s.overridesReusables);
   const addOverride = usePlanStore((s) => s.addOverrideReusable);
   const updateArgs = usePlanStore((s) => s.updateSlotArgs);
+  const { presetsByName } = usePresetsMetadata();
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<"up" | "down">("down");
   const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
@@ -288,6 +293,13 @@ function OverrideDropdown({
     () => (presetType ? allOverrides.filter((o) => o.tipo_preset === presetType) : []),
     [allOverrides, presetType]
   );
+  const visualArgNames = useMemo(() => {
+    const names = new Set(
+      presetType ? (presetsByName[presetType]?.args ?? []).map((arg) => arg.name) : [],
+    );
+    names.add("titulo");
+    return names;
+  }, [presetType, presetsByName]);
 
   // Click-outside + Escape cierran el popover.
   useEffect(() => {
@@ -328,73 +340,48 @@ function OverrideDropdown({
 
   if (!presetType) return null;
 
-  // Estado actual: ¿está aplicado un modo exacto, modo+ajustes propios, o manual puro?
-  const currentOverrideArgs = (value.args?.overrides as Record<string, unknown>) ?? {};
+  const slotArgs = toRecord(value.args);
+  const currentOverrideArgs = collectActiveChartStyleValues(slotArgs, visualArgNames);
   const customCount = Object.keys(currentOverrideArgs).length;
-
-  // Buscamos un modo cuyos args sean SUBSET de los actuales. Si los
-  // matches son exactos → modo exacto. Si los args actuales tienen MÁS
-  // keys que el modo → modo + edits.
-  const exactMatch = aplicables.find((o) => shallowEqualArgs(o.args, currentOverrideArgs));
-  const partialMatch = exactMatch
-    ? null
-    : aplicables.find((o) => isSubset(o.args, currentOverrideArgs));
-  const isPureCustom = customCount > 0 && !exactMatch && !partialMatch;
-
-  const modeState = exactMatch
-    ? "mode"
-    : partialMatch
-      ? "mixed"
-      : isPureCustom
-        ? "manual"
-        : "base";
-
-  const isActive = modeState !== "base";
-  const triggerLabel =
-    modeState === "mode"
-      ? "Estilo guardado"
-      : modeState === "mixed"
-        ? "Estilo + ajustes"
-        : modeState === "manual"
-          ? "Ajustes adicionales"
-          : "Valor por defecto";
-  const triggerHint =
-    exactMatch?.nombre ??
-    partialMatch?.nombre ??
-    (isPureCustom ? `${customCount} ajuste${customCount === 1 ? "" : "s"}` : "sin cambios");
+  const activeOrigin = resolveActiveChartLayoutOrigin(currentOverrideArgs);
+  const originPresentation = presentChartLayoutOrigin(activeOrigin);
+  const modeState = originPresentation.state;
+  const isActive = activeOrigin.kind === "chart_adjustment";
+  const triggerLabel = originPresentation.label;
+  const triggerHint = isActive
+    ? `${customCount} ajuste${customCount === 1 ? "" : "s"} propio${customCount === 1 ? "" : "s"}`
+    : "sin cambios propios";
   const graphLabel = graficadorDisplayName(value.graficador);
-  const currentDetail =
-    modeState === "base"
-      ? "Usa el valor por defecto del gráfico. No marca cambios."
-      : modeState === "mode"
-        ? "Aplica un estilo guardado sin ajustes adicionales."
-        : modeState === "mixed"
-          ? "Parte de un estilo guardado y suma ajustes adicionales."
-          : "Solo este gráfico tiene ajustes adicionales.";
-  const lineageModeLabel = exactMatch?.nombre ?? partialMatch?.nombre ?? "Sin estilo guardado";
-  const lineageSlotLabel = customCount > 0
-    ? `${customCount} ajuste${customCount === 1 ? "" : "s"} adicional${customCount === 1 ? "" : "es"}`
-    : "Sin ajustes adicionales";
+  const currentDetail = isActive
+    ? "Este gráfico conserva una copia propia. No mantiene vínculo con la biblioteca de estilos."
+    : "Este gráfico usa la Base PPT y no guarda ajustes propios.";
+  const lineageSlotLabel = isActive
+    ? `${customCount} ajuste${customCount === 1 ? "" : "s"} sin vínculo`
+    : "Sin ajuste propio";
   const modeRail = [
-    { key: "base", label: "Valor por defecto", active: true },
-    { key: "mode", label: "Estilo guardado", active: Boolean(exactMatch || partialMatch) },
-    { key: "manual", label: "Ajustes adicionales", active: customCount > 0 },
+    { key: "base", label: "Base PPT", active: !isActive },
+    { key: "mode", label: "Biblioteca disponible; no es procedencia", active: false },
+    { key: "manual", label: "Ajuste de este gráfico", active: isActive },
   ];
 
-  function applyMode(args: Record<string, unknown> | null) {
-    // Si hay edits custom y vamos a reemplazar, pedir confirmación.
+  function applyMode(args: Record<string, unknown> | null, styleLabel?: string) {
+    // La igualdad sólo evita una confirmación redundante; nunca atribuye procedencia.
     const willOverwriteCustom =
       customCount > 0 &&
       !shallowEqualArgs(currentOverrideArgs, args ?? {});
     if (willOverwriteCustom) {
-      const ok = window.confirm(
-        `Hay ajustes adicionales en este gráfico. ` +
-        `Aplicar otro estilo guardado los reemplazará. ¿Continuar?\n\n` +
-        `Consejo: cancela y guárdalos como estilo si quieres reutilizarlos.`
-      );
+      const copyNotice = styleLabel
+        ? `Copiar el estilo guardado “${styleLabel}” reemplazará los ajustes de este gráfico. ` +
+          "La copia quedará como ajustes propios y no mantendrá vínculo con la biblioteca. ¿Continuar?"
+        : "Volver a la Base PPT quitará los ajustes propios de este gráfico. ¿Continuar?";
+      const ok = window.confirm(copyNotice);
       if (!ok) { setOpen(false); return; }
     }
-    updateArgs(slideId, slotName, { overrides: args ?? {} });
+    updateArgs(
+      slideId,
+      slotName,
+      buildActiveChartStylePatch(slotArgs, visualArgNames, args ?? {}),
+    );
     setOpen(false);
   }
 
@@ -495,31 +482,32 @@ function OverrideDropdown({
           style={popoverStyle}
         >
           <div className="pulso-gv2-mode-current" data-state={modeState}>
-            <span>Estilo actual</span>
+            <span>Procedencia actual</span>
             <strong>{triggerLabel}</strong>
             <small>{triggerHint}</small>
             <p className="pulso-gv2-mode-current-detail">{currentDetail}</p>
-            <div className="pulso-gv2-mode-lineage" aria-label="Ruta visual aplicada">
-              <span className="is-base"><Check size={11} /> Valor por defecto</span>
-              <span className={exactMatch || partialMatch ? "is-mode" : "is-muted"}>
-                {lineageModeLabel}
-              </span>
-              <span className={customCount > 0 ? "is-manual" : "is-muted"}>
+            <div
+              className="pulso-gv2-mode-lineage"
+              aria-label={`${triggerLabel}. ${customCount} ajuste${customCount === 1 ? "" : "s"}. Biblioteca disponible: ${aplicables.length} estilo${aplicables.length === 1 ? "" : "s"}`}
+            >
+              <span className="is-base"><Check size={11} /> Base PPT</span>
+              <span className="is-muted">Biblioteca disponible</span>
+              <span className={isActive ? "is-manual" : "is-muted"}>
                 {lineageSlotLabel}
               </span>
             </div>
           </div>
 
           <div className="pulso-gv2-mode-popover-label">
-            Estilos guardados para {graphLabel} · {aplicables.length}
+            Biblioteca para {graphLabel} · {aplicables.length} estilo{aplicables.length === 1 ? "" : "s"} disponible{aplicables.length === 1 ? "" : "s"}
           </div>
 
           <DropdownOption
             kind="base"
-            label="Mantener valor por defecto"
-            hint="No marca cambios"
-            description="Apariencia base para este tipo de gráfico."
-            active={customCount === 0}
+            label="Usar Base PPT"
+            hint="Sin ajustes propios"
+            description="Quita la copia propia del gráfico y vuelve a su Base PPT."
+            active={!isActive}
             onClick={() => applyMode(null)}
           />
           {aplicables.map((o) => {
@@ -529,9 +517,9 @@ function OverrideDropdown({
                 kind="mode"
                 label={o.nombre}
                 hint={`${Object.keys(o.args).length} ajuste${Object.keys(o.args).length === 1 ? "" : "s"}`}
-                description="Reutiliza este estilo en el gráfico seleccionado."
-                active={exactMatch?.id === o.id}
-                onClick={() => applyMode({ ...o.args })}
+                description="Copia este estilo como ajustes del gráfico. No mantiene vínculo con la biblioteca."
+                active={false}
+                onClick={() => applyMode({ ...o.args }, o.nombre)}
               />
             );
           })}
@@ -552,7 +540,7 @@ function OverrideDropdown({
             >
               <Save size={12} />
               <span className="pulso-gv2-mode-option-label">
-                Guardar estilo reutilizable
+                Guardar una copia como estilo reutilizable
               </span>
             </button>
           )}
@@ -565,7 +553,7 @@ function OverrideDropdown({
               className="pulso-gv2-mode-option pulso-gv2-mode-option--muted"
             >
               <RotateCcw size={11} />
-              Volver al valor por defecto
+              Volver a Base PPT
             </button>
           )}
         </div>,
@@ -573,18 +561,6 @@ function OverrideDropdown({
       )}
     </div>
   );
-}
-
-// Verifica que cada key de `subset` esté en `superset` con el mismo valor.
-// `superset` puede tener keys adicionales (esos son edits encima del modo).
-function isSubset(subset: Record<string, unknown>, superset: Record<string, unknown>): boolean {
-  const keys = Object.keys(subset);
-  if (keys.length === 0) return false; // un override vacío no es match
-  for (const k of keys) {
-    if (!(k in superset)) return false;
-    if (subset[k] !== superset[k]) return false;
-  }
-  return true;
 }
 
 function DropdownOption({
@@ -634,4 +610,9 @@ function shallowEqualArgs(a: Record<string, unknown>, b: Record<string, unknown>
     if (a[k] !== b[k]) return false;
   }
   return true;
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
 }

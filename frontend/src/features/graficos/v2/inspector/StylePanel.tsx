@@ -2,11 +2,13 @@ import { useMemo } from "react";
 import { Palette, Sliders, RotateCcw, Info, LayoutPanelTop, ArrowRight, ChevronDown } from "lucide-react";
 import { ArgMetadata, GraficadorRef, Slide, VarInfo } from "../../../../api/client";
 import { usePlanStore, SLIDE_GRAF_SLOTS } from "../../store";
-import { graficadorToPresetType } from "../../graficadorPresetMap";
 import { ArgGroup } from "../../ArgGroup";
+import { graficadorToPresetType } from "../../graficadorPresetMap";
 import { useGraficosRegistry } from "../../useGraficosRegistry";
+import { usePresetsMetadata } from "../../usePresetsMetadata";
 import GraficadorSlot, { getSlotLabel } from "../../GraficadorSlot";
 import { graficadorDisplayName } from "../../graficadorDisplay";
+import { collectActiveChartStyleValues, resolveActiveChartLayoutOrigin } from "../../chartLayoutOrigin";
 import { groupArgs } from "./InspectorV2";
 
 // Tab de Estilo. Estructura final acordada con el usuario:
@@ -32,9 +34,9 @@ export type StylePanelProps = {
 };
 
 export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
-  const overridesReusables = usePlanStore((s) => s.overridesReusables);
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
   const { graficadoresById } = useGraficosRegistry();
+  const { presetsByName } = usePresetsMetadata();
 
   const slotNames = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
 
@@ -49,13 +51,11 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
   }, [args, slide.payload]);
 
   const slotStyleInfo = useMemo(() => {
-    type SlotState = "empty" | "base" | "mode" | "mixed" | "manual";
+    type SlotState = "empty" | "base" | "manual";
     const bySlot: Record<string, { state: SlotState; label: string }> = {};
     const counts = {
       empty: 0,
       base: 0,
-      mode: 0,
-      mixed: 0,
       manual: 0,
       populated: 0,
     };
@@ -70,60 +70,39 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
       }
 
       counts.populated += 1;
-      const overrides = asRecord(value?.args?.overrides);
-      const overrideKeys = Object.keys(overrides).filter(
-        (k) => overrides[k] !== null && overrides[k] !== undefined
-      );
-
-      if (overrideKeys.length === 0) {
-        counts.base += 1;
-        bySlot[slot] = { state: "base", label: "Valor por defecto" };
-        continue;
-      }
-
       const presetType = graficadorToPresetType(
         graf,
         graficadoresById[graf]?.preset_key,
       );
-      const aplicables = presetType
-        ? overridesReusables.filter((o) => o.tipo_preset === presetType)
-        : [];
-      if (!aplicables.length) {
-        counts.manual += 1;
-        bySlot[slot] = { state: "manual", label: "Ajustes adicionales" };
-        continue;
-      }
-
-      const exactMatch = aplicables.find((o) => shallowEqualArgs((o.args as Record<string, unknown>) ?? {}, overrides));
-      if (exactMatch) {
-        counts.mode += 1;
-        bySlot[slot] = { state: "mode", label: `Estilo: ${exactMatch.nombre}` };
-        continue;
-      }
-
-      const partialMatch = aplicables.find((o) =>
-        isSubsetArgs((o.args as Record<string, unknown>) ?? {}, overrides)
+      const visualArgNames = new Set(
+        presetType ? (presetsByName[presetType]?.args ?? []).map((arg) => arg.name) : [],
       );
-      if (partialMatch) {
-        counts.mixed += 1;
-        bySlot[slot] = { state: "mixed", label: "Estilo + ajustes" };
+      visualArgNames.add("titulo");
+      const styleValues = collectActiveChartStyleValues(
+        asRecord(value.args),
+        visualArgNames,
+      );
+      const origin = resolveActiveChartLayoutOrigin(styleValues);
+
+      if (origin.kind === "base_ppt") {
+        counts.base += 1;
+        bySlot[slot] = { state: "base", label: "Base PPT" };
         continue;
       }
 
       counts.manual += 1;
-      bySlot[slot] = { state: "manual", label: "Ajustes adicionales" };
+      bySlot[slot] = { state: "manual", label: "Ajuste de este gráfico" };
     }
 
     return {
       bySlot,
       counts,
     };
-  }, [graficadoresById, overridesReusables, slide.payload, slotNames]);
+  }, [graficadoresById, presetsByName, slide.payload, slotNames]);
 
   const styleFlow = {
     hasPreset: slotStyleInfo.counts.base > 0,
-    hasMode: slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed > 0,
-    hasManual: slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed > 0,
+    hasManual: slotStyleInfo.counts.manual > 0,
   };
 
   function resetSlideStyleArgs() {
@@ -149,35 +128,38 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
               <div className="pulso-gv2-style-banner-title">
                 Apariencia del gráfico
               </div>
-              <div className="pulso-gv2-style-origin-strip" aria-label="Origen de estilo por gráfico">
-                <span><strong>{slotStyleInfo.counts.base}</strong> Valor por defecto</span>
-                <span><strong>{slotStyleInfo.counts.mode + slotStyleInfo.counts.mixed}</strong> Estilo guardado</span>
-                <span><strong>{slotStyleInfo.counts.manual + slotStyleInfo.counts.mixed}</strong> Ajustes adicionales</span>
+              <div
+                className="pulso-gv2-style-origin-strip"
+                aria-label={`${slotStyleInfo.counts.base} Base PPT; biblioteca disponible para copia; ${slotStyleInfo.counts.manual} Ajuste de este gráfico`}
+              >
+                <span><strong>{slotStyleInfo.counts.base}</strong> Base PPT</span>
+                <span><strong>→</strong> Biblioteca disponible</span>
+                <span><strong>{slotStyleInfo.counts.manual}</strong> Ajuste de este gráfico</span>
               </div>
             </div>
             <div className="pulso-gv2-style-banner-hint">
-              <div className="pulso-gv2-style-flow-title">Orden de aplicación</div>
-              <div className="pulso-gv2-style-flow" aria-label="Jerarquía de origen de los valores">
+              <div className="pulso-gv2-style-flow-title">Flujo de copia</div>
+              <div className="pulso-gv2-style-flow" aria-label="Base PPT; biblioteca disponible para copia; Ajuste de este gráfico">
                 <div className={`pulso-gv2-style-flow-step is-base ${styleFlow.hasPreset ? "is-active" : ""}`} data-state="Base">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Valor por defecto</strong>
+                    <strong>Base PPT</strong>
                     <span>No marca cambios</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
-                <div className={`pulso-gv2-style-flow-step is-mode ${styleFlow.hasMode ? "is-active" : ""}`} data-state="Estilo guardado">
+                <div className="pulso-gv2-style-flow-step is-mode" data-state="Biblioteca disponible">
                   <div className="pulso-gv2-style-flow-step-icon"><Palette size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Estilo guardado</strong>
-                    <span>Reusable</span>
+                    <strong>Biblioteca</strong>
+                    <span>Se copia, no se vincula</span>
                   </div>
                 </div>
                 <ArrowRight size={13} className="pulso-gv2-style-flow-arrow" />
                 <div className={`pulso-gv2-style-flow-step is-custom ${styleFlow.hasManual ? "is-active" : ""}`} data-state="Ajustes">
                   <div className="pulso-gv2-style-flow-step-icon"><Sliders size={12} /></div>
                   <div className="pulso-gv2-style-flow-step-copy">
-                    <strong>Ajustes adicionales</strong>
+                    <strong>Ajuste de este gráfico</strong>
                     <span>Solo este gráfico</span>
                   </div>
                 </div>
@@ -237,8 +219,8 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
           </div>
           <div className="pulso-gv2-style-section-hint">
             Ajusta lectura, espacio, leyenda y valores visibles.
-            Usa <strong>Estilo guardado</strong> para reutilizar una apariencia y
-            <strong> Ajustes adicionales</strong> para afinar solo el gráfico activo.
+            Elige un <strong>estilo guardado</strong> para copiarlo como ajustes del gráfico;
+            la copia no mantiene vínculo con la biblioteca.
           </div>
           <div className="pulso-gv2-slot-stack">
             {slotNames.map((slotName) => {
@@ -261,7 +243,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
                         aria-hidden="true"
                       >
                         <span data-step="base">Base</span>
-                        <span data-step="mode">Estilo</span>
+                        <span data-step="mode">Copia</span>
                         <span data-step="manual">Ajustes</span>
                       </span>
                       <span className={`pulso-gv2-slot-state-pill is-${slotState.state}`}>
@@ -296,31 +278,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
   );
 }
 
-function shallowEqualArgs(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-  const ka = Object.keys(a);
-  const kb = Object.keys(b);
-  if (ka.length !== kb.length) return false;
-  for (const key of ka) {
-    if (!sameValue(a[key], b[key])) return false;
-  }
-  return true;
-}
-
-function isSubsetArgs(subset: Record<string, unknown>, superset: Record<string, unknown>): boolean {
-  const keys = Object.keys(subset);
-  if (keys.length === 0) return false;
-  for (const key of keys) {
-    if (!Object.prototype.hasOwnProperty.call(superset, key)) return false;
-    if (!sameValue(subset[key], superset[key])) return false;
-  }
-  return true;
-}
-
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
-}
-
-function sameValue(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
 }

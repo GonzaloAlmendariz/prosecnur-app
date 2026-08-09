@@ -24,6 +24,26 @@ function read(relativePath: string): string {
   return fs.readFileSync(path.join(featureDir, relativePath), "utf8");
 }
 
+function cssRuleBodies(source: string, selector: string): string[] {
+  const normalizeSelector = (value: string) => value
+    .replace(/\s*>\s*/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+  const expected = normalizeSelector(selector);
+  return [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((match) => match[1].split(",").map(normalizeSelector).includes(expected))
+    .map((match) => match[2]);
+}
+
+function hasCssDeclaration(body: string, property: string, value: string): boolean {
+  return body.split(";").some((declaration) => {
+    const separator = declaration.indexOf(":");
+    if (separator < 0) return false;
+    return declaration.slice(0, separator).trim() === property &&
+      declaration.slice(separator + 1).trim() === value;
+  });
+}
+
 describe("bibliotecas de Gráficos como paneles direccionables", () => {
   it("declara ids estables y los registra en Procesamiento", () => {
     expect(PANEL_BIBLIOTECA_SLIDES).toMatchObject({
@@ -185,5 +205,36 @@ describe("bibliotecas de Gráficos como paneles direccionables", () => {
     expect(resolveLibraryReturnFocus(previous, requested, fallback)).toBe(previous);
     expect(resolveLibraryReturnFocus(disconnected("previous"), requested, fallback)).toBe(requested);
     expect(resolveLibraryReturnFocus(null, disconnected("requested"), fallback)).toBe(fallback);
+  });
+
+  it("muestra íntegro el nombre del estilo en lista, focus-card y opción portada", () => {
+    const css = read("chartLayoutEditor.css");
+    const selectors = [
+      ".pulso-gv2-overrides-list .pulso-gv2-mode-list-label",
+      ".pulso-gv2-override-focus-grid span.is-mode > b",
+      '.pulso-gv2-mode-option[data-kind="mode"] .pulso-gv2-mode-option-label',
+    ];
+    const declarations = [
+      ["overflow", "visible"],
+      ["text-overflow", "clip"],
+      ["white-space", "normal"],
+      ["overflow-wrap", "anywhere"],
+    ];
+
+    expect(selectors.map((selector) => ({
+      selector,
+      hasCompleteRule: cssRuleBodies(css, selector).some((body) =>
+        declarations.every(([property, value]) => hasCssDeclaration(body, property, value))
+      ),
+    }))).toEqual(selectors.map((selector) => ({ selector, hasCompleteRule: true })));
+  });
+
+  it("impide que el listado comprima las filas de estilos con nombres largos", () => {
+    const css = read("chartLayoutEditor.css");
+    const selector = ".pulso-gv2-overrides-list > .pulso-gv2-mode-list-item";
+
+    expect(cssRuleBodies(css, selector).some((body) =>
+      hasCssDeclaration(body, "flex", "0 0 auto")
+    )).toBe(true);
   });
 });
