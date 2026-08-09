@@ -578,10 +578,10 @@ function GraficadorInspector({
         ? TERRITORIAL_FALLBACK_REASON
         : "Este modelo no está disponible en el proyecto actual.")
     : "";
-  const contractReason = generated
-    ? GENERATED_PLAN_REQUIRED_DETAIL
-    : contract.requirementLabel
-      || "La capacidad declarada requiere una versión más reciente de Prosecnur.";
+  const contractReason = contract.requirementLabel
+    || (generated
+      ? GENERATED_PLAN_REQUIRED_DETAIL
+      : "La capacidad declarada requiere una versión más reciente de Prosecnur.");
 
   return (
     <aside
@@ -686,6 +686,7 @@ function GraficadorInspector({
             <Lock size={15} aria-hidden="true" />
             <div>
               <h4>Catálogo en modo consulta</h4>
+              <p>{contractReason}</p>
               <p>{consultationReason}</p>
             </div>
           </section>

@@ -267,6 +267,40 @@ describe("contrato sucesor del registry de Gráficos", () => {
     );
   });
 
+  it("prioriza el requisito exacto del registry en los modelos generados", () => {
+    const pickerSource = fs.readFileSync(path.join(featureDir, "GraficadorPicker.tsx"), "utf8");
+    const assignmentStart = pickerSource.indexOf("const contractReason =");
+    const assignmentEnd = pickerSource.indexOf(";", assignmentStart);
+    const assignment = pickerSource.slice(assignmentStart, assignmentEnd + 1);
+    const exactLabel = assignment.indexOf("contract.requirementLabel");
+    const genericFallback = assignment.indexOf("GENERATED_PLAN_REQUIRED_DETAIL");
+
+    expect(exactLabel, "El inspector debe leer requirement_label").toBeGreaterThan(-1);
+    expect(genericFallback, "Debe existir un fallback cuando el registry no aporta copy").toBeGreaterThan(-1);
+    expect(
+      exactLabel,
+      "requirement_label debe preceder al detalle genérico para Brecha y Serie temporal",
+    ).toBeLessThan(genericFallback);
+  });
+
+  it("conserva el requisito exacto además del guidance en modo consulta directo", () => {
+    const pickerSource = fs.readFileSync(path.join(featureDir, "GraficadorPicker.tsx"), "utf8");
+    const consultationStart = pickerSource.indexOf("{consultationReason && !generated && (");
+    const consultationEnd = pickerSource.indexOf(
+      '<section className="pulso-graficador-library-inspector-section"',
+      consultationStart,
+    );
+    const consultationBlock = pickerSource.slice(consultationStart, consultationEnd);
+
+    expect(consultationStart).toBeGreaterThan(-1);
+    expect(consultationEnd).toBeGreaterThan(consultationStart);
+    expect(
+      consultationBlock,
+      "El modo consulta debe explicar el requisito propio del modelo",
+    ).toMatch(/\{(?:contractReason|contract\.requirementLabel)\}/);
+    expect(consultationBlock).toContain("{consultationReason}");
+  });
+
   it("mantiene el CTA semánticamente deshabilitado y enlaza preview al metadata real", () => {
     const pickerSource = fs.readFileSync(path.join(featureDir, "GraficadorPicker.tsx"), "utf8");
     const previewSource = fs.readFileSync(path.join(featureDir, "SlidePreview.tsx"), "utf8");
