@@ -27,6 +27,7 @@ export type GraficadorIconVariant =
 
 export function graficadorIconVariant(name?: string): GraficadorIconVariant | null {
   switch (name) {
+    case "p_barras":
     case "p_barras_agrupadas":
       return "barras-agrupadas";
     case "p_barras_apiladas":

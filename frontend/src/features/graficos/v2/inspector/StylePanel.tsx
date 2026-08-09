@@ -81,7 +81,10 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
         continue;
       }
 
-      const presetType = graficadorToPresetType(graf);
+      const presetType = graficadorToPresetType(
+        graf,
+        graficadoresById[graf]?.preset_key,
+      );
       const aplicables = presetType
         ? overridesReusables.filter((o) => o.tipo_preset === presetType)
         : [];
@@ -115,7 +118,7 @@ export function StylePanel({ slide, args, onRequestDataTab }: StylePanelProps) {
       bySlot,
       counts,
     };
-  }, [slotNames, slide.payload, overridesReusables]);
+  }, [graficadoresById, overridesReusables, slide.payload, slotNames]);
 
   const styleFlow = {
     hasPreset: slotStyleInfo.counts.base > 0,

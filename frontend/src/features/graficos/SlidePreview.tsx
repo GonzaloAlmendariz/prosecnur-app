@@ -6,6 +6,7 @@ import { AlertCircle, Download, Eye, Loader2, X } from "lucide-react";
 import {
   apiGraficosPreviewSlide,
   downloadUrl,
+  GraficadorMetadata,
   GraficadorRef,
   GraficosSlideLayoutRegion,
   Slide,
@@ -20,7 +21,7 @@ import {
   slideCompositionRegionSignature,
   type SlideComposition,
 } from "./slideCompositionModel";
-import { hasConfiguredChartDataArgs } from "./slidePreviewModel";
+import { chartDataPreflightIssue } from "./slidePreviewModel";
 import {
   slideCompositionIdentityFromScopeRules,
   slideCompositionRevision,
@@ -65,6 +66,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const compositionRevision = usePlanStore(slideCompositionRevision);
   const {
     registry,
+    graficadoresById,
     loading: registryLoading,
     error: registryError,
   } = useGraficosRegistry();
@@ -99,7 +101,10 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
   const previewFresh = lastPreviewHash === currentHash;
   const downloadFresh = !!fileId && previewFresh;
   const hasRenderedPreview = !!renderedPreview && previewFresh;
-  const preIssues = useMemo(() => preValidateSlide(slide), [slide]);
+  const preIssues = useMemo(
+    () => preValidateSlide(slide, graficadoresById),
+    [graficadoresById, slide],
+  );
   const blocked = preIssues.length > 0;
   const visibleRegions = composition?.regions.filter((region) => region.visible) ?? [];
   const hasEffectiveComposition = !!composition && visibleRegions.length > 0;
@@ -369,6 +374,7 @@ export function SlidePreview({ slide, prepOk, compact = false }: Props) {
                 composition={composition}
                 userPresets={userPresets}
                 presetsDefaults={presetsDefaults}
+                graficadoresById={graficadoresById}
               />
             ) : (
               <LocalReferenceViewer
@@ -436,11 +442,13 @@ export function SlideLayoutViewer({
   composition,
   userPresets,
   presetsDefaults,
+  graficadoresById = {},
 }: {
   slide: Slide;
   composition: SlideComposition;
   userPresets: PresetArgsMap;
   presetsDefaults: PresetArgsMap;
+  graficadoresById?: Readonly<Record<string, GraficadorMetadata | undefined>>;
 }) {
   const frameStyle: CSSProperties = {
     aspectRatio: String(composition.aspectRatio),
@@ -461,7 +469,12 @@ export function SlideLayoutViewer({
             const value = readPayloadValue(slide, region);
             const assigned = isAssignedValue(value, region.role);
             const chartLayout = assigned && region.role === "chart" && isGraficadorRef(value)
-              ? buildChartMicroLayout(value, userPresets, presetsDefaults)
+              ? buildChartMicroLayout(
+                value,
+                userPresets,
+                presetsDefaults,
+                graficadoresById[value.graficador],
+              )
               : null;
             return [
                 "pulso-slide-preview-slot",
@@ -479,7 +492,12 @@ export function SlideLayoutViewer({
             const value = readPayloadValue(slide, region);
             const assigned = isAssignedValue(value, region.role);
             const chartLayout = assigned && region.role === "chart" && isGraficadorRef(value)
-              ? buildChartMicroLayout(value, userPresets, presetsDefaults)
+              ? buildChartMicroLayout(
+                value,
+                userPresets,
+                presetsDefaults,
+                graficadoresById[value.graficador],
+              )
               : null;
             return (
               <>
@@ -593,8 +611,9 @@ function buildChartMicroLayout(
   value: GraficadorRef,
   userPresets: PresetArgsMap,
   presetsDefaults: PresetArgsMap,
+  metadata: GraficadorMetadata | undefined,
 ): ChartMicroLayoutSpec | null {
-  const presetType = graficadorToPresetType(value.graficador);
+  const presetType = graficadorToPresetType(value.graficador, metadata?.preset_key);
   if (!presetType || !BAR_CANVAS_PRESETS.has(presetType)) return null;
 
   const args = asRecord(value.args);
@@ -751,7 +770,10 @@ function normalizeGuideWidth(value: unknown) {
   return Math.max(0.75, Math.min(5, width));
 }
 
-function preValidateSlide(slide: Slide): string[] {
+function preValidateSlide(
+  slide: Slide,
+  graficadoresById: Readonly<Record<string, GraficadorMetadata | undefined>>,
+): string[] {
   const issues: string[] = [];
   const slots = SLIDE_GRAF_SLOTS[slide.tipo] ?? [];
   for (const slot of slots) {
@@ -761,9 +783,11 @@ function preValidateSlide(slide: Slide): string[] {
       issues.push(`elige un gráfico para ${slotLabel} en la pestaña Datos`);
       continue;
     }
-    if (!hasConfiguredChartDataArgs(v.args ?? {})) {
-      issues.push(`configura la variable principal de ${slotLabel} en la pestaña Datos`);
-    }
+    const dataIssue = chartDataPreflightIssue(
+      v.args ?? {},
+      graficadoresById[v.graficador],
+    );
+    if (dataIssue) issues.push(`${slotLabel}: ${dataIssue}`);
   }
   return issues;
 }

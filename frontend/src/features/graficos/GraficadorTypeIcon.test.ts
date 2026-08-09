@@ -2,9 +2,11 @@ import { describe, expect, test } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { GraficadorTypeIcon, graficadorIconVariant } from "./GraficadorTypeIcon";
+import { resolveGraphLucideIcon } from "./lucideRegistry";
 
 describe("graficadorIconVariant", () => {
   test("asigna pictogramas especificos a graficadores basicos", () => {
+    expect(graficadorIconVariant("p_barras")).toBe("barras-agrupadas");
     expect(graficadorIconVariant("p_barras_agrupadas")).toBe("barras-agrupadas");
     expect(graficadorIconVariant("p_barras_apiladas")).toBe("barras-apiladas");
     expect(graficadorIconVariant("p_barras_multiapiladas")).toBe("multi-apiladas");
@@ -36,5 +38,26 @@ describe("graficadorIconVariant", () => {
 
     expect(markup).toContain("<svg");
     expect(markup).toContain('viewBox="0 0 24 24"');
+  });
+
+  test.each([
+    "ChartColumn",
+    "Cloud",
+    "Map",
+    "ChartColumnStacked",
+    "AlignHorizontalJustifyCenter",
+    "MoveHorizontal",
+    "ListOrdered",
+    "TrendingUp",
+  ])("resuelve el icono Lucide real %s sin caer en Square", (iconoUi) => {
+    expect(resolveGraphLucideIcon(iconoUi, "Square")).not.toBe(
+      resolveGraphLucideIcon("Square", "Square"),
+    );
+    const markup = renderToStaticMarkup(createElement(GraficadorTypeIcon, {
+      name: `p_contract_${iconoUi}`,
+      iconoUi,
+      size: 14,
+    }));
+    expect(markup).toContain("lucide-");
   });
 });

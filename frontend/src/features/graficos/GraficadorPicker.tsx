@@ -30,6 +30,7 @@ import {
   type LucideIcon,
 } from "../../vendor/lucide-react";
 import { GraficadorBlueprint } from "./GraficadorBlueprint";
+import { resolveGraficadorContract } from "./slidePreviewModel";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useLibraryDialogA11y } from "./useLibraryDialogA11y";
 import "./graficadorPicker.css";
@@ -81,6 +82,11 @@ const TERRITORIAL_FALLBACK_REASON =
 
 const CONSULTATION_REASON =
   "Para insertar un modelo, abre esta biblioteca desde «Elegir gráfico» o «Cambiar» en un espacio del slide.";
+
+const GENERATED_PLAN_REQUIRED_LABEL = "Requiere plan compatible";
+const GENERATED_PLAN_REQUIRED_DETAIL =
+  "Este modelo requiere un plan compatible preexistente que ya declare equivalencias nombradas. Esta biblioteca todavía no puede crearlo.";
+const GENERATED_INSERTION_UNAVAILABLE = "Inserción no disponible aquí.";
 
 export default function GraficadorPicker({
   open,
@@ -422,6 +428,7 @@ export default function GraficadorPicker({
                   const selected = selectedGraf?.name === graf.name;
                   const canInsert = canInsertGraficador(graf, dimOk);
                   const canCommit = onPick !== undefined && canInsert;
+                  const generated = resolveGraficadorContract(graf).authoringMode === "generated";
                   return (
                     <li
                       key={graf.name}
@@ -461,11 +468,13 @@ export default function GraficadorPicker({
                         </span>
                         <span className="pulso-graficador-library-card-affordance">
                           <span>
-                            {!onPick
-                              ? "Abre un espacio para insertar"
-                              : canInsert
-                                ? "Doble clic para insertar"
-                                : "Revisa el requisito"}
+                            {generated
+                              ? GENERATED_INSERTION_UNAVAILABLE
+                              : !onPick
+                                ? "Abre un espacio para insertar"
+                                : canInsert
+                                  ? "Doble clic para insertar"
+                                  : "Revisa el requisito"}
                           </span>
                           {selected && (
                             <span className="pulso-graficador-library-card-selected">
@@ -555,15 +564,24 @@ function GraficadorInspector({
   const family = graficadorCategory(graf);
   const FamilyIcon = FAMILY_META[family].Icon;
   const canInsert = onInsert !== undefined && canInsertGraficador(graf, dimOk);
+  const contract = resolveGraficadorContract(graf);
   const usefulArgs = graf.args.filter((arg) => arg.label.trim().length > 0).slice(0, 4);
-  const dimensionMissing = graf.requisito === "dimensiones" && !dimOk;
+  const dimensionMissing = contract.capabilityKey === "dimensions" && !dimOk;
   const unavailable = graf.available === false;
+  const generated = contract.authoringMode === "generated";
+  const incompatible = contract.authoringMode === "unknown"
+    || contract.dataRequirement === "unknown"
+    || contract.capabilityKey === "unknown";
   const availabilityReason = unavailable
     ? graf.disabled_reason?.trim()
       || (isTerritorial(graf)
         ? TERRITORIAL_FALLBACK_REASON
         : "Este modelo no está disponible en el proyecto actual.")
     : "";
+  const contractReason = generated
+    ? GENERATED_PLAN_REQUIRED_DETAIL
+    : contract.requirementLabel
+      || "La capacidad declarada requiere una versión más reciente de Prosecnur.";
 
   return (
     <aside
@@ -647,7 +665,20 @@ function GraficadorInspector({
           </section>
         )}
 
-        {consultationReason && (
+        {(generated || incompatible) && !unavailable && (
+          <section
+            className="pulso-graficador-library-requirement"
+            data-qa-geometry-member
+          >
+            <Lock size={15} aria-hidden="true" />
+            <div>
+              <h4>{generated ? GENERATED_PLAN_REQUIRED_LABEL : "Requisito no compatible"}</h4>
+              <p>{contractReason}</p>
+            </div>
+          </section>
+        )}
+
+        {consultationReason && !generated && (
           <section
             className="pulso-graficador-library-requirement"
             data-qa-geometry-member
@@ -679,8 +710,12 @@ function GraficadorInspector({
         <section className="pulso-graficador-library-next-step" data-qa-geometry-member>
           <ArrowRight size={15} aria-hidden="true" />
           <div>
-            <h4>Próximo paso</h4>
-            <p>Después de insertar, elige las variables y ajusta los datos en este espacio.</p>
+            <h4>{generated ? "Disponibilidad" : "Próximo paso"}</h4>
+            <p>
+              {generated
+                ? `${GENERATED_INSERTION_UNAVAILABLE} El catálogo conserva este modelo para consulta.`
+                : "Después de insertar, elige las variables y ajusta los datos en este espacio."}
+            </p>
           </div>
         </section>
 
@@ -696,7 +731,10 @@ function GraficadorInspector({
           </PulsoButton>
           {!canInsert && (
             <span className="pulso-graficador-library-insert-hint">
-              {consultationReason || "Resuelve el requisito indicado para habilitar la inserción."}
+              {generated
+                ? GENERATED_INSERTION_UNAVAILABLE
+                : consultationReason
+                  || "Resuelve el requisito indicado para habilitar la inserción."}
             </span>
           )}
         </div>
@@ -737,7 +775,20 @@ function graficadorCategory(graf: GraficadorMetadata): Exclude<GraficadorFamily,
 }
 
 export function canInsertGraficador(graf: GraficadorMetadata, dimOk: boolean): boolean {
-  return graf.available !== false && !(graf.requisito === "dimensiones" && !dimOk);
+  if (graf.available === false) return false;
+  const contract = resolveGraficadorContract(graf);
+  if (contract.authoringMode !== "direct" || contract.dataRequirement === "unknown") return false;
+  switch (contract.capabilityKey) {
+    case "":
+    case "territorial_coverage":
+      return true;
+    case "dimensions":
+      return dimOk;
+    case "equivalences_exactly_two":
+    case "equivalences_temporal":
+    case "unknown":
+      return false;
+  }
 }
 
 export function graficadorDimensionsReady(
@@ -749,8 +800,7 @@ export function graficadorDimensionsReady(
 }
 
 function isTerritorial(graf: GraficadorMetadata): boolean {
-  return graf.requisito === "territorial_coverage"
-    || graf.feature_kind === "territorial_coverage";
+  return resolveGraficadorContract(graf).capabilityKey === "territorial_coverage";
 }
 
 export function graficadorAvailabilityLabel(
@@ -759,9 +809,16 @@ export function graficadorAvailabilityLabel(
   consultationMode = false,
 ): string {
   if (graf.available === false) return "No disponible";
-  if (graf.requisito === "dimensiones" && !dimOk) return "Requiere dimensiones";
+  const contract = resolveGraficadorContract(graf);
+  if (contract.authoringMode === "generated") return GENERATED_PLAN_REQUIRED_LABEL;
+  if (
+    contract.authoringMode === "unknown"
+    || contract.dataRequirement === "unknown"
+    || contract.capabilityKey === "unknown"
+  ) return "Requisito no compatible";
+  if (contract.capabilityKey === "dimensions" && !dimOk) return "Requiere dimensiones";
   if (consultationMode) return "Listo para revisar";
-  if (graf.requisito === "dimensiones") return "Dimensiones listas";
+  if (contract.capabilityKey === "dimensions") return "Dimensiones listas";
   return "Listo para insertar";
 }
 

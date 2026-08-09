@@ -4,8 +4,11 @@ import type {
   ArgMetadata,
   ArgMetadataDependencia,
   ArgTipoInput,
+  GraficadorAuthoringMode,
   GraficadorBlueprintKind,
+  GraficadorCapabilityKey,
   GraficadorCategoria,
+  GraficadorDataRequirement,
   GraficadorMetadata,
   PresetsRegistry,
   Registry,
@@ -17,6 +20,7 @@ import type {
   SlideSlotSpec,
 } from "../../api/client";
 import { safeText } from "./safeText";
+import { resolveGraficadorContract } from "./slidePreviewModel";
 
 const ARG_TIPO_INPUTS: Record<ArgTipoInput, true> = {
   variable: true,
@@ -133,6 +137,28 @@ const GRAFICADOR_BLUEPRINT_KINDS: Record<GraficadorBlueprintKind, true> = {
   future: true,
 };
 
+const GRAFICADOR_CAPABILITY_KEYS: Record<GraficadorCapabilityKey, true> = {
+  "": true,
+  dimensions: true,
+  territorial_coverage: true,
+  equivalences_exactly_two: true,
+  equivalences_temporal: true,
+  unknown: true,
+};
+
+const GRAFICADOR_AUTHORING_MODES: Record<GraficadorAuthoringMode, true> = {
+  direct: true,
+  generated: true,
+  unknown: true,
+};
+
+const GRAFICADOR_DATA_REQUIREMENTS: Record<GraficadorDataRequirement, true> = {
+  var_or_vars: true,
+  named_vars: true,
+  capability: true,
+  unknown: true,
+};
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? Object.fromEntries(Object.entries(value))
@@ -169,6 +195,18 @@ function isGraficadorCategoria(value: unknown): value is GraficadorCategoria {
 
 function isGraficadorBlueprintKind(value: unknown): value is GraficadorBlueprintKind {
   return typeof value === "string" && hasOwn(GRAFICADOR_BLUEPRINT_KINDS, value);
+}
+
+function isGraficadorCapabilityKey(value: unknown): value is GraficadorCapabilityKey {
+  return typeof value === "string" && hasOwn(GRAFICADOR_CAPABILITY_KEYS, value);
+}
+
+function isGraficadorAuthoringMode(value: unknown): value is GraficadorAuthoringMode {
+  return typeof value === "string" && hasOwn(GRAFICADOR_AUTHORING_MODES, value);
+}
+
+function isGraficadorDataRequirement(value: unknown): value is GraficadorDataRequirement {
+  return typeof value === "string" && hasOwn(GRAFICADOR_DATA_REQUIREMENTS, value);
 }
 
 function normalizedStrings(value: unknown): string[] {
@@ -318,7 +356,10 @@ function normalizeGraficadorMetadata(value: unknown): GraficadorMetadata {
   const name = safeText(graf.name).trim();
   const categoria = safeText(graf.categoria).trim();
   const blueprint = safeText(graf.blueprint).trim();
-  return {
+  const rawCapabilityKey = safeText(graf.capability_key).trim();
+  const rawAuthoringMode = safeText(graf.authoring_mode).trim();
+  const rawDataRequirement = safeText(graf.data_requirement).trim();
+  const normalized: GraficadorMetadata = {
     name,
     titulo_humano: safeText(graf.titulo_humano, name).trim() || name,
     descripcion: safeText(graf.descripcion).trim(),
@@ -329,8 +370,29 @@ function normalizeGraficadorMetadata(value: unknown): GraficadorMetadata {
     feature_kind: safeText(graf.feature_kind).trim(),
     available: graf.available !== false,
     disabled_reason: safeText(graf.disabled_reason).trim(),
+    ...(hasOwn(graf, "capability_key")
+      ? { capability_key: isGraficadorCapabilityKey(rawCapabilityKey) ? rawCapabilityKey : "unknown" }
+      : {}),
+    ...(hasOwn(graf, "requirement_label")
+      ? { requirement_label: safeText(graf.requirement_label).trim() }
+      : {}),
+    ...(hasOwn(graf, "authoring_mode")
+      ? { authoring_mode: isGraficadorAuthoringMode(rawAuthoringMode) ? rawAuthoringMode : "unknown" }
+      : {}),
+    ...(hasOwn(graf, "data_requirement")
+      ? { data_requirement: isGraficadorDataRequirement(rawDataRequirement) ? rawDataRequirement : "unknown" }
+      : {}),
+    ...(hasOwn(graf, "preset_key") ? { preset_key: safeText(graf.preset_key).trim() } : {}),
     args: Array.isArray(graf.args) ? graf.args.map(normalizeArgMetadata) : [],
     args_extra: normalizedStrings(graf.args_extra),
+  };
+  const contract = resolveGraficadorContract(normalized);
+  return {
+    ...normalized,
+    capability_key: contract.capabilityKey,
+    requirement_label: contract.requirementLabel,
+    authoring_mode: contract.authoringMode,
+    data_requirement: contract.dataRequirement,
   };
 }
 

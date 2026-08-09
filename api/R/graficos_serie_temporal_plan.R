@@ -41,7 +41,10 @@ p_serie_temporal <- function(
     titulo = NULL,
     overrides = list(),
     base = list(),
-    filtros = list()
+    filtros = list(),
+    max_series_con_cifras = 5L,
+    mostrar_puntos = TRUE,
+    mostrar_grid_y = TRUE
 ) {
   if (!is.list(vars) || !length(vars)) {
     .plan_spec_abort("p_serie_temporal(): `vars` debe ser una lista nombrada no vacia.")
@@ -63,7 +66,10 @@ p_serie_temporal <- function(
   if (!is.null(colores_series)) ov$colores_series <- colores_series
   if (!is.null(limite_y)) ov$limite_y <- limite_y
   ov$mostrar_valores <- isTRUE(mostrar_valores)
+  ov$max_series_con_cifras <- suppressWarnings(as.integer(max_series_con_cifras)[1])
   ov$destacar_ultimo <- isTRUE(destacar_ultimo)
+  ov$mostrar_puntos <- isTRUE(mostrar_puntos)
+  ov$mostrar_grid_y <- isTRUE(mostrar_grid_y)
   ov$valores_decimales <- .radar_mb_decimales(valores_decimales)
 
   el <- list(

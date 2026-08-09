@@ -179,6 +179,7 @@ export default function GraficadorSlot({ slideId, slotName, value, mode = "data"
             slideId={slideId}
             slotName={slotName}
             value={value}
+            presetKey={meta?.preset_key}
           />
         )}
         {mode === "data" && (
@@ -266,10 +267,12 @@ function OverrideDropdown({
   slideId,
   slotName,
   value,
+  presetKey,
 }: {
   slideId: string;
   slotName: string;
   value: GraficadorRef;
+  presetKey?: string;
 }) {
   const allOverrides = usePlanStore((s) => s.overridesReusables);
   const addOverride = usePlanStore((s) => s.addOverrideReusable);
@@ -280,7 +283,7 @@ function OverrideDropdown({
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  const presetType = graficadorToPresetType(value.graficador);
+  const presetType = graficadorToPresetType(value.graficador, presetKey);
   const aplicables = useMemo(
     () => (presetType ? allOverrides.filter((o) => o.tipo_preset === presetType) : []),
     [allOverrides, presetType]

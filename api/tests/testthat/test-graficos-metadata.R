@@ -138,6 +138,32 @@ source("setup-load-all.R")
   p_dim_heatmap_criterios = c(categoria = "dimensions", blueprint = "dimension-criteria-heatmap")
 )
 
+.gm_preset_keys <- c(
+  p_barras_agrupadas = "barras_agrupadas",
+  p_barras_categoricas = "barras_categoricas",
+  p_barras_apiladas = "barras_apiladas",
+  p_barras_multiapiladas = "multi_apiladas",
+  p_nube_palabras = "nube_palabras",
+  p_mapa_cobertura_territorial = "",
+  p_pie = "pie",
+  p_donut = "donut",
+  p_numerico = "barras_numericas",
+  p_histograma = "histograma",
+  p_boxplot = "boxplot",
+  p_media_rango = "media_rango",
+  p_barras_divergentes = "barras_divergentes",
+  p_dumbbell = "dumbbell",
+  p_lollipop = "lollipop",
+  p_serie_temporal = "serie_temporal",
+  p_radar = "radar_tabla",
+  p_tabla = "radar_tabla",
+  p_dim_radar = "dim_radar",
+  p_dim_heatmap = "dim_heatmap",
+  p_dim_comparativo_radarbar = "",
+  p_dim_foda = "dim_foda",
+  p_dim_heatmap_criterios = "dim_heatmap_criterios"
+)
+
 .gm_slide_kinds <- c(
   "cover", "index", "section", "objective", "text", "technical", "topTwo",
   "single", "singleNarrative", "splitRight", "splitLeft", "two",
@@ -184,9 +210,106 @@ test_that("registry: cada slide y graficador expone el shape completo con nombre
   for (g in reg$graficadores) {
     expect_true(all(c("name", "titulo_humano", "descripcion", "icono_ui",
                       "categoria", "blueprint", "requisito", "feature_kind",
+                      "capability_key", "requirement_label", "authoring_mode",
+                      "data_requirement", "preset_key",
                       "available", "disabled_reason", "args", "args_extra") %in% names(g)))
-    expect_true(exists(g$name, mode = "function"), label = g$name)
+    exported <- tryCatch(getExportedValue("prosecnurapp", g$name), error = function(e) NULL)
+    expect_true(is.function(exported), label = g$name)
   }
+})
+
+test_that("registry G2-L0: los 23 graficadores publican contrato operativo cerrado", {
+  reg <- .graficos_registry_payload()
+  by_name <- stats::setNames(
+    reg$graficadores,
+    vapply(reg$graficadores, `[[`, character(1), "name")
+  )
+  expect_identical(names(by_name), names(.gm_preset_keys))
+  expect_identical(
+    vapply(by_name, `[[`, character(1), "preset_key"),
+    .gm_preset_keys
+  )
+
+  expect_setequal(
+    unique(vapply(by_name, `[[`, character(1), "authoring_mode")),
+    c("direct", "generated")
+  )
+  expect_true(all(vapply(by_name, function(g) nzchar(g$requirement_label), logical(1))))
+  expect_true(all(vapply(by_name, function(g) {
+    g$data_requirement %in% c("var_or_vars", "named_vars", "capability")
+  }, logical(1))))
+  expect_true(all(vapply(by_name, function(g) {
+    g$capability_key %in% c(
+      "", "dimensions", "territorial_coverage",
+      "equivalences_exactly_two", "equivalences_temporal"
+    )
+  }, logical(1))))
+
+  expect_identical(by_name$p_dumbbell$authoring_mode, "generated")
+  expect_identical(by_name$p_dumbbell$data_requirement, "named_vars")
+  expect_identical(by_name$p_dumbbell$capability_key, "equivalences_exactly_two")
+  expect_identical(
+    by_name$p_dumbbell$requirement_label,
+    "Requiere un plan compatible que ya declare equivalencias entre exactamente dos bases; esta biblioteca aún no puede crearlo."
+  )
+  expect_identical(by_name$p_serie_temporal$authoring_mode, "generated")
+  expect_identical(by_name$p_serie_temporal$data_requirement, "named_vars")
+  expect_identical(by_name$p_serie_temporal$capability_key, "equivalences_temporal")
+  expect_identical(
+    by_name$p_serie_temporal$requirement_label,
+    "Requiere un plan compatible que ya declare equivalencias entre bases ordenadas por momento; esta biblioteca aún no puede crearlo."
+  )
+  generated_labels <- vapply(
+    by_name[c("p_dumbbell", "p_serie_temporal")],
+    `[[`,
+    character(1),
+    "requirement_label"
+  )
+  expect_false(any(grepl("Se genera", generated_labels, fixed = TRUE)))
+  for (name in c("p_dumbbell", "p_serie_temporal")) {
+    arg_names <- vapply(by_name[[name]]$args, `[[`, character(1), "name")
+    expect_false("vars" %in% arg_names, label = name)
+  }
+
+  dims <- by_name[grepl("^p_dim_", names(by_name))]
+  expect_true(all(vapply(dims, `[[`, character(1), "capability_key") == "dimensions"))
+  expect_true(all(vapply(dims, `[[`, character(1), "data_requirement") == "capability"))
+  territory <- by_name$p_mapa_cobertura_territorial
+  expect_identical(territory$capability_key, "territorial_coverage")
+  expect_identical(territory$data_requirement, "capability")
+
+  exceptional <- c(names(dims), "p_mapa_cobertura_territorial", "p_dumbbell", "p_serie_temporal")
+  direct <- by_name[setdiff(names(by_name), exceptional)]
+  expect_true(all(vapply(direct, `[[`, character(1), "authoring_mode") == "direct"))
+  expect_true(all(vapply(direct, `[[`, character(1), "data_requirement") == "var_or_vars"))
+})
+
+test_that("registry G2-L0: getExportedValue acredita los 23 constructores públicos", {
+  exported <- lapply(.graf_names(), function(name) {
+    tryCatch(getExportedValue("prosecnurapp", name), error = identity)
+  })
+  names(exported) <- .graf_names()
+  expect_length(exported, 23L)
+  for (name in names(exported)) {
+    expect_true(is.function(exported[[name]]), label = name)
+  }
+})
+
+test_that("presets G2-L0: las cuatro familias de ola 4 sobreviven el builder", {
+  built <- expect_warning(
+    .build_presets(list(
+      barras_divergentes = list(size_valores = 4.2),
+      dumbbell = list(args = list(size_punto = 4.4)),
+      lollipop = list(color_punto = "#123456"),
+      serie_temporal = list(mostrar_grid_y = FALSE)
+    )),
+    NA
+  )
+  expect_s3_class(built, "ppt_presets")
+  expect_equal(built$barras_divergentes$args$size_valores, 4.2)
+  expect_equal(built$dumbbell$args$size_punto, 4.4)
+  expect_identical(built$lollipop$args$color_punto, "#123456")
+  expect_false(built$serie_temporal$args$mostrar_grid_y)
 })
 
 test_that("registry L4: los 20 blueprints de slides siguen la tabla PPT acreditada", {
