@@ -130,6 +130,71 @@ Baseline reproducible:
   `0905bce67de39cf46fda10282bc01666f3ec4ab4654ac98246fe63ecd206e375`
   y manifiesto íntegro SHA-256
   `368fc2cc5c91bc26ba50cb4c83c8b2a324c27f7b250757bdb421e583a70286ab`.
+- Scope lock de G2-L1.5: `prosecnur-graficos-g2-l1-5-scope-lock.md`,
+  SHA-256 `3c6021aaed4b91052ae2b59124f19b1d7cf6ef25d0d9b3a731ddd31bc798beee`.
+- Dirección congelada de G2-L1.5:
+  `prosecnur-graficos-g2-l1-5-direction.md`, SHA-256
+  `1d4c01501ee5c5da76821cdb0580d1b5aa056cb22e859e18c5cd197b4d782997`.
+- BEFORE de G2-L1.5: acta externa `G2-L1.5-QA-BEFORE.md`, SHA-256
+  `77d52677b730a9aaf2cb8746c09ac9a39d106d4cea30382a5be8dcf9ae81bd2e`;
+  evidencia estructurada SHA-256
+  `0c490b65072e6ee55648b7005888e3f86fd90e4a738e76f5d72ee249ff6a8eaf`,
+  reporte bruto SHA-256
+  `c041a4585c4c7c8315df4642864c09e038e8f537a575d871d5cc69e2ba7e7499`
+  y manifiesto de 21 artefactos SHA-256
+  `b9c3a31930ac97354fec13c2ba98439a0be7b57620b7ab7d91a8a34928ba2c05`.
+- AFTER r1 de G2-L1.5a, rechazado: acta externa
+  `G2-L1.5a-QA-AFTER.md`, SHA-256
+  `036c391f5194c81c4cbf3eb167689094d3e287005e2284f11e45247198e4fd46`;
+  evidencia estructurada SHA-256
+  `e45656e773ab98a393d3f337e25db5cb96f1cbc60fa47cb1800dc0a2a920894f`,
+  reporte SHA-256
+  `0997892c9c7fd6521217e6a3ae6cc5c5e6c113bb14451820f838e5ac29add966`
+  y manifiesto 49/49 SHA-256
+  `cd79d3d7b3422c160bf2b094a8a2aa5d4271c6099adaf116929258864374450d`.
+- AFTER r2 de G2-L1.5a, rechazado dirigido: acta externa
+  `G2-L1.5a-QA-AFTER-r2.md`, SHA-256
+  `4d28b3ae7f21ac624291877ec9a0e723912dd902fa0711844beea06eef902f87`;
+  evidencia estructurada SHA-256
+  `c4276a92f2fa2e8455bc7914d0f5f26d7f6e656c77b4b2454f0f6c660d683d37`,
+  reporte SHA-256
+  `168d2e46303a8575cfe265f23783daf42e0baf9231f0f637dfb732b0f2d79429`
+  y manifiesto 50/50 SHA-256
+  `604b9ae6f6004808ebc3de707654c4dae4b5eb861c85fd00ede8a3641bf14c17`.
+- AFTER r3 de G2-L1.5a, aprobado por QA pero rechazado por el gate serial:
+  acta externa
+  `G2-L1.5a-QA-AFTER-r3.md`, SHA-256
+  `5e75061860be221858d0dc4b5e3c984ed0f3d84d1010a099779304e91430152b`;
+  evidencia estructurada SHA-256
+  `86e6700a63957917caf42cbcb331850323fcc50b000338429d45f15e92ab8ba7`,
+  reporte SHA-256
+  `614b246f1a1ce1ab4e68d2a120dee66014459517c9bdb32401b57e7f40d4bacd`,
+  runner SHA-256
+  `8a12eca0c093a68560338f310d147157f5ad47cff467620ff30372ab1e900811`
+  y manifiesto 49/49 SHA-256
+  `d2475fa02bba59f852d47d10818b86d69b6915c4b42a1cda831b531c9f2b5c31`.
+- AFTER r4 de G2-L1.5a, aprobado por QA pero rechazado por el gate serial: acta
+  externa `acta-qa-g2-l1-5a-after-r4.md`, SHA-256
+  `cbdc2773c43d32b090cef8d71b4bbee4fb20e72a3236aa5cd3e41273e77f7453`;
+  resumen estructurado SHA-256
+  `5601cb69826e00fe54445d450cf94e1bd00f8110fb47ae686aa4412e4c672064`,
+  reporte bruto SHA-256
+  `468b755dfa528b366a9c7275e9f3935ff27592a0913c64c2b6d78b40602f82bc`,
+  runner dual estricto SHA-256
+  `cb1844ea76b0fffebb2c3bb8bd4e5eade24274636ff187ebf819879ae284ea52`
+  y manifiesto 53/53 SHA-256
+  `70520b0ffc8de42f3c96484cab51d383d8d49598abd5f0709d0dc7a60677685a`.
+- AFTER r5 de G2-L1.5a, aprobado por QA y por el gate serial: acta
+  externa `acta-qa-g2-l1-5a-after-r5.md`, SHA-256
+  `fc8d83890ad7e38a0cb12d7bad23f3007cf82de8c27d6603a812b4ed075ad240`;
+  resumen estructurado SHA-256
+  `ee5efd7874420c06abc0a20b44c845402de574fda8150ad06a123af9ec81e547`,
+  reporte bruto SHA-256
+  `4e9098209d85b6231c385498f83a856169d1274bb897bc9f1b4f3a11e0c2e714`,
+  runner de contención SHA-256
+  `d22ebc8021317e7e3bee2c8f1eed741375df6b06192bc6e3148ca012156d9ef5`
+  y manifiesto 53/53 SHA-256
+  `47f791c6cf65a4b9a725179e4de1bff39a87298dbfe24bc0df7e06668b337f60`.
 
 ## Cola viva de lotes
 
@@ -138,7 +203,11 @@ Baseline reproducible:
 | **G2-L0 · Verdad operativa post-ola 4** | Contrato machine-readable, fail-closed de autoría/capacidad, preview por requisito real, args/aliases, presets, iconos y censo 20/23 | G2, G3, G5–G8 | **cerrado · I0–I4 · `feat(graficos): cerrar contrato operativo del catálogo`** |
 | **G2-L0.1 · Guardas metodológicas de la ola 4** | Verificar y cerrar escala común de divergentes, elegibilidad/denominador de lollipop, firma/peso de Dumbbell y orden temporal acreditado | G2–G4, G6–G8 | **cerrado · I5–I11 · `fix(graficos): cerrar guardas metodológicas de la ola 4`** |
 | **G2-L1 · Puntos comparativos v1** | Una base, indicadores/códigos declarados por grupo, punto + N, sin línea/IC/significancia ni selección múltiple | G1–G8 | **cerrado · I12–I17 · `feat(graficos): incorporar puntos comparativos`** |
-| **G2-L1.5 · Distribuidor dinámico profesional** | Preservar `ChartLayoutEditor`/«Mapa de espacios»; recenso de familias, unidades, ratios, mínimos, densidad, fidelidad control→render R/PPT y acabado visual antes de una mejora causal | G2, G5–G8 | **pendiente prioritario tras G2-L1 · mandato de Gonzalo** |
+| **G2-L1.5 · Distribuidor dinámico profesional** | Preservar `ChartLayoutEditor`/«Mapa de espacios»; recenso de familias, unidades, ratios, mínimos, densidad, fidelidad control→render R/PPT y acabado visual | G2, G5–G8 | **en curso · I18–I28 · G2-L1.5a cerrado; toma G2-L1.5b** |
+| **G2-L1.5a · Bases dimensionales** | Clasificar particiones, pulgadas fijas/internas/por fila; prohibir pares y porcentajes falsos; C1 + contención compacta en hoja propia | G2, G5–G8 | **cerrado · I28 · `fix(graficos): respetar bases del distribuidor`** |
+| **G2-L1.5b · Procedencia explícita** | Consumidores declaran Base PPT / estilo guardado / ajuste del gráfico; no inferir desde heredados | G2, G5, G7–G8 | pendiente tras L1.5a |
+| **G2-L1.5c · Interacción accesible** | Un handle por límite; teclado, foco, `aria-live` y Escape local | G5, G8 | pendiente tras L1.5b |
+| **G2-L1.5d · Radar, pie y defaults efectivos** | Roles y unidades completos, tabla condicional, bandas/márgenes, panel fijo y fallback sin inventar | G2, G5–G8 | pendiente de contrato metadata propio |
 | **G2-L2 · Heatmap de cruce v1** | `select_one × select_one`, normalización por columna, N visible y S/D para base cero | G1–G8 | pendiente · segundo tipo seguro |
 | **G2-L3 · Respuesta múltiple con denominador declarado** | Casos/menciones visibles, elección explícita y guard de grano | G1–G8 | pendiente de ratificación de D3 |
 | **G2-L4 · Intervalos de confianza** | Congelar varianza, ponderación y diseño; motor + editor + salida vertical | G1–G8 | bloqueado metodológicamente por D2; no detiene el loop |
@@ -162,13 +231,13 @@ Baseline reproducible:
 | Criterio | Evidencia acumulada | Estado |
 |---|---|---|
 | G1 utilidad | Dictamen G2-D1: puntos comparativos descriptivos primero; heatmap de cruce segundo | verde para cola L1–L2 |
-| G2 contrato | Registry 24/24 publica `var_cruces_corte`; constructor, preset y fail-closed React↔R reauditorados con P0/P1/P2 = 0 | verde |
+| G2 contrato | Registry 24/24 publica `var_cruces_corte`; constructor, preset y fail-closed React↔R reauditorados. El distribuidor clasifica cada medida por base/unidad/eje y sólo comparte una partición publicada; guardián r2 P0/P1/P2 = 0 | verde |
 | G3 autoría | Autoría real desde slot: indicador, grupo y corte; vacío y duplicado bloqueados, combinación válida restituida en ambos viewports | verde |
 | G4 método | D9 acreditada: porcentaje ponderado, `n` crudo, peso/filtros, exclusiones, escala, orden, 2–12 grupos y denominador cero fail-closed | verde |
-| G5 UI | Tipo 24 abre Comparación, blueprint `#002457` de puntos independientes, `n =`, copy directo, contadores 24/5 y tercera fila alcanzable | verde |
+| G5 UI | Tipo 24 abre Comparación. El distribuidor separa reparto publicado de roles intrínsecos, conserva pointer/reset 3/3 y C1; r5 mantiene Medidas exactas legible y contiene 38/32 labels dentro de frame/panel, sin clipping interno ni externo | verde serial · I28 |
 | G6 salida | El mismo elemento atraviesa reconstrucción, PPTX/DOCX, jobs y preview PPT real 200 a 1440×1000 y 1024×600 | verde |
-| G7 compatibilidad | Alta aditiva, firmas/defaults posicionales idénticos a HEAD; sin bump `.pulso`, ADR, dispatcher ni CSS congelado | verde |
-| G8 evidencia | BEFORE/AFTER con hashes y manifiestos íntegros; 1.651 expectativas R, frontend 44/44 archivos y 281/281 tests, typecheck forzado cero | verde |
+| G7 compatibilidad | Alta aditiva, firmas/defaults posicionales idénticos a HEAD; sin bump `.pulso`, ADR ni dispatcher. `editor-v2.css` y `reporte_plan_ppt.R` conservan sus hashes; CSS nuevo vive en hoja propia | verde |
+| G8 evidencia | BEFORE + AFTER r1/r2 rechazados + AFTER r3/r4 contradichos por gate + AFTER r5 con contención literal, todos con hashes y manifiestos íntegros; el verificador recalculó 24 estados sin `badStates` y repitió 3824/3824 | verde serial · I28 |
 
 ## Registro de iteraciones
 
@@ -470,6 +539,179 @@ Baseline reproducible:
   contratada terminó sin skips. G2-L1 cumple G1–G8 y se cierra con commit
   conventional; el goal global sigue activo y toma inmediatamente G2-L1.5.
 
+- **I18 · 2026-08-09 · Censo causal, BEFORE y dirección de G2-L1.5** — Dos
+  revisiones read-only censaron 13 presets: tres barras, ocho verticales o
+  circulares y dos radar. El transporte React→store→merge→`do.call` conserva
+  los escalares; la primera divergencia nace antes, al componer el mapa. React
+  conserva por drag la suma de cualquier par no-gap, pero R multiplica
+  `alto_por_categoria` por N y talla `canvas_h_toprow_in` dentro del panel. Con
+  seis categorías, mover 0,10 de header a fila conserva 1,18 en React y cambia
+  el oracle de 3,58 a 4,08 pulgadas; una fixture independiente con cuatro filas
+  cambió panel 2,16→1,76 y total 2,36→1,96 pese a conservar 0,64. QA real abrió
+  Base PPT en `acnur_acg`, barras apiladas y radar+tabla, a 1440×1000 y
+  1024×600. Pointer, reset, recorrido vertical y preview PPT 200 funcionan;
+  aun así el baseline queda RECHAZADO con P0=0/P1=4/P2=1: procedencia
+  contradictoria, bases/unidades incompletas, 56/9 descendientes recortados en
+  compacto y handles enfocables sin teclado/foco, duplicados y con Escape
+  propagado. Los cuatro casos tuvieron cero errores de consola, página,
+  request o HTTP; el proyecto y los congelados conservaron hashes, y 21/21
+  artefactos validaron. El baseline lógico local pasó 3/3 helpers y typecheck
+  forzado. La dirección profesional y su primera frontera G2-L1.5a quedaron
+  congeladas antes de código: particiones explícitas, no mezclar magnitudes,
+  shares sólo con base común, hoja propia, C1 y contención compacta; procedencia,
+  interacción accesible y Radar/pie permanecen como sublotes obligatorios.
+
+- **I19 · 2026-08-09 · Regresiones RED de G2-L1.5a** — Un autor independiente
+  obtuvo ownership exclusivo sobre los dos tests del mapa, sin tocar producto.
+  La política pura exige `resolveLayoutMeasureContract` y
+  `canShareLayoutMeasurePair`: etiquetas y barras comparten la partición
+  `bars-horizontal`; header es `fixed-inch`, fila auxiliar `nested-inch` y
+  alto por fila `per-category-inch`, con unidad `pulgadas por categoría`; una
+  medida sin oracle queda `measure-only`. El SSR de Barras agrupadas conserva
+  el reparto horizontal, prohíbe cualquier botón que prometa repartir header
+  con filas, fija el alcance `Controla parámetros del render. La vista PPT
+  confirma el resultado final.`, declara C1 `graficos/distribucion-espacio`
+  intrínseco y rechaza porcentaje relativo en claims por fila. La corrida focal
+  terminó RED con 2/2 archivos fallando y 3 fallos / 3 pases: primero falta el
+  resolver público; el componente actual publica además dos handles falsos
+  header↔fila y carece del copy/C1. `git diff --check` permanece limpio. Un
+  writer frontend puede implementar ahora sólo los tres paths de producto.
+
+- **I20 · 2026-08-09 · Primer candidato y rechazo independiente** — El writer
+  añadió una política explícita `basis + axis + unit + partition`, separó
+  `alto_por_categoria` y `canvas_h_toprow_in`, declaró C1 intrínseco y movió
+  el acabado a `chartLayoutEditor.css`; el focal inicial pasó 6/6 y el
+  typecheck forzado salió cero. El gate no aceptó ese verde nominal. El
+  guardián encontró que la whitelist todavía promovía a proporción campos de
+  `multi_apiladas` sin unidad y que vertical/pie seguían dejando que
+  `measure-only` gobernara tracks. QA r1 midió la contradicción: Box plot
+  0,30→0,58 movía 104,156 px y Pie 0,08→0,184 movía 37,375 px. Además, la
+  primera contención compacta eliminó los 56/9 descendientes fuera del panel,
+  pero recortó entre 6 y 24 textos operativos por familia. r1 quedó RECHAZADO
+  P0=0/P1=2/P2=0, con 49/49 artefactos íntegros, preview 200, diagnósticos 0 y
+  fixture inmutable.
+
+- **I21 · 2026-08-09 · Fail-closed e intrínseco falsables** — El autor de
+  regresiones añadió tres pruebas: whitelist sin unidad fail-closed,
+  estabilidad geométrica de vertical/pie con valor exacto cambiante y ayuda de
+  arrastre sólo cuando existe una partición compatible. El agregado quedó RED
+  6/9 antes de reparar. El mismo writer exigió unidad proporcional publicada,
+  sacó roles sin oracle y leyenda lateral de `buildGridTracks`/`flexTrackStyle`,
+  convirtió vertical, pie y radar en mapas cualitativos intrínsecos y
+  condicionó el aria. También cambió Medidas exactas a una columna con wrap
+  completo a 1024–1199. El focal quedó 9/9, `tsc -b --force` cero y el guardián
+  reabrió el contrato como COMPATIBLE P0/P1/P2=0: la única geometría relativa
+  restante vive después del filtro `ratio-partition`.
+
+- **I22 · 2026-08-09 · Rechazo dirigido r2 y micro-C4** — La matriz r2
+  confirmó delta geométrico 0 px, `multi_apiladas` intrínseco, pointer/reset
+  3/3, C1, preview 200, diagnóstico cero y cero descendientes fuera. Aun así no
+  se cerró: a 1024 el chip sintético «Área del gráfico · Estimado» encogía de
+  138 a 122 px en Box plot y Pie. r2 quedó RECHAZADO dirigido
+  P0=0/P1=1/P2=0, con 50/50 artefactos íntegros. Una micro-iteración sólo en la
+  hoja propia hizo el chip no encogible y dejó que la ayuda cualitativa
+  absorbiera y envolviera el resto; el guardián dirigido mantuvo GO
+  P0/P1/P2=0, sin scroll owner, hex, `transition: all` ni cambios congelados.
+
+- **I23 · 2026-08-09 · AFTER r3 y candidato de cierre** — QA independiente
+  repitió desde cero seis familias por 1440×1000 y 1024×600: PASS 12/12,
+  contenido 12/12 y todos los booleanos verdaderos. Box plot y Pie conservan
+  tracks y rectángulos con delta 0 px al editar `measure-only`, restauran el
+  valor exacto y ya no recortan el chip; las seis familias tienen cero textos
+  operativos cortados, cero descendientes horizontales fuera y cero nuevos
+  dueños de scroll. Las tres barras mantienen pointer/reset, los campos sin
+  unidad de Multi no exponen handle/share/porcentaje, el aria es veraz y C1–C4
+  terminó 24/24 sin issues ni misses. Preview PPT real devolvió 200,
+  diagnósticos fueron cero, fixture y candidato quedaron inmutables, puertos
+  cerraron y 49/49 artefactos validaron. Los manifiestos r1/r2/r3 revalidaron;
+  el lote queda candidato para el `verificador` serial, no cerrado todavía.
+
+- **I24 · 2026-08-09 · NO-GO serial por clipping desktop no cubierto** — El
+  `verificador` repitió el focal 9/9, la suite frontend completa 3824/3824 y
+  `tsc -b --force` con salida cero; confirmó alcance exacto de seis archivos,
+  índice vacío, hashes congelados intactos, contrato lógico conforme y los
+  manifiestos BEFORE/r1/r2/r3 íntegros (21/21, 49/49, 50/50 y 49/49). Al
+  contrastar el resumen de r3 con el reporte crudo y las capturas a 1440×1000,
+  encontró 87 textos operativos y dos labels visibles recortados: las
+  aserciones nuevas sólo cubrían la guarda compacta a 1024. La primera causa es
+  falsable y acotada a C4: dentro de unos 842 px, el `auto-fit` de
+  `minmax(190px, 1fr)` produce cuatro columnas y la pista del input deja apenas
+  18.75 px al texto; además el chip de ratio «Columna derecha» no envuelve su
+  label. Veredicto serial: **NO-GO P0=0/P1=1/P2=0**. La auditoría de gobernanza
+  documental también devolvió diez incidencias ajenas al lote —nueve
+  preexistentes y una en el documento no rastreado excluido—, registradas sin
+  ampliar alcance. Siguiente micro-iteración: sólo hoja propia y runner de QA,
+  con aserciones de clipping en ambos viewports y en estados inicial/final.
+
+- **I25 · 2026-08-09 · Micro-C4 y AFTER r4 dual estricto** — El mismo writer
+  tocó sólo `chartLayoutEditor.css`: a partir de 1200 px, Medidas exactas usa
+  dos columnas seguras; copy e inputs quedan contenidos y los labels no-gap
+  envuelven sin alterar ratios, tracks ni handles. El focal terminó 9/9,
+  `tsc -b --force` y `git diff --check` salieron cero, la hoja propia quedó en
+  SHA-256 `104ef9f7db80b97483d1287342868abfb7bd2486025e5bb3acda797cfd439f60`
+  y el guardián dio GO P0/P1/P2=0. QA independiente endureció el runner antes
+  de ejecutarlo: 24 estados obligatorios —dos viewports, seis familias,
+  top/end—, auditorías anti-vacío y tolerancia de ancho **y** alto por nodo.
+  r4 redujo los 87 textos y dos labels desktop recortados a cero; auditó
+  183 textos/140 labels a 1440 y 183/134 a 1024, todos conformes. Las 33/33
+  aserciones quedaron verdaderas, 42 PNG se inspeccionaron, `measure-only`
+  mantuvo delta 0, drag/reset fue 3/3, C1 cerró 24 auditorías sin
+  issues/misses/scroll-jails, preview fue 200 y diagnósticos cero. Fixture y
+  candidato permanecieron inmutables, puertos cerraron y el manifiesto validó
+  53/53. El lote vuelve a candidato; sólo el `verificador` serial puede
+  cerrarlo.
+
+- **I26 · 2026-08-09 · Segundo NO-GO serial por contención externa** — El
+  `verificador` repitió el focal 9/9, la suite frontend 3824/3824 y
+  `tsc -b --force` en verde; validó alcance, congelados, hashes C0 y
+  manifiestos BEFORE/r1/r2/r3/r4. También confirmó que r4 supera literalmente
+  I24: 24 estados, 33/33 aserciones y 87+2 recortes internos reducidos a cero.
+  Sin embargo, el reporte crudo contiene una regresión C4 que el resumen no
+  elevó: a 1440×1000, `horizontalDescendantsOutsidePanel` vale 2 en
+  barras apiladas, 4 en agrupadas y 1 en multi-apiladas, tanto top como end;
+  r3 tenía cero en las seis familias. Las capturas muestran pérdida real del
+  inicio de «Etiquetas» y contención defectuosa de «Columna derecha». Primera
+  causa: el bloque desktop combina wrap con `inline-size: 100%`,
+  `flex: 1 1 100%` y `overflow: visible` en el `span`; el hijo rebasa el frame
+  y el ancestro lo recorta, condición invisible para `scrollWidth` del propio
+  texto. Veredicto: **NO-GO P0=0/P1=1/P2=0**. Siguiente guard obligatorio:
+  en los 24 estados, cero descendientes fuera del panel y rect de cada label
+  dentro de su frame/panel ±1 px, además de clipping interno cero.
+
+- **I27 · 2026-08-09 · Micro-C4 de sizing intrínseco y AFTER r5** — El mismo
+  writer cambió sólo dos declaraciones del label desktop en la hoja propia:
+  `inline-size: fit-content` y `flex: 0 1 auto`, conservando el wrap, el límite
+  `max-inline-size: 100%`, la cuadrícula de dos columnas, las métricas, los
+  handles y los tracks de ratio. Focal 9/9, typecheck, diff-check y auditoría
+  CSS quedaron verdes; la hoja propia terminó en SHA-256
+  `b2a6ce70f440791883e4aa1d04d8bab28dac6451b0c2c58ce9a676f6e53c0b4b`
+  y el guardián dio GO P0/P1/P2=0. Antes de abrir servidores, QA añadió una
+  guarda no vacía label→frame→panel con rectángulos y tolerancia ±1 px, además
+  de conservar las mediciones width/height por nodo y de detallar cada
+  descendiente externo. En 24 estados, r5 auditó 183 textos y 140 labels a
+  1440, 183/134 a 1024 y 38/32 labels de frame: clipping interno, labels fuera
+  de frame/panel y descendientes fuera de panel/viewport quedaron todos en
+  cero. Así eliminó literalmente tanto el 87+2 de r3 como el 2/4/1 de r4.
+  Las 38/38 aserciones, 42 PNG, drag/reset 3/3, delta `measure-only` 0, C1
+  24/0, preview 200, diagnósticos e inmutabilidad fueron conformes; 53/53
+  artefactos y manifiestos r1–r5 validaron. El lote vuelve a candidato del gate
+  serial, no cerrado.
+
+- **I28 · 2026-08-09 · Gate serial GO y cierre de G2-L1.5a** — El
+  `verificador` aprobó con **GO P0=0/P1=0/P2=0**. Repitió focal 9/9, suite
+  frontend 3824/3824 y `tsc -b --force` cero; validó alcance, índice,
+  congelados, hashes C0 y los seis manifiestos 21/49/50/49/53/53. Recalculó
+  independientemente los 24 estados: mínimos 4/7/1 auditorías por estado,
+  totales 183/140/38 a 1440 y 183/134/32 a 1024, `badStates=[]`, clipping
+  interno, rect label→frame→panel ±1, descendientes fuera de panel/viewport y
+  detalles, todos en cero. Confirmó r3 87+2→r5 0+0, r4 2/4/1 top/end→r5
+  cero, C1 24 auditorías sin issues/misses/scroll-jails, tracks y geometría
+  idénticos r4→r5, drag/reset 3/3 y dos casos `measure-only` con delta 0.
+  Capturas, preview 200, diagnósticos, inmutabilidad y puertos fueron
+  conformes. Las diez incidencias de gobernanza documental siguen ajenas al
+  lote —nueve preexistentes y el prompt no rastreado excluido—. G2-L1.5a se
+  cierra con commit conventional y el goal pasa inmediatamente a G2-L1.5b.
+
 ## Bandeja de decisiones
 
 | ID | Decisión | Recomendación y supuesto conservador | Estado |
@@ -484,3 +726,4 @@ Baseline reproducible:
 | D8 | Orden de Dumbbell y Serie temporal | Dumbbell usa primera fuente como referencia y segunda como comparación; Serie exige orden completo acreditado; tema o periodo incompleto falla en vez de desaparecer o puentearse | congelado para G2-L0.1 |
 | D9 | Estimando y gramática de puntos comparativos v1 | Una base, indicador `select_one` + códigos objetivo, corte `select_one`, peso efectivo y filtros estrictos; porcentaje ponderado con `n` crudo visible, orden del instrumento, 2–12 grupos, eje 0–100 y puntos sin conectores/IC/significancia/SM | congelado para G2-L1 por revisión metodológica independiente |
 | D10 | Frontera del distribuidor dinámico de espacios | Conservar `ChartLayoutEditor` como control de los args efectivos; metadata/presets fijan nombres, unidades, defaults y límites, y el render R/PPT es el oracle visual. React puede mostrar y editar la distribución, pero no inventar semántica ni una geometría alternativa. La matriz de placeholders de slide de ADR 0068 permanece separada e intacta | resuelto por mandato de Gonzalo · gobierna G2-L1.5 |
+| D11 | Base dimensional del Mapa de espacios | Cada arg se clasifica por eje, unidad y composición; sólo una partición común admite conservación y porcentaje. `alto_por_categoria` es pulgadas por fila y `canvas_h_toprow_in` vive dentro del panel; ninguno se pareará con bandas fijas. Sin unidad canónica, medida exacta y sin drag | congelado para G2-L1.5a por censo React↔R y QA independiente |
