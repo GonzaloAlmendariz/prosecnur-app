@@ -7,7 +7,7 @@ describe("graficadorToPresetType", () => {
     expect(graficadorToPresetType("p_barras_agrupadas")).toBe("barras_agrupadas");
   });
 
-  test("cubre el censo actual de 23 graficadores y aliases aplicables", () => {
+  test("cubre el censo actual de 24 graficadores y aliases aplicables", () => {
     expect(Object.fromEntries([
       "p_barras_agrupadas",
       "p_barras_categoricas",
@@ -22,6 +22,7 @@ describe("graficadorToPresetType", () => {
       "p_boxplot",
       "p_media_rango",
       "p_barras_divergentes",
+      "p_puntos_comparativos",
       "p_dumbbell",
       "p_lollipop",
       "p_serie_temporal",
@@ -46,6 +47,7 @@ describe("graficadorToPresetType", () => {
       p_boxplot: "boxplot",
       p_media_rango: "media_rango",
       p_barras_divergentes: "barras_divergentes",
+      p_puntos_comparativos: "puntos_comparativos",
       p_dumbbell: "dumbbell",
       p_lollipop: "lollipop",
       p_serie_temporal: "serie_temporal",

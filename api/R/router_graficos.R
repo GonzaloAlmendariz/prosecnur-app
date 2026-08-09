@@ -402,7 +402,9 @@
   fn <- getExportedValue("prosecnurapp", graficador_name)
   args <- .graficos_unwrap_scalar_refs(g$args %||% list())
   args <- .graficos_drop_blank_optional_refs(args)
-  if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
+  if (.graficos_args_missing_required_ref(args, graficador_name)) {
+    return(.graficos_blank_graph_element())
+  }
   args <- .clean_rebuild_args(args, fn)
   if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
   do.call(fn, args)
@@ -897,8 +899,18 @@
   FALSE
 }
 
-.graficos_args_missing_required_ref <- function(args) {
+.graficos_args_missing_required_ref <- function(args, graficador_name = NULL) {
   if (!is.list(args)) return(FALSE)
+  # G2-L1: `cruces` sigue siendo opcional para los graficadores historicos,
+  # pero puntos comparativos necesita las tres decisiones juntas. Un borrador
+  # rectangularizado incompleto degrada a elemento vacio antes del constructor.
+  if (identical(as.character(graficador_name %||% "")[[1]],
+                "p_puntos_comparativos")) {
+    for (arg_name in c("var", "cruces", "corte")) {
+      if (is.null(args[[arg_name]]) ||
+          .graficos_blank_ref_value(args[[arg_name]])) return(TRUE)
+    }
+  }
   # B49: la UI serializa `var: {}` vacio JUNTO a `vars`/`bloques` poblados
   # (multiapiladas por temas). Ese var vacio es ruido de serializacion, no
   # una ref requerida faltante — sin esta excepcion la lamina de comparar
@@ -999,7 +1011,9 @@
   fn <- getExportedValue("prosecnurapp", graficador_name)
   args <- .graficos_unwrap_scalar_refs(g$args %||% list())
   args <- .graficos_drop_blank_optional_refs(args)
-  if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
+  if (.graficos_args_missing_required_ref(args, graficador_name)) {
+    return(.graficos_blank_graph_element())
+  }
   args <- .clean_rebuild_args(args, fn)
   if (.graficos_args_faltan_requeridos(fn, args)) return(.graficos_blank_graph_element())
   do.call(fn, args)
@@ -1039,7 +1053,7 @@
   supported <- setdiff(names(formals(p_presets)), "...")
   extension_keys <- intersect(
     setdiff(names(args), supported),
-    c("barras_divergentes", "dumbbell", "lollipop", "serie_temporal")
+    c("barras_divergentes", "puntos_comparativos", "dumbbell", "lollipop", "serie_temporal")
   )
   unknown <- setdiff(names(args), c(supported, extension_keys))
   if (length(unknown)) {
@@ -3045,7 +3059,9 @@ mount_graficos <- function(pr) {
         fn <- getExportedValue("prosecnurapp", graficador_name)
         args <- .graficos_unwrap_scalar_refs(g$args %||% list())
         args <- .graficos_drop_blank_optional_refs(args)
-        if (.graficos_args_missing_required_ref(args)) return(.graficos_blank_graph_element())
+        if (.graficos_args_missing_required_ref(args, graficador_name)) {
+          return(.graficos_blank_graph_element())
+        }
         args <- promote_graph_title(args, fn)
         args <- args[names(args) %in% names(formals(fn))]
         args <- args[!vapply(args, function(v) {

@@ -3,6 +3,33 @@ import { argsQueAplican } from "./argDependencias";
 import { normalizeGraficosRegistry, normalizePresetsRegistry } from "./metadataSanitizers";
 
 describe("metadataSanitizers", () => {
+  test("preserva el contrato conocido de puntos comparativos", () => {
+    const [points] = normalizeGraficosRegistry({
+      slides: [],
+      graficadores: [{
+        name: "p_puntos_comparativos",
+        titulo_humano: "Puntos comparativos",
+        icono_ui: "CircleDot",
+        categoria: "comparison",
+        blueprint: "comparison-dots",
+        capability_key: "",
+        authoring_mode: "direct",
+        data_requirement: "var_cruces_corte",
+        preset_key: "puntos_comparativos",
+        args: [],
+        args_extra: [],
+      }],
+    }).graficadores;
+
+    expect(points).toMatchObject({
+      categoria: "comparison",
+      blueprint: "comparison-dots",
+      authoring_mode: "direct",
+      data_requirement: "var_cruces_corte",
+      preset_key: "puntos_comparativos",
+    });
+  });
+
   test("falla cerrado ante categorías, roles y blueprints futuros sin perder el orden", () => {
     const registry = normalizeGraficosRegistry({
       slides: [

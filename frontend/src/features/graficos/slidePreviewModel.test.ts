@@ -77,6 +77,78 @@ describe("hasConfiguredChartDataArgs", () => {
 });
 
 describe("contrato machine-readable del preview", () => {
+  test("var_cruces_corte exige cada decision y acepta corte multicode", () => {
+    const graf = metadata({
+      data_requirement: "var_cruces_corte" as never,
+      requirement_label: "Selecciona indicador, agrupacion y codigos objetivo.",
+    });
+
+    expect(chartDataPreflightIssue({
+      var: "principal$indicador",
+      cruces: "principal$grupo",
+      corte: ["1", "99"],
+    }, graf)).toBeNull();
+    const missingVar = chartDataPreflightIssue({
+      cruces: "principal$grupo",
+      corte: ["1", "99"],
+    }, graf);
+    expect(missingVar).not.toBeNull();
+    if (missingVar) expect(missingVar).toMatch(/indicador|variable/i);
+
+    const missingCruces = chartDataPreflightIssue({
+      var: "principal$indicador",
+      corte: ["1", "99"],
+    }, graf);
+    expect(missingCruces).not.toBeNull();
+    if (missingCruces) expect(missingCruces).toMatch(/agrup|cruces|dividir/i);
+
+    const missingCorte = chartDataPreflightIssue({
+      var: "principal$indicador",
+      cruces: "principal$grupo",
+    }, graf);
+    expect(missingCorte).not.toBeNull();
+    if (missingCorte) expect(missingCorte).toMatch(/corte|codigo|opcion/i);
+  });
+
+  test("p_puntos_comparativos rechaza cualquier codigo objetivo vacio", () => {
+    const graf = metadata({
+      name: "p_puntos_comparativos",
+      data_requirement: "var_cruces_corte" as never,
+    });
+
+    expect(chartDataPreflightIssue({
+      var: "principal$indicador",
+      cruces: "principal$grupo",
+      corte: ["", "99"],
+    }, graf)).not.toBeNull();
+  });
+
+  test("p_puntos_comparativos rechaza codigos objetivo duplicados despues de trim", () => {
+    const graf = metadata({
+      name: "p_puntos_comparativos",
+      data_requirement: "var_cruces_corte" as never,
+    });
+
+    expect(chartDataPreflightIssue({
+      var: "principal$indicador",
+      cruces: "principal$grupo",
+      corte: ["1", " 1 "],
+    }, graf)).not.toBeNull();
+  });
+
+  test("p_puntos_comparativos rechaza indicador y agrupacion equivalentes despues de trim", () => {
+    const graf = metadata({
+      name: "p_puntos_comparativos",
+      data_requirement: "var_cruces_corte" as never,
+    });
+
+    expect(chartDataPreflightIssue({
+      var: "principal$indicador",
+      cruces: " principal$indicador ",
+      corte: ["1"],
+    }, graf)).not.toBeNull();
+  });
+
   test.each([
     ["dimensiones", { requisito: "dimensiones" }, "dimensions"],
     ["territorio", { feature_kind: "territorial_coverage" }, "territorial_coverage"],

@@ -38,6 +38,21 @@ const EXPANSION_GRAFICADORES = [
     args_extra: [],
   },
   {
+    name: "p_puntos_comparativos",
+    titulo_humano: "Puntos comparativos",
+    descripcion: "Compara un indicador explicito entre grupos de una base.",
+    icono_ui: "CircleDot",
+    categoria: "comparison",
+    blueprint: "comparison-dots",
+    capability_key: "",
+    requirement_label: "Selecciona indicador, agrupacion y codigos objetivo.",
+    authoring_mode: "direct",
+    data_requirement: "var_cruces_corte",
+    preset_key: "puntos_comparativos",
+    args: [],
+    args_extra: [],
+  },
+  {
     name: "p_dumbbell",
     titulo_humano: "Brecha entre dos bases",
     descripcion: "Compara exactamente dos bases equivalentes.",
@@ -114,6 +129,7 @@ describe("contrato sucesor del registry de Gráficos", () => {
       ["AlignHorizontalJustifyCenter", "align-horizontal-justify-center"],
       ["ChartColumn", "chart-column"],
       ["ChartColumnStacked", "chart-column-stacked"],
+      ["CircleDot", "circle-dot"],
       ["TrendingUp", "trending-up"],
     ] as const) {
       expect(shimSource).toContain(
@@ -122,11 +138,11 @@ describe("contrato sucesor del registry de Gráficos", () => {
     }
   });
 
-  it("mantiene las 20 láminas históricas y eleva el censo a 23 graficadores", () => {
+  it("mantiene las 20 láminas históricas y eleva el censo a 24 graficadores", () => {
     const registry = normalizeGraficosRegistry(successorRegistryInput());
 
     expect(registry.slides).toHaveLength(20);
-    expect(registry.graficadores).toHaveLength(23);
+    expect(registry.graficadores).toHaveLength(24);
     expect(registry.graficadores.map((graf) => graf.name)).toEqual([
       "p_barras_agrupadas",
       "p_barras_categoricas",
@@ -141,6 +157,7 @@ describe("contrato sucesor del registry de Gráficos", () => {
       "p_boxplot",
       "p_media_rango",
       "p_barras_divergentes",
+      "p_puntos_comparativos",
       "p_dumbbell",
       "p_lollipop",
       "p_serie_temporal",
@@ -160,7 +177,7 @@ describe("contrato sucesor del registry de Gráficos", () => {
     ))).toBe(true);
   });
 
-  it("normaliza las cuatro altas con blueprint, preset e icono reales", () => {
+  it("normaliza las cinco altas con blueprint, preset e icono reales", () => {
     const registry = normalizeGraficosRegistry(successorRegistryInput());
     const additions = registry.graficadores.filter((graf) => (
       EXPANSION_GRAFICADORES.some((expected) => expected.name === graf.name)
@@ -174,6 +191,7 @@ describe("contrato sucesor del registry de Gráficos", () => {
       graf.data_requirement,
     ])).toEqual([
       ["p_barras_divergentes", "bars-diverging", "barras_divergentes", "direct", "var_or_vars"],
+      ["p_puntos_comparativos", "comparison-dots", "puntos_comparativos", "direct", "var_cruces_corte"],
       ["p_dumbbell", "dumbbell", "dumbbell", "generated", "named_vars"],
       ["p_lollipop", "lollipop", "lollipop", "direct", "var_or_vars"],
       ["p_serie_temporal", "line-series", "serie_temporal", "generated", "named_vars"],
@@ -260,6 +278,7 @@ describe("contrato sucesor del registry de Gráficos", () => {
     );
 
     expect(pickerSource).toContain("disabled={!canInsert}");
+    expect(pickerSource).toContain('comparison: { label: "Comparación", hint: "Grupos, series y tablas", Icon: Radar },');
     expect(pickerSource).toContain("Requiere plan compatible");
     expect(pickerSource).toContain("Inserción no disponible aquí");
     expect(pickerSource).not.toMatch(

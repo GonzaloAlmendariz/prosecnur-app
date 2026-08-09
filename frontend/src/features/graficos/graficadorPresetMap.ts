@@ -24,6 +24,7 @@ const MAP: Record<string, string | null> = {
   p_boxplot:                    "boxplot",
   p_media_rango:                "media_rango",
   p_barras_divergentes:         "barras_divergentes",
+  p_puntos_comparativos:        "puntos_comparativos",
   p_dumbbell:                   "dumbbell",
   p_lollipop:                   "lollipop",
   p_serie_temporal:             "serie_temporal",

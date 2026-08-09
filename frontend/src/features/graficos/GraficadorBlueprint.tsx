@@ -27,6 +27,7 @@ const GRAFICADOR_BLUEPRINT_KINDS = new Set<string>([
   "boxplot",
   "mean-range",
   "bars-diverging",
+  "comparison-dots",
   "dumbbell",
   "lollipop",
   "line-series",
@@ -264,6 +265,26 @@ function BlueprintMarks({
             <rect x="80" y="20" width="42" height="10" rx="2" />
             <rect x="80" y="36" width="26" height="10" rx="2" />
             <rect x="80" y="52" width="48" height="10" rx="2" />
+          </g>
+        </>
+      );
+    case "comparison-dots":
+      // Un punto por grupo con tinta azul Pulso uniforme, sin distinguir series
+      // ni insinuar una relación entre observaciones independientes.
+      return (
+        <>
+          <ChartAxes />
+          <g fill="#002457">
+            <circle cx="52" cy="20" r="4" />
+            <circle cx="83" cy="35" r="4" />
+            <circle cx="109" cy="50" r="4" />
+            <circle cx="70" cy="65" r="4" />
+          </g>
+          <g className="pulso-graficador-library-blueprint-quadrant-labels">
+            <text x="119" y="22">n = 48</text>
+            <text x="119" y="37">n = 61</text>
+            <text x="119" y="52">n = 54</text>
+            <text x="119" y="67">n = 39</text>
           </g>
         </>
       );
