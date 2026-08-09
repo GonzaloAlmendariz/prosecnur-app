@@ -382,9 +382,14 @@ graficar_barras_numericas <- function(
 
     df_lab <- df_long
 
+    # `scales::number()` redondea con `round()`, o sea al entero PAR ante un
+    # empate. Se le entrega el valor ya redondeado con la regla de la casa
+    # (el 0,5 sube) y `scales` sólo pone separadores.
+    valor_lab <- .pulso_round_half_up(df_lab$.valor, decimales)
+
     if (formato_valor == "numero") {
       df_lab$lab <- scales::number(
-        df_lab$.valor,
+        valor_lab,
         accuracy     = 10^(-decimales),
         big.mark     = separador_miles,
         decimal.mark = separador_decimales
@@ -393,7 +398,7 @@ graficar_barras_numericas <- function(
       df_lab$lab <- paste0(
         simbolo_moneda, " ",
         scales::number(
-          df_lab$.valor,
+          valor_lab,
           accuracy     = 10^(-decimales),
           big.mark     = separador_miles,
           decimal.mark = separador_decimales
@@ -1200,7 +1205,10 @@ graficar_histograma <- function(
   legend_text_gap_pt <- max(0, as.numeric(legend_text_gap %||% 0.12)) * 28.35
   legend_item_gap_pt <- max(0, as.numeric(legend_espaciado %||% 0.6)) * 28.35
 
-  accuracy <- if (decimales <= 0) 1 else 10^-decimales
+  # `scales::percent()` redondea al entero par ante un empate; el histograma
+  # usa la regla de la casa (el 0,5 sube) para todas sus etiquetas de %.
+  dec_pct <- if (decimales <= 0) 0L else as.integer(decimales)
+  .pct_lab <- function(x) .pulso_fmt_pct_half_up(x, dec_pct)
   resumen_grupos_subtitulo <- NULL
   if (isTRUE(mostrar_resumen_grupos_subtitulo) && !is.null(grupo)) {
     n_grupo <- stats::aggregate(n ~ .grupo_label, tab, sum, na.rm = TRUE)
@@ -1213,7 +1221,7 @@ graficar_histograma <- function(
         partes <- paste0(
           as.character(n_grupo$.grupo_label),
           " ",
-          scales::percent(n_grupo$n / total_grupo, accuracy = accuracy)
+          .pct_lab(n_grupo$n / total_grupo)
         )
         sep_resumen <- as.character(separador_resumen_grupos_subtitulo %||% " · ")
         if (!length(sep_resumen) || is.na(sep_resumen)) sep_resumen <- " · "
@@ -1232,7 +1240,7 @@ graficar_histograma <- function(
     }
   }
 
-  pct_label <- scales::percent(if (identical(modo, "conteo")) tab$pct_total else tab$.valor, accuracy = accuracy)
+  pct_label <- .pct_lab(if (identical(modo, "conteo")) tab$pct_total else tab$.valor)
   tab$.label <- if (identical(modo, "conteo")) {
     as.character(tab$n)
   } else if (isTRUE(mostrar_frecuencia)) {
@@ -1288,7 +1296,7 @@ graficar_histograma <- function(
           if (!nrow(rows)) return("")
           n_bin <- sum(rows$n, na.rm = TRUE)
           if (!is.finite(n_bin) || n_bin <= 0) return("")
-          pct_rows <- scales::percent(rows$n / n_bin, accuracy = accuracy)
+          pct_rows <- .pct_lab(rows$n / n_bin)
           partes <- if (identical(etiqueta_cima_orden_grupo, "porcentaje_frecuencia")) {
             paste0(
               unname(abbr[as.character(rows$.grupo)]),
@@ -1320,7 +1328,7 @@ graficar_histograma <- function(
             top_data$.valor
           }
           pct_n_label <- paste0(
-            scales::percent(pct_top, accuracy = accuracy),
+            .pct_lab(pct_top),
             " (", top_data$n_bin_total, ")"
           )
           top_data$.label_top <- if (identical(etiqueta_cima_formato, "dos_lineas")) {
@@ -1425,7 +1433,7 @@ graficar_histograma <- function(
   if (identical(modo, "conteo")) {
     p <- p + ggplot2::scale_y_continuous(labels = scales::comma)
   } else {
-    p <- p + ggplot2::scale_y_continuous(labels = scales::percent_format(accuracy = accuracy))
+    p <- p + ggplot2::scale_y_continuous(labels = .pct_lab)
   }
   expand_x <- suppressWarnings(as.numeric(expand_x %||% 0.55))
   if (!is.finite(expand_x) || expand_x < 0) expand_x <- 0.55

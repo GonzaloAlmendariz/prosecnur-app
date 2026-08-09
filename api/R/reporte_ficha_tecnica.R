@@ -964,16 +964,18 @@ if (!exists("%||%", mode = "function")) {
   format(round(x), big.mark = ",", scientific = FALSE, trim = TRUE)
 }
 
+# Redondeo de la casa: el 0,5 sube (`helpers_calc_comunes.R`). Con `sprintf`
+# la ficha contradecía al gráfico de la misma lámina en los empates.
 .ficha_tecnica_fmt_pct <- function(x) {
   x <- suppressWarnings(as.numeric(x))
   if (!is.finite(x)) return("")
-  sprintf("%.0f%%", x * 100)
+  .pulso_fmt_pct_half_up(x, 0)
 }
 
 .ficha_tecnica_fmt_pct_blank <- function(x, fallback = "") {
   x <- suppressWarnings(as.numeric(x))
   if (!is.finite(x)) return(fallback)
-  sprintf("%.0f%%", x * 100)
+  .pulso_fmt_pct_half_up(x, 0)
 }
 
 .ficha_tecnica_title_case_es <- function(x) {
