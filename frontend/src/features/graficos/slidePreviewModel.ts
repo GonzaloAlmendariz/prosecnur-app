@@ -18,7 +18,7 @@ function isRecord(value: unknown): value is DataArgs {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function isConfiguredRef(value: unknown): boolean {
+function isConfiguredRef(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
@@ -50,6 +50,33 @@ function hasConfiguredDirectDataArgs(args: DataArgs): boolean {
   return isConfiguredRef(args.var) || hasConfiguredVars(args.vars);
 }
 
+function configuredComparisonCodes(value: unknown): string[] | null {
+  const rawValues = typeof value === "string"
+    ? [value]
+    : Array.isArray(value) && value.every((entry) => typeof entry === "string")
+      ? value
+      : null;
+  if (!rawValues || rawValues.length === 0) return null;
+
+  const codes = rawValues
+    .flatMap((entry) => entry.split(/[,;|]/u))
+    .map((entry) => entry.trim());
+  if (codes.length === 0 || codes.some((code) => code.length === 0)) return null;
+  if (new Set(codes).size !== codes.length) return null;
+  return codes;
+}
+
+function hasConfiguredComparisonDotsArgs(args: DataArgs): boolean {
+  const varRef = args.var;
+  const crucesRef = args.cruces;
+  return (
+    isConfiguredRef(varRef)
+    && isConfiguredRef(crucesRef)
+    && varRef.trim() !== crucesRef.trim()
+    && configuredComparisonCodes(args.corte) !== null
+  );
+}
+
 export function hasConfiguredChartDataArgs(
   value: unknown,
   requirement: GraficadorDataRequirement = "var_or_vars",
@@ -59,6 +86,7 @@ export function hasConfiguredChartDataArgs(
   if (!isRecord(value)) return false;
 
   if (requirement === "named_vars") return hasConfiguredNamedVars(value.vars);
+  if (requirement === "var_cruces_corte") return hasConfiguredComparisonDotsArgs(value);
 
   if (value.modo !== "multilista") {
     return hasConfiguredDirectDataArgs(value);
@@ -112,6 +140,26 @@ export function chartDataPreflightIssue(
   }
   if (contract.capabilityKey === "unknown") {
     return contract.requirementLabel || "la capacidad requerida no es compatible con esta versión";
+  }
+  if (contract.dataRequirement === "var_cruces_corte") {
+    if (!isRecord(args)) {
+      return "configura la variable del indicador en la pestaña Datos";
+    }
+    const varRef = args.var;
+    const crucesRef = args.cruces;
+    if (!isConfiguredRef(varRef)) {
+      return "configura la variable del indicador en la pestaña Datos";
+    }
+    if (!isConfiguredRef(crucesRef)) {
+      return "configura la variable de agrupación (cruces) en la pestaña Datos";
+    }
+    if (varRef.trim() === crucesRef.trim()) {
+      return "elige variables distintas para el indicador y la agrupación";
+    }
+    if (configuredComparisonCodes(args.corte) === null) {
+      return "selecciona códigos de corte no vacíos, únicos y válidos en la pestaña Datos";
+    }
+    return null;
   }
   if (hasConfiguredChartDataArgs(args, contract.dataRequirement)) return null;
   if (contract.authoringMode === "generated" && contract.dataRequirement === "named_vars") {

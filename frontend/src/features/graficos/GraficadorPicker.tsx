@@ -70,7 +70,7 @@ const FAMILY_META: Record<
   all: { label: "Todos", hint: "Catálogo completo", Icon: LayoutGrid },
   distribution: { label: "Distribución", hint: "Categorías y proporciones", Icon: BarChart3 },
   numeric: { label: "Resumen numérico", hint: "Indicadores y rangos", Icon: Hash },
-  comparison: { label: "Comparación", hint: "Series y tablas", Icon: Radar },
+  comparison: { label: "Comparación", hint: "Grupos, series y tablas", Icon: Radar },
   text: { label: "Texto abierto", hint: "Términos frecuentes", Icon: MessageSquare },
   dimensions: { label: "Dimensiones", hint: "Índices calculados", Icon: Layers3 },
   territory: { label: "Territorio", hint: "Cobertura de campo", Icon: MapIcon },

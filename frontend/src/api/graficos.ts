@@ -109,6 +109,7 @@ export type GraficadorBlueprintKind =
   | "boxplot"
   | "mean-range"
   | "bars-diverging"
+  | "comparison-dots"
   | "dumbbell"
   | "lollipop"
   | "line-series"
@@ -136,6 +137,7 @@ export type GraficadorAuthoringMode = "direct" | "generated" | "unknown";
 
 export type GraficadorDataRequirement =
   | "var_or_vars"
+  | "var_cruces_corte"
   | "named_vars"
   | "capability"
   | "unknown";

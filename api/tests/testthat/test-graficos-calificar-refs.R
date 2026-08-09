@@ -24,6 +24,22 @@ test_that("las refs ya calificadas y las vacias no se tocan", {
   expect_identical(out$slides[[1]]$payload$grafico$args$cruce, "")
 })
 
+test_that("puntos comparativos califica var y cruces sin tocar el corte multicode", {
+  plan <- list(slides = list(
+    list(tipo = "p_slide_1_grafico", payload = list(
+      grafico = list(
+        graficador = "p_puntos_comparativos",
+        args = list(var = "indicador", cruces = "grupo", corte = c("1", "99"))
+      )
+    ))
+  ))
+  out <- .graficos_calificar_refs_plan(plan, "principal")
+  args <- out$slides[[1]]$payload$grafico$args
+  expect_identical(args$var, "principal$indicador")
+  expect_identical(args$cruces, "principal$grupo")
+  expect_identical(args$corte, c("1", "99"))
+})
+
 test_that("los bloques de vars multiactor se califican elemento a elemento", {
   plan <- list(slides = list(
     list(tipo = "p_slide_1_grafico", payload = list(

@@ -122,6 +122,7 @@ const GRAFICADOR_BLUEPRINT_KINDS: Record<GraficadorBlueprintKind, true> = {
   boxplot: true,
   "mean-range": true,
   "bars-diverging": true,
+  "comparison-dots": true,
   dumbbell: true,
   lollipop: true,
   "line-series": true,
@@ -154,6 +155,7 @@ const GRAFICADOR_AUTHORING_MODES: Record<GraficadorAuthoringMode, true> = {
 
 const GRAFICADOR_DATA_REQUIREMENTS: Record<GraficadorDataRequirement, true> = {
   var_or_vars: true,
+  var_cruces_corte: true,
   named_vars: true,
   capability: true,
   unknown: true,

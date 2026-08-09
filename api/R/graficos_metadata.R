@@ -1257,6 +1257,29 @@
   ),
 
   # =========================================================================
+  # PUNTOS COMPARATIVOS (un indicador por grupo, sin conectores)
+  # =========================================================================
+  p_puntos_comparativos = list(
+    titulo_humano = "Puntos comparativos",
+    descripcion   = "Compara un porcentaje descriptivo entre grupos de una sola base. Muestra un punto y los casos válidos de cada grupo; no incluye intervalos ni pruebas.",
+    icono_ui      = "CircleDot",
+    categoria     = "comparison",
+    blueprint     = "comparison-dots",
+    args = c(list(
+      list(name = "var", label = "Indicador", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta select_one plana sobre la que se calcula el porcentaje."),
+      list(name = "cruces", label = "Comparar por", tipo_input = "variable", grupo = "datos",
+           descripcion = "Pregunta select_one plana que define entre 2 y 12 grupos observados."),
+      list(name = "corte", label = "Códigos objetivo", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Uno o más códigos conocidos que forman el numerador del indicador."),
+      list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Retira códigos o etiquetas antes de calcular el denominador; no puede solaparse con los códigos objetivo del corte."),
+      list(name = "orden_grupos", label = "Orden completo de grupos", tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Opcional. Debe ser una permutación exacta de todos los grupos observados; vacío conserva el orden del instrumento.")
+    ), .args_graf_comunes())
+  ),
+
+  # =========================================================================
   # DUMBBELL (brecha entre dos bases)
   # =========================================================================
   p_dumbbell = list(
@@ -1642,6 +1665,7 @@
   p_boxplot = "boxplot",
   p_media_rango = "media_rango",
   p_barras_divergentes = "barras_divergentes",
+  p_puntos_comparativos = "puntos_comparativos",
   p_dumbbell = "dumbbell",
   p_lollipop = "lollipop",
   p_serie_temporal = "serie_temporal",
@@ -1665,21 +1689,27 @@
     capability_key <- "territorial_coverage"
   }
 
-  data_requirement <- if (name %in% names(generated)) {
+  data_requirement <- if (identical(name, "p_puntos_comparativos")) {
+    "var_cruces_corte"
+  } else if (name %in% names(generated)) {
     "named_vars"
   } else if (capability_key %in% c("dimensions", "territorial_coverage")) {
     "capability"
   } else {
     "var_or_vars"
   }
-  requirement_label <- switch(
-    capability_key,
-    dimensions = "Requiere dimensiones calculadas en Analítica.",
-    territorial_coverage = "Requiere cobertura disponible en Hojas de Ruta y Monitoreo territorial.",
-    equivalences_exactly_two = "Requiere un plan compatible que ya declare equivalencias entre exactamente dos bases; esta biblioteca aún no puede crearlo.",
-    equivalences_temporal = "Requiere un plan compatible que ya declare equivalencias entre bases ordenadas por momento; esta biblioteca aún no puede crearlo.",
-    "Selecciona una o varias variables de la base activa."
-  )
+  requirement_label <- if (identical(name, "p_puntos_comparativos")) {
+    "Selecciona indicador, agrupación y uno o más códigos objetivo de la base activa."
+  } else {
+    switch(
+      capability_key,
+      dimensions = "Requiere dimensiones calculadas en Analítica.",
+      territorial_coverage = "Requiere cobertura disponible en Hojas de Ruta y Monitoreo territorial.",
+      equivalences_exactly_two = "Requiere un plan compatible que ya declare equivalencias entre exactamente dos bases; esta biblioteca aún no puede crearlo.",
+      equivalences_temporal = "Requiere un plan compatible que ya declare equivalencias entre bases ordenadas por momento; esta biblioteca aún no puede crearlo.",
+      "Selecciona una o varias variables de la base activa."
+    )
+  }
 
   list(
     capability_key = capability_key,
@@ -2651,6 +2681,33 @@
            )),
       list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
       list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9)
+    )
+  ),
+
+  puntos_comparativos = list(
+    titulo_humano = "Puntos comparativos",
+    descripcion   = "Estilo global de la comparación descriptiva: un punto y una etiqueta con porcentaje y n válido por grupo. El subtítulo y la nota metodológica los fija el motor y este preset no los reemplaza.",
+    icono_ui      = "CircleDot",
+    args = list(
+      .arg_textos_negrita(c("titulo", "subtitulo", "nota_pie", "valores", "ejes")),
+
+      list(name = "color_punto", label = "Color del punto", tipo_input = "color", grupo = "estilo",
+           default = "#002457"),
+      list(name = "size_punto", label = "Tamaño del punto", tipo_input = "number", grupo = "estilo",
+           default = 4.2, min = 1, max = 8, step = 0.2),
+      list(name = "valores_decimales", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 3, step = 1,
+           descripcion = "Precisión del porcentaje mostrado; el conteo n siempre permanece entero."),
+      list(name = "color_etiqueta", label = "Color de la etiqueta", tipo_input = "color", grupo = "valores",
+           default = "#081F5C"),
+      list(name = "size_etiqueta", label = "Tamaño de la etiqueta", tipo_input = "number", grupo = "valores",
+           default = 3.2, min = 1.5, max = 8, step = 0.1),
+      list(name = "mostrar_grid_x", label = "Mostrar grilla vertical", tipo_input = "bool", grupo = "estilo",
+           default = TRUE),
+      list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo",
+           default = "#081F5C"),
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo",
+           default = 9, min = 6, max = 16, step = 0.5)
     )
   ),
 
