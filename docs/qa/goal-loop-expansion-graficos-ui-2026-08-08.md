@@ -1,14 +1,16 @@
 # GOAL · Gráficos crece con verdad metodológica y una UI cada vez más decidible
 
-Tipo: GOAL loop de producto, motor y experiencia
-Estado: En curso
+Tipo: GOAL finito de producto, motor y experiencia
+Estado: Cerrado con deuda visual/runtime documentada
 Fecha: 2026-08-08
+Fecha de cierre: 2026-08-09
 Autoridad: sucede al goal histórico de bibliotecas; no reabre ni reescribe su evidencia
 
-Este loop amplía el catálogo con nuevos tipos de gráfico y mejora continuamente
-la UI de Gráficos. El mandato operativo es permanente: cada lote cerrado abre un
-recenso con una vara más alta; agotar la cola no termina el goal, obliga a medir
-de nuevo.
+Este loop amplió el catálogo con nuevos tipos de gráfico y mejoró la UI de
+Gráficos. El mandato operativo fue permanente hasta el 2026-08-09. Por
+instrucción explícita de Gonzalo en esa fecha, el goal deja de ser indefinido:
+se cierra el lote vigente con su deuda observable, no se abre otro recenso y
+todo alcance no ejecutado se transfiere fuera de este goal sin fingir entrega.
 
 Fuentes que gobiernan el trabajo:
 
@@ -20,7 +22,7 @@ Fuentes que gobiernan el trabajo:
 - `branding/identity.json`, `branding/direccion-creativa-v3.md` y
   `docs/ui-layout-grammar.md`: identidad y gramática visual vigentes.
 
-## Mandato y límites permanentes
+## Mandato histórico y límites finales
 
 1. Un gráfico nuevo debe cerrar el recorrido motor → registry → editor → preview
    real → PPT/Word/job → pruebas. Visible no significa entregado.
@@ -35,8 +37,10 @@ Fuentes que gobiernan el trabajo:
    propia o en la hoja dueña ya existente cuando el cambio sea estrictamente
    local a esa superficie.
 6. Cada lote actualiza este ledger y produce un commit conventional en español.
-7. El goal no se marca completo al cerrar un lote. Se recensa catálogo, motor,
-   UI y evidencia y se toma el primer lote pendiente.
+7. Hasta el 2026-08-09, cerrar un lote obligaba a recensar y tomar el siguiente.
+   El mandato de cierre finito revoca esa recurrencia: tras documentar el lote
+   vigente, la cola y las decisiones, se ejecuta un único gate serial y se
+   marca el goal completo sin abrir trabajo nuevo.
 8. El distribuidor dinámico `ChartLayoutEditor` —«Mapa de espacios»— se
    conserva y entra en el loop como superficie de producto. Debe editar los
    args efectivos publicados por metadata/preset y aproximar con mayor
@@ -270,26 +274,50 @@ Baseline reproducible:
   `2e2f1d3c36f3199ee671cde435a50e289e486978b639bb53b20beb5e06eec980`
   y manifiesto 54/54 SHA-256
   `13160a3248e8e1ec7985a3e1890a26a15c775109e02cd9488563546413a05974`.
+- Dirección congelada de G2-L1.5c:
+  `prosecnur-g2-l1-5c-direction.md`, SHA-256
+  `73ea19dfffac568498a1a4e996f921b06813b579d3d35a792d1c079193e2b74f`.
+- Scope lock de G2-L1.5c:
+  `prosecnur-g2-l1-5c-scope-lock.md`, SHA-256
+  `d4957eeb9634b7d233f5fb905336560b65f194ae92b8cc59a1d5e00ce159f52a`.
+- BEFORE de G2-L1.5c: acta externa `G2-L1.5c-QA-BEFORE.md`, SHA-256
+  `1f1763e708a0950759928bd384685a84676c9f5f0af98c74395098af4ebe017f`;
+  reporte bruto SHA-256
+  `37c6b3ecaf21db881feee11ee881602d3b93e01f489a88bd07404e8c5a8c7805`,
+  evidencia estructurada SHA-256
+  `9ef37f1f22cd043e8287377f2e2cec877ed169532b8faae845946ad1990305b3`,
+  runner SHA-256
+  `972408c1bf6ec450d785c683a676c41a683f44dbdabab39cd5ed63c037bfc329`
+  y manifiesto 24/24 SHA-256
+  `4a048a66f97aa279097f9b79db795cc7268513ba560c1b3f4e412f3d2e943a2d`.
+- AFTER intentado de G2-L1.5c, bloqueado antes de montar React: reporte bruto
+  SHA-256 `d0e3102c6c20ec0812b48a6b88646fdfeba1578abc7424202f70c9252dfa5ee8`,
+  evidencia estructurada SHA-256
+  `14e1dad8403bbbcc841949648ae8ae4c5872347c349091d0d13ff7f5c7265a54`,
+  runner SHA-256
+  `181d1e88bd2ac05ab337c042dae23b1a948ab4fbdd36ca8694f781b9cae2aeb4`
+  y manifiesto 20/20 SHA-256
+  `16dce23712d67d20155445d5f9b772e5644d7313a4cc29e2f8b9202dda120997`.
 
-## Cola viva de lotes
+## Cola final de lotes
 
 | Lote | Alcance | Vara | Estado |
 |---|---|---|---|
 | **G2-L0 · Verdad operativa post-ola 4** | Contrato machine-readable, fail-closed de autoría/capacidad, preview por requisito real, args/aliases, presets, iconos y censo 20/23 | G2, G3, G5–G8 | **cerrado · I0–I4 · `feat(graficos): cerrar contrato operativo del catálogo`** |
 | **G2-L0.1 · Guardas metodológicas de la ola 4** | Verificar y cerrar escala común de divergentes, elegibilidad/denominador de lollipop, firma/peso de Dumbbell y orden temporal acreditado | G2–G4, G6–G8 | **cerrado · I5–I11 · `fix(graficos): cerrar guardas metodológicas de la ola 4`** |
 | **G2-L1 · Puntos comparativos v1** | Una base, indicadores/códigos declarados por grupo, punto + N, sin línea/IC/significancia ni selección múltiple | G1–G8 | **cerrado · I12–I17 · `feat(graficos): incorporar puntos comparativos`** |
-| **G2-L1.5 · Distribuidor dinámico profesional** | Preservar `ChartLayoutEditor`/«Mapa de espacios»; recenso de familias, unidades, ratios, mínimos, densidad, fidelidad control→render R/PPT y acabado visual | G2, G5–G8 | **en curso · I18–I49 · G2-L1.5a y G2-L1.5b cerrados; G2-L1.5c siguiente** |
+| **G2-L1.5 · Distribuidor dinámico profesional** | Preservar `ChartLayoutEditor`/«Mapa de espacios»; recenso de familias, unidades, ratios, mínimos, densidad, fidelidad control→render R/PPT y acabado visual | G2, G5–G8 | **cerrado con deuda · I18–I63 · G2-L1.5a/b cerrados; G2-L1.5c conforme en estático y AFTER bloqueado; d/e diferidos** |
 | **G2-L1.5a · Bases dimensionales** | Clasificar particiones, pulgadas fijas/internas/por fila; prohibir pares y porcentajes falsos; C1 + contención compacta en hoja propia | G2, G5–G8 | **cerrado · I28 · `fix(graficos): respetar bases del distribuidor`** |
 | **G2-L1.5b · Procedencia explícita** | Consumidores declaran Base PPT / estilo guardado / ajuste del gráfico; no inferir desde heredados ni por igualdad de valores | G2, G5, G7–G8 | **cerrado · I29–I49 · `fix(graficos): declarar procedencia del distribuidor`** |
-| **G2-L1.5c · Interacción accesible** | Un handle por límite; teclado, foco, `aria-live` y Escape local | G5, G8 | **siguiente · censo y scope lock pendientes** |
-| **G2-L1.5d · Radar, pie y defaults efectivos** | Roles y unidades completos, tabla condicional, bandas/márgenes, panel fijo y fallback sin inventar | G2, G5–G8 | pendiente de contrato metadata propio |
-| **G2-L1.5e · Linaje durable de estilo** | Conservar id + snapshot de nombre y procedencia por campo al aplicar un estilo, con lectura legacy fail-closed | G2, G7–G8 | pendiente de ADR 0070 y versión nueva del contrato de Gráficos; no bloquea L1.5b–d |
-| **G2-L2 · Heatmap de cruce v1** | `select_one × select_one`, normalización por columna, N visible y S/D para base cero | G1–G8 | pendiente · segundo tipo seguro |
-| **G2-L3 · Respuesta múltiple con denominador declarado** | Casos/menciones visibles, elección explícita y guard de grano | G1–G8 | pendiente de ratificación de D3 |
-| **G2-L4 · Intervalos de confianza** | Congelar varianza, ponderación y diseño; motor + editor + salida vertical | G1–G8 | bloqueado metodológicamente por D2; no detiene el loop |
-| **G2-L5 · Coroplético de resultados** | Marco geográfico, datos territoriales reales y verificación visual | G1–G8 | pendiente de fixture territorial real |
-| **G2-L6 · Deuda visual/motor** | Recenso A4/A5, el «1 error» heredado del onboarding con 0 slides y nuevas fricciones de UI; un defecto causal por iteración | G2, G5–G8 | pendiente |
-| **G2-LR · Recenso recurrente** | Repetir catálogo→motor→UI→outputs, elevar vara y añadir lotes | G1–G8 | recurrente; nunca se agota |
+| **G2-L1.5c · Interacción accesible** | Un handle por límite; teclado, foco, `aria-live` y Escape local | G5, G8 | **cerrado técnicamente con deuda · I50–I63 · guardianía r3 COMPATIBLE; AFTER real no acreditado por bloqueo de runtime** |
+| **G2-L1.5d · Radar, pie y defaults efectivos** | Roles y unidades completos, tabla condicional, bandas/márgenes, panel fijo y fallback sin inventar | G2, G5–G8 | **diferido fuera del goal cerrado · requiere contrato metadata propio y nuevo mandato** |
+| **G2-L1.5e · Linaje durable de estilo** | Conservar id + snapshot de nombre y procedencia por campo al aplicar un estilo, con lectura legacy fail-closed | G2, G7–G8 | **diferido fuera del goal cerrado · requiere ADR 0070, contrato nuevo y nuevo mandato** |
+| **G2-L2 · Heatmap de cruce v1** | `select_one × select_one`, normalización por columna, N visible y S/D para base cero | G1–G8 | **diferido fuera del goal cerrado · no implementado** |
+| **G2-L3 · Respuesta múltiple con denominador declarado** | Casos/menciones visibles, elección explícita y guard de grano | G1–G8 | **diferido fuera del goal cerrado · D3 no ratificada** |
+| **G2-L4 · Intervalos de confianza** | Congelar varianza, ponderación y diseño; motor + editor + salida vertical | G1–G8 | **diferido fuera del goal cerrado · bloqueo metodológico D2** |
+| **G2-L5 · Coroplético de resultados** | Marco geográfico, datos territoriales reales y verificación visual | G1–G8 | **diferido fuera del goal cerrado · falta fixture territorial real** |
+| **G2-L6 · Deuda visual/motor** | Recenso A4/A5, el «1 error» heredado del onboarding con 0 slides y nuevas fricciones de UI; un defecto causal por iteración | G2, G5–G8 | **diferido fuera del goal cerrado · no ejecutado** |
+| **G2-LR · Recenso recurrente** | Repetir catálogo→motor→UI→outputs, elevar vara y añadir lotes | G1–G8 | **cancelado por revocación expresa del mandato indefinido** |
 
 ## Gate por lote
 
@@ -310,10 +338,10 @@ Baseline reproducible:
 | G2 contrato | Registry 24/24 publica `var_cruces_corte`; constructor, preset y fail-closed React↔R reauditorados. El distribuidor clasifica cada medida por base/unidad/eje y sólo comparte una partición publicada; guardián r2 P0/P1/P2 = 0 | verde |
 | G3 autoría | Autoría real desde slot: indicador, grupo y corte; vacío y duplicado bloqueados, combinación válida restituida en ambos viewports | verde |
 | G4 método | D9 acreditada: porcentaje ponderado, `n` crudo, peso/filtros, exclusiones, escala, orden, 2–12 grupos y denominador cero fail-closed | verde |
-| G5 UI | Tipo 24 abre Comparación. El distribuidor separa reparto publicado de roles intrínsecos, conserva pointer/reset 3/3 y C1; r5 mantiene Medidas exactas legible y contiene 38/32 labels dentro de frame/panel, sin clipping interno ni externo | verde serial · I28 |
+| G5 UI | Tipo 24 abre Comparación. El distribuidor separa reparto publicado de roles intrínsecos, conserva pointer/reset 3/3 y C1; r5 mantiene Medidas exactas legible y contiene 38/32 labels dentro de frame/panel. G2-L1.5c añade separador único, teclado, status y cancelación con guardianía compatible; su AFTER no llegó a montar React | verde acumulado hasta I49 · G2-L1.5c conforme en estático con deuda visual declarada |
 | G6 salida | El mismo elemento atraviesa reconstrucción, PPTX/DOCX, jobs y preview PPT real 200 a 1440×1000 y 1024×600 | verde |
 | G7 compatibilidad | Alta aditiva, firmas/defaults posicionales idénticos a HEAD; sin bump `.pulso`, ADR ni dispatcher. `editor-v2.css` y `reporte_plan_ppt.R` conservan sus hashes; CSS nuevo vive en hoja propia | verde |
-| G8 evidencia | BEFORE + AFTER r1/r2 rechazados + AFTER r3/r4 contradichos por gate + AFTER r5 con contención literal, todos con hashes y manifiestos íntegros; el verificador recalculó 24 estados sin `badStates` y repitió 3824/3824 | verde serial · I28 |
+| G8 evidencia | La evidencia acumulada hasta G2-L1.5b permanece íntegra. G2-L1.5c tiene BEFORE 24/24, tres rondas RED→GREEN, guardianía r3 compatible y AFTER bloqueado sellado 20/20 antes de montar React; no se afirma conformidad visual AFTER | cierre con deuda observable · I61–I63 |
 
 ## Registro de iteraciones
 
@@ -1061,19 +1089,230 @@ Baseline reproducible:
   `fix(graficos): declarar procedencia del distribuidor`; el goal permanece
   activo y toma inmediatamente G2-L1.5c.
 
+- **I50 · 2026-08-09 · Censo y dirección congelada de G2-L1.5c** — Dos
+  carriles read-only localizaron la primera divergencia en
+  `BarsHorizontalRow`: cada par compatible aparece como dos botones idénticos
+  —trailing de A y leading de B—, sólo con pointerdown; el Tab visita ambos,
+  flechas no mutan, `DragGuide` está oculto al árbol accesible y no existen
+  separator, valores ARIA, status ni cancelación local. Los inputs exactos
+  además propagan Escape al host y pueden confirmar otra vez por blur. La
+  guardianía declaró la frontera **COMPATIBLE** y sin ADR: un separador neutral
+  vertical por pair key, rango/paso exclusivamente de metadata, Left/Right por
+  patch atómico, foco estable, status polite/atomic sólo para commit/cancel y
+  Escape consumido únicamente durante una transacción; Home/End, collapse,
+  callers, store, API/R y rediseño quedan fuera. Dirección `73ea19df…b74f` y
+  scope `d4957eeb…f52a` congelan un autor RED sobre dos tests y un solo writer
+  sobre componente+helper; CSS propio sólo entra si QA demuestra foco
+  insuficiente. El BEFORE dual continúa sin habilitar producto.
+
+- **I51 · 2026-08-09 · BEFORE dual de interacción accesible** — QA
+  independiente abrió `acnur_acg` en 1440×1000 y 1024×600 y recorrió Barras
+  agrupadas con una partición real y Box plot sin partición. El segundo caso
+  pasó 2/2 y el primero falló 2/2 exclusivamente en C5; C1–C4 pasaron 4/4,
+  pointer conservó suma y límites, reset funcionó y el foco visible ya es
+  suficiente, por lo que CSS queda fuera. El acta cerró **RECHAZADO VISUAL
+  P0=0/P1=4/P2=0**: un límite publica dos botones/dos stops, ninguno es
+  separator ni declara orientación/rango/valor, Left/Right no muta ni consume
+  el evento, no existe status/live region y Escape desde handle o input cierra
+  `Estilo global` —el input sólo marca defaultPrevented, no detiene burbuja—.
+  Los cuatro endpoints respondieron 200, diagnósticos quedaron vacíos,
+  fixture/congelados/producto/dirty permanecieron idénticos, el manifiesto
+  validó 24/24 y 5197/8808 cerraron preservando 8787. Home/End quedó fuera del
+  veredicto por contrato. BEFORE y scope habilitan al autor RED, no al writer.
+
+- **I52 · 2026-08-09 · RED causal de separador, flechas y Escape** — El autor
+  independiente verificó dirección/scope y editó sólo los dos tests asignados.
+  La baseline fue 2 archivos y 14/14 tests; el agregado termina con **seis
+  fallos causales y 13 pases**. La primera aserción recibe dos handles, cero
+  separators y un `is-leading` frente a 1/1/0. Los demás RED exigen nombre,
+  orientación, rango/valor/texto/controls, un status polite/atomic persistente,
+  copy puntero+flechas y cero handles para Box plot; además congelan
+  `adjustLayoutPairByArrowKey` —Right `.45/.52→.46/.51`, suma y clamp, sin
+  Home/End ni fallback— y `resolveLayoutEscapePolicy` —cancelar sin callback,
+  blur ni pérdida de foco—. El entorno Node acredita política, no finge eventos:
+  propagación/foco quedan obligatoriamente para browser AFTER. Diff-check está
+  limpio y producto/CSS siguen intactos. Un único writer puede implementar
+  ahora sólo componente+helper.
+
+- **I53 · 2026-08-09 · Candidato GREEN de interacción accesible** — El
+  único writer editó sólo `ChartLayoutPopover.tsx` y
+  `chartLayoutHelpers.ts`, sin CSS, tests, ledger, callers, store, API/R ni
+  motor PPT. Cada par horizontal compatible conserva un único separador
+  neutral trailing con nombre, orientación, controls, rango y valor derivados
+  de metadata; Left/Right usa el step publicado, conserva la suma y confirma un
+  patch atómico. Pointer enfoca y mantiene snapshot, Escape activo y
+  `pointercancel` restauran sin callback, Escape ocioso queda al host y los dos
+  inputs exactos cancelan localmente sin blur. El editor publica un solo status
+  polite/atomic para confirmación o cancelación pointer, mientras teclado usa
+  el propio valor ARIA. RED→GREEN terminó 19/19; el set canónico de
+  layout+procedencia creció de 17/17 a 22/22 por las cinco regresiones nuevas;
+  toda Gráficos pasó 47/47 archivos y 303/303 tests, typecheck forzado y
+  diff-check salieron limpios. `editor-v2.css` y `reporte_plan_ppt.R`
+  conservaron sus hashes. Es candidato técnico, no cierre: pasa a guardianía
+  contractual independiente y después a AFTER real dual.
+
+- **I54 · 2026-08-09 · Guardianía r1 rechaza cascada y fallbacks** — La
+  revisión independiente repitió 22/22 en layout+procedencia, 47/47 archivos y
+  303/303 tests de Gráficos, typecheck, diff-check, hashes y censo, pero emitió
+  **RECHAZADO P0=0/P1=2/P2=0**. Primera divergencia: el separador neutral es un
+  `span` y el selector congelado `.is-compact span` lo lleva a opacidad cero
+  cuando el primario ocupa ≤10%, dejando un control focusable invisible.
+  Segunda: pointer sustituye una suma no positiva por `1`, mientras ARIA y el
+  clamp usan `0/Infinity` si falta metadata, de modo que fabrican un dominio en
+  vez de fallar cerrados. La micro-ronda r2 congela un `div` neutral y un
+  resolver puro compartido: cuatro bounds finitos y ordenados, valores finitos
+  dentro de dominio, suma positiva e intervalo combinado factible; cualquier
+  incumplimiento devuelve `null`, no materializa control ni abre transacción.
+  Contrato `868364e7…dad7a` y scope `7cc21f5f…dd651` mantienen exactamente los
+  mismos dos tests y los mismos dos archivos de producto. QA browser continúa
+  bloqueado hasta RED→GREEN y guardianía r2.
+
+- **I55 · 2026-08-09 · RED r2 de visibilidad y dominio fail-closed** — El
+  mismo autor independiente partió de 19/19 y editó sólo los dos tests que ya
+  poseía. El agregado queda en **cuatro fallos y 18 pases**. La primera
+  aserción acredita marco compacto y un control, pero recibe tag `span` frente
+  a `div`; otro SSR prueba que suma cero y metadata sin bounds aún publican un
+  handle/separator. El helper exige el nuevo `resolveLayoutPair`, hoy ausente,
+  y demuestra que flechas con bounds incompletos o no finitos devuelven un
+  patch en vez de `null`. Diff-check está limpio, producto/CSS/congelados no
+  cambiaron durante el carril y los hashes de contrato/scope coinciden. El
+  mismo writer queda habilitado únicamente sobre componente+helper; QA browser
+  sigue bloqueado.
+
+- **I56 · 2026-08-09 · Candidato GREEN r2 sin dominio fabricado** — El
+  mismo único writer mantuvo ownership exclusivo de componente+helper. Sustituyó
+  el neutral por `div` y centralizó `resolveLayoutPair`: ambos metadatos, cuatro
+  bounds finitos/ordenados, valores finitos dentro de dominio, suma positiva e
+  intervalo combinado factible son obligatorios. ARIA sólo materializa el
+  separador con esa resolución; pointer la consulta antes de prevenir, enfocar o
+  abrir snapshot y usa el total exacto; flechas agregan step izquierdo positivo
+  y conservan el clamp común. Un lado en cero puede reabrirse si el dominio es
+  válido, ambos cero fallan cerrados. RED→GREEN terminó 22/22, el set
+  layout+procedencia 25/25 y toda Gráficos 47/47 archivos y 306/306 tests;
+  typecheck forzado, diff-check, censo y hashes congelados fueron conformes.
+  Es candidato técnico: guardianía r2 debe aceptarlo antes de habilitar AFTER.
+
+- **I57 · 2026-08-09 · Guardianía r2 rechaza el cero accesible** — La
+  revisión independiente confirmó literalmente el resolver, `div`, pointer,
+  ARIA, flechas, Escape/status/inputs, rutas únicas, congelados y gates
+  25/25 + 306/306 + typecheck, pero emitió **RECHAZADO P0=0/P1=1/P2=0**.
+  Con primario `0` y secundario positivo, el dominio es válido y el separador
+  existe; sin embargo, el marco recibe `is-zero` y la hoja congelada aplica
+  opacidad cero, `pointer-events:none` y `display:none` a descendientes. El
+  control sale del árbol accesible y no puede reabrir el primario. La r3
+  congela una sola regla: `is-zero` sólo entra si el valor es cero y no existe
+  separador saliente válido; `is-compact` permanece y el mismo resultado
+  gobierna clase+render. Contrato `a4404dcb…072f70e` y scope
+  `f84530fb…24cfb60` reducen RED y producto a un archivo cada uno, sin CSS. Los
+  dos paths de calcMuestra observados concurrentemente quedaron fuera y ya
+  pertenecen a commits ajenos en HEAD; este loop no los modifica. AFTER sigue
+  bloqueado.
+
+- **I58 · 2026-08-09 · RED r3 de marco cero con separador saliente** — El
+  autor independiente modificó sólo `ChartLayoutPopover.test.tsx`. Partió de
+  22/22 y dejó **un fallo y 21 pases**: con A `0` y B `.52`, el control ya es un
+  único `div`, publica now `0`, rango `0..0.32`, controls correcto y marco
+  compacto, pero el mismo frame aún declara `is-zero=true`. Ambos cero y
+  metadata incompleta siguen cubiertos por los guards r2. Helper, producto,
+  CSS, contrato/scope y congelados conservaron hashes durante el carril;
+  diff-check quedó limpio. Un writer de un solo archivo queda habilitado para
+  reutilizar el resultado saliente en clase+render.
+
+- **I59 · 2026-08-09 · Candidato GREEN r3 con cero reabrible** — El mismo
+  writer tocó sólo `ChartLayoutPopover.tsx`. Conservó una única
+  `pairResolution`, derivó un único `outgoingSeparator` y reutilizó ese objeto
+  tanto para render como para negar `is-zero`; `is-compact` no cambió. El caso
+  A `0` / B `.52` mantiene ahora su separador saliente visible y accesible sin
+  alterar ambos-cero ni los guards r2. RED→GREEN terminó 22/22;
+  layout+procedencia pasó 25/25, Gráficos 47/47 archivos y 306/306 tests,
+  typecheck forzado y diff-check fueron verdes. Helper, CSS y motor PPT
+  conservaron hashes. Candidato técnico: guardianía r3 decide si puede abrirse
+  AFTER real.
+
+- **I60 · 2026-08-09 · Guardianía r3 compatible** — La revisión
+  independiente emitió **COMPATIBLE P0=0/P1=0/P2=0**. Confirmó una sola
+  resolución y un solo `outgoingSeparator` gobernando clase+JSX; A `0` / B
+  `.52` publica `div[separator]`, now `0`, rango `0..0.32` y marco compacto sin
+  cero, mientras ambos cero o metadata inválida fallan cerrados. Repitió
+  layout+procedencia 25/25, Gráficos 47/47 y 306/306, typecheck, diff-check,
+  hashes y censo sobre HEAD concurrente `ec60ba4b`; no halló cambios nuevos en
+  helper, CSS, callers, store ni R/PPT. La conformidad queda reservada al AFTER
+  real: dos viewports, un tab stop, flechas/suma/patch/foco, cero reabrible,
+  drag+status, Escape activo/ocioso, pointercancel, inputs exactos, live region,
+  scroll y host.
+
+- **I61 · 2026-08-09 · AFTER bloqueado por la pila de ejecución** — QA
+  independiente intentó la matriz real de G2-L1.5c sobre una copia aislada de
+  `acnur_acg`, 1440×1000 y 1024×600, sin modificar producto. La sesión nueva
+  contra la API preservada en 8787 abrió el proyecto y obtuvo 200 en metadata,
+  defaults, config y variables; HEAD y censo permanecieron estables, la
+  fixture canónica y su copia conservaron SHA-256 idéntico y los hashes de
+  componente, helper, CSS congelado y motor PPT coincidieron antes/después.
+  Sin embargo, Vite respondió 500 para `src/main.tsx` durante la corrida
+  sellada y el runner agotó 120 s esperando
+  `[data-audit-ready="graficos"]`: React nunca montó, no se ejecutó ningún caso
+  y no existen capturas AFTER que comparar. El veredicto literal es
+  **BLOQUEADO P0=0/P1=3/P2=0**, donde P1-02/P1-03 no acreditan defectos del
+  candidato —son checks vacíos derivados de que la navegación no ocurrió—.
+  Una única reprueba de bajo consumo confirmó que la raíz ya servía 200 pero la
+  transformación de `main.tsx` volvió a quedar sin respuesta; no se reinstaló
+  `node_modules`, no se abrió otra pila y el Vite 5202 propio quedó cerrado.
+  El arranque fresco de la API del HEAD concurrente también dejó evidencia
+  ajena al lote: `router_graficos.R` se carga antes de que exista
+  `.slide_names()`. La API 8787, de propiedad del usuario, permaneció intacta.
+  Reporte, estructurado, runner, fixture y logs validan **20/20** entradas del
+  manifiesto. Este registro no convierte el AFTER en verde ni invalida la
+  conformidad estática de I60; deja una deuda visual/runtime explícita.
+
+- **I62 · 2026-08-09 · Recorte finito y disposición de la cola** — Gonzalo
+  revocó expresamente el mandato indefinido y ordenó finalizar el goal con
+  bajo consumo de RAM. La stopping rule pasa a ser finita: documentar sin
+  ambigüedad el candidato vigente, conservar el AFTER bloqueado como deuda,
+  disponer cada lote y decisión restante, ejecutar un gate serial acotado y
+  crear un commit exacto; no se abre recenso ni otro lote. G2-L1.5d/e y
+  G2-L2–L6 quedan diferidos fuera de este goal y no se consideran entregados;
+  G2-LR queda cancelado. D1–D3 y la rama durable de D12 conservan sus supuestos
+  fail-closed pero pasan fuera del goal; D4–D11 quedan cerradas sólo para el
+  alcance histórico que realmente gobernaron. Cualquier continuación exige un
+  goal nuevo. El cierre final queda condicionado al gate serial registrado en
+  I63 y al commit exacto que materializa este ledger.
+
+- **I63 · 2026-08-09 · Gate serial del cierre finito** — El verificador
+  independiente emitió **GO exclusivamente para el cierre
+  administrativo/técnico finito** sobre HEAD `59d8717f7c8f`: diff-check de los
+  cinco paths limpio y staging vacío; hashes de componente, helper, CSS
+  congelado y motor PPT 4/4 exactos; focal 3/3 archivos y 25/25 tests; Gráficos
+  47/47 archivos y 306/306 tests; typecheck forzado exit 0. El AFTER sellado
+  validó 20/20 hashes y conserva **BLOQUEADO P0=0/P1=3/P2=0**, con
+  `P1-01-RUNTIME` como primera divergencia, cero casos ejecutados y cero
+  capturas porque React nunca montó. Este cierre no acredita conformidad visual
+  AFTER. La cola 15/15 y D1–D12 12/12 quedaron dispuestas; 5202 estaba cerrado
+  y la API de usuario 8787 permaneció en PID 40553. El gate habilita únicamente
+  el commit exacto de los cinco paths del cierre.
+
 ## Bandeja de decisiones
 
 | ID | Decisión | Recomendación y supuesto conservador | Estado |
 |---|---|---|---|
-| D1 | ¿Dumbbell/Serie se editan manualmente o sólo nacen de equivalencias? | Mantener `generated` y fail-closed en picker hasta diseñar un editor tema→refs por base con E1 y orden temporal acreditado | asumido para G2-L0; decisión de producto pendiente |
-| D2 | Método de IC (B5) | Rechazar el alcance general: Wilson 95% sólo es recomendación para proporción plana no ponderada; falta ratificar método ponderado/repeat, alcance y simultaneidad | pendiente de Gonzalo; B5 queda fuera sin detener otros lotes |
-| D3 | Denominador múltiple (B7) | Recomendar `casos_validos`: unidad con ≥1 código elegible declarado; casos y menciones siempre rotulados y seleccionados explícitamente | pendiente de ratificación; supuesto conservador = no implementar todavía |
-| D4 | Primer tipo descriptivo tras L0 | `p_puntos_comparativos` v1: una base, punto + N por grupo, indicador explícito, sin líneas/IC/significancia/SM; después `p_heatmap_cruce` por columna | resuelto por revisión independiente |
-| D5 | Dirección semántica de la escala divergente | Añadir `direccion_escala` de cola; default compatible `negativo_positivo`, alternativa `positivo_negativo`; los ítems invertidos se recodifican antes del gráfico | congelado para G2-L0.1 |
-| D6 | Peso, filtros, grano y firma multibase | Aplicar peso/filtro por fuente; exigir plano independiente y firma E1 código+etiqueta idéntica; `repeat`, desconocido, ref ausente o corte fuera de escala fallan cerrados | congelado para G2-L0.1 |
-| D7 | Elegibilidad de Lollipop antes de resolver D3 | V1 sólo `select_one` plano; exclusión cambia denominador, `top_n` sólo visibilidad y debe notificar truncamiento; selección múltiple/repeat no se normalizan | congelado para G2-L0.1; D3 sigue pendiente |
-| D8 | Orden de Dumbbell y Serie temporal | Dumbbell usa primera fuente como referencia y segunda como comparación; Serie exige orden completo acreditado; tema o periodo incompleto falla en vez de desaparecer o puentearse | congelado para G2-L0.1 |
-| D9 | Estimando y gramática de puntos comparativos v1 | Una base, indicador `select_one` + códigos objetivo, corte `select_one`, peso efectivo y filtros estrictos; porcentaje ponderado con `n` crudo visible, orden del instrumento, 2–12 grupos, eje 0–100 y puntos sin conectores/IC/significancia/SM | congelado para G2-L1 por revisión metodológica independiente |
-| D10 | Frontera del distribuidor dinámico de espacios | Conservar `ChartLayoutEditor` como control de los args efectivos; metadata/presets fijan nombres, unidades, defaults y límites, y el render R/PPT es el oracle visual. React puede mostrar y editar la distribución, pero no inventar semántica ni una geometría alternativa. La matriz de placeholders de slide de ADR 0068 permanece separada e intacta | resuelto por mandato de Gonzalo · gobierna G2-L1.5 |
-| D11 | Base dimensional del Mapa de espacios | Cada arg se clasifica por eje, unidad y composición; sólo una partición común admite conservación y porcentaje. `alto_por_categoria` es pulgadas por fila y `canvas_h_toprow_in` vive dentro del panel; ninguno se pareará con bandas fijas. Sin unidad canónica, medida exacta y sin drag | congelado para G2-L1.5a por censo React↔R y QA independiente |
-| D12 | ¿La procedencia de un estilo copiado se declara por contexto o se persiste como linaje durable? | G2-L1.5b usa contrato contextual explícito y fail-closed: sólo el owner de biblioteca afirma `Estilo guardado`; el snapshot de un gráfico es `Ajuste de este gráfico`. Persistir id + nombre snapshot + mapa por campo se difiere a G2-L1.5e con ADR 0070, bump de contrato y lectura legacy `unknown`, nunca migración por igualdad | supuesto conservador congelado por guardianía; identidad durable pendiente de decisión arquitectónica, no bloquea el loop |
+| D1 | ¿Dumbbell/Serie se editan manualmente o sólo nacen de equivalencias? | Mantener `generated` y fail-closed en picker hasta diseñar un editor tema→refs por base con E1 y orden temporal acreditado | **diferida fuera del goal; no se decidió editor manual** |
+| D2 | Método de IC (B5) | Rechazar el alcance general: Wilson 95% sólo es recomendación para proporción plana no ponderada; falta ratificar método ponderado/repeat, alcance y simultaneidad | **diferida fuera del goal; G2-L4 no implementado** |
+| D3 | Denominador múltiple (B7) | Recomendar `casos_validos`: unidad con ≥1 código elegible declarado; casos y menciones siempre rotulados y seleccionados explícitamente | **diferida fuera del goal; recomendación no ratificada y G2-L3 no implementado** |
+| D4 | Primer tipo descriptivo tras L0 | `p_puntos_comparativos` v1: una base, punto + N por grupo, indicador explícito, sin líneas/IC/significancia/SM; después `p_heatmap_cruce` por columna | **resuelta para puntos comparativos; heatmap diferido y no entregado** |
+| D5 | Dirección semántica de la escala divergente | Añadir `direccion_escala` de cola; default compatible `negativo_positivo`, alternativa `positivo_negativo`; los ítems invertidos se recodifican antes del gráfico | **resuelta y aplicada en G2-L0.1** |
+| D6 | Peso, filtros, grano y firma multibase | Aplicar peso/filtro por fuente; exigir plano independiente y firma E1 código+etiqueta idéntica; `repeat`, desconocido, ref ausente o corte fuera de escala fallan cerrados | **resuelta y aplicada en G2-L0.1** |
+| D7 | Elegibilidad de Lollipop antes de resolver D3 | V1 sólo `select_one` plano; exclusión cambia denominador, `top_n` sólo visibilidad y debe notificar truncamiento; selección múltiple/repeat no se normalizan | **resuelta para Lollipop v1; selección múltiple diferida con D3** |
+| D8 | Orden de Dumbbell y Serie temporal | Dumbbell usa primera fuente como referencia y segunda como comparación; Serie exige orden completo acreditado; tema o periodo incompleto falla en vez de desaparecer o puentearse | **resuelta y aplicada en G2-L0.1** |
+| D9 | Estimando y gramática de puntos comparativos v1 | Una base, indicador `select_one` + códigos objetivo, corte `select_one`, peso efectivo y filtros estrictos; porcentaje ponderado con `n` crudo visible, orden del instrumento, 2–12 grupos, eje 0–100 y puntos sin conectores/IC/significancia/SM | **resuelta y aplicada en G2-L1** |
+| D10 | Frontera del distribuidor dinámico de espacios | Conservar `ChartLayoutEditor` como control de los args efectivos; metadata/presets fijan nombres, unidades, defaults y límites, y el render R/PPT es el oracle visual. React puede mostrar y editar la distribución, pero no inventar semántica ni una geometría alternativa. La matriz de placeholders de slide de ADR 0068 permanece separada e intacta | **resuelta por mandato de Gonzalo y aplicada al alcance ejecutado de G2-L1.5** |
+| D11 | Base dimensional del Mapa de espacios | Cada arg se clasifica por eje, unidad y composición; sólo una partición común admite conservación y porcentaje. `alto_por_categoria` es pulgadas por fila y `canvas_h_toprow_in` vive dentro del panel; ninguno se pareará con bandas fijas. Sin unidad canónica, medida exacta y sin drag | **resuelta y aplicada en G2-L1.5a** |
+| D12 | ¿La procedencia de un estilo copiado se declara por contexto o se persiste como linaje durable? | G2-L1.5b usa contrato contextual explícito y fail-closed: sólo el owner de biblioteca afirma `Estilo guardado`; el snapshot de un gráfico es `Ajuste de este gráfico`. Persistir id + nombre snapshot + mapa por campo se difiere a G2-L1.5e con ADR 0070, bump de contrato y lectura legacy `unknown`, nunca migración por igualdad | **rama contextual resuelta en G2-L1.5b; linaje durable diferido fuera del goal** |
+
+## Cierre finito
+
+El gate de I63 satisface la stopping rule para el cierre finito
+administrativo/técnico; el commit exacto materializa el cierre. Éste acredita
+sólo los lotes marcados como
+cerrados; no acredita implementación, QA ni decisión sustantiva de ningún lote
+diferido o cancelado y, en particular, no acredita conformidad visual AFTER de
+G2-L1.5c. Esa deuda y los bloqueos de la pila quedan deliberadamente visibles.
+Cualquier reapertura requiere un goal nuevo.
