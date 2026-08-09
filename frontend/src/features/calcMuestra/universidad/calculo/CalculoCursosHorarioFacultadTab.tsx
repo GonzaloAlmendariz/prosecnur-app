@@ -1,12 +1,17 @@
 import { useEffect } from "react";
 import { Check, Grid3X3, RotateCcw } from "../../../../vendor/lucide-react";
-import type { CalcMuestraComponente } from "../../../../api/client";
+import type { CalcMuestraAulasCerteza, CalcMuestraComponente } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import type { UniversityAulasScenario } from "../shared/study";
+import { CertezaCoberturaPanel } from "./CertezaCoberturaPanel";
+import {
+  certezaVistaDesdeEstado,
+  type CertezaEstratoPayload,
+} from "./certezaCoberturaModel";
 import {
   cursosHorarioDesdeResultado,
   estadoPlanCursosHorario,
@@ -20,12 +25,18 @@ export function CalculoCursosHorarioFacultadTab({
   escenario,
   onEscenario,
   marcoDesactualizado = false,
+  certeza = null,
+  certezaEnCurso = false,
+  onMedirCerteza,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   currentFrameHash: string | null | undefined;
   escenario: UniversityAulasScenario;
   onEscenario: (escenario: UniversityAulasScenario) => void;
   marcoDesactualizado?: boolean;
+  certeza?: CalcMuestraAulasCerteza | null;
+  certezaEnCurso?: boolean;
+  onMedirCerteza?: (payload: { estratos: CertezaEstratoPayload[]; nivel: number }) => void | Promise<void>;
 }) {
   const actorId = escenario === "e2"
     ? UNIVERSITY_FACULTY_COMPONENT_ID
@@ -133,6 +144,19 @@ export function CalculoCursosHorarioFacultadTab({
         </div>
         <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)} · confirmación {model.decision.confirmado_at}</small>
       </section>
+
+      {/* La tabla de arriba dice CUÁNTAS aulas pide la fórmula; este panel dice
+          si ese número alcanza. Van juntos a propósito: separarlos deja al
+          usuario decidiendo con la mitad de la respuesta. */}
+      {onMedirCerteza && (
+        <CertezaCoberturaPanel
+          filasResultado={model.filas}
+          vista={certezaVistaDesdeEstado(certeza, frameHashVigente)}
+          busy={certezaEnCurso}
+          onMedir={onMedirCerteza}
+          marcoDesactualizado={resultadoDesactualizado}
+        />
+      )}
 
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar cursos-horario requeridos" data-qa-geometry-member>
         <div className="cmv2-calc-confirm-copy">

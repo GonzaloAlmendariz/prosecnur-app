@@ -7,12 +7,16 @@
  */
 import { useState } from "react";
 import type {
+  CalcMuestraAulasCerteza,
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
+import { classroomMetricValue } from "../shared/frame";
+import { CoberturaObjetivoStrip } from "./CoberturaObjetivoStrip";
+import { coberturaObjetivo } from "./coberturaObjetivoModel";
 import { CifraFila, CifraMotor } from "../ui";
 import { ClassroomSelectionMapWorkspace } from "./ClassroomSelectionMap";
 import { DescuentoRepetidosPanel } from "./DescuentoRepetidosPanel";
@@ -47,10 +51,13 @@ export function AulasSeleccionTab({
   onSelectMethod,
   onSimulateReplacements,
   onNavigate,
+  certeza = null,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
   busy: string | null;
+  /** Certeza medida en Cálculo; nombra las facultades que no sostienen cuota. */
+  certeza?: CalcMuestraAulasCerteza | null;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onNavigate?: AulasNavigate;
@@ -139,6 +146,14 @@ export function AulasSeleccionTab({
         </section>
       ) : (
         <>
+          <CoberturaObjetivoStrip
+            cobertura={coberturaObjetivo({
+              cubiertos: classroomMetricValue(coverageRows, "selected_unique_students"),
+              objetivo: targetForDisplay,
+              certeza,
+            })}
+          />
+
           <section className="cmv2-panel cmv2-aulas-panel cmv2-aulas-hero-panel">
             <div className="cmv2-subhead">
               <strong>Selección vigente</strong>

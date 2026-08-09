@@ -43,7 +43,7 @@ import { ExploradorBasesTab } from "./definicion/ExploradorBasesTab";
 import { DefHistoricoTab } from "./definicion/DefHistoricoTab";
 import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
-import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab } from "./calculo";
+import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
 import {
   AulasAuditoriaTab,
   AulasMetodoTab,
@@ -93,6 +93,8 @@ export function UniversidadDesk({
   onCalcular,
   onCompararAulas,
   onSeleccionarAulas,
+  onMedirCerteza,
+  midiendoCerteza = false,
   onSimularReemplazos,
   onSourceUpload,
   onSourceBuild,
@@ -142,6 +144,8 @@ export function UniversidadDesk({
   onCalcular: (estudioOverride?: CalcMuestraEstudio) => void | Promise<void>;
   onCompararAulas: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
   onSeleccionarAulas: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
+  onMedirCerteza: (payload: { estratos: CertezaEstratoPayload[]; nivel: number }) => void | Promise<void>;
+  midiendoCerteza?: boolean;
   onSimularReemplazos: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onSourceUpload: (binding: CalcMuestraWorkspaceSourceBinding, file: File) => void | Promise<void>;
   onSourceBuild: (workspace: CalcMuestraWorkspace) => void | Promise<void>;
@@ -522,6 +526,7 @@ export function UniversidadDesk({
                 onSelectMethod={onSeleccionarAulas}
                 onSimulateReplacements={onSimularReemplazos}
                 onNavigate={onNavigate}
+                certeza={aulasState?.certeza ?? null}
               />
             )}
             {activeLabTab === "perfil" && (
@@ -573,6 +578,9 @@ export function UniversidadDesk({
                 escenario={escenarioAulas}
                 onEscenario={seleccionarEscenarioAulas}
                 marcoDesactualizado={marcoDesactualizado}
+                certeza={aulasState?.certeza ?? null}
+                certezaEnCurso={midiendoCerteza}
+                onMedirCerteza={onMedirCerteza}
               />
             </div>}
             {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion">

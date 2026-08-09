@@ -1,0 +1,122 @@
+/* Certeza de cobertura. Solo tokens var(--cmv2-* / --pulso-*); cero hex. */
+
+.cmv2-certeza-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3);
+}
+
+.cmv2-certeza-explicacion {
+  margin: var(--pulso-space-1) 0 0;
+  max-width: 68ch;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cmv2-certeza-acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-2);
+  flex-wrap: wrap;
+}
+
+.cmv2-certeza-vacio {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+}
+
+/* --- Tabla ---------------------------------------------------------------
+   La columna que carga el hallazgo es "Alcanza en": un 62% ahí es la
+   diferencia entre un diseño que cierra y uno que no, así que se destaca por
+   sí sola cuando queda bajo el nivel exigido. */
+
+.cmv2-certeza-tabla td,
+.cmv2-certeza-tabla th {
+  white-space: nowrap;
+}
+
+.cmv2-certeza-tabla td:first-child,
+.cmv2-certeza-tabla th:first-child {
+  white-space: normal;
+}
+
+.cmv2-certeza-prob,
+.cmv2-certeza-minimo,
+.cmv2-certeza-brecha {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-certeza-prob[data-bajo] {
+  color: var(--pulso-warn-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-certeza-tabla tr[data-estado="agotado"] td:first-child {
+  box-shadow: inset 3px 0 0 var(--pulso-danger-fg);
+}
+
+.cmv2-certeza-tabla tr[data-estado="corta"] td:first-child {
+  box-shadow: inset 3px 0 0 var(--pulso-warn-fg);
+}
+
+.cmv2-certeza-cota {
+  display: block;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-regular);
+}
+
+.cmv2-certeza-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--pulso-space-2);
+  height: 22px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.cmv2-certeza-chip[data-estado="agotado"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
+
+.cmv2-certeza-chip[data-estado="corta"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-certeza-chip[data-estado="ajustada"],
+.cmv2-certeza-chip[data-estado="sobra"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-certeza-pie {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-1);
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+}
+
+.cmv2-certeza-pie p {
+  margin: 0;
+  max-width: 78ch;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.cmv2-certeza-pie svg {
+  vertical-align: -1px;
+}

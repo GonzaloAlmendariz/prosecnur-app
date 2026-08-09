@@ -41,6 +41,7 @@ import { ResumenDiseno } from "./motor/ResumenDiseno";
 import { usePerfilEfectivo } from "./motor/usePerfilEfectivo";
 import { EMPTY_WORKSPACE } from "./workspaceDefaults";
 import {
+  apiCalcMuestraAulasCerteza,
   apiCalcMuestraAulasCompararMetodos,
   apiCalcMuestraAulasExportar,
   apiCalcMuestraAulasSeleccionar,
@@ -1059,6 +1060,10 @@ export default function CalcMuestraPage() {
   // cuando el estudio cambió después de generarlo. La descarga sigue viva.
   const [reporteStale, setReporteStale] = useState(false);
   const [exportandoAulas, setExportandoAulas] = useState(false);
+  // Bandera propia y no `busy === "<etiqueta>"`: mientras corre el job, el
+  // progreso sobrescribe `busy` con el mensaje de la fase, así que comparar
+  // contra la etiqueta inicial deja el botón habilitado justo cuando no debe.
+  const [midiendoCerteza, setMidiendoCerteza] = useState(false);
   // La navegación del módulo vive en la dirección, no en estado suelto: sección
   // y pestaña se publican y se leen de la URL (ADR 0044). `activeLocalTabs`
   // sobrevive como MEMORIA —qué pestaña se estaba viendo en cada sección— para
@@ -2147,6 +2152,36 @@ export default function CalcMuestraPage() {
     }
   }
 
+  /**
+   * Certeza de cobertura. Los estratos ya vienen construidos desde el
+   * resultado publicado por R (`certezaEstratosDesdeResultado`): acá no se
+   * arma ninguna cuota ni ningún τ.
+   */
+  async function medirCertezaCobertura(payload: {
+    estratos: Parameters<typeof apiCalcMuestraAulasCerteza>[0]["estratos"];
+    nivel: number;
+  }) {
+    setMsg(null);
+    setBusy("Midiendo certeza de cobertura");
+    setMidiendoCerteza(true);
+    try {
+      const res = await apiCalcMuestraAulasCerteza(payload);
+      if (res.mode === "job" && res.job_id) {
+        await esperarJobAulas(res.job_id, "Midiendo certeza de cobertura");
+        const state = await apiCalcMuestraState();
+        setAulasState(state.aulas ?? null);
+      } else {
+        setAulasState(res.state?.aulas ?? null);
+      }
+      setMsg({ kind: "info", text: "Certeza de cobertura medida." });
+    } catch (e) {
+      setMsg(msgDeFallo(e, "No se pudo medir la certeza. Construye el marco y recalcula la propuesta."));
+    } finally {
+      setMidiendoCerteza(false);
+      setBusy(null);
+    }
+  }
+
   async function simularReemplazosAulas(config: CalcMuestraWorkspaceAulasConfig) {
     setMsg(null);
     setBusy("Simulando reemplazos");
@@ -2603,6 +2638,8 @@ export default function CalcMuestraPage() {
               onCalcular={calcular}
               onCompararAulas={compararMetodosAulas}
               onSeleccionarAulas={seleccionarAulasDesdeMetodo}
+              onMedirCerteza={medirCertezaCobertura}
+              midiendoCerteza={midiendoCerteza}
               onSimularReemplazos={simularReemplazosAulas}
               onSourceUpload={cargarFuenteUniversitaria}
               onSourceBuild={construirMarcoDesdeFuentes}

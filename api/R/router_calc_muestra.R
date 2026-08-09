@@ -25,6 +25,8 @@
 #   POST /api/calc-muestra/marco/criterios/preview — preview de criterios
 #       (montado por mount_calc_muestra_criterios, router_calc_muestra_criterios.R)
 #   POST /api/calc-muestra/aulas/comparar-metodos — compara motores
+#   POST /api/calc-muestra/aulas/certeza       — aulas para alcanzar la cuota
+#                                                con probabilidad exigida
 #   POST /api/calc-muestra/aulas/seleccionar   — selecciona aulas M1..Mk
 #   POST /api/calc-muestra/aulas/simular-reemplazos — simula reservas
 #   POST /api/calc-muestra/aulas/exportar      — exporta workbook de seleccion
@@ -230,6 +232,30 @@
   }
 }
 
+.cm_aulas_certeza_on_complete <- function(sid, config, frame_hash) {
+  function(j) {
+    certeza <- j$result_data
+    s_now <- session_get(sid, required = FALSE)
+    fresh <- FALSE
+    if (!is.null(s_now) && is.list(certeza)) {
+      fresh <- .cm_aulas_run_vigente(s_now, frame_hash, config)
+      if (fresh) {
+        session_set(sid, "calc_muestra_aulas_certeza", certeza)
+        session_set(sid, "calc_muestra_aulas_stale_job_result", NULL)
+      } else {
+        .cm_aulas_registrar_stale_job(sid, j, frame_hash)
+      }
+    }
+    list(
+      ok = TRUE,
+      kind = "calc_muestra_aulas_certeza",
+      stale_frame = !fresh,
+      estratos_cortos = certeza$total$estratos_cortos %||% NULL,
+      estratos_agotados = certeza$total$estratos_agotados %||% NULL
+    )
+  }
+}
+
 # F10: ademas del marco, la simulacion de reemplazos depende de la seleccion:
 # si el usuario re-sorteo durante el job, tampoco se persiste.
 .cm_aulas_simular_on_complete <- function(sid, config, frame_hash, selection_run_id) {
@@ -278,6 +304,7 @@
       frame = s$calc_muestra_aulas_frame %||% NULL,
       selection = s$calc_muestra_aulas_selection %||% NULL,
       method_comparison = s$calc_muestra_aulas_method_comparison %||% NULL,
+      certeza = s$calc_muestra_aulas_certeza %||% NULL,
       replacement_simulation = s$calc_muestra_aulas_replacement_simulation %||% NULL,
       export = s$calc_muestra_aulas_export %||% NULL,
       # F4: nota de job cuyo resultado NO se aplico por marco desactualizado
@@ -760,6 +787,7 @@ mount_calc_muestra <- function(pr) {
       )
       session_set(sid, "calc_muestra_aulas_selection", NULL)
       session_set(sid, "calc_muestra_aulas_method_comparison", NULL)
+      session_set(sid, "calc_muestra_aulas_certeza", NULL)
       session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
       session_set(sid, "calc_muestra_aulas_export", NULL)
       # F4: marco nuevo -> la nota de job obsoleto deja de ser relevante.
@@ -832,6 +860,73 @@ mount_calc_muestra <- function(pr) {
         # F4: solo persiste en sesion si el marco vigente sigue siendo el
         # capturado al submit (ver .cm_aulas_comparar_on_complete).
         on_complete = .cm_aulas_comparar_on_complete(
+          sid, config, .cm_aulas_scalar(frame$frame_hash %||% "", "")
+        )
+      )
+      list(ok = TRUE, mode = "job", job_id = job_id)
+    })) |>
+
+    # -----------------------------------------------------------------------
+    # POST /api/calc-muestra/aulas/certeza — ¿cuántas aulas para el 95%?
+    #
+    # Body: { estratos: [{ label, faculty_key?, cuota, tau, aulas_formula }],
+    #         nivel?: 0.95, corridas?: 300, config?, frame? }
+    #
+    # Los estratos son las filas de `resultado$aulas_por_estrato` del estudio:
+    # el router no las recalcula ni las adivina desde el marco, porque la cuota
+    # y τ son decisiones del motor de muestra, no propiedades del marco de
+    # aulas. Respuesta sync o job, con el mismo gate que el resto de aulas.
+    # -----------------------------------------------------------------------
+    plumber::pr_post("/api/calc-muestra/aulas/certeza",
+                     wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body <- .cm_parse_body(req)
+      s <- session_get(sid)
+      frame <- body$frame %||% s$calc_muestra_aulas_frame %||% NULL
+      if (is.null(frame)) {
+        stop_api(409, "E_SIN_MARCO_AULAS", "Construye el marco de aulas antes de medir la certeza de cobertura.")
+      }
+      # Precedencia invertida respecto de comparar/seleccionar, a propósito.
+      # Aquellos endpoints reciben la config desde la UI de Aulas, que la tiene
+      # en la mano; la certeza se pide desde la sección Cálculo, que no la
+      # edita ni la conoce. Su fuente natural es la config VIGENTE de la
+      # sesión —la misma contra la que valida el guard de la decisión—, no la
+      # copia congelada dentro del marco: con esa copia el guard rebota una
+      # medición que no cambia ninguna configuración.
+      base_config <- s$calc_muestra_aulas_config %||% frame$config %||% list()
+      config <- calc_muestra_aulas_normalize_config(body$config %||% base_config)
+      .cm_aulas_assert_decision_vigente(s, config)
+      estratos <- body$estratos %||% body$aulas_por_estrato %||% list()
+      nivel <- body$nivel %||% body$nivel_certeza %||% NULL
+      corridas <- body$corridas %||% body$simulation_runs %||% NULL
+
+      frame_n <- .cm_aulas_frame_n(frame)
+      # Costo en aula-corridas: cada estrato evalúa varios candidatos y cada
+      # candidato corre `corridas` sorteos. El 4 es la profundidad típica de la
+      # búsqueda monótona (arranca en la fórmula y camina uno o dos pasos).
+      costo <- frame_n * max(1L, length(estratos)) * 4 *
+        max(1L, .cm_aulas_int(corridas, .CM_CERTEZA_CORRIDAS_DEFAULT)) / max(1L, length(estratos))
+      if (!.cm_aulas_run_as_job(frame_n, costo)) {
+        certeza <- calc_muestra_aulas_certeza(
+          frame, config, estratos,
+          nivel = nivel, corridas = corridas
+        )
+        session_set(sid, "calc_muestra_aulas_certeza", certeza)
+        return(list(ok = TRUE, mode = "sync", certeza = certeza, state = .cm_state_payload(sid)))
+      }
+
+      job_id <- job_submit(
+        sid = sid,
+        kind = "calc_muestra_aulas_certeza",
+        func = calc_muestra_aulas_certeza_job,
+        args = list(
+          frame = frame,
+          config = config,
+          estratos = estratos,
+          nivel = nivel,
+          corridas = corridas
+        ),
+        on_complete = .cm_aulas_certeza_on_complete(
           sid, config, .cm_aulas_scalar(frame$frame_hash %||% "", "")
         )
       )

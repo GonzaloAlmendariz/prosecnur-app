@@ -2208,11 +2208,77 @@ export type CalcMuestraAulasReplacementSimulation = {
   summary?: MonitoreoRow[];
 };
 
+export const CALC_MUESTRA_AULAS_CERTEZA_SCHEMA =
+  "calc_muestra_aulas_certeza_cobertura_v1" as const;
+
+/**
+ * Un candidato evaluado: con `aulas` cursos-horario, en qué proporción de los
+ * sorteos simulados se alcanzó la cuota.
+ */
+export type CalcMuestraAulasCertezaPunto = {
+  aulas: number;
+  probabilidad: number;
+  rendimiento_medio: number;
+  rendimiento_p05: number;
+};
+
+export type CalcMuestraAulasCertezaFila = {
+  key: string;
+  label: string;
+  disponibles: number;
+  cuota: number;
+  tau: number | null;
+  /** Lo que pide hoy la división `cuota / (tamaño típico × τ)`. */
+  aulas_formula: number;
+  /** Probabilidad de que ese número alcance la cuota. Ahí está el hallazgo. */
+  probabilidad_formula: number | null;
+  aulas_certeza: number | null;
+  probabilidad_certeza: number | null;
+  brecha: number | null;
+  alcanzable: boolean;
+  /** Ni con todas las aulas del estrato se llega: el marco no da. */
+  agotado: boolean;
+  motivo: string;
+  rendimiento_medio: number | null;
+  rendimiento_p05: number | null;
+  /** `suma_elegibles` = marco sin ids; el rendimiento es una cota superior. */
+  base_conteo: string;
+  corridas: number;
+  tope_evaluaciones?: boolean;
+  curva: CalcMuestraAulasCertezaPunto[];
+};
+
+export type CalcMuestraAulasCerteza = {
+  schema: typeof CALC_MUESTRA_AULAS_CERTEZA_SCHEMA;
+  generado_en: string;
+  nivel: number;
+  engine: string;
+  frame_hash: string;
+  corridas_solicitadas: number;
+  criterio: {
+    pregunta: string;
+    metodo: string;
+    unidad: string;
+    olas: string;
+    no_cubre: string;
+  };
+  filas: CalcMuestraAulasCertezaFila[];
+  total: {
+    aulas_formula: number;
+    aulas_certeza: number;
+    brecha: number;
+    estratos_cortos: number;
+    estratos_agotados: number;
+    estratos_sin_ids: number;
+  };
+};
+
 export type CalcMuestraAulasState = {
   config?: Record<string, unknown>;
   frame?: CalcMuestraAulasFrame | null;
   selection?: CalcMuestraAulasSelection | null;
   method_comparison?: CalcMuestraAulasMethodComparison | null;
+  certeza?: CalcMuestraAulasCerteza | null;
   replacement_simulation?: CalcMuestraAulasReplacementSimulation | null;
   export?: { ok?: true; file_id: string; filename: string; size: number } | null;
   /** Resultado de un job que llegó con un frame_hash que ya no corresponde al
@@ -4150,6 +4216,33 @@ export async function apiCalcMuestraAulasSeleccionar(config?: Record<string, unk
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
       body: JSON.stringify({ ...(config ? { config } : {}), ...(frame ? { frame } : {}), ...(methodId ? { method_id: methodId } : {}), ...(objectiveConfig ? { objective_config: objectiveConfig } : {}) }),
+    }),
+  );
+}
+
+/**
+ * Certeza de cobertura. Los estratos se mandan tal como los publicó R en
+ * `resultado.aulas_por_estrato`: cuota y τ son decisiones del motor de muestra
+ * y el cliente no las recalcula. Sobre el umbral del backend deriva a job.
+ */
+export async function apiCalcMuestraAulasCerteza(payload: {
+  estratos: Array<{
+    label: string;
+    faculty_key?: string;
+    cuota: number;
+    tau?: number | null;
+    aulas_formula: number;
+  }>;
+  nivel?: number;
+  corridas?: number;
+  config?: Record<string, unknown>;
+  frame?: CalcMuestraAulasFrame;
+}) {
+  return handle<CalcMuestraAulasAsyncResponse<{ certeza: CalcMuestraAulasCerteza }>>(
+    await apiFetch("/api/calc-muestra/aulas/certeza", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
     }),
   );
 }
