@@ -208,8 +208,20 @@
 }
 
 .cmv2-selection-map-node small {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--pulso-text-soft);
   font-size: 0.62rem;
+  line-height: 1.25;
+  /* El pie del titular es el docente, y los nombres completos son largos
+     («BERNEX WEISS DE FALEN, NICOLE EDEL LAURE MARIE»). Sin acotar, los 15
+     titulares visibles desbordaban la caja. Mismo tratamiento que el nombre
+     del curso, incluido el `white-space: normal` que hace falta para vencer
+     al `button { white-space: nowrap }` heredado. */
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 
 .cmv2-selection-map-empty,
@@ -242,4 +254,11 @@
   .cmv2-selection-map-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Docente no publicado por el marco: se declara en tono apagado en vez de
+   dejar la línea vacía, que se leería como «no tiene». */
+.cmv2-selection-map-node small.is-hueco {
+  color: var(--pulso-text-soft);
+  font-style: italic;
 }
