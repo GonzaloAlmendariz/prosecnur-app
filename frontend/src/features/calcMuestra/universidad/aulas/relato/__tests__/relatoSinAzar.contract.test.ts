@@ -102,3 +102,34 @@ describe("ADR 0067 · gate 1 — cada cuadro es un hecho del sorteo ejecutado", 
     expect(modelo).toContain("no registró el orden del sorteo");
   });
 });
+
+describe("E4 · composición legible del campo", () => {
+  const escena = leerSinComentarios(join(RAIZ_RELATO, "escenas/EscenaSorteo.tsx"));
+
+  it("el rótulo fijo es solo el de la bola recién encendida", () => {
+    // Con las 60 encendidas rotuladas a la vez, las etiquetas se pisaban entre
+    // sí —11 pares medidos en la app— y la escena se leía sucia aunque ninguna
+    // bola se tocara. La secuencia completa vive en la lista de abajo, y el
+    // resto conserva su código en hover y en el `<title>` (C4: alcanzable).
+    expect(escena).toContain("esReciente ? (");
+    expect(escena).toContain('cmv2-relato-goo-rotulo is-reciente');
+    expect(escena).toContain('cmv2-relato-goo-rotulo is-hover');
+    // Si volviera a colgarse del estado «encendida», los 60 rótulos regresan.
+    expect(escena).not.toMatch(/encendida \? \(\s*<text/);
+  });
+
+  it("el radio se escala con la densidad del campo", () => {
+    // El tope de bolas recorta la cantidad, no el tamaño: sin escalar por
+    // densidad, 60 bolas del tamaño del dato se encaraman hasta la mancha.
+    expect(escena).toContain("escalaPorDensidad");
+    const goo = leerSinComentarios(join(RAIZ_RELATO, "escenas/goo.tsx"));
+    expect(goo).toContain("export function escalaPorDensidad");
+  });
+
+  it("la cola usa la espiral continua, no la de Vogel", () => {
+    // Vogel dispersa a propósito (137° entre consecutivos): perfecto para un
+    // bombo sin orden y exactamente lo contrario de lo que una cola necesita.
+    expect(escena).toContain("posicionCadena");
+    expect(escena).not.toContain("posicionGoo(index, unidades.length)");
+  });
+});
