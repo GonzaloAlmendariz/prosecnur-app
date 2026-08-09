@@ -68,6 +68,27 @@ export function RepresentativityMetricGrid({ metrics }: { metrics?: CalcMuestraA
 }
 
 /**
+ * Agrupa las filas de perfil por su dimensión conservando el orden de llegada.
+ *
+ * La dimensión es constante dentro del grupo: escribirla en cada fila la
+ * convierte en el elemento más prominente de una lista donde lo que identifica
+ * a la fila es la CATEGORÍA. En el estudio real eran doce «Facultad» seguidas,
+ * el rótulo repetido más frecuente de toda la pestaña.
+ */
+function agruparPorDimension(rows: CalcMuestraAulasProfileDistribution[]) {
+  const grupos: { dimension: string; filas: CalcMuestraAulasProfileDistribution[] }[] = [];
+  for (const row of rows) {
+    const dimension = String(row.label || row.dimension || "").trim();
+    const ultimo = grupos.length ? grupos[grupos.length - 1] : null;
+    // Se agrupa por corridas contiguas: el motor entrega las dimensiones juntas
+    // y respetar su orden mantiene la lectura que ya tenía la lista.
+    if (ultimo && ultimo.dimension === dimension) ultimo.filas.push(row);
+    else grupos.push({ dimension, filas: [row] });
+  }
+  return grupos;
+}
+
+/**
  * Ajuste muestra vs. marco con banda de tolerancia explícita: cada categoría
  * muestra el rango aceptado (marco ± tolerancia del objetivo) y colorea la
  * fila según la brecha quede dentro (success) o fuera (warn) de la banda.
@@ -94,42 +115,54 @@ export function ProfileBalanceChart({ rows }: { rows?: CalcMuestraAulasProfileDi
         <span className="is-marco">marco</span>
         <span className="is-muestra">muestra</span>
       </div>
-      {visible.map((row, index) => {
-        const frame = Math.max(0, Math.min(1, safeNumber(row.frame_prop, 0)));
-        const selected = Math.max(0, Math.min(1, safeNumber(row.selected_prop, 0)));
-        const tolerance = safeNumber(row.tolerance, Number.NaN);
-        const hasTolerance = Number.isFinite(tolerance) && tolerance > 0;
-        const gap = Math.abs(selected - frame);
-        const within = row.within_tolerance != null ? Boolean(row.within_tolerance) : !hasTolerance || gap <= tolerance;
-        const bandStart = hasTolerance ? Math.max(0, frame - tolerance) : 0;
-        const bandWidth = hasTolerance ? Math.min(1, frame + tolerance) - bandStart : 0;
-        return (
-          <div
-            key={`${row.dimension}-${row.category}-${index}`}
-            className={hasTolerance ? (within ? "is-dentro" : "is-alert") : ""}
-          >
-            <div>
-              <strong>{row.label || row.dimension}</strong>
-              <span>{row.category}</span>
-              <em>{fmtPct(gap)} brecha{hasTolerance ? ` · tol. ±${fmtPct(tolerance)}` : ""}</em>
-            </div>
-            <div
-              className="cmv2-profile-track"
-              aria-label={`${row.category}: marco ${fmtPct(frame)}, seleccionado ${fmtPct(selected)}${hasTolerance ? `, tolerancia ±${fmtPct(tolerance)} (${within ? "dentro" : "fuera"} de banda)` : ""}`}
-            >
-              {hasTolerance && (
-                <i
-                  className="cmv2-aulas-tol-banda"
-                  data-estado={within ? "ok" : "alerta"}
-                  style={{ left: `${bandStart * 100}%`, width: `${Math.max(1.5, bandWidth * 100)}%` }}
-                />
-              )}
-              <i className="is-frame" style={{ width: `${frame * 100}%` }} />
-              <i className="is-selected" style={{ width: `${selected * 100}%` }} />
-            </div>
-          </div>
-        );
-      })}
+      {agruparPorDimension(visible).flatMap((grupo, grupoIndex) => [
+        grupo.dimension ? (
+          <p className="cmv2-profile-dimension" key={`dim-${grupo.dimension}-${grupoIndex}`}>
+            {grupo.dimension}
+          </p>
+        ) : null,
+        ...grupo.filas.map((row, index) => (
+          <ProfileBalanceRow key={`${grupo.dimension}-${row.category}-${index}`} row={row} />
+        )),
+      ])}
+    </div>
+  );
+}
+
+function ProfileBalanceRow({ row }: { row: CalcMuestraAulasProfileDistribution }) {
+  const frame = Math.max(0, Math.min(1, safeNumber(row.frame_prop, 0)));
+  const selected = Math.max(0, Math.min(1, safeNumber(row.selected_prop, 0)));
+  const tolerance = safeNumber(row.tolerance, Number.NaN);
+  const hasTolerance = Number.isFinite(tolerance) && tolerance > 0;
+  const gap = Math.abs(selected - frame);
+  const within = row.within_tolerance != null ? Boolean(row.within_tolerance) : !hasTolerance || gap <= tolerance;
+  const bandStart = hasTolerance ? Math.max(0, frame - tolerance) : 0;
+  const bandWidth = hasTolerance ? Math.min(1, frame + tolerance) - bandStart : 0;
+  return (
+    <div className={hasTolerance ? (within ? "is-dentro" : "is-alert") : ""}>
+      <div>
+        {/* La categoría es lo que identifica la fila, así que es la que va en
+            negrita; la dimensión quedó arriba, una vez por grupo. */}
+        <strong>{row.category}</strong>
+        {/* Marco y muestra solo vivían en el aria-label de la barra: se leían
+            con lector de pantalla y no con los ojos. */}
+        <span>marco {fmtPct(frame)} · muestra {fmtPct(selected)}</span>
+        <em>{fmtPct(gap)} de brecha{hasTolerance ? ` · tolerancia ±${fmtPct(tolerance)}` : ""}</em>
+      </div>
+      <div
+        className="cmv2-profile-track"
+        aria-label={`${row.category}: marco ${fmtPct(frame)}, seleccionado ${fmtPct(selected)}${hasTolerance ? `, tolerancia ±${fmtPct(tolerance)} (${within ? "dentro" : "fuera"} de banda)` : ""}`}
+      >
+        {hasTolerance && (
+          <i
+            className="cmv2-aulas-tol-banda"
+            data-estado={within ? "ok" : "alerta"}
+            style={{ left: `${bandStart * 100}%`, width: `${Math.max(1.5, bandWidth * 100)}%` }}
+          />
+        )}
+        <i className="is-frame" style={{ width: `${frame * 100}%` }} />
+        <i className="is-selected" style={{ width: `${selected * 100}%` }} />
+      </div>
     </div>
   );
 }

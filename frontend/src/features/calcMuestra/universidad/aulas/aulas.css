@@ -535,6 +535,23 @@
   background: color-mix(in srgb, var(--pulso-warn-fg) 12%, transparent);
 }
 
+/* Rótulo de la dimensión, una vez por grupo. Antes iba en la negrita de cada
+   fila: doce «Facultad» seguidas donde lo que distingue a la fila es la
+   categoría. Toma el idioma de Cálculo —versalita en el acento del módulo—
+   para que se lea como encabezado de grupo y no como un dato más. */
+.cmv2-profile-dimension {
+  margin: 10px 2px 2px;
+  color: var(--cmv2-accent-fg);
+  font-size: 9.5px;
+  font-weight: var(--pulso-weight-heavy);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cmv2-profile-dimension:first-of-type {
+  margin-top: 4px;
+}
+
 .cmv2-profile-bars > div.is-dentro {
   border-color: var(--pulso-success-border);
   background: color-mix(in srgb, var(--pulso-success-fg) 4%, var(--cmv2-surface));
@@ -764,15 +781,19 @@
     animation-delay: calc(120ms + var(--cmv2-aulas-fila, 0) * 20ms);
   }
 
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(2) { --cmv2-aulas-fila: 0; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(3) { --cmv2-aulas-fila: 1; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(4) { --cmv2-aulas-fila: 2; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(5) { --cmv2-aulas-fila: 3; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(6) { --cmv2-aulas-fila: 4; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(7) { --cmv2-aulas-fila: 5; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(8) { --cmv2-aulas-fila: 6; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(9) { --cmv2-aulas-fila: 7; }
-  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-child(n + 10) { --cmv2-aulas-fila: 8; }
+  /* `nth-of-type` y no `nth-child`: entre las filas va el rótulo de dimensión
+     (un `<p>`), y contando hijos el escalonado se corría una posición por cada
+     grupo. Contando divs, la leyenda sigue siendo la 1 y las filas la 2 en
+     adelante, igual que antes de que existieran los rótulos. */
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(2) { --cmv2-aulas-fila: 0; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(3) { --cmv2-aulas-fila: 1; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(4) { --cmv2-aulas-fila: 2; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(5) { --cmv2-aulas-fila: 3; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(6) { --cmv2-aulas-fila: 4; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(7) { --cmv2-aulas-fila: 5; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(8) { --cmv2-aulas-fila: 6; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(9) { --cmv2-aulas-fila: 7; }
+  .cmv2-aulas-stack .cmv2-profile-bars > div:nth-of-type(n + 10) { --cmv2-aulas-fila: 8; }
 
   /* --- Reemplazos: olas M1 → M9 encendidas de izquierda a derecha ------------- */
   .cmv2-aulas-olas .cmv2-uni-flujo > * {
