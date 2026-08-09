@@ -192,6 +192,15 @@ export function ClassroomReplacementChainPanel({
         <span>Titular asociada</span>
         <span>Orden de reemplazo</span>
       </div>
+      {/* La regla de activación vale para TODAS las cadenas, así que se dice
+          una vez. Estaba dentro de cada tarjeta: con 24 cadenas eran 24
+          «Activación ordenada» idénticos y 24 frases que solo cambiaban el
+          código. Un rótulo repetido veinticuatro veces deja de informar y pasa
+          a ser textura. */}
+      <p className="cmv2-chain-route-regla">
+        <strong>Activación ordenada.</strong> Si un titular cae, Monitoreo toma su primer
+        reemplazo viable y registra el motivo.
+      </p>
       <div className="cmv2-chain-route-list">
         {chains.map((chain) => (
           <article key={chain.titularId} className="cmv2-chain-route-card">
@@ -200,10 +209,6 @@ export function ClassroomReplacementChainPanel({
                 <span className="cmv2-chain-code">{chain.code}</span>
                 <strong>{chain.titularLabel}</strong>
                 <small>{chain.faculty} · {fmtInt(chain.eligible)} elegibles</small>
-              </div>
-              <div className="cmv2-chain-monitoring-note">
-                <strong>Activación ordenada</strong>
-                <small>Si cae {chain.code}, Monitoreo toma el primer reemplazo viable y registra el motivo.</small>
               </div>
             </div>
             <div className="cmv2-chain-route-slots" aria-label={`Reemplazos para ${chain.titularLabel}`}>
