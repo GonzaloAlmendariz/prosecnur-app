@@ -12,8 +12,16 @@ type TestChartLayoutOrigin =
 const ABSENT_ORIGIN = Symbol("absent-origin");
 
 const BARRAS_AGRUPADAS_ARGS: ArgMetadata[] = [
-  numberArg("canvas_w_etiquetas", "Espacio para etiquetas", "proporción", 0.45),
-  numberArg("canvas_w_bars", "Espacio para barras", "proporción", 0.52),
+  numberArg("canvas_w_etiquetas", "Espacio para etiquetas", "proporción", 0.45, {
+    min: 0,
+    max: 0.55,
+    step: 0.01,
+  }),
+  numberArg("canvas_w_bars", "Espacio para barras", "proporción", 0.52, {
+    min: 0.2,
+    max: 0.9,
+    step: 0.01,
+  }),
   numberArg("canvas_h_header_in", "Alto del encabezado", "pulgadas", 0.7),
   numberArg("alto_por_categoria", "Alto por fila", "pulgadas", 0.48),
 ];
@@ -22,15 +30,17 @@ function numberArg(
   name: string,
   label: string,
   unidad: string,
-  defaultValue: number
+  defaultValue: number,
+  limits: Partial<Pick<ArgMetadata, "min" | "max" | "step">> = {}
 ): ArgMetadata {
   return {
     name,
     label,
     unidad,
     default: defaultValue,
-    min: 0,
-    max: 1.5,
+    min: limits.min ?? 0,
+    max: limits.max ?? 1.5,
+    ...(limits.step === undefined ? {} : { step: limits.step }),
     tipo_input: "number",
     grupo: "espacio",
   };
@@ -107,8 +117,18 @@ function renderRuntimeOrigin(origin: unknown | typeof ABSENT_ORIGIN): string {
   return renderToStaticMarkup(createElement(ChartLayoutPopover, props));
 }
 
-function buttonAriaLabels(markup: string): string[] {
-  return [...markup.matchAll(/<button\b[^>]*\baria-label="([^"]+)"/g)].map((match) => match[1]);
+function tagsWithRole(markup: string, role: string): string[] {
+  return [...markup.matchAll(new RegExp(`<[^/>]+\\brole="${role}"[^>]*>`, "g"))]
+    .map((match) => match[0]);
+}
+
+function tagsWithClass(markup: string, className: string): string[] {
+  return [...markup.matchAll(new RegExp(`<[^/>]+\\bclass="[^"]*\\b${className}\\b[^"]*"[^>]*>`, "g"))]
+    .map((match) => match[0]);
+}
+
+function tagAttribute(tag: string, name: string): string {
+  return tag.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1] ?? "";
 }
 
 function semanticClaims(markup: string): string[] {
@@ -158,12 +178,168 @@ function resetClaim(markup: string): { label: string; disabled: boolean } {
 }
 
 describe("ChartLayoutPopover — bases dimensionales", () => {
+  test("mantiene visible un separador div cuando la región primaria es compacta", () => {
+    const markup = renderLayout(
+      "barras_agrupadas",
+      BARRAS_AGRUPADAS_ARGS,
+      {
+        canvas_w_etiquetas: 0.05,
+        canvas_w_bars: 0.52,
+        canvas_h_header_in: 0.7,
+        alto_por_categoria: 0.48,
+      }
+    );
+    const handles = tagsWithClass(markup, "pulso-gv2-layout-handle");
+    const separators = tagsWithRole(markup, "separator");
+    const separator = separators[0] ?? "";
+    const tagName = separator.match(/^<([a-z][a-z0-9-]*)\b/i)?.[1] ?? "";
+    const controlledRegionId = tagAttribute(separator, "aria-controls");
+    const primaryFrame = tagsWithClass(markup, "pulso-gv2-layout-frame")
+      .find((tag) => tagAttribute(tag, "id") === controlledRegionId) ?? "";
+
+    expect({
+      handles: handles.length,
+      separators: separators.length,
+      tagName,
+      compactFrame: tagAttribute(primaryFrame, "class").split(/\s+/).includes("is-compact"),
+    }).toEqual({
+      handles: 1,
+      separators: 1,
+      tagName: "div",
+      compactFrame: true,
+    });
+    expect(["span", "button", "input", "select", "textarea"]).not.toContain(tagName);
+    expect({
+      tabIndex: tagAttribute(separator, "tabindex"),
+      orientation: tagAttribute(separator, "aria-orientation"),
+      label: tagAttribute(separator, "aria-label"),
+      controls: controlledRegionId,
+      now: tagAttribute(separator, "aria-valuenow"),
+      min: tagAttribute(separator, "aria-valuemin"),
+      max: tagAttribute(separator, "aria-valuemax"),
+    }).toEqual({
+      tabIndex: "0",
+      orientation: "vertical",
+      label: "Ajustar el límite entre Espacio para etiquetas y Espacio para barras",
+      controls: expect.stringMatching(/\S+/),
+      now: "0.05",
+      min: "0",
+      max: "0.37",
+    });
+    expect(markup).toContain(`id="${controlledRegionId}"`);
+    expect(tagAttribute(separator, "aria-valuetext"))
+      .toMatch(/Espacio para etiquetas[^;]*0\.05[^;]*proporción; Espacio para barras[^;]*0\.52[^;]*proporción/i);
+
+    const zeroPrimaryMarkup = renderLayout(
+      "barras_agrupadas",
+      BARRAS_AGRUPADAS_ARGS,
+      { canvas_w_etiquetas: 0, canvas_w_bars: 0.52 }
+    );
+    const zeroPrimaryHandles = tagsWithClass(zeroPrimaryMarkup, "pulso-gv2-layout-handle");
+    const zeroPrimarySeparators = tagsWithRole(zeroPrimaryMarkup, "separator");
+    const zeroPrimarySeparator = zeroPrimarySeparators[0] ?? "";
+    const zeroPrimaryRegionId = tagAttribute(zeroPrimarySeparator, "aria-controls");
+    const zeroPrimaryFrame = tagsWithClass(zeroPrimaryMarkup, "pulso-gv2-layout-frame")
+      .find((tag) => tagAttribute(tag, "id") === zeroPrimaryRegionId) ?? "";
+    const zeroPrimaryFrameClasses = tagAttribute(zeroPrimaryFrame, "class").split(/\s+/);
+
+    expect({
+      handles: zeroPrimaryHandles.length,
+      separators: zeroPrimarySeparators.length,
+      tagName: zeroPrimarySeparator.match(/^<([a-z][a-z0-9-]*)\b/i)?.[1] ?? "",
+      now: tagAttribute(zeroPrimarySeparator, "aria-valuenow"),
+      min: tagAttribute(zeroPrimarySeparator, "aria-valuemin"),
+      max: tagAttribute(zeroPrimarySeparator, "aria-valuemax"),
+      controlsPrimaryFrame: Boolean(zeroPrimaryFrame),
+      compactFrame: zeroPrimaryFrameClasses.includes("is-compact"),
+      zeroFrame: zeroPrimaryFrameClasses.includes("is-zero"),
+    }).toEqual({
+      handles: 1,
+      separators: 1,
+      tagName: "div",
+      now: "0",
+      min: "0",
+      max: "0.32",
+      controlsPrimaryFrame: true,
+      compactFrame: true,
+      zeroFrame: false,
+    });
+  });
+
+  test("no materializa control interactivo con suma cero o metadata incompleta", () => {
+    const leftWithoutMin = { ...BARRAS_AGRUPADAS_ARGS[0] };
+    delete leftWithoutMin.min;
+    const incompleteArgs = [leftWithoutMin, ...BARRAS_AGRUPADAS_ARGS.slice(1)];
+    const cases = {
+      zeroTotal: renderLayout(
+        "barras_agrupadas",
+        BARRAS_AGRUPADAS_ARGS,
+        { canvas_w_etiquetas: 0, canvas_w_bars: 0 }
+      ),
+      incompleteBounds: renderLayout(
+        "barras_agrupadas",
+        incompleteArgs,
+        { canvas_w_etiquetas: 0.45, canvas_w_bars: 0.52 }
+      ),
+    };
+
+    expect(Object.fromEntries(Object.entries(cases).map(([name, markup]) => [name, {
+      handles: tagsWithClass(markup, "pulso-gv2-layout-handle").length,
+      separators: tagsWithRole(markup, "separator").length,
+    }]))).toEqual({
+      zeroTotal: { handles: 0, separators: 0 },
+      incompleteBounds: { handles: 0, separators: 0 },
+    });
+  });
+
+  test("materializa un único separador accesible para el límite etiquetas-barras", () => {
+    const markup = renderGroupedBarsLayout();
+    const handles = tagsWithClass(markup, "pulso-gv2-layout-handle");
+    const separators = tagsWithRole(markup, "separator");
+
+    expect({
+      handles: handles.length,
+      separators: separators.length,
+      leadingHandles: tagsWithClass(markup, "is-leading").length,
+    }).toEqual({
+      handles: 1,
+      separators: 1,
+      leadingHandles: 0,
+    });
+
+    const separator = separators[0] ?? "";
+    const tagName = separator.match(/^<([a-z][a-z0-9-]*)\b/i)?.[1] ?? "";
+    const controlledRegionId = tagAttribute(separator, "aria-controls");
+    const valueText = tagAttribute(separator, "aria-valuetext");
+
+    expect(["button", "input", "select", "textarea"]).not.toContain(tagName);
+    expect({
+      tabIndex: tagAttribute(separator, "tabindex"),
+      orientation: tagAttribute(separator, "aria-orientation"),
+      label: tagAttribute(separator, "aria-label"),
+      now: tagAttribute(separator, "aria-valuenow"),
+      min: tagAttribute(separator, "aria-valuemin"),
+      max: tagAttribute(separator, "aria-valuemax"),
+    }).toEqual({
+      tabIndex: "0",
+      orientation: "vertical",
+      label: "Ajustar el límite entre Espacio para etiquetas y Espacio para barras",
+      now: "0.45",
+      min: "0.07",
+      max: "0.55",
+    });
+    expect(controlledRegionId).not.toBe("");
+    expect(markup).toContain(`id="${controlledRegionId}"`);
+    expect(valueText).toMatch(/Espacio para etiquetas[^;]*0\.45[^;]*proporción/i);
+    expect(valueText).toMatch(/Espacio para barras[^;]*0\.52[^;]*proporción/i);
+  });
+
   test("conserva el reparto horizontal y no ofrece un reparto falso entre encabezado y filas", () => {
-    const pairLabels = buttonAriaLabels(renderGroupedBarsLayout())
-      .filter((label) => label.includes("repartir espacio"));
+    const pairLabels = tagsWithRole(renderGroupedBarsLayout(), "separator")
+      .map((tag) => tagAttribute(tag, "aria-label"));
 
     expect(pairLabels).toContain(
-      "Arrastra el borde para repartir espacio entre Espacio para etiquetas y Espacio para barras"
+      "Ajustar el límite entre Espacio para etiquetas y Espacio para barras"
     );
     expect(pairLabels).not.toEqual(expect.arrayContaining([
       expect.stringMatching(/(?:encabezado.*fila|fila.*encabezado)/i),
@@ -246,6 +422,40 @@ describe("ChartLayoutPopover — bases dimensionales", () => {
     }).toEqual({
       verticalAnnouncesDrag: false,
       barsAnnouncesDrag: true,
+    });
+  });
+
+  test("publica un status persistente y sólo anuncia interacción donde existe partición", () => {
+    const groupedBars = renderGroupedBarsLayout();
+    const boxPlot = renderLayout(
+      "boxplot",
+      [
+        numberArg("canvas_h_header_in", "Alto del encabezado", "pulgadas", 0.7),
+        numberArg("alto_por_categoria", "Alto por fila", "pulgadas", 0.48),
+      ],
+      { canvas_h_header_in: 0.7, alto_por_categoria: 0.48 }
+    );
+
+    for (const markup of [groupedBars, boxPlot]) {
+      const statuses = tagsWithRole(markup, "status");
+      expect(statuses).toHaveLength(1);
+      expect({
+        live: tagAttribute(statuses[0] ?? "", "aria-live"),
+        atomic: tagAttribute(statuses[0] ?? "", "aria-atomic"),
+        srOnly: tagAttribute(statuses[0] ?? "", "class").split(/\s+/).includes("pulso-sr-only"),
+      }).toEqual({ live: "polite", atomic: "true", srOnly: true });
+    }
+
+    expect({
+      groupedBarsCanvas: canvasAriaLabel(groupedBars),
+      boxPlotHandles: tagsWithClass(boxPlot, "pulso-gv2-layout-handle").length,
+      boxPlotSeparators: tagsWithRole(boxPlot, "separator").length,
+      boxPlotAnnouncesDrag: /arrastra/i.test(canvasAriaLabel(boxPlot)),
+    }).toEqual({
+      groupedBarsCanvas: expect.stringMatching(/arrastra.*flechas? (?:izquierda.*derecha|derecha.*izquierda)/i),
+      boxPlotHandles: 0,
+      boxPlotSeparators: 0,
+      boxPlotAnnouncesDrag: false,
     });
   });
 });

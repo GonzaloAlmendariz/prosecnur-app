@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { MoveHorizontal, RotateCcw, Ruler, X } from "lucide-react";
 import type { ArgMetadata } from "../../api/client";
 import {
+  adjustLayoutPairByArrowKey,
   buildGridTracks,
   canShareLayoutMeasurePair,
   clampByMeta,
   clampPairByMeta,
   flexTrackStyle,
+  resolveLayoutEscapePolicy,
   resolveLayoutMeasureContract,
+  resolveLayoutPair,
 } from "./chartLayoutHelpers";
 import type { LayoutMeasureBasis, LayoutMeasureContract } from "./chartLayoutHelpers";
 import { presentChartLayoutOrigin } from "./chartLayoutOrigin";
@@ -34,6 +37,7 @@ type VisualField = LayoutField & {
 type DragState = {
   axis: "x" | "y";
   names: [string, string] | [string];
+  control: HTMLElement;
   startClient: number;
   startValues: number[];
   scalePx: number;
@@ -121,6 +125,8 @@ export function ChartLayoutEditor({
   const dragRef = useRef<DragState | null>(null);
   const [liveValues, setLiveValues] = useState<Record<string, unknown>>({});
   const [dragGuide, setDragGuide] = useState<DragGuideState | null>(null);
+  const [statusMessage, setStatusMessage] = useState("");
+  const regionIdPrefix = `pulso-layout-region-${useId().replace(/:/g, "")}`;
 
   const argsByName = useMemo(() => {
     const map: Record<string, ArgMetadata> = {};
@@ -136,6 +142,30 @@ export function ChartLayoutEditor({
   }, [argsByName, kind]);
   const valuesKey = JSON.stringify(values);
   const inheritedValuesKey = JSON.stringify(inheritedValues);
+
+  const cancelActiveDrag = useCallback(() => {
+    const drag = dragRef.current;
+    if (!drag) return false;
+
+    const restoredValues = Object.fromEntries(
+      drag.names.map((name, index) => [name, drag.startValues[index]])
+    );
+    setLiveValues((prev) => ({ ...prev, ...restoredValues }));
+    dragRef.current = null;
+    setDragGuide(null);
+    if (drag.names.length === 2) {
+      setStatusMessage(layoutPairStatusMessage(
+        "cancelado",
+        drag.names[0],
+        drag.names[1],
+        [drag.startValues[0], drag.startValues[1]],
+        fields,
+        argsByName
+      ));
+    }
+    if (drag.control.isConnected) drag.control.focus();
+    return true;
+  }, [argsByName, fields]);
 
   useEffect(() => {
     function onPointerMove(e: PointerEvent) {
@@ -193,6 +223,17 @@ export function ChartLayoutEditor({
         }
         commitPatch = withPieLegendExclusion(commitPatch);
         setLiveValues((prev) => ({ ...prev, ...commitPatch }));
+        if (drag.names.length === 2) {
+          const [leftName, rightName] = drag.names;
+          setStatusMessage(layoutPairStatusMessage(
+            "confirmado",
+            leftName,
+            rightName,
+            [Number(commitPatch[leftName]), Number(commitPatch[rightName])],
+            fields,
+            argsByName
+          ));
+        }
         if (onChangeArgs) {
           onChangeArgs(commitPatch);
         } else {
@@ -202,13 +243,18 @@ export function ChartLayoutEditor({
       dragRef.current = null;
       setDragGuide(null);
     }
+    function onPointerCancel() {
+      cancelActiveDrag();
+    }
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
     };
-  }, [argsByName, fields, kind, onChangeArg, onChangeArgs]);
+  }, [argsByName, cancelActiveDrag, fields, kind, onChangeArg, onChangeArgs]);
 
   useEffect(() => {
     if (!dragRef.current) setLiveValues({});
@@ -263,20 +309,30 @@ export function ChartLayoutEditor({
     const leftContract = resolveLayoutMeasureContract(leftName, argsByName[leftName]);
     const rightContract = resolveLayoutMeasureContract(rightName, argsByName[rightName]);
     if (!canShareLayoutMeasurePair(leftContract, rightContract) || leftContract.axis !== axis) return;
+    const pairValues: [number, number] = [valueOf(leftName), valueOf(rightName)];
+    const resolution = resolveLayoutPair(
+      pairValues,
+      argsByName[leftName],
+      argsByName[rightName]
+    );
+    if (!resolution) return;
     e.preventDefault();
     e.stopPropagation();
+    const control = e.currentTarget as HTMLElement;
+    control.focus();
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const total = valueOf(leftName) + valueOf(rightName);
     dragRef.current = {
       axis,
       names: [leftName, rightName],
+      control,
       startClient: axis === "x" ? e.clientX : e.clientY,
-      startValues: [valueOf(leftName), valueOf(rightName)],
+      startValues: [...pairValues],
       scalePx: getCanvasTrackLength(canvasRef.current, axis),
-      total: total > 0 ? total : 1,
+      total: resolution.total,
       valueMin: 0,
     };
+    setStatusMessage("");
     setDragGuide({
       axis,
       position: pointerPositionInCanvas(canvasRef.current, axis, e.nativeEvent),
@@ -312,6 +368,35 @@ export function ChartLayoutEditor({
     for (const [patchName, patchValue] of Object.entries(patch)) onChangeArg(patchName, patchValue);
   }
 
+  function setPairValues(
+    leftName: string,
+    rightName: string,
+    pair: readonly [number, number]
+  ) {
+    const patch = withPieLegendExclusion({
+      [leftName]: pair[0],
+      [rightName]: pair[1],
+    });
+    setLiveValues((prev) => ({ ...prev, ...patch }));
+    if (onChangeArgs) {
+      onChangeArgs(patch);
+      return;
+    }
+    for (const [patchName, patchValue] of Object.entries(patch)) onChangeArg(patchName, patchValue);
+  }
+
+  function cancelPairDrag(leftName: string, rightName: string) {
+    const drag = dragRef.current;
+    const active = Boolean(
+      drag?.names.length === 2 &&
+      drag.names[0] === leftName &&
+      drag.names[1] === rightName
+    );
+    const policy = resolveLayoutEscapePolicy("transaction", active);
+    if (policy) cancelActiveDrag();
+    return policy;
+  }
+
   function withPieLegendExclusion(patch: Record<string, unknown>): Record<string, unknown> {
     const next = { ...patch };
     const rightValue = Number(next.canvas_w_legend_right);
@@ -341,7 +426,7 @@ export function ChartLayoutEditor({
 
   const hasPairDrag = hasCompatibleLayoutPair(fields, valueOf, argsByName);
   const canvasInteractionCopy = hasPairDrag
-    ? "Arrastra bordes entre medidas compatibles o escribe medidas exactas."
+    ? "Arrastra bordes entre medidas compatibles o usa las flechas izquierda y derecha; también puedes escribir medidas exactas."
     : "Escribe medidas exactas para ajustar los parámetros publicados.";
 
   return (
@@ -399,6 +484,9 @@ export function ChartLayoutEditor({
                 legendPosition={legendPosition}
                 beginPairDrag={beginPairDrag}
                 onSetArgValue={setArgValue}
+                onSetPairValues={setPairValues}
+                onCancelPairDrag={cancelPairDrag}
+                regionIdPrefix={regionIdPrefix}
               />
             )}
             {kind === "vertical" && (
@@ -430,6 +518,15 @@ export function ChartLayoutEditor({
             {kind === "radar" && (
               <RadarLayout argsByName={argsByName} />
             )}
+          </div>
+
+          <div
+            className="pulso-sr-only"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {statusMessage}
           </div>
 
           <LayoutMeasureBoard
@@ -521,6 +618,7 @@ function LayoutMeasureCell({
   onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(formatNumber(value));
+  const suppressNextBlurRef = useRef(false);
 
   useEffect(() => {
     setDraft(formatNumber(value));
@@ -547,18 +645,32 @@ function LayoutMeasureCell({
           inputMode="decimal"
           value={draft}
           aria-label={`Medida exacta: ${field.label}`}
-          onChange={(event) => setDraft(event.currentTarget.value)}
-          onBlur={commitDraft}
+          onChange={(event) => {
+            suppressNextBlurRef.current = false;
+            setDraft(event.currentTarget.value);
+          }}
+          onBlur={() => {
+            if (suppressNextBlurRef.current) {
+              suppressNextBlurRef.current = false;
+              return;
+            }
+            commitDraft();
+          }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
+              event.stopPropagation();
               commitDraft();
-              event.currentTarget.blur();
+              suppressNextBlurRef.current = true;
+              return;
             }
             if (event.key === "Escape") {
-              event.preventDefault();
+              const policy = resolveLayoutEscapePolicy("input", true);
+              if (!policy) return;
+              if (policy.preventDefault) event.preventDefault();
+              if (policy.stopPropagation) event.stopPropagation();
               setDraft(formatNumber(value));
-              event.currentTarget.blur();
+              suppressNextBlurRef.current = true;
             }
           }}
         />
@@ -597,6 +709,9 @@ function BarsLayout({
   legendPosition,
   beginPairDrag,
   onSetArgValue,
+  onSetPairValues,
+  onCancelPairDrag,
+  regionIdPrefix,
 }: {
   fields: LayoutField[];
   argsByName: Record<string, ArgMetadata>;
@@ -608,6 +723,9 @@ function BarsLayout({
   legendPosition: LegendPosition;
   beginPairDrag: (e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) => void;
   onSetArgValue: (name: string, value: number) => void;
+  onSetPairValues: (leftName: string, rightName: string, pair: readonly [number, number]) => void;
+  onCancelPairDrag: (leftName: string, rightName: string) => ReturnType<typeof resolveLayoutEscapePolicy>;
+  regionIdPrefix: string;
 }) {
   const baseHorizontalFields = BAR_FIELDS.filter((field) => fields.some((item) => item.name === field.name));
   const sideLegendSource = VERTICAL_FIELDS.find((field) => field.role === "legend" && fields.some((item) => item.name === field.name));
@@ -643,7 +761,17 @@ function BarsLayout({
     <>
       <IntrinsicLayoutRoles fields={intrinsicHorizontalFields} argsByName={argsByName} valueOf={valueOf} />
       {horizontalFields.length > 0 ? (
-        <BarsHorizontalRow fields={horizontalFields} argsByName={argsByName} valueOf={valueOf} total={hTotal} beginPairDrag={beginPairDrag} onSetArgValue={onSetArgValue} />
+        <BarsHorizontalRow
+          fields={horizontalFields}
+          argsByName={argsByName}
+          valueOf={valueOf}
+          total={hTotal}
+          beginPairDrag={beginPairDrag}
+          onSetArgValue={onSetArgValue}
+          onSetPairValues={onSetPairValues}
+          onCancelPairDrag={onCancelPairDrag}
+          regionIdPrefix={regionIdPrefix}
+        />
       ) : (
         <div className="pulso-gv2-layout-qualitative-role" data-role="plot" data-synthetic="true">
           <span>Área horizontal · Sin partición publicada</span>
@@ -772,6 +900,9 @@ function BarsHorizontalRow({
   total,
   beginPairDrag,
   onSetArgValue,
+  onSetPairValues,
+  onCancelPairDrag,
+  regionIdPrefix,
 }: {
   fields: Array<LayoutField & { value?: number; synthetic?: boolean }>;
   argsByName: Record<string, ArgMetadata>;
@@ -779,6 +910,9 @@ function BarsHorizontalRow({
   total: number;
   beginPairDrag: (e: ReactPointerEvent, axis: "x" | "y", leftName: string, rightName: string) => void;
   onSetArgValue: (name: string, value: number) => void;
+  onSetPairValues: (leftName: string, rightName: string, pair: readonly [number, number]) => void;
+  onCancelPairDrag: (leftName: string, rightName: string) => ReturnType<typeof resolveLayoutEscapePolicy>;
+  regionIdPrefix: string;
 }) {
   const columns = buildGridTracks(fields, (name) => {
     const field = fields.find((item) => item.name === name);
@@ -791,35 +925,38 @@ function BarsHorizontalRow({
         const rawValue = layoutFieldValue(field, valueOf);
         const share = total > 0 ? rawValue / total : 0;
         const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
-        const next = findNextResizableField(fields, index, (name) => {
-          const item = fields.find((field) => field.name === name);
-          return item ? layoutFieldValue(item, valueOf) : valueOf(name);
-        });
+        const next = findNextResizableField(fields, index);
         const nextValue = next ? layoutFieldValue(next, valueOf) : 0;
-        const prev = findPrevResizableField(fields, index, (name) => {
-          const item = fields.find((field) => field.name === name);
-          return item ? layoutFieldValue(item, valueOf) : valueOf(name);
-        });
-        const prevValue = prev ? layoutFieldValue(prev, valueOf) : 0;
+        const nextContract = next
+          ? resolveLayoutMeasureContract(next.name, argsByName[next.name])
+          : null;
+        const pairResolution = next
+          ? resolveLayoutPair(
+              [rawValue, nextValue],
+              argsByName[field.name],
+              argsByName[next.name]
+            )
+          : null;
+        const outgoingSeparator =
+          isResizableField(field) &&
+          next &&
+          nextContract &&
+          pairResolution &&
+          canShareFieldPair(field, next, argsByName)
+            ? { next, nextValue, nextContract, resolution: pairResolution }
+            : null;
+        const primaryRegionId = `${regionIdPrefix}-${field.name}`;
         return (
           <div
             key={field.name}
-            className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 ? " is-zero" : ""}`}
+            id={primaryRegionId}
+            className={`pulso-gv2-layout-frame${share <= 0.1 ? " is-compact" : ""}${rawValue <= 0 && !outgoingSeparator ? " is-zero" : ""}`}
             data-role={field.role}
             data-basis={contract.basis}
             data-synthetic={field.synthetic ? "true" : undefined}
             style={flexTrackStyle(rawValue, field.role === "gap")}
             title={field.synthetic ? `${field.label}: Estimado` : layoutMeasureTitle(field, rawValue, contract, share)}
           >
-            {isResizableField(field) && prev && rawValue > 0 && prevValue > 0 && canShareFieldPair(prev, field, argsByName) && (
-              <button
-                type="button"
-                className="pulso-gv2-layout-handle is-x is-leading"
-                onPointerDown={(e) => beginPairDrag(e, "x", prev.name, field.name)}
-                aria-label={resizePairLabel(prev, field)}
-                title={resizePairLabel(prev, field)}
-              />
-            )}
             <ZeroButton field={field} onSetArgValue={onSetArgValue} />
             <span>{field.short}{field.synthetic ? " · Estimado" : ""}</span>
             {field.role !== "gap" && (
@@ -832,13 +969,47 @@ function BarsHorizontalRow({
                 onCommit={!field.synthetic ? (next) => onSetArgValue(field.name, next) : undefined}
               />
             )}
-            {isResizableField(field) && next && rawValue > 0 && nextValue > 0 && canShareFieldPair(field, next, argsByName) && (
-              <button
-                type="button"
+            {outgoingSeparator && (
+              <div
                 className="pulso-gv2-layout-handle is-x"
-                onPointerDown={(e) => beginPairDrag(e, "x", field.name, next.name)}
-                aria-label={resizePairLabel(field, next)}
-                title={resizePairLabel(field, next)}
+                role="separator"
+                tabIndex={0}
+                aria-orientation="vertical"
+                aria-label={resizePairLabel(field, outgoingSeparator.next)}
+                aria-controls={primaryRegionId}
+                aria-valuemin={roundAriaNumber(outgoingSeparator.resolution.primaryMin)}
+                aria-valuemax={roundAriaNumber(outgoingSeparator.resolution.primaryMax)}
+                aria-valuenow={roundAriaNumber(rawValue)}
+                aria-valuetext={layoutPairValueText(
+                  field,
+                  outgoingSeparator.next,
+                  rawValue,
+                  outgoingSeparator.nextValue,
+                  contract,
+                  outgoingSeparator.nextContract
+                )}
+                title={resizePairTitle(field, outgoingSeparator.next)}
+                onPointerDown={(e) => beginPairDrag(e, "x", field.name, outgoingSeparator.next.name)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    const policy = onCancelPairDrag(field.name, outgoingSeparator.next.name);
+                    if (!policy) return;
+                    if (policy.preventDefault) event.preventDefault();
+                    if (policy.stopPropagation) event.stopPropagation();
+                    return;
+                  }
+
+                  const pair = adjustLayoutPairByArrowKey(
+                    event.key,
+                    [rawValue, outgoingSeparator.nextValue],
+                    argsByName[field.name],
+                    argsByName[outgoingSeparator.next.name]
+                  );
+                  if (!pair) return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSetPairValues(field.name, outgoingSeparator.next.name, pair);
+                }}
               />
             )}
           </div>
@@ -1060,27 +1231,11 @@ function isResizableField(field: LayoutField & { synthetic?: boolean }): boolean
 
 function findNextResizableField<T extends LayoutField & { synthetic?: boolean }>(
   fields: T[],
-  index: number,
-  valueOf: (name: string) => number
+  index: number
 ): T | null {
   for (let i = index + 1; i < fields.length; i += 1) {
     const field = fields[i];
     if (!isResizableField(field)) continue;
-    if (Math.max(0, valueOf(field.name)) <= 0) continue;
-    return field;
-  }
-  return null;
-}
-
-function findPrevResizableField<T extends LayoutField & { synthetic?: boolean }>(
-  fields: T[],
-  index: number,
-  valueOf: (name: string) => number
-): T | null {
-  for (let i = index - 1; i >= 0; i -= 1) {
-    const field = fields[i];
-    if (!isResizableField(field)) continue;
-    if (Math.max(0, valueOf(field.name)) <= 0) continue;
     return field;
   }
   return null;
@@ -1304,6 +1459,7 @@ function FrameMetric({
   const axisTitle = axisLabel === "ancho" ? "Ancho" : "Alto";
   const publishesShare = contract.basis === "ratio-partition" && contract.canShare;
   const [draft, setDraft] = useState(formatNumber(value));
+  const suppressNextBlurRef = useRef(false);
   useEffect(() => {
     setDraft(formatNumber(value));
   }, [value]);
@@ -1324,18 +1480,32 @@ function FrameMetric({
       title="Medida exacta del espacio. Usa coma o punto decimal; Enter aplica y Escape cancela."
       value={draft}
       onPointerDown={(event) => event.stopPropagation()}
-      onChange={(event) => setDraft(event.currentTarget.value)}
-      onBlur={commitDraft}
+      onChange={(event) => {
+        suppressNextBlurRef.current = false;
+        setDraft(event.currentTarget.value);
+      }}
+      onBlur={() => {
+        if (suppressNextBlurRef.current) {
+          suppressNextBlurRef.current = false;
+          return;
+        }
+        commitDraft();
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.preventDefault();
+          event.stopPropagation();
           commitDraft();
-          event.currentTarget.blur();
+          suppressNextBlurRef.current = true;
+          return;
         }
         if (event.key === "Escape") {
-          event.preventDefault();
+          const policy = resolveLayoutEscapePolicy("input", true);
+          if (!policy) return;
+          if (policy.preventDefault) event.preventDefault();
+          if (policy.stopPropagation) event.stopPropagation();
           setDraft(formatNumber(value));
-          event.currentTarget.blur();
+          suppressNextBlurRef.current = true;
         }
       }}
     />
@@ -1457,7 +1627,22 @@ function pointerPositionInCanvas(
 }
 
 function resizePairLabel(first: LayoutField, second: LayoutField): string {
-  return `Arrastra el borde para repartir espacio entre ${first.label} y ${second.label}`;
+  return `Ajustar el límite entre ${first.label} y ${second.label}`;
+}
+
+function resizePairTitle(first: LayoutField, second: LayoutField): string {
+  return `Arrastra el borde entre ${first.label} y ${second.label}, o usa las flechas izquierda y derecha`;
+}
+
+function layoutPairValueText(
+  first: LayoutField,
+  second: LayoutField,
+  firstValue: number,
+  secondValue: number,
+  firstContract: LayoutMeasureContract,
+  secondContract: LayoutMeasureContract
+): string {
+  return `${first.label}: ${formatAriaNumber(firstValue)} ${firstContract.unitLabel}; ${second.label}: ${formatAriaNumber(secondValue)} ${secondContract.unitLabel}`;
 }
 
 function canShareFieldPair(
@@ -1476,14 +1661,18 @@ function hasCompatibleLayoutPair(
   valueOf: (name: string) => number,
   argsByName: Record<string, ArgMetadata>
 ): boolean {
-  const shareableByPartition = new Map<string, number>();
-  for (const field of fields) {
-    if (!isResizableField(field) || valueOf(field.name) <= 0) continue;
-    const contract = resolveLayoutMeasureContract(field.name, argsByName[field.name]);
-    if (!contract.canShare || !contract.partition || contract.basis !== "ratio-partition") continue;
-    const count = (shareableByPartition.get(contract.partition) ?? 0) + 1;
-    if (count >= 2) return true;
-    shareableByPartition.set(contract.partition, count);
+  for (let index = 0; index < fields.length; index += 1) {
+    const field = fields[index];
+    if (!isResizableField(field)) continue;
+    const next = findNextResizableField(fields, index);
+    if (!next || !canShareFieldPair(field, next, argsByName)) continue;
+    if (resolveLayoutPair(
+      [valueOf(field.name), valueOf(next.name)],
+      argsByName[field.name],
+      argsByName[next.name]
+    )) {
+      return true;
+    }
   }
   return false;
 }
@@ -1519,9 +1708,36 @@ function layoutFieldLabel(
   return knownField?.short ?? knownField?.label ?? argsByName[name]?.label ?? name;
 }
 
+function layoutPairStatusMessage(
+  action: "confirmado" | "cancelado",
+  leftName: string,
+  rightName: string,
+  pair: readonly [number, number],
+  fields: LayoutField[],
+  argsByName: Record<string, ArgMetadata>
+): string {
+  const leftField = fields.find((field) => field.name === leftName);
+  const rightField = fields.find((field) => field.name === rightName);
+  const leftLabel = leftField?.label ?? argsByName[leftName]?.label ?? leftName;
+  const rightLabel = rightField?.label ?? argsByName[rightName]?.label ?? rightName;
+  const leftUnit = resolveLayoutMeasureContract(leftName, argsByName[leftName]).unitLabel;
+  const rightUnit = resolveLayoutMeasureContract(rightName, argsByName[rightName]).unitLabel;
+  return `Ajuste ${action}: ${leftLabel} ${formatNumber(pair[0])} ${leftUnit}; ${rightLabel} ${formatNumber(pair[1])} ${rightUnit}.`;
+}
+
 function formatNumber(value: number): string {
   if (!Number.isFinite(value)) return "0";
   return Number(value.toFixed(3)).toString().replace(".", ",");
+}
+
+function formatAriaNumber(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  return Number(value.toFixed(3)).toString();
+}
+
+function roundAriaNumber(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Number(value.toFixed(3));
 }
 
 function parseLayoutNumber(value: string): number | null {

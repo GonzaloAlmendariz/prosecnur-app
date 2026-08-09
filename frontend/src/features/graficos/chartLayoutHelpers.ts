@@ -129,6 +129,118 @@ export function clampPairByMeta(
   return [left, right];
 }
 
+export type ResolvedLayoutPair = {
+  total: number;
+  primaryMin: number;
+  primaryMax: number;
+};
+
+export function resolveLayoutPair(
+  values: readonly [number, number],
+  leftMeta: ArgMetadata | undefined,
+  rightMeta: ArgMetadata | undefined
+): ResolvedLayoutPair | null {
+  if (!leftMeta || !rightMeta) return null;
+
+  const [leftValue, rightValue] = values;
+  const { min: leftMin, max: leftMax } = leftMeta;
+  const { min: rightMin, max: rightMax } = rightMeta;
+  if (
+    !Number.isFinite(leftValue) ||
+    !Number.isFinite(rightValue) ||
+    typeof leftMin !== "number" ||
+    !Number.isFinite(leftMin) ||
+    typeof leftMax !== "number" ||
+    !Number.isFinite(leftMax) ||
+    typeof rightMin !== "number" ||
+    !Number.isFinite(rightMin) ||
+    typeof rightMax !== "number" ||
+    !Number.isFinite(rightMax) ||
+    leftMin > leftMax ||
+    rightMin > rightMax ||
+    leftValue < leftMin ||
+    leftValue > leftMax ||
+    rightValue < rightMin ||
+    rightValue > rightMax
+  ) {
+    return null;
+  }
+
+  const total = leftValue + rightValue;
+  if (!Number.isFinite(total) || total <= 0) return null;
+
+  const primaryMin = Math.max(leftMin, total - rightMax);
+  const primaryMax = Math.min(leftMax, total - rightMin);
+  if (
+    !Number.isFinite(primaryMin) ||
+    !Number.isFinite(primaryMax) ||
+    primaryMin > primaryMax ||
+    leftValue < primaryMin ||
+    leftValue > primaryMax
+  ) {
+    return null;
+  }
+
+  return { total, primaryMin, primaryMax };
+}
+
+export function adjustLayoutPairByArrowKey(
+  key: string,
+  values: readonly [number, number],
+  leftMeta: ArgMetadata | undefined,
+  rightMeta: ArgMetadata | undefined
+): [number, number] | null {
+  const resolution = resolveLayoutPair(values, leftMeta, rightMeta);
+  if (
+    (key !== "ArrowLeft" && key !== "ArrowRight") ||
+    !resolution ||
+    !leftMeta ||
+    !rightMeta
+  ) {
+    return null;
+  }
+
+  const step = leftMeta.step;
+  const [leftValue] = values;
+  if (
+    typeof step !== "number" ||
+    !Number.isFinite(step) ||
+    step <= 0
+  ) {
+    return null;
+  }
+
+  const direction = key === "ArrowRight" ? 1 : -1;
+  return clampPairByMeta(
+    leftValue + direction * step,
+    resolution.total,
+    leftMeta,
+    rightMeta
+  );
+}
+
+export function resolveLayoutEscapePolicy(
+  _scope: "transaction" | "input",
+  active: boolean
+): {
+  preventDefault: true;
+  stopPropagation: true;
+  cancel: true;
+  invokeCallback: false;
+  blur: false;
+  preserveFocus: true;
+} | null {
+  if (!active) return null;
+  return {
+    preventDefault: true,
+    stopPropagation: true,
+    cancel: true,
+    invokeCallback: false,
+    blur: false,
+    preserveFocus: true,
+  };
+}
+
 export function buildGridTracks(fields: LayoutTrack[], valueOf: (name: string) => number): string {
   const values = fields.map((field) => Math.max(0, valueOf(field.name)));
   const total = values.reduce((sum, value) => sum + value, 0);
