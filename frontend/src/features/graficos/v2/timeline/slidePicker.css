@@ -303,7 +303,7 @@
 
 .pulso-slide-library-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   grid-auto-rows: 286px;
   align-content: start;
   gap: var(--pulso-space-3);
@@ -386,6 +386,7 @@
   font-size: 13px;
   font-weight: var(--pulso-weight-bold);
   line-height: 1.25;
+  white-space: normal;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -396,6 +397,7 @@
   color: var(--pulso-text-soft);
   font-size: 10px;
   line-height: 1.35;
+  white-space: normal;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }

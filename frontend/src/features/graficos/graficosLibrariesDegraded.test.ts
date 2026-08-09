@@ -258,4 +258,46 @@ describe("bibliotecas de Gráficos degradadas L5", () => {
       /@media \(max-width: 1060px\)[\s\S]*?\.pulso-slide-library-gallery-heading p,\s*\.pulso-slide-library-card-selected \{\s*display: none;/,
     );
   });
+
+  it("evita cuatro cards estrechas en el ancho máximo y permite dos líneas de copy", () => {
+    const slideCss = read("v2/timeline/slidePicker.css");
+    const compactMarker = "@media (max-width: 1180px), (max-height: 720px) {";
+    const compactStart = slideCss.indexOf(compactMarker);
+    const compactEnd = slideCss.indexOf("@media (max-width: 1060px) {", compactStart);
+
+    expect(compactStart).toBeGreaterThan(-1);
+    expect(compactEnd).toBeGreaterThan(compactStart);
+
+    const baseCss = slideCss.slice(0, compactStart);
+    const compactCss = slideCss.slice(compactStart, compactEnd);
+    const rule = (source: string, selector: string): string => {
+      const start = source.indexOf(`${selector} {`);
+      expect(start, `No se encontró ${selector} en el bloque esperado`).toBeGreaterThan(-1);
+      const bodyStart = source.indexOf("{", start);
+      const bodyEnd = source.indexOf("}", bodyStart);
+      return source.slice(bodyStart + 1, bodyEnd);
+    };
+
+    const baseGrid = rule(baseCss, ".pulso-slide-library-grid");
+    const baseFrame = rule(baseCss, ".pulso-slide-library-card-frame");
+    const cardTitle = rule(baseCss, ".pulso-slide-library-card-copy strong");
+    const cardDescription = rule(baseCss, ".pulso-slide-library-card-copy > span");
+    const compactGrid = rule(compactCss, ".pulso-slide-library-grid");
+    const compactFrame = rule(compactCss, ".pulso-slide-library-card-frame");
+
+    expect.soft(baseGrid).toContain(
+      "grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));",
+    );
+    expect.soft(baseGrid).toContain("grid-auto-rows: 286px;");
+    expect.soft(baseFrame).toContain("height: 286px;");
+    expect.soft(cardTitle).toContain("-webkit-line-clamp: 2;");
+    expect.soft(cardTitle).toContain("white-space: normal;");
+    expect.soft(cardDescription).toContain("-webkit-line-clamp: 2;");
+    expect.soft(cardDescription).toContain("white-space: normal;");
+    expect.soft(compactGrid).toContain(
+      "grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));",
+    );
+    expect.soft(compactGrid).toContain("grid-auto-rows: 248px;");
+    expect.soft(compactFrame).toContain("height: 248px;");
+  });
 });
