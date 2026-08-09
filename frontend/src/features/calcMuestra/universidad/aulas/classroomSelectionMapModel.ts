@@ -17,6 +17,12 @@ export type SelectionMapNode = {
   id: string;
   code: string;
   label: string;
+  /**
+   * P3 · docente principal del curso-horario. Sin esto la lista no sirve para
+   * coordinar: dice QUÉ curso salió pero no a quién hay que escribirle.
+   * "" cuando el marco no lo trae — se declara, no se inventa.
+   */
+  teacher: string;
   equivalence: SelectionMapEquivalence;
   order: number;
   row: Record<string, unknown>;
@@ -120,6 +126,7 @@ export function buildClassroomSelectionMap(
         id,
         code,
         label: classroomRowText(row, ["course_name", "label", "classroom_id"]) || "Curso-horario titular",
+        teacher: classroomRowText(row, ["teacher", "docente", "teacher_name"]),
         equivalence: "misma_celda",
         order: 0,
         row,
@@ -151,6 +158,7 @@ export function buildClassroomSelectionMap(
       id,
       code,
       label: classroomRowText(row, ["course_name", "label", "classroom_id"]) || "Curso-horario de reemplazo",
+      teacher: classroomRowText(row, ["teacher", "docente", "teacher_name"]),
       equivalence: normalizeSelectionMapEquivalence(explicitEquivalence),
       order,
       row,

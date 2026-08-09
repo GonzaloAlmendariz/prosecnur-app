@@ -107,7 +107,21 @@ Sobre la pestaña montada, en la consola del navegador:
   const t = txt(raiz);
   const titulos = [...raiz.querySelectorAll('h3,h4,strong')].map((e) => txt(e).trim()).filter(Boolean);
   return {
-    desbordes: nodos.filter((e) => e.scrollWidth > e.clientWidth + 4 && e.clientWidth > 0).length,
+    // Solo cuenta lo INALCANZABLE. Un carril que scrollea a propósito no es un
+    // defecto: C4 pide que todo se pueda alcanzar, no que todo quepa sin mover.
+    // Contar el scroll deliberado inflaba la cifra (28 brutos vs 6 reales) y
+    // hacía ver como regresión un nodo más ancho que sí mejoraba la lectura.
+    desbordes: nodos.filter((e) => {
+      if (e.ownerSVGElement != null || e.tagName === 'svg') return false;
+      if (!(e.scrollWidth > e.clientWidth + 4 && e.clientWidth > 0)) return false;
+      let p = e;
+      while (p && p !== raiz) {
+        const ox = getComputedStyle(p).overflowX;
+        if (ox === 'auto' || ox === 'scroll') return false;
+        p = p.parentElement;
+      }
+      return true;
+    }).length,
     prosaLarga: [...raiz.querySelectorAll('p')].filter((p) => txt(p).trim().length > 180).length,
     cripticos: (t.match(/pi_design|pi_mc|eligible_n|discount_step|classroom_id|stratum|Monte Carlo|seleccion final|comparacion|implementacion|metodos/g) || []).length,
     titulosRepetidos: titulos.length - new Set(titulos).size,
@@ -158,9 +172,11 @@ pero deja P1–P4 sin responder no cuenta como avance.
 
 Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir.
 
-- [x] ~~**L1 · `SEL/titulares`: los 117 desbordes.**~~ Hecho: eran 84 nombres
-  de curso cortados en el mapa de selección. Quedan 19 (uno es el tile de
-  método, «Balance por cuotas y tam…», que sigue pendiente).
+- [x] ~~**L1 · `SEL/titulares`: los 117 desbordes.**~~ Hecho. Eran 84 nombres
+  de curso cortados. Con el medidor corregido (solo lo inalcanzable) la vista
+  queda en **6**, y los seis son la misma cadena: el tile de método con
+  «Balance por cuotas y tamaño» (271 px en 206).
+- [x] ~~**P3 · el docente principal.**~~ Hecho en el mapa de selección.
 - [ ] **L2 · `SEL/titulares`: 55 títulos repetidos y 6.586 px.** Hoy repite
   «196 titulares» y «1.638 / 2.234 reservas» en dos bloques con nombres
   distintos. Elegir uno y partir la vista.
@@ -210,6 +226,20 @@ No faltaban: estaban ilegibles. **P3 (docente principal) sigue ausente.**
 
 Medido antes/después con el proyecto acreditado; gate: tsc 0 errores, 1.223
 tests de calcMuestra.
+
+### Iteración 2 · el docente principal, y un medidor que mentía (P3)
+
+El pie del nodo decía «Misma celda» **también en el titular**, donde no
+significa nada: la equivalencia mide cuánto se parece un REEMPLAZO al titular
+que cubre. En la cabeza de la cadena era un rótulo constante repetido una vez
+por cadena. Ahí va ahora el docente — 15 de 15 titulares visibles lo muestran,
+y «Misma celda» en titular bajó a 0.
+
+**El medidor estaba inflado.** Contaba como desborde el carril de reemplazos,
+que scrollea a propósito. Con nodos más anchos el bruto subió de 19 a 28 y
+parecía una regresión, cuando lo inalcanzable eran **6**. Corregido: solo
+cuenta lo que ningún ancestro desplazable puede revelar, que es lo que C4
+pide. Las cifras de este doc anteriores a esta iteración son brutas.
 
 ## Hallazgos que no son visuales
 

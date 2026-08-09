@@ -21,13 +21,26 @@ const EQUIVALENCE_LABELS = {
 
 function MapNodeButton({
   node,
+  esTitular = false,
   selected,
   onInspect,
 }: {
   node: SelectionMapNode;
+  /** El titular encabeza la cadena; los reemplazos cuelgan de él. */
+  esTitular?: boolean;
   selected: boolean;
   onInspect: (row: Record<string, unknown>) => void;
 }) {
+  // P3 · en el titular, la línea de abajo es el DOCENTE.
+  //
+  // Ahí decía «Misma celda» —la equivalencia—, que en un titular no significa
+  // nada: la equivalencia mide cuánto se parece un REEMPLAZO al titular que
+  // cubre, así que en la cabeza de la cadena era un rótulo constante y vacío
+  // repetido una vez por cadena. El docente es lo que faltaba para poder
+  // coordinar: la lista decía qué curso salió y no a quién escribirle.
+  const pie = esTitular
+    ? node.teacher || "docente no publicado"
+    : EQUIVALENCE_LABELS[node.equivalence];
   return (
     <button
       type="button"
@@ -35,12 +48,12 @@ function MapNodeButton({
       data-equivalence={node.equivalence}
       data-selected={selected || undefined}
       aria-pressed={selected}
-      aria-label={`Inspeccionar ${node.code}: ${node.label}. ${EQUIVALENCE_LABELS[node.equivalence]}`}
+      aria-label={`Inspeccionar ${node.code}: ${node.label}. ${pie}`}
       onClick={() => onInspect(selectionMapInspectionTarget(node))}
     >
       <strong>{node.code}</strong>
       <span>{node.label}</span>
-      <small>{EQUIVALENCE_LABELS[node.equivalence]}</small>
+      <small className={esTitular && !node.teacher ? "is-hueco" : undefined}>{pie}</small>
     </button>
   );
 }
@@ -56,7 +69,7 @@ function MapChainRow({
 }) {
   return (
     <div className="cmv2-selection-map-chain" data-qa-geometry-member>
-      <MapNodeButton node={chain.titular} selected={selectedRow === chain.titular.row} onInspect={onInspect} />
+      <MapNodeButton node={chain.titular} esTitular selected={selectedRow === chain.titular.row} onInspect={onInspect} />
       <div className="cmv2-selection-map-reserves" aria-label={`Cadena de ${chain.titular.code}`}>
         {chain.reserves.length ? chain.reserves.map((node) => (
           <MapNodeButton key={`${node.id}-${node.order}`} node={node} selected={selectedRow === node.row} onInspect={onInspect} />
