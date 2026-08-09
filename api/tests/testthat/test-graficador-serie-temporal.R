@@ -227,6 +227,66 @@ test_that("el constructor del plan arma un ppt_element utilizable", {
   expect_true("var" %in% names(el))
 })
 
+test_that("serie temporal conserva su prefijo y llamada posicional historicos", {
+  expect_identical(
+    names(formals(p_serie_temporal)),
+    c(
+      "vars", "corte", "corte_etiqueta", "orden_periodos", "mostrar_valores",
+      "valores_decimales", "destacar_ultimo", "colores_series", "limite_y",
+      "titulo", "overrides", "base", "filtros",
+      "max_series_con_cifras", "mostrar_puntos", "mostrar_grid_y"
+    )
+  )
+
+  colores <- c(Acceso = "#123456")
+  el <- p_serie_temporal(
+    list(Acceso = c("ola1$p1", "ola2$p1")),
+    "3,4",
+    "% de acuerdo",
+    c("ola1", "ola2"),
+    FALSE,
+    2L,
+    FALSE,
+    colores,
+    c(0, 100),
+    "Titulo serie posicional"
+  )
+  expect_identical(el$title_slide, "Titulo serie posicional")
+  expect_identical(el$overrides$valores_decimales, 2L)
+  expect_false(el$overrides$destacar_ultimo)
+  expect_identical(el$overrides$colores_series, colores)
+  expect_identical(el$overrides$limite_y, c(0, 100))
+
+  nombrado <- p_serie_temporal(
+    vars = list(Acceso = c("ola1$p1", "ola2$p1")),
+    corte = "3,4",
+    max_series_con_cifras = 9L,
+    mostrar_puntos = FALSE,
+    mostrar_grid_y = FALSE
+  )
+  expect_identical(nombrado$overrides$max_series_con_cifras, 9L)
+  expect_false(nombrado$overrides$mostrar_puntos)
+  expect_false(nombrado$overrides$mostrar_grid_y)
+})
+
+test_that("los controles publicados sobreviven constructor y rebuild", {
+  el <- .graficos_rebuild_graf_json(
+    list(
+      graficador = "p_serie_temporal",
+      args = list(
+        vars = list(Acceso = c("ola1$p1", "ola2$p1")),
+        corte = "3,4",
+        max_series_con_cifras = 9,
+        mostrar_puntos = FALSE,
+        mostrar_grid_y = FALSE
+      )
+    )
+  )
+  expect_equal(el$overrides$max_series_con_cifras, 9L)
+  expect_false(el$overrides$mostrar_puntos)
+  expect_false(el$overrides$mostrar_grid_y)
+})
+
 test_that("el constructor exige nombre en cada tema y codigos en el corte", {
   expect_error(p_serie_temporal(vars = list(), corte = "3"), "lista nombrada")
   expect_error(

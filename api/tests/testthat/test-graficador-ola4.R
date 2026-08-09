@@ -35,6 +35,27 @@ test_that("una escala par no tiene nivel central", {
   expect_identical(r$positivas, c("c", "d"))
 })
 
+test_that("el reparto explicito es aditivo y usa IDs de columnas", {
+  esperado <- list(
+    negativas = "muy_ins",
+    neutro = "ni",
+    positivas = c("sat", "muy_sat")
+  )
+  r <- .divergentes_reparto(
+    c("muy_ins", "ni", "sat", "muy_sat"),
+    n_negativas = 2,
+    incluir_neutro = TRUE,
+    reparto = esperado
+  )
+  expect_identical(r, esperado)
+
+  # Omitir `reparto` conserva literalmente el contrato historico.
+  historico <- .divergentes_reparto(.cols_likert, 2, TRUE)
+  expect_identical(historico$negativas, c("muy_ins", "ins"))
+  expect_identical(historico$neutro, "ni")
+  expect_identical(historico$positivas, c("sat", "muy_sat"))
+})
+
 test_that("la escala se lee del cero hacia afuera en los dos lados", {
   # El primer intento dejaba "Muy insatisfecho" en el medio del lado negativo y
   # "Muy satisfecho" pegado al cero: la escala al reves justo donde importa.
@@ -239,6 +260,269 @@ test_that("los tres constructores arman un ppt_element utilizable", {
   l <- p_lollipop(var = "p1", top_n = 10)
   expect_s3_class(l, "ppt_element")
   expect_identical(l$.element_type, "lollipop")
+})
+
+test_that("barras divergentes y lollipop conservan su prefijo posicional", {
+  expect_identical(
+    names(formals(p_barras_divergentes)),
+    c(
+      "vars", "var", "n_negativas", "incluir_neutro", "mostrar_saldo",
+      "titulo", "overrides", "base", "filtros",
+      "umbral_etiqueta_pct", "excluir_opciones"
+    )
+  )
+  d <- p_barras_divergentes(
+    c("p1", "p2"), NULL, 2L, TRUE, FALSE, "Titulo divergente posicional"
+  )
+  expect_identical(d$title_slide, "Titulo divergente posicional")
+  expect_false(d$overrides$mostrar_saldo)
+
+  d_nombrado <- p_barras_divergentes(
+    vars = "p1",
+    umbral_etiqueta_pct = 7,
+    excluir_opciones = c("No sabe", "No responde")
+  )
+  expect_equal(d_nombrado$overrides$umbral_etiqueta_pct, 7)
+  expect_identical(
+    d_nombrado$overrides$excluir_opciones,
+    c("No sabe", "No responde")
+  )
+
+  expect_identical(
+    names(formals(p_lollipop)),
+    c(
+      "var", "orden", "top_n", "resaltar", "titulo", "overrides", "base",
+      "filtros", "excluir_opciones"
+    )
+  )
+  l <- p_lollipop(
+    "p1", "declarado", 3L, "Salud", "Titulo lollipop posicional"
+  )
+  expect_identical(l$title_slide, "Titulo lollipop posicional")
+  expect_identical(l$overrides$orden, "declarado")
+  expect_identical(l$overrides$top_n, 3L)
+  expect_identical(l$overrides$resaltar, "Salud")
+
+  l_nombrado <- p_lollipop(var = "p1", excluir_opciones = "No sabe")
+  expect_identical(l_nombrado$overrides$excluir_opciones, "No sabe")
+})
+
+test_that("los controles publicados sobreviven constructor y rebuild", {
+  d <- .graficos_rebuild_graf_json(
+    list(
+      graficador = "p_barras_divergentes",
+      args = list(
+        vars = c("p1", "p2"),
+        umbral_etiqueta_pct = 7,
+        excluir_opciones = c("No sabe", "No responde")
+      )
+    )
+  )
+  expect_equal(d$overrides$umbral_etiqueta_pct, 7)
+  expect_identical(d$overrides$excluir_opciones, c("No sabe", "No responde"))
+
+  l <- .graficos_rebuild_graf_json(
+    list(
+      graficador = "p_lollipop",
+      args = list(var = "p1", excluir_opciones = "No sabe")
+    )
+  )
+  expect_identical(l$overrides$excluir_opciones, "No sabe")
+})
+
+test_that("aliases de umbral se normalizan antes del whitelist y el canónico gana", {
+  div <- .clean_rebuild_args(
+    list(vars = "p1", umbral_etiqueta = 6),
+    p_barras_divergentes
+  )
+  expect_false("umbral_etiqueta" %in% names(div))
+  expect_equal(div$umbral_etiqueta_pct, 6)
+
+  dumb <- .clean_rebuild_args(
+    list(
+      vars = list(Tema = c("a$p1", "b$p1")),
+      corte = "3,4",
+      umbral_brecha = 4,
+      umbral_brecha_pct = 9
+    ),
+    p_dumbbell
+  )
+  expect_false("umbral_brecha" %in% names(dumb))
+  expect_equal(dumb$umbral_brecha_pct, 9)
+
+  legacy_fn <- function(umbral_etiqueta = NULL) umbral_etiqueta
+  legacy <- .clean_rebuild_args(list(umbral_etiqueta = 0.05), legacy_fn)
+  expect_equal(legacy$umbral_etiqueta, 0.05)
+})
+
+test_that("la exclusión ocurre antes de recalcular el denominador", {
+  skip_if_not_installed("ggplot2")
+  .tab_freq <- function(ref, filtros = list()) {
+    data.frame(
+      Opciones = c("Visible", "No sabe", "Total"),
+      n = c(30, 70, 100),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  tab <- .ola4_tabla_opciones("p1", list(), excluir_opciones = "No sabe")
+  expect_identical(tab$Opciones, "Visible")
+  expect_equal(tab$n / sum(tab$n), 1)
+
+  p <- .render_lollipop(
+    p_lollipop("p1", excluir_opciones = "No sabe"),
+    preset_args = list()
+  )
+  expect_equal(nrow(p$data), 1L)
+  expect_equal(p$data$.valor, 100)
+})
+
+test_that("excluir una negativa no reclasifica Neutral ni cambia la polaridad", {
+  skip_if_not_installed("ggplot2")
+  escala <- c("Muy negativa", "Negativa", "Neutral", "Positiva", "Muy positiva")
+  .tab_freq <- function(ref, filtros = list()) {
+    data.frame(
+      Opciones = c(escala, "Total"),
+      n = c(10, 20, 30, 25, 15, 100),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  tabla <- .ola4_tabla_escala(
+    "p1",
+    list(),
+    excluir_opciones = "Negativa",
+    n_negativas = 2,
+    incluir_neutro = TRUE
+  )
+  neutral_id <- names(tabla$etiquetas_grupos)[tabla$etiquetas_grupos == "Neutral"]
+  expect_identical(tabla$reparto$neutro, unname(neutral_id))
+  expect_false(neutral_id %in% tabla$reparto$negativas)
+
+  p <- .render_barras_divergentes(
+    p_barras_divergentes(
+      "p1",
+      n_negativas = 2,
+      incluir_neutro = TRUE,
+      excluir_opciones = "Negativa"
+    ),
+    preset_args = list()
+  )
+  neutral_rows <- p$data[as.character(p$data$.cat) == neutral_id, , drop = FALSE]
+  expect_setequal(neutral_rows$.lado, c("neu", "neu2"))
+  saldo <- sum(p$data$.signo[p$data$.lado %in% c("neg", "pos")])
+  expect_equal(saldo, 37.5)
+  expect_gt(saldo, 0)
+})
+
+test_that("una ref sin frecuencia aborta la bateria y nombra la ref", {
+  .tab_freq <- function(ref, filtros = list()) {
+    if (identical(ref, "p2")) return(NULL)
+    data.frame(
+      Opciones = c("Negativa", "Neutral", "Positiva", "Total"),
+      n = c(20, 30, 50, 100),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  expect_error(
+    .ola4_tabla_escala(c("p1", "p2"), list(), n_negativas = 1),
+    "p2.*no devolvio frecuencias utilizables"
+  )
+})
+
+test_that("una ref vaciada por exclusion aborta la bateria y nombra la ref", {
+  escala <- c("Negativa", "Neutral", "Positiva")
+  .tab_freq <- function(ref, filtros = list()) {
+    data.frame(
+      Opciones = c(escala, "Total"),
+      n = c(20, 30, 50, 100),
+      stringsAsFactors = FALSE
+    )
+  }
+  .resolve_ref <- function(ref, arg_name = "var") list(ref = ref)
+  .exclusion_for_ctx <- function(ctx, excluir_opciones) {
+    if (identical(ctx$ref, "p2")) escala else excluir_opciones
+  }
+
+  expect_error(
+    .ola4_tabla_escala(
+      c("p1", "p2"),
+      list(),
+      excluir_opciones = "solo_p2",
+      n_negativas = 1
+    ),
+    "p2.*vacia tras aplicar exclusiones"
+  )
+})
+
+test_that("la bateria falla si las refs no comparten la escala original", {
+  .tab_freq <- function(ref, filtros = list()) {
+    opciones <- if (identical(ref, "p1")) {
+      c("Negativa", "Neutral", "Positiva")
+    } else {
+      c("Negativa", "Indiferente", "Positiva")
+    }
+    data.frame(
+      Opciones = c(opciones, "Total"),
+      n = c(20, 30, 50, 100),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  expect_error(
+    .ola4_tabla_escala(c("p1", "p2"), list(), n_negativas = 1),
+    "p2.*escala original.*p1"
+  )
+})
+
+test_that("las exclusiones no pueden dejar un lado divergente vacio", {
+  .tab_freq <- function(ref, filtros = list()) {
+    data.frame(
+      Opciones = c(
+        "Muy negativa", "Negativa", "Neutral", "Positiva", "Muy positiva", "Total"
+      ),
+      n = c(10, 20, 30, 25, 15, 100),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  expect_error(
+    .ola4_tabla_escala(
+      "p1",
+      list(),
+      excluir_opciones = c("Muy negativa", "Negativa"),
+      n_negativas = 2,
+      incluir_neutro = TRUE
+    ),
+    "lado negativo vacio"
+  )
+})
+
+test_that("cada ref conserva ambos lados aunque la bateria global los tenga", {
+  escala <- c("Muy negativa", "Negativa", "Neutral", "Positiva", "Muy positiva")
+  .tab_freq <- function(ref, filtros = list()) {
+    data.frame(
+      Opciones = c(escala, "Total"),
+      n = c(10, 20, 30, 25, 15, 100),
+      stringsAsFactors = FALSE
+    )
+  }
+  .resolve_ref <- function(ref, arg_name = "var") list(ref = ref)
+  .exclusion_for_ctx <- function(ctx, excluir_opciones) {
+    if (identical(ctx$ref, "p1")) c("Muy negativa", "Negativa") else excluir_opciones
+  }
+
+  expect_error(
+    .ola4_tabla_escala(
+      c("p1", "p2"),
+      list(),
+      excluir_opciones = "solo_p1",
+      n_negativas = 2,
+      incluir_neutro = TRUE
+    ),
+    "p1.*lado negativo vacio"
+  )
 })
 
 test_that("el dispatcher encuentra los tres renderers por convencion", {

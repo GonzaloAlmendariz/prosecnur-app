@@ -33,7 +33,47 @@
 # peor a mejor, las dos primeras son el desacuerdo. Se cuenta y no se nombra
 # para que la misma configuracion sirva a una bateria entera de preguntas que
 # comparten escala, que es el caso de uso real.
-.divergentes_reparto <- function(cols, n_negativas, incluir_neutro = TRUE) {
+.divergentes_reparto <- function(cols, n_negativas, incluir_neutro = TRUE,
+                                 reparto = NULL) {
+  cols <- as.character(cols)
+
+  # El plan puede declarar la semantica sobre la escala ORIGINAL y luego
+  # entregar aqui solo los IDs que sobrevivieron a las exclusiones. Esta via
+  # es aditiva: si se omite, el reparto posicional historico queda intacto.
+  if (!is.null(reparto)) {
+    claves <- c("negativas", "neutro", "positivas")
+    if (!is.list(reparto) || is.null(names(reparto)) ||
+        anyDuplicated(names(reparto)) || !setequal(names(reparto), claves)) {
+      stop(
+        "`reparto` debe ser una lista con `negativas`, `neutro` y `positivas`.",
+        call. = FALSE
+      )
+    }
+
+    out <- lapply(claves, function(clave) {
+      ids <- as.character(unlist(reparto[[clave]], use.names = FALSE))
+      if (anyNA(ids) || any(!nzchar(ids))) {
+        stop("Los IDs de `reparto` deben ser nombres de columna no vacios.", call. = FALSE)
+      }
+      ids
+    })
+    names(out) <- claves
+
+    asignadas <- unlist(out, use.names = FALSE)
+    if (anyDuplicated(asignadas)) {
+      stop("Cada columna debe pertenecer a un solo lado de `reparto`.", call. = FALSE)
+    }
+    desconocidas <- setdiff(asignadas, cols)
+    faltantes <- setdiff(cols, asignadas)
+    if (length(desconocidas) || length(faltantes)) {
+      stop(
+        "`reparto` debe cubrir exactamente una vez todas las columnas de porcentaje.",
+        call. = FALSE
+      )
+    }
+    return(out)
+  }
+
   n <- length(cols)
   k <- suppressWarnings(as.integer(n_negativas)[1])
   if (!is.finite(k) || k < 0) k <- 0L
@@ -69,6 +109,9 @@
 #'   izquierda del cero.
 #' @param incluir_neutro Si `TRUE` y la escala tiene un nivel central, se dibuja
 #'   partido a ambos lados en vez de ocultarse.
+#' @param reparto Lista opcional con `negativas`, `neutro` y `positivas`,
+#'   expresadas como IDs de `cols_porcentaje`. Permite conservar la semantica
+#'   declarada sobre la escala original cuando algunas categorias se excluyen.
 #' @param escala_valor `proporcion_1` (0-1) o `proporcion_100` (0-100).
 #'
 #' @family graficador
@@ -111,7 +154,8 @@ graficar_barras_divergentes <- function(
     color_nota_pie = .PULSO_COLOR_TEXTO,
     size_nota_pie = 8,
     textos_negrita = NULL,
-    font_family = "Arial"
+    font_family = "Arial",
+    reparto = NULL
 ) {
   escala_valor <- match.arg(escala_valor)
   leyenda_posicion <- match.arg(leyenda_posicion)
@@ -132,9 +176,20 @@ graficar_barras_divergentes <- function(
   etiquetas <- etiquetas_grupos %||% stats::setNames(cols_porcentaje, cols_porcentaje)
   if (is.null(names(etiquetas))) names(etiquetas) <- cols_porcentaje
 
-  reparto <- .divergentes_reparto(cols_porcentaje, n_negativas, incluir_neutro)
-  if (!length(reparto$negativas) || !length(reparto$positivas)) {
-    stop("El reparto deja un lado vacio: revisa `n_negativas`.", call. = FALSE)
+  particion <- .divergentes_reparto(
+    cols_porcentaje,
+    n_negativas,
+    incluir_neutro,
+    reparto = reparto
+  )
+  if (!length(particion$negativas) || !length(particion$positivas)) {
+    stop(
+      paste0(
+        "El reparto deja un lado vacio: revisa `n_negativas`",
+        if (!is.null(reparto)) " y las exclusiones." else "."
+      ),
+      call. = FALSE
+    )
   }
 
   items <- as.character(data[[var_categoria]])
@@ -145,7 +200,7 @@ graficar_barras_divergentes <- function(
       if (!is.finite(v)) v <- 0
       if (identical(escala_valor, "proporcion_1")) v <- v * 100
 
-      lado <- if (col %in% reparto$negativas) "neg" else if (col %in% reparto$neutro) "neu" else "pos"
+      lado <- if (col %in% particion$negativas) "neg" else if (col %in% particion$neutro) "neu" else "pos"
       # El neutro se parte por la mitad a cada lado. Ocultarlo inflaria los dos
       # extremos y haria parecer que todos opinaron.
       if (identical(lado, "neu")) {

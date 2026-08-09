@@ -134,6 +134,9 @@ arquitectura canónica.
 - [GOAL del radar entre públicos](qa/goal-loop-radar-multibase-2026-08-06.md):
   el radar compara públicos y el analista declara el indicador; forma, color y
   reparto del alto del mazo derivado de la matriz.
+- [GOAL de expansión del catálogo y UI de Gráficos](qa/goal-loop-expansion-graficos-ui-2026-08-08.md):
+  loop sucesor para introducir nuevos tipos con verdad metodológica, contrato
+  vertical y mejora continua de la experiencia de autoría.
 - [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).
 - [Prompt del loop de Cálculo de muestra](qa/prompt-goal-loop-calc-muestra.md).
 - [Prompt del loop del motor PPT](qa/prompt-goal-loop-motor-ppt.md).

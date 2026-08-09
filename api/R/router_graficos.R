@@ -152,8 +152,28 @@
   as.list(x)
 }
 
-.clean_rebuild_args <- function(args, fn) {
+.graficos_normalize_rebuild_aliases <- function(args, fn) {
   args <- as.list(args %||% list())
+  fmls <- names(formals(fn))
+  aliases <- c(
+    umbral_etiqueta = "umbral_etiqueta_pct",
+    umbral_brecha = "umbral_brecha_pct"
+  )
+  for (legacy in names(aliases)) {
+    canonical <- unname(aliases[[legacy]])
+    # Sólo cambia el alias cuando el constructor declara el formal nuevo. Las
+    # familias históricas conservan su `umbral_etiqueta` en escala 0-1.
+    if (!(canonical %in% fmls) || !(legacy %in% names(args))) next
+    if (!(canonical %in% names(args)) || .graficos_is_blank_json_value(args[[canonical]])) {
+      args[[canonical]] <- args[[legacy]]
+    }
+    args[[legacy]] <- NULL
+  }
+  args
+}
+
+.clean_rebuild_args <- function(args, fn) {
+  args <- .graficos_normalize_rebuild_aliases(args, fn)
   if ("titulo" %in% names(args) && "overrides" %in% names(formals(fn))) {
     title_value <- args$titulo
     has_title <- !(
@@ -1016,7 +1036,32 @@
 .build_presets <- function(presets_json) {
   if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
   args <- lapply(presets_json, as.list)
-  do.call(p_presets, args)
+  supported <- setdiff(names(formals(p_presets)), "...")
+  extension_keys <- intersect(
+    setdiff(names(args), supported),
+    c("barras_divergentes", "dumbbell", "lollipop", "serie_temporal")
+  )
+  unknown <- setdiff(names(args), c(supported, extension_keys))
+  if (length(unknown)) {
+    warning(
+      "Se ignoraron presets no soportados: ",
+      paste(unknown, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  out <- do.call(p_presets, args[intersect(names(args), supported)])
+  for (key in extension_keys) {
+    block <- args[[key]]
+    if (!is.list(block)) .plan_input_abort("Cada preset debe ser una lista.")
+    if (!is.null(block$args)) {
+      if (!is.list(block$args)) .plan_input_abort("`args` debe ser una lista.")
+      out[[key]] <- block
+    } else {
+      out[[key]] <- list(args = block)
+    }
+  }
+  out
 }
 
 .build_w_presets <- function(w_json) {
@@ -2960,7 +3005,7 @@ mount_graficos <- function(pr) {
       graficador_registry <- .graf_names()
 
       promote_graph_title <- function(args, fn) {
-        args <- as.list(args %||% list())
+        args <- .graficos_normalize_rebuild_aliases(args, fn)
         if (!("titulo" %in% names(args)) || !("overrides" %in% names(formals(fn)))) return(args)
         title_value <- args$titulo
         has_title <- !(
@@ -3042,7 +3087,7 @@ mount_graficos <- function(pr) {
 
       build_presets <- function(pj) {
         if (is.null(pj) || length(pj) == 0) return(NULL)
-        do.call(p_presets, lapply(pj, as.list))
+        .build_presets(pj)
       }
 
       # Ejecución del preview. Envuelvo en tryCatch para devolver un

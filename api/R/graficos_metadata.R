@@ -1614,6 +1614,75 @@
   )
 )
 
+# Contrato operativo aditivo del registry (`graficos/4`). Las claves de preset
+# nombran la familia que el motor consume realmente; vacío significa que el
+# graficador no tiene una familia de preset insertable deliberadamente.
+.GRAFICADOR_PRESET_KEYS <- c(
+  p_barras_agrupadas = "barras_agrupadas",
+  p_barras_categoricas = "barras_categoricas",
+  p_barras_apiladas = "barras_apiladas",
+  p_barras_multiapiladas = "multi_apiladas",
+  p_nube_palabras = "nube_palabras",
+  p_mapa_cobertura_territorial = "",
+  p_pie = "pie",
+  p_donut = "donut",
+  p_numerico = "barras_numericas",
+  p_histograma = "histograma",
+  p_boxplot = "boxplot",
+  p_media_rango = "media_rango",
+  p_barras_divergentes = "barras_divergentes",
+  p_dumbbell = "dumbbell",
+  p_lollipop = "lollipop",
+  p_serie_temporal = "serie_temporal",
+  p_radar = "radar_tabla",
+  p_tabla = "radar_tabla",
+  p_dim_radar = "dim_radar",
+  p_dim_heatmap = "dim_heatmap",
+  p_dim_comparativo_radarbar = "",
+  p_dim_foda = "dim_foda",
+  p_dim_heatmap_criterios = "dim_heatmap_criterios"
+)
+
+.graf_operational_contract <- function(name, meta) {
+  generated <- c(
+    p_dumbbell = "equivalences_exactly_two",
+    p_serie_temporal = "equivalences_temporal"
+  )
+  capability_key <- if (name %in% names(generated)) unname(generated[[name]]) else ""
+  if (identical(meta$requisito %||% "", "dimensiones")) capability_key <- "dimensions"
+  if (identical(meta$requisito %||% "", "territorial_coverage")) {
+    capability_key <- "territorial_coverage"
+  }
+
+  data_requirement <- if (name %in% names(generated)) {
+    "named_vars"
+  } else if (capability_key %in% c("dimensions", "territorial_coverage")) {
+    "capability"
+  } else {
+    "var_or_vars"
+  }
+  requirement_label <- switch(
+    capability_key,
+    dimensions = "Requiere dimensiones calculadas en Analítica.",
+    territorial_coverage = "Requiere cobertura disponible en Hojas de Ruta y Monitoreo territorial.",
+    equivalences_exactly_two = "Requiere un plan compatible que ya declare equivalencias entre exactamente dos bases; esta biblioteca aún no puede crearlo.",
+    equivalences_temporal = "Requiere un plan compatible que ya declare equivalencias entre bases ordenadas por momento; esta biblioteca aún no puede crearlo.",
+    "Selecciona una o varias variables de la base activa."
+  )
+
+  list(
+    capability_key = capability_key,
+    requirement_label = requirement_label,
+    authoring_mode = if (name %in% names(generated)) "generated" else "direct",
+    data_requirement = data_requirement,
+    preset_key = if (name %in% names(.GRAFICADOR_PRESET_KEYS)) {
+      as.character(unname(.GRAFICADOR_PRESET_KEYS[[name]]))
+    } else {
+      ""
+    }
+  )
+}
+
 # ===========================================================================
 # PRESETS (estilo global por tipo de graficador)
 # ===========================================================================
@@ -4654,6 +4723,7 @@
   })
   graficadores <- lapply(names(.GRAFICADORES_META), function(nm) {
     meta <- .GRAFICADORES_META[[nm]]
+    operational <- .graf_operational_contract(nm, meta)
     fn <- tryCatch(getExportedValue("prosecnurapp", nm), error = function(e) NULL)
     formals_names <- if (!is.null(fn)) names(formals(fn)) else character(0)
     curated_names <- vapply(meta$args, function(a) as.character(a$name), character(1))
@@ -4675,6 +4745,11 @@
       blueprint     = as.character(meta$blueprint),
       requisito     = requisito,
       feature_kind  = feature_kind,
+      capability_key = operational$capability_key,
+      requirement_label = operational$requirement_label,
+      authoring_mode = operational$authoring_mode,
+      data_requirement = operational$data_requirement,
+      preset_key = operational$preset_key,
       available     = available,
       disabled_reason = disabled_reason,
       args          = .normalize_args_for_ui(meta$args %||% list()),

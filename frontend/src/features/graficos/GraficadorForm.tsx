@@ -81,7 +81,7 @@ export default function GraficadorForm({
   const overridesReusables = usePlanStore((s) => s.overridesReusables);
 
   const meta = graficadoresById[graf.graficador];
-  const presetType = graficadorToPresetType(graf.graficador);
+  const presetType = graficadorToPresetType(graf.graficador, meta?.preset_key);
   const presetMeta = presetType ? presetsByName[presetType] : undefined;
   const isStyleContext = useMemo(() => {
     if (!groupFilter?.length) return false;

@@ -124,6 +124,22 @@ export type GraficadorBlueprintKind =
   // Sentinel exclusivo del frontend para formas que aún no conoce.
   | "future";
 
+export type GraficadorCapabilityKey =
+  | ""
+  | "dimensions"
+  | "territorial_coverage"
+  | "equivalences_exactly_two"
+  | "equivalences_temporal"
+  | "unknown";
+
+export type GraficadorAuthoringMode = "direct" | "generated" | "unknown";
+
+export type GraficadorDataRequirement =
+  | "var_or_vars"
+  | "named_vars"
+  | "capability"
+  | "unknown";
+
 export type GraficadorRef = {
   graficador: string;
   args: Record<string, unknown>;
@@ -272,6 +288,14 @@ export type GraficadorMetadata = {
   feature_kind?: string;
   available?: boolean;
   disabled_reason?: string;
+  // Contrato machine-readable de disponibilidad y autoría. Son opcionales en
+  // el tipo porque un backend legacy puede omitirlos; el normalizador y los
+  // consumidores resuelven esa ausencia de forma explícita.
+  capability_key?: GraficadorCapabilityKey;
+  requirement_label?: string;
+  authoring_mode?: GraficadorAuthoringMode;
+  data_requirement?: GraficadorDataRequirement;
+  preset_key?: string;
   args: ArgMetadata[];
   args_extra: string[];
 };
@@ -306,8 +330,8 @@ export type VarInfo = {
   coverage_countable?: boolean;
 };
 
-export async function apiGraficosRegistry() {
-  return handle<Registry>(await apiFetch("/api/graficos/registry", { headers: headers() }));
+export async function apiGraficosRegistry(): Promise<unknown> {
+  return handle<unknown>(await apiFetch("/api/graficos/registry", { headers: headers() }));
 }
 
 // Metadata de los presets globales (p_presets). Cada entrada es un tipo
