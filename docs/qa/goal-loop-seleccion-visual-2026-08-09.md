@@ -84,6 +84,12 @@ que cada cifra sale del dato publicado (ADR 0067 rige el Relato).
    terminó — no se commitea un cambio que no movió el número.
 5. **Gate.** `pnpm -C frontend exec tsc --noEmit` y la suite de
    `src/features/calcMuestra`. Si el cambio toca R, además su `test_file`.
+   **En serie y con el dev server de Vite apagado.** Con el backend real
+   cargado, los dos gates a la vez llevaron la máquina a 135 MB de RAM libre y
+   15 GB de swap de 16: carga 22 con 0% de CPU, todo paginando. Y el dev server
+   comparte `node_modules/.vite` con vitest, que es la otra causa conocida de
+   rojo falso. Se apaga Vite, se corre vitest, después tsc, y recién ahí se
+   vuelve a levantar Vite para medir.
 6. **Commitear** en `revamp/seleccion-visual`, conventional commit en español,
    con el número antes y después en el cuerpo.
 7. **Actualizar este doc**: tachar lo hecho, anotar lo que apareció.
@@ -154,6 +160,17 @@ Backend `Backend hsvg2026 seleccion (8803)` + `Frontend (dev vs 8803)` de
 El warm start del proyecto real tarda ~5 min: se levanta UNA vez por sesión y
 se recorren todas las pestañas ahí.
 
+**No sondear `/api/system/bootstrap` para saber si el backend está listo.** En
+modo local ese GET **consume** el sid (`router_sistema.R`: limpia
+`PULSO_BOOTSTRAP_SID` salvo en modo público). Un curl de readiness se come el
+bootstrap y la app aterriza en el chooser del BootGate con el proyecto cargado
+pero inalcanzable — se ve idéntico a «el backend no levantó». Para esperar, usar
+`/api/system/diagnostic`, que no tiene efecto.
+
+La pestaña de titulares es `pestana=seleccion`, no `titulares`; el Relato es
+`aulas-relato`, Simulación es `laboratorio` y Sustento es `auditoria`. Los ids
+reales están en los `[role="tab"]` (`cmv2-context-tab-aulas-<id>`).
+
 ---
 
 ## Lo que la vista tiene que responder (C5 · suficiencia)
@@ -187,9 +204,10 @@ Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir
   queda en **6**, y los seis son la misma cadena: el tile de método con
   «Balance por cuotas y tamaño» (271 px en 206).
 - [x] ~~**P3 · el docente principal.**~~ Hecho en el mapa de selección.
-- [ ] **L2 · `SEL/titulares`: 55 títulos repetidos y 6.586 px.** Hoy repite
-  «196 titulares» y «1.638 / 2.234 reservas» en dos bloques con nombres
-  distintos. Elegir uno y partir la vista.
+- [ ] **L2 · `SEL/titulares`: 6.598 px de alto (V8).** Los rótulos repetidos ya
+  están en 0 (iteración 6); queda la altura. Sigue repitiendo «196 titulares» y
+  «1.638 / 2.234 reservas» en dos bloques con nombres distintos (V5): elegir uno
+  y partir la vista.
 - [x] ~~**L3 · `SEL/reemplazos`: 94 títulos repetidos.**~~ Hecho: con el
   medidor corregido queda en **0**. De los 94 brutos, 93 eran datos repetidos
   legítimos y el defecto era uno solo, repetido 24 veces.
@@ -223,6 +241,47 @@ Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir
   podría explicar en voz alta. El regex se amplía con lo que aparezca.
 
 ## Hecho
+
+### Iteración 6 · la dimensión se dice una vez, y la fila recupera su nombre (V3, V5, V7)
+
+`SEL/titulares` marcaba **11 rótulos repetidos**, y los once eran *uno*:
+«Facultad», doce veces, en «Ajuste frente al marco». La fila ponía en negrita
+la **dimensión** —constante para todo el bloque— y dejaba la **categoría**
+—`DERECHO`, `EDUCACION`, lo único que distingue una fila de otra— en el renglón
+gris de abajo. La jerarquía estaba invertida: lo prominente era lo que no
+informa. 11 → **0**.
+
+De paso aparecen dos números que estaban escritos pero no se veían: `marco X% ·
+muestra Y%` vivía **solo en el `aria-label`** de la barra, o sea que un lector
+de pantalla los decía y los ojos no los tenían. Ahora ocupan el renglón que
+liberó la dimensión — la fila sigue midiendo tres líneas, así que la altura no
+se mueve (V8 intacto).
+
+**La trampa de esta vez fue el escalonado.** El `--cmv2-aulas-fila` de la
+animación se asignaba con `> div:nth-child(N)` contando desde la leyenda; al
+intercalar el rótulo de grupo (`<p>`) los índices se corrían una posición por
+cada dimensión. Cambiado a `nth-of-type`, que cuenta divs: idéntico hoy y
+correcto con encabezados. Es el mismo tipo de acoplamiento silencioso que el
+`white-space` heredado del `<button>` en la iteración 1 — CSS posicional que
+depende de una forma del DOM que nadie declaró.
+
+Cuatro guards nuevos en `ProfileBalanceChart.test.tsx` congelan el contrato:
+un rótulo por grupo, dos dimensiones abren dos grupos, marco/muestra visibles,
+y el vacío declarado (C3).
+
+**Sobre los desbordes de esta pestaña, con cuidado**: el «antes» se midió con el
+panel a 1.087 px y el «después» a 1.306 (viewport 1440×1000 de la matriz de QA).
+A 1.306 la pestaña marca **0**, pero eso NO lo produjo esta iteración: los 4 de
+antes eran la cadena de la banda de KPIs («Balance por cuotas y tamaño», 271 px
+en 238), que simplemente entra cuando hay más ancho. Sigue siendo L8, sigue sin
+tocarse desde acá, y volverá a aparecer en 1280 y en 1024. El único número
+comparable entre las dos medidas es el de rótulos repetidos, que no depende del
+ancho: **11 → 0**.
+
+Y una trampa de método: la primera medición «después» dio 41 desbordes y 8.931
+px de alto, y parecía una regresión grave. El panel medía 286 px — la ventana
+del navegador había quedado angosta tras reiniciar los servidores. Medir sin
+fijar el viewport es medir otra cosa.
 
 ### Iteración 1 · `SEL/titulares`: los nombres de curso se leen (P1)
 
@@ -316,6 +375,12 @@ Se anotan acá y NO se arreglan en este loop; se llevan a su propia unidad.
 - El sorteo desde la UI corrió con `cube_balanceado` aunque el workspace tenía
   `sistematico_pps`: el engine del selector no se estaba tomando del config del
   workspace. Confirmado en la corrida `sel_aulas_20260808153925`.
+- **`aliasMesaNoSeEscribe.contract.test.ts` tarda 20,6 s y el límite de vitest
+  son 5.** Su aserción se cumple —medida fuera de vitest: 948 archivos
+  escaneados, `escritores: []`—, pero el guard falla por timeout de E/S en
+  cuanto la máquina tiene carga. Un guard que flakea deja de proteger: o sube su
+  `testTimeout`, o deja de leer 948 archivos con dos regex de bloque por archivo.
+  Vive fuera de `aulas/`, así que no se toca desde este loop.
 
 ### De la revisión del informe metodológico externo (2026-08-09)
 
