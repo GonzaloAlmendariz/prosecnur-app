@@ -182,7 +182,9 @@ Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir
   distintos. Elegir uno y partir la vista.
 - [ ] **L3 · `SEL/reemplazos`: 94 títulos repetidos.** Es el número más alto
   del módulo; casi seguro una lista que repite el mismo rótulo por fila.
-- [ ] **L4 · Los warnings crudos del motor (18 crípticos en 3 pestañas).**
+- [x] ~~**L4 · Los warnings crudos del motor (18 crípticos en 3 pestañas).**~~
+  Hecho: 18 → **0**. Quedan los crípticos que el regex todavía no nombra (L10).
+  Texto original de la línea:
   «Comparacion de metodos con descuento secuencial aplicado al sorteo: las pi
   de esta tarjeta son referenciales del diseno estatico (pi_design)…» llega
   literal, sin tildes. Y «Fallback metodológico» aparece dos veces seguidas
@@ -226,6 +228,22 @@ No faltaban: estaban ilegibles. **P3 (docente principal) sigue ausente.**
 
 Medido antes/después con el proyecto acreditado; gate: tsc 0 errores, 1.223
 tests de calcMuestra.
+
+### Iteración 3 · el motor deja de hablar en la UI (V2, L4)
+
+18 crípticos en `SEL/metodo`, `SEL/simulacion` y `SEL/sustento` → **0**.
+
+La lista de riesgos ya escondía el crudo tras un disclosure, pero solo
+reconocía `paquete::funcion`. El resto de la jerga pasaba entera: identificadores
+internos (`pi_design`) y castellano sin tildes, que es la huella de una cadena
+escrita en R en ASCII. Ahora la detección cubre las tres marcas y hay
+diccionario para los avisos conocidos, en `avisosDelMotor.ts` — traducido en el
+BORDE de presentación, no en R: el mensaje literal tiene que seguir existiendo
+para quien audita, solo deja de ser lo primero que se lee.
+
+De paso arregla títulos repetidos: R mandaba dos avisos distintos bajo un mismo
+«Fallback metodológico». Con título propio cada uno, los repetidos bajaron
+14→13, 5→4 y 6→5.
 
 ### Iteración 2 · el docente principal, y un medidor que mentía (P3)
 

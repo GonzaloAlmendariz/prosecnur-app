@@ -1,6 +1,7 @@
 import { CheckCircle2, CircleAlert, TriangleAlert } from "lucide-react";
 import type { CalcMuestraAulasMethodComparison } from "../../../../api/client";
 import { rowsFrom } from "../../sharedCore";
+import { traducirAvisoDelMotor } from "./avisosDelMotor";
 
 export function classroomRiskRows(
   risks: NonNullable<CalcMuestraAulasMethodComparison["risk_flags"]> | unknown,
@@ -39,14 +40,21 @@ export function ClassroomRiskList({
         const severity = String(risk.severity ?? "media");
         const Icon = severityIcon(severity);
         const detail = String(risk.detail ?? "Revisa la auditoría técnica del selector.");
-        const esTecnico = /\b[A-Za-z][\w.]*::[\w.]+/.test(detail);
+        // La detección por `paquete::funcion` dejaba pasar el resto de la jerga
+        // del motor: identificadores internos (`pi_design`) y castellano sin
+        // tildes, que llegaban literales al usuario. Medido: 18 apariciones en
+        // tres pestañas de Selección contra 0 en Cálculo.
+        const aviso = traducirAvisoDelMotor(detail);
         return (
           <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${severity}`}>
             <small><Icon size={12} aria-hidden="true" />{severity}</small>
-            <strong>{String(risk.title ?? "Alerta metodológica")}</strong>
-            {esTecnico ? (
+            {/* El título traducido gana al del motor: mandaba dos avisos
+                distintos bajo un mismo «Fallback metodológico», y dos cosas
+                distintas con el mismo nombre se leen como una repetida. */}
+            <strong>{aviso.titulo ?? String(risk.title ?? "Alerta metodológica")}</strong>
+            {aviso.mostrarCrudo ? (
               <>
-                <span>El motor usó una implementación alternativa equivalente para esta corrida.</span>
+                <span>{aviso.resumen}</span>
                 {/* ADR 0057 · Rotular el cajón «Detalle técnico» no dice qué
                     hay dentro: es la etiqueta que obliga a abrir para saber si
                     importa. Lo que contiene es el mensaje literal del motor, y
@@ -66,7 +74,7 @@ export function ClassroomRiskList({
                   <code>{detail}</code>
                 </details>
               </>
-            ) : <span>{detail}</span>}
+            ) : <span>{aviso.resumen}</span>}
           </div>
         );
       })}
