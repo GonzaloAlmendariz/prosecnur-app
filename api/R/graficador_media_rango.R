@@ -421,12 +421,11 @@ graficar_media_rango <- function(
       )
   }
 
-  .fmt_num <- function(x) {
-    format(round(x, chip_decimales), nsmall = chip_decimales, trim = TRUE)
-  }
+  # Redondeo de la casa: el 0,5 sube (`helpers_calc_comunes.R`).
+  .fmt_num <- function(x) .pulso_fmt_half_up(x, chip_decimales)
   .fmt_delta <- function(x) {
-    x_round <- round(x, chip_decimales)
-    x_abs <- format(abs(x_round), nsmall = chip_decimales, trim = TRUE)
+    x_round <- .pulso_round_half_up(x, chip_decimales)
+    x_abs <- .pulso_fmt_half_up(abs(x_round), chip_decimales)
     ifelse(
       abs(x_round) < 10^(-chip_decimales) / 2,
       paste0("0", chip_sufijo),
@@ -501,7 +500,7 @@ graficar_media_rango <- function(
       is.finite(p_val) && p_val < 0.05
     }, logical(1))
   }
-  delta_abs_round <- abs(round(sum_df$delta_ref, chip_decimales))
+  delta_abs_round <- abs(.pulso_round_half_up(sum_df$delta_ref, chip_decimales))
   sum_df$delta_label_min <- ifelse(
     delta_abs_round < max(10^(-chip_decimales) / 2, umbral_brecha) |
       (isTRUE(destacar_significativos) &
@@ -830,7 +829,7 @@ graficar_media_rango <- function(
 
   if (isTRUE(mostrar_chip) && identical(modo, "score")) {
     sum_df$chip_label <- paste0(
-      format(round(sum_df$media, chip_decimales), nsmall = chip_decimales, trim = TRUE),
+      .pulso_fmt_half_up(sum_df$media, chip_decimales),
       chip_sufijo
     )
 

@@ -1168,7 +1168,7 @@ resolver_var_spec <- function(var_madre, ctx, df = NULL) {
         color = c("#1B679D", "#E5ECF6"),
         line = list(width = 0)
       ),
-      text = paste0("<b>", round(100 * tab$pct, 0), "%</b>"),
+      text = paste0("<b>", .pulso_round_half_up(100 * tab$pct, 0), "%</b>"),
       textposition = "inside",
       insidetextanchor = "middle",
       textfont = list(color = "white", size = PCT_FSIZE),

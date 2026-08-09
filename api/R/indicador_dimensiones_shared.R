@@ -50,16 +50,11 @@
 #' @keywords internal
 .dim_nm_get <- function(x, key) .ind_nm_get(x, key)
 
+# Alias histórico de la familia de dimensiones. La implementación canónica del
+# redondeo de la casa vive en `helpers_calc_comunes.R` y la comparte todo el
+# paquete: aquí sólo queda el nombre con el prefijo del módulo.
 #' @keywords internal
-.dim_round_half_up <- function(x, digits = 0L) {
-  s <- 10^as.integer(digits)
-  out <- ifelse(
-    is.na(x),
-    NA_real_,
-    ifelse(x >= 0, floor(x * s + 0.5), ceiling(x * s - 0.5)) / s
-  )
-  as.numeric(out)
-}
+.dim_round_half_up <- function(x, digits = 0L) .pulso_round_half_up(x, digits)
 
 #' @keywords internal
 .dim_fmt_int <- function(x) {
