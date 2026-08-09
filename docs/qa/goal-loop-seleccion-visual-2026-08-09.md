@@ -207,7 +207,10 @@ Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir
   patrón de tarjeta + rótulo con acento + KPI con punto y bajada.
 - [ ] **L8 · La banda de KPIs se corta** («P1 · Universidad · R · fr…») en
   1280 de ancho. Es compartida, así que tocarla exige revisar Cálculo y Marco.
-- [ ] **L9 · El goo sigue viéndose mal.** El detector cuenta desbordes y
+- [x] ~~**L9 · El goo sigue viéndose mal.**~~ Hecho en su parte medible: 0
+  pares de bolas solapadas y 0 rótulos encimados. Queda lo cualitativo (tirantes
+  vivos y propagación por grafo), que es el pendiente del motor rAF.
+  Texto original: El detector cuenta desbordes y
   títulos, y de eso no se entera. Lo que falla es composición: bolas que se
   tocan, rótulos encima de rótulos, y la cola perdiéndose cuando hay muchos
   estratos cortos. Se mide distinto — distancia mínima entre centros contra
@@ -239,6 +242,26 @@ No faltaban: estaban ilegibles. **P3 (docente principal) sigue ausente.**
 
 Medido antes/después con el proyecto acreditado; gate: tsc 0 errores, 1.223
 tests de calcMuestra.
+
+### Iteración 5 · el goo se lee (L9)
+
+El medidor de esta línea es otro, porque el problema no era desborde:
+**distancia entre centros contra suma de radios**, y **cajas de rótulo que se
+intersecan**.
+
+Medido: **0 pares de bolas solapadas** —eso ya lo había resuelto la escala por
+densidad— y **11 pares de rótulos encimados** de 60. O sea que lo que se veía
+sucio no eran las bolas: eran las etiquetas.
+
+Sesenta nombres simultáneos no se leen, y no es lo que la escena cuenta: la
+escena cuenta QUÉ pasa ahora. El rótulo fijo queda solo en la bola recién
+encendida; el resto conserva su código en hover y en el `<title>`, y la
+secuencia completa ya vivía en la lista «Orden real del sorteo» debajo del SVG
+— nada deja de ser alcanzable (C4). 11 → **0**.
+
+Tres guards nuevos congelan lo aprendido en las últimas iteraciones: el rótulo
+fijo colgado de `esReciente` y no de `encendida`, la escala por densidad, y la
+espiral continua en vez de la de Vogel.
 
 ### Iteración 4 · una regla se dice una vez (V3, L3)
 

@@ -322,16 +322,21 @@ export function EscenaSorteo({ escena }: { escena: RelatoEscenaSorteo }) {
                   {encendida && (
                     <text className="cmv2-relato-goo-paso" dy="0.9">{fmtInt(paso!.paso)}</text>
                   )}
-                  {encendida ? (
-                    <text
-                      className={`cmv2-relato-goo-rotulo${esReciente ? " is-reciente" : ""}`}
-                      y={unidad.r + 2.6}
-                    >
+                  {/* Rótulo fijo SOLO en la que acaba de encenderse.
+                      Con las 60 encendidas rotuladas a la vez, las etiquetas se
+                      pisaban entre sí —11 pares medidos— y la escena se leía
+                      sucia aunque ninguna bola se tocara. Sesenta nombres
+                      simultáneos tampoco se leen: lo que la escena cuenta es
+                      QUÉ pasa ahora, y la secuencia completa está en la lista
+                      «Orden real del sorteo» debajo del SVG. Los demás
+                      conservan su código en hover/focus y en el `<title>`, así
+                      que no se pierde nada alcanzable (C4). */}
+                  {esReciente ? (
+                    <text className="cmv2-relato-goo-rotulo is-reciente" y={unidad.r + 2.6}>
                       {codigo}
-                      {esReciente ? ` · ${cifra}` : ""}
+                      {cifra ? ` · ${cifra}` : ""}
                     </text>
                   ) : (
-                    /* Bola viva: hover/focus revela código y cifra al instante. */
                     <text className="cmv2-relato-goo-rotulo is-hover" y={unidad.r + 2.6}>
                       {codigo}
                       {cifra ? ` · ${cifra}` : ""}
