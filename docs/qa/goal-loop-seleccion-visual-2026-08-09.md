@@ -124,7 +124,17 @@ Sobre la pestaña montada, en la consola del navegador:
     }).length,
     prosaLarga: [...raiz.querySelectorAll('p')].filter((p) => txt(p).trim().length > 180).length,
     cripticos: (t.match(/pi_design|pi_mc|eligible_n|discount_step|classroom_id|stratum|Monte Carlo|seleccion final|comparacion|implementacion|metodos/g) || []).length,
-    titulosRepetidos: titulos.length - new Set(titulos).size,
+    // Solo RÓTULOS constantes. Los datos repetidos son legítimos: un curso
+    // aparece en varias cadenas y una facultad en varias filas. En esta app el
+    // dato llega en MAYÚSCULAS desde la fuente y los rótulos que escribe la UI
+    // van en oración, así que ese es el discriminador. Contando datos, la peor
+    // pestaña marcaba 94 y en realidad tenía 1 defecto.
+    // Limitación: un rótulo escrito en mayúsculas se escaparía.
+    titulosRepetidos: (() => {
+      const c = {};
+      for (const s of titulos) if (s !== s.toUpperCase()) c[s] = (c[s] || 0) + 1;
+      return Object.values(c).reduce((a, n) => a + (n - 1), 0);
+    })(),
     badges: (t.match(/cifra validada/g) || []).length,
     alto: raiz.scrollHeight,
   };
@@ -180,8 +190,9 @@ Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir
 - [ ] **L2 · `SEL/titulares`: 55 títulos repetidos y 6.586 px.** Hoy repite
   «196 titulares» y «1.638 / 2.234 reservas» en dos bloques con nombres
   distintos. Elegir uno y partir la vista.
-- [ ] **L3 · `SEL/reemplazos`: 94 títulos repetidos.** Es el número más alto
-  del módulo; casi seguro una lista que repite el mismo rótulo por fila.
+- [x] ~~**L3 · `SEL/reemplazos`: 94 títulos repetidos.**~~ Hecho: con el
+  medidor corregido queda en **0**. De los 94 brutos, 93 eran datos repetidos
+  legítimos y el defecto era uno solo, repetido 24 veces.
 - [x] ~~**L4 · Los warnings crudos del motor (18 crípticos en 3 pestañas).**~~
   Hecho: 18 → **0**. Quedan los crípticos que el regex todavía no nombra (L10).
   Texto original de la línea:
@@ -228,6 +239,22 @@ No faltaban: estaban ilegibles. **P3 (docente principal) sigue ausente.**
 
 Medido antes/después con el proyecto acreditado; gate: tsc 0 errores, 1.223
 tests de calcMuestra.
+
+### Iteración 4 · una regla se dice una vez (V3, L3)
+
+`SEL/reemplazos` marcaba 94 títulos repetidos, el peor del módulo. El defecto
+era **uno**: cada una de las 24 tarjetas de cadena traía un bloque idéntico
+«Activación ordenada» con una frase que solo cambiaba el código del titular.
+Una regla que vale para todas las cadenas, dicha veinticuatro veces. Ahora se
+dice una vez, arriba de la lista. 24 → 0.
+
+**El medidor volvía a inflar**, y esta vez al revés que la anterior: contaba
+como defecto los datos repetidos —«ÉTICA» en 6 cadenas, «DERECHO» en 5—, que
+son legítimos. Corregido con el discriminador que esta app permite: el dato
+llega en MAYÚSCULAS desde la fuente y los rótulos de la UI van en oración.
+Con eso, el panorama real de rótulos repetidos en Selección es **24**, no 179,
+y `SEL/reemplazos` —«la peor»— queda en **0**. La cola se reordena:
+`SEL/titulares` (11) y `SEL/metodo` (8) son ahora las que quedan.
 
 ### Iteración 3 · el motor deja de hablar en la UI (V2, L4)
 

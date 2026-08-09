@@ -847,8 +847,7 @@
 }
 
 .cmv2-chain-titular,
-.cmv2-chain-slot,
-.cmv2-chain-monitoring-note {
+.cmv2-chain-slot {
   display: grid;
   gap: 4px;
   min-width: 0;
@@ -873,12 +872,25 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
+/* Una sola columna desde que la nota de activación salió de la tarjeta: la
+   regla vale para todas las cadenas y se dice una vez, arriba de la lista.
+   Con dos columnas quedaba media cabecera vacía en las 24 tarjetas. */
 .cmv2-chain-route-head {
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 0.55fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-items: stretch;
   min-width: 0;
+}
+
+.cmv2-chain-route-regla {
+  margin: 0 0 10px;
+  color: var(--pulso-text-muted);
+  font-size: 0.75rem;
+}
+
+.cmv2-chain-route-regla strong {
+  color: var(--pulso-text);
 }
 
 .cmv2-chain-route-slots {
@@ -1022,19 +1034,6 @@
 .cmv2-chain-slot.is-warning b {
   background: var(--pulso-warn-bg);
   color: var(--pulso-warn-fg);
-}
-
-.cmv2-chain-monitoring-note {
-  min-width: 0;
-  max-width: none;
-  padding: 8px;
-  border: 1px solid color-mix(in srgb, var(--cmv2-accent-border) 42%, var(--cmv2-border));
-  border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, #fff 80%, var(--cmv2-accent-soft) 20%);
-}
-
-.cmv2-chain-monitoring-note strong {
-  max-width: none;
 }
 
 .cmv2-chain-empty-slot {
