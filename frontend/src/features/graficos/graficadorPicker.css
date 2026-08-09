@@ -96,9 +96,13 @@
 .pulso-graficador-library-stage {
   display: grid;
   grid-template-columns: 196px minmax(0, 1fr) 296px;
+  align-items: start;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .pulso-graficador-library-rail {
@@ -219,12 +223,12 @@
 
 .pulso-graficador-library-gallery {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
   gap: var(--pulso-space-3);
   min-width: 0;
-  min-height: 0;
+  min-height: auto;
   padding: var(--pulso-space-4);
-  overflow: hidden;
+  overflow: visible;
   background: var(--pulso-bg);
 }
 
@@ -323,20 +327,16 @@
 
 .pulso-graficador-library-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(218px, 254px));
+  grid-template-columns: repeat(auto-fill, minmax(218px, 1fr));
   grid-auto-rows: 366px;
   align-content: start;
-  justify-content: start;
   gap: var(--pulso-space-3);
   min-width: 0;
-  min-height: 0;
+  min-height: auto;
   margin: 0;
-  padding: 0 var(--pulso-space-1) var(--pulso-space-3) 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  padding: var(--pulso-space-1) var(--pulso-space-1) var(--pulso-space-3);
+  overflow: visible;
   list-style: none;
-  scrollbar-gutter: stable;
 }
 
 .pulso-graficador-library-card-frame {
@@ -406,7 +406,10 @@
 }
 
 .pulso-graficador-library-card-meta span:first-child {
+  flex: 0 0 auto;
   color: var(--pulso-graficador-library-accent);
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 
 .pulso-graficador-library-card-copy {
@@ -510,14 +513,11 @@
 
 .pulso-graficador-library-inspector {
   min-width: 0;
-  min-height: 0;
+  min-height: auto;
   padding: var(--pulso-space-4);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
   background: var(--pulso-surface);
   border-left: 1px solid var(--pulso-border);
-  scrollbar-gutter: stable;
 }
 
 .pulso-graficador-library-inspector-stack {
@@ -1004,7 +1004,7 @@
   }
 
   .pulso-graficador-library-grid {
-    grid-template-columns: repeat(auto-fill, minmax(214px, 252px));
+    grid-template-columns: repeat(auto-fill, minmax(214px, 1fr));
   }
 }
 

@@ -26,6 +26,14 @@ function read(relativePath: string): string {
   return fs.readFileSync(path.join(featureDir, relativePath), "utf8");
 }
 
+function cssRule(source: string, selector: string): string {
+  const start = source.indexOf(`${selector} {`);
+  if (start < 0) throw new Error(`No se encontró la regla ${selector}`);
+  const bodyStart = source.indexOf("{", start);
+  const bodyEnd = source.indexOf("}", bodyStart);
+  return source.slice(bodyStart + 1, bodyEnd);
+}
+
 function graficador(
   requisito: GraficadorMetadata["requisito"] = undefined,
   available = true,
@@ -299,5 +307,92 @@ describe("bibliotecas de Gráficos degradadas L5", () => {
     );
     expect.soft(compactGrid).toContain("grid-auto-rows: 248px;");
     expect.soft(compactFrame).toContain("height: 248px;");
+  });
+
+  it("distribuye las cards del graficador hasta el borde útil en base y compacto", () => {
+    const css = read("graficadorPicker.css");
+    const compactStart = css.indexOf("@media (max-width: 1150px) {");
+
+    expect(compactStart).toBeGreaterThan(-1);
+    const baseGrid = cssRule(css.slice(0, compactStart), ".pulso-graficador-library-grid");
+    const compactGrid = cssRule(css.slice(compactStart), ".pulso-graficador-library-grid");
+    const fluidColumns = /grid-template-columns:\s*repeat\(auto-fill,\s*minmax\([^,;]+,\s*1fr\)\);/;
+
+    expect.soft(baseGrid, "La grilla base no debe dejar una columna residual vacía").toMatch(
+      fluidColumns,
+    );
+    expect.soft(compactGrid, "La grilla compacta no debe dejar una columna residual vacía").toMatch(
+      fluidColumns,
+    );
+  });
+
+  it("reserva espacio para que el foco de la primera card no quede recortado", () => {
+    const css = read("graficadorPicker.css");
+    const grid = cssRule(css, ".pulso-graficador-library-grid");
+    const padding = grid.match(/(?:^|\n)\s*padding:\s*([^;]+);/)?.[1]
+      .trim()
+      .split(/\s+/) ?? [];
+    const top = padding[0] ?? "0";
+    const left = padding.length === 1
+      ? padding[0]
+      : padding.length === 2
+        ? padding[1]
+        : padding.length === 3
+          ? padding[1]
+          : padding[3];
+    const isZero = (value: string | undefined): boolean => /^0(?:[a-z%]+)?$/i.test(value ?? "0");
+    const reservesFocusSpace = !isZero(top) && !isZero(left);
+    const focusStart = css.indexOf(".pulso-graficador-library-filter:focus-visible,");
+    const focusBodyStart = css.indexOf("{", focusStart);
+    const focusBodyEnd = css.indexOf("}", focusBodyStart);
+    const focusRule = css.slice(focusBodyStart + 1, focusBodyEnd);
+    const usesInnerRing = /outline-offset:\s*-[^;]+;/.test(focusRule)
+      || /box-shadow:[^;]*\binset\b/.test(focusRule);
+
+    expect(
+      reservesFocusSpace || usesInnerRing,
+      "La card necesita reserva superior/izquierda o un ring interior",
+    ).toBe(true);
+  });
+
+  it("mantiene completa la familia de cada card en una sola línea", () => {
+    const css = read("graficadorPicker.css");
+    const meta = cssRule(css, ".pulso-graficador-library-card-meta");
+    const family = cssRule(css, ".pulso-graficador-library-card-meta span:first-child");
+
+    expect(
+      `${meta}\n${family}`,
+      "La familia COMPARACIÓN no debe dejar la N huérfana",
+    ).toMatch(/white-space:\s*nowrap;/);
+  });
+
+  it("deja el scroll vertical al stage y mantiene visibles sus tres hijos", () => {
+    const css = read("graficadorPicker.css");
+    const baseCss = css.slice(0, css.indexOf("@media (max-width: 1150px) {"));
+    const stage = cssRule(baseCss, ".pulso-graficador-library-stage");
+    const children = [
+      ["rail", cssRule(baseCss, ".pulso-graficador-library-rail")],
+      ["gallery", cssRule(baseCss, ".pulso-graficador-library-gallery")],
+      ["grid", cssRule(baseCss, ".pulso-graficador-library-grid")],
+      ["inspector", cssRule(baseCss, ".pulso-graficador-library-inspector")],
+    ] as const;
+    const ownsVerticalScroll = (rule: string): boolean => (
+      /overflow-y:\s*(?:auto|scroll);/.test(rule)
+      || /(?:^|\n)\s*overflow:\s*(?:auto|scroll);/.test(rule)
+    );
+    const clipsOrOwnsOverflow = (rule: string): boolean => (
+      /overflow(?:-x|-y)?:\s*(?:hidden|auto|scroll);/.test(rule)
+    );
+
+    expect.soft(
+      ownsVerticalScroll(stage),
+      "El stage debe ser el único dueño del desplazamiento vertical",
+    ).toBe(true);
+    for (const [name, rule] of children) {
+      expect.soft(
+        clipsOrOwnsOverflow(rule),
+        `${name} debe permanecer visible y delegar el scroll al stage`,
+      ).toBe(false);
+    }
   });
 });
