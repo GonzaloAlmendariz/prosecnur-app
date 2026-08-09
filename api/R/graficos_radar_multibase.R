@@ -28,13 +28,45 @@
 # total de filas—: un público con más no-respuesta saldría artificialmente bajo
 # y la comparación entre públicos, que es para lo que existe el radar, dejaría
 # de ser justa.
-.radar_mb_pct <- function(valores, codigos) {
+.radar_mb_pct <- function(valores, codigos, pesos = NULL) {
   v <- as.character(valores)
-  v <- v[!is.na(v) & nzchar(trimws(v))]
-  n <- length(v)
-  if (!n) return(list(valor = NA_real_, n = 0L))
-  dentro <- sum(trimws(v) %in% as.character(codigos))
+  w <- if (is.null(pesos)) {
+    rep(1, length(v))
+  } else {
+    suppressWarnings(as.numeric(pesos))
+  }
+  if (length(w) != length(v)) {
+    stop("`pesos` debe tener la misma longitud que `valores`.", call. = FALSE)
+  }
+  w[!is.finite(w) | is.na(w)] <- 0
+  if (any(w < 0)) {
+    stop("`pesos` no puede contener valores negativos.", call. = FALSE)
+  }
+
+  validos <- !is.na(v) & nzchar(trimws(v))
+  v <- trimws(v[validos])
+  w <- w[validos]
+  n <- sum(w)
+  if (!is.finite(n) || n <= 0) return(list(valor = NA_real_, n = 0))
+  dentro <- sum(w[v %in% as.character(codigos)])
   list(valor = 100 * dentro / n, n = n)
+}
+
+# Adapta la declaracion publica del peso al contrato historico de `.peso_vec()`.
+# El motor canonico sigue resolviendo `peso`; este consumidor solo le presenta
+# bajo ese nombre la columna que `reporte_data()` registro en `attr(var_peso)`.
+# Si el atributo falta, esta vacio o apunta fuera de la base, se conserva el
+# mecanismo anterior (columna `peso`, o unos cuando tampoco existe).
+.radar_mb_pesos <- function(data) {
+  var_peso <- attr(data, "var_peso", exact = TRUE)
+  if (!is.null(var_peso)) {
+    var_peso <- trimws(as.character(var_peso)[1])
+    if (!is.na(var_peso) && nzchar(var_peso) && var_peso %in% names(data)) {
+      data_peso <- data.frame(peso = data[[var_peso]], check.names = FALSE)
+      return(.peso_vec(data_peso))
+    }
+  }
+  .peso_vec(data)
 }
 
 # Decimales del porcentaje. Se acota aqui y no en cada consumidor para que el
@@ -170,7 +202,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
 #'   `valor` en porcentaje 0–100. Los ejes salen en el orden declarado y los
 #'   grupos en el orden en que aparecen: un radar cuyo poligono cambia de forma
 #'   al reordenar las series seria ilegible entre laminas.
-.radar_mb_datos <- function(ejes, corte, sources) {
+.radar_mb_datos <- function(ejes, corte, sources, filtros = list()) {
   codigos <- .radar_mb_codigos(corte)
   if (!length(codigos)) {
     stop_api(400, "E_RADAR_SIN_CORTE",
@@ -183,13 +215,87 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   filas <- list()
   for (titulo in names(ejes)) {
     refs <- as.character(unlist(ejes[[titulo]]))
-    for (ref in refs) {
+    contextos <- vector("list", length(refs))
+    firma_tema <- NULL
+    firma_ref <- NULL
+
+    for (i in seq_along(refs)) {
+      ref <- refs[[i]]
       ctx <- .graficos_consolidado_ref_context(ref, sources)
-      if (!isTRUE(ctx$exists)) next
+      if (!isTRUE(ctx$exists)) {
+        stop(
+          "radar_publicos: el tema `", titulo, "` declara la ref `", ref,
+          "`, pero no existe completa en data e instrumento.",
+          call. = FALSE
+        )
+      }
+
+      tipo <- if (is.data.frame(ctx$survey) && "type" %in% names(ctx$survey) &&
+                  is.finite(ctx$row_idx)) {
+        trimws(as.character(ctx$survey$type[[ctx$row_idx]]))
+      } else {
+        NA_character_
+      }
+      if (is.na(tipo) || !grepl("^select_one(?:\\s|$)", tipo, perl = TRUE)) {
+        stop(
+          "radar_publicos: el tema `", titulo, "`, ref `", ref,
+          "`, debe resolver una variable select_one; el tipo es ",
+          if (is.na(tipo) || !nzchar(tipo)) "desconocido" else paste0("`", tipo, "`"),
+          ".",
+          call. = FALSE
+        )
+      }
+
+      diseno <- .graficos_sig_diseno_de_fuente(ctx$inst, ctx$resolved_variable)
+      if (!identical(diseno, "independiente")) {
+        stop(
+          "radar_publicos: el tema `", titulo, "`, ref `", ref,
+          "`, requiere una variable plana de diseño independiente; se detectó `",
+          diseno, "` (repeat/cluster).",
+          call. = FALSE
+        )
+      }
+
+      firma <- .equiv_firma_escala(ctx$inst, ctx$resolved_variable)
+      if (is.null(firma_tema)) {
+        firma_tema <- firma
+        firma_ref <- ref
+      } else if (!identical(firma, firma_tema)) {
+        stop(
+          "radar_publicos: el tema `", titulo, "` mezcla firmas E1 distintas entre `",
+          firma_ref, "` y `", ref, "` (código + etiqueta).",
+          call. = FALSE
+        )
+      }
+
+      opciones <- .equiv_escala_opciones(ctx$inst, ctx$resolved_variable)
+      codigos_escala <- vapply(opciones, function(opcion) {
+        as.character(opcion$codigo %||% "")[1]
+      }, character(1))
+      faltan_corte <- setdiff(codigos, codigos_escala)
+      if (length(faltan_corte)) {
+        stop(
+          "radar_publicos: el tema `", titulo, "`, ref `", ref,
+          "`, no contiene el corte `", paste(faltan_corte, collapse = ", "),
+          "` en su escala.",
+          call. = FALSE
+        )
+      }
+      contextos[[i]] <- ctx
+    }
+
+    for (i in seq_along(refs)) {
+      ref <- refs[[i]]
+      ctx <- contextos[[i]]
       datos <- (sources$data_sources %||% list())[[ctx$source]]
       col <- ctx$resolved_variable
-      if (!is.data.frame(datos) || !col %in% names(datos)) next
-      medida <- .radar_mb_pct(datos[[col]], codigos)
+      datos <- .apply_named_filters_safe(
+        datos,
+        filters = filtros,
+        arg_name = paste0("filtros de `", ref, "`"),
+        mode = "strict"
+      )
+      medida <- .radar_mb_pct(datos[[col]], codigos, pesos = .radar_mb_pesos(datos))
       filas[[length(filas) + 1L]] <- data.frame(
         eje = titulo, grupo = ctx$source,
         valor = medida$valor, n = medida$n,
@@ -588,7 +694,19 @@ p_radar_publicos <- function(
   }
   sources <- list(data_sources = data_sources, inst_sources = inst_sources)
 
-  datos <- .radar_mb_datos(el$vars, el$corte, sources)
+  datos <- .radar_mb_datos(el$vars, el$corte, sources, filtros = el$filtros %||% list())
+  invalidas <- which(
+    !is.finite(datos$valor) | !is.finite(datos$n) | datos$n <= 0
+  )
+  if (length(invalidas)) {
+    celda <- datos[invalidas[[1]], , drop = FALSE]
+    stop(
+      "radar_publicos: la celda observada del tema `", as.character(celda$eje),
+      "` y la fuente `", as.character(celda$grupo),
+      "` quedó sin denominador válido; el radar no inventa ese vértice.",
+      call. = FALSE
+    )
+  }
   overrides <- utils::modifyList(as.list(preset_args %||% list()),
                                  as.list(el$overrides %||% list()))
   g <- .radar_mb_grafico(datos, estilo = el$estilo, overrides = overrides,

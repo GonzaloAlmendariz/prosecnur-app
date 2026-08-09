@@ -95,6 +95,7 @@ graficar_lollipop <- function(
     df
   )
 
+  total_categorias <- nrow(df)
   k <- suppressWarnings(as.integer(top_n)[1])
   # El recorte se anota para que el pie pueda decirlo: una lamina que muestra 10
   # de 22 opciones sin avisar deja creer que esas son todas.
@@ -102,6 +103,19 @@ graficar_lollipop <- function(
   if (is.finite(k) && k > 0 && k < nrow(df)) {
     recortadas <- nrow(df) - k
     df <- df[seq_len(k), , drop = FALSE]
+  }
+  if (recortadas > 0L) {
+    nota_recorte <- sprintf(
+      "Se muestran %s de %s categorías.",
+      nrow(df),
+      total_categorias
+    )
+    nota_existente <- as.character(nota_pie %||% "")[1]
+    nota_pie <- if (!is.na(nota_existente) && nzchar(trimws(nota_existente))) {
+      paste(nota_existente, nota_recorte, sep = "\n")
+    } else {
+      nota_recorte
+    }
   }
 
   # El eje Y se dibuja de abajo hacia arriba, asi que el orden se invierte para

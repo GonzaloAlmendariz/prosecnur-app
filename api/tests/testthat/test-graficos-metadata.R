@@ -312,6 +312,39 @@ test_that("presets G2-L0: las cuatro familias de ola 4 sobreviven el builder", {
   expect_false(built$serie_temporal$args$mostrar_grid_y)
 })
 
+test_that("metadata G2-L0.1 declara direccion de escala y exclusion del denominador", {
+  reg <- .graficos_registry_payload()
+  by_name <- stats::setNames(
+    reg$graficadores,
+    vapply(reg$graficadores, `[[`, character(1), "name")
+  )
+  arg_de <- function(graficador, argumento) {
+    candidatos <- Filter(
+      function(arg) identical(arg$name, argumento),
+      by_name[[graficador]]$args
+    )
+    expect_length(candidatos, 1L)
+    if (!length(candidatos)) return(NULL)
+    candidatos[[1]]
+  }
+
+  direccion <- arg_de("p_barras_divergentes", "direccion_escala")
+  if (!is.null(direccion)) {
+    expect_identical(direccion$default, "negativo_positivo")
+    expect_setequal(
+      vapply(direccion$choices, `[[`, character(1), "value"),
+      c("negativo_positivo", "positivo_negativo")
+    )
+  }
+
+  for (graficador in c("p_barras_divergentes", "p_lollipop")) {
+    excluir <- arg_de(graficador, "excluir_opciones")
+    if (!is.null(excluir)) {
+      expect_identical(excluir$label, "Excluir del denominador")
+    }
+  }
+})
+
 test_that("registry L4: los 20 blueprints de slides siguen la tabla PPT acreditada", {
   reg <- .graficos_registry_payload()
   expect_identical(.slide_names(), names(.gm_slide_blueprints))

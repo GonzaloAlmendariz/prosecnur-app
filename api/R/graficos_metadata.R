@@ -1223,7 +1223,7 @@
   # =========================================================================
   p_barras_divergentes = list(
     titulo_humano = "Barras divergentes",
-    descripcion   = "Escala Likert centrada en cero: lo negativo crece a la izquierda y lo positivo a la derecha. Muestra el saldo de un vistazo sin perder la forma de la distribución.",
+    descripcion   = "Escala Likert centrada en cero: cada lado conserva el significado declarado sin reordenar niveles. Excluir respuestas cambia el denominador.",
     icono_ui      = "AlignHorizontalJustifyCenter",
     categoria     = "distribution",
     blueprint     = "bars-diverging",
@@ -1232,6 +1232,13 @@
            descripcion = "Pregunta de escala. Una barra por pregunta si eliges varias."),
       list(name = "vars", label = "Preguntas", tipo_input = "variables_list", grupo = "datos",
            descripcion = "Varias preguntas que comparten la misma escala; cada una es una barra."),
+      list(name = "direccion_escala", label = "Dirección de la escala", tipo_input = "choice", grupo = "datos",
+           default = "negativo_positivo",
+           choices = list(
+             list(value = "negativo_positivo", label = "Negativo → positivo", hint = "Los primeros niveles son negativos y los últimos positivos."),
+             list(value = "positivo_negativo", label = "Positivo → negativo", hint = "Los primeros niveles son positivos y los últimos negativos; no cambia el orden visible.")
+           ),
+           descripcion = "Define el significado de cada lado sin reordenar las categorías de la escala."),
       list(name = "n_negativas", label = "Niveles del lado negativo", tipo_input = "number", grupo = "datos",
            default = 2, min = 1, max = 6, step = 1,
            descripcion = "Cuántos niveles, contando desde el primero de la escala, van a la izquierda del cero."),
@@ -1244,7 +1251,8 @@
       list(name = "umbral_etiqueta_pct", label = "Umbral de etiqueta (%)", tipo_input = "number", grupo = "valores",
            default = 3, min = 0, max = 20, step = 1,
            descripcion = "Los segmentos por debajo de este porcentaje no llevan cifra: no cabe."),
-      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro")
+      list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Retira estas respuestas antes de calcular los porcentajes y el saldo; cambia el denominador.")
     ), .args_graf_comunes())
   ),
 
@@ -1253,14 +1261,14 @@
   # =========================================================================
   p_dumbbell = list(
     titulo_humano = "Brecha entre dos bases",
-    descripcion   = "Un punto por base y un segmento que los une: la brecha es el segmento. Ordenado por tamaño de la diferencia, se lee como un ranking. Requiere exactamente dos bases.",
+    descripcion   = "Compara dos fuentes con select_one plano independiente, filtros y peso activos, y firma E1 común: brecha = segunda − primera.",
     icono_ui      = "MoveHorizontal",
     categoria     = "comparison",
     blueprint     = "dumbbell",
-    requisito     = "Necesita dos bases declaradas en la matriz de equivalencias.",
+    requisito     = "Todos los temas deben declarar la misma pareja ordenada y completa de dos fuentes distintas.",
     args = c(list(
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos de la escala que cuentan como indicador. El porcentaje se calcula sobre las respuestas válidas de cada base."),
+           descripcion = "Códigos de una firma E1 común sobre select_one plano independiente; aplica filtros y peso activo en cada fuente."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos"),
       list(name = "orden", label = "Orden de las filas", tipo_input = "choice", grupo = "estilo",
            default = "brecha",
@@ -1271,7 +1279,7 @@
            )),
       list(name = "mostrar_brecha", label = "Mostrar la brecha", tipo_input = "bool", grupo = "valores",
            default = TRUE,
-           descripcion = "Escribe al margen la diferencia en puntos porcentuales."),
+           descripcion = "Escribe al margen comparación − referencia, es decir, segunda fuente menos primera."),
       list(name = "umbral_brecha_pct", label = "Umbral de brecha (pp)", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 50, step = 1,
            descripcion = "Sólo se rotulan las brechas de al menos este tamaño.")
@@ -1289,7 +1297,9 @@
     blueprint     = "lollipop",
     args = c(list(
       list(name = "var", label = "Variable", tipo_input = "variable", grupo = "datos",
-           descripcion = "Pregunta cuyas opciones se ordenan como ranking."),
+           descripcion = "Pregunta select_one plana, de diseño independiente, cuyas opciones se ordenan como ranking."),
+      list(name = "excluir_opciones", label = "Excluir del denominador", tipo_input = "codigos_list", grupo = "filtro",
+           descripcion = "Retira estas categorías antes de calcular porcentajes; sí cambia el denominador."),
       list(name = "orden", label = "Orden", tipo_input = "choice", grupo = "estilo",
            default = "mayor_menor",
            choices = list(
@@ -1300,25 +1310,26 @@
            descripcion = "Un ranking existe para responder cuál es el más mencionado; el orden del instrumento obliga a recorrerlo entero."),
       list(name = "top_n", label = "Conservar sólo las primeras", tipo_input = "number", grupo = "filtro",
            min = 1, max = 40, step = 1,
-           descripcion = "Vacío = todas. El recorte se declara en el pie para no dejar creer que esas son todas las opciones."),
+           descripcion = "Recorte sólo visual: no cambia el denominador. Vacío = todas; si se recorta, el pie declara N de M categorías."),
       list(name = "resaltar", label = "Categorías a destacar", tipo_input = "codigos_list", grupo = "estilo",
-           descripcion = "Se dibujan con el color de énfasis, para señalar la que la lámina viene a comentar."),
-      list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro")
+           descripcion = "Se dibujan con el color de énfasis, para señalar la que la lámina viene a comentar.")
     ), .args_graf_comunes())
   ),
 
   p_serie_temporal = list(
     titulo_humano = "Serie temporal",
-    descripcion   = "Evolución de uno o varios indicadores a lo largo de las olas del estudio. Cada línea es un tema y cada punto una base. Requiere bases separadas por momento.",
+    descripcion   = "Evolución completa de select_one plano independiente con filtros y peso activos y firma E1 común; no puentea periodos ausentes.",
     icono_ui      = "TrendingUp",
     categoria     = "comparison",
     blueprint     = "line-series",
-    requisito     = "Necesita varias bases declaradas en la matriz de equivalencias, una por momento.",
+    requisito     = "Cada tema necesita la secuencia completa de fuentes; no se inventan ni se puentean periodos ausentes.",
     args = c(list(
       list(name = "corte", label = "Indicador", tipo_input = "codigos_list", grupo = "datos",
-           descripcion = "Códigos de la escala que cuentan como indicador. El porcentaje se calcula sobre las respuestas válidas de cada base, no sobre el total: una ola con más no-respuesta saldría artificialmente baja."),
+           descripcion = "Códigos de una firma E1 común sobre select_one plano independiente; aplica filtros y peso activo por periodo."),
       list(name = "corte_etiqueta", label = "Nombre del indicador", tipo_input = "string", grupo = "datos",
            descripcion = "Se muestra como subtítulo. Ej. «% de acuerdo o total acuerdo»."),
+      list(name = "orden_periodos", label = "Orden completo de periodos", tipo_input = "codigos_list", grupo = "datos",
+           descripcion = "Opcional. Debe ser una permutación exacta, completa y sin duplicados de las fuentes declaradas."),
       list(name = "mostrar_valores", label = "Mostrar cifras", tipo_input = "bool", grupo = "datos",
            default = TRUE,
            descripcion = "Escribe el porcentaje sobre cada punto. Cuando dos series se cruzan, una cifra pasa debajo del punto para no pisarse."),
