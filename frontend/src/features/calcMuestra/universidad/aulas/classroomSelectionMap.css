@@ -148,11 +148,19 @@
   min-width: max-content;
 }
 
+/* P1 · el nombre del curso tiene que leerse.
+   La caja era de 116 px con el nombre en UNA línea y ellipsis, así que TODO
+   curso-horario salía cortado: medido sobre el estudio real, 84 nombres
+   truncados en una sola pantalla —«GESTIÓN DE LA TECNOLOGÍA APLICADA A LA L…»
+   en 306 px de texto dentro de 169—. Con la lista así no se puede saber cuáles
+   son los titulares, que es lo único que esta vista promete.
+   El ancho sube a 152 y el nombre pasa a dos líneas; el alto acompaña y la
+   estimación del virtualizador se sube con él (ClassroomSelectionMap.tsx). */
 .cmv2-selection-map-node {
   display: grid;
-  flex: 0 0 116px;
+  flex: 0 0 152px;
   min-width: 0;
-  min-height: 84px;
+  min-height: 96px;
   align-content: center;
   gap: 3px;
   padding: 7px 8px;
@@ -181,12 +189,22 @@
 }
 
 .cmv2-selection-map-node span {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--pulso-text-muted);
   font-size: 0.68rem;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Dos líneas: la mayoría de los nombres entra completa y las pocas que no
+     cortan al final, no a la tercera palabra.
+     `white-space: normal` es obligatorio y no redundante: el nodo es un
+     `<button>` y el reset global trae `button { white-space: nowrap }`, que se
+     HEREDA hasta acá. Quitar el `nowrap` de esta regla no alcanzaba —el
+     computado seguía en nowrap y los 84 nombres seguían en una línea—; hay que
+     pisarlo. */
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
 }
 
 .cmv2-selection-map-node small {

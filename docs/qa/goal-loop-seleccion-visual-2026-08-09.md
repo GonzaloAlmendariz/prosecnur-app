@@ -158,10 +158,9 @@ pero deja P1–P4 sin responder no cuenta como avance.
 
 Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir.
 
-- [ ] **L1 · `SEL/titulares`: los 117 desbordes.** Es la peor de la app y la
-  que el usuario mira después de sortear. Diagnosticar si es una tabla sin
-  `min-width`, una grilla con columnas fijas o KPIs con texto largo
-  («Balance por cuotas y tam…» se corta en el tile de método).
+- [x] ~~**L1 · `SEL/titulares`: los 117 desbordes.**~~ Hecho: eran 84 nombres
+  de curso cortados en el mapa de selección. Quedan 19 (uno es el tile de
+  método, «Balance por cuotas y tam…», que sigue pendiente).
 - [ ] **L2 · `SEL/titulares`: 55 títulos repetidos y 6.586 px.** Hoy repite
   «196 titulares» y «1.638 / 2.234 reservas» en dos bloques con nombres
   distintos. Elegir uno y partir la vista.
@@ -193,7 +192,24 @@ Ordenada por daño medido, **debajo** de P1–P4. Se re-ordena al volver a medir
 
 ## Hecho
 
-_(vacío: el loop lo va llenando)_
+### Iteración 1 · `SEL/titulares`: los nombres de curso se leen (P1)
+
+99 desbordes reales → **19**. Los 84 que faltaban eran el nombre del
+curso-horario en `.cmv2-selection-map-node`: caja fija de 116 px con el texto
+en una línea, así que TODO nombre salía cortado.
+
+**La trampa**: quitar `white-space: nowrap` de la regla del span no alcanzó. El
+nodo es un `<button>` y el reset global trae `button { white-space: nowrap }`,
+que se hereda; el computado seguía en `nowrap`. Hay que pisarlo con
+`white-space: normal`, no omitirlo.
+
+Al leerse los nombres quedó a la vista que la pestaña **ya** estaba
+estratificada por facultad (P2) y **ya** mostraba los reemplazos de cada
+titular (P4) — «EDUCACION · 3 CH · 19 reemplazos», `CH 4` → `R 4.5, R 4.4…`.
+No faltaban: estaban ilegibles. **P3 (docente principal) sigue ausente.**
+
+Medido antes/después con el proyecto acreditado; gate: tsc 0 errores, 1.223
+tests de calcMuestra.
 
 ## Hallazgos que no son visuales
 
