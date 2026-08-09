@@ -253,6 +253,10 @@ calc_muestra_alumnos_por_ch <- function(aula_frame, frame_hash = NA_character_) 
 .cm_aulas_invalidar_derivados_decision <- function(sid) {
   session_set(sid, "calc_muestra_aulas_selection", NULL)
   session_set(sid, "calc_muestra_aulas_method_comparison", NULL)
+  # La certeza de cobertura se mide sobre el marco y la cuota vigentes; si
+  # cualquiera cambia, el número deja de describir el diseño que hay en
+  # pantalla y sobrevivir sería peor que faltar.
+  session_set(sid, "calc_muestra_aulas_certeza", NULL)
   session_set(sid, "calc_muestra_aulas_replacement_simulation", NULL)
   session_set(sid, "calc_muestra_aulas_export", NULL)
   session_set(sid, "calc_muestra_aulas_stale_job_result", NULL)

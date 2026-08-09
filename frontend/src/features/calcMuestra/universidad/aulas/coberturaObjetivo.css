@@ -1,0 +1,88 @@
+/* Veredicto de cobertura de la selección. Solo tokens; cero hex. */
+
+.cmv2-cobertura-objetivo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--pulso-space-3);
+  padding: var(--pulso-space-3) var(--pulso-space-4);
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-surface-2);
+}
+
+/* El estado se lee por color Y por texto: el título ya dice el veredicto, así
+   que el color refuerza sin ser el único portador del significado. */
+.cmv2-cobertura-objetivo[data-estado="corta"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.cmv2-cobertura-objetivo[data-estado="justa"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.cmv2-cobertura-objetivo[data-estado="holgada"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+
+.cmv2-cobertura-objetivo-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmv2-cobertura-objetivo-titulo strong {
+  color: var(--pulso-text);
+  font-size: 13.5px;
+  font-weight: var(--pulso-weight-semibold);
+}
+
+.cmv2-cobertura-objetivo-titulo span {
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.cmv2-cobertura-objetivo-cifra {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.cmv2-cobertura-objetivo-cifra strong {
+  color: var(--pulso-text);
+  font-size: 22px;
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.cmv2-cobertura-objetivo-cifra small {
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+}
+
+.cmv2-cobertura-objetivo-facultades {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: var(--pulso-space-2);
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .cmv2-cobertura-objetivo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cmv2-cobertura-objetivo-cifra {
+    align-items: flex-start;
+  }
+}
