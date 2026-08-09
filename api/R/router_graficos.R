@@ -2992,7 +2992,11 @@ mount_graficos <- function(pr) {
       }
 
       # Plan mini con un solo slide.
-      mini_plan <- list(slides = list(slide))
+      mini_plan <- .graficos_calificar_refs_plan(
+        list(slides = list(slide)),
+        if (isTRUE(consolidated_scope)) "" else .graficos_active_base_name(sid)
+      )
+      slide <- mini_plan$slides[[1]]
 
       dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
       out_path <- file.path(s$dir, "downloads", sprintf("preview_%s.pptx", uuid::UUIDgenerate()))

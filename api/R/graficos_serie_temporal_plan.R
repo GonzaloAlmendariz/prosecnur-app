@@ -14,6 +14,77 @@
 # serie temporal no exige declarar nada nuevo: es el mismo corte, mirado como
 # evolucion en vez de como comparacion.
 
+# Valida y devuelve el orden que realmente consumiran la matriz y el grafico.
+# `NULL` conserva el contrato historico: todas las lineas deben declarar la
+# misma secuencia y manda la primera. Un orden explicito debe ser una
+# permutacion exacta y completa para cada tema.
+.serie_temporal_orden_efectivo <- function(vars, orden_periodos = NULL,
+                                           contexto = "serie_temporal") {
+  orden_declarado <- if (is.null(orden_periodos)) {
+    NULL
+  } else {
+    trimws(as.character(orden_periodos))
+  }
+  if (!is.null(orden_declarado) &&
+      (!length(orden_declarado) || anyNA(orden_declarado) ||
+       any(!nzchar(orden_declarado)))) {
+    .plan_spec_abort(
+      contexto,
+      ": `orden_periodos` debe ser una permutación exacta y completa de las fuentes."
+    )
+  }
+  if (!is.null(orden_declarado) && anyDuplicated(orden_declarado)) {
+    .plan_spec_abort(
+      contexto,
+      ": `orden_periodos` contiene duplicados; debe ser una permutación exacta."
+    )
+  }
+
+  secuencia_base <- NULL
+  tema_base <- NULL
+  for (tema in names(vars)) {
+    fuentes <- .ola4_fuentes_de_refs(vars[[tema]], contexto, tema)
+    if (anyDuplicated(fuentes)) {
+      .plan_spec_abort(
+        contexto, ": el tema `", tema,
+        "` repite periodos; cada fuente debe aparecer exactamente una vez."
+      )
+    }
+
+    if (is.null(orden_declarado)) {
+      if (is.null(secuencia_base)) {
+        secuencia_base <- fuentes
+        tema_base <- tema
+      } else if (!identical(fuentes, secuencia_base)) {
+        faltan <- setdiff(secuencia_base, fuentes)
+        sobran <- setdiff(fuentes, secuencia_base)
+        detalle <- c(
+          if (length(faltan)) paste0("faltan ", paste(faltan, collapse = ", ")) else NULL,
+          if (length(sobran)) paste0("sobran ", paste(sobran, collapse = ", ")) else NULL
+        )
+        .plan_spec_abort(
+          contexto, ": el tema `", tema,
+          "` no conserva la secuencia completa de periodos de `", tema_base, "`",
+          if (length(detalle)) paste0(" (", paste(detalle, collapse = "; "), ")") else
+            " (mismas fuentes, distinto orden)",
+          "."
+        )
+      }
+    } else if (!setequal(fuentes, orden_declarado) ||
+               length(fuentes) != length(orden_declarado)) {
+      faltan <- setdiff(orden_declarado, fuentes)
+      sobran <- setdiff(fuentes, orden_declarado)
+      .plan_spec_abort(
+        contexto, ": `orden_periodos` no es una permutación exacta para el tema `",
+        tema, "`; faltan [", paste(faltan, collapse = ", "), "] y sobran [",
+        paste(sobran, collapse = ", "), "]."
+      )
+    }
+  }
+
+  orden_declarado %||% secuencia_base
+}
+
 #' Serie temporal de un indicador a lo largo de las olas del estudio
 #'
 #' Declara lo mismo que `p_radar(modo = "publicos")` —los ejes de la matriz de
@@ -58,11 +129,28 @@ p_serie_temporal <- function(
   if (!is.list(overrides)) .plan_spec_abort("`overrides` debe ser lista.")
   if (!is.list(base)) .plan_spec_abort("`base` debe ser lista.")
 
+  vars_norm <- lapply(vars, function(x) as.character(unlist(x)))
+  orden_solicitado <- if (!is.null(orden_periodos)) {
+    orden_periodos
+  } else {
+    overrides$orden_periodos %||% NULL
+  }
+  orden_declarado <- if (is.null(orden_solicitado)) {
+    NULL
+  } else {
+    trimws(as.character(orden_solicitado))
+  }
+  .serie_temporal_orden_efectivo(
+    vars_norm,
+    orden_periodos = orden_declarado,
+    contexto = "p_serie_temporal()"
+  )
+
   # Los knobs del elemento viajan por `overrides` porque el render los pasa tal
   # cual al graficador; declararlos ademas como campos sueltos obligaria a
   # mantener dos listas sincronizadas.
   ov <- overrides
-  if (!is.null(orden_periodos)) ov$orden_periodos <- as.character(orden_periodos)
+  if (!is.null(orden_declarado)) ov$orden_periodos <- orden_declarado
   if (!is.null(colores_series)) ov$colores_series <- colores_series
   if (!is.null(limite_y)) ov$limite_y <- limite_y
   ov$mostrar_valores <- isTRUE(mostrar_valores)
@@ -79,7 +167,7 @@ p_serie_temporal <- function(
     # deparsea y tumba el mazo entero. Misma trampa que documenta
     # `p_radar_publicos`.
     var            = NULL,
-    vars           = lapply(vars, function(x) as.character(unlist(x))),
+    vars           = vars_norm,
     corte          = as.character(corte)[1],
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     title_slide    = titulo,
@@ -107,17 +195,36 @@ p_serie_temporal <- function(
   }
   sources <- list(data_sources = data_sources, inst_sources = inst_sources)
 
-  # Mismo calculo que el radar comparativo: un porcentaje por (tema, base) sobre
-  # los codigos declarados como indicador. El indicador se DECLARA y no se
-  # deduce (ADR 0064).
-  datos <- .radar_mb_datos(el$vars, el$corte, sources)
-
   # `preset_args` llega vacio para un etype que el switch del motor no conoce;
   # el preset real se recupera del scope. Los overrides del elemento mandan.
+  # La validacion usa esta mezcla efectiva: validar antes solo el argumento
+  # formal permitiria que preset u overrides reintrodujeran un orden invalido.
   base_preset <- if (length(preset_args)) preset_args else .serie_temporal_preset()
   args_usuario <- utils::modifyList(
     as.list(base_preset %||% list()),
     as.list(el$overrides %||% list())
+  )
+  orden_efectivo <- .serie_temporal_orden_efectivo(
+    el$vars,
+    orden_periodos = args_usuario$orden_periodos %||% NULL,
+    contexto = "serie_temporal"
+  )
+  args_usuario$orden_periodos <- orden_efectivo
+
+  # Mismo calculo que el radar comparativo: un porcentaje por (tema, base) sobre
+  # los codigos declarados como indicador. El indicador se DECLARA y no se
+  # deduce (ADR 0064).
+  datos <- .radar_mb_datos(
+    el$vars,
+    el$corte,
+    sources,
+    filtros = el$filtros %||% list()
+  )
+  .ola4_validar_matriz_multibase(
+    datos,
+    names(el$vars),
+    orden_efectivo,
+    "serie_temporal"
   )
 
   base_args <- list(
@@ -131,7 +238,7 @@ p_serie_temporal <- function(
     # El orden del eje X es el de declaracion de las fuentes, que `.radar_mb_datos`
     # ya dejo en los niveles del factor. Un orden alfabetico pondria "Ola 10"
     # antes que "Ola 2" y la evolucion se leeria al reves.
-    orden_periodos = levels(datos$grupo),
+    orden_periodos = orden_efectivo,
     orden_series   = levels(datos$eje)
   )
 
