@@ -108,6 +108,17 @@ export function SlideCard({ slide, index, active, issues, variables }: SlideCard
         )}
       </div>
 
+      {/* El título ya se calculaba y solo vivía en el `aria-label`: la tarjeta
+          mostraba el TIPO. En un plan como el de acreditación eso deja 44 de 67
+          tarjetas diciendo «1 gráfico · Multi-apiladas», indistinguibles entre
+          sí, y buscar por título devuelve resultados que no se pueden leer.
+          `pulso-gv2-slide-card-subtitle` ya existía en la hoja esperando esto. */}
+      {titulo.trim().length > 1 && (
+        <div className="pulso-gv2-slide-card-subtitle" title={titulo}>
+          {titulo}
+        </div>
+      )}
+
       {graphItems.length > 0 && (
         <div
           className="pulso-gv2-slide-card-models"

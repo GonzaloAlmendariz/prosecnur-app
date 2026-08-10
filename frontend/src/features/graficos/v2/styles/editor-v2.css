@@ -16266,7 +16266,7 @@
   stroke-width: 2.25;
 }
 
-.pulso-gv2-slide-card-subtitle,
+/* El subtítulo salió de aquí: es el título de la lámina. El thumb sigue apagado. */
 .pulso-gv2-slide-card-thumb {
   display: none !important;
 }

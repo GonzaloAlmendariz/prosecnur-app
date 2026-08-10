@@ -204,9 +204,16 @@ export function PaletasEditor() {
     });
     return byFirma;
   }, [listasSugeridas]);
+  // Numerador y denominador tienen que hablar de lo MISMO. `paletas` se guarda
+  // por `list_name` y el catálogo lista ESCALAS, que en multibase son más: leer
+  // el largo de `paletas` daba «34/74», donde el 34 contaba nombres y el 74
+  // contaba escalas. Se cuentan las escalas con al menos una etiqueta coloreada,
+  // que es el mismo criterio con el que cada fila se marca como personalizada.
   const totalPaletasPersonalizadas = useMemo(
-    () => Object.values(paletas).filter((paleta) => Object.keys(paleta ?? {}).length > 0).length,
-    [paletas],
+    () => listasSugeridas.filter(
+      (lista) => lista.choices.some((choice) => !!paletas[lista.list_name]?.[choice.label]),
+    ).length,
+    [listasSugeridas, paletas],
   );
   const gruposCompatibles = useMemo(
     () => Array.from(listaFirmas.values()).filter((count) => count > 1).length,
