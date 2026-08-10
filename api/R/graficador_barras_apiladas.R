@@ -2359,6 +2359,38 @@ graficar_barras_apiladas <- function(
       )
     )
 
+  # Un «box» que abarca la escala entera no es un dato: es 100 % por
+  # construcción.
+  #
+  # `top2box` suma las dos primeras categorías; sobre una escala de dos son las
+  # dos, y la columna sale «100 %» en todas las filas. Con
+  # `barra_extra_preset = "top2box"` de defecto (`.PRESETS_DEFAULT_PULSO`) eso
+  # aparece en TODA pregunta Sí/No de todo proyecto — visto en el mazo de
+  # acreditación, cuatro filas con 100 % en «¿Conoce los propósitos…?».
+  #
+  # La regla general: un box de N sobre una escala de N o menos categorías no
+  # informa. Se apaga la columna en vez de mostrar un número vacío, y se avisa
+  # por `message()` porque el renderer se traga los `warning()`.
+  # Solo aplica al reparto POR DEFECTO. Quien declara `top2box_labels` esta
+  # eligiendo que suma —`c("Si")` sobre una escala de dos es un subconjunto
+  # legitimo, no la escala entera— y esa declaracion manda.
+  .barra_extra_minimo <- c(top2box = 3L, top3box = 4L, bottom2box = 3L)
+  .barra_extra_etiquetas <- list(top2box = top2box_labels, top3box = top3box_labels,
+                                 bottom2box = bottom2box_labels)
+  if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% names(.barra_extra_minimo) &&
+      !length(.barra_extra_etiquetas[[barra_extra_preset]])) {
+    minimo <- .barra_extra_minimo[[barra_extra_preset]]
+    if (length(cols_porcentaje) < minimo) {
+      message(sprintf(
+        paste0("La columna «%s» se omite: la escala tiene %d categoria(s) y sumarlas ",
+               "daria 100 %% en todas las filas. Necesita al menos %d."),
+        barra_extra_preset, length(cols_porcentaje), minimo
+      ))
+      barra_extra_preset <- "ninguno"
+      mostrar_barra_extra <- FALSE
+    }
+  }
+
   # ---------------------------------------------------------------------------
   # 5) Etiquetas Y y extra como texto (sin ggplot)
   # ---------------------------------------------------------------------------
