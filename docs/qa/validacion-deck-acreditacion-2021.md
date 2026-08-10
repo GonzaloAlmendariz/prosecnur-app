@@ -23,7 +23,7 @@ del deck y del PPTX que produce el motor, o de medir el render en píxeles.
 | **A — Escala / Top Two Box** | láminas 5–6 | `p_slide_top_two_box()` | ✅ Reproduce |
 | **B — Batería vertical de N filas** | 8, 12–15, 18–23 | `p_barras_multiapiladas(modo="var")` | ✅ Reproduce |
 | **C — Dos bloques por lámina** | 9–11 | `modo="multilista"` | ⚠️ Datos correctos, layout con defecto abierto |
-| **D — Radar comparativo** | 16–17 | `p_radar_publicos()` | ⏳ No validado todavía |
+| **D — Radar comparativo** | 16–17 | `p_radar_publicos()` | ✅ Reproduce |
 
 ## Tipo B — batería (el caso principal)
 
@@ -74,16 +74,24 @@ del motor y hay que cerrarlo antes de dar el tipo C por bueno.
 
 ## Tipo D — radar
 
-Medido en el deck y pendiente de generar con el motor:
+Generado con `p_radar_publicos()` sobre acrconta. La base trae una sola fuente
+en Procesamiento, así que se partió por género (`p5`) para tener tres series
+reales con el mismo instrumento: lo que se valida es el FORMATO, no el dato.
 
-| Rasgo | Deck 2021 |
-|---|---|
-| `radarStyle` | `marker` |
-| Series | 3 (un público cada una) |
-| Grosor de línea | 25 400–28 575 EMU (2 a 2,25 pt) |
-| Colores de serie | `002060`, `FFC000`, tema |
-| Leyenda | abajo (`legendPos b`) |
-| Eje de categorías | visible, 11 pt |
+| Rasgo | Deck 2021 | Motor | |
+|---|---|---|---|
+| Estilo | `radarStyle=marker` | polígono con marcadores | ✅ |
+| Series | 3 (un público cada una) | 3 | ✅ |
+| Grosor de línea | 25 400–28 575 EMU (2–2,25 pt) | 29 811 EMU (2,35 pt) | ✅ |
+| Leyenda | abajo (`legendPos b`) | abajo | ✅ |
+| Eje de categorías | visible, 11 pt | visible, ~10 pt | ✅ |
+| Colores de serie | `002060`, `FFC000` | `0B4F8C`, `2A9D8F`, `E9C46A` | ⚠️ paleta base del motor, no la del deck |
+| Tabla de valores | no la hay | sí, a la derecha | ➕ propio |
+| Base al pie | no la hay | `Base: 89 masculino, 83 femenino y 172 total` | ➕ propio |
+
+La única diferencia real son los colores de serie: el preset de acreditación
+define la rampa de la escala apilada, no la paleta del radar. Se resuelve
+declarando `colores` en la lámina si un estudio lo pide.
 
 ## Decisión de arquitectura relacionada
 
