@@ -150,6 +150,22 @@
   )
 }
 
+#' Colores de la escala de acreditación, para la lámina que la declara.
+#'
+#' La lámina `top_two_box` recibe sus colores como slot propio
+#' (`p_slide_top_two_box(colores = ...)`), no desde el preset de gráficos: es
+#' una lámina, no un gráfico. Esta función existe para que la escala que se
+#' declara UNA vez en el mazo sea la misma que pintan todas las barras — si no,
+#' la leyenda del mazo miente, que es justo el defecto del deck 2021 (sus
+#' cuadritos usan `FFD965`/`ADD493` y sus barras `FFD966`/`B0D597`).
+#'
+#' @inheritParams presets_acreditacion
+#' @return Vector de colores en el orden de la escala.
+#' @export
+colores_escala_acreditacion <- function(etiquetas = NULL) {
+  unname(.preset_acreditacion_colores(etiquetas))
+}
+
 #' Presets del informe de acreditación, listos para el plan PPT.
 #'
 #' Devuelve el objeto `presets` que consume `reporte_ppt_plan()`, ya compuesto
