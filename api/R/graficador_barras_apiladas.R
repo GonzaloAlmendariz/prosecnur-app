@@ -1159,6 +1159,11 @@ graficar_barras_apiladas <- function(
     barra_extra_comparativo = NULL,
     barra_extra_semaforo    = NULL,
     barra_extra_semaforo_colores = NULL,
+    # Los umbrales también como escalares: `barra_extra_semaforo` es un vector
+    # y la config de Gráficos no tiene input para eso. Con estos dos, la UI
+    # puede mover el corte sin que nadie escriba un vector a mano.
+    barra_extra_umbral_alto  = NULL,
+    barra_extra_umbral_medio = NULL,
     barra_extra_tendencia   = TRUE,
     barra_extra_tolerancia_pp = 0,
     color_ejes            = "#000000",
@@ -3083,7 +3088,9 @@ graficar_barras_apiladas <- function(
       size_valor = size_barra_extra,
       size_encabezado = size_titulo_extra,
       font_family = font_family,
-      umbrales = barra_extra_semaforo %||% .T2B_SEMAFORO_UMBRALES,
+      umbrales = .t2b_umbrales_efectivos(
+        barra_extra_semaforo, barra_extra_umbral_alto, barra_extra_umbral_medio
+      ),
       colores_semaforo = barra_extra_semaforo_colores %||% .T2B_SEMAFORO_COLORES,
       color_encabezado = color_ejes,
       mostrar_tendencia = isTRUE(barra_extra_tendencia),

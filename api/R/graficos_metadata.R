@@ -1860,6 +1860,22 @@
            descripcion = "Define si la columna extra muestra la base o un indicador agregado como Top 2 Box."),
       list(name = "size_titulo_extra",    label = "Tamaño título de la columna extra", tipo_input = "number", grupo = "estilo",
            descripcion = "Tamaño del título que va encima de la barra extra (ej. 'Top 2 Box')."),
+      # --- Comparativo interanual de la columna extra ---------------------
+      # `barra_extra_comparativo` (el histórico en sí) NO se expone aquí: es un
+      # dato de cada pregunta, no una preferencia visual, y se declara en el
+      # plan de láminas. Lo que vive aquí es cómo se JUZGA ese dato.
+      list(name = "barra_extra_tendencia", label = "Flecha de tendencia", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
+           descripcion = "Dibuja el triángulo que compara contra la medición anterior. Sin cambio no se dibuja nada."),
+      list(name = "barra_extra_tolerancia_pp", label = "Tolerancia de la flecha (pp)", tipo_input = "number", grupo = "estilo",
+           default = 0,
+           descripcion = "Diferencia mínima en puntos porcentuales para dibujar la flecha. Con 1, un 91 % contra 90 % no marca cambio."),
+      list(name = "barra_extra_umbral_alto", label = "Umbral verde del Top 2 Box", tipo_input = "number", grupo = "estilo",
+           default = 80,
+           descripcion = "Desde este valor la cifra va en verde. Vara del informe de acreditación: 80."),
+      list(name = "barra_extra_umbral_medio", label = "Umbral ámbar del Top 2 Box", tipo_input = "number", grupo = "estilo",
+           default = 70,
+           descripcion = "Desde este valor la cifra va en ámbar; por debajo, en rojo. Vara del informe de acreditación: 70."),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
            descripcion = "Texto que aparece encima de la columna extra. Déjalo vacío para usar el título automático del indicador."),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos",
@@ -2078,6 +2094,22 @@
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos"),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo"),
+      # --- Comparativo interanual de la columna extra ---------------------
+      # `barra_extra_comparativo` (el histórico en sí) NO se expone aquí: es un
+      # dato de cada pregunta, no una preferencia visual, y se declara en el
+      # plan de láminas. Lo que vive aquí es cómo se JUZGA ese dato.
+      list(name = "barra_extra_tendencia", label = "Flecha de tendencia", tipo_input = "bool", grupo = "estilo",
+           default = TRUE,
+           descripcion = "Dibuja el triángulo que compara contra la medición anterior. Sin cambio no se dibuja nada."),
+      list(name = "barra_extra_tolerancia_pp", label = "Tolerancia de la flecha (pp)", tipo_input = "number", grupo = "estilo",
+           default = 0,
+           descripcion = "Diferencia mínima en puntos porcentuales para dibujar la flecha. Con 1, un 91 % contra 90 % no marca cambio."),
+      list(name = "barra_extra_umbral_alto", label = "Umbral verde del Top 2 Box", tipo_input = "number", grupo = "estilo",
+           default = 80,
+           descripcion = "Desde este valor la cifra va en verde. Vara del informe de acreditación: 80."),
+      list(name = "barra_extra_umbral_medio", label = "Umbral ámbar del Top 2 Box", tipo_input = "number", grupo = "estilo",
+           default = 70,
+           descripcion = "Desde este valor la cifra va en ámbar; por debajo, en rojo. Vara del informe de acreditación: 70."),
 
       # --- Eje Y + separación --------------------------------------------
       list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
