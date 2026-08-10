@@ -2627,11 +2627,18 @@ graficar_barras_apiladas <- function(
   if (h_legend_in > 0) {
     # Se le pasan los MISMOS parametros con los que dibuja: con otros, la
     # estimacion se equivoca justo en el limite entre una fila y dos.
-    h_legend_in <- min(h_legend_in, .barras_leyenda_alto_in(
+    #
+    # El alto necesario MANDA en las dos direcciones. Con `min()` sola la banda
+    # se apretaba bien cuando bastaba una fila, pero cuando el dibujo repartia
+    # dos y el preset declaraba menos (`canvas_h_legend_in = 0.272` del mazo de
+    # acreditacion, cinco categorias) las dos filas entraban en una banda que no
+    # daba ni para una y «SIN INF» salia pisando «En desacuerdo». Cuantas filas
+    # ocupa la leyenda no es una preferencia: es un hecho del reparto.
+    h_legend_in <- .barras_leyenda_alto_in(
       niveles_leyenda, size_leyenda, ancho,
       key_cm = legend_key_cm, gap_npc = legend_gap_npc,
       aspect_yx = legend_key_aspect_yx %||% (suppressWarnings(as.numeric(alto)[1] / as.numeric(ancho)[1])),
-      n_por_fila = legend_n_por_fila))
+      n_por_fila = legend_n_por_fila)
   }
   # B44/G-21: sin caption propio, la Base del SLIDE vive justo debajo del
   # canvas; canvas_h_reserva_pie_in deja esa banda vacia para que la

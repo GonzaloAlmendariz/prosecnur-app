@@ -22,7 +22,7 @@ del deck y del PPTX que produce el motor, o de medir el render en píxeles.
 |---|---|---|---|
 | **A — Escala / Top Two Box** | láminas 5–6 | `p_slide_top_two_box()` | ✅ Reproduce |
 | **B — Batería vertical de N filas** | 8, 12–15, 18–23 | `p_barras_multiapiladas(modo="var")` | ✅ Reproduce |
-| **C — Dos bloques por lámina** | 9–11 | `modo="multilista"` | ⚠️ Datos correctos, layout con defecto abierto |
+| **C — Dos bloques por lámina** | 9–11 | `modo="multilista"` | ✅ Reproduce |
 | **D — Radar comparativo** | 16–17 | `p_radar_publicos()` | ✅ Reproduce |
 
 ## Tipo B — batería (el caso principal)
@@ -53,24 +53,26 @@ es la misma.
     ahora:  54% / 40%                → Top 2 Box 94% y 96%
     tipo B: 54% / 40%                → Top 2 Box 94% y 96%   ✓ coinciden
 
-**Layout: defecto abierto.** Los enunciados de filas vecinas se encabalgan, y
-`gapWidth equivalente` da 131 en vez de 74. Diagnóstico hasta donde llegó:
+**Layout: resuelto.** Los enunciados se encabalgaban porque el modo `var`
+ignoraba el `titulos_grupo` declarado por el plan y salía el label completo de
+la variable (~1,9 cm de texto contra un paso de ~1,35 cm).
 
-1. En modo `var` dentro de un bloque, el título de fila sale de
-   `.title_of_var(v)` —el label completo de la variable— y no del
-   `titulos_grupo` que declara el plan. Declarar enunciados breves (como hace
-   el deck: «Las decisiones de las autoridades son justas») no tuvo efecto.
-2. Con el label completo, el texto mide ~1,9 cm y el paso entre filas ~1,35 cm:
-   la colisión es aritmética.
-3. `needs_tall_label_slot` reserva alto extra, pero exige ≥5 líneas y estos
-   enunciados tienen 3–4. **Bajar el umbral a 3 se probó y se revirtió**: no
-   resolvió la superposición y adelgazó la barra de 0,99 a 0,38 cm
-   (`gapWidth` 288). El síntoma no estaba ahí.
+El diagnóstico inicial —«el bloque de multilista ignora `titulos_grupo`»— era
+incorrecto y la comprobación lo corrigió: **el modo `var` lo ignoraba siempre**,
+con bloques y sin ellos. No se había notado en el tipo B porque allí se pasó
+como `titulos_grupo` exactamente el mismo texto que el label, así que el
+fallback daba el mismo resultado. No era un bug de motor sino dos nombres para
+lo mismo: `titulos_grupo` en `var_cruce`, `overrides$etiquetas_vars` en `var`.
+La firma aceptaba el primero en todos los modos y lo descartaba en silencio.
+Ahora el constructor lo traduce, y un `etiquetas_vars` explícito sigue mandando.
 
-Queda como trabajo siguiente. Nota importante: el deck 2021 usa enunciados
-**editorialmente abreviados**, no el texto completo del instrumento. Parte de
-la diferencia es de contenido, no de motor — pero el punto 1 es un defecto real
-del motor y hay que cerrarlo antes de dar el tipo C por bueno.
+Con enunciados breves —los que usa el deck— la lámina sale limpia:
+`gapWidth equivalente` 64 (contra 74 del deck; la diferencia viene de que en
+bloques cada sub-canvas reparte su propio alto) y ninguna superposición.
+
+Lo que se probó y NO era: bajar el umbral de `needs_tall_label_slot` de 5 a 3
+líneas. No resolvió la superposición y adelgazó la barra de 0,99 a 0,38 cm
+(`gapWidth` 288). Se revirtió; el síntoma no estaba ahí.
 
 ## Tipo D — radar
 

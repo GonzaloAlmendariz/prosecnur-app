@@ -79,3 +79,47 @@ test_that("un subbloque de multilista hereda la exclusion del preset", {
   expect_true("42%" %in% pct)
   expect_false("40%" %in% pct)
 })
+
+# ---------------------------------------------------------------------------
+# `titulos_grupo` en modo `var`
+# ---------------------------------------------------------------------------
+# El renderer lee `overrides$etiquetas_vars` en modo `var` y `titulos_grupo` en
+# `var_cruce`. La firma aceptaba el segundo en TODOS los modos y en `var` lo
+# ignoraba en silencio: declarar enunciados breves no tenia efecto y salia el
+# label completo de la variable, que en una lamina de dos bloques se encabalga
+# con el de la fila vecina.
+
+test_that("modo var traduce titulos_grupo a etiquetas_vars", {
+  el <- p_barras_multiapiladas(
+    modo = "var", vars = c("a", "b"),
+    titulos_grupo = c(a = "Enunciado breve A", b = "Enunciado breve B")
+  )
+  expect_equal(el$overrides$etiquetas_vars[["a"]], "Enunciado breve A")
+  expect_equal(el$overrides$etiquetas_vars[["b"]], "Enunciado breve B")
+})
+
+test_that("un etiquetas_vars explicito manda sobre titulos_grupo", {
+  # Es el nombre nativo del modo: quien lo escribe sabe lo que quiere.
+  el <- p_barras_multiapiladas(
+    modo = "var", vars = c("a", "b"),
+    titulos_grupo = c(a = "DESDE_TG", b = "TG_B"),
+    overrides = list(etiquetas_vars = c(a = "DESDE_EV"))
+  )
+  expect_equal(el$overrides$etiquetas_vars[["a"]], "DESDE_EV")
+  # La clave que solo declaro titulos_grupo sigue viniendo de ahi.
+  expect_equal(el$overrides$etiquetas_vars[["b"]], "TG_B")
+})
+
+test_that("sin titulos_grupo no se inventa etiquetas_vars", {
+  el <- p_barras_multiapiladas(modo = "var", vars = "a")
+  expect_null(el$overrides$etiquetas_vars)
+})
+
+test_that("un bloque de multilista tambien traduce titulos_grupo", {
+  # Cada bloque pasa por el mismo constructor, asi que hereda la traduccion.
+  el <- p_barras_multiapiladas(
+    modo = "multilista",
+    bloques = list(list(modo = "var", vars = "a", titulos_grupo = c(a = "Breve")))
+  )
+  expect_equal(el$bloques[[1]]$overrides$etiquetas_vars[["a"]], "Breve")
+})

@@ -1580,3 +1580,44 @@ test_that("F114 · el marco reabierto todavía puede aplicar el descuento", {
   reabierto <- session_get(abierto$session_id)$calc_muestra_aulas_frame$aula_frame
   expect_true(.cm_descuento_frame_tiene_ids(reabierto))
 })
+
+test_that("el PNG de un icono del editor de Graficos viaja en el .pulso", {
+  # Regresion de «Conta 09-08 equivalencias»: el icono subido en Graficos
+  # quedaba referenciado por graficos_config$iconos pero su file_id no entraba
+  # en la lista de inputs, asi que el PNG no se empaquetaba. Al reabrir, la
+  # unica lamina `p_slide_objetivo_icono` del mazo mataba el export completo
+  # con «Icono no encontrado» — 67 laminas perdidas por un archivo.
+  sid <- session_create()
+
+  png_path <- tempfile(fileext = ".png")
+  grDevices::png(png_path, width = 16, height = 16)
+  graphics::par(mar = c(0, 0, 0, 0)); graphics::plot.new()
+  grDevices::dev.off()
+  meta <- .register_output_file(sid, "icono_perfil", png_path)
+
+  s <- session_get(sid)
+  s$graficos_config <- list(
+    iconos = list(list(id = "ico-1", nombre = "Perfil", file_id = meta$file_id))
+  )
+  .session_env[[sid]] <- s
+
+  expect_true(meta$file_id %in% .pulso_collect_input_fids(session_get(sid)))
+})
+
+test_that("los iconos por base tambien entran en la lista de inputs", {
+  sid <- session_create()
+
+  png_path <- tempfile(fileext = ".png")
+  grDevices::png(png_path, width = 16, height = 16)
+  graphics::par(mar = c(0, 0, 0, 0)); graphics::plot.new()
+  grDevices::dev.off()
+  meta <- .register_output_file(sid, "icono_base", png_path)
+
+  s <- session_get(sid)
+  s$graficos_config_por_base <- list(
+    docentes = list(iconos = list(list(id = "ico-b", file_id = meta$file_id)))
+  )
+  .session_env[[sid]] <- s
+
+  expect_true(meta$file_id %in% .pulso_collect_input_fids(session_get(sid)))
+})

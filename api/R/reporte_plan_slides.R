@@ -1610,6 +1610,21 @@ p_barras_multiapiladas <- function(
     vars <- vars[nzchar(vars)]
     if (!length(vars)) .plan_spec_abort("modo='var': `vars` quedo vacio luego de limpiar.")
 
+    # `titulos_grupo` es el nombre con el que el plan rotula filas en
+    # `var_cruce`; en `var` el renderer lee `overrides$etiquetas_vars`. La firma
+    # aceptaba el primero en TODOS los modos y en `var` lo ignoraba en silencio:
+    # declarar enunciados breves —como hace el deck de acreditacion— no tenia
+    # efecto y salia el label completo de la variable. Se traduce aqui, en el
+    # constructor, para no tocar el renderer (congelado) y para que valga
+    # tambien dentro de un bloque de `multilista`, que pasa por este mismo
+    # camino. Un `etiquetas_vars` explicito manda: es el nombre nativo del modo.
+    if (!is.null(titulos_grupo) && length(titulos_grupo)) {
+      overrides$etiquetas_vars <- utils::modifyList(
+        as.list(titulos_grupo),
+        as.list(overrides$etiquetas_vars %||% character(0))
+      )
+    }
+
     el <- list(
       .element_type  = "barras_multiapiladas",
       modo           = "var",
