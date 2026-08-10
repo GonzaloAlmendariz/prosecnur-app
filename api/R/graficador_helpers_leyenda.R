@@ -76,6 +76,20 @@
 # Alto de la banda, en pulgadas.
 .BARRAS_LEYENDA_ALTO_FILA_IN <- 0.24
 .BARRAS_LEYENDA_HOLGURA_IN <- 0.08
+# Interlineado: una fila de texto necesita mas que el cuerpo de la letra.
+.BARRAS_LEYENDA_INTERLINEA <- 1.35
+
+# Alto de UNA fila de leyenda, en pulgadas, para el cuerpo de letra que se va a
+# dibujar. El plano de 0,24" era ciego al tamano: con la leyenda por defecto
+# sobra interlineado, pero el mazo de acreditacion la pide a 16 pt —0,222" solo
+# de cuerpo— y dos filas salian pegadas, «SIN INF» montado sobre «En
+# desacuerdo». El 0,24" se conserva como piso para no encoger las leyendas
+# chicas que hoy estan bien.
+.barras_leyenda_alto_fila_in <- function(size_pt) {
+  size_pt <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(size_pt) || size_pt <= 0) return(.BARRAS_LEYENDA_ALTO_FILA_IN)
+  max(.BARRAS_LEYENDA_ALTO_FILA_IN, size_pt / 72 * .BARRAS_LEYENDA_INTERLINEA)
+}
 
 .barras_leyenda_alto_in <- function(etiquetas, size_pt, ancho_in, key_cm = 0.34,
                                     gap_npc = 0.018, aspect_yx = 0.6,
@@ -84,7 +98,7 @@
                                  gap_npc = gap_npc, aspect_yx = aspect_yx,
                                  n_por_fila = n_por_fila)
   if (!filas) return(0)
-  max(minimo_in, filas * .BARRAS_LEYENDA_ALTO_FILA_IN + .BARRAS_LEYENDA_HOLGURA_IN)
+  max(minimo_in, filas * .barras_leyenda_alto_fila_in(size_pt) + .BARRAS_LEYENDA_HOLGURA_IN)
 }
 
 # Alto de fila cuando el hueco fisico da mas de lo que pide el contenido.
@@ -185,4 +199,36 @@
   # el rotulo no toque la barra.
   ancho_npc <- chars * size_pt * 0.52 / 72 / ancho_in + 0.02
   max(minimo, min(maximo, ancho_npc))
+}
+
+# Filas de leyenda de un bloque de multilista, antes de renderizarlo.
+# ==================================================================
+#
+# El reparto de alto entre bloques (`.multilista_block_height`) se decide antes
+# de dibujar nada, asi que necesita saber cuantas filas va a ocupar la leyenda
+# sin haberla dibujado. Las categorias salen de la escala compartida por las
+# variables del bloque, que es exactamente lo que la leyenda va a listar.
+#
+# Los resolutores viajan como argumento porque viven como closures dentro de
+# `reporte_ppt_plan()` (necesitan la data y el instrumento de la corrida) y este
+# archivo no los ve. Ante cualquier fallo devuelve 1: quedarse corto reparte el
+# alto como se repartia antes, que es el comportamiento conocido.
+.multilista_filas_leyenda_de_refs <- function(refs, resolver, escala_compartida,
+                                              size_pt = 10, ancho_in = 10) {
+  refs <- as.character(unlist(refs %||% character(0)))
+  refs <- refs[!is.na(refs) & nzchar(trimws(refs))]
+  if (!length(refs)) return(1L)
+
+  filas <- tryCatch({
+    ctxs <- lapply(refs, resolver, arg_name = "vars")
+    spec <- escala_compartida(ctxs, arg_name = "var_cruce")
+    niveles <- .reporte_plan_choice_levels_for_list(spec$list_name, spec$choices)
+    etiquetas <- as.character(niveles$label %||% character(0))
+    etiquetas <- etiquetas[nzchar(trimws(etiquetas))]
+    if (!length(etiquetas)) return(1L)
+    .barras_leyenda_filas(etiquetas, size_pt, ancho_in)
+  }, error = function(e) 1L)
+
+  filas <- suppressWarnings(as.integer(filas)[1])
+  if (!is.finite(filas) || filas < 1L) 1L else filas
 }

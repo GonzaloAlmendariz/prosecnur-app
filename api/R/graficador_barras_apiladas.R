@@ -3203,6 +3203,29 @@ graficar_barras_apiladas <- function(
         n_per_row <- n_per_row - 1L
       }
 
+      # El cuerpo de letra se acomoda a la fila que le toco.
+      #
+      # `row_h` sale de repartir la banda entre las filas que hicieron falta, y
+      # la banda no siempre da: en una lamina multilista cada subbloque se mete
+      # en su hueco de `plot_grid()`, y un bloque de dos barras con una leyenda
+      # de dos filas termina con ~0,30" por fila. El texto, en cambio, se dibuja
+      # a su tamano nominal —16 pt en el mazo de acreditacion, 0,22" solo de
+      # cuerpo— y la segunda fila se monta sobre la primera («SIN INF» encima de
+      # «En desacuerdo»). Aqui el tamano cede ante el espacio real: bajar dos
+      # puntos se lee, dos filas superpuestas no. Nunca crece, solo se achica,
+      # asi que el reparto en filas de arriba sigue siendo valido.
+      alto_fisico_leyenda_in <- suppressWarnings(as.numeric(alto)[1])
+      if (!is.finite(alto_fisico_leyenda_in) || alto_fisico_leyenda_in <= 0) {
+        alto_fisico_leyenda_in <- 7.5
+      }
+      size_leyenda_eff <- size_leyenda
+      if (n_rows > 1L) {
+        cabe_pt <- row_h * alto_fisico_leyenda_in * 72 / .BARRAS_LEYENDA_INTERLINEA
+        if (is.finite(cabe_pt) && cabe_pt > 0) {
+          size_leyenda_eff <- max(6, min(size_leyenda, cabe_pt))
+        }
+      }
+
       for (r in seq_len(n_rows)) {
         idx_row <- which(row_ids == r)
         n_row <- length(idx_row)
@@ -3255,7 +3278,7 @@ graficar_barras_apiladas <- function(
             labels_manual[idx],
             x = x_left + key_w + key_gap,
             y = y_row,
-            size = size_leyenda,
+            size = size_leyenda_eff,
             color = color_leyenda,
             family = font_family,
             fontface = fontface_ley,
