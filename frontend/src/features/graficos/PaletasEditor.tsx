@@ -130,17 +130,23 @@ const SUGERIDAS_PALETAS: PaletasPorCantidad = {
   ],
 };
 
+// Identidad de una entrada del catálogo. El backend separa las escalas que
+// comparten `list_name` entre bases y las desambigua con `escala_id`; un
+// backend viejo no manda el campo y ahí el nombre sigue siendo la identidad.
+function escalaIdDe(lista: PaletaSugeridaEntry): string {
+  return lista.escala_id ?? lista.list_name;
+}
+
 export function PaletasEditor() {
   const paletas = usePlanStore((s) => s.paletas);
-  const setPaleta = usePlanStore((s) => s.setPaleta);
   const setColorEnPaleta = usePlanStore((s) => s.setColorEnPaleta);
-  const removePaleta = usePlanStore((s) => s.removePaleta);
+  const removeColoresDePaleta = usePlanStore((s) => s.removeColoresDePaleta);
 
   const [listasSugeridas, setListasSugeridas] = useState<PaletaSugeridaEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [activeListName, setActiveListName] = useState<string | null>(null);
+  const [activeEscalaId, setActiveEscalaId] = useState<string | null>(null);
   const [agruparIdenticas, setAgruparIdenticas] = useState(loadAgruparIdenticas);
   const [aplicarAGrupo, setAplicarAGrupo] = useState(loadAgruparIdenticas);
   const [paletaInvertidaPreviews, setPaletaInvertidaPreviews] = useState<Record<string, boolean>>({});
@@ -155,8 +161,8 @@ export function PaletasEditor() {
         if (!cancelled) {
           setListasSugeridas(r.listas);
           // Pre-select la primera lista si no hay selección.
-          if (r.listas.length > 0 && !activeListName) {
-            setActiveListName(r.listas[0].list_name);
+          if (r.listas.length > 0 && !activeEscalaId) {
+            setActiveEscalaId(escalaIdDe(r.listas[0]));
           }
         }
       } catch (e) {
@@ -176,8 +182,8 @@ export function PaletasEditor() {
   }, [listasSugeridas, query]);
 
   const activaData = useMemo(
-    () => listasSugeridas.find((l) => l.list_name === activeListName),
-    [listasSugeridas, activeListName],
+    () => listasSugeridas.find((l) => escalaIdDe(l) === activeEscalaId),
+    [listasSugeridas, activeEscalaId],
   );
   const paletasSugeridas = useMemo(() => {
     if (!activaData) return [];
@@ -211,7 +217,7 @@ export function PaletasEditor() {
   // global (agrupar identicas): reversible en ambos sentidos.
   useEffect(() => {
     setAplicarAGrupo(agruparIdenticas);
-  }, [activeListName, agruparIdenticas]);
+  }, [activeEscalaId, agruparIdenticas]);
 
   function toggleAgruparIdenticas(value: boolean) {
     setAgruparIdenticas(value);
@@ -230,12 +236,13 @@ export function PaletasEditor() {
   ) {
     if (!activaData) return;
     const colors = invertir ? [...paleta].reverse() : paleta;
+    // Se escribe etiqueta por etiqueta —que MERGEA— en vez de reemplazar el
+    // mapa entero: bajo un mismo `list_name` puede vivir otra escala de otra
+    // base, y reemplazar le borraba los colores sin avisar.
     listasDestino.forEach((lista) => {
-      const nueva: Record<string, string> = {};
       lista.choices.forEach((c, i) => {
-        nueva[c.label] = colors[i % colors.length];
+        setColorEnPaleta(lista.list_name, c.label, colors[i % colors.length]);
       });
-      setPaleta(lista.list_name, nueva);
     });
   }
 
@@ -247,7 +254,10 @@ export function PaletasEditor() {
   }
 
   function vaciarPaletaGrupo() {
-    listasDestino.forEach((lista) => removePaleta(lista.list_name));
+    listasDestino.forEach((lista) => removeColoresDePaleta(
+      lista.list_name,
+      lista.choices.map((c) => c.label),
+    ));
   }
 
   if (loading) {
@@ -268,11 +278,16 @@ export function PaletasEditor() {
     );
   }
 
-  const paletaActiva = (activeListName && paletas[activeListName]) || {};
+  const paletaActiva = (activaData && paletas[activaData.list_name]) || {};
   const coloresActivos = activaData
     ? compactColors(activaData.choices.map((choice) => paletaActiva[choice.label]))
     : [];
-  const coloresPersonalizados = Object.keys(paletaActiva).length;
+  // Solo las etiquetas de ESTA escala: el mapa guardado puede traer además las
+  // de una escala homónima de otra base, y contarlas daba coberturas por
+  // encima del 100 % («2/17 con color» sobre una lista que no existe).
+  const coloresPersonalizados = activaData
+    ? activaData.choices.filter((choice) => !!paletaActiva[choice.label]).length
+    : 0;
   const coberturaActiva = activaData
     ? Math.round((Math.min(coloresActivos.length, activaData.choices.length) / Math.max(activaData.choices.length, 1)) * 100)
     : 0;
@@ -321,15 +336,19 @@ export function PaletasEditor() {
 
         <div className="pulso-gv2-paletas-list">
           {listasFiltradas.map((l) => {
-            const active = l.list_name === activeListName;
-            const tienePaleta = !!paletas[l.list_name] && Object.keys(paletas[l.list_name] ?? {}).length > 0;
+            const escalaId = escalaIdDe(l);
+            const active = escalaId === activeEscalaId;
+            // «Tiene paleta» es de la ESCALA, no del nombre: bajo un mismo
+            // `list_name` puede haber otra escala ya coloreada y marcar esta
+            // como personalizada sería mentir.
+            const tienePaleta = l.choices.some((choice) => !!paletas[l.list_name]?.[choice.label]);
             const firmasSimilares = listaFirmas.get(opcionesKey(l.choices)) ?? 1;
             const coloresFila = compactColors(l.choices.map((choice) => paletas[l.list_name]?.[choice.label])).slice(0, 7);
             return (
               <button
-                key={l.list_name}
+                key={escalaId}
                 type="button"
-                onClick={() => setActiveListName(l.list_name)}
+                onClick={() => setActiveEscalaId(escalaId)}
                 className="pulso-gv2-paleta-row"
                 data-active={active ? "true" : "false"}
                 data-has-palette={tienePaleta ? "true" : "false"}
@@ -350,7 +369,7 @@ export function PaletasEditor() {
                   <span className="pulso-gv2-paleta-row-strip" data-empty={coloresFila.length === 0 ? "true" : "false"}>
                     {coloresFila.length > 0
                       ? coloresFila.map((color, index) => (
-                        <span key={`${l.list_name}-${color}-${index}`} style={{ background: color }} />
+                        <span key={`${escalaId}-${color}-${index}`} style={{ background: color }} />
                       ))
                       : (
                         <>

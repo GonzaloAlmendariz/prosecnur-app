@@ -185,6 +185,7 @@ type PlanStore = {
   setPaleta: (listName: string, paleta: PaletaPorLista) => void;
   setColorEnPaleta: (listName: string, label: string, hex: string) => void;
   removePaleta: (listName: string) => void;
+  removeColoresDePaleta: (listName: string, labels: string[]) => void;
 
   addIcono: (icono: IconoConfig) => void;
   renameIcono: (id: string, nombre: string) => void;
@@ -649,6 +650,24 @@ export const usePlanStore = create<PlanStore>((set) => ({
     set((state) => {
       const next = { ...state.paletas };
       delete next[listName];
+      return dirty(state, { paletas: next });
+    }),
+
+  // Un mismo `list_name` puede alojar VARIAS escalas en un proyecto multibase
+  // (`lst_p6` es la lista de grados en docentes y Sí/No en administrativos).
+  // Comparten el mapa etiqueta → color porque sus etiquetas son disjuntas, así
+  // que vaciar la escala que se está editando no puede borrar la entrada
+  // entera: se quitan solo sus etiquetas.
+  removeColoresDePaleta: (listName, labels) =>
+    set((state) => {
+      const prev = state.paletas[listName];
+      if (!prev) return state;
+      const restante = Object.fromEntries(
+        Object.entries(prev).filter(([label]) => !labels.includes(label)),
+      );
+      const next = { ...state.paletas };
+      if (Object.keys(restante).length) next[listName] = restante;
+      else delete next[listName];
       return dirty(state, { paletas: next });
     }),
 

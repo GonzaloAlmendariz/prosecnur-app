@@ -745,6 +745,14 @@ export async function apiGraficosShareImport(packageFileId: string, selectedBase
 export type PaletaChoiceItem = { name: string; label: string };
 export type PaletaSugeridaEntry = {
   list_name: string;
+  /** Identidad de la ESCALA, no del nombre de lista. En multibase cada
+   *  instrumento numera sus preguntas por su cuenta, así que un mismo
+   *  `list_name` aloja escalas distintas en bases distintas; el backend las
+   *  separa y desambigua con un sufijo (`lst_p6`, `lst_p6#2`…). Es la clave de
+   *  React y de la selección activa. `list_name` sigue siendo la clave de
+   *  GUARDADO: las escalas homónimas tienen etiquetas disjuntas y conviven en
+   *  el mismo mapa etiqueta → color. Ausente en backends viejos. */
+  escala_id?: string;
   choices: PaletaChoiceItem[];
   /** Bases del estudio donde vive la lista (multibase). Ausente en configs
    *  viejas o proyectos de base única. */
