@@ -414,3 +414,102 @@ test_that("el aviso dice que se declaro, contra que, y recorta lo largo", {
   expect_match(cap, "…")
   expect_lt(nchar(cap), 800)
 })
+
+test_that("un box que abarca la escala entera se omite en vez de dar 100 %", {
+  skip_if_not_installed("cowplot")
+  # Regresion del mazo de acreditacion: `barra_extra_preset = "top2box"` es
+  # defecto de `.PRESETS_DEFAULT_PULSO`, y sobre una escala de DOS categorias
+  # suma las dos. La columna salia «100 %» en las cuatro filas de «¿Conoce los
+  # propositos...?» — un numero que no puede ser otro.
+  path <- tempfile(fileext = ".png")
+  dicotomia <- data.frame(
+    publico = c("Docentes", "Estudiantes"),
+    n = c(52, 172),
+    si = c(0.90, 0.74),
+    no = c(0.10, 0.26),
+    stringsAsFactors = FALSE
+  )
+
+  expect_message(
+    graficar_barras_apiladas(
+      data = dicotomia, var_categoria = "publico", var_n = "n",
+      cols_porcentaje = c("si", "no"),
+      etiquetas_grupos = c(si = "Sí", no = "No"),
+      mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+      usar_canvas = TRUE, exportar = "png", path_salida = path,
+      ancho = 13.33, alto = 5.2, dpi = 72
+    ),
+    "se omite"
+  )
+  expect_true(file.exists(path))
+})
+
+test_that("con tres categorias el top2box sigue siendo un dato y se dibuja", {
+  skip_if_not_installed("cowplot")
+  path <- tempfile(fileext = ".png")
+  tres <- data.frame(
+    publico = c("Docentes", "Estudiantes"),
+    n = c(52, 172),
+    a = c(0.20, 0.30), b = c(0.50, 0.40), c = c(0.30, 0.30),
+    stringsAsFactors = FALSE
+  )
+
+  expect_no_message(
+    graficar_barras_apiladas(
+      data = tres, var_categoria = "publico", var_n = "n",
+      cols_porcentaje = c("a", "b", "c"),
+      etiquetas_grupos = c(a = "Bajo", b = "Medio", c = "Alto"),
+      mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+      usar_canvas = TRUE, exportar = "png", path_salida = path,
+      ancho = 13.33, alto = 5.2, dpi = 72
+    ),
+    message = "se omite"
+  )
+})
+
+test_that("el minimo depende del tamano del box, no de un numero fijo", {
+  skip_if_not_installed("cowplot")
+  # `top3box` sobre tres categorias tambien es la escala entera.
+  path <- tempfile(fileext = ".png")
+  tres <- data.frame(
+    publico = "Docentes", n = 52,
+    a = 0.2, b = 0.5, c = 0.3, stringsAsFactors = FALSE
+  )
+
+  expect_message(
+    graficar_barras_apiladas(
+      data = tres, var_categoria = "publico", var_n = "n",
+      cols_porcentaje = c("a", "b", "c"),
+      etiquetas_grupos = c(a = "Bajo", b = "Medio", c = "Alto"),
+      mostrar_barra_extra = TRUE, barra_extra_preset = "top3box",
+      usar_canvas = TRUE, exportar = "png", path_salida = path,
+      ancho = 13.33, alto = 5.2, dpi = 72
+    ),
+    "se omite"
+  )
+})
+
+test_that("unas etiquetas declaradas mandan sobre la guarda del box", {
+  skip_if_not_installed("cowplot")
+  # `top2box_labels = c("Sí")` sobre una escala de dos NO es la escala entera:
+  # es un subconjunto legitimo y su cifra no es 100 %. La guarda solo protege
+  # el reparto por defecto.
+  path <- tempfile(fileext = ".png")
+  dicotomia <- data.frame(
+    publico = c("Docentes", "Estudiantes"), n = c(52, 172),
+    si = c(0.90, 0.74), no = c(0.10, 0.26), stringsAsFactors = FALSE
+  )
+
+  expect_no_message(
+    graficar_barras_apiladas(
+      data = dicotomia, var_categoria = "publico", var_n = "n",
+      cols_porcentaje = c("si", "no"),
+      etiquetas_grupos = c(si = "Sí", no = "No"),
+      mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+      top2box_labels = c("Sí"),
+      usar_canvas = TRUE, exportar = "png", path_salida = path,
+      ancho = 13.33, alto = 5.2, dpi = 72
+    ),
+    message = "se omite"
+  )
+})
