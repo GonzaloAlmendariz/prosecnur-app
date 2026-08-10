@@ -132,6 +132,15 @@
     mostrar_leyenda  = FALSE,
     leyenda_posicion = "ninguna",
 
+    # --- base ---------------------------------------------------------------
+    # «SIN INF» es la quinta opción de las escalas de 4 puntos de la matriz
+    # PULSO, y en acreditación no es una categoría de la escala: es ausencia de
+    # respuesta. Dejarla dentro le mete un quinto color a la rampa y le corre
+    # el denominador al Top 2 Box (93 % en vez de 94 % en la batería p30 de
+    # acrconta). Fuera, la base pasa a declararse «(respuestas válidas)» sola,
+    # por `reporte_plan_base_criterio.R`.
+    excluir_opciones = c("SIN INF", "Sin información", "NS/NR"),
+
     # --- columna Top 2 Box --------------------------------------------------
     barra_extra_preset = "top2box",
     # Dos sub-columnas con rejilla necesitan más carril que una cifra suelta.
@@ -143,7 +152,7 @@
 
 #' Presets del informe de acreditación, listos para el plan PPT.
 #'
-#' Devuelve el objeto `presets` que consume `armar_reporte_ppt()`, ya compuesto
+#' Devuelve el objeto `presets` que consume `reporte_ppt_plan()`, ya compuesto
 #' con `p_presets()`. Se usa como bloque de partida y admite ajustes encima:
 #'
 #' ```r

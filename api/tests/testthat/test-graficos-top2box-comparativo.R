@@ -252,3 +252,65 @@ test_that("sin etiquetas se devuelven los nombres canonicos", {
   expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
   expect_true("Totalmente de acuerdo" %in% names(cols))
 })
+
+test_that("el historico se puede declarar por el id con que el plan nombra la fila", {
+  # En una bateria multiapilada el plan identifica cada fila por su variable
+  # (`p30_1`), no por el enunciado. Exigir el enunciado completo rompia el
+  # match en silencio cada vez que la etiqueta se recortaba o envolvia.
+  spec <- .t2b_normalizar_comparativo(
+    list(valores_anterior = c(p30_1 = 88, p30_2 = 91)),
+    categorias = c("La carrera tiene un plan de estudios solido",
+                   "Las autoridades toman decisiones"),
+    alias = c("p30_1", "p30_2")
+  )
+  expect_equal(spec$valores, c(88, 91))
+})
+
+test_that("la etiqueta envuelta a dos lineas sigue alineando", {
+  spec <- .t2b_normalizar_comparativo(
+    list(valores_anterior = c("Los reglamentos son claros" = 79)),
+    categorias = "Los reglamentos\nson claros"
+  )
+  expect_equal(spec$valores, 79)
+})
+
+test_that("el alias no pisa un match por etiqueta que ya resolvio", {
+  spec <- .t2b_normalizar_comparativo(
+    list(valores_anterior = c(Estudiantes = 85, p2 = 99)),
+    categorias = c("Estudiantes", "Docentes"),
+    alias = c("p1", "p2")
+  )
+  # La primera resuelve por etiqueta; la segunda solo tiene alias.
+  expect_equal(spec$valores, c(85, 99))
+})
+
+test_that("claves que no coinciden con ninguna fila caen a orden, pero avisando", {
+  # El caso real: en una bateria multiapilada la fila se identifica por el
+  # ENUNCIADO y el plan declara por variable. Antes esto devolvia NULL y la
+  # columna volvia a la cifra suelta sin decir nada.
+  expect_warning(
+    spec <- .t2b_normalizar_comparativo(
+      list(valores_anterior = c(p30_1 = 88, p30_2 = 91, p30_3 = 74)),
+      categorias = c("La carrera tiene un plan de estudios",
+                     "Las autoridades toman decisiones",
+                     "Existe un equilibrio entre admitidos"),
+      alias = c("La carrera tiene un plan de estudios",
+                "Las autoridades toman decisiones",
+                "Existe un equilibrio entre admitidos")
+    ),
+    "se alinea por ORDEN"
+  )
+  expect_equal(spec$valores, c(88, 91, 74))
+})
+
+test_that("un match parcial NO cae a orden: respeta lo declarado y deja NA el resto", {
+  # Si al menos una clave resolvio, el usuario si sabe nombrar filas; reordenar
+  # todo por posicion ahi seria pisar un dato correcto con uno inventado.
+  expect_silent(
+    spec <- .t2b_normalizar_comparativo(
+      list(valores_anterior = c(Estudiantes = 85, NoExiste = 99)),
+      categorias = c("Estudiantes", "Docentes")
+    )
+  )
+  expect_equal(spec$valores, c(85, NA_real_))
+})
