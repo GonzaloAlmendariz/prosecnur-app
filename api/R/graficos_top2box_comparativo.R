@@ -117,6 +117,33 @@
   )
 }
 
+#' Umbrales efectivos del semáforo.
+#'
+#' El vector (`barra_extra_semaforo`) sigue mandando cuando se declara; los dos
+#' escalares existen para la config de Gráficos, que no tiene input de vector.
+#' Un escalar declarado pisa solo su propio corte, así que se puede mover el
+#' verde sin tener que repetir el ámbar.
+#' @noRd
+.t2b_umbrales_efectivos <- function(vector_umbrales = NULL,
+                                    alto = NULL,
+                                    medio = NULL) {
+  base <- vector_umbrales %||% .T2B_SEMAFORO_UMBRALES
+  alto_eff <- suppressWarnings(as.numeric(alto %||% NA_real_)[1])
+  medio_eff <- suppressWarnings(as.numeric(medio %||% NA_real_)[1])
+
+  out <- c(
+    alto  = suppressWarnings(as.numeric(.t2b_pick(base, "alto", 1L, .T2B_SEMAFORO_UMBRALES[["alto"]]))),
+    medio = suppressWarnings(as.numeric(.t2b_pick(base, "medio", 2L, .T2B_SEMAFORO_UMBRALES[["medio"]])))
+  )
+  if (is.finite(alto_eff))  out[["alto"]]  <- alto_eff
+  if (is.finite(medio_eff)) out[["medio"]] <- medio_eff
+
+  # Un ámbar por encima del verde deja la franja intermedia vacía y todo lo que
+  # no es verde cae a rojo sin que nadie lo haya pedido. Se ordena.
+  if (out[["medio"]] > out[["alto"]]) out <- c(alto = out[["medio"]], medio = out[["alto"]])
+  out
+}
+
 #' Clave de alineación: colapsa el espacio y el salto de línea que introduce el
 #' wrap de la etiqueta de fila. Sin esto, una etiqueta envuelta a dos líneas
 #' deja de coincidir con la misma etiqueta declarada en el plan.

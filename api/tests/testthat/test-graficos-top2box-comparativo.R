@@ -314,3 +314,45 @@ test_that("un match parcial NO cae a orden: respeta lo declarado y deja NA el re
   )
   expect_equal(spec$valores, c(85, NA_real_))
 })
+
+test_that("los umbrales escalares pisan el vector solo en su propio corte", {
+  # `barra_extra_semaforo` es un vector y la config de Graficos no tiene input
+  # de vector; los escalares existen para que la UI pueda mover un corte.
+  expect_equal(unname(.t2b_umbrales_efectivos()), c(80, 70))
+  expect_equal(unname(.t2b_umbrales_efectivos(alto = 85)), c(85, 70))
+  expect_equal(unname(.t2b_umbrales_efectivos(medio = 60)), c(80, 60))
+  expect_equal(unname(.t2b_umbrales_efectivos(c(alto = 90, medio = 75))), c(90, 75))
+  # El escalar manda sobre el vector.
+  expect_equal(unname(.t2b_umbrales_efectivos(c(alto = 90, medio = 75), alto = 95)), c(95, 75))
+})
+
+test_that("un ambar por encima del verde se reordena en vez de vaciar la franja", {
+  # Con medio > alto no habria franja intermedia y todo lo no-verde caeria a
+  # rojo sin que nadie lo pidiera.
+  expect_equal(unname(.t2b_umbrales_efectivos(alto = 60, medio = 80)), c(80, 60))
+})
+
+test_that("los args del comparativo estan registrados en el metadata de la UI", {
+  nombres <- unlist(lapply(.PRESETS_META, function(b) {
+    vapply(b$args %||% list(), function(a) a$name %||% "", character(1))
+  }), use.names = FALSE)
+
+  for (nm in c("barra_extra_tendencia", "barra_extra_tolerancia_pp",
+               "barra_extra_umbral_alto", "barra_extra_umbral_medio")) {
+    expect_true(nm %in% nombres, info = nm)
+  }
+
+  # El historico NO se expone: es un dato de la pregunta, no un estilo.
+  expect_false("barra_extra_comparativo" %in% nombres)
+})
+
+test_that("todo arg registrado existe en la firma del graficador", {
+  # Un arg de la UI que el graficador no acepta lo descarta `.keep_formals()`
+  # en silencio: el usuario mueve el control y no pasa nada.
+  fml <- names(formals(graficar_barras_apiladas))
+  for (nm in c("barra_extra_tendencia", "barra_extra_tolerancia_pp",
+               "barra_extra_umbral_alto", "barra_extra_umbral_medio",
+               "barra_extra_comparativo")) {
+    expect_true(nm %in% fml, info = nm)
+  }
+})
