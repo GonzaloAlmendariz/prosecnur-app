@@ -4749,6 +4749,10 @@ reporte_ppt_plan <- function(
         block_render$overrides <- block_render$overrides %||% list()
         block_render$overrides$titulo <- block_render$.multilista_block_title %||% ""
         block_render$overrides$subtitulo <- block_render$.multilista_block_subtitle %||% ""
+        # La exclusion se resolvio arriba y las tres fuentes quedaron en NULL; sin
+        # reponerla aqui el subbloque la pierde y «SIN INF» vuelve al denominador
+        # (93 % en vez de 94 % en la bateria p30 de acrconta).
+        block_render$overrides$excluir_opciones <- block_render$overrides$excluir_opciones %||% excluir_opciones
         if (is.null(block_render$overrides$legend_key_aspect_yx)) {
           block_aspect_yx <- parent_aspect_yx * (rel_heights_plan[[idx_block]] / rel_total)
           block_render$overrides[c("legend_key_aspect_yx", "titulos_grupo_alto_rel")] <- list(max(0.08, min(parent_aspect_yx, block_aspect_yx)), rel_heights_plan[[idx_block]] / rel_total)
