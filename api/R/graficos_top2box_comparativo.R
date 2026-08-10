@@ -85,14 +85,7 @@
     # nada, y un histórico que desaparece en silencio se lee como «no había
     # dato», no como «no supe alinearlo».
     if (all(is.na(idx)) && length(vals_num) == length(categorias)) {
-      warning(
-        "top2box comparativo: ninguna clave de `valores_anterior` (",
-        paste(utils::head(nms, 3), collapse = ", "),
-        if (length(nms) > 3) ", …" else "",
-        ") coincide con las filas de la lámina; se alinea por ORDEN. ",
-        "Para alinear por nombre, usa la etiqueta de fila tal como se muestra.",
-        call. = FALSE
-      )
+      .t2b_avisar_alineacion_por_orden(nms, categorias)
       idx <- seq_along(categorias)
     }
     valores <- vals_num[idx]
@@ -142,6 +135,40 @@
   # no es verde cae a rojo sin que nadie lo haya pedido. Se ordena.
   if (out[["medio"]] > out[["alto"]]) out <- c(alto = out[["medio"]], medio = out[["alto"]])
   out
+}
+
+#' Aviso de que el histórico se alineó por orden y no por nombre.
+#'
+#' Va por `message()` y no por `warning()` a propósito: el renderer del plan
+#' envuelve cada llamada al graficador en `suppressWarnings()`, así que un
+#' warning aquí no llega a nadie — se comprobó armando el mazo de acreditación.
+#' `message()` es además el canal con el que el motor ya narra su avance
+#' («Diapositiva 003/004 — slide_1»), de modo que el aviso aparece en el mismo
+#' sitio donde el usuario está mirando.
+#'
+#' El texto dice las tres cosas que hacen falta para actuar: qué se declaró,
+#' contra qué se intentó, y qué se hizo mientras tanto.
+#' @noRd
+.t2b_avisar_alineacion_por_orden <- function(declaradas, filas) {
+  recorta <- function(x, n = 3L) {
+    x <- as.character(x)
+    x <- gsub("[\r\n]+", " ", x)
+    x <- vapply(x, function(s) {
+      if (nchar(s) > 42L) paste0(substr(s, 1L, 40L), "…") else s
+    }, character(1), USE.NAMES = FALSE)
+    if (length(x) > n) c(x[seq_len(n)], sprintf("(+%d)", length(x) - n)) else x
+  }
+
+  message(
+    "Top 2 Box · comparativo: se alineó por ORDEN de declaración.\n",
+    "  Declarado : ", paste(recorta(declaradas), collapse = ", "), "\n",
+    "  Filas     : ", paste(recorta(filas), collapse = ", "), "\n",
+    "  Ninguna clave coincide con una fila, así que el histórico se asignó en\n",
+    "  el orden en que viene. Es lo correcto en una batería (el orden es el de\n",
+    "  `vars`); si tus filas no siguen ese orden, declara el histórico con la\n",
+    "  etiqueta de fila tal como aparece en la lámina."
+  )
+  invisible(NULL)
 }
 
 #' Clave de alineación: colapsa el espacio y el salto de línea que introduce el

@@ -288,7 +288,10 @@ test_that("claves que no coinciden con ninguna fila caen a orden, pero avisando"
   # El caso real: en una bateria multiapilada la fila se identifica por el
   # ENUNCIADO y el plan declara por variable. Antes esto devolvia NULL y la
   # columna volvia a la cifra suelta sin decir nada.
-  expect_warning(
+  # Va por message() y no por warning(): el renderer del plan envuelve cada
+  # llamada al graficador en suppressWarnings(), asi que un warning aqui no
+  # llegaria a nadie.
+  expect_message(
     spec <- .t2b_normalizar_comparativo(
       list(valores_anterior = c(p30_1 = 88, p30_2 = 91, p30_3 = 74)),
       categorias = c("La carrera tiene un plan de estudios",
@@ -298,7 +301,7 @@ test_that("claves que no coinciden con ninguna fila caen a orden, pero avisando"
                 "Las autoridades toman decisiones",
                 "Existe un equilibrio entre admitidos")
     ),
-    "se alinea por ORDEN"
+    "se alineó por ORDEN"
   )
   expect_equal(spec$valores, c(88, 91, 74))
 })
@@ -306,7 +309,7 @@ test_that("claves que no coinciden con ninguna fila caen a orden, pero avisando"
 test_that("un match parcial NO cae a orden: respeta lo declarado y deja NA el resto", {
   # Si al menos una clave resolvio, el usuario si sabe nombrar filas; reordenar
   # todo por posicion ahi seria pisar un dato correcto con uno inventado.
-  expect_silent(
+  expect_no_message(
     spec <- .t2b_normalizar_comparativo(
       list(valores_anterior = c(Estudiantes = 85, NoExiste = 99)),
       categorias = c("Estudiantes", "Docentes")
@@ -355,4 +358,59 @@ test_that("todo arg registrado existe en la firma del graficador", {
                "barra_extra_comparativo")) {
     expect_true(nm %in% fml, info = nm)
   }
+})
+
+test_that("el Top 2 Box es el defecto de apiladas y multiapiladas", {
+  p <- .PRESETS_DEFAULT_PULSO
+
+  # La columna extra de una escala ordinal es el Top 2 Box, no el N: el N ya
+  # va en la nota de base al pie. Sin esta linea el preset caia al default de
+  # la firma ("ninguno") y la columna mostraba la base.
+  expect_equal(p$barras_apiladas$barra_extra_preset, "top2box")
+  expect_equal(p$multi_apiladas$barra_extra_preset, "top2box")
+  expect_true(p$barras_apiladas$mostrar_barra_extra)
+})
+
+test_that("el comparativo interanual NO es un defecto de ningun preset", {
+  # El historico es un dato de cada pregunta; un default no puede inventarlo.
+  for (nm in names(.PRESETS_DEFAULT_PULSO)) {
+    expect_null(.PRESETS_DEFAULT_PULSO[[nm]]$barra_extra_comparativo, info = nm)
+  }
+  expect_null(.preset_acreditacion_apiladas()$barra_extra_comparativo)
+})
+
+test_that("el aviso sobrevive al suppressWarnings del renderer del plan", {
+  # Reproduce lo que hace el motor: `suppressWarnings(do.call(fun, args))`.
+  # Un warning aqui se perderia; el message tiene que salir igual.
+  expect_message(
+    suppressWarnings(.t2b_normalizar_comparativo(
+      list(valores_anterior = c(p1 = 88, p2 = 91)),
+      categorias = c("Primera fila", "Segunda fila")
+    )),
+    "se alineó por ORDEN"
+  )
+})
+
+test_that("el aviso dice que se declaro, contra que, y recorta lo largo", {
+  msg <- tryCatch(
+    withCallingHandlers(
+      {
+        .t2b_normalizar_comparativo(
+          list(valores_anterior = setNames(c(88, 91), c("p1", "p2"))),
+          categorias = c(strrep("Un enunciado larguisimo ", 5), "Otra fila")
+        )
+        ""
+      },
+      message = function(m) { assign("cap", conditionMessage(m), envir = parent.env(environment())); invokeRestart("muffleMessage") }
+    ),
+    error = function(e) ""
+  )
+  cap <- get0("cap", ifnotfound = "")
+
+  expect_match(cap, "Declarado")
+  expect_match(cap, "Filas")
+  expect_match(cap, "p1, p2", fixed = TRUE)
+  # El enunciado larguisimo no se vuelca entero al mensaje.
+  expect_match(cap, "…")
+  expect_lt(nchar(cap), 800)
 })

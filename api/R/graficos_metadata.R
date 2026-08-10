@@ -3201,6 +3201,14 @@
     decimales                = 0,
 
     mostrar_barra_extra      = TRUE,
+    # La columna extra de una apilada es el Top 2 Box, no la base: es el
+    # indicador que la casa lee primero en toda escala ordinal. Sin esta línea
+    # caía al default de la firma («ninguno») y mostraba el N, que ya va en la
+    # nota de base al pie de la lámina.
+    #
+    # OJO: el COMPARATIVO interanual no entra aquí. El histórico es un dato de
+    # cada pregunta y se declara por lámina; un default no puede inventarlo.
+    barra_extra_preset       = "top2box",
 
     legend_key_cm            = 0.40,
     legend_espaciado         = 3,
@@ -3265,6 +3273,11 @@
 
     color_texto_barras       = "white",
     color_barra_extra        = .PULSO_PPT_COLORS$verde_top2,
+    # Mismo criterio que en apiladas: la columna extra de una multiapilada es
+    # el Top 2 Box. `mostrar_barra_extra` lo enciende el plan con `top2box` o
+    # el propio preset; el preset del indicador tiene que estar puesto para que
+    # encenderla muestre lo que se espera y no el N.
+    barra_extra_preset       = "top2box",
     size_texto_barras        = 5.6,
     size_texto_barras_peq    = 5.6,
     size_titulo_extra        = 16,
