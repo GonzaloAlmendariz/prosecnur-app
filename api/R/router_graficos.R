@@ -1603,35 +1603,61 @@
     for (ln in list_names) {
       rows <- choices[trimws(as.character(choices$list_name)) == ln, , drop = FALSE]
       if (!nrow(rows)) next
-      if (is.null(out[[ln]])) {
-        out[[ln]] <- list(list_name = ln, choices = list(), .seen = character(0), fuentes = character(0))
-        order <- c(order, ln)
+
+      codigos <- trimws(as.character(rows$name %||% ""))
+      etiquetas <- if (!is.na(label_col) && label_col %in% names(rows)) {
+        trimws(as.character(rows[[label_col]]))
+      } else {
+        codigos
+      }
+      etiquetas[is.na(etiquetas) | !nzchar(etiquetas)] <- codigos[is.na(etiquetas) | !nzchar(etiquetas)]
+
+      # Un `list_name` NO identifica una escala en un proyecto multibase: cada
+      # instrumento numera sus propias preguntas, asi que `lst_p6` es Si/No en
+      # docentes y la lista de grados en egresados. Agrupar por nombre fusionaba
+      # las dos en una entrada de 17 opciones que no existe en ninguna base
+      # —medido en «Conta 09-08»: 22 de 43 listas colisionan— y el editor pedia
+      # colorear una escala inventada.
+      #
+      # La identidad aqui es (nombre, ETIQUETAS normalizadas), no la firma
+      # completa de `.escala_firma()`: una paleta mapea etiqueta -> color, asi
+      # que dos listas con las mismas etiquetas y distinto codigo se colorean
+      # igual y separarlas solo duplicaria tarjetas identicas. El codigo si
+      # importa para comparar mediciones —por eso la firma de equivalencias lo
+      # conserva— pero no para elegir un color.
+      slot <- paste(ln, paste(.escala_etiqueta_normalizada(etiquetas), collapse = "|"), sep = "\r")
+
+      if (is.null(out[[slot]])) {
+        # `escala_id` desambigua para la UI (clave de React y seleccion activa);
+        # `list_name` sigue siendo la clave de guardado, y como las escalas que
+        # colisionan tienen etiquetas disjuntas conviven en el mismo mapa
+        # etiqueta -> color sin pisarse. Asi no hay migracion de `.pulso`.
+        homonimas <- sum(vapply(out, function(x) identical(x$list_name, ln), logical(1)))
+        out[[slot]] <- list(
+          list_name = ln,
+          escala_id = if (homonimas) paste0(ln, "#", homonimas + 1L) else ln,
+          choices = list(), .seen = character(0), fuentes = character(0)
+        )
+        order <- c(order, slot)
       }
       # B38/G-6: en un proyecto multibase la UI necesita saber en que bases
       # vive cada lista para hablar en terminos del informe (no solo de la
       # base activa).
-      if (nzchar(fuente_nm) && !(fuente_nm %in% out[[ln]]$fuentes)) {
-        out[[ln]]$fuentes <- c(out[[ln]]$fuentes, fuente_nm)
+      if (nzchar(fuente_nm) && !(fuente_nm %in% out[[slot]]$fuentes)) {
+        out[[slot]]$fuentes <- c(out[[slot]]$fuentes, fuente_nm)
       }
-      for (i in seq_len(nrow(rows))) {
-        code <- trimws(as.character(rows$name[i] %||% ""))
-        label <- if (!is.na(label_col) && label_col %in% names(rows)) {
-          as.character(rows[[label_col]][i] %||% code)
-        } else {
-          code
-        }
-        label <- trimws(label)
-        if (!nzchar(label)) label <- code
-        key <- paste(code, label, sep = "\r")
-        if (key %in% out[[ln]]$.seen) next
-        out[[ln]]$choices[[length(out[[ln]]$choices) + 1L]] <- list(name = code, label = label)
-        out[[ln]]$.seen <- c(out[[ln]]$.seen, key)
+      for (i in seq_along(codigos)) {
+        key <- paste(codigos[i], etiquetas[i], sep = "\r")
+        if (key %in% out[[slot]]$.seen) next
+        out[[slot]]$choices[[length(out[[slot]]$choices) + 1L]] <-
+          list(name = codigos[i], label = etiquetas[i])
+        out[[slot]]$.seen <- c(out[[slot]]$.seen, key)
       }
     }
   }
 
-  lapply(order, function(ln) {
-    x <- out[[ln]]
+  lapply(order, function(slot) {
+    x <- out[[slot]]
     x$.seen <- NULL
     # I() evita que jsonlite des-encaje un vector de 1 fuente a escalar:
     # el contrato con la UI es "array siempre".
