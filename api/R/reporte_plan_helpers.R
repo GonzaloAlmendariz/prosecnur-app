@@ -474,7 +474,26 @@
   size_eff <- if (n > 8L) base::max(10, legend_size - 9)
     else if (n > 6L) base::max(12, legend_size - 6)
     else legend_size
-  max_chars <- base::max(6L, as.integer(floor(gap / (size_eff * 0.55))))
+
+  # El tamaño se elige por el ANCHO de la palabra más larga, no solo por cuántas
+  # categorías hay. Con cuatro etiquetas cortas («1», «2»…) el cuerpo grande
+  # entra; con las de la escala completa («Totalmente en Desacuerdo») la primera
+  # línea es una sola palabra de 10 caracteres que no se puede partir, y a 20 px
+  # mide más que el gap: los rótulos vecinos se montaban unos sobre otros.
+  # Se vio en la lámina de escala del mazo de acreditación, que es la ÚNICA
+  # declaración de la leyenda del mazo — ilegible ahí, ilegible en todo el mazo.
+  ancho_por_char <- 0.55
+  palabra_larga <- base::max(1L, base::max(vapply(
+    strsplit(as.character(etiquetas %||% ""), "\\s+"),
+    function(w) if (length(w)) base::max(nchar(w)) else 1L,
+    integer(1)
+  )))
+  ancho_disponible <- gap * 0.92
+  if (palabra_larga * size_eff * ancho_por_char > ancho_disponible) {
+    size_eff <- base::max(9, floor(ancho_disponible / (palabra_larga * ancho_por_char)))
+  }
+
+  max_chars <- base::max(6L, as.integer(floor(ancho_disponible / (size_eff * ancho_por_char))))
 
   vapply(seq_len(n), function(i) {
     x <- x0 + (i - 1L) * gap
@@ -494,8 +513,11 @@
     if (length(lineas) > 2L) {
       lineas <- c(lineas[[1]], paste(lineas[-1], collapse = " "))
     }
+    # El truncado usa el MISMO umbral que el wrap. La tolerancia de +2 dejaba
+    # pasar justo el caso que no cabe: una línea de exactamente `max_chars + 2`
+    # se daba por buena y se salía de su gap.
     lineas <- vapply(lineas, function(l) {
-      if (nchar(l) > max_chars + 2L) paste0(substr(l, 1L, base::max(1L, max_chars)), "…") else l
+      if (nchar(l) > max_chars) paste0(substr(l, 1L, base::max(1L, max_chars - 1L)), "…") else l
     }, character(1))
     textos <- paste(vapply(seq_along(lineas), function(j) {
       sprintf(
