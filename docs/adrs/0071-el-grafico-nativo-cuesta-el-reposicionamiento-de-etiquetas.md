@@ -1,4 +1,4 @@
-# ADR 0070 — El gráfico nativo cuesta el reposicionamiento de etiquetas
+# ADR 0071 — El gráfico nativo cuesta el reposicionamiento de etiquetas
 
 - **Estado**: Aceptada
 - **Fecha**: 2026-08-10
