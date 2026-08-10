@@ -1154,6 +1154,13 @@ graficar_barras_apiladas <- function(
     # pese lo que pesa un rotulo de barra.
     size_barra_extra      = 10,
     size_titulo_extra     = 8.5,
+    # Comparativo interanual de la columna extra (`graficos_top2box_comparativo.R`).
+    # NULL deja la columna como siempre: una sola cifra, sin rejilla ni semaforo.
+    barra_extra_comparativo = NULL,
+    barra_extra_semaforo    = NULL,
+    barra_extra_semaforo_colores = NULL,
+    barra_extra_tendencia   = TRUE,
+    barra_extra_tolerancia_pp = 0,
     color_ejes            = "#000000",
     size_ejes             = 9,
     color_titulos_grupo   = NULL,
@@ -2351,6 +2358,16 @@ graficar_barras_apiladas <- function(
   # 5) Etiquetas Y y extra como texto (sin ggplot)
   # ---------------------------------------------------------------------------
   etiquetas_vec <- cat_layout$.cat_label
+  # El comparativo se alinea contra la etiqueta SIN envolver: el plan declara
+  # «Estudiantes», no «Estu\ndiantes». Se resuelve aqui, antes del wrap.
+  # Solo tiene sentido sobre un box: con `totales` la columna lleva conteos y
+  # un semáforo de 80/70 sobre un N no significa nada.
+  t2b_comparativo <- if (isTRUE(mostrar_barra_extra) &&
+                         barra_extra_preset %in% c("top2box", "top3box", "bottom2box")) {
+    .t2b_normalizar_comparativo(barra_extra_comparativo, cat_layout$.cat_label)
+  } else {
+    NULL
+  }
   if (!is.null(wrap_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
     etiquetas_vec <- stringr::str_wrap(etiquetas_vec, width = wrap_eje_y_eff)
@@ -2743,6 +2760,11 @@ graficar_barras_apiladas <- function(
     # Reserva mínima compacta para que el título de barra extra no aleje el gráfico.
     top_in <- max(top_in, max(0.09, (size_titulo_extra %||% 9) * 0.012))
   }
+  if (!is.null(t2b_comparativo)) {
+    # El encabezado de períodos es una celda con rejilla, no una línea de texto:
+    # necesita más aire que el título simple o la caja se come su propio borde.
+    top_in <- max(top_in, max(0.16, (size_titulo_extra %||% 9) * 0.020))
+  }
   top_in <- min(top_in, h_panel_in * 0.45)
   top_h  <- if (top_in > 0) top_in / h_total_in else 0
 
@@ -2843,7 +2865,11 @@ graficar_barras_apiladas <- function(
         .ph_border(x_extra0, y_top0, w_extra, top_h)
     }
 
-    if (isTRUE(mostrar_barra_extra) && !is.null(titulo_extra_int) && nzchar(titulo_extra_int)) {
+    # Con comparativo el encabezado son los dos períodos, y lo dibuja
+    # `.t2b_capas_extra()` junto con su rejilla: un título «Top 2 Box» encima
+    # de una tabla que ya dice 2021 | 2018 es rótulo repetido.
+    if (isTRUE(mostrar_barra_extra) && is.null(t2b_comparativo) &&
+        !is.null(titulo_extra_int) && nzchar(titulo_extra_int)) {
       canvas <- canvas + cowplot::draw_text(
         text     = titulo_extra_int,
         x        = x_extra0 + (w_extra * 0.5),
@@ -3038,19 +3064,45 @@ graficar_barras_apiladas <- function(
 
   # Extra (columna derecha)
   x_extra_txt <- x_extra0 + (w_extra * 0.5)
-  for (i in seq_len(n_categorias)) {
-    if (nzchar(extra_labels[i])) {
-      canvas <- canvas + cowplot::draw_text(
-        text     = extra_labels[i],
-        x        = x_extra_txt,
-        y        = y_abs[i],
-        hjust    = 0.5,
-        vjust    = 0.5,
-        size     = size_barra_extra,
-        colour   = color_barra_extra_int,
-        family = font_family,
-        fontface = fontface_barra_extra
-      )
+  if (!is.null(t2b_comparativo)) {
+    # Tabla comparativa: dos columnas con rejilla, semáforo por umbral y
+    # triángulo de tendencia. Reemplaza a la cifra suelta, no se suma a ella.
+    for (capa in .t2b_capas_extra(
+      x0 = x_extra0,
+      w = w_extra,
+      y = y_abs,
+      valores_actual = extra_vals,
+      comparativo = t2b_comparativo,
+      size_valor = size_barra_extra,
+      size_encabezado = size_titulo_extra,
+      font_family = font_family,
+      umbrales = barra_extra_semaforo %||% .T2B_SEMAFORO_UMBRALES,
+      colores_semaforo = barra_extra_semaforo_colores %||% .T2B_SEMAFORO_COLORES,
+      color_encabezado = color_ejes,
+      mostrar_tendencia = isTRUE(barra_extra_tendencia),
+      tolerancia_pp = barra_extra_tolerancia_pp,
+      y_encabezado = if (top_h > 0) y_top0 + (top_h * 0.5) else NULL,
+      w_total_in = ancho,
+      h_total_in = h_total_in,
+      decimales = decimales
+    )) {
+      canvas <- canvas + capa
+    }
+  } else {
+    for (i in seq_len(n_categorias)) {
+      if (nzchar(extra_labels[i])) {
+        canvas <- canvas + cowplot::draw_text(
+          text     = extra_labels[i],
+          x        = x_extra_txt,
+          y        = y_abs[i],
+          hjust    = 0.5,
+          vjust    = 0.5,
+          size     = size_barra_extra,
+          colour   = color_barra_extra_int,
+          family = font_family,
+          fontface = fontface_barra_extra
+        )
+      }
     }
   }
 
