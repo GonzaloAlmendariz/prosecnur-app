@@ -4610,22 +4610,22 @@ reporte_ppt_plan <- function(
       }
 
       block_overrides <- block_el$overrides %||% list()
-      block_wrap <- block_overrides$ancho_max_eje_y %||%
-        block_overrides$wrap_y %||%
-        block_el$ancho_max_eje_y %||%
-        block_el$wrap_y %||%
-        preset_args_multi$ancho_max_eje_y %||%
-        preset_args_multi$wrap_y %||%
-        preset_args_single$ancho_max_eje_y %||%
-        preset_args_single$wrap_y %||%
-        50
+      block_wrap <- block_overrides$ancho_max_eje_y %||% block_overrides$wrap_y %||%
+        block_el$ancho_max_eje_y %||% block_el$wrap_y %||%
+        preset_args_multi$ancho_max_eje_y %||% preset_args_multi$wrap_y %||%
+        preset_args_single$ancho_max_eje_y %||% preset_args_single$wrap_y %||% 50
       block_wrap <- suppressWarnings(as.numeric(block_wrap)[1])
-      if (!is.finite(block_wrap) || is.na(block_wrap) || block_wrap < 10) {
-        block_wrap <- 50
-      }
+      if (!is.finite(block_wrap) || is.na(block_wrap) || block_wrap < 10) block_wrap <- 50
 
       n_rows <- 1L
       title_lines <- 0L
+      # Filas de leyenda del bloque: el plano fijo de abajo pagaba UNA y una
+      # escala de cinco categorias ocupa DOS, asi que el bloque entraba en un
+      # hueco mas corto que su canvas y `plot_grid()` lo comprimia hasta que la
+      # segunda fila pisaba la primera (ver `.multilista_filas_leyenda_de_refs`).
+      filas_leyenda <- 1L
+      size_leyenda_blk <- block_overrides$size_leyenda %||%
+        preset_args_multi$size_leyenda %||% preset_args_single$size_leyenda %||% 10
 
       if (identical(block_el$modo, "var")) {
         n_rows <- max(1L, length(block_el$vars %||% character(0)))
@@ -4651,6 +4651,8 @@ reporte_ppt_plan <- function(
       } else if (identical(block_el$modo, "var_cruce")) {
         if (is.list(block_el$vars) && !is.character(block_el$vars)) {
           n_rows <- sum(lengths(block_el$vars))
+          filas_leyenda <- .multilista_filas_leyenda_de_refs(.extract_ref_values(block_el$vars),
+            .resolve_ref, .shared_scale_spec, size_leyenda_blk)
           tg <- block_el$titulos_grupo %||% character(0)
           lines_group <- 0L
           for (nm in names(block_el$vars)) {
@@ -4685,9 +4687,7 @@ reporte_ppt_plan <- function(
       }
 
       show_legend <- block_overrides$mostrar_leyenda %||%
-        preset_args_multi$mostrar_leyenda %||%
-        preset_args_single$mostrar_leyenda %||%
-        TRUE
+        preset_args_multi$mostrar_leyenda %||% preset_args_single$mostrar_leyenda %||% TRUE
 
       show_extra <- block_overrides$mostrar_barra_extra %||%
         isTRUE(block_el$top2box) ||
@@ -4713,7 +4713,7 @@ reporte_ppt_plan <- function(
       0.85 +
         (0.90 * n_rows_eff) +
         (0.18 * title_lines) +
-        if (isTRUE(show_legend)) 0.70 else 0 +
+        if (isTRUE(show_legend)) 0.70 * max(1L, filas_leyenda) else 0 +
         if (isTRUE(show_extra)) 0.25 else 0
     }
 
