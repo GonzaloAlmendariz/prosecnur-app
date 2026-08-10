@@ -346,7 +346,14 @@
   }
   if (!is.atomic(pal) || !length(pal)) return(palette)
 
-  pal <- as.character(pal)
+  # `as.character()` borra los atributos, y el nombre ES la identidad de cada
+  # color: sin reponerlo, `pal_names` sale vacio, el match por nombre de abajo
+  # queda muerto y TODA paleta se reparte por posicion. En una escala ordinal el
+  # orden guardado coincide con el de los niveles y el error no se ve; en una
+  # dicotomia guardada como {No, Si} contra niveles {Si, No} intercambia los dos
+  # colores — el «Si» salia celeste y el «No» azul marino en el mazo de
+  # acreditacion.
+  pal <- stats::setNames(as.character(pal), names(pal))
   ok_color <- !is.na(pal) & nzchar(trimws(pal))
   pal <- pal[ok_color]
   if (!length(pal)) return(NULL)

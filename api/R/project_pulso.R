@@ -1983,9 +1983,12 @@
       out <- c(out, s$dashboard_source$data_file_id)
     }
   }
-  # El draft y la receta consolidada guardan identidades de iconos por
-  # file_id. Esos PNG son inputs editables del plan y deben viajar en el ZIP.
-  add_consolidated_icon_fids <- function(config) {
+  # El editor de Graficos, su draft y la receta consolidada guardan identidades
+  # de iconos por file_id. Esos PNG son inputs editables del plan y deben viajar
+  # en el ZIP: una lamina `p_slide_objetivo_icono` que referencia un icono
+  # ausente NO degrada, mata el export entero ("Icono no encontrado"), y una
+  # sola lamina de 67 deja al usuario sin mazo al reabrir el proyecto.
+  add_icon_fids <- function(config) {
     iconos <- (config %||% list())$iconos %||% list()
     if (!is.list(iconos)) return()
     for (icono in iconos) {
@@ -1995,8 +1998,10 @@
       if (length(fid)) out <<- c(out, fid[[1]])
     }
   }
-  add_consolidated_icon_fids((s$graficos_consolidado_draft %||% list())$config)
-  add_consolidated_icon_fids((s$graficos_consolidado %||% list())$config)
+  add_icon_fids(s$graficos_config)
+  for (cfg_base in (s$graficos_config_por_base %||% list())) add_icon_fids(cfg_base)
+  add_icon_fids((s$graficos_consolidado_draft %||% list())$config)
+  add_icon_fids((s$graficos_consolidado %||% list())$config)
   out <- c(out, .pulso_collect_calc_muestra_fids(s))
   # Monitoreo territorial: algunos insumos nacen dentro de Monitoreo, pero
   # luego son referencia canónica del proyecto. Si no viajan en el .pulso,
