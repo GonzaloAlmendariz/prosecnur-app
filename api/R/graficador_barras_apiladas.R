@@ -2364,7 +2364,14 @@ graficar_barras_apiladas <- function(
   # un semáforo de 80/70 sobre un N no significa nada.
   t2b_comparativo <- if (isTRUE(mostrar_barra_extra) &&
                          barra_extra_preset %in% c("top2box", "top3box", "bottom2box")) {
-    .t2b_normalizar_comparativo(barra_extra_comparativo, cat_layout$.cat_label)
+    # `.cat_id` es como el plan nombra la categoría (en una batería, el nombre
+    # de la variable): se pasa como alias para poder declarar el histórico con
+    # esa clave en vez de repetir el enunciado completo.
+    .t2b_normalizar_comparativo(
+      barra_extra_comparativo,
+      cat_layout$.cat_label,
+      alias = cat_layout$.cat_id
+    )
   } else {
     NULL
   }

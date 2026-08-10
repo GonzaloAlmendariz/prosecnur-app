@@ -38,10 +38,12 @@
 #' Devuelve `NULL` cuando no hay nada que comparar — es la señal de que la
 #' columna extra debe dibujarse como siempre (una sola cifra).
 #' @noRd
-.t2b_normalizar_comparativo <- function(comparativo, categorias) {
+.t2b_normalizar_comparativo <- function(comparativo, categorias, alias = NULL) {
   if (is.null(comparativo)) return(NULL)
   categorias <- as.character(categorias)
   if (!length(categorias)) return(NULL)
+  alias <- if (is.null(alias)) NULL else as.character(alias)
+  if (!is.null(alias) && length(alias) != length(categorias)) alias <- NULL
 
   if (!is.list(comparativo)) {
     # Atajo de conveniencia: un vector nombrado es «solo los valores previos».
@@ -54,13 +56,45 @@
   vals_num <- suppressWarnings(as.numeric(vals_in))
   nms <- names(vals_in)
 
-  # Alineación por nombre cuando el plan los declara (lo esperable: la clave es
-  # la etiqueta de fila, «Estudiantes»); por posición solo si vino sin nombres
-  # y la longitud calza exacto. Reciclar un vector corto por posición sería
-  # inventar un histórico para filas que no lo declararon.
+  # Alineación por nombre cuando el plan los declara; por posición solo si vino
+  # sin nombres y la longitud calza exacto. Reciclar un vector corto por
+  # posición sería inventar un histórico para filas que no lo declararon.
+  #
+  # Se prueban DOS claves: la etiqueta de fila («Estudiantes») y el `alias`, que
+  # es el identificador con el que el plan nombra la categoría — en una batería
+  # multiapilada, el nombre de la variable (`p30_1`). Sin esto, declarar el
+  # histórico en una batería obligaba a repetir el enunciado completo y
+  # carácter por carácter; cualquier recorte o wrap rompía el match en silencio
+  # y la columna volvía a la cifra suelta. Se vio armando el mazo de acrconta.
   valores <- rep(NA_real_, length(categorias))
   if (!is.null(nms) && any(nzchar(nms))) {
-    idx <- match(categorias, nms)
+    nms_norm <- .t2b_clave_alineacion(nms)
+    idx <- match(.t2b_clave_alineacion(categorias), nms_norm)
+    if (!is.null(alias)) {
+      falta <- is.na(idx)
+      if (any(falta)) idx[falta] <- match(.t2b_clave_alineacion(alias[falta]), nms_norm)
+    }
+
+    # Ninguna clave resolvió y la longitud calza: el caso real es una batería
+    # multiapilada, donde la fila se identifica por el ENUNCIADO y el plan
+    # declara por nombre de variable (`p30_1`) — ahí no hay clave común, porque
+    # el motor ya reemplazó el id por el título del grupo.
+    #
+    # Se resuelve por orden, que es el de `vars`, PERO avisando: el modo
+    # anterior devolvía NULL y la lámina volvía a la cifra suelta sin decir
+    # nada, y un histórico que desaparece en silencio se lee como «no había
+    # dato», no como «no supe alinearlo».
+    if (all(is.na(idx)) && length(vals_num) == length(categorias)) {
+      warning(
+        "top2box comparativo: ninguna clave de `valores_anterior` (",
+        paste(utils::head(nms, 3), collapse = ", "),
+        if (length(nms) > 3) ", …" else "",
+        ") coincide con las filas de la lámina; se alinea por ORDEN. ",
+        "Para alinear por nombre, usa la etiqueta de fila tal como se muestra.",
+        call. = FALSE
+      )
+      idx <- seq_along(categorias)
+    }
     valores <- vals_num[idx]
   } else if (length(vals_num) == length(categorias)) {
     valores <- vals_num
@@ -81,6 +115,15 @@
     periodo_anterior = .t2b_periodo_chr(comparativo$periodo_anterior, ""),
     valores          = valores
   )
+}
+
+#' Clave de alineación: colapsa el espacio y el salto de línea que introduce el
+#' wrap de la etiqueta de fila. Sin esto, una etiqueta envuelta a dos líneas
+#' deja de coincidir con la misma etiqueta declarada en el plan.
+#' @noRd
+.t2b_clave_alineacion <- function(x) {
+  x <- gsub("[\r\n]+", " ", as.character(x))
+  trimws(gsub("\\s+", " ", x))
 }
 
 #' @noRd
@@ -200,11 +243,17 @@
   w_col <- w / 2
   x_col <- c(x0 + w_col * 0.5, x0 + w_col * 1.5)
 
+  # Tope del alto de celda, en pulgadas. En el deck la celda mide 1,96 cm con
+  # una cifra de 13 pt: unas 4,3 veces el cuerpo. Sin tope, una lámina con
+  # pocas filas muy espaciadas (una batería de 3 enunciados largos) estira la
+  # celda hasta parecer un recuadro vacío con un número perdido dentro.
+  tope_celda <- size_valor * 4.0 / 72 / h_total_in
+
   if (is.null(alto_celda) || !is.finite(alto_celda)) {
     alto_celda <- if (n > 1L) {
       pasos <- diff(sort(y[is.finite(y)]))
       pasos <- pasos[is.finite(pasos) & pasos > 0]
-      if (length(pasos)) min(pasos) * 0.86 else 0.5 / h_total_in
+      if (length(pasos)) min(min(pasos) * 0.86, tope_celda) else 0.5 / h_total_in
     } else {
       # Fila única: no hay paso del que derivar. Se ancla al cuerpo de la
       # cifra para que la celda no quede ni asfixiada ni enorme.
@@ -276,10 +325,15 @@
     # El triángulo va sobre la celda del período actual: es esa cifra la que
     # subió o bajó, no la histórica.
     if (!is.na(dirs[i])) {
+      # El triángulo va dentro de su celda: se deja al menos su propio alto de
+      # margen contra el borde superior, o con la celda acotada termina montado
+      # sobre la línea de la rejilla.
+      h_tri <- .T2B_TRIANGULO_ALTO_IN / h_total_in
+      dy_tri <- min(alto_celda * 0.30, max(0, alto_celda / 2 - h_tri * 2))
       capas <- c(capas, list(
         .t2b_triangulo(
           x = x_col[1],
-          y = y[i] + alto_celda * 0.30,
+          y = y[i] + dy_tri,
           direccion = dirs[i],
           w_total_in = w_total_in,
           h_total_in = h_total_in
