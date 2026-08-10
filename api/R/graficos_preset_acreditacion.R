@@ -15,13 +15,77 @@
 # 62 de 91 a mano con `manualLayout`; el motor lo resuelve solo
 # (`.finalizar_estado_labels_apiladas`) y esa parte no se copia.
 
+# Rampa ordinal de cuatro pasos, medida sobre el deck 2021.
+.PRESET_ACRD_RAMPA <- c("#F4B183", "#FFD966", "#B0D597", "#8FC36B")
+
+# Gris para las categorías que no son parte de la escala («SIN INF» y afines):
+# no pertenecen a la rampa y teñirlas de verde o naranja las mete en un orden
+# que no tienen.
+.PRESET_ACRD_FUERA_ESCALA <- "#BFBFBF"
+
+#' Normaliza una etiqueta para comparar: minúsculas, sin tildes, sin espacios
+#' de más. El instrumento escribe la misma categoría de varias formas
+#' («Totalmente de Acuerdo», «totalmente de acuerdo») y el match exacto por
+#' nombre las trata como distintas.
+#' @noRd
+.preset_acrd_clave <- function(x) {
+  x <- tolower(trimws(as.character(x)))
+  x <- iconv(x, to = "ASCII//TRANSLIT")
+  x <- gsub("[^a-z ]", "", x)
+  gsub("\\s+", " ", x)
+}
+
+# Las cuatro posiciones de la escala y las formas con las que aparecen. Cubre
+# acuerdo y satisfacción, que son las dos escalas de 4 puntos de la matriz
+# PULSO (`matriz_pulso_xlsform.R`).
+.PRESET_ACRD_ESCALA <- list(
+  c("totalmente en desacuerdo", "muy en desacuerdo", "nada satisfecho"),
+  c("en desacuerdo", "poco satisfecho"),
+  c("de acuerdo", "satisfecho"),
+  c("totalmente de acuerdo", "muy de acuerdo", "muy satisfecho")
+)
+
+#' Colores de la escala, alineados a las etiquetas reales de la lámina.
+#'
+#' Con `etiquetas = NULL` devuelve la rampa con los nombres canónicos, que es
+#' lo útil cuando el plan no sabe todavía cómo se llaman las categorías.
+#' @noRd
+.preset_acreditacion_colores <- function(etiquetas = NULL) {
+  if (is.null(etiquetas) || !length(etiquetas)) {
+    return(stats::setNames(
+      .PRESET_ACRD_RAMPA,
+      c("Totalmente en desacuerdo", "En desacuerdo",
+        "De acuerdo", "Totalmente de acuerdo")
+    ))
+  }
+
+  etiquetas <- as.character(etiquetas)
+  claves <- .preset_acrd_clave(etiquetas)
+  pos <- vapply(claves, function(k) {
+    hit <- which(vapply(.PRESET_ACRD_ESCALA, function(v) k %in% v, logical(1)))
+    if (length(hit)) hit[[1]] else NA_integer_
+  }, integer(1))
+
+  # Sin reconocer nada pero con exactamente cuatro categorías, la escala viene
+  # ordenada por construcción: asignar por posición es mejor que dejar que la
+  # mitad caiga al default y la rampa se rompa a media barra.
+  if (all(is.na(pos)) && length(etiquetas) == 4L) pos <- seq_len(4L)
+
+  out <- ifelse(is.na(pos), .PRESET_ACRD_FUERA_ESCALA, .PRESET_ACRD_RAMPA[pos])
+  stats::setNames(out, etiquetas)
+}
+
 #' Estilo de barras apiladas del informe de acreditación.
 #'
 #' Devuelve la lista de argumentos para `graficar_barras_apiladas()`. Se
 #' compone sobre los args de la lámina, no los reemplaza: lo que el plan
 #' declare explícitamente manda.
+#'
+#' @param etiquetas Etiquetas reales de la escala, en orden. Con ellas la
+#'   paleta se ancla a lo que la lámina va a mostrar; sin ellas se usan los
+#'   nombres canónicos y el match queda a merced de la literalidad.
 #' @noRd
-.preset_acreditacion_apiladas <- function() {
+.preset_acreditacion_apiladas <- function(etiquetas = NULL) {
   list(
     # --- separación entre barras -------------------------------------------
     # gapWidth 74 del deck: la barra ocupa 100/174 del carril. Es constante en
@@ -53,12 +117,13 @@
     # --- paleta -------------------------------------------------------------
     # Rampa ordinal naranja -> verde. El cierre en verde (y no en azul marino)
     # es lo que deja leer la escala como intensidad creciente de acuerdo.
-    colores_grupos = c(
-      "Totalmente en desacuerdo" = "#F4B183",
-      "En desacuerdo"            = "#FFD966",
-      "De acuerdo"               = "#B0D597",
-      "Totalmente de acuerdo"    = "#8FC36B"
-    ),
+    #
+    # Se resuelve contra las etiquetas REALES cuando se las pasan: la escala del
+    # instrumento de acreditación viene «Totalmente en Desacuerdo» / «Totalmente
+    # de Acuerdo», con mayúscula, y `.graficos_mk_palette()` matchea por nombre
+    # exacto — dos de cuatro fallaban y caían al azul marino y al teal del
+    # default. Se vio corriendo el preset sobre `acrconta.pulso`.
+    colores_grupos = .preset_acreditacion_colores(etiquetas),
 
     # --- leyenda ------------------------------------------------------------
     # El deck declara la escala UNA vez (su lámina 5) y no la repite en las 16
@@ -89,10 +154,12 @@
 #' El comparativo interanual NO va aquí: se declara por lámina, porque el
 #' histórico es un dato de cada pregunta y no un rasgo del estilo.
 #'
+#' @param etiquetas Etiquetas reales de la escala, en orden, para anclar la
+#'   paleta. Ver `.preset_acreditacion_apiladas()`.
 #' @return Lista de presets con la forma de `p_presets()`.
 #' @export
-presets_acreditacion <- function() {
-  estilo <- .preset_acreditacion_apiladas()
+presets_acreditacion <- function(etiquetas = NULL) {
+  estilo <- .preset_acreditacion_apiladas(etiquetas)
   p_presets(
     base            = .preset_acreditacion_slide(),
     barras_apiladas = estilo,
