@@ -214,3 +214,41 @@ test_that("presets_acreditacion() entrega un objeto que el plan PPT ya sabe leer
   # El comparativo NO viaja en el preset: es un dato de cada pregunta.
   expect_null(pr$barras_apiladas$args$barra_extra_comparativo)
 })
+
+test_that("la paleta se ancla a la etiqueta real aunque cambien mayusculas o tildes", {
+  # Las del instrumento de acreditacion real (`acrconta.pulso`): con match
+  # exacto por nombre, dos de cuatro caian al azul marino y al teal del default.
+  reales <- c("Totalmente en Desacuerdo", "En desacuerdo",
+              "De acuerdo", "Totalmente de Acuerdo")
+  cols <- .preset_acreditacion_colores(reales)
+
+  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+  expect_equal(names(cols), reales)  # se nombra como la lamina las va a mostrar
+})
+
+test_that("una categoria fuera de la escala no entra a la rampa", {
+  cols <- .preset_acreditacion_colores(
+    c("Totalmente en Desacuerdo", "En desacuerdo", "De acuerdo",
+      "Totalmente de Acuerdo", "SIN INF")
+  )
+  expect_equal(unname(cols[1:4]), .PRESET_ACRD_RAMPA)
+  expect_equal(unname(cols[["SIN INF"]]), .PRESET_ACRD_FUERA_ESCALA)
+})
+
+test_that("la escala de satisfaccion resuelve con la misma rampa", {
+  cols <- .preset_acreditacion_colores(
+    c("Nada satisfecho", "Poco satisfecho", "Satisfecho", "Muy satisfecho")
+  )
+  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+})
+
+test_that("cuatro etiquetas irreconocibles se asignan por posicion, no a medias", {
+  cols <- .preset_acreditacion_colores(c("Nivel 1", "Nivel 2", "Nivel 3", "Nivel 4"))
+  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+})
+
+test_that("sin etiquetas se devuelven los nombres canonicos", {
+  cols <- .preset_acreditacion_colores(NULL)
+  expect_equal(unname(cols), .PRESET_ACRD_RAMPA)
+  expect_true("Totalmente de acuerdo" %in% names(cols))
+})
