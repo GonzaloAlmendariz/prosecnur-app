@@ -1879,13 +1879,13 @@
       # Mismos rotulos que en multi_apiladas: este preset alimenta el mismo
       # motor y dibuja la misma columna, asi que la declaracion tiene que
       # existir en los dos. Sin ella el box se omite con aviso.
-      list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "codigos_list", grupo = "estilo",
+      list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala."),
-      list(name = "top3box_labels",    label = "Categorías del Top 3 Box",    tipo_input = "codigos_list", grupo = "estilo",
+      list(name = "top3box_labels",    label = "Categorías del Top 3 Box",    tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. Ni de acuerdo ni en desacuerdo, De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 3 Box, por su nombre exacto tal como aparece en la escala."),
-      list(name = "bottom2box_labels", label = "Categorías del Bottom 2 Box", tipo_input = "codigos_list", grupo = "estilo",
+      list(name = "bottom2box_labels", label = "Categorías del Bottom 2 Box", tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. Totalmente en desacuerdo, En desacuerdo",
            descripcion = "Qué categorías suman al Bottom 2 Box, por su nombre exacto tal como aparece en la escala."),
       list(name = "size_titulo_extra",    label = "Tamaño título de la columna extra", tipo_input = "number", grupo = "estilo",
@@ -2135,13 +2135,13 @@
       # Un Top 2 Box de escala de 5 y uno de escala de 2 no son el mismo
       # indicador; declararlo es la unica forma de que signifiquen lo que el
       # analista quiso decir.
-      list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "codigos_list", grupo = "estilo",
+      list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala."),
-      list(name = "top3box_labels",    label = "Categorías del Top 3 Box",    tipo_input = "codigos_list", grupo = "estilo",
+      list(name = "top3box_labels",    label = "Categorías del Top 3 Box",    tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. Ni de acuerdo ni en desacuerdo, De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 3 Box, por su nombre exacto tal como aparece en la escala."),
-      list(name = "bottom2box_labels", label = "Categorías del Bottom 2 Box", tipo_input = "codigos_list", grupo = "estilo",
+      list(name = "bottom2box_labels", label = "Categorías del Bottom 2 Box", tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. Totalmente en desacuerdo, En desacuerdo",
            descripcion = "Qué categorías suman al Bottom 2 Box, por su nombre exacto tal como aparece en la escala."),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",

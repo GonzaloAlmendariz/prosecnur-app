@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
+import { apiGraficosPaletasSugeridas, type PaletaSugeridaEntry } from "../../api/client";
 import { MAX_FOCOS, parseIndicePayload } from "./indiceModel";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
@@ -403,6 +404,14 @@ function FieldControl({
 
     case "icono":
       return <IconoSelect value={safeTrimmedText(shownValue) || null} onChange={onChange} />;
+
+    case "categorias_escala":
+      return (
+        <CategoriasEscalaField
+          value={((shownValue as (string | number)[]) ?? []).map(String)}
+          onChange={onChange}
+        />
+      );
 
     case "colores_list":
       return (
@@ -2339,6 +2348,118 @@ function slugify(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "") || "criterio";
+}
+
+/** Elige las categorías de un indicador MARCÁNDOLAS sobre las escalas reales
+ *  del estudio, en vez de teclear sus nombres.
+ *
+ *  Tres cuadros de texto libre eran demasiado generalistas: en una escala el
+ *  «De acuerdo» va en mayúscula y en otra no, los códigos no coinciden, y decir
+ *  «el Top 2 Box es el 3 y el 4» sólo vale para la Likert que uno tenía en la
+ *  cabeza. Aquí se ven las etiquetas tal como existen, agrupadas por escala y
+ *  con las bases que la usan, así que marcarlas hace imposible equivocarse de
+ *  mayúscula o de código.
+ *
+ *  El valor sigue siendo la misma lista plana de etiquetas que el motor empareja
+ *  (`.cols_from_labels`). Que sea la UNIÓN de varias escalas es lo que hace que
+ *  un mismo preset sirva a todas: cada gráfico empareja las suyas y descarta el
+ *  resto. Un dicotómico marca sólo «Sí» y obtiene su Top 1 Box; el mínimo de
+ *  tres categorías no aplica cuando hay declaración. */
+function CategoriasEscalaField({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[] | null) => void;
+}) {
+  const [listas, setListas] = useState<PaletaSugeridaEntry[]>([]);
+  const [estado, setEstado] = useState<"cargando" | "listo" | "error">("cargando");
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      try {
+        const r = await apiGraficosPaletasSugeridas();
+        if (!cancelado) {
+          setListas(r.listas.filter((l) => (l.choices?.length ?? 0) >= 2));
+          setEstado("listo");
+        }
+      } catch {
+        if (!cancelado) setEstado("error");
+      }
+    })();
+    return () => { cancelado = true; };
+  }, []);
+
+  const marcadas = useMemo(() => new Set(value.map((v) => String(v))), [value]);
+
+  function alternar(etiqueta: string) {
+    const next = marcadas.has(etiqueta)
+      ? value.filter((v) => String(v) !== etiqueta)
+      : [...value, etiqueta];
+    onChange(next.length ? next : null);
+  }
+
+  if (estado === "cargando") {
+    return <p style={{ margin: 0, fontSize: 12, color: "var(--pulso-text-soft)" }}>Leyendo las escalas del estudio…</p>;
+  }
+  if (estado === "error" || !listas.length) {
+    // Sin catálogo no se inventa una lista: se cae al texto libre, que al menos
+    // deja declarar a mano lo que el motor empareja igual.
+    return <CodigosList value={value} onChange={(v) => onChange(v.map(String))} ejemplo="ej. De acuerdo, Totalmente de acuerdo" />;
+  }
+
+  // Cuántas escalas quedan cubiertas por lo marcado: es la respuesta a «qué
+  // listas consumen este indicador».
+  const cubiertas = listas.filter((l) => l.choices.some((c) => marcadas.has(c.label))).length;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+        {cubiertas > 0
+          ? `${cubiertas} de ${listas.length} escalas quedan cubiertas por lo marcado.`
+          : `Marca las categorías en cada escala. ${listas.length} escalas en el estudio.`}
+      </p>
+      {listas.map((l) => {
+        const id = l.escala_id ?? l.list_name;
+        const activas = l.choices.filter((c) => marcadas.has(c.label)).length;
+        return (
+          <div key={id} style={{ border: "1px solid var(--pulso-border)", borderRadius: 10, padding: "8px 10px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
+              <strong style={{ fontSize: 12 }}>{l.list_name}</strong>
+              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
+                {l.choices.length} categorías
+                {l.fuentes?.length ? ` · ${l.fuentes.join(", ")}` : ""}
+                {activas ? ` · ${activas} marcadas` : ""}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {l.choices.map((c) => {
+                const on = marcadas.has(c.label);
+                return (
+                  <button
+                    key={`${id} ${c.name}`}
+                    type="button"
+                    onClick={() => alternar(c.label)}
+                    title={`código ${c.name}`}
+                    style={{
+                      padding: "3px 9px", borderRadius: 999, cursor: "pointer", fontSize: 11,
+                      fontWeight: on ? 600 : 500,
+                      border: `1px solid ${on ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                      background: on ? "var(--pulso-primary-soft)" : "transparent",
+                      color: on ? "var(--pulso-primary)" : "var(--pulso-text)",
+                    }}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 /** De dónde salen los nombres de las ranuras.

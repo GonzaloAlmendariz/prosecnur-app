@@ -198,6 +198,12 @@ export type ArgTipoInput =
   // iconos_list: lo mismo para íconos. Cada ranura abre el catálogo de
   // Configuración global en vez de pedir que se teclee una ruta SVG/PNG.
   | "iconos_list"
+  // categorias_escala: marca las categorías de un indicador (Top 2 Box…) sobre
+  // las escalas REALES del estudio, agrupadas por lista y con las bases que la
+  // usan. Sustituye al texto libre, donde había que acertar la mayúscula y el
+  // código de memoria. El valor sigue siendo la lista plana de etiquetas que
+  // el motor empareja.
+  | "categorias_escala"
   // base_labels: una caja por base del estudio para renombrar las columnas de
   // una tabla comparativa. El valor viaja como texto `clave=Título` por línea
   // —el mismo formato que `titulos_grupo`— pero el analista nunca lo escribe:
