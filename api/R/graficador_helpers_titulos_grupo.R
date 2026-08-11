@@ -44,10 +44,24 @@
   cupo <- max(1L, as.integer(floor(n_filas * as.integer(lineas_por_fila) * min(1, alto_rel))))
   if (length(lineas) <= cupo) return(titulo)
 
+  entero <- paste(trimws(lineas), collapse = " ")
   lineas <- lineas[seq_len(cupo)]
   ultima <- trimws(lineas[cupo])
   # El corte se marca: un titulo que termina a media frase sin senal se lee como
   # un dato incompleto, no como un texto acortado.
   lineas[cupo] <- paste0(sub("[[:punct:]]+$", "", ultima), "…")
+
+  # Y ademas se cuenta. El motor cortaba 31 enunciados de un mazo de 67 laminas
+  # sin decirlo en ninguna parte: el analista veia el «…» en el PPT entregado y
+  # no tenia forma de saber que era decision del motor ni cual era el texto
+  # completo. El aviso lleva el enunciado entero y cuanto espacio falto, que es
+  # lo que permite decidir si se ensancha el canal del bloque o se acepta.
+  .pulso_aviso(sprintf(
+    paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
+           "y el texto necesita %d lineas en el canal actual. Ensancha «Columna ",
+           "de grupo» de ESTE grafico o acorta el enunciado."),
+    cupo, entero, n_filas, length(strsplit(titulo, "\n", fixed = TRUE)[[1]])
+  ))
+
   paste(lineas, collapse = "\n")
 }

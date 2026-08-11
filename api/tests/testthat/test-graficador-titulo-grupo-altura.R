@@ -56,6 +56,38 @@ test_that("un bloque de una sola barra tambien se acota", {
   expect_equal(length(strsplit(corto, "\n", fixed = TRUE)[[1]]), 3L)
 })
 
+test_that("el recorte avisa, con el enunciado entero y cuanto falto", {
+  # El motor cortaba 31 enunciados de un mazo de 67 laminas sin decirlo en
+  # ninguna parte: el «…» aparecia en el PPT entregado y no habia forma de saber
+  # que era decision del motor ni cual era el texto completo.
+  titulo <- paste(c("La Unidad facilita los medios", "necesarios para que los",
+                    "docentes cumplan", "su labor"), collapse = "\n")
+  msgs <- character(0)
+  withCallingHandlers(
+    .barras_acotar_titulo_grupo(titulo, n_filas = 1L),
+    message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") }
+  )
+  aviso <- msgs[grepl(.PULSO_AVISO_SELLO, msgs, fixed = TRUE)]
+  expect_length(aviso, 1L)
+  # Lleva el enunciado ENTERO, que es lo que no estaba en el PPT.
+  expect_true(grepl("La Unidad facilita los medios necesarios para que los docentes cumplan su labor",
+                    aviso, fixed = TRUE))
+  # Y dice cuanto falto: 3 lineas de cupo contra las 4 que necesita.
+  expect_true(grepl("3 linea", aviso, fixed = TRUE))
+  expect_true(grepl("4 lineas", aviso, fixed = TRUE))
+})
+
+test_that("lo que cabe no avisa", {
+  # El control: si avisara siempre, el aviso no distinguiria el caso bueno del
+  # malo y no serviria para nada.
+  msgs <- character(0)
+  withCallingHandlers(
+    .barras_acotar_titulo_grupo("Un tema\nde dos lineas", n_filas = 4L),
+    message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") }
+  )
+  expect_length(msgs[grepl(.PULSO_AVISO_SELLO, msgs, fixed = TRUE)], 0L)
+})
+
 test_that("un sub-bloque de escalas mixtas encoge su titulo en proporcion", {
   # En una lamina de escalas mixtas tres o cuatro bloques se reparten la altura:
   # ahi la fila mide la mitad y el titulo tiene que encogerse igual, o invade al

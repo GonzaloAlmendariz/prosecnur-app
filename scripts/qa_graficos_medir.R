@@ -26,6 +26,10 @@
 #              cuáles tienen rangos numéricos desordenados.
 #   geometria  Sobre un .pptx ya renderizado: formas que se salen de la lámina
 #              y textos truncados. Pásalo como tercer argumento.
+#   avisos     Lo que el motor decidió por su cuenta y contó. Viajan por
+#              `message()` con el sello `[PULSO-AVISO]`, NO por `warning()`:
+#              el renderer se traga los warnings. Un truncado que no aparece
+#              aquí es un truncado silencioso.
 #
 # NOTA sobre el render: se hace EN PROCESO, no por job `callr`. Es la única
 # forma de instrumentar, porque el worker corre en un subproceso.
@@ -189,6 +193,26 @@ if (CMD == "render") {
   }
   cat("\nOJO: ordenar por el primer número falla cuando la escala mezcla\n",
       "unidades («Más de 1 año» vs «Menos de 2 meses»). Revisar a ojo.\n")
+
+} else if (CMD == "avisos") {
+  ctx <- abrir()
+  vistos <- character(0)
+  withCallingHandlers(
+    invisible(renderizar(ctx)),
+    message = function(m) {
+      txt <- conditionMessage(m)
+      if (grepl(.PULSO_AVISO_SELLO, txt, fixed = TRUE)) {
+        vistos <<- c(vistos, trimws(sub(paste0(".*\\", .PULSO_AVISO_SELLO), "", txt)))
+      }
+      invokeRestart("muffleMessage")
+    })
+  cat("avisos emitidos:", length(vistos), "· distintos:", length(unique(vistos)), "\n\n")
+  tb <- sort(table(vistos), decreasing = TRUE)
+  for (a in names(tb)) cat(sprintf("  x%-3d %s\n", tb[[a]], substr(a, 1, 150)))
+  if (!length(vistos)) {
+    cat("Ninguno. Si el mazo tiene «…» o columnas omitidas, el motor está\n",
+        "decidiendo en silencio: ese es el defecto, no la ausencia de avisos.\n")
+  }
 
 } else if (CMD == "geometria") {
   pptx <- EXTRA
