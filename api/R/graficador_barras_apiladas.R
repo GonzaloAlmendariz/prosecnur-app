@@ -2412,6 +2412,25 @@ graficar_barras_apiladas <- function(
   } else {
     NULL
   }
+  # El wrap se acota al ancho REAL del canal.
+  #
+  # `ancho_max_eje_y` mide en caracteres y `canvas_w_etiquetas` en fraccion del
+  # canvas: describen la misma caja y nadie los conciliaba, asi que el motor
+  # obedecia a los dos. Con el wrap en 60 y el canal en 0,332 —el proyecto de
+  # acreditacion— el canal daba 4,4" y el texto envuelto media 5,85": los
+  # enunciados salian POR FUERA del borde izquierdo de la lamina.
+  #
+  # Solo acota, nunca amplia: quien pidio 40 caracteres quiere 40. Y cuando
+  # nadie declaro wrap pero si canal, se envuelve a lo que entra, porque una
+  # sola linea larga se sale igual.
+  cabe_en_canal <- if (missing(canvas_w_etiquetas)) {
+    NA_integer_
+  } else {
+    .barras_chars_en_canal(canvas_w_etiquetas, ancho, size_ejes_num)
+  }
+  if (is.finite(cabe_en_canal)) {
+    wrap_eje_y_eff <- if (is.null(wrap_eje_y_eff)) cabe_en_canal else min(wrap_eje_y_eff, cabe_en_canal)
+  }
   if (!is.null(wrap_eje_y_eff)) {
     if (!requireNamespace("stringr", quietly = TRUE)) stop("Para `ancho_max_eje_y` se requiere stringr.", call. = FALSE)
     etiquetas_vec <- stringr::str_wrap(etiquetas_vec, width = wrap_eje_y_eff)
