@@ -316,12 +316,11 @@ calc_bool <- function(x, default = FALSE) {
   escala <- 10^dec
   units <- suppressWarnings(as.numeric(units))
 
-  out <- paste0(format(units / escala, nsmall = dec, trim = TRUE,
-                       scientific = FALSE), "%")
-  cero <- is.finite(units) & units == 0
-  if (any(cero)) {
-    minimo <- format(1 / escala, trim = TRUE, scientific = FALSE)
-    out[cero] <- paste0("<", minimo, "%")
-  }
-  out
+  # Se escribe «0%», no «<1%». El «<1%» era una notación que no existe en el
+  # entregable: el analista pega esa cifra en un informe y tiene que explicar un
+  # símbolo que nadie usa. Lo que aquel apaño protegía —que no se lea «cero»
+  # donde sí hay gente— lo resuelve ahora el interruptor de categorías en cero,
+  # que hace visible el segmento y permite poner la cuenta al lado.
+  paste0(format(units / escala, nsmall = dec, trim = TRUE,
+                scientific = FALSE), "%")
 }

@@ -306,19 +306,24 @@ test_that("el helper de dimensiones delega en el canónico", {
   expect_identical(.dim_round_half_up(c(-2.5, 0.5, 12.25), 1), .pulso_round_half_up(c(-2.5, 0.5, 12.25), 1))
 })
 
-test_that("un segmento que redondea a cero no se rotula «0%»", {
-  # Un segmento que llega al rotulado EXISTE —los de valor cero no se dibujan—,
-  # así que un «0%» sobre una barra visible dice que no hay nada donde hay
-  # 0,4 %. Se verifica sobre la regla y no sobre el objeto ggplot: los asserts
-  # contra el canvas no ven estas etiquetas y pasan en verde sin medir nada.
+test_that("un segmento que redondea a cero se rotula «0%», no «<1%»", {
+  # El «<1%» era una notación que no existe en el entregable: el analista pega
+  # esa cifra en un informe y tiene que explicar un símbolo que nadie usa. Lo
+  # que aquel apaño protegía —no leer «cero» donde sí hay gente— lo resuelve
+  # ahora el interruptor de categorías en cero, que hace visible el segmento.
+  #
+  # Se verifica sobre la regla y no sobre el objeto ggplot: los asserts contra
+  # el canvas no ven estas etiquetas y pasan en verde sin medir nada.
   expect_equal(.pulso_fmt_pct_unidades(c(0, 1, 2, 30, 68), 0),
-               c("<1%", "1%", "2%", "30%", "68%"))
-  expect_false("0%" %in% .pulso_fmt_pct_unidades(0, 0))
+               c("0%", "1%", "2%", "30%", "68%"))
+  expect_false(any(grepl("<", .pulso_fmt_pct_unidades(c(0, 1), 0), fixed = TRUE)))
 })
 
-test_that("el aviso se ajusta a la resolución pedida", {
+test_that("la resolución pedida se respeta también en el cero", {
+  # Con un decimal, el cero es «0.0%» y no «<0.1%»: la notación desaparece en
+  # todas las resoluciones, no sólo en la de enteros.
   expect_equal(.pulso_fmt_pct_unidades(c(0, 4, 999), 1),
-               c("<0.1%", "0.4%", "99.9%"))
+               c("0.0%", "0.4%", "99.9%"))
 })
 
 test_that("el graficador usa esa misma regla y no una copia", {
