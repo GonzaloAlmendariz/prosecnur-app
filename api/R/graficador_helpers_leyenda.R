@@ -74,8 +74,17 @@
 }
 
 # Alto de la banda, en pulgadas.
-.BARRAS_LEYENDA_ALTO_FILA_IN <- 0.24
-.BARRAS_LEYENDA_HOLGURA_IN <- 0.08
+#
+# El piso baja de 0,24" a 0,20" y la holgura deja de ser un plano de 0,08" para
+# volverse proporcional a la fila. Medido con las guías sobre «Conta 10-08»: la
+# banda reservaba 38 px para dibujar 16 —el 58 % era aire—. El plano sumaba dos
+# veces lo mismo: `alto_fila` ya trae su interlineado del 35 %, y encima se le
+# añadía un margen fijo que a 10,5 pt pesaba otro 40 % del contenido.
+#
+# Solo aprieta las leyendas CHICAS. A 16 pt la banda queda igual que antes
+# (0,39" contra 0,38"), así que el mazo de acreditación no se mueve.
+.BARRAS_LEYENDA_ALTO_FILA_IN <- 0.20
+.BARRAS_LEYENDA_HOLGURA_REL <- 0.30
 # Interlineado: una fila de texto necesita mas que el cuerpo de la letra.
 .BARRAS_LEYENDA_INTERLINEA <- 1.35
 
@@ -93,12 +102,13 @@
 
 .barras_leyenda_alto_in <- function(etiquetas, size_pt, ancho_in, key_cm = 0.34,
                                     gap_npc = 0.018, aspect_yx = 0.6,
-                                    n_por_fila = 6L, minimo_in = 0.30) {
+                                    n_por_fila = 6L, minimo_in = 0.24) {
   filas <- .barras_leyenda_filas(etiquetas, size_pt, ancho_in, key_cm = key_cm,
                                  gap_npc = gap_npc, aspect_yx = aspect_yx,
                                  n_por_fila = n_por_fila)
   if (!filas) return(0)
-  max(minimo_in, filas * .barras_leyenda_alto_fila_in(size_pt) + .BARRAS_LEYENDA_HOLGURA_IN)
+  alto_fila <- .barras_leyenda_alto_fila_in(size_pt)
+  max(minimo_in, filas * alto_fila + alto_fila * .BARRAS_LEYENDA_HOLGURA_REL)
 }
 
 # Alto de fila cuando el hueco fisico da mas de lo que pide el contenido.
