@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, AlertTriangle, AlignJustify, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, SlidersHorizontal, Upload, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, AlignJustify, ArrowRight, Check, CheckCircle2, ChevronDown, Database, Download, FileText, GanttChart, Layers3, LayoutGrid, RotateCcw, Loader2, Rows3, Undo2, Redo2, Settings2, PanelTopDashed, Ruler, SlidersHorizontal, Upload, X } from "lucide-react";
 import {
   apiGraficosConfigGet,
   apiGraficosConfigExport,
@@ -1481,7 +1481,7 @@ function DebugPhToggle() {
         aria-haspopup="dialog"
         title={active ? "Ocultar guías de layout" : "Mostrar guías de layout"}
       >
-        <PanelTopDashed size={12} />
+        <Ruler size={12} />
         <span className="pulso-gv2-debug-border-label">Guías</span>
         <span className="pulso-gv2-debug-border-chip" aria-hidden="true" />
         <ChevronDown size={12} className="pulso-gv2-debug-border-chevron" aria-hidden="true" />

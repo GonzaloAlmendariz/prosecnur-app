@@ -7129,7 +7129,7 @@
 }
 
 .pulso-gv2-sugerido-swatches {
-  display: inline-grid;
+  display: inline-grid; min-width: max-content;
   grid-auto-flow: column;
   grid-auto-columns: 9px;
   gap: 2px;
