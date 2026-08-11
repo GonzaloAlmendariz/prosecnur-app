@@ -1621,3 +1621,53 @@ test_that("los iconos por base tambien entran en la lista de inputs", {
 
   expect_true(meta$file_id %in% .pulso_collect_input_fids(session_get(sid)))
 })
+
+test_that("guardar avisa de las referencias que no pudieron viajar", {
+  # «Conta 10-08» se guardó con un ícono cuyo PNG ya no estaba en la sesión:
+  # el .pulso salía completo a la vista y roto al reabrirlo en otra máquina,
+  # donde el export moría entero con «Icono no encontrado». Guardar sigue
+  # siendo posible —bloquearlo sería peor— pero deja de ser mudo.
+  sid <- session_create()
+
+  png_path <- tempfile(fileext = ".png")
+  grDevices::png(png_path, width = 16, height = 16)
+  graphics::par(mar = c(0, 0, 0, 0)); graphics::plot.new()
+  grDevices::dev.off()
+  meta <- .register_output_file(sid, "icono_perfil", png_path)
+
+  s <- session_get(sid)
+  s$graficos_config <- list(
+    iconos = list(list(id = "ico-1", nombre = "Perfil", file_id = meta$file_id))
+  )
+  .session_env[[sid]] <- s
+
+  # El archivo desaparece de disco, pero el proyecto lo sigue declarando.
+  unlink(meta$path)
+
+  dest <- tempfile(fileext = ".pulso")
+  r <- build_pulso(sid, dest, project_name = "Con referencia rota")
+
+  expect_true(isTRUE(r$ok))              # guardar NO se bloquea
+  expect_true(file.exists(dest))
+  expect_length(as.character(r$refs_perdidas), 1L)
+  # Nombra el recurso: un UUID no le dice nada al analista.
+  expect_match(as.character(r$refs_perdidas)[1], "Perfil", fixed = TRUE)
+})
+
+test_that("un proyecto sano no reporta referencias perdidas", {
+  sid <- session_create()
+  png_path <- tempfile(fileext = ".png")
+  grDevices::png(png_path, width = 16, height = 16)
+  graphics::par(mar = c(0, 0, 0, 0)); graphics::plot.new()
+  grDevices::dev.off()
+  meta <- .register_output_file(sid, "icono_ok", png_path)
+
+  s <- session_get(sid)
+  s$graficos_config <- list(
+    iconos = list(list(id = "ico-ok", nombre = "Perfil", file_id = meta$file_id))
+  )
+  .session_env[[sid]] <- s
+
+  r <- build_pulso(sid, tempfile(fileext = ".pulso"), project_name = "Sano")
+  expect_length(as.character(r$refs_perdidas), 0L)
+})

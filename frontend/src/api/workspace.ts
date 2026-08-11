@@ -34,7 +34,14 @@ export async function apiProjectSave(path: string | null = null, projectName?: s
   const body: Record<string, unknown> = {};
   if (path) body.path = path;
   if (projectName) body.project_name = projectName;
-  return handle<{ ok: true; path: string; size: number; saved_at: string }>(
+  return handle<{
+    ok: true; path: string; size: number; saved_at: string;
+    /** Referencias que el proyecto declara y cuyo archivo ya no estaba, así que
+     *  no viajan dentro del `.pulso`. Guardar sigue siendo posible —bloquearlo
+     *  sería peor— pero el analista se entera antes de entregar el archivo.
+     *  Ausente en backends viejos. */
+    refs_perdidas?: string[];
+  }>(
     await apiFetch("/api/project/save", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),

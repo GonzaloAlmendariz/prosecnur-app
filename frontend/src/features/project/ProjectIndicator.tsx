@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 import {
+  AlertTriangle,
   CheckCircle2,
   Circle,
   Folder,
@@ -28,6 +29,7 @@ type Props = {
 export default function ProjectIndicator({ project, onOpenProjectViewer, onRequestSelector }: Props) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const { status } = project;
+  const refsPerdidas = project.refsPerdidas ?? [];
   const projectPath = status.path ?? "";
 
   if (!status.has_project) {
@@ -67,6 +69,20 @@ export default function ProjectIndicator({ project, onOpenProjectViewer, onReque
         <span className="pulso-project-chip-copy">
           <span className="pulso-project-chip-name">{status.name}</span>
         </span>
+        {/* El último guardado dejó fuera una referencia que el proyecto declara:
+            el `.pulso` sale completo a la vista y roto al reabrirlo en otra
+            máquina. Se dice en el chip —que es donde el analista mira si
+            guardó— y el detalle va en el tooltip, con la salida. */}
+        {refsPerdidas.length > 0 && (
+          <span
+            className="pulso-project-chip-status is-dirty"
+            title={`El .pulso se guardó sin ${refsPerdidas.join(", ")}. El archivo ya no estaba en la sesión, así que al abrirlo en otra máquina esa pieza faltará. Vuelve a subirla y guarda otra vez.`}
+            aria-label={`Guardado sin ${refsPerdidas.join(", ")}`}
+          >
+            <AlertTriangle size={10} />
+            <span>{refsPerdidas.length === 1 ? "falta 1 recurso" : `faltan ${refsPerdidas.length} recursos`}</span>
+          </span>
+        )}
         <span className={`pulso-project-chip-status ${status.dirty ? "is-dirty" : "is-saved"}`}>
           {status.dirty ? (
             <>
