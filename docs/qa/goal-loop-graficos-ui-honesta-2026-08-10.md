@@ -82,18 +82,18 @@ campo: estado gris y valor heredado visible.
 Lo que falta es **de qué capa concreta** viene el valor de un campo y dónde
 cambiarlo para todas las láminas. Se intentó y se retiró — ver §Propuestas P-A.
 
-### C-03 · El distribuidor de canvas está en 1 de 24 graficadores
+### ~~C-03 · El distribuidor de canvas está en 1 de 24 graficadores~~ → §Propuestas P-B
 Medido sobre `.GRAFICADORES_META`: solo `p_barras_agrupadas` expone un argumento
 `canvas_*` en su UI. Los demás reparten su espacio con valores que el analista no
 ve ni puede tocar desde el gráfico. No implica que deban exponerlos todos —sí que
 la asimetría hoy no responde a ninguna razón declarada.
 
-### C-04 · La superficie expuesta por graficador es dispar sin criterio visible
+### ~~C-04 · La superficie expuesta por graficador es dispar sin criterio visible~~ → §Propuestas P-B
 `p_barras_apiladas` expone **6** argumentos; `p_histograma`, **23**; el motor de
 apiladas acepta ~140. La asimetría no sigue ni la complejidad del gráfico ni su
 uso. Hace falta un criterio escrito de qué merece estar en la UI.
 
-### C-05 · `espacio` aparece en 4 de 24 graficadores
+### ~~C-05 · `espacio` aparece en 4 de 24 graficadores~~ → §Propuestas P-B
 El vocabulario de grupos es `datos · valores · lectura · espacio · diagnostico ·
 tabla`. `espacio` solo se usa en 4. O el grupo sobra, o a 20 graficadores les
 falta declarar ahí lo que ya tienen.
@@ -143,6 +143,29 @@ como avance.
 
 La 1 y la 3 son las mejores; la 3 es la más barata. Cualquiera cambia cómo se
 lee el panel, así que no se aplica sin tu visto bueno.
+
+### P-B · Qué merece estar en la UI de cada graficador (C-03, C-04, C-05)
+
+**Medido.** La superficie expuesta no sigue ningún criterio declarado:
+
+| Graficador | Args en la UI | Args del motor | Expuesto |
+|---|---|---|---|
+| `p_barras_apiladas` | 6 | 130 | **4,6 %** |
+| `p_barras_agrupadas` | 19 | 102 | 18,6 % |
+| `p_barras_categoricas` | 20 | 52 | 38,5 % |
+| `p_nube_palabras` | 5 | 18 | 27,8 % |
+
+Y el grupo `espacio` se usa en 4 de 24; el distribuidor de canvas, en 1.
+
+**Por qué no se aplica.** Exponer más args no es aditivo: añadir 120 controles a
+apiladas empeoraría todo, y reasignar un arg de grupo MUEVE un control de sitio,
+que es justo lo que la restricción dura prohíbe sin decisión.
+
+Lo que hace falta antes de tocar nada es **un criterio escrito** de qué merece
+estar en la UI. Una propuesta de criterio, para discutir: está en la UI lo que el
+analista cambia por estudio (no por mazo), lo que no se puede derivar del dato, y
+lo que si sale mal se ve en la lámina. Lo demás vive en el preset y se toca por
+código o por línea visual.
 
 ## Bitácora
 
@@ -276,3 +299,37 @@ comprueba que un proyecto sano no reporta nada—.
 camino que pasa por el hook es «Guardar como…», que usa el diálogo nativo de
 Electron y no existe en el navegador de dev. Se cerró con un test de componente
 en vez de darlo por hecho.
+
+### 2026-08-10 · iteración 5 — descripciones que faltaban, y dos falsos positivos míos
+
+**Lo que NO era.** Dos mediciones antes de acertar, las dos registradas porque
+descartan hipótesis:
+
+1. *Args expuestos que el motor no acepta*: 13 graficadores salían señalados,
+   pero comparé contra `graficar_*` cuando la selección de datos (`var`, `cruce`,
+   `excluir_opciones`) la consume el PLAN. Falso positivo.
+2. Rehecho contra `p_*`, quedaban 3. También falso: los tres tienen `overrides`,
+   por donde esos args viajan. **No hay controles huérfanos demostrables.**
+
+**Lo que sí.** 61 de 227 args expuestos (27 %) no tenían descripción, en 16
+graficadores. Importa más de lo que parece: el buscador de la iteración 1 busca
+por lo que el ajuste HACE, así que un arg sin descripción es inencontrable salvo
+que ya sepas su nombre técnico.
+
+**Cambiado.** Nueve descripciones, cada una verificada contra lo que el motor
+hace con ese argumento. `p_barras_categoricas` pasa de 8 sin describir a 1.
+
+**Evidencia.** Con la semántica real del buscador:
+
+    «cifra sobre barra» -> 2 · «partir etiqueta» -> 1 · «grilla» -> 1
+
+460 tests de `test-graficos-argumentos-ui.R` en verde.
+
+**Un descuido propio, y su hallazgo.** Una sustitución cayó en
+`p_barras_agrupadas` en vez de `p_barras_categoricas` porque reemplacé por texto
+sin anclar el bloque. Ahí la descripción **también era cierta**, así que quedó
+como acierto colateral, pero rehice las restantes ancladas por posición. Y al
+verificar apareció `C-08`: el buscador no normaliza tildes.
+
+**Cola refrescada**: C-03, C-04 y C-05 pasan a §Propuestas P-B con su medición
+—exponer más args no es aditivo—; entran C-08 y C-09.
