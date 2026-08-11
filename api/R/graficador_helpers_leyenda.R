@@ -232,3 +232,30 @@
   filas <- suppressWarnings(as.integer(filas)[1])
   if (!is.finite(filas) || filas < 1L) 1L else filas
 }
+
+# Cuántos caracteres caben en el canal de etiquetas del eje Y.
+# =============================================================
+#
+# `ancho_max_eje_y` mide en CARACTERES y `canvas_w_etiquetas` en fracción del
+# canvas: son dos controles que describen la misma caja y nadie los conciliaba.
+# Declarar un wrap de 60 y un canal de 0,332 hace que el motor obedezca a los
+# dos y el texto salga de la lámina — medido en «Conta 10-08»: el canal daba
+# 4,4" y el texto envuelto medía 5,85", así que se salía 1,4" por la izquierda.
+#
+# Aquí se traduce el ancho del canal al número de caracteres que entran, con el
+# mismo modelo de ancho de glifo que usa la leyenda. Solo sirve para ACOTAR: el
+# wrap declarado nunca se amplía, porque quien pidió 40 caracteres quiere 40.
+.barras_chars_en_canal <- function(w_npc, ancho_in, size_pt, minimo = 12L) {
+  w_npc <- suppressWarnings(as.numeric(w_npc)[1])
+  ancho_in <- suppressWarnings(as.numeric(ancho_in)[1])
+  size_pt <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(w_npc) || w_npc <= 0) return(NA_integer_)
+  if (!is.finite(ancho_in) || ancho_in <= 0) ancho_in <- 10
+  if (!is.finite(size_pt) || size_pt <= 0) size_pt <- 9
+
+  # El canal reserva un respiro contra la barra; sin él la última letra queda
+  # pegada al segmento.
+  utiles <- (w_npc * ancho_in) - 0.06
+  if (utiles <= 0) return(as.integer(minimo))
+  max(as.integer(minimo), as.integer(floor(utiles * 72 / (size_pt * 0.52))))
+}

@@ -513,3 +513,19 @@ test_that("unas etiquetas declaradas mandan sobre la guarda del box", {
     message = "se omite"
   )
 })
+
+test_that("el wrap del eje Y no puede pasarse del canal declarado", {
+  # Regresion de «Conta 10-08»: `ancho_max_eje_y` mide en caracteres y
+  # `canvas_w_etiquetas` en fraccion del canvas. Con wrap 60 y canal 0,332 el
+  # canal daba 4,4" y el texto envuelto media 5,85": los enunciados salian por
+  # FUERA del borde izquierdo de la lamina.
+  cabe <- .barras_chars_en_canal(0.332, 13.33, 13.5)
+  expect_true(is.finite(cabe))
+  expect_lt(cabe, 60L)   # el declarado por el proyecto no entraba
+
+  # Un canal ancho admite mas texto que uno angosto, y nunca menos del piso.
+  expect_gt(.barras_chars_en_canal(0.50, 13.33, 13.5),
+            .barras_chars_en_canal(0.20, 13.33, 13.5))
+  expect_gte(.barras_chars_en_canal(0.01, 13.33, 13.5), 12L)
+  expect_true(is.na(.barras_chars_en_canal(NULL, 13.33, 13.5)))
+})
