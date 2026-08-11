@@ -451,3 +451,57 @@ en las tres suites del área, en verde.
 
 **Iteración de saldo mixto**: un descarte y un avance parcial. Se registra así
 en vez de inflar el descarte como si fuera un hallazgo.
+
+### 2026-08-11 · iteración 10 — el mapa de lo que no está en la UI, y una corrección a mis propias cifras
+
+Gonzalo pidió el mapeo de qué no está hoy en la UI y por qué. Al medirlo bien
+descubrí que **las cifras que reporté en las iteraciones 5 y 8 estaban mal**.
+Medí cada catálogo por separado, cuando un argumento expuesto en *cualquiera*
+de las dos superficies sí está en la UI. Con la unión correcta:
+
+| | mal (iter. 5 y 8) | real |
+|---|---|---|
+| `p_barras_apiladas` | 6/130 · 4,6 % | 82/130 · 63 % |
+| `p_barras_agrupadas` | 19/102 · 18,6 % | 70/102 · 69 % |
+| `p_barras_categoricas` | 20/52 · 38,5 % | 37/52 · 71 % |
+| mediana de los 15 graficadores | — | **71 %** |
+
+Los tres peores son `p_mapa_cobertura_territorial` (1/3), `p_media_rango`
+(32/82, 39 %) y `p_boxplot` (30/62, 48 %). No `p_barras_apiladas`, que es el
+que más se usa y está por encima de la mediana.
+
+**Por qué falta lo que falta: un solo mecanismo, no varios.** Los dos catálogos
+se escriben a mano y no se derivan de `formals()`. El router filtra por
+`formals()` (`router_graficos.R:203`), así que el motor aceptaría cualquier
+argumento que le llegara — pero no llega ninguno que no esté en el catálogo,
+porque **ninguna superficie tiene un campo libre clave/valor**: «Estilos
+guardados» reusa el mismo catálogo de presets (`OverridesEditor.tsx:30-31`).
+El catálogo es el techo duro.
+
+Y no había nada que vigilara la deriva en la dirección peligrosa. El contrato
+existente corre en la dirección segura —nada del catálogo está muerto,
+`test-graficos-metadata.R:210`—; la inversa estaba pinneada a 2 argumentos de
+2 láminas (`test-graficos-slides-args-contrato.R:26`), un pin de una auditoría
+vieja. Por eso 195 argumentos quedaron sin puerta sin que nadie lo decidiera.
+
+De los 155 nombres distintos sin superficie, descontando los 21 que son
+contrato interno o mecánica del export (`data`, `contexto`, `overrides`,
+`ppt_*`, `path_salida`…), quedan los que sí son decisión de producto: la
+familia semáforo/box a medias (`top3box_labels`, `semaforo_gradiente_*`),
+los iconos del radar (`icono_modo`, `icono_size_radar`…), y controles de
+orden y sentido (`invertir_series`, `orden_series`, `paleta_colores`).
+
+**Aplicado**: `api/tests/testthat/test-graficos-deriva-catalogo-ui.R`. No exige
+exponerlo todo — fija la línea base para que la brecha no crezca en silencio.
+Un parámetro nuevo del motor sin superficie hace caer el test con el nombre y
+las tres salidas posibles; exponer algo solo lo saca de la lista. Cumple
+«añadir, no mover»: no toca ningún control, default ni nombre.
+
+Verificado: 29 pass, y **probado que cae cuando debe** — saqué
+`invertir_series` de la línea base y el test falló (FAIL 1); restaurado, verde.
+Un segundo test evita nombres fósiles en la línea base, que taparían una
+deriva real si el motor renombra un argumento.
+
+Esto convierte P-B de pregunta abierta en cola priorizada: la decisión de qué
+merece puerta sigue siendo de Gonzalo, pero ahora está acotada y no puede
+crecer sola.
