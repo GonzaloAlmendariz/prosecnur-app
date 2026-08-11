@@ -506,3 +506,19 @@ la última barra.
 
 **Ícono ausente**: el cuadro blanco del centro en las láminas de perfil es la
 referencia perdida del ícono «Perfil», visible en la lámina 9.
+
+### E-13 · Orden manual de barras por gráfico *(pedido 2026-08-11)*
+En barras agrupadas hace falta una opción **sólo del gráfico**, no del preset
+global, para reordenar las barras a mano — además de los órdenes que ya existen
+(instrumento, mayor a menor…). La interacción que Gonzalo pide es la misma con
+la que hoy se reordenan los slides: arrastrar o subir/bajar, no teclear una
+lista de códigos.
+
+El argumento ya existe: `orden_categorias_manual`, declarado como `codigos_list`
+y consumido por `overrides` —o sea, ya es por gráfico y no por preset—. Lo que
+falta es la superficie: un tipo de input que muestre las categorías reales de
+esa escala como filas reordenables, en vez de un campo de texto.
+
+Se apoya en lo mismo que el selector de categorías del Top 2 Box: el catálogo de
+escalas ya devuelve las etiquetas reales con sus códigos y las bases que las
+usan.
