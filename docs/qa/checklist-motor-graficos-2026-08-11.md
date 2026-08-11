@@ -24,7 +24,7 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 4 | **Objetivo**: el campo de texto sale invertido | motor | ☐ sin empezar |
 | 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ☑ **hecho** |
 | 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☑ **hecho** |
-| 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ◐ **ADR hecho**, falta cablear |
+| 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ◐ ADR + piezas puras hechas; **falta cablear** |
 | 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
 | 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** |
 
@@ -116,15 +116,32 @@ nativa**, con `flextable`, en `.make_technical_table_flextable()`
 **ADR 0072** fija que toda tabla del entregable va nativa, precisando el alcance
 del 0071 sin revertirlo. Registrado en el índice y anotado en el propio 0071.
 
-**Lo que falta es el cableado**, y son tres piezas:
+**Pieza 1 hecha** (`reporte_plan_tabla_nativa.R`, 19 tests):
+`.tabla_nativa_partir_slot()` divide el slot del gráfico —`spec$loc` es
+`list(left, top, width, height)` en pulgadas— en gráfico a la izquierda y tabla
+a la derecha, y devuelve `NULL` cuando no es partible para que el llamador
+dibuje como antes. `.tabla_nativa_flextable()` construye la tabla **con**
+encabezado; la ficha técnica borra el suyo con `delete_part()` porque su primera
+columna ya nombra cada fila, aquí el encabezado lleva los públicos comparados y
+es parte del dato.
 
-1. Un builder de tabla nativa para el radar, con encabezado —la ficha técnica
-   borra el suyo con `delete_part()`, aquí hace falta.
-2. Que `graficar_radar()` **emita los datos** de la tabla como `data.frame` en
-   vez de dibujarla en el canvas.
-3. Un contrato de lámina con **dos placeholders**, gráfico y tabla, donde hoy
-   sólo hay uno. Es la pieza que no existe: el radar no tiene placeholder de
-   tabla previsto.
+Con eso **no hace falta un contrato de lámina nuevo**: se parte el slot que ya
+existe, que era la pieza que yo daba por más cara.
+
+**Pieza 2 pendiente, con un obstáculo localizado.** El data.frame ya se calcula
+dentro del graficador —`.make_tabla_ttb_df()`, línea ~1427 de
+`graficador_radar.R`— y basta con adjuntarlo al canvas y no pintar el grob. Dos
+avisos para quien lo retome:
+
+- **No cortar con `return()`** en el bloque de la tabla: la leyenda del radar se
+  dibuja DESPUÉS y se pierde. Hay que omitir sólo el `draw_grob` de `tab_draw`.
+- El bloque `if (isTRUE(mostrar_tabla_derecha))` de la línea 1356 está **anidado
+  bajo otra condición sin identificar**. Un intento con `mostrar_tabla_derecha =
+  TRUE` no llegó a entrar: el atributo no se emitió. Hay que averiguar cuál es
+  esa condición antes de tocar nada más; probablemente `usar_canvas`.
+
+**Pieza 3**: colocar los dos specs en `slide_1`, donde hoy hay un único
+`ph_with_strict(doc, rvg::dml(ggobj = p), plot_slot)` (`reporte_plan_ppt.R:8164`).
 
 Los ~20 parámetros de dibujo a mano (`tabla_padding_mm`, `tabla_auto_fit`,
 `tabla_clip`…) quedan obsoletos con el paso 2; el ADR pide mantenerlos leídos
