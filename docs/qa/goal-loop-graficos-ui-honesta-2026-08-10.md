@@ -96,16 +96,19 @@ El vocabulario de grupos es `datos · valores · lectura · espacio · diagnosti
 tabla`. `espacio` solo se usa en 4. O el grupo sobra, o a 20 graficadores les
 falta declarar ahí lo que ya tienen.
 
-### C-06 · Los arreglos automáticos no se declaran
+### ~~C-06 · Los arreglos automáticos no se declaran~~ ✅ 2026-08-10
 El motor achica la letra del eje cuando no cabe (piso 9,6 pt), acota el wrap al
 canal, apaga el Top 2 Box en escalas de 2 categorías, reparte la leyenda en filas
 parejas. Todo eso es bueno y evita trabajo manual — pero **el analista no se
 entera**, y cuando su 14 pt sale a 9,5 cree que hizo algo mal. Los avisos ya
 existen como `message()` en el motor; no llegan a la interfaz.
 
-### C-07 · Un `.pulso` puede guardarse con referencias colgando
-El proyecto del 10-08 declara un ícono cuyo PNG no viaja en el zip. Se reparó el
-empaquetado, pero **nada avisa** al guardar de que una referencia quedó rota.
+### C-07 · Un `.pulso` puede guardarse con referencias colgando *(acotado)*
+El proyecto del 10-08 declara un ícono cuyo PNG no viaja en el zip. **Corrección
+del 2026-08-10**: la app SÍ avisa al abrirlo —«El ícono … ya no está disponible
+en el catálogo», con la salida sugerida—. Lo que falta es el aviso al **guardar**,
+que es cuando la referencia se rompe y cuando todavía se puede arreglar sin
+haber entregado nada.
 
 ## Propuestas — esperan decisión de Gonzalo
 
@@ -148,3 +151,40 @@ movió ningún control de sitio.
 La búsqueda por frase natural llega a los dos ajustes correctos sin conocer el
 nombre técnico. `pnpm exec tsc --noEmit` sale 0; vitest del feature, 47 archivos
 y 313 tests en verde.
+
+### 2026-08-10 · iteración 2 — C-06, los arreglos automáticos se declaran
+
+**Medido antes.** 19 `message()` en el motor de gráficos, de los cuales tres
+hablan al analista (columna Top 2 Box omitida, piso del eje del radar,
+comparativo alineado por orden). Ninguno llegaba a la interfaz: el `message()`
+acaba en el stderr del subproceso `callr`, el job lo escribe en `<job>.err` y
+**nadie leía ese archivo**.
+
+**Cambiado.** Los avisos destinados al analista llevan sello (`.pulso_aviso()`),
+que es lo que permite separarlos del resto del stderr —progreso, locale, avisos
+de paquetes— sin adivinar. Al completar el export se leen, se deduplican y se
+acotan a ocho: un mazo de 67 láminas repite el mismo aviso una vez por lámina, y
+al analista le sirve saber QUÉ pasó, no cuántas veces. Viajan en `result_data`,
+que es el canal que el frontend ya consume, y se pintan con el `Alert` que ya
+existe en la página.
+
+Respeta «añadir, no mover»: ningún control cambió de sitio y el `message()`
+original del comparativo sigue entero en el log, con su detalle de seis líneas;
+lo que se añadió es un resumen de una línea para la interfaz.
+
+**Evidencia.** Export real del `.pulso` del banco de prueba, por el worker de
+producción (`graficos_job_worker_ppt` en subproceso `callr`):
+
+    estado: done
+    avisos que llegan al cliente: 1
+      · La columna «top2box» se omite: la escala tiene 2 categoria(s) y
+        sumarlas daria 100 % en todas las filas. Necesita al menos 3.
+
+`tsc --noEmit` sale 0. Siete tests nuevos cubren el sello, la deduplicación, el
+tope de ocho, y los casos vacíos (sin `.err`, sin líneas selladas, sesión
+inexistente).
+
+**Lo que NO se pudo observar en la UI.** El proyecto del banco arrastra un ícono
+cuyo PNG no viaja en el `.pulso`, así que el export desde la app se bloquea antes
+de renderizar. El aviso se verificó en el payload que el frontend consume, no en
+el pixel. Queda pendiente verlo pintado en cuanto haya un `.pulso` sano.

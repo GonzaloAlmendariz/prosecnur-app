@@ -385,3 +385,45 @@ job_snapshot <- function(j) {
     error = j$error
   )
 }
+
+# Avisos del motor que tienen que llegar al analista.
+# ==================================================
+#
+# El motor toma decisiones automáticas buenas —achica la letra del eje cuando no
+# cabe, apaga el Top 2 Box en una escala de dos categorías, acota el wrap al
+# canal— y hasta ahora no las contaba. El analista bajaba un tamaño de 16 a 14,
+# le salía 9,5 y creía haberse equivocado.
+#
+# Los avisos viajan por `message()` porque el renderer se traga los `warning()`,
+# y el `message()` acaba en el stderr del subproceso callr. Para poder separarlos
+# del resto del ruido —progreso, avisos de paquetes, locale— llevan un sello.
+# Sin él habría que adivinar qué línea del stderr es para el usuario.
+.PULSO_AVISO_SELLO <- "[PULSO-AVISO]"
+
+#' Emite un aviso destinado al analista, no al log.
+#' @noRd
+.pulso_aviso <- function(...) {
+  message(.PULSO_AVISO_SELLO, " ", ...)
+  invisible(TRUE)
+}
+
+#' Avisos sellados que dejó un job en su stderr, en orden y sin repetir.
+#'
+#' Un mazo de 67 láminas repite el mismo aviso una vez por lámina afectada; al
+#' analista le sirve saber QUÉ pasó, no cuántas veces. Se deduplica y se acota:
+#' una lista de veinte avisos no se lee.
+#' @noRd
+.pulso_avisos_de_job <- function(sid, job_id, maximo = 8L) {
+  sess <- tryCatch(session_get(sid), error = function(e) NULL)
+  if (is.null(sess)) return(character(0))
+  err_path <- file.path(sess$dir, "jobs", paste0(job_id, ".err"))
+  if (!file.exists(err_path)) return(character(0))
+
+  lineas <- tryCatch(readLines(err_path, warn = FALSE), error = function(e) character(0))
+  lineas <- lineas[grepl(.PULSO_AVISO_SELLO, lineas, fixed = TRUE)]
+  if (!length(lineas)) return(character(0))
+
+  limpias <- trimws(sub(paste0(".*\\", .PULSO_AVISO_SELLO), "", lineas))
+  limpias <- unique(limpias[nzchar(limpias)])
+  utils::head(limpias, maximo)
+}

@@ -36,7 +36,12 @@ import {
 } from "./multibaseReportMenuModel";
 import { GraficosLibrariesHost } from "./GraficosLibrariesHost";
 
-type ExportResult = { ok: true; file_id: string; filename?: string; size: number; n_slides: number };
+type ExportResult = {
+  ok: true; file_id: string; filename?: string; size: number; n_slides: number;
+  /** Arreglos automáticos que el motor aplicó al renderizar. Ausente en
+   *  backends viejos. Ver `.pulso_aviso()` en el motor. */
+  avisos?: string[];
+};
 export default function GraficosPage() {
   const location = useLocation();
   const reportScope = parseGraficosReportScope(location.search);
@@ -90,6 +95,8 @@ export default function GraficosPage() {
   const [error, setError] = useState<HumanizedError | null>(null);
   const [warns, setWarns] = useState<string[]>([]);
   const select = usePlanStore((s) => s.select);
+  // Avisos del motor tras el último export. Se limpian al empezar otro.
+  const [avisosDelMotor, setAvisosDelMotor] = useState<string[]>([]);
   const [pptFileId, setPptFileId] = useState<string | null>(null);
   const [docxFileId, setDocxFileId] = useState<string | null>(null);
   const [pptFilename, setPptFilename] = useState<string | null>(null);
@@ -218,6 +225,11 @@ export default function GraficosPage() {
 
   function onExportDone(data: ExportResult) {
     if (!exportJob) return;
+    // El motor toma decisiones automáticas al renderizar —achica la letra del
+    // eje cuando no cabe, apaga el Top 2 Box en una escala de dos categorías—
+    // y hasta ahora no las contaba. Quien declaró 14 pt y vio 9,5 creía
+    // haberse equivocado.
+    setAvisosDelMotor(Array.isArray(data.avisos) ? data.avisos.filter(Boolean) : []);
     if (exportJob.kind === "ppt") {
       setPptFileId(data.file_id);
       setPptFilename(data.filename ?? null);
@@ -232,6 +244,7 @@ export default function GraficosPage() {
   function onExportError(message: string) {
     setError(humanizeGraficosExportError(message, plan));
     setExportJob(null);
+    setAvisosDelMotor([]);
   }
 
   function onExportCancelled() {
@@ -328,6 +341,19 @@ export default function GraficosPage() {
               onError={onExportError}
               onCancelled={onExportCancelled}
             />
+          )}
+
+          {avisosDelMotor.length > 0 && (
+            <Alert kind="info">
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <strong>
+                  {avisosDelMotor.length === 1
+                    ? "El motor ajustó algo al renderizar"
+                    : `El motor ajustó ${avisosDelMotor.length} cosas al renderizar`}
+                </strong>
+                {avisosDelMotor.map((a, i) => <span key={i}>{a}</span>)}
+              </div>
+            </Alert>
           )}
 
           {avisoDeclaracion && <Alert kind="warn">{avisoDeclaracion}</Alert>}
