@@ -469,7 +469,7 @@ function OverrideDropdown({
           style={popoverStyle}
         >
           <div className="pulso-gv2-mode-current" data-state={modeState}>
-            <span>Procedencia actual</span>
+            <span>Ahora mismo</span>
             <strong>{triggerLabel}</strong>
             <small>{triggerHint}</small>
             <p className="pulso-gv2-mode-current-detail">{currentDetail}</p>

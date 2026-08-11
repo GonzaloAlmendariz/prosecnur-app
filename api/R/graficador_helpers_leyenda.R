@@ -133,6 +133,33 @@
   max(minimo_in, filas * alto_fila + alto_fila * .BARRAS_LEYENDA_HOLGURA_REL)
 }
 
+# Cuerpo de letra que cabe en la fila que le toco a la leyenda.
+# ==============================================================
+#
+# Vivia en linea dentro de `graficador_barras_apiladas.R` y sujeto a `n_rows >
+# 1`, o sea: con UNA fila no se comprobaba nada y la leyenda se dibujaba a su
+# tamano nominal aunque la banda fuera mas baja. Es el caso mas comun, no el
+# raro: en una lamina de varios bloques cada sub-bloque recibe su hueco de
+# `plot_grid()`, la banda sale mas corta de lo estimado y el texto quedaba
+# cortado por abajo — medido en las laminas 18, 26, 30, 32 y 38 del mazo de
+# acreditacion, donde solo se leia la mitad superior de las letras.
+#
+# La regla no cambia; cambia a quien se le aplica. Nunca AGRANDA: si la fila da
+# de sobra, se respeta el tamano que pidio el analista.
+.barras_leyenda_size_ajustado <- function(size_pt, row_h_npc, alto_fisico_in,
+                                          minimo_pt = 6) {
+  size_pt <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(size_pt) || size_pt <= 0) return(size_pt)
+  row_h_npc <- suppressWarnings(as.numeric(row_h_npc)[1])
+  alto_fisico_in <- suppressWarnings(as.numeric(alto_fisico_in)[1])
+  if (!is.finite(row_h_npc) || row_h_npc <= 0) return(size_pt)
+  if (!is.finite(alto_fisico_in) || alto_fisico_in <= 0) return(size_pt)
+
+  cabe_pt <- row_h_npc * alto_fisico_in * 72 / .BARRAS_LEYENDA_INTERLINEA
+  if (!is.finite(cabe_pt) || cabe_pt <= 0) return(size_pt)
+  max(minimo_pt, min(size_pt, cabe_pt))
+}
+
 # Alto de fila cuando el hueco fisico da mas de lo que pide el contenido.
 # =======================================================================
 #

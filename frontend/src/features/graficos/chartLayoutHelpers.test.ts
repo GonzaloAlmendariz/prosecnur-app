@@ -445,7 +445,11 @@ describe("chartLayoutHelpers", () => {
 
     expect(sinUnidad).toEqual({
       axis: "x",
-      unitLabel: "Unidad no publicada",
+      // Sin unidad declarada la etiqueta va vacía: el contrato sigue fallando
+      // cerrado (`measure-only`, no comparte), que es lo que vigila este test.
+      // Antes decía «Unidad no publicada», vocabulario del registro en la cara
+      // del analista.
+      unitLabel: "",
       basis: "measure-only",
       partition: null,
       canShare: false,
