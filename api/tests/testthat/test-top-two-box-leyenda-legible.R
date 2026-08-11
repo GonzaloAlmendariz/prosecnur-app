@@ -64,3 +64,29 @@ test_that("etiquetas cortas no se truncan ni pierden cuerpo", {
   expect_equal(sort(todos), c("1", "2", "3", "4"))
   expect_equal(.leyenda_size(svgs[[1]]), 20)
 })
+
+test_that("la banda de leyenda no reserva el doble de lo que dibuja", {
+  # Medido con las guías sobre «Conta 10-08»: la banda reservaba 38 px para
+  # dibujar 16. El plano de holgura sumaba dos veces lo mismo — `alto_fila` ya
+  # trae su interlineado del 35 % y encima se le añadía un margen fijo.
+  etq <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo",
+           "Totalmente de acuerdo", "SIN INF")
+
+  for (size in c(9, 10.5, 12, 13.5, 16)) {
+    banda <- .barras_leyenda_alto_in(etq, size, 13.33)
+    filas <- .barras_leyenda_filas(etq, size, 13.33)
+    texto <- filas * size / 72 * 1.35
+    # Nunca por debajo del texto que va a dibujar…
+    expect_gt(banda, texto)
+    # …ni más del 60 % por encima. Antes, a 10,5 pt, era el 62 %.
+    expect_lt(banda, texto * 1.60)
+  }
+})
+
+test_that("el mazo de acreditación no se mueve: a 16 pt la banda es la de antes", {
+  etq <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo",
+           "Totalmente de acuerdo", "SIN INF")
+  # 0.38" era el valor con el plano viejo (2 filas x 0.24 + 0.08 -> 0.56;
+  # una fila -> 0.32). Con el nuevo reparto, una fila a 16 pt da 0.39.
+  expect_equal(.barras_leyenda_alto_in(etq, 16, 13.33), 0.39, tolerance = 0.02)
+})
