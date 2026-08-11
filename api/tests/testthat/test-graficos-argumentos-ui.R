@@ -1536,3 +1536,34 @@ test_that("el tipo de un bloque recod se resuelve tambien con codigos no numeric
   expect_equal(pulso_recod_resolve_type("edad", tm), "int")
   expect_true(is.na(pulso_recod_resolve_type("no_existe", tm)))
 })
+
+# Un arg de graficador que el constructor del plan NO acepta sólo llega al motor
+# si viaja por `overrides`. `p_barras_agrupadas()` declara ocho formals y no
+# tiene `...`, así que `orden_categorias_manual` guardado al nivel del slot se
+# cae al construir el elemento: reparación fantasma, guardada en el .pulso y
+# ausente del PPT. Medido con `trace()`: cero llamadas lo recibían.
+
+test_that("orden_categorias_manual se sirve marcado como via_overrides", {
+  args <- .GRAFICADORES_META$p_barras_agrupadas$args
+  nm <- vapply(args, function(a) as.character(a$name), character(1))
+  i <- match("orden_categorias_manual", nm)
+  expect_false(is.na(i))
+  expect_true(isTRUE(args[[i]]$via_overrides))
+
+  # Y que la marca sobrevive al normalizador que alimenta a la UI: si se
+  # perdiera aquí, el formulario volvería a escribirlo al nivel del slot.
+  servidos <- .normalize_args_for_ui(args)
+  nm2 <- vapply(servidos, function(a) as.character(a$name), character(1))
+  j <- match("orden_categorias_manual", nm2)
+  expect_false(is.na(j))
+  expect_true(isTRUE(servidos[[j]]$via_overrides))
+})
+
+test_that("la premisa de la marca sigue siendo cierta", {
+  # Si algún día el constructor acepta el arg directamente, la marca sobra y
+  # este test avisa en vez de dejar una indirección sin motivo.
+  f <- names(formals(p_barras_agrupadas))
+  expect_false("orden_categorias_manual" %in% f)
+  expect_false("..." %in% f)
+  expect_true("overrides" %in% f)
+})

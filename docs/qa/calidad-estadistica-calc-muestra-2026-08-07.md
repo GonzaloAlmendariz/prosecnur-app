@@ -1,6 +1,11 @@
 # Calidad estadística del Cálculo de muestra (aulas) — problema y reparación
 
-- **Fecha**: 2026-08-07
+Tipo: Auditoría metodológica de un feature
+Estado: Vigente
+Fecha: 2026-08-07
+Autoridad: Registra el eje estadístico auditado y su reparación; no sustituye a los ADR 0066 y 0019
+
+- **Corte**: 2026-08-07
 - **Origen**: auditoría metodológica de tres lentes (metodología, backend, frontend+ADRs) sobre el feature completo. Veredicto de partida: **APTO CON OBSERVACIONES** — el diseño por defecto es defendible; los defectos viven en configuraciones no-default y en la referencia histórica de asistencia.
 - **Alcance de este documento**: solo el eje estadístico. Cada sección explica *qué estaba mal*, *por qué importa* (con el ejemplo más simple posible), *qué se cambió* y *cómo se verifica ahora*.
 

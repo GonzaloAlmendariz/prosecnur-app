@@ -1,6 +1,11 @@
 # GOAL · Selección se ve como Cálculo y Marco
 
-**Rama**: `revamp/seleccion-visual` · **Abierto**: 2026-08-09 · **Cierra**: solo Gonzalo.
+Tipo: Goal operativo QA
+Estado: En curso
+Fecha: 2026-08-09
+Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado de la superficie
+
+**Rama de origen**: `revamp/seleccion-visual` · **Abierto**: 2026-08-09 · **Cierra**: solo Gonzalo.
 
 Loop de convergencia permanente. Cada iteración toma UNA superficie, la deja a
 la altura de la vara y la commitea. El loop no se detiene por haber terminado
@@ -149,11 +154,15 @@ Sobre la pestaña montada, en la consola del navegador:
 
 ### Cómo abrir la vista
 
-El proyecto acreditado (con selección, comparación y objetivo vigentes):
+El proyecto acreditado (con selección, comparación y objetivo vigentes) sale del
+proyecto de referencia `hsvg2026` sembrado con aulas; se regenera con
 
+```bash
+make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026
 ```
-outputs/reference-runs/hsvg2026-aulas-sel-20260808-143428/hsvg2026-aulas-sel.pulso
-```
+
+y el `.pulso` fechado queda bajo `$(REFERENCE_RUNS_DIR)` del Makefile. La copia
+de una corrida anterior no se cita por ruta: cada sesión regenera la suya.
 
 Backend `Backend hsvg2026 seleccion (8803)` + `Frontend (dev vs 8803)` de
 `.claude/launch.json`; después `window.__pulsoNav.ir("calc-muestra/opinion-universitaria/aulas/<pestaña>")`.
