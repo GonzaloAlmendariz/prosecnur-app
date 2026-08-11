@@ -132,7 +132,16 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
     # al analista que escriba «clave=Titulo» por linea le traslada un detalle de
     # serializacion: la aplicacion ya sabe cuantas bases hay y como se llaman.
     "base_labels",
-    "base_config", "meta"
+    "base_config", "meta",
+    # Cuatro controles que reemplazaron a un campo de texto libre. La lista
+    # quedó atrás cuando llegaron, así que este contrato estaba en rojo desde
+    # entonces: el registro servía tipos que la lista no reconocía aunque la UI
+    # sí los pinta.
+    #   `iconos_list`      — una ranura por foco, contra el catálogo de íconos
+    #   `colores_list`     — muestra de color por foco, no HEX tecleado
+    #   `orden_categorias` — filas que se suben y bajan, como los slides
+    #   `categorias_escala`— marcar categorías sobre las escalas reales
+    "iconos_list", "colores_list", "orden_categorias", "categorias_escala"
   )
   ui_grupo_soportado <- c(
     "datos", "lectura", "valores", "leyenda", "espacio", "tabla",
@@ -274,14 +283,18 @@ test_that("metadata de graficadores expone controles claros y sin duplicados", {
   expect_equal(by_name_indice$subindices$label, "Subíndices por sección")
   expect_equal(by_name_indice$subindices$tipo_input, "textarea")
   expect_equal(by_name_indice$iconos_focos$label, "Íconos de los focos")
-  expect_equal(by_name_indice$iconos_focos$tipo_input, "textarea")
+  # Ya no se teclean rutas SVG/PNG a mano: cada foco elige del catálogo de
+  # íconos de Configuración global.
+  expect_equal(by_name_indice$iconos_focos$tipo_input, "iconos_list")
   expect_equal(by_name_indice$iconos_focos$grupo, "espacio")
   expect_equal(by_name_indice$redibujar_focos$label, "Redibujar focos desde cero")
   expect_equal(by_name_indice$redibujar_focos$tipo_input, "bool")
   expect_equal(by_name_indice$redibujar_focos$grupo, "espacio")
   expect_false(isTRUE(by_name_indice$redibujar_focos$default))
   expect_equal(by_name_indice$mostrar_iconos_focos$tipo_input, "bool")
-  expect_equal(by_name_indice$iconos_focos_fill$tipo_input, "codigos_list")
+  # «Colores de focos» era un campo de texto anunciado como HEX cuyo ejemplo
+  # («88, 90, 96») no era HEX. Ahora es una muestra de color por foco.
+  expect_equal(by_name_indice$iconos_focos_fill$tipo_input, "colores_list")
   expect_equal(by_name_indice$iconos_focos_fill$grupo, "valores")
   expect_equal(by_name_indice$iconos_focos_objeto_unico$label, "Mover círculo e ícono juntos")
   expect_equal(by_name_indice$iconos_focos_objeto_unico$tipo_input, "bool")

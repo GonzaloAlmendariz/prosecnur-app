@@ -551,6 +551,49 @@ con el `sid` equivocado no lee otro estado, lee otro proyecto. Lo mismo vale
 para el scope: si el plan es «un informe conjunto», el autosave escribe en
 `/api/graficos/consolidado/draft` y no en `/api/graficos/config`.
 
+### E-15 · Las cuatro escalas desordenadas, medidas de verdad *(2026-08-11)*
+
+El diagnóstico de partida —«`lst_p4_recod`, `lst_p3_recod`, `lst_p5_recod` y
+`lst_p10` desordenadas»— sale del comando `escalas` del arnés, que ordena por el
+**primer número de la etiqueta**. Es una heurística y su propio aviso lo dice.
+Medido contra el orden que el instrumento declara de verdad, con el **código**
+al lado, el cuadro cambia:
+
+| Escala | Base | Orden declarado (código) | Veredicto |
+|---|---|---|---|
+| `lst_p4_recod` | docentes | 4, 3, 2, 1 | **invertida** (de mayor a menor edad) |
+| `lst_p4_recod` | egresados | 3, 1, 2, 4 | **revuelta** |
+| `lst_p3_recod` | administrativos | 2, 1, 3, 4 | **1 y 2 permutados** |
+| `lst_p5_recod` | administrativos | 2, 1, 3 | **1 y 2 permutados** |
+| `lst_p3_recod` | estudiantes | 1, 2, 3, 4 | correcta |
+| `lst_p10` | egresados | 1, 2, 3, 4, 5, 6 | **correcta — falso positivo** |
+
+O sea: **`lst_p10` no está desordenada.** Va «0 meses → Menos de 2 meses → Entre
+2 y 6 → Entre 6 meses y 1 año → Más de 1 año → No he encontrado trabajo», que es
+el orden correcto; la heurística la marcó porque no sabe leer «Más de 1 año»
+frente a «Menos de 2 meses». Y `lst_p10` en docentes/administrativos ni siquiera
+son meses: son Sí/No.
+
+**La señal fiable es el código, no la etiqueta.** En las cuatro (base, escala)
+rotas el instrumento declara las opciones fuera del orden de su propio código
+ordinal. Son cuatro gráficos: láminas 7, 8 y 11 (×2).
+
+**El puente variable → escala, implementado.**
+`/api/graficos/paletas-sugeridas` ahora devuelve, por escala, las `variables`
+que la usan (`api/R/graficos_escalas_variables.R`, leído del
+`type = "select_one <list_name>"` del `survey`). Con eso el campo «Orden manual
+de categorías» pone delante **la escala de la pregunta que se está editando** y
+manda el resto a «Otras escalas del estudio», en vez de ofrecer las 23 y esperar
+que el analista reconozca la suya.
+
+Trampa que sólo apareció midiendo sobre el proyecto real: **el `list_name` no
+alcanza para atribuir**. El colector separa las homónimas (`lst_p10`,
+`lst_p10#2`, `lst_p10#3`) porque en cada base son otra escala, y atribuir por
+nombre le daba a las tres las seis variables del nombre: la Sí/No de docentes
+ofrecía los meses desde el egreso como si fueran suyos. Se acota por las
+`fuentes` que el colector ya calcula. El test unitario no lo vio porque usaba
+`list_name` distintos por base.
+
 ### E-14 · El buscador de ajustes contaba lo que no podía mostrar *(reparado 2026-08-11)*
 
 Descubierto al buscar «orden» desde la pestaña **Datos**: el conteo decía
@@ -647,11 +690,15 @@ El control de orden de barras (`d01a819d`) **ya se vio en pantalla** y funciona
 de punta a punta; el detalle está en E-13. En el camino salió E-14, el buscador
 de ajustes que contaba lo que no podía mostrar, también reparado y verificado.
 
-Lo siguiente por orden: los **31 textos truncados** (bloqueado por
-`reporte_plan_ppt.R`, congelado) y las **cuatro escalas desordenadas**
-(`lst_p4_recod`, `lst_p3_recod`, `lst_p5_recod`, `lst_p10`), que ahora tienen
-superficie: el orden manual por gráfico está verificado, falta el puente
-variable → `list_name` desde `.graficos_collect_palette_lists()`.
+Las **escalas desordenadas** (E-15) están medidas y con superficie: son cuatro
+(base, escala), no cuatro escalas, y `lst_p10` era un falso positivo de la
+heurística del arnés. El puente variable → escala ya existe, así que reordenar
+cada una es sembrar y mover filas en las láminas 7, 8 y 11 (×2) — trabajo de
+analista, no de código, y lo decide Gonzalo porque «invertida» puede ser
+deliberado.
+
+Lo siguiente por orden: los **31 textos truncados**, bloqueado por
+`reporte_plan_ppt.R`, congelado.
 
 Servers de la sesión: backend 8806 (proyecto CONFIGURADO) y frontend 5173.
 `.claude/launch.json` apunta el 8806 al `.pulso` **CONFIGURADO**, que es el que

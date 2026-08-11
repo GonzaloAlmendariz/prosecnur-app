@@ -2831,7 +2831,10 @@ mount_graficos <- function(pr) {
       # Devuelve todas las listas de choices del instrumento con sus
       # value-labels, para que la UI del editor de paletas sepa qué
       # rellenar. Formato:
-      #   [{list_name, choices: [{name, label}]}]
+      #   [{list_name, escala_id, fuentes, variables, choices: [{name, label}]}]
+      # `variables` es el puente hacia el `var` de un gráfico: sin él la UI que
+      # reordena categorías tiene que ofrecer las 23 escalas del estudio en vez
+      # de la de la pregunta que se está editando.
       # Si ya hay una paleta guardada para un list_name en el config, el
       # frontend la mergea por encima. Si no, muestra los labels sin
       # color asignado (placeholder gris).
@@ -2839,7 +2842,9 @@ mount_graficos <- function(pr) {
       s <- session_get(sid)
       inst_sources <- .graficos_processing_sources(sid)$inst_sources
       if (!length(inst_sources) && !is.null(s$rp_inst)) inst_sources <- list(default = s$rp_inst)
-      list(listas = .graficos_collect_palette_lists(inst_sources))
+      list(listas = .graficos_escalas_con_variables(
+        .graficos_collect_palette_lists(inst_sources), inst_sources
+      ))
     })) |>
     plumber::pr_post("/api/graficos/icons/upload", wrap_endpoint(function(req, res, ...) {
       # Recibe un PNG codificado en base64 (plus nombre humano) y lo

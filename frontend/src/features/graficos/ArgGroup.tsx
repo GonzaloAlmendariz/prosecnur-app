@@ -111,6 +111,11 @@ export function ArgGroup({
 
   if (args.length === 0) return null;
 
+  // La variable graficada es el puente hacia la escala de ESTE gráfico: sin
+  // ella, el campo que reordena categorías sólo puede ofrecer todas las del
+  // estudio y esperar que el analista reconozca la suya.
+  const varActual = typeof values.var === "string" ? values.var : undefined;
+
   // Modo flatten: render plano sin header colapsable. Usado cuando el
   // ArgGroup vive dentro de una card mayor (StylePanel/FiltersPanel).
   if (flatten) {
@@ -127,6 +132,7 @@ export function ArgGroup({
             inheritedValue={inheritedValues?.[a.name]}
             placeholder={placeholders?.[a.name]}
             onReset={onResetArg ? () => onResetArg(a.name) : undefined}
+            varActual={varActual}
           />
         ))}
       </div>
@@ -179,6 +185,7 @@ export function ArgGroup({
             inheritedValue={inheritedValues?.[a.name]}
             placeholder={placeholders?.[a.name]}
             onReset={onResetArg ? () => onResetArg(a.name) : undefined}
+            varActual={varActual}
           />
         ))}
       </div>

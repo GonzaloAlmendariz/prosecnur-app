@@ -5,6 +5,7 @@ import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XI
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { apiGraficosPaletasSugeridas, type PaletaChoiceItem, type PaletaSugeridaEntry } from "../../api/client";
+import { escalasParaVariable } from "./escalaDeVariable";
 import { MAX_FOCOS, parseIndicePayload } from "./indiceModel";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
@@ -70,6 +71,7 @@ export function ArgField({
   inheritedValue,
   placeholder,
   onReset,
+  varActual,
 }: {
   meta: ArgMetadata;
   value: ArgValue;
@@ -85,6 +87,9 @@ export function ArgField({
   /** Si se provee y `argState !== "inherited"`, muestra un botón ↺ que
    *  llama a esta función para resetear el arg al valor base. */
   onReset?: () => void;
+  /** Variable graficada por ESTE gráfico (`docentes$p4_recod`). Puente hacia
+   *  su escala para los campos que trabajan sobre categorías reales. */
+  varActual?: string;
 }) {
   // Si el arg está heredado y no tiene valor propio, mostramos el
   // valor del preset en el input pero con styling gris.
@@ -143,6 +148,7 @@ export function ArgField({
           placeholder={placeholder}
           onChange={onChange}
           variables={variables}
+          varActual={varActual}
         />
       </div>
     </div>
@@ -291,6 +297,7 @@ function FieldControl({
   placeholder,
   onChange,
   variables,
+  varActual,
 }: {
   meta: ArgMetadata;
   value: ArgValue;
@@ -301,6 +308,7 @@ function FieldControl({
   placeholder?: string;
   onChange: (v: ArgValue) => void;
   variables: VarInfo[];
+  varActual?: string;
 }) {
   const shownValue = displayValue;
 
@@ -410,6 +418,7 @@ function FieldControl({
         <OrdenCategoriasField
           value={((shownValue as (string | number)[]) ?? []).map(String)}
           onChange={onChange}
+          varActual={varActual}
         />
       );
 
@@ -2372,9 +2381,11 @@ function slugify(value: string): string {
 function OrdenCategoriasField({
   value,
   onChange,
+  varActual,
 }: {
   value: string[];
   onChange: (v: string[] | null) => void;
+  varActual?: string;
 }) {
   const [listas, setListas] = useState<PaletaSugeridaEntry[]>([]);
   useEffect(() => {
@@ -2396,26 +2407,37 @@ function OrdenCategoriasField({
   if (!value.length) {
     // Sin orden declarado el gráfico usa el del instrumento. Sembrar es
     // copiar las etiquetas de una escala para empezar a moverlas.
-    const unicas = listas.filter(
-      (l, i, arr) =>
-        arr.findIndex((o) => o.choices.map((c) => c.label).join("\u0000") === l.choices.map((c) => c.label).join("\u0000")) === i,
-    );
+    //
+    // La escala de la pregunta graficada va primero y aparte: ofrecer las 23
+    // del estudio en una lista plana obliga a reconocer la propia de memoria,
+    // que es justo lo que este campo vino a evitar.
+    const { propia, otras } = escalasParaVariable(listas, varActual);
+    const sembrar = (l: PaletaSugeridaEntry) => onChange(l.choices.map((c) => c.label));
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          Sin orden propio: se usa el del instrumento. Elige la escala de este gráfico para empezar a reordenarla.
+          {propia
+            ? "Sin orden propio: se usa el del instrumento. Empieza por la escala de esta pregunta."
+            : "Sin orden propio: se usa el del instrumento. Elige la escala de este gráfico para empezar a reordenarla."}
         </p>
+        {propia && (
+          <button type="button" onClick={() => sembrar(propia)} style={escalaBtnPropia}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "var(--pulso-accent)" }}>
+              La escala de esta pregunta
+            </span>
+            <span>{propia.choices.map((c) => c.label).join(" · ")}</span>
+          </button>
+        )}
+        {propia && otras.length > 0 && (
+          <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>Otras escalas del estudio</span>
+        )}
         <div style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-          {unicas.map((l) => (
+          {otras.map((l) => (
             <button
               key={l.escala_id ?? l.list_name}
               type="button"
-              onClick={() => onChange(l.choices.map((c) => c.label))}
-              style={{
-                textAlign: "left", padding: "6px 9px", borderRadius: 8, cursor: "pointer",
-                border: "1px solid var(--pulso-border)", background: "transparent", fontSize: 11,
-                color: "var(--pulso-text)",
-              }}
+              onClick={() => sembrar(l)}
+              style={escalaBtn}
             >
               {l.choices.map((c) => c.label).join(" · ")}
             </button>
@@ -2459,6 +2481,18 @@ function OrdenCategoriasField({
     </div>
   );
 }
+
+const escalaBtn: React.CSSProperties = {
+  textAlign: "left", padding: "6px 9px", borderRadius: 8, cursor: "pointer",
+  border: "1px solid var(--pulso-border)", background: "transparent", fontSize: 11,
+  color: "var(--pulso-text)",
+};
+
+const escalaBtnPropia: React.CSSProperties = {
+  ...escalaBtn,
+  display: "flex", flexDirection: "column", gap: 2,
+  borderColor: "var(--pulso-accent)", background: "var(--pulso-surface-2)",
+};
 
 const ordenBtn: React.CSSProperties = {
   width: 22, height: 22, borderRadius: 6, flex: "0 0 22px", cursor: "pointer",
