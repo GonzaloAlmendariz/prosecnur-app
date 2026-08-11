@@ -522,3 +522,64 @@ esa escala como filas reordenables, en vez de un campo de texto.
 Se apoya en lo mismo que el selector de categorías del Top 2 Box: el catálogo de
 escalas ya devuelve las etiquetas reales con sus códigos y las bases que las
 usan.
+
+## 8. Cómo retomar — arnés de medición y trampas (2026-08-11)
+
+Lo que sigue existe porque en esta sesión reporté **cuatro conclusiones falsas
+seguidas**, todas del mismo tipo: medir un proxy en vez del dato. Cada una costó
+varias corridas. Están aquí para no repetirlas.
+
+### El arnés que funciona
+
+**Render en proceso** (no por job `callr`), que es lo que permite instrumentar:
+
+```r
+sid <- load_pulso("<ruta>.pulso")$session_id
+cfg <- session_get(sid)$graficos_config
+sc  <- .graficos_processing_sources(sid)
+pres <- .build_presets(.enriquecer_presets(cfg$presets, cfg$debug_ph))
+slides_r <- .graficos_job_rebuild_slides(
+  .graficos_calificar_refs_plan(.normalize_plan(cfg$plan), .graficos_active_base_name(sid)),
+  setNames(lapply(.slide_names(), function(nm)
+    list(grafs = setdiff(.slide_slots(nm), "icono"))), .slide_names()),
+  .graf_names(), .graficos_icon_registry(sid, cfg),
+  report = function(...) NULL, base_error = function(m) m, item_label = "slide")
+reporte_ppt_plan(data = sc$data_sources, instrumento = sc$inst_sources,
+  path_ppt = out, presets = pres, plan = p_plan(slides = slides_r),
+  template_pptx = NULL, template_id = NULL,
+  auto_otros_slides = FALSE, mensajes_progreso = FALSE)
+```
+
+**Instrumentar un graficador** — con `trace()`, NUNCA con un envoltorio propio:
+
+```r
+trace("graficar_barras_apiladas", where = asNamespace("prosecnurapp"),
+      print = FALSE, tracer = quote({ ...capturar del environment()... }))
+```
+
+### Las cuatro trampas, con su síntoma
+
+1. **Un envoltorio con sólo `...` rompe el render.** El renderer filtra los
+   argumentos contra `formals(fun)`; sin formals no filtra y la llamada revienta
+   con «unused arguments». Lo reporté como «láminas degradadas del producto» y
+   era mío. `trace()` conserva la firma; un `function(...)` no.
+2. **El banco forzaba `auto_otros_slides = TRUE`** cuando el default es `FALSE`.
+   Se estuvo validando un mazo distinto del que produce la app.
+3. **Clasificar texto por posición miente.** Medir «tamaños de etiqueta» por
+   coordenada metió títulos de lámina y notas de base en el mismo saco y produjo
+   E-9, un defecto que no existía. Lo real se ve trazando qué recibe cada rol.
+4. **`var_categoria` no es la columna de la etiqueta**; el texto que se dibuja
+   sale de `var_etiqueta_categoria`. Y el dato guarda **códigos**, no etiquetas:
+   las etiquetas viven en las choices del instrumento.
+
+Regla que sale de todo esto: **un aserto que no distingue el caso bueno del malo
+no verifica nada**. Cada medición debe incluir su control — si declarar y no
+declarar dan el mismo resultado, la medición está ciega.
+
+### Estado para continuar
+
+Working tree limpio. Todo lo entregado está commiteado y verificado salvo el
+control de orden de barras (`d01a819d`), que pasó typecheck, vitest y registry
+pero **no se vio en pantalla**.
+
+Servers de la sesión: backend 8806 (proyecto CONFIGURADO) y frontend 5173.
