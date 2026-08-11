@@ -19,6 +19,8 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   contrato complementario para validar reparaciones visuales.
 - [Prompt de validación visual de referencia](prompt-validacion-visual-referencia.md):
   guía reutilizable; no es evidencia de una ejecución.
+- [Calidad estadística del Cálculo de muestra](calidad-estadistica-calc-muestra-2026-08-07.md):
+  auditoría de tres lentes del eje estadístico de aulas y su reparación.
 
 ## En curso
 
@@ -32,9 +34,18 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   medida del motor y catálogo de tipos de gráfico pendientes, en cuatro olas.
 - [Estado del pulido estético de Monitoreo](pulido-monitoreo-estado.md):
   bitácora viva del recorrido de superficies.
+- [Goal loop visual de Selección](goal-loop-seleccion-visual-2026-08-09.md):
+  Selección alcanza la vara visual de Cálculo y Marco, superficie por superficie.
+- [Registro del motor de Gráficos](registro-motor-graficos-2026-08-10.md):
+  qué está reparado, qué sigue roto y qué del deck 2021 llega al usuario.
+- [Validación contra el deck de acreditación 2021](validacion-deck-acreditacion-2021.md):
+  medición del motor contra una vara externa, lámina por lámina.
 
 ## Reemplazados
 
+- [Goal loop de las bibliotecas de Gráficos](goal-loop-popovers-graficos-2026-08-07.md),
+  consolidado en el [ADR 0068](../adrs/0068-la-composicion-de-slides-tiene-una-sola-autoridad.md);
+  su [prompt de arranque](prompt-goal-loop-popovers-graficos.md) sigue siendo reutilizable.
 - [Rollout del Agentic OS de 2026-07-19](agentic-os-rollout-2026-07-19.md),
   reemplazado por el [contrato vigente de Agentic OS](../agentic-os.md).
 - [Auditoría integral del interventor por cursos-horario](auditoria-interventor-cursos-horario-2026-07-13.md),

@@ -1,5 +1,10 @@
 # GOAL — la interfaz de Gráficos dice la verdad y se deja encontrar
 
+Tipo: Goal operativo QA
+Estado: En curso
+Fecha: 2026-08-10
+Autoridad: Objetivo de trabajo medible; no certifica por sí solo el estado de la superficie
+
 **Abierto**: 2026-08-10 · **Cierra**: solo Gonzalo · **Cadencia**: continua
 **Banco de prueba**: `~/Documents/Pulso/ACRD CONTA/Conta 10-08 equivalencias.pulso`
 (4 bases, 67 láminas, 50 gráficos, 66 grafs con graficador).

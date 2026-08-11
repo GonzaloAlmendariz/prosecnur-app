@@ -1,9 +1,11 @@
 # GOAL · Gráficos crece con verdad metodológica y una UI cada vez más decidible
 
 Tipo: GOAL finito de producto, motor y experiencia
-Estado: Cerrado con deuda visual/runtime documentada
+Estado: Histórico
 Fecha: 2026-08-08
 Fecha de cierre: 2026-08-09
+Cierre: con deuda visual/runtime documentada; el alcance no ejecutado se transfirió, no se declaró entregado
+Consolidado en: [Roadmap del motor de Gráficos](roadmap-motor-graficos-2026-08-08.md)
 Autoridad: sucede al goal histórico de bibliotecas; no reabre ni reescribe su evidencia
 
 Este loop amplió el catálogo con nuevos tipos de gráfico y mejoró la UI de

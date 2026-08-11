@@ -1,6 +1,11 @@
 # Validación — ¿el motor reproduce el informe de acreditación 2021?
 
-**Fecha**: 2026-08-10 · **Vara**: `2021_Informe_Consolidado Final.pptx` (35 láminas, 21 charts OOXML)
+Tipo: Validación del motor contra una vara externa
+Estado: En curso
+Fecha: 2026-08-10
+Autoridad: Mide el motor contra un deck real; no reemplaza los contratos de artefactos ni los goldens
+
+**Corte**: 2026-08-10 · **Vara**: `2021_Informe_Consolidado Final.pptx` (35 láminas, 21 charts OOXML)
 **Datos**: `api/inst/reference_projects/acrconta/acrconta.pulso` (proyecto de referencia, anonimizado)
 
 Documento vivo. Registra lo medido, no lo aparentado: cada fila sale del XML

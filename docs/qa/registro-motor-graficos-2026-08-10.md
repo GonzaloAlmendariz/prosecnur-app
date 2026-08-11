@@ -1,6 +1,11 @@
 # Registro del motor de gráficos — errores, pendientes y formato 2021
 
-**Fecha**: 2026-08-10 · **Rama**: `trabajo/preset-acreditacion-top2box`
+Tipo: Registro vivo de defectos y pendientes del motor
+Estado: En curso
+Fecha: 2026-08-10
+Autoridad: Consolida el estado medido del motor; no certifica que un ítem esté reparado sin su evidencia
+
+**Corte**: 2026-08-10 · **Rama de origen**: `trabajo/preset-acreditacion-top2box`
 **Banco de prueba**: `~/Documents/Pulso/ACRD CONTA/Conta 09-08 equivalencias.pulso`
 (4 bases, 67 láminas, 50 gráficos) y `api/inst/reference_projects/acrconta/`.
 
@@ -510,7 +515,8 @@ avisos del motor, cálculo del Top 2 Box) y se dio por bueno el resto sin mirar
 lámina por lámina. Esta sección existe para que eso se haga con método.
 
 **Error de banco de pruebas detectado al revisar esto**: el script de validación
-(`/tmp/cierre/render.R`) forzaba `auto_otros_slides = TRUE`, cuando el default
+—entonces un archivo suelto fuera del repo, hoy `scripts/qa_graficos_medir.R`—
+forzaba `auto_otros_slides = TRUE`, cuando el default
 del registro es `FALSE` y el router lo resuelve del proyecto. Se estuvo
 validando un mazo distinto del que produce la app. Corregido; con el flag en
 `FALSE` el mazo sigue teniendo 67 láminas, lo que demuestra que **las láminas de

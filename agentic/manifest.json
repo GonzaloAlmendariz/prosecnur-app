@@ -612,14 +612,14 @@
       "frontend/src/features/graficos/v2/styles/editor-v2.css": 33123,
       "frontend/src/app/theme.css": 30216,
       "api/R/hojas_ruta_engine.R": 10305,
-      "frontend/src/features/carga/carga-v2.css": 9501,
+      "frontend/src/features/carga/carga-v2.css": 9534,
       "frontend/src/features/hojasRuta/HojasRutaPage.tsx": 8991,
       "frontend/src/features/recopiladores/RecopiladoresPage.tsx": 2208,
       "frontend/src/features/recopiladores/recopiladores.css": 3311,
       "frontend/src/app/tokens.css": 553,
-      "api/R/calc_muestra_aulas.R": 5109,
-      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3942,
-      "api/R/graficador_dimensiones.R": 4946
+      "api/R/calc_muestra_aulas.R": 5155,
+      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3979,
+      "api/R/graficador_dimensiones.R": 4948
     },
     "frozen_growth_exempt": []
   }

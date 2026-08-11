@@ -1,5 +1,10 @@
 # Prompt del loop — interfaz de Gráficos honesta
 
+Tipo: Prompt de arranque de sesión / entrada de `/loop`
+Estado: Vigente
+Fecha: 2026-08-10
+Autoridad: Lanza el loop de `goal-loop-graficos-ui-honesta-2026-08-10.md`; no lo redefine
+
 Pegar como prompt del `/loop`. El estado vive en
 [goal-loop-graficos-ui-honesta-2026-08-10.md](goal-loop-graficos-ui-honesta-2026-08-10.md).
 
