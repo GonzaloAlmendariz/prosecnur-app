@@ -305,3 +305,27 @@ test_that("el helper de dimensiones delega en el canónico", {
   expect_identical(.dim_round_half_up(2.5), .pulso_round_half_up(2.5))
   expect_identical(.dim_round_half_up(c(-2.5, 0.5, 12.25), 1), .pulso_round_half_up(c(-2.5, 0.5, 12.25), 1))
 })
+
+test_that("un segmento que redondea a cero no se rotula «0%»", {
+  # Un segmento que llega al rotulado EXISTE —los de valor cero no se dibujan—,
+  # así que un «0%» sobre una barra visible dice que no hay nada donde hay
+  # 0,4 %. Se verifica sobre la regla y no sobre el objeto ggplot: los asserts
+  # contra el canvas no ven estas etiquetas y pasan en verde sin medir nada.
+  expect_equal(.pulso_fmt_pct_unidades(c(0, 1, 2, 30, 68), 0),
+               c("<1%", "1%", "2%", "30%", "68%"))
+  expect_false("0%" %in% .pulso_fmt_pct_unidades(0, 0))
+})
+
+test_that("el aviso se ajusta a la resolución pedida", {
+  expect_equal(.pulso_fmt_pct_unidades(c(0, 4, 999), 1),
+               c("<0.1%", "0.4%", "99.9%"))
+})
+
+test_that("el graficador usa esa misma regla y no una copia", {
+  # Contrato de código: si alguien vuelve a inlinear el formateo en la closure,
+  # la regla deja de ser verificable y este test lo delata.
+  src <- paste(readLines(file.path("..", "..", "R", "graficador_barras_apiladas.R"),
+                         warn = FALSE), collapse = "\n")
+  expect_true(grepl(".fmt_units_pct <- function(units, dec) .pulso_fmt_pct_unidades(units, dec)",
+                    src, fixed = TRUE))
+})

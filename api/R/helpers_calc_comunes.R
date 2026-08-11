@@ -297,3 +297,31 @@ calc_bool <- function(x, default = FALSE) {
   if (s %in% c("false", "f", "no", "n", "0")) return(FALSE)
   default
 }
+
+# Porcentaje de un segmento apilado, en unidades enteras del reparto por resto
+# mayor. `dec` es la resolución pedida: 0 -> unidades de 1 %, 1 -> de 0,1 %.
+#
+# La regla que justifica esta función: un segmento que llega al rotulado
+# EXISTE —los de valor cero no se dibujan—, así que `units == 0` solo puede
+# significar que redondea a cero. Escribir «0 %» sobre una barra visible es
+# información falsa: dice que no hay nada donde hay 0,4 %. Se declara como lo
+# que es, con la resolución que se pidió.
+#
+# Vive aquí y no dentro del graficador porque allí era una closure y no había
+# forma de verificarla sin renderizar; los asserts contra el objeto ggplot de
+# un canvas no ven estas etiquetas y pasaban en verde sin medir nada.
+.pulso_fmt_pct_unidades <- function(units, dec = 0) {
+  dec <- suppressWarnings(as.integer(dec)[1])
+  if (!is.finite(dec) || dec < 0) dec <- 0L
+  escala <- 10^dec
+  units <- suppressWarnings(as.numeric(units))
+
+  out <- paste0(format(units / escala, nsmall = dec, trim = TRUE,
+                       scientific = FALSE), "%")
+  cero <- is.finite(units) & units == 0
+  if (any(cero)) {
+    minimo <- format(1 / escala, trim = TRUE, scientific = FALSE)
+    out[cero] <- paste0("<", minimo, "%")
+  }
+  out
+}
