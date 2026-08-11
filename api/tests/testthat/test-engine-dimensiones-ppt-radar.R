@@ -325,7 +325,9 @@ test_that("graficar_comparativo_radarbar_dimensiones respeta estilos en barras c
   expect_equal(p$theme$axis.text.y$colour, "#111111")
   expect_equal(p$theme$axis.text.x$face, "bold")
   expect_equal(p$theme$axis.text.y$face, "bold")
-  expect_equal(p$theme$plot.title$colour, "#000000")
+  # El titulo usa el azul de la marca desde 02a2f34f: los ocho motores lo
+  # pintan igual. Los ejes siguen en negro porque este test los declara.
+  expect_equal(p$theme$plot.title$colour, "#081F5C")
 })
 
 test_that("graficar_radar aplica zoom radial real con limites", {

@@ -319,10 +319,16 @@ test_that("aviso de opcion multiple reserva una sola franja compacta", {
   ))
 
   expect_equal(compact$subtitulo, "Pregunta de opción múltiple")
-  expect_equal(compact$face_subtitulo, "bold")
+  # Italica y no negrita (36d6cea4): es una acotacion sobre la pregunta, no un
+  # segundo titulo compitiendo con el primero.
+  expect_equal(compact$face_subtitulo, "italic")
   expect_lte(compact$size_subtitulo, 10.5)
-  expect_lte(compact$canvas_h_header_in, 0.38)
-  expect_equal(compact$encabezado_separacion_in, 0)
+  # El encabezado aloja DOS textos y necesita alto para los dos: con 0.34 salian
+  # superpuestos. La franja sigue siendo compacta, con el alto que hace falta.
+  expect_equal(compact$canvas_h_header_in, 0.52)
+  # La separacion ya no se fuerza a cero: el piso lo impone el graficador, asi
+  # que el override conserva lo que le entra.
+  expect_equal(compact$encabezado_separacion_in, 0.72)
 })
 
 test_that("perfil ACNUR da contraste a las categorias y compacta el aviso", {

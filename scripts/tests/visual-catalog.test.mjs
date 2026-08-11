@@ -412,6 +412,7 @@ test("expande tuplas, records, factories y arrays de controles críticos", () =>
       "Cursos-horario titulares",
       "Perfil de la muestra",
       "Reemplazos por curso-horario",
+      "Relato",
       "Sustento técnico",
     ],
   );
