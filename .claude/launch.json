@@ -2,6 +2,33 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Backend Conta 09-08 equivalencias (8805)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8805",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/ACRD CONTA/Conta 09-08 equivalencias.pulso"
+      },
+      "port": 8805
+    },
+    {
+      "name": "Frontend (dev vs 8805)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8805"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
       "name": "Backend hsvg2026 seleccion (8803)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
@@ -10,7 +37,7 @@
       "env": {
         "PULSO_PORT": "8803",
         "PULSO_OPEN_BROWSER": "false",
-        "PULSO_BOOTSTRAP_PROJECT": "outputs/reference-runs/hsvg2026-aulas-sel-20260808-124151/hsvg2026-aulas-sel.pulso"
+        "PULSO_BOOTSTRAP_PROJECT": "outputs/reference-runs/hsvg2026-aulas-sel-20260808-143428/hsvg2026-aulas-sel.pulso"
       },
       "port": 8803
     },
