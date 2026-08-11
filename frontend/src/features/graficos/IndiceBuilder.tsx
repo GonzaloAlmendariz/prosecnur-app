@@ -87,13 +87,18 @@ const S = {
     width: 26,
     height: 26,
     borderRadius: 7,
-    border: `1px solid ${active ? "var(--pulso-button-accent)" : "var(--pulso-border)"}`,
-    background: active ? "color-mix(in srgb, var(--pulso-button-accent) 12%, transparent)" : "transparent",
+    // Un 12 % de tinte no se distinguía del fondo: había que contar botones
+    // para saber cuál estaba puesto. Se usa la misma combinación que las
+    // píldoras activas del resto del editor —fondo suave, borde y glifo en el
+    // color primario—: el relleno sólido con glifo blanco dejaba el botón
+    // elegido en blanco sobre blanco, o sea invisible.
+    border: `1.5px solid ${active ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+    background: active ? "var(--pulso-primary-soft)" : "transparent",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
-    color: active ? "var(--pulso-button-accent)" : "var(--pulso-text-soft)",
+    color: active ? "var(--pulso-primary)" : "var(--pulso-text-soft)",
     padding: 0,
   }) as React.CSSProperties,
   ghost: {
@@ -221,7 +226,13 @@ export default function IndiceBuilder({ slide }: { slide: Slide }) {
             {tieneFoco ? (
               <div style={{ ...S.row, marginTop: 8, flexWrap: "wrap", gap: 4 }}>
                 <span style={{ fontSize: 11, color: "var(--pulso-text-soft)", marginRight: 2 }}>
-                  Ícono del foco:
+                  {/* Diez glifos abstractos sin nombre no dicen cuál es cuál ni
+                      cuál está puesto. El catálogo ya trae la etiqueta —Objetivo,
+                      Metodología, Perfil…—; sólo faltaba enseñarla. */}
+                  Ícono del foco:{" "}
+                  <strong style={{ color: "var(--pulso-text)" }}>
+                    {INDICE_ICONOS.find((x) => x.name === sec.icono)?.label ?? "ninguno"}
+                  </strong>
                 </span>
                 {INDICE_ICONOS.map((ico) => {
                   const Icon = ICONO_PREVIEW[ico.lucide] ?? Target;
