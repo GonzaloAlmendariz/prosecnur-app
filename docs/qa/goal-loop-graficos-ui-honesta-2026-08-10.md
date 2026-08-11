@@ -333,3 +333,32 @@ verificar apareció `C-08`: el buscador no normaliza tildes.
 
 **Cola refrescada**: C-03, C-04 y C-05 pasan a §Propuestas P-B con su medición
 —exponer más args no es aditivo—; entran C-08 y C-09.
+
+### 2026-08-10 · iteración 6 — C-08 aplicado, y un catálogo que no sabía que existía
+
+**Medido antes.** Buscar «mayusculas» devolvía 0 aunque el ajuste dijera
+«MAYÚSCULAS»: el filtro comparaba literal. Quien escribe rápido no pone tildes.
+
+**Cambiado.** El buscador normaliza tildes en los dos lados —consulta y texto—
+con `NFD` + retirada de diacríticos. Es puro añadido: lo que se encontraba antes
+se sigue encontrando.
+
+**Evidencia.** En la UI real, con «Barras categóricas» activa:
+
+    «normalizacion» -> 1 de 27      (antes 0)
+    «grilla»        -> 1 de 27
+    «zzzz»          -> sin resultados
+
+Cinco tests nuevos cubren con y sin tilde, que exija todos los términos, el campo
+vacío y el caso sin resultados. `tsc --noEmit` en 0; 321 vitest en verde.
+
+**El hallazgo que no buscaba.** «mayusculas» seguía dando 0 después del fix. La
+razón no era la tilde: **hay dos catálogos de metadata de args**, y la
+descripción que escribí en la iteración 5 está en el que alimenta el inspector
+de la lámina, no en el que alimenta el panel donde puse el buscador.
+
+Medido: `.PRESETS_META` tiene **186 de 440 args sin describir (42 %)** contra los
+53 de 227 del otro. Corrige lo que escribí en la iteración 5 —dije que las
+descripciones y el buscador se reforzaban, y no es cierto en la misma
+superficie— y abre `C-10`: el inspector de la lámina, donde el analista pasa la
+mayor parte del tiempo, **no tiene buscador** y expone hasta 27 args por gráfico.
