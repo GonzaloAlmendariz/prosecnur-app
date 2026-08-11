@@ -1219,6 +1219,10 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
     mostrar_valores = TRUE,
     etiquetas_uniformes = TRUE,
     umbral_ocultar_etiqueta = 0.035,
+    # El umbral ya no basta por sí solo: ocultar cifras pequeñas es una decisión
+    # que se enciende. Antes se aplicaba siempre, y el motor lo inyectaba a
+    # escondidas en baterías largas y gráficos estrechos.
+    ocultar_etiquetas_pequenas = TRUE,
     decimales = 0
   )
   labs_apiladas_umbral <- unlist(lapply(
@@ -1227,6 +1231,24 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
   ))
   expect_false("1%" %in% labs_apiladas_umbral)
   expect_true(all(c("19%", "80%") %in% labs_apiladas_umbral))
+
+  # Y el control que da sentido al de arriba: el MISMO umbral, con el
+  # interruptor apagado, dibuja el 1 %.
+  p_apiladas_sin_ocultar <- graficar_barras_apiladas(
+    data = data.frame(categoria = "Item", N = 100,
+                      pct_1 = 0.01, pct_2 = 0.19, pct_3 = 0.80,
+                      stringsAsFactors = FALSE),
+    var_categoria = "categoria", var_n = "N",
+    cols_porcentaje = c("pct_1", "pct_2", "pct_3"),
+    etiquetas_grupos = c(pct_1 = "Bajo", pct_2 = "Medio", pct_3 = "Alto"),
+    mostrar_valores = TRUE, etiquetas_uniformes = TRUE,
+    umbral_ocultar_etiqueta = 0.035, decimales = 0
+  )
+  labs_sin_ocultar <- unlist(lapply(
+    Filter(function(layer) inherits(layer$geom, "GeomText"), p_apiladas_sin_ocultar$layers),
+    function(layer) if ("lab" %in% names(layer$data)) as.character(layer$data$lab) else character()
+  ))
+  expect_true("1%" %in% labs_sin_ocultar)
 
   p_apiladas_fuera <- graficar_barras_apiladas(
     data = data.frame(
