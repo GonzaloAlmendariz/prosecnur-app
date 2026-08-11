@@ -684,13 +684,13 @@
   if (!is.finite(size_chip) || is.na(size_chip) || size_chip <= 0) size_chip <- 3.2
   padding_chip <- suppressWarnings(as.numeric(extra_args$padding_texto_chip %||% 0.20)[1])
   if (!is.finite(padding_chip) || is.na(padding_chip) || padding_chip < 0) padding_chip <- 0.20
-  chip_texto_color <- .norm_text_color(extra_args$chip_texto_color, fallback = "#000000")
-  color_ejes_base <- .norm_text_color(extra_args$color_ejes, fallback = "#000000")
+  chip_texto_color <- .norm_text_color(extra_args$chip_texto_color, fallback = "#081F5C")
+  color_ejes_base <- .norm_text_color(extra_args$color_ejes, fallback = "#081F5C")
   color_ejes_x <- .norm_text_color(extra_args$color_ejes_x, fallback = color_ejes_base)
   color_ejes_y <- .norm_text_color(extra_args$color_ejes_y, fallback = color_ejes_base)
-  color_titulo <- .norm_text_color(extra_args$color_titulo, fallback = "#000000")
-  color_subtitulo <- .norm_text_color(extra_args$color_subtitulo, fallback = "#000000")
-  color_nota_pie <- .norm_text_color(extra_args$color_nota_pie, fallback = "#000000")
+  color_titulo <- .norm_text_color(extra_args$color_titulo, fallback = "#081F5C")
+  color_subtitulo <- .norm_text_color(extra_args$color_subtitulo, fallback = "#081F5C")
+  color_nota_pie <- .norm_text_color(extra_args$color_nota_pie, fallback = "#081F5C")
   font_family <- trimws(as.character(extra_args$font_family %||% "Arial")[1])
   if (!nzchar(font_family)) font_family <- "Arial"
   textos_negrita <- extra_args$textos_negrita %||% character(0)
@@ -2946,7 +2946,7 @@ graficar_foda_dimensiones <- function(
     ancho_recuadro_rel = NULL,
     ancho_recuadro_auto = FALSE,
     ancho_chip_rel = 0.18,
-    chip_texto_color = "#000000",
+    chip_texto_color = "#081F5C",
     sufijo_puntaje = " pts",
     cortes_chip = NULL,
     modo_semaforo = NULL,

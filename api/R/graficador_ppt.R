@@ -109,7 +109,7 @@ graficar_ppt <- function(
     height             = 6.5,
     titulos_diapos     = NULL,
     size_titulo_diapo  = 16,
-    color_titulo_diapo = "#000000"
+    color_titulo_diapo = "#081F5C"
 ) {
 
   modo_dim <- match.arg(modo_dim)
