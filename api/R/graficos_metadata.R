@@ -1857,7 +1857,8 @@
            descripcion = "Añade una barra adicional a la derecha con Top2Box, Bottom2Box o N. Se configura con 'Preset de la barra extra' del graficador."),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo",
            descripcion = "Hex del color de la barra extra. Ej. '#081F5C'."),
-      list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo"),
+      list(name = "size_barra_extra",     label = "Tamaño texto barra extra", tipo_input = "number", grupo = "estilo",
+           descripcion = "Cuerpo de letra de la cifra de la columna extra."),
       list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "ninguno",   label = "Base / N"),
@@ -1967,6 +1968,7 @@
              list(value = "ninguna",  label = "Ocultar")
            )),
       list(name = "legend_key_cm",        label = "Tamaño icono leyenda (cm)", tipo_input = "number", grupo = "estilo",
+           descripcion = "Lado del cuadrito de color de la leyenda, en centímetros.",
            default = 0.40),
       list(name = "legend_espaciado",     label = "Espaciado entre items de leyenda", tipo_input = "number", grupo = "estilo",
            default = 6,
@@ -2064,15 +2066,19 @@
       # --- Textos / tamaños ---------------------------------------------
       list(name = "size_titulos_grupo",   label = "Tamaño títulos de bloque", tipo_input = "number", grupo = "estilo",
            descripcion = "Cuando hay varios bloques temáticos, es el tamaño del título de cada bloque."),
-      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo"),
-      list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo"),
+      list(name = "color_texto_barras",   label = "Color texto en barras", tipo_input = "color", grupo = "estilo",
+           descripcion = "Color de la cifra cuando cae DENTRO del segmento. Tiene que contrastar con la paleta, no con el fondo."),
+      list(name = "color_texto_barras_fuera", label = "Color texto fuera de barras", tipo_input = "color", grupo = "estilo",
+           descripcion = "Color de la cifra cuando el segmento es tan estrecho que la cifra sale fuera. Ahí contrasta con el fondo, no con la barra."),
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo"),
       list(name = "mostrar_n_en_etiquetas", label = "Mostrar frecuencia en porcentajes", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Agrega la frecuencia entre paréntesis junto al porcentaje, por ejemplo 9% (16)."),
-      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro"),
+      list(name = "decimales",            label = "Decimales",             tipo_input = "number", grupo = "filtro",
+           descripcion = "Decimales de la cifra sobre la barra. Con 0, un segmento que no llega al 1 % se escribe «<1%» en vez de «0%»."),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro"),
-      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "filtro"),
+      list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "filtro",
+           descripcion = "Separa las cifras que se superponen en segmentos estrechos, manteniéndolas cerca de su centro."),
       list(name = "etiquetas_arriba_si_no_caben", label = "Etiquetas arriba si no caben", tipo_input = "bool", grupo = "filtro"),
       list(name = "etiquetas_arriba_offset", label = "Separación etiquetas superiores", tipo_input = "number", grupo = "filtro"),
       list(name = "color_conectores_etiquetas", label = "Color conectores etiquetas", tipo_input = "choice", grupo = "estilo",
@@ -2091,7 +2097,8 @@
       list(name = "linewidth_conectores_etiquetas", label = "Grosor conectores etiquetas", tipo_input = "number", grupo = "estilo"),
 
       # --- Barra extra ---------------------------------------------------
-      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo"),
+      list(name = "mostrar_barra_extra",  label = "Mostrar barra extra",   tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Añade una columna a la derecha de las barras, para el Top 2 Box o el total."),
       list(name = "barra_extra_preset",   label = "Qué muestra la barra extra", tipo_input = "choice", grupo = "estilo",
            choices = list(
              list(value = "ninguno",   label = "Base / N"),
@@ -2100,7 +2107,8 @@
              list(value = "top3box",   label = "Top 3 box"),
              list(value = "bottom2box",label = "Bottom 2 box")
            )),
-      list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos"),
+      list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
+           descripcion = "Encabezado de esa columna. Vacío usa el que corresponde al tipo (por ejemplo «Top 2 Box»)."),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
       list(name = "color_barra_extra",    label = "Color de la barra extra", tipo_input = "color", grupo = "estilo"),
       # --- Comparativo interanual de la columna extra ---------------------
@@ -2124,8 +2132,10 @@
       list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
            descripcion = "Fracción del ancho entre barras (0 = pegadas, 0.3 = separación generosa)."),
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro"),
-      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo"),
-      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
+      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo",
+           descripcion = "Da la vuelta al orden de las filas. Útil cuando el instrumento las declara al revés de como se leen."),
+      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo",
+           descripcion = "Grados de rotación de las etiquetas del eje X."),
       list(name = "alto_por_categoria",   label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas"),
 
       # --- Leyenda --------------------------------------------------------
@@ -2137,7 +2147,8 @@
              list(value = "izquierda",label = "Izquierda"),
              list(value = "ninguna",label = "Ocultar")
            )),
-      list(name = "legend_key_cm",        label = "Tamaño icono leyenda",  tipo_input = "number", grupo = "estilo"),
+      list(name = "legend_key_cm",        label = "Tamaño icono leyenda",  tipo_input = "number", grupo = "estilo",
+           descripcion = "Lado del cuadrito de color de la leyenda, en centímetros."),
       list(name = "legend_espaciado",     label = "Espaciado leyenda",     tipo_input = "number", grupo = "estilo"),
       list(name = "legend_n_por_fila",    label = "Items por fila leyenda", tipo_input = "number", grupo = "estilo"),
       list(name = "legend_gap_npc",        label = "Separación compacta leyenda", tipo_input = "number", grupo = "estilo",
@@ -2166,7 +2177,8 @@
       list(name = "canvas_h_legend_in",     label = "Alto de la leyenda (in)", tipo_input = "number", grupo = "canvas"),
       list(name = "leyenda_desplazamiento_in", label = "Mover leyenda", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_caption_in",    label = "Alto del pie (in)",      tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas"),
+      list(name = "canvas_h_panel_in",      label = "Alto fijo del panel (in)", tipo_input = "number", grupo = "canvas",
+           descripcion = "Fija el alto del área de barras en vez de dejar que se derive de las filas. Vacío = automático."),
       list(name = "canvas_min_filas",       label = "Filas virtuales mínimas", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_pad_bars_y_in",   label = "Padding vertical barras (in)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_gap_grupos",      label = "Separación entre bloques", tipo_input = "number", grupo = "canvas",

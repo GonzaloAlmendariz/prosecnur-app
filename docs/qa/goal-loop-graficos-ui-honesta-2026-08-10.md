@@ -398,3 +398,32 @@ el flujo, no con un test; queda como aviso para quien filtre otra lista.
 diferencia del badge de la iteración 3, cada uno vive DENTRO de la tarjeta de su
 gráfico y busca en sus propios ajustes, así que se lee como parte de esa tarjeta
 y no como repetición. Verificado en pantalla antes de darlo por bueno.
+
+### 2026-08-10 · iteración 8 — segunda tanda de descripciones, y un descarte más
+
+**Medido antes.** `.PRESETS_META` —el catálogo del panel donde vive el
+buscador— tenía **186 de 440 args sin describir**. Se atacaron los dos que usa
+el mazo real: `multi_apiladas` (11 sin describir) y `barras_apiladas` (2).
+
+**Cambiado.** Doce descripciones, contrastadas con la roxygen del motor y con lo
+que el argumento hace de verdad. Total: **186 → 174**. `barras_apiladas` queda a
+cero; `multi_apiladas`, en uno.
+
+**Evidencia.** El payload que consume la UI, medido antes y después. 460 tests de
+`test-graficos-argumentos-ui.R` y 9 del registro de defaults, en verde.
+
+**El error que cometí.** La primera pasada insertó las descripciones DESPUÉS de
+la línea de cada arg, y las entradas de una sola línea cierran con `),` ahí
+mismo: quedaron doce entradas sueltas fuera de su `list()`, y el payload reventó
+con «`$ operator is invalid for atomic vectors`». Se revirtió entero y se rehizo
+insertando dentro del paréntesis. El fichero **parseaba** perfectamente — por eso
+no bastaba con que R cargara: hizo falta llamar al payload.
+
+**Medición nueva, sin hallazgo.** Se comparó el `default` que la UI declara
+contra el del motor, buscando controles que muestren un valor que el motor no va
+a usar. **20 comparables, 0 discrepan.** La cobertura es baja —la mayoría de
+defaults del motor son expresiones o el arg no está en la firma de `p_*`— así que
+descarta la hipótesis solo donde se pudo mirar. Quinto descarte del loop.
+
+**Cola**: entra `C-11`, a medir, no a afirmar: el chip parece marcar «sin
+guardar» tras solo abrir y navegar.
