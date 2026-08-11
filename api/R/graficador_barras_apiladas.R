@@ -2383,9 +2383,21 @@ graficar_barras_apiladas <- function(
                "daria 100 %% en todas las filas. Necesita al menos %d."),
         barra_extra_preset, length(cols_porcentaje), minimo
       ))
-      barra_extra_preset <- "ninguno"
-      mostrar_barra_extra <- FALSE
+    } else {
+      # Sin declaracion no se adivina. La regla posicional de `.default_box_cols()`
+      # —las dos ultimas de la escala— asume un orden de peor a mejor y, cuando la
+      # escala no lo respeta, suma las dos equivocadas sin que nadie se entere. Un
+      # Top 2 Box es una decision metodologica, no una consecuencia del orden de
+      # las columnas: se declara por nombre de categoria y se declara una vez.
+      .pulso_aviso(sprintf(
+        paste0("La columna «%s» se omite: no hay categorias declaradas. Declaralas ",
+               "por nombre en Configuracion global > Estilo > Multi-apiladas; el ",
+               "motor ya no las deduce del orden de la escala."),
+        barra_extra_preset
+      ))
     }
+    barra_extra_preset <- "ninguno"
+    mostrar_barra_extra <- FALSE
   }
 
   # ---------------------------------------------------------------------------

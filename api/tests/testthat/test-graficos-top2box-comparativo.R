@@ -444,8 +444,11 @@ test_that("un box que abarca la escala entera se omite en vez de dar 100 %", {
   expect_true(file.exists(path))
 })
 
-test_that("con tres categorias el top2box sigue siendo un dato y se dibuja", {
+test_that("con tres categorias el top2box se dibuja SI se declararon sus categorias", {
   skip_if_not_installed("cowplot")
+  # Decision de Gonzalo (2026-08-11): el Top 2 Box se declara por nombre de
+  # categoria y es obligatorio si se usa. Antes bastaba con que la escala
+  # tuviera tres categorias: el motor tomaba las dos ultimas por posicion.
   path <- tempfile(fileext = ".png")
   tres <- data.frame(
     publico = c("Docentes", "Estudiantes"),
@@ -460,10 +463,35 @@ test_that("con tres categorias el top2box sigue siendo un dato y se dibuja", {
       cols_porcentaje = c("a", "b", "c"),
       etiquetas_grupos = c(a = "Bajo", b = "Medio", c = "Alto"),
       mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+      top2box_labels = c("Medio", "Alto"),
       usar_canvas = TRUE, exportar = "png", path_salida = path,
       ancho = 13.33, alto = 5.2, dpi = 72
     ),
     message = "se omite"
+  )
+})
+
+test_that("sin declarar sus categorias el box se omite, aunque la escala alcance", {
+  skip_if_not_installed("cowplot")
+  # La regla posicional —las dos ultimas de la escala— asumia un orden de peor
+  # a mejor. Cuando la escala no lo respeta, sumaba las dos equivocadas sin que
+  # nadie se entere. El aviso dice DONDE declararlas, no solo que faltan.
+  path <- tempfile(fileext = ".png")
+  tres <- data.frame(
+    publico = "Docentes", n = 52,
+    a = 0.2, b = 0.5, c = 0.3, stringsAsFactors = FALSE
+  )
+
+  expect_message(
+    graficar_barras_apiladas(
+      data = tres, var_categoria = "publico", var_n = "n",
+      cols_porcentaje = c("a", "b", "c"),
+      etiquetas_grupos = c(a = "Bajo", b = "Medio", c = "Alto"),
+      mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+      usar_canvas = TRUE, exportar = "png", path_salida = path,
+      ancho = 13.33, alto = 5.2, dpi = 72
+    ),
+    "Configuracion global"
   )
 })
 
