@@ -434,3 +434,39 @@ escala no tiene suficientes.
 Pendiente de que Gonzalo precise: **el uso de los colores por elemento**
 (enunciado, leyenda, valores dentro de barra, columna de box). Se relaciona con
 V-1 —822 runs en negro— pero la regla que debería regir no está escrita.
+
+## 7. Revisión estética pendiente — lista de Gonzalo, 2026-08-11
+
+**El diagnóstico de fondo es correcto: no se hizo una revisión estética del mazo.**
+Se validaron invariantes medibles (color del texto, formas fuera de lámina,
+avisos del motor, cálculo del Top 2 Box) y se dio por bueno el resto sin mirar
+lámina por lámina. Esta sección existe para que eso se haga con método.
+
+**Error de banco de pruebas detectado al revisar esto**: el script de validación
+(`/tmp/cierre/render.R`) forzaba `auto_otros_slides = TRUE`, cuando el default
+del registro es `FALSE` y el router lo resuelve del proyecto. Se estuvo
+validando un mazo distinto del que produce la app. Corregido; con el flag en
+`FALSE` el mazo sigue teniendo 67 láminas, lo que demuestra que **las láminas de
+«otros» están guardadas en el plan del proyecto, no las genera el motor**: hay
+que decidir si se borran del plan o si el render las omite por criterio.
+
+### Cola de la revisión estética
+
+| # | Ítem | Estado |
+|---|---|---|
+| E-1 | Índice: los íconos de los focos no están configurados; falta probar que cambiarlos cambie algo, y probar con subíndices de prueba | sin empezar |
+| E-2 | Objetivo: el texto sale invertido | sin diagnosticar |
+| E-3 | Probar un PNG real de Pulso como ícono; hoy no se ve que funcione | ligado a la ref. perdida del ícono «Perfil» |
+| E-4 | Perfil (docente y estudiante): probar títulos por variable agrupada, no sólo el del slide | sin empezar |
+| E-5 | Las láminas de «otros» no deben renderizarse salvo declaración explícita | **medido**: viven en el plan, no en el motor |
+| E-6 | Cada gráfico necesita título propio además del título de lámina; configurarlo en el proyecto | sin empezar |
+| E-7 | Sin Top 2 Box por defecto en dicotómicos | el mecanismo ya existe (declaración por nombre); falta aplicarlo al proyecto |
+| E-8 | Separación entre bloques inconsistente entre láminas | sin medir |
+| E-9 | La leyenda cambia de tamaño entre láminas; debería ser una sola en todo el mazo. Igual para etiquetas y todo texto | sin medir |
+| E-10 | Porcentajes más grandes que su propia barra | sin medir |
+| E-11 | Wrap demasiado corto y textos truncados con «…» | medido antes: 6 formas fuera de lámina, truncados en varias |
+| E-12 | Las tablas deben ser NATIVAS de PPT en todos los casos, con el formato de la casa | **contradice el ADR 0071**; exige revertirlo con ADR nuevo |
+
+E-9 y E-12 son los dos de mayor alcance: el primero exige una pasada de
+consistencia tipográfica sobre las 67 láminas, y el segundo revertir una
+decisión de arquitectura documentada.
