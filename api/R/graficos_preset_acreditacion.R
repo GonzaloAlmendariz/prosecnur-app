@@ -23,6 +23,13 @@
 # que no tienen.
 .PRESET_ACRD_FUERA_ESCALA <- "#BFBFBF"
 
+# Series del radar, medidas sobre las láminas 16-17 del deck 2021 (`002060` y
+# `FFC000`). No salen de la rampa ordinal: en un radar las series son públicos,
+# no posiciones de una escala, así que un recorrido naranja → verde diría un
+# orden que ahí no existe. El tercer color extiende la pareja del deck para los
+# estudios que comparan tres públicos.
+.PRESET_ACRD_RADAR_SERIES <- c("#002060", "#FFC000", "#8FC36B")
+
 #' Normaliza una etiqueta para comparar: minúsculas, sin tildes, sin espacios
 #' de más. El instrumento escribe la misma categoría de varias formas
 #' («Totalmente de Acuerdo», «totalmente de acuerdo») y el match exacto por
@@ -247,7 +254,12 @@ presets_acreditacion <- function(etiquetas = NULL) {
     presets = list(
       base = .preset_acreditacion_slide(),
       barras_apiladas = estilo,
-      multi_apiladas = estilo
+      multi_apiladas = estilo,
+      # El radar del deck usa navy y ámbar, no la paleta base del motor. Sin
+      # esto, la única diferencia real entre la lámina de radar del deck 2021 y
+      # la nuestra eran los colores de serie: el preset definía la rampa de la
+      # escala apilada y dejaba el radar a su suerte.
+      radar_tabla = list(colores_series = .PRESET_ACRD_RADAR_SERIES)
     ),
     paletas = list(
       # La escala de 4 puntos con sus nombres canónicos. El match del motor
