@@ -1094,6 +1094,9 @@ graficar_barras_apiladas <- function(
     mostrar_valores       = TRUE,
     decimales             = 0,
     umbral_etiqueta       = 0.001,
+    # Apagado por defecto: mostrar todos los porcentajes es el comportamiento
+    # esperado, y ocultar los pequeños una decisión que se toma a mano.
+    ocultar_etiquetas_pequenas = FALSE,
     umbral_etiqueta_peq   = NULL,
     umbral_mostrar_etiqueta = NULL,
     umbral_etiqueta_normal  = NULL,
@@ -1380,10 +1383,13 @@ graficar_barras_apiladas <- function(
     "umbral_etiqueta_normal",
     default = NULL
   )
-  umbral_ocultar_etiqueta_eff <- normalizar_umbral_prop(
-    if (missing(umbral_ocultar_etiqueta)) NULL else umbral_ocultar_etiqueta,
-    "umbral_ocultar_etiqueta",
-    default = 0
+  umbral_ocultar_etiqueta_eff <- .barras_umbral_ocultar_efectivo(
+    ocultar_etiquetas_pequenas,
+    normalizar_umbral_prop(
+      if (missing(umbral_ocultar_etiqueta)) NULL else umbral_ocultar_etiqueta,
+      "umbral_ocultar_etiqueta",
+      default = 0
+    )
   )
 
   usa_umbrales_explicitos <- !is.null(umbral_mostrar_etiqueta) || !is.null(umbral_etiqueta_normal)

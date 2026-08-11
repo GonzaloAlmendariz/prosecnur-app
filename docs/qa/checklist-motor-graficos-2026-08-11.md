@@ -23,7 +23,7 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 3 | **4×4**: cada gráfico con su base **dentro del gráfico**, no en la lámina | motor + preset | ☐ sin empezar |
 | 4 | **Objetivo**: el campo de texto sale invertido | motor | ☐ sin empezar |
 | 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ◐ **parcial** |
-| 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☐ sin empezar |
+| 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☑ **hecho** |
 | 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ☐ bloqueado por decisión |
 | 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
 | 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☐ sin empezar |
@@ -69,14 +69,26 @@ devuelve el punto de `reporte_plan_ppt.R:371`, así que la vía real es otra.
 **Es una regresión introducida hoy** (antes el separador era naranja porque
 `color_titulo` lo era) y afecta a las 13 láminas separadoras.
 
-### 6 · Todos los porcentajes por defecto
-`umbral_etiqueta` existe en cuatro sitios con defaults distintos: `p_histograma`
-0.04, preset `barras_apiladas` 0.01, `multi_apiladas` sin default,
-`barras_agrupadas` 0.001, y el graficador 0.001. Con 0,1 % un 4 % debería
-dibujarse, así que **el umbral no explica** las etiquetas ausentes de las
-láminas 24 y 42: falta identificar qué las descarta antes de tocar nada.
-Descartado ya: `.limitar_una_label_fuera_por_barra_apiladas` **reubica**, no
-descarta.
+### 6 · Todos los porcentajes por defecto — HECHO
+
+No era `umbral_etiqueta` —con 0,1 % un 4 % se dibuja— sino
+**`umbral_ocultar_etiqueta`, que el motor se inyectaba solo**. Dos reglas
+automáticas de `reporte_plan_helpers.R` lo ponían en **0.15**, o sea escondían
+toda etiqueta de valor ≤ 15 %:
+
+- baterías `barras_multiapiladas` en modo `var` con **tres o más variables**;
+- cualquier apilada o multiapilada en un slot de **menos de 7,25 in**.
+
+Medido con `trace()` sobre las 51 llamadas del mazo: dos combinaciones de
+umbral, `ocultar = 0` en unas y `ocultar = 0.15` en las que caían en esas
+reglas. Nada lo decía, y es justo donde vive el dato interesante de una escala
+de acuerdo.
+
+Ahora hay interruptor **`ocultar_etiquetas_pequenas`, apagado por defecto**
+(`graficador_umbral_etiquetas.R`), las dos inyecciones automáticas se retiraron
+y el umbral conserva su significado pero sólo se aplica cuando se pide.
+
+Verificado en la lámina 42: vuelven los 6 %, 2 %, 4 %, 8 % y 6 % que faltaban.
 
 ### 7 · Tablas nativas del radar
 Contradice el **ADR 0071** (formas, no charts nativos). Exige un ADR nuevo que

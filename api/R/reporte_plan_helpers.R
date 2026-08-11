@@ -2596,7 +2596,9 @@ p_reset <- function(
     if (is.null(el$overrides$size_nota_pie)) el$overrides$size_nota_pie <- 10
     if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.55
     if (is.null(el$overrides$canvas_h_caption_in)) el$overrides$canvas_h_caption_in <- 0.34
-    if (is.null(el$overrides$umbral_ocultar_etiqueta)) el$overrides$umbral_ocultar_etiqueta <- 0.15
+    # El umbral automático de 0.15 se retira: ocultaba los porcentajes del 1 %
+    # al 15 % en las baterías largas sin que nadie lo pidiera ni lo dijera.
+    # Ahora es el interruptor `ocultar_etiquetas_pequenas`, apagado por defecto.
     if (is.null(el$overrides$etiquetas_arriba_si_no_caben)) {
       el$overrides$etiquetas_arriba_si_no_caben <- FALSE
     }
@@ -2607,7 +2609,7 @@ p_reset <- function(
     if (is.null(el$overrides$size_barra_extra)) el$overrides$size_barra_extra <- 11
     if (is.null(el$overrides$size_titulo_extra)) el$overrides$size_titulo_extra <- 11
     if (is.null(el$overrides$canvas_h_legend_in)) el$overrides$canvas_h_legend_in <- 0.68
-    if (is.null(el$overrides$umbral_ocultar_etiqueta)) el$overrides$umbral_ocultar_etiqueta <- 0.15
+    # Ídem en gráficos estrechos: apretar el canvas no autoriza a esconder el dato.
   }
   el
 }
