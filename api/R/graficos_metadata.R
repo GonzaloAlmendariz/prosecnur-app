@@ -798,7 +798,14 @@
              list(value = "menor_mayor", label = "Menor a mayor")
            ),
            descripcion = "Define si las categorías respetan el orden del formulario o se ordenan por frecuencia."),
+      # `via_overrides`: el constructor `p_barras_agrupadas()` sólo acepta ocho
+      # args y no tiene `...`, así que un valor guardado al nivel del slot se
+      # cae al construir el elemento y NUNCA llega al graficador. Medido con
+      # `trace()`: cero llamadas lo recibían mientras el `.pulso` lo tenía
+      # guardado y la UI lo mostraba reordenado — una reparación fantasma.
+      # `overrides` es la puerta declarada para lo que no es formal.
       list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "estilo",
+           via_overrides = TRUE,
            descripcion = "Etiquetas en el orden exacto deseado (de arriba hacia abajo). Las categorías no listadas se agregan al final, en su orden original. Si se define, tiene prioridad sobre 'Orden de barras'."),
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,

@@ -260,6 +260,13 @@ export type ArgMetadata = {
   grupo: ArgGrupo;
   descripcion?: string;
   unidad?: string;
+  /** El valor viaja en `args.overrides`, no al nivel del slot.
+   *
+   *  Los constructores del plan (`p_barras_agrupadas()` y compañía) declaran
+   *  sus formals y NO tienen `...`: un arg del graficador guardado al nivel del
+   *  slot se cae al construir el elemento y nunca llega al motor. `overrides`
+   *  es la puerta declarada para todo lo que no es formal del constructor. */
+  via_overrides?: boolean;
   min?: number;
   max?: number;
   step?: number;
