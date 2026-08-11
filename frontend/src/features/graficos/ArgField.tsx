@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
-import { apiGraficosPaletasSugeridas, type PaletaSugeridaEntry } from "../../api/client";
+import { apiGraficosPaletasSugeridas, type PaletaChoiceItem, type PaletaSugeridaEntry } from "../../api/client";
 import { MAX_FOCOS, parseIndicePayload } from "./indiceModel";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
@@ -2393,6 +2393,23 @@ function CategoriasEscalaField({
 
   const marcadas = useMemo(() => new Set(value.map((v) => String(v))), [value]);
 
+  // Fusión por JUEGO de categorías. Medido en el banco del 10-08: 73 listas
+  // que son sólo 23 escalas distintas —25 comparten «Sí / No» y 13 la misma
+  // Likert—. Pintarlas una por una daba ~6.570 px, casi siete pantallas, y
+  // dejaba el resto de los ajustes fuera de alcance. Se declara sobre el juego,
+  // que es lo que el motor empareja de todos modos: la etiqueta, no la lista.
+  const grupos = useMemo(() => {
+    const porFirma = new Map<string, { choices: PaletaChoiceItem[]; listas: string[]; fuentes: Set<string> }>();
+    for (const l of listas) {
+      const firma = l.choices.map((c) => c.label.trim().toLowerCase()).sort().join("\u0000");
+      const g = porFirma.get(firma) ?? { choices: l.choices, listas: [], fuentes: new Set<string>() };
+      g.listas.push(l.list_name);
+      for (const f of l.fuentes ?? []) g.fuentes.add(f);
+      porFirma.set(firma, g);
+    }
+    return [...porFirma.values()].sort((a, b) => b.listas.length - a.listas.length);
+  }, [listas]);
+
   function alternar(etiqueta: string) {
     const next = marcadas.has(etiqueta)
       ? value.filter((v) => String(v) !== etiqueta)
@@ -2414,50 +2431,58 @@ function CategoriasEscalaField({
   const cubiertas = listas.filter((l) => l.choices.some((c) => marcadas.has(c.label))).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
         {cubiertas > 0
-          ? `${cubiertas} de ${listas.length} escalas quedan cubiertas por lo marcado.`
-          : `Marca las categorías en cada escala. ${listas.length} escalas en el estudio.`}
+          ? `${cubiertas} de ${listas.length} listas cubiertas · ${grupos.length} escalas distintas`
+          : `Marca las categorías. ${grupos.length} escalas distintas en ${listas.length} listas.`}
       </p>
-      {listas.map((l) => {
-        const id = l.escala_id ?? l.list_name;
-        const activas = l.choices.filter((c) => marcadas.has(c.label)).length;
-        return (
-          <div key={id} style={{ border: "1px solid var(--pulso-border)", borderRadius: 10, padding: "8px 10px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 6 }}>
-              <strong style={{ fontSize: 12 }}>{l.list_name}</strong>
-              <span style={{ fontSize: 11, color: "var(--pulso-text-soft)" }}>
-                {l.choices.length} categorías
-                {l.fuentes?.length ? ` · ${l.fuentes.join(", ")}` : ""}
-                {activas ? ` · ${activas} marcadas` : ""}
+      {/* Acotado y con scroll propio: sin esto ocupaba ~6.570 px y enterraba
+          el resto de los ajustes del panel. */}
+      <div style={{ maxHeight: 288, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 2 }}>
+        {grupos.map((g) => {
+          const id = g.listas.join("|");
+          const activas = g.choices.filter((c) => marcadas.has(c.label)).length;
+          const fuentes = [...g.fuentes];
+          return (
+            <div
+              key={id}
+              style={{
+                border: `1px solid ${activas ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                borderRadius: 10,
+                padding: "8px 10px",
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 5 }}>
+                {g.choices.map((c) => {
+                  const on = marcadas.has(c.label);
+                  return (
+                    <button
+                      key={`${id} ${c.name}`}
+                      type="button"
+                      onClick={() => alternar(c.label)}
+                      title={`código ${c.name}`}
+                      style={{
+                        padding: "3px 9px", borderRadius: 999, cursor: "pointer", fontSize: 11,
+                        fontWeight: on ? 600 : 500,
+                        border: `1px solid ${on ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
+                        background: on ? "var(--pulso-primary-soft)" : "transparent",
+                        color: on ? "var(--pulso-primary)" : "var(--pulso-text)",
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <span style={{ fontSize: 10.5, color: "var(--pulso-text-soft)" }} title={g.listas.join(", ")}>
+                {g.listas.length === 1 ? g.listas[0] : `${g.listas.length} listas`}
+                {fuentes.length ? ` · ${fuentes.join(", ")}` : ""}
               </span>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {l.choices.map((c) => {
-                const on = marcadas.has(c.label);
-                return (
-                  <button
-                    key={`${id} ${c.name}`}
-                    type="button"
-                    onClick={() => alternar(c.label)}
-                    title={`código ${c.name}`}
-                    style={{
-                      padding: "3px 9px", borderRadius: 999, cursor: "pointer", fontSize: 11,
-                      fontWeight: on ? 600 : 500,
-                      border: `1px solid ${on ? "var(--pulso-primary)" : "var(--pulso-border)"}`,
-                      background: on ? "var(--pulso-primary-soft)" : "transparent",
-                      color: on ? "var(--pulso-primary)" : "var(--pulso-text)",
-                    }}
-                  >
-                    {c.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
