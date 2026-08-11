@@ -427,3 +427,27 @@ descarta la hipótesis solo donde se pudo mirar. Quinto descarte del loop.
 
 **Cola**: entra `C-11`, a medir, no a afirmar: el chip parece marcar «sin
 guardar» tras solo abrir y navegar.
+
+### 2026-08-10 · iteración 9 — C-11 descartado, y tercera tanda de descripciones
+
+**C-11, medido y descartado.** La sospecha era que el chip dijera «sin guardar»
+sin que el analista hubiera cambiado nada — un control que miente, del tipo de
+las guías. No pasa:
+
+    recién abierto · project_dirty = FALSE
+    navegar / seleccionar lámina / abrir Estilo / buscar -> «hace 10 h»
+
+Ninguna acción de solo lectura lo dispara. El «sin guardar» de las capturas de
+las iteraciones 6 y 7 lo provoqué yo con acciones que sí cambiaban estado. Sexto
+descarte del loop.
+
+**C-09, tercera tanda.** El preset `base` —del que heredan todos los demás—
+tenía 8 args sin describir, todos en entradas multilínea que la pasada anterior
+saltaba. Tres descritas; **174 → 171**. Las cinco restantes tienen formas que el
+inserto automático no cubre y quedan para la siguiente tanda.
+
+**Evidencia.** El payload que consume la UI, medido antes y después. 486 tests R
+en las tres suites del área, en verde.
+
+**Iteración de saldo mixto**: un descarte y un avance parcial. Se registra así
+en vez de inflar el descarte como si fuera un hallazgo.
