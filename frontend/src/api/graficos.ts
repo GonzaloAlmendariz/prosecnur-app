@@ -788,6 +788,11 @@ export type PaletaSugeridaEntry = {
   /** Bases del estudio donde vive la lista (multibase). Ausente en configs
    *  viejas o proyectos de base única. */
   fuentes?: string[];
+  /** Variables del instrumento que usan esta escala, calificadas por base
+   *  (`docentes$p4_recod`) cuando el estudio es multibase. Es el puente hacia
+   *  el `var` de un gráfico: permite ofrecer SU escala en vez de las 23 del
+   *  estudio. Ausente en backends viejos. */
+  variables?: string[];
 };
 
 export async function apiGraficosPaletasSugeridas() {
