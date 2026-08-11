@@ -33,6 +33,16 @@ function clarifyPresetGraphTitleArg(arg: ArgMetadata): ArgMetadata {
   };
 }
 
+// Comparación de texto sin tildes, para buscar como se escribe rápido.
+//
+// El buscador comparaba literal, así que «mayusculas» no encontraba
+// «MAYÚSCULAS» y «numerico» no encontraba «numérico». Quien busca a toda prisa
+// no pone tildes, y el ajuste sí las lleva porque su copy está bien escrito.
+// `NFD` separa la tilde de su letra y el rango la retira.
+function sinTildes(x: string): string {
+  return x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 function samePresetValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -332,12 +342,13 @@ function PresetBody({
   // reorganización de los grupos.
   const [busqueda, setBusqueda] = useState("");
   const argsFiltrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
+    const q = sinTildes(busqueda.trim());
     if (!q) return presetArgs;
     const terminos = q.split(/\s+/);
     return presetArgs.filter((a) => {
-      const heno = [a.name, a.label, a.descripcion, a.efecto, a.unidad]
-        .filter(Boolean).join(" ").toLowerCase();
+      const heno = sinTildes(
+        [a.name, a.label, a.descripcion, a.efecto, a.unidad].filter(Boolean).join(" "),
+      );
       return terminos.every((t) => heno.includes(t));
     });
   }, [presetArgs, busqueda]);
