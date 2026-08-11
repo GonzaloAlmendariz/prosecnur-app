@@ -1879,6 +1879,8 @@
       # Mismos rotulos que en multi_apiladas: este preset alimenta el mismo
       # motor y dibuja la misma columna, asi que la declaracion tiene que
       # existir en los dos. Sin ella el box se omite con aviso.
+      list(name = "preservar_tamanos_texto", label = "Tamaño de texto fijo en todo el mazo", tipo_input = "bool", grupo = "lectura",
+           descripcion = "Respeta los tamaños declarados aunque el texto no quepa: cede el espacio (canal más ancho, más alto) en vez de encoger la letra. Sin esto, cada bloque se achica por su cuenta y dos bloques de la misma lámina salen con tipografías distintas."),
       list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala."),
@@ -2135,6 +2137,8 @@
       # Un Top 2 Box de escala de 5 y uno de escala de 2 no son el mismo
       # indicador; declararlo es la unica forma de que signifiquen lo que el
       # analista quiso decir.
+      list(name = "preservar_tamanos_texto", label = "Tamaño de texto fijo en todo el mazo", tipo_input = "bool", grupo = "lectura",
+           descripcion = "Respeta los tamaños declarados aunque el texto no quepa: cede el espacio (canal más ancho, más alto) en vez de encoger la letra. Sin esto, cada bloque se achica por su cuenta y dos bloques de la misma lámina salen con tipografías distintas."),
       list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "categorias_escala", grupo = "estilo",
            ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala."),

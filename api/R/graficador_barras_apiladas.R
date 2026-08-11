@@ -1168,6 +1168,7 @@ graficar_barras_apiladas <- function(
     barra_extra_tolerancia_pp = 0,
     color_ejes            = "#081F5C",
     size_ejes             = 9,
+    preservar_tamanos_texto = FALSE,
     color_titulos_grupo   = NULL,
     size_titulos_grupo    = NULL,
     color_fondo           = NA,
@@ -3102,11 +3103,17 @@ graficar_barras_apiladas <- function(
   pad_x <- 0.004
   x_lab <- x_etq0 + w_etq * (1 - pad_x)
   fontface_etq <- if ("eje_y" %in% textos_negrita) "bold" else "plain"
+  # `preservar_tamanos_texto` fija el tamano para TODO el mazo. Sin el, cada
+  # bloque se encoge por su cuenta cuando no cabe, y dos bloques contiguos de
+  # la misma lamina acaban con tipografias distintas. Medido sobre el mazo del
+  # 10-08: 46 de 67 laminas mezclaban tamanos de etiqueta dentro de si mismas.
+  # Con esto activo el espacio cede —canal mas ancho, mas alto— y la letra no.
   size_ejes_eff <- size_ejes_num
+  ceder_letra <- !isTRUE(preservar_tamanos_texto)
   lineheight_eje_y_eff <- if (isTRUE(needs_tall_label_slot)) 0.80 else 0.86
   lineas_eje_y <- vapply(strsplit(as.character(etiquetas_vec), "\n", fixed = TRUE), length, integer(1))
   lineas_eje_y[!is.finite(lineas_eje_y) | is.na(lineas_eje_y) | lineas_eje_y < 1L] <- 1L
-  if (isTRUE(needs_tall_label_slot)) {
+  if (ceder_letra && isTRUE(needs_tall_label_slot)) {
     max_lines_eje_y <- max(lineas_eje_y, na.rm = TRUE)
     size_cap <- if (max_lines_eje_y >= 9L) {
       11.8
@@ -3119,7 +3126,7 @@ graficar_barras_apiladas <- function(
     }
     size_ejes_eff <- min(size_ejes_eff, size_cap)
   }
-  if (isTRUE(usar_canvas) && n_categorias > 1L && any(lineas_eje_y >= 4L)) {
+  if (ceder_letra && isTRUE(usar_canvas) && n_categorias > 1L && any(lineas_eje_y >= 4L)) {
     y_sorted <- sort(as.numeric(y_abs))
     gaps_in <- diff(y_sorted) * h_total_in
     gaps_in <- gaps_in[is.finite(gaps_in) & gaps_in > 0]
