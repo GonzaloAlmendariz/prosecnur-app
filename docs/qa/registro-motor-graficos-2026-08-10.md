@@ -1,6 +1,6 @@
 # Registro del motor de gráficos — errores, pendientes y formato 2021
 
-**Fecha**: 2026-08-10 · **Rama**: `trabajo/preset-acreditacion-top2box` (14 commits)
+**Fecha**: 2026-08-10 · **Rama**: `trabajo/preset-acreditacion-top2box`
 **Banco de prueba**: `~/Documents/Pulso/ACRD CONTA/Conta 09-08 equivalencias.pulso`
 (4 bases, 67 láminas, 50 gráficos) y `api/inst/reference_projects/acrconta/`.
 
@@ -17,6 +17,22 @@ Complementa —no reemplaza— a
 [Validación contra el deck de acreditación 2021](validacion-deck-acreditacion-2021.md),
 que mide rasgo a rasgo si el motor reproduce la vara. Ese doc responde *«¿el motor
 puede?»*; este responde *«¿le llega al analista?»*.
+
+---
+
+## Estado en una pantalla
+
+| | |
+|---|---|
+| **Aplicado y verificado** | R-01 a R-10 · E-01, E-02, E-04, E-05, E-06, E-07, E-08, E-09, E-10 · P-01, P-03, P-05 · contrato Word |
+| **Diagnosticado, sin aplicar** | **E-03/P-06** el aire bajo el canvas · **E-11** las etiquetas sobre el segmento vecino |
+| **Observaciones nuevas sin clasificar** | O-01 guías ausentes en láminas de solo texto · O-02 el runtime del analista sirve código viejo hasta reiniciar |
+| **Decisiones pendientes del usuario** | **P-02** política de leyenda de una fila · **P-06** cuál de los dos levers del aire vertical |
+
+Nada de lo listado como «sin aplicar» está bloqueado por falta de tiempo: **E-03/P-06
+y P-02 esperan una decisión** porque sus dos únicas salidas cambian el layout de
+todos los mazos existentes, y **E-11** resultó no ser un fix mecánico (ver su
+diagnóstico). Todo lo demás que no requería decisión ya está aplicado.
 
 ---
 
@@ -109,9 +125,37 @@ Medidos sobre el render del `.pulso` real contra el `HEAD` de hoy.
 | **E-06** | **Leyenda de 5 categorías que roza** en bloques comprimidos | ✅ **RESUELTO** por `R-03` + `c3e54d39` | — |
 | **E-07** | **Enunciado de tema truncado o fuera de la lámina** | ✅ **RESUELTO** `c3e54d39` | — |
 | **E-08** | **Colores de serie del radar** no eran los del deck | ✅ **RESUELTO** `9f999bfe`: navy y ámbar medidos, dentro del perfil | — |
-| **E-11** | **Las etiquetas chicas se reubican sobre el segmento VECINO.** Con 0,4 % y 2 % contiguos, «<1%» aterriza sobre el turquesa y «2%» sobre el verde: se leen como si rotularan a otro | 🔎 **NUEVO, visto en render** | Media |
+| **E-11** | **Las etiquetas chicas se dibujan sobre el segmento VECINO** y el motor las sigue tratando como interiores | ⚠️ **ABIERTO** — diagnosticado con coordenadas, ver abajo | Media |
 | **E-09** | **Las guías de layout no llegaban a ningún entregable** pese al interruptor activo | ✅ **RESUELTO** `c9cf1a49` | — |
 | **E-10** | **La banda de leyenda reservaba 2,4× lo que dibuja** | ✅ **RESUELTO** `69c96d34`: de 38 a 31 px, y a 16 pt sin cambio | — |
+
+### E-11 — medido, y no es donde parecía
+
+Instrumentando el estado de las etiquetas durante un render:
+
+| Etiqueta | Su segmento | Dónde se dibuja | `.label_fuera` |
+|---|---|---|---|
+| `<1%` | `[0.000, 0.004]` | **0.032** | FALSE |
+| `2%`  | `[0.004, 0.024]` | **0.105** | FALSE |
+| `1%`  | `[0.000, 0.012]` | **0.102** | FALSE |
+| `5%`  | `[0.012, 0.062]` | 0.034 ✓   | FALSE |
+
+El motor las trata como INTERIORES aunque estén hasta ocho anchos fuera de su
+segmento, así que no reciben el conector que sí tienen las declaradas «fuera».
+Se leen como si rotularan a la categoría vecina.
+
+**Lo que se probó y NO era**: acotar el repelido de `repeler_etiquetas_peq` a
+los límites del propio segmento (`.repel_x_min`/`.repel_x_max`). No cambió una
+sola etiqueta — el desplazamiento ya viene hecho de una etapa anterior, entre
+`.limitar_una_label_fuera_por_barra_apiladas`,
+`.acomodar_labels_dentro_barra_apiladas` y
+`.forzar_labels_dentro_barra_apiladas`. El cambio se revirtió por no tener
+efecto demostrado.
+
+Quien lo tome: el siguiente paso es instrumentar esas tres etapas por separado
+para ver cuál mueve la etiqueta fuera de su segmento, y decidir si al salirse
+debe marcarse `.label_fuera = TRUE` —lo que le daría su conector— o quedarse
+dentro y encoger.
 
 ### E-01 es una regresión reciente y sistémica
 
@@ -229,6 +273,27 @@ migrar devolvería ese trabajo a una persona.
 
 ---
 
+## 4bis. Observaciones nuevas, sin clasificar todavía
+
+Cosas vistas al medir, que no son bugs registrados ni tienen dueño aún.
+
+**O-01 — las guías no llegan a las láminas de solo texto.** `debug_ph_bordes`
+vive en el canvas de los graficadores, así que Portada, Índice y Separador no
+reciben marcos ni en el preview ni ahora en el export. El esqueleto de carga sí
+dibuja cajas rosadas, lo que hace la ausencia más confusa. Importa desde que las
+guías llegan al entregable (`E-09`): una portada cuyo título desborda sigue sin
+poder diagnosticarse con ellas.
+
+**O-02 — el runtime del analista sirve código viejo hasta que se reinicia.** El
+export de «Conta 10-08» del 10/08 a las 18:03 salió con la paleta invertida y
+las columnas Top 2 Box de 100 %, defectos reparados a las 14:40 y 18:09. El
+mismo `.pulso` renderizado contra `HEAD` sale correcto. El launcher reinstala el
+paquete cuando detecta la fuente más nueva, pero solo **al arrancar**: una sesión
+larga sirve el paquete instalado viejo sin avisar. No es un bug del motor, pero
+explica reportes que no reproducen y cuesta horas de diagnóstico cada vez.
+
+---
+
 ## 5. Trampas — no repetirlas
 
 Recogidas de las dos sesiones. Cada una costó tiempo real.
@@ -248,9 +313,12 @@ Recogidas de las dos sesiones. Cada una costó tiempo real.
   `cowplot::draw_text()` (pt). 14 pt en la barra son `14 / ggplot2::.pt ≈ 4,9`.
 - **`as.character()` borra los nombres de un vector con nombres.** Causa de `R-01`.
 - **Un `list_name` no identifica una escala en multibase.** Causa de `R-04`.
-- **Las guías de layout no llegan a las láminas de solo texto** (Portada, Índice,
-  Separador): `debug_ph_bordes` vive en el canvas de los graficadores. El esqueleto
-  de carga sí muestra cajas; el render final no.
+- **Las guías de layout no llegan a las láminas de solo texto** (ver `O-01`).
+- **Un assert sobre el objeto ggplot de un canvas no ve las etiquetas dibujadas**
+  y pasa en verde sin medir nada. Le pasó a la regresión del «0%»: hubo que sacar
+  la regla a `.pulso_fmt_pct_unidades()` para poder verificarla.
+- **Acotar el repelido de etiquetas no mueve una sola etiqueta**: el
+  desplazamiento ya viene hecho de una etapa anterior (ver `E-11`).
 
 ---
 
