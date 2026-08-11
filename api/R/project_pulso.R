@@ -2330,6 +2330,37 @@
 #   dest_path   — path absoluto del .pulso (se crea o reemplaza)
 #   project_name — nombre humano para el manifest (opcional)
 # Retorna list(ok=TRUE, size, saved_at).
+# Nombre humano de una referencia que no se pudo empaquetar.
+#
+# Un aviso con un UUID no es accionable: el analista no sabe qué es
+# `9e293d53-…` ni dónde lo eligió. Cuando el archivo ya no está en `s$files`
+# tampoco hay `original_name`, así que se busca el fid donde el proyecto lo
+# declara —hoy, los iconos de Graficos— para poder decir «el ícono "Perfil"».
+.pulso_nombre_de_ref <- function(s, fid, meta = NULL) {
+  # El recurso manda sobre el archivo: «el ícono "Perfil"» le dice al analista
+  # DÓNDE volver a ponerlo; «file93102b62.png» no le dice nada, y es lo que
+  # sale cuando el archivo se subió con nombre temporal.
+  configs <- c(
+    list(s$graficos_config),
+    unname(s$graficos_config_por_base %||% list()),
+    list((s$graficos_consolidado_draft %||% list())$config),
+    list((s$graficos_consolidado %||% list())$config)
+  )
+  for (cfg in configs) {
+    for (icono in ((cfg %||% list())$iconos %||% list())) {
+      if (!is.list(icono)) next
+      if (identical(as.character(icono$file_id %||% "")[1], fid)) {
+        etq <- as.character(icono$nombre %||% "")[1]
+        return(if (nzchar(etq)) sprintf("el ícono «%s»", etq) else "un ícono")
+      }
+    }
+  }
+
+  nombre <- as.character((meta %||% list())$original_name %||% "")[1]
+  if (!is.na(nombre) && nzchar(nombre)) return(nombre)
+  fid
+}
+
 build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwrite = FALSE) {
   if (!requireNamespace("zip", quietly = TRUE)) {
     stop_api(500, "E_NO_ZIP", "El paquete R 'zip' no está instalado.")
@@ -2359,10 +2390,19 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
   files_dir <- file.path(stage_dir, "files")
   dir.create(files_dir, recursive = TRUE, showWarnings = FALSE)
   persisted_files <- list()
+  # Referencias que el estado declara y cuyo archivo ya no está. Se saltaban en
+  # silencio, así que el `.pulso` salía completo a la vista y roto al reabrirlo
+  # en otra máquina: el proyecto de acreditación del 10-08 viajó con un ícono
+  # cuyo PNG no estaba, y el export moría entero con «Icono no encontrado».
+  # Guardar sigue siendo posible —bloquearlo sería peor— pero deja de ser mudo.
+  refs_perdidas <- character(0)
   if (!is.null(s$files) && length(s$files) > 0L && length(needed_fids) > 0L) {
     for (fid in needed_fids) {
       meta <- s$files[[fid]]
-      if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) next
+      if (is.null(meta) || is.null(meta$path) || !file.exists(meta$path)) {
+        refs_perdidas <- c(refs_perdidas, .pulso_nombre_de_ref(s, fid, meta))
+        next
+      }
       # Doble underscore como separador — improbable en nombres reales,
       # se splittea sin ambigüedad en load.
       safe_name <- gsub("[/\\\\]", "_", as.character(meta$original_name %||% "file"))
@@ -2445,7 +2485,10 @@ build_pulso <- function(sid, dest_path, project_name = NULL, allow_empty_overwri
     ok        = TRUE,
     path      = dest_path,
     size      = as.integer(file.info(dest_path)$size),
-    saved_at  = now_iso
+    saved_at  = now_iso,
+    # `I()` para que jsonlite no des-encaje una sola referencia a escalar: el
+    # contrato con la UI es «array siempre».
+    refs_perdidas = I(unique(refs_perdidas))
   )
 }
 

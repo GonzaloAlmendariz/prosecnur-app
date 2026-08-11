@@ -105,7 +105,7 @@ parejas. Todo eso es bueno y evita trabajo manual — pero **el analista no se
 entera**, y cuando su 14 pt sale a 9,5 cree que hizo algo mal. Los avisos ya
 existen como `message()` en el motor; no llegan a la interfaz.
 
-### C-07 · Un `.pulso` puede guardarse con referencias colgando *(acotado)*
+### ~~C-07 · Un `.pulso` puede guardarse con referencias colgando~~ ✅ 2026-08-10
 El proyecto del 10-08 declara un ícono cuyo PNG no viaja en el zip. **Corrección
 del 2026-08-10**: la app SÍ avisa al abrirlo —«El ícono … ya no está disponible
 en el catálogo», con la salida sugerida—. Lo que falta es el aviso al **guardar**,
@@ -239,3 +239,40 @@ propios»—. Lo que falta es la capa concreta por campo, que es lo que P-A disc
 **Evidencia.** `tsc --noEmit` en 0 antes y después de revertir; 313 vitest en
 verde; árbol limpio. Iteración **sin cambios aplicados en producto**: lo que
 produjo es una propuesta medida y una corrección de la cola.
+
+### 2026-08-10 · iteración 4 — C-07, guardar deja de ser mudo
+
+**Medido antes.** `build_pulso()` copia solo los archivos referenciados y, cuando
+uno ya no está en disco, hace `next` **en silencio** (`project_pulso.R`, bucle de
+copia). El `.pulso` sale completo a la vista y roto al reabrirlo en otra máquina:
+es exactamente lo que le pasó a «Conta 10-08», que viajó con un ícono cuyo PNG no
+estaba y cuyo export moría entero con «Icono no encontrado».
+
+**Cambiado.** El guardado devuelve `refs_perdidas` con las referencias que no
+pudieron viajar, y el chip de proyecto —que es donde el analista mira si guardó—
+lo dice, con el detalle y la salida en el tooltip. **Guardar no se bloquea**:
+impedirlo sería peor que avisar.
+
+El nombre prioriza el RECURSO sobre el archivo: «el ícono «Perfil»» le dice al
+analista dónde volver a ponerlo; `file93102b62.png` —que es lo que sale cuando el
+archivo se subió con nombre temporal— no le dice nada. Se descubrió al escribir
+el test, que fallaba con el nombre del fichero.
+
+Respeta «añadir, no mover»: el chip gana un estado, nada cambia de sitio.
+
+**Evidencia.** Sobre el proyecto real:
+
+    build_pulso(...) -> ok: TRUE · refs_perdidas: «el ícono «Perfil»»
+
+Y por el endpoint real, con la petición del navegador:
+
+    200 · {"ok":true, …, "refs_perdidas":["el ícono «Perfil»"]}
+
+`tsc --noEmit` en 0; 316 vitest (tres nuevos del chip, con y sin referencias
+perdidas, singular y plural); 214 en `test-project-pulso.R`, dos nuevos —uno
+comprueba que un proyecto sano no reporta nada—.
+
+**Lo que NO se pudo observar.** El chip pintado tras un guardado real: el único
+camino que pasa por el hook es «Guardar como…», que usa el diálogo nativo de
+Electron y no existe en el navegador de dev. Se cerró con un test de componente
+en vez de darlo por hecho.

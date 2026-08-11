@@ -100,6 +100,9 @@ export function useProject(sessionId?: string) {
   const [recents, setRecents] = useState<RecentProject[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
+  // Referencias que el último guardado no pudo empaquetar. El `.pulso` salía
+  // completo a la vista y roto al reabrirlo en otra máquina; ahora se dice.
+  const [refsPerdidas, setRefsPerdidas] = useState<string[]>([]);
 
   const refresh = useCallback(async (): Promise<ProjectStatus | null> => {
     if (!sessionId) return null;
@@ -190,6 +193,7 @@ export function useProject(sessionId?: string) {
       // la sesión vigente y termina guardando el avance del proyecto anterior.
       await apiCreateSession({ fresh: true });
       const r = await apiProjectSave(path);
+      setRefsPerdidas(Array.isArray(r.refs_perdidas) ? r.refs_perdidas.filter(Boolean) : []);
       if (electronApi) await electronApi.pushRecentProject(r.path);
       await refresh();
       await refreshRecents();
@@ -214,6 +218,7 @@ export function useProject(sessionId?: string) {
       await flushGraficosConfigIfHydrated();
       await flushHojasRutaWorkspaceIfHydrated();
       const r = await apiProjectSave(null);
+      setRefsPerdidas(Array.isArray(r.refs_perdidas) ? r.refs_perdidas.filter(Boolean) : []);
       await refresh();
       return r;
     } catch (e) {
@@ -239,6 +244,7 @@ export function useProject(sessionId?: string) {
       await flushGraficosConfigIfHydrated();
       await flushHojasRutaWorkspaceIfHydrated();
       const r = await apiProjectSave(path);
+      setRefsPerdidas(Array.isArray(r.refs_perdidas) ? r.refs_perdidas.filter(Boolean) : []);
       if (electronApi) await electronApi.pushRecentProject(r.path);
       await refresh();
       await refreshRecents();
@@ -329,6 +335,7 @@ export function useProject(sessionId?: string) {
       recents,
       busy,
       error,
+      refsPerdidas,
       open,
       newProject,
       save,
@@ -339,7 +346,7 @@ export function useProject(sessionId?: string) {
       refresh,
       refreshRecents,
     }),
-    [status, recents, busy, error, open, newProject, save, saveAs, duplicate, close, removeRecent, refresh, refreshRecents],
+    [status, recents, busy, error, refsPerdidas, open, newProject, save, saveAs, duplicate, close, removeRecent, refresh, refreshRecents],
   );
 }
 
