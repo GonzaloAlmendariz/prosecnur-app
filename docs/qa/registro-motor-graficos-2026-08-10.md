@@ -395,3 +395,42 @@ V-1 y V-5 son las dos que más ensucian el entregable a la vista. V-2 es la que
 más molesta al editar. Ninguna se aplicó en esta sesión: V-1 mueve el color de
 mazos ya entregados y V-2 cambia el mecanismo de render, así que las dos exigen
 decisión.
+
+### V-11 · Dónde se define qué es un Top 2 Box *(medido 2026-08-11)*
+
+**El denominador ya cumple lo acordado.** Verificado con la aritmética de la
+lámina 39: Estudiantes reparte 2 % + 7 % + 48 % + 37 % + 6 % = 100 % y su
+TOP2BOX es 85 % = 48 + 37. El 6 % de SIN INF **está en el denominador** y sólo
+queda fuera del numerador, que es lo correcto. Egresados igual: 42 + 52 = 94 %.
+
+**Quién elige las categorías hoy.** Si nadie las declara, `.default_box_cols()`
+(`graficador_barras_apiladas.R:65`) toma las **dos últimas categorías por
+posición**, después de descartar las especiales (`.is_special_box_choice`):
+`tail(eligible, 2)`. Es decir, asume que la escala viene ordenada de peor a
+mejor. Si una escala no respeta ese orden, el motor suma las dos equivocadas
+**sin avisar**.
+
+**El caso dicotómico es otro problema, no el mismo.** Con Sí/No hay 2 elegibles,
+`tail(eligible, 2)` las toma ambas y el Top 2 Box da 100 % por construcción. Por
+eso existe `.barra_extra_minimo = c(top2box = 3L, top3box = 4L, bottom2box = 3L)`,
+que hoy lo omite y emite aviso. Un Top 2 Box de escala de 5 y uno de escala de 2
+no son el mismo indicador y no deberían resolverse con la misma regla posicional.
+
+**Dónde se puede declarar hoy, y dónde no:**
+
+| Argumento | Superficie |
+|---|---|
+| `top2box_labels` | **sólo el inspector de la lámina**, en `p_barras_multiapiladas` («Etiquetas Top 2», grupo `valores`) |
+| `top3box_labels` | ninguna |
+| `bottom2box_labels` | ninguna |
+
+O sea: se declara lámina por lámina, sólo para Top 2, y no existe en Estilo
+global. **Lo que pide Gonzalo —declarar en Estilo cuáles son los indicadores
+Top 2 Box / Bottom 2 Box del estudio— no existe.** Es adición (un bloque nuevo
+en Estilo), pero define un default metodológico que afecta a todo el mazo, así
+que exige su decisión: qué categorías por tipo de escala, y qué hacer cuando la
+escala no tiene suficientes.
+
+Pendiente de que Gonzalo precise: **el uso de los colores por elemento**
+(enunciado, leyenda, valores dentro de barra, columna de box). Se relaciona con
+V-1 —822 runs en negro— pero la regla que debería regir no está escrita.
