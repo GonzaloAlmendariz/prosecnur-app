@@ -6,6 +6,7 @@ import { useVariables } from "./useVariables";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { usePresetsDefaults } from "./usePresetsDefaults";
 import { filtrarAjustes } from "./buscarAjustes";
+import { tabDeGrupo } from "./argTabs";
 import "./v2/styles/paletas-suite.css";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { graficadorToPresetType } from "./graficadorPresetMap";
@@ -223,10 +224,37 @@ export default function GraficadorForm({
   // Misma regla, importada del mismo módulo: dos copias se separarían y el
   // analista vería resultados distintos según por qué panel entró.
   const [busqueda, setBusqueda] = useState("");
+
+  // El filtro por tab va ANTES de buscar, no después.
+  //
+  // Al revés, el buscador contaba los 50 args del graficador y la lista sólo
+  // podía pintar los del tab: buscar «orden» en Datos daba «3 de 50» junto a
+  // «ningún ajuste coincide». El ajuste existía —en Estilo— y la superficie
+  // decía que no. Ahora el conteo es de lo que este tab puede mostrar, y lo que
+  // cae fuera se anuncia con su tab en vez de desaparecer.
+  const argsDelTab = useMemo(() => {
+    if (!groupFilter?.length) return expandedArgs;
+    const allow = new Set(groupFilter.map((g) => normalizeArgGroup(g)));
+    return expandedArgs.filter((a) => allow.has(normalizeArgGroup(a.grupo as ArgGrupo)));
+  }, [expandedArgs, groupFilter]);
+
   const argsBuscados = useMemo(
-    () => filtrarAjustes(expandedArgs, busqueda),
-    [expandedArgs, busqueda],
+    () => filtrarAjustes(argsDelTab, busqueda),
+    [argsDelTab, busqueda],
   );
+
+  /** Coincidencias que viven en otro tab del inspector, agrupadas por tab. */
+  const enOtrosTabs = useMemo(() => {
+    if (!busqueda.trim() || !groupFilter?.length) return [];
+    const enTab = new Set(argsDelTab.map((a) => a.name));
+    const fuera = filtrarAjustes(expandedArgs, busqueda).filter((a) => !enTab.has(a.name));
+    const porTab = new Map<string, number>();
+    for (const a of fuera) {
+      const tab = tabDeGrupo(a.grupo as ArgGrupo);
+      if (tab) porTab.set(tab, (porTab.get(tab) ?? 0) + 1);
+    }
+    return [...porTab.entries()].map(([tab, n]) => ({ tab, n }));
+  }, [argsDelTab, busqueda, expandedArgs, groupFilter]);
 
   const grupos = useMemo(() => {
     if (argsBuscados.length === 0) return [];
@@ -235,13 +263,11 @@ export default function GraficadorForm({
       const g = normalizeArgGroup(a.grupo as ArgGrupo);
       (byGrupo[g] ??= []).push(a);
     }
-    const allow = groupFilter ? new Set(groupFilter.map((g) => normalizeArgGroup(g))) : null;
     return ARG_GROUP_ORDER
       .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
-      .filter((g) => !allow || allow.has(g))
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
-  }, [argsBuscados, groupFilter]);
+  }, [argsBuscados]);
 
   function handleChange(name: string, value: unknown) {
     if (overrideArgNames.has(name)) {
@@ -314,7 +340,7 @@ export default function GraficadorForm({
   // El vacío por BÚSQUEDA no puede usar el mismo camino que el vacío por falta
   // de opciones: ese early return se lleva por delante el propio buscador y
   // deja al analista sin forma de limpiar lo que escribió.
-  if (expandedArgs.length === 0) {
+  if (argsDelTab.length === 0) {
     return (
       <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "6px 4px" }}>
         Sin opciones para configurar en este modo.
@@ -324,21 +350,21 @@ export default function GraficadorForm({
 
   return (
     <div>
-      {expandedArgs.length > 6 && (
+      {argsDelTab.length > 6 && (
         <div className="pulso-gv2-presets-buscador">
           <Search size={13} aria-hidden="true" />
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder={`Buscar entre ${expandedArgs.length} ajustes…`}
+            placeholder={`Buscar entre ${argsDelTab.length} ajustes…`}
             aria-label="Buscar un ajuste por nombre o por lo que hace"
           />
           {busqueda.trim() && (
             <span className="pulso-gv2-presets-buscador-conteo">
               {argsBuscados.length === 0
                 ? "sin resultados"
-                : `${argsBuscados.length} de ${expandedArgs.length}`}
+                : `${argsBuscados.length} de ${argsDelTab.length}`}
             </span>
           )}
           {busqueda && (
@@ -349,9 +375,15 @@ export default function GraficadorForm({
           )}
         </div>
       )}
-      {grupos.length === 0 && (
+      {grupos.length === 0 && busqueda.trim() && (
         <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "6px 4px" }}>
-          Ningún ajuste coincide con «{busqueda.trim()}».
+          Ningún ajuste de esta pestaña coincide con «{busqueda.trim()}».
+          {enOtrosTabs.length > 0 && (
+            <>
+              {" "}
+              {enOtrosTabs.map((o) => `${o.n} en ${o.tab}`).join(" · ")}.
+            </>
+          )}
         </div>
       )}
       {grupos.map(({ grupo, args }) => (
