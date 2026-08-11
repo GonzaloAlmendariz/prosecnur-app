@@ -551,6 +551,51 @@ con el `sid` equivocado no lee otro estado, lee otro proyecto. Lo mismo vale
 para el scope: si el plan es «un informe conjunto», el autosave escribe en
 `/api/graficos/consolidado/draft` y no en `/api/graficos/config`.
 
+### E-16 · V3 perdió la declaración del Top 2 Box *(medido 2026-08-11)*
+
+Revisadas las 67 láminas de `V3_Conta 11-08 equivalencias.pulso` una por una,
+rasterizadas a PNG. **La regresión que manda sobre todo lo demás:**
+
+| | 10-08 CONFIGURADO | V3 11-08 |
+|---|---|---|
+| Cabeceras `TOP2BOX` en el mazo | **51**, en 42 láminas | **0** |
+| Textos truncados con «…» | 31, en 22 láminas | 31, en 22 láminas |
+
+**Causa exacta**: el preset `multi_apiladas` de V3 perdió cuatro declaraciones
+que el 10-08 sí tiene.
+
+| Argumento | 10-08 | V3 |
+|---|---|---|
+| `mostrar_barra_extra` | TRUE | TRUE |
+| `barra_extra_preset` | `top2box` | `top2box` |
+| `top2box_labels` | De acuerdo · Totalmente de acuerdo · Satisfecho · Muy satisfecho · Sí | **ausente** |
+| `bottom2box_labels` | En desacuerdo · Totalmente en desacuerdo · Insatisfecho · Muy insatisfecho | **ausente** |
+| `preservar_tamanos_texto` | TRUE | **ausente** |
+| `size_ejes` | 13.5 | **ausente** |
+
+Con `mostrar_barra_extra = TRUE` pero sin categorías declaradas, el motor omite
+la columna y lo avisa — **37 veces** en el render de V3, medido con el comando
+`avisos`: *«La columna top2box se omite: no hay categorías declaradas»*. O sea,
+el motor no falló ni lo hizo en silencio: la declaración no viajó. V3 se
+construyó sobre una rama sin la configuración de la sesión anterior.
+
+La pérdida de `preservar_tamanos_texto` y `size_ejes` explica de paso por qué V3
+se ve con letra más grande: el motor volvió a su autoajuste.
+
+**Lo que V3 sí mejoró**, verificado en pantalla: títulos propios por gráfico en
+las láminas de perfil (E-6), la lámina 24 pasó de un amasijo de siete enunciados
+superpuestos a legible, y la tipografía general subió.
+
+**Lo que V3 no cambió ni empeoró**: los 31 truncados (idénticos), las cuatro
+escalas invertidas de E-15, el ícono «Perfil» que no viaja, y `debug_ph.activo
+= TRUE` — el mazo sale con las guías magenta de layout impresas en todas las
+láminas con gráfico.
+
+**Lo que V3 empeoró**: al subir la tipografía, la leyenda inferior quedó cortada
+a media altura en varias láminas (18, 26, 30, 32, 38), y los bloques perdieron
+la separación vertical que los distinguía — la lámina 13 se lee como una tabla
+corrida de ocho filas en vez de dos bloques.
+
 ### E-11 · Los 31 truncados: dónde están de verdad y por qué *(medido 2026-08-11)*
 
 **La premisa del archivo congelado era falsa.** El recorte no vive en
