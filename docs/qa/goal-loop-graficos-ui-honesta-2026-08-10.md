@@ -127,6 +127,32 @@ pintarlos. Añadirlo al backend sin superficie sería otra tubería a ninguna
 parte. Necesita una superficie propia en el flujo multibase: es adición, pero
 no de una línea.
 
+### C-13 · Seis enunciados se salen de la lámina, hasta 1,7 mm *(medido 2026-08-11)*
+Render completo del banco (67 láminas, `cierre.pptx`) y medición de la geometría
+de cada forma contra el tamaño de lámina (13,33 × 7,5 in): **6 formas en 5
+láminas** arrancan fuera del borde — 22, 24, 34, 36 (dos) y 55. La peor sale
+1,7 mm. Todas son enunciados largos del eje de una multi-apilada, con los saltos
+de línea ya calculados por el motor (son `<a:t>` separados, no reflow del
+visor). Es el residuo del bug que reportó el compañero: acotado, ya no
+catastrófico, pero vivo. Reproducible con el barrido de geometría del cierre.
+
+### C-14 · Once ajustes sólo se encuentran tecleando su nombre exacto *(medido 2026-08-11)*
+El buscador compara contra `name`, `label`, `descripcion`, `efecto` y `unidad`.
+De los 667 argumentos de las dos superficies, **11 nombres (2 %)** no tienen ni
+descripción, ni efecto, ni una etiqueta que diga algo distinto del nombre
+técnico: `cruce`, `decimales`, `incluir_total`, `mostrar_barra_extra`,
+`mostrar_eje_y`, `mostrar_leyenda`, `mostrar_puntos`, `mostrar_radios`,
+`mostrar_rango`, `mostrar_valores`, `top_n` (23 ocurrencias).
+
+**Ojo con la mitad de ellos**: para `mostrar_leyenda` o `mostrar_eje_y`, una
+descripción sería parafrasear la etiqueta — AI slop, justo lo que Gonzalo pidió
+evitar. Sólo ganan información real los que la etiqueta no explica: `top_n`
+(¿primeras N de qué?), `cruce` en los `p_dim_*` (donde la etiqueta es «Cruce» y
+no «Dividir por», como sí es en el resto), `incluir_total` (¿total de qué?),
+`mostrar_rango`, `mostrar_radios` y `mostrar_puntos`. Unos 8 de 23.
+**No cambiar la etiqueta «Cruce» por «Dividir por»**: sería renombrar un
+control, que la restricción dura prohíbe sin decisión.
+
 ## Propuestas — esperan decisión de Gonzalo
 
 ### P-A · Procedencia por campo: cierta, pero a esa densidad es ruido
