@@ -118,6 +118,15 @@ en el catálogo», con la salida sugerida—. Lo que falta es el aviso al **guar
 que es cuando la referencia se rompe y cuando todavía se puede arreglar sin
 haber entregado nada.
 
+### C-12 · El ZIP multibase se traga los avisos del motor *(medido 2026-08-11)*
+De las tres vías de export, sólo dos entregan los arreglos automáticos que el
+motor aplicó: PPT desde la iteración 2 y Word desde la 12. El ZIP multibase
+(`router_graficos.R:3390`) no los incluye, y su flujo en el frontend es otro —
+`exportJob` sólo conoce los kinds `"ppt" | "word"`, así que no tiene dónde
+pintarlos. Añadirlo al backend sin superficie sería otra tubería a ninguna
+parte. Necesita una superficie propia en el flujo multibase: es adición, pero
+no de una línea.
+
 ## Propuestas — esperan decisión de Gonzalo
 
 ### P-A · Procedencia por campo: cierta, pero a esa densidad es ruido
@@ -573,3 +582,50 @@ tocan los mismos catálogos, intactos: `test-graficos-metadata.R` 776 pass,
 
 Iteración sin cambio de producto: solo test y doc. La app no tenía el problema
 que fui a buscar; el problema lo tenía mi medición.
+
+### 2026-08-11 · iteración 12 — el Word no contaba lo que el motor le hizo
+
+La cola seguía con un ítem vivo, así que tocaba medir. Elegí auditar **mi propio
+trabajo**: en la iteración 2 declaré C-06 cerrado añadiendo avisos del motor, y
+quería comprobar que no hubiera construido otra tubería a ninguna parte —
+exactamente el fallo de las guías de layout que fundó este loop.
+
+**Medido.** De las tres vías de export, **sólo una devolvía los avisos**:
+
+| Vía | `on_complete` | Devuelve avisos |
+|---|---|---|
+| PPT | `router_graficos.R:3290` | sí |
+| ZIP multibase | `router_graficos.R:3390` | no |
+| Word | `router_graficos.R:3455` | **no** |
+
+Y el hueco era de verdad, no teórico: exportando Word el banco de prueba
+(Conta 10-08), el motor generó **1 aviso** —«La columna top2box se omite: la
+escala tiene 2 categoría(s) y sumarlas daría 100 % en todas las filas»— que se
+quedaba en el stderr del job. El analista veía el Word con una columna menos y
+ninguna explicación.
+
+Lo que hacía el hueco barato de cerrar: `onExportDone` en el frontend **ya era
+genérico** —lee `data.avisos` y lo pinta igual para `"ppt"` y `"word"`—. Era el
+backend el que sólo lo mandaba en uno. Una línea.
+
+**Falsa alarma que casi reporto.** Mi primer grep de `avisos` en el frontend se
+truncó en `head -12` con coincidencias de Bitácora y del plan, y concluí que
+nadie leía el campo. El tipo sí lo declara (`GraficosPage.tsx:43`). Verifiqué
+antes de acusar; conviene seguir haciéndolo.
+
+**Aplicado.** `avisos = I(.pulso_avisos_de_job(j$sid, j$id))` en el `on_complete`
+de Word, más un contrato estático que exige el campo en **ambos** registros de
+salida — si alguien lo quita de cualquiera de los dos, cae sin levantar un job
+`callr` real.
+
+**Evidencia.** End-to-end sobre el banco con la forma real del `on_complete`:
+el aviso **llega** (1), lo que además confirma que `j$id` es el campo correcto
+en el contexto del job — de no serlo habría devuelto vacío en silencio.
+`test-graficos-export-debug-ph.R` 20 pass, y falsificado: quitar el campo del
+Word da FAIL 1, restaurado verde. `test-router-graficos-lamina-borrador.R`
+36 pass. `router_graficos.R` no está congelado. Sin TS tocado — el frontend ya
+estaba listo—, así que no corresponde typecheck.
+
+**A la cola: C-12.** El ZIP multibase sigue sin avisos, pero su flujo en el
+frontend no tiene dónde pintarlos (`exportJob` sólo conoce `"ppt" | "word"`).
+Añadirlo al backend a secas sería repetir el error que vine a buscar.
