@@ -353,6 +353,73 @@ Y para verlo: `soffice --headless --convert-to pdf` + `pdftoppm -png -r 80`.
 > **Ojo**: el ícono del plan no viaja en los `.pulso` guardados **antes** de `R-02`.
 > Un `.pulso` viejo necesita sustituirlo por un marcador o el export muere entero.
 
+## 5bis. Cierre de la sesión del 2026-08-11 (tarde)
+
+Lo que hay que saber para retomar. Tres hallazgos de arquitectura y dos errores
+míos de medición que costaron vueltas.
+
+### El bloque de una multilista ES una unidad configurable
+
+Es la respuesta a «dos gráficos en bloques distintos necesitan tamaños
+distintos», que se había dado por imposible. Un `p_barras_multiapiladas` con
+`modo = "multilista"` guarda sus bloques en `args$bloques`, y **cada bloque se
+renderiza recursivamente con sus propios `overrides`**
+(`reporte_plan_ppt.R:4748`). O sea, todo lo que acepta el graficador se puede
+declarar por bloque sin tocar el motor. Verificado aplicando
+`color_texto_barras` distinto a dos bloques del mismo gráfico (lámina 38: azul
+en el Likert, blanco en el dicotómico).
+
+Además el bloque acepta **`altura_rel`** (`reporte_plan_ppt.R:4607`), que fija
+su parte del reparto vertical; por defecto sale de sus filas + título +
+leyenda. **Ninguna de las dos cosas tiene superficie en la UI**: hoy sólo se
+tocan editando el `.pulso`. Ese es el trabajo pendiente, no construir el
+mecanismo.
+
+### Los constructores del plan tiran lo que no es formal suyo
+
+`p_barras_agrupadas()` declara ocho formals y **no tiene `...`**: `var, titulo,
+cruces, overrides, base, filtros, mostrar_ceros, excluir_opciones`. Cualquier
+otro arg guardado al nivel del slot se cae al construir el elemento y no llega
+al motor. Es lo que hacía de `orden_categorias_manual` una **reparación
+fantasma**: guardado en el `.pulso`, visible en pantalla, ausente del PPT.
+Medido con `trace()`: cero llamadas al graficador lo recibían.
+
+Reparado con `via_overrides = TRUE` en el registro, que el formulario respeta
+para enrutar a `args.overrides`. **Si añades un arg de graficador que el
+constructor no acepta, decláralo así o no surtirá efecto.**
+
+### Dos errores de medición míos, para no repetirlos
+
+1. **Buscar un literal exacto.** Conté las cabeceras del Top 2 Box con
+   `<a:t>TOP2BOX</a:t>` y di 0 cuando eran 50: la cabecera se escribe **«Top 2
+   Box»**. El aserto no distinguía el caso bueno del malo.
+2. **Clasificar por la clave equivocada.** Declaré «cero gráficos mixtos»
+   mirando `args$vars`, que está **vacío** en `modo = "multilista"` porque las
+   escalas viven en `args$bloques`. Los mixtos eran justo esos. La detección
+   fiable mira los dos modos y, cuando el catálogo de escalas no resuelve una
+   variable, cuenta las categorías **en los datos**, que es lo que el motor
+   dibuja.
+
+Y una tercera que no es de medición sino de alcance: el XML del `.pptx` **no
+sirve** para auditar nada que esté dentro del gráfico —porcentajes, leyendas,
+colores de barra—, porque el motor incrusta cada gráfico como imagen. Ahí sólo
+se pueden auditar los textos de lámina. Lo de dentro se juzga en la PNG.
+
+### Estado del proyecto del cliente
+
+`V3_Conta 11-08 equivalencias.pulso` quedó editado con: Top 2 Box y Bottom 2 Box
+declarados, `preservar_tamanos_texto`, `size_ejes = 13.5`, las cuatro escalas
+reordenadas por código, secciones de prueba en el Índice, `color_titulo` en el
+azul de marca, y el texto de porcentaje en azul salvo en las **12 unidades
+dicotómicas** (5 gráficos completos y 7 bloques), donde va blanco porque el
+relleno es azul marino. Respaldo previo en
+`V3_Conta 11-08 equivalencias.RESPALDO-antes-de-A1A2A3A5A7.pulso`.
+
+Queda abierto, por decisión del usuario: los enunciados que se pisan (láminas
+24, 30, 62, 66), los 31 truncados, la cabecera «Top 2 Box» cortada por arriba,
+el ícono «Perfil» que no viaja y los errores de contenido del plan. Las guías
+magenta se dejan encendidas a propósito.
+
 ## 6. Verificación de cierre — 2026-08-11
 
 Render completo del banco (`Conta 10-08`, 67 láminas) y revisión de la UI real
@@ -757,7 +824,15 @@ trace("graficar_barras_apiladas", where = asNamespace("prosecnurapp"),
 4. **`var_categoria` no es la columna de la etiqueta**; el texto que se dibuja
    sale de `var_etiqueta_categoria`. Y el dato guarda **códigos**, no etiquetas:
    las etiquetas viven en las choices del instrumento.
-5. **El `sid` del bootstrap no es el del navegador.** Abrir por deep-link
+5. **Persistir no es aplicar.** Verifiqué que `orden_categorias_manual` quedaba
+   guardado y lo di por «verificado de punta a punta». No llegaba al motor: el
+   constructor del elemento lo tiraba. Un valor guardado y visible en pantalla
+   no prueba nada sobre el entregable — la prueba es el render.
+6. **El XML del `.pptx` no ve dentro del gráfico.** Cada gráfico se incrusta
+   como imagen: porcentajes, leyendas y colores de barra no son texto y no se
+   pueden contar ahí. Medir «cuántos porcentajes quedaron ilegibles» por XML da
+   0 siempre. Eso se juzga en la PNG.
+7. **El `sid` del bootstrap no es el del navegador.** Abrir por deep-link
    `?pulso=` crea una sesión nueva; el backend es un kv-store por `sid`, así que
    leer con el `sid` equivocado devuelve otro proyecto, no un estado viejo. El
    del navegador está en `localStorage["pulso.sessionId"]`. Y si el plan es «un
@@ -775,15 +850,13 @@ El control de orden de barras (`d01a819d`) **ya se vio en pantalla** y funciona
 de punta a punta; el detalle está en E-13. En el camino salió E-14, el buscador
 de ajustes que contaba lo que no podía mostrar, también reparado y verificado.
 
-Las **escalas desordenadas** (E-15) están medidas y con superficie: son cuatro
-(base, escala), no cuatro escalas, y `lst_p10` era un falso positivo de la
-heurística del arnés. El puente variable → escala ya existe, así que reordenar
-cada una es sembrar y mover filas en las láminas 7, 8 y 11 (×2) — trabajo de
-analista, no de código, y lo decide Gonzalo porque «invertida» puede ser
-deliberado.
+Lo que manda para retomar está en **§5bis**: el bloque de una multilista es una
+unidad configurable con `overrides` y `altura_rel` propios, y le falta
+superficie en la UI. Ese es el trabajo con más rendimiento pendiente.
 
-Lo siguiente por orden: los **31 textos truncados**, bloqueado por
-`reporte_plan_ppt.R`, congelado.
+Lo siguiente por orden: los **enunciados que se pisan** (láminas 24, 30, 62, 66)
+y los **31 truncados**. El recorte NO está bloqueado por ningún archivo
+congelado — vive en `graficador_helpers_titulos_grupo.R`, que es archivo propio.
 
 Servers de la sesión: backend 8806 (proyecto CONFIGURADO) y frontend 5173.
 `.claude/launch.json` apunta el 8806 al `.pulso` **CONFIGURADO**, que es el que
