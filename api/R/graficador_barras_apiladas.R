@@ -1822,12 +1822,9 @@ graficar_barras_apiladas <- function(
       as.integer(base)
     }
 
-    .fmt_units_pct <- function(units, dec){
-      escala <- 10^dec
-      val <- units / escala
-      out <- format(val, nsmall = dec, trim = TRUE, scientific = FALSE)
-      paste0(out, "%")
-    }
+    # La regla vive en `.pulso_fmt_pct_unidades()` (helpers_calc_comunes.R):
+    # aqui era una closure y no habia forma de verificarla sin renderizar.
+    .fmt_units_pct <- function(units, dec) .pulso_fmt_pct_unidades(units, dec)
 
     .fmt_count_label <- function(x) {
       x <- suppressWarnings(as.numeric(x))
