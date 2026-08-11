@@ -189,6 +189,15 @@ export type ArgTipoInput =
   // keywords CSS (white, black, transparent). Se renderiza con
   // <input type="color"> nativo como fallback al popover custom.
   | "color"
+  // colores_list: una lista ORDENADA de colores, un picker por ranura. Nace
+  // de los focos del Índice, que se declaraban en un campo de texto libre
+  // anunciado como «Colores HEX» cuyo placeholder era `88, 90, 96`. El orden
+  // importa y las ranuras tienen nombre (`ranuras`), así que el analista ve
+  // «Objetivo», «Metodología»… en vez de contar posiciones.
+  | "colores_list"
+  // iconos_list: lo mismo para íconos. Cada ranura abre el catálogo de
+  // Configuración global en vez de pedir que se teclee una ruta SVG/PNG.
+  | "iconos_list"
   // base_labels: una caja por base del estudio para renombrar las columnas de
   // una tabla comparativa. El valor viaja como texto `clave=Título` por línea
   // —el mismo formato que `titulos_grupo`— pero el analista nunca lo escribe:
@@ -257,6 +266,14 @@ export type ArgMetadata = {
   // Valor por defecto documentado en el registry. Puede ser string/number/
   // bool. Usado por el PresetsEditor como placeholder visual.
   default?: unknown;
+  // Nombre de cada posición para `colores_list` / `iconos_list`. El valor
+  // viaja como lista ordenada, pero el analista no debería tener que contar
+  // posiciones para saber cuál es el foco de «Resultados».
+  ranuras?: string[];
+  // Placeholder concreto del campo. Sin esto, `codigos_list` muestra siempre
+  // «ej. 88, 90, 96», que bajo «Categorías del Top 2 Box» pide lo contrario
+  // de lo que el motor espera.
+  ejemplo?: string;
 };
 
 export type SlideMetadata = {

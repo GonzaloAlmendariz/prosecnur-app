@@ -35,6 +35,8 @@ const ARG_TIPO_INPUTS: Record<ArgTipoInput, true> = {
   codigos_list: true,
   multiflag: true,
   color: true,
+  colores_list: true,
+  iconos_list: true,
   base_labels: true,
   series_colors: true,
   criteria_config: true,
@@ -287,6 +289,13 @@ export function normalizeArgMetadata(value: unknown): ArgMetadata {
   if (max !== undefined) normalized.max = max;
   if (step !== undefined) normalized.step = step;
   if (hasOwn(arg, "default")) normalized.default = arg.default;
+  // El normalizador es una whitelist: lo que no se copie aquí se pierde entre
+  // el registry y la UI sin que nadie lo note. `ranuras` es lo que convierte
+  // una lista plana de colores o de íconos en ranuras con nombre.
+  const ranuras = normalizedStrings(arg.ranuras);
+  if (ranuras.length) normalized.ranuras = ranuras;
+  const ejemplo = safeText(arg.ejemplo).trim();
+  if (ejemplo) normalized.ejemplo = ejemplo;
   return normalized;
 }
 

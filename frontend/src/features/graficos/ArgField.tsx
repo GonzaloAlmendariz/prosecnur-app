@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import BaseLabelsField from "./BaseLabelsField";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
@@ -352,7 +352,13 @@ function FieldControl({
       return <ChoicePills meta={meta} value={safeText(shownValue)} onChange={onChange} />;
 
     case "codigos_list":
-      return <CodigosList value={(shownValue as (string | number)[]) ?? []} onChange={onChange} />;
+      return (
+        <CodigosList
+          value={(shownValue as (string | number)[]) ?? []}
+          onChange={onChange}
+          ejemplo={meta.ejemplo}
+        />
+      );
 
     case "multiflag":
       // Fallback a texto libre si el registry no trajo opciones — mantiene
@@ -396,6 +402,28 @@ function FieldControl({
 
     case "icono":
       return <IconoSelect value={safeTrimmedText(shownValue) || null} onChange={onChange} />;
+
+    case "colores_list":
+      return (
+        <RanurasField
+          meta={meta}
+          value={shownValue}
+          onChange={onChange}
+          render={(v, set) => (
+            <ColorField value={v} onChange={(c) => set(c ?? "")} />
+          )}
+        />
+      );
+
+    case "iconos_list":
+      return (
+        <RanurasField
+          meta={meta}
+          value={shownValue}
+          onChange={onChange}
+          render={(v, set) => <IconoSelect value={v || null} onChange={(i) => set(i ?? "")} />}
+        />
+      );
 
     case "overrides":
     case "filtros":
@@ -1945,9 +1973,15 @@ function ChoicePills({
 function CodigosList({
   value,
   onChange,
+  ejemplo,
 }: {
   value: (string | number)[];
   onChange: (v: (string | number)[]) => void;
+  // Qué pedir, con un ejemplo del propio campo. El genérico «88, 90, 96» es
+  // correcto para códigos de escala y mentiroso para todo lo demás: bajo
+  // «Categorías del Top 2 Box» invita a escribir números donde el motor
+  // espera el nombre exacto de la categoría.
+  ejemplo?: string;
 }) {
   // Input de texto donde el usuario escribe códigos separados por coma
   // o espacio. Lo parseamos a array de strings (algunos son numéricos,
@@ -1962,7 +1996,7 @@ function CodigosList({
         rows={3}
         value={text}
         onChange={(e) => commit(e.target.value)}
-        placeholder="ej. 88, 90, 96 o etiquetas separadas por coma"
+        placeholder={ejemplo ?? "ej. 88, 90, 96 o etiquetas separadas por coma"}
         style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
         className="pulso-gv2-text-input-control is-auto-wrap pulso-gv2-code-list-control"
       />
@@ -1974,7 +2008,7 @@ function CodigosList({
       type="text"
       value={text}
       onChange={(e) => commit(e.target.value)}
-      placeholder="ej. 88, 90, 96"
+      placeholder={ejemplo ?? "ej. 88, 90, 96"}
       style={inputStyle}
     />
   );
@@ -2304,6 +2338,70 @@ function slugify(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "") || "criterio";
+}
+
+/** Lista ORDENADA con una ranura por posición, cada una con su propio control.
+ *
+ *  Nace de los focos del Índice: el color se pedía en un campo de texto libre
+ *  anunciado como «Colores HEX» cuyo placeholder era `88, 90, 96`, y los íconos
+ *  se pedían como rutas SVG/PNG tecleadas a mano, sin hablar con el catálogo.
+ *  En los dos casos el orden importaba y no se veía: había que contar
+ *  posiciones para saber cuál era el foco de «Resultados».
+ *
+ *  El valor sigue viajando como la misma lista plana que el motor espera; lo
+ *  único que cambia es que el analista ve el nombre de cada ranura y un control
+ *  de verdad. Las ranuras se declaran en el registry (`ranuras`). */
+function RanurasField({
+  meta,
+  value,
+  onChange,
+  render,
+}: {
+  meta: ArgMetadata;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  render: (valor: string, set: (v: string) => void) => React.ReactNode;
+}) {
+  const ranuras = meta.ranuras ?? [];
+  const actual = useMemo(() => {
+    if (Array.isArray(value)) return value.map((v) => (v == null ? "" : String(v)));
+    if (typeof value === "string" && value.trim())
+      return value.split(/[\n,]/).map((s) => s.trim());
+    return [];
+  }, [value]);
+
+  function setEn(i: number, v: string) {
+    const next = ranuras.map((_, j) => actual[j] ?? "");
+    next[i] = v;
+    // Todo vacío equivale a «no declarado»: se manda null para que el arg
+    // vuelva a heredar en vez de fijar una lista de cadenas vacías.
+    onChange(next.some((x) => x.trim()) ? next : null);
+  }
+
+  if (!ranuras.length) {
+    return <CodigosList value={actual} onChange={onChange} />;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {ranuras.map((nombre, i) => (
+        <div key={nombre} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              flex: "0 0 118px",
+              fontSize: 12,
+              color: "var(--pulso-text-soft)",
+            }}
+          >
+            {nombre}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {render(actual[i] ?? "", (v) => setEn(i, v))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function IconoSelect({
