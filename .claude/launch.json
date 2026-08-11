@@ -2,6 +2,33 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Backend Conta 10-08 (8806)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8806",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/Users/gonzaloalmendariz/Documents/Pulso/ACRD CONTA/Conta 10-08 equivalencias.pulso"
+      },
+      "port": 8806
+    },
+    {
+      "name": "Frontend (dev vs 8806)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8806"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
       "name": "Backend Conta 09-08 equivalencias (8805)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
