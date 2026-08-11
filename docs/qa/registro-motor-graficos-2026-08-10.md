@@ -105,10 +105,11 @@ Medidos sobre el render del `.pulso` real contra el `HEAD` de hoy.
 | **E-02** | **Títulos de grupo encabalgados** en bloques `var_cruce` con 2+ grupos de 1 variable | ✅ **RESUELTO** por `c3e54d39`: el encabalgamiento venía del wrap desbordado | — |
 | **E-03** | **Alto de lámina en blanco** entre el gráfico y el pie | ⚠️ **ABIERTO, menor**: bajó de 13–18 % a 12 % en las láminas de batería; 21 % en las de pocas filas | Media |
 | **E-04** | **`SIN INF` en el denominador** cuando el proyecto no declara la exclusión | ✅ **RESUELTO en origen** por `P-01`: el perfil lo excluye. Los proyectos ya armados necesitan aplicar la línea | Baja |
-| **E-05** | **Segmentos chicos sin cifra.** `umbral_mostrar_etiqueta = 0.12` deja mudos los segmentos por debajo del 12 % | ⚠️ **ABIERTO** — config del proyecto | Media |
+| **E-05** | ~~Segmentos chicos sin cifra~~ → **mal diagnosticado**. `umbral_mostrar_etiqueta` REUBICA, no oculta, y `umbral_ocultar_etiqueta = 0`: el motor no calla ninguna etiqueta. El defecto real era otro: un segmento de 0,4 % se rotulaba **«0%»** | ✅ **RESUELTO** `0a53b30c`: ahora «<1%» | — |
 | **E-06** | **Leyenda de 5 categorías que roza** en bloques comprimidos | ✅ **RESUELTO** por `R-03` + `c3e54d39` | — |
 | **E-07** | **Enunciado de tema truncado o fuera de la lámina** | ✅ **RESUELTO** `c3e54d39` | — |
-| **E-08** | **Colores de serie del radar** no son los del deck | ⚠️ **ABIERTO** — se declara por lámina | Baja |
+| **E-08** | **Colores de serie del radar** no eran los del deck | ✅ **RESUELTO** `9f999bfe`: navy y ámbar medidos, dentro del perfil | — |
+| **E-11** | **Las etiquetas chicas se reubican sobre el segmento VECINO.** Con 0,4 % y 2 % contiguos, «<1%» aterriza sobre el turquesa y «2%» sobre el verde: se leen como si rotularan a otro | 🔎 **NUEVO, visto en render** | Media |
 | **E-09** | **Las guías de layout no llegaban a ningún entregable** pese al interruptor activo | ✅ **RESUELTO** `c9cf1a49` | — |
 | **E-10** | **La banda de leyenda reservaba 2,4× lo que dibuja** | ✅ **RESUELTO** `69c96d34`: de 38 a 31 px, y a 16 pt sin cambio | — |
 
