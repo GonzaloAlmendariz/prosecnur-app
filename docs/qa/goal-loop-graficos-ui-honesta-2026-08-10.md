@@ -73,12 +73,14 @@ vive en Estilo global → Base PPT → Multi-apiladas, no en el inspector de la
 lámina. **No existe un buscador de ajustes.** Un campo que busque por nombre y
 por lo que hace, y lleve al panel correcto, es puro añadido.
 
-### C-02 · Dos superficies para el mismo gráfico, sin señal de cuál manda
-El inspector de la lámina expone `Contenido / Datos / Estilo / Filtros`; el panel
-global expone los mismos tipos de gráfico con otros ajustes. `canvas_w_etiquetas`
-solo está en el global; `mostrar_valores` está en los dos. Nada dice qué gana.
-**La precedencia ya existe** (motor → Pulso → base del proyecto → tipo → slide) y
-está comentada en `.enriquecer_presets()`. Falta mostrarla donde se decide.
+### C-02 · Dos superficies para el mismo gráfico *(medido y acotado)*
+**Corrección del 2026-08-10**: el panel SÍ explica las capas — tiene un «FLUJO DE
+COPIA» con Base PPT → Biblioteca → Ajuste de este gráfico, y la cabecera de cada
+gráfico dice «Base PPT · sin cambios propios». La herencia también se pinta por
+campo: estado gris y valor heredado visible.
+
+Lo que falta es **de qué capa concreta** viene el valor de un campo y dónde
+cambiarlo para todas las láminas. Se intentó y se retiró — ver §Propuestas P-A.
 
 ### C-03 · El distribuidor de canvas está en 1 de 24 graficadores
 Medido sobre `.GRAFICADORES_META`: solo `p_barras_agrupadas` expone un argumento
@@ -112,7 +114,35 @@ haber entregado nada.
 
 ## Propuestas — esperan decisión de Gonzalo
 
-*(vacío al abrir; aquí van los cambios estructurales que el loop encuentre)*
+### P-A · Procedencia por campo: cierta, pero a esa densidad es ruido
+
+**Qué se probó.** Un badge junto a cada campo heredado diciendo de dónde viene
+—«Base PPT · Barras agrupadas»— con tooltip explicando que cambiarlo ahí afecta
+a todas las láminas y aquí solo a esta.
+
+**Funcionó**: typecheck limpio, 313 vitest en verde, y en la UI real el badge
+aparecía con el nombre correcto del tipo de gráfico.
+
+**Por qué se retiró.** Medido en la lámina «4 gráficos + ícono» del banco de
+prueba: **172 badges** sobre 184 campos. Acotándolo a los campos donde la base
+aporta un valor real bajó a **140 de 184** — sigue siendo casi todos. El dato es
+cierto en cada uno, pero repetido 140 veces deja de informar y ensucia el panel.
+Una iteración que mejora «explica su capa» empeorando la legibilidad no cuenta
+como avance.
+
+**Las tres salidas, y ninguna es aplicable sin decidir:**
+
+1. **Solo al posarse en el campo** (hover/focus). Mantiene la respuesta donde se
+   hace la pregunta y no repite nada en reposo. Se intentó por CSS y la cascada
+   lo pisó; habría que controlarlo desde el componente.
+2. **Una sola frase en la cabecera del grupo**, no por campo: «todo lo de este
+   grupo viene de Base PPT · Barras agrupadas salvo lo marcado». Menos preciso,
+   mucho más limpio.
+3. **Solo en los campos que difieren de la base** o que el analista ya tocó.
+   Invierte el criterio: señalar lo excepcional en vez de lo normal.
+
+La 1 y la 3 son las mejores; la 3 es la más barata. Cualquiera cambia cómo se
+lee el panel, así que no se aplica sin tu visto bueno.
 
 ## Bitácora
 
@@ -188,3 +218,24 @@ inexistente).
 cuyo PNG no viaja en el `.pulso`, así que el export desde la app se bloquea antes
 de renderizar. El aviso se verificó en el payload que el frontend consume, no en
 el pixel. Queda pendiente verlo pintado en cuanto haya un `.pulso` sano.
+
+### 2026-08-10 · iteración 3 — C-02, intentada y retirada
+
+**Medido antes.** El inspector de lámina ya pinta la herencia (estado gris +
+valor heredado) pero no dice de qué capa viene. `showOriginBadge` en `ArgField`
+se apaga justo cuando el estado es `inherited`, que es cuando la pregunta
+aparece.
+
+**Cambiado y revertido.** Se añadió la procedencia por campo y funcionó —el
+badge salía con el nombre correcto del tipo—, pero la medición en la UI real dio
+**172 badges sobre 184 campos**, y **140** tras acotarlo a los que heredan un
+valor real. A esa densidad el dato deja de informar. Se retiró entero y pasó a
+§Propuestas P-A con las tres salidas posibles.
+
+**Corrección de la cola.** C-02 estaba mal planteado: el panel SÍ explica las
+capas —tiene un «FLUJO DE COPIA» y la cabecera dice «Base PPT · sin cambios
+propios»—. Lo que falta es la capa concreta por campo, que es lo que P-A discute.
+
+**Evidencia.** `tsc --noEmit` en 0 antes y después de revertir; 313 vitest en
+verde; árbol limpio. Iteración **sin cambios aplicados en producto**: lo que
+produjo es una propuesta medida y una corrección de la cola.
