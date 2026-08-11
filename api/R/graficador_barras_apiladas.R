@@ -3228,10 +3228,15 @@ graficar_barras_apiladas <- function(
         pmax(0.016, label_chars * size_leyenda * 0.52 / 72 / chart_width_in)
       }
 
+      # Se itera sobre el NUMERO DE FILAS y el reparto sale de ahi, no al reves:
+      # bajando los items por fila de uno en uno, cinco categorias daban 4+1 y
+      # la ultima quedaba sola en su renglon. Espeja a `.barras_leyenda_filas()`,
+      # que estima esto mismo antes de dibujar; las dos se mueven juntas.
+      n_rows <- max(1L, ceiling(n_items / n_per_row))
       repeat {
-        n_rows <- ceiling(n_items / n_per_row)
-        row_ids <- ceiling(seq_len(n_items) / n_per_row)
-        row_h <- legend_h / max(1, n_rows)
+        row_ids <- .barras_leyenda_reparto(n_items, n_rows)
+        n_rows_real <- max(row_ids)
+        row_h <- legend_h / max(1, n_rows_real)
         key_side_y <- min(row_h * 0.82, max(0.034, legend_key_cm * 0.11))
         key_h <- key_side_y
         key_w <- key_side_y * aspect_yx
@@ -3243,13 +3248,14 @@ graficar_barras_apiladas <- function(
         )
         text_w_all <- estimate_text_width(label_chars_all)
         item_w_all <- key_w + key_gap + text_w_all
-        row_widths <- vapply(seq_len(n_rows), function(row_index) {
+        row_widths <- vapply(seq_len(n_rows_real), function(row_index) {
           idx <- which(row_ids == row_index)
           sum(item_w_all[idx], na.rm = TRUE) + slot_gap * max(0L, length(idx) - 1L)
         }, numeric(1))
-        if (n_per_row <= 1L || max(row_widths, na.rm = TRUE) <= 0.96) break
-        n_per_row <- n_per_row - 1L
+        if (n_rows >= n_items || max(row_widths, na.rm = TRUE) <= 0.96) break
+        n_rows <- n_rows + 1L
       }
+      n_rows <- n_rows_real
 
       # El cuerpo de letra se acomoda a la fila que le toco.
       #
