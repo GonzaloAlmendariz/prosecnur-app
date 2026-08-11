@@ -84,7 +84,9 @@ export function resolveLayoutMeasureContract(
 
   return {
     axis,
-    unitLabel: publishedUnit || "Unidad no publicada",
+    // Sin unidad declarada no se inventa una: se calla. «Unidad no publicada»
+    // era vocabulario del registro asomando en la cara del analista.
+    unitLabel: publishedUnit,
     basis: "measure-only",
     partition: null,
     canShare: false,

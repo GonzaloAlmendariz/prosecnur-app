@@ -115,9 +115,11 @@ export function presentChartLayoutOrigin(origin: unknown): ChartLayoutOriginPres
 function unknownOriginPresentation(): ChartLayoutOriginPresentation {
   return {
     state: "unknown",
-    label: "Procedencia no declarada",
-    detail: "Declara el ámbito de edición para atribuir y restablecer valores",
-    resetLabel: "Restablecimiento no disponible",
+    // Vocabulario del contrato interno asomando en la cara del analista. Lo que
+    // necesita saber es que ese valor no se puede deshacer desde aquí.
+    label: "Sin origen conocido",
+    detail: "No se puede saber de dónde viene este valor",
+    resetLabel: "No se puede restablecer",
     declared: false,
   };
 }

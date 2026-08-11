@@ -3302,13 +3302,11 @@ graficar_barras_apiladas <- function(
       if (!is.finite(alto_fisico_leyenda_in) || alto_fisico_leyenda_in <= 0) {
         alto_fisico_leyenda_in <- 7.5
       }
-      size_leyenda_eff <- size_leyenda
-      if (n_rows > 1L) {
-        cabe_pt <- row_h * alto_fisico_leyenda_in * 72 / .BARRAS_LEYENDA_INTERLINEA
-        if (is.finite(cabe_pt) && cabe_pt > 0) {
-          size_leyenda_eff <- max(6, min(size_leyenda, cabe_pt))
-        }
-      }
+      # Se comprueba SIEMPRE, no solo con varias filas. La guarda `n_rows > 1`
+      # dejaba fuera el caso mas comun —una fila en una lamina de varios
+      # bloques— y ahi la leyenda salia a su tamano nominal, cortada por abajo.
+      size_leyenda_eff <- .barras_leyenda_size_ajustado(
+        size_leyenda, row_h, alto_fisico_leyenda_in)
 
       for (r in seq_len(n_rows)) {
         idx_row <- which(row_ids == r)

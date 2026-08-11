@@ -4516,6 +4516,11 @@
 
 .normalize_args_for_ui <- function(args) {
   if (is.null(args) || !length(args)) return(list())
+  # La unidad de las medidas de layout se estampa aquí porque este es el embudo
+  # único hacia la UI: presets y graficadores pasan los dos por acá. Sin ella el
+  # editor de distribución del espacio degrada a «Medida exacta · Unidad no
+  # publicada» y el analista ve «Grupo 0,22» sin saber de qué.
+  args <- .graficos_estampar_unidades(args)
   arg_names <- vapply(args, function(a) as.character(a$name %||% ""), character(1))
   has_label_width <- "ancho_max_eje_y" %in% arg_names
 

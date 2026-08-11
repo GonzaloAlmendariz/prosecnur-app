@@ -349,9 +349,11 @@ describe("ChartLayoutPopover — bases dimensionales", () => {
   test("declara alcance, geometría C1 y la unidad por categoría sin porcentaje relativo", () => {
     const markup = renderGroupedBarsLayout();
 
-    expect(markup).toContain(
-      "Controla parámetros del render. La vista PPT confirma el resultado final."
-    );
+    // La superficie sigue declarando qué es (C1); lo que cambió es que lo dice
+    // sin vocabulario de motor.
+    expect(markup).toContain("Distribución del espacio");
+    expect(markup).toContain("Arrastra los bordes para repartir el ancho del gráfico.");
+    expect(markup).not.toContain("render");
     expect(markup).toContain('data-qa-geometry-group="graficos/distribucion-espacio"');
     expect(markup).toContain('data-qa-geometry-contract="intrinsic"');
 
@@ -488,8 +490,8 @@ describe("ChartLayoutPopover — procedencia explícita", () => {
     ].map(sourceClaim);
 
     expect(claims).toEqual([
-      { state: "unknown", label: "Procedencia no declarada" },
-      { state: "unknown", label: "Procedencia no declarada" },
+      { state: "unknown", label: "Sin origen conocido" },
+      { state: "unknown", label: "Sin origen conocido" },
     ]);
   });
 

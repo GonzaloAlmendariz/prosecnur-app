@@ -103,11 +103,11 @@ const PIE_PRESETS = new Set(["pie", "donut"]);
 const RADAR_PRESETS = new Set(["radar_tabla", "dim_radar"]);
 
 const BASIS_LABELS: Record<LayoutMeasureBasis, { label: string; rule: string }> = {
-  "ratio-partition": { label: "Ancho", rule: "Reparto común" },
-  "fixed-inch": { label: "Alto fijo", rule: "Banda del render" },
-  "nested-inch": { label: "Fila interna", rule: "Dentro del panel" },
-  "per-category-inch": { label: "Filas", rule: "Escala con los datos" },
-  "measure-only": { label: "Medida exacta", rule: "Sin reparto visual" },
+  "ratio-partition": { label: "Ancho", rule: "se reparte entre las columnas" },
+  "fixed-inch": { label: "Alto fijo", rule: "no cambia con los datos" },
+  "nested-inch": { label: "Fila interna", rule: "dentro del gráfico" },
+  "per-category-inch": { label: "Filas", rule: "crece con las categorías" },
+  "measure-only": { label: "Medida", rule: "sin reparto" },
 };
 
 export function ChartLayoutEditor({
@@ -442,13 +442,13 @@ export function ChartLayoutEditor({
             <div className="pulso-gv2-layout-head-copy">
               <span className="pulso-gv2-layout-eyebrow">{layoutKindLabel}</span>
               <strong>Distribución del espacio</strong>
-              <span>Controla parámetros del render. La vista PPT confirma el resultado final.</span>
+              <span>Arrastra los bordes para repartir el ancho del gráfico.</span>
             </div>
             <div
               className="pulso-gv2-layout-state-card"
-              aria-label={`Procedencia de esta edición: ${originPresentation.label}. ${originPresentation.detail}`}
+              aria-label={`Este ajuste viene de: ${originPresentation.label}. ${originPresentation.detail}`}
             >
-              <span>Procedencia</span>
+              <span>Viene de</span>
               <strong>{originPresentation.label}</strong>
               <small>{originPresentation.detail}</small>
             </div>
@@ -774,8 +774,8 @@ function BarsLayout({
         />
       ) : (
         <div className="pulso-gv2-layout-qualitative-role" data-role="plot" data-synthetic="true">
-          <span>Área horizontal · Sin partición publicada</span>
-          <small>Usa las medidas exactas; la vista PPT confirma el resultado.</small>
+          <span>Ancho del gráfico</span>
+          <small>Ajústalo con las medidas de arriba.</small>
         </div>
       )}
     </>
@@ -1158,7 +1158,7 @@ function RadarLayout({
     <div className="pulso-gv2-layout-radar-grid is-intrinsic">
       <div className="pulso-gv2-layout-frame" data-role="plot" data-synthetic="true" title="Radar: Estimado">
         <span>Radar · Estimado</span>
-        <small className="pulso-gv2-layout-qualitative-copy">Rol cualitativo; la vista PPT confirma su tamaño.</small>
+        <small className="pulso-gv2-layout-qualitative-copy">Se dimensiona solo.</small>
       </div>
       {argsByName.tabla_ph_gap ? (
         <div className="pulso-gv2-layout-frame" data-role="gap" data-synthetic="true" title="Separación radar-tabla: Estimado">
@@ -1678,11 +1678,14 @@ function hasCompatibleLayoutPair(
 }
 
 function layoutMeasureRule(contract: LayoutMeasureContract): string {
-  if (contract.basis === "ratio-partition") return "Reparte el ancho con medidas compatibles.";
-  if (contract.basis === "fixed-inch") return "Banda fija del render.";
-  if (contract.basis === "nested-inch") return "Zona interna del panel.";
-  if (contract.basis === "per-category-inch") return "Escala con la cantidad de categorías.";
-  return "Edición exacta; sin reparto visual.";
+  // Cada regla dice qué le pasa a ESE espacio, en el idioma del analista. Las
+  // versiones anteriores hablaban del render y del panel, que son piezas del
+  // motor y no algo que él vea en la lámina.
+  if (contract.basis === "ratio-partition") return "Se reparte el ancho con los espacios vecinos.";
+  if (contract.basis === "fixed-inch") return "Alto fijo: no cambia con los datos.";
+  if (contract.basis === "nested-inch") return "Va dentro del área del gráfico.";
+  if (contract.basis === "per-category-inch") return "Crece con la cantidad de categorías.";
+  return "Se escribe a mano; no se reparte.";
 }
 
 function layoutMeasureTitle(

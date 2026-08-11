@@ -110,7 +110,14 @@ test_that("la banda crece con las filas, y nunca queda por debajo de una", {
             .barras_leyenda_alto_in(cortas, 9, 12.5))
   # Dos filas necesitan mas del doble del minimo de una: si la banda se quedara
   # en el minimo, `row_h` se partiria y los cuadritos colapsarian.
-  expect_gt(.barras_leyenda_alto_in(largas, 9, 12.5), 0.5)
+  #
+  # El umbral se expresa contra el minimo, no como el numero magico 0.5. Estaba
+  # calibrado para las constantes viejas (piso 0.24" + holgura plana de 0.08");
+  # cuando el piso bajo a 0.20" y la holgura paso a ser proporcional, el test
+  # quedo en rojo afirmando una aritmetica que ya no existe, sin que nada
+  # estuviera roto. Escrito asi sigue vigilando lo que dice su titulo.
+  expect_gt(.barras_leyenda_alto_in(largas, 9, 12.5),
+            2 * .BARRAS_LEYENDA_ALTO_FILA_IN)
 })
 
 # ---------------------------------------------------------------------------
@@ -164,4 +171,35 @@ test_that("un ancho declarado por la lamina o el preset manda sobre la medida", 
   expect_true("canvas_w_etiquetas" %in% fml)
   expect_false("canvas_w_etiquetas_auto" %in% fml)
   expect_equal(.reporte_plan_multiactor_canvas_defaults()$canvas_w_etiquetas, 0.17)
+})
+
+# El ajuste del cuerpo de letra estaba sujeto a `n_rows > 1`, o sea que con UNA
+# fila no se comprobaba nada. Es el caso mas comun: en una lamina de varios
+# bloques cada sub-bloque recibe su hueco de `plot_grid()`, la banda sale mas
+# corta de lo estimado y la leyenda se dibujaba a su tamano nominal, cortada por
+# abajo. Medido en las laminas 18, 26, 30, 32 y 38 del mazo de acreditacion.
+
+test_that("la leyenda encoge cuando su fila no da, tambien con una sola fila", {
+  # Banda de 0.04 npc sobre un canvas de 6in => 0.24in de fila. A interlineado
+  # 1.35 eso da 12.8 pt: 16 pt no cabe.
+  ajustado <- .barras_leyenda_size_ajustado(16, row_h_npc = 0.04, alto_fisico_in = 6)
+  expect_lt(ajustado, 16)
+  expect_equal(ajustado, 0.04 * 6 * 72 / .BARRAS_LEYENDA_INTERLINEA)
+})
+
+test_that("no agranda cuando la fila da de sobra", {
+  # El control: si tocara el tamano en las dos direcciones, la medicion no
+  # distinguiria «cabe» de «no cabe» y el analista perderia el tamano que pidio.
+  expect_equal(.barras_leyenda_size_ajustado(10, row_h_npc = 0.5, alto_fisico_in = 6), 10)
+})
+
+test_that("nunca baja del piso legible", {
+  expect_equal(.barras_leyenda_size_ajustado(16, row_h_npc = 0.001, alto_fisico_in = 6), 6)
+})
+
+test_that("una entrada invalida devuelve el tamano pedido sin romper el dibujo", {
+  expect_equal(.barras_leyenda_size_ajustado(14, row_h_npc = 0,   alto_fisico_in = 6), 14)
+  expect_equal(.barras_leyenda_size_ajustado(14, row_h_npc = NA,  alto_fisico_in = 6), 14)
+  expect_equal(.barras_leyenda_size_ajustado(14, row_h_npc = 0.3, alto_fisico_in = 0), 14)
+  expect_equal(.barras_leyenda_size_ajustado(14, row_h_npc = 0.3, alto_fisico_in = NA), 14)
 })
