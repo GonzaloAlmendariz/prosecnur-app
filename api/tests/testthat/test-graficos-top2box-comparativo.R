@@ -529,3 +529,24 @@ test_that("el wrap del eje Y no puede pasarse del canal declarado", {
   expect_gte(.barras_chars_en_canal(0.01, 13.33, 13.5), 12L)
   expect_true(is.na(.barras_chars_en_canal(NULL, 13.33, 13.5)))
 })
+
+test_that("el preset de acreditación tiene camino de producto", {
+  # El preset estaba medido, implementado y testeado, y `presets_acreditacion()`
+  # solo se invocaba desde los tests: el analista no podía encenderlo desde la
+  # UI. Ahora es un perfil más del catálogo que la UI ya sabe listar y aplicar.
+  perfiles <- .ppt_style_profiles_payload()$style_profiles
+  ids <- vapply(perfiles, function(p) p$name, character(1))
+  expect_true("acreditacion_informe" %in% ids)
+
+  acrd <- perfiles[[which(ids == "acreditacion_informe")]]
+  expect_true(nzchar(acrd$titulo_humano))
+  expect_equal(length(acrd$preview_colors), 5L)
+
+  # Y trae lo que el deck 2021 exige, sin duplicar los números: salen de las
+  # mismas funciones que consume `presets_acreditacion()`.
+  apiladas <- acrd$presets$barras_apiladas
+  expect_identical(apiladas$barra_extra_preset, "top2box")
+  expect_false(isTRUE(apiladas$mostrar_leyenda))
+  expect_true("SIN INF" %in% unlist(apiladas$excluir_opciones))
+  expect_equal(apiladas$grosor_barras, .preset_acreditacion_apiladas()$grosor_barras)
+})
