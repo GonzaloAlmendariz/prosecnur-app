@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import { ArgGrupo, ArgMetadata, GraficadorRef } from "../../api/client";
 import { useGraficosRegistry } from "./useGraficosRegistry";
 import { useVariables } from "./useVariables";
 import { usePresetsMetadata } from "./usePresetsMetadata";
 import { usePresetsDefaults } from "./usePresetsDefaults";
+import { filtrarAjustes } from "./buscarAjustes";
+import "./v2/styles/paletas-suite.css";
 import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgGroup";
 import { graficadorToPresetType } from "./graficadorPresetMap";
 import { usePlanStore } from "./store";
@@ -213,10 +216,22 @@ export default function GraficadorForm({
   }, [slotArgs, ownedStyleValues]);
 
   // Agrupar args expandidos
+  // Buscador de ajustes del gráfico.
+  //
+  // El panel de Estilo global ya tenía uno; esta superficie —donde el analista
+  // pasa la mayor parte del tiempo— no, y expone hasta 27 ajustes por gráfico.
+  // Misma regla, importada del mismo módulo: dos copias se separarían y el
+  // analista vería resultados distintos según por qué panel entró.
+  const [busqueda, setBusqueda] = useState("");
+  const argsBuscados = useMemo(
+    () => filtrarAjustes(expandedArgs, busqueda),
+    [expandedArgs, busqueda],
+  );
+
   const grupos = useMemo(() => {
-    if (expandedArgs.length === 0) return [];
+    if (argsBuscados.length === 0) return [];
     const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
-    for (const a of expandedArgs) {
+    for (const a of argsBuscados) {
       const g = normalizeArgGroup(a.grupo as ArgGrupo);
       (byGrupo[g] ??= []).push(a);
     }
@@ -226,7 +241,7 @@ export default function GraficadorForm({
       .filter((g) => !allow || allow.has(g))
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
-  }, [expandedArgs, groupFilter]);
+  }, [argsBuscados, groupFilter]);
 
   function handleChange(name: string, value: unknown) {
     if (overrideArgNames.has(name)) {
@@ -296,7 +311,10 @@ export default function GraficadorForm({
     );
   }
 
-  if (grupos.length === 0) {
+  // El vacío por BÚSQUEDA no puede usar el mismo camino que el vacío por falta
+  // de opciones: ese early return se lleva por delante el propio buscador y
+  // deja al analista sin forma de limpiar lo que escribió.
+  if (expandedArgs.length === 0) {
     return (
       <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "6px 4px" }}>
         Sin opciones para configurar en este modo.
@@ -306,6 +324,36 @@ export default function GraficadorForm({
 
   return (
     <div>
+      {expandedArgs.length > 6 && (
+        <div className="pulso-gv2-presets-buscador">
+          <Search size={13} aria-hidden="true" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder={`Buscar entre ${expandedArgs.length} ajustes…`}
+            aria-label="Buscar un ajuste por nombre o por lo que hace"
+          />
+          {busqueda.trim() && (
+            <span className="pulso-gv2-presets-buscador-conteo">
+              {argsBuscados.length === 0
+                ? "sin resultados"
+                : `${argsBuscados.length} de ${expandedArgs.length}`}
+            </span>
+          )}
+          {busqueda && (
+            <button type="button" className="pulso-icon" onClick={() => setBusqueda("")}
+                    aria-label="Limpiar la búsqueda">
+              <X size={11} />
+            </button>
+          )}
+        </div>
+      )}
+      {grupos.length === 0 && (
+        <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", padding: "6px 4px" }}>
+          Ningún ajuste coincide con «{busqueda.trim()}».
+        </div>
+      )}
       {grupos.map(({ grupo, args }) => (
         <ArgGroup
           key={grupo}

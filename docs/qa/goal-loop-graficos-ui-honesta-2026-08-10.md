@@ -362,3 +362,39 @@ Medido: `.PRESETS_META` tiene **186 de 440 args sin describir (42 %)** contra lo
 descripciones y el buscador se reforzaban, y no es cierto en la misma
 superficie— y abre `C-10`: el inspector de la lámina, donde el analista pasa la
 mayor parte del tiempo, **no tiene buscador** y expone hasta 27 args por gráfico.
+
+### 2026-08-10 · iteración 7 — el buscador llega al inspector de la lámina
+
+**Medido antes.** El campo de búsqueda solo existía en el panel de Estilo
+global. El inspector de la lámina —donde el analista pasa la mayor parte del
+tiempo— expone hasta **50 ajustes** por gráfico y no tenía ninguno.
+
+**Cambiado.** Buscador en `GraficadorForm`, con el mismo comportamiento. La
+regla salió a `buscarAjustes.ts` y ahora la comparten las dos superficies: dos
+copias se separarían —una aprendería a ignorar tildes y la otra no— y el
+analista vería resultados distintos según por qué panel entró. El test de la
+iteración 6 apuntaba a una copia local; ahora prueba el módulo real.
+
+Aparece solo cuando el gráfico expone más de 6 ajustes: en uno de tres opciones
+un buscador sobra.
+
+**Evidencia.** En la UI real, en «4 gráficos + ícono»:
+
+    «leyenda»   -> 5 de 50
+    «etiqueta»  -> 15 de 50
+    «numerico»  -> sin resultados, con su mensaje
+    el campo sigue accesible tras una búsqueda sin resultados
+
+`tsc --noEmit` en 0; 321 vitest en 49 archivos.
+
+**Una trampa que me puse yo solo.** Al filtrar por búsqueda, `grupos` quedaba
+vacío y el early return de «Sin opciones para configurar en este modo» se
+llevaba por delante el propio buscador: el analista escribía algo que no existía
+y perdía la forma de borrarlo. Los dos vacíos son distintos —no hay opciones vs.
+no coincide la búsqueda— y ahora tienen caminos distintos. Se detectó revisando
+el flujo, no con un test; queda como aviso para quien filtre otra lista.
+
+**Sobre la densidad.** En una lámina de cuatro gráficos salen cuatro campos. A
+diferencia del badge de la iteración 3, cada uno vive DENTRO de la tarjeta de su
+gráfico y busca en sus propios ajustes, así que se lee como parte de esa tarjeta
+y no como repetición. Verificado en pantalla antes de darlo por bueno.

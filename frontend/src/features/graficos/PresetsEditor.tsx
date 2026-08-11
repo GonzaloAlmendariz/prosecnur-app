@@ -8,6 +8,7 @@ import { ArgGroup, GRUPO_META, ARG_GROUP_ORDER, normalizeArgGroup } from "./ArgG
 import { usePresetsDefaults } from "./usePresetsDefaults";
 import { ChartLayoutEditor, hasChartLayoutSpec } from "./ChartLayoutPopover";
 import { resolveGraphLucideIcon } from "./lucideRegistry";
+import { filtrarAjustes } from "./buscarAjustes";
 // La edición de presets usa solo controles catalogados. Si un argumento
 // no tiene metadata visual, no se expone como campo editable.
 
@@ -31,16 +32,6 @@ function clarifyPresetGraphTitleArg(arg: ArgMetadata): ArgMetadata {
     label: "Título del gráfico",
     descripcion: "Texto que se muestra como título propio del gráfico.",
   };
-}
-
-// Comparación de texto sin tildes, para buscar como se escribe rápido.
-//
-// El buscador comparaba literal, así que «mayusculas» no encontraba
-// «MAYÚSCULAS» y «numerico» no encontraba «numérico». Quien busca a toda prisa
-// no pone tildes, y el ajuste sí las lleva porque su copy está bien escrito.
-// `NFD` separa la tilde de su letra y el rango la retira.
-function sinTildes(x: string): string {
-  return x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 function samePresetValue(a: unknown, b: unknown): boolean {
@@ -341,17 +332,10 @@ function PresetBody({
   // Con el campo vacío no cambia nada: es un filtro añadido, no una
   // reorganización de los grupos.
   const [busqueda, setBusqueda] = useState("");
-  const argsFiltrados = useMemo(() => {
-    const q = sinTildes(busqueda.trim());
-    if (!q) return presetArgs;
-    const terminos = q.split(/\s+/);
-    return presetArgs.filter((a) => {
-      const heno = sinTildes(
-        [a.name, a.label, a.descripcion, a.efecto, a.unidad].filter(Boolean).join(" "),
-      );
-      return terminos.every((t) => heno.includes(t));
-    });
-  }, [presetArgs, busqueda]);
+  const argsFiltrados = useMemo(
+    () => filtrarAjustes(presetArgs, busqueda),
+    [presetArgs, busqueda],
+  );
 
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {

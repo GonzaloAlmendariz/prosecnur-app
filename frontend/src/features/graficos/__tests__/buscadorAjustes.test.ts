@@ -1,24 +1,19 @@
 import { describe, expect, it } from "vitest";
+import type { ArgMetadata } from "../../../api/client";
+import { filtrarAjustes } from "../buscarAjustes";
+
+// Se prueba el módulo REAL, no una copia: cuando esto se escribió la regla
+// vivía dentro del componente y el test la duplicaba, que es la forma más
+// fácil de que un test pase mientras el producto falla.
+function filtrar(args: { name: string; label: string; descripcion?: string }[], busqueda: string) {
+  return filtrarAjustes(args as unknown as ArgMetadata[], busqueda);
+}
 
 // El buscador de ajustes compara sin tildes: quien escribe rápido no las pone,
 // y el ajuste sí las lleva porque su copy está bien escrito. Antes de esto,
 // «mayusculas» devolvía 0 aunque la descripción dijera «MAYÚSCULAS».
 //
 // La regla se prueba aquí, sobre la misma función que usa el componente.
-function sinTildes(x: string): string {
-  return x.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
-
-function filtrar(args: { name: string; label: string; descripcion?: string }[], busqueda: string) {
-  const q = sinTildes(busqueda.trim());
-  if (!q) return args;
-  const terminos = q.split(/\s+/);
-  return args.filter((a) => {
-    const heno = sinTildes([a.name, a.label, a.descripcion].filter(Boolean).join(" "));
-    return terminos.every((t) => heno.includes(t));
-  });
-}
-
 const ARGS = [
   { name: "normalizar_etiquetas", label: "Normalización de etiquetas",
     descripcion: "«Mayúscula inicial» arregla listas transcritas en MAYÚSCULAS." },
