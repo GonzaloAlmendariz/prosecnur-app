@@ -194,7 +194,7 @@ w_presets <- function(
       # no puede apagarla ni pisar la particion de anchos que ese preset
       # declara; solo re-escala el resto (tipografia, alturas, leyenda).
       if (nm %in% c("barras_apiladas", "multi_apiladas")) {
-        patch <- .word_patch_conservar_barra_extra(patch, presets_ppt[[nm]]$args)
+        patch <- .word_patch_conservar_barra_extra(patch, presets_ppt[[nm]]$args, tipo = nm)
       }
       presets_ppt[[nm]]$args <- utils::modifyList(
         presets_ppt[[nm]]$args %||% list(),
