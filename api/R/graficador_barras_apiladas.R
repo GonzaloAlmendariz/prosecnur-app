@@ -2468,8 +2468,19 @@ graficar_barras_apiladas <- function(
       # labels disponibles por columna: names(etiquetas_grupos)=cols, values=labels
       .cols_from_labels <- function(labels_sel, etiquetas_grupos, cols_porcentaje) {
         if (is.null(labels_sel) || !length(labels_sel)) return(character(0))
-        labels_sel <- trimws(as.character(labels_sel))
-        hit <- names(etiquetas_grupos)[as.character(etiquetas_grupos) %in% labels_sel]
+        # El emparejamiento IGNORA mayusculas y tildes. En un estudio real la
+        # misma categoria convive escrita de dos formas —medido en el mazo del
+        # 10-08: «De acuerdo» y «De Acuerdo», «Si» y «SI»— porque cada lista se
+        # escribio por separado. Comparando literal, declarar una ortografia
+        # dejaba fuera a la otra EN SILENCIO: el box sumaba una columna en vez
+        # de dos y el numero salia mal sin que nadie lo notara.
+        norm <- function(x) {
+          x <- trimws(as.character(x))
+          x <- toupper(x)
+          iconv(x, to = "ASCII//TRANSLIT")
+        }
+        sel <- norm(labels_sel)
+        hit <- names(etiquetas_grupos)[norm(etiquetas_grupos) %in% sel]
         hit <- hit[hit %in% cols_porcentaje]
         unique(hit)
       }
