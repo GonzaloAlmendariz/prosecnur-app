@@ -1806,11 +1806,13 @@
            default = "#CA5651",
            descripcion = "Hex del color del texto del título. Default Pulso PUCP: rojo principal."),
       list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "color", grupo = "estilo",
-           default = "#081F5C"),
+           default = "#081F5C",
+           descripcion = "Color del subtítulo del gráfico."),
       list(name = "color_leyenda",     label = "Color de la leyenda",    tipo_input = "color", grupo = "estilo",
            default = "#081F5C"),
       list(name = "color_ejes",        label = "Color de los ejes",      tipo_input = "color", grupo = "estilo",
-           default = "#081F5C"),
+           default = "#081F5C",
+           descripcion = "Color de las etiquetas de los ejes."),
       list(name = "color_nota_pie",    label = "Color de la nota al pie", tipo_input = "color", grupo = "estilo",
            default = "#081F5C"),
 
@@ -1832,7 +1834,8 @@
            default = "#FF00FF",
            descripcion = "Hex del color de los bordes de referencia. Magenta (#FF00FF) es el default porque no suele aparecer en gráficos reales."),
       list(name = "debug_ph_lwd",      label = "Grosor de los bordes", tipo_input = "number", grupo = "avanzado",
-           default = 0.6)
+           default = 0.6,
+           descripcion = "Grosor de las guías de layout, en puntos. Solo se dibujan con las guías encendidas.")
     )
   ),
 
