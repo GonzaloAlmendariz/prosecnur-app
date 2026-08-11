@@ -405,6 +405,14 @@ function FieldControl({
     case "icono":
       return <IconoSelect value={safeTrimmedText(shownValue) || null} onChange={onChange} />;
 
+    case "orden_categorias":
+      return (
+        <OrdenCategoriasField
+          value={((shownValue as (string | number)[]) ?? []).map(String)}
+          onChange={onChange}
+        />
+      );
+
     case "categorias_escala":
       return (
         <CategoriasEscalaField
@@ -2349,6 +2357,114 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "") || "criterio";
 }
+
+
+/** Orden manual de categorías: filas que se suben y bajan, como los slides.
+ *
+ *  Estaba declarado como `codigos_list`, o sea un campo donde había que teclear
+ *  los códigos separados por coma en el orden deseado — inservible para
+ *  reordenar, porque exige saberse los códigos de memoria y contar posiciones.
+ *
+ *  El valor sigue siendo la misma lista plana que el motor consume, y sigue
+ *  viviendo en `overrides`: aplica SOLO a este gráfico, no al preset. Cuando
+ *  está vacío se ofrecen las escalas del estudio para sembrar las filas con sus
+ *  etiquetas reales; a partir de ahí se reordena a mano. */
+function OrdenCategoriasField({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[] | null) => void;
+}) {
+  const [listas, setListas] = useState<PaletaSugeridaEntry[]>([]);
+  useEffect(() => {
+    let cancelado = false;
+    apiGraficosPaletasSugeridas()
+      .then((r) => { if (!cancelado) setListas(r.listas.filter((l) => (l.choices?.length ?? 0) >= 2)); })
+      .catch(() => undefined);
+    return () => { cancelado = true; };
+  }, []);
+
+  function mover(i: number, paso: number) {
+    const j = i + paso;
+    if (j < 0 || j >= value.length) return;
+    const next = [...value];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  }
+
+  if (!value.length) {
+    // Sin orden declarado el gráfico usa el del instrumento. Sembrar es
+    // copiar las etiquetas de una escala para empezar a moverlas.
+    const unicas = listas.filter(
+      (l, i, arr) =>
+        arr.findIndex((o) => o.choices.map((c) => c.label).join("\u0000") === l.choices.map((c) => c.label).join("\u0000")) === i,
+    );
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
+          Sin orden propio: se usa el del instrumento. Elige la escala de este gráfico para empezar a reordenarla.
+        </p>
+        <div style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+          {unicas.map((l) => (
+            <button
+              key={l.escala_id ?? l.list_name}
+              type="button"
+              onClick={() => onChange(l.choices.map((c) => c.label))}
+              style={{
+                textAlign: "left", padding: "6px 9px", borderRadius: 8, cursor: "pointer",
+                border: "1px solid var(--pulso-border)", background: "transparent", fontSize: 11,
+                color: "var(--pulso-text)",
+              }}
+            >
+              {l.choices.map((c) => c.label).join(" · ")}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {value.map((cat, i) => (
+        <div key={`${cat}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              width: 20, height: 20, borderRadius: 6, flex: "0 0 20px", fontSize: 10, fontWeight: 600,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              border: "1px solid var(--pulso-border)", background: "var(--pulso-surface-2)",
+            }}
+          >
+            {i + 1}
+          </span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {cat}
+          </span>
+          <button type="button" title="Subir" disabled={i === 0} onClick={() => mover(i, -1)} style={ordenBtn}>↑</button>
+          <button type="button" title="Bajar" disabled={i === value.length - 1} onClick={() => mover(i, 1)} style={ordenBtn}>↓</button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        style={{
+          alignSelf: "flex-start", marginTop: 2, padding: "3px 8px", borderRadius: 7, fontSize: 11,
+          border: "1px solid var(--pulso-border)", background: "transparent", cursor: "pointer",
+          color: "var(--pulso-text-soft)",
+        }}
+      >
+        Volver al orden del instrumento
+      </button>
+    </div>
+  );
+}
+
+const ordenBtn: React.CSSProperties = {
+  width: 22, height: 22, borderRadius: 6, flex: "0 0 22px", cursor: "pointer",
+  border: "1px solid var(--pulso-border)", background: "transparent",
+  color: "var(--pulso-text-soft)", fontSize: 11, lineHeight: 1, padding: 0,
+};
 
 /** Elige las categorías de un indicador MARCÁNDOLAS sobre las escalas reales
  *  del estudio, en vez de teclear sus nombres.
