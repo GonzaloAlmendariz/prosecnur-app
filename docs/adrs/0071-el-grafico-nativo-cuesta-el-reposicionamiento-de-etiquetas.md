@@ -3,6 +3,10 @@
 - **Estado**: Aceptada
 - **Fecha**: 2026-08-10
 - **Ámbito**: Entregables (motor PPT · graficadores)
+- **Alcance precisado por el ADR 0072**: esta decisión habla de **charts**, no
+  de tablas. Se estaba leyendo como si prohibiera también las tablas nativas, y
+  no es así: su razón —el reposicionamiento de etiquetas— no tiene equivalente
+  en una rejilla de filas y columnas.
 
 ## Contexto
 

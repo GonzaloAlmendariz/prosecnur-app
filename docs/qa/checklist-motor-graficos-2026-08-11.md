@@ -24,7 +24,7 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 4 | **Objetivo**: el campo de texto sale invertido | motor | ☐ sin empezar |
 | 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ☑ **hecho** |
 | 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☑ **hecho** |
-| 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ☐ bloqueado por decisión |
+| 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ◐ **ADR hecho**, falta cablear |
 | 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
 | 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** |
 
@@ -101,10 +101,34 @@ y el umbral conserva su significado pero sólo se aplica cuando se pide.
 
 Verificado en la lámina 42: vuelven los 6 %, 2 %, 4 %, 8 % y 6 % que faltaban.
 
-### 7 · Tablas nativas del radar
-Contradice el **ADR 0071** (formas, no charts nativos). Exige un ADR nuevo que
-lo revierta, no cambiar el motor por debajo. Es decisión de arquitectura antes
-que trabajo de código.
+### 7 · Tablas nativas — ADR hecho, falta cablear
+
+**No estaba bloqueado, y la premisa que yo di era falsa.** El ADR 0071 habla de
+*charts*, no de tablas, y su razón —PowerPoint no reposiciona una etiqueta que
+no entra— no tiene equivalente en una rejilla de filas y columnas. El registro
+lo había anotado como «0 tablas nativas… contradice el ADR 0071» y de ahí salió
+la idea de que hacía falta revertirlo.
+
+El contraejemplo estaba delante: la **tabla de ficha técnica ya se emite
+nativa**, con `flextable`, en `.make_technical_table_flextable()`
+(`reporte_plan_ppt.R:807`).
+
+**ADR 0072** fija que toda tabla del entregable va nativa, precisando el alcance
+del 0071 sin revertirlo. Registrado en el índice y anotado en el propio 0071.
+
+**Lo que falta es el cableado**, y son tres piezas:
+
+1. Un builder de tabla nativa para el radar, con encabezado —la ficha técnica
+   borra el suyo con `delete_part()`, aquí hace falta.
+2. Que `graficar_radar()` **emita los datos** de la tabla como `data.frame` en
+   vez de dibujarla en el canvas.
+3. Un contrato de lámina con **dos placeholders**, gráfico y tabla, donde hoy
+   sólo hay uno. Es la pieza que no existe: el radar no tiene placeholder de
+   tabla previsto.
+
+Los ~20 parámetros de dibujo a mano (`tabla_padding_mm`, `tabla_auto_fit`,
+`tabla_clip`…) quedan obsoletos con el paso 2; el ADR pide mantenerlos leídos
+para no romper proyectos guardados y retirarlos de la superficie de edición.
 
 ### 8 · Leyenda vs separación entre bloques
 Relacionado con el hallazgo de que **cada bloque de una multilista es una unidad
