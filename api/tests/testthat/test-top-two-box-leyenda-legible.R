@@ -90,3 +90,38 @@ test_that("el mazo de acreditación no se mueve: a 16 pt la banda es la de antes
   # una fila -> 0.32). Con el nuevo reparto, una fila a 16 pt da 0.39.
   expect_equal(.barras_leyenda_alto_in(etq, 16, 13.33), 0.39, tolerance = 0.02)
 })
+
+test_that("cuando la leyenda pasa a dos filas, las reparte parejo", {
+  # Bajando los ítems por fila de uno en uno, cinco categorías daban 4+1 y la
+  # última —«SIN INF» en el mazo de acreditación— quedaba sola en su renglón.
+  # El reparto se decide ahora desde el número de FILAS y sale equilibrado.
+  e5 <- c("Totalmente en desacuerdo", "En desacuerdo", "De acuerdo",
+          "Totalmente de acuerdo", "SIN INF")
+  reparto <- function(etq, size, ancho, ...) {
+    f <- .barras_leyenda_filas(etq, size, ancho, ...)
+    as.integer(table(.barras_leyenda_reparto(length(etq), f)))
+  }
+
+  # Ancho real del canvas del mazo (medido: 10"): cinco no entran en una fila.
+  expect_equal(reparto(e5, 16, 10, gap_npc = 0.012), c(3L, 2L))
+  # Con canvas ancho sí entran, y una fila es mejor que dos.
+  expect_equal(.barras_leyenda_filas(e5, 16, 13.33, gap_npc = 0.012), 1L)
+
+  e6 <- c(e5[1:4], "Ni una ni otra", "SIN INF")
+  expect_equal(reparto(e6, 16, 10, gap_npc = 0.012), c(3L, 3L))
+})
+
+test_that("el reparto reparte parejo para cualquier n y cualquier número de filas", {
+  # La regla: los renglones difieren como mucho en un ítem. Un 3+3+1 —que es lo
+  # que daba el reparto uniforme con 7 en 3 filas— deja el último solo.
+  for (n in 2:12) {
+    for (f in seq_len(n)) {
+      cuenta <- as.integer(table(.barras_leyenda_reparto(n, f)))
+      expect_equal(sum(cuenta), n)
+      expect_equal(length(cuenta), f)
+      expect_lte(max(cuenta) - min(cuenta), 1L)
+    }
+  }
+  expect_equal(as.integer(table(.barras_leyenda_reparto(7, 3))), c(3L, 2L, 2L))
+  expect_equal(as.integer(table(.barras_leyenda_reparto(5, 2))), c(3L, 2L))
+})

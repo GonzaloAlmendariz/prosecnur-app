@@ -30,6 +30,22 @@
 # termino. Si aquella cambia, esta tiene que cambiar con ella.
 .BARRAS_LEYENDA_ANCHO_MAX_NPC <- 0.96
 
+# Reparto EQUILIBRADO de n items en `filas` renglones: los tamaños difieren
+# como mucho en uno. Devuelve el id de fila de cada item.
+#
+# Un `ceiling(n / filas)` uniforme no equilibra cuando n no es divisible: con
+# 7 en 3 filas da 3+3+1 y el último renglón queda con una sola etiqueta, que se
+# lee como un error de maquetación. Así da 3+2+2, y 5 -> 3+2, 6 -> 3+3.
+.barras_leyenda_reparto <- function(n, filas) {
+  n <- max(0L, as.integer(n)[1])
+  if (!n) return(integer(0))
+  filas <- min(max(1L, as.integer(filas)[1]), n)
+  tamanos <- rep(n %/% filas, filas)
+  resto <- n %% filas
+  if (resto > 0L) tamanos[seq_len(resto)] <- tamanos[seq_len(resto)] + 1L
+  rep(seq_len(filas), tamanos)
+}
+
 .barras_leyenda_filas <- function(etiquetas, size_pt, ancho_in,
                                   key_cm = 0.34, gap_npc = 0.018,
                                   aspect_yx = 0.6, n_por_fila = 6L) {
@@ -59,18 +75,24 @@
   texto_npc <- pmax(0.016, chars * size_pt * 0.52 / 72 / ancho_in)
   item <- key_w + key_gap + texto_npc
 
-  por_fila <- min(max(1L, as.integer(n_por_fila)), n)
+  # Se itera sobre el NUMERO DE FILAS y el reparto sale de ahi, no al reves.
+  #
+  # Bajando los items por fila de uno en uno, cinco categorias daban 4+1: la
+  # ultima —«SIN INF» en el mazo de acreditacion— quedaba sola en su renglon,
+  # que es justo lo que se ve mal. Repartir desde las filas da el minimo de
+  # filas Y el reparto parejo: 5 -> 3+2, 6 -> 3+3, 7 -> 4+3.
+  tope_por_fila <- min(max(1L, as.integer(n_por_fila)), n)
+  filas <- max(1L, ceiling(n / tope_por_fila))
   repeat {
-    filas <- ceiling(n / por_fila)
-    ids <- ceiling(seq_len(n) / por_fila)
-    anchos <- vapply(seq_len(filas), function(r) {
+    ids <- .barras_leyenda_reparto(n, filas)
+    anchos <- vapply(seq_len(max(ids)), function(r) {
       idx <- which(ids == r)
       sum(item[idx], na.rm = TRUE) + slot_gap * max(0L, length(idx) - 1L)
     }, numeric(1))
-    if (por_fila <= 1L || max(anchos, na.rm = TRUE) <= .BARRAS_LEYENDA_ANCHO_MAX_NPC) break
-    por_fila <- por_fila - 1L
+    if (filas >= n || max(anchos, na.rm = TRUE) <= .BARRAS_LEYENDA_ANCHO_MAX_NPC) break
+    filas <- filas + 1L
   }
-  as.integer(filas)
+  as.integer(max(ids))
 }
 
 # Alto de la banda, en pulgadas.
