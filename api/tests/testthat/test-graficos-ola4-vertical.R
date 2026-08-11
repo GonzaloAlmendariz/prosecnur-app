@@ -44,28 +44,42 @@ source("setup-load-all.R")
 
 # Sustituye bindings solo durante una expresion y restaura incluso si el
 # endpoint falla. Se usa porque setup-load-all.R carga los R en el entorno del
-# test, sin requerir un namespace instalado ni un proceso HTTP externo.
+# test, sin requerir un proceso HTTP externo.
+#
+# El entorno destino puede ser un NAMESPACE SELLADO: el CI corre
+# `R CMD INSTALL` antes de los tests (los workers callr de jobs deserializan
+# closures contra el paquete instalado), y ahi `assign()` muere con
+# "cannot change value of locked binding". Por eso cada binding se desbloquea
+# antes de escribirlo y se vuelve a sellar al restaurar. Solo admite nombres
+# que YA existen en el entorno: en un namespace sellado no se pueden crear.
 .g2v_with_bindings <- function(bindings, code, env = environment(mount_graficos)) {
   expr <- substitute(code)
   caller <- parent.frame()
   nms <- names(bindings)
   presentes <- vapply(nms, exists, logical(1), envir = env, inherits = FALSE)
-  anteriores <- if (any(presentes)) {
-    mget(nms[presentes], envir = env, inherits = FALSE)
-  } else {
-    list()
+  if (!all(presentes)) {
+    stop(
+      "bindings inexistentes en el entorno destino: ",
+      paste(nms[!presentes], collapse = ", "),
+      ". Usa testthat::local_mocked_bindings() para funciones de otro paquete."
+    )
+  }
+  anteriores <- mget(nms, envir = env, inherits = FALSE)
+  sellado <- environmentIsLocked(env)
+
+  escribir <- function(nm, valor) {
+    if (sellado && bindingIsLocked(nm, env)) {
+      unlockBinding(nm, env)
+      on.exit(lockBinding(nm, env), add = TRUE)
+    }
+    assign(nm, valor, envir = env)
   }
 
   on.exit({
-    for (nm in names(anteriores)) assign(nm, anteriores[[nm]], envir = env)
-    nuevos <- nms[!presentes]
-    if (length(nuevos)) {
-      creados <- intersect(nuevos, ls(envir = env, all.names = TRUE))
-      if (length(creados)) rm(list = creados, envir = env)
-    }
+    for (nm in names(anteriores)) escribir(nm, anteriores[[nm]])
   }, add = TRUE)
 
-  for (nm in nms) assign(nm, bindings[[nm]], envir = env)
+  for (nm in nms) escribir(nm, bindings[[nm]])
   eval(expr, envir = caller)
 }
 
@@ -159,13 +173,19 @@ test_that("preview-slide califica refs peladas igual que el job antes del rebuil
     .enriquecer_presets = function(...) list(),
     .graficos_icon_registry = function(...) list(),
     .graficos_palette_env = function(...) new.env(parent = emptyenv()),
-    getExportedValue = function(where, name) get(name, envir = test_env, inherits = TRUE),
     reporte_ppt_plan = function(...) {
       captura$plan <- list(...)$plan
       invisible(NULL)
     },
     .register_output_file = function(...) list(file_id = "preview-g2", size = 1),
     session_set = function(...) invisible(NULL)
+  )
+
+  # `getExportedValue` es de base y no vive en el namespace del paquete: no se
+  # puede crear ahi cuando esta sellado. Se mockea por la via canonica.
+  testthat::local_mocked_bindings(
+    getExportedValue = function(where, name) get(name, envir = test_env, inherits = TRUE),
+    .package = "base"
   )
 
   respuesta <- .g2v_with_bindings(bindings, {

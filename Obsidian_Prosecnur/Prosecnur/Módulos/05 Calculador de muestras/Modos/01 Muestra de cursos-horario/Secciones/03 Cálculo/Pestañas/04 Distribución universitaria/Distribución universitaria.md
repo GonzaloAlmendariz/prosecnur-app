@@ -8,7 +8,7 @@ nodo: "calc-muestra/opinion-universitaria/calculo/calculo-distribucion"
 tags:
   - Pestaña
 fuentes:
-  - "frontend/src/features/calcMuestra/motor/pestanas/TabDistribucion.tsx"
+  - "frontend/src/features/calcMuestra/universidad/calculo/CalculoDistribucionTab.tsx"
   - "frontend/src/features/calcMuestra/didactica/DistribucionFacultadSexo.tsx"
 ---
 # Distribución universitaria

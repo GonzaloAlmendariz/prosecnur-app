@@ -715,8 +715,16 @@ test_that("round-trip .pulso conserva solo el contrato agregado sin PII", {
   )
   expect_false(grepl("private-student-123", payload, fixed = TRUE))
   expect_null(persisted$calc_muestra_aulas_frame[["population"]])
-  expect_false("unique_student_ids" %in%
+  # Desde a859b321 la columna SOBREVIVE subrogada: sin ella no hay traslape que
+  # descontar y el descuento secuencial se apagaba solo al reabrir el proyecto.
+  # Lo que no viaja es la identidad — cada id real es un entero denso por orden
+  # de aparicion y el mapa no se guarda.
+  ids_persistidos <- persisted$calc_muestra_aulas_frame$aula_frame$unique_student_ids
+  expect_true("unique_student_ids" %in%
     names(persisted$calc_muestra_aulas_frame$aula_frame))
+  subrogados <- unlist(ids_persistidos, use.names = FALSE)
+  expect_true(length(subrogados) > 0L)
+  expect_true(all(grepl("^[0-9]+$", as.character(subrogados))))
   expect_identical(
     persisted$calc_muestra_estudio$componentes[[1L]]$resultado$
       distribucion_universitaria$population_hash,

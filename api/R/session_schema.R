@@ -361,6 +361,7 @@ session_schema <- function() {
     "calc_muestra_aulas_selection", "literal", "persistible",   "router_calc_muestra.R", "session_set", "sanitizada en save: unique_student_ids SUBROGADOS sin mapa (F114)",
     "calc_muestra_aulas_export",   "literal", "persistible",    "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_method_comparison", "literal", "persistible", "router_calc_muestra.R", "session_set", "",
+    "calc_muestra_aulas_certeza",  "literal", "persistible",    "router_calc_muestra.R", "session_set", "resultado del job de certeza de cobertura; se guarda como sus hermanas de job porque recalcularla exige volver a correrlo. Al reabrir, .cm_aulas_run_vigente la valida contra el frame_hash y la config, y calc_muestra_alumnos_por_ch.R la anula cuando cambia el insumo",
     "calc_muestra_aulas_replacement_simulation", "literal", "persistible", "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_stale_job_result", "literal", "persistible", "router_calc_muestra.R", "session_set", "",
 

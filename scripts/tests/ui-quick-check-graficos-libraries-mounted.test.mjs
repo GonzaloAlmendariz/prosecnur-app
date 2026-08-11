@@ -248,6 +248,15 @@ async function installFixtureRouter(context, options = {}) {
     if (endpoint === "/api/graficos/ppt-style-profiles") {
       return fulfillJson({ style_profiles: [] });
     }
+    if (endpoint === "/api/graficos/slide-layout-matrix") {
+      return fulfillJson({
+        schema: "graficos.slide_layout_matrix/v2",
+        contract_version: 2,
+        template: { id: "fixture-l6", fingerprint: "l6", identity_source: "default" },
+        canvas: { width: 13.333, height: 7.5, aspect_ratio: 16 / 9 },
+        slides: [],
+      });
+    }
     if (endpoint === "/api/graficos/slide-layout-preview") {
       return fulfillJson({
         ok: true,

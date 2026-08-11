@@ -51,40 +51,6 @@ source("setup-load-all.R")
   )
 }
 
-# `setup-load-all.R` sourcea producto en el entorno del test. El paquete
-# instalado puede estar atrasado durante una corrida focal, por lo que el
-# rebuild debe resolver exports contra ese mismo entorno, igual que la vertical
-# de ola 4. El binding se restaura aunque el render o un artefacto fallen.
-.pcv_with_bindings <- function(bindings, code,
-                               env = environment(.graficos_job_rebuild_slides)) {
-  expr <- substitute(code)
-  caller <- parent.frame()
-  names_bindings <- names(bindings)
-  presentes <- vapply(
-    names_bindings,
-    exists,
-    logical(1),
-    envir = env,
-    inherits = FALSE
-  )
-  anteriores <- if (any(presentes)) {
-    mget(names_bindings[presentes], envir = env, inherits = FALSE)
-  } else {
-    list()
-  }
-
-  on.exit({
-    for (name in names(anteriores)) assign(name, anteriores[[name]], envir = env)
-    nuevos <- names_bindings[!presentes]
-    if (length(nuevos)) {
-      creados <- intersect(nuevos, ls(envir = env, all.names = TRUE))
-      if (length(creados)) rm(list = creados, envir = env)
-    }
-  }, add = TRUE)
-
-  for (name in names_bindings) assign(name, bindings[[name]], envir = env)
-  eval(expr, envir = caller)
-}
 
 test_that("el mismo elemento se reconstruye y atraviesa jobs PPTX y DOCX reales", {
   skip_if_not_installed("ggplot2")
@@ -95,9 +61,14 @@ test_that("el mismo elemento se reconstruye y atraviesa jobs PPTX y DOCX reales"
   dir.create(td)
   on.exit(unlink(td, recursive = TRUE, force = TRUE), add = TRUE)
   test_env <- environment(.graficos_job_rebuild_slides)
-  .pcv_with_bindings(list(
-    getExportedValue = function(where, name) get(name, envir = test_env, inherits = TRUE)
-  ), {
+  # `getExportedValue` es de base: en el CI el namespace del paquete esta
+  # sellado por `R CMD INSTALL` y no admite bindings nuevos. La via canonica
+  # de testthat mockea la funcion donde el rebuild la resuelve.
+  testthat::local_mocked_bindings(
+    getExportedValue = function(where, name) get(name, envir = test_env, inherits = TRUE),
+    .package = "base"
+  )
+  local({
     plan <- .pcv_plan()
     qualified <- .graficos_calificar_refs_plan(plan, "principal")
     rebuilt <- .graficos_job_rebuild_slides(

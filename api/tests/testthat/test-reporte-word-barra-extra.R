@@ -123,6 +123,10 @@ test_that("el plot_word de una apilada con top2box pedido muestra la columna ext
         var = "docentes$p12",
         overrides = list(
           barra_extra_preset = "top2box",
+          # Desde 3c639122 el pedido se completa declarando las categorias por
+          # nombre: el motor ya no las deduce del orden de la escala, porque
+          # esa regla posicional sumaba las dos equivocadas sin avisar.
+          top2box_labels = c("De acuerdo", "Totalmente de acuerdo"),
           titulo_barra_extra = "TOP2BOX",
           textos_negrita = c("titulo", "barra_extra")
         )
