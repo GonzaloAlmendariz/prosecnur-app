@@ -137,6 +137,10 @@ arquitectura canónica.
 - [GOAL de expansión del catálogo y UI de Gráficos](qa/goal-loop-expansion-graficos-ui-2026-08-08.md):
   loop sucesor para introducir nuevos tipos con verdad metodológica, contrato
   vertical y mejora continua de la experiencia de autoría.
+- [GOAL de la interfaz de Gráficos](qa/goal-loop-graficos-ui-honesta-2026-08-10.md):
+  loop indefinido para que la interfaz sea honesta, se deje encontrar y explique
+  su capa, sin cambiar cómo se hace lo que ya funciona.
+  [Prompt](qa/prompt-goal-loop-graficos-ui-honesta.md).
 - [Registro del motor de gráficos](qa/registro-motor-graficos-2026-08-10.md):
   estado consolidado de errores resueltos, persistentes y pendientes, y cuánto
   del formato del deck 2021 alcanza al analista sin escribir R.
