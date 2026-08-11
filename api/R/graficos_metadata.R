@@ -1814,8 +1814,15 @@
            descripcion = "Tamaño de los valores numéricos que se escriben DENTRO de las barras (ej. los %). Nota: en ggplot/cowplot no es pt exacto, son unidades relativas."),
 
       # --- Colores de texto ----------------------------------------------
-      list(name = "color_titulo",      label = "Color del título",       tipo_input = "color", grupo = "estilo",
+      # Dos títulos, dos colores. El de LÁMINA (y con él los separadores de
+      # sección y la portada) va en el naranja de la casa; el del GRÁFICO va en
+      # el azul de marca, con los ejes, las etiquetas y la leyenda. Compartían
+      # `color_titulo`, así que tocar uno movía el otro.
+      list(name = "color_titulo_slide", label = "Color del título de la lámina", tipo_input = "color", grupo = "estilo",
            default = "#CA5651",
+           descripcion = "Título de la lámina, los separadores de sección y la portada."),
+      list(name = "color_titulo",      label = "Color del título del gráfico", tipo_input = "color", grupo = "estilo",
+           default = "#081F5C",
            descripcion = "Hex del color del texto del título. Default Pulso PUCP: rojo principal."),
       list(name = "color_subtitulo",   label = "Color del subtítulo",    tipo_input = "color", grupo = "estilo",
            default = "#081F5C",
