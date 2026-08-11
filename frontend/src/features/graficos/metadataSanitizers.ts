@@ -38,6 +38,7 @@ const ARG_TIPO_INPUTS: Record<ArgTipoInput, true> = {
   colores_list: true,
   iconos_list: true,
   categorias_escala: true,
+  orden_categorias: true,
   base_labels: true,
   series_colors: true,
   criteria_config: true,
