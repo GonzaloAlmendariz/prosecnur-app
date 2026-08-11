@@ -352,3 +352,46 @@ Y para verlo: `soffice --headless --convert-to pdf` + `pdftoppm -png -r 80`.
 
 > **Ojo**: el ícono del plan no viaja en los `.pulso` guardados **antes** de `R-02`.
 > Un `.pulso` viejo necesita sustituirlo por un marcador o el export muere entero.
+
+## 6. Verificación de cierre — 2026-08-11
+
+Render completo del banco (`Conta 10-08`, 67 láminas) y revisión de la UI real
+con el proyecto abierto. Todo lo de abajo está medido sobre ese mazo, no
+supuesto.
+
+### Reparado en esta sesión
+
+**«Agregar sección» del Índice no creaba nada.** Causa exacta:
+`serializeIndiceModel()` descarta las secciones sin título
+(`indiceModel.ts:105`), y el botón creaba una con `titulo: ""`. El clic añadía,
+el commit filtraba, y el modelo volvía idéntico — no-op por construcción. El
+mismo filtro borraba una sección existente en cuanto le vaciabas el título para
+reescribirlo. Reparado con un borrador local en `IndiceBuilder.tsx`: la UI
+conserva lo que el analista tiene entre manos y al motor sigue yendo sólo lo
+que tiene título. Una firma evita que el borrador tape un cambio de fuera
+(deshacer, cambio de slide).
+
+Consecuencia visible: el editor de sección **ya existía completo** —selector de
+ícono del foco con los 10 del catálogo, subtemas, reordenar, eliminar— y no se
+podía ver porque el botón nunca abría la fila. De ahí que «no se entienda dónde
+se agregan los subíndices».
+
+### Pendiente, con evidencia
+
+| # | Hallazgo | Evidencia |
+|---|---|---|
+| V-1 | **822 runs de texto en negro puro** (#000000), segundo color más usado del mazo, contra 156 del azul de marca (#081F5C). Afecta a los enunciados del eje y a la leyenda de las multi-apiladas. | Conteo de `<a:rPr>` sobre las 68 láminas |
+| V-2 | **0 tablas nativas de PowerPoint** en todo el mazo. La tabla del radar se dibuja como geometría, así que no se puede editar como tabla. | `grep <a:tbl>` = 0 |
+| V-3 | **6 formas se salen de la lámina** en 5 láminas (22, 24, 34, 36×2, 55); la peor, 1,7 mm. Todas enunciados largos del eje. | Geometría de cada forma vs. 13,33 × 7,5 in |
+| V-4 | **Enunciados truncados con «…»** cuando no caben en el canal (lámina 39: «La Unidad facilita los medios necesarios para que los…»). | Render de la lámina 39 |
+| V-5 | La columna **TOP2BOX queda reservada y vacía** cuando el motor la omite por escala de 2 categorías. El motor ya avisa; la lámina conserva el hueco y la cabecera. | Lámina 39, bloque «¿Conoce los criterios… egreso y titulación?» |
+| V-6 | **«(respuestas válidas)»** se añade a la nota de base en 9 láminas con un denominador distinto del total (47: 51/109/161 frente a 52/172/178) sin decir qué hace válida a una respuesta. | Barrido de textos |
+| V-7 | **La nota de base vive en el gráfico**, no en la lámina. No hay forma de decidir dónde va. | Pedido de Gonzalo, 2026-08-11 |
+| V-8 | **El PNG del ícono no se puede teñir**; entra tal cual (negro). | Pedido de Gonzalo, 2026-08-11 |
+| V-9 | **«Colores de focos» del Índice es un campo de texto libre** que se anuncia como HEX y da de ejemplo `88, 90, 96`, que no son HEX. En la pestaña de al lado, «Color de numeración de subíndices» sí tiene muestra de color. | UI real, Índice |
+| V-10 | **«Íconos de los focos» pide teclear rutas SVG/PNG a mano**, sin hablar con el catálogo de íconos de Configuración global. | UI real, Índice |
+
+V-1 y V-5 son las dos que más ensucian el entregable a la vista. V-2 es la que
+más molesta al editar. Ninguna se aplicó en esta sesión: V-1 mueve el color de
+mazos ya entregados y V-2 cambia el mecanismo de render, así que las dos exigen
+decisión.

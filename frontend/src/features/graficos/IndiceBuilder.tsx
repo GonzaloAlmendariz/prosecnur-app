@@ -123,14 +123,38 @@ const S = {
 
 export default function IndiceBuilder({ slide }: { slide: Slide }) {
   const updatePayload = usePlanStore((s) => s.updateSlidePayload);
-  const model = useMemo(
+  const guardado = useMemo(
     () => parseIndicePayload(slide.payload as Record<string, unknown>),
     [slide.payload],
   );
   const [drafts, setDrafts] = useState<Record<number, string>>({});
 
+  // El serializador descarta las secciones sin título. Para el motor está
+  // bien —una sección en blanco no significa nada en el mazo—, pero para
+  // editar era fatal: «Agregar sección» creaba una con `titulo: ""`, el
+  // commit la filtraba, y el modelo volvía idéntico. El botón no hacía nada.
+  // El mismo filtro borraba una sección existente en cuanto le vaciabas el
+  // título para reescribirlo.
+  //
+  // El borrador conserva la forma que el analista tiene entre manos; al motor
+  // sigue yendo sólo lo que tiene título. La firma es lo que evita que el
+  // borrador tape un cambio de fuera (deshacer, cambio de slide): si el
+  // payload ya no es el que escribimos, mandamos lo guardado.
+  const [borrador, setBorrador] = useState<{
+    slideId: string;
+    firma: string;
+    model: IndiceModel;
+  } | null>(null);
+  const firmaGuardada = JSON.stringify(serializeIndiceModel(guardado));
+  const model =
+    borrador && borrador.slideId === slide.id && borrador.firma === firmaGuardada
+      ? borrador.model
+      : guardado;
+
   function commit(next: IndiceModel) {
-    updatePayload(slide.id, serializeIndiceModel(next));
+    const payload = serializeIndiceModel(next);
+    setBorrador({ slideId: slide.id, firma: JSON.stringify(payload), model: next });
+    updatePayload(slide.id, payload);
   }
 
   function patchSeccion(index: number, patch: Partial<IndiceModel["secciones"][number]>) {
