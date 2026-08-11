@@ -92,3 +92,27 @@ test_that("una lista larga se acota: veinte avisos no se leen", {
              file.path(jobs, "JOB-Z.err"))
   expect_length(.pulso_avisos_de_job(sid, "JOB-Z"), 8L)
 })
+
+test_that("PPT y Word devuelven los avisos del motor, no solo el PPT", {
+  # Word renderiza con los mismos graficadores y toma las mismas decisiones
+  # automaticas. Medido sobre el banco (Conta 10-08): su export generaba 1
+  # aviso —«la columna top2box se omite: la escala tiene 2 categoria(s)»— que
+  # se quedaba en el stderr del job. El `onExportDone` del front ya leia
+  # `data.avisos` para ambos kinds; era el backend el que solo lo mandaba en
+  # uno. Contrato estatico: si alguien quita el campo de cualquiera de los dos
+  # on_complete, esto lo delata sin levantar un job callr real.
+  src_path <- file.path("..", "..", "R", "router_graficos.R")
+  skip_if(!file.exists(src_path), "fuente de router_graficos.R no disponible")
+  cuerpo <- readLines(src_path, warn = FALSE)
+
+  registros <- grep('\\.register_output_file\\(j\\$sid, "(reporte_ppt|reporte_word)"', cuerpo)
+  expect_length(registros, 2L)
+
+  for (i in registros) {
+    bloque <- paste(cuerpo[i:min(i + 12L, length(cuerpo))], collapse = "\n")
+    expect_true(
+      grepl("avisos = I(.pulso_avisos_de_job(j$sid, j$id))", bloque, fixed = TRUE),
+      info = sprintf("el on_complete de la linea %d no devuelve los avisos", i)
+    )
+  }
+})
