@@ -56,10 +56,16 @@
   # no tenia forma de saber que era decision del motor ni cual era el texto
   # completo. El aviso lleva el enunciado entero y cuanto espacio falto, que es
   # lo que permite decidir si se ensancha el canal del bloque o se acepta.
+  # El consejo nombra la superficie que EXISTE. La primera version decia
+  # «ensancha la columna de grupo de ESTE grafico» y eso no se puede hacer:
+  # `canvas_w_grupo` solo vive en el preset `multi_apiladas`, o sea es global a
+  # todas las multi-apiladas del mazo. Mandar al analista a un control que no
+  # existe es peor que no decir nada.
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
-           "y el texto necesita %d lineas en el canal actual. Ensancha «Columna ",
-           "de grupo» de ESTE grafico o acorta el enunciado."),
+           "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
+           "Configuracion global > Estilo > Multi-apiladas —aplica a TODAS las ",
+           "multi-apiladas— o acorta el enunciado."),
     cupo, entero, n_filas, length(strsplit(titulo, "\n", fixed = TRUE)[[1]])
   ))
 
