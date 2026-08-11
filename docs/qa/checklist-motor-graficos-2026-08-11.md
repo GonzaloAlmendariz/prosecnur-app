@@ -26,7 +26,7 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☑ **hecho** |
 | 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ☐ bloqueado por decisión |
 | 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
-| 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☐ sin empezar |
+| 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** |
 
 ## Lo que ya se sabe de cada uno
 
@@ -114,16 +114,23 @@ configurable**: se renderiza con sus propios `overrides` y acepta `altura_rel`
 se paga la separación. Permitir que la leyenda encoja o se trunque baja ese
 coste.
 
-### 9 · `<1%` y el switcher de ceros
-El `<1%` se escribe en `.pulso_fmt_pct_unidades()`
-(`helpers_calc_comunes.R:313`): cuando el valor redondea a cero pero existe,
-declara `<1%` en vez de mentir con `0%`. Pasa a **`0%`**.
+### 9 · `<1%` y el switcher de ceros — HECHO
 
-El switcher de ceros es lo nuevo: cuando se enciende, una categoría en 0 %
-recibe **0,5 % de ancho** para que su segmento sea visible, el resto se
-recalcula para seguir sumando 100 %, y la etiqueta sigue diciendo el valor real.
-Combina con mostrar la cuenta al lado, que es lo que explica por qué se ve algo
-donde el porcentaje dice cero.
+**9a.** `.pulso_fmt_pct_unidades()` escribe **`0%`**. El `<1%` era una notación
+que no existe en el entregable: el analista pega esa cifra en un informe y tiene
+que explicar un símbolo que nadie usa. Verificado en la lámina 66, fila
+«Docentes» del segundo bloque.
+
+**9b.** Interruptor **`mostrar_categorias_en_cero`, apagado por defecto**
+(`graficador_ceros_visibles.R`). Encendido, cada categoría en cero recibe un
+piso de **0,5 %** de ancho y el resto de la fila se recomprime en proporción,
+así que la barra sigue sumando 100 %.
+
+Lo que costó trabajo no fue el reparto sino que **la etiqueta salía de la misma
+columna que la geometría** (`.valor_plot`): inflar el ancho habría rotulado
+«0.5%» donde el dato es 0 %, justo el dato falso que esto viene a evitar. Se
+separaron: `.valor_plot` gobierna el ancho y **`.valor_pct_real`** es la que se
+rotula. El test lo comprueba sobre el objeto ggplot real, no sobre la regla.
 
 ## Trampas vigentes
 

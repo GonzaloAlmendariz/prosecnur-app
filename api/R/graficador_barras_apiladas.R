@@ -1097,6 +1097,10 @@ graficar_barras_apiladas <- function(
     # Apagado por defecto: mostrar todos los porcentajes es el comportamiento
     # esperado, y ocultar los pequeños una decisión que se toma a mano.
     ocultar_etiquetas_pequenas = FALSE,
+    # Da ancho visible a las categorías sin casos, conservando la suma 100 %.
+    # La cifra rotulada no se toca: sigue diciendo 0 %.
+    mostrar_categorias_en_cero = FALSE,
+    piso_categoria_cero   = .BARRAS_PISO_CERO,
     umbral_etiqueta_peq   = NULL,
     umbral_mostrar_etiqueta = NULL,
     umbral_etiqueta_normal  = NULL,
@@ -1534,6 +1538,18 @@ graficar_barras_apiladas <- function(
   # Blindaje
   df_long$.valor_plot <- pmax(0, pmin(1, df_long$.valor_plot))
 
+  # El ancho y la cifra dejan de ser la misma columna. `.valor_plot` gobierna la
+  # geometría y puede llevar el piso de los ceros; `.valor_pct_real` conserva la
+  # proporción de verdad y es la que se rotula.
+  df_long$.valor_pct_real <- df_long$.valor_plot
+  if (isTRUE(mostrar_categorias_en_cero)) {
+    df_long <- df_long |>
+      dplyr::group_by(.data[[var_categoria]]) |>
+      dplyr::mutate(.valor_plot = .barras_inflar_ceros(
+        .valor_plot, mostrar = TRUE, piso = piso_categoria_cero)) |>
+      dplyr::ungroup()
+  }
+
   # Orden de segmentos (DEBE IR ANTES del cierre exacto)
   niveles_originales <- unname(etiquetas_grupos)
   niveles_stack      <- if (invertir_segmentos) niveles_originales else rev(niveles_originales)
@@ -1844,7 +1860,9 @@ graficar_barras_apiladas <- function(
     df_lab <- df_lab |>
       dplyr::group_by(.data[[var_categoria]]) |>
       dplyr::mutate(
-        .pct_units = .asignar_pct_exacto(.valor_plot, decimales),
+        # `.valor_pct_real` y no `.valor_plot`: el segundo puede llevar el piso
+        # de los ceros y rotularía «0.5%» donde el dato es 0 %.
+        .pct_units = .asignar_pct_exacto(.valor_pct_real, decimales),
         lab        = .fmt_units_pct(.pct_units, decimales)
       ) |>
       dplyr::ungroup()
