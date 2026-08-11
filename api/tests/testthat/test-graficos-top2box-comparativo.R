@@ -578,3 +578,39 @@ test_that("el preset de acreditación tiene camino de producto", {
   expect_true("SIN INF" %in% unlist(apiladas$excluir_opciones))
   expect_equal(apiladas$grosor_barras, .preset_acreditacion_apiladas()$grosor_barras)
 })
+
+test_that("declarar las categorias ignora mayusculas y tildes", {
+  skip_if_not_installed("cowplot")
+  # En un estudio real la misma categoria convive escrita de dos formas porque
+  # cada lista se escribio por separado. Medido en el mazo del 10-08: «De
+  # acuerdo» y «De Acuerdo», «Si» y «SI». Con el match literal, declarar una
+  # ortografia dejaba fuera a la otra y —peor— el motor caia al default
+  # POSICIONAL sin avisar: el box sumaba las dos ultimas columnas en vez de las
+  # declaradas y el numero salia mal en silencio.
+  #
+  # Se declaran las dos categorias de ABAJO a proposito: son distintas de las
+  # que el default posicional elegiria, asi que un fallo de match cambia la
+  # imagen. El tercer render lo demuestra —sin declaracion sale distinto—, que
+  # es lo que impide que este test pase en vacio.
+  d <- data.frame(publico = c("A", "B"), n = c(50, 60),
+                  c1 = c(.1, .1), c2 = c(.2, .2), c3 = c(.3, .3), c4 = c(.4, .4))
+  et <- c(c1 = "Totalmente en Desacuerdo", c2 = "En Desacuerdo",
+          c3 = "De Acuerdo", c4 = "Totalmente de Acuerdo")
+  render <- function(labels) {
+    f <- tempfile(fileext = ".png")
+    graficar_barras_apiladas(
+      data = d, var_categoria = "publico", var_n = "n",
+      cols_porcentaje = c("c1", "c2", "c3", "c4"), etiquetas_grupos = et,
+      mostrar_barra_extra = TRUE, barra_extra_preset = "top2box",
+      top2box_labels = labels, usar_canvas = TRUE, exportar = "png",
+      path_salida = f, ancho = 13.33, alto = 5.2, dpi = 72
+    )
+    unname(tools::md5sum(f))
+  }
+  exacto <- render(c("Totalmente en Desacuerdo", "En Desacuerdo"))
+  otra   <- render(c("totalmente en desacuerdo", "en desacuerdo"))
+  sin    <- render(NULL)
+
+  expect_identical(otra, exacto)
+  expect_false(identical(sin, exacto))
+})
