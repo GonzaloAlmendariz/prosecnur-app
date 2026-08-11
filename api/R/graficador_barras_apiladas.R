@@ -2378,7 +2378,7 @@ graficar_barras_apiladas <- function(
       !length(.barra_extra_etiquetas[[barra_extra_preset]])) {
     minimo <- .barra_extra_minimo[[barra_extra_preset]]
     if (length(cols_porcentaje) < minimo) {
-      message(sprintf(
+      .pulso_aviso(sprintf(
         paste0("La columna «%s» se omite: la escala tiene %d categoria(s) y sumarlas ",
                "daria 100 %% en todas las filas. Necesita al menos %d."),
         barra_extra_preset, length(cols_porcentaje), minimo

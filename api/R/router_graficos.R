@@ -3290,7 +3290,11 @@ mount_graficos <- function(pr) {
         on_complete = function(j) {
           meta <- .register_output_file(j$sid, "reporte_ppt", j$result_path)
           .graficos_status_set(j$sid, "graficos_ppt_ok", TRUE)
-          list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name, size = meta$size, n_slides = j$result_data$n_slides)
+          # Los arreglos automáticos del motor viajan al analista: sin esto,
+          # quien declaró 14 pt y vio 9,5 cree que se equivocó.
+          list(ok = TRUE, file_id = meta$file_id, filename = meta$original_name,
+               size = meta$size, n_slides = j$result_data$n_slides,
+               avisos = I(.pulso_avisos_de_job(j$sid, j$id)))
         }
       )
       list(ok = TRUE, job_id = job_id, kind = "graficos.ppt")
