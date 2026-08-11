@@ -104,13 +104,13 @@ Medidos sobre el render del `.pulso` real contra el `HEAD` de hoy.
 | **E-01** | **Top 2 Box = 100 % en escalas de 2 categorías.** `top2box` suma las dos primeras columnas; en una dicotomía son las dos | ✅ **RESUELTO** `bf158aa3` | — |
 | **E-02** | **Títulos de grupo encabalgados** en bloques `var_cruce` con 2+ grupos de 1 variable | ✅ **RESUELTO** por `c3e54d39`: el encabalgamiento venía del wrap desbordado | — |
 | **E-03** | **Alto de lámina en blanco** entre el gráfico y el pie | ⚠️ **ABIERTO, menor**: bajó de 13–18 % a 12 % en las láminas de batería; 21 % en las de pocas filas | Media |
-| **E-04** | **`SIN INF` en el denominador** cuando el proyecto no declara la exclusión | ⚠️ **ABIERTO** — config del proyecto; lo resuelve `P-01` | Media |
+| **E-04** | **`SIN INF` en el denominador** cuando el proyecto no declara la exclusión | ✅ **RESUELTO en origen** por `P-01`: el perfil lo excluye. Los proyectos ya armados necesitan aplicar la línea | Baja |
 | **E-05** | **Segmentos chicos sin cifra.** `umbral_mostrar_etiqueta = 0.12` deja mudos los segmentos por debajo del 12 % | ⚠️ **ABIERTO** — config del proyecto | Media |
 | **E-06** | **Leyenda de 5 categorías que roza** en bloques comprimidos | ✅ **RESUELTO** por `R-03` + `c3e54d39` | — |
 | **E-07** | **Enunciado de tema truncado o fuera de la lámina** | ✅ **RESUELTO** `c3e54d39` | — |
 | **E-08** | **Colores de serie del radar** no son los del deck | ⚠️ **ABIERTO** — se declara por lámina | Baja |
 | **E-09** | **Las guías de layout no llegaban a ningún entregable** pese al interruptor activo | ✅ **RESUELTO** `c9cf1a49` | — |
-| **E-10** | **La banda de leyenda reserva 2,4× lo que dibuja.** Medido con las guías sobre «Conta 10-08»: banda de 38 px, leyenda de 16 px — el 58 % es aire | 🔎 **NUEVO, medido** | Media |
+| **E-10** | **La banda de leyenda reservaba 2,4× lo que dibuja** | ✅ **RESUELTO** `69c96d34`: de 38 a 31 px, y a 16 pt sin cambio | — |
 
 ### E-01 es una regresión reciente y sistémica
 
@@ -141,17 +141,16 @@ Relacionado con `E-02`: ambos salen del reparto de alto entre bloques.
 
 | ID | Pendiente | Estado |
 |---|---|---|
-| **P-01** | **Dar camino de producto al preset de acreditación.** Hoy `presets_acreditacion()` solo vive en tests | Sin empezar — es la reparación de fondo de §0, y apaga `E-04` de paso |
+| **P-01** | **Dar camino de producto al preset de acreditación** | ✅ **HECHO** `a6e2e97c`: aparece en «Líneas visuales» como perfil, junto al de ACNUR |
 | **P-02** | **Política de leyenda de una fila.** A 16 pt la fila mide 1,139 npc contra un tope de 0,96 | Medido, decisión del usuario pendiente |
 | **P-03** | **Guarda de `top2box` para escalas de 2 categorías** (`E-01`) | ✅ **HECHO** `bf158aa3` |
 | **P-04** | **Reparto de alto en bloques `var_cruce` de varios grupos** (`E-02`, `E-03`) | Parcial: `E-02` cayó con el wrap; queda el aire de `E-03` |
-| **P-05** | **Piso de la banda de leyenda** (`E-10`). `.BARRAS_LEYENDA_ALTO_FILA_IN = 0.24"` infla un 22 % la fila a 10,5 pt, y la holgura de 0,08" es otro 62 % encima del contenido | Medido, cambia el layout de todos los mazos: pide visto bueno |
+| **P-05** | **Piso de la banda de leyenda** (`E-10`) | ✅ **HECHO** `69c96d34` |
+| **P-06** | **El aire bajo el canvas** (`E-03`, 12–20 %). Los dos únicos levers cambian todos los mazos: subir el tope de alto de fila (roza el ADR 0065) o bajar `slide_1_plot_height_cm` | Medido, pide decisión |
 
-### El contrato Word roto por el defecto de `top2box`
+### El contrato Word roto por el defecto de `top2box` — ✅ resuelto en `6e412067`
 
-`test-reporte-word-barra-extra.R` tiene **4 fallos en HEAD** desde `8e783a95`, y
-no los causó ninguna reparación de este registro (verificado guardando los
-cambios y corriendo la suite contra HEAD limpio).
+`test-reporte-word-barra-extra.R` llevaba **4 fallos en HEAD** desde `8e783a95`.
 
 El contrato B54/W-5 dice que Word apaga la columna extra salvo que se haya
 PEDIDO, y distinguía «pedido» de «por defecto» mirando si `barra_extra_preset`
@@ -159,7 +158,9 @@ estaba declarado. Al volverse defecto global, todo parece pedido y Word ya no
 puede aplicar su piso — el que existe porque el lienzo de 6,1" no da para esa
 columna. Dos salidas: que Word compare contra el suelo de Pulso para saber qué
 es deliberado, o que el contrato cambie y el Word también muestre Top 2 Box.
-Es decisión de producto sobre el entregable Word.
+Se tomó la primera: un valor igual al de fábrica es herencia y manda Word; uno
+distinto es elección del analista y se respeta. Quien quiera la columna en Word
+la declara por lámina, que es donde el pedido sí es inequívoco.
 
 ### P-02 — la medición completa
 
