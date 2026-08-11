@@ -2,7 +2,13 @@
 
 **Abierto**: 2026-08-10 · **Cierra**: solo Gonzalo · **Cadencia**: continua
 **Banco de prueba**: `~/Documents/Pulso/ACRD CONTA/Conta 10-08 equivalencias.pulso`
-(4 bases, 67 láminas, 50 gráficos) y `api/inst/reference_projects/acrconta/`.
+(4 bases, 67 láminas, 50 gráficos, 66 grafs con graficador).
+
+*Corrección 2026-08-11*: este doc listaba también `api/inst/reference_projects/acrconta/`
+como banco. **No sirve para Gráficos**: su plan tiene 1 lámina y cero grafs. Un
+test que se apoye en él pasa por no mirar. Hoy no hay ningún `.pulso` versionado
+que sostenga una invariante de Gráficos — las de este loop se prueban contra el
+mecanismo, no contra un proyecto.
 
 Loop indefinido. No tiene lista de tareas que se agote: cuando la cola baja, la
 iteración siguiente **mide algo nuevo** y la vuelve a llenar.
@@ -146,14 +152,23 @@ lee el panel, así que no se aplica sin tu visto bueno.
 
 ### P-B · Qué merece estar en la UI de cada graficador (C-03, C-04, C-05)
 
-**Medido.** La superficie expuesta no sigue ningún criterio declarado:
+**Medido.** *Tabla corregida el 2026-08-11 — dos veces.* La original medía un
+catálogo a la vez cuando hay dos superficies, y contra `graficar_*` cuando el
+router llama a `p_*`. Cifras contra el renderer, con la unión de ambas
+superficies:
 
-| Graficador | Args en la UI | Args del motor | Expuesto |
+| Graficador | Args en la UI | Args del renderer | Expuesto |
 |---|---|---|---|
-| `p_barras_apiladas` | 6 | 130 | **4,6 %** |
-| `p_barras_agrupadas` | 19 | 102 | 18,6 % |
-| `p_barras_categoricas` | 20 | 52 | 38,5 % |
-| `p_nube_palabras` | 5 | 18 | 27,8 % |
+| `p_media_rango` | 32 | 82 | **39 %** |
+| `p_boxplot` | 30 | 62 | 48 % |
+| `p_barras_apiladas` | 82 | 130 | 63 % |
+| `p_barras_agrupadas` | 70 | 102 | 69 % |
+| `p_barras_categoricas` | 37 | 52 | 71 % |
+
+Mediana de los 15 graficadores con renderer: **71 %**. Los otros 9 no tienen
+renderer separado; su universo es la firma de `p_*` (7–38 args). Apiladas, el
+más usado, está por encima de la mediana — la asimetría existe, pero no es
+donde este doc decía.
 
 Y el grupo `espacio` se usa en 4 de 24; el distribuidor de canvas, en 1.
 
@@ -505,3 +520,56 @@ deriva real si el motor renombra un argumento.
 Esto convierte P-B de pregunta abierta en cola priorizada: la decisión de qué
 merece puerta sigue siendo de Gonzalo, pero ahora está acotada y no puede
 crecer sola.
+
+### 2026-08-11 · iteración 11 — el test de ayer estaba mal, y la app estaba bien
+
+La cola tenía un solo ítem vivo (C-02, bloqueado en P-A), así que tocaba medir
+algo nuevo. Medí el espejo del test de ayer: **un control del catálogo que el
+motor descarte en silencio** sería un interruptor sin efecto — el caso exacto
+que fundó el criterio 1.
+
+**Resultado: cero controles muertos.** Y por el camino, tres correcciones a lo
+que yo mismo había escrito.
+
+**1. El router no llama a `graficar_*`.** Hay dos capas y el router llama a la
+primera (`getExportedValue`, `router_graficos.R:402`):
+
+- `p_<x>()` — constructor de spec del plan, 7–38 formals (`var`, `titulo`,
+  `cruces`, `overrides`, `base`, `filtros`…). Es contra sus formals que filtra
+  `.clean_rebuild_args()` en la línea 203.
+- `graficar_<x>()` — el renderer, 17–130 formals. Recibe lo suyo por
+  `overrides`, que es el canal libre entre ambas capas.
+
+Mi test de ayer resolvía `graficar_*` y daba por hecho que era lo que se
+llamaba. No lo era.
+
+**2. Ese test se saltaba 9 de 24 graficadores en silencio.** Nueve no tienen
+`graficar_*` (`p_donut`, `p_tabla`, `p_dim_*`…) y el `if (!is.function(fn)) next`
+los pasaba de largo mientras el archivo decía cubrirlos todos. Un test que se
+salta lo que no entiende es el falso verde que este loop existe para evitar.
+
+**3. `acrconta` no sirve como banco de Gráficos.** Escribí un test apoyado en el
+proyecto de referencia versionado; el blindaje anti-vacío (`expect_gt(visitados, 0)`)
+lo tumbó al instante: su plan tiene **1 lámina y cero grafs**. Corregida la
+cabecera de este doc, que lo listaba como banco.
+
+**Lo que sí está sano.** Medido sobre el banco vivo (66 grafs): el plan real no
+guarda **ni un** argumento fuera de la firma de su `p_*`, y 42 de los 66 llevan
+`overrides` con contenido. La UI anida bien. Los 4 args catalogados que no son
+formals de ninguna capa los consume el plan al renderizar, verificado uno por
+uno: `mostrar_significancia`/`significancia_alpha` se leen de `overrides$…` en
+`reporte_plan_ppt.R:5114`, e `iter_var`/`iter_level` en `dashboard_dimensiones.R:148`.
+
+**Aplicado.** Reescrito `test-graficos-deriva-catalogo-ui.R` sobre terreno
+verificado. Tres asertos: los 24 resuelven y la lista de los 9 sin renderer es
+exacta; ningún arg del catálogo cae en el vacío; y el mecanismo del que todo
+depende —anidado en `overrides` sobrevive, al ras se descarta—.
+
+**Evidencia.** 54 pass, **0 skip**, y los tres falsificados de verdad: quitar
+`p_donut` de la lista → FAIL; quitar `mostrar_significancia` de los consumidos
+por el plan → FAIL; romper el anidado → FAIL. Restaurado, verde. Vecinos que
+tocan los mismos catálogos, intactos: `test-graficos-metadata.R` 776 pass,
+`slides-args-contrato` 49, `export-debug-ph` 17. Sin TS tocado, sin typecheck.
+
+Iteración sin cambio de producto: solo test y doc. La app no tenía el problema
+que fui a buscar; el problema lo tenía mi medición.
