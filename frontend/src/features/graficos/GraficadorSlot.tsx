@@ -29,9 +29,13 @@ import {
 // viene de la definición del slide en prosecnur. Lo mostramos como pill
 // arriba de la card para orientar al usuario.
 
-import { ArgGrupo } from "../../api/client";
+import { MODE_GROUPS, type GraficadorSlotMode } from "./argTabs";
 
-export type GraficadorSlotMode = "data" | "style" | "filters";
+// El reparto de grupos por tab vive en `argTabs.ts` porque el buscador de
+// ajustes (GraficadorForm) también lo necesita, y este archivo ya importa ese
+// formulario: reexportar evita el ciclo sin mover el punto de entrada.
+export { MODE_GROUPS };
+export type { GraficadorSlotMode };
 
 type Props = {
   slideId: string;
@@ -42,23 +46,6 @@ type Props = {
   mode?: GraficadorSlotMode;
   /** Acción contextual para resolver un modelo pendiente desde tabs no-data. */
   onRequestDataTab?: () => void;
-};
-
-// `valores`, `tabla` y `semaforo` viven en «Estilo» y no en «Filtros».
-//
-// El tab de Filtros es un editor de REGLAS —condiciones sobre variables— y no
-// monta el slot del graficador, asi que esos tres grupos no tenian donde salir:
-// el registro los servia y la UI no los mostraba. `titulo_tabla` y
-// `umbral_rojo_pct` de `p_tabla` llevaban asi desde que existen.
-//
-// Y ahi es donde se buscan: decidir si el porcentaje se escribe sobre la barra o
-// con cuantos decimales es una decision de lectura, no un filtro. `filtro` se
-// queda en su tab, que es el unico grupo que el editor de reglas si gobierna.
-export const MODE_GROUPS: Record<GraficadorSlotMode, ArgGrupo[]> = {
-  data:    ["datos"],
-  style:   ["lectura", "leyenda", "espacio", "textos", "estilo", "canvas",
-            "valores", "tabla", "semaforo"],
-  filters: ["filtro"],
 };
 
 // Slot names → label humano. Si no mapea, mostramos el name crudo.

@@ -523,6 +523,64 @@ Se apoya en lo mismo que el selector de categorías del Top 2 Box: el catálogo 
 escalas ya devuelve las etiquetas reales con sus códigos y las bases que las
 usan.
 
+**Verificado en pantalla — 2026-08-11.** Lámina 7 «PERFIL DEL DOCENTE», slot
+Superior izquierda (`p_barras_agrupadas`, `docentes$p5`), pestaña **Estilo** del
+inspector. La cadena completa, con su control en cada paso:
+
+| Paso | Lo que se ve | Control |
+|---|---|---|
+| Sin orden propio | «Sin orden propio: se usa el del instrumento» + las 7 escalas del estudio como botones sembradores | el campo no muestra filas |
+| Sembrado con «Masculino · Femenino · Prefiero no responder» | filas numeradas 1/2/3 con ↑↓, botón «Volver al orden del instrumento», badge **Ajuste** | el campo pasa de lista de escalas a filas |
+| ↑ en la fila 3 | 1 Masculino · 2 Prefiero no responder · 3 Femenino | el orden cambia sólo en ese gráfico |
+| Persistencia | `args.orden_categorias_manual = ["Masculino","Prefiero no responder","Femenino"]` en el slot | GET del config con el `sid` del navegador |
+| «Volver al orden del instrumento» | vuelve la lista de escalas | el arg desaparece del config |
+
+El motor lo consume en `graficador_barras_agrupadas.R:676` y **tiene prioridad
+sobre `orden_barras`**, tal como promete el texto del campo.
+
+Dos matices medidos que el commit no dice: el valor se guarda en `args` de nivel
+superior, **no en `overrides`** (sigue siendo por gráfico, así que la propiedad
+que importa se cumple); y el sembrador ofrece **las 7 escalas del estudio**, no
+la del `var` de ese gráfico, que ya conoce.
+
+**Trampa de medición de esta sesión.** Verifiqué contra el `sid` del bootstrap
+(`e5ac9caa…`) y daba «no persiste». El navegador abrió el proyecto por
+deep-link `?pulso=`, o sea con **otro `sid`** (`6ad0debf…`, en
+`localStorage["pulso.sessionId"]`). El backend es un kv-store por `sid`: medir
+con el `sid` equivocado no lee otro estado, lee otro proyecto. Lo mismo vale
+para el scope: si el plan es «un informe conjunto», el autosave escribe en
+`/api/graficos/consolidado/draft` y no en `/api/graficos/config`.
+
+### E-14 · El buscador de ajustes contaba lo que no podía mostrar *(reparado 2026-08-11)*
+
+Descubierto al buscar «orden» desde la pestaña **Datos**: el conteo decía
+**«3 de 50»** y justo debajo **«Ningún ajuste coincide con "orden"»**. Las dos
+cosas a la vez, y ninguna útil.
+
+Causa: en `GraficadorForm.tsx` la búsqueda corría sobre los 50 args del
+graficador completo y el filtro por pestaña (`groupFilter`) se aplicaba
+**después**, al agrupar. El contador contaba coincidencias que la lista tenía
+prohibido pintar. `orden_categorias_manual` es del grupo `estilo` → pestaña
+Estilo; desde Datos era invisible y la superficie afirmaba que no existía. Es
+una falla **C4 (alcance)**: el ajuste existe y la pantalla dice que no.
+
+Reparado invirtiendo el orden —filtrar por pestaña y luego buscar—, con tres
+consecuencias visibles:
+
+- El contador cuenta lo que se ve: «orden» en Estilo da **3 de 46**.
+- Lo que cae fuera se anuncia con su pestaña en vez de desaparecer: «dividir»
+  en Estilo da *«Ningún ajuste de esta pestaña coincide con "dividir". 1 en
+  Datos.»*
+- Datos ya no ofrece buscador: tiene 4 ajustes y el umbral es 6. Antes ofrecía
+  «Buscar entre 50 ajustes…» para poder mostrar 4.
+
+El reparto grupo → pestaña salió de `GraficadorSlot.tsx` a `argTabs.ts` (el
+formulario lo necesita y el slot ya importa el formulario: reexportar evita el
+ciclo). Ojo con `normalizeArgGroup`, que colapsa `estilo`, `filtro` y `semaforo`
+en `valores`: indexar el reparto por el grupo normalizado hace que `filters`
+pise a `style` y todo Estilo se anuncie como Filtros. Se indexa por el nombre
+crudo, que es único por pestaña.
+
 ## 8. Cómo retomar — arnés de medición y trampas (2026-08-11)
 
 Lo que sigue existe porque en esta sesión reporté **cuatro conclusiones falsas
@@ -571,6 +629,13 @@ trace("graficar_barras_apiladas", where = asNamespace("prosecnurapp"),
 4. **`var_categoria` no es la columna de la etiqueta**; el texto que se dibuja
    sale de `var_etiqueta_categoria`. Y el dato guarda **códigos**, no etiquetas:
    las etiquetas viven en las choices del instrumento.
+5. **El `sid` del bootstrap no es el del navegador.** Abrir por deep-link
+   `?pulso=` crea una sesión nueva; el backend es un kv-store por `sid`, así que
+   leer con el `sid` equivocado devuelve otro proyecto, no un estado viejo. El
+   del navegador está en `localStorage["pulso.sessionId"]`. Y si el plan es «un
+   informe conjunto», el autosave escribe en `/api/graficos/consolidado/draft`,
+   no en `/api/graficos/config`. Ambas cosas me hicieron reportar «no persiste»
+   sobre algo que sí persistía.
 
 Regla que sale de todo esto: **un aserto que no distingue el caso bueno del malo
 no verifica nada**. Cada medición debe incluir su control — si declarar y no
@@ -578,8 +643,16 @@ declarar dan el mismo resultado, la medición está ciega.
 
 ### Estado para continuar
 
-Working tree limpio. Todo lo entregado está commiteado y verificado salvo el
-control de orden de barras (`d01a819d`), que pasó typecheck, vitest y registry
-pero **no se vio en pantalla**.
+El control de orden de barras (`d01a819d`) **ya se vio en pantalla** y funciona
+de punta a punta; el detalle está en E-13. En el camino salió E-14, el buscador
+de ajustes que contaba lo que no podía mostrar, también reparado y verificado.
+
+Lo siguiente por orden: los **31 textos truncados** (bloqueado por
+`reporte_plan_ppt.R`, congelado) y las **cuatro escalas desordenadas**
+(`lst_p4_recod`, `lst_p3_recod`, `lst_p5_recod`, `lst_p10`), que ahora tienen
+superficie: el orden manual por gráfico está verificado, falta el puente
+variable → `list_name` desde `.graficos_collect_palette_lists()`.
 
 Servers de la sesión: backend 8806 (proyecto CONFIGURADO) y frontend 5173.
+`.claude/launch.json` apunta el 8806 al `.pulso` **CONFIGURADO**, que es el que
+lleva declarado el Top 2 Box.
