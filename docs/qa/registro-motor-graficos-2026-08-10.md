@@ -551,6 +551,46 @@ con el `sid` equivocado no lee otro estado, lee otro proyecto. Lo mismo vale
 para el scope: si el plan es «un informe conjunto», el autosave escribe en
 `/api/graficos/consolidado/draft` y no en `/api/graficos/config`.
 
+### E-11 · Los 31 truncados: dónde están de verdad y por qué *(medido 2026-08-11)*
+
+**La premisa del archivo congelado era falsa.** El recorte no vive en
+`.render_barras_multiapiladas` ni en `reporte_plan_ppt.R`, sino en
+`api/R/graficador_helpers_titulos_grupo.R:51` (`.barras_acotar_titulo_grupo`),
+que ya es archivo propio y **no** está congelado. Nada bloqueaba el arreglo.
+
+Medido con su control, sobre «Conta 10-08 CONFIGURADO»:
+
+| Render | Textos con «…» |
+|---|---|
+| normal | **31**, en 22 láminas |
+| con `.barras_acotar_titulo_grupo` desactivada (misma firma) | **0** |
+
+Es esa función y sólo esa. El mecanismo: el título de bloque se acota a
+`n_filas × 3 × alto_rel` líneas, así que **un bloque de una fila admite tres
+líneas** y un enunciado de 100+ caracteres, envuelto en el canal del grupo,
+necesita seis. En las láminas de escalas mixtas `alto_rel` baja el cupo a dos o
+incluso a una.
+
+**Ahora el recorte avisa.** Emite un `[PULSO-AVISO]` con el enunciado **entero**,
+el cupo y las líneas que hacían falta. El nuevo comando `avisos` del arnés lo
+mide: 31 emitidos, 31 distintos, uno por texto cortado. Antes: 31 «…» en el
+entregable y **cero** avisos — el motor decidía en silencio y el analista no
+tenía forma de recuperar el texto completo.
+
+Ojo con el techo: `.pulso_avisos_de_job()` deduplica y **corta en 8**. Con 31
+avisos distintos la UI muestra 8. El tope es deliberado («una lista de veinte
+avisos no se lee»), pero con este volumen conviene decidir si sube o si esta
+familia se agrupa en un solo aviso con su cuenta.
+
+**Por qué el canal no puede variar por bloque.** Los bloques se apilan en
+VERTICAL dentro de un mismo gráfico y comparten las bandas horizontales
+—`x_group0`, `x_bars0`, … se calculan una vez por gráfico
+(`graficador_barras_apiladas.R:2803-2843`)—. Ensanchar la columna de grupo de un
+bloque y no la del vecino desalinearía el arranque de las barras entre bloques.
+Lo que sí puede variar por bloque es el **alto**: más filas o filas más altas
+suben el cupo de líneas de ESE bloque sin mover a los demás. Es la vía para que
+dos bloques con etiquetas de largo distinto convivan.
+
 ### E-15 · Las cuatro escalas desordenadas, medidas de verdad *(2026-08-11)*
 
 El diagnóstico de partida —«`lst_p4_recod`, `lst_p3_recod`, `lst_p5_recod` y
