@@ -1864,9 +1864,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 
 .cm_aulas_pick_cube <- function(df, pik, selector, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
-  if (!requireNamespace("sampling", quietly = TRUE)) return(NULL)
   x <- .cm_aulas_balance_matrix(df, selector$balance_vars, pik = pik)
-  tryCatch(which(as.numeric(sampling::samplecube(x, pik, order = 1, comment = FALSE)) > 0), error = function(e) NULL)
+  .cm_aulas_samplecube_estable(x, pik)  # envoltura determinista, ADR 0073
 }
 
 .cm_aulas_pick_local <- function(df, pik, selector, seed = NULL) {
