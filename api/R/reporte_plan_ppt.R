@@ -396,11 +396,11 @@ reporte_ppt_plan <- function(
     if (!is.finite(font_size) || is.na(font_size) || font_size <= 0) font_size <- 24
 
     color <- if (is_cover_title) {
-      base_args$color_titulo_portada %||% base_args$title_cover_color %||% base_args$color_titulo
+      base_args$color_titulo_portada %||% base_args$title_cover_color %||% base_args$color_titulo_slide
     } else if (is_section_title) {
-      base_args$color_titulo_seccion %||% base_args$color_titulo
+      base_args$color_titulo_seccion %||% base_args$color_titulo_slide
     } else {
-      base_args$color_titulo
+      base_args$color_titulo_slide
     }
     color <- color %||% "#CA5651"
     color <- as.character(color)[1]
