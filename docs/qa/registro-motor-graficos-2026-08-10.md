@@ -470,3 +470,39 @@ que decidir si se borran del plan o si el render las omite por criterio.
 E-9 y E-12 son los dos de mayor alcance: el primero exige una pasada de
 consistencia tipográfica sobre las 67 láminas, y el segundo revertir una
 decisión de arquitectura documentada.
+
+### Medición de las 67 láminas — 2026-08-11
+
+Rasterizadas las 67 y medidos los `sz` de cada run contra el XML del `.pptx`
+(centésimas de punto, sin estimar por píxel).
+
+**E-9 · Tipografía inconsistente — confirmado y localizado.**
+
+| Rol | Tamaños en el mazo | Dominantes | Outliers |
+|---|---|---|---|
+| Porcentajes | 4 | 18,5 pt (48 láminas) y 15,9/16,0 pt (mismo tamaño, ruido de redondeo) | **9,0 pt en 47 y 48** |
+| Leyenda / etiqueta corta | 9 | 13,5 pt (47 láminas) y 10,5 pt (42) | 7,4 (l. 9) · 8,0 (9, 47, 48) · 9,0 y 9,5 (47, 48) · 9,6 (24) · 12,0 (9, 10) · 15,9 (52, 66) |
+
+Lo grave no son los outliers sino la mezcla **dentro de una misma lámina**:
+**42 láminas mezclan tamaños de porcentaje** y **46 mezclan tamaños de
+etiqueta**. Dos bloques contiguos del mismo slide se leen con tipografías
+distintas.
+
+Las láminas **47 y 48** son el caso extremo: todo achicado a la vez
+(porcentajes 9 pt, leyenda 8/9/9,5 pt) porque el motor bajó la letra para
+encajar tres bloques de alturas dispares.
+
+**E-11 · Truncados — 31 textos** terminan en «…» (láminas 21, 22, 25, 26, 28,
+30, 47…). El enunciado no cabe en el canal y se corta en vez de reducir el
+canal o envolver.
+
+**E-10 · Porcentajes más grandes que su barra — confirmado visualmente** en la
+lámina 9: «10 %», «3 %» y «2 %» desbordan sus barras. La etiqueta no se
+reubica ni encoge cuando la barra es más corta que su propio rótulo.
+
+**E-8 · Separación entre bloques — confirmado** en la lámina 47: tres bloques
+de 2, 3 y 1 filas reparten el alto sin compensar, y la leyenda queda encima de
+la última barra.
+
+**Ícono ausente**: el cuadro blanco del centro en las láminas de perfil es la
+referencia perdida del ícono «Perfil», visible en la lámina 9.
