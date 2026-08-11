@@ -136,8 +136,13 @@ export default function GraficadorForm({
   const overrideArgNames = useMemo(() => {
     const names = new Set(presetArgNames);
     if (isStyleContext) names.add("titulo");
+    // Args del graficador que el registro declara como `via_overrides`. Sin
+    // esto se guardaban al nivel del slot y el constructor del plan los
+    // descartaba: el analista los editaba, la UI los mostraba aplicados y el
+    // PPT salía igual.
+    for (const a of expandedArgs) if (a.via_overrides) names.add(a.name);
     return names;
-  }, [isStyleContext, presetArgNames]);
+  }, [expandedArgs, isStyleContext, presetArgNames]);
 
   const argsByName = useMemo(() => {
     const map: Record<string, ArgMetadata> = {};
