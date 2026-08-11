@@ -46,3 +46,49 @@ test_that("el flag activo sobrevive la construcción de presets del worker", {
   expect_true(isTRUE(construidos$base$args$debug_ph_bordes %||%
                        construidos$base$debug_ph_bordes))
 })
+
+test_that("los avisos del motor llevan sello y llegan deduplicados", {
+  # El motor decide cosas al renderizar —achica la letra del eje, apaga el
+  # Top 2 Box de una escala de dos— y no las contaba. Viajan por `message()`
+  # porque el renderer se traga los `warning()`, y el sello es lo que permite
+  # separarlos del resto del stderr (progreso, locale, avisos de paquetes).
+  emitido <- capture.output(.pulso_aviso("prueba"), type = "message")
+  expect_true(grepl(.PULSO_AVISO_SELLO, emitido, fixed = TRUE))
+  expect_true(grepl("prueba", emitido, fixed = TRUE))
+
+  sid <- session_create()
+  jobs <- file.path(session_get(sid)$dir, "jobs")
+  dir.create(jobs, recursive = TRUE, showWarnings = FALSE)
+  writeLines(
+    c("ruido de paquete",
+      paste(.PULSO_AVISO_SELLO, "la columna se omite"),
+      "locale bla",
+      paste(.PULSO_AVISO_SELLO, "la columna se omite"),   # 67 láminas repiten
+      paste(.PULSO_AVISO_SELLO, "el piso del eje baja")),
+    file.path(jobs, "JOB-X.err")
+  )
+
+  avisos <- .pulso_avisos_de_job(sid, "JOB-X")
+  expect_equal(avisos, c("la columna se omite", "el piso del eje baja"))
+  expect_false(any(grepl("ruido|locale", avisos)))
+})
+
+test_that("sin stderr o sin avisos la lista viene vacía, no rota", {
+  sid <- session_create()
+  expect_equal(.pulso_avisos_de_job(sid, "NO-EXISTE"), character(0))
+  expect_equal(.pulso_avisos_de_job("sesion-inventada", "X"), character(0))
+
+  jobs <- file.path(session_get(sid)$dir, "jobs")
+  dir.create(jobs, recursive = TRUE, showWarnings = FALSE)
+  writeLines(c("solo ruido", "nada sellado"), file.path(jobs, "JOB-Y.err"))
+  expect_equal(.pulso_avisos_de_job(sid, "JOB-Y"), character(0))
+})
+
+test_that("una lista larga se acota: veinte avisos no se leen", {
+  sid <- session_create()
+  jobs <- file.path(session_get(sid)$dir, "jobs")
+  dir.create(jobs, recursive = TRUE, showWarnings = FALSE)
+  writeLines(paste(.PULSO_AVISO_SELLO, "aviso", seq_len(20)),
+             file.path(jobs, "JOB-Z.err"))
+  expect_length(.pulso_avisos_de_job(sid, "JOB-Z"), 8L)
+})
