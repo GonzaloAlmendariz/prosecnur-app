@@ -63,13 +63,17 @@ test_that("la barra extra pedida en overrides sobrevive; la no pedida sigue apag
 })
 
 test_that("un preset PPT con barra_extra_preset explicito sobrevive al patch Word", {
+  # «Explicito» ya no puede significar «presente»: desde que
+  # `barra_extra_preset` es DEFECTO de fabrica, todo preset lo trae y un valor
+  # igual al de fabrica no distingue un pedido de una herencia. La eleccion
+  # deliberada se expresa con un valor DISTINTO al suelo de Pulso.
   presets_ppt <- do.call(p_presets, .PRESETS_DEFAULT_PULSO)
-  presets_ppt$barras_apiladas$args$barra_extra_preset <- "top2box"
+  presets_ppt$barras_apiladas$args$barra_extra_preset <- "totales"
   presets_ppt$barras_apiladas$args$canvas_w_extra <- 0.12
 
   merged <- .apply_word_chart_presets(presets_ppt, w_presets())
   args <- merged$barras_apiladas$args
-  expect_identical(args$barra_extra_preset, "top2box")
+  expect_identical(args$barra_extra_preset, "totales")
   expect_true(isTRUE(args$mostrar_barra_extra))
   expect_equal(args$canvas_w_extra, 0.12)
   # El resto del patch Word (tipografia/leyenda) si re-escala.
@@ -82,6 +86,22 @@ test_that("un preset PPT con barra_extra_preset explicito sobrevive al patch Wor
   expect_false(isTRUE(args_base$mostrar_barra_extra))
   expect_identical(args_base$barra_extra_preset, "ninguno")
   expect_equal(args_base$canvas_w_extra, 0)
+})
+
+test_that("heredar el defecto de fabrica NO cuenta como pedirlo en Word", {
+  # Regresion de `8e783a95`: al volverse `top2box` defecto global, todo preset
+  # lo traia y Word dejo de poder aplicar su piso —el que existe porque el
+  # lienzo de 6,1" no da para esa columna—. El resultado era una columna
+  # Top 2 Box en TODO informe Word, contra el contrato B54/W-5.
+  suelo <- .PRESETS_DEFAULT_PULSO$barras_apiladas$barra_extra_preset
+  expect_identical(suelo, "top2box")   # si esto cambia, el resto de este test también
+
+  presets_ppt <- do.call(p_presets, .PRESETS_DEFAULT_PULSO)
+  presets_ppt$barras_apiladas$args$barra_extra_preset <- suelo
+
+  args <- .apply_word_chart_presets(presets_ppt, w_presets())$barras_apiladas$args
+  expect_false(isTRUE(args$mostrar_barra_extra))
+  expect_identical(args$barra_extra_preset, "ninguno")
 })
 
 test_that("el plot_word de una apilada con top2box pedido muestra la columna extra", {

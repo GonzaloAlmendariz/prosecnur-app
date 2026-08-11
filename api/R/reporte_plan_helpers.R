@@ -2691,13 +2691,29 @@ p_reset <- function(
 # inequivoco en esta capa es un barra_extra_preset explicito del usuario
 # ("totales"/"top2box"/...). Con el, el patch default Word no puede apagar la
 # columna ni pisar la particion de anchos que el preset del usuario declara.
-.word_patch_conservar_barra_extra <- function(patch, ppt_args) {
+#
+# «Explicito» dejo de significar «presente» cuando `barra_extra_preset` paso a
+# ser DEFECTO de fabrica: desde entonces todo preset lo traia y Word ya no
+# podia distinguir un pedido de una herencia, asi que nunca aplicaba su piso
+# —el que existe porque el lienzo de 6,1 pulgadas no da para esa columna—.
+# Ahora se compara contra el suelo de Pulso: un valor IGUAL al de fabrica es
+# herencia y Word manda; uno distinto es una eleccion del analista y se
+# respeta. Quien de verdad quiera el defecto en Word lo consigue declarandolo
+# por lamina, que es la capa donde el pedido si es inequivoco.
+.word_barra_extra_de_fabrica <- function(tipo = "barras_apiladas") {
+  `%||%` <- .rp_null_default
+  suelo <- .PRESETS_DEFAULT_PULSO[[tipo]] %||% list()
+  trimws(as.character(suelo$barra_extra_preset %||% "")[1])
+}
+
+.word_patch_conservar_barra_extra <- function(patch, ppt_args, tipo = "barras_apiladas") {
   `%||%` <- .rp_null_default
   if (!is.list(patch)) return(patch)
   if (!is.list(ppt_args)) ppt_args <- list()
   preset_extra <- trimws(as.character(ppt_args$barra_extra_preset %||% "")[1])
   if (is.na(preset_extra) || !nzchar(preset_extra) ||
-      identical(preset_extra, "ninguno")) {
+      identical(preset_extra, "ninguno") ||
+      identical(preset_extra, .word_barra_extra_de_fabrica(tipo))) {
     return(patch)
   }
   drop_keys <- c(
