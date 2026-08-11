@@ -25,14 +25,14 @@ puede?»*; este responde *«¿le llega al analista?»*.
 | | |
 |---|---|
 | **Aplicado y verificado** | R-01 a R-10 · E-01, E-02, E-04, E-05, E-06, E-07, E-08, E-09, E-10 · P-01, P-03, P-05 · contrato Word |
-| **Diagnosticado, sin aplicar** | **E-03/P-06** el aire bajo el canvas · **E-11** las etiquetas sobre el segmento vecino |
+| **Diagnosticado, sin aplicar** | **E-11** las etiquetas sobre el segmento vecino |
 | **Observaciones nuevas sin clasificar** | O-01 guías ausentes en láminas de solo texto · O-02 el runtime del analista sirve código viejo hasta reiniciar |
-| **Decisiones pendientes del usuario** | **P-02** política de leyenda de una fila · **P-06** cuál de los dos levers del aire vertical |
+| **Decisiones tomadas** | **P-02** dos filas, repartidas parejo (aplicado) · **P-06** el aire vertical se deja como está |
+| **Decisiones pendientes** | ninguna |
 
-Nada de lo listado como «sin aplicar» está bloqueado por falta de tiempo: **E-03/P-06
-y P-02 esperan una decisión** porque sus dos únicas salidas cambian el layout de
-todos los mazos existentes, y **E-11** resultó no ser un fix mecánico (ver su
-diagnóstico). Todo lo demás que no requería decisión ya está aplicado.
+No queda ninguna decisión pendiente. **E-11** es lo único diagnosticado sin
+aplicar, y no por falta de tiempo: resultó no ser un fix mecánico (ver su
+diagnóstico). Todo lo demás ya está aplicado y verificado.
 
 ---
 
@@ -119,7 +119,7 @@ Medidos sobre el render del `.pulso` real contra el `HEAD` de hoy.
 |---|---|---|---|
 | **E-01** | **Top 2 Box = 100 % en escalas de 2 categorías.** `top2box` suma las dos primeras columnas; en una dicotomía son las dos | ✅ **RESUELTO** `bf158aa3` | — |
 | **E-02** | **Títulos de grupo encabalgados** en bloques `var_cruce` con 2+ grupos de 1 variable | ✅ **RESUELTO** por `c3e54d39`: el encabalgamiento venía del wrap desbordado | — |
-| **E-03** | **Alto de lámina en blanco** entre el gráfico y el pie | ⚠️ **ABIERTO, menor**: bajó de 13–18 % a 12 % en las láminas de batería; 21 % en las de pocas filas | Media |
+| **E-03** | **Alto de lámina en blanco** entre el gráfico y el pie | ✅ **CERRADO por decisión** (`P-06`): 12 % en baterías es respiro; se acepta | — |
 | **E-04** | **`SIN INF` en el denominador** cuando el proyecto no declara la exclusión | ✅ **RESUELTO en origen** por `P-01`: el perfil lo excluye. Los proyectos ya armados necesitan aplicar la línea | Baja |
 | **E-05** | ~~Segmentos chicos sin cifra~~ → **mal diagnosticado**. `umbral_mostrar_etiqueta` REUBICA, no oculta, y `umbral_ocultar_etiqueta = 0`: el motor no calla ninguna etiqueta. El defecto real era otro: un segmento de 0,4 % se rotulaba **«0%»** | ✅ **RESUELTO** `0a53b30c`: ahora «<1%» | — |
 | **E-06** | **Leyenda de 5 categorías que roza** en bloques comprimidos | ✅ **RESUELTO** por `R-03` + `c3e54d39` | — |
@@ -187,11 +187,11 @@ Relacionado con `E-02`: ambos salen del reparto de alto entre bloques.
 | ID | Pendiente | Estado |
 |---|---|---|
 | **P-01** | **Dar camino de producto al preset de acreditación** | ✅ **HECHO** `a6e2e97c`: aparece en «Líneas visuales» como perfil, junto al de ACNUR |
-| **P-02** | **Política de leyenda de una fila.** A 16 pt la fila mide 1,139 npc contra un tope de 0,96 | Medido, decisión del usuario pendiente |
+| **P-02** | **Política de leyenda.** Decidido: se quedan DOS filas —el solape ya estaba resuelto, así que era preferencia de espacio y no corrección— pero repartidas parejo | ✅ **HECHO** `02480098`: 5 → 3+2, 6 → 3+3, 7 → 4+3 |
 | **P-03** | **Guarda de `top2box` para escalas de 2 categorías** (`E-01`) | ✅ **HECHO** `bf158aa3` |
 | **P-04** | **Reparto de alto en bloques `var_cruce` de varios grupos** (`E-02`, `E-03`) | Parcial: `E-02` cayó con el wrap; queda el aire de `E-03` |
 | **P-05** | **Piso de la banda de leyenda** (`E-10`) | ✅ **HECHO** `69c96d34` |
-| **P-06** | **El aire bajo el canvas** (`E-03`, 12–20 %). Los dos únicos levers cambian todos los mazos: subir el tope de alto de fila (roza el ADR 0065) o bajar `slide_1_plot_height_cm` | Medido, pide decisión |
+| **P-06** | **El aire bajo el canvas** (`E-03`, 12–20 %) | ✅ **DECIDIDO: se deja como está.** El 12 % de las baterías es respiro razonable sobre el pie; los dos levers cambiaban el layout de todos los mazos ya entregados a cambio de un caso minoritario |
 
 ### El contrato Word roto por el defecto de `top2box` — ✅ resuelto en `6e412067`
 
@@ -283,6 +283,13 @@ reciben marcos ni en el preview ni ahora en el export. El esqueleto de carga sí
 dibuja cajas rosadas, lo que hace la ausencia más confusa. Importa desde que las
 guías llegan al entregable (`E-09`): una portada cuyo título desborda sigue sin
 poder diagnosticarse con ellas.
+
+**O-03 — el enunciado del eje ahora se trunca en vez de salirse.** El fix de
+`R-09` acotó el wrap al ancho del canal, así que un enunciado que no entra ya no
+invade la lámina: se corta con elipsis («…difundidos entre los…»). Es honesto
+—se ve que hay más— y mejor que mentir con texto fuera de la caja, pero en un
+informe de acreditación se pierde el final de la frase. El lever es el ancho del
+canal (`canvas_w_etiquetas`), que hoy declara el proyecto.
 
 **O-02 — el runtime del analista sirve código viejo hasta que se reinicia.** El
 export de «Conta 10-08» del 10/08 a las 18:03 salió con la paleta invertida y
