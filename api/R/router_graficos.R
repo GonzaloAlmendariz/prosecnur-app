@@ -1768,7 +1768,12 @@
   # que el divisor tenga un acento cromatico coherente con la identidad en vez
   # de repetir el color del cuerpo. Si tampoco hay subtitulo, cae al color de
   # titulo por el fallback del estilizador.
+  # `color_titulo_slide` manda sobre esta herencia. Existe justamente para
+  # gobernar lámina, separadores y portada; si el analista lo declaró, heredar
+  # del subtítulo le pintaba los separadores de otro color que el resto de los
+  # títulos y no había forma de alinearlos.
   if (is.null(presets_json$base$color_titulo_seccion) &&
+      is.null(presets_json$base$color_titulo_slide) &&
       !is.null(presets_json$base$color_subtitulo) &&
       nzchar(trimws(as.character(presets_json$base$color_subtitulo)[1]))) {
     presets_json$base$color_titulo_seccion <- as.character(presets_json$base$color_subtitulo)[1]

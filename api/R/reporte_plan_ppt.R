@@ -7733,7 +7733,7 @@ reporte_ppt_plan <- function(
             officer::ftext(
               as.character(title_slide)[1],
               prop = officer::fp_text(
-                color = base_args$color_titulo %||% "#CA5651",
+                color = base_args$color_titulo_slide %||% "#CA5651",
                 font.size = title_size,
                 bold = TRUE,
                 font.family = font_family

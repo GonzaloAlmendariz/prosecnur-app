@@ -22,7 +22,7 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 2 | Paleta Sí/No de los **pies**: azul y celeste, no turquesa | preset | ☐ sin empezar |
 | 3 | **4×4**: cada gráfico con su base **dentro del gráfico**, no en la lámina | motor + preset | ☐ sin empezar |
 | 4 | **Objetivo**: el campo de texto sale invertido | motor | ☐ sin empezar |
-| 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ◐ **parcial** |
+| 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ☑ **hecho** |
 | 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☑ **hecho** |
 | 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ☐ bloqueado por decisión |
 | 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
@@ -51,7 +51,7 @@ gráficos de públicos distintos. Cada gráfico debe declarar la suya.
 Es el **E-2** del registro. El rótulo vertical «OBJETIVO» se lee de abajo hacia
 arriba; en castellano debería girar al otro lado.
 
-### 5 · Colores — parcial, con una vía sin localizar
+### 5 · Colores — HECHO, tras cuatro caminos
 Hecho y **verificado en la lámina 8**: «PERFIL DEL EGRESADO» en naranja y
 «Sexo», «Año de egreso», «Rango de edades», «Máximo grado alcanzado» en azul.
 
@@ -61,13 +61,24 @@ Causa que había detrás: el título de lámina y el del gráfico **compartían
 el gráfico (default azul), y cortando la cadena de la lámina para que ya no
 caiga en `color_titulo` (`reporte_plan_ppt.R:398-404`).
 
-**Lo que falta**: el **separador de sección sigue saliendo azul**. No pasa por
-esa cadena — comprobado declarando `color_titulo_slide = "#CA5651"` en el
-proyecto y volviendo a renderizar: la lámina 12 sigue azul. Toma su color por
-otra vía que aún no está localizada; `grep` de `prosecnur:section:title` sólo
-devuelve el punto de `reporte_plan_ppt.R:371`, así que la vía real es otra.
-**Es una regresión introducida hoy** (antes el separador era naranja porque
-`color_titulo` lo era) y afecta a las 13 láminas separadoras.
+**El separador costó tres hipótesis refutadas**, y merece quedar escrito porque
+el color de un título en este motor se decide en CUATRO sitios:
+
+1. `.styled_slide_title()` (`reporte_plan_ppt.R:398`) — portada, sección y lámina.
+2. Un segundo dibujante en `reporte_plan_ppt.R:7736` que leía `color_titulo`
+   directo, para los slides que no pasan por el primero.
+3. La whitelist de `p_presets()` — descartada: `normalize_block` no filtra nada.
+4. **`.enriquecer_presets()` (`router_graficos.R:1771`), que era el culpable**:
+   si nadie declara `color_titulo_seccion`, lo rellena con `color_subtitulo`
+   «para que el divisor tenga un acento cromático coherente». Deliberado, y por
+   eso invisible: el separador no era naranja por herencia del título sino azul
+   por herencia del subtítulo.
+
+Se subordinó esa herencia a `color_titulo_slide`: si el analista lo declara,
+manda él. Verificado en la lámina 12, que vuelve al naranja.
+
+Detalle que confirma que el nombre era el correcto: `color_titulo_slide` ya
+existía en `graficos_preset_acreditacion.R:215`.
 
 ### 6 · Todos los porcentajes por defecto — HECHO
 
