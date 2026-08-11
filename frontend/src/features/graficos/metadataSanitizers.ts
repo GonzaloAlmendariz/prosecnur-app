@@ -296,6 +296,9 @@ export function normalizeArgMetadata(value: unknown): ArgMetadata {
   if (ranuras.length) normalized.ranuras = ranuras;
   const ejemplo = safeText(arg.ejemplo).trim();
   if (ejemplo) normalized.ejemplo = ejemplo;
+  if (safeText(arg.ranuras_desde).trim() === "secciones_indice") {
+    normalized.ranuras_desde = "secciones_indice";
+  }
   return normalized;
 }
 

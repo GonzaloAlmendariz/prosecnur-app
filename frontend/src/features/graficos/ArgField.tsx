@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XIcon, RotateCcw, Plus, Trash2, Sparkles } from "lucide-react";
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
+import { MAX_FOCOS, parseIndicePayload } from "./indiceModel";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
 import VarsListPicker from "./VarsListPicker";
@@ -2340,6 +2341,30 @@ function slugify(value: string): string {
     .replace(/^_+|_+$/g, "") || "criterio";
 }
 
+/** De dónde salen los nombres de las ranuras.
+ *
+ *  NO se codifican en el registry. Los focos del Índice son las secciones que
+ *  el analista declaró en ese mismo slide: un estudio no siempre tiene
+ *  «Inteligencia artificial», ni empieza por «Metodología». Escribirlos fijos
+ *  convertía la plantilla de un mazo concreto en una ley del producto.
+ *
+ *  `ranuras_desde` declara la FUENTE y la UI la resuelve contra el estado real.
+ *  `ranuras` (lista literal) queda para casos donde las posiciones sí son fijas
+ *  por contrato del motor. */
+function useRanuras(meta: ArgMetadata): string[] {
+  const plan = usePlanStore((s) => s.plan);
+  const selectedSlideId = usePlanStore((s) => s.selectedSlideId);
+  return useMemo(() => {
+    if (meta.ranuras_desde !== "secciones_indice") return meta.ranuras ?? [];
+    const slide = plan.slides.find((s) => s.id === selectedSlideId);
+    if (!slide) return [];
+    const model = parseIndicePayload(slide.payload as Record<string, unknown>);
+    return model.secciones
+      .map((s, i) => s.titulo.trim() || `Sección ${i + 1}`)
+      .slice(0, MAX_FOCOS);
+  }, [meta.ranuras_desde, meta.ranuras, plan, selectedSlideId]);
+}
+
 /** Lista ORDENADA con una ranura por posición, cada una con su propio control.
  *
  *  Nace de los focos del Índice: el color se pedía en un campo de texto libre
@@ -2362,7 +2387,7 @@ function RanurasField({
   onChange: (v: unknown) => void;
   render: (valor: string, set: (v: string) => void) => React.ReactNode;
 }) {
-  const ranuras = meta.ranuras ?? [];
+  const ranuras = useRanuras(meta);
   const actual = useMemo(() => {
     if (Array.isArray(value)) return value.map((v) => (v == null ? "" : String(v)));
     if (typeof value === "string" && value.trim())
@@ -2379,7 +2404,18 @@ function RanurasField({
   }
 
   if (!ranuras.length) {
-    return <CodigosList value={actual} onChange={onChange} />;
+    // C3: la superficie contiene su propio vacío. Sin secciones declaradas no
+    // hay focos que colorear, y decirlo es más útil que ofrecer una caja de
+    // texto libre donde el analista tendría que adivinar el orden.
+    if (meta.ranuras_desde === "secciones_indice") {
+      return (
+        <p style={{ margin: 0, fontSize: 12, color: "var(--pulso-text-soft)" }}>
+          Todavía no hay secciones. Créalas en <strong>Contenido → Agregar sección</strong>;
+          cada una tendrá aquí su propio foco.
+        </p>
+      );
+    }
+    return <CodigosList value={actual} onChange={onChange} ejemplo={meta.ejemplo} />;
   }
 
   return (

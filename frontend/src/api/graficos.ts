@@ -270,6 +270,11 @@ export type ArgMetadata = {
   // viaja como lista ordenada, pero el analista no debería tener que contar
   // posiciones para saber cuál es el foco de «Resultados».
   ranuras?: string[];
+  // Fuente de la que salen las ranuras cuando NO son fijas. `secciones_indice`
+  // = una por sección declarada en el slide, con su título. Los focos de un
+  // estudio no son siempre los mismos, así que el registry declara de dónde
+  // vienen y no cuáles son.
+  ranuras_desde?: "secciones_indice";
   // Placeholder concreto del campo. Sin esto, `codigos_list` muestra siempre
   // «ej. 88, 90, 96», que bajo «Categorías del Top 2 Box» pide lo contrario
   // de lo que el motor espera.

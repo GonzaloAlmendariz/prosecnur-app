@@ -223,7 +223,10 @@
         label = "Íconos de los focos",
         tipo_input = "iconos_list",
         grupo = "espacio",
-        ranuras = c("Objetivo", "Metodología", "Perfil", "Resultados", "Inteligencia artificial"),
+        # Una ranura por seccion declarada en este mismo slide. NO se listan
+        # aqui: un estudio no siempre tiene «Inteligencia artificial» ni empieza
+        # por «Metodologia»; eran los nombres de un mazo concreto.
+        ranuras_desde = "secciones_indice",
         descripcion = "Cada foco toma un ícono del catálogo de Configuración global. Vacío conserva el de la plantilla."
       ),
       list(
@@ -247,7 +250,7 @@
         label = "Colores de focos",
         tipo_input = "colores_list",
         grupo = "valores",
-        ranuras = c("Objetivo", "Metodología", "Perfil", "Resultados", "Inteligencia artificial"),
+        ranuras_desde = "secciones_indice",
         descripcion = "Color del círculo de cada foco. Vacío usa la paleta Pulso del índice."
       ),
       list(
