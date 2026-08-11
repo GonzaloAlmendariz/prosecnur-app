@@ -2110,6 +2110,20 @@
              list(value = "top3box",   label = "Top 3 box"),
              list(value = "bottom2box",label = "Bottom 2 box")
            )),
+      # Que categorias componen cada indicador, por NOMBRE de categoria.
+      # Se declara una vez aqui y vale para todo el mazo: el proyecto del 10-08
+      # tenia 42 graficos con barra extra y CERO declaraciones, resolviendose
+      # todos por la regla posicional de `.default_box_cols()` —las dos ultimas
+      # de la escala—, que asume un orden de peor a mejor y no avisa si no lo es.
+      # Un Top 2 Box de escala de 5 y uno de escala de 2 no son el mismo
+      # indicador; declararlo es la unica forma de que signifiquen lo que el
+      # analista quiso decir.
+      list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala."),
+      list(name = "top3box_labels",    label = "Categorías del Top 3 Box",    tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Qué categorías suman al Top 3 Box, por su nombre exacto tal como aparece en la escala."),
+      list(name = "bottom2box_labels", label = "Categorías del Bottom 2 Box", tipo_input = "codigos_list", grupo = "estilo",
+           descripcion = "Qué categorías suman al Bottom 2 Box, por su nombre exacto tal como aparece en la escala."),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
            descripcion = "Encabezado de esa columna. Vacío usa el que corresponde al tipo (por ejemplo «Top 2 Box»)."),
       list(name = "prefijo_barra_extra",  label = "Prefijo barra extra",   tipo_input = "string", grupo = "textos"),
