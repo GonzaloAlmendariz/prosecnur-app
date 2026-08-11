@@ -221,9 +221,10 @@
       list(
         name = "iconos_focos",
         label = "Íconos de los focos",
-        tipo_input = "textarea",
+        tipo_input = "iconos_list",
         grupo = "espacio",
-        descripcion = "Opcional. Nombres internos o rutas SVG/PNG, en orden fijo: objetivo, metodología, perfil, resultados e inteligencia artificial."
+        ranuras = c("Objetivo", "Metodología", "Perfil", "Resultados", "Inteligencia artificial"),
+        descripcion = "Cada foco toma un ícono del catálogo de Configuración global. Vacío conserva el de la plantilla."
       ),
       list(
         name = "redibujar_focos",
@@ -244,9 +245,10 @@
       list(
         name = "iconos_focos_fill",
         label = "Colores de focos",
-        tipo_input = "codigos_list",
+        tipo_input = "colores_list",
         grupo = "valores",
-        descripcion = "Colores HEX para cada foco, en orden. Si se deja vacío, usa la paleta Pulso del índice."
+        ranuras = c("Objetivo", "Metodología", "Perfil", "Resultados", "Inteligencia artificial"),
+        descripcion = "Color del círculo de cada foco. Vacío usa la paleta Pulso del índice."
       ),
       list(
         name = "iconos_focos_objeto_unico",
@@ -1871,6 +1873,18 @@
              list(value = "bottom2box",label = "Bottom 2 box")
            ),
            descripcion = "Define si la columna extra muestra la base o un indicador agregado como Top 2 Box."),
+      # Mismos rotulos que en multi_apiladas: este preset alimenta el mismo
+      # motor y dibuja la misma columna, asi que la declaracion tiene que
+      # existir en los dos. Sin ella el box se omite con aviso.
+      list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "codigos_list", grupo = "estilo",
+           ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
+           descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala."),
+      list(name = "top3box_labels",    label = "Categorías del Top 3 Box",    tipo_input = "codigos_list", grupo = "estilo",
+           ejemplo = "ej. Ni de acuerdo ni en desacuerdo, De acuerdo, Totalmente de acuerdo",
+           descripcion = "Qué categorías suman al Top 3 Box, por su nombre exacto tal como aparece en la escala."),
+      list(name = "bottom2box_labels", label = "Categorías del Bottom 2 Box", tipo_input = "codigos_list", grupo = "estilo",
+           ejemplo = "ej. Totalmente en desacuerdo, En desacuerdo",
+           descripcion = "Qué categorías suman al Bottom 2 Box, por su nombre exacto tal como aparece en la escala."),
       list(name = "size_titulo_extra",    label = "Tamaño título de la columna extra", tipo_input = "number", grupo = "estilo",
            descripcion = "Tamaño del título que va encima de la barra extra (ej. 'Top 2 Box')."),
       # --- Comparativo interanual de la columna extra ---------------------
@@ -2119,10 +2133,13 @@
       # indicador; declararlo es la unica forma de que signifiquen lo que el
       # analista quiso decir.
       list(name = "top2box_labels",    label = "Categorías del Top 2 Box",    tipo_input = "codigos_list", grupo = "estilo",
+           ejemplo = "ej. De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 2 Box, por su nombre exacto tal como aparece en la escala."),
       list(name = "top3box_labels",    label = "Categorías del Top 3 Box",    tipo_input = "codigos_list", grupo = "estilo",
+           ejemplo = "ej. Ni de acuerdo ni en desacuerdo, De acuerdo, Totalmente de acuerdo",
            descripcion = "Qué categorías suman al Top 3 Box, por su nombre exacto tal como aparece en la escala."),
       list(name = "bottom2box_labels", label = "Categorías del Bottom 2 Box", tipo_input = "codigos_list", grupo = "estilo",
+           ejemplo = "ej. Totalmente en desacuerdo, En desacuerdo",
            descripcion = "Qué categorías suman al Bottom 2 Box, por su nombre exacto tal como aparece en la escala."),
       list(name = "titulo_barra_extra",   label = "Título barra extra", tipo_input = "string", grupo = "textos",
            descripcion = "Encabezado de esa columna. Vacío usa el que corresponde al tipo (por ejemplo «Top 2 Box»)."),
