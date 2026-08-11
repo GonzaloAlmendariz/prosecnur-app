@@ -208,3 +208,62 @@ presets_acreditacion <- function(etiquetas = NULL) {
     color_titulo_slide = "#C00000"
   )
 }
+
+#' Perfil de estilo de presentación para informes de acreditación.
+#'
+#' El preset existía, estaba medido contra el deck 2021 y testeado, y NO tenía
+#' camino de producto: `presets_acreditacion()` solo se invocaba desde los
+#' tests. El analista no podía encenderlo desde la UI, así que cada proyecto
+#' volvía a sufrir uno por uno los defectos que este preset ya resuelve —«SIN
+#' INF» dentro del denominador, la rampa ordinal, la leyenda repetida en cada
+#' lámina y la jerarquía tipográfica invertida—.
+#'
+#' Aquí se expone como un perfil más de `.PPT_STYLE_PROFILES`, que es el
+#' mecanismo que la UI ya sabe listar y aplicar. No duplica ni un número: los
+#' toma de las mismas funciones que consume `presets_acreditacion()`, así que
+#' afinar el preset mueve el perfil con él.
+#'
+#' Vive aquí y no en `graficos_metadata.R` por el orden de carga: R lee los
+#' archivos alfabéticamente y `graficos_m…` va antes que `graficos_p…`, así que
+#' una referencia de nivel superior desde la metadata no encontraría estas
+#' funciones. El payload lo compone en tiempo de llamada.
+#' @noRd
+.ppt_style_profile_acreditacion <- function() {
+  estilo <- .preset_acreditacion_apiladas()
+  escala <- .preset_acreditacion_colores(NULL)
+
+  list(
+    template_id = "generic_16_9",
+    auto_otros_slides = FALSE,
+    titulo_humano = "Acreditación · informe institucional",
+    descripcion = paste(
+      "Línea visual del informe de acreditación: rampa ordinal naranja → verde,",
+      "columna Top 2 Box, «SIN INF» fuera del denominador y la escala declarada",
+      "una sola vez en su lámina en vez de repetirse en cada gráfico.",
+      "Medida sobre el informe consolidado 2021."
+    ),
+    icono_ui = "GraduationCap",
+    preview_colors = unname(c(.PRESET_ACRD_RAMPA, .PRESET_ACRD_FUERA_ESCALA)),
+    presets = list(
+      base = .preset_acreditacion_slide(),
+      barras_apiladas = estilo,
+      multi_apiladas = estilo
+    ),
+    paletas = list(
+      # La escala de 4 puntos con sus nombres canónicos. El match del motor
+      # normaliza caja y tildes, así que no hace falta repetir variantes.
+      acuerdo_4 = as.list(escala),
+      # Dicotomías en escala de azules: el «No» de «¿Conoce el reglamento?» es
+      # un dato, no una falta, y el rojo contra azul lo marca como mala.
+      dicotomia = list("Sí" = "#081F5C", "Si" = "#081F5C", "No" = "#9DC3E6")
+    ),
+    overrides_reusables = list(),
+    scope_rules = list(
+      global = list(
+        profile_id = "acreditacion_informe",
+        template_id = "generic_16_9",
+        auto_otros_slides = FALSE
+      )
+    )
+  )
+}

@@ -4734,8 +4734,15 @@
 
 # Serializa estilos visuales de presentacion para la UI del Plan PPT.
 .ppt_style_profiles_payload <- function() {
-  profiles <- lapply(names(.PPT_STYLE_PROFILES), function(nm) {
-    meta <- .PPT_STYLE_PROFILES[[nm]]
+  # El perfil de acreditación se compone en tiempo de llamada y no en el
+  # registro literal: sus valores viven en `graficos_preset_acreditacion.R`,
+  # que R carga DESPUÉS de este archivo (orden alfabético), y así el perfil y
+  # `presets_acreditacion()` no pueden derivar uno del otro.
+  registro <- .PPT_STYLE_PROFILES
+  registro$acreditacion_informe <- .ppt_style_profile_acreditacion()
+
+  profiles <- lapply(names(registro), function(nm) {
+    meta <- registro[[nm]]
     list(
       name = nm,
       titulo_humano = as.character(meta$titulo_humano %||% nm),
