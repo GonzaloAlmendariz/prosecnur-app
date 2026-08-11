@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useState } from "react";
-import { CheckCircle2, Circle, Palette, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { CheckCircle2, Circle, Palette, RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { ArgGrupo, ArgMetadata } from "../../api/client";
 import { usePlanStore } from "./store";
 import { usePresetsMetadata } from "./usePresetsMetadata";
@@ -320,10 +320,32 @@ function PresetBody({
   const { presets: defaults } = usePresetsDefaults();
   const presetArgs = useMemo(() => meta.args.map(clarifyPresetGraphTitleArg), [meta.args]);
 
+  // Buscador de ajustes.
+  //
+  // Una base visual llega a 46 ajustes repartidos en cuatro grupos, y para
+  // cambiar uno hay que saber de antemano en qué grupo vive. Se busca por lo
+  // que el ajuste HACE —su etiqueta y su descripción— además de por su nombre
+  // técnico, porque quien busca «ancho de las etiquetas» no sabe que el arg se
+  // llama `canvas_w_etiquetas`.
+  //
+  // Con el campo vacío no cambia nada: es un filtro añadido, no una
+  // reorganización de los grupos.
+  const [busqueda, setBusqueda] = useState("");
+  const argsFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return presetArgs;
+    const terminos = q.split(/\s+/);
+    return presetArgs.filter((a) => {
+      const heno = [a.name, a.label, a.descripcion, a.efecto, a.unidad]
+        .filter(Boolean).join(" ").toLowerCase();
+      return terminos.every((t) => heno.includes(t));
+    });
+  }, [presetArgs, busqueda]);
+
   // Agrupar args por grupo semántico, manteniendo el orden de GRUPO_META.
   const gruposDeArgs = useMemo(() => {
     const byGrupo: Partial<Record<ArgGrupo, ArgMetadata[]>> = {};
-    for (const a of presetArgs) {
+    for (const a of argsFiltrados) {
       const g = normalizeArgGroup(a.grupo as ArgGrupo);
       (byGrupo[g] ??= []).push(a);
     }
@@ -331,7 +353,7 @@ function PresetBody({
       .filter((g) => byGrupo[g] && byGrupo[g]!.length > 0)
       .sort((a, b) => GRUPO_META[a].order - GRUPO_META[b].order)
       .map((g) => ({ grupo: g, args: byGrupo[g]! }));
-  }, [presetArgs]);
+  }, [argsFiltrados]);
 
   const currentDefaults = defaults[meta.name] ?? {};
 
@@ -371,7 +393,35 @@ function PresetBody({
           No se puede editar desde esta pantalla.
         </div>
       ) : (
-        gruposDeArgs.map(({ grupo, args }) => (
+        <>
+        <div className="pulso-gv2-presets-buscador">
+          <Search size={13} aria-hidden="true" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder={`Buscar entre ${meta.args.length} ajustes…`}
+            aria-label="Buscar un ajuste por nombre o por lo que hace"
+          />
+          {busqueda.trim() && (
+            <span className="pulso-gv2-presets-buscador-conteo">
+              {argsFiltrados.length === 0
+                ? "sin resultados"
+                : `${argsFiltrados.length} de ${meta.args.length}`}
+            </span>
+          )}
+          {busqueda && (
+            <button
+              type="button"
+              className="pulso-icon"
+              onClick={() => setBusqueda("")}
+              aria-label="Limpiar la búsqueda"
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
+        {gruposDeArgs.map(({ grupo, args }) => (
           <ArgGroup
             key={grupo}
             grupo={grupo}
@@ -392,7 +442,8 @@ function PresetBody({
               />
             ) : undefined}
           />
-        ))
+        ))}
+        </>
       )}
 
     </div>

@@ -94,3 +94,36 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Buscador de ajustes de la base visual.
+   Una base llega a 46 ajustes en cuatro grupos y para cambiar uno hay que
+   saber en qué grupo vive. El campo filtra por nombre y por lo que el ajuste
+   hace; con el campo vacío no cambia nada. */
+.pulso-gv2-presets-buscador {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+}
+
+.pulso-gv2-presets-buscador input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.pulso-gv2-presets-buscador-conteo {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
