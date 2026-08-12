@@ -173,6 +173,32 @@ columna que la geometría** (`.valor_plot`): inflar el ancho habría rotulado
 separaron: `.valor_plot` gobierna el ancho y **`.valor_pct_real`** es la que se
 rotula. El test lo comprueba sobre el objeto ggplot real, no sobre la regla.
 
+## Causa raíz del desorden de las escalas *(2026-08-11, reparada)*
+
+El ítem 5 del lote y el reordenado a mano de dos `.pulso` venían del mismo sitio,
+y no era el motor de gráficos.
+
+`.add_recoded_q()` (`codificacion_aplicar_instrumento.R`) arma el catálogo de
+cada lista `*_recod` y **sólo lo ordenaba con `choices_order = "alphabetical"`**.
+El default es `original_first`, así que el orden acababa siendo el de aparición
+**en los datos**, que es arbitrario.
+
+Medido en «Conta 11-08»: el instrumento **original** de docentes ni siquiera
+contiene `lst_p4_recod` —esa lista la crea la adaptación— y salía declarada como
+`3, 1, 2, 4`. En el mazo se leía «De 30 a 35 · De 22 a 25 · De 26 a 29 · De 36
+años a más». El analista había declarado su codificación en orden; nadie la
+reordenaba después.
+
+Reparado en `codificacion_orden_catalogo.R`: **si los códigos son numéricos, el
+catálogo sale por su valor**, que es lo que significa una recodificación
+ordinal. Los catálogos con códigos no numéricos conservan su orden de aparición
+—ahí el número no ordena nada— y `alphabetical` sigue mandando cuando el
+analista lo pide. Los valores especiales (80–100) los sigue empujando al final
+el bloque que ya existía.
+
+Ojo: esto arregla los `.pulso` que se **generen a partir de ahora**. Los dos ya
+corregidos a mano no dependen de ello.
+
 ## Trampas vigentes
 
 Las del registro (`registro-motor-graficos-2026-08-10.md` §8) siguen todas en

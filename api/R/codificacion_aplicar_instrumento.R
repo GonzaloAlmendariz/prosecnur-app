@@ -593,9 +593,12 @@
     labels[na_lab] <- codes[na_lab]
   }
 
-  # ordenar catálogo
-  if (choices_order == "alphabetical" && length(codes)) {
-    o <- order(codes)
+  # Ordenar catálogo. Con códigos numéricos manda su valor: una recodificación
+  # ordinal significa que el 1 va antes que el 2. Antes sólo se ordenaba con
+  # `alphabetical`, así que el default dejaba el orden de aparición en los datos
+  # y una lista de rangos de edad salía como 3, 1, 2, 4.
+  if (length(codes)) {
+    o <- .codificacion_orden_catalogo(codes, choices_order)
     codes  <- codes[o]
     labels <- labels[o]
   }
