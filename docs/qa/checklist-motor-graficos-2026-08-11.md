@@ -19,15 +19,38 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | # | Arreglo | Dónde | Estado |
 |---|---|---|---|
 | 1 | Dicotómicos **sin Top 2 Box por defecto** | preset + registro | ☐ sin empezar |
-| 2 | Paleta Sí/No de los **pies**: azul y celeste, no turquesa | preset | ☐ sin empezar |
+| 2 | Paleta Sí/No de los **pies**: azul y celeste, no turquesa | proyecto | ☑ **hecho** |
 | 3 | **4×4**: cada gráfico con su base **dentro del gráfico**, no en la lámina | motor + preset | ☐ sin empezar |
 | 4 | **Objetivo**: el campo de texto sale invertido | motor | ☐ sin empezar |
 | 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ☑ **hecho** |
-| 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☑ **hecho** |
-| 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ◐ ADR + piezas puras hechas; **falta cablear** |
+| 6 | **Todos los porcentajes** por defecto; el umbral deja de aplicarse solo | motor + registro | ☑ **hecho** · enmienda 2026-08-12: el umbral es el único mando |
+| 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ◐ ADR 0072 + piezas puras hechas; **falta cablear** |
 | 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
-| 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** · enmienda 9c (2026-08-12) |
-| 10 | **Negrita por elemento**: cada parte (título, leyenda, eje, valores…) la respeta de forma independiente, en **todos** los graficadores | motor + registro | ☐ sin empezar *(añadido 2026-08-12)* |
+| 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** · enmienda 9c |
+| 10 | **Negrita por elemento**: cada parte la respeta de forma independiente, en **todos** los graficadores | motor + registro | ☐ sin empezar |
+
+### Segundo lote (2026-08-11/12), del trabajo sobre el orden y los controles
+
+| # | Arreglo | Dónde | Estado |
+|---|---|---|---|
+| 11 | El **orden manual** existe en pie como ya existía en agrupadas | motor + registro | ☑ **hecho** |
+| 12 | **Mudanza**: los controles de orden pasan de Estilo a **Datos** | registro | ☑ **hecho** · 10 declaraciones |
+| 13 | El **pie sin umbral** de etiqueta por defecto: siempre se muestra | motor + registro | ☑ **hecho** · 0.06 → 0 |
+| 14 | **«Manual» es un modo**, no un control paralelo que pisa en silencio | motor + registro | ☑ **hecho** · pie y agrupadas |
+| 15 | El **selector va antes** que el editor manual | registro | ☑ **hecho** · pie, donut y agrupadas |
+| 16 | El editor manual **abre con las categorías de su variable** | frontend | ☑ **hecho** |
+| 17 | **«Numerar OE»** deja de ser un hardcodeo de un estudio | motor + registro | ☑ **hecho** · `prefijo_grupos` |
+| 18 | El PPT entregado **sin líneas guía** | entrega | ☑ **hecho** |
+| 19 | Probar el orden manual **desde la interfaz** | verificación | ⛔ **bloqueado**: los clics del panel del navegador no llegan a la página (ni foco ni hover, comprobado sobre el elemento). Verificado por render y por payload servido, no por click. |
+
+### Hallazgos de propina, ya cerrados
+
+| Qué | Cómo apareció |
+|---|---|
+| **Causa raíz del desorden de escalas** en la recodificación | Persiguiendo el ítem 5; ver la sección de abajo |
+| El **donut no tenía ningún control de orden** | Midiendo el orden de los args del ítem 15 |
+| Un **umbral declarado no surtía efecto** (regresión del ítem 6) | Un test del ítem 17 que pasaba el umbral explícito |
+| Sólo **una de dos** declaraciones del editor manual llevaba dependencia | Contando en el registro, no mirando |
 
 ## Lo que ya se sabe de cada uno
 
