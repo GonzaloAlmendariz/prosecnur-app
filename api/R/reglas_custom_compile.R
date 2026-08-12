@@ -152,6 +152,40 @@
   ), var)
 }
 
+# Dos casos se cruzan cuando comparten identidad Y sus ventanas de tiempo se
+# solapan. Ninguna de las dos señales vale sola: el solape mide una propiedad
+# del `end` —que se corre si el formulario queda abierto— y una llave repetida
+# puede ser legítima (dos personas del mismo hogar). El hallazgo es la
+# coincidencia, y por eso vive en un tipo propio y no en dos reglas sueltas.
+#
+# `vars` = c(inicio, fin, llave1, llave2, …). O(n^2) sobre la base: aceptable
+# para una encuesta y explícito frente a un join que escondería el costo.
+.regla_expr_cruce_identidad <- function(vars) {
+  ini <- vars[1]; fin <- vars[2]
+  llaves <- vars[-(1:2)]
+  clave <- if (length(llaves) == 1L) {
+    sprintf("as.character(%s)", llaves[1])
+  } else {
+    sprintf("paste(%s, sep = '\\u241F')",
+            paste(vapply(llaves, function(v) sprintf("as.character(%s)", v), character(1)),
+                  collapse = ", "))
+  }
+  sprintf(paste0(
+    "{ .k_ <- %s; ",
+    ".a_ <- suppressWarnings(as.POSIXct(sub('([+-][0-9]{2}):([0-9]{2})$', '', as.character(%s)), ",
+    "format = '%%Y-%%m-%%dT%%H:%%M:%%OS', tz = 'UTC')); ",
+    ".b_ <- suppressWarnings(as.POSIXct(sub('([+-][0-9]{2}):([0-9]{2})$', '', as.character(%s)), ",
+    "format = '%%Y-%%m-%%dT%%H:%%M:%%OS', tz = 'UTC')); ",
+    ".n_ <- length(.k_); ",
+    "vapply(seq_len(.n_), function(i) { ",
+    "if (is.na(.k_[i]) || !nzchar(.k_[i]) || is.na(.a_[i]) || is.na(.b_[i])) return(FALSE); ",
+    ".o_ <- which(.k_ == .k_[i] & seq_len(.n_) != i); ",
+    "if (!length(.o_)) return(FALSE); ",
+    "any(!is.na(.a_[.o_]) & !is.na(.b_[.o_]) & .a_[.o_] < .b_[i] & .b_[.o_] > .a_[i]) ",
+    "}, logical(1)) }"
+  ), clave, ini, fin)
+}
+
 .regla_expr_coherencia_2v <- function(vars, params) {
   vx <- vars[1]; vy <- vars[2]
   ox <- as.character(params$op_x)
@@ -314,6 +348,7 @@
     "select_multiple_cardinality" = .regla_expr_select_multiple_cardinality(vars[1], r$params),
     "select_multiple_selection" = .regla_expr_select_multiple_selection(vars[1], r$params),
     "continuidad_secuencia" = .regla_expr_continuidad_secuencia(vars[1]),
+    "cruce_identidad" = .regla_expr_cruce_identidad(vars),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )
   expr <- .regla_apply_gate(expr, r)
