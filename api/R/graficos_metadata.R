@@ -795,9 +795,10 @@
            choices = list(
              list(value = "instrumento", label = "Orden del instrumento"),
              list(value = "mayor_menor", label = "Mayor a menor"),
-             list(value = "menor_mayor", label = "Menor a mayor")
+             list(value = "menor_mayor", label = "Menor a mayor"),
+             list(value = "manual", label = "Manual (lo ordenas tú)")
            ),
-           descripcion = "Define si las categorías respetan el orden del formulario o se ordenan por frecuencia."),
+           descripcion = "Define si las categorías respetan el orden del formulario, se ordenan por frecuencia o las ordenas tú."),
       # `via_overrides`: el constructor `p_barras_agrupadas()` sólo acepta ocho
       # args y no tiene `...`, así que un valor guardado al nivel del slot se
       # cae al construir el elemento y NUNCA llega al graficador. Medido con
@@ -806,7 +807,8 @@
       # `overrides` es la puerta declarada para lo que no es formal.
       list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "datos",
            via_overrides = TRUE,
-           descripcion = "Etiquetas en el orden exacto deseado (de arriba hacia abajo). Las categorías no listadas se agregan al final, en su orden original. Si se define, tiene prioridad sobre 'Orden de barras'."),
+           depende = list(arg = "orden_barras", valores = list("manual")),
+           descripcion = "Las etiquetas en el orden exacto que quieres, de arriba hacia abajo. Las que no listes se agregan al final, en su orden original."),
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
            default = FALSE,
            descripcion = "Conserva opciones definidas en el instrumento aunque no tengan casos. Apágalo para graficar solo categorías con N."),
@@ -2297,9 +2299,13 @@
 	           choices = list(
 	             list(value = "instrumento", label = "Orden del instrumento"),
 	             list(value = "mayor_menor", label = "Mayor a menor"),
-	             list(value = "menor_mayor", label = "Menor a mayor")
+	             list(value = "menor_mayor", label = "Menor a mayor"),
+	             # Tiene que estar también aquí: el preset y el graficador
+	             # declaran el mismo selector, y el inspector mezcla los dos.
+	             # Con «Manual» sólo en uno, la opción existía a medias.
+	             list(value = "manual", label = "Manual (lo ordenas tú)")
 	           ),
-	           descripcion = "Define si las categorías respetan el orden del formulario o se ordenan por frecuencia."),
+	           descripcion = "Define si las categorías respetan el orden del formulario, se ordenan por frecuencia o las ordenas tú."),
 	      list(name = "otros_al_final",       label = "Otros al final",        tipo_input = "bool", grupo = "estilo",
 	           default = TRUE,
 	           descripcion = "Mueve categorías Otro/Otros al final del orden visual aunque su frecuencia sea alta."),

@@ -26,7 +26,8 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 6 | **Todos los porcentajes** por defecto; el umbral pasa a switcher apagado | motor + registro | ☑ **hecho** |
 | 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ◐ ADR + piezas puras hechas; **falta cablear** |
 | 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
-| 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** |
+| 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** · enmienda 9c (2026-08-12) |
+| 10 | **Negrita por elemento**: cada parte (título, leyenda, eje, valores…) la respeta de forma independiente, en **todos** los graficadores | motor + registro | ☐ sin empezar *(añadido 2026-08-12)* |
 
 ## Lo que ya se sabe de cada uno
 
@@ -172,6 +173,65 @@ columna que la geometría** (`.valor_plot`): inflar el ancho habría rotulado
 «0.5%» donde el dato es 0 %, justo el dato falso que esto viene a evitar. Se
 separaron: `.valor_plot` gobierna el ancho y **`.valor_pct_real`** es la que se
 rotula. El test lo comprueba sobre el objeto ggplot real, no sobre la regla.
+
+**9c, enmienda del 2026-08-12: el piso estaba detrás del interruptor
+equivocado.** Salió de los seis «gráfico a modificar» de ACRD ING, y el defecto
+era éste: `mostrar_categorias_en_cero` gobernaba por igual dos cosas que no son
+la misma decisión.
+
+- La categoría que **nadie eligió**: enseñarla es decisión de lámina, y sigue
+  siendo opcional.
+- La categoría que **tiene casos y redondea a 0 %**: sin piso su segmento mide
+  cero, no lleva etiqueta, y la barra muestra un caso menos que su base **sin
+  dejar rastro en ninguna cifra visible**. Eso es un dato perdido, no un estilo,
+  y ya no depende de ningún interruptor.
+
+Las dos se escriben «0 %» en la lámina, así que el porcentaje no las distingue.
+Quien las distingue es la frecuencia, y por eso hace falta `cols_n`: **el plan
+entrega los porcentajes ya redondeados a entero** (`pct_int / 100`, línea 4436
+de `reporte_plan_ppt.R`), de modo que un caso entre 182 llega al graficador
+valiendo 0 exacto. Sin frecuencias no hay con qué separarlos y manda el
+interruptor, como antes.
+
+Medido sobre Civil 19 (71 · 105 · 5 · 1 sobre 182): antes salían tres segmentos
+y tres etiquetas, y la barra sumaba 181; ahora salen cuatro, la fila sigue
+sumando 100 % y la cuarta se rotula **`0% (1)`**.
+
+Tres detalles que costaron:
+
+- **El criterio de «esto es 0 %» tiene que ser el mismo que escribe la cifra**,
+  o habría segmentos rotulados 0 % sin piso. El reparto por resto mayor pasó a
+  `.pulso_pct_unidades_exactas()` (`helpers_calc_comunes.R`) para que la
+  etiqueta y el piso pregunten a la misma función. Ojo: **hay una tercera copia
+  del mismo algoritmo**, `.pct_enteros_100()`, cerrada dentro de
+  `reporte_plan_ppt.R:2007`.
+- **El piso es un mínimo, no un valor.** Asignarlo encogía a 0,5 % un segmento
+  de 0,7 % que también se rotula 0 %; va con `pmax`.
+- **En agrupadas la categoría no quedaba fina: desaparecía del eje.**
+  `umbral_barra` (0,01 por defecto) la suprimía entera antes de que el piso
+  existiera. El umbral está para que no queden astillas ilegibles, que es justo
+  lo que el piso resuelve mejor, así que ahora no toca a las que tienen casos.
+
+El test lo comprueba con los porcentajes escritos a mano en la forma en que los
+entrega el plan, y no llamando a la función que este mismo arreglo introdujo:
+con la función, el test fallaba por «no encontrada» en vez de por el render.
+
+### 10 · La negrita se respeta por elemento *(añadido 2026-08-12)*
+Sin empezar. El control existe —`Textos en negrita`, un multiflag con seis
+partes: título, leyenda, eje Y, valores, barra extra y títulos de grupo— y la
+pregunta es si **cada una manda sobre su propio texto en todos los
+graficadores**, o si alguno aplica una negrita global, ignora una parte que no
+dibuja o la hereda de otra.
+
+Cómo se verificará, porque aquí el aserto flojo es evidente: encender **una
+sola** parte y comprobar que esa cambia **y las otras cinco no**. Un test que
+encienda todo y vea negrita no distingue el caso bueno del malo — pasaría
+igual con una negrita global. Por graficador y sobre el objeto renderizado, no
+sobre el registro.
+
+De dónde sale: durante la prueba desde la UI del ítem del pie, una tecla suelta
+encendió «Leyenda» en un multiapiladas. El toggle funcionó, pero dejó la
+pregunta de si el efecto llega repartido.
 
 ## Causa raíz del desorden de las escalas *(2026-08-11, reparada)*
 

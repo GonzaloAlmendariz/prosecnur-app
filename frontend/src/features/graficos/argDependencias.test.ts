@@ -41,4 +41,28 @@ describe("visibilidad de args por modo", () => {
     expect(argAplica(arg("corte", { arg: "modo", valores: "publicos" }), { modo: "publicos" })).toBe(true);
     expect(argAplica(arg("corte", { arg: "modo", valores: "publicos" }), { modo: "sm" })).toBe(false);
   });
+
+  // El arg de control no tiene por qué llamarse `modo`. El caso que motivó
+  // esto: el inspector mostraba a la vez «Orden de las categorías» —con
+  // «Ascendente» marcado— y «Orden manual», que lo pisaba en silencio.
+  describe("el editor de orden manual sólo existe en el modo manual", () => {
+    const manual = arg("orden_categorias_manual", {
+      arg: "ordenar_categorias",
+      valores: ["manual"],
+    });
+
+    it("aparece en manual y no en los modos automáticos", () => {
+      expect(argAplica(manual, { ordenar_categorias: "manual" })).toBe(true);
+      // El control: si no distinguiera, los tres darían lo mismo.
+      expect(argAplica(manual, { ordenar_categorias: "asc" })).toBe(false);
+      expect(argAplica(manual, { ordenar_categorias: "desc" })).toBe(false);
+      expect(argAplica(manual, { ordenar_categorias: "natural" })).toBe(false);
+    });
+
+    it("el selector de modo nunca se esconde a sí mismo", () => {
+      // Si el modo desapareciera al elegir «manual», el analista quedaría
+      // encerrado en manual sin forma de volver.
+      expect(argAplica(arg("ordenar_categorias"), { ordenar_categorias: "manual" })).toBe(true);
+    });
+  });
 });
