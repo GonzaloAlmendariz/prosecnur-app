@@ -426,6 +426,11 @@ function ReglaRow({
               title={regla.semilla?.porque ?? "Criterio sugerido por la app y adoptado desde el panel de sugerencias"}
             >
               Sugerido
+              {/* `title` no llega a un lector de pantalla ni al teclado; el
+                  origen del criterio se dice en texto. */}
+              <span className="pulso-sr-only">
+                : criterio sugerido por la app y adoptado desde el panel de sugerencias
+              </span>
             </span>
           )}
           <span className="pulso-criterio-id">{regla.id}</span>
