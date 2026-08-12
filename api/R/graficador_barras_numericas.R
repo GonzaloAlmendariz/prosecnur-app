@@ -1512,7 +1512,10 @@ graficar_histograma <- function(
     title_block <- cowplot::ggdraw() +
       cowplot::draw_label(titulo %||% "", x = align, hjust = align, y = 0.70,
                           color = color_titulo, fontfamily = font_family,
-                          fontface = if ("titulo" %in% textos_negrita) "bold" else "bold",
+                          # Las dos ramas decían "bold": la condición era decorativa y el
+                          # interruptor del título no hacía nada. `_legado` conserva la
+                          # negrita mientras nadie declare, que es lo que se venía viendo.
+                          fontface = .graficos_face_legado(textos_negrita, "titulo"),
                           size = size_titulo) +
       cowplot::draw_label(subtitulo_efectivo %||% "", x = align, hjust = align, y = pos_y_subtitulo,
                           color = color_subtitulo, fontfamily = font_family,

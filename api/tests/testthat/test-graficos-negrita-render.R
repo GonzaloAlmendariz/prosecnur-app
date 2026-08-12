@@ -88,3 +88,28 @@ test_that("la sonda mide algo: sin marcas no encuentra nada", {
   p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) + ggplot2::geom_point()
   expect_length(.caras_de(p, MARCAS), 0L)
 })
+
+test_that("histograma y media de rango: cada parte gobierna la suya", {
+  dh <- data.frame(x = c(1, 2, 2, 3, 3, 3, 4, 4, 5))
+  esperar_independencia(function(tn) graficar_histograma(
+    dh, var = "x", usar_canvas = TRUE, titulo = "MITITULO",
+    subtitulo = "MISUBTITULO", nota_pie = "MINOTA", textos_negrita = tn),
+    c("titulo", "subtitulo", "nota_pie"), "histograma")
+
+  dm <- data.frame(categoria = c("A", "B"), valor = c(3, 7), stringsAsFactors = FALSE)
+  esperar_independencia(function(tn) graficar_media_rango(
+    dm, var_categoria = "categoria", var_valor = "valor", usar_canvas = TRUE,
+    titulo = "MITITULO", subtitulo = "MISUBTITULO", nota_pie = "MINOTA",
+    textos_negrita = tn), c("titulo", "subtitulo", "nota_pie"), "media_rango")
+})
+
+test_that("ninguna condición de negrita tiene sus dos ramas iguales", {
+  # `if ("titulo" %in% textos_negrita) "bold" else "bold"` — la condición era
+  # decorativa y el interruptor no hacía nada. Un grep lo habría visto; mirar el
+  # código, no.
+  for (f in list.files(file.path("..", "..", "R"), pattern = "^graficador_.*\\.R$", full.names = TRUE)) {
+    src <- paste(readLines(f, warn = FALSE), collapse = "\n")
+    expect_false(grepl('"bold" else "bold"', src, fixed = TRUE),
+                 info = basename(f))
+  }
+})
