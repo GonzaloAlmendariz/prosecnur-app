@@ -24,6 +24,7 @@
 - [dominio-prosecnur](skills/dominio-prosecnur.md)
 - [entregables-oficina](skills/entregables-oficina.md)
 - [estudio-real](skills/estudio-real.md)
+- [goal](skills/goal.md)
 - [integraciones-datos](skills/integraciones-datos.md)
 - [jobs-asincronos](skills/jobs-asincronos.md)
 - [notas-parche](skills/notas-parche.md)

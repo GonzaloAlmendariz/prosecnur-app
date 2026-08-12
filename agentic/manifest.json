@@ -37,6 +37,7 @@
     "dominio-prosecnur",
     "entregables-oficina",
     "estudio-real",
+    "goal",
     "integraciones-datos",
     "jobs-asincronos",
     "notas-parche",
@@ -142,6 +143,7 @@
         "procesamiento",
         "dashboard"
       ],
+      "goal": [],
       "integraciones-datos": [
         "editor-xlsform",
         "monitoreo",
