@@ -45,3 +45,24 @@
   if (is.na(txt) || !nzchar(txt)) return(" ")
   txt
 }
+
+#' La base de un elemento, compuesta y puesta como su nota al pie.
+#'
+#' Envoltorio de un solo paso para los renderers de lámina: cuatro disposiciones
+#' de población necesitaban el mismo closure de cuatro líneas y repetirlo hacía
+#' crecer un archivo congelado. Aquí cada sitio de llamada es una línea.
+#'
+#' @param el Elemento del plan.
+#' @param presets Presets del reporte, de donde salen sufijo y formato.
+#' @param componer Función que compone la base de un elemento; se inyecta porque
+#'   vive como closure dentro de `reporte_ppt_plan()`.
+#' @keywords internal
+.base_por_grafico <- function(el, presets, componer) {
+  base <- tryCatch(
+    componer(el,
+             sufijo_auto = (presets$base$args$sufijo_auto %||% NULL),
+             formato = (presets$base$args$formato %||% "Base: %s")),
+    error = function(e) NULL
+  )
+  .base_por_grafico_inyectar(el, base)
+}

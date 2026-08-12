@@ -422,6 +422,13 @@
       if (length(lab_col) == nrow(sv)) label_raw <- lab_col
     }
   }
+  # Las celdas vacías se normalizan ANTES de decidir si hay que caer al
+  # fallback: una columna de idioma sin una sola celda con texto llega como
+  # NA entero, `all(NA == "")` devuelve NA y el `if` de abajo aborta con
+  # "missing value where TRUE/FALSE needed" — justo en el caso para el que
+  # existe el fallback (instrumentos con `label::Spanish (ES)` declarada pero
+  # vacía y las etiquetas de verdad en `label`).
+  label_raw[is.na(label_raw)] <- ""
   if (all(label_raw == "") && "label" %in% names(sv)) label_raw <- as.character(sv$label)
   label_raw[is.na(label_raw)] <- ""
   Encoding(label_raw) <- "UTF-8"

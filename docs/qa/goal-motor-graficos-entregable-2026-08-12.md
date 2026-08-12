@@ -24,8 +24,8 @@ Un colega toma el `.pulso`, exporta y el mazo se entrega sin tocar nada.
 | # | Qué falta | Dónde | Estado |
 |---|---|---|---|
 | L1 | La base por gráfico en `poblacion_5` y `poblacion_6` | motor | ☑ hecho |
-| L2 | La base por gráfico en `poblacion_2` | motor | ◐ el bloque no arma sus elementos en lista; hay que tocarlo a mano |
-| L3 | ¿Tienen `poblacion_5/6` base de lámina que anular? | motor | ☐ sin medir — la inyección está, la línea compuesta no apareció en el bloque |
+| L2 | La base por gráfico en `poblacion_2` | motor | ☑ hecho · **las cuatro disposiciones de población, por defecto** |
+| L3 | ¿Tienen `poblacion_5/6` base de lámina que anular? | motor | ☑ **medido: no la tienen**. `poblacion_2` sólo la escribe si el analista la declara |
 | L4 | Negrita de los títulos de bloque en este estudio | proyecto | ⛔ decisión de Gonzalo |
 | L5 | Ver el orden manual moviéndose desde la interfaz | verificación | ⛔ los clics del panel no llegan a la página |
 | L6 | Retirar la detección heredada de «objetivos educacionales» | motor | ☐ cuando los estudios que dependen de ella declaren `prefijo_grupos` |

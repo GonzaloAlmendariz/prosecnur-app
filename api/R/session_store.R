@@ -1311,12 +1311,35 @@ codif_set <- function(sid, key, value, source = NULL) {
 # helpers exponen esos datos por base, cacheando on-demand en
 # `codif_por_base[[src]]$inst` / $data`.
 
+# Último upload de un tipo, para el flujo clásico (un formulario y una base
+# subidos en Carga, sin estudio multibase armado). Mismo criterio que
+# `.require_xlsform_path` / `.require_data_path`, pero devolviendo NULL en vez
+# de cortar: acá el caller decide el error.
+.codif_loose_file_meta <- function(s, kinds) {
+  candidatos <- Filter(function(f) isTRUE(as.character(f$kind %||% "") %in% kinds), s$files)
+  if (length(candidatos) == 0L) return(NULL)
+  candidatos[[length(candidatos)]]
+}
+
+# Sin estudio no hay base que resolver: `codif_source_active()` devuelve su
+# literal "default", que nunca es el nombre de una base. Con estudio presente
+# NO se cae al par suelto — resolver una base inexistente con el archivo de
+# otra mezclaría datos entre bases hermanas.
+.codif_puede_usar_par_suelto <- function(s) {
+  length((s$estudio %||% list())$bases %||% list()) == 0L
+}
+
 codif_xlsform_path <- function(sid, source = NULL) {
   s <- session_get(sid)
   src <- if (is.null(source)) codif_source_active(sid) else source
   b <- s$estudio$bases[[src]]
-  if (is.null(b)) return(NULL)
-  meta <- s$files[[b$xlsform_file_id]]
+  if (!is.null(b)) {
+    meta <- s$files[[b$xlsform_file_id]]
+    if (is.null(meta)) return(NULL)
+    return(meta$path)
+  }
+  if (!.codif_puede_usar_par_suelto(s)) return(NULL)
+  meta <- .codif_loose_file_meta(s, "xlsform")
   if (is.null(meta)) return(NULL)
   meta$path
 }
@@ -1325,8 +1348,9 @@ codif_data_meta <- function(sid, source = NULL) {
   s <- session_get(sid)
   src <- if (is.null(source)) codif_source_active(sid) else source
   b <- s$estudio$bases[[src]]
-  if (is.null(b)) return(NULL)
-  s$files[[b$data_file_id]]
+  if (!is.null(b)) return(s$files[[b$data_file_id]])
+  if (!.codif_puede_usar_par_suelto(s)) return(NULL)
+  .codif_loose_file_meta(s, c("data", "sav"))
 }
 
 # Devuelve el instrumento XLSForm (leer_instrumento_xlsform) de la base
