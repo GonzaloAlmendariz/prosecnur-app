@@ -916,7 +916,9 @@
     slots  = list(
       title = list(type = "title", type_idx = 1),
       icon  = list(type = "body",  type_idx = 3),
-      text  = list(type = "body",  type_idx = 2)
+      # `ph_xml`: el idx real de «Marcador de texto 11» en esta disposición.
+      # Sin él el párrafo hereda la rotación del título. Ver `.ph_with_strict`.
+      text  = list(type = "body",  type_idx = 2, ph_xml = '<p:ph type="body" idx="16"/>')
     )
   ),
 

@@ -21,7 +21,7 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 1 | Dicotómicos **sin Top 2 Box por defecto** | motor | ☑ **hecho** · se omite sin avisar |
 | 2 | Paleta Sí/No de los **pies**: azul y celeste, no turquesa | proyecto | ☑ **hecho** |
 | 3 | **4×4**: cada gráfico con su base **dentro del gráfico** | motor | ☑ **hecho** · 167 vs 178 en la lámina 10 |
-| 4 | **Objetivo**: el campo de texto sale invertido | **plantilla** | ☑ hecho · ⚠ **sin verificar**: LibreOffice no distingue `vert` de `vert270` |
+| 4 | **Objetivo**: el campo de texto sale invertido | plantilla + motor | ☑ **hecho** · verificado exportando con PowerPoint |
 | 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ☑ **hecho** |
 | 6 | **Todos los porcentajes** por defecto; el umbral deja de aplicarse solo | motor + registro | ☑ **hecho** · enmienda 2026-08-12: el umbral es el único mando |
 | 7 | Tablas del **radar nativas de PPT** | motor + ADR | ☑ **hecho** · `p_tabla` emite `flextable` |
@@ -44,6 +44,29 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 19 | Probar el orden manual **desde la interfaz** | verificación | ⛔ **bloqueado**: los clics del panel del navegador no llegan a la página (ni foco ni hover, comprobado sobre el elemento). Verificado por render y por payload servido, no por click. |
 | 20 | La base por gráfico en `poblacion_2/5/6` | motor | ☐ **sin empezar** · deuda abierta al cerrar el 3 |
 
+## La cadena de QA no ve lo que ve PowerPoint
+
+Lo más caro de esta sesión, y conviene que quede escrito. Mi verificación visual
+convierte el `.pptx` con **LibreOffice**, y LibreOffice no es PowerPoint:
+
+- renderiza `vert` y `vert270` **idénticos** —comprobado poniendo cada uno
+  directamente en la forma: los PNG salen iguales byte a byte—, así que no puede
+  distinguir una rotación correcta de la invertida;
+- resuelve un `<p:ph/>` vacío a **horizontal**, mientras PowerPoint hereda las
+  propiedades del ancestro que le toque. Por eso el párrafo del Objetivo salía
+  bien en todos mis PNG y girado en el mazo entregado.
+
+Cuando la duda sea de tipografía, rotación o herencia de placeholder, hay que
+exportar con PowerPoint:
+
+```
+osascript -e 'tell application "Microsoft PowerPoint"
+  open POSIX file "/ruta/mazo.pptx"
+  save active presentation in POSIX file "/tmp/real.pdf" as save as PDF
+  close active presentation saving no
+end tell'
+```
+
 ## Pendiente — lo que no puedo cerrar yo
 
 Un ítem implementado no está terminado: lo cierra Gonzalo. Estos tres necesitan
@@ -51,7 +74,6 @@ algo concreto de su parte, y hasta entonces no se dan por buenos.
 
 | # | Qué falta | Por qué no puedo yo |
 |---|---|---|
-| 4 | **Abrir la lámina 3 en PowerPoint** y decir si «OBJETIVO» se lee de arriba abajo | LibreOffice renderiza `vert` y `vert270` idénticos. Comprobado poniendo cada uno directamente en la forma: los PNG salen iguales byte a byte, así que mi cadena de PDF no distingue el caso bueno del malo. El XML sí cambió y viaja al mazo. |
 | 10b | **Decidir la negrita de los títulos de bloque** en este estudio | Al cablear el interruptor, la lámina 66 los muestra en plana: la declaración propia del mazo no los nombra. Es la semántica correcta —el mando manda— pero es un cambio visible en un entregable. Se restaura marcando «Títulos de grupo» en el inspector. |
 | 19 | **Ver el orden manual moviéndose desde la interfaz** | Los clics del panel del navegador no llegan a la página en esta sesión: ni foco ni `:hover`, comprobado sobre el propio elemento. Hace falta otra vía —Electron, o el navegador del sistema. |
 
