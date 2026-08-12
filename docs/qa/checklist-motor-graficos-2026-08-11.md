@@ -42,6 +42,29 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 | 17 | **«Numerar OE»** deja de ser un hardcodeo de un estudio | motor + registro | ☑ **hecho** · `prefijo_grupos` |
 | 18 | El PPT entregado **sin líneas guía** | entrega | ☑ **hecho** |
 | 19 | Probar el orden manual **desde la interfaz** | verificación | ⛔ **bloqueado**: los clics del panel del navegador no llegan a la página (ni foco ni hover, comprobado sobre el elemento). Verificado por render y por payload servido, no por click. |
+| 20 | La base por gráfico en `poblacion_2/5/6` | motor | ☐ **sin empezar** · deuda abierta al cerrar el 3 |
+
+## Pendiente — lo que no puedo cerrar yo
+
+Un ítem implementado no está terminado: lo cierra Gonzalo. Estos tres necesitan
+algo concreto de su parte, y hasta entonces no se dan por buenos.
+
+| # | Qué falta | Por qué no puedo yo |
+|---|---|---|
+| 4 | **Abrir la lámina 3 en PowerPoint** y decir si «OBJETIVO» se lee de arriba abajo | LibreOffice renderiza `vert` y `vert270` idénticos. Comprobado poniendo cada uno directamente en la forma: los PNG salen iguales byte a byte, así que mi cadena de PDF no distingue el caso bueno del malo. El XML sí cambió y viaja al mazo. |
+| 10b | **Decidir la negrita de los títulos de bloque** en este estudio | Al cablear el interruptor, la lámina 66 los muestra en plana: la declaración propia del mazo no los nombra. Es la semántica correcta —el mando manda— pero es un cambio visible en un entregable. Se restaura marcando «Títulos de grupo» en el inspector. |
+| 19 | **Ver el orden manual moviéndose desde la interfaz** | Los clics del panel del navegador no llegan a la página en esta sesión: ni foco ni `:hover`, comprobado sobre el propio elemento. Hace falta otra vía —Electron, o el navegador del sistema. |
+
+### Deuda abierta al cerrar el lote
+
+- **Ítem 20**: `poblacion_2/5/6` tienen la misma forma que el 4×4 y el mismo
+  problema de base compartida. `.base_por_grafico_inyectar()` ya es genérico, así
+  que es una línea por lámina, pero no las toqué: el pedido decía 4×4 y ampliar
+  el alcance sin decirlo es como se cuelan los cambios que nadie revisó.
+- **La detección heredada de «objetivos educacionales»** (ítem 17) sigue viva
+  como último recurso y emitiendo `[PULSO-AVISO]`. Puede morir en cuanto los
+  estudios que dependen de ella declaren `prefijo_grupos`.
+
 
 ### Hallazgos de propina, ya cerrados
 
