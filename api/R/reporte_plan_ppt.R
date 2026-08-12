@@ -8019,7 +8019,7 @@ reporte_ppt_plan <- function(
         doc <- .ph_with_strict(doc, as.character(txt)[1], contract$slots$text)
         doc <- .ph_with_strict(
           doc,
-          rvg::dml(ggobj = p_icon, bg = "transparent"),
+          .dml_o_tabla(p_icon),
           contract$slots$icon
         )
       }
@@ -8141,7 +8141,7 @@ reporte_ppt_plan <- function(
         plot_slot <- .plot_slot_for_rendered_plot(contract$slots$plot, p)
         doc <- .ph_with_strict(
           doc,
-          rvg::dml(ggobj = p, bg = "transparent"),
+          .dml_o_tabla(p),
           plot_slot
         )
 
@@ -8241,8 +8241,8 @@ reporte_ppt_plan <- function(
           doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
         }
 
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pL, bg = "transparent"), contract$slots$left)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pR, bg = "transparent"), contract$slots$right)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pL), contract$slots$left)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pR), contract$slots$right)
 
         # BASE auto desde left si no se declara
         base_txt <- slots$base %||% NULL
@@ -8361,7 +8361,7 @@ reporte_ppt_plan <- function(
 
         doc <- .ph_with_strict(
           doc,
-          rvg::dml(ggobj = p, bg = "transparent"),
+          .dml_o_tabla(p),
           plot_slot
         )
 
@@ -8468,8 +8468,8 @@ reporte_ppt_plan <- function(
         }
         doc <- .ph_with_strict(doc, combined, contract$slots$text)
 
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pL, bg = "transparent"), contract$slots$left)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pR, bg = "transparent"), contract$slots$right)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pL), contract$slots$left)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pR), contract$slots$right)
 
         suppress_base_placeholder <- isTRUE((slide$meta %||% list())$suppress_base_placeholder)
         base_txt <- if (suppress_base_placeholder) " " else slots$base %||% NULL
@@ -8579,10 +8579,10 @@ reporte_ppt_plan <- function(
 
         # tag/etiqueta no tiene placeholder en 4_paneles (body 1 es logo) — se ignora
 
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pUL, bg = "transparent"), contract$slots$up_left)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pUR, bg = "transparent"), contract$slots$up_right)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pBL, bg = "transparent"), contract$slots$bottom_left)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pBR, bg = "transparent"), contract$slots$bottom_right)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pUL), contract$slots$up_left)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pUR), contract$slots$up_right)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pBL), contract$slots$bottom_left)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pBR), contract$slots$bottom_right)
 
         base_txt <- slots$base %||% NULL
         if (is.null(base_txt)) {
@@ -8707,10 +8707,10 @@ reporte_ppt_plan <- function(
           doc <- .ph_with_strict(doc, title_slide, contract$slots$title)
         }
 
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pUL, bg = "transparent"), contract$slots$up_left)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pUR, bg = "transparent"), contract$slots$up_right)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pBL, bg = "transparent"), contract$slots$bottom_left)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pBR, bg = "transparent"), contract$slots$bottom_right)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pUL), contract$slots$up_left)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pUR), contract$slots$up_right)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pBL), contract$slots$bottom_left)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pBR), contract$slots$bottom_right)
 
         # icono central (body 2 = circulo central 1.9x1.9) — opcional
         el_icon <- slots$icon %||% NULL
@@ -8724,7 +8724,7 @@ reporte_ppt_plan <- function(
           }
           doc <- .ph_with_strict(
             doc,
-            rvg::dml(ggobj = p_icon, bg = "transparent"),
+            .dml_o_tabla(p_icon),
             contract$slots$icon
           )
         }
@@ -8807,7 +8807,7 @@ reporte_ppt_plan <- function(
         # plot
         doc <- .ph_with_strict(
           doc,
-          rvg::dml(ggobj = p, bg = "transparent"),
+          .dml_o_tabla(p),
           contract$slots$plot
         )
 
@@ -8913,7 +8913,7 @@ reporte_ppt_plan <- function(
         # plot derecha
         doc <- .ph_with_strict(
           doc,
-          rvg::dml(ggobj = p, bg = "transparent"),
+          .dml_o_tabla(p),
           contract$slots$plot
         )
 
@@ -8988,8 +8988,8 @@ reporte_ppt_plan <- function(
         }
 
         # 2 plots
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = p1, bg = "transparent"), contract$slots$plot1)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = p2, bg = "transparent"), contract$slots$plot2)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(p1), contract$slots$plot1)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(p2), contract$slots$plot2)
 
         # texto derecha — combina etiqueta + texto en el unico placeholder
         tag_txt <- slots$tag %||% NULL
@@ -9084,8 +9084,8 @@ reporte_ppt_plan <- function(
         doc <- .ph_with_strict(doc, combined_tx, contract$slots$text)
 
         # 2 plots
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = p1, bg = "transparent"), contract$slots$plot1)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = p2, bg = "transparent"), contract$slots$plot2)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(p1), contract$slots$plot1)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(p2), contract$slots$plot2)
 
         # base auto desde plot1
         base_txt <- slots$base %||% NULL
@@ -9160,8 +9160,8 @@ reporte_ppt_plan <- function(
         }
 
         # left y right: body 2 (izquierda) y body 3 (derecha)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pL, bg = "transparent"), contract$slots$left)
-        doc <- .ph_with_strict(doc, rvg::dml(ggobj = pR, bg = "transparent"), contract$slots$right)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pL), contract$slots$left)
+        doc <- .ph_with_strict(doc, .dml_o_tabla(pR), contract$slots$right)
 
         # icono central (body 4 = circulo central 1.9x1.9) — opcional
         icon_val <- slots$icon %||% NULL
@@ -9175,7 +9175,7 @@ reporte_ppt_plan <- function(
           }
           doc <- .ph_with_strict(
             doc,
-            rvg::dml(ggobj = p_icon, bg = "transparent"),
+            .dml_o_tabla(p_icon),
             contract$slots$icon
           )
         }
@@ -9228,7 +9228,7 @@ reporte_ppt_plan <- function(
           }
           doc <- .ph_with_strict(
             doc,
-            rvg::dml(ggobj = p_icon, bg = "transparent"),
+            .dml_o_tabla(p_icon),
             contract$slots$icon
           )
         }
@@ -9242,7 +9242,7 @@ reporte_ppt_plan <- function(
         for (i in 1:5) {
           doc <- .ph_with_strict(
             doc,
-            rvg::dml(ggobj = plots[[i]], bg = "transparent"),
+            .dml_o_tabla(plots[[i]]),
             contract$slots[[paste0("pic", i)]]
           )
         }
@@ -9290,7 +9290,7 @@ reporte_ppt_plan <- function(
           }
           doc <- .ph_with_strict(
             doc,
-            rvg::dml(ggobj = p_icon, bg = "transparent"),
+            .dml_o_tabla(p_icon),
             contract$slots$icon
           )
         }
@@ -9303,7 +9303,7 @@ reporte_ppt_plan <- function(
         for (i in 1:6) {
           doc <- .ph_with_strict(
             doc,
-            rvg::dml(ggobj = plots[[i]], bg = "transparent"),
+            .dml_o_tabla(plots[[i]]),
             contract$slots[[paste0("pic", i)]]
           )
         }

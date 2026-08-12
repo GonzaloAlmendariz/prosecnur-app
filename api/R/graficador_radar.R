@@ -270,6 +270,11 @@ graficar_radar <- function(
     tabla_fit_pad   = 0.98,
     tabla_allow_upscale = FALSE,
     tabla_clip      = TRUE,
+    # ADR 0072: la tabla se emite como TABLA de PowerPoint, no como imagen
+    # dentro del canvas. Sólo cuando el radar no se dibuja —`p_tabla`, donde la
+    # tabla ES la lámina—; con el radar al lado siguen compartiendo canvas,
+    # porque ahí la alineación entre los dos es lo que se está cuidando.
+    tabla_nativa    = TRUE,
 
     # -------------------------------------------------------------------------
     # CANVAS
@@ -1479,6 +1484,24 @@ graficar_radar <- function(
         line_lwd = tabla_line_lwd
       )
 
+      # ADR 0072. Con `tabla_nativa` y sin radar, la tabla no se dibuja: viaja
+      # como datos y el renderer la emite con `flextable`. El canvas se
+      # devuelve igual —vacío en esa zona— para que todo lo que ya sabe tratar
+      # un ggplot siga funcionando: la nota al pie, el título y la leyenda se
+      # dibujan DESPUÉS de este bloque, y un `return()` aquí se las comería.
+      emitir_nativa <- isTRUE(tabla_nativa) && isTRUE(ocultar_radar)
+      if (emitir_nativa) {
+        tabla_nativa_datos <- tb
+        tabla_nativa_estilo <- list(
+          header_fill = tabla_header_fill, body_fill = tabla_body_fill,
+          grid_col = tabla_grid_col, text_blue = tabla_text_blue,
+          font_family = tabla_font_family, header_size = tabla_header_size,
+          body_size = tabla_body_size, firstcol_bold = tabla_firstcol_bold,
+          padding_h = tabla_padding_mm, padding_v = tabla_padding_mm,
+          line_lwd = tabla_line_lwd
+        )
+      }
+
       tab_draw <- if (isTRUE(tabla_clip)) .wrap_clip(tab_grob) else tab_grob
 
       # -----------------------------------------------------------------
@@ -1525,7 +1548,7 @@ graficar_radar <- function(
       # IMPORTANTE: anclar el grob al borde izquierdo del PH para evitar
       # que una tabla ancha "derrame" por la izquierda cuando auto_fit = FALSE.
       x_tab <- if (isTRUE(ocultar_radar)) (1 - w_tab) * 0.5 else (w_radar + w_gap)
-      canvas <- canvas + cowplot::draw_grob(
+      if (!isTRUE(emitir_nativa)) canvas <- canvas + cowplot::draw_grob(
         tab_draw,
         x = x_tab,
         y = y_tab + (h_tab * 0.5),
@@ -1665,7 +1688,12 @@ graficar_radar <- function(
     # -------------------------------------------------------------------------
     # EXPORT desde CANVAS
     # -------------------------------------------------------------------------
-    if (exportar == "rplot") return(canvas)
+    if (exportar == "rplot") {
+      if (exists("tabla_nativa_datos", inherits = FALSE)) {
+        canvas <- .tabla_nativa_adjuntar(canvas, tabla_nativa_datos, tabla_nativa_estilo)
+      }
+      return(canvas)
+    }
 
     if (is.null(path_salida) || !nzchar(path_salida)) stop("`path_salida` es requerido para exportar.", call. = FALSE)
 

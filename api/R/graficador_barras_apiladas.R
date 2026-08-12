@@ -1688,6 +1688,15 @@ graficar_barras_apiladas <- function(
     gap_grupos_eff <- if (isTRUE(usar_grupos_canvas)) suppressWarnings(as.numeric(canvas_gap_grupos)) else 0
     if (!is.finite(gap_grupos_eff) || is.na(gap_grupos_eff) || gap_grupos_eff < 0) gap_grupos_eff <- 0
     row_step_eff <- if (isTRUE(etiquetas_arriba_si_no_caben)) 1.72 else 1
+    # El hueco entre bloques se mide contra la fila BASE, no contra la inflada.
+    #
+    # `row_step_eff` crece hasta 3,2× cuando hay pocas categorías con etiquetas
+    # de eje largas: eso es para que quepa el texto de la fila. El hueco entre
+    # bloques se multiplicaba por el mismo factor sin que nada suyo lo pidiera,
+    # así que en una multiapilada de pocos bloques y pocas barras los bloques
+    # acababan a tres veces la distancia prevista —el espacio que faltaba luego
+    # a la leyenda, que salía truncada.
+    row_step_gap <- row_step_eff
     if (n_categorias <= 4L && max_lineas_eje_y_est >= 5) {
       row_step_eff <- max(row_step_eff, min(3.20, 1.16 + max_lineas_eje_y_est * 0.28))
     }
@@ -1700,7 +1709,7 @@ graficar_barras_apiladas <- function(
       if (i < n_categorias) {
         grp_i <- cat_layout$.group_id[i] %||% ""
         grp_n <- cat_layout$.group_id[i + 1] %||% ""
-        if (!identical(grp_i, grp_n)) offset_top <- offset_top + gap_grupos_eff * row_step_eff
+        if (!identical(grp_i, grp_n)) offset_top <- offset_top + gap_grupos_eff * row_step_gap
       }
     }
     max_from_top_obs <- if (length(y_from_top)) max(y_from_top) else 0
@@ -3134,7 +3143,9 @@ graficar_barras_apiladas <- function(
         size     = size_titulos_grupo,
         colour   = color_titulos_grupo,
         family = font_family,
-        fontface = "bold"
+        # El multiflag declaraba `titulos_grupo` y aquí la negrita era fija: el
+        # interruptor existía y no hacía nada.
+        fontface = .graficos_face_legado(textos_negrita, "titulos_grupo")
       )
     }
   }
