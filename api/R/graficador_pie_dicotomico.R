@@ -134,6 +134,10 @@ graficar_pie <- function(
 
     # Orden / top-k
     ordenar_categorias = c("ninguno", "desc", "asc", "natural"),
+    # Orden exacto declarado por el analista, por etiqueta. Gana sobre
+    # `ordenar_categorias`: los modos automáticos dependen de los datos, así que
+    # la leyenda cambia de orden entre láminas sin que nadie lo decida.
+    orden_categorias_manual = NULL,
     top_k              = NULL,
     etiqueta_otros     = "Otros",
 
@@ -313,9 +317,10 @@ graficar_pie <- function(
     df <- df_top
   }
 
-  # Orden
-  if (ordenar_categorias == "desc") df <- df |> dplyr::arrange(dplyr::desc(.data$pct))
-  if (ordenar_categorias == "asc")  df <- df |> dplyr::arrange(.data$pct)
+  # Orden. La regla vive en `.pie_orden_categorias()` para poder verificarla sin
+  # renderizar: el manual manda, y los automáticos dependen del dato.
+  df <- df[.pie_orden_categorias(df$categoria, orden_categorias_manual,
+                                 ordenar_categorias, df$pct), , drop = FALSE]
 
   df$categoria <- factor(df$categoria, levels = df$categoria)
 
