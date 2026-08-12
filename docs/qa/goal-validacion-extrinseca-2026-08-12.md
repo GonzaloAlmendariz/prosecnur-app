@@ -1,6 +1,36 @@
 # GOAL — La validación deja de ser un espejo del instrumento
 
-**Abierto:** 2026-08-12 · **Cierra:** solo Gonzalo
+**Abierto:** 2026-08-12 · **Cierra:** solo Gonzalo · **Cadencia:** lote por lote
+
+## Cómo avanza este GOAL
+
+Indefinido y **por lotes**: se trabaja un lote a la vez y **no se abre el
+siguiente hasta que el anterior está validado**. Un lote a medias bloquea la
+cola; no se adelanta trabajo del lote siguiente "ya que estamos".
+
+Un lote está **validado** cuando cumple las cuatro:
+
+1. **Test con control** — el aserto distingue el caso bueno del malo. Si el
+   arreglo no cambiara nada y el test seguiría pasando, no verifica.
+2. **Medido sobre un proyecto real** — número antes y número después, con el
+   proyecto nombrado. No vale "debería funcionar".
+3. **Gate escalado al diff** — suites del área tocada en verde; typecheck si
+   hubo TS.
+4. **Commiteado** como unidad coherente, con su evidencia en el mensaje.
+
+Lo aprendido de un lote —incluido lo que se descubre de lotes que **no** se
+tocaron— se anota antes de cerrarlo. Un hallazgo de propina se vuelve ítem
+nuevo aunque se cierre en el momento.
+
+| Lote | Ítems | Por qué van juntos | Estado |
+|---|---|---|---|
+| **1** | L2 | El más chico y cierra el caso que abrió el GOAL | ☑ validado 2026-08-12 |
+| **2** | L3 + L12 + front de semillas | Sembrar 104 reglas sin distinguir sembrada de manual entierra la pestaña; y lo sembrado en el lote 1 todavía no se ve | ☐ |
+| **3** | L1 + L5 | El rol de agente es la misma declaración que el de identidad | ☐ |
+| **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☐ |
+| **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☐ |
+| **6** | L7 + L8 + L9 | Presentación; **necesita los nombres de los cinco tipos** | ☐ |
+| **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ☐ |
 
 ## La calidad que se persigue
 
@@ -82,14 +112,22 @@ presentación decide qué cuenta y cómo se dice.
 
 ### Capa 2 · Sembrado — la capacidad existe, falta que no sea manual
 
-**L2 · Sembrar procedencia del formulario** ☐
+**L2 · Sembrar procedencia del formulario** ☑ *(lote 1, 2026-08-12)*
 - **Rol**: detector de contexto. Debe correr primero: si parte de la base salió
   de otro formulario, las "inconsistencias" de esos casos pueden ser artefactos.
 - **Objetivo**: que al cargar una base se proponga sola la regla
   `fuera_catalogo` sobre la columna de versión, con la vigente como único valor
   admitido. Hoy funciona, pero solo si alguien sabe que debe escribirla.
-- **Dónde vive**: sembrador sobre `reglas_custom` + rol "versión" declarado
-- **Cubre**: los 6 casos de MDV, causa de las 3 inconsistencias reportadas
+- **Dónde vive**: `api/R/reglas_custom_semilla.R` (archivo nuevo) ·
+  `GET /api/validacion/v2/reglas_custom/semillas`
+- **Evidencia**: `test-reglas-custom-semilla.R`, 23 asserts · gate del área
+  1021 asserts / 0 fallos · sobre `ACNUR MDV AGOSTO`: **0 criterios antes → 1
+  propuesto**, válido contra el schema real, y al compilarlo y evaluarlo marca
+  exactamente `H1006 H1002 H1010 H1030 H1050 H1066`
+- **Control**: la misma base filtrada a una sola versión (98 casos) propone **0**
+- **Falta**: la propuesta existe en la API pero **no se ve en la pestaña** — el
+  front va en el lote 2, junto con L12 que es donde se decide cómo se muestran
+  las sembradas sin enterrar las escritas a mano
 
 **L3 · Sembrar dominio de cada `select_one`** ☐
 - **Rol**: cierra el hueco más elemental —el valor pertenece a su lista— que hoy
@@ -238,6 +276,15 @@ la vara de V5.
   el control operacional `OP_duplicates` (`response_similarity`, busca encuestas
   copiadas) y el **tipo de regla** `duplicados` de Criterios de revisión (tupla
   de llaves, igualdad exacta). El segundo es el que sirve para identidad.
+- **`which.max` sobre texto no ordena: coacciona a número y devuelve NA.** El
+  desempate del sembrador por "envío más reciente" salía vacío. Las marcas de
+  ODK/Kobo son ISO 8601, así que se comparan como texto y el orden lexicográfico
+  ya es el cronológico — parsear fechas ahí obligaría a adivinar zona y formato
+  por plataforma. (Lote 1.)
+- **El proyecto de referencia no basta como control positivo.** MDV tiene 2
+  versiones y por eso se ve el hallazgo; el aserto que de verdad verifica es el
+  negativo: la misma base filtrada a una sola versión debe proponer 0. Sin él,
+  un sembrador que propusiera siempre pasaría igual. (Lote 1.)
 - **Antes de escribir un detector, revisar si ya hay un tipo que lo exprese.**
   Se diseñó una capa entera como motor nuevo y resultó que 4 de 5 hallazgos ya
   se configuran con `fuera_catalogo` y `duplicados`. El trabajo real era
