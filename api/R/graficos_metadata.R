@@ -1875,7 +1875,7 @@
     args = list(
 
       # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra")),
+      .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "eje_y", "valores", "barra_extra")),
 
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
@@ -2109,7 +2109,7 @@
     args = list(
 
       # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra", "titulos_grupo")),
+      .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "eje_y", "valores", "barra_extra", "titulos_grupo")),
 
       list(name = "excluir_opciones", label = "Opciones a ocultar", tipo_input = "codigos_list", grupo = "filtro",
            descripcion = "Etiquetas/códigos que no deben aparecer en el gráfico. Los porcentajes se recalculan sobre las opciones visibles."),
@@ -2283,7 +2283,7 @@
     args = list(
 
       # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "leyenda", "eje_y", "valores", "barra_extra")),
+      .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "eje_y", "valores", "barra_extra")),
 
       # --- Serie y leyenda -----------------------------------------------
       # El `default` tiene que ser el del motor (`graficar_barras_agrupadas`).
@@ -2499,7 +2499,7 @@
     args = list(
 
       # --- Negritas -------------------------------------------------------
-      .arg_textos_negrita(c("titulo", "leyenda", "valores")),
+      .arg_textos_negrita(c("titulo", "subtitulo", "leyenda", "valores")),
 
       list(name = "orientacion",          label = "Orientación",            tipo_input = "choice", grupo = "estilo",
            default = "vertical",
@@ -3300,11 +3300,16 @@
     color_ejes        = .PULSO_PPT_COLORS$azul,
     color_nota_pie    = .PULSO_PPT_COLORS$azul,
 
-    # `titulos_grupo` faltaba y su negrita estaba escrita a fuego en el motor:
-    # el interruptor existía en la UI y no hacía nada, y al cablearlo los
-    # títulos de bloque salían planos porque este default no los nombraba.
-    textos_negrita    = c("titulo", "subtitulo", "leyenda", "barra_extra", "eje_y", "valores",
-                          "titulos_grupo"),
+    # UNA sola regla de negrita para todos los tipos de gráfico: lo que nombra
+    # la lámina y lo que el lector va a citar. Título, subtítulo y las cifras
+    # —`valores` en las barras, `etiquetas` en pie y donut—. Todo lo demás
+    # apagado, y el analista lo enciende si lo necesita.
+    #
+    # Antes cada tipo traía su propio juego y no se parecían: el histograma no
+    # ponía el título en negrita y sí la leyenda, el radar tampoco el título y
+    # sí los ejes, las apiladas seis partes. Nadie lo había decidido así; era
+    # sedimento. Un mazo con nueve tipos de gráfico se leía como nueve mazos.
+    textos_negrita    = c("titulo", "subtitulo", "valores", "etiquetas"),
 
     font_family       = "Arial"
   ),
@@ -3532,7 +3537,6 @@
     size_subtitulo            = 12,
     size_nota_pie             = 12,
     size_ejes                 = 16,
-    textos_negrita            = c("titulo", "valores", "ejes"),
 
     grosor_barras             = 0.76,
     limite_y                  = NULL,
@@ -3612,7 +3616,6 @@
     umbral_etiqueta          = 0.04,
     color_texto_barras       = "white",
     size_texto_barras        = 4.8,
-    textos_negrita           = c("valores", "leyenda"),
     mostrar_eje_y            = TRUE,
     mostrar_leyenda          = TRUE,
     leyenda_posicion         = "abajo",
@@ -3708,7 +3711,6 @@
     size_leyenda             = 10.5,
     size_ejes                = 10.5,
     size_linea               = 1.2,
-    textos_negrita           = c("ejes", "leyenda"),
 
     mostrar_tabla_derecha    = TRUE,
     titulo_tabla             = "Top 2 Box",
