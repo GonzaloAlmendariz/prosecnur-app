@@ -1947,7 +1947,7 @@
            descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros)."),
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Da un ancho mínimo visible a las opciones sin casos, recomprimiendo el resto para que la barra siga sumando 100 %. La cifra rotulada sigue siendo 0 %; combina bien con la frecuencia al lado."),
+           descripcion = "Enseña las opciones que NADIE eligió, con un ancho mínimo visible y recomprimiendo el resto para que la barra siga sumando 100 %. Las que sí tienen casos y redondean a 0 % ya salen siempre, sin este interruptor: perderlas sería perder un dato. La cifra rotulada sigue siendo 0 % y al lado va su frecuencia."),
       list(name = "ocultar_etiquetas_pequenas", label = "Ocultar porcentajes pequeños", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Apagado: se muestran todos los porcentajes. Enciéndelo para esconder los que no llegan al umbral de abajo."),
@@ -2120,7 +2120,7 @@
            descripcion = "Decimales de la cifra sobre la barra. Con 0, un segmento que no llega al 1 % se escribe «<1%» en vez de «0%»."),
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
-           descripcion = "Da un ancho mínimo visible a las opciones sin casos, recomprimiendo el resto para que la barra siga sumando 100 %. La cifra rotulada sigue siendo 0 %; combina bien con la frecuencia al lado."),
+           descripcion = "Enseña las opciones que NADIE eligió, con un ancho mínimo visible y recomprimiendo el resto para que la barra siga sumando 100 %. Las que sí tienen casos y redondean a 0 % ya salen siempre, sin este interruptor: perderlas sería perder un dato. La cifra rotulada sigue siendo 0 % y al lado va su frecuencia."),
       list(name = "ocultar_etiquetas_pequenas", label = "Ocultar porcentajes pequeños", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Apagado: se muestran todos los porcentajes. Enciéndelo para esconder los que no llegan al umbral de abajo."),
@@ -2708,15 +2708,20 @@
       list(name = "size_titulo",          label = "Tamaño título",         tipo_input = "number", grupo = "estilo", default = 13),
       list(name = "subtitulo",            label = "Subtítulo (fijo)",      tipo_input = "string", grupo = "textos"),
       list(name = "nota_pie",             label = "Nota al pie (fija)",    tipo_input = "string", grupo = "textos"),
+      list(name = "umbral_etiqueta_pct", label = "Ocultar porcentajes por debajo de", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 1, step = 0.01, unidad = "proporción",
+           descripcion = "0 muestra todos los porcentajes, que es el comportamiento por defecto. Súbelo para esconder las porciones pequeñas."),
       list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "datos",
            via_overrides = TRUE,
-           descripcion = "Etiquetas en el orden exacto deseado. Manda sobre «Ordenar categorías», cuyos modos automáticos dependen de los datos y hacen que la leyenda cambie de orden entre láminas."),
+           depende = list(arg = "ordenar_categorias", valores = list("manual")),
+           descripcion = "Las etiquetas en el orden exacto que quieres. Los modos automáticos dependen de los datos, así que la leyenda cambia de orden entre láminas; éste no."),
       list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "datos",
            default = "natural",
            choices = list(
              list(value = "natural", label = "Natural (orden del instrumento)"),
              list(value = "asc",     label = "Ascendente (menor → mayor)"),
-             list(value = "desc",    label = "Descendente (mayor → menor)")
+             list(value = "desc",    label = "Descendente (mayor → menor)"),
+             list(value = "manual",  label = "Manual (lo ordenas tú)")
            )),
 
       # --- Canvas --------------------------------------------------------

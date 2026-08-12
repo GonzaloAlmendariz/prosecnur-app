@@ -29,7 +29,14 @@
 
   om <- as.character(orden_manual %||% character(0))
   om <- om[!is.na(om) & nzchar(om)]
-  if (length(om)) {
+  # El modo manda. Que el orden declarado ganara con `modo = "asc"` dejaba al
+  # analista con «Ascendente» marcado viendo un orden que no era ascendente:
+  # dos controles compitiendo y uno de ellos silencioso.
+  #
+  # Compatibilidad: un proyecto guardado antes de que «Manual» fuera un modo
+  # trae la declaración sin él. Ahí se respeta, porque borrarle el orden al
+  # reabrir sería peor que la incoherencia que esto viene a evitar.
+  if (length(om) && (identical(modo, "manual") || !modo %in% c("asc", "desc"))) {
     # Las categorías no listadas van al final, en su orden original: una
     # declaración incompleta no puede hacer desaparecer nada.
     return(order(match(as.character(categorias), om, nomatch = length(om) + 1L), idx))

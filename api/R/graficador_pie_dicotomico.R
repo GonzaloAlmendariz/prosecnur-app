@@ -121,7 +121,10 @@ graficar_pie <- function(
     color_etiquetas_pct   = "#FFFFFF",
     etiquetas_negrita     = FALSE,
     decimales_pct         = 0,
-    umbral_etiqueta_pct   = 0.06,
+    # Sin umbral por defecto: el porcentaje se muestra siempre. El 0.06 escondía
+    # toda porción por debajo del 6 % sin que nadie lo pidiera —el mismo criterio
+    # que se retiró en las barras—. Quien quiera esconder las pequeñas, lo sube.
+    umbral_etiqueta_pct   = 0,
 
     # Radio relativo del texto dentro del grosor disponible (0–1):
     # - PIE: entre centro y borde
@@ -133,7 +136,7 @@ graficar_pie <- function(
     nudge_radial_etiqueta = 0,
 
     # Orden / top-k
-    ordenar_categorias = c("ninguno", "desc", "asc", "natural"),
+    ordenar_categorias = c("ninguno", "desc", "asc", "natural", "manual"),
     # Orden exacto declarado por el analista, por etiqueta. Gana sobre
     # `ordenar_categorias`: los modos automáticos dependen de los datos, así que
     # la leyenda cambia de orden entre láminas sin que nadie lo decida.
