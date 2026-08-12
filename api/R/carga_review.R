@@ -149,6 +149,28 @@
   )
 }
 
+# Traduce el hecho crudo a lo que la vista necesita mostrar. Devuelve NULL
+# cuando no hay nada que avisar, para que el front no tenga que decidirlo.
+.carga_review_procedencia <- function(data) {
+  det <- tryCatch(detectar_versiones_formulario(data), error = function(e) NULL)
+  if (is.null(det)) return(NULL)
+  list(
+    columna = det$columna,
+    n_versiones = as.integer(det$n_versiones),
+    n_casos_afectados = as.integer(det$n_casos_afectados),
+    n_casos = as.integer(det$n_casos),
+    version_vigente = det$vigente,
+    versiones = det$versiones,
+    mensaje = sprintf(
+      paste("%d de %d casos se recolectaron con una versión anterior del formulario.",
+            "Sus saltos y catálogos eran otros, así que lo que Validación reporte",
+            "sobre ellos puede ser un artefacto de versión. Si el campo sigue abierto,",
+            "conviene confirmar que todos hayan actualizado el formulario."),
+      det$n_casos_afectados, det$n_casos
+    )
+  )
+}
+
 .carga_review_payload <- function(sid, base_nombre = NULL) {
   pair <- .carga_normalized_data_for_export(sid, base_nombre = base_nombre)
   s <- session_get(sid)
@@ -166,11 +188,19 @@
     scoped$revisadas
   )
 
+  # Procedencia: si la base se recolectó con más de una versión del formulario,
+  # se avisa acá y no solo en Validación. En Validación la base ya está armada;
+  # en Carga todavía se puede parar el campo y hacer que actualicen el
+  # formulario antes de seguir encuestando. NO entra en `ready`: es una
+  # advertencia sobre cómo se recolectó, no un impedimento para cargar.
+  procedencia <- .carga_review_procedencia(pair$data)
+
   list(
     base_nombre = pair$base_nombre,
     compatibility = compatibility,
     choice_mapping = choice_mapping,
     reconciliation = reconciliation,
+    procedencia = procedencia,
     ready = isTRUE(compatibility$ok) &&
       !isTRUE(choice_mapping$requires_confirmation) &&
       !isTRUE(choice_mapping$pending) &&
