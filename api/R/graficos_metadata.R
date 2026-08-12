@@ -2717,10 +2717,10 @@
       list(name = "umbral_etiqueta_pct", label = "Ocultar porcentajes por debajo de", tipo_input = "number", grupo = "valores",
            default = 0, min = 0, max = 1, step = 0.01, unidad = "proporción",
            descripcion = "0 muestra todos los porcentajes, que es el comportamiento por defecto. Súbelo para esconder las porciones pequeñas."),
-      list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "datos",
-           via_overrides = TRUE,
-           depende = list(arg = "ordenar_categorias", valores = list("manual")),
-           descripcion = "Las etiquetas en el orden exacto que quieres. Los modos automáticos dependen de los datos, así que la leyenda cambia de orden entre láminas; éste no."),
+      # El selector va PRIMERO y el editor manual detrás: el editor es el
+      # cuerpo de uno de los modos, y leerlo antes de saber que existe el modo
+      # deja al analista con una lista que no sabe si aplica. El orden de esta
+      # lista es el orden en el que el inspector los pinta.
       list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "datos",
            default = "natural",
            choices = list(
@@ -2729,6 +2729,10 @@
              list(value = "desc",    label = "Descendente (mayor → menor)"),
              list(value = "manual",  label = "Manual (lo ordenas tú)")
            )),
+      list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "datos",
+           via_overrides = TRUE,
+           depende = list(arg = "ordenar_categorias", valores = list("manual")),
+           descripcion = "Las etiquetas en el orden exacto que quieres. Los modos automáticos dependen de los datos, así que la leyenda cambia de orden entre láminas; éste no."),
 
       # --- Canvas --------------------------------------------------------
       list(name = "canvas_h_title",         label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas", default = 0.08),
@@ -2764,6 +2768,24 @@
            )),
       list(name = "donut_hole",           label = "Tamaño del hueco",      tipo_input = "number", grupo = "estilo", default = 0.60,
            descripcion = "Fracción del radio ocupada por el hueco central. 0 = pie, 0.4 = donut grueso, 0.7 = donut fino."),
+
+      # El donut hereda del pie en el MOTOR, no en la UI: el payload que arma
+      # el inspector (`.presets_metadata_payload()`) sirve los args propios de
+      # cada preset sin buscar padre. Sin estas dos líneas el donut no tenía
+      # ningún control de orden — ni siquiera para ver el modo que el proyecto
+      # ya trae guardado.
+      list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "datos",
+           default = "natural",
+           choices = list(
+             list(value = "natural", label = "Natural (orden del instrumento)"),
+             list(value = "asc",     label = "Ascendente (menor → mayor)"),
+             list(value = "desc",    label = "Descendente (mayor → menor)"),
+             list(value = "manual",  label = "Manual (lo ordenas tú)")
+           )),
+      list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "datos",
+           via_overrides = TRUE,
+           depende = list(arg = "ordenar_categorias", valores = list("manual")),
+           descripcion = "Las etiquetas en el orden exacto que quieres. Los modos automáticos dependen de los datos, así que la leyenda cambia de orden entre láminas; éste no."),
       list(name = "leyenda_posicion",     label = "Posición leyenda",      tipo_input = "choice", grupo = "estilo",
            default = "derecha",
            choices = list(

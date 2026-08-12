@@ -1581,6 +1581,51 @@ test_that("orden_categorias_manual se sirve marcado como via_overrides", {
   expect_true(isTRUE(servidos[[j]]$via_overrides))
 })
 
+# El inspector pinta los args de un grupo en el orden en que el registro los
+# declara —dentro de un grupo no hay ningún `sort`—, así que ese orden es la
+# lectura. El editor manual salía ANTES del selector que lo habilita: una lista
+# de etiquetas para reordenar antes de saber que existe un modo que la usa.
+
+test_that("el selector de orden va antes que su editor manual", {
+  posiciones <- function(args, modo) {
+    nm <- vapply(args, function(a) as.character(a$name), character(1))
+    c(modo = match(modo, nm), manual = match("orden_categorias_manual", nm))
+  }
+  casos <- list(
+    list(args = .PRESETS_META$pie$args,                       modo = "ordenar_categorias"),
+    list(args = .PRESETS_META$donut$args,                     modo = "ordenar_categorias"),
+    list(args = .GRAFICADORES_META$p_barras_agrupadas$args,   modo = "orden_barras")
+  )
+  for (caso in casos) {
+    p <- posiciones(caso$args, caso$modo)
+    # El control: si alguno de los dos faltara, `match` daría NA y la
+    # comparación pasaría vacía en vez de fallar.
+    expect_false(anyNA(p))
+    expect_lt(p[["modo"]], p[["manual"]])
+  }
+})
+
+test_that("todo editor manual declara de qué modo depende", {
+  # La primera versión de esto dejó una de las dos declaraciones sin
+  # dependencia y el conflicto siguió vivo en barras agrupadas. Se cuenta, no
+  # se mira.
+  con_editor <- list()
+  for (reg in list(.PRESETS_META, .GRAFICADORES_META)) {
+    for (nm in names(reg)) {
+      args <- reg[[nm]]$args %||% list()
+      nombres <- vapply(args, function(a) as.character(a$name %||% ""), character(1))
+      i <- match("orden_categorias_manual", nombres)
+      if (!is.na(i)) con_editor[[nm]] <- args[[i]]
+    }
+  }
+  expect_gt(length(con_editor), 0L)
+  for (nm in names(con_editor)) {
+    dep <- con_editor[[nm]]$depende
+    expect_false(is.null(dep), info = paste(nm, "declara el editor manual sin dependencia"))
+    expect_true(identical(as.character(unlist(dep$valores)), "manual"), info = nm)
+  }
+})
+
 test_that("la premisa de la marca sigue siendo cierta", {
   # Si algún día el constructor acepta el arg directamente, la marca sobra y
   # este test avisa en vez de dejar una indirección sin motivo.
