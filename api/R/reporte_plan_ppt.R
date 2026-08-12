@@ -551,6 +551,17 @@ reporte_ppt_plan <- function(
         newlabel = spec$ph_label %||% "",
         rotation = as.numeric(explicit_loc$rotation %||% 0)
       )
+      # Un `ph_location()` por coordenadas emite `<p:ph/>` VACÍO. PowerPoint no
+      # lo resuelve y hereda las propiedades de texto del ancestro que le toque:
+      # en «Objetivos_Secciones» le tocaba el título, que es vertical, y el
+      # párrafo del objetivo salía girado. LibreOffice lo resolvía a horizontal,
+      # así que la cadena de PDF nunca lo enseñó — sólo se vio exportando con
+      # PowerPoint de verdad.
+      #
+      # Con `ph_xml` declarado en el contrato se escribe el placeholder real y
+      # el texto hereda de quien debe. Sólo donde se declara: los demás slots
+      # llevan imágenes, que no heredan propiedades de párrafo.
+      if (!is.null(spec$ph_xml)) loc$ph <- spec$ph_xml
       target_loc <- loc
     } else {
       props <- officer::layout_properties(
