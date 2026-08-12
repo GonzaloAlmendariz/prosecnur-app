@@ -5243,13 +5243,11 @@ reporte_ppt_plan <- function(
           group_title <- as.character(group_title)[1]
           if (!nzchar(trimws(group_title))) group_title <- group_id
           if (requireNamespace("stringr", quietly = TRUE)) {
-            # El wrap tiene que seguir al ancho de la columna, o no sirve de
-            # nada ensancharla. El 0.36 estaba calibrado contra
-            # `canvas_w_grupo = 0.13`; al subir la columna a 0.22 el texto
-            # seguia envolviendose igual —medido: la lamina 66 se ensancho y el
-            # enunciado no cambio ni una linea—. El factor escala con ella:
-            # 0.36 * (0.22 / 0.13).
-            group_title <- stringr::str_wrap(group_title, width = max(10, floor(wrap_y_eff * 0.61)))
+            # B43/G-21: la columna de tema del layout multiactor es angosta
+            # (canvas_w_grupo = 0.13 del ancho); el wrap de 0.8*wrap_y (~40
+            # chars) producia lineas que se clippeaban en el borde. Se envuelve
+            # a lo que la columna realmente sostiene (~18 chars con el default).
+            group_title <- stringr::str_wrap(group_title, width = max(10, floor(wrap_y_eff * 0.36)))
           }
 
           filas_var <- 0L
