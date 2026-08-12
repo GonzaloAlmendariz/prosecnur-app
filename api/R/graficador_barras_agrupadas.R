@@ -1220,7 +1220,7 @@ graficar_barras_agrupadas <- function(
         color = color_subtitulo,
         size  = size_subtitulo,
         family = font_family,
-        face  = face_subtitulo %||% "italic"
+        face  = .graficos_face_subtitulo(textos_negrita, face_subtitulo)
       ),
       plot.caption       = ggplot2::element_text(
         hjust = hjust_caption,
@@ -1556,7 +1556,7 @@ graficar_barras_agrupadas <- function(
         size     = size_subtitulo,
         colour   = color_subtitulo,
         family = font_family,
-        fontface = face_subtitulo %||% "italic"
+        fontface = .graficos_face_subtitulo(textos_negrita, face_subtitulo)
       )
     }
 

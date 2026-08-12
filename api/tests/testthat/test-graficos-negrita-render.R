@@ -79,7 +79,35 @@ test_that("apiladas: el título no arrastra al subtítulo", {
 
   con_sub <- .caras_de(dibujar("subtitulo"), MARCAS)
   expect_equal(con_sub[["MITITULO"]], "plain")
-  expect_equal(con_sub[["MISUBTITULO"]], "bold")
+  # La negrita se SUMA a la cursiva de fábrica en vez de sustituirla: pedir una
+  # cosa no puede cambiar dos. Antes salía "bold" y el subtítulo perdía su
+  # cursiva sin que nadie lo pidiera.
+  expect_equal(con_sub[["MISUBTITULO"]], "bolditalic")
+})
+
+test_that("agrupadas: el interruptor del subtítulo existe y hace algo", {
+  # En agrupadas la cara salía SIEMPRE de `face_subtitulo` y `textos_negrita` ni
+  # se consultaba: el mando estaba muerto. Es el único graficador con cursiva de
+  # fábrica además de apiladas, así que aquí es donde se nota.
+  df <- data.frame(categoria = c("A", "B"), N = c(50L, 50L),
+                   pct_1 = c(0.4, 0.6), stringsAsFactors = FALSE)
+  dibujar <- function(tn) graficar_barras_agrupadas(
+    df, var_categoria = "categoria", var_n = "N", cols_porcentaje = "pct_1",
+    etiquetas_series = c(pct_1 = "S"), usar_canvas = TRUE,
+    titulo = "MITITULO", subtitulo = "MISUBTITULO", textos_negrita = tn)
+
+  expect_equal(.caras_de(dibujar("subtitulo"), MARCAS)[["MISUBTITULO"]], "bolditalic")
+  # El control: sin pedirlo, conserva la cursiva y no se vuelve negrita sola.
+  expect_equal(.caras_de(dibujar("titulo"), MARCAS)[["MISUBTITULO"]], "italic")
+})
+
+test_that("la cara del subtítulo suma, no sustituye", {
+  expect_equal(.graficos_face_subtitulo("subtitulo", "italic"), "bold.italic")
+  # Sin cursiva de fábrica, negrita a secas.
+  expect_equal(.graficos_face_subtitulo("subtitulo", "plain"), "bold")
+  # Y el control: sin pedirla, la cara de fábrica no se toca.
+  expect_equal(.graficos_face_subtitulo("titulo", "italic"), "italic")
+  expect_equal(.graficos_face_subtitulo(NULL, "italic"), "italic")
 })
 
 test_that("la sonda mide algo: sin marcas no encuentra nada", {

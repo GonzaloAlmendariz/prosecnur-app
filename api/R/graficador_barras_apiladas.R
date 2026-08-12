@@ -2987,7 +2987,7 @@ graficar_barras_apiladas <- function(
         size  = size_subtitulo,
         colour= color_subtitulo,
         family = font_family,
-        fontface = if ("subtitulo" %in% textos_negrita) "bold" else face_subtitulo
+        fontface = .graficos_face_subtitulo(textos_negrita, face_subtitulo)
       )
     }
 
