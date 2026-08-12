@@ -161,7 +161,12 @@ test_that("barras agrupadas pueden informar la base valida de cada grupo", {
   )
 })
 
-test_that("composiciones de dos columnas ocultan etiquetas apiladas sin espacio", {
+# Este test afirmaba que una composición de dos columnas inyectaba sola
+# `umbral_ocultar_etiqueta = 0.15`. Ese automatismo se retiró: el analista pedía
+# todos los porcentajes y el motor escondía las porciones pequeñas sin decirlo.
+# Ahora el umbral es un ajuste apagado por defecto, así que lo que se comprueba
+# es lo contrario — que la composición NO lo enciende sola.
+test_that("una composición de dos columnas no esconde porcentajes por su cuenta", {
   fx <- make_plan_ppt_fixture()
   plan <- p_plan(slides = list(
     p_slide_2_graficos_narrativo(
@@ -183,7 +188,7 @@ test_that("composiciones de dos columnas ocultan etiquetas apiladas sin espacio"
   expect_length(out$rendered, 2L)
   expect_equal(
     vapply(out$rendered, attr, numeric(1), which = "pulso_umbral_ocultar_etiqueta"),
-    c(0.15, 0.15)
+    c(0, 0)
   )
 })
 

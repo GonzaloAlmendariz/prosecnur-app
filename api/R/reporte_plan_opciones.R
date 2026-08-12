@@ -175,33 +175,13 @@
   }, integer(1))
 }
 
+#' Compatibilidad: la versión con el prefijo «OE» escrito a mano.
+#'
+#' La regla generalista vive en `reporte_plan_prefijo_grupos.R`; esto queda
+#' como envoltorio para no romper llamadas externas.
 #' @noRd
 .reporte_plan_prefix_oe_labels <- function(labels, refs = NULL) {
-  nms <- names(labels)
-  labels <- .reporte_plan_clean_chr(labels)
-  if (!length(labels)) return(labels)
-
-  ref_nums <- .reporte_plan_oe_numbers_from_refs(refs %||% names(labels) %||% character(0))
-  use_ref_nums <- length(ref_nums) == length(labels) &&
-    all(!is.na(ref_nums)) &&
-    !anyDuplicated(ref_nums)
-
-  out <- labels
-  for (i in seq_along(out)) {
-    lab <- out[i]
-    if (!nzchar(lab)) next
-    m <- regexec("^\\s*OE\\s*([0-9]+)\\s*[:.-]\\s*(.*)$", lab, ignore.case = TRUE, perl = TRUE)
-    got <- regmatches(lab, m)[[1]]
-    if (length(got) == 3L) {
-      rest <- trimws(got[3])
-      out[i] <- paste0("OE ", got[2], ": ", rest)
-    } else {
-      n_oe <- if (use_ref_nums) ref_nums[[i]] else i
-      out[i] <- paste0("OE ", n_oe, ": ", lab)
-    }
-  }
-  if (!is.null(nms) && length(nms) == length(out)) names(out) <- nms
-  out
+  .prefijo_grupos_aplicar(labels, "OE", refs = refs)
 }
 
 #' @noRd

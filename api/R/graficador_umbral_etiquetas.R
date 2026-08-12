@@ -19,15 +19,22 @@
 
 #' Umbral por debajo del cual NO se dibuja la etiqueta.
 #'
-#' @param ocultar_pequenas Interruptor del analista. Apagado por defecto.
-#' @param umbral Umbral declarado, en proporción (0.15 = 15 %). Sólo se usa
-#'   cuando el interruptor está encendido.
-#' @return `0` con el interruptor apagado —se dibuja todo valor positivo— o el
-#'   umbral declarado cuando está encendido.
+#' **El umbral es el interruptor.** La primera versión de esto exigía además un
+#' bool `ocultar_etiquetas_pequenas`, y entonces declarar `0.15` no hacía nada
+#' hasta encender un segundo control — dos mandos para una decisión, con el
+#' silencioso ganando. Un test que pasaba el umbral explícito lo delató: salían
+#' las seis etiquetas. Como el valor por defecto ya es `0`, no hace falta nada
+#' más para que «se muestran todos» sea el comportamiento de fábrica.
+#'
+#' @param ocultar_pequenas Interruptor heredado. Se conserva por los proyectos
+#'   que lo tengan guardado, pero apagarlo ya no anula un umbral declarado: si
+#'   alguien escribió 15 %, quiso 15 %.
+#' @param umbral Umbral declarado, en proporción (0.15 = 15 %).
+#' @return El umbral cuando es un número positivo; `0` en cualquier otro caso,
+#'   que dibuja todo valor por encima de cero.
 #' @keywords internal
-.barras_umbral_ocultar_efectivo <- function(ocultar_pequenas, umbral) {
-  if (!isTRUE(ocultar_pequenas)) return(0)
+.barras_umbral_ocultar_efectivo <- function(ocultar_pequenas = FALSE, umbral = 0) {
   u <- suppressWarnings(as.numeric(umbral)[1])
-  if (!is.finite(u) || is.na(u) || u < 0) return(0)
+  if (!is.finite(u) || is.na(u) || u <= 0) return(0)
   u
 }

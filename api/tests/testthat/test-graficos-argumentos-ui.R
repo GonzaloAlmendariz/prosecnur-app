@@ -1242,7 +1242,10 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
     cols_porcentaje = c("pct_1", "pct_2", "pct_3"),
     etiquetas_grupos = c(pct_1 = "Bajo", pct_2 = "Medio", pct_3 = "Alto"),
     mostrar_valores = TRUE, etiquetas_uniformes = TRUE,
-    umbral_ocultar_etiqueta = 0.035, decimales = 0
+    # Sin umbral: 0 es el valor de fábrica y significa mostrarlo todo. Antes
+    # decía 0.035 y el caso se llamaba «sin ocultar» igual, porque hacía falta
+    # un bool aparte para que el umbral surtiera efecto. Ya no.
+    umbral_ocultar_etiqueta = 0, decimales = 0
   )
   labs_sin_ocultar <- unlist(lapply(
     Filter(function(layer) inherits(layer$geom, "GeomText"), p_apiladas_sin_ocultar$layers),
