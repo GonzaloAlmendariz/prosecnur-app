@@ -117,12 +117,16 @@
 #' @param decimales Numero de decimales para etiquetas no enteras.
 #' @param umbral_etiqueta Umbral minimo (en escala 0-1) para mostrar una etiqueta.
 #'   Valores menores se ocultan.
-#' @param mostrar_ceros Si `TRUE`, conserva categorias con porcentaje 0 y
+#' @param mostrar_ceros Si `TRUE`, conserva las categorias que NADIE eligio y
 #'   muestra su etiqueta `0%` cerca del origen. Es util cuando se requiere que
-#'   todas las opciones formales del instrumento aparezcan en el grafico.
+#'   todas las opciones formales del instrumento aparezcan en el grafico. Las
+#'   que si tienen casos y redondean a 0 % se conservan siempre, sin necesidad
+#'   de este interruptor: perderlas seria perder un dato.
 #' @param minimo_cero_visual Longitud exclusivamente grafica, en escala 0-1,
-#'   para una barra cuyo valor real es exactamente cero. El dato, la etiqueta,
-#'   el orden y la escala conservan el valor `0`. Por defecto no se aplica.
+#'   para una barra que se rotula 0 %. El dato, la etiqueta, el orden y la
+#'   escala conservan el valor real. Sin declararlo se usa el piso compartido
+#'   `.BARRAS_PISO_CERO` para las barras que tienen casos detras; las vacias
+#'   solo reciben piso si se declara.
 #' @param umbral_posicion Umbral (en escala 0-1) para decidir si la etiqueta se coloca
 #'   dentro de la barra (mitad de la altura) o fuera (por encima).
 #' @param sufijo_etiqueta Texto adicional al final de cada etiqueta (por ejemplo, `" pp"`).
@@ -331,7 +335,7 @@ graficar_barras_agrupadas <- function(
 
 	    mostrar_leyenda           = TRUE,
 	    leyenda_posicion          = c("abajo", "arriba", "derecha", "izquierda", "ninguna"),
-	    orden_barras              = c("instrumento", "mayor_menor", "menor_mayor"),
+	    orden_barras              = c("instrumento", "mayor_menor", "menor_mayor", "manual"),
 	    orden_categorias_manual   = NULL,
 	    max_categorias            = NULL,
 	    agrupar_resto_en_otros    = TRUE,
@@ -443,6 +447,10 @@ graficar_barras_agrupadas <- function(
   mostrar_ceros   <- isTRUE(mostrar_ceros)
   minimo_cero_visual <- suppressWarnings(as.numeric(minimo_cero_visual)[1])
   if (!is.finite(minimo_cero_visual) || minimo_cero_visual < 0) minimo_cero_visual <- 0
+  # Se sanea una vez y no dos: el piso de los ceros y la etiqueta tienen que
+  # redondear con la misma resolución para no discrepar sobre qué es 0 %.
+  decimales_eff <- suppressWarnings(as.numeric(decimales)[1])
+  if (!is.finite(decimales_eff) || decimales_eff < 0) decimales_eff <- 1
 
   # canvas: solo horizontal (por diseno de placeholders por filas)
   if (isTRUE(usar_canvas) && orientacion != "horizontal") {
@@ -636,11 +644,29 @@ graficar_barras_agrupadas <- function(
     df_long$.n_label_val <- suppressWarnings(as.numeric(df_long[[var_n]]) * df_long$.valor_raw_plot)
   }
 
+  # Un 0 % con casos detrás y un 0 % vacío no son la misma decisión, aunque en
+  # el gráfico se escriban igual. Los distingue la frecuencia, no el porcentaje.
+  # Perder el caso que redondea a cero es un dato perdido y no un estilo, así
+  # que su piso no depende del interruptor; enseñar la categoría que nadie
+  # eligió sí es decisión de lámina y la sigue gobernando `mostrar_ceros`. Sin
+  # frecuencias no hay con qué distinguirlos y manda el interruptor.
+  cero_rotulado <- .barras_cero_rotulado(df_long$.valor_plot, decimales_eff)
+  df_long$.cero_con_casos <- if (".n_label_val" %in% names(df_long)) {
+    n_real <- suppressWarnings(as.numeric(df_long$.n_label_val))
+    cero_rotulado & !is.na(n_real) & is.finite(n_real) & n_real > 0
+  } else {
+    rep(FALSE, nrow(df_long))
+  }
+
   # Suprimir barras por debajo de umbral_barra. Cuando `mostrar_ceros = TRUE`,
   # los ceros se conservan para mantener la opcion visible en el eje.
   if (!is.null(umbral_barra) && is.numeric(umbral_barra) && is.finite(umbral_barra) && umbral_barra > 0) {
     mask_baja <- !is.na(df_long$.valor_plot) & df_long$.valor_plot < umbral_barra
     if (mostrar_ceros) mask_baja <- mask_baja & df_long$.valor_plot > 0
+    # El umbral existe para que no queden astillas ilegibles, y el piso resuelve
+    # eso mejor: la barra que se rotula 0 % y tiene casos se queda, con ancho
+    # visible. Suprimirla aquí borraría el caso del gráfico y de su recuento.
+    mask_baja <- mask_baja & !df_long$.cero_con_casos
     df_long$.valor_plot[mask_baja] <- NA_real_
 
     cats_keep <- df_long |>
@@ -657,11 +683,17 @@ graficar_barras_agrupadas <- function(
   # Mantener el cero como dato y reservar una longitud mínima solo para el
   # dibujo. Ningún cálculo, etiqueta u orden usa `.valor_dibujo`.
   df_long$.valor_dibujo <- df_long$.valor_plot
-  zero_real <- mostrar_ceros &
-    is.finite(df_long$.valor_raw_plot) &
-    df_long$.valor_raw_plot == 0
-  if (minimo_cero_visual > 0) {
-    df_long$.valor_dibujo[zero_real] <- minimo_cero_visual
+  # El piso va a lo que se rotula 0 %, no solo a lo que vale cero exacto: un
+  # caso entre 209 es 0,48 %, se rotula «0 %» y se dibuja como una astilla que
+  # el lector no distingue de la categoría vacía.
+  zero_real <- .barras_cero_rotulado(df_long$.valor_plot, decimales_eff) &
+    (mostrar_ceros | df_long$.cero_con_casos)
+  piso_cero <- if (minimo_cero_visual > 0) minimo_cero_visual else .BARRAS_PISO_CERO
+  if (any(zero_real)) {
+    # `pmax`: el piso es un mínimo, no un valor. Una barra que ya pasa del piso
+    # y aun así se rotula 0 % no debe encogerse para alcanzarlo.
+    df_long$.valor_dibujo[zero_real] <- pmax(
+      df_long$.valor_plot[zero_real], piso_cero, na.rm = TRUE)
   }
 
   # orden series
@@ -673,9 +705,11 @@ graficar_barras_agrupadas <- function(
 		  cat_chr  <- as.character(df_long[[var_categoria]])
 		  cat_lvls <- unique(cat_chr)
 		  cat_lvls_instrumento <- cat_lvls
-  orden_manual_chr <- if (!is.null(orden_categorias_manual)) as.character(orden_categorias_manual) else character(0)
-  orden_manual_chr <- orden_manual_chr[!is.na(orden_manual_chr) & nzchar(orden_manual_chr)]
-  if (length(orden_manual_chr)) {
+  orden_manual_chr <- .orden_manual_etiquetas(orden_categorias_manual)
+  # «Manual» es un modo de `orden_barras`, no un control paralelo: ver
+  # `graficador_orden_manual.R`. Antes el orden declarado ganaba siempre y el
+  # analista podía tener «Mayor a menor» marcado viendo otra cosa.
+  if (.orden_manual_manda(orden_manual_chr, orden_barras, c("mayor_menor", "menor_mayor"))) {
     # Orden explicito provisto por el analista (ej. "estas categorias
     # primero, el resto despues"). Se toma tal cual - a diferencia de
     # `orden_barras`, esto NO se reordena luego por `otros_al_final`, ya
@@ -837,8 +871,7 @@ graficar_barras_agrupadas <- function(
 
     df_lab <- df_long
 
-    dec <- suppressWarnings(as.numeric(decimales))
-    if (!is.finite(dec) || dec < 0) dec <- 1
+    dec <- decimales_eff
 
     # Se redondea PRIMERO con la regla de la casa (el 0,5 sube) y recién
     # después se decide si la cifra es entera. Hacerlo al revés dejaba el
@@ -860,7 +893,21 @@ graficar_barras_agrupadas <- function(
     } else {
       lab_base[mask_zero] <- NA_character_
     }
-    lab_base[!mask_zero & !is.na(df_lab$.valor_plot) & df_lab$.valor_plot < umbral_etiqueta] <- NA_character_
+    # Lo que se rotula 0 % y tiene casos lleva barra con piso, así que también
+    # lleva cifra: una barra visible sin número no dice nada, y el umbral la
+    # dejaría muda justo donde el lector necesita leer el caso que hay detrás.
+    cero_con_casos_lab <- if (".cero_con_casos" %in% names(df_lab)) {
+      as.logical(df_lab$.cero_con_casos)
+    } else {
+      rep(FALSE, nrow(df_lab))
+    }
+    cero_con_casos_lab[is.na(cero_con_casos_lab)] <- FALSE
+    con_piso <- .barras_cero_rotulado(df_lab$.valor_plot, dec) &
+      (mostrar_ceros | cero_con_casos_lab)
+    lab_base[con_piso & is.na(lab_base)] <- "0%"
+    bajo_umbral <- !mask_zero & !con_piso & !is.na(df_lab$.valor_plot) &
+      df_lab$.valor_plot < umbral_etiqueta
+    lab_base[bajo_umbral] <- NA_character_
     lab_base[is.na(df_lab$.valor_plot)]                                         <- NA_character_
 
     df_lab$lab <- ifelse(!is.na(lab_base), paste0(lab_base, sufijo_etiqueta), "")
