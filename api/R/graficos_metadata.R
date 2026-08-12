@@ -3300,7 +3300,11 @@
     color_ejes        = .PULSO_PPT_COLORS$azul,
     color_nota_pie    = .PULSO_PPT_COLORS$azul,
 
-    textos_negrita    = c("titulo", "subtitulo", "leyenda", "barra_extra", "eje_y", "valores"),
+    # `titulos_grupo` faltaba y su negrita estaba escrita a fuego en el motor:
+    # el interruptor existía en la UI y no hacía nada, y al cablearlo los
+    # títulos de bloque salían planos porque este default no los nombraba.
+    textos_negrita    = c("titulo", "subtitulo", "leyenda", "barra_extra", "eje_y", "valores",
+                          "titulos_grupo"),
 
     font_family       = "Arial"
   ),

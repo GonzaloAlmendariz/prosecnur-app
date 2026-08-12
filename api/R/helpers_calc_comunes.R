@@ -298,6 +298,37 @@ calc_bool <- function(x, default = FALSE) {
   default
 }
 
+# Reparto por resto mayor: convierte proporciones de UNA fila en unidades
+# enteras que suman exactamente 100 % a la resolución pedida.
+#
+# Vive aquí porque tiene dos clientes que no pueden discrepar: la etiqueta, que
+# rotula el resultado, y el piso de ancho de las categorías en cero, que decide
+# a quién se lo aplica. Si cada uno decidiera por su cuenta qué redondea a cero,
+# habría segmentos rotulados «0 %» sin piso y segmentos con piso rotulados
+# «1 %», que es justo la incoherencia que el piso viene a evitar.
+.pulso_pct_unidades_exactas <- function(p, dec = 0) {
+  dec <- suppressWarnings(as.integer(dec)[1])
+  if (!is.finite(dec) || dec < 0) dec <- 0L
+  p <- suppressWarnings(as.numeric(p))
+  p[is.na(p) | !is.finite(p)] <- 0
+
+  s <- sum(p)
+  if (s <= 0) return(rep.int(0L, length(p)))
+  p <- p / s
+
+  target_units <- as.integer(100L * 10^dec)
+  x_units <- p * target_units
+  base <- floor(x_units)
+  resto <- target_units - sum(base)
+
+  if (resto > 0L) {
+    frac <- x_units - base
+    idx <- order(frac, decreasing = TRUE)
+    base[idx[seq_len(resto)]] <- base[idx[seq_len(resto)]] + 1L
+  }
+  as.integer(base)
+}
+
 # Porcentaje de un segmento apilado, en unidades enteras del reparto por resto
 # mayor. `dec` es la resolución pedida: 0 -> unidades de 1 %, 1 -> de 0,1 %.
 #

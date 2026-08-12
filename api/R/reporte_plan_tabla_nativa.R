@@ -1,106 +1,127 @@
 # =============================================================================
-# reporte_plan_tabla_nativa.R — la tabla de apoyo sale del canvas
+# reporte_plan_tabla_nativa.R — una tabla es una tabla, y va nativa (ADR 0072)
 # =============================================================================
 #
-# ADR 0072: toda tabla del entregable se emite nativa. La de apoyo del radar se
-# dibujaba dentro del canvas de ggplot, y el coste estaba a la vista en su
-# propia API —`tabla_padding_mm`, `tabla_auto_fit`, `tabla_fit_pad`,
-# `tabla_clip`…— una veintena de parámetros para resolver a mano lo que un motor
-# de tablas resuelve solo.
+# La tabla de apoyo del radar se dibujaba DENTRO del canvas de ggplot, como una
+# imagen. El coste está a la vista en su propia API: `tabla_padding_mm`,
+# `tabla_firstcol_wrap`, `tabla_auto_fit`, `tabla_fit_pad`, `tabla_clip`… una
+# veintena de parámetros que existen para resolver a mano lo que un motor de
+# tablas resuelve solo. Y el resultado no es texto: no se busca, no se copia, no
+# se corrige en PowerPoint y no escala con el placeholder.
 #
-# El reparto es el de siempre: el gráfico a la izquierda y la tabla a su
-# derecha. Lo que cambia es que ya no comparten canvas, así que la tabla deja de
-# encoger cuando el radar encoge, que era la razón de que su letra cayera por
-# debajo de lo legible.
+# El ADR 0071 —los CHARTS van como formas, no como gráficos nativos— no aplica:
+# su razón es que PowerPoint centra cada etiqueta en su segmento y no la mueve,
+# lo que en una Likert con colas de 1–2 % colisiona siempre. Una rejilla de
+# filas y columnas no tiene ese problema. El 0072 lo precisa sin revertirlo.
+#
+# El motor ya sabía emitir tablas nativas —la ficha técnica sale con
+# `flextable` desde `.make_technical_table_flextable()`—; lo que faltaba era el
+# puente entre el graficador, que tiene los datos, y el renderer, que tiene el
+# placeholder. Ese puente es un atributo en el objeto devuelto: el graficador
+# adjunta la tabla y sigue devolviendo un ggplot válido, así que nada que no
+# sepa de esto se entera.
 
-#' Parte el slot del gráfico en dos: gráfico a la izquierda, tabla a la derecha.
-#'
-#' @param spec Slot del gráfico, con `spec$loc = list(left, top, width, height)`
-#'   en pulgadas.
-#' @param frac_tabla Fracción del ancho que se lleva la tabla.
-#' @param gap_in Aire entre los dos, en pulgadas.
-#' @return `NULL` si el slot no es partible —y entonces el llamador dibuja como
-#'   antes—; si lo es, `list(grafico = , tabla = )` con dos specs.
+#' Marca de la tabla que un graficador quiere emitir nativa.
 #' @keywords internal
-.tabla_nativa_partir_slot <- function(spec, frac_tabla = 0.40, gap_in = 0.15) {
-  if (is.null(spec) || is.null(spec$loc)) return(NULL)
-  loc <- spec$loc
-  if (is.numeric(loc) && length(loc) >= 4L) {
-    loc <- list(left = loc[[1]], top = loc[[2]], width = loc[[3]], height = loc[[4]])
-  }
-  if (!is.list(loc) || !all(c("left", "top", "width", "height") %in% names(loc))) return(NULL)
+.PULSO_ATTR_TABLA_NATIVA <- "pulso_tabla_nativa"
 
-  ancho <- suppressWarnings(as.numeric(loc$width)[1])
-  if (!is.finite(ancho) || ancho <= 0) return(NULL)
-
-  frac <- suppressWarnings(as.numeric(frac_tabla)[1])
-  if (!is.finite(frac) || frac <= 0 || frac >= 1) frac <- 0.40
-  gap <- suppressWarnings(as.numeric(gap_in)[1])
-  if (!is.finite(gap) || gap < 0) gap <- 0
-  # Sin sitio para los dos, no se parte: media tabla es peor que la de antes.
-  if (gap >= ancho) return(NULL)
-
-  ancho_tabla <- (ancho - gap) * frac
-  ancho_graf  <- (ancho - gap) - ancho_tabla
-  if (ancho_tabla <= 0 || ancho_graf <= 0) return(NULL)
-
-  spec_graf <- spec; spec_graf$loc <- loc; spec_graf$loc$width <- ancho_graf
-  spec_tab  <- spec; spec_tab$loc  <- loc
-  spec_tab$loc$left  <- as.numeric(loc$left) + ancho_graf + gap
-  spec_tab$loc$width <- ancho_tabla
-
-  list(grafico = spec_graf, tabla = spec_tab)
+#' Adjunta a un gráfico la tabla que debe emitirse nativa.
+#'
+#' @param p Objeto ggplot devuelto por el graficador.
+#' @param tabla `data.frame` con la tabla ya compuesta, encabezados incluidos
+#'   como nombres de columna.
+#' @param estilo Lista de estilo opcional para el constructor de flextable.
+#' @return `p` con el atributo puesto. Sin tabla, `p` intacto.
+#' @keywords internal
+.tabla_nativa_adjuntar <- function(p, tabla, estilo = list()) {
+  if (is.null(tabla) || !is.data.frame(tabla) || !nrow(tabla)) return(p)
+  attr(p, .PULSO_ATTR_TABLA_NATIVA) <- list(tabla = tabla, estilo = estilo %||% list())
+  p
 }
 
-#' Tabla nativa de apoyo, con encabezado.
-#'
-#' A diferencia de la ficha técnica —que borra su cabecera con `delete_part()`
-#' porque su primera columna ya nombra cada fila—, aquí el encabezado lleva los
-#' públicos comparados y es parte del dato.
+#' La tabla que trae un gráfico, si trae alguna.
 #' @keywords internal
-.tabla_nativa_flextable <- function(df,
-                                    ancho_in,
-                                    font_family = "Arial",
-                                    color_texto = "#081F5C",
-                                    color_header_fill = "#081F5C",
-                                    color_header_texto = "#FFFFFF",
-                                    color_borde = "#BFBFBF",
-                                    size_header = 9,
-                                    size_cuerpo = 9,
-                                    frac_primera = 0.46) {
+.tabla_nativa_de <- function(p) {
+  if (is.null(p)) return(NULL)
+  attr(p, .PULSO_ATTR_TABLA_NATIVA, exact = TRUE)
+}
+
+#' ¿Este gráfico se emite como tabla en vez de como imagen?
+#' @keywords internal
+.tabla_nativa_procede <- function(p) !is.null(.tabla_nativa_de(p))
+
+#' Valor a colocar en un placeholder: tabla nativa si la hay, imagen si no.
+#'
+#' Sustituye a `rvg::dml(ggobj = p, bg = "transparent")` en el renderer. Un
+#' gráfico normal pasa por aquí sin enterarse; sólo cambia de forma el que
+#' declaró su tabla.
+#'
+#' @param p Objeto ggplot.
+#' @param font_family_default Tipografía de respaldo del documento.
+#' @keywords internal
+.dml_o_tabla <- function(p, font_family_default = "Aptos") {
+  nativa <- .tabla_nativa_de(p)
+  if (is.null(nativa)) return(rvg::dml(ggobj = p, bg = "transparent"))
   if (!requireNamespace("flextable", quietly = TRUE)) {
-    stop("Se requiere el paquete 'flextable' para la tabla nativa.", call. = FALSE)
+    # Sin flextable no se pierde la lámina: sale la imagen de siempre.
+    return(rvg::dml(ggobj = p, bg = "transparent"))
   }
-  df <- as.data.frame(df, stringsAsFactors = FALSE, check.names = FALSE)
-  if (!nrow(df) || !ncol(df)) return(NULL)
-  for (j in seq_along(df)) {
-    col <- as.character(df[[j]]); col[is.na(col)] <- ""; df[[j]] <- col
+  .tabla_nativa_flextable(nativa$tabla, nativa$estilo, font_family_default)
+}
+
+#' Construye la flextable de una tabla emitida por un graficador.
+#'
+#' A diferencia de la ficha técnica —dos columnas, sin encabezado—, ésta tiene
+#' encabezado: sus columnas son series y sin sus nombres la rejilla no se lee.
+#'
+#' @keywords internal
+.tabla_nativa_flextable <- function(tabla, estilo = list(), font_family_default = "Aptos") {
+  `%|N|%` <- function(a, b) if (is.null(a)) b else a
+  num <- function(k, d) {
+    v <- suppressWarnings(as.numeric(estilo[[k]] %|N|% d)[1])
+    if (!is.finite(v)) d else v
+  }
+  chr <- function(k, d) {
+    v <- estilo[[k]] %|N|% d
+    as.character(v)[1]
   }
 
-  ancho_in <- suppressWarnings(as.numeric(ancho_in)[1])
-  if (!is.finite(ancho_in) || ancho_in <= 0) ancho_in <- 4
+  tabla <- as.data.frame(tabla, stringsAsFactors = FALSE, check.names = FALSE)
+  for (j in seq_along(tabla)) {
+    col <- as.character(tabla[[j]])
+    col[is.na(col)] <- ""
+    tabla[[j]] <- col
+  }
 
-  n_col <- ncol(df)
-  ancho_primera <- if (n_col > 1L) ancho_in * frac_primera else ancho_in
-  ancho_resto   <- if (n_col > 1L) (ancho_in - ancho_primera) / (n_col - 1L) else 0
+  borde <- officer::fp_border(
+    color = chr("grid_col", "#BFBFBF"),
+    width = num("line_lwd", 0.75)
+  )
 
-  borde <- officer::fp_border(color = color_borde, width = 0.75)
-  ft <- flextable::flextable(df)
-  ft <- flextable::set_table_properties(ft, layout = "fixed")
-  ft <- flextable::width(ft, j = 1, width = ancho_primera)
-  if (n_col > 1L) for (j in seq(2L, n_col)) ft <- flextable::width(ft, j = j, width = ancho_resto)
-  ft <- flextable::font(ft, fontname = font_family, part = "all")
-  ft <- flextable::fontsize(ft, size = size_cuerpo, part = "body")
-  ft <- flextable::fontsize(ft, size = size_header, part = "header")
-  ft <- flextable::color(ft, color = color_texto, part = "body")
-  ft <- flextable::color(ft, color = color_header_texto, part = "header")
-  ft <- flextable::bg(ft, bg = color_header_fill, part = "header")
+  ft <- flextable::flextable(tabla)
+  ft <- flextable::set_table_properties(ft, layout = "autofit")
+  ft <- flextable::font(ft, fontname = chr("font_family", font_family_default), part = "all")
+  ft <- flextable::fontsize(ft, size = num("header_size", 11), part = "header")
+  ft <- flextable::fontsize(ft, size = num("body_size", 11), part = "body")
+  ft <- flextable::color(ft, color = chr("text_blue", "#081F5C"), part = "all")
+  ft <- flextable::bg(ft, bg = chr("header_fill", "#D8D8D8"), part = "header")
+  ft <- flextable::bg(ft, bg = chr("body_fill", "#F2F2F2"), part = "body")
   ft <- flextable::bold(ft, bold = TRUE, part = "header")
+  if (isTRUE(estilo$firstcol_bold %|N|% TRUE)) {
+    ft <- flextable::bold(ft, j = 1, bold = TRUE, part = "body")
+  }
+  ft <- flextable::align(ft, align = "center", part = "all")
+  ft <- flextable::align(ft, j = 1, align = "left", part = "all")
+  ft <- flextable::valign(ft, valign = "center", part = "all")
+  ft <- flextable::padding(
+    ft,
+    padding.top = num("padding_v", 4), padding.bottom = num("padding_v", 4),
+    padding.left = num("padding_h", 6), padding.right = num("padding_h", 6),
+    part = "all"
+  )
+  ft <- flextable::border_remove(ft)
   ft <- flextable::border_outer(ft, border = borde, part = "all")
   ft <- flextable::border_inner_h(ft, border = borde, part = "all")
   ft <- flextable::border_inner_v(ft, border = borde, part = "all")
-  ft <- flextable::align(ft, j = 1, align = "left", part = "all")
-  if (n_col > 1L) ft <- flextable::align(ft, j = seq(2L, n_col), align = "center", part = "all")
-  ft <- flextable::padding(ft, padding = 2, part = "all")
-  ft
+  flextable::fix_border_issues(ft)
 }

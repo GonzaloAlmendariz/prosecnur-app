@@ -1,64 +1,68 @@
 source("setup-load-all.R")
 
-# ADR 0072: toda tabla del entregable va nativa. La de apoyo del radar se
-# dibujaba dentro del canvas de ggplot, con una veintena de parámetros de
-# padding, wrap, autofit y clip para resolver a mano lo que un motor de tablas
-# resuelve solo. El barrido del mazo de acreditación daba 0 elementos `<a:tbl>`.
+# ADR 0072: una tabla es una tabla y va nativa. La tabla de apoyo del radar se
+# dibujaba dentro del canvas de ggplot, como imagen: no se busca, no se copia,
+# no se corrige en PowerPoint y no escala con el placeholder. El coste está en
+# su propia API —`tabla_padding_mm`, `tabla_auto_fit`, `tabla_fit_pad`,
+# `tabla_clip`…—, una veintena de parámetros para resolver a mano lo que un
+# motor de tablas resuelve solo.
 
-test_that("el slot se parte en gráfico y tabla sin salirse", {
-  spec <- list(loc = list(left = 0.4, top = 1.2, width = 12.5, height = 5.5))
-  out <- .tabla_nativa_partir_slot(spec, frac_tabla = 0.40, gap_in = 0.15)
-  expect_named(out, c("grafico", "tabla"))
-  # Los dos caben en el ancho original, con su aire.
-  expect_equal(out$grafico$loc$width + 0.15 + out$tabla$loc$width, 12.5)
-  # La tabla arranca donde acaba el gráfico más el aire.
-  expect_equal(out$tabla$loc$left, out$grafico$loc$left + out$grafico$loc$width + 0.15)
-  # El alto y el borde superior no se tocan.
-  expect_equal(out$tabla$loc$top, spec$loc$top)
-  expect_equal(out$tabla$loc$height, spec$loc$height)
+fx_radar <- function() data.frame(
+  eje   = rep(c("Diseño", "Docencia", "Gestión"), 2),
+  grupo = rep(c("Docentes", "Egresados"), each = 3),
+  valor = c(0.80, 0.62, 0.74, 0.71, 0.68, 0.59),
+  stringsAsFactors = FALSE
+)
+
+solo_tabla <- function(...) graficar_radar(
+  fx_radar(), mostrar_tabla_derecha = TRUE, radar_scale = 0,
+  usar_canvas = TRUE, exportar = "rplot", ...
+)
+
+test_that("sin radar, la tabla viaja como datos y no como dibujo", {
+  p <- solo_tabla()
+  expect_true(.tabla_nativa_procede(p))
+
+  tb <- .tabla_nativa_de(p)$tabla
+  expect_s3_class(tb, "data.frame")
+  expect_equal(nrow(tb), 3L)
+  # Encabezado incluido: sus columnas son series y sin sus nombres la rejilla
+  # no se lee. Es lo que la distingue de la ficha técnica, que va sin header.
+  expect_true(all(c("Docentes", "Egresados") %in% names(tb)))
+  expect_equal(as.character(tb[[1]]), c("Diseño", "Docencia", "Gestión"))
 })
 
-test_that("la fracción manda sobre el reparto", {
-  spec <- list(loc = list(left = 0, top = 0, width = 10, height = 5))
-  ancha <- .tabla_nativa_partir_slot(spec, frac_tabla = 0.60, gap_in = 0)
-  angosta <- .tabla_nativa_partir_slot(spec, frac_tabla = 0.20, gap_in = 0)
-  expect_equal(ancha$tabla$loc$width, 6)
-  expect_equal(angosta$tabla$loc$width, 2)
-  # El control: si la fracción no gobernara, las dos darían lo mismo.
-  expect_gt(ancha$tabla$loc$width, angosta$tabla$loc$width)
+test_that("el interruptor apaga la emisión, que es el control", {
+  # Si `tabla_nativa` no cambiara nada, el test de arriba pasaría igual con la
+  # tabla dibujada como siempre.
+  expect_false(.tabla_nativa_procede(solo_tabla(tabla_nativa = FALSE)))
 })
 
-test_that("un slot no partible devuelve NULL y el llamador dibuja como antes", {
-  expect_null(.tabla_nativa_partir_slot(NULL))
-  expect_null(.tabla_nativa_partir_slot(list()))
-  expect_null(.tabla_nativa_partir_slot(list(loc = list(left = 0, top = 0))))
-  # El aire no puede comerse el slot entero.
-  expect_null(.tabla_nativa_partir_slot(list(loc = list(left = 0, top = 0, width = 1, height = 3)),
-                                        gap_in = 2))
+test_that("con el radar al lado se sigue compartiendo canvas", {
+  # Ahí la alineación entre el radar y su tabla es justo lo que se está
+  # cuidando, y separarlos la rompería.
+  p <- graficar_radar(fx_radar(), mostrar_tabla_derecha = TRUE,
+                      usar_canvas = TRUE, exportar = "rplot")
+  expect_false(.tabla_nativa_procede(p))
 })
 
-test_that("acepta el loc en forma de vector", {
-  out <- .tabla_nativa_partir_slot(list(loc = c(0.5, 1, 12, 5)), frac_tabla = 0.5, gap_in = 0)
-  expect_equal(out$grafico$loc$width, 6)
-  expect_equal(out$tabla$loc$left, 6.5)
-})
-
-test_that("la tabla nativa conserva su encabezado", {
-  # La ficha técnica borra el suyo con `delete_part()` porque su primera columna
-  # ya nombra cada fila; aquí el encabezado lleva los públicos comparados y es
-  # parte del dato.
+test_that("al placeholder llega una tabla, no una imagen", {
   skip_if_not_installed("flextable")
-  df <- data.frame(Tema = c("Auditoría", "Finanzas"),
-                   docentes = c("96%", "96%"), egresados = c("98%", "93%"),
-                   stringsAsFactors = FALSE, check.names = FALSE)
-  ft <- .tabla_nativa_flextable(df, ancho_in = 4.2)
-  expect_s3_class(ft, "flextable")
-  expect_equal(nrow(ft$header$dataset), 1L)
-  expect_equal(nrow(ft$body$dataset), 2L)
-  expect_equal(names(ft$body$dataset), c("Tema", "docentes", "egresados"))
+  expect_s3_class(.dml_o_tabla(solo_tabla()), "flextable")
+  # Y el control: un gráfico cualquiera sigue yendo como imagen vectorial.
+  expect_s3_class(.dml_o_tabla(solo_tabla(tabla_nativa = FALSE)), "dml")
 })
 
-test_that("un data.frame vacío no produce tabla", {
-  skip_if_not_installed("flextable")
-  expect_null(.tabla_nativa_flextable(data.frame(), ancho_in = 4))
+test_that("un gráfico sin tabla pasa por el puente sin enterarse", {
+  p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) + ggplot2::geom_point()
+  expect_null(.tabla_nativa_de(p))
+  expect_s3_class(.dml_o_tabla(p), "dml")
+})
+
+test_that("el renderer ya no escribe imágenes a mano", {
+  # Contrato estático: cada `rvg::dml(ggobj = …)` suelto es un placeholder que
+  # nunca podrá recibir una tabla nativa.
+  src <- readLines(file.path("..", "..", "R", "reporte_plan_ppt.R"), warn = FALSE)
+  expect_length(grep("rvg::dml(ggobj = ", src, fixed = TRUE), 0L)
+  expect_gt(length(grep(".dml_o_tabla(", src, fixed = TRUE)), 20L)
 })
