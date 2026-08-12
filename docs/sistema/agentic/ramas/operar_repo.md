@@ -7,6 +7,7 @@ Cambio de código: **sí**.
 ## Skills
 
 - [orquestar-trabajo](../skills/orquestar-trabajo.md)
+- [goal](../skills/goal.md)
 - [cerrar-trabajo](../skills/cerrar-trabajo.md)
 - [publicar](../skills/publicar.md)
 - [preparar-release](../skills/preparar-release.md)

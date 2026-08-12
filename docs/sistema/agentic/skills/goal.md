@@ -8,7 +8,9 @@ Fuente canónica: `.claude/skills/goal/SKILL.md`.
 
 ## Sirve ramas
 
-- No está asignado a una rama.
+- [construir](../ramas/construir.md)
+- [disenar](../ramas/disenar.md)
+- [operar_repo](../ramas/operar_repo.md)
 
 ## Toca direcciones
 
