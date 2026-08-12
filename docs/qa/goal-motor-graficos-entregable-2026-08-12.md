@@ -29,8 +29,10 @@ Un colega toma el `.pulso`, exporta y el mazo se entrega sin tocar nada.
 | L4 | Negrita de los títulos de bloque en este estudio | proyecto | ⛔ decisión de Gonzalo |
 | L5 | Ver el orden manual moviéndose desde la interfaz | verificación | ⛔ los clics del panel no llegan a la página |
 | L6 | Retirar la detección heredada de «objetivos educacionales» | motor | ☐ cuando los estudios que dependen de ella declaren `prefijo_grupos` |
-| L7 | Auditar el resto de graficadores contra V4 | motor | ◐ **medido sobre el render** en boxplot, pie y apiladas; faltan ~17 |
-| L8 | En apiladas, el subtítulo pierde su cursiva al ponerlo en negrita | motor | ☐ sale `bold`, no `bolditalic` |
+| L7 | Auditar el resto de graficadores contra V4 | motor | ◐ **12 medidos sobre el render**, 4 reparados; faltan 4 que la sonda no pudo instanciar |
+| L9 | `barras_numericas`: subtítulo y nota al pie no responden a su interruptor | motor | ☐ el título ya sí; los otros dos siguen planos |
+| L10 | Medir `barras_categoricas`, `barras_divergentes`, `lollipop` y `serie_temporal` | motor | ☐ no aceptan `usar_canvas`; la sonda necesita otra llamada |
+| L8 | En apiladas, el subtítulo pierde su cursiva al ponerlo en negrita | motor | ☐ sale `bold`, no `bolditalic`. Ojo: `subtitulo` **no** está en el multiflag de apiladas, así que hoy no es alcanzable desde la UI |
 
 ## Trampas — lo que ya costó una conclusión falsa
 

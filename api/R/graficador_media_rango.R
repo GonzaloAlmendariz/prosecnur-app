@@ -158,9 +158,12 @@ graficar_media_rango <- function(
 
   .hjust_from_pos <- function(x) switch(x, izquierda = 0, centro = 0.5, derecha = 1, 0.5)
 
+  # `face_top`/`face_bottom`: el título iba en negrita FIJA y el subtítulo en
+  # plana fija mientras la UI ofrecía los dos interruptores.
   .mk_text_panel <- function(top = NULL, bottom = NULL, pos = "izquierda",
                              col_top = "#000000", col_bottom = "#000000",
-                             size_top = 11, size_bottom = 9) {
+                             size_top = 11, size_bottom = 9,
+                             face_top = "bold", face_bottom = "plain") {
     if (!requireNamespace("cowplot", quietly = TRUE)) {
       stop("Para `usar_canvas=TRUE` se requiere 'cowplot'.", call. = FALSE)
     }
@@ -171,14 +174,14 @@ graficar_media_rango <- function(
       p <- p + cowplot::draw_label(
         label = as.character(top)[1],
         x = x, y = 0.68, hjust = h, vjust = 0.5,
-        fontface = "bold", colour = col_top, size = size_top
+        fontface = face_top, colour = col_top, size = size_top
       )
     }
     if (!is.null(bottom) && nzchar(trimws(as.character(bottom)[1]))) {
       p <- p + cowplot::draw_label(
         label = as.character(bottom)[1],
         x = x, y = 0.26, hjust = h, vjust = 0.5,
-        fontface = "plain", colour = col_bottom, size = size_bottom
+        fontface = face_bottom, colour = col_bottom, size = size_bottom
       )
     }
     p
@@ -1154,7 +1157,9 @@ graficar_media_rango <- function(
       pieces[[length(pieces) + 1]] <- .mk_text_panel(
         top = titulo, bottom = subtitulo, pos = pos_titulo,
         col_top = color_titulo, col_bottom = color_subtitulo,
-        size_top = size_titulo, size_bottom = size_subtitulo
+        size_top = size_titulo, size_bottom = size_subtitulo,
+        face_top = .graficos_face_legado(textos_negrita, "titulo"),
+        face_bottom = .graficos_face_legado(textos_negrita, "subtitulo", "plain")
       )
       relh <- c(relh, h_title)
     }
@@ -1182,7 +1187,8 @@ graficar_media_rango <- function(
       pieces[[length(pieces) + 1]] <- .mk_text_panel(
         top = nota_pie, bottom = NULL, pos = pos_nota_pie,
         col_top = color_nota_pie, col_bottom = color_nota_pie,
-        size_top = size_nota_pie, size_bottom = size_nota_pie
+        size_top = size_nota_pie, size_bottom = size_nota_pie,
+        face_top = .graficos_face_legado(textos_negrita, "nota_pie", "plain")
       )
       relh <- c(relh, h_caption)
     }
