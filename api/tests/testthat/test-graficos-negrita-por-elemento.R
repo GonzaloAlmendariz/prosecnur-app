@@ -28,7 +28,17 @@ test_that("una parte declarada por el registro la consulta su graficador", {
     f <- get0(mapa[[k]], envir = ns)
     if (is.null(f)) next
     src <- paste(deparse(f), collapse = "\n")
-    sin_consultar <- tokens[!vapply(tokens, function(t) grepl(paste0('"', t, '"'), src, fixed = TRUE), logical(1))]
+    # Un token puede consultarse por su nombre literal o a través de un helper
+    # compartido. Cuando la regla del subtítulo salió a `.graficos_face_subtitulo()`
+    # este aserto lo dio por muerto: la cadena `"subtitulo"` desapareció del
+    # motor aunque el mando funciona —lo prueba el test de render—. Un aserto
+    # que confunde «extraído» con «muerto» acusa en falso.
+    helpers <- c(subtitulo = ".graficos_face_subtitulo")
+    consulta <- function(t) {
+      grepl(paste0('"', t, '"'), src, fixed = TRUE) ||
+        (t %in% names(helpers) && grepl(helpers[[t]], src, fixed = TRUE))
+    }
+    sin_consultar <- tokens[!vapply(tokens, consulta, logical(1))]
     expect_equal(sin_consultar, character(0),
                  info = sprintf("%s declara partes que su motor no mira: %s",
                                 k, paste(sin_consultar, collapse = ", ")))
