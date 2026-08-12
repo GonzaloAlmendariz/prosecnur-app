@@ -141,3 +141,47 @@ test_that("ninguna condición de negrita tiene sus dos ramas iguales", {
                  info = basename(f))
   }
 })
+
+test_that("los cuatro que la sonda no podía instanciar también gobiernan bien", {
+  # L10. No aceptan `usar_canvas` y cada uno pedía su fixture: `divergentes`
+  # exige `n_negativas` o aborta con «el reparto deja un lado vacío», y
+  # `serie_temporal` quiere las columnas `eje` y `grupo`. Los errores eran de mi
+  # llamada, no del motor, y darlos por «no medibles» habría dejado cuatro
+  # graficadores sin comprobar sobre una excusa.
+  d <- data.frame(categoria = c("A", "B"), valor = c(3, 7),
+                  pct_1 = c(0.4, 0.6), pct_2 = c(0.6, 0.4), stringsAsFactors = FALSE)
+  dser <- data.frame(eje = c("Ene", "Feb", "Mar"), grupo = rep("S", 3),
+                     valor = c(1, 3, 2), stringsAsFactors = FALSE)
+  partes <- c("titulo", "subtitulo", "nota_pie")
+  txt <- list(titulo = "MITITULO", subtitulo = "MISUBTITULO", nota_pie = "MINOTA")
+
+  esperar_independencia(function(tn) do.call(graficar_barras_categoricas,
+    c(list(d, var_categoria = "categoria"), txt, list(textos_negrita = tn))),
+    partes, "barras_categoricas")
+
+  esperar_independencia(function(tn) do.call(graficar_barras_divergentes,
+    c(list(d, var_categoria = "categoria", cols_porcentaje = c("pct_1", "pct_2"),
+           n_negativas = 1L), txt, list(textos_negrita = tn))),
+    partes, "barras_divergentes")
+
+  esperar_independencia(function(tn) do.call(graficar_lollipop,
+    c(list(d, var_categoria = "categoria", var_valor = "valor"), txt,
+      list(textos_negrita = tn))), partes, "lollipop")
+
+  esperar_independencia(function(tn) do.call(graficar_serie_temporal,
+    c(list(dser), txt, list(textos_negrita = tn))), partes, "serie_temporal")
+})
+
+test_that("barras numéricas: el segundo bloque de título también responde", {
+  # L9. Este graficador arma el título en DOS sitios —el bloque del canvas y
+  # otro— y el segundo dibujaba el subtítulo y la nota sin `fontface` ninguno:
+  # salían planos y los dos interruptores no hacían nada. El del canvas sí
+  # estaba cableado, que es lo que lo hacía difícil de ver.
+  dnum <- data.frame(categoria = c("A", "B"), v1 = c(3, 7), v2 = c(4, 6),
+                     stringsAsFactors = FALSE)
+  esperar_independencia(function(tn) graficar_barras_numericas(
+    dnum, var_categoria = "categoria", vars_valor = c("v1", "v2"),
+    etiquetas_series = c(v1 = "A", v2 = "B"), usar_canvas = TRUE,
+    titulo = "MITITULO", subtitulo = "MISUBTITULO", nota_pie = "MINOTA",
+    textos_negrita = tn), c("titulo", "subtitulo", "nota_pie"), "barras_numericas")
+})
