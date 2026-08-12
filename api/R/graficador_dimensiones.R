@@ -704,8 +704,7 @@
   )
   fontface_titulo <- .norm_text_face(
     extra_args$fontface_titulo,
-    # Las dos ramas decían "bold": el interruptor del título no hacía nada.
-    fallback = .graficos_face_legado(textos_negrita, "titulo")
+    fallback = .graficos_face_legado(textos_negrita, "titulo")  # las dos ramas decían "bold"
   )
   fontface_subtitulo <- .norm_text_face(
     extra_args$fontface_subtitulo,

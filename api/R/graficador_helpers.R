@@ -143,3 +143,24 @@ vjust_from_pos <- function(pos) {
 
   0.5
 }
+
+#' Cara del subtítulo: la negrita se SUMA a su cursiva, no la sustituye.
+#'
+#' El subtítulo nace en cursiva (`face_subtitulo = "italic"`) en agrupadas y
+#' apiladas. Pedir negrita le quitaba la cursiva —salía `bold` y no
+#' `bold.italic`—, así que el interruptor cambiaba dos cosas cuando el analista
+#' pidió una. En agrupadas era peor: `textos_negrita` ni se consultaba y el
+#' mando estaba muerto.
+#'
+#' @param textos_negrita Declaración del analista.
+#' @param face_base Cara de fábrica del subtítulo, normalmente `"italic"`.
+#' @keywords internal
+.graficos_face_subtitulo <- function(textos_negrita, face_base = "italic") {
+  base <- as.character(face_base %||% "plain")[1]
+  if (is.na(base) || !nzchar(base)) base <- "plain"
+  tokens <- as.character(textos_negrita %||% character(0))
+  tokens <- tokens[!is.na(tokens) & nzchar(tokens)]
+  if (!"subtitulo" %in% tokens) return(base)
+  # ggplot2 y grid lo escriben con punto: "bold.italic".
+  if (grepl("italic", base, fixed = TRUE)) "bold.italic" else "bold"
+}
