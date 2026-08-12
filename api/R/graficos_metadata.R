@@ -983,8 +983,13 @@
       list(name = "titulos_grupo", label = "Títulos por bloque", tipo_input = "textarea",  grupo = "textos",
            depende = list(arg = "modo", valores = list("var_cruce")),
            descripcion = "Formato: 'clave=Título'. Una línea por bloque."),
-      list(name = "numerar_oe",     label = "Numerar OE", tipo_input = "bool", grupo = "textos",
-           descripcion = "Si se activa, antepone OE 1:, OE 2:, etc. a los grupos visibles. Vacío = detección automática por contexto."),
+      # Era «Numerar OE», un interruptor que anteponía literalmente `OE 1:`. El
+      # producto no sabe que un estudio de acreditación llama así a sus
+      # objetivos; ahora el analista pone la palabra que use el suyo, y el
+      # texto es el interruptor.
+      list(name = "prefijo_grupos", label = "Numerar los grupos", tipo_input = "string", grupo = "textos",
+           placeholder = "OE, Dimensión, Eje…",
+           descripcion = "Antepone «OE 1:», «OE 2:»… a los grupos visibles, con la palabra que escribas. Vacío = sin numerar, salvo que las etiquetas ya vengan numeradas."),
       list(name = "top2box",       label = "Mostrar Top 2",  tipo_input = "bool",          grupo = "filtro",
            descripcion = "Combina las dos mejores categorías (ej. 'Muy de acuerdo' + 'De acuerdo') en una barra extra."),
       list(name = "top2box_labels",label = "Etiquetas Top 2",tipo_input = "codigos_list",  grupo = "filtro",
@@ -1950,9 +1955,11 @@
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Enseña las opciones que NADIE eligió, con un ancho mínimo visible y recomprimiendo el resto para que la barra siga sumando 100 %. Las que sí tienen casos y redondean a 0 % ya salen siempre, sin este interruptor: perderlas sería perder un dato. La cifra rotulada sigue siendo 0 % y al lado va su frecuencia."),
-      list(name = "ocultar_etiquetas_pequenas", label = "Ocultar porcentajes pequeños", tipo_input = "bool", grupo = "valores",
-           default = FALSE,
-           descripcion = "Apagado: se muestran todos los porcentajes. Enciéndelo para esconder los que no llegan al umbral de abajo."),
+      # Un solo mando: el umbral ES el interruptor. Con el bool aparte, escribir
+      # 15 % no hacía nada hasta encender otra cosa.
+      list(name = "umbral_ocultar_etiqueta", label = "Ocultar porcentajes por debajo de", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 1, step = 0.01, unidad = "proporción",
+           descripcion = "0 muestra todos los porcentajes, que es el comportamiento por defecto. Súbelo para esconder las cifras que no lleguen a ese valor."),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro",
            default = 0.01,
            descripcion = "Compatibilidad: el motor ahora muestra todo valor positivo; este umbral solo ayuda a decidir desplazamiento."),
@@ -2123,9 +2130,11 @@
       list(name = "mostrar_categorias_en_cero", label = "Mostrar categorías en 0 %", tipo_input = "bool", grupo = "valores",
            default = FALSE,
            descripcion = "Enseña las opciones que NADIE eligió, con un ancho mínimo visible y recomprimiendo el resto para que la barra siga sumando 100 %. Las que sí tienen casos y redondean a 0 % ya salen siempre, sin este interruptor: perderlas sería perder un dato. La cifra rotulada sigue siendo 0 % y al lado va su frecuencia."),
-      list(name = "ocultar_etiquetas_pequenas", label = "Ocultar porcentajes pequeños", tipo_input = "bool", grupo = "valores",
-           default = FALSE,
-           descripcion = "Apagado: se muestran todos los porcentajes. Enciéndelo para esconder los que no llegan al umbral de abajo."),
+      # Un solo mando: el umbral ES el interruptor. Con el bool aparte, escribir
+      # 15 % no hacía nada hasta encender otra cosa.
+      list(name = "umbral_ocultar_etiqueta", label = "Ocultar porcentajes por debajo de", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 1, step = 0.01, unidad = "proporción",
+           descripcion = "0 muestra todos los porcentajes, que es el comportamiento por defecto. Súbelo para esconder las cifras que no lleguen a ese valor."),
       list(name = "umbral_etiqueta",      label = "Umbral mínimo para etiqueta", tipo_input = "number", grupo = "filtro"),
       list(name = "repeler_etiquetas_peq", label = "Repeler etiquetas pequeñas", tipo_input = "bool", grupo = "filtro",
            descripcion = "Separa las cifras que se superponen en segmentos estrechos, manteniéndolas cerca de su centro."),

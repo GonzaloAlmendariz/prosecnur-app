@@ -1434,6 +1434,7 @@ p_barras_multiapiladas <- function(
     top2box_labels = NULL,
     titulos_grupo  = NULL,
     numerar_oe = NULL,
+    prefijo_grupos = NULL,
     overrides = list(),
     base = list(),
     filtros = list()
@@ -1457,6 +1458,13 @@ p_barras_multiapiladas <- function(
   if (!is.null(numerar_oe) &&
       (!is.logical(numerar_oe) || length(numerar_oe) != 1L || is.na(numerar_oe))) {
     .plan_spec_abort("`numerar_oe` debe ser NULL o logical(1).")
+  }
+
+  # `numerar_oe` es el alias del control viejo; `prefijo_grupos` es el campo, y
+  # la palabra que lleva es la que el estudio use para sus grupos.
+  if (!is.null(prefijo_grupos) &&
+      (!is.character(prefijo_grupos) || length(prefijo_grupos) != 1L || is.na(prefijo_grupos))) {
+    .plan_spec_abort("`prefijo_grupos` debe ser NULL o character(1).")
   }
 
   if (!is.null(cruces)) {
@@ -1569,6 +1577,7 @@ p_barras_multiapiladas <- function(
         top2box_labels = block[["top2box_labels", exact = TRUE]] %||% NULL,
         titulos_grupo = block[["titulos_grupo", exact = TRUE]] %||% NULL,
         numerar_oe = block[["numerar_oe", exact = TRUE]] %||% numerar_oe,
+        prefijo_grupos = block[["prefijo_grupos", exact = TRUE]] %||% prefijo_grupos,
         overrides = overrides_block,
         base = base_block,
         filtros = filtros_block
@@ -1594,6 +1603,7 @@ p_barras_multiapiladas <- function(
       top2box_labels = NULL,
       titulos_grupo  = NULL,
       numerar_oe     = numerar_oe,
+      prefijo_grupos = prefijo_grupos,
       overrides      = overrides,
       base           = base,
       filtros        = filtros
@@ -1638,6 +1648,7 @@ p_barras_multiapiladas <- function(
       top2box_labels = top2box_labels,
       titulos_grupo  = NULL,
       numerar_oe     = numerar_oe,
+      prefijo_grupos = prefijo_grupos,
       overrides      = overrides,
       base           = base,
       filtros        = filtros
@@ -1693,6 +1704,7 @@ p_barras_multiapiladas <- function(
       top2box_labels = top2box_labels,
       titulos_grupo  = titulos_grupo,
       numerar_oe     = numerar_oe,
+      prefijo_grupos = prefijo_grupos,
       overrides      = overrides,
       base           = base,
       filtros        = filtros
@@ -1722,6 +1734,7 @@ p_barras_multiapiladas <- function(
     top2box_labels = top2box_labels,
     titulos_grupo  = NULL,
     numerar_oe     = numerar_oe,
+    prefijo_grupos = prefijo_grupos,
     overrides      = overrides,
     base           = base,
     filtros        = filtros

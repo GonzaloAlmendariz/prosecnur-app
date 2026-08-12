@@ -3203,36 +3203,13 @@ reporte_ppt_plan <- function(
     out
   }
 
-  .oe_context_enabled <- function(el, refs = character(0), labels = character(0)) {
-    forced <- el$numerar_oe %||% NULL
-    if (!is.null(forced)) return(isTRUE(forced))
-
-    ref_titles <- character(0)
-    refs <- .reporte_plan_clean_chr(refs)
-    refs <- refs[nzchar(refs)]
-    if (length(refs)) {
-      ref_titles <- vapply(refs, function(ref) {
-        tryCatch(.title_of_var(ref), error = function(e) "")
-      }, character(1))
-    }
-
-    txt <- .reporte_plan_ascii_lower(c(
-      el$title_slide %||% "",
-      (el$overrides %||% list())$titulo %||% "",
-      (el$overrides %||% list())$subtitulo %||% "",
-      labels,
-      refs,
-      ref_titles,
-      el$titulos_grupo %||% character(0),
-      names(el$titulos_grupo %||% character(0))
-    ))
-    txt <- paste(txt, collapse = " ")
-    grepl("objetiv[oa]s?\\s+educacional|objetiv[oa]s?\\s+educativ|\\boe\\s*[0-9]+\\b", txt, perl = TRUE)
-  }
-
+  # El prefijo de numeración de los grupos lo decide `reporte_plan_prefijo_grupos.R`:
+  # declarado por el analista, deducido de las etiquetas que ya vienen
+  # numeradas, o —solo por compatibilidad y avisando— la vieja detección de
+  # objetivos educacionales.
   .oe_labels_for_visible_order <- function(labels, el, refs = character(0)) {
-    if (!.oe_context_enabled(el, refs = refs, labels = labels)) return(labels)
-    .reporte_plan_prefix_oe_labels(labels, refs = refs)
+    prefijo <- .prefijo_grupos_efectivo(el, refs = refs, labels = labels)
+    .prefijo_grupos_aplicar(labels, prefijo, refs = refs)
   }
 
   .word_text_or_null <- function(x) {
