@@ -790,7 +790,7 @@
       list(name = "significancia_alpha", label = "Nivel de significancia", tipo_input = "number", grupo = "datos",
            default = 0.05, min = 0.001, max = 0.2, step = 0.005,
            descripcion = "Umbral del contraste. 0.05 es el estándar; bajarlo exige diferencias más grandes para marcar."),
-      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "estilo",
+      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "datos",
            default = "instrumento",
            choices = list(
              list(value = "instrumento", label = "Orden del instrumento"),
@@ -804,7 +804,7 @@
       # `trace()`: cero llamadas lo recibían mientras el `.pulso` lo tenía
       # guardado y la UI lo mostraba reordenado — una reparación fantasma.
       # `overrides` es la puerta declarada para lo que no es formal.
-      list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "estilo",
+      list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "datos",
            via_overrides = TRUE,
            descripcion = "Etiquetas en el orden exacto deseado (de arriba hacia abajo). Las categorías no listadas se agregan al final, en su orden original. Si se define, tiene prioridad sobre 'Orden de barras'."),
       list(name = "mostrar_ceros", label = "Mostrar opciones 0%", tipo_input = "bool", grupo = "estilo",
@@ -870,7 +870,7 @@
       list(name = "max_categorias", label = "Máximo de categorías", tipo_input = "number", grupo = "filtro",
            default = 10, min = 1, max = 10, step = 1,
            descripcion = "Este motor está pensado para gráficos pequeños y legibles. Para más categorías conviene usar barras agrupadas."),
-      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "estilo",
+      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "datos",
            default = "instrumento",
            choices = list(
              list(value = "instrumento", label = "Orden del instrumento"),
@@ -1994,7 +1994,7 @@
            descripcion = "Máximo de caracteres por línea en las etiquetas del eje Y antes de romper. Valores 10-80 según cuánto espacio tengas."),
       list(name = "wrap_y",               label = "Wrap eje Y (alternativo)", tipo_input = "number", grupo = "filtro",
            descripcion = "Alias alternativo para ancho_max_eje_y, por compatibilidad."),
-      list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "estilo",
+      list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "datos",
            descripcion = "Si es TRUE, las barras se muestran en orden inverso (la primera abajo, la última arriba)."),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo",
            default = 0,
@@ -2199,7 +2199,7 @@
       list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
            descripcion = "Fracción del ancho entre barras (0 = pegadas, 0.3 = separación generosa)."),
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro"),
-      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo",
+      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "datos",
            descripcion = "Da la vuelta al orden de las filas. Útil cuando el instrumento las declara al revés de como se leen."),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo",
            descripcion = "Grados de rotación de las etiquetas del eje X."),
@@ -2292,7 +2292,7 @@
            )),
 	      list(name = "colores_series",       label = "Colores por serie",     tipo_input = "series_colors", grupo = "estilo",
 	           descripcion = "Asigna un color a cada serie que aparece en la leyenda."),
-	      list(name = "orden_barras",         label = "Orden de barras",       tipo_input = "choice", grupo = "estilo",
+	      list(name = "orden_barras",         label = "Orden de barras",       tipo_input = "choice", grupo = "datos",
 	           default = "instrumento",
 	           choices = list(
 	             list(value = "instrumento", label = "Orden del instrumento"),
@@ -2303,7 +2303,7 @@
 	      list(name = "otros_al_final",       label = "Otros al final",        tipo_input = "bool", grupo = "estilo",
 	           default = TRUE,
 	           descripcion = "Mueve categorías Otro/Otros al final del orden visual aunque su frecuencia sea alta."),
-	      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "estilo", default = TRUE),
+	      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "datos", default = TRUE),
       list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
 
       # --- Valores y cálculo ---------------------------------------------
@@ -2396,7 +2396,7 @@
            descripcion = "Si hay más categorías que el máximo, agrupa el resto. Por defecto se exige revisar el gráfico."),
       list(name = "etiqueta_otros", label = "Etiqueta Otros", tipo_input = "string", grupo = "textos",
            default = "Otros"),
-      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "estilo",
+      list(name = "orden_barras", label = "Orden de barras", tipo_input = "choice", grupo = "datos",
            default = "instrumento",
            choices = list(
              list(value = "instrumento", label = "Orden del instrumento"),
@@ -2708,7 +2708,10 @@
       list(name = "size_titulo",          label = "Tamaño título",         tipo_input = "number", grupo = "estilo", default = 13),
       list(name = "subtitulo",            label = "Subtítulo (fijo)",      tipo_input = "string", grupo = "textos"),
       list(name = "nota_pie",             label = "Nota al pie (fija)",    tipo_input = "string", grupo = "textos"),
-      list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "filtro",
+      list(name = "orden_categorias_manual", label = "Orden manual de categorías", tipo_input = "orden_categorias", grupo = "datos",
+           via_overrides = TRUE,
+           descripcion = "Etiquetas en el orden exacto deseado. Manda sobre «Ordenar categorías», cuyos modos automáticos dependen de los datos y hacen que la leyenda cambie de orden entre láminas."),
+      list(name = "ordenar_categorias",   label = "Orden de las categorías", tipo_input = "choice", grupo = "datos",
            default = "natural",
            choices = list(
              list(value = "natural", label = "Natural (orden del instrumento)"),
