@@ -309,6 +309,37 @@ Prototipo de la capa extrínseca sobre la misma base:
 **21 avisos crudos → 1 caso de campo que merece una llamada.** Esa proporción es
 la vara de V5.
 
+## Ajustes de legibilidad y accesibilidad — 2026-08-12
+
+Repaso transversal sobre lo hecho en los lotes 1 a 5, a pedido de Gonzalo.
+
+**La etiqueta primero, el código entre paréntesis.** Los textos de los
+sembradores hablaban en nombres de columna y códigos crudos —«emp_impact» admite
+1, 2, 3— que es exactamente lo que un analista no lee. Ahora se nombra la
+pregunta y cada opción por su etiqueta, con el código detrás para poder buscar
+en la base:
+
+> «¿Cree que el proceso de homologación le ayudó a conseguir un empleo…?»
+> (emp_impact) registra 7, y su lista solo admite: Sí, conseguí un empleo gracias
+> a esto (1) · Sí, mejoré mi empleo o mis funciones (2) · …
+
+Cuando no hay etiqueta —metadatos de plataforma, variables precargadas— queda
+solo el código, que es lo único que existe. Los hashes de versión de Kobo (22
+caracteres sin significado) se muestran abreviados: sirven para reconocer que
+hay dos, no para leerse enteros.
+
+**Accesibilidad del panel de sugerencias.** Cuatro botones que dicen «Adoptar»
+suenan idénticos en un lector de pantalla. Verificado en vivo sobre el DOM real:
+
+- cada botón nombra su criterio (`aria-label`) y se describe con su propio
+  motivo (`aria-describedby`)
+- el resultado de adoptar se anuncia en una región `aria-live="polite"` — sin
+  eso, quien no ve la pantalla no sabe si su clic hizo algo
+- los chips dicen «6 casos afectados» al lector y «6 casos» en pantalla
+- el chip «Sugerido» dice su significado en texto, no solo en `title`, que no
+  llega ni al teclado ni al lector
+- los iconos decorativos quedan fuera del árbol (`aria-hidden`, `focusable`)
+
 ## Trampas
 
 - **La duración no es una variable confiable.** `end` se mueve si el formulario
@@ -326,6 +357,11 @@ la vara de V5.
   el control operacional `OP_duplicates` (`response_similarity`, busca encuestas
   copiadas) y el **tipo de regla** `duplicados` de Criterios de revisión (tupla
   de llaves, igualdad exacta). El segundo es el que sirve para identidad.
+- **Un ejemplo en un comentario también filtra el nombre de un cliente.** El
+  test de la vara V1 falló al ajustar los textos: el docstring del helper usaba
+  `emp_impact` como ejemplo. Es un comentario, no código, pero deja el nombre de
+  una variable de un cliente escrito en el repo — y el test tenía razón en
+  cortarlo. Los ejemplos de los comentarios van inventados. (2026-08-12.)
 - **La cadencia se me escapó una vez.** Abrí el lote 4 mientras el gate del 3
   todavía corría. Salió verde y no hubo daño, pero la regla del GOAL es
   explícita: no se adelanta trabajo del lote siguiente "ya que estamos". Queda

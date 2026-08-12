@@ -47,6 +47,57 @@
   FALSE
 }
 
+# --- Cómo se nombra una variable o una opción en los textos ------------------
+# Siempre la etiqueta primero y el código entre paréntesis. El analista lee la
+# pregunta, no el nombre de la columna; el código va detrás porque lo necesita
+# para buscar en la base, no para entender de qué se habla. Si no hay etiqueta
+# —metadatos de plataforma, variables precargadas— queda solo el código, que es
+# lo único que existe.
+
+.semilla_label_col <- function(df) {
+  if (is.null(df) || !ncol(df)) return(NA_character_)
+  if ("label" %in% names(df)) return("label")
+  cand <- grep("^label", names(df), value = TRUE)
+  if (length(cand)) cand[1] else NA_character_
+}
+
+# "¿Cuál es su situación laboral?" (p12) · o solo «p12» si no hay etiqueta que
+# mostrar. Los ejemplos de los comentarios son inventados a propósito: usar el
+# nombre real de una variable de un cliente lo deja escrito en el repo.
+.semilla_nombrar_var <- function(nombre, survey = NULL) {
+  nombre <- as.character(nombre)[1]
+  if (is.null(survey) || !is.data.frame(survey) || !("name" %in% names(survey))) {
+    return(sprintf("«%s»", nombre))
+  }
+  lab_col <- .semilla_label_col(survey)
+  if (is.na(lab_col)) return(sprintf("«%s»", nombre))
+  fila <- which(!is.na(survey$name) & survey$name == nombre)
+  if (!length(fila)) return(sprintf("«%s»", nombre))
+  et <- trimws(as.character(survey[[lab_col]][fila[1]]))
+  if (is.na(et) || !nzchar(et)) return(sprintf("«%s»", nombre))
+  sprintf("«%s» (%s)", et, nombre)
+}
+
+# "Sí, trabajo (1)" · o "1" si la lista no trae etiqueta.
+.semilla_nombrar_opciones <- function(codigos, lista, choices = NULL, max_n = 8L) {
+  codigos <- as.character(codigos)
+  if (is.null(choices) || !is.data.frame(choices) ||
+      !all(c("list_name", "name") %in% names(choices))) {
+    return(paste(codigos, collapse = ", "))
+  }
+  lab_col <- .semilla_label_col(choices)
+  sub <- choices[!is.na(choices$list_name) & choices$list_name == lista, , drop = FALSE]
+  fmt <- vapply(codigos, function(cod) {
+    if (is.na(lab_col)) return(cod)
+    i <- which(as.character(sub$name) == cod)
+    if (!length(i)) return(cod)
+    et <- trimws(as.character(sub[[lab_col]][i[1]]))
+    if (is.na(et) || !nzchar(et)) cod else sprintf("%s (%s)", et, cod)
+  }, character(1))
+  extra <- if (length(fmt) > max_n) sprintf(" y %d más", length(fmt) - max_n) else ""
+  paste0(paste(utils::head(fmt, max_n), collapse = " · "), extra)
+}
+
 #' Proponer el criterio de procedencia del formulario
 #'
 #' Una base debería venir de una sola versión del formulario. Cuando trae más de
@@ -107,8 +158,9 @@ reglas_semilla_procedencia <- function(data, reglas_existentes = list()) {
     params = list(valores = list(vigente)),
     nombre = "Procedencia · la base trae más de una versión del formulario",
     mensaje = sprintf(
-      "Recolectado con una versión distinta de la vigente (%s). Sus respuestas siguen las reglas del formulario anterior.",
-      vigente
+      paste("Se recolectó con una versión anterior del formulario, no con la vigente (%s).",
+            "Sus respuestas siguen los saltos y catálogos de aquella versión."),
+      .semilla_abreviar_hash(vigente)
     ),
     severidad = "advertencia",
     activa = TRUE,
@@ -120,13 +172,22 @@ reglas_semilla_procedencia <- function(data, reglas_existentes = list()) {
       versiones = as.list(stats::setNames(as.integer(frec), names(frec))),
       n_casos_afectados = n_otras,
       porque = sprintf(
-        paste("La base tiene %d versiones del formulario: %d de %d casos no vienen de la vigente.",
+        paste("La base tiene %d versiones del formulario: %d de %d casos no vienen de la vigente (%s).",
               "Sus saltos y catálogos eran otros, así que lo que las reglas del instrumento",
               "reporten sobre ellos puede ser un artefacto de versión y no un error del encuestado."),
-        length(frec), n_otras, length(vals)
+        length(frec), n_otras, length(vals), .semilla_abreviar_hash(vigente)
       )
     )
   ))
+}
+
+# Los identificadores de versión de Kobo son hashes de 22 caracteres sin
+# significado para nadie. Se muestran abreviados: sirven para reconocer que hay
+# dos, no para leerse enteros.
+.semilla_abreviar_hash <- function(x, n = 8L) {
+  x <- as.character(x)[1]
+  if (is.na(x) || nchar(x) <= n + 1L) return(x)
+  paste0(substr(x, 1, n), "…")
 }
 
 # Códigos que valen en cualquier pregunta aunque no estén en su lista: son el
@@ -178,20 +239,22 @@ reglas_semilla_dominio <- function(data, survey, choices, reglas_existentes = li
                                                  choices$list_name == lista]))
     catalogo <- catalogo[!is.na(catalogo) & nzchar(catalogo)]
     if (!length(catalogo)) next
-
     observados <- unique(.semilla_valores_utiles(data[[var]]))
     fuera <- setdiff(observados, c(catalogo, .semilla_valores_especiales))
     if (!length(fuera)) next
+
+    var_txt <- .semilla_nombrar_var(var, survey)
+    cat_txt <- .semilla_nombrar_opciones(catalogo, lista, choices)
+    fuera_txt <- .semilla_nombrar_opciones(fuera, lista, choices)
 
     n_casos <- sum(.semilla_valores_utiles(data[[var]]) %in% fuera)
     out[[length(out) + 1L]] <- list(
       tipo = "fuera_catalogo",
       variables = list(var),
       params = list(valores = as.list(c(catalogo, .semilla_valores_especiales))),
-      nombre = sprintf("Dominio · «%s» admite %s", var, paste(catalogo, collapse = ", ")),
+      nombre = sprintf("Dominio · %s responde fuera de su lista", var_txt),
       mensaje = sprintf(
-        "Responde con un código que su lista de opciones no contiene (admite %s).",
-        paste(catalogo, collapse = ", ")
+        "Responde %s, que no está entre las opciones de la pregunta.", fuera_txt
       ),
       severidad = "error",
       activa = TRUE,
@@ -205,10 +268,10 @@ reglas_semilla_dominio <- function(data, survey, choices, reglas_existentes = li
         valores_fuera = as.list(fuera),
         n_casos_afectados = as.integer(n_casos),
         porque = sprintf(
-          paste("«%s» observa %s, que no está en su lista '%s' (%s).",
+          paste("%s registra %s, y su lista solo admite: %s.",
                 "Ninguna regla derivada del instrumento verifica que el valor",
                 "pertenezca a su catálogo."),
-          var, paste(fuera, collapse = ", "), lista, paste(catalogo, collapse = ", ")
+          var_txt, fuera_txt, cat_txt
         )
       )
     )
@@ -235,7 +298,7 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
     props <- c(props, reglas_semilla_dominio(data, survey, choices, reglas_existentes))
   }
   # Necesita el rol declarado: sin él no propone, no adivina la columna.
-  props <- c(props, reglas_semilla_agente(data, config, reglas_existentes))
+  props <- c(props, reglas_semilla_agente(data, config, reglas_existentes, survey))
   props <- c(props, reglas_semilla_continuidad(data, reglas_existentes))
   # Todo lo que sale de un sembrador queda marcado: la pestaña necesita
   # distinguirlo de lo que una persona escribió con criterio propio.
@@ -276,7 +339,8 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
 #' @return lista con 0 o 1 candidato.
 #' @family validacion
 #' @export
-reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list()) {
+reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list(),
+                                  survey = NULL) {
   if (!is.data.frame(data) || !nrow(data)) return(list())
   col <- as.character((config$identity %||% list())$agent_variable %||% "")[1]
   if (is.na(col) || !nzchar(col) || !(col %in% names(data))) return(list())
@@ -318,7 +382,8 @@ reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list(
     tipo = "fuera_catalogo",
     variables = list(col),
     params = list(valores = as.list(equipo)),
-    nombre = sprintf("Identidad del agente · «%s» tiene variantes del mismo nombre", col),
+    nombre = sprintf("Identidad del agente · %s tiene variantes del mismo nombre",
+                     .semilla_nombrar_var(col, survey)),
     mensaje = "El nombre de quien recolectó no coincide con ninguno del equipo; revisar si es una variante mal escrita.",
     severidad = "advertencia",
     activa = TRUE,
@@ -332,11 +397,12 @@ reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list(
       pares = as.list(parecidos),
       n_casos_afectados = as.integer(sum(vals %in% sospechosos)),
       porque = sprintf(
-        paste("«%s» tiene %d valores que parecen variantes de otro agente: %s.",
+        paste("%s tiene %d valores que parecen variantes de otro agente: %s.",
               "Todo lo que se reporte por agente saldría con filas de más.",
               "Se sugieren; conviene confirmar antes de unificar, porque dos",
               "nombres cercanos pueden ser dos personas."),
-        col, length(sospechosos), paste(parecidos, collapse = " · ")
+        .semilla_nombrar_var(col, survey), length(sospechosos),
+        paste(parecidos, collapse = " · ")
       )
     )
   ))
