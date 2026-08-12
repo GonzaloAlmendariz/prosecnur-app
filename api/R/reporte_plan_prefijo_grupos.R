@@ -72,40 +72,20 @@
   tokens[[1]]
 }
 
-#' Compatibilidad: el estudio de objetivos educacionales que se autodetectaba.
+#' Retirada la detección por vocabulario.
 #'
-#' Existía antes de que hubiera un campo que declarar, así que hay entregables
-#' vivos que dependen de esto. Se conserva como ÚLTIMO recurso y avisando, para
-#' que el analista lo declare y esta rama pueda morir. No se amplía: cualquier
-#' vocabulario nuevo va por `prefijo_grupos`.
+#' Hubo una rama que encendía la numeración sola si la lámina mencionaba
+#' «objetivos educacionales», en su título, sus subtítulos, los nombres de las
+#' variables o sus títulos. Se conservó un tiempo porque había entregables vivos
+#' que dependían de ella, y emitía `[PULSO-AVISO]` para que se declararan.
+#'
+#' Ya no existe. Un estudio que quiera numerar sus grupos lo declara con
+#' `prefijo_grupos`, y uno que sólo mencione la palabra deja de recibir una
+#' numeración que nadie pidió. La detección **por los datos** sigue: si las
+#' etiquetas ya vienen numeradas, se completa con su mismo token.
 #'
 #' @keywords internal
-.prefijo_grupos_legado <- function(el, refs = character(0), labels = character(0)) {
-  ref_titles <- character(0)
-  refs <- .reporte_plan_clean_chr(refs)
-  refs <- refs[nzchar(refs)]
-  if (length(refs)) {
-    ref_titles <- vapply(refs, function(ref) {
-      tryCatch(.title_of_var(ref), error = function(e) "")
-    }, character(1))
-  }
-
-  txt <- .reporte_plan_ascii_lower(c(
-    el$title_slide %||% "",
-    (el$overrides %||% list())$titulo %||% "",
-    (el$overrides %||% list())$subtitulo %||% "",
-    labels, refs, ref_titles,
-    el$titulos_grupo %||% character(0),
-    names(el$titulos_grupo %||% character(0))
-  ))
-  txt <- paste(txt, collapse = " ")
-  hit <- grepl("objetiv[oa]s?\\s+educacional|objetiv[oa]s?\\s+educativ|\\boe\\s*[0-9]+\\b",
-               txt, perl = TRUE)
-  if (!hit) return(NULL)
-
-  message("[PULSO-AVISO] Numerando los grupos como «OE» porque la lámina menciona objetivos educacionales. Declara `prefijo_grupos` en el gráfico para no depender de esta detección.")
-  "OE"
-}
+.prefijo_grupos_legado <- function(el, refs = character(0), labels = character(0)) NULL
 
 #' Prefijo que se aplicará a esta lámina.
 #'
