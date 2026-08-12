@@ -70,11 +70,31 @@ test_that("un estudio que no menciona objetivos no recibe numeración sola", {
   expect_equal(.prefijo_grupos_efectivo(el, labels = c("Diseño", "Docencia")), "")
 })
 
-test_that("la detección heredada sigue viva, pero avisa", {
+test_that("mencionar «objetivos educacionales» ya no numera nada", {
+  # La detección por vocabulario está retirada: un estudio que hable de
+  # objetivos educacionales y no lo declare no recibe la numeración.
   el <- list(title_slide = "Logro de los objetivos educacionales")
-  expect_message(
-    prefijo <- .prefijo_grupos_efectivo(el, labels = c("Diseño", "Docencia")),
-    "PULSO-AVISO"
-  )
-  expect_equal(prefijo, "OE")
+  expect_silent(prefijo <- .prefijo_grupos_efectivo(el, labels = c("Diseño", "Docencia")))
+  expect_equal(prefijo, "")
+
+  # El control: el mismo estudio, declarándolo, sí la recibe. Sin este par el
+  # aserto de arriba pasaría igual con la numeración rota del todo.
+  el$prefijo_grupos <- "OE"
+  expect_equal(.prefijo_grupos_efectivo(el, labels = c("Diseño", "Docencia")), "OE")
+
+  # Y la detección POR LOS DATOS sigue: si las etiquetas ya vienen numeradas,
+  # se completa con su token. Eso no es vocabulario, es lo que hay en la lámina.
+  expect_equal(.prefijo_grupos_efectivo(list(), labels = c("OE 1: Diseño", "Docencia")), "OE")
+})
+
+test_that("el aviso de la detección heredada ya no puede emitirse", {
+  # Contrato estático: la rama de vocabulario está retirada, no silenciada.
+  # Silenciarla habría dejado la numeración encendiéndose sola sin decirlo, que
+  # es peor que como estaba.
+  src <- paste(readLines(file.path("..", "..", "R", "reporte_plan_prefijo_grupos.R"),
+                         warn = FALSE), collapse = "\n")
+  cuerpo <- sub("^.*\\.prefijo_grupos_legado <- ", "", src)
+  cuerpo <- substr(cuerpo, 1, 200)
+  expect_false(grepl("objetiv", cuerpo, ignore.case = TRUE))
+  expect_false(grepl("PULSO-AVISO", cuerpo, fixed = TRUE))
 })

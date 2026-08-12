@@ -1715,6 +1715,37 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
+    # --- Reglas custom: criterios propuestos ---------------------------------
+    # Read-only: mira la base y devuelve criterios ya formados que el analista
+    # puede guardar tal cual. No persiste nada — el sembrado propone, la persona
+    # decide. Ya cubiertos por un criterio existente no se vuelven a proponer.
+    plumber::pr_get("/api/validacion/v2/reglas_custom/semillas",
+      wrap_endpoint(function(req, res) {
+        sid <- session_header(req)
+        base <- .get_base_nombre(req)
+        scope <- .get_base_scope(sid, base)
+        # La evaluación ya trae la data normalizada; si todavía no se corrió,
+        # se lee del archivo de la base. Sin par cargado no hay nada que sembrar
+        # y se devuelve vacío en vez de cortar: la pestaña puede pedir semillas
+        # antes de que Fase 1 esté completa.
+        data <- scope$evaluacion$datos %||% NULL
+        if (is.null(data)) {
+          data <- tryCatch({
+            files <- .resolve_base_files(sid, base)
+            .read_data_for_validation(files$data$path, files$data_ext)
+          }, error = function(e) NULL)
+        }
+        if (is.null(data) || !is.data.frame(data)) {
+          return(list(ok = TRUE, base_nombre = base %||% NA_character_, semillas = list()))
+        }
+        data <- as.data.frame(data, check.names = FALSE)
+        list(
+          ok = TRUE,
+          base_nombre = base %||% NA_character_,
+          semillas = reglas_semilla_todas(data, scope$reglas_custom %||% list())
+        )
+      })) |>
+
     # --- Reglas custom: crear ------------------------------------------------
     plumber::pr_post("/api/validacion/v2/reglas_custom", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)

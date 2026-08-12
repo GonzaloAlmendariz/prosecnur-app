@@ -836,6 +836,7 @@ test_that("objetivos educacionales se numeran como OE por orden visible", {
       diapo_001 = p_slide_1_grafico(
         titulo = "Objetivos Educacionales",
         grafico = p_barras_multiapiladas(
+          prefijo_grupos = "OE",  # antes lo encendía la detección por vocabulario, ya retirada
           modo = "var_cruce",
           vars = c("oe1", "oe2"),
           cruces = "region"
@@ -858,6 +859,7 @@ test_that("objetivos educacionales se numeran como OE por orden visible", {
       diapo_001 = p_slide_1_grafico(
         titulo = "Objetivos Educacionales",
         grafico = p_barras_multiapiladas(
+          prefijo_grupos = "OE",  # antes lo encendía la detección por vocabulario, ya retirada
           modo = "var_cruce",
           vars = c("oe1", "oe2"),
           cruces = "region"
@@ -909,6 +911,7 @@ test_that("objetivos educacionales continuan numeracion desde sufijo de variable
       diapo_001 = p_slide_1_grafico(
         titulo = "Objetivos Educacionales",
         grafico = p_barras_multiapiladas(
+          prefijo_grupos = "OE",  # antes lo encendía la detección por vocabulario, ya retirada
           modo = "var",
           vars = c("p13_4", "p13_5"),
           titulo = "Objetivos educacionales de la carrera"
