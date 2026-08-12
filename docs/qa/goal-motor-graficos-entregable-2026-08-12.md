@@ -29,7 +29,8 @@ Un colega toma el `.pulso`, exporta y el mazo se entrega sin tocar nada.
 | L4 | Negrita de los títulos de bloque en este estudio | proyecto | ⛔ decisión de Gonzalo |
 | L5 | Ver el orden manual moviéndose desde la interfaz | verificación | ⛔ los clics del panel no llegan a la página |
 | L6 | Retirar la detección heredada de «objetivos educacionales» | motor | ☐ cuando los estudios que dependen de ella declaren `prefijo_grupos` |
-| L7 | Auditar el resto de graficadores contra V4 | motor | ☐ el test de cobertura cubre 7; hay ~20 |
+| L7 | Auditar el resto de graficadores contra V4 | motor | ◐ **medido sobre el render** en boxplot, pie y apiladas; faltan ~17 |
+| L8 | En apiladas, el subtítulo pierde su cursiva al ponerlo en negrita | motor | ☐ sale `bold`, no `bolditalic` |
 
 ## Trampas — lo que ya costó una conclusión falsa
 
@@ -46,6 +47,7 @@ Un colega toma el `.pulso`, exporta y el mazo se entrega sin tocar nada.
 - **Un parche puede quedar como código muerto.** El `ph_xml` fue a la rama de
   `props` cuando ese slot pasa por la de coordenadas: el `.pptx` seguía igual.
   Lo delató volver a inspeccionar el XML emitido, no releer el diff.
+- **El `fontface` de un canvas no está donde parece.** No es `p$layers[[i]]$aes_params$fontface` ni `gp$fontface`: es **`gp$font`** (1 plana, 2 negrita, 3 cursiva, 4 ambas), y hay que recorrer el gTree de `ggplotGrob()`. Los dos primeros devuelven lo mismo con el interruptor encendido y apagado — un aserto que no distingue nada.
 - **Los clics del panel del navegador no llegan a la página** en esta sesión —ni
   foco ni `:hover`, comprobado sobre el propio elemento—, así que la UI se
   verifica por payload servido y por render.
