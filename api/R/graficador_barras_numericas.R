@@ -779,6 +779,9 @@ graficar_barras_numericas <- function(
         x      = x_t, y = y_sub,
         hjust  = h_t, vjust = 0.5,
         size   = size_subtitulo,
+        # Sin `fontface` salía plano y el interruptor no hacía nada: este bloque
+        # de título es otro que el del canvas y se había quedado sin cablear.
+        fontface = .graficos_face_subtitulo(textos_negrita, "plain"),
         colour = color_subtitulo
       )
 
@@ -793,6 +796,7 @@ graficar_barras_numericas <- function(
         x      = x_c, y = 0.5,
         hjust  = h_c, vjust = 0.5,
         size   = size_nota_pie,
+        fontface = .graficos_face_legado(textos_negrita, "nota_pie", "plain"),
         colour = color_nota_pie
       )
 
