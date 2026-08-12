@@ -28,9 +28,9 @@ nuevo aunque se cierre en el momento.
 | **2** | L3 + L12 + front de semillas | Sembrar 104 reglas sin distinguir sembrada de manual entierra la pestaña; y lo sembrado en el lote 1 todavía no se ve | ☑ validado 2026-08-12 |
 | **3** | L1 + L5 | El rol de agente es la misma declaración que el de identidad | ☑ validado 2026-08-12 |
 | **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☑ validado 2026-08-12 |
-| **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☐ |
-| **6** | L7 + L8 + L9 | Presentación; **necesita los nombres de los cinco tipos** | ☐ |
-| **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ☐ |
+| **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☑ validado 2026-08-12 |
+| **6** | L7 + L8 + L9 | Presentación; **necesita los nombres de los cinco tipos** | ⛔ bloqueado |
+| **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ⛔ L10 depende del lote 6 · L11 libre |
 
 ## La calidad que se persigue
 
@@ -184,15 +184,27 @@ presentación decide qué cuenta y cómo se dice.
   `H1016 VL2007 H1148`, los vecinos de los huecos `_index` 13, 65 y 103
 - **Control**: secuencia completa propone **0**
 
-**L6 · Tipo `cruce_identidad` (señal↔identidad)** ☐
+**L6 · Tipo `cruce_identidad` (señal↔identidad)** ☑ *(lote 5, 2026-08-12)*
 - **Rol**: árbitro de la capa, no un detector más. Decide cuándo un conjunto de
   señales merece la atención de una persona y cuándo se queda en registro.
 - **Objetivo**: combinar solapamiento temporal con llaves de identidad
   compartidas y emitir hallazgo solo con ≥2 señales sobre el mismo caso.
   `duplicados` es hoy el único tipo que compara una fila contra otras, y solo
   por igualdad exacta de tupla; esto necesita comparación por intervalo.
-- **Dónde vive**: `reglas_custom_schema.R` + `reglas_custom_compile.R`
-- **Control**: 21 avisos crudos → 1 hallazgo (`H1029` ∩ `VL2004`)
+- **Dónde vive**: tipo nuevo en `reglas_custom_schema.R` +
+  `.regla_expr_cruce_identidad()` en `reglas_custom_compile.R`
+- **Contrato**: `variables` = inicio, fin y una o más llaves. Exige las tres
+  cosas por schema: el tipo existe justamente para que ninguna señal pueda
+  emitir veredicto sola.
+- **Evidencia sobre `ACNUR MDV AGOSTO`** — la vara V5 medida:
+
+  | | avisos |
+  |---|---|
+  | solapamiento temporal solo | 5 |
+  | llave repetida sola | 1 |
+  | **cruce de las dos** | **2 casos** — `VL2004` ∩ `H1029`, Silbia Cruzado |
+
+- **Control**: con los teléfonos distintos, el mismo criterio marca **0**
 
 ### Capa 3 · Presentación — qué cuenta como inconsistencia y cómo se dice
 

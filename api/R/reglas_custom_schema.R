@@ -19,6 +19,7 @@
 #   - select_multiple_cardinality — min/max de opciones marcadas.
 #   - select_multiple_selection — contiene/no contiene codigos esperados.
 #   - continuidad_secuencia — huecos en una secuencia que el servidor numeró.
+#   - cruce_identidad      — llave compartida + solape temporal en el mismo caso.
 
 .regla_tipos_soportados <- c(
   "no_nulo", "rango_num", "rango_fecha",
@@ -26,7 +27,7 @@
   "duplicados", "fuera_catalogo", "coherencia_2v",
   "select_multiple_hierarchy", "select_multiple_exclusive",
   "select_multiple_cardinality", "select_multiple_selection",
-  "continuidad_secuencia"
+  "continuidad_secuencia", "cruce_identidad"
 )
 
 .regla_operadores_basicos <- c("==", "!=", ">", ">=", "<", "<=", "in", "not_in")
@@ -171,6 +172,14 @@
     if (length(vars) != 1L) {
       stop_api(400, "E_REGLA_SECUENCIA_VARS",
                "'continuidad_secuencia' requiere exactamente una variable.")
+    }
+  } else if (tipo == "cruce_identidad") {
+    # Una señal sola no es un hallazgo: el solape temporal mide una propiedad
+    # del `end`, que se corre si el formulario queda abierto, y la llave
+    # repetida puede ser legítima. El tipo existe para exigir las dos.
+    if (length(vars) < 3L) {
+      stop_api(400, "E_REGLA_CRUCE_VARS",
+               "'cruce_identidad' requiere la variable de inicio, la de fin y al menos una llave.")
     }
   } else if (tipo == "select_multiple_selection") {
     op <- as.character(params$op %||% params$operator %||% "")

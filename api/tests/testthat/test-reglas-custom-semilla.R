@@ -351,3 +351,71 @@ test_that("el tipo nuevo compila por el dispatch real", {
   # es la columna con la expresión R, no `procesamiento`.
   expect_true(grepl(".sq_", as.character(out$Procesamiento), fixed = TRUE))
 })
+
+# --- Lote 5 · cruce señal x identidad ---------------------------------------
+
+.sem_cruce_base <- function(llaves, inicios, fines) {
+  data.frame(k = llaves, ini = inicios, fin = fines, stringsAsFactors = FALSE)
+}
+
+test_that("no marca nada cuando comparten llave pero no se solapan", {
+  # Control: la llave repetida sola no basta. Dos entrevistas al mismo hogar,
+  # una después de la otra, son legítimas.
+  d <- .sem_cruce_base(
+    c("tel1", "tel1"),
+    c("2026-08-03T10:00:00", "2026-08-03T12:00:00"),
+    c("2026-08-03T11:00:00", "2026-08-03T13:00:00")
+  )
+  expr <- .regla_expr_cruce_identidad(c("ini", "fin", "k"))
+  expect_identical(which(as.logical(eval(parse(text = expr), envir = d))), integer(0))
+})
+
+test_that("no marca nada cuando se solapan pero no comparten llave", {
+  # Control: el solape solo mide una propiedad del `end`, que se corre si el
+  # formulario queda abierto. Sin identidad compartida no afirma nada.
+  d <- .sem_cruce_base(
+    c("tel1", "tel2"),
+    c("2026-08-03T10:00:00", "2026-08-03T10:30:00"),
+    c("2026-08-03T12:00:00", "2026-08-03T11:00:00")
+  )
+  expr <- .regla_expr_cruce_identidad(c("ini", "fin", "k"))
+  expect_identical(which(as.logical(eval(parse(text = expr), envir = d))), integer(0))
+})
+
+test_that("marca los dos casos cuando coinciden identidad y solape", {
+  d <- .sem_cruce_base(
+    c("tel1", "tel1", "tel2"),
+    c("2026-08-03T10:00:00", "2026-08-03T10:30:00", "2026-08-03T15:00:00"),
+    c("2026-08-03T12:00:00", "2026-08-03T11:00:00", "2026-08-03T16:00:00")
+  )
+  expr <- .regla_expr_cruce_identidad(c("ini", "fin", "k"))
+  expect_identical(which(as.logical(eval(parse(text = expr), envir = d))), 1:2)
+})
+
+test_that("la llave puede ser una tupla de varias variables", {
+  d <- data.frame(
+    tel = c("t1", "t1", "t1"),
+    quien = c("A", "A", "B"),          # solo las dos primeras comparten tupla
+    ini = c("2026-08-03T10:00:00", "2026-08-03T10:30:00", "2026-08-03T10:15:00"),
+    fin = c("2026-08-03T12:00:00", "2026-08-03T11:00:00", "2026-08-03T11:30:00"),
+    stringsAsFactors = FALSE
+  )
+  expr <- .regla_expr_cruce_identidad(c("ini", "fin", "tel", "quien"))
+  expect_identical(which(as.logical(eval(parse(text = expr), envir = d))), 1:2)
+})
+
+test_that("cruce_identidad exige inicio, fin y al menos una llave", {
+  err <- tryCatch(.validar_regla_custom(list(
+    tipo = "cruce_identidad", variables = list("ini", "fin")
+  )), error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_REGLA_CRUCE_VARS")
+})
+
+test_that("cruce_identidad compila por el dispatch real", {
+  r <- list(id = "RC_901", tipo = "cruce_identidad",
+            variables = list("start", "end", "telephone"),
+            nombre = "Cruce", mensaje = "x")
+  out <- .compilar_regla_custom(r)
+  expect_true(grepl(".k_", as.character(out$Procesamiento), fixed = TRUE))
+})

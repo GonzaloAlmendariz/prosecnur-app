@@ -617,6 +617,7 @@ errores_registrados <- function() {
     "E_REGLA_RANGO_INVERTIDO",                               "reglas_custom_schema.R",            "400",
     "E_REGLA_RANGO_VACIO",                                   "reglas_custom_schema.R",            "400",
     "E_REGLA_SIN_VARS",                                      "reglas_custom_schema.R",            "400",
+    "E_REGLA_CRUCE_VARS",                                    "reglas_custom_schema.R",            "400",
     "E_REGLA_SECUENCIA_VARS",                                "reglas_custom_schema.R",            "400",
     "E_REGLA_SM_CARDINALITY",                                "reglas_custom_schema.R",            "400",
     "E_REGLA_SM_CARDINALITY_INVERTIDA",                      "reglas_custom_schema.R",            "400",
