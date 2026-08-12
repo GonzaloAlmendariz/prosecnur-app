@@ -7,6 +7,7 @@ Cambio de código: **sí**.
 ## Skills
 
 - [scope-lock](../skills/scope-lock.md)
+- [goal](../skills/goal.md)
 - [orquestar-trabajo](../skills/orquestar-trabajo.md)
 - [revamp-visual](../skills/revamp-visual.md)
 - [contrato-superficie](../skills/contrato-superficie.md)

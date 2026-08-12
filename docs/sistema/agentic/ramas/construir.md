@@ -7,6 +7,7 @@ Cambio de código: **sí**.
 ## Skills
 
 - [scope-lock](../skills/scope-lock.md)
+- [goal](../skills/goal.md)
 - [orquestar-trabajo](../skills/orquestar-trabajo.md)
 - [dominio-prosecnur](../skills/dominio-prosecnur.md)
 - [nucleo-metodologico](../skills/nucleo-metodologico.md)

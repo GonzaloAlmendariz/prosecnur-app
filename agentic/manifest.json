@@ -315,6 +315,7 @@
       "code_change": true,
       "skills": [
         "scope-lock",
+        "goal",
         "orquestar-trabajo",
         "dominio-prosecnur",
         "nucleo-metodologico",
@@ -347,6 +348,7 @@
       "code_change": true,
       "skills": [
         "scope-lock",
+        "goal",
         "orquestar-trabajo",
         "revamp-visual",
         "contrato-superficie",
@@ -485,6 +487,7 @@
       "code_change": true,
       "skills": [
         "orquestar-trabajo",
+        "goal",
         "cerrar-trabajo",
         "publicar",
         "preparar-release",

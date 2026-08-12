@@ -9211,6 +9211,10 @@ reporte_ppt_plan <- function(
       pics <- lapply(1:5, function(i) slots[[paste0("pic", i)]] %||% NULL)
       for (i in 1:5) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_5: `pic", i, "` debe ser `ppt_element`.")
 
+      pics <- lapply(pics, function(.el) .base_por_grafico_inyectar(.el, tryCatch(  # base por gráfico
+        .base_auto_from_element(.el, sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
+                                formato = presets$base$args$formato %||% "Base: %s"),
+        error = function(e) NULL)))
       plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic), ancho_slot = 3.95))
       for (i in 1:5) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_5: no se pudo renderizar pic", i, ".")
 
@@ -9273,6 +9277,10 @@ reporte_ppt_plan <- function(
       pics <- lapply(1:6, function(i) slots[[paste0("pic", i)]] %||% NULL)
       for (i in 1:6) if (!inherits(pics[[i]], "ppt_element")) pics[[i]] <- .plan_elemento_degradado("poblacion_6: `pic", i, "` debe ser `ppt_element`.")
 
+      pics <- lapply(pics, function(.el) .base_por_grafico_inyectar(.el, tryCatch(  # base por gráfico
+        .base_auto_from_element(.el, sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
+                                formato = presets$base$args$formato %||% "Base: %s"),
+        error = function(e) NULL)))
       plots <- lapply(pics, function(pic) .render_element(.inject_title_override(pic), ancho_slot = 3.95))
       for (i in 1:6) if (is.null(plots[[i]])) plots[[i]] <- .plan_canvas_render_nulo("poblacion_6: no se pudo renderizar pic", i, ".")
 
