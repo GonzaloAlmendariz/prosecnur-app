@@ -82,19 +82,11 @@
 .reporte_plan_multiactor_canvas_defaults <- function(show_extra = FALSE) {
   show_extra <- isTRUE(show_extra)
   list(
-    # La columna del enunciado tenía el 13 % del ancho. Con temas escritos como
-    # pregunta completa —«Considera usted que existe un equilibrio entre el
-    # número de estudiantes admitidos…»— el texto no cabía: se envolvía en seis
-    # o siete líneas, desbordaba su bloque y se escribía encima del vecino. El
-    # acotado por altura lo truncaba con «…» y aun así colisionaba.
-    #
-    # Sube a 0.22 y las barras ceden lo mismo: el enunciado es lo que da sentido
-    # a la fila, y una barra 9 puntos más corta se sigue leyendo.
-    canvas_w_grupo = 0.22,
+    canvas_w_grupo = 0.13,
     canvas_w_buf_grupo_etq = 0.01,
     canvas_w_etiquetas = 0.17,
     canvas_w_buf_etq_bars = 0.01,
-    canvas_w_bars = if (show_extra) 0.47 else 0.59,
+    canvas_w_bars = if (show_extra) 0.56 else 0.68,
     canvas_w_buf_bars_extra = if (show_extra) 0.02 else 0,
     canvas_w_extra = if (show_extra) 0.10 else 0
   )
