@@ -18,13 +18,15 @@
 #   - select_multiple_exclusive — opciones excluyentes no conviven con otras.
 #   - select_multiple_cardinality — min/max de opciones marcadas.
 #   - select_multiple_selection — contiene/no contiene codigos esperados.
+#   - continuidad_secuencia — huecos en una secuencia que el servidor numeró.
 
 .regla_tipos_soportados <- c(
   "no_nulo", "rango_num", "rango_fecha",
   "outliers_iqr", "outliers_z",
   "duplicados", "fuera_catalogo", "coherencia_2v",
   "select_multiple_hierarchy", "select_multiple_exclusive",
-  "select_multiple_cardinality", "select_multiple_selection"
+  "select_multiple_cardinality", "select_multiple_selection",
+  "continuidad_secuencia"
 )
 
 .regla_operadores_basicos <- c("==", "!=", ">", ">=", "<", "<=", "in", "not_in")
@@ -162,6 +164,13 @@
     if (!is.na(mn) && !is.na(mx) && mn > mx) {
       stop_api(400, "E_REGLA_SM_CARDINALITY_INVERTIDA",
                "En cardinalidad select_multiple, min no puede ser mayor que max.")
+    }
+  } else if (tipo == "continuidad_secuencia") {
+    # Sin params obligatorios: la secuencia es la propia columna. Se exige una
+    # sola variable porque un hueco se define sobre un único orden.
+    if (length(vars) != 1L) {
+      stop_api(400, "E_REGLA_SECUENCIA_VARS",
+               "'continuidad_secuencia' requiere exactamente una variable.")
     }
   } else if (tipo == "select_multiple_selection") {
     op <- as.character(params$op %||% params$operator %||% "")

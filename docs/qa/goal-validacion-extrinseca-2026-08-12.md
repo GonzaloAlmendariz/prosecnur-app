@@ -26,8 +26,8 @@ nuevo aunque se cierre en el momento.
 |---|---|---|---|
 | **1** | L2 | El más chico y cierra el caso que abrió el GOAL | ☑ validado 2026-08-12 |
 | **2** | L3 + L12 + front de semillas | Sembrar 104 reglas sin distinguir sembrada de manual entierra la pestaña; y lo sembrado en el lote 1 todavía no se ve | ☑ validado 2026-08-12 |
-| **3** | L1 + L5 | El rol de agente es la misma declaración que el de identidad | ☐ |
-| **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☐ |
+| **3** | L1 + L5 | El rol de agente es la misma declaración que el de identidad | ☑ validado 2026-08-12 |
+| **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☑ validado 2026-08-12 |
 | **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☐ |
 | **6** | L7 + L8 + L9 | Presentación; **necesita los nombres de los cinco tipos** | ☐ |
 | **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ☐ |
@@ -96,7 +96,7 @@ presentación decide qué cuenta y cómo se dice.
 
 ### Capa 1 · Fundación
 
-**L1 · Rol de identidad declarado** ☐
+**L1 · Rol de identidad declarado** ☑ *(lote 3, 2026-08-12)*
 - **Rol**: contrato que permite escribir reglas generales. Traduce "quién es el
   sujeto de este caso" a nombres de variables una vez por proyecto, para que
   ningún detector ni regla sembrada tenga que saberlo.
@@ -104,11 +104,15 @@ presentación decide qué cuenta y cómo se dice.
   tanto `duplicados` como el cruce de L6 las consuman de la misma declaración,
   en vez de re-elegirlas en cada regla. Incluye sugeridor de candidatos —alta
   cardinalidad, precargados— para confirmar en vez de escribir.
-- **Dónde vive**: `validacion_operational_controls.R` (patrón `field_period` /
-  `duplicates`) · UI de Validación
-- **Ya existe la mitad**: `duplicados.variables` hace justo esto, pero por regla
-  y no como declaración reutilizable del estudio
-- **Bloquea a**: L5, L6
+- **Dónde vive**: `identity` en `operational_config`
+  (`validacion_operational_controls.R`), junto a `field_period` y `duplicates` ·
+  sugeridor `identidad_candidatas()` en `reglas_custom_semilla.R`
+- **Contrato**: `variables` (llaves del sujeto) + `agent_variable` (quién
+  recolectó). Default apagado y vacío: los proyectos que ya existen no se
+  reetiquetan solos y su config sigue validando.
+- **Evidencia**: el rol declarado se valida contra las variables reales de la
+  base (`E_OPERATIONAL_VARIABLE_UNKNOWN`) y activarlo sin llaves corta
+  (`E_OPERATIONAL_IDENTITY_INCOMPLETE`)
 
 ### Capa 2 · Sembrado — la capacidad existe, falta que no sea manual
 
@@ -144,27 +148,41 @@ presentación decide qué cuenta y cómo se dice.
   `select_one` posibles**; el de dominio marca `H1010` con `emp_impact = 7`
 - **Control**: base sin anomalías (98 casos, sin el 7) propone **0**
 
-**L5 · Sembrar identidad del agente** ☐
+**L5 · Sembrar identidad del agente** ☑ *(lote 3, 2026-08-12)*
 - **Rol**: protege todo lo que se reporta *por encuestador*: con el nombre sucio
   las tablas por agente salen con filas fantasma y el control de campo se
   degrada sin avisar.
 - **Objetivo**: proponer la lista de agentes observados, que el analista depure
   una vez, y sembrar `fuera_catalogo` con ella. Las variantes por similitud
   (`Mary` ~ `Mary Berrocal`) se sugieren para unificar, nunca se fusionan solas.
-- **Dónde vive**: sembrador + rol "agente"
-- **Cubre**: `Mary`, `JORGE DE SOLAR`, y un teléfono escrito en el campo nombre
+- **Dónde vive**: `reglas_semilla_agente()` en `reglas_custom_semilla.R`
+- **Evidencia**: sobre `ACNUR MDV AGOSTO`, **sin rol declarado propone 0**; con
+  el rol declarado propone 1 criterio que aísla las tres variantes
+  (`'957130752'` no parece un nombre · `'JORGE DE SOLAR' ~ 'JORGE DEL SOLAR'` ·
+  `'Mary' ~ 'Mary Berrocal'`) y al evaluarlo marca `H1022 H1136 VL2002`
+- **Control**: la misma base con los nombres limpios propone **0**
+- **Decisión**: las variantes se sugieren, nunca se fusionan solas — dos
+  nombres cercanos pueden ser dos personas
 
 ### Capa 3 · Tipos nuevos — lo único que exige motor
 
-**L4 · Tipo `continuidad_secuencia`** ☐
+**L4 · Tipo `continuidad_secuencia`** ☑ *(lote 4, 2026-08-12)*
 - **Rol**: verifica que lo que salió del servidor sea lo que llegó a la base:
   ocurre antes de que el instrumento exista, así que ninguna regla derivada de
   él puede saberlo.
 - **Objetivo**: un tipo que mire la **secuencia completa** —hoy todas las reglas
   evalúan fila a fila— y reporte los huecos. La anomalía no es de ninguna fila:
   es de las filas que faltan, lo que obliga a un enunciado sin sujeto individual.
-- **Dónde vive**: `reglas_custom_schema.R` + `reglas_custom_compile.R`
-- **Cubre**: `_index` 13, 65 y 103 ausentes en MDV
+- **Dónde vive**: tipo nuevo en `reglas_custom_schema.R` +
+  `.regla_expr_continuidad_secuencia()` en `reglas_custom_compile.R` ·
+  sembrador `reglas_semilla_continuidad()`
+- **Decisión**: el motor razona marcando filas, y acá la anomalía **no es de
+  ninguna fila presente**. Se marca la que precede a cada hueco, que además es
+  la información accionable: entre qué caso y cuál se perdió algo. El máximo
+  nunca se marca — después del último no falta nada, solo no hay más.
+- **Evidencia**: sobre `ACNUR MDV AGOSTO` propone 1 criterio que marca
+  `H1016 VL2007 H1148`, los vecinos de los huecos `_index` 13, 65 y 103
+- **Control**: secuencia completa propone **0**
 
 **L6 · Tipo `cruce_identidad` (señal↔identidad)** ☐
 - **Rol**: árbitro de la capa, no un detector más. Decide cuándo un conjunto de
@@ -296,6 +314,23 @@ la vara de V5.
   el control operacional `OP_duplicates` (`response_similarity`, busca encuestas
   copiadas) y el **tipo de regla** `duplicados` de Criterios de revisión (tupla
   de llaves, igualdad exacta). El segundo es el que sirve para identidad.
+- **La cadencia se me escapó una vez.** Abrí el lote 4 mientras el gate del 3
+  todavía corría. Salió verde y no hubo daño, pero la regla del GOAL es
+  explícita: no se adelanta trabajo del lote siguiente "ya que estamos". Queda
+  anotado porque la próxima vez el gate puede salir rojo. (2026-08-12.)
+- **El compilador devuelve la fila del plan con nombres humanos.** La columna
+  con la expresión R es `Procesamiento`, no `procesamiento`; un test que la
+  buscaba en minúscula falló sin que el código tuviera nada malo. (Lote 4.)
+- **Un tipo nuevo necesita su código de error en el registro.**
+  `E_REGLA_SECUENCIA_VARS` y `E_OPERATIONAL_IDENTITY_INCOMPLETE` se escribieron
+  con `stop_api` pero no estaban en `errors_registry.R`. (Lotes 3-4.)
+- **La cardinalidad no distingue un agente de una pregunta abierta.** El
+  sugeridor ordenaba por "menos valores distintos" y ponía primero toda
+  dicotómica; con orden descendente subían las abiertas de 20 respuestas. La
+  columna del equipo quedaba fuera del top en un proyecto real. Lo que sí
+  discrimina es si los valores **parecen nombres de persona** (alfabéticos con
+  espacio). Aun así el sugeridor propone, no decide: sigue colando alguna
+  columna que solo se parece. (Lote 3.)
 - **Sembrar todo lo posible no es cobertura, es ruido.** El sembrador de dominio
   podía emitir una regla por cada `select_one`: en MDV, 104 criterios de los
   cuales 103 no encuentran nada. Se decidió proponer solo donde hay evidencia.
