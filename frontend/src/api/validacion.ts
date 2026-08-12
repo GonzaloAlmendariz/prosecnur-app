@@ -2,7 +2,7 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaSummary, ReglaCustom, ReglasCustomList, ViewDescriptor } from "../features/validacion/types";
+import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaSummary, ReglaCustom, ReglaSemilla, ReglasCustomList, ViewDescriptor } from "../features/validacion/types";
 import { apiFetch, handle, headers } from "./core";
 
 // =============================================================================
@@ -538,6 +538,18 @@ export async function apiV2ReglasCustomDelete(id: string, baseNombre?: string | 
   return handle<{ ok: true; id: string }>(
     await apiFetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
       method: "DELETE",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+/**
+ * Criterios que el backend propone a partir de la base. Read-only: nada se
+ * guarda hasta que el analista adopta una propuesta con `apiV2ReglasCustomCreate`.
+ */
+export async function apiV2ReglasCustomSemillas(baseNombre?: string | null) {
+  return handle<{ ok: true; base_nombre: string | null; semillas: ReglaSemilla[] }>(
+    await apiFetch("/api/validacion/v2/reglas_custom/semillas", {
       headers: v2Headers(baseNombre),
     }),
   );

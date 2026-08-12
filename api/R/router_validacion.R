@@ -1739,10 +1739,21 @@ mount_validacion <- function(pr) {
           return(list(ok = TRUE, base_nombre = base %||% NA_character_, semillas = list()))
         }
         data <- as.data.frame(data, check.names = FALSE)
+        # El instrumento habilita los sembradores que necesitan el catálogo. Si
+        # no se puede leer, el sembrado degrada a los que solo miran la data.
+        inst <- tryCatch({
+          files <- .resolve_base_files(sid, base)
+          leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
+        }, error = function(e) NULL)
         list(
           ok = TRUE,
           base_nombre = base %||% NA_character_,
-          semillas = reglas_semilla_todas(data, scope$reglas_custom %||% list())
+          semillas = reglas_semilla_todas(
+            data,
+            scope$reglas_custom %||% list(),
+            survey = inst$survey %||% NULL,
+            choices = inst$choices %||% NULL
+          )
         )
       })) |>
 
@@ -1784,6 +1795,8 @@ mount_validacion <- function(pr) {
         hallazgo_kind = as.character(parsed$hallazgo_kind %||% "caso_validar"),
         planned_action_type = .regla_tratamiento(parsed),
         recommended_scope = .regla_alcance_tratamiento(parsed),
+        origen = .regla_origen(parsed),
+        semilla = parsed$semilla %||% NULL,
         gate_expr = as.character(parsed$gate_expr %||% ""),
         gate_conditions = parsed$gate_conditions %||% list()
       )

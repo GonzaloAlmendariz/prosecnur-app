@@ -2411,3 +2411,102 @@
 .pulso-validacion-explorar-loading-chart span {
   height: 16px;
 }
+
+/* Criterios sugeridos por la app -------------------------------------------
+   Panel de propuestas: se distingue de los criterios ya guardados por el
+   borde punteado — nada de lo que hay aquí está persistido todavía. */
+.pulso-criterios-semillas {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--pulso-border-strong);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.pulso-criterios-semillas-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--pulso-text-soft);
+}
+
+.pulso-criterios-semillas-head h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--pulso-text);
+}
+
+.pulso-criterios-semillas-head p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pulso-criterios-semillas-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pulso-criterios-semillas-lista > li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+}
+
+.pulso-criterios-semilla-cuerpo {
+  min-width: 0;
+}
+
+.pulso-criterios-semilla-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-criterios-semilla-chip {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-criterios-semilla-porque {
+  margin: 3px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--pulso-text-soft);
+}
+
+/* Marca de origen en la lista de criterios ya guardados. */
+.pulso-criterio-origen {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  border: 1px solid var(--pulso-border);
+}

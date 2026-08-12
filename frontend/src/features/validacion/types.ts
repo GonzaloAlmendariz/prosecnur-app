@@ -147,6 +147,30 @@ export type ReglaCustom = {
   recommended_scope?: ReglaTreatmentScope;
   gate_expr?: string;
   gate_conditions?: ReglaGateCondition[];
+  /**
+   * De dónde salió el criterio. Un sembrador puede proponer varios de golpe;
+   * sin esta marca quedarían mezclados con los que el analista escribió con
+   * criterio propio y ya no se podrían revisar ni descartar en bloque.
+   * Ausente equivale a "manual" — es lo que había antes de que existiera.
+   */
+  origen?: "manual" | "sembrado";
+  semilla?: ReglaSemillaMeta;
+};
+
+/**
+ * Por qué un sembrador propuso este criterio. Viaja con la propuesta y se
+ * conserva al guardarla, para que dentro de tres meses se sepa de dónde salió.
+ */
+export type ReglaSemillaMeta = {
+  origen: string; // "procedencia" | "dominio" | …
+  porque: string; // explicación en prosa, lista para mostrar
+  n_casos_afectados?: number;
+  [k: string]: unknown; // cada sembrador agrega lo suyo
+};
+
+/** Criterio propuesto por un sembrador: aún no está guardado. */
+export type ReglaSemilla = Omit<ReglaCustom, "id" | "created_at"> & {
+  semilla: ReglaSemillaMeta;
 };
 
 // -----------------------------------------------------------------------------

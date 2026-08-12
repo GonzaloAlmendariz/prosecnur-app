@@ -16,18 +16,21 @@ import {
   apiV2ReglasCustomDelete,
   apiV2ReglasCustomEjecutar,
   apiV2ReglasCustomList,
+  apiV2ReglasCustomSemillas,
   apiV2ReglasCustomUpdate,
 } from "../../../api/client";
 import type {
   ExploradorVariable,
   ExploradorVariablesList,
   ReglaCustom,
+  ReglaSemilla,
   ReglasCustomList,
 } from "../types";
 import { useValidacionStore } from "../store";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import { JobProgress } from "../../../components/JobProgress";
 import ReglaEditor from "../components/ReglaEditor";
+import SemillasPanel from "../components/SemillasPanel";
 import { RuleNarrative } from "../components/v2";
 import type { VariableHoverData } from "../components/v2";
 import { customRuleToRule } from "../customRuleNarrative";
@@ -48,6 +51,7 @@ export default function ReglasCustomTab() {
 
   const [list, setList] = useState<ReglasCustomList | null>(null);
   const [inv, setInv] = useState<ExploradorVariablesList | null>(null);
+  const [semillas, setSemillas] = useState<ReglaSemilla[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -60,12 +64,16 @@ export default function ReglasCustomTab() {
     setLoading(true);
     setError("");
     try {
-      const [l, i] = await Promise.all([
+      const [l, i, sem] = await Promise.all([
         apiV2ReglasCustomList(baseNombre),
         apiV2ExplorarVariables(baseNombre),
+        // El sembrado es una ayuda, no un requisito: si falla, la pestaña
+        // sigue funcionando sin propuestas.
+        apiV2ReglasCustomSemillas(baseNombre).catch(() => null),
       ]);
       setList(l);
       setInv(i);
+      setSemillas(sem?.semillas ?? []);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -108,6 +116,16 @@ export default function ReglasCustomTab() {
       await refetch();
     } finally {
       setBusy("");
+    }
+  }
+
+  async function handleAdoptar(s: ReglaSemilla) {
+    setRunSummary(null);
+    try {
+      await apiV2ReglasCustomCreate(s, baseNombre);
+      await refetch();
+    } catch (e) {
+      setError((e as Error).message);
     }
   }
 
@@ -235,6 +253,12 @@ export default function ReglasCustomTab() {
           <Play size={12} /> Ejecutar {nActivas > 0 ? `(${nActivas})` : ""}
         </button>
       </section>
+
+      <SemillasPanel
+        semillas={semillas}
+        onAdoptar={handleAdoptar}
+        disabled={!!busy || !!jobId}
+      />
 
       {jobId && (
         <JobProgress
@@ -396,6 +420,14 @@ function ReglaRow({
             <strong>{regla.activa ? "Se ejecuta" : "No se ejecuta"}</strong>
             <small>{regla.activa ? "Incluido al ejecutar" : "Omitido por ahora"}</small>
           </span>
+          {regla.origen === "sembrado" && (
+            <span
+              className="pulso-criterio-origen"
+              title={regla.semilla?.porque ?? "Criterio sugerido por la app y adoptado desde el panel de sugerencias"}
+            >
+              Sugerido
+            </span>
+          )}
           <span className="pulso-criterio-id">{regla.id}</span>
         </div>
         <div className="pulso-criterio-actions">
