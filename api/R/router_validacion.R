@@ -1752,7 +1752,8 @@ mount_validacion <- function(pr) {
             data,
             scope$reglas_custom %||% list(),
             survey = inst$survey %||% NULL,
-            choices = inst$choices %||% NULL
+            choices = inst$choices %||% NULL,
+            config = scope$operational_config %||% NULL
           )
         )
       })) |>

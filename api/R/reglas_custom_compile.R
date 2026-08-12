@@ -140,6 +140,18 @@
   sprintf("(!is.na(%s) & !(as.character(%s) %%in%% %s))", var, var, lit)
 }
 
+# La anomalía no es de ninguna fila: son las filas que faltan. Como el motor
+# razona marcando filas, se marca la que precede a cada hueco — que además es la
+# información útil: entre qué caso y cuál se perdió algo. El máximo nunca se
+# marca: después del último no falta nada, solo no hay más.
+.regla_expr_continuidad_secuencia <- function(var) {
+  sprintf(paste0(
+    "{ .sq_ <- suppressWarnings(as.numeric(%s)); ",
+    ".mx_ <- suppressWarnings(max(.sq_, na.rm = TRUE)); ",
+    "!is.na(.sq_) & is.finite(.mx_) & .sq_ < .mx_ & !((.sq_ + 1) %%in%% .sq_) }"
+  ), var)
+}
+
 .regla_expr_coherencia_2v <- function(vars, params) {
   vx <- vars[1]; vy <- vars[2]
   ox <- as.character(params$op_x)
@@ -301,6 +313,7 @@
     "select_multiple_exclusive" = .regla_expr_select_multiple_exclusive(vars[1], r$params),
     "select_multiple_cardinality" = .regla_expr_select_multiple_cardinality(vars[1], r$params),
     "select_multiple_selection" = .regla_expr_select_multiple_selection(vars[1], r$params),
+    "continuidad_secuencia" = .regla_expr_continuidad_secuencia(vars[1]),
     stop_api(500, "E_REGLA_TIPO", sprintf("Tipo no mapeado: %s", r$tipo))
   )
   expr <- .regla_apply_gate(expr, r)

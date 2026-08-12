@@ -18,6 +18,15 @@
       matching_method = "response_similarity",
       similarity_threshold = 0.90,
       minimum_coverage = 0.80
+    ),
+    # Quién es el sujeto de un caso y quién lo recolectó. Se declara una vez
+    # por estudio para que ninguna verificación tenga que nombrar variables de
+    # un proyecto: el motor pregunta por el rol, no por la columna. Mismo
+    # contrato que `field_period`, que ya declara cuál es su variable de fecha.
+    identity = list(
+      enabled = FALSE,
+      variables = character(0),
+      agent_variable = ""
     )
   )
 }
@@ -82,6 +91,11 @@ normalize_validation_operational_config <- function(config = NULL,
 
   fp_in <- config$field_period %||% list()
   du_in <- config$duplicates %||% list()
+  id_in <- config$identity %||% list()
+  if (!is.list(id_in)) {
+    stop_api(400, "E_OPERATIONAL_CONFIG_INVALID",
+             "Los controles operativos deben ser objetos.")
+  }
   if (!is.list(fp_in) || !is.list(du_in)) {
     stop_api(400, "E_OPERATIONAL_CONFIG_INVALID",
              "Los controles operativos deben ser objetos.")
@@ -130,11 +144,23 @@ normalize_validation_operational_config <- function(config = NULL,
              "La similitud de respuestas requiere seleccionar al menos 10 variables.")
   }
 
+  id <- list(
+    enabled = isTRUE(id_in$enabled),
+    variables = .validation_operational_chr(id_in$variables),
+    agent_variable = .validation_operational_scalar(id_in$agent_variable)
+  )
+  if (id$enabled && !length(id$variables)) {
+    stop_api(400, "E_OPERATIONAL_IDENTITY_INCOMPLETE",
+             "La identidad del caso requiere al menos una variable llave.")
+  }
+
   available <- .validation_operational_chr(available_variables)
   if (length(available)) {
     selected <- c(
       if (fp$enabled) fp$variable else NULL,
-      if (du$enabled) du$variables else NULL
+      if (du$enabled) du$variables else NULL,
+      if (id$enabled) id$variables else NULL,
+      if (id$enabled) id$agent_variable else NULL
     )
     missing <- setdiff(.validation_operational_chr(selected), available)
     if (length(missing)) {
@@ -148,12 +174,14 @@ normalize_validation_operational_config <- function(config = NULL,
   fp$end_date <- fp$end_date %||% ""
   # `universe_filter` legacy se ignora deliberadamente: el universo efectivo
   # se materializa en Carga y nunca vuelve a filtrarse dentro de Validacion.
-  list(version = 2L, field_period = fp, duplicates = du)
+  id$agent_variable <- id$agent_variable %||% ""
+  list(version = 2L, field_period = fp, duplicates = du, identity = id)
 }
 
 validation_operational_config_public <- function(config = NULL) {
   out <- normalize_validation_operational_config(config)
   out$duplicates$variables <- as.list(out$duplicates$variables)
+  out$identity$variables <- as.list(out$identity$variables)
   out
 }
 
