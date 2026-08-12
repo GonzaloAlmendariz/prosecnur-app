@@ -137,6 +137,7 @@ describe("superficie de Revisión en Carga", () => {
             n_pendientes: 1,
             reviewed: false,
           },
+          procedencia: null,
           ready: false,
         }}
         action={<a href="/validacion">Ir a Validación</a>}
@@ -196,6 +197,7 @@ describe("superficie de Revisión en Carga", () => {
         n_pendientes: 0,
         reviewed: true,
       },
+      procedencia: null,
       ready: true,
     };
     const common = {
@@ -271,5 +273,64 @@ describe("superficie de Revisión en Carga", () => {
     expect(reviewSource).toMatch(/choice_mapping\.pending[\s\S]*?Revisar mapeo/iu);
     expect(pageSource).toContain("cargaReview.choice_mapping.maps");
     expect(pageSource).toContain("apiCargaConfirmChoiceMapping(selectedCargaBase)");
+  });
+});
+
+describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínseca, L11)", () => {
+  const baseProps = {
+    pendingChoiceMapping: false,
+    extraVariableCount: 0,
+    allReady: true,
+    isMultiBase: false,
+    bases: 1,
+    instrumentBaseCount: 1,
+    dataBaseCount: 1,
+  };
+  const reviewLimpio = {
+    ok: true as const,
+    base_nombre: "base_1",
+    compatibility: {
+      applied: true, ok: true, status: "ok", missing_columns: [], extra_columns: [],
+      matched_columns: 10, expected_columns: 10, n_missing: 0, n_extra: 0, message: "",
+    },
+    choice_mapping: {
+      status: "confirmed", pending: false, applied: true,
+      requires_confirmation: false, n_questions: 0, maps: [],
+    },
+    reconciliation: { extra: [], n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
+    procedencia: null,
+    ready: true,
+  };
+
+  it("no dice nada cuando la base viene de una sola versión", () => {
+    // Control: sin esto, el aviso siempre visible no distinguiría una base sana.
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary {...baseProps} review={reviewLimpio} />,
+    );
+    expect(html).not.toContain("versiones del formulario");
+  });
+
+  it("avisa en Carga cuando la base trae dos versiones, sin bloquear el avance", () => {
+    const html = renderToStaticMarkup(
+      <CargaReviewSummary
+        {...baseProps}
+        review={{
+          ...reviewLimpio,
+          procedencia: {
+            columna: "__version__",
+            n_versiones: 2,
+            n_casos_afectados: 6,
+            n_casos: 104,
+            version_vigente: "vNueva",
+            mensaje: "6 de 104 casos se recolectaron con una versión anterior del formulario.",
+          },
+        }}
+      />,
+    );
+    expect(html).toContain("Se recolectó con 2 versiones del formulario");
+    expect(html).toContain("6 de 104 casos");
+    // El aviso convive con el estado listo: advierte sobre cómo se recolectó,
+    // no impide cargar.
+    expect(html).toContain("Sin bloqueos");
   });
 });

@@ -1939,14 +1939,46 @@ export type CargaReviewReconciliation = {
   reviewed: boolean;
 };
 
+/**
+ * Aviso de procedencia: la base se recolectó con más de una versión del
+ * formulario. Llega en Carga —y no solo en Validación— porque acá todavía se
+ * puede parar el campo. No entra en `ready`: advierte sobre cómo se recolectó,
+ * no impide cargar. `null` cuando no hay nada que avisar.
+ */
+export type CargaReviewProcedencia = {
+  columna: string;
+  n_versiones: number;
+  n_casos_afectados: number;
+  n_casos: number;
+  version_vigente: string;
+  mensaje: string;
+};
+
 export type CargaReviewPayload = {
   ok: true;
   base_nombre: string | null;
   compatibility: CargaReviewCompatibility;
   choice_mapping: CargaReviewChoiceMapping;
   reconciliation: CargaReviewReconciliation;
+  procedencia: CargaReviewProcedencia | null;
   ready: boolean;
 };
+
+function normalizeCargaReviewProcedencia(raw: unknown): CargaReviewProcedencia | null {
+  const r = reconRecord(raw);
+  // El backend omite el bloque cuando no hay nada que avisar; un objeto sin
+  // conteo tampoco dice nada y se trata igual que ausente.
+  const afectados = reconNumber(r.n_casos_afectados);
+  if (!afectados) return null;
+  return {
+    columna: typeof r.columna === "string" ? r.columna : "",
+    n_versiones: reconNumber(r.n_versiones),
+    n_casos_afectados: afectados,
+    n_casos: reconNumber(r.n_casos),
+    version_vigente: typeof r.version_vigente === "string" ? r.version_vigente : "",
+    mensaje: typeof r.mensaje === "string" ? r.mensaje : "",
+  };
+}
 
 function reviewBoolean(value: unknown): boolean {
   if (value === true || value === 1 || value === "1" || value === "true") return true;
@@ -2069,6 +2101,7 @@ function normalizeCargaReviewPayload(raw: unknown): CargaReviewPayload {
     compatibility,
     choice_mapping: choiceMapping,
     reconciliation,
+    procedencia: normalizeCargaReviewProcedencia(root.procedencia),
     ready: reviewBoolean(root.ready)
       && !incompatible
       && !choiceMapping.pending

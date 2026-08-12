@@ -98,35 +98,26 @@
   paste0(paste(utils::head(fmt, max_n), collapse = " · "), extra)
 }
 
-#' Proponer el criterio de procedencia del formulario
+#' Detectar con cuántas versiones del formulario se recolectó una base
 #'
-#' Una base debería venir de una sola versión del formulario. Cuando trae más de
-#' una, los casos de la versión no vigente pueden traer respuestas que la versión
-#' corregida ya no permite — y las reglas derivadas del instrumento las leen
-#' contra el formulario actual, así que las reportan como inconsistencias del
-#' encuestado en vez de como lo que son: un artefacto de versión.
-#'
-#' Devuelve 0 o 1 candidato. Cero cuando la base no registra versión, cuando
-#' trae una sola, o cuando ya existe un criterio sobre esa columna.
+#' Hecho sobre la data, no una regla: lo consumen tanto Carga —que avisa cuando
+#' todavía se puede corregir el proceso— como el sembrador de Validación, que
+#' propone el criterio. Una sola implementación para que las dos superficies no
+#' puedan decir cosas distintas de la misma base.
 #'
 #' @param data data.frame de la base cargada.
-#' @param reglas_existentes lista de criterios ya definidos en el scope.
-#' @return lista de candidatos; cada uno es una regla lista para `POST
-#'   /api/validacion/v2/reglas_custom` más un bloque `semilla` con el porqué.
+#' @return NULL si la base no registra versión o trae una sola; si no, lista con
+#'   `columna`, `vigente`, `versiones`, `n_casos_afectados` y `n_versiones`.
 #' @family validacion
 #' @export
-reglas_semilla_procedencia <- function(data, reglas_existentes = list()) {
-  if (!is.data.frame(data) || !nrow(data)) return(list())
-
+detectar_versiones_formulario <- function(data) {
+  if (!is.data.frame(data) || !nrow(data)) return(NULL)
   col <- .semilla_primera_columna(data, .semilla_version_candidatas)
-  if (is.na(col)) return(list())
-
+  if (is.na(col)) return(NULL)
   vals <- .semilla_valores_utiles(data[[col]])
-  if (!length(vals)) return(list())
-
+  if (!length(vals)) return(NULL)
   frec <- sort(table(vals), decreasing = TRUE)
-  if (length(frec) < 2L) return(list())          # una sola versión: nada que proponer
-  if (.semilla_ya_cubierta(reglas_existentes, "fuera_catalogo", col)) return(list())
+  if (length(frec) < 2L) return(NULL)
 
   # La vigente es la mayoritaria. En empate manda la del envío más reciente:
   # una versión se publica y a partir de ahí se usa, así que la última en
@@ -148,34 +139,64 @@ reglas_semilla_procedencia <- function(data, reglas_existentes = list()) {
       }
     }
   }
-
   otras <- setdiff(names(frec), vigente)
-  n_otras <- sum(as.integer(frec[otras]))
+  list(
+    columna = col,
+    vigente = vigente,
+    n_versiones = length(frec),
+    versiones = as.list(stats::setNames(as.integer(frec), names(frec))),
+    n_casos_afectados = sum(as.integer(frec[otras])),
+    n_casos = length(vals)
+  )
+}
+
+#' Proponer el criterio de procedencia del formulario
+#'
+#' Una base debería venir de una sola versión del formulario. Cuando trae más de
+#' una, los casos de la versión no vigente pueden traer respuestas que la versión
+#' corregida ya no permite — y las reglas derivadas del instrumento las leen
+#' contra el formulario actual, así que las reportan como inconsistencias del
+#' encuestado en vez de como lo que son: un artefacto de versión.
+#'
+#' Devuelve 0 o 1 candidato. Cero cuando la base no registra versión, cuando
+#' trae una sola, o cuando ya existe un criterio sobre esa columna.
+#'
+#' @param data data.frame de la base cargada.
+#' @param reglas_existentes lista de criterios ya definidos en el scope.
+#' @return lista de candidatos; cada uno es una regla lista para `POST
+#'   /api/validacion/v2/reglas_custom` más un bloque `semilla` con el porqué.
+#' @family validacion
+#' @export
+reglas_semilla_procedencia <- function(data, reglas_existentes = list()) {
+  det <- detectar_versiones_formulario(data)
+  if (is.null(det)) return(list())
+  if (.semilla_ya_cubierta(reglas_existentes, "fuera_catalogo", det$columna)) return(list())
 
   list(list(
     tipo = "fuera_catalogo",
-    variables = list(col),
-    params = list(valores = list(vigente)),
+    variables = list(det$columna),
+    params = list(valores = list(det$vigente)),
     nombre = "Procedencia · la base trae más de una versión del formulario",
     mensaje = sprintf(
       paste("Se recolectó con una versión anterior del formulario, no con la vigente (%s).",
             "Sus respuestas siguen los saltos y catálogos de aquella versión."),
-      .semilla_abreviar_hash(vigente)
+      .semilla_abreviar_hash(det$vigente)
     ),
     severidad = "advertencia",
     activa = TRUE,
     planned_action_type = "ignore_rule",
     semilla = list(
       origen = "procedencia",
-      columna = col,
-      version_vigente = vigente,
-      versiones = as.list(stats::setNames(as.integer(frec), names(frec))),
-      n_casos_afectados = n_otras,
+      columna = det$columna,
+      version_vigente = det$vigente,
+      versiones = det$versiones,
+      n_casos_afectados = det$n_casos_afectados,
       porque = sprintf(
         paste("La base tiene %d versiones del formulario: %d de %d casos no vienen de la vigente (%s).",
               "Sus saltos y catálogos eran otros, así que lo que las reglas del instrumento",
               "reporten sobre ellos puede ser un artefacto de versión y no un error del encuestado."),
-        length(frec), n_otras, length(vals), .semilla_abreviar_hash(vigente)
+        det$n_versiones, det$n_casos_afectados, det$n_casos,
+        .semilla_abreviar_hash(det$vigente)
       )
     )
   ))

@@ -189,7 +189,11 @@ library(testthat)
 .cr_expect_payload_shape <- function(payload) {
   expect_setequal(
     names(payload),
-    c("base_nombre", "compatibility", "choice_mapping", "reconciliation", "ready")
+    # `procedencia` entra con L11 del GOAL de validación extrínseca: avisa que
+    # la base trae más de una versión del formulario. Es NULL cuando no hay nada
+    # que decir, pero la clave siempre viaja para que el front no adivine.
+    c("base_nombre", "compatibility", "choice_mapping", "reconciliation",
+      "procedencia", "ready")
   )
   expect_setequal(
     names(payload$reconciliation),

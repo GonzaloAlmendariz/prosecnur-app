@@ -30,7 +30,7 @@ nuevo aunque se cierre en el momento.
 | **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☑ validado 2026-08-12 |
 | **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☑ validado 2026-08-12 |
 | **6** | L7 + L8 + L9 | Presentación; **necesita los nombres de los cinco tipos** | ⛔ bloqueado |
-| **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ⛔ L10 depende del lote 6 · L11 libre |
+| **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ◐ L11 ☑ · L10 ⛔ depende del lote 6 |
 
 ## La calidad que se persigue
 
@@ -271,14 +271,25 @@ presentación decide qué cuenta y cómo se dice.
   bloquean el avance a Codificación.
 - **Dónde vive**: `docs/adrs/`
 
-**L11 · El aviso se adelanta a Carga** ☐
+**L11 · El aviso se adelanta a Carga** ☑ *(2026-08-12)*
 - **Rol**: mueve la detección al momento en que todavía se puede corregir el
   proceso, no solo el dato. En Validación la base ya está armada; en Carga aún
   se puede parar el campo.
 - **Objetivo**: que al entrar una base con más de una versión de formulario, se
   avise ahí mismo.
-- **Dónde vive**: `router_carga.R` · UI de Carga
-- **Depende de**: L2
+- **Dónde vive**: `detectar_versiones_formulario()` compartido ·
+  `.carga_review_procedencia()` en `carga_review.R` · campo `procedencia` en
+  `/api/carga/review` · aviso en `CargaReviewSummary.tsx`
+- **Decisión**: **no entra en `ready`**. Advierte sobre cómo se recolectó, no
+  impide cargar: una base con dos versiones es perfectamente cargable, solo hay
+  que saberlo. Bloquear ahí sería confundir una anomalía de procedencia con un
+  defecto de compatibilidad.
+- **Una sola implementación para las dos superficies**: Carga y Validación
+  consumen el mismo detector, con un test que compara sus salidas. Si
+  divergieran, el analista vería un aviso en una pantalla y otro número en la
+  siguiente.
+- **Evidencia**: `test-carga-review-procedencia.R` (12 asserts) + 2 tests de
+  render · gate 1835 asserts R y 3908 vitest en verde
 
 ### Espera decisión de Gonzalo
 

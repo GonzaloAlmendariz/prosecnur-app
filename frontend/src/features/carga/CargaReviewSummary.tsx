@@ -50,6 +50,10 @@ export function CargaReviewSummary({
     || review.compatibility.n_missing > 0
   ));
   const pendingExtraCount = review?.reconciliation.n_pendientes ?? extraVariableCount;
+  // Advierte, no bloquea: la base con dos versiones se carga igual. Aparece
+  // acá y no solo en Validación porque en este punto el campo puede seguir
+  // abierto y todavía se puede corregir el proceso, no solo el dato.
+  const procedencia = review?.procedencia ?? null;
   const choiceMappingPending = pendingChoiceMapping || Boolean(review?.choice_mapping.pending);
   const hasDecision = choiceMappingPending || pendingExtraCount > 0;
   const selectedReviewReady = Boolean(review?.ready && allReady && !hasPartialCoverage);
@@ -167,8 +171,19 @@ export function CargaReviewSummary({
         </li>
       </ul>
 
-      {(incompatible || hasDecision) && (
+      {(incompatible || hasDecision || procedencia) && (
         <ul className="pulso-carga-review-findings" aria-label="Incidencias de la base revisada">
+          {procedencia && (
+            <li className="is-pending">
+              <FileSpreadsheet size={15} aria-hidden="true" />
+              <span>
+                <strong>
+                  Se recolectó con {procedencia.n_versiones} versiones del formulario
+                </strong>
+                <small>{procedencia.mensaje}</small>
+              </span>
+            </li>
+          )}
           {incompatible && (
             <li className="is-incompatible">
               <AlertTriangle size={15} aria-hidden="true" />
