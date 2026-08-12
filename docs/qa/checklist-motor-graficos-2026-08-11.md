@@ -18,16 +18,16 @@ Proyecto de referencia: `~/Documents/Pulso/ACRD CONTA/V3_Conta 11-08 equivalenci
 
 | # | Arreglo | Dónde | Estado |
 |---|---|---|---|
-| 1 | Dicotómicos **sin Top 2 Box por defecto** | preset + registro | ☐ sin empezar |
+| 1 | Dicotómicos **sin Top 2 Box por defecto** | motor | ☑ **hecho** · se omite sin avisar |
 | 2 | Paleta Sí/No de los **pies**: azul y celeste, no turquesa | proyecto | ☑ **hecho** |
-| 3 | **4×4**: cada gráfico con su base **dentro del gráfico**, no en la lámina | motor + preset | ☐ sin empezar |
-| 4 | **Objetivo**: el campo de texto sale invertido | motor | ☐ sin empezar |
+| 3 | **4×4**: cada gráfico con su base **dentro del gráfico** | motor | ☑ **hecho** · 167 vs 178 en la lámina 10 |
+| 4 | **Objetivo**: el campo de texto sale invertido | **plantilla** | ☑ hecho · ⚠ **sin verificar**: LibreOffice no distingue `vert` de `vert270` |
 | 5 | **Colores**: naranja lámina/sección/objetivo, azul gráfico/ejes/etiquetas/leyenda | motor + registro + proyecto | ☑ **hecho** |
 | 6 | **Todos los porcentajes** por defecto; el umbral deja de aplicarse solo | motor + registro | ☑ **hecho** · enmienda 2026-08-12: el umbral es el único mando |
-| 7 | Tablas del **radar nativas de PPT** | motor + **ADR** | ◐ ADR 0072 + piezas puras hechas; **falta cablear** |
-| 8 | Multiapiladas de pocos bloques: **truncar leyenda** antes que exagerar la separación | motor | ☐ sin empezar |
+| 7 | Tablas del **radar nativas de PPT** | motor + ADR | ☑ **hecho** · `p_tabla` emite `flextable` |
+| 8 | Multiapiladas: la separación entre bloques dejaba sin sitio a la leyenda | motor | ☑ **hecho** · el hueco se mide contra la fila base |
 | 9 | **`<1%` → 0 %** y switcher de ceros con 0,5 % de ancho artificial | motor + registro | ☑ **hecho** · enmienda 9c |
-| 10 | **Negrita por elemento**: cada parte la respeta de forma independiente, en **todos** los graficadores | motor + registro | ☐ sin empezar |
+| 10 | **Negrita por elemento** en todos los graficadores | motor + registro | ☑ **hecho** · 3 mandos que no hacían nada |
 
 ### Segundo lote (2026-08-11/12), del trabajo sobre el orden y los controles
 
