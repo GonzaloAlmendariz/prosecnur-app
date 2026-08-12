@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escalasParaVariable } from "./escalaDeVariable";
+import { escalasParaSembrar, escalasParaVariable } from "./escalaDeVariable";
 import type { PaletaSugeridaEntry } from "../../api/graficos";
 
 // En «Conta 10-08» un mismo `list_name` es una escala distinta por base:
@@ -66,5 +66,33 @@ describe("escalasParaVariable", () => {
     const { propia, otras } = escalasParaVariable(viejas, "docentes$p4_recod");
     expect(propia).toBeNull();
     expect(otras).toHaveLength(5);
+  });
+});
+
+// Con la escala de la pregunta resuelta, el campo ofrecía además las otras 22
+// del estudio. Sembrar desde una de ellas escribe etiquetas que este gráfico no
+// tiene: como las no listadas van al final en su orden original, el orden
+// queda inerte — y aun así se guarda en el .pulso.
+describe("qué escalas se ofrecen para sembrar el orden manual", () => {
+  it("sólo la de la pregunta cuando se conoce", () => {
+    const escalas = escalasParaVariable(LISTAS, "docentes$p4_recod");
+    // El control: hay alternativas que ofrecer, y aun así no se ofrecen.
+    expect(escalas.propia).not.toBeNull();
+    expect(escalas.otras.length).toBeGreaterThan(0);
+    expect(escalasParaSembrar(escalas)).toEqual([]);
+  });
+
+  it("todas cuando la de la pregunta no se resuelve", () => {
+    // Sin este caso el campo quedaría vacío y sin forma de arrancar: una
+    // variable sin escala declarada, o un cruce.
+    const escalas = escalasParaVariable(LISTAS, "docentes$inexistente");
+    expect(escalas.propia).toBeNull();
+    expect(escalasParaSembrar(escalas)).toEqual(escalas.otras);
+    expect(escalasParaSembrar(escalas).length).toBeGreaterThan(0);
+  });
+
+  it("todas cuando no hay variable elegida todavía", () => {
+    const escalas = escalasParaVariable(LISTAS, undefined);
+    expect(escalasParaSembrar(escalas)).toEqual(escalas.otras);
   });
 });

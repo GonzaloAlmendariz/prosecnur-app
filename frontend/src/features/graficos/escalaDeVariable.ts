@@ -52,3 +52,17 @@ export function escalasParaVariable(
     otras: unicas.filter((l) => firmaEtiquetas(l) !== firmaEtiquetas(propia)),
   };
 }
+
+/** Escalas que tiene sentido ofrecer para sembrar el orden manual.
+ *
+ *  Ninguna cuando la propia se conoce. Sembrar desde otra escala escribe
+ *  etiquetas que no existen en este gráfico y, como las no listadas se agregan
+ *  al final en su orden original, el orden resultante no hace nada — pero sí
+ *  se guarda en el `.pulso`. Ofrecerlas era ofrecer 22 no-ops al lado de la
+ *  única opción con efecto.
+ *
+ *  Cuando la propia NO se resuelve —variable sin escala declarada, o un
+ *  cruce— siguen estando, porque ahí son el único modo de arrancar. */
+export function escalasParaSembrar(escalas: EscalasParaVariable): PaletaSugeridaEntry[] {
+  return escalas.propia ? [] : escalas.otras;
+}

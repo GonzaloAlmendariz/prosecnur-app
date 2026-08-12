@@ -5,7 +5,7 @@ import { Check, ChevronDown, Info, Image as ImageIcon, Palette, Pipette, X as XI
 import { ArgMetadata, VarInfo } from "../../api/client";
 import { usePlanStore } from "./store";
 import { apiGraficosPaletasSugeridas, type PaletaChoiceItem, type PaletaSugeridaEntry } from "../../api/client";
-import { escalasParaVariable } from "./escalaDeVariable";
+import { escalasParaSembrar, escalasParaVariable } from "./escalaDeVariable";
 import { MAX_FOCOS, parseIndicePayload } from "./indiceModel";
 import { downloadUrl } from "../../api/client";
 import VariablePicker from "./VariablePicker";
@@ -2396,43 +2396,43 @@ function OrdenCategoriasField({
     return () => { cancelado = true; };
   }, []);
 
+  const escalas = escalasParaVariable(listas, varActual);
+
+  // Las filas del editor. Si todavía no hay orden declarado pero la escala de
+  // esta variable se conoce, se abre YA con sus categorías, listas para
+  // moverse: el paso intermedio de «elige una escala para sembrar» sobraba,
+  // porque el modo manual sólo se elige para reordenar esta pregunta y la
+  // respuesta era siempre la misma.
+  //
+  // No se escribe nada hasta el primer movimiento. Mientras tanto el gráfico
+  // usa el orden del instrumento, que es exactamente lo que las filas enseñan.
+  const filas = value.length
+    ? value
+    : (escalas.propia?.choices.map((c) => c.label) ?? []);
+
   function mover(i: number, paso: number) {
     const j = i + paso;
-    if (j < 0 || j >= value.length) return;
-    const next = [...value];
+    if (j < 0 || j >= filas.length) return;
+    const next = [...filas];
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
   }
 
-  if (!value.length) {
-    // Sin orden declarado el gráfico usa el del instrumento. Sembrar es
-    // copiar las etiquetas de una escala para empezar a moverlas.
-    //
-    // La escala de la pregunta graficada va primero y aparte: ofrecer las 23
-    // del estudio en una lista plana obliga a reconocer la propia de memoria,
-    // que es justo lo que este campo vino a evitar.
-    const { propia, otras } = escalasParaVariable(listas, varActual);
+  if (!filas.length) {
+    // Sólo se llega aquí cuando la escala de la variable NO se resuelve: sin
+    // variable elegida todavía, sin escala declarada en el instrumento, o un
+    // cruce. Ahí sí hay que preguntar, porque no hay nada que abrir.
+    const alternativas = escalasParaSembrar(escalas);
     const sembrar = (l: PaletaSugeridaEntry) => onChange(l.choices.map((c) => c.label));
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <p style={{ margin: 0, fontSize: 11, color: "var(--pulso-text-soft)" }}>
-          {propia
-            ? "Sin orden propio: se usa el del instrumento. Empieza por la escala de esta pregunta."
-            : "Sin orden propio: se usa el del instrumento. Elige la escala de este gráfico para empezar a reordenarla."}
+          {alternativas.length
+            ? "No reconozco la escala de esta variable. Elige cuál es."
+            : "Elige la variable del gráfico para poder ordenar sus categorías."}
         </p>
-        {propia && (
-          <button type="button" onClick={() => sembrar(propia)} style={escalaBtnPropia}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: "var(--pulso-accent)" }}>
-              La escala de esta pregunta
-            </span>
-            <span>{propia.choices.map((c) => c.label).join(" · ")}</span>
-          </button>
-        )}
-        {propia && otras.length > 0 && (
-          <span style={{ fontSize: 10, color: "var(--pulso-text-soft)" }}>Otras escalas del estudio</span>
-        )}
         <div style={{ maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-          {otras.map((l) => (
+          {alternativas.map((l) => (
             <button
               key={l.escala_id ?? l.list_name}
               type="button"
@@ -2449,7 +2449,7 @@ function OrdenCategoriasField({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {value.map((cat, i) => (
+      {filas.map((cat, i) => (
         <div key={`${cat}-${i}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span
             style={{
@@ -2464,20 +2464,25 @@ function OrdenCategoriasField({
             {cat}
           </span>
           <button type="button" title="Subir" disabled={i === 0} onClick={() => mover(i, -1)} style={ordenBtn}>↑</button>
-          <button type="button" title="Bajar" disabled={i === value.length - 1} onClick={() => mover(i, 1)} style={ordenBtn}>↓</button>
+          <button type="button" title="Bajar" disabled={i === filas.length - 1} onClick={() => mover(i, 1)} style={ordenBtn}>↓</button>
         </div>
       ))}
-      <button
-        type="button"
-        onClick={() => onChange(null)}
-        style={{
-          alignSelf: "flex-start", marginTop: 2, padding: "3px 8px", borderRadius: 7, fontSize: 11,
-          border: "1px solid var(--pulso-border)", background: "transparent", cursor: "pointer",
-          color: "var(--pulso-text-soft)",
-        }}
-      >
-        Volver al orden del instrumento
-      </button>
+      {/* Sólo cuando hay un orden guardado que descartar. Con el editor
+          auto-sembrado, las filas de partida YA son el orden del instrumento:
+          el botón se vería sin efecto justo cuando no lo tiene. */}
+      {value.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          style={{
+            alignSelf: "flex-start", marginTop: 2, padding: "3px 8px", borderRadius: 7, fontSize: 11,
+            border: "1px solid var(--pulso-border)", background: "transparent", cursor: "pointer",
+            color: "var(--pulso-text-soft)",
+          }}
+        >
+          Volver al orden del instrumento
+        </button>
+      )}
     </div>
   );
 }
@@ -2486,12 +2491,6 @@ const escalaBtn: React.CSSProperties = {
   textAlign: "left", padding: "6px 9px", borderRadius: 8, cursor: "pointer",
   border: "1px solid var(--pulso-border)", background: "transparent", fontSize: 11,
   color: "var(--pulso-text)",
-};
-
-const escalaBtnPropia: React.CSSProperties = {
-  ...escalaBtn,
-  display: "flex", flexDirection: "column", gap: 2,
-  borderColor: "var(--pulso-accent)", background: "var(--pulso-surface-2)",
 };
 
 const ordenBtn: React.CSSProperties = {
