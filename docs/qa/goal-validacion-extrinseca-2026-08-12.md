@@ -25,7 +25,7 @@ nuevo aunque se cierre en el momento.
 | Lote | Ítems | Por qué van juntos | Estado |
 |---|---|---|---|
 | **1** | L2 | El más chico y cierra el caso que abrió el GOAL | ☑ validado 2026-08-12 |
-| **2** | L3 + L12 + front de semillas | Sembrar 104 reglas sin distinguir sembrada de manual entierra la pestaña; y lo sembrado en el lote 1 todavía no se ve | ☐ |
+| **2** | L3 + L12 + front de semillas | Sembrar 104 reglas sin distinguir sembrada de manual entierra la pestaña; y lo sembrado en el lote 1 todavía no se ve | ☑ validado 2026-08-12 |
 | **3** | L1 + L5 | El rol de agente es la misma declaración que el de identidad | ☐ |
 | **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☐ |
 | **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☐ |
@@ -129,14 +129,20 @@ presentación decide qué cuenta y cómo se dice.
   front va en el lote 2, junto con L12 que es donde se decide cómo se muestran
   las sembradas sin enterrar las escritas a mano
 
-**L3 · Sembrar dominio de cada `select_one`** ☐
+**L3 · Sembrar dominio de cada `select_one`** ☑ *(lote 2, 2026-08-12)*
 - **Rol**: cierra el hueco más elemental —el valor pertenece a su lista— que hoy
   ninguna de las 5 familias derivadas del instrumento cubre.
 - **Objetivo**: derivar una regla `fuera_catalogo` por cada `select_one`, con
   sus valores leídos del XLSForm y los especiales 90/94–99 admitidos. A mano es
   inviable: en MDV serían 104 reglas escritas una por una.
-- **Dónde vive**: sembrador sobre `reglas_custom`, leyendo `choices`
-- **Cubre**: `emp_impact = 7` con catálogo 1..6
+- **Dónde vive**: `reglas_semilla_dominio()` en `api/R/reglas_custom_semilla.R`
+- **Decisión**: propone **solo donde hay evidencia**, no una regla por pregunta.
+  Sembrar las 104 daría cobertura preventiva sobre cargas futuras, pero 103 no
+  encontrarían nada — el ruido que entierra la pestaña. La cobertura preventiva
+  queda como acción explícita del analista (ítem futuro).
+- **Evidencia**: sobre `ACNUR MDV AGOSTO`, **2 criterios propuestos de 104
+  `select_one` posibles**; el de dominio marca `H1010` con `emp_impact = 7`
+- **Control**: base sin anomalías (98 casos, sin el 7) propone **0**
 
 **L5 · Sembrar identidad del agente** ☐
 - **Rol**: protege todo lo que se reporta *por encuestador*: con el nombre sucio
@@ -195,14 +201,28 @@ presentación decide qué cuenta y cómo se dice.
 - **Dónde vive**: contrato del resumen · UI de Validación · `customRuleNarrative.ts`
 - **Medida**: cero lógica negada anidada en el texto que ve el analista
 
-**L12 · Sembrada vs escrita a mano** ☐
+**L12 · Sembrada vs escrita a mano** ☑ *(lote 2, 2026-08-12)*
 - **Rol**: sin esto, el sembrado de L2/L3/L5 inunda la pestaña y entierra las
   reglas que el analista escribió con criterio propio.
 - **Objetivo**: que una regla sepa si nació de un sembrador o de una persona,
   que las sembradas se puedan revisar en bloque, y que re-sembrar no pise una
   que el analista ya ajustó.
-- **Dónde vive**: `reglas_custom_schema.R` (campo de origen) · `ReglasCustomTab.tsx`
-- **Riesgo que cubre**: en MDV, L3 sembraría 104 reglas de una sola vez
+- **Dónde vive**: `.regla_origen()` en `reglas_custom_schema.R`, persistido por
+  el POST · chip «Sugerido» en `ReglasCustomTab.tsx`
+- **Decisión**: el default es `manual`. Lo que llega sin declararse lo escribió
+  una persona — así el estado que ya existía no se reetiqueta solo.
+
+**Front de semillas** ☑ *(lote 2, 2026-08-12)*
+- **Rol**: sin esto el sembrado existe en la API y no lo ve nadie.
+- **Objetivo**: panel de propuestas con el motivo a la vista y adopción **una por
+  una**; sembrar no debe poder llenar la lista sin que alguien lea lo que entra.
+- **Dónde vive**: `components/SemillasPanel.tsx` (archivo propio) ·
+  `apiV2ReglasCustomSemillas` · `validacion-v2.css`
+- **Evidencia**: verificado en el navegador sobre `ACNUR MDV AGOSTO` — el panel
+  muestra los 2 criterios con su porqué; al adoptar el de dominio la lista pasa
+  a «1 criterio · Ejecutar (1)», la tarjeta guardada aparece con el chip
+  «Sugerido», y las propuestas bajan a 1: la idempotencia se ve en vivo.
+  Consola sin errores.
 
 **L9 · `estado_dinamico` deja de engañar** ☐
 - **Rol**: arreglo de vocabulario heredado, chico pero de alto costo si se
@@ -276,6 +296,16 @@ la vara de V5.
   el control operacional `OP_duplicates` (`response_similarity`, busca encuestas
   copiadas) y el **tipo de regla** `duplicados` de Criterios de revisión (tupla
   de llaves, igualdad exacta). El segundo es el que sirve para identidad.
+- **Sembrar todo lo posible no es cobertura, es ruido.** El sembrador de dominio
+  podía emitir una regla por cada `select_one`: en MDV, 104 criterios de los
+  cuales 103 no encuentran nada. Se decidió proponer solo donde hay evidencia.
+  La cobertura preventiva sobre cargas futuras sigue siendo deseable, pero como
+  acción explícita del analista, no como default. (Lote 2.)
+- **La narrativa de la regla la escribe el sistema, no el sembrador.** El
+  `nombre` que propone el sembrador no se muestra en la tarjeta guardada: la
+  pestaña renderiza su propia narrativa («Se marcan filas con valores que no
+  están en la lista permitida (13 entradas)»). El texto del sembrador sobrevive
+  como `mensaje`, no como título. (Lote 2.)
 - **`which.max` sobre texto no ordena: coacciona a número y devuelve NA.** El
   desempate del sembrador por "envío más reciente" salía vacío. Las marcas de
   ODK/Kobo son ISO 8601, así que se comparan como texto y el orden lexicográfico

@@ -129,16 +129,111 @@ reglas_semilla_procedencia <- function(data, reglas_existentes = list()) {
   ))
 }
 
+# Códigos que valen en cualquier pregunta aunque no estén en su lista: son el
+# estándar de valores especiales de la casa (no sabe / no responde / no aplica).
+# Admitirlos puede dejar pasar un caso raro; no admitirlos inundaría de falsos
+# positivos toda pregunta que los use sin declararlos en choices.
+.semilla_valores_especiales <- c("90", "94", "95", "96", "97", "98", "99")
+
+#' Proponer criterios de dominio para las preguntas de opción única
+#'
+#' Un `select_one` solo admite los códigos de su lista. Es la restricción más
+#' elemental de una categórica y ninguna de las familias derivadas del XLSForm
+#' la cubre: `relevant` gobierna si la pregunta se muestra, `required` si debe
+#' responderse, `constraint` lo que el formulario declaró a mano — pero que el
+#' valor pertenezca a su catálogo no lo verifica nadie.
+#'
+#' Solo propone donde **hoy hay evidencia**: al menos un valor observado fuera
+#' de la lista. Sembrar una regla por cada `select_one` daría cobertura
+#' preventiva sobre cargas futuras, pero en un instrumento de 104 preguntas
+#' serían 103 criterios que no encuentran nada — el ruido que entierra la
+#' pestaña. La cobertura preventiva queda como acción explícita del analista.
+#'
+#' @param data data.frame de la base cargada.
+#' @param survey `inst$survey` con `name`, `type_base` y `list_name`.
+#' @param choices `inst$choices` con `list_name` y `name`.
+#' @param reglas_existentes lista de criterios ya definidos en el scope.
+#' @return lista de candidatos, uno por variable con valores fuera de catálogo.
+#' @family validacion
+#' @export
+reglas_semilla_dominio <- function(data, survey, choices, reglas_existentes = list()) {
+  if (!is.data.frame(data) || !nrow(data)) return(list())
+  if (!is.data.frame(survey) || !nrow(survey)) return(list())
+  if (!is.data.frame(choices) || !nrow(choices)) return(list())
+  if (!all(c("name", "type_base", "list_name") %in% names(survey))) return(list())
+  if (!all(c("list_name", "name") %in% names(choices))) return(list())
+
+  sel <- survey[!is.na(survey$type_base) & survey$type_base == "select_one", , drop = FALSE]
+  if (!nrow(sel)) return(list())
+
+  out <- list()
+  for (i in seq_len(nrow(sel))) {
+    var <- as.character(sel$name[i])
+    lista <- as.character(sel$list_name[i])
+    if (is.na(var) || !nzchar(var) || !(var %in% names(data))) next
+    if (is.na(lista) || !nzchar(lista)) next
+    if (.semilla_ya_cubierta(reglas_existentes, "fuera_catalogo", var)) next
+
+    catalogo <- unique(as.character(choices$name[!is.na(choices$list_name) &
+                                                 choices$list_name == lista]))
+    catalogo <- catalogo[!is.na(catalogo) & nzchar(catalogo)]
+    if (!length(catalogo)) next
+
+    observados <- unique(.semilla_valores_utiles(data[[var]]))
+    fuera <- setdiff(observados, c(catalogo, .semilla_valores_especiales))
+    if (!length(fuera)) next
+
+    n_casos <- sum(.semilla_valores_utiles(data[[var]]) %in% fuera)
+    out[[length(out) + 1L]] <- list(
+      tipo = "fuera_catalogo",
+      variables = list(var),
+      params = list(valores = as.list(c(catalogo, .semilla_valores_especiales))),
+      nombre = sprintf("Dominio · «%s» admite %s", var, paste(catalogo, collapse = ", ")),
+      mensaje = sprintf(
+        "Responde con un código que su lista de opciones no contiene (admite %s).",
+        paste(catalogo, collapse = ", ")
+      ),
+      severidad = "error",
+      activa = TRUE,
+      planned_action_type = "nullify_fields",
+      origen = "sembrado",
+      semilla = list(
+        origen = "dominio",
+        variable = var,
+        lista = lista,
+        catalogo = as.list(catalogo),
+        valores_fuera = as.list(fuera),
+        n_casos_afectados = as.integer(n_casos),
+        porque = sprintf(
+          paste("«%s» observa %s, que no está en su lista '%s' (%s).",
+                "Ninguna regla derivada del instrumento verifica que el valor",
+                "pertenezca a su catálogo."),
+          var, paste(fuera, collapse = ", "), lista, paste(catalogo, collapse = ", ")
+        )
+      )
+    )
+  }
+  out
+}
+
 #' Reunir todos los criterios propuestos para una base
 #'
-#' Punto único de entrada del sembrado. Hoy solo procedencia; los demás
-#' sembradores se enchufan aquí a medida que existen.
+#' Punto único de entrada del sembrado. Los sembradores que necesitan el
+#' instrumento se saltan si no se pasa: el sembrado degrada, no falla.
 #'
 #' @param data data.frame de la base cargada.
 #' @param reglas_existentes lista de criterios ya definidos en el scope.
+#' @param survey,choices tablas del instrumento; opcionales.
 #' @return lista de candidatos.
 #' @family validacion
 #' @export
-reglas_semilla_todas <- function(data, reglas_existentes = list()) {
-  c(reglas_semilla_procedencia(data, reglas_existentes))
+reglas_semilla_todas <- function(data, reglas_existentes = list(),
+                                 survey = NULL, choices = NULL) {
+  props <- reglas_semilla_procedencia(data, reglas_existentes)
+  if (!is.null(survey) && !is.null(choices)) {
+    props <- c(props, reglas_semilla_dominio(data, survey, choices, reglas_existentes))
+  }
+  # Todo lo que sale de un sembrador queda marcado: la pestaña necesita
+  # distinguirlo de lo que una persona escribió con criterio propio.
+  lapply(props, function(p) { p$origen <- "sembrado"; p })
 }

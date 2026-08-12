@@ -237,6 +237,18 @@
   sev
 }
 
+# De dónde salió el criterio. Un sembrador puede proponer decenas de golpe; sin
+# esta marca quedarían mezclados con los que el analista escribió con criterio
+# propio y ya no se podrían revisar, re-sembrar ni descartar en bloque.
+# Por defecto "manual": lo que llega sin declararse lo escribió una persona.
+.regla_origenes <- c("manual", "sembrado")
+
+.regla_origen <- function(r) {
+  origen <- as.character(r$origen %||% "manual")[1]
+  if (is.na(origen) || !(origen %in% .regla_origenes)) origen <- "manual"
+  origen
+}
+
 .regla_tratamiento <- function(r) {
   action <- as.character(r$planned_action_type %||% "")
   if (!(action %in% .regla_tratamientos)) action <- .regla_tratamiento_default(as.character(r$tipo %||% ""))

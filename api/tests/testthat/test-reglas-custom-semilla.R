@@ -108,3 +108,85 @@ test_that("reglas_semilla_todas reúne lo de cada sembrador", {
   expect_length(reglas_semilla_todas(d), 1L)
   expect_length(reglas_semilla_todas(.sem_base(rep("vA", 5))), 0L)
 })
+
+# --- Lote 2 · dominio de las preguntas de opción única -----------------------
+
+.sem_survey <- function() {
+  data.frame(
+    name = c("p_sexo", "p_nse", "p_texto"),
+    type_base = c("select_one", "select_one", "text"),
+    list_name = c("lst_sexo", "lst_nse", NA),
+    stringsAsFactors = FALSE
+  )
+}
+.sem_choices <- function() {
+  data.frame(
+    list_name = c("lst_sexo", "lst_sexo", "lst_nse", "lst_nse", "lst_nse"),
+    name = c("1", "2", "A", "B", "C"),
+    label = c("Hombre", "Mujer", "Alto", "Medio", "Bajo"),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("no propone dominio cuando todos los valores están en catálogo", {
+  # Control negativo del sembrador de dominio.
+  d <- data.frame(p_sexo = c("1", "2", "1"), p_nse = c("A", "B", "C"),
+                  p_texto = c("x", "y", "z"), stringsAsFactors = FALSE)
+  expect_length(reglas_semilla_dominio(d, .sem_survey(), .sem_choices()), 0L)
+})
+
+test_that("propone una regla por variable con valores fuera de su lista", {
+  d <- data.frame(p_sexo = c("1", "2", "9"),      # 9 no existe
+                  p_nse = c("A", "B", "C"),        # todas válidas
+                  p_texto = c("x", "y", "z"),
+                  stringsAsFactors = FALSE)
+  props <- reglas_semilla_dominio(d, .sem_survey(), .sem_choices())
+
+  expect_length(props, 1L)
+  p <- props[[1]]
+  expect_identical(unlist(p$variables), "p_sexo")
+  expect_identical(unlist(p$semilla$valores_fuera), "9")
+  expect_identical(p$semilla$n_casos_afectados, 1L)
+  # El catálogo admitido incluye los especiales de la casa.
+  expect_true(all(c("1", "2", "98", "99") %in% unlist(p$params$valores)))
+})
+
+test_that("los valores especiales de la casa no se reportan como fuera de catálogo", {
+  # Sin esta tolerancia, toda pregunta que use 98/99 sin declararlos en choices
+  # produciría un falso positivo por caso.
+  d <- data.frame(p_sexo = c("1", "98", "99"), p_nse = c("A", "B", "C"),
+                  p_texto = c("x", "y", "z"), stringsAsFactors = FALSE)
+  expect_length(reglas_semilla_dominio(d, .sem_survey(), .sem_choices()), 0L)
+})
+
+test_that("lo propuesto por dominio es insertable y marca los casos correctos", {
+  d <- data.frame(p_sexo = c("1", "2", "9", "7"), p_nse = c("A", "B", "C", "A"),
+                  p_texto = c("x", "y", "z", "w"), stringsAsFactors = FALSE)
+  p <- reglas_semilla_dominio(d, .sem_survey(), .sem_choices())[[1]]
+
+  expect_no_error(.validar_regla_custom(p))
+  expr <- .regla_expr_fuera_catalogo("p_sexo", p$params)
+  expect_identical(which(as.logical(eval(parse(text = expr), envir = d))), 3:4)
+})
+
+test_that("dominio ignora preguntas que no son select_one ni están en la base", {
+  d <- data.frame(p_texto = c("libre", "texto"), stringsAsFactors = FALSE)
+  expect_length(reglas_semilla_dominio(d, .sem_survey(), .sem_choices()), 0L)
+})
+
+test_that("todo lo sembrado sale marcado con su origen", {
+  # L12: sin esta marca, 100 criterios sembrados entierran los que una persona
+  # escribió con criterio propio.
+  d <- .sem_base(c(rep("vNueva", 8), rep("vVieja", 2)),
+                 extra = list(p_sexo = c(rep("1", 9), "9")))
+  props <- reglas_semilla_todas(d, list(), .sem_survey(), .sem_choices())
+
+  expect_length(props, 2L)                       # procedencia + dominio
+  expect_true(all(vapply(props, function(p) identical(p$origen, "sembrado"), logical(1))))
+})
+
+test_that("el origen por defecto es manual y solo admite valores conocidos", {
+  expect_identical(.regla_origen(list()), "manual")
+  expect_identical(.regla_origen(list(origen = "sembrado")), "sembrado")
+  expect_identical(.regla_origen(list(origen = "inventado")), "manual")
+})
