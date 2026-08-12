@@ -1097,8 +1097,9 @@ graficar_barras_apiladas <- function(
     # Apagado por defecto: mostrar todos los porcentajes es el comportamiento
     # esperado, y ocultar los pequeños una decisión que se toma a mano.
     ocultar_etiquetas_pequenas = FALSE,
-    # Da ancho visible a las categorías sin casos, conservando la suma 100 %.
-    # La cifra rotulada no se toca: sigue diciendo 0 %.
+    # Enseña las categorías que NADIE eligió, con ancho visible y conservando la
+    # suma 100 %. Las que sí tienen casos y redondean a 0 % ya salen siempre,
+    # sin este interruptor. La cifra rotulada no se toca: sigue diciendo 0 %.
     mostrar_categorias_en_cero = FALSE,
     piso_categoria_cero   = .BARRAS_PISO_CERO,
     umbral_etiqueta_peq   = NULL,
@@ -1542,13 +1543,39 @@ graficar_barras_apiladas <- function(
   # geometría y puede llevar el piso de los ceros; `.valor_pct_real` conserva la
   # proporción de verdad y es la que se rotula.
   df_long$.valor_pct_real <- df_long$.valor_plot
-  if (isTRUE(mostrar_categorias_en_cero)) {
+
+  # Un 0 % con casos detrás y un 0 % vacío no son la misma decisión, aunque en
+  # el gráfico se escriban igual. Quien los distingue es la frecuencia, no el
+  # porcentaje: el plan entrega los porcentajes ya redondeados a entero, así que
+  # una categoría con un caso entre 209 llega valiendo 0 exacto y es
+  # indistinguible de la que nadie eligió.
+  #
+  # - **Con casos**: el piso NO es opcional. Sin él el segmento mide cero, no
+  #   lleva etiqueta y la barra muestra un caso menos que su base sin dejar
+  #   rastro en ninguna cifra visible. Eso es un dato perdido, no un estilo.
+  # - **Sin casos**: sigue mandando `mostrar_categorias_en_cero`. Enseñar la
+  #   opción que nadie eligió sí es una decisión de lámina.
+  #
+  # Sin `cols_n` no hay con qué distinguirlos y todo queda bajo el interruptor.
+  df_long$.cero_con_casos <- if (".n_label_val" %in% names(df_long)) {
+    n_real <- suppressWarnings(as.numeric(df_long$.n_label_val))
+    !is.na(n_real) & is.finite(n_real) & n_real > 0
+  } else {
+    rep(FALSE, nrow(df_long))
+  }
+
+  if (isTRUE(mostrar_categorias_en_cero) || any(df_long$.cero_con_casos)) {
     df_long <- df_long |>
       dplyr::group_by(.data[[var_categoria]]) |>
       dplyr::mutate(.valor_plot = .barras_inflar_ceros(
-        .valor_plot, mostrar = TRUE, piso = piso_categoria_cero)) |>
+        .valor_plot, mostrar = TRUE, piso = piso_categoria_cero,
+        # Qué se rotula 0 % lo decide la misma función que escribe la cifra: si
+        # divergieran, habría segmentos rotulados 0 % sin piso.
+        cero_rotulado = .pulso_pct_unidades_exactas(.valor_pct_real, decimales) == 0L &
+          (isTRUE(mostrar_categorias_en_cero) | .cero_con_casos))) |>
       dplyr::ungroup()
   }
+  df_long$.cero_con_casos <- NULL
 
   # Orden de segmentos (DEBE IR ANTES del cierre exacto)
   niveles_originales <- unname(etiquetas_grupos)
@@ -1824,26 +1851,10 @@ graficar_barras_apiladas <- function(
       ) |>
       dplyr::ungroup()
 
-    .asignar_pct_exacto <- function(p, dec) {
-      p[is.na(p) | !is.finite(p)] <- 0
-      s <- sum(p)
-      if (s <= 0) return(rep.int(0L, length(p)))
-      p <- p / s
-
-      escala <- 10^dec
-      target_units <- as.integer(100L * escala)
-
-      x_units <- p * target_units
-      base <- floor(x_units)
-      resto <- target_units - sum(base)
-
-      if (resto > 0L) {
-        frac <- x_units - base
-        idx <- order(frac, decreasing = TRUE)
-        base[idx[seq_len(resto)]] <- base[idx[seq_len(resto)]] + 1L
-      }
-      as.integer(base)
-    }
+    # El reparto por resto mayor vive en `helpers_calc_comunes.R`: aquí era una
+    # closure, y el piso de los ceros necesita preguntar lo mismo antes de que
+    # esta parte del render exista.
+    .asignar_pct_exacto <- .pulso_pct_unidades_exactas
 
     # La regla vive en `.pulso_fmt_pct_unidades()` (helpers_calc_comunes.R):
     # aqui era una closure y no habia forma de verificarla sin renderizar.
@@ -2403,11 +2414,16 @@ graficar_barras_apiladas <- function(
       !length(.barra_extra_etiquetas[[barra_extra_preset]])) {
     minimo <- .barra_extra_minimo[[barra_extra_preset]]
     if (length(cols_porcentaje) < minimo) {
-      .pulso_aviso(sprintf(
-        paste0("La columna «%s» se omite: la escala tiene %d categoria(s) y sumarlas ",
-               "daria 100 %% en todas las filas. Necesita al menos %d."),
-        barra_extra_preset, length(cols_porcentaje), minimo
-      ))
+      # Silencio deliberado. Que un Top 2 Box no informe sobre una escala de dos
+      # es ARITMÉTICA, no un error de configuración: sumar las dos categorías da
+      # 100 % siempre. El analista enciende la columna una vez para todo el mazo
+      # —es lo correcto para sus escalas de acuerdo— y no puede hacer nada con
+      # un aviso por cada pregunta Sí/No. Eran 13 por mazo, todos pidiendo lo
+      # mismo y ninguno accionable; el ruido tapaba los avisos que sí lo son.
+      #
+      # El caso de abajo SÍ avisa, porque ahí hay algo que hacer: declarar las
+      # categorías.
+      NULL
     } else {
       # Sin declaracion no se adivina. La regla posicional de `.default_box_cols()`
       # —las dos ultimas de la escala— asume un orden de peor a mejor y, cuando la

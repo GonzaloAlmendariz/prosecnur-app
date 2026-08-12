@@ -8655,6 +8655,15 @@ reporte_ppt_plan <- function(
       el_ur <- .inject_var_titulo(el_ur)
       el_bl <- .inject_var_titulo(el_bl)
       el_br <- .inject_var_titulo(el_br)
+      # La base es del gráfico, no de la lámina: `reporte_plan_base_por_grafico.R`.
+      .base_del_panel <- function(el) tryCatch(
+        .base_auto_from_element(el, sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
+                                formato = presets$base$args$formato %||% "Base: %s"),
+        error = function(e) NULL)
+      el_ul <- .base_por_grafico_inyectar(el_ul, .base_del_panel(el_ul))
+      el_ur <- .base_por_grafico_inyectar(el_ur, .base_del_panel(el_ur))
+      el_bl <- .base_por_grafico_inyectar(el_bl, .base_del_panel(el_bl))
+      el_br <- .base_por_grafico_inyectar(el_br, .base_del_panel(el_br))
       pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 5.2)
       pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 5.2)
       pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 5.2)
@@ -8721,16 +8730,10 @@ reporte_ppt_plan <- function(
         }
 
         # base (body 3 = pie de lamina)  -  opcional/auto
-        base_txt <- slots$base %||% NULL
-        if (is.null(base_txt)) {
-          base_txt <- .base_auto_de_elementos(
-            els        = list(el_ul, el_ur, el_bl, el_br),
-            sufijo_auto = presets$base$args$sufijo_auto %||% NULL,
-            formato     = presets$base$args$formato %||% "Base: %s"
-          )
-        }
-        if (is.null(base_txt) || !nzchar(trimws(base_txt))) base_txt <- " "
-        doc <- .ph_with_strict(doc, as.character(base_txt)[1], contract$slots$base)
+        # Sólo si el analista la declaró: cada panel ya lleva la suya dentro, y
+        # repetirla abajo dice dos veces lo mismo cuando coinciden y se
+        # contradice cuando no.
+        doc <- .ph_with_strict(doc, .base_de_lamina_texto(slots$base), contract$slots$base)
       }
 
       log_rows[[length(log_rows) + 1]] <- tibble::tibble(
