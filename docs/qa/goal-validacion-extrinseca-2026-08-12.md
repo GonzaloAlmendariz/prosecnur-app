@@ -387,7 +387,7 @@ presentación decide qué cuenta y cómo se dice.
   tampoco, porque eso ya no es quitar la cola sino recortar el campo; y si el
   estudio ya declaró `field_period`, no se duplica la verificación.
 
-**L14 · Declarar el criterio de caso válido** ☐
+**L14 · Declarar el criterio de caso válido** ☑ *(2026-08-13)*
 - **Rol**: qué hace que un caso cuente. Hoy el criterio existe **repetido 403
   veces**: `Consent` está en el gate de 403 de las 425 reglas del instrumento,
   así que la app lo hereda pero nunca lo *sabe* — no puede decir cuál es el
@@ -398,7 +398,28 @@ presentación decide qué cuenta y cómo se dice.
 - **Antes de construir**: revisar `universe_filter` de Carga
   (`carga_universe_filter.R`), que materializa un universo efectivo al cargar.
   Sería absurdo terminar con dos definiciones de universo que puedan discrepar.
-- **Cuidado**: toca los denominadores de Analítica. Ya no es solo Validación.
+- **Dónde vive**: `caso_valido` en `operational_config` ·
+  `api/R/validacion_caso_valido.R` (archivo nuevo)
+- **El sugeridor lo descubre midiendo**, no por una lista de nombres conocidos:
+  una variable que gobierna una proporción dominante de los gates **es** el
+  criterio de validez del estudio, escrito por quien armó el formulario.
+- **Evidencia** sobre `ACNUR MDV AGOSTO`: propone `Consent == «Yes»`, que
+  gobierna **400 de las 425 reglas** y lo cumplen los 104 casos. El criterio ya
+  se aplicaba; lo que cambia es que ahora está declarado y el N es defendible en
+  vez de heredado.
+- **Falso positivo real, resuelto midiendo el efecto**: el sugeridor también
+  proponía la **variable de ruta** del estudio (377 de 425 reglas — las
+  preguntas de cada rama dependen de ella). Adoptarla habría sacado del universo
+  a los 16 casos de la otra ruta, perfectamente válidos. No se puede distinguir
+  por semántica sin nombrar variables, pero sí por su efecto: cada candidata
+  declara **cuántos casos sacaría**, las que no sacan a nadie van primero, y la
+  que saca avisa que revise si es una ruta y no un criterio.
+- **Valor preventivo medido**: con una prueba y un caso sin consentimiento
+  inyectados, el universo baja a 102 de 104 — hoy los dos contarían.
+- **Cuidado pendiente**: aplicar el filtro a la evaluación (que un caso inválido
+  no genere inconsistencias) y a los denominadores de Analítica **no está
+  hecho**. El motor existe y está declarado; conectarlo aguas abajo es su propio
+  ítem, porque sale del perímetro de Validación.
 
 ### Espera decisión de Gonzalo
 
