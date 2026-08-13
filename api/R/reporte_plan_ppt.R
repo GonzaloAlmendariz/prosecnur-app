@@ -5243,11 +5243,14 @@ reporte_ppt_plan <- function(
           group_title <- as.character(group_title)[1]
           if (!nzchar(trimws(group_title))) group_title <- group_id
           if (requireNamespace("stringr", quietly = TRUE)) {
-            # B43/G-21: la columna de tema del layout multiactor es angosta
-            # (canvas_w_grupo = 0.13 del ancho); el wrap de 0.8*wrap_y (~40
-            # chars) producia lineas que se clippeaban en el borde. Se envuelve
-            # a lo que la columna realmente sostiene (~18 chars con el default).
-            group_title <- stringr::str_wrap(group_title, width = max(10, floor(wrap_y_eff * 0.36)))
+            # El wrap sigue al ancho REAL de la columna del tema, o ensancharla
+            # no sirve de nada: medido, con la columna a 0.22 y el wrap intacto
+            # el enunciado no cambió ni una línea.
+            group_title <- stringr::str_wrap(group_title, width = .multiactor_wrap_tema(
+              .reporte_plan_multiactor_canvas_defaults(
+                TRUE, (presets$multi_apiladas_multiactor$args %||% list())
+              )$canvas_w_grupo,
+              wrap_y_eff))
           }
 
           filas_var <- 0L
@@ -5522,7 +5525,10 @@ reporte_ppt_plan <- function(
         }
         args <- .merge_args(
           args,
-          .reporte_plan_multiactor_canvas_defaults(isTRUE(show_extra))
+          .reporte_plan_multiactor_canvas_defaults(
+            isTRUE(show_extra),
+            preset_args = (presets$multi_apiladas_multiactor$args %||% list())
+          )
         )
         args$mostrar_barra_extra <- isTRUE(show_extra)
       }
@@ -9397,6 +9403,7 @@ p_presets <- function(
     base             = list(),
     barras_apiladas  = list(),
     multi_apiladas   = list(),
+    multi_apiladas_multiactor = list(),
     barras_agrupadas = list(),
     barras_categoricas = list(),
     barras_numericas = list(),
@@ -9442,6 +9449,7 @@ p_presets <- function(
     base             = normalize_block(base),
     barras_apiladas  = normalize_block(barras_apiladas),
     multi_apiladas   = normalize_block(multi_apiladas),
+    multi_apiladas_multiactor = normalize_block(multi_apiladas_multiactor),
     barras_agrupadas = normalize_block(barras_agrupadas),
     barras_categoricas = normalize_block(barras_categoricas),
     barras_numericas = normalize_block(barras_numericas),
