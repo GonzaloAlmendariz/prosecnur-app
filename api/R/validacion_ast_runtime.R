@@ -682,7 +682,8 @@ validation_bundle_from_plan_xlsx <- function(path,
 # rama XLSX multi-hoja (`read_validation_data_ast`) y el ensamblador multi-base
 # (ADR 0030 Fase 2), de modo que ambos entregan un `data_ctx` de la MISMA forma.
 .finalize_multitable_data_ctx <- function(lx, instrumento = NULL,
-                                          source = "lector_limpieza") {
+                                          source = "lector_limpieza",
+                                          operational_config = NULL) {
   main_name <- lx$meta$main %||% names(lx$data)[1]
   tables <- .inherit_parent_columns(lx$data, main_name = main_name)
   tables <- .restore_instrument_case_aliases(tables, instrumento = instrumento)
@@ -694,6 +695,12 @@ validation_bundle_from_plan_xlsx <- function(path,
     tables$principal <- normalize_data_for_xlsform(tables$principal, instrumento)
     filtered <- .validation_filter_sm_partial_rows(tables$principal)
     tables$principal <- filtered$data
+    # Los casos que el estudio declaró fuera del universo no deben generar
+    # inconsistencias: son ruido que nadie va a corregir y que además infla el
+    # contador del que depende el gate de avance (ADR 0075).
+    validez <- caso_valido_filtrar_evaluacion(tables$principal, operational_config)
+    tables$principal <- validez$data
+    if (!is.null(validez$filter)) filtered$caso_valido <- validez$filter
   }
   list(
     principal = tables$principal %||% tables[[1]],
@@ -708,7 +715,8 @@ validation_bundle_from_plan_xlsx <- function(path,
 
 #' Lee data para evaluación AST con awareness de repeats.
 #' @export
-read_validation_data_ast <- function(path, ext, instrumento = NULL) {
+read_validation_data_ast <- function(path, ext, instrumento = NULL,
+                                     operational_config = NULL) {
   ext <- tolower(as.character(ext %||% tools::file_ext(path)))
   if (ext %in% c("xlsx", "xls")) {
     rc_map <- .repeats_count_map_from_instrumento(instrumento)
@@ -721,6 +729,7 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
       warn = FALSE
     )
     return(.finalize_multitable_data_ctx(lx, instrumento = instrumento,
+                                         operational_config = operational_config,
                                          source = "lector_limpieza"))
   }
 
@@ -732,6 +741,9 @@ read_validation_data_ast <- function(path, ext, instrumento = NULL) {
   df <- normalize_data_for_xlsform(df, instrumento)
   filtered <- .validation_filter_sm_partial_rows(df)
   df <- filtered$data
+  validez <- caso_valido_filtrar_evaluacion(df, operational_config)
+  df <- validez$data
+  if (!is.null(validez$filter)) filtered$caso_valido <- validez$filter
   list(
     principal = df,
     tables = list(principal = df),

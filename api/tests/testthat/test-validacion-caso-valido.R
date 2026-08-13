@@ -166,3 +166,86 @@ test_that("advierte cuando una candidata parece una ruta del estudio", {
   expect_true(cands[[2]]$probable_rama)
   expect_true(grepl("ruta del estudio", cands[[2]]$porque, fixed = TRUE))
 })
+
+# --- El filtro conectado aguas abajo ----------------------------------------
+
+.cv_data <- function() data.frame(
+  `_uuid` = sprintf("u%02d", 1:6),
+  prueba  = c("real", "real", "test", "real", "real", "real"),
+  consent = c("si", "si", "si", "no", "si", "si"),
+  p1      = c("1", "2", "9", "1", "2", "1"),
+  stringsAsFactors = FALSE, check.names = FALSE
+)
+.cv_cfg_activa <- function() normalize_validation_operational_config(list(
+  version = 2L,
+  caso_valido = list(enabled = TRUE, condiciones = list(
+    list(variable = "prueba", operador = "==", valores = list("real")),
+    list(variable = "consent", operador = "==", valores = list("si"))
+  ))
+))
+
+test_that("sin criterio declarado la evaluación recibe la base entera", {
+  # Control que protege a todo proyecto que no declare nada: el comportamiento
+  # anterior debe seguir siendo idéntico.
+  out <- caso_valido_filtrar_evaluacion(.cv_data(), NULL)
+  expect_identical(nrow(out$data), 6L)
+  expect_null(out$filter)
+
+  apagada <- normalize_validation_operational_config(list(version = 2L))
+  expect_identical(nrow(caso_valido_filtrar_evaluacion(.cv_data(), apagada)$data), 6L)
+})
+
+test_that("con criterio declarado la evaluación no ve los casos fuera del universo", {
+  # La prueba y el que no consintió salen: sus saltos violados serían ruido que
+  # nadie va a corregir, y además inflarían el contador del gate (ADR 0075).
+  out <- caso_valido_filtrar_evaluacion(.cv_data(), .cv_cfg_activa())
+  expect_identical(nrow(out$data), 4L)
+  expect_true(out$filter$applied)
+  expect_identical(out$filter$excluded_rows, 2L)
+  expect_identical(out$filter$original_rows, 6L)
+  # La traza dice con qué criterio se excluyó, no solo cuántos.
+  expect_length(out$filter$condiciones, 2L)
+})
+
+test_that("un criterio que vaciaría la base no se aplica", {
+  # Salvaguarda: casi siempre es una variable mal declarada, y evaluar cero
+  # filas no le sirve a nadie. Es preferible evaluar de más y que se vea.
+  cfg <- normalize_validation_operational_config(list(
+    version = 2L,
+    caso_valido = list(enabled = TRUE, condiciones = list(
+      list(variable = "prueba", operador = "==", valores = list("no_existe_este_valor"))
+    ))
+  ))
+  out <- caso_valido_filtrar_evaluacion(.cv_data(), cfg)
+  expect_identical(nrow(out$data), 6L)
+  expect_false(out$filter$applied)
+  expect_true(grepl("sin casos", out$filter$motivo_no_aplicado, fixed = TRUE))
+})
+
+test_that("el filtro deja traza cuando Analítica lo aplica", {
+  # El N reportado tiene que poder explicarse: sin la traza, una base de 104 que
+  # reporta 102 es un número que nadie sabe de dónde salió.
+  base_meta <- list(validacion = list(operational_config = list(
+    version = 2L,
+    caso_valido = list(enabled = TRUE, condiciones = list(
+      list(variable = "prueba", operador = "==", valores = list("real"))
+    ))
+  )))
+  out <- .analitica_aplicar_caso_valido(.cv_data(), base_meta)
+  expect_identical(nrow(out), 5L)
+  expect_identical(attr(out, "caso_valido_filtro")$excluded_rows, 1L)
+})
+
+test_that("Analítica no filtra cuando la base no declaró criterio", {
+  expect_identical(nrow(.analitica_aplicar_caso_valido(.cv_data(), NULL)), 6L)
+  expect_identical(nrow(.analitica_aplicar_caso_valido(.cv_data(), list())), 6L)
+  # Una config presente pero apagada tampoco filtra.
+  meta <- list(validacion = list(operational_config = list(version = 2L)))
+  expect_identical(nrow(.analitica_aplicar_caso_valido(.cv_data(), meta)), 6L)
+})
+
+test_that("Analítica no rompe si la config guardada es basura", {
+  # Un `.pulso` viejo o corrupto no debe tumbar la preparación de Analítica.
+  meta <- list(validacion = list(operational_config = list(version = 99L)))
+  expect_identical(nrow(.analitica_aplicar_caso_valido(.cv_data(), meta)), 6L)
+})
