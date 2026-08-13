@@ -80,3 +80,61 @@
 
   paste(lineas, collapse = "\n")
 }
+
+# ===========================================================================
+# R3 — la geometria se calcula, no se calibra
+# ===========================================================================
+#
+# El wrap del titulo de bloque era un factor ajustado a ojo contra UNA columna:
+# `0.36 * wrap_y` calibrado para `canvas_w_grupo = 0.13`. Ensanchar la columna no
+# cambiaba el texto, y cada ancho nuevo pedia reajustar el factor —medido: con
+# 0.20 el bueno era 0.42, con 0.22 el 0.46, y extrapolar a 0.28 se salia por la
+# izquierda—.
+#
+# La alternativa obvia, `.barras_chars_en_canal()`, tampoco mide: asume un ancho
+# medio de caracter de `size_pt * 0.52`. Medido sobre el enunciado real de la
+# lamina 66, ese factor sobreestima un 16 % (0.0794 in/char asumidos contra
+# 0.0686 reales a 11 pt).
+#
+# Esto mide el texto que se va a dibujar, a su tamano, con su tipografia.
+
+#' Ancho de wrap en caracteres para un titulo de bloque.
+#'
+#' @param texto El titulo que se va a dibujar. Se mide ESE, no un promedio.
+#' @param w_npc Fraccion de ancho de la columna del tema.
+#' @param ancho_in Ancho del canvas en pulgadas.
+#' @param size_pt Cuerpo del titulo de bloque.
+#' @param family Tipografia; `""` usa la del dispositivo.
+#' @param minimo Piso en caracteres: por debajo, el titulo se parte en jirones.
+#' @return Numero de caracteres por linea.
+#' @keywords internal
+.barras_wrap_titulo_grupo <- function(texto, w_npc, ancho_in, size_pt,
+                                      family = "", minimo = 10L) {
+  texto <- as.character(texto)[1]
+  if (is.na(texto) || !nzchar(texto)) return(as.integer(minimo))
+
+  w_npc    <- suppressWarnings(as.numeric(w_npc)[1])
+  ancho_in <- suppressWarnings(as.numeric(ancho_in)[1])
+  size_pt  <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(w_npc) || w_npc <= 0) return(as.integer(minimo))
+  if (!is.finite(ancho_in) || ancho_in <= 0) ancho_in <- 10
+  if (!is.finite(size_pt) || size_pt <= 0) size_pt <- 11
+
+  # El canal reserva un respiro contra el eje, igual que el de las etiquetas.
+  utiles <- (w_npc * ancho_in) - 0.06
+  if (utiles <= 0) return(as.integer(minimo))
+
+  por_char <- tryCatch({
+    g <- grid::textGrob(texto, gp = grid::gpar(fontsize = size_pt, fontfamily = family))
+    ancho <- grid::convertWidth(grid::grobWidth(g), "in", valueOnly = TRUE)
+    ancho / max(1L, nchar(texto))
+  }, error = function(e) NA_real_)
+
+  # Sin dispositivo grafico la medicion puede fallar; entonces se cae al
+  # estimador de siempre en vez de dejar el titulo sin envolver.
+  if (!is.finite(por_char) || por_char <= 0) {
+    return(.barras_chars_en_canal(w_npc, ancho_in, size_pt, minimo = minimo))
+  }
+
+  max(as.integer(minimo), as.integer(floor(utiles / por_char)))
+}
