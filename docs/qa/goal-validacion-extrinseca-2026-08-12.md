@@ -55,9 +55,9 @@ analista sepa a quién le pasó y qué hacer sin leer una expresión en R.
 |---|---|---|
 | **V1** | Ninguna verificación menciona el nombre de una variable de un proyecto | `grep` de nombres de MDV/ACNUR/HSVG en el engine nuevo devuelve 0. Toda variable llega por rol declarado en `operational_config`, como ya hacen `field_period` y `duplicates` |
 | **V2** | La misma regla corre sobre los 4 proyectos de referencia sin editarla | `make reference-project-verify` + el engine sobre `acnur_acg`, `acnur_pdm`, `acrconta`, `hsvg2026`: 0 errores de ejecución, hallazgos coherentes con cada base |
-| **V3** | Cada anomalía tiene un tipo, y los tipos no se mezclan | El resumen distingue contradicción / valor inválido / faltante indebido / anomalía de procedencia / observación. Una observación **nunca** suma a `n_inconsistencias` ni bloquea |
+| **V3** | Cada anomalía tiene un tipo, y los tipos no se mezclan | El resumen distingue **contradicción / valor inválido / faltante indebido / anomalía de procedencia**. Lo que no se puede clasificar queda como «sin clasificar», no se le inventa tipo. Procedencia no propone acción de limpieza |
 | **V4** | El enunciado nombra al sujeto, el hecho y la acción | Toda fila trae uuid + código de campo, valor observado con su etiqueta, con qué choca, y acción sugerida. Cero lógica negada anidada en el texto que ve el analista |
-| **V5** | Una señal sola no es un hallazgo | El solapamiento y la duración larga se registran sin veredicto; el hallazgo aparece cuando ≥2 señales caen sobre el mismo caso. Control: en MDV, 21 avisos crudos → 1 hallazgo |
+| **V5** | Una señal sola no es un hallazgo | El hallazgo aparece cuando ≥2 señales caen sobre el mismo caso (`cruce_identidad`). Control en MDV: 5 solapamientos + 1 llave repetida → **1 caso**. Tras el recorte del 2026-08-12 esta vara aplica sobre todo al GOAL de Monitoreo, que es donde viven esas señales |
 | **V6** | Lo que la capa nueva encuentra, la vieja no lo encontraba | Cada verificación trae su caso de MDV (o de otro proyecto real) que las 425 reglas del instrumento dejan pasar |
 | **V7** | El analista puede apagar y calibrar cada verificación | Umbrales y activación viven en `operational_config`, versionados en el `.pulso`, sin tocar código |
 
