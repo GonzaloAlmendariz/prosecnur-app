@@ -27,7 +27,7 @@ llegar** a su graficador, y al mirarlos uno a uno son tres casos distintos:
 | # | Qué | Coste | Estado |
 |---|---|---|---|
 | R1 | **Los valores llevan su procedencia** (`fabrica` / `proyecto` / `grafico`) | alto · pide ADR | ☐ sin empezar |
-| R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ◐ presets hechos; faltan graficadores y slides |
+| R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ◐ presets y graficadores hechos; falta slides (C6) |
 | R3 | **La geometría se calcula, no se calibra** | medio | ☐ sin empezar |
 
 R2 primero por decisión de Gonzalo: no es la más profunda, pero convierte esta
@@ -41,7 +41,7 @@ clase entera de bug en un fallo de CI en vez de un hallazgo de sesión.
 | C2 | Retirar `espacio_entre_barras` de multi_apiladas | ☑ **hecho** |
 | C3 | Retirar `mostrar_rango` y `tipo_rango` del preset del boxplot | ☑ **hecho** |
 | C4 | Test de cobertura: **todo arg declarado llega** | ☑ **hecho** · verificado con mutante: con un arg muerto inyectado FAIL 2, sin él FAIL 0 |
-| C5 | Extenderlo a `.GRAFICADORES_META`, no sólo a `.PRESETS_META` | ☐ |
+| C5 | Extenderlo a `.GRAFICADORES_META` | ☑ **hecho** · 216 args, **cero muertos**; los 4 huérfanos los consume el plan |
 | C6 | Extenderlo a los args de SLIDE (`.SLIDES_META`), donde vive `args_extra` | ☐ |
 
 ## Por qué la lista de «traducidos» va explícita
@@ -54,6 +54,15 @@ aparece una vez en el plan, pero para OTRO preset.
 
 La lista es corta a propósito. Añadir un nombre a ella obliga a escribir dónde
 se traduce, que es justo la documentación que hoy no existe.
+
+## Trampas de este checklist
+
+- **Un mutante que no muta dice «pasa».** Dos de mis tres intentos de inyectar un
+  arg muerto en `.GRAFICADORES_META` fueron a otro bloque —`s.index()` sobre dos
+  espacios casa dentro de una indentación mayor, y `args = c(list(` no es
+  `args = list(`— y el test daba FAIL 0. Sin comprobar que el mutante estaba
+  DE VERDAD en el registro, habría dado por validado un test que no medía nada.
+  El aserto del mutante necesita su propio aserto.
 
 ## Trampas heredadas del GOAL
 
