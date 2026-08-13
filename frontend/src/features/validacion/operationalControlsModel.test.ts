@@ -28,7 +28,38 @@ describe("operational controls model", () => {
         similarity_threshold: 0.9,
         minimum_coverage: 0.8,
       },
+      // Los roles del estudio nacen apagados y vacíos: declarar es un acto del
+      // analista, y un proyecto que ya existía no debe reetiquetarse solo.
+      identity: { enabled: false, variables: [], agent_variable: "" },
+      caso_valido: { enabled: false, condiciones: [] },
     });
+  });
+
+  it("no inventa roles cuando el backend los omite", () => {
+    // Un `.pulso` guardado antes de que estos roles existieran llega sin ellos.
+    const normalized = normalizeOperationalConfig({ version: 2 });
+    expect(normalized.identity).toEqual({ enabled: false, variables: [], agent_variable: "" });
+    expect(normalized.caso_valido).toEqual({ enabled: false, condiciones: [] });
+  });
+
+  it("descarta condiciones de validez incompletas en vez de guardarlas rotas", () => {
+    const normalized = normalizeOperationalConfig({
+      version: 2,
+      caso_valido: {
+        enabled: true,
+        condiciones: [
+          { variable: "consent", operador: "==", valores: ["si"] },
+          { variable: "", operador: "==", valores: ["x"] },        // sin variable
+          { variable: "otra", operador: "==", valores: [] },        // sin valores
+          { variable: "tercera", operador: "raro", valores: ["a"] } as never,
+        ],
+      },
+    });
+    expect(normalized.caso_valido.condiciones).toHaveLength(2);
+    expect(normalized.caso_valido.condiciones[0].variable).toBe("consent");
+    // Un operador inválido no invalida la condición: cae al comparador por
+    // defecto, que es el más conservador.
+    expect(normalized.caso_valido.condiciones[1].operador).toBe("==");
   });
 
   it("normalizes backend input without silently enabling or selecting controls", () => {

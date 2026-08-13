@@ -25,6 +25,8 @@ export function defaultOperationalConfig(): InstrumentoOperationalConfig {
       similarity_threshold: DEFAULT_DUPLICATE_SIMILARITY_THRESHOLD,
       minimum_coverage: DEFAULT_DUPLICATE_MINIMUM_COVERAGE,
     },
+    identity: { enabled: false, variables: [], agent_variable: "" },
+    caso_valido: { enabled: false, condiciones: [] },
   };
 }
 
@@ -53,6 +55,30 @@ export function normalizeOperationalConfig(
         input?.duplicates?.minimum_coverage,
         defaults.duplicates.minimum_coverage,
       ),
+    },
+    // Los proyectos guardados antes de que estos roles existieran llegan sin
+    // ellos: se normalizan a apagado y vacío, nunca a un valor inventado.
+    identity: {
+      enabled: input?.identity?.enabled === true,
+      variables: uniqueStrings(input?.identity?.variables),
+      agent_variable: cleanString(input?.identity?.agent_variable),
+    },
+    caso_valido: {
+      enabled: input?.caso_valido?.enabled === true,
+      condiciones: (Array.isArray(input?.caso_valido?.condiciones)
+        ? input.caso_valido.condiciones
+        : []
+      )
+        .map((c) => ({
+          variable: cleanString(c?.variable),
+          operador: (["==", "!=", "in", "not_in"] as const).includes(
+            c?.operador as "==" | "!=" | "in" | "not_in",
+          )
+            ? (c.operador as "==" | "!=" | "in" | "not_in")
+            : ("==" as const),
+          valores: uniqueStrings(c?.valores),
+        }))
+        .filter((c) => c.variable.length > 0 && c.valores.length > 0),
     },
   };
 }

@@ -381,6 +381,55 @@ export type InstrumentoOperationalConfig = {
     similarity_threshold: number;
     minimum_coverage: number;
   };
+  /**
+   * Quién es el sujeto de un caso y quién lo recolectó. Se declara una vez por
+   * estudio para que ninguna verificación tenga que nombrar variables de un
+   * proyecto: el motor pregunta por el rol, no por la columna.
+   */
+  identity: {
+    enabled: boolean;
+    variables: string[];
+    agent_variable: string;
+  };
+  /**
+   * Qué hace que un caso cuente. En la práctica todo estudio ya lo tiene, pero
+   * escrito dentro del `relevant` de cada pregunta — así la app lo hereda y
+   * nunca lo sabe. Declararlo hace que el N sea defendible en vez de heredado.
+   */
+  caso_valido: {
+    enabled: boolean;
+    condiciones: Array<{
+      variable: string;
+      operador: "==" | "!=" | "in" | "not_in";
+      valores: string[];
+    }>;
+  };
+};
+
+/** Candidatas que la app propone para declarar cada rol. Read-only. */
+export type RolesSugerencias = {
+  identidad: {
+    llaves: Array<{ variable: string; distintos: number; porque: string }>;
+    agentes: Array<{ variable: string; distintos: number; porque: string }>;
+  };
+  periodo: {
+    columna: string;
+    inicio: string;
+    fin: string;
+    n_casos_afectados: number;
+    porque: string;
+  } | null;
+  caso_valido: Array<{
+    variable: string;
+    operador: "==" | "!=" | "in" | "not_in";
+    valores: string[];
+    n_reglas_gobernadas: number;
+    n_casos_excluiria: number;
+    /** Una variable de ruta también gobierna casi todas las reglas y no es un
+     *  criterio de validez: adoptarla sacaría del universo a media muestra. */
+    probable_rama: boolean;
+    porque: string;
+  }>;
 };
 
 export type InstrumentoUpstreamUniverseSummary = {
