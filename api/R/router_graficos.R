@@ -1049,6 +1049,13 @@
 
 .build_presets <- function(presets_json) {
   if (is.null(presets_json) || length(presets_json) == 0) return(NULL)
+  # ADR 0074. Aqui, y no en el getter: el bag guardado trae solo decisiones y
+  # este es el embudo por el que TODOS los caminos convierten una config en
+  # presets —el router, el job de export y el arnes de render, que lee la sesion
+  # directamente sin pasar por `.graficos_config_get()`. Poner el reverso solo
+  # en el getter dejaba fuera justo el camino que dibuja el mazo: medido, los
+  # titulos de bloque de la lamina 66 salian planos.
+  presets_json <- .graficos_presets_con_defaults(presets_json)
   args <- lapply(presets_json, as.list)
   supported <- setdiff(names(formals(p_presets)), "...")
   extension_keys <- intersect(
@@ -1198,9 +1205,7 @@
   # migracion y para que el resultado no dependa de con que version se guardo.
   limpio <- function(cfg) {
     if (is.list(cfg) && !is.null(cfg$presets)) {
-      cfg$presets <- .graficos_presets_con_defaults(
-        .graficos_presets_solo_decisiones(cfg$presets)
-      )
+      cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
     }
     cfg
   }
