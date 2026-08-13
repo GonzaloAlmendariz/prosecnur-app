@@ -27,7 +27,7 @@ llegar** a su graficador, y al mirarlos uno a uno son tres casos distintos:
 | # | Qué | Coste | Estado |
 |---|---|---|---|
 | R1 | **Los valores llevan su procedencia** (`fabrica` / `proyecto` / `grafico`) | alto · pide ADR | ☐ sin empezar |
-| R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ◐ presets y graficadores hechos; falta slides (C6) |
+| R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ☑ **hecho** · 705 args cubiertos en los tres registros |
 | R3 | **La geometría se calcula, no se calibra** | medio | ☐ sin empezar |
 
 R2 primero por decisión de Gonzalo: no es la más profunda, pero convierte esta
@@ -42,7 +42,7 @@ clase entera de bug en un fallo de CI en vez de un hallazgo de sesión.
 | C3 | Retirar `mostrar_rango` y `tipo_rango` del preset del boxplot | ☑ **hecho** |
 | C4 | Test de cobertura: **todo arg declarado llega** | ☑ **hecho** · verificado con mutante: con un arg muerto inyectado FAIL 2, sin él FAIL 0 |
 | C5 | Extenderlo a `.GRAFICADORES_META` | ☑ **hecho** · 216 args, **cero muertos**; los 4 huérfanos los consume el plan |
-| C6 | Extenderlo a los args de SLIDE (`.SLIDES_META`), donde vive `args_extra` | ☐ |
+| C6 | Extenderlo a los args de SLIDE | ☑ **hecho** · 101 args, **cero muertos**; `args_extra` no es superficie de edición |
 
 ## Por qué la lista de «traducidos» va explícita
 
@@ -54,6 +54,22 @@ aparece una vez en el plan, pero para OTRO preset.
 
 La lista es corta a propósito. Añadir un nombre a ella obliga a escribir dónde
 se traduce, que es justo la documentación que hoy no existe.
+
+## Corrección: `args_extra` no era la puerta
+
+Durante la sesión atribuí «Numerar OE» a `args_extra` —los formals sin catalogar
+que el payload publica—. Es **falso**. Ese control venía de su declaración en el
+registro, y lo que se veía en pantalla era la metadata vieja que la pestaña tenía
+cargada en memoria desde antes de reiniciar el backend.
+
+Medido: `args_extra` sólo lo tocan dos ficheros de producción, y ninguno lo
+pinta —`api/graficos.ts` declara el tipo y `metadataSanitizers.ts` normaliza el
+array—. Ningún `.tsx` lo renderiza. Los 59 formals de slide sin declarar son
+estructurales (`slots`, `id`, `payload`…), no mandos del analista.
+
+El primer aserto que escribí para esto —«ningún fichero de producción lo
+menciona»— falló, y con razón: la pregunta no es si lo mencionan, es si lo
+**renderizan**.
 
 ## Trampas de este checklist
 

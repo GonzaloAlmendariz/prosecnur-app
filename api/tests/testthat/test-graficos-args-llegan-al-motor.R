@@ -190,3 +190,58 @@ test_that("los args de significancia se borran antes de llamar al graficador", {
                     src, fixed = TRUE))
   expect_true(grepl(".graficos_sig_aplicar_transpuesto", src, fixed = TRUE))
 })
+
+# ---------------------------------------------------------------------------
+# C6 — los args de SLIDE. Aquí el constructor `p_slide_*()` ES el contrato: lo
+# que declara el registro tiene que poder pasarse a esa función.
+# ---------------------------------------------------------------------------
+
+test_that("todo arg declarado en un slide puede llegar a su constructor", {
+  revisados <- 0L
+  for (clave in names(.SLIDES_META)) {
+    f <- tryCatch(getExportedValue("prosecnurapp", clave), error = function(e) NULL)
+    if (is.null(f)) next
+    fml <- names(formals(f))
+    if ("..." %in% fml) next
+    args <- .SLIDES_META[[clave]]$args %||% list()
+    if (!length(args)) next
+
+    nombres <- vapply(args, function(a) as.character(a$name %||% ""), character(1))
+    huerfanos <- setdiff(nombres, fml)
+    expect_equal(
+      huerfanos, character(0),
+      info = sprintf("`%s` declara args que su constructor no acepta: %s",
+                     clave, paste(huerfanos, collapse = ", "))
+    )
+    revisados <- revisados + 1L
+  }
+  expect_gt(revisados, 15L)
+})
+
+test_that("`args_extra` es documentación, no una superficie de edición", {
+  # 59 formals de slide no están declarados en el registro y se publican como
+  # `args_extra`. Eso NO es un problema mientras nadie los pinte como campos:
+  # son args estructurales (`slots`, `id`, `payload`…), no mandos del analista.
+  #
+  # Yo mismo até «Numerar OE» a esta puerta durante la sesión y era falso: ese
+  # control venía de su declaración en el registro, y lo que se veía en pantalla
+  # era la metadata vieja que la pestaña tenía cargada en memoria. Este aserto
+  # existe para que la atribución no se repita — si algún día el front empieza a
+  # renderizar `args_extra`, hay que volver a mirarlo.
+  # El aserto no es «nadie lo menciona» —eso falla y con razón: hay un tipo y un
+  # normalizador que lo tocan sin pintarlo—. Es «nadie lo RENDERIZA», y el
+  # renderizado vive en `.tsx`.
+  front <- list.files(file.path("..", "..", "..", "frontend", "src"),
+                      pattern = "\\.tsx?$", recursive = TRUE, full.names = TRUE)
+  skip_if(!length(front), "sin fuentes de frontend en este contexto")
+  produccion <- front[!grepl("\\.test\\.|\\.contract\\.", front)]
+  usan <- produccion[vapply(produccion, function(f) {
+    any(grepl("args_extra", readLines(f, warn = FALSE), fixed = TRUE))
+  }, logical(1))]
+
+  # Los dos permitidos, por lo que hacen y no por estar en una lista: declarar el
+  # tipo y normalizar el array. Si aparece un tercero, o si el que aparece es un
+  # componente, este aserto lo delata.
+  expect_setequal(basename(usan), c("graficos.ts", "metadataSanitizers.ts"))
+  expect_equal(basename(usan[grepl("\\.tsx$", usan)]), character(0))
+})
