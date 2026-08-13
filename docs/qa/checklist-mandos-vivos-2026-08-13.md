@@ -26,7 +26,7 @@ llegar** a su graficador, y al mirarlos uno a uno son tres casos distintos:
 
 | # | Qué | Coste | Estado |
 |---|---|---|---|
-| R1 | **El proyecto guarda decisiones, no defaults** | alto | ◐ **ADR 0074 propuesto**, con la medición; falta implementar |
+| R1 | **El proyecto guarda decisiones, no defaults** | alto | ☑ **hecho** · ADR 0074 aceptado e implementado · 253 → 32 valores |
 | R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ☑ **hecho** · 705 args cubiertos en los tres registros |
 | R3 | **La geometría se calcula, no se calibra** | medio | ☑ **hecho** en el wrap del tema · queda limpiar el factor muerto del plan |
 
@@ -87,9 +87,17 @@ la consecuencia incómoda dicha: un mazo puede cambiar de aspecto al actualizar
 la app, porque un default nuevo dejaría de quedar sepultado bajo la copia de
 ayer. Eso es lo correcto y es un cambio de contrato que va en las notas.
 
-Falta implementar: descartar al guardar, limpiar al cargar los `.pulso` viejos,
-y retirar después las muletas —la regla de «legado» de `textos_negrita` y el
-alias de `numerar_oe`— que existen sólo porque hoy no se puede distinguir.
+**Implementado.** El filtro va en `.graficos_config_set()` al guardar y en
+`.graficos_config_get()` al leer —las cuatro salidas—, para que un `.pulso`
+anterior reciba el mismo trato sin migración y quede limpio en el primer
+guardado. Medido sobre «Conta 11-08»: **253 → 32 valores, las 32 decisiones**.
+El render de la lámina 66 sale idéntico byte a byte, o sea que nada dependía de
+un default congelado.
+
+Queda retirar las muletas que existen sólo porque antes no se podía distinguir:
+la regla de «legado» de `textos_negrita` y el alias de `numerar_oe`. Ya no hacen
+falta, pero tocarlas cambia el aspecto de proyectos vivos y merece su propia
+vuelta.
 
 ## R3 — cerrado en el wrap del tema
 

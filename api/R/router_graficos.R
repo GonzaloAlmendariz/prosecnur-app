@@ -1186,13 +1186,23 @@
 }
 
 .graficos_config_get <- function(sid, s = NULL) {
+  # Tambien al LEER, y no solo al guardar: un `.pulso` anterior al ADR 0074 trae
+  # su bag entero —253 valores medidos, 218 de ellos el default congelado— y
+  # merece el mismo trato sin obligar a una migracion. El primer guardado ya lo
+  # deja limpio en disco.
+  limpio <- function(cfg) {
+    if (is.list(cfg) && !is.null(cfg$presets)) {
+      cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
+    }
+    cfg
+  }
   s <- s %||% session_get(sid, required = FALSE)
   if (is.null(s)) return(.graficos_default_config(sid))
   active <- .graficos_scoped_base(sid)
   if (nzchar(active)) {
     configs <- s$graficos_config_por_base
     if (is.list(configs) && !is.null(configs[[active]])) {
-      return(configs[[active]])
+      return(limpio(configs[[active]]))
     }
     # Migracion conservadora: una config global legacy se asigna solo a
     # la base activa inicial. Las demas bases independientes arrancan con
@@ -1201,13 +1211,13 @@
       configs <- list()
       configs[[active]] <- s$graficos_config
       session_set(sid, "graficos_config_por_base", configs)
-      return(s$graficos_config)
+      return(limpio(s$graficos_config))
     }
     inherited <- .graficos_config_inherit_candidate(s, active)
-    if (!is.null(inherited)) return(inherited)
+    if (!is.null(inherited)) return(limpio(inherited))
     return(.graficos_default_config(sid))
   }
-  s$graficos_config %||% .graficos_default_config(sid)
+  limpio(s$graficos_config %||% .graficos_default_config(sid))
 }
 
 .graficos_config_get_for_base <- function(sid, base_name, s = NULL) {
@@ -1233,6 +1243,11 @@
 }
 
 .graficos_config_set <- function(sid, cfg) {
+  # ADR 0074: el proyecto guarda decisiones, no defaults. Lo que coincide con el
+  # default de fabrica no se guarda, y asi «presencia = decision» se sostiene.
+  if (is.list(cfg) && !is.null(cfg$presets)) {
+    cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
+  }
   active <- .graficos_scoped_base(sid)
   if (nzchar(active)) {
     s <- session_get(sid)
