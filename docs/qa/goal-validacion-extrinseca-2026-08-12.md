@@ -30,7 +30,7 @@ nuevo aunque se cierre en el momento.
 | **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☑ validado 2026-08-12 |
 | **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☑ validado 2026-08-12 |
 | **6** | L7 + L8 + L9 | Presentación | ☑ validado 2026-08-12 |
-| **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ◐ L11 ☑ · L10 ⛔ depende del lote 6 |
+| **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ☑ validado 2026-08-13 |
 
 ## La calidad que se persigue
 
@@ -328,13 +328,20 @@ presentación decide qué cuenta y cómo se dice.
 
 ### Capa 4 · Gobierno y alcance
 
-**L10 · ADR de "base validada"** ☐
+**L10 · ADR de "base validada"** ☑ *(lote 7, 2026-08-13)*
 - **Rol**: fija la decisión de fondo para que no se vuelva a discutir en cada
   sesión. Cambia el significado del gate de Validación.
 - **Objetivo**: dejar escrito qué significa que una base esté validada cuando la
   validación ya no se deriva solo del instrumento, y qué tipos de anomalía
   bloquean el avance a Codificación.
-- **Dónde vive**: `docs/adrs/`
+- **Dónde vive**: `docs/adrs/0075-una-base-validada-es-una-base-sin-hallazgos-sin-decidir.md`
+- **Decisión**: una base está validada cuando no le quedan hallazgos **sin
+  decidir**, no cuando no tiene hallazgos. `procedencia` nunca bloquea — es
+  información para interpretar y no admite corrección en el dato. Los otros tres
+  exigen una decisión por hallazgo, y **conservar es una decisión válida**.
+- **Por qué no «cero inconsistencias»**: inalcanzable en cualquier base real,
+  falsificable apagando un criterio, y con procedencia obligaría a falsear el
+  dato para poder avanzar.
 
 **L11 · El aviso se adelanta a Carga** ☑ *(2026-08-12)*
 - **Rol**: mueve la detección al momento en que todavía se puede corregir el
@@ -355,6 +362,30 @@ presentación decide qué cuenta y cómo se dice.
   siguiente.
 - **Evidencia**: `test-carga-review-procedencia.R` (12 asserts) + 2 tests de
   render · gate 1835 asserts R y 3908 vitest en verde
+
+### Cola abierta
+
+**L13 · Sembrar el periodo de campo** ☐
+- **Rol**: la capacidad existe (`field_period` genera `OP_field_period`) pero
+  está apagada y sin variable declarada. Nadie declara un periodo de campo a
+  mano si la app no se lo propone.
+- **Objetivo**: mirar la distribución de fechas, proponer el rango observado
+  descartando la cola aislada, y que el analista confirme.
+- **En MDV**: propondría 01/08–05/08 y dejaría `H1006` (30/07) a la vista —
+  probablemente el piloto, marcado como `testreal = "real"` y contando en el N.
+
+**L14 · Declarar el criterio de caso válido** ☐
+- **Rol**: qué hace que un caso cuente. Hoy el criterio existe **repetido 403
+  veces**: `Consent` está en el gate de 403 de las 425 reglas del instrumento,
+  así que la app lo hereda pero nunca lo *sabe* — no puede decir cuál es el
+  universo analizable porque nadie se lo declaró.
+- **Objetivo**: declararlo una vez, y que **un caso inválido no genere
+  inconsistencias**: si entra una prueba a la base, sus saltos violados son ruido
+  que nadie va a corregir.
+- **Antes de construir**: revisar `universe_filter` de Carga
+  (`carga_universe_filter.R`), que materializa un universo efectivo al cargar.
+  Sería absurdo terminar con dos definiciones de universo que puedan discrepar.
+- **Cuidado**: toca los denominadores de Analítica. Ya no es solo Validación.
 
 ### Espera decisión de Gonzalo
 
