@@ -100,7 +100,17 @@
 
 #' Ancho de wrap en caracteres para un titulo de bloque.
 #'
-#' @param texto El titulo que se va a dibujar. Se mide ESE, no un promedio.
+#' Mide, no estima. Y mide la LINEA MAS ANCHA que produce el wrap, no el
+#' promedio del texto entero: `str_wrap(width = n)` reparte por palabras, asi que
+#' una linea puede quedarse en 18 caracteres y la siguiente llegar a 27 con
+#' letras mas anchas. Medido con los valores reales del render —`ancho = 12.5`,
+#' 14 pt Arial, columna 0.216— el promedio decia que caben 27 y la linea mas
+#' ancha se salia; empiricamente el limite estaba en torno a 16-18.
+#'
+#' El bucle baja de uno en uno desde el techo geometrico hasta que la linea mas
+#' ancha cabe. Son pocas iteraciones y cada una es una medicion exacta.
+#'
+#' @param texto El titulo que se va a dibujar. Se mide ESE.
 #' @param w_npc Fraccion de ancho de la columna del tema.
 #' @param ancho_in Ancho del canvas en pulgadas.
 #' @param size_pt Cuerpo del titulo de bloque.
@@ -124,17 +134,29 @@
   utiles <- (w_npc * ancho_in) - 0.06
   if (utiles <= 0) return(as.integer(minimo))
 
-  por_char <- tryCatch({
-    g <- grid::textGrob(texto, gp = grid::gpar(fontsize = size_pt, fontfamily = family))
-    ancho <- grid::convertWidth(grid::grobWidth(g), "in", valueOnly = TRUE)
-    ancho / max(1L, nchar(texto))
-  }, error = function(e) NA_real_)
-
-  # Sin dispositivo grafico la medicion puede fallar; entonces se cae al
-  # estimador de siempre en vez de dejar el titulo sin envolver.
-  if (!is.finite(por_char) || por_char <= 0) {
-    return(.barras_chars_en_canal(w_npc, ancho_in, size_pt, minimo = minimo))
+  mide <- function(x) {
+    tryCatch({
+      g <- grid::textGrob(x, gp = grid::gpar(fontsize = size_pt, fontfamily = family))
+      grid::convertWidth(grid::grobWidth(g), "in", valueOnly = TRUE)
+    }, error = function(e) NA_real_)
   }
 
-  max(as.integer(minimo), as.integer(floor(utiles / por_char)))
+  # Techo geometrico con el ancho medio: el punto de partida del bucle.
+  medio <- mide(texto) / max(1L, nchar(texto))
+  # Sin dispositivo grafico la medicion falla; se cae al estimador de siempre en
+  # vez de dejar el titulo sin envolver.
+  if (!is.finite(medio) || medio <= 0) {
+    return(.barras_chars_en_canal(w_npc, ancho_in, size_pt, minimo = minimo))
+  }
+  n <- max(as.integer(minimo), as.integer(floor(utiles / medio)))
+
+  if (!requireNamespace("stringr", quietly = TRUE)) return(n)
+  while (n > minimo) {
+    lineas <- strsplit(stringr::str_wrap(texto, width = n), "\n", fixed = TRUE)[[1]]
+    anchos <- vapply(lineas, mide, numeric(1))
+    if (!any(is.finite(anchos))) return(n)
+    if (max(anchos, na.rm = TRUE) <= utiles) return(n)
+    n <- n - 1L
+  }
+  as.integer(minimo)
 }
