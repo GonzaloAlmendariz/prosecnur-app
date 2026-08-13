@@ -2005,9 +2005,6 @@
            descripcion = "Alias alternativo para ancho_max_eje_y, por compatibilidad."),
       list(name = "invertir_barras",      label = "Invertir orden de las barras", tipo_input = "bool",   grupo = "datos",
            descripcion = "Si es TRUE, las barras se muestran en orden inverso (la primera abajo, la última arriba)."),
-      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo",
-           default = 0,
-           descripcion = "Grados de rotación del eje X (0 = horizontal, 45 = diagonal, 90 = vertical)."),
 
       # --- Leyenda --------------------------------------------------------
       list(name = "leyenda_posicion",     label = "Posición de la leyenda", tipo_input = "choice", grupo = "estilo",
@@ -2240,13 +2237,9 @@
            descripcion = "Desde este valor la cifra va en ámbar; por debajo, en rojo. Vara del informe de acreditación: 70."),
 
       # --- Eje Y + separación --------------------------------------------
-      list(name = "espacio_entre_barras", label = "Separación entre barras", tipo_input = "number", grupo = "estilo",
-           descripcion = "Fracción del ancho entre barras (0 = pegadas, 0.3 = separación generosa)."),
       list(name = "ancho_max_eje_y",      label = "Ancho máximo eje Y",    tipo_input = "number", grupo = "filtro"),
       list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "datos",
            descripcion = "Da la vuelta al orden de las filas. Útil cuando el instrumento las declara al revés de como se leen."),
-      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo",
-           descripcion = "Grados de rotación de las etiquetas del eje X."),
       list(name = "alto_por_categoria",   label = "Alto por categoría (in)", tipo_input = "number", grupo = "canvas"),
 
       # --- Leyenda --------------------------------------------------------
@@ -2352,7 +2345,6 @@
 	           default = TRUE,
 	           descripcion = "Mueve categorías Otro/Otros al final del orden visual aunque su frecuencia sea alta."),
 	      list(name = "invertir_barras",      label = "Invertir orden",        tipo_input = "bool",   grupo = "datos", default = TRUE),
-      list(name = "angle_x",              label = "Rotación etiquetas X",  tipo_input = "number", grupo = "estilo"),
 
       # --- Valores y cálculo ---------------------------------------------
       list(name = "mostrar_valores",      label = "Mostrar valores",       tipo_input = "bool",   grupo = "estilo", default = TRUE),
@@ -3117,13 +3109,6 @@
       list(name = "mostrar_media",        label = "Mostrar media",         tipo_input = "bool",   grupo = "estilo",
            default = TRUE,
            descripcion = "Añade un marcador con la media además de la mediana."),
-      list(name = "mostrar_rango",        label = "Mostrar rango extendido", tipo_input = "bool", grupo = "estilo",
-           descripcion = "Dibuja barras con min-max o IQR según tipo_rango."),
-      list(name = "tipo_rango",           label = "Tipo de rango",         tipo_input = "choice", grupo = "estilo",
-           choices = list(
-             list(value = "iqr",     label = "IQR (P25-P75)"),
-             list(value = "minmax", label = "Min-Max")
-           )),
       list(name = "mostrar_leyenda",      label = "Mostrar leyenda",       tipo_input = "bool",   grupo = "estilo"),
 
       # --- Cálculo -------------------------------------------------------
