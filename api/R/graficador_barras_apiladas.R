@@ -3132,6 +3132,13 @@ graficar_barras_apiladas <- function(
       # de verdad. Medir la distancia entre la primera y la ultima categoria
       # daba cero en un bloque de una sola barra —justo el caso donde el titulo
       # largo invade a los vecinos—.
+      # R3: el wrap se CALCULA aqui, donde `ancho`, el cuerpo y el ancho del
+      # canal son los de verdad. El plan lo hacia con un factor calibrado contra
+      # una sola columna y ensancharla no cambiaba el texto.
+      if (requireNamespace("stringr", quietly = TRUE)) {
+        title_i <- stringr::str_wrap(gsub("\n", " ", title_i, fixed = TRUE), width =
+          .barras_wrap_titulo_grupo(title_i, w_group, ancho, size_titulos_grupo, font_family))
+      }
       title_i <- .barras_acotar_titulo_grupo(title_i, group_df$n_cat[i],
                                             alto_rel = titulos_grupo_alto_rel)
       canvas <- canvas + cowplot::draw_text(
@@ -3472,6 +3479,23 @@ graficar_barras_apiladas <- function(
     attr(canvas, "pulso_canvas_title_height_in") <- as.numeric(h_header_in)
     attr(canvas, "pulso_draw_y_labels") <- isTRUE(draw_y_labels)
     attr(canvas, "pulso_umbral_ocultar_etiqueta") <- as.numeric(umbral_ocultar_etiqueta_eff)
+    # Geometria RESUELTA de los canales, para poder auditarla sin adivinar.
+    #
+    # Se anade porque el wrap del titulo de bloque se calibra a ojo y para
+    # calcularlo hace falta saber que `ancho` y que cuerpo recibe de verdad el
+    # graficador. Trazarlo con `message()` o `cat()` no sirve: el renderer llama
+    # envuelto en `suppressMessages(suppressWarnings(...))` y se los come. Como
+    # atributo viaja en el objeto y se lee desde `reporte_ppt_plan(solo_lista =
+    # TRUE)`, que es lo que ya devuelve la lista de graficos renderizados.
+    attr(canvas, "pulso_geometria_canales") <- list(
+      ancho_in           = as.numeric(ancho),
+      alto_in            = as.numeric(alto),
+      size_titulos_grupo = as.numeric(size_titulos_grupo),
+      size_ejes          = as.numeric(size_ejes_num),
+      font_family        = as.character(font_family),
+      w_grupo            = as.numeric(w_group),
+      w_etiquetas        = as.numeric(w_etq)
+    )
     attr(canvas, "pulso_labels_rendered") <- labels_rendered
     attr(canvas, "pulso_barras_apiladas_layout") <- list(
       n_categorias = n_categorias,

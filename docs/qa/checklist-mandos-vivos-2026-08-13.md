@@ -28,7 +28,7 @@ llegar** a su graficador, y al mirarlos uno a uno son tres casos distintos:
 |---|---|---|---|
 | R1 | **Los valores llevan su procedencia** (`fabrica` / `proyecto` / `grafico`) | alto · pide ADR | ☐ sin empezar |
 | R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ☑ **hecho** · 705 args cubiertos en los tres registros |
-| R3 | **La geometría se calcula, no se calibra** | medio | ◐ helper hecho y probado; **falta cablearlo** (ver abajo) |
+| R3 | **La geometría se calcula, no se calibra** | medio | ☑ **hecho** en el wrap del tema · queda limpiar el factor muerto del plan |
 
 R2 primero por decisión de Gonzalo: no es la más profunda, pero convierte esta
 clase entera de bug en un fallo de CI en vez de un hallazgo de sesión.
@@ -71,30 +71,44 @@ El primer aserto que escribí para esto —«ningún fichero de producción lo
 menciona»— falló, y con razón: la pregunta no es si lo mencionan, es si lo
 **renderizan**.
 
-## R3 — dónde se quedó
+## R3 — cerrado en el wrap del tema
 
-El wrap del título de bloque es hoy `0.36 + (w - 0.13) * 0.857`: un factor
-ajustado con dos puntos medidos. Extrapolar a 0.28 se sale por la izquierda.
+El wrap se calcula ahora **dentro del graficador**, con `ancho`, cuerpo y ancho
+de canal reales, midiendo la línea que se va a dibujar.
 
-`.barras_wrap_titulo_grupo()` mide el texto real —`grobWidth` sobre ESE título a
-SU cuerpo— en vez de asumir un ancho medio de carácter. Está escrito y probado
-en aislamiento, incluido el aserto que un factor fijo no puede pasar: `MMMM…`
-da menos caracteres por línea que `iiii…` en el mismo canal.
+**La instrumentación fue lo que lo desbloqueó.** `message()` y `cat()` no
+servían: el renderer llama envuelto en `suppressMessages(suppressWarnings(…))`.
+La geometría resuelta viaja ahora como atributo `pulso_geometria_canales` y se
+lee desde `reporte_ppt_plan(solo_lista = TRUE)`, que ya devuelve los objetos
+renderizados. Los valores reales, que llevaba tres intentos sin ver:
 
-**No está cableado, y a propósito.** Con los insumos que puedo leer de la
-declaración —`ancho = 12.75` del slot de lámina completa, cuerpo 11–13 pt— el
-cálculo da ~24 caracteres a `w = 0.13`, y el factor calibrado usa 14. Peor: a
-`w = 0.20` el cálculo da ~30 y empíricamente **22 ya se salía por la izquierda**.
-Alguno de esos insumos no es el que recibe el graficador.
+```
+ancho = 12.50 in · size_titulos_grupo = 14 pt · size_ejes = 16 · Arial
+w_grupo = 0.216 (normalizado) · w_etiquetas = 0.098
+```
 
-Falta trazar `ancho` y `size_titulos_grupo` **en el render**. Lo intenté tres
-veces y no salió: la llamada va envuelta en `suppressMessages(suppressWarnings(…))`
-y se come tanto `message()` como el `cat()` del tracer. La vía que queda es
-instrumentar el graficador temporalmente y escribir a un fichero, o exponer la
-geometría resuelta como atributo del objeto devuelto.
+Yo venía calculando con 11 pt y `ancho = 12.75`. Con esos supuestos el cálculo
+daba 24 caracteres donde el factor usaba 14, y por eso no cuadraba nada.
 
-Cablearlo sin eso sería cambiar una constante calibrada por un cálculo con
-entradas equivocadas —y esta vez con la lámina 66 delante para desmentirme.
+**Dos hipótesis descartadas por el camino**, y las dos con medición:
+
+- *métricas fuera de dispositivo*: medir sin `png()` abierto da 2.53 in donde el
+  dispositivo real da 2.36 — diferente, pero conservador, no explicaba el
+  desborde;
+- *`draw_text(size=)` en milímetros*: mediría la caja del texto a ~40 pt. Medido
+  sobre el PNG, las líneas ocupan 10–16 px a 70 px/in, o sea ~14 pt. Falsa.
+
+Lo que faltaba era medir **la línea más ancha** que produce el wrap, no el
+promedio del texto: `str_wrap` reparte por palabras y una línea puede pasarse.
+
+VERIFICADO en la lámina 66 con dos configuraciones: con el reparto de fábrica el
+texto se queda dentro de la columna, y con `canvas_w_grupo = 0.28` —la que se
+salía por la izquierda con el factor calibrado— también, aprovechando el ancho
+extra. **Sin retocar ninguna constante entre las dos.**
+
+Queda un cabo: `.multiactor_wrap_tema()` sigue en el plan y ya no decide nada
+—el graficador deshace ese wrap y rehace el suyo—. Retirarlo pide comprobar
+antes que el camino de Word no dependa de él.
 
 ## Trampas de este checklist
 
