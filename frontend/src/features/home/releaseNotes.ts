@@ -15,6 +15,13 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     version: "0.8.0",
     date: "2026-08-11",
     highlights: [
+      "Tu proyecto guarda ahora solo lo que decidiste, no una copia de los valores de fábrica. Un mazo puede verse distinto tras actualizar la app: las mejoras de estilo llegan a los proyectos existentes en vez de quedar tapadas por la copia del día en que se guardaron. Lo que sí elegiste se conserva.",
+      "Gráficos: una sola regla de negrita para todos los tipos de gráfico. Van en negrita el título, el subtítulo y las cifras; el resto queda apagado y se enciende cuando hace falta. Antes cada tipo traía su propio juego y un mazo con nueve tipos se leía como nueve mazos.",
+      "Gráficos: siete interruptores de negrita que no cambiaban nada ahora funcionan. El título del boxplot, el subtítulo de las barras agrupadas y los títulos de bloque de las multiapiladas estaban fijos en el motor aunque la casilla existiera.",
+      "Gráficos: en las láminas de perfil, cada gráfico dice sobre cuántos casos habla. Antes una sola línea al pie servía para los cuatro paneles aunque midieran públicos distintos: la lámina de personal administrativo daba 15 casos a tres gráficos y 52 al cuarto.",
+      "Gráficos: numerar los grupos usa la palabra de tu estudio. Escribes «OE», «Dimensión» o «Eje» y el motor antepone la numeración; antes solo sabía escribir «OE» y a veces la ponía sin que nadie la pidiera.",
+      "Gráficos: el ancho de las columnas de una lámina que compara varios públicos se edita. El enunciado del bloque, el nombre del público y la barra extra tienen su medida, y las barras se ajustan con lo que quede.",
+      "Gráficos: el texto de la lámina de Objetivo ya no sale girado en PowerPoint.",
       "Gráficos: el Top 2 Box se declara por nombre de categoría y deja de deducirse del orden de la escala. La regla anterior sumaba las dos últimas columnas dando por hecho que la escala iba de peor a mejor; cuando no lo era, sumaba las dos equivocadas sin decir nada. Si hoy no hay categorías declaradas, la columna se omite y el motor avisa por qué.",
       "Gráficos: las categorías del Top 2 Box se marcan sobre las escalas reales del estudio. El selector fusiona las escalas idénticas, cabe en el panel e ignora mayúsculas y tildes al emparejar, así que «De acuerdo» y «DE ACUERDO» son la misma categoría.",
       "Gráficos: el Top 2 Box compara contra la medición anterior. La lámina muestra el valor de hoy junto al de la ola previa, que es la lectura que pide un informe de acreditación.",
