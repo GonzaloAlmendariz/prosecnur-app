@@ -21,6 +21,15 @@
 #
 # Tres es lo medido: en la diapositiva de seis temas de un solo publico, tres
 # lineas por fila llenan la columna sin tocar la vecina.
+# Dos, no tres. Con tres el titulo cabia SEGUN LA CUENTA y no segun la
+# geometria: una fila mide ~0.58 in de alto y tres lineas de 13 pt no entran, asi
+# que el enunciado desbordaba su bloque y se escribia encima del vecino sin que
+# el acotado lo impidiera. Medido en la lamina 66 del mazo de acreditacion: cinco
+# lineas en un bloque de dos filas, cupo 6, no se truncaba y colisionaba igual.
+#
+# Baja a 2 junto con el ensanche de `canvas_w_grupo` (0.13 -> 0.20): cada linea
+# lleva mas texto, asi que cuatro lineas anchas dicen mas que las seis estrechas
+# de antes. Se corta menos y ya no se pisa.
 .BARRAS_LINEAS_POR_FILA <- 3L
 
 # Recorta el titulo a las lineas que caben en un bloque de `n_filas` barras.

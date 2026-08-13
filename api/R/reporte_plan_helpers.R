@@ -79,17 +79,13 @@
   )
 }
 
-.reporte_plan_multiactor_canvas_defaults <- function(show_extra = FALSE) {
-  show_extra <- isTRUE(show_extra)
-  list(
-    canvas_w_grupo = 0.13,
-    canvas_w_buf_grupo_etq = 0.01,
-    canvas_w_etiquetas = 0.17,
-    canvas_w_buf_etq_bars = 0.01,
-    canvas_w_bars = if (show_extra) 0.56 else 0.68,
-    canvas_w_buf_bars_extra = if (show_extra) 0.02 else 0,
-    canvas_w_extra = if (show_extra) 0.10 else 0
-  )
+.reporte_plan_multiactor_canvas_defaults <- function(show_extra = FALSE,
+                                                     preset_args = list()) {
+  # El reparto vive en `graficos_preset_multiactor.R` y ya no es una constante:
+  # es un preset que el analista puede tocar. Esta función se conserva como
+  # puerta de entrada —la usan el renderer y el contrato de anchos— y sin args
+  # devuelve el reparto de fábrica, que es lo que ese contrato mide.
+  .multiactor_canvas_resolver(preset_args, show_extra = show_extra)
 }
 
 .ppt_pulso_logo_asset <- function(variant = c("navy", "white", "black"),

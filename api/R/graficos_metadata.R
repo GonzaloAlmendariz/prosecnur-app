@@ -2102,6 +2102,39 @@
   # =========================================================================
   # MULTI-APILADAS (conjunto de preguntas con misma escala)
   # =========================================================================
+  # El reparto de ancho de las láminas MULTIACTOR —varios públicos comparados
+  # sobre la misma escala— vivía escrito a mano dentro del motor y se mezclaba
+  # por encima de los presets: los cuatro anchos existían en el inspector y no
+  # hacían nada. Medido: `canvas_w_grupo = 0.40` en `multi_apiladas` no cambiaba
+  # un píxel. Ahora es un preset propio, que es lo que siempre fue.
+  #
+  # Las barras NO se declaran: son el resto. Así la suma cierra sola y ensanchar
+  # el tema tiene una consecuencia visible en vez de romper la geometría por
+  # detrás. Si el resto baja del piso, el motor avisa y vuelve al reparto de
+  # fábrica en lugar de dibujar una lámina ilegible.
+  multi_apiladas_multiactor = list(
+    titulo_humano = "Multi-apiladas multiactor",
+    descripcion   = "Reparto de ancho de las láminas que comparan varios públicos sobre la misma escala: el tema, el nombre del actor y la barra extra. Las barras se quedan con el resto.",
+    icono_ui      = "Columns3",
+    args = list(
+      list(name = "canvas_w_grupo", label = "Ancho de la columna del tema", tipo_input = "number", grupo = "canvas",
+           default = 0.20, min = 0.05, max = 0.40, step = 0.01, unidad = "proporción",
+           descripcion = "El enunciado del bloque suele ser una pregunta completa. Súbelo si se corta con «…»; el texto se reenvuelve solo al ancho nuevo."),
+      list(name = "canvas_w_etiquetas", label = "Ancho de la columna del actor", tipo_input = "number", grupo = "canvas",
+           default = 0.10, min = 0.05, max = 0.30, step = 0.01, unidad = "proporción",
+           descripcion = "El nombre del público. Va pegado al borde derecho de su canal, así que estrecharlo no mueve el texto: sólo recorta el hueco que tiene delante."),
+      list(name = "canvas_w_extra", label = "Ancho de la barra extra", tipo_input = "number", grupo = "canvas",
+           default = 0.10, min = 0, max = 0.25, step = 0.01, unidad = "proporción",
+           descripcion = "Sólo ocupa cuando la lámina lleva barra extra (Top 2 Box y compañía)."),
+      list(name = "canvas_w_buf_grupo_etq", label = "Separación tema → actor", tipo_input = "number", grupo = "canvas",
+           default = 0.01, min = 0, max = 0.10, step = 0.005, unidad = "proporción"),
+      list(name = "canvas_w_buf_etq_bars", label = "Separación actor → barras", tipo_input = "number", grupo = "canvas",
+           default = 0.01, min = 0, max = 0.10, step = 0.005, unidad = "proporción"),
+      list(name = "canvas_w_buf_bars_extra", label = "Separación barras → extra", tipo_input = "number", grupo = "canvas",
+           default = 0.02, min = 0, max = 0.10, step = 0.005, unidad = "proporción")
+    )
+  ),
+
   multi_apiladas = list(
     titulo_humano = "Multi-apiladas",
     descripcion   = "Varias barras apiladas en un solo gráfico (preguntas con misma escala). Hereda muchos args de 'Barras apiladas' por similitud visual.",
