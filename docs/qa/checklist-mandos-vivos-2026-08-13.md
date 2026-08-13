@@ -26,7 +26,7 @@ llegar** a su graficador, y al mirarlos uno a uno son tres casos distintos:
 
 | # | Qué | Coste | Estado |
 |---|---|---|---|
-| R1 | **Los valores llevan su procedencia** (`fabrica` / `proyecto` / `grafico`) | alto · pide ADR | ☐ sin empezar |
+| R1 | **El proyecto guarda decisiones, no defaults** | alto | ◐ **ADR 0074 propuesto**, con la medición; falta implementar |
 | R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ☑ **hecho** · 705 args cubiertos en los tres registros |
 | R3 | **La geometría se calcula, no se calibra** | medio | ☑ **hecho** en el wrap del tema · queda limpiar el factor muerto del plan |
 
@@ -70,6 +70,26 @@ estructurales (`slots`, `id`, `payload`…), no mandos del analista.
 El primer aserto que escribí para esto —«ningún fichero de producción lo
 menciona»— falló, y con razón: la pregunta no es si lo mencionan, es si lo
 **renderizan**.
+
+## R1 — el ADR, y por qué cambió de forma
+
+Se planteó como «cada valor lleva una etiqueta de origen». Medir lo convirtió en
+algo más simple: en «Conta 11-08», **218 de 253** valores de preset son idénticos
+al default del día en que se guardó. Sólo 22 son decisiones.
+
+Y el frontend ya resuelve esto sin guardar nada: para los overrides de un
+gráfico deriva `inherited` o `custom` de si la clave está en la bolsa. Presencia
+= decisión. Basta con que esa invariante valga también para los presets, y
+entonces no hace falta etiquetar nada.
+
+**ADR 0074 — el `.pulso` guarda sólo lo que difiere del default.** Propuesto, con
+la consecuencia incómoda dicha: un mazo puede cambiar de aspecto al actualizar
+la app, porque un default nuevo dejaría de quedar sepultado bajo la copia de
+ayer. Eso es lo correcto y es un cambio de contrato que va en las notas.
+
+Falta implementar: descartar al guardar, limpiar al cargar los `.pulso` viejos,
+y retirar después las muletas —la regla de «legado» de `textos_negrita` y el
+alias de `numerar_oe`— que existen sólo porque hoy no se puede distinguir.
 
 ## R3 — cerrado en el wrap del tema
 
