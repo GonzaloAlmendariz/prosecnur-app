@@ -1,6 +1,6 @@
 # ADR 0074 — El proyecto guarda decisiones, no defaults
 
-- **Estado**: Propuesta
+- **Estado**: Aceptada
 - **Fecha**: 2026-08-13
 - **Ámbito**: Persistencia `.pulso` · presets de Gráficos
 - **Relación**: raíz común de ocho «mandos muertos» documentados en
