@@ -28,7 +28,7 @@ llegar** a su graficador, y al mirarlos uno a uno son tres casos distintos:
 |---|---|---|---|
 | R1 | **Los valores llevan su procedencia** (`fabrica` / `proyecto` / `grafico`) | alto · pide ADR | ☐ sin empezar |
 | R2 | **Ningún control declarado puede no llegar** — el CI lo detecta | una tarde | ☑ **hecho** · 705 args cubiertos en los tres registros |
-| R3 | **La geometría se calcula, no se calibra** | medio | ☐ sin empezar |
+| R3 | **La geometría se calcula, no se calibra** | medio | ◐ helper hecho y probado; **falta cablearlo** (ver abajo) |
 
 R2 primero por decisión de Gonzalo: no es la más profunda, pero convierte esta
 clase entera de bug en un fallo de CI en vez de un hallazgo de sesión.
@@ -70,6 +70,31 @@ estructurales (`slots`, `id`, `payload`…), no mandos del analista.
 El primer aserto que escribí para esto —«ningún fichero de producción lo
 menciona»— falló, y con razón: la pregunta no es si lo mencionan, es si lo
 **renderizan**.
+
+## R3 — dónde se quedó
+
+El wrap del título de bloque es hoy `0.36 + (w - 0.13) * 0.857`: un factor
+ajustado con dos puntos medidos. Extrapolar a 0.28 se sale por la izquierda.
+
+`.barras_wrap_titulo_grupo()` mide el texto real —`grobWidth` sobre ESE título a
+SU cuerpo— en vez de asumir un ancho medio de carácter. Está escrito y probado
+en aislamiento, incluido el aserto que un factor fijo no puede pasar: `MMMM…`
+da menos caracteres por línea que `iiii…` en el mismo canal.
+
+**No está cableado, y a propósito.** Con los insumos que puedo leer de la
+declaración —`ancho = 12.75` del slot de lámina completa, cuerpo 11–13 pt— el
+cálculo da ~24 caracteres a `w = 0.13`, y el factor calibrado usa 14. Peor: a
+`w = 0.20` el cálculo da ~30 y empíricamente **22 ya se salía por la izquierda**.
+Alguno de esos insumos no es el que recibe el graficador.
+
+Falta trazar `ancho` y `size_titulos_grupo` **en el render**. Lo intenté tres
+veces y no salió: la llamada va envuelta en `suppressMessages(suppressWarnings(…))`
+y se come tanto `message()` como el `cat()` del tracer. La vía que queda es
+instrumentar el graficador temporalmente y escribir a un fichero, o exponer la
+geometría resuelta como atributo del objeto devuelto.
+
+Cablearlo sin eso sería cambiar una constante calibrada por un cálculo con
+entradas equivocadas —y esta vez con la lámina 66 delante para desmentirme.
 
 ## Trampas de este checklist
 
