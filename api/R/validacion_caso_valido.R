@@ -153,3 +153,56 @@ caso_valido_resumen <- function(data, config = NULL) {
     n_excluidos = as.integer(n - sum(ok))
   )
 }
+
+#' Excluir de la evaluación los casos que no cumplen el criterio
+#'
+#' Un caso que el estudio no cuenta no debe generar inconsistencias: si una
+#' prueba quedó en la base, sus saltos violados son ruido que nadie va a
+#' corregir, y peor, inflan el contador que gobierna el gate de avance.
+#'
+#' Sigue el mismo contrato que `.validation_filter_sm_partial_rows()`: devuelve
+#' la data filtrada y un `filter` con la traza, para que la exclusión quede
+#' declarada y no sea una pérdida silenciosa de filas.
+#'
+#' Salvaguarda: si el criterio dejaría la base en cero, **no se aplica**. Un
+#' criterio que descarta todo casi siempre es una variable mal declarada, y
+#' evaluar cero filas no le sirve a nadie — es preferible evaluar de más y que
+#' se vea, a devolver una base vacía sin explicación.
+#'
+#' @param df data.frame de la base.
+#' @param config `operational_config` normalizado.
+#' @return lista con `data` y `filter`.
+#' @family validacion
+#' @export
+caso_valido_filtrar_evaluacion <- function(df, config = NULL) {
+  if (!is.data.frame(df) || !nrow(df)) return(list(data = df, filter = NULL))
+  cv <- config$caso_valido %||% list()
+  if (!isTRUE(cv$enabled) || !length(cv$condiciones %||% list())) {
+    return(list(data = df, filter = NULL))
+  }
+
+  ok <- caso_valido_marcar(df, config)
+  info <- list(
+    kind = "caso_valido_declarado",
+    applied = FALSE,
+    original_rows = as.integer(nrow(df)),
+    kept_rows = as.integer(nrow(df)),
+    excluded_rows = 0L,
+    condiciones = lapply(cv$condiciones, function(c1) {
+      list(variable = c1$variable, operador = c1$operador,
+           valores = as.list(as.character(unlist(c1$valores))))
+    })
+  )
+  n_ok <- sum(ok)
+  if (n_ok == nrow(df)) return(list(data = df, filter = info))
+  if (n_ok == 0L) {
+    info$motivo_no_aplicado <- "el criterio declarado dejaría la base sin casos"
+    return(list(data = df, filter = info))
+  }
+
+  out <- df[ok, , drop = FALSE]
+  info$applied <- TRUE
+  info$kept_rows <- as.integer(nrow(out))
+  info$excluded_rows <- as.integer(nrow(df) - nrow(out))
+  list(data = out, filter = info)
+}

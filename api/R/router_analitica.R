@@ -564,6 +564,22 @@
   invisible(path_out)
 }
 
+# El criterio vive en la config de validación de cada base. Analítica lo lee,
+# no lo declara: declarar es un acto del analista en Validación.
+.analitica_aplicar_caso_valido <- function(dat, base_meta = NULL) {
+  cfg <- ((base_meta %||% list())$validacion %||% list())$operational_config %||% NULL
+  if (is.null(cfg)) return(dat)
+  cfg <- tryCatch(normalize_validation_operational_config(cfg), error = function(e) NULL)
+  if (is.null(cfg)) return(dat)
+  out <- tryCatch(caso_valido_filtrar_evaluacion(dat, cfg), error = function(e) NULL)
+  if (is.null(out) || !is.data.frame(out$data)) return(dat)
+  if (isTRUE(out$filter$applied)) {
+    # La traza viaja con la data para que el N reportado se pueda explicar.
+    attr(out$data, "caso_valido_filtro") <- out$filter
+  }
+  out$data
+}
+
 .analitica_read_pair <- function(pair, base_meta = NULL) {
   rp_inst <- reporte_instrumento(path = pair$xls$path)
   rp_inst <- .analitica_apply_integrated_key(rp_inst, base_meta)
@@ -582,6 +598,11 @@
   )
   dat_raw <- normalize_data_for_xlsform(dat_raw, rp_inst)
   dat_raw <- .analitica_filter_data_to_inst(dat_raw, rp_inst)
+  # Universo analizable: si el estudio declaró qué caso cuenta, Analítica no
+  # puede reportar sobre los que no. Un caso de prueba o sin consentimiento
+  # dentro del denominador corrompe todas las frecuencias, y esa corrupción es
+  # invisible en el resultado — por eso se aplica acá y no en cada cálculo.
+  dat_raw <- .analitica_aplicar_caso_valido(dat_raw, base_meta)
   .carga_assert_data_xlsform_compatible(dat_raw, rp_inst)
   rp_data <- reporte_data(dat_raw, instrumento = rp_inst)
   rp_data <- .analitica_apply_integrated_key_to_data(rp_data, rp_inst, base_meta)

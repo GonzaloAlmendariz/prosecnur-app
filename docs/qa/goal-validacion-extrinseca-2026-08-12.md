@@ -416,10 +416,28 @@ presentación decide qué cuenta y cómo se dice.
   que saca avisa que revise si es una ruta y no un criterio.
 - **Valor preventivo medido**: con una prueba y un caso sin consentimiento
   inyectados, el universo baja a 102 de 104 — hoy los dos contarían.
-- **Cuidado pendiente**: aplicar el filtro a la evaluación (que un caso inválido
-  no genere inconsistencias) y a los denominadores de Analítica **no está
-  hecho**. El motor existe y está declarado; conectarlo aguas abajo es su propio
-  ítem, porque sale del perímetro de Validación.
+- **Conectado aguas abajo** *(2026-08-13)*: el criterio filtra la evaluación y
+  los denominadores de Analítica.
+  - **Evaluación**: `caso_valido_filtrar_evaluacion()` corre en el lector de
+    datos del motor AST, siguiendo el mismo contrato que
+    `.validation_filter_sm_partial_rows()` — la exclusión queda declarada en un
+    `filter` con su traza, no es una pérdida silenciosa de filas. El criterio
+    viaja al worker `callr` como argumento del job.
+  - **Analítica**: se aplica al leer el par de cada base, con el
+    `operational_config` de esa base. Va ahí y no en cada cálculo porque un caso
+    de prueba dentro del denominador corrompe todas las frecuencias, y esa
+    corrupción es **invisible en el resultado**.
+  - **Salvaguarda**: un criterio que dejaría la base en cero **no se aplica**.
+    Casi siempre es una variable mal declarada, y evaluar cero filas no le sirve
+    a nadie — mejor evaluar de más y que se vea.
+  - **Evidencia** sobre `ACNUR MDV AGOSTO`: con el criterio real (`Consent ==
+    Yes`) no cambia nada, 104 de 104, porque todos cumplen. Inyectando una
+    prueba y un rechazo: **102 de 104**, y `H1010` sigue evaluándose porque
+    cumple el criterio — sus 3 inconsistencias siguen contando, como debe ser.
+  - **Controles**: sin criterio declarado, la base entera (comportamiento
+    idéntico al anterior para todo proyecto que no declare nada); config
+    corrupta no tumba Analítica; y el N filtrado deja traza para poder
+    explicarse.
 
 **L15 · Una interfaz para declarar los roles** ☑ *(2026-08-13)*
 - **Rol**: los roles no sirven de nada si declararlos exige elegir a ciegas

@@ -1088,7 +1088,7 @@ mount_validacion <- function(pr) {
       job_id <- job_submit(
         sid = sid,
         kind = "validacion.v2.auditoria",
-        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), progress_path = NULL) {
+        func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), operational_config = NULL, progress_path = NULL) {
           # Locale UTF-8 para que `pkgload::load_all()` pueda parsear
           # archivos .R con caracteres acentuados (el subprocess callr
           # no hereda las opciones locale del main process).
@@ -1124,7 +1124,8 @@ mount_validacion <- function(pr) {
             read_validation_data_ast(
               path = data_path,
               ext = data_ext,
-              instrumento = inst
+              instrumento = inst,
+              operational_config = operational_config
             )
           }
           report("evaluate", percent = 45, message = "Evaluando reglas de consistencia...")
@@ -1153,7 +1154,10 @@ mount_validacion <- function(pr) {
           base_name = base_effective %||% base,
           api_path = api_path,
           validation_exclusions = validation_exclusions,
-          repeat_children = repeat_children
+          repeat_children = repeat_children,
+          # El criterio de caso válido viaja al worker: los casos que el estudio
+          # declaró fuera del universo no deben generar inconsistencias.
+          operational_config = scope$operational_config %||% NULL
         ),
         on_complete = function(j) {
           raw <- j$result_data
@@ -1968,7 +1972,7 @@ mount_validacion <- function(pr) {
         job_id <- job_submit(
           sid = sid,
           kind = "validacion.v2.reglas_custom.ejecutar",
-          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), progress_path = NULL) {
+          func = function(data_path, data_ext, xlsform_path, bundle, base_name, api_path, validation_exclusions = list(), repeat_children = list(), operational_config = NULL, progress_path = NULL) {
             tryCatch(Sys.setlocale("LC_ALL", "en_US.UTF-8"),
                      warning = function(w) NULL, error = function(e) NULL)
             options(encoding = "UTF-8")
@@ -1995,7 +1999,8 @@ mount_validacion <- function(pr) {
               read_validation_data_ast(
                 path = data_path,
                 ext = data_ext,
-                instrumento = inst
+                instrumento = inst,
+                operational_config = operational_config
               )
             }
             report("evaluate", percent = 45, message = "Ejecutando reglas activas...")
@@ -2024,7 +2029,8 @@ mount_validacion <- function(pr) {
             base_name = base_effective %||% base,
             api_path = api_path,
             validation_exclusions = validation_exclusions,
-            repeat_children = repeat_children
+            repeat_children = repeat_children,
+            operational_config = scope$operational_config %||% NULL
           ),
           on_complete = function(j) {
             raw <- j$result_data
