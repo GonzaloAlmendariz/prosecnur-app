@@ -1,6 +1,9 @@
 # GOAL — Monitoreo mira cómo se está trabajando, no solo cuánto falta
 
 **Abierto:** 2026-08-13 · **Cierra:** solo Gonzalo · **Cadencia:** lote por lote
+**Ámbito:** módulo **Monitoreo** (`/monitoreo`). Parte del código que se cita
+vive hoy en archivos de Validación (`reglas_custom_*.R`): traerlo es el trabajo,
+no un error del doc.
 
 ## La calidad que se persigue
 
@@ -104,6 +107,29 @@ terminan diciendo cosas distintas de la misma base.
   existe, la respuesta honesta es que la duración no se mide y el ítem se cierra
   diciendo eso.
 
+**M8 · Qué se está escribiendo en las preguntas abiertas** ☐
+- **Rol**: hoy la app **muestra** las respuestas abiertas y es el analista quien
+  descubre, leyendo, que alguien escribió cualquier cosa. Y las descubre en
+  Codificación, cuando el campo ya cerró. Es la misma inversión que el resto del
+  GOAL: mostrar es tarde, alertar es a tiempo.
+- **Objetivo**: avisar cuando una respuesta abierta no dice nada —tecleo al
+  azar, un guion, una letra suelta— con el agente y el caso, para llamarlo ese
+  día.
+- **Distingue dos clases**, como pidió el equipo:
+  - **Dependientes de una pregunta anterior** (el «otro, especifique»): en MDV
+    son **18 de 24**. Son respuestas de contenido y todas deben vigilarse.
+  - **Independientes**: 6 en MDV, y acá está la trampa — cuatro no son
+    respuestas del encuestado sino **captura operativa** (código de caso, código
+    externo, teléfono, nombre del encuestador). Solo dos son texto de contenido.
+- **Evidencia** sobre `ACNUR MDV AGOSTO`: 69 respuestas en las dependientes, **1
+  dudosa** (`hjk` en una pregunta de barreras). Es poco, y aun así hoy nadie se
+  entera hasta Codificación.
+- **⛔ Espera decisión**: cómo se separa el texto de contenido del operativo. No
+  está en el instrumento —los cuatro operativos de MDV son `text` igual que los
+  otros—. Se puede proponer por perfil (los operativos se llenan en el 100 % de
+  los casos y tienen formato uniforme) y que el analista confirme, como se hace
+  con los demás roles. Pero la señal no es infalible y conviene acordarla.
+
 ### Capa 3 · Presentación
 
 **M6 · Las alertas de calidad conviven con las de avance** ☐
@@ -142,6 +168,9 @@ terminan diciendo cosas distintas de la misma base.
 | Valores distintos de encuestador | 7 para 4 personas |
 | Duraciones implausibles | 15 (máx. 44 h) |
 | Pares solapados del mismo agente | 24 · **1** con identidad compartida |
+| Preguntas de texto abierto | 24 · **18 dependientes** de otra pregunta, 6 independientes |
+| De las independientes, texto de contenido | **2** — las otras 4 son captura operativa |
+| Respuestas abiertas dudosas | 1 de 69 en las dependientes, descubierta recién en Codificación |
 
 ## Trampas
 
@@ -159,6 +188,11 @@ terminan diciendo cosas distintas de la misma base.
 - **Dos motores para la misma pregunta terminan discrepando.** Lo que ya existe
   en Validación se trae, no se reimplementa. Ver `detectar_versiones_formulario()`,
   compartido hoy por Carga y Validación con un test que compara sus salidas.
+- **No todo campo `text` es una respuesta abierta.** Un detector de «esto no
+  dice nada» aplicado a todos los `text` marcó 103 de 104 teléfonos como basura,
+  porque no tienen letras. El código de caso, el teléfono y el nombre del
+  encuestador son captura operativa y el instrumento no los distingue del texto
+  de contenido. (Medido el 2026-08-13.)
 - **Una alerta sin destinatario no es una alerta.** «Revisar duración» no le
   sirve a nadie; «llamar a X y preguntar por los casos A y B» sí. La diferencia
   la marca V3.
