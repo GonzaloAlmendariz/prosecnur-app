@@ -24,7 +24,7 @@
 # Lo que se conserva por compatibilidad, y solo eso, vive en
 # `.prefijo_grupos_legado()`.
 
-#' Prefijo declarado por el analista, con el alias del control viejo.
+#' Prefijo declarado por el analista.
 #'
 #' @param el Elemento del plan.
 #' @return Cadena con el prefijo, `""` si se pidió apagarlo, o `NULL` si el
@@ -38,10 +38,9 @@
     return(p)
   }
 
-  # Alias del control viejo: `numerar_oe = TRUE` era exactamente `"OE"`.
-  viejo <- el$numerar_oe %||% NULL
-  if (!is.null(viejo)) return(if (isTRUE(viejo)) "OE" else "")
-
+  # El alias de `numerar_oe` se retiro con el ADR 0074. Existia para no borrar
+  # una numeracion que el analista quiza no habia pedido, y esa duda ya no
+  # existe: si `prefijo_grupos` no esta declarado, nadie lo eligio.
   NULL
 }
 

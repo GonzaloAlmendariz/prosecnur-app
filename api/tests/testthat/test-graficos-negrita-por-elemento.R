@@ -49,21 +49,24 @@ test_that("una parte declarada por el registro la consulta su graficador", {
   expect_gt(revisados, 5L)
 })
 
-test_that("la negrita heredada sólo vale mientras nadie declare nada", {
-  # Sin declaración, cada parte conserva el aspecto que tenía antes de que
-  # existiera el interruptor: cablearlos no puede cambiar mazos ya entregados.
-  expect_equal(.graficos_face_legado(NULL, "titulo"), "bold")
-  expect_equal(.graficos_face_legado(character(0), "titulo"), "bold")
-  expect_equal(.graficos_face_legado(NULL, "nota_pie", "plain"), "plain")
+test_that("sin declaración, una parte va en plana", {
+  # Hubo una regla de «legado» que conservaba la negrita anterior cuando no
+  # había declaración. Era una muleta del ADR 0074: existía porque el motor no
+  # podía distinguir «nadie lo declaró» de «alguien declaró el default». Con el
+  # `.pulso` guardando sólo decisiones, la duda desaparece.
+  expect_equal(.graficos_face_legado(NULL, "titulo"), "plain")
+  expect_equal(.graficos_face_legado(character(0), "titulo"), "plain")
+  # Y el `legado` de la firma ya no manda nada, aunque se pase.
+  expect_equal(.graficos_face_legado(NULL, "titulo", "bold"), "plain")
+})
 
-  # Con una sola parte declarada manda la declaración, y sólo ella: es lo que
-  # hace que las partes sean independientes.
+test_that("la declaración manda, y sólo sobre su parte", {
   expect_equal(.graficos_face_legado("titulo", "titulo"), "bold")
   expect_equal(.graficos_face_legado("titulo", "subtitulo"), "plain")
   expect_equal(.graficos_face_legado("subtitulo", "titulo"), "plain")
-  # Y el control de que el legado no se cuela cuando hay declaración: una parte
-  # que era negrita de fábrica sale plana si el analista no la pidió.
-  expect_equal(.graficos_face_legado("subtitulo", "titulo", "bold"), "plain")
+  # El control: si la función devolviera siempre lo mismo, los tres pasarían.
+  expect_false(identical(.graficos_face_legado("titulo", "titulo"),
+                         .graficos_face_legado("titulo", "subtitulo")))
 })
 
 test_that("las partes reparadas ya no llevan la negrita escrita a fuego", {

@@ -1190,9 +1190,17 @@
   # su bag entero —253 valores medidos, 218 de ellos el default congelado— y
   # merece el mismo trato sin obligar a una migracion. El primer guardado ya lo
   # deja limpio en disco.
+  # ADR 0074. En DISCO el bag guarda solo decisiones; en MEMORIA hacen falta los
+  # valores completos, porque `.graficos_default_config()` copia el default
+  # dentro del proyecto y el motor lee los presets de ahi, sin ningun merge mas
+  # abajo. Se normaliza en dos pasos —quitar lo que coincide, reponer el
+  # default— para que un `.pulso` anterior a esto reciba el mismo trato sin
+  # migracion y para que el resultado no dependa de con que version se guardo.
   limpio <- function(cfg) {
     if (is.list(cfg) && !is.null(cfg$presets)) {
-      cfg$presets <- .graficos_presets_solo_decisiones(cfg$presets)
+      cfg$presets <- .graficos_presets_con_defaults(
+        .graficos_presets_solo_decisiones(cfg$presets)
+      )
     }
     cfg
   }

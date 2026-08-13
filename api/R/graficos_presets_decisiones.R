@@ -89,3 +89,38 @@
   list(total = total, decisiones = decisiones, sin_default = sin_default,
        defaults_congelados = total - decisiones)
 }
+
+#' Repone el default de fábrica bajo las decisiones del proyecto.
+#'
+#' El reverso de `.graficos_presets_solo_decisiones()`. En **disco** el bag
+#' guarda sólo decisiones; en **memoria**, para renderizar, hacen falta los
+#' valores completos.
+#'
+#' Esto se descubrió con el render, no con los tests: al vaciar el bag los
+#' títulos de bloque de la lámina 66 pasaron de negrita a plana, porque
+#' `.graficos_default_config()` COPIA el default dentro del proyecto y el motor
+#' lee los presets de ahí — no hay ningún merge con el default más abajo. Sin
+#' este reverso, guardar limpio equivalía a borrar la mitad de la configuración.
+#'
+#' @param presets Bag del proyecto, ya sin defaults.
+#' @param defaults Defaults de fábrica.
+#' @return El bag completo: default abajo, decisiones encima.
+#' @keywords internal
+.graficos_presets_con_defaults <- function(presets, defaults = NULL) {
+  if (is.null(defaults)) {
+    defaults <- tryCatch(.PRESETS_DEFAULT_PULSO, error = function(e) NULL)
+  }
+  if (is.null(defaults) || !is.list(defaults)) return(presets)
+  if (is.null(presets) || !is.list(presets)) return(defaults)
+
+  out <- defaults
+  for (bloque in names(presets)) {
+    args <- presets[[bloque]]
+    if (!is.list(args)) { out[[bloque]] <- args; next }
+    base <- out[[bloque]]
+    if (!is.list(base)) base <- list()
+    for (a in names(args)) base[[a]] <- args[[a]]
+    out[[bloque]] <- base
+  }
+  out
+}

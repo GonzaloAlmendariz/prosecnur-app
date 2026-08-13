@@ -1173,6 +1173,22 @@ evaluate_validation_bundle <- function(bundle,
       variable_roles = .data$variable_roles,
       presentation = .data$presentation
     ) %>%
+    # Lote 6 del GOAL de validación extrínseca: qué clase de anomalía es y si
+    # el dato tiene hallazgos. `estado_dinamico` seguía diciendo "correcta" en
+    # una regla con inconsistencias porque califica la regla, no el dato.
+    dplyr::mutate(
+      anomalia_tipo = vapply(
+        seq_len(dplyr::n()),
+        function(i) validacion_anomalia_tipo(.data$tipo_regla[i]),
+        character(1)
+      ),
+      estado_dato = vapply(
+        seq_len(dplyr::n()),
+        function(i) validacion_estado_dato(.data$estado_dinamico[i],
+                                           .data$n_inconsistencias[i]),
+        character(1)
+      )
+    ) %>%
     dplyr::arrange(dplyr::desc(.data$n_inconsistencias))
 
   diagnostico_reglas <- dplyr::select(

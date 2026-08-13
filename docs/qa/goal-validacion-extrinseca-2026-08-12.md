@@ -29,7 +29,7 @@ nuevo aunque se cierre en el momento.
 | **3** | L1 + L5 | El rol de agente es la misma declaración que el de identidad | ☑ validado 2026-08-12 |
 | **4** | L4 | Tipo nuevo: mirar la secuencia completa | ☑ validado 2026-08-12 |
 | **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☑ validado 2026-08-12 |
-| **6** | L7 + L8 + L9 | Presentación; **necesita los nombres de los cinco tipos** | ⛔ bloqueado |
+| **6** | L7 + L8 + L9 | Presentación | ☑ validado 2026-08-12 |
 | **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ◐ L11 ☑ · L10 ⛔ depende del lote 6 |
 
 ## La calidad que se persigue
@@ -241,7 +241,7 @@ presentación decide qué cuenta y cómo se dice.
 
 ### Capa 3 · Presentación — qué cuenta como inconsistencia y cómo se dice
 
-**L7 · Taxonomía de anomalías** ☐
+**L7 · Taxonomía de anomalías** ☑ *(lote 6, 2026-08-12)*
 - **Rol**: define el vocabulario del veredicto. Hoy todo cae en un solo saco y
   por eso un dato imposible pesa igual que un formulario que alguien dejó
   abierto.
@@ -250,9 +250,22 @@ presentación decide qué cuenta y cómo se dice.
   observación **nunca** suma a `n_inconsistencias` ni bloquea nada.
 - **Dónde vive**: columnas del resumen en `validacion_evaluacion_data.R` y
   `validacion_ast_runtime.R` · UI de Validación
-- **Pendiente de Gonzalo**: los nombres de los cinco tipos
+- **Nombres acordados (2026-08-12)**: `contradiccion` · `valor_invalido` ·
+  `faltante` · `procedencia`. La fecha fuera del periodo de campo entra **dentro
+  de procedencia**, no como tipo propio: la acción del analista es la misma que
+  con las versiones y los envíos faltantes.
+- **Dónde vive**: `api/R/validacion_taxonomia_anomalias.R` (archivo nuevo) ·
+  columnas `anomalia_tipo` y `estado_dato` en el resumen
+- **Cómo clasifica**: tres pasos del más específico al más general — lo
+  declarado, el origen del sembrador, el tipo de regla. Sin ninguno devuelve
+  `NA` y la UI dice «sin clasificar»: nunca inventa un tipo.
+- **Evidencia** sobre `ACNUR MDV AGOSTO`: las 425 reglas se reparten en 272
+  contradicción · 139 faltante · 7 valor inválido · 7 sin clasificar
+- **`procedencia` no se corrige en el dato** (`validacion_anomalia_corrige_dato`),
+  para que Limpieza no ofrezca «anular campo» sobre un caso recolectado con otro
+  formulario
 
-**L8 · Enunciado del hallazgo** ☐
+**L8 · Enunciado del hallazgo** ☑ *(lote 6, 2026-08-12)*
 - **Rol**: es la cara visible de toda la capa. Sin esto, los detectores
   producen hallazgos correctos que nadie puede accionar.
 - **Objetivo**: pasar de describir la regla —enunciado universal, negado, sin
@@ -263,6 +276,21 @@ presentación decide qué cuenta y cómo se dice.
   exactamente lo que pide `H1010`), en vez de ser texto suelto.
 - **Dónde vive**: contrato del resumen · UI de Validación · `customRuleNarrative.ts`
 - **Medida**: cero lógica negada anidada en el texto que ve el analista
+
+  Antes: *«Si NO se cumple que («¿usted se encuentra trabajando?» es alguna de
+  «Sí, estable», «Sí, eventual», «Solo esporádicos» y «¿Acepta continuar?» marcó
+  «Sí» y «proyecto_ppl» debe ser igual a 'Homologación Laboral'), entonces
+  «Comparado con hace unos meses…» no debe responderse.»*
+
+  Ahora: *«H1010 · Respondió «Mi ingreso se mantuvo igual» (2) en «Comparado con
+  hace unos meses, ¿su ingreso mensual actual aumentó…?» (emp_increase) pero
+  había declarado «No estoy trabajando» (4) en «En este momento, ¿usted se
+  encuentra trabajando?» (Em_NowWork). Revisar y corregir en Limpieza.»*
+
+- **El choque elige el driver que cambió**, no el de contexto: `Consent` está en
+  el gate de 403 de las 425 reglas y no explica nada. Se toma el driver que trae
+  valor observado en ese caso.
+- **Valores con etiqueta y código detrás**, como el resto de la app.
 
 **L12 · Sembrada vs escrita a mano** ☑ *(lote 2, 2026-08-12)*
 - **Rol**: sin esto, el sembrado de L2/L3/L5 inunda la pestaña y entierra las
@@ -287,12 +315,16 @@ presentación decide qué cuenta y cómo se dice.
   «Sugerido», y las propuestas bajan a 1: la idempotencia se ve en vivo.
   Consola sin errores.
 
-**L9 · `estado_dinamico` deja de engañar** ☐
+**L9 · `estado_dinamico` deja de engañar** ☑ *(lote 6, 2026-08-12)*
 - **Rol**: arreglo de vocabulario heredado, chico pero de alto costo si se
   ignora: en pantalla se lee "correcta" al lado de "1 inconsistencia".
 - **Objetivo**: que el campo diga qué califica —la regla, no el dato— o que se
   renombre. Decisión de nombre, no de lógica.
-- **Dónde vive**: `validacion_evaluacion_data.R`
+- **Resuelto sin renombrar**: `estado_dinamico` no estaba mal —califica si la
+  **regla** se pudo evaluar— y lo consumen varias superficies. Se agregó el
+  campo que faltaba, `estado_dato`: `limpio` / `con_hallazgos` / `no_evaluada`.
+  Una regla que no corrió **no** declara el dato limpio: decir «limpio» sobre lo
+  que nadie verificó es peor que no decir nada.
 
 ### Capa 4 · Gobierno y alcance
 
