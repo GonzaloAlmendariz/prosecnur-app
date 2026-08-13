@@ -27,8 +27,42 @@
       enabled = FALSE,
       variables = character(0),
       agent_variable = ""
+    ),
+    # Qué hace que un caso cuente. Hoy este criterio existe pero repetido en el
+    # `relevant` de cada pregunta: en un estudio real, una misma variable de
+    # consentimiento aparecía en el gate de 403 de 425 reglas. La app lo heredaba
+    # y nunca lo sabía — no podía decir cuál era el universo analizable porque
+    # nadie se lo había declarado.
+    caso_valido = list(
+      enabled = FALSE,
+      condiciones = list()
     )
   )
+}
+
+# Una condición de validez es (variable, operador, valores). Nada de nombres de
+# variables en el código: el estudio declara cuáles son las suyas.
+.validation_operational_condicion <- function(x, idx) {
+  if (!is.list(x)) {
+    stop_api(400, "E_OPERATIONAL_VALIDEZ_CONDICION",
+             sprintf("La condición %d de caso_valido debe ser un objeto.", idx))
+  }
+  var <- .validation_operational_scalar(x$variable)
+  if (is.null(var)) {
+    stop_api(400, "E_OPERATIONAL_VALIDEZ_VARIABLE",
+             sprintf("La condición %d de caso_valido necesita 'variable'.", idx))
+  }
+  op <- as.character(x$operador %||% "==")[1]
+  if (is.na(op) || !(op %in% c("==", "!=", "in", "not_in"))) {
+    stop_api(400, "E_OPERATIONAL_VALIDEZ_OPERADOR",
+             sprintf("Operador inválido en la condición %d: usa ==, !=, in o not_in.", idx))
+  }
+  vals <- .validation_operational_chr(x$valores)
+  if (!length(vals)) {
+    stop_api(400, "E_OPERATIONAL_VALIDEZ_VALORES",
+             sprintf("La condición %d de caso_valido necesita al menos un valor.", idx))
+  }
+  list(variable = var, operador = op, valores = vals)
 }
 
 .validation_operational_chr <- function(x) {
@@ -144,6 +178,22 @@ normalize_validation_operational_config <- function(config = NULL,
              "La similitud de respuestas requiere seleccionar al menos 10 variables.")
   }
 
+  cv_in <- config$caso_valido %||% list()
+  if (!is.list(cv_in)) {
+    stop_api(400, "E_OPERATIONAL_CONFIG_INVALID",
+             "Los controles operativos deben ser objetos.")
+  }
+  cv_conds <- cv_in$condiciones %||% list()
+  cv <- list(
+    enabled = isTRUE(cv_in$enabled),
+    condiciones = lapply(seq_along(cv_conds),
+                         function(i) .validation_operational_condicion(cv_conds[[i]], i))
+  )
+  if (cv$enabled && !length(cv$condiciones)) {
+    stop_api(400, "E_OPERATIONAL_VALIDEZ_INCOMPLETA",
+             "El criterio de caso válido requiere al menos una condición.")
+  }
+
   id <- list(
     enabled = isTRUE(id_in$enabled),
     variables = .validation_operational_chr(id_in$variables),
@@ -160,7 +210,8 @@ normalize_validation_operational_config <- function(config = NULL,
       if (fp$enabled) fp$variable else NULL,
       if (du$enabled) du$variables else NULL,
       if (id$enabled) id$variables else NULL,
-      if (id$enabled) id$agent_variable else NULL
+      if (id$enabled) id$agent_variable else NULL,
+      if (cv$enabled) vapply(cv$condiciones, function(c1) c1$variable, character(1)) else NULL
     )
     missing <- setdiff(.validation_operational_chr(selected), available)
     if (length(missing)) {
@@ -175,13 +226,17 @@ normalize_validation_operational_config <- function(config = NULL,
   # `universe_filter` legacy se ignora deliberadamente: el universo efectivo
   # se materializa en Carga y nunca vuelve a filtrarse dentro de Validacion.
   id$agent_variable <- id$agent_variable %||% ""
-  list(version = 2L, field_period = fp, duplicates = du, identity = id)
+  list(version = 2L, field_period = fp, duplicates = du, identity = id,
+       caso_valido = cv)
 }
 
 validation_operational_config_public <- function(config = NULL) {
   out <- normalize_validation_operational_config(config)
   out$duplicates$variables <- as.list(out$duplicates$variables)
   out$identity$variables <- as.list(out$identity$variables)
+  out$caso_valido$condiciones <- lapply(out$caso_valido$condiciones, function(c1) {
+    c1$valores <- as.list(c1$valores); c1
+  })
   out
 }
 
