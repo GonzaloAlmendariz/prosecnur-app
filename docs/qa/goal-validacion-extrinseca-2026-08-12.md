@@ -88,6 +88,39 @@ implementado. Lo que ninguna regla puede hacer hoy: mirar la **secuencia
 completa** (todas evalúan fila a fila) y **cruzar una fila contra otras** por algo
 que no sea igualdad exacta de tupla.
 
+## Recorte de alcance — 2026-08-12
+
+**Validación verifica la consistencia de los datos. El comportamiento del campo
+es territorio de Monitoreo.**
+
+Las señales de cómo trabajó el equipo —duración de las entrevistas, entrevistas
+simultáneas, nombres del encuestador mal escritos— no son problemas del dato:
+son problemas de la operación, y el módulo que ya vigila la operación es
+Monitoreo. Meterlas en Validación mezcla dos preguntas distintas: «¿este dato es
+consistente?» y «¿este equipo está trabajando bien?».
+
+Consecuencia directa: **la categoría "observación" desaparece de Validación**.
+Existía para alojar duración y solapamiento, que se van. Una señal que no llega
+a hallazgo no debe ocupar espacio en la pantalla de Validación.
+
+| Se queda en Validación | Se va a Monitoreo |
+|---|---|
+| Contradicción entre datos (saltos violados) | Duración de entrevista |
+| Valor fuera del catálogo de su pregunta | Entrevistas simultáneas del mismo agente |
+| Faltante indebido | Variantes del nombre del encuestador (L5) |
+| Procedencia: más de una versión del formulario | |
+| Continuidad de envíos: el N no cuadra | |
+
+Lo ya implementado **no se borra**: `reglas_semilla_agente()` y el tipo
+`cruce_identidad` siguen existiendo y funcionando como criterios disponibles.
+Lo que cambia es de quién es la pregunta que responden — quedan anotados como
+material para un GOAL de Monitoreo, no como parte de la taxonomía de Validación.
+
+Dos que se quedan y conviene justificar: **procedencia** porque cambia cómo se
+leen los datos (las 3 inconsistencias de `H1010` son artefactos de versión, no
+errores del encuestado), y **continuidad** porque el N reportado es un dato del
+estudio, no una métrica de campo.
+
 ## Cola
 
 Cuatro capas. La fundación habilita; el sembrado convierte capacidad manual en
