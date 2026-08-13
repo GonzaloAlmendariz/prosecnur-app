@@ -66,10 +66,24 @@ terminan diciendo cosas distintas de la misma base.
   campo puede existir sin hardcodear.
 - **Objetivo**: que Monitoreo lea `operational_config$identity$agent_variable`
   —la misma declaración que ya usa Validación— en vez de inventar la suya.
-- **Cuidado**: Monitoreo tiene su propio roster de encuestadores
-  (`monitoreo_actor_roster.R`, códigos PXXX). Antes de nada hay que ver cómo se
-  relaciona el rol declarado con ese roster; podrían ser lo mismo con dos
-  nombres, y entonces el trabajo es unificar, no agregar.
+- **Resuelto (2026-08-13)**: el roster y el rol **no son lo mismo y ambos se
+  quedan**. `monitoreo_territorial_enumerator_roster_from_excel()` es una lista
+  de encuestadores subida en Excel con códigos PXXX, solo del perfil
+  territorial, y dice **quién debería trabajar**. `agent_variable` es una columna
+  de la data y dice **quién trabajó**. Planificado y observado son preguntas
+  distintas.
+- **Ojo con el nombre**: `pulso_code` significa **código de caso** en un estudio
+  telefónico (`H1010`) y **código de encuestador** en territorial —
+  `codigo_encuestador` lo lista como alias. El mismo nombre, dos cosas; una
+  razón más para que el rol se declare y no se adivine.
+
+**M9 · Cruzar planificado con observado** ☐
+- **Rol**: la pregunta que aparece al tener las dos listas y que hoy no responde
+  nadie.
+- **Objetivo**: quién envió datos sin estar en el roster, y quién está en el
+  roster sin haber enviado nada. Lo primero es un encuestador no autorizado o un
+  nombre mal escrito; lo segundo, alguien que no arrancó.
+- **Depende de**: M1 y M3 (con nombres sucios, el cruce da falsos negativos).
 
 ### Capa 2 · Señales de calidad del trabajo
 
@@ -124,11 +138,13 @@ terminan diciendo cosas distintas de la misma base.
 - **Evidencia** sobre `ACNUR MDV AGOSTO`: 69 respuestas en las dependientes, **1
   dudosa** (`hjk` en una pregunta de barreras). Es poco, y aun así hoy nadie se
   entera hasta Codificación.
-- **⛔ Espera decisión**: cómo se separa el texto de contenido del operativo. No
-  está en el instrumento —los cuatro operativos de MDV son `text` igual que los
-  otros—. Se puede proponer por perfil (los operativos se llenan en el 100 % de
-  los casos y tienen formato uniforme) y que el analista confirme, como se hace
-  con los demás roles. Pero la señal no es infalible y conviene acordarla.
+- **Resuelto (2026-08-13)**: por defecto se vigilan **solo las dependientes**.
+  El «otro, especifique» es contenido por construcción, así que no hay falsos
+  positivos posibles; en MDV eso son 18 de 24 y cubre el caso típico. Las
+  independientes de contenido se **suman declarándolas**, con la app sugiriendo
+  cuáles parecen serlo. Inferirlo para todas se descartó: un falso positivo
+  sobre un campo operativo alerta en **cada caso de la base** — el detector
+  marcó 103 de 104 teléfonos.
 
 ### Capa 3 · Presentación
 
@@ -143,17 +159,29 @@ terminan diciendo cosas distintas de la misma base.
 
 **M7 · Qué alerta de calidad detiene el campo** ☐
 - **Rol**: una alerta que no cambia ninguna decisión es ruido con presupuesto.
-- **Objetivo**: decidir cuáles ameritan parar o corregir sobre la marcha y
-  cuáles solo se registran. Probablemente un ADR.
-- **Espera decisión de Gonzalo**: es criterio operativo de la casa, no del
-  producto.
+- **Resuelto (2026-08-13)**: **solo procedencia avisa fuerte**. El formulario
+  desactualizado es la única señal que produce datos **irrecuperables** — una
+  encuesta hecha con el formulario viejo no se arregla después, mientras que las
+  otras tres se corrigen o se explican. Sale con severidad bloqueante y con el
+  nombre del agente; las demás informan.
+- **Y un límite que no se cruza**: la app **nunca frena el campo sola**. Avisar
+  fuerte es su techo; parar es decisión del coordinador. Un bloqueo automático
+  sobre una señal con falsos positivos costaría más que el problema que evita.
+- **Objetivo**: dejarlo escrito, probablemente como sección del ADR de
+  Monitoreo o extendiendo el 0075.
+
+## Decisiones tomadas — 2026-08-13
+
+| Qué | Decisión |
+|---|---|
+| Roster PXXX vs rol de agente | **Ambos**, son planificado y observado. Se agrega el cruce (M9) |
+| Qué preguntas abiertas vigilar | **Solo las dependientes** por defecto; las independientes se declaran |
+| Qué alerta frena el campo | **Solo procedencia**, con severidad alta. La app nunca frena sola |
 
 ## Espera decisión de Gonzalo
 
 | Qué | Por qué no puedo yo |
 |---|---|
-| Si el roster de encuestadores de Monitoreo y el rol de agente son lo mismo | Depende de cómo el equipo usa los códigos PXXX en campo |
-| Qué alerta amerita parar el campo (M7) | Criterio operativo del equipo |
 | Umbrales de tiempo, si M5 resulta medible | Criterio metodológico de la casa |
 
 ## Medición de partida
