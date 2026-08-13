@@ -2,7 +2,7 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaSummary, ReglaCustom, ReglaSemilla, ReglasCustomList, ViewDescriptor } from "../features/validacion/types";
+import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaSummary, ReglaCustom, ReglaSemilla, ReglasCustomList, RolesSugerencias, ViewDescriptor } from "../features/validacion/types";
 import { apiFetch, handle, headers } from "./core";
 
 // =============================================================================
@@ -538,6 +538,19 @@ export async function apiV2ReglasCustomDelete(id: string, baseNombre?: string | 
   return handle<{ ok: true; id: string }>(
     await apiFetch(`/api/validacion/v2/reglas_custom/${encodeURIComponent(id)}`, {
       method: "DELETE",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+/**
+ * Candidatas para declarar los roles del estudio —identidad, agente, periodo de
+ * campo, criterio de validez— con la evidencia que las sostiene. Read-only:
+ * declarar sigue siendo un acto del analista.
+ */
+export async function apiV2RolesSugerencias(baseNombre?: string | null) {
+  return handle<{ ok: true; base_nombre: string | null } & RolesSugerencias>(
+    await apiFetch("/api/validacion/v2/roles/sugerencias", {
       headers: v2Headers(baseNombre),
     }),
   );

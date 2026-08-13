@@ -2510,3 +2510,97 @@
   color: var(--pulso-text-soft);
   border: 1px solid var(--pulso-border);
 }
+
+/* Roles declarados del estudio ---------------------------------------------
+   Qué es un caso, quién lo recolectó y cuál cuenta. Las verificaciones
+   preguntan por el rol; acá el estudio dice cuál es su columna. */
+.pulso-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+}
+
+.pulso-roles-head { display: flex; align-items: flex-start; gap: 8px; color: var(--pulso-text-soft); }
+.pulso-roles-head h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--pulso-text); }
+.pulso-roles-head p { margin: 2px 0 0; font-size: 11px; line-height: 1.45; }
+
+.pulso-rol-bloque {
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--pulso-surface-2);
+}
+.pulso-rol-bloque.is-activo {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+}
+.pulso-rol-bloque-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+.pulso-rol-bloque-icono { display: inline-flex; padding-top: 2px; color: var(--pulso-text-soft); }
+.pulso-rol-bloque-copy strong { display: block; font-size: 12px; color: var(--pulso-text); }
+.pulso-rol-bloque-copy small {
+  display: block; margin-top: 2px; font-size: 11px; line-height: 1.4; color: var(--pulso-text-soft);
+}
+.pulso-rol-bloque-resumen {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-soft);
+}
+.pulso-rol-bloque-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--pulso-text-soft); white-space: nowrap; cursor: pointer;
+}
+
+.pulso-rol-sugerencias {
+  margin-top: 10px;
+  border-top: 1px dashed var(--pulso-border);
+  padding-top: 8px;
+}
+.pulso-rol-sugerencias-titulo {
+  margin: 0 0 6px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--pulso-text-soft);
+}
+.pulso-rol-sugerencias ul {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.pulso-rol-sugerencias li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+}
+.pulso-rol-sugerencias li.is-aviso {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+.pulso-rol-sugerencias code { font-size: 11px; color: var(--pulso-text); }
+.pulso-rol-sugerencia-aviso {
+  margin-left: 7px; padding: 1px 6px; border-radius: 999px;
+  font-size: 10px; font-weight: 600;
+  background: var(--pulso-warn-bg); color: var(--pulso-warn-fg);
+}
+.pulso-rol-sugerencias p {
+  margin: 3px 0 0; font-size: 10.5px; line-height: 1.4; color: var(--pulso-text-soft);
+}

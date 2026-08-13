@@ -1715,6 +1715,53 @@ mount_validacion <- function(pr) {
       )
     })) |>
 
+    # --- Roles del estudio: qué proponer para declararlos ---------------------
+    # Los controles operativos piden que el estudio declare identidad, agente,
+    # periodo de campo y criterio de validez. Elegir a mano entre 190 columnas
+    # es hostil, así que la app perfila la base y propone candidatos con su
+    # evidencia. Read-only: declarar sigue siendo un acto del analista.
+    plumber::pr_get("/api/validacion/v2/roles/sugerencias",
+      wrap_endpoint(function(req, res) {
+        sid <- session_header(req)
+        base <- .get_base_nombre(req)
+        scope <- .get_base_scope(sid, base)
+        vacio <- list(ok = TRUE, base_nombre = base %||% NA_character_,
+                      identidad = list(llaves = list(), agentes = list()),
+                      periodo = NULL, caso_valido = list())
+
+        data <- scope$evaluacion$datos %||% NULL
+        if (is.null(data)) {
+          data <- tryCatch({
+            files <- .resolve_base_files(sid, base)
+            .read_data_for_validation(files$data$path, files$data_ext)
+          }, error = function(e) NULL)
+        }
+        if (is.null(data) || !is.data.frame(data)) return(vacio)
+        data <- as.data.frame(data, check.names = FALSE)
+        cfg <- tryCatch(
+          normalize_validation_operational_config(scope$operational_config),
+          error = function(e) NULL
+        )
+
+        # El criterio de validez se descubre midiendo los gates, así que solo
+        # hay candidatas cuando el plan ya se evaluó.
+        resumen <- scope$evaluacion$resumen %||% NULL
+        cv <- if (is.data.frame(resumen)) {
+          tryCatch(caso_valido_candidatas(as.data.frame(resumen), data),
+                   error = function(e) list())
+        } else list()
+
+        periodo <- tryCatch(reglas_semilla_periodo(data, cfg), error = function(e) list())
+
+        list(
+          ok = TRUE,
+          base_nombre = base %||% NA_character_,
+          identidad = tryCatch(identidad_candidatas(data), error = function(e) vacio$identidad),
+          periodo = if (length(periodo)) periodo[[1]]$semilla else NULL,
+          caso_valido = cv
+        )
+      })) |>
+
     # --- Reglas custom: criterios propuestos ---------------------------------
     # Read-only: mira la base y devuelve criterios ya formados que el analista
     # puede guardar tal cual. No persiste nada — el sembrado propone, la persona

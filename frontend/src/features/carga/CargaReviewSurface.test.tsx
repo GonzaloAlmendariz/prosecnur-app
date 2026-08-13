@@ -297,7 +297,7 @@ describe("CargaReviewSummary · aviso de procedencia (GOAL validación extrínse
       status: "confirmed", pending: false, applied: true,
       requires_confirmation: false, n_questions: 0, maps: [],
     },
-    reconciliation: { extra: [], n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
+    reconciliation: { extra: [], reviewed: true, n_extra: 0, n_incluidas: 0, n_excluidas: 0, n_pendientes: 0 },
     procedencia: null,
     ready: true,
   };

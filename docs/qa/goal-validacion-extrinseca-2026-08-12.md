@@ -421,6 +421,23 @@ presentación decide qué cuenta y cómo se dice.
   hecho**. El motor existe y está declarado; conectarlo aguas abajo es su propio
   ítem, porque sale del perímetro de Validación.
 
+**L15 · Una interfaz para declarar los roles** ☑ *(2026-08-13)*
+- **Rol**: los roles no sirven de nada si declararlos exige elegir a ciegas
+  entre 190 columnas o editar JSON. Vale para los cuatro, no solo para el de
+  validez.
+- **Dónde vive**: `GET /api/validacion/v2/roles/sugerencias` (una llamada, las
+  cuatro familias) · `components/RolesDeclarados.tsx` (archivo propio) · montado
+  junto a los controles operativos, que comparten destino y botón de aplicar
+- **Decisión**: proponer no es decidir. Cada sugerencia se adopta con un clic
+  explícito y **declara su efecto**: el criterio de validez muestra cuántos
+  casos sacaría del análisis, porque es lo único que distingue un criterio de
+  una ruta del estudio.
+- **Evidencia** verificada en el navegador sobre `ACNUR MDV AGOSTO`: tres
+  bloques, 14 sugerencias. `Consent == «Yes»` en verde con «No saca ningún
+  caso»; la variable de ruta en ámbar con «Sacaría 16 casos del análisis». Al
+  adoptar, el bloque pasa a «Declarado», el botón cambia a «Quitar» y el CTA a
+  «Aplicar y reconstruir plan». Consola sin errores.
+
 ### Espera decisión de Gonzalo
 
 | Qué | Por qué no puedo yo |

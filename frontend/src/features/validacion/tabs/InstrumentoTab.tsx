@@ -62,6 +62,7 @@ import {
   type RelationalSummary,
 } from "../relationalPlan";
 import InstrumentoOperationalControls from "../components/InstrumentoOperationalControls";
+import RolesDeclarados from "../components/RolesDeclarados";
 import {
   defaultOperationalConfig,
   hasOperationalConfigChanges,
@@ -545,6 +546,15 @@ export default function InstrumentoTab() {
           value={operationalConfig}
           upstreamUniverse={estado.upstream_universe}
           dirty={operationalDirty}
+          disabled={!!busy || !!jobId}
+          onChange={setOperationalConfig}
+        />
+        {/* Los roles del estudio viven junto a los controles operativos porque
+            comparten destino —`operational_config`— y el mismo botón de aplicar:
+            declarar un rol sin reconstruir el plan no cambiaría nada. */}
+        <RolesDeclarados
+          baseNombre={baseNombre}
+          value={operationalConfig}
           disabled={!!busy || !!jobId}
           onChange={setOperationalConfig}
         />
