@@ -61,11 +61,17 @@ terminan diciendo cosas distintas de la misma base.
 
 ### Capa 1 · Fundación
 
-**M1 · El rol de agente llega a Monitoreo** ☐
+**M1 · El rol de agente llega a Monitoreo** ☑ *(2026-08-13)*
 - **Rol**: sin saber qué variable es el encuestador, ninguna señal de calidad de
   campo puede existir sin hardcodear.
 - **Objetivo**: que Monitoreo lea `operational_config$identity$agent_variable`
   —la misma declaración que ya usa Validación— en vez de inventar la suya.
+- **Dónde vive**: `monitoreo_agente_declarado()` en
+  `api/R/monitoreo_calidad_campo.R` (archivo nuevo: `monitoreo_engine.R` está
+  congelado a crecimiento).
+- **Evidencia**: devuelve la variable declarada; sin declaración devuelve `""`,
+  **nunca un nombre inventado**. Un test verifica que el archivo no llama al
+  roster territorial y no menciona variables de ningún proyecto.
 - **Resuelto (2026-08-13)**: el roster y el rol **no son lo mismo y ambos se
   quedan**. `monitoreo_territorial_enumerator_roster_from_excel()` es una lista
   de encuestadores subida en Excel con códigos PXXX, solo del perfil
@@ -87,7 +93,7 @@ terminan diciendo cosas distintas de la misma base.
 
 ### Capa 2 · Señales de calidad del trabajo
 
-**M2 · Procedencia del formulario por agente** ☐
+**M2 · Procedencia del formulario por agente** ☑ *(2026-08-13)*
 - **Rol**: es el caso que abrió el GOAL y el único que se corrige **mientras el
   campo está abierto**.
 - **Objetivo**: avisar cuando un agente sigue enviando con una versión que ya no
@@ -95,7 +101,22 @@ terminan diciendo cosas distintas de la misma base.
 - **Cubre**: las 6 encuestas de MDV recolectadas con el formulario viejo durante
   las ~6 horas en que la encuestadora no había actualizado.
 - **Se apoya en**: `detectar_versiones_formulario()`, que ya existe y es
-  compartido con Carga y Validación.
+  compartido con Carga y Validación — no se reimplementó.
+- **Evidencia** sobre `ACNUR MDV AGOSTO`, con el rol declarado:
+
+  > **[bloqueante] formulario_desactualizado** — Mary Berrocal envió 6 de sus 23
+  > encuestas con una versión anterior del formulario, desde 2026-07-30T17:01.
+  > Sus saltos y catálogos son los de esa versión, y eso no se corrige después:
+  > conviene confirmar hoy que ya actualizó.
+  >
+  > *¿Mary Berrocal ya actualizó el formulario en su equipo? Si sigue con el
+  > anterior, cada encuesta nueva se pierde igual.*
+
+- **Controles**: sin rol declarado, **0 alertas**; base con una sola versión
+  (98 casos), **0 alertas**; un caso suelto no nombra a nadie —puede ser un envío
+  rezagado ya corregido— y el mínimo es del criterio, no del motor.
+- **Severidad alta**, como se decidió: es la única señal que produce datos
+  irrecuperables. Y la app **no frena**: avisa.
 
 **M3 · Identidad del agente** ☐
 - **Rol**: proteger todo lo que se reporta por encuestador.
