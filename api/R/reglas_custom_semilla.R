@@ -321,6 +321,7 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
   # Necesita el rol declarado: sin él no propone, no adivina la columna.
   props <- c(props, reglas_semilla_agente(data, config, reglas_existentes, survey))
   props <- c(props, reglas_semilla_continuidad(data, reglas_existentes))
+  props <- c(props, reglas_semilla_periodo(data, config, reglas_existentes))
   # Todo lo que sale de un sembrador queda marcado: la pestaña necesita
   # distinguirlo de lo que una persona escribió con criterio propio.
   lapply(props, function(p) { p$origen <- "sembrado"; p })
@@ -481,6 +482,125 @@ reglas_semilla_continuidad <- function(data, reglas_existentes = list()) {
               "descarga parcial; conviene saber cuál antes de reportar el N."),
         as.integer(max(seq_v)), length(seq_v), length(faltan),
         paste(utils::head(as.integer(faltan), 8), collapse = ", ")
+      )
+    )
+  ))
+}
+
+# Columnas donde la plataforma escribe la marca temporal del envío. Se usan como
+# último recurso: la fecha que declara el encuestador dice cuándo se hizo la
+# entrevista, que es lo que define el periodo de campo; el timestamp del
+# servidor dice cuándo llegó, que puede ser días después.
+.semilla_fecha_plataforma <- c("_submission_time", "submission_time", "end", "start")
+
+# Qué proporción de los casos debe quedar dentro del rango propuesto. Recortar
+# más que esto deja de ser "quitar la cola" y empieza a ser recortar el campo.
+.semilla_periodo_cobertura <- 0.99
+
+.semilla_como_fecha <- function(x) {
+  v <- trimws(as.character(x))
+  v <- substr(v, 1, 10)                       # tolera "2026-08-03T10:00:00"
+  suppressWarnings(as.Date(v, format = "%Y-%m-%d"))
+}
+
+# Columnas que parecen una fecha de trabajo de campo: parsean como fecha en casi
+# todos los casos y no son la marca del servidor.
+.semilla_columnas_fecha <- function(data) {
+  n <- nrow(data)
+  out <- character(0)
+  for (nm in names(data)) {
+    if (nm %in% .semilla_fecha_plataforma) next
+    f <- .semilla_como_fecha(data[[nm]])
+    if (sum(!is.na(f)) / n < 0.9) next
+    # Una columna con un solo día no delimita un periodo.
+    if (length(unique(f[!is.na(f)])) < 2L) next
+    out <- c(out, nm)
+  }
+  c(out, intersect(.semilla_fecha_plataforma, names(data)))
+}
+
+#' Proponer el periodo de trabajo de campo
+#'
+#' Una encuesta fechada fuera de la ventana de campo puede ser el piloto que se
+#' quedó adentro, un dispositivo con la fecha mal configurada o un caso que no
+#' pertenece al estudio. Cualquiera de las tres cambia el N, y ninguna se ve si
+#' nadie declaró cuál era la ventana.
+#'
+#' El rango se propone **por masa, no por calendario**: se recortan los días
+#' extremos con menos casos mientras la cobertura se mantenga sobre el umbral.
+#' Basarse en días contiguos obligaría a adivinar si un hueco es un domingo, un
+#' feriado o el final del campo.
+#'
+#' @param data data.frame de la base cargada.
+#' @param config `operational_config` normalizado; si el periodo ya está
+#'   declarado no se propone nada.
+#' @param reglas_existentes lista de criterios ya definidos en el scope.
+#' @param cobertura proporción mínima de casos que debe quedar dentro.
+#' @return lista con 0 o 1 candidato.
+#' @family validacion
+#' @export
+reglas_semilla_periodo <- function(data, config = NULL, reglas_existentes = list(),
+                                   cobertura = .semilla_periodo_cobertura) {
+  if (!is.data.frame(data) || nrow(data) < 3L) return(list())
+  # Ya declarado: el control operativo `OP_field_period` lo cubre y proponer una
+  # regla equivalente sería duplicar la verificación.
+  if (isTRUE((config$field_period %||% list())$enabled)) return(list())
+
+  cols <- .semilla_columnas_fecha(data)
+  if (!length(cols)) return(list())
+  col <- cols[1]
+  if (.semilla_ya_cubierta(reglas_existentes, "rango_fecha", col)) return(list())
+
+  f <- .semilla_como_fecha(data[[col]])
+  f <- f[!is.na(f)]
+  if (length(f) < 3L) return(list())
+  total <- length(f)
+  minimo <- ceiling(total * cobertura)
+
+  dias <- sort(unique(f))
+  lo <- 1L; hi <- length(dias)
+  repeat {
+    if (hi - lo < 1L) break
+    dentro <- sum(f >= dias[lo] & f <= dias[hi])
+    n_lo <- sum(f == dias[lo]); n_hi <- sum(f == dias[hi])
+    # Se recorta el extremo más liviano, y solo si lo que queda sigue cubriendo.
+    if (n_lo <= n_hi && dentro - n_lo >= minimo) { lo <- lo + 1L; next }
+    if (n_hi <  n_lo && dentro - n_hi >= minimo) { hi <- hi - 1L; next }
+    break
+  }
+  if (lo == 1L && hi == length(dias)) return(list())   # nada que recortar
+
+  ini <- dias[lo]; fin <- dias[hi]
+  fuera <- which(!is.na(.semilla_como_fecha(data[[col]])) &
+                 (.semilla_como_fecha(data[[col]]) < ini |
+                  .semilla_como_fecha(data[[col]]) > fin))
+
+  list(list(
+    tipo = "rango_fecha",
+    variables = list(col),
+    params = list(min = as.character(ini), max = as.character(fin),
+                  timezone = "America/Lima"),
+    nombre = sprintf("Periodo de campo · %s fuera de %s a %s",
+                     .semilla_nombrar_var(col), as.character(ini), as.character(fin)),
+    mensaje = sprintf("Se registró fuera del periodo de trabajo de campo (%s a %s).",
+                      as.character(ini), as.character(fin)),
+    severidad = "advertencia",
+    activa = TRUE,
+    planned_action_type = "ignore_rule",
+    origen = "sembrado",
+    semilla = list(
+      origen = "periodo",
+      columna = col,
+      inicio = as.character(ini),
+      fin = as.character(fin),
+      n_casos_afectados = length(fuera),
+      n_casos = total,
+      porque = sprintf(
+        paste("El grueso del campo va del %s al %s (%d de %d casos).",
+              "Quedan %d fuera de esa ventana: puede ser el piloto que se quedó",
+              "en la base, un equipo con la fecha mal configurada o casos que no",
+              "pertenecen al estudio — y cualquiera de los tres cambia el N."),
+        as.character(ini), as.character(fin), total - length(fuera), total, length(fuera)
       )
     )
   ))

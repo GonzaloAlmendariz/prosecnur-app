@@ -419,3 +419,68 @@ test_that("cruce_identidad compila por el dispatch real", {
   out <- .compilar_regla_custom(r)
   expect_true(grepl(".k_", as.character(out$Procesamiento), fixed = TRUE))
 })
+
+# --- L13 · periodo de trabajo de campo --------------------------------------
+
+.sem_fechas <- function(fechas) {
+  data.frame(fecha_visita = fechas, `_uuid` = sprintf("u%02d", seq_along(fechas)),
+             stringsAsFactors = FALSE, check.names = FALSE)
+}
+
+test_that("no propone periodo cuando todo el campo es un bloque parejo", {
+  # Control negativo: sin cola que recortar no hay nada que proponer.
+  d <- .sem_fechas(rep(c("2026-08-01","2026-08-02","2026-08-03"), each = 10))
+  expect_length(reglas_semilla_periodo(d), 0L)
+})
+
+test_that("propone el rango recortando la cola aislada", {
+  # Un caso suelto dos días antes del grueso: el patrón del piloto que se quedó
+  # en la base.
+  d <- .sem_fechas(c("2026-07-30", rep("2026-08-01", 50), rep("2026-08-02", 53)))
+  props <- reglas_semilla_periodo(d)
+
+  expect_length(props, 1L)
+  p <- props[[1]]
+  expect_identical(p$tipo, "rango_fecha")
+  expect_identical(p$params$min, "2026-08-01")
+  expect_identical(p$params$max, "2026-08-02")
+  expect_identical(p$semilla$n_casos_afectados, 1L)
+  expect_no_error(.validar_regla_custom(p))
+})
+
+test_that("no recorta si eso dejaría fuera a demasiados casos", {
+  # El umbral existe para que recortar la cola no se convierta en recortar el
+  # campo: 20 casos de 60 no son una cola.
+  d <- .sem_fechas(c(rep("2026-07-30", 20), rep("2026-08-01", 20), rep("2026-08-02", 20)))
+  expect_length(reglas_semilla_periodo(d), 0L)
+})
+
+test_that("no propone periodo si el estudio ya lo declaró", {
+  # `OP_field_period` ya lo verifica; proponer la regla equivalente duplicaría
+  # la verificación sobre la misma variable.
+  d <- .sem_fechas(c("2026-07-30", rep("2026-08-01", 50), rep("2026-08-02", 53)))
+  cfg <- list(field_period = list(enabled = TRUE, variable = "fecha_visita",
+                                  start_date = "2026-08-01", end_date = "2026-08-02"))
+  expect_length(reglas_semilla_periodo(d, cfg), 0L)
+})
+
+test_that("prefiere la fecha declarada en campo antes que la marca del servidor", {
+  # El periodo de campo es cuándo se hizo la entrevista, no cuándo llegó al
+  # servidor: un envío diferido llega días después y correría la ventana.
+  d <- data.frame(
+    fecha_visita = c("2026-07-30", rep("2026-08-01", 50), rep("2026-08-02", 53)),
+    `_submission_time` = c("2026-08-05T10:00:00", rep("2026-08-05T11:00:00", 103)),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  p <- reglas_semilla_periodo(d)[[1]]
+  expect_identical(unlist(p$variables), "fecha_visita")
+})
+
+test_that("el periodo se clasifica como procedencia, no como valor inválido", {
+  # `rango_fecha` mapea por defecto a valor inválido; el origen del sembrador
+  # manda, y una fecha fuera de campo dice de dónde salió el caso.
+  expect_identical(
+    validacion_anomalia_tipo("rango_fecha", origen_semilla = "periodo"),
+    "procedencia"
+  )
+})

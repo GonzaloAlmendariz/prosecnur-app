@@ -365,14 +365,27 @@ presentación decide qué cuenta y cómo se dice.
 
 ### Cola abierta
 
-**L13 · Sembrar el periodo de campo** ☐
+**L13 · Sembrar el periodo de campo** ☑ *(2026-08-13)*
 - **Rol**: la capacidad existe (`field_period` genera `OP_field_period`) pero
   está apagada y sin variable declarada. Nadie declara un periodo de campo a
   mano si la app no se lo propone.
 - **Objetivo**: mirar la distribución de fechas, proponer el rango observado
   descartando la cola aislada, y que el analista confirme.
-- **En MDV**: propondría 01/08–05/08 y dejaría `H1006` (30/07) a la vista —
-  probablemente el piloto, marcado como `testreal = "real"` y contando en el N.
+- **Dónde vive**: `reglas_semilla_periodo()` en `reglas_custom_semilla.R`
+- **Decisión**: el rango se propone **por masa, no por calendario** — se recortan
+  los días extremos con menos casos mientras la cobertura se mantenga sobre el
+  99%. Basarse en días contiguos obligaría a adivinar si un hueco es un domingo,
+  un feriado o el final del campo.
+- **Prefiere la fecha declarada en campo** antes que la marca del servidor: el
+  periodo es cuándo se hizo la entrevista, no cuándo llegó — un envío diferido
+  correría la ventana.
+- **Evidencia** sobre `ACNUR MDV AGOSTO`: propone `2026-08-01 a 2026-08-05`
+  (103 de 104 casos) y deja fuera **`H1006` (30/07)**, marcado como
+  `testreal = "real"` y contando en el N. Clasificado como anomalía de
+  procedencia, como quedó acordado.
+- **Controles**: un campo parejo no propone nada; recortar 20 de 60 casos
+  tampoco, porque eso ya no es quitar la cola sino recortar el campo; y si el
+  estudio ya declaró `field_period`, no se duplica la verificación.
 
 **L14 · Declarar el criterio de caso válido** ☐
 - **Rol**: qué hace que un caso cuente. Hoy el criterio existe **repetido 403
