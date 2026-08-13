@@ -80,16 +80,37 @@ test_that("el recuento dice lo que hay, para poder citar el número", {
   expect_equal(r$defaults_congelados, 2L)
 })
 
-test_that("el guardado y la lectura de config pasan por el filtro", {
-  # Contrato estático: si alguien añade otra puerta de escritura, la invariante
-  # «presencia = decisión» deja de sostenerse sin que nada lo diga.
-  src <- readLines(file.path("..", "..", "R", "router_graficos.R"), warn = FALSE)
-  set_i <- grep(".graficos_config_set <- function", src, fixed = TRUE)
-  get_i <- grep(".graficos_config_get <- function", src, fixed = TRUE)
-  expect_length(set_i, 1L)
-  expect_length(get_i, 1L)
-  expect_true(any(grepl(".graficos_presets_solo_decisiones",
-                        src[set_i:(set_i + 8L)], fixed = TRUE)))
-  expect_true(any(grepl(".graficos_presets_solo_decisiones",
-                        src[get_i:(get_i + 12L)], fixed = TRUE)))
+test_that("las tres puertas de la invariante siguen cableadas", {
+  # `set` quita, `build_presets` repone. Si alguna se desconecta, la invariante
+  # «presencia = decisión» se rompe en silencio y en direcciones opuestas:
+  # sin el quitar, el `.pulso` vuelve a congelar defaults; sin el reponer,
+  # guardar limpio equivale a borrar media configuración —medido, los títulos de
+  # bloque de la lámina 66 salieron planos por eso—.
+  src <- paste(readLines(file.path("..", "..", "R", "router_graficos.R"), warn = FALSE),
+               collapse = "\n")
+  bloque <- function(nombre) {
+    i <- regexpr(paste0(nombre, " <- function"), src, fixed = TRUE)
+    expect_gt(i, 0)
+    substr(src, i, i + 1200L)
+  }
+  expect_true(grepl(".graficos_presets_solo_decisiones", bloque(".graficos_config_set"), fixed = TRUE))
+  expect_true(grepl(".graficos_presets_solo_decisiones", bloque(".graficos_config_get"), fixed = TRUE))
+  # El reverso va en el EMBUDO, no en el getter: el arnés de render y el job de
+  # export leen la sesión directamente sin pasar por `.graficos_config_get()`.
+  expect_true(grepl(".graficos_presets_con_defaults", bloque(".build_presets"), fixed = TRUE))
 })
+
+test_that("quitar y reponer son inversas sobre un bag completo", {
+  completo <- list(base = list(color = "#000000", tamano = 12, partes = c("titulo", "valores")),
+                   pie  = list(orden = "manual", umbral = 0))
+  ida   <- .graficos_presets_solo_decisiones(completo, DEF)
+  vuelta <- .graficos_presets_con_defaults(ida, DEF)
+  expect_equal(vuelta$base$color, "#000000")
+  expect_equal(vuelta$base$tamano, 12)
+  expect_equal(vuelta$pie$orden, "manual")   # su decisión
+  expect_equal(vuelta$pie$umbral, 0)         # repuesto del default
+  # El control: el bag intermedio SÍ perdió lo que coincidía. Si `ida` no
+  # quitara nada, esta ida y vuelta sería trivial y no probaría nada.
+  expect_equal(ida$base, list())
+})
+
