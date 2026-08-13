@@ -62,23 +62,25 @@ hjust_from_pos <- function(pos) {
 # Devuelve una funcion: `face("titulo")` da "bold" o "plain". Acepta varios
 # tokens y responde "bold" si cualquiera esta encendido, para que un graficador
 # con un solo eje pueda preguntar por `c("ejes", "eje_x")` de una vez.
-#' Negrita heredada: la que tenía el elemento antes de tener interruptor.
+#' Cara de una parte del gráfico según la declaración del analista.
 #'
-#' Varios graficadores llevaban `fontface = "bold"` fijo en partes que la UI ya
-#' ofrecía como interruptor —el título del boxplot, los títulos de bloque de las
-#' multiapiladas—: el mando existía y no hacía nada. Al cablearlos, un proyecto
-#' que nunca declaró nada perdería esa negrita sin pedirlo, así que la ausencia
-#' TOTAL de declaración conserva el aspecto de antes. En cuanto el analista
-#' declara una sola parte, manda su declaración y sólo ella.
+#' Hubo una version de esto que conservaba «la negrita que la parte tenia antes
+#' de tener interruptor» cuando `textos_negrita` llegaba vacio. Era una muleta:
+#' existia porque el motor no podia distinguir «nadie lo declaro» de «alguien
+#' declaro justo el default», y sin ella cablear un interruptor escrito a fuego
+#' habria cambiado el aspecto de proyectos vivos.
 #'
-#' @param textos_negrita Declaración del analista, o `NULL` si no hay ninguna.
-#' @param token Parte que se está dibujando.
-#' @param legado `"bold"` o `"plain"`: lo que esa parte hacía antes.
+#' El ADR 0074 quita esa ambiguedad —el `.pulso` guarda solo lo que difiere del
+#' default, asi que presencia = decision— y la muleta sobra: si una parte no
+#' esta declarada, no se eligio, y va en plana.
+#'
+#' @param textos_negrita Declaracion del analista.
+#' @param token Parte que se esta dibujando.
+#' @param legado Ignorado. Se conserva en la firma para no romper llamadas.
 #' @keywords internal
 .graficos_face_legado <- function(textos_negrita, token, legado = "bold") {
   tokens <- as.character(textos_negrita %||% character(0))
   tokens <- tokens[!is.na(tokens) & nzchar(tokens)]
-  if (!length(tokens)) return(legado)
   if (token %in% tokens) "bold" else "plain"
 }
 

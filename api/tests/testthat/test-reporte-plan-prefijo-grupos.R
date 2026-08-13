@@ -45,16 +45,17 @@ test_that("el token se deduce de las etiquetas cuando ya vienen numeradas", {
   expect_null(.prefijo_grupos_detectado(c("OE 1: Diseño", "Eje 2: Docencia")))
 })
 
-test_that("el control viejo sigue significando lo mismo", {
-  expect_equal(.prefijo_grupos_declarado(list(numerar_oe = TRUE)), "OE")
-  expect_equal(.prefijo_grupos_declarado(list(numerar_oe = FALSE)), "")
-  # Lo declarado gana sobre el alias.
-  expect_equal(
-    .prefijo_grupos_declarado(list(numerar_oe = TRUE, prefijo_grupos = "Eje")),
-    "Eje"
-  )
-  # Sin decir nada, no hay declaración: le toca deducir a quien llama.
+test_that("el alias del control viejo ya no existe", {
+  # `numerar_oe` fue el alias de compatibilidad de «Numerar OE». Existía para no
+  # borrar una numeración que quizá el analista no había pedido; con el ADR 0074
+  # esa duda desaparece y la muleta sobra.
+  expect_null(.prefijo_grupos_declarado(list(numerar_oe = TRUE)))
+  expect_null(.prefijo_grupos_declarado(list(numerar_oe = FALSE)))
   expect_null(.prefijo_grupos_declarado(list()))
+
+  # El control: lo que SÍ se declara sigue mandando, incluido apagarlo.
+  expect_equal(.prefijo_grupos_declarado(list(prefijo_grupos = "Eje")), "Eje")
+  expect_equal(.prefijo_grupos_declarado(list(prefijo_grupos = "")), "")
 })
 
 test_that("apagarlo explícitamente gana sobre la detección", {
