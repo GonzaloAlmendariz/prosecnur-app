@@ -21,7 +21,13 @@ TRADUCIDOS_POR_EL_PLAN <- c(
   # `reporte_plan_ppt.R` los aplica al armar la tabla, antes del graficador.
   "excluir_opciones",
   # El plan lo convierte en `ancho_max_eje_y` (`args$ancho_max_eje_y <- wrap_y_eff`).
-  "wrap_y"
+  "wrap_y",
+  # El plan corre el contraste con `.graficos_sig_aplicar_transpuesto()`, mete el
+  # resultado en `nota_pie` y luego BORRA los dos args de la lista antes de
+  # llamar al graficador. Es el caso más explícito de los tres: el código dice
+  # que no deben llegar.
+  "mostrar_significancia",
+  "significancia_alpha"
 )
 
 GRAFICADOR_DE_PRESET <- list(
@@ -109,4 +115,78 @@ test_that("los seis mandos muertos de la primera pasada no vuelven", {
   # así que el aserto no pasa por haberlos borrado del producto.
   expect_true("angle_x" %in% nombres_de("dim_heatmap"))
   expect_true(all(c("mostrar_rango", "tipo_rango") %in% nombres_de("media_rango")))
+})
+
+
+# ---------------------------------------------------------------------------
+# C5 — lo mismo sobre el registro de GRAFICADORES, que es el que alimenta el
+# inspector de cada gráfico. Sus claves son los constructores del plan (`p_*`),
+# así que un arg suyo llega por tres vías: es formal del constructor, es formal
+# del graficador que lo consume, o viaja por `overrides` (marcado
+# `via_overrides` porque el constructor no lo declara).
+# ---------------------------------------------------------------------------
+
+CONSTRUCTOR_A_GRAFICADOR <- list(
+  p_barras_agrupadas    = "graficar_barras_agrupadas",
+  p_barras_categoricas  = "graficar_barras_categoricas",
+  p_barras_apiladas     = "graficar_barras_apiladas",
+  p_barras_multiapiladas = "graficar_barras_apiladas",
+  p_pie                 = "graficar_pie",
+  p_donut               = "graficar_pie",
+  p_numerico            = "graficar_barras_numericas",
+  p_histograma          = "graficar_histograma",
+  p_boxplot             = "graficar_boxplot",
+  p_media_rango         = "graficar_media_rango",
+  p_barras_divergentes  = "graficar_barras_divergentes",
+  p_puntos_comparativos = "graficar_puntos_comparativos",
+  p_dumbbell            = "graficar_dumbbell",
+  p_lollipop            = "graficar_lollipop",
+  p_serie_temporal      = "graficar_serie_temporal",
+  p_radar               = "graficar_radar",
+  p_tabla               = "graficar_radar"
+)
+
+test_that("todo arg del registro de graficadores puede llegar al motor", {
+  ns <- asNamespace("prosecnurapp")
+  revisados <- 0L
+  for (clave in names(CONSTRUCTOR_A_GRAFICADOR)) {
+    meta <- .GRAFICADORES_META[[clave]]
+    if (is.null(meta)) next
+    args <- meta$args %||% list()
+    if (!length(args)) next
+
+    gf <- get0(CONSTRUCTOR_A_GRAFICADOR[[clave]], envir = ns)
+    if (is.null(gf)) next
+    fml_graficador <- names(formals(gf))
+    if ("..." %in% fml_graficador) next
+
+    cons <- get0(clave, envir = ns)
+    fml_constructor <- if (!is.null(cons)) names(formals(cons)) else character(0)
+
+    nombres <- vapply(args, function(a) as.character(a$name %||% ""), character(1))
+    via <- vapply(args, function(a) isTRUE(a$via_overrides), logical(1))
+
+    huerfanos <- setdiff(nombres[!via],
+                         c(fml_graficador, fml_constructor, TRADUCIDOS_POR_EL_PLAN))
+    expect_equal(
+      huerfanos, character(0),
+      info = sprintf("`%s` declara args que no llegan a `%s()`: %s",
+                     clave, CONSTRUCTOR_A_GRAFICADOR[[clave]],
+                     paste(huerfanos, collapse = ", "))
+    )
+    revisados <- revisados + 1L
+  }
+  expect_gt(revisados, 13L)
+})
+
+test_that("los args de significancia se borran antes de llamar al graficador", {
+  # No basta con que el plan los mencione: los CONSUME y los quita de la lista.
+  # Si algún día dejaran de borrarse llegarían al graficador, que no los acepta,
+  # y `.keep_formals()` los tiraría en silencio — un contraste pedido que no se
+  # corre y nadie avisa.
+  src <- paste(readLines(file.path("..", "..", "R", "reporte_plan_ppt.R"), warn = FALSE),
+               collapse = "\n")
+  expect_true(grepl('for (k in c("mostrar_significancia", "significancia_alpha"))',
+                    src, fixed = TRUE))
+  expect_true(grepl(".graficos_sig_aplicar_transpuesto", src, fixed = TRUE))
 })
