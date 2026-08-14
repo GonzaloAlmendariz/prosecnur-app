@@ -2529,13 +2529,10 @@
     if (var %in% names(data)) attr(data[[var]], "label") <- label
     if (!is.null(inst$var_labels)) inst$var_labels[var] <- label
     i <- .analitica_survey_row(inst, var)
-    if (!is.na(i) && "label" %in% names(inst$survey)) inst$survey$label[i] <- label
+    if (!is.na(i)) inst$survey <- .bases_set_label_cols(inst$survey, i, label)
     if (!is.null(inst$survey_raw) && "name" %in% names(inst$survey_raw)) {
       raw_i <- which(as.character(inst$survey_raw$name) == as.character(var))[1]
-      if (!is.na(raw_i)) {
-        lab_cols <- grep("^label", tolower(names(inst$survey_raw)), value = TRUE)
-        for (col in lab_cols) inst$survey_raw[[col]][raw_i] <- label
-      }
+      inst$survey_raw <- .bases_set_label_cols(inst$survey_raw, raw_i, label)
     }
     if (!is.null(inst$orders_list) && !is.null(inst$orders_list[[var]])) {
       inst$orders_list[[var]]$label <- label
@@ -2559,14 +2556,13 @@
         if (!is.null(inst$choices) && all(c("list_name", "name") %in% names(inst$choices))) {
           for (code in names(overrides)) {
             rows <- which(as.character(inst$choices$list_name) == ln & as.character(inst$choices$name) == code)
-            if (length(rows) && "label" %in% names(inst$choices)) inst$choices$label[rows] <- overrides[[code]]
+            inst$choices <- .bases_set_label_cols(inst$choices, rows, overrides[[code]])
           }
         }
         if (!is.null(inst$choices_raw) && all(c("list_name", "name") %in% names(inst$choices_raw))) {
-          label_cols <- grep("^label", tolower(names(inst$choices_raw)), value = TRUE)
           for (code in names(overrides)) {
             rows <- which(as.character(inst$choices_raw$list_name) == ln & as.character(inst$choices_raw$name) == code)
-            for (col in label_cols) if (length(rows)) inst$choices_raw[[col]][rows] <- overrides[[code]]
+            inst$choices_raw <- .bases_set_label_cols(inst$choices_raw, rows, overrides[[code]])
           }
         }
         if (!is.null(inst$dicc_code_to_label) && !is.null(inst$dicc_code_to_label[[ln]])) {
