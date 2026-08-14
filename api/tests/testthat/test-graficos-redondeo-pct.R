@@ -234,6 +234,52 @@ test_that("el metodo se declara con los dos nombres acordados", {
                c("Redondeo estándar", "Reparto a 100 %"))
 })
 
+# ---------------------------------------------------------------------------
+# El gobierno: la lámina no decide cómo se redondea (ítems 11 y 12)
+# ---------------------------------------------------------------------------
+
+test_that("los campos gobernados se retiran del override de la lamina", {
+  ov <- list(
+    metodo_redondeo = "reparto", decimales = 2, valores_decimales = 1,
+    decimales_pct = 2, color_ejes = "#081F5C", size_valores = 3
+  )
+  out <- .calculos_sanear_overrides(ov)
+  expect_equal(sort(names(out)), c("color_ejes", "size_valores"))
+  # Lo que no gobierna la configuración general sigue intacto, con su valor.
+  expect_equal(out$color_ejes, "#081F5C")
+})
+
+test_that("sanear overrides tolera lo que llega vacio o sin nombres", {
+  expect_null(.calculos_sanear_overrides(NULL))
+  expect_equal(.calculos_sanear_overrides(list()), list())
+  sin_nombres <- list(1, 2)
+  expect_equal(.calculos_sanear_overrides(sin_nombres), sin_nombres)
+})
+
+test_that("la clasificacion que sirve la UI coincide con lo que declara el preset", {
+  payload <- .presets_metadata_payload()
+  con_calculos <- Filter(function(x) !is.null(x$calculos), payload$presets)
+  expect_gt(length(con_calculos), 8)
+
+  for (p in con_calculos) {
+    nombres <- vapply(.PRESETS_META[[p$name]]$args,
+                      function(a) as.character(a$name %||% "")[1], character(1))
+    # El campo de decimales que anuncia existe de verdad en el preset.
+    expect_true(p$calculos$campo_decimales %in% nombres, info = p$name)
+    # Y solo dice `admite_metodo` quien declara el arg y cierra a 100 %.
+    if (isTRUE(p$calculos$admite_metodo)) {
+      expect_true("metodo_redondeo" %in% nombres, info = p$name)
+      expect_true(isTRUE(p$calculos$cierra_100), info = p$name)
+    }
+  }
+
+  # Las familias que no rotulan porcentajes no traen el bloque y la matriz las
+  # omite: histograma de conteos, box plot y compañía no tienen qué redondear.
+  sin <- Filter(function(x) is.null(x$calculos), payload$presets)
+  expect_true("boxplot" %in% vapply(sin, function(x) x$name, character(1)))
+  expect_true("histograma" %in% vapply(sin, function(x) x$name, character(1)))
+})
+
 test_that("estandar no elimina el cero falso, solo lo corre", {
   # Queda asentado por escrito para que no se lea el cambio de método como una
   # garantía que no da: con base 178 un caso se salva, con base 700 no.

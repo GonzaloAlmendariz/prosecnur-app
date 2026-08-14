@@ -1,0 +1,164 @@
+/* Pestaña «Cálculos» — cómo se redondea y con cuántos decimales, para TODO el
+   mazo. Es una matriz y no un formulario por gráfico a propósito: la decisión
+   se toma una vez y se lee de un vistazo. */
+
+.pulso-calculos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pulso-calculos__intro {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.pulso-calculos__metodo-card {
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+}
+
+.pulso-calculos__metodo-card h4 {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.pulso-calculos__metodo-card p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-calculos__aplicar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-calculos__grupo-titulo {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+  margin: 6px 0 0;
+}
+
+.pulso-calculos__grupo-nota {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+  margin: 0 0 4px;
+}
+
+.pulso-calculos__tabla-wrap {
+  overflow-x: auto;
+}
+
+.pulso-calculos__tabla {
+  width: 100%;
+  min-width: 460px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.pulso-calculos__tabla th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--pulso-border);
+  white-space: nowrap;
+}
+
+.pulso-calculos__tabla td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--pulso-border-subtle, var(--pulso-border));
+  color: var(--pulso-text);
+  vertical-align: middle;
+}
+
+.pulso-calculos__tabla tr:last-child td {
+  border-bottom: none;
+}
+
+.pulso-calculos__familia {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulso-calculos__familia svg {
+  flex: 0 0 auto;
+  color: var(--pulso-text-muted);
+}
+
+.pulso-calculos__select,
+.pulso-calculos__number {
+  font: inherit;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.pulso-calculos__select {
+  min-width: 168px;
+}
+
+.pulso-calculos__number {
+  width: 68px;
+}
+
+.pulso-calculos__select:focus-visible,
+.pulso-calculos__number:focus-visible,
+.pulso-calculos__boton:focus-visible {
+  outline: 2px solid var(--pulso-accent);
+  outline-offset: 1px;
+}
+
+/* Método fijo: se muestra, apagado, en vez de dejar la celda vacía. Que el
+   control exista y esté deshabilitado dice «esta decisión no aplica aquí»;
+   una celda vacía solo dice «falta algo». */
+.pulso-calculos__fijo {
+  color: var(--pulso-text-muted);
+  font-size: 12px;
+}
+
+.pulso-calculos__boton {
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--pulso-text);
+  background: var(--pulso-surface);
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+.pulso-calculos__boton:hover {
+  background: var(--pulso-surface-hover, var(--pulso-surface-2, var(--pulso-surface)));
+}
+
+.pulso-calculos__boton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pulso-calculos__estado {
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+}

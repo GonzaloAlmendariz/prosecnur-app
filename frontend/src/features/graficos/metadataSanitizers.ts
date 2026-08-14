@@ -10,6 +10,7 @@ import type {
   GraficadorCategoria,
   GraficadorDataRequirement,
   GraficadorMetadata,
+  PresetCalculosMeta,
   PresetsRegistry,
   Registry,
   SlideBlueprint,
@@ -422,6 +423,27 @@ export function normalizeGraficosRegistry(value: unknown): Registry {
   };
 }
 
+/** Normaliza el bloque `calculos` que el motor adjunta a cada preset.
+ *
+ *  Devuelve `null` cuando el preset no lo trae —la familia no rotula
+ *  porcentajes de una distribución— o cuando llega sin `campo_decimales`, que
+ *  es el único dato sin el cual la fila de la matriz no podría editar nada. */
+function normalizeCalculosMeta(value: unknown): PresetCalculosMeta | null {
+  const raw = asRecord(value);
+  if (!raw) return null;
+  const campoDecimales = safeText(raw.campo_decimales).trim();
+  if (!campoDecimales) return null;
+  const cierra100 = raw.cierra_100 === true;
+  return {
+    familia_porcentaje: true,
+    cierra_100: cierra100,
+    // Un método que la familia no puede aplicar no se ofrece: sin cierre a
+    // 100 % no hay resto que repartir.
+    admite_metodo: cierra100 && raw.admite_metodo === true,
+    campo_decimales: campoDecimales,
+  };
+}
+
 export function normalizePresetsRegistry(value: unknown): PresetsRegistry {
   const registry = asRecord(value) ?? {};
   return {
@@ -429,12 +451,14 @@ export function normalizePresetsRegistry(value: unknown): PresetsRegistry {
       ? registry.presets.map((value) => {
           const preset = asRecord(value) ?? {};
           const name = safeText(preset.name).trim();
+          const calculos = normalizeCalculosMeta(preset.calculos);
           return {
             name,
             titulo_humano: safeText(preset.titulo_humano, name).trim() || name,
             descripcion: safeText(preset.descripcion).trim(),
             icono_ui: safeText(preset.icono_ui, "Sliders").trim() || "Sliders",
             args: Array.isArray(preset.args) ? preset.args.map(normalizeArgMetadata) : [],
+            ...(calculos ? { calculos } : {}),
           };
         })
       : [],

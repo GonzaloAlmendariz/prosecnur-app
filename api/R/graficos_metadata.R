@@ -4712,13 +4712,19 @@
 .presets_metadata_payload <- function() {
   presets <- lapply(names(.PRESETS_META), function(nm) {
     meta <- .PRESETS_META[[nm]]
-    list(
+    args <- meta$args %||% list()
+    out <- list(
       name          = nm,
       titulo_humano = as.character(meta$titulo_humano %||% nm),
       descripcion   = as.character(meta$descripcion %||% ""),
       icono_ui      = as.character(meta$icono_ui %||% "Sliders"),
-      args          = .normalize_args_for_ui(meta$args %||% list())
+      args          = .normalize_args_for_ui(args)
     )
+    # Qué familia rotula porcentajes y cuál admite elegir método lo sabe el
+    # motor; la pestaña «Cálculos» lo lee de aquí en vez de repetir la lista.
+    calculos <- .calculos_meta_de_preset(nm, args)
+    if (!is.null(calculos)) out$calculos <- calculos
+    out
   })
   list(presets = presets)
 }

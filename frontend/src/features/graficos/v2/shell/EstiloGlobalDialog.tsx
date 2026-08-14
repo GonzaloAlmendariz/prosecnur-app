@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles, CheckCircle2 } from "lucide-react";
+import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles, CheckCircle2, Calculator } from "lucide-react";
 import { IconModes } from "../../../../lib/icons";
 import { PaletasEditor } from "../../PaletasEditor";
 import { PptStyleProfilesPanel } from "../../PptStyleProfilesPanel";
 import { IconosEditor } from "../../IconosEditor";
 import { PresetsEditor } from "../../PresetsEditor";
+import { CalculosEditor } from "../../CalculosEditor";
 import { OverridesEditor } from "../../OverridesEditor";
 import { WordPresetsEditor } from "../../WordPresetsEditor";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
@@ -18,7 +19,7 @@ import { GlidingTabList } from "../../../../components/GlidingTabList";
 // Cada tab monta una superficie visual. Los ajustes que todavía no tienen
 // catálogo curado no se editan desde acá para evitar campos crudos.
 
-type Tab = "ppt" | "word" | "paletas" | "lineas" | "iconos" | "modos";
+type Tab = "ppt" | "word" | "calculos" | "paletas" | "lineas" | "iconos" | "modos";
 
 const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hint: string; summary: string }[] = [
   {
@@ -36,6 +37,14 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
     Icon: FileText,
     hint: "Ajustes globales para gráficos del reporte Word",
     summary: "Mantén Word alineado al PPT y ajusta solo lo que necesite otra lectura.",
+  },
+  {
+    key: "calculos",
+    label: "Cálculos",
+    eyebrow: "Cifras",
+    Icon: Calculator,
+    hint: "Cómo se redondean los porcentajes y con cuántos decimales",
+    summary: "La única pestaña que no es estética: decide las cifras de todo el mazo.",
   },
   {
     key: "paletas",
@@ -245,6 +254,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
             <div className={`pulso-gv2-estilo-body is-${tab}`}>
               {tab === "ppt" && <PresetsEditor />}
               {tab === "word" && <WordTabContent onClose={onClose} />}
+              {tab === "calculos" && <CalculosEditor />}
               {tab === "paletas" && <PaletasEditor />}
               {tab === "lineas" && <PptStyleProfilesPanel />}
               {tab === "iconos" && <IconosEditor />}

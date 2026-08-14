@@ -64,6 +64,18 @@ function clarifyGraphTitleArg(arg: ArgMetadata): ArgMetadata {
   };
 }
 
+/** Campos que decide la Configuración global y ninguna lámina pisa.
+ *
+ *  Espejo de `.CALCULOS_CAMPOS` en `api/R/graficos_calculos_gobernados.R`, que
+ *  es quien los retira de los overrides al renderizar. Si las dos listas se
+ *  separan, el síntoma es un control visible que no hace nada. */
+const CALCULOS_GOBERNADOS = new Set([
+  "metodo_redondeo",
+  "decimales",
+  "decimales_pct",
+  "valores_decimales",
+]);
+
 export default function GraficadorForm({
   graf,
   onArgs,
@@ -107,6 +119,13 @@ export default function GraficadorForm({
   // del preset compatible. Antes esto dependía de un placeholder técnico
   // `overrides`; ahora el backend ya no lo expone a la UI, así que el
   // merge debe ocurrir explícitamente aquí.
+  //
+  // Los campos de `CALCULOS_GOBERNADOS` NO se ofrecen aquí. No es que estorben:
+  // es que el motor los ignora al nivel de lámina
+  // (`.calculos_sanear_overrides()`), así que mostrarlos sería poner un control
+  // que el analista mueve y que no cambia nada — el peor resultado posible, y
+  // uno que esta casa ya se ha comido antes. Se siguen editando donde la
+  // decisión corresponde: Configuración global → Cálculos.
   const expandedArgs: ArgMetadata[] = useMemo(() => {
     if (!meta) return [];
     const result: ArgMetadata[] = [];
@@ -117,12 +136,14 @@ export default function GraficadorForm({
     for (const a of meta.args) {
       if (a.tipo_input === "overrides") continue;
       if (hideLegacyWrapY && a.name === "wrap_y") continue;
+      if (CALCULOS_GOBERNADOS.has(a.name)) continue;
       result.push(isStyleContext ? clarifyGraphTitleArg(a) : a);
       seen.add(a.name);
     }
     if (presetMeta) {
       for (const presetArg of presetMeta.args) {
         if (seen.has(presetArg.name)) continue;
+        if (CALCULOS_GOBERNADOS.has(presetArg.name)) continue;
         result.push({ ...presetArg, grupo: presetArg.grupo ?? "estilo" } as ArgMetadata);
         seen.add(presetArg.name);
       }

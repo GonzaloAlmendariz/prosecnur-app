@@ -378,12 +378,28 @@ export async function apiGraficosRegistry(): Promise<unknown> {
 // (base, barras_apiladas, pie, dim_radar, …) con args curados para el
 // PresetsEditor. Complementa a /registry (que cubre slides y graficadores,
 // no presets globales).
+/** Clasificación de la familia para la pestaña «Cálculos».
+ *
+ *  La sirve el motor (`graficos_calculos_gobernados.R`) en vez de repetirse
+ *  aquí: qué familia rotula porcentajes y cuál puede elegir método es una
+ *  decisión del dominio, y con la lista en dos sitios acaban discrepando.
+ *  Ausente = la familia no rotula porcentajes de una distribución. */
+export type PresetCalculosMeta = {
+  familia_porcentaje: boolean;
+  /** Las categorías suman 100 %. Solo entonces el reparto significa algo. */
+  cierra_100: boolean;
+  admite_metodo: boolean;
+  /** `decimales`, `decimales_pct` o `valores_decimales` según la familia. */
+  campo_decimales: string;
+};
+
 export type PresetMetadata = {
   name: string;
   titulo_humano: string;
   descripcion: string;
   icono_ui: string;
   args: ArgMetadata[];
+  calculos?: PresetCalculosMeta;
 };
 
 export type PresetsRegistry = {
