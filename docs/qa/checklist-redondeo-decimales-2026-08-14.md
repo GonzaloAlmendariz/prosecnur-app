@@ -1,8 +1,8 @@
 # Checklist — redondeo y decimales como configuración general de Gráficos
 
 **Abierto**: 2026-08-14 · **Origen**: revisión de `ACRD CONTA/Revisón graficos.xlsx`
-(64 observaciones PPT vs SPSS) · **Estado**: tandas A y B cerradas (motor y
-configuración); tandas C (interfaz) y D (entregable) pendientes.
+(64 observaciones PPT vs SPSS) · **Estado**: tandas A, B y C cerradas (motor,
+configuración e interfaz); queda la D (nota al pie y lámina metodológica).
 
 ## De dónde sale esto
 
@@ -57,10 +57,10 @@ familias.
 | 6 | Decidir qué gráficos «manejan porcentajes» y cuáles quedan fuera | `graficos_metadata.R` (`.PRESETS_META`) | **decidido** — ver «dos clases» abajo |
 | 7 | Extender `decimales` a los presets de % que hoy no lo tienen (17 de 23) | `graficos_metadata.R` | **hecho** |
 | 8 | Argumento nuevo de método de redondeo en el preset de cada tipo | `graficos_metadata.R` + cadena de whitelists | **hecho** |
-| 9 | Pestaña «Cálculos» en el popover de Configuración global | `frontend/src/features/graficos/ConfiguracionGlobal.tsx` | pendiente |
-| 10 | Matriz tipo de gráfico × (redondeo, decimales) dentro de esa pestaña | componente nuevo, hoja propia | pendiente |
-| 11 | La config general gana; los overrides por slide quedan ocultos y desactivados por defecto | `reporte_plan_ppt.R` (`.merge_args`) + `ArgField.tsx` | pendiente |
-| 12 | Conservar el override por slide como escape explícito, no como default | `ArgGroup.tsx` / `ArgField.tsx` | pendiente |
+| 9 | Pestaña «Cálculos» en el popover de Configuración global | `v2/shell/EstiloGlobalDialog.tsx` | **hecho** |
+| 10 | Matriz tipo de gráfico × (redondeo, decimales) dentro de esa pestaña | `CalculosEditor.tsx` | **hecho** |
+| 11 | La config general gana; los overrides por slide quedan ocultos y desactivados por defecto | `graficos_calculos_gobernados.R` + `reporte_plan_ppt.R` | **hecho** |
+| 12 | Conservar el override por slide como escape explícito, no como default | `GraficadorForm.tsx` | **hecho** |
 | 13 | Persistencia en el `.pulso` y compat de planes viejos | `router_graficos.R`, store del plan | **hecho** |
 | 14 | Nota al pie del entregable declarando el criterio de redondeo | motor PPT / Word | pendiente |
 | 15 | Tests: mismo dato, mismo número en toda familia de % | `api/tests/testthat/` | **hecho** |
@@ -166,6 +166,50 @@ de siempre. Frontend: 51 archivos, 338 tests en verde.
 Sobre datos reales, con los cinco valores de Egresados (N = 178), categóricas y
 pie responden a ambos métodos: `1% · 6% · 40% · 53% · 1%` con estándar y
 `1% · 6% · 40% · 53% · 0%` con reparto.
+
+## Tanda C — lo que quedó hecho y su evidencia
+
+**Ítems 9 y 10.** Pestaña «Cálculos» en el diálogo de Estilo global, entre
+«Base Word» y «Color e identidad», con `CalculosEditor.tsx` dentro: una matriz
+de tipo de gráfico × (método, decimales), partida en dos bloques —«Sus
+categorías suman 100 %» y «Cifras independientes»— más cuatro atajos de
+«Aplicar a todos». Las once familias de porcentaje caben en una pantalla.
+
+**El popover real NO era `ConfiguracionGlobal.tsx`.** Ese componente no se monta
+en ninguna parte: es código muerto. El diálogo vivo es
+`v2/shell/EstiloGlobalDialog.tsx`, el de «Base PPT / Base Word / Color e
+identidad…». Se descubrió abriendo la app, no leyendo: los dos archivos tienen
+nombres igual de plausibles y el muerto es el que suena a canónico. Conviene
+retirarlo en una limpieza aparte.
+
+**Ítem 11.** `.calculos_sanear_overrides()` retira los campos gobernados del
+override de cada elemento en `.render_element_impl()`, que es el punto único por
+donde pasan todos. La precedencia se invierte por ausencia: un override que no
+llega no puede ganar. Los valores viejos **no** se borran del plan guardado —se
+ignoran al renderizar—, así que revertir la decisión no cuesta nada.
+
+**Ítem 12.** `GraficadorForm` deja de ofrecer esos campos. No es que estorben:
+es que el motor ya los ignora al nivel de lámina, y un control que el analista
+mueve sin que cambie nada es el peor resultado posible. Se siguen editando donde
+la decisión corresponde, que es la configuración global.
+
+**La línea base de un archivo congelado subió a conciencia.**
+`reporte_plan_ppt.R` pasa de 9.472 a 9.474 líneas: dos, la llamada al saneo y su
+comentario. La funcionalidad vive en archivo propio
+(`graficos_calculos_gobernados.R`), que es lo que la política pide; lo que crece
+es la llamada. Queda registrado en `agentic/manifest.json`.
+
+**Verificación.** Typecheck limpio; 65 archivos y 554 tests de vitest en verde;
+104 suites de R (`graficador`, `graficos`, `reporte`) con 5.171 asserts en verde
+y los mismos cuatro fallos preexistentes de siempre; `sync-agentic-os --check` y
+`--audit` en verde salvo `calc_muestra_aulas.R`, que ya excedía su línea base en
+HEAD sin cambios míos.
+
+Sobre la app real, con el proyecto `V3_Conta 11-08 negrita-acordada`: la pestaña
+monta las once familias, los selectores y los atajos escriben en el store, y el
+inspector de lámina —16 KB de ajustes— ya no contiene ni «redondeo» ni
+«decimales». La consola solo arroja warnings preexistentes de keys duplicadas en
+`CategoriasEscalaField`, ajenos a este trabajo.
 
 ## Lo aprendido que no hay que reinvestigar
 

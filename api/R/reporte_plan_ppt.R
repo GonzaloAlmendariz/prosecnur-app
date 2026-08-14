@@ -4201,6 +4201,8 @@ reporte_ppt_plan <- function(
       .slide_abort_render("No existe renderer para etype='", etype, "' (se esperaba ", fn_name, "()).")
     }
     fn <- get(fn_name, mode = "function", inherits = TRUE)
+    # Cómo se redondea no se decide por lámina: ver graficos_calculos_gobernados.R
+    el$overrides <- .calculos_sanear_overrides(el$overrides %||% NULL)
 
     # presets por tipo (si no existen, lista vacia)
     pa_apiladas <- presets$barras_apiladas$args %||% list()
