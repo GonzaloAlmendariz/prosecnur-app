@@ -26,6 +26,7 @@ source("setup-load-all.R")
   p_slide_portada = c(kind = "cover", ppt_layout = "Title Slide", structure_label = "Portada editorial"),
   p_slide_indice = c(kind = "index", ppt_layout = "Indice", structure_label = "Índice editorial"),
   p_slide_top_two_box = c(kind = "topTwo", ppt_layout = "Title and Content", structure_label = "Explicación visual"),
+  p_slide_redondeo = c(kind = "topTwo", ppt_layout = "Title and Content", structure_label = "Explicación visual"),
   p_slide_seccion = c(kind = "section", ppt_layout = "Section Header", structure_label = "Separador editorial"),
   p_slide_objetivo_icono = c(kind = "objective", ppt_layout = "Objetivos_Secciones", structure_label = "Texto con ícono"),
   p_slide_texto = c(kind = "text", ppt_layout = "Title and Content", structure_label = "Texto editorial"),
@@ -51,6 +52,7 @@ source("setup-load-all.R")
   p_slide_portada = list(),
   p_slide_indice = list(),
   p_slide_top_two_box = list(),
+  p_slide_redondeo = list(),
   p_slide_seccion = list(),
   p_slide_objetivo_icono = list(icono = .gm_slot("icon", "Ícono")),
   p_slide_texto = list(),
@@ -188,7 +190,7 @@ source("setup-load-all.R")
 test_that("registry: cada slide y graficador expone el shape completo con nombres únicos y reales", {
   reg <- .graficos_registry_payload()
   expect_setequal(names(reg), c("slides", "graficadores"))
-  expect_length(reg$slides, 20L)
+  expect_length(reg$slides, 21L)
   expect_length(reg$graficadores, 24L)
 
   slide_names <- vapply(reg$slides, function(s) s$name, character(1))
@@ -395,7 +397,7 @@ test_that("metadata G2-L0.1 declara direccion de escala y exclusion del denomina
   }
 })
 
-test_that("registry L4: los 20 blueprints de slides siguen la tabla PPT acreditada", {
+test_that("registry L4: los 21 blueprints de slides siguen la tabla PPT acreditada", {
   reg <- .graficos_registry_payload()
   expect_identical(.slide_names(), names(.gm_slide_blueprints))
 

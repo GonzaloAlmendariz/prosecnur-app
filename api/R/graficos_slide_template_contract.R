@@ -1,4 +1,4 @@
-# Contrato geométrico efectivo de las 20 láminas PPT.
+# Contrato geométrico efectivo de las 21 láminas PPT.
 #
 # Esta es la única autoridad que combina metadata pública, plantilla abierta,
 # presets efectivos y `.PPT_CONTRACT`. El renderer conserva el contrato interno
@@ -453,8 +453,11 @@
   }
 
   render_keys <- vapply(metadata, function(meta) as.character(meta$render_key %||% "")[1], character(1))
-  if (length(render_keys) != 20L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
-    stop("El metadata de slides debe declarar 20 `render_key` únicos.", call. = FALSE)
+  # El número es una cuenta declarada, no un tope: sube cuando se añade una
+  # lámina (la última, `redondeo`, en 2026-08-14). Lo que protege de verdad es
+  # el `anyDuplicated`, que caza dos láminas compartiendo renderer.
+  if (length(render_keys) != 21L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
+    stop("El metadata de slides debe declarar 21 `render_key` únicos.", call. = FALSE)
   }
 
   contract <- .ppt_slide_template_manual_contracts(.PPT_CONTRACT)

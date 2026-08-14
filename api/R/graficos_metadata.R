@@ -384,6 +384,41 @@
     )
   ),
 
+  p_slide_redondeo = list(
+    titulo_humano = "Explicación del redondeo",
+    descripcion   = "Lámina metodológica reutilizable: muestra la misma distribución rotulada por los dos métodos de redondeo, con su suma al lado. Responde de una vez la pregunta de por qué una barra suma 99 % o 101 %.",
+    icono_ui      = "Calculator",
+    categoria     = "estructural",
+    render_key    = "redondeo",
+    blueprint     = list(
+      kind = "topTwo",
+      ppt_layout = "Title and Content",
+      structure_label = "Explicación visual"
+    ),
+    slot_specs    = list(),
+    args = list(
+      list(name = "titulo", label = "Título", tipo_input = "string", grupo = "textos",
+           descripcion = "Título principal de la lámina."),
+      list(name = "texto", label = "Texto explicativo", tipo_input = "textarea", grupo = "textos",
+           descripcion = "Párrafo que introduce el criterio. Vacío usa el de la casa."),
+      list(name = "casos", label = "Frecuencias del ejemplo", tipo_input = "string", grupo = "valores",
+           default = "1, 10, 72, 94, 1",
+           descripcion = "Casos por categoría, separados por coma. El ejemplo por defecto no es redondo a propósito: tiene dos categorías de una sola persona, que es donde los dos métodos discrepan de forma visible."),
+      list(name = "etiquetas", label = "Etiquetas del ejemplo", tipo_input = "string", grupo = "valores",
+           descripcion = "Nombres de las categorías, separados por coma."),
+      list(name = "decimales", label = "Decimales del ejemplo", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1,
+           descripcion = "Resolución con la que se rotula el ejemplo. Conviene que coincida con la del mazo."),
+      list(name = "accent_color", label = "Color de acento", tipo_input = "color", grupo = "valores",
+           default = "#D8504F",
+           descripcion = "Color del título y de la suma que no cierra en 100 %."),
+      list(name = "colores", label = "Paleta del ejemplo", tipo_input = "string", grupo = "valores",
+           descripcion = "Colores de los segmentos, separados por coma. Vacío usa la paleta de la casa."),
+      list(name = "estilo", label = "Estilo visual", tipo_input = "meta", grupo = "diagnostico",
+           descripcion = "Permite ajustar posiciones y tamaños de título, texto y diagrama.")
+    )
+  ),
+
   p_slide_seccion = list(
     titulo_humano = "Separador de sección",
     descripcion   = "Lámina de transición entre bloques grandes del reporte. Muestra solo el título de la sección.",
@@ -1793,6 +1828,9 @@
            descripcion = "Plantilla del texto automático de la base. %s se reemplaza por el conteo. Ej. 'Base: %s' → 'Base: 120'. Otras opciones: 'n = %s', 'N = %s respuestas'."),
       list(name = "sufijo_auto",       label = "Sufijo de la base auto", tipo_input = "string", grupo = "textos",
            descripcion = "Texto extra que se añade al final del conteo. Ej. si formato='Base: %s' y sufijo='Establecimientos de Salud' → 'Base: 120 Establecimientos de Salud'."),
+      list(name = "nota_redondeo",     label = "Declarar el redondeo al pie", tipo_input = "bool", grupo = "valores",
+           default = FALSE,
+           descripcion = "Añade al pie de las láminas de porcentaje una línea que declara cómo se redondearon las cifras. Con el redondeo estándar es lo que explica que una barra sume 99 % o 101 %, que es la objeción más común al revisar contra las tablas. Si la lámina ya trae una nota, se anexa; si esa nota ya habla del redondeo, no se repite."),
 
       # --- Tamaños (pt) ---------------------------------------------------
       list(name = "size_titulo",       label = "Tamaño del título",      tipo_input = "number", grupo = "estilo",

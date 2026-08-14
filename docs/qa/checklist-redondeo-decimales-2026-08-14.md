@@ -1,8 +1,8 @@
 # Checklist — redondeo y decimales como configuración general de Gráficos
 
 **Abierto**: 2026-08-14 · **Origen**: revisión de `ACRD CONTA/Revisón graficos.xlsx`
-(64 observaciones PPT vs SPSS) · **Estado**: tandas A, B y C cerradas (motor,
-configuración e interfaz); queda la D (nota al pie y lámina metodológica).
+(64 observaciones PPT vs SPSS) · **Estado**: cerrado. Las cuatro tandas —motor,
+configuración, interfaz y entregable— están implementadas y verificadas.
 
 ## De dónde sale esto
 
@@ -62,10 +62,10 @@ familias.
 | 11 | La config general gana; los overrides por slide quedan ocultos y desactivados por defecto | `graficos_calculos_gobernados.R` + `reporte_plan_ppt.R` | **hecho** |
 | 12 | Conservar el override por slide como escape explícito, no como default | `GraficadorForm.tsx` | **hecho** |
 | 13 | Persistencia en el `.pulso` y compat de planes viejos | `router_graficos.R`, store del plan | **hecho** |
-| 14 | Nota al pie del entregable declarando el criterio de redondeo | motor PPT / Word | pendiente |
+| 14 | Nota al pie del entregable declarando el criterio de redondeo | `graficos_calculos_gobernados.R` | **hecho** |
 | 15 | Tests: mismo dato, mismo número en toda familia de % | `api/tests/testthat/` | **hecho** |
 | 16 | Cifras que redondean a 0 %: se rotula «0 %» salvo en apiladas, donde no se dibuja nada | `helpers_calc_comunes.R` + familias | **hecho** |
-| 17 | Lámina metodológica explicando ambos redondeos | `graficos_metadata.R` + `reporte_plan_ppt.R` | pendiente |
+| 17 | Lámina metodológica explicando ambos redondeos | `reporte_slide_redondeo.R` | **hecho** |
 
 ## Tanda A — lo que quedó hecho y su evidencia
 
@@ -210,6 +210,62 @@ monta las once familias, los selectores y los atajos escriben en el store, y el
 inspector de lámina —16 KB de ajustes— ya no contiene ni «redondeo» ni
 «decimales». La consola solo arroja warnings preexistentes de keys duplicadas en
 `CategoriasEscalaField`, ajenos a este trabajo.
+
+## Tanda D — lo que quedó hecho y su evidencia
+
+**Ítem 14.** Interruptor «Declarar el redondeo al pie», en el preset `base` que
+heredan todos los gráficos, con su casilla en la pestaña Cálculos. Apagado de
+fábrica: encenderlo cambia el pie de un mazo ya entregado, y esa no es una
+decisión que deba tomar un default. El texto se redacta según el método —con el
+estándar advierte que la suma puede dar 99 o 101; con el reparto, que una cifra
+puede no ser la de su propio valor— y según los decimales configurados.
+
+La nota **se anexa**, no pisa. La de significancia se aplica con esta misma
+regla de «solo si no hay nota», y si las dos compitieran la que explica las
+letras desaparecería sin dejar rastro. Y si la nota existente ya habla de
+redondeo, no se añade nada: dos frases sobre lo mismo al pie sobran.
+
+**Ítem 17.** `p_slide_redondeo()`, hermana de `p_slide_top_two_box()`: mismo
+layout y mismos tres slots, así que no hizo falta contrato nuevo. Muestra la
+misma distribución rotulada por los dos métodos con su suma al lado —101 % y
+100 %—, y el ejemplo por defecto son los casos reales de ACRD CONTA (N = 178,
+dos categorías de una sola persona), porque con un ejemplo cómodo la lámina no
+enseñaría nada. Las cifras del ejemplo salen de `.pulso_pct_unidades()`, la
+misma función que rotula el mazo: si la lámina las calculara por su cuenta
+podría acabar enseñando un comportamiento que el motor ya no tiene.
+
+El renderer vive en `reporte_slide_redondeo.R` (~280 líneas) y recibe como
+parámetros los helpers de estilo que en `reporte_plan_ppt.R` son closures
+internas —`.add_slide_strict`, `.style_value`, `.style_num`, `.svg_text_escape`,
+`.indice_sanitize_fill`—, en vez de duplicarlos. En el archivo congelado solo
+queda la rama de despacho.
+
+**Cuatro sitios contaban las láminas a mano.** Añadir una rompió el contrato de
+`render_key` únicos (que exigía exactamente 20), dos asserts de
+`test-graficos-metadata.R` y cinco de `test-graficos-slide-template-matrix.R`,
+más el deck de sentinelas, que numera las láminas correlativamente y hubo que
+renumerar del 4 al 21. Ninguna es una cuenta que se derive sola: si mañana se
+añade otra lámina, hay que tocar los mismos sitios.
+
+**Trampa que costó una instalación rota.** Correr `roxygen2::roxygenise()` para
+generar un `@export` regeneró de paso los 625 `.Rd` de `api/man/` —directorio no
+versionado— y uno salió mal formado (`\dontrun` no reconocido), lo que tumbaba
+`R CMD INSTALL`. Además el NAMESPACE resultante añadía 221 exports y **quitaba
+19**, incluidos graficadores: el NAMESPACE del repo está desincronizado respecto
+de los `@export` del código. Se revirtió todo y se añadió el único export a
+mano. Esa desincronización es deuda preexistente y merece su propia unidad de
+trabajo, con su gate: quitar el export de un graficador rompería los jobs
+`callr`, que resuelven contra el paquete instalado.
+
+**Verificación.** 108 suites de R con 5.712 asserts en verde y los cuatro fallos
+preexistentes de siempre; typecheck limpio; 554 tests de vitest en verde;
+`sync-agentic-os --check` y `--audit` en verde salvo `calc_muestra_aulas.R`, que
+ya excedía su base en HEAD. La línea base de `reporte_plan_ppt.R` sube de 9.474
+a 9.486 por la rama de despacho.
+
+Comprobado en la app real: la casilla de la nota aparece en la pestaña Cálculos,
+se marca y persiste. La lámina se exporta a PPTX y su SVG contiene «Suman 101 %»
+y «Suman 100 %».
 
 ## Lo aprendido que no hay que reinvestigar
 

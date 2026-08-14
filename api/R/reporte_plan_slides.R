@@ -593,6 +593,65 @@ p_slide_top_two_box <- function(
   ))
 }
 
+#' @title Slide metodologico de redondeo
+#'
+#' Lamina reutilizable que explica los dos metodos de redondeo mostrando la
+#' MISMA distribucion rotulada por cada uno, con su suma al lado. Hermana de
+#' `p_slide_top_two_box()`: mismo layout y mismos tres slots.
+#'
+#' El ejemplo por defecto no es redondo a proposito. Son los casos de una
+#' pregunta real con dos categorias de una sola persona, que es donde los dos
+#' metodos discrepan de forma visible; con un ejemplo comodo la lamina no
+#' ensenaria nada.
+#'
+#' @param titulo Titulo de la lamina.
+#' @param texto Parrafo explicativo. `NULL` usa el de la casa.
+#' @param casos Frecuencias del ejemplo.
+#' @param etiquetas Nombres de las categorias del ejemplo.
+#' @param decimales Resolucion rotulada en el ejemplo.
+#' @param accent_color Color de acento del titulo y de la suma que no cierra.
+#' @param colores Paleta de los segmentos.
+#' @param estilo Lista de estilo del slide.
+#' @param meta Metadatos del slide.
+#' @export
+p_slide_redondeo <- function(
+    titulo = "CÓMO SE REDONDEAN LAS CIFRAS",
+    texto = NULL,
+    casos = .REDONDEO_SLIDE_CASOS,
+    etiquetas = .REDONDEO_SLIDE_ETIQUETAS,
+    decimales = 0,
+    accent_color = NULL,
+    colores = NULL,
+    estilo = list(),
+    meta = list()
+) {
+  estilo <- .ppt_norm_estilo(estilo)
+  if (!is.null(accent_color)) estilo$accent_color <- .ppt_norm_text1(accent_color, blank = NULL)
+  if (!is.null(colores)) estilo$colores <- colores
+  .ppt_chk_meta(meta)
+
+  texto_default <- .redondeo_slide_texto()
+  if (is.null(texto)) texto <- texto_default
+  texto <- .ppt_norm_text1(texto, blank = texto_default)
+
+  .ppt_as_slide(list(
+    .slide_type = "redondeo",
+    title       = .ppt_norm_text1(titulo, blank = "CÓMO SE REDONDEAN LAS CIFRAS"),
+    slots       = list(
+      title = .ppt_norm_text1(titulo, blank = "CÓMO SE REDONDEAN LAS CIFRAS"),
+      text = texto,
+      casos = casos,
+      etiquetas = etiquetas,
+      decimales = decimales,
+      accent_color = accent_color,
+      colores = colores,
+      estilo = estilo
+    ),
+    style       = estilo,
+    meta        = meta
+  ))
+}
+
 #' @title Slide objetivo con icono
 #'
 #' @param icono Elemento grafico principal del lateral.
