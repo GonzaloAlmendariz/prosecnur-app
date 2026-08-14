@@ -2253,6 +2253,65 @@
 # Reescribe s$files[[*]]$path para que apunten al nuevo tempdir de sesión
 # tras un load_pulso. Los files físicos ya fueron copiados por el caller a
 # `uploads_dir`.
+# Un ícono cuyo PNG no viajó deja de ofrecerse como si estuviera.
+#
+# El catálogo de iconos vive en `config$iconos` y el binario en el file store.
+# Cuando el PNG se pierde —basta con cerrar la app entre la subida y el
+# guardado, porque vive en el tempdir de la sesión— la entrada del catálogo
+# sobrevive en el `.pulso` y la UI sigue mostrando «Perfil · 1 recurso
+# disponible». Volver a elegirlo no arregla nada: reasigna exactamente el mismo
+# id roto, así que el analista da vueltas sin entender por qué el export sigue
+# quejándose del mismo ícono. Le pasó al proyecto de ACRD CONTA el 2026-08-14.
+#
+# Al abrir, las entradas sin archivo se retiran del catálogo. Las láminas que
+# las referencian no se rompen: `.graficos_rebuild_icon()` degrada con aviso.
+# Lo que se gana es que la UI deje de prometer un recurso que no existe.
+#
+# @param s Estado de la sesión ya con los paths reescritos al tempdir nuevo.
+# @return El estado, con los catálogos de iconos podados.
+# @keywords internal
+.pulso_podar_iconos_huerfanos <- function(s) {
+  vivo <- function(icono) {
+    if (!is.list(icono)) return(FALSE)
+    fid <- as.character(icono$file_id %||% "")[1]
+    if (is.na(fid) || !nzchar(fid)) return(FALSE)
+    meta <- s$files[[fid]]
+    path <- as.character(meta$path %||% "")[1]
+    !is.na(path) && nzchar(path) && file.exists(path)
+  }
+  podados <- 0L
+  podar <- function(config) {
+    if (!is.list(config)) return(config)
+    iconos <- config$iconos
+    if (!is.list(iconos) || !length(iconos)) return(config)
+    keep <- vapply(iconos, vivo, logical(1))
+    podados <<- podados + sum(!keep)
+    config$iconos <- unname(iconos[keep])
+    config
+  }
+
+  s$graficos_config <- podar(s$graficos_config)
+  if (is.list(s$graficos_config_por_base) && length(s$graficos_config_por_base)) {
+    s$graficos_config_por_base <- lapply(s$graficos_config_por_base, podar)
+  }
+  if (is.list(s$graficos_consolidado_draft)) {
+    s$graficos_consolidado_draft$config <- podar(s$graficos_consolidado_draft$config)
+  }
+  if (is.list(s$graficos_consolidado)) {
+    s$graficos_consolidado$config <- podar(s$graficos_consolidado$config)
+  }
+
+  if (podados > 0L) {
+    .pulso_aviso(sprintf(
+      paste0("%d icono(s) del proyecto no traian su PNG y se retiraron del catalogo. ",
+             "Las laminas que los usaban se generan sin icono; vuelve a subirlos ",
+             "en Configuracion global > Iconos."),
+      podados
+    ))
+  }
+  s
+}
+
 .pulso_rewrite_paths <- function(s, uploads_dir) {
   if (is.null(s$files) || !length(s$files)) return(s)
   for (fid in names(s$files)) {
@@ -2565,6 +2624,9 @@ load_pulso <- function(src_path) {
   s_saved <- .pulso_sanitize_graficos_consolidado_state(s_saved)
   s_saved <- .pulso_rewrite_paths(s_saved, uploads_dir)
   s_saved <- .pulso_sanitize_graficos_consolidado_state(s_saved)
+  # Va DESPUÉS de reescribir paths: antes, ningún archivo existiría todavía en
+  # el tempdir nuevo y la poda se llevaría por delante el catálogo entero.
+  s_saved <- .pulso_podar_iconos_huerfanos(s_saved)
   # Migración ADR 0060/D4: un state.rds con referencia de asistencia vieja
   # puede traer tasas > 1 persistidas; se sanean al contrato nuevo (NA + marca
   # residual) para que el cliente fail-closed no vacíe el Histórico.
