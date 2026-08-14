@@ -236,3 +236,44 @@ test_that("aplicación es NO-OP sin override activo", {
     pair$inst$choices
   )
 })
+
+# --- Regresión: el override llega a las columnas de idioma del XLSForm --------
+# Mismo defecto que el de la config de Analítica
+# (docs/qa/bug-xlsform-final-label-es-sin-overrides.md): escribir solo la columna
+# `label` derivada dejaba el `label::es` —la que un XLSForm usa para español—
+# con la etiqueta bilingüe vieja, y el XLSForm final exporta esa hoja.
+.lo_inst_label_es <- function() {
+  structure(list(
+    survey = data.frame(
+      type = "select_one", list_name = "seg_l", name = "seguridad",
+      `label::es` = "Percepción de seguridad Safety perception",
+      label = "Percepción de seguridad Safety perception",
+      check.names = FALSE, stringsAsFactors = FALSE
+    ),
+    choices = data.frame(
+      list_name = c("seg_l", "seg_l"), name = c("1", "2"),
+      `label::es` = c("Muy seguro Very safe", "Seguro Insurance"),
+      label = c("Muy seguro Very safe", "Seguro Insurance"),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
+  ), class = c("prosecnur_instrumento", "list"))
+}
+
+test_that("el override reescribe `label::es` además de `label`", {
+  ov <- list(
+    values = list(seg_l = list(`1` = "Muy seguro")),
+    titles = list(seguridad = "Percepción de seguridad")
+  )
+  out <- .label_overrides_apply_to_instrument(.lo_inst_label_es(), ov)
+
+  ch <- as.data.frame(out$choices)
+  expect_equal(ch$label[ch$name == "1"], "Muy seguro")
+  expect_equal(ch[["label::es"]][ch$name == "1"], "Muy seguro")
+  # Sin override, la fila queda intacta en ambas columnas.
+  expect_equal(ch$label[ch$name == "2"], "Seguro Insurance")
+  expect_equal(ch[["label::es"]][ch$name == "2"], "Seguro Insurance")
+
+  sv <- as.data.frame(out$survey)
+  expect_equal(sv$label[1], "Percepción de seguridad")
+  expect_equal(sv[["label::es"]][1], "Percepción de seguridad")
+})
