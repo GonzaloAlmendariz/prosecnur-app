@@ -2015,25 +2015,6 @@ reporte_ppt_plan <- function(
   # ---------------------------------------------------------------------------
   # 3) Helpers  -  Instrumento / tablas / titulos
   # ---------------------------------------------------------------------------
-  .pct_enteros_100 <- function(n) {
-    n <- as.numeric(n)
-    n[is.na(n)] <- 0
-    tot <- sum(n)
-    if (!is.finite(tot) || tot <= 0) return(rep(0L, length(n)))
-    raw <- n / tot * 100
-    fl  <- floor(raw)
-    resid <- as.integer(round(100 - sum(fl)))
-    frac <- raw - fl
-    if (resid > 0) {
-      idx <- head(order(frac, decreasing = TRUE), resid)
-      fl[idx] <- fl[idx] + 1L
-    } else if (resid < 0) {
-      idx <- head(order(frac, decreasing = FALSE), abs(resid))
-      fl[idx] <- pmax(0L, fl[idx] - 1L)
-    }
-    fl
-  }
-
   .pretty_source_label <- function(source) {
     source <- as.character(source %||% "")[1]
     source <- gsub("_+", " ", trimws(source))
@@ -4424,7 +4405,7 @@ reporte_ppt_plan <- function(
       palette = colores_grupos
     )
 
-    pct_int  <- .pct_enteros_100(tab$n)
+    pct_exacto  <- .calculos_pct_exacto(tab$n)
     cols_pct <- paste0("pct_", seq_len(nrow(tab)))
     cols_n <- paste0("n_", seq_len(nrow(tab)))
 
@@ -4442,7 +4423,7 @@ reporte_ppt_plan <- function(
       N         = N_total
     )
     for (i in seq_along(cols_pct)) {
-      df_wide[[cols_pct[i]]] <- pct_int[i] / 100
+      df_wide[[cols_pct[i]]] <- pct_exacto[i] / 100
       df_wide[[cols_n[i]]] <- suppressWarnings(as.numeric(tab$n[i]))
     }
 
@@ -4881,8 +4862,8 @@ reporte_ppt_plan <- function(
           }
         }
 
-        pct_int <- .pct_enteros_100(tab$n)
-        names(pct_int) <- as.character(tab$Opciones)
+        pct_exacto <- .calculos_pct_exacto(tab$n)
+        names(pct_exacto) <- as.character(tab$Opciones)
         n_int <- suppressWarnings(as.numeric(tab$n))
         names(n_int) <- as.character(tab$Opciones)
 
@@ -4892,7 +4873,7 @@ reporte_ppt_plan <- function(
         )
         for (i in seq_along(all_opts)) {
           opt <- all_opts[i]
-          row[[cols_pct[i]]] <- (pct_int[opt] %||% 0) / 100
+          row[[cols_pct[i]]] <- (pct_exacto[opt] %||% 0) / 100
           row[[cols_n[i]]] <- n_int[opt] %||% 0
         }
         rows[[length(rows) + 1]] <- row
@@ -5054,8 +5035,8 @@ reporte_ppt_plan <- function(
         if (!is.finite(N_total) || N_total <= 0) next
 
         # pct enteros a 100 dentro del grupo
-        pct_int <- .pct_enteros_100(tab$n)
-        names(pct_int) <- as.character(tab$Opciones)
+        pct_exacto <- .calculos_pct_exacto(tab$n)
+        names(pct_exacto) <- as.character(tab$Opciones)
         n_int <- suppressWarnings(as.numeric(tab$n))
         names(n_int) <- as.character(tab$Opciones)
 
@@ -5070,7 +5051,7 @@ reporte_ppt_plan <- function(
         )
         for (i in seq_along(all_opts)) {
           opt <- all_opts[i]
-          row[[cols_pct[i]]] <- (pct_int[opt] %||% 0) / 100
+          row[[cols_pct[i]]] <- (pct_exacto[opt] %||% 0) / 100
           row[[cols_n[i]]] <- n_int[opt] %||% 0
         }
 
@@ -5277,8 +5258,8 @@ reporte_ppt_plan <- function(
             if ((excluded_any && !.reporte_plan_is_select_multiple(ref)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
             if (!is.finite(N_total) || N_total <= 0) next
 
-            pct_int <- .pct_enteros_100(tab$n)
-            names(pct_int) <- as.character(tab$Opciones)
+            pct_exacto <- .calculos_pct_exacto(tab$n)
+            names(pct_exacto) <- as.character(tab$Opciones)
             n_int <- suppressWarnings(as.numeric(tab$n))
             names(n_int) <- as.character(tab$Opciones)
 
@@ -5298,7 +5279,7 @@ reporte_ppt_plan <- function(
             }
             for (k in seq_along(all_opts)) {
               opt <- all_opts[k]
-              row[[cols_pct[k]]] <- (pct_int[opt] %||% 0) / 100
+              row[[cols_pct[k]]] <- (pct_exacto[opt] %||% 0) / 100
               row[[cols_n[k]]] <- n_int[opt] %||% 0
             }
 
@@ -5449,8 +5430,8 @@ reporte_ppt_plan <- function(
             if ((excluded_any && !.reporte_plan_is_select_multiple(ctx_v$var)) || !is.finite(N_total)) N_total <- sum(tab$n, na.rm = TRUE)
             if (!is.finite(N_total) || N_total <= 0) next
 
-            pct_int <- .pct_enteros_100(tab$n)
-            names(pct_int) <- as.character(tab$Opciones)
+            pct_exacto <- .calculos_pct_exacto(tab$n)
+            names(pct_exacto) <- as.character(tab$Opciones)
             n_int <- suppressWarnings(as.numeric(tab$n))
             names(n_int) <- as.character(tab$Opciones)
 
@@ -5470,7 +5451,7 @@ reporte_ppt_plan <- function(
             }
             for (k in seq_along(all_opts)) {
               opt <- all_opts[k]
-              row[[cols_pct[k]]] <- (pct_int[opt] %||% 0) / 100
+              row[[cols_pct[k]]] <- (pct_exacto[opt] %||% 0) / 100
               row[[cols_n[k]]] <- n_int[opt] %||% 0
             }
 

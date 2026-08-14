@@ -1,9 +1,9 @@
 # Checklist — redondeo y decimales como configuración general de Gráficos
 
 **Abierto**: 2026-08-14 · **Origen**: revisión de `ACRD CONTA/Revisón graficos.xlsx`
-(64 observaciones PPT vs SPSS) · **Estado**: tandas A–D implementadas y verificadas,
-pero **el PPT real no cambió**: hay un redondeo anterior al graficador. Ver el
-hallazgo al final. Queda una tanda E.
+(64 observaciones PPT vs SPSS) · **Estado**: cerrado. Cinco tandas: motor,
+configuración, interfaz, entregable y —tras regenerar el PPT y verlo sin
+cambios— el redondeo que el plan aplicaba antes de tiempo.
 
 ## De dónde sale esto
 
@@ -298,13 +298,43 @@ Lo que sí llegó al PPT regenerado: la regla del ítem 16 se ve actuando (hay
 filas con una categoría menos, la que vale 0), porque opera sobre lo que el plan
 entrega. Pero un 0 que el plan ya fijó no se puede distinguir de un 0,56 % real.
 
-**Reparación pendiente (tanda E).** Que el plan deje de redondear y entregue las
-proporciones reales, o que `.pct_enteros_100()` delegue en
-`.pulso_pct_unidades()` con el método configurado. Lo segundo es más barato pero
-no resuelve los decimales: `pct_int / 100` tiene resolución de entero, así que
-un preset con `decimales = 1` seguiría sin poder expresarse. Afecta a cinco
-puntos de un archivo congelado y cambia las cifras de todos los mazos, así que
-es su propia unidad de trabajo con su propio gate.
+## Tanda E — el plan entrega el dato, el graficador decide cómo se escribe
+
+`.pct_enteros_100()` se retiró y sus cinco llamadas pasan por
+`.calculos_pct_exacto()`, que devuelve el porcentaje con sus decimales. La
+variable que lo recibía se llamaba `pct_int` y ahora es `pct_exacto`: el nombre
+viejo mentía, y esa mentira es de la clase que causó todo esto.
+
+El reparto por resto mayor no se pierde —sigue disponible como
+`metodo_redondeo = "reparto"`—, pero deja de estar cableado: ahora hay **una
+sola implementación viva**, en `helpers_calc_comunes.R`.
+
+`reporte_plan_ppt.R` **baja** de 9.486 a 9.467 líneas al retirar la función; la
+línea base del manifest se ajusta a la baja.
+
+**Verificación sobre el entregable real.** Se regeneró el mazo de ACRD CONTA con
+el mismo plan de 60 láminas y se comparó con el PPT de la tanda D:
+
+- **34 de 60 láminas** cambiaron sus cifras.
+- Aparecen **19 cifras nuevas**: las categorías que antes no se dibujaban.
+- De las 58 filas del Excel cuyo enunciado se localiza en el mazo, **la cifra de
+  SPSS aparece en las 58**. Ninguna falla.
+
+Comprobación posicional exacta en «Gestión y planificación» (slide 15), fila de
+Egresados de «El estatuto y las normas internas de la institución»:
+
+| | Tanda D | Tanda E | Excel (SPSS) |
+|---|---|---|---|
+| De acuerdo | 36 % | **37 %** | 37 |
+| «Las normas internas…», En desacuerdo | no se dibujaba | **1 %** | 1 |
+
+**Gate.** `test_dir` sobre las 108 suites del área —como lo corre el CI—:
+5.729 asserts en verde y solo los cuatro fallos preexistentes de siempre.
+
+Cuidado al leer un barrido hecho a mano: correr los 108 archivos con
+`test_file()` dentro de **un mismo proceso** marcó en rojo cuatro suites de
+`reporte-*` que pasan aisladas y pasan con `test_dir`. Es interferencia entre
+archivos, no regresión; el veredicto se toma con `test_dir`.
 
 ## Lo aprendido que no hay que reinvestigar
 
