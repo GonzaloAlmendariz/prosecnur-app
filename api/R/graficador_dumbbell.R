@@ -165,7 +165,8 @@ graficar_dumbbell <- function(
     dec <- suppressWarnings(as.integer(valores_decimales)[1])
     if (!is.finite(dec) || dec < 0) dec <- 0L
     lab <- largo
-    lab$.lab <- paste0(formatC(round(lab$.valor, dec), format = "f", digits = dec), "%")
+    # Regla de la casa: el 0,5 sube. `round()` redondea al par.
+    lab$.lab <- .pulso_fmt_pct_half_up(lab$.valor, dec, escala = 1)
     # La cifra se aparta hacia el lado por el que ese punto es extremo, para que
     # no caiga sobre el segmento ni sobre el otro punto.
     ancla <- merge(lab, res[, c(".eje", ".a", ".b")], by = ".eje", all.x = TRUE)
@@ -184,7 +185,7 @@ graficar_dumbbell <- function(
     if (nrow(br)) {
       br$.lab <- paste0(
         ifelse(br$.brecha > 0, "+", ""),
-        formatC(round(br$.brecha, 0), format = "f", digits = 0), " ", etiqueta_brecha
+        .pulso_fmt_half_up(br$.brecha, 0), " ", etiqueta_brecha
       )
       p <- p + ggplot2::geom_text(
         data = br,
@@ -199,7 +200,7 @@ graficar_dumbbell <- function(
     ggplot2::scale_colour_manual(values = colores, breaks = niveles_grupo) +
     ggplot2::scale_x_continuous(
       limits = c(0, tope),
-      labels = function(x) paste0(round(x), "%")
+      labels = function(x) paste0(.pulso_fmt_half_up(x, 0), "%")
     ) +
     ggplot2::labs(
       title = titulo, subtitle = subtitulo, caption = nota_pie,

@@ -355,3 +355,115 @@ calc_bool <- function(x, default = FALSE) {
   paste0(format(units / escala, nsmall = dec, trim = TRUE,
                 scientific = FALSE), "%")
 }
+
+# ---------------------------------------------------------------------------
+# Método de redondeo de porcentajes — la decisión, en un solo sitio
+# ---------------------------------------------------------------------------
+#
+# Antes de esto el motor no tenía UN método: tenía tres, escritos a mano dentro
+# de cada familia y sin forma de elegirlos. Barras apiladas repartía por resto
+# mayor; agrupadas, categóricas, numéricas e histograma usaban la regla de la
+# casa; y divergentes, lollipop, dumbbell, puntos comparativos y serie temporal
+# llamaban a `round()` de R, que redondea AL PAR —12,5 % baja a 12 % mientras
+# 87,5 % sube a 88 % en el mismo gráfico—. El bug del par ya estaba diagnosticado
+# en `graficador_barras_agrupadas.R` y era la razón de ser de
+# `.pulso_round_half_up`, pero el arreglo nunca se propagó.
+#
+# La consecuencia práctica la trajo la revisión de ACRD CONTA (2026-08-14): 64
+# celdas del PPT que no cuadraban con el SPSS. Ninguna era un error de dato —las
+# bases, las N y las frecuencias coincidían—; eran los métodos discrepando entre
+# sí. Ver `docs/qa/checklist-redondeo-decimales-2026-08-14.md`.
+#
+# Los dos métodos y lo que garantiza cada uno:
+#
+#   - `estandar`: cada cifra se redondea sola, el 0,5 sube. Es lo que hacen SPSS
+#     y Excel, así que cualquiera con la base llega al mismo número, y la cifra
+#     de una categoría no depende de las demás. A cambio, las cifras impresas
+#     pueden sumar 99 % o 101 %. Es el default de fábrica.
+#   - `reparto`: reparto por resto mayor. Las cifras impresas suman exactamente
+#     100 %. A cambio, una cifra puede alejarse de su valor real y —el costo
+#     serio— dos categorías con el MISMO dato pueden salir rotuladas distinto,
+#     porque el desempate lo decide el orden de la lista. Solo tiene sentido
+#     donde las categorías cierran a 100: en una batería de respuesta múltiple o
+#     una serie temporal no hay resto que repartir.
+
+#' Métodos válidos de redondeo de porcentajes.
+#' @keywords internal
+.PULSO_PCT_METODOS <- c("estandar", "reparto")
+
+#' Normaliza el nombre del método, tolerando alias de planes guardados.
+#'
+#' Los alias existen porque el campo se persiste en el `.pulso` y un plan
+#' escrito por una versión anterior —o a mano— no tiene por qué usar el nombre
+#' canónico. Ante cualquier cosa que no se reconozca cae en `estandar`, que es
+#' el default declarado: un método inválido no puede volverse un error de render
+#' a mitad de un mazo.
+#'
+#' @param metodo Nombre del método, o `NULL`.
+#' @return `"estandar"` o `"reparto"`.
+#' @keywords internal
+.pulso_pct_metodo <- function(metodo = NULL) {
+  m <- suppressWarnings(as.character(metodo)[1])
+  if (is.null(m) || is.na(m)) return("estandar")
+  m <- tolower(trimws(m))
+  if (!nzchar(m)) return("estandar")
+  if (m %in% .PULSO_PCT_METODOS) return(m)
+  if (m %in% c("resto_mayor", "resto-mayor", "restomayor", "hare",
+               "exacto", "reparto_100", "suma_100", "unidades_exactas")) {
+    return("reparto")
+  }
+  if (m %in% c("half_up", "half-up", "halfup", "clasico", "clásico",
+               "comercial", "escolar", "simple", "aritmetico", "aritmético")) {
+    return("estandar")
+  }
+  "estandar"
+}
+
+#' Porcentajes de UNA fila en unidades enteras, según el método pedido.
+#'
+#' Devuelve la misma escala que `.pulso_pct_unidades_exactas()` —unidades de
+#' `10^-dec` por ciento, o sea 413 para 41,3 % con `dec = 1`— para que ambos
+#' métodos sean intercambiables en el punto de uso y `.pulso_fmt_pct_unidades()`
+#' pueda formatear cualquiera de los dos sin saber cuál corrió.
+#'
+#' Con `metodo = "estandar"` la suma puede no dar 100: es la propiedad del
+#' método, no un defecto. Quien necesite el cierre exacto pide `"reparto"`.
+#'
+#' @param p Proporciones o frecuencias de una fila. Se normalizan a suma 1.
+#' @param dec Resolución pedida: 0 → unidades de 1 %, 1 → de 0,1 %.
+#' @param metodo `"estandar"` (default) o `"reparto"`.
+#' @return Entero del mismo largo que `p`.
+#' @keywords internal
+.pulso_pct_unidades <- function(p, dec = 0, metodo = "estandar") {
+  metodo <- .pulso_pct_metodo(metodo)
+  if (identical(metodo, "reparto")) return(.pulso_pct_unidades_exactas(p, dec))
+
+  dec <- suppressWarnings(as.integer(dec)[1])
+  if (!is.finite(dec) || dec < 0) dec <- 0L
+  p <- suppressWarnings(as.numeric(p))
+  p[is.na(p) | !is.finite(p)] <- 0
+
+  s <- sum(p)
+  if (s <= 0) return(rep.int(0L, length(p)))
+
+  # El redondeo va sobre las unidades enteras y no sobre el porcentaje seguido
+  # de una multiplicación: `round_half_up(41.28, 1) * 10` arrastra el error
+  # binario de 412.79999… y puede caer al entero de abajo.
+  as.integer(.pulso_round_half_up(p / s * 100 * 10^dec, 0))
+}
+
+#' Etiquetas de porcentaje de UNA fila, ya formateadas.
+#'
+#' Atajo para el caso común: unidades por el método pedido y su texto. Se
+#' devuelve también `units` porque quien decide el ancho de un segmento —o si
+#' se dibuja— necesita preguntar exactamente lo mismo que la etiqueta responde;
+#' cuando cada uno lo calculaba por su cuenta aparecían segmentos rotulados 0 %
+#' junto a segmentos con piso rotulados 1 %.
+#'
+#' @inheritParams .pulso_pct_unidades
+#' @return Lista con `units` (entero) y `labels` (carácter).
+#' @keywords internal
+.pulso_pct_etiquetas <- function(p, dec = 0, metodo = "estandar") {
+  units <- .pulso_pct_unidades(p, dec = dec, metodo = metodo)
+  list(units = units, labels = .pulso_fmt_pct_unidades(units, dec))
+}

@@ -1097,11 +1097,14 @@ graficar_barras_apiladas <- function(
     # Apagado por defecto: mostrar todos los porcentajes es el comportamiento
     # esperado, y ocultar los pequeños una decisión que se toma a mano.
     ocultar_etiquetas_pequenas = FALSE,
-    # Enseña las categorías que NADIE eligió, con ancho visible y conservando la
-    # suma 100 %. Las que sí tienen casos y redondean a 0 % ya salen siempre,
-    # sin este interruptor. La cifra rotulada no se toca: sigue diciendo 0 %.
+    # Enseña las categorías que se rotularían 0 %, con ancho visible y
+    # conservando la suma 100 %. Es el ESCAPE de la regla de abajo: apagado
+    # —el default— un segmento que redondea a 0 % no se dibuja.
     mostrar_categorias_en_cero = FALSE,
     piso_categoria_cero   = .BARRAS_PISO_CERO,
+    # `estandar` (cada cifra se redondea sola, el 0,5 sube) o `reparto` (resto
+    # mayor, las cifras suman exactamente 100 %). Ver `.pulso_pct_metodo()`.
+    metodo_redondeo       = "estandar",
     umbral_etiqueta_peq   = NULL,
     umbral_mostrar_etiqueta = NULL,
     umbral_etiqueta_normal  = NULL,
@@ -1544,38 +1547,58 @@ graficar_barras_apiladas <- function(
   # proporción de verdad y es la que se rotula.
   df_long$.valor_pct_real <- df_long$.valor_plot
 
-  # Un 0 % con casos detrás y un 0 % vacío no son la misma decisión, aunque en
-  # el gráfico se escriban igual. Quien los distingue es la frecuencia, no el
-  # porcentaje: el plan entrega los porcentajes ya redondeados a entero, así que
-  # una categoría con un caso entre 209 llega valiendo 0 exacto y es
-  # indistinguible de la que nadie eligió.
+  # La cifra y el segmento cuentan la misma historia o no cuentan ninguna.
   #
-  # - **Con casos**: el piso NO es opcional. Sin él el segmento mide cero, no
-  #   lleva etiqueta y la barra muestra un caso menos que su base sin dejar
-  #   rastro en ninguna cifra visible. Eso es un dato perdido, no un estilo.
-  # - **Sin casos**: sigue mandando `mostrar_categorias_en_cero`. Enseñar la
-  #   opción que nadie eligió sí es una decisión de lámina.
-  #
-  # Sin `cols_n` no hay con qué distinguirlos y todo queda bajo el interruptor.
-  df_long$.cero_con_casos <- if (".n_label_val" %in% names(df_long)) {
-    n_real <- suppressWarnings(as.numeric(df_long$.n_label_val))
-    !is.na(n_real) & is.finite(n_real) & n_real > 0
-  } else {
-    rep(FALSE, nrow(df_long))
-  }
+  # Las unidades se calculan UNA vez, aquí, y son las mismas que se rotulan más
+  # abajo: si la geometría y la etiqueta las calcularan por separado aparecerían
+  # segmentos rotulados 0 % con ancho y segmentos con ancho sin rótulo, que es
+  # justo la incoherencia que esto viene a evitar.
+  metodo_redondeo <- .pulso_pct_metodo(metodo_redondeo)
+  df_long <- df_long |>
+    dplyr::group_by(.data[[var_categoria]]) |>
+    dplyr::mutate(.pct_units = .pulso_pct_unidades(.valor_pct_real, decimales,
+                                                   metodo_redondeo)) |>
+    dplyr::ungroup()
 
-  if (isTRUE(mostrar_categorias_en_cero) || any(df_long$.cero_con_casos)) {
+  # Un segmento que se rotularía 0 % NO se dibuja (decisión de Gonzalo,
+  # 2026-08-14). El razonamiento: el segmento existe en función de lo que la
+  # cifra declara, así que dibujar una astilla y rotularla 0 % —o dibujarla sin
+  # rótulo— es afirmar dos cosas contradictorias en la misma barra. La masa que
+  # pierde se recomprime en el cierre exacto de más abajo, de modo que la barra
+  # sigue ocupando el 100 % de su ancho.
+  #
+  # Esto revierte a propósito la regla anterior, que daba piso obligatorio a los
+  # ceros con casos para no perderlos. Aquel criterio protegía el dato a costa
+  # de contradecir la cifra; el escape para verlos ahora es explícito y es
+  # `mostrar_categorias_en_cero`, que además pone la frecuencia al lado.
+  if (isTRUE(mostrar_categorias_en_cero)) {
     df_long <- df_long |>
       dplyr::group_by(.data[[var_categoria]]) |>
       dplyr::mutate(.valor_plot = .barras_inflar_ceros(
         .valor_plot, mostrar = TRUE, piso = piso_categoria_cero,
-        # Qué se rotula 0 % lo decide la misma función que escribe la cifra: si
-        # divergieran, habría segmentos rotulados 0 % sin piso.
-        cero_rotulado = .pulso_pct_unidades_exactas(.valor_pct_real, decimales) == 0L &
-          (isTRUE(mostrar_categorias_en_cero) | .cero_con_casos))) |>
+        cero_rotulado = .pct_units == 0L)) |>
       dplyr::ungroup()
+  } else {
+    df_long$.valor_plot[df_long$.pct_units == 0L] <- 0
+    # La masa liberada se reparte EN PROPORCIÓN entre los segmentos que quedan,
+    # aquí y no en el cierre exacto de más abajo. Aquél absorbe todo el faltante
+    # en un solo segmento —el último del stack— porque nació para tapar residuo
+    # de coma flotante, que es del orden de 1e-16. Un segmento aplastado libera
+    # bastante más: en la lámina de Egresados de ACRD CONTA el segmento vecino
+    # pasaba de 0,56 % a 1,12 % de ancho mientras su etiqueta seguía diciendo
+    # 1 %, que es el mismo divorcio entre cifra y geometría que esta regla viene
+    # a cerrar.
+    df_long <- df_long |>
+      dplyr::group_by(.data[[var_categoria]]) |>
+      dplyr::mutate(
+        .suma_viva = sum(.valor_plot, na.rm = TRUE),
+        .valor_plot = dplyr::if_else(.suma_viva > 0,
+                                     .valor_plot / .suma_viva,
+                                     .valor_plot)
+      ) |>
+      dplyr::ungroup() |>
+      dplyr::select(-.suma_viva)
   }
-  df_long$.cero_con_casos <- NULL
 
   # Orden de segmentos (DEBE IR ANTES del cierre exacto)
   niveles_originales <- unname(etiquetas_grupos)
@@ -1860,11 +1883,6 @@ graficar_barras_apiladas <- function(
       ) |>
       dplyr::ungroup()
 
-    # El reparto por resto mayor vive en `helpers_calc_comunes.R`: aquí era una
-    # closure, y el piso de los ceros necesita preguntar lo mismo antes de que
-    # esta parte del render exista.
-    .asignar_pct_exacto <- .pulso_pct_unidades_exactas
-
     # La regla vive en `.pulso_fmt_pct_unidades()` (helpers_calc_comunes.R):
     # aqui era una closure y no habia forma de verificarla sin renderizar.
     .fmt_units_pct <- function(units, dec) .pulso_fmt_pct_unidades(units, dec)
@@ -1877,15 +1895,11 @@ graficar_barras_apiladas <- function(
       out
     }
 
-    df_lab <- df_lab |>
-      dplyr::group_by(.data[[var_categoria]]) |>
-      dplyr::mutate(
-        # `.valor_pct_real` y no `.valor_plot`: el segundo puede llevar el piso
-        # de los ceros y rotularía «0.5%» donde el dato es 0 %.
-        .pct_units = .asignar_pct_exacto(.valor_pct_real, decimales),
-        lab        = .fmt_units_pct(.pct_units, decimales)
-      ) |>
-      dplyr::ungroup()
+    # `.pct_units` ya viene calculado desde arriba con el método pedido, sobre
+    # `.valor_pct_real` y no sobre `.valor_plot` —el segundo puede llevar el
+    # piso de los ceros y rotularía «0.5%» donde el dato es 0 %—. Recalcularlo
+    # aquí era la puerta por la que geometría y cifra se desincronizaban.
+    df_lab$lab <- .fmt_units_pct(df_lab$.pct_units, decimales)
 
     # Sufijo por celda (letras de significancia). Va antes de la frecuencia para
     # que el orden sea "35% B (140)" y no "35% (140) B": la letra califica al
@@ -2581,10 +2595,11 @@ graficar_barras_apiladas <- function(
     }
   }
 
-  # La barra extra (Top2Box/Bottom2Box) es un porcentaje independiente, así que
-  # sigue el redondeo de la casa: el 0,5 sube. Las etiquetas DENTRO de la barra
-  # apilada no pasan por aquí — usan reparto por resto mayor
-  # (`.asignar_pct_exacto`) para que la barra sume exactamente 100 %.
+  # La barra extra (Top2Box/Bottom2Box) es un porcentaje independiente y no
+  # forma parte de ninguna distribución que cierre a 100 %, así que no admite
+  # reparto: siempre sigue el redondeo de la casa, donde el 0,5 sube. Las
+  # etiquetas DENTRO de la barra apilada sí eligen método y se calculan arriba
+  # (`.pct_units`, vía `.pulso_pct_unidades()`).
   .format_pct_clean <- function(x, dec) .pulso_fmt_half_up(x, dec)
 
   extra_map <- df_wide_extra |>

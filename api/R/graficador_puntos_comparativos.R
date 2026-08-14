@@ -422,8 +422,9 @@ graficar_puntos_comparativos <- function(
   decimales <- suppressWarnings(as.integer(valores_decimales)[[1]])
   if (!is.finite(decimales) || decimales < 0L) decimales <- 0L
   decimales <- min(decimales, 3L)
+  # Regla de la casa: el 0,5 sube. `round()` redondea al par.
   df$.etiqueta <- paste0(
-    formatC(round(df$.valor, decimales), format = "f", digits = decimales),
+    .pulso_fmt_half_up(df$.valor, decimales),
     " % · n = ", df$.n
   )
   df$.hjust <- ifelse(df$.valor >= 82, 1.18, -0.18)

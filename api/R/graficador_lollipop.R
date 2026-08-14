@@ -143,7 +143,8 @@ graficar_lollipop <- function(
   if (isTRUE(mostrar_valores)) {
     dec <- suppressWarnings(as.integer(valores_decimales)[1])
     if (!is.finite(dec) || dec < 0) dec <- 0L
-    df$.lab <- paste0(formatC(round(df$.valor, dec), format = "f", digits = dec), "%")
+    # Regla de la casa: el 0,5 sube. `round()` redondea al par.
+    df$.lab <- .pulso_fmt_pct_half_up(df$.valor, dec, escala = 1)
     p <- p + ggplot2::geom_text(
       data = df, ggplot2::aes(label = .data$.lab),
       hjust = -0.35, size = size_valores, colour = color_ejes,
@@ -154,7 +155,7 @@ graficar_lollipop <- function(
   out <- p +
     ggplot2::scale_x_continuous(
       limits = c(0, tope),
-      labels = function(x) paste0(round(x), "%")
+      labels = function(x) paste0(.pulso_fmt_half_up(x, 0), "%")
     ) +
     ggplot2::labs(title = titulo, subtitle = subtitulo, caption = nota_pie, x = NULL, y = NULL) +
     ggplot2::theme_minimal(base_family = font_family) +
