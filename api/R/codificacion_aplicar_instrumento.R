@@ -669,10 +669,18 @@
                                   name      = codes)
     add_choices[[lab_col_c]] <- labels
 
-    dup_mask <- paste(choices$list_name, choices$name) %in%
-      paste(add_choices$list_name, add_choices$name)
-    if (any(dup_mask)) {
-      choices <- choices[!dup_mask, , drop = FALSE]
+    # Se retira la lista destino ENTERA, no solo los códigos que se repiten.
+    # La lista `<x>_recod` es derivada y este adaptador es su único dueño: lo
+    # que no está en `codes` es residuo de una aplicación anterior. Al borrar
+    # solo las colisiones, una categoría que en la ronda previa se numeró 97 y
+    # ahora es 6 sobrevivía como fila huérfana, quedaba después del 96 —porque
+    # se cuelga al final, fuera del bloque recién insertado— y el libro de
+    # códigos mostraba la misma etiqueta dos veces con códigos distintos.
+    # Reproducido en ACNUR V3: `HowInfo_recod` salía 1,2,3,4,5,6,96,97 con el 6
+    # y el 97 rotulados "Entidad pública / trámite migratorio".
+    stale <- as.character(choices$list_name) == base_list
+    if (any(stale)) {
+      choices <- choices[!stale, , drop = FALSE]
     }
 
     # posición: debajo del catálogo original (si se desea y existe), o al final
