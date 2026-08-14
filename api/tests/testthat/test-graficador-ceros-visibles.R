@@ -103,14 +103,50 @@ apilada_182 <- function(n_ultima, ...) {
     mostrar_n_en_etiquetas = TRUE, escala_valor = "proporcion_1", decimales = 0, ...)
 }
 
-test_that("la categoría con casos que redondea a 0 % no se pierde sin interruptor", {
+test_that("la categoría que redondea a 0 % no se dibuja", {
+  # REVISADO 2026-08-14. Antes esta categoría recibía piso obligatorio para no
+  # perder el dato, y el test exigía ancho 0,005 y etiqueta «0% (1)». La regla
+  # se invirtió por decisión de Gonzalo: el segmento existe en función de lo que
+  # la cifra declara, así que una cifra que dice 0 % no puede llevar segmento —
+  # dibujar la astilla y rotularla 0 % afirma dos cosas contradictorias en la
+  # misma barra. Ver `docs/qa/checklist-redondeo-decimales-2026-08-14.md`.
   p <- apilada_182(1)
   b <- ggplot2::ggplot_build(p)$data[[1]]
   anchos <- b$xmax - b$xmin
 
-  expect_equal(min(anchos), 0.005)          # recibió el piso
-  expect_equal(sum(anchos), 1)              # y la fila sigue sumando 100 %
-  expect_true("0% (1)" %in% etiquetas_de(p))
+  expect_equal(min(anchos), 0)              # no se dibuja
+  expect_equal(sum(anchos), 1)              # y la fila sigue ocupando el 100 %
+  expect_false(any(grepl("^0%", etiquetas_de(p))))
+})
+
+test_that("la masa del segmento aplastado se reparte en proporcion", {
+  # El cierre exacto de la barra absorbe el faltante en UN solo segmento —el
+  # último del stack— porque nació para tapar residuo de coma flotante. Un
+  # segmento aplastado libera mucho más que eso: sin este reparto proporcional,
+  # el vecino pasaba de 0,56 % a 1,12 % de ancho mientras su etiqueta seguía
+  # diciendo 1 %.
+  con_cero <- apilada_182(1)
+  a <- ggplot2::ggplot_build(con_cero)$data[[1]]
+  anchos <- (a$xmax - a$xmin)[order(a$xmin)]
+  vivos <- anchos[anchos > 0]
+
+  # La barra sigue llena y los segmentos vivos conservan su peso relativo:
+  # 39 / 58 / 3 sobre un total de 100 que ahora se reparte entre ellos.
+  expect_equal(sum(anchos), 1)
+  expect_equal(vivos / sum(vivos), c(0.39, 0.58, 0.03), tolerance = 1e-6)
+})
+
+test_that("el interruptor sigue siendo el escape para verla", {
+  # Lo que se perdió como automatismo se conserva como decisión explícita, y
+  # con la frecuencia al lado, que es lo que explica por qué hay un segmento
+  # donde la cifra dice cero.
+  con <- apilada_182(1, mostrar_categorias_en_cero = TRUE)
+  b <- ggplot2::ggplot_build(con)$data[[1]]
+  anchos <- b$xmax - b$xmin
+
+  expect_equal(min(anchos), 0.005)
+  expect_equal(sum(anchos), 1)
+  expect_true("0% (1)" %in% etiquetas_de(con))
 })
 
 test_that("la categoría VACÍA sigue dependiendo del interruptor", {

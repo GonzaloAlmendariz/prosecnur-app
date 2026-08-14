@@ -78,7 +78,9 @@
   dec <- suppressWarnings(as.integer(decimales)[1])
   if (!is.finite(dec) || dec < 0) dec <- 0L
   pct <- if (identical(escala_valor, "proporcion_1")) valores * 100 else valores
-  paste0(formatC(round(pct, dec), format = "f", digits = dec), "%")
+  # Regla de la casa: el 0,5 sube. `round()` redondea al par y dejaba 12,5 % en
+  # 12 % mientras 87,5 % subía a 88 % en la misma serie.
+  .pulso_fmt_pct_half_up(pct, dec, escala = 1)
 }
 
 #' Serie temporal de uno o varios indicadores
@@ -260,7 +262,7 @@ graficar_serie_temporal <- function(
     ggplot2::scale_colour_manual(values = colores, breaks = niveles_serie) +
     ggplot2::scale_y_continuous(
       limits = c(0, tope),
-      labels = function(x) paste0(round(x), "%"),
+      labels = function(x) paste0(.pulso_fmt_half_up(x, 0), "%"),
       expand = ggplot2::expansion(mult = c(0, 0.02))
     ) +
     ggplot2::labs(

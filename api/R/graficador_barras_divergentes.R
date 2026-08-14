@@ -272,7 +272,9 @@ graficar_barras_divergentes <- function(
     # El neutro partido se etiquetaria dos veces con la mitad del valor cada
     # una, que es un numero que no existe en los datos: se rotula una sola vez.
     lab <- lab[lab$.lado != "neu2", , drop = FALSE]
-    lab$.lab <- paste0(formatC(round(lab$.valor, dec), format = "f", digits = dec), "%")
+    # Regla de la casa: el 0,5 sube. `round()` redondea al par y dejaba 12,5 %
+    # en 12 % mientras 87,5 % subía a 88 % en el mismo gráfico.
+    lab$.lab <- .pulso_fmt_pct_half_up(lab$.valor, dec, escala = 1)
     lab$.lab[lab$.valor < umbral_etiqueta_pct] <- ""
     p <- p + ggplot2::geom_text(
       data = lab,
@@ -295,7 +297,7 @@ graficar_barras_divergentes <- function(
     names(saldo) <- c(".item", ".saldo")
     saldo$.lab <- paste0(
       ifelse(saldo$.saldo > 0, "+", ""),
-      formatC(round(saldo$.saldo, 0), format = "f", digits = 0), " pp"
+      .pulso_fmt_half_up(saldo$.saldo, 0), " pp"
     )
     saldo$.x <- tope * 1.02
     p <- p + ggplot2::geom_text(
@@ -314,7 +316,7 @@ graficar_barras_divergentes <- function(
     ) +
     ggplot2::scale_x_continuous(
       limits = c(-tope, tope),
-      labels = function(x) paste0(abs(round(x)), "%")
+      labels = function(x) paste0(.pulso_fmt_half_up(abs(x), 0), "%")
     ) +
     ggplot2::labs(
       title = titulo, subtitle = subtitulo, caption = nota_pie,
