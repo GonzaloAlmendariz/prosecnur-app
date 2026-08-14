@@ -989,8 +989,22 @@
 
 .pulso_xlsform_label_col <- function(df) {
   nms <- names(df)
-  hit <- which(tolower(nms) %in% c("label", "label::spanish (es)", "label::es", "label_spanish_es"))[1]
-  if (is.na(hit)) NA_character_ else nms[hit]
+  hits <- which(tolower(nms) %in% c("label", "label::spanish (es)", "label::es", "label_spanish_es"))
+  if (!length(hits)) return(NA_character_)
+
+  # Se elige la candidata con MÁS texto, no la primera por nombre. Un XLSForm
+  # puede declarar la columna del idioma y dejarla vacía, con las etiquetas en
+  # `label`: elegir a ciegas devolvía la vacía y toda la comparación por
+  # etiqueta de la reparación de recodificadas quedaba contra "". En ACNUR V3
+  # eso hacía que "Entidad pública / trámite migratorio" no se reconociera a sí
+  # misma al reabrir el proyecto, se leyera como colisión de código y saltara
+  # del 6 al 97. Mismo criterio que `.guess_label_col()` del adaptador.
+  llenas <- vapply(hits, function(i) {
+    v <- as.character(df[[i]])
+    sum(!is.na(v) & nzchar(trimws(v)))
+  }, integer(1))
+  if (max(llenas) == 0L) return(nms[hits[1]])
+  nms[hits[order(-llenas, seq_along(hits))][1]]
 }
 
 .pulso_write_xlsform_frames <- function(path, survey, choices, settings = NULL) {
@@ -1201,6 +1215,25 @@
     code_map <- character(0)
     used_codes <- unique(c(parent_codes, as.character(existing_recod$name %||% character(0))))
 
+    # Etiquetas de la lista `_recod` que ya existe en el XLSForm, o sea lo que
+    # dejó la ronda anterior de esta misma reparación. Sin este mapa, una
+    # categoría nueva que ya fue escrita antes se lee como colisión contra su
+    # PROPIO código y se renumera: en ACNUR V3, "Entidad pública / trámite
+    # migratorio" tenía el 6, encontraba el 6 en `used_codes` (puesto por ella
+    # misma) y saltaba al siguiente libre tras el 96, o sea el 97. Cada apertura
+    # del proyecto la empujaba un código más lejos.
+    existing_recod_codes <- as.character(existing_recod$name %||% character(0))
+    existing_label_keys <- if (length(existing_recod_codes)) {
+      stats::setNames(
+        .pulso_norm_label(as.character(
+          existing_recod[[lab_col_c]] %||% rep("", nrow(existing_recod))
+        )),
+        existing_recod_codes
+      )
+    } else {
+      stats::setNames(character(0), character(0))
+    }
+
     recod_rows <- parent_choices
     if (nrow(recod_rows)) recod_rows$list_name <- recod_list
 
@@ -1225,6 +1258,11 @@
             target_code <- .pulso_next_free_code(used_codes)
             needs_row <- TRUE
           }
+        } else if (identical(unname(existing_label_keys[raw_code] %||% NA_character_), raw_key)) {
+          # El código ya está en la lista `_recod` CON ESTA MISMA etiqueta: es
+          # esta categoría, escrita por una carga anterior. Conserva su código.
+          target_code <- raw_code
+          needs_row <- TRUE
         } else if (raw_code %in% used_codes) {
           target_code <- .pulso_next_free_code(used_codes)
           needs_row <- TRUE
@@ -1283,6 +1321,17 @@
 
     recod_names <- as.character(recod_rows$name %||% character(0))
     if (length(recod_names)) recod_rows <- recod_rows[!duplicated(recod_names), , drop = FALSE]
+
+    # El catálogo se arma copiando la lista padre y anexando las categorías
+    # nuevas al final, o sea DESPUÉS del "Otros" y del "Ninguno". Se aplica la
+    # regla de la casa —los códigos en [80,100) cierran la lista— igual que en
+    # `.add_recoded_q()`: sin esto, `HowInfo_recod` quedaba 1,2,3,4,5,96,6 y el
+    # libro de códigos mostraba "Entidad pública / trámite migratorio" detrás de
+    # "Otro (especificar)".
+    if (nrow(recod_rows) > 1L && exists(".orden_especiales_al_final", mode = "function")) {
+      orden <- .orden_especiales_al_final(as.character(recod_rows$name))
+      recod_rows <- recod_rows[match(orden, as.character(recod_rows$name)), , drop = FALSE]
+    }
 
     recod_idx <- which(as.character(survey$name) == parent_recod)[1]
     if (is.na(recod_idx)) {
