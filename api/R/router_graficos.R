@@ -331,10 +331,24 @@
 
   path <- icon_registry[[ref]] %||% ref
   if (!file.exists(path)) {
-    stop(
-      sprintf("Icono no encontrado: '%s'. Revisa que exista en Configuracion global > Iconos.", ref),
-      call. = FALSE
-    )
+    # Un PNG que falta NO puede costar el mazo entero.
+    #
+    # Hasta 2026-08-14 esto era un `stop()`, y una lámina de 67 dejaba al
+    # usuario sin export: el proyecto de ACRD CONTA no podía regenerar su
+    # propio informe porque el ícono se había subido en una sesión cuyo
+    # tempdir ya no existía. El PNG vive en `s$dir/icons`, así que basta con
+    # que la app se cierre entre la subida y el guardado para perderlo, y a
+    # partir de ahí el `.pulso` arrastra una referencia rota para siempre.
+    #
+    # Reponerlo es imposible —el binario no está en ninguna parte— pero
+    # renderizar el resto sí. La lámina sale sin ícono y el aviso dice cuál
+    # falta, que es exactamente lo que el analista necesita para reponerlo.
+    .pulso_aviso(sprintf(
+      paste0("El icono '%s' no esta disponible y esa lamina se genero sin el. ",
+             "Vuelve a subirlo en Configuracion global > Iconos si lo necesitas."),
+      ref
+    ))
+    return(NULL)
   }
 
   p_ggplot_raw(.graficos_icon_plot(path))
@@ -353,13 +367,31 @@
   }
 
   if (.graficos_fn_requires_icon(fn) && is.null(payload$icono)) {
-    stop(
-      sprintf(
-        "La slide '%s' requiere un icono. Selecciona un PNG en Configuracion global > Iconos.",
-        tipo
-      ),
-      call. = FALSE
+    # El constructor exige el argumento, así que hay que darle algo; lo que no
+    # puede es costar el export. Se cae al ícono integrado, que no depende de
+    # ningún archivo, y el aviso explica por qué esa lámina no lleva el suyo.
+    #
+    # El aviso de la UI decía «deja el campo en (ninguno) para exportar sin
+    # ícono» mientras el motor abortaba justo en ese caso: los dos no podían
+    # tener razón. Ahora la UI la tiene.
+    .pulso_aviso(sprintf(
+      paste0("La lamina '%s' necesita un icono y no habia ninguno disponible: ",
+             "se uso el integrado. Elige un PNG en Configuracion global > Iconos."),
+      tipo
+    ))
+    payload$icono <- tryCatch(
+      p_ggplot_raw(.graficos_builtin_icon_plot("builtin:users")),
+      error = function(e) NULL
     )
+    if (is.null(payload$icono)) {
+      stop(
+        sprintf(
+          "La slide '%s' requiere un icono. Selecciona un PNG en Configuracion global > Iconos.",
+          tipo
+        ),
+        call. = FALSE
+      )
+    }
   }
 
   payload
