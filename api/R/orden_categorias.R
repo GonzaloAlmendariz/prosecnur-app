@@ -119,6 +119,30 @@
   out
 }
 
+#' Mueve los valores especiales (estándar de la casa: códigos numéricos en
+#' [80,100)) al final de un vector de códigos, conservando el orden relativo
+#' dentro de cada bloque.
+#'
+#' El editor de Codificación agrega cada categoría nueva al final del array de
+#' grupos, o sea DESPUÉS del "Otros" y del "Ninguno". Sin esta corrección ese
+#' orden se propagaba tal cual al libro de códigos y a la BBDD: en ACNUR V3,
+#' `UNCHR_improving_recod` salía 1,2,3,4,5,6,97,96,7,8 en vez de
+#' 1,2,3,4,5,6,7,8,97,96, con los especiales en medio del catálogo.
+#' `.add_recoded_q()` ya aplica esta misma regla al construir la lista; acá se
+#' repite porque el override del editor se aplica después y la pisaba.
+#'
+#' @param codes Códigos en el orden declarado por el analista.
+#' @return Los mismos códigos con los especiales al final.
+#' @noRd
+.orden_especiales_al_final <- function(codes) {
+  codes <- as.character(codes %||% character(0))
+  if (length(codes) < 2L) return(codes)
+  num <- suppressWarnings(as.numeric(codes))
+  esp <- !is.na(num) & num >= 80 & num < 100
+  if (!any(esp) || all(esp)) return(codes)
+  c(codes[!esp], codes[esp])
+}
+
 #' Aplica el orden de las flechas de Codificación a la recodificada de cada
 #' select_multiple, reordenando `inst$orders_list[[<parent>_recod]]`. Reusa
 #' `.apply_orden_categorias` (keyed por list_name) para compartir maquinaria y
@@ -140,7 +164,7 @@
     recod_var <- paste0(parent, "_recod")
     ln <- tryCatch(.analitica_list_name_for_var(inst, recod_var), error = function(e) "")
     if (!nzchar(ln)) next
-    orden_cfg[[ln]] <- codes
+    orden_cfg[[ln]] <- .orden_especiales_al_final(codes)
   }
   if (!length(orden_cfg)) return(inst)
   .apply_orden_categorias(inst, orden_cfg)
