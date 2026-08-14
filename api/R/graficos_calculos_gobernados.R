@@ -82,6 +82,94 @@
   )
 }
 
+#' Preset de estilo que le corresponde a un tipo de elemento del plan.
+#'
+#' El plan habla de `barras_apiladas`; el preset se llama igual casi siempre,
+#' pero no siempre —`barras_multiapiladas` es `multi_apiladas`, `numerico` es
+#' `barras_numericas`—, y ese casi es justo lo que rompe un `paste0()` ingenuo.
+#' @keywords internal
+.calculos_preset_de_etype <- function(etype) {
+  key <- paste0("p_", as.character(etype)[1])
+  if (!key %in% names(.GRAFICADOR_PRESET_KEYS)) return("")
+  as.character(unname(.GRAFICADOR_PRESET_KEYS[[key]]))
+}
+
+#' Texto de la nota que declara el criterio de redondeo.
+#'
+#' Se redacta distinto según el método porque lo que hay que advertir es
+#' distinto. Con el estándar, el lector puede sumar las cifras de una barra y
+#' obtener 101: la nota existe para que eso no parezca un error. Con el reparto
+#' la suma siempre cierra, y lo que conviene declarar es lo otro —que una cifra
+#' puede no ser la de su propio valor—, porque es lo que no cuadra si alguien
+#' compara contra una tabla.
+#'
+#' @param metodo Método efectivo de la familia.
+#' @param decimales Resolución rotulada.
+#' @return Una línea de texto, o `""` si no hay nada que declarar.
+#' @keywords internal
+.calculos_nota_texto <- function(metodo = "estandar", decimales = 0) {
+  dec <- suppressWarnings(as.integer(decimales)[1])
+  if (!is.finite(dec) || dec < 0) dec <- 0L
+  unidad <- if (dec == 0L) "al entero más cercano" else
+    sprintf("a %d decimal%s", dec, if (dec == 1L) "" else "es")
+
+  if (identical(.pulso_pct_metodo(metodo), "reparto")) {
+    return(paste0(
+      "Los porcentajes están redondeados ", unidad,
+      " repartiendo el resto para que cada barra sume exactamente 100 %."
+    ))
+  }
+  paste0(
+    "Los porcentajes están redondeados ", unidad,
+    ", por lo que pueden no sumar exactamente 100 %."
+  )
+}
+
+#' Inyecta la nota de redondeo en un elemento del plan, si procede.
+#'
+#' Condiciones, todas necesarias: el interruptor encendido en la base, que la
+#' familia rotule porcentajes, y que la lámina no traiga ya una nota propia.
+#'
+#' Lo último importa más de lo que parece. La nota de significancia se aplica
+#' con esta misma regla —solo si no hay nota— y si las dos se pisaran, la que
+#' explica las letras de significancia desaparecería sin dejar rastro. Aquí se
+#' **anexan**: la del analista o la de significancia primero, la del redondeo
+#' después, que es el orden en que se leen.
+#'
+#' @param el Elemento del plan.
+#' @param presets Bloques de preset resueltos.
+#' @return El elemento, con `overrides$nota_pie` completado cuando corresponde.
+#' @keywords internal
+.calculos_aplicar_nota <- function(el, presets = list()) {
+  base_args <- presets$base$args %||% list()
+  if (!isTRUE(base_args$nota_redondeo)) return(el)
+
+  preset <- .calculos_preset_de_etype(el$.element_type %||% "")
+  if (!nzchar(preset) || is.null(.PRESETS_CALCULOS[[preset]])) return(el)
+
+  args_familia <- presets[[preset]]$args %||% list()
+  nota <- .calculos_nota_texto(
+    args_familia$metodo_redondeo %||% "estandar",
+    args_familia$decimales %||% args_familia$decimales_pct %||%
+      args_familia$valores_decimales %||% 0
+  )
+  if (!nzchar(nota)) return(el)
+
+  previa <- el$overrides$nota_pie %||% el$nota_pie %||% ""
+  previa <- as.character(previa)[1]
+  if (is.na(previa)) previa <- ""
+  if (nzchar(trimws(previa))) {
+    # Ya declarada: no se repite. Pasa cuando el analista escribe la suya
+    # mencionando el redondeo, y dos frases sobre lo mismo al pie sobran.
+    if (grepl("redondead", previa, ignore.case = TRUE)) return(el)
+    nota <- paste0(trimws(previa), " ", nota)
+  }
+
+  if (is.null(el$overrides)) el$overrides <- list()
+  el$overrides$nota_pie <- nota
+  el
+}
+
 #' Quita del override de una lámina lo que gobierna la configuración general.
 #'
 #' La cascada del motor es `base` → `preset del tipo` → `override del slide`, y

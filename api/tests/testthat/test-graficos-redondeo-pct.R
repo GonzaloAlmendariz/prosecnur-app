@@ -256,6 +256,64 @@ test_that("sanear overrides tolera lo que llega vacio o sin nombres", {
   expect_equal(.calculos_sanear_overrides(sin_nombres), sin_nombres)
 })
 
+# ---------------------------------------------------------------------------
+# La nota que declara el criterio (ítem 14)
+# ---------------------------------------------------------------------------
+
+.nota_el <- function(etype, ov = list()) {
+  structure(list(.element_type = etype, overrides = ov), class = c("ppt_element", "list"))
+}
+.nota_presets <- function(metodo = "estandar", dec = 0, encendido = TRUE) {
+  list(base = list(args = list(nota_redondeo = encendido)),
+       barras_apiladas = list(args = list(metodo_redondeo = metodo, decimales = dec)))
+}
+
+test_that("el texto de la nota dice lo que hay que advertir de cada metodo", {
+  # Con el estándar lo que sorprende es la suma; con el reparto, que una cifra
+  # pueda no ser la de su propio valor. La nota advierte lo que toca.
+  expect_match(.calculos_nota_texto("estandar", 0), "no sumar exactamente 100")
+  expect_match(.calculos_nota_texto("estandar", 0), "al entero m.s cercano")
+  expect_match(.calculos_nota_texto("reparto", 0), "sume exactamente 100")
+  expect_match(.calculos_nota_texto("estandar", 1), "a 1 decimal")
+  expect_match(.calculos_nota_texto("estandar", 2), "a 2 decimales")
+})
+
+test_that("la nota solo aparece con el interruptor encendido y en familias de %", {
+  expect_true(nzchar(.calculos_aplicar_nota(.nota_el("barras_apiladas"),
+                                            .nota_presets())$overrides$nota_pie %||% ""))
+  # Apagado —el default— no toca nada.
+  expect_null(.calculos_aplicar_nota(.nota_el("barras_apiladas"),
+                                     .nota_presets(encendido = FALSE))$overrides$nota_pie)
+  # Un box plot no rotula porcentajes: no hay criterio que declarar.
+  expect_null(.calculos_aplicar_nota(.nota_el("boxplot"), .nota_presets())$overrides$nota_pie)
+})
+
+test_that("la nota se anexa y no pisa la que ya trae la lamina", {
+  # La de significancia se aplica con esta misma regla. Si se pisaran, la que
+  # explica las letras desaparecería sin dejar rastro.
+  out <- .calculos_aplicar_nota(
+    .nota_el("barras_apiladas", list(nota_pie = "Letras: diferencias significativas.")),
+    .nota_presets()
+  )
+  expect_match(out$overrides$nota_pie, "^Letras: diferencias significativas[.] ")
+  expect_match(out$overrides$nota_pie, "no sumar exactamente 100")
+})
+
+test_that("una nota que ya habla de redondeo no se duplica", {
+  previa <- "Cifras redondeadas por el equipo."
+  out <- .calculos_aplicar_nota(.nota_el("barras_apiladas", list(nota_pie = previa)),
+                                .nota_presets())
+  expect_equal(out$overrides$nota_pie, previa)
+})
+
+test_that("el mapeo de tipo de elemento a preset cubre los nombres que no calzan", {
+  # `paste0("p_", etype)` no basta: multiapiladas y numerico se llaman distinto.
+  expect_equal(.calculos_preset_de_etype("barras_multiapiladas"), "multi_apiladas")
+  expect_equal(.calculos_preset_de_etype("numerico"), "barras_numericas")
+  expect_equal(.calculos_preset_de_etype("barras_apiladas"), "barras_apiladas")
+  expect_equal(.calculos_preset_de_etype("no_existe"), "")
+})
+
 test_that("la clasificacion que sirve la UI coincide con lo que declara el preset", {
   payload <- .presets_metadata_payload()
   con_calculos <- Filter(function(x) !is.null(x$calculos), payload$presets)

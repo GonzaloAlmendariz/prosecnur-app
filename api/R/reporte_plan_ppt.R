@@ -4203,6 +4203,7 @@ reporte_ppt_plan <- function(
     fn <- get(fn_name, mode = "function", inherits = TRUE)
     # Cómo se redondea no se decide por lámina: ver graficos_calculos_gobernados.R
     el$overrides <- .calculos_sanear_overrides(el$overrides %||% NULL)
+    el <- .calculos_aplicar_nota(el, presets)
 
     # presets por tipo (si no existen, lista vacia)
     pa_apiladas <- presets$barras_apiladas$args %||% list()
@@ -7695,6 +7696,17 @@ reporte_ppt_plan <- function(
         element    = NA_character_,
         var        = NA_character_
       )
+      next
+    }
+
+    # ---- REDONDEO (lámina metodológica; renderer en reporte_slide_redondeo.R) -
+    if (identical(stype, "redondeo")) {
+      if (!isTRUE(solo_lista)) doc <- .reporte_slide_redondeo(
+        doc, slide, presets, PPT_CONTRACT$top_two_box,
+        list(add_slide = .add_slide_strict, style_value = .style_value,
+             style_num = .style_num, escape = .svg_text_escape, fill = .indice_sanitize_fill))
+      log_rows[[length(log_rows) + 1]] <- tibble::tibble(
+        slide_i = i, slide_type = "redondeo", element = NA_character_, var = NA_character_)
       next
     }
 

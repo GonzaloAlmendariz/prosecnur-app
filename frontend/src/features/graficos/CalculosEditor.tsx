@@ -20,6 +20,9 @@ import "./calculosEditor.css";
 const METODO_ESTANDAR = "estandar";
 const METODO_REPARTO = "reparto";
 const ARG_METODO = "metodo_redondeo";
+/** Vive en el preset `base`, que heredan todos los gráficos, porque la nota es
+ *  una decisión del informe entero y no de una familia. */
+const ARG_NOTA = "nota_redondeo";
 
 type FilaCalculos = {
   preset: PresetMetadata;
@@ -66,6 +69,7 @@ export function CalculosEditor() {
 
   const cierran = filas.filter((f) => f.admiteMetodo);
   const noCierran = filas.filter((f) => !f.admiteMetodo);
+  const notaAlPie = valores.base?.[ARG_NOTA] === true;
 
   const metodoDe = (fila: FilaCalculos): string =>
     textoDe(
@@ -200,6 +204,19 @@ export function CalculosEditor() {
           </p>
         </div>
       </div>
+
+      <label className="pulso-calculos__nota">
+        <input
+          type="checkbox"
+          checked={notaAlPie}
+          onChange={(e) => setPresetArg("base", ARG_NOTA, e.target.checked)}
+        />
+        <span>
+          <strong>Declarar el redondeo al pie de las láminas.</strong> Con el redondeo
+          estándar es lo que explica que una barra sume 99 % o 101 %, que es la objeción
+          más común al revisar contra las tablas. Si la lámina ya trae una nota, se anexa.
+        </span>
+      </label>
 
       <div className="pulso-calculos__aplicar">
         <span>Aplicar a todos:</span>
