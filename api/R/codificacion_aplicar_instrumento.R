@@ -5,12 +5,33 @@
 # ---------- helpers básicos ---------------------------------------------------
 
 .guess_label_col <- function(df){
-  nms <- tolower(names(df))
-  hit <- match(TRUE, nms %in% c(
+  cands <- c(
     "label::spanish (es)","label::spanish(es)","label::spanish_es",
     "label_spanish_es","label::spanish","label","label::es"
-  ))
-  if (is.na(hit)) "label" else names(df)[hit]
+  )
+  nms <- tolower(names(df))
+  hits <- which(nms %in% cands)
+  if (!length(hits)) return("label")
+
+  # Un XLSForm puede declarar la columna del idioma y dejarla casi vacía, con el
+  # texto en `label` (o al revés). Elegir por nombre sin mirar el contenido
+  # devolvía la columna vacía, `.add_recoded_q()` copiaba etiquetas NA y su
+  # fallback las reemplazaba por el propio código: el libro de códigos salía
+  # con "1", "2", "97" en vez de las opciones. `detectar_label_col()` de
+  # `reporte_instrumento.R` ya elegía por contenido, así que los dos motores
+  # se contradecían sobre el mismo instrumento.
+  #
+  # Se compara CUÁNTAS celdas tienen texto, no si hay alguna: en ACNUR V3 la
+  # columna `label::Spanish (ES)` traía 1 valor de 393 y `label` los otros 392,
+  # así que "tiene al menos una" la habría vuelto a elegir. Empate o todas
+  # vacías conservan el orden de aparición anterior.
+  llenas <- vapply(hits, function(i) {
+    v <- as.character(df[[i]])
+    sum(!is.na(v) & nzchar(trimws(v)))
+  }, integer(1))
+
+  if (max(llenas) == 0L) return(names(df)[hits[1]])
+  names(df)[hits[order(-llenas, seq_along(hits))][1]]
 }
 
 .norm_tokens <- function(x){
