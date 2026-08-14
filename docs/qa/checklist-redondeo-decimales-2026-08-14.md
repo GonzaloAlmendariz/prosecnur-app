@@ -1,8 +1,8 @@
 # Checklist — redondeo y decimales como configuración general de Gráficos
 
 **Abierto**: 2026-08-14 · **Origen**: revisión de `ACRD CONTA/Revisón graficos.xlsx`
-(64 observaciones PPT vs SPSS) · **Estado**: tanda A cerrada (núcleo del motor);
-tandas B, C y D pendientes.
+(64 observaciones PPT vs SPSS) · **Estado**: tandas A y B cerradas (motor y
+configuración); tandas C (interfaz) y D (entregable) pendientes.
 
 ## De dónde sale esto
 
@@ -52,16 +52,16 @@ familias.
 | 1 | Definir los dos mecanismos con nombre y explicación en español | ADR nuevo + copy de UI | **decidido** — «Redondeo estándar» y «Reparto a 100 %» |
 | 2 | Elegir cuál es el default general de fábrica | ADR nuevo | **decidido** — redondeo estándar |
 | 3 | Función única de rotulado de % que reciba el método como parámetro | `api/R/helpers_calc_comunes.R` | **hecho** |
-| 4 | Que las 8+ familias de % usen esa función (hoy hay 3 métodos sueltos) | `api/R/graficador_*.R` | **parcial** — ver nota abajo |
+| 4 | Que las 8+ familias de % usen esa función (hoy hay 3 métodos sueltos) | `api/R/graficador_*.R` | **hecho** |
 | 5 | Reparar el `round()` al par en divergentes, lollipop, dumbbell y puntos comparativos | `api/R/graficador_*.R` | **hecho** — y serie temporal, que también lo tenía |
 | 6 | Decidir qué gráficos «manejan porcentajes» y cuáles quedan fuera | `graficos_metadata.R` (`.PRESETS_META`) | **decidido** — ver «dos clases» abajo |
-| 7 | Extender `decimales` a los presets de % que hoy no lo tienen (17 de 23) | `graficos_metadata.R` | pendiente |
-| 8 | Argumento nuevo de método de redondeo en el preset de cada tipo | `graficos_metadata.R` + cadena de whitelists | pendiente |
+| 7 | Extender `decimales` a los presets de % que hoy no lo tienen (17 de 23) | `graficos_metadata.R` | **hecho** |
+| 8 | Argumento nuevo de método de redondeo en el preset de cada tipo | `graficos_metadata.R` + cadena de whitelists | **hecho** |
 | 9 | Pestaña «Cálculos» en el popover de Configuración global | `frontend/src/features/graficos/ConfiguracionGlobal.tsx` | pendiente |
 | 10 | Matriz tipo de gráfico × (redondeo, decimales) dentro de esa pestaña | componente nuevo, hoja propia | pendiente |
 | 11 | La config general gana; los overrides por slide quedan ocultos y desactivados por defecto | `reporte_plan_ppt.R` (`.merge_args`) + `ArgField.tsx` | pendiente |
 | 12 | Conservar el override por slide como escape explícito, no como default | `ArgGroup.tsx` / `ArgField.tsx` | pendiente |
-| 13 | Persistencia en el `.pulso` y compat de planes viejos | `router_graficos.R`, store del plan | pendiente |
+| 13 | Persistencia en el `.pulso` y compat de planes viejos | `router_graficos.R`, store del plan | **hecho** |
 | 14 | Nota al pie del entregable declarando el criterio de redondeo | motor PPT / Word | pendiente |
 | 15 | Tests: mismo dato, mismo número en toda familia de % | `api/tests/testthat/` | **hecho** |
 | 16 | Cifras que redondean a 0 %: se rotula «0 %» salvo en apiladas, donde no se dibuja nada | `helpers_calc_comunes.R` + familias | **hecho** |
@@ -77,14 +77,10 @@ misma escala de unidades, así que son intercambiables en el punto de uso.
 `estandar` ante cualquier valor desconocido: un método inválido no puede volverse
 un error de render a mitad de un mazo.
 
-**Ítem 4 (parcial).** Apiladas ya elige método vía `metodo_redondeo`, con
+**Ítem 4 (apiladas).** Apiladas elige método vía `metodo_redondeo`, con
 `estandar` por defecto. Las familias que **no cierran a 100 %** quedaron todas
 sobre el half-up compartido, que es exactamente el método estándar: para ellas no
-hay nada más que enrutar. Quedan pendientes de pasar por `.pulso_pct_unidades()`
-**categóricas, pie y donut**, que sí cierran a 100 % y hoy rotulan bien —con la
-regla de la casa, que coincide con el default— pero todavía no saben elegir. No
-se migraron en esta tanda porque sin el selector del ítem 8 el cambio no sería
-observable y solo añadiría riesgo. Es el primer trabajo de la tanda B.
+hay nada más que enrutar. Categóricas, pie y donut se completaron en la tanda B.
 
 **Ítem 5.** Reparado en cinco familias, una más de las cuatro previstas: serie
 temporal también llamaba a `round()`. Cubre etiquetas de valor, etiquetas de eje
@@ -126,6 +122,50 @@ lleva escrito por qué.
 regenere cambiará cifras respecto de su versión anterior. Es el efecto buscado
 —pasan a cuadrar con las tablas— pero conviene saberlo antes de reexportar algo
 que un cliente ya tiene en las manos.
+
+## Tanda B — lo que quedó hecho y su evidencia
+
+**Ítem 4 (completo).** Categóricas, pie y donut ya aceptan `metodo_redondeo`.
+
+**Ítem 7.** `decimales` llega a las diez familias de porcentaje: se declaró
+`valores_decimales` en divergentes, dumbbell, lollipop y serie temporal, y
+`decimales_pct` en pie y donut. Antes solo seis de veintitrés presets exponían
+cualquier control de decimales.
+
+**Ítem 8.** `metodo_redondeo` se declara **solo** en los cinco presets que
+cierran a 100 % —apiladas, multi-apiladas, categóricas, pie y donut—, como
+`choice` con los dos nombres acordados y `estandar` de fábrica. Las que no
+cierran no lo llevan: un mando que no puede hacer nada es peor que su ausencia.
+
+**Ítem 13.** No hizo falta cañería nueva. `.build_presets()` filtra por bloque
+—no por argumento— y `.keep_formals()` entrega al graficador todo lo que su
+firma declare, así que un arg nuevo en `.PRESETS_META` viaja solo: se edita en
+la pestaña Presets, se persiste con el plan y llega al motor. La cadena de
+cuatro whitelists que documenta [[graficos-config-cadena-whitelists]] es la de
+`graficosConfig`, que es **otra** estructura y no interviene aquí.
+
+**El reparto no se aplica a lo que no cierra.** Al migrar categóricas apareció
+el caso que casi se cuela: una barra categórica puede traer porcentajes
+independientes —respuesta múltiple, o un subconjunto de opciones—. Normalizarlos
+convertía un 12,5 % en 44 %, porque esa fila suma 0,285. Ahora el reparto exige
+que la suma esté a menos de un punto de 100 %; si no cierra, cada cifra se
+redondea sola. Lo detectó `test-graficador-redondeo-medio-arriba.R`, que ya
+existía, y quedó cubierto con un caso propio.
+
+**Trampa de entorno que cuesta una hora si no se sabe.**
+`test-graficos-args-llegan-al-motor.R` resuelve los graficadores con
+`asNamespace("prosecnurapp")`, o sea contra el **paquete instalado**, mientras
+`setup-load-all.R` hace `sys.source` en el entorno del test. Con la metadata
+nueva y el paquete viejo, el test acusa args huérfanos que en realidad existen.
+Se arregla con `R CMD INSTALL --no-docs api`, no tocando el código.
+
+**Verificación.** 74 suites de gráficos, 4.531 asserts en verde (38 más que al
+cerrar la tanda A). Los cuatro archivos que fallan son los mismos preexistentes
+de siempre. Frontend: 51 archivos, 338 tests en verde.
+
+Sobre datos reales, con los cinco valores de Egresados (N = 178), categóricas y
+pie responden a ambos métodos: `1% · 6% · 40% · 53% · 1%` con estándar y
+`1% · 6% · 40% · 53% · 0%` con reparto.
 
 ## Lo aprendido que no hay que reinvestigar
 
