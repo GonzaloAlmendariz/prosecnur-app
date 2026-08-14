@@ -1,8 +1,9 @@
 # Checklist — redondeo y decimales como configuración general de Gráficos
 
 **Abierto**: 2026-08-14 · **Origen**: revisión de `ACRD CONTA/Revisón graficos.xlsx`
-(64 observaciones PPT vs SPSS) · **Estado**: cerrado. Las cuatro tandas —motor,
-configuración, interfaz y entregable— están implementadas y verificadas.
+(64 observaciones PPT vs SPSS) · **Estado**: tandas A–D implementadas y verificadas,
+pero **el PPT real no cambió**: hay un redondeo anterior al graficador. Ver el
+hallazgo al final. Queda una tanda E.
 
 ## De dónde sale esto
 
@@ -266,6 +267,44 @@ a 9.486 por la rama de despacho.
 Comprobado en la app real: la casilla de la nota aparece en la pestaña Cálculos,
 se marca y persiste. La lámina se exporta a PPTX y su SVG contiene «Suman 101 %»
 y «Suman 100 %».
+
+## HALLAZGO al regenerar el PPT: hay un redondeo ANTES del graficador
+
+**El trabajo de las tandas A–D no cambia el PPT.** Se descubrió al regenerar el
+mazo de ACRD CONTA y compararlo con el Excel: las cifras salen **idénticas a la
+columna PPT de la revisión**, no a la de SPSS.
+
+La causa es `.pct_enteros_100()` (`reporte_plan_ppt.R:2018`), un **segundo
+reparto por resto mayor** que el plan aplica a las frecuencias antes de llamar
+al graficador. Le entrega `pct_int / 100` —enteros ya repartidos— así que cuando
+el graficador va a rotular, la información decimal ya se perdió y su
+`metodo_redondeo` no tiene nada que decidir. Se usa en al menos cinco puntos del
+render (líneas 4427, 4884, 5057, 5280, 5452), que cubren apiladas,
+multi-apiladas y multiactor.
+
+Medido sobre las cuatro bases reales, contra las 63 filas emparejables del
+Excel:
+
+| Método | Reproduce |
+|---|---|
+| `.pct_enteros_100()` (el del plan) | **62/63 la columna PPT** |
+| half-up | 62/63 la columna SPSS |
+
+O sea: el redondeo que gobierna el entregable es el del plan, y es el que la
+revisión anotó. El del graficador —el que las tandas A–D unificaron y volvieron
+configurable— solo actúa donde el plan no ha redondeado antes.
+
+Lo que sí llegó al PPT regenerado: la regla del ítem 16 se ve actuando (hay
+filas con una categoría menos, la que vale 0), porque opera sobre lo que el plan
+entrega. Pero un 0 que el plan ya fijó no se puede distinguir de un 0,56 % real.
+
+**Reparación pendiente (tanda E).** Que el plan deje de redondear y entregue las
+proporciones reales, o que `.pct_enteros_100()` delegue en
+`.pulso_pct_unidades()` con el método configurado. Lo segundo es más barato pero
+no resuelve los decimales: `pct_int / 100` tiene resolución de entero, así que
+un preset con `decimales = 1` seguiría sin poder expresarse. Afecta a cinco
+puntos de un archivo congelado y cambia las cifras de todos los mazos, así que
+es su propia unidad de trabajo con su propio gate.
 
 ## Lo aprendido que no hay que reinvestigar
 
