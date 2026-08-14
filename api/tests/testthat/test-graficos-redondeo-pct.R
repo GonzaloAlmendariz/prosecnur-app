@@ -235,6 +235,45 @@ test_that("el metodo se declara con los dos nombres acordados", {
 })
 
 # ---------------------------------------------------------------------------
+# El plan entrega el dato; el graficador decide cómo se escribe (tanda E)
+# ---------------------------------------------------------------------------
+
+test_that("el plan entrega porcentajes con sus decimales, no enteros", {
+  # `.pct_enteros_100()` repartía por resto mayor ANTES del graficador y le
+  # pasaba enteros: el método de redondeo no tenía nada que decidir y el
+  # criterio del informe lo fijaba en silencio una función del plan.
+  pct <- .calculos_pct_exacto(c(1, 10, 72, 94, 1))
+  expect_equal(pct, c(1, 10, 72, 94, 1) / 178 * 100)
+  expect_false(all(pct == round(pct)))
+  expect_equal(sum(pct), 100)
+})
+
+test_that("sin masa no se inventan porcentajes", {
+  expect_equal(.calculos_pct_exacto(c(0, 0)), c(0, 0))
+  expect_equal(.calculos_pct_exacto(c(NA, NA)), c(0, 0))
+  expect_equal(.calculos_pct_exacto(numeric(0)), numeric(0))
+})
+
+test_that("la cadena plan-graficador reproduce el SPSS de la revision", {
+  # El caso exacto que la revisión de ACRD CONTA marcó: Egresados, N = 178.
+  # Con el redondeo del plan salía `... 0%` y por eso el PPT no cuadraba.
+  prop <- .calculos_pct_exacto(c(1, 10, 72, 94, 1)) / 100
+  etiquetas <- .pulso_fmt_pct_unidades(.pulso_pct_unidades(prop, 0, "estandar"), 0)
+  expect_equal(etiquetas, c("1%", "6%", "40%", "53%", "1%"))
+})
+
+test_that("el plan ya no reparte por su cuenta", {
+  # Gate de no-regresión: si alguien vuelve a redondear dentro del motor de PPT,
+  # el método configurable deja de gobernar y nadie se entera hasta regenerar
+  # un mazo y compararlo a mano contra las tablas.
+  ruta <- testthat::test_path("..", "..", "R", "reporte_plan_ppt.R")
+  skip_if_not(file.exists(ruta))
+  src <- readLines(ruta, warn = FALSE)
+  expect_equal(length(grep("pct_enteros_100", src)), 0)
+  expect_equal(length(grep("floor\\(raw\\)", src)), 0)
+})
+
+# ---------------------------------------------------------------------------
 # El gobierno: la lámina no decide cómo se redondea (ítems 11 y 12)
 # ---------------------------------------------------------------------------
 

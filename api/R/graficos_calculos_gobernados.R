@@ -82,6 +82,34 @@
   )
 }
 
+#' Porcentaje EXACTO de cada categoría, sin redondear.
+#'
+#' Sustituye a `.pct_enteros_100()`, que vivía dentro de `reporte_plan_ppt.R` y
+#' repartía por resto mayor **antes** de llamar al graficador. Aquello convertía
+#' las frecuencias en enteros que sumaban 100 y le entregaba `pct_int / 100`, de
+#' modo que cuando el graficador iba a rotular ya no quedaba decimal que
+#' redondear: su método de redondeo no tenía nada que decidir, y el criterio del
+#' informe lo fijaba en silencio una función del plan.
+#'
+#' Se descubrió al regenerar el mazo de ACRD CONTA con el motor ya unificado y
+#' verlo salir idéntico a la revisión: medido sobre las cuatro bases reales,
+#' `.pct_enteros_100()` reproducía la columna PPT del Excel en 62 de 63 filas.
+#'
+#' Ahora el plan entrega el dato y el graficador decide cómo se escribe, que es
+#' donde esa decisión es visible y configurable. El reparto por resto mayor no
+#' se pierde: sigue disponible como `metodo_redondeo = "reparto"`.
+#'
+#' @param n Frecuencias de la tabla.
+#' @return Porcentajes en escala 0-100 con sus decimales; ceros si no hay masa.
+#' @keywords internal
+.calculos_pct_exacto <- function(n) {
+  n <- suppressWarnings(as.numeric(n))
+  n[is.na(n) | !is.finite(n)] <- 0
+  tot <- sum(n)
+  if (!is.finite(tot) || tot <= 0) return(rep(0, length(n)))
+  n / tot * 100
+}
+
 #' Preset de estilo que le corresponde a un tipo de elemento del plan.
 #'
 #' El plan habla de `barras_apiladas`; el preset se llama igual casi siempre,
