@@ -121,6 +121,9 @@ graficar_pie <- function(
     color_etiquetas_pct   = "#FFFFFF",
     etiquetas_negrita     = FALSE,
     decimales_pct         = 0,
+    # `estandar` (cada cifra se redondea sola, el 0,5 sube) o `reparto` (resto
+    # mayor, las cifras suman exactamente 100 %). Ver `.pulso_pct_metodo()`.
+    metodo_redondeo       = "estandar",
     # Sin umbral por defecto: el porcentaje se muestra siempre. El 0.06 escondía
     # toda porción por debajo del 6 % sin que nadie lo pidiera —el mismo criterio
     # que se retiró en las barras—. Quien quiera esconder las pequeñas, lo sube.
@@ -327,8 +330,26 @@ graficar_pie <- function(
 
   df$categoria <- factor(df$categoria, levels = df$categoria)
 
-  # Redondeo de la casa: el 0,5 sube (`helpers_calc_comunes.R`).
-  .fmt_pct <- function(x) .pulso_fmt_pct_half_up(x, decimales_pct)
+  # Una torta ES una distribución que cierra a 100 %, así que aquí el método
+  # tiene algo que decidir y se aplica al vector entero de porciones, no
+  # porción a porción. Ver `.pulso_pct_metodo()` (helpers_calc_comunes.R).
+  .fmt_pct <- function(x) {
+    x <- suppressWarnings(as.numeric(x))
+    if (!identical(.pulso_pct_metodo(metodo_redondeo), "reparto")) {
+      return(.pulso_fmt_pct_half_up(x, decimales_pct))
+    }
+    # Una torta normalmente cierra a 100 %, pero puede llegar recortada —un
+    # subconjunto de categorías, o una dicotómica con parte del total fuera— y
+    # entonces no hay resto que repartir. El mismo criterio que en categóricas.
+    finitos <- is.finite(x)
+    suma <- sum(x[finitos])
+    if (!any(finitos) || !is.finite(suma) || abs(suma - 1) > 0.01) {
+      return(.pulso_fmt_pct_half_up(x, decimales_pct))
+    }
+    .pulso_fmt_pct_unidades(
+      .pulso_pct_unidades(x, decimales_pct, "reparto"), decimales_pct
+    )
+  }
   .fmt_n <- function(x) {
     x <- suppressWarnings(as.numeric(x))
     out <- rep("", length(x))

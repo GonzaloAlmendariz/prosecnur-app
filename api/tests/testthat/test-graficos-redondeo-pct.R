@@ -149,6 +149,91 @@ test_that("lo que se rotula 0 % es exactamente lo que no se dibuja", {
   expect_true(.pulso_pct_unidades(p, 1, "estandar")[1] > 0L)
 })
 
+# ---------------------------------------------------------------------------
+# La cadena del preset al graficador (ítems 7, 8 y 13)
+# ---------------------------------------------------------------------------
+
+# Preset → función que lo consume. `donut` hereda de `pie` y `multi_apiladas`
+# comparte motor con `barras_apiladas`.
+.PRESET_FUN <- list(
+  barras_apiladas     = "graficar_barras_apiladas",
+  multi_apiladas      = "graficar_barras_apiladas",
+  barras_categoricas  = "graficar_barras_categoricas",
+  pie                 = "graficar_pie",
+  donut               = "graficar_pie",
+  barras_divergentes  = "graficar_barras_divergentes",
+  dumbbell            = "graficar_dumbbell",
+  lollipop            = "graficar_lollipop",
+  serie_temporal      = "graficar_serie_temporal",
+  puntos_comparativos = "graficar_puntos_comparativos"
+)
+
+.args_preset <- function(preset) {
+  a <- .PRESETS_META[[preset]]$args
+  if (!is.list(a)) return(character(0))
+  vapply(a, function(x) as.character(x$name %||% "")[1], character(1))
+}
+
+test_that("todo arg declarado en el preset lo acepta su graficador", {
+  # `.keep_formals()` descarta en silencio lo que la función no declara: un arg
+  # mal escrito en la metadata se traduce en un control que el analista mueve y
+  # que no hace nada. Esto lo caza sin renderizar.
+  campos <- c("metodo_redondeo", "decimales", "decimales_pct", "valores_decimales")
+  for (preset in names(.PRESET_FUN)) {
+    fml <- names(formals(get(.PRESET_FUN[[preset]])))
+    declarados <- intersect(.args_preset(preset), campos)
+    expect_true(length(declarados) > 0,
+                info = paste(preset, "no declara ningun control de decimales"))
+    expect_equal(setdiff(declarados, fml), character(0),
+                 info = paste0(preset, " declara args que ",
+                               .PRESET_FUN[[preset]], " no acepta"))
+  }
+})
+
+test_that("solo eligen metodo las familias que cierran a 100 %", {
+  # Ofrecer el reparto donde no hay un total que cerrar sería un mando que no
+  # hace nada: una batería de respuesta múltiple o una serie temporal no tienen
+  # resto que repartir.
+  cierran <- c("barras_apiladas", "multi_apiladas", "barras_categoricas", "pie", "donut")
+  no_cierran <- c("barras_divergentes", "dumbbell", "lollipop", "serie_temporal",
+                  "puntos_comparativos", "barras_agrupadas")
+  for (p in cierran) {
+    expect_true("metodo_redondeo" %in% .args_preset(p), info = p)
+  }
+  for (p in no_cierran) {
+    expect_false("metodo_redondeo" %in% .args_preset(p), info = p)
+  }
+})
+
+test_that("el reparto no se aplica a porcentajes que no cierran a 100", {
+  # Una barra categórica o una torta pueden traer porcentajes independientes
+  # —respuesta múltiple, o un subconjunto de opciones—. Normalizarlos convertiría
+  # un 12,5 % en 44 % porque la fila suma 0,285. Cuando no cierra, cada cifra se
+  # redondea sola, que es lo único que ahí significa algo.
+  sueltos <- c(0.125, 0.135, 0.025)
+  for (m in c("estandar", "reparto")) {
+    expect_equal(.barras_categoricas_etiquetas_pct(sueltos, 0, m),
+                 c("13%", "14%", "3%"), info = m)
+  }
+
+  # Y cuando sí cierra, el reparto vuelve a tener algo que decidir.
+  cierra <- c(1, 10, 72, 94, 1) / 178
+  expect_equal(.barras_categoricas_etiquetas_pct(cierra, 0, "estandar"),
+               c("1%", "6%", "40%", "53%", "1%"))
+  expect_equal(.barras_categoricas_etiquetas_pct(cierra, 0, "reparto"),
+               c("1%", "6%", "40%", "53%", "0%"))
+})
+
+test_that("el metodo se declara con los dos nombres acordados", {
+  arg <- Filter(function(x) identical(x$name, "metodo_redondeo"),
+                .PRESETS_META$barras_apiladas$args)[[1]]
+  expect_equal(arg$default, "estandar")
+  expect_equal(vapply(arg$choices, function(c) c$value, character(1)),
+               c("estandar", "reparto"))
+  expect_equal(vapply(arg$choices, function(c) c$label, character(1)),
+               c("Redondeo estándar", "Reparto a 100 %"))
+})
+
 test_that("estandar no elimina el cero falso, solo lo corre", {
   # Queda asentado por escrito para que no se lea el cambio de método como una
   # garantía que no da: con base 178 un caso se salva, con base 700 no.

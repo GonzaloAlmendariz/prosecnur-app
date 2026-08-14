@@ -56,6 +56,33 @@
   paste0(.barras_categoricas_format_num(100 * suppressWarnings(as.numeric(x)), decimales), "%")
 }
 
+# Etiquetas de porcentaje de la DISTRIBUCIÓN, que es donde el método de
+# redondeo tiene algo que decidir. `.barras_categoricas_format_pct()` se queda
+# para los breaks del eje: ahí no hay distribución que cierre a 100 —son marcas
+# de una escala— y repartir entre ellas no significaría nada.
+.barras_categoricas_etiquetas_pct <- function(pct, decimales = 0,
+                                              metodo = "estandar") {
+  pct <- suppressWarnings(as.numeric(pct))
+  if (!length(pct)) return(character(0))
+  # El reparto solo puede aplicarse a algo que cierre a 100 %: una barra
+  # categórica NO siempre es una distribución. Puede traer porcentajes
+  # independientes —respuesta múltiple, o un subconjunto de opciones— y ahí no
+  # hay resto que repartir; normalizarlos convertiría un 12,5 % en 44 % porque
+  # la fila suma 0,285. Cuando no cierra, la cifra se redondea sola, que es lo
+  # único que significa algo.
+  if (!identical(.pulso_pct_metodo(metodo), "reparto")) {
+    return(.barras_categoricas_format_pct(pct, decimales))
+  }
+  finitos <- is.finite(pct)
+  suma <- sum(pct[finitos])
+  if (!any(finitos) || !is.finite(suma) || abs(suma - 1) > 0.01) {
+    return(.barras_categoricas_format_pct(pct, decimales))
+  }
+  .pulso_fmt_pct_unidades(
+    .pulso_pct_unidades(pct, decimales, "reparto"), decimales
+  )
+}
+
 .barras_categoricas_palette <- function(n) {
   pal <- c(
     "#CA5651", "#EFD25E", "#85BB85", "#70AD47", "#7594CC",
@@ -86,7 +113,8 @@
   .barras_categoricas_palette(n)
 }
 
-.barras_categoricas_make_labels <- function(df, formato_valor, decimales, mostrar_frecuencia) {
+.barras_categoricas_make_labels <- function(df, formato_valor, decimales, mostrar_frecuencia,
+                                            metodo_redondeo = "estandar") {
   formato_valor <- match.arg(
     as.character(formato_valor %||% "valor")[1],
     c("valor", "n", "porcentaje", "porcentaje_n", "valor_n")
@@ -94,12 +122,13 @@
   pct <- df$pct %||% rep(NA_real_, nrow(df))
   n <- df$n %||% rep(NA_real_, nrow(df))
   val <- df$valor %||% rep(NA_real_, nrow(df))
+  pct_lab <- .barras_categoricas_etiquetas_pct(pct, decimales, metodo_redondeo)
   switch(
     formato_valor,
     valor = .barras_categoricas_format_num(val, decimales),
     n = .barras_categoricas_format_num(n, 0),
-    porcentaje = .barras_categoricas_format_pct(pct, decimales),
-    porcentaje_n = paste0(.barras_categoricas_format_pct(pct, decimales), " (", .barras_categoricas_format_num(n, 0), ")"),
+    porcentaje = pct_lab,
+    porcentaje_n = paste0(pct_lab, " (", .barras_categoricas_format_num(n, 0), ")"),
     valor_n = {
       if (isTRUE(mostrar_frecuencia)) {
         paste0(.barras_categoricas_format_num(val, decimales), " (", .barras_categoricas_format_num(n, 0), ")")
@@ -160,6 +189,9 @@ graficar_barras_categoricas <- function(
     formato_valor             = c("porcentaje", "valor", "n", "porcentaje_n", "valor_n"),
     mostrar_frecuencia        = FALSE,
     decimales                 = 0,
+    # `estandar` (cada cifra se redondea sola, el 0,5 sube) o `reparto` (resto
+    # mayor, las cifras suman exactamente 100 %). Ver `.pulso_pct_metodo()`.
+    metodo_redondeo           = "estandar",
     eje_y_porcentaje          = NULL,
     titulo                    = NULL,
     subtitulo                 = NULL,
@@ -307,7 +339,8 @@ graficar_barras_categoricas <- function(
     }
   }
 
-  df$label <- .barras_categoricas_make_labels(df, formato_valor, decimales, mostrar_frecuencia)
+  df$label <- .barras_categoricas_make_labels(df, formato_valor, decimales,
+                                              mostrar_frecuencia, metodo_redondeo)
   # Los overrides de color del usuario (colores_categorias / paleta_colores)
   # pueden llegar cortos, sin nombres o como el deparse de un vector; se sanean
   # y rellenan con el helper compartido a un palette limpio keyed por categoria,

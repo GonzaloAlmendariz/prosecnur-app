@@ -2092,7 +2092,15 @@
            choices = list(
              list(value = "rplot",  label = "R plot (default)"),
              list(value = "image",  label = "Imagen PNG")
-           ))
+           )),
+
+      list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
+           default = "estandar",
+           choices = list(
+             list(value = "estandar", label = "Redondeo estándar"),
+             list(value = "reparto", label = "Reparto a 100 %")
+           ),
+           descripcion = "Estándar: cada cifra se redondea sola y el 0,5 sube, igual que SPSS y Excel; a cambio las cifras impresas pueden sumar 99 % o 101 %. Reparto: las cifras suman exactamente 100 %, a costa de que alguna se aleje de su valor real y de que una categoría con muy pocos casos pueda quedar rotulada 0 %.")
     )
   ),
 
@@ -2295,7 +2303,15 @@
              list(value = "manual", label = "Manual")
            )),
       list(name = "grosor_barras",        label = "Grosor de las barras", tipo_input = "number", grupo = "canvas"),
-      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "canvas")
+      list(name = "grosor_barras_mult",   label = "Multiplicador grosor (modo auto)", tipo_input = "number", grupo = "canvas"),
+
+      list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
+           default = "estandar",
+           choices = list(
+             list(value = "estandar", label = "Redondeo estándar"),
+             list(value = "reparto", label = "Reparto a 100 %")
+           ),
+           descripcion = "Estándar: cada cifra se redondea sola y el 0,5 sube, igual que SPSS y Excel; a cambio las cifras impresas pueden sumar 99 % o 101 %. Reparto: las cifras suman exactamente 100 %, a costa de que alguna se aleje de su valor real y de que una categoría con muy pocos casos pueda quedar rotulada 0 %.")
     )
   ),
 
@@ -2492,7 +2508,15 @@
       list(name = "limite_y", label = "Límite del eje Y", tipo_input = "number", grupo = "espacio",
            descripcion = "Vacío = automático."),
       list(name = "expand_y", label = "Aire superior", tipo_input = "number", grupo = "espacio",
-           default = 0.14, min = 0, max = 0.50, step = 0.01)
+           default = 0.14, min = 0, max = 0.50, step = 0.01),
+
+      list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
+           default = "estandar",
+           choices = list(
+             list(value = "estandar", label = "Redondeo estándar"),
+             list(value = "reparto", label = "Reparto a 100 %")
+           ),
+           descripcion = "Estándar: cada cifra se redondea sola y el 0,5 sube, igual que SPSS y Excel; a cambio las cifras impresas pueden sumar 99 % o 101 %. Reparto: las cifras suman exactamente 100 %, a costa de que alguna se aleje de su valor real y de que una categoría con muy pocos casos pueda quedar rotulada 0 %.")
     )
   ),
 
@@ -2779,7 +2803,18 @@
       # --- Debug ---------------------------------------------------------
       # Era `debug_lw`, que `graficar_pie()` no acepta: el motor lo descartaba en
       # silencio y el control no hacia nada. El arg real es `debug_ph_lwd`.
-      list(name = "debug_ph_lwd",         label = "Grosor línea debug",    tipo_input = "number", grupo = "avanzado", default = 1)
+      list(name = "debug_ph_lwd",         label = "Grosor línea debug",    tipo_input = "number", grupo = "avanzado", default = 1),
+
+      list(name = "decimales_pct", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1,
+           descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros)."),
+      list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
+           default = "estandar",
+           choices = list(
+             list(value = "estandar", label = "Redondeo estándar"),
+             list(value = "reparto", label = "Reparto a 100 %")
+           ),
+           descripcion = "Estándar: cada cifra se redondea sola y el 0,5 sube, igual que SPSS y Excel; a cambio las cifras impresas pueden sumar 99 % o 101 %. Reparto: las cifras suman exactamente 100 %, a costa de que alguna se aleje de su valor real y de que una categoría con muy pocos casos pueda quedar rotulada 0 %.")
     )
   ),
 
@@ -2835,7 +2870,18 @@
       list(name = "ncol_leyenda_bajo",    label = "Columnas leyenda (abajo)", tipo_input = "number", grupo = "estilo"),
       list(name = "canvas_h_title",       label = "Alto zona título (in)", tipo_input = "number", grupo = "canvas"),
       list(name = "canvas_h_legend_bottom", label = "Alto leyenda inferior (in)", tipo_input = "number", grupo = "canvas"),
-      list(name = "canvas_w_legend_right",label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas")
+      list(name = "canvas_w_legend_right",label = "Ancho leyenda derecha", tipo_input = "number", grupo = "canvas"),
+
+      list(name = "decimales_pct", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1,
+           descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros)."),
+      list(name = "metodo_redondeo", label = "Método de redondeo", tipo_input = "choice", grupo = "valores",
+           default = "estandar",
+           choices = list(
+             list(value = "estandar", label = "Redondeo estándar"),
+             list(value = "reparto", label = "Reparto a 100 %")
+           ),
+           descripcion = "Estándar: cada cifra se redondea sola y el 0,5 sube, igual que SPSS y Excel; a cambio las cifras impresas pueden sumar 99 % o 101 %. Reparto: las cifras suman exactamente 100 %, a costa de que alguna se aleje de su valor real y de que una categoría con muy pocos casos pueda quedar rotulada 0 %.")
     )
   ),
 
@@ -2870,7 +2916,11 @@
              list(value = "ninguna", label = "Ocultar")
            )),
       list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
-      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9)
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9),
+
+      list(name = "valores_decimales", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1,
+           descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros).")
     )
   ),
 
@@ -2932,7 +2982,11 @@
              list(value = "ninguna", label = "Ocultar")
            )),
       list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
-      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9)
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9),
+
+      list(name = "valores_decimales", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1,
+           descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros).")
     )
   ),
 
@@ -2958,7 +3012,11 @@
       list(name = "size_valores", label = "Tamaño de las cifras", tipo_input = "number", grupo = "valores",
            default = 3.0, min = 1.5, max = 8, step = 0.1),
       list(name = "color_ejes", label = "Color de ejes", tipo_input = "color", grupo = "estilo", default = "#081F5C"),
-      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9)
+      list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9),
+
+      list(name = "valores_decimales", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1,
+           descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros).")
     )
   ),
 
@@ -2991,7 +3049,11 @@
       list(name = "size_ejes", label = "Tamaño de ejes", tipo_input = "number", grupo = "estilo", default = 9),
       list(name = "expand_y", label = "Aire superior", tipo_input = "number", grupo = "espacio",
            default = 0.12, min = 0, max = 0.5, step = 0.01,
-           descripcion = "Espacio sobre el punto más alto, para que su cifra no toque el borde.")
+           descripcion = "Espacio sobre el punto más alto, para que su cifra no toque el borde."),
+
+      list(name = "valores_decimales", label = "Decimales", tipo_input = "number", grupo = "valores",
+           default = 0, min = 0, max = 2, step = 1,
+           descripcion = "Cuántos decimales mostrar en los porcentajes (0 = enteros).")
     )
   ),
 
