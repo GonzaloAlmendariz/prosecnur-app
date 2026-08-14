@@ -2975,12 +2975,61 @@
   inst
 }
 
+# Columnas que el pipeline AÑADE a las hojas del instrumento y que no existen en
+# un XLSForm. `list_name` es la del `tidyr::separate()` del `type` en
+# `reporte_instrumento()` (en el `survey`; en el `choices` sí es columna real) y
+# `measure_sugerida` es la sugerencia de medida del motor analítico. Las otras
+# cuatro son los auxiliares de `leer_instrumento_xlsform()`. Se listan juntas
+# porque son el vocabulario interno del pipeline: ninguna la entiende pyxform.
+.ANALITICA_XLSFORM_COLS_INTERNAS <- c(
+  "measure_sugerida", "q_order", "type_base", "list_norm",
+  "choice_code", "label_spanish_es"
+)
+
+# Recompone el `type` del `survey` con su lista y poda las internas.
+#
+# `reporte_instrumento()` no devuelve `survey_raw`: deja la hoja cruda en
+# `survey` y le añade columnas derivadas. Una de ellas parte el `type` en dos
+# (`"select_one lst_x"` → `type = "select_one"` + `list_name = "lst_x"`, y lo
+# mismo con `"begin group"`), así que exportar esa hoja tal cual entrega un
+# XLSForm sin el vínculo pregunta→lista de opciones. Aquí se vuelve a pegar.
+#
+# Cuando el instrumento SÍ trae `survey_raw` —el lector de la codificación, que
+# guarda la hoja leída tal cual— esa hoja no tiene `list_name` y el `type` nunca
+# se partió: el plegado no encuentra nada que hacer y la exporta intacta.
+.analitica_xlsform_survey_export <- function(survey) {
+  if (is.null(survey) || !is.data.frame(survey)) return(survey)
+  if (all(c("type", "list_name") %in% names(survey)) && nrow(survey) > 0L) {
+    tipo <- trimws(as.character(survey$type))
+    tipo[is.na(tipo)] <- ""
+    lista <- trimws(as.character(survey$list_name))
+    lista[is.na(lista)] <- ""
+    # Solo se pliega si el `type` quedó sin su segundo token: las filas añadidas
+    # después del separate ya lo traen entero y pegarlo otra vez lo duplicaría.
+    pliega <- nzchar(tipo) & nzchar(lista) & !grepl("\\s", tipo)
+    tipo[pliega] <- paste(tipo[pliega], lista[pliega])
+    survey$type <- tipo
+  }
+  .analitica_xlsform_poda_internas(survey, extra = "list_name")
+}
+
+.analitica_xlsform_poda_internas <- function(df, extra = character(0)) {
+  if (is.null(df) || !is.data.frame(df)) return(df)
+  keep <- setdiff(names(df), c(.ANALITICA_XLSFORM_COLS_INTERNAS, extra))
+  if (length(keep) == length(names(df))) return(df)
+  df[, keep, drop = FALSE]
+}
+
 .analitica_write_final_xlsform <- function(rp_inst, path, color_recod = FALSE) {
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("El paquete 'openxlsx' es necesario para exportar el XLSForm final.", call. = FALSE)
   }
-  survey <- .analitica_xlsform_sheet_df(rp_inst$survey_raw %||% rp_inst$survey, c("type", "name", "label"))
-  choices <- .analitica_xlsform_sheet_df(rp_inst$choices_raw %||% rp_inst$choices, c("list_name", "name", "label"))
+  survey <- .analitica_xlsform_survey_export(
+    .analitica_xlsform_sheet_df(rp_inst$survey_raw %||% rp_inst$survey, c("type", "name", "label"))
+  )
+  choices <- .analitica_xlsform_poda_internas(
+    .analitica_xlsform_sheet_df(rp_inst$choices_raw %||% rp_inst$choices, c("list_name", "name", "label"))
+  )
   settings <- .analitica_xlsform_sheet_df(rp_inst$settings, c("form_title", "form_id"))
   .analitica_write_xlsform_sheets(
     list(survey = survey, choices = choices, settings = settings),
@@ -3038,10 +3087,10 @@
   }
 
   # choices: mapea list_name -> tipo desde las filas recod del survey (cuando el
-  # `type` conserva el list_name). Si el type viene "stripped" (p.ej. el XLSForm
-  # reconstruido desde rp_inst), la lista igual se colorea por su nombre `_recod`
-  # con el color generico. Asi el instrumento real sale por-tipo y el
-  # reconstruido no queda sin firma.
+  # `type` conserva el list_name). Si el type viene "stripped" —hojas armadas a
+  # mano, sin pasar por `.analitica_xlsform_survey_export()`, que es quien vuelve
+  # a pegar la lista— la lista igual se colorea por su nombre `_recod` con el
+  # color generico, para que ninguna hoja quede sin firma.
   choices <- sheets$choices
   if (!is.null(choices) && "list_name" %in% names(choices) && nrow(choices) > 0L) {
     ln_type <- list()  # list: `[[missing]]` devuelve NULL (un vector atomico
