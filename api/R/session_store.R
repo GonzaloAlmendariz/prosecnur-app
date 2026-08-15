@@ -1120,6 +1120,15 @@ estudio_replace_base_files <- function(sid, nombre,
     (!is.null(data_file_id) && nzchar(data_file_id) &&
        !identical(as.character(meta$data_file_id %||% ""), as.character(data_file_id)))
   if (isTRUE(pair_changed)) meta$choice_code_mapping <- NULL
+  # La promoción de Limpieza (ADR 0076) es un hecho sobre ESTA data: "de este
+  # archivo recibido salió este archivo depurado". Si la data se reemplaza, el
+  # linaje describe algo que ya no rige y hay que descartarlo, no revertirlo:
+  # `.limpieza_revertir_promocion()` restauraría `source_data_file_id` y pisaría
+  # la data recién cargada. Se descarta sólo cuando la data cambió de verdad;
+  # recargar el XLSForm no toca la base depurada.
+  data_changed <- !is.null(data_file_id) && nzchar(data_file_id) &&
+    !identical(as.character(meta$data_file_id %||% ""), as.character(data_file_id))
+  if (isTRUE(data_changed)) meta$limpieza <- NULL
   if (!is.null(xlsform_file_id) && nzchar(xlsform_file_id)) {
     meta$xlsform_file_id <- xlsform_file_id
     if (!is.null(rp_inst)) s$rp_inst_sources[[nombre]] <- rp_inst

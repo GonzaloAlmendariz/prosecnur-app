@@ -5,11 +5,17 @@
 // base que consumen Codificación, Analítica y los entregables; esta superficie
 // declara ese hecho y ofrece volver atrás.
 //
-// Tres estados, un mismo marco (C2):
-//   · rige      — la promoción está activa: N antes → N después, y se revierte.
-//   · bloqueada — el motor no pudo promover (hoy: bases con grupos repetibles).
-//                 Sin esto el analista creería que su exclusión rigió.
-//   · revertida — se volvió a la base anterior; las decisiones siguen ahí.
+// Cuatro estados, un mismo marco (C2):
+//   · rige         — la promoción está activa: N antes → N después, y se revierte.
+//   · sin respaldo — rige, pero el plan y las decisiones que la justifican ya no
+//                    están: recargar el instrumento vacía el workspace de
+//                    validación y deja la base depurada en pie. Se avisa fuerte
+//                    (ADR 0077) porque el daño sigue produciéndose — cada
+//                    entregable sale con los casos excluidos y sin poder
+//                    justificarlos.
+//   · bloqueada    — el motor no pudo promover (hoy: bases con grupos repetibles).
+//                    Sin esto el analista creería que su exclusión rigió.
+//   · revertida    — se volvió a la base anterior; las decisiones siguen ahí.
 //
 // Sin linaje no hay superficie: el componente devuelve null (todavía no hay
 // nada que declarar, no es un vacío que esta tarjeta deba contener).
@@ -54,22 +60,27 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
 
   const bloqueo = typeof promocion.bloqueo === "string" ? promocion.bloqueo.trim() : "";
   const rige = !!promocion.enabled && !bloqueo;
+  const sinRespaldo = rige && promocion.sin_respaldo === true;
   const antes = asCount(promocion.n_casos_antes);
   const despues = asCount(promocion.n_casos_despues);
 
-  const tone: Tone = bloqueo ? "warn" : rige ? "success" : "neutral";
+  const tone: Tone = bloqueo || sinRespaldo ? "warn" : rige ? "success" : "neutral";
   const colors = TONES[tone];
+
+  const estado = bloqueo ? "bloqueada" : sinRespaldo ? "sin-respaldo" : rige ? "rige" : "revertida";
 
   const titulo = bloqueo
     ? "La depuración no llegó a la base del estudio"
-    : rige
-      ? "La base del estudio quedó depurada"
-      : "Volviste a la base anterior";
+    : sinRespaldo
+      ? "La base depurada rige, pero ya no puede explicarse"
+      : rige
+        ? "La base del estudio quedó depurada"
+        : "Volviste a la base anterior";
 
   return (
     <section
       data-testid="limpieza-promocion"
-      data-estado={bloqueo ? "bloqueada" : rige ? "rige" : "revertida"}
+      data-estado={estado}
       style={{
         display: "flex",
         alignItems: "flex-start",
@@ -84,12 +95,25 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
     >
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0, flex: "1 1 320px" }}>
         <span style={{ color: colors.fg, display: "flex", paddingTop: 2 }}>
-          {bloqueo ? <AlertTriangle size={16} /> : rige ? <CheckCircle2 size={16} /> : <Undo2 size={16} />}
+          {bloqueo || sinRespaldo ? (
+            <AlertTriangle size={16} />
+          ) : rige ? (
+            <CheckCircle2 size={16} />
+          ) : (
+            <Undo2 size={16} />
+          )}
         </span>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: "var(--pulso-text)" }}>{titulo}</div>
           <div style={{ fontSize: 12, color: "var(--pulso-text)", lineHeight: 1.45 }}>
-            {rige ? (
+            {sinRespaldo ? (
+              <>
+                Pasó de <Cifra n={antes} /> a <Cifra n={despues} /> casos y los entregables usan esta base,
+                pero el plan y las decisiones que lo justifican se borraron al recargar el instrumento. Sin
+                ellos no sale el informe metodológico ni el Excel de decisiones: vuelve a construir el plan,
+                o revierte a <Cifra n={antes} /> casos.
+              </>
+            ) : rige ? (
               <>
                 Pasó de <Cifra n={antes} /> a <Cifra n={despues} /> casos
                 {promocion.applied_at ? ` el ${formatDateTime(promocion.applied_at)}` : ""}. Codificación,

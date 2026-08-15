@@ -285,3 +285,118 @@ test_that("la depuración se encadena al filtro sólo si arranca de su universo"
   expect_false(isTRUE(suelto$cleaning_applied))
   expect_equal(suelto$included, 426L)
 })
+
+# --- El linaje describe "de lo recibido a lo que rige" -----------------------
+
+test_that("depurar dos veces conserva el N recibido, no el intermedio", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"),
+                  L1 = list(file_id = "L1", ext = "xlsx"),
+                  L2 = list(file_id = "L2", ext = "xlsx"))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  prosecnurapp:::.limpieza_promover_base(
+    sid, "default", list(file_id = "L1", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 101, n_columnas = 215)
+
+  # `limpieza_finalize()` pasa como origen la data VIGENTE, que ya es la
+  # promovida: sin anclaje el linaje diría 101 -> 99 y perdería el 103.
+  vigente <- prosecnurapp:::session_get(sid)$estudio$bases$default$data_file_id
+  expect_equal(vigente, "L1")
+  linaje <- prosecnurapp:::.limpieza_promover_base(
+    sid, "default", list(file_id = "L2", ext = "xlsx"),
+    source_fid = vigente, n_antes = 101, n_despues = 99, n_columnas = 215)
+
+  expect_equal(linaje$n_casos_antes, 103L)
+  expect_equal(linaje$n_casos_despues, 99L)
+  # Y revertir vuelve a lo recibido, coherente con lo que el linaje declara.
+  expect_equal(linaje$source_data_file_id, "DATA_CRUDA")
+  expect_true(prosecnurapp:::.limpieza_revertir_promocion(sid, "default"))
+  expect_equal(prosecnurapp:::session_get(sid)$estudio$bases$default$data_file_id, "DATA_CRUDA")
+})
+
+test_that("tras revertir, el siguiente cierre arranca de cero y no encadena", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"),
+                  L1 = list(file_id = "L1", ext = "xlsx"), L2 = list(file_id = "L2", ext = "xlsx"))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  prosecnurapp:::.limpieza_promover_base(
+    sid, "default", list(file_id = "L1", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 101, n_columnas = 215)
+  prosecnurapp:::.limpieza_revertir_promocion(sid, "default")
+  linaje <- prosecnurapp:::.limpieza_promover_base(
+    sid, "default", list(file_id = "L2", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 100, n_columnas = 215)
+  expect_equal(linaje$n_casos_antes, 103L)
+  expect_equal(linaje$n_casos_despues, 100L)
+})
+
+# --- Reemplazar la data descarta la promoción; el XLSForm no ----------------
+
+test_that("recargar la data descarta el linaje en vez de dejarlo mintiendo", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"),
+                  L1 = list(file_id = "L1", ext = "xlsx"),
+                  NUEVA = list(file_id = "NUEVA", ext = "xlsx"),
+                  XLS2 = list(file_id = "XLS2", ext = "xlsx"))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  prosecnurapp:::.limpieza_promover_base(
+    sid, "default", list(file_id = "L1", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 101, n_columnas = 215)
+
+  # Recargar el instrumento no toca la base depurada: la data no cambió.
+  prosecnurapp:::estudio_replace_base_files(sid, "default", xlsform_file_id = "XLS2")
+  base <- prosecnurapp:::session_get(sid)$estudio$bases$default
+  expect_true(isTRUE(base$limpieza$enabled))
+  expect_equal(base$data_file_id, "L1")
+
+  # Reemplazar la data sí: el linaje describía un archivo que ya no rige.
+  prosecnurapp:::estudio_replace_base_files(sid, "default", data_file_id = "NUEVA",
+                                            data_ext = "xlsx", n_filas = 250L)
+  base <- prosecnurapp:::session_get(sid)$estudio$bases$default
+  expect_null(base$limpieza)
+  expect_equal(base$data_file_id, "NUEVA")
+  expect_equal(base$n_filas, 250L)
+  # Y la ficha del informe deja de servir un conteo que ya no describe nada.
+  expect_null(prosecnurapp:::.validacion_upstream_universe(sid, "default"))
+})
+
+# --- La promoción sin nada que la justifique se declara (ADR 0077) ----------
+
+test_that("un linaje vigente sin plan se sirve como sin respaldo", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"),
+                  L1 = list(file_id = "L1", ext = "xlsx"))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+  prosecnurapp:::.limpieza_promover_base(
+    sid, "default", list(file_id = "L1", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 101, n_columnas = 215)
+
+  # Workspace vaciado (lo que deja recargar el instrumento): no hay plan.
+  sin_plan <- prosecnurapp:::build_limpieza(list(), sid = sid, base_nombre = "default")
+  expect_true(isTRUE(sin_plan$artifacts$promocion$sin_respaldo))
+
+  # Con plan la clave no viaja: un `{}` del serializer sería truthy en JS.
+  con_plan <- prosecnurapp:::build_limpieza(list(plan_result = list(plan = data.frame(x = 1))),
+                                            sid = sid, base_nombre = "default")
+  expect_false("sin_respaldo" %in% names(con_plan$artifacts$promocion))
+
+  # Revertida tampoco: ya no rige nada que explicar.
+  prosecnurapp:::.limpieza_revertir_promocion(sid, "default")
+  revertida <- prosecnurapp:::build_limpieza(list(), sid = sid, base_nombre = "default")
+  expect_false("sin_respaldo" %in% names(revertida$artifacts$promocion))
+})

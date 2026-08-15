@@ -119,12 +119,24 @@
     return(invisible(NULL))
   }
   meta <- s$estudio$bases[[nombre]]
+  # El linaje describe "de lo recibido a lo que rige", y sólo hay UN registro.
+  # `limpieza_finalize()` pasa como origen la data vigente, que en un segundo
+  # cierre ya es la promovida: sin este anclaje el linaje se reescribiría a
+  # 101 -> 99 y un estudio que recibió 103 declararía haber recibido 101. Se
+  # conservan el N y el archivo del primer salto para que la ficha del informe
+  # diga 103 -> 99 y revertir vuelva a esas 103.
+  previo <- meta$limpieza %||% list()
+  encadena <- isTRUE(previo$enabled)
+  n_antes_origen <- if (encadena) {
+    suppressWarnings(as.integer(previo$n_casos_antes %||% NA_integer_))[1L]
+  } else NA_integer_
+  fid_origen <- if (encadena) as.character(previo$source_data_file_id %||% "") else ""
   linaje <- list(
     enabled = !nzchar(motivo_bloqueo),
-    source_data_file_id = as.character(source_fid %||% ""),
+    source_data_file_id = if (nzchar(fid_origen)) fid_origen else as.character(source_fid %||% ""),
     effective_data_file_id = as.character(clean_meta$file_id %||% ""),
     applied_at = .limpieza_now_utc(),
-    n_casos_antes = as.integer(n_antes %||% NA_integer_),
+    n_casos_antes = if (!is.na(n_antes_origen)) n_antes_origen else as.integer(n_antes %||% NA_integer_),
     n_casos_despues = as.integer(n_despues %||% NA_integer_)
   )
   # `bloqueo` se agrega solo si lo hay: el serializer unboxed convierte un NULL

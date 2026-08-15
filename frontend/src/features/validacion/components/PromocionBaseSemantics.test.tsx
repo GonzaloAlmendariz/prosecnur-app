@@ -66,3 +66,32 @@ describe("PromocionBase", () => {
     expect(texto(html)).toContain("Pasó de 103 a — casos");
   });
 });
+
+describe("PromocionBase — sin respaldo", () => {
+  const SIN_RESPALDO: LimpiezaPromocion = { ...BASE, sin_respaldo: true };
+
+  it("declara que rige pero ya no puede explicarse, y no la da por buena", () => {
+    const html = render(SIN_RESPALDO);
+    expect(html).toContain('data-estado="sin-respaldo"');
+    const t = texto(html);
+    expect(t).toContain("ya no puede explicarse");
+    // El control: el estado normal SÍ la da por buena, éste no.
+    expect(texto(render(BASE))).toContain("Codificación, Analítica y los entregables ya usan esta base");
+    expect(t).not.toContain("Codificación, Analítica y los entregables ya usan esta base");
+    // Y sigue diciendo de cuántas a cuántas: el hecho no desaparece por avisar.
+    expect(t).toContain("103");
+    expect(t).toContain("101");
+  });
+
+  it("deja las dos salidas: rehacer el plan o revertir", () => {
+    const t = texto(render(SIN_RESPALDO));
+    expect(t).toContain("construir el plan");
+    expect(t).toContain("revierte");
+    expect(render(SIN_RESPALDO)).toContain("Revertir");
+  });
+
+  it("una promoción revertida o bloqueada no se disfraza de sin respaldo", () => {
+    expect(render({ ...SIN_RESPALDO, enabled: false })).toContain('data-estado="revertida"');
+    expect(render({ ...SIN_RESPALDO, bloqueo: "grupos repetibles" })).toContain('data-estado="bloqueada"');
+  });
+});
