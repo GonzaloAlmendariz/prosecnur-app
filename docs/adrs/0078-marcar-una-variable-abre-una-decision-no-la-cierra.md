@@ -1,4 +1,4 @@
-# ADR 0077 — Marcar una variable abre una decisión, no la cierra
+# ADR 0078 — Marcar una variable abre una decisión, no la cierra
 
 - **Estado**: Propuesto
 - **Implementación**: No iniciada
