@@ -1,24 +1,37 @@
-# Las decisiones de depuración no llegan a los artefactos que las explican
+# El script y el informe deben quedar claros y reproducibles, sin exponer el caso
 
 **Fecha**: 2026-08-15 · **Medido sobre**: `ACNUR_V3_final.pulso` (PDM Medios de
-Vida 2026), 103 casos recibidos, 101 entregados, 2 excluidos con criterio y
-justificación · **Relación**: [ADR 0076](../adrs/0076-una-base-depurada-se-promueve-no-se-recomienda.md)
+Vida 2026), 103 casos recibidos, 101 entregados, 2 excluidos ·
+**Relación**: [ADR 0076](../adrs/0076-una-base-depurada-se-promueve-no-se-recomienda.md)
 
-Con el ADR 0076 la exclusión decidida en Limpieza ya llega a la base entregada.
-Falta comprobar si llega a los dos artefactos cuyo propósito es **explicar cómo
-se construyó esa base**: el script R de replicación y el informe metodológico en
-PDF. Se verificó generando ambos sobre el proyecto final.
+Con el ADR 0076 la exclusión decidida en Limpieza llega a la base entregada.
+Quedaba comprobar si llega a los dos artefactos que acompañan la entrega: el
+script R de replicación y el informe metodológico en PDF. Se verificó generando
+ambos sobre el proyecto final.
 
-Resultado: el script **reproduce** la exclusión pero no la **explica**; el
-informe metodológico no la menciona en absoluto.
+## El criterio que gobierna esto
+
+**Al cliente no se le da el detalle de las exclusiones.** Ni los casos por su
+identificador, ni el motivo que el analista escribió, ni el criterio que los
+detectó. Eso es material de trabajo interno y vive en el Excel de decisiones de
+limpieza, que se comparte solo si lo piden.
+
+Lo que el cliente sí debe poder ver, porque hace a la calidad del entregable:
+
+- **cuántas encuestas se recibieron y cuántas quedaron**, en agregado;
+- que la base **se puede reconstruir** desde el crudo de forma independiente.
+
+Nada más. Un informe que enumera qué encuestas se cayeron y por qué invita a una
+discusión caso por caso que no aporta al estudio y desgasta la confianza en el
+resto de la base.
 
 ---
 
-## 1 · Script R de replicación — reproduce, no explica
+## 1 · Script R de replicación — está bien como está
 
-**Estado**: funciona · falta el porqué
+**Estado**: sin trabajo pendiente
 
-El script incluye el universo final y filtra el crudo contra él:
+Reproduce el universo final y filtra el crudo contra él:
 
 ```r
 # (2) Universo final del estudio: los casos que superaron el control de
@@ -26,40 +39,28 @@ El script incluye el universo final y filtra el crudo contra él:
 #     crudo), lo que permite reproducir la base exacta sin exponer nada más.
 universo_final <- c("152c05df-…", …)          # 101 identificadores
 
-n_fuera <- nrow(crudo) - length(universo_final)
-message(sprintf("Casos en el crudo: %d | Universo final: %d | Fuera del universo final por control de calidad: %d",
-                nrow(crudo), length(universo_final), n_fuera))
+message(sprintf("Casos en el crudo: %d | Universo final: %d | Fuera del universo final por control de calidad: %d", …))
 ```
 
-Correr el script sobre el crudo de 103 casos devuelve exactamente los 101 de la
-base entregada. **La reproducibilidad del qué está resuelta.**
+Correrlo sobre el crudo de 103 devuelve exactamente los 101 entregados.
 
-**Lo que falta es el porqué.** El script no menciona en ninguna línea los
-criterios que detectaron los casos ni los motivos que el analista escribió al
-excluirlos. `grep -i "criterio|exclu|limpieza|RC_"` sobre el script emitido
-devuelve **cero coincidencias** fuera del mensaje genérico de arriba.
+**El nivel de detalle es el correcto y no debe tocarse.** Dice que hubo un
+control de calidad y cuántos casos quedaron fuera, sin nombrar a ninguno ni
+explicar por qué. Los identificadores que lista son los que **permanecen**, que
+es lo mínimo imprescindible para reconstruir la base; los excluidos no aparecen
+en ninguna parte. El comentario del propio script ya lo dice: «sin exponer nada
+más».
 
-Quien recibe el script ve 101 identificadores en duro y la frase «superaron el
-control de calidad». No puede saber que dos casos salieron por criterios
-declarados —una duración de −6 meses y una fecha de resultado posterior a la
-entrevista— ni que cada exclusión lleva su justificación escrita.
-
-**Propuesta**: un bloque de comentario antes de `universo_final` con una línea
-por decisión: criterio que la detectó, cuántos casos afectó y el motivo que
-registró el analista. El backend ya tiene todo en
-`preview$logs$excluded_cases` (`decision_id`, `source_id`, `case_id`,
-`rationale`) y en el linaje de la promoción (`n_casos_antes`, `n_casos_despues`).
-
-**Dónde vive**: `api/R/analitica_script_replica.R`, emisión del texto (~línea
-368) · el universo se arma en `.script_replica_build_plan()` (~línea 280).
+> Una versión anterior de este documento proponía agregar los motivos de
+> exclusión como comentario. **Se descarta**: contradice el criterio de arriba.
 
 ---
 
-## 2 · Informe metodológico PDF — no refleja nada de esto
+## 2 · Informe metodológico PDF — la sección de conteos sale vacía
 
-**Estado**: hueco real
+**Estado**: pendiente · es el hueco real
 
-El PDF tiene la sección donde esto debería vivir, y sale vacía:
+El informe tiene exactamente la sección que corresponde, y no trae números:
 
 ```
 Encuestas recibidas
@@ -69,75 +70,64 @@ Otras exclusiones
 Encuestas incluidas
 ```
 
-Ninguna trae número. La portada declara `ENCUESTAS INCLUIDAS: -`.
+Ninguna con valor. La portada declara `ENCUESTAS INCLUIDAS: -`.
 
-Búsquedas sobre el texto extraído del PDF, 16.826 líneas:
+**Qué debería mostrar**, y es justo el nivel agregado que sí corresponde:
 
-| Qué se buscó | Coincidencias |
-|---|---|
-| Criterios personalizados (`Personalizada`, nombre de los criterios) | **0** |
-| Casos excluidos, decisiones, motivos | **0** |
-| Conteo de exclusiones en la sección de preparación | vacío |
+```
+Encuestas recibidas     103
+Otras exclusiones         2
+Encuestas incluidas     101
+```
 
-El informe reporta **429 reglas del instrumento** y no dice nada de los dos
-criterios de revisión que efectivamente encontraron los problemas, ni de las dos
-decisiones que se tomaron sobre ellos. Un informe de «validación y limpieza» que
-no menciona la limpieza que se hizo.
+Sin identificadores, sin motivos, sin nombrar criterios. El cliente ve que de
+103 recolectadas se analizan 101 y que hubo dos exclusiones por control de
+calidad. Es lo que cualquier ficha técnica declara y hoy el informe no puede
+decir, pese a que el motor tiene el dato: el linaje de la promoción guarda
+`n_casos_antes` y `n_casos_despues`.
 
-**Salvedad de esta medición**: el PDF se generó tras reconstruir el plan y correr
-la auditoría, pero **sin reejecutar los criterios personalizados** en esa sesión.
-Es posible que parte de las ausencias se deban a eso y no al motor. Lo que sí es
-seguro es que las **decisiones de limpieza estaban en el proyecto** —viajan en el
-`.pulso` y la base entregada ya tiene 101 casos— y aun así no aparecen. Antes de
-implementar conviene repetir la medición reejecutando los criterios, para separar
-lo que falta de lo que simplemente no se recalculó.
+**Dónde vive**: el armado del informe metodológico · endpoint
+`/api/validacion/v2/report/methodology/pdf`.
 
-**Dónde vive**: `api/R/validacion_methodology_report.R` (o el archivo que arma
-el informe) · endpoint `/api/validacion/v2/report/methodology/pdf`.
+**Salvedad de la medición**: el PDF se generó sin reejecutar los criterios
+personalizados en esa sesión, así que conviene repetirla antes de implementar
+para separar lo que falta de lo que no se recalculó. Lo que sí es seguro es que
+las decisiones de limpieza estaban en el proyecto —la base ya tenía 101 casos— y
+la sección igual salió vacía.
 
 ---
 
 ## 3 · El plan de validación no sobrevive al `.pulso`
 
-**Estado**: hallazgo lateral, probablemente el más molesto en el uso diario
+**Estado**: pendiente · fricción diaria
 
-Abrir `ACNUR_V3_final.pulso` y pedir el informe metodológico devuelve:
+Abrir `ACNUR_V3_final.pulso` y pedir el informe devuelve:
 
 ```
 E_NO_PLAN — "Primero construye el plan de validacion."
 ```
 
-Hay que reconstruir el plan (442 reglas) y volver a correr la auditoría antes de
-poder generar el informe, aunque el proyecto ya había pasado por validación
-completa, tenga sus criterios declarados y sus decisiones tomadas.
+Hay que reconstruir el plan (442 reglas) y repetir la auditoría antes de generar
+el informe, aunque el proyecto ya pasó por validación completa y tiene sus
+decisiones tomadas. Para quien reabre un proyecto cerrado y solo quiere el PDF
+para adjuntarlo, son dos pasos que devuelven lo ya calculado.
 
-Para un analista que reabre un proyecto cerrado hace semanas y solo quiere el
-PDF para adjuntarlo, son dos pasos pesados que no aportan nada nuevo: el
-resultado es el mismo que ya se había calculado.
-
-**A decidir**: si el plan debe persistirse en el `.pulso` —con el costo de
-tamaño y de invalidación cuando cambia el instrumento— o si el informe debería
-reconstruirlo solo en vez de exigirlo al usuario.
+**A decidir**: persistir el plan en el `.pulso` —con su costo de tamaño y de
+invalidación cuando cambia el instrumento— o que el informe lo reconstruya solo
+en vez de exigírselo al usuario.
 
 ---
 
-## Por qué importa
+## Resumen
 
-Los tres puntos son la misma pregunta que motivó el ADR 0076, un paso más
-adelante. Aquella decisión logró que **la exclusión llegue a la base**. Estos
-artefactos existen para que la exclusión sea **defendible ante el cliente**: el
-script prueba que la base se puede reconstruir y el informe explica con qué
-criterio se depuró.
+| | Estado |
+|---|---|
+| Script R reproduce la base exacta | ✅ funciona |
+| Script R con el nivel de detalle correcto | ✅ no tocar |
+| PDF con los conteos de la ficha | ❌ sección vacía |
+| PDF sin detalle de casos ni motivos | ✅ así debe quedar |
+| Informe disponible al reabrir el proyecto | ❌ exige reconstruir el plan |
 
-Hoy el entregable puede decir «son 101 casos» y no puede decir, por sí solo,
-«son 101 porque estos dos fueron excluidos por estos criterios y con esta
-justificación». Esa frase existe únicamente en el Excel de decisiones de
-limpieza, que es un archivo aparte que nadie está obligado a mirar.
-
-## Orden sugerido
-
-1. **Punto 1** — es acotado y de alto valor: el dato ya está en el motor, falta
-   emitirlo como comentario en el script.
-2. **Punto 3** — decide una fricción diaria y es previo al 2, porque hoy medir
-   el informe exige reconstruir el plan.
-3. **Punto 2** — después de repetir la medición con los criterios reejecutados.
+El trabajo pendiente es más chico de lo que parecía: **poblar tres números en el
+informe** y **decidir qué pasa con el plan al reabrir**. El script no necesita
+nada.
