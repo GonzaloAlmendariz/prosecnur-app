@@ -44,7 +44,7 @@ decisiones de limpieza.
 | **L10** | Un `.pulso` puede quedar declarando «rige la base depurada 103 → 101» sin conservar las decisiones que lo justifican ni el plan. La exclusión sobrevive; su explicación no. | mismo sitio que L5 | ◐ **se avisa**, falta decidir qué hacer — cuarto estado «rige, pero ya no puede explicarse» en `PromocionBase`, verificado sobre `ACNUR_V3_final.pulso` |
 | **L11** | Reemplazar la data dejaba el linaje describiendo un archivo que ya no rige — y desde L1 ese número llegaba al PDF del cliente. | `session_store.R` · `estudio_replace_base_files()` | ☑ hecho — cambiar la data descarta el linaje; recargar el XLSForm no lo toca |
 | **L12** | El linaje era de un solo salto: depurar dos veces reescribía `n_casos_antes` con el N intermedio y un estudio que recibió 103 declaraba 101. | `limpieza_decision_engine.R` · `.limpieza_promover_base()` | ☑ hecho — se ancla al primer salto; revertir vuelve a lo recibido |
-| **L13** | Falta el paso visual del cuarto estado a 1440x1000 y 1024x600. | `PromocionBase.tsx` | ☐ sin empezar — el backend de `:8787` es del usuario y precede al cambio, así que no emite el flag; exige reiniciarlo o levantar una pila aparte |
+| **L13** | Paso visual del cuarto estado a 1440x1000 y 1024x600. | `PromocionBase.tsx` | ☑ hecho — y encontró un defecto que ningún test veía: salía en el mismo ámbar que la banda rutinaria de «Corre la auditoría», justo debajo. Pasa a tono de peligro |
 
 ### Espera a Gonzalo
 
@@ -124,6 +124,13 @@ declarar lo que quedó huérfano, empezando por las exclusiones.
   auditoría. La forma de comprobarlo en un minuto es abrir el `.pulso` y leer
   `estudio$bases[[b]]$validacion$plan_result` del `state.rds`, en vez de deducir
   la causa del mensaje de error. Un `E_NO_PLAN` dice que no hay plan, no por qué.
+- **Un aviso correcto puede ser invisible por el vecino.** El cuarto estado de
+  `PromocionBase` pasó los tests de markup —tono `warn`, copia, `data-estado`—
+  y en la app real desaparecía: la pestaña ya tiene una banda ámbar rutinaria
+  («Corre la auditoría…») justo debajo, y dos del mismo tono pegadas se leen
+  como un bloque. Ningún aserto sobre el componente aislado puede ver eso; sólo
+  se ve abriendo la vista. Vale para cualquier aviso nuevo: mirar qué tiene al
+  lado antes de elegir el tono.
 - **Invalidar el workspace no revierte la promoción.**
   `.invalidate_processing_state()` vacía `bases[[b]]$validacion` entero pero deja
   `bases[[b]]$limpieza` y `data_file_id` intactos. Recargar sólo el XLSForm por
