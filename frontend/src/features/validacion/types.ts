@@ -337,6 +337,9 @@ export type LimpiezaPromocion = {
   n_casos_despues?: number | null;
   bloqueo?: string;
   reverted_at?: string;
+  // El backend sólo la manda en TRUE: la promoción rige pero el workspace de
+  // validación que la justifica se vació (recargar el instrumento lo borra).
+  sin_respaldo?: boolean;
 };
 
 // `recommended_file_id` se retiró el 2026-08-15 (ADR 0076, Cumplimiento): era

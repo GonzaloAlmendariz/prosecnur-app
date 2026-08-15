@@ -73,3 +73,12 @@ describe("extractArtifacts", () => {
     expect(extractArtifacts(undefined)).toBeNull();
   });
 });
+
+describe("sin_respaldo", () => {
+  it("solo viaja en TRUE: un {} del serializer no debe encenderlo", () => {
+    expect(normalizePromocion({ ...LINAJE, sin_respaldo: true })?.sin_respaldo).toBe(true);
+    expect(normalizePromocion({ ...LINAJE, sin_respaldo: {} })?.sin_respaldo).toBeUndefined();
+    expect(normalizePromocion({ ...LINAJE, sin_respaldo: false })?.sin_respaldo).toBeUndefined();
+    expect(normalizePromocion(LINAJE)?.sin_respaldo).toBeUndefined();
+  });
+});

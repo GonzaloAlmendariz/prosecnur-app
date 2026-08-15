@@ -265,7 +265,19 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
   # del cierre (al revertir). Se lee de la base, no del artefacto guardado.
   if (!is.null(sid)) {
     linaje <- .limpieza_linaje_vigente(sid, base_nombre)
-    if (!is.null(linaje)) artifacts$promocion <- linaje
+    if (!is.null(linaje)) {
+      # Una promoción exige plan y auditoría (`limpieza_finalize()` lo impone),
+      # así que un linaje vigente sin plan sólo puede venir de que el workspace
+      # se vació después: recargar el instrumento borra plan, auditoría y
+      # decisiones, y deja la base depurada rigiendo. El daño sigue
+      # produciéndose —cada entregable sale con los casos excluidos y sin forma
+      # de justificarlos—, así que se declara (ADR 0077). La clave sólo viaja si
+      # es TRUE: un NULL se serializa como `{}`, que en JS es truthy.
+      if (isTRUE(linaje$enabled) && is.null(scope$plan_result)) {
+        linaje$sin_respaldo <- TRUE
+      }
+      artifacts$promocion <- linaje
+    }
   }
 
   list(

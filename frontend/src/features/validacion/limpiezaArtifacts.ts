@@ -33,6 +33,7 @@ export function normalizePromocion(value: unknown): LimpiezaPromocion | null {
   if (typeof raw.applied_at === "string") promocion.applied_at = raw.applied_at;
   if (typeof raw.reverted_at === "string") promocion.reverted_at = raw.reverted_at;
   if (typeof raw.bloqueo === "string" && raw.bloqueo.trim()) promocion.bloqueo = raw.bloqueo.trim();
+  if (raw.sin_respaldo === true) promocion.sin_respaldo = true;
   return promocion;
 }
 
