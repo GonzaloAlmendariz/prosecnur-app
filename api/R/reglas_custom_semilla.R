@@ -330,14 +330,33 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
 # --- Identidad del caso y del agente -----------------------------------------
 
 # Distancia máxima entre dos nombres para considerarlos el mismo agente escrito
-# distinto. 2 tolera una letra caída ("JORGE DE SOLAR") o un acento; más alto
-# empieza a unir personas distintas con apellidos parecidos.
+# distinto. 2 tolera una letra caída ("PEREZ DE LA CRUZ" / "PEREZ DELA CRUZ") o
+# un acento; más alto empieza a unir personas distintas con apellidos parecidos.
 .semilla_agente_distancia <- 2L
 
 .semilla_norm_agente <- function(x) {
   v <- tolower(trimws(as.character(x)))
   v <- iconv(v, to = "ASCII//TRANSLIT")
   gsub("[^a-z0-9]", "", v %||% "")
+}
+
+# ¿Cuáles de `candidatos` parecen el mismo nombre que `nombre`, escrito distinto?
+# Una sola definición: la usan el sembrador de identidad (Validación) y el cruce
+# contra el padrón de encuestadores (Monitoreo). Si cada uno tuviera la suya,
+# terminarían diciendo cosas distintas del mismo equipo.
+#
+# Dos criterios, porque los nombres se ensucian de dos formas: se tipean mal
+# (distancia corta) o se escriben incompletos (un prefijo del otro, «Mary» por
+# «Mary Berrocal» — ahí la distancia es enorme y el prefijo es lo único que ve).
+#
+# Recibe y devuelve posiciones sobre `candidatos`, ya normalizados por quien
+# llama, para no re-normalizar la misma lista en cada comparación.
+.semilla_nombres_cercanos <- function(nombre_norm, candidatos_norm) {
+  if (!length(candidatos_norm) || !nzchar(nombre_norm)) return(integer(0))
+  d <- as.integer(adist(nombre_norm, candidatos_norm))
+  which(d <= .semilla_agente_distancia |
+          startsWith(candidatos_norm, nombre_norm) |
+          startsWith(nombre_norm, candidatos_norm))
 }
 
 #' Proponer el criterio de identidad del agente que recolecta
@@ -383,10 +402,7 @@ reglas_semilla_agente <- function(data, config = NULL, reglas_existentes = list(
     if (as.integer(frec[i]) > 2L) next
     otros <- which(as.integer(frec) > as.integer(frec[i]))
     if (!length(otros)) next
-    d <- as.integer(adist(norm[i], norm[otros]))
-    cerca <- otros[d <= .semilla_agente_distancia |
-                   startsWith(norm[otros], norm[i]) |
-                   startsWith(norm[i], norm[otros])]
+    cerca <- otros[.semilla_nombres_cercanos(norm[i], norm[otros])]
     es_numero <- grepl("^[0-9]+$", trimws(nombres[i]))
     if (length(cerca) || es_numero) {
       sospechosos <- c(sospechosos, nombres[i])
