@@ -36,9 +36,9 @@ el módulo solo, sin que nadie las declare. Así que el pendiente puede nacer de
 una intención declarada a mano o de una detección automática, y el contador
 tiene que ver las dos.
 
-Las tres se presentan como «marcada sin grupos». El módulo no distingue entre
-«no hay nada que hacer» y «nadie lo hizo», que es la misma confusión que el
-ADR 0075 resolvió para Validación.
+Las tres se presentan igual: sin categorías. El módulo no distingue entre «no
+hay nada que hacer» y «nadie lo hizo», que es la misma confusión que el ADR 0075
+resolvió para Validación.
 
 ### La decisión legítima que hoy no se puede expresar
 
@@ -151,6 +151,6 @@ detectadas automáticamente
 Ninguna de las cinco pendientes avisó nada al aplicar, y todas se entregaron sin
 recodificar en la primera versión del entregable.
 
-La cuarta, `Sos_desarrollo`, es el caso más elocuente: tenía su catálogo
-completo con las seis opciones del instrumento y **ninguna de sus doce
-respuestas abiertas asignada**. Visto desde el estado, parecía trabajo hecho.
+`Sos_desarrollo` es el caso más elocuente: tenía su catálogo completo con las
+seis opciones del instrumento y **ninguna de sus doce respuestas abiertas
+asignada**. Visto desde el estado, parecía trabajo hecho.
