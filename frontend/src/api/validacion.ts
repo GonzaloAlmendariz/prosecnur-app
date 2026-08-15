@@ -2,7 +2,7 @@
 // Extraído de client.ts (split por dominio, 2026-07). Los consumidores
 // importan del barrel ./client; este módulo no cambia el contrato.
 
-import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaSummary, ReglaCustom, ReglaSemilla, ReglasCustomList, RolesSugerencias, ViewDescriptor } from "../features/validacion/types";
+import type { ExploradorVariablesList, InstrumentoEstado, InstrumentoOperationalConfig, InstrumentoVariablesExcluidas, LimpiezaBeforeAfterPreview, LimpiezaDecision, LimpiezaPromocion, LimpiezaSummary, ReglaCustom, ReglaSemilla, ReglasCustomList, RolesSugerencias, ViewDescriptor } from "../features/validacion/types";
 import { apiFetch, handle, headers } from "./core";
 
 // =============================================================================
@@ -89,6 +89,17 @@ export async function apiV2LimpiezaFinalize(baseNombre?: string | null) {
     artifacts: LimpiezaSummary["artifacts"];
   }>(
     await apiFetch("/api/validacion/v2/limpieza/finalize", {
+      method: "POST",
+      headers: v2Headers(baseNombre),
+    }),
+  );
+}
+
+// ADR 0076 — devuelve la base del estudio a la que regía antes del cierre. Las
+// decisiones tomadas no se tocan: se puede volver a cerrar cuando se quiera.
+export async function apiV2LimpiezaRevertirPromocion(baseNombre?: string | null) {
+  return handle<{ ok: true; base_nombre: string | null; promocion: LimpiezaPromocion | null }>(
+    await apiFetch("/api/validacion/v2/limpieza/revertir-promocion", {
       method: "POST",
       headers: v2Headers(baseNombre),
     }),

@@ -714,6 +714,15 @@ mount_validacion <- function(pr) {
       out
     })) |>
 
+    # ADR 0076 — promover es reversible. Devuelve la base a la que regía antes
+    # del cierre sin tocar las decisiones tomadas.
+    plumber::pr_post("/api/validacion/v2/limpieza/revertir-promocion", wrap_endpoint(function(req, res) {
+      sid <- session_header(req)
+      base <- .get_base_nombre(req)
+      linaje <- limpieza_revertir_promocion(sid = sid, base_nombre = base)
+      list(ok = TRUE, base_nombre = base %||% NA_character_, promocion = linaje)
+    })) |>
+
     # --- Reporte HTML autocontenido (Sprint 5 — stretch) --------------------
     # Exporta un HTML standalone (CSS inline, sin recursos externos) con el
     # estado de validación: progreso, KPIs, top reglas violadas, reglas

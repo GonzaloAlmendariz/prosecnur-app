@@ -18,6 +18,7 @@ import {
   apiV2LimpiezaDecisionDelete,
   apiV2LimpiezaDecisionSave,
   apiV2LimpiezaFinalize,
+  apiV2LimpiezaRevertirPromocion,
   type InstrumentoDrillResult,
 } from "../../../api/client";
 import type {
@@ -29,6 +30,8 @@ import type {
   ReglaTreatmentScope,
 } from "../types";
 import { EmptyState, LoadingBlock } from "../../../components/States";
+import PromocionBase from "../components/PromocionBase";
+import { extractArtifacts } from "../limpiezaArtifacts";
 import { useValidacionStore } from "../store";
 import {
   RuleNarrative,
@@ -257,6 +260,7 @@ export default function LimpiezaTab() {
   const [refreshBusy, setRefreshBusy] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
   const [finalizeBusy, setFinalizeBusy] = useState(false);
+  const [revertBusy, setRevertBusy] = useState(false);
 
   const [selectedSourceId, setSelectedSourceId] = useState("");
   const [selectedDecisionId, setSelectedDecisionId] = useState<string>("");
@@ -541,6 +545,24 @@ export default function LimpiezaTab() {
     }
   }
 
+  // ADR 0076 — revertir la promoción devuelve la base anterior al estudio. Las
+  // decisiones no se tocan; lo que se pierde es el estado aguas abajo, que el
+  // backend invalida porque el insumo volvió a cambiar.
+  async function handleRevertirPromocion() {
+    setRevertBusy(true);
+    setActionError("");
+    setNotice("");
+    try {
+      await apiV2LimpiezaRevertirPromocion(baseNombre);
+      setNotice("La base del estudio volvió a la versión anterior al cierre.");
+      await loadLimpieza({ quiet: true });
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setRevertBusy(false);
+    }
+  }
+
   // Atajos de teclado: Cmd/Ctrl+Enter = Guardar y siguiente.
   //                    Cmd/Ctrl+Shift+Enter = Guardar borrador.
   useEffect(() => {
@@ -594,6 +616,12 @@ export default function LimpiezaTab() {
         onFilterKind={setActiveFilterKind}
         onRefresh={() => void loadLimpieza({ quiet: true })}
         onFinalize={() => void handleFinalize()}
+      />
+
+      <PromocionBase
+        promocion={artifacts?.promocion}
+        busy={revertBusy}
+        onRevertir={() => void handleRevertirPromocion()}
       />
 
       {notice && (
@@ -2685,13 +2713,6 @@ function buildCaseSummary(row: Record<string, unknown>, preferredKeys: string[])
     })
     .filter((value): value is string => !!value);
   return bits.join(" | ");
-}
-
-function extractArtifacts(value: LimpiezaSummary["artifacts"] | undefined): LimpiezaArtifactsBundle | null {
-  if (!value || typeof value !== "object" || !("files" in value)) return null;
-  const files = (value as LimpiezaArtifactsBundle).files;
-  if (!Array.isArray(files)) return null;
-  return value as LimpiezaArtifactsBundle;
 }
 
 function actionNeedsVariable(actionType: LimpiezaDecisionActionType) {

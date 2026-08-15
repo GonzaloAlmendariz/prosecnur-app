@@ -14,7 +14,29 @@ ADR detrás. El cuarto es independiente y el quinto está descartado a propósit
 
 ## 1 · Limpieza: la base depurada ya rige, y la UI la sigue ofreciendo
 
-**Estado**: pendiente · **ADR**: [0076](../adrs/0076-una-base-depurada-se-promueve-no-se-recomienda.md) (Aceptado, implementación completa en backend)
+**Estado**: **hecho** (2026-08-15) · **ADR**: [0076](../adrs/0076-una-base-depurada-se-promueve-no-se-recomienda.md) (Aceptado, implementación completa)
+
+**Cómo quedó.** `PromocionBase.tsx` declara el hecho arriba de la cola de
+hallazgos, con tres estados y un mismo marco: **rige** («Pasó de 1283 a 1281
+casos… Codificación, Analítica y los entregables ya usan esta base») con botón
+Revertir y confirmación en línea que dice a qué N se vuelve y qué obliga a
+rehacer; **bloqueada**, que nombra el motivo y avisa que la exclusión no llegó;
+y **revertida**, que recuerda que las decisiones siguen guardadas. Sin linaje no
+hay superficie.
+
+El backend suma `POST /api/validacion/v2/limpieza/revertir-promocion`
+(`limpieza_revertir_promocion()` → restituye + invalida aguas abajo; 409
+`E_LIMPIEZA_SIN_PROMOCION` si no hay nada que revertir). Dos trampas que se
+arreglaron por el camino: `build_limpieza()` ahora lee el linaje **vigente** de
+la base y no el congelado del cierre —editar una decisión limpia
+`limpieza_artifacts` mientras la base promovida sigue rigiendo—, y `bloqueo`
+sólo viaja si existe, porque el serializer unboxed convierte un `NULL` en `{}`.
+
+**Verificado**: `acnur_acg` con dos casos excluidos — banner, revertir, vuelta a
+1283 y 409 al revertir dos veces; el bloqueo por repeats se comprobó sobre
+`acnur_pdm` (madre `bloqueada=TRUE` con 1 hija, hija `FALSE`) y su copy con test
+de render. Suites: `test-limpieza-*`, `test-validacion-v2-limpieza-builder`,
+vitest de `features/validacion`, typecheck.
 
 **Qué pasa.** `limpieza_finalize()` ahora promueve la base depurada a data
 vigente del estudio y declara su linaje. La pestaña sigue presentándola como
@@ -144,10 +166,19 @@ quien revisa.
 
 ---
 
+## Estado
+
+| # | Ítem | Estado |
+|---|---|---|
+| 1 | Limpieza declara qué base rige y deja revertir | **hecho** (2026-08-15) |
+| 2 | Codificación distingue los cuatro estados por pregunta | **bloqueado** — ADR 0078 en Propuesto |
+| 3 | Registrar «no categorizar» y advertir al aplicar | **bloqueado** — ADR 0078 en Propuesto |
+| 4 | Qué marcó la persona al clasificar una abierta múltiple | pendiente — sin dependencias |
+| 5 | Detalle por caso al expandir una respuesta | descartado a propósito |
+
 ## Orden sugerido
 
-1. **Ítem 1** — es el más barato y cierra un ADR ya aceptado cuyo backend está
-   completo. Hoy la UI contradice lo que el motor hace.
+1. ~~**Ítem 1**~~ — hecho.
 2. **Ítem 4** — independiente, no espera ratificación de nadie, y evita errores
    de codificación en cada estudio con preguntas múltiples.
 3. **Ítems 2 y 3** — juntos, y **después de ratificar el ADR 0078**, porque

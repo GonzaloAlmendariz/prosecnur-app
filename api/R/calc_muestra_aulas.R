@@ -1188,6 +1188,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       classroom_id = g
     ))
   }, sid_ok, age_ok, condition_ok, level_ok, modality_ok, session_ok, classroom_ok, USE.NAMES = FALSE)
+  # `eligible_row` incluye alumno_sel$marco_ok, así que la razón también debe:
+  # sin esta línea toda fila que solo recorta un criterio de alumno se publicaba
+  # excluida y muda, y el marco no podía declarar su propia causa.
+  reason_rows <- .cm_criterios_concat_razones(list(reason_rows, alumno_sel$marco_razon))
 
   population_raw <- data.frame(
     student_id = student_id,

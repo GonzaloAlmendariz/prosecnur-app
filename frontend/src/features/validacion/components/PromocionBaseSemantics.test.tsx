@@ -1,0 +1,68 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+
+import PromocionBase from "./PromocionBase";
+import type { LimpiezaPromocion } from "../types";
+
+const BASE: LimpiezaPromocion = {
+  enabled: true,
+  source_data_file_id: "DATA_CRUDA",
+  effective_data_file_id: "DATA_LIMPIA",
+  applied_at: "2026-08-15T15:01:35Z",
+  n_casos_antes: 103,
+  n_casos_despues: 101,
+};
+
+function render(promocion: LimpiezaPromocion | null | undefined) {
+  return renderToStaticMarkup(<PromocionBase promocion={promocion} onRevertir={() => {}} />);
+}
+
+function texto(html: string) {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+describe("PromocionBase", () => {
+  it("sin linaje no dibuja superficie", () => {
+    expect(render(null)).toBe("");
+    expect(render(undefined)).toBe("");
+  });
+
+  it("declara el hecho —el cambio de N— y no el archivo", () => {
+    const html = render(BASE);
+    expect(html).toContain('data-estado="rige"');
+    expect(texto(html)).toContain("La base del estudio quedó depurada");
+    expect(texto(html)).toContain("Pasó de 103 a 101 casos");
+    expect(texto(html)).toContain("Revertir");
+  });
+
+  it("cuando la promoción se bloquea, dice que la exclusión no llegó", () => {
+    // El caso que no puede quedar mudo: con grupos repetibles el motor no
+    // promueve, y el analista creería que su exclusión rigió.
+    const html = render({
+      ...BASE,
+      enabled: false,
+      bloqueo: "La base tiene grupos repetibles: excluir casos de la madre exige podar sus filas hijas.",
+    });
+    const plano = texto(html);
+    expect(html).toContain('data-estado="bloqueada"');
+    expect(plano).toContain("La depuración no llegó a la base del estudio");
+    expect(plano).toContain("grupos repetibles");
+    expect(plano).toContain("La base del estudio sigue con 103 casos");
+    // No se ofrece revertir lo que nunca rigió.
+    expect(plano).not.toContain("Revertir");
+  });
+
+  it("tras revertir declara la vuelta atrás y que las decisiones siguen ahí", () => {
+    const html = render({ ...BASE, enabled: false, reverted_at: "2026-08-15T16:10:00Z" });
+    const plano = texto(html);
+    expect(html).toContain('data-estado="revertida"');
+    expect(plano).toContain("Volviste a la base anterior");
+    expect(plano).toContain("Tus decisiones siguen guardadas");
+    expect(plano).not.toContain("Revertir");
+  });
+
+  it("un conteo ausente no inventa un número", () => {
+    const html = render({ ...BASE, n_casos_despues: null });
+    expect(texto(html)).toContain("Pasó de 103 a — casos");
+  });
+});
