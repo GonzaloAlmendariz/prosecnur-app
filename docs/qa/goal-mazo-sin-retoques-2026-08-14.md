@@ -37,7 +37,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L5 | Piso de grosor declarado por familia | `grosor_modo` + `grosor_barras` | ☐ |
 | L6 | Layout `poblacion_3` en la plantilla (2 apilados + 1 alto) | las **dos** plantillas | ☑ officer lo ve, 7 placeholders |
 | L7 | Contrato, constructor, render y metadata de `poblacion_3` | 6 archivos R + NAMESPACE | ☑ **lámina generada**, alto 2.08× |
-| L8 | Las otras 11 disposiciones del artefacto | ídem | ☐ |
+| L8 | Las otras 11 disposiciones del artefacto | ídem | ◐ **6 de 11 hechas**; faltan las 3 de población con icono y las 2 de cifras |
 | L9 | Partir la lámina cuando supera 9 premisas | motor, no graficador | ☐ |
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
 | L11 | Retirar los cuatro separadores de dimensión | plan del `.pulso` | ☑ **67 → 63 láminas**, las mismas que el aprobado |
@@ -139,6 +139,13 @@ categorías —«90 % / 10 %»— donde la columna no aplica. El techo realista 
   recalibrar llevó el texto de barras de 15.93 a 8.53 pt —ilegible—, porque deja
   de escalar y respeta un declarado que estaba pensado para ser escalado. Los dos
   cambios van juntos: preservar + declarar el tamaño real.
+- **Un respaldo sin fecha se restaura sobre trabajo más nuevo.** Reutilizar
+  `plantilla.pptx.bak` —creado antes de `poblacion_3`— para revertir un intento
+  fallido borró el layout ya commiteado. Se recuperó con `git checkout`, pero el
+  respaldo tiene que ser de la tanda, no del archivo.
+- **Seis disposiciones no son seis renderers.** Todas son N huecos colocados por
+  el layout: comparten `.composicion_render` y una sola rama de despacho. La
+  diferencia vive en la plantilla, que es donde se define una disposición.
 - **Añadir una lámina toca CUATRO sitios que la cuentan a mano**, y ninguno se
   deriva solo: el contador de `render_key` en el contrato, dos listas del test de
   metadata (`.gm_slide_blueprints` y `.gm_slide_slot_specs`, más el vector de
