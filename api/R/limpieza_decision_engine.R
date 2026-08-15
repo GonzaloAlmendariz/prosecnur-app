@@ -76,6 +76,96 @@
   c("_uuid", "uuid", "respondent_id", "response_id", "_id", "_submission_id", "_submission_uuid", "id_caso", "fila_id")
 }
 
+# ADR 0076 — promoción de la base depurada
+# ---------------------------------------------------------------------------
+# Lo que se promueve tiene que tener forma de base del estudio, no de tabla de
+# trabajo de Validación. `.limpieza_simulate()` opera sobre
+# `read_validation_data_ast()$principal`, que arrastra las derivadas del plan;
+# en ACNUR V3 eso son 306 columnas contra las 215 de la base de origen. Se
+# devuelven las columnas del origen, en su orden, con los valores ya corregidos
+# por las decisiones. Una columna del origen que la limpieza haya eliminado no
+# se reinventa: si no está, no está.
+.limpieza_forma_de_origen <- function(data_final, origen_path, origen_ext) {
+  if (!is.data.frame(data_final) || !ncol(data_final)) return(data_final)
+  origen <- tryCatch(.read_data_for_validation(origen_path, origen_ext),
+                     error = function(e) NULL)
+  cols_origen <- if (is.data.frame(origen)) names(origen) else character(0)
+  if (!length(cols_origen)) return(data_final)
+  keep <- intersect(cols_origen, names(data_final))
+  if (!length(keep)) return(data_final)
+  data_final[, keep, drop = FALSE]
+}
+
+# Una madre con hijas repeat no se promueve: excluir un caso de la madre exige
+# podar sus filas hijas, y ese reparto por el árbol es el trabajo que
+# `.cuf_prepare_tree()` hace para el filtro de universo. Hasta tenerlo, se
+# declara el límite en vez de promover una base incoherente con sus hijas.
+.limpieza_promocion_bloqueada_por_repeats <- function(sid, base_nombre) {
+  if (!exists(".validacion_resolve_repeat_children", mode = "function")) return(FALSE)
+  hijas <- tryCatch(.validacion_resolve_repeat_children(sid, base_nombre),
+                    error = function(e) list())
+  length(hijas %||% list()) > 0L
+}
+
+# Promueve la base depurada a data vigente de su base y declara el linaje, con
+# la misma forma que `carga_universe_filter_apply()`: `source_data_file_id`
+# guarda de dónde salió y `effective_data_file_id` cuál rige. `original_*` no se
+# toca: sigue apuntando a lo que se cargó.
+.limpieza_promover_base <- function(sid, base_nombre, clean_meta, source_fid,
+                                    n_antes, n_despues, n_columnas, motivo_bloqueo = "") {
+  s <- session_get(sid)
+  nombre <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
+  if (is.null(nombre) || !nzchar(nombre) || is.null(s$estudio$bases[[nombre]])) {
+    return(invisible(NULL))
+  }
+  meta <- s$estudio$bases[[nombre]]
+  linaje <- list(
+    enabled = !nzchar(motivo_bloqueo),
+    source_data_file_id = as.character(source_fid %||% ""),
+    effective_data_file_id = as.character(clean_meta$file_id %||% ""),
+    applied_at = .limpieza_now_utc(),
+    n_casos_antes = as.integer(n_antes %||% NA_integer_),
+    n_casos_despues = as.integer(n_despues %||% NA_integer_),
+    bloqueo = if (nzchar(motivo_bloqueo)) motivo_bloqueo else NULL
+  )
+  if (nzchar(motivo_bloqueo)) {
+    meta$limpieza <- linaje
+    s$estudio$bases[[nombre]] <- meta
+    s <- .mark_project_dirty(s)
+    .session_env[[sid]] <- s
+    return(invisible(linaje))
+  }
+  meta$data_file_id <- as.character(clean_meta$file_id)
+  meta$data_ext <- as.character(clean_meta$ext %||% "xlsx")
+  meta$n_filas <- as.integer(n_despues %||% NA_integer_)
+  meta$n_columnas <- as.integer(n_columnas %||% NA_integer_)
+  meta$limpieza <- linaje
+  s$estudio$bases[[nombre]] <- meta
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(linaje)
+}
+
+# Vuelve a la base anterior a la promoción sin tocar las decisiones tomadas.
+.limpieza_revertir_promocion <- function(sid, base_nombre) {
+  s <- session_get(sid)
+  nombre <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
+  if (is.null(nombre) || is.null(s$estudio$bases[[nombre]])) return(invisible(FALSE))
+  meta <- s$estudio$bases[[nombre]]
+  linaje <- meta$limpieza %||% list()
+  src <- as.character(linaje$source_data_file_id %||% "")
+  if (!isTRUE(linaje$enabled) || !nzchar(src) || is.null(s$files[[src]])) {
+    return(invisible(FALSE))
+  }
+  meta$data_file_id <- src
+  meta$data_ext <- as.character(s$files[[src]]$ext %||% meta$data_ext)
+  meta$limpieza <- utils::modifyList(linaje, list(enabled = FALSE, reverted_at = .limpieza_now_utc()))
+  s$estudio$bases[[nombre]] <- meta
+  s <- .mark_project_dirty(s)
+  .session_env[[sid]] <- s
+  invisible(TRUE)
+}
+
 .limpieza_make_case_ids <- function(df, table_key = "principal") {
   if (!is.data.frame(df) || !nrow(df)) return(character(0))
 
@@ -1201,14 +1291,36 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
   base_slug <- if (!is.null(base_nombre) && nzchar(base_nombre)) base_nombre else "base"
   ts_slug <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
+  # ADR 0076: lo que se escribe es la base del estudio depurada, con las
+  # columnas de su origen; no la tabla de trabajo de Validación.
+  files_origen <- tryCatch(.resolve_base_files(sid, base_nombre), error = function(e) NULL)
+  data_promovible <- if (!is.null(files_origen)) {
+    .limpieza_forma_de_origen(preview$data_final, files_origen$data$path, files_origen$data_ext)
+  } else preview$data_final
+
   clean_path <- file.path(downloads_dir, sprintf("base_limpia_%s_%s.xlsx", base_slug, ts_slug))
-  .bases_write_xlsx(preview$data_final, preview$data_final, clean_path, valores = "codigos")
+  .bases_write_xlsx(data_promovible, data_promovible, clean_path, valores = "codigos")
   clean_meta <- .limpieza_register_download(
     sid = sid,
     kind = "validacion_limpieza_base_limpia",
     original_name = sprintf("base_limpia_%s.xlsx", base_slug),
     path = clean_path,
     ext = "xlsx"
+  )
+
+  # ADR 0076: promover es responsabilidad de quien depura. Sin esto la decisión
+  # se registra, se justifica y se exporta, y el entregable sigue saliendo con
+  # los casos que el analista excluyó.
+  bloqueo <- if (.limpieza_promocion_bloqueada_por_repeats(sid, base_nombre)) {
+    "La base tiene grupos repetibles: excluir casos de la madre exige podar sus filas hijas."
+  } else ""
+  linaje_limpieza <- .limpieza_promover_base(
+    sid = sid, base_nombre = base_nombre, clean_meta = clean_meta,
+    source_fid = if (!is.null(files_origen)) files_origen$data$file_id else NULL,
+    n_antes = nrow(preview$data_final) + (preview$impact$cases_excluded %||% 0L),
+    n_despues = nrow(data_promovible),
+    n_columnas = ncol(data_promovible),
+    motivo_bloqueo = bloqueo
   )
 
   limpieza_payload <- build_limpieza(scope, sid = sid, base_nombre = base_nombre, preview_override = preview)
@@ -1242,7 +1354,10 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
 
   artifacts <- list(
     finalized_at = .limpieza_now_utc(),
+    # ADR 0076: la base ya rige, no se "recomienda". El campo se conserva por
+    # compatibilidad del contrato, y `promocion` dice qué pasó de verdad.
     recommended_file_id = clean_meta$file_id,
+    promocion = linaje_limpieza,
     files = list(
       list(kind = "base_limpia", label = "Base final limpia", file_id = clean_meta$file_id, original_name = clean_meta$original_name, generated_at = clean_meta$uploaded_at),
       list(kind = "reporte_html", label = "Reporte HTML ejecutivo", file_id = html_meta$file_id, original_name = html_meta$original_name, generated_at = html_meta$uploaded_at),
