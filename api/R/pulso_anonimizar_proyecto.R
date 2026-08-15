@@ -360,20 +360,36 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
     celular_pe = "(?<![0-9])9[0-9]{8}(?![0-9])",
     dni_pe = "(?<![0-9])[0-9]{8}(?![0-9])"
   )
-  # Dominios que el propio anonimizador emite: no son hallazgos.
-  correo_sintetico <- "@example\\.test$"
+  # Dominios que el propio anonimizador emite: no son hallazgos. El seudónimo
+  # conserva el dominio de origen como prefijo y cierra bajo `example.test`
+  # (`alguien@pucp.edu.pe.example.test`), así que el ancla no puede exigir la
+  # arroba pegada: basta con que el correo TERMINE en el TLD reservado.
+  correo_sintetico <- "(^|@|\\.)example\\.test$"
 
   hallazgos <- list()
   registrar <- function(df, ruta) {
     if (!is.data.frame(df) || !nrow(df)) return(invisible(NULL))
     for (nm in names(df)) {
-      if (!incluir_columnas_pii && !is.na(.pulso_pii_clasificar_columna(nm))) next
+      # Una columna que el clasificador reconoce como PII (`email_address`,
+      # `telefono`, `dni`) NO se salta entera: se salta solo para los patrones
+      # cuyo seudónimo es indistinguible del dato real.
+      #
+      # El correo sí se escanea, porque desde que los seudónimos se emiten bajo
+      # `.example.test` se reconocen por dominio. Un DNI o un celular sintético,
+      # en cambio, preserva la forma —8 y 9 dígitos— y no hay manera de
+      # separarlo de uno auténtico: marcarlos convertiría el gate en ruido.
+      #
+      # Saltarse la columna entera era lo que dejaba pasar un correo real
+      # sobreviviente: comprobado inyectando uno en `email_address` de una data
+      # adaptada, el gate devolvía «sin PII detectable».
+      col_es_pii <- !is.na(.pulso_pii_clasificar_columna(nm))
       col <- df[[nm]]
       if (!is.character(col) && !is.factor(col)) next
       v <- as.character(col)
       v <- v[!is.na(v) & nzchar(v)]
       if (!length(v)) next
       for (tipo in names(patrones)) {
+        if (col_es_pii && !incluir_columnas_pii && tipo != "correo") next
         hits <- grepl(patrones[[tipo]], v, perl = TRUE)
         if (tipo == "correo") hits <- hits & !grepl(correo_sintetico, v)
         # Mismo criterio que el anonimizador: una fecha compacta yyyymmdd no es
