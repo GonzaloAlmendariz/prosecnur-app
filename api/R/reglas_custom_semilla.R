@@ -322,6 +322,12 @@ reglas_semilla_todas <- function(data, reglas_existentes = list(),
   props <- c(props, reglas_semilla_agente(data, config, reglas_existentes, survey))
   props <- c(props, reglas_semilla_continuidad(data, reglas_existentes))
   props <- c(props, reglas_semilla_periodo(data, config, reglas_existentes))
+  # Lo que el instrumento no acotó: se activan por la ausencia de `constraint`,
+  # que es donde las reglas derivadas del XLSForm no tienen nada que mirar.
+  if (!is.null(survey)) {
+    props <- c(props, reglas_semilla_rango_numerico(data, survey, reglas_existentes))
+    props <- c(props, reglas_semilla_fecha_declarada(data, survey, reglas_existentes))
+  }
   # Todo lo que sale de un sembrador queda marcado: la pestaña necesita
   # distinguirlo de lo que una persona escribió con criterio propio.
   lapply(props, function(p) { p$origen <- "sembrado"; p })
@@ -686,4 +692,162 @@ identidad_candidatas <- function(data, max_por_rol = 6L) {
     llaves = lapply(utils::head(llaves, max_por_rol), fmt, rol = "llave"),
     agentes = lapply(utils::head(agentes, max_por_rol), fmt, rol = "agente")
   )
+}
+
+# --- Lo que el instrumento no acotó -------------------------------------------
+#
+# Las reglas derivadas del XLSForm solo ven lo que el formulario previó. En
+# ACNUR V3 eso eran 7 de 141 preguntas capturables con `constraint`: la duración
+# del trámite admitía cualquier entero y aceptó un -6, y la fecha del resultado
+# admitía cualquier fecha y aceptó una posterior al cierre de campo. Ninguna de
+# las dos era invisible; simplemente nadie escribió el criterio a mano.
+#
+# Estos dos sembradores se activan por la **ausencia de `constraint`** en el
+# instrumento, no por el nombre de la variable: miran el tipo declarado y la
+# base. Cumplen la regla de diseño del archivo —un sembrador no nombra variables
+# de un proyecto— porque `integer`/`decimal` y `date` son vocabulario de
+# XLSForm, no del estudio.
+#
+# Y proponen solo cuando la base **ya muestra el problema**, igual que el
+# sembrador de periodo. Sembrar sobre toda numérica sin tope sería ruido: el
+# GOAL es explícito en que sembrar todo lo posible no es cobertura.
+
+# Proporción máxima de valores negativos para creer que el signo es un error y
+# no parte de la variable. Se mide sobre los negativos y no sobre los positivos
+# porque con pocos casos la proporción complementaria engaña: en una variable de
+# 8 respuestas, un único -6 ya deja el 87.5% de no negativos y quedaría fuera de
+# un umbral del 90%. Un saldo o una diferencia traen negativos en abundancia y
+# no cruzan este techo.
+.semilla_negativos_umbral <- 0.2
+
+.semilla_tiene_constraint <- function(survey, nombre) {
+  if (is.null(survey) || !"constraint" %in% names(survey)) return(FALSE)
+  i <- which(as.character(survey$name) == nombre)[1]
+  if (is.na(i)) return(FALSE)
+  v <- as.character(survey$constraint[i])
+  !is.na(v) && nzchar(trimws(v))
+}
+
+.semilla_vars_por_tipo <- function(survey, tipos) {
+  if (is.null(survey) || !all(c("name", "type") %in% names(survey))) return(character(0))
+  tp <- sub("\\s.*$", "", trimws(as.character(survey$type)))
+  as.character(survey$name[tp %in% tipos])
+}
+
+#' Proponer un piso a las numéricas que el instrumento dejó sin acotar
+#'
+#' Una pregunta `integer` sin `constraint` acepta cualquier entero, incluidos
+#' los negativos. Cuando una duración, un conteo o un monto trae un valor bajo
+#' cero, no es una respuesta: es una digitación que nada frenó en campo.
+#'
+#' Se propone solo si la variable **parece** no admitir negativos —el grueso de
+#' sus valores son cero o más— y **ya tiene alguno**. Una variable con negativos
+#' legítimos (un saldo, una diferencia) no cruza el umbral y no se propone.
+#'
+#' @param data data.frame de la base cargada.
+#' @param survey hoja `survey` del instrumento, para el tipo y el `constraint`.
+#' @param reglas_existentes lista de criterios ya definidos en el scope.
+#' @param umbral proporción máxima de valores negativos admitida.
+#' @return lista de candidatos, uno por variable afectada.
+#' @family validacion
+#' @export
+reglas_semilla_rango_numerico <- function(data, survey, reglas_existentes = list(),
+                                          umbral = .semilla_negativos_umbral) {
+  if (!is.data.frame(data) || !nrow(data)) return(list())
+  out <- list()
+  for (nm in .semilla_vars_por_tipo(survey, c("integer", "decimal"))) {
+    if (!nm %in% names(data)) next
+    if (.semilla_tiene_constraint(survey, nm)) next
+    if (.semilla_ya_cubierta(reglas_existentes, "rango_num", nm)) next
+    x <- suppressWarnings(as.numeric(as.character(data[[nm]])))
+    x <- x[!is.na(x)]
+    if (length(x) < 3L) next
+    n_neg <- sum(x < 0)
+    if (n_neg == 0L) next                       # nada que mostrar todavía
+    if (n_neg / length(x) > umbral) next        # el signo parece parte de la variable
+    out[[length(out) + 1L]] <- list(
+      tipo = "rango_num",
+      variables = list(nm),
+      params = list(min = 0),
+      nombre = sprintf("Valor negativo · %s", .semilla_nombrar_var(nm, survey)),
+      mensaje = "Se registró un valor negativo en una pregunta que no admite valores bajo cero.",
+      severidad = "error",
+      activa = TRUE,
+      planned_action_type = "ignore_rule",
+      origen = "sembrado",
+      semilla = list(
+        origen = "rango_numerico",
+        columna = nm,
+        n_casos_afectados = as.integer(n_neg),
+        n_casos = as.integer(length(x)),
+        porque = sprintf(
+          paste("%d de %d respuestas están bajo cero y el resto no; la pregunta no",
+                "declara `constraint`, así que nada lo impidió en campo."),
+          n_neg, length(x))
+      )
+    )
+  }
+  out
+}
+
+#' Proponer un techo a las fechas que el cuestionario declara
+#'
+#' Una pregunta `date` sin `constraint` acepta cualquier fecha, incluida una
+#' posterior al día en que se hizo la entrevista. Nadie puede declarar un hecho
+#' que todavía no ocurrió, así que una fecha por delante del envío es siempre
+#' un error de captura.
+#'
+#' El techo se propone como el último día de recolección observado, que es el
+#' mismo criterio del sembrador de periodo pero aplicado a lo que **responde el
+#' entrevistado**, no a lo que escribe la plataforma.
+#'
+#' @param data data.frame de la base cargada.
+#' @param survey hoja `survey` del instrumento.
+#' @param reglas_existentes lista de criterios ya definidos en el scope.
+#' @return lista de candidatos, uno por variable afectada.
+#' @family validacion
+#' @export
+reglas_semilla_fecha_declarada <- function(data, survey, reglas_existentes = list()) {
+  if (!is.data.frame(data) || !nrow(data)) return(list())
+  ref_col <- .semilla_primera_columna(data, .semilla_fecha_plataforma)
+  if (is.na(ref_col)) return(list())
+  ref <- .semilla_como_fecha(data[[ref_col]])
+  if (all(is.na(ref))) return(list())
+  cierre <- max(ref, na.rm = TRUE)
+
+  out <- list()
+  for (nm in .semilla_vars_por_tipo(survey, "date")) {
+    if (!nm %in% names(data) || nm %in% .semilla_fecha_plataforma) next
+    if (.semilla_tiene_constraint(survey, nm)) next
+    if (.semilla_ya_cubierta(reglas_existentes, "rango_fecha", nm)) next
+    f <- .semilla_como_fecha(data[[nm]])
+    if (!sum(!is.na(f))) next
+    posteriores <- which(!is.na(f) & !is.na(ref) & f > ref)
+    if (!length(posteriores)) next
+    out[[length(out) + 1L]] <- list(
+      tipo = "rango_fecha",
+      variables = list(nm),
+      params = list(max = as.character(cierre), timezone = "America/Lima"),
+      nombre = sprintf("Fecha posterior al campo · %s", .semilla_nombrar_var(nm, survey)),
+      mensaje = sprintf("La fecha declarada es posterior al último día de recolección (%s).",
+                        as.character(cierre)),
+      severidad = "error",
+      activa = TRUE,
+      planned_action_type = "ignore_rule",
+      origen = "sembrado",
+      semilla = list(
+        origen = "fecha_declarada",
+        columna = nm,
+        referencia = ref_col,
+        cierre = as.character(cierre),
+        n_casos_afectados = as.integer(length(posteriores)),
+        n_casos = as.integer(sum(!is.na(f))),
+        porque = sprintf(
+          paste("%d de %d respuestas declaran una fecha posterior a la de su propio",
+                "envío; la pregunta no declara `constraint`, así que nada lo impidió."),
+          length(posteriores), sum(!is.na(f)))
+      )
+    )
+  }
+  out
 }

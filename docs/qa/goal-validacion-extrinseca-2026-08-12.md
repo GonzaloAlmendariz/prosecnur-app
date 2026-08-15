@@ -31,6 +31,7 @@ nuevo aunque se cierre en el momento.
 | **5** | L6 | Tipo nuevo: comparar filas por intervalo, no por igualdad | ☑ validado 2026-08-12 |
 | **6** | L7 + L8 + L9 | Presentación | ☑ validado 2026-08-12 |
 | **7** | L10 + L11 | Gobierno: el ADR y adelantar el aviso a Carga | ☑ validado 2026-08-13 |
+| **8** | L16 + L17 | Sembrar donde el instrumento no acotó: es por ahí que entraron los dos casos que ACNUR V3 terminó excluyendo | ☑ validado 2026-08-15 |
 
 ## La calidad que se persigue
 
@@ -455,6 +456,52 @@ presentación decide qué cuenta y cómo se dice.
   caso»; la variable de ruta en ámbar con «Sacaría 16 casos del análisis». Al
   adoptar, el bloque pasa a «Declarado», el botón cambia a «Quitar» y el CTA a
   «Aplicar y reconstruir plan». Consola sin errores.
+
+**L16 · Sembrar el piso de las numéricas sin `constraint`** ☑ *(2026-08-15)*
+- **Rol**: cubrir el hueco por donde entran los valores imposibles. Las cinco
+  familias derivadas del XLSForm no tienen nada que mirar cuando el instrumento
+  no acotó la pregunta, y en `ACNUR V3` eso eran **7 de 141** preguntas
+  capturables con `constraint`.
+- **Objetivo**: que una `integer`/`decimal` sin `constraint` que ya trae un
+  valor negativo proponga sola `rango_num` con `min = 0`, sin que nadie sepa de
+  antemano que esa variable tenía el problema.
+- **Dónde vive**: `reglas_semilla_rango_numerico()` en
+  `api/R/reglas_custom_semilla.R`, registrado en `reglas_semilla_todas()`
+- **Se activa por la ausencia, no por el nombre**: mira el `type` declarado y si
+  la fila trae `constraint`. Cumple la regla del archivo —un sembrador no nombra
+  variables de un proyecto— porque `integer` es vocabulario de XLSForm.
+- **Control de falso positivo**: los negativos deben ser a lo sumo el 20% de los
+  valores. Un saldo o una diferencia los trae en abundancia y no se propone. El
+  umbral se mide sobre los negativos y no sobre los positivos porque con pocos
+  casos la proporción complementaria engaña: con 8 respuestas, un único `-6` ya
+  deja 87.5% de no negativos y quedaría fuera de un umbral del 90%.
+- **Evidencia** sobre `ACNUR V3` (103 casos, instrumento del cliente): propone
+  `rango_num min=0` sobre `MesesReva`, con el enunciado de la pregunta y el
+  motivo «1 de 87 respuestas están bajo cero y el resto no; la pregunta no
+  declara `constraint`». Marca exactamente el caso `H1003`.
+- **Control**: la misma base sin el `-6` propone **0**.
+
+**L17 · Sembrar el techo de las fechas declaradas** ☑ *(2026-08-15)*
+- **Rol**: nadie puede declarar un hecho posterior al día en que se le pregunta.
+  El sembrador de periodo (L13) ya cubre la fecha que escribe la plataforma;
+  este cubre las que **responde el entrevistado**, que es donde el instrumento
+  suele olvidar el `constraint`.
+- **Objetivo**: que una `date` sin `constraint` con alguna respuesta posterior a
+  su propio envío proponga sola `rango_fecha` con el último día de recolección
+  como techo.
+- **Dónde vive**: `reglas_semilla_fecha_declarada()` en
+  `api/R/reglas_custom_semilla.R`
+- **Evidencia** sobre `ACNUR V3`: propone `rango_fecha max=2026-08-06` sobre
+  `date_reva_sit` —«1 de 69 respuestas declaran una fecha posterior a la de su
+  propio envío»— y marca el caso `H1008`, que declaraba haber recibido el
+  resultado de su trámite **14 días después de su entrevista**.
+- **Control**: una base donde ninguna fecha declarada supera su envío propone
+  **0**; una variable que ya trae `constraint` nunca se propone.
+
+**Los dos juntos**: sobre la base original de ACNUR V3 proponen exactamente los
+**2 criterios que hubo que escribir a mano** para encontrar los dos casos que
+terminaron excluidos. Gate del área: `test-reglas-semilla-sin-constraint.R`
+19 asserts · 290 asserts / 0 fallos en las siete suites de validación.
 
 ### Espera decisión de Gonzalo
 
