@@ -171,6 +171,11 @@ base vigente que no produjo esta etapa».
   universo, nunca la cruda.
 - **Check estático.** `rg "recommended_file_id"` no debe devolver el único uso
   actual como declaración de tipo sin consumidor: o se usa, o se retira.
+  **Resuelto el 2026-08-15: se retiró.** Tenía un productor
+  (`limpieza_finalize`), una declaración de tipo y cero consumidores, y desde
+  que la base se promueve sola describía algo que ya no ocurre. Quien quiera el
+  archivo lo tiene en `artifacts$files` con kind `base_limpia`; qué base rige lo
+  dice `artifacts$promocion`, que la pestaña ya declara.
 
 ## Notas
 
