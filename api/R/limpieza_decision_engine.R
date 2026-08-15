@@ -125,9 +125,11 @@
     effective_data_file_id = as.character(clean_meta$file_id %||% ""),
     applied_at = .limpieza_now_utc(),
     n_casos_antes = as.integer(n_antes %||% NA_integer_),
-    n_casos_despues = as.integer(n_despues %||% NA_integer_),
-    bloqueo = if (nzchar(motivo_bloqueo)) motivo_bloqueo else NULL
+    n_casos_despues = as.integer(n_despues %||% NA_integer_)
   )
+  # `bloqueo` se agrega solo si lo hay: el serializer unboxed convierte un NULL
+  # en `{}`, y el cliente tiene que poder preguntar si es un texto.
+  if (nzchar(motivo_bloqueo)) linaje$bloqueo <- motivo_bloqueo
   if (nzchar(motivo_bloqueo)) {
     meta$limpieza <- linaje
     s$estudio$bases[[nombre]] <- meta
@@ -164,6 +166,30 @@
   s <- .mark_project_dirty(s)
   .session_env[[sid]] <- s
   invisible(TRUE)
+}
+
+# El linaje que rige ahora mismo, leído de la base y no del artefacto congelado
+# del último cierre: revertir cambia la base sin volver a finalizar, y el
+# cliente tiene que ver el estado actual, no el del momento en que se cerró.
+.limpieza_linaje_vigente <- function(sid, base_nombre = NULL) {
+  s <- tryCatch(session_get(sid, required = FALSE), error = function(e) NULL)
+  if (is.null(s)) return(NULL)
+  nombre <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
+  if (is.null(nombre) || !nzchar(nombre)) return(NULL)
+  linaje <- s$estudio$bases[[nombre]]$limpieza
+  if (!is.list(linaje) || !length(linaje)) return(NULL)
+  linaje
+}
+
+# Volver atrás es una operación de la misma cadena que promover: restituye la
+# base anterior e invalida aguas abajo, porque el insumo volvió a cambiar.
+limpieza_revertir_promocion <- function(sid, base_nombre = NULL) {
+  if (!isTRUE(.limpieza_revertir_promocion(sid, base_nombre))) {
+    stop_api(409, "E_LIMPIEZA_SIN_PROMOCION",
+             "Esta base no tiene una promocion de limpieza vigente que revertir.")
+  }
+  .limpieza_invalidate_downstream(sid, base_nombre)
+  .limpieza_linaje_vigente(sid, base_nombre)
 }
 
 .limpieza_make_case_ids <- function(df, table_key = "principal") {

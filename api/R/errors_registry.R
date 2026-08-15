@@ -377,6 +377,7 @@ errores_registrados <- function() {
     "E_LIMPIEZA_RATIONALE",                                  "limpieza_decision_engine.R",        "400",
     "E_LIMPIEZA_RECODE_MAP",                                 "limpieza_decision_engine.R",        "400",
     "E_LIMPIEZA_SCOPE",                                      "limpieza_decision_engine.R",        "400",
+    "E_LIMPIEZA_SIN_PROMOCION",                              "limpieza_decision_engine.R",        "409",
     "E_LIMPIEZA_SM_ADJUST",                                  "limpieza_decision_engine.R",        "400",
     "E_LIMPIEZA_SOURCE_ID",                                  "limpieza_decision_engine.R",        "400",
     "E_LIMPIEZA_SOURCE_TYPE",                                "limpieza_decision_engine.R",        "400",

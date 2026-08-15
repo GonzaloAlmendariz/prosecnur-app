@@ -325,9 +325,24 @@ export type LimpiezaArtifact = {
   generated_at: string;
 };
 
+// ADR 0076 — linaje de la base depurada. `enabled` dice si la promoción rige
+// ahora mismo; `bloqueo` sólo llega cuando no se pudo promover (hoy, bases con
+// grupos repetibles) y `reverted_at` cuando el analista volvió atrás.
+export type LimpiezaPromocion = {
+  enabled: boolean;
+  source_data_file_id: string;
+  effective_data_file_id: string;
+  applied_at?: string;
+  n_casos_antes?: number | null;
+  n_casos_despues?: number | null;
+  bloqueo?: string;
+  reverted_at?: string;
+};
+
 export type LimpiezaArtifactsBundle = {
   finalized_at?: string;
   recommended_file_id?: string;
+  promocion?: LimpiezaPromocion;
   files: LimpiezaArtifact[];
 };
 

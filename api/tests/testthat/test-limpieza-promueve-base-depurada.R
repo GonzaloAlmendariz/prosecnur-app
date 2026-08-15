@@ -107,6 +107,95 @@ test_that("promover actualiza la base vigente y deja linaje reversible", {
   expect_true(nzchar(base2$limpieza$reverted_at %||% ""))
 })
 
+test_that("sin promocion vigente, revertir es un 409 y no un silencio", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  err <- tryCatch(prosecnurapp:::limpieza_revertir_promocion(sid, "default"),
+                  api_error = function(e) e)
+  expect_s3_class(err, "api_error")
+  expect_equal(err$code, "E_LIMPIEZA_SIN_PROMOCION")
+  expect_equal(err$status, 409)
+})
+
+test_that("revertir devuelve el linaje vigente e invalida aguas abajo", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"),
+                  DATA_LIMPIA = list(file_id = "DATA_LIMPIA", ext = "xlsx"))
+  s$codif_aplicado <- TRUE
+  s$analitica_frecuencias_ok <- TRUE
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  prosecnurapp:::.limpieza_promover_base(
+    sid = sid, base_nombre = "default",
+    clean_meta = list(file_id = "DATA_LIMPIA", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 101, n_columnas = 215
+  )
+
+  linaje <- prosecnurapp:::limpieza_revertir_promocion(sid, "default")
+  expect_false(isTRUE(linaje$enabled))
+  expect_true(nzchar(linaje$reverted_at %||% ""))
+  expect_equal(linaje$n_casos_antes, 103L)
+
+  s2 <- prosecnurapp:::session_get(sid)
+  expect_equal(s2$estudio$bases$default$data_file_id, "DATA_CRUDA")
+  # El insumo volvió a cambiar: lo de aguas abajo se rehace.
+  expect_false(isTRUE(s2$codif_aplicado))
+  expect_false(isTRUE(s2$analitica_frecuencias_ok))
+})
+
+test_that("el linaje que se sirve es el vigente, no el congelado del cierre", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"),
+                  DATA_LIMPIA = list(file_id = "DATA_LIMPIA", ext = "xlsx"))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  prosecnurapp:::.limpieza_promover_base(
+    sid = sid, base_nombre = "default",
+    clean_meta = list(file_id = "DATA_LIMPIA", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 101, n_columnas = 215
+  )
+
+  # Editar una decisión limpia `limpieza_artifacts`, pero la base promovida
+  # sigue rigiendo: el payload tiene que seguir declarándolo.
+  payload <- prosecnurapp:::build_limpieza(list(), sid = sid, base_nombre = "default")
+  expect_true(isTRUE(payload$artifacts$promocion$enabled))
+  expect_equal(payload$artifacts$promocion$n_casos_despues, 101L)
+
+  prosecnurapp:::limpieza_revertir_promocion(sid, "default")
+  payload2 <- prosecnurapp:::build_limpieza(list(), sid = sid, base_nombre = "default")
+  expect_false(isTRUE(payload2$artifacts$promocion$enabled))
+})
+
+test_that("sin bloqueo la clave no viaja: el serializer convertiria el NULL en {}", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta()))
+  s$files <- list(DATA_CRUDA = list(file_id = "DATA_CRUDA", ext = "xlsx"),
+                  DATA_LIMPIA = list(file_id = "DATA_LIMPIA", ext = "xlsx"))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  linaje <- prosecnurapp:::.limpieza_promover_base(
+    sid = sid, base_nombre = "default",
+    clean_meta = list(file_id = "DATA_LIMPIA", ext = "xlsx"),
+    source_fid = "DATA_CRUDA", n_antes = 103, n_despues = 101, n_columnas = 215
+  )
+  expect_false("bloqueo" %in% names(linaje))
+  json <- jsonlite::toJSON(list(promocion = linaje), auto_unbox = TRUE)
+  expect_false(grepl("bloqueo", json, fixed = TRUE))
+})
+
 test_that("una base con hijas repeat no se promueve y declara el motivo", {
   sid <- prosecnurapp:::session_create()
   s <- prosecnurapp:::session_get(sid)

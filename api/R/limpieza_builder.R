@@ -261,6 +261,12 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
   if (!is.null(preview_error) && nzchar(preview_error)) {
     artifacts$preview_error <- preview_error
   }
+  # ADR 0076: `promocion` describe qué base rige, y eso puede cambiar después
+  # del cierre (al revertir). Se lee de la base, no del artefacto guardado.
+  if (!is.null(sid)) {
+    linaje <- .limpieza_linaje_vigente(sid, base_nombre)
+    if (!is.null(linaje)) artifacts$promocion <- linaje
+  }
 
   list(
     progreso = list(

@@ -1411,12 +1411,18 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
   marco_ok <- rep(TRUE, n)
   seleccion <- .cm_criterios_normalize_seleccion(criterios_seleccion)
   report <- list(activa = FALSE, criterios = list())
+  # `marco_razon` acompaña a `marco_ok` fila a fila: sin ella, una fila que solo
+  # cae por un criterio de alumno se publica en `exclusions` con exclude_reason
+  # vacío (los flags legacy que arma el motor están todos en TRUE) y el marco no
+  # puede explicar qué se llevó las filas. Nombra el criterio, no un genérico:
+  # "formation" es accionable, "criterio_alumno" obliga a adivinar cuál de ellos.
   if (!n || !.cm_criterios_seleccion_activa(seleccion)) {
-    return(list(marco_ok = marco_ok, report = report))
+    return(list(marco_ok = marco_ok, marco_razon = rep("", n), report = report))
   }
   fac_keys <- .cm_criterios_fac_key(filas$faculty %||% rep("", n))
   by <- seleccion$byVariable %||% list()
   algun_alumno <- FALSE
+  razon_cols <- list()
   for (id in names(by)) {
     crit <- by[[id]]
     if (!identical(crit$scope, "alumno")) next
@@ -1428,10 +1434,20 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
       rep(TRUE, n))
     layer <- crit$layer %||% "marco"
     report$criterios[[id]] <- list(layer = layer, filas_pasan = as.integer(sum(flag)))
-    if (identical(layer, "marco")) marco_ok <- marco_ok & flag
+    # Solo la capa "marco" recorta N, así que solo ella justifica una exclusión:
+    # instrumento/procesamiento se reportan pero no sacan a nadie del marco.
+    if (identical(layer, "marco")) {
+      marco_ok <- marco_ok & flag
+      razon_cols[[id]] <- ifelse(flag, "", id)
+    }
   }
   report$activa <- algun_alumno
-  list(marco_ok = marco_ok, report = report)
+  marco_razon <- if (length(razon_cols)) {
+    .cm_criterios_concat_razones(razon_cols)
+  } else {
+    rep("", n)
+  }
+  list(marco_ok = marco_ok, marco_razon = marco_razon, report = report)
 }
 
 # =============================================================================
