@@ -1731,7 +1731,7 @@ mount_validacion <- function(pr) {
         scope <- .get_base_scope(sid, base)
         vacio <- list(ok = TRUE, base_nombre = base %||% NA_character_,
                       identidad = list(llaves = list(), agentes = list()),
-                      periodo = NULL, caso_valido = list())
+                      periodo = NULL, caso_valido = list(), abiertas = list())
 
         data <- scope$evaluacion$datos %||% NULL
         if (is.null(data)) {
@@ -1757,12 +1757,26 @@ mount_validacion <- function(pr) {
 
         periodo <- tryCatch(reglas_semilla_periodo(data, cfg), error = function(e) list())
 
+        # Las preguntas abiertas independientes se declaran, y para declararlas
+        # hay que ver cuáles son texto de contenido y cuáles captura operativa.
+        # Las que ya tienen otro rol quedan fuera: el estudio ya dijo qué son.
+        survey <- tryCatch({
+          files <- .resolve_base_files(sid, base)
+          inst <- leer_xlsform_limpieza(files$xlsform$path, verbose = FALSE)
+          .validacion_apply_label_overrides(sid, inst)$survey %||% NULL
+        }, error = function(e) NULL)
+        con_rol <- c((cfg %||% list())$identity$variables,
+                     (cfg %||% list())$identity$agent_variable)
+        abiertas <- tryCatch(abiertas_candidatas(data, survey, con_rol),
+                             error = function(e) list())
+
         list(
           ok = TRUE,
           base_nombre = base %||% NA_character_,
           identidad = tryCatch(identidad_candidatas(data), error = function(e) vacio$identidad),
           periodo = if (length(periodo)) periodo[[1]]$semilla else NULL,
-          caso_valido = cv
+          caso_valido = cv,
+          abiertas = abiertas
         )
       })) |>
 

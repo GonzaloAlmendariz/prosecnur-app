@@ -602,10 +602,15 @@ monitoreo_calidad_campo_bloque <- function(data, operational_config = NULL,
   fin <- .mcc_primera(data, .MCC_FIN_CANDIDATAS)
   caso <- .mcc_primera(data, .MCC_CASO_CANDIDATAS)
 
+  abiertas <- (cfg %||% list())$abiertas %||% list()
   alertas <- c(
     monitoreo_alertas_procedencia(data, agente, fecha),
     monitoreo_alertas_equipo(data, agente, roster, survey),
-    monitoreo_alertas_cruce(data, llaves, ini, fin, agente, caso)
+    monitoreo_alertas_cruce(data, llaves, ini, fin, agente, caso),
+    monitoreo_alertas_abiertas(
+      data, survey, agente, caso,
+      declaradas = if (isTRUE(abiertas$enabled)) abiertas$variables else character(0)
+    )
   )
   # Lo bloqueante arriba: es lo único que produce datos irrecuperables y lo
   # único que hay que resolver hoy.
@@ -658,10 +663,17 @@ monitoreo_calidad_campo_para_sesion <- function(sid, data, cfg = list(), base_no
       oc <- ((s$estudio %||% list())$bases %||% list())[[base]]$validacion$operational_config
     }
     oc <- oc %||% s$validacion$operational_config %||% list()
+    # El instrumento es lo que distingue una pregunta abierta de contenido de un
+    # campo de captura operativa. Si no está cargado, las abiertas simplemente
+    # no se vigilan; el resto de las señales no lo necesita.
+    inst <- NULL
+    if (!is.null(base) && nzchar(base)) inst <- (s$rp_inst_sources %||% list())[[base]]
+    inst <- inst %||% s$rp_inst %||% NULL
     monitoreo_calidad_campo_bloque(
       data,
       operational_config = oc,
-      roster = (cfg$territorial %||% list())$enumerator_roster %||% NULL
+      roster = (cfg$territorial %||% list())$enumerator_roster %||% NULL,
+      survey = inst$survey %||% NULL
     )
   }, error = function(e) list(
     enabled = FALSE, alertas = list(),

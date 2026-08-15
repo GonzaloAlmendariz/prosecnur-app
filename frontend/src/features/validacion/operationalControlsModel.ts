@@ -27,6 +27,7 @@ export function defaultOperationalConfig(): InstrumentoOperationalConfig {
     },
     identity: { enabled: false, variables: [], agent_variable: "" },
     caso_valido: { enabled: false, condiciones: [] },
+    abiertas: { enabled: false, variables: [] },
   };
 }
 
@@ -79,6 +80,10 @@ export function normalizeOperationalConfig(
           valores: uniqueStrings(c?.valores),
         }))
         .filter((c) => c.variable.length > 0 && c.valores.length > 0),
+    },
+    abiertas: {
+      enabled: input?.abiertas?.enabled === true,
+      variables: uniqueStrings(input?.abiertas?.variables),
     },
   };
 }

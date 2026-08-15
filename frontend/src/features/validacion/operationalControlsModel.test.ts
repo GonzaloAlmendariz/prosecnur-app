@@ -32,6 +32,7 @@ describe("operational controls model", () => {
       // analista, y un proyecto que ya existía no debe reetiquetarse solo.
       identity: { enabled: false, variables: [], agent_variable: "" },
       caso_valido: { enabled: false, condiciones: [] },
+      abiertas: { enabled: false, variables: [] },
     });
   });
 
@@ -40,6 +41,7 @@ describe("operational controls model", () => {
     const normalized = normalizeOperationalConfig({ version: 2 });
     expect(normalized.identity).toEqual({ enabled: false, variables: [], agent_variable: "" });
     expect(normalized.caso_valido).toEqual({ enabled: false, condiciones: [] });
+    expect(normalized.abiertas).toEqual({ enabled: false, variables: [] });
   });
 
   it("descarta condiciones de validez incompletas en vez de guardarlas rotas", () => {
