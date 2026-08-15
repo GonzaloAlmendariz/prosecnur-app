@@ -3,6 +3,7 @@
 // importan del barrel ./client; este módulo no cambia el contrato.
 
 import { apiFetch, downloadFailedMessage, handle, headers } from "./core";
+import type { CodifSinRecodificar } from "./codificacion";
 
 // ---- Dimensiones (tab Analítica → Dimensiones) ---------------------------
 
@@ -1109,7 +1110,15 @@ export type AplicarResult = {
 };
 
 export async function apiCodifAplicar() {
-  return handle<{ ok: true; job_id: string; kind: string }>(
+  // `sin_recodificar` (ADR 0078, invariante 5): qué variables se entregan sin
+  // recodificar, separando la decisión deliberada del olvido. Informa, no
+  // bloquea — un gate acá se satisfaría desmarcando todo.
+  return handle<{
+    ok: true;
+    job_id: string;
+    kind: string;
+    sin_recodificar?: CodifSinRecodificar[];
+  }>(
     await apiFetch("/api/codificacion/aplicar", { method: "POST", headers: headers() })
   );
 }
