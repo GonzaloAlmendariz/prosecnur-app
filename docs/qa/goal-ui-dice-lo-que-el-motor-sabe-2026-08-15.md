@@ -44,7 +44,26 @@ sabe nada que la interfaz calle.
 | **L5** | El dropdown muestra qué marcó esa persona en la múltiple | `codificacion/marcasPrevias.ts` · `QuickAssignDropdown` · `/api/codificacion/respuestas` | ☑ hecho — `d4273aea`. Medido en ULISESV3: 17 de 45 respuestas abiertas de sus SM vienen de filas con códigos ya marcados. |
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `dashboard/store.ts` | ⛔ bloqueado — necesita tu decisión, ver abajo. |
-| **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones, con un proyecto real | ☐ sin empezar — es la medición de la vara, no un arreglo. Lo que encuentre entra como ítem nuevo. |
+| **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones, con un proyecto real | ◐ a medias — Codificación barrida (sin hallazgos, ver abajo). Faltan Carga, Validación, Analítica y Gráficos. |
+
+### L8 — barrido de V1, primera pasada
+
+Medido sobre ULISESV3 el 2026-08-15.
+
+**Codificación: sin hallazgos.** La sospecha era que el landing mostrara como
+«respuestas» lo que el motor cuenta como filas respondidas, que no es lo mismo
+que las respuestas únicas a codificar: en `UNCHR_improving` son 103 contra 12,
+en `MesesReva` 87 contra 9, en `WhyNoCenso` 47 contra 2. No hay contradicción:
+`PreguntasLanding.tsx:905` dice «103 respuestas · 12 únicas» y
+`CodingConfigActions.tsx:685` dice «103 casos · 12 respuestas únicas». Las dos
+cifras están y con su nombre. `CodificarWizard.tsx:327` y
+`PreguntaDetalle.tsx:127` dicen sólo «tiene N respuestas», que es escueto pero
+no falso —N sí son respuestas— y el detalle muestra las únicas abajo.
+
+Queda anotado para no volver a investigarlo: **el par 103/12 es correcto y
+deliberado**, no un bug de denominador.
+
+Falta barrer Carga, Validación, Analítica y Gráficos.
 
 ### L7 — lo que encontré y por qué no lo decido yo
 
